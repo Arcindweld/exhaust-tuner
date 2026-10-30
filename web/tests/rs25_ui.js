@@ -1,0 +1,11 @@
+const {chromium}=require('playwright');
+(async()=>{ const b=await chromium.launch(); const p=await b.newPage(); const errs=[]; p.on('pageerror',e=>errs.push(String(e)));
+  await p.goto('file://'+__dirname+'/../index.html'); await p.waitForTimeout(800);
+  const set=async(id,v)=>p.evaluate(([id,v])=>{const el=document.getElementById(id); el.value=v; el.dispatchEvent(new Event('change',{bubbles:true}));},[id,v]);
+  await set('v-class','bike'); await set('v-mode','veh'); await set('v-make','Aprilia');
+  const r=await p.evaluate(()=>[...document.getElementById('v-pick').options].filter(o=>/RS 660/.test(o.textContent)).map(o=>[o.value,o.textContent]));
+  console.log(JSON.stringify(r));
+  const o=r.find(x=>/2025\+/.test(x[1])); await set('v-pick',o[0]);
+  const a=await p.evaluate(()=>({eng:document.getElementById('s-eng').value,disp:document.getElementById('s-disp').value,red:document.getElementById('s-red').value}));
+  console.log(JSON.stringify(a), errs.length?'ERR '+errs:'no page errors');
+  const ok=r.length===2&&a.eng==='p2_270'&&!errs.length; console.log(ok?'all passed':'FAIL'); await b.close(); process.exit(ok?0:1); })();

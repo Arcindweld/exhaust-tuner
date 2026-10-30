@@ -1,0 +1,24 @@
+{
+ "cal_rpm": 1980.0,
+ "fmep_target_bar": 0.896,
+ "points": [
+  [
+   0.3,
+   1.52507
+  ],
+  [
+   0.45,
+   2.99076
+  ],
+  [
+   0.6,
+   4.44728
+  ]
+ ],
+ "fit_NMEP_bar": {
+  "a": -1.3956116666666707,
+  "b_per_bar": 9.740700000000006
+ },
+ "p_map_bar_at_cal": 0.23526149729143384,
+ "rule": "p_map(rpm) = (FMEP(rpm) - a) / b, the same fit at every speed; checked after the runs"
+}

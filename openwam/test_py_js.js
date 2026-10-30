@@ -1,0 +1,205 @@
+// test_py_js.js - byte-for-byte comparison of wam_export.js against make_wam.py.
+//   node test_py_js.js            (needs python3 on PATH; run from any folder)
+// Cases: the v1 reference files (legacy entry point), the named specs in specs/ with several run settings
+// (single cylinder, 4-1, Tri-Y, stepped primaries with both step BCs, dual-bank V8), and randomised specs
+// that vary every number, so that the number formatting and rounding are exercised far from the defaults.
+// It also checks readAvg() on an AVG file and prints the .bat for the user's exe.
+const fs = require('fs');
+const path = require('path');
+const { spawnSync } = require('child_process');
+const W = require('./wam_export.js');
+
+const HERE = __dirname;
+const spec = n => JSON.parse(fs.readFileSync(path.join(HERE, 'specs', n + '.json'), 'utf8'));
+
+function python(jobs) {
+  const code = [
+    'import json, sys',
+    'sys.path.insert(0, ' + JSON.stringify(HERE) + ')',
+    'import make_wam',
+    'jobs = json.load(sys.stdin)',
+    'out = []',
+    'for j in jobs:',
+    '    try:',
+    '        if j["kind"] == "legacy":',
+    '            out.append({"text": make_wam.make_wam(j["p"])})',
+    '        else:',
+    '            out.append({"text": make_wam.make_wam_spec(j["spec"], j["run"])})',
+    '    except Exception as ex:',
+    '        out.append({"error": "%s: %s" % (type(ex).__name__, ex)})',
+    'json.dump(out, sys.stdout)',
+  ].join('\n');
+  const r = spawnSync('python3', ['-c', code], { input: JSON.stringify(jobs), maxBuffer: 1 << 30, encoding: 'utf8' });
+  if (r.status !== 0) throw new Error(r.stderr);
+  return JSON.parse(r.stdout);
+}
+function js(j) {
+  try { return { text: j.kind === 'legacy' ? W.makeWamLegacy(j.p) : W.makeWam(j.spec, j.run) }; }
+  catch (ex) { return { error: ex.message }; }
+}
+
+// --- deterministic random numbers
+let seed = 12345;
+const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+const U = (a, b) => a + (b - a) * rnd();
+function randomSpec(base, k) {
+  const s = JSON.parse(JSON.stringify(base));
+  const e = s.e;
+  e.bore = U(0.05, 0.11); e.stroke = U(0.045, 0.1); e.rod = e.stroke * U(1.5, 2.1); e.cr = U(8, 14);
+  e.cd = U(0.55, 0.8); e.dIn = e.bore * U(0.32, 0.45); e.dEx = e.bore * U(0.28, 0.4); e.liftIn = e.dIn * U(0.2, 0.32); e.liftEx = e.dEx * U(0.2, 0.32);
+  e.cam = { ivo: Math.round(U(5, 60)), ivc: Math.round(U(20, 80)) + (k % 3 === 0 ? 0.5 : 0), evo: Math.round(U(25, 80)), evc: Math.round(U(5, 50)) + (k % 3 === 0 ? 0.5 : 0) };
+  e.burn = { start: U(5, 35), dur: U(35, 70) }; e.afr = U(11.5, 14.5); e.eta = U(0.6, 0.9);
+  if (k % 4 === 1) e.Twall = U(400, 520);
+  const d = U(0.03, 0.06);
+  s.intake = { segs: [{ L: U(0.08, 0.5), d0: d * 1.2, d1: d }, { L: U(0.05, 0.3), d0: d, d1: d }], Tw: U(300, 340) };
+  const dp = U(0.03, 0.055);
+  s.exhaust.segs = [{ L: U(0.05, 0.2), d0: dp, d1: dp }, { L: U(0.2, 0.8), d0: dp, d1: dp * (k % 2 ? 1 : U(1.0, 1.15)) }];
+  if (k % 5 === 2) s.exhaust.segs.push({ L: U(0.05, 0.3), d0: dp * 1.1, d1: dp * 1.1 });   // a step
+  s.exhaust.Tw = U(600, 800);
+  const n = s.opt.phases.length;
+  if (k % 7 === 3) s.opt.phases = s.opt.phases.map((ph, i) => (i === 0 ? 0 : (ph + U(-20, 20) + 720) % 720));   // uneven firing
+  const coll = s.opt.collector || (s.opt.collectors && s.opt.collectors[0]);
+  if (coll) { const dc = dp * Math.sqrt(n) * U(0.8, 1.0); coll.segs = [{ L: U(0.05, 0.2), d0: dp * Math.sqrt(n), d1: dc }, { L: U(0.05, 0.4), d0: dc, d1: dc }, { L: U(0.1, 0.5), d0: dc, d1: dc * U(1.2, 1.6) }]; coll.Tw = U(550, 750); }
+  return s;
+}
+
+const jobs = [];
+// v1 entry point against the v1 reference files
+for (const [f, over] of [['single450.wam', {}], ['single450_6000.wam', { rpm: 6000.0 }], ['single450_10000.wam', { rpm: 10000.0 }]])
+  jobs.push({ label: 'v1 legacy ' + f, kind: 'legacy', p: over, ref: fs.readFileSync(path.join(HERE, 'ref', f), 'utf8') });
+jobs.push({ label: 'v1 legacy lw_fct, 13 cycles, odd numbers', kind: 'legacy', p: { pipe_method: 'lw_fct', cycles: 13, bore_mm: 87.3, stroke_mm: 70.123, rpm: 7321.5, intake_len_mm: 271.3 } });
+// named specs
+const named = [
+  ['single cylinder (simSpec n=1)', 'i4_single_cyl', { rpm: 6000.0, cycles: 30 }],
+  ['4-1 at 4000', 'i4_41', { rpm: 4000.0, cycles: 30, name: 'i4_41_4000' }],
+  ['4-1 at 7800, 12.5 mm cells', 'i4_41', { rpm: 7800.0, cycles: 20, cell_mm: 12.5 }],
+  ['4-1, 3 average points per pipe', 'i4_41', { rpm: 6000.0, avg_points: 3 }],
+  ['Tri-Y 4-2-1', 'i4_triy', { rpm: 6000.0, cycles: 30 }],
+  ['stepped primaries, TCCUnionEntreTubos', 'i4_41_stepped', { rpm: 6000.0 }],
+  ['stepped primaries, branch steps', 'i4_41_stepped', { rpm: 6000.0, step_bc: 'branch' }],
+  ['dual-bank V8, two 4-1', 'v8_dual', { rpm: 6000.0, cycles: 30 }],
+  ['open primaries', 'i4_open_primaries', { rpm: 4000.0 }],
+];
+for (const [label, n, run] of named) jobs.push({ label, kind: 'spec', spec: spec(n), run });
+// randomised
+const bases = ['i4_single_cyl', 'i4_41', 'i4_triy', 'v8_dual'];
+for (let k = 0; k < 40; k++) {
+  const b = bases[k % bases.length];
+  jobs.push({ label: 'random ' + k + ' from ' + b, kind: 'spec', spec: randomSpec(spec(b), k),
+    run: { rpm: Math.round(U(2000, 12000)) + (k % 2 ? 0.25 : 0), cycles: 10 + k, cell_mm: [10, 8, 12.5, 5][k % 4], courant: U(0.5, 0.9) } });
+}
+// v3: downstream chain + expansion-volume mufflers, outlet/plenum instantaneous output, concatenated cycles
+function withTail(s, tail) { const c = s.opt.collector || s.opt.collectors[0]; c.tail = tail; return s; }
+const TAIL1 = [{ L_mm: 1000, d0_mm: 60, d1_mm: 60, Tw_C: 350 }, { V_litres: 7.2, Tw_C: 300 }, { L_mm: 500, d0_mm: 60, d1_mm: 60, Tw_C: 250 }];
+const TAIL2 = [{ L_mm: 100, d0_mm: 50.8, d1_mm: 50.8 }, { L_mm: 2400, d0_mm: 48.3, d1_mm: 48.3, Tw_C: 300 }, { L_mm: 600, d0_mm: 60.3, d1_mm: 60.3, Tw_C: 250 },
+  { V_litres: 7.2 }, { L_mm: 300, d0_mm: 60.3, d1_mm: 60.3, Tw_C: 200 }, { V_litres: 3.5, Tw_C: 180 }, { L_mm: 500, d0_mm: 60.3, d1_mm: 63.5, Tw_C: 150 }];
+jobs.push({ label: 'tail: pipe, 7.2 L muffler, tailpipe; ins_outlet, 3 cycles', kind: 'spec', spec: withTail(spec('i4_41'), TAIL1), run: { rpm: 3000.0, cycles: 12, ins_outlet: 1, ins_cycles: 3, out_step_deg: 0.5 } });
+jobs.push({ label: 'tail: two mufflers, Tw changes, cone tip, plenum_cd 0.9', kind: 'spec', spec: withTail(spec('i4_41'), TAIL2), run: { rpm: 1915.0, cycles: 24, ins_outlet: 1, plenum_cd: 0.9 } });
+jobs.push({ label: 'tail on Tri-Y', kind: 'spec', spec: withTail(spec('i4_triy'), TAIL1), run: { rpm: 6000.0, ins_outlet: 1 } });
+jobs.push({ label: 'tail on both V8 banks', kind: 'spec', spec: (() => { const s = spec('v8_dual'); s.opt.collectors.forEach(c => { c.tail = TAIL1; }); return s; })(), run: { rpm: 4000.0, ins_outlet: 1, ins_cycles: 2 } });
+jobs.push({ label: 'exhaust.tail on a single cylinder (no collector)', kind: 'spec', spec: (() => { const s = spec('i4_single_cyl'); s.exhaust.tail = TAIL1; return s; })(), run: { rpm: 6000.0, ins_outlet: 1 } });
+jobs.push({ label: 'ins_outlet without a tail', kind: 'spec', spec: spec('i4_41'), run: { rpm: 6000.0, ins_outlet: 1 } });
+for (let k = 0; k < 12; k++) {
+  const s = randomSpec(spec(['i4_41', 'i4_triy'][k % 2]), 100 + k);
+  const tail = [{ L_mm: U(200, 3000), d0_mm: U(45, 65), d1_mm: U(45, 65), Tw_C: U(150, 450) }];
+  if (k % 3) tail.push({ V_litres: U(1, 20), Tw_C: k % 2 ? U(100, 400) : undefined });
+  tail.push({ L_mm: U(200, 800), d0_mm: U(45, 65), d1_mm: U(45, 65) });
+  if (k % 4 === 0) tail.push({ V_litres: U(1, 20) }, { L_mm: U(100, 600), d0_mm: 55, d1_mm: 55, Tw_C: U(100, 300) });
+  jobs.push({ label: 'random tail ' + k, kind: 'spec', spec: withTail(s, JSON.parse(JSON.stringify(tail))), run: { rpm: Math.round(U(700, 7000)), cycles: 10 + k, ins_outlet: k % 2, ins_cycles: 1 + (k % 3), out_step_deg: U(0.05, 1) } });
+}
+// unequal-length primaries (exhaust.per_cyl) on a Tri-Y, with a tail
+jobs.push({ label: 'per-cylinder primaries 430/600 mm on a Tri-Y with a tail', kind: 'spec', spec: (() => {
+  const s = withTail(spec('i4_triy'), TAIL2);
+  const pr = L => [{ L: 0.05, d0: 0.038, d1: 0.038 }, { L, d0: 0.038, d1: 0.038 }];
+  s.exhaust.per_cyl = [pr(0.38), null, pr(0.38), pr(0.55)];
+  s.opt.collectors[0].stages[0].segs_by_group = [null, [{ L: 0.08, d0: 0.0445 * Math.SQRT2, d1: 0.05 }, { L: 0.61, d0: 0.05, d1: 0.05 }]]; return s; })(), run: { rpm: 735.0, cycles: 24, ins_outlet: 1, cell_mm: 15.0 } });
+for (let k = 0; k < 6; k++) {
+  const s = randomSpec(spec('i4_41'), 200 + k);
+  s.exhaust.per_cyl = s.opt.phases.map(() => [{ L: U(0.05, 0.15), d0: 0.04, d1: 0.04 }, { L: U(0.2, 0.7), d0: 0.04, d1: k % 2 ? 0.04 : U(0.04, 0.046) }]);
+  jobs.push({ label: 'random per_cyl ' + k, kind: 'spec', spec: s, run: { rpm: Math.round(U(700, 7000)), cycles: 8, ins_outlet: k % 2 } });
+}
+// throttled intake: runner inlets into a reservoir at manifold pressure (BC type 1)
+jobs.push({ label: 'intake reservoir 0.35 bar (throttled), tail, per_cyl', kind: 'spec', spec: (() => { const s = withTail(spec('i4_41'), TAIL1); s.intake.reservoir = { p_bar: 0.35 }; return s; })(), run: { rpm: 735.0, cycles: 14, ins_outlet: 1 } });
+jobs.push({ label: 'intake reservoir with T_C', kind: 'spec', spec: (() => { const s = spec('i4_triy'); s.intake.reservoir = { p_bar: 0.6, T_C: 40 }; return s; })(), run: { rpm: 2000.0 } });
+for (let k = 0; k < 4; k++) { const s = randomSpec(spec('i4_41'), 300 + k); s.intake.reservoir = { p_bar: U(0.25, 0.95), T_C: k % 2 ? U(20, 60) : undefined }; jobs.push({ label: 'random reservoir ' + k, kind: 'spec', spec: JSON.parse(JSON.stringify(s)), run: { rpm: Math.round(U(700, 4000)), cycles: 8 } }); }
+// error paths must agree too (both raise)
+jobs.push({ label: 'error: per_cyl count', kind: 'spec', spec: (() => { const s = spec('i4_41'); s.exhaust.per_cyl = [s.exhaust.segs, s.exhaust.segs]; return s; })(), run: {} });
+jobs.push({ label: 'error: segs_by_group count', kind: 'spec', spec: (() => { const s = spec('i4_triy'); s.opt.collectors[0].stages[0].segs_by_group = [null]; return s; })(), run: {} });
+jobs.push({ label: 'error: chambers', kind: 'spec', spec: Object.assign(spec('i4_41'), { exhaust: Object.assign(spec('i4_41').exhaust, { chambers: [{ x: 0.1, V: 1e-4, A: 1e-5, Le: 0.002 }] }) }), run: {} });
+jobs.push({ label: 'error: tail ends in a plenum', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 60, d1_mm: 60 }, { V_litres: 5 }]), run: {} });
+jobs.push({ label: 'error: tail starts with a plenum', kind: 'spec', spec: withTail(spec('i4_41'), [{ V_litres: 5 }, { L_mm: 500, d0_mm: 60, d1_mm: 60 }]), run: {} });
+jobs.push({ label: 'error: ins_cycles 0', kind: 'spec', spec: spec('i4_41'), run: { ins_cycles: 0 } });
+
+const py = python(jobs);
+let ok = 0, bad = 0;
+jobs.forEach((j, i) => {
+  const a = py[i], b = js(j);
+  let pass, why = '';
+  if (a.error || b.error) { pass = !!(a.error && b.error); why = 'py: ' + (a.error || 'ok') + ' | js: ' + (b.error || 'ok'); }
+  else if (a.text !== b.text) {
+    pass = false;
+    const la = a.text.split('\n'), lb = b.text.split('\n');
+    const n = la.findIndex((x, q) => x !== lb[q]);
+    why = 'first difference at line ' + (n + 1) + ':\n    py ' + JSON.stringify(la[n]) + '\n    js ' + JSON.stringify(lb[n]);
+  } else {
+    pass = true;
+    if (j.ref !== undefined) { pass = a.text === j.ref; why = pass ? 'identical to the v1 file' : 'differs from the v1 file'; }
+    else why = a.text.split('\n').length + ' lines identical';
+  }
+  if (pass) ok++; else bad++;
+  if (a.error && j.label.startsWith("random")) console.log("  (both raised) " + j.label + ": " + a.error);
+  if (!pass || !j.label.startsWith("random")) console.log((pass ? 'PASS ' : 'FAIL ') + j.label + ': ' + why);
+});
+console.log('random cases: ' + jobs.filter((j, i) => j.label.startsWith('random')).length + ' compared');
+console.log(ok + ' passed, ' + bad + ' failed');
+
+// formatting spot checks against Python
+const nums = [0.15, 0.1 + 0.2, 1e-5, 2.5e-5, 123456789012.5, 3.814697265625e-06, 0.0078125, 1e21, 299.99999999999994, 2.1e11, 44e6, 0.000643562, 1234.5];
+const pyfmt = spawnSync('python3', ['-c', 'import json,sys; xs=json.load(sys.stdin); print(json.dumps([["%.12g"%x, "%g"%x, repr(round(x,6)), repr(round(x,2))] for x in xs]))'],
+  { input: JSON.stringify(nums), encoding: 'utf8' });
+const pf = JSON.parse(pyfmt.stdout);
+let fbad = 0;
+nums.forEach((x, i) => {
+  const jsv = [W.fmtG(x, 12), W.fmtG(x, 6), W.pyRound(x, 6), W.pyRound(x, 2)];
+  const pyv = [pf[i][0], pf[i][1], Number(pf[i][2]), Number(pf[i][3])];
+  if (jsv.some((v, q) => v !== pyv[q])) { fbad++; console.log('FORMAT MISMATCH', x, jsv, pyv); }
+});
+console.log('number formatting spot checks: ' + (nums.length - fbad) + '/' + nums.length + ' agree');
+
+// readAvg on a real file, if one exists
+const avgPath = path.join(HERE, 'runs', 'i4_41_6000', 'i4_41_6000AVG.DAT');
+if (fs.existsSync(avgPath)) {
+  const r = W.readAvg(fs.readFileSync(avgPath, 'utf8'));
+  const c = r.cycles[r.cycles.length - 1];
+  console.log('readAvg: ' + r.cycles.length + ' cycles, ' + r.nCyl + ' cylinders, Vd ' + (r.vdCyl_m3 * 1e6).toFixed(2) + ' cc; last: torque_net ' +
+    c.torque_net_Nm.toFixed(1) + ' Nm, IMEP ' + c.imep_bar.toFixed(3) + ' bar, NMEP ' + c.nmep_bar.toFixed(3) + ', VE delivered ' + c.ve_delivered.toFixed(4) +
+    ', VE trapped ' + c.ve_trapped.toFixed(4) + ', power ' + c.power_kW.toFixed(1) + ' kW');
+}
+// readIns against make_wam.read_ins on a real INS file with an outlet point and a plenum, if one exists
+let ibad = 0;
+const insPath = path.join(HERE, 'runs', 'tail_V7.2_3000', 'tail_V7.2_3000INS.DAT');
+if (fs.existsSync(insPath)) {
+  const txt = fs.readFileSync(insPath, 'utf8');
+  const tailRun = { rpm: 3000.0, cycles: 12, name: 'tail_V7.2_3000', ins_outlet: 1, ins_cycles: 2, out_step_deg: W.outStepForRate(3000, 20000.0) };
+  const j = W.readIns(txt, { keepCycles: 2, model: W.modelFromSpec(withTail(spec('i4_41'), TAIL1.map(e => Object.assign({}, e))), tailRun) });
+  const pyr = spawnSync('python3', ['-c', 'import json,sys; sys.path.insert(0,' + JSON.stringify(HERE) + '); import make_wam, tail_test; ' +
+    'm=make_wam.model_from_spec(tail_test.tail_spec(7.2), ' + JSON.stringify(tailRun) + '); ' +
+    'r=make_wam.read_ins(open(sys.argv[1]).read(), keep_cycles=2, model=m); ' +
+    'print(json.dumps({"n":len(r["time"]),"cycles":r["cycles"],"pipe":r["pipe"],"x_m":r["x_m"],"outlets":r["outlets"],"sum_p":sum(r["p"]),"sum_u":sum(r["u"]),"sum_T":sum(r["T"]),"sum_mdot":sum(r["mdot"]),"sum_rho":sum(r["rho"]),' +
+    '"pl":{k:[sum(v["p"]),sum(v["T"]),sum(v["m"])] for k,v in r["plenums"].items()},"ports":{"%d/%s"%(k,s):[w["pipe"],w["x_m"],sum(w["mdot"]),sum(w["p"]),sum(w["T"])] for k,v in r["ports"].items() for s,w in v.items()}}))', insPath], { encoding: 'utf8' });
+  if (pyr.status !== 0) throw new Error(pyr.stderr);
+  const py = JSON.parse(pyr.stdout);
+  const sum = a => a.reduce((s, x) => s + x, 0);
+  const jsv = { n: j.time.length, cycles: j.cycles, pipe: j.pipe, x_m: j.x_m, outlets: j.outlets, sum_p: sum(j.p), sum_u: sum(j.u), sum_T: sum(j.T), sum_mdot: sum(j.mdot), sum_rho: sum(j.rho),
+    pl: Object.fromEntries(Object.entries(j.plenums).map(([k, v]) => [k, [sum(v.p), sum(v.T), sum(v.m)]])),
+    ports: Object.fromEntries(Object.entries(j.ports).flatMap(([k, v]) => Object.entries(v).map(([s, w]) => [k + '/' + s, [w.pipe, w.x_m, sum(w.mdot), sum(w.p), sum(w.T)]]))) };
+  const same = (a, b) => typeof a === 'number' ? Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a)) : JSON.stringify(a) === JSON.stringify(b);
+  for (const k of ['n', 'cycles', 'pipe', 'x_m', 'outlets', 'sum_p', 'sum_u', 'sum_T', 'sum_mdot', 'sum_rho']) if (!same(jsv[k], py[k])) { ibad++; console.log('READINS MISMATCH', k, jsv[k], py[k]); }
+  for (const k in py.pl) for (let q = 0; q < 3; q++) if (!same(jsv.pl[k][q], py.pl[k][q])) { ibad++; console.log('READINS plenum MISMATCH', k, q, jsv.pl[k][q], py.pl[k][q]); }
+  if (JSON.stringify(Object.keys(py.ports).sort()) !== JSON.stringify(Object.keys(jsv.ports).sort())) { ibad++; console.log('READINS ports MISMATCH', Object.keys(jsv.ports), Object.keys(py.ports)); }
+  for (const k in py.ports) for (let q = 0; q < 5; q++) if (!jsv.ports[k] || !same(jsv.ports[k][q], py.ports[k][q])) { ibad++; console.log('READINS port MISMATCH', k, q, jsv.ports[k] && jsv.ports[k][q], py.ports[k][q]); }
+  console.log('readIns vs read_ins on ' + path.basename(insPath) + ': ' + (ibad ? ibad + ' mismatches' : 'identical') + ' (' + j.time.length + ' rows, ' + j.cycles + ' cycles, pipe ' + j.pipe + ', plenums ' + Object.keys(j.plenums) + ', ports ' + Object.keys(jsv.ports) + ')');
+}
+fs.writeFileSync(path.join(HERE, 'example_run_all.bat'), W.batFile(['i4_41_4000', 'i4_41_6000', 'i4_41_7800'], W.USER_EXE));
+console.log('wrote example_run_all.bat');
+process.exit(bad || fbad || ibad ? 1 : 0);

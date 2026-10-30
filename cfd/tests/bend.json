@@ -1,0 +1,10 @@
+{"name":"bend_test",
+ "geometry":{"tube_diameter_mm":50,"tube_length_mm":400,
+   "inlet":{"type":"radius","lip_radius_mm":10},
+   "mount":{"type":"flange"},
+   "bend":{"clr_mm":75,"angle_deg":90,"start_mm":100},
+   "maf_plane_mm":320,
+   "outlet_extension_D":3},
+ "operating_point":{"engine":{"displacement_cc":2000,"rpm":6000,"ve":0.9,"strokes":4,"cylinders":4,"cylinders_fed":4}},
+ "ambient":{"p_pa":101325,"T_c":25},
+ "mesh":{"level":"coarse"}}

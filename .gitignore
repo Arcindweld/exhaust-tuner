@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+node_modules/
+# test scratch
+web/cfd_ui_tmp/
+web/tests/uel_runs/
+web/uel_prepage.html
+*.png.tmp
+# simulation outputs (large; regenerate)
+**/runs/*/
+!cfd/validation/runs/*/
+cfd/validation/runs/*/*
+!cfd/validation/runs/*/results.json
+*AVG.DAT
+*INS.DAT
+*.log
+# build output
+bin/
+obj/
+out/
+build/
+dist/
+# screenshots and files the page tests write
+web/*.png
+web/es_page_gen/
+web/tests/*.png

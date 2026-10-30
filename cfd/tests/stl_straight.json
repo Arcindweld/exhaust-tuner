@@ -1,0 +1,32 @@
+{
+  "name": "stl_straight",
+  "geometry": {
+    "stl": "cad_tract_mm.stl",
+    "stl_units": "mm",
+    "outlet_extension_D": 3,
+    "planes": {
+      "maf": {
+        "point_mm": [
+          545.7456132866976,
+          41.69566340872688,
+          108.85240849070333
+        ],
+        "normal": [
+          0.8191520442889918,
+          0.5389855446957562,
+          0.19617469496901108
+        ]
+      }
+    }
+  },
+  "operating_point": {
+    "mass_flow_kg_s": 0.07214801972996124
+  },
+  "ambient": {
+    "p_pa": 101325,
+    "T_c": 25
+  },
+  "mesh": {
+    "level": "medium"
+  }
+}

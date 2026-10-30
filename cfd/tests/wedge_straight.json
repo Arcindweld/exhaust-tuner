@@ -1,0 +1,26 @@
+{
+  "name": "wedge_straight",
+  "geometry": {
+    "tube_diameter_mm": 50.0,
+    "tube_length_mm": 500.0,
+    "inlet": {
+      "type": "radius",
+      "lip_radius_mm": 10.0
+    },
+    "mount": {
+      "type": "flange"
+    },
+    "outlet_extension_D": 3,
+    "maf_plane_mm": 300.0
+  },
+  "operating_point": {
+    "mass_flow_kg_s": 0.07214801972996124
+  },
+  "ambient": {
+    "p_pa": 101325,
+    "T_c": 25
+  },
+  "mesh": {
+    "level": "medium"
+  }
+}

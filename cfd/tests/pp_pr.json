@@ -1,0 +1,9 @@
+{"name":"PP-pr",
+ "geometry":{"tube_diameter_mm":23,"tube_length_mm":46,
+   "inlet":{"type":"plain","wall_thickness_mm":1.85},
+   "mount":{"type":"free","protrusion_mm":46},
+   "planes_mm":{"x69":69,"x92":92},
+   "outlet_extension_D":4},
+ "operating_point":{"pressure_ratio":1.045},
+ "ambient":{"p_pa":101325,"T_c":25},
+ "mesh":{"level":"medium"}}

@@ -1,0 +1,11 @@
+const { chromium } = require('playwright');
+(async () => { const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs=[]; pg.on('pageerror', e => errs.push(e.message));
+  await pg.goto('file://' + process.cwd()+'/index.html'); await pg.waitForTimeout(500);
+  await pg.evaluate(() => { document.body.classList.add('expert'); location.hash = 'intake'; }); await pg.waitForTimeout(300);
+  const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
+  const u = await pg.$eval('#i-disp', e => e.nextElementSibling.textContent);
+  await setv('i-eng', 'i4'); await setv('i-disp', /cu/.test(u) ? String(1972.87/16.387064) : '1972.87'); await setv('i-rpm', '7800'); await setv('i-hp', String(160/0.7457)); await pg.waitForTimeout(200);
+  let t = await pg.$eval('#i-details', e => e.innerText); console.log((t.match(/POWER CHECK[\s\S]{0,140}/i)||['none'])[0].replace(/\n+/g,' | '));
+  await setv('i-hp', '350'); await pg.waitForTimeout(150);
+  t = await pg.$eval('#i-details', e => e.innerText); console.log((t.match(/POWER CHECK[\s\S]{0,140}/i)||['none'])[0].replace(/\n+/g,' | '));
+  console.log('errors:', errs.join('|') || 'none', /NaN|undefined/.test(t)?'NaN!':''); await b.close(); })();

@@ -1,0 +1,121 @@
+{
+  "case": "expansion_50_100",
+  "solver": "rhoSimpleFoam",
+  "notes": [],
+  "kind": "exhaust",
+  "iterations": 900.0,
+  "mdot_outlet_kg_s": 0.075077374844,
+  "mdot_atmosphere_kg_s": 0.0750773747,
+  "mdot_inlets_kg_s": {
+    "inlet": 0.0750773747
+  },
+  "mass_imbalance_rel": 1.9180211453173714e-09,
+  "convergence": {
+    "window_iterations": 300,
+    "mdot_atmosphere_rel_change": 4.1397291830097146e-08,
+    "p_inlet_rel_change_of_dp": 7.06026204137877e-06,
+    "p_exit_rel_change_of_dp": 4.3662146678312804e-06
+  },
+  "sample_time": "904",
+  "planes": {
+    "inlet": {
+      "area_m2": 0.001954198040598072,
+      "mdot_kg_s": 0.07504898031216553,
+      "p_static_avg_Pa": 100786.76259462301,
+      "T_static_avg_K": 923.253837572912,
+      "p0_massavg_Pa": 102769.96320127328,
+      "T0_massavg_K": 928.3692544753608,
+      "U_normal_avg_m_s": 100.98138206357345,
+      "uniformity_index": 0.9733926047080184,
+      "secondary_flow_angle_deg": 0.0941032011708223,
+      "swirl_angle_net_deg": -0.00017915924804744575,
+      "swirl_angle_abs_deg": 0.037740730116954266,
+      "swirl_number": -3.400054764421519e-06,
+      "n_faces": 292,
+      "PR_p0_over_ps": 1.0053403581137124,
+      "dp_static_Pa": 538.237405376989,
+      "dp_total_Pa": -1444.9632012732764,
+      "U_bulk_m_s": 100.67307376867998,
+      "q_dyn_Pa": 1927.1427491042118,
+      "K_total_loss": -0.749795624607951,
+      "Cd_flowbench": 1.8924670766986758,
+      "area_geometric_m2": 0.0019610042119459336,
+      "Cd_vena_contracta_Blair": null,
+      "mdot_plane_vs_outlet": 0.9996217964214457,
+      "Mach_bulk": 0.16526828561574933,
+      "K_inlet_to_exit": 0.6793174102579683
+    },
+    "exit": {
+      "area_m2": 0.007839268076024017,
+      "mdot_kg_s": 0.07508002747649496,
+      "p_static_avg_Pa": 101335.62194386312,
+      "T_static_avg_K": 928.0382281648722,
+      "p0_massavg_Pa": 101460.82157975438,
+      "T0_massavg_K": 928.3696753464413,
+      "U_normal_avg_m_s": 25.177937495348438,
+      "uniformity_index": 0.9563189263599418,
+      "secondary_flow_angle_deg": 0.07292299821084873,
+      "swirl_angle_net_deg": 0.005888822203657411,
+      "swirl_angle_abs_deg": 0.05721795532764747,
+      "swirl_number": 7.254746294460992e-05,
+      "n_faces": 642,
+      "PR_p0_over_ps": 0.9998951805529056,
+      "dp_static_Pa": -10.621943863123306,
+      "dp_total_Pa": -135.82157975438167,
+      "U_bulk_m_s": 25.16166872672744,
+      "q_dyn_Pa": 120.41483792919692,
+      "K_total_loss": -1.1279472039338192,
+      "Cd_flowbench": null,
+      "area_geometric_m2": 0.007844016847026066,
+      "Cd_vena_contracta_Blair": null,
+      "mdot_plane_vs_outlet": 1.000035331982511,
+      "Mach_bulk": 0.04119962481233822
+    }
+  },
+  "reference_plane": "exit",
+  "summary": {
+    "mdot_kg_s": 0.075077374844,
+    "T_in_K": 923.253837572912,
+    "rho_in_kg_m3": 0.3802920297228519,
+    "U_in_m_s": 100.67307376867998,
+    "q_in_Pa": 1927.1427491042118,
+    "p0_in_Pa": 102769.96320127328,
+    "ps_in_Pa": 100786.76259462301,
+    "p0_exit_Pa": 101460.82157975438,
+    "ps_exit_Pa": 101335.62194386312,
+    "dp_total_Pa": 1309.1416215188947,
+    "dp_static_Pa": -548.8593492401124,
+    "K": 0.6793174102579683,
+    "K_to_ambient": 0.749795624607951,
+    "back_pressure_Pa": -538.237405376989,
+    "split": {
+      "inlet": 1.0
+    },
+    "split_set": {
+      "inlet": 1.0
+    },
+    "exit_uniformity_index": 0.9563189263599418,
+    "exit_swirl_angle_deg": 0.05721795532764747,
+    "Mach_in": 0.16526828561574933
+  },
+  "yPlus": {
+    "tract_wall": {
+      "min": 0.46708328016,
+      "max": 59.54898588,
+      "avg": 16.695747181
+    },
+    "inlet_wall": {
+      "min": 54.005970287,
+      "max": 66.707104662,
+      "avg": 60.704333754
+    },
+    "extension_wall": {
+      "min": 15.320722718,
+      "max": 17.52625741,
+      "avg": 16.319368053
+    }
+  },
+  "converged": true,
+  "wall_time_s": 569.4652519226074,
+  "cells": 51780
+}

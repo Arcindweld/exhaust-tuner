@@ -1,0 +1,9 @@
+{"name":"ELL-23-23-49-3",
+ "geometry":{"tube_diameter_mm":23,"tube_length_mm":23,
+   "inlet":{"type":"ellipse","length_mm":23,"entry_diameter_mm":49,"exit_diameter_mm":23,"corner_radius_mm":3},
+   "mount":{"type":"free","protrusion_mm":23},
+   "planes_mm":{"plus1D":46,"plus2D":69},
+   "outlet_extension_D":4},
+ "operating_point":{"mass_flow_kg_s":0.03615},
+ "ambient":{"p_pa":101325,"T_c":25},
+ "mesh":{"level":"medium"}}

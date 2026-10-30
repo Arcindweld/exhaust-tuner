@@ -1,0 +1,9 @@
+{"name":"RAD-46-23-35-6",
+ "geometry":{"tube_diameter_mm":23,"tube_length_mm":46,
+   "inlet":{"type":"radius","lip_radius_mm":6},
+   "mount":{"type":"free","protrusion_mm":46},
+   "planes_mm":{"x69":69,"x92":92},
+   "outlet_extension_D":4},
+ "operating_point":{"mass_flow_kg_s":0.0348},
+ "ambient":{"p_pa":101325,"T_c":25},
+ "mesh":{"level":"medium"},"solver":{"force":"incompressible","max_iterations":400,"write_interval":100}}
