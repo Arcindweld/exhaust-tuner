@@ -56,6 +56,23 @@ jobs:
         with:
           name: openwam-win-x64
           path: engines/openwam
+      # Engine Simulator (Arcindweld/engine-sim, private): the newest successful Windows build of its main branch.
+      # Needs a read-only token for that repository saved as the secret ENGINE_SIM_TOKEN; without it the installer
+      # is built without Engine Simulator and the program hides "Listen on this PC".
+      - name: Fetch Engine Simulator build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.ENGINE_SIM_TOKEN }}
+        run: |
+          if (-not $env:GH_TOKEN) { "ENGINE_SIM_TOKEN not set: building without Engine Simulator"; exit 0 }
+          $run = gh run list -R Arcindweld/engine-sim --workflow "Windows build" --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+          "engine-sim run $run"
+          gh run download $run -R Arcindweld/engine-sim -n engine-sim-windows-x64 -D es-pkg
+          New-Item -ItemType Directory -Force engines/engine-sim | Out-Null
+          Copy-Item es-pkg/engine-sim-arcindweld/* engines/engine-sim -Recurse
+          if (-not (Test-Path engines/engine-sim/bin/engine-sim-headless.exe)) { "this engine-sim build has no headless runner yet (merge Arcindweld/engine-sim PR 1)"; Remove-Item -Recurse -Force engines/engine-sim }
+          else { "EXHAUST_TUNER_ENGINESIM=$PWD\engines\engine-sim" >> $env:GITHUB_ENV }
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -100,6 +117,7 @@ jobs:
           Copy-Item web/index.html "$s/web/"
           foreach ($f in "ExhaustTuner.py","ExhaustTuner.manifest","cadtools.py","router.py","templates.py","README.txt") { Copy-Item "fusion-addin/$f" "$s/fusion-addin/" }
           Copy-Item engines/openwam/OpenWAM.exe "$s/engines/openwam/"
+          if (Test-Path engines/engine-sim) { Copy-Item engines/engine-sim "$s/engines/engine-sim" -Recurse; Copy-Item engines/engine-sim/LICENSE "$s/licenses/engine-sim-MIT.txt" -ErrorAction SilentlyContinue }
           Copy-Item licenses/NOTICE.txt "$s/licenses/"
           Invoke-WebRequest https://www.gnu.org/licenses/gpl-3.0.txt -OutFile "$s/licenses/GPL-3.0.txt"
           Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile webview2/MicrosoftEdgeWebview2Setup.exe
