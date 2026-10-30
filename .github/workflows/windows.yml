@@ -1,0 +1,138 @@
+name: Windows build
+
+on:
+  push:
+    branches: [ "main", "windows-app" ]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  OPENWAM_COMMIT: 25f46f2491e18e26362a428ea6dc151a195c65f0
+  APP_VERSION: 0.1.0
+
+jobs:
+  # OpenWAM from CMT-UPV's own source, unchanged, built with MinGW-w64 (its CMake files are written for GCC)
+  openwam:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: CMT-UPV/OpenWAM
+          ref: ${{ env.OPENWAM_COMMIT }}
+          path: openwam-src
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja
+      - name: Configure
+        run: >
+          cmake -S openwam-src -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++"
+      - name: Build
+        run: cmake --build build -j 4
+      - name: Collect
+        run: |
+          exe=$(find build -iname 'OpenWAM*.exe' | head -1)
+          echo "built: $exe"
+          mkdir -p dist/openwam
+          cp "$exe" dist/openwam/OpenWAM.exe
+          ldd dist/openwam/OpenWAM.exe | grep -iv -E '/c/windows|system32' || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openwam-win-x64
+          path: dist/openwam
+
+  app:
+    needs: openwam
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: openwam-win-x64
+          path: engines/openwam
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # The C# request handling, including the real OpenWAM against the reference run made with the Linux build of
+      # the same source (cross-compiler agreement, within 0.5 %).
+      - name: Core tests (real OpenWAM)
+        shell: pwsh
+        env:
+          REQUIRE_ALL: "1"
+          EXHAUST_TUNER_OPENWAM: ${{ github.workspace }}\engines\openwam\OpenWAM.exe
+        run: dotnet test app/ExhaustTuner.Core.Tests -c Release --logger "console;verbosity=normal"
+
+      - name: Build host and desktop program
+        shell: pwsh
+        run: |
+          dotnet publish app/ExhaustTuner.HostCli -c Release -r win-x64 --self-contained true -o publish/host
+          dotnet publish app/ExhaustTuner.Desktop -c Release -r win-x64 --self-contained true -o publish/desktop -p:Version=${{ env.APP_VERSION }}
+
+      # The page inside the program, end to end on Windows: page + bridge + host + OpenWAM
+      - name: Page tests in the program (Windows)
+        shell: pwsh
+        env:
+          REQUIRE_ALL: "1"
+          EXHAUST_TUNER_OPENWAM: ${{ github.workspace }}\engines\openwam\OpenWAM.exe
+          HOST_CLI: ${{ github.workspace }}\publish\host\exhaust-tuner-host.exe
+        run: |
+          npm install --no-save playwright@1.48.2
+          npx playwright install chromium
+          node web/tests/desktop_ui.js
+
+      - name: Stage the install folder
+        shell: pwsh
+        run: |
+          $s = "stage"
+          New-Item -ItemType Directory -Force $s, "$s/web", "$s/fusion-addin", "$s/engines/openwam", "$s/licenses", "webview2" | Out-Null
+          Copy-Item publish/desktop/* $s -Recurse
+          Copy-Item publish/host/exhaust-tuner-host.exe, publish/host/*.dll, publish/host/*.json $s -ErrorAction SilentlyContinue
+          Copy-Item web/index.html "$s/web/"
+          foreach ($f in "ExhaustTuner.py","ExhaustTuner.manifest","cadtools.py","router.py","templates.py","README.txt") { Copy-Item "fusion-addin/$f" "$s/fusion-addin/" }
+          Copy-Item engines/openwam/OpenWAM.exe "$s/engines/openwam/"
+          Copy-Item licenses/NOTICE.txt "$s/licenses/"
+          Invoke-WebRequest https://www.gnu.org/licenses/gpl-3.0.txt -OutFile "$s/licenses/GPL-3.0.txt"
+          Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile webview2/MicrosoftEdgeWebview2Setup.exe
+          Get-ChildItem $s -Recurse | Measure-Object -Property Length -Sum | ForEach-Object { "stage: {0:N1} MB in {1} files" -f ($_.Sum/1MB), $_.Count }
+
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc /DAppVersion=${{ env.APP_VERSION }} /DStage=..\stage installer\ExhaustTuner.iss
+          Get-ChildItem dist
+
+      # Install it silently like a user would, then drive the installed program's own host with a real OpenWAM run
+      - name: Install and run from the installed folder
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist/ExhaustTuner-Setup-*.exe | Select-Object -First 1
+          $dir = "$env:RUNNER_TEMP\ET"
+          Start-Process $setup.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/DIR=`"$dir`"","/TASKS=addin" -Wait
+          Get-ChildItem $dir | Select-Object Name
+          $info = & "$dir\exhaust-tuner-host.exe" --info | ConvertFrom-Json
+          $info | ConvertTo-Json -Depth 5
+          if (-not $info.engines.openwam) { throw "installed program does not find OpenWAM" }
+          if ($info.fusionAddIn.installed -ne $info.fusionAddIn.bundled) { throw "Fusion add-in not installed by the installer" }
+          $wam = Get-Content app/ExhaustTuner.Core.Tests/fixtures/single450.wam -Raw
+          $msg = @{ id = 1; action = "runOpenWAM"; data = @{ name = "ci"; files = @(@{ name = "single450.wam"; text = $wam }) } } | ConvertTo-Json -Depth 6 -Compress
+          $out = $msg | & "$dir\exhaust-tuner-host.exe"
+          $reply = $out | Where-Object { $_ -match '"ok"' } | Select-Object -Last 1 | ConvertFrom-Json
+          if (-not $reply.ok -or -not $reply.result.models[0].finished) { $out; throw "installed OpenWAM run failed" }
+          "installed program ran OpenWAM: $($reply.result.models[0].seconds) s"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ExhaustTuner-Setup
+          path: dist/ExhaustTuner-Setup-*.exe

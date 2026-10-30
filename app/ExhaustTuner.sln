@@ -1,0 +1,40 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExhaustTuner.Core", "ExhaustTuner.Core\ExhaustTuner.Core.csproj", "{EE725ADC-68B8-4BA8-AD32-9966C54146E6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExhaustTuner.Core.Tests", "ExhaustTuner.Core.Tests\ExhaustTuner.Core.Tests.csproj", "{DBF78EE9-BE03-4739-902D-EE843BAAA4ED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExhaustTuner.Desktop", "ExhaustTuner.Desktop\ExhaustTuner.Desktop.csproj", "{29643E84-81A0-42E4-8172-27224721D211}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExhaustTuner.HostCli", "ExhaustTuner.HostCli\ExhaustTuner.HostCli.csproj", "{00C47B55-34D5-48EC-92D5-B75995B6FC1A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EE725ADC-68B8-4BA8-AD32-9966C54146E6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE725ADC-68B8-4BA8-AD32-9966C54146E6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE725ADC-68B8-4BA8-AD32-9966C54146E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE725ADC-68B8-4BA8-AD32-9966C54146E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DBF78EE9-BE03-4739-902D-EE843BAAA4ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DBF78EE9-BE03-4739-902D-EE843BAAA4ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DBF78EE9-BE03-4739-902D-EE843BAAA4ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DBF78EE9-BE03-4739-902D-EE843BAAA4ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{29643E84-81A0-42E4-8172-27224721D211}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29643E84-81A0-42E4-8172-27224721D211}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29643E84-81A0-42E4-8172-27224721D211}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29643E84-81A0-42E4-8172-27224721D211}.Release|Any CPU.Build.0 = Release|Any CPU
+		{00C47B55-34D5-48EC-92D5-B75995B6FC1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{00C47B55-34D5-48EC-92D5-B75995B6FC1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{00C47B55-34D5-48EC-92D5-B75995B6FC1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{00C47B55-34D5-48EC-92D5-B75995B6FC1A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

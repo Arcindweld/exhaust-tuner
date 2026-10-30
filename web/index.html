@@ -8538,6 +8538,18 @@ function fusionCall(action,data){
     return Promise.resolve(r).then(x=>{ try{ return JSON.parse(x); }catch(e){ return {ok:false,msg:String(x||'No reply from Fusion.')}; } });
   }catch(e){ return Promise.resolve({ok:false,msg:String(e)}); }
 }
+/* ===== Desktop program: inside Exhaust Tuner for Windows the page can run the solvers on this PC =====
+   The program injects window.exhaustTunerHost (call(action, data, onEvent) -> Promise); in a browser or in Fusion it is absent. */
+const HOST=window.exhaustTunerHost||null;
+let HOST_INFO=null;
+function hostCall(action,data,onEvent){
+  if(!HOST) return Promise.resolve({ok:false,msg:'Not running in the Exhaust Tuner program.'});
+  return HOST.call(action,data||{},onEvent).catch(e=>({ok:false,msg:e.message}));
+}
+const saveCall=(a,d)=>FUSION?fusionCall(a,d):hostCall(a,d);
+const asFiles=list=>list.map(x=>({name:x.name,text:()=>Promise.resolve(x.text)}));
+const hostHas=k=>!!(HOST_INFO&&HOST_INFO.engines&&HOST_INFO.engines[k]);
+if(HOST) HOST.call('hostInfo',{}).then(i=>{ HOST_INFO=i; document.documentElement.classList.add('in-desktop'); if(typeof renderActive==='function') renderActive(); }).catch(()=>{});
 const PAGE_ERRS=[];
 window.addEventListener('error',e=>{ PAGE_ERRS.push(String(e&&e.message||e)); if(PAGE_ERRS.length>20) PAGE_ERRS.shift(); });
 window.fusionJavaScriptHandler={handle:function(action,data){
@@ -12299,8 +12311,8 @@ async function esDownload(){
   try{ out=ESX.toEngineSimDetailed(r.spec,{target:ES_UI.target}); }catch(err){ esMsg('Engine Simulator export: '+err.message,true); return null; }
   const fname=out.derived.identifier+(ES_UI.target==='ce'?'':ES_UI.target==='fork'?'.fork':'.upstream')+'.mr';
   window.__esLast={spec:r.spec,options:{target:ES_UI.target},text:out.text,filename:fname};
-  if(FUSION){   // the Fusion panel saves through the add-in's file dialog
-    const res=await fusionCall('saveText',{filename:fname,text:out.text,title:'Save Engine Simulator file'});
+  if(FUSION||HOST){   // the Fusion panel and the desktop program save through their own file dialogs
+    const res=await saveCall('saveText',{filename:fname,text:out.text,title:'Save Engine Simulator file'});
     esMsg(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.'));
     return out;
   }
@@ -12534,8 +12546,8 @@ async function wamDownload(){
   try{ out=wamFiles(q,src.spec,src.run,src.uel); }catch(e){ wamMsg('OpenWAM export: '+e.message,true); return null; }
   window.__wamLast=out;
   const zname=out.name+'_openwam.zip';
-  if(FUSION){
-    const res=await fusionCall('saveFiles',{files:out.files,title:'Choose a folder for the OpenWAM case'});
+  if(FUSION||HOST){
+    const res=await saveCall('saveFiles',{files:out.files,title:'Choose a folder for the OpenWAM case'});
     wamMsg(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.'));
     return out;
   }
@@ -12578,7 +12590,7 @@ function wamSection(q,sp){
     '<label class="f"><span class="lab">Cycles per run</span><span class="inp"><input class="wamx" data-k="cycles" type="number" step="1" min="5" max="200" inputmode="numeric" value="'+WAM_UI.cycles+'"></span></label>'+
     '<label class="f"><span class="lab">Case name</span><span class="inp"><input class="wamx" data-k="name" type="text" value="'+esc(WAM_UI.name||wamName(q))+'"></span></label></div>'+
     '<p class="cap">About 25 cycles settle a naturally aspirated case; the results table shows how much the last five cycles still moved. Each run takes OpenWAM from a few seconds to a minute or two on a desktop. Every cylinder’s firing angle is written 45° later than the engine’s own clock (the firing intervals are unchanged): with the clock on cylinder 1’s TDC, an LS3 bank at 0/180/450/630° started one cylinder in a state OpenWAM could not integrate (the numbers blew up at 3,600 RPM, a mass-study crash at 6,400 RPM, with or without a finer mesh), while any shift of 10° to 90° ran clean at both speeds and agreed on torque within 1%. Sanity check: the C6 Corvette LS3 preset’s case (one bank, 1.875 in primaries into a 4-1), run on OpenWAM 2.2 for Windows, gave 440 lb-ft net at 4,600 RPM and 426 hp net at 5,300–5,900 RPM for the two banks together against GM’s 424 lb-ft at 4,600 and 430 hp at 5,900; net means friction is not taken off, so a real dyno would read a little lower, and the agreement is a check that the valves, cam and pipes are in the right range, not a calibration. The batch expects OpenWAM at <code>'+esc(WAMX.USER_EXE)+'</code>; edit the first line of run_all.bat if it lives elsewhere.</p>'+
-    '<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-wam="dl">Download OpenWAM case (.zip)</button></div>'+
+    '<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-wam="dl">Download OpenWAM case (.zip)</button>'+(hostHas('openwam')?'<button type="button" class="btn" data-wam="run">Run in OpenWAM on this PC</button><button type="button" class="btn" data-wam="stop">Stop</button>':'')+'</div>'+
     '<div class="note wammsg'+(WAM_UI.msg&&WAM_UI.msg.bad?' bad':'')+'"'+(WAM_UI.msg?'':' hidden')+'>'+(WAM_UI.msg?esc(WAM_UI.msg.t):'')+'</div>';
   h+='<p class="sub" style="margin-top:14px">Read the results</p><p class="cap">After the batch finishes, pick the <b>NAMEAVG.DAT</b> files from the run folders (several at once). The table takes the last cycle of each.</p>'+
     '<label class="f"><span class="lab">AVG.DAT files</span><span class="inp"><input type="file" id="wam-files" multiple accept=".dat,.DAT,text/plain"></span></label>';
@@ -12595,7 +12607,34 @@ function wamSection(q,sp){
   if(WAM_UI.ins.length) h+=wamInsTable(WAM_UI.ins);
   return sec('Run it in OpenWAM',h);
 }
-document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wam]'); if(b&&b.dataset.wam==='dl') wamDownload(); });
+// Desktop program: write the same case, run every model with the bundled OpenWAM, and read the results straight into
+// the tables above (the same readers the file pickers use, so the numbers are identical to a manual run).
+async function wamRun(){
+  if(!HOST) return;
+  const q=SIM.inp, err=q?simCheck(q):'Fill in the 4-Stroke tab first.'; if(err){ wamMsg(err,true); return; }
+  const sp=simSpec(q), src=wamSource(q,sp); if(src.err){ wamMsg(src.err,true); return; }
+  let out; try{ out=wamFiles(q,src.spec,src.run,src.uel); }catch(e){ wamMsg('OpenWAM export: '+e.message,true); return; }
+  window.__wamLast=out;
+  const n=out.files.filter(f=>/\.wam$/i.test(f.name)).length;
+  wamMsg('Running '+n+' OpenWAM model'+(n===1?'':'s')+' on this PC. Each takes from seconds to a few minutes.');
+  let res;
+  try{
+    res=await HOST.call('runOpenWAM',{name:out.name,files:out.files},ev=>{
+      if(ev.event==='done') wamMsg('OpenWAM: '+ev.count+' of '+ev.of+' done ('+ev.model+(ev.finished?' finished':' did NOT finish')+', '+ev.seconds+' s).',!ev.finished);
+      else if(ev.event==='output'&&ev.line) wamMsg('OpenWAM '+ev.model+': '+ev.line.slice(0,140));
+    });
+  }catch(e){ wamMsg('OpenWAM did not run: '+e.message,true); return; }
+  window.__wamRunLast=res;
+  const ms=res.models||[], good=ms.filter(m=>m.finished&&m.avg), bad=ms.filter(m=>!(m.finished&&m.avg));
+  if(good.length) await wamReadFiles(asFiles(good.map(m=>({name:m.name+'AVG.DAT',text:m.avg}))));
+  const ins=ms.filter(m=>m.ins).map(m=>({name:m.name+'INS.DAT',text:m.ins}));
+  if(ins.length) await wamReadIns(asFiles(ins));
+  window.__wamResults=WAM_UI.results;   // for the tests
+  wamMsg((bad.length?bad.length+' of '+ms.length+' models did not finish ('+bad.map(m=>m.name+': '+String(m.logTail||'').split('\n').pop()).join('; ')+'). ':
+    'All '+ms.length+' models finished. ')+'Results are in the tables below; the case and OpenWAM output are in '+res.folder+'.',bad.length>0);
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wam]'); if(!b) return;
+  if(b.dataset.wam==='dl') wamDownload(); else if(b.dataset.wam==='run') wamRun(); else if(b.dataset.wam==='stop'&&HOST) HOST.cancel(); });
 document.addEventListener('input',e=>{ const el=e.target.closest('input.wamx'); if(!el) return; const k=el.dataset.k; WAM_UI[k]=k==='cycles'?(parseFloat(el.value)||25):el.value; });
 document.addEventListener('change',e=>{ const el=e.target.closest('#wam-files'); if(el&&el.files&&el.files.length) wamReadFiles(el.files); });
 document.addEventListener('change',e=>{ const el=e.target.closest('#wam-ins'); if(el&&el.files&&el.files.length) wamReadIns(el.files); });
@@ -12672,8 +12711,8 @@ async function cfdDownload(){
   window.__cfdLast=out;
   const zname=out.name+'_openfoam.zip', what=out.is3d?'design.json, intake_cfd.py and a README (3-D case: run python3 intake_cfd.py design.json case, then ./Allrun)':
     out.files.length+' files, '+out.summary.cells.toLocaleString('en-US')+' cells, '+out.summary.solver+'. Unzip, open an OpenFOAM shell in the folder and run ./Allrun (README_WINDOWS.md has the Windows steps).';
-  if(FUSION){
-    const res=await fusionCall('saveFiles',{files:out.files,title:'Choose a folder for the OpenFOAM case',folder:out.name});
+  if(FUSION||HOST){
+    const res=await saveCall('saveFiles',{files:out.files,title:'Choose a folder for the OpenFOAM case',folder:out.name});
     cfdMsg(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.'));
     return out;
   }
@@ -12790,7 +12829,7 @@ async function exhDownload(){
   let out; try{ out=exhBuild(); }catch(e){ exhMsg('Exhaust CFD: '+e.message,true); return null; }
   window.__exhLast=out;
   const zname=out.name+'_openfoam.zip', what='design.json, intake_cfd.py and a README. Export the fluid volume from CAD as '+out.name+'.stl with faces named '+out.inletNames.join(', ')+' and outlet, put it in the folder, then run python3 intake_cfd.py design.json case and ./Allrun.';
-  if(FUSION){ const res=await fusionCall('saveFiles',{files:out.files,title:'Choose a folder for the exhaust CFD case',folder:out.name}); exhMsg(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.')); return out; }
+  if(FUSION||HOST){ const res=await saveCall('saveFiles',{files:out.files,title:'Choose a folder for the exhaust CFD case',folder:out.name}); exhMsg(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.')); return out; }
   const blob=zipMany(out.files);
   if(ES_DLP){ const dl=await ES_DLP; if(!dl){ exhMsg('Saving files is not available in this view. Open the calculator in a browser tab or in the Fusion add-in.',true); return out; }
     try{ await dl.save({filename:zname,data:blob}); exhMsg('Saved '+zname+': '+what); }catch(e){ const c=e&&e.code; exhMsg(c==='declined'?'Not saved.':c==='rate_limited'?'A save prompt is already open. Finish it, then try again.':'This view could not save the file ('+(c||'error')+').',c!=='declined'); } return out; }

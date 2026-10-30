@@ -24,3 +24,11 @@ dist/
 web/*.png
 web/es_page_gen/
 web/tests/*.png
+# .NET / packaging
+app/**/bin/
+app/**/obj/
+publish/
+stage/
+webview2/
+engines/
+!app/ExhaustTuner.Core.Tests/fixtures/*AVG.DAT

@@ -1,0 +1,23 @@
+Exhaust Tuner
+Arcindweld.
+
+This program bundles separate programs, each under its own licence. They are run as separate
+programs; Exhaust Tuner does not link to them.
+
+OpenWAM 2.2
+  CMT-Motores Termicos, Universitat Politecnica de Valencia.
+  Licence: GNU General Public License version 3 (GPL-3.0.txt in this folder).
+  Source code: https://github.com/CMT-UPV/OpenWAM (this installer's copy is built from commit
+  25f46f2491e18e26362a428ea6dc151a195c65f0 without changes).
+
+OpenFOAM (when installed with this program)
+  ESI-OpenCFD Ltd. Licence: GPL-3.0. Source: https://develop.openfoam.com/Development/openfoam
+
+Engine Simulator (when installed with this program)
+  Ange Yaghi; Arcindweld fork with a one-dimensional exhaust model. Licence: MIT.
+
+Microsoft Edge WebView2 Runtime
+  Installed from Microsoft's own installer if this PC does not already have it.
+
+The calculator's results come with their sources and limits on each page; read them before
+committing money to a design.
