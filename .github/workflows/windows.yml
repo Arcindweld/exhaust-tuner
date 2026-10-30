@@ -56,22 +56,25 @@ jobs:
         with:
           name: openwam-win-x64
           path: engines/openwam
-      # Engine Simulator (Arcindweld/engine-sim, private): the newest successful Windows build of its main branch.
-      # Needs a read-only token for that repository saved as the secret ENGINE_SIM_TOKEN; without it the installer
-      # is built without Engine Simulator and the program hides "Listen on this PC".
+      # Engine Simulator (Arcindweld/engine-sim, private). Its Windows build is copied into a release of THIS
+      # repository (tag engine-sim-<commit>, asset engine-sim-windows-x64.zip), which this workflow can read with its
+      # own token. Refresh it after the fork changes: tools/publish_engine_sim.sh (needs access to both repositories).
       - name: Fetch Engine Simulator build
         shell: pwsh
         env:
-          GH_TOKEN: ${{ secrets.ENGINE_SIM_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
         run: |
-          if (-not $env:GH_TOKEN) { "ENGINE_SIM_TOKEN not set: building without Engine Simulator"; exit 0 }
-          $run = gh run list -R Arcindweld/engine-sim --workflow "Windows build" --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId'
-          "engine-sim run $run"
-          gh run download $run -R Arcindweld/engine-sim -n engine-sim-windows-x64 -D es-pkg
+          $tag = gh release list -R ${{ github.repository }} --limit 50 --json tagName --jq '[.[] | select(.tagName | startswith("engine-sim-"))][0].tagName'
+          if (-not $tag) { "no engine-sim release in this repository: building without Engine Simulator"; exit 0 }
+          "using $tag"
+          gh release download $tag -R ${{ github.repository }} -p engine-sim-windows-x64.zip -D es-pkg
+          Expand-Archive es-pkg/engine-sim-windows-x64.zip -DestinationPath es-pkg/x
+          $root = Get-ChildItem es-pkg/x -Recurse -Filter engine-sim-headless.exe | Select-Object -First 1
+          if (-not $root) { throw "$tag has no engine-sim-headless.exe" }
+          $dir = $root.Directory.Parent.FullName
           New-Item -ItemType Directory -Force engines/engine-sim | Out-Null
-          Copy-Item es-pkg/engine-sim-arcindweld/* engines/engine-sim -Recurse
-          if (-not (Test-Path engines/engine-sim/bin/engine-sim-headless.exe)) { "this engine-sim build has no headless runner yet (merge Arcindweld/engine-sim PR 1)"; Remove-Item -Recurse -Force engines/engine-sim }
-          else { "EXHAUST_TUNER_ENGINESIM=$PWD\engines\engine-sim" >> $env:GITHUB_ENV }
+          Copy-Item "$dir/*" engines/engine-sim -Recurse
+          "EXHAUST_TUNER_ENGINESIM=$PWD\engines\engine-sim" >> $env:GITHUB_ENV
 
       - uses: actions/setup-dotnet@v4
         with:
