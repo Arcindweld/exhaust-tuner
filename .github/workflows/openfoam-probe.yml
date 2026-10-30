@@ -1,0 +1,87 @@
+name: OpenFOAM on Windows (probe)
+
+# Finds out what ESI's native Windows (MinGW) OpenFOAM build contains and runs the Blair & Cahoon
+# square-cut-pipe validation case with it, to decide how the program bundles CFD.
+on:
+  push:
+    branches: [ "windows-app" ]
+    paths: [ ".github/workflows/openfoam-probe.yml" ]
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Which installers exist
+        shell: pwsh
+        run: |
+          $urls = @(
+            "https://dl.openfoam.com/source/v2412/OpenFOAM-v2412-windows-mingw.exe",
+            "https://dl.openfoam.com/source/v2412/OpenFOAM-windows-mingw.exe",
+            "https://dl.openfoam.com/source/latest/OpenFOAM-windows-mingw.exe",
+            "https://dl.openfoam.com/source/v2506/OpenFOAM-v2506-windows-mingw.exe")
+          foreach ($u in $urls) {
+            try { $r = Invoke-WebRequest $u -Method Head -MaximumRedirection 5 -UseBasicParsing; "{0}  {1}  {2:N1} MB  {3}" -f $r.StatusCode, $u, ([double]$r.Headers['Content-Length'][0]/1MB), $r.BaseResponse.ResponseUri }
+            catch { "FAIL $u : $($_.Exception.Message)" }
+          }
+          try { (Invoke-WebRequest https://dl.openfoam.com/source/ -UseBasicParsing).Links.href | Select-String -Pattern 'v2|latest' | Select-Object -First 40 } catch { "no index" }
+      - name: Download and install (silent)
+        shell: pwsh
+        run: |
+          $u = "https://dl.openfoam.com/source/v2412/OpenFOAM-v2412-windows-mingw.exe"
+          try { Invoke-WebRequest $u -OutFile of.exe -UseBasicParsing } catch { "v2412 named file not found, using latest"; Invoke-WebRequest https://dl.openfoam.com/source/latest/OpenFOAM-windows-mingw.exe -OutFile of.exe -UseBasicParsing }
+          "{0:N1} MB" -f ((Get-Item of.exe).Length/1MB)
+          $p = Start-Process .\of.exe -ArgumentList "/S","/D=C:\OF" -Wait -PassThru
+          "installer exit: $($p.ExitCode)"
+          Get-ChildItem C:\OF -Depth 1 | Select-Object FullName
+      - name: What is inside
+        shell: pwsh
+        run: |
+          foreach ($n in "bash.exe","blockMesh.exe","snappyHexMesh.exe","surfaceFeatureExtract.exe","checkMesh.exe","topoSet.exe","foamDictionary.exe","rhoSimpleFoam.exe","simpleFoam.exe","decomposePar.exe","reconstructPar.exe","mpiexec.exe","python.exe","python3.exe","sed.exe","grep.exe") {
+            $f = Get-ChildItem C:\OF -Recurse -Filter $n -ErrorAction SilentlyContinue | Select-Object -First 1
+            "{0,-28} {1}" -f $n, ($f.FullName)
+          }
+          Get-ChildItem C:\OF -Recurse -Include *.bat,bashrc -ErrorAction SilentlyContinue | Select-Object -First 20 FullName
+          $b = Get-ChildItem C:\OF -Recurse -Filter *.bat -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($b) { "---- $($b.FullName)"; Get-Content $b.FullName }
+          $du = (Get-ChildItem C:\OF -Recurse -File | Measure-Object Length -Sum).Sum
+          "installed size: {0:N0} MB" -f ($du/1MB)
+      - name: Run the square-cut-pipe validation case
+        shell: pwsh
+        env:
+          INTAKE_CFD_STAMP: "probe"
+        run: |
+          python cfd/intake_cfd.py cfd/tests/pp.json case_pp
+          Get-ChildItem case_pp | Select-Object Name
+          $bash = (Get-ChildItem C:\OF -Recurse -Filter bash.exe -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          $bm = (Get-ChildItem C:\OF -Recurse -Filter blockMesh.exe -ErrorAction SilentlyContinue | Select-Object -First 1)
+          if (-not $bm) { throw "no blockMesh.exe" }
+          $env:PATH = "$($bm.DirectoryName);" + $env:PATH
+          $libs = Get-ChildItem C:\OF -Recurse -Directory -Filter lib -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+          $env:PATH = ($libs -join ';') + ';' + $env:PATH
+          "bash: $bash"
+          $py = (Get-Command python).Source
+          Push-Location case_pp
+          if ($bash) {
+            $pyDir = Split-Path $py
+            & $bash -lc "export PATH=`"`$(cygpath -u '$($bm.DirectoryName)'):`$(cygpath -u '$pyDir'):`$PATH`"; cd `"`$(cygpath -u '$PWD')`"; ls; bash ./Allrun" 2>&1 | Select-Object -Last 60
+          } else {
+            "no bash in the package: running the steps directly"
+            blockMesh 2>&1 | Select-Object -Last 5
+            topoSet 2>&1 | Select-Object -Last 5
+            $solver = (Select-String -Path system/controlDict -Pattern '^application\s+(\S+);').Matches[0].Groups[1].Value
+            & $solver 2>&1 | Select-Object -Last 20
+            python intake_report.py 2>&1 | Select-Object -Last 20
+          }
+          Pop-Location
+          if (Test-Path case_pp/results.json) { Get-Content case_pp/results.json -Raw } else { "no results.json"; Get-ChildItem case_pp -Filter log.* | ForEach-Object { "---- $($_.Name)"; Get-Content $_.FullName -Tail 25 } }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: openfoam-probe-case
+          path: |
+            case_pp/log.*
+            case_pp/results.json
+            case_pp/results.txt
