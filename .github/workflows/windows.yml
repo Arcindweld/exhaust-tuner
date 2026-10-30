@@ -118,9 +118,8 @@ jobs:
           foreach ($f in "ExhaustTuner.py","ExhaustTuner.manifest","cadtools.py","router.py","templates.py","README.txt") { Copy-Item "fusion-addin/$f" "$s/fusion-addin/" }
           Copy-Item engines/openwam/OpenWAM.exe "$s/engines/openwam/"
           if (Test-Path engines/engine-sim) { Copy-Item engines/engine-sim "$s/engines/engine-sim" -Recurse; Copy-Item engines/engine-sim/LICENSE "$s/licenses/engine-sim-MIT.txt" -ErrorAction SilentlyContinue }
-          Copy-Item licenses/NOTICE.txt "$s/licenses/"
-          Invoke-WebRequest https://www.gnu.org/licenses/gpl-3.0.txt -OutFile "$s/licenses/GPL-3.0.txt"
-          Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile webview2/MicrosoftEdgeWebview2Setup.exe
+          Copy-Item licenses/NOTICE.txt, licenses/GPL-3.0.txt "$s/licenses/"
+          Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile webview2/MicrosoftEdgeWebview2Setup.exe -MaximumRetryCount 4 -RetryIntervalSec 10
           Get-ChildItem $s -Recurse | Measure-Object -Property Length -Sum | ForEach-Object { "stage: {0:N1} MB in {1} files" -f ($_.Sum/1MB), $_.Count }
 
       - name: Build the installer
