@@ -1,16 +1,16 @@
 #!/bin/bash
-# Copies the newest successful Windows build of Arcindweld/engine-sim (main) into a release of
-# Arcindweld/exhaust-tuner, where the installer build picks it up. Run after the fork changes.
-# Needs gh with read access to engine-sim and write access to exhaust-tuner.
+# Copies the newest successful Windows build of Arcindweld/engine-sim (main) onto this repository's
+# engine-sim-build branch, where the installer build (.github/workflows/windows.yml) picks it up.
+# Run after the fork changes. Needs gh with read access to engine-sim and push access here.
 set -euo pipefail
-run=$(gh run list -R Arcindweld/engine-sim --workflow "Windows build" --branch main --status success --limit 1 --json databaseId,headSha --jq '.[0].databaseId')
+run=$(gh run list -R Arcindweld/engine-sim --workflow "Windows build" --branch main --status success --limit 1 --json databaseId --jq '.[0].databaseId')
 sha=$(gh run view "$run" -R Arcindweld/engine-sim --json headSha --jq .headSha)
-tag="engine-sim-${sha:0:7}"
 tmp=$(mktemp -d)
 gh run download "$run" -R Arcindweld/engine-sim -n engine-sim-windows-x64 -D "$tmp/pkg"
 test -f "$tmp/pkg/engine-sim-arcindweld/bin/engine-sim-headless.exe"
 (cd "$tmp/pkg" && zip -qr "$tmp/engine-sim-windows-x64.zip" .)
-gh release create "$tag" "$tmp/engine-sim-windows-x64.zip" -R Arcindweld/exhaust-tuner --target main \
-  --title "Engine Simulator build $tag" \
-  --notes "Windows build of Arcindweld/engine-sim at $sha (workflow run $run), with the headless runner. Used by the installer build; not a release of Exhaust Tuner. MIT licence (LICENSE inside)."
-echo "published $tag"
+git clone -q --depth 1 --branch engine-sim-build https://github.com/Arcindweld/exhaust-tuner "$tmp/b"
+cp "$tmp/engine-sim-windows-x64.zip" "$tmp/b/"
+printf "Windows build of Arcindweld/engine-sim (Engine Simulator fork with the 1-D exhaust and the headless runner)\ncommit %s\nUsed by the Exhaust Tuner installer build (.github/workflows/windows.yml). MIT licence: LICENSE inside the zip.\nRefresh with tools/publish_engine_sim.sh on main.\n" "$sha" > "$tmp/b/README.txt"
+cd "$tmp/b" && git add -A && git commit -q -m "Engine Simulator Windows build ${sha:0:7}" && git push -q origin engine-sim-build
+echo "published engine-sim ${sha:0:7}"
