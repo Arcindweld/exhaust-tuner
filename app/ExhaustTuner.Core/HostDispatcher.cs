@@ -35,7 +35,7 @@ public sealed class HostDispatcher
                 ["openwam"] = wam.Available,
                 // added in later stages; the page shows the run buttons only for engines that are present
                 ["openfoam"] = false,
-                ["enginesim"] = false,
+                ["enginesim"] = new EngineSimRunner(_paths.EngineSimDir).Available,
             },
             ["runsFolder"] = _paths.RunsDir,
             ["fusionAddIn"] = new FusionAddIn(_paths).Status(),
@@ -57,6 +57,17 @@ public sealed class HostDispatcher
                 onEvent?.Invoke(new JsonObject { ["event"] = "folder", ["folder"] = dir });
                 var results = await new OpenWamRunner(_paths.OpenWamExe).RunAsync(dir, files, onEvent, ct);
                 return OpenWamRunner.ToJson(dir, results);
+            }
+
+            case "runEngineSim":
+            {
+                var text = data?["text"]?.GetValue<string>() ?? throw new ArgumentException("No engine file.");
+                var fname = data?["filename"]?.GetValue<string>() ?? "engine.mr";
+                var rpms = (data?["rpms"] as JsonArray)?.Select(n => n!.GetValue<double>()).Where(r => r > 0).ToList() ?? new List<double>();
+                var secs = data?["seconds"]?.GetValue<double>() ?? 6.0;
+                var gain = data?["gain"]?.GetValue<double>() ?? 0.35;
+                var dir = _paths.NewRunDir(Path.GetFileNameWithoutExtension(fname));
+                return await new EngineSimRunner(_paths.EngineSimDir).RunAsync(dir, fname, text, rpms, secs, gain, onEvent, ct);
             }
 
             case "saveFiles":

@@ -14,25 +14,22 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Which installers exist
+      - name: Find, download and install the v2412 Windows build (silent)
         shell: pwsh
         run: |
-          $urls = @(
-            "https://dl.openfoam.com/source/v2412/OpenFOAM-v2412-windows-mingw.exe",
-            "https://dl.openfoam.com/source/v2412/OpenFOAM-windows-mingw.exe",
-            "https://dl.openfoam.com/source/latest/OpenFOAM-windows-mingw.exe",
-            "https://dl.openfoam.com/source/v2506/OpenFOAM-v2506-windows-mingw.exe")
-          foreach ($u in $urls) {
-            try { $r = Invoke-WebRequest $u -Method Head -MaximumRedirection 5 -UseBasicParsing; "{0}  {1}  {2:N1} MB  {3}" -f $r.StatusCode, $u, ([double]$r.Headers['Content-Length'][0]/1MB), $r.BaseResponse.ResponseUri }
-            catch { "FAIL $u : $($_.Exception.Message)" }
+          foreach ($v in "v2412","v2512") {
+            "---- https://dl.openfoam.com/source/$v/"
+            try { (Invoke-WebRequest "https://dl.openfoam.com/source/$v/" -UseBasicParsing).Links.href | Where-Object { $_ -match 'win|mingw|\.exe' } } catch { $_.Exception.Message }
           }
-          try { (Invoke-WebRequest https://dl.openfoam.com/source/ -UseBasicParsing).Links.href | Select-String -Pattern 'v2|latest' | Select-Object -First 40 } catch { "no index" }
-      - name: Download and install (silent)
-        shell: pwsh
-        run: |
-          $u = "https://dl.openfoam.com/source/v2412/OpenFOAM-v2412-windows-mingw.exe"
-          try { Invoke-WebRequest $u -OutFile of.exe -UseBasicParsing } catch { "v2412 named file not found, using latest"; Invoke-WebRequest https://dl.openfoam.com/source/latest/OpenFOAM-windows-mingw.exe -OutFile of.exe -UseBasicParsing }
-          "{0:N1} MB" -f ((Get-Item of.exe).Length/1MB)
+          $page = Invoke-WebRequest "https://dl.openfoam.com/source/v2412/" -UseBasicParsing
+          $exe = $page.Links.href | Where-Object { $_ -match '\.exe$' -and $_ -match 'mingw|win' } | Select-Object -First 1
+          if (-not $exe) { throw "no Windows installer listed for v2412" }
+          $u = if ($exe -match '^https?://') { $exe } else { "https://dl.openfoam.com/source/v2412/" + ($exe -replace '^\./','') }
+          "downloading $u"
+          Invoke-WebRequest $u -OutFile of.exe -UseBasicParsing
+          $b = [System.IO.File]::ReadAllBytes("$PWD\of.exe")[0..1]
+          "{0:N1} MB, starts with {1}" -f ((Get-Item of.exe).Length/1MB), ([char]$b[0] + [char]$b[1])
+          if ([char]$b[0] -ne 'M') { Get-Content of.exe -TotalCount 20; throw "not an executable" }
           $p = Start-Process .\of.exe -ArgumentList "/S","/D=C:\OF" -Wait -PassThru
           "installer exit: $($p.ExitCode)"
           Get-ChildItem C:\OF -Depth 1 | Select-Object FullName

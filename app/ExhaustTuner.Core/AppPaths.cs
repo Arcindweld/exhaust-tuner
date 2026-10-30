@@ -34,6 +34,10 @@ public sealed class AppPaths
         Environment.GetEnvironmentVariable("EXHAUST_TUNER_OPENWAM") is { Length: > 0 } p ? p
         : Path.Combine(EnginesDir, "openwam", OperatingSystem.IsWindows() ? "OpenWAM.exe" : "OpenWAM");
 
+    /// <summary>The packaged Engine Simulator fork (bin\engine-sim-headless.exe, es\). EXHAUST_TUNER_ENGINESIM overrides.</summary>
+    public string EngineSimDir =>
+        Environment.GetEnvironmentVariable("EXHAUST_TUNER_ENGINESIM") is { Length: > 0 } p ? p : Path.Combine(EnginesDir, "engine-sim");
+
     /// <summary>A new, unique folder for one run: runs\yyyyMMdd-HHmmss_name.</summary>
     public string NewRunDir(string name)
     {

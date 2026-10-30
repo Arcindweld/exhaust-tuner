@@ -74,7 +74,8 @@ public class PaletteTests
         catch { Assert.True(Environment.GetEnvironmentVariable("REQUIRE_ALL") != "1", "Python is required (REQUIRE_ALL=1)"); return; }   // no Python here: nothing to compare against
         p!.WaitForExit();
         Assert.Equal(0, p.ExitCode);
-        Assert.Equal(File.ReadAllText(outFile), ours);
+        // Python on Windows writes CRLF in text mode; the content is what has to agree
+        Assert.Equal(File.ReadAllText(outFile).Replace("\r\n", "\n"), ours);
     }
 }
 
