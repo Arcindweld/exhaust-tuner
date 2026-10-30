@@ -55,6 +55,8 @@ public sealed class EngineSimRunner
             {
                 ["rpm"] = rpm, ["ok"] = ok, ["exitCode"] = p.ExitCode,
                 ["wav"] = ok ? wav : null,
+                // the sound itself for the page to play (a 6 s mono 16-bit clip is about 0.5 MB)
+                ["wavBase64"] = ok && new FileInfo(wav).Length < 20_000_000 ? Convert.ToBase64String(File.ReadAllBytes(wav)) : null,
                 ["run"] = File.Exists(json) ? JsonNode.Parse(File.ReadAllText(json)) : null,
                 ["logTail"] = string.Join('\n', log.Split('\n').Select(l => l.TrimEnd('\r')).Where(l => l.Trim().Length > 0).TakeLast(6)),
             });

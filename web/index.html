@@ -1,4 +1,5 @@
 <title>Exhaust Tuning Calculator</title>
+<meta charset="utf-8">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12199,7 +12200,7 @@ const ES_LAYOUT={i3:['inline'],i4:['inline'],i5:['inline'],i6:['inline'],m1:['in
   v10v:['V',90,'alternate'],v10b:['V',90,'sequential'],v10e:['V',72,'sequential'],v12:['V',60,'sequential'],
   mb2:['flat',180,'alternate'],mv45:['V',45,'alternate'],mv52:['V',52,'alternate'],mv60:['V',60,'alternate'],mv75:['V',75,'alternate'],mv90:['V',90,'alternate']};
 const ES_DEF={1:'m1',2:'m2c',3:'i3',4:'i4',5:'i5',6:'i6',8:'sbc',10:'v10e',12:'v12'};
-const ES_UI={eng:'',redline:null,idle:800,sysL:null,ir:'',target:'ce',msg:null};
+const ES_UI={eng:'',redline:null,idle:800,sysL:null,ir:'',target:'ce',msg:null,rpms:'1500, 3000, 4500',clips:[]};
 function esEngines(n){ return Object.keys(ES_LAYOUT).filter(k=>ENGLIB[k]&&ENGLIB[k].cyc==='4'&&ENGLIB[k].order.length===n); }
 function esPickEngine(n){
   const ok=esEngines(n);
@@ -12269,7 +12270,11 @@ function esSection(q,sp){
   h+='<p class="cap">From this tab: bore '+cdim(s.bore_mm)+', stroke '+cdim(s.stroke_mm)+', rod '+cdim(s.rod_mm)+' (1.7 × stroke, as the wave simulation assumes), compression '+(+s.cr.toFixed(1))+':1, cam '+s.cam.ivo+'-'+s.cam.ivc+' intake and '+s.cam.evo+'-'+s.cam.evc+' exhaust, '+(Array.isArray(x.primaryL_mm)?'primaries '+x.primaryL_mm.map(v=>clen(v)).join(', ')+' (cylinder order)':'primary '+clen(x.primaryL_mm))+' at '+cdim(x.primaryD_mm)+', collector '+cdim(x.collectorD_mm)+', tip '+cdim(x.tipD_mm)+(x.dual?', two exhaust systems':', one exhaust system')+', intake runner '+clen(s.intake.runnerL_mm)+' at '+cdim(s.intake.runnerD_mm)+'. The plenum is half the displacement, the Intake tab’s default (Grape Ape Racing’s 50 to 60% rule). '+
     'The pipe after the collector defaults to this tab’s collector and megaphone, '+clen(r.sysTab)+'; enter the whole run to the tip for a truer sound delay. Head flow, masses, ignition timing, the gearbox and the three orifice flow ratings (runner, primary, outlet) come from an Engine Simulator example engine (MIT license), named in the file with the line each value came from. Checked in Engine Simulator v0.1.14a: a mild 350 V8 dynos at about 520 hp this way, still generous, and at 913 hp when ideal orifices of the real pipe sizes are used instead, so the sizes you enter set the sound delay and volumes, not the flow.</p>';
   r.notes.forEach(t=>{ h+='<div class="note">'+esc(t)+'</div>'; });
-  h+='<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-es="dl">Download Engine Simulator file (.mr)</button></div>'+
+  if(hostHas('enginesim')) h+='<div class="grid2" style="max-width:640px;margin-top:8px"><label class="f span2"><span class="lab">Speeds to hold, rpm (this PC)</span><span class="inp"><input class="esrpms" type="text" value="'+esc(ES_UI.rpms)+'" autocomplete="off"></span></label></div>';
+  h+='<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-es="dl">Download Engine Simulator file (.mr)</button>'+
+    (hostHas('enginesim')?'<button type="button" class="btn" data-es="listen">Listen on this PC (Engine Simulator, 1-D exhaust)</button>':'')+'</div>'+
+    (ES_UI.clips.length?'<div class="esclips" style="margin-top:8px">'+ES_UI.clips.map(c=>'<div style="margin:4px 0"><span class="cap">'+esc(c.label)+'</span><br><audio controls preload="none" src="'+c.url+'"></audio></div>').join('')+
+      '<p class="cap">Engine Simulator’s sound is qualitative: its synthesizer has not been checked against a microphone recording. Use it to hear differences between designs, not to promise a customer a sound; the OpenWAM sound comparison is the measured route.</p></div>':'')+
     '<div class="note esmsg'+(ES_UI.msg&&ES_UI.msg.bad?' bad':'')+'"'+(ES_UI.msg?'':' hidden')+'>'+(ES_UI.msg?esc(ES_UI.msg.t):'')+'</div>';
   return sec('Listen in Engine Simulator',h);
 }
@@ -12328,7 +12333,32 @@ async function esDownload(){
   document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
   return out;
 }
-document.addEventListener('click',e=>{ const b=e.target.closest('button[data-es]'); if(b&&b.dataset.es==='dl') esDownload(); });
+// Desktop program: write the fork's file (1-D exhaust), hold it at each speed with the headless runner, play the clips here
+async function esListen(){
+  if(!HOST) return;
+  const q=SIM.inp, sp=q&&!simCheck(q)?simSpec(q):null, r=esSpecFrom(q,sp);
+  if(r.err){ esMsg(r.err,true); return; }
+  const rpms=String(ES_UI.rpms).split(/[ ,;]+/).map(Number).filter(x=>x>=300&&x<=20000);
+  if(!rpms.length){ esMsg('Enter one or more engine speeds, e.g. 1500, 3000, 4500.',true); return; }
+  let out; try{ out=ESX.toEngineSimDetailed(r.spec,{target:'fork'}); }catch(err){ esMsg('Engine Simulator export: '+err.message,true); return; }
+  const fname=out.derived.identifier+'.fork.mr';
+  esMsg('Running Engine Simulator at '+rpms.join(', ')+' rpm on this PC…');
+  let res;
+  try{ res=await HOST.call('runEngineSim',{filename:fname,text:out.text,rpms,seconds:6,gain:0.35},ev=>{ if(ev.event==='done') esMsg('Engine Simulator: '+ev.rpm+' rpm '+(ev.ok?'done':'FAILED')+'.',!ev.ok); }); }
+  catch(e){ esMsg('Engine Simulator did not run: '+e.message,true); return; }
+  ES_UI.clips.forEach(c=>URL.revokeObjectURL(c.url));
+  ES_UI.clips=(res.holds||[]).filter(x=>x.ok&&x.wavBase64).map(x=>{
+    const bin=atob(x.wavBase64), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    const run=x.run&&x.run.sim||{};
+    return {label:x.rpm+' rpm held, mean dyno torque '+(Number.isFinite(run.mean_dyno_torque_Nm)?Math.round(run.mean_dyno_torque_Nm)+' N·m':'n/a'),url:URL.createObjectURL(new Blob([u8],{type:'audio/wav'}))};
+  });
+  window.__esRunLast=res;
+  const bad=(res.holds||[]).filter(x=>!x.ok);
+  esMsg((bad.length?bad.length+' of '+res.holds.length+' runs failed ('+bad.map(x=>x.rpm+' rpm: '+String(x.logTail||'').split('\n').pop()).join('; ')+'). ':'')+ES_UI.clips.length+' clip(s) below; files in '+res.folder+'.',bad.length>0);
+  renderActive();
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-es]'); if(!b) return; if(b.dataset.es==='dl') esDownload(); else if(b.dataset.es==='listen') esListen(); });
+document.addEventListener('input',e=>{ const el=e.target.closest('input.esrpms'); if(el) ES_UI.rpms=el.value; });
 
 /* ===== Unequal-length primaries (Headers tab) =====
    The table holds one length per cylinder (flange or valve to the collector; to the Y on a Tri-Y) and one per Y pair (Y to

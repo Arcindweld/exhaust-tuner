@@ -1,0 +1,8 @@
+# Same bytes on every OS: the page, the tests' golden files and the solver inputs are compared byte for byte.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.wav binary
+*.png binary
+*.ico binary
+*.xlsx binary
+*.pdf binary

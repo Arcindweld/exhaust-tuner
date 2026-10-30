@@ -75,7 +75,7 @@ public class PaletteTests
         p!.WaitForExit();
         Assert.Equal(0, p.ExitCode);
         // Python on Windows writes CRLF in text mode; the content is what has to agree
-        Assert.Equal(File.ReadAllText(outFile).Replace("\r\n", "\n"), ours);
+        Assert.Equal(File.ReadAllText(outFile).Replace("\r\n", "\n"), ours.Replace("\r\n", "\n"));
     }
 }
 

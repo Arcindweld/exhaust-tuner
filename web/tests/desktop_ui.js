@@ -65,6 +65,20 @@ const CLI = process.env.HOST_CLI || path.join(ROOT, 'app', 'ExhaustTuner.HostCli
   const one = ms[0], disk = fs.readFileSync(path.join(one.folder, one.name + 'AVG.DAT'), 'utf8');
   ok(disk === one.avg, 'AVG text returned to the page is the file OpenWAM wrote');
   ok(/All \d+ models finished/.test(r.msg), 'message: ' + r.msg.slice(0, 120));
+  // Engine Simulator clips, when the headless runner is available (EXHAUST_TUNER_ENGINESIM)
+  if (process.env.EXHAUST_TUNER_ENGINESIM) {
+    await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(500);
+    ok(await pg.$('button[data-es="listen"]') !== null, 'Listen on this PC button shown');
+    await pg.fill('input.esrpms', '2500'); await pg.dispatchEvent('input.esrpms', 'input');
+    await pg.click('button[data-es="listen"]');
+    await pg.waitForFunction(() => window.__esRunLast, null, { timeout: 10 * 60 * 1000 }); await pg.waitForTimeout(500);
+    const es = await pg.evaluate(async () => {
+      const a = document.querySelector('.esclips audio'); if (!a) return { n: 0 };
+      await new Promise(r => { a.preload = 'metadata'; a.onloadedmetadata = r; a.onerror = r; a.load(); setTimeout(r, 5000); });
+      return { n: document.querySelectorAll('.esclips audio').length, dur: a.duration, label: document.querySelector('.esclips .cap').textContent, holds: window.__esRunLast.holds.map(h => [h.rpm, h.ok]) };
+    });
+    ok(es.n === 1 && es.dur > 3, 'Engine Simulator clip plays in the page: ' + JSON.stringify(es));
+  } else console.log('  (EXHAUST_TUNER_ENGINESIM not set: Engine Simulator part not exercised)');
   ok(errs.length === 0, 'no page errors ' + errs.join(' | '));
   host.stdin.end(); await b.close();
   console.log(fails.length ? 'FAILS ' + fails.length : 'all passed'); process.exit(fails.length ? 1 : 0);
