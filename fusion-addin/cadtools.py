@@ -2007,9 +2007,95 @@ def act_save_files(data):
             'path': folder, 'files': written}
 
 
+def stl_ascii(regions, scale=10.0):
+    """One ASCII STL with a 'solid NAME' block per region, the form intake_cfd.py reads (exhaust mode: inlet or
+    inlet1..N, outlet, anything else is wall). regions: [(name, [(p0, p1, p2), ...])] with points in Fusion's
+    centimetres; scale 10 writes millimetres. Facet normals follow the vertex order (right-hand rule);
+    zero-area triangles are left out. Returns (text, triangles written)."""
+    out, n = [], 0
+    for name, tris in regions:
+        out.append('solid %s' % name)
+        for a, b, c in tris:
+            ux, uy, uz = b[0] - a[0], b[1] - a[1], b[2] - a[2]
+            vx, vy, vz = c[0] - a[0], c[1] - a[1], c[2] - a[2]
+            nx, ny, nz = uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx
+            ln = math.sqrt(nx * nx + ny * ny + nz * nz)
+            if ln <= 1e-18:
+                continue
+            out.append('  facet normal %.6e %.6e %.6e' % (nx / ln, ny / ln, nz / ln))
+            out.append('    outer loop')
+            for q in (a, b, c):
+                out.append('      vertex %.6f %.6f %.6f' % (q[0] * scale, q[1] * scale, q[2] * scale))
+            out.append('    endloop')
+            out.append('  endfacet')
+            n += 1
+        out.append('endsolid %s' % name)
+    return '\n'.join(out) + '\n', n
+
+
+def _face_triangles(face, tol_cm):
+    """Fusion's own triangulation of one face (a proxy face gives assembly coordinates), in cm."""
+    calc = face.meshManager.createMeshCalculator()
+    calc.setQuality(adsk.fusion.TriangleMeshQualityOptions.HighQualityTriangleMesh)
+    try:
+        calc.surfaceTolerance = tol_cm
+    except Exception:
+        pass
+    mesh = calc.calculate()
+    xyz = list(mesh.nodeCoordinatesAsDouble)
+    idx = list(mesh.nodeIndices)
+    pts = [(xyz[3 * i], xyz[3 * i + 1], xyz[3 * i + 2]) for i in range(len(xyz) // 3)]
+    return [(pts[idx[3 * k]], pts[idx[3 * k + 1]], pts[idx[3 * k + 2]]) for k in range(len(idx) // 3)]
+
+
+def act_export_cfd_stl(data):
+    """The exhaust CFD case's STL from the model: the user selects the gas-space body's openings in order (the
+    roles the page sends, e.g. inlet1..inlet4 then outlet) and this writes every face of that body, each
+    selected face under its role and all others as wall, as one ASCII STL in millimetres."""
+    roles = [str(r) for r in (data.get('roles') or [])]
+    if not roles or roles[-1] != 'outlet':
+        return {'ok': False, 'msg': 'The page sent no face roles.'}
+    faces = [e for e in _selected() if _kind(e) == 'BRepFace']
+    if len(faces) != len(roles):
+        raise ValueError('Select the %d openings of the gas-space body in this order (Ctrl+click): %s. Selected now: %d face%s.'
+                         % (len(roles), ', '.join(roles), len(faces), '' if len(faces) == 1 else 's'))
+    body = faces[0].body
+    if any(f.body.entityToken != body.entityToken for f in faces):
+        raise ValueError('All the openings must be faces of the same body (the gas space inside the part).')
+    if not body.isSolid:
+        raise ValueError('%s is not a closed solid. Model the gas space as one solid body with every opening capped by a flat face.' % body.name)
+    for r, f in zip(roles, faces):
+        if f.geometry.surfaceType != adsk.core.SurfaceTypes.PlaneSurfaceType:
+            raise ValueError('The face picked as %s is not flat. Each opening must be a flat cap across the pipe end.' % r)
+    tol = float(data.get('tolerance_mm') or 0.05) / 10.0
+    picked = {}
+    for r, f in zip(roles, faces):
+        picked[f.tempId] = r
+    regions = {r: [] for r in roles}
+    regions['wall'] = []
+    for i in range(body.faces.count):
+        f = body.faces.item(i)
+        regions[picked.get(f.tempId, 'wall')].extend(_face_triangles(f, tol))
+    text, ntri = stl_ascii([(r, regions[r]) for r in roles + ['wall']])
+    ui = _ui or adsk.core.Application.get().userInterface
+    dlg = ui.createFileDialog()
+    dlg.isMultiSelectEnabled = False
+    dlg.title = data.get('title') or 'Save the STL next to design.json'
+    dlg.filter = 'STL (*.stl);;All files (*.*)'
+    dlg.initialFilename = str(data.get('filename') or 'part.stl')
+    if dlg.showSave() != adsk.core.DialogResults.DialogOK:
+        return {'ok': False, 'msg': 'Not saved.'}
+    path = dlg.filename
+    with open(path, 'w', encoding='ascii', newline='\n') as fh:
+        fh.write(text)
+    counts = ', '.join('%s %d' % (r, len(regions[r])) for r in roles + ['wall'])
+    return {'ok': True, 'path': path, 'triangles': ntri,
+            'msg': 'Saved %s: %d triangles (%s), millimetres. Put it in the case folder next to design.json.' % (path, ntri, counts)}
+
+
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'saveText': act_save_text, 'saveFiles': act_save_files,
+           'route': act_route, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult')}
 
 

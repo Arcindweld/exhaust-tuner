@@ -13008,7 +13008,7 @@ function exhSection(r,p,e){
     h+='<p class="cap">The case: '+esc(pt.label)+' with '+d.nIn+' inlet'+(d.nIn>1?'s':'')+' ('+d.inletNames.join(', ')+') and an outlet; gas '+Math.round(d.T_c)+' °C; '+(d.mEx*1000).toFixed(1)+' g/s of exhaust from '+d.fed+' of the '+op.cylinders+' cylinders at '+Math.round(op.rpm).toLocaleString('en-US')+' RPM and '+Math.round(op.ve*100)+'% VE (air × (1 + 1/'+d.design.gas.afr+'))'+(op.flow_factor>1?', × '+op.flow_factor+' for boost':'')+'. '+
       'In '+d.nIn+' × '+cdim(d.dIn)+' inlets that is about '+Math.round(d.uIn)+' m/s and a dynamic pressure of '+Math.round(d.qIn)+' Pa ('+(d.qIn/100).toFixed(1)+' mbar), the unit K is measured in. Flow in a collector is pulsed in reality; the steady cycle-mean flow ranks shapes and understates the peak loss, which goes with the square of the instantaneous flow.</p>';
     if(d.notes.length) h+='<div class="note">'+d.notes.map(esc).join(' ')+'</div>';
-    h+='<p class="cap"><b>From Fusion:</b> model the gas space inside the part and cap every opening, export it as an STL in millimetres with the caps as bodies named <code>'+d.inletNames.join('</code>, <code>')+'</code> and <code>outlet</code> (the add-in’s export does this), save it as <code>'+esc(g.name)+'.stl</code> next to design.json, then <code>python3 intake_cfd.py design.json case</code> and <code>./Allrun</code>. Checked on a sudden expansion against Borda–Carnot and on a 90° mandrel bend against Idelchik and Crane (see Method).</p>';
+    h+='<p class="cap"><b>From Fusion:</b> model the gas space inside the part as one solid body with every opening capped by a flat face, select those caps in this order with Ctrl+click: <code>'+d.inletNames.concat(['outlet']).join('</code>, <code>')+'</code>, then '+(FUSION?'press <b>Export the STL from Fusion</b> below':'use the add-in’s <b>Export the STL from Fusion</b> button in this section')+': it writes every face of that body, the caps under those names and the rest as wall, as one ASCII STL in millimetres. Save it as <code>'+esc(g.name)+'.stl</code> next to design.json, then <code>python3 intake_cfd.py design.json case</code> and <code>./Allrun</code>. Checked on a sudden expansion against Borda–Carnot and on a 90° mandrel bend against Idelchik and Crane (see Method).</p>';
   }
   if(hostHas('openfoam')){
     const st=EXH_UI.stl||[];
@@ -13016,6 +13016,7 @@ function exhSection(r,p,e){
       (st.length?'<p class="cap">Picked: '+st.map(f=>esc(f.name)+' ('+Math.max(1,Math.round(f.size/1024)).toLocaleString('en-US')+' kB'+(f.ascii?', faces '+esc(f.solids.join(', ')||'none'):', binary')+')').join('; ')+'</p>':'');
   }
   h+='<div class="actions" style="margin-top:8px"><button type="button" class="btn" id="exh-dl" data-exh="dl">Download exhaust CFD case (.zip)</button>'+
+    (FUSION?'<button type="button" class="btn" data-exh="stl">Export the STL from Fusion</button>':'')+
     (hostHas('openfoam')?'<button type="button" class="btn" data-exh="run">Run in OpenFOAM on this PC</button><button type="button" class="btn" data-exh="stop">Stop</button>'+
       (EXH_UI.lastFolder?'<button type="button" class="btn" data-exh="open">Open the case folder</button>':''):'')+'</div>'+
     '<div class="note'+(EXH_UI.msg&&EXH_UI.msg.bad?' bad':'')+'" id="exh-msg"'+(EXH_UI.msg?'':' hidden')+'>'+(EXH_UI.msg?esc(EXH_UI.msg.t):'')+'</div>';
@@ -13035,6 +13036,8 @@ function exhSection(r,p,e){
 window.__exh={design:()=>EXH_LAST?exhDesign(EXH_LAST.r,EXH_LAST.p,EXH_LAST.e):null,build:exhBuild,download:exhDownload,run:exhRun,ui:EXH_UI};
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-exh]'); if(!b) return;
   if(b.dataset.exh==='dl') exhDownload(); else if(b.dataset.exh==='run') exhRun(); else if(b.dataset.exh==='stop'&&HOST) HOST.cancel();
+  else if(b.dataset.exh==='stl'&&FUSION&&EXH_LAST){ const d=exhDesign(EXH_LAST.r,EXH_LAST.p,EXH_LAST.e);
+    fusionCall('exportCfdStl',{roles:d.inletNames.concat(['outlet']),filename:d.design.geometry.stl,title:'Save the STL next to design.json'}).then(r=>exhMsg((r&&r.msg)||'No answer from the add-in.',!(r&&r.ok)&&!(r&&r.msg==='Not saved.'))); }
   else if(b.dataset.exh==='open'&&EXH_UI.lastFolder) hostCall('openFolder',{path:EXH_UI.lastFolder}); });
 document.addEventListener('input',e=>{ const el=e.target.closest('input.exhx'); if(!el) return; const k=el.dataset.k; EXH_UI[k]=/^(ve|afr|boost)$/.test(k)?(parseFloat(el.value)||0):el.value; });
 document.addEventListener('change',e=>{ const el=e.target.closest('select.exhx'); if(el){ EXH_UI[el.dataset.k]=el.value; renderActive(); return; } const f=e.target.closest('#exh-files'); if(f&&f.files&&f.files.length) exhReadFiles(f.files);

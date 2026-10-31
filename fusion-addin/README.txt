@@ -1,4 +1,15 @@
-EXHAUST TUNER (Fusion add-in), version 4.10.0
+EXHAUST TUNER (Fusion add-in), version 4.11.0
+
+4.11.0 (October 31, 2026)
+- New: "Export the STL from Fusion" in the Headers tab's exhaust component CFD section. Model
+  the gas space inside the part as one solid body with every opening capped by a flat face,
+  select the caps in the order the page lists (inlet1, inlet2 ... then outlet) with
+  Ctrl+click, press the button and save the file next to design.json. Every face of that
+  body is written from Fusion's own triangulation (0.05 mm surface tolerance), the caps
+  under their names and all other faces as wall, as one ASCII STL in millimetres - the form
+  the case generator (intake_cfd.py) reads. The Windows program takes the same file
+  ("STL of the part, to run on this PC"). Earlier page text said the add-in already did
+  this; it did not until now.
 
 4.10.0 (October 30, 2026)
 - New: "Lay out 180-degree headers (V8 template)" on the Headers tab (route mode 'bundle180',
