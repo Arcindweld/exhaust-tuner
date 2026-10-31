@@ -1,0 +1,42 @@
+# Diagnostic runs of our Windows OpenFOAM build (tools/openfoam): case variants from cfd/validation/diag, compared by
+# hand with the same variants on Linux. Not part of the release path.
+name: openfoam-diag
+on:
+  workflow_dispatch:
+    inputs:
+      of_run:
+        description: "openfoam-windows run that holds the openfoam-v2412-win64 artifact"
+        required: false
+        default: "41190144915"
+  push:
+    branches: [windows-app]
+    paths: [".github/workflows/openfoam-diag.yml", "cfd/validation/diag/**"]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  variants:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Get the Windows OpenFOAM build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OF_RUN: ${{ github.event.inputs.of_run || '41190144915' }}
+        run: |
+          gh run download $env:OF_RUN --repo $env:GITHUB_REPOSITORY -n openfoam-v2412-win64 -D ofzip
+          Expand-Archive ofzip/openfoam-v2412-win64.zip -DestinationPath C:\ET
+      - name: Run the variants
+        shell: pwsh
+        run: ./cfd/validation/diag/windows_variants.ps1 -OF C:\ET\OpenFOAM-v2412 -Repo $PWD -Out "$env:RUNNER_TEMP\diag"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: diag-variants
+          path: ${{ runner.temp }}/diag
+          retention-days: 14

@@ -1,0 +1,80 @@
+"""Variants of a generated intake case for tracking down a platform difference: each variant changes one boundary
+condition, scheme or model, so the first iterations on two OpenFOAM builds can be compared per variant (the variant
+whose residuals agree points at what differs). The physics of a variant is not meant to be right, only identical on
+both builds.
+    python make_variants.py <meshed case dir> <out root> [iterations]
+The case must already have its mesh (blockMesh, topoSet run). Writes <out root>/<variant>/ for every variant."""
+import os
+import re
+import shutil
+import sys
+
+
+def patch_block(text, patch, body):
+    """Replace the body of `patch { ... }` inside boundaryField."""
+    i = text.index("boundaryField")
+    m = re.compile(r"\n(\s*)%s\s*\n\s*\{" % re.escape(patch)).search(text, i)
+    if not m:
+        raise ValueError("patch %s not found" % patch)
+    j = text.index("{", m.start())
+    depth, k = 0, j
+    while True:
+        if text[k] == "{":
+            depth += 1
+        elif text[k] == "}":
+            depth -= 1
+            if depth == 0:
+                break
+        k += 1
+    ind = m.group(1)
+    return text[:j] + "{\n" + "".join(ind + "    " + ln + "\n" for ln in body) + ind + "}" + text[k + 1:]
+
+
+def edit(path, fn):
+    with open(path) as f:
+        t = f.read()
+    t2 = fn(t)
+    if t2 == t:
+        raise ValueError("no change in " + path)
+    with open(path, "w", newline="\n") as f:
+        f.write(t2)
+
+
+def sub1(pat, rep):
+    def f(t):
+        t2, n = re.subn(pat, rep, t, count=1, flags=re.M)
+        if n != 1:
+            raise ValueError("pattern not found: " + pat)
+        return t2
+    return f
+
+
+VARIANTS = {
+    "base": [],
+    "outlet_p_fixed": [("0/p", lambda t: patch_block(t, "outlet", ["type            fixedValue;", "value           uniform -3685.49806;"]))],
+    "atm_U_zeroGradient": [("0/U", lambda t: patch_block(t, "atmosphere", ["type            zeroGradient;"]))],
+    "atm_p_fixed": [("0/p", lambda t: patch_block(t, "atmosphere", ["type            fixedValue;", "value           uniform 0;"]))],
+    "outlet_U_zeroGradient": [("0/U", lambda t: patch_block(t, "outlet", ["type            zeroGradient;"]))],
+    "gradU_linear": [("system/fvSchemes", sub1(r"^(\s*grad\(U\)\s+)\$limited;", r"\1Gauss linear;"))],
+    "divU_upwind": [("system/fvSchemes", sub1(r"^(\s*div\(phi,U\)\s+).*;", r"\1bounded Gauss upwind;"))],
+    "laminar": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;"))],
+}
+
+
+def main(src, root, iters=3):
+    os.makedirs(root, exist_ok=True)
+    for name, edits in VARIANTS.items():
+        d = os.path.join(root, name)
+        if os.path.exists(d):
+            shutil.rmtree(d)
+        shutil.copytree(src, d, ignore=shutil.ignore_patterns("log.*", "processor*", "postProcessing", "[1-9]*"))
+        for rel, fn in edits:
+            edit(os.path.join(d, rel), fn)
+        edit(os.path.join(d, "system", "controlDict"), lambda t: re.sub(r"^endTime\s+\S+;", "endTime         %d;" % iters,
+             re.sub(r"^writeInterval\s+\S+;", "writeInterval   1;", re.sub(r"^purgeWrite\s+\S+;", "purgeWrite      0;",
+             re.sub(r"^writePrecision\s+\S+;", "writePrecision  17;", t, flags=re.M), flags=re.M), flags=re.M), flags=re.M))
+        print(name)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1], sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 3)
