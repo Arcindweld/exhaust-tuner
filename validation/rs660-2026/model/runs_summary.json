@@ -4,23 +4,27 @@
   "rpm": 1442.0,
   "finished": true,
   "warnings": 0,
-  "NMEP": 0.800963,
+  "NMEP": 0.800605,
   "FMEP": 0.7884,
-  "T_brake_Nm": 0.06586855178737495,
+  "T_brake_Nm": 0.06399153662062511,
   "p_map_bar": 0.25739643427479875,
-  "VE_delivered": 0.11556571632338138,
-  "conv_NMEP_last_change": 0.005278645830082051
+  "VE_delivered": 0.11548496567312548,
+  "conv_NMEP_last_change": 0.006866057543982331,
+  "mass_balance_pipes_avg": -0.6571424562321772,
+  "cycles": 48
  },
  {
   "name": "hold_5460",
   "rpm": 5460.0,
   "finished": true,
   "warnings": 0,
-  "NMEP": 1.59134,
+  "NMEP": 1.59348,
   "FMEP": 1.5919999999999999,
-  "T_brake_Nm": -0.0034604190224993858,
+  "T_brake_Nm": 0.007759727505000775,
   "p_map_bar": 0.30489770058103605,
-  "VE_delivered": 0.2147951915730869,
-  "conv_NMEP_last_change": 0.0002890645619414487
+  "VE_delivered": 0.21529251303815505,
+  "conv_NMEP_last_change": 0.0012049100082837073,
+  "mass_balance_pipes_avg": -0.0037535319625370267,
+  "cycles": 72
  }
 ]

@@ -14,17 +14,27 @@ What is new in the tools for this bike:
 
 Runs (no load: each intake runner fed from a reservoir at the manifold pressure that makes NMEP = FMEP, calibrated per
 speed from three short runs): idle 1442 rpm at 0.257 bar, the 5460 rpm hold at 0.305 bar. Both outlets carry the same
-mean flow (3.7 g/s each at the hold).
+mean flow.
+
+Run settings (2026-10-31, second pass): instantaneous rows written at 64 kHz and 48 (idle) / 72 (hold) cycles.
+- Row rate: against rows at every solver step, 64 kHz rows give the same order levels within 0.42 dB up to order 12
+  at the hold; 16 kHz rows (the first pass) were up to 2.5 dB off at orders 10-12 (the monopole uses d(mdot)/dt,
+  which the coarse rows smear).
+- Settling: at the hold the tail outflow matches the flow through the cylinders within 0.4 % in OpenWAM's own
+  averages after 72 cycles (4 % short after 36). At idle the runner and tail stations see strong reverse flow, so
+  their averages are no mass balance (4.07 g/s at the intake station against 1.18 g/s into the cylinders); the
+  cylinders' own intake and exhaust agree within 0.3 %, and NMEP still moved 0.007 bar over the last cycle.
+- Effect of the second pass on the comparison: under 0.6 dB RMS everywhere (table).
 
 Against the recording (relative order levels, gain offset removed; orders below 60 Hz left out for the phone-class mic):
 
-| point | recording segment | orders compared | RMS difference |
-|---|---|---|---|
-| idle 1442 rpm | idle_after (27.5-31 s) | 2.5-7 | 10.1 dB |
-| idle 1442 rpm | idle_warm / idle_start | 2.5-7 | 10.6 dB |
-| hold 5460 rpm | hold_5400 (24.2-26.4 s) | 1-7 | 8.0 dB |
+| point | recording segment | orders compared | RMS difference, first pass | second pass |
+|---|---|---|---|---|
+| idle 1442 rpm | idle_after (27.5-31 s) | 2.5-7 | 10.1 dB | 10.1 dB |
+| idle 1442 rpm | idle_warm / idle_start | 2.5-7 | 10.6 dB | 10.7 / 10.6 dB |
+| hold 5460 rpm | hold_5400 (24.2-26.4 s) | 1-7 | 8.0 dB | 7.8 dB |
 
-Level change from idle to the 5460 rpm hold: model +13.9 dB, recording +12.0 dB (fixed gain).
+Level change from idle to the 5460 rpm hold: model +13.7 dB (first pass +13.9), recording +12.0 dB (fixed gain).
 
 Reading it: the overall level trend with speed is right within 2 dB, and at the hold orders 1, 4.5, 6.5 and 7 are
 within 3 dB. The balance between the strongest orders is not: the recording's strongest order at 5460 rpm is 1.5
