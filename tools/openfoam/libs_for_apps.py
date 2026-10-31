@@ -11,20 +11,25 @@ import os, re, sys
 of = sys.argv[1]
 args = sys.argv[2:]
 shard = None
+lninclude = False
 if args[:1] == ["--shard"]:
     i, n = (int(x) for x in args[1].split("/"))
     shard, args = (i, n), args[2:]
+elif args[:1] == ["--lninclude"]:
+    lninclude, args = True, args[1:]
 apps = args
 CASE_LIBS = ["fieldFunctionObjects", "utilityFunctionObjects", "sampling"]   # loaded by the cases' controlDict
 SPECIAL = {"OpenFOAM", "Pstream", "OSspecific"}   # built first by build_mingw.sh, as src/Allwmake does for Mingw
 
 libdir = {}
-for d, _, fs in os.walk(os.path.join(of, "src")):
-    if d.endswith(os.sep + "Make") and "files" in fs:
-        t = open(os.path.join(d, "files")).read()
-        m = re.search(r"^\s*LIB\s*=\s*\$\((?:FOAM_LIBBIN|FOAM_MPI_LIBBIN)\)/(?:\S*/)?lib(\S+)", t, re.M)
-        if m:
-            libdir.setdefault(m.group(1), []).append(os.path.relpath(d[:-5], of))
+# libraries in src/, then the ones that live with an application (surfaceFeatureExtract's extractionMethod), src first
+for top in ("src", "applications"):
+    for d, _, fs in sorted(os.walk(os.path.join(of, top))):
+        if d.endswith(os.sep + "Make") and "files" in fs:
+            t = open(os.path.join(d, "files")).read()
+            m = re.search(r"^\s*LIB\s*=\s*\$\((?:FOAM_LIBBIN|FOAM_MPI_LIBBIN)\)/(?:\S*/)?lib(\S+)", t, re.M)
+            if m:
+                libdir.setdefault(m.group(1), []).append(os.path.relpath(d[:-5], of))
 
 def pick(name):
     ds = libdir[name]
@@ -65,6 +70,28 @@ def visit(l):
 for l in sorted(need):
     visit(l)
 libs = [pick(l) for l in order if l not in SPECIAL]
+if lninclude:
+    # every folder a compile needs an lnInclude/ for: each src library, the header-only folders the libraries'
+    # Make/options point at (TurbulenceModels/phaseCompressible ...), and folders local to a library or program
+    # (-IextractionMethod/lnInclude). src/Allwmake and the libraries' own Allwmake scripts make these in a full build.
+    out = set()
+    for d, dirs, fs in os.walk(os.path.join(of, "src")):
+        if "Make" in dirs:
+            out.add(os.path.relpath(d, of))
+    for d in libs + apps + ["src/OpenFOAM"]:
+        p = os.path.join(of, d, "Make", "options")
+        if not os.path.exists(p):
+            continue
+        t = open(p).read()
+        for m in re.finditer(r"-I\$\(LIB_SRC\)/([\w/.\-]+?)/lnInclude", t):
+            if os.path.isdir(os.path.join(of, "src", m.group(1))):
+                out.add(os.path.join("src", m.group(1)))
+        for m in re.finditer(r"-I(?!\$)([\w/.\-]+?)/lnInclude", t):
+            q = os.path.normpath(os.path.join(d, m.group(1)))
+            if os.path.isdir(os.path.join(of, q)):
+                out.add(q)
+    print("\n".join(sorted(out)))
+    sys.exit(0)
 if shard is None:
     print("\n".join(libs))
     sys.exit(0)

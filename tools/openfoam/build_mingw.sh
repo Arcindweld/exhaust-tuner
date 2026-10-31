@@ -47,8 +47,9 @@ step() {   # name, command...   logs to logs/<name>.log, stops the build when th
 # host tools (wmkdepend, lemon) for the Linux side of wmake, and the Windows ones
 step wmake-tools bash -c 'cd wmake/src && ./Allmake' || exit 1
 
-# lnInclude folders for every library first: some libraries include headers of libraries they do not link
-for d in $(find src -type d -name Make -prune | sed 's,/Make$,,' | sort); do wmakeLnInclude -u "$d" > /dev/null 2>&1; done
+# lnInclude folders first (every library, the header-only folders, folders local to a program): some libraries
+# include headers of libraries they do not link, and a part compiled on its own needs all of them
+for d in $(python3 "$HERE/libs_for_apps.py" "$OF" --lninclude $APPS); do wmakeLnInclude -u "$d" > /dev/null 2>&1; done
 src/OpenFOAM/Alltouch -check 2>/dev/null
 
 fail=0

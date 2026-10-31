@@ -51,6 +51,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Cross compiler and OpenFOAM source
         run: bash tools/openfoam/ci_setup.sh
+      - name: Compiler cache of this part from an earlier run
+        uses: actions/cache/restore@v4
+        with:
+          path: /home/runner/.ccache
+          key: ccache-of2412-mingw-part${{ matrix.part }}-${{ github.run_id }}
+          restore-keys: ccache-of2412-mingw-part${{ matrix.part }}-
       - name: Compile part ${{ matrix.part }} of 4 (no linking)
         run: bash tools/openfoam/build_mingw.sh "$HOME/of/OpenFOAM-v2412" 280 objects:${{ matrix.part }}/4
       - uses: actions/cache/save@v4
