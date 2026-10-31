@@ -149,7 +149,9 @@ def build_spec(load="noload", p_map_bar=0.4):
     return spec
 
 
-def run_settings(rpm, cycles, name, fs_rows=16000.0):
+def run_settings(rpm, cycles, name, fs_rows=64000.0):
+    # 64 kHz INS rows (order levels within 0.4 dB of every-step output up to order 12; 16 kHz was up to 2.5 dB off
+    # at 1 kHz on the RS 660 model)
     return {"rpm": float(rpm), "cycles": int(cycles), "name": name, "cell_mm": CELL_MM, "ins_outlet": 1, "ins_cycles": 2,
             "out_step_deg": make_wam.out_step_for_rate(rpm, fs_rows)}
 
@@ -166,7 +168,7 @@ def run_one(name, spec, run, rerun=False):
         json.dump({k: v for k, v in run.items() if k != "name"}, f, indent=1)
     if rerun or not os.path.exists(os.path.join(folder, name + "AVG.DAT")):
         with open(os.path.join(folder, "run.log"), "w") as lf:
-            subprocess.run([run_models.EXE, name + ".wam"], cwd=folder, stdout=lf, stderr=subprocess.STDOUT, check=False)
+            subprocess.run([os.environ.get("OPENWAM_EXE") or run_models.EXE, name + ".wam"], cwd=folder, stdout=lf, stderr=subprocess.STDOUT, check=False)
     s = run_models.summarise(folder, name, model)
     return folder, model, s
 
@@ -207,7 +209,9 @@ def run(argv):
     rerun = "--rerun" in argv
     jobs = []
     for name, rpm, _ in NOLOAD + SECONDARY:
-        jobs.append((name, build_spec("noload", d_for(rpm)), run_settings(rpm, 14 if rpm < 1000 else 24, name)))
+        # 28 / 48 cycles: the 7.24 L muffler volume settles slowly at no load (after 24 cycles OpenWAM's averages
+        # still had the tail flow 6-18 % off the intake flow)
+        jobs.append((name, build_spec("noload", d_for(rpm)), run_settings(rpm, 28 if rpm < 1000 else 48, name)))
     for rpm in WOT_RPM:
         nm = "wot_%d" % int(rpm)
         jobs.append((nm, build_spec("wot"), dict(run_settings(rpm, 16, nm), ins_outlet=0, ins_cycles=1, out_step_deg=1.0)))

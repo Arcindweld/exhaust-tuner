@@ -104,7 +104,13 @@ jobs:
           if ((Get-FileHash py.zip -Algorithm SHA256).Hash -ne $env:PY_SHA256) { throw "Python embeddable package: SHA-256 mismatch" }
           Expand-Archive py.zip -DestinationPath engines/python
           "EXHAUST_TUNER_PYTHON=$PWD\engines\python\python.exe" >> $env:GITHUB_ENV
-          $run = gh run list --repo $env:GITHUB_REPOSITORY --workflow openfoam-windows.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+          # a passed run is not enough: its validate job itself must have passed (a skipped one does not count)
+          $run = $null
+          foreach ($id in (gh run list --repo $env:GITHUB_REPOSITORY --workflow openfoam-windows.yml --status success --limit 10 --json databaseId --jq '.[].databaseId')) {
+            $v = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$id/jobs" --jq '.jobs[] | select(.name == "validate") | .conclusion'
+            if ($v -eq "success") { $run = $id; break }
+            "run ${id}: validate job '$v', not used"
+          }
           if ($run) {
             gh run download $run --repo $env:GITHUB_REPOSITORY --name openfoam-v2412-win64 --dir ofzip
             Expand-Archive ofzip/openfoam-v2412-win64.zip -DestinationPath engines/openfoam

@@ -24,7 +24,7 @@ ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ROOT)
 import intake_cfd as ic  # noqa: E402
 
-FOAMENV = os.path.join(ROOT, "foamenv.sh")
+FOAMENV = os.environ.get("FOAMENV") or os.path.join(ROOT, "foamenv.sh")   # a script that puts OpenFOAM v2412 on PATH
 RUNS = os.path.join(HERE, "runs")
 NWORK = int(os.environ.get("NWORK", "2"))
 P0, T0 = 101325.0, 298.15

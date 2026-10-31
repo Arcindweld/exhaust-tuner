@@ -102,8 +102,10 @@ def build_spec(p_map_bar):
 
 
 def run_settings(rpm, cycles, name):
+    # INS rows at 64 kHz: against rows at every solver step the order levels agree within 0.4 dB up to order 12
+    # (at 16 kHz orders 10-12 were up to 2.5 dB off at 5460 rpm)
     return {"rpm": float(rpm), "cycles": int(cycles), "name": name, "cell_mm": 10.0, "ins_outlet": 1, "ins_cycles": 2,
-            "out_step_deg": make_wam.out_step_for_rate(rpm, 16000.0)}
+            "out_step_deg": make_wam.out_step_for_rate(rpm, 64000.0)}
 
 
 def run_one(name, spec, run, rerun=False):
@@ -152,7 +154,9 @@ def calib(argv):
 def run(argv):
     with open(os.path.join(HERE, "calibration.json")) as f:
         cal = json.load(f)
-    jobs = [(name, build_spec(cal[name]["p_map_bar"]), run_settings(rpm, 24 if rpm < 3000 else 36, name)) for name, rpm, _ in POINTS]
+    # 48 / 72 cycles: the 10 L box settles slowly (at 36 cycles the mean flow out of the tail was still 4 % short of
+    # the flow into the cylinders in OpenWAM's own averages, at 72 cycles 0.4 %)
+    jobs = [(name, build_spec(cal[name]["p_map_bar"]), run_settings(rpm, 48 if rpm < 3000 else 72, name)) for name, rpm, _ in POINTS]
     with ThreadPoolExecutor(max_workers=2) as ex:
         res = list(ex.map(lambda j: run_one(j[0], j[1], j[2], "--rerun" in argv), jobs))
     rows = []
@@ -162,10 +166,12 @@ def run(argv):
         tq = (L["NMEP"] - fmep_bar(rpm)) * 1e5 * 2 * VD_CYL / (4 * math.pi)
         r = {"name": name, "rpm": rpm, "finished": s["finished"], "warnings": len(s["warning_or_error_lines"]), "NMEP": L["NMEP"],
              "FMEP": fmep_bar(rpm), "T_brake_Nm": tq, "p_map_bar": cal[name]["p_map_bar"], "VE_delivered": L["VE_delivered"],
-             "conv_NMEP_last_change": s["convergence"]["NMEP"]["last_change"]}
+             "conv_NMEP_last_change": s["convergence"]["NMEP"]["last_change"], "mass_balance_pipes_avg": s["mass_balance_pipes"],
+             "cycles": rs["cycles"]}
         rows.append(r)
-        print("%-10s %5.0f rpm fin %s warn %d | NMEP %6.3f FMEP %5.3f -> T_brake %5.1f Nm | p_map %.3f bar VE %.3f | dNMEP %.1e" %
-              (name, rpm, s["finished"], r["warnings"], r["NMEP"], r["FMEP"], tq, r["p_map_bar"], r["VE_delivered"], r["conv_NMEP_last_change"]))
+        print("%-10s %5.0f rpm fin %s warn %d | NMEP %6.3f FMEP %5.3f -> T_brake %5.1f Nm | p_map %.3f bar VE %.3f | dNMEP %.1e | tail flow vs intake %+.1f %%" %
+              (name, rpm, s["finished"], r["warnings"], r["NMEP"], r["FMEP"], tq, r["p_map_bar"], r["VE_delivered"], r["conv_NMEP_last_change"],
+               100 * r["mass_balance_pipes_avg"]))
     with open(os.path.join(HERE, "runs_summary.json"), "w") as f:
         json.dump(rows, f, indent=1)
 
