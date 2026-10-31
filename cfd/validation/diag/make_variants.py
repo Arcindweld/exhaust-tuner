@@ -74,6 +74,12 @@ VARIANTS = {
     "lam_nu0_upwind": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                        ("constant/transportProperties", sub1(r"^(nu\s+)\S+;", r"\g<1>1e-30;")),
                        ("system/fvSchemes", sub1(r"^(\s*div\(phi,U\)\s+).*;", r"\1Gauss upwind;"))],
+    # the viscous terms are where Windows departs (round 6: nu ~0 matches to every digit). Both go through
+    # surfaceInterpolationScheme::dotInterpolate (Sf & T for div(dev2), corrVec & grad(U) for the laplacian
+    # correction); uncorrected drops the second one
+    "lam_uncorrected": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                        ("system/fvSchemes", lambda t: t.replace("default         Gauss linear corrected;", "default         Gauss linear uncorrected;")
+                         .replace("default         corrected;", "default         uncorrected;"))],
     # per-cell initial residual fields of U and p every iteration (solverInfo writeResidualFields)
     "lam_resfields": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                       ("system/controlDict", sub1(r"^functions\s*\n\{", "functions\n{\n    residualFields\n    {\n        type            solverInfo;\n"
