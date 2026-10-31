@@ -87,24 +87,46 @@ jobs:
           "msmpi: $msmpi"
           $env:WM_PROJECT = "OpenFOAM"; $env:WM_PROJECT_VERSION = "v2412"; $env:WM_PROJECT_DIR = $of; $env:FOAM_SIGFPE = "1"
           $env:PATH = ((@("$of\platforms\$type\bin") + $dllDirs + @($env:PATH)) -join ';')
-          python cfd/intake_cfd.py cfd/tests/pp.json case_pp | Out-Null
-          Push-Location case_pp
-          function Step($exe, $log) { & $exe *> $log; "{0,-16} exit {1}" -f $exe, $LASTEXITCODE; if ($LASTEXITCODE -ne 0) { Get-Content $log -Tail 25; throw "$exe failed" } }
-          Step blockMesh log.blockMesh
-          Step checkMesh log.checkMesh
-          Step topoSet log.topoSet
-          $solver = (Select-String -Path system/controlDict -Pattern '^application\s+(\S+);').Matches[0].Groups[1].Value
-          $t0 = Get-Date
-          Step $solver "log.$solver"
-          "solver time: {0:N0} s" -f ((Get-Date) - $t0).TotalSeconds
-          python intake_report.py *> log.report; "report exit $LASTEXITCODE"; Get-Content log.report -Tail 15
+          # rhoSimpleFoam stopped at the first pressure solve with "failed lookup of thermo:psi" while the Windows build
+          # registers the field as thermo_psi (':' is not allowed in Windows file names). Find out what does run.
+          function Short($dir, $solver, $label) {
+            Push-Location $dir
+            foamDictionary -entry endTime -set 30 system/controlDict | Out-Null
+            foamDictionary -entry writeInterval -set 30 system/controlDict | Out-Null
+            & blockMesh *> log.blockMesh; & topoSet *> log.topoSet
+            & $solver *> "log.$solver"; $ec = $LASTEXITCODE
+            $fatal = (Select-String -Path "log.$solver" -Pattern "failed lookup of \S+" | Select-Object -First 1).Matches.Value
+            "{0,-44} {1,-14} exit {2}  {3}" -f $label, $solver, $ec, $fatal
+            Pop-Location
+            return $ec
+          }
+          python cfd/intake_cfd.py cfd/tests/pp.json v_as_is | Out-Null
+          Short v_as_is rhoSimpleFoam "A: our case as generated (hePsiThermo)"
+          python cfd/intake_cfd.py cfd/tests/pp.json v_rho | Out-Null
+          (Get-Content v_rho/constant/thermophysicalProperties) -replace 'hePsiThermo','heRhoThermo' | Set-Content v_rho/constant/thermophysicalProperties
+          Short v_rho rhoSimpleFoam "B: heRhoThermo"
+          python cfd/intake_cfd.py cfd/tests/pp.json v_nolim | Out-Null
+          (Get-Content v_nolim/system/fvSolution) | Where-Object { $_ -notmatch 'pMinFactor|pMaxFactor' } | Set-Content v_nolim/system/fvSolution
+          Short v_nolim rhoSimpleFoam "C: no pMin/pMaxFactor"
+          $tut = Get-ChildItem "$of\tutorials\compressible\rhoSimpleFoam" -Directory -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($tut) { Copy-Item $tut.FullName v_tut -Recurse; Short v_tut rhoSimpleFoam ("D: tutorial " + $tut.Name) } else { "D: no rhoSimpleFoam tutorials in the package" }
+          python cfd/intake_cfd.py cfd/tests/pp_inc.json v_inc | Out-Null
+          $incSolver = (Select-String -Path v_inc/system/controlDict -Pattern '^application\s+(\S+);').Matches[0].Groups[1].Value
+          Short v_inc $incSolver "E: incompressible variant"
+          # full run of the incompressible variant for a number-for-number check (Linux reference runs alongside)
+          python cfd/intake_cfd.py cfd/tests/pp_inc.json case_inc | Out-Null
+          Push-Location case_inc
+          & blockMesh *> log.blockMesh; & topoSet *> log.topoSet
+          $t0 = Get-Date; & $incSolver *> "log.$incSolver"; "full $incSolver exit $LASTEXITCODE, {0:N0} s" -f ((Get-Date) - $t0).TotalSeconds
+          python intake_report.py *> log.report; Get-Content log.report -Tail 12
           Pop-Location
-          if (Test-Path case_pp/results.json) { Get-Content case_pp/results.json -Raw } else { throw "no results.json" }
+          if (Test-Path case_inc/results.json) { Get-Content case_inc/results.json -Raw }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: openfoam-probe-case
           path: |
-            case_pp/log.*
-            case_pp/results.json
-            case_pp/results.txt
+            v_*/log.*
+            case_inc/log.*
+            case_inc/results.json
+            case_inc/results.txt
