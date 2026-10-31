@@ -14,23 +14,28 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Find, download and install the v2412 Windows build (silent)
+      - name: Download the v2412 Windows build and unpack it without running its installer UI
         shell: pwsh
+        timeout-minutes: 30
         run: |
-          foreach ($v in "v2412","v2512") {
-            "---- https://dl.openfoam.com/source/$v/"
-            try { (Invoke-WebRequest "https://dl.openfoam.com/source/$v/" -UseBasicParsing).Links.href | Where-Object { $_ -match 'win|mingw|\.exe' } } catch { $_.Exception.Message }
-          }
           # dl.openfoam.com hands the file to SourceForge; its mirror redirect serves the binary to curl
-          $u = "https://downloads.sourceforge.net/project/openfoam/v2412/OpenFOAM-v2412-windows-mingw.exe"
-          "downloading $u"
-          curl.exe -sSL --retry 3 -A "Wget/1.21" -o of.exe $u
-          $b = [System.IO.File]::ReadAllBytes("$PWD\of.exe")[0..1]
-          "{0:N1} MB, starts with {1}" -f ((Get-Item of.exe).Length/1MB), ([char]$b[0] + [char]$b[1])
-          if ([char]$b[0] -ne 'M') { Get-Content of.exe -TotalCount 20; throw "not an executable" }
-          $p = Start-Process .\of.exe -ArgumentList "/S","/D=C:\OF" -Wait -PassThru
-          "installer exit: $($p.ExitCode)"
-          Get-ChildItem C:\OF -Depth 1 | Select-Object FullName
+          curl.exe -sSL --retry 3 -A "Wget/1.21" -o of.exe "https://downloads.sourceforge.net/project/openfoam/v2412/OpenFOAM-v2412-windows-mingw.exe"
+          "{0:N1} MB" -f ((Get-Item of.exe).Length/1MB)
+          # which installer is it? (the last run's "/S /D=" silent switches left it waiting for 90 minutes)
+          $bytes = [System.IO.File]::ReadAllBytes("$PWD\of.exe")
+          $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, [Math]::Min($bytes.Length, 4MB))
+          foreach ($sig in "Inno Setup","Nullsoft","NSIS","7-Zip","7zS","InstallShield","WiX","Squirrel","msys2","MSYS2","Qt Installer") {
+            if ($text.Contains($sig)) { "signature: $sig" }
+          }
+          & "C:\Program Files\7-Zip\7z.exe" l of.exe | Select-Object -First 30
+          New-Item -ItemType Directory -Force C:\OF | Out-Null
+          & "C:\Program Files\7-Zip\7z.exe" x of.exe -oC:\OF -y | Select-Object -Last 5
+          if (-not (Get-ChildItem C:\OF -Recurse -Filter blockMesh.exe -ErrorAction SilentlyContinue | Select-Object -First 1)) {
+            "7-Zip did not give blockMesh.exe; trying innoextract"
+            choco install innoextract -y --no-progress | Select-Object -Last 2
+            innoextract -s -d C:\OF of.exe | Select-Object -Last 5
+          }
+          Get-ChildItem C:\OF -Depth 2 | Select-Object -First 40 FullName
       - name: What is inside
         shell: pwsh
         run: |
