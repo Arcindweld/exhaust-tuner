@@ -19,14 +19,14 @@ foreach ($d in Get-ChildItem (Join-Path $Out "var") -Directory) {
   Push-Location $d.FullName
   simpleFoam *> log.simpleFoam
   "== $($d.Name) exit $LASTEXITCODE"
-  Select-String -Path log.simpleFoam -Pattern "^Time = |Solving for|^Build" | ForEach-Object { $_.Line }
+  Select-String -Path log.simpleFoam -Pattern "^Time = |Solving for|^Build|non-dominant|relative non-dominance" | ForEach-Object { $_.Line }
   Pop-Location
 }
 # geometry and gradients from the (identical) iteration-1 fields of the laminar variant
 Push-Location (Join-Path $Out "var\laminar")
-postProcess -time 1 -func writeCellCentres *> log.pp_cc
-postProcess -time 1 -func writeCellVolumes *> log.pp_v
-postProcess -time 1 -func "grad(U)" *> log.pp_gradU
-postProcess -time 1 -func "grad(p)" *> log.pp_gradp
+simpleFoam -postProcess -time 1 -func writeCellCentres *> log.pp_cc
+simpleFoam -postProcess -time 1 -func writeCellVolumes *> log.pp_v
+simpleFoam -postProcess -time 1 -func "grad(U)" *> log.pp_gradU
+simpleFoam -postProcess -time 1 -func "grad(p)" *> log.pp_gradp
 "postProcess exit codes written; files in 1/: " + ((Get-ChildItem 1 -File | ForEach-Object { $_.Name }) -join " ")
 Pop-Location

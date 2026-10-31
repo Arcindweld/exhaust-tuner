@@ -65,6 +65,14 @@ VARIANTS = {
                     ("system/fvSolution", sub1(r"^(\s*U\s+)[\d.]+;", r"\g<1>1;"))],
     "lam_noPredictor": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                         ("system/fvSolution", sub1(r"^(\s*)consistent(\s+)", r"\1momentumPredictor no;\n\1consistent\2"))],
+    # relax() prints its diagonal-dominance statistics with the fvMatrix debug switch
+    "lam_debug": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                  ("system/controlDict", sub1(r"^(application\s+\w+;)", r"\1\nDebugSwitches\n{\n    fvMatrix 1;\n}"))],
+    # the wedge patches as symmetry patches: a thin slab instead of an axisymmetric pipe, but the same on both builds
+    "lam_symmetry": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                     ("constant/polyMesh/boundary", lambda t: t.replace("type            wedge;", "type            symmetry;").replace("inGroups        1(wedge);", "inGroups        1(symmetry);")),
+                     ("0/U", lambda t: t.replace("type wedge;", "type symmetry;")),
+                     ("0/p", lambda t: t.replace("type wedge;", "type symmetry;"))],
 }
 
 
