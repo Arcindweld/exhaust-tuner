@@ -63,7 +63,22 @@ jobs:
           $dllDirs = @($dllDirs | Where-Object { $_ -notmatch '\\(mpi|msmpi|openmpi)' })   # serial run: the dummy Pstream, not MS-MPI
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
           $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC" -Recurse -Filter dumpbin.exe | Where-Object { $_.FullName -match 'Hostx64\\x64' } | Select-Object -First 1
-          "blockMesh needs:"; & $dumpbin.FullName /dependents "$of\platforms\$type\bin\blockMesh.exe" | Select-String "\.dll"
+          # which DLLs each piece needs, and where (if anywhere) the package has them
+          $need = @{}
+          foreach ($f in "blockMesh.exe","libPstream.dll","libOpenFOAM.dll","rhoSimpleFoam.exe") {
+            $deps = & $dumpbin.FullName /dependents "$of\platforms\$type\bin\$f" | Select-String "^\s+(\S+\.dll)\s*$" | ForEach-Object { $_.Matches[0].Groups[1].Value }
+            "$f -> $($deps -join ', ')"
+            foreach ($d in $deps) { $need[$d] = 1 }
+          }
+          $runtimeDirs = @()
+          foreach ($d in $need.Keys) {
+            if (Test-Path "$of\platforms\$type\bin\$d") { continue }
+            $hit = Get-ChildItem C:\OF -Recurse -Filter $d -ErrorAction SilentlyContinue | Select-Object -First 3 -ExpandProperty FullName
+            "{0,-28} {1}" -f $d, (($hit -join ' | ') -replace '^$','(not in the package)')
+            foreach ($h in $hit) { if ($h -notmatch '\\usr\\') { $runtimeDirs += (Split-Path $h) } }
+          }
+          $dllDirs = @($dllDirs) + @($runtimeDirs | Select-Object -Unique)
+          "PATH additions: $($dllDirs -join '; ')"
           $ErrorActionPreference = "Stop"
           $env:WM_PROJECT = "OpenFOAM"; $env:WM_PROJECT_VERSION = "v2412"; $env:WM_PROJECT_DIR = $of; $env:FOAM_SIGFPE = "1"
           $env:PATH = ((@("$of\platforms\$type\bin") + $dllDirs + @($env:PATH)) -join ';')
