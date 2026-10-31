@@ -58,6 +58,13 @@ VARIANTS = {
     "gradU_linear": [("system/fvSchemes", sub1(r"^(\s*grad\(U\)\s+)\$limited;", r"\1Gauss linear;"))],
     "divU_upwind": [("system/fvSchemes", sub1(r"^(\s*div\(phi,U\)\s+).*;", r"\1bounded Gauss upwind;"))],
     "laminar": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;"))],
+    # momentum equation relaxation: off, factor 1, and no momentum predictor (laminar, to keep it small)
+    "lam_noRelaxU": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                     ("system/fvSolution", sub1(r"^\s*U\s+[\d.]+;\n", ""))],
+    "lam_relaxU1": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                    ("system/fvSolution", sub1(r"^(\s*U\s+)[\d.]+;", r"\g<1>1;"))],
+    "lam_noPredictor": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                        ("system/fvSolution", sub1(r"^(\s*)consistent(\s+)", r"\1momentumPredictor no;\n\1consistent\2"))],
 }
 
 
