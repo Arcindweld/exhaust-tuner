@@ -80,6 +80,11 @@ jobs:
           $dllDirs = @($dllDirs) + @($runtimeDirs | Select-Object -Unique)
           "PATH additions: $($dllDirs -join '; ')"
           $ErrorActionPreference = "Stop"
+          # libPstream.dll is linked to Microsoft MPI (msmpi.dll); ESI ships Microsoft's redistributable setup with it
+          $p = Start-Process C:\OF\thirdParty\msmpisetup.exe -ArgumentList "-unattend","-force" -Wait -PassThru
+          "MS-MPI setup exit: $($p.ExitCode)"
+          $msmpi = Get-ChildItem "C:\Windows\System32\msmpi.dll","${env:ProgramFiles}\Microsoft MPI\Bin" -ErrorAction SilentlyContinue | Select-Object -First 3 -ExpandProperty FullName
+          "msmpi: $msmpi"
           $env:WM_PROJECT = "OpenFOAM"; $env:WM_PROJECT_VERSION = "v2412"; $env:WM_PROJECT_DIR = $of; $env:FOAM_SIGFPE = "1"
           $env:PATH = ((@("$of\platforms\$type\bin") + $dllDirs + @($env:PATH)) -join ';')
           python cfd/intake_cfd.py cfd/tests/pp.json case_pp | Out-Null
