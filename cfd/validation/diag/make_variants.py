@@ -49,6 +49,15 @@ def sub1(pat, rep):
     return f
 
 
+def to_cyclic(t):
+    cyc = "        type cyclic;\n        neighbourPatch %s;\n        transform rotational;\n        rotationAxis (1 0 0);\n        rotationCentre (0 0 0);\n"
+    t, n1 = re.subn(r"(\n    front\n    \{\n)        type wedge;\n", lambda m: m.group(1) + cyc % "back", t)
+    t, n2 = re.subn(r"(\n    back\n    \{\n)        type wedge;\n", lambda m: m.group(1) + cyc % "front", t)
+    if n1 != 1 or n2 != 1:
+        raise ValueError("front/back wedge patches not found")
+    return t
+
+
 VARIANTS = {
     "base": [],
     "outlet_p_fixed": [("0/p", lambda t: patch_block(t, "outlet", ["type            fixedValue;", "value           uniform -3685.49806;"]))],
@@ -80,6 +89,14 @@ VARIANTS = {
     "lam_uncorrected": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                         ("system/fvSchemes", lambda t: t.replace("default         Gauss linear corrected;", "default         Gauss linear uncorrected;")
                          .replace("default         corrected;", "default         uncorrected;"))],
+    # the wedge pair as a rotational cyclic pair (same 5 deg sector, re-meshed): on Linux this removes the axial
+    # odd-even velocity mode that the explicit dev2(T(grad(U))) term sustains on wedges (laminar Poiseuille pressure
+    # gradient 1.25x with wedges, 1.01x with the cyclic pair)
+    "cyclic": [("system/blockMeshDict", to_cyclic), ("REMESH", None)] + [("0/" + f, lambda t: t.replace("type wedge;", "type cyclic;"))
+               for f in ("U", "p", "k", "omega", "nut")],
+    "lam_cyclic": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                   ("system/blockMeshDict", to_cyclic), ("REMESH", None)] + [("0/" + f, lambda t: t.replace("type wedge;", "type cyclic;"))
+                   for f in ("U", "p", "k", "omega", "nut")],
     # per-cell initial residual fields of U and p every iteration (solverInfo writeResidualFields)
     "lam_resfields": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                       ("system/controlDict", sub1(r"^functions\s*\n\{", "functions\n{\n    residualFields\n    {\n        type            solverInfo;\n"
@@ -101,6 +118,10 @@ def main(src, root, iters=3):
             shutil.rmtree(d)
         shutil.copytree(src, d, ignore=shutil.ignore_patterns("log.*", "processor*", "postProcessing", "[1-9]*"))
         for rel, fn in edits:
+            if fn is None:      # a marker: re-mesh this variant (blockMesh + topoSet) before the solver
+                open(os.path.join(d, rel), "w").write("re-mesh\n")
+                shutil.rmtree(os.path.join(d, "constant", "polyMesh"), ignore_errors=True)
+                continue
             edit(os.path.join(d, rel), fn)
         edit(os.path.join(d, "system", "controlDict"), lambda t: re.sub(r"^endTime\s+\S+;", "endTime         %d;" % iters,
              re.sub(r"^writeInterval\s+\S+;", "writeInterval   1;", re.sub(r"^purgeWrite\s+\S+;", "purgeWrite      0;",

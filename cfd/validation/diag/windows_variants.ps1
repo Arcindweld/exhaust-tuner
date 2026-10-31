@@ -17,6 +17,7 @@ Pop-Location
 python "$Repo\cfd\validation\diag\make_variants.py" $mesh (Join-Path $Out "var") 3
 foreach ($d in Get-ChildItem (Join-Path $Out "var") -Directory) {
   Push-Location $d.FullName
+  if (Test-Path REMESH) { blockMesh *> log.blockMesh; topoSet *> log.topoSet }
   simpleFoam *> log.simpleFoam
   "== $($d.Name) exit $LASTEXITCODE"
   Select-String -Path log.simpleFoam -Pattern "^Time = |Solving for|^Build|non-dominant|relative non-dominance" | ForEach-Object { $_.Line }
