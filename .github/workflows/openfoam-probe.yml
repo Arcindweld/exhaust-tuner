@@ -30,11 +30,10 @@ jobs:
           & "C:\Program Files\7-Zip\7z.exe" l of.exe | Select-Object -First 30
           New-Item -ItemType Directory -Force C:\OF | Out-Null
           & "C:\Program Files\7-Zip\7z.exe" x of.exe -oC:\OF -y | Select-Object -Last 5
-          if (-not (Get-ChildItem C:\OF -Recurse -Filter blockMesh.exe -ErrorAction SilentlyContinue | Select-Object -First 1)) {
-            "7-Zip did not give blockMesh.exe; trying innoextract"
-            choco install innoextract -y --no-progress | Select-Object -Last 2
-            innoextract -s -d C:\OF of.exe | Select-Object -Last 5
-          }
+          # the NSIS installer carries the whole MSYS2 tree (OpenFOAM inside it) as msys64.7z, plus the env .bat files
+          & "C:\Program Files\7-Zip\7z.exe" x C:\OF\msys64.7z -oC:\OF -y | Select-Object -Last 3
+          foreach ($f in "setEnvVariables-v2412.bat","OpenFOAM-MSYS2.bat","OpenFOAM-MS-DOSPrompt.bat","README.txt") { "==== $f"; Get-Content "C:\OF\$f" }
+          $global:LASTEXITCODE = 0
           Get-ChildItem C:\OF -Depth 2 | Select-Object -First 40 FullName
       - name: What is inside
         shell: pwsh
