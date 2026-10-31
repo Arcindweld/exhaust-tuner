@@ -53,18 +53,20 @@ jobs:
         env:
           INTAKE_CFD_STAMP: "probe"
         run: |
+          $ErrorActionPreference = "Continue"
           $of = "C:\OF\msys64\home\ofuser\OpenFOAM\OpenFOAM-v2412"; $type = "win64MingwDPInt32Opt"
-          "lib folders:"; Get-ChildItem "$of\platforms\$type\lib" -Directory | Select-Object -ExpandProperty Name
-          "OpenFOAM folder:"; Get-ChildItem "C:\OF\msys64\home\ofuser\OpenFOAM" -Directory | Select-Object -ExpandProperty Name
-          $tp = Get-ChildItem "C:\OF\msys64\home\ofuser\OpenFOAM" -Directory -Filter "ThirdParty*" | Select-Object -First 1
-          $tplib = if ($tp) { Get-ChildItem $tp.FullName -Recurse -Directory -Filter lib -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match $type } | Select-Object -ExpandProperty FullName } else { @() }
-          "third-party lib: $tplib"
-          # what blockMesh links against
+          "platform folders:"; Get-ChildItem "$of\platforms\$type" -Directory | Select-Object -ExpandProperty Name
+          # every folder holding DLLs under the OpenFOAM tree (OpenFOAM libraries, third party, MinGW runtime)
+          $dllDirs = Get-ChildItem "C:\OF\msys64\home\ofuser\OpenFOAM" -Recurse -Filter *.dll -ErrorAction SilentlyContinue | Select-Object -ExpandProperty DirectoryName -Unique
+          "DLL folders:"; $dllDirs
+          $mpi = $dllDirs | Where-Object { $_ -match '\\(mpi|msmpi|openmpi)' }
+          $dllDirs = @($dllDirs | Where-Object { $_ -notmatch '\\(mpi|msmpi|openmpi)' })   # serial run: the dummy Pstream, not MS-MPI
           $vs = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -property installationPath
           $dumpbin = Get-ChildItem "$vs\VC\Tools\MSVC" -Recurse -Filter dumpbin.exe | Where-Object { $_.FullName -match 'Hostx64\\x64' } | Select-Object -First 1
-          & $dumpbin.FullName /dependents "$of\platforms\$type\bin\blockMesh.exe" | Select-String "\.dll"
+          "blockMesh needs:"; & $dumpbin.FullName /dependents "$of\platforms\$type\bin\blockMesh.exe" | Select-String "\.dll"
+          $ErrorActionPreference = "Stop"
           $env:WM_PROJECT = "OpenFOAM"; $env:WM_PROJECT_VERSION = "v2412"; $env:WM_PROJECT_DIR = $of; $env:FOAM_SIGFPE = "1"
-          $env:PATH = (@("$of\platforms\$type\bin", "$of\platforms\$type\lib", "$of\platforms\$type\lib\dummy", "$of\platforms\$type\lib\mpi") + $tplib + @("C:\OF\msys64\mingw64\bin", $env:PATH)) -join ';'
+          $env:PATH = ((@("$of\platforms\$type\bin") + $dllDirs + @($env:PATH)) -join ';')
           python cfd/intake_cfd.py cfd/tests/pp.json case_pp | Out-Null
           Push-Location case_pp
           function Step($exe, $log) { & $exe *> $log; "{0,-16} exit {1}" -f $exe, $LASTEXITCODE; if ($LASTEXITCODE -ne 0) { Get-Content $log -Tail 25; throw "$exe failed" } }
