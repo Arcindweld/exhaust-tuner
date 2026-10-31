@@ -35,3 +35,18 @@ if [ -f /usr/include/FlexLexer.h ] && [ ! -e src/OSspecific/MSwindows/FlexLexer.
   cp /usr/include/FlexLexer.h src/OSspecific/MSwindows/
   echo "copied FlexLexer.h into src/OSspecific/MSwindows"
 fi
+
+# 4. Optimisation level -O2, the level of the Linux build the reference runs come from (conda-forge's openfoam 2412
+#    appends its own CXXFLAGS, ending in -O2, to wmake's -O3). Built at -O3, the Windows solvers departed from Linux
+#    in one place: the x component of the explicit viscous term div(nuEff*dev2(T(grad(U)))), from the second
+#    iteration on (cfd/validation/diag: fields identical after iteration 1, every variant still off except with the
+#    viscosity set to ~0, Uy and Uz identical throughout), and the converged square-cut-pipe K came out 5-9 % low,
+#    as with ESI's own Windows package.
+n=0
+for f in $(grep -rl -e '-O3' wmake/rules/linux64Mingw wmake/rules/General/Gcc 2>/dev/null || true); do
+  sed -i 's/-O3/-O2/g' "$f"
+  echo "optimisation -O2: $f"
+  n=$((n+1))
+done
+test "$n" -gt 0
+test -z "$(grep -rl -e '-O3' wmake/rules/linux64Mingw wmake/rules/General/Gcc 2>/dev/null || true)"

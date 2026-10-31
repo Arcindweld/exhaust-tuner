@@ -5,6 +5,7 @@ name: OpenFOAM for Windows
 # square-cut-pipe validation cases run with it on Windows and are compared plane by plane with the Linux v2412 runs
 # of the same cases (cfd/validation/reference). ESI's Windows package missed those by 6-9 % on K.
 #
+# The compiler cache keys carry the optimisation level (-O2, patch 4), so a change of flags starts a fresh cache.
 # Compiling takes hours on one 2-core runner, so the first run splits the compile work over four jobs (objects
 # only, no linking) that fill one compiler cache; the build job then links everything. Later runs find that cache
 # and skip the four compile jobs.
@@ -33,8 +34,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /home/runner/.ccache
-          key: ccache-of2412-mingw-full-${{ github.run_id }}
-          restore-keys: ccache-of2412-mingw-full-
+          key: ccache-of2412-mingw-O2-full-${{ github.run_id }}
+          restore-keys: ccache-of2412-mingw-O2-full-
           lookup-only: true
       - run: echo "compiler cache from an earlier full build '${{ steps.look.outputs.cache-matched-key }}'"
 
@@ -55,15 +56,15 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /home/runner/.ccache
-          key: ccache-of2412-mingw-part${{ matrix.part }}-${{ github.run_id }}
-          restore-keys: ccache-of2412-mingw-part${{ matrix.part }}-
+          key: ccache-of2412-mingw-O2-part${{ matrix.part }}-${{ github.run_id }}
+          restore-keys: ccache-of2412-mingw-O2-part${{ matrix.part }}-
       - name: Compile part ${{ matrix.part }} of 4 (no linking)
         run: bash tools/openfoam/build_mingw.sh "$HOME/of/OpenFOAM-v2412" 280 objects:${{ matrix.part }}/4
       - uses: actions/cache/save@v4
         if: always()
         with:
           path: /home/runner/.ccache
-          key: ccache-of2412-mingw-part${{ matrix.part }}-${{ github.run_id }}
+          key: ccache-of2412-mingw-O2-part${{ matrix.part }}-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
@@ -84,20 +85,20 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: /home/runner/.ccache
-          key: ccache-of2412-mingw-full-${{ github.run_id }}
-          restore-keys: ccache-of2412-mingw-full-
+          key: ccache-of2412-mingw-O2-full-${{ github.run_id }}
+          restore-keys: ccache-of2412-mingw-O2-full-
       - name: Compiler cache, part 1
         uses: actions/cache/restore@v4
-        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-part1-${{ github.run_id }}" }
+        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-O2-part1-${{ github.run_id }}" }
       - name: Compiler cache, part 2
         uses: actions/cache/restore@v4
-        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-part2-${{ github.run_id }}" }
+        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-O2-part2-${{ github.run_id }}" }
       - name: Compiler cache, part 3
         uses: actions/cache/restore@v4
-        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-part3-${{ github.run_id }}" }
+        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-O2-part3-${{ github.run_id }}" }
       - name: Compiler cache, part 4
         uses: actions/cache/restore@v4
-        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-part4-${{ github.run_id }}" }
+        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-O2-part4-${{ github.run_id }}" }
       - name: Build and link
         run: |
           du -sh "$CCACHE_DIR" 2>/dev/null || true
@@ -106,7 +107,7 @@ jobs:
         if: always()
         with:
           path: /home/runner/.ccache
-          key: ccache-of2412-mingw-full-${{ github.run_id }}
+          key: ccache-of2412-mingw-O2-full-${{ github.run_id }}
       - name: Package
         run: bash tools/openfoam/package_mingw.sh "$HOME/of/OpenFOAM-v2412" dist
       - uses: actions/upload-artifact@v4
