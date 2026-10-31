@@ -17,7 +17,20 @@ for f in $files; do
 done
 test -z "$(grep -rl '"thermo:\(psi\|mu\)"' --include=*.C src applications || true)"
 
-# 2. The cross compiler does not search /usr/include, where flex keeps FlexLexer.h (ESI's cross-compile notes).
+# 2. libOpenFOAM.dll takes the OS layer and (first pass) the dummy Pstream as partially linked objects
+#    (libOSspecific.o / dummy/libPstream.o, made with "ld -r"). With Ubuntu 24.04's MinGW binutils that loses the
+#    COMDAT association of the switch jump tables in .rdata, and the DLL link stops with "relocation truncated to
+#    fit: IMAGE_REL_AMD64_REL32 against .text$_ZN4Foam5token5resetEv" (fileMonitor.C). Link the same objects from
+#    static archives instead (built with wmake's 'lib' target), whole, so every member stays in the DLL.
+opts=src/OpenFOAM/Make/options
+if grep -q 'libOSspecific\.o' "$opts"; then
+  sed -i 's|\$(FOAM_LIBBIN)/libOSspecific\.o|-Wl,--whole-archive $(FOAM_LIBBIN)/libOSspecific.a -Wl,--no-whole-archive|' "$opts"
+  sed -i 's|LIB_LIBS += \$(FOAM_LIBBIN)/dummy/libPstream\.o|LIB_LIBS += -Wl,--whole-archive $(FOAM_LIBBIN)/dummy/libPstream.a -Wl,--no-whole-archive|' "$opts"
+  echo "patched $opts: OS layer and first-pass Pstream from archives"
+fi
+grep -q 'libOSspecific\.a' "$opts" && grep -q 'dummy/libPstream\.a' "$opts"
+
+# 3. The cross compiler does not search /usr/include, where flex keeps FlexLexer.h (ESI's cross-compile notes).
 if [ -f /usr/include/FlexLexer.h ] && [ ! -e src/OSspecific/MSwindows/FlexLexer.h ]; then
   cp /usr/include/FlexLexer.h src/OSspecific/MSwindows/
   echo "copied FlexLexer.h into src/OSspecific/MSwindows"

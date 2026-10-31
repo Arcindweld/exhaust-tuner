@@ -65,9 +65,10 @@ objects:*)
   ;;
 esac
 
-# OS layer, then the Pstream/OpenFOAM cyclic link exactly as src/Allwmake does for Mingw
-step OSspecific bash -c "src/OSspecific/MSwindows/Allwmake" || exit 1
-step Pstream-libo bash -c "cd src && WM_MPLIB=dummy Pstream/Allwmake libo" || exit 1
+# OS layer, then the Pstream/OpenFOAM cyclic link as src/Allwmake does for Mingw, except that the OS layer and the
+# first-pass Pstream are static archives instead of "ld -r" objects (see patch_v2412_windows.sh, item 2)
+step OSspecific bash -c "src/OSspecific/MSwindows/Allwmake lib" || exit 1
+step Pstream-lib bash -c "cd src && WM_MPLIB=dummy Pstream/Allwmake lib" || exit 1
 step OpenFOAM-pass1 bash -c "cd src && FOAM_LINK_DUMMY_PSTREAM=libo wmake -j $WM_NCOMPPROCS libso OpenFOAM" || exit 1
 step Pstream bash -c "cd src && Pstream/Allwmake libso" || exit 1
 src/OpenFOAM/Alltouch 2>/dev/null

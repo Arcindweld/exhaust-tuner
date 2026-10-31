@@ -4,7 +4,7 @@ libraries it links to. Reads Make/files (LIB = ...) and Make/options (EXE_LIBS /
     python3 libs_for_apps.py OPENFOAM_DIR --shard 2/4 app_dir...
 The second form splits the compile work (src/OpenFOAM, the libraries and the programs) into n parts of about the
 same size, for compile-only CI jobs that run side by side and fill one compiler cache (linking needs the whole set
-and runs afterwards). Sizes are source-file counts times a rough cost per file for the template-heavy libraries.
+and runs afterwards). Sizes are the compile times measured on a CI runner (SECONDS); finiteVolume alone is an hour.
 Libraries with a ThirdParty and a dummy implementation (scotch, metis, kahip, ptscotch) use the dummy one."""
 import os, re, sys
 
@@ -96,23 +96,41 @@ if shard is None:
     print("\n".join(libs))
     sys.exit(0)
 
-# relative compile cost per source file (mostly instantiations of large templates); 1 for anything else
-COST = {"src/TurbulenceModels/compressible": 60, "src/TurbulenceModels/incompressible": 15,
-        "src/TurbulenceModels/schemes": 10, "src/TurbulenceModels/turbulenceModels": 2,
-        "src/thermophysicalModels/basic": 10, "src/thermophysicalModels/reactionThermo": 12,
-        "src/thermophysicalModels/chemistryModel": 20, "src/thermophysicalModels/specie": 5,
-        "src/thermophysicalModels/solidThermo": 10, "src/thermophysicalModels/solidSpecie": 10,
-        "src/thermophysicalModels/SLGThermo": 5, "src/thermophysicalModels/radiation": 2,
-        "src/combustionModels": 6, "src/phaseSystemModels/reactingEuler/multiphaseSystem": 3,
-        "src/phaseSystemModels/multiphaseInter/phasesSystem": 6, "src/phaseSystemModels/reactingEuler/saturationModels": 2,
-        "src/finiteVolume": 1.5, "src/functionObjects/field": 2, "src/fvOptions": 3, "src/atmosphericModels": 2,
-        "src/thermoTools": 3, "applications/solvers/compressible/rhoSimpleFoam": 25,
-        "applications/solvers/incompressible/simpleFoam": 12, "applications/utilities/mesh/generation/snappyHexMesh": 8}
+# compile seconds per folder, measured on a GitHub 2-core Ubuntu runner (compile only, cold cache, run of
+# 2026-10-31); a folder not in the table counts 3 s per source file
+SECONDS = {
+    "src/finiteVolume": 3502, "src/OpenFOAM": 627, "src/functionObjects/field": 618, "src/meshTools": 526,
+    "src/sampling": 468, "src/finiteArea": 394, "src/dynamicMesh": 297, "src/thermophysicalModels/radiation": 256,
+    "src/fvMotionSolver": 255, "src/TurbulenceModels/turbulenceModels": 248, "src/fvOptions": 231,
+    "src/thermophysicalModels/reactionThermo": 196, "src/thermophysicalModels/chemistryModel": 182,
+    "src/atmosphericModels": 178, "src/surfMesh": 171, "src/thermophysicalModels/basic": 168, "src/overset": 163,
+    "src/mesh/snappyHexMesh": 145, "src/combustionModels": 124, "src/regionFaModels": 112, "src/thermoTools": 109,
+    "src/functionObjects/utilities": 98, "src/transportModels/geometricVoF": 89, "src/TurbulenceModels/incompressible": 84,
+    "src/transportModels/incompressible": 69, "src/fileFormats": 63, "src/phaseSystemModels/multiphaseInter/phasesSystem": 62,
+    "src/parallel/decompose/decompose": 58, "src/mesh/blockMesh": 52, "src/thermophysicalModels/thermophysicalProperties": 51,
+    "src/thermophysicalModels/solidThermo": 44, "src/TurbulenceModels/compressible": 44, "src/thermophysicalModels/specie": 43,
+    "src/faOptions": 42, "src/dynamicFvMesh": 39, "src/ODE": 33, "src/parallel/reconstruct/reconstruct": 30,
+    "src/parallel/decompose/decompositionMethods": 30, "src/conversion": 30, "src/transportModels/twoPhaseProperties": 24,
+    "src/mesh/extrudeModel": 23, "src/TurbulenceModels/schemes": 23, "src/transportModels/interfaceProperties": 23,
+    "src/parallel/distributed": 21, "src/lagrangian/distributionModels": 20, "src/phaseSystemModels/reactingEuler/saturationModels": 19,
+    "src/lagrangian/basic": 14, "src/transportModels/twoPhaseMixture": 6, "src/dummyThirdParty/kahipDecomp": 4,
+    "src/thermophysicalModels/SLGThermo": 4, "src/thermophysicalModels/solidSpecie": 3,
+    "src/fvAgglomerationMethods/pairPatchAgglomeration": 3, "src/dummyThirdParty/ptscotchDecomp": 3,
+    "src/dummyThirdParty/scotchDecomp": 2, "src/transportModels/compressible": 1, "src/dummyThirdParty/metisDecomp": 1,
+    "applications/utilities/mesh/manipulation/checkMesh": 20, "applications/solvers/compressible/rhoSimpleFoam": 18,
+    "applications/utilities/mesh/generation/snappyHexMesh": 14, "applications/solvers/incompressible/simpleFoam": 10,
+    "applications/utilities/mesh/manipulation/topoSet": 5, "applications/utilities/mesh/generation/blockMesh": 4,
+    "applications/utilities/miscellaneous/foamDictionary": 1,
+}
+
 
 def size(d):
+    if d in SECONDS:
+        return SECONDS[d]
     files = open(os.path.join(of, d, "Make", "files")).read()
     n = len(re.findall(r"\.(C|cxx|cc|c|L|lyy|lyy-m4)\s*$", files, re.M))
-    return max(n, 1) * COST.get(d, 3 if d.startswith("applications/") else 1)
+    return 3.0 * max(n, 1)
+
 
 work = ["src/OpenFOAM"] + libs + apps
 load, part = [0.0] * shard[1], {}
@@ -121,5 +139,5 @@ for d in sorted(work, key=size, reverse=True):        # longest first, onto the 
     load[k] += size(d)
     part[d] = k
 mine = [d for d in work if part[d] == shard[0] - 1]
-sys.stderr.write("part %d/%d: %d folders, size %.0f of %.0f\n" % (shard[0], shard[1], len(mine), load[shard[0] - 1], sum(load)))
+sys.stderr.write("part %d/%d: %d folders, about %.0f of %.0f compile seconds\n" % (shard[0], shard[1], len(mine), load[shard[0] - 1], sum(load)))
 print("\n".join(mine))
