@@ -57,3 +57,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
    (Swartz Garage samples, YouTube stock LS3 / 180° Corvettes, the owner's own car). Today's clips are qualitative only.
 4. Desktop app + single repo + installer (GitHub Actions).
 5. Videos f72BMpmoGMY, 2fHcBdFX87s never covered (no captions).
+
+## Windows program (branch windows-app), 2026-10-31
+- Installer builds green on GitHub (ExhaustTuner-Setup-0.1.0, ~68 MB): desktop app (WPF + WebView2), OpenWAM built
+  from CMT-UPV 25f46f2 (matches the Linux build within 0.1 %), Engine Simulator headless (fork PR 1 merged; build
+  kept on branch engine-sim-build, refresh with tools/publish_engine_sim.sh), Fusion add-in installed by the setup.
+- CFD on Windows NOT shipped. ESI's v2412 Windows package (SourceForge, NSIS around msys64.7z, needs Microsoft MPI):
+  meshing works; rhoSimpleFoam fails ("failed lookup of thermo:psi", fields are named thermo_psi on Windows);
+  simpleFoam runs but on the same mesh (identical points) gives K 6-9 % lower and Cd 1.4-1.8 % higher than Linux
+  v2412 at the same 6,000 iterations. The report script is not the cause (Linux report on the Windows output gives
+  the Windows numbers). The Windows binaries report "Build: 34e226dfe3-20211220": 2021 source labelled v2412.
+  Options: cross-compile OpenFOAM v2412 for Windows ourselves (MinGW, as ESI does) in CI, or WSL.
+- CAD: cad/parts (CadQuery) and cad/fusion (Fusion script) rough Holley 112-583; K&N filter waits for its part number.
