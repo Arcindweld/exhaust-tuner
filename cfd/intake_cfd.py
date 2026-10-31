@@ -17,7 +17,7 @@ writes a complete, ready-to-run OpenFOAM (ESI/openfoam.com v2412) case:
     physics     dry air, perfect gas, Sutherland viscosity; k-omega SST;
                 rhoSimpleFoam (compressible) or simpleFoam (incompressible),
                 chosen from the estimated peak Mach number.
-    numerics    second-order bounded upwind-biased convection, SIMPLEC.
+    numerics    second-order bounded upwind-biased convection, SIMPLE.
     controls    residual targets, an engineering-quantity convergence stop,
                 and an iteration cap.
     outputs     mass flow, static and total pressure drop, loss coefficient
@@ -2179,7 +2179,10 @@ relaxationFactors
 SIMPLE
 {
     nNonOrthogonalCorrectors %d;
-    consistent      yes;      // SIMPLEC
+    consistent      no;       // classic SIMPLE: SIMPLEC (U 0.8) diverged on long
+                              // flow-rate-driven pipes (80 D at Re 1e5); this gives
+                              // the same converged answer within 0.03 %% on the
+                              // square-cut pipe case
     residualControl
     {
         p               1e-6;
@@ -2190,9 +2193,13 @@ SIMPLE
 
 relaxationFactors
 {
+    fields
+    {
+        p               0.3;
+    }
     equations
     {
-        U               0.8;
+        U               0.7;
         "(k|omega)"     0.7;
     }
 }
@@ -2201,7 +2208,7 @@ relaxationFactors
     cw.foam("system/fvSolution", "dictionary", "fvSolution", sol, [
         "solver %s: %s" % (der["solver"], der["solver_why"]),
         ("SIMPLE, relaxation p 0.3 / rho 0.05 / U, h, k, omega 0.7 (robust for separated compressible flow)"
-         if comp else "SIMPLEC (consistent), relaxation U 0.8 / k, omega 0.7") +
+         if comp else "SIMPLE, relaxation p 0.3 / U, k, omega 0.7") +
         "; p solver: %s" % ("GAMG (3-D)" if is3d else "PCG/DIC (2-D wedge)"),
         "transonic formulation: %s (estimated peak Mach %.3f)" % ("on" if der["transonic"] else "off", der["M_peak"]),
         "residual targets are a secondary stop; the primary stop is the engineering-quantity",

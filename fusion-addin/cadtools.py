@@ -2048,7 +2048,7 @@ def _face_triangles(face, tol_cm):
     return [(pts[idx[3 * k]], pts[idx[3 * k + 1]], pts[idx[3 * k + 2]]) for k in range(len(idx) // 3)]
 
 
-def act_export_cfd_stl(data):
+def act_export_cfd_stl(data, path=None):
     """The exhaust CFD case's STL from the model: the user selects the gas-space body's openings in order (the
     roles the page sends, e.g. inlet1..inlet4 then outlet) and this writes every face of that body, each
     selected face under its role and all others as wall, as one ASCII STL in millimetres."""
@@ -2077,15 +2077,18 @@ def act_export_cfd_stl(data):
         f = body.faces.item(i)
         regions[picked.get(f.tempId, 'wall')].extend(_face_triangles(f, tol))
     text, ntri = stl_ascii([(r, regions[r]) for r in roles + ['wall']])
-    ui = _ui or adsk.core.Application.get().userInterface
-    dlg = ui.createFileDialog()
-    dlg.isMultiSelectEnabled = False
-    dlg.title = data.get('title') or 'Save the STL next to design.json'
-    dlg.filter = 'STL (*.stl);;All files (*.*)'
-    dlg.initialFilename = str(data.get('filename') or 'part.stl')
-    if dlg.showSave() != adsk.core.DialogResults.DialogOK:
-        return {'ok': False, 'msg': 'Not saved.'}
-    path = dlg.filename
+    # path: only for a direct Python call (tests/fusion_live_cfd_stl.py); the palette goes through ACTIONS with one
+    # argument, so the page always gets the save dialog
+    if not path:
+        ui = _ui or adsk.core.Application.get().userInterface
+        dlg = ui.createFileDialog()
+        dlg.isMultiSelectEnabled = False
+        dlg.title = data.get('title') or 'Save the STL next to design.json'
+        dlg.filter = 'STL (*.stl);;All files (*.*)'
+        dlg.initialFilename = str(data.get('filename') or 'part.stl')
+        if dlg.showSave() != adsk.core.DialogResults.DialogOK:
+            return {'ok': False, 'msg': 'Not saved.'}
+        path = dlg.filename
     with open(path, 'w', encoding='ascii', newline='\n') as fh:
         fh.write(text)
     counts = ', '.join('%s %d' % (r, len(regions[r])) for r in roles + ['wall'])
