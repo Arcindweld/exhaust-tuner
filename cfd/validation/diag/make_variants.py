@@ -68,6 +68,11 @@ VARIANTS = {
     # relax() prints its diagonal-dominance statistics with the fvMatrix debug switch
     "lam_debug": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                   ("system/controlDict", sub1(r"^(application\s+\w+;)", r"\1\nDebugSwitches\n{\n    fvVectorMatrix 1;\n}"))],
+    # per-cell initial residual fields of U and p every iteration (solverInfo writeResidualFields)
+    "lam_resfields": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                      ("system/controlDict", sub1(r"^functions\s*\n\{", "functions\n{\n    residualFields\n    {\n        type            solverInfo;\n"
+                       "        libs            (utilityFunctionObjects);\n        fields          (U p);\n        writeResidualFields yes;\n"
+                       "        writeControl    timeStep;\n        writeInterval   1;\n    }"))],
     # the wedge patches as symmetry patches: a thin slab instead of an axisymmetric pipe, but the same on both builds
     "lam_symmetry": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                      ("constant/polyMesh/boundary", lambda t: t.replace("type            wedge;", "type            symmetry;").replace("inGroups        1(wedge);", "inGroups        1(symmetry);")),
