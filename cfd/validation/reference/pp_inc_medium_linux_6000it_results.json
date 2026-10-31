@@ -1,0 +1,131 @@
+{
+  "case": "PP-inc",
+  "solver": "simpleFoam",
+  "notes": [],
+  "kind": "intake",
+  "iterations": 6000.0,
+  "mdot_outlet_kg_s": 0.032680411288281766,
+  "mdot_atmosphere_kg_s": 0.03268039960769116,
+  "mass_imbalance_rel": 3.5741871492432007e-07,
+  "convergence": {
+    "window_iterations": 300,
+    "mdot_atmosphere_rel_change": 8.406763487847013e-06,
+    "p_tract_end_rel_change_of_dp": 0.0002813002327959018,
+    "p_x69_rel_change_of_dp": 0.00034134733513151925,
+    "p_x92_rel_change_of_dp": 0.00015695408169959157
+  },
+  "sample_time": "6000",
+  "planes": {
+    "tract_end": {
+      "area_m2": 0.00041494846337248177,
+      "mdot_kg_s": 0.032681398872711515,
+      "p_static_avg_Pa": 96939.35337946896,
+      "T_static_avg_K": 298.1499999999999,
+      "p0_massavg_Pa": 100270.68582643673,
+      "T0_massavg_K": 298.15,
+      "U_normal_avg_m_s": 66.52575751813094,
+      "uniformity_index": 0.859459222792742,
+      "secondary_flow_angle_deg": 0.3208078876859991,
+      "swirl_angle_net_deg": 8.880770352985536e-15,
+      "swirl_angle_abs_deg": 2.1069485459036694e-14,
+      "swirl_number": 1.033336752574987e-15,
+      "n_faces": 61,
+      "PR_p0_over_ps": 1.0452411375529134,
+      "dp_static_Pa": 4385.646620531043,
+      "dp_total_Pa": 1054.314173563267,
+      "U_bulk_m_s": 66.4393403407754,
+      "q_dyn_Pa": 2612.9871639229013,
+      "K_total_loss": 0.40348999341443975,
+      "Cd_flowbench": 0.7718836124717646,
+      "area_geometric_m2": 0.00041547562843725016,
+      "Cd_vena_contracta_Blair": 0.5783157089522812,
+      "mdot_plane_vs_outlet": 1.0000302194614699,
+      "Mach_bulk": 0.19193079357095696
+    },
+    "x69": {
+      "area_m2": 0.00041494846337248177,
+      "mdot_kg_s": 0.03268123482218817,
+      "p_static_avg_Pa": 97016.34137313071,
+      "T_static_avg_K": 298.1499999999999,
+      "p0_massavg_Pa": 100157.6439380838,
+      "T0_massavg_K": 298.15000000000015,
+      "U_normal_avg_m_s": 66.52542357938556,
+      "uniformity_index": 0.8832166838275831,
+      "secondary_flow_angle_deg": 0.14827667141154938,
+      "swirl_angle_net_deg": 2.0114917042020933e-14,
+      "swirl_angle_abs_deg": 3.3773070652528796e-14,
+      "swirl_number": 2.208841353054969e-15,
+      "n_faces": 61,
+      "PR_p0_over_ps": 1.0444116791654503,
+      "dp_static_Pa": 4308.658626869292,
+      "dp_total_Pa": 1167.3560619162017,
+      "U_bulk_m_s": 66.4393403407754,
+      "q_dyn_Pa": 2612.9871639229013,
+      "K_total_loss": 0.44675154858535143,
+      "Cd_flowbench": 0.7787491666153704,
+      "area_geometric_m2": 0.00041547562843725016,
+      "Cd_vena_contracta_Blair": 0.5836592362436527,
+      "mdot_plane_vs_outlet": 1.0000251996187912,
+      "Mach_bulk": 0.19193079357095696
+    },
+    "x92": {
+      "area_m2": 0.00041494846337248177,
+      "mdot_kg_s": 0.032680328624836656,
+      "p_static_avg_Pa": 97018.66966330008,
+      "T_static_avg_K": 298.1499999999999,
+      "p0_massavg_Pa": 100071.8670957182,
+      "T0_massavg_K": 298.1499999999997,
+      "U_normal_avg_m_s": 66.5235789378662,
+      "uniformity_index": 0.8967801887436848,
+      "secondary_flow_angle_deg": 0.09921203967295984,
+      "swirl_angle_net_deg": 2.1502034025088657e-14,
+      "swirl_angle_abs_deg": 3.994424030555355e-14,
+      "swirl_number": 2.4164070185363545e-15,
+      "n_faces": 61,
+      "PR_p0_over_ps": 1.0443866149849805,
+      "dp_static_Pa": 4306.330336699917,
+      "dp_total_Pa": 1253.132904281796,
+      "U_bulk_m_s": 66.4393403407754,
+      "q_dyn_Pa": 2612.9871639229013,
+      "K_total_loss": 0.47957866827040063,
+      "Cd_flowbench": 0.7789596601069795,
+      "area_geometric_m2": 0.00041547562843725016,
+      "Cd_vena_contracta_Blair": 0.5838246311442863,
+      "mdot_plane_vs_outlet": 0.9999974705506495,
+      "Mach_bulk": 0.19193079357095696
+    }
+  },
+  "reference_plane": "tract_end",
+  "summary": {
+    "mdot_kg_s": 0.032680411288281766,
+    "PR": 1.0452411375529134,
+    "dp_static_Pa": 4385.646620531043,
+    "dp_total_Pa": 1054.314173563267,
+    "K": 0.40348999341443975,
+    "Cd": 0.7718836124717646,
+    "Cd_vena_contracta_Blair": 0.5783157089522812
+  },
+  "yPlus": {
+    "inlet_wall": {
+      "min": 0.0023386579641,
+      "max": 2.5410621987,
+      "avg": 0.82164585124
+    },
+    "plenum_wall": {
+      "min": 0.0023386579641,
+      "max": 7.1565268144,
+      "avg": 2.4807653298
+    },
+    "tract_wall": {
+      "min": 0.08113173694,
+      "max": 0.81671347071,
+      "avg": 0.38998281161
+    },
+    "extension_wall": {
+      "min": 0.44446809815,
+      "max": 0.47547375859,
+      "avg": 0.46586334539
+    }
+  },
+  "converged": true
+}

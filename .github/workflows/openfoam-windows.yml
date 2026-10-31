@@ -1,0 +1,142 @@
+name: OpenFOAM for Windows
+
+# OpenFOAM v2412 for 64-bit Windows, built from ESI's own source release with MinGW-w64 on Linux (ESI's route for
+# its Windows packages), serial (no MPI), with one small patch (tools/openfoam/patch_v2412_windows.sh). Then the
+# square-cut-pipe validation cases run with it on Windows and are compared plane by plane with the Linux v2412 runs
+# of the same cases (cfd/validation/reference). ESI's Windows package missed those by 6-9 % on K.
+#
+# Compiling takes hours on one 2-core runner, so the first run splits the compile work over four jobs (objects
+# only, no linking) that fill one compiler cache; the build job then links everything. Later runs find that cache
+# and skip the four compile jobs.
+on:
+  push:
+    branches: [ "windows-app" ]
+    paths: [ ".github/workflows/openfoam-windows.yml", "tools/openfoam/**" ]
+  workflow_dispatch:
+
+concurrency:
+  group: openfoam-windows-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  OF_URL: https://downloads.sourceforge.net/project/openfoam/v2412/OpenFOAM-v2412.tgz
+  OF_SHA256: c353930105c39b75dac7fa7cfbfc346390caa633a868130fd8c9816ef5f732cd
+  CCACHE_DIR: /home/runner/.ccache
+
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    outputs:
+      compile: ${{ steps.look.outputs.cache-matched-key == '' }}
+    steps:
+      - id: look
+        uses: actions/cache/restore@v4
+        with:
+          path: /home/runner/.ccache
+          key: ccache-of2412-mingw-full-${{ github.run_id }}
+          restore-keys: ccache-of2412-mingw-full-
+          lookup-only: true
+      - run: echo "compiler cache from an earlier full build '${{ steps.look.outputs.cache-matched-key }}'"
+
+  compile:
+    needs: plan
+    if: needs.plan.outputs.compile == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cross compiler and OpenFOAM source
+        run: bash tools/openfoam/ci_setup.sh
+      - name: Compile part ${{ matrix.part }} of 4 (no linking)
+        run: bash tools/openfoam/build_mingw.sh "$HOME/of/OpenFOAM-v2412" 280 objects:${{ matrix.part }}/4
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: /home/runner/.ccache
+          key: ccache-of2412-mingw-part${{ matrix.part }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: compile-logs-${{ matrix.part }}
+          path: /home/runner/of/OpenFOAM-v2412/logs/
+          retention-days: 3
+
+  build:
+    needs: [plan, compile]
+    if: ${{ !cancelled() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cross compiler and OpenFOAM source
+        run: bash tools/openfoam/ci_setup.sh
+      - name: Compiler cache from an earlier full build
+        uses: actions/cache/restore@v4
+        with:
+          path: /home/runner/.ccache
+          key: ccache-of2412-mingw-full-${{ github.run_id }}
+          restore-keys: ccache-of2412-mingw-full-
+      - name: Compiler cache, part 1
+        uses: actions/cache/restore@v4
+        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-part1-${{ github.run_id }}" }
+      - name: Compiler cache, part 2
+        uses: actions/cache/restore@v4
+        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-part2-${{ github.run_id }}" }
+      - name: Compiler cache, part 3
+        uses: actions/cache/restore@v4
+        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-part3-${{ github.run_id }}" }
+      - name: Compiler cache, part 4
+        uses: actions/cache/restore@v4
+        with: { path: /home/runner/.ccache, key: "ccache-of2412-mingw-part4-${{ github.run_id }}" }
+      - name: Build and link
+        run: |
+          du -sh "$CCACHE_DIR" 2>/dev/null || true
+          bash tools/openfoam/build_mingw.sh "$HOME/of/OpenFOAM-v2412" 330 full
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: /home/runner/.ccache
+          key: ccache-of2412-mingw-full-${{ github.run_id }}
+      - name: Package
+        run: bash tools/openfoam/package_mingw.sh "$HOME/of/OpenFOAM-v2412" dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openfoam-v2412-win64
+          path: dist/openfoam-v2412-win64.zip
+          compression-level: 0
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: build-logs
+          path: /home/runner/of/OpenFOAM-v2412/logs/
+          retention-days: 3
+
+  validate:
+    needs: build
+    runs-on: windows-2022
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: openfoam-v2412-win64
+          path: ofzip
+      - name: Run the validation cases with the Windows build and compare with Linux
+        shell: pwsh
+        run: |
+          Expand-Archive ofzip/openfoam-v2412-win64.zip -DestinationPath C:\ET
+          "{0:N0} MB unpacked" -f ((Get-ChildItem C:\ET -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)
+          ./tools/openfoam/validate_windows.ps1 -OF C:\ET\OpenFOAM-v2412 -Repo $PWD
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: validation-cases
+          path: |
+            ${{ runner.temp }}/case_*/log.*
+            ${{ runner.temp }}/case_*/results.*
+          retention-days: 7

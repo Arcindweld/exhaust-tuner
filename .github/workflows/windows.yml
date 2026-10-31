@@ -1,10 +1,20 @@
 name: Windows build
 
+# Files that do not go into the program (notes, CAD, recordings, validation runs, the OpenFOAM build) do not start
+# a build; a newer push to the same branch cancels a build still running.
 on:
   push:
     branches: [ "main", "windows-app" ]
+    paths-ignore: [ "**/*.md", "docs/**", "cad/**", "validation/**", "layouts/**", "cfd/validation/**",
+                    "tools/openfoam/**", ".github/workflows/openfoam-*.yml" ]
   pull_request:
+    paths-ignore: [ "**/*.md", "docs/**", "cad/**", "validation/**", "layouts/**", "cfd/validation/**",
+                    "tools/openfoam/**", ".github/workflows/openfoam-*.yml" ]
   workflow_dispatch:
+
+concurrency:
+  group: windows-build-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   OPENWAM_COMMIT: 25f46f2491e18e26362a428ea6dc151a195c65f0
@@ -46,6 +56,7 @@ jobs:
         with:
           name: openwam-win-x64
           path: dist/openwam
+          retention-days: 3
 
   app:
     needs: openwam
@@ -154,3 +165,4 @@ jobs:
         with:
           name: ExhaustTuner-Setup
           path: dist/ExhaustTuner-Setup-*.exe
+          retention-days: 30
