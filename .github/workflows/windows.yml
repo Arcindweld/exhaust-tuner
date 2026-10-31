@@ -20,6 +20,10 @@ env:
   OPENWAM_COMMIT: 25f46f2491e18e26362a428ea6dc151a195c65f0
   APP_VERSION: 0.1.0
 
+permissions:
+  contents: read
+  actions: read      # to fetch the OpenFOAM build made by openfoam-windows.yml
+
 jobs:
   # OpenWAM from CMT-UPV's own source, unchanged, built with MinGW-w64 (its CMake files are written for GCC)
   openwam:
@@ -85,6 +89,31 @@ jobs:
           Copy-Item "$($exe.Directory.Parent.FullName)/*" engines/engine-sim -Recurse
           "EXHAUST_TUNER_ENGINESIM=$PWD\engines\engine-sim" >> $env:GITHUB_ENV
 
+      # OpenFOAM: the newest build from the "OpenFOAM for Windows" workflow whose run passed. That run only passes when
+      # the Windows build reproduces the Linux v2412 results on the validation cases. Without one, the program ships
+      # without CFD runs (the page then shows only the case download). Python (embeddable, from python.org) runs the
+      # cases' own scripts: intake_report.py and, for 3-D designs, intake_cfd.py.
+      - name: OpenFOAM (latest validated build) and Python for the case scripts
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PY_URL: https://www.python.org/ftp/python/3.13.17/python-3.13.17-embed-amd64.zip
+          PY_SHA256: 9e35319bffedab8b36ad44d8f377cb4f1733bcec257a0b6d04d94f01486ddb38
+        run: |
+          curl.exe -sSL --retry 4 -o py.zip $env:PY_URL
+          if ((Get-FileHash py.zip -Algorithm SHA256).Hash -ne $env:PY_SHA256) { throw "Python embeddable package: SHA-256 mismatch" }
+          Expand-Archive py.zip -DestinationPath engines/python
+          "EXHAUST_TUNER_PYTHON=$PWD\engines\python\python.exe" >> $env:GITHUB_ENV
+          $run = gh run list --repo $env:GITHUB_REPOSITORY --workflow openfoam-windows.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId'
+          if ($run) {
+            gh run download $run --repo $env:GITHUB_REPOSITORY --name openfoam-v2412-win64 --dir ofzip
+            Expand-Archive ofzip/openfoam-v2412-win64.zip -DestinationPath engines/openfoam
+            "OpenFOAM from run $run"
+            Get-Content engines/openfoam/OpenFOAM-v2412/SOURCE.txt -ErrorAction SilentlyContinue | Select-Object -First 8
+            "EXHAUST_TUNER_OPENFOAM=$PWD\engines\openfoam\OpenFOAM-v2412" >> $env:GITHUB_ENV
+            "REQUIRE_OPENFOAM=1" >> $env:GITHUB_ENV
+          } else { "No passed OpenFOAM for Windows run yet: this installer has no CFD runs." }
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
@@ -130,6 +159,9 @@ jobs:
           foreach ($f in "ExhaustTuner.py","ExhaustTuner.manifest","cadtools.py","router.py","templates.py","README.txt") { Copy-Item "fusion-addin/$f" "$s/fusion-addin/" }
           Copy-Item engines/openwam/OpenWAM.exe "$s/engines/openwam/"
           if (Test-Path engines/engine-sim) { Copy-Item engines/engine-sim "$s/engines/engine-sim" -Recurse; Copy-Item engines/engine-sim/LICENSE "$s/licenses/engine-sim-MIT.txt" -ErrorAction SilentlyContinue }
+          if (Test-Path engines/openfoam) { Copy-Item engines/openfoam "$s/engines/openfoam" -Recurse }
+          Copy-Item engines/python "$s/engines/python" -Recurse
+          Copy-Item engines/python/LICENSE.txt "$s/licenses/Python-LICENSE.txt"
           Copy-Item licenses/NOTICE.txt, licenses/GPL-3.0.txt "$s/licenses/"
           Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile webview2/MicrosoftEdgeWebview2Setup.exe -MaximumRetryCount 4 -RetryIntervalSec 10
           Get-ChildItem $s -Recurse | Measure-Object -Property Length -Sum | ForEach-Object { "stage: {0:N1} MB in {1} files" -f ($_.Sum/1MB), $_.Count }
@@ -153,6 +185,7 @@ jobs:
           $info = & "$dir\exhaust-tuner-host.exe" --info | ConvertFrom-Json
           $info | ConvertTo-Json -Depth 5
           if (-not $info.engines.openwam) { throw "installed program does not find OpenWAM" }
+          if ($env:REQUIRE_OPENFOAM -eq "1" -and -not $info.engines.openfoam) { throw "installed program does not find OpenFOAM" }
           if ($info.fusionAddIn.installed -ne $info.fusionAddIn.bundled) { throw "Fusion add-in not installed by the installer" }
           $wam = Get-Content app/ExhaustTuner.Core.Tests/fixtures/single450.wam -Raw
           $msg = @{ id = 1; action = "runOpenWAM"; data = @{ name = "ci"; files = @(@{ name = "single450.wam"; text = $wam }) } } | ConvertTo-Json -Depth 6 -Compress
@@ -160,6 +193,17 @@ jobs:
           $reply = $out | Where-Object { $_ -match '"ok"' } | Select-Object -Last 1 | ConvertFrom-Json
           if (-not $reply.ok -or -not $reply.result.models[0].finished) { $out; throw "installed OpenWAM run failed" }
           "installed program ran OpenWAM: $($reply.result.models[0].seconds) s"
+          if ($info.engines.openfoam) {
+            # a small pipe case written by the generator with the installed Python, run by the installed OpenFOAM
+            '{"name": "ci_pipe", "geometry": {"tube_diameter_mm": 60, "tube_length_mm": 300, "inlet": {"type": "plain"}, "mount": {"type": "free"}}, "operating_point": {"pressure_ratio": 1.01}, "ambient": {"p_pa": 101325, "T_c": 20}, "mesh": {"level": "coarse"}, "solver": {"force": "incompressible", "max_iterations": 150, "write_interval": 150}}' | Set-Content -Encoding ascii ci_pipe.json
+            & "$dir\engines\python\python.exe" cfd/intake_cfd.py ci_pipe.json ci_pipe | Out-Null
+            $files = Get-ChildItem ci_pipe -Recurse -File | ForEach-Object { @{ name = [IO.Path]::GetRelativePath("$PWD\ci_pipe", $_.FullName).Replace('\','/'); text = (Get-Content $_.FullName -Raw) } }
+            $msg = @{ id = 2; action = "runOpenFOAM"; data = @{ name = "ci_pipe"; files = @($files) } } | ConvertTo-Json -Depth 6 -Compress
+            $out = $msg | & "$dir\exhaust-tuner-host.exe"
+            $reply = $out | Where-Object { $_ -match '"ok"' } | Select-Object -Last 1 | ConvertFrom-Json
+            if (-not $reply.ok -or -not $reply.result.ok) { $out | Select-Object -Last 20; throw "installed OpenFOAM run failed" }
+            "installed program ran OpenFOAM: $($reply.result.solver), $($reply.result.iterations) iterations, K $($reply.result.results.summary.K)"
+          }
 
       - uses: actions/upload-artifact@v4
         with:

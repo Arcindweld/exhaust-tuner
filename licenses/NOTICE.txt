@@ -10,8 +10,15 @@ OpenWAM 2.2
   Source code: https://github.com/CMT-UPV/OpenWAM (this installer's copy is built from commit
   25f46f2491e18e26362a428ea6dc151a195c65f0 without changes).
 
-OpenFOAM (when installed with this program)
-  ESI-OpenCFD Ltd. Licence: GPL-3.0. Source: https://develop.openfoam.com/Development/openfoam
+OpenFOAM v2412 (when installed with this program)
+  OpenCFD Ltd (ESI Group). Licence: GNU General Public License version 3 or later
+  (engines\openfoam\OpenFOAM-v2412\COPYING). Built for Windows by this project from ESI's
+  unmodified v2412 source release plus one small patch; engines\openfoam\OpenFOAM-v2412\SOURCE.txt
+  says where the source is (with its SHA-256) and build-scripts\ next to it holds the patch and the
+  scripts that made this build.
+
+Python 3.13 (embeddable package from python.org, runs the CFD cases' report scripts)
+  Python Software Foundation. Licence: PSF License Agreement (Python-LICENSE.txt in this folder).
 
 Engine Simulator (when installed with this program)
   Ange Yaghi; Arcindweld fork with a one-dimensional exhaust model. Licence: MIT.

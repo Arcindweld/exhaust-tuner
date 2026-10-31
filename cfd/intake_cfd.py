@@ -2766,6 +2766,20 @@ def watch(pid):
     cdict = os.path.join(HERE, "system", "controlDict")
 
     def alive():
+        if os.name == "nt":
+            # os.kill(pid, 0) is not a liveness test on Windows: it calls TerminateProcess and would end the solver
+            import ctypes
+            k32 = ctypes.windll.kernel32
+            k32.OpenProcess.restype = ctypes.c_void_p
+            k32.GetExitCodeProcess.argtypes = (ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong))
+            k32.CloseHandle.argtypes = (ctypes.c_void_p,)
+            h = k32.OpenProcess(0x1000, False, pid)        # PROCESS_QUERY_LIMITED_INFORMATION
+            if not h:
+                return False
+            code = ctypes.c_ulong(0)
+            ok = k32.GetExitCodeProcess(h, ctypes.byref(code))
+            k32.CloseHandle(h)
+            return bool(ok) and code.value == 259          # STILL_ACTIVE
         try:
             os.kill(pid, 0)
             return True

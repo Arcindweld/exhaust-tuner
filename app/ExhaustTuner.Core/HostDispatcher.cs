@@ -33,8 +33,7 @@ public sealed class HostDispatcher
             ["engines"] = new JsonObject
             {
                 ["openwam"] = wam.Available,
-                // added in later stages; the page shows the run buttons only for engines that are present
-                ["openfoam"] = false,
+                ["openfoam"] = new OpenFoamRunner(_paths.OpenFoamDir, _paths.PythonExe).Available,
                 ["enginesim"] = new EngineSimRunner(_paths.EngineSimDir).Available,
             },
             ["runsFolder"] = _paths.RunsDir,
@@ -57,6 +56,16 @@ public sealed class HostDispatcher
                 onEvent?.Invoke(new JsonObject { ["event"] = "folder", ["folder"] = dir });
                 var results = await new OpenWamRunner(_paths.OpenWamExe).RunAsync(dir, files, onEvent, ct);
                 return OpenWamRunner.ToJson(dir, results);
+            }
+
+            case "runOpenFOAM":
+            {
+                var files = CaseFiles.FromJson(data?["files"]);
+                if (files.Count == 0) throw new ArgumentException("No case files.");
+                var name = data?["name"]?.GetValue<string>() ?? "openfoam";
+                var dir = _paths.NewRunDir(name);
+                onEvent?.Invoke(new JsonObject { ["event"] = "folder", ["folder"] = dir });
+                return await new OpenFoamRunner(_paths.OpenFoamDir, _paths.PythonExe).RunAsync(dir, files, onEvent, ct);
             }
 
             case "runEngineSim":

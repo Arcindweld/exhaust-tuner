@@ -17,6 +17,31 @@ cp "$P"/lib/*.dll "$STAGE/bin/"
 cp "$P"/lib/dummy/*.dll "$STAGE/bin/"            # serial Pstream and the dummy decomposition libraries: no MPI
 cp -r "$OF/etc" "$OF/META-INFO" "$STAGE/"
 cp "$OF/COPYING" "$STAGE/COPYING"
+# GPL-3.0 section 6: where the corresponding source is, and how this build was made from it
+HERE=$(cd "$(dirname "$0")" && pwd)
+mkdir -p "$STAGE/build-scripts"
+cp "$HERE"/ci_setup.sh "$HERE"/patch_v2412_windows.sh "$HERE"/build_mingw.sh "$HERE"/libs_for_apps.py "$HERE"/package_mingw.sh "$STAGE/build-scripts/"
+cat > "$STAGE/SOURCE.txt" <<TXT
+OpenFOAM v2412 for 64-bit Windows, as packaged with Exhaust Tuner (Arcindweld).
+
+OpenFOAM is free software from OpenCFD Ltd (ESI Group), licensed under the GNU General Public
+License version 3 or later (COPYING in this folder). This copy was built from the unmodified
+source release
+
+    OpenFOAM-v2412.tgz    https://dl.openfoam.com/source/v2412/OpenFOAM-v2412.tgz
+                          (mirror: https://sourceforge.net/projects/openfoam/files/v2412/)
+    SHA-256               ${OF_SHA256:-c353930105c39b75dac7fa7cfbfc346390caa633a868130fd8c9816ef5f732cd}
+
+plus the one change in build-scripts/patch_v2412_windows.sh (eleven boundary conditions and
+models look up "thermo:psi" / "thermo:mu", which OpenFOAM names "thermo_psi" / "thermo_mu" on
+Windows; they now use IOobject::scopedName), cross-compiled on Linux with MinGW-w64
+($(x86_64-w64-mingw32-g++ --version | head -1)), serial (no MPI), by the scripts in
+build-scripts/ (ci_setup.sh, then build_mingw.sh, then package_mingw.sh). Only the programs
+and libraries Exhaust Tuner's cases use are included; bin/ holds them and the MinGW runtime
+DLLs (GCC runtime library exception; winpthreads and zlib under their own permissive licences).
+
+Built $(date -u +%Y-%m-%d).
+TXT
 # MinGW runtime DLLs the libraries link to (the programs link libgcc and libstdc++ statically)
 for f in libstdc++-6.dll libgcc_s_seh-1.dll; do
   src=$(find /usr/lib/gcc/x86_64-w64-mingw32 -name "$f" -path "*posix*" | sort | tail -1)

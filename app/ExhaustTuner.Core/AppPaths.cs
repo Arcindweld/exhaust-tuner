@@ -38,6 +38,17 @@ public sealed class AppPaths
     public string EngineSimDir =>
         Environment.GetEnvironmentVariable("EXHAUST_TUNER_ENGINESIM") is { Length: > 0 } p ? p : Path.Combine(EnginesDir, "engine-sim");
 
+    /// <summary>The packaged OpenFOAM (bin\ with the programs and DLLs, etc\). EXHAUST_TUNER_OPENFOAM overrides.</summary>
+    public string OpenFoamDir =>
+        Environment.GetEnvironmentVariable("EXHAUST_TUNER_OPENFOAM") is { Length: > 0 } p ? p
+        : Path.Combine(EnginesDir, "openfoam", "OpenFOAM-v2412");
+
+    /// <summary>Python for the CFD case scripts (standard library only): the embeddable Python shipped in
+    /// engines\python on Windows. EXHAUST_TUNER_PYTHON overrides; elsewhere python3 on PATH.</summary>
+    public string PythonExe =>
+        Environment.GetEnvironmentVariable("EXHAUST_TUNER_PYTHON") is { Length: > 0 } p ? p
+        : OperatingSystem.IsWindows() ? Path.Combine(EnginesDir, "python", "python.exe") : "python3";
+
     /// <summary>A new, unique folder for one run: runs\yyyyMMdd-HHmmss_name.</summary>
     public string NewRunDir(string name)
     {

@@ -1,10 +1,19 @@
 // Byte-for-byte check: cfd/intake_cfd.js (browser writer) against cfd/intake_cfd.py on the three
 // Blair & Cahoon bellmouths plus a few more axisymmetric designs (flange mount, cone, taper, MAF plane,
 // engine operating point, pressure-ratio operating point, incompressible, coarse/fine mesh).
-//   cd SP && node cfd_js_vs_py.js
-const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
-const SP = __dirname, CFD = path.join(SP, 'cfd'), I = require(path.join(CFD, 'intake_cfd.js'));
-const OUT = path.join(SP, 'cfd_js_vs_py_out'); fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT);
+//   node cfd/cfd_js_vs_py.js            (outputs in the system temp folder, cfd_js_vs_py_out)
+const fs = require('fs'), os = require('os'), path = require('path'), { execFileSync } = require('child_process');
+const CFD = fs.existsSync(path.join(__dirname, 'intake_cfd.py')) ? __dirname : path.join(__dirname, 'cfd');
+const I = require(path.join(CFD, 'intake_cfd.js'));
+const OUT = path.join(os.tmpdir(), 'cfd_js_vs_py_out'); fs.rmSync(OUT, { recursive: true, force: true }); fs.mkdirSync(OUT);
+// the exhaust test geometry is generated (4.5 MB of ASCII STL, not kept in the repository): same call as run_validation.py
+const EXP_STL = path.join(CFD, 'validation', 'runs', '_stl', 'expansion_50_100.stl');
+if (!fs.existsSync(EXP_STL)) {
+  fs.mkdirSync(path.dirname(EXP_STL), { recursive: true });
+  execFileSync('python3', ['-c', 'import sys; sys.path.insert(0, sys.argv[1]); import run_validation as rv; '
+    + 'rv.tube_stl(sys.argv[2], [("line", 50.0, 25.0, 25.0), ("line", 1000.0, 50.0, 50.0)])',
+    path.join(CFD, 'validation'), EXP_STL], { stdio: 'inherit' });
+}
 const STAMP = '2026-10-30 12:00';
 const P0 = 101325.0;
 const blair = (name, inlet, L, mdot, level) => ({

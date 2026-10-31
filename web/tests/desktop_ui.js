@@ -79,6 +79,26 @@ const CLI = process.env.HOST_CLI || path.join(ROOT, 'app', 'ExhaustTuner.HostCli
     });
     ok(es.n === 1 && es.dur > 3, 'Engine Simulator clip plays in the page: ' + JSON.stringify(es));
   } else console.log('  (EXHAUST_TUNER_ENGINESIM not set: Engine Simulator part not exercised)');
+  // the intake CFD case with the bundled OpenFOAM, when there is one (EXHAUST_TUNER_OPENFOAM)
+  if (process.env.EXHAUST_TUNER_OPENFOAM) {
+    await pg.evaluate(() => { location.hash = 'intake'; }); await pg.waitForTimeout(800);
+    await pg.click('#m-expert'); await pg.waitForTimeout(300);
+    ok(await pg.$('button[data-cfd="run"]') !== null, 'Run in OpenFOAM button shown');
+    // straight tube with an elliptical bellmouth: the axisymmetric case (the default two bends make a 3-D case)
+    await pg.fill('#i-bends', '0'); await pg.selectOption('#i-mouth', 'ellipse'); await pg.waitForTimeout(300);
+    await pg.selectOption('select.cfdx[data-k="mesh"]', 'coarse'); await pg.waitForTimeout(400);
+    const t1 = Date.now();
+    await pg.click('button[data-cfd="run"]');
+    await pg.waitForFunction(() => window.__cfdRunLast, null, { timeout: 30 * 60 * 1000 }); await pg.waitForTimeout(500);
+    const c = await pg.evaluate(() => ({ run: window.__cfdRunLast, rows: window.__cfdResults || [], msg: (document.getElementById('cfd-msg') || {}).textContent || '',
+      table: !!document.getElementById('cfd-results') }));
+    ok(c.run.ok, 'OpenFOAM run ok in ' + Math.round((Date.now() - t1) / 1000) + ' s: ' + (c.run.msg || c.run.solver + ', ' + c.run.iterations + ' iterations'));
+    const row = c.rows[c.rows.length - 1] || {}, te = (row.rows || []).find(q => q.plane === 'tract_end') || {};
+    ok(!row.err && Number.isFinite(te.K) && Number.isFinite(te.Cd) && c.table, 'CFD results in the page table: K ' + te.K + ', Cd ' + te.Cd);
+    const disk = JSON.parse(fs.readFileSync(path.join(c.run.case, 'results.json'), 'utf8'));
+    ok(disk.planes.tract_end.K_total_loss === te.K, 'page reads the results.json OpenFOAM wrote');
+    ok(/iterations in \d+ s/.test(c.msg), 'message: ' + c.msg.slice(0, 160));
+  } else console.log('  (EXHAUST_TUNER_OPENFOAM not set: OpenFOAM part not exercised)');
   ok(errs.length === 0, 'no page errors ' + errs.join(' | '));
   host.stdin.end(); await b.close();
   console.log(fails.length ? 'FAILS ' + fails.length : 'all passed'); process.exit(fails.length ? 1 : 0);

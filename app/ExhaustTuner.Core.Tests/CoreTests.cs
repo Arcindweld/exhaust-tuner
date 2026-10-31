@@ -192,3 +192,106 @@ public class OpenWamTests
         }
     }
 }
+
+public class OpenFoamTests
+{
+    static void Exec(string path, string text)
+    {
+        File.WriteAllText(path, text);
+        File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+    }
+
+    /// <summary>Stand-in OpenFOAM programs and a stand-in report script: checks the order of the steps, that the
+    /// watchdog gets the solver's process id and can stop it, that stopAt is put back, and the mesh warning.</summary>
+    [Fact]
+    public async Task Runner_logic_with_stand_in_programs()
+    {
+        if (OperatingSystem.IsWindows()) return;   // the stand-ins are shell scripts
+        var t = Repo.Temp();
+        var foam = Path.Combine(t, "foam");
+        Directory.CreateDirectory(Path.Combine(foam, "bin"));
+        Directory.CreateDirectory(Path.Combine(foam, "etc"));
+        foreach (var p in OpenFoamRunner.Programs)
+            Exec(Path.Combine(foam, "bin", p), "#!/bin/sh\necho \"$(basename \"$0\") $*\" >> ../steps.txt\necho \"WM_PROJECT_DIR=$WM_PROJECT_DIR\"\n");
+        Exec(Path.Combine(foam, "bin", "checkMesh"), "#!/bin/sh\necho checkMesh >> ../steps.txt\necho ' ***High aspect ratio cells found, Max aspect ratio: 1368.87, number of cells 40'\n" +
+            "echo ' ***Number of severely non-orthogonal (> 70 degrees) faces: 12.'\necho 'Failed 2 mesh checks.'\n");
+        // the solver runs until the watchdog switches stopAt to writeNow (or 400 iterations)
+        Exec(Path.Combine(foam, "bin", "simpleFoam"), "#!/bin/sh\necho simpleFoam >> ../steps.txt\ni=0\nwhile [ $i -lt 400 ]; do i=$((i+1)); echo \"Time = $i\"; grep -q writeNow system/controlDict && exit 0; sleep 0.02; done\n");
+        var report = "import os, sys, time, json\n" +
+                     "if len(sys.argv) > 2 and sys.argv[1] == '--watch':\n" +
+                     "    pid = int(sys.argv[2]); time.sleep(0.5); os.kill(pid, 0)\n" +
+                     "    s = open('system/controlDict').read().replace('stopAt          endTime;', 'stopAt          writeNow;')\n" +
+                     "    open('system/controlDict', 'w').write(s); print('watch: converged at iteration 20 -> stopAt writeNow')\n" +
+                     "else:\n" +
+                     "    json.dump({'solver': 'simpleFoam', 'summary': {'K': 0.5}}, open('results.json', 'w')); open('results.txt', 'w').write('K 0.5\\n')\n";
+        var files = new[]
+        {
+            new CaseFile("system/controlDict", "application     simpleFoam;\nstopAt          endTime;\nendTime         400;\n"),
+            new CaseFile("intake_report.py", report),
+        };
+        var events = new List<JsonObject>();
+        var res = await new OpenFoamRunner(foam, "python3").RunAsync(Path.Combine(t, "run"), files, e => { lock (events) events.Add(e); }, default);
+        Assert.True(res["ok"]!.GetValue<bool>(), res.ToJsonString());
+        Assert.Equal(new[] { "blockMesh ", "checkMesh", "topoSet ", "simpleFoam" }, File.ReadAllLines(Path.Combine(t, "steps.txt")));
+        Assert.Contains("2 failed checks", res["meshWarning"]!.GetValue<string>());
+        Assert.Contains("non-orthogonal", res["meshWarning"]!.GetValue<string>());
+        var solverStep = res["steps"]!.AsArray().First(s => s!["step"]!.GetValue<string>() == "simpleFoam")!;
+        Assert.Equal("convergence", solverStep["stoppedBy"]!.GetValue<string>());
+        Assert.True(res["iterations"]!.GetValue<int>() < 400);
+        Assert.Contains("stopAt          endTime;", File.ReadAllText(Path.Combine(t, "run", "system", "controlDict")));
+        Assert.Equal(0.5, res["results"]!["summary"]!["K"]!.GetValue<double>());
+        Assert.Contains(events, e => e["event"]!.GetValue<string>() == "progress");
+        Assert.Contains("WM_PROJECT_DIR=" + foam, File.ReadAllText(Path.Combine(t, "run", "log.blockMesh")));
+
+        // only high-aspect-ratio wall cells flagged: an informational note, no warning
+        Exec(Path.Combine(foam, "bin", "checkMesh"), "#!/bin/sh\necho ' ***High aspect ratio cells found, Max aspect ratio: 1368.87, number of cells 40'\n" +
+            "echo '    Max aspect ratio = 1368.874892 OK.'\necho 'Failed 1 mesh checks.'\n");
+        var ar = await new OpenFoamRunner(foam, "python3").RunAsync(Path.Combine(t, "run3"), files, null, default);
+        Assert.True(ar["ok"]!.GetValue<bool>());
+        Assert.Null(ar["meshWarning"]);
+        Assert.Contains("max 1369", ar["meshNote"]!.GetValue<string>());
+
+        // a failing step stops the run and says which one
+        Exec(Path.Combine(foam, "bin", "topoSet"), "#!/bin/sh\necho 'FOAM FATAL ERROR: no cellZone'\nexit 1\n");
+        var bad = await new OpenFoamRunner(foam, "python3").RunAsync(Path.Combine(t, "run2"), files, null, default);
+        Assert.False(bad["ok"]!.GetValue<bool>());
+        Assert.StartsWith("topoSet failed", bad["msg"]!.GetValue<string>());
+        Assert.Contains("no cellZone", bad["msg"]!.GetValue<string>());
+    }
+
+    /// <summary>The real OpenFOAM (EXHAUST_TUNER_OPENFOAM, or the bundled engines/openfoam): a small pipe case the
+    /// generator writes, sent the way the page sends it, through the request the page uses.</summary>
+    [Fact]
+    public async Task Real_openfoam_runs_a_generated_case()
+    {
+        var paths = new AppPaths(appRoot: Repo.Root, dataRoot: Repo.Temp());
+        var runner = new OpenFoamRunner(paths.OpenFoamDir, paths.PythonExe);
+        if (!runner.Available)
+        {   // CI sets REQUIRE_OPENFOAM=1 where it bundles the Windows build, so a missing OpenFOAM fails there
+            Assert.True(Environment.GetEnvironmentVariable("REQUIRE_OPENFOAM") != "1", "OpenFOAM or Python not found (REQUIRE_OPENFOAM=1)");
+            return;
+        }
+        var t = Repo.Temp();
+        var design = "{\"name\": \"tube_pressure_ratio\", \"geometry\": {\"tube_diameter_mm\": 60, \"tube_length_mm\": 300, \"inlet\": {\"type\": \"plain\"}, " +
+                     "\"mount\": {\"type\": \"free\"}, \"maf_plane_mm\": 200}, \"operating_point\": {\"pressure_ratio\": 1.01}, " +
+                     "\"ambient\": {\"p_pa\": 101325, \"T_c\": 20}, \"mesh\": {\"level\": \"coarse\"}, " +
+                     "\"solver\": {\"force\": \"incompressible\", \"max_iterations\": 300, \"write_interval\": 100}}";
+        File.WriteAllText(Path.Combine(t, "design.json"), design);
+        var psi = new ProcessStartInfo(paths.PythonExe) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+        foreach (var a in new[] { Path.Combine(Repo.Root, "cfd", "intake_cfd.py"), Path.Combine(t, "design.json"), Path.Combine(t, "gen") }) psi.ArgumentList.Add(a);
+        using (var p = Process.Start(psi)!) { var o = p.StandardOutput.ReadToEnd() + p.StandardError.ReadToEnd(); p.WaitForExit(); Assert.True(p.ExitCode == 0, o); }
+        var gen = Path.Combine(t, "gen");
+        var files = new JsonArray(Directory.GetFiles(gen, "*", SearchOption.AllDirectories)
+            .Select(f => (JsonNode)new JsonObject { ["name"] = Path.GetRelativePath(gen, f).Replace('\\', '/'), ["text"] = File.ReadAllText(f) }).ToArray());
+        var d = new HostDispatcher(paths, new FakeUi());
+        Assert.True(d.Info()["engines"]!["openfoam"]!.GetValue<bool>());
+        var res = (JsonObject)(await d.DispatchAsync("runOpenFOAM", new JsonObject { ["name"] = "pipe", ["files"] = files }, null, default))!;
+        Assert.True(res["ok"]!.GetValue<bool>(), res.ToJsonString());
+        Assert.Equal("simpleFoam", res["solver"]!.GetValue<string>());
+        Assert.Equal(300, res["iterations"]!.GetValue<int>());
+        var s = res["results"]!["summary"]!;
+        var k = s["K"]!.GetValue<double>(); var cd = s["Cd"]!.GetValue<double>();
+        Assert.True(k is > 0.1 and < 2.0 && cd is > 0.4 and < 1.0, $"K {k}, Cd {cd}");
+        Assert.Contains("tract_end", res["resultsText"]!.GetValue<string>());
+    }
+}
