@@ -99,3 +99,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Outback: Subaru service-manual valve events + real valve sizes adopted; high orders moved < 1 dB, so the remaining
   error is the placeholder pipe lengths (per-order structure), not the cam. WOT torque 17 % under rating (intake and
   combustion defaults).
+- Exhaust-part CFD in the program (282f5b1): Headers tab picks the part's STL (one ASCII file with named faces, or one
+  file per face), checks the faces, runs generator + snappyHexMesh + solver here (Linux check: 76 mm tip, rhoSimpleFoam
+  926 iterations, K 0.217). Case files carry base64 bytes. "Open the case folder" after runs.
+- Fusion add-in 4.11.0 (6b3121f): "Export the STL from Fusion" (cadtools.act_export_cfd_stl + stl_ascii; select the
+  gas-space body's flat caps in the page's order). The page had claimed the add-in did this before it existed - fixed.
+  NOT yet run live in Fusion (device was offline): test it there (one solid body, caps selected in order).
+- K&N "B047C6": a code printed on K&N cone filters (eBay: cones pulled off BMW E46 intakes, one listed 3.75 in); not a
+  catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
