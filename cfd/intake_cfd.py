@@ -2813,8 +2813,17 @@ def watch(pid):
         if ok:
             txt = open(cdict).read()
             txt = txt.replace("stopAt          endTime;", "stopAt          writeNow;")
-            open(cdict, "w").write(txt)
+            # the solver re-reads controlDict when it changes: write a new file and swap it in, so that it never
+            # reads a half-written one (if the swap is refused, e.g. the file is open on Windows, write in place)
+            tmp = cdict + ".watch"
+            open(tmp, "w").write(txt)
+            try:
+                os.replace(tmp, cdict)
+            except OSError:
+                open(cdict, "w").write(txt)
+                os.remove(tmp)
             print("watch: converged at iteration %d -> stopAt writeNow" % ser[-1][0])
+            sys.stdout.flush()
             return
 
 

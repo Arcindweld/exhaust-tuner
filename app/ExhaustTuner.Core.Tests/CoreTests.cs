@@ -47,6 +47,18 @@ public class CaseFilesTests
     }
 
     [Fact]
+    public void Binary_files_from_base64_are_written_as_they_came()
+    {
+        var t = Repo.Temp();
+        var bytes = new byte[] { 0, 1, 2, 13, 10, 255, 10, 13 };
+        var files = CaseFiles.FromJson(JsonNode.Parse("[{\"name\": \"part.stl\", \"base64\": \"" + Convert.ToBase64String(bytes) + "\"}, {\"name\": \"a.txt\", \"text\": \"x\\n\"}]"));
+        Assert.Equal(2, files.Count);
+        CaseFiles.Write(t, files);
+        Assert.Equal(bytes, File.ReadAllBytes(Path.Combine(t, "part.stl")));
+        Assert.Equal("x\r\n", File.ReadAllText(Path.Combine(t, "a.txt")));
+    }
+
+    [Fact]
     public void Cannot_leave_the_folder()
     {
         var t = Repo.Temp();

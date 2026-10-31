@@ -98,6 +98,29 @@ const CLI = process.env.HOST_CLI || path.join(ROOT, 'app', 'ExhaustTuner.HostCli
     const disk = JSON.parse(fs.readFileSync(path.join(c.run.case, 'results.json'), 'utf8'));
     ok(disk.planes.tract_end.K_total_loss === te.K, 'page reads the results.json OpenFOAM wrote');
     ok(/iterations in \d+ s/.test(c.msg), 'message: ' + c.msg.slice(0, 160));
+    // an exhaust part from an STL (3-D: generator + snappyHexMesh + solver), only when asked: it takes minutes
+    if (process.env.EXHAUST_TUNER_TEST_EXH === '1') {
+      const stl = path.join(tmp, 'tip.stl');
+      execFileSync('python3', ['-c', 'import sys; sys.path.insert(0, sys.argv[1]); import run_validation as rv; '
+        + 'rv.tube_stl(sys.argv[2], [("line", 60.0, 38.0, 38.0), ("line", 400.0, 50.0, 50.0)])', path.join(ROOT, 'cfd', 'validation'), stl]);
+      await pg.evaluate(() => { location.hash = 'headers'; }); await pg.waitForTimeout(800);
+      await pg.selectOption('select.exhx[data-k="part"]', 'tip'); await pg.waitForTimeout(300);
+      await pg.selectOption('select.exhx[data-k="share"]', 'half'); await pg.waitForTimeout(300);   // one bank's flow through a 76 mm tip
+      await pg.selectOption('select.exhx[data-k="mesh"]', 'coarse'); await pg.waitForTimeout(300);
+      ok(await pg.$('button[data-exh="run"]') !== null && await pg.$('#exh-stl') !== null, 'exhaust CFD: STL picker and run button shown');
+      await pg.setInputFiles('#exh-stl', stl); await pg.waitForTimeout(1500);
+      const picked = await pg.evaluate(() => (window.__exh.ui.stl || []).map(f => f.name + ' ' + f.solids.join('/')));
+      ok(picked.length === 1 && /inlet/.test(picked[0]) && /outlet/.test(picked[0]), 'STL picked and read: ' + picked.join(', '));
+      const t2 = Date.now();
+      await pg.click('button[data-exh="run"]');
+      await pg.waitForFunction(() => window.__exhRunLast, null, { timeout: 60 * 60 * 1000 }); await pg.waitForTimeout(500);
+      const x = await pg.evaluate(() => ({ run: window.__exhRunLast, rows: window.__exhResults || [], msg: (document.getElementById('exh-msg') || {}).textContent || '' }));
+      ok(x.run.ok, 'exhaust OpenFOAM run ok in ' + Math.round((Date.now() - t2) / 1000) + ' s: ' + (x.run.msg || x.run.solver + ', ' + x.run.iterations + ' iterations') +
+        ' (' + (x.run.steps || []).map(st => st.step + ' ' + st.seconds + ' s').join(', ') + ')');
+      const row = x.rows[x.rows.length - 1] || {};
+      ok(!row.err && Number.isFinite(row.K), 'exhaust results in the page: K ' + row.K + ', ' + (row.mdot * 1000).toFixed(1) + ' g/s');
+      ok(/iterations in \d+ s/.test(x.msg), 'message: ' + x.msg.slice(0, 160));
+    }
   } else console.log('  (EXHAUST_TUNER_OPENFOAM not set: OpenFOAM part not exercised)');
   ok(errs.length === 0, 'no page errors ' + errs.join(' | '));
   host.stdin.end(); await b.close();

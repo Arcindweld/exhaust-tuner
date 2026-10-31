@@ -66,6 +66,36 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   meshing works; rhoSimpleFoam fails ("failed lookup of thermo:psi", fields are named thermo_psi on Windows);
   simpleFoam runs but on the same mesh (identical points) gives K 6-9 % lower and Cd 1.4-1.8 % higher than Linux
   v2412 at the same 6,000 iterations. The report script is not the cause (Linux report on the Windows output gives
-  the Windows numbers). The Windows binaries report "Build: 34e226dfe3-20211220": 2021 source labelled v2412.
-  Options: cross-compile OpenFOAM v2412 for Windows ourselves (MinGW, as ESI does) in CI, or WSL.
+  the Windows numbers). The Windows binaries report "Build: 34e226dfe3-20211220" (a git commit dated 2021-12-20,
+  next to API 2412; the v2412 tarball says _8dbc61e11c-20241220), so what they were built from is unclear.
+  Decision (the owner, "rebuild it"): build v2412 for Windows ourselves - see below.
 - CAD: cad/parts (CadQuery) and cad/fusion (Fusion script) rough Holley 112-583; K&N filter waits for its part number.
+
+## 2026-10-31, later: OpenFOAM for Windows, CFD in the program, RS 660 model
+- OpenFOAM v2412 for Windows, built by us (.github/workflows/openfoam-windows.yml, tools/openfoam/): ESI's v2412 source
+  tarball (SHA-256 pinned) + one patch (patch_v2412_windows.sh: 11 files hard-code "thermo:psi"/"thermo:mu" while
+  Windows scoped names use '_' -> IOobject::scopedName), MinGW-w64 cross build on Ubuntu (WM_COMPILER=Mingw, dummy
+  Pstream, serial), 57 libraries + 8 programs (libs_for_apps.py), ccache. First run: 4 compile-only parts in parallel
+  fill one cache, then one job links, packages (package_mingw.sh: bin/ with exes + DLLs + MinGW runtime, etc/,
+  SOURCE.txt + build-scripts/ for GPL-3.0 sec. 6) and a Windows job validates (validate_windows.ps1 +
+  compare_results.py): both square-cut-pipe cases (rhoSimpleFoam and simpleFoam) at 6000 iterations against the Linux
+  runs in cfd/validation/reference/*_6000it_results.json, limit 0.2 % on every plane quantity (Linux 6000 vs the
+  converged stop at 1270 iterations differs <= 0.024 %; ESI's package missed by 6-9 % on K).
+  Run 1 found two include problems (header-only TurbulenceModels/phaseCompressible; surfaceFeatureExtract's own
+  library) -> fixed (9353ed3). STATUS: second run queued behind the first.
+- Program CFD: Core/OpenFoamRunner.cs (Allrun without bash; watchdog = the case's intake_report.py --watch PID; 3-D
+  designs generated with the bundled Python first; checkMesh aspect-ratio-only flags are a note), request
+  runOpenFOAM, page "Run in OpenFOAM on this PC" / Stop in the intake CFD section. windows.yml bundles the newest
+  PASSED openfoam-windows run's zip (90-day artifact) and python.org's embeddable Python 3.13.17 (SHA-256 pinned);
+  REQUIRE_OPENFOAM then makes the Core test, the page test and an installed-program CFD run mandatory. Linux checks:
+  Core 10/10, desktop page test runs the intake case end to end (926 iterations, stopped once settled).
+- intake_report.py watchdog bug fixed: os.kill(pid, 0) is TerminateProcess on Windows (would have killed the solver);
+  now OpenProcess/GetExitCodeProcess there. intake_cfd.js rebuilt (172 files identical), page artifact Version 34.
+- windows.yml: paths-ignore for notes/CAD/validation/OpenFOAM-build pushes, cancel-in-progress, artifact retention.
+- OpenWAM writers: tail element {"outlets": [[segments], ...]} after the last plenum = muffler box with several exits
+  (parity 98/98; OpenWAM runs it). wam_sound.synthesize_multi(): outlets summed coherently at one mic.
+- RS 660 stock: validation/rs660-2026/model (rs660.py, NOTES.md). All exhaust dimensions estimated. Idle RMS 10.1 dB,
+  5460 rpm hold 8.0 dB, idle->hold level +13.9 vs +12.0 dB. Needs the owner's measurements (research doc sec. 6).
+- Outback: Subaru service-manual valve events + real valve sizes adopted; high orders moved < 1 dB, so the remaining
+  error is the placeholder pipe lengths (per-order structure), not the cam. WOT torque 17 % under rating (intake and
+  combustion defaults).

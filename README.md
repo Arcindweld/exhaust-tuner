@@ -19,6 +19,10 @@ stated estimate, and limits are written down plainly next to the result they aff
 | `enginesim/` | Exporter for Engine Simulator files (the Arcindweld fork with the 1-D exhaust lives in its own repository, `Arcindweld/engine-sim`). |
 | `validation/` | Measured vehicles: 2004 Subaru Outback 2.5i and 2026 Aprilia RS 660 (recordings, order spectra, model comparisons, research). |
 | `layouts/` | Worked systems, e.g. the LS3 180-degree headers-back layout used to build the template. |
+| `app/` | The Windows program (C#/.NET 8): `ExhaustTuner.Desktop` (WPF window hosting the page in WebView2), `ExhaustTuner.Core` (runs OpenWAM, Engine Simulator and OpenFOAM for the page, installs the Fusion add-in; no Windows-only code, so its tests run anywhere), `ExhaustTuner.HostCli` (the same requests over stdin/stdout, for tests and the installer). |
+| `installer/` | Inno Setup script for the per-user installer. |
+| `tools/openfoam/` | Builds OpenFOAM v2412 for Windows from ESI's source release (MinGW-w64 cross build, one small patch) and checks it against the Linux results before it can ship. |
+| `cad/` | Rough parametric models of bought parts for laying out around (Holley 105 mm throttle body; K&N round tapered filter). |
 | `docs/` | Project status and open items (`STATUS.md`). |
 
 ## Running the checks
@@ -33,16 +37,30 @@ cd openwam && node test_py_js.js
 # router (Python 3, no Fusion)
 cd fusion-addin/tests && python3 test_header.py && python3 test_header_uel.py
 cd layouts/ls3-180 && python3 test_template.py
+
+# the CFD case writer in the browser writes the same files as the Python generator
+node cfd/cfd_js_vs_py.js
+
+# the program's request handling (.NET 8 SDK); with EXHAUST_TUNER_OPENWAM / EXHAUST_TUNER_OPENFOAM set it also
+# runs the real solvers
+cd app && dotnet test ExhaustTuner.Core.Tests
+
+# the page inside the program, end to end (needs the built host and the solvers; see the file header)
+node web/tests/desktop_ui.js
 ```
 
-## Coming next
+## The Windows program
 
-A single Windows program (C#/.NET + WebView2) that hosts the calculator, runs OpenWAM, Engine Simulator and OpenFOAM
-locally and reads their results back, installs the Fusion add-in, and ships as one installer built by GitHub Actions.
-See `docs/STATUS.md`.
+One installer (built by `.github/workflows/windows.yml`) puts the calculator in its own window and runs the solvers on
+the PC: OpenWAM (built from CMT-UPV's source), Engine Simulator (the fork's headless runner), and OpenFOAM v2412
+(built for Windows by `.github/workflows/openfoam-windows.yml` and bundled only after it reproduces the Linux results
+on the validation cases), with Python for the CFD cases' own scripts. It installs the Fusion add-in too. Runs go to
+`%LOCALAPPDATA%\ExhaustTuner\runs`. See `docs/STATUS.md` for where each piece stands.
 
 ## Third-party software
 
 OpenWAM (CMT-Motores Térmicos, Universitat Politècnica de València) and OpenFOAM (ESI-OpenCFD) are GPL-3.0 programs.
 They are run as separate programs; their source is at https://github.com/CMT-UPV/OpenWAM and
-https://develop.openfoam.com/Development/openfoam. Engine Simulator is MIT-licensed (Ange Yaghi).
+https://develop.openfoam.com/Development/openfoam (the Windows build's patch and scripts are in `tools/openfoam/` and
+ship next to it). Engine Simulator is MIT-licensed (Ange Yaghi). The embeddable Python is under the PSF licence.
+`licenses/NOTICE.txt` is what the installer shows.

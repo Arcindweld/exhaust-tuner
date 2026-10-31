@@ -178,6 +178,8 @@ jobs:
       - name: Install and run from the installed folder
         shell: pwsh
         run: |
+          # the installed program must find its own engines: drop the build-tree overrides earlier steps exported
+          Remove-Item Env:EXHAUST_TUNER_OPENFOAM, Env:EXHAUST_TUNER_PYTHON, Env:EXHAUST_TUNER_ENGINESIM, Env:EXHAUST_TUNER_OPENWAM -ErrorAction SilentlyContinue
           $setup = Get-ChildItem dist/ExhaustTuner-Setup-*.exe | Select-Object -First 1
           $dir = "$env:RUNNER_TEMP\ET"
           Start-Process $setup.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/DIR=`"$dir`"","/TASKS=addin" -Wait
@@ -186,6 +188,7 @@ jobs:
           $info | ConvertTo-Json -Depth 5
           if (-not $info.engines.openwam) { throw "installed program does not find OpenWAM" }
           if ($env:REQUIRE_OPENFOAM -eq "1" -and -not $info.engines.openfoam) { throw "installed program does not find OpenFOAM" }
+          if ((Test-Path engines/engine-sim) -and -not $info.engines.enginesim) { throw "installed program does not find Engine Simulator" }
           if ($info.fusionAddIn.installed -ne $info.fusionAddIn.bundled) { throw "Fusion add-in not installed by the installer" }
           $wam = Get-Content app/ExhaustTuner.Core.Tests/fixtures/single450.wam -Raw
           $msg = @{ id = 1; action = "runOpenWAM"; data = @{ name = "ci"; files = @(@{ name = "single450.wam"; text = $wam }) } } | ConvertTo-Json -Depth 6 -Compress

@@ -33,5 +33,18 @@ header lengths put the pipe resonances, so this is the first thing the measured 
 (640 Hz at the hold) the recording keeps 20-25 dB below its peak while the model falls away: engine mechanical, intake
 and flow noise reach the microphone there and the model has none of them, so those orders are not compared.
 
+How much the header lengths matter (5460 rpm hold, both headers changed together, everything else the same):
+
+| header length change | RMS vs recording (orders 1-7) | order 1 | 1.5 | 2 | 2.5 | 3 (dB rel) |
+|---|---|---|---|---|---|---|
+| recording | | -4.9 | 0.0 | -12.4 | -2.8 | -15.3 |
+| -50 mm | 5.4 dB | 0.0 | -2.2 | -0.9 | -7.4 | -14.0 |
+| as estimated (575 / 625 mm) | 8.0 dB | -5.4 | -4.7 | 0.0 | -16.2 | -31.3 |
+| +50 mm | 6.2 dB | 0.0 | -5.0 | -5.9 | -19.0 | -13.9 |
+| +100 mm | 6.9 dB | 0.0 | -2.2 | -4.3 | -9.6 | -22.2 |
+
+A 50 mm change moves single orders by up to 17 dB, so the order balance cannot be judged until the lengths are
+measured; picking the length that fits best would be fitting the model to the recording, not checking it.
+
 Next: the owner's measurements (research doc section 6, most of all the two header centreline lengths and the step
 position, the box volume and the outlet tubes, and where the microphone was relative to each outlet).

@@ -3,12 +3,13 @@ using System.Text.Json.Nodes;
 
 namespace ExhaustTuner.Core;
 
-/// <summary>A text file the page made (an OpenWAM .wam, an OpenFOAM dictionary, a README).</summary>
-public sealed record CaseFile(string Name, string Text, bool Exec = false);
+/// <summary>A file the page made (an OpenWAM .wam, an OpenFOAM dictionary, a README) or passed on (an STL the user
+/// picked): text, or bytes when the page sent base64.</summary>
+public sealed record CaseFile(string Name, string Text, bool Exec = false, byte[]? Data = null);
 
 public static class CaseFiles
 {
-    /// <summary>Reads [{name, text, exec?}] from the page's JSON.</summary>
+    /// <summary>Reads [{name, text, exec?}] or [{name, base64}] from the page's JSON.</summary>
     public static List<CaseFile> FromJson(JsonNode? files)
     {
         var list = new List<CaseFile>();
@@ -16,8 +17,15 @@ public static class CaseFiles
         foreach (var f in arr)
         {
             var name = f?["name"]?.GetValue<string>();
+            if (string.IsNullOrEmpty(name)) continue;
+            var b64 = f?["base64"]?.GetValue<string>();
+            if (b64 is not null)
+            {
+                list.Add(new CaseFile(name, "", false, Convert.FromBase64String(b64)));
+                continue;
+            }
             var text = f?["text"]?.GetValue<string>();
-            if (string.IsNullOrEmpty(name) || text is null) continue;
+            if (text is null) continue;
             var exec = f?["exec"] is JsonValue v && v.TryGetValue<bool>(out var b) && b;
             list.Add(new CaseFile(name, text, exec));
         }
@@ -57,6 +65,12 @@ public static class CaseFiles
             if (!path.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.Ordinal))
                 throw new InvalidOperationException("A file name tried to leave the case folder: " + f.Name);
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+            if (f.Data is not null)
+            {   // bytes as they came (an STL): no line-end conversion
+                File.WriteAllBytes(path, f.Data);
+                written.Add(string.Join('/', parts));
+                continue;
+            }
             var lower = path.ToLowerInvariant();
             var nl = lower.EndsWith(".bat") || lower.EndsWith(".txt") || lower.EndsWith(".wam") ? "\r\n" : "\n";
             var text = f.Text.Replace("\r\n", "\n").Replace("\n", nl);
