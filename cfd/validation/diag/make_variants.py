@@ -68,6 +68,12 @@ VARIANTS = {
     # relax() prints its diagonal-dominance statistics with the fvMatrix debug switch
     "lam_debug": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                   ("system/controlDict", sub1(r"^(application\s+\w+;)", r"\1\nDebugSwitches\n{\n    fvVectorMatrix 1;\n}"))],
+    # viscosity ~0 (laminar): the laplacian and dev2 terms drop out, leaving convection and the pressure gradient
+    "lam_nu0": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                ("constant/transportProperties", sub1(r"^(nu\s+)\S+;", r"\g<1>1e-30;"))],
+    "lam_nu0_upwind": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                       ("constant/transportProperties", sub1(r"^(nu\s+)\S+;", r"\g<1>1e-30;")),
+                       ("system/fvSchemes", sub1(r"^(\s*div\(phi,U\)\s+).*;", r"\1Gauss upwind;"))],
     # per-cell initial residual fields of U and p every iteration (solverInfo writeResidualFields)
     "lam_resfields": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                       ("system/controlDict", sub1(r"^functions\s*\n\{", "functions\n{\n    residualFields\n    {\n        type            solverInfo;\n"
