@@ -127,6 +127,4 @@ jobs:
           name: openfoam-probe-case
           path: |
             v_*/log.*
-            case_inc/log.*
-            case_inc/results.json
-            case_inc/results.txt
+            case_inc/
