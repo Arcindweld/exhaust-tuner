@@ -69,12 +69,12 @@ def resample_cycle(t, y, n):
     return np.interp(grid, tt, yy), T
 
 
-def synthesize(ins, rpm, r=1.0, theta_deg=45.0, ground=False, d_tip_m=None, fs=44100, seconds=5.0, orders_max=12.0,
-               c0=343.0, rho0=1.2):
+def _last_cycle(ins, rpm, fs):
+    """The last complete engine cycle of the open-end mass flow, resampled to n = round(fs * 120 / rpm) samples,
+    and the cycle-to-cycle periodicity of the last two cycles."""
     t = np.asarray(ins["time"])
     md = np.asarray(ins["mdot"])
     ang = np.asarray(ins["angle"])
-    # last complete cycle
     starts = [0] + [i for i in range(1, len(ang)) if ang[i] < ang[i - 1] - 180.0]
     T_cyc = 120.0 / rpm
     n = int(round(fs * T_cyc))
@@ -93,9 +93,12 @@ def synthesize(ins, rpm, r=1.0, theta_deg=45.0, ground=False, d_tip_m=None, fs=4
     if len(cycles) >= 2:
         y0 = cycles[-2][0]
         periodicity = float(np.sqrt(np.mean((y - y0) ** 2)) / (np.sqrt(np.mean((y - y.mean()) ** 2)) + 1e-30))
-    fs_eff = n / T_cyc
-    rpm_eff = 120.0 * fs / n
-    # spectral derivative on the periodic cycle; harmonics k of the cycle frequency = engine order k/2
+    return y, T_meas, periodicity, n
+
+
+def _radiate(y, rpm, r, theta_deg, d_tip_m, c0):
+    """Pressure harmonics at distance r of a compact monopole driven by the periodic mass flow y (one cycle):
+    p' = (1/(4 pi r)) d m_dot/dt, the derivative taken spectrally, times the flanged-piston directivity."""
     Y = np.fft.rfft(y)
     k = np.arange(len(Y))
     f = k * rpm / 120.0
@@ -110,6 +113,10 @@ def synthesize(ins, rpm, r=1.0, theta_deg=45.0, ground=False, d_tip_m=None, fs=4
         nz = x > 1e-9
         D[nz] = 2 * j1(x[nz]) / x[nz]
         P = P * D
+    return P, Y, f, omega
+
+
+def _result(P, Y, f, n, rpm, fs, seconds, orders_max, ground, y, T_meas, periodicity):
     if ground:
         P = P * 2.0
     P[0] = 0.0
@@ -133,13 +140,51 @@ def synthesize(ins, rpm, r=1.0, theta_deg=45.0, ground=False, d_tip_m=None, fs=4
     aw = a_weight_db(f[1:])
     overall_a = 10 * np.log10(np.sum((rms[1:] * 10 ** (aw / 20)) ** 2) / P_REF ** 2)
     return {
-        "signal": sig, "p_cycle": p_cycle, "fs": fs, "n_per_cycle": n, "rpm_effective": rpm_eff,
+        "signal": sig, "p_cycle": p_cycle, "fs": fs, "n_per_cycle": n, "rpm_effective": 120.0 * fs / n,
         "T_cycle_measured_s": T_meas, "periodicity_rms": periodicity,
         "orders": orders.tolist(), "f_Hz": (orders * rpm / 60.0).tolist(), "spl_dB": spl.tolist(),
         "dB_rel": (spl - top).tolist(), "strongest_order": float(orders[int(np.argmax(spl))]),
         "source_orders_dB": src_db.tolist(), "overall_spl_dB": float(overall), "overall_spl_dBA": float(overall_a),
         "mdot_mean_kg_s": float(y.mean()), "mdot_pp_kg_s": float(y.max() - y.min()),
     }
+
+
+def synthesize(ins, rpm, r=1.0, theta_deg=45.0, ground=False, d_tip_m=None, fs=44100, seconds=5.0, orders_max=12.0,
+               c0=343.0, rho0=1.2):
+    y, T_meas, periodicity, n = _last_cycle(ins, rpm, fs)
+    P, Y, f, _ = _radiate(y, rpm, r, theta_deg, d_tip_m, c0)
+    return _result(P, Y, f, n, rpm, fs, seconds, orders_max, ground, y, T_meas, periodicity)
+
+
+def synthesize_multi(sources, rpm, ground=False, fs=44100, seconds=5.0, orders_max=12.0, c0=343.0):
+    """Several open ends heard at one microphone (a muffler box with two exits, dual tips): each outlet is a compact
+    monopole at its own distance r and angle theta (flanged-piston directivity with its own tip diameter), and the
+    complex harmonics are summed with the phase of the path difference, exp(-j w (r_i - r_min) / c0): the outlets
+    are coherent (the same cycle of the same model), so they interfere order by order.
+        sources: [{"ins": read_ins(...) of that outlet's pipe, "r": m, "theta_deg": deg, "d_tip_m": m or None}, ...]
+    The mass-flow spectrum in the result ("source_orders_dB", mdot_*) is that of the summed outflow."""
+    if not sources:
+        raise ValueError("no sources")
+    rmin = min(float(sc["r"]) for sc in sources)
+    P_sum, y_sum, per = None, None, []
+    T_meas = periodicity = n = None
+    for sc in sources:
+        y, T_meas, per_i, n_i = _last_cycle(sc["ins"], rpm, fs)
+        if n is not None and n_i != n:
+            raise ValueError("the outlets' INS data do not share one cycle")
+        n = n_i
+        P, Y, f, omega = _radiate(y, rpm, float(sc["r"]), sc.get("theta_deg"), sc.get("d_tip_m"), c0)
+        P = P * np.exp(-1j * omega * (float(sc["r"]) - rmin) / c0)
+        P_sum = P if P_sum is None else P_sum + P
+        y_sum = y if y_sum is None else y_sum + y
+        if per_i is not None:
+            periodicity = per_i if periodicity is None else max(periodicity, per_i)
+        rms_i = np.abs(P[1:]) / n * 2.0 / math.sqrt(2.0) * (2.0 if ground else 1.0)
+        per.append({"r_m": float(sc["r"]), "theta_deg": sc.get("theta_deg"), "pipe": sc["ins"].get("pipe"),
+                    "mdot_mean_kg_s": float(y.mean()), "overall_spl_dB": float(10 * np.log10(np.sum(rms_i ** 2) / P_REF ** 2))})
+    out = _result(P_sum, np.fft.rfft(y_sum), f, n, rpm, fs, seconds, orders_max, ground, y_sum, T_meas, periodicity)
+    out["sources"] = per
+    return out
 
 
 def write_wav(path, sig, fs, peak_dbfs=-1.0):

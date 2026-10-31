@@ -3344,6 +3344,20 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     function tailItems(tail, TwcDefault, T0Default) {
       const items = [];
       tail.forEach((el, n) => {
+        if (has(el, 'outlets')) {
+          // a muffler box with several exits: only as the last element, right after a plenum (make_wam.py tail_items)
+          if (n !== tail.length - 1 || !items.length || items[items.length - 1][0] !== 'plenum') throw new Error('tail element ' + (n + 1) + ": 'outlets' must be the last element, right after a plenum (V_litres)");
+          const outs = el.outlets.map((ol, k) => {
+            if (!ol || !ol.length) throw new Error('tail element ' + (n + 1) + ': outlet ' + (k + 1) + ' has no pipe segments');
+            return ol.map((sg, m) => {
+              for (const kk of ['L_mm', 'd0_mm', 'd1_mm']) if (!has(sg, kk)) throw new Error('tail element ' + (n + 1) + ' outlet ' + (k + 1) + ' segment ' + (m + 1) + ' needs ' + kk);
+              return ['seg', { L: Number(sg.L_mm) / 1000.0, d0: Number(sg.d0_mm) / 1000.0, d1: Number(sg.d1_mm) / 1000.0 }, has(sg, 'Tw_C') ? Number(sg.Tw_C) : TwcDefault];
+            });
+          });
+          if (!outs.length) throw new Error('tail element ' + (n + 1) + ": 'outlets' lists no outlet");
+          items.push(['outlets', outs]);
+          return;
+        }
         if (has(el, 'V_litres')) {
           const V = Number(el.V_litres);
           if (!(V > 0.0)) throw new Error('tail element ' + (n + 1) + ': V_litres must be positive');
@@ -3354,7 +3368,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           items.push(['seg', { L: Number(el.L_mm) / 1000.0, d0: Number(el.d0_mm) / 1000.0, d1: Number(el.d1_mm) / 1000.0 }, has(el, 'Tw_C') ? Number(el.Tw_C) : TwcDefault]);
         }
       });
-      if (!items.length || items[items.length - 1][0] !== 'seg') throw new Error('a tail must end with a pipe segment at the open end, not a plenum');
+      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum');
       if (items[0][0] !== 'seg') throw new Error('a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)');
       return items;
     }
@@ -3363,21 +3377,11 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       const groups = [];
       let cur = null;
       for (const it of items) {
-        if (it[0] === 'plenum') { groups.push(it); cur = null; }
+        if (it[0] === 'plenum' || it[0] === 'outlets') { groups.push(it); cur = null; }
         else { if (cur === null) { cur = []; groups.push(cur); } cur.push([it[1], it[2]]); }
       }
       let npl = 0, npipe = 0;
-      groups.forEach((g, gi) => {
-        if (!Array.isArray(g[0])) {       // a plenum tuple ['plenum', V, T]
-          npl += 1;
-          plenums.push({ V_m3: g[1], T_C: g[2], p_bar: p.p_amb_bar, comp: comp.slice(), note: role + ' muffler ' + npl + ' as a ' + pctG(g[1] * 1000.0) + ' litre expansion volume' });
-          return;
-        }
-        let lk, rk;
-        if (gi === 0) lk = left;
-        else { lk = role + '/muffler' + npl + '/out'; bcs.set(lk, { type: 'plenum', plenum: plenums.length, note: role + ' muffler ' + npl + ' outlet port' }); }
-        if (gi === groups.length - 1) rk = right;
-        else { rk = role + '/muffler' + (npl + 1) + '/in'; bcs.set(rk, { type: 'plenum', plenum: plenums.length + 1, note: role + ' muffler ' + (npl + 1) + ' inlet port' }); }
+      const addGroup = (g, lk, rk) => {
         const runs = [];
         for (const [sg, tw] of g) {
           if (runs.length && Math.abs(runs[runs.length - 1][1] - tw) < 1e-9) runs[runs.length - 1][0].push(sg);
@@ -3395,6 +3399,29 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           npipe += 1;
           addLine(segs, keys[j], keys[j + 1], role + ' section ' + npipe, tw, Tgc, comp, ht);
         });
+      };
+      groups.forEach((g, gi) => {
+        if (g[0] === 'plenum') {
+          npl += 1;
+          plenums.push({ V_m3: g[1], T_C: g[2], p_bar: p.p_amb_bar, comp: comp.slice(), note: role + ' muffler ' + npl + ' as a ' + pctG(g[1] * 1000.0) + ' litre expansion volume' });
+          return;
+        }
+        if (g[0] === 'outlets') {         // every exit of the last muffler to its own open end
+          g[1].forEach((osegs, k) => {
+            const lk = role + '/muffler' + npl + '/out' + (k === 0 ? '' : String(k + 1));
+            bcs.set(lk, { type: 'plenum', plenum: plenums.length, note: role + ' muffler ' + npl + ' outlet port' + (k === 0 ? '' : ' ' + (k + 1)) });
+            let rk = right;
+            if (k > 0) { rk = right + '/' + (k + 1); bcs.set(rk, Object.assign({}, bcs.get(right), { note: bcs.get(right).note + ', outlet ' + (k + 1) })); }
+            addGroup(osegs.map(sg => [sg[1], sg[2]]), lk, rk);
+          });
+          return;
+        }
+        let lk, rk;
+        if (gi === 0) lk = left;
+        else { lk = role + '/muffler' + npl + '/out'; bcs.set(lk, { type: 'plenum', plenum: plenums.length, note: role + ' muffler ' + npl + ' outlet port' }); }
+        if (gi === groups.length - 1) rk = right;
+        else { rk = role + '/muffler' + (npl + 1) + '/in'; bcs.set(rk, { type: 'plenum', plenum: plenums.length + 1, note: role + ' muffler ' + (npl + 1) + ' inlet port' }); }
+        addGroup(g, lk, rk);
       });
     }
 

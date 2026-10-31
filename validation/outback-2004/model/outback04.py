@@ -10,14 +10,25 @@ WOT torque sanity sweep, sound synthesis and comparison with the owner's recordi
 Everything lives in this folder: spec_<case>.json, runs/<case>/ (wam, AVG, INS, log, summary.json), sound/
 (<case>.wav, <case>_orders.json, compare_<case>.json), results.json.
 
-ENGINE (sources: the brief; valve/rod/combustion numbers are the exhaust calculator's simSpec() defaults,
+2026-10-31: valve events and valve sizes now from Subaru's service data instead of the page's generic defaults
+  (see build_spec()): IVO 1 BTDC / IVC 51 ABDC / EVO 50 BBDC / EVC 6 ATDC (Subaru 2.5 SOHC service manual,
+  99.5 x 79 mm, CR 10.0), valve heads 36.0 / 31.4 mm (SOHC EJ25 replacement valves), lift = cam lobe lift
+  (cam height - base circle: 5.535 / 5.307 mm) x rocker ratio 1.6 [est]. Result against the recording: the
+  high orders moved by less than 1 dB (model excess at orders >= 6 still +21..25 dB at 2585-3550 rpm), so the
+  valve events are not the cause of the bright high end; with the offset removed per case the model-minus-recording
+  difference rises only ~6 dB per octave and scatters by ~10 dB order to order, i.e. it is mostly per-order
+  structure from the PLACEHOLDER pipe lengths (the half orders above all), not one missing smooth filter.
+  WOT brake torque 138 lb-ft @ 4000 / 144 hp @ 5600 against 166 lb-ft / 165 hp rated (base model: 142 / 160):
+  the full-load gap is intake and combustion (page defaults: 300 mm runners, efficiency 0.72), not the exhaust.
+ENGINE (sources: the brief; rod/combustion numbers are the exhaust calculator's simSpec() defaults,
 exhaust-calculator.html:6846-6848, because the page has no EJ25 head data - stated here, not measured)
   flat-4 EJ251, 2457 cc: bore 99.5 mm, stroke 79 mm (Vd 614.3 cc/cyl), CR 10.0, 165 hp @ 5600, 166 lb-ft @ 4000
   firing 1-3-2-4, all 180 deg apart -> phases by cylinder index [0, 360, 180, 540]
   rod = 1.7 x stroke = 134.3 mm (page default; the real EJ25 rod is 130.5 mm)          [page default]
-  4 valves/cyl SOHC: 2 x 39.8 mm intake (0.40 B), lift 10.3 mm; 2 x 33.8 mm exhaust (0.34 B), lift 9.5 mm;
-    cd 0.7 - the page's generic 4-valve defaults, larger than a real EJ251 head (about 36 / 30 mm)   [page default]
-  cam (sensible SOHC EJ25 values, NOT measured): EVO 48 BBDC, EVC 12 ATDC, IVO 8 BTDC, IVC 52 ABDC   [est]
+  4 valves/cyl SOHC: 2 x 36.0 mm intake, lift 8.86 mm; 2 x 31.4 mm exhaust, lift 8.49 mm; cd 0.7 [page default]
+    (until 2026-10-31: the page's generic 39.8 / 33.8 mm, 10.3 / 9.5 mm)
+  cam: IVO 1 BTDC, IVC 51 ABDC, EVO 50 BBDC, EVC 6 ATDC [Subaru service manual]
+    (until 2026-10-31: EVO 48 BBDC, EVC 12 ATDC, IVO 8 BTDC, IVC 52 ABDC [est])
   combustion WOT: Wiebe start 18 BTDC, 55 deg, AFR 12.8, eff 0.72 (page defaults); no-load: AFR 14.6,
     start 12 BTDC, 65 deg (assumed idle-like calibration)                                             [est]
   no-load: the intake runners (300 mm, 43.6 mm, page default) open into a reservoir held at manifold pressure
@@ -64,9 +75,9 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SP = os.path.abspath(os.path.join(HERE, "..", ".."))
-OW = os.path.join(SP, "openwam_run2")
-sys.path.insert(0, OW)
+REPO = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+sys.path.insert(0, os.path.join(REPO, "sound"))
+sys.path.insert(0, os.path.join(REPO, "openwam"))
 import make_wam      # noqa: E402
 import run_models    # noqa: E402
 import wam_sound     # noqa: E402
@@ -81,7 +92,7 @@ SECONDARY = [("hold_1915", 1915.0, "hold_1900")]      # AGC clips: the 1915 hold
 WOT_RPM = [2000.0, 2800.0, 4000.0, 4800.0, 5600.0]
 CAL_RPM = 1980.0
 CELL_MM = 15.0
-REC_JSON = os.path.join(SP, "outback_rec", "recording_orders.json")
+REC_JSON = os.path.join(HERE, "..", "recording_orders.json")
 R_MIC, THETA = 1.0, 45.0
 
 
@@ -90,14 +101,20 @@ def fmep_bar(rpm):
 
 
 def build_spec(load="noload", p_map_bar=0.4):
-    dIn, dEx = 0.40 * B, 0.34 * B
-    e = {"bore": B, "stroke": S, "rod": 1.7 * S, "cr": 10.0, "cd": 0.7, "nIn": 2, "dIn": dIn, "liftIn": 0.26 * dIn,
-         "nEx": 2, "dEx": dEx, "liftEx": 0.28 * dEx, "cam": {"ivo": 8, "ivc": 52, "evo": 48, "evc": 12},
+    # FSM variant: valve timing from the Subaru service manual for the 2.5 SOHC (99.5 x 79, CR 10.0):
+    #   intake opens 1 BTDC, closes 51 ABDC; exhaust opens 50 BBDC, closes 6 ATDC
+    #   (raig0.planet.ee .../Legacy 2000 Service Manual/ENGINE SECTION/Engine/MSA5TCD00L16111.pdf)
+    # valve heads: intake 36 mm, exhaust 31.4 mm (SOHC EJ25 1999-2012 replacement valves: enginepartsonly.com IV710EP38,
+    #   partsology.com EV710-9); valve lift = cam lobe lift x rocker ratio 1.6 [est]: lobe lift from the same manual's
+    #   cam height minus base circle, intake 39.535 - 34.00 = 5.535 mm, exhaust 39.307 - 34.00 = 5.307 mm (MSA5TCD00L16122.pdf)
+    dIn, dEx = 0.036, 0.0314
+    e = {"bore": B, "stroke": S, "rod": 1.7 * S, "cr": 10.0, "cd": 0.7, "nIn": 2, "dIn": dIn, "liftIn": 5.535e-3 * 1.6,
+         "nEx": 2, "dEx": dEx, "liftEx": 5.307e-3 * 1.6, "cam": {"ivo": 1, "ivc": 51, "evo": 50, "evc": 6},
          "burn": {"start": 18, "dur": 55}, "afr": 12.8, "eta": 0.72}
     if load == "noload":
         e["burn"] = {"start": 12, "dur": 65}
         e["afr"] = 14.6
-    dI = math.sqrt(0.6 * 2) * dIn
+    dI = math.sqrt(0.6 * 2) * 0.40 * B      # intake runner unchanged from the base model (43.6 mm) to isolate the valve/cam change
     isegs = [{"L": 0.3, "d0": dI, "d1": dI}]
     intake = {"segs": isegs, "Tw": 320}
     if load == "noload":

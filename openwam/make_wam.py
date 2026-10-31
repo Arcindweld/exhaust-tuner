@@ -33,6 +33,13 @@ v3 (sound) adds the line downstream of the collector and the output needed for s
                                              temperature has no meaning for it (Tw_C on a plenum is ignored);
                                              T0_C is its initial gas temperature, default = the exhaust pipes'
                                              initial gas temperature (exhaust_Tgas0_C).
+      {"outlets": [[seg, ...], [seg, ...], ...]}
+                                             only as the LAST element, right after a plenum: a muffler box with
+                                             several exits (a bike's underbelly box venting on both sides, a
+                                             centre box with two tips). Each outlet is a list of pipe segments
+                                             (as above, no plenums) from its own pipe-to-plenum BC (TCCDeposito)
+                                             to its own open end. The first outlet uses the line's open-end BC, so
+                                             a single-outlet list writes exactly what the plain chain writes.
   * run setting ins_outlet = 1: instantaneous output (pressure, velocity, temperature, mass flow) at the
     LAST node of every exhaust outlet pipe, i.e. the open-end boundary cell (TTubo.cpp:3155-3167 clamps a
     distance past the end to node FNin-1), at the pipe nodes on both sides of every plenum (last node of
@@ -866,6 +873,26 @@ def model_from_spec(spec, run=None):
         """collector.tail / exhaust.tail (mm, litres, degC) -> [("seg", {L,d0,d1} m, Tw_C) | ("plenum", V_m3, T0_C)]."""
         items = []
         for n, el in enumerate(tail):
+            if el.get("outlets") is not None:
+                if n != len(tail) - 1 or not items or items[-1][0] != "plenum":
+                    raise ValueError("tail element %d: 'outlets' must be the last element, right after a plenum (V_litres)" % (n + 1))
+                outs = []
+                for k, ol in enumerate(el["outlets"]):
+                    if not ol:
+                        raise ValueError("tail element %d: outlet %d has no pipe segments" % (n + 1, k + 1))
+                    segs = []
+                    for m, sg in enumerate(ol):
+                        for kk in ("L_mm", "d0_mm", "d1_mm"):
+                            if sg.get(kk) is None:
+                                raise ValueError("tail element %d outlet %d segment %d needs %s" % (n + 1, k + 1, m + 1, kk))
+                        segs.append(("seg", {"L": float(sg["L_mm"]) / 1000.0, "d0": float(sg["d0_mm"]) / 1000.0,
+                                             "d1": float(sg["d1_mm"]) / 1000.0},
+                                     float(sg["Tw_C"]) if sg.get("Tw_C") is not None else Twc_default))
+                    outs.append(segs)
+                if not outs:
+                    raise ValueError("tail element %d: 'outlets' lists no outlet" % (n + 1))
+                items.append(("outlets", outs))
+                continue
             if el.get("V_litres") is not None:
                 V = float(el["V_litres"])
                 if not (V > 0.0):
@@ -881,7 +908,7 @@ def model_from_spec(spec, run=None):
                 items.append(("seg", {"L": float(el["L_mm"]) / 1000.0, "d0": float(el["d0_mm"]) / 1000.0,
                                       "d1": float(el["d1_mm"]) / 1000.0},
                               float(el["Tw_C"]) if el.get("Tw_C") is not None else Twc_default))
-        if not items or items[-1][0] != "seg":
+        if not items or items[-1][0] not in ("seg", "outlets"):
             raise ValueError("a tail must end with a pipe segment at the open end, not a plenum")
         if items[0][0] != "seg":
             raise ValueError("a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)")
@@ -891,9 +918,9 @@ def model_from_spec(spec, run=None):
         """A line made of pipe segments (each with its own Tw_C) and plenums, from BC `left` to BC `right`.
         Segments between plenums form one add_line() per run of equal Tw_C; Tw changes at equal diameter are
         joined by the step BC (TCCUnionEntreTubos with no area change = continuity), plenums by TCCDeposito."""
-        groups, cur = [], None          # [[(seg, Tw)...] or ("plenum", V, T)]
+        groups, cur = [], None          # [[(seg, Tw)...] or ("plenum", V, T) or ("outlets", [[seg items]...])]
         for it in items:
-            if it[0] == "plenum":
+            if it[0] in ("plenum", "outlets"):
                 groups.append(it)
                 cur = None
             else:
@@ -901,13 +928,45 @@ def model_from_spec(spec, run=None):
                     cur = []
                     groups.append(cur)
                 cur.append((it[1], it[2]))
+        state = {"npipe": 0}
+
+        def add_group(g, lk, rk):
+            # split the group by wall temperature
+            runs = []
+            for (sg, tw) in g:
+                if runs and abs(runs[-1][1] - tw) < 1e-9:
+                    runs[-1][0].append(sg)
+                else:
+                    runs.append(([sg], tw))
+            keys = [lk]
+            for j in range(1, len(runs)):
+                sk = "%s/tw%d" % (role, state["npipe"] + j)
+                bcs[sk] = {"type": step_t, "note": "%s section change, wall %g to %g degC, diameter %g to %g mm" %
+                           (role, runs[j - 1][1], runs[j][1], runs[j - 1][0][-1]["d1"] * 1000.0, runs[j][0][0]["d0"] * 1000.0)}
+                keys.append(sk)
+            keys.append(rk)
+            for j, (segs, tw) in enumerate(runs):
+                state["npipe"] += 1
+                add_line(segs, keys[j], keys[j + 1], "%s section %d" % (role, state["npipe"]), tw, Tgc, comp, ht)
+
         npl = 0
-        npipe = 0
         for gi, g in enumerate(groups):
-            if isinstance(g, tuple):
+            if isinstance(g, tuple) and g[0] == "plenum":
                 npl += 1
                 plenums.append({"V_m3": g[1], "T_C": g[2], "p_bar": p["p_amb_bar"], "comp": list(comp),
                                 "note": "%s muffler %d as a %g litre expansion volume" % (role, npl, g[1] * 1000.0)})
+                continue
+            if isinstance(g, tuple):    # ("outlets", [...]): every exit of the last muffler to its own open end
+                for k, osegs in enumerate(g[1]):
+                    lk = "%s/muffler%d/out" % (role, npl) + ("" if k == 0 else "%d" % (k + 1))
+                    bcs[lk] = {"type": "plenum", "plenum": len(plenums),
+                               "note": "%s muffler %d outlet port%s" % (role, npl, "" if k == 0 else " %d" % (k + 1))}
+                    if k == 0:
+                        rk = right
+                    else:
+                        rk = "%s/%d" % (right, k + 1)
+                        bcs[rk] = dict(bcs[right], note="%s, outlet %d" % (bcs[right]["note"], k + 1))
+                    add_group([(sg[1], sg[2]) for sg in osegs], lk, rk)
                 continue
             # the BC on each side of this group of pipes
             if gi == 0:
@@ -920,23 +979,7 @@ def model_from_spec(spec, run=None):
             else:
                 rk = "%s/muffler%d/in" % (role, npl + 1)
                 bcs[rk] = {"type": "plenum", "plenum": len(plenums) + 1, "note": "%s muffler %d inlet port" % (role, npl + 1)}
-            # split the group by wall temperature
-            runs = []
-            for (sg, tw) in g:
-                if runs and abs(runs[-1][1] - tw) < 1e-9:
-                    runs[-1][0].append(sg)
-                else:
-                    runs.append(([sg], tw))
-            keys = [lk]
-            for j in range(1, len(runs)):
-                sk = "%s/tw%d" % (role, npipe + j)
-                bcs[sk] = {"type": step_t, "note": "%s section change, wall %g to %g degC, diameter %g to %g mm" %
-                           (role, runs[j - 1][1], runs[j][1], runs[j - 1][0][-1]["d1"] * 1000.0, runs[j][0][0]["d0"] * 1000.0)}
-                keys.append(sk)
-            keys.append(rk)
-            for j, (segs, tw) in enumerate(runs):
-                npipe += 1
-                add_line(segs, keys[j], keys[j + 1], "%s section %d" % (role, npipe), tw, Tgc, comp, ht)
+            add_group(g, lk, rk)
 
     # where each cylinder's primary ends, and each stage pipe's right end
     prim_end = {}

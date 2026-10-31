@@ -1,0 +1,26 @@
+[
+ {
+  "name": "idle_1442",
+  "rpm": 1442.0,
+  "finished": true,
+  "warnings": 0,
+  "NMEP": 0.800963,
+  "FMEP": 0.7884,
+  "T_brake_Nm": 0.06586855178737495,
+  "p_map_bar": 0.25739643427479875,
+  "VE_delivered": 0.11556571632338138,
+  "conv_NMEP_last_change": 0.005278645830082051
+ },
+ {
+  "name": "hold_5460",
+  "rpm": 5460.0,
+  "finished": true,
+  "warnings": 0,
+  "NMEP": 1.59134,
+  "FMEP": 1.5919999999999999,
+  "T_brake_Nm": -0.0034604190224993858,
+  "p_map_bar": 0.30489770058103605,
+  "VE_delivered": 0.2147951915730869,
+  "conv_NMEP_last_change": 0.0002890645619414487
+ }
+]

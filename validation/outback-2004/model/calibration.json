@@ -4,21 +4,21 @@
  "points": [
   [
    0.3,
-   1.52507
+   1.47389
   ],
   [
    0.45,
-   2.99076
+   2.91111
   ],
   [
    0.6,
-   4.44728
+   4.38114
   ]
  ],
  "fit_NMEP_bar": {
-  "a": -1.3956116666666707,
-  "b_per_bar": 9.740700000000006
+  "a": -1.438828333333339,
+  "b_per_bar": 9.690833333333341
  },
- "p_map_bar_at_cal": 0.23526149729143384,
+ "p_map_bar_at_cal": 0.24093163642617635,
  "rule": "p_map(rpm) = (FMEP(rpm) - a) / b, the same fit at every speed; checked after the runs"
 }

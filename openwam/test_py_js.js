@@ -123,6 +123,20 @@ jobs.push({ label: 'intake reservoir 0.35 bar (throttled), tail, per_cyl', kind:
 jobs.push({ label: 'intake reservoir with T_C', kind: 'spec', spec: (() => { const s = spec('i4_triy'); s.intake.reservoir = { p_bar: 0.6, T_C: 40 }; return s; })(), run: { rpm: 2000.0 } });
 for (let k = 0; k < 4; k++) { const s = randomSpec(spec('i4_41'), 300 + k); s.intake.reservoir = { p_bar: U(0.25, 0.95), T_C: k % 2 ? U(20, 60) : undefined }; jobs.push({ label: 'random reservoir ' + k, kind: 'spec', spec: JSON.parse(JSON.stringify(s)), run: { rpm: Math.round(U(700, 4000)), cycles: 8 } }); }
 // error paths must agree too (both raise)
+// a muffler box with several exits ("outlets" after the last plenum): two side outlets, three outlets with a Tw
+// change and a cone, on a twin, and the error cases
+const BOX2 = [{ L_mm: 120, d0_mm: 55, d1_mm: 55, Tw_C: 450 }, { V_litres: 9.0 },
+  { outlets: [[{ L_mm: 130, d0_mm: 38, d1_mm: 38, Tw_C: 200 }], [{ L_mm: 150, d0_mm: 38, d1_mm: 40, Tw_C: 200 }]] }];
+const BOX3 = [{ L_mm: 800, d0_mm: 50.8, d1_mm: 50.8 }, { V_litres: 12.5, T0_C: 300 },
+  { outlets: [[{ L_mm: 200, d0_mm: 50, d1_mm: 50, Tw_C: 180 }, { L_mm: 100, d0_mm: 50, d1_mm: 63, Tw_C: 120 }], [{ L_mm: 260, d0_mm: 50, d1_mm: 50 }], [{ L_mm: 90, d0_mm: 44, d1_mm: 44, Tw_C: 150 }]] }];
+jobs.push({ label: 'tail: box with two outlets on a 4-1', kind: 'spec', spec: withTail(spec('i4_41'), BOX2), run: { rpm: 5460.0, cycles: 12, ins_outlet: 1, ins_cycles: 2 } });
+jobs.push({ label: 'tail: box with three outlets, Tw change, cone', kind: 'spec', spec: withTail(spec('i4_triy'), BOX3), run: { rpm: 1440.0, ins_outlet: 1 } });
+jobs.push({ label: 'tail: box outlets on both V8 banks', kind: 'spec', spec: (() => { const s = spec('v8_dual'); s.opt.collectors.forEach(c => { c.tail = BOX2; }); return s; })(), run: { rpm: 4000.0, ins_outlet: 1 } });
+jobs.push({ label: 'exhaust.tail box with two outlets, single cylinder', kind: 'spec', spec: (() => { const s = spec('i4_single_cyl'); s.exhaust.tail = BOX2; return s; })(), run: { rpm: 6000.0, ins_outlet: 1 } });
+jobs.push({ label: 'error: outlets not after a plenum', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 50, d1_mm: 50 }, { outlets: [[{ L_mm: 100, d0_mm: 40, d1_mm: 40 }]] }]), run: {} });
+jobs.push({ label: 'error: outlets not last', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 50, d1_mm: 50 }, { V_litres: 5 }, { outlets: [[{ L_mm: 100, d0_mm: 40, d1_mm: 40 }]] }, { L_mm: 100, d0_mm: 40, d1_mm: 40 }]), run: {} });
+jobs.push({ label: 'error: empty outlet', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 50, d1_mm: 50 }, { V_litres: 5 }, { outlets: [[{ L_mm: 100, d0_mm: 40, d1_mm: 40 }], []] }]), run: {} });
+jobs.push({ label: 'error: outlet segment without d1_mm', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 50, d1_mm: 50 }, { V_litres: 5 }, { outlets: [[{ L_mm: 100, d0_mm: 40 }]] }]), run: {} });
 jobs.push({ label: 'error: per_cyl count', kind: 'spec', spec: (() => { const s = spec('i4_41'); s.exhaust.per_cyl = [s.exhaust.segs, s.exhaust.segs]; return s; })(), run: {} });
 jobs.push({ label: 'error: segs_by_group count', kind: 'spec', spec: (() => { const s = spec('i4_triy'); s.opt.collectors[0].stages[0].segs_by_group = [null]; return s; })(), run: {} });
 jobs.push({ label: 'error: chambers', kind: 'spec', spec: Object.assign(spec('i4_41'), { exhaust: Object.assign(spec('i4_41').exhaust, { chambers: [{ x: 0.1, V: 1e-4, A: 1e-5, Le: 0.002 }] }) }), run: {} });
