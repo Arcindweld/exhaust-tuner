@@ -26,7 +26,10 @@ runs/<folder>/summary.json:
     (5460 rpm) and 13-16 % (1442 rpm) above the exhaust valve flow, and the outlets' open-end node 19 % below
     the middle of the same pipe (5460 rpm, 72 cycles). 5 mm cells shrink some of these (runners 11 -> 3 %, open
     end 19 -> 9 % below mid-pipe) and grow others (primaries 5-8 -> 11-12 %), so they do not simply vanish with
-    the grid. The cylinders' own masses (VE, trapped mass, NMEP) are consistent and are the ones to use.
+    the grid. At wide-open throttle (30 cycles) the runners agree with the cylinders' intake within 1 % on i4_41
+    at 4000 / 6000 rpm and v8_dual at 5500 rpm, and the primaries read 1-2 % above the exhaust valve flow, but
+    11-15 % above it on i4_41 at 4000 rpm. The cylinders' own masses (VE, trapped mass, NMEP) are consistent and
+    are the ones to use.
 """
 import json
 import math
