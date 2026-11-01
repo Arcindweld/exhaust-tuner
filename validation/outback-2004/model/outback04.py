@@ -23,6 +23,10 @@ Everything lives in this folder: spec_<case>.json, runs/<case>/ (wam, AVG, INS, 
   structure from the PLACEHOLDER pipe lengths (the half orders above all), not one missing smooth filter.
   WOT brake torque 138 lb-ft @ 4000 / 144 hp @ 5600 against 166 lb-ft / 165 hp rated (base model: 142 / 160):
   the full-load gap is intake and combustion (page defaults: 300 mm runners, efficiency 0.72), not the exhaust.
+2026-11-01: cell size checked at the 2585 rpm hold (48 cycles, 64 kHz rows): 7.5 mm against the model's 15 mm moves
+  the RMS against the recording from 10.3 to 10.9 dB and NMEP by 0.4 %; orders 2-5.5 move by up to 2.6 dB, orders
+  6, 8, 9, 10, 10.5 and 11.5 by 2.7-8 dB (3.0 dB RMS over orders 2-12). So the RMS figures in results.json hold
+  to about 0.6 dB at this hold, single orders above the 5th only to several dB.
 ENGINE (sources: the brief; rod/combustion numbers are the exhaust calculator's simSpec() defaults,
 exhaust-calculator.html:6846-6848, because the page has no EJ25 head data - stated here, not measured)
   flat-4 EJ251, 2457 cc: bore 99.5 mm, stroke 79 mm (Vd 614.3 cc/cyl), CR 10.0, 165 hp @ 5600, 166 lb-ft @ 4000
