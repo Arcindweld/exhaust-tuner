@@ -108,7 +108,18 @@ const CLI = process.env.HOST_CLI || path.join(ROOT, 'app', 'ExhaustTuner.HostCli
     await pg.selectOption('select.cfdx[data-k="mesh"]', 'coarse'); await pg.waitForTimeout(400);
     const t1 = Date.now();
     await pg.click('button[data-cfd="run"]');
-    await pg.waitForFunction(() => window.__cfdRunLast, null, { timeout: 30 * 60 * 1000 }); await pg.waitForTimeout(500);
+    // wait for the result, printing the page's progress line whenever it changes, and stop at once when the host
+    // call itself failed (the page then shows "OpenFOAM did not run" and never sets __cfdRunLast)
+    let lastMsg = '';
+    for (;;) {
+      const st = await pg.evaluate(() => ({ done: !!window.__cfdRunLast, msg: (document.getElementById('cfd-msg') || {}).textContent || '' }));
+      if (st.msg !== lastMsg) { console.log('  [' + Math.round((Date.now() - t1) / 1000) + ' s] ' + st.msg.slice(0, 200)); lastMsg = st.msg; }
+      if (st.done) break;
+      if (/did not run/.test(st.msg)) throw new Error('OpenFOAM host call failed: ' + st.msg);
+      if (Date.now() - t1 > 30 * 60 * 1000) throw new Error('OpenFOAM run not finished after 30 min; last message: ' + st.msg);
+      await pg.waitForTimeout(20000);
+    }
+    await pg.waitForTimeout(500);
     const c = await pg.evaluate(() => ({ run: window.__cfdRunLast, rows: window.__cfdResults || [], msg: (document.getElementById('cfd-msg') || {}).textContent || '',
       table: !!document.getElementById('cfd-results') }));
     ok(c.run.ok, 'OpenFOAM run ok in ' + Math.round((Date.now() - t1) / 1000) + ' s: ' + (c.run.msg || c.run.solver + ', ' + c.run.iterations + ' iterations'));

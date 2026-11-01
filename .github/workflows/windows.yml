@@ -185,6 +185,23 @@ jobs:
           npx playwright install chromium
           node web/tests/desktop_ui.js
 
+      # what the program's runs left behind (case files, postProcessing, logs) when that test failed
+      - name: Keep the program test's runs (on failure)
+        if: failure()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force desk-runs | Out-Null
+          Get-ChildItem $env:TEMP -Directory -Filter "et-desk-*" -ErrorAction SilentlyContinue | ForEach-Object {
+            Copy-Item (Join-Path $_.FullName "data") (Join-Path "desk-runs" $_.Name) -Recurse -ErrorAction SilentlyContinue }
+          Get-ChildItem desk-runs -Recurse -File | Measure-Object -Sum Length | ForEach-Object { "{0} files, {1:N0} bytes" -f $_.Count, $_.Sum }
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: desk-runs
+          path: desk-runs
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Stage the install folder
         shell: pwsh
         run: |
