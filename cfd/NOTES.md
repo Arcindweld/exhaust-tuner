@@ -37,6 +37,8 @@ Python and JavaScript writers produce identical files.
 
 ## Validation summary
 
+Generator 1.1.0 (2-D cases on a cyclic sector, §4 (e)); every figure below was rerun on 2026-11-01.
+
 Blair & Cahoon's three bellmouths (*Race Engine Technology*, Sept. 2006; a
 FLUENT study matched to QUB flow-bench tests on a 23 mm pipe) were run as a
 user would run them, 1 atm / 25 °C inflow, mass flow set, pressure ratio read
@@ -45,21 +47,25 @@ published PR and interpolated (two converged runs per case).
 
 | case | published ṁ at PR | this generator | error |
 |---|---|---|---|
-| PP-46-23-23-0, square-cut pipe | 30.023 g/s at 1.039 | 29.913 g/s | -0.4 % |
-| RAD-46-23-35-6, 6 mm radius lip | 34.830 g/s at 1.037 | 36.236 g/s | +4.0 % |
-| ELL-23-23-49-3, elliptical bellmouth | 36.150 g/s at 1.039 | 38.006 g/s | +5.1 % |
+| PP-46-23-23-0, square-cut pipe | 30.023 g/s at 1.039 | 30.344 g/s | +1.1 % |
+| RAD-46-23-35-6, 6 mm radius lip | 34.830 g/s at 1.037 | 36.298 g/s | +4.2 % |
+| ELL-23-23-49-3, elliptical bellmouth | 36.150 g/s at 1.039 | 38.055 g/s | +5.3 % |
 
 The sharp-edged pipe, where the result is set by the vena contracta, agrees
-within 0.4 %, and Blair's "actual" (vena-contracta) CD for it comes out
-0.5631 against his 0.5672. The two rounded inlets flow 4-5 % more than Blair's
-figures. Their result depends on where the static-pressure station is (about
-1 % per diameter downstream, see the station table in §4), and the article
-does not say how far downstream of the bellmouth FLUENT's "Ps measuring
-station" was; our station is the end of the 46 mm pipe. The ranking and the
-spacing of the three shapes are reproduced: RAD/PP 1.211 against the published
-1.160, ELL/RAD 1.049 against 1.038. Mesh refinement from medium to fine moves the
-mass flow by +0.20 % (PP), +0.03 % (RAD) and +0.01 % (ELL). Details, run
-costs and the mesh and station sensitivity tables are in §4.
+within 1.1 %, and Blair's "actual" (vena-contracta) CD for it comes out
+0.5722 against his 0.5672. The two rounded inlets flow 4–5 % more than
+Blair's figures; their result depends on where the static-pressure station is
+(1.0–1.2 % per diameter downstream, station table in §4), which the article
+does not give. Ranking and spacing are reproduced: RAD/PP 1.196 against the
+published 1.160, ELL/RAD 1.048 against 1.038. Medium to fine moves the mass
+flow by +0.15 % (PP), +0.03 % (RAD), +0.01 % (ELL).
+
+Fully developed pipe friction (§4 (a)) is 5–6 % below Colebrook and McKeon,
+with the momentum balance closed to 0.3 %; the entrance-loss and exhaust
+known-answer checks are in §4 (c) and (d). Until generator 1.0.0 the 2-D
+cases used wedge patches, which on the Linux build used here carried a
+spurious 25 % pressure gradient in developed flow (§4 (e)); the PP figure was
+then 29.913 g/s (−0.4 %), a closer match that was partly that artifact.
 
 
 ## 1. What a generated case contains
@@ -254,40 +260,44 @@ Every quantity is given for each plane (`tract_end`, `maf`, user planes).
 
 ## 4. Validation
 
+All runs: generator 1.1.0. The Blair suite ran on the conda-forge Linux build used for the references; the friction,
+entrance and exhaust suites on ESI's Ubuntu package (`cfd-validation.yml`, run 41296667345). The two builds agree on
+2-D cyclic cases within 0.05 % (§4 (e)).
+
 ### (b) Blair & Cahoon bellmouths, De = 23 mm, inflow from 1 atm / 25 °C
 
 Mass flow at the published pressure ratio (PR = p0 / area-averaged static pressure at the tract-end station). Our value is interpolated between two converged runs that bracket the PR (medium mesh).
 
 | case | PR (published) | ṁ published [g/s] | ṁ CFD [g/s] | error | Blair 'actual' CD pub. / CFD | flow-bench Cd pub. / CFD |
 |---|---|---|---|---|---|---|
-| PP-46-23-23-0 | 1.039 | 30.023 | 29.913 | -0.4 % | 0.5672 / 0.5631 | 0.7773 / 0.7744 |
-| RAD-46-23-35-6 | 1.037 | 34.830 | 36.236 | +4.0 % | 0.7190 / 0.7854 | 0.9239 / 0.9612 |
-| ELL-23-23-49-3 | 1.039 | 36.150 | 38.006 | +5.1 % | 0.7430 / 0.8525 | 0.9359 / 0.9839 |
+| PP-46-23-23-0 | 1.039 | 30.023 | 30.344 | +1.1 % | 0.5672 / 0.5722 | 0.7773 / 0.7856 |
+| RAD-46-23-35-6 | 1.037 | 34.830 | 36.298 | +4.2 % | 0.7190 / 0.7892 | 0.9239 / 0.9628 |
+| ELL-23-23-49-3 | 1.039 | 36.150 | 38.055 | +5.3 % | 0.7430 / 0.8577 | 0.9359 / 0.9852 |
 
 | ratio | published | CFD | difference |
 |---|---|---|---|
-| RAD / PP, caption values (RAD at PR 1.037, PP at 1.039) | 1.160 | 1.211 | +4.4 % |
-| ELL / RAD, caption values (ELL at 1.039, RAD at 1.037) | 1.038 | 1.049 | +1.1 % |
-| RAD / PP at the same PR = 1.039 | 1.189 (RAD caption value scaled to 1.039 at constant Cd; text: "near constant 16 %") | 1.242 | |
+| RAD / PP, caption values (RAD at PR 1.037, PP at 1.039) | 1.160 | 1.196 | +3.1 % |
+| ELL / RAD, caption values (ELL at 1.039, RAD at 1.037) | 1.038 | 1.048 | +1.0 % |
+| RAD / PP at the same PR = 1.039 | 1.189 (RAD caption value scaled to 1.039 at constant Cd; text: "near constant 16 %") | 1.226 | |
 | ELL / RAD at the same PR = 1.039 | 1.013 (same scaling; Fig. 12: ≈ +1.9 % at PR ≈ 1.04; text: "a mere 1.5 %") | 1.023 | |
 
 Mesh sensitivity (ṁ at the published PR):
 
 | case | coarse | medium | fine | fine vs medium |
 |---|---|---|---|---|
-| PP-46-23-23-0 | 29.788 g/s (5350 cells) | 29.913 g/s (10377 cells) | 29.974 g/s (19204 cells) | +0.20 % |
-| RAD-46-23-35-6 | 36.220 g/s (6534 cells) | 36.236 g/s (12557 cells) | 36.246 g/s (23497 cells) | +0.03 % |
-| ELL-23-23-49-3 | 37.993 g/s (6927 cells) | 38.006 g/s (13690 cells) | 38.011 g/s (25579 cells) | +0.01 % |
+| PP-46-23-23-0 | 30.219 g/s (5350 cells) | 30.344 g/s (10377 cells) | 30.390 g/s (19204 cells) | +0.15 % |
+| RAD-46-23-35-6 | 36.282 g/s (6534 cells) | 36.298 g/s (12557 cells) | 36.308 g/s (23497 cells) | +0.03 % |
+| ELL-23-23-49-3 | 38.042 g/s (6927 cells) | 38.055 g/s (13690 cells) | 38.060 g/s (25579 cells) | +0.01 % |
 
 Sensitivity to where the static-pressure station is (flow-bench Cd, medium mesh):
 
 | case | station at L | L + 1 D | L + 2 D |
 |---|---|---|---|
-| PP-46-23-23-0 | 0.7744 | 0.7807 | 0.7807 |
-| RAD-46-23-35-6 | 0.9612 | 0.9512 | 0.9421 |
-| ELL-23-23-49-3 | 0.9839 | 0.9720 | 0.9613 |
+| PP-46-23-23-0 | 0.7856 | 0.7935 | 0.7946 |
+| RAD-46-23-35-6 | 0.9628 | 0.9531 | 0.9444 |
+| ELL-23-23-49-3 | 0.9852 | 0.9734 | 0.9630 |
 
-Run cost: PP-46-23-23-0 1270+1240 it / 494 s; RAD-46-23-35-6 960+940 it / 470 s; ELL-23-23-49-3 920+910 it / 350 s
+Run cost: PP-46-23-23-0 1880+1890 it / 1863 s; RAD-46-23-35-6 1840+1860 it / 2405 s; ELL-23-23-49-3 1370+1410 it / 1368 s
 
 **How the cases were set up.** `validation/run_validation.py blair` builds
 each design with `generate_case()` exactly as the web page or the add-in
@@ -295,72 +305,134 @@ would (free-standing stack, protrusion = pipe length, 4 D outlet extension,
 solver forced compressible), runs `Allrun`, and reads `results.json`. Pass 1
 imposes the published mass flow and reads PR at the tract end; pass 2
 re-targets the mass flow so that PR lands on the published value; the
-reported ṁ is the linear interpolation between the two converged runs. The
-two fine runs were interrupted by a container restart and resumed from their
-last written time step (`resume_fine.sh`); their wall times are the solver
-CPU time of both segments.
+reported ṁ is the linear interpolation between the two converged runs.
 
 **What the comparison shows.**
 
 - The square-cut pipe is the demanding case (vena contracta at M ≈ 0.35,
-  lip separation, pressure recovery) and it agrees with Blair's FLUENT/QUB
-  figure within 0.4 % in mass flow and 0.7 % in the vena-contracta CD that a
-  1-D engine code needs. That is the number the 1-D wave model on this page
-  uses for a pipe end.
+  lip separation, pressure recovery): +1.1 % in mass flow and +0.9 % in the
+  vena-contracta CD that a 1-D engine code needs.
 - The rounded inlets flow 4–5 % more than the published values. For these
   the loss is small and the pressure ratio is almost all dynamic pressure, so
-  the answer depends on the exact position of the static-pressure tapping:
-  the station table shows the flow-bench Cd falling by about 1 % per pipe
-  diameter downstream of the tract end (wall friction). The article gives
-  the pipe as 46 mm long but not where FLUENT's "Ps measuring station" sat;
-  a station 3–5 D further downstream would close the gap. The published
-  caption values also mix PRs (RAD at 1.037, ELL at 1.039), and Blair's own
-  text puts the RAD-over-PP gain at "near constant 16 %" and ELL over RAD at
-  "a mere 1.5 %"; the generator gives 21 % and 2.3 % at a common PR of 1.039.
-  Ranking and spacing are therefore right; absolute Cd for a well-rounded
-  inlet should be read as ±5 % until the station convention is pinned down.
-- Mesh independence: coarse → medium → fine changes the mass flow by at most
-  0.4 % (coarse to medium, PP) and 0.2 % (medium to fine, PP); the rounded
-  inlets move by less than 0.05 % from medium to fine. Medium is the
-  default.
-- Convergence: every run met the report's criteria (mass imbalance
-  < 0.1 %, mass-flow drift < 0.1 % and tract-end pressure drift < 0.5 % of
-  Δp over 300 iterations); 900–1700 iterations, 1–8 min per run on one core
-  of this machine.
+  the answer depends on the position of the static-pressure tapping: the
+  station table shows the flow-bench Cd falling 1.0–1.2 % per pipe diameter
+  downstream of the tract end. Developed-pipe friction at this Reynolds number
+  (Colebrook, Re ≈ 10⁵) would give 0.84 % per diameter; the boundary layer just
+  behind a bellmouth is thinner than in developed flow, so the wall shear there
+  is higher. The published figures would be met by a station about 4–5 D
+  further downstream; the article gives the pipe as 46 mm long but not where
+  FLUENT's "Ps measuring station" sat. The caption values also mix PRs (RAD at
+  1.037, ELL at 1.039), and Blair's text puts RAD over PP at "near constant
+  16 %" and ELL over RAD at "a mere 1.5 %"; the generator gives 22.6 % and
+  2.3 % at a common PR of 1.039. Ranking and spacing are right; absolute Cd for
+  a well-rounded inlet should be read as ±5 % until the station convention is
+  pinned down.
+- Mesh independence: coarse → medium changes the mass flow by +0.41 % (PP),
+  medium → fine by +0.15 % (PP); the rounded inlets move by less than 0.05 %.
+  Medium is the default.
+- Convergence: every run met the report's criteria (mass imbalance < 0.1 %,
+  mass-flow drift < 0.1 % and tract-end pressure drift < 0.5 % of Δp over
+  300 iterations), in 1370–1890 iterations (910–1270 on the old wedge cases).
+- Against generator 1.0.0 (wedge patches): PP +1.44 % in mass flow (Cd
+  0.7744 → 0.7856), of which +0.13 % is the flow-scale correction and the
+  rest the wedge artifact, which acted most strongly in the separated flow
+  behind the sharp lip; RAD +0.17 % and ELL +0.13 %, about the flow-scale
+  correction alone.
+
+### (a) Fully developed turbulent pipe flow (D = 50 mm, L = 80 D, f from Δp between 50 D and 70 D)
+
+f CFD is the Darcy factor from the static-pressure drop between 50 D and 70 D (compressible runs: the momentum-flux change of the accelerating gas taken off); f wall is 8 τw / (ρ U²) from the wall shear stress on the same stretch. The two must agree in developed flow (a momentum balance).
+
+| case | Re | f CFD (Δp) | f wall (τw) | Δp / τw | Colebrook | error | Haaland | McKeon 2005 | error | y+ avg/max | run |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| pipe_Re5e+04 | 5e+04 | 0.01978 | 0.01972 | 1.003 | 0.02089 | -5.3 % | 0.02071 | 0.02093 | -5.5 % | 0.86/0.94 | 3690 it, 3056 s |
+| pipe_Re1e+05 | 1e+05 | 0.01694 | 0.01693 | 1.001 | 0.01799 | -5.8 % | 0.01782 | 0.01811 | -6.4 % | 0.87/0.94 | 4160 it, 4578 s |
+| pipe_Re1e+05_coarse | 1e+05 | 0.01688 | 0.01688 | 1.000 | 0.01799 | -6.1 % | 0.01782 | 0.01811 | -6.7 % | 0.86/0.94 | 3680 it, 2154 s |
+| pipe_Re1e+05_fine | 1e+05 | 0.01699 | 0.01695 | 1.003 | 0.01799 | -5.5 % | 0.01782 | 0.01811 | -6.1 % | 0.87/0.95 | 4290 it, 5721 s |
+| pipe_Re2e+05 | 2e+05 | 0.01463 | 0.01468 | 0.997 | 0.01564 | -6.4 % | 0.01550 | 0.01580 | -7.4 % | 0.87/0.96 | 3890 it, 5199 s |
+
+**Reading.** The momentum balance closes: f from the pressure drop and f
+from the wall shear stress agree within 0.3 % at every Reynolds number.
+f is 5–6 % below Colebrook and McKeon et al. from Re 5 × 10⁴ to 2 × 10⁵;
+coarse and fine meshes move it by −0.35 % and +0.3 %, with y+ ≈ 0.9 at the
+wall, so the shortfall belongs to the turbulence model on this setup, not to
+the mesh. Read friction pressure drops in long runners as about 6 % low. On
+the conda-forge build the cyclic pipe at Re 2 × 10⁵ gave f 0.01465 from Δp
+and 0.01443 from τw. Before 1.1.0 only the Re 2 × 10⁵ case had been run, on
+wedge patches: f 0.01951 as reported (+24.8 %); 0.01841 (+17.7 %) once the
+gas acceleration the script said it removed was removed; against 0.01472
+from its own wall shear stress, which is the 1.25× wedge artifact.
+
+### (c) Entrance loss coefficient, inlet flush with a wall (D = 50 mm, Re = 1e5)
+
+K from total pressure: the mass-averaged total-pressure loss of the fully developed region (20–40 D) extrapolated back to the inlet plane; K from static pressure − 1: (p0 − extrapolated static pressure)/q − 1, the way entrance losses are usually measured. Both in dynamic heads of the bulk velocity.
+
+| case | K CFD, total pressure | K CFD, static pressure − 1 | Crane TP-410 | Idelchik | Rennels | run |
+|---|---|---|---|---|---|---|
+| entrance_r0.04D | 0.141 | 0.239 | 0.24 | 0.26 | 0.324 | 3800 it, 3104 s |
+| entrance_r0.10D | 0.013 | 0.117 | 0.09 | 0.12 | 0.203 | 3410 it, 2001 s |
+| entrance_r0.20D | -0.010 | 0.091 | 0.04 | 0.03 | 0.115 | 3950 it, 3319 s |
+| entrance_sharp | 0.396 | 0.466 | 0.50 | 0.50 | 0.570 | 3570 it, 3178 s |
+| entrance_sharp_coarse | 0.401 | 0.471 | 0.50 | 0.50 | 0.570 | 3210 it, 1866 s |
+| entrance_sharp_fine | 0.392 | 0.463 | 0.50 | 0.50 | 0.570 | 3990 it, 4830 s |
+
+**Reading.** The two conventions differ by the kinetic-energy flux of the
+velocity profile in the 20–40 D region (α − 1 = 0.07–0.10 here). The
+handbooks do not say which they tabulate. The static-pressure form agrees
+with Crane and Idelchik for the sharp edge (0.466 against 0.50; mesh coarse /
+medium / fine 0.471 / 0.466 / 0.463), for r/D 0.04 (0.239 against
+0.24–0.26) and for r/D 0.10 (0.117 against 0.09–0.12). For r/D 0.20 it is
+high (0.091 against 0.03–0.04). The total-pressure K of the well-rounded inlet
+comes out slightly negative (−0.010): the loss in the first 20 D is less than
+the developed-flow line predicts. A likely reason is that the boundary layer
+behind a well-rounded inlet starts nearly laminar, since the inflow is quiet
+air (I = 1 %, νt/ν = 1). The developed-flow f from the 20–40 D slope is 3–8 %
+below Colebrook, consistent with (a). Before 1.1.0 every entrance case had
+failed: SIMPLEC with U relaxation 0.8 diverged (a floating-point exception in
+the pressure solver at about iteration 140), so `entrance_results.json` was
+empty, although these notes called the suite "not yet run". The incompressible
+cases now run classic SIMPLE.
 
 ### (d) Exhaust-component mode: known-answer checks (gas 650 °C, inlet 100 m/s, medium mesh)
 
-K is the total-pressure loss from the inlet face to the exit face in dynamic heads of the inlet velocity. The straight pipes in each model (inlet 1-2 D plus the 2 D inlet extension, outlet 10 D plus the 2 D outlet extension) add wall friction, estimated with Colebrook at the run's Reynolds number and taken off to give the component's own K.
+K is the total-pressure loss from the part's inlet face to its exit face in dynamic heads of the inlet velocity. The part's own straight pipes between those faces (inlet 1 D or 2 D, outlet 10 D; the 2 D extensions the generator adds lie outside the measured section) add wall friction, estimated with Colebrook at the run's Reynolds number and taken off to give the component's own K.
 
 | case | K CFD, inlet to exit | friction of the straights (est.) | K of the component | reference | run |
 |---|---|---|---|---|---|
-| EXH-expansion-50-100 | 0.679 | 0.082 | **0.598** | 0.562 (Borda-Carnot (1 - A1/A2)^2) | converged, 900 it, 569 s, 51780 cells |
-| EXH-bend90-50-R75 | 0.476 | 0.337 | **0.140** | 0.20–0.30 (Idelchik diag. 6-1 / Crane TP-410 (14 fT), R/D = 1.5) | converged, 900 it, 712 s, 76792 cells |
+| EXH-expansion-50-100 | 0.671 | 0.037 | **0.635** | 0.562 (Borda-Carnot (1 - A1/A2)^2) | converged, 900 it, 437 s, 51780 cells |
+| EXH-bend90-50-R75 | 0.448 | 0.253 | **0.196** | 0.20–0.30 (Idelchik diag. 6-1 / Crane TP-410 (14 f_T = 0.27, 2 in), R/D = 1.5) | converged, 900 it, 545 s, 76792 cells |
 
-**Reading.** The sudden expansion lands +6 % above Borda–Carnot's ideal
-value once the straight pipes' friction is taken off; the ideal assumes a
-flat inlet profile and complete mixing, and measured values (Idelchik,
-diagram 4-1) sit a few per cent above it, so this is the expected side of the
-mark. The bend's K of 0.14 for the bend itself (the straights' friction taken
-off; the arc's own friction, about 0.05, is still in it) is **below** the
-0.20–0.30 band of the handbooks (Idelchik's diagram 6-1 with its
-Reynolds-number correction at Re ≈ 5 × 10⁴, Crane's 14 f_T = 0.29 for a 2 in
-pipe). The bend loss comes from the secondary flow and the separation on the
-inner wall, and the medium mesh (D/16 cells, wall-function layers at
-y+ 15–60) does not resolve them well; the uniform inlet profile two diameters
-upstream also lowers it a little. Until a finer-mesh run says otherwise,
-read bend losses from this mode as low by about a third, and expect area
-changes and merges to be the better-predicted kind. The exit velocity profile
-after 10 D of straight pipe is 96 % uniform. Both runs converged by the
-report's criteria in 900–900 iterations (569 and 712 s on one core). As with
-the intake mode, differences between designs run the same way are more
-reliable than the absolute K.
+**Reading.** K is measured between the part's own inlet and exit faces, so
+only the part's own straights are taken off. Until 2026-11-01 the friction of
+the 2 D extensions that the generator adds outside the measured section was
+taken off too. That gave 0.60 and 0.14 and the reading "bend losses low by
+about a third", which was wrong.
 
-**Not yet run.** `run_validation.py friction` (fully developed pipe
-friction against Colebrook / McKeon) and `run_validation.py entrance`
-(entrance K of a flush inlet against Crane / Idelchik / Rennels) are coded
-but have not been run here; the tables appear automatically when their
-results files exist.
+- **Sudden expansion.** 0.635 is 12.8 % above Borda–Carnot's ideal, which
+  assumes flat profiles and complete mixing. Idelchik's form with the inlet
+  profile's momentum and energy coefficients (ζ = N − 2M/n + 1/n², diagram
+  4-1) gives 0.61 for a developed 1/7-power profile. The inlet profile here,
+  3 D after a uniform inflow, lies between flat and developed, so the CFD
+  sits about 5–10 % above the handbook. The friction estimate for the 10 D
+  outlet straight, where the flow is still re-developing, is the least
+  certain part of the correction.
+- **Bend.** 0.196 for the bend itself (the arc's own friction, about 0.05,
+  is still in it, as it is in the handbook values) sits at the bottom of the
+  0.20–0.30 band: Idelchik's diagram 6-1 with its Reynolds-number correction
+  at Re ≈ 5 × 10⁴, and Crane TP-410's 14 f_T = 0.27 for a 2 in pipe
+  (tabulated f_T = 0.019).
+
+The exit velocity profile after 10 D of straight pipe is 96 % uniform. Both
+runs converged by the report's criteria at 900 iterations.
+
+**Build dependence (3-D).** These are ESI's Ubuntu package. The same bend
+case files (the OpenFOAM inputs are byte-identical between generator 1.0.0
+and 1.1.0) gave K 0.4763 inlet to exit (0.224 for the bend itself) on the
+conda-forge build. `openfoam-linux-builds.yml` reruns the bend on both
+builds to separate a meshing difference from a solver difference. Until
+that is settled, read 3-D losses to about ±6 %. As with the intake mode,
+differences between designs run the same way are more reliable than the
+absolute K.
 
 ### (e) Why the 2-D cases are a cyclic sector, not a wedge (generator 1.1.0, 2026-11-01)
 
@@ -418,9 +490,20 @@ no wedge code is involved. checkMesh: the coupled points match to
 conda-forge Linux reference (two runs on different runners, diag runs
 41285699898 and 41289680200; Windows' C runtime picks its maths routines by
 CPU, so runs on different machines differ in the fifth digit), ESI's Ubuntu package within 0.016 % and 0.051 %, and ESI's Ubuntu
-package on wedge sides within 0.005 % of the cyclic result. The cyclic
-sector's 0.8 % on the laminar pipe (against 0.2 % for a correct wedge) is
-discretisation, the same on every build.
+package on wedge sides within 0.005 % of the cyclic result.
+
+What the sector does at the axis: the cells there are prisms whose third face
+has collapsed onto the axis (blockMesh's `mergeType points`), and the cyclic
+coupling sees them as ordinary thin cells. On the laminar pipe, with 25 cells
+across the radius, the cyclic sector's centreline velocity comes out 1.5 %
+low and the profile slightly blunt. That is where its +0.8 % on the pressure
+gradient comes from, on every build; a correct wedge gives +0.2 %. The
+conda-forge wedge is different again: its profile matches Hagen–Poiseuille
+within 0.16 %, but along the axis the velocity alternates from cell to cell
+(61 sign changes in 61 steps over 2.0–2.8 m), and its pressure gradient is
+25 % high. In turbulent flow, with its flat core, and in the intake cases the
+axis matters less: on the square-cut pipe ESI's wedge and cyclic results agree
+within 0.005 %, and in the turbulent pipe Δp and τw agree within 0.3 %.
 
 Generator 1.1.0 also scales the sector's flow to the full circle by its true
 area: the sector's outer edges are straight chords, so it holds
@@ -464,14 +547,20 @@ sin(5°)/(5° in rad) = 0.99873 of a true 5° sector, and the flow scale is
   sharp-edged pipe the 2-D result needed the SIMPLE/relaxation settings above
   to converge. Absolute Cd at the 3–5 % level is the realistic accuracy for
   sharp-edged inlets; differences between designs computed the same way are
-  more reliable than absolute values.
+  more reliable than absolute values. In developed pipe flow the model gives
+  friction 5–6 % below Colebrook and McKeon (§4 (a)).
 - **Other physics left out:** dry air (humidity changes R by < 0.5 %);
   adiabatic smooth walls (no wall roughness, no under-hood heating); no
   filter element, throttle plate or MAF sensor body (model them in the STL
   if needed); no fuel.
 - **3-D is coarser than 2-D.** It uses wall functions and default-level
   meshes. Check the y+ and the convergence notes in `results.txt`. If the
-  answer matters, run `fine` and compare.
+  answer matters, run `fine` and compare: from generator 1.1.0 on, `fine`
+  puts medium's refinement levels on a background cell of D/3 instead of D/2,
+  about 3.4 times the cells. Before that it gave medium's exact mesh, so a
+  "fine" 3-D run was no check at all. 3-D results also depend on the OpenFOAM
+  build by up to about 6 % (§4 (d)), and our Windows build has only been
+  compared with Linux on the 2-D cases.
 - **3-D mounting.** Parametric 3-D cases (with a bend) are meshed
   flange-mounted (mouth flush with the plenum floor). A "free"-standing stack
   is only modelled in 2-D.

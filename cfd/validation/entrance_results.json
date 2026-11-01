@@ -1,0 +1,74 @@
+{
+  "entrance_r0.04D": {
+    "K_total": 0.14102132593363867,
+    "K_static_minus_1": 0.23947931780988063,
+    "f_from_slope": 0.017073567979311692,
+    "q": 570.2199483134565,
+    "converged": true,
+    "iterations": 3800.0,
+    "wall_time_s": 3104.0757954120636,
+    "cells": 21961,
+    "solver": "simpleFoam",
+    "f_colebrook": 0.01798977308427384
+  },
+  "entrance_r0.10D": {
+    "K_total": 0.013113951450798926,
+    "K_static_minus_1": 0.11739212986849523,
+    "f_from_slope": 0.016724792816596924,
+    "q": 570.2199483134565,
+    "converged": true,
+    "iterations": 3410.0,
+    "wall_time_s": 2000.7857601642609,
+    "cells": 22407,
+    "solver": "simpleFoam",
+    "f_colebrook": 0.01798977308427384
+  },
+  "entrance_r0.20D": {
+    "K_total": -0.009705531633064104,
+    "K_static_minus_1": 0.09138716805791147,
+    "f_from_slope": 0.016471792664413253,
+    "q": 570.2199483134565,
+    "converged": true,
+    "iterations": 3950.0,
+    "wall_time_s": 3319.126588821411,
+    "cells": 22992,
+    "solver": "simpleFoam",
+    "f_colebrook": 0.01798977308427384
+  },
+  "entrance_sharp": {
+    "K_total": 0.3955958375188341,
+    "K_static_minus_1": 0.4662817241395465,
+    "f_from_slope": 0.017417576946238033,
+    "q": 570.2199483134565,
+    "converged": true,
+    "iterations": 3570.0,
+    "wall_time_s": 3178.3351106643677,
+    "cells": 23137,
+    "solver": "simpleFoam",
+    "f_colebrook": 0.01798977308427384
+  },
+  "entrance_sharp_coarse": {
+    "K_total": 0.400792120919038,
+    "K_static_minus_1": 0.4713437523183639,
+    "f_from_slope": 0.01734599977133876,
+    "q": 570.2199483134565,
+    "converged": true,
+    "iterations": 3210.0,
+    "wall_time_s": 1865.6427392959595,
+    "cells": 15150,
+    "solver": "simpleFoam",
+    "f_colebrook": 0.01798977308427384
+  },
+  "entrance_sharp_fine": {
+    "K_total": 0.39204309303023865,
+    "K_static_minus_1": 0.46294806027971847,
+    "f_from_slope": 0.017442988491353218,
+    "q": 570.2199483134565,
+    "converged": true,
+    "iterations": 3990.0,
+    "wall_time_s": 4829.990835189819,
+    "cells": 35527,
+    "solver": "simpleFoam",
+    "f_colebrook": 0.01798977308427384
+  }
+}

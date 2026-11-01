@@ -86,17 +86,18 @@ if F:
 E = load("entrance_results.json")
 if E:
     out.append("### (c) Entrance loss coefficient, inlet flush with a wall (D = 50 mm, Re = 1e5)\n")
-    out.append("K = total-pressure loss extrapolated from the fully developed region (20–40 D) back to the inlet plane, "
-               "in dynamic heads of the bulk velocity.\n")
-    out.append("| case | K CFD | Crane TP-410 | Idelchik | Rennels | run |")
-    out.append("|---|---|---|---|---|---|")
+    out.append("K from total pressure: the mass-averaged total-pressure loss of the fully developed region (20–40 D) "
+               "extrapolated back to the inlet plane; K from static pressure − 1: (p0 − extrapolated static pressure)/q − 1, "
+               "the way entrance losses are usually measured. Both in dynamic heads of the bulk velocity.\n")
+    out.append("| case | K CFD, total pressure | K CFD, static pressure − 1 | Crane TP-410 | Idelchik | Rennels | run |")
+    out.append("|---|---|---|---|---|---|---|")
     ref = {"sharp": (0.50, 0.50, 0.57), "r0.04D": (0.24, 0.26, rennels(0.04)), "r0.10D": (0.09, 0.12, rennels(0.10)),
            "r0.20D": (0.04, 0.03, rennels(0.20))}
     for n, e in sorted(E.items()):
         key = n.replace("entrance_", "").replace("_fine", "").replace("_coarse", "")
         c, i, r = ref.get(key, (float("nan"),) * 3)
-        out.append("| %s | %.3f | %.2f | %.2f | %.3f | %s it, %.0f s |" % (n, e["K_total"], c, i, r,
-                                                                         int(e["iterations"]), e["wall_time_s"] or 0))
+        out.append("| %s | %.3f | %.3f | %.2f | %.2f | %.3f | %s it, %.0f s |" % (n, e["K_total"], e["K_static_minus_1"], c, i, r,
+                                                                               int(e["iterations"]), e["wall_time_s"] or 0))
     out.append("")
 X = load("exhaust_results.json")
 if X:

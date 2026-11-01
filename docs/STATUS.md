@@ -19,10 +19,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   on the PC (calc_ls3_v2): two banks give 440 lb-ft @4600 / 426 hp net vs GM 424 / 430.
 - engine-sim fork: /home/claude/engine-sim (main has 1-D exhaust); headless harness SP/x1d/out/es_harness (--wav, --gain, --hold-rpm).
   Exporter SP/enginesim_work/export_es.js has exhaust.grouping 'bank' | '180'.
-- CFD: SP/cfd (intake_cfd.py OpenFOAM v2412; JS port intake_cfd.js byte-identical on 172 files). Validation vs Blair & Cahoon
-  (medium mesh, tract end): PP 29.9 vs 30.0 g/s (-0.4%), RAD 36.2 vs 34.8 (+4.0%), ELL 38.0 vs 36.15 (+5.1%); exhaust mode:
-  sudden expansion K 0.60 vs 0.562, 90-deg bend K 0.14 vs 0.20-0.30 (low by a third, documented). Page: Intake tab #intake-cfd,
-  Headers tab #headers-cfd (expert mode), Method bullets. NOTES.md filled. friction/entrance suites un-run.
+- CFD: cfd/ (intake_cfd.py 1.1.0, OpenFOAM v2412; JS port intake_cfd.js byte-identical on 172 files). 2-D cases on a
+  cyclic sector since 2026-11-01 (the wedge patches carried a 25 % spurious pressure gradient on the conda-forge
+  build, NOTES 4 (e)). Validation (medium mesh, tract end): PP 30.34 vs 30.02 g/s (+1.1 %), RAD 36.30 vs 34.83
+  (+4.2 %), ELL 38.06 vs 36.15 (+5.3 %); pipe friction 5-6 % below Colebrook, dp vs tau_w within 0.3 %; entrance
+  K (static convention) sharp 0.466 vs 0.50, r/D 0.04 0.239 vs 0.24; exhaust: expansion K 0.635 vs Borda-Carnot
+  0.562, 90-deg bend 0.196 vs 0.20-0.30 (ESI build; conda-forge gave 0.224 on the same files, being checked).
+  Page: Intake tab #intake-cfd, Headers tab #headers-cfd (expert mode), Method bullets (numbers need the 1.1.0 update).
 - LS3 180° system: SP/ls3_180 (layout.py = hand lane plan + numeric checks → ls3_180.json; build_fusion.py staged; Fusion design
   saved "LS3 180-degree headers-back (Exhaust Tuner)"; report doc https://claude.ai/artifact/GPdXc3KgsfKBDxGPH8q9BA;
   sound clips SP/ls3_180/deliver). 53.9 in primaries; 56 bends; parts list sourced.

@@ -20,7 +20,7 @@ base = {"operating_point": {"engine": {"displacement_cc": 1000, "rpm": 10000, "v
         "ambient": {"p_pa": 101325, "T_c": 25}, "mesh": {"level": "coarse"}}
 out = os.path.join(HERE, "matrix")
 os.makedirs(out, exist_ok=True)
-env = ". %s" % os.path.join(ROOT, "foamenv.sh")
+env = ". %s" % (os.environ.get("FOAMENV") or os.path.join(ROOT, "foamenv.sh"))   # a script that puts OpenFOAM v2412 on PATH
 rows = []
 for iname, inlet in INLETS.items():
     for mount in ({"type": "free", "protrusion_mm": 60}, {"type": "flange"}):
