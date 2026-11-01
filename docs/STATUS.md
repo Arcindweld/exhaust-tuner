@@ -107,3 +107,31 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   NOT yet run live in Fusion (device was offline): test it there (one solid body, caps selected in order).
 - K&N "B047C6": a code printed on K&N cone filters (eBay: cones pulled off BMW E46 intakes, one listed 3.75 in); not a
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
+
+## 2026-11-01: new interface, independent audit
+- UI redesign (5be9d05; artifact Version 37, same URL): app bar (mark, Simple/Expert, units, colour-theme button,
+  program menu in the Windows program), calculators in a grouped rail >= 1180 px / sticky strip below, readout strip,
+  CAD-style drawing well, Archivo embedded (OFL). All IDs/hooks unchanged. Windows program: no WPF menu/status bar;
+  DWM dark/caption colour follows the page (request uiTheme), page menu does runs folder (openRunsFolder), add-in
+  install/status, reload, devTools, engines and licences. Build scripts for the redesign: SP/ui/build_ui.py (applied to
+  the pre-redesign page SP/ui/index_orig.html; from now on edit web/index.html directly).
+- Two independent audit agents (claims/baselines/tests; physics/units). Confirmed and FIXED (5be9d05, 9061c52): VR6
+  manifolds 1-3/4-6, R1 270-180-90-180, Viper 54/90, Roark long-panel plate beta (0.75/0.50), Smith uses the whole
+  exhaust period, UEL layout port size from the engine tab, Method text (98 writer cases; Yasuda 252/243 Hz),
+  test runner now fails on exit codes and problem markers, wam_ui reads committed fixtures (openwam/ref/i4_41_6000),
+  print_ui hand-worked values, Fusion tests exit non-zero -> exposed router failure (UEL P3 straight 0.2 mm short),
+  fixed by refitting with heavier straight weights, bundle test checks against ls3_180.json, sound scripts' imports,
+  run_models EXHAUST_TUNER_OPENWAM, openFolder restricted to runs/saved folders, Core tests on Linux in CI (15 tests),
+  version consistency test. RS 660 notes corrected (orders within 3 dB at the hold: 1, 4, 4.5, 7; second-pass RMS
+  7.8 dB, idle->hold +13.7 dB; length-table rows other than "as estimated" are first-pass).
+- IN PROGRESS: CFD fork on branch cfd-cyclic-sector (worktree /home/claude/et-cyclic): wedge -> rotational cyclic
+  sector, friction_f momentum term, exhaust-mode friction subtraction (bend K 0.224 in band, expansion K +14 % not +6 %),
+  fine mesh no-op in 3-D, openfoam-windows triggers/provenance, NOTES. Page CFD Method text waits for its wording.
+  Preset agent: 29 presets violate hp*5252/hpRpm <= tq (list SP/presets/inconsistent.json), sourcing corrections.
+  Outback rerun at 64 kHz / 28-48 cycles (the stored results were from unsettled runs; STATUS lines on Outback order
+  RMS and "high orders moved < 1 dB" are stale until it finishes).
+- OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
+  ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
+  unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
+  simulation uses 1.35 (~2 %); RS 660 length sweep rows to rerun at second-pass settings; desktop/Fusion load the
+  page without a doctype (quirks mode; renders the same, but the artifact host is standards mode).
