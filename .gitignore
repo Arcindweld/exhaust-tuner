@@ -32,3 +32,4 @@ stage/
 webview2/
 engines/
 !app/ExhaustTuner.Core.Tests/fixtures/*AVG.DAT
+validation/outback-2004/model/sound/*.wav
