@@ -1,0 +1,62 @@
+# The same cases on two Linux builds of OpenFOAM v2412: conda-forge's package (build h946d6a9_1, the one every Linux
+# reference and local validation run comes from) and ESI's own Ubuntu package. On the 2-D wedge pipe these two builds
+# disagree by 25 % while ESI's and our Windows build agree (cfd/NOTES.md 4 (e)); this checks whether the 3-D
+# snappyHexMesh path (here the 90 deg exhaust bend) depends on the build too. Mesh checksums tell a meshing
+# difference from a solver difference.
+name: openfoam-linux-builds
+on:
+  workflow_dispatch:
+  push:
+    branches: [windows-app, cfd-cyclic-sector]
+    paths: [".github/workflows/openfoam-linux-builds.yml", "cfd/validation/exhaust_case.py"]
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        build: [esi, condaforge]
+    steps:
+      - uses: actions/checkout@v4
+      - name: OpenFOAM v2412 (${{ matrix.build }})
+        run: |
+          if [ "${{ matrix.build }}" = esi ]; then
+            curl -sSL https://dl.openfoam.com/add-debian-repo.sh | sudo bash
+            sudo apt-get install -y -q openfoam2412-default > /dev/null
+            printf 'set +eu\nsource /usr/lib/openfoam/openfoam2412/etc/bashrc\n' > $RUNNER_TEMP/foamenv.sh
+          else
+            cd $RUNNER_TEMP && curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xj bin/micromamba
+            ./bin/micromamba create -y -q -r $RUNNER_TEMP/mamba -n of -c conda-forge openfoam=2412=h946d6a9_1 > /dev/null
+            printf 'export CONDA_PREFIX=%s\nexport PATH=$CONDA_PREFIX/bin:$PATH\nset +eu\nfor f in $CONDA_PREFIX/etc/conda/activate.d/*.sh; do . "$f"; done\n' \
+              "$RUNNER_TEMP/mamba/envs/of" > $RUNNER_TEMP/foamenv.sh
+          fi
+          bash -c ". $RUNNER_TEMP/foamenv.sh && simpleFoam -help > /dev/null && echo OpenFOAM ready"
+      - name: Laminar pipe (wedge and cyclic sides) and the 90 deg bend
+        run: |
+          . $RUNNER_TEMP/foamenv.sh
+          export INTAKE_CFD_STAMP=probe
+          out=$RUNNER_TEMP/b; mkdir -p $out
+          for s in wedge cyclic; do
+            c=$out/lam_pipe_$s; python3 cfd/validation/diag/lam_pipe.py make $c $s
+            (cd $c && blockMesh > log.blockMesh 2>&1 && simpleFoam > log.simpleFoam 2>&1) &
+          done
+          python3 cfd/validation/exhaust_case.py bend $out/bend
+          (cd $out/bend && ./Allrun > allrun.out 2>&1 && checkMesh > log.checkMesh 2>&1) || true
+          wait
+          grep -m1 "^Build" $out/lam_pipe_wedge/log.simpleFoam
+          for s in wedge cyclic; do echo "lam_pipe_$s: $(python3 cfd/validation/diag/lam_pipe.py ratio $out/lam_pipe_$s)"; done
+          python3 -c "import json; r=json.load(open('$out/bend/results.json')); s=r['summary']; print('bend: K inlet to exit %.5f, iterations %d, converged %s' % (s['K'], r['iterations'], r['converged']))"
+          grep -E "^ +(cells|faces|points):|Max non-orth|Max skewness|Mesh OK|Failed" $out/bend/log.checkMesh || true
+          (cd $out/bend/constant/polyMesh && md5sum points faces owner neighbour)
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: linux-build-${{ matrix.build }}
+          path: |
+            ${{ runner.temp }}/b/*/log.*
+            ${{ runner.temp }}/b/*/allrun.out
+            ${{ runner.temp }}/b/*/results.json
+          retention-days: 14
