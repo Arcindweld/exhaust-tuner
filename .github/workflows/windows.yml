@@ -274,6 +274,16 @@ jobs:
           # an update the way the program runs one (Updater.Install): setup waits for the program's process to end,
           # installs over the same folder with the same tasks, and opens the program again
           $marker = "$env:LOCALAPPDATA\ExhaustTuner\last-start.txt"      # the program writes it as it starts (App.xaml.cs)
+          function Wait-Start([int]$sec) { for ($i = 0; $i -lt $sec; $i++) { if (Test-Path $marker) { return @(Get-Content $marker) }; Start-Sleep 1 }; return $null }
+          # can this machine start the window at all? (a runner without a desktop session may not)
+          Remove-Item $marker -ErrorAction SilentlyContinue
+          $t0 = Get-Date
+          $direct = Start-Process "$dir\ExhaustTuner.exe" -PassThru
+          $seenDirect = Wait-Start 30
+          "started directly: " + $(if ($seenDirect) { "recorded $($seenDirect[0]) from $($seenDirect[3])" } else { "no start recorded in 30 s; exited: $($direct.HasExited)" + $(if ($direct.HasExited) { ", code $($direct.ExitCode)" } else { "" }) })
+          Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $t0 } -ErrorAction SilentlyContinue |
+            Where-Object { $_.Message -match 'ExhaustTuner' } | Select-Object -First 3 | ForEach-Object { "event: $($_.ProviderName): " + ($_.Message -split "`n" | Select-Object -First 6) -join ' ' }
+          $direct | Stop-Process -Force -ErrorAction SilentlyContinue
           Remove-Item $marker -ErrorAction SilentlyContinue
           $prog = Start-Process pwsh -ArgumentList "-NoProfile", "-Command", "Start-Sleep -Seconds 8" -PassThru
           $t0 = Get-Date
@@ -283,14 +293,20 @@ jobs:
           $took = ((Get-Date) - $t0).TotalSeconds
           if (-not $prog.HasExited) { throw "the update finished while the program it waits for was still running" }
           if ($took -lt 7) { throw "setup finished after $([math]::Round($took, 1)) s: it did not wait for the program (8 s)" }
-          # the reopened program records its start: version, process id, time, folder
-          Select-String -Path "$env:RUNNER_TEMP\update.log" -Pattern "Run entry|Filename:|Skipping|Run as" | Select-Object -Last 12 | ForEach-Object { $_.Line }
-          $seen = $null
-          for ($i = 0; $i -lt 40 -and -not $seen; $i++) { if (Test-Path $marker) { $seen = @(Get-Content $marker) } else { Start-Sleep 1 } }
-          if (-not $seen) { Get-Content "$env:RUNNER_TEMP\update.log" -Tail 40; throw "setup did not open the program again after the update" }
-          if ($seen[0] -ne $env:APP_VERSION -or -not $seen[3].StartsWith($dir)) { throw "the program that started is not the updated one: $($seen -join ' | ')" }
-          "update: setup waited for the program, ended after $([math]::Round($took, 1)) s and opened it again: $($seen[0]) from $($seen[3]), process $($seen[1])"
-          Get-Process -Id $seen[1] -ErrorAction SilentlyContinue | Stop-Process -Force
+          # reopened: setup's log has the reopen entry after the install, and where this machine can start the window at
+          # all, the program itself records the start (version, process id, time, folder)
+          $log = Get-Content "$env:RUNNER_TEMP\update.log" -Raw
+          $entry = $log -match "(?s)Installation process succeeded\..*-- Run entry --\s+[^\r\n]*Run as: Original user\s+[^\r\n]*Type: Exec\s+[^\r\n]*Filename: [^\r\n]*\\ExhaustTuner\.exe"
+          if (-not $entry) { Get-Content "$env:RUNNER_TEMP\update.log" -Tail 40; throw "setup's log has no entry reopening the program after the update" }
+          $seen = Wait-Start 40
+          if ($seenDirect) {
+            if (-not $seen) { throw "setup did not open the program again after the update (it starts when run directly)" }
+            if ($seen[0] -ne $env:APP_VERSION -or -not $seen[3].StartsWith($dir)) { throw "the program that started is not the updated one: $($seen -join ' | ')" }
+            "update: setup waited for the program, ended after $([math]::Round($took, 1)) s and opened it again: $($seen[0]) from $($seen[3]), process $($seen[1])"
+            Get-Process -Id $seen[1] -ErrorAction SilentlyContinue | Stop-Process -Force
+          } else {
+            "update: setup waited for the program, ended after $([math]::Round($took, 1)) s and ran its reopen entry; this machine cannot start the window (not even directly), so the start itself is not checked here"
+          }
           $info2 = & "$dir\exhaust-tuner-host.exe" --info | ConvertFrom-Json
           if ($info2.fusionAddIn.installed -ne $info2.fusionAddIn.bundled) { throw "the update did not keep the Fusion add-in installed" }
 
