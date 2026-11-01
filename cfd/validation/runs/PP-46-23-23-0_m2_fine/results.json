@@ -1,0 +1,141 @@
+{
+  "case": "PP-46-23-23-0",
+  "solver": "rhoSimpleFoam",
+  "notes": [],
+  "kind": "intake",
+  "generator": "1.1.0",
+  "numerics": {
+    "algorithm": "SIMPLE",
+    "relaxation": "p 0.3 / rho 0.05 / U, h, k, omega 0.7",
+    "p_solver": "PCG/DIC",
+    "mesh": "2-D sector, rotational cyclic sides"
+  },
+  "flow_scale": 72.09146648398465,
+  "iterations": 2050.0,
+  "mdot_outlet_kg_s": 0.030341587440518007,
+  "mdot_atmosphere_kg_s": 0.030341594449971292,
+  "mass_imbalance_rel": 2.3101801442996621e-07,
+  "convergence": {
+    "window_iterations": 300,
+    "mdot_atmosphere_rel_change": 3.302870180332865e-07,
+    "p_tract_end_rel_change_of_dp": 0.00011968088310129355,
+    "p_plus1D_rel_change_of_dp": 0.0005551897601063343,
+    "p_plus2D_rel_change_of_dp": 0.000960080803370367
+  },
+  "sample_time": "2054",
+  "planes": {
+    "tract_end": {
+      "area_m2": 0.0004154756017062399,
+      "mdot_kg_s": 0.030341660718874792,
+      "p_static_avg_Pa": 97534.3242521261,
+      "T_static_avg_K": 295.92320321654813,
+      "p0_massavg_Pa": 100456.61208884846,
+      "T0_massavg_K": 298.18336706716224,
+      "U_normal_avg_m_s": 63.55285904930989,
+      "uniformity_index": 0.8682316136321442,
+      "secondary_flow_angle_deg": 0.30908294956576077,
+      "swirl_angle_net_deg": -1.4607584976459085e-09,
+      "swirl_angle_abs_deg": 4.550662908370465e-09,
+      "swirl_number": -2.5313244289787027e-11,
+      "n_faces": 76,
+      "PR_p0_over_ps": 1.0388650434289677,
+      "dp_static_Pa": 3790.675747873902,
+      "dp_total_Pa": 868.3879111515416,
+      "U_bulk_m_s": 63.60326874737708,
+      "q_dyn_Pa": 2322.42760840155,
+      "K_total_loss": 0.3739138770182052,
+      "Cd_flowbench": 0.7867621679053092,
+      "area_geometric_m2": 0.00041547562843725016,
+      "Cd_vena_contracta_Blair": 0.5731350934119187,
+      "mdot_plane_vs_outlet": 1.0000024151128193,
+      "Mach_bulk": 0.18442792505034275
+    },
+    "plus1D": {
+      "area_m2": 0.0004154756017062399,
+      "mdot_kg_s": 0.03034160823797195,
+      "p_static_avg_Pa": 97609.68589148279,
+      "T_static_avg_K": 295.9982712418859,
+      "p0_massavg_Pa": 100374.08992324637,
+      "T0_massavg_K": 298.1970426921188,
+      "U_normal_avg_m_s": 63.53503902448686,
+      "uniformity_index": 0.8906240736041864,
+      "secondary_flow_angle_deg": 0.1518992950687582,
+      "swirl_angle_net_deg": -1.278220890840439e-09,
+      "swirl_angle_abs_deg": 4.268608648881565e-09,
+      "swirl_number": -2.0921084881980397e-11,
+      "n_faces": 76,
+      "PR_p0_over_ps": 1.0380629655201195,
+      "dp_static_Pa": 3715.31410851721,
+      "dp_total_Pa": 950.9100767536293,
+      "U_bulk_m_s": 63.570284526698266,
+      "q_dyn_Pa": 2321.2232133090533,
+      "K_total_loss": 0.4096590415352799,
+      "Cd_flowbench": 0.7943718576468801,
+      "area_geometric_m2": 0.00041547562843725016,
+      "Cd_vena_contracta_Blair": 0.5792104803123741,
+      "mdot_plane_vs_outlet": 1.0000006854438312,
+      "Mach_bulk": 0.18430890628107197
+    },
+    "plus2D": {
+      "area_m2": 0.0004154756017062399,
+      "mdot_kg_s": 0.03034158636011544,
+      "p_static_avg_Pa": 97619.11303880287,
+      "T_static_avg_K": 296.0333455172012,
+      "p0_massavg_Pa": 100310.34717402367,
+      "T0_massavg_K": 298.20913581959,
+      "U_normal_avg_m_s": 63.544608021256124,
+      "uniformity_index": 0.9034692210272938,
+      "secondary_flow_angle_deg": 0.10094615522200939,
+      "swirl_angle_net_deg": -1.1319212932888793e-09,
+      "swirl_angle_abs_deg": 4.152930681217658e-09,
+      "swirl_number": -9.731410260178586e-12,
+      "n_faces": 76,
+      "PR_p0_over_ps": 1.0379627190397036,
+      "dp_static_Pa": 3705.8869611971313,
+      "dp_total_Pa": 1014.652825976329,
+      "U_bulk_m_s": 63.571677523880915,
+      "q_dyn_Pa": 2321.2740775991933,
+      "K_total_loss": 0.4371103075539216,
+      "Cd_flowbench": 0.7953403335515091,
+      "area_geometric_m2": 0.00041547562843725016,
+      "Cd_vena_contracta_Blair": 0.5799923923246314,
+      "mdot_plane_vs_outlet": 0.9999999643920224,
+      "Mach_bulk": 0.1843020258901855
+    }
+  },
+  "reference_plane": "tract_end",
+  "summary": {
+    "mdot_kg_s": 0.030341587440518007,
+    "PR": 1.0388650434289677,
+    "dp_static_Pa": 3790.675747873902,
+    "dp_total_Pa": 868.3879111515416,
+    "K": 0.3739138770182052,
+    "Cd": 0.7867621679053092,
+    "Cd_vena_contracta_Blair": 0.5731350934119187
+  },
+  "yPlus": {
+    "inlet_wall": {
+      "min": 0.002489069229,
+      "max": 3.2099718427,
+      "avg": 1.0541969651
+    },
+    "plenum_wall": {
+      "min": 0.002489069229,
+      "max": 4.8987494261,
+      "avg": 1.5118827639
+    },
+    "tract_wall": {
+      "min": 0.094298137826,
+      "max": 0.99383259475,
+      "avg": 0.4751264721
+    },
+    "extension_wall": {
+      "min": 0.55507381629,
+      "max": 0.59016717542,
+      "avg": 0.57966431857
+    }
+  },
+  "converged": true,
+  "wall_time_s": 2229.32385969162,
+  "cells": 19204
+}

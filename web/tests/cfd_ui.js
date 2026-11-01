@@ -50,10 +50,11 @@ const fs = require('fs'); const path = require('path');
     if (res.length === 2) {
       await pg.setInputFiles('#cfd-files', res); await pg.waitForTimeout(800);
       t = await pg.$eval('#panel-intake', e => e.innerText);
-      ok(/RAD-46-23-35-6/.test(t) && /PP-46-23-23-0/.test(t) && /1\.0370/.test(t) && /0\.047/.test(t) && /0\.399/.test(t) && /0\.961/.test(t), vp.n + ': results table shows PR, K, Cd of both cases');
+      // generator 1.1.0 validation runs (cyclic sector): RAD PR 1.0370, K 0.0459, Cd 0.9628; PP PR 1.0390, K 0.3769, Cd 0.7856
+      ok(/RAD-46-23-35-6/.test(t) && /PP-46-23-23-0/.test(t) && /1\.0370/.test(t) && /1\.0390/.test(t) && /0\.046/.test(t) && /0\.377/.test(t) && /0\.963/.test(t) && /0\.786/.test(t), vp.n + ': results table shows PR, K, Cd of both cases');
       const rd = await pg.$eval('#cfd-reading', e => e.innerText);
       ok(/sharp lip/.test(rd) && /well-rounded/.test(rd) && /vena-contracta CD/.test(rd), vp.n + ': one-line interpretation per case (' + rd.slice(0, 80).replace(/\n/g, ' ') + ')');
-      ok(/36\.2 g\/s/.test(t) && /29\.9 g\/s/.test(t) && /converged/.test(t), vp.n + ': mass flow and convergence shown');
+      ok(/36\.3 g\/s/.test(t) && /30\.3 g\/s/.test(t) && /converged/.test(t), vp.n + ': mass flow and convergence shown');
     } else console.log('  (validation results.json not found, reader not exercised)');
     t = await pg.$eval('#panel-intake', e => e.innerText);
     ok(!bad.test(t), vp.n + ': no NaN/undefined after results');

@@ -195,15 +195,74 @@ def friction_design(Re, level="medium", axial=0.25):
 
 
 def friction_f(res):
+    """Darcy f from the static-pressure drop between 50 D and 70 D. Compressible runs: local density, and the
+    momentum-flux change of the accelerating gas, G^2 (1/rho70 - 1/rho50), taken off the pressure drop (about 5 %
+    of it at Re 2e5, U ~ 65 m/s; it was left in before 2026-10-31 although this comment said it was taken off)."""
     pl = res["planes"]
-    rho = P0 / (ic.R_AIR * T0) if res["solver"] == "simpleFoam" else None
     m = res["mdot_outlet_kg_s"]
     A = math.pi / 4 * DF ** 2
+    G = m / A
     p50, p70 = pl["x50D"]["p_static_avg_Pa"], pl["x70D"]["p_static_avg_Pa"]
-    if rho is None:   # compressible: use local density, include acceleration term
-        rho = 0.5 * (p50 / (ic.R_AIR * pl["x50D"]["T_static_avg_K"]) + p70 / (ic.R_AIR * pl["x70D"]["T_static_avg_K"]))
-    U = m / (rho * A)
-    return (p50 - p70) / (20.0 * 0.5 * rho * U * U), U
+    dp = p50 - p70
+    if res["solver"] == "simpleFoam":
+        rho = P0 / (ic.R_AIR * T0)
+    else:
+        r50 = p50 / (ic.R_AIR * pl["x50D"]["T_static_avg_K"])
+        r70 = p70 / (ic.R_AIR * pl["x70D"]["T_static_avg_K"])
+        rho = 0.5 * (r50 + r70)
+        dp -= G * G * (1.0 / r70 - 1.0 / r50)
+    U = G / rho
+    return dp / (20.0 * 0.5 * rho * U * U), U
+
+
+def patch_vectors(path, patch):
+    """Face values of one patch from an ASCII volVectorField file (nonuniform or uniform)."""
+    import re
+    t = open(path, errors="ignore").read()
+    i = t.index("boundaryField")
+    m = re.compile(r"\n\s*%s\s*\n\s*\{" % re.escape(patch)).search(t, i)
+    j = t.index("}", m.end())
+    blk = t[m.end():j + 1]
+    u = re.search(r"value\s+uniform\s+\(([^)]*)\)", blk)
+    if u:
+        return [tuple(float(x) for x in u.group(1).split())]
+    k = blk.index("(", blk.index("List<vector>"))
+    end = blk.index(";", k)
+    return [tuple(float(x) for x in v.split()) for v in re.findall(r"\(([^()]*)\)", blk[k + 1:end])]
+
+
+def wall_shear_f(name, res, x0=50 * DF, x1=70 * DF):
+    """Darcy f from the wall shear stress on the tract wall between x0 and x1, f = 8 tau / (rho U^2) with the same
+    rho and U as friction_f. In developed pipe flow it must equal the pressure-drop f (a momentum balance); on
+    OpenFOAM wedge patches the pressure-drop f came out 1.25x this one (cfd/NOTES.md, "Wedge artifact")."""
+    cdir = os.path.join(RUNS, name)
+    times = [d for d in os.listdir(cdir) if d.replace(".", "", 1).isdigit() and d != "0"]
+    if not times:
+        return None
+    last = max(times, key=float)
+    tdir = os.path.join(cdir, last)
+    if not (os.path.exists(os.path.join(tdir, "wallShearStress")) and os.path.exists(os.path.join(tdir, "C"))):
+        sol = res["solver"]
+        subprocess.run(["bash", "-c", ". %s && %s -postProcess -time %s -func wallShearStress > log.wss 2>&1; "
+                        "%s -postProcess -time %s -func writeCellCentres > log.cc 2>&1" % (FOAMENV, sol, last, sol, last)],
+                       cwd=cdir)
+    C = patch_vectors(os.path.join(tdir, "C"), "tract_wall")
+    tau = patch_vectors(os.path.join(tdir, "wallShearStress"), "tract_wall")
+    sel = [abs(t[0]) for c, t in zip(C, tau) if x0 <= c[0] <= x1]
+    if not sel:
+        return None
+    tw = sum(sel) / len(sel)
+    pl = res["planes"]
+    m = res["mdot_outlet_kg_s"]
+    G = m / (math.pi / 4 * DF ** 2)
+    if res["solver"] == "simpleFoam":
+        rho = P0 / (ic.R_AIR * T0)
+        tw *= rho                      # kinematic wall shear stress in incompressible runs
+    else:
+        rho = 0.5 * (pl["x50D"]["p_static_avg_Pa"] / (ic.R_AIR * pl["x50D"]["T_static_avg_K"]) +
+                     pl["x70D"]["p_static_avg_Pa"] / (ic.R_AIR * pl["x70D"]["T_static_avg_K"]))
+    U = G / rho
+    return dict(tau_wall_Pa=tw, f_wall=8.0 * tw / (rho * U * U), faces=len(sel), time=last)
 
 
 def friction():
@@ -218,7 +277,9 @@ def friction():
             continue
         Re = float(name.split("Re")[1].split("_")[0])
         f, U = friction_f(res)
-        out[name] = dict(Re=Re, U=U, f_cfd=f, f_colebrook=ic.friction_factor_colebrook(Re),
+        ws = wall_shear_f(name, res)
+        out[name] = dict(Re=Re, U=U, f_cfd=f, f_wall=ws and ws["f_wall"], f_cfd_over_f_wall=ws and f / ws["f_wall"],
+                         tau_wall_Pa=ws and ws["tau_wall_Pa"], f_colebrook=ic.friction_factor_colebrook(Re),
                          f_haaland=ic.friction_factor_haaland(Re), f_mckeon=mckeon(Re),
                          converged=res["converged"], iterations=res["iterations"],
                          wall_time_s=res.get("wall_time_s"), cells=res.get("cells"),
@@ -377,19 +438,24 @@ def exhaust():
                  T_in_K=sm["T_in_K"], Re_in=Re1, mdot=sm["mdot_kg_s"], converged=res["converged"],
                  iterations=res["iterations"], wall_time_s=res.get("wall_time_s"), cells=res.get("cells"),
                  exit_uniformity=sm["exit_uniformity_index"])
+        # K is measured between the part's own inlet and exit faces (the measuring planes sit on the CAD faces), so
+        # only the straights of the part itself are taken off, not the 2 D extensions the generator adds outside
+        # them (before 2026-11-01 the extensions were taken off too: bend 16 D instead of 12 D, expansion 3 D1 + 12 D2)
         if "expansion" in name:
-            # straights in the model: inlet 1 D1 + 2 D1 extension; outlet 10 D2 + 2 D2 extension, in inlet dynamic heads
+            # straights inside the measured section: inlet 1 D1, outlet 10 D2, in inlet dynamic heads
             D2 = 0.100
             Re2 = rho * (U_IN / 4) * D2 / mu
             f2 = ic.friction_factor_colebrook(Re2)
-            fric = f1 * 3.0 + f2 * 12.0 * (A1 / (math.pi / 4 * D2 ** 2)) ** 2
+            fric = f1 * 1.0 + f2 * 10.0 * (A1 / (math.pi / 4 * D2 ** 2)) ** 2
             e.update(K_friction_est=fric, K_component=sm["K"] - fric, K_ref=(1 - A1 / (math.pi / 4 * D2 ** 2)) ** 2,
                      ref="Borda-Carnot (1 - A1/A2)^2")
         else:
-            # straights: 2 D in + 2 D extension, 10 D out + 2 D extension = 16 D; the arc's own friction (2.36 D) stays in K
-            fric = f1 * 16.0
+            # straights inside the measured section: 2 D in + 10 D out = 12 D; the arc's own friction (2.36 D) stays in K
+            fric = f1 * 12.0
+            # Crane TP-410: K = 14 f_T for R/D = 1.5, f_T the tabulated fully turbulent factor of clean commercial
+            # steel pipe (0.019 for 2 in), not the smooth-pipe Colebrook f at the run's Re
             e.update(K_friction_est=fric, K_component=sm["K"] - fric, K_ref=(0.20, 0.30),
-                     ref="Idelchik diag. 6-1 / Crane TP-410 (14 fT), R/D = 1.5", f_T=f1)
+                     ref="Idelchik diag. 6-1 / Crane TP-410 (14 f_T = 0.27, 2 in), R/D = 1.5", f_T=0.019)
         out[name] = e
     json.dump(out, open(os.path.join(HERE, "exhaust_results.json"), "w"), indent=2)
     return out

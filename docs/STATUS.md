@@ -19,10 +19,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   on the PC (calc_ls3_v2): two banks give 440 lb-ft @4600 / 426 hp net vs GM 424 / 430.
 - engine-sim fork: /home/claude/engine-sim (main has 1-D exhaust); headless harness SP/x1d/out/es_harness (--wav, --gain, --hold-rpm).
   Exporter SP/enginesim_work/export_es.js has exhaust.grouping 'bank' | '180'.
-- CFD: SP/cfd (intake_cfd.py OpenFOAM v2412; JS port intake_cfd.js byte-identical on 172 files). Validation vs Blair & Cahoon
-  (medium mesh, tract end): PP 29.9 vs 30.0 g/s (-0.4%), RAD 36.2 vs 34.8 (+4.0%), ELL 38.0 vs 36.15 (+5.1%); exhaust mode:
-  sudden expansion K 0.60 vs 0.562, 90-deg bend K 0.14 vs 0.20-0.30 (low by a third, documented). Page: Intake tab #intake-cfd,
-  Headers tab #headers-cfd (expert mode), Method bullets. NOTES.md filled. friction/entrance suites un-run.
+- CFD: cfd/ (intake_cfd.py 1.1.0, OpenFOAM v2412; JS port intake_cfd.js byte-identical on 172 files). 2-D cases on a
+  cyclic sector since 2026-11-01 (the wedge patches carried a 25 % spurious pressure gradient on the conda-forge
+  build, NOTES 4 (e)). Validation (medium mesh, tract end): PP 30.34 vs 30.02 g/s (+1.1 %), RAD 36.30 vs 34.83
+  (+4.2 %), ELL 38.06 vs 36.15 (+5.3 %); pipe friction 5-6 % below Colebrook, dp vs tau_w within 0.3 %; entrance
+  K (static convention) sharp 0.466 vs 0.50, r/D 0.04 0.239 vs 0.24; exhaust: expansion K 0.635 vs Borda-Carnot
+  0.562, 90-deg bend 0.196 vs 0.20-0.30 (ESI build). The conda-forge build used here gives 3-D losses 6 % higher on
+  a byte-identical mesh (bend K 0.4763 vs 0.4484, run 41317888445): use it for 2-D only; 3-D on ESI's package (CI).
+  Page: Intake tab #intake-cfd, Headers tab #headers-cfd (expert mode), Method bullets with the 1.1.0 numbers (page v40;
+  cfd_ui.js checks the 1.1.0 validation results).
 - LS3 180° system: SP/ls3_180 (layout.py = hand lane plan + numeric checks → ls3_180.json; build_fusion.py staged; Fusion design
   saved "LS3 180-degree headers-back (Exhaust Tuner)"; report doc https://claude.ai/artifact/GPdXc3KgsfKBDxGPH8q9BA;
   sound clips SP/ls3_180/deliver). 53.9 in primaries; 56 bends; parts list sourced.
@@ -66,7 +71,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   meshing works; rhoSimpleFoam fails ("failed lookup of thermo:psi", fields are named thermo_psi on Windows);
   simpleFoam runs but on the same mesh (identical points) gives K 6-9 % lower and Cd 1.4-1.8 % higher than Linux
   v2412 at the same 6,000 iterations. The report script is not the cause (Linux report on the Windows output gives
-  the Windows numbers). The Windows binaries report "Build: 34e226dfe3-20211220" (a git commit dated 2021-12-20,
+  the Windows numbers). CORRECTED 2026-11-01: the Linux reference was the one in error, not ESI's package. Those
+  cases used OpenFOAM wedge patches, and on the conda-forge Linux build wedge cases carry a 25 % spurious pressure
+  gradient in developed pipe flow; the Windows wedge numbers equal the Linux numbers on a cyclic sector within
+  0.04 % (cfd/NOTES.md 4 (e); the generator now writes the cyclic sector). The thermo:psi failure is real, so our
+  own build is still needed. The Windows binaries report "Build: 34e226dfe3-20211220" (a git commit dated 2021-12-20,
   next to API 2412; the v2412 tarball says _8dbc61e11c-20241220), so what they were built from is unclear.
   Decision (the owner, "rebuild it"): build v2412 for Windows ourselves - see below.
 - CAD: cad/parts (CadQuery) and cad/fusion (Fusion script) rough Holley 112-583; K&N filter waits for its part number.
@@ -79,8 +88,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   fill one cache, then one job links, packages (package_mingw.sh: bin/ with exes + DLLs + MinGW runtime, etc/,
   SOURCE.txt + build-scripts/ for GPL-3.0 sec. 6) and a Windows job validates (validate_windows.ps1 +
   compare_results.py): both square-cut-pipe cases (rhoSimpleFoam and simpleFoam) at 6000 iterations against the Linux
-  runs in cfd/validation/reference/*_6000it_results.json, limit 0.2 % on every plane quantity (Linux 6000 vs the
-  converged stop at 1270 iterations differs <= 0.024 %; ESI's package missed by 6-9 % on K).
+  runs in cfd/validation/reference/*_6000it_results.json, limit 0.2 % on every plane quantity. Generator 1.1.0
+  (cyclic sector, 2026-11-01): our build within 0.015-0.021 % / 0.039-0.051 % of Linux (diag run 41289680200), ESI's Ubuntu package within 0.016 % /
+  0.051 %; the earlier 5-9 % "miss" (ours and ESI's Windows package alike) was the Linux build's wedge artifact.
   Run 1 found two include problems (header-only TurbulenceModels/phaseCompressible; surfaceFeatureExtract's own
   library) -> fixed (9353ed3). STATUS: second run queued behind the first.
 - Program CFD: Core/OpenFoamRunner.cs (Allrun without bash; watchdog = the case's intake_report.py --watch PID; 3-D

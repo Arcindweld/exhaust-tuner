@@ -54,7 +54,8 @@ node web/tests/desktop_ui.js
 One installer (built by `.github/workflows/windows.yml`) puts the calculator in its own window and runs the solvers on
 the PC: OpenWAM (built from CMT-UPV's source), Engine Simulator (the fork's headless runner), and OpenFOAM v2412
 (built for Windows by `.github/workflows/openfoam-windows.yml` and bundled only after it reproduces the Linux results
-on the validation cases), with Python for the CFD cases' own scripts. It installs the Fusion add-in too. Runs go to
+on the 2-D validation cases of the generator version it ships with; the 3-D snappyHexMesh path is not part of that
+check yet), with Python for the CFD cases' own scripts. It installs the Fusion add-in too. Runs go to
 `%LOCALAPPDATA%\ExhaustTuner\runs`. See `docs/STATUS.md` for where each piece stands.
 
 ## Third-party software

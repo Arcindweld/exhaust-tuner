@@ -101,8 +101,9 @@ jobs:
           Copy-Item "$($exe.Directory.Parent.FullName)/*" engines/engine-sim -Recurse
           "EXHAUST_TUNER_ENGINESIM=$PWD\engines\engine-sim" >> $env:GITHUB_ENV
 
-      # OpenFOAM: the newest build from the "OpenFOAM for Windows" workflow whose run passed. That run only passes when
-      # the Windows build reproduces the Linux v2412 results on the validation cases. Without one, the program ships
+      # OpenFOAM: the newest build from the "OpenFOAM for Windows" workflow whose validation passed for this checkout's
+      # generator and references (the 2-D square-cut-pipe cases, compressible and incompressible, against the Linux
+      # v2412 runs; the 3-D snappyHexMesh path is not part of that comparison). Without one, the program ships
       # without CFD runs (the page then shows only the case download). Python (embeddable, from python.org) runs the
       # cases' own scripts: intake_report.py and, for 3-D designs, intake_cfd.py.
       - name: OpenFOAM (latest validated build) and Python for the case scripts
@@ -116,13 +117,31 @@ jobs:
           if ((Get-FileHash py.zip -Algorithm SHA256).Hash -ne $env:PY_SHA256) { throw "Python embeddable package: SHA-256 mismatch" }
           Expand-Archive py.zip -DestinationPath engines/python
           "EXHAUST_TUNER_PYTHON=$PWD\engines\python\python.exe" >> $env:GITHUB_ENV
-          # a passed run is not enough: its validate job itself must have passed (a skipped one does not count)
+          # a passed run is not enough: its validate job itself must have passed (a skipped one does not count), and it
+          # must have validated this checkout's generator version against this checkout's reference files (its
+          # openfoam-validated record); otherwise the build is not bundled and the installer has no CFD runs
+          $gen = python -c "import sys; sys.path.insert(0, 'cfd'); import intake_cfd; print(intake_cfd.VERSION)"
+          $refs = [ordered]@{}
+          foreach ($f in Get-ChildItem cfd/validation/reference/*_6000it_results.json | Sort-Object Name) {
+            $refs[$f.Name] = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
+          }
           $run = $null
           foreach ($id in (gh run list --repo $env:GITHUB_REPOSITORY --workflow openfoam-windows.yml --status success --limit 10 --json databaseId --jq '.[].databaseId')) {
             $v = gh api "repos/$env:GITHUB_REPOSITORY/actions/runs/$id/jobs" --jq '.jobs[] | select(.name == "validate") | .conclusion'
-            if ($v -eq "success") { $run = $id; break }
-            "run ${id}: validate job '$v', not used"
+            if ($v -ne "success") { "run ${id}: validate job '$v', not used"; continue }
+            Remove-Item rec -Recurse -Force -ErrorAction SilentlyContinue
+            gh run download $id --repo $env:GITHUB_REPOSITORY --name openfoam-validated --dir rec 2>$null
+            if (-not (Test-Path rec/validated.json)) { "run ${id}: no validation record, not used"; continue }
+            $rec = Get-Content rec/validated.json -Raw | ConvertFrom-Json
+            $same = ($rec.generator -eq $gen) -and (@($rec.references.PSObject.Properties).Count -eq $refs.Count)
+            foreach ($k in $refs.Keys) { if ($rec.references.$k -ne $refs[$k]) { $same = $false } }
+            if (-not $same) {
+              "run ${id}: validated generator $($rec.generator) with other references (this checkout: $gen), not used"; continue
+            }
+            "run ${id}: validated generator $gen at commit $($rec.commit)"
+            $run = $id; break
           }
+          $global:LASTEXITCODE = 0     # a failed download of a missing record must not fail the step
           if ($run) {
             gh run download $run --repo $env:GITHUB_REPOSITORY --name openfoam-v2412-win64 --dir ofzip
             Expand-Archive ofzip/openfoam-v2412-win64.zip -DestinationPath engines/openfoam
@@ -130,7 +149,7 @@ jobs:
             Get-Content engines/openfoam/OpenFOAM-v2412/SOURCE.txt -ErrorAction SilentlyContinue | Select-Object -First 8
             "EXHAUST_TUNER_OPENFOAM=$PWD\engines\openfoam\OpenFOAM-v2412" >> $env:GITHUB_ENV
             "REQUIRE_OPENFOAM=1" >> $env:GITHUB_ENV
-          } else { "No passed OpenFOAM for Windows run yet: this installer has no CFD runs." }
+          } else { "No OpenFOAM for Windows run validated generator $gen with these references: this installer has no CFD runs." }
 
       - uses: actions/setup-dotnet@v4
         with:

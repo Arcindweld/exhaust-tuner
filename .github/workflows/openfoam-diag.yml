@@ -1,5 +1,14 @@
-# Diagnostic runs of our Windows OpenFOAM build (tools/openfoam): case variants from cfd/validation/diag, compared by
-# hand with the same variants on Linux. Not part of the release path.
+# Checks of our Windows OpenFOAM build (tools/openfoam) without rebuilding it: the build's package comes from an
+# earlier openfoam-windows run. Not part of the release path.
+#   validate: the square-cut-pipe validation cases with the current generator, compared plane by plane with the
+#             Linux references (cfd/validation/reference), exactly as the validate job of openfoam-windows.yml does;
+#             so a change to the generator or to the references is checked on Windows in ~20 minutes.
+#   variants: the diagnostic case variants of cfd/validation/diag, 3 iterations each, for comparison with Linux runs
+#             of the same folders (cfd/validation/diag/linux_rerun.sh + compare_variants.py), and the laminar pipe
+#             (lam_pipe.py) on wedge and on cyclic sides against Hagen-Poiseuille.
+#   esi_linux: a third build for comparison, ESI's own Ubuntu package of v2412 (the Linux references come from
+#             conda-forge's build): the laminar pipe on both sides, the two square-cut-pipe cases against the
+#             references, and the square-cut pipe on wedge sides.
 name: openfoam-diag
 on:
   workflow_dispatch:
@@ -7,17 +16,20 @@ on:
       of_run:
         description: "openfoam-windows run that holds the openfoam-v2412-win64 artifact"
         required: false
-        default: "41190144915"
+        default: "41193954622"
   push:
-    branches: [windows-app]
-    paths: [".github/workflows/openfoam-diag.yml", "cfd/validation/diag/**"]
+    branches: [windows-app, cfd-cyclic-sector]
+    paths: [".github/workflows/openfoam-diag.yml", "cfd/validation/diag/**", "cfd/validation/reference/**",
+            "cfd/intake_cfd.py", "tools/openfoam/validate_windows.ps1", "tools/openfoam/compare_results.py"]
 permissions:
   contents: read
   actions: read
+env:
+  OF_RUN: ${{ github.event.inputs.of_run || '41193954622' }}
 jobs:
-  variants:
+  validate:
     runs-on: windows-2022
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,7 +39,32 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          OF_RUN: ${{ github.event.inputs.of_run || '41190144915' }}
+        run: |
+          gh run download $env:OF_RUN --repo $env:GITHUB_REPOSITORY -n openfoam-v2412-win64 -D ofzip
+          Expand-Archive ofzip/openfoam-v2412-win64.zip -DestinationPath C:\ET
+      - name: Run the validation cases with the Windows build and compare with Linux
+        shell: pwsh
+        run: ./tools/openfoam/validate_windows.ps1 -OF C:\ET\OpenFOAM-v2412 -Repo $PWD
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: validation-cases
+          path: |
+            ${{ runner.temp }}/case_*/log.*
+            ${{ runner.temp }}/case_*/results.*
+          retention-days: 14
+  variants:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Get the Windows OpenFOAM build
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh run download $env:OF_RUN --repo $env:GITHUB_REPOSITORY -n openfoam-v2412-win64 -D ofzip
           Expand-Archive ofzip/openfoam-v2412-win64.zip -DestinationPath C:\ET
@@ -39,4 +76,51 @@ jobs:
         with:
           name: diag-variants
           path: ${{ runner.temp }}/diag
+          retention-days: 14
+  esi_linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: ESI's OpenFOAM v2412 for Ubuntu
+        run: |
+          curl -sSL https://dl.openfoam.com/add-debian-repo.sh | sudo bash
+          sudo apt-get install -y -q openfoam2412-default > /dev/null
+          ls /usr/lib/openfoam
+      - name: Laminar pipe (wedge and cyclic sides), the square-cut-pipe cases, the square-cut pipe on wedge sides
+        shell: bash
+        run: |
+          set +eu; source /usr/lib/openfoam/openfoam2412/etc/bashrc; set -e
+          export INTAKE_CFD_STAMP=probe
+          out=$RUNNER_TEMP/esi; mkdir -p $out
+          one() {  # name json [wedge]
+            d=$out/case_$1
+            python3 cfd/intake_cfd.py cfd/tests/$2 $d > /dev/null
+            [ "$3" = wedge ] && python3 cfd/validation/diag/to_wedge.py $d
+            s=$(sed -n 's/^application\s\+\(\S\+\);/\1/p' $d/system/controlDict)
+            (cd $d && blockMesh > log.blockMesh 2>&1 && checkMesh > log.checkMesh 2>&1 && topoSet > log.topoSet 2>&1 \
+              && $s > log.$s 2>&1 && python3 intake_report.py > log.report 2>&1)
+          }
+          for s in wedge cyclic; do
+            c=$out/lam_pipe_$s; python3 cfd/validation/diag/lam_pipe.py make $c $s
+            (cd $c && blockMesh > log.blockMesh 2>&1 && simpleFoam > log.simpleFoam 2>&1) &
+          done
+          one pp pp.json & one pp_inc pp_inc.json & one pp_wedge pp.json wedge &
+          wait
+          grep -m1 "^Build" $out/case_pp/log.rhoSimpleFoam
+          for s in wedge cyclic; do echo "lam_pipe_$s: $(python3 cfd/validation/diag/lam_pipe.py ratio $out/lam_pipe_$s)"; done
+          for n in pp_wedge pp pp_inc; do echo "== $n"; sed -n '/^plane/,/^K =/p' $out/case_$n/log.report; done
+          fails=0
+          for c in pp:pp_medium_linux_6000it_results.json pp_inc:pp_inc_medium_linux_6000it_results.json; do
+            python3 tools/openfoam/compare_results.py $out/case_${c%%:*}/results.json cfd/validation/reference/${c#*:} 0.002 \
+              || fails=$((fails+1))
+          done
+          [ $fails -eq 0 ] || { echo "$fails case(s) differ from the conda-forge Linux reference"; exit 1; }
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: esi-linux
+          path: |
+            ${{ runner.temp }}/esi/*/log.*
+            ${{ runner.temp }}/esi/*/results.*
           retention-days: 14
