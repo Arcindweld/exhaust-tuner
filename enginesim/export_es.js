@@ -684,7 +684,13 @@ function toEngineSimDetailed(spec, options = {}) {
     push(`        hf_gain: ${E.hf_gain[0]},  // ${src(D, E.hf_gain[1])}`);
     push(`        noise: ${E.noise[0]},  // ${src(D, E.noise[1])}`);
     push(`        jitter: ${E.jitter[0]},  // ${src(D, E.jitter[1])}`);
-    push(`        simulation_frequency: ${E.simulation_frequency[0]}  // ${src(D, E.simulation_frequency[1])}`);
+    // fork runs are offline: engine-sim's cylinder and port flows get at most 2 deg of crank per simulation step at
+    // the redline, never less than the donor's frequency (the fork's test inline-4 lost a third of its torque at 3.6
+    // deg per step, 6000 rpm at 10 kHz, in both exhaust models; 2.4 deg per step was converged; docs/exhaust-1d.md)
+    const donorFreq = Number(E.simulation_frequency[0]);
+    const simFreq = opt.target === 'fork' ? Math.max(donorFreq, Math.ceil(3 * redline / 5000) * 5000) : donorFreq;
+    push(`        simulation_frequency: ${simFreq}  // ${simFreq === donorFreq ? src(D, E.simulation_frequency[1])
+        : '[derived] 2 deg of crank per step at the redline (' + src(D, E.simulation_frequency[1]) + ' has ' + donorFreq + ')'}`);
     push('    )');
     push();
     push('    wires wires()');

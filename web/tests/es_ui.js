@@ -21,6 +21,13 @@ fs.mkdirSync(OUT, { recursive: true });
     await pg.fill('#f-disp', String(/cu/.test(u) ? +(cc / 16.387064).toFixed(3) : cc)); await pg.dispatchEvent('#f-disp', 'input');
     await pg.selectOption('#f-n', String(n)); await pg.waitForTimeout(120);
   };
+  // the page carries the Node module's code unchanged (the two copies drifted once: the page lacked exhaust.grouping)
+  {
+    const mod = fs.readFileSync(path.join(__dirname, '../../enginesim/export_es.js'), 'utf8');
+    const page = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
+    const body = mod.slice(mod.indexOf(' * export_es.js'), mod.indexOf('module.exports'));
+    ok(body.length > 40000 && page.includes(body), 'the page\'s exporter is enginesim/export_es.js unchanged (' + body.length + ' chars)');
+  }
   const cases = [
     // [cyl, cc, per collector, engine key, target, extra]
     [8, 5735.5, 4, 'sbc', 'ce'], [8, 5967, 4, 'ls', 'upstream'], [8, 5000, 4, 'coy', 'ce'], [8, 5200, 8, 'fp8', 'ce'],
@@ -47,6 +54,19 @@ fs.mkdirSync(OUT, { recursive: true });
     const s = last.spec;
     ok(s.cylinders === cyl && s.firingOrder.length === cyl && s.exhaust.primaryD_mm > 0 && s.exhaust.systemL_mm > 0, tag + ': spec ' + JSON.stringify({ lay: s.layout, bank: s.bankAngle_deg, num: s.cylNumbering, dual: s.exhaust.dual, fa: s.firingAngles_deg }));
     manifest.push({ key: tag, target, file, spec: s, options: last.options, derived: node.derived });
+  }
+  // the fork target raises the simulation frequency to at most 2 deg of crank per step at the redline (engine-sim's
+  // flows lose torque above that), never below the donor's; CE and upstream files keep the donor's (GM LS: 10 kHz)
+  {
+    const v8 = manifest.find((m) => m.spec.cylinders === 8);
+    const freq = (target, redline) => {
+      const r = E.toEngineSimDetailed(Object.assign({}, v8.spec, { redline_rpm: redline }), Object.assign({}, v8.options, { target }));
+      const m = r.text.match(/simulation_frequency: (\d+)/);
+      return m ? +m[1] : NaN;
+    };
+    ok(freq('ce', 6500) === 10000 && freq('upstream', 6500) === 10000, 'CE and upstream keep the donor frequency (' + freq('ce', 6500) + ')');
+    ok(freq('fork', 6500) === 20000 && freq('fork', 7600) === 25000 && freq('fork', 3000) === 10000,
+      'fork: 3 x redline rounded up to 5 kHz, not below the donor (' + [freq('fork', 6500), freq('fork', 7600), freq('fork', 3000)].join(', ') + ')');
   }
   // units: the pipe-length input follows the unit setting and feeds the spec
   await setEngine(8, 5735.5, 4);
