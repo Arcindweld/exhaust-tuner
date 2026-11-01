@@ -32,11 +32,14 @@ Run settings (2026-10-31, second pass): instantaneous rows written at 64 kHz and
   1.2 m/s (hold) and 3.6 m/s (idle) without ever reversing, so the runners' mean flows read 11 % above (hold) and
   3.7 times (idle) the cylinders' intake, and the outlets' open-end node reads 19 % below the middle of the same
   pipe (details in openwam/run_models.py). The cylinder quantities (NMEP, VE, trapped mass) are self-consistent.
-- Cell size: 5 mm cells instead of 10 mm (both at 14 cycles, the comparison of like with like) change the relative
-  order levels by 1.3 dB RMS at idle (orders 2.5-7, at most 2.8 dB, order 6.5; a rough figure, since the 5 mm idle
-  was not yet periodic: its last two cycles differ by 21 %) and 3.5 dB RMS at the hold (orders 1-7). At the hold most of that is order 3, which sits in a dip 8-14 dB below orders 2.5 and 3.5 at the
-  estimated and longer lengths (10.6 dB at order 3; 1.7 dB RMS, at most 3.1 dB, without it). So read single
-  orders, and differences between the model and the recording, to about 2-3 dB.
+- Cell size (the hold at 5 mm cells instead of 10 mm, both at the main settings, 72 cycles): orders 1-2.5 move by
+  1.0-1.9 dB and orders 3.5, 4, 4.5 and 5.5 by 0.5-2.0 dB, but the dips move. Order 3, in a dip 8-14 dB below
+  orders 2.5 and 3.5, drops another 14.5 dB; order 6.5, in a dip at 10 mm (81 dB against 92 and 88 dB beside it),
+  rises 12.9 dB; orders 5, 6 and 7 move 3.4-4.6 dB. That is 5.8 dB RMS over orders 1-7, and the RMS against the
+  recording goes from 7.8 to 8.8 dB. NMEP drops 4 % (1.593 to 1.527 bar), which would move the calibrated manifold
+  pressure a little. So at 10 mm a single order is good to about 2 dB where it is not in or next to a dip. A check
+  at 14 cycles, before the box settles, had shown less (3.5 dB RMS at the hold, 1.3 dB RMS at idle, where the 5 mm
+  run was not yet periodic).
 - Effect of the second pass on the comparison: under 0.6 dB RMS everywhere (table).
 
 Against the recording (relative order levels, gain offset removed; orders below 60 Hz left out for the phone-class mic):
@@ -50,9 +53,12 @@ Against the recording (relative order levels, gain offset removed; orders below 
 Level change from idle to the 5460 rpm hold: model +13.7 dB (first pass +13.9), recording +12.0 dB (fixed gain).
 
 Reading it: the overall level trend with speed is right within 2 dB, and at the hold orders 1, 4, 4.5 and 7 are
-within 3 dB (second pass: -0.8, -1.2, -0.2 and -2.2 dB; order 6.5, within 3 dB in the first pass, is now 12.2 dB low). The balance between the strongest orders is not: the recording's strongest order at 5460 rpm is 1.5
-(136 Hz) with 2.5 close behind; the model's is 2 (182 Hz), with 2.5 12 dB too low. Those orders sit where the estimated
-header lengths put the pipe resonances, so this is the first thing the measured lengths will move. Above order 7
+within 3 dB (second pass: -0.8, -1.2, -0.2 and -2.2 dB; order 6.5, within 3 dB in the first pass, is now 12.2 dB
+low). Orders 1, 4 and 4.5 hold to about 1-2 dB with the cell size; order 7 moves 4.6 dB and order 6.5 13 dB (above),
+so those two are not firm. The balance between the strongest orders, which the cell size moves by under 2 dB, is not
+right: the recording's strongest order at 5460 rpm is 1.5 (136 Hz) with 2.5 close behind; the model's is 2 (182 Hz),
+with 2.5 12 dB too low. Those orders sit where the estimated header lengths put the pipe resonances, so this is the
+first thing the measured lengths will move. Above order 7
 (640 Hz at the hold) the recording keeps 20-25 dB below its peak while the model falls away: engine mechanical, intake
 and flow noise reach the microphone there and the model has none of them, so those orders are not compared.
 
@@ -68,12 +74,13 @@ the same; all rows at the main runs' settings, 64 kHz rows and 72 cycles: `pytho
 | +100 mm | 6.3 dB | -1.2 | 0.0 | -3.1 | -7.9 | -22.2 |
 
 All three length runs settled like the main hold (box density within 0.06 % per cycle and temperature within 3.1 K
-over the last 10 cycles, periodicity 0.4-0.6 %). A 50 mm change moves single orders by up to 11 dB (order 3, from
--50 mm to the estimate) and the RMS against the recording ranges from 4.6 to 9.2 dB over the four lengths, more than
-the cell size moves it, so the order balance cannot be judged until the lengths are measured; picking the length that
-fits best would be fitting the model to the recording, not checking it. The earlier first-pass rows of this table
-(16 kHz rows, 36 cycles) gave 5.4, 6.2 and 6.9 dB RMS for -50, +50 and +100 mm; at +50 mm order 3 was 10 dB higher
-(-13.9 dB), the dip again.
+over the last 10 cycles, periodicity 0.4-0.6 %). The RMS against the recording ranges from 4.6 to 9.2 dB over the
+four lengths (halving the cells moves it 1.0 dB), and orders 1-2.5, which the cell size moves by under 2 dB, change
+by up to 8 dB for a 50 mm step (order 2.5 from +50 to +100 mm). So the order balance cannot be judged until the
+lengths are measured; picking the length that fits best would be fitting the model to the recording, not checking
+it. (Order 3 moves 11 dB from -50 mm to the estimate, but it moves as much with the cell size.) The earlier
+first-pass rows of this table (16 kHz rows, 36 cycles) gave 5.4, 6.2 and 6.9 dB RMS for -50, +50 and +100 mm; at
++50 mm order 3 was 10 dB higher (-13.9 dB), the dip again.
 
 Next: the owner's measurements (research doc section 6, most of all the two header centreline lengths and the step
 position, the box volume and the outlet tubes, and where the microphone was relative to each outlet).

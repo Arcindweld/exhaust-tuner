@@ -31,8 +31,9 @@ Acoustic model (stated assumptions)
     the open-end node is 11 % below the cylinders' exhaust flow and 19 % below the middle of the same outlet pipe
     (5460 rpm, 72 cycles): OpenWAM's boundary conditions do not conserve mass at open ends and closed valves
     (run_models docstring). The sound uses only the fluctuation; if that is scaled like the mean, absolute levels
-    read about 1 dB low. Relative order levels moved 1.3 dB RMS (idle, the 5 mm run not yet periodic) and 3.5 dB
-    RMS (5460 rpm, most of it one order in a dip) between 10 and 5 mm cells.
+    read about 1 dB low. Cell size matters more: between 10 and 5 mm cells (5460 rpm, 72 cycles) orders 1-2.5
+    moved 1-2 dB, but orders in or next to a dip up to 15 dB (5.8 dB RMS over orders 1-7), so check the cell size
+    before reading single orders.
   * The WAV is 16-bit PCM, normalised so the peak is -1 dBFS; "pa_per_fullscale" in the JSON gives the
     pressure of a full-scale sample, and the JSON carries the absolute SPL of the model.
 

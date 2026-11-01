@@ -190,8 +190,25 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   cat and plain-volume muffler). idle_735 (28 cycles) did not finish inside the 2 h run limit, twice (88 % at
   1 h 55 min of CPU; the throttled idle is far slower per cycle); not restarted as-is. It needs a run without that
   limit (a CI job, or a shell left running), or fewer cycles; its 24-cycle result is in git history (230b1aa).
+- RS 660 header-length table rerun at the main settings (64 kHz rows, 72 cycles; rs660.py sweep, sweep.json),
+  2026-11-01: RMS against the recording 4.6 / 7.8 / 9.2 / 6.3 dB at -50 / as estimated / +50 / +100 mm (first-pass
+  rows were 5.4 / - / 6.2 / 6.9); a 50 mm change moves single orders by up to 11 dB, so the lengths still have to be
+  measured before the order balance means anything.
+- OpenWAM's mean pipe flows are no mass balance (found checking the sweep's settling figures, 36ff407): its
+  boundary conditions do not conserve mass at closed valves and open ends. RS 660 model: the runner gas next to a
+  closed intake valve drifts into it at 1.2 m/s (5460 rpm) / 3.6 m/s (1442 rpm) without reversing, runner means
+  read 11 % above / 3.7 times the cylinders' intake, the outlets' open-end node 19 % below mid-pipe; 5 mm cells do
+  not remove it. The RS 660 notes and the sound docs had used the tail/intake station ratio as a settling test:
+  corrected. Settling now comes from the boxes' own density and temperature drift (run_models plenum_settling;
+  box_settling in both validation summaries: RS 660 hold 0.02 %/cycle and 1.2 K over 10 cycles, idle still
+  warming 6.7 K; Outback holds 0.01-0.05 %/cycle). Runners rerun a model when its .wam text changed or its last
+  run did not finish (run_models.write_and_run; --no-run re-summarises); non-finite results no longer count as
+  finished (LW+FCT went NaN on the RS 660 model while OpenWAM printed SIMULATION FINISHED CORRECTLY). Cell-size
+  check at the RS 660 hold (72 cycles): 5 vs 10 mm moves orders 1-2.5 by 1-2 dB but orders in or next to a dip by
+  up to 15 dB (5.8 dB RMS over orders 1-7; RMS against the recording 7.8 -> 8.8 dB; NMEP -4 %); a 14-cycle check
+  had shown less (3.5 dB RMS). So the order balance conclusions (orders 1-2.5) stand; single high orders do not.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
-  simulation uses 1.35 (~2 %); RS 660 length sweep rows to rerun at second-pass settings; desktop/Fusion load the
+  simulation uses 1.35 (~2 %); desktop/Fusion load the
   page without a doctype (quirks mode; renders the same, but the artifact host is standards mode).
