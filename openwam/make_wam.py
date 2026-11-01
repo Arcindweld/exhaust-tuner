@@ -131,9 +131,13 @@ DEFAULTS = {
     "exhaust_len_mm": 800.0, "exhaust_d_mm": 42.0, "exhaust_Twall_C": 426.85,
     "exhaust_Tgas0_C": 426.85,
     "roughness_mm": 0.02,
+    # cell size, checked 2026-11-01 against 7.07 and 5 mm (30 cycles, WOT): net torque and delivered VE within 0.4 %
+    # (i4_41 at 4000 and 6000 rpm) and 1.0 % (v8_dual at 5500 rpm). The outflow's single order levels are not
+    # settled at 10 mm: on the RS 660 model (no load, 5460 rpm) orders in or next to a dip moved up to 15 dB, while
+    # 7.07 and 5 mm agreed within 1 dB on all but one order; use 5 mm for sound
     "cell_mm": 10.0,
     "courant": 0.8,
-    "pipe_method": "tvd",         # "tvd" | "lw" | "lw_fct"
+    "pipe_method": "tvd",         # "tvd" | "lw" | "lw_fct" (lw_fct went NaN on the RS 660 no-load model)
     "fct_option": 1,              # FCT sub-option 0..5 (TTubo.cpp:627-658) if pipe_method="lw_fct"
     "end_loss": 1.0,              # open-end inflow velocity coefficient (1 = isentropic)
     "pipe_htc_mult": 1.0,         # pipe heat-transfer multiplier

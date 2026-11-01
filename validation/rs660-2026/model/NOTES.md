@@ -36,10 +36,13 @@ Run settings (2026-10-31, second pass): instantaneous rows written at 64 kHz and
   1.0-1.9 dB and orders 3.5, 4, 4.5 and 5.5 by 0.5-2.0 dB, but the dips move. Order 3, in a dip 8-14 dB below
   orders 2.5 and 3.5, drops another 14.5 dB; order 6.5, in a dip at 10 mm (81 dB against 92 and 88 dB beside it),
   rises 12.9 dB; orders 5, 6 and 7 move 3.4-4.6 dB. That is 5.8 dB RMS over orders 1-7, and the RMS against the
-  recording goes from 7.8 to 8.8 dB. NMEP drops 4 % (1.593 to 1.527 bar), which would move the calibrated manifold
-  pressure a little. So at 10 mm a single order is good to about 2 dB where it is not in or next to a dip. A check
-  at 14 cycles, before the box settles, had shown less (3.5 dB RMS at the hold, 1.3 dB RMS at idle, where the 5 mm
-  run was not yet periodic).
+  recording goes from 7.8 to 8.8 dB. A third run at 7.07 mm (10 / sqrt 2) shows that 10 mm is the outlier: 7.07 and
+  5 mm agree within 1.0 dB on every order from 1 to 7 except order 4 (83.5 against 88.3 dB, a dip moving), 1.4 dB
+  RMS (0.8 dB without order 4), and the RMS against the recording is 9.3 dB at 7.07 mm. NMEP has not settled with
+  the cells (1.593 / 1.567 / 1.527 bar at 10 / 7.07 / 5 mm), which would move the calibrated manifold pressure a
+  little. So at 10 mm a single order is good to about 2 dB only where it is not in or next to a dip, and the next
+  runs (with measured dimensions) should use 5 mm cells. A check at 14 cycles, before the box settles, had shown
+  less (3.5 dB RMS at the hold, 1.3 dB RMS at idle, where the 5 mm run was not yet periodic).
 - Effect of the second pass on the comparison: under 0.6 dB RMS everywhere (table).
 
 Against the recording (relative order levels, gain offset removed; orders below 60 Hz left out for the phone-class mic):
@@ -50,17 +53,21 @@ Against the recording (relative order levels, gain offset removed; orders below 
 | idle 1442 rpm | idle_warm / idle_start | 2.5-7 | 10.6 dB | 10.7 / 10.6 dB |
 | hold 5460 rpm | hold_5400 (24.2-26.4 s) | 1-7 | 8.0 dB | 7.8 dB |
 
+All rows are 10 mm cells; the hold with 5 mm cells gives 8.8 dB RMS (7.07 mm: 9.3 dB), see the cell-size bullet.
+
 Level change from idle to the 5460 rpm hold: model +13.7 dB (first pass +13.9), recording +12.0 dB (fixed gain).
 
-Reading it: the overall level trend with speed is right within 2 dB, and at the hold orders 1, 4, 4.5 and 7 are
-within 3 dB (second pass: -0.8, -1.2, -0.2 and -2.2 dB; order 6.5, within 3 dB in the first pass, is now 12.2 dB
-low). Orders 1, 4 and 4.5 hold to about 1-2 dB with the cell size; order 7 moves 4.6 dB and order 6.5 13 dB (above),
-so those two are not firm. The balance between the strongest orders, which the cell size moves by under 2 dB, is not
-right: the recording's strongest order at 5460 rpm is 1.5 (136 Hz) with 2.5 close behind; the model's is 2 (182 Hz),
-with 2.5 12 dB too low. Those orders sit where the estimated header lengths put the pipe resonances, so this is the
-first thing the measured lengths will move. Above order 7
-(640 Hz at the hold) the recording keeps 20-25 dB below its peak while the model falls away: engine mechanical, intake
-and flow noise reach the microphone there and the model has none of them, so those orders are not compared.
+Reading it: the overall level trend with speed is right within 2 dB. At the hold the 10 mm run has orders 1, 4, 4.5
+and 7 within 3 dB of the recording (-0.8, -1.2, -0.2 and -2.2 dB) and order 6.5 12.2 dB low; with 5 mm cells
+(7.07 mm alike, so these are the firmer figures) orders 1, 1.5, 4, 4.5, 6.5 and 7 are within 3 dB (+1.0, -2.8,
+-2.4, +1.1, +0.7 and +2.4 dB): order 6.5 was a dip that moves with the cells. The balance between the strongest
+orders, which the cell size moves by under 2 dB, is not right: the recording's strongest order at 5460 rpm is 1.5
+(136 Hz) with 2.5 close behind; the model's is 2 (182 Hz, 13-15 dB too strong against the rest), with 2.5 11-12 dB
+too low, and order 3 is a deep dip in the model (9 dB low at 10 mm, 23 dB at 5 mm). Those orders sit where the
+estimated header lengths put the pipe resonances, so this is the first thing the measured lengths will move. Above
+order 7 (640 Hz at the hold) the recording keeps 20-25 dB below its peak while the model falls away: engine
+mechanical, intake and flow noise reach the microphone there and the model has none of them, so those orders are not
+compared.
 
 How much the header lengths matter (5460 rpm hold, both headers' second sections changed together, everything else
 the same; all rows at the main runs' settings, 64 kHz rows and 72 cycles: `python3 rs660.py sweep`, sweep.json):
@@ -83,4 +90,5 @@ first-pass rows of this table (16 kHz rows, 36 cycles) gave 5.4, 6.2 and 6.9 dB 
 +50 mm order 3 was 10 dB higher (-13.9 dB), the dip again.
 
 Next: the owner's measurements (research doc section 6, most of all the two header centreline lengths and the step
-position, the box volume and the outlet tubes, and where the microphone was relative to each outlet).
+position, the box volume and the outlet tubes, and where the microphone was relative to each outlet), then the runs
+again with 5 mm cells (cell_mm in run_settings) and the manifold pressures recalibrated at that cell size.

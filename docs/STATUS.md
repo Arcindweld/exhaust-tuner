@@ -205,8 +205,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   run did not finish (run_models.write_and_run; --no-run re-summarises); non-finite results no longer count as
   finished (LW+FCT went NaN on the RS 660 model while OpenWAM printed SIMULATION FINISHED CORRECTLY). Cell-size
   check at the RS 660 hold (72 cycles): 5 vs 10 mm moves orders 1-2.5 by 1-2 dB but orders in or next to a dip by
-  up to 15 dB (5.8 dB RMS over orders 1-7; RMS against the recording 7.8 -> 8.8 dB; NMEP -4 %); a 14-cycle check
-  had shown less (3.5 dB RMS). So the order balance conclusions (orders 1-2.5) stand; single high orders do not.
+  up to 15 dB (5.8 dB RMS over orders 1-7; RMS against the recording 7.8 -> 8.8 dB); 7.07 mm agrees with 5 mm
+  within 1 dB on every order but order 4, so 10 mm is the outlier; NMEP 1.593 / 1.567 / 1.527 bar at 10 / 7.07 /
+  5 mm has not settled. A 14-cycle check had shown less (3.5 dB RMS). So the order balance conclusions (orders
+  1-2.5) stand; single high orders at 10 mm do not; the RS 660 reruns with measured dimensions should use 5 mm.
+  At wide-open throttle the page's 10 mm cells are fine for torque: net torque and VE within 0.4 % of 5 mm for
+  i4_41 at 4000 / 6000 rpm and 1.0 % for v8_dual at 5500 rpm (30 cycles; make_wam DEFAULTS comment). Page
+  artifact Version 42: the OpenWAM Method paragraph and the order-spectrum caption state both limits.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
