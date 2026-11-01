@@ -24,10 +24,76 @@ static class Repo
 
 sealed class FakeUi : IHostUi
 {
-    public string? Folder; public string? Opened;
+    public string? Folder; public string? Opened; public bool? Dark; public int DevTools;
     public string? PickFolder(string title) => Folder;
     public string? PickSaveFile(string title, string suggestedName) => Folder is null ? null : Path.Combine(Folder, suggestedName);
     public void OpenFolder(string path) => Opened = path;
+    public void SetTheme(bool dark) => Dark = dark;
+    public void OpenDevTools() => DevTools++;
+}
+
+public class ProgramMenuTests
+{
+    // the page carries the program's menu now (the window has no menu bar): these are the requests it sends
+    [Fact]
+    public async Task Runs_folder_is_made_then_opened()
+    {
+        var t = Repo.Temp();
+        var paths = new AppPaths(t, Path.Combine(t, "data"), Path.Combine(t, "fusion"));
+        var ui = new FakeUi();
+        var r = await new HostDispatcher(paths, ui).DispatchAsync("openRunsFolder", null, null, CancellationToken.None);
+        Assert.True(Directory.Exists(paths.RunsDir));
+        Assert.Equal(paths.RunsDir, ui.Opened);
+        Assert.Equal(paths.RunsDir, r!["path"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Open_folder_only_for_runs_and_folders_the_user_saved_into()
+    {
+        var t = Repo.Temp();
+        var paths = new AppPaths(t, Path.Combine(t, "data"), Path.Combine(t, "fusion"));
+        var ui = new FakeUi();
+        var d = new HostDispatcher(paths, ui);
+        var other = Path.Combine(t, "elsewhere"); Directory.CreateDirectory(other);
+        var r = await d.DispatchAsync("openFolder", new JsonObject { ["path"] = other }, null, CancellationToken.None);
+        Assert.False(r!["ok"]!.GetValue<bool>());
+        Assert.Null(ui.Opened);
+        var run = Path.Combine(paths.RunsDir, "x_1"); Directory.CreateDirectory(run);
+        r = await d.DispatchAsync("openFolder", new JsonObject { ["path"] = run }, null, CancellationToken.None);
+        Assert.True(r!["ok"]!.GetValue<bool>());
+        Assert.Equal(Path.GetFullPath(run), ui.Opened);
+        ui.Folder = other;   // the user picks "elsewhere" in the save dialog
+        await d.DispatchAsync("saveFiles", JsonNode.Parse("{\"files\":[{\"name\":\"a.txt\",\"text\":\"x\"}]}"), null, CancellationToken.None);
+        r = await d.DispatchAsync("openFolder", new JsonObject { ["path"] = other }, null, CancellationToken.None);
+        Assert.True(r!["ok"]!.GetValue<bool>());
+    }
+
+    [Fact]
+    public void Version_is_the_same_everywhere()
+    {
+        // the page's menu shows HostDispatcher.Version; CI stamps the build and the installer with APP_VERSION
+        var yml = File.ReadAllText(Path.Combine(Repo.Root, ".github", "workflows", "windows.yml"));
+        var csproj = File.ReadAllText(Path.Combine(Repo.Root, "app", "ExhaustTuner.Desktop", "ExhaustTuner.Desktop.csproj"));
+        var app = System.Text.RegularExpressions.Regex.Match(yml, @"APP_VERSION:\s*([0-9.]+)").Groups[1].Value;
+        var proj = System.Text.RegularExpressions.Regex.Match(csproj, @"<Version>([0-9.]+)</Version>").Groups[1].Value;
+        Assert.Equal(HostDispatcher.Version, app);
+        Assert.Equal(HostDispatcher.Version, proj);
+    }
+
+    [Fact]
+    public async Task Theme_and_devtools_reach_the_window()
+    {
+        var t = Repo.Temp();
+        var ui = new FakeUi();
+        var d = new HostDispatcher(new AppPaths(t, Path.Combine(t, "data"), Path.Combine(t, "fusion")), ui);
+        await d.DispatchAsync("uiTheme", JsonNode.Parse("{\"dark\":true}"), null, CancellationToken.None);
+        Assert.True(ui.Dark);
+        await d.DispatchAsync("uiTheme", JsonNode.Parse("{\"dark\":false}"), null, CancellationToken.None);
+        Assert.False(ui.Dark);
+        await d.DispatchAsync("devTools", null, null, CancellationToken.None);
+        Assert.Equal(1, ui.DevTools);
+        Assert.EndsWith("licenses", d.Info()["licenses"]!.GetValue<string>());
+    }
 }
 
 public class CaseFilesTests

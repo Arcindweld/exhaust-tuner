@@ -46,6 +46,18 @@ const CLI = process.env.HOST_CLI || path.join(ROOT, 'app', 'ExhaustTuner.HostCli
   await pg.evaluate(() => { document.body.classList.add('expert'); location.hash = 'four-stroke'; }); await pg.waitForTimeout(800);
   ok(await pg.$('button[data-wam="run"]') !== null, 'Run in OpenWAM button shown in the program');
 
+  // the program's menu lives in the page's top bar now (the window has no menu bar): engines, runs folder, add-in status
+  ok(await pg.isVisible('#host-btn'), 'program menu button shown in the program');
+  await pg.click('#host-btn'); await pg.waitForTimeout(300);
+  const eng = await pg.$eval('#hm-eng', e => e.innerText);
+  ok(/OpenWAM ready/.test(eng) && /runs/.test(await pg.$eval('#hm-runs', e => e.innerText)), 'menu lists the engines and the runs folder (' + eng.replace(/\s+/g, ' ') + ')');
+  await pg.click('[data-hm="status"]'); await pg.waitForFunction(() => /Bundled with this program/.test(document.getElementById('hm-out').textContent), null, { timeout: 15000 });
+  ok(/Installed in Fusion: not installed/.test(await pg.$eval('#hm-out', e => e.textContent)), 'Fusion add-in status comes from the program');
+  await pg.click('[data-hm="runs"]'); await pg.waitForFunction(() => /^Opened /.test(document.getElementById('hm-out').textContent), null, { timeout: 15000 });
+  ok(fs.existsSync(path.join(env.EXHAUST_TUNER_DATA, 'runs')), 'Open the runs folder makes the folder and opens it');
+  await pg.keyboard.press('Escape');
+  ok(await pg.$eval('#host-menu', e => e.hidden), 'Escape closes the menu');
+
   // save through the program's folder dialog
   await pg.click('button[data-wam="dl"]'); await pg.waitForTimeout(1500);
   const saved = fs.readdirSync(env.EXHAUST_TUNER_PICK_FOLDER);

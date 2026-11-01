@@ -25,6 +25,18 @@ permissions:
   actions: read      # to fetch the OpenFOAM build made by openfoam-windows.yml
 
 jobs:
+  # The Core tests on Linux too: the solver-runner tests (watchdog, stop and restore, mesh warnings) use shell-script
+  # stand-ins for OpenWAM and OpenFOAM and skip themselves on Windows, so without this job CI never ran them.
+  core-linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Core tests (Linux)
+        run: dotnet test app/ExhaustTuner.Core.Tests -c Release --logger "console;verbosity=normal"
+
   # OpenWAM from CMT-UPV's own source, unchanged, built with MinGW-w64 (its CMake files are written for GCC)
   openwam:
     runs-on: windows-2022

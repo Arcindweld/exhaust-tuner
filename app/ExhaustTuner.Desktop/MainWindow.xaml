@@ -3,29 +3,24 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="Exhaust Tuner" Width="1400" Height="950" MinWidth="420" MinHeight="400"
-        WindowStartupLocation="CenterScreen" Icon="exhaust.ico">
-    <DockPanel>
-        <Menu DockPanel.Dock="Top">
-            <MenuItem Header="_File">
-                <MenuItem Header="Open the runs folder" Click="OpenRuns_Click"/>
-                <Separator/>
-                <MenuItem Header="E_xit" Click="Exit_Click"/>
-            </MenuItem>
-            <MenuItem Header="_Fusion">
-                <MenuItem Header="Install or update the Fusion add-in" Click="InstallAddIn_Click"/>
-                <MenuItem Header="Add-in status" Click="AddInStatus_Click"/>
-            </MenuItem>
-            <MenuItem Header="_View">
-                <MenuItem Header="Reload" Click="Reload_Click" InputGestureText="F5"/>
-                <MenuItem Header="Developer tools" Click="DevTools_Click" InputGestureText="F12"/>
-            </MenuItem>
-            <MenuItem Header="_Help">
-                <MenuItem Header="Engines and licences" Click="About_Click"/>
-            </MenuItem>
-        </Menu>
-        <StatusBar DockPanel.Dock="Bottom">
-            <StatusBarItem><TextBlock x:Name="Status" Text="Starting…"/></StatusBarItem>
-        </StatusBar>
+        WindowStartupLocation="CenterScreen" Icon="exhaust.ico" Background="#10161B">
+    <!-- The whole window is the calculator page. Its app bar carries the program's menu (runs folder, Fusion add-in,
+         reload, developer tools, engines and licences); the title bar takes the page's colours (MainWindow.SetTheme). -->
+    <Grid>
         <wv2:WebView2 x:Name="Web"/>
-    </DockPanel>
+        <Border x:Name="Splash" Background="#10161B" IsHitTestVisible="False">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="520">
+                <Viewbox Width="56" Height="56" Margin="0,0,0,18">
+                    <Canvas Width="32" Height="32">
+                        <Ellipse Canvas.Left="2.8" Canvas.Top="2.8" Width="26.4" Height="26.4" Stroke="#6384EE" StrokeThickness="2.3"/>
+                        <Ellipse Canvas.Left="6.4" Canvas.Top="6.4" Width="19.2" Height="19.2" Stroke="#A56BB8" StrokeThickness="2.3"/>
+                        <Ellipse Canvas.Left="10" Canvas.Top="10" Width="12" Height="12" Stroke="#D98A3F" StrokeThickness="2.3"/>
+                        <Ellipse Canvas.Left="13.4" Canvas.Top="13.4" Width="5.2" Height="5.2" Stroke="#E2BD6A" StrokeThickness="2.3"/>
+                    </Canvas>
+                </Viewbox>
+                <TextBlock x:Name="Status" Text="Starting…" Foreground="#90A0AA" FontFamily="Segoe UI Variable Text, Segoe UI"
+                           FontSize="15" TextAlignment="Center" TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+    </Grid>
 </Window>
