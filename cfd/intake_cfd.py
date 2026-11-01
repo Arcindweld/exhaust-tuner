@@ -2798,6 +2798,11 @@ def watch(pid):
     win = INFO["conv_window"]
     first = INFO["ramp"] + 2 * win
     cdict = os.path.join(HERE, "system", "controlDict")
+    fo = "mdot_outlet" if EXH else "mdot_atmosphere"
+    # status lines (stdout, flushed): what the watchdog sees, for a run that does not stop when it should
+    def say(msg):
+        print("watch: " + msg)
+        sys.stdout.flush()
 
     def alive():
         if os.name == "nt":
@@ -2819,9 +2824,18 @@ def watch(pid):
             return True
         except OSError:
             return False
+    say("solver PID %d %s; stops it once %s drifts less than %g and every plane's pressure less than %g of its drop "
+        "over %d iterations, from iteration %d" % (pid, "running" if alive() else "NOT FOUND", fo, INFO["stop_mdot_rel"],
+                                                     INFO["stop_dp_rel"], win, first))
+    last_say = time.time()
     while alive():
         time.sleep(5)
-        ser = series("mdot_outlet" if EXH else "mdot_atmosphere")
+        ser = series(fo)
+        if time.time() - last_say >= 60:
+            last_say = time.time()
+            d = drift(ser, win) if ser and ser[-1][0] >= first else None
+            say("%d rows of postProcessing/%s, last iteration %s, drift %s" % (len(ser), fo, ser[-1][0] if ser else "-",
+                                                                               "%.2e" % d if d is not None else "-"))
         if not ser or ser[-1][0] < first:
             continue
         ok = True
@@ -2859,6 +2873,7 @@ def watch(pid):
             print("watch: converged at iteration %d -> stopAt writeNow" % ser[-1][0])
             sys.stdout.flush()
             return
+    say("the solver is no longer running")
 
 
 if __name__ == "__main__":

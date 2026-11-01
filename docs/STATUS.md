@@ -93,6 +93,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   0.051 %; the earlier 5-9 % "miss" (ours and ESI's Windows package alike) was the Linux build's wedge artifact.
   Run 1 found two include problems (header-only TurbulenceModels/phaseCompressible; surfaceFeatureExtract's own
   library) -> fixed (9353ed3). STATUS: second run queued behind the first.
+- Program CFD on Windows, 2026-11-01: the first installer build that bundled the validated OpenFOAM (generator 1.1.0)
+  failed its program test. The coarse elliptical-bellmouth case ran simpleFoam to the 6000-iteration cap (the watchdog
+  printed nothing; on Linux, through the same host and page, it stops at 1632 iterations, 661 s, test passes), then
+  the report step never returned to the page although results.json was written. Fixes in place: the runner streams
+  every step's log and log.watch to disk as it runs, stops a report that runs over 10 min and says so; the watchdog
+  prints status lines (PID found or not, rows seen, drift each minute, "no longer running"); the program test prints
+  the page's progress and stops at once on a host error; windows.yml uploads the runs folder (artifact desk-runs) when
+  it fails. Replaying the watchdog on the Windows postProcessing files gives the same stop at iteration 1620 as on
+  Linux, so the solver output is right and the watchdog did not see or act on it during the run. Next build shows why.
 - Program CFD: Core/OpenFoamRunner.cs (Allrun without bash; watchdog = the case's intake_report.py --watch PID; 3-D
   designs generated with the bundled Python first; checkMesh aspect-ratio-only flags are a note), request
   runOpenFOAM, page "Run in OpenFOAM on this PC" / Stop in the intake CFD section. windows.yml bundles the newest
@@ -140,21 +149,24 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   Preset agent: 29 presets violate hp*5252/hpRpm <= tq (list SP/presets/inconsistent.json), sourcing corrections.
   Outback rerun at 64 kHz / 28-48 cycles (the stored results were from unsettled runs; STATUS lines on Outback order
   RMS and "high orders moved < 1 dB" are stale until it finishes).
-- engine-sim audit fixes (Arcindweld/engine-sim branch exhaust-1d-coupling, PR to main): the port <-> primary
-  coupling did not converge (I4 at 6000 rpm: 148.7 / 183.6 / 118.5 / -6.7 N m on 4 / 2 / 1 / 0.5 cm cells). Now a
-  valve-type characteristic boundary at the primary inlet, solved every pipe sub-step, network advanced every fluid
-  sub-step, port volume by the midpoint rule; junction receiving ends take the mixed state; port energy/momentum
-  exact; new tests (Sod/blowdown vs exact Riemann, junction temperature front, port energy, steady orifice flow,
-  coupled-port convergence + chatter, 4 cm vs 2 cm tuning agreement); CI runs the 1-D tests and a 1-D smoke run.
-  Result: I4 at 6000 rpm 141.2 / 138.5 / 137.5 / 136.9 N m on 4 / 2 / 1 / 0.5 cm and 137.8 / 138.5 / 139.5 at
-  15 / 20 / 40 kHz (random-burn seeds spread 3-3.5 N m); 4 vs 2 cm within 3.7 % over 4000-7800 rpm; legacy
-  bit-identical. Cost 5.8x legacy (LS V8, 10 kHz, 4 cm: 4.14 vs 0.71 CPU s per simulated s; was 1.85 = 2.6x before,
-  not converged); 2 cm cells cost 1.1-1.5x the 4 cm time. Next: pipe interiors at their own CFL step while the
-  ports keep the fluid sub-step (the 4 cm runs take 8 steps per simulation step only because the ports need the
-  fluid sub-step; CFL alone would allow about 4.6 at 10 kHz, from the 2 cm run's 9.3) - build, measure, revalidate.
-  Mechanism of the 4-1 low-rpm hole traced (neighbour's blowdown at 1.5 bar at overlap TDC, exhaust pushed into
-  the lumped intake runner).
-  After the PR merges and its Windows build passes: tools/publish_engine_sim.sh (bundled engine-sim refresh).
+- engine-sim (Arcindweld/engine-sim main, all merged 2026-11-01 with green Windows CI):
+  PR #2: convergent port coupling. The old port <-> primary coupling did not converge (I4 at 6000 rpm 148.7 / 183.6 /
+  118.5 / -6.7 N m on 4 / 2 / 1 / 0.5 cm). Now a valve-type characteristic boundary at each primary inlet solved
+  after every fluid sub-step, port volume by the midpoint rule, junction receiving ends take the mixed state, port
+  energy/momentum exact; tests: Sod/blowdown vs exact Riemann, junction temperature front, port energy, steady
+  orifice flow, coupled-port convergence + chatter, 4 cm vs 2 cm tuning agreement; CI runs the 1-D tests and a 1-D
+  smoke run. PR #3: port face search without pow (19-41 % faster, same roots to six digits) and
+  Synthesizer::m_latency initialized (upstream bug: the first frame's step count came from the heap, so the
+  engine-level tests depended on run order). PR #4: pipes held between their own CFL steps while the ports keep
+  every fluid sub-step (2.0-2.2 pipe steps per simulation step at 20 kHz on 4 cm instead of 8; less numerical
+  diffusion, coarse grids nearer the fine one). Now: I4 at 6000 rpm 140.7 / 138.1 / 137.5 / 136.9 N m on 4 / 2 /
+  1 / 0.5 cm, 140.2 / 138.1 / 139.4 at 15 / 20 / 40 kHz (seeds spread about 3 N m); 4 vs 2 cm agree on every
+  primary-length change at 4000-7000 rpm, single runs within 4.6 %; legacy bit-identical to upstream (fresh
+  processes). Cost on 4 cm cells, CPU s per simulated s: LS V8 at 10 kHz 2.0 (2.8x legacy; 3.8 after PR #2),
+  EJ25 at 20 kHz 2.0 (2.8x; 6.3), I4 at 20 kHz 1.5 (2.2x; 3.5); 2 cm costs 1.5-2.2x the 4 cm time. Mechanism of
+  the 4-1 low-rpm hole traced (neighbour's blowdown at 1.5 bar at overlap TDC, exhaust pushed into the lumped
+  intake runner). Windows build of main published to the engine-sim-build branch (tools/publish_engine_sim.sh
+  steps) after each merge.
 - Exporter (61b6778): fork-target files get simulation_frequency = max(donor, 3 x redline rounded up to 5 kHz)
   (engine-sim needs <= ~2 deg of crank per step: the I4 lost a third of its torque at 3.6 deg/step in both
   models); the page's exporter copy had drifted from enginesim/export_es.js (no exhaust.grouping) - synced, and

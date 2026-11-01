@@ -776,7 +776,7 @@ function toEngineSimDetailed(spec, options = {}) {
                 push(`        tailpipe_length: ${mm(E.tailpipeL_mm)},  // [spec] pipe after the cone to the tip`);
                 if (E.tailpipeD_mm > 0) push(`        tailpipe_diameter: ${mm(E.tailpipeD_mm)},  // [spec] tailpipe diameter`);
             }
-            push(`        pipe_cell_size: ${E.cellSize_mm > 0 ? mm(E.cellSize_mm) : '4.0 * units.cm'},  // 4 cm is the fork default (torque within about 4 % of 2 cm cells); 2 cm takes about 1.1-1.5x the time`);
+            push(`        pipe_cell_size: ${E.cellSize_mm > 0 ? mm(E.cellSize_mm) : '4.0 * units.cm'},  // 4 cm is the fork default (torque within about 5 % of 2 cm cells); 2 cm takes about 1.5-2.2x the time`);
         }
         push(`        audio_volume: ${X.audio_volume[0]},  // ${src(D, X.audio_volume[1])}`);
         push(`        impulse_response: ir_lib.${ir}  // ${irSrc}`);

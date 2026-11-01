@@ -91,9 +91,17 @@ public sealed class OpenFoamRunner
         steps.Add(topo.Json);
         if (topo.ExitCode != 0) return Failed(runDir, caseDir, steps, "topoSet failed: " + topo.Tail);
 
-        // the solver, with the case's own convergence watchdog beside it
+        // the solver, with the case's own convergence watchdog beside it; the watchdog's lines go to log.watch as they
+        // come, so a run that does not stop leaves a record of what the watchdog saw
         Process? watcher = null;
         var watchLog = new StringBuilder();
+        using var watchFile = new StreamWriter(Path.Combine(caseDir, "log.watch"), false, new UTF8Encoding(false)) { AutoFlush = true };
+        var watchClosed = false;
+        void WatchLine(string? line)
+        {
+            if (line is null) return;
+            lock (watchLog) { if (watchClosed) return; watchLog.Append(line).Append('\n'); watchFile.WriteLine(line); }
+        }
         StepResult run;
         try
         {
@@ -103,8 +111,8 @@ public sealed class OpenFoamRunner
                 psi.RedirectStandardOutput = true;
                 psi.RedirectStandardError = true;
                 watcher = new Process { StartInfo = psi };
-                watcher.OutputDataReceived += (_, e) => { if (e.Data is not null) lock (watchLog) watchLog.Append(e.Data).Append('\n'); };
-                watcher.ErrorDataReceived += (_, e) => { if (e.Data is not null) lock (watchLog) watchLog.Append(e.Data).Append('\n'); };
+                watcher.OutputDataReceived += (_, e) => WatchLine(e.Data);
+                watcher.ErrorDataReceived += (_, e) => WatchLine(e.Data);
                 watcher.Start();
                 watcher.BeginOutputReadLine();
                 watcher.BeginErrorReadLine();
@@ -117,15 +125,16 @@ public sealed class OpenFoamRunner
             watcher?.Dispose();
         }
         string watchText;
-        lock (watchLog) watchText = watchLog.ToString();
-        File.WriteAllText(Path.Combine(caseDir, "log.watch"), watchText);
+        lock (watchLog) { watchText = watchLog.ToString(); watchClosed = true; }
         run.Json["stoppedBy"] = watchText.Contains("watch: converged") ? "convergence" : "endTime";
         steps.Add(run.Json);
         // restore stopAt so that a restarted run continues normally (as Allrun does)
         File.WriteAllText(controlDict, File.ReadAllText(controlDict).Replace("stopAt          writeNow;", "stopAt          endTime;"));
         if (run.ExitCode != 0) return Failed(runDir, caseDir, steps, solver + " failed: " + run.Tail);
 
-        var rep = await StepAsync("report", _python, new[] { "intake_report.py" }, caseDir, progress, ct);
+        // the report reads postProcessing/ and writes results.json in seconds; a report still running after 10 minutes
+        // is stopped, so the page hears about it instead of waiting
+        var rep = await StepAsync("report", _python, new[] { "intake_report.py" }, caseDir, progress, ct, timeout: TimeSpan.FromMinutes(10));
         steps.Add(rep.Json);
         var resultsJson = Path.Combine(caseDir, "results.json");
         var results = File.Exists(resultsJson) ? JsonNode.Parse(File.ReadAllText(resultsJson)) : null;
@@ -159,14 +168,20 @@ public sealed class OpenFoamRunner
 
     sealed record StepResult(int ExitCode, string Log, string Tail, int LastIteration, JsonObject Json);
 
+    // Runs one program in the case folder. Its output goes to log.<name> as it comes (the solver's log can be watched,
+    // and a step that hangs leaves its log behind); with a timeout the process tree is stopped once it is exceeded and
+    // the step returns exit code -1.
     async Task<StepResult> StepAsync(string name, string exe, string[] args, string dir, Action<JsonObject>? progress,
-        CancellationToken ct, int endTime = 0, Action<int>? started = null)
+        CancellationToken ct, int endTime = 0, Action<int>? started = null, TimeSpan? timeout = null)
     {
         progress?.Invoke(new JsonObject { ["event"] = "step", ["step"] = name });
         var psi = Psi(exe, args, dir);
         psi.RedirectStandardOutput = true;
         psi.RedirectStandardError = true;
         var log = new StringBuilder();
+        using var logFile = new StreamWriter(Path.Combine(dir, "log." + name), false, new UTF8Encoding(false));
+        var lastFlush = DateTime.UtcNow;
+        var closed = false;   // late output events after the step returns are dropped, not written to a closed file
         var iteration = 0;
         var lastReport = DateTime.MinValue;
         var sw = Stopwatch.StartNew();
@@ -174,7 +189,13 @@ public sealed class OpenFoamRunner
         void Line(string? s)
         {
             if (s is null) return;
-            lock (log) log.Append(s).Append('\n');
+            lock (log)
+            {
+                if (closed) return;
+                log.Append(s).Append('\n');
+                logFile.WriteLine(s);
+                if ((DateTime.UtcNow - lastFlush).TotalSeconds >= 1) { logFile.Flush(); lastFlush = DateTime.UtcNow; }
+            }
             if (s.StartsWith("Time = ", StringComparison.Ordinal) && int.TryParse(s.AsSpan(7).Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var it))
             {
                 iteration = it;
@@ -192,21 +213,32 @@ public sealed class OpenFoamRunner
         p.BeginOutputReadLine();
         p.BeginErrorReadLine();
         started?.Invoke(p.Id);
-        try { await p.WaitForExitAsync(ct); }
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        if (timeout is { } t) limit.CancelAfter(t);
+        var timedOut = false;
+        try { await p.WaitForExitAsync(limit.Token); }
         catch (OperationCanceledException)
         {
             try { p.Kill(entireProcessTree: true); } catch { /* already gone */ }
-            throw;
+            if (ct.IsCancellationRequested) throw;
+            timedOut = true;
         }
-        p.WaitForExit();
+        // with the process gone, its output pipes close; do not wait forever on a handle a stray child might hold
+        p.WaitForExit(30000);
         sw.Stop();
+        var exitCode = timedOut ? -1 : p.ExitCode;
         string text;
-        lock (log) text = log.ToString();
-        File.WriteAllText(Path.Combine(dir, "log." + name), text);
+        lock (log)
+        {
+            if (timedOut) { var m = name + " did not finish within " + timeout!.Value.TotalMinutes + " min and was stopped"; log.Append(m).Append('\n'); logFile.WriteLine(m); }
+            text = log.ToString();
+            logFile.Flush();
+            closed = true;
+        }
         var tail = string.Join('\n', text.Split('\n').Where(l => l.Trim().Length > 0).TakeLast(12));
-        var json = new JsonObject { ["step"] = name, ["exitCode"] = p.ExitCode, ["seconds"] = Math.Round(sw.Elapsed.TotalSeconds, 1) };
-        if (p.ExitCode != 0) json["logTail"] = tail;
-        progress?.Invoke(new JsonObject { ["event"] = "stepDone", ["step"] = name, ["exitCode"] = p.ExitCode, ["seconds"] = Math.Round(sw.Elapsed.TotalSeconds, 1) });
-        return new StepResult(p.ExitCode, text, tail, iteration, json);
+        var json = new JsonObject { ["step"] = name, ["exitCode"] = exitCode, ["seconds"] = Math.Round(sw.Elapsed.TotalSeconds, 1) };
+        if (exitCode != 0) json["logTail"] = tail;
+        progress?.Invoke(new JsonObject { ["event"] = "stepDone", ["step"] = name, ["exitCode"] = exitCode, ["seconds"] = Math.Round(sw.Elapsed.TotalSeconds, 1) });
+        return new StepResult(exitCode, text, tail, iteration, json);
     }
 }
