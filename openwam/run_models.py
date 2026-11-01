@@ -24,7 +24,9 @@ sys.path.insert(0, HERE)
 import cases            # noqa: E402
 import make_wam         # noqa: E402
 
-EXE = os.path.abspath(os.path.join(HERE, "..", "ext", "OpenWAM", "build", "bin", "release", "OpenWAM"))
+# OpenWAM 2.2 solver: EXHAUST_TUNER_OPENWAM (the same variable the program and its tests use), else a build of CMT-UPV's
+# source next to the repository (ext/OpenWAM/build, see openwam/README)
+EXE = os.environ.get("EXHAUST_TUNER_OPENWAM") or os.path.abspath(os.path.join(HERE, "..", "ext", "OpenWAM", "build", "bin", "release", "OpenWAM"))
 R_AIR = 287.0           # Constantes.h:69 __R::Air, also the calculator's RG (exhaust-calculator.html:3767)
 
 

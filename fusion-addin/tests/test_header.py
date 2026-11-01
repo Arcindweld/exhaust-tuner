@@ -35,3 +35,4 @@ print('tube-to-tube centre distance away from the ends: %.3f (need >= %.3f)' % (
 if worst < od + 0.32 - 0.01: fails.append('tt')
 print('collector', {k: (round(v, 3) if isinstance(v, float) else v) for k, v in res['collector'].items() if k in ('d_in', 'd_out', 'min_gap', 'ok')})
 print('FAILS', fails)
+sys.exit(1 if fails else 0)   # a failing check fails the run (the README chains these with &&)

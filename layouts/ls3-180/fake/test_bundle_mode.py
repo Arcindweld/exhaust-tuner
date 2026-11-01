@@ -42,6 +42,25 @@ comp, built, items, msg = CT._route_bundle180({'collector_len_mm': 147, 'collect
 print('%.0f s' % (time.time()-t0)); print(msg)
 for n in notes: print(' note:', n)
 for it in items: print(' ', it['name'], 'len %.1f in' % (it['length']/IN), 'ok', it['ok'], 'gap', it.get('min_gap') and round(it['min_gap']/IN, 2), '|', it['note'][:70])
-# geometry sanity: tube 1 must start at marker 1 and end at collector A's slot, in Fusion coordinates
-e1 = [it for it in items if it['name'].startswith('Primary 1 ')][0]
-print('lra bends', len([x for x in e1['lra'] if x.get('angle', 0) > 1]) if isinstance(e1['lra'][0], dict) else len(e1['lra']))
+# The template must reproduce the reviewed hand layout (../ls3_180.json, written by ../layout.py and reported to the
+# customer): each primary's length, bend count and closest approach to the bay. Five tubes come under the 0.5 in scan
+# rule there (0.34-0.44 in, called out in the report as tubes to wrap or shield), so the add-in marks those not ok;
+# that is expected, and what is checked is that the figures match the layout, not that every tube is ok.
+import json, re
+REP = json.load(open(os.path.join(HERE, '..', 'ls3_180.json')))['report']
+fails = []
+for it in items:
+    m = re.match(r'Primary (\d+) ', it['name'])
+    if not m:
+        continue
+    rp = REP[m.group(1)]
+    nb = len([x for x in it['lra'] if (x.get('A') or 0) > 1]) if it['lra'] and isinstance(it['lra'][0], dict) else len(it['lra'])
+    gap = (it.get('min_gap') or 0) / IN
+    print('P%s length %.2f in (layout %.1f), bends %d (layout %d), scan gap %.2f in (layout %.2f)' % (
+        m.group(1), it['length'] / IN, rp['length'], nb, len(rp['bends']), gap, rp['scene_gap_in']))
+    if abs(it['length'] / IN - rp['length']) > 0.15: fails.append('P%s length' % m.group(1))
+    if nb != len(rp['bends']): fails.append('P%s bends' % m.group(1))
+    if abs(gap - rp['scene_gap_in']) > 0.02: fails.append('P%s scan gap' % m.group(1))
+    if (it['ok'] is True) != (rp['scene_gap_in'] >= 0.5 - 0.005): fails.append('P%s ok flag' % m.group(1))
+print('FAILS', fails)
+sys.exit(1 if fails else 0)

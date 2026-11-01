@@ -144,7 +144,8 @@ def main():
         fails.append('port shelf')
     print('LRA:', [(round(x['L'], 2), x['R'] and round(x['R'], 1), x['A'] and round(x['A'], 1)) for x in r['lra']])
     print('FAILS:', fails)
+    return 1 if fails else 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())   # a failing check fails the run

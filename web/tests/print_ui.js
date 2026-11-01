@@ -52,10 +52,12 @@ const path = require('path');
     const refR = printWall({ proc: 'sls', sz: 20, wet: 1, hdt18: 1e9 }, { p: 0.207, D: 120, b: 50, T: 23, sf: 3 });
     return { tPlate: w.tPlate, sAll: w.sAll, tf: w.tf, ref: ref.tPlate, refV: refV.tPlate, refR: refR.tPlate, hoop: ref.tHoop, last: last() };
   });
-  ok(Math.abs(calc.ref - 12.3) < 0.15 && Math.abs(calc.refV - 8.1) < 0.15 && Math.abs(calc.refR - 6.2) < 0.15 && calc.hoop < 2, vp.n + ': solver reproduces the notes (20 MPa, SF 3, 30 psi: 100 mm span 12.3 mm, ribbed 50 mm 6.2 mm, vacuum 8.1 mm; hoop under 2 mm) got ' + calc.ref.toFixed(2) + ', ' + calc.refR.toFixed(2) + ', ' + calc.refV.toFixed(2));
-  ok(Math.abs(calc.tf - 0.692) < 0.01 && Math.abs(calc.sAll - 5.85) < 0.1 && Math.abs(calc.tPlate - 13.2) < 0.2, vp.n + ': PA6-CF20 at 100 °C: factor ' + calc.tf.toFixed(3) + ', allowable ' + calc.sAll.toFixed(2) + ' MPa, 100 mm panel ' + calc.tPlate.toFixed(1) + ' mm');
+  // hand-worked with Roark's long-panel coefficient β 0.75 (Table 11.4, simply supported): t = b·√(β·p ÷ σ), σ = 20 MPa ÷ 3
+  //   30 psi (0.207 MPa), 100 mm span: 100·√(0.75·0.207/6.667) = 15.26 mm; 50 mm span 7.63 mm; vacuum 0.09 MPa 10.06 mm
+  ok(Math.abs(calc.ref - 15.26) < 0.05 && Math.abs(calc.refV - 10.06) < 0.05 && Math.abs(calc.refR - 7.63) < 0.05 && calc.hoop < 2, vp.n + ': solver matches the hand-worked panels (20 MPa, SF 3, 30 psi: 100 mm span 15.26 mm, ribbed 50 mm 7.63 mm, vacuum 10.06 mm; hoop under 2 mm) got ' + calc.ref.toFixed(2) + ', ' + calc.refR.toFixed(2) + ', ' + calc.refV.toFixed(2));
+  ok(Math.abs(calc.tf - 0.692) < 0.01 && Math.abs(calc.sAll - 5.85) < 0.1 && Math.abs(calc.tPlate - 16.28) < 0.1, vp.n + ': PA6-CF20 at 100 °C: factor ' + calc.tf.toFixed(3) + ', allowable ' + calc.sAll.toFixed(2) + ' MPa, 100 mm panel ' + calc.tPlate.toFixed(1) + ' mm');
   const flatRow = await pg.$$eval('#i-details .r', rows => { const r = rows.find(x => /Flat panel/.test(x.innerText)); return r ? r.innerText : ''; });
-  ok(/Flat panel/.test(flatRow) && /0\.5\d in|1[23]\.\d mm/.test(flatRow), vp.n + ': flat panel row shows the solved wall (' + flatRow.replace(/\s+/g, ' ').slice(0, 60) + ')');
+  ok(/Flat panel/.test(flatRow) && /across\s+(0\.6\d in|1[56]\.\d mm)/.test(flatRow), vp.n + ': flat panel row shows the solved wall (' + flatRow.replace(/\s+/g, ' ').slice(0, 60) + ')');
   // Fusion payload: fab, wall_mm and section_max_mm ride along; none of it when welded
   await setv('i-ploc', 'cpcold'); await setv('i-boost', '8'); await pg.waitForTimeout(200);
   await pg.evaluate(() => { window.__sent = []; });

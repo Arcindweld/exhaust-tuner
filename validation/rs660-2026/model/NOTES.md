@@ -36,20 +36,22 @@ Against the recording (relative order levels, gain offset removed; orders below 
 
 Level change from idle to the 5460 rpm hold: model +13.7 dB (first pass +13.9), recording +12.0 dB (fixed gain).
 
-Reading it: the overall level trend with speed is right within 2 dB, and at the hold orders 1, 4.5, 6.5 and 7 are
-within 3 dB. The balance between the strongest orders is not: the recording's strongest order at 5460 rpm is 1.5
+Reading it: the overall level trend with speed is right within 2 dB, and at the hold orders 1, 4, 4.5 and 7 are
+within 3 dB (second pass: -0.8, -1.2, -0.2 and -2.2 dB; order 6.5, within 3 dB in the first pass, is now 12.2 dB low). The balance between the strongest orders is not: the recording's strongest order at 5460 rpm is 1.5
 (136 Hz) with 2.5 close behind; the model's is 2 (182 Hz), with 2.5 12 dB too low. Those orders sit where the estimated
 header lengths put the pipe resonances, so this is the first thing the measured lengths will move. Above order 7
 (640 Hz at the hold) the recording keeps 20-25 dB below its peak while the model falls away: engine mechanical, intake
 and flow noise reach the microphone there and the model has none of them, so those orders are not compared.
 
-How much the header lengths matter (5460 rpm hold, both headers changed together, everything else the same):
+How much the header lengths matter (5460 rpm hold, both headers changed together, everything else the same). The
+"as estimated" row is the second-pass run; the -50/+50/+100 mm rows are still the first-pass runs (16 kHz rows, 36
+cycles, when the tail flow was 4 % short), so read them as the size of the effect, not exact levels:
 
 | header length change | RMS vs recording (orders 1-7) | order 1 | 1.5 | 2 | 2.5 | 3 (dB rel) |
 |---|---|---|---|---|---|---|
 | recording | | -4.9 | 0.0 | -12.4 | -2.8 | -15.3 |
 | -50 mm | 5.4 dB | 0.0 | -2.2 | -0.9 | -7.4 | -14.0 |
-| as estimated (575 / 625 mm) | 8.0 dB | -5.4 | -4.7 | 0.0 | -16.2 | -31.3 |
+| as estimated (575 / 625 mm), second pass | 7.8 dB | -6.3 | -4.9 | 0.0 | -15.4 | -24.6 |
 | +50 mm | 6.2 dB | 0.0 | -5.0 | -5.9 | -19.0 | -13.9 |
 | +100 mm | 6.9 dB | 0.0 | -2.2 | -4.3 | -9.6 | -22.2 |
 

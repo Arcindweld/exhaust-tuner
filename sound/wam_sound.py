@@ -50,6 +50,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.path.insert(0, os.path.join(HERE, "..", "openwam"))     # make_wam, run_models and cases live there
 import make_wam  # noqa: E402
 
 P_REF = 20e-6

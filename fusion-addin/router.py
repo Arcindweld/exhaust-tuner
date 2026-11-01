@@ -1296,6 +1296,11 @@ def route(scene, spec, tubes=None, owner=None, log=None):
             cert = certify(geo, C)
             err = _hard_errors(s, geo, _chain(s, x))
             res = (x, geo, cert, err, m)
+            if err and _attempt < 2:
+                # a straight came out a hair short (the length or clearance terms pulled two bends into each other):
+                # weigh the straights ten times harder and fit again from here
+                w = (w[0], w[1] * 10.0, w[2], w[3])
+                continue
             if cert['slack'] >= -CERT_TOL and cert['tt'] >= -CERT_TOL:
                 break
             m += max(-cert['slack'], -cert['tt']) + 0.05

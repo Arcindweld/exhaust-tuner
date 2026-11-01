@@ -19,14 +19,29 @@ const fs = require('fs'); const path = require('path');
     ok(out && /OpenWAM/i.test(out.bat) && /\.wam/.test(out.names[0]), vp.n + ': bat and wam names');
     const msg = await pg.$eval('.wammsg', e => e.innerText);
     ok(/Downloaded|Saved/.test(msg), vp.n + ': message after download (' + msg.slice(0, 60) + ')');
-    // results reader with a real AVG.DAT from the OpenWAM runs
-    const dat = path.join(process.cwd(), 'openwam_run2', 'runs', 'i4_41_6000', 'i4_41_6000AVG.DAT');
+    // results reader with a real AVG.DAT: OpenWAM 2.2's output for the Core tests' single-cylinder case (a committed fixture).
+    // The expected numbers are worked out here from the file itself, not taken from the page: the last cycle's net
+    // (indicated) torque, and the delivered VE = intake mass / (air density at 1.01325 bar and 25 C x swept volume), the page's definition,
+    // with the swept volume from Net_Work_Cyl_1 / NMEP_Cyl_1 as the file gives them.
+    const dat = path.join(__dirname, '..', '..', 'app', 'ExhaustTuner.Core.Tests', 'fixtures', 'single450AVG.DAT');
     if (fs.existsSync(dat)) {
+      const L = fs.readFileSync(dat, 'utf8').trim().split(/\r?\n/), H = L[0].split('\t'), R = L[L.length - 1].split('\t').map(Number);
+      const c = h => R[H.indexOf(h)];
+      const tq = c('Net_Torque(Nm)'), vd = c('Net_Work_Cyl_1(J)') / (c('NMEP_Cyl_1(bar)') * 1e5), rho = 101325 / (287.05 * 298.15);
+      const ve = c('Intake_Mass(kg/cc)') / (rho * vd);
       await pg.setInputFiles('#wam-files', [dat]); await pg.waitForTimeout(800);
       t = await pg.$eval('#panel-four', e => e.innerText);
-      ok(/i4_41_6000/.test(t) && /195\.\d N·m/.test(t) && /107%/.test(t), vp.n + ': AVG.DAT read: 195 N·m, 107% VE');
+      ok(/single450/.test(t) && t.includes(tq.toFixed(1) + ' N·m') && t.includes(Math.round(ve * 100) + '%'),
+        vp.n + ': AVG.DAT read: ' + tq.toFixed(1) + ' N·m, ' + Math.round(ve * 100) + '% VE, as worked out from the file');
       ok(/yes|moving/.test(t), vp.n + ': settled column');
-    } else console.log('  (no AVG.DAT sample found, reader not exercised)');
+    } else console.log('SKIP: AVG.DAT reader, fixture missing: ' + dat);
+    // the run the Method text quotes (2.0 L four, 6,000 RPM: 195 N·m net, 107 % delivered VE), kept in openwam/ref
+    const dat4 = path.join(__dirname, '..', '..', 'openwam', 'ref', 'i4_41_6000', 'i4_41_6000AVG.DAT');
+    if (fs.existsSync(dat4)) {
+      await pg.setInputFiles('#wam-files', [dat4]); await pg.waitForTimeout(800);
+      t = await pg.$eval('#panel-four', e => e.innerText);
+      ok(/i4_41_6000/.test(t) && /195\.2 N·m/.test(t) && /\b107%/.test(t), vp.n + ': the Method note\'s run reads 195.2 N·m and 107% VE');
+    } else console.log('SKIP: the Method note\'s OpenWAM run is missing: ' + dat4);
     ok(!/NaN|undefined|\[object/.test(t), vp.n + ': no NaN/undefined');
     const sw = await pg.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
     ok(sw, vp.n + ': no sideways scroll');

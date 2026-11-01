@@ -107,7 +107,7 @@ const HERE = __dirname, RUNS = path.join(HERE, 'uel_runs');
       await p.setInputFiles('#wam-files', [path.join(RUNS, 'uel_uel_3000', 'uel_uel_3000AVG.DAT')]); await p.waitForTimeout(800);
       t = await txt('#panel-four');
       ok(/uel_uel_3000\s+3000/.test(t), vp.n + ': AVG.DAT of the 4-cylinder unequal run reads');
-    } else console.log('  (uel_runs INS files missing: run node uel_gen.js and OpenWAM first)');
+    } else console.log('SKIP: INS order reader, uel_runs INS files missing (run node uel_gen.js and OpenWAM first)');
     ok(!/\bNaN\b|undefined|\[object/.test(await txt('#panel-four')), vp.n + ': 4-Stroke tab no NaN/undefined');
     ok(await noScroll(), vp.n + ': 4-Stroke tab no sideways scroll');
     // back to the tab's own collector

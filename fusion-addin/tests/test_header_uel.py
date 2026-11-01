@@ -22,3 +22,4 @@ for i, r in enumerate(res['primaries']):
     if not (r['ok'] and w >= -0.01 and abs(tot - targets[i]) <= 0.05 and gaps < 1e-6 and turn < 0.05 and ee < 1e-6 and de < 0.01):
         fails.append(i)
 print('FAILS', fails)
+sys.exit(1 if fails else 0)   # a failing check fails the run (the README chains these with &&)

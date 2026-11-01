@@ -1,0 +1,237 @@
+{
+ "name": "i4_41_6000",
+ "rpm": 6000.0,
+ "cycles": 30,
+ "finished": true,
+ "warning_or_error_lines": [],
+ "sonic_messages": 190,
+ "last_cycle_with_sonic": 2,
+ "last": {
+  "cycle": 30,
+  "NMEP": 12.4313,
+  "IMEP": 13.1174,
+  "PMEP": 0.686165,
+  "BMEP": 10.7313,
+  "Net_Torque": 195.201,
+  "fuel": 4.87655e-05,
+  "intake": 0.000624276,
+  "trapped": 0.000636534,
+  "T_net_from_NMEP": 195.16643748,
+  "P_net_kW": 122.62668924289194,
+  "VE_delivered": 1.0689029529908796,
+  "VE_trapped_fresh": 1.0687700840848955,
+  "cyl": [
+   {
+    "cyl": 1,
+    "NMEP": 12.4094,
+    "IMEP": 13.1025,
+    "VE_delivered": 1.0678756160889409,
+    "intake": 0.000623676,
+    "exhaust": 0.00067241,
+    "trapped": 0.000636188
+   },
+   {
+    "cyl": 2,
+    "NMEP": 12.4311,
+    "IMEP": 13.1329,
+    "VE_delivered": 1.0705980588790778,
+    "intake": 0.000625266,
+    "exhaust": 0.000674067,
+    "trapped": 0.000637071
+   },
+   {
+    "cyl": 3,
+    "NMEP": 12.4616,
+    "IMEP": 13.1354,
+    "VE_delivered": 1.0697950238673959,
+    "intake": 0.000624797,
+    "exhaust": 0.00067368,
+    "trapped": 0.000636842
+   },
+   {
+    "cyl": 4,
+    "NMEP": 12.4229,
+    "IMEP": 13.0989,
+    "VE_delivered": 1.067341400899933,
+    "intake": 0.000623364,
+    "exhaust": 0.000672015,
+    "trapped": 0.000636035
+   }
+  ],
+  "mass_cyl_in_plus_fuel_kg_s": 0.13460824999999998,
+  "mass_cyl_exhaust_kg_s": 0.1346086,
+  "pipe_intake_kg_s": 0.1250393,
+  "pipe_outlet_kg_s": 0.138185,
+  "pipe_fuel_kg_s": 0.0097531
+ },
+ "convergence": {
+  "NMEP": {
+   "last_change": 4.022105491787754e-05,
+   "spread_last5": 0.00012066316475348972
+  },
+  "IMEP": {
+   "last_change": 4.574077179931831e-05,
+   "spread_last5": 0.00010672846753169759
+  },
+  "VE_delivered": {
+   "last_change": 3.203711179061666e-06,
+   "spread_last5": 4.64538120959787e-05
+  },
+  "VE_trapped_fresh": {
+   "last_change": 1.2303780336497854e-05,
+   "spread_last5": 2.6658190729009434e-05
+  }
+ },
+ "mass_balance_cyl": 2.6001378072848524e-06,
+ "mass_balance_pipes": 0.02516907481430719,
+ "rho_ref": 1.1841314120000166,
+ "Vd_cyl": 0.0004932174802429832,
+ "ncyl": 4,
+ "history": [
+  {
+   "cycle": 2,
+   "NMEP": 11.2141,
+   "VE_trapped_fresh": 2.1036068193640034
+  },
+  {
+   "cycle": 3,
+   "NMEP": 12.4155,
+   "VE_trapped_fresh": 1.070657096506376
+  },
+  {
+   "cycle": 4,
+   "NMEP": 12.4267,
+   "VE_trapped_fresh": 1.0696533198640554
+  },
+  {
+   "cycle": 5,
+   "NMEP": 12.4255,
+   "VE_trapped_fresh": 1.0706527132022612
+  },
+  {
+   "cycle": 6,
+   "NMEP": 12.4301,
+   "VE_trapped_fresh": 1.0706417549419738
+  },
+  {
+   "cycle": 7,
+   "NMEP": 12.431,
+   "VE_trapped_fresh": 1.0705562805117326
+  },
+  {
+   "cycle": 8,
+   "NMEP": 12.4323,
+   "VE_trapped_fresh": 1.0705014892102958
+  },
+  {
+   "cycle": 9,
+   "NMEP": 12.4328,
+   "VE_trapped_fresh": 1.0704488895609165
+  },
+  {
+   "cycle": 10,
+   "NMEP": 12.4323,
+   "VE_trapped_fresh": 1.0703634151306751
+  },
+  {
+   "cycle": 11,
+   "NMEP": 12.4327,
+   "VE_trapped_fresh": 1.070277940700434
+  },
+  {
+   "cycle": 12,
+   "NMEP": 12.4346,
+   "VE_trapped_fresh": 1.070128908360526
+  },
+  {
+   "cycle": 13,
+   "NMEP": 12.4361,
+   "VE_trapped_fresh": 1.0699338513274115
+  },
+  {
+   "cycle": 14,
+   "NMEP": 12.4353,
+   "VE_trapped_fresh": 1.0696752363846302
+  },
+  {
+   "cycle": 15,
+   "NMEP": 12.4359,
+   "VE_trapped_fresh": 1.0694494962227108
+  },
+  {
+   "cycle": 16,
+   "NMEP": 12.4342,
+   "VE_trapped_fresh": 1.069201839540217
+  },
+  {
+   "cycle": 17,
+   "NMEP": 12.4346,
+   "VE_trapped_fresh": 1.068987057638585
+  },
+  {
+   "cycle": 18,
+   "NMEP": 12.432,
+   "VE_trapped_fresh": 1.0688183004301597
+  },
+  {
+   "cycle": 19,
+   "NMEP": 12.4315,
+   "VE_trapped_fresh": 1.0687481675643207
+  },
+  {
+   "cycle": 20,
+   "NMEP": 12.431,
+   "VE_trapped_fresh": 1.0687131011314013
+  },
+  {
+   "cycle": 21,
+   "NMEP": 12.4307,
+   "VE_trapped_fresh": 1.0686561181779073
+  },
+  {
+   "cycle": 22,
+   "NMEP": 12.4305,
+   "VE_trapped_fresh": 1.0686714597423095
+  },
+  {
+   "cycle": 23,
+   "NMEP": 12.4315,
+   "VE_trapped_fresh": 1.068669268090252
+  },
+  {
+   "cycle": 24,
+   "NMEP": 12.4292,
+   "VE_trapped_fresh": 1.0686868013067117
+  },
+  {
+   "cycle": 25,
+   "NMEP": 12.431,
+   "VE_trapped_fresh": 1.0687372093040335
+  },
+  {
+   "cycle": 26,
+   "NMEP": 12.4328,
+   "VE_trapped_fresh": 1.0687415926081485
+  },
+  {
+   "cycle": 27,
+   "NMEP": 12.4317,
+   "VE_trapped_fresh": 1.0687569341725507
+  },
+  {
+   "cycle": 28,
+   "NMEP": 12.4319,
+   "VE_trapped_fresh": 1.0687459759122633
+  },
+  {
+   "cycle": 29,
+   "NMEP": 12.4318,
+   "VE_trapped_fresh": 1.0687569341725507
+  },
+  {
+   "cycle": 30,
+   "NMEP": 12.4313,
+   "VE_trapped_fresh": 1.0687700840848955
+  }
+ ]
+}
