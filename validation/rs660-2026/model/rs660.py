@@ -237,6 +237,50 @@ def sound(argv):
         json.dump(results, f, indent=1)
 
 
+def sweep(argv):
+    """Header-length sensitivity at the 5460 rpm hold, run with the same settings as the main runs (64 kHz rows,
+    72 cycles): both headers' second sections moved together by -50, +50 and +100 mm, everything else unchanged.
+    Writes sweep.json and prints the table NOTES.md quotes (RMS against the recording over orders 1-7, and the
+    relative levels of orders 1-3)."""
+    with open(os.path.join(HERE, "calibration.json")) as f:
+        cal = json.load(f)
+    with open(REC_JSON) as f:
+        rec = json.load(f)
+    name0, rpm, key = POINTS[1]
+    jobs = []
+    for d_mm in (-50, 50, 100):
+        spec = build_spec(cal[name0]["p_map_bar"])
+        for pc in spec["exhaust"]["per_cyl"]:
+            pc[1]["L"] += d_mm / 1000.0
+        spec["exhaust"]["segs"][1]["L"] += d_mm / 1000.0
+        nm = "len%+d_%d" % (d_mm, rpm)
+        jobs.append((nm, spec, run_settings(rpm, 72, nm), d_mm))
+    with ThreadPoolExecutor(max_workers=2) as ex:
+        res = list(ex.map(lambda j: run_one(j[0], j[1], j[2], "--rerun" in argv), jobs))
+    lev = rec[key]["orders_dB_rel"]
+    rows = []
+    for (nm, spec, rs, d_mm), (folder, model, s) in zip(jobs, res):
+        txt = open(os.path.join(folder, nm + "INS.DAT")).read()
+        outs = make_wam.read_ins(txt, keep_cycles=2, model=model)["outlets"]
+        srcs = []
+        for pipe, sc in zip(outs, SOURCES):
+            ins = make_wam.read_ins(txt, pipe=pipe, keep_cycles=2, model=model)
+            srcs.append({"ins": ins, "r": sc["r"], "theta_deg": sc["theta_deg"], "d_tip_m": model["pipes"][pipe - 1]["secs"][-1][1]})
+        r = wam_sound.synthesize_multi(srcs, rpm, ground=True, orders_max=12)
+        orders = np.array(r["orders"])
+        meas = np.array([lev.get("%.1f" % o, np.nan) for o in orders], float)
+        min_order = max(0.5, math.ceil(2 * F_MIN_HZ / (rpm / 60.0)) / 2.0)
+        cmp_ = order_compare.compare(meas, np.array(r["spl_dB"]), orders, min_order=min_order, max_order=7.0)
+        rel = {("%.1f" % o): r["dB_rel"][list(orders).index(o)] for o in (1.0, 1.5, 2.0, 2.5, 3.0)}
+        row = {"header_change_mm": d_mm, "rms_dB": cmp_["rms_delta_dB"], "model_dB_rel": rel, "finished": s["finished"],
+               "tail_flow_vs_intake": s["mass_balance_pipes"], "cycles": rs["cycles"]}
+        rows.append(row)
+        print("%+4d mm: RMS %.1f dB | orders 1 %.1f  1.5 %.1f  2 %.1f  2.5 %.1f  3 %.1f | finished %s, tail flow %+.1f %%" % (
+            d_mm, row["rms_dB"], rel["1.0"], rel["1.5"], rel["2.0"], rel["2.5"], rel["3.0"], s["finished"], 100 * s["mass_balance_pipes"]))
+    with open(os.path.join(HERE, "sweep.json"), "w") as f:
+        json.dump(rows, f, indent=1)
+
+
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "all"
     if mode in ("calib", "all"):
@@ -245,3 +289,5 @@ if __name__ == "__main__":
         run(sys.argv)
     if mode in ("sound", "all"):
         sound(sys.argv)
+    if mode == "sweep":
+        sweep(sys.argv)
