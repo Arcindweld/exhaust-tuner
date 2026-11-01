@@ -130,6 +130,31 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   Preset agent: 29 presets violate hp*5252/hpRpm <= tq (list SP/presets/inconsistent.json), sourcing corrections.
   Outback rerun at 64 kHz / 28-48 cycles (the stored results were from unsettled runs; STATUS lines on Outback order
   RMS and "high orders moved < 1 dB" are stale until it finishes).
+- engine-sim audit fixes (Arcindweld/engine-sim branch exhaust-1d-coupling, PR to main): the port <-> primary
+  coupling did not converge (I4 at 6000 rpm: 148.7 / 183.6 / 118.5 / -6.7 N m on 4 / 2 / 1 / 0.5 cm cells). Now a
+  valve-type characteristic boundary at the primary inlet, solved every pipe sub-step, network advanced every fluid
+  sub-step, port volume by the midpoint rule; junction receiving ends take the mixed state; port energy/momentum
+  exact; new tests (Sod/blowdown vs exact Riemann, junction temperature front, port energy, steady orifice flow,
+  coupled-port convergence + chatter, 4 cm vs 2 cm tuning agreement); CI runs the 1-D tests and a 1-D smoke run.
+  Result: I4 at 6000 rpm 141.2 / 138.5 / 137.5 / 136.9 N m on 4 / 2 / 1 / 0.5 cm and 137.8 / 138.5 / 139.5 at
+  15 / 20 / 40 kHz (random-burn seeds spread 3-3.5 N m); 4 vs 2 cm within 3.7 % over 4000-7800 rpm; legacy
+  bit-identical. Cost 5.8x legacy (LS V8, 10 kHz, 4 cm: 4.14 vs 0.71 CPU s per simulated s; was 1.85 = 2.6x before,
+  not converged); 2 cm cells cost 1.1-1.5x the 4 cm time. Next: pipe interiors at their own CFL step while the
+  ports keep the fluid sub-step (the 4 cm runs take 8 steps per simulation step only because the ports need the
+  fluid sub-step; CFL alone would allow about 4.6 at 10 kHz, from the 2 cm run's 9.3) - build, measure, revalidate.
+  Mechanism of the 4-1 low-rpm hole traced (neighbour's blowdown at 1.5 bar at overlap TDC, exhaust pushed into
+  the lumped intake runner).
+  After the PR merges and its Windows build passes: tools/publish_engine_sim.sh (bundled engine-sim refresh).
+- Exporter (61b6778): fork-target files get simulation_frequency = max(donor, 3 x redline rounded up to 5 kHz)
+  (engine-sim needs <= ~2 deg of crank per step: the I4 lost a third of its torque at 3.6 deg/step in both
+  models); the page's exporter copy had drifted from enginesim/export_es.js (no exhaust.grouping) - synced, and
+  es_ui.js now checks they stay identical.
+- Presets (b3f307d): 2.5 TFSI 400 PS (power 5,850-7,000 / torque 1,700-5,850 rpm, Audi) and 2015 RS 3 8V
+  (5,550-6,800 / 1,625-5,550) were 8.3 % / 2.7 % inconsistent; Hayabusa 2008-20 now Suzuki's crank figures
+  (194 hp @ 9,500, 155 N m @ 7,200). tests/presets_ui.js: hp*5252/hpRpm <= 1.03 tq for all 1033 presets.
+- Outback rerun STOPPED at the 2 h background limit (only idle_735 and hold_1915 had started, under heavy CPU
+  contention); calibration reproduced identically. To redo job by job: SP/outback_job.py NAME (two at a time, each
+  its own background task), then outback04.py run (summary only, skips finished jobs) and outback04.py sound.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
