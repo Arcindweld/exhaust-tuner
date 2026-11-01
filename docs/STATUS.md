@@ -101,7 +101,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   prints status lines (PID found or not, rows seen, drift each minute, "no longer running"); the program test prints
   the page's progress and stops at once on a host error; windows.yml uploads the runs folder (artifact desk-runs) when
   it fails. Replaying the watchdog on the Windows postProcessing files gives the same stop at iteration 1620 as on
-  Linux, so the solver output is right and the watchdog did not see or act on it during the run. Next build shows why.
+  Linux, so the solver output is right and the watchdog did not see or act on it during the run. The second build's
+  logs: log.watch and log.report EMPTY (not even the watchdog's start-up line) and the report stopped by the new
+  10-min limit, so both Python processes hung at start-up. Cause (as far as the evidence goes): they inherited the
+  host's stdin, the pipe the host's request loop keeps a synchronous ReadLine pending on, and Python's start-up
+  fstat of fd 0 (GetFileInformationByHandle) waits for that read on Windows; OpenFOAM's and OpenWAM's C runtimes
+  only call GetFileType and were not held. The Core test passes (no pending read there), so did Linux. Fix: the
+  runner gives every child its own stdin pipe, closed at once.
 - Program CFD: Core/OpenFoamRunner.cs (Allrun without bash; watchdog = the case's intake_report.py --watch PID; 3-D
   designs generated with the bundled Python first; checkMesh aspect-ratio-only flags are a note), request
   runOpenFOAM, page "Run in OpenFOAM on this PC" / Stop in the intake CFD section. windows.yml bundles the newest

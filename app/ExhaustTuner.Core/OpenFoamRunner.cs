@@ -114,6 +114,7 @@ public sealed class OpenFoamRunner
                 watcher.OutputDataReceived += (_, e) => WatchLine(e.Data);
                 watcher.ErrorDataReceived += (_, e) => WatchLine(e.Data);
                 watcher.Start();
+                watcher.StandardInput.Close();
                 watcher.BeginOutputReadLine();
                 watcher.BeginErrorReadLine();
             });
@@ -155,7 +156,12 @@ public sealed class OpenFoamRunner
 
     ProcessStartInfo Psi(string exe, IEnumerable<string> args, string dir)
     {
-        var psi = new ProcessStartInfo(exe) { WorkingDirectory = dir, UseShellExecute = false, CreateNoWindow = true };
+        // stdin is a pipe of its own, closed at once: a child that inherits the host's stdin shares the file object the
+        // host's request loop keeps a synchronous read pending on, and on Windows Python's start-up fstat of fd 0
+        // (GetFileInformationByHandle) waits for that read to complete, so the watchdog and the report hung until the
+        // page next sent a request (the program test: watchdog silent, report never returning)
+        var psi = new ProcessStartInfo(exe) { WorkingDirectory = dir, UseShellExecute = false, CreateNoWindow = true,
+                                              RedirectStandardInput = true };
         foreach (var a in args) psi.ArgumentList.Add(a);
         // what OpenFOAM's etc/bashrc would set that the programs read: etc/ files come from WM_PROJECT_DIR
         psi.Environment["WM_PROJECT"] = "OpenFOAM";
@@ -210,6 +216,7 @@ public sealed class OpenFoamRunner
         p.OutputDataReceived += (_, e) => Line(e.Data);
         p.ErrorDataReceived += (_, e) => Line(e.Data);
         p.Start();
+        p.StandardInput.Close();
         p.BeginOutputReadLine();
         p.BeginErrorReadLine();
         started?.Invoke(p.Id);
