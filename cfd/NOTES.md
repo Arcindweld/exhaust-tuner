@@ -360,6 +360,89 @@ friction against Colebrook / McKeon) and `run_validation.py entrance`
 but have not been run here; the tables appear automatically when their
 results files exist.
 
+### (e) Why the 2-D cases are a cyclic sector, not a wedge (generator 1.1.0, 2026-11-01)
+
+**What was wrong.** Until generator 1.0.0 the 2-D cases were a 5° wedge with
+OpenFOAM `wedge` patches for sides. On the Linux build that made every
+reference and validation run here (conda-forge `openfoam 2412`, build
+h946d6a9_1), those cases carry a spurious pressure gradient: fully developed
+pipe flow needs 1.25× the pressure gradient that its own wall shear stress
+balances.
+
+| check, on the conda-forge Linux build | wedge sides | rotational cyclic sides |
+|---|---|---|
+| laminar pipe, Re 483 (`diag/lam_pipe.py`): developed Δp/Δx over Hagen–Poiseuille | 1.2515 | 1.0078 |
+| turbulent pipe, Re 2 × 10⁵, k-ω SST, rhoSimpleFoam: f from Δp (gas acceleration taken off) / f from τw | 0.01841 / 0.01472 = 1.251 | 0.01465 / 0.01443 = 1.015 |
+| same turbulent pipe: mass-averaged total temperature at 50–80 D (inflow 298.15 K) | 298.6–299.3 K | 298.15–298.18 K |
+
+The wall shear stress was right on the wedge too (laminar: Hagen–Poiseuille;
+turbulent: 6 % under Colebrook, the usual k-ω SST result), so the extra was
+a pressure gradient with nothing to balance it, and the work it did showed up
+as heat. On that build's wedge mesh icoFoam (no explicit stress term) is
+exact, and so is a SIMPLE loop built against the same libraries that leaves
+out the explicit part of the viscous stress, −∇·(ν_eff dev2((∇U)ᵀ)) (1.0023);
+with that term it is 1.25 again, carried by an axial odd-even velocity mode.
+
+**Only that build.** The same laminar-pipe case on the other builds
+(`openfoam-diag.yml`, run 41285699898):
+
+| build | wedge sides | rotational cyclic sides |
+|---|---|---|
+| conda-forge `openfoam 2412` (Linux, used here) | 1.2515 | 1.0078 |
+| our MinGW build of ESI's v2412 source (Windows, `tools/openfoam`) | 1.0023 | 1.0078 |
+| ESI's own Ubuntu package (`openfoam2412-default`, Build _b8cf4d35-20260127) | 1.0023 | 1.0078 |
+
+So the wedge results of the Windows builds were the right ones all along: on
+the square-cut pipe (6000 iterations, tract end) our Windows build on wedge
+patches gave K 0.3779 and Cd 0.7846 where the conda-forge build gave 0.3994
+and 0.7745, and the conda-forge build itself gives 0.3778 and 0.7846 on the
+cyclic sector (same flow scale 72). That 5–9 % "Windows K error" is what
+started the search for a fault in the Windows build (and before that, in
+ESI's Windows package): there was none. What the conda-forge build does
+differently on wedge patches is not known; it applies no source patches
+(its recipe only appends conda's flags to wmake's: `-fvisibility-inlines-hidden
+-march=nocona -mtune=haswell -ftree-vectorize -fno-plt -O2 -ffunction-sections`,
+linked with `-Wl,--gc-sections -Wl,--as-needed`; GCC 13.3). Until that is
+found, do not trust wedge-patch cases from that build, and keep the third
+build (ESI's Ubuntu package, `esi_linux` job of `openfoam-diag.yml`) in CI.
+
+**The cyclic sector.** The mesh is the same 5° sector; its two sides are a
+rotational cyclic pair (`transform rotational; rotationAxis (1 0 0)`), so the
+solver sees an ordinary 3-D mesh one cell thick whose sides are coupled, and
+no wedge code is involved. checkMesh: the coupled points match to
+4 × 10⁻¹² m. With it the three builds agree: square-cut pipe, generator
+1.1.0, 6000 iterations, every plane quantity — our Windows build within
+0.021 % (compressible) and 0.051 % (incompressible) of the conda-forge Linux
+reference, ESI's Ubuntu package within 0.016 % and 0.051 %, and ESI's Ubuntu
+package on wedge sides within 0.005 % of the cyclic result. The cyclic
+sector's 0.8 % on the laminar pipe (against 0.2 % for a correct wedge) is
+discretisation, the same on every build.
+
+Generator 1.1.0 also scales the sector's flow to the full circle by its true
+area: the sector's outer edges are straight chords, so it holds
+sin(5°)/(5° in rad) = 0.99873 of a true 5° sector, and the flow scale is
+2π / sin 5° = 72.091 instead of 360/5 = 72. With 72 the solved velocity was
+0.13 % above the reported bulk velocity, K 0.25 % high and Cd 0.13 % low.
+
+**Earlier conclusions this overturns.**
+- "ESI's Windows package misses Linux v2412 by 6–9 % on K" (STATUS, the
+  validation scripts): the Linux reference was the one in error. ESI's
+  package still cannot run rhoSimpleFoam ("failed lookup of thermo:psi",
+  patch 1 in `tools/openfoam/patch_v2412_windows.sh`), so our own build stays.
+- The -O2 rebuild (patch 4) changed nothing; what it chased was this.
+- Every validation figure from the wedge cases (§4 (a)–(c), the summary at
+  the top, the page's Method notes) carried the artifact; they are rerun on
+  the cyclic sector.
+- One Windows diagnostic round (run 41227130686) was compared with Linux
+  variants generated before the incompressible cases moved from SIMPLEC to
+  SIMPLE, so every difference in that comparison was the settings change.
+  Redone with the identical case files (`diag/linux_rerun.sh`): with ν ≈ 0
+  the two builds agree to every digit, wedge variants part at iteration 2 by
+  about 3 × 10⁻⁴, cyclic ones at iteration 3 by about 10⁻⁵.
+- `run_validation.py friction` said it took the momentum-flux change of the
+  accelerating gas off the pressure drop but did not (5.6 % of the drop at
+  Re 2 × 10⁵).
+
 ## 5. Limitations
 
 - **The flow is steady RANS.** An engine intake is pulsating. Wave action
