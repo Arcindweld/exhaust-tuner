@@ -3,7 +3,8 @@ name: OpenFOAM for Windows
 # OpenFOAM v2412 for 64-bit Windows, built from ESI's own source release with MinGW-w64 on Linux (ESI's route for
 # its Windows packages), serial (no MPI), with one small patch (tools/openfoam/patch_v2412_windows.sh). Then the
 # square-cut-pipe validation cases run with it on Windows and are compared plane by plane with the Linux v2412 runs
-# of the same cases (cfd/validation/reference). ESI's Windows package missed those by 6-9 % on K.
+# of the same cases (cfd/validation/reference). The validate job records the generator version and the reference
+# files it was checked against (artifact openfoam-validated); windows.yml bundles a build only when they match.
 #
 # The compiler cache keys carry the optimisation level (-O2, patch 4), so a change of flags starts a fresh cache.
 # Compiling takes hours on one 2-core runner, so the first run splits the compile work over four jobs (objects
@@ -12,7 +13,10 @@ name: OpenFOAM for Windows
 on:
   push:
     branches: [ "windows-app" ]
-    paths: [ ".github/workflows/openfoam-windows.yml", "tools/openfoam/**" ]
+    # the validate job depends on the generator and on the Linux references too, so a change to either re-validates
+    # (with a full compiler cache the build job only links and packages: ~20 minutes in all)
+    paths: [ ".github/workflows/openfoam-windows.yml", "tools/openfoam/**", "cfd/intake_cfd.py", "cfd/tests/pp.json",
+             "cfd/tests/pp_inc.json", "cfd/validation/reference/**" ]
   workflow_dispatch:
 
 concurrency:
@@ -142,6 +146,24 @@ jobs:
           Expand-Archive ofzip/openfoam-v2412-win64.zip -DestinationPath C:\ET
           "{0:N0} MB unpacked" -f ((Get-ChildItem C:\ET -Recurse -File | Measure-Object Length -Sum).Sum / 1MB)
           ./tools/openfoam/validate_windows.ps1 -OF C:\ET\OpenFOAM-v2412 -Repo $PWD
+      # what this validation covered: windows.yml bundles the build only for a checkout with the same generator
+      # version and the same reference files
+      - name: Record what was validated
+        shell: pwsh
+        run: |
+          $gen = python -c "import sys; sys.path.insert(0, 'cfd'); import intake_cfd; print(intake_cfd.VERSION)"
+          $refs = [ordered]@{}
+          foreach ($f in Get-ChildItem cfd/validation/reference/*_6000it_results.json | Sort-Object Name) {
+            $refs[$f.Name] = (Get-FileHash $f -Algorithm SHA256).Hash.ToLower()
+          }
+          [ordered]@{ commit = "${{ github.sha }}"; run = "${{ github.run_id }}"; generator = $gen; references = $refs } |
+            ConvertTo-Json | Set-Content validated.json
+          Get-Content validated.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openfoam-validated
+          path: validated.json
+          retention-days: 90
       - uses: actions/upload-artifact@v4
         if: always()
         with:

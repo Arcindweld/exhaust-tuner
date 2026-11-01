@@ -23,6 +23,17 @@ foreach ($d in Get-ChildItem (Join-Path $Out "var") -Directory) {
   Select-String -Path log.simpleFoam -Pattern "^Time = |Solving for|^Build|non-dominant|relative non-dominance" | ForEach-Object { $_.Line }
   Pop-Location
 }
+# known answer: laminar developed pipe flow, the 5 deg sector with wedge sides and with cyclic sides, 3000 iterations
+# each, pressure gradient against Hagen-Poiseuille (lam_pipe.py; Linux build of the references: 1.25 and 1.008)
+foreach ($s in "wedge", "cyclic") {
+  $c = Join-Path $Out "lam_pipe_$s"
+  python "$Repo\cfd\validation\diag\lam_pipe.py" make $c $s
+  Push-Location $c
+  blockMesh *> log.blockMesh; if ($LASTEXITCODE) { throw "blockMesh failed on lam_pipe_$s" }
+  simpleFoam *> log.simpleFoam; if ($LASTEXITCODE) { throw "simpleFoam failed on lam_pipe_$s" }
+  Pop-Location
+  "lam_pipe_${s}: " + (python "$Repo\cfd\validation\diag\lam_pipe.py" ratio $c)
+}
 # geometry and gradients from the (identical) iteration-1 fields of the laminar variant
 Push-Location (Join-Path $Out "var\laminar")
 simpleFoam -postProcess -time 1 -func writeCellCentres *> log.pp_cc

@@ -8,7 +8,8 @@ Pure Python 3 (standard library only), so it can ship inside a Fusion 360
 add-in (Windows) or behind a web page.  It takes one design dictionary and
 writes a complete, ready-to-run OpenFOAM (ESI/openfoam.com v2412) case:
 
-    mesh        blockMesh (2-D axisymmetric wedge) for straight parametric
+    mesh        blockMesh (2-D axisymmetric: a 5 deg sector whose two sides
+                are a rotational cyclic pair) for straight parametric
                 tracts, or blockMesh background + snappyHexMesh (3-D) for
                 tracts with a bend or for an STL exported from CAD.
                 An open inlet always gets an atmosphere/plenum region in
@@ -119,7 +120,9 @@ import struct
 import sys
 
 GENERATOR = "intake_cfd.py"
-VERSION = "1.0.0"
+VERSION = "1.1.0"      # 1.1.0 (2026-11-01): 2-D sector with rotational cyclic sides instead of wedge patches;
+#                         flow scale from the sector's true (flat-chord) area; incompressible SIMPLE (was SIMPLEC);
+#                         a finer 3-D base cell for mesh level 'fine'; Re from the smallest section's own diameter
 FOAM_VERSION = "v2412"
 
 # --------------------------------------------------------------------------
@@ -145,19 +148,27 @@ MESH_LEVELS = {
     #            q_up: growth away from lip/body, far: far-field cell / R_ff
     #            entry: axial cell at tube entry / D, q_ax: axial growth,
     #            tube: max axial cell / D, bell: wall-tangential cell on the
-    #            bellmouth / D, q_cap: growth around the lip
+    #            bellmouth / D, q_cap: growth around the lip; 3-D: background cell D/bg3d refined
+    #            level3d times (fine = medium's levels on a 1.5x finer background, so it is a real check)
     "coarse": dict(q_r=1.15, core=1 / 12., q_up=1.18, far=1 / 10., entry=1 / 50.,
                    q_ax=1.12, tube=1 / 10., bell=1 / 50., q_cap=1.15, out=1 / 4.,
-                   level3d=2),
+                   level3d=2, bg3d=2.0),
     "medium": dict(q_r=1.10, core=1 / 18., q_up=1.13, far=1 / 14., entry=1 / 75.,
                    q_ax=1.08, tube=1 / 15., bell=1 / 75., q_cap=1.10, out=1 / 6.,
-                   level3d=3),
+                   level3d=3, bg3d=2.0),
     "fine": dict(q_r=1.07, core=1 / 27., q_up=1.09, far=1 / 20., entry=1 / 110.,
                  q_ax=1.055, tube=1 / 22., bell=1 / 110., q_cap=1.07, out=1 / 9.,
-                 level3d=3),
+                 level3d=3, bg3d=3.0),
 }
 
-WEDGE_HALF_ANGLE_DEG = 2.5
+# 2-D axisymmetric cases are a thin sector of the 3-D tract (half-angle below, 5 deg in all) whose two sides are a
+# rotational cyclic pair, not OpenFOAM wedge patches. On wedge patches the Linux build of the reference runs
+# (conda-forge openfoam 2412) gives fully developed pipe flow 1.25x the pressure gradient that its wall shear stress
+# balances (laminar against Hagen-Poiseuille, and turbulent at Re 2e5 alike): there the explicit part of the viscous
+# stress, -div(nuEff dev2(T(grad U))), which simpleFoam/rhoSimpleFoam carry, sustains an axial odd-even velocity mode,
+# and the Windows builds gave a different answer on the same wedge mesh. On the cyclic sector the pipe comes out right
+# (1.008x laminar, 1.015x turbulent). cfd/NOTES.md section 4 (e).
+SECTOR_HALF_ANGLE_DEG = 2.5
 RAMP_ITER = 300          # outlet condition ramp for a smooth start-up
 
 
@@ -785,6 +796,13 @@ def derive(d):
         if g["bends"]:
             peak_factor *= 1.15
     der["D_ref"], der["A_min"], der["peak_factor"] = Dref, Amin, peak_factor
+    # Reynolds number (wall-cell sizing, Colebrook f) at the smallest section, from that section's own diameter:
+    # the bulk velocity below is the one at Amin (before 1.1.0 it was paired with Dref, e.g. an exhaust part's
+    # outlet diameter with its inlet velocity)
+    if g["kind"] == "stl" and g.get("inlets") and Amin >= g["A_in_total"] * (1 - 1e-9):
+        der["D_Re"] = math.sqrt(4.0 * Amin / (math.pi * len(g["inlets"])))     # per inlet pipe
+    else:
+        der["D_Re"] = math.sqrt(4.0 * Amin / math.pi)
     # operating point
     if "mass_flow_kg_s" in op:
         mode = "mass_flow"
@@ -849,7 +867,7 @@ def derive(d):
                           "generation refused" % M_peak)
     # Reynolds number, friction velocity, wall cell
     rho_s = p0 / (R_AIR * T0) * (T_s / T0) ** (1 / (GAMMA - 1))
-    Re = rho_s * U_bulk * Dref / mu_air(T_s)
+    Re = rho_s * U_bulk * der["D_Re"] / mu_air(T_s)
     f = friction_factor_colebrook(Re)
     utau_bulk = U_bulk * math.sqrt(f / 8.0)
     utau_peak = der["U_peak"] * math.sqrt(f / 8.0)
@@ -873,10 +891,11 @@ def derive(d):
 
 
 # --------------------------------------------------------------------------
-# 2-D axisymmetric wedge mesh (blockMesh)
+# 2-D axisymmetric sector mesh (blockMesh): one cell thick in the
+# circumferential direction, the two sides a rotational cyclic pair
 # --------------------------------------------------------------------------
-class Wedge:
-    def __init__(self, half_angle_deg=WEDGE_HALF_ANGLE_DEG):
+class Sector:
+    def __init__(self, half_angle_deg=SECTOR_HALF_ANGLE_DEG):
         self.th = math.radians(half_angle_deg)
         self.pts = []
         self.ids = {}
@@ -957,7 +976,7 @@ class Wedge:
         return sum(bl[2].n * bl[4].n for bl in self.blocks)
 
     def write(self):
-        L = ["scale 1;", "", "mergeType points;   // wedge: merge collapsed axis points", "", "vertices", "("]
+        L = ["scale 1;", "", "mergeType points;   // sector: merge the collapsed points on the axis", "", "vertices", "("]
         for i, p in enumerate(self.pts):
             L.append("    %s  // %d" % (_vec(p), i))
         L += [");", "", "blocks", "("]
@@ -994,10 +1013,14 @@ class Wedge:
                 L.append("            (%d %d %d %d)" % f)
             L.append("        );")
             L.append("    }")
-        for nm, faces in (("front", front_faces), ("back", back_faces)):
+        for nm, other, faces in (("front", "back", front_faces), ("back", "front", back_faces)):
             L.append("    %s" % nm)
             L.append("    {")
-            L.append("        type wedge;")
+            L.append("        type cyclic;")
+            L.append("        neighbourPatch %s;" % other)
+            L.append("        transform rotational;")
+            L.append("        rotationAxis (1 0 0);")
+            L.append("        rotationCentre (0 0 0);")
             L.append("        faces")
             L.append("        (")
             for f in faces:
@@ -1110,7 +1133,7 @@ def _mapped_pair(wall, off, sizes_on_off):
 
 
 def build_axisym_mesh(d, der):
-    """Body-fitted multi-block wedge mesh.
+    """Body-fitted multi-block axisymmetric sector mesh.
 
     Topology (meridional x-r plane):
       * a wall layer (C-grid) of thickness delta follows every wall of the
@@ -1120,7 +1143,7 @@ def build_axisym_mesh(d, der):
         a free-standing inlet, box for a flange-mounted one) surrounds the
         mouth;  block corners with non-90-degree angles only occur on the
         layer's outer edge, never on a wall.
-    Returns (Wedge, info dict)."""
+    Returns (Sector, info dict)."""
     g = d["geometry"]
     prof = g["profile"]
     lv = dict(MESH_LEVELS[d["mesh_level"]])
@@ -1133,7 +1156,7 @@ def build_axisym_mesh(d, der):
     stations = tract_stations(g, prof)
     free = g["mount"] == "free"
     delta = 0.15 * R
-    W = Wedge()
+    W = Sector()
     inner = prof.inner
     iM = prof.iM
     M = inner[iM]
@@ -1317,7 +1340,7 @@ def build_axisym_mesh(d, der):
     W.face("outlet", prev_o, prev_w)
     info = dict(n_r=n_L + n_c, n_layer=n_L, n_up=n_up, Rff=Rff, h_wall=hw, delta=delta, stations=stations,
                 ncells=W.ncells(), protrusion=g["protrusion_used"], free=free, profile=prof.label,
-                wedge_deg=2 * WEDGE_HALF_ANGLE_DEG)
+                sector_deg=2 * SECTOR_HALF_ANGLE_DEG)
     return W, info
 
 
@@ -1791,7 +1814,7 @@ def prepare_exhaust_geometry(g):
     for nm, (pt, nn) in g["planes3d"].items():
         pl[nm] = (pt, nn, None, 0.75 * Do)
     g["planes_exhaust"] = pl
-    # mass-flow split between the inlets (equal by area unless given)
+    # mass-flow split between the inlets (equal shares, 1/n each, unless operating_point.inlet_split is given)
     sp = g.get("inlet_split")
     if sp:
         missing = [i["name"] for i in inlets if i["name"] not in sp]
@@ -1837,7 +1860,7 @@ def _bc_block(entries):
 
 def field_files(cw, d, der, patches):
     """Write 0/ fields. patches: dict name -> role in {'atmosphere','outlet',
-    'wall','wedge'}."""
+    'wall','cyclic'}."""
     comp = der["compressible"]
     p0, T0 = der["p_amb"], der["T_amb"]
     k_in, om_in = der["k_in"], der["omega_in"]
@@ -1850,14 +1873,11 @@ def field_files(cw, d, der, patches):
         % (100 * der["I_in"], der["U_bulk"], k_in, der["nut_ratio_in"], om_in),
     ]
 
-    def wedge_or_empty(role):
-        return "type wedge;" if role == "wedge" else "type empty;"
-
     def make(name, cls, dims, internal, rules, extra_prov):
         ents = []
         for pn, role in patches.items():
-            if role == "wedge":
-                ents.append((pn, "type wedge;"))
+            if role == "cyclic":
+                ents.append((pn, "type cyclic;"))
             else:
                 rule = rules[role]
                 ents.append((pn, rule(pn) if callable(rule) else rule))
@@ -1878,7 +1898,7 @@ def field_files(cw, d, der, patches):
         out_p = "type            zeroGradient;"
         prov_out = ["outlet: imposed mass flow %.6g kg/s%s (flowRateOutletVelocity), ramped linearly from 0 over "
                     "the first %d iterations for a smooth start; pressure zeroGradient"
-                    % (mdot, " (x 1/%.6g for the wedge sector)" % fs if fs != 1 else "", ramp)]
+                    % (mdot, " (x 1/%.6g for the 2-D sector)" % fs if fs != 1 else "", ramp)]
     else:
         out_U = "type            pressureInletOutletVelocity;\nvalue           uniform (0 0 0);"
         pout = der["p_out"] if comp else (der["p_out"] - p0) / rho
@@ -2034,7 +2054,7 @@ RAS
         "k-omega SST (Menter 1994/2003): blends k-omega near walls with k-epsilon in the free stream;",
         "the shear-stress limiter makes it the standard RANS choice for adverse pressure",
         "gradients and separation (sharp lips, vena contracta, diffusers, bends).",
-        "Estimated tract Re = %.3g (D = %.2f mm, U_bulk = %.2f m/s)" % (der["Re"], der["D_ref"] * 1e3, der["U_bulk"])],
+        "Estimated tract Re = %.3g (D = %.2f mm, U_bulk = %.2f m/s)" % (der["Re"], der["D_Re"] * 1e3, der["U_bulk"])],
         location="constant")
 
 
@@ -2043,7 +2063,7 @@ def numerics_files(cw, d, der, is3d, monitors, nonortho):
     if is3d:
         psolver = "solver          GAMG;\n        smoother        GaussSeidel;"
     else:
-        # 2-D wedge meshes are small but strongly graded (y+ ~ 1, sharp-edge
+        # 2-D sector meshes are small but strongly graded (y+ ~ 1, sharp-edge
         # fans); a Krylov solver converges far more reliably than GAMG here
         psolver = "solver          PCG;\n        preconditioner  DIC;"
     lim = "limited corrected 0.5" if is3d else "corrected"
@@ -2105,7 +2125,7 @@ wallDist
         "second-order bounded linear-upwind convection for U%s; limitedLinear (TVD) for k, omega" %
         (" and enthalpy" if comp else ""),
         "cell-limited gradients for robustness at sharp lips",
-        "laplacian/snGrad: %s (%s mesh)" % (lim, "snappyHexMesh 3-D" if is3d else "structured wedge")])
+        "laplacian/snGrad: %s (%s mesh)" % (lim, "snappyHexMesh 3-D" if is3d else "structured 2-D sector")])
     if comp:
         sol = """solvers
 {
@@ -2205,11 +2225,17 @@ relaxationFactors
 }
 """ % nonortho
         sol = sol.replace("@PSOLVER@", psolver)
+    # what the results depend on besides the mesh, recorded in case_info.json and results.json, and compared
+    # against a reference run's record by tools/openfoam/compare_results.py
+    der["numerics"] = dict(algorithm="SIMPLE",
+                           relaxation="p 0.3 / rho 0.05 / U, h, k, omega 0.7" if comp else "p 0.3 / U, k, omega 0.7",
+                           p_solver="GAMG" if is3d else "PCG/DIC",
+                           mesh="3-D snappyHexMesh" if is3d else "2-D sector, rotational cyclic sides")
     cw.foam("system/fvSolution", "dictionary", "fvSolution", sol, [
         "solver %s: %s" % (der["solver"], der["solver_why"]),
         ("SIMPLE, relaxation p 0.3 / rho 0.05 / U, h, k, omega 0.7 (robust for separated compressible flow)"
          if comp else "SIMPLE, relaxation p 0.3 / U, k, omega 0.7") +
-        "; p solver: %s" % ("GAMG (3-D)" if is3d else "PCG/DIC (2-D wedge)"),
+        "; p solver: %s" % ("GAMG (3-D)" if is3d else "PCG/DIC (2-D sector)"),
         "transonic formulation: %s (estimated peak Mach %.3f)" % ("on" if der["transonic"] else "off", der["M_peak"]),
         "residual targets are a secondary stop; the primary stop is the engineering-quantity",
         "watchdog run by Allrun (see controlDict header) plus the iteration cap"])
@@ -2393,7 +2419,7 @@ G, R = INFO["gamma"], INFO["R_air"]
 P0, T0 = INFO["p_amb"], INFO["T_amb"]
 COMP = INFO["compressible"]
 RHO_INC = INFO["rho_amb"]
-SCALE = INFO["flow_scale"]          # 360/wedge angle for the 2-D wedge, 1 in 3-D
+SCALE = INFO["flow_scale"]          # 360/sector angle for the 2-D sector, 1 in 3-D
 
 
 def ideal_flux(p0, T0, p):
@@ -2602,7 +2628,8 @@ def dp_reference():
 
 
 def main():
-    out = {"case": INFO["name"], "solver": INFO["solver"], "notes": [], "kind": INFO.get("kind", "intake")}
+    out = {"case": INFO["name"], "solver": INFO["solver"], "notes": [], "kind": INFO.get("kind", "intake"),
+           "generator": INFO.get("generator"), "numerics": INFO.get("numerics"), "flow_scale": SCALE}
     # mass flow (exact, from face fluxes)
     h, rows = last_rows("mdot_outlet")
     if not rows:
@@ -2956,7 +2983,7 @@ https://www.openfoam.com/download/openfoam-installation-on-windows ); it
 includes a bash shell in which ./Allrun works the same way.  WSL2 is the
 better-tested route.
 
-Expected run time on a 4-core PC: 2-D wedge cases 1-5 min, 3-D cases
+Expected run time on a 4-core PC: 2-D (axisymmetric sector) cases 1-5 min, 3-D cases
 10-60 min depending on the mesh level.
 """.replace("{fv}", FOAM_VERSION)
 
@@ -2996,9 +3023,12 @@ def generate_case(design, out_dir, base_dir=None):
     write_int = d["write_interval"] or 500
     if not is3d:
         W, minfo = build_axisym_mesh(d, der)
-        der["flow_scale"] = 360.0 / minfo["wedge_deg"]
+        # full circle / sector area: the sector's outer edges are straight chords, so its area is r^2 sin(a)/2 for the
+        # sector angle a, not r^2 a/2 (0.13 % less at 5 deg); 2 pi / sin(a) instead of 360 / a keeps the bulk
+        # velocity, K and Cd exact for the imposed full-circle mass flow
+        der["flow_scale"] = 2.0 * math.pi / math.sin(math.radians(minfo["sector_deg"]))
         patches = {"atmosphere": "atmosphere", "outlet": "outlet", "inlet_wall": "wall", "tract_wall": "wall",
-                   "extension_wall": "wall", "front": "wedge", "back": "wedge"}
+                   "extension_wall": "wall", "front": "cyclic", "back": "cyclic"}
         if minfo["free"]:
             patches["plenum_wall"] = "wall"
         prof = g["profile"]
@@ -3014,7 +3044,10 @@ def generate_case(design, out_dir, base_dir=None):
                                      if g.get("dc") else "none"),
             "atmosphere region radius %.1f mm (= max(15 D, 8 x outer lip dia.)), total-pressure boundary" % (minfo["Rff"] * 1e3),
             "outlet extension %.1f D after the tract end so the outlet BC cannot affect the tract" % g["ext_D"],
-            "2-D axisymmetric %.0f deg wedge (no bend) -> blockMesh, %d cells" % (minfo["wedge_deg"], minfo["ncells"]),
+            "2-D axisymmetric %.0f deg sector (no bend) -> blockMesh, %d cells; the sector's two sides are a rotational"
+            % (minfo["sector_deg"], minfo["ncells"]),
+            "  cyclic pair, not wedge patches (on wedge patches the Linux reference build gave developed pipe flow 1.25x"
+            " the friction pressure drop; cfd/NOTES.md 4 (e))",
             "wall-resolved: first cell %.4g mm -> y+ ~ 1 at the estimated peak velocity %.1f m/s"
             % (minfo["h_wall"] * 1e3, der["U_peak"]),
             "body-fitted wall layer %.3f mm (0.15 R) on every wall, %d cells, grid lines wall-normal;"
@@ -3065,7 +3098,7 @@ def generate_case(design, out_dir, base_dir=None):
         # steep tapers give ~70 deg non-orthogonality at the cone start
         nonortho = 1 if (g["inlet"]["type"] == "taper" and g["inlet"]["alpha"] > math.radians(35)) else 0
         cells = minfo["ncells"]
-        mesh_note = "2-D axisymmetric wedge, %d cells" % cells
+        mesh_note = "2-D axisymmetric sector (rotational cyclic), %d cells" % cells
     elif exhaust:
         der["flow_scale"] = 1.0
         cells, mesh_note, prov_mesh = write_3d_mesh_exhaust(cw, d, der, g, lv)
@@ -3158,7 +3191,8 @@ def generate_case(design, out_dir, base_dir=None):
                 cp=CP_AIR, p_amb=der["p_amb"], T_amb=der["T_amb"], rho_amb=der["rho_amb"],
                 flow_scale=der["flow_scale"], planes=planes_info, reference_plane=ref_plane,
                 conv_window=win, ramp=RAMP_ITER, stop_mdot_rel=2e-4, stop_dp_rel=1e-3,
-                mode=der["mode"], mdot_set=der.get("mdot"), p_out=der.get("p_out"))
+                mode=der["mode"], mdot_set=der.get("mdot"), p_out=der.get("p_out"),
+                generator=VERSION, numerics=der["numerics"])
     if exhaust:
         info.update(kind="exhaust", inlets=[i["name"] for i in g["inlets"]], split=g["split"], T_gas=d["T_gas"],
                     A_in_total_m2=g["A_in_total"], inlet_areas_m2={i["name"]: i["A"] for i in g["inlets"]},
@@ -3211,7 +3245,7 @@ def write_3d_mesh(cw, d, der, g, lv):
     B = max(5.0 * Dm, 4.0 * Dref)
     lo = [-Xp, min(-B, bb0[1] - 0.5 * Dref), min(-B, bb0[2] - 0.5 * Dref)]
     hi = [bb1[0] + 0.5 * Dref, max(B, bb1[1] + 0.5 * Dref), max(B, bb1[2] + 0.5 * Dref)]
-    h0 = Dref / 2.0
+    h0 = Dref / lv["bg3d"]
     level = int(d["mesh_overrides"].get("level3d", lv["level3d"]))
     nx = [max(4, int(math.ceil((hi[i] - lo[i]) / h0))) for i in range(3)]
     for i in range(3):
@@ -3278,7 +3312,7 @@ boundary
                                   (hi[0], hi[1], hi[2]), (lo[0], hi[1], hi[2])]] + nx)
     prov = ["background box: plenum %.1f mm upstream of the mouth (max(5 D_mouth, 4 D)), lateral +/- %.1f mm,"
             % (Xp * 1e3, B * 1e3),
-            "  plus the tract bounding box; base cell %.2f mm = D/2 (D = %.2f mm)" % (h0 * 1e3, Dref * 1e3),
+            "  plus the tract bounding box; base cell %.2f mm = D/%g (D = %.2f mm)" % (h0 * 1e3, lv["bg3d"], Dref * 1e3),
             "only the plenum part (upstream of the plenum floor plane x=0) stays in the mesh;",
             "its outer faces form the 'atmosphere' total-pressure boundary"]
     cw.foam("system/blockMeshDict", "dictionary", "blockMeshDict", bm, prov)
@@ -3444,7 +3478,7 @@ def write_3d_mesh_exhaust(cw, d, der, g, lv):
     tris = g["tris"]
     Dref = g["Dref"]
     bb0, bb1 = g["bbox"]
-    h0 = Dref / 2.0
+    h0 = Dref / lv["bg3d"]
     level = int(d["mesh_overrides"].get("level3d", lv["level3d"]))
     lo = [bb0[i] - 0.75 * Dref for i in range(3)]
     hi = [bb1[i] + 0.75 * Dref for i in range(3)]
@@ -3510,8 +3544,8 @@ boundary
 """ % tuple([_vec(p) for p in [(lo[0], lo[1], lo[2]), (hi[0], lo[1], lo[2]), (hi[0], hi[1], lo[2]),
                                   (lo[0], hi[1], lo[2]), (lo[0], lo[1], hi[2]), (hi[0], lo[1], hi[2]),
                                   (hi[0], hi[1], hi[2]), (lo[0], hi[1], hi[2])]] + nx)
-    prov = ["background box: the part's bounding box plus 0.75 D (D = outlet dia. %.2f mm); base cell %.2f mm = D/2"
-            % (Dref * 1e3, h0 * 1e3),
+    prov = ["background box: the part's bounding box plus 0.75 D (D = outlet dia. %.2f mm); base cell %.2f mm = D/%g"
+            % (Dref * 1e3, h0 * 1e3, lv["bg3d"]),
             "the box is discarded by snappyHexMesh except the part's interior (locationInMesh inside the outlet extension)",
             "inlets %s extruded upstream by %.1f D each; outlet extruded by %.1f D"
             % (", ".join(i["name"] for i in g["inlets"]), g["ext_in_D"], g["ext_D"])]

@@ -1,5 +1,5 @@
 {
-  "name": "wedge_straight",
+  "name": "axisym_straight",
   "geometry": {
     "tube_diameter_mm": 50.0,
     "tube_length_mm": 500.0,

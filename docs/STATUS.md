@@ -66,7 +66,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   meshing works; rhoSimpleFoam fails ("failed lookup of thermo:psi", fields are named thermo_psi on Windows);
   simpleFoam runs but on the same mesh (identical points) gives K 6-9 % lower and Cd 1.4-1.8 % higher than Linux
   v2412 at the same 6,000 iterations. The report script is not the cause (Linux report on the Windows output gives
-  the Windows numbers). The Windows binaries report "Build: 34e226dfe3-20211220" (a git commit dated 2021-12-20,
+  the Windows numbers). CORRECTED 2026-11-01: the Linux reference was the one in error, not ESI's package. Those
+  cases used OpenFOAM wedge patches, and on the conda-forge Linux build wedge cases carry a 25 % spurious pressure
+  gradient in developed pipe flow; the Windows wedge numbers equal the Linux numbers on a cyclic sector within
+  0.04 % (cfd/NOTES.md 4 (e); the generator now writes the cyclic sector). The thermo:psi failure is real, so our
+  own build is still needed. The Windows binaries report "Build: 34e226dfe3-20211220" (a git commit dated 2021-12-20,
   next to API 2412; the v2412 tarball says _8dbc61e11c-20241220), so what they were built from is unclear.
   Decision (the owner, "rebuild it"): build v2412 for Windows ourselves - see below.
 - CAD: cad/parts (CadQuery) and cad/fusion (Fusion script) rough Holley 112-583; K&N filter waits for its part number.

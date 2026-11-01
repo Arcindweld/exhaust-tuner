@@ -37,11 +37,12 @@ if [ -f /usr/include/FlexLexer.h ] && [ ! -e src/OSspecific/MSwindows/FlexLexer.
 fi
 
 # 4. Optimisation level -O2, the level of the Linux build the reference runs come from (conda-forge's openfoam 2412
-#    appends its own CXXFLAGS, ending in -O2, to wmake's -O3). Built at -O3, the Windows solvers departed from Linux
-#    in one place: the x component of the explicit viscous term div(nuEff*dev2(T(grad(U)))), from the second
-#    iteration on (cfd/validation/diag: fields identical after iteration 1, every variant still off except with the
-#    viscosity set to ~0, Uy and Uz identical throughout), and the converged square-cut-pipe K came out 5-9 % low,
-#    as with ESI's own Windows package.
+#    appends its own CXXFLAGS, ending in -O2, to wmake's -O3). It changed nothing: -O2 and -O3 builds give identical
+#    results. What it was chasing: on the old wedge-patch 2-D cases the Windows solvers departed from Linux in the
+#    explicit viscous term div(nuEff*dev2(T(grad(U)))) from the second iteration on, and the converged square-cut-pipe
+#    K came out 5-9 % below Linux, as with ESI's own Windows package. The Linux build was the one in error there (its
+#    wedge cases carry a 25 % spurious pressure gradient in developed pipe flow; the Windows wedge results equal the
+#    Linux results on a cyclic sector within 0.04 %), and the generator no longer uses wedge patches (cfd/NOTES.md 4 (e)).
 n=0
 for f in $(grep -rl -e '-O3' wmake/rules/linux64Mingw wmake/rules/General/Gcc 2>/dev/null || true); do
   sed -i 's/-O3/-O2/g' "$f"

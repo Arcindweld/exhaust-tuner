@@ -14,7 +14,7 @@
  */
 (function (root) {
   'use strict';
-  const GENERATOR = "intake_cfd.py", VERSION = "1.0.0", FOAM_VERSION = "v2412";
+  const GENERATOR = "intake_cfd.py", VERSION = "1.1.0", FOAM_VERSION = "v2412";
 
   // ------------------------------------------------------------------ Python number formatting
   const DV = new DataView(new ArrayBuffer(8));
@@ -193,11 +193,11 @@
   const R_UNIV = 8.314462618, M_AIR = 28.9647e-3, R_AIR = R_UNIV / M_AIR, CP_AIR = 1004.5, GAMMA = CP_AIR / (CP_AIR - R_AIR);
   const SUTH_AS = 1.458e-6, SUTH_TS = 110.4, PR_T = 0.85, MACH_COMPRESSIBLE = 0.20, MACH_TRANSONIC = 0.60;
   const MESH_LEVELS = {
-    coarse: { q_r: 1.15, core: 1 / 12., q_up: 1.18, far: 1 / 10., entry: 1 / 50., q_ax: 1.12, tube: 1 / 10., bell: 1 / 50., q_cap: 1.15, out: 1 / 4., level3d: 2 },
-    medium: { q_r: 1.10, core: 1 / 18., q_up: 1.13, far: 1 / 14., entry: 1 / 75., q_ax: 1.08, tube: 1 / 15., bell: 1 / 75., q_cap: 1.10, out: 1 / 6., level3d: 3 },
-    fine: { q_r: 1.07, core: 1 / 27., q_up: 1.09, far: 1 / 20., entry: 1 / 110., q_ax: 1.055, tube: 1 / 22., bell: 1 / 110., q_cap: 1.07, out: 1 / 9., level3d: 3 },
+    coarse: { q_r: 1.15, core: 1 / 12., q_up: 1.18, far: 1 / 10., entry: 1 / 50., q_ax: 1.12, tube: 1 / 10., bell: 1 / 50., q_cap: 1.15, out: 1 / 4., level3d: 2, bg3d: 2.0 },
+    medium: { q_r: 1.10, core: 1 / 18., q_up: 1.13, far: 1 / 14., entry: 1 / 75., q_ax: 1.08, tube: 1 / 15., bell: 1 / 75., q_cap: 1.10, out: 1 / 6., level3d: 3, bg3d: 2.0 },
+    fine: { q_r: 1.07, core: 1 / 27., q_up: 1.09, far: 1 / 20., entry: 1 / 110., q_ax: 1.055, tube: 1 / 22., bell: 1 / 110., q_cap: 1.07, out: 1 / 9., level3d: 3, bg3d: 3.0 },
   };
-  const WEDGE_HALF_ANGLE_DEG = 2.5, RAMP_ITER = 300;
+  const SECTOR_HALF_ANGLE_DEG = 2.5, RAMP_ITER = 300;   // 2-D sector: sides are a rotational cyclic pair, not wedge patches (see intake_cfd.py)
   class DesignError extends Error { constructor(m) { super(m); this.name = 'DesignError'; } }
 
   // ------------------------------------------------------------------ small math helpers
@@ -502,7 +502,7 @@
     const Dref = g.D, Rmin = pymin(g.D / 2.0, tube_radius(g, g.L)), Amin = Math.PI * Math.pow(Rmin, 2);
     let peak_factor = { plain: 1.6, taper: 1.2, radius: 1.1, ellipse: 1.05 }[g.inlet.type];
     if (g.bends.length) peak_factor *= 1.15;
-    der.D_ref = Dref; der.A_min = Amin; der.peak_factor = peak_factor;
+    der.D_ref = Dref; der.A_min = Amin; der.peak_factor = peak_factor; der.D_Re = Math.sqrt(4.0 * Amin / Math.PI);   // Re at the smallest section, its own diameter (intake_cfd.py)
     let mode, mdot, src;
     if ("mass_flow_kg_s" in op) { mode = "mass_flow"; mdot = Number(op.mass_flow_kg_s); src = pf("mass_flow_kg_s = %.6g kg/s (given)", mdot); }
     else if ("engine" in op) {
@@ -531,7 +531,7 @@
     else { comp = M_peak >= MACH_COMPRESSIBLE; why = pf("estimated peak Mach %.3f %s %.2f (density change ~M^2/2 = %.1f %%)", M_peak, comp ? ">=" : "<", MACH_COMPRESSIBLE, 50 * Math.pow(M_peak, 2)); }
     der.compressible = comp; der.solver = comp ? "rhoSimpleFoam" : "simpleFoam"; der.solver_why = why; der.transonic = comp && M_peak >= MACH_TRANSONIC;
     if (M_peak >= 0.95) throw new DesignError(pf("estimated peak Mach %.2f: flow would choke; steady subsonic RANS case generation refused", M_peak));
-    const rho_s = p0 / (R_AIR * T0) * Math.pow(T_s / T0, 1 / (GAMMA - 1)), Re = rho_s * U_bulk * Dref / mu_air(T_s), f = friction_factor_colebrook(Re);
+    const rho_s = p0 / (R_AIR * T0) * Math.pow(T_s / T0, 1 / (GAMMA - 1)), Re = rho_s * U_bulk * der.D_Re / mu_air(T_s), f = friction_factor_colebrook(Re);
     const utau_bulk = U_bulk * Math.sqrt(f / 8.0), utau_peak = der.U_peak * Math.sqrt(f / 8.0), nu_s = mu_air(T_s) / rho_s;
     Object.assign(der, { Re, f_colebrook: f, u_tau: utau_bulk, u_tau_peak: utau_peak, nu_s, rho_s });
     der.h_wall_lowRe = 2.0 * 1.0 * nu_s / utau_peak;
@@ -541,9 +541,9 @@
     return der;
   }
 
-  // ------------------------------------------------------------------ 2-D wedge mesh
-  class Wedge {
-    constructor() { this.th = radians(WEDGE_HALF_ANGLE_DEG); this.pts = []; this.ids = {}; this.xr = {}; this.blocks = []; this.edges = []; this.edge_keys = new Set(); this.curve_pts = new Map(); this.patches = new Map(); this.patch_types = {}; }
+  // ------------------------------------------------------------------ 2-D axisymmetric sector mesh (rotational cyclic sides)
+  class Sector {
+    constructor() { this.th = radians(SECTOR_HALF_ANGLE_DEG); this.pts = []; this.ids = {}; this.xr = {}; this.blocks = []; this.edges = []; this.edge_keys = new Set(); this.curve_pts = new Map(); this.patches = new Map(); this.patch_types = {}; }
     point(name, x, r) {
       this.xr[name] = [x, r];
       if (r < 1e-12) { const i = this.pts.length; this.pts.push([x, 0.0, 0.0]); this.ids[name] = [i, i]; }
@@ -580,7 +580,7 @@
     }
     ncells() { let n = 0; for (const bl of this.blocks) n += bl[2].n * bl[4].n; return n; }
     write() {
-      const L = ["scale 1;", "", "mergeType points;   // wedge: merge collapsed axis points", "", "vertices", "("];
+      const L = ["scale 1;", "", "mergeType points;   // sector: merge the collapsed points on the axis", "", "vertices", "("];
       this.pts.forEach((p, i) => L.push(pf("    %s  // %d", _vec(p), i)));
       L.push(");", "", "blocks", "(");
       const front_faces = [], back_faces = [];
@@ -602,8 +602,9 @@
         for (const f of faces) L.push(pf("            (%d %d %d %d)", f[0], f[1], f[2], f[3]));
         L.push("        );", "    }");
       }
-      for (const [nm, faces] of [["front", front_faces], ["back", back_faces]]) {
-        L.push("    " + nm, "    {", "        type wedge;", "        faces", "        (");
+      for (const [nm, other, faces] of [["front", "back", front_faces], ["back", "front", back_faces]]) {
+        L.push("    " + nm, "    {", "        type cyclic;", "        neighbourPatch " + other + ";", "        transform rotational;",
+          "        rotationAxis (1 0 0);", "        rotationCentre (0 0 0);", "        faces", "        (");
         for (const f of faces) L.push(nm === "front" ? pf("            (%d %d %d %d)", f[0], f[3], f[2], f[1]) : pf("            (%d %d %d %d)", f[0], f[1], f[2], f[3]));
         L.push("        );", "    }");
       }
@@ -656,7 +657,7 @@
     const g = d.geometry, prof = g.profile, lv = Object.assign({}, MESH_LEVELS[d.mesh_level]);
     for (const k of Object.keys(lv)) if (k in d.mesh_overrides) lv[k] = Number(d.mesh_overrides[k]);
     const D = g.D, R = D / 2.0, hw = pymin(der.h_wall_lowRe, R / 50.0), stations = tract_stations(g, prof), free = g.mount === "free", delta = 0.15 * R;
-    const W = new Wedge(), inner = prof.inner, iM = prof.iM, M = inner[iM], T = inner[inner.length - 1];
+    const W = new Sector(), inner = prof.inner, iM = prof.iM, M = inner[iM], T = inner[inner.length - 1];
     const L_d = Dist.fine_start(delta, hw, lv.q_r, 1e9), hL = L_d.sizes(delta).slice(-1)[0], n_L = L_d.n;
     const bell_w = inner.slice(iM), bell_o = _offset(bell_w, delta, "right"), Dm = 2.0 * prof.r_out, Rff = pymax(15.0 * D, 8.0 * Dm), h_far = lv.far * Rff;
     let P, O, cap_w, Fr, Wp, Wo, Oo;
@@ -764,7 +765,7 @@
       prev_a = a_; prev_w = w_; prev_o = o_;
     }
     W.face("outlet", prev_a, prev_o); W.face("outlet", prev_o, prev_w);
-    const info = { n_r: n_L + n_c, n_layer: n_L, n_up, Rff, h_wall: hw, delta, stations, ncells: W.ncells(), protrusion: g.protrusion_used, free, profile: prof.label, wedge_deg: 2 * WEDGE_HALF_ANGLE_DEG };
+    const info = { n_r: n_L + n_c, n_layer: n_L, n_up, Rff, h_wall: hw, delta, stations, ncells: W.ncells(), protrusion: g.protrusion_used, free, profile: prof.label, sector_deg: 2 * SECTOR_HALF_ANGLE_DEG };
     return [W, info];
   }
 
@@ -777,7 +778,7 @@
       "operating point: " + der.op_source,
       pf("inflow turbulence: I = %.3g %% of tract bulk velocity %.2f m/s -> k = %.4g m2/s2; nut/nu = %.3g -> omega = %.4g 1/s", 100 * der.I_in, der.U_bulk, k_in, der.nut_ratio_in, om_in)];
     const make = (name, cls, dims, internal, rules, extra_prov) => {
-      const ents = Object.keys(patches).map(pn => [pn, patches[pn] === "wedge" ? "type wedge;" : rules[patches[pn]]]);
+      const ents = Object.keys(patches).map(pn => [pn, patches[pn] === "cyclic" ? "type cyclic;" : rules[patches[pn]]]);
       const body = "dimensions      " + dims + ";\n\ninternalField   " + internal + ";\n\nboundaryField\n{\n" + _bc_block(ents) + "\n}\n";
       cw.foam("0/" + name, cls, name, body, prov_common.concat(extra_prov), "0");
     };
@@ -787,7 +788,7 @@
       if (comp) out_U = pf("type            flowRateOutletVelocity;\nmassFlowRate    table ((0 0) (%d %.9g));\nrho             rho;\nvalue           uniform (0 0 0);", ramp, mdot / fs);
       else out_U = pf("type            flowRateOutletVelocity;\nvolumetricFlowRate table ((0 0) (%d %.9g));\nvalue           uniform (0 0 0);", ramp, mdot / rho / fs);
       out_p = "type            zeroGradient;";
-      prov_out = [pf("outlet: imposed mass flow %.6g kg/s%s (flowRateOutletVelocity), ramped linearly from 0 over the first %d iterations for a smooth start; pressure zeroGradient", mdot, fs !== 1 ? pf(" (x 1/%.6g for the wedge sector)", fs) : "", ramp)];
+      prov_out = [pf("outlet: imposed mass flow %.6g kg/s%s (flowRateOutletVelocity), ramped linearly from 0 over the first %d iterations for a smooth start; pressure zeroGradient", mdot, fs !== 1 ? pf(" (x 1/%.6g for the 2-D sector)", fs) : "", ramp)];
     } else {
       out_U = "type            pressureInletOutletVelocity;\nvalue           uniform (0 0 0);";
       const pout = comp ? der.p_out : (der.p_out - p0) / rho, pstart = comp ? p0 : 0.0;
@@ -839,7 +840,7 @@
       "k-omega SST (Menter 1994/2003): blends k-omega near walls with k-epsilon in the free stream;",
       "the shear-stress limiter makes it the standard RANS choice for adverse pressure",
       "gradients and separation (sharp lips, vena contracta, diffusers, bends).",
-      pf("Estimated tract Re = %.3g (D = %.2f mm, U_bulk = %.2f m/s)", der.Re, der.D_ref * 1e3, der.U_bulk)], "constant");
+      pf("Estimated tract Re = %.3g (D = %.2f mm, U_bulk = %.2f m/s)", der.Re, der.D_Re * 1e3, der.U_bulk)], "constant");
   }
   function numerics_files(cw, d, der, is3d, monitors, nonortho) {
     const comp = der.compressible;
@@ -854,7 +855,7 @@
     cw.foam("system/fvSchemes", "dictionary", "fvSchemes", schemes, [
       "second-order bounded linear-upwind convection for U" + (comp ? " and enthalpy" : "") + "; limitedLinear (TVD) for k, omega",
       "cell-limited gradients for robustness at sharp lips",
-      "laplacian/snGrad: " + lim + " (" + (is3d ? "snappyHexMesh 3-D" : "structured wedge") + " mesh)"]);
+      "laplacian/snGrad: " + lim + " (" + (is3d ? "snappyHexMesh 3-D" : "structured 2-D sector") + " mesh)"]);
     let sol;
     if (comp) {
       sol = "solvers\n{\n    p\n    {\n        @PSOLVER@\n        tolerance       1e-12;\n        relTol          0.01;\n    }\n    \"(U|h|k|omega)\"\n    {\n        solver          smoothSolver;\n        smoother        symGaussSeidel;\n        tolerance       1e-10;\n        relTol          0.1;\n    }\n}\n\nSIMPLE\n{\n    nNonOrthogonalCorrectors " + nonortho + ";\n    consistent      no;       // classic SIMPLE: SIMPLEC without density\n                              // relaxation oscillated/diverged on sharp-edged\n                              // inlets in testing; this setting does not\n    transonic       " + (der.transonic ? "yes" : "no") + ";\n    pMinFactor      0.5;\n    pMaxFactor      1.5;\n    residualControl\n    {\n        p               1e-6;\n        U               1e-7;\n        h               1e-7;\n        \"(k|omega)\"     1e-6;\n    }\n}\n\nrelaxationFactors\n{\n    fields\n    {\n        p               0.3;\n        rho             0.05;\n    }\n    equations\n    {\n        U               0.7;\n        h               0.7;\n        \"(k|omega)\"     0.7;\n    }\n}\n";
@@ -862,9 +863,11 @@
       sol = "solvers\n{\n    p\n    {\n        @PSOLVER@\n        tolerance       1e-12;\n        relTol          0.01;\n    }\n    \"(U|k|omega)\"\n    {\n        solver          smoothSolver;\n        smoother        symGaussSeidel;\n        tolerance       1e-10;\n        relTol          0.1;\n    }\n}\n\nSIMPLE\n{\n    nNonOrthogonalCorrectors " + nonortho + ";\n    consistent      no;       // classic SIMPLE: SIMPLEC (U 0.8) diverged on long\n                              // flow-rate-driven pipes (80 D at Re 1e5); this gives\n                              // the same converged answer within 0.03 % on the\n                              // square-cut pipe case\n    residualControl\n    {\n        p               1e-6;\n        U               1e-7;\n        \"(k|omega)\"     1e-6;\n    }\n}\n\nrelaxationFactors\n{\n    fields\n    {\n        p               0.3;\n    }\n    equations\n    {\n        U               0.7;\n        \"(k|omega)\"     0.7;\n    }\n}\n";
     }
     sol = sol.replace("@PSOLVER@", psolver);
+    der.numerics = { algorithm: "SIMPLE", relaxation: comp ? "p 0.3 / rho 0.05 / U, h, k, omega 0.7" : "p 0.3 / U, k, omega 0.7",
+      p_solver: is3d ? "GAMG" : "PCG/DIC", mesh: is3d ? "3-D snappyHexMesh" : "2-D sector, rotational cyclic sides" };   // recorded in case_info.json (intake_cfd.py)
     cw.foam("system/fvSolution", "dictionary", "fvSolution", sol, [
       "solver " + der.solver + ": " + der.solver_why,
-      (comp ? "SIMPLE, relaxation p 0.3 / rho 0.05 / U, h, k, omega 0.7 (robust for separated compressible flow)" : "SIMPLE, relaxation p 0.3 / U, k, omega 0.7") + "; p solver: " + (is3d ? "GAMG (3-D)" : "PCG/DIC (2-D wedge)"),
+      (comp ? "SIMPLE, relaxation p 0.3 / rho 0.05 / U, h, k, omega 0.7 (robust for separated compressible flow)" : "SIMPLE, relaxation p 0.3 / U, k, omega 0.7") + "; p solver: " + (is3d ? "GAMG (3-D)" : "PCG/DIC (2-D sector)"),
       pf("transonic formulation: %s (estimated peak Mach %.3f)", der.transonic ? "on" : "off", der.M_peak),
       "residual targets are a secondary stop; the primary stop is the engineering-quantity",
       "watchdog run by Allrun (see controlDict header) plus the iteration cap"]);
@@ -940,8 +943,8 @@
     const cw = new CaseWriter(d.name, stamp);
     const planes_info = [], monitors = [], write_int = d.write_interval || 500;
     const [W, minfo] = build_axisym_mesh(d, der);
-    der.flow_scale = 360.0 / minfo.wedge_deg;
-    const patches = { atmosphere: "atmosphere", outlet: "outlet", inlet_wall: "wall", tract_wall: "wall", extension_wall: "wall", front: "wedge", back: "wedge" };
+    der.flow_scale = 2.0 * Math.PI / Math.sin(radians(minfo.sector_deg));   // full circle / flat-chord sector area (intake_cfd.py)
+    const patches = { atmosphere: "atmosphere", outlet: "outlet", inlet_wall: "wall", tract_wall: "wall", extension_wall: "wall", front: "cyclic", back: "cyclic" };
     if (minfo.free) patches.plenum_wall = "wall";
     const prof = g.profile, st = minfo.stations;
     const prov_mesh = [
@@ -951,7 +954,8 @@
       "diameter change: " + (g.dc ? pf("to %.2f mm, cone half-angle %.1f deg, from x = %.1f mm", g.dc.D2 * 1e3, degrees(g.dc.beta), g.dc.x0 * 1e3) : "none"),
       pf("atmosphere region radius %.1f mm (= max(15 D, 8 x outer lip dia.)), total-pressure boundary", minfo.Rff * 1e3),
       pf("outlet extension %.1f D after the tract end so the outlet BC cannot affect the tract", g.ext_D),
-      pf("2-D axisymmetric %.0f deg wedge (no bend) -> blockMesh, %d cells", minfo.wedge_deg, minfo.ncells),
+      pf("2-D axisymmetric %.0f deg sector (no bend) -> blockMesh, %d cells; the sector's two sides are a rotational", minfo.sector_deg, minfo.ncells),
+      "  cyclic pair, not wedge patches (on wedge patches the Linux reference build gave developed pipe flow 1.25x the friction pressure drop; cfd/NOTES.md 4 (e))",
       pf("wall-resolved: first cell %.4g mm -> y+ ~ 1 at the estimated peak velocity %.1f m/s", minfo.h_wall * 1e3, der.U_peak),
       pf("body-fitted wall layer %.3f mm (0.15 R) on every wall, %d cells, grid lines wall-normal;", minfo.delta * 1e3, minfo.n_layer),
       pf("  'sharp' edges carry a machined-edge radius of %.3f mm (min(0.001 D, 0.05 mm))", _edge_radius(g) * 1e3),
@@ -973,7 +977,7 @@
     for (const pl of planes_info) { monitors.push(fo_zone("p_" + pl.name, pl.name, "areaAverage", ["p"])); monitors.push(fo_zone("mdot_" + pl.name, pl.name, "sum", ["phi"])); }
     const n_iter = d.max_iter || 6000;
     const nonortho = (g.inlet.type === "taper" && g.inlet.alpha > radians(35)) ? 1 : 0;
-    const cells = minfo.ncells, mesh_note = pf("2-D axisymmetric wedge, %d cells", cells);
+    const cells = minfo.ncells, mesh_note = pf("2-D axisymmetric sector (rotational cyclic), %d cells", cells);
     if (!planes_info.some(p => p.name === "tract_end")) throw new DesignError("internal: tract_end plane missing");
     monitors.unshift(fo_patch_sum("mdot_outlet", "outlet"));
     monitors.unshift(fo_patch_sum("mdot_atmosphere", "atmosphere"));
@@ -988,7 +992,7 @@
     cw.foam("system/decomposeParDict", "dictionary", "decomposeParDict", "numberOfSubdomains 2;\n\nmethod          scotch;\n", ["numberOfSubdomains is overwritten by './Allrun N'"]);
     const info = { name: d.name, solver: der.solver, compressible: der.compressible, gamma: GAMMA, R_air: R_AIR, cp: CP_AIR, p_amb: der.p_amb, T_amb: der.T_amb, rho_amb: der.rho_amb,
       flow_scale: der.flow_scale, planes: planes_info, reference_plane: "tract_end", conv_window: I(win), ramp: I(RAMP_ITER), stop_mdot_rel: 2e-4, stop_dp_rel: 1e-3,
-      mode: der.mode, mdot_set: der.mdot === undefined ? null : der.mdot, p_out: der.p_out === undefined ? null : der.p_out, kind: "intake" };
+      mode: der.mode, mdot_set: der.mdot === undefined ? null : der.mdot, p_out: der.p_out === undefined ? null : der.p_out, generator: VERSION, numerics: der.numerics, kind: "intake" };
     cw.raw("case_info.json", pyjson(info));
     cw.text("intake_report.py", lstrip_n(REPORT_PY), [pf("reads postProcessing/ and case_info.json (ambient p0/T0 = %.1f Pa / %.2f K, gamma %.4f)", der.p_amb, der.T_amb, GAMMA),
       "reference plane for K and Cd: tract_end (x = tube_length_mm, or the CAD outlet face)"], "#", false, "#!/usr/bin/env python3");

@@ -3,7 +3,12 @@ condition, scheme or model, so the first iterations on two OpenFOAM builds can b
 whose residuals agree points at what differs). The physics of a variant is not meant to be right, only identical on
 both builds.
     python make_variants.py <meshed case dir> <out root> [iterations]
-The case must already have its mesh (blockMesh, topoSet run). Writes <out root>/<variant>/ for every variant."""
+The case must already have its mesh (blockMesh, topoSet run). Writes <out root>/<variant>/ for every variant.
+
+Compare a Windows round only with Linux runs of the SAME variant folders (linux_rerun.sh on the downloaded
+diag-variants artifact, then compare_variants.py), never with variants generated separately on Linux: one round was
+compared with Linux variants generated before the incompressible cases moved from SIMPLEC to SIMPLE, so every
+difference in it was the settings change, not the build."""
 import os
 import re
 import shutil
@@ -49,13 +54,23 @@ def sub1(pat, rep):
     return f
 
 
-def to_cyclic(t):
-    cyc = "        type cyclic;\n        neighbourPatch %s;\n        transform rotational;\n        rotationAxis (1 0 0);\n        rotationCentre (0 0 0);\n"
-    t, n1 = re.subn(r"(\n    front\n    \{\n)        type wedge;\n", lambda m: m.group(1) + cyc % "back", t)
-    t, n2 = re.subn(r"(\n    back\n    \{\n)        type wedge;\n", lambda m: m.group(1) + cyc % "front", t)
-    if n1 != 1 or n2 != 1:
-        raise ValueError("front/back wedge patches not found")
-    return t
+CYCLIC_SIDE = (r"        type cyclic;\n        neighbourPatch \w+;\n        transform rotational;\n"
+               r"        rotationAxis \(1 0 0\);\n        rotationCentre \(0 0 0\);\n")
+
+
+def sides(new):
+    """blockMeshDict edit: the generator's front/back rotational cyclic pair becomes `new` (e.g. a wedge pair)."""
+    def f(t):
+        for nm in ("front", "back"):
+            t, n = re.subn(r"(\n    %s\n    \{\n)" % nm + CYCLIC_SIDE, lambda m: m.group(1) + new, t)
+            if n != 1:
+                raise ValueError("front/back cyclic pair not found")
+        return t
+    return f
+
+
+def fields_side(new_type, fields=("U", "p", "k", "omega", "nut")):
+    return [("0/" + f, lambda t, nt=new_type: t.replace("type cyclic;", "type %s;" % nt)) for f in fields]
 
 
 VARIANTS = {
@@ -89,24 +104,22 @@ VARIANTS = {
     "lam_uncorrected": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                         ("system/fvSchemes", lambda t: t.replace("default         Gauss linear corrected;", "default         Gauss linear uncorrected;")
                          .replace("default         corrected;", "default         uncorrected;"))],
-    # the wedge pair as a rotational cyclic pair (same 5 deg sector, re-meshed): on Linux this removes the axial
-    # odd-even velocity mode that the explicit dev2(T(grad(U))) term sustains on wedges (laminar Poiseuille pressure
-    # gradient 1.25x with wedges, 1.01x with the cyclic pair)
-    "cyclic": [("system/blockMeshDict", to_cyclic), ("REMESH", None)] + [("0/" + f, lambda t: t.replace("type wedge;", "type cyclic;"))
-               for f in ("U", "p", "k", "omega", "nut")],
-    "lam_cyclic": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
-                   ("system/blockMeshDict", to_cyclic), ("REMESH", None)] + [("0/" + f, lambda t: t.replace("type wedge;", "type cyclic;"))
-                   for f in ("U", "p", "k", "omega", "nut")],
+    # the generator's 2-D sector has a rotational cyclic pair for sides; these put the old wedge pair back
+    # (re-meshed): with wedges the explicit dev2(T(grad(U))) term sustains an axial odd-even velocity mode (laminar
+    # Poiseuille pressure gradient 1.25x on Linux) and the two builds part at iteration 2 (~3e-4), against
+    # iteration 3 (~1e-5) for the cyclic pair
+    "wedge": [("system/blockMeshDict", sides("        type wedge;\n")), ("REMESH", None)] + fields_side("wedge"),
+    "lam_wedge": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
+                  ("system/blockMeshDict", sides("        type wedge;\n")), ("REMESH", None)] + fields_side("wedge"),
     # per-cell initial residual fields of U and p every iteration (solverInfo writeResidualFields)
     "lam_resfields": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
                       ("system/controlDict", sub1(r"^functions\s*\n\{", "functions\n{\n    residualFields\n    {\n        type            solverInfo;\n"
                        "        libs            (utilityFunctionObjects);\n        fields          (U p);\n        writeResidualFields yes;\n"
                        "        writeControl    timeStep;\n        writeInterval   1;\n    }"))],
-    # the wedge patches as symmetry patches: a thin slab instead of an axisymmetric pipe, but the same on both builds
+    # the sector's sides as symmetry planes: a thin slab instead of an axisymmetric pipe, but the same on both builds
     "lam_symmetry": [("constant/turbulenceProperties", sub1(r"^(\s*simulationType\s+)\w+;", r"\1laminar;")),
-                     ("constant/polyMesh/boundary", lambda t: t.replace("type            wedge;", "type            symmetry;").replace("inGroups        1(wedge);", "inGroups        1(symmetry);")),
-                     ("0/U", lambda t: t.replace("type wedge;", "type symmetry;")),
-                     ("0/p", lambda t: t.replace("type wedge;", "type symmetry;"))],
+                     ("system/blockMeshDict", sides("        type symmetry;\n")), ("REMESH", None)]
+                    + fields_side("symmetry", ("U", "p")),
 }
 
 

@@ -8,21 +8,27 @@ the command line (`python intake_cfd.py design.json out_dir`;
 `--example` prints a sample design). Every generated file starts with a comment
 that says which design inputs set which values in that file.
 
-Files in `scratchpad/cfd/`:
+Files (paths from the repository root):
 
 | file | what |
 |---|---|
-| `intake_cfd.py` | the generator (stdlib only; about 3,600 lines including the embedded report script); intake mode and exhaust-component mode (§8) |
-| `intake_cfd_js_src.js`, `build_intake_cfd_js.py`, `intake_cfd.js` | the browser port of the axisymmetric writer (§9); the build script splices the report script, the Windows README and the Python source into the template |
-| `NOTES.md` | this file |
-| `validation/run_validation.py` | runs every validation case through the generator plus `Allrun` (`blair`, `friction`, `entrance`, `exhaust`, `all`, `table`) |
-| `validation/make_tables.py`, `validation/write_notes.py` | Markdown tables for this file; `write_notes.py` filled the validation sections |
-| `validation/*_results.json` | validation results |
-| `validation/runs/` | the validation cases themselves (open `case.foam` in ParaView); `runs/_stl/` holds the generated exhaust test parts |
-| `validation/resume_fine.sh` | resumes the two fine Blair runs after an interruption |
-| `tests/` | development tests: geometry matrix (24 meshes), 3-D bend case, CAD-STL round trip |
-| `foamenv.sh`, `env/` | the OpenFOAM v2412 install used here (conda-forge, micromamba) |
-| `../cfd_patch.py`, `../cfd_ui.js`, `../cfd_js_vs_py.js` | the page patch (Intake and Headers tab sections, Method notes), its Playwright test, and the byte-for-byte JS-vs-Python test |
+| `cfd/intake_cfd.py` | the generator (stdlib only; about 3,600 lines including the embedded report script); intake mode and exhaust-component mode (§8); `VERSION` changes whenever generated cases change numerically |
+| `cfd/intake_cfd_js_src.js`, `cfd/build_intake_cfd_js.py`, `cfd/intake_cfd.js` | the browser port of the axisymmetric writer (§9); the build script splices the report script, the Windows README and the Python source into the template |
+| `cfd/cfd_js_vs_py.js` | the byte-for-byte JS-vs-Python test (`node cfd/cfd_js_vs_py.js`) |
+| `cfd/NOTES.md` | this file |
+| `cfd/validation/run_validation.py` | runs every validation case through the generator plus `Allrun` (`blair`, `friction`, `entrance`, `exhaust`, `all`, `table`) |
+| `cfd/validation/make_tables.py`, `cfd/validation/write_notes.py` | Markdown tables for this file; `write_notes.py` filled the validation sections once |
+| `cfd/validation/*_results.json` | validation results |
+| `cfd/validation/runs/*/results.json` | each validation case's own result (the case folders themselves are not kept in the repository) |
+| `cfd/validation/reference/` | Linux reference runs for the Windows build check (`make_references.sh` regenerates them; required after every `VERSION` change) |
+| `cfd/validation/diag/` | build-comparison tools: case variants, Linux re-runs of a Windows round, the laminar-pipe known-answer check (`lam_pipe.py`), `to_wedge.py` |
+| `cfd/validation/resume_fine.sh` | resumes the two fine Blair runs after an interruption |
+| `cfd/tests/` | development tests: geometry matrix (24 meshes), 3-D bend case, CAD-STL round trip |
+| `tools/openfoam/` | the Windows OpenFOAM build, its validation (`validate_windows.ps1`) and `compare_results.py` |
+| `web/tests/cfd_ui.js` | the page's Playwright test of the CFD sections |
+
+The Linux runs here use conda-forge's `openfoam 2412` (build h946d6a9_1, GCC 13.3, `-O2 -march=nocona -ftree-vectorize`
+appended to wmake's flags), installed with micromamba.
 
 Reproducible output: the time stamp in every file header can be fixed with the
 environment variable `INTAKE_CFD_STAMP="2026-10-30 12:00"`, and the derived
@@ -92,8 +98,11 @@ writes `results.txt` and `results.json`.
 | `stl` (+`stl_units`, `planes`) | 3-D from CAD. The STL needs solids (or separate files) named `inlet` (the open mouth face) and `outlet`; everything else is wall. The part is moved so the mouth centre is at the origin and the inflow direction is +x. A plenum (atmosphere box with a floor in the mouth plane) is added ahead of the mouth, and the outlet face is extruded by `outlet_extension_D`. |
 | `mesh.level` coarse / medium / fine | About a 1.5× change in cell size per level in every direction. |
 
-**2-D mesh (blockMesh, 5° wedge).** This is used whenever the geometry is
-axisymmetric (no bend, no STL). A wall layer of thickness 0.15 R follows every
+**2-D mesh (blockMesh, 5° sector with rotational cyclic sides).** This is used
+whenever the geometry is axisymmetric (no bend, no STL). The mesh is one cell
+thick around the axis; its two sides are a rotational cyclic pair (axis x), not
+OpenFOAM `wedge` patches, because on wedge patches developed pipe flow carries a
+spurious 25 % extra pressure gradient (§4 (e)). A wall layer of thickness 0.15 R follows every
 wall: lip, bellmouth, tube, outer body. Grid lines in the layer are exactly
 wall-normal. Points along the lip are placed with one-cell multi-grading
 sections, so wall and layer edge correspond point by point.
@@ -111,10 +120,13 @@ all pass `checkMesh`. Maximum non-orthogonality is 46–61° for the
 plain, radius, ellipse and taper-10° inlets, and 67–73° for a 50° taper.
 
 **3-D mesh (blockMesh background + snappyHexMesh).**
-- Background cell size is D/2.
+- Background cell size is D/2 (coarse, medium) or D/3 (fine).
 - Refinement levels (`level3d`):
   - coarse: tract interior D/8, walls D/16;
-  - medium and fine: tract interior D/16, walls D/32.
+  - medium: tract interior D/16, walls D/32;
+  - fine: medium's levels on the finer background, tract interior D/24,
+    walls D/48 (until generator 1.1.0 fine had medium's exact mesh, so a
+    "fine" 3-D run was no mesh check at all).
 - The mouth region and feature edges get one level more.
 - Walls use **wall functions**: `nutUSpaldingWallFunction`, which is valid from
   y+ ≈ 1 into the log layer.
@@ -165,7 +177,7 @@ validation case was run compressible.
   - k: `kqRWallFunction`;
   - νt: `nutUSpaldingWallFunction`;
   - αt: `compressible::alphatWallFunction` (Prt 0.85).
-- These are correct both for the y+ ≈ 1 wedge mesh (achieved y+ ≈ 0.4–0.9 on
+- These are correct both for the y+ ≈ 1 sector mesh (achieved y+ ≈ 0.4–0.9 on
   the tube walls) and for the y+ ≈ 30–100 snappy layers.
 
 ### Numerics and convergence controls
@@ -174,7 +186,10 @@ validation case was run compressible.
   (h, K) with cell-limited gradients; `limitedLinear` (TVD) for k and ω.
 - **Pressure–velocity coupling:**
   - compressible: classic **SIMPLE** with relaxation p 0.3, ρ 0.05, U/h/k/ω 0.7;
-  - incompressible: SIMPLEC.
+  - incompressible: classic **SIMPLE** with relaxation p 0.3, U/k/ω 0.7
+    (until 2026-10-31 SIMPLEC with U 0.8, which diverged on the 80 D friction
+    pipes at Re 10⁵; on the square-cut pipe both give the same converged
+    answer within 0.03 %).
 - I tested alternatives on the hardest case, the sharp-edged pipe at
   M_vc ≈ 0.35 (validation runs listed in §4):
   - SIMPLEC with p 1 / ρ 1 oscillated and diverged;
@@ -187,13 +202,16 @@ validation case was run compressible.
 - **Start-up:** the outlet mass flow or pressure is ramped linearly over the
   first 300 iterations.
 - **Stop criteria:**
-  - a `runTimeControl` average condition stops the run when the inflow mass
-    flow and the tract-end pressure stop changing over a 300-iteration window
-    (tolerance 1e-5 of the mass flow, 2e-4 of the dynamic pressure);
-  - this test only starts after iteration 900;
+  - `Allrun` runs `intake_report.py --watch` next to the solver; from
+    iteration 900 (the 300-iteration ramp plus two windows) it checks every
+    5 s whether the inflow mass flow has drifted by less than 2 × 10⁻⁴
+    (relative) and every plane's static pressure by less than 10⁻³ of the
+    pressure drop over the last 300 iterations, and then sets
+    `stopAt writeNow` (OpenFOAM's `runTimeControl` average condition was
+    tried for this and found unreliable);
   - iteration cap 6000 (2-D) or 3000 (3-D);
-  - `residualControl` is set but cannot trigger on a wedge, because the
-    out-of-plane Uz residual stays high.
+  - `residualControl` is set but cannot trigger on the 2-D sector, because the
+    residual of the circumferential velocity Uz (zero to round-off) stays high.
 - **Report check:** `intake_report.py` declares the run converged only if:
   - the mass imbalance is < 0.1 %;
   - the mass-flow change over the last 300 iterations is < 0.1 %;
@@ -471,22 +489,22 @@ sections, muffler and resonator shells, tailpipe tips.
 
 `intake_cfd.js` (built from `intake_cfd_js_src.js` by `build_intake_cfd_js.py`)
 is a line-for-line port of the axisymmetric path: `normalise`, `derive`,
-`inlet_profile`, `tract_stations`, `Dist`, `Wedge`, `build_axisym_mesh`, the
+`inlet_profile`, `tract_stations`, `Dist`, `Sector`, `build_axisym_mesh`, the
 field/physics/numerics/controlDict writers, `Allrun`, `Allclean`, the report
 script and the Windows README (the last three spliced in verbatim). Python's
 number formatting is reproduced exactly: `%g/%f/%e` through an exact
 decimal expansion of the double with round-half-even, `repr()` for the JSON
 floats, `json.dumps(indent=2)`, `round()`, `sum()` with CPython 3.12+'s
 Neumaier compensation and `math.hypot`'s 3.13 algorithm. `cfd_js_vs_py.js`
-runs both writers on nine designs (the three Blair cases, fine/coarse
+runs both writers on ten designs (the three Blair cases, fine/coarse
 variants, an engine operating point with a MAF plane, a flange-mounted taper
 with a cone, an incompressible pressure-ratio case, a bent tube and an
 exhaust part) and finds 172 files byte-identical; the bent tube and the
 exhaust part are shipped as `design.json` + `intake_cfd.py` + README because
-snappyHexMesh dictionaries are not ported. One browser-written case
-(3.5 in tube, elliptical bellmouth, cone to a 3 in throttle, 280 g/s,
-coarse mesh, simpleFoam) was run to convergence here: K 0.056 at the MAF
-plane, 0.065 at the tract end, Cd 0.957.
+snappyHexMesh dictionaries are not ported. (A browser-written case, 3.5 in
+tube with an elliptical bellmouth and a cone to a 3 in throttle, was run to
+convergence on 2026-10-30 on the old wedge mesh; its result file was not
+kept, so no figure from it is quoted.)
 
 On the page (`cfd_patch.py`): the Intake tab's "Intake CFD (OpenFOAM)"
 section (`#intake-cfd`, expert mode) builds the design from the tab's tube,

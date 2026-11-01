@@ -12,8 +12,8 @@
     "wall_time_s": 569.4652519226074,
     "cells": 51780,
     "exit_uniformity": 0.9563189263599418,
-    "K_friction_est": 0.0816972896904275,
-    "K_component": 0.5976201205675409,
+    "K_friction_est": 0.03650346256632666,
+    "K_component": 0.6428139476916417,
     "K_ref": 0.5625,
     "ref": "Borda-Carnot (1 - A1/A2)^2"
   },
@@ -30,13 +30,13 @@
     "wall_time_s": 711.9824090003967,
     "cells": 76792,
     "exit_uniformity": 0.9560209844032047,
-    "K_friction_est": 0.33682786320742675,
-    "K_component": 0.13951573906385656,
+    "K_friction_est": 0.25262089740557003,
+    "K_component": 0.22372270486571327,
     "K_ref": [
       0.2,
       0.3
     ],
-    "ref": "Idelchik diag. 6-1 / Crane TP-410 (14 fT), R/D = 1.5",
-    "f_T": 0.02105174145046417
+    "ref": "Idelchik diag. 6-1 / Crane TP-410 (14 f_T = 0.27, 2 in), R/D = 1.5",
+    "f_T": 0.019
   }
 }

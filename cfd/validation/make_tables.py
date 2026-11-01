@@ -69,12 +69,17 @@ if B:
 F = load("friction_results.json")
 if F:
     out.append("### (a) Fully developed turbulent pipe flow (D = 50 mm, L = 80 D, f from Δp between 50 D and 70 D)\n")
-    out.append("| case | Re | f CFD | Colebrook | error | Haaland | McKeon 2005 | error | y+ avg/max | run |")
-    out.append("|---|---|---|---|---|---|---|---|---|---|")
+    out.append("f CFD is the Darcy factor from the static-pressure drop between 50 D and 70 D (compressible runs: the "
+               "momentum-flux change of the accelerating gas taken off); f wall is 8 τw / (ρ U²) from the wall shear stress "
+               "on the same stretch. The two must agree in developed flow (a momentum balance).\n")
+    out.append("| case | Re | f CFD (Δp) | f wall (τw) | Δp / τw | Colebrook | error | Haaland | McKeon 2005 | error | y+ avg/max | run |")
+    out.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
     for n, e in sorted(F.items(), key=lambda kv: (kv[1]["Re"], kv[0])):
         yp = e.get("yplus") or {}
-        out.append("| %s | %.0e | %.5f | %.5f | %+.1f %% | %.5f | %.5f | %+.1f %% | %s | %s it, %.0f s |" % (
-            n, e["Re"], e["f_cfd"], e["f_colebrook"], 100 * (e["f_cfd"] / e["f_colebrook"] - 1), e["f_haaland"],
+        fw = e.get("f_wall")
+        out.append("| %s | %.0e | %.5f | %s | %s | %.5f | %+.1f %% | %.5f | %.5f | %+.1f %% | %s | %s it, %.0f s |" % (
+            n, e["Re"], e["f_cfd"], "%.5f" % fw if fw else "-", "%.3f" % (e["f_cfd"] / fw) if fw else "-",
+            e["f_colebrook"], 100 * (e["f_cfd"] / e["f_colebrook"] - 1), e["f_haaland"],
             e["f_mckeon"], 100 * (e["f_cfd"] / e["f_mckeon"] - 1),
             ("%.2f/%.2f" % (yp["avg"], yp["max"])) if yp else "-", int(e["iterations"]), e["wall_time_s"] or 0))
     out.append("")
@@ -96,9 +101,10 @@ if E:
 X = load("exhaust_results.json")
 if X:
     out.append("### (d) Exhaust-component mode: known-answer checks (gas 650 °C, inlet 100 m/s, medium mesh)\n")
-    out.append("K is the total-pressure loss from the inlet face to the exit face in dynamic heads of the inlet velocity. "
-               "The straight pipes in each model (inlet 1-2 D plus the 2 D inlet extension, outlet 10 D plus the 2 D outlet extension) "
-               "add wall friction, estimated with Colebrook at the run's Reynolds number and taken off to give the component's own K.\n")
+    out.append("K is the total-pressure loss from the part's inlet face to its exit face in dynamic heads of the inlet velocity. "
+               "The part's own straight pipes between those faces (inlet 1 D or 2 D, outlet 10 D; the 2 D extensions the generator "
+               "adds lie outside the measured section) add wall friction, estimated with Colebrook at the run's Reynolds number and "
+               "taken off to give the component's own K.\n")
     out.append("| case | K CFD, inlet to exit | friction of the straights (est.) | K of the component | reference | run |")
     out.append("|---|---|---|---|---|---|")
     for n, e in X.items():

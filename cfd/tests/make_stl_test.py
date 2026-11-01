@@ -2,8 +2,8 @@
 """Build a CAD-like STL of a straight intake tract (rounded flush entrance,
 D = 50 mm, L = 10 D) in an arbitrary position/orientation, with solids named
 wall / inlet / outlet in millimetres -- exactly what a Fusion export would give
--- plus the matching 2-D (wedge) and 3-D (STL) design files, so the 3-D path
-can be checked against the validated 2-D path."""
+-- plus the matching 2-D (axisymmetric sector) and 3-D (STL) design files, so the 3-D path
+can be checked against the 2-D path (whose validation is in cfd/NOTES.md section 4)."""
 import json, math, os, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -34,8 +34,8 @@ amb = {"p_pa": 101325, "T_c": 25}
 d3 = {"name": "stl_straight", "geometry": {"stl": "cad_tract_mm.stl", "stl_units": "mm", "outlet_extension_D": 3,
                                           "planes": {"maf": {"point_mm": list(maf_pt), "normal": list(maf_n)}}},
       "operating_point": op, "ambient": amb, "mesh": {"level": "medium"}}
-d2 = {"name": "wedge_straight", "geometry": dict(geo, outlet_extension_D=3, maf_plane_mm=300.0),
+d2 = {"name": "axisym_straight", "geometry": dict(geo, outlet_extension_D=3, maf_plane_mm=300.0),
       "operating_point": op, "ambient": amb, "mesh": {"level": "medium"}}
 json.dump(d3, open(os.path.join(HERE, "stl_straight.json"), "w"), indent=2)
-json.dump(d2, open(os.path.join(HERE, "wedge_straight.json"), "w"), indent=2)
-print("mdot %.6g kg/s; wrote cad_tract_mm.stl, stl_straight.json, wedge_straight.json" % mdot)
+json.dump(d2, open(os.path.join(HERE, "axisym_straight.json"), "w"), indent=2)
+print("mdot %.6g kg/s; wrote cad_tract_mm.stl, stl_straight.json, axisym_straight.json" % mdot)
