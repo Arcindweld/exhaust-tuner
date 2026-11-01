@@ -4,8 +4,8 @@
 # another way). The Linux runs that stop when settled (cfd/validation/reference/*_medium_linux_results.json, 1870 and
 # 2620 iterations) are within 0.02 % of the 6000-iteration runs at the tract end and within 0.32 % everywhere (the
 # total pressure 2 D into the outlet extension settles last), so the comparison is made at 6000 iterations on both
-# sides; our build lands within 0.021 % (compressible) and 0.051 % (incompressible) of Linux, ESI's Ubuntu package
-# within 0.016 % and 0.051 % (generator 1.1.0).
+# sides; our build lands within 0.015-0.021 % (compressible) and 0.039-0.051 % (incompressible) of Linux, ESI's
+# Ubuntu package within 0.016 % and 0.051 % (generator 1.1.0).
 #   pwsh validate_windows.ps1 -OF C:\ET\OpenFOAM-v2412 -Repo <checkout>
 param([Parameter(Mandatory)][string]$OF, [Parameter(Mandatory)][string]$Repo)
 $ErrorActionPreference = "Stop"

@@ -1,0 +1,45 @@
+# The CFD generator's validation suites (cfd/validation/run_validation.py) on ESI's own Ubuntu package of OpenFOAM
+# v2412, one runner per suite. The 2-D cases agree with the conda-forge Linux build used for the references within
+# 0.05 % (cfd/NOTES.md 4 (e)); this keeps the long suites off the development machine. The results files are
+# uploaded; commit them by hand after reading them.
+name: cfd-validation
+on:
+  workflow_dispatch:
+  push:
+    branches: [windows-app, cfd-cyclic-sector]
+    paths: [".github/workflows/cfd-validation.yml", "cfd/validation/run_validation.py"]
+permissions:
+  contents: read
+jobs:
+  suite:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [friction, entrance, exhaust]
+    steps:
+      - uses: actions/checkout@v4
+      - name: ESI's OpenFOAM v2412 for Ubuntu
+        run: |
+          curl -sSL https://dl.openfoam.com/add-debian-repo.sh | sudo bash
+          sudo apt-get install -y -q openfoam2412-default > /dev/null
+          printf 'set +eu\nsource /usr/lib/openfoam/openfoam2412/etc/bashrc\n' > $RUNNER_TEMP/foamenv.sh
+          bash -c ". $RUNNER_TEMP/foamenv.sh && simpleFoam -help > /dev/null && echo OpenFOAM ready"
+      - name: Run the ${{ matrix.suite }} suite
+        run: |
+          # the stored exhaust runs were made by an earlier generator: run them again
+          [ "${{ matrix.suite }}" = exhaust ] && rm -rf cfd/validation/runs/EXH-*
+          export FOAMENV=$RUNNER_TEMP/foamenv.sh NWORK=$(nproc)
+          python3 cfd/validation/run_validation.py ${{ matrix.suite }}
+          python3 cfd/validation/run_validation.py table || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: cfd-${{ matrix.suite }}
+          path: |
+            cfd/validation/*_results.json
+            cfd/validation/runs/*/results.json
+            cfd/validation/runs/*/allrun.out
+            cfd/validation/runs/*/log.wss
+          retention-days: 30

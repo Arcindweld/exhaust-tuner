@@ -108,8 +108,10 @@ wall-normal. Points along the lip are placed with one-cell multi-grading
 sections, so wall and layer edge correspond point by point.
 
 The first cell height is set for **y+ ≈ 1 at the estimated peak velocity**:
-`h = 2 ν / u_τ`, with `u_τ = U_peak √(f/8)` and the Colebrook f at the tract
-Reynolds number. This is a wall-resolved, low-Re treatment.
+`h = 2 ν / u_τ`, with `u_τ = U_peak √(f/8)` and the Colebrook f at the
+Reynolds number of the smallest section, formed with that section's own
+diameter (until 1.1.0 the tube or outlet diameter was paired with the
+smallest section's velocity). This is a wall-resolved, low-Re treatment.
 
 Core blocks fill the tube. The atmosphere blocks fan out from the mouth to the
 far field. Block corners with non-90° angles are only found on the layer edge,
@@ -412,8 +414,10 @@ solver sees an ordinary 3-D mesh one cell thick whose sides are coupled, and
 no wedge code is involved. checkMesh: the coupled points match to
 4 × 10⁻¹² m. With it the three builds agree: square-cut pipe, generator
 1.1.0, 6000 iterations, every plane quantity — our Windows build within
-0.021 % (compressible) and 0.051 % (incompressible) of the conda-forge Linux
-reference, ESI's Ubuntu package within 0.016 % and 0.051 %, and ESI's Ubuntu
+0.015–0.021 % (compressible) and 0.039–0.051 % (incompressible) of the
+conda-forge Linux reference (two runs on different runners, diag runs
+41285699898 and 41289680200; Windows' C runtime picks its maths routines by
+CPU, so runs on different machines differ in the fifth digit), ESI's Ubuntu package within 0.016 % and 0.051 %, and ESI's Ubuntu
 package on wedge sides within 0.005 % of the cyclic result. The cyclic
 sector's 0.8 % on the laminar pipe (against 0.2 % for a correct wedge) is
 discretisation, the same on every build.

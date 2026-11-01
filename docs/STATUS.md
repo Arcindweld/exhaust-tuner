@@ -84,7 +84,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   SOURCE.txt + build-scripts/ for GPL-3.0 sec. 6) and a Windows job validates (validate_windows.ps1 +
   compare_results.py): both square-cut-pipe cases (rhoSimpleFoam and simpleFoam) at 6000 iterations against the Linux
   runs in cfd/validation/reference/*_6000it_results.json, limit 0.2 % on every plane quantity. Generator 1.1.0
-  (cyclic sector, 2026-11-01): our build within 0.021 % / 0.051 % of Linux, ESI's Ubuntu package within 0.016 % /
+  (cyclic sector, 2026-11-01): our build within 0.015-0.021 % / 0.039-0.051 % of Linux (diag run 41289680200), ESI's Ubuntu package within 0.016 % /
   0.051 %; the earlier 5-9 % "miss" (ours and ESI's Windows package alike) was the Linux build's wedge artifact.
   Run 1 found two include problems (header-only TurbulenceModels/phaseCompressible; surfaceFeatureExtract's own
   library) -> fixed (9353ed3). STATUS: second run queued behind the first.
