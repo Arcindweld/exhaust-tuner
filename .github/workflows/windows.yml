@@ -212,7 +212,15 @@ jobs:
           $s = "stage"
           New-Item -ItemType Directory -Force $s, "$s/web", "$s/fusion-addin", "$s/engines/openwam", "$s/licenses", "webview2" | Out-Null
           Copy-Item publish/desktop/* $s -Recurse
-          Copy-Item publish/host/exhaust-tuner-host.exe, publish/host/*.dll, publish/host/*.json $s -ErrorAction SilentlyContinue
+          # the host's own files, and none that the program already has: both are self-contained, and the host's runtime
+          # carries a small WindowsBase.dll (a compatibility shim) that would replace WPF's own and stop the window
+          # from starting ("Could not load file or assembly WindowsBase 8.0.0.0", every installer up to 0.1.45)
+          Get-ChildItem publish/host -File | Where-Object { -not (Test-Path (Join-Path $s $_.Name)) } | Copy-Item -Destination $s
+          foreach ($f in "exhaust-tuner-host.exe", "exhaust-tuner-host.dll", "exhaust-tuner-host.deps.json", "exhaust-tuner-host.runtimeconfig.json") {
+            if (-not (Test-Path (Join-Path $s $f))) { throw "staging: $f missing" }
+          }
+          $wb = [Reflection.AssemblyName]::GetAssemblyName((Resolve-Path "$s/WindowsBase.dll")).Version
+          if ($wb.Major -lt 8) { throw "staging: WindowsBase.dll is version $wb, not WPF's" }
           Copy-Item web/index.html "$s/web/"
           # the program opens app.html: the same page wrapped in a full HTML document (doctype, head, body), exactly as
           # the Fusion palette gets it, so it renders in standards mode like the published page
@@ -281,6 +289,12 @@ jobs:
           $direct = Start-Process "$dir\ExhaustTuner.exe" -PassThru
           $seenDirect = Wait-Start 30
           "started directly: " + $(if ($seenDirect) { "recorded $($seenDirect[0]) from $($seenDirect[3])" } else { "no start recorded in 30 s; exited: $($direct.HasExited)" + $(if ($direct.HasExited) { ", code $($direct.ExitCode)" } else { "" }) })
+          if ($seenDirect) {
+            # the window then loads the page in WebView2 and adds a line when it has (MainWindow.xaml.cs)
+            for ($i = 0; $i -lt 45 -and -not ((Get-Content $marker -ErrorAction SilentlyContinue) -match '^page loaded'); $i++) { Start-Sleep 1 }
+            $page = @(Get-Content $marker -ErrorAction SilentlyContinue) -match '^page'
+            "window: " + $(if ($page) { $page[-1] } else { "no page line in 45 s (WebView2 may not run on this machine)" }) + "; running: $(-not $direct.HasExited)"
+          }
           Get-WinEvent -FilterHashtable @{ LogName = 'Application'; StartTime = $t0 } -ErrorAction SilentlyContinue |
             Where-Object { $_.Message -match 'ExhaustTuner' } | Select-Object -First 3 | ForEach-Object { "event: $($_.ProviderName): " + ($_.Message -split "`n" | Select-Object -First 6) -join ' ' }
           $direct | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -357,5 +371,12 @@ jobs:
           } > notes.md
           cat notes.md
           gh release create "$tag" "dist/$setup" dist/SHA256SUMS.txt --target "$GITHUB_SHA" --title "Exhaust Tuner $APP_VERSION" --notes-file notes.md
+          # withdrawn releases (installer/withdrawn.txt: tag, reason) become pre-releases, which the program skips
+          grep -v '^[[:space:]]*#' installer/withdrawn.txt | while read -r t why; do
+            [ -n "$t" ] || continue
+            if gh release view "$t" >/dev/null 2>&1; then
+              gh release edit "$t" --prerelease --title "Exhaust Tuner ${t#v} (withdrawn: $why)" >/dev/null && echo "withdrew $t: $why"
+            fi
+          done
           gh release list --limit 100 --json tagName,createdAt --jq 'sort_by(.createdAt) | reverse | .[6:] | .[].tagName' |
             while read -r old; do echo "removing $old"; gh release delete "$old" --cleanup-tag --yes; done

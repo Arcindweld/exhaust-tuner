@@ -1,0 +1,4 @@
+# Releases that must not be installed: the tag, then why. The release job (windows.yml) marks each one as a
+# pre-release, so neither the program's update check (it skips pre-releases) nor GitHub's "Latest" link offers it.
+v0.1.43 the window does not start
+v0.1.45 the window does not start

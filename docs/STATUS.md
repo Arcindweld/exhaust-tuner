@@ -228,6 +228,12 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   UpdaterTests (13, incl. a stalled download giving up), web/tests/update_ui.js (page + host + stand-in GitHub),
   CI reinstall with /WAITPID + /RELAUNCH.
   the owner: install the first release by hand once, then save the token under Updates.
+  Found by the new CI start check: in every installer so far the window itself did not start ("Could not load
+  WindowsBase 8.0.0.0"): staging copied the self-contained host's DLLs over the program's, and the plain runtime's
+  6 KB WindowsBase.dll shim (4.0.0.0) replaced WPF's (8.0.0.0). CI had only ever run the installed host, never
+  the window. Fixed (host files no longer overwrite the program's; staging checks WindowsBase is WPF's; CI starts the
+  installed window and checks it records its start and loads the page). v0.1.43 and v0.1.45 are withdrawn
+  (installer/withdrawn.txt: the release job marks them pre-release, which the update check skips).
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
