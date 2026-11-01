@@ -425,14 +425,16 @@ about a third", which was wrong.
 The exit velocity profile after 10 D of straight pipe is 96 % uniform. Both
 runs converged by the report's criteria at 900 iterations.
 
-**Build dependence (3-D).** These are ESI's Ubuntu package. The same bend
-case files (the OpenFOAM inputs are byte-identical between generator 1.0.0
-and 1.1.0) gave K 0.4763 inlet to exit (0.224 for the bend itself) on the
-conda-forge build. `openfoam-linux-builds.yml` reruns the bend on both
-builds to separate a meshing difference from a solver difference. Until
-that is settled, read 3-D losses to about ±6 %. As with the intake mode,
-differences between designs run the same way are more reliable than the
-absolute K.
+**Build dependence (3-D).** These are ESI's Ubuntu package. The conda-forge
+build gives a different answer on the same mesh (`openfoam-linux-builds.yml`,
+run 41317888445, fresh installs of both): bend K inlet to exit 0.47634
+(0.224 for the bend itself) against ESI's 0.44838, with byte-identical
+meshes (same checksums of `points` and `faces`, 92 883 cells). So it is the
+solver, not snappyHexMesh. The earlier 3-D figures (generator 1.0.0, run on
+the conda-forge build here) carried that difference. ESI's package and our
+Windows build compile ESI's source the same way, so the ESI figures are the
+ones to use. As with the intake mode, differences between designs run the
+same way are more reliable than the absolute K.
 
 ### (e) Why the 2-D cases are a cyclic sector, not a wedge (generator 1.1.0, 2026-11-01)
 
@@ -477,8 +479,14 @@ differently on wedge patches is not known; it applies no source patches
 (its recipe only appends conda's flags to wmake's: `-fvisibility-inlines-hidden
 -march=nocona -mtune=haswell -ftree-vectorize -fno-plt -O2 -ffunction-sections`,
 linked with `-Wl,--gc-sections -Wl,--as-needed`; GCC 13.3). Until that is
-found, do not trust wedge-patch cases from that build, and keep the third
-build (ESI's Ubuntu package, `esi_linux` job of `openfoam-diag.yml`) in CI.
+found, do not trust wedge-patch cases from that build. Its 3-D results
+are off as well: the exhaust bend comes out 6 % higher in K than on ESI's
+package on a byte-identical mesh (§4 (d)). Only the 2-D cyclic cases agree
+across all three builds (within 0.05 %). So use the conda-forge build here
+for 2-D work only, run 3-D validation on ESI's package
+(`cfd-validation.yml`, `openfoam-linux-builds.yml`), and keep the third build
+in CI (`esi_linux` job of `openfoam-diag.yml`). Future Linux references
+should come from ESI's package.
 
 **The cyclic sector.** The mesh is the same 5° sector; its two sides are a
 rotational cyclic pair (`transform rotational; rotationAxis (1 0 0)`), so the
@@ -558,9 +566,9 @@ sin(5°)/(5° in rad) = 0.99873 of a true 5° sector, and the flow scale is
   answer matters, run `fine` and compare: from generator 1.1.0 on, `fine`
   puts medium's refinement levels on a background cell of D/3 instead of D/2,
   about 3.4 times the cells. Before that it gave medium's exact mesh, so a
-  "fine" 3-D run was no check at all. 3-D results also depend on the OpenFOAM
-  build by up to about 6 % (§4 (d)), and our Windows build has only been
-  compared with Linux on the 2-D cases.
+  "fine" 3-D run was no check at all. The conda-forge Linux build gives 3-D
+  losses about 6 % above ESI's build on the same mesh (§4 (d)), and our
+  Windows build has only been compared with Linux on the 2-D cases.
 - **3-D mounting.** Parametric 3-D cases (with a bend) are meshed
   flange-mounted (mouth flush with the plenum floor). A "free"-standing stack
   is only modelled in 2-D.
