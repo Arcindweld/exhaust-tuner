@@ -40,7 +40,14 @@ const CLI = process.env.HOST_CLI || path.join(ROOT, 'app', 'ExhaustTuner.HostCli
     window.__fromHost = m => ls.forEach(f => f({ data: m }));
   });
   await pg.addInitScript(bridge);
-  await pg.goto(pathToFileURL(path.join(ROOT, 'web', 'index.html')).href);
+  // load the page the way the program does: wrapped into a full document (doctype) by web/make_palette.py -> app.html
+  let pageFile = path.join(ROOT, 'web', 'index.html');
+  try {
+    const wrapped = path.join(tmp, 'app.html');
+    execFileSync(process.platform === 'win32' ? 'python' : 'python3', [path.join(ROOT, 'web', 'make_palette.py'), pageFile, wrapped]);
+    pageFile = wrapped;
+  } catch (e) { console.log('SKIP: no Python to wrap the page as the program does; testing the bare page (' + String(e.message || e).slice(0, 80) + ')'); }
+  await pg.goto(pathToFileURL(pageFile).href);
   await pg.waitForFunction(() => document.documentElement.classList.contains('in-desktop'), null, { timeout: 15000 });
   ok(true, 'page found the program (hostInfo answered)');
   await pg.evaluate(() => { document.body.classList.add('expert'); location.hash = 'four-stroke'; }); await pg.waitForTimeout(800);

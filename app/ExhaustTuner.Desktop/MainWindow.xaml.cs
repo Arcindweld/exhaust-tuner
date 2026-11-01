@@ -122,7 +122,10 @@ public partial class MainWindow : Window, IHostUi
             if (e.IsSuccess) Splash.Visibility = Visibility.Collapsed;
             else Status.Text = "The calculator page did not load (" + e.WebErrorStatus + "). Press F5 to try again.";
         };
-        core.Navigate("https://" + Host + "/index.html");
+        // app.html is index.html wrapped in a full document at build time (web/make_palette.py, as for the Fusion palette),
+        // so the page renders in standards mode; a development folder without it falls back to the bare page
+        var start = File.Exists(Path.Combine(_paths.WebDir, "app.html")) ? "app.html" : "index.html";
+        core.Navigate("https://" + Host + "/" + start);
     }
 
     static void OpenExternal(string uri)
