@@ -234,6 +234,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   the window. Fixed (host files no longer overwrite the program's; staging checks WindowsBase is WPF's; CI starts the
   installed window and checks it records its start and loads the page). v0.1.43 and v0.1.45 are withdrawn
   (installer/withdrawn.txt: the release job marks them pre-release, which the update check skips).
+  BLOCKED 2026-11-01 22:32 UTC: run 41357646058 (85ca179, the window fix) was not started by GitHub: "recent account
+  payments have failed or your spending limit needs to be increased" (Billing & plans). Re-run it once billing is
+  sorted; it builds the first good release (0.1.4x) and withdraws 0.1.43 / 0.1.45. One program build costs about
+  15 Windows minutes (openwam 2, app 13; counted double on a private repo) + 1 Linux minute: ~32 billable minutes.
+  This session cannot edit or delete releases (403); the release job does it.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
