@@ -17,7 +17,11 @@
   "VE_delivered": 0.13985208054819395,
   "p_map_bar": 0.21523725169834076,
   "mass_balance_cyl": -0.00015920320753914918,
-  "mass_balance_pipes_avg": -0.019622371622630363,
+  "box_settling": {
+   "density_change_per_cycle": 0.0005683320578589405,
+   "T_change_K": -2.5020000000000095,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.0020883772954452197
  },
  {
@@ -38,7 +42,11 @@
   "VE_delivered": 0.16046021108922995,
   "p_map_bar": 0.23959016252472304,
   "mass_balance_cyl": -1.8816871653726253e-05,
-  "mass_balance_pipes_avg": -0.15367955794456722,
+  "box_settling": {
+   "density_change_per_cycle": 0.0002797938639070367,
+   "T_change_K": -1.271000000000015,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.0006390997918201809
  },
  {
@@ -59,7 +67,11 @@
   "VE_delivered": 0.15821242633708893,
   "p_map_bar": 0.24093163642617635,
   "mass_balance_cyl": 0.0001691811173181179,
-  "mass_balance_pipes_avg": -0.1297888828584446,
+  "box_settling": {
+   "density_change_per_cycle": 0.00016777145799166303,
+   "T_change_K": -0.7559999999999718,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.0004607387215236824
  },
  {
@@ -80,7 +92,11 @@
   "VE_delivered": 0.18496450186731037,
   "p_map_bar": 0.25341766273970284,
   "mass_balance_cyl": -0.0001653663685662332,
-  "mass_balance_pipes_avg": -0.12589110656999458,
+  "box_settling": {
+   "density_change_per_cycle": 0.0005145059312822604,
+   "T_change_K": -2.413000000000011,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.0008820856424967697
  },
  {
@@ -101,7 +117,11 @@
   "VE_delivered": 0.17886455021883962,
   "p_map_bar": 0.2610537449479753,
   "mass_balance_cyl": 0.00011085686917300386,
-  "mass_balance_pipes_avg": -0.0980881237185256,
+  "box_settling": {
+   "density_change_per_cycle": 0.00019385094913149098,
+   "T_change_K": -0.8860000000000241,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.0010758368954421112
  },
  {
@@ -122,7 +142,11 @@
   "VE_delivered": 0.19441619616148131,
   "p_map_bar": 0.27333339066127815,
   "mass_balance_cyl": 5.400775406450009e-05,
-  "mass_balance_pipes_avg": 0.02406744411938222,
+  "box_settling": {
+   "density_change_per_cycle": 8.516943333687947e-05,
+   "T_change_K": -0.40399999999999636,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.00012709585960792244
  },
  {
@@ -143,7 +167,11 @@
   "VE_delivered": 0.8694335185848642,
   "p_map_bar": null,
   "mass_balance_cyl": -1.3486093638825913e-05,
-  "mass_balance_pipes_avg": 0.1201674972207738,
+  "box_settling": {
+   "density_change_per_cycle": 0.0013347528952140923,
+   "T_change_K": -5.8209999999999695,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.00016830016830012777
  },
  {
@@ -164,7 +192,11 @@
   "VE_delivered": 0.8645557569331233,
   "p_map_bar": null,
   "mass_balance_cyl": 1.7684696018704926e-06,
-  "mass_balance_pipes_avg": 0.10364406257353731,
+  "box_settling": {
+   "density_change_per_cycle": 0.0013774263750620994,
+   "T_change_K": -6.733000000000061,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.00012824433505299909
  },
  {
@@ -185,7 +217,11 @@
   "VE_delivered": 0.9464933540142271,
   "p_map_bar": null,
   "mass_balance_cyl": 0.00016924066412871142,
-  "mass_balance_pipes_avg": 0.10183489997721673,
+  "box_settling": {
+   "density_change_per_cycle": -0.00024486375635018285,
+   "T_change_K": 2.394999999999982,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.0003764023281860462
  },
  {
@@ -206,7 +242,11 @@
   "VE_delivered": 1.0014685324048171,
   "p_map_bar": null,
   "mass_balance_cyl": 2.2388342593382404e-05,
-  "mass_balance_pipes_avg": 0.13358663136257354,
+  "box_settling": {
+   "density_change_per_cycle": -0.0018541385388274767,
+   "T_change_K": 12.928999999999974,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.00017852839047735527
  },
  {
@@ -227,7 +267,11 @@
   "VE_delivered": 1.0000332496640005,
   "p_map_bar": null,
   "mass_balance_cyl": 0.00024045137103434477,
-  "mass_balance_pipes_avg": 0.12754899377513373,
+  "box_settling": {
+   "density_change_per_cycle": -0.0022030077780680066,
+   "T_change_K": 15.494000000000028,
+   "cycles": 10
+  },
   "conv_NMEP_last_change": 0.00010939722131048568
  }
 ]

@@ -3,9 +3,12 @@
 WOT torque sanity sweep, sound synthesis and comparison with the owner's recordings.
 
     python3 outback04.py calib            # throttle orifice calibration at 1980 rpm (two short runs)
-    python3 outback04.py run              # the five no-load points + the WOT sweep (2 at a time, long: ~20 min)
+    python3 outback04.py run              # the no-load points + the WOT sweep, 2 at a time (long: the 735 rpm idle
+                                          # alone took over 2 hours at 28 cycles)
     python3 outback04.py sound            # WAVs + order spectra + comparison tables (fast, needs run)
     python3 outback04.py all
+  A model runs again only if its text changed or its last run did not finish; --rerun forces the runs, --no-run
+  re-summarises the existing runs without running OpenWAM.
 
 Everything lives in this folder: spec_<case>.json, runs/<case>/ (wam, AVG, INS, log, summary.json), sound/
 (<case>.wav, <case>_orders.json, compare_<case>.json), results.json.
@@ -70,7 +73,6 @@ ACOUSTICS: receiver 1.0 m from the tip, mic on the ground 3 ft behind and 1.5 ft
 import json
 import math
 import os
-import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
@@ -156,19 +158,18 @@ def run_settings(rpm, cycles, name, fs_rows=64000.0):
             "out_step_deg": make_wam.out_step_for_rate(rpm, fs_rows)}
 
 
-def run_one(name, spec, run, rerun=False):
+def run_one(name, spec, run, argv=()):
+    """--rerun: run even if the folder holds finished results of this model; --no-run: never run, re-summarise what
+    is there. Otherwise OpenWAM runs when the model text changed or the last run did not finish."""
     folder = os.path.join(HERE, "runs", name)
     os.makedirs(folder, exist_ok=True)
     model = make_wam.model_from_spec(spec, run)
-    with open(os.path.join(folder, name + ".wam"), "w", newline="\n") as f:
-        f.write(make_wam.write_model(model))
+    run_models.write_and_run(folder, name, model, exe=os.environ.get("OPENWAM_EXE") or run_models.EXE,
+                             rerun="--rerun" in argv, allow_run="--no-run" not in argv)
     with open(os.path.join(folder, "spec.json"), "w") as f:
         json.dump(spec, f, indent=1)
     with open(os.path.join(folder, "run.json"), "w") as f:
         json.dump({k: v for k, v in run.items() if k != "name"}, f, indent=1)
-    if rerun or not os.path.exists(os.path.join(folder, name + "AVG.DAT")):
-        with open(os.path.join(folder, "run.log"), "w") as lf:
-            subprocess.run([os.environ.get("OPENWAM_EXE") or run_models.EXE, name + ".wam"], cwd=folder, stdout=lf, stderr=subprocess.STDOUT, check=False)
     s = run_models.summarise(folder, name, model)
     return folder, model, s
 
@@ -178,7 +179,7 @@ def calib(argv):
     ds = [0.30, 0.45, 0.60]
     jobs = [("calp_%g" % d, build_spec("noload", d), run_settings(CAL_RPM, 12, "calp_%g" % d)) for d in ds]
     with ThreadPoolExecutor(max_workers=2) as ex:
-        res = list(ex.map(lambda j: run_one(j[0], j[1], j[2], "--rerun" in argv), jobs))
+        res = list(ex.map(lambda j: run_one(j[0], j[1], j[2], argv), jobs))
     target = fmep_bar(CAL_RPM)
     pts = []
     for d, (folder, model, s) in zip(ds, res):
@@ -206,11 +207,10 @@ def d_for(rpm):
 
 
 def run(argv):
-    rerun = "--rerun" in argv
     jobs = []
     for name, rpm, _ in NOLOAD + SECONDARY:
-        # 28 / 48 cycles: the 7.24 L muffler volume settles slowly at no load (after 24 cycles OpenWAM's averages
-        # still had the tail flow 6-18 % off the intake flow)
+        # 28 / 48 cycles: the 7.24 L muffler volume fills and cools slowly at no load (box_settling in
+        # runs_summary.json); NMEP settles sooner
         jobs.append((name, build_spec("noload", d_for(rpm)), run_settings(rpm, 28 if rpm < 1000 else 48, name)))
     for rpm in WOT_RPM:
         nm = "wot_%d" % int(rpm)
@@ -218,7 +218,7 @@ def run(argv):
     # longest first so the two workers finish together
     jobs.sort(key=lambda j: -j[2]["cycles"] * 120.0 / j[2]["rpm"])
     with ThreadPoolExecutor(max_workers=2) as ex:
-        res = list(ex.map(lambda j: run_one(j[0], j[1], j[2], rerun), jobs))
+        res = list(ex.map(lambda j: run_one(j[0], j[1], j[2], argv), jobs))
     rows = []
     for (name, spec, rs), (folder, model, s) in zip(jobs, res):
         L = s["last"]
@@ -229,7 +229,8 @@ def run(argv):
              "PMEP": L["PMEP"], "FMEP": fmep_bar(rpm), "T_net_Nm": L["T_net_from_NMEP"], "T_brake_Nm": tq_brake,
              "T_brake_lbft": tq_brake * 0.73756, "P_brake_hp": tq_brake * 2 * math.pi * rpm / 60 / 745.7,
              "VE_delivered": L["VE_delivered"], "p_map_bar": d_for(rpm) if not name.startswith("wot") else None,
-             "mass_balance_cyl": s["mass_balance_cyl"], "mass_balance_pipes_avg": s["mass_balance_pipes"],
+             "mass_balance_cyl": s["mass_balance_cyl"],
+             "box_settling": {k: s["plenum_settling"][0][k] for k in ("density_change_per_cycle", "T_change_K", "cycles")},
              "conv_NMEP_last_change": s["convergence"]["NMEP"]["last_change"]}
         rows.append(r)
         print("%-10s %5.0f rpm %-6s fin %s warn %d sonic %4d | NMEP %6.3f FMEP %5.3f -> T_brake %6.1f Nm = %6.1f lb-ft, %5.1f hp | VE %.3f | dNMEP %.1e" %

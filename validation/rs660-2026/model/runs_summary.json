@@ -10,7 +10,11 @@
   "p_map_bar": 0.25739643427479875,
   "VE_delivered": 0.11548496567312548,
   "conv_NMEP_last_change": 0.006866057543982331,
-  "mass_balance_pipes_avg": -0.6571424562321772,
+  "box_settling": {
+   "density_change_per_cycle": -0.0013104215601433965,
+   "T_change_K": 6.677999999999997,
+   "cycles": 10
+  },
   "cycles": 48
  },
  {
@@ -24,7 +28,11 @@
   "p_map_bar": 0.30489770058103605,
   "VE_delivered": 0.21529251303815505,
   "conv_NMEP_last_change": 0.0012049100082837073,
-  "mass_balance_pipes_avg": -0.0037535319625370267,
+  "box_settling": {
+   "density_change_per_cycle": -0.0002065661762488368,
+   "T_change_K": 1.2309999999999945,
+   "cycles": 10
+  },
   "cycles": 72
  }
 ]

@@ -12,7 +12,10 @@ volumes (2, 7.2 and 20 litres), runs them with OpenWAM (runs/tail_V<litres>_<rpm
     sum of the intake runners' mean flows plus the fuel, last cycle (run_models.summarise). NOTE: this
     measure is +2..3% (up to +10% at 4000 rpm) on every pre-existing run WITHOUT a tail (runs/*/summary.json),
     so it is reported and compared with the no-tail i4_41 at the same speed rather than tested against zero.
-    A plenum that is still heating up (started cold) also loses stored mass every cycle and shows here.
+    The offset is OpenWAM's: its closed-valve and open-end boundary conditions do not conserve mass, so the
+    pipes' mean flows are not a mass balance (measurements in the run_models.py docstring). The plenum check
+    above is the conservative one: a plenum's own mass change against its port flows. A plenum that is
+    still heating up (started cold) also loses stored mass every cycle, and that shows here too.
   * the plenum is in the path: INS.DAT pressure traces of the plenum and of the outlet node change
     with the volume (peak-to-peak of the plenum pressure must FALL as the volume grows, the muffler
     acting as a compliance), and the plenum mass is of the order rho*V.

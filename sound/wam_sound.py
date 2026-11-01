@@ -24,12 +24,15 @@ Acoustic model (stated assumptions)
     120 fs / n, within 0.05 % of rpm) and tiled to --seconds. The derivative is taken spectrally on the
     periodic cycle, so the loop joins without a click. Cycle-to-cycle periodicity (RMS difference of the
     last two cycles relative to the signal RMS) is reported: it should be a few percent or less.
-  * Output rate and settling (checked on the RS 660 model, 5460 rpm, two outlets): INS rows at 64 kHz give order
-    levels within 0.4 dB of rows at every solver step up to order 12; rows at 16 kHz were up to 2.5 dB off at
-    orders 10-12 (1 kHz). A muffler volume settles slowly: OpenWAM's own averages (AVG.DAT) put the mean tail flow
-    4 % short of the intake flow after 36 cycles and 0.4 % after 72. The cycle mean of the INS mass-flow column at
-    the open-end node stays about 12 % short even then (nodal values in a flow that reverses half the cycle); the
-    sound uses only its fluctuation, so absolute levels may read about 1 dB low, relative order levels not.
+  * Output rate, settling and cells (checked on the RS 660 model, two outlets): INS rows at 64 kHz give order
+    levels within 0.4 dB of rows at every solver step up to order 12 at 5460 rpm; rows at 16 kHz were up to 2.5 dB
+    off at orders 10-12 (1 kHz). A muffler volume fills and heats slowly: judge settling by the box's own state
+    (run_models plenum_settling), not by OpenWAM's mean pipe flows. The cycle mean of the INS mass-flow column at
+    the open-end node is 11 % below the cylinders' exhaust flow and 19 % below the middle of the same outlet pipe
+    (5460 rpm, 72 cycles): OpenWAM's boundary conditions do not conserve mass at open ends and closed valves
+    (run_models docstring). The sound uses only the fluctuation; if that is scaled like the mean, absolute levels
+    read about 1 dB low. Relative order levels moved 1.3 dB RMS (idle, the 5 mm run not yet periodic) and 3.5 dB
+    RMS (5460 rpm, most of it one order in a dip) between 10 and 5 mm cells.
   * The WAV is 16-bit PCM, normalised so the peak is -1 dBFS; "pa_per_fullscale" in the JSON gives the
     pressure of a full-scale sample, and the JSON carries the absolute SPL of the model.
 

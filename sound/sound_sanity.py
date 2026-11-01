@@ -20,7 +20,6 @@ Both cases are run with ins_outlet=1 at 20 kHz output rows (out_step_deg = 6 rpm
 import json
 import math
 import os
-import subprocess
 import sys
 
 import numpy as np
@@ -44,15 +43,11 @@ def run_case(case, rpm, cycles, rerun):
            "out_step_deg": make_wam.out_step_for_rate(rpm, 20000.0)}
     spec = cases.ALL[case]()
     model = make_wam.model_from_spec(spec, run)
-    with open(os.path.join(folder, name + ".wam"), "w", newline="\n") as f:
-        f.write(make_wam.write_model(model))
+    run_models.write_and_run(folder, name, model, rerun=rerun)     # also reruns when the model text changed
     with open(os.path.join(folder, "spec.json"), "w") as f:
         json.dump(spec, f)
     with open(os.path.join(folder, "run.json"), "w") as f:
         json.dump({k: v for k, v in run.items() if k != "name"}, f)
-    if rerun or not os.path.exists(os.path.join(folder, name + "INS.DAT")):
-        with open(os.path.join(folder, "run.log"), "w") as lf:
-            subprocess.run([run_models.EXE, name + ".wam"], cwd=folder, stdout=lf, stderr=subprocess.STDOUT, check=False)
     s = run_models.summarise(folder, name, model)
     with open(os.path.join(folder, name + "INS.DAT")) as f:
         ins = make_wam.read_ins(f.read(), keep_cycles=2, model=model)
