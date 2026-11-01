@@ -47,6 +47,9 @@ cd app && dotnet test ExhaustTuner.Core.Tests
 
 # the page inside the program, end to end (needs the built host and the solvers; see the file header)
 node web/tests/desktop_ui.js
+
+# updates inside the program: the menu, the host's update requests and a stand-in GitHub (needs the built host)
+node web/tests/update_ui.js
 ```
 
 ## The Windows program
@@ -57,6 +60,25 @@ the PC: OpenWAM (built from CMT-UPV's source), Engine Simulator (the fork's head
 on the 2-D validation cases of the generator version it ships with; the 3-D snappyHexMesh path is not part of that
 check yet), with Python for the CFD cases' own scripts. It installs the Fusion add-in too. Runs go to
 `%LOCALAPPDATA%\ExhaustTuner\runs`. See `docs/STATUS.md` for where each piece stands.
+
+### Updates
+
+Every push to `windows-app` that passes the Windows build's tests becomes a GitHub release, `v0.1.<run number>`,
+carrying the installer and `SHA256SUMS.txt`; its notes list the commits since the previous release, and the newest 6
+releases are kept (the `release` job in `windows.yml`). The installed program looks for a newer release a few seconds
+after it starts and every 6 hours, downloads it in the background, checks its size and SHA-256, and shows
+"Restart and update" in its menu (the button gets a dot). That runs the installer silently over the same folder with
+the same choices (the Fusion add-in too, when it is installed); the installer waits for the program to close and opens
+it again. A run in progress blocks the update until it ends. Builds on a PC are version 0.1.0, so they always see the
+newest release.
+
+The repository is private, so the program needs a GitHub token that can read it, saved once under Updates in its
+menu: a fine-grained personal access token (github.com, Settings, Developer settings, Personal access tokens,
+Fine-grained tokens) with Repository access limited to `exhaust-tuner` and Permissions, Contents: Read-only. It is
+stored in `%LOCALAPPDATA%\ExhaustTuner\update-token.bin`, encrypted for the Windows user (DPAPI), never handed back
+to the page, and sent only with requests to api.github.com, not with the redirects to GitHub's download storage.
+Code: `app/ExhaustTuner.Core/Updater.cs`; tests: `UpdaterTests.cs`, `web/tests/update_ui.js`, and the installer step in
+`windows.yml` that updates the installed program the same way and checks that it opens again.
 
 ## Third-party software
 

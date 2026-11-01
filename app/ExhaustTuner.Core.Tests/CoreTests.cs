@@ -69,15 +69,22 @@ public class ProgramMenuTests
     }
 
     [Fact]
-    public void Version_is_the_same_everywhere()
+    public void Version_comes_from_the_build()
     {
-        // the page's menu shows HostDispatcher.Version; CI stamps the build and the installer with APP_VERSION
+        // builds on a PC are 0.1.0 (app/Directory.Build.props); CI stamps the program, the host and the installer with
+        // APP_VERSION = 0.1.<run number>, on the same 0.1 line, so every release is newer than a PC build and than
+        // the one before it. The page's menu and the update check use HostDispatcher.Version, read from the assembly.
+        var props = File.ReadAllText(Path.Combine(Repo.Root, "app", "Directory.Build.props"));
         var yml = File.ReadAllText(Path.Combine(Repo.Root, ".github", "workflows", "windows.yml"));
-        var csproj = File.ReadAllText(Path.Combine(Repo.Root, "app", "ExhaustTuner.Desktop", "ExhaustTuner.Desktop.csproj"));
-        var app = System.Text.RegularExpressions.Regex.Match(yml, @"APP_VERSION:\s*([0-9.]+)").Groups[1].Value;
-        var proj = System.Text.RegularExpressions.Regex.Match(csproj, @"<Version>([0-9.]+)</Version>").Groups[1].Value;
-        Assert.Equal(HostDispatcher.Version, app);
-        Assert.Equal(HostDispatcher.Version, proj);
+        var local = System.Text.RegularExpressions.Regex.Match(props, @"<Version>([0-9.]+)</Version>").Groups[1].Value;
+        var line = System.Text.RegularExpressions.Regex.Match(yml, @"APP_VERSION:\s*([0-9]+\.[0-9]+)\.\$\{\{\s*github\.run_number\s*\}\}").Groups[1].Value;
+        Assert.Equal("0.1.0", local);
+        Assert.Equal("0.1", line);
+        Assert.Equal(local, HostDispatcher.Version);
+        Assert.Contains("dotnet publish app/ExhaustTuner.HostCli -c Release -r win-x64 --self-contained true -o publish/host -p:Version=${{ env.APP_VERSION }}", yml);
+        Assert.Contains("-o publish/desktop -p:Version=${{ env.APP_VERSION }}", yml);
+        Assert.Contains("/DAppVersion=${{ env.APP_VERSION }}", yml);
+        Assert.DoesNotContain("<Version>", File.ReadAllText(Path.Combine(Repo.Root, "app", "ExhaustTuner.Desktop", "ExhaustTuner.Desktop.csproj")));
     }
 
     [Fact]

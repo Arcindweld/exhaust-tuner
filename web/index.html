@@ -102,6 +102,21 @@ h1{margin:0;font:700 17px/1.1 var(--f-display);font-stretch:118%;letter-spacing:
 .hm-items button:hover,.hm-items button:focus-visible{background:var(--panel)}
 .hm-items kbd{font:500 11.5px/1.3 var(--f-ui);color:var(--muted);border:1px solid var(--line-2);border-radius:5px;padding:1px 6px}
 .hm-out{margin:4px 2px 2px;padding:10px 12px;border-radius:10px;background:var(--info-bg);font-size:13px;line-height:1.45;white-space:pre-line;overflow-wrap:anywhere}
+/* updates (the program checks its GitHub releases): a dot on the menu button when one is ready to install */
+.hostbtn{position:relative}
+.hostdot{position:absolute;top:5px;right:5px;width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--inset)}
+.hm-updline{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+.hm-updline:empty{display:none}
+.hm-updline.ready{color:var(--accent);font-weight:600}
+.hm-badge{font:600 11px/1 var(--f-ui);padding:3px 7px;border-radius:999px;background:var(--accent);color:var(--on-accent)}
+.hm-upd{margin:4px 2px 2px;padding:12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);display:grid;gap:10px;font-size:13px;line-height:1.45}
+.hm-upd p{margin:0}
+.hm-upd-notes{margin:0;max-height:170px;overflow:auto;padding:8px 10px;border-radius:8px;background:var(--well);font:12px/1.5 var(--f-ui);white-space:pre-wrap;overflow-wrap:anywhere}
+.hm-upd-tok{display:grid;gap:6px}
+.hm-upd-tok label{font-weight:600;font-size:12.5px}
+.hm-upd-tok input{min-height:36px;padding:6px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--field);color:var(--ink);font:12.5px/1.2 var(--f-mono);min-width:0}
+.hm-upd-tok input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.hm-upd-btns{display:flex;flex-wrap:wrap;gap:8px}
 .themebtn circle{fill:none;stroke:currentColor;stroke-width:1.7}
 .themebtn .fillhalf{fill:currentColor}
 .themebtn[data-mode="dark"] circle{fill:currentColor}
@@ -402,16 +417,33 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       </div>
       <button type="button" class="iconbtn themebtn" id="theme-btn" aria-label="Colour theme: follows the system" title="Colour theme: follows the system"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path class="fillhalf" d="M12 3.8a8.2 8.2 0 0 1 0 16.4z"/></svg></button>
       <div class="hostwrap">
-        <button type="button" class="iconbtn hostbtn" id="host-btn" aria-haspopup="true" aria-expanded="false" aria-controls="host-menu" title="Program: runs folder, Fusion add-in, engines" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></svg><span class="vh">Program menu</span></button>
+        <button type="button" class="iconbtn hostbtn" id="host-btn" aria-haspopup="true" aria-expanded="false" aria-controls="host-menu" title="Program: runs folder, updates, Fusion add-in, engines" hidden><span class="hostdot" id="host-dot" hidden></span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></svg><span class="vh">Program menu</span></button>
         <div class="hostmenu" id="host-menu" hidden>
-          <div class="hm-head"><b>Exhaust Tuner <span id="hm-ver"></span></b><div class="hm-eng" id="hm-eng"></div><p class="hm-runs" id="hm-runs"></p></div>
+          <div class="hm-head"><b>Exhaust Tuner <span id="hm-ver"></span></b><div class="hm-eng" id="hm-eng"></div><p class="hm-runs" id="hm-runs"></p><p class="hm-updline" id="hm-updline"></p></div>
           <div class="hm-items" role="menu" aria-label="Program">
             <button type="button" role="menuitem" data-hm="runs">Open the runs folder</button>
+            <button type="button" role="menuitem" data-hm="update" aria-controls="hm-upd" aria-expanded="false">Updates <span class="hm-badge" id="hm-badge" hidden>Ready</span></button>
             <button type="button" role="menuitem" data-hm="install">Install or update the Fusion add-in</button>
             <button type="button" role="menuitem" data-hm="status">Fusion add-in status</button>
             <button type="button" role="menuitem" data-hm="reload">Reload the page <kbd>F5</kbd></button>
             <button type="button" role="menuitem" data-hm="devtools">Developer tools <kbd>F12</kbd></button>
             <button type="button" role="menuitem" data-hm="about">Engines and licences</button>
+          </div>
+          <div class="hm-upd" id="hm-upd" hidden>
+            <p id="hm-upd-msg" aria-live="polite"></p>
+            <pre class="hm-upd-notes" id="hm-upd-notes" hidden></pre>
+            <div class="hm-upd-tok" id="hm-upd-tokbox" hidden>
+              <p>New versions come from your private GitHub repository, so the program needs a token that can read it. On github.com: Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token. Repository access: only exhaust-tuner. Permissions: Contents, read-only.</p>
+              <label for="hm-upd-tok">GitHub token</label>
+              <input id="hm-upd-tok" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
+              <p class="hint">Kept on this PC, encrypted for your Windows account, and sent only to GitHub. Save an empty field to remove it.</p>
+            </div>
+            <div class="hm-upd-btns">
+              <button type="button" class="btn primary" id="hm-upd-install" hidden>Restart and update</button>
+              <button type="button" class="btn primary" id="hm-upd-save" hidden>Save token</button>
+              <button type="button" class="btn" id="hm-upd-check" hidden>Check now</button>
+              <button type="button" class="btn" id="hm-upd-tokchange" hidden>Change token</button>
+            </div>
           </div>
           <p class="hm-out" id="hm-out" aria-live="polite" hidden></p>
         </div>
@@ -8836,12 +8868,79 @@ function hostMenuRender(){
     .map(([k,n])=>'<span class="'+(e[k]?'':'off')+'">'+n+(e[k]?' ready':' not found')+'</span>').join('');
   $('hm-runs').textContent=i.runsFolder?'Runs are saved in '+i.runsFolder:'';
 }
+/* updates from the program's GitHub releases (app/ExhaustTuner.Core/Updater.cs): checked a few seconds after the start
+   and every 6 hours; a newer release downloads in the background and waits for "Restart and update" */
+const UPD={s:null,poll:0,tokOpen:false};
+const updMB=b=>(b/1048576).toFixed(b>0&&b<10485760?1:0);
+function updMsg(s){
+  const L=s.latest, v=L&&L.version;
+  switch(s.state){
+    case 'not-configured': return 'Updates are not set up yet. Save a GitHub token below and the program looks for new versions by itself.';
+    case 'idle': return 'Not checked yet.';
+    case 'checking': return 'Looking for a newer version…';
+    case 'up-to-date': return 'Up to date: this is version '+s.version+(L?', the newest release is '+L.version:'')+'.';
+    case 'available': return 'Version '+v+' is out (this is '+s.version+').';
+    case 'downloading': { const p=s.progress||{}; return 'Downloading version '+v+': '+updMB(p.done||0)+' of '+updMB(p.total||(L&&L.size)||0)+' MB.'; }
+    case 'ready': return s.installed?'Version '+v+' is downloaded and checked (this is '+s.version+'). Restart and update closes the program, installs it and opens it again, in about a minute.'
+      :'Version '+v+' is downloaded, but this copy of the program was not set up by the installer, so it cannot update itself.';
+    case 'error': return 'The update check did not work. '+(s.error||'');
+    default: return '';
+  }
+}
+function updRender(){
+  const s=UPD.s; if(!s||!$('hm-upd')) return;
+  const L=s.latest, ready=s.state==='ready';
+  $('host-dot').hidden=!ready;
+  $('host-btn').title=ready?'Program: version '+L.version+' is ready to install':'Program: runs folder, updates, Fusion add-in, engines';
+  const line=$('hm-updline');
+  line.textContent=ready?'Version '+L.version+' is ready to install.':s.state==='downloading'?'Downloading version '+(L&&L.version)+'…':
+    s.state==='not-configured'?'Updates are not set up.':s.state==='up-to-date'?'Up to date.':s.state==='error'?'The last update check did not work.':'';
+  line.classList.toggle('ready',ready);
+  $('hm-badge').hidden=!ready;
+  $('hm-upd-msg').textContent=updMsg(s);
+  const notes=L&&L.newer&&L.notes?L.notes.trim():'';
+  $('hm-upd-notes').textContent=notes; $('hm-upd-notes').hidden=!notes;
+  const tok=!s.configured||UPD.tokOpen;
+  $('hm-upd-tokbox').hidden=!tok; $('hm-upd-save').hidden=!tok;
+  $('hm-upd-install').hidden=!(ready&&s.installed);
+  $('hm-upd-check').hidden=!s.configured;
+  $('hm-upd-check').disabled=s.state==='checking'||s.state==='downloading';
+  $('hm-upd-tokchange').hidden=!s.configured||UPD.tokOpen;
+}
+function updSet(s){
+  if(s&&s.state) UPD.s=s;
+  updRender();
+  clearTimeout(UPD.poll);
+  if(UPD.s&&(UPD.s.state==='downloading'||UPD.s.state==='checking')) UPD.poll=setTimeout(()=>hostCall('updateStatus',{}).then(updSet),1500);
+}
+async function updCheck(){ if(UPD.s&&UPD.s.configured) updSet(await hostCall('updateCheck',{download:true})); }
+function updSetup(){
+  hostCall('updateStatus',{}).then(s=>{ updSet(s); if(s&&s.configured) setTimeout(updCheck,4000); });
+  setInterval(updCheck,6*3600*1000);
+  $('hm-upd-check').addEventListener('click',updCheck);
+  $('hm-upd-tokchange').addEventListener('click',()=>{ UPD.tokOpen=true; updRender(); $('hm-upd-tok').focus(); });
+  $('hm-upd-save').addEventListener('click',async()=>{
+    const f=$('hm-upd-tok'), r=await hostCall('updateSetToken',{token:f.value});
+    if(r&&r.ok===false&&r.msg){ $('hm-upd-msg').textContent=r.msg; f.focus(); return; }
+    f.value=''; UPD.tokOpen=false; updSet(r);
+    if(r&&r.configured) updCheck();
+  });
+  $('hm-upd-tok').addEventListener('keydown',e=>{ if(e.key==='Enter') $('hm-upd-save').click(); });
+  $('hm-upd-install').addEventListener('click',async()=>{
+    const b=$('hm-upd-install'); b.disabled=true;
+    const r=await hostCall('updateInstall',{});
+    $('hm-upd-msg').textContent=(r&&r.msg)||'No answer from the program.';
+    if(!(r&&r.ok)) b.disabled=false;
+  });
+}
 function hostMenuSetup(){
   const btn=$('host-btn'), menu=$('host-menu'), out=$('hm-out');
   if(!HOST||!btn||!menu) return;
   btn.hidden=false;
   const say=t=>{ out.textContent=t||''; out.hidden=!t; };
-  const open=v=>{ menu.hidden=!v; btn.setAttribute('aria-expanded',String(v)); if(v){ hostMenuRender(); say(''); const f=menu.querySelector('[data-hm]'); if(f) f.focus(); } };
+  const updPanel=v=>{ $('hm-upd').hidden=!v; menu.querySelector('[data-hm="update"]').setAttribute('aria-expanded',String(v)); if(v) updRender(); };
+  const open=v=>{ menu.hidden=!v; btn.setAttribute('aria-expanded',String(v));
+    if(v){ hostMenuRender(); say(''); updPanel(!!(UPD.s&&UPD.s.state==='ready')); const f=menu.querySelector('[data-hm]'); if(f) f.focus(); } };
   btn.addEventListener('click',()=>open(menu.hidden));
   document.addEventListener('pointerdown',e=>{ if(!menu.hidden&&!menu.contains(e.target)&&!btn.contains(e.target)) open(false); });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!menu.hidden){ open(false); btn.focus(); } });
@@ -8854,6 +8953,7 @@ function hostMenuSetup(){
     const b=e.target.closest('[data-hm]'); if(!b) return; const a=b.dataset.hm;
     if(a==='reload'){ location.reload(); return; }
     if(a==='about'){ say(ABOUT_TEXT()); return; }
+    if(a==='update'){ say(''); updPanel($('hm-upd').hidden); if(!$('hm-upd').hidden) hostCall('updateStatus',{}).then(updSet); return; }
     say('Working…');
     if(a==='runs'){
       let r=await hostCall('openRunsFolder',{});
@@ -8870,6 +8970,7 @@ function hostMenuSetup(){
       const r=await hostCall('devTools',{}); say(r&&r.ok?'':'Press F12 to open the developer tools.');
     }
   });
+  updSetup();
 }
 hostMenuSetup();
 const PAGE_ERRS=[];

@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json.Nodes;
 
 namespace ExhaustTuner.Core;
@@ -14,6 +15,8 @@ public interface IHostUi
     void SetTheme(bool dark) { }
     /// <summary>Opens the browser developer tools. Optional: does nothing by default.</summary>
     void OpenDevTools() { }
+    /// <summary>Closes the program (after starting an update's installer, which waits for that). Optional.</summary>
+    void Quit() { }
 }
 
 /// <summary>
@@ -22,9 +25,20 @@ public interface IHostUi
 /// </summary>
 public sealed class HostDispatcher
 {
-    public const string Version = "0.1.0";
+    /// <summary>The build's version: 0.1.0 on a PC, 0.1.&lt;run number&gt; from CI (app/Directory.Build.props, windows.yml).</summary>
+    public static readonly string Version = BuildVersion();
     readonly AppPaths _paths;
     readonly IHostUi _ui;
+    readonly Updater _updater;
+    int _activeRuns;          // solver runs going on: an update is not installed while one is
+
+    static string BuildVersion()
+    {
+        var a = typeof(HostDispatcher).Assembly;
+        var v = a.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? a.GetName().Version?.ToString(3) ?? "0.0.0";
+        var plus = v.IndexOf('+');            // the SDK appends +<commit>
+        return plus >= 0 ? v[..plus] : v;
+    }
     // folders the user picked when saving: "openFolder" opens these and anything under the runs folder, nothing else
     readonly HashSet<string> _chosen = new(StringComparer.OrdinalIgnoreCase);
 
@@ -34,7 +48,17 @@ public sealed class HostDispatcher
         return path.Equals(r, StringComparison.OrdinalIgnoreCase) || path.StartsWith(r + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
-    public HostDispatcher(AppPaths paths, IHostUi ui) { _paths = paths; _ui = ui; }
+    public HostDispatcher(AppPaths paths, IHostUi ui, Updater? updater = null)
+    {
+        _paths = paths; _ui = ui; _updater = updater ?? new Updater(paths, Version);
+    }
+
+    async Task<JsonNode?> Run(Func<Task<JsonNode?>> run)
+    {
+        Interlocked.Increment(ref _activeRuns);
+        try { return await run(); }
+        finally { Interlocked.Decrement(ref _activeRuns); }
+    }
 
     public JsonObject Info()
     {
@@ -51,6 +75,7 @@ public sealed class HostDispatcher
             ["runsFolder"] = _paths.RunsDir,
             ["licenses"] = Path.Combine(_paths.AppRoot, "licenses"),
             ["fusionAddIn"] = new FusionAddIn(_paths).Status(),
+            ["update"] = _updater.Status(),
         };
     }
 
@@ -62,35 +87,38 @@ public sealed class HostDispatcher
                 return Info();
 
             case "runOpenWAM":
-            {
-                var files = CaseFiles.FromJson(data?["files"]);
-                var name = data?["name"]?.GetValue<string>() ?? "openwam";
-                var dir = _paths.NewRunDir(name);
-                onEvent?.Invoke(new JsonObject { ["event"] = "folder", ["folder"] = dir });
-                var results = await new OpenWamRunner(_paths.OpenWamExe).RunAsync(dir, files, onEvent, ct);
-                return OpenWamRunner.ToJson(dir, results);
-            }
+                return await Run(async () =>
+                {
+                    var files = CaseFiles.FromJson(data?["files"]);
+                    var name = data?["name"]?.GetValue<string>() ?? "openwam";
+                    var dir = _paths.NewRunDir(name);
+                    onEvent?.Invoke(new JsonObject { ["event"] = "folder", ["folder"] = dir });
+                    var results = await new OpenWamRunner(_paths.OpenWamExe).RunAsync(dir, files, onEvent, ct);
+                    return OpenWamRunner.ToJson(dir, results);
+                });
 
             case "runOpenFOAM":
-            {
-                var files = CaseFiles.FromJson(data?["files"]);
-                if (files.Count == 0) throw new ArgumentException("No case files.");
-                var name = data?["name"]?.GetValue<string>() ?? "openfoam";
-                var dir = _paths.NewRunDir(name);
-                onEvent?.Invoke(new JsonObject { ["event"] = "folder", ["folder"] = dir });
-                return await new OpenFoamRunner(_paths.OpenFoamDir, _paths.PythonExe).RunAsync(dir, files, onEvent, ct);
-            }
+                return await Run(async () =>
+                {
+                    var files = CaseFiles.FromJson(data?["files"]);
+                    if (files.Count == 0) throw new ArgumentException("No case files.");
+                    var name = data?["name"]?.GetValue<string>() ?? "openfoam";
+                    var dir = _paths.NewRunDir(name);
+                    onEvent?.Invoke(new JsonObject { ["event"] = "folder", ["folder"] = dir });
+                    return await new OpenFoamRunner(_paths.OpenFoamDir, _paths.PythonExe).RunAsync(dir, files, onEvent, ct);
+                });
 
             case "runEngineSim":
-            {
-                var text = data?["text"]?.GetValue<string>() ?? throw new ArgumentException("No engine file.");
-                var fname = data?["filename"]?.GetValue<string>() ?? "engine.mr";
-                var rpms = (data?["rpms"] as JsonArray)?.Select(n => n!.GetValue<double>()).Where(r => r > 0).ToList() ?? new List<double>();
-                var secs = data?["seconds"]?.GetValue<double>() ?? 6.0;
-                var gain = data?["gain"]?.GetValue<double>() ?? 0.35;
-                var dir = _paths.NewRunDir(Path.GetFileNameWithoutExtension(fname));
-                return await new EngineSimRunner(_paths.EngineSimDir).RunAsync(dir, fname, text, rpms, secs, gain, onEvent, ct);
-            }
+                return await Run(async () =>
+                {
+                    var text = data?["text"]?.GetValue<string>() ?? throw new ArgumentException("No engine file.");
+                    var fname = data?["filename"]?.GetValue<string>() ?? "engine.mr";
+                    var rpms = (data?["rpms"] as JsonArray)?.Select(n => n!.GetValue<double>()).Where(r => r > 0).ToList() ?? new List<double>();
+                    var secs = data?["seconds"]?.GetValue<double>() ?? 6.0;
+                    var gain = data?["gain"]?.GetValue<double>() ?? 0.35;
+                    var dir = _paths.NewRunDir(Path.GetFileNameWithoutExtension(fname));
+                    return await new EngineSimRunner(_paths.EngineSimDir).RunAsync(dir, fname, text, rpms, secs, gain, onEvent, ct);
+                });
 
             case "saveFiles":
             {
@@ -152,6 +180,23 @@ public sealed class HostDispatcher
 
             case "installFusionAddIn":
                 return new FusionAddIn(_paths).Install();
+
+            // updates from the program's GitHub releases (Updater.cs): the page shows them in the program menu
+            case "updateStatus":
+                return _updater.Status();
+
+            case "updateSetToken":
+                return _updater.SetToken(data?["token"]?.GetValue<string>());
+
+            case "updateCheck":
+                return await _updater.CheckAsync(data?["download"]?.GetValue<bool>() ?? true, ct);
+
+            case "updateInstall":
+            {
+                var r = _updater.Install(new FusionAddIn(_paths).Status()["installed"] is not null, Volatile.Read(ref _activeRuns));
+                if (r["ok"]?.GetValue<bool>() == true) _ui.Quit();
+                return r;
+            }
 
             default:
                 throw new InvalidOperationException("Unknown request: " + action);

@@ -7,7 +7,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>ExhaustTuner</AssemblyName>
     <RootNamespace>ExhaustTuner.Desktop</RootNamespace>
-    <Version>0.1.0</Version>
     <Product>Exhaust Tuner</Product>
     <Company>Arcindweld</Company>
     <ApplicationIcon>exhaust.ico</ApplicationIcon>

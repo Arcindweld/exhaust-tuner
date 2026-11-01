@@ -1,6 +1,10 @@
 ; Exhaust Tuner installer (Inno Setup 6). Built by .github/workflows/windows.yml from the staged folder:
-;   iscc /DAppVersion=0.1.0 /DStage=..\stage installer\ExhaustTuner.iss
+;   iscc /DAppVersion=0.1.<run number> /DStage=..\stage installer\ExhaustTuner.iss
 ; Per-user install (no administrator rights needed): %LOCALAPPDATA%\Programs\Exhaust Tuner.
+; Updates: the program runs a newer installer itself (app/ExhaustTuner.Core/Updater.cs) with
+;   /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /CURRENTUSER /RELAUNCH=1 /WAITPID=<its process id>
+; Setup then waits for that process to end (InitializeSetup), installs into the same folder with the same tasks
+; (UsePreviousAppDir / UsePreviousTasks, both on by default) and starts the program again ([Run], RelaunchAfterUpdate).
 #ifndef AppVersion
   #define AppVersion "0.0.0"
 #endif
@@ -48,8 +52,41 @@ Name: "{autodesktop}\Exhaust Tuner"; Filename: "{app}\ExhaustTuner.exe"; Tasks: 
 Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Installing Microsoft Edge WebView2 Runtime..."; Check: NeedsWebView2; Flags: waituntilterminated
 Filename: "{app}\exhaust-tuner-host.exe"; Parameters: "--install-addin"; StatusMsg: "Installing the Fusion add-in..."; Tasks: addin; Flags: runhidden waituntilterminated
 Filename: "{app}\ExhaustTuner.exe"; Description: "{cm:LaunchProgram,Exhaust Tuner}"; Flags: nowait postinstall skipifsilent
+; after an update the program started (silent, so the entry above is skipped), open it again as the user who ran it
+Filename: "{app}\ExhaustTuner.exe"; Flags: nowait runasoriginaluser; Check: RelaunchAfterUpdate
 
 [Code]
+function OpenProcess(dwDesiredAccess: Cardinal; bInheritHandle: Integer; dwProcessId: Cardinal): THandle;
+  external 'OpenProcess@kernel32.dll stdcall';
+function WaitForSingleObject(hHandle: THandle; dwMilliseconds: Cardinal): Cardinal;
+  external 'WaitForSingleObject@kernel32.dll stdcall';
+function CloseHandle(hObject: THandle): Integer;
+  external 'CloseHandle@kernel32.dll stdcall';
+
+const
+  SYNCHRONIZE = $00100000;
+
+// An update started by the program passes /WAITPID=<its process id>: wait (up to a minute) until it has closed, so
+// none of its files is in use when they are replaced.
+function InitializeSetup: Boolean;
+var Pid: Integer; H: THandle;
+begin
+  Result := True;
+  Pid := StrToIntDef(ExpandConstant('{param:waitpid|0}'), 0);
+  if Pid > 0 then begin
+    H := OpenProcess(SYNCHRONIZE, 0, Pid);
+    if H <> 0 then begin
+      WaitForSingleObject(H, 60000);
+      CloseHandle(H);
+    end;
+  end;
+end;
+
+function RelaunchAfterUpdate: Boolean;
+begin
+  Result := ExpandConstant('{param:relaunch|0}') = '1';
+end;
+
 // WebView2 Evergreen Runtime registration (Microsoft's documented detection keys)
 function WebView2Version(Root: Integer; Key: String): String;
 var V: String;

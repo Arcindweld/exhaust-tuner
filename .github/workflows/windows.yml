@@ -18,7 +18,9 @@ concurrency:
 
 env:
   OPENWAM_COMMIT: 25f46f2491e18e26362a428ea6dc151a195c65f0
-  APP_VERSION: 0.1.0
+  # every build gets its own version, so the installed programs can tell a newer release (Updater.cs); builds on a PC
+  # are 0.1.0 (app/Directory.Build.props)
+  APP_VERSION: 0.1.${{ github.run_number }}
 
 permissions:
   contents: read
@@ -170,7 +172,7 @@ jobs:
       - name: Build host and desktop program
         shell: pwsh
         run: |
-          dotnet publish app/ExhaustTuner.HostCli -c Release -r win-x64 --self-contained true -o publish/host
+          dotnet publish app/ExhaustTuner.HostCli -c Release -r win-x64 --self-contained true -o publish/host -p:Version=${{ env.APP_VERSION }}
           dotnet publish app/ExhaustTuner.Desktop -c Release -r win-x64 --self-contained true -o publish/desktop -p:Version=${{ env.APP_VERSION }}
 
       # The page inside the program, end to end on Windows: page + bridge + host + OpenWAM
@@ -184,6 +186,8 @@ jobs:
           npm install --no-save playwright@1.48.2
           npx playwright install chromium
           node web/tests/desktop_ui.js
+          # updates: the page's menu, the host's update requests (token kept with DPAPI here) and a stand-in GitHub
+          node web/tests/update_ui.js
 
       # what the program's runs left behind (case files, postProcessing, logs) when that test failed
       - name: Keep the program test's runs (on failure)
@@ -244,6 +248,8 @@ jobs:
           Get-ChildItem $dir | Select-Object Name
           $info = & "$dir\exhaust-tuner-host.exe" --info | ConvertFrom-Json
           $info | ConvertTo-Json -Depth 5
+          if ($info.version -ne $env:APP_VERSION) { throw "installed program reports version $($info.version), not $env:APP_VERSION" }
+          if (-not (Test-Path "$dir\unins000.exe")) { throw "no uninstaller in the install folder: the program could not update itself" }
           if (-not $info.engines.openwam) { throw "installed program does not find OpenWAM" }
           if ($env:REQUIRE_OPENFOAM -eq "1" -and -not $info.engines.openfoam) { throw "installed program does not find OpenFOAM" }
           if ((Test-Path engines/engine-sim) -and -not $info.engines.enginesim) { throw "installed program does not find Engine Simulator" }
@@ -265,9 +271,73 @@ jobs:
             if (-not $reply.ok -or -not $reply.result.ok) { $out | Select-Object -Last 20; throw "installed OpenFOAM run failed" }
             "installed program ran OpenFOAM: $($reply.result.solver), $($reply.result.iterations) iterations, K $($reply.result.results.summary.K)"
           }
+          # an update the way the program runs one (Updater.Install): setup waits for the program's process to end,
+          # installs over the same folder with the same tasks, and opens the program again
+          $prog = Start-Process pwsh -ArgumentList "-NoProfile", "-Command", "Start-Sleep -Seconds 8" -PassThru
+          $t0 = Get-Date
+          $p = Start-Process $setup.FullName -PassThru -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CLOSEAPPLICATIONS","/CURRENTUSER",
+            "/RELAUNCH=1","/WAITPID=$($prog.Id)","/MERGETASKS=addin","/LOG=`"$env:RUNNER_TEMP\update.log`""
+          $p.WaitForExit()
+          $took = ((Get-Date) - $t0).TotalSeconds
+          if (-not $prog.HasExited) { throw "the update finished while the program it waits for was still running" }
+          if ($took -lt 7) { throw "setup finished after $([math]::Round($took, 1)) s: it did not wait for the program (8 s)" }
+          # the reopened program is a window: seen running, or at least started according to setup's log
+          $app = $null
+          for ($i = 0; $i -lt 20 -and -not $app; $i++) { Start-Sleep 1; $app = Get-Process ExhaustTuner -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$dir*" } }
+          $log = Get-Content "$env:RUNNER_TEMP\update.log" -Raw
+          $started = $log -match "(?s)-- Run entry --.{0,600}?Filename: [^\r\n]*ExhaustTuner\.exe"
+          if (-not $app -and -not $started) { Get-Content "$env:RUNNER_TEMP\update.log" -Tail 40; throw "setup did not open the program again after the update" }
+          "update: setup waited for the program, ended after $([math]::Round($took, 1)) s and opened it again" + $(if ($app) { " (running: $($app.Path))" } else { " (per its log)" })
+          $app | Stop-Process -Force -ErrorAction SilentlyContinue
+          $info2 = & "$dir\exhaust-tuner-host.exe" --info | ConvertFrom-Json
+          if ($info2.fusionAddIn.installed -ne $info2.fusionAddIn.bundled) { throw "the update did not keep the Fusion add-in installed" }
 
       - uses: actions/upload-artifact@v4
         with:
           name: ExhaustTuner-Setup
           path: dist/ExhaustTuner-Setup-*.exe
           retention-days: 30
+
+  # A push to the program branch that passed everything above becomes release v<APP_VERSION> with the installer and
+  # SHA256SUMS.txt; the notes list the commits since the previous release. The installed program checks the newest
+  # release and offers it (app/ExhaustTuner.Core/Updater.cs). The newest 6 releases are kept. The program branch is
+  # windows-app (the condition below).
+  release:
+    needs: [ core-linux, app ]
+    if: github.ref_name == 'windows-app' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: ExhaustTuner-Setup
+          path: dist
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="v$APP_VERSION"; setup="ExhaustTuner-Setup-$APP_VERSION.exe"
+          [ -f "dist/$setup" ] || { ls -l dist; echo "dist/$setup missing"; exit 1; }
+          if gh release view "$tag" >/dev/null 2>&1; then echo "$tag exists already (a re-run)"; exit 0; fi
+          (cd dist && sha256sum "$setup" > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          prev=$(gh release list --limit 1 --exclude-drafts --json tagName --jq '.[0].tagName // ""')
+          {
+            echo "Built from ${GITHUB_SHA::7} on $GITHUB_REF_NAME ($(date -u +%Y-%m-%d))."
+            echo
+            if [ -n "$prev" ] && git rev-parse -q --verify "refs/tags/$prev" >/dev/null; then
+              echo "Changes since $prev:"
+              git log --no-merges --format='- %s' "$prev..$GITHUB_SHA" | head -80 || true
+            else
+              echo "Recent changes:"
+              git log --no-merges --format='- %s' -25 "$GITHUB_SHA" || true
+            fi
+          } > notes.md
+          cat notes.md
+          gh release create "$tag" "dist/$setup" dist/SHA256SUMS.txt --target "$GITHUB_SHA" --title "Exhaust Tuner $APP_VERSION" --notes-file notes.md
+          gh release list --limit 100 --json tagName,createdAt --jq 'sort_by(.createdAt) | reverse | .[6:] | .[].tagName' |
+            while read -r old; do echo "removing $old"; gh release delete "$old" --cleanup-tag --yes; done

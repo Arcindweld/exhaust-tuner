@@ -160,4 +160,13 @@ public partial class MainWindow : Window, IHostUi
     });
 
     public void OpenDevTools() => Dispatcher.Invoke(() => Web.CoreWebView2?.OpenDevToolsWindow());
+
+    /// <summary>An update's installer has started and waits for this process to end: close shortly, once the reply
+    /// has reached the page.</summary>
+    public void Quit() => Dispatcher.InvokeAsync(async () =>
+    {
+        Status.Text = "Installing the update…";
+        await Task.Delay(600);
+        Application.Current.Shutdown();
+    });
 }

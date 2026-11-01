@@ -214,6 +214,20 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   2585 rpm hold (48 cycles), 7.5 vs the model's 15 mm: RMS against the recording 10.3 -> 10.9 dB, orders 2-5.5
   within 2.6 dB, single orders above the 5th up to 8 dB (outback04.py docstring). Page artifact Version 42: the
   OpenWAM Method paragraph and the order-spectrum caption state both limits.
+- Program updates (2026-11-01): each push to windows-app that passes the Windows build becomes GitHub release
+  v0.1.<run number> (installer + SHA256SUMS.txt, notes = commits since the previous release, newest 6 kept; job
+  "release" in windows.yml). Versions: 0.1.0 on a PC (app/Directory.Build.props), CI stamps APP_VERSION into the
+  program, the host and the installer; HostDispatcher.Version reads the assembly. The program (Updater.cs) checks the
+  releases 4 s after start and every 6 h, downloads a newer one in the background, verifies size + SHA-256, and the
+  page's program menu shows "Restart and update" (dot on the menu button). Install = the installer silently over the
+  same folder and tasks (/MERGETASKS=addin when the add-in is in Fusion), /WAITPID makes it wait for the program to
+  close, /RELAUNCH=1 opens it again; blocked while a solver run is going and for copies not set up by the installer.
+  The repo is private: the program needs a fine-grained token (Contents read-only on exhaust-tuner), saved in the
+  menu, DPAPI-encrypted in %LOCALAPPDATA%\ExhaustTuner\update-token.bin, sent only with the first request to
+  api.github.com (never with redirects; the page test caught a same-host redirect carrying it, fixed). Tests:
+  UpdaterTests (13, incl. a stalled download giving up), web/tests/update_ui.js (page + host + stand-in GitHub),
+  CI reinstall with /WAITPID + /RELAUNCH.
+  the owner: install the first release by hand once, then save the token under Updates.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
