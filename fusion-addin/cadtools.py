@@ -15,12 +15,17 @@ Actions
   centerlines  Draw the crossover centerlines.
   boom         Build the boom tube from the page's sections: the inside shape lofted from
                section to section (round, then flat oval), then shelled outward by the wall.
+  route        Auto-route through the keep-outs (see act_route). For a J-pipe it also caps the far end
+               and copes the near end to the main pipe, with a tool body for the hole.
+  helmholtz    Build a Helmholtz can on a neck from a marker on the main pipe: the neck coped to the
+               main pipe, the can sized to hold the page's volume around the neck.
 
 Lengths sent back are centimeters (Fusion's internal unit). The page converts them.
 """
 import json
 import math
 import os
+import time
 import traceback
 
 import adsk.core
@@ -668,6 +673,8 @@ def act_pipe(data):
     ents = [e for e in _selected() if _kind(e) in ('sketch', 'BRepEdge')]
     if not ents:
         raise ValueError('Select one curve of each route. A connected sketch path is picked up automatically.')
+    jpipe = bool(data.get('cap') or data.get('tee'))
+    notes = []
     items, seen = [], set()
     for e in ents:
         if _world_geometry(e).curveType == adsk.core.Curve3DTypes.Circle3DCurveType:
@@ -679,6 +686,10 @@ def act_pipe(data):
             continue
         seen.add(key)
         comp = _component_of(e)
+        ends = _jpipe_ends(segs, data, od, notes) if jpipe else None     # before the tube exists
+        fr = _comp_frame(comp, e) if ends else None
+        if fr:
+            ends = _ends_in(ends, fr)
         try:
             comp.features.pipeFeatures
             feat = _pipe(comp, path, od, wall)
@@ -688,8 +699,17 @@ def act_pipe(data):
             feat.bodies.item(0).name = '%s %d' % (data.get('title', 'Runner'), len(items) + 1)
         except Exception:
             pass
-        items.append({'kind': 'path', 'name': 'Built %s %d' % (noun, len(items) + 1),
-                      'length': sum(s['length'] for s in segs)})
+        it = {'kind': 'path', 'name': 'Built %s %d' % (noun, len(items) + 1), 'length': sum(s['length'] for s in segs)}
+        if ends:
+            tube = None
+            try:
+                tube = feat.bodies.item(0)
+            except Exception:
+                pass
+            extra = _jpipe_fittings(comp, data, tube, ends['main'], ends['tee'], ends['tee_d'], ends['cap'], ends['cap_d'],
+                                    od, wall, it['length'], notes)
+            it['note'] = ((ends['note'] + ' ') if ends['note'] else '') + extra
+        items.append(it)
     if not items:
         raise ValueError('No open path found in the selection.')
     target = data.get('target_mm')
@@ -699,6 +719,8 @@ def act_pipe(data):
         worst = max(diffs, key=abs)
         msg += ' The page asks for %.2f in; the routes are %s by up to %.2f in.' % (
             float(target) / 25.4, 'long' if worst > 0 else 'short', abs(worst) / 25.4)
+    if notes:
+        msg += ' ' + ' '.join(notes)
     return {'ok': True, 'msg': msg, 'items': items}
 
 
@@ -1063,6 +1085,19 @@ def _new_component(name):
     return new_component(_design(), name)
 
 
+def _drop_component(comp):
+    """Delete a component this run made (its occurrence), so a build that failed half way leaves nothing behind."""
+    try:
+        root = _design().rootComponent
+        if comp == root:
+            return
+        occs = root.allOccurrencesByComponent(comp)
+        for i in range(occs.count - 1, -1, -1):
+            occs.item(i).deleteMe()
+    except Exception:
+        pass
+
+
 
 def _ctx(comp, ent):
     """An entity in the context of the component's occurrence. Fusion's Path.create (and the features
@@ -1136,15 +1171,23 @@ def _add_bodies(comp, named):
     except Exception:
         pass
     if parametric:
+        n0 = comp.bRepBodies.count
         bf = comp.features.baseFeatures.add()
         bf.startEdit()
         try:
             for body, name in named:
-                b = comp.bRepBodies.add(body, bf)
-                b.name = name
-                out.append(b)
+                out.append(comp.bRepBodies.add(body, bf))
         finally:
             bf.finishEdit()
+        # name them after finishEdit: a name set while the base feature is open comes back as "BodyN"
+        added = [comp.bRepBodies.item(i) for i in range(n0, comp.bRepBodies.count)]
+        if len(added) == len(named):
+            out = added
+        for b, (_body, name) in zip(out, named):
+            try:
+                b.name = name
+            except Exception:
+                pass
     else:
         for body, name in named:
             b = comp.bRepBodies.add(body)
@@ -1219,11 +1262,13 @@ def _build_route(comp, res, name, od, wall, pbase):
         path = _wire_path(comp, res['elems'], name)
         how = 'wire'
     feat, param = _pipe_param(comp, path, od, wall, pbase)
+    body = None
     try:
-        feat.bodies.item(0).name = name
+        body = feat.bodies.item(0)
+        body.name = name
     except Exception:
         pass
-    return {'path': how, 'param': param and how == 'sketch'}
+    return {'path': how, 'param': param and how == 'sketch', 'body': body}
 
 
 def _plane_3pt(comp, a, b, c, name):
@@ -1347,12 +1392,24 @@ def _part_param(comp, part, g):
         else:
             sk.sketchCurves.sketchCircles.addByCenterRadius(S(c0), w / 2.0)
 
-    feats = [_extrude_section(comp, c0, x, y, z, body, case_outline, part['name'] + ' case')]
-    for key, d, a, b in (('in', part['in_d'], g['p_in'], c0), ('out', part['out_d'], g['case1'], g['p_out'])):
-        L = RT.vdot(RT.vsub(b, a), z)
-        if d > 0 and L > 0.05:
-            circ = lambda sk, a=a, d=d: sk.sketchCurves.sketchCircles.addByCenterRadius(sk.modelToSketchSpace(_P3(a)), d / 2.0)
-            feats.append(_extrude_section(comp, a, x, y, z, L, circ, part['name'] + ' ' + key + 'let'))
+    feats = []
+    try:
+        feats.append(_extrude_section(comp, c0, x, y, z, body, case_outline, part['name'] + ' case'))
+        # each stub runs along the part's axis from its own port: an offset inlet or outlet stays offset
+        L_in = RT.vdot(RT.vsub(c0, g['p_in']), z)
+        L_out = RT.vdot(RT.vsub(g['p_out'], g['case1']), z)
+        for key, d, a, L in (('in', part['in_d'], g['p_in'], L_in),
+                             ('out', part['out_d'], RT.vsub(g['p_out'], RT.vmul(z, L_out)), L_out)):
+            if d > 0 and L > 0.05:
+                circ = lambda sk, a=a, d=d: sk.sketchCurves.sketchCircles.addByCenterRadius(sk.modelToSketchSpace(_P3(a)), d / 2.0)
+                feats.append(_extrude_section(comp, a, x, y, z, L, circ, part['name'] + ' ' + key + 'let'))
+    except Exception:
+        for f in reversed(feats):        # leave nothing half made: the caller adds the outline instead
+            try:
+                f.deleteMe()
+            except Exception:
+                pass
+        raise
     return feats
 
 
@@ -1364,6 +1421,69 @@ def _attach_param(comp, att, pl, name):
     e1, e2 = RT.perp_basis(u)
     circ = lambda sk, o=origin, d=d: sk.sketchCurves.sketchCircles.addByCenterRadius(sk.modelToSketchSpace(_P3(o)), d / 2.0)
     return _extrude_section(comp, origin, e1, e2, u, h + 0.2, circ, name)
+
+
+def _cone_shell(p0, r0, p1, r1, wall):
+    """A cone frustum with its wall taken out, as a fixed body: the merge collector when the revolve is refused.
+    The wall is measured square to the axis, as in _revolve_cone; the inner cone runs a hair past both ends so
+    the cut goes clean through."""
+    tbm = adsk.fusion.TemporaryBRepManager.get()
+    L = _norm(_sub(p1, p0))
+    u = _unit(_sub(p1, p0))
+    k = (r1 - r0) / L if L > 1e-9 else 0.0
+    e = 0.05
+    outer = tbm.createCylinderOrCone(_P3(p0), r0, _P3(p1), r1)
+    a = tuple(p0[i] - u[i] * e for i in range(3))
+    b = tuple(p1[i] + u[i] * e for i in range(3))
+    inner = tbm.createCylinderOrCone(_P3(a), max(0.01, r0 - wall - k * e), _P3(b), max(0.01, r1 - wall + k * e))
+    if outer is None or inner is None or not tbm.booleanOperation(outer, inner, adsk.fusion.BooleanTypes.DifferenceBooleanType):
+        raise RuntimeError('collector outline')
+    return outer
+
+
+def _part_bodies(part, g):
+    """An off-the-shelf part's outline as one fixed body, when the sketches and extrudes are refused: the same
+    shapes as _part_param (round, flat oval, box or cone case, and the inlet and outlet stubs). Returns a list:
+    one body, or more when Fusion refuses to join a piece to the rest."""
+    tbm = adsk.fusion.TemporaryBRepManager.get()
+    x, y, z = g['x'], g['y'], g['z']
+    w, h, body = float(part['w']), float(part['h']), float(part['body'])
+    shape = part.get('shape', 'round')
+    c0, c1 = g['case0'], g['case1']
+    mid = tuple((c0[k] + c1[k]) / 2.0 for k in range(3))
+    pieces = []
+    if shape == 'cone':
+        pieces.append(tbm.createCylinderOrCone(_P3(c0), w / 2.0, _P3(c1), float(part.get('w2') or w) / 2.0))
+    elif shape == 'rectangular':
+        pieces.append(tbm.createBox(adsk.core.OrientedBoundingBox3D.create(_P3(mid), _V3(z), _V3(x), body, w, h)))
+    elif shape == 'oval' and abs(w - h) > 1e-6:
+        big, small = max(w, h), min(w, h)
+        fl = (big - small) / 2.0
+        ax = x if w >= h else y                      # the long way across the case
+        # the box is 20 microns thinner than the round ends, so its faces cross them instead of touching
+        pieces.append(tbm.createBox(adsk.core.OrientedBoundingBox3D.create(_P3(mid), _V3(z), _V3(ax), body, 2 * fl, small - 0.002)))
+        for s in (-fl, fl):
+            a = tuple(c0[k] + ax[k] * s for k in range(3))
+            b = tuple(c1[k] + ax[k] * s for k in range(3))
+            pieces.append(tbm.createCylinderOrCone(_P3(a), small / 2.0, _P3(b), small / 2.0))
+    else:
+        pieces.append(tbm.createCylinderOrCone(_P3(c0), w / 2.0, _P3(c1), w / 2.0))
+    L_in = RT.vdot(RT.vsub(c0, g['p_in']), z)
+    L_out = RT.vdot(RT.vsub(g['p_out'], c1), z)
+    for key, d, a, L in (('in', part.get('in_d') or 0.0, g['p_in'], L_in),
+                         ('out', part.get('out_d') or 0.0, RT.vsub(g['p_out'], RT.vmul(z, L_out)), L_out)):
+        if shape == 'cone' and key == 'in':
+            continue                                 # as _part_param: a cone (stack, filter) has only its flange
+        if d > 0 and L > 0.05:                       # along the axis from its own port, as _part_param
+            pieces.append(tbm.createCylinderOrCone(_P3(a), d / 2.0, _P3(RT.vadd(a, RT.vmul(z, L))), d / 2.0))
+    pieces = [p for p in pieces if p is not None]
+    if not pieces:
+        raise RuntimeError('part outline')
+    out, apart = pieces[0], []
+    for p in pieces[1:]:
+        if not tbm.booleanOperation(out, p, adsk.fusion.BooleanTypes.UnionBooleanType):
+            apart.append(p)                          # a union Fusion refused: keep that piece as its own body
+    return [out] + apart
 
 
 def _import_cad_at(comp, path, att, pl, name):
@@ -1775,6 +1895,7 @@ def act_route(data):
     items = []
     built = []
     comp = None
+    coped = False
     od, wall = sp['od'], sp['wall']
     rspec = {k: v for k, v in sp.items() if k != 'wall'}
     if mode == 'bundle180':
@@ -1841,7 +1962,7 @@ def act_route(data):
                 _part_param(comp, part, pl['geom'])
                 built.append({'param': True})
             except Exception:
-                named.append((_part_bodies(part, pl['geom']), part['name'] + ' (outline)'))
+                named.extend((b, part['name'] + ' (outline)') for b in _part_bodies(part, pl['geom']))
                 built.append({'param': False})
             where = {'start': 'At the start marker.', 'end': 'At the end marker.'}.get(pl.get('at'), 'Placed %.1f cm along the route.' % pl['s'])
             items.append({'kind': 'part', 'name': part['name'], 'ok': pl['ok'], 'min_gap': pl['gap'],
@@ -1885,12 +2006,24 @@ def act_route(data):
         if not res['ok']:
             msg += ' Some pieces need attention (see below).'
     else:
+        jpipe = bool(data.get('cap') or data.get('tee'))
+        main = _main_pipe(mk[0]['p'], mk[0]['d'], data, notes, scene) if data.get('tee') else None
         r = RT.route(scene, dict(rspec, start=mk[0]['p'], start_dir=mk[0]['d'], end=ends['p'], end_dir=ends['d']), log=log)
         if not r.get('elems'):
             raise ValueError(r.get('msg') or 'No route was found.')
         comp = _new_component(title)
-        built.append(_build_route(comp, r, title, od, wall, title))
-        items.append(_route_item(title, r, sp['gap'], od, data))
+        b = _build_route(comp, r, title, od, wall, title)
+        built.append(b)
+        it = _route_item(title, r, sp['gap'], od, data)
+        if jpipe:
+            _status('Capping and coping the J-pipe…')
+            extra = _jpipe_fittings(comp, data, b.get('body'), main, mk[0]['p'], mk[0]['d'], ends['p'], ends['d'],
+                                    od, wall, r.get('length'), notes)
+            if extra:
+                it['note'] = ((it.get('note') or '') + ' ' + extra).strip()
+            if 'is coped to the main pipe' in extra:
+                coped = True
+        items.append(it)
         msg = ('Built %s along a route that clears the scan.' % title.lower()) if r['ok'] else \
             ('Built %s, but it needs attention (see below).' % title.lower())
     _status('Done.')
@@ -1903,10 +2036,547 @@ def act_route(data):
         msg += (' Some geometry could not be made as editable sketches and features, so it was added as '
                 'fixed bodies; those parts will not follow parameter changes.')
     elif built:
-        msg += (' Everything is sketch-driven: tube size and wall follow the user parameters named after '
-                'the build, and each centreline sketch can be edited.')
+        msg += (' Everything%s is sketch-driven: tube size and wall follow the user parameters named after '
+                'the build, and each centreline sketch can be edited.' % (' but the coped end' if coped else ''))
     return {'ok': True, 'msg': msg, 'items': items, 'route_ok': allok,
             'scan': {'triangles': scene.ntri, 'points': scene.npoints, 'e_cover': scene.e_cover}}
+
+
+# --------------------------------------------------------------------------
+# Drone fixes: the tee on the main pipe, the J-pipe's cap and the Helmholtz can
+# --------------------------------------------------------------------------
+# A branch (a J-pipe or a Helmholtz neck) starts at a marker on the main pipe's outside, on the branch
+# centreline, heading the way the branch leaves. The main pipe comes from a selected cylindrical face, else
+# from a solid the marker sits on, else from the scan (a cylinder fitted to the keep-out points round the
+# marker). The branch's end is coped to the main pipe's outside as a short fixed piece joined to the tube,
+# and a hidden tool body is left for the hole: Combine > Cut the main pipe with it.
+
+def _cyl(g):
+    return g is not None and g.surfaceType == adsk.core.SurfaceTypes.CylinderSurfaceType
+
+
+def _coaxial(g1, g2, tol=1e-4):
+    a1, a2 = _unit(_t(g1.axis)), _unit(_t(g2.axis))
+    if _norm(_cross(a1, a2)) > 1e-6:
+        return False
+    return _norm(_cross(_sub(_t(g2.origin), _t(g1.origin)), a1)) < tol
+
+
+def _pipe_of_face(face, p=None):
+    """The main pipe from one of its round faces: its axis, its outside radius and its bore radius when the body
+    has one. Of the body's round faces on that axis, the outside is the one the branch start sits on (nearest the
+    start's distance from the axis), so a coaxial flange, slip-joint end or muffler case does not stand in for the
+    pipe; without a start, the selected face itself (or the face round it when the bore was picked)."""
+    g = face.geometry
+    radii = [g.radius]
+    name = 'the selected face'
+    try:
+        body = face.body
+        name = _bname(body)
+        for i in range(body.faces.count):
+            g2 = body.faces.item(i).geometry
+            if _cyl(g2) and _coaxial(g, g2):
+                radii.append(g2.radius)
+    except Exception:
+        pass
+    radii = sorted(set(round(r, 9) for r in radii))
+    if p is not None:
+        a = _unit(_t(g.axis))
+        w = _sub(p, _t(g.origin))
+        t = _dot(w, a)
+        rho = _norm(_sub(w, tuple(a[k] * t for k in range(3))))
+        R = min(radii, key=lambda r: abs(r - rho))
+    else:
+        R = g.radius
+        up = [r for r in radii if r > R + 1e-4]
+        if up and up[0] - R < 1.0:      # the bore was picked: the outside is the next face out (a wall under 1 cm)
+            R = up[0]
+    bore = [r for r in radii if r < R - 1e-4]
+    return {'p': _t(g.origin), 'd': _unit(_t(g.axis)), 'R': R, 'R_in': max(bore) if bore else None,
+            'name': name, 'how': 'face'}
+
+
+def _all_solids():
+    """Every solid in the design, as proxies in the root's frame (world coordinates)."""
+    root = _design().rootComponent
+    out = [root.bRepBodies.item(i) for i in range(root.bRepBodies.count)]
+    for i in range(root.allOccurrences.count):
+        occ = root.allOccurrences.item(i)
+        out.extend(occ.bRepBodies.item(j) for j in range(occ.bRepBodies.count))
+    return out
+
+
+def _pipe_under(p, tol=0.2):
+    """The round outside face of a solid in the design that the branch start sits on (within 2 mm), or None.
+    Run it before the branch is built, so the branch's own faces are not there to be found."""
+    best, bestd = None, tol
+    for b in _all_solids():
+        try:
+            if not b.isVisible:
+                continue
+            bb = b.boundingBox
+            lo, hi = _t(bb.minPoint), _t(bb.maxPoint)
+            if any(p[k] < lo[k] - tol or p[k] > hi[k] + tol for k in range(3)):
+                continue
+            for i in range(b.faces.count):
+                f = b.faces.item(i)
+                g = f.geometry
+                if not _cyl(g):
+                    continue
+                a = _unit(_t(g.axis))
+                w = _sub(p, _t(g.origin))
+                t = _dot(w, a)
+                radial = _sub(w, tuple(a[k] * t for k in range(3)))
+                rho = _norm(radial)
+                miss = abs(rho - g.radius)
+                if miss >= bestd or rho < 1e-6:
+                    continue
+                on = tuple(_t(g.origin)[k] + a[k] * t + radial[k] / rho * g.radius for k in range(3))
+                okp, prm = f.evaluator.getParameterAtPoint(_P3(on))
+                if okp and f.evaluator.isParameterOnFace(prm):
+                    best, bestd = f, miss
+        except Exception:
+            continue
+    return _pipe_of_face(best, p) if best is not None else None
+
+
+def _pipe_from_scan(p, d, R0, notes, scene=None):
+    """Fit the main pipe to the keep-out scan round the branch start (a square tee). None when it does not fit."""
+    if not _keepouts or not (R0 and R0 > 0):
+        return None
+    try:
+        if scene is None:
+            box = 3.0 * R0
+            scene = _scene(tuple(p[k] - box for k in range(3)), tuple(p[k] + box for k in range(3)), 1.0, notes)
+        _status('Reading the main pipe from the scan…')
+        c = tuple(p[k] - d[k] * R0 for k in range(3))
+        pts = TPL.scene_points_near(scene, c, 2.2 * R0 + 0.5)
+        f = TPL.fit_main_pipe(pts, p, d, R0)
+    except ValueError:
+        return None
+    if not f['ok']:
+        notes.append('The main pipe could not be read from the scan at the tee (%s), so the branch end is left '
+                     'square: select the main pipe\'s outside face, or model it as a body, to cope it.' % f['why'])
+        return None
+    note = ('Main pipe read from the scan at the tee: %.2f in across, the scan within %.1f mm of a round pipe over '
+            '%.0f deg of the way round.' % (2 * f['R'] / 2.54, 10 * f['rms'], f['cover']))
+    if abs(f['off']) > 0.1:
+        note += ' The start marker is %.1f mm %s the pipe\'s surface; the coped end fills that.' % (
+            10 * abs(f['off']), 'off' if f['off'] > 0 else 'inside')
+    notes.append(note)
+    return {'p': f['p'], 'd': f['d'], 'R': f['R'], 'R_in': None, 'name': 'the scan', 'how': 'scan', 'fit': f}
+
+
+def _main_pipe(p, d, data, notes, scene=None):
+    """The main pipe under a branch start: a selected round face, else a solid the start sits on, else the scan.
+    None when none of them gives one (the branch's end is then left square). Run it before building the branch."""
+    for e in _selected():
+        try:
+            if _kind(e) == 'BRepFace' and _cyl(e.geometry):
+                m = _pipe_of_face(e, p)
+                if _off_pipe(p, m) <= 0.3:
+                    return m
+                notes.append('The selected round face (%s) is not where the marker starts (%.1f mm off it), so it '
+                             'was not used.' % (m['name'], 10 * _off_pipe(p, m)))
+        except Exception:
+            continue
+    try:
+        found = _pipe_under(p)
+        if found:
+            return found
+    except Exception:
+        pass
+    od = _cm(data, 'main_od_mm')
+    try:
+        return _pipe_from_scan(p, d, od / 2.0 if od else None, notes, scene)
+    except Exception as ex:
+        notes.append('The main pipe could not be read from the scan (%s).' % ex)
+        return None
+
+
+def _revolve_section(comp, origin, d, sec, name):
+    """A closed (r, z) half-section revolved about the line through origin along d: a sketch and a revolve,
+    so it stays editable."""
+    d = _unit(d)
+    e1, _e2 = RT.perp_basis(d)
+    P = lambda r, z: tuple(origin[k] + d[k] * z + e1[k] * r for k in range(3))
+    zs = [z for _r, z in sec]
+    a0, a1 = P(0.0, min(zs) - 1.0), P(0.0, max(zs) + 1.0)
+    plane = _plane_3pt(comp, a0, a1, P(1.0, min(zs)), name)
+    sk = comp.sketches.add(plane)
+    sk.name = name + ' section'
+    S = lambda q: sk.modelToSketchSpace(_P3(q))
+    axis = sk.sketchCurves.sketchLines.addByTwoPoints(S(a0), S(a1))
+    axis.isConstruction = True
+    _poly(sk, [P(r, z) for r, z in sec])
+    prof, best = None, 0.0
+    for i in range(sk.profiles.count):
+        pr = sk.profiles.item(i)
+        if pr.profileLoops.count != 1:
+            continue
+        try:
+            a = pr.areaProperties().area
+        except Exception:
+            a = 1.0
+        if a > best:
+            prof, best = pr, a
+    if prof is None:
+        raise RuntimeError('profile')
+    rv = comp.features.revolveFeatures
+    inp = rv.createInput(prof, axis, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+    inp.setAngleExtent(False, adsk.core.ValueInput.createByString('360 deg'))
+    f = rv.add(inp)
+    f.bodies.item(0).name = name
+    return f
+
+
+WHY_SQUARE = {
+    'wider': 'the branch is wider than the main pipe',
+    'along': 'the branch runs along the main pipe',
+    'into': 'the marker points into the main pipe (draw it from the outside, pointing away)',
+    'steep': 'the branch leaves the main pipe too far off square for one coped piece',
+}
+
+
+def _tee_bodies(comp, main, start, d, od, wall, name, notes):
+    """The branch's end coped to the main pipe's outside, and a hidden tool for the hole in the main pipe.
+    The coped piece runs from below the start to 20 microns past it (so it stays one solid at the crotch of a
+    square tee, where the fishmouth has no height, and the overlap with the tube is too short to stray from a tube
+    that starts with a bend); _cope_tube joins it to the tube. Returns (coped piece or None, hole tool or None,
+    the cope numbers)."""
+    d = _unit(d)
+    r_o, r_i = od / 2.0, od / 2.0 - wall
+    c = TPL.tee_cope(main, start, d, r_o)
+    if not c['full']:
+        notes.append('%s: %s, so its end is left square; fit it by hand.' % (name, WHY_SQUARE.get(c['why'], c['why'])))
+        return None, None, c
+    R = c['R']
+    tbm = adsk.fusion.TemporaryBRepManager.get()
+    at = lambda s: _P3(tuple(start[k] + d[k] * s for k in range(3)))
+    diff = adsk.fusion.BooleanTypes.DifferenceBooleanType
+    piece = tbm.createCylinderOrCone(at(-c['stub']), r_o, at(0.002), r_o)
+    bore = tbm.createCylinderOrCone(at(-c['stub'] - 0.1), r_i, at(0.1), r_i)
+    if piece is None or bore is None or not tbm.booleanOperation(piece, bore, diff):
+        raise RuntimeError('the tube piece for the coped end')
+    env = _envelope(main, R, start, d, r_o, c['stub'] + c['top'])
+    if env is None or not tbm.booleanOperation(piece, env, diff):
+        raise RuntimeError('cutting the fishmouth')
+    named = [(piece, name + ' coped end')]
+    R_in = main.get('R_in') or (R - 1.5 * wall)
+    hp = TPL.tee_hole(dict(main, R=R), start, d, r_i, R_in)
+    if hp is not None:
+        hole = tbm.createCylinderOrCone(at(-hp['bottom']), r_i, at(hp['top']), r_i)
+        if hole is not None:
+            named.append((hole, name + ' tee hole (cut tool)'))
+    if len(named) == 1:
+        notes.append('%s: no tool for the hole was made; cut it to the branch\'s bore by hand.' % name)
+    bodies = _add_bodies(comp, named)
+    piece_b = bodies[0] if bodies else None
+    hole_b = bodies[1] if len(bodies) > 1 else None
+    if hole_b is not None:
+        try:
+            hole_b.isLightBulbOn = False
+        except Exception:
+            pass
+    return piece_b, hole_b, c
+
+
+def _envelope(main, R, start, d, r_o, reach):
+    """The main pipe's outside round the tee as a solid temporary cylinder (radius R), long enough to cover the
+    branch's footprint however far off square it leaves."""
+    tbm = adsk.fusion.TemporaryBRepManager.get()
+    a = _unit(main['d'])
+    q = tuple(main['p'][k] + a[k] * _dot(_sub(start, main['p']), a) for k in range(3))
+    sin_ = max(0.2, _norm(_cross(a, d)))
+    half = (r_o + reach) / sin_ + 1.0
+    return tbm.createCylinderOrCone(_P3(tuple(q[k] - a[k] * half for k in range(3))), R,
+                                    _P3(tuple(q[k] + a[k] * half for k in range(3))), R)
+
+
+def _join(comp, target, tools):
+    coll = adsk.core.ObjectCollection.create()
+    for t in tools:
+        coll.add(t)
+    ci = comp.features.combineFeatures.createInput(target, coll)
+    ci.operation = adsk.fusion.FeatureOperations.JoinFeatureOperation
+    ci.isKeepToolBodies = False
+    return comp.features.combineFeatures.add(ci)
+
+
+def _cope_tube(comp, tube, piece, main, c, start, d, od, notes, name):
+    """Join the coped piece to the tube; for a branch off square, also cut the tube's first part, which runs
+    inside the main pipe, to the main pipe's outside. Returns True when the tube is one coped body."""
+    if tube is None:
+        notes.append('%s: the coped end is its own body (the tube was not found to join it to).' % name)
+        return False
+    try:
+        _join(comp, tube, [piece])
+    except Exception as ex:
+        notes.append('%s: the coped end could not be joined to the tube (%s), so it is its own body.' % (name, ex))
+        return False
+    if c['top'] > 1e-4:
+        try:
+            env = _envelope(main, c['R'], start, d, od / 2.0, c['stub'] + c['top'])
+            tool = _add_bodies(comp, [(env, name + ' main pipe outside (cut tool)')])[0]
+            coll = adsk.core.ObjectCollection.create()
+            coll.add(tool)
+            ci = comp.features.combineFeatures.createInput(tube, coll)
+            ci.operation = adsk.fusion.FeatureOperations.CutFeatureOperation
+            ci.isKeepToolBodies = False
+            comp.features.combineFeatures.add(ci)
+        except Exception as ex:
+            notes.append('%s leaves the main pipe %.0f deg off square, so its first %.1f mm run inside the main pipe, '
+                         'and cutting them away failed (%s): trim the tube to the main pipe by hand.' % (
+                             name, math.degrees(math.acos(max(-1.0, min(1.0, TPL._radial_cos(main, start, d))))),
+                             10 * c['top'], ex))
+            return False
+    return True
+
+
+def _tee_note(name, main, c, length=None, start=None, d=None, hole=True, joined=True):
+    how = {'face': 'the face of %s' % main['name'], 'scan': 'the scan'}.get(main['how'], main['name'])
+    s = ('%s is coped to the main pipe (%.2f in across, from %s): the fishmouth reaches %.2f in below the centreline '
+         'at its sides' % (name, 2 * c['R'] / 2.54, how, c['depth'] / 2.54))
+    if length:
+        s += ', so cut the tube %.2f in long at its longest side' % ((length + c['depth']) / 2.54)
+    if c['trim'] > 0:
+        s += (' (the last %.1f mm of its tips is left off, where a branch the size of the main pipe meets it '
+              'tangentially; finish them by hand)' % (10 * c['trim']))
+    if c['top'] > 1e-4 and start is not None and d is not None:
+        off = math.degrees(math.acos(max(-1.0, min(1.0, TPL._radial_cos(main, start, d)))))
+        s += ('. It leaves the main pipe %.1f deg off square, so the tube\'s first %.1f mm, which ran inside the main '
+              'pipe, were cut to it as well' % (off, 10 * c['top']))
+    s += '. The coped end is a fixed piece cut from the main pipe\'s shape'
+    s += (', joined to the tube: if you change the tube size, build it again.' if joined else
+          '; it is its own body (see the message).')
+    if hole:
+        s += (' The hole is the hidden body "%s tee hole (cut tool)": Combine > Cut the main pipe with it, Keep Tools '
+              'off.' % name)
+    return s
+
+
+def _cap_end(comp, end, d, od, t, name):
+    """A flat plate cap on a tube end: its inside face on the end, so the tube's inside length is unchanged."""
+    return _revolve_section(comp, end, d, [(0.0, 0.0), (od / 2.0, 0.0), (od / 2.0, t), (0.0, t)], name)
+
+
+def _comp_frame(comp, ent=None):
+    """World to component coordinates for comp, as a row-major 4x4 list, or None when they are the same (the root,
+    or a component whose occurrence sits at the origin). Sketch points and temporary bodies added to a component
+    are placed in its own coordinates, while selections and the scan are read in world coordinates."""
+    try:
+        occ = None
+        try:
+            occ = ent.assemblyContext if ent is not None else None   # the occurrence the selection was made through
+        except Exception:
+            occ = None
+        if occ is None:
+            root = _design().rootComponent
+            if comp == root:
+                return None
+            occs = root.allOccurrencesByComponent(comp)
+            if occs.count == 0:
+                return None
+            occ = occs.item(0)
+        try:
+            m = occ.transform2.copy()
+        except Exception:
+            m = occ.transform.copy()
+        if not m.invert():
+            return None
+        a = list(m.asArray())
+        if all(abs(a[i] - (1.0 if i in (0, 5, 10, 15) else 0.0)) < 1e-12 for i in range(16)):
+            return None
+        return a
+    except Exception:
+        return None
+
+
+def _xp(a, p):
+    return tuple(a[4 * r] * p[0] + a[4 * r + 1] * p[1] + a[4 * r + 2] * p[2] + a[4 * r + 3] for r in range(3))
+
+
+def _xd(a, v):
+    return tuple(a[4 * r] * v[0] + a[4 * r + 1] * v[1] + a[4 * r + 2] * v[2] for r in range(3))
+
+
+def _ends_in(ends, a):
+    """A J-pipe's ends (and its main pipe) moved into a component's coordinates."""
+    out = dict(ends)
+    for k in ('tee', 'cap'):
+        out[k] = _xp(a, ends[k])
+        out[k + '_d'] = _xd(a, ends[k + '_d'])
+    if ends.get('main'):
+        m = dict(ends['main'])
+        m['p'], m['d'] = _xp(a, m['p']), _xd(a, m['d'])
+        out['main'] = m
+    return out
+
+
+def _off_pipe(p, m):
+    a = _unit(m['d'])
+    w = _sub(p, m['p'])
+    t = _dot(w, a)
+    return abs(_norm(_sub(w, tuple(a[k] * t for k in range(3)))) - m['R'])
+
+
+def _jpipe_ends(segs, data, od, notes):
+    """Which end of a sketched J-pipe tees into the main pipe: the end on a selected round face, else the end on a
+    solid, else the end nearer the scan. The other end gets the cap. Directions point away from the main pipe at
+    the tee and out of the tube at the cap."""
+    a_p, a_d = segs[0]['p0'], _unit(segs[0]['t0'])
+    b_p, b_d = segs[-1]['p1'], _unit(segs[-1]['t1'])
+    keep = {'tee': a_p, 'tee_d': a_d, 'cap': b_p, 'cap_d': b_d, 'main': None, 'note': ''}
+    flip = {'tee': b_p, 'tee_d': _neg(b_d), 'cap': a_p, 'cap_d': _neg(a_d), 'main': None, 'note': ''}
+    sel = []
+    for e in _selected():
+        try:
+            if _kind(e) == 'BRepFace' and _cyl(e.geometry):
+                sel.append(e)
+        except Exception:
+            pass
+    if sel:
+        m = _pipe_of_face(sel[0])
+        ch = keep if _off_pipe(a_p, m) <= _off_pipe(b_p, m) else flip
+        ch['main'] = m
+        return ch
+    for ch in (keep, flip):
+        try:
+            m = _pipe_under(ch['tee'])
+        except Exception:
+            m = None
+        if m:
+            ch['main'] = m
+            return ch
+    od_main = _cm(data, 'main_od_mm')
+    if data.get('tee') and _keepouts and od_main:
+        R0 = od_main / 2.0
+        try:
+            lo = tuple(min(a_p[k], b_p[k]) - 3 * R0 for k in range(3))
+            hi = tuple(max(a_p[k], b_p[k]) + 3 * R0 for k in range(3))
+            scene = _scene(lo, hi, 1.0, notes)
+            ch = keep if scene.dist_exact(a_p, 12.0) <= scene.dist_exact(b_p, 12.0) else flip
+            ch['main'] = _pipe_from_scan(ch['tee'], ch['tee_d'], R0, notes, scene)
+            if ch['main'] is None:
+                ch['note'] = 'The end nearer the scan was taken as the tee end.'
+            return ch
+        except Exception as ex:
+            notes.append('The scan could not be read at the J-pipe\'s ends (%s).' % ex)
+    if data.get('tee'):
+        keep['note'] = ('The cap went on the end the path finishes at. If that is the tee end, select the main '
+                        'pipe\'s outside face with the path and build it again.')
+    return keep
+
+
+def _jpipe_fittings(comp, data, tube, main, start, d_start, end, d_end, od, wall, length, notes):
+    """Cap the far end and cope the tee end of a built J-pipe (main: the main pipe found before the tube was
+    built, or None). Returns a note for the J-pipe's row."""
+    name = str(data.get('title') or 'J-pipe')
+    parts = []
+    if data.get('cap'):
+        t = _cm(data, 'cap_mm') or max(wall, 0.15)
+        try:
+            _cap_end(comp, end, d_end, od, t, name + ' cap')
+            parts.append('Capped the far end with a %.3f in plate; the inside length to the cap is the cut length.' % (t / 2.54))
+        except Exception as ex:
+            notes.append('The cap could not be built (%s); weld a cap on the far end.' % ex)
+    if data.get('tee'):
+        if main is None:
+            parts.append('No main pipe found at the tee end, so it is left square: select the main pipe\'s outside '
+                         'face (Ctrl+click) with the markers, or set the scan as a keep-out, to cope it.')
+        else:
+            try:
+                piece, hole, c = _tee_bodies(comp, main, start, d_start, od, wall, name, notes)
+                if piece is not None:
+                    joined = _cope_tube(comp, tube, piece, main, c, start, d_start, od, notes, name)
+                    parts.append(_tee_note(name, main, c, length, start, d_start, hole is not None, joined))
+                else:
+                    parts.append('The tee end is left square: %s.' % WHY_SQUARE.get(c['why'], c['why']))
+            except Exception as ex:
+                notes.append('The tee could not be built (%s); the tee end is left square.' % ex)
+    return ' '.join(parts)
+
+
+def act_helmholtz(data):
+    """A Helmholtz can on a straight neck from one marker on the main pipe: a sketch line drawn from the main pipe's
+    outside where the neck tees in, out the way the neck goes. The can's axis follows the neck. Sizes come from the
+    Mufflers tab: the neck (inside diameter, length from the main pipe's outside to its open end, wall), the can's
+    inside diameter and the gas volume; the can's inside length is set so the gas round the neck is that volume."""
+    t0 = time.time()
+    mk = [m for m in _markers() if m['signed']]
+    if len(mk) != 1:
+        raise ValueError('Select one sketch line, drawn on the main pipe\'s outside where the neck tees in and '
+                         'pointing out the way the neck goes. Ctrl+click the main pipe\'s outside face too if it is a body.')
+    start, d = mk[0]['p'], _unit(mk[0]['d'])
+    neck_id, wall, neck_len = _cm(data, 'neck_id_mm', 0.0), _cm(data, 'wall_mm', 0.0), _cm(data, 'neck_len_mm', 0.0)
+    can_id, cw, nin = _cm(data, 'can_id_mm', 0.0), _cm(data, 'can_wall_mm', 0.1519), _cm(data, 'neck_into_mm', 0.0)
+    vol = float(data.get('vol_cm3') or 0.0)
+    lay = TPL.helm_can(neck_id, wall, neck_len, can_id, vol, cw, nin)
+    title = str(data.get('title') or 'Helmholtz can')
+    notes = []
+    scene = None
+    if _keepouts:
+        reach = lay['z1'] + lay['R_out'] + 3.0
+        try:
+            scene = _scene(tuple(start[k] - reach for k in range(3)), tuple(start[k] + reach for k in range(3)), 1.0, notes)
+        except ValueError:
+            scene = None
+    main = _main_pipe(start, d, data, notes, scene)
+    if main is not None and TPL._radial_cos(main, start, d) < 0.15:
+        raise ValueError('The marker points into the main pipe (or along its surface). Draw it from the main pipe\'s '
+                         'outside, pointing away from the pipe the way the neck goes.')
+    _status('Building the can…')
+    comp = _new_component(title)
+    try:
+        neck_f = _revolve_section(comp, start, d, lay['neck'], title + ' neck')
+        _revolve_section(comp, start, d, lay['section'], title)
+    except Exception as ex:
+        _drop_component(comp)
+        raise ValueError('Fusion would not build the can (%s). Nothing was left in the design.' % ex)
+    neck_note = ''
+    if main is None:
+        neck_note = ('No main pipe found at the marker, so the neck\'s end is left square: select the main pipe\'s '
+                     'outside face (Ctrl+click) with the marker, or set the scan as a keep-out, to cope it.')
+    else:
+        try:
+            piece, hole, c = _tee_bodies(comp, main, start, d, 2 * lay['r_hole'], wall, title + ' neck', notes)
+            if piece is not None:
+                joined = _cope_tube(comp, neck_f.bodies.item(0), piece, main, c, start, d, 2 * lay['r_hole'], notes, title + ' neck')
+                neck_note = _tee_note(title + ' neck', main, c, neck_len, start, d, hole is not None, joined)
+            else:
+                neck_note = 'The neck\'s end is left square: %s.' % WHY_SQUARE.get(c['why'], c['why'])
+        except Exception as ex:
+            notes.append('The tee could not be built (%s); the neck\'s end is left square.' % ex)
+    gap, gap_over, ok_gap = None, False, True
+    if scene is not None:
+        _status('Checking the can against the keep-outs…')
+        pts, err = TPL.helm_samples(start, d, lay, step=0.3, neck=False)     # the can; the neck rises from the main pipe
+        gap, _at = TPL.clearance(scene, pts, err)
+        if gap is None:
+            gap, gap_over = 12.0, True
+        ok_gap = gap_over or gap >= float(data.get('gap_cm', 1.27))
+    can_note = ('Inside %.2f in across and %.2f in long, %.2f L of gas round the neck (target %.2f L); %.2f in long '
+                'outside with %.3f in wall and end plates. Its near end sits %.2f in above the main pipe.' % (
+                    can_id / 2.54, lay['L_in'] / 2.54, lay['gas'] / 1000.0, vol / 1000.0, lay['outside_len'] / 2.54,
+                    cw / 2.54, lay['gap'] / 2.54))
+    if lay['grow'] > 1e-6:
+        can_note += ' The neck runs %.2f in into the can, so the can is %.2f in longer than for a flush neck.' % (nin / 2.54, lay['grow'] / 2.54)
+    items = [{'kind': 'part', 'name': title, 'ok': ok_gap, 'note': can_note,
+              'helm': {'gas_cm3': lay['gas'], 'neck_id_cm': neck_id, 'neck_len_cm': neck_len, 'can_id_cm': can_id,
+                       'can_len_cm': lay['L_in']}},
+             {'kind': 'neck', 'name': title + ' neck', 'length': neck_len, 'note': neck_note}]
+    if gap is not None:
+        items[0]['min_gap'] = gap
+        items[0]['gap_over'] = gap_over
+    msg = 'Built the Helmholtz can on its neck in a new component, the can along the neck.'
+    if scene is None and not _keepouts:
+        msg += ' Set the scan as a keep-out to check the can\'s clearance.'
+    msg += ' %.0f s.' % (time.time() - t0)
+    if notes:
+        msg += ' ' + ' '.join(notes)
+    msg += (' The can and the neck are sketch-driven revolves (edit their section sketches); the coped end and the hole '
+            'tool are fixed bodies, cut from the main pipe\'s shape.')
+    return {'ok': True, 'msg': msg, 'items': items, 'route_ok': ok_gap}
 
 
 def _up_vector():
@@ -2098,7 +2768,7 @@ def act_export_cfd_stl(data, path=None):
 
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
+           'route': act_route, 'helmholtz': act_helmholtz, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult')}
 
 

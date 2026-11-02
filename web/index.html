@@ -1471,13 +1471,19 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="m-dn" type="number" step="any" inputmode="decimal" data-kind="len" data-base="50.8"><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Neck length</span>
           <span class="inp"><input id="m-ln" type="number" step="any" inputmode="decimal" data-kind="len" data-base="76.2"><em data-u="len">in</em></span></label>
+        <label class="f adv"><span class="lab">Neck runs into the can</span>
+          <span class="inp"><input id="m-nin" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+        <label class="f adv"><span class="lab">Can wall and end plates</span>
+          <span class="inp"><input id="m-cw" type="number" step="any" inputmode="decimal" data-kind="len" data-base="1.519"><em data-u="len">in</em></span></label>
       </div>
       <div class="grp adv">Quarter-wave tube (J-pipe) and plain chamber</div>
       <div class="grid2 adv">
         <label class="f"><span class="lab">J-pipe inside diameter</span>
           <span class="inp"><input id="m-db" type="number" step="any" inputmode="decimal" data-kind="len" data-base="60.198"><em data-u="len">in</em></span></label>
-        <label class="f"><span class="lab">J-pipe wall</span>
+        <label class="f"><span class="lab">J-pipe and neck wall</span>
           <span class="inp"><input id="m-bw" type="number" step="any" inputmode="decimal" data-kind="len" data-base="1.651"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">J-pipe cap plate</span>
+          <span class="inp"><input id="m-jc" type="number" step="any" inputmode="decimal" data-kind="len" data-base="3.175"><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Chamber inside diameter</span>
           <span class="inp"><input id="m-dch" type="number" step="any" inputmode="decimal" data-kind="len" data-base="152.4"><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Chamber length</span>
@@ -9046,7 +9052,7 @@ const FX_BUTTONS={
 };
 FX_BUTTONS.headers.splice(4,0,['routeHeader','Auto-route primaries through the scan'],['routeBundle180','Lay out 180-degree headers (V8 template)']);
 FX_BUTTONS.intake.splice(3,0,['routeSingle','Auto-route this tube through the scan'],['routeParts','Auto-route with the parts in the build list']);
-FX_BUTTONS.muf.push(['routeSingleMuf','Auto-route the J-pipe through the scan']);
+FX_BUTTONS.muf.push(['routeSingleMuf','Auto-route the J-pipe through the scan'],['helmholtz','Build the Helmholtz can']);
 const ROUTE_TABS={headers:1,intake:1,parts:1,muf:1};
 const ROUTE_FIELDS=[['clr_mm','Bend centerline radius (0 = 1.5 × tube OD)','len',0],['min_clr_mm','Tightest radius you can get (0 = any)','len',0],
   ['clamp_mm','Straight your bender clamps between bends (0 = cut from mandrel bends)','len',0],['gap_tt_mm','Gap between tubes','len',3.175],
@@ -9064,7 +9070,7 @@ const FX_TIPS={
   intake:'Sketch the route as lines and arcs (or a 3D sketch through points), select it and build the pipe at the size on this tab: the charge pipe when boosted, otherwise the intake tube. Measure a built pipe or route to get its bend schedule; bends tighter than 1.5 diameters are flagged. Model the turbo, exhaust and radiator as keep-out bodies and check clearance.',
   cat:'Select the pipe body to read its inside diameter, or model the space for the converter as a body and measure it. Keep-outs and clearance work as on the other tabs.',
   boom:'Build this boom tube makes the inside shape as a lofted body with your wall thickness, starting at the origin and running along X. Measure a route to read the length you have for the flat run.',
-  muf:'To size for the space you have, model the open space (or the old muffler) as a body, select it and press Measure selection. “Use size as muffler space” copies its length, width and height into the space limits. Selecting the pipe body gives its inside diameter. For a J-pipe, sketch its route from the main pipe wall to the cap (bends are fine), select it and press Build J-pipe; the message compares the route with the cut length. Or let it find the route: draw a marker on the main pipe wall where the branch tees in and one where the cap goes, and press Auto-route the J-pipe. The route clears the scan and comes out at the cut length. Measured and built J-pipes show the frequency they tune to.'
+  muf:'To size for the space you have, model the open space (or the old muffler) as a body, select it and press Measure selection. “Use size as muffler space” copies its length, width and height into the space limits. Selecting the pipe body gives its inside diameter. For a J-pipe, sketch its route from the main pipe wall to the cap (bends are fine), select it and press Build J-pipe; the message compares the route with the cut length. Or let it find the route: draw a marker on the main pipe wall where the branch tees in and one where the cap goes, and press Auto-route the J-pipe. The route clears the scan and comes out at the cut length. Either way the far end gets a cap plate and the tee end is coped to the main pipe, with a hidden tool body to cut the hole: Ctrl+click the main pipe’s outside face too if it is a body (a solid the marker sits on, or a scan set as a keep-out, is found on its own). For a Helmholtz can, draw a short sketch line on the main pipe’s outside where the neck tees in, pointing the way the neck goes, select it and press Build the Helmholtz can: the neck is coped to the main pipe and the can is sized to hold the volume round the neck. Measured and built J-pipes and cans show the frequency they tune to.'
 };
 function fxSetup(){
   if(!FUSION) return;
@@ -9090,6 +9096,12 @@ function fxRender(tab,res){
         const T=FX.mufTune, mm=cmToMm(it.length), d=mm-T.L, f=T.c/(4*(mm+T.end)/1000);
         rows+=rowT('Against the J-pipe cut length',Math.abs(d)<1?'on length':(d>0?'+':'−')+clen(Math.abs(d)),Math.abs(d)<1?'within 1 mm':(d>0?'long: trim it to tune up':'short: it tunes higher'))+
           rowT('As a J-pipe, tunes to',Math.round(f)+' Hz','target '+Math.round(T.f)+' Hz');
+      }
+      if(tab==='muf'&&it.helm&&FX.mufTune&&FX.mufTune.hc>0){   // a built can read back with the tab's own Helmholtz formula
+        const H=it.helm, A=Math.PI*(H.neck_id_cm/200)**2, V=H.gas_cm3*1e-6, Le=(H.neck_len_cm+HELM_END*H.neck_id_cm)/100;
+        const f=FX.mufTune.hc/(2*Math.PI)*Math.sqrt(A/(V*Le));
+        rows+=rowT('Gas volume as built',(H.gas_cm3/1000).toFixed(2)+' L','round the neck, in a '+cdim(cmToMm(H.can_id_cm))+' × '+clen(cmToMm(H.can_len_cm))+' inside')+
+          rowT('As built, tunes to',Math.round(f)+' Hz','target '+Math.round(FX.mufTune.f)+' Hz');
       }
       if(it.diameter!=null) rows+=rowL('Circle diameter',cmToMm(it.diameter),'d');
       if(it.od&&it.od.length) rows+=rowT('Outside diameters',it.od.map(d=>cdim(cmToMm(d))).join(' · '));
@@ -9121,7 +9133,7 @@ function fxRender(tab,res){
       if(it.length!=null){
         if(tab==='headers') btns+=useBtn('h-maxrun',cmToMm(it.length),'Use as runner space');
         if(tab==='sound') btns+=useBtn('s-span',cmToMm(it.length),'Use as span')+useBtn('s-len',cmToMm(it.length),'Use as pipe length');
-        if(tab==='muf') btns+=useBtn('m-len',cmToMm(it.length),'Use as pipe length')+useBtn('m-maxl',cmToMm(it.length),'Use as space for a muffler');
+        if(tab==='muf'&&it.kind!=='neck') btns+=useBtn('m-len',cmToMm(it.length),'Use as pipe length')+useBtn('m-maxl',cmToMm(it.length),'Use as space for a muffler');   // not for a built can's neck
       }
       if(it.id&&it.id.length){
         if(tab==='headers') btns+=useBtn('h-dp',cmToMm(it.id[0]),'Use inside as primary ID');
@@ -9201,7 +9213,8 @@ document.addEventListener('click',e=>{
         pay.title='J-pipe';
         if(pay.target_mm>0) preNote='J-pipe: draw the start marker on the main pipe wall where the branch tees in, pointing away from the pipe, '+
           'and the end marker where the cap goes, pointing the way the branch runs. The route comes out '+clen(pay.target_mm)+' long, the cut length '+
-          'from the pipe wall to the cap, so the end marker has to be closer than that in a straight line. Weld a cap on the far end.';
+          'from the pipe wall to the cap, so the end marker has to be closer than that in a straight line. The far end gets a cap plate and the tee end '+
+          'is coped to the main pipe: Ctrl+click its outside face too if it is a body.';
         else delete pay.target_mm;
       }
     }
@@ -9209,8 +9222,9 @@ document.addEventListener('click',e=>{
     fusionCall('route',pay).then(res=>fxRender(tab,res));
     return;
   }
-  if(out) out.innerHTML='<div class="note">Working in Fusion…</div>';
-  const pay=Object.assign({},(FX[tab]||{}),{gap_cm:(FX.gap!=null?FX.gap:12.7)/10});
+  if(act==='helmholtz'&&!(FX.helm&&FX.helm.vol_cm3>0)){ if(out) out.innerHTML='<div class="note bad">Fill in the Helmholtz resonator above first: the tab shows the problem.</div>'; return; }
+  if(out) out.innerHTML='<div class="note">'+(act==='helmholtz'?'Building the can and its neck in Fusion…':'Working in Fusion…')+'</div>';
+  const pay=Object.assign({},((act==='helmholtz'?FX.helm:FX[tab])||{}),{gap_cm:(FX.gap!=null?FX.gap:12.7)/10});
   fusionCall(act,pay).then(res=>fxRender(tab,res));
 });
 
@@ -9582,8 +9596,8 @@ function renderMuf(){
   const bore=boreOf('m-dp-shape'), useSecs=$('m-lay').value==='secs', secs=useSecs?soundSecs():null;
   $('m-len-wrap').hidden=useSecs;
   const p={f:val('m-f'),dpipe:bore.err?NaN:bore.Deq,len:val('m-len'),tmain:val('m-tmain'),tres:val('m-tres'),dn:val('m-dn'),ln:val('m-ln'),db:val('m-db'),dch:val('m-dch'),lch:val('m-lch')};
-  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); FX.muf={}; FX.mufTune=null; return; }
-  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); FX.muf={}; FX.mufTune=null; return; }
+  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
+  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   if(secs){ p.secs=secs; p.len=secLen(pathSecs(secs))*1000; }
   const endName=FX.mufTurbo?'turbine':'valve';
   $('m-len-lab').textContent=FX.mufTurbo?'Pipe length, turbine outlet to tailpipe tip':'Pipe length, valve to tailpipe tip';
@@ -9592,12 +9606,15 @@ function renderMuf(){
   const ab=calcAbsorb({dpipe:p.dpipe,dsh:p.dch,len:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain});
   const abMemo={}, abTL=f=>{ const k=Math.round(f); if(abMemo[k]==null) abMemo[k]=Math.min(TLCAP,ab.tl(k)); return abMemo[k]; };
   const firstErr=[hm,qw,pl].find(x=>x.err);
-  if(firstErr){ key.innerHTML='<div class="note bad">'+esc(firstErr.err)+'</div>'; det.innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.mufTune=null; return; }
+  if(firstErr){ key.innerHTML='<div class="note bad">'+esc(firstErr.err)+'</div>'; det.innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   const can=[...hm.cans].sort((a,b)=>Math.abs(a.len/a.D-2)-Math.abs(b.len/b.D-2))[0];   // a can about twice as long as wide
   const lamRes=hm.c/p.f*1000, longCan=can.len+p.ln>lamRes/8;                          // lumped model holds while the resonator is small next to the wavelength
   const bw=val('m-bw')>0?val('m-bw'):1.651;
-  FX.muf={title:'J-pipe',noun:'J-pipe',od_mm:p.db+2*bw,wall_mm:bw,target_mm:qw.L};
-  FX.mufTune={L:qw.L,end:qw.end,c:qw.c,f:p.f};   // to read a measured or routed J-pipe back as a frequency (kept out of what goes to Fusion)
+  const cw=val('m-cw')>0?val('m-cw'):1.519, nin=val('m-nin')>0?val('m-nin'):0, jc=val('m-jc')>0?val('m-jc'):bw;
+  const mainOD=$('m-dp-shape').value==='round'&&p.dpipe>0?p.dpipe+2*bw:null;   // the scan fit's starting size (round pipes only)
+  FX.muf={title:'J-pipe',noun:'J-pipe',od_mm:p.db+2*bw,wall_mm:bw,target_mm:qw.L,cap:true,tee:true,cap_mm:jc,main_od_mm:mainOD};
+  FX.helm={title:'Helmholtz can',neck_id_mm:p.dn,neck_len_mm:p.ln,wall_mm:bw,can_id_mm:can.D,vol_cm3:hm.V*1e6,can_wall_mm:cw,neck_into_mm:nin,main_od_mm:mainOD};
+  FX.mufTune={L:qw.L,end:qw.end,c:qw.c,f:p.f,hc:hm.c};   // to read a measured or built J-pipe or can back as a frequency (kept out of what goes to Fusion)
   key.innerHTML='<div class="figs">'+figT('Helmholtz volume',(U==='imp'?hm.in3.toFixed(0):hm.liters.toFixed(2)),U==='imp'?'cu in':'L',(U==='imp'?hm.liters.toFixed(2)+' L':hm.in3.toFixed(0)+' cu in'))+
     figL('J-pipe length',qw.L,'l')+(pl.best.length?figL('Tap in at',pl.best[0],'l'):figT('Tap in at','near '+endName,'','pipe is short for this tone'))+'</div>'+(FX.mufNote?'<div class="note">'+esc(FX.mufNote)+'</div>':'');
   const curves=[{fn:hm.tl,col:'--t4',label:'Helmholtz'},{fn:qw.tl,col:'--t2',dash:'6 4',label:'J-pipe'}];
@@ -9623,7 +9640,8 @@ function renderMuf(){
     rowT('3 dB band',Math.round(hm.lo)+' to '+Math.round(hm.hi)+' Hz','width = '+hm.K.toFixed(2)+' × target')+
     '<div class="tblwrap" style="margin-top:10px"><table><thead><tr><th>Can diameter</th><th>Can length for this volume</th></tr></thead><tbody>'+
     hm.cans.map(c=>'<tr'+(c===can?' class="cur"':'')+'><td>'+tubIn(c.D)+'</td><td>'+clen(c.len)+'</td></tr>').join('')+'</tbody></table></div>'+
-    '<p class="cap">Can sizes are inside dimensions. The neck can run into the can, which saves length without changing the tuning much.</p>'+
+    '<p class="cap">Can sizes are inside dimensions. The neck can run into the can, which saves length without changing the tuning much.'+
+      (nin>0?' With the neck '+clen(nin)+' in, the '+tubIn(can.D)+' can is '+clen(((p.dn/2+bw)/(can.D/2))**2*nin)+' longer to keep the volume round the neck: '+clen(can.len+((p.dn/2+bw)/(can.D/2))**2*nin)+' inside.':'')+'</p>'+
     (longCan?'<div class="note warn">This can and neck are long next to the tone’s wavelength in the resonator ('+clen(lamRes)+'), so the simple formula is less exact here. A wider, shorter can tunes more predictably, or use a J-pipe.</div>':''));
   html+=sec('Quarter-wave tube (J-pipe)',
     rowL('Cut length, capped end to pipe wall',qw.L,'l')+rowL('Acoustic length (quarter wave)',qw.Lac,'l')+rowL('Inside diameter',p.db,'d')+

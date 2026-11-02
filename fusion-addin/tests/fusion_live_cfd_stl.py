@@ -13,7 +13,13 @@ import adsk.core
 import adsk.fusion
 
 
+_DONE = []
+
+
 def run(_context=None):
+    if _DONE:                     # Fusion calls run(context) after importing the script; run it once
+        return _DONE[0]
+    _DONE.append(None)
     app = adsk.core.Application.get()
     ui = app.userInterface
     out = {}
@@ -70,6 +76,7 @@ def run(_context=None):
             except Exception:
                 pass
     print(json.dumps(out, indent=1))
+    _DONE[0] = out
     return out
 
 

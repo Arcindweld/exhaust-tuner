@@ -1,4 +1,48 @@
-EXHAUST TUNER (Fusion add-in), version 4.11.1
+EXHAUST TUNER (Fusion add-in), version 4.12.0
+
+4.12.0 (November 2, 2026)
+- New: drone-fix parts, all from the Mufflers tab.
+  J-pipes (built along a path or auto-routed) get a flat cap plate on the far end (the J-pipe
+  cap plate on the tab, 1/8 in by default; its inside face sits on the tube's end, so the inside
+  length stays the cut length) and their tee end coped to the main pipe: the fishmouth is cut
+  to the main pipe's outside and joined to the tube, and a hidden "tee hole (cut tool)" body is
+  left for the hole: Combine > Cut the main pipe with it, Keep Tools off. The report gives how
+  deep the fishmouth runs at its sides and the tube's cut length at its longest side.
+  "Build the Helmholtz can": draw a short sketch line on the main pipe's outside where the neck
+  tees in, pointing the way the neck goes, select it and press the button. It builds the neck
+  (the tab's ID, length and wall, coped to the main pipe the same way) and the can along it: the
+  tab's can (inside diameter) with its wall and end plates, its inside length set so the gas
+  round the neck is exactly the tab's volume, also when the neck runs into the can (the can
+  grows by the neck's outside area times that length, over the can's area). With the scan set
+  as a keep-out it checks the can's clearance. The panel reads the built can back as the
+  frequency it tunes to, with the tab's own formula.
+  The main pipe comes from its outside face (Ctrl+click it with the marker or path), else from
+  a solid the marker sits on, else from the scan: a cylinder fitted to the keep-out scan round
+  the marker (all five numbers of the cylinder, so a marker a little off the surface or off
+  square is fine; it is refused, and the end left square, when the scan there is not a round
+  pipe or shows too little of the way round it). A marker drawn off square, or a lateral, is
+  fine: the tube's first part, which runs inside the main pipe, is cut to it too, and the hole
+  tool runs as far up as the wall does. A branch wider than the main pipe, one running along it,
+  or a marker pointing into the main pipe is left square (the Helmholtz can is refused) with the
+  reason. A branch the size of the main pipe (the tab's default J-pipe) meets it tangentially at
+  the tips of the fishmouth, and its bore meets the main pipe's bore the same way at the sides of
+  the hole; the last 2.5 mm of those tips is left off, ending in a small flat: finish them by
+  hand. A size read from a scan a hair under the branch's is taken as the same size.
+  The main pipe is the round face the marker sits on: a flange or slip-joint end on the same
+  axis is not taken for it, and a selected face away from the marker is not used.
+  The can, the neck and the cap are sketch-driven revolves; the coped piece and the hole tool
+  are fixed bodies cut from the main pipe's shape.
+- Fixed: two fallbacks that were called but never written. When Fusion refused the parametric
+  merge collector or a part's outline, the route stopped with an error after building the
+  tubes; now the collector and the part outlines are added as fixed bodies, as the message
+  always said. A part's outline now keeps an offset inlet or outlet on its own port (the
+  outlet stub was centred on the case), and a half-made part is removed before its outline is
+  added. Bodies added as fixed bodies are now named after the base feature is closed (a name set
+  while it is open came back as "BodyN").
+- Tests: tests/test_drone_parts.py (the geometry against closed-form and brute-force answers,
+  the scan fit), tests/test_drone_fusion_mock.py (the builders against a stand-in for Fusion's
+  API that records what they ask for) and tests/fusion_live_drone_parts.py, to run inside
+  Fusion: it builds each part in a throw-away design and checks it in Fusion's own numbers.
 
 4.11.1 (November 2, 2026)
 - Fixed: "Auto-route the J-pipe through the scan" (Mufflers tab) dropped the J-pipe's cut
@@ -130,7 +174,10 @@ TWO COMMANDS, both in the Solid tab > Create panel
    Build runner along selected path
                        Builds a hollow tube along each selected route using the primary
                        ID and wall from the Headers tab, and compares the route length
-                       with the runner length the page asks for.
+                       with the runner length the page asks for. On the Mufflers tab
+                       ("Build J-pipe along selected path") it also caps the far end and
+                       copes the end on the main pipe (select the main pipe's outside face
+                       too, so it knows which end tees in).
    Build ... straight  Builds the page's profile as hollow revolved bodies along X.
    Set keep-outs from selection
                        Remembers the bodies the exhaust has to clear (frame, floor,
@@ -159,7 +206,14 @@ TWO COMMANDS, both in the Solid tab > Create panel
                        the way to build them (mandrel sections, pie cuts, or a short
                        metal-printed section).
                        Mufflers tab: it routes the J-pipe at its cut length, from a marker on
-                       the main pipe wall where the branch tees in to one where the cap goes.
+                       the main pipe wall where the branch tees in to one where the cap goes,
+                       caps the far end and copes the tee end to the main pipe.
+   Build the Helmholtz can
+                       Mufflers tab: select a short sketch line drawn on the main pipe's outside
+                       where the neck tees in, pointing the way the neck goes (Ctrl+click the
+                       main pipe's outside face too if it is a body). Builds the neck, coped to
+                       the main pipe, and the can along it, sized to hold the tab's volume
+                       round the neck, with a hidden tool body for the hole.
    CAD library        Parts on the Parts tab marked "CAD model" have a STEP file in the shop's CAD
                        library folder (C:\Users\<you>\Desktop\claude training books\cad files, or the
                        folders listed one per line in a cad_library.txt next to this add-in). When the
@@ -204,6 +258,11 @@ FIRST-RUN CHECKLIST (please try these on a throwaway design)
    run and the wall with Inspect > Measure, and that both ends are open.
 7. Pick a stock vehicle at the top of the panel and check that the tabs fill in.
 8. Run the Exhaust Tuner dialog once in each mode.
+9. Drone parts: run tests/fusion_live_drone_parts.py as a script (Utilities > Scripts and
+   Add-Ins, or through the Fusion connector). It makes its own throw-away design, builds a
+   Helmholtz can, a J-pipe along a path and an auto-routed J-pipe on a test pipe (and the can
+   again on a scan of it), checks each in Fusion's own numbers, prints the results and closes
+   the design without saving.
 If anything fails or looks wrong, note what was selected and the message shown.
 
 WHAT IS SOLID AND WHAT IS A RULE OF THUMB

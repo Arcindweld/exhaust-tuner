@@ -253,8 +253,26 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   length (calcQW L, pipe wall to cap) with a note on where the markers go; Mufflers-tab path results show the miss
   against the cut length and the frequency it tunes to (f = c / 4(L + 0.3 d)). jpipe_ui.js 16 checks (8 fail on the old
   page); test_router.py scene 3: a J-pipe off a 3 in main pipe in the scan, 60.120 cm exactly, 2.5 cm clear. Add-in
-  manifest 4.11.1 so the program shows the installed panel as older. Still no tee, cap or Helmholtz can builder
-  (needs the PC to test in Fusion).
+  manifest 4.11.1 so the program shows the installed panel as older.
+- Fusion add-in 4.12.0, 2026-11-02: drone-fix parts, NOT yet run in Fusion (the owner: "build them, we can test later").
+  J-pipes (path and route builds) get a cap plate (m-jc, 1/8 in) and a coped tee end; act_helmholtz builds a neck
+  (coped) and a can along it (templates.helm_can: inside length keeps the gas volume when the neck runs in, m-nin;
+  wall m-cw, 16 ga). Main pipe: selected round face > a solid under the marker (_pipe_under, 2 mm) > a 5-number
+  cylinder fit to the keep-out scan (templates.fit_main_pipe: refuses non-round, <60 deg coverage, rms > 1.5 mm).
+  Cope = TemporaryBRep ring minus the main pipe's outside, joined to the tube (CombineFeature); hole = hidden tool
+  body. Moved components handled (_comp_frame). Also fixed: _cone_shell and _part_bodies were called in fallbacks
+  but never defined (NameError after the tubes were built), and _add_bodies named bodies inside the base feature
+  edit (came back "BodyN"). Tests: test_drone_parts.py (closed form / brute force / fit), test_drone_fusion_mock.py
+  (30 checks against a recording stand-in for the API), helm_ui.js 15, jpipe_ui.js 17, page suite 36/36; live script
+  fusion-addin/tests/fusion_live_drone_parts.py (can, path, route, tilt, hole, scan) to run in Fusion. A separate
+  review (fresh agent, 2026-11-02) found: off-square markers left the tube's first mm inside the main pipe (now cut
+  with the main pipe's outside after the join; tee_cope 'top', brute-force checked: 2 deg 1.11 mm, 3 deg 1.66, 10 deg
+  5.60), the hole tool stopped at the start (tee_hole now spans the wall), a same-size J-pipe on a scan read a hair
+  small was never coped (snap within 1 %), _pipe_of_face took a coaxial flange's radius (now the face the start is
+  on), offset part stubs ran at an angle, the live scan test used a hollow mesh and could not tell coped from not.
+  All fixed and tested; tip trims 2.5 mm (no knife edges), 20 micron overlap at the joint. Fusion API names checked
+  against Autodesk's docs (TemporaryBRepManager.createCylinderOrCone / booleanOperation, CombineFeatures.createInput,
+  SurfaceEvaluator.getParameterAtPoint / isParameterOnFace, BRepBody.volume).
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

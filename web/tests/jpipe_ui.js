@@ -35,7 +35,9 @@ const { chromium } = require('playwright');
   ok(pay && !['c', 'end', 'f', 'L'].some(k => k in pay), 'tuning numbers are kept out of what goes to Fusion');
   const m = /The route comes out (.+?) long, the cut length from the pipe wall to the cap/.exec(during);
   const det = await pg.$eval('#m-details', e => e.innerText);
-  ok(/J-pipe: draw the start marker on the main pipe wall/.test(during) && /Weld a cap on the far end/.test(during) && m, 'the note says where the markers go and how long the route comes out');
+  ok(/J-pipe: draw the start marker on the main pipe wall/.test(during) && /far end gets a cap plate/.test(during) && /coped to the main pipe/.test(during) && m, 'the note says where the markers go, how long the route comes out, and that it is capped and coped');
+  ok(pay && pay.cap === true && pay.tee === true && Math.abs(pay.cap_mm - 3.175) < 1e-9 && Math.abs(pay.main_od_mm - (60.198 + 2 * 1.651)) < 1e-9,
+     'the route asks for the cap (1/8 in plate) and the tee, with the main pipe size for reading it from a scan (' + (pay && pay.main_od_mm) + ' mm)');
   ok(m && new RegExp('Cut length, capped end to pipe wall\\s*' + m[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(det), 'and its length is the cut length the tab shows (' + (m && m[1]) + ')');
 
   // the reply: a route at the cut length reads "on length" and tunes to the target

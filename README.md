@@ -12,7 +12,7 @@ stated estimate, and limits are written down plainly next to the result they aff
 | Folder | What it is |
 |---|---|
 | `web/` | The calculator (`index.html`, one self-contained page) and its browser tests. The page is also the Fusion add-in's panel (`make_palette.py` wraps it). |
-| `fusion-addin/` | The Fusion add-in (`ExhaustTuner.py`, `cadtools.py`, `router.py`, `templates.py`): measure, keep-outs, clearance, auto-routing (single pipe, headers, equal or unequal length, parts in line), the 180-degree V8 template. `tests/` has the router tests (no Fusion needed). |
+| `fusion-addin/` | The Fusion add-in (`ExhaustTuner.py`, `cadtools.py`, `router.py`, `templates.py`): measure, keep-outs, clearance, auto-routing (single pipe, headers, equal or unequal length, parts in line), the 180-degree V8 template, and the drone fixes: J-pipes capped and coped to the main pipe, and Helmholtz cans on a coped neck. `tests/` has the router and geometry tests and a run of the builders against a stand-in for Fusion's API (no Fusion needed), and `fusion_live_*.py` scripts to run inside Fusion. |
 | `openwam/` | Writes OpenWAM 2.2 cases from the page's design (`make_wam.py` and its byte-identical JavaScript port `wam_export.js`), reads the results back. `node test_py_js.js` checks both writers agree. |
 | `cfd/` | OpenFOAM v2412 case generator for intake tracts and exhaust parts (`intake_cfd.py`, JavaScript port `intake_cfd.js`), validation against Blair & Cahoon and handbook loss coefficients (`validation/`, `NOTES.md`). |
 | `sound/` | Sound from simulation and from recordings: `wam_sound.py` (tailpipe monopole from OpenWAM outflow), `rpm_track.py` and `order_spectrum.py` (engine speed and order spectrum of a recording), `order_compare.py` (model vs recording). |
@@ -35,7 +35,9 @@ web/tests/run_all_tests.sh
 cd openwam && node test_py_js.js
 
 # router (Python 3, no Fusion)
-cd fusion-addin/tests && python3 test_header.py && python3 test_header_uel.py
+cd fusion-addin/tests && python3 test_router.py && python3 test_header.py && python3 test_header_uel.py
+cd fusion-addin/tests && python3 test_drone_parts.py && python3 test_drone_fusion_mock.py && python3 test_cfd_stl.py
+# inside Fusion (Utilities > Scripts, or the Fusion connector): fusion-addin/tests/fusion_live_drone_parts.py
 cd layouts/ls3-180 && python3 test_template.py
 
 # the CFD case writer in the browser writes the same files as the Python generator
