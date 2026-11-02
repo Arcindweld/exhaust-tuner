@@ -72,9 +72,14 @@ the same choices (the Fusion add-in too, when it is installed); the installer wa
 it again. A run in progress blocks the update until it ends. Builds on a PC are version 0.1.0, so they always see the
 newest release.
 
+After an update, the first start shows what changed (the release notes saved with the download), once.
+
 The repository is private, so the program needs a GitHub token that can read it, saved once under Updates in its
-menu: a fine-grained personal access token (github.com, Settings, Developer settings, Personal access tokens,
-Fine-grained tokens) with Repository access limited to `exhaust-tuner` and Permissions, Contents: Read-only. It is
+menu: a fine-grained personal access token with Repository access limited to `exhaust-tuner` and Permissions,
+Contents: Read-only. The menu's link opens GitHub's new-token form already filled in (name, owner, a year, Contents
+read-only; GitHub's documented `settings/personal-access-tokens/new` parameters), so only the repository is picked
+by hand. GitHub reports the token's expiry date with every reply (`GitHub-Authentication-Token-Expiration`); from two
+weeks before it, the menu button gets a dot and the Updates section says when it stops working. It is
 stored in `%LOCALAPPDATA%\ExhaustTuner\update-token.bin`, encrypted for the Windows user (DPAPI), never handed back
 to the page, and sent only with requests to api.github.com, not with the redirects to GitHub's download storage.
 Code: `app/ExhaustTuner.Core/Updater.cs`; tests: `UpdaterTests.cs`, `web/tests/update_ui.js`, and the installer step in

@@ -50,7 +50,7 @@ public sealed class HostDispatcher
 
     public HostDispatcher(AppPaths paths, IHostUi ui, Updater? updater = null)
     {
-        _paths = paths; _ui = ui; _updater = updater ?? new Updater(paths, Version);
+        _paths = paths; _ui = ui; _updater = updater ?? new Updater(paths, Version, previousVersion: StartRecord.PreviousVersion);
     }
 
     async Task<JsonNode?> Run(Func<Task<JsonNode?>> run)

@@ -18,6 +18,7 @@ sealed class FakeGitHub : HttpMessageHandler
     public byte[] Setup = Encoding.UTF8.GetBytes("pretend installer " + new string('x', 5000));
     public string? Sums;          // null: the right SHA-256 of Setup
     public bool Stall;            // the installer download sends its headers and then nothing
+    public string? Expires;       // GitHub-Authentication-Token-Expiration on the release list, like GitHub sends it
 
     sealed class StallStream : Stream
     {
@@ -56,7 +57,12 @@ sealed class FakeGitHub : HttpMessageHandler
             if (location != null) r.Headers.Location = new Uri(location);
             return r;
         }
-        if (u == Api + "/repos/" + Repo + "/releases?per_page=20") return Task.FromResult(R(ListStatus, Encoding.UTF8.GetBytes(ListBody)));
+        if (u == Api + "/repos/" + Repo + "/releases?per_page=20")
+        {
+            var list = R(ListStatus, Encoding.UTF8.GetBytes(ListBody));
+            if (Expires != null) list.Headers.TryAddWithoutValidation("GitHub-Authentication-Token-Expiration", Expires);
+            return Task.FromResult(list);
+        }
         if (u.StartsWith(Api + "/repos/" + Repo + "/releases/assets/"))
         {
             var id = u[(u.LastIndexOf('/') + 1)..];
@@ -307,6 +313,55 @@ public class UpdaterTests
         public string? PickSaveFile(string title, string suggestedName) => null;
         public void OpenFolder(string path) { }
         public void Quit() => Quits++;
+    }
+
+    [Fact]
+    public async Task The_token_expiry_GitHub_reports_is_passed_on()
+    {
+        var (p, _) = Install();
+        var when = DateTime.UtcNow.AddDays(10.5);
+        var gh = new FakeGitHub { Expires = when.ToString("yyyy-MM-dd HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture) + " UTC" }.Standard();
+        var u = Make(p, gh, version: "0.1.45");
+        u.SetToken(Token);
+        var s = await u.CheckAsync(true, CancellationToken.None);
+        Assert.Equal(when.ToString("yyyy-MM-dd"), s["tokenExpires"]!.GetValue<string>());
+        Assert.Equal(10, s["tokenDaysLeft"]!.GetValue<int>());
+        gh.Expires = null;                       // a token without an expiry date
+        s = await u.CheckAsync(true, CancellationToken.None);
+        Assert.Null(s["tokenExpires"]);
+        Assert.Equal(new DateTimeOffset(2026, 12, 1, 8, 0, 0, TimeSpan.Zero), Updater.ParseExpiry("2026-12-01 08:00:00 UTC"));
+        Assert.Equal(new DateTimeOffset(2026, 12, 1, 15, 0, 0, TimeSpan.Zero), Updater.ParseExpiry("2026-12-01 08:00:00 -0700"));
+        Assert.Null(Updater.ParseExpiry("soon"));
+    }
+
+    [Fact]
+    public async Task After_an_update_the_first_start_shows_what_changed()
+    {
+        var (p, _) = Install();
+        var (u, gh, _) = await Ready(p);                                   // downloads 0.1.45 while 0.1.43 runs
+        Assert.Null(u.Status()["updated"]);
+        Assert.Contains("what changed in v0.1.45", File.ReadAllText(Path.Combine(u.UpdatesDir, gh.SetupName + ".notes.txt")));
+        // the installer ran; the next start is 0.1.45 and the start record still says 0.1.43
+        var after = new Updater(p, "0.1.45", gh, FakeGitHub.Api, FakeGitHub.Repo, _ => { }, previousVersion: "0.1.43");
+        var upd = after.Status()["updated"]!;
+        Assert.Equal("0.1.43", upd["from"]!.GetValue<string>());
+        Assert.Equal("0.1.45", upd["to"]!.GetValue<string>());
+        Assert.Contains("what changed in v0.1.45", upd["notes"]!.GetValue<string>());
+        // an ordinary start (same version), or a start after going back to an older version: nothing to show
+        Assert.Null(new Updater(p, "0.1.45", gh, FakeGitHub.Api, FakeGitHub.Repo, _ => { }, previousVersion: "0.1.45").Status()["updated"]);
+        Assert.Null(new Updater(p, "0.1.43", gh, FakeGitHub.Api, FakeGitHub.Repo, _ => { }, previousVersion: "0.1.45").Status()["updated"]);
+    }
+
+    [Fact]
+    public void Start_record_returns_the_previous_version()
+    {
+        var (p, _) = Install();
+        Assert.Null(StartRecord.Write(p, "0.1.43"));
+        Assert.Equal("0.1.43", StartRecord.Write(p, "0.1.45"));
+        var lines = File.ReadAllLines(Path.Combine(p.DataRoot, StartRecord.FileName));
+        Assert.Equal("0.1.45", lines[0]);
+        Assert.Equal(Environment.ProcessId.ToString(), lines[1]);
+        Assert.Equal(4, lines.Length);
     }
 
     [Fact]

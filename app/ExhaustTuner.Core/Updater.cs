@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -44,6 +45,8 @@ public sealed class Updater
     // state, read and written under _lock
     string _state = "idle";        // idle | checking | up-to-date | available | downloading | ready | error
     string? _error, _readyFile, _checked;
+    DateTimeOffset? _tokenExpires;    // from GitHub's GitHub-Authentication-Token-Expiration header
+    readonly string? _previous;       // the version that ran before this start (StartRecord), when it was older
     Release? _latest;
     long _done, _total;
     Task? _download;
@@ -52,8 +55,10 @@ public sealed class Updater
     /// <param name="handler">HTTP handler; it must not follow redirects itself (tests pass a stand-in)</param>
     /// <param name="api">GitHub API base (tests point it at a stand-in server)</param>
     /// <param name="launch">starts the installer (tests record it instead)</param>
+    /// <param name="previousVersion">the version the last start recorded (StartRecord); an older one means this start
+    /// follows an update, and Status() then carries that update's notes once</param>
     public Updater(AppPaths paths, string currentVersion, HttpMessageHandler? handler = null, string? api = null, string? repo = null,
-                   Action<ProcessStartInfo>? launch = null)
+                   Action<ProcessStartInfo>? launch = null, string? previousVersion = null)
     {
         _paths = paths;
         _currentText = currentVersion;
@@ -67,6 +72,17 @@ public sealed class Updater
         _launch = launch ?? (psi => Process.Start(psi));
         _tokens = new TokenStore(paths.DataRoot);
         if (!_tokens.Has) _state = "not-configured";
+        if (ParseVersion(previousVersion) is { } pv && pv < _current) _previous = previousVersion!.Trim();
+    }
+
+    /// <summary>GitHub's token expiry header: "2026-12-01 00:00:00 UTC" (or with a numeric offset).</summary>
+    public static DateTimeOffset? ParseExpiry(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return null;
+        s = s.Trim();
+        if (s.EndsWith(" UTC", StringComparison.OrdinalIgnoreCase)) s = s[..^4] + "Z";
+        return DateTimeOffset.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var d)
+            ? d : null;
     }
 
     public string UpdatesDir => Path.Combine(_paths.DataRoot, "updates");
@@ -114,6 +130,19 @@ public sealed class Updater
                     ["url"] = r.HtmlUrl, ["size"] = r.SetupSize, ["newer"] = r.Version > _current,
                 };
             if (_state == "downloading") o["progress"] = new JsonObject { ["done"] = _done, ["total"] = _total };
+            if (_tokenExpires is { } x)
+            {
+                o["tokenExpires"] = x.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                o["tokenDaysLeft"] = (int)Math.Floor((x - DateTimeOffset.UtcNow).TotalDays);
+            }
+            if (_previous is not null)
+            {
+                // this start follows an update: what changed, as the release said when it was downloaded
+                var notes = Path.Combine(UpdatesDir, "ExhaustTuner-Setup-" + _currentText + ".exe.notes.txt");
+                string? text = null;
+                try { if (File.Exists(notes)) text = File.ReadAllText(notes); } catch (IOException) { }
+                o["updated"] = new JsonObject { ["from"] = _previous, ["to"] = _currentText, ["notes"] = text };
+            }
             return o;
         }
     }
@@ -127,7 +156,7 @@ public sealed class Updater
         if (token.Length == 0)
         {
             _tokens.Clear();
-            lock (_lock) { _state = "not-configured"; _error = null; _latest = null; }
+            lock (_lock) { _state = "not-configured"; _error = null; _latest = null; _tokenExpires = null; }
             return Status();
         }
         if (token.Length < 20 || token.Any(char.IsWhiteSpace) || token.Any(c => c > 126))
@@ -138,7 +167,7 @@ public sealed class Updater
             return bad;
         }
         _tokens.Write(token);
-        lock (_lock) { _state = "idle"; _error = null; }
+        lock (_lock) { _state = "idle"; _error = null; _tokenExpires = null; }
         return Status();
     }
 
@@ -249,6 +278,10 @@ public sealed class Updater
         using var resp = await SendAsync(_api + "/repos/" + _repo + "/releases?per_page=20", token, "application/vnd.github+json", ct);
         var body = await resp.Content.ReadAsStringAsync(ct);
         var code = (int)resp.StatusCode;
+        if (code == 200 && resp.Headers.TryGetValues("GitHub-Authentication-Token-Expiration", out var exp))
+            lock (_lock) { _tokenExpires = ParseExpiry(exp.FirstOrDefault()); }
+        else if (code == 200)
+            lock (_lock) { _tokenExpires = null; }          // a token without an expiry date
         if (code == 401) throw new UpdateException("GitHub did not accept the token (expired or revoked?). Make a new one and save it here.");
         if (code == 404) throw new UpdateException("GitHub does not show " + _repo + " to this token. A fine-grained token needs " + _repo +
                                                    " under Repository access and Contents: Read-only under Permissions.");
@@ -366,8 +399,9 @@ public sealed class Updater
         var final = Path.Combine(UpdatesDir, rel.SetupName);
         File.Move(part, final, overwrite: true);
         File.WriteAllText(final + ".sha256", got);
-        foreach (var old in Directory.GetFiles(UpdatesDir, "ExhaustTuner-Setup-*"))
-            if (!old.Equals(final, StringComparison.OrdinalIgnoreCase) && !old.Equals(final + ".sha256", StringComparison.OrdinalIgnoreCase))
+        File.WriteAllText(final + ".notes.txt", rel.Notes);         // shown once after the update (Status "updated")
+        foreach (var old in Directory.GetFiles(UpdatesDir, "ExhaustTuner-Setup-*"))          // older installers, checksums, notes
+            if (!old.StartsWith(final, StringComparison.OrdinalIgnoreCase))
                 try { File.Delete(old); } catch (IOException) { }
         return final;
     }

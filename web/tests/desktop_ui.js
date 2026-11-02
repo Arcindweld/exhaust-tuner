@@ -2,7 +2,9 @@
 // (HostBridge.js), the real request handling (exhaust-tuner-host, the same C# code the Windows program uses) and the
 // real OpenWAM solver. WebView2's message channel is replaced by a shim that carries the same JSON over stdin/stdout.
 // Needs: dotnet-built app/ExhaustTuner.HostCli (HOST_CLI to override), an OpenWAM build (EXHAUST_TUNER_OPENWAM).
-// Without them the test says so and exits 0, unless REQUIRE_ALL=1.
+// Without them the test says so and exits 0, unless REQUIRE_ALL=1. With EXHAUST_TUNER_OPENFOAM it also runs the
+// page's intake CFD case to convergence (minutes); DESKTOP_CFD=0 skips that run (the Windows build does when nothing
+// on its path changed since the last release, and its install step runs a short OpenFOAM case on every build).
 const { chromium } = require('playwright');
 const { spawn, execFileSync } = require('child_process');
 const fs = require('fs'), path = require('path'), os = require('os'), { pathToFileURL } = require('url');
@@ -98,8 +100,10 @@ const CLI = process.env.HOST_CLI || path.join(ROOT, 'app', 'ExhaustTuner.HostCli
     });
     ok(es.n === 1 && es.dur > 3, 'Engine Simulator clip plays in the page: ' + JSON.stringify(es));
   } else console.log('  (EXHAUST_TUNER_ENGINESIM not set: Engine Simulator part not exercised)');
-  // the intake CFD case with the bundled OpenFOAM, when there is one (EXHAUST_TUNER_OPENFOAM)
-  if (process.env.EXHAUST_TUNER_OPENFOAM) {
+  // the intake CFD case with the bundled OpenFOAM, when there is one (EXHAUST_TUNER_OPENFOAM) and it is not skipped
+  if (process.env.EXHAUST_TUNER_OPENFOAM && process.env.DESKTOP_CFD === '0') {
+    console.log('SKIP: the page\'s OpenFOAM run (DESKTOP_CFD=0: nothing on its path changed since the last release)');
+  } else if (process.env.EXHAUST_TUNER_OPENFOAM) {
     await pg.evaluate(() => { location.hash = 'intake'; }); await pg.waitForTimeout(800);
     await pg.click('#m-expert'); await pg.waitForTimeout(300);
     ok(await pg.$('button[data-cfd="run"]') !== null, 'Run in OpenFOAM button shown');

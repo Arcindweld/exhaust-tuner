@@ -4,7 +4,8 @@
 // and save prompts (unset = the user cancelled). Updates, for the tests only (the desktop program has no such
 // switches): EXHAUST_TUNER_UPDATE_API points the update check at a stand-in for api.github.com,
 // EXHAUST_TUNER_UPDATE_REPO names the repository, EXHAUST_TUNER_UPDATE_DRYRUN=1 prints the installer command
-// instead of starting it.
+// instead of starting it, EXHAUST_TUNER_UPDATE_PREVIOUS plays the version the last start recorded (the desktop
+// program reads it from last-start.txt).
 using System.Diagnostics;
 using ExhaustTuner.Core;
 
@@ -15,7 +16,8 @@ var paths = new AppPaths(appRoot, dataRoot, fusionRoot);
 static string? Env(string k) => Environment.GetEnvironmentVariable(k) is { Length: > 0 } v ? v : null;
 Action<ProcessStartInfo>? launch = Env("EXHAUST_TUNER_UPDATE_DRYRUN") == "1"
     ? psi => Console.Error.WriteLine("update installer (not started): " + psi.FileName + " " + psi.Arguments) : null;
-var updater = new Updater(paths, HostDispatcher.Version, api: Env("EXHAUST_TUNER_UPDATE_API"), repo: Env("EXHAUST_TUNER_UPDATE_REPO"), launch: launch);
+var updater = new Updater(paths, HostDispatcher.Version, api: Env("EXHAUST_TUNER_UPDATE_API"), repo: Env("EXHAUST_TUNER_UPDATE_REPO"), launch: launch,
+                          previousVersion: Env("EXHAUST_TUNER_UPDATE_PREVIOUS"));
 if (args.Contains("--info")) { Console.WriteLine(new HostDispatcher(paths, new CliUi(), updater).Info().ToJsonString()); return 0; }
 if (args.Contains("--bridge")) { Console.Write(MessageRouter.BridgeScript()); return 0; }
 if (args.Contains("--install-addin"))

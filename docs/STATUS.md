@@ -239,6 +239,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   sorted; it builds the first good release (0.1.4x) and withdraws 0.1.43 / 0.1.45. One program build costs about
   15 Windows minutes (openwam 2, app 13; counted double on a private repo) + 1 Linux minute: ~32 billable minutes.
   This session cannot edit or delete releases (403); the release job does it.
+- Updates and build cost, 2026-11-02 (while CI waits for billing): the update menu warns from 14 days before the
+  token's expiry (GitHub's GitHub-Authentication-Token-Expiration header), links GitHub's new-token form filled in
+  (name, owner, 366 days, contents=read; only the repository is picked by hand), shows what changed once after an
+  update (notes saved with the download; StartRecord gives the previous version), and retries in 30 min after a
+  network error. UpdaterTests 16, update_ui.js 27 checks (incl. a second start after an update). CI: OpenWAM built in
+  the app job only on a cache miss (the openwam job is gone), Playwright's browser cached, and the page's full
+  OpenFOAM run (about 6 of the app job's ~13 min) only when cfd/, Core, tools/openfoam, desktop_ui.js or
+  windows.yml changed since the last release (the install step runs a short OpenFOAM case every build). Expected:
+  ~7 Windows minutes a build (~15 billable with the Linux jobs) instead of ~15 (~32). Not yet run in CI.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

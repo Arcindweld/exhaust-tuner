@@ -39,52 +39,47 @@ jobs:
       - name: Core tests (Linux)
         run: dotnet test app/ExhaustTuner.Core.Tests -c Release --logger "console;verbosity=normal"
 
-  # OpenWAM from CMT-UPV's own source, unchanged, built with MinGW-w64 (its CMake files are written for GCC)
-  openwam:
+  app:
     runs-on: windows-2022
-    defaults:
-      run:
-        shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
+      # OpenWAM from CMT-UPV's own source, unchanged, built with MinGW-w64 (its CMake files are written for GCC), and
+      # only when the pinned commit is not in the cache yet: a build takes two runner minutes, a restore seconds
+      - name: OpenWAM from the cache
+        id: wam
+        uses: actions/cache@v4
+        with:
+          path: engines/openwam
+          key: openwam-win-x64-${{ env.OPENWAM_COMMIT }}-mingw-static-v1
+      - uses: actions/checkout@v4
+        if: steps.wam.outputs.cache-hit != 'true'
         with:
           repository: CMT-UPV/OpenWAM
           ref: ${{ env.OPENWAM_COMMIT }}
           path: openwam-src
       - uses: msys2/setup-msys2@v2
+        if: steps.wam.outputs.cache-hit != 'true'
         with:
           msystem: MINGW64
           update: false
           install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake mingw-w64-x86_64-ninja
-      - name: Configure
-        run: >
-          cmake -S openwam-src -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-          -DCMAKE_POLICY_VERSION_MINIMUM=3.5
-          -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++"
-      - name: Build
-        run: cmake --build build -j 4
-      - name: Collect
+      - name: Build OpenWAM (cache miss)
+        if: steps.wam.outputs.cache-hit != 'true'
+        shell: msys2 {0}
         run: |
-          exe=$(find build -iname 'OpenWAM*.exe' | head -1)
+          cmake -S openwam-src -B wam-build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+            -DCMAKE_EXE_LINKER_FLAGS="-static -static-libgcc -static-libstdc++"
+          cmake --build wam-build -j 4
+          exe=$(find wam-build -iname 'OpenWAM*.exe' | head -1)
           echo "built: $exe"
-          mkdir -p dist/openwam
-          cp "$exe" dist/openwam/OpenWAM.exe
-          ldd dist/openwam/OpenWAM.exe | grep -iv -E '/c/windows|system32' || true
-      - uses: actions/upload-artifact@v4
-        with:
-          name: openwam-win-x64
-          path: dist/openwam
-          retention-days: 3
-
-  app:
-    needs: openwam
-    runs-on: windows-2022
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: openwam-win-x64
-          path: engines/openwam
+          mkdir -p engines/openwam
+          cp "$exe" engines/openwam/OpenWAM.exe
+          ldd engines/openwam/OpenWAM.exe | grep -iv -E '/c/windows|system32' || true
+      - name: OpenWAM is there
+        shell: pwsh
+        run: |
+          if (-not (Test-Path engines/openwam/OpenWAM.exe)) { throw "engines/openwam/OpenWAM.exe missing" }
+          "OpenWAM $env:OPENWAM_COMMIT: " + $(if ("${{ steps.wam.outputs.cache-hit }}" -eq "true") { "from the cache" } else { "built" })
       # Engine Simulator (Arcindweld/engine-sim, private). This workflow's own token cannot read that repository, so
       # its Windows build (with the headless runner) is kept on this repository's engine-sim-build branch.
       # Refresh it after the fork changes: tools/publish_engine_sim.sh.
@@ -175,14 +170,37 @@ jobs:
           dotnet publish app/ExhaustTuner.HostCli -c Release -r win-x64 --self-contained true -o publish/host -p:Version=${{ env.APP_VERSION }}
           dotnet publish app/ExhaustTuner.Desktop -c Release -r win-x64 --self-contained true -o publish/desktop -p:Version=${{ env.APP_VERSION }}
 
-      # The page inside the program, end to end on Windows: page + bridge + host + OpenWAM
+      - name: Test browser from the cache
+        uses: actions/cache@v4
+        with:
+          path: ~\AppData\Local\ms-playwright
+          key: playwright-1.48.2-chromium-windows
+
+      # The page inside the program, end to end on Windows: page + bridge + host + OpenWAM. The page's own OpenFOAM
+      # run (a case to convergence, about 6 of this job's minutes) runs only when something on its path changed since
+      # the last release, or when started by hand; the install step below runs a short OpenFOAM case on every build.
       - name: Page tests in the program (Windows)
         shell: pwsh
         env:
           REQUIRE_ALL: "1"
           EXHAUST_TUNER_OPENWAM: ${{ github.workspace }}\engines\openwam\OpenWAM.exe
           HOST_CLI: ${{ github.workspace }}\publish\host\exhaust-tuner-host.exe
+          GH_TOKEN: ${{ github.token }}
         run: |
+          $env:DESKTOP_CFD = "1"
+          if ($env:GITHUB_EVENT_NAME -eq "push") {
+            $last = gh api "repos/$env:GITHUB_REPOSITORY/releases?per_page=1" --jq '.[0].tag_name // ""'
+            if ($LASTEXITCODE -eq 0 -and $last) {
+              $files = gh api "repos/$env:GITHUB_REPOSITORY/compare/$last...$env:GITHUB_SHA" --jq '.files[].filename'
+              if ($LASTEXITCODE -eq 0 -and $files) {
+                $hit = @($files | Where-Object { $_ -match '^(cfd/|app/ExhaustTuner\.Core/|tools/openfoam/|web/tests/desktop_ui\.js$|\.github/workflows/windows\.yml$)' })
+                if ($hit.Count -eq 0) { $env:DESKTOP_CFD = "0" }
+                "since $($last): $(@($files).Count) files changed, $($hit.Count) on the page's OpenFOAM path"
+              }
+            }
+          }
+          $global:LASTEXITCODE = 0
+          "the page's OpenFOAM run: " + $(if ($env:DESKTOP_CFD -eq "1") { "yes" } else { "skipped (the install step still runs OpenFOAM)" })
           npm install --no-save playwright@1.48.2
           npx playwright install chromium
           node web/tests/desktop_ui.js

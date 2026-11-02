@@ -122,7 +122,7 @@ public partial class MainWindow : Window, IHostUi
             if (e.IsSuccess) Splash.Visibility = Visibility.Collapsed;
             else Status.Text = "The calculator page did not load (" + e.WebErrorStatus + "). Press F5 to try again.";
             // the start record (App.xaml.cs) gets the outcome: the Windows build checks that the installed window loads the page
-            try { File.AppendAllText(Path.Combine(_paths.DataRoot, "last-start.txt"), (e.IsSuccess ? "page loaded " : "page failed " + e.WebErrorStatus + " ") + DateTime.UtcNow.ToString("o") + "\n"); }
+            try { File.AppendAllText(Path.Combine(_paths.DataRoot, StartRecord.FileName), (e.IsSuccess ? "page loaded " : "page failed " + e.WebErrorStatus + " ") + DateTime.UtcNow.ToString("o") + "\n"); }
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         };

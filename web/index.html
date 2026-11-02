@@ -433,7 +433,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
             <p id="hm-upd-msg" aria-live="polite"></p>
             <pre class="hm-upd-notes" id="hm-upd-notes" hidden></pre>
             <div class="hm-upd-tok" id="hm-upd-tokbox" hidden>
-              <p>New versions come from your private GitHub repository, so the program needs a token that can read it. On github.com: Settings, Developer settings, Personal access tokens, Fine-grained tokens, Generate new token. Repository access: only exhaust-tuner. Permissions: Contents, read-only.</p>
+              <p>New versions come from your private GitHub repository, so the program needs a token that can read it. <a id="hm-upd-toklink" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Open GitHub's new-token page</a>, filled in with read-only access to Contents for a year. There, under Repository access, choose Only select repositories, then exhaust-tuner. Generate the token and paste it here. (By hand: Settings, Developer settings, Personal access tokens, Fine-grained tokens.)</p>
               <label for="hm-upd-tok">GitHub token</label>
               <input id="hm-upd-tok" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
               <p class="hint">Kept on this PC, encrypted for your Windows account, and sent only to GitHub. Save an empty field to remove it.</p>
@@ -8870,7 +8870,7 @@ function hostMenuRender(){
 }
 /* updates from the program's GitHub releases (app/ExhaustTuner.Core/Updater.cs): checked a few seconds after the start
    and every 6 hours; a newer release downloads in the background and waits for "Restart and update" */
-const UPD={s:null,poll:0,tokOpen:false};
+const UPD={s:null,poll:0,tokOpen:false,seen:''};
 const updMB=b=>(b/1048576).toFixed(b>0&&b<10485760?1:0);
 function updMsg(s){
   const L=s.latest, v=L&&L.version;
@@ -8887,19 +8887,34 @@ function updMsg(s){
     default: return '';
   }
 }
+const updSeenKey='et-upd-seen';
+function updSeen(){ try{ return localStorage.getItem(updSeenKey)||''; }catch(e){ return ''; } }
+function updMarkSeen(v){ try{ localStorage.setItem(updSeenKey,v); }catch(e){} UPD.seen=v; }
 function updRender(){
   const s=UPD.s; if(!s||!$('hm-upd')) return;
   const L=s.latest, ready=s.state==='ready';
-  $('host-dot').hidden=!ready;
-  $('host-btn').title=ready?'Program: version '+L.version+' is ready to install':'Program: runs folder, updates, Fusion add-in, engines';
+  const fresh=s.updated&&(UPD.seen||updSeen())!==s.updated.to?s.updated:null;       // just updated, not looked at yet
+  const days=Number.isFinite(s.tokenDaysLeft)?s.tokenDaysLeft:null, expiring=s.configured&&days!==null&&days<=14;
+  $('host-dot').hidden=!(ready||fresh||expiring);
+  $('host-btn').title=ready?'Program: version '+L.version+' is ready to install':fresh?'Program: updated to '+fresh.to+', see what changed':
+    expiring?'Program: the update token stops working in '+Math.max(days,0)+' days':'Program: runs folder, updates, Fusion add-in, engines';
   const line=$('hm-updline');
-  line.textContent=ready?'Version '+L.version+' is ready to install.':s.state==='downloading'?'Downloading version '+(L&&L.version)+'…':
+  line.textContent=ready?'Version '+L.version+' is ready to install.':fresh?'Updated to version '+fresh.to+'.':
+    expiring?'The update token stops working '+(days<=0?'today':'in '+days+' day'+(days===1?'':'s'))+'.':
+    s.state==='downloading'?'Downloading version '+(L&&L.version)+'…':
     s.state==='not-configured'?'Updates are not set up.':s.state==='up-to-date'?'Up to date.':s.state==='error'?'The last update check did not work.':'';
-  line.classList.toggle('ready',ready);
+  line.classList.toggle('ready',!!(ready||fresh||expiring));
   $('hm-badge').hidden=!ready;
-  $('hm-upd-msg').textContent=updMsg(s);
-  const notes=L&&L.newer&&L.notes?L.notes.trim():'';
+  let msg=updMsg(s);
+  if(fresh) msg='Updated to version '+fresh.to+' (from '+fresh.from+'). '+msg;
+  if(expiring) msg+=' The GitHub token stops working on '+s.tokenExpires+(days<=0?'':' (in '+days+' day'+(days===1?'':'s')+')')+': make a new one with Change token and save it.';
+  $('hm-upd-msg').textContent=msg;
+  const notes=L&&L.newer&&L.notes?L.notes.trim():fresh&&fresh.notes?'What changed:\n'+fresh.notes.trim():'';
   $('hm-upd-notes').textContent=notes; $('hm-upd-notes').hidden=!notes;
+  const owner=(s.repo||'').split('/')[0];
+  if(owner) $('hm-upd-toklink').href='https://github.com/settings/personal-access-tokens/new?name='+encodeURIComponent('Exhaust Tuner updates')+
+    '&description='+encodeURIComponent('Lets the Exhaust Tuner program read the releases of '+s.repo+'.')+'&target_name='+encodeURIComponent(owner)+
+    '&expires_in=366&contents=read';
   const tok=!s.configured||UPD.tokOpen;
   $('hm-upd-tokbox').hidden=!tok; $('hm-upd-save').hidden=!tok;
   $('hm-upd-install').hidden=!(ready&&s.installed);
@@ -8911,7 +8926,10 @@ function updSet(s){
   if(s&&s.state) UPD.s=s;
   updRender();
   clearTimeout(UPD.poll);
-  if(UPD.s&&(UPD.s.state==='downloading'||UPD.s.state==='checking')) UPD.poll=setTimeout(()=>hostCall('updateStatus',{}).then(updSet),1500);
+  const st=UPD.s&&UPD.s.state;
+  if(st==='downloading'||st==='checking') UPD.poll=setTimeout(()=>hostCall('updateStatus',{}).then(updSet),1500);
+  // a network hiccup is tried again in half an hour instead of at the next 6-hourly check
+  else if(st==='error'&&/reach GitHub|did not answer|download stopped|download failed/.test(UPD.s.error||'')) UPD.poll=setTimeout(updCheck,30*60*1000);
 }
 async function updCheck(){ if(UPD.s&&UPD.s.configured) updSet(await hostCall('updateCheck',{download:true})); }
 function updSetup(){
@@ -8940,7 +8958,12 @@ function hostMenuSetup(){
   const say=t=>{ out.textContent=t||''; out.hidden=!t; };
   const updPanel=v=>{ $('hm-upd').hidden=!v; menu.querySelector('[data-hm="update"]').setAttribute('aria-expanded',String(v)); if(v) updRender(); };
   const open=v=>{ menu.hidden=!v; btn.setAttribute('aria-expanded',String(v));
-    if(v){ hostMenuRender(); say(''); updPanel(!!(UPD.s&&UPD.s.state==='ready')); const f=menu.querySelector('[data-hm]'); if(f) f.focus(); } };
+    const s=UPD.s;
+    if(v){ hostMenuRender(); say('');
+      const fresh=s&&s.updated&&(UPD.seen||updSeen())!==s.updated.to;
+      updPanel(!!(s&&(s.state==='ready'||fresh||(s.configured&&Number.isFinite(s.tokenDaysLeft)&&s.tokenDaysLeft<=14))));
+      const f=menu.querySelector('[data-hm]'); if(f) f.focus(); }
+    else if(s&&s.updated&&(UPD.seen||updSeen())!==s.updated.to){ updMarkSeen(s.updated.to); updRender(); } };   // what changed: shown until the menu closes
   btn.addEventListener('click',()=>open(menu.hidden));
   document.addEventListener('pointerdown',e=>{ if(!menu.hidden&&!menu.contains(e.target)&&!btn.contains(e.target)) open(false); });
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!menu.hidden){ open(false); btn.focus(); } });
