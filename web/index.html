@@ -9064,7 +9064,7 @@ const FX_TIPS={
   intake:'Sketch the route as lines and arcs (or a 3D sketch through points), select it and build the pipe at the size on this tab: the charge pipe when boosted, otherwise the intake tube. Measure a built pipe or route to get its bend schedule; bends tighter than 1.5 diameters are flagged. Model the turbo, exhaust and radiator as keep-out bodies and check clearance.',
   cat:'Select the pipe body to read its inside diameter, or model the space for the converter as a body and measure it. Keep-outs and clearance work as on the other tabs.',
   boom:'Build this boom tube makes the inside shape as a lofted body with your wall thickness, starting at the origin and running along X. Measure a route to read the length you have for the flat run.',
-  muf:'To size for the space you have, model the open space (or the old muffler) as a body, select it and press Measure selection. “Use size as muffler space” copies its length, width and height into the space limits. Selecting the pipe body gives its inside diameter. For a J-pipe, sketch its route from the main pipe wall to the cap (bends are fine), select it and press Build J-pipe; the message compares the route with the cut length.'
+  muf:'To size for the space you have, model the open space (or the old muffler) as a body, select it and press Measure selection. “Use size as muffler space” copies its length, width and height into the space limits. Selecting the pipe body gives its inside diameter. For a J-pipe, sketch its route from the main pipe wall to the cap (bends are fine), select it and press Build J-pipe; the message compares the route with the cut length. Or let it find the route: draw a marker on the main pipe wall where the branch tees in and one where the cap goes, and press Auto-route the J-pipe. The route clears the scan and comes out at the cut length. Measured and built J-pipes show the frequency they tune to.'
 };
 function fxSetup(){
   if(!FUSION) return;
@@ -9086,6 +9086,11 @@ function fxRender(tab,res){
     res.items.forEach((it,i)=>{
       let rows='';
       if(it.length!=null){ const mm=cmToMm(it.length); lens.push({name:it.name,mm}); rows+=rowL('Centerline length',mm,'l'); }
+      if(tab==='muf'&&it.kind==='path'&&it.length!=null&&FX.mufTune){   // a J-pipe path or route against the cut length (calcQW, inverted)
+        const T=FX.mufTune, mm=cmToMm(it.length), d=mm-T.L, f=T.c/(4*(mm+T.end)/1000);
+        rows+=rowT('Against the J-pipe cut length',Math.abs(d)<1?'on length':(d>0?'+':'−')+clen(Math.abs(d)),Math.abs(d)<1?'within 1 mm':(d>0?'long: trim it to tune up':'short: it tunes higher'))+
+          rowT('As a J-pipe, tunes to',Math.round(f)+' Hz','target '+Math.round(T.f)+' Hz');
+      }
       if(it.diameter!=null) rows+=rowL('Circle diameter',cmToMm(it.diameter),'d');
       if(it.od&&it.od.length) rows+=rowT('Outside diameters',it.od.map(d=>cdim(cmToMm(d))).join(' · '));
       if(it.id&&it.id.length) rows+=rowT('Inside diameters',it.id.map(d=>cdim(cmToMm(d))).join(' · '));
@@ -9157,7 +9162,7 @@ document.addEventListener('click',e=>{
   if(act.indexOf('route')===0){
     const base=FX[tab]||{}, R=FX.route||{};
     const pay=Object.assign({},base,R,{gap_mm:(FX.gap!=null?FX.gap:12.7)});
-    let uelNote='';
+    let preNote='';   // shown while Fusion routes
     if(!(pay.clr_mm>0)) delete pay.clr_mm;
     if(!(pay.min_clr_mm>0)) delete pay.min_clr_mm;
     if(!(pay.clamp_mm>0)) delete pay.clamp_mm;
@@ -9179,7 +9184,7 @@ document.addEventListener('click',e=>{
         const gi=Math.min(HUEL.route||0,H.r.nColl-1), cy=H.r.groups[gi].cyls.slice().sort((a,b)=>a-b), by=Object.fromEntries(H.uel.rows.map(x=>[x.c,x]));
         pay.targets_mm=cy.map(c=>+by[c].tube.toFixed(2));
         pay.title='Header, unequal lengths'+(H.r.nColl>1?', collector '+lab(gi):'');
-        uelNote='Unequal lengths: select the port markers of cylinders '+cy.join(', ')+' in that order, then the collector marker. Each primary is routed to its own length from the flange to the collector: '+cy.map(c=>c+' = '+clen(by[c].tube)).join(', ')+'.'+
+        preNote='Unequal lengths: select the port markers of cylinders '+cy.join(', ')+' in that order, then the collector marker. Each primary is routed to its own length from the flange to the collector: '+cy.map(c=>c+' = '+clen(by[c].tube)).join(', ')+'.'+
           (H.r.triy?' The router lays every primary straight into one collector and does not build the Y junctions, so each length is its primary plus its pair’s secondary.':'')+(H.r.nColl>1?' The other collector is routed separately: pick it under Primary length for each cylinder.':'');
       }
       const segs=(base.segs||[]), col=segs.find(s=>/collector merge/i.test(s[0]));
@@ -9191,9 +9196,16 @@ document.addEventListener('click',e=>{
       delete pay.target_mm;
     } else {
       pay.mode='single';
-      if(act==='routeSingleMuf'){ pay.title='J-pipe'; delete pay.target_mm; }
+      if(act==='routeSingleMuf'){
+        // the length is what tunes a J-pipe, so the route has to come out at the cut length (pipe wall to cap)
+        pay.title='J-pipe';
+        if(pay.target_mm>0) preNote='J-pipe: draw the start marker on the main pipe wall where the branch tees in, pointing away from the pipe, '+
+          'and the end marker where the cap goes, pointing the way the branch runs. The route comes out '+clen(pay.target_mm)+' long, the cut length '+
+          'from the pipe wall to the cap, so the end marker has to be closer than that in a straight line. Weld a cap on the far end.';
+        else delete pay.target_mm;
+      }
     }
-    if(out) out.innerHTML=(uelNote?'<div class="note">'+esc(uelNote)+'</div>':'')+'<div class="note">Reading the scan and routing in Fusion… a header can take a minute or two.</div>';
+    if(out) out.innerHTML=(preNote?'<div class="note">'+esc(preNote)+'</div>':'')+'<div class="note">Reading the scan and routing in Fusion… a header can take a minute or two.</div>';
     fusionCall('route',pay).then(res=>fxRender(tab,res));
     return;
   }
@@ -9570,8 +9582,8 @@ function renderMuf(){
   const bore=boreOf('m-dp-shape'), useSecs=$('m-lay').value==='secs', secs=useSecs?soundSecs():null;
   $('m-len-wrap').hidden=useSecs;
   const p={f:val('m-f'),dpipe:bore.err?NaN:bore.Deq,len:val('m-len'),tmain:val('m-tmain'),tres:val('m-tres'),dn:val('m-dn'),ln:val('m-ln'),db:val('m-db'),dch:val('m-dch'),lch:val('m-lch')};
-  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); return; }
-  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); return; }
+  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); FX.muf={}; FX.mufTune=null; return; }
+  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); FX.muf={}; FX.mufTune=null; return; }
   if(secs){ p.secs=secs; p.len=secLen(pathSecs(secs))*1000; }
   const endName=FX.mufTurbo?'turbine':'valve';
   $('m-len-lab').textContent=FX.mufTurbo?'Pipe length, turbine outlet to tailpipe tip':'Pipe length, valve to tailpipe tip';
@@ -9580,11 +9592,12 @@ function renderMuf(){
   const ab=calcAbsorb({dpipe:p.dpipe,dsh:p.dch,len:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain});
   const abMemo={}, abTL=f=>{ const k=Math.round(f); if(abMemo[k]==null) abMemo[k]=Math.min(TLCAP,ab.tl(k)); return abMemo[k]; };
   const firstErr=[hm,qw,pl].find(x=>x.err);
-  if(firstErr){ key.innerHTML='<div class="note bad">'+esc(firstErr.err)+'</div>'; det.innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; return; }
+  if(firstErr){ key.innerHTML='<div class="note bad">'+esc(firstErr.err)+'</div>'; det.innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.mufTune=null; return; }
   const can=[...hm.cans].sort((a,b)=>Math.abs(a.len/a.D-2)-Math.abs(b.len/b.D-2))[0];   // a can about twice as long as wide
   const lamRes=hm.c/p.f*1000, longCan=can.len+p.ln>lamRes/8;                          // lumped model holds while the resonator is small next to the wavelength
   const bw=val('m-bw')>0?val('m-bw'):1.651;
   FX.muf={title:'J-pipe',noun:'J-pipe',od_mm:p.db+2*bw,wall_mm:bw,target_mm:qw.L};
+  FX.mufTune={L:qw.L,end:qw.end,c:qw.c,f:p.f};   // to read a measured or routed J-pipe back as a frequency (kept out of what goes to Fusion)
   key.innerHTML='<div class="figs">'+figT('Helmholtz volume',(U==='imp'?hm.in3.toFixed(0):hm.liters.toFixed(2)),U==='imp'?'cu in':'L',(U==='imp'?hm.liters.toFixed(2)+' L':hm.in3.toFixed(0)+' cu in'))+
     figL('J-pipe length',qw.L,'l')+(pl.best.length?figL('Tap in at',pl.best[0],'l'):figT('Tap in at','near '+endName,'','pipe is short for this tone'))+'</div>'+(FX.mufNote?'<div class="note">'+esc(FX.mufNote)+'</div>':'');
   const curves=[{fn:hm.tl,col:'--t4',label:'Helmholtz'},{fn:qw.tl,col:'--t2',dash:'6 4',label:'J-pipe'}];

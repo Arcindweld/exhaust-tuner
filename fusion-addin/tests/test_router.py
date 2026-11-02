@@ -35,6 +35,32 @@ def box_mesh(lo, hi, n=1):
     return coords, idx
 
 
+def cyl_mesh(a, b, r, nr=24, nl=20):
+    """Closed round tube surface from a to b (along X, Y or Z in these tests), with flat ends."""
+    ax = [b[k] - a[k] for k in range(3)]
+    L = math.sqrt(sum(v * v for v in ax))
+    w = [v / L for v in ax]
+    u = (0.0, 1.0, 0.0) if abs(w[1]) < 0.9 else (1.0, 0.0, 0.0)
+    v = (w[1] * u[2] - w[2] * u[1], w[2] * u[0] - w[0] * u[2], w[0] * u[1] - w[1] * u[0])
+    u = (v[1] * w[2] - v[2] * w[1], v[2] * w[0] - v[0] * w[2], v[0] * w[1] - v[1] * w[0])
+    coords, idx = [], []
+    for i in range(nl + 1):
+        for j in range(nr):
+            t = 2 * math.pi * j / nr
+            c = [a[k] + ax[k] * i / nl + r * (math.cos(t) * u[k] + math.sin(t) * v[k]) for k in range(3)]
+            coords.extend(c)
+    for i in range(nl):
+        for j in range(nr):
+            p, q = i * nr + j, i * nr + (j + 1) % nr
+            idx.extend((p, p + nr, q, q, p + nr, q + nr))
+    for end, row in ((a, 0), (b, nl)):          # fan each end onto its centre
+        ci = len(coords) // 3
+        coords.extend(end)
+        for j in range(nr):
+            idx.extend((ci, row * nr + j, row * nr + (j + 1) % nr))
+    return coords, idx
+
+
 def brute_min(scene_meshes, pts, planes_for=None):
     """Exact smallest distance from each point to every triangle (no hashing)."""
     tris = []
@@ -143,6 +169,30 @@ def main():
     if not (r['ok'] and w >= -0.01 and abs(tot - 75.0) <= 0.05):
         fails.append('port shelf')
     print('LRA:', [(round(x['L'], 2), x['R'] and round(x['R'], 1), x['A'] and round(x['A'], 1)) for x in r['lra']])
+    # Scene 3: a J-pipe off the top of a 3 in main pipe that is part of the scan. The page sends the cut length
+    # (pipe wall to cap) as the target: 601.2 mm for 144 Hz with a 2.37 in ID branch, the Mufflers tab's default.
+    main = cyl_mesh((-30, 0, 0), (70, 0, 0), 3.81, 24, 25)
+    scene3 = RT.Scene(cell=1.0)
+    scene3.add_mesh(*main)
+    scene3.build((-35, -40, -30), (80, 40, 50), 8)
+    spec4 = {'start': (10, 0, 3.81), 'start_dir': (0, 0, 1), 'end': (55, 0, 12), 'end_dir': (1, 0, 0),
+             'od': 6.35, 'clr': 9.525, 'gap': 1.27, 'target': 60.12}
+    r = RT.route(scene3, spec4, log=print)
+    if r.get('elems'):
+        w, gaps, turn, ee, de, tot = check_route(r, [main], spec4, 'J-pipe off the main pipe')
+        if not (r['ok'] and w >= -0.01 and abs(tot - 60.12) <= 0.05 and gaps < 1e-6 and turn < 0.01 and ee < 1e-6 and de < 0.01):
+            fails.append('j-pipe')
+    else:
+        print('J-pipe off the main pipe: no route:', r.get('msg'))
+        fails.append('j-pipe')
+    # the same markers with a cut length the markers are too far apart for: never passed as ok, and the
+    # message gives the length it could do against the target (the add-in builds that and flags it)
+    r = RT.route(scene3, dict(spec4, target=30.0), log=None)
+    msg = r.get('msg') or ''
+    print('J-pipe, cut length too short: ok=%s length=%s msg=%s' % (r['ok'], r.get('length'), msg))
+    if r['ok'] or not ('shorter than the straight-line distance' in msg or
+                       ('the target is 30.00 cm' in msg and (r.get('length') or 0) > 30.0)):
+        fails.append('j-pipe short')
     print('FAILS:', fails)
     return 1 if fails else 0
 

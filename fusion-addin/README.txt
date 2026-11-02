@@ -1,4 +1,15 @@
-EXHAUST TUNER (Fusion add-in), version 4.11.0
+EXHAUST TUNER (Fusion add-in), version 4.11.1
+
+4.11.1 (November 2, 2026)
+- Fixed: "Auto-route the J-pipe through the scan" (Mufflers tab) dropped the J-pipe's cut
+  length, so the tube came out at whatever length fit between the two markers and missed the
+  drone frequency. The route now comes out at the cut length (pipe wall to cap). Put the start
+  marker on the main pipe wall where the branch tees in, pointing away from the pipe, and the
+  end marker where the cap goes, closer than the cut length in a straight line. If the markers
+  are too far apart for that length, it says so and flags the route instead of passing it.
+  It still builds an open tube: weld a cap on the far end.
+- New: on the Mufflers tab, a measured or built path shows how far it is from the cut length
+  and the frequency it tunes to as a J-pipe (the tab's own quarter-wave formula, inverted).
 
 4.11.0 (October 31, 2026)
 - New: "Export the STL from Fusion" in the Headers tab's exhaust component CFD section. Model
@@ -147,7 +158,9 @@ TWO COMMANDS, both in the Solid tab > Create panel
                        flags bends tighter than one tube diameter or too much bending, with
                        the way to build them (mandrel sections, pie cuts, or a short
                        metal-printed section).
-   CAD library         Parts on the Parts tab marked "CAD model" have a STEP file in the shop's CAD
+                       Mufflers tab: it routes the J-pipe at its cut length, from a marker on
+                       the main pipe wall where the branch tees in to one where the cap goes.
+   CAD library        Parts on the Parts tab marked "CAD model" have a STEP file in the shop's CAD
                        library folder (C:\Users\<you>\Desktop\claude training books\cad files, or the
                        folders listed one per line in a cad_library.txt next to this add-in). When the
                        router places such a fitting it imports the real part and stands it at the same
