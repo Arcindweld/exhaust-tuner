@@ -2028,7 +2028,7 @@ def act_route(data):
             ('Built %s, but it needs attention (see below).' % title.lower())
     _status('Done.')
     secs = __import__('time').time() - t0
-    msg += ' %.0f s.' % secs
+    msg += ' %.0f s, %s.' % (secs, RT.NATIVE_NOTE)
     if notes:
         msg += ' ' + ' '.join(notes)
     allok = all(it.get('ok', True) for it in items)
@@ -2599,15 +2599,7 @@ def _mesh_gap(tube, mesh_body):
     tube_sc = RT.Scene(cell=1.0, sample_len=0.3)
     tube_sc.add_mesh(tc, ti, ttol)
     tube_sc.build(bb[0], bb[1], 0.5)
-    best = 12.0
-    for a in tube_sc.H.values():
-        for q in range(0, len(a), 3):
-            p = (a[q], a[q + 1], a[q + 2])
-            if sc.dist_fast(p, 12.0) - sc.e_cover >= best:
-                continue
-            d = sc.dist_exact(p, 12.0)
-            if d < best:
-                best = d
+    best, _at = sc.nearest(tube_sc.all_points(), 12.0)
     return max(0.0, best - tube_sc.e_cover)
 
 

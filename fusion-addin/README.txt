@@ -1,4 +1,40 @@
-EXHAUST TUNER (Fusion add-in), version 4.12.0
+EXHAUST TUNER (Fusion add-in), version 4.13.0
+
+4.13.0 (November 2, 2026)
+- Faster: the router runs in a Rust core, et_core.dll, which the Windows program installs next to
+  the add-in. It is the router's own search, fit and clearance check rewritten line for line, and
+  it gives the same routes to the last digit (tests/test_native.py checks every query, fit, search
+  and whole route both ways), as long as the Python run is not stopped by the route's time limit
+  (40 s a tube unless set): the 75 cm pipe below takes the Python 77 s, so at the default limit the
+  Python router stops early with the best route it has by then, where the core finishes the search.
+  On the test scenes, Python before and now:
+    a pipe round a block                      2.4 s    0.05 s
+    a 75 cm pipe off a port, under a shelf     77 s    0.8 s
+    a four-primary header with a collector    137 s    1.0 s
+    the scan fit under a J-pipe or Helmholtz   0.6 s    0.02 s
+  Placing parts along a route, the collector check and the scan-to-tube gap check send their points
+  to the core in one call too. Without the DLL (on a Mac, or a folder copied without it) the add-in
+  runs its Python as before: the same answers, slower. The route report ends with which ran: "Rust router
+  core", or "Python router" and why.
+  Windows keeps a loaded DLL open until Fusion quits, so the add-in loads a copy of et_core.dll (in
+  the "native" folder beside it) and an update can always replace the installed one. After an
+  update, restart Fusion to load the new core; if an older one is still loaded the route report says
+  so and the Python router runs.
+  The core checks what it is given, and a fault inside it comes back to the add-in as an error
+  instead of stopping Fusion. If one of its calls ever fails, that work and everything after it
+  runs in the add-in's Python instead (a tube that was part way through is laid out again from the
+  start, all in Python), with the same answers, and the route report says "Python router (the Rust
+  core failed: ...)" with the reason until Fusion is restarted.
+- Fixed: a pipe with a length target could fail ("Length is ... the target is ...") when the widest
+  corridor's clear route came out longer than the target: only that route was fitted to length, and
+  the fit can add length but not take it away. A route too long for the target now leads on to the
+  narrower corridors; the clear routes no longer than the target are fitted to length first (the
+  longest of them, needing the least added), the next only when one does not fit. The choice no
+  longer depends on how long a search took, so a slow computer and a fast one give the same route.
+- Fixed: a trial centreline that folded back on itself during the fit (no length, so no points to
+  check along it) gave the fit a shorter list of numbers than the trial before; the fit then compared
+  numbers that did not belong together, or stopped with an error. Zeros now stand in for the missing
+  points, in the Python router and the core alike.
 
 4.12.0 (November 2, 2026)
 - New: drone-fix parts, all from the Mufflers tab.
@@ -98,12 +134,15 @@ EXHAUST TUNER (Fusion add-in), version 4.12.0
   spec['owner_base']) and take a routing order (spec['order']), for 180-degree pairs.
 
 INSTALL
+The Windows program installs and updates the add-in for you (Add-in menu). By hand:
 1. Unzip so you have a folder named ExhaustTuner holding ExhaustTuner.py, cadtools.py,
-   router.py, palette.html and ExhaustTuner.manifest. Keep the five files together.
+   router.py, templates.py, native.py, palette.html and ExhaustTuner.manifest, and et_core.dll
+   (the router's Rust core; without it the router runs in Python, slower). Keep the files together.
 2. In Fusion: Utilities > Add-Ins (or Shift+S), Add-Ins tab, green plus next to "My Add-Ins",
    then pick the ExhaustTuner folder.
 3. Select Exhaust Tuner and click Run. Tick "Run on Startup" to keep it loaded.
-Updating from an older version: stop the add-in, replace the whole folder, run it again.
+Updating from an older version: stop the add-in, replace the whole folder (the "native" folder
+inside it can go too), then restart Fusion so the new Rust core loads.
 
 TWO COMMANDS, both in the Solid tab > Create panel
 

@@ -12,14 +12,17 @@ stated estimate, and limits are written down plainly next to the result they aff
 | Folder | What it is |
 |---|---|
 | `web/` | The calculator (`index.html`, one self-contained page) and its browser tests. The page is also the Fusion add-in's panel (`make_palette.py` wraps it). |
-| `fusion-addin/` | The Fusion add-in (`ExhaustTuner.py`, `cadtools.py`, `router.py`, `templates.py`): measure, keep-outs, clearance, auto-routing (single pipe, headers, equal or unequal length, parts in line), the 180-degree V8 template, and the drone fixes: J-pipes capped and coped to the main pipe, and Helmholtz cans on a coped neck. `tests/` has the router and geometry tests and a run of the builders against a stand-in for Fusion's API (no Fusion needed), and `fusion_live_*.py` scripts to run inside Fusion. |
+| `fusion-addin/` | The Fusion add-in (`ExhaustTuner.py`, `cadtools.py`, `router.py`, `templates.py`, `native.py`): measure, keep-outs, clearance, auto-routing (single pipe, headers, equal or unequal length, parts in line), the 180-degree V8 template, and the drone fixes: J-pipes capped and coped to the main pipe, and Helmholtz cans on a coped neck. `native.py` loads the router's Rust core when it is installed beside the add-in. `tests/` has the router and geometry tests, the Rust core against the Python (`test_native.py`), a run of the builders against a stand-in for Fusion's API (no Fusion needed), and `fusion_live_*.py` scripts to run inside Fusion. |
+| `rust/et_core/` | The router's Rust core (stage 1 of the move to Rust): the scan and tube distance queries, the clearance fields, route()'s lattice search, Levenberg-Marquardt fit and clearance check, and the scan fit's cost, written line for line from `router.py` so both give the same numbers (the same routes, unless the slower Python run is stopped by the route's time limit first). A C interface the add-in loads with ctypes (Fusion add-ins are Python); every call is checked, and if the core fails the add-in carries on in Python. No dependencies. |
+| `rust/et_host/` | The Windows program's request handling (stage 2), ported from the C# program: runs OpenWAM, Engine Simulator and OpenFOAM for the page, case files, the Fusion add-in install, updates from GitHub releases (the token kept with DPAPI), and `exhaust-tuner-host` (the same requests over stdin/stdout, for the tests and the installer). No Windows-only code outside DPAPI, so its tests run anywhere. |
+| `rust/et_app/` | The Windows program's window (`ExhaustTuner.exe`): the page in WebView2 (wry and tao), served from the program's folder at `https://app.exhaust-tuner/`, with folder and save dialogs (rfd). |
 | `openwam/` | Writes OpenWAM 2.2 cases from the page's design (`make_wam.py` and its byte-identical JavaScript port `wam_export.js`), reads the results back. `node test_py_js.js` checks both writers agree. |
 | `cfd/` | OpenFOAM v2412 case generator for intake tracts and exhaust parts (`intake_cfd.py`, JavaScript port `intake_cfd.js`), validation against Blair & Cahoon and handbook loss coefficients (`validation/`, `NOTES.md`). |
 | `sound/` | Sound from simulation and from recordings: `wam_sound.py` (tailpipe monopole from OpenWAM outflow), `rpm_track.py` and `order_spectrum.py` (engine speed and order spectrum of a recording), `order_compare.py` (model vs recording). |
 | `enginesim/` | Exporter for Engine Simulator files (the Arcindweld fork with the 1-D exhaust lives in its own repository, `Arcindweld/engine-sim`). |
 | `validation/` | Measured vehicles: 2004 Subaru Outback 2.5i and 2026 Aprilia RS 660 (recordings, order spectra, model comparisons, research). |
 | `layouts/` | Worked systems, e.g. the LS3 180-degree headers-back layout used to build the template. |
-| `app/` | The Windows program (C#/.NET 8): `ExhaustTuner.Desktop` (WPF window hosting the page in WebView2), `ExhaustTuner.Core` (runs OpenWAM, Engine Simulator and OpenFOAM for the page, installs the Fusion add-in; no Windows-only code, so its tests run anywhere), `ExhaustTuner.HostCli` (the same requests over stdin/stdout, for tests and the installer). |
+| `app/` | The former Windows program (C#/.NET 8: WPF window, `ExhaustTuner.Core`, `ExhaustTuner.HostCli`). No longer built or shipped: `rust/` replaced it. Kept as the reference the Rust port was checked against until the Rust program has run on a PC, then removed. |
 | `installer/` | Inno Setup script for the per-user installer. |
 | `tools/openfoam/` | Builds OpenFOAM v2412 for Windows from ESI's source release (MinGW-w64 cross build, one small patch) and checks it against the Linux results before it can ship. |
 | `cad/` | Rough parametric models of bought parts for laying out around (Holley 105 mm throttle body; K&N round tapered filter). |
@@ -34,8 +37,14 @@ web/tests/run_all_tests.sh
 # OpenWAM writers agree (Python 3 + Node)
 cd openwam && node test_py_js.js
 
-# router (Python 3, no Fusion)
+# router (Python 3, no Fusion): on the Rust core when EXHAUST_TUNER_NATIVE_DIR points at the built library (or it sits
+# beside the add-in), on the Python otherwise
 cd fusion-addin/tests && python3 test_router.py && python3 test_header.py && python3 test_header_uel.py
+
+# the Rust core (Rust 1.78+): its own tests, then everything it does against the Python router, number for number
+# (--require: fail, not skip, when the built core does not load)
+cargo test --release --manifest-path rust/et_core/Cargo.toml && cargo build --release --manifest-path rust/et_core/Cargo.toml
+cd fusion-addin/tests && EXHAUST_TUNER_NATIVE_DIR=../../rust/et_core/target/release python3 test_native.py --require
 cd fusion-addin/tests && python3 test_drone_parts.py && python3 test_drone_fusion_mock.py && python3 test_cfd_stl.py
 # inside Fusion (Utilities > Scripts, or the Fusion connector): fusion-addin/tests/fusion_live_drone_parts.py
 cd layouts/ls3-180 && python3 test_template.py
@@ -43,9 +52,10 @@ cd layouts/ls3-180 && python3 test_template.py
 # the CFD case writer in the browser writes the same files as the Python generator
 node cfd/cfd_js_vs_py.js
 
-# the program's request handling (.NET 8 SDK); with EXHAUST_TUNER_OPENWAM / EXHAUST_TUNER_OPENFOAM set it also
-# runs the real solvers
-cd app && dotnet test ExhaustTuner.Core.Tests
+# the program's request handling (Rust 1.88+, for the crates it locks); with EXHAUST_TUNER_OPENWAM /
+# EXHAUST_TUNER_OPENFOAM set it also runs the real solvers. The window builds only for Windows (on Linux a stand-in
+# that exits); cargo check --target x86_64-pc-windows-msvc --no-default-features type-checks it from Linux.
+cargo test --release --manifest-path rust/Cargo.toml
 
 # the page inside the program, end to end (needs the built host and the solvers; see the file header)
 node web/tests/desktop_ui.js
@@ -84,7 +94,7 @@ by hand. GitHub reports the token's expiry date with every reply (`GitHub-Authen
 weeks before it, the menu button gets a dot and the Updates section says when it stops working. It is
 stored in `%LOCALAPPDATA%\ExhaustTuner\update-token.bin`, encrypted for the Windows user (DPAPI), never handed back
 to the page, and sent only with requests to api.github.com, not with the redirects to GitHub's download storage.
-Code: `app/ExhaustTuner.Core/Updater.cs`; tests: `UpdaterTests.cs`, `web/tests/update_ui.js`, and the installer step in
+Code: `rust/et_host/src/updater.rs`; tests: `rust/et_host/tests/updater.rs`, `web/tests/update_ui.js`, and the installer step in
 `windows.yml` that updates the installed program the same way and checks that it opens again.
 
 ## Third-party software

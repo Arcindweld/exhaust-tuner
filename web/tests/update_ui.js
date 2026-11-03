@@ -1,15 +1,16 @@
 // Updates inside the desktop program, end to end on any OS: the real page and its program menu, the real injected
-// bridge, the real request handling (exhaust-tuner-host, the same C# code the Windows program uses, Updater.cs) and a
-// stand-in for api.github.com that serves one release with an installer and SHA256SUMS.txt and redirects downloads to
-// a second path like GitHub's storage host. The installer is not started: EXHAUST_TUNER_UPDATE_DRYRUN=1 makes the host
-// print the command it would run. Needs a dotnet-built app/ExhaustTuner.HostCli (HOST_CLI to override); without it the
-// test says so and exits 0, unless REQUIRE_ALL=1.
+// bridge, the real request handling (exhaust-tuner-host, the same Rust code the Windows program's window uses,
+// rust/et_host/src/updater.rs) and a stand-in for api.github.com that serves one release with an installer and
+// SHA256SUMS.txt and redirects downloads to a second path like GitHub's storage host. The installer is not started:
+// EXHAUST_TUNER_UPDATE_DRYRUN=1 makes the host print the command it would run. Needs the built host (cargo build
+// --release --manifest-path rust/Cargo.toml; HOST_CLI to override); without it the test says so and exits 0, unless
+// REQUIRE_ALL=1.
 const { chromium } = require('playwright');
 const { spawn, execFileSync } = require('child_process');
 const http = require('http'), crypto = require('crypto');
 const fs = require('fs'), path = require('path'), os = require('os'), { pathToFileURL } = require('url');
 const ROOT = path.resolve(__dirname, '..', '..');
-const CLI = process.env.HOST_CLI || path.join(ROOT, 'app', 'ExhaustTuner.HostCli', 'bin', 'Release', 'net8.0', process.platform === 'win32' ? 'exhaust-tuner-host.exe' : 'exhaust-tuner-host');
+const CLI = process.env.HOST_CLI || path.join(ROOT, 'rust', 'target', 'release', process.platform === 'win32' ? 'exhaust-tuner-host.exe' : 'exhaust-tuner-host');
 const TOKEN = 'github_pat_11TESTTOKEN0000000000_abcdefghijklmnopqrstuvwxyz0123456789';
 (async () => {
   const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };

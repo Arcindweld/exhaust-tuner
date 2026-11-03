@@ -18,8 +18,8 @@ concurrency:
 
 env:
   OPENWAM_COMMIT: 25f46f2491e18e26362a428ea6dc151a195c65f0
-  # every build gets its own version, so the installed programs can tell a newer release (Updater.cs); builds on a PC
-  # are 0.1.0 (app/Directory.Build.props)
+  # every build gets its own version, so the installed programs can tell a newer release (updater.rs); builds on a PC
+  # are 0.1.0 (et_host's version(), EXHAUST_TUNER_VERSION unset)
   APP_VERSION: 0.1.${{ github.run_number }}
 
 permissions:
@@ -27,22 +27,51 @@ permissions:
   actions: read      # to fetch the OpenFOAM build made by openfoam-windows.yml
 
 jobs:
-  # The Core tests on Linux too: the solver-runner tests (watchdog, stop and restore, mesh warnings) use shell-script
-  # stand-ins for OpenWAM and OpenFOAM and skip themselves on Windows, so without this job CI never ran them.
+  # The program's tests on Linux too (rust/et_host, the request handling the window and exhaust-tuner-host share):
+  # the solver-runner tests (watchdog, stop and restore, mesh warnings) use shell-script stand-ins for OpenWAM and
+  # OpenFOAM and skip themselves on Windows, so without this job CI never ran them. The C# program (app/) is no
+  # longer built: the Rust one replaced it in 0.1.<this run> and is checked by the same tests.
   core-linux:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      # the crates and the builds of what did not change (restored, and saved only when Cargo.lock changes)
+      - name: Rust build cache
+        uses: actions/cache@v4
         with:
-          dotnet-version: "8.0.x"
-      - name: Core tests (Linux)
-        run: dotnet test app/ExhaustTuner.Core.Tests -c Release --logger "console;verbosity=normal"
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            rust/target
+            rust/et_core/target
+          key: rust-linux-${{ hashFiles('rust/Cargo.lock', 'rust/et_core/Cargo.toml') }}-v1
+          restore-keys: rust-linux-
+      - name: Program tests (Linux)
+        run: cargo test --release --manifest-path rust/Cargo.toml
+      # Python 3.11 here: its sum() adds plainly, 3.12 and later with Neumaier's compensation, and the Rust core follows
+      # whichever Python loads it; the Windows job checks it on 3.12, so both ways are covered
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      # the Rust core: its own tests, then the router's tests with it loaded (the same answers as the Python router);
+      # --require: a core that did not build or load fails the step instead of skipping the comparison
+      - name: Rust core tests and the router on it
+        run: |
+          cargo test --release --manifest-path rust/et_core/Cargo.toml
+          cargo build --release --manifest-path rust/et_core/Cargo.toml
+          cd fusion-addin/tests
+          EXHAUST_TUNER_NATIVE_DIR=$GITHUB_WORKSPACE/rust/et_core/target/release python3 test_native.py --quick --require
+          EXHAUST_TUNER_NATIVE_DIR=$GITHUB_WORKSPACE/rust/et_core/target/release python3 test_router.py
 
   app:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
+      # the build's Python (the page builder, the CFD generator's version, the router comparison below): 3.12, whose
+      # sum() adds with Neumaier's compensation as Python 3.12 and later do (core-linux checks the plain way on 3.11)
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       # OpenWAM from CMT-UPV's own source, unchanged, built with MinGW-w64 (its CMake files are written for GCC), and
       # only when the pinned commit is not in the cache yet: a build takes two runner minutes, a restore seconds
       - name: OpenWAM from the cache
@@ -148,27 +177,45 @@ jobs:
             "REQUIRE_OPENFOAM=1" >> $env:GITHUB_ENV
           } else { "No OpenFOAM for Windows run validated generator $gen with these references: this installer has no CFD runs." }
 
-      - uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Rust build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            rust/target
+            rust/et_core/target
+          key: rust-win-${{ hashFiles('rust/Cargo.lock', 'rust/et_core/Cargo.toml') }}-v1
+          restore-keys: rust-win-
 
-      # The C# request handling, including the real OpenWAM against the reference run made with the Linux build of
-      # the same source (cross-compiler agreement, within 0.5 %).
-      - name: Core tests (real OpenWAM)
+      # The program (rust/: et_host, the request handling, and et_app, the window), with the C runtime linked in so the
+      # two .exe files need nothing installed beside them. Its tests include the real OpenWAM against the reference run
+      # made with the Linux build of the same source (cross-compiler agreement, within 0.5 %) and the update token kept
+      # with DPAPI.
+      - name: Program tests (real OpenWAM)
         shell: pwsh
         env:
           REQUIRE_ALL: "1"
           EXHAUST_TUNER_OPENWAM: ${{ github.workspace }}\engines\openwam\OpenWAM.exe
-        run: dotnet test app/ExhaustTuner.Core.Tests -c Release --logger "console;verbosity=normal"
-
-      - name: Build host and desktop program
-        shell: pwsh
+          RUSTFLAGS: "-C target-feature=+crt-static"
         run: |
-          dotnet publish app/ExhaustTuner.HostCli -c Release -r win-x64 --self-contained true -o publish/host -p:Version=${{ env.APP_VERSION }}
-          dotnet publish app/ExhaustTuner.Desktop -c Release -r win-x64 --self-contained true -o publish/desktop -p:Version=${{ env.APP_VERSION }}
+          cargo test --release --manifest-path rust/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { throw "the program's tests failed" }
+
+      - name: Build the program
+        shell: pwsh
+        env:
+          RUSTFLAGS: "-C target-feature=+crt-static"
+          EXHAUST_TUNER_VERSION: ${{ env.APP_VERSION }}
+        run: |
+          cargo build --release --manifest-path rust/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { throw "the program did not build" }
+          $info = & rust/target/release/exhaust-tuner-host.exe --info | ConvertFrom-Json
+          if ($info.version -ne $env:APP_VERSION) { throw "the built program reports version $($info.version), not $env:APP_VERSION" }
+          Get-ChildItem rust/target/release/*.exe | ForEach-Object { "{0}: {1:N0} bytes" -f $_.Name, $_.Length }
 
       - name: Test browser from the cache
         uses: actions/cache@v4
@@ -184,7 +231,7 @@ jobs:
         env:
           REQUIRE_ALL: "1"
           EXHAUST_TUNER_OPENWAM: ${{ github.workspace }}\engines\openwam\OpenWAM.exe
-          HOST_CLI: ${{ github.workspace }}\publish\host\exhaust-tuner-host.exe
+          HOST_CLI: ${{ github.workspace }}\rust\target\release\exhaust-tuner-host.exe
           GH_TOKEN: ${{ github.token }}
         run: |
           $env:DESKTOP_CFD = "1"
@@ -193,7 +240,7 @@ jobs:
             if ($LASTEXITCODE -eq 0 -and $last) {
               $files = gh api "repos/$env:GITHUB_REPOSITORY/compare/$last...$env:GITHUB_SHA" --jq '.files[].filename'
               if ($LASTEXITCODE -eq 0 -and $files) {
-                $hit = @($files | Where-Object { $_ -match '^(cfd/|app/ExhaustTuner\.Core/|tools/openfoam/|web/tests/desktop_ui\.js$|\.github/workflows/windows\.yml$)' })
+                $hit = @($files | Where-Object { $_ -match '^(cfd/|rust/et_host/|tools/openfoam/|web/tests/desktop_ui\.js$|\.github/workflows/windows\.yml$)' })
                 if ($hit.Count -eq 0) { $env:DESKTOP_CFD = "0" }
                 "since $($last): $(@($files).Count) files changed, $($hit.Count) on the page's OpenFOAM path"
               }
@@ -229,22 +276,28 @@ jobs:
         run: |
           $s = "stage"
           New-Item -ItemType Directory -Force $s, "$s/web", "$s/fusion-addin", "$s/engines/openwam", "$s/licenses", "webview2" | Out-Null
-          Copy-Item publish/desktop/* $s -Recurse
-          # the host's own files, and none that the program already has: both are self-contained, and the host's runtime
-          # carries a small WindowsBase.dll (a compatibility shim) that would replace WPF's own and stop the window
-          # from starting ("Could not load file or assembly WindowsBase 8.0.0.0", every installer up to 0.1.45)
-          Get-ChildItem publish/host -File | Where-Object { -not (Test-Path (Join-Path $s $_.Name)) } | Copy-Item -Destination $s
-          foreach ($f in "exhaust-tuner-host.exe", "exhaust-tuner-host.dll", "exhaust-tuner-host.deps.json", "exhaust-tuner-host.runtimeconfig.json") {
-            if (-not (Test-Path (Join-Path $s $f))) { throw "staging: $f missing" }
-          }
-          $wb = [Reflection.AssemblyName]::GetAssemblyName((Resolve-Path "$s/WindowsBase.dll")).Version
-          if ($wb.Major -lt 8) { throw "staging: WindowsBase.dll is version $wb, not WPF's" }
+          # the program: the window, and its request handling without the window (the installer runs it to install the
+          # Fusion add-in; the page tests above drove it)
+          Copy-Item rust/target/release/ExhaustTuner.exe, rust/target/release/exhaust-tuner-host.exe $s
           Copy-Item web/index.html "$s/web/"
           # the program opens app.html: the same page wrapped in a full HTML document (doctype, head, body), exactly as
           # the Fusion palette gets it, so it renders in standards mode like the published page
           python web/make_palette.py web/index.html "$s/web/app.html"
           if (-not (Test-Path "$s/web/app.html")) { throw "app.html was not written" }
-          foreach ($f in "ExhaustTuner.py","ExhaustTuner.manifest","cadtools.py","router.py","templates.py","README.txt") { Copy-Item "fusion-addin/$f" "$s/fusion-addin/" }
+          foreach ($f in "ExhaustTuner.py","ExhaustTuner.manifest","cadtools.py","router.py","templates.py","native.py","README.txt") { Copy-Item "fusion-addin/$f" "$s/fusion-addin/" }
+          # the router's Rust core, built on this runner (the add-in falls back to its Python without it). It uses the
+          # C runtime DLLs Fusion's Python already has loaded (vcruntime140, the UCRT), so its sin, cos and acos are the
+          # very ones the Python router calls, and the two give the same numbers; a static runtime could differ.
+          cargo build --release --manifest-path rust/et_core/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { throw "the Rust core did not build" }
+          # the DLL against the Python router on Windows (Fusion's Python is a Windows build too): the same answers;
+          # --require fails the step when the DLL does not load, rather than skipping the comparison
+          $env:EXHAUST_TUNER_NATIVE_DIR = "$PWD/rust/et_core/target/release"
+          python fusion-addin/tests/test_native.py --quick --require
+          if ($LASTEXITCODE -ne 0) { throw "the Rust core did not load, or does not give the Python router's answers on Windows" }
+          Remove-Item Env:EXHAUST_TUNER_NATIVE_DIR
+          Copy-Item rust/et_core/target/release/et_core.dll "$s/fusion-addin/"
+          "et_core.dll: {0:N0} bytes" -f (Get-Item "$s/fusion-addin/et_core.dll").Length
           Copy-Item engines/openwam/OpenWAM.exe "$s/engines/openwam/"
           if (Test-Path engines/engine-sim) { Copy-Item engines/engine-sim "$s/engines/engine-sim" -Recurse; Copy-Item engines/engine-sim/LICENSE "$s/licenses/engine-sim-MIT.txt" -ErrorAction SilentlyContinue }
           if (Test-Path engines/openfoam) { Copy-Item engines/openfoam "$s/engines/openfoam" -Recurse }
@@ -297,9 +350,32 @@ jobs:
             if (-not $reply.ok -or -not $reply.result.ok) { $out | Select-Object -Last 20; throw "installed OpenFOAM run failed" }
             "installed program ran OpenFOAM: $($reply.result.solver), $($reply.result.iterations) iterations, K $($reply.result.results.summary.K)"
           }
-          # an update the way the program runs one (Updater.Install): setup waits for the program's process to end,
+          # a token the C# program saved (DPAPI, its entropy) reads in the Rust program: an update from 0.1.<C#> keeps it
+          $tok = "github_pat_11CSHARPSAVED0000000000_abcdefghijklmnopqrstuvwxyz0123"
+          try { Add-Type -AssemblyName System.Security.Cryptography.ProtectedData -ErrorAction Stop } catch { Add-Type -AssemblyName System.Security }
+          $blob = [Security.Cryptography.ProtectedData]::Protect([Text.Encoding]::UTF8.GetBytes($tok),
+            [Text.Encoding]::UTF8.GetBytes("ExhaustTuner update token v1"), [Security.Cryptography.DataProtectionScope]::CurrentUser)
+          $tdir = "$env:RUNNER_TEMP\tokdata"; New-Item -ItemType Directory -Force $tdir | Out-Null
+          [IO.File]::WriteAllBytes("$tdir\update-token.bin", $blob)
+          $env:EXHAUST_TUNER_DATA = $tdir
+          $got = & "$dir\exhaust-tuner-host.exe" --token-sha256
+          Remove-Item Env:EXHAUST_TUNER_DATA
+          $want = [BitConverter]::ToString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($tok))).Replace("-", "").ToLower()
+          if ($got -ne $want) { throw "a token the C# program saved does not read in the Rust program ($got)" }
+          "update token saved by the C# program: reads"
+          # the installed window: the page loads, its bridge reaches the request handling and the answer comes back
+          # (ExhaustTuner.exe --selftest asks for hostInfo from inside the page and writes what came back)
+          $st = "$env:RUNNER_TEMP\selftest.txt"; Remove-Item $st -ErrorAction SilentlyContinue
+          $sp = Start-Process "$dir\ExhaustTuner.exe" -ArgumentList "--selftest", "`"$st`"" -PassThru
+          if (-not $sp.WaitForExit(120000)) { $sp | Stop-Process -Force; throw "the window self-test did not finish in 2 min" }
+          $res = Get-Content $st -ErrorAction SilentlyContinue | Select-Object -First 1
+          "window self-test: $res (exit $($sp.ExitCode))"
+          if (-not $res) { throw "the window self-test wrote nothing (exit code $($sp.ExitCode))" }
+          if ($res -match '^no-webview2') { "WebView2 does not start on this runner: the window itself is not checked here" }
+          elseif ($res -notmatch "^ok $([regex]::Escape($env:APP_VERSION)) desktop=true$") { throw "the window self-test failed: $res" }
+          # an update the way the program runs one (updater.rs install): setup waits for the program's process to end,
           # installs over the same folder with the same tasks, and opens the program again
-          $marker = "$env:LOCALAPPDATA\ExhaustTuner\last-start.txt"      # the program writes it as it starts (App.xaml.cs)
+          $marker = "$env:LOCALAPPDATA\ExhaustTuner\last-start.txt"      # the program writes it as it starts (rust/et_app)
           function Wait-Start([int]$sec) { for ($i = 0; $i -lt $sec; $i++) { if (Test-Path $marker) { return @(Get-Content $marker) }; Start-Sleep 1 }; return $null }
           # can this machine start the window at all? (a runner without a desktop session may not)
           Remove-Item $marker -ErrorAction SilentlyContinue
@@ -308,7 +384,7 @@ jobs:
           $seenDirect = Wait-Start 30
           "started directly: " + $(if ($seenDirect) { "recorded $($seenDirect[0]) from $($seenDirect[3])" } else { "no start recorded in 30 s; exited: $($direct.HasExited)" + $(if ($direct.HasExited) { ", code $($direct.ExitCode)" } else { "" }) })
           if ($seenDirect) {
-            # the window then loads the page in WebView2 and adds a line when it has (MainWindow.xaml.cs)
+            # the window then loads the page in WebView2 and adds a line when it has (rust/et_app)
             for ($i = 0; $i -lt 45 -and -not ((Get-Content $marker -ErrorAction SilentlyContinue) -match '^page loaded'); $i++) { Start-Sleep 1 }
             $page = @(Get-Content $marker -ErrorAction SilentlyContinue) -match '^page'
             "window: " + $(if ($page) { $page[-1] } else { "no page line in 45 s (WebView2 may not run on this machine)" }) + "; running: $(-not $direct.HasExited)"
@@ -350,7 +426,7 @@ jobs:
 
   # A push to the program branch that passed everything above becomes release v<APP_VERSION> with the installer and
   # SHA256SUMS.txt; the notes list the commits since the previous release. The installed program checks the newest
-  # release and offers it (app/ExhaustTuner.Core/Updater.cs). The newest 6 releases are kept. The program branch is
+  # release and offers it (rust/et_host/src/updater.rs). The newest 6 releases are kept. The program branch is
   # windows-app (the condition below).
   release:
     needs: [ core-linux, app ]

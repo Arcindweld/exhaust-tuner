@@ -32,9 +32,50 @@ Clearance model
 import math
 import heapq
 import time
+import weakref
 from array import array
 
+_why = ''
+try:                                  # the Rust core (native.py loads it); the Python below is the fallback
+    from . import native as _nv
+except Exception:
+    try:
+        import native as _nv
+    except Exception as _ex:
+        _nv, _why = None, 'native.py did not load: %s' % _ex
+NATIVE_ABI = 2                        # the native.py this file is written for
+if _nv is not None and getattr(_nv, 'ABI', None) != NATIVE_ABI:
+    # a native.py from another version (Fusion kept an older one loaded): restart Fusion to load this one
+    _nv, _why = None, 'native.py is from another version of the add-in; restart Fusion'
+NV = _nv if (_nv is not None and _nv.AVAILABLE) else None
+# for the route report: which core ran, and why not the Rust one
+NATIVE_NOTE = 'Rust router core' if NV is not None else 'Python router (%s)' % (_nv.WHY if _nv is not None else _why)
+
+
+class _NoCore(Exception):
+    """Stands in for native.CoreError when the Rust core is not loaded (never raised)."""
+
+
+CoreError = NV.CoreError if NV is not None else _NoCore
+_LIVE = weakref.WeakSet()             # scenes and tube sets that hold Rust copies
+
+
+def core_failed(ex):
+    """The Rust core could not do a call (native.CoreError): stop using it for the rest of the session. Every scene
+    and tube set drops its Rust copy and carries on in this file's Python, which gives the same answers (slower);
+    the route report says why from here on."""
+    global NV, NATIVE_NOTE
+    if NV is None:
+        return
+    NV = None
+    NATIVE_NOTE = 'Python router (the Rust core failed: %s; restart Fusion to use it again)' % ex
+    for o in list(_LIVE):
+        o._drop_native()
+
 SQ3 = math.sqrt(3.0)
+# Python 3.12 and later add floats in sum() with Neumaier's compensation (earlier versions add them plainly); the
+# Rust core is told which, so its sums come out the same as this file's.
+NEUMAIER = sum([1.0, 1e100, 1.0, -1e100]) == 2.0
 
 
 # --------------------------------------------------------------------------
@@ -193,21 +234,50 @@ class Scene(object):
     build(lo, hi, pad) keeps only triangles that can matter inside the box lo..hi grown by pad.
     """
 
-    def __init__(self, cell=1.0, sample_len=0.3, max_points=1500000):
+    def __init__(self, cell=1.0, sample_len=0.3, max_points=1500000, native=None):
         self.cell = float(cell)
         self.sample_len = float(sample_len)
         self.max_points = int(max_points)
         self.meshes = []
         self.built = False
         self.tol = 0.0
+        # native=None: use the Rust core when it loaded; False: this Python, whatever is loaded
+        self._n = NV.Scene(cell, sample_len, max_points) if (NV is not None and native is not False) else None
+        if self._n is not None:
+            _LIVE.add(self)
+
+    def _drop_native(self):
+        """Carry on without the Rust copy (core_failed): a built scene is built again here, from the same meshes."""
+        n, self._n = self._n, None
+        if n is not None and self.built:
+            self.build(*self._build_args)
 
     def add_mesh(self, coords, indices, tol=0.0, name='mesh'):
         if len(indices) >= 3 and len(coords) >= 9:
             self.meshes.append((coords, indices, float(tol), name))
+        if self._n is not None:
+            try:
+                self._n.add_mesh(coords, indices, tol)    # it skips a mesh too small to use, but keeps its tolerance
+            except CoreError as ex:
+                core_failed(ex)
         self.tol = max(self.tol, float(tol))
         self.built = False
 
     def build(self, lo, hi, pad):
+        self._build_args = (lo, hi, pad)
+        if self._n is not None:
+            try:
+                st = self._n.build(lo, hi, pad)
+            except CoreError as ex:
+                self.built = False                      # built below, in Python
+                core_failed(ex)
+            else:
+                self.lo, self.hi = st['lo'], st['hi']
+                self.ntri, self.npoints, self.e_cover, self.vox = st['ntri'], st['npoints'], st['e_cover'], st['vox']
+                self.ccell, self.build_time = st['ccell'], st['build_time']
+                self.H = self.CF = self.T = self.TH = None
+                self.built = True
+                return self
         t0 = time.time()
         lo = (lo[0] - pad, lo[1] - pad, lo[2] - pad)
         hi = (hi[0] + pad, hi[1] + pad, hi[2] + pad)
@@ -253,9 +323,11 @@ class Scene(object):
                 ax, ay, az = coords[o0], coords[o0 + 1], coords[o0 + 2]
                 bx, by, bz = coords[o1], coords[o1 + 1], coords[o1 + 2]
                 cx, cy, cz = coords[o2], coords[o2 + 1], coords[o2 + 2]
-                e1 = (bx - ax) ** 2 + (by - ay) ** 2 + (bz - az) ** 2
-                e2 = (cx - bx) ** 2 + (cy - by) ** 2 + (cz - bz) ** 2
-                e3 = (ax - cx) ** 2 + (ay - cy) ** 2 + (az - cz) ** 2
+                # squares as products (x ** 2 goes through the C library's pow, which can differ by a unit in the last
+                # place from x * x and between systems); the Rust core does the same
+                e1 = (bx - ax) * (bx - ax) + (by - ay) * (by - ay) + (bz - az) * (bz - az)
+                e2 = (cx - bx) * (cx - bx) + (cy - by) * (cy - by) + (cz - bz) * (cz - bz)
+                e3 = (ax - cx) * (ax - cx) + (ay - cy) * (ay - cy) + (az - cz) * (az - cz)
                 em = e1 if e1 > e2 else e2
                 if e3 > em:
                     em = e3
@@ -286,7 +358,8 @@ class Scene(object):
                 o = 9 * t
                 ux, uy, uz = T[o + 3] - T[o], T[o + 4] - T[o + 1], T[o + 5] - T[o + 2]
                 vx, vy, vz = T[o + 6] - T[o], T[o + 7] - T[o + 1], T[o + 8] - T[o + 2]
-                area += 0.5 * math.sqrt((uy * vz - uz * vy) ** 2 + (uz * vx - ux * vz) ** 2 + (ux * vy - uy * vx) ** 2)
+                qx, qy, qz = uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx
+                area += 0.5 * math.sqrt(qx * qx + qy * qy + qz * qz)
             vox = max(ls, math.sqrt(area / float(self.max_points)))
         self.vox = vox
         self.e_cover = e_tri + (vox * SQ3 if vox > 0 else 0.0) + self.tol
@@ -355,6 +428,11 @@ class Scene(object):
 
     def any_within(self, p, r, planes=None):
         """Is any sampled surface point within r of p? Stops at the first one found."""
+        if self._n is not None:
+            try:
+                return self._n.any_within(p, r, planes)
+            except CoreError as ex:
+                core_failed(ex)
         if self._coarse_empty(p, r):
             return False
         c = self.cell
@@ -386,6 +464,11 @@ class Scene(object):
     def dist_fast(self, p, cap, planes=None):
         """Distance to the nearest sampled point, capped. Walks coarse cells outward and skips any
         cell (coarse or fine) whose box is already farther than the best found."""
+        if self._n is not None:
+            try:
+                return self._n.dist_fast(p, cap, planes)
+            except CoreError as ex:
+                core_failed(ex)
         cc = self.ccell
         c = self.cell
         px, py, pz = p
@@ -470,6 +553,11 @@ class Scene(object):
         self.TH = TH
 
     def dist_exact(self, p, cap, planes=None):
+        if self._n is not None:
+            try:
+                return self._n.dist_exact(p, cap, planes)
+            except CoreError as ex:
+                core_failed(ex)
         if self.TH is None:
             self._build_tri_hash()
         c = self.cell
@@ -514,15 +602,92 @@ class Scene(object):
         return max(0.0, math.sqrt(best) - self.tol)
 
 
+    def points_near(self, c, rad):
+        """Sampled surface points within rad of c."""
+        if self._n is not None:
+            try:
+                return self._n.points_near(c, rad)
+            except CoreError as ex:
+                core_failed(ex)
+        cell = self.cell
+        fl = math.floor
+        lo = [int(fl((c[k] - rad) / cell)) for k in range(3)]
+        hi = [int(fl((c[k] + rad) / cell)) for k in range(3)]
+        r2 = rad * rad
+        out = []
+        for i in range(lo[0], hi[0] + 1):
+            for j in range(lo[1], hi[1] + 1):
+                for k in range(lo[2], hi[2] + 1):
+                    a = self.H.get((i, j, k))
+                    if a is None:
+                        continue
+                    for q in range(0, len(a), 3):
+                        x, y, z = a[q], a[q + 1], a[q + 2]
+                        if (x - c[0]) * (x - c[0]) + (y - c[1]) * (y - c[1]) + (z - c[2]) * (z - c[2]) <= r2:
+                            out.append((x, y, z))
+        return out
+
+    def min_dist(self, pts, cap, planes=None, exact=False):
+        """min over pts of dist_exact (exact) or dist_fast: the nearest the points come to the scan, capped. One
+        call into the Rust core when it is loaded."""
+        if self._n is not None and pts:
+            try:
+                return self._n.min_dist(pts, cap, planes, exact)
+            except CoreError as ex:
+                core_failed(ex)
+        f = self.dist_exact if exact else self.dist_fast
+        return min(f(p, cap, planes) for p in pts)
+
+    def nearest(self, pts, cap, planes=None):
+        """The smallest exact distance from any of pts, capped, and which point has it (None when none comes
+        within cap): each point's fast distance first, the exact one only when it could beat the best so far."""
+        if self._n is not None:
+            try:
+                return self._n.nearest(pts, cap, planes)
+            except CoreError as ex:
+                core_failed(ex)
+        best, at = cap, None
+        for i, p in enumerate(pts):
+            if self.dist_fast(p, cap, planes) - self.e_cover >= best:
+                continue
+            g = self.dist_exact(p, cap, planes)
+            if g < best:
+                best, at = g, i
+        return best, at
+
+    def all_points(self):
+        """Every sampled surface point."""
+        if self._n is not None:
+            try:
+                return self._n.all_points()
+            except CoreError as ex:
+                core_failed(ex)
+        return [(a[q], a[q + 1], a[q + 2]) for a in self.H.values() for q in range(0, len(a), 3)]
+
+
 class TubeSet(object):
     """Centrelines of tubes already laid out: short segments with the tube's outside radius."""
 
-    def __init__(self, cell=2.0):
+    def __init__(self, cell=2.0, native=None):
         self.cell = float(cell)
         self.H = {}
         self.segs = []
         self.rmax = 0.0
         self.version = 0
+        self._n = NV.Tubes(cell) if (NV is not None and native is not False) else None
+        self._oid = {}                   # owner -> number, for the Rust side
+        if self._n is not None:
+            _LIVE.add(self)
+
+    def _drop_native(self):
+        """Carry on without the Rust copy (core_failed); the Python one is always kept."""
+        self._n = None
+
+    def owner_id(self, owner, add=False):
+        """The Rust side's number for an owner (NV.NONE for one it has never been given)."""
+        if add:
+            return self._oid.setdefault(owner, len(self._oid))
+        return self._oid.get(owner, _nv.NONE if _nv is not None else None)
 
     def add_polyline(self, pts, radius, owner):
         c = self.cell
@@ -538,11 +703,21 @@ class TubeSet(object):
                         self.H.setdefault((x, y, z), []).append(sid)
         self.rmax = max(self.rmax, float(radius))
         self.version += 1
+        if self._n is not None and len(pts) >= 2:
+            try:
+                self._n.add_polyline(pts, radius, self.owner_id(owner, add=True))
+            except CoreError as ex:
+                core_failed(ex)
 
     def dist(self, p, cap, skip_owner=None):
         """Smallest (distance to a centreline - that tube's radius), capped."""
         if not self.segs:
             return cap
+        if self._n is not None:
+            try:
+                return self._n.dist(p, cap, self.owner_id(skip_owner) if skip_owner is not None else _nv.NONE, _nv.NONE)
+            except CoreError as ex:
+                core_failed(ex)
         c = self.cell
         px, py, pz = p
         ix, iy, iz = int(math.floor(px / c)), int(math.floor(py / c)), int(math.floor(pz / c))
@@ -884,17 +1059,30 @@ class _Clearance(object):
         self.excl_s = s['lead_start'] + self.req
         self.excl_e = s['lead_end'] + self.req
         cap = self.cap
-        if scene is not None and scene.built:
+        if scene is not None and scene.built and getattr(scene, '_n', None) is not None:
+            self.f_mid = NV.Field.over_scene(scene._n, g, cap)
+            self.f_s = NV.Field.over_scene(scene._n, g, cap, self.plane_s)
+            self.f_e = NV.Field.over_scene(scene._n, g, cap, self.plane_e)
+        elif scene is not None and scene.built:
             self.f_mid = Field(lambda p: scene.dist_fast(p, cap), g)
             self.f_s = Field(lambda p: scene.dist_fast(p, cap, self.plane_s), g)
             self.f_e = Field(lambda p: scene.dist_fast(p, cap, self.plane_e), g)
         else:
             self.f_mid = self.f_s = self.f_e = None
         self.ramp_tt = 2.0 * s['od']
+        self.f_tt = None
+        self.nt = None          # (the Rust tube set, the two owners to leave out) when the tubes are in Rust
         if tubes is not None and tubes.segs:
-            self.f_tt = Field(lambda p: tubes.dist(p, cap, owner), g)
-        else:
-            self.f_tt = None
+            nt = None
+            if isinstance(tubes, _Filtered):
+                nt = tubes.native()
+            elif isinstance(tubes, TubeSet) and tubes._n is not None:
+                nt = (tubes._n, tubes.owner_id(owner) if owner is not None else NV.NONE, NV.NONE)
+            if nt is not None:
+                self.nt = nt
+                self.f_tt = NV.Field.over_tubes(nt[0], g, cap, nt[1], nt[2])
+            else:
+                self.f_tt = Field(lambda p: tubes.dist(p, cap, owner), g)
 
     def zone(self, s_pos, total):
         if s_pos < self.excl_s:
@@ -925,6 +1113,27 @@ class _Clearance(object):
         if self.f_mid is None:
             return self.cap
         return (self.f_s if zone == 's' else self.f_e if zone == 'e' else self.f_mid)(p)
+
+    def scan_many(self, samples, total):
+        """scan_fast for every (s, point) of a sampled path, the Rust fields taking each zone in one call."""
+        if self.f_mid is None:
+            return [self.cap] * len(samples)
+        if not hasattr(self.f_mid, 'many'):
+            return [self.scan_fast(p, self.zone(sp, total)) for sp, p in samples]
+        out = [0.0] * len(samples)
+        for zone, f in (('s', self.f_s), ('e', self.f_e), ('m', self.f_mid)):
+            idx = [i for i, (sp, _p) in enumerate(samples) if self.zone(sp, total) == zone]
+            if idx:
+                for i, v in zip(idx, f.many([samples[i][1] for i in idx])):
+                    out[i] = v
+        return out
+
+    def tt_many(self, samples):
+        if self.f_tt is None:
+            return None
+        if hasattr(self.f_tt, 'many'):
+            return self.f_tt.many([p for _sp, p in samples])
+        return [self.f_tt(p) for _sp, p in samples]
 
     def planes(self, zone):
         return self.plane_s if zone == 's' else self.plane_e if zone == 'e' else None
@@ -1072,15 +1281,22 @@ def _residual_fn(s, C, nsamp, margin, weights, anchor=None, D=None):
         for i in range(1, len(Q) - 1):
             out.append(wf * R * max(0.0, geo['th'][i] - tmax))
         total = geo['length']
-        for sp, p in sample_path(geo['elems'], total, nsamp):
-            z = C.zone(sp, total)
-            d = C.scan_fast(p, z)
-            out.append(wc * max(0.0, C.req + margin - d))
-            if C.f_tt is not None:
+        samples = sample_path(geo['elems'], total, nsamp)
+        ds = C.scan_many(samples, total)
+        tts = C.tt_many(samples)
+        for i, (sp, p) in enumerate(samples):
+            out.append(wc * max(0.0, C.req + margin - ds[i]))
+            if tts is not None:
                 if C.on_fixed_end(sp, total):
                     out.append(0.0)       # the straight ends are fixed by the markers; nothing to fit there
                 else:
-                    out.append(wc * max(0.0, C.req_tt(sp, total, margin) - C.f_tt(p)))
+                    out.append(wc * max(0.0, C.req_tt(sp, total, margin) - tts[i]))
+        # a trial centreline folded back on itself (no length) has no samples: zeros in their place keep the residuals
+        # the same length from one trial to the next, which the fit's Jacobian needs
+        for _ in range(nsamp - len(samples)):
+            out.append(0.0)
+            if tts is not None:
+                out.append(0.0)
         if target:
             out.append(wl * (total - target))
         else:
@@ -1094,6 +1310,40 @@ def _residual_fn(s, C, nsamp, margin, weights, anchor=None, D=None):
         return out
 
     return fun
+
+
+def _native_route(scene, s, C, A, B, h, semi, los_step):
+    """route()'s search, fit and check for this tube in Rust (native.Route), or None to run them in Python here:
+    no Rust core, or a scene or tube set made without it."""
+    if NV is None:
+        return None
+    have_scan = scene is not None and scene.built
+    have_tt = C.tubes is not None and bool(C.tubes.segs)
+    if have_scan and (getattr(scene, '_n', None) is None or not hasattr(C.f_mid, 'h')):
+        return None
+    if have_tt and (C.nt is None or not hasattr(C.f_tt, 'h')):
+        return None
+    params = (list(s['start']) + list(s['start_dir']) + list(s['end']) + list(s['end_dir']) +
+              [s['lead_start'], s['lead_end'], s['min_straight'], s['max_bend_deg'], s['R'], s['clr'], s['gap_tt'],
+               C.req, C.cap, C.excl_s, C.excl_e, C.ramp_tt, C.TOUCH] + list(A) + list(B) +
+              [h, semi if semi is not None else float('nan'), los_step, 1.0 if NEUMAIER else 0.0])
+    fields = (C.f_mid, C.f_s, C.f_e) if have_scan else (None, None, None)
+    fields += (C.f_tt if have_tt else None,)
+    if have_tt:
+        tubes, skip_a, skip_b = C.nt
+    else:
+        tubes, skip_a, skip_b = None, NV.NONE, NV.NONE
+    return NV.Route(scene._n if have_scan else None, tubes, skip_a, skip_b, fields, params, C.plane_s + C.plane_e)
+
+
+def _lm(s, C, nc, x, nsamp, m, w, anchor, D, iters, step_max, deadline):
+    """levenberg_marquardt on route()'s residuals, with route()'s groups: in Rust when nc (a native.Route) is
+    given, here otherwise. deadline: the time.time() to stop by."""
+    if nc is not None:
+        return nc.lm(x, s.get('target'), m, w, anchor, D, nsamp, iters, step_max, deadline - time.time())
+    fun = _residual_fn(s, C, nsamp, m, w, anchor, D)
+    groups = [[0], [1]] + [[i, i + 1, i + 2] for i in range(2, len(x), 3)]
+    return levenberg_marquardt(fun, x, iters=iters, step_max=step_max, groups=groups, deadline=deadline)
 
 
 CERT_TOL = 0.01     # cm (0.1 mm): how far under the rule a result may be and still be called clear
@@ -1169,7 +1419,23 @@ def route(scene, spec, tubes=None, owner=None, log=None):
     """Lay out one tube. spec: start, start_dir (the way the tube leaves), end, end_dir (the way
     the tube is heading when it arrives), od, clr (bend centreline radius), and optionally gap,
     gap_tt, lead_start, lead_end, min_straight, max_bend_deg, target (centreline length), tol.
-    Returns a dict; ok is True only when the result is proven clear and meets the length."""
+    Returns a dict; ok is True only when the result is proven clear and meets the length.
+    When the Rust core fails part way, the tube is laid out again all in Python (core_failed), so no part of the
+    answer comes from a core that has just failed."""
+    had_core = NV is not None
+    try:
+        r = _route(scene, spec, tubes, owner, log)
+    except CoreError as ex:
+        core_failed(ex)
+        r = None
+    if had_core and NV is None:
+        if log:
+            log('the Rust core failed; laying this tube out again in Python')
+        r = _route(scene, spec, tubes, owner, log)
+    return r
+
+
+def _route(scene, spec, tubes, owner, log):
     t0 = time.time()
     s = _spec(spec)
     deadline = t0 + float(s['time_budget'])
@@ -1216,6 +1482,8 @@ def route(scene, spec, tubes=None, owner=None, log=None):
         return best
 
     los_step = min(h / 2.0, 1.0)
+    # the search, the fits and the checks below run in Rust when the scene and tubes are (the same answers)
+    nc = _native_route(scene, s, C, A, B, h, semi, los_step)
 
     def los(p, q, extra=0.0):
         L = vdist(p, q)
@@ -1226,6 +1494,8 @@ def route(scene, spec, tubes=None, owner=None, log=None):
         return True
 
     def search(extra, max_expand, until):
+        if nc is not None:
+            return nc.search(extra, max_expand, until - time.time())
         fa = lambda p: free_at(p, extra)
         lo = lambda p, q: los(p, q, extra)
         if lo(A, B):
@@ -1285,15 +1555,13 @@ def route(scene, spec, tubes=None, owner=None, log=None):
 
     def fit(x, with_target, m, anchor):
         w = (50.0, 50.0, 20.0 if with_target else 0.0, 0.3)
-        groups = [[0], [1]] + [[i, i + 1, i + 2] for i in range(2, len(x), 3)]
+        st = dict(s, target=target if with_target else None)
         res = None
         for _attempt in range(3):
-            fun = _residual_fn(dict(s, target=target if with_target else None), C, nsamp, m, w, anchor, D_anchor)
-            x, _cost = levenberg_marquardt(fun, x, iters=80, step_max=h, groups=groups, deadline=deadline + 10)
-            x = _prune(dict(s, target=target if with_target else None), C, x, nsamp, m, w, deadline, anchor, D_anchor)
-            groups = [[0], [1]] + [[i, i + 1, i + 2] for i in range(2, len(x), 3)]
+            x, _cost = _lm(st, C, nc, x, nsamp, m, w, anchor, D_anchor, 80, h, deadline + 10)
+            x = _prune(st, C, x, nsamp, m, w, deadline, anchor, D_anchor, nc)
             geo = chain_geometry(_chain(s, x), rb)
-            cert = certify(geo, C)
+            cert = nc.certify(x) if nc is not None else certify(geo, C)
             err = _hard_errors(s, geo, _chain(s, x))
             res = (x, geo, cert, err, m)
             if err and _attempt < 2:
@@ -1318,36 +1586,10 @@ def route(scene, spec, tubes=None, owner=None, log=None):
             return (0, geo['length'] + 2.0 * s['od'] * nb, 0, 0)     # shortest, with each bend worth two diameters of tube
         return (1, violation(cert, err, geo) + Lerr / 10.0, 0, Lerr)
 
-    best = None
-    stageA = None
-    expanded = 0
-    # widen the search first so the corridor has room for the bends, then narrow it if nothing fits
-    budget = float(s['time_budget'])
-    for extra in (0.6 * rb, 0.3 * rb, 0.0):
-        if stageA is not None and time.time() > deadline:
-            break
-        now = time.time()
-        # the wide searches get a slice of the time; the plain one always gets a fair go
-        until = now + 0.15 * budget if extra > 0 else max(deadline, now + 0.4 * budget)
-        path, ex = search(extra, 8000 if extra > 0 else 60000, until)
-        expanded += ex
-        if path is None:
-            continue
-        anchor = [A] + path[1:-1] + [B]
-        res = fit(x_from(repair(path[1:-1])), False, 0.1, anchor)
-        if log:
-            log('search width +%.1f cm: %d corners, clear route %.2f cm, slack %.3f, %.1fs' % (
-                extra, len(path) - 2, res[1]['length'], res[2]['slack'], time.time() - t0))
-        if stageA is None or score_of(res, False) < score_of(stageA, False):
-            stageA = res
-        if score_of(res, False)[0] == 0 and (target or extra == 0.0):
-            break       # with a target length the clear route only seeds the next stage; without one, also try narrower
-    if stageA is None:
-        return {'ok': False, 'msg': 'No way through was found with this clearance. Try a smaller gap or tube, '
-                'or move the ends.', 'expanded': expanded, 'time': time.time() - t0}
-    candidates = [stageA]
-    if target:
-        xa, geoA, _c, _e, mA = stageA
+    def length_stage(seed):
+        """From one clear route: that route and up to five with a zig-zag added where it is longest, each fitted
+        to the target length (the fit can add length; it does not find a shorter way)."""
+        xa, geoA, _c, _e, mA = seed
         starts = [list(xa)]
         Qa = [A] + W_of(xa) + [B]
         La = geoA['length']
@@ -1379,13 +1621,63 @@ def route(scene, spec, tubes=None, owner=None, log=None):
                             cands.append((sc, W))
             cands.sort(key=lambda c: -c[0])
             starts.extend([x_from(repair(c[1])) for c in cands[:5]])
-        candidates = []
+        got = []
         for k, x0 in enumerate(starts):
             if k > 0 and time.time() > deadline:
                 break
             res = fit(x0, True, mA, [A] + W_of(x0) + [B])
-            candidates.append(res)
+            got.append(res)
             if score_of(res)[0] == 0 and k >= 1:
+                break
+        return got
+
+    best = None
+    stageA = None
+    clear = []           # clear routes from the searches, widest corridor first
+    expanded = 0
+    # widen the search first so the corridor has room for the bends, then narrow it if nothing fits
+    budget = float(s['time_budget'])
+    for extra in (0.6 * rb, 0.3 * rb, 0.0):
+        if stageA is not None and time.time() > deadline:
+            break
+        now = time.time()
+        # the wide searches get a slice of the time; the plain one always gets a fair go
+        until = now + 0.15 * budget if extra > 0 else max(deadline, now + 0.4 * budget)
+        path, ex = search(extra, 8000 if extra > 0 else 60000, until)
+        expanded += ex
+        if path is None:
+            continue
+        anchor = [A] + path[1:-1] + [B]
+        res = fit(x_from(repair(path[1:-1])), False, 0.1, anchor)
+        if log:
+            log('search width +%.1f cm: %d corners, clear route %.2f cm, slack %.3f, %.1fs' % (
+                extra, len(path) - 2, res[1]['length'], res[2]['slack'], time.time() - t0))
+        if stageA is None or score_of(res, False) < score_of(stageA, False):
+            stageA = res
+        if score_of(res, False)[0] == 0:
+            clear.append(res)
+            # With a target length the clear route seeds the length stage, which can only add length: stop at the
+            # first one that is no longer than the target, and otherwise try a narrower corridor (a wide one runs
+            # longer). Without a target, every width is tried and the best kept. Deciding by what the route is,
+            # not by how long a search took, gives the same answer on a fast computer and a slow one.
+            if target and res[1]['length'] <= target + s['tol']:
+                break
+    if stageA is None:
+        return {'ok': False, 'msg': 'No way through was found with this clearance. Try a smaller gap or tube, '
+                'or move the ends.', 'expanded': expanded, 'time': time.time() - t0}
+    candidates = [stageA]
+    if target:
+        # seeds: clear routes no longer than the target first (the longest of them, needing the least added),
+        # then the longer ones, shortest first; the next seed only when no route from this one fits
+        under = sorted([r for r in clear if r[1]['length'] <= target + s['tol']], key=lambda r: -r[1]['length'])
+        over = sorted([r for r in clear if r[1]['length'] > target + s['tol']], key=lambda r: r[1]['length'])
+        candidates = []
+        for si, seed in enumerate((under + over) or [stageA]):
+            if si > 0 and time.time() > deadline:
+                break
+            got = length_stage(seed)
+            candidates.extend(got)
+            if any(score_of(r)[0] == 0 for r in got):
                 break
     for res in candidates:
         sc = score_of(res)
@@ -1433,8 +1725,8 @@ def _hard_errors(s, geo, Q):
     return errs
 
 
-def _prune(s, C, x, nsamp, m, weights, deadline, anchor=None, D=None):
-    """Remove corners that end up nearly straight, refitting after each removal."""
+def _prune(s, C, x, nsamp, m, weights, deadline, anchor=None, D=None, nc=None):
+    """Remove corners that end up nearly straight, refitting after each removal (in Rust when nc is given)."""
     while len(x) > 2:
         Q = _chain(s, x)
         geo = chain_geometry(Q, s['clr'])
@@ -1446,9 +1738,7 @@ def _prune(s, C, x, nsamp, m, weights, deadline, anchor=None, D=None):
         i = idx[0]
         k = 2 + 3 * (i - 2)
         xn = x[:k] + x[k + 3:]
-        fun = _residual_fn(s, C, nsamp, m, weights, anchor, D)
-        groups = [[0], [1]] + [[j, j + 1, j + 2] for j in range(2, len(xn), 3)]
-        xn, _c = levenberg_marquardt(fun, xn, iters=30, groups=groups, deadline=deadline + 10)
+        xn, _c = _lm(s, C, nc, xn, nsamp, m, weights, anchor, D, 30, None, deadline + 10)
         x = xn
     return x
 
@@ -1456,6 +1746,15 @@ def _prune(s, C, x, nsamp, m, weights, deadline, anchor=None, D=None):
 # --------------------------------------------------------------------------
 # Several primaries into one collector
 # --------------------------------------------------------------------------
+
+def _min_dist(scene, pts, cap, planes=None, exact=False):
+    """min over pts of the scene's exact (exact) or fast distance: Scene.min_dist (one Rust call) when the scene has
+    it, else point by point (a scene seen through a frame, a test's stand-in)."""
+    if hasattr(scene, 'min_dist'):
+        return scene.min_dist(pts, cap, planes, exact)
+    f = scene.dist_exact if exact else scene.dist_fast
+    return min(f(p, cap, planes) for p in pts)
+
 
 def collector_slots(center, axis, n, od, clock_deg=0.0):
     """Where n tubes of outside diameter od sit, touching, around the collector axis."""
@@ -1554,10 +1853,23 @@ class _Filtered(object):
         self.i = i
         self.segs = tubes.segs
 
+    def native(self):
+        """(the Rust tube set, the two owners to leave out), or None when the tube set is Python only."""
+        t = self.t
+        if getattr(t, '_n', None) is None:
+            return None
+        return t._n, t.owner_id(self.i), t.owner_id(('lead', self.i))
+
     def dist(self, p, cap, owner):
         t = self.t
         if not t.segs:
             return cap
+        nt = self.native()
+        if nt is not None:
+            try:
+                return nt[0].dist(p, cap, nt[1], nt[2])
+            except CoreError as ex:
+                core_failed(ex)
         c = t.cell
         px, py, pz = p
         ix, iy, iz = int(math.floor(px / c)), int(math.floor(py / c)), int(math.floor(pz / c))
@@ -1592,15 +1904,15 @@ def collector_body(cpt, cdir, n, od, length, out_d, scene, gap):
     worst = None
     if scene is not None and scene.built:
         e1, e2 = perp_basis(cdir)
+        pts = []
         for i in range(0, 21):
             f = i / 20.0
             c = vadd(cpt, vmul(cdir, length * f))
             r = (d_in + (out_d - d_in) * f) / 2.0
             for k in range(24):
                 a = 2 * math.pi * k / 24.0
-                p = vadd(c, vadd(vmul(e1, r * math.cos(a)), vmul(e2, r * math.sin(a))))
-                d = scene.dist_exact(p, gap + 5.0, [(cpt, cdir, 0.05)])
-                worst = d if worst is None else min(worst, d)
+                pts.append(vadd(c, vadd(vmul(e1, r * math.cos(a)), vmul(e2, r * math.sin(a)))))
+        worst = _min_dist(scene, pts, gap + 5.0, [(cpt, cdir, 0.05)], exact=True)
     return {'start': cpt, 'end': end, 'd_in': d_in, 'd_out': out_d, 'min_gap': worst,
             'ok': worst is None or worst >= gap - 0.6}
 
@@ -1700,7 +2012,7 @@ def terminal_part(scene, part, at, point, direction, gap, up=None):
         g = part_geometry(part, p_in, z, rot, up)
         pts = case_points(part, g, step=0.5)
         cap = gap + 6.0
-        raw = min(scene.dist_exact(p, cap) for p in pts) if (scene is not None and scene.built) else cap
+        raw = _min_dist(scene, pts, cap, exact=True) if (scene is not None and scene.built) else cap
         d = raw - 0.5 / math.sqrt(2.0)
         if best is None or d > best['gap']:
             best = {'s': 0.0, 'rot': rot, 'axis': z, 'geom': g, 'gap': d, 'ok': d >= gap, 'at': at,
@@ -1730,7 +2042,7 @@ def place_part(scene, path_elems, part, gap, s_range=None, up=None, rots=None, s
         for rot in rots:
             g = part_geometry(part, p0, axis, rot, up)
             pts = case_points(part, g, step=1.5)
-            d = min(scene.dist_fast(p, gap + 6.0, planes) for p in pts) - scene.e_cover
+            d = _min_dist(scene, pts, gap + 6.0, planes) - scene.e_cover
             cands.append((d, sp, rot, axis))
         sp += step
     if not cands:
@@ -1740,7 +2052,7 @@ def place_part(scene, path_elems, part, gap, s_range=None, up=None, rots=None, s
         p0 = _point_at(path_elems, sp)
         g = part_geometry(part, p0, axis, rot, up)
         pts = case_points(part, g, step=0.5)
-        raw = min(scene.dist_exact(p, gap + 6.0, planes) for p in pts)
+        raw = _min_dist(scene, pts, gap + 6.0, planes, exact=True)
         ex = raw - 0.5 / math.sqrt(2.0)
         if ex >= gap:
             return {'s': sp, 'rot': rot, 'axis': axis, 'geom': g, 'gap': ex, 'ok': True, 'gap_over': raw >= gap + 6.0 - 1e-9}
@@ -1809,7 +2121,7 @@ def place_attachment(scene, pieces, att, gap, up=None, taken=None, planes=None, 
                         for rot in (0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0):
                             x, _y, _z = part_frame(u, rot, up)
                             pts = stub_points(c, x, tr, d, h, step=1.2)
-                            df = min(scene.dist_fast(p, gap + 6.0, planes) for p in pts) - scene.e_cover
+                            df = _min_dist(scene, pts, gap + 6.0, planes) - scene.e_cover
                             cands.append((df, s, rot, c, x, u, abs(t - L / 2.0) - L))
                     t += step
             cum += L
@@ -1820,7 +2132,7 @@ def place_attachment(scene, pieces, att, gap, up=None, taken=None, planes=None, 
         tried = good[:12] + sorted(cands, key=lambda c: -c[0])[:4]
         for df, s, rot, c, x, u, _mid in tried:
             pts = stub_points(c, x, tr, d, h, step=0.5)
-            raw = min(scene.dist_exact(p, gap + 6.0, planes) for p in pts)
+            raw = _min_dist(scene, pts, gap + 6.0, planes, exact=True)
             ex = raw - 0.5 / math.sqrt(2.0)
             pl = {'piece': pi, 's': s, 'from_end': total - s, 'rot': rot, 'center': c, 'dir': x, 'axis': u,
                   'gap': ex, 'ok': ex >= gap, 'gap_over': raw >= gap + 6.0 - 1e-9}

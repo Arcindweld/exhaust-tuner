@@ -7,7 +7,14 @@ namespace ExhaustTuner.Core;
 public sealed class FusionAddIn
 {
     /// <summary>The add-in's own files; anything else in the target folder (the user's notes, layouts) is left alone.</summary>
-    public static readonly string[] Files = { "ExhaustTuner.py", "ExhaustTuner.manifest", "cadtools.py", "router.py", "templates.py", "README.txt" };
+    public static readonly string[] Files = { "ExhaustTuner.py", "ExhaustTuner.manifest", "cadtools.py", "router.py", "templates.py", "native.py", "README.txt" };
+
+    /// <summary>
+    /// The Rust core the router loads when it is there (native.py falls back to Python without it). Copied when the
+    /// bundle has it; a copy left in the add-in folder by an older install is removed when the bundle does not, so a
+    /// stale library is never loaded.
+    /// </summary>
+    public static readonly string[] OptionalFiles = { "et_core.dll" };
 
     readonly AppPaths _paths;
     public FusionAddIn(AppPaths paths) { _paths = paths; }
@@ -43,6 +50,13 @@ public sealed class FusionAddIn
         Directory.CreateDirectory(dst);
         var before = ManifestVersion(dst);
         foreach (var f in Files) File.Copy(Path.Combine(src, f), Path.Combine(dst, f), overwrite: true);
+        foreach (var f in OptionalFiles)
+        {
+            var from = Path.Combine(src, f);
+            var to = Path.Combine(dst, f);
+            if (File.Exists(from)) File.Copy(from, to, overwrite: true);
+            else if (File.Exists(to)) File.Delete(to);
+        }
         File.WriteAllText(Path.Combine(dst, "palette.html"), PaletteBuilder.Build(File.ReadAllText(_paths.PageFile)));
         var after = ManifestVersion(dst);
         return new JsonObject

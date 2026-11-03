@@ -15,6 +15,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   cylinder order + 2 collector markers; bay frame from markers; stub-tested in SP/ls3_180/fake/test_bundle_mode.py, NOT yet run
   live in Fusion - needs the add-in restarted) and saveFiles with sub-folders/exec bit for CFD cases. Live checks
   pass (MAF pad with the Nissan STEP; route builds need occurrence-context proxies — fixed 4.9.1).
+- Rust core: rust/et_core (stage 1 of the move to Rust, add-in 4.13.0, C ABI 2): the router's queries, fields, search, fit,
+  check and the scan fit's cost; fusion-addin/native.py loads it (Python fallback, also when a core call fails part way).
+  fusion-addin/tests/test_native.py checks it against the Python, exactly. CI builds et_core.dll on the Windows runner,
+  runs test_native --require there (Python 3.12) and on Linux (3.11, the plain-sum path), bundles it.
+- Windows program: rust/et_host (requests, solvers, add-in install, updater; exhaust-tuner-host CLI) + rust/et_app (the
+  window: wry/tao WebView2, rfd dialogs), stage 2, replacing app/ (C#, kept as reference only, no longer built). Builds
+  need Rust 1.88+ (locked crates); NOT yet built or run on Windows (CI billing).
 - OpenWAM: SP/openwam_run2 (wam_export.js = make_wam.py port; START_SHIFT_DEG 45 fixes LS3 NaN/crash). Windows batch path proven
   on the PC (calc_ls3_v2): two banks give 440 lb-ft @4600 / 426 hp net vs GM 424 / 430.
 - engine-sim fork: /home/claude/engine-sim (main has 1-D exhaust); headless harness SP/x1d/out/es_harness (--wav, --gain, --hold-rpm).
@@ -273,6 +280,61 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   All fixed and tested; tip trims 2.5 mm (no knife edges), 20 micron overlap at the joint. Fusion API names checked
   against Autodesk's docs (TemporaryBRepManager.createCylinderOrCone / booleanOperation, CombineFeatures.createInput,
   SurfaceEvaluator.getParameterAtPoint / isParameterOnFace, BRepBody.volume).
+- Rust, stage 1 (the owner 2026-11-02: "reprogram everything and all features in Rust"; chose "staged, slow parts first"):
+  rust/et_core (std only, cdylib, C ABI v2, panics caught at every entry point and reported via et_last_error) holds
+  the router's Scene queries, TubeSet, Fields, route()'s Lazy Theta* search (free_at, los, simplify), the residuals,
+  Levenberg-Marquardt (+ _solve), _prune's fits, certify, fit_main_pipe's cost, and batched min_dist / nearest for
+  part placement, the collector check and _mesh_gap. Ported line for line in router.py's order of operations, with
+  Python's min/max tie rules (pmin/pmax) and sum() (Neumaier from 3.12; router.NEUMAIER tells the core which), so
+  routes are bit-identical: test_native.py compares queries, fields, 400 free_at/los, both searches, residual
+  vectors, certify, LM, prune, whole routes (block, 80 cm target, no scan, 4-primary header) and the scan fit, all
+  exact (== on floats); CI runs it on Linux and on the Windows runner against the built DLL (Windows Python vs the
+  DLL, both on the UCRT's sin/cos: the DLL is linked to the DLL runtime, not crt-static, for that reason).
+  Two exact speedups beyond the port: any_within by coarse blocks with box pruning (same boolean; checked against
+  router.py's walk on 20,000 random queries) and TubeSet.dist by 4-cell blocks nearest-first (the walk's result is
+  min(cap, min over all segments), so a pruned search gives the same bits; 20,000 queries, to_bits equal).
+  Timings, Python -> Rust core (this container, 2 CPUs): block route 2.4 s -> 0.05; block 80 cm 1.5 -> 0.04; shelf
+  75 cm 77 -> 0.8; 4-primary header + collector 137 -> 1.0; scan fit 0.64 -> 0.020. Suites: test_router 30 -> 3 s,
+  test_header 46 -> 10, test_header_uel 63 -> 10 (the rest is the tests' own brute-force checks), ls3 template
+  10 -> 3. The add-in falls back to the Python (same answers) without the DLL; the route report names the core.
+  Windows locks a loaded DLL until Fusion quits (ctypes never unloads it), so native.py loads a content-named copy
+  from native/ beside the add-in; FusionAddIn.Install can then always overwrite et_core.dll. router.NATIVE_ABI
+  refuses a native.py left loaded from another version. Also fixed in this stage (4.13.0): with a length target,
+  route() stopped at the widest corridor's clear route even when it was longer than the target (the length stage
+  only adds length), and whether the wide search finished in its time slice decided the corridor; now longer routes
+  lead on to narrower corridors and seeds are ordered by length (under the target longest first, then over
+  shortest first). NOT yet: the DLL built or run on Windows (CI billing), run inside Fusion. Next stages: the
+  Windows program (Tauri) and the calculator's math (WebAssembly, if the artifact host allows it).
+  Independent review of stage 1 (10 findings, all fixed 2026-11-02): (1) a trial centreline with no length has no
+  samples, so _residual_fn returned a shorter vector: Python's LM indexed past it or paired wrong entries, Rust's LM
+  refused (27 of 400 random routes raised in Rust); both now pad with zeros to nsamp. (2) CI could pass without the DLL
+  loading: test_native --require (or REQUIRE_NATIVE=1) fails then; both CI calls use it. (3) x ** 2 goes through libm
+  pow (can differ from x * x by an ulp, and between systems): Scene.build's edge and area squares are products in both.
+  (4) a mesh too small to use was not passed to the core, so its tolerance was missing from e_cover there: always
+  passed now. (5) native.py's private copy: makedirs race, os.replace retried (virus scanners hold new files);
+  fusion_addin.rs moves a DLL Fusion holds aside (et_core.dll.N.old, cleared by the next install) instead of failing,
+  and removes native/ when the bundle has no core. (6) shell counts from huge radii could overflow i64: saturating_add.
+  (7) failures without a reason: every failing entry point now sets et_last_error; et_failed() tells a failure's NaN or
+  0 from a real one; native.py checks every return and raises CoreError; router.core_failed then turns the core off for
+  the session (NATIVE_NOTE says why), every live Scene/TubeSet drops its Rust copy (a built scene is built again in
+  Python from its meshes), and route() lays a tube that failed part way out again all in Python; fit_main_pipe's cost
+  carries on in Python (same sums). (8) stated Rust versions were wrong: et_core needs 1.78 (Cargo.lock v4; builds with
+  1.78, checked), et_host/et_app 1.88 (locked icu 2.4 via ureq/url/idna; builds with 1.88, checked). (9) CI Python
+  pinned: 3.12 on Windows, 3.11 on Linux, so both sum() paths are compared (3.11 run locally: all pass). (10) docs:
+  "the same routes" holds when the Python run is not stopped by the time limit (40 s a tube by default; the 75 cm shelf
+  pipe takes Python 77 s).
+- Rust, stage 2 (the Windows program): rust/et_host ports app/ExhaustTuner.Core line for line (dispatcher, OpenWAM /
+  Engine Simulator / OpenFOAM runners with watchdog, stop and restore, case files, palette, Fusion add-in install,
+  updater with SHA-256 check, release notes, DPAPI token with the C# program's entropy so a saved token still reads)
+  and HostCli as the exhaust-tuner-host binary (--info, --bridge, --install-addin, --token-sha256). rust/et_app is the
+  window: wry 0.57.1 + tao 0.37.2, the page served by a custom protocol at https://app.exhaust-tuner/ (WebView2's https
+  scheme), the bridge script injected before the page loads (window.ipc, same window.exhaustTunerHost API), rfd
+  folder/save dialogs, WebView2Loader linked statically, the icon embedded; a self-test mode the CI install step drives
+  (--selftest FILE: "ok <version> desktop=true"). Tests: 33 Rust tests (9 core, 11 updater, 13 unit) incl. the real
+  OpenWAM when EXHAUST_TUNER_OPENWAM is set; web/tests/update_ui.js and desktop_ui.js drive the real page through the
+  Rust host. The Windows window type-checks from Linux (x86_64-pc-windows-msvc); NOT yet built or run on Windows (CI
+  billing). The installer ships ExhaustTuner.exe + exhaust-tuner-host.exe and removes the C# program's files on update.
+  app/ stays as the port's reference until the owner has run the Rust program, then goes.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

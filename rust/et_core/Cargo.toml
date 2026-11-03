@@ -1,0 +1,23 @@
+[package]
+name = "et_core"
+version = "0.1.0"
+edition = "2021"
+# its Cargo.lock is version 4, which Cargo reads from 1.78 on (the code itself builds there too: checked with 1.78)
+rust-version = "1.78"
+description = "Exhaust Tuner core in Rust: the router's scene queries, tube-to-tube distances, clearance fields and route search, fit and check, behind a C ABI the Fusion add-in loads with ctypes."
+license = "GPL-3.0-only"
+publish = false
+
+[lib]
+name = "et_core"
+crate-type = ["cdylib", "rlib"]
+
+# No dependencies: it builds offline with the standard library alone.
+[dependencies]
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+# unwind, not abort: every C entry point catches a panic and reports it, so a fault cannot close Fusion
+panic = "unwind"

@@ -1,0 +1,34 @@
+[package]
+name = "et_app"
+version = "0.1.0"
+edition = "2021"
+# the crates rust/Cargo.lock pins need 1.88 (ureq's url and idna use icu 2.4); the workspace builds with 1.88 (checked)
+rust-version = "1.88"
+description = "Exhaust Tuner's window (stage 2 of the move to Rust): the calculator page in WebView2, driving et_host's request handling, as app/ExhaustTuner.Desktop does in C#."
+license = "GPL-3.0-only"
+publish = false
+
+build = "build.rs"
+
+[[bin]]
+name = "ExhaustTuner"
+path = "src/main.rs"
+
+[build-dependencies]
+embed-resource = "=3.0.12"
+
+[dependencies]
+et_host = { path = "../et_host", default-features = false }
+serde_json = "1"
+
+[features]
+default = ["tls"]
+# https for the update check (et_host's); off only to type-check on another system
+tls = ["et_host/tls"]
+
+# the window is Windows-only (WebView2); elsewhere the binary only points at exhaust-tuner-host
+[target.'cfg(windows)'.dependencies]
+wry = { version = "=0.57.1", default-features = false, features = ["devtools", "os-webview"] }
+tao = { version = "=0.37.2", default-features = false, features = ["rwh_06"] }
+rfd = { version = "=0.17.2", default-features = false }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_System_Registry"] }

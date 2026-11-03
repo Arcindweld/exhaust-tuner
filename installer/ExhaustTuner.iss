@@ -1,7 +1,9 @@
 ; Exhaust Tuner installer (Inno Setup 6). Built by .github/workflows/windows.yml from the staged folder:
 ;   iscc /DAppVersion=0.1.<run number> /DStage=..\stage installer\ExhaustTuner.iss
 ; Per-user install (no administrator rights needed): %LOCALAPPDATA%\Programs\Exhaust Tuner.
-; Updates: the program runs a newer installer itself (app/ExhaustTuner.Core/Updater.cs) with
+; The program is rust/ (ExhaustTuner.exe, the window, and exhaust-tuner-host.exe); up to the C# program's last
+; release it was app/ (.NET), whose files an update removes ([InstallDelete]).
+; Updates: the program runs a newer installer itself (rust/et_host/src/updater.rs) with
 ;   /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CLOSEAPPLICATIONS /CURRENTUSER /RELAUNCH=1 /WAITPID=<its process id>
 ; Setup then waits for that process to end (InitializeSetup), installs into the same folder with the same tasks
 ; (UsePreviousAppDir / UsePreviousTasks, both on by default) and starts the program again ([Run], RelaunchAfterUpdate).
@@ -37,6 +39,28 @@ InfoBeforeFile={#Stage}\licenses\NOTICE.txt
 [Tasks]
 Name: "addin"; Description: "Install the Exhaust Tuner add-in into Autodesk Fusion"; Flags: checkedonce
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+[InstallDelete]
+; the C# program's own files (its .NET runtime and libraries), left by an install of it: the Rust program is two
+; .exe files and needs none of them. Only the top of the program folder; engines\ and the rest are untouched.
+Type: files; Name: "{app}\*.dll"
+Type: files; Name: "{app}\*.deps.json"
+Type: files; Name: "{app}\*.runtimeconfig.json"
+Type: files; Name: "{app}\*.pdb"
+Type: files; Name: "{app}\createdump.exe"
+Type: filesandordirs; Name: "{app}\cs"
+Type: filesandordirs; Name: "{app}\de"
+Type: filesandordirs; Name: "{app}\es"
+Type: filesandordirs; Name: "{app}\fr"
+Type: filesandordirs; Name: "{app}\it"
+Type: filesandordirs; Name: "{app}\ja"
+Type: filesandordirs; Name: "{app}\ko"
+Type: filesandordirs; Name: "{app}\pl"
+Type: filesandordirs; Name: "{app}\pt-BR"
+Type: filesandordirs; Name: "{app}\ru"
+Type: filesandordirs; Name: "{app}\tr"
+Type: filesandordirs; Name: "{app}\zh-Hans"
+Type: filesandordirs; Name: "{app}\zh-Hant"
 
 [Files]
 Source: "{#Stage}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

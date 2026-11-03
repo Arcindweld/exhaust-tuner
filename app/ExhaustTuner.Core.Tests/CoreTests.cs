@@ -183,6 +183,12 @@ public class FusionAddInTests
         File.WriteAllText(Path.Combine(fusion, "ExhaustTuner", "my_notes.txt"), "keep");
         a.Install();
         Assert.Equal("keep", File.ReadAllText(Path.Combine(fusion, "ExhaustTuner", "my_notes.txt")));
+        // the Rust core: copied when the bundle has it, and a stale copy removed when it does not
+        var lib = Path.Combine(fusion, "ExhaustTuner", "et_core.dll");
+        var bundled = File.Exists(Path.Combine(paths.AddInSourceDir, "et_core.dll"));
+        File.WriteAllText(lib, "stale");
+        a.Install();
+        Assert.Equal(bundled, File.Exists(lib));
     }
 }
 

@@ -1,7 +1,9 @@
 // The page inside the desktop program, end to end on any OS: the real page, the real injected bridge
-// (HostBridge.js), the real request handling (exhaust-tuner-host, the same C# code the Windows program uses) and the
-// real OpenWAM solver. WebView2's message channel is replaced by a shim that carries the same JSON over stdin/stdout.
-// Needs: dotnet-built app/ExhaustTuner.HostCli (HOST_CLI to override), an OpenWAM build (EXHAUST_TUNER_OPENWAM).
+// (host_bridge.js), the real request handling (exhaust-tuner-host, the same Rust code the Windows program's window
+// uses, rust/et_host) and the real OpenWAM solver. WebView2's message channel is replaced by a shim that carries the
+// same JSON over stdin/stdout.
+// Needs: the built host (cargo build --release --manifest-path rust/Cargo.toml; HOST_CLI to override), an OpenWAM
+// build (EXHAUST_TUNER_OPENWAM).
 // Without them the test says so and exits 0, unless REQUIRE_ALL=1. With EXHAUST_TUNER_OPENFOAM it also runs the
 // page's intake CFD case to convergence (minutes); DESKTOP_CFD=0 skips that run (the Windows build does when nothing
 // on its path changed since the last release, and its install step runs a short OpenFOAM case on every build).
@@ -9,7 +11,7 @@ const { chromium } = require('playwright');
 const { spawn, execFileSync } = require('child_process');
 const fs = require('fs'), path = require('path'), os = require('os'), { pathToFileURL } = require('url');
 const ROOT = path.resolve(__dirname, '..', '..');
-const CLI = process.env.HOST_CLI || path.join(ROOT, 'app', 'ExhaustTuner.HostCli', 'bin', 'Release', 'net8.0', process.platform === 'win32' ? 'exhaust-tuner-host.exe' : 'exhaust-tuner-host');
+const CLI = process.env.HOST_CLI || path.join(ROOT, 'rust', 'target', 'release', process.platform === 'win32' ? 'exhaust-tuner-host.exe' : 'exhaust-tuner-host');
 (async () => {
   const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   if (!fs.existsSync(CLI) || !process.env.EXHAUST_TUNER_OPENWAM) {

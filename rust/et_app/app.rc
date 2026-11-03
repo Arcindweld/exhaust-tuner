@@ -1,0 +1,2 @@
+// The program's icon (the same one the C# program and the installer use), resource 1.
+1 ICON "../../app/ExhaustTuner.Desktop/exhaust.ico"

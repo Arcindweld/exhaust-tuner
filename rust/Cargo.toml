@@ -1,0 +1,12 @@
+# The program in Rust (stage 2 of the move): et_host, the page's request handling and exhaust-tuner-host; et_app, the
+# window (ExhaustTuner.exe). One build folder (rust/target) and one Cargo.lock for both. et_core, the Fusion add-in's
+# router core, builds on its own (rust/et_core/target), as the add-in's tests expect.
+[workspace]
+members = ["et_host", "et_app"]
+exclude = ["et_core"]
+resolver = "2"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1

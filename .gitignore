@@ -33,3 +33,10 @@ webview2/
 engines/
 !app/ExhaustTuner.Core.Tests/fixtures/*AVG.DAT
 validation/outback-2004/model/sound/*.wav
+# the Rust core's build output, and copies of it next to the add-in
+rust/target/
+rust/*/target/
+fusion-addin/et_core.dll
+fusion-addin/libet_core.so
+fusion-addin/libet_core.dylib
+fusion-addin/native/

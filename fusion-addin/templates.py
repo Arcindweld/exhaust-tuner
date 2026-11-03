@@ -525,36 +525,22 @@ def helm_samples(start, d, lay, step=0.4, lift=1.5, neck=True):
 
 def scene_points_near(scene, c, rad, cap=6000):
     """Scan sample points (the router's Scene) within rad of c, thinned evenly to at most cap."""
-    cell = scene.cell
-    fl = math.floor
-    lo = [int(fl((c[k] - rad) / cell)) for k in range(3)]
-    hi = [int(fl((c[k] + rad) / cell)) for k in range(3)]
-    r2 = rad * rad
-    out = []
-    for i in range(lo[0], hi[0] + 1):
-        for j in range(lo[1], hi[1] + 1):
-            for k in range(lo[2], hi[2] + 1):
-                a = scene.H.get((i, j, k))
-                if a is None:
-                    continue
-                for q in range(0, len(a), 3):
-                    p = (a[q], a[q + 1], a[q + 2])
-                    if (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2 <= r2:
-                        out.append(p)
+    out = scene.points_near(c, rad)
     if len(out) > cap:
         s = len(out) / float(cap)
         out = [out[int(i * s)] for i in range(cap)]
     return out
 
 
-def fit_main_pipe(points, start, d, R0, max_rms=0.15):
+def fit_main_pipe(points, start, d, R0, max_rms=0.15, native=None):
     """The main pipe under a branch start, from scan points: a round pipe of any radius near R0 (the page's main
     pipe) whose axis passes near start - d R0. All five numbers of a cylinder are fitted (axis direction, where the
     axis sits, radius), starting from a square tee drawn on the surface, so a marker drawn a little off the surface
     or a little off square is fine. Points further than a fifth of R0 off the surface are not counted (a floor or a
     bracket near the pipe). Returns {'p', 'd', 'R', 'rms', 'n', 'frac', 'cover', 'off', 'ok', 'why'}: cover is how
     much of the way round the pipe the scan shows near the tee (degrees), off how far the start marker sits off the
-    fitted surface (cm, + outside)."""
+    fitted surface (cm, + outside). The cost is added up in the Rust core when it is loaded (native=False: here),
+    with the same result."""
     d = RT.vunit(d)
     e1, e2 = RT.perp_basis(d)
     c0 = RT.vsub(start, RT.vmul(d, R0))
@@ -586,7 +572,16 @@ def fit_main_pipe(points, start, d, R0, max_rms=0.15):
             out_.append(math.sqrt(max(0.0, w0 * w0 + w1 * w1 + w2 * w2 - t * t)) - R)
         return out_
 
+    NP = [RT.NV.Points(P) if (RT.NV is not None and native is not False) else None]
+
     def cost(x):
+        if NP[0] is not None:
+            a, c, R = geom(x)
+            try:
+                return NP[0].cyl_cost(a, c, R, T)
+            except RT.CoreError as ex:       # the same sum here, from now on (the router does the same)
+                RT.core_failed(ex)
+                NP[0] = None
         s = 0.0
         for r in resid(x):
             s += r * r if r * r < T * T else T * T
@@ -652,13 +647,16 @@ def fit_main_pipe(points, start, d, R0, max_rms=0.15):
 def clearance(scene, pts, err, cap=12.0):
     """Smallest gap from sample points to the scene's triangles, less the sampling error so it never reads high.
     Returns (gap or None when nothing is within cap, index of the closest point)."""
-    best, at = cap, None
-    for i, p in enumerate(pts):
-        if scene.dist_fast(p, cap) - scene.e_cover >= best:
-            continue
-        g = scene.dist_exact(p, cap)
-        if g < best:
-            best, at = g, i
+    if hasattr(scene, 'nearest'):
+        best, at = scene.nearest(pts, cap)
+    else:
+        best, at = cap, None
+        for i, p in enumerate(pts):
+            if scene.dist_fast(p, cap) - scene.e_cover >= best:
+                continue
+            g = scene.dist_exact(p, cap)
+            if g < best:
+                best, at = g, i
     if at is None:
         return None, None
     return max(0.0, best - err), at
