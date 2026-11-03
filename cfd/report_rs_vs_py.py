@@ -80,6 +80,9 @@ VARIANTS = [
     ("no results yet", lambda i, d: shutil.rmtree(os.path.join(d, "postProcessing", "mdot_outlet"))),
 ]
 tmp = tempfile.mkdtemp(prefix="report_rs_vs_py_")
+# UTF-8 as the Rust writes: Windows Python otherwise writes results.txt in the ANSI code page (cp1252) and reads the
+# program's printed text with it
+env = dict(os.environ, PYTHONUTF8="1")
 for tag, f in VARIANTS:
     outs = {}
     for who in ("py", "rs"):
@@ -89,10 +92,10 @@ for tag, f in VARIANTS:
         f(info, d)
         json.dump(info, open(os.path.join(d, "case_info.json"), "w"), indent=1)
         if who == "py":
-            open(os.path.join(d, "intake_report.py"), "w").write(ic.REPORT_PY.lstrip("\n"))
-            r = subprocess.run([sys.executable, "intake_report.py"], cwd=d, capture_output=True, text=True)
+            open(os.path.join(d, "intake_report.py"), "w", encoding="utf-8").write(ic.REPORT_PY.lstrip("\n"))
+            r = subprocess.run([sys.executable, "intake_report.py"], cwd=d, capture_output=True, text=True, encoding="utf-8", env=env)
         else:
-            r = subprocess.run([host, "--cfd-report", d], capture_output=True, text=True)
+            r = subprocess.run([host, "--cfd-report", d], capture_output=True, text=True, encoding="utf-8", env=env)
         read = lambda n: open(os.path.join(d, n), "rb").read() if os.path.exists(os.path.join(d, n)) else None
         # the script's last stdout line when it stops is its reason (a traceback otherwise, on stderr)
         outs[who] = (r.returncode, r.stdout, read("results.json"), read("results.txt"))

@@ -339,7 +339,8 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   CI: core-linux and the Windows job run gen_rs_vs_py (Windows: the program's static UCRT against Windows Python).
   Windows CI: 28 of 29 the same bytes on the first run (the static UCRT's math matches Windows Python); the 29th,
   non-ASCII names, stopped Windows Python itself (UnicodeEncodeError: it writes the headers in cp1252), so the test
-  runs Python in UTF-8 mode (PYTHONUTF8=1), which is what the Rust writes.
+  runs Python in UTF-8 mode (PYTHONUTF8=1), which is what the Rust writes; report_rs_vs_py likewise (its café
+  variant: Windows Python wrote results.txt in cp1252).
 - Rust, stage 4 (2026-11-02, "Port it to Rust" for the CFD Python): intake_report.py (REPORT_PY) in Rust,
   rust/et_host/src/cfd_report.rs (+ pyfmt.rs: repr, %f %e %g, json.dump indent=2 with NaN, Neumaier sum, Python
   min/max order, text-mode newlines). The program's report step and the convergence watchdog (a thread beside the

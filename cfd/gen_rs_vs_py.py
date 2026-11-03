@@ -183,7 +183,7 @@ for k, (tag, design) in enumerate(DESIGNS):
         if os.path.isdir(case):
             shutil.rmtree(case)
         cmd = [sys.executable, os.path.join(HERE, "intake_cfd.py"), dj, case] if who == "py" else [host, "--cfd-generate", dj, case]
-        r = subprocess.run(cmd, capture_output=True, text=True, env=env)
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", env=env)
         res[who] = (r.returncode, r.stdout, r.stderr, snapshot(case) if os.path.isdir(case) else {})
         if who == "py":
             os.rename(case, case + "_py") if os.path.isdir(case) else None
