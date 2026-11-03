@@ -1,4 +1,8 @@
-EXHAUST TUNER (Fusion add-in), version 4.13.0
+EXHAUST TUNER (Fusion add-in), version 4.13.1
+
+4.13.1 (November 3, 2026)
+- Starts with Fusion: the add-in is set to run on startup, so after the Windows program installs it
+  there is nothing to switch on. (Untick "Run on Startup" in Utilities > Add-Ins to stop that.)
 
 4.13.0 (November 2, 2026)
 - Faster: the router runs in a Rust core, et_core.dll, which the Windows program installs next to
@@ -156,7 +160,7 @@ The Windows program installs and updates the add-in for you (Add-in menu). By ha
    (the router's Rust core; without it the router runs in Python, slower). Keep the files together.
 2. In Fusion: Utilities > Add-Ins (or Shift+S), Add-Ins tab, green plus next to "My Add-Ins",
    then pick the ExhaustTuner folder.
-3. Select Exhaust Tuner and click Run. Tick "Run on Startup" to keep it loaded.
+3. Select Exhaust Tuner and click Run (it is set to run on startup from then on).
 Updating from an older version: stop the add-in, replace the whole folder (the "native" folder
 inside it can go too), then restart Fusion so the new Rust core loads.
 

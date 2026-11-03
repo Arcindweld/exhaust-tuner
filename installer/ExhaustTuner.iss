@@ -1,6 +1,8 @@
 ; Exhaust Tuner installer (Inno Setup 6). Built by .github/workflows/windows.yml from the staged folder:
 ;   iscc /DAppVersion=0.1.<run number> /DStage=..\stage installer\ExhaustTuner.iss
 ; Per-user install (no administrator rights needed): %LOCALAPPDATA%\Programs\Exhaust Tuner.
+; One page before it installs: the two choices (Fusion add-in, desktop shortcut, both on). No install-for-whom
+; question, no licence screen (the licences are installed and on the Start menu), no folder or ready page.
 ; The program is rust/ (ExhaustTuner.exe, the window, and exhaust-tuner-host.exe); up to the C# program's last
 ; release it was app/ (.NET), whose files an update removes ([InstallDelete]).
 ; Updates: the program runs a newer installer itself (rust/et_host/src/updater.rs) with
@@ -24,7 +26,9 @@ DefaultDirName={autopf}\Exhaust Tuner
 DefaultGroupName=Exhaust Tuner
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
+PrivilegesRequiredOverridesAllowed=commandline
+DisableDirPage=yes
+DisableReadyPage=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist
@@ -34,11 +38,10 @@ SolidCompression=yes
 SetupIconFile=..\app\ExhaustTuner.Desktop\exhaust.ico
 UninstallDisplayIcon={app}\ExhaustTuner.exe
 WizardStyle=modern
-InfoBeforeFile={#Stage}\licenses\NOTICE.txt
 
 [Tasks]
-Name: "addin"; Description: "Install the Exhaust Tuner add-in into Autodesk Fusion"; Flags: checkedonce
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "addin"; Description: "Install the Exhaust Tuner add-in into Autodesk Fusion (it starts with Fusion)"; Flags: checkedonce
+Name: "desktopicon"; Description: "Put a shortcut on the desktop"; Flags: checkedonce
 
 [InstallDelete]
 ; the Python 3.13 earlier releases bundled for the CFD case scripts (engines\python): the program now generates 3-D
@@ -72,6 +75,7 @@ Source: "{#Stage}\..\webview2\MicrosoftEdgeWebview2Setup.exe"; DestDir: "{tmp}";
 [Icons]
 Name: "{group}\Exhaust Tuner"; Filename: "{app}\ExhaustTuner.exe"
 Name: "{group}\Exhaust Tuner runs folder"; Filename: "{localappdata}\ExhaustTuner\runs"
+Name: "{group}\Exhaust Tuner licences"; Filename: "{app}\licenses\NOTICE.txt"
 Name: "{group}\{cm:UninstallProgram,Exhaust Tuner}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\Exhaust Tuner"; Filename: "{app}\ExhaustTuner.exe"; Tasks: desktopicon
 

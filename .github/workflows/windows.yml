@@ -481,9 +481,17 @@ jobs:
           tag="v$APP_VERSION"; setup="ExhaustTuner-Setup-$APP_VERSION.exe"
           [ -f "dist/$setup" ] || { ls -l dist; echo "dist/$setup missing"; exit 1; }
           if gh release view "$tag" >/dev/null 2>&1; then echo "$tag exists already (a re-run)"; exit 0; fi
-          (cd dist && sha256sum "$setup" > SHA256SUMS.txt && cat SHA256SUMS.txt)
+          # the same installer under a name without the version too, so one link always downloads the newest:
+          # https://github.com/<repo>/releases/latest/download/ExhaustTuner-Setup.exe (the program's update check
+          # only takes the versioned name)
+          cp "dist/$setup" dist/ExhaustTuner-Setup.exe
+          (cd dist && sha256sum "$setup" ExhaustTuner-Setup.exe > SHA256SUMS.txt && cat SHA256SUMS.txt)
           prev=$(gh release list --limit 1 --exclude-drafts --json tagName --jq '.[0].tagName // ""')
           {
+            echo "**Install:** download ExhaustTuner-Setup.exe below and open it. If Windows says \"Windows protected your PC\", click"
+            echo "More info, then Run anyway (the installer is not code-signed). Click Install. Full steps: [INSTALL.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/INSTALL.md)."
+            echo "Already installed? The program updates itself (menu > Restart and update)."
+            echo
             echo "Built from ${GITHUB_SHA::7} on $GITHUB_REF_NAME ($(date -u +%Y-%m-%d))."
             echo
             if [ -n "$prev" ] && git rev-parse -q --verify "refs/tags/$prev" >/dev/null; then
@@ -495,7 +503,12 @@ jobs:
             fi
           } > notes.md
           cat notes.md
-          gh release create "$tag" "dist/$setup" dist/SHA256SUMS.txt --target "$GITHUB_SHA" --title "Exhaust Tuner $APP_VERSION" --notes-file notes.md
+          gh release create "$tag" "dist/$setup" dist/ExhaustTuner-Setup.exe dist/SHA256SUMS.txt --target "$GITHUB_SHA" --title "Exhaust Tuner $APP_VERSION" --notes-file notes.md
+          # INSTALL.md's link: the newest release's unversioned installer, the same bytes as this one
+          url="https://github.com/$GITHUB_REPOSITORY/releases/latest/download/ExhaustTuner-Setup.exe"
+          for i in 1 2 3 4 5; do curl -sSfL -o latest.exe "$url" && break; sleep 10; done
+          [ "$(sha256sum < latest.exe | cut -d' ' -f1)" = "$(sha256sum < "dist/$setup" | cut -d' ' -f1)" ] \
+            && echo "the download link gives $tag" || echo "::warning::$url does not give $tag yet"
           # withdrawn releases (installer/withdrawn.txt: tag, reason) become pre-releases, which the program skips
           grep -v '^[[:space:]]*#' installer/withdrawn.txt | while read -r t why; do
             [ -n "$t" ] || continue

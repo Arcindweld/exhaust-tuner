@@ -4,6 +4,10 @@ Exhaust and intake design software for real builds: sizing from published method
 (OpenWAM), steady CFD (OpenFOAM), sound prediction checked against recordings, and a Fusion add-in that lays the
 tubes out in the car's scanned bay.
 
+**To install it:** download [ExhaustTuner-Setup.exe](https://github.com/Arcindweld/exhaust-tuner/releases/latest/download/ExhaustTuner-Setup.exe)
+and open it. [INSTALL.md](INSTALL.md) has the steps (including the "Windows protected your PC" screen), the Fusion
+add-in, updates and uninstalling.
+
 Standing rules for every change: results must come from real computation, every number from a cited source or a
 stated estimate, and limits are written down plainly next to the result they affect.
 
@@ -70,7 +74,10 @@ One installer (built by `.github/workflows/windows.yml`) puts the calculator in 
 the PC: OpenWAM (built from CMT-UPV's source), Engine Simulator (the fork's headless runner), and OpenFOAM v2412
 (built for Windows by `.github/workflows/openfoam-windows.yml` and bundled only after it reproduces the Linux results
 on the 2-D validation cases of the generator version it ships with; the 3-D snappyHexMesh path is not part of that
-check yet), with Python for the CFD cases' own scripts. It installs the Fusion add-in too. Runs go to
+check yet). The CFD case generator, report and convergence watchdog are in the program (Rust), so no Python is
+installed. It installs the Fusion add-in too, set to start with Fusion. The installer asks one thing (the add-in and a
+desktop shortcut, both ticked) and installs per user without administrator rights; [INSTALL.md](INSTALL.md) is the
+user's guide. Runs go to
 `%LOCALAPPDATA%\ExhaustTuner\runs`. See `docs/STATUS.md` for where each piece stands.
 
 ### Updates
@@ -86,8 +93,10 @@ newest release.
 
 After an update, the first start shows what changed (the release notes saved with the download), once.
 
-The repository is private, so the program needs a GitHub token that can read it, saved once under Updates in its
-menu: a fine-grained personal access token with Repository access limited to `exhaust-tuner` and Permissions,
+The repository is public, so updates need no token. Each release also carries the installer as
+`ExhaustTuner-Setup.exe` (no version in the name), which `releases/latest/download/ExhaustTuner-Setup.exe` always
+fetches; the update check only takes the versioned name. If the repository is made private again, the program needs a
+GitHub token that can read it, saved once under Updates in its menu: a fine-grained personal access token with Repository access limited to `exhaust-tuner` and Permissions,
 Contents: Read-only. The menu's link opens GitHub's new-token form already filled in (name, owner, a year, Contents
 read-only; GitHub's documented `settings/personal-access-tokens/new` parameters), so only the repository is picked
 by hand. GitHub reports the token's expiry date with every reply (`GitHub-Authentication-Token-Expiration`); from two

@@ -322,6 +322,14 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   old history: scratchpad scrub/backup/*.bundle (this session only). Not reachable from here: the release tags v0.1.43
   and v0.1.45 (tag push refused, 403) and their installers, the old Actions runs, engine-sim's PR refs and GitHub's
   cached views of old commits.
+- Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the
+  SmartScreen screen, options, Fusion add-in, updates, where files go, uninstall, troubleshooting); README and every
+  release's notes point at it. The installer asks one page (add-in + desktop shortcut, both ticked): no
+  install-for-whom dialog (per user; /CURRENTUSER still accepted on the command line), no licence screen (licences
+  installed, Start-menu shortcut), no folder or ready page. Each release also carries ExhaustTuner-Setup.exe without
+  the version, so releases/latest/download/ExhaustTuner-Setup.exe is one fixed link (the release job checks it).
+  The add-in (4.13.1) runs on startup, so it is in Fusion with no Add-Ins dialog. Not fixable without buying a
+  code-signing certificate: the "Windows protected your PC" screen (More info, Run anyway).
 - Rust, stage 5 (2026-11-03, "continue 3d generator"): intake_cfd.py's generate_case for 3-D designs in Rust,
   rust/et_host/src/cfd_gen.rs: normalise/derive, inlet profiles (all four), Path3D, the bend surface, STL read
   (ASCII latin-1, binary, one file per role), the CAD intake orientation and plenum floor, the exhaust extrusions
