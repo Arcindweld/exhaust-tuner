@@ -3,8 +3,9 @@
 //! [surfaceFeatureExtract, snappyHexMesh -overwrite], checkMesh, topoSet, then the solver named in
 //! system/controlDict while the convergence watchdog (intake_report.py --watch, in Rust: cfd_report::watch) watches
 //! the monitors and asks for a clean stop once they have settled, then the report (intake_report.py, in Rust:
-//! cfd_report::report) for results.json. A 3-D design arrives as design.json + intake_cfd.py (the browser does not
-//! write snappyHexMesh cases); the case is generated here first, with the same generator, which needs Python.
+//! cfd_report::report) for results.json. A 3-D design arrives as design.json (the browser does not write
+//! snappyHexMesh cases); the case is generated here first by intake_cfd.py's generator in Rust (cfd_gen), which
+//! writes it byte for byte as the Python does.
 //! Serial runs only: the packaged OpenFOAM is built without MPI.
 
 use crate::case_files::{self, CaseFile};
@@ -28,7 +29,6 @@ const NL: &str = if cfg!(windows) { "\r\n" } else { "\n" };
 
 pub struct OpenFoamRunner {
     foam_dir: PathBuf,
-    python: String,
 }
 
 struct Step {
@@ -39,14 +39,9 @@ struct Step {
     json: Value,
 }
 
-fn on_path(exe: &str) -> bool {
-    let path = std::env::var_os("PATH").unwrap_or_default();
-    std::env::split_paths(&path).any(|d| !d.as_os_str().is_empty() && (d.join(exe).is_file() || d.join(format!("{}.exe", exe)).is_file()))
-}
-
 impl OpenFoamRunner {
-    pub fn new(foam_dir: PathBuf, python: String) -> OpenFoamRunner {
-        OpenFoamRunner { foam_dir, python }
+    pub fn new(foam_dir: PathBuf) -> OpenFoamRunner {
+        OpenFoamRunner { foam_dir }
     }
 
     pub fn exe(&self, app: &str) -> PathBuf {
@@ -57,17 +52,13 @@ impl OpenFoamRunner {
         PROGRAMS.iter().all(|p| self.exe(p).is_file()) && self.foam_dir.join("etc").is_dir()
     }
 
-    pub fn python_available(&self) -> bool {
-        Path::new(&self.python).is_file() || (!self.python.contains(std::path::MAIN_SEPARATOR) && on_path(&self.python))
-    }
-
-    /// OpenFOAM is enough for the cases the page writes; Python is only needed to generate a 3-D case.
+    /// OpenFOAM is all a run needs: the page writes 2-D cases, the program generates 3-D ones.
     pub fn available(&self) -> bool {
         self.foam_available()
     }
 
     /// The command, with what OpenFOAM's etc/bashrc would set that the programs read (etc/ files come from
-    /// WM_PROJECT_DIR) and the Python reports in UTF-8.
+    /// WM_PROJECT_DIR).
     fn command(&self, exe: &str, args: &[&str], dir: &Path) -> Command {
         let mut c = Command::new(exe);
         c.args(args).current_dir(dir);
@@ -77,7 +68,7 @@ impl OpenFoamRunner {
             path.push(if cfg!(windows) { ";" } else { ":" });
             path.push(p);
         }
-        c.env("PATH", path).env("PYTHONIOENCODING", "utf-8");
+        c.env("PATH", path);
         c
     }
 
@@ -89,18 +80,11 @@ impl OpenFoamRunner {
         let mut steps: Vec<Value> = Vec::new();
         let mut case_dir = run_dir.to_path_buf();
         if !run_dir.join("system").join("controlDict").is_file() {
-            if !run_dir.join("design.json").is_file() || !run_dir.join("intake_cfd.py").is_file() {
-                return Err(HostError::Msg(
-                    "Neither an OpenFOAM case (system/controlDict) nor a design to generate one from (design.json + intake_cfd.py).".into(),
-                ));
-            }
-            if !self.python_available() {
-                return Err(HostError::Msg(format!("Python (for generating a 3-D case) is not installed where the program expects it: {}", self.python)));
+            if !run_dir.join("design.json").is_file() {
+                return Err(HostError::Msg("Neither an OpenFOAM case (system/controlDict) nor a design to generate one from (design.json).".into()));
             }
             case_dir = run_dir.join("case");
-            let g = self.step("generate", &self.python, &["intake_cfd.py", "design.json", "case"], run_dir, progress, cancel, 0, None, None)?;
-            let (code, t) = (g.exit_code, g.tail.clone());
-            steps.push(g.json);
+            let (code, t) = self.generate(run_dir, &case_dir, progress, &mut steps)?;
             if code != 0 {
                 return Ok(failed(run_dir, &case_dir, steps, &format!("intake_cfd.py could not write the case: {}", t)));
             }
@@ -233,6 +217,37 @@ impl OpenFoamRunner {
 
     /// The "report" step: intake_report.py's main() in Rust. Its printed text goes to log.report as the script's did;
     /// a failure (exit code 1) leaves its reason there and in the step's logTail.
+    /// The "generate" step: intake_cfd.py design.json case, in Rust. log.generate holds what the Python prints (the
+    /// summary, or DESIGN ERROR: ... with exit code 1).
+    fn generate(&self, run_dir: &Path, case_dir: &Path, progress: Events, steps: &mut Vec<Value>) -> HResult<(i32, String)> {
+        progress(obj([("event", "step".into()), ("step", "generate".into())]));
+        let t0 = Instant::now();
+        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| crate::cfd_gen::generate_file(&run_dir.join("design.json"), case_dir)))
+            .unwrap_or_else(|_| Err("an internal error in the case generator".to_string()));
+        let (code, text) = match r {
+            Ok(s) => (0, crate::cfd_gen::summary_text(&s)),
+            Err(e) => (1, e),
+        };
+        let mut log = std::fs::File::create(run_dir.join("log.generate"))?;
+        for line in text.split('\n') {
+            write!(log, "{}{}", line, NL)?;
+        }
+        let secs = num(round_even(t0.elapsed().as_secs_f64(), 1));
+        let tail = {
+            let lines: Vec<&str> = text.split('\n').filter(|l| !l.trim().is_empty()).collect();
+            lines[lines.len().saturating_sub(12)..].join("\n")
+        };
+        let mut json = obj([("step", "generate".into()), ("exitCode", code.into()), ("seconds", secs.clone())]);
+        if code != 0 {
+            if let Value::Object(m) = &mut json {
+                m.insert("logTail".into(), tail.clone().into());
+            }
+        }
+        progress(obj([("event", "stepDone".into()), ("step", "generate".into()), ("exitCode", code.into()), ("seconds", secs)]));
+        steps.push(json);
+        Ok((code, tail))
+    }
+
     fn report(&self, case_dir: &Path, progress: Events, steps: &mut Vec<Value>) -> HResult<(i32, String, Value)> {
         progress(obj([("event", "step".into()), ("step", "report".into())]));
         let t0 = Instant::now();

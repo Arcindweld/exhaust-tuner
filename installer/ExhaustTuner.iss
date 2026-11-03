@@ -41,8 +41,11 @@ Name: "addin"; Description: "Install the Exhaust Tuner add-in into Autodesk Fusi
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [InstallDelete]
+; the Python 3.13 earlier releases bundled for the CFD case scripts (engines\python): the program now generates 3-D
+; cases and writes the report itself (in Rust), so nothing uses it
+Type: filesandordirs; Name: "{app}\engines\python"
 ; the C# program's own files (its .NET runtime and libraries), left by an install of it: the Rust program is two
-; .exe files and needs none of them. Only the top of the program folder; engines\ and the rest are untouched.
+; .exe files and needs none of them. Only the top of the program folder; the rest of engines\ is untouched.
 Type: files; Name: "{app}\*.dll"
 Type: files; Name: "{app}\*.deps.json"
 Type: files; Name: "{app}\*.runtimeconfig.json"

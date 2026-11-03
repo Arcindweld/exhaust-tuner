@@ -253,7 +253,7 @@ fn openfoam_runner_logic_with_stand_in_programs() {
         CaseFile { name: "case_info.json".into(), text: info.into(), exec: false, data: None },
     ];
     let events = Mutex::new(Vec::new());
-    let runner = OpenFoamRunner::new(foam.clone(), "python3".into());
+    let runner = OpenFoamRunner::new(foam.clone());
     let res = runner.run(&t.join("run"), &files, &|e| events.lock().unwrap().push(e), &Cancel::new()).unwrap();
     assert_eq!(res["ok"], true, "{}", res);
     assert_eq!(std::fs::read_to_string(t.join("steps.txt")).unwrap().lines().collect::<Vec<_>>(), vec!["blockMesh ", "checkMesh", "topoSet ", "simpleFoam"]);
@@ -287,4 +287,24 @@ fn openfoam_runner_logic_with_stand_in_programs() {
     assert_eq!(bad["ok"], false);
     let m = bad["msg"].as_str().unwrap();
     assert!(m.starts_with("topoSet failed") && m.contains("no cellZone"), "{}", m);
+
+    // a 3-D design (design.json alone): the program generates the snappyHexMesh case in Rust, then meshes it
+    exec(&foam.join("bin/topoSet"), "#!/bin/sh\necho topoSet >> ../steps.txt\n");
+    let bend = r#"{"name": "bend_test", "geometry": {"tube_diameter_mm": 50, "tube_length_mm": 400, "inlet": {"type": "radius", "lip_radius_mm": 10},
+        "bend": {"clr_mm": 75, "angle_deg": 90, "start_mm": 100}, "maf_plane_mm": 320},
+        "operating_point": {"mass_flow_kg_s": 0.03}, "mesh": {"level": "coarse"}}"#;
+    let gen = vec![CaseFile { name: "design.json".into(), text: bend.into(), exec: false, data: None }];
+    let g = runner.run(&t.join("run4"), &gen, &none, &Cancel::new()).unwrap();
+    let steps: Vec<&str> = g["steps"].as_array().unwrap().iter().map(|s| s["step"].as_str().unwrap()).collect();
+    assert_eq!(&steps[..4], &["generate", "blockMesh", "surfaceFeatureExtract", "snappyHexMesh"], "{}", g);
+    assert_eq!(g["steps"][0]["exitCode"], 0);
+    assert!(t.join("run4/case/system/snappyHexMeshDict").is_file() && t.join("run4/case/constant/triSurface/domain.stl").is_file());
+    let log = std::fs::read_to_string(t.join("run4/log.generate")).unwrap();
+    assert!(log.contains("\"solver\": \"simpleFoam\"") && !log.contains("\"files\""), "{}", log);
+    // a design the generator refuses: the run stops at generate with its DESIGN ERROR
+    let bad = vec![CaseFile { name: "design.json".into(), text: bend.replace("101325", "1").replace("\"mesh\": {\"level\": \"coarse\"}", "\"mesh\": {\"level\": \"huge\"}"), exec: false, data: None }];
+    let b = runner.run(&t.join("run5"), &bad, &none, &Cancel::new()).unwrap();
+    assert_eq!(b["ok"], false);
+    let m = b["msg"].as_str().unwrap();
+    assert!(m.starts_with("intake_cfd.py could not write the case: DESIGN ERROR: mesh level"), "{}", m);
 }

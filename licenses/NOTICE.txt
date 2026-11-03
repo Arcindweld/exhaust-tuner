@@ -17,9 +17,6 @@ OpenFOAM v2412 (when installed with this program)
   says where the source is (with its SHA-256) and build-scripts\ next to it holds the patch and the
   scripts that made this build.
 
-Python 3.13 (embeddable package from python.org, runs the CFD cases' report scripts)
-  Python Software Foundation. Licence: PSF License Agreement (Python-LICENSE.txt in this folder).
-
 Engine Simulator (when installed with this program)
   Ange Yaghi; Arcindweld fork with a one-dimensional exhaust model. Licence: MIT.
 

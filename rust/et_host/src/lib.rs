@@ -6,7 +6,9 @@
 //! progress messages while a run goes on (router). The actions are in dispatcher.
 
 pub mod case_files;
+pub mod cfd_gen;
 pub mod cfd_report;
+pub mod cfd_templates;
 pub mod dispatcher;
 pub mod enginesim;
 pub mod fusion_addin;

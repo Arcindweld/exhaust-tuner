@@ -55,6 +55,13 @@ jobs:
         run: |
           cargo build --release --manifest-path rust/Cargo.toml --bin exhaust-tuner-host
           /usr/bin/python3 cfd/report_rs_vs_py.py rust/target/release/exhaust-tuner-host
+      # the 3-D case generator in Rust against intake_cfd.py's generate_case, byte for byte on 29 designs (bends, every
+      # inlet type, CAD and exhaust STLs, each operating point and solver, refusals); its text templates are taken
+      # from intake_cfd.py, so a change there without regenerating cfd_templates.rs fails here
+      - name: CFD case generator, Rust against intake_cfd.py
+        run: |
+          /usr/bin/python3 cfd/gen_rust_templates.py --check
+          /usr/bin/python3 cfd/gen_rs_vs_py.py rust/target/release/exhaust-tuner-host
       # Python 3.11 here: its sum() adds plainly, 3.12 and later with Neumaier's compensation, and the Rust core follows
       # whichever Python loads it; the Windows job checks it on 3.12, so both ways are covered
       - uses: actions/setup-python@v5
@@ -146,19 +153,13 @@ jobs:
       # OpenFOAM: the newest build from the "OpenFOAM for Windows" workflow whose validation passed for this checkout's
       # generator and references (the 2-D square-cut-pipe cases, compressible and incompressible, against the Linux
       # v2412 runs; the 3-D snappyHexMesh path is not part of that comparison). Without one, the program ships
-      # without CFD runs (the page then shows only the case download). Python (embeddable, from python.org) runs the
-      # cases' own scripts: intake_report.py and, for 3-D designs, intake_cfd.py.
-      - name: OpenFOAM (latest validated build) and Python for the case scripts
+      # without CFD runs (the page then shows only the case download). No Python is bundled: the program generates
+      # 3-D cases, watches the solver and writes the report in Rust (cfd_gen, cfd_report).
+      - name: OpenFOAM (latest validated build)
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          PY_URL: https://www.python.org/ftp/python/3.13.17/python-3.13.17-embed-amd64.zip
-          PY_SHA256: 9e35319bffedab8b36ad44d8f377cb4f1733bcec257a0b6d04d94f01486ddb38
         run: |
-          curl.exe -sSL --retry 4 -o py.zip $env:PY_URL
-          if ((Get-FileHash py.zip -Algorithm SHA256).Hash -ne $env:PY_SHA256) { throw "Python embeddable package: SHA-256 mismatch" }
-          Expand-Archive py.zip -DestinationPath engines/python
-          "EXHAUST_TUNER_PYTHON=$PWD\engines\python\python.exe" >> $env:GITHUB_ENV
           # a passed run is not enough: its validate job itself must have passed (a skipped one does not count), and it
           # must have validated this checkout's generator version against this checkout's reference files (its
           # openfoam-validated record); otherwise the build is not bundled and the installer has no CFD runs
@@ -232,6 +233,16 @@ jobs:
           $info = & rust/target/release/exhaust-tuner-host.exe --info | ConvertFrom-Json
           if ($info.version -ne $env:APP_VERSION) { throw "the built program reports version $($info.version), not $env:APP_VERSION" }
           Get-ChildItem rust/target/release/*.exe | ForEach-Object { "{0}: {1:N0} bytes" -f $_.Name, $_.Length }
+
+      # the CFD case generator and report in Rust against the Python on Windows (the UCRT's sin, cos, atan2 and pow,
+      # as Windows Python calls them): the same bytes
+      - name: CFD generator and report, Rust against the Python (Windows)
+        shell: pwsh
+        run: |
+          python cfd/gen_rs_vs_py.py rust/target/release/exhaust-tuner-host.exe
+          if ($LASTEXITCODE -ne 0) { throw "the Rust case generator does not write intake_cfd.py's case on Windows" }
+          python cfd/report_rs_vs_py.py rust/target/release/exhaust-tuner-host.exe
+          if ($LASTEXITCODE -ne 0) { throw "the Rust report does not write intake_report.py's results on Windows" }
 
       - name: Test browser from the cache
         uses: actions/cache@v4
@@ -317,8 +328,6 @@ jobs:
           Copy-Item engines/openwam/OpenWAM.exe "$s/engines/openwam/"
           if (Test-Path engines/engine-sim) { Copy-Item engines/engine-sim "$s/engines/engine-sim" -Recurse; Copy-Item engines/engine-sim/LICENSE "$s/licenses/engine-sim-MIT.txt" -ErrorAction SilentlyContinue }
           if (Test-Path engines/openfoam) { Copy-Item engines/openfoam "$s/engines/openfoam" -Recurse }
-          Copy-Item engines/python "$s/engines/python" -Recurse
-          Copy-Item engines/python/LICENSE.txt "$s/licenses/Python-LICENSE.txt"
           Copy-Item licenses/NOTICE.txt, licenses/GPL-3.0.txt "$s/licenses/"
           Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile webview2/MicrosoftEdgeWebview2Setup.exe -MaximumRetryCount 4 -RetryIntervalSec 10
           Get-ChildItem $s -Recurse | Measure-Object -Property Length -Sum | ForEach-Object { "stage: {0:N1} MB in {1} files" -f ($_.Sum/1MB), $_.Count }
@@ -336,7 +345,7 @@ jobs:
         shell: pwsh
         run: |
           # the installed program must find its own engines: drop the build-tree overrides earlier steps exported
-          Remove-Item Env:EXHAUST_TUNER_OPENFOAM, Env:EXHAUST_TUNER_PYTHON, Env:EXHAUST_TUNER_ENGINESIM, Env:EXHAUST_TUNER_OPENWAM -ErrorAction SilentlyContinue
+          Remove-Item Env:EXHAUST_TUNER_OPENFOAM, Env:EXHAUST_TUNER_ENGINESIM, Env:EXHAUST_TUNER_OPENWAM -ErrorAction SilentlyContinue
           $setup = Get-ChildItem dist/ExhaustTuner-Setup-*.exe | Select-Object -First 1
           $dir = "$env:RUNNER_TEMP\ET"
           Start-Process $setup.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/DIR=`"$dir`"","/TASKS=addin" -Wait
@@ -356,9 +365,10 @@ jobs:
           if (-not $reply.ok -or -not $reply.result.models[0].finished) { $out; throw "installed OpenWAM run failed" }
           "installed program ran OpenWAM: $($reply.result.models[0].seconds) s"
           if ($info.engines.openfoam) {
-            # a small pipe case written by the generator with the installed Python, run by the installed OpenFOAM
+            # a small 2-D pipe case (as the page writes it; here by intake_cfd.py on the runner's Python), run by the
+            # installed OpenFOAM
             '{"name": "ci_pipe", "geometry": {"tube_diameter_mm": 60, "tube_length_mm": 300, "inlet": {"type": "plain"}, "mount": {"type": "free"}}, "operating_point": {"pressure_ratio": 1.01}, "ambient": {"p_pa": 101325, "T_c": 20}, "mesh": {"level": "coarse"}, "solver": {"force": "incompressible", "max_iterations": 150, "write_interval": 150}}' | Set-Content -Encoding ascii ci_pipe.json
-            & "$dir\engines\python\python.exe" cfd/intake_cfd.py ci_pipe.json ci_pipe | Out-Null
+            python cfd/intake_cfd.py ci_pipe.json ci_pipe | Out-Null
             $files = Get-ChildItem ci_pipe -Recurse -File | ForEach-Object { @{ name = [IO.Path]::GetRelativePath("$PWD\ci_pipe", $_.FullName).Replace('\','/'); text = (Get-Content $_.FullName -Raw) } }
             $msg = @{ id = 2; action = "runOpenFOAM"; data = @{ name = "ci_pipe"; files = @($files) } } | ConvertTo-Json -Depth 6 -Compress
             $out = $msg | & "$dir\exhaust-tuner-host.exe"
@@ -366,6 +376,11 @@ jobs:
             if (-not $reply.ok -or -not $reply.result.ok) { $out | Select-Object -Last 20; throw "installed OpenFOAM run failed" }
             "installed program ran OpenFOAM: $($reply.result.solver), $($reply.result.iterations) iterations, K $($reply.result.results.summary.K)"
           }
+          # a 3-D design generated by the installed program itself (no Python installed with it)
+          $g = & "$dir\exhaust-tuner-host.exe" --cfd-generate cfd/tests/bend.json "$env:RUNNER_TEMP\bend_case"
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path "$env:RUNNER_TEMP\bend_case\system\snappyHexMeshDict")) { $g; throw "the installed program did not generate a 3-D case" }
+          if (Test-Path "$dir\engines\python") { throw "a Python was installed with the program; nothing needs it now" }
+          "installed program generated a 3-D case: $(($g | ConvertFrom-Json).cells) cells estimated"
           # a token the C# program saved (DPAPI, its entropy) reads in the Rust program: an update from 0.1.<C#> keeps it
           $tok = "github_pat_11CSHARPSAVED0000000000_abcdefghijklmnopqrstuvwxyz0123"
           try { Add-Type -AssemblyName System.Security.Cryptography.ProtectedData -ErrorAction Stop } catch { Add-Type -AssemblyName System.Security }

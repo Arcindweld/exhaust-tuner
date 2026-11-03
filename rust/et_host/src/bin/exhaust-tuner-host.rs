@@ -7,7 +7,7 @@
 //! EXHAUST_TUNER_UPDATE_PREVIOUS plays the version the last start recorded (the window reads it from
 //! last-start.txt). Folders: EXHAUST_TUNER_APPROOT, EXHAUST_TUNER_DATA, EXHAUST_TUNER_FUSION_ADDINS.
 //! Other switches: --info (hostInfo), --bridge (the page's bridge script), --install-addin (the installer's),
-//! --cfd-report DIR (a CFD case's report, as intake_report.py writes it),
+//! --cfd-report DIR (a CFD case's report, as intake_report.py writes it), --cfd-generate design.json DIR (a 3-D case),
 //! --token-sha256 (the saved update token's SHA-256, never the token).
 
 use et_host::dispatcher::{Dispatcher, HostUi};
@@ -85,6 +85,24 @@ fn main() {
         match et_host::cfd_report::report(&dir) {
             Ok(r) => {
                 println!("{}", r.text);
+                return;
+            }
+            Err(e) => {
+                println!("{}", e);
+                std::process::exit(1);
+            }
+        }
+    }
+    // intake_cfd.py's case generator in Rust for a 3-D design (what a CFD run's "generate" step does): writes the
+    // case and prints its summary, or "DESIGN ERROR: ..." with exit code 1, as `python3 intake_cfd.py` does
+    if let Some(i) = args.iter().position(|a| a == "--cfd-generate") {
+        let (Some(design), Some(out)) = (args.get(i + 1), args.get(i + 2)) else {
+            println!("usage: exhaust-tuner-host --cfd-generate design.json out_case_dir");
+            std::process::exit(2);
+        };
+        match et_host::cfd_gen::generate_file(Path::new(design), Path::new(out)) {
+            Ok(s) => {
+                println!("{}", et_host::cfd_gen::summary_text(&s));
                 return;
             }
             Err(e) => {

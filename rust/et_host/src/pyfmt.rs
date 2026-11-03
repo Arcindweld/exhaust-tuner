@@ -3,8 +3,9 @@
 //! indent=2, and sum() of floats as Python 3.12 and later add them (Neumaier's compensated sum).
 
 /// A Python value as json.dump sees it: ints and floats stay apart (1 and 1.0 print differently), floats may be NaN.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum Py {
+    #[default]
     None,
     Bool(bool),
     Int(i64),
@@ -372,4 +373,169 @@ mod tests {
         assert_eq!(dumps(&Py::Dict(d), Some(2)), "{\n  \"a\": [],\n  \"b\": {},\n  \"c\": NaN,\n  \"\\u00e9\": 3\n}");
         assert_eq!(psum([0.1, 0.2, 0.3]), 0.6); // plain adding gives 0.6000000000000001
     }
+}
+
+/// One argument of Python's % operator.
+#[derive(Clone, Debug)]
+pub enum A {
+    S(String),
+    I(i64),
+    F(f64),
+}
+impl From<&str> for A {
+    fn from(s: &str) -> A {
+        A::S(s.to_string())
+    }
+}
+impl From<String> for A {
+    fn from(s: String) -> A {
+        A::S(s)
+    }
+}
+impl From<&String> for A {
+    fn from(s: &String) -> A {
+        A::S(s.clone())
+    }
+}
+impl From<f64> for A {
+    fn from(x: f64) -> A {
+        A::F(x)
+    }
+}
+impl From<i64> for A {
+    fn from(x: i64) -> A {
+        A::I(x)
+    }
+}
+impl From<usize> for A {
+    fn from(x: usize) -> A {
+        A::I(x as i64)
+    }
+}
+impl From<i32> for A {
+    fn from(x: i32) -> A {
+        A::I(x as i64)
+    }
+}
+
+/// fmt % args, as Python's printf-style formatting does it: %s %d %i %f %e %g %r %%, with flags - + 0 and space,
+/// a width and a precision; %(name)x takes the named argument instead. Panics on a format the templates do not use
+/// (a mismatch is a programming error, caught by the byte-for-byte tests).
+pub fn pct(fmt: &str, args: &[A]) -> String {
+    pct_impl(fmt, args, &[])
+}
+pub fn pct_named(fmt: &str, named: &[(&str, A)]) -> String {
+    pct_impl(fmt, &[], named)
+}
+fn pct_impl(fmt: &str, args: &[A], named: &[(&str, A)]) -> String {
+    let c: Vec<char> = fmt.chars().collect();
+    let mut out = String::new();
+    let (mut i, mut k) = (0usize, 0usize);
+    while i < c.len() {
+        if c[i] != '%' {
+            out.push(c[i]);
+            i += 1;
+            continue;
+        }
+        i += 1;
+        let mut arg: Option<A> = None;
+        if c[i] == '(' {
+            let j = (i..c.len()).find(|&j| c[j] == ')').expect("%(name");
+            let name: String = c[i + 1..j].iter().collect();
+            arg = Some(named.iter().find(|e| e.0 == name).unwrap_or_else(|| panic!("no %({}) argument", name)).1.clone());
+            i = j + 1;
+        }
+        let (mut left, mut zero, mut plus, mut space) = (false, false, false, false);
+        while i < c.len() && "-0+ #".contains(c[i]) {
+            match c[i] {
+                '-' => left = true,
+                '0' => zero = true,
+                '+' => plus = true,
+                ' ' => space = true,
+                _ => {}
+            }
+            i += 1;
+        }
+        let mut width = 0usize;
+        while i < c.len() && c[i].is_ascii_digit() {
+            width = width * 10 + c[i].to_digit(10).unwrap() as usize;
+            i += 1;
+        }
+        let mut prec: Option<usize> = None;
+        if i < c.len() && c[i] == '.' {
+            i += 1;
+            let mut p = 0usize;
+            while i < c.len() && c[i].is_ascii_digit() {
+                p = p * 10 + c[i].to_digit(10).unwrap() as usize;
+                i += 1;
+            }
+            prec = Some(p);
+        }
+        let conv = c[i];
+        i += 1;
+        if conv == '%' {
+            out.push('%');
+            continue;
+        }
+        let a = match arg {
+            Some(a) => a,
+            None => {
+                let a = args.get(k).unwrap_or_else(|| panic!("not enough arguments for format string {:?}", fmt)).clone();
+                k += 1;
+                a
+            }
+        };
+        let num = |a: &A| match a {
+            A::F(x) => *x,
+            A::I(n) => *n as f64,
+            A::S(s) => panic!("a number is required, not str {:?}", s),
+        };
+        let mut s = match conv {
+            's' | 'r' => match &a {
+                A::S(s) => {
+                    if conv == 'r' {
+                        format!("'{}'", s)
+                    } else {
+                        s.clone()
+                    }
+                }
+                A::I(n) => n.to_string(),
+                A::F(x) => repr(*x),
+            },
+            'd' | 'i' => match &a {
+                A::I(n) => n.to_string(),
+                A::F(x) => int_of(*x).map(|v| v.to_string()).unwrap_or_else(|| panic!("cannot convert float {} to integer", x)),
+                A::S(s) => panic!("%d format: a number is required, not str {:?}", s),
+            },
+            'f' => fix(num(&a), prec.unwrap_or(6)),
+            'e' => exp(num(&a), prec.unwrap_or(6)),
+            'g' => gen(num(&a), prec.unwrap_or(6)),
+            other => panic!("unsupported conversion %{}", other),
+        };
+        if matches!(conv, 'd' | 'i' | 'f' | 'e' | 'g') && !s.starts_with('-') {
+            if plus {
+                s.insert(0, '+');
+            } else if space {
+                s.insert(0, ' ');
+            }
+        }
+        let n = s.chars().count();
+        if n < width {
+            let pad = width - n;
+            if left {
+                s.push_str(&" ".repeat(pad));
+            } else if zero && matches!(conv, 'd' | 'i' | 'f' | 'e' | 'g') && !s.contains("nan") && !s.contains("inf") {
+                let neg = s.starts_with(['-', '+', ' ']);
+                let (sign, rest) = if neg { s.split_at(1) } else { ("", s.as_str()) };
+                s = format!("{}{}{}", sign, "0".repeat(pad), rest);
+            } else {
+                s = format!("{}{}", " ".repeat(pad), s);
+            }
+        }
+        out.push_str(&s);
+    }
+    if k != args.len() && named.is_empty() {
+        panic!("not all arguments converted during string formatting: {:?}", fmt);
+    }
+    out
 }

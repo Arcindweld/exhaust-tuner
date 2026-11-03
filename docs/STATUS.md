@@ -116,7 +116,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   only call GetFileType and were not held. The Core test passes (no pending read there), so did Linux. Fix: the
   runner gives every child its own stdin pipe, closed at once.
 - Program CFD: Core/OpenFoamRunner.cs (Allrun without bash; watchdog = the case's intake_report.py --watch PID; 3-D
-  designs generated with the bundled Python first; checkMesh aspect-ratio-only flags are a note), request
+  designs generated first (bundled Python then; in Rust since stage 5); checkMesh aspect-ratio-only flags are a note), request
   runOpenFOAM, page "Run in OpenFOAM on this PC" / Stop in the intake CFD section. windows.yml bundles the newest
   PASSED openfoam-windows run's zip (90-day artifact) and python.org's embeddable Python 3.13.17 (SHA-256 pinned);
   REQUIRE_OPENFOAM then makes the Core test, the page test and an installed-program CFD run mandatory. Linux checks:
@@ -322,6 +322,23 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   old history: scratchpad scrub/backup/*.bundle (this session only). Not reachable from here: the release tags v0.1.43
   and v0.1.45 (tag push refused, 403) and their installers, the old Actions runs, engine-sim's PR refs and GitHub's
   cached views of old commits.
+- Rust, stage 5 (2026-11-03, "continue 3d generator"): intake_cfd.py's generate_case for 3-D designs in Rust,
+  rust/et_host/src/cfd_gen.rs: normalise/derive, inlet profiles (all four), Path3D, the bend surface, STL read
+  (ASCII latin-1, binary, one file per role), the CAD intake orientation and plenum floor, the exhaust extrusions
+  and inlet split, boundary_loop with Python's dict order, field/physics/numerics/controlDict files, both
+  snappyHexMesh writers, case_info.json, generator_summary.json and design_input.json. Text templates are pulled from
+  intake_cfd.py by cfd/gen_rust_templates.py (165 consts, cfd_templates.rs; --check in CI) and filled by pyfmt::pct
+  (Python %-formatting). cfd/gen_rs_vs_py.py: 29 designs the same bytes (every file, executable bits, printed
+  summary or DESIGN ERROR): bends with each inlet type, two out-of-plane bends + diameter change + planes, mass
+  flow / engine / pressure ratio, compressible / incompressible / forced, fine + level3d + turbulence, non-ASCII and
+  string-valued inputs, force_3d, the CAD STL (two levels), exhaust expansion (engine + AFR + a plane), two inlets
+  (even and given split), binary per-role STLs, 8 refusals. The 2-D sector stays the page's (intake_cfd.js); an
+  axisymmetric design given to the Rust generator is refused. The runner's generate step runs it in-process
+  (log.generate = what the Python prints); exhaust-tuner-host --cfd-generate design.json DIR. Python is no longer
+  bundled: windows.yml drops the embeddable 3.13, the installer removes engines\python on update, NOTICE drops it.
+  CI: core-linux and the Windows job run gen_rs_vs_py (Windows: the program's static UCRT against Windows Python).
+  One known difference left: on Windows, Python writes a non-ASCII case name in cp1252 in the file headers, Rust in
+  UTF-8.
 - Rust, stage 4 (2026-11-02, "Port it to Rust" for the CFD Python): intake_report.py (REPORT_PY) in Rust,
   rust/et_host/src/cfd_report.rs (+ pyfmt.rs: repr, %f %e %g, json.dump indent=2 with NaN, Neumaier sum, Python
   min/max order, text-mode newlines). The program's report step and the convergence watchdog (a thread beside the

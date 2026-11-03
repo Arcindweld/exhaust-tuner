@@ -111,18 +111,6 @@ impl AppPaths {
             .unwrap_or_else(|| self.engines_dir().join("openfoam").join("OpenFOAM-v2412"))
     }
 
-    /// Python for the CFD case scripts (standard library only): engines\python\python.exe on Windows, python3 on
-    /// PATH elsewhere. EXHAUST_TUNER_PYTHON overrides.
-    pub fn python_exe(&self) -> String {
-        nonempty_env("EXHAUST_TUNER_PYTHON").unwrap_or_else(|| {
-            if cfg!(windows) {
-                self.engines_dir().join("python").join("python.exe").to_string_lossy().into_owned()
-            } else {
-                "python3".to_string()
-            }
-        })
-    }
-
     /// A new, unique folder for one run: runs\yyyyMMdd-HHmmss_name.
     pub fn new_run_dir(&self, name: &str) -> std::io::Result<PathBuf> {
         let safe = safe_name(name);

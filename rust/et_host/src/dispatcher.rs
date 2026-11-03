@@ -70,7 +70,7 @@ impl Dispatcher {
                 "engines",
                 obj([
                     ("openwam", OpenWamRunner::new(p.openwam_exe()).available().into()),
-                    ("openfoam", OpenFoamRunner::new(p.openfoam_dir(), p.python_exe()).available().into()),
+                    ("openfoam", OpenFoamRunner::new(p.openfoam_dir()).available().into()),
                     ("enginesim", EngineSimRunner::new(p.enginesim_dir()).available().into()),
                 ]),
             ),
@@ -107,7 +107,7 @@ impl Dispatcher {
                 let name = get_str(data, "name")?.unwrap_or_else(|| "openfoam".into());
                 let dir = p.new_run_dir(&name)?;
                 ev(obj([("event", "folder".into()), ("folder", s(&dir))]));
-                OpenFoamRunner::new(p.openfoam_dir(), p.python_exe()).run(&dir, &files, ev, cancel)
+                OpenFoamRunner::new(p.openfoam_dir()).run(&dir, &files, ev, cancel)
             }),
 
             "runEngineSim" => self.run(|| {
