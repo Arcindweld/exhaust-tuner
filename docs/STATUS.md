@@ -292,6 +292,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   why='side'). Main pipe sizing on the Quick tab (2026-11-02): Stainless Headers' 2.2 cfm/hp and 115 cfm/in^2 now
   apply to the tube's inside (OD less two 0.065 in walls, 2 % rounding); their own example rounds 400 hp duals to
   2.25 in, 8 % short on inside area, while their chart lists 2.5 in, which is what the page now gives.
+  Installed on the owner's PC (2026-11-02, he asked "install the newest"): 4.13.0 into AddIns\ExhaustTuner (4.11.0 kept as
+  AddIns\ExhaustTuner_4.11.0.zip beside his older zips; ls3_180 files untouched), palette.html written by
+  exhaust-tuner-host --install-addin, et_core.dll cross-built here (Windows CI is stopped by billing):
+  `pip install ziglang cargo-zigbuild` (through the proxy: NO_PROXY=localhost), then in rust/et_core
+  `cargo zigbuild --release --target x86_64-pc-windows-gnu`. The first build failed test_native on Windows (block
+  scene: residuals, certify, LM, two routes off by up to 1.9 cm): MinGW's sin/cos/tan differ from the UCRT that
+  Python calls. et_core/src/cmath.rs imports them from api-ms-win-crt-math (raw-dylib) on windows-gnu; then
+  test_native.py --require passes on his PC in Fusion's Python 3.14.7, run out of process (header: Python 141.6 s,
+  core 1.0 s), and still on Linux. He has to Stop/Run the add-in or restart Fusion to load it.
 - Rust, stage 1 (the owner 2026-11-02: "reprogram everything and all features in Rust"; chose "staged, slow parts first"):
   rust/et_core (std only, cdylib, C ABI v2, panics caught at every entry point and reported via et_last_error) holds
   the router's Scene queries, TubeSet, Fields, route()'s Lazy Theta* search (free_at, los, simplify), the residuals,

@@ -35,6 +35,11 @@ EXHAUST TUNER (Fusion add-in), version 4.13.0
   check along it) gave the fit a shorter list of numbers than the trial before; the fit then compared
   numbers that did not belong together, or stopped with an error. Zeros now stand in for the missing
   points, in the Python router and the core alike.
+- The core's sin, cos, tan and acos come from the same C library Python's math module uses (on
+  Windows the Universal C Runtime), also when the DLL is built with MinGW or zig instead of Visual
+  C++: MinGW's own maths differ from it by a unit in the last place now and then, which was enough
+  for a route through the block scene to come out a little different from the Python one.
+  tests/test_native.py passes with such a build on Windows, run in Fusion's own Python.
 - Fixed (found running the drone parts in Fusion itself): a J-pipe whose route had no room for its
   bends, so they overlapped, made a centreline that folded back through itself, and Fusion stopped
   with a sweep error; the router can also leave a bend a fraction of a millimetre long at a corner,

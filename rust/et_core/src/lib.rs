@@ -16,6 +16,7 @@
 #![allow(clippy::manual_clamp, clippy::manual_is_multiple_of, clippy::needless_range_loop, clippy::type_complexity)]
 #![allow(clippy::unnecessary_map_or)]
 
+pub mod cmath;
 pub mod field;
 pub mod geom;
 pub mod hash;

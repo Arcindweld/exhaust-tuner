@@ -8,6 +8,7 @@
 //! matter for that: min() and max() return the first of equal values (pmin, pmax), and sum() of floats is
 //! Neumaier-compensated from Python 3.12 on (psum, told which by the caller).
 
+use crate::cmath;
 use crate::field::Field;
 use crate::geom::{seg_d2, Plane};
 use crate::hash::{Map, Set};
@@ -106,7 +107,7 @@ pub fn psum<I: IntoIterator<Item = f64>>(it: I, neumaier: bool) -> f64 {
 
 fn angle_between(a: V3, b: V3) -> f64 {
     let c = vdot(vunit(a), vunit(b));
-    pmax(-1.0, pmin(1.0, c)).acos()
+    cmath::acos(pmax(-1.0, pmin(1.0, c)))
 }
 
 // ---------------------------------------------------------------- the centreline: corners rounded to the bend
@@ -134,12 +135,12 @@ impl Elem {
             }
             Elem::Arc { p0, cen, a, len, u0, u1, .. } => {
                 let r = len / a;
-                let s = a.sin();
+                let s = cmath::sin(a);
                 if s < 1e-9 {
                     return p0;
                 }
-                let w0 = ((1.0 - f) * a).sin() / s;
-                let w1 = (f * a).sin() / s;
+                let w0 = cmath::sin((1.0 - f) * a) / s;
+                let w1 = cmath::sin(f * a) / s;
                 [
                     cen[0] + r * (w0 * u0[0] + w1 * u1[0]),
                     cen[1] + r * (w0 * u0[1] + w1 * u1[1]),
@@ -182,7 +183,7 @@ pub fn chain_geometry(q: &[V3], r: f64, nm: bool) -> Geo {
     for i in 1..n.saturating_sub(1) {
         let a = angle_between(dirs[i - 1], dirs[i]);
         th[i] = a;
-        t[i] = r * (pmin(a, r179) / 2.0).tan();
+        t[i] = r * cmath::tan(pmin(a, r179) / 2.0);
     }
     let avail: Vec<f64> = (0..n.saturating_sub(1)).map(|i| lens[i] - t[i] - t[i + 1]).collect();
     let mut elems: Vec<Elem> = Vec::with_capacity(2 * n);
@@ -198,7 +199,7 @@ pub fn chain_geometry(q: &[V3], r: f64, nm: bool) -> Geo {
             let a = th[j];
             let (din, dout) = (dirs[i], dirs[j]);
             let b = vunit(vsub(dout, din));
-            let cen = vadd(q[j], vmul(b, r / (pmin(a, r179) / 2.0).cos()));
+            let cen = vadd(q[j], vmul(b, r / cmath::cos(pmin(a, r179) / 2.0)));
             let p0 = vsub(q[j], vmul(din, t[j]));
             let p1 = vadd(q[j], vmul(dout, t[j]));
             let u0 = vunit(vsub(p0, cen));
