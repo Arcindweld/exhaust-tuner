@@ -315,6 +315,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   built or shipped) still wants a token. Public-content check of both repos (history included): only made-up test
   tokens, no keys, no scanner model; visible: the commit email, the Windows user name in default paths
   (C:/Users/<you>/...), the engine recordings under validation/, the Header Wizard comparison text.
+- Identifying data removed (asked 2026-11-02, "rewrite all history", Header Wizard comparison kept without the licence
+  line): git filter-repo over both repos (mailmap to 350119910+Arcindweld@users.noreply.github.com; replace-text and
+  replace-message for the owner's name, user-folder paths, location and the licence wording), every branch force-pushed.
+  Binary blobs unchanged; tests pass on the rewritten tree. Commits from now on use the noreply address. Backups of the
+  old history: scratchpad scrub/backup/*.bundle (this session only). Not reachable from here: the release tags v0.1.43
+  and v0.1.45 (tag push refused, 403) and their installers, the old Actions runs, engine-sim's PR refs and GitHub's
+  cached views of old commits.
 - Rust, stage 1 (the owner 2026-11-02: "reprogram everything and all features in Rust"; chose "staged, slow parts first"):
   rust/et_core (std only, cdylib, C ABI v2, panics caught at every entry point and reported via et_last_error) holds
   the router's Scene queries, TubeSet, Fields, route()'s Lazy Theta* search (free_at, los, simplify), the residuals,
