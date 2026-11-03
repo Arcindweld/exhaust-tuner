@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """v8_841_study.py - 8-4-1 headers on a cross-plane V8 in OpenWAM, against the layouts they replace.
 
-    python3 v8_841_study.py [rpm ...] [cycles=40] [jobs=2] [cell_mm=7.07] [sound=5000]
+    python3 v8_841_study.py [rpm ...] [cycles=40] [jobs=2] [cell_mm=7.07] [sound=5000] [layouts=a,b] [tag=_x] [yr=0.8]
 
 One engine, six exhaust layouts, the same primary tube, the same path length from the valve to the last
 collector and the same collector rules, so only the grouping changes:
@@ -133,8 +133,8 @@ def pulse_gaps(cyls):
     return [round((a[(i + 1) % len(a)] - a[i]) % 720 or 720) for i in range(len(a))]
 
 
-def run_one(layout, rpm, over, sound=False):
-    name = "%s_%d" % (layout, rpm)
+def run_one(layout, rpm, over, sound=False, tag=""):
+    name = "%s_%d%s" % (layout, rpm, tag)
     folder = os.path.join(HERE, "runs", "v8_841", name)
     os.makedirs(folder, exist_ok=True)
     run = dict(over, rpm=float(rpm), name=name)
@@ -166,7 +166,7 @@ def run_one(layout, rpm, over, sound=False):
 
 
 def main(argv):
-    rpms, over, jobs, sound_rpm = [], {"cycles": 40, "cell_mm": 7.07}, 2, None
+    rpms, over, jobs, sound_rpm, layouts, tag, yr = [], {"cycles": 40, "cell_mm": 7.07}, 2, None, LAYOUTS, "", None
     for a in argv[1:]:
         if "=" in a:
             k, v = a.split("=", 1)
@@ -174,19 +174,28 @@ def main(argv):
                 jobs = int(v)
             elif k == "sound":
                 sound_rpm = int(v)
+            elif k == "layouts":
+                layouts = v.split(",")
+            elif k == "tag":
+                tag = v
+            elif k == "yr":
+                yr = float(v)
             else:
                 over[k] = float(v) if k != "cycles" else int(v)
         else:
             rpms.append(int(a))
     rpms = rpms or [3000, 4000, 5000, 6000, 6600]
-    todo = [(l, r, r == sound_rpm) for l in LAYOUTS for r in rpms]
+    global DSEC
+    if yr:                                   # secondary area / the two primaries feeding it (Concept 841: 0.64)
+        DSEC = DP * math.sqrt(2 * yr)
+    todo = [(l, r, r == sound_rpm) for l in layouts for r in rpms]
     with ThreadPoolExecutor(max_workers=jobs) as ex:
-        res = list(ex.map(lambda t: run_one(t[0], t[1], over, t[2]), todo))
+        res = list(ex.map(lambda t: run_one(t[0], t[1], over, t[2], tag), todo))
     groups = {"dual41": [LEFT, RIGHT], "bank180": [FIRING[0::2], FIRING[1::2]], "all81": [FIRING]}
     meta = {"engine": engine(), "firing": FIRING, "d_primary_mm": DP * 1e3, "d_secondary_mm": DSEC * 1e3,
-            "d_collector_841_mm": DC841 * 1e3, "total_mm": TOTAL * 1e3, "first_mm": FIRST * 1e3, "run": over,
+            "d_collector_841_mm": DC841 * 1e3, "layouts": layouts, "tag": tag, "total_mm": TOTAL * 1e3, "first_mm": FIRST * 1e3, "run": over,
             "collector_pulse_gaps_deg": {k: [pulse_gaps(g) for g in v] for k, v in groups.items()}}
-    json.dump({"meta": meta, "results": res}, open(os.path.join(HERE, "runs", "v8_841", "results.json"), "w"), indent=1)
+    json.dump({"meta": meta, "results": res}, open(os.path.join(HERE, "runs", "v8_841", "results%s.json" % tag), "w"), indent=1)
     print("%-9s %5s %8s %8s %7s %7s %5s" % ("layout", "rpm", "T_Nm", "P_kW", "VEdel", "PMEP", "ok"))
     for o in res:
         print("%-9s %5d %8.1f %8.1f %7.3f %7.3f %5s%s" % (o["layout"], o["rpm"], o["T_net_Nm"], o["P_net_kW"], o["VE_delivered"],
