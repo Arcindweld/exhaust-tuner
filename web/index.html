@@ -517,6 +517,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="q-tq" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>rpm</em></span></label>
         <label class="f adv"><span class="lab">Cruise RPM, blank for typical</span>
           <span class="inp"><input id="q-cruise" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>rpm</em></span></label>
+        <label class="f"><span class="lab">Exhaust length, head flange to tip, blank if not known</span>
+          <span class="inp"><input id="q-sys" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
         <label class="f adv"><span class="lab">Turbo or supercharger</span>
           <span class="inp"><select id="q-ind"><option value="na" selected>Neither</option><option value="turbo">Turbo</option><option value="sc">Supercharger</option></select></span></label>
       </div>
@@ -12342,13 +12344,205 @@ const MUF_WHY={turbo:'Turbo-style mufflers are usually the quietest of the commo
   straight:'Straight-through packed mufflers are generally the loudest and least restrictive of the common types.',moto:'Bike silencers are straight-through packed cans; most have a removable baffle that quiets them.'};
 const BAND_TXT={low:'low-end torque',mid:'all-round pull',top:'top-end power'};
 function quickParams(){
-  return {eng:$('q-eng').value,cc:val('q-disp'),rpm:val('q-rpm'),hp:val('q-hp'),tq:val('q-tq'),cruise:val('q-cruise'),ind:$('q-ind').value,
+  return {eng:$('q-eng').value,cc:val('q-disp'),rpm:val('q-rpm'),hp:val('q-hp'),tq:val('q-tq'),cruise:val('q-cruise'),sys:val('q-sys'),ind:$('q-ind').value,
     loud:+$('q-loud').value,tone:$('q-tone').value,band:$('q-band').value,use:$('q-use').value,pipes:$('q-pipes').value,
     // with Blair's design picked, the 2-Stroke tab holds the port diameter; the header ends K1 times larger
     ted:val('t-ed'),tegt:val('t-egt'),tdh:val('t-dh')*($('t-shape').value==='blair'&&BLAIR_TYPES[$('t-type').value]?BLAIR_TYPES[$('t-type').value].K1:1)};
 }
 let QLAST=null;
 const e2name=e=>e.name.split(' · ')[0];
+/* ----- build sheet: the Quick build as parts in flow order, with sizes, where each one goes, a shopping and cut list, and
+   the order to build it in. Every figure comes from the calculators on this page: the header layout (calcLayout or calcFour),
+   the flow-rule pipe size, Jennings' 8° cone (the 4-Stroke tab's megaphone), calcCross and its build steps, calcHelm and
+   calcQW for the drone, and calcPlace for where the drone tone's pressure peaks. Where a position has no rule behind it
+   (the muffler, the tailpipe), the sheet says so instead of making one up. ----- */
+// a cone rolled from flat sheet, laid out on the mid-wall: the two arc radii and the sweep of the blank
+function coneFlat(d0,d1,len,wall){
+  const ra=(d0+wall)/2, rb=(d1+wall)/2, big=Math.max(ra,rb), dr=Math.abs(rb-ra);
+  if(!(dr>1e-6)||!(len>0)) return null;
+  const s=Math.hypot(len,dr), R1=big*s/dr;
+  return {R0:R1-s,R1,sweep:360*big/R1,slant:s};
+}
+const SHEET_GAP=152.4;          // mm: plain pipe kept between welded-in parts so each joint can be reached, 6 in
+function quickSheet(p,r){
+  const h=r.header, m=r.main, f0=x=>Math.round(x).toLocaleString('en-US'), W=WALL_STD;
+  if(r.rotary||(!h&&!r.two)) return null;
+  const rows=[], buy=[], steps=[], alts=[], notes=[], sides=r.nPipes, each=sides>1?', each side':'';
+  const sys=Number.isFinite(p.sys)&&p.sys>0?p.sys:null;
+  let x=0;
+  const add=(name,size,len,note,o)=>{ const row=Object.assign({name,size,at:x,len,note},o||{}); rows.push(row); if(len>0&&!(o&&o.side)) x+=len; return row; };
+  const idod=(id,od)=>cdim(id)+' ID'+(od>0?', '+tubIn(od)+' OD':'');
+  const cone=(a,b)=>cdim(a)+' to '+cdim(b)+' ID';
+  if(r.two){
+    // a two-stroke: the expansion chamber is the whole tuned system; its tab works out every dimension
+    const t=r.two;
+    t.segs.forEach(s=>add(s.name,s.d0===s.d1?idod(s.d0):cone(s.d0,s.d1),s.len,s.name==='Header'?'From the exhaust port face.':''));
+    add('Silencer','slips over the '+cdim(t.ds)+' stinger',NaN,'A packed two-stroke silencer; none in the parts list fit a stinger, so match its size.');
+    steps.push('Check the port timing and header size on the 2-Stroke tab first: every length here follows from them.',
+      'Roll each cone from flat sheet (the 2-Stroke tab’s layout), tack the cones and belly on a straight jig, then the header to the flange.',
+      'Weld the stinger last and fit the silencer.');
+    return {rows,buy,steps,alts,notes,sides:r.nPipes,x};
+  }
+  // ---- headers ----
+  const n=r.n;
+  if(h.separate){
+    add(h.pipesEach>1?'Header pipes':'Header pipe',idod(h.dp,h.od),h.tube,(h.pipesEach>1?'One per cylinder. ':'')+'Tuned for about '+f0(r.tune)+' RPM.');
+    buy.push(['Header tube',tubIn(h.od)+' OD × 0.065 in wall',h.pipesEach+' × '+clen(h.tube)+' straight length','plus whatever the bends take; the route sets them']);
+  } else {
+    const per=h.groups&&h.groups.length?h.groups[0].cyls.length:n;
+    h.segs.forEach((s,i)=>{
+      const prim=i===0;
+      add(s.name,s.d0===s.d1?idod(s.d0,prim?h.od:0):cone(s.d0,s.d1),s.len,
+        prim?'One per cylinder, all the same length ('+per+' into each collector). Tuned for about '+f0(r.tune)+' RPM.':'');
+    });
+    const first=h.segs[0];
+    buy.push(['Primary tube',tubIn(h.od)+' OD × 0.065 in wall',n+' × '+clen(first.len)+' straight length (total '+clen(n*first.len)+')','plus whatever the bends take; the route sets them']);
+    if(h.triy){ const sx=h.segs.find(s=>/second/i.test(s.name)); buy.push(['Tri-Y merges','2 primaries into '+cdim(h.lay.dsec)+' ID',(n/2)+'',sx?'secondary tubes '+clen(sx.len)+' each':'']); }
+    buy.push(['Merge collectors',(h.triy?'2':per)+' into 1, '+cdim(h.dc)+' ID out',h.nColl+'','with '+clen(h.lay.cstraight)+' of straight after the merge']);
+  }
+  buy.unshift(['Head flanges','your head’s port pattern',n+' ports','3/8 in plate is the usual']);
+  const dEnd=h.separate?h.dp:h.dc, xHdr=x;
+  // ---- the cone from the collector into the main pipe ----
+  const mid=m.id>0?m.id:dEnd, od=mid+2*W;
+  let cn=null;
+  if(mid>dEnd*1.02){
+    cn={kind:'Megaphone (diffuser cone)',ang:8,len:coneLen(dEnd,mid,8)};
+    add(cn.kind+each,cone(dEnd,mid)+', 8° included',cn.len,'Opens the collector into the main pipe. Jennings found a gentle 8° cone recovers the most pulse energy; steeper ones recover less.');
+  } else if(mid<dEnd*0.98){
+    cn={kind:'Reducer cone',ang:15,len:coneLen(dEnd,mid,15)};
+    add(cn.kind+each,cone(dEnd,mid)+', 15° included',cn.len,'The flow rule’s pipe is smaller than the collector; 15°, the same as the merge cones.');
+  }
+  if(cn){ const fl=coneFlat(Math.min(dEnd,mid),Math.max(dEnd,mid),cn.len,W);
+    buy.push([cn.kind,cone(dEnd,mid)+' × '+clen(cn.len),sides+'',fl?'from 16 ga sheet: arcs of '+clen(fl.R0)+' and '+clen(fl.R1)+' radius over '+fl.sweep.toFixed(1)+'° (mid-wall), or buy a cone':'']); }
+  buy.push(['V-band clamps',tubIn(od)+' tube',sides+'','at the collector outlets, so the headers come off']);
+  // the open race alternative: the 4-Stroke tab's megaphone (twice the collector's area, 8° included)
+  if(p.use!=='street') alts.push('Open megaphone instead of mufflers (race, off-road): '+cone(dEnd,dEnd*Math.SQRT2)+' over '+clen(coneLen(dEnd,dEnd*Math.SQRT2,8))+
+    ', 8° included, starting right at the collector. That is twice the collector’s area, the 4-Stroke tab’s default. Expect it to be very loud: the AHRMA test on this page measured an open megaphone about 6 dB over a plain open pipe.');
+  // ---- crossover ----
+  let xs=null, xp=null;
+  if(r.cross){
+    const s0=val('x-s'), S=s0>od+25.4?s0:od+50.8;
+    xp={type:r.cross.type,d:mid,dplan:od,s:S,pos:r.cross.pos,ratio:0.8,ang:val('x-ang')>0?val('x-ang'):20,mrg:Number.isFinite(val('x-mrg'))?val('x-mrg'):1};
+    xs=calcCross(xp);
+    if(!xs.err){
+      const gap=Math.max(0,xHdr+r.cross.pos-x);
+      if(gap>0) add('Main pipe'+each,idod(mid,od),gap,'Brings the crossover to '+clen(r.cross.pos)+' behind the collectors.');
+      if(xs.type==='x'){
+        add('X-pipe',xp.ang+'° each pipe, merged duct '+cdim(xs.dm)+' ID',xs.len,'Pipes '+clen(S)+' apart centre to centre'+(s0>od+25.4?' (the Crossover tab’s spacing)':' (assumed: enter yours on the Crossover tab)')+'. Smoother, higher note; evens out the bank pulses.');
+        buy.push(['X-pipe',tubIn(od)+', '+xp.ang+'° each pipe','1','buy one, or build it from the steps below ('+xs.g.bends+' bends of '+(+xp.ang.toFixed(1))+'°)']);
+      } else {
+        const Lh=2*xs.stub+xs.dc;
+        add('H-pipe','balance tube '+cdim(xs.dc)+' ID, '+clen(xs.tube)+' between the pipe walls',Lh,'Pipes '+clen(S)+' apart centre to centre'+(s0>od+25.4?'':' (assumed: enter yours on the Crossover tab)')+'. The deeper, traditional note.');
+        buy.push(['H-pipe balance tube',cdim(xs.dc)+' ID',clen(xs.tube),'between the pipe walls, coped to each pipe']);
+      }
+    }
+  }
+  const xCross=x;
+  // ---- converters (street) ----
+  if(p.use==='street'){
+    add('Catalytic converters'+each,'inlet and outlet for '+tubIn(od)+' tube',NaN,'In the run of main pipe that follows. Closer to the engine they light off sooner but run hotter (Cats tab). In California a street car needs an approved replacement for that vehicle (CARB Executive Order).',{side:true});
+    buy.push(['Catalytic converters',tubIn(od)+' inlet and outlet',sides+'','CARB-approved for the vehicle on a California street car']);
+    buy.push(['Oxygen sensor bungs','M18 × 1.5',(2*sides)+'','one ahead of each converter, one behind it on OBD-II cars; mount above horizontal so water drains off the sensor']);
+  } else buy.push(['Oxygen sensor bung','M18 × 1.5',sides+'','one per side ahead of the muffler, for a wideband while tuning']);
+  // ---- the drone fix: a Helmholtz can where the cruise tone's pressure peaks ----
+  if(r.drone&&r.reso&&r.reso.helm&&r.drone.lengths.length){
+    const f=r.drone.f, dn=Math.min(mid,50.8);
+    // the can: the shortest neck (3 to 12 in) that lets a can of at most 8 in across and 2.5 diameters long hold the volume;
+    // a longer neck needs less volume (V ∝ 1/Le) but narrows the band the can works over
+    const pickCan=hm=>hm.cans.slice().sort((a,b)=>Math.abs(a.len/a.D-1.5)-Math.abs(b.len/b.D-1.5))[0];
+    let hm=null, ln=0, can=null;
+    for(const L of [76.2,152.4,228.6,304.8]){
+      hm=calcHelm({f,dn,ln:L,dpipe:mid,tres:QUICK_TBRANCH}); if(hm.err) break; ln=L;
+      can=hm.cans.filter(c=>c.D<=203.2&&c.len<=2.5*c.D).sort((a,b)=>Math.abs(a.len/a.D-1.5)-Math.abs(b.len/b.D-1.5))[0]||null;
+      if(can) break;
+    }
+    if(hm&&!hm.err&&!can){ can=pickCan(hm); notes.push({k:'warn',t:'The '+Math.round(f)+' Hz cruise tone is low, so even on a '+clen(ln)+' neck the can needs '+(U==='imp'?Math.round(hm.in3)+' cu in':hm.liters.toFixed(1)+' L')+'. The J-pipe below, or a quieter muffler, may fit better.'}); }
+    // where it goes: the first pressure peak of that tone behind the crossover, inside the system; when there is none, the
+    // spot behind the crossover with the most pressure (a side branch does nothing at a pressure node)
+    const sysL=sys, sysWhy='your';
+    const pl=hm&&!hm.err&&sys?calcPlace({f,len:sysL,tmain:QUICK_TPIPE}):{err:1};
+    const from=xCross+SHEET_GAP, upto=sysL-(pl.lam||0)*0.1;
+    let at=null, amp=1;
+    if(!pl.err&&upto>from){
+      const spots=(pl.best||[]).filter(v=>v>=from&&v<=upto);
+      if(spots.length) at=spots[0];
+      else { let bx=from, ba=-1; for(let k=0;k<=200;k++){ const v=from+(upto-from)*k/200, a=pl.amp(v); if(a>ba+1e-12){ ba=a; bx=v; } } at=bx; amp=ba; }
+    }
+    if(hm&&!hm.err&&!sys){
+      add('Helmholtz resonator'+each,'can '+cdim(can.D)+' ID × '+clen(can.len)+' inside, on a '+cdim(dn)+' × '+clen(ln)+' neck ('+(U==='imp'?Math.round(hm.in3)+' cu in':hm.liters.toFixed(2)+' L')+' of gas)',0,
+        'Tuned to the '+Math.round(f)+' Hz cruise tone at '+f0(r.drone.cruise)+' RPM. Where it tees in depends on the whole system: enter the head-to-tip length above.',{side:true,tee:true,free:true});
+      buy.push(['Resonator cans',cdim(can.D)+' ID shell × '+clen(can.len)+' inside, 2 end plates',sides+'','or another can of the same volume: '+hm.cans.filter(c=>c!==can).slice(0,3).map(c=>cdim(c.D)+' × '+clen(c.len)).join(', ')]);
+      buy.push(['Resonator necks',idod(dn,dn+2*W)+' × '+clen(ln),sides+'','coped to the main pipe (the Fusion add-in builds the can and cope)']);
+      notes.push({k:'info',t:'Enter the exhaust length from the head flange to the tip above to place the resonator: it goes where the '+Math.round(f)+' Hz tone’s pressure is highest behind the crossover, which depends on the whole length.'});
+    } else if(at!=null){
+      if(at>x) add('Main pipe'+each,idod(mid,od),at-x,p.use==='street'?'The converters go in this run if they fit in '+clen(at-x)+'; if not, put them ahead of the crossover.':'');
+      add('Helmholtz resonator'+each,'can '+cdim(can.D)+' ID × '+clen(can.len)+' inside, on a '+cdim(dn)+' × '+clen(ln)+' neck ('+(U==='imp'?Math.round(hm.in3)+' cu in':hm.liters.toFixed(2)+' L')+' of gas)',0,
+        'Tuned to the '+Math.round(f)+' Hz cruise tone at '+f0(r.drone.cruise)+' RPM; it works over about '+Math.round(hm.lo)+' to '+Math.round(hm.hi)+' Hz. '+
+        (amp>=0.999?'The neck tees in here, where that tone’s pressure peaks (peaks every '+clen(pl.lam/2)+' from the closed end at the valve).':
+          'That tone’s pressure peaks every '+clen(pl.lam/2)+' from the valve, and the next peak behind the crossover, '+clen(Math.ceil(from/(pl.lam/2))*pl.lam/2)+', is too close to the tip or past it on '+sysWhy+' '+clen(sysL)+' system, so the neck tees in where the pressure is highest behind the crossover, '+Math.round(100*amp)+'% of the peak; the can works less well than at a peak.'),{side:true,tee:true});
+      buy.push(['Resonator cans',cdim(can.D)+' ID shell × '+clen(can.len)+' inside, 2 end plates',sides+'','or another can of the same volume: '+hm.cans.filter(c=>c!==can).slice(0,3).map(c=>cdim(c.D)+' × '+clen(c.len)).join(', ')]);
+      buy.push(['Resonator necks',idod(dn,dn+2*W)+' × '+clen(ln),sides+'','coped to the main pipe (the Fusion add-in builds the can and cope)']);
+      if(r.reso.qw) alts.push('A J-pipe instead of the can: a closed '+cdim(mid)+' ID tube '+clen(r.reso.qw.L)+' long on a tee at the same spot, '+clen(at)+' from the head flange. The Mufflers tab and the Fusion add-in build it with a cap plate and a coped tee.');
+    } else notes.push({k:'warn',t:'There is no room behind the crossover on '+sysWhy+' '+clen(sysL)+' system for a resonator tee for the '+Math.round(f)+' Hz cruise tone; check the head-to-tip length, or let the Mufflers tab work it out for your actual pipe.'});
+  } else if(r.drone) notes.push({k:'ok',t:'No pipe length that fits resonates with the '+Math.round(r.drone.f)+' Hz cruise tone, so the build needs no Helmholtz resonator or J-pipe.'});
+  // ---- mufflers, tailpipes, tips: no rule fixes where these go ----
+  const q=r.parts.length?r.parts[0].q:null, inch=v=>v==null?'?':tubIn(v*MM);
+  add((sides>1?'Mufflers':'Muffler')+each,q?q.brand+' '+q.model+' '+q.pn+': inlet '+inch(q.inD)+', outlet '+inch(q.outD)+(q.w?', case '+inch(q.w)+' × '+inch(q.h):'')+(q.oal!=null?', '+inch(q.oal)+' overall':''):TYPE_NAME[r.mufType]+' for '+r.mSize+' in pipe',
+    q&&q.oal!=null?q.oal*MM:NaN,'Behind the resonator, wherever the floor has room. Nothing in the model sets this position.',{side:true,free:true});
+  if(q) buy.push(['Mufflers',q.brand+' '+q.model+' '+q.pn,sides+'',TYPE_NAME[q.type]+(q.oal!=null?', '+inch(q.oal)+' overall':'')]);
+  add('Tailpipes and tips'+each,idod(mid,od)+', tips to fit '+tubIn(od),NaN,'To the bumper.',{side:true,free:true});
+  // main pipe length: what is known in front of the muffler, and the rest when the whole length is given
+  const mainRuns=rows.filter(o=>/^Main pipe/.test(o.name)).reduce((a,o)=>a+o.len,0);
+  const known=x+(q&&q.oal!=null?q.oal*MM:0);
+  buy.push(['Main pipe tube',tubIn(od)+' OD × 0.065 in wall',sys&&sys>known?clen(mainRuns+(sys-known))+each:clen(mainRuns)+each+' up to the resonator, plus the run to the muffler and the tailpipe',sys&&sys>known?'from your '+clen(sys)+' head-to-tip length, before bends':'enter the head-to-tip length for the whole run']);
+  const tee=rows.find(o=>o.tee);
+  buy.push(['Hangers','rubber-isolated',(sides*(tee?4:2))+'','ahead of and behind each muffler'+(tee?' and resonator can':'')]);
+  // drone lengths against the whole system, when it is known
+  if(sys&&r.drone&&r.drone.lengths.length){
+    const run=h.separate?sys:sys-xHdr, hit=r.drone.lengths.find(Ld=>Math.abs(run-Ld)<0.1*Ld);
+    if(sys<=known) notes.push({k:'warn',t:'Your '+clen(sys)+' head-to-tip length is shorter than the parts in front of the tailpipe ('+clen(known)+'): check the length, or use a shorter muffler.'});
+    else if(hit) notes.push({k:'warn',t:'From the '+(h.separate?'head':'collector')+' to the tip is '+clen(run)+', within 10% of '+clen(hit)+', a length that resonates with the '+Math.round(r.drone.f)+' Hz cruise tone. The resonator is there for it; moving the tip '+clen(0.12*hit)+' either way also clears it.'});
+    else notes.push({k:'ok',t:'From the '+(h.separate?'head':'collector')+' to the tip is '+clen(run)+', clear of the lengths that drone at cruise.'});
+  }
+  // ---- the order to build it ----
+  steps.push('Measure the space and plan the route (the Fusion add-in routes the primaries through the scan and lists every bend). Mock up with tacks only until the whole system fits.',
+    h.separate?'Tack the flange to the head, then build the header pipe out to its length.':'Bolt the flanges to the head, then cut and tack the primaries to length, all the same, measured along the centreline.'+(h.triy?' Join them in pairs at the Tri-Y merges, then the secondaries.':''),
+    h.separate?'':'Fit the merge collector'+(h.nColl>1?'s':'')+' and keep '+clen(h.lay.cstraight)+' of straight after the merge.',
+    cn?'Weld the '+cn.kind.toLowerCase()+' to the collector outlet, then the V-band so the headers come off.':'Fit the V-band at the collector outlet so the headers come off.',
+    xs&&!xs.err?'Set the '+XNAME[r.cross.type]+' '+clen(r.cross.pos)+' behind the collectors, both sides mirror images (steps below).':'',
+    p.use==='street'?'Fit the converters and the oxygen sensor bungs.':'',
+    tee&&!tee.free?'Mark the resonator tee '+clen(tee.at)+' from the head flange on each pipe, cope the neck to the pipe and fit the can.':'',
+    'Hang the mufflers, then run the tailpipes and tips.',
+    'Final-weld everything, back-purging stainless with argon. Leak-test, run it to temperature, let it cool and re-tighten the flanges and clamps.',
+    'Drive it at the cruise RPM; the Sound tab compares a recording with the model if anything drones.');
+  return {rows,buy,steps:steps.filter(Boolean),alts,notes,sides,x,xs,xp};
+}
+function sheetHtml(sh){
+  const where=o=>o.free?(o.tee?'where it goes depends on the whole length (enter it above)':'where the floor has room'):'starts '+clen(o.at)+' from the head flange';
+  const item=(o,i)=>'<li data-part="'+esc(o.name)+'" data-size="'+esc(o.size)+'" data-at="'+(o.free?'':clen(o.at))+'"><b>'+esc(o.name)+'</b>: '+esc(o.size)+
+    '<br><span class="cap">'+where(o)+(o.len>0?' · '+clen(o.len)+' long':o.tee?' · a side branch, off the pipe':'')+(o.note?'. '+esc(o.note):'')+'</span></li>';
+  let h='<p class="cap" style="margin-top:0">In flow order from the head flange'+(sh.sides>1?', for each side (build both sides as mirror images)':'')+'. Distances are along the pipe’s centreline from the head flange.</p>'+
+    '<ol class="list sheet">'+sh.rows.map(item).join('')+'</ol>'+notesHtml(sh.notes);
+  if(sh.alts.length) h+='<p class="sub" style="margin-top:14px">Alternatives</p><ul class="list">'+sh.alts.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>';
+  if(sh.buy.length) h+='<p class="sub" style="margin-top:14px">Build list</p><ul class="list buy">'+
+    sh.buy.map(b=>'<li data-item="'+esc(b[0])+'"><b>'+esc(b[0])+'</b>: '+esc(b[1])+', <b>'+esc(b[2])+'</b>'+(b[3]?'<br><span class="cap">'+esc(b[3])+'</span>':'')+'</li>').join('')+'</ul>';
+  h+='<p class="sub" style="margin-top:14px">Build order</p><ol class="list steps">'+sh.steps.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ol>';
+  if(sh.xs&&!sh.xs.err&&sh.xs.type==='x') h+='<details id="q-xsteps" style="margin-top:10px"'+(SHEET_XOPEN?' open':'')+'><summary>X-pipe build steps</summary>'+xBuildSheet(sh.xs,sh.xp)+'</details>';
+  return h;
+}
+// the page draws itself again when its size changes, so the X-pipe steps remember whether they were open
+let SHEET_XOPEN=false;
+document.addEventListener('toggle',e=>{ if(e.target&&e.target.id==='q-xsteps') SHEET_XOPEN=e.target.open; },true);
+function sheetText(sh){
+  const L=['BUILD SHEET (from the head flange, '+(U==='imp'?'inches':'mm')+')'];
+  sh.rows.forEach((o,i)=>L.push((i+1)+'. '+o.name+': '+o.size+(o.free?'':'; starts at '+clen(o.at))+(o.len>0?'; '+clen(o.len)+' long':'')+(o.note?'. '+o.note:'')));
+  sh.notes.forEach(n=>L.push('Note: '+n.t));
+  sh.alts.forEach(t=>L.push('Alternative: '+t));
+  if(sh.buy.length){ L.push('','BUILD LIST'); sh.buy.forEach(b=>L.push('- '+b[0]+': '+b[1]+', '+b[2]+(b[3]?' ('+b[3]+')':''))); }
+  L.push('','BUILD ORDER'); sh.steps.forEach((t,i)=>L.push((i+1)+'. '+t));
+  return L.join('\n');
+}
+window.__quick={quickParams:()=>quickParams(),calcQuick:p=>calcQuick(p),quickSheet:(p,r)=>quickSheet(p,r),calcPlace:p=>calcPlace(p),coneLen:(a,b,c)=>coneLen(a,b,c),coneFlat:(a,b,c,d)=>coneFlat(a,b,c,d),TPIPE:QUICK_TPIPE};   // for the tests
 function renderQuick(){
   const p=quickParams(), r=calcQuick(p), key=$('q-key'), det=$('q-details'), svg=$('q-svg');
   QLAST=r.err?null:{p,r};
@@ -12436,19 +12630,22 @@ function renderQuick(){
   if(!r.tqGiven&&r.cyc==='4') B.push('Peak torque RPM is taken as 70% of peak power RPM to size the tubes. Enter the real figure in Expert mode.');
   if(r.bike&&r.cyc==='4'&&r.n<=2) B.push('A resonance chamber close to the head, like the ones on KTM and Kawasaki motocross headers, can make it 1 to 2 dB quieter and smooth the low end. The 4-Stroke tab sizes one.');
   B.push('Measure the space before you cut: the Headers tab checks runner and collector fit, and the Fusion add-in measures routes in your model.');
+  const sh=quickSheet(p,r);
+  if(sh) html+=sec('Build sheet',sheetHtml(sh));
   html+=sec('Before you build','<ul class="list">'+B.map(t=>'<li>'+t+'</li>').join('')+'</ul>');
 
   html+='<div class="actions"><button type="button" class="btn primary" data-qapply="1">Fill in every tab with this build</button>'+
     (h||r.rotary?'<button type="button" class="btn" data-qgo="headers">Refine the headers</button>':'')+(r.two?'<button type="button" class="btn" data-qgo="two-stroke">Refine the chamber</button>':'')+
     (r.cyc!=='2'?'<button type="button" class="btn" data-qgo="sound">Check drone in detail</button><button type="button" class="btn" data-qgo="mufflers">Mufflers and resonators</button>':'')+
     (r.cross?'<button type="button" class="btn" data-qgo="crossover">Lay out the '+XNAME[r.cross.type]+'</button>':'')+
-    '<button type="button" class="btn" data-copy="summary" data-panel="quick">Copy summary</button></div><textarea class="copybox" id="quick-copybox" readonly hidden aria-label="Text to copy"></textarea>'+
+    '<button type="button" class="btn" data-copy="summary" data-panel="quick">Copy summary</button>'+(sh?'<button type="button" class="btn" data-copy="sheet" data-panel="quick">Copy build sheet</button>':'')+'</div><textarea class="copybox" id="quick-copybox" readonly hidden aria-label="Text to copy"></textarea>'+
     '<p class="cap" id="q-applied"></p>';
   det.innerHTML=html;
   S.quick={summary:['QUICK BUILD · '+e2name(r.e),f0(p.cc)+' cc, peak power '+f0(p.rpm)+' RPM, '+f0(r.hp)+' hp'+(r.hpGiven?'':' (estimated)'),
     'Goals: '+LOUD[p.loud]+', '+{deep:'deep',bal:'in-between',high:'higher, smoother'}[p.tone]+' tone, '+BAND_TXT[p.band]+', '+{street:'street',track:'track or strip',off:'off-road or show'}[p.use]]
     .concat(L1.map(t=>t.replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ')))
-    .concat(r.drone?['Cruise tone: '+Math.round(r.drone.f)+' Hz at '+f0(r.drone.cruise)+' RPM'+(r.drone.lengths.length?'; drone lengths '+r.drone.lengths.map(x=>plain(x,'l')).join(', '):'')]:[]).join('\n')};
+    .concat(r.drone?['Cruise tone: '+Math.round(r.drone.f)+' Hz at '+f0(r.drone.cruise)+' RPM'+(r.drone.lengths.length?'; drone lengths '+r.drone.lengths.map(x=>plain(x,'l')).join(', '):'')]:[]).join('\n'),
+    sheet:sh?'QUICK BUILD · '+e2name(r.e)+'\n'+sheetText(sh):''};
 }
 // push the Quick build into the detailed tabs
 function quickApply(){

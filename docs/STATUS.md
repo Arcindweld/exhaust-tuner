@@ -219,7 +219,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   At wide-open throttle the page's 10 mm cells are fine for torque: net torque and VE within 0.4 % of 5 mm for
   i4_41 at 4000 / 6000 rpm and 1.0 % for v8_dual at 5500 rpm (30 cycles; make_wam DEFAULTS comment). Outback
   2585 rpm hold (48 cycles), 7.5 vs the model's 15 mm: RMS against the recording 10.3 -> 10.9 dB, orders 2-5.5
-  within 2.6 dB, single orders above the 5th up to 8 dB (outback04.py docstring). Page artifact Version 42: the
+  within 2.6 dB, single orders above the 5th up to 8 dB (outback04.py docstring). Page artifact Version 42 (Version 47 adds the build sheet): the
   OpenWAM Method paragraph and the order-spectrum caption state both limits.
 - Program updates (2026-11-01): each push to windows-app that passes the Windows build becomes GitHub release
   v0.1.<run number> (installer + SHA256SUMS.txt, notes = commits since the previous release, newest 6 kept; job
@@ -323,6 +323,20 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   pinned: 3.12 on Windows, 3.11 on Linux, so both sum() paths are compared (3.11 run locally: all pass). (10) docs:
   "the same routes" holds when the Python run is not stopped by the time limit (40 s a tube by default; the 75 cm shelf
   pipe takes Python 77 s).
+- Build sheet (the owner 2026-11-02: "setup recommendations with megaphone, Helmholtz resonators, X pipe etc like a build
+  sheet as a calculator output, with dimensions and build list and placement and order"): Quick tab, section "Build
+  sheet" (quickSheet / sheetHtml / sheetText in the page, tests/sheet_ui.js). Every part in flow order from the head
+  flange with size, start position and length: primaries and merges (calcLayout segs), the collector-to-main-pipe cone
+  (8° Jennings megaphone when the pipe is bigger than the collector, 15° reducer when smaller) with its sheet flat
+  pattern, X/H pipe at the Crossover tab's 12 in (calcCross; X build steps from xBuildSheet), converters and O2 bungs
+  (street), the drone Helmholtz can (calcHelm on a 3-12 in neck, the shortest neck that fits an 8 in x 2.5 D can)
+  placed at the cruise tone's first pressure peak behind the crossover (calcPlace, closed end at the valve), or where
+  the pressure is highest when no peak fits; J-pipe alternative; mufflers (parts list) and tailpipes without positions
+  (no rule). New input "Exhaust length, head flange to tip": without it the can is sized but not placed. Build list
+  (tube, collectors, cones, cans, necks, bungs, V-bands, hangers) and build order. Open megaphone (twice the collector
+  area, 8°) offered for track/off-road. Copy build sheet button. Two-strokes list the chamber sections; rotaries none.
+  Rust stage 3 (calculator math to WebAssembly) paused for this; the wave model (wsFactory, 428 lines) is the part
+  worth porting (a 4-design sweep takes 7.4 s in the page here).
 - Rust, stage 2 (the Windows program): rust/et_host ports app/ExhaustTuner.Core line for line (dispatcher, OpenWAM /
   Engine Simulator / OpenFOAM runners with watchdog, stop and restore, case files, palette, Fusion add-in install,
   updater with SHA-256 check, release notes, DPAPI token with the C# program's entropy so a saved token still reads)
