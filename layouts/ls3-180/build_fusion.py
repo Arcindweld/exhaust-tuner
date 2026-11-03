@@ -4,13 +4,14 @@ mufflers, tailpipes), 'params' (summary). Each stage is one script call so none 
 import adsk.core, adsk.fusion, json, sys, os, math, importlib, traceback
 
 STAGE = '__STAGE__'
-JSON_PATH = r'C:\Users\<you>\AppData\Roaming\Autodesk\Autodesk Fusion 360\API\AddIns\ExhaustTuner\ls3_180.json'
+ADDIN_DIR = os.path.join(os.environ.get('APPDATA', ''), 'Autodesk', 'Autodesk Fusion 360', 'API', 'AddIns', 'ExhaustTuner')
+JSON_PATH = os.path.join(ADDIN_DIR, 'ls3_180.json')
 DOC_NAME = 'LS3 180-degree headers-back'
 IN = 2.54
 
 
 def _ct(app, ui):
-    p = r'C:\Users\<you>\AppData\Roaming\Autodesk\Autodesk Fusion 360\API\AddIns\ExhaustTuner'
+    p = ADDIN_DIR
     if p not in sys.path:
         sys.path.insert(0, p)
     import cadtools as CT

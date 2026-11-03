@@ -45,9 +45,10 @@ PANEL_CMD_TIP = 'Open the exhaust calculator beside the model, measure what you 
 # full path, so the panel finds its page however the add-in was started
 HTML_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'palette.html').replace('\\', '/')   # backslashes stop the page loading
 
-# CAD library: real part models (STEP) the fitting placer can drop in beside the stand-in. The default is the owner's
-# folder; a file named cad_library.txt next to the add-in overrides it with one folder path per line.
-CAD_DIRS_DEFAULT = ['C:/Users/<you>/Desktop/claude training books/cad files']
+# CAD library: real part models (STEP) the fitting placer can drop in beside the stand-in. The default is the shop's
+# folder on the Windows user's Desktop; a file named cad_library.txt next to the add-in overrides it with one folder
+# path per line.
+CAD_DIRS_DEFAULT = [os.path.join(os.path.expanduser('~'), 'Desktop', 'claude training books', 'cad files').replace('\\', '/')]
 
 
 def cad_dirs():

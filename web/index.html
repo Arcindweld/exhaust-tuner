@@ -3908,7 +3908,10 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     if (!names.length) throw new Error('no models');
     for (const n of names) if (!/^[A-Za-z0-9_.-]+$/.test(n)) throw new Error('model names may only use letters, digits, _ . - : ' + n);
     if (new Set(names).size !== names.length) throw new Error('model names must be unique');
-    const exe = String(exePath || 'OpenWAM.exe').replace(/%/g, '%%');
+    // a % in the path is doubled so cmd reads it as a %, except a leading folder variable (%USERPROFILE% and the
+    // like), which cmd fills in: the default path lives under the Windows user's own folder
+    const raw = String(exePath || 'OpenWAM.exe'), lead = (raw.match(/^%(USERPROFILE|LOCALAPPDATA|APPDATA|ProgramFiles|ProgramFiles\(x86\))%/i) || [''])[0];
+    const exe = lead + raw.slice(lead.length).replace(/%/g, '%%');
     const L = [
       '@echo off',
       'setlocal',
@@ -3959,7 +3962,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   const WamExport = {
     makeWam, makeWamLegacy, modelFromSpec, writeModel, legacyModel, readAvg, readIns, outStepForRate, batFile,
     DEFAULTS, EXTRA_DEFAULTS, fmtG, pyRound, START_SHIFT_DEG, R_BURNT,
-    USER_EXE: 'C:\\Users\\<you>\\Desktop\\openwam2.2-win-x64\\openwam2.2-win-x64\\Win32_x86_64\\OpenWAM2.2-win-x64.exe',
+    USER_EXE: '%USERPROFILE%\\Desktop\\openwam2.2-win-x64\\openwam2.2-win-x64\\Win32_x86_64\\OpenWAM2.2-win-x64.exe',
   };
   if (typeof module !== 'undefined' && module && module.exports) module.exports = WamExport;
   if (root) root.WamExport = WamExport;

@@ -2,7 +2,7 @@
 setlocal
 rem OpenWAM batch written by wam_export.js: runs each model in its own subfolder, one after another.
 rem Keep this file next to the .wam files. Each model NAME gets a folder NAME with NAMEAVG.DAT, NAMEINS.DAT and NAME.log.
-set "OPENWAM=C:\Users\<you>\Desktop\openwam2.2-win-x64\openwam2.2-win-x64\Win32_x86_64\OpenWAM2.2-win-x64.exe"
+set "OPENWAM=%USERPROFILE%\Desktop\openwam2.2-win-x64\openwam2.2-win-x64\Win32_x86_64\OpenWAM2.2-win-x64.exe"
 if not exist "%OPENWAM%" (
   echo OpenWAM not found: "%OPENWAM%"
   echo Edit the OPENWAM line at the top of this file.

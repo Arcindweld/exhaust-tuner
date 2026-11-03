@@ -270,7 +270,7 @@ TWO COMMANDS, both in the Solid tab > Create panel
                        the main pipe, and the can along it, sized to hold the tab's volume
                        round the neck, with a hidden tool body for the hole.
    CAD library        Parts on the Parts tab marked "CAD model" have a STEP file in the shop's CAD
-                       library folder (C:\Users\<you>\Desktop\claude training books\cad files, or the
+                       library folder (Desktop\claude training books\cad files in your user folder, or the
                        folders listed one per line in a cad_library.txt next to this add-in). When the
                        router places such a fitting it imports the real part and stands it at the same
                        spot (model Y out of the tube, X along it) beside the stand-in. Add a STEP whose
