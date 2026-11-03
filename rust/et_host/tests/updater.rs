@@ -194,14 +194,36 @@ fn check(u: &Arc<Updater>) -> Value {
 }
 
 #[test]
-fn without_a_token_it_asks_for_one_and_calls_nobody() {
+fn without_a_token_a_public_repository_is_checked_and_downloaded_without_one() {
     let (p, _) = install(true);
     let gh = fake_github();
     let u = make(&p, &gh, "0.1.43", None, None);
-    assert_eq!(u.status()["state"], "not-configured");
+    assert_eq!((u.status()["state"].clone(), u.status()["configured"].clone()), (json!("idle"), json!(false)));
+    let s = check(&u);
+    assert_eq!((s["state"].clone(), s["latest"]["version"].clone()), (json!("downloading"), json!("0.1.45")));
+    u.wait();
+    assert_eq!(u.status()["state"], "ready", "{}", u.status());
+    let seen = gh.lock().unwrap().seen.clone();
+    assert!(seen.len() >= 3 && seen.iter().all(|x| x.1.is_none()), "no request carries a token: {:?}", seen);
+    assert!(u.status().get("tokenDaysLeft").map_or(true, |v| v.is_null()));
+}
+
+#[test]
+fn without_a_token_a_private_repository_asks_for_one() {
+    let (p, _) = install(true);
+    let gh = fake_github();
+    {
+        let mut g = gh.lock().unwrap();
+        g.list_status = 404; // what GitHub answers a request without a token for a private repository
+        g.list_body = r#"{"message":"Not Found"}"#.into();
+    }
+    let u = make(&p, &gh, "0.1.43", None, None);
     let s = check(&u);
     assert_eq!((s["state"].clone(), s["configured"].clone()), (json!("not-configured"), json!(false)));
-    assert!(gh.lock().unwrap().seen.is_empty());
+    assert!(s["error"].as_str().unwrap().contains("without a token"), "{}", s);
+    let seen = gh.lock().unwrap().seen.clone();
+    assert_eq!(seen.len(), 1);
+    assert!(seen[0].1.is_none());
 }
 
 #[test]

@@ -2,10 +2,12 @@
 //! "release"): every push to the program branch that passes the tests becomes release v0.1.<run number> with the
 //! installer and SHA256SUMS.txt, and the notes list the commits since the previous release.
 //!
-//! The repository is private, so the program needs a GitHub token that can read it (a fine-grained token with
-//! Contents: read-only on that one repository). The token is kept encrypted for the Windows user (DPAPI) in the data
-//! folder, is never handed back to the page, and is sent only to the GitHub API host: the download host the API
-//! redirects to gets a plain request.
+//! The repository is public, so the check and the download need no token: without one the program asks GitHub as
+//! anyone may (60 API requests an hour from one address; a check makes one and a download two). A token is only
+//! needed if the repository is made private again: GitHub then answers 404 to a request without one, and the state
+//! becomes "not-configured" so the page asks for a fine-grained token with Contents: read-only on that repository.
+//! A saved token is kept encrypted for the Windows user (DPAPI) in the data folder, is never handed back to the
+//! page, and is sent only to the GitHub API host: the download host the API redirects to gets a plain request.
 //!
 //! Check: the newest published release (not a draft or pre-release) that carries both files and a higher version
 //! than this program. Download: in the background to updates\ in the data folder; it counts as ready only when its
@@ -167,6 +169,13 @@ enum Fail {
     Net(String),
     Io(String),
     Stall,
+    /// GitHub does not show the repository without a token: it is private (again)
+    Private,
+}
+
+/// GitHub's answer when the requests without a token from this address are used up for the hour.
+fn resp_limited(body: &str) -> bool {
+    body.to_lowercase().contains("rate limit")
 }
 
 impl From<std::io::Error> for Fail {
@@ -183,10 +192,7 @@ impl Updater {
     pub fn new(paths: &AppPaths, current_version: &str, api: Option<&str>, repo: Option<&str>, launch: Option<Launch>, previous_version: Option<&str>) -> Arc<Updater> {
         let current = parse_version(Some(current_version)).unwrap_or(Ver([0, 0, 0, -1]));
         let tokens = TokenStore::new(&paths.data_root);
-        let mut st = State { state: "idle".into(), ..Default::default() };
-        if !tokens.has() {
-            st.state = "not-configured".into();
-        }
+        let st = State { state: "idle".into(), ..Default::default() };
         let previous = match parse_version(previous_version) {
             Some(pv) if pv < current => previous_version.map(|s| s.trim().to_string()),
             _ => None,
@@ -307,7 +313,7 @@ impl Updater {
             self.tokens.clear()?;
             {
                 let mut st = self.st.lock().unwrap();
-                st.state = "not-configured".into();
+                st.state = "idle".into(); // the next check asks GitHub without a token
                 st.error = None;
                 st.latest = None;
                 st.token_expires = None;
@@ -351,7 +357,7 @@ impl Updater {
         let first = url.clone();
         for hop in 0.. {
             let mut req = agent.get(&url).set("Accept", accept);
-            if hop == 0 && url.to_lowercase().starts_with(&format!("{}/", self.api.to_lowercase())) {
+            if hop == 0 && !token.is_empty() && url.to_lowercase().starts_with(&format!("{}/", self.api.to_lowercase())) {
                 req = req.set("Authorization", &format!("Bearer {}", token)).set("X-GitHub-Api-Version", "2022-11-28");
             }
             let resp = match req.call() {
@@ -396,12 +402,16 @@ impl Updater {
         let api_msg = || serde_json::from_str::<Value>(&body).ok().and_then(|v| v["message"].as_str().map(|s| s.to_string())).unwrap_or_default();
         match code {
             200 => {}
-            401 => return Err(Fail::Msg("GitHub did not accept the token (expired or revoked?). Make a new one and save it here.".into())),
+            401 => return Err(Fail::Msg("GitHub did not accept the token (expired or revoked?). Make a new one and save it here, or save an empty field to check without one.".into())),
+            404 if token.is_empty() => return Err(Fail::Private),
             404 => {
                 return Err(Fail::Msg(format!(
                     "GitHub does not show {r} to this token. A fine-grained token needs {r} under Repository access and Contents: Read-only under Permissions.",
                     r = self.repo
                 )))
+            }
+            403 | 429 if token.is_empty() && resp_limited(&body) => {
+                return Err(Fail::Msg("GitHub's limit for requests without a token (60 an hour from this address) is used up for now; the program tries again later.".into()))
             }
             403 => return Err(Fail::Msg(format!("GitHub refused the request: {}", api_msg()))),
             c => {
@@ -474,16 +484,14 @@ impl Updater {
             Fail::Net(m) => format!("Could not reach GitHub ({}).", m),
             Fail::Io(m) => format!("The download failed ({}). The next check tries again.", m),
             Fail::Stall => format!("The download stopped: no data came for {} s (or it ran past 30 min). The next check tries again.", self.stall()),
+            Fail::Private => format!("GitHub does not show {} without a token, so it is private: save a token below.", self.repo),
         }
     }
 
     /// Looks for a newer release; when there is one and download is set, starts downloading it in the background and
     /// returns at once (status() then reports the progress).
     pub fn check(self: &Arc<Self>, download: bool, cancel: &Cancel) -> HResult<Value> {
-        let Some(token) = self.tokens.read() else {
-            self.set("not-configured", None);
-            return Ok(self.status());
-        };
+        let token = self.tokens.read().unwrap_or_default(); // none: GitHub is asked without one (a public repository)
         if self.busy.swap(true, Ordering::SeqCst) {
             return Ok(self.status()); // a check or a download is already running
         }
@@ -513,6 +521,11 @@ impl Updater {
                 }
                 let m = match f {
                     Fail::Stall => "GitHub did not answer within 45 s.".to_string(),
+                    Fail::Private => {
+                        let m = self.message(Fail::Private);
+                        self.set("not-configured", Some(m));
+                        return Ok(self.status());
+                    }
                     other => self.message(other),
                 };
                 self.set("error", Some(m));
@@ -865,7 +878,8 @@ mod tests {
         let _ = std::fs::remove_dir_all(&d);
         let p = AppPaths::new(Some("/opt/et"), Some(d.to_str().unwrap()), Some("/f"));
         let u = Updater::new(&p, "0.1.45", Some("http://127.0.0.1:1"), Some("owner/repo"), None, None);
-        assert_eq!(u.status()["state"], "not-configured");
+        // no token is fine: the repository is public, so the first check asks GitHub without one
+        assert_eq!((u.status()["state"].clone(), u.status()["configured"].clone()), (Value::from("idle"), Value::Bool(false)));
         let bad = u.set_token(Some("short")).unwrap();
         assert_eq!(bad["ok"], false);
         assert!(!u.tokens.has());
@@ -877,7 +891,7 @@ mod tests {
         let s = u.status().to_string();
         assert!(!s.contains("github_pat_0123"), "the token never goes back to the page");
         let gone = u.set_token(Some("")).unwrap();
-        assert_eq!((gone["configured"].clone(), gone["state"].clone()), (Value::Bool(false), Value::from("not-configured")));
+        assert_eq!((gone["configured"].clone(), gone["state"].clone()), (Value::Bool(false), Value::from("idle")));
         let _ = std::fs::remove_dir_all(&d);
     }
 }

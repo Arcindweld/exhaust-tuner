@@ -16,6 +16,8 @@ cfd/validation/runs/*/*
 *.log
 # build output
 bin/
+# ...but not Rust's src/bin (the program's command-line host)
+!rust/*/src/bin/
 obj/
 out/
 build/

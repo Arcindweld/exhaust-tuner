@@ -24,14 +24,17 @@ const TOKEN = 'github_pat_11TESTTOKEN0000000000_abcdefghijklmnopqrstuvwxyz012345
   const setupName = 'ExhaustTuner-Setup-0.1.999.exe';
   const sums = crypto.createHash('sha256').update(setup).digest('hex') + '  ' + setupName + '\n';
   const seen = [];
+  let PUBLIC = false;            // private first (a token needed: GitHub answers 404 without one), public at the end
   const srv = http.createServer((req, res) => {
     seen.push({ url: req.url, auth: req.headers.authorization || null });
     const base = 'http://127.0.0.1:' + srv.address().port;
     if (req.url === '/repos/owner/repo/releases?per_page=20') {
-      if (req.headers.authorization !== 'Bearer ' + TOKEN) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"message":"Bad credentials"}'); return; }
+      const auth = req.headers.authorization || null;
+      if (auth === null && !PUBLIC) { res.writeHead(404, { 'Content-Type': 'application/json' }); res.end('{"message":"Not Found"}'); return; }
+      if (auth !== null && auth !== 'Bearer ' + TOKEN) { res.writeHead(401, { 'Content-Type': 'application/json' }); res.end('{"message":"Bad credentials"}'); return; }
       const asset = (id, name, size) => ({ id, name, size, url: base + '/repos/owner/repo/releases/assets/' + id });
       const exp = new Date(Date.now() + 5.5 * 86400e3).toISOString().replace('T', ' ').replace(/\.\d+Z$/, ' UTC');
-      res.writeHead(200, { 'Content-Type': 'application/json', 'GitHub-Authentication-Token-Expiration': exp });
+      res.writeHead(200, Object.assign({ 'Content-Type': 'application/json' }, auth ? { 'GitHub-Authentication-Token-Expiration': exp } : {}));
       res.end(JSON.stringify([{ tag_name: 'v0.1.999', name: 'Exhaust Tuner 0.1.999', draft: false, prerelease: false, published_at: '2026-11-01T20:00:00Z',
         html_url: 'https://github.com/owner/repo/releases/tag/v0.1.999', body: 'Changes since v0.1.998:\n- Updates: the program checks its releases',
         assets: [asset(1, setupName, setup.length), asset(2, 'SHA256SUMS.txt', sums.length)] }]));
@@ -79,12 +82,15 @@ const TOKEN = 'github_pat_11TESTTOKEN0000000000_abcdefghijklmnopqrstuvwxyz012345
   const txt = id => pg.$eval('#' + id, e => e.textContent);
   const until = (fn, arg, ms = 15000) => pg.waitForFunction(fn, arg, { timeout: ms });
 
-  // not set up: the menu says so and the Updates section asks for a token
+  // a private repository: the first check (no token) gets GitHub's 404, so the menu says updates are not set up and
+  // the Updates section asks for a token
   await pg.click('#host-btn');
   await until(() => /not set up/.test(document.getElementById('hm-updline').textContent));
   ok(true, 'menu line: ' + await txt('hm-updline'));
+  ok(seen.some(s => s.url.startsWith('/repos/') && s.auth === null), 'with no token saved the program asked GitHub without one');
   await pg.click('[data-hm="update"]');
   ok(await pg.isVisible('#hm-upd-tokbox') && await pg.isVisible('#hm-upd-save'), 'Updates opens the token box');
+  ok(/without a token, so it is private/.test(await txt('hm-upd-msg')), 'it says why: ' + (await txt('hm-upd-msg')).slice(0, 100));
   ok(/Only select repositories/.test(await txt('hm-upd-tokbox')) && /Developer settings/.test(await txt('hm-upd-tokbox')), 'the box says how to make a read-only token');
   const link = new URL(await pg.$eval('#hm-upd-toklink', a => a.href));
   ok(link.origin + link.pathname === 'https://github.com/settings/personal-access-tokens/new' && link.searchParams.get('target_name') === 'owner' &&
@@ -158,6 +164,33 @@ const TOKEN = 'github_pat_11TESTTOKEN0000000000_abcdefghijklmnopqrstuvwxyz012345
   await pg.waitForFunction(() => document.documentElement.classList.contains('in-desktop'), null, { timeout: 15000 }); await pg.waitForTimeout(1500);
   ok(await pg.$eval('#host-dot', e => e.hidden), 'and stays so after the page reloads');
   host2.kill();
+
+  // a public repository: a new install with no token finds, downloads and checks the update by itself, and no request
+  // carries a token
+  PUBLIC = true;
+  const env3 = Object.assign({}, env, { EXHAUST_TUNER_DATA: path.join(tmp, 'data3') });
+  const host3 = spawn(CLI, [], { env: env3, stdio: ['pipe', 'pipe', 'pipe'] });
+  host3.stdout.on('data', d => {
+    buf += d.toString(); let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i); buf = buf.slice(i + 1);
+      if (line.trim()) pg.evaluate(m => window.__fromHost(m), JSON.parse(line)).catch(() => {});
+    }
+  });
+  current = host3;
+  const from = seen.length;
+  await pg.reload();
+  await pg.waitForFunction(() => document.documentElement.classList.contains('in-desktop'), null, { timeout: 15000 });
+  await pg.click('#host-btn');
+  await until(() => /is ready to install/.test(document.getElementById('hm-updline').textContent), null, 30000);
+  ok(true, 'public repository, no token: ' + await txt('hm-updline'));
+  ok(seen.slice(from).length >= 3 && seen.slice(from).every(s => s.auth === null), 'no request carried a token (' + seen.slice(from).length + ' requests)');
+  await pg.click('[data-hm="update"]');
+  ok(!(await pg.isVisible('#hm-upd-tokbox')) && await pg.isVisible('#hm-upd-check') && (await txt('hm-upd-tokchange')) === 'Add a token',
+     'no token box; Check now and Add a token are offered');
+  ok(!/token stops working/.test(await txt('hm-upd-msg')), 'no token expiry warning without a token');
+  await pg.keyboard.press('Escape');
+  host3.kill();
 
   // a phone-width window keeps the menu inside the screen
   await pg.setViewportSize({ width: 400, height: 800 }); await pg.waitForTimeout(300);

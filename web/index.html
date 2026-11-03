@@ -433,7 +433,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
             <p id="hm-upd-msg" aria-live="polite"></p>
             <pre class="hm-upd-notes" id="hm-upd-notes" hidden></pre>
             <div class="hm-upd-tok" id="hm-upd-tokbox" hidden>
-              <p>New versions come from your private GitHub repository, so the program needs a token that can read it. <a id="hm-upd-toklink" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Open GitHub's new-token page</a>, filled in with read-only access to Contents for a year. There, under Repository access, choose Only select repositories, then exhaust-tuner. Generate the token and paste it here. (By hand: Settings, Developer settings, Personal access tokens, Fine-grained tokens.)</p>
+              <p>New versions come from the exhaust-tuner repository's releases on GitHub. While the repository is public no token is needed; one is only needed if it is made private. <a id="hm-upd-toklink" href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Open GitHub's new-token page</a>, filled in with read-only access to Contents for a year. There, under Repository access, choose Only select repositories, then exhaust-tuner. Generate the token and paste it here. (By hand: Settings, Developer settings, Personal access tokens, Fine-grained tokens.)</p>
               <label for="hm-upd-tok">GitHub token</label>
               <input id="hm-upd-tok" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…">
               <p class="hint">Kept on this PC, encrypted for your Windows account, and sent only to GitHub. Save an empty field to remove it.</p>
@@ -8879,14 +8879,15 @@ function hostMenuRender(){
     .map(([k,n])=>'<span class="'+(e[k]?'':'off')+'">'+n+(e[k]?' ready':' not found')+'</span>').join('');
   $('hm-runs').textContent=i.runsFolder?'Runs are saved in '+i.runsFolder:'';
 }
-/* updates from the program's GitHub releases (app/ExhaustTuner.Core/Updater.cs): checked a few seconds after the start
-   and every 6 hours; a newer release downloads in the background and waits for "Restart and update" */
+/* updates from the program's GitHub releases (rust/et_host/src/updater.rs): checked a few seconds after the start
+   and every 6 hours, without a token while the repository is public; a newer release downloads in the background and
+   waits for "Restart and update". State not-configured: GitHub showed nothing without a token (a private repository). */
 const UPD={s:null,poll:0,tokOpen:false,seen:''};
 const updMB=b=>(b/1048576).toFixed(b>0&&b<10485760?1:0);
 function updMsg(s){
   const L=s.latest, v=L&&L.version;
   switch(s.state){
-    case 'not-configured': return 'Updates are not set up yet. Save a GitHub token below and the program looks for new versions by itself.';
+    case 'not-configured': return (s.error?s.error+' ':'')+'With a token saved, the program looks for new versions by itself.';
     case 'idle': return 'Not checked yet.';
     case 'checking': return 'Looking for a newer version…';
     case 'up-to-date': return 'Up to date: this is version '+s.version+(L?', the newest release is '+L.version:'')+'.';
@@ -8926,12 +8927,13 @@ function updRender(){
   if(owner) $('hm-upd-toklink').href='https://github.com/settings/personal-access-tokens/new?name='+encodeURIComponent('Exhaust Tuner updates')+
     '&description='+encodeURIComponent('Lets the Exhaust Tuner program read the releases of '+s.repo+'.')+'&target_name='+encodeURIComponent(owner)+
     '&expires_in=366&contents=read';
-  const tok=!s.configured||UPD.tokOpen;
+  const tok=s.state==='not-configured'||UPD.tokOpen;
   $('hm-upd-tokbox').hidden=!tok; $('hm-upd-save').hidden=!tok;
   $('hm-upd-install').hidden=!(ready&&s.installed);
-  $('hm-upd-check').hidden=!s.configured;
+  $('hm-upd-check').hidden=false;
   $('hm-upd-check').disabled=s.state==='checking'||s.state==='downloading';
-  $('hm-upd-tokchange').hidden=!s.configured||UPD.tokOpen;
+  $('hm-upd-tokchange').hidden=tok;
+  $('hm-upd-tokchange').textContent=s.configured?'Change token':'Add a token';
 }
 function updSet(s){
   if(s&&s.state) UPD.s=s;
@@ -8942,9 +8944,9 @@ function updSet(s){
   // a network hiccup is tried again in half an hour instead of at the next 6-hourly check
   else if(st==='error'&&/reach GitHub|did not answer|download stopped|download failed/.test(UPD.s.error||'')) UPD.poll=setTimeout(updCheck,30*60*1000);
 }
-async function updCheck(){ if(UPD.s&&UPD.s.configured) updSet(await hostCall('updateCheck',{download:true})); }
+async function updCheck(){ if(UPD.s) updSet(await hostCall('updateCheck',{download:true})); }
 function updSetup(){
-  hostCall('updateStatus',{}).then(s=>{ updSet(s); if(s&&s.configured) setTimeout(updCheck,4000); });
+  hostCall('updateStatus',{}).then(s=>{ updSet(s); if(s&&s.state) setTimeout(updCheck,4000); });
   setInterval(updCheck,6*3600*1000);
   $('hm-upd-check').addEventListener('click',updCheck);
   $('hm-upd-tokchange').addEventListener('click',()=>{ UPD.tokOpen=true; updRender(); $('hm-upd-tok').focus(); });
@@ -8952,7 +8954,7 @@ function updSetup(){
     const f=$('hm-upd-tok'), r=await hostCall('updateSetToken',{token:f.value});
     if(r&&r.ok===false&&r.msg){ $('hm-upd-msg').textContent=r.msg; f.focus(); return; }
     f.value=''; UPD.tokOpen=false; updSet(r);
-    if(r&&r.configured) updCheck();
+    updCheck();
   });
   $('hm-upd-tok').addEventListener('keydown',e=>{ if(e.key==='Enter') $('hm-upd-save').click(); });
   $('hm-upd-install').addEventListener('click',async()=>{

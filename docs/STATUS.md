@@ -301,6 +301,20 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   Python calls. et_core/src/cmath.rs imports them from api-ms-win-crt-math (raw-dylib) on windows-gnu; then
   test_native.py --require passes on his PC in Fusion's Python 3.14.7, run out of process (header: Python 141.6 s,
   core 1.0 s), and still on Linux. He has to Stop/Run the add-in or restart Fusion to load it.
+  He reloaded Fusion: the add-in runs 4.13.0 (cadtools._buildable, templates._graze present) and router.NATIVE_NOTE
+  is "Rust router core" with native/et_core-4364a4b466a8.dll (the UCRT-maths build).
+- Repositories public (the owner, 2026-11-02): Actions run again (public repos' standard runners are free; the earlier
+  runs were stopped by billing). The first real run failed: .gitignore's bin/ (meant for .NET) had kept
+  rust/et_host/src/bin/exhaust-tuner-host.rs out of git since 4742263, so cargo found no host binary; now
+  !rust/*/src/bin/. The updater (rust/et_host/src/updater.rs) needs no token any more: without one it asks GitHub
+  anonymously (60 requests/h per address; a check is 1, a download 2); a 404 without a token means private again ->
+  state not-configured with that reason, and the page shows the token box. The page always checks (4 s after start,
+  every 6 h); Change token reads Add a token when none is saved. Tests: tests/updater.rs (public no-token check +
+  download with no Authorization anywhere; private 404 -> not-configured), update_ui.js (private first, then a fresh
+  install against a public stand-in). Releases are public downloads now. app/ExhaustTuner.Core/Updater.cs (C#, not
+  built or shipped) still wants a token. Public-content check of both repos (history included): only made-up test
+  tokens, no keys, no scanner model; visible: the commit email, the Windows user name in default paths
+  (C:/Users/<you>/...), the engine recordings under validation/, the Header Wizard comparison text.
 - Rust, stage 1 (the owner 2026-11-02: "reprogram everything and all features in Rust"; chose "staged, slow parts first"):
   rust/et_core (std only, cdylib, C ABI v2, panics caught at every entry point and reported via et_last_error) holds
   the router's Scene queries, TubeSet, Fields, route()'s Lazy Theta* search (free_at, los, simplify), the residuals,
