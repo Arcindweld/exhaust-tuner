@@ -126,11 +126,15 @@ begin
 end;
 
 // Inno shows the Ready page whenever no page came before it (DisableReadyPage is ignored then); go straight on from
-// it, so the only click is opening the installer
+// it, so the only click is opening the installer. It is the first page, shown before the window can take a click,
+// so the click is posted to Install and runs once the window is up (a direct OnClick call there does nothing).
+const
+  BM_CLICK = $00F5;
+
 procedure CurPageChanged(CurPageID: Integer);
 begin
   if CurPageID = wpReady then
-    WizardForm.NextButton.OnClick(WizardForm.NextButton);
+    PostMessage(WizardForm.NextButton.Handle, BM_CLICK, 0, 0);
 end;
 
 // Fusion has been installed (its web-deploy folder) or run (its per-user folder, where add-ins go)
