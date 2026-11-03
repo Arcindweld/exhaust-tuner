@@ -1,5 +1,5 @@
-// 8-4-1 headers on the Headers tab: a V8 all into one with the two-stage merge. Pairs on their own bank, the most evenly
-// spaced (270 / 450 deg on a cross-plane V8), four secondaries into one 4-1 collector sized from them; typed pairs;
+// 8-4-1 headers on the Headers tab: a V8 all into one with the two-stage merge. Pairs on their own bank, 180 deg apart
+// (openwam/v8_841_study.py), four secondaries into one 4-1 collector sized from them; typed pairs;
 // the per-bank Tri-Y and the 6-2-1 unchanged; the page's notes and the unequal-length table with four secondaries.
 const { chromium } = require('playwright');
 (async () => {
@@ -16,7 +16,7 @@ const { chromium } = require('playwright');
         sameBank: !!(x.pairs && x.pairs[0].sameBank), notes: x.notes.map(n => n.t).join(' || '), minGap: x.minGap }; };
     return {
       c841: L({ mode: 'all', merge: 'triy' }),
-      typed: L({ mode: 'all', merge: 'triy', ypairs: [[1, 7], [5, 3], [8, 2], [6, 4]] }),
+      typed: L({ mode: 'all', merge: 'triy', ypairs: [[1, 5], [7, 3], [8, 6], [2, 4]] }),
       typedBad: L({ mode: 'all', merge: 'triy', ypairs: [[1, 7], [5, 3, 8], [2, 6, 4]] }),
       noBanks: L({ mode: 'all', merge: 'triy', banks: [[1, 2, 3, 4, 5, 6, 7, 8]] }),
       bankTriY: L({ mode: 'bank', merge: 'triy' }),
@@ -27,15 +27,15 @@ const { chromium } = require('playwright');
   const c = r.c841;
   ok(!c.err && c.triy && c.Ng === 8 && c.nColl === 1, '8-4-1 accepted on a V8 all into one (' + (c.err || 'one collector') + ')');
   const pairs = (c.pairs || [[]])[0].map(p => p.slice(0, 2).sort((x, y) => x - y).join('+')).sort();
-  ok(JSON.stringify(pairs) === JSON.stringify(['1+5', '2+4', '3+7', '6+8']), 'pairs on their own bank, 270/450 deg apart: ' + pairs.join(', '));
-  ok(c.sameBank && (c.pairs[0] || []).every(p => p[2] === 270), 'each pair 270 deg at its closest');
+  ok(JSON.stringify(pairs) === JSON.stringify(['1+7', '2+8', '3+5', '4+6']), 'pairs on their own bank, 180 deg apart: ' + pairs.join(', '));
+  ok(c.sameBank && (c.pairs[0] || []).every(p => p[2] === 180), 'each pair 180 deg apart');
   ok(Math.abs(c.dsec - 47.5 * Math.sqrt(2 * 0.643)) < 1e-9 && Math.abs(c.dsec - 53.87) < 0.05, 'secondary from the area ratio: ' + (c.dsec || 0).toFixed(2) + ' mm (Concept 841: 2.25 in, 53.85 mm inside)');
   ok(Math.abs(c.dc - c.dsec * Math.sqrt(4 * 1.062)) < 1e-9 && Math.abs(c.dc - 111.0) < 0.2, 'collector from four secondaries: ' + (c.dc || 0).toFixed(1) + ' mm (Concept 841: 4.5 in, 111.0 mm inside)');
   ok(c.minGap === 90, 'the collector takes a pulse every 90 deg (' + c.minGap + ')');
   ok(/8-4-1: the eight primaries join in pairs/.test(c.notes) && /Concept 841/.test(c.notes) && !/^8-into-1: all eight/.test(c.notes), 'the 8-4-1 note, not the 8-into-1 one');
   const t = r.typed;
-  ok(!t.err && JSON.stringify(t.pairs[0].map(p => p.slice(0, 2).sort((x, y) => x - y).join('+')).sort()) === JSON.stringify(['1+7', '2+8', '3+5', '4+6']), 'typed pairs as built (1,7 | 5,3 | 8,2 | 6,4): ' + (t.err || 'taken'));
-  ok(t.pairs && t.pairs[0].every(p => p[2] === 180), 'typed pairs 180 deg apart');
+  ok(!t.err && JSON.stringify(t.pairs[0].map(p => p.slice(0, 2).sort((x, y) => x - y).join('+')).sort()) === JSON.stringify(['1+5', '2+4', '3+7', '6+8']), 'typed pairs as built (1,5 | 7,3 | 8,6 | 2,4): ' + (t.err || 'taken'));
+  ok(t.pairs && t.pairs[0].every(p => p[2] === 270), 'typed pairs 270 deg apart');
   ok(r.typedBad.err && /needs 4 groups of 2/.test(r.typedBad.err), 'wrong typed pairs refused: ' + r.typedBad.err);
   const nb = r.noBanks;
   ok(!nb.err && !nb.sameBank && nb.pairs[0].every(p => p[2] === 360), 'without two banks of four: the most evenly spaced pairs over all (360 deg)');

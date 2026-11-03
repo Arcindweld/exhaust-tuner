@@ -322,6 +322,20 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   old history: scratchpad scrub/backup/*.bundle (this session only). Not reachable from here: the release tags v0.1.43
   and v0.1.45 (tag push refused, 403) and their installers, the old Actions runs, engine-sim's PR refs and GitHub's
   cached views of old commits.
+- 8-4-1 headers (2026-11-03, "Research concept 841 headers designs and learn from them"): Concept 841 (Lodi, CA;
+  C5-C8 Corvettes, S550/S650 Mustangs) publishes only sizes: C7 2.00 in primaries, 2.25 in secondaries, a 4-1 with
+  2.25 in inlets and a 4.5 in outlet; Mustang GT 1.875 / 2.125 in, a flat 4-1 on manuals; secondaries "split at the
+  headers", the 4-1 at the rear on a C8; designed in EngMod4T; one power claim (+37 whp / +32 lb-ft, C6 LS3 with a
+  cam). Their C8 Z06 (flat-plane LT6) gets per-bank equal-length 4-1s instead. Headers tab: the two-stage merge now
+  takes all eight of a V8 (8-4-1): pairs on their own bank 180 deg apart (pairs841), four secondaries, the collector
+  from four secondaries; typed pairs (any 4 x 2); per-bank Tri-Y, 6-2-1 and 8-1 unchanged. web/tests/h841_ui.js.
+  openwam/v8_841_study.py (results in openwam/ref/v8_841/): 6.2 L LS3-like V8 (stated parameters), Concept's C7
+  tube sizes, 36 in valve to collector, 6 layouts x 3000-6600 rpm (7.07 mm cells, 40 cycles; 5500-6600 again at
+  5 mm, 50 cycles: within 1-4 %). Torque vs per-bank 4-1: 180 deg same-bank 8-4-1 within 4.4 % everywhere (0 %
+  at 6600); 270/450 deg pairs +6.5 % at 3000, -8 % at 5000, -28 % at 6600; 360 deg cross-bank +9 % at 5500, -35 % at
+  6600; 8-1 and 180-degree headers within 4 %. Sound at 5000 rpm (open pipe): per-bank 4-1 half orders 8-16 dB below
+  the strongest; every 8-4-1 and the 8-1 24-66 dB (180 deg pairs 55-66). The model's absolute torque falls off
+  faster above 5000 rpm than a real LS3's (crude intake: open 0.3 m runners), so read differences, not levels.
 - Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the
   SmartScreen screen, options, Fusion add-in, updates, where files go, uninstall, troubleshooting); README and every
   release's notes point at it. The installer is one click ("one click install like a proper software"): no page
