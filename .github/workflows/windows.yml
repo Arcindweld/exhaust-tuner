@@ -462,7 +462,16 @@ jobs:
           if (Test-Path $old) { Start-Process $old -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait }
           Get-Process ExhaustTuner -ErrorAction SilentlyContinue | Stop-Process -Force
           $p = Start-Process $setup.FullName -PassThru
-          if (-not $p.WaitForExit(180000)) { $p | Stop-Process -Force; throw "the installer was still open after 3 min: a page waited for a click" }
+          if (-not $p.WaitForExit(180000)) {
+            # what it was waiting on: a screenshot of the runner's screen (uploaded below)
+            Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+            $b = [Windows.Forms.SystemInformation]::VirtualScreen
+            $bmp = New-Object Drawing.Bitmap $b.Width, $b.Height
+            [Drawing.Graphics]::FromImage($bmp).CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)
+            New-Item -ItemType Directory -Force desk-runs | Out-Null
+            $bmp.Save("$PWD\desk-runs\one-click-waiting.png")
+            $p | Stop-Process -Force; throw "the installer was still open after 3 min: a page waited for a click (desk-runs/one-click-waiting.png)"
+          }
           if ($p.ExitCode -ne 0) { throw "the installer ended with exit code $($p.ExitCode)" }
           $dir = "$env:LOCALAPPDATA\Programs\Exhaust Tuner"
           if (-not (Test-Path "$dir\ExhaustTuner.exe")) { throw "not installed in the default folder ($dir)" }
@@ -474,6 +483,12 @@ jobs:
           "one-click install: done in one go, version $($info.version), add-in $($info.fusionAddIn.installed), program opened: $([bool]$run)"
           if (-not $run) { "::warning::the program did not open after the one-click install (it may not start on this runner)" }
           $run | Stop-Process -Force -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: one-click-screen
+          path: desk-runs/one-click-waiting.png
+          if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         with:

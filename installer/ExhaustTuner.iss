@@ -125,6 +125,14 @@ begin
   Result := PageID = wpSelectTasks;
 end;
 
+// Inno shows the Ready page whenever no page came before it (DisableReadyPage is ignored then); go straight on from
+// it, so the only click is opening the installer
+procedure CurPageChanged(CurPageID: Integer);
+begin
+  if CurPageID = wpReady then
+    WizardForm.NextButton.OnClick(WizardForm.NextButton);
+end;
+
 // Fusion has been installed (its web-deploy folder) or run (its per-user folder, where add-ins go)
 function FusionInstalled: Boolean;
 begin
