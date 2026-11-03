@@ -171,7 +171,9 @@ def snapshot(d):
 
 
 fails = []
-env = dict(os.environ, INTAKE_CFD_STAMP=STAMP)
+# PYTHONUTF8: the Rust writes UTF-8; Windows Python otherwise writes the file headers in the ANSI code page (cp1252)
+# and stops with UnicodeEncodeError on a name outside it
+env = dict(os.environ, INTAKE_CFD_STAMP=STAMP, PYTHONUTF8="1")
 for k, (tag, design) in enumerate(DESIGNS):
     dj = os.path.join(inp, "design_%02d.json" % k)
     json.dump(design, open(dj, "w"), indent=1)

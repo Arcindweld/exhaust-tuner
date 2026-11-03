@@ -337,8 +337,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   (log.generate = what the Python prints); exhaust-tuner-host --cfd-generate design.json DIR. Python is no longer
   bundled: windows.yml drops the embeddable 3.13, the installer removes engines\python on update, NOTICE drops it.
   CI: core-linux and the Windows job run gen_rs_vs_py (Windows: the program's static UCRT against Windows Python).
-  One known difference left: on Windows, Python writes a non-ASCII case name in cp1252 in the file headers, Rust in
-  UTF-8.
+  Windows CI: 28 of 29 the same bytes on the first run (the static UCRT's math matches Windows Python); the 29th,
+  non-ASCII names, stopped Windows Python itself (UnicodeEncodeError: it writes the headers in cp1252), so the test
+  runs Python in UTF-8 mode (PYTHONUTF8=1), which is what the Rust writes.
 - Rust, stage 4 (2026-11-02, "Port it to Rust" for the CFD Python): intake_report.py (REPORT_PY) in Rust,
   rust/et_host/src/cfd_report.rs (+ pyfmt.rs: repr, %f %e %g, json.dump indent=2 with NaN, Neumaier sum, Python
   min/max order, text-mode newlines). The program's report step and the convergence watchdog (a thread beside the
