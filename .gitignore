@@ -42,3 +42,4 @@ fusion-addin/et_core.dll
 fusion-addin/libet_core.so
 fusion-addin/libet_core.dylib
 fusion-addin/native/
+ext/

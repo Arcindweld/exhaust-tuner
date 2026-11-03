@@ -1289,7 +1289,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <label class="f span2"><span class="lab">Merge</span>
           <span class="inp"><select id="h-merge">
             <option value="direct" selected>Direct to collector (4-1)</option>
-            <option value="triy">Two-stage: Tri-Y 4-2-1, or 6-2-1 on a six</option>
+            <option value="triy">Two-stage: Tri-Y 4-2-1, 6-2-1 on a six, 8-4-1 on a V8 (all into one)</option>
           </select></span></label>
         <label class="f span2"><span class="lab">Primary profile</span>
           <span class="inp"><select id="h-prof">
@@ -5231,8 +5231,8 @@ function yPairsAsBuilt(an,list,kY,cycle){
   for(let gi=0;gi<an.length;gi++){
     const a=an[gi], mine=list.filter(g=>g.some(c=>a.cyls.indexOf(c)>=0));
     const flat=[].concat(...mine);
-    if(mine.length!==2||mine.some(g=>g.length!==kY)||flat.length!==a.cyls.length||new Set(flat).size!==flat.length||flat.some(c=>a.cyls.indexOf(c)<0))
-      return {err:'Y pairs: collector '+String.fromCharCode(65+gi)+' ('+a.cyls.join(', ')+') needs two groups of '+kY+' cylinders from it, for example '+a.cyls.slice(0,kY).join(',')+' | '+a.cyls.slice(kY).join(',')+'.'};
+    if(mine.length!==a.cyls.length/kY||mine.some(g=>g.length!==kY)||flat.length!==a.cyls.length||new Set(flat).size!==flat.length||flat.some(c=>a.cyls.indexOf(c)<0))
+      return {err:'Y pairs: collector '+String.fromCharCode(65+gi)+' ('+a.cyls.join(', ')+') needs '+(a.cyls.length/kY===2?'two':a.cyls.length/kY)+' groups of '+kY+' cylinders from it, for example '+Array.from({length:a.cyls.length/kY},(_,k)=>a.cyls.slice(k*kY,k*kY+kY).join(',')).join(' | ')+'.'};
     const pairs=mine.map(g=>{
       const q=g.map(c=>a.pulses.find(x=>x.cyl===c)).sort((x,y)=>x.ang-y.ang);
       const gaps=q.map((x,n)=>((n<q.length-1?q[n+1].ang:q[0].ang+cyc)-x.ang));
@@ -5252,6 +5252,28 @@ function bestTriples(pulses,cycle){
     const pairs=[grp(A),grp(B)], score=Math.min(pairs[0].min,pairs[1].min);
     if(!best||score>best.score+1e-9) best={pairs,score};
   }
+  return best;
+}
+// The first merge of an 8-4-1: eight pulses in four pairs. Pairs stay on one bank when the engine has two banks of four
+// (each bank's header then carries its own two secondaries, as Concept 841's are built: "the secondaries remain split at
+// the headers"), and within that the pairs are the most evenly spaced (on a cross-plane V8, 270 and 450 deg apart).
+// Without two banks of four: the four pairs whose closest pulses are furthest apart, over all 105 pairings.
+function pairs841(pulses,cycle,banks){
+  const cyc=cycle||CYCLE, by=Object.fromEntries(pulses.map(q=>[q.cyl,q]));
+  const pairOf=(x,y)=>{ const q=[by[x],by[y]].sort((u,v)=>u.ang-v.ang), d=q[1].ang-q[0].ang;
+    return {a:q[0].cyl,b:q[1].cyl,gaps:[d,cyc-d],min:Math.min(d,cyc-d)}; };
+  const b4=(banks||[]).filter(b=>b.length===4&&b.every(c=>by[c]));
+  if(b4.length===2&&new Set([].concat(...b4)).size===8){
+    const out=[]; b4.forEach(b=>out.push(...bestPairing(b.map(c=>by[c]),cyc).pairs));
+    return {pairs:out,score:Math.min(...out.map(x=>x.min)),sameBank:true};
+  }
+  let best=null;
+  const rec=(left,acc)=>{
+    if(!left.length){ const score=Math.min(...acc.map(x=>x.min)); if(!best||score>best.score+1e-9) best={pairs:acc.slice(),score}; return; }
+    const [x,...rest]=left;
+    rest.forEach((y,i)=>{ acc.push(pairOf(x,y)); rec(rest.filter((_,j)=>j!==i),acc); acc.pop(); });
+  };
+  rec(pulses.map(q=>q.cyl),[]);
   return best;
 }
 function calcLayout(p){
@@ -5289,19 +5311,19 @@ function calcLayout(p){
   const segs=[]; const add=(name,len,d0,d1)=>segs.push({tag:String.fromCharCode(65+segs.length),name,len,d0,d1});
   const steps=[]; let pairs=null, dEnd=p.dp, dc, dsec=null, cmerge, cstraight;
   if(p.merge==='triy'){
-    if(!(Ng===4||Ng===6)||an.some(a=>a.cyls.length!==Ng))
-      return {err:'A two-stage merge needs four cylinders on every collector (Tri-Y, 4-2-1) or six (6-2-1). On a V8 use per-bank or 180° groups; on an inline-4 or inline-6 use all into one.'};
+    if(!(Ng===4||Ng===6||(Ng===8&&an.length===1))||an.some(a=>a.cyls.length!==Ng))
+      return {err:'A two-stage merge needs four cylinders on every collector (Tri-Y, 4-2-1), six (6-2-1), or all eight of a V8 on one collector (8-4-1). On a V8 pick per-bank or 180° groups for a 4-2-1 on each, or all into one for an 8-4-1; on an inline-4 or inline-6 use all into one.'};
     if(!fin(p.first,p.yr)||p.first<=0||p.yr<=0) return {err:'Fill in the first section length and the secondary area ratio.'};
     if(p.first>=total) return {err:'The first section is as long as the whole tuned length. Shorten it to leave room for the secondary pipes.'};
-    const kY=Ng/2;   // primaries joined at the first merge: 2 on a Tri-Y, 3 on a 6-2-1
+    const kY=Ng===6?3:2, nSec=Ng/kY;   // primaries joined at the first merge (2 on a Tri-Y and an 8-4-1, 3 on a 6-2-1), and the secondaries that leave
     dsec=p.dp*Math.sqrt(kY*p.yr);
     const yc=coneLen(p.dp,dsec,15), sec=total-p.first;
     if(sec<=yc) return {err:'The secondary section is shorter than the Y merge cone. Shorten the first section or lower the secondary ratio.'};
-    dc=dsec*Math.sqrt(2*p.cr); cmerge=coneLen(dsec,dc,15); cstraight=p.cs*dc;
+    dc=dsec*Math.sqrt(nSec*p.cr); cmerge=coneLen(dsec,dc,15); cstraight=p.cs*dc;
     add('First section',p.first,p.dp,p.dp); add('Y merge',yc,p.dp,dsec); add('Secondary',sec-yc,dsec,dsec);
     add('Collector merge',cmerge,dsec,dc); add('Collector straight',cstraight,dc,dc);
     dEnd=dsec;
-    pairs=an.map(a=>kY===2?bestPairing(a.pulses,cyc):bestTriples(a.pulses,cyc));
+    pairs=an.map(a=>Ng===8?pairs841(a.pulses,cyc,p.banks):kY===2?bestPairing(a.pulses,cyc):bestTriples(a.pulses,cyc));
     if(p.ypairs&&p.ypairs.length){ const ov=yPairsAsBuilt(an,p.ypairs,kY,cyc); if(ov.err) return {err:ov.err}; pairs=ov; }
   } else {
     if(p.prof==='const') add('Primary',total,p.dp,p.dp);
@@ -5341,7 +5363,12 @@ function calcLayout(p){
   }
   if(dc/dEnd>2.2) notes.push({k:'info',t:'The collector comes out '+(dc/dEnd).toFixed(1)+' times the primary diameter, so check that it fits before you commit to this layout.'});
   if(p.merge==='triy'&&p.prof!=='const') notes.push({k:'info',t:'Stepped primaries are only applied to direct collectors, so this two-stage header uses constant-diameter pipes.'});
-  if(Ng===8&&an.length===1) notes.push({k:'info',t:'8-into-1: all eight pulses meet in one collector, so a cross-plane V8 fires it evenly every 90° and the sound is the firing frequency (4th order), smooth and high-pitched like a flat-plane V8, not the uneven 90-180-270-180° bank rhythm of duals. A built example, an LS7 Ultima GTR: 1.75 in primaries stepped to 1.875 in at 18 in, about 39 in long, into one collector with a 4 in outlet (its builder says 5 in would have been better) and a 4 × 6 in resonator; it passes trackside noise limits because all eight pulses share one pipe. Off-the-shelf 8-into-1 merge collectors are about 7.5 to 8 in across (RaceMufflers transitional 8-1, CXRacing MC-81) and clear the axle and transaxle only in mid-engine or dragster layouts; the primaries cannot be made equal length without crossing under the engine. Source: Swartz Garage build notes with Greg Holman (REF Unlimited) and SPD Exhaust.'});
+  if(Ng===8&&an.length===1&&p.merge==='triy'){
+    const pr=pairs[0], gp=pr.pairs.map(x=>x.a+'+'+x.b+' ('+Math.round(x.min)+'°)').join(', ');
+    notes.push({k:'info',t:'8-4-1: the eight primaries join in pairs ('+gp+'), and the four secondaries meet in one 4-1 collector, which takes a pulse every '+Math.round(an[0].min)+'° like an 8-into-1, so it has the even-firing, flat-plane-like sound of one'+(pr.sameBank?'. The pairs stay on their own bank, the most evenly spaced pairs the bank has, so each bank’s header carries two secondaries and only the 4-1 collector joins the banks; that is how Concept 841 builds its 8-4-1s (the 4-1 behind the engine on a C8, its secondaries “split at the headers”), and the per-bank Tri-Y practice for cross-plane V8s also pairs cylinders 270° and 450° apart rather than the two that fire 90° apart':'')+
+      '. Concept 841 publishes its tube sizes: on the C7 (6.2 L LT1, LT4, LT5) 2.00 in primaries, 2.25 in secondaries and a 4-1 collector with 2.25 in inlets and a 4.5 in outlet; on the Mustang GT (5.0 Coyote) 1.875 in primaries and 2.125 in secondaries, a flat 4-1 collector on the manual car “to retain correct wave tuning lengths”. With a 16-gauge wall (assumed) those secondaries carry 0.64 to 0.65 of the area of the two primaries feeding them (this tab’s ratio; its default is 0.8), and the collector outlet about the area of the four secondaries. Their only power figure is +37 wheel hp and +32 lb-ft on a C6 LS3 that also had a cam, so the header’s share is not known. Lengths are not published; they say the design was worked out in EngMod4T, a 1-D engine simulation.'});
+  }
+  if(Ng===8&&an.length===1&&p.merge!=='triy') notes.push({k:'info',t:'8-into-1: all eight pulses meet in one collector, so a cross-plane V8 fires it evenly every 90° and the sound is the firing frequency (4th order), smooth and high-pitched like a flat-plane V8, not the uneven 90-180-270-180° bank rhythm of duals. A built example, an LS7 Ultima GTR: 1.75 in primaries stepped to 1.875 in at 18 in, about 39 in long, into one collector with a 4 in outlet (its builder says 5 in would have been better) and a 4 × 6 in resonator; it passes trackside noise limits because all eight pulses share one pipe. Off-the-shelf 8-into-1 merge collectors are about 7.5 to 8 in across (RaceMufflers transitional 8-1, CXRacing MC-81) and clear the axle and transaxle only in mid-engine or dragster layouts; the primaries cannot be made equal length without crossing under the engine. Source: Swartz Garage build notes with Greg Holman (REF Unlimited) and SPD Exhaust.'});
   if(p.merge==='triy'&&Ng===6) notes.push({k:'info',t:'6-2-1: each group of three joins first, then the two secondaries join. The first-section length and secondary area ratio are the Tri-Y rules carried over; no separate published rule for a 6-2-1 was found, so treat them as a starting point.'});
   const w=p.wall>0?p.wall:0, odEnd=dEnd+2*w;
   return {ED,total,port,tube:total-port,ruleDc:(p.merge==='triy'||Ng!==4)?null:[1.75*odEnd,2*odEnd],ruleLen:0.5*total,
@@ -9324,10 +9351,10 @@ function renderHeaders(){
     'Cut every runner to about <b>'+clen(r.tube)+'</b>, measured along the tube from '+(r.port>0?'the head flange':'the valve')+' to the collector. That suits about <b>'+Math.round(p.rpm)+' RPM</b>.',
     uel&&uel.err?'<b>Unequal lengths:</b> '+esc(uel.err):'',
     szH.err?'':'The sizing rule asks for about <b>'+cdim(szH.id)+'</b> inside for this engine. You have '+cdim(p.dp)+' entered.',
-    'You get <b>'+r.nColl+' collector'+(r.nColl>1?'s':'')+'</b> ('+r.groups.map(g=>g.cyls.length+'-into-1').join(' and ')+'), each about <b>'+cdim(r.dc)+'</b> inside.',
+    'You get <b>'+r.nColl+' collector'+(r.nColl>1?'s':'')+'</b> ('+r.groups.map(g=>r.triy&&g.cyls.length===8?'an 8-4-1':g.cyls.length+'-into-1').join(' and ')+'), each about <b>'+cdim(r.dc)+'</b> inside.',
     ga<0?'Every collector gets evenly spaced pulses, which helps each pulse pull the next cylinder clear.':
       'Collector '+lab(ga)+' gets uneven pulses (the closest are '+Math.round(r.minGap)+'° apart). '+(p.mode!=='alt'&&order.length%2===0?'A 180° layout (alternate cylinders in firing order) evens them out, but its tubes have to cross between the banks.':''),
-    r.triy?(r.Ng===6?'6-2-1: join each group of three first, ':'Tri-Y: join each pair first, ')+clen(r.segs[0].len)+' from '+(r.port>0?'the flange':'the valve')+', then run the '+cdim(r.dsec)+' secondaries to the collector.':'',
+    r.triy?(r.Ng===6?'6-2-1: join each group of three first, ':r.Ng===8?'8-4-1: join each pair first, ':'Tri-Y: join each pair first, ')+clen(r.segs[0].len)+' from '+(r.port>0?'the flange':'the valve')+', then run the '+cdim(r.dsec)+' secondaries to the collector.':'',
     r.steps.length?'Steps: '+r.steps.map(q=>'grow to '+cdim(q.d)+' at '+clen(q.x)+' from the valve').join(', then ')+'.':'',
     fit.items.length?(fit.worst==='ok'?'<b>It fits the space you entered.</b>':'<b>It does not all fit the space you entered.</b> The closest you can get is listed under Fit to your space.'):'',
     hotV?'With the exhaust ports facing into the V, both banks’ runners start side by side in the valley, so '+(p.mode==='alt'||p.mode==='all'||p.mode==='custom'?'this cross-bank grouping packages without wrapping tubes around the engine':'a 180° or 8-into-1 grouping becomes practical')+'.':''
@@ -13099,6 +13126,7 @@ document.addEventListener('input',e=>{ const el=e.target.closest('input.esrpms')
    the collector). Unedited cells follow the equal-length design. HDR_LAST keeps the last good Headers layout for the
    exports on the 4-Stroke tab and the Fusion route. */
 let HDR_LAST=null;
+window.__hdr={calcLayout:p=>calcLayout(p)};   // for tests/h841_ui.js
 const HUEL={c:{},g:{},n:0,sig:'',T:NaN,route:0};
 function uelPairs(r){   // [{gi, cyls, key}] in collector order, Y pairs (or 6-2-1 triples)
   const out=[]; if(!r.triy) return out;
