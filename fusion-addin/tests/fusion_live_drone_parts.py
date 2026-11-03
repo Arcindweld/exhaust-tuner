@@ -97,7 +97,13 @@ def run(_context=None):
             return root
 
         def bodies(c):
-            return {c.bRepBodies.item(i).name: c.bRepBodies.item(i) for i in range(c.bRepBodies.count)}
+            # a component's bodies as seen from the root (proxies), so distances and booleans with the main pipe work
+            occ = None
+            if c != root:
+                occs = root.allOccurrencesByComponent(c)
+                occ = occs.item(0) if occs.count else None
+            get = lambda b: b.createForAssemblyContext(occ) if occ is not None else b
+            return {c.bRepBodies.item(i).name: get(c.bRepBodies.item(i)) for i in range(c.bRepBodies.count)}
 
         def test(name, fn):
             try:
@@ -165,7 +171,9 @@ def run(_context=None):
             select([main])
             ct.act_set_keepouts({})
             s = line((10.0, 0.0, R), (10.0, 0.0, R + 2.0), 'J-pipe start')
-            e = line((25.0, 0.0, 14.0), (27.0, 0.0, 14.0), 'J-pipe end')
+            # the cap end 50 cm along the pipe: a 60 cm J-pipe between ends 52 cm apart (a 60 cm tube between ends
+            # 18 cm apart needs its bends to overlap with a 3.75 in bend radius, and the add-in refuses it)
+            e = line((60.0, 0.0, 14.0), (62.0, 0.0, 14.0), 'J-pipe end')
             select([s, e, outside])
             res = ct.act_route({'mode': 'single', 'title': 'J-pipe', 'od_mm': 63.5, 'wall_mm': 1.651, 'target_mm': 601.2,
                                 'cap': True, 'tee': True, 'cap_mm': 3.175, 'gap_mm': 12.7, 'main_od_mm': 63.5})
@@ -178,7 +186,7 @@ def run(_context=None):
             if cap:
                 bb = cap.boundingBox
                 r['cap_x'] = [bb.minPoint.x, bb.maxPoint.x]
-                r['ok_cap_on_the_end'] = abs(bb.minPoint.x - 25.0) < 1e-3 and abs(bb.maxPoint.x - 25.3175) < 1e-3
+                r['ok_cap_on_the_end'] = abs(bb.minPoint.x - 60.0) < 1e-3 and abs(bb.maxPoint.x - 60.3175) < 1e-3
             else:
                 r['ok_cap_on_the_end'] = False
             plain = tube_volume(it.get('length') or 0.0)
@@ -216,7 +224,7 @@ def run(_context=None):
             rod = root.features.extrudeFeatures.addSimple(sk2.profiles.item(0), adsk.core.ValueInput.createByReal(LEN),
                                                           adsk.fusion.FeatureOperations.NewBodyFeatureOperation).bodies.item(0)
             path = os.path.join(tempfile.gettempdir(), 'et_live_main_pipe.stl')
-            em = app.exportManager
+            em = des.exportManager
             opts = em.createSTLExportOptions(rod, path)
             opts.meshRefinement = adsk.fusion.MeshRefinementSettings.MeshRefinementHigh
             em.execute(opts)

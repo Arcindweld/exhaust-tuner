@@ -83,6 +83,12 @@ def tees():
     scan = T.tee_cope({'p': (0, 0, 0), 'd': (1, 0, 0), 'R': r - 0.00054}, (0, 0, r), up, r)
     ok(scan['full'] and abs(scan['R'] - r) < 1e-12, 'same-size T on a scan that reads a hair under: taken as the same size (R %.5f)' % scan['R'])
 
+    for deg, want_full in ((0.01, True), (0.3, True), (2.0, False)):
+        tt = math.radians(deg)
+        lean = T.tee_cope({'p': (0, 0, 0), 'd': (1, 0, 0), 'R': r - 0.0005}, (0, 0, r - 0.0005), (0.0, math.sin(tt), math.cos(tt)), r)
+        ok(lean['full'] == want_full and (want_full or lean['why'] == 'side'),
+           'same-size T leaning %.2f deg across the pipe: %s (%s)' % (deg, 'coped, the side grazes within 0.5 mm' if want_full
+                                                                     else 'left square, its side overhangs', lean['why'] or 'full'))
     wide = T.tee_cope({'p': (0, 0, 0), 'd': (1, 0, 0), 'R': 2.54}, (0, 0, 2.54), up, 3.175)
     ok(not wide['full'] and wide['why'] == 'wider' and wide['stub'] == 0.0, 'branch wider than the main pipe: no automatic cope (%s)' % wide['why'])
     along = T.tee_cope(main, start, (1.0, 0.0, 0.0), r)

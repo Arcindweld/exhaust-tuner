@@ -563,7 +563,33 @@ def offset_part():
     ok(all(k == 'union' for _x, k, _t, _u in boxes), 'one body')
 
 
+def buildable_route():
+    """Live in Fusion 2026-11-02 an auto-routed J-pipe failed to build. Two things: a bend of a tenth of a millimetre where
+    a straight leaves its fixed point (Fusion's three-point arc check fails on it) is folded into the straight; and a
+    route whose bends overlap (the fit could not finish it) is refused with a plain reason instead of a crash."""
+    total = lambda es: sum(RT.elem_len(e) for e in es)
+    elems = RT.chain_geometry([(0.0, 0.0, 0.0), (0.0, 0.0, 10.0), (0.002, 0.0, 30.0), (20.0, 0.0, 30.0)], 5.0)['elems']
+    small = [e for e in elems if e[0] != 'line' and e[5] < 0.05]
+    out = CT._buildable(elems)
+    ok(len(small) == 1 and not any(e[0] != 'line' and e[5] < 0.05 for e in out) and len(out) == len(elems) - 2
+       and abs(total(out) - total(elems)) < 1e-6 and all(RT.vdist(a[2], b[1]) < 1e-9 for a, b in zip(out, out[1:]))
+       and out[0][1] == elems[0][1] and out[-1][2] == elems[-1][2],
+       'a %.3f mm bend on a straight is folded into it (%d elements to %d, length and ends kept)'
+       % (10 * small[0][5] if small else -1, len(elems), len(out)))
+    plain = RT.chain_geometry([(0, 0, 0), (0, 0, 10), (10, 0, 20), (30, 0, 20)], 5.0)['elems']
+    ok(CT._buildable(plain) == plain, 'a route with real bends is built as planned')
+    # the live case: 90 deg of 9.5 cm radius between points 10.8 cm apart overlaps the bend before it
+    folded = RT.chain_geometry([(10.0, 0.0, 3.175), (10.0, 0.0, 5.715), (9.99, 0.0, 13.999), (25.0, 0.0, 14.0)], 9.525)['elems']
+    try:
+        CT._build_route(None, {'elems': folded, 'msg': 'A straight is 1.92 cm where 2.54 cm is needed.'}, 'J-pipe', 6.35, 0.1651, 'jp')
+        why = None
+    except ValueError as ex:
+        why = str(ex)
+    ok(why is not None and 'overlap' in why and 'fold back' in why, 'a route whose bends overlap is refused: %s' % (why or 'built')[:90])
+
+
 off_square_and_refusals()
 offset_part()
+buildable_route()
 print('FAILS:', fails)
 sys.exit(1 if fails else 0)

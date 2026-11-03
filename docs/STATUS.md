@@ -219,7 +219,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   At wide-open throttle the page's 10 mm cells are fine for torque: net torque and VE within 0.4 % of 5 mm for
   i4_41 at 4000 / 6000 rpm and 1.0 % for v8_dual at 5500 rpm (30 cycles; make_wam DEFAULTS comment). Outback
   2585 rpm hold (48 cycles), 7.5 vs the model's 15 mm: RMS against the recording 10.3 -> 10.9 dB, orders 2-5.5
-  within 2.6 dB, single orders above the 5th up to 8 dB (outback04.py docstring). Page artifact Version 42 (Version 47 adds the build sheet): the
+  within 2.6 dB, single orders above the 5th up to 8 dB (outback04.py docstring). Page artifact Version 42 (Version 47 adds the build sheet, 48 sizes the main pipe by inside area): the
   OpenWAM Method paragraph and the order-spectrum caption state both limits.
 - Program updates (2026-11-01): each push to windows-app that passes the Windows build becomes GitHub release
   v0.1.<run number> (installer + SHA256SUMS.txt, notes = commits since the previous release, newest 6 kept; job
@@ -280,6 +280,18 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   All fixed and tested; tip trims 2.5 mm (no knife edges), 20 micron overlap at the joint. Fusion API names checked
   against Autodesk's docs (TemporaryBRepManager.createCylinderOrCone / booleanOperation, CombineFeatures.createInput,
   SurfaceEvaluator.getParameterAtPoint / isParameterOnFace, BRepBody.volume).
+  Live run in the owner's Fusion (2026-11-02, the 4.13 files staged in %TEMP%\et_live_4_13; his installed add-in is
+  4.11.0 and was not touched): all six pass. Helmholtz can 181.73 cm^3 built for 181.73 asked, neck meets the main
+  pipe with no gap or overlap, can 49 mm clear, hole tool cuts 3.75 cm^3 of wall; the four hole tools cut 21.1 cm^3
+  together. It found three test bugs (measure/boolean need assembly-context proxies; exportManager is on the Design;
+  the route test's end marker gave the bends no room) and two add-in bugs, both fixed: overlapping bends / a 0.1 mm
+  bend at a corner made a centreline Fusion would not sweep (cadtools._buildable folds a bend under 0.5 mm and 0.5
+  deg into its straight; overlapping bends are refused with the overlap and what to change), and a same-size J-pipe
+  on a scan was left square because the fitted axis is a hair off square to the marker, so one side passed beside
+  the main pipe (templates._graze: a side within the same-size allowance counts as touching; a farther lean gets
+  why='side'). Main pipe sizing on the Quick tab (2026-11-02): Stainless Headers' 2.2 cfm/hp and 115 cfm/in^2 now
+  apply to the tube's inside (OD less two 0.065 in walls, 2 % rounding); their own example rounds 400 hp duals to
+  2.25 in, 8 % short on inside area, while their chart lists 2.5 in, which is what the page now gives.
 - Rust, stage 1 (the owner 2026-11-02: "reprogram everything and all features in Rust"; chose "staged, slow parts first"):
   rust/et_core (std only, cdylib, C ABI v2, panics caught at every entry point and reported via et_last_error) holds
   the router's Scene queries, TubeSet, Fields, route()'s Lazy Theta* search (free_at, los, simplify), the residuals,

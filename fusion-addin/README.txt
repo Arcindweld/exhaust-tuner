@@ -35,6 +35,17 @@ EXHAUST TUNER (Fusion add-in), version 4.13.0
   check along it) gave the fit a shorter list of numbers than the trial before; the fit then compared
   numbers that did not belong together, or stopped with an error. Zeros now stand in for the missing
   points, in the Python router and the core alike.
+- Fixed (found running the drone parts in Fusion itself): a J-pipe whose route had no room for its
+  bends, so they overlapped, made a centreline that folded back through itself, and Fusion stopped
+  with a sweep error; the router can also leave a bend a fraction of a millimetre long at a corner,
+  which Fusion will not sketch. A bend that small is now part of the straight around it, and a route
+  whose bends overlap is refused with how far, and what to change (end marker farther away, a smaller
+  bend radius or a shorter target length).
+- Fixed (also found in Fusion): a J-pipe the same size as a main pipe read from the scan was left
+  square ("the branch is wider than the main pipe"). The cylinder fitted to a scan is never exactly
+  square to the marker, so one side of a same-size branch passed a hair beside the main pipe. A side
+  that passes within the same-size allowance (1 % of the radius, at least 0.5 mm) is taken as
+  touching it; one leaning farther across is left square with that reason, not "wider".
 
 4.12.0 (November 2, 2026)
 - New: drone-fix parts, all from the Mufflers tab.

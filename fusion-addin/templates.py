@@ -329,6 +329,23 @@ def _hits(q, d, axis_p, axis_d, R):
     return (B - s) / (2.0 * A), (B + s) / (2.0 * A)
 
 
+def _graze(q, d, axis_p, axis_d, R, tol):
+    """For a line that misses the cylinder: (t, t) at its closest approach to the axis when it passes within tol of
+    the cylinder's surface, else None."""
+    a = RT.vunit(axis_d)
+    w0 = RT.vsub(q, axis_p)
+    w0p = RT.vsub(w0, RT.vmul(a, RT.vdot(w0, a)))
+    dp = RT.vsub(d, RT.vmul(a, RT.vdot(d, a)))
+    A = RT.vdot(dp, dp)
+    if A < 1e-12:
+        return None
+    t = RT.vdot(w0p, dp) / A
+    c = RT.vsub(w0p, RT.vmul(dp, t))
+    if math.sqrt(RT.vdot(c, c)) > R + tol:
+        return None
+    return t, t
+
+
 def _radial_cos(main, start, d):
     """Cosine between the branch direction and the main pipe's outward normal at the start (1 for a square tee)."""
     a = RT.vunit(main['d'])
@@ -351,7 +368,8 @@ def tee_cope(main, start, d, r_out, n=96, tip=0.25):
              for a marker off square or a lateral; the builder cuts the tube's first part to the main pipe too
       room   how far the tube can run in before any of its outline reaches the far side of the main pipe
       full   False when the end cannot be coped from here; why says so: 'wider' (the branch is wider than the
-             main pipe), 'along' (it runs along the main pipe), 'into' (it points into the main pipe or along its
+             main pipe), 'side' (it leans across the main pipe so one side passes beside it, by more than the same-size
+             allowance), 'along' (it runs along the main pipe), 'into' (it points into the main pipe or along its
              surface), 'steep' (so far off square that one straight piece cannot reach the main pipe all round)
       axis   how far down the branch centreline passes closest to the main axis
       stub   the coped piece's length below the start: 0.5 mm past the deepest point, but kept tip (2.5 mm) short
@@ -360,7 +378,8 @@ def tee_cope(main, start, d, r_out, n=96, tip=0.25):
     For a square tee, depth = R - sqrt(R^2 - r^2)."""
     d = RT.vunit(d)
     R = main['R']
-    if R < r_out <= R + max(0.05, 0.01 * R):
+    tol = max(0.05, 0.01 * R)
+    if R < r_out <= R + tol:
         R = r_out
     m = dict(main, R=R)
     out = {'R': R, 'depth': 0.0, 'top': 0.0, 'room': 0.0, 'full': False, 'why': '', 'axis': 0.0, 'stub': 0.0, 'trim': 0.0}
@@ -386,7 +405,12 @@ def tee_cope(main, start, d, r_out, n=96, tip=0.25):
         q = RT.vadd(start, RT.vadd(RT.vmul(e1, r_out * math.cos(ph)), RT.vmul(e2, r_out * math.sin(ph))))
         h = _hits(q, d, m['p'], m['d'], R)
         if h is None:
-            out['why'] = 'wider'
+            # A same-size branch meets the main pipe tangentially at its sides, so a marker a hair off square across
+            # the pipe (a scan's fitted axis is never exact) passes its side just beside the main pipe. A side that
+            # misses by no more than the same-size allowance is taken as touching it where it comes closest.
+            h = _graze(q, d, m['p'], m['d'], R, tol)
+        if h is None:
+            out['why'] = 'side'
             return out
         depth = max(depth, h[0])
         if h[0] < 0.0:

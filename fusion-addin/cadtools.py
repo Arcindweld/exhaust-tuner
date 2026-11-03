@@ -1254,12 +1254,41 @@ def _pipe_param(comp, path, od, wall, base):
         return _pipe(comp, path, od, wall), False
 
 
+def _buildable(elems):
+    """The route's elements as Fusion can build them. Where a straight leaves a fixed point the router keeps a corner,
+    and after the fit its bend can be a few hundredths of a millimetre long; Fusion cannot draw a three-point arc that
+    small (the sketch's check fails), and a wire with one in it reads as folding back on itself. Such a bend (under
+    0.5 mm and 0.5 deg) becomes part of the straight around it, and straights that then meet in line are one."""
+    out = []
+    for e in elems:
+        if e[0] != 'line' and e[5] < 0.05 and e[4] < math.radians(0.5):
+            e = ('line', e[1], e[2], _norm(_sub(e[2], e[1])))
+        if e[0] == 'line':
+            if e[3] < 1e-6:
+                continue
+            if out and out[-1][0] == 'line':
+                a = out[-1]
+                if _dot(_sub(a[2], a[1]), _sub(e[2], e[1])) >= math.cos(math.radians(0.5)) * a[3] * e[3]:
+                    out[-1] = ('line', a[1], e[2], _norm(_sub(e[2], a[1])))
+                    continue
+        out.append(e)
+    return out
+
+
 def _build_route(comp, res, name, od, wall, pbase):
+    elems = _buildable(res['elems'])
+    # a route the fit could not finish can have two bends closer than their own arcs: the second starts before the
+    # first ends, so the tube would fold back through itself. Nothing can be swept along that; say so plainly.
+    short = max([_norm(_sub(b[1], a[2])) for a, b in zip(elems, elems[1:])] or [0.0])
+    if short > 1e-3:
+        raise ValueError('%s could not be built: two of its bends overlap by about %.1f mm, so the tube would fold back '
+                         'through itself. %s Move the end marker farther away, use a smaller bend radius, or a shorter '
+                         'target length.' % (name, 10 * short, res.get('msg') or ''))
     try:
-        _sk, path = _sketch_route(comp, res['elems'], name + ' centreline')
+        _sk, path = _sketch_route(comp, elems, name + ' centreline')
         how = 'sketch'
     except Exception:
-        path = _wire_path(comp, res['elems'], name)
+        path = _wire_path(comp, elems, name)
         how = 'wire'
     feat, param = _pipe_param(comp, path, od, wall, pbase)
     body = None
@@ -2232,6 +2261,7 @@ def _revolve_section(comp, origin, d, sec, name):
 
 WHY_SQUARE = {
     'wider': 'the branch is wider than the main pipe',
+    'side': 'the branch leans across the main pipe, so one side of it runs past the main pipe\'s side',
     'along': 'the branch runs along the main pipe',
     'into': 'the marker points into the main pipe (draw it from the outside, pointing away)',
     'steep': 'the branch leaves the main pipe too far off square for one coped piece',
