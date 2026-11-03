@@ -7,6 +7,7 @@
 //! EXHAUST_TUNER_UPDATE_PREVIOUS plays the version the last start recorded (the window reads it from
 //! last-start.txt). Folders: EXHAUST_TUNER_APPROOT, EXHAUST_TUNER_DATA, EXHAUST_TUNER_FUSION_ADDINS.
 //! Other switches: --info (hostInfo), --bridge (the page's bridge script), --install-addin (the installer's),
+//! --cfd-report DIR (a CFD case's report, as intake_report.py writes it),
 //! --token-sha256 (the saved update token's SHA-256, never the token).
 
 use et_host::dispatcher::{Dispatcher, HostUi};
@@ -76,6 +77,21 @@ fn main() {
     if args.iter().any(|a| a == "--bridge") {
         print!("{}", bridge_script());
         return;
+    }
+    // intake_report.py in Rust for a case folder (what a CFD run's "report" step does): writes results.json and
+    // results.txt there and prints the text, exit code 1 with the reason when it cannot
+    if let Some(i) = args.iter().position(|a| a == "--cfd-report") {
+        let dir = args.get(i + 1).map(PathBuf::from).unwrap_or_else(|| PathBuf::from("."));
+        match et_host::cfd_report::report(&dir) {
+            Ok(r) => {
+                println!("{}", r.text);
+                return;
+            }
+            Err(e) => {
+                println!("{}", e);
+                std::process::exit(1);
+            }
+        }
     }
     if args.iter().any(|a| a == "--install-addin") {
         // the installer calls this when "Install the Fusion add-in" is ticked

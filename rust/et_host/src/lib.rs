@@ -6,12 +6,14 @@
 //! progress messages while a run goes on (router). The actions are in dispatcher.
 
 pub mod case_files;
+pub mod cfd_report;
 pub mod dispatcher;
 pub mod enginesim;
 pub mod fusion_addin;
 pub mod openfoam;
 pub mod openwam;
 pub mod palette;
+pub mod pyfmt;
 pub mod paths;
 pub mod proc;
 pub mod router;

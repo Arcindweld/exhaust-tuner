@@ -322,6 +322,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   old history: scratchpad scrub/backup/*.bundle (this session only). Not reachable from here: the release tags v0.1.43
   and v0.1.45 (tag push refused, 403) and their installers, the old Actions runs, engine-sim's PR refs and GitHub's
   cached views of old commits.
+- Rust, stage 4 (2026-11-02, "Port it to Rust" for the CFD Python): intake_report.py (REPORT_PY) in Rust,
+  rust/et_host/src/cfd_report.rs (+ pyfmt.rs: repr, %f %e %g, json.dump indent=2 with NaN, Neumaier sum, Python
+  min/max order, text-mode newlines). The program's report step and the convergence watchdog (a thread beside the
+  solver, no PID polling) run it; Python is now needed only to generate a 3-D case (intake_cfd.py). Same bytes as the
+  script (results.json, results.txt, printed text) on 10 real runs here and on cfd/report_rs_vs_py.py's 7 variants
+  of tests/report_case (a real 2-D run, 9 planes): incompressible, exhaust with one/two inlets and a missing one, no
+  planes, label/area types, no results. exhaust-tuner-host --cfd-report DIR. Next: the 3-D generator.
 - Rust, stage 3 (2026-11-02, "finish the conversion to rust now"): the page's wave model in Rust, rust/et_wave
   (cdylib, wasm32-unknown-unknown; serde_json with float_roundtrip), line for line from wsFactory; pow/sin/cos/exp
   imported from the page's Math, JS min/max/round rules kept; results the same doubles (web/tests/wave_wasm.js on

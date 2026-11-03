@@ -49,6 +49,12 @@ jobs:
           restore-keys: rust-linux-
       - name: Program tests (Linux)
         run: cargo test --release --manifest-path rust/Cargo.toml
+      # the CFD case report in Rust (what the program runs) against intake_report.py, byte for byte, with the
+      # runner's own Python 3.12 (its sum() compensates as the Python 3.13 the program used to bundle does)
+      - name: CFD report, Rust against the case's Python
+        run: |
+          cargo build --release --manifest-path rust/Cargo.toml --bin exhaust-tuner-host
+          /usr/bin/python3 cfd/report_rs_vs_py.py rust/target/release/exhaust-tuner-host
       # Python 3.11 here: its sum() adds plainly, 3.12 and later with Neumaier's compensation, and the Rust core follows
       # whichever Python loads it; the Windows job checks it on 3.12, so both ways are covered
       - uses: actions/setup-python@v5

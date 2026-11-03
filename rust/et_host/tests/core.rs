@@ -231,15 +231,26 @@ fn openfoam_runner_logic_with_stand_in_programs() {
         &foam.join("bin/checkMesh"),
         "#!/bin/sh\necho checkMesh >> ../steps.txt\necho ' ***High aspect ratio cells found, Max aspect ratio: 1368.87, number of cells 40'\necho ' ***Number of severely non-orthogonal (> 70 degrees) faces: 12.'\necho 'Failed 2 mesh checks.'\n",
     );
-    // the solver runs until the watchdog switches stopAt to writeNow (or 400 iterations)
+    // the solver runs until the watchdog switches stopAt to writeNow (or 400 iterations), writing the monitors'
+    // rows as OpenFOAM's function objects do: steady mass flows and plane pressure, so the watchdog (cfd_report, in
+    // the program) stops it once conv_window iterations past the ramp have the same numbers
     exec(
         &foam.join("bin/simpleFoam"),
-        "#!/bin/sh\necho simpleFoam >> ../steps.txt\ni=0\nwhile [ $i -lt 400 ]; do i=$((i+1)); echo \"Time = $i\"; grep -q writeNow system/controlDict && exit 0; sleep 0.02; done\n",
+        concat!(
+            "#!/bin/sh\necho simpleFoam >> ../steps.txt\n",
+            "for f in mdot_atmosphere mdot_outlet p_x1; do mkdir -p postProcessing/$f/0; echo '# Time          sum(phi)' > postProcessing/$f/0/surfaceFieldValue.dat; done\n",
+            "i=0\nwhile [ $i -lt 400 ]; do i=$((i+1)); echo \"Time = $i\"\n",
+            " echo \"$i -0.01\" >> postProcessing/mdot_atmosphere/0/surfaceFieldValue.dat; echo \"$i 0.01\" >> postProcessing/mdot_outlet/0/surfaceFieldValue.dat\n",
+            " echo \"$i 101000\" >> postProcessing/p_x1/0/surfaceFieldValue.dat\n",
+            " grep -q writeNow system/controlDict && exit 0; sleep 0.03; done\n"
+        ),
     );
-    let report = "import os, sys, time, json\nif len(sys.argv) > 2 and sys.argv[1] == '--watch':\n    pid = int(sys.argv[2]); time.sleep(0.5); os.kill(pid, 0)\n    s = open('system/controlDict').read().replace('stopAt          endTime;', 'stopAt          writeNow;')\n    open('system/controlDict', 'w').write(s); print('watch: converged at iteration 20 -> stopAt writeNow')\nelse:\n    json.dump({'solver': 'simpleFoam', 'summary': {'K': 0.5}}, open('results.json', 'w')); open('results.txt', 'w').write('K 0.5\\n')\n";
+    let info = r#"{"name": "stand-in", "solver": "simpleFoam", "gamma": 1.4, "R_air": 287.05, "p_amb": 101325.0, "T_amb": 298.15,
+        "compressible": true, "rho_amb": 1.184, "flow_scale": 1, "planes": [{"name": "x1", "point": [0.1, 0, 0], "normal": [1, 0, 0]}],
+        "reference_plane": "x1", "conv_window": 5, "ramp": 0, "stop_mdot_rel": 1e-3, "stop_dp_rel": 1e-3}"#;
     let files = vec![
         CaseFile { name: "system/controlDict".into(), text: "application     simpleFoam;\nstopAt          endTime;\nendTime         400;\n".into(), exec: false, data: None },
-        CaseFile { name: "intake_report.py".into(), text: report.into(), exec: false, data: None },
+        CaseFile { name: "case_info.json".into(), text: info.into(), exec: false, data: None },
     ];
     let events = Mutex::new(Vec::new());
     let runner = OpenFoamRunner::new(foam.clone(), "python3".into());
@@ -252,7 +263,11 @@ fn openfoam_runner_logic_with_stand_in_programs() {
     assert_eq!(solver["stoppedBy"], "convergence");
     assert!(res["iterations"].as_i64().unwrap() < 400);
     assert!(std::fs::read_to_string(t.join("run/system/controlDict")).unwrap().contains("stopAt          endTime;"));
-    assert_eq!(res["results"]["summary"]["K"], 0.5);
+    // the report (cfd_report, intake_report.py's main in Rust) from the monitors
+    let r = &res["results"];
+    assert_eq!((r["mdot_outlet_kg_s"].as_f64(), r["mdot_atmosphere_kg_s"].as_f64(), r["converged"].as_bool()), (Some(0.01), Some(0.01), Some(true)), "{}", r);
+    assert!(res["resultsText"].as_str().unwrap().starts_with("Case stand-in  solver simpleFoam  iterations "));
+    assert!(std::fs::read_to_string(t.join("run/log.watch")).unwrap().contains("watch: converged at iteration "));
     assert!(events.lock().unwrap().iter().any(|e| e["event"] == "progress"));
     assert!(std::fs::read_to_string(t.join("run/log.blockMesh")).unwrap().contains(&format!("WM_PROJECT_DIR={}", foam.display())));
 

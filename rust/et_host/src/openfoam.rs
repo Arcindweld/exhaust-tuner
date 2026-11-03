@@ -1,9 +1,10 @@
 //! OpenFoamRunner.cs: runs an OpenFOAM case the page wrote (cfd/intake_cfd.js: system/, constant/, 0/,
 //! intake_report.py, case_info.json) the way the case's own Allrun does, without bash: blockMesh
 //! [surfaceFeatureExtract, snappyHexMesh -overwrite], checkMesh, topoSet, then the solver named in
-//! system/controlDict while "intake_report.py --watch PID" watches the monitors and asks for a clean stop once they
-//! have settled, then intake_report.py for results.json. A 3-D design arrives as design.json + intake_cfd.py (the
-//! browser does not write snappyHexMesh cases); the case is generated here first, with the same generator.
+//! system/controlDict while the convergence watchdog (intake_report.py --watch, in Rust: cfd_report::watch) watches
+//! the monitors and asks for a clean stop once they have settled, then the report (intake_report.py, in Rust:
+//! cfd_report::report) for results.json. A 3-D design arrives as design.json + intake_cfd.py (the browser does not
+//! write snappyHexMesh cases); the case is generated here first, with the same generator, which needs Python.
 //! Serial runs only: the packaged OpenFOAM is built without MPI.
 
 use crate::case_files::{self, CaseFile};
@@ -13,7 +14,9 @@ use regex::Regex;
 use serde_json::Value;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::process::{Child, Command, Stdio};
+use crate::cfd_report;
+use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -58,8 +61,9 @@ impl OpenFoamRunner {
         Path::new(&self.python).is_file() || (!self.python.contains(std::path::MAIN_SEPARATOR) && on_path(&self.python))
     }
 
+    /// OpenFOAM is enough for the cases the page writes; Python is only needed to generate a 3-D case.
     pub fn available(&self) -> bool {
-        self.foam_available() && self.python_available()
+        self.foam_available()
     }
 
     /// The command, with what OpenFOAM's etc/bashrc would set that the programs read (etc/ files come from
@@ -81,9 +85,6 @@ impl OpenFoamRunner {
         if !self.foam_available() {
             return Err(HostError::Msg(format!("OpenFOAM is not installed where the program expects it: {}", self.foam_dir.display())));
         }
-        if !self.python_available() {
-            return Err(HostError::Msg(format!("Python (for the case report) is not installed where the program expects it: {}", self.python)));
-        }
         case_files::write(run_dir, files)?;
         let mut steps: Vec<Value> = Vec::new();
         let mut case_dir = run_dir.to_path_buf();
@@ -92,6 +93,9 @@ impl OpenFoamRunner {
                 return Err(HostError::Msg(
                     "Neither an OpenFOAM case (system/controlDict) nor a design to generate one from (design.json + intake_cfd.py).".into(),
                 ));
+            }
+            if !self.python_available() {
+                return Err(HostError::Msg(format!("Python (for generating a 3-D case) is not installed where the program expects it: {}", self.python)));
             }
             case_dir = run_dir.join("case");
             let g = self.step("generate", &self.python, &["intake_cfd.py", "design.json", "case"], run_dir, progress, cancel, 0, None, None)?;
@@ -153,53 +157,41 @@ impl OpenFoamRunner {
         // the solver, with the case's own convergence watchdog beside it; the watchdog's lines go to log.watch as they
         // come, so a run that does not stop leaves a record of what the watchdog saw
         let watch_log = Arc::new(Mutex::new((String::new(), Some(std::fs::File::create(case_dir.join("log.watch"))?))));
-        let mut watcher: Option<(Child, Vec<std::thread::JoinHandle<()>>)> = None;
+        let solver_running = Arc::new(AtomicBool::new(false));
+        let mut watcher: Option<std::thread::JoinHandle<()>> = None;
         let solver_exe = self.exe(&solver).to_string_lossy().into_owned();
         let mut start_watch = |pid: u32| {
-            let mut c = self.command(&self.python, &["intake_report.py", "--watch", &pid.to_string()], &case_dir);
-            c.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
-            proc::no_window(&mut c);
-            if let Ok(mut ch) = c.spawn() {
-                let mut readers = Vec::new();
-                let outs: Vec<Box<dyn std::io::Read + Send>> = vec![
-                    Box::new(ch.stdout.take().expect("piped")) as Box<dyn std::io::Read + Send>,
-                    Box::new(ch.stderr.take().expect("piped")),
-                ];
-                for s in outs {
-                    let wl = Arc::clone(&watch_log);
-                    readers.push(std::thread::spawn(move || {
-                        use std::io::BufRead;
-                        for line in std::io::BufReader::new(s).lines() {
-                            let Ok(line) = line else { break };
-                            let line = line.trim_end_matches('\r').to_string();
-                            let mut g = wl.lock().unwrap();
-                            let (text, file) = &mut *g;
-                            if let Some(f) = file {
-                                text.push_str(&line);
-                                text.push('\n');
-                                let _ = write!(f, "{}{}", line, NL);
-                                let _ = f.flush();
-                            }
-                        }
-                    }));
+            solver_running.store(true, Ordering::SeqCst);
+            let (wl, running, dir) = (Arc::clone(&watch_log), Arc::clone(&solver_running), case_dir.clone());
+            watcher = Some(std::thread::spawn(move || {
+                let mut say = |line: &str| {
+                    let mut g = wl.lock().unwrap();
+                    let (text, file) = &mut *g;
+                    if let Some(f) = file {
+                        text.push_str(line);
+                        text.push('\n');
+                        let _ = write!(f, "{}{}", line, NL);
+                        let _ = f.flush();
+                    }
+                };
+                let alive = || running.load(Ordering::SeqCst);
+                let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| cfd_report::watch(&dir, pid, &alive, &mut say)));
+                match r {
+                    Ok(Ok(())) => {}
+                    Ok(Err(e)) => say(&format!("watch failed: {}", e)),
+                    Err(_) => say("watch failed: an internal error"),
                 }
-                watcher = Some((ch, readers));
-            }
+            }));
         };
         let run = self.step(&solver, &solver_exe, &[], &case_dir, progress, cancel, end_time, Some(&mut start_watch), None);
-        if let Some((mut ch, readers)) = watcher.take() {
-            if !matches!(ch.try_wait(), Ok(Some(_))) {
-                proc::kill_tree(&mut ch);
-            }
-            let _ = ch.wait();
+        solver_running.store(false, Ordering::SeqCst);
+        if let Some(w) = watcher.take() {
             let deadline = Instant::now() + Duration::from_secs(5);
-            for r in readers {
-                while !r.is_finished() && Instant::now() < deadline {
-                    std::thread::sleep(Duration::from_millis(20));
-                }
-                if r.is_finished() {
-                    let _ = r.join();
-                }
+            while !w.is_finished() && Instant::now() < deadline {
+                std::thread::sleep(Duration::from_millis(20));
+            }
+            if w.is_finished() {
+                let _ = w.join();
             }
         }
         let mut run = run?;
@@ -220,17 +212,8 @@ impl OpenFoamRunner {
             return Ok(failed(run_dir, &case_dir, steps, &format!("{} failed: {}", solver, run_tail)));
         }
 
-        // the report reads postProcessing/ and writes results.json in seconds; a report still running after 10 minutes
-        // is stopped, so the page hears about it instead of waiting
-        let rep = self.step("report", &self.python, &["intake_report.py"], &case_dir, progress, cancel, 0, None, Some(Duration::from_secs(600)))?;
-        let (rep_code, rep_tail) = (rep.exit_code, rep.tail.clone());
-        steps.push(rep.json);
-        let results_json = case_dir.join("results.json");
-        let results = if results_json.is_file() {
-            serde_json::from_str::<Value>(&std::fs::read_to_string(&results_json)?).map_err(|e| HostError::Msg(format!("results.json: {}", e)))?
-        } else {
-            Value::Null
-        };
+        // the report reads postProcessing/ and writes results.json and results.txt, as intake_report.py does
+        let (rep_code, rep_tail, results) = self.report(&case_dir, progress, &mut steps)?;
         let results_txt = case_dir.join("results.txt");
         Ok(obj([
             ("ok", (rep_code == 0 && !results.is_null()).into()),
@@ -246,6 +229,37 @@ impl OpenFoamRunner {
             ("steps", Value::Array(steps)),
             ("msg", if rep_code == 0 { Value::Null } else { format!("intake_report.py failed: {}", rep_tail).into() }),
         ]))
+    }
+
+    /// The "report" step: intake_report.py's main() in Rust. Its printed text goes to log.report as the script's did;
+    /// a failure (exit code 1) leaves its reason there and in the step's logTail.
+    fn report(&self, case_dir: &Path, progress: Events, steps: &mut Vec<Value>) -> HResult<(i32, String, Value)> {
+        progress(obj([("event", "step".into()), ("step", "report".into())]));
+        let t0 = Instant::now();
+        let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| cfd_report::report(case_dir)))
+            .unwrap_or_else(|_| Err("an internal error in the report".to_string()));
+        let (code, text, results) = match r {
+            Ok(rep) => (0, rep.text, rep.results),
+            Err(e) => (1, e, Value::Null),
+        };
+        let mut log = std::fs::File::create(case_dir.join("log.report"))?;
+        for line in text.split('\n') {
+            write!(log, "{}{}", line, NL)?;
+        }
+        let secs = num(round_even(t0.elapsed().as_secs_f64(), 1));
+        let tail = {
+            let lines: Vec<&str> = text.split('\n').filter(|l| !l.trim().is_empty()).collect();
+            lines[lines.len().saturating_sub(12)..].join("\n")
+        };
+        let mut json = obj([("step", "report".into()), ("exitCode", code.into()), ("seconds", secs.clone())]);
+        if code != 0 {
+            if let Value::Object(m) = &mut json {
+                m.insert("logTail".into(), tail.clone().into());
+            }
+        }
+        progress(obj([("event", "stepDone".into()), ("step", "report".into()), ("exitCode", code.into()), ("seconds", secs)]));
+        steps.push(json);
+        Ok((code, tail, results))
     }
 
     // Runs one program in the case folder. Its output goes to log.<name> as it comes (the solver's log can be watched,
