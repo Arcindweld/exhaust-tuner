@@ -12,5 +12,5 @@ early = ('<script>window.__errs=[];window.addEventListener("error",function(e){w
 doc = ('<!doctype html>\n<html lang="en">\n<head>\n<meta charset="utf-8">\n'
        '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
        + early + head + '\n</head>\n<body>' + body.rstrip() + '\n</body>\n</html>\n')
-open(dst, 'w', encoding='utf-8').write(doc)
+open(dst, 'w', encoding='utf-8', newline='\n').write(doc)   # LF on every OS, as the page itself
 print('palette', len(doc))

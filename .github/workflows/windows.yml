@@ -44,7 +44,8 @@ jobs:
             ~/.cargo/registry/cache
             rust/target
             rust/et_core/target
-          key: rust-linux-${{ hashFiles('rust/Cargo.lock', 'rust/et_core/Cargo.toml') }}-v1
+            rust/et_wave/target
+          key: rust-linux-${{ hashFiles('rust/Cargo.lock', 'rust/et_core/Cargo.toml', 'rust/et_wave/Cargo.toml') }}-v1
           restore-keys: rust-linux-
       - name: Program tests (Linux)
         run: cargo test --release --manifest-path rust/Cargo.toml
@@ -62,6 +63,15 @@ jobs:
           cd fusion-addin/tests
           EXHAUST_TUNER_NATIVE_DIR=$GITHUB_WORKSPACE/rust/et_core/target/release python3 test_native.py --quick --require
           EXHAUST_TUNER_NATIVE_DIR=$GITHUB_WORKSPACE/rust/et_core/target/release python3 test_router.py
+      # the page's wave simulation in Rust (rust/et_wave, WebAssembly) against its JavaScript: built from this commit's
+      # source, then the copy embedded in the page (tools/build_wave_wasm.sh), each the same to the last digit
+      - name: The wave model in Rust against the page's JavaScript
+        run: |
+          rustup target add wasm32-unknown-unknown
+          cargo build --release --target wasm32-unknown-unknown --manifest-path rust/et_wave/Cargo.toml
+          cd web/tests
+          WAVE_WASM=$GITHUB_WORKSPACE/rust/et_wave/target/wasm32-unknown-unknown/release/et_wave.wasm QUICK=1 node wave_wasm.js
+          QUICK=1 node wave_wasm.js
 
   app:
     runs-on: windows-2022

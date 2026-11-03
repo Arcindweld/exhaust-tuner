@@ -1,0 +1,21 @@
+[package]
+name = "et_wave"
+version = "0.1.0"
+edition = "2021"
+description = "Exhaust Tuner's wave simulation (the calculator page's wsFactory) in Rust, built to WebAssembly for the page's workers."
+license = "GPL-3.0-only"
+publish = false
+
+[lib]
+name = "et_wave"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# float_roundtrip: numbers parse to the same double JavaScript wrote, so the model starts from exactly the page's inputs
+serde_json = { version = "1", default-features = false, features = ["std", "float_roundtrip"] }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

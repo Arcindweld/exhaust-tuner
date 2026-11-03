@@ -322,6 +322,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   old history: scratchpad scrub/backup/*.bundle (this session only). Not reachable from here: the release tags v0.1.43
   and v0.1.45 (tag push refused, 403) and their installers, the old Actions runs, engine-sim's PR refs and GitHub's
   cached views of old commits.
+- Rust, stage 3 (2026-11-02, "finish the conversion to rust now"): the page's wave model in Rust, rust/et_wave
+  (cdylib, wasm32-unknown-unknown; serde_json with float_roundtrip), line for line from wsFactory; pow/sin/cos/exp
+  imported from the page's Math, JS min/max/round rules kept; results the same doubles (web/tests/wave_wasm.js on
+  fixtures/wave_jobs.json from capture_wave_jobs.js: a single with a chamber, a four on one collector, the Tri-Y UEL
+  layout, 9 designs x 12 speeds). tools/build_wave_wasm.sh embeds it as WAVE_WASM_B64 (226 KB); the sim workers run
+  it (simWaveRust) and fall back to the JS per design (no WebAssembly, a CSP without wasm, a refused spec). Times:
+  quick set JS 40 s vs Rust 22 s in Node; the default 4-cylinder page run 25.8 s -> 17.1 s. CI core-linux builds it
+  and runs wave_wasm.js on both the fresh build and the embedded copy. Windows-only test fixes from the first real
+  Windows run: paths test used Unix roots; make_palette.py wrote CRLF on Windows (now newline='\n').
 - Rust, stage 1 (the owner 2026-11-02: "reprogram everything and all features in Rust"; chose "staged, slow parts first"):
   rust/et_core (std only, cdylib, C ABI v2, panics caught at every entry point and reported via et_last_error) holds
   the router's Scene queries, TubeSet, Fields, route()'s Lazy Theta* search (free_at, los, simplify), the residuals,

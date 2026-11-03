@@ -3,7 +3,7 @@
 # router core, builds on its own (rust/et_core/target), as the add-in's tests expect.
 [workspace]
 members = ["et_host", "et_app"]
-exclude = ["et_core"]
+exclude = ["et_core", "et_wave"]
 resolver = "2"
 
 [profile.release]

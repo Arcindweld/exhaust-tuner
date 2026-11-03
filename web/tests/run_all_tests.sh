@@ -10,7 +10,7 @@
 # inside a test that could not run (a line starting "SKIP:") is listed under its test, so a quiet pass never hides either.
 cd "$(dirname "$0")/.." || exit 1
 fails=0; skips=0
-for t in tests/*_ui.js tests/h621.js tests/bmep_check.js tests/hw_compare.js; do
+for t in tests/*_ui.js tests/h621.js tests/bmep_check.js tests/hw_compare.js tests/wave_wasm.js; do
   n=$(basename "$t" .js)
   out=$(timeout 900 node "$t" index.html 2>&1); rc=$?
   bad=$(echo "$out" | grep -E "^FAIL|FAILS|FAILED|PAGEERROR|Error:| BAD |overflow [0-9]|panel looks empty" | head -5)

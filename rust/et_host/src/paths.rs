@@ -153,9 +153,11 @@ mod tests {
     #[test]
     fn paths_and_runs() {
         let tmp = std::env::temp_dir().join(format!("et_paths_{}", std::process::id()));
-        let p = AppPaths::new(Some("/opt/et/./x/.."), Some(tmp.to_str().unwrap()), Some("/f"));
-        assert_eq!(p.app_root, PathBuf::from("/opt/et"));
-        assert_eq!(p.addin_target_dir(), PathBuf::from("/f/ExhaustTuner"));
+        // absolute on every OS ("/opt" has no drive on Windows, so it would take the current one)
+        let base = full_path(&std::env::temp_dir());
+        let p = AppPaths::new(Some(base.join("opt").join("et").join(".").join("x").join("..").to_str().unwrap()), Some(tmp.to_str().unwrap()), Some(base.join("f").to_str().unwrap()));
+        assert_eq!(p.app_root, base.join("opt").join("et"));
+        assert_eq!(p.addin_target_dir(), base.join("f").join("ExhaustTuner"));
         let a = p.new_run_dir("my run: 1").unwrap();
         let b = p.new_run_dir("my run: 1").unwrap();
         assert!(a.file_name().unwrap().to_string_lossy().ends_with("_my run_ 1"));
