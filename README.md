@@ -75,8 +75,9 @@ the PC: OpenWAM (built from CMT-UPV's source), Engine Simulator (the fork's head
 (built for Windows by `.github/workflows/openfoam-windows.yml` and bundled only after it reproduces the Linux results
 on the 2-D validation cases of the generator version it ships with; the 3-D snappyHexMesh path is not part of that
 check yet). The CFD case generator, report and convergence watchdog are in the program (Rust), so no Python is
-installed. It installs the Fusion add-in too, set to start with Fusion. The installer asks one thing (the add-in and a
-desktop shortcut, both ticked) and installs per user without administrator rights; [INSTALL.md](INSTALL.md) is the
+installed. It installs the Fusion add-in too, set to start with Fusion. The installer is one click: opening it installs per user,
+without administrator rights or questions, with a desktop shortcut and (when Fusion is on the PC) the add-in, then
+opens the program; [INSTALL.md](INSTALL.md) is the
 user's guide. Runs go to
 `%LOCALAPPDATA%\ExhaustTuner\runs`. See `docs/STATUS.md` for where each piece stands.
 

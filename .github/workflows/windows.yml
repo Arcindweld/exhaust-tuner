@@ -348,6 +348,8 @@ jobs:
           Remove-Item Env:EXHAUST_TUNER_OPENFOAM, Env:EXHAUST_TUNER_ENGINESIM, Env:EXHAUST_TUNER_OPENWAM -ErrorAction SilentlyContinue
           $setup = Get-ChildItem dist/ExhaustTuner-Setup-*.exe | Select-Object -First 1
           $dir = "$env:RUNNER_TEMP\ET"
+          # the installer puts the add-in in only where Fusion is: stand in for Fusion's per-user folder
+          New-Item -ItemType Directory -Force "$env:APPDATA\Autodesk\Autodesk Fusion 360" | Out-Null
           Start-Process $setup.FullName -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART","/CURRENTUSER","/DIR=`"$dir`"","/TASKS=addin" -Wait
           Get-ChildItem $dir | Select-Object Name
           $info = & "$dir\exhaust-tuner-host.exe" --info | ConvertFrom-Json
@@ -449,6 +451,30 @@ jobs:
           $info2 = & "$dir\exhaust-tuner-host.exe" --info | ConvertFrom-Json
           if ($info2.fusionAddIn.installed -ne $info2.fusionAddIn.bundled) { throw "the update did not keep the Fusion add-in installed" }
 
+      # One click, as a user installs it: uninstall the copy above, then open the installer with no switches at all.
+      # It must install without waiting for a click (no page asks anything), into the default folder, with the
+      # desktop shortcut and (Fusion's folder being there) the add-in, and open the program when it is done.
+      - name: One-click install (the installer opened with no switches)
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem dist/ExhaustTuner-Setup-*.exe | Select-Object -First 1
+          $old = "$env:RUNNER_TEMP\ET\unins000.exe"
+          if (Test-Path $old) { Start-Process $old -ArgumentList "/VERYSILENT","/SUPPRESSMSGBOXES","/NORESTART" -Wait }
+          Get-Process ExhaustTuner -ErrorAction SilentlyContinue | Stop-Process -Force
+          $p = Start-Process $setup.FullName -PassThru
+          if (-not $p.WaitForExit(180000)) { $p | Stop-Process -Force; throw "the installer was still open after 3 min: a page waited for a click" }
+          if ($p.ExitCode -ne 0) { throw "the installer ended with exit code $($p.ExitCode)" }
+          $dir = "$env:LOCALAPPDATA\Programs\Exhaust Tuner"
+          if (-not (Test-Path "$dir\ExhaustTuner.exe")) { throw "not installed in the default folder ($dir)" }
+          if (-not (Test-Path ([Environment]::GetFolderPath('Desktop') + "\Exhaust Tuner.lnk"))) { throw "no desktop shortcut" }
+          $info = & "$dir\exhaust-tuner-host.exe" --info | ConvertFrom-Json
+          if ($info.fusionAddIn.installed -ne $info.fusionAddIn.bundled) { throw "the add-in was not installed although Fusion's folder is there" }
+          $run = $null
+          for ($i = 0; $i -lt 20 -and -not $run; $i++) { Start-Sleep 1; $run = Get-Process ExhaustTuner -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$dir\*" } }
+          "one-click install: done in one go, version $($info.version), add-in $($info.fusionAddIn.installed), program opened: $([bool]$run)"
+          if (-not $run) { "::warning::the program did not open after the one-click install (it may not start on this runner)" }
+          $run | Stop-Process -Force -ErrorAction SilentlyContinue
+
       - uses: actions/upload-artifact@v4
         with:
           name: ExhaustTuner-Setup
@@ -489,7 +515,7 @@ jobs:
           prev=$(gh release list --limit 1 --exclude-drafts --json tagName --jq '.[0].tagName // ""')
           {
             echo "**Install:** download ExhaustTuner-Setup.exe below and open it. If Windows says \"Windows protected your PC\", click"
-            echo "More info, then Run anyway (the installer is not code-signed). Click Install. Full steps: [INSTALL.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/INSTALL.md)."
+            echo "More info, then Run anyway (the installer is not code-signed). It installs and opens the program. Full steps: [INSTALL.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/INSTALL.md)."
             echo "Already installed? The program updates itself (menu > Restart and update)."
             echo
             echo "Built from ${GITHUB_SHA::7} on $GITHUB_REF_NAME ($(date -u +%Y-%m-%d))."

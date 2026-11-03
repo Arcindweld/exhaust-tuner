@@ -1,8 +1,10 @@
 ; Exhaust Tuner installer (Inno Setup 6). Built by .github/workflows/windows.yml from the staged folder:
 ;   iscc /DAppVersion=0.1.<run number> /DStage=..\stage installer\ExhaustTuner.iss
 ; Per-user install (no administrator rights needed): %LOCALAPPDATA%\Programs\Exhaust Tuner.
-; One page before it installs: the two choices (Fusion add-in, desktop shortcut, both on). No install-for-whom
-; question, no licence screen (the licences are installed and on the Start menu), no folder or ready page.
+; One click: opening the installer installs. No page asks anything (no install-for-whom question, licence screen,
+; folder, options, ready or finish page): the progress window shows, closes, and the program opens. The Fusion add-in
+; goes in when Fusion is on this PC (otherwise the program's menu can add it later), the desktop shortcut always;
+; /TASKS= on the command line still picks them by hand. The licences are installed and on the Start menu.
 ; The program is rust/ (ExhaustTuner.exe, the window, and exhaust-tuner-host.exe); up to the C# program's last
 ; release it was app/ (.NET), whose files an update removes ([InstallDelete]).
 ; Updates: the program runs a newer installer itself (rust/et_host/src/updater.rs) with
@@ -29,6 +31,8 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=commandline
 DisableDirPage=yes
 DisableReadyPage=yes
+DisableWelcomePage=yes
+DisableFinishedPage=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 OutputDir=..\dist
@@ -40,8 +44,8 @@ UninstallDisplayIcon={app}\ExhaustTuner.exe
 WizardStyle=modern
 
 [Tasks]
-Name: "addin"; Description: "Install the Exhaust Tuner add-in into Autodesk Fusion (it starts with Fusion)"; Flags: checkedonce
-Name: "desktopicon"; Description: "Put a shortcut on the desktop"; Flags: checkedonce
+Name: "addin"; Description: "Install the Exhaust Tuner add-in into Autodesk Fusion (it starts with Fusion)"; Check: FusionInstalled
+Name: "desktopicon"; Description: "Put a shortcut on the desktop"
 
 [InstallDelete]
 ; the Python 3.13 earlier releases bundled for the CFD case scripts (engines\python): the program now generates 3-D
@@ -82,7 +86,8 @@ Name: "{autodesktop}\Exhaust Tuner"; Filename: "{app}\ExhaustTuner.exe"; Tasks: 
 [Run]
 Filename: "{tmp}\MicrosoftEdgeWebview2Setup.exe"; Parameters: "/silent /install"; StatusMsg: "Installing Microsoft Edge WebView2 Runtime..."; Check: NeedsWebView2; Flags: waituntilterminated
 Filename: "{app}\exhaust-tuner-host.exe"; Parameters: "--install-addin"; StatusMsg: "Installing the Fusion add-in..."; Tasks: addin; Flags: runhidden waituntilterminated
-Filename: "{app}\ExhaustTuner.exe"; Description: "{cm:LaunchProgram,Exhaust Tuner}"; Flags: nowait postinstall skipifsilent
+; open the program when the install is done (no finish page to tick it on)
+Filename: "{app}\ExhaustTuner.exe"; Flags: nowait skipifsilent
 ; after an update the program started (silent, so the entry above is skipped), open it again as the user who ran it
 Filename: "{app}\ExhaustTuner.exe"; Flags: nowait runasoriginaluser; Check: RelaunchAfterUpdate
 
@@ -111,6 +116,20 @@ begin
       CloseHandle(H);
     end;
   end;
+end;
+
+// The options page is not shown: the tasks keep their defaults (both on; the add-in only with Fusion on this PC), or
+// on an update the choices made before (UsePreviousTasks)
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := PageID = wpSelectTasks;
+end;
+
+// Fusion has been installed (its web-deploy folder) or run (its per-user folder, where add-ins go)
+function FusionInstalled: Boolean;
+begin
+  Result := DirExists(ExpandConstant('{userappdata}\Autodesk\Autodesk Fusion 360')) or
+    DirExists(ExpandConstant('{localappdata}\Autodesk\webdeploy'));
 end;
 
 function RelaunchAfterUpdate: Boolean;

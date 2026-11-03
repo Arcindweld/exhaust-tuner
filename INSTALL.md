@@ -11,23 +11,23 @@ else installed first.
 
 ## Install
 
-1. **Open the downloaded file** (`ExhaustTuner-Setup.exe`, usually in Downloads).
-2. **If Windows shows "Windows protected your PC":** click **More info**, then **Run anyway**. The installer isn't
-   code-signed, so Windows doesn't recognise the publisher. This happens once per download.
-3. **Choose the options and click Install.** Both are ticked by default:
-   - *Install the Exhaust Tuner add-in into Autodesk Fusion.* Leave it ticked if you use Fusion. Untick it if you don't;
-     you can add it later from the program.
-   - *Put a shortcut on the desktop.*
-4. **Click Finish.** The program opens.
+**Open the downloaded file** (`ExhaustTuner-Setup.exe`, usually in Downloads). That's all. It installs with no
+questions, shows a progress bar, closes, and opens Exhaust Tuner. It also:
 
-The first install can take a minute longer if Windows needs Microsoft's WebView2 component, which shows the
-program's window. The installer downloads it for you, so stay online for the first install.
+- puts an **Exhaust Tuner** shortcut on the desktop and in the Start menu;
+- adds the **Fusion add-in** if Autodesk Fusion is on the PC (see below);
+- downloads Microsoft's WebView2 component if Windows doesn't have it yet (it shows the program's window), so stay
+  online for the first install.
+
+**If Windows shows "Windows protected your PC" first:** click **More info**, then **Run anyway**. The installer isn't
+code-signed, so Windows doesn't recognise the publisher. This happens once per download.
 
 ## The Fusion add-in
 
 - **Fusion is closed during the install:** nothing more to do. The add-in starts by itself the next time you open
   Fusion.
 - **Fusion is open during the install:** close Fusion and open it again.
+- **Fusion isn't installed yet:** the add-in is skipped. Once Fusion is installed, add it from the program (below).
 - **Where it is in Fusion:** Solid tab > Create panel > **Exhaust Tuner Panel** (the full calculator, docked on the
   right) and the calculator dialog.
 - **Adding it later, or fixing it:** in Exhaust Tuner, open the program menu (top right) and choose

@@ -324,9 +324,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   cached views of old commits.
 - Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the
   SmartScreen screen, options, Fusion add-in, updates, where files go, uninstall, troubleshooting); README and every
-  release's notes point at it. The installer asks one page (add-in + desktop shortcut, both ticked): no
-  install-for-whom dialog (per user; /CURRENTUSER still accepted on the command line), no licence screen (licences
-  installed, Start-menu shortcut), no folder or ready page. Each release also carries ExhaustTuner-Setup.exe without
+  release's notes point at it. The installer is one click ("one click install like a proper software"): no page
+  at all (no install-for-whom dialog, licence screen, folder, options, ready or finish page); it installs per user
+  with a desktop shortcut and the add-in when Fusion is on the PC (its per-user folder or webdeploy), then opens
+  the program. /TASKS= and /CURRENTUSER still work on the command line. CI opens it with no switches after
+  uninstalling the test copy and fails if it waits for a click (3 min), checks the default folder, shortcut, add-in. Each release also carries ExhaustTuner-Setup.exe without
   the version, so releases/latest/download/ExhaustTuner-Setup.exe is one fixed link (the release job checks it).
   The add-in (4.13.1) runs on startup, so it is in Fusion with no Add-Ins dialog. Not fixable without buying a
   code-signing certificate: the "Windows protected your PC" screen (More info, Run anyway).
