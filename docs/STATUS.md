@@ -347,10 +347,8 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   optimiser (10 designs around the Headers-tab layout, ranked by mean brake torque in OpenWAM); side-branch chambers on
   primaries (v7) and J-pipes / Helmholtz cans on the line after the collector (closed-end BC); Projects (header
   button: save the whole build by name, load it back exactly, export/import .exhaust.json, compare two: inputs that
-  differ in the units chosen and OpenWAM brake torque speed by speed; tests/project_ui.js). LEFT: Fusion Y junctions /
-  merge collectors for Tri-Y and 8-4-1; CFD collector losses into the 1-D model; build sheet with mandrel-bend part
-  numbers and tack jigs; tube skin temperature / clearance; code signing (needs the owner's SignPath or Azure Trusted
-  Signing account). Since: cut list from stock mandrel bends under every routed tube (tests/cut_ui.js); tack jig
+  differ in the units chosen and OpenWAM brake torque speed by speed; tests/project_ui.js). All done since except
+  code signing (needs the owner's SignPath or Azure Trusted Signing account): cut list from stock mandrel bends under every routed tube (tests/cut_ui.js); tack jig
   cradles in Fusion (jig.py, act_jig, tests/test_jig.py, checked live: one lump each, no overlap with the tubes); cam
   card entry (duration, lobe separation, advance -> the four events, camEvents = inverse of camCard) on the 4-Stroke
   tab and exhaust opening from a card on the Headers tab, prompted by the CamCalc Wizard sheet (BuildAndClick, sent by
