@@ -1929,6 +1929,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <li><b>Two-stroke paper and the lecture slides.</b> A 2018 polytechnic paper (Ismail et al., Politeknik Sultan Mizan Zainal Abidin) re-applies Blair’s empirical expansion-chamber proportions and confirms the constants already on the Two-Stroke tab, including that the third section is 0.14 of the tuned length where its text misprints 0.41; its dyno tables, which show negative brake power “from back pressure” and peak power at 3,500 rpm on a 108 cc engine, and its exhaust temperatures (road racing 450 °C, enduro 300 °C against Blair’s 650 and 500) are not used. A 2025 induction and exhaust slide deck reproduces Heywood’s and Stone’s valve-size tables and a ValveFlow.m check case (100 × 100 mm, CR 10: VE 0.95 at 2,000 rpm, 0.89 at 4,000 rpm); only its text layer could be read, its tables are to be verified against the originals before use, and its statement that the exhaust critical pressure ratio is “about 3” because of the lower gamma is wrong, a lower gamma moves the ratio toward 1.8 (1.86 at γ = 1.35), though the cylinder-to-port ratio at opening is often above 3.</li>
       <li><b>Airbox CFD and the Clemson proposal.</b> Andrews and Srinivasan 2015 (CFD on a production airbox) report pressure-drop cuts of 33% from a mesh and bell-mouth at the inlet, 28% from baffles under the filter and 22% overall; those are kept as the size of gain a clean airbox path offers, while their “10 to 20 horsepower” is unsupported by any engine test and is not repeated. A 2011 Clemson course proposal is used only for the magnitudes it cites from Sammut and Alkidas (SAE 2007-01-0492): intake length tuning worth up to +12% volumetric efficiency and exhaust length up to +5%, independent and additive at full throttle, with pressure at intake closing up to 1.25 × the untuned value. The Auto Math Handbook’s airflow chapters (cfm = rpm × cu in ÷ 3,456, hp = BMEP × cu in × rpm ÷ 792,000, Urich’s volumetric-efficiency classes, the SAE J607 correction) add nothing the page does not already compute.</li>
       <li><b>Resonators.</b> Helmholtz frequency is c ÷ 2π × √(neck area ÷ (volume × (neck length + 0.6133 × neck diameter))), with the end correction and the side-branch transmission-loss formula from <a href="https://eprints.soton.ac.uk/455667/1/APAC_2018_615.pdf" target="_blank" rel="noopener">Southampton, APAC 2018</a> (after Möser and Selamet), used here in its lossless form. That form gives a 3 dB band of K × the target frequency, where K = √(neck area × volume ÷ effective neck length) ÷ (2 × pipe area). A J-pipe is c ÷ (4 × frequency) long (<a href="https://www.stainlessheaders.com/p-35891-quarter-wave-resonator.html" target="_blank" rel="noopener">Stainless Headers</a>), less this calculator’s allowance of 0.3 × its diameter for the open end. Stainless Headers measured a branch at about 90 to 110 °F at cruise, so side branches are tuned at the resonator temperature, not the exhaust temperature. Real resonators peak lower and broader than these lossless curves, which the chart caps at 40 dB.</li>
+      <li><b>Timbre tube bundle.</b> Borla’s “timbre scaled exhaust system” (<a href="https://patents.google.com/patent/US10808584" target="_blank" rel="noopener">US 10,808,584 B2</a>, David Akiba Borla, priority 25 July 2016; continuations US 11,661,870 B2 and US 12,037,930 B2, EP 3 488 087 B1) claims 3 to 5 parallel, unperforated tuning tubes of 1 to 1.5 in diameter and about 1 to 8 in length between an inlet and an outlet collector, in line ahead of the muffler or on each side of a dual system, the outer tubes longer, each tube’s diameter and length chosen from the vehicle’s root note for a desired note. The patent gives no formula. The Mufflers tab models the bundle with plane waves: each tube a lossless duct with 0.3 × its diameter added at each collector, the collectors as point junctions, the tubes’ admittance matrices added in parallel and the result turned back into a transfer matrix for the transmission loss between equal pipes. It reproduces the two-path Herschel–Quincke notch at c ÷ (2 × the length difference). Tubes this short resonate in the kilohertz range, so the bundle changes the harmonics of the note (its colour), not its pitch; the tab can size the tubes so their half-wave resonances land on chosen harmonics of the firing tone.</li>
       <li><b>Plain chamber.</b> Transmission loss is 10 log [1 + ¼ (m − 1/m)² sin²(kL)], with m the area ratio and L the chamber length; it drops to zero wherever the chamber is a whole number of half waves long (<a href="https://en.wikipedia.org/wiki/Transmission_loss_(duct_acoustics)" target="_blank" rel="noopener">Wikipedia</a>). The formula assumes plane waves, which a round chamber carries only below its first cross mode, at k × radius = 1.8412. Potente (“General Design Principles for an Automotive Muffler,” Proc. Acoustics 2005, Australian Acoustical Society) recommends a chamber at least 1.5 times as long as its diameter, inlet and outlet extensions at least 1.5 chamber diameters apart, and notes that a bigger expansion ratio gives more loss; a GT-Power study of a 15 L muffler on a 1.6 L engine found a bigger shell quieter and trusted its plane-wave model only to about 1 kHz (<a href="https://doi.org/10.11113/jt.v79.12263" target="_blank" rel="noopener">Mohammad et al. 2017</a>).</li>
       <li><b>Resonator placement.</b> Side resonators attenuate most at or near the pressure antinodes of the mode they target and least at the nodes (<a href="https://saemobilus.sae.org/content/940614" target="_blank" rel="noopener">SAE 940614</a>). The page places antinodes every half wavelength from the closed end (valve or turbine), using the same closed-open pipe as the drone check.</li>
       <li><b>Muffler types.</b> Packed straight-through designs are generally the loudest and least restrictive (<a href="https://www.cjponyparts.com/resources/muffler-types" target="_blank" rel="noopener">CJ Pony Parts</a>), turbo mufflers generally the quietest, and chambered ones in between (<a href="https://www.thedrive.com/guides-and-gear/what-is-a-muffler-and-what-does-it-do.md" target="_blank" rel="noopener">The Drive</a>). In the parts list, a sound level marked “maker’s words” is the maker’s own rating or description. Where the maker gives none, the level is estimated from the type using that order, and is marked so. The measured Yoshimura RS-3 figures and the 20% perforated core come from Potente (Acoustics 2005); the shell-thickness and valve figures come from Faurecia’s engineers (<a href="https://doi.org/10.1007/978-3-319-24055-8_6" target="_blank" rel="noopener">Bönnen et al., Automotive NVH Technology, 2016</a>).</li>
@@ -11317,6 +11318,86 @@ function drawPlace(svg,pl,len,endName,secs){
   const a=mk('text',{x:X(0),y:H-8},svg); a.textContent=endName;
   const b=mk('text',{x:X(len),y:H-8,style:'text-anchor:end'},svg); b.textContent='tip';
 }
+/* ===== Timbre tube bundle (Borla's "timbre scaled exhaust system", US 10,808,584 B2 and its continuations) =====
+   3 to 5 parallel, unperforated tuning tubes, 1 to 1.5 in across and about 1 to 8 in long, between an inlet and an
+   outlet collector ahead of the muffler, each tube's size chosen from the vehicle's root note for a desired note; the
+   patents state no formula ("existing methods of attenuating sound waves"). Tubes that short resonate in the kHz range,
+   so the bundle shapes the harmonics above the root (the timbre), not the root. The model here: plane waves, each tube a
+   lossless duct with an open-end allowance of 0.3 x its diameter at each collector, the collectors point junctions, the
+   tubes in parallel (their admittance matrices add), transmission loss into the same pipe on both sides. Paths of
+   different length interfere (a Herschel-Quincke tube with more than two paths): notches where they arrive out of phase. */
+const TT={n:4,d:[31.75,31.75,34.925,38.1,38.1],L:[],h:[8,10,12,16,20],rpm:NaN,on:false};
+function ttMatrix(tubes,c,rho,S,f){   // -> TL dB at f; tubes [{L,d}] mm
+  const w=2*Math.PI*f, k=w/c, Zs=rho*c/S;
+  // complex helpers [re,im]
+  const add=(a,b)=>[a[0]+b[0],a[1]+b[1]], mul=(a,b)=>[a[0]*b[0]-a[1]*b[1],a[0]*b[1]+a[1]*b[0]], inv=a=>{ const m=a[0]*a[0]+a[1]*a[1]; return [a[0]/m,-a[1]/m]; }, sc=(a,s)=>[a[0]*s,a[1]*s];
+  let ya=[0,0], yb=[0,0], yc=[0,0], yd=[0,0];
+  for(const t of tubes){
+    const A=Math.PI*(t.d/2000)**2, Z=rho*c/A, Le=(t.L+2*0.3*t.d)/1000, cs=Math.cos(k*Le), sn=Math.sin(k*Le);
+    const B=[0,Z*sn], iB=inv(B);                       // B = j Z sin kL; A = D = cos kL
+    ya=add(ya,sc(iB,cs)); yb=add(yb,sc(iB,-1)); yc=add(yc,iB); yd=add(yd,sc(iB,-cs));
+  }
+  const ic=inv(yc), A2=sc(mul(yd,ic),-1), B2=ic, C2=add(yb,sc(mul(mul(ya,yd),ic),-1)), D2=mul(ya,ic);
+  const s=add(add(A2,sc(B2,1/Zs)),add(sc(C2,Zs),D2));
+  return Math.min(TLCAP,Math.max(0,20*Math.log10(Math.hypot(s[0],s[1])/2)));
+}
+function ttFire(){ try{ const sp=soundParams(); if(sp.err) return null; const pp=sp.p.pp; return {perRev:pp.n*360/pp.cycle,cruise:sp.p.cruise,red:sp.p.red,idle:sp.p.idle}; }catch(e){ return null; } }
+function ttTune(n,f0,c){   // lengths whose half-wave resonance sits on harmonics TT.h of f0 (physical = c/2f - the two allowances)
+  return Array.from({length:n},(_,i)=>{ const f=f0*TT.h[i], d=TT.d[i]; return {f,L:c/(2*f)*1000-2*0.3*d}; });
+}
+function ttSection(p){
+  const fire=ttFire(), c=sos(p.tmain), rho=101325/(287*(p.tmain+273.15)), S=Math.PI*(p.dpipe/2000)**2;
+  const fCut=1.8412*c/(Math.PI*p.dpipe/1000);   // first cross mode of the main pipe: plane waves hold below it
+  let h='<p class="cap" style="margin-top:0">Borla’s patented “timbre scaled exhaust system” (US 10,808,584 B2, David Borla, filed 2016, and its continuations) splits the flow into 3 to 5 parallel tubes, 1 to 1.5 in across and about 1 to 8 in long, between two collectors ahead of the muffler, each sized from the engine’s root note for a note of its own. The patents give no formula. Tubes that short resonate in the kilohertz range, so the bundle works on the harmonics above the engine note, its timbre: where the tubes’ waves meet out of phase at the outlet collector, that harmonic is taken out. This works out those dips from plane waves through the tubes you enter, and can size the tubes so their resonances land on chosen harmonics of the firing tone.</p>';
+  if(!(p.dpipe>0&&c>0)) return sec('Timbre tube bundle',h+'<div class="note">Enter the main pipe size above.</div>');
+  const n=Math.min(5,Math.max(3,Math.round(TT.n)||4));
+  const f0=fire&&Number.isFinite(TT.rpm)&&TT.rpm>0?TT.rpm/60*fire.perRev:(fire?fire.cruise/60*fire.perRev:NaN), rpm0=fire?(Number.isFinite(TT.rpm)&&TT.rpm>0?TT.rpm:fire.cruise):NaN;
+  if(!TT.L.length&&f0>0) TT.L=ttTune(5,f0,c).map(x=>Math.round(Math.min(203.2,Math.max(25.4,x.L))));
+  if(!TT.L.length) TT.L=[100,125,150,175,200];
+  const tubes=Array.from({length:n},(_,i)=>({L:TT.L[i],d:TT.d[i]}));
+  const At=tubes.reduce((a,t)=>a+Math.PI*(t.d/2)**2,0), Ap=Math.PI*(p.dpipe/2)**2;
+  const inp=(k,i,v)=>'<input class="ttx" data-k="'+k+'" data-i="'+i+'" type="number" step="any" inputmode="decimal" data-kind="len" value="'+(U==='imp'?+(v/25.4).toFixed(3):+v.toFixed(1))+'">';
+  h+='<div class="grid2" style="max-width:640px"><label class="f"><span class="lab">Tubes</span><span class="inp"><select class="ttsel" data-k="n">'+[3,4,5].map(x=>'<option'+(x===n?' selected':'')+'>'+x+'</option>').join('')+'</select></span></label>'+
+    '<label class="f"><span class="lab">Root note from the engine at</span><span class="inp"><input class="ttr" type="number" step="100" inputmode="decimal" value="'+(Number.isFinite(rpm0)?Math.round(rpm0):'')+'"><em>rpm</em></span></label></div>';
+  h+='<div class="tblwrap"><table><thead><tr><th>Tube</th><th>Length</th><th>Inside diameter</th><th>Its half-wave note</th><th>Harmonic of '+(f0>0?Math.round(f0)+' Hz':'the root')+'</th></tr></thead><tbody>'+
+    tubes.map((t,i)=>{ const fr=c/(2*(t.L+0.6*t.d)/1000), hn=f0>0?fr/f0:NaN;
+      return '<tr><td>'+(i+1)+'</td><td><span class="inp">'+inp('L',i,t.L)+'<em data-u="len">'+(U==='imp'?'in':'mm')+'</em></span></td><td><span class="inp">'+inp('d',i,t.d)+'<em data-u="len">'+(U==='imp'?'in':'mm')+'</em></span></td><td>'+Math.round(fr)+' Hz</td><td>'+(Number.isFinite(hn)?hn.toFixed(2)+(Math.abs(hn-Math.round(hn))<0.05?' (on the '+Math.round(hn)+'th)':''):'—')+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  const out=tubes.filter(t=>t.L<25.4-0.5||t.L>203.2+0.5||t.d<25.4-0.5||t.d>38.1+0.5);
+  if(out.length) h+='<div class="note">'+out.length+' tube'+(out.length>1?'s are':' is')+' outside the patent’s range (about 1 to 8 in long, 1 to 1.5 in across). That is fine for the acoustics here; it is just not their design.</div>';
+  h+='<div class="actions"><button type="button" class="btn" id="tt-tune"'+(f0>0?'':' disabled')+'>Size the tubes for harmonics '+TT.h.slice(0,n).join(', ')+' of the root</button></div>';
+  h+='<figure class="card" style="margin:10px 0 0"><svg class="camp" id="tt-svg" role="img" aria-label="Sound taken out by the tube bundle against frequency, with the engine harmonics marked"></svg></figure>';
+  // what each harmonic loses, at cruise and redline
+  if(fire){
+    const sp=[['Idle',fire.idle],['Cruise',fire.cruise],['Redline',fire.red]].filter(x=>x[1]>0);
+    h+='<div class="tblwrap" style="margin-top:10px"><table><thead><tr><th>Harmonic of the firing tone</th>'+sp.map(x=>'<th>'+x[0]+', '+Math.round(x[1]).toLocaleString('en-US')+' RPM</th>').join('')+'</tr></thead><tbody>'+
+      [1,2,3,4,6,8,10,12,16].map(m=>'<tr><td>'+m+'</td>'+sp.map(x=>{ const f=m*x[1]/60*fire.perRev, tl=ttMatrix(tubes,c,rho,S,f); return '<td>'+Math.round(f)+' Hz: '+(f>fCut?'past the plane-wave limit':tl<0.5?'passes':'−'+tl.toFixed(1)+' dB')+'</td>'; }).join('')+'</tr>').join('')+'</tbody></table></div>';
+  }
+  h+='<dl class="rows">'+rowT('Flow area, tubes ÷ pipe',(At/Ap).toFixed(2),At<0.95*Ap?'the tubes are tighter than the pipe: use more or larger tubes, or accept some back pressure':'no tighter than the pipe')+'</dl>';
+  h+='<p class="cap">The curve is the sound the bundle removes between equal pipes on both sides, lossless, so its dips are deeper and sharper than a real one’s (capped at 40 dB). Low harmonics pass almost untouched; the bundle changes the colour of the note, not its pitch. Gas at '+tempStr(p.tmain)+', the main pipe temperature above. Plane waves hold below about '+Math.round(fCut)+' Hz in this pipe (its first cross mode); above it the numbers stop meaning much. Read the tube resonances as the patent’s “notes”; whether a resonance adds or removes a harmonic depends on how the paths meet, which is what the curve shows.</p>';
+  TT.last={tubes,c,rho,S,f0,fire,fCut};
+  return sec('Timbre tube bundle',h);
+}
+function ttDraw(){
+  const svg=document.getElementById('tt-svg'), L=TT.last; if(!svg||!L) return;
+  clearSvg(svg);
+  const W=widthOf(svg), H=220, ml=36, mr=12, mt=16, mb=30, fmax=4000;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.setAttribute('height',H);
+  const X=f=>ml+f/fmax*(W-ml-mr), Y=d=>H-mb-d/TLCAP*(H-mt-mb);
+  for(let d=0;d<=TLCAP;d+=10){ mk('line',{x1:ml,x2:W-mr,y1:Y(d),y2:Y(d),'class':'grid'},svg); const t=mk('text',{x:ml-6,y:Y(d)+3.5,'class':'tr'},svg); t.textContent=d; }
+  for(let f=0;f<=fmax;f+=500){ const t=mk('text',{x:X(f),y:H-mb+16,style:'text-anchor:middle'},svg); t.textContent=f; }
+  mk('line',{x1:ml,x2:W-mr,y1:Y(0),y2:Y(0),'class':'axis'},svg);
+  if(L.f0>0) for(let m=1;m*L.f0<=fmax;m++){ mk('line',{x1:X(m*L.f0),x2:X(m*L.f0),y1:mt,y2:Y(0),'class':'grid',style:'stroke-dasharray:2 3'},svg); }
+  const pts=[]; for(let i=1;i<=600;i++){ const f=fmax*i/600; pts.push(X(f).toFixed(1)+','+Y(ttMatrix(L.tubes,L.c,L.rho,L.S,f)).toFixed(1)); }
+  mk('polyline',{points:pts.join(' '),'class':'ord',style:'stroke:var(--t2);stroke-width:2'},svg);
+  if(L.fCut<fmax) mk('rect',{x:X(L.fCut),y:mt,width:X(fmax)-X(L.fCut),height:H-mt-mb,'class':'band'},svg);
+  const ty=mk('text',{x:4,y:10},svg); ty.textContent='dB removed'+(L.f0>0?'; dotted: harmonics of '+Math.round(L.f0)+' Hz':''); const tx=mk('text',{x:W-mr,y:H-4,'class':'tr'},svg); tx.textContent='Hz';
+}
+document.addEventListener('change',e=>{ const el=e.target.closest('input.ttx'); if(!el) return; readInput(el); if(el._b>0){ TT[el.dataset.k][+el.dataset.i]=el._b; } renderActive(); });
+document.addEventListener('change',e=>{ const el=e.target.closest('select.ttsel'); if(!el) return; TT.n=+el.value; renderActive(); });
+document.addEventListener('change',e=>{ const el=e.target.closest('input.ttr'); if(!el) return; const v=parseFloat(el.value); TT.rpm=v>0?v:NaN; renderActive(); });
+document.addEventListener('click',e=>{ if(!e.target.closest('#tt-tune')) return; const L=TT.last; if(!(L&&L.f0>0)) return;
+  ttTune(5,L.f0,L.c).forEach((x,i)=>{ TT.L[i]=Math.max(10,x.L); }); renderActive(); });
+window.__tt={ttMatrix,ttTune,TT};
 function renderMuf(){
   const bore=boreOf('m-dp-shape'), useSecs=$('m-lay').value==='secs', secs=useSecs?soundSecs():null;
   $('m-len-wrap').hidden=useSecs;
@@ -11504,9 +11585,11 @@ function renderMuf(){
     '<dt>A drone fix inside the same can</dt><dd>When a car boomed at 1,400 RPM, adding a sealed end chamber fed by a pipe through the baffles (a built-in Helmholtz resonator) cut the drone order by 5 to 12 dB with no change in outside size, and the muffler came out lighter (<a href="https://www.extrica.com/article/16371" target="_blank" rel="noopener">Xie 2015</a>).</dd>'+
     '<dt>Packing</dt><dd>Denser packing quiets the mid and high range more but slightly less at the very bottom, and a more open perforated core (20% against 5%) helps the high range. Packing that settles unevenly or fills with soot changes the attenuation by several dB, which is why a repack restores a tired silencer (<a href="https://doi.org/10.1016/j.mcm.2012.01.021" target="_blank" rel="noopener">Antebas et al. 2013</a>).</dd>'+
     '<dt>Shell noise</dt><dd>The shell itself radiates sound. Faurecia found that 1.0 mm shell sheet rings higher and quieter than 0.8 mm, and a two-layer skin damps it further; ribs and dimples stiffen a flat side (<a href="https://doi.org/10.1007/978-3-319-24055-8_6" target="_blank" rel="noopener">Bönnen et al. 2016</a>).</dd></dl>');
+  html+=ttSection(p);
   html+=guideHtml('muf');
   html+=actions('muf');
   det.innerHTML=html;
+  ttDraw();
   if(!ab.err&&$('m-abs')){ const fm=Math.min(4000,Math.max(500,Math.ceil(ab.fCut*1.15/250)*250)), pts=[...Array(121).keys()].map(i=>{ const f=10+i*(fm-10)/120; return [f,abTL(f)]; });
     drawLines($('m-abs'),{curves:[{pts,col:'--t5',w:2.4}],xmax:fm,ymax:TLCAP,xlab:'Hz',ylab:'dB removed',h:200,band:[Math.min(fm,ab.fCut),fm],k:true,marks:[{x:p.f,label:Math.round(p.f)+' Hz'}].concat(rs?[{x:rs.f.cruise,label:'cruise firing '+Math.round(rs.f.cruise)+' Hz'}]:[])}); }
   S.muf.summary=['RESONATOR AND MUFFLER PLAN','Target tone: '+Math.round(p.f)+' Hz',

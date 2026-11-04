@@ -392,6 +392,10 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   apart) -> Sound tab "Two notes on true duals" (tests/duo_ui.js) and interval names in the pulse-gap table, a truck
   J-pipe drone cure (2.5 x 28 7/8 in, 117 Hz; best at 2000-2100 RPM = branch near 150 C) -> J-pipe hot start length.
   DDP intake dyno sheet (+2.8 % peak, one pull each) and AirRam stacks: docs/research/datadrivenperf_intake.md.
+  Timbre tube bundle (Mufflers tab, "research Timbre scaled exhaust system"): Borla US10808584B2 (3-5 parallel
+  tubes 1-1.5 in x 1-8 in between collectors, sized from the root note; no formula in the patent) modelled as parallel
+  plane-wave ducts (admittance sum, 0.3 d end allowance each end); checks: one tube / equal tubes 0 dB, HQ notch at
+  c/(2 dL); sizing to harmonics 8/10/12/16 of the firing tone; plane-wave limit 1.8412 c/(pi D). tests/timbre_ui.js.
   Two-stroke OpenWAM writer openwam/make_wam2t.py (tests/test_2t.py; nm2T block, TLumbrera ports from timing,
   TDepVolVariable crankcase, reed TLamina or piston-port intake, chamber segs). 125 with our chamber: 31.7 hp peak at
   12000 (straight pipe 15-20 hp); Maico 490 with the Wizard's chamber: 35 hp peak at 5500 (claimed 53 at 6500).
