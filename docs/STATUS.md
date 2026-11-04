@@ -620,6 +620,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   spring, with a lift stop" (two_wam_ui.js). Checked on the Maico 490 (30 cycles): a 15 mm stop gives model 1's
   numbers exactly (31.0 hp at 6500, 27.6 at 8000), 6 mm the same, 4 mm 30.0 / 20.1 hp (8000 not settled: NMEP spread
   37 %), 2 mm 28.8 / 26.1 hp: the model's free petal opens between 4 and 6 mm. A stock OpenWAM 2.2 rejects model 2.
+- Published V8 header comparisons (task 89, docs/research/v8_header_comparisons.md): back-to-back long-tube tests
+  differ 0.5-2 % on peak figures (LSX Mag LS3, Engine Masters 400 SBC primaries), the same order as the model's
+  layout spread (within 3 %); no published numbers put 180-degree or 8-4-1 headers against per-bank 4-1s.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
