@@ -10056,6 +10056,7 @@ function renderSound(){
     '<p class="cap">Tuned for resonator gas at '+tempStr(p.tres)+'. The Mufflers tab shows where to tap it in, how wide a band it covers, and mufflers and resonators that fit.</p>');
   html+=duoHtml(p,r);
   html+=guideHtml('sound');
+  html+=recSection(sp,r);
   html+=actions('sound');
   const x0=r.near[0];
   const indNote=iq.ind==='na'||iq.err?'':(turbo?'The turbo damps the exhaust pulses, so the drone check starts at the turbine outlet. Expect turbo whistle from about '+hz(iq.rows[0].shaft)+' at light boost to '+hz(iq.rows[3].shaft)+' at full boost, plus blade-pass tones higher up.':
@@ -10075,7 +10076,319 @@ function renderSound(){
     'Drone near cruise: '+stTxt+(r.near.length?' ('+r.near.map(x=>ordTxt(x.o)+' meets mode '+x.n+' at '+Math.round(x.rpm)+' RPM').join('; ')+')':''),
     'Boom at idle: '+(r.nearIdle.length?r.nearIdle.map(x=>ordTxt(x.o)+' meets mode '+x.n+' at '+Math.round(x.rpm)+' RPM').join('; '):'none found')].concat(indSum,shSum,[mountSum,flexSum].filter(Boolean),
     ['Resonator for '+Math.round(p.hf)+' Hz: '+q.liters.toFixed(1)+' L volume, neck '+plain(p.hd,'d')+' by '+plain(p.hl,'l')]).join('\n');
+  recDraw();
 }
+
+/* ===== Compare a recording (Sound tab): the engine orders in a microphone recording, against the model.
+   The same method as sound/order_spectrum.py and order_compare.py, so the page and the Python tools agree:
+   RPM from a harmonic comb on the engine orders (rpm_track.py: per 0.5 s Hann window, 0.1 s apart, the candidate
+   RPM whose orders 0.5..12 have the most log power above the window's median, firing orders counted twice); steady
+   holds where the RPM stays within 4% of its median for 1.5 s or more; at a hold, the Welch-averaged power integrated over ±0.15 order
+   round each half order, relative to the strongest. Relative levels only: the microphone's gain is unknown.
+   A sweep (RPM rising) gives the firing order's level against frequency; its peaks are the pipe's resonances
+   lit up, and the sound speed that puts the model's resonances on them is the gas temperature the recording implies. */
+const REC={name:'',sr:0,x:null,info:null,fr:null,holds:[],hold:0,err:null,busy:false,prog:0,sweep:null,fit:null,ctx:null,msg:null};
+function recWav(buf){
+  const dv=new DataView(buf), tag=o=>String.fromCharCode(dv.getUint8(o),dv.getUint8(o+1),dv.getUint8(o+2),dv.getUint8(o+3));
+  if(buf.byteLength<44||tag(0)!=='RIFF'||tag(8)!=='WAVE') throw new Error('not a WAV file');
+  let o=12, fmt=null, data=null;
+  while(o+8<=buf.byteLength){ const id=tag(o), n=dv.getUint32(o+4,true);
+    if(id==='fmt '){ fmt={code:dv.getUint16(o+8,true),ch:dv.getUint16(o+10,true),sr:dv.getUint32(o+12,true),bits:dv.getUint16(o+22,true)};
+      if(fmt.code===0xFFFE&&n>=26) fmt.code=dv.getUint16(o+8+24,true); }   // WAVE_FORMAT_EXTENSIBLE: the sub-format's first two bytes
+    if(id==='data'){ data={o:o+8,n:Math.min(n,buf.byteLength-o-8)}; }
+    o+=8+n+(n&1); }
+  if(!fmt||!data) throw new Error('the WAV has no format or data chunk');
+  if(fmt.code!==1&&fmt.code!==3) throw new Error('only PCM and float WAVs are read here');
+  const bps=fmt.bits/8, frames=Math.floor(data.n/(bps*fmt.ch)), x=new Float32Array(frames);
+  const flt=fmt.code===3;
+  for(let i=0;i<frames;i++){ let sum=0;
+    for(let c=0;c<fmt.ch;c++){ const p=data.o+(i*fmt.ch+c)*bps; let v;
+      if(flt) v=fmt.bits===64?dv.getFloat64(p,true):dv.getFloat32(p,true);
+      else if(fmt.bits===16) v=dv.getInt16(p,true)/32768;
+      else if(fmt.bits===24){ let u=dv.getUint8(p)|(dv.getUint8(p+1)<<8)|(dv.getUint8(p+2)<<16); if(u&0x800000) u-=0x1000000; v=u/8388608; }
+      else if(fmt.bits===32) v=dv.getInt32(p,true)/2147483648;
+      else if(fmt.bits===8) v=(dv.getUint8(p)-128)/128;
+      else throw new Error('unsupported '+fmt.bits+'-bit WAV');
+      sum+=v; }
+    x[i]=sum/fmt.ch; }
+  return {sr:fmt.sr,ch:fmt.ch,bits:fmt.bits,float:flt,x};
+}
+async function recDecode(file){
+  const buf=await file.arrayBuffer();
+  try{ return recWav(buf); }
+  catch(e){
+    const AC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    if(!AC) throw new Error('This view cannot read that file: save the recording as a WAV.');
+    const ctx=new AC(1,1,48000), ab=await ctx.decodeAudioData(buf.slice(0)), n=ab.length, x=new Float32Array(n);
+    for(let c=0;c<ab.numberOfChannels;c++){ const d=ab.getChannelData(c); for(let i=0;i<n;i++) x[i]+=d[i]/ab.numberOfChannels; }
+    return {sr:ab.sampleRate,ch:ab.numberOfChannels,bits:null,decoded:true,x};
+  }
+}
+function recFFT(re,im){
+  const n=re.length;
+  for(let i=1,j=0;i<n;i++){ let b=n>>1; for(;j&b;b>>=1) j^=b; j^=b; if(i<j){ let t=re[i]; re[i]=re[j]; re[j]=t; t=im[i]; im[i]=im[j]; im[j]=t; } }
+  for(let len=2;len<=n;len<<=1){ const a=-2*Math.PI/len, wr=Math.cos(a), wi=Math.sin(a);
+    for(let i=0;i<n;i+=len){ let cr=1, ci=0;
+      for(let k=0;k<len/2;k++){ const u=i+k, v=u+len/2, tr=re[v]*cr-im[v]*ci, ti=re[v]*ci+im[v]*cr;
+        re[v]=re[u]-tr; im[v]=im[u]-ti; re[u]+=tr; im[u]+=ti; const nr=cr*wr-ci*wi; ci=cr*wi+ci*wr; cr=nr; } } }
+}
+// the frames: power spectra up to fmax (Hann, 0.5 s, 0.1 s apart), zero-padded to a power of two
+async function recFrames(x,sr,onProg){
+  const n=Math.round(0.5*sr), N=1<<Math.ceil(Math.log2(n)), hop=Math.round(0.1*sr), df=sr/N, kmax=Math.min(N/2,Math.ceil(2500/df));
+  const w=new Float32Array(n); let ws=0; for(let i=0;i<n;i++){ w[i]=0.5-0.5*Math.cos(2*Math.PI*i/(n-1)); ws+=w[i]*w[i]; }
+  const fr=[], re=new Float64Array(N), im=new Float64Array(N);
+  const count=Math.max(0,Math.floor((x.length-n)/hop)+1);
+  for(let j=0;j<count;j++){
+    re.fill(0); im.fill(0); const o=j*hop; let pk=0;
+    for(let i=0;i<n;i++){ const v=x[o+i]; re[i]=v*w[i]; if(Math.abs(v)>pk) pk=Math.abs(v); }
+    recFFT(re,im);
+    const P=new Float32Array(kmax+1); let tot=0;
+    for(let k=0;k<=kmax;k++){ P[k]=(re[k]*re[k]+im[k]*im[k])/(ws*sr); tot+=P[k]; }
+    fr.push({t:(o+n/2)/sr,P,tot,pk});
+    if(j%25===24){ if(onProg) onProg(j/count); await new Promise(r=>setTimeout(r,0)); }
+  }
+  return {fr,df,N,n,hop};
+}
+// orders compared: 0.5 steps for a four-stroke (one cycle is two turns), whole orders otherwise
+const recOrders=(cyc,top)=>{ const st=cyc==='4'?0.5:1, out=[]; for(let o=st;o<=top+1e-9;o+=st) out.push(+o.toFixed(1)); return out; };
+function recTrack(F,ctx){
+  // the harmonic comb of rpm_track.py on each frame (log power above the frame's median at orders 0.5..12, firing
+  // orders counted twice), then the speeds joined over time (Viterbi): a step costs 25 dB per unit of log ratio and a
+  // frame may move at most 1.6×, so a single frame that locks onto half or double the speed does not break a hold
+  const ords=recOrders(ctx.cyc,12), kf=ctx.kf, wts=ords.map(o=>Math.abs((o/kf)-Math.round(o/kf))<1e-9?2:1);
+  const lo=Math.max(300,0.6*ctx.idle), hi=Math.min(30000,1.15*ctx.red), step=5, cands=[]; for(let r=lo;r<=hi;r+=step) cands.push(r);
+  const nC=cands.length, S=[];
+  for(const f of F.fr){
+    const n=f.P.length, L=new Float64Array(n); for(let k=0;k<n;k++) L[k]=10*Math.log10(f.P[k]+1e-20);
+    const med=Float64Array.from(L).sort()[n>>1], row=new Float64Array(nC);
+    for(let c=0;c<nC;c++){ let s=0, ws=0; for(let i=0;i<ords.length;i++){ const k=Math.round(cands[c]/60*ords[i]/F.df); if(k<n){ s+=(L[k]-med)*wts[i]; ws+=wts[i]; } } row[c]=ws?s/ws:-1e9; }
+    S.push(row);
+  }
+  // a motorcycle blips from 2,000 to 5,000 RPM in half a second: up to 1.6× per 0.1 s frame, 15 dB per unit log ratio
+  const lam=15, gmax=1.6, D=[S[0].slice()], B=[new Int32Array(nC)];
+  for(let j=1;j<S.length;j++){ const prev=D[j-1], cur=new Float64Array(nC), bk=new Int32Array(nC);
+    for(let c=0;c<nC;c++){ let best=-1e18, bi=c; const lr=Math.log(cands[c]);
+      const cLo=Math.max(0,Math.floor((cands[c]/gmax-lo)/step)), cHi=Math.min(nC-1,Math.ceil((cands[c]*gmax-lo)/step));
+      for(let q=cLo;q<=cHi;q++){ const v=prev[q]-lam*Math.abs(lr-Math.log(cands[q])); if(v>best){ best=v; bi=q; } }
+      cur[c]=best+S[j][c]; bk[c]=bi; }
+    D.push(cur); B.push(bk); }
+  let c=0; const last=D[D.length-1]; for(let q=1;q<nC;q++) if(last[q]>last[c]) c=q;
+  const path=new Array(S.length); for(let j=S.length-1;j>=0;j--){ path[j]=c; c=B[j][c]; }
+  const raw=path.map(c=>cands[c]);
+  return F.fr.map((f,j)=>{ const w=raw.slice(Math.max(0,j-2),j+3).sort((a,b)=>a-b);   // and a 5-frame running median
+    return {t:f.t,rpm:raw[j],rpmS:w[w.length>>1],score:S[j][path[j]],lev:10*Math.log10(f.tot*F.df+1e-20),pk:f.pk}; });
+}
+// how strongly an ideal train of this engine's pulses puts energy at order o (0..1)
+function recPulseAmp(ctx,o){
+  const pp=ctx.pp; if(!pp||!pp.angles||!pp.angles.length) return Math.abs(o/ctx.kf-Math.round(o/ctx.kf))<1e-9?1:0;
+  const j=o*pp.cycle/360; let re=0, im=0; pp.angles.forEach(t=>{ const a=2*Math.PI*j*t/pp.cycle; re+=Math.cos(a); im+=Math.sin(a); });
+  return Math.hypot(re,im)/pp.n;
+}
+function recHolds(tr){
+  const holds=[]; let i=0;
+  while(i<tr.length){ let j=i, seg=[tr[i].rpmS];
+    while(j+1<tr.length){ const s=seg.concat([tr[j+1].rpmS]).sort((a,b)=>a-b), m=s[s.length>>1];
+      if(s.every(v=>Math.abs(v-m)/m<=0.04)){ seg.push(tr[j+1].rpmS); j++; } else break; }
+    const t0=tr[i].t, t1=tr[j].t;
+    if(t1-t0>=1.5){ const s=seg.slice().sort((a,b)=>a-b); holds.push({t0:t0+0.25,t1:t1-0.25,rpm:s[s.length>>1]}); }
+    i=j+1; }
+  return holds;
+}
+// order levels at a hold (band power ±0.15 order, Welch mean of the frames inside), with the noise between orders
+function recOrderLevels(F,h,ctx){
+  const fr=F.fr.filter(f=>f.t>=h.t0&&f.t<=h.t1); if(!fr.length) return null;
+  const K=fr[0].P.length, P=new Float64Array(K); fr.forEach(f=>{ for(let k=0;k<K;k++) P[k]+=f.P[k]/fr.length; });
+  const f1=h.rpm/60, band=(a,b)=>{ let s=0; for(let k=Math.ceil(a/F.df);k<=Math.floor(b/F.df)&&k<K;k++) s+=P[k]; return s*F.df; };
+  const ords=recOrders(ctx.cyc,12).filter(o=>(o+0.15)*f1<K*F.df), lev={}, snr={};
+  for(const o of ords){ const v=band((o-0.15)*f1,(o+0.15)*f1);
+    const st=ctx.cyc==='4'?0.5:1, nb=band((o+st/2-0.07)*f1,(o+st/2+0.07)*f1)*(0.30/0.14);   // the gap halfway to the next order, scaled to the same width
+    lev[o]=10*Math.log10(v+1e-30); snr[o]=10*Math.log10((v+1e-30)/(nb+1e-30)); }
+  const top=Math.max(...Object.values(lev));
+  for(const o in lev) lev[o]=+(lev[o]-top).toFixed(1);
+  return {lev,snr,frames:fr.length};
+}
+// the longest rising stretch: the firing order's level against its frequency, and the peaks in it
+function recSweep(F,tr,ctx){
+  let best=null;
+  // rising without a jump: each step up to 8% (an octave slip in the tracker ends the stretch)
+  for(let i=0;i<tr.length;){ let j=i; while(j+1<tr.length&&tr[j+1].rpmS>=tr[j].rpmS-10&&tr[j+1].rpmS<=tr[j].rpmS*1.08) j++;
+    const a=tr[i].rpmS, b=tr[j].rpmS, dt=tr[j].t-tr[i].t;
+    if(b>1.3*a&&dt>=2&&(!best||(b/a)>(best.b/best.a))) best={i,j,a,b};
+    i=j+1; }
+  if(!best) return null;
+  const kf=ctx.kf, pts=[];
+  for(let k=best.i;k<=best.j;k++){ const q=tr[k], f=kf*q.rpmS/60, P=F.fr[k].P; let s=0;
+    for(let m=Math.ceil((kf-0.15)*q.rpmS/60/F.df);m<=Math.floor((kf+0.15)*q.rpmS/60/F.df)&&m<P.length;m++) s+=P[m];
+    pts.push({t:q.t,rpm:q.rpmS,f,L:10*Math.log10(s*F.df+1e-30)}); }
+  // smooth over 5 frames, then peaks that stand 3 dB above the lowest point on each side before the next higher one
+  const Ls=pts.map((p,i)=>{ const w=pts.slice(Math.max(0,i-2),i+3); return w.reduce((a,z)=>a+z.L,0)/w.length; });
+  const peaks=[];
+  for(let i=2;i<Ls.length-2;i++){ if(!(Ls[i]>=Ls[i-1]&&Ls[i]>=Ls[i+1])) continue;
+    let l=i, mL=Ls[i]; while(l>0&&Ls[l-1]<=Ls[i]){ l--; mL=Math.min(mL,Ls[l]); }
+    let r=i, mR=Ls[i]; while(r<Ls.length-1&&Ls[r+1]<=Ls[i]){ r++; mR=Math.min(mR,Ls[r]); }
+    const prom=Ls[i]-Math.max(mL,mR);
+    if(prom>=3&&l>0&&r<Ls.length-1) peaks.push({f:pts[i].f,rpm:pts[i].rpm,L:Ls[i],prom}); }
+  return {pts:pts.map((p,i)=>Object.assign(p,{Ls:Ls[i]})),peaks,t0:tr[best.i].t,t1:tr[best.j].t,rpm0:best.a,rpm1:best.b};
+}
+// the sound-speed scale that puts the model's resonances on the measured peaks (log-frequency least squares)
+function recFitModes(peaks,modes){
+  if(!peaks||peaks.length<2||!modes||!modes.length) return null;
+  let best=null;
+  for(let s=0.6;s<=1.6;s+=0.002){ let e=0; const pairs=[];
+    for(const p of peaks){ let m=null, d=1e9; for(const q of modes){ const dd=Math.abs(Math.log(p.f/(s*q.f))); if(dd<d){ d=dd; m=q; } } e+=d*d; pairs.push({p,q:m,d}); }
+    if(!best||e<best.e) best={s,e,pairs}; }
+  best.rms=Math.sqrt(best.e/peaks.length);
+  return best;
+}
+// the section on the Sound tab
+function recSection(sp,r){
+  const p=sp.p, kf=(p.cyc==='4'?0.5:1)*p.cyl;
+  REC.ctx={cyc:p.cyc,cyl:p.cyl,kf,idle:p.idle,red:p.red,egt:p.egt,modes:r.res,cool:!!(sp.cool&&sp.cool.used),pp:r.pp};
+  let h='<p class="cap" style="margin-top:0">Load a recording of this exhaust (WAV is read as recorded; other formats the browser decodes at 48 kHz). The page finds the engine speed from the orders, the steady holds and the order levels at each, and compares them with the model. Nothing leaves this computer.</p>'+
+    '<label class="f" style="max-width:420px"><span class="lab">Recording</span><span class="inp"><input type="file" id="rec-file" accept=".wav,audio/*"></span></label>';
+  if(REC.busy) return sec('Compare a recording',h+'<div class="note">Reading '+esc(REC.name)+'… '+Math.round(100*REC.prog)+'%</div>');
+  if(REC.err) return sec('Compare a recording',h+'<div class="note bad">'+esc(REC.err)+'</div>');
+  if(!REC.fr) return sec('Compare a recording',h+recGuide());
+  const I=REC.info;
+  h+='<div class="figs">'+figT('Recording',(I.dur).toFixed(1),'s',esc(REC.name)+', '+(I.sr/1000).toFixed(1)+' kHz'+(I.bits?', '+I.bits+'-bit':'')+(I.ch>1?', '+I.ch+' channels mixed':''))+
+    figT('Peak',I.peakDb.toFixed(1),'dBFS',I.clip>0?(100*I.clip).toFixed(2)+'% of samples clipped':'no clipping',I.clip>1e-4?'st-bad':I.peakDb>-1?'st-warn':'st-ok')+
+    figT('Steady holds',String(REC.holds.length),'',REC.holds.length?REC.holds.map(q=>Math.round(q.rpm)).join(', ')+' RPM':'none 1.5 s long','')+'</div>';
+  h+='<div class="actions" style="margin-top:6px"><button type="button" class="btn" data-rec="x2">Engine speed was double this</button><button type="button" class="btn" data-rec="x05">Engine speed was half this</button></div>'+
+    '<p class="cap">An engine whose orders between the firing ones are very quiet can be read at half or double its speed: if the holds show the wrong RPM, correct them here.</p>';
+  const warn=[];
+  if(I.clip>1e-4) warn.push('The recording clips: lower the gain. Clipped peaks put false energy into the high orders.');
+  if(I.agc) warn.push('The level jumps by '+I.agc.dB.toFixed(0)+' dB at '+I.agc.t.toFixed(1)+' s while the engine speed holds: that is how automatic gain control looks. Lock the gain if the recorder allows; relative order levels within one hold are still fine.');
+  if(I.decoded) warn.push('Decoded by the browser at 48 kHz, not read as recorded: the level and spectrum are fine, the file’s own bit depth is unknown.');
+  h+=warn.map(t=>'<div class="note warn">'+esc(t)+'</div>').join('');
+  h+='<figure class="card" style="margin:12px 0 0"><canvas id="rec-cv" style="width:100%;height:280px;display:block" aria-label="Spectrogram of the recording with the engine speed found in it"></canvas><p class="cap">Spectrogram to '+Math.round(REC.fTop)+' Hz. The line is the firing order at the engine speed found in the recording; shaded bands are the steady holds.</p></figure>';
+  // a hold
+  if(REC.holds.length){
+    const hi=Math.min(REC.hold,REC.holds.length-1), H=REC.holds[hi], ol=recOrderLevels(REC.F,H,REC.ctx);
+    h+='<label class="f" style="max-width:420px;margin-top:12px"><span class="lab">Hold</span><span class="inp"><select id="rec-hold">'+REC.holds.map((q,i)=>'<option value="'+i+'"'+(i===hi?' selected':'')+'>'+Math.round(q.rpm)+' RPM, '+q.t0.toFixed(1)+' to '+q.t1.toFixed(1)+' s</option>').join('')+'</select></span></label>';
+    if(ol){
+      // OpenWAM outflow spectra loaded on the 4-Stroke tab, within 5% of this speed (orders to 6)
+      const W=(typeof WAM_UI!=='undefined'&&WAM_UI.ins||[]).filter(x=>!x.err&&Number.isFinite(x.rpm)&&Math.abs(x.rpm-H.rpm)/H.rpm<=0.05).sort((a,b)=>Math.abs(a.rpm-H.rpm)-Math.abs(b.rpm-H.rpm))[0];
+      const ords=Object.keys(ol.lev).map(Number).sort((a,b)=>a-b);
+      let model=null;
+      if(W){ model={}; (W.db24||W.db).forEach((v,i)=>{ const o=(i+1)/2; if(v>-90&&v>-119) model[o]=v; });   // wamInsOrders already gives d(mdot)/dt, the monopole's sound
+        const mt=Math.max(...Object.values(model)); for(const o in model) model[o]-=mt; }
+      const use=ords.filter(o=>o>=REC.ctx.kf&&ol.snr[o]>=6&&model&&model[o]!=null);
+      let rms=null, off=0;
+      if(use.length>=3){ const d=use.map(o=>ol.lev[o]-model[o]); off=d.reduce((a,b)=>a+b,0)/d.length; rms=Math.sqrt(d.reduce((a,b)=>a+(b-off)**2,0)/d.length); }
+      REC.last={hold:H,ol,model,W:W&&W.name};
+      h+='<div class="tblwrap"><table><thead><tr><th>Order</th><th>Hz</th><th>Recording</th><th>Above the noise</th>'+(model?'<th>OpenWAM ('+esc(W.name)+')</th><th>Difference</th>':'')+'</tr></thead><tbody>'+
+        ords.map(o=>{ const m=model&&model[o]!=null?model[o]:null, dd=m!=null?ol.lev[o]-m-off:null;
+          return '<tr'+(Math.abs(o/REC.ctx.kf-Math.round(o/REC.ctx.kf))<1e-9?' class="cur"':'')+'><td>'+o+'</td><td>'+Math.round(o*H.rpm/60)+'</td><td>'+ol.lev[o].toFixed(1)+' dB</td><td class="'+(ol.snr[o]>=6?'':'st-warn')+'">'+ol.snr[o].toFixed(0)+' dB'+(ol.snr[o]<6?' (in the noise)':'')+'</td>'+
+            (model?'<td>'+(m!=null?m.toFixed(1)+' dB':'—')+'</td><td class="'+(dd==null?'':Math.abs(dd)<=3?'st-ok':Math.abs(dd)<=8?'st-warn':'st-bad')+'">'+(dd==null?'':(dd>=0?'+':'')+dd.toFixed(1)+' dB')+'</td>':'')+'</tr>'; }).join('')+'</tbody></table></div>'+
+        '<p class="cap">Levels relative to the strongest order (dB), the power within ±0.15 order of each, averaged over '+ol.frames+' half-second windows. Firing orders are highlighted. “Above the noise” compares each order with the gap between it and the next; under 6 dB it is left out of the comparison.'+
+        (model?' OpenWAM’s outflow spectrum is its rate of change at the open end (the tip as a monopole) and both are made relative; the difference has the mean offset ('+off.toFixed(1)+' dB) taken out, so a gain difference does not count. '+(rms!=null?'RMS over '+use.length+' firing-and-above orders: <b>'+rms.toFixed(1)+' dB</b> (0 is the same shape, 3 dB a factor 1.4 in amplitude).':'Too few orders above the noise to compare.'):
+          ' Load the OpenWAM INS.DAT of a run at this speed on the 4-Stroke tab (Order spectrum of the outflow) to compare order by order.')+'</p>';
+    }
+  }
+  // the sweep and the gas temperature it implies
+  const S=REC.sweep;
+  if(S){
+    const fit=recFitModes(S.peaks,REC.ctx.modes.filter(q=>q.f<=REC.fTop*1.2));
+    REC.fit=fit;
+    h+='<p class="sub" style="margin-top:14px">Resonances in the sweep ('+Math.round(S.rpm0)+' to '+Math.round(S.rpm1)+' RPM, '+S.t0.toFixed(1)+' to '+S.t1.toFixed(1)+' s)</p>';
+    h+='<figure class="card" style="margin:0"><canvas id="rec-sw" style="width:100%;height:200px;display:block" aria-label="Firing-order level against frequency through the sweep"></canvas><p class="cap">The firing order’s level as the engine sweeps, against its frequency. Peaks (dots) are where it meets a resonance of the pipe; ticks under the axis are the model’s resonances, '+(fit?'scaled to the fit (solid) and as now (faint)':'as now')+'.</p></figure>';
+    if(!S.peaks.length) h+='<p class="cap">No peak stands 3 dB clear in the sweep.</p>';
+    else if(!fit) h+='<p class="cap">Peaks at '+S.peaks.map(q=>Math.round(q.f)+' Hz').join(', ')+'; two are needed to fit the sound speed.</p>';
+    else { const Tm=REC.ctx.egt+273.15, Tf=fit.s*fit.s*Tm-273.15;
+      h+='<div class="tblwrap"><table><thead><tr><th>Peak in the recording</th><th>Model mode</th><th>Now</th><th>Scaled</th></tr></thead><tbody>'+
+        fit.pairs.map(x=>'<tr><td>'+Math.round(x.p.f)+' Hz at '+Math.round(x.p.rpm)+' RPM</td><td>'+x.q.n+'</td><td>'+Math.round(x.q.f)+' Hz</td><td>'+Math.round(fit.s*x.q.f)+' Hz</td></tr>').join('')+'</tbody></table></div>'+
+        '<p class="cap">The model’s resonances fit the recording’s peaks best with the sound speed × '+fit.s.toFixed(3)+' (log-frequency RMS '+(100*fit.rms).toFixed(1)+'%): a gas temperature of <b>'+tempStr(Tf)+'</b> where the Sound tab has '+tempStr(REC.ctx.egt)+'. Sound speed goes with the square root of temperature, so the same fit could also mean the pipe is acoustically '+((1/fit.s-1)*100).toFixed(0)+'% '+(fit.s<1?'longer':'shorter')+' than entered (mufflers and their necks add length). '+(fit.rms>0.06?'The peaks do not line up well with any one scale: check the engine and pipe on this tab.':'')+'</p>'+
+        (Tf>-50&&Tf<1100?'<div class="actions"><button type="button" class="btn" data-rec="usetemp" data-t="'+Tf.toFixed(1)+'">Use '+tempStr(Tf)+' as the gas temperature</button></div>':'');
+    }
+  }
+  h+='<div class="actions" style="margin-top:10px"><button type="button" class="btn" data-rec="save">Save the order levels (JSON)</button></div><p class="cap" id="rec-msg">'+(REC.msg?esc(REC.msg):'')+'</p>'+recGuide();
+  return sec('Compare a recording',h);
+}
+function recGuide(){
+  return '<details style="margin-top:10px"><summary><b>How to record it</b></summary><ul class="list">'+
+    '<li>Lock the gain (no automatic gain control), and set it so the loudest rev peaks well under full scale.</li>'+
+    '<li>Same place every time: the validation recordings here are a microphone on the ground about 3 ft behind and 1.5 ft to the side of the tip, so the ground doubles the pressure without a comb of reflections. Note where it was.</li>'+
+    '<li>Hold steady speeds for 5 s or more (idle, then each 500 RPM); then one slow, smooth sweep from idle to well past cruise, in neutral or on a dyno. Holds give the order levels; the sweep gives the resonances.</li>'+
+    '<li>Engine warm, fans off if you can, no wind on the microphone. WAV at 48 kHz, 24-bit mono is ideal; a phone app that saves WAV works.</li>'+
+    '<li>A calibrated microphone turns these relative levels into real loudness later; the comparison here does not need one.</li></ul></details>';
+}
+async function recLoad(file){
+  Object.assign(REC,{name:file.name,busy:true,prog:0,err:null,fr:null,holds:[],hold:0,sweep:null,fit:null,msg:null}); renderActive();
+  try{
+    const d=await recDecode(file), x=d.x, n=x.length;
+    if(n<d.sr*2) throw new Error('The recording is shorter than 2 s.');
+    let pk=0, clip=0; for(let i=0;i<n;i++){ const a=Math.abs(x[i]); if(a>pk) pk=a; if(a>=0.999) clip++; }
+    const F=await recFrames(x,d.sr,q=>{ REC.prog=q; const el=document.querySelector('#sound-details .note'); if(el&&REC.busy) el.textContent='Reading '+REC.name+'… '+Math.round(100*q)+'%'; });
+    if(!REC.ctx) throw new Error('Fill in the engine on this tab first.');
+    const tr=recTrack(F,REC.ctx), holds=recHolds(tr);
+    // automatic gain control: a step in level of 6 dB or more inside 0.3 s while the speed holds within 2%
+    let agc=null; for(let i=3;i<tr.length;i++){ const a=tr[i-3], b=tr[i]; if(Math.abs(b.rpmS-a.rpmS)/a.rpmS<0.02&&Math.abs(b.lev-a.lev)>=6&&(!agc||Math.abs(b.lev-a.lev)>agc.dB)) agc={t:b.t,dB:Math.abs(b.lev-a.lev)}; }
+    Object.assign(REC,{x:null,sr:d.sr,F,fr:F.fr,tr,holds,sweep:recSweep(F,tr,REC.ctx),busy:false,
+      info:{sr:d.sr,ch:d.ch,bits:d.bits,decoded:!!d.decoded,dur:n/d.sr,peakDb:20*Math.log10(pk+1e-12),clip:clip/n,agc},
+      fTop:Math.min(F.fr[0].P.length*F.df,1500,Math.max(200,1.3*REC.ctx.kf*4*Math.max(...tr.map(q=>q.rpmS))/60))});
+  }catch(e){ REC.busy=false; REC.err=e&&e.message||String(e); }
+  renderActive();
+}
+function recCanvas(id,h){ const cv=$(id); if(!cv) return null; const w=cv.clientWidth||600, dpr=window.devicePixelRatio||1; cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); return {g,w,h}; }
+const recCss=v=>getComputedStyle(document.body).getPropertyValue(v).trim()||'#888';
+function recRgb(c){ const m=c.match(/^#([0-9a-f]{6})$/i); if(m) return [parseInt(m[1].slice(0,2),16),parseInt(m[1].slice(2,4),16),parseInt(m[1].slice(4,6),16)];
+  const n=c.match(/rgba?\(([^)]+)\)/); if(n){ const a=n[1].split(/[ ,\/]+/).map(Number); return [a[0],a[1],a[2]]; } return [128,128,128]; }
+function recDraw(){
+  if(!REC.fr) return;
+  const C=recCanvas('rec-cv',280); if(C){ const {g,w,h}=C, fr=REC.fr, df=REC.F.df, kTop=Math.min(fr[0].P.length-1,Math.round(REC.fTop/df)), ml=40, mb=20, W=w-ml-6, H=h-mb-6;
+    const bg=recRgb(recCss('--well')), mid=recRgb(recCss('--accent')), hi=recRgb(recCss('--ink'));
+    // dB range: the 99th percentile down 60 dB
+    const all=[]; for(let j=0;j<fr.length;j+=Math.max(1,Math.floor(fr.length/80))) for(let k=1;k<=kTop;k+=4) all.push(10*Math.log10(fr[j].P[k]+1e-20));
+    all.sort((a,b)=>a-b); const top=all[Math.floor(0.995*(all.length-1))], lo=Math.max(top-50,all[Math.floor(0.5*(all.length-1))]);
+    const img=g.createImageData(Math.max(1,Math.round(W)),Math.max(1,Math.round(H)));
+    for(let x=0;x<img.width;x++){ const j=Math.min(fr.length-1,Math.floor(x/img.width*fr.length)), P=fr[j].P;
+      for(let y=0;y<img.height;y++){ const k=Math.max(1,Math.round((1-y/img.height)*kTop)), v=Math.min(1,Math.max(0,(10*Math.log10(P[k]+1e-20)-lo)/(top-lo)));
+        const a=v<0.5?v*2:(v-0.5)*2, c0=v<0.5?bg:mid, c1=v<0.5?mid:hi, o=4*(y*img.width+x);
+        img.data[o]=c0[0]+(c1[0]-c0[0])*a; img.data[o+1]=c0[1]+(c1[1]-c0[1])*a; img.data[o+2]=c0[2]+(c1[2]-c0[2])*a; img.data[o+3]=255; } }
+    g.putImageData(img,ml*(window.devicePixelRatio||1),6*(window.devicePixelRatio||1));
+    const T=REC.info.dur, X=t=>ml+t/T*W, Y=f=>6+H-f/REC.fTop*H;
+    g.fillStyle=recCss('--ok'); g.globalAlpha=0.18; REC.holds.forEach(q=>g.fillRect(X(q.t0),6,X(q.t1)-X(q.t0),H)); g.globalAlpha=1;
+    g.strokeStyle=recCss('--bad'); g.lineWidth=1.5; g.beginPath(); REC.tr.forEach((q,i)=>{ const f=REC.ctx.kf*q.rpmS/60; if(i) g.lineTo(X(q.t),Y(f)); else g.moveTo(X(q.t),Y(f)); }); g.stroke();
+    g.fillStyle=recCss('--ink'); g.font='11px sans-serif'; g.textAlign='right';
+    for(let f=0;f<=REC.fTop;f+=REC.fTop>600?200:100) g.fillText(String(f),ml-4,Y(f)+4);
+    g.textAlign='center'; for(let t=0;t<=T;t+=T>40?10:5) g.fillText(t+' s',X(t),h-5);
+    g.save(); g.translate(10,6+H/2); g.rotate(-Math.PI/2); g.fillText('Hz',0,0); g.restore(); }
+  const S=REC.sweep, D=S&&recCanvas('rec-sw',200);
+  if(D){ const {g,w,h}=D, ml=40, mb=24, W=w-ml-8, H=h-mb-8, f0=Math.min(...S.pts.map(p=>p.f)), f1=Math.max(...S.pts.map(p=>p.f)), L0=Math.min(...S.pts.map(p=>p.Ls)), L1=Math.max(...S.pts.map(p=>p.Ls));
+    const X=f=>ml+(f-f0)/(f1-f0||1)*W, Y=L=>8+H-(L-L0)/((L1-L0)||1)*H;
+    g.strokeStyle=recCss('--accent'); g.lineWidth=1.8; g.beginPath(); S.pts.forEach((p,i)=>{ if(i) g.lineTo(X(p.f),Y(p.Ls)); else g.moveTo(X(p.f),Y(p.Ls)); }); g.stroke();
+    g.fillStyle=recCss('--bad'); S.peaks.forEach(q=>{ g.beginPath(); g.arc(X(q.f),Y(q.L),3.5,0,2*Math.PI); g.fill(); });
+    const tick=(f,a)=>{ if(f<f0||f>f1) return; g.globalAlpha=a; g.strokeStyle=recCss('--ink'); g.beginPath(); g.moveTo(X(f),8+H); g.lineTo(X(f),8+H+7); g.stroke(); g.globalAlpha=1; };
+    REC.ctx.modes.forEach(q=>{ tick(q.f,0.35); if(REC.fit) tick(REC.fit.s*q.f,1); });
+    g.fillStyle=recCss('--ink'); g.font='11px sans-serif'; g.textAlign='center';
+    const st=(f1-f0)>400?100:(f1-f0)>150?50:20; for(let f=Math.ceil(f0/st)*st;f<=f1;f+=st) g.fillText(f+' Hz',X(f),h-4);
+    g.textAlign='right'; g.fillText(Math.round(L1-L0)+' dB span',w-6,14); }
+}
+// the file is taken on 'input' (it fires first; something re-renders the tab on it, and the 'change' that follows
+// then comes from a detached element), once per pick
+const recPick=e=>{ const el=e.target; if(!(el&&el.id==='rec-file'&&el.files&&el.files[0])) return; const f=el.files[0];
+  if(el._taken===f) return; el._taken=f; recLoad(f); };
+document.addEventListener('input',recPick,true);
+document.addEventListener('change',e=>{
+  recPick(e);
+  if(e.target&&e.target.id==='rec-hold'){ REC.hold=+e.target.value||0; renderActive(); }
+},true);
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('button[data-rec]'); if(!b) return;
+  if(b.dataset.rec==='x2'||b.dataset.rec==='x05'){ const k=b.dataset.rec==='x2'?2:0.5; REC.tr.forEach(q=>{ q.rpm*=k; q.rpmS*=k; }); REC.holds=recHolds(REC.tr); REC.sweep=recSweep(REC.F,REC.tr,REC.ctx); REC.hold=0; renderActive(); return; }
+  if(b.dataset.rec==='usetemp'){ const el=$('s-egt'); if(el){ el._b=+b.dataset.t; showInput(el); el.dispatchEvent(new Event('input',{bubbles:true})); } return; }
+  if(b.dataset.rec==='save'){
+    const out={}; REC.holds.forEach((H,i)=>{ const ol=recOrderLevels(REC.F,H,REC.ctx); if(ol) out['hold_'+Math.round(H.rpm)+'_'+i]={file:REC.name,t:[+H.t0.toFixed(2),+H.t1.toFixed(2)],rpm:Math.round(H.rpm),orders_dB_rel:ol.lev,above_noise_dB:Object.fromEntries(Object.entries(ol.snr).map(([k,v])=>[k,+v.toFixed(1)]))}; });
+    if(REC.sweep) out.sweep={t:[+REC.sweep.t0.toFixed(2),+REC.sweep.t1.toFixed(2)],rpm:[Math.round(REC.sweep.rpm0),Math.round(REC.sweep.rpm1)],firing_order:REC.ctx.kf,peaks_Hz:REC.sweep.peaks.map(q=>+q.f.toFixed(1)),fit_sound_speed_scale:REC.fit?+REC.fit.s.toFixed(4):null};
+    const text=JSON.stringify(out,null,1), name=REC.name.replace(/\.[^.]+$/,'')+'_orders.json'; window.__recJson=text;
+    const say=t=>{ REC.msg=t; const m=$('rec-msg'); if(m) m.textContent=t; };
+    if(FUSION||HOST){ const res=await saveCall('saveText',{filename:name,text,title:'Save the order levels'}); say(res&&res.msg||'Not saved.'); return; }
+    const blob=new Blob([text],{type:'application/json'});
+    if(ES_DLP){ const dl=await ES_DLP; if(!dl){ say('Saving files is not available in this view.'); return; } try{ await dl.save({filename:name,data:blob}); say('Saved '+name+'.'); }catch(err){ say(err&&err.code==='declined'?'Not saved.':'This view could not save the file.'); } return; }
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); say('Downloaded '+name+'.');
+  }
+});
+window.__rec={REC,recWav,recFrames,recTrack,recHolds,recOrderLevels,recSweep,recFitModes,recLoad};
 
 /* ===== primary size, headers and crossover ===== */
 const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u;};
@@ -16277,7 +16590,7 @@ function wamReadIns(list){
   const out=[];
   return Promise.all([...list].map(f=>f.text().then(t=>{
     const nm=f.name.replace(/INS\.DAT$/i,''), m=nm.match(/_(\d{3,5})$/);
-    try{ out.push(Object.assign({name:nm,rpm:m?+m[1]:NaN},wamInsOrders(WAMX.readIns(t,{keepCycles:2}),12))); }
+    try{ const ins=WAMX.readIns(t,{keepCycles:2}); out.push(Object.assign({name:nm,rpm:m?+m[1]:NaN},wamInsOrders(ins,12),{db24:wamInsOrders(ins,24).db})); }
     catch(e){ out.push({name:f.name,err:e.message}); } }))).then(()=>{ out.sort((a,b)=>(a.rpm||0)-(b.rpm||0)); WAM_UI.ins=out; renderActive(); });
 }
 function wamInsTable(R){

@@ -568,6 +568,20 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   Design cues: rounded-triangle aerospace window; dimple-die flanged holes (McMaster 3423N61 / SWAG and Eastwood
   21316 sizes, thickness by material), placed biggest first down the web so long parts get a graduated row.
   Data: docs/research/hanger_isolation_lightening.md (de Havilland DS 11 is proprietary-marked: cited, not copied).
+- Sound tab "Compare a recording" (2026-11-03, the owner: "refine the sound until I have more real world data"): WAV read
+  as recorded (8/16/24/32-bit PCM, float, extensible; else the browser decodes at 48 kHz), Hann 0.5 s frames 0.1 s apart,
+  RPM from rpm_track.py's harmonic comb joined over time by Viterbi (15 dB per unit log ratio, at most 1.6x per frame;
+  bikes blip fast), holds within 4% for 1.5 s, order levels as order_spectrum.py (Welch, ±0.15 order) with a noise
+  check per order, AGC and clipping checks, half/double correction buttons, a sweep's firing-order level against
+  frequency with its resonance peaks and the sound-speed scale (gas temperature) that fits the model's modes, and order
+  by order against OpenWAM's outflow spectrum when INS.DAT is loaded on the 4-Stroke tab (now to order 12; the page's
+  INS orders already carry the monopole's d/dt, the first draft added it twice). Checked: synthetic WAV comes back at
+  its speed and levels within 0.5 dB; the Outback and RS 660 recordings give the Python tools' holds and order levels
+  within 0.3-0.6 dB RMS (idle 1.6 dB, the idle's half order sits in 2 Hz); Outback hold_1980 vs its OpenWAM run 8.7 dB
+  RMS over 14 orders above the noise (Python 10.5 over 2-12). web/tests/rec_ui.js. Note for later refinement: the
+  recording's odd orders 1, 3, 5 are 13-31 dB above the tailpipe model (intake and engine-structure noise reach the
+  microphone, cylinder-to-cylinder spread), and the model is 20 dB too bright at order 12 (cat as a plain pipe,
+  muffler as a plain volume; a capillary-substrate cat adds only about 2 dB at 400 Hz by the narrow-tube estimate).
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
