@@ -582,6 +582,8 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   recording's odd orders 1, 3, 5 are 13-31 dB above the tailpipe model (intake and engine-structure noise reach the
   microphone, cylinder-to-cylinder spread), and the model is 20 dB too bright at order 12 (cat as a plain pipe,
   muffler as a plain volume; a capillary-substrate cat adds only about 2 dB at 400 Hz by the narrow-tube estimate).
+- Live in Fusion 2026-11-03 (the owner's PC, add-in files from today): fusion_live_drone_parts.py all ok (can, path,
+  route on the Rust core, tilt, scan, hole: every tool cuts), fusion_live_cfd_stl.py ok (196 triangles, inlet/outlet/wall).
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
