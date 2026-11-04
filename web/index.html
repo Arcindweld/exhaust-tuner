@@ -10363,13 +10363,22 @@ function recSection(sp,r){
       const use=ords.filter(o=>o>=REC.ctx.kf&&ol.snr[o]>=6&&model&&model[o]!=null);
       let rms=null, off=0;
       if(use.length>=3){ const d=use.map(o=>ol.lev[o]-model[o]); off=d.reduce((a,b)=>a+b,0)/d.length; rms=Math.sqrt(d.reduce((a,b)=>a+(b-off)**2,0)/d.length); }
-      REC.last={hold:H,ol,model,W:W&&W.name};
+      // the tilt of the difference against frequency (dB per octave, least squares on log2 Hz): a steady tilt means the
+      // parts after the engine take out more (negative) or less high frequency than the model's (a plain-volume muffler,
+      // a cat as plain pipe); the RMS left once the tilt is out is what the engine side and the pipe lengths have to explain
+      let tilt=null, rmsT=null;
+      if(use.length>=4){ const x=use.map(o=>Math.log2(o*H.rpm/60)), y=use.map(o=>ol.lev[o]-model[o]);
+        const mx=x.reduce((a,b)=>a+b,0)/x.length, my=y.reduce((a,b)=>a+b,0)/y.length;
+        let sxy=0,sxx=0; x.forEach((v,i)=>{ sxy+=(v-mx)*(y[i]-my); sxx+=(v-mx)**2; });
+        if(sxx>0){ tilt=sxy/sxx; rmsT=Math.sqrt(x.reduce((a,v,i)=>a+(y[i]-my-tilt*(v-mx))**2,0)/x.length); } }
+      REC.last={hold:H,ol,model,W:W&&W.name,tilt,rmsT};
       h+='<div class="tblwrap"><table><thead><tr><th>Order</th><th>Hz</th><th>Recording</th><th>Above the noise</th>'+(model?'<th>OpenWAM ('+esc(W.name)+')</th><th>Difference</th>':'')+'</tr></thead><tbody>'+
         ords.map(o=>{ const m=model&&model[o]!=null?model[o]:null, dd=m!=null?ol.lev[o]-m-off:null;
           return '<tr'+(Math.abs(o/REC.ctx.kf-Math.round(o/REC.ctx.kf))<1e-9?' class="cur"':'')+'><td>'+o+'</td><td>'+Math.round(o*H.rpm/60)+'</td><td>'+ol.lev[o].toFixed(1)+' dB</td><td class="'+(ol.snr[o]>=6?'':'st-warn')+'">'+ol.snr[o].toFixed(0)+' dB'+(ol.snr[o]<6?' (in the noise)':'')+'</td>'+
             (model?'<td>'+(m!=null?m.toFixed(1)+' dB':'—')+'</td><td class="'+(dd==null?'':Math.abs(dd)<=3?'st-ok':Math.abs(dd)<=8?'st-warn':'st-bad')+'">'+(dd==null?'':(dd>=0?'+':'')+dd.toFixed(1)+' dB')+'</td>':'')+'</tr>'; }).join('')+'</tbody></table></div>'+
         '<p class="cap">Levels relative to the strongest order (dB), the power within ±0.15 order of each, averaged over '+ol.frames+' half-second windows. Firing orders are highlighted. “Above the noise” compares each order with the gap between it and the next; under 6 dB it is left out of the comparison.'+
-        (model?' OpenWAM’s outflow spectrum is its rate of change at the open end (the tip as a monopole) and both are made relative; the difference has the mean offset ('+off.toFixed(1)+' dB) taken out, so a gain difference does not count. '+(rms!=null?'RMS over '+use.length+' firing-and-above orders: <b>'+rms.toFixed(1)+' dB</b> (0 is the same shape, 3 dB a factor 1.4 in amplitude).':'Too few orders above the noise to compare.'):
+        (model?' OpenWAM’s outflow spectrum is its rate of change at the open end (the tip as a monopole) and both are made relative; the difference has the mean offset ('+off.toFixed(1)+' dB) taken out, so a gain difference does not count. '+(rms!=null?'RMS over '+use.length+' firing-and-above orders: <b>'+rms.toFixed(1)+' dB</b> (0 is the same shape, 3 dB a factor 1.4 in amplitude).'+
+            (tilt!=null?' The difference tilts by <b>'+(tilt>=0?'+':'')+tilt.toFixed(1)+' dB per octave</b> of frequency'+(Math.abs(tilt)>=3?(tilt<0?': the recording falls off faster than the model, so something after the engine takes out more of the high frequencies than the model has (a muffler modelled as a plain volume, a catalyst as plain pipe)':': the recording keeps more of the high frequencies than the model (a muffler or catalyst modelled as more restrictive than it is, or a sound path besides the tailpipe)'):', no steady tilt')+'; with the tilt taken out the RMS is '+rmsT.toFixed(1)+' dB. On the owner’s Outback, with its Spintech modelled as a plain 7.2 L volume, the tilt was −4 to −10 dB per octave at every hold (−7.2 fitted on all four; on the RS 660 with its stock muffler, −0.5 to +1.8 at idle).':''):'Too few orders above the noise to compare.'):
           ' Load the OpenWAM INS.DAT of a run at this speed on the 4-Stroke tab (Order spectrum of the outflow) to compare order by order.')+'</p>';
     }
   }

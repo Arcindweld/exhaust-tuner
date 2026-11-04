@@ -637,6 +637,12 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   across and 4-36 in long inside the space limits, leaving out any whose band passes its first cross mode; "Use" puts
   the design into the tab's fields; an impossible goal gives the closest. tests/mdesign_ui.js (the tab's own packed-can
   figure at the target matches the designer's).
+- Outback brightness diagnosed (2026-11-04, docs/research/outback_tilt.md): recording minus model tilts -4 to -10 dB
+  per octave at every hold (orders 2-12); the RS 660 with the same synthesis shows none (-0.5..+1.8 at idle), so it is
+  the Outback's hardware after the engine (the owner's Spintech 3331 modelled as an empty box, the cat as plain pipe),
+  not the method. A -7.2 dB/octave tilt fitted leave-one-out lowers every hold's RMS (10.8 -> 9.5 dB overall). The
+  Spintech's inside is unpublished (US 5,824,972 layout only). Page: Compare a recording reports the tilt and the RMS
+  without it (rec_ui.js).
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

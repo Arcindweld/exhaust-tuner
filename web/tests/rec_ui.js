@@ -70,6 +70,9 @@ function wav(rpm, secs, sr) {
     const t = await p.evaluate(() => [...document.querySelectorAll('#sound-details .sec')].find(x => /Compare a recording/.test(x.innerText)).innerText);
     const m = t.match(/RMS over (\d+) firing-and-above orders: ([\d.]+) dB/);
     ok(/OpenWAM \(hold_1980\)/.test(t) && m && +m[2] > 5 && +m[2] < 15, 'OpenWAM hold_1980 compared order by order: ' + (m ? m[2] + ' dB RMS over ' + m[1] + ' orders (Python: 10.5 dB)' : 'no RMS'));
+    const tl = t.match(/tilts by ([-+−\d.]+) dB per octave/), L = await p.evaluate(() => window.__rec.REC.last);
+    ok(tl && L.tilt < 0 && L.tilt > -12 && L.rmsT <= +m[2] && (L.tilt <= -3 ? /falls off faster than the model/.test(t) : /no steady tilt/.test(t)),
+       'the difference tilts ' + (L ? L.tilt.toFixed(1) : '?') + ' dB per octave over the orders above the noise (the Python check over orders 2-12: -4.4 at this hold), ' + (L ? L.rmsT.toFixed(1) : '?') + ' dB RMS with it out');
   } else console.log('SKIP: OpenWAM comparison, hold_1980INS.DAT not here');
   // the page: spectrogram, table, export
   const ui = await p.evaluate(() => { const s = [...document.querySelectorAll('#sound-details .sec')].find(x => /Compare a recording/.test(x.innerText)); const cv = document.getElementById('rec-cv');
