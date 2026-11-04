@@ -73,6 +73,26 @@ function wav(rpm, secs, sr) {
     const tl = t.match(/tilts by ([-+−\d.]+) dB per octave/), L = await p.evaluate(() => window.__rec.REC.last);
     ok(tl && L.tilt < 0 && L.tilt > -12 && L.rmsT <= +m[2] && (L.tilt <= -3 ? /falls off faster than the model/.test(t) : /no steady tilt/.test(t)),
        'the difference tilts ' + (L ? L.tilt.toFixed(1) : '?') + ' dB per octave over the orders above the noise (the Python check over orders 2-12: -4.4 at this hold), ' + (L ? L.rmsT.toFixed(1) : '?') + ' dB RMS with it out');
+    // listening: the model made to vary as a running engine does, against the recording
+    ok(/Listen: the recording against the model/.test(t) && !!(await p.$('button[data-rec="play-ab"]')), 'the A/B listening block is there');
+    const sy = await p.evaluate(async () => { const R = window.__rec, L = R.REC.last, W = window.__wamIns().find(q => q.name === L.W);
+      const S = R.recSynth(W, L.hold, { cov: 0, wander: false }), F = await R.recFrames(S.x, R.REC.sr, () => {});
+      const ol = R.recOrderLevels(F, { t0: 0, t1: S.x.length / R.REC.sr, rpm: L.hold.rpm }, R.REC.ctx);
+      const rms = x => Math.sqrt(x.reduce((a, v) => a + v * v, 0) / x.length);
+      return { len: S.x.length / R.REC.sr, hold: L.hold.t1 - L.hold.t0, lev: ol.lev, W: W.db24 || W.db, ratio: rms(S.x) / rms(S.rec) }; });
+    const dd = [2, 4, 6].map(o => Math.abs(sy.lev[o] - sy.W[2 * o - 1]));
+    ok(Math.abs(sy.len - Math.min(sy.hold, 8)) < 0.01 && Math.abs(sy.ratio - 1) < 0.03 && Math.max(...dd) < 1.5,
+       'held exactly with no variation, the played model has OpenWAM\'s own order levels (orders 2, 4, 6 within ' + Math.max(...dd).toFixed(2) + ' dB) at the recording\'s loudness (' + sy.len.toFixed(2) + ' s of a ' + sy.hold.toFixed(2) + ' s hold, RMS ratio ' + sy.ratio.toFixed(3) + ')');
+    await p.click('button[data-rec="ab-check"]'); await p.waitForFunction(() => window.__rec.REC_AB.check, null, { timeout: 60000 }); await p.waitForTimeout(300);
+    const C = await p.evaluate(() => window.__rec.REC_AB.check);
+    ok(Math.abs(C.model - C.rec) < 9, 'with 2 % variation and the hold\'s own wander, the gaps between the orders: model ' + C.model.toFixed(1) + ' dB, recording ' + C.rec.toFixed(1) + ' dB');
+    await p.evaluate(() => { const el = document.getElementById('rec-wander'); el.value = '0'; el.dispatchEvent(new Event('change', { bubbles: true })); }); await p.waitForTimeout(300);
+    await p.evaluate(() => { window.__rec.REC_AB.check = null; }); await p.click('button[data-rec="ab-check"]'); await p.waitForFunction(() => window.__rec.REC_AB.check, null, { timeout: 60000 });
+    const C2 = await p.evaluate(() => window.__rec.REC_AB.check);
+    ok(C2.model > C.model + 3, 'held exactly, the model is cleaner between its orders (' + C2.model.toFixed(1) + ' dB against ' + C.model.toFixed(1) + ')');
+    await p.click('button[data-rec="play-ab"]'); await p.waitForTimeout(1500);
+    const pm = await p.evaluate(() => { const el = document.getElementById('rec-ab-msg'); return el ? el.textContent : 'no element'; });
+    ok(/Playing|cannot play|Could not play/.test(pm), 'the play button answers: ' + pm);
   } else console.log('SKIP: OpenWAM comparison, hold_1980INS.DAT not here');
   // the page: spectrogram, table, export
   const ui = await p.evaluate(() => { const s = [...document.querySelectorAll('#sound-details .sec')].find(x => /Compare a recording/.test(x.innerText)); const cv = document.getElementById('rec-cv');

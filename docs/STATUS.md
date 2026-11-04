@@ -649,6 +649,17 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   diameter (SLEEVE_FIT_CM; the plate is 0.15 mm under that), $ACADVER AC1009 in the DXF header and _mm in the file
   names, the ligament between holes measured from the actual hole centres and overlapping tubes refused, and the
   spike note says which rule cut it.
+- Sound realism, step 1 (2026-11-04, the owner: "make the sound example as close as possible to real life"):
+  sound/realism.py turns OpenWAM's one cycle into a running engine: each firing's pulse x (1 + spread + cov N(0,1))
+  in smooth windows that add to one, and each cycle stretched to an engine-speed track (rpm_walk, or the
+  recording's own); measured as order_spectrum.py plus the quarter-order floor. On the Outback 1980 rpm hold the
+  recording's floor between orders is -41/-42 dB (orders 2-6/6-12); the model held exactly -50/-63, with the hold's
+  own speed track (1.2 % sd) and 2-4 % cov -46..-42/-41..-40: speed wander and normal combustion variation account for
+  the space between the orders. Odd integer orders 3 and 5 (13-17 dB short) do not move with cov: not combustion
+  variation. sound/test_realism.py. Page: Compare a recording, "Listen: the recording against the model" (play the
+  hold, the model, or one then the other; cycle-to-cycle variation %, wander as recorded or held; "Compare the gaps
+  between the orders" runs the tab's own analysis on the model's sound); rec_ui.js (held exactly with no variation
+  the played model has OpenWAM's order levels to 0.01 dB at the recording's loudness).
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
