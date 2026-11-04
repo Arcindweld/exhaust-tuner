@@ -396,6 +396,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   tubes 1-1.5 in x 1-8 in between collectors, sized from the root note; no formula in the patent) modelled as parallel
   plane-wave ducts (admittance sum, 0.3 d end allowance each end); checks: one tube / equal tubes 0 dB, HQ notch at
   c/(2 dL); sizing to harmonics 8/10/12/16 of the firing tone; plane-wave limit 1.8412 c/(pi D). tests/timbre_ui.js.
+  Spintech (owner's cutaway photo + case chart): spiral traps = US 5,824,972 (Butler 1997; Spintech link unconfirmed);
+  Mufflers tab "Muffler types: flow against quieting" (patent's 2.5 in / 5 inH2O figures scaled by area and the square law
+  to redline flow; inlet for 5 inH2O and 1 psi) + Spintech case chart vs the space limits; Spintech parts retyped
+  'spiral'. tests/spiral_ui.js. Lobak (research agent): auger muffler, no primary source; Moroso Spiral Flow; US
+  3,963,092. Mufflers tab "Auger muffler": core tube + helical channel as two ttMatrix paths. tests/auger_ui.js.
   Two-stroke OpenWAM writer openwam/make_wam2t.py (tests/test_2t.py; nm2T block, TLumbrera ports from timing,
   TDepVolVariable crankcase, reed TLamina or piston-port intake, chamber segs). 125 with our chamber: 31.7 hp peak at
   12000 (straight pipe 15-20 hp); Maico 490 with the Wizard's chamber: 35 hp peak at 5500 (claimed 53 at 6500).
