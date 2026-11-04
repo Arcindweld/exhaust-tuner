@@ -33,6 +33,23 @@ const { chromium } = require('playwright');
   ok(Math.abs(r.mx.bmep - 9.57) < 0.02 && r.mx.T > 600 && r.mx.T < 610 && Math.abs(r.mx.k.K2 - (2.75 + (r.mx.bmep - 9.5) / 1.5 * 0.5)) < 1e-9, 'between classes: temperature and constants on the line (' + r.mx.bmep.toFixed(2) + ' bar, ' + r.mx.T.toFixed(1) + ' °C)');
   ok(Math.abs(r.two - s3.bmep) < 1e-9, 'a twin at twice the power: the same BMEP');
   ok(/Fill in the RPM/.test(r.e1) && /Exhaust port at the flange/.test(r.e2), 'missing power or port refused');
+  // dual power insert: second tuned length at the second RPM, the cone from the belly end, its pipe end at that length,
+  // fitting 3 mm inside the baffle and stinger
+  const dp = await pg.evaluate(() => {
+    const T = window.__two, o = { rpm: 11500, ed: 194, bore: 54, stroke: 54.5, cyl: 1, hp: 38, pshape: 'round', pw: 38, port: 60, bias: 0, stg: 3 };
+    const x = T.calcTwoSpec(Object.assign({}, o, { dual: true })), y = T.calcTwoSpec(Object.assign({}, o, { dual: true, rpm2: 12000 }));
+    const z = T.calcTwoSpec(Object.assign({}, o, { dual: true, rpm2: 5000 }));
+    const d = x.dual, Lb = x.L[4], D3 = x.D[3], D4 = x.D[4];
+    let worst = 1e9; for (const xx of [...Array(101).keys()].map(i => d.Li * i / 100).concat([Math.min(Lb, d.Li)])) { const inner = d.Dm + (d.di - d.Dm) * xx / d.Li, outer = xx <= Lb ? D3 + (D4 - D3) * xx / Lb : D4; worst = Math.min(worst, (outer - inner) / 2); }
+    return { d, lt: x.lt, x0: x.L[0] + x.L[1] + x.L[2] + x.L[3], worst, D4, yNotes: y.notes.map(n => n.t).join(' '), yDual: y.dual, zNotes: z.notes.map(n => n.t).join(' '), off: T.calcTwoSpec(o).dual };
+  });
+  ok(Math.abs(dp.d.rpm2 - 0.89 * 11500) < 1e-9 && Math.abs(dp.d.L2 - dp.lt * 11500 / dp.d.rpm2) < 1e-6, 'second point 89% of peak (' + Math.round(dp.d.rpm2) + ' RPM), second tuned length ' + dp.d.L2.toFixed(1) + ' mm (Dual Power on this engine: 975.7)');
+  ok(Math.abs(dp.d.x0 - dp.x0) < 1e-9 && Math.abs(dp.d.x0 + dp.d.Li + dp.d.Lp - dp.d.L2) < 1e-9, 'the insert starts at the belly end and its pipe ends at the second tuned length');
+  ok(Math.abs(dp.d.Li / (dp.d.Li + dp.d.Lp) - 0.84) < 1e-9 && Math.abs(dp.d.di - 0.6 * dp.D4) < 1e-9, 'cone 84% of the run, pipe 0.6 of the stinger');
+  ok(dp.worst > 3 - 1e-6 && dp.worst < 3 + 1e-3, 'the cone fits 3 mm inside the baffle and stinger at its tightest (' + dp.worst.toFixed(2) + ' mm)');
+  ok(!dp.yDual && /below the peak/.test(dp.yNotes), 'a second point above the peak is refused');
+  ok(/out of the end of the stinger/.test(dp.zNotes), 'a second point too low for the stinger is refused');
+  ok(dp.off === null, 'no insert unless asked');
   // the tab
   await pg.click('#m-expert'); await pg.click('#u-met');
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
@@ -45,6 +62,9 @@ const { chromium } = require('playwright');
   ok(await pg.$eval('#t-dh', e => e.closest('label').hidden) && !(await pg.$eval('#t-spec-wrap', e => e.hidden)), 'the engine inputs replace the port-diameter box');
   await setv('t-pshape', 'stadium'); await setv('t-ph', '30'); await pg.waitForTimeout(200);
   ok(!(await pg.$eval('#t-ph-wrap', e => e.hidden)) && /Width/.test(await pg.$eval('#t-pw-lab', e => e.textContent)), 'a racetrack port asks for width and height');
+  await setv('t-dual', '1'); await pg.waitForTimeout(300);
+  const det2 = await pg.$eval('#two-details', e => e.innerText);
+  ok(/Dual power insert/.test(det2) && /Second tuned length/.test(det2) && !(await pg.$eval('#t-rpm2-wrap', e => e.hidden)) && !/NaN|undefined/.test(det2), 'the tab shows the insert and its inputs');
   ok(errs.length === 0, 'no page errors ' + errs.join('|'));
   console.log(fails.length ? 'FAILS: ' + fails.length : 'all passed');
   await b.close(); process.exit(fails.length ? 1 : 0);
