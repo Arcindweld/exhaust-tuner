@@ -34,9 +34,11 @@ import adsk.fusion
 try:
     from . import router as RT
     from . import templates as TPL
+    from . import jig as JIG
 except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path)
     import router as RT
     import templates as TPL
+    import jig as JIG
 
 PALETTE_ID = 'exhaustTunerPalette'
 PANEL_CMD_ID = 'exhaustTunerPanelCmd'
@@ -1276,6 +1278,9 @@ def _buildable(elems):
     return out
 
 
+_LAST_TUBES = []    # the tubes the last auto-route built (name, elements, OD in cm): the tack jig's default
+
+
 def _build_route(comp, res, name, od, wall, pbase):
     elems = _buildable(res['elems'])
     # a route the fit could not finish can have two bends closer than their own arcs: the second starts before the
@@ -1292,6 +1297,7 @@ def _build_route(comp, res, name, od, wall, pbase):
         path = _wire_path(comp, elems, name)
         how = 'wire'
     feat, param = _pipe_param(comp, path, od, wall, pbase)
+    _LAST_TUBES.append({'name': name, 'elems': elems, 'od': od})
     body = None
     try:
         body = feat.bodies.item(0)
@@ -1893,6 +1899,7 @@ def act_route(data):
     cylinder order, then both collector markers: the 180-degree template) or 'parts' (start and end,
     with the page's parts in line)."""
     t0 = __import__('time').time()
+    del _LAST_TUBES[:]
     mode = data.get('mode') or 'single'
     sp = _route_spec(data)
     mk = _markers()
@@ -2791,9 +2798,91 @@ def act_export_cfd_stl(data, path=None):
             'msg': 'Saved %s: %d triangles (%s), millimetres. Put it in the case folder next to design.json.' % (path, ntri, counts)}
 
 
+# --------------------------------------------------------------------------
+# Tack jig: printable cradles under the routed tubes (jig.py plans them)
+# --------------------------------------------------------------------------
+
+def _jig_tubes(data):
+    """Selected centreline sketches or edges (with the page's tube OD), else the tubes the last auto-route built."""
+    od = _cm(data, 'od_mm')
+    tubes, seen = [], set()
+    for e in _selected():
+        if _kind(e) not in ('sketch', 'BRepEdge'):
+            continue
+        segs = _path_segs(_path_for(e))
+        key = path_signature(segs)
+        if key in seen:
+            continue
+        seen.add(key)
+        if not od:
+            raise ValueError('Fill in the tube size on this tab first: the jig is cut to the tube outside diameter.')
+        tubes.append({'name': '%s %d' % (_name(e), len(tubes) + 1), 'elems': JIG.segs_to_elems(segs), 'od': od})
+    if tubes:
+        return tubes, 'the selected centrelines'
+    if _LAST_TUBES:
+        return list(_LAST_TUBES), 'the tubes the last auto-route built'
+    raise ValueError('Select the tube centrelines (sketch lines and arcs, or edges), or auto-route the tubes first.')
+
+
+def jig_body(tbm, c):
+    """One cradle as a temporary body: the block and its foot, the saddles cut by every tube through it (short
+    cylinders along the centreline with a ball at each joint, so an arc is followed without slivers), two bolt holes."""
+    P, V = (lambda p: adsk.core.Point3D.create(*p)), (lambda v: adsk.core.Vector3D.create(*v))
+    OBB = adsk.core.OrientedBoundingBox3D.create
+    B = adsk.fusion.BooleanTypes
+    blk = tbm.createBox(OBB(P(c['centre']), V(c['d']), V(c['w']), c['length'], c['width'], c['height']))
+    f = c['foot']
+    tbm.booleanOperation(blk, tbm.createBox(OBB(P(f['centre']), V(c['d']), V(c['w']), c['length'], f['width'], f['thick'])),
+                         B.UnionBooleanType)
+    joints = set()
+    for a, b, r in c['cut']:
+        tbm.booleanOperation(blk, tbm.createCylinderOrCone(P(a), r, P(b), r), B.DifferenceBooleanType)
+        for q in (a, b):
+            k = tuple(round(x, 5) for x in q) + (round(r, 5),)
+            if k not in joints:
+                joints.add(k)
+                if hasattr(tbm, 'createSphere'):
+                    tbm.booleanOperation(blk, tbm.createSphere(P(q), r), B.DifferenceBooleanType)
+    up, h = c['up'], f['thick'] + 0.2
+    for q in f['holes']:
+        a = tuple(q[k] - up[k] * h for k in range(3))
+        b = tuple(q[k] + up[k] * h for k in range(3))
+        tbm.booleanOperation(blk, tbm.createCylinderOrCone(P(a), f['hole_d'] / 2.0, P(b), f['hole_d'] / 2.0),
+                             B.DifferenceBooleanType)
+    return blk
+
+
+def act_jig(data):
+    tubes, src = _jig_tubes(data)
+    z_up = _z_up()
+    opts = {'spacing': _cm(data, 'spacing_mm'), 'block_len': _cm(data, 'block_mm'), 'max_height': _cm(data, 'max_height_mm')}
+    plan = JIG.plan(tubes, (0.0, 0.0, 1.0) if z_up else (0.0, 1.0, 0.0), opts)
+    if not plan['cradles']:
+        raise ValueError('No place along these tubes is level enough for a cradle. ' + ' '.join(plan['notes']))
+    comp = _new_component(str(data.get('title') or 'Tack jig'))
+    tbm = adsk.fusion.TemporaryBRepManager.get()
+    named = []
+    for n, c in enumerate(plan['cradles'], 1):
+        named.append((jig_body(tbm, c), 'Cradle %d (%s at %.0f mm)' % (n, c['tube'], 10 * c['s'])))
+    bodies = _add_bodies(comp, named)
+    sm = JIG.summary(plan)
+    split = [b.name for b in bodies if getattr(getattr(b, 'lumps', None), 'count', 1) > 1]
+    if split:
+        plan['notes'].append('%s came out in more than one piece (a tube cuts through it): move or delete %s.' % (
+            ', '.join(split), 'it' if len(split) == 1 else 'them'))
+    msg = ('Built %d cradles for %s: %s. Each stands on one level %.0f mm under the lowest tube, its saddle open at the '
+           'top; the tallest is %.0f mm. Print them, bolt them down through the two M6 holes in each foot, lay the cut '
+           'pieces in and tack.' % (sm['count'], src, ', '.join('%s: %d' % (k, v) for k, v in sm['per_tube'].items()),
+                                    10 * plan['opts']['min_below'], 10 * sm['tallest']))
+    if plan['notes']:
+        msg += ' ' + ' '.join(plan['notes'])
+    return {'ok': True, 'msg': msg, 'jig': {'count': sm['count'], 'per_tube': sm['per_tube'], 'tallest_mm': 10 * sm['tallest'],
+                                             'skipped': [{'tube': k['tube'], 's_mm': 10 * k['s'], 'why': k['why']} for k in plan['skipped']]}}
+
+
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'helmholtz': act_helmholtz, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
+           'route': act_route, 'jig': act_jig, 'helmholtz': act_helmholtz, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult')}
 
 

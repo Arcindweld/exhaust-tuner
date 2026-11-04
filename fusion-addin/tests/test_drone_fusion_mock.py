@@ -84,6 +84,9 @@ class TBM(object):
     def createBox(self, obb):
         return Body('box', obb=obb)
 
+    def createSphere(self, c, r):
+        return Body('sphere', c=(c.x, c.y, c.z), r=r)
+
     def booleanOperation(self, target, tool, kind):
         target.cuts.append((kind, tool))
         LOG.append(('bool', kind, target, tool))
@@ -588,8 +591,45 @@ def buildable_route():
     ok(why is not None and 'overlap' in why and 'fold back' in why, 'a route whose bends overlap is refused: %s' % (why or 'built')[:90])
 
 
+def tack_jig():
+    """act_jig on the tubes the last auto-route built: one body per cradle in a new component, each a block joined to
+    its foot, cut by the tube (cylinders and joint balls) and by two bolt holes; the message says what was built."""
+    design = Design()
+    CT._app = types.SimpleNamespace(activeProduct=design)
+    CT._ui = types.SimpleNamespace(activeSelections=Sel([]), palettes=types.SimpleNamespace(itemById=lambda i: None))
+    del CT._LAST_TUBES[:]
+    try:
+        CT.act_jig({})
+        why = None
+    except ValueError as ex:
+        why = str(ex)
+    ok(why is not None and 'auto-route' in why, 'nothing selected and nothing routed: says what to do (%s)' % (why or 'built')[:70])
+    R = 6.65
+    a = math.pi / 2
+    CT._LAST_TUBES.extend([{'name': 'Primary 1', 'od': 4.445, 'elems': [
+        ('line', (0.0, 0.0, 10.0), (20.0, 0.0, 10.0), 20.0),
+        ('arc', (20.0, 0.0, 10.0), (20.0 + R, R, 10.0), (20.0, R, 10.0), a, R * a, (0.0, -1.0, 0.0), (1.0, 0.0, 0.0))]}])
+    del LOG[:]
+    res = CT.act_jig({'title': 'Tack jig'})
+    comp = design.made[-1]
+    bodies = comp.bRepBodies.xs
+    plan = CT.JIG.plan(CT._LAST_TUBES)
+    ok(res['ok'] and len(bodies) == len(plan['cradles']) == res['jig']['count'] == 3, '%d cradles built as %d bodies' % (res['jig']['count'], len(bodies)))
+    ok(all(b.name.startswith('Cradle ') and 'Primary 1 at' in b.name for b in bodies), 'named: ' + ', '.join(b.name for b in bodies))
+    unions = [c for b in bodies for c in b.cuts if c[0] == 'union']
+    diffs = [c for b in bodies for c in b.cuts if c[0] == 'diff']
+    ok(len(unions) == 3 and all(u[1].kind == 'box' for u in unions), 'each block joined to its foot')
+    holes = [d for d in diffs if d[1].kind == 'cyl' and abs(d[1].kw['r1'] - 0.33) < 1e-9]
+    saddle = [d for d in diffs if d[1].kind == 'cyl' and abs(d[1].kw['r1'] - (4.445 / 2 + 0.025)) < 1e-9]
+    balls = [d for d in diffs if d[1].kind == 'sphere']
+    ok(len(holes) == 6, 'two M6 clearance holes per foot')
+    ok(len(saddle) > 3 * 5 and len(balls) > 3 * 5, 'saddles cut by %d tube cylinders and %d joint balls' % (len(saddle), len(balls)))
+    ok('Built 3 cradles for the tubes the last auto-route built' in res['msg'] and 'M6' in res['msg'], res['msg'][:110])
+
+
 off_square_and_refusals()
 offset_part()
 buildable_route()
+tack_jig()
 print('FAILS:', fails)
 sys.exit(1 if fails else 0)

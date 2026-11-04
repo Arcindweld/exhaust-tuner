@@ -9318,6 +9318,8 @@ const FX_BUTTONS={
   parts:[['measure','Measure selection'],['setKeepouts','Set keep-outs from selection'],['routeParts','Auto-route the pipe with these parts'],['clearance','Check clearance of selection']]
 };
 FX_BUTTONS.headers.splice(4,0,['routeHeader','Auto-route primaries through the scan'],['routeBundle180','Lay out 180-degree headers (V8 template)']);
+// a tack jig under the tubes just routed (or the selected centrelines): printable cradles that hold every piece
+['headers','intake','muf','parts'].forEach(t=>FX_BUTTONS[t].push(['jig','Build tack jig for the routed tubes']));
 FX_BUTTONS.intake.splice(3,0,['routeSingle','Auto-route this tube through the scan'],['routeParts','Auto-route with the parts in the build list']);
 FX_BUTTONS.muf.push(['routeSingleMuf','Auto-route the J-pipe through the scan'],['helmholtz','Build the Helmholtz can']);
 const ROUTE_TABS={headers:1,intake:1,parts:1,muf:1};
@@ -9578,6 +9580,7 @@ document.addEventListener('click',e=>{
   if(act==='helmholtz'&&!(FX.helm&&FX.helm.vol_cm3>0)){ if(out) out.innerHTML='<div class="note bad">Fill in the Helmholtz resonator above first: the tab shows the problem.</div>'; return; }
   if(out) out.innerHTML='<div class="note">'+(act==='helmholtz'?'Building the can and its neck in Fusion…':'Working in Fusion…')+'</div>';
   const pay=Object.assign({},((act==='helmholtz'?FX.helm:FX[tab])||{}),{gap_cm:(FX.gap!=null?FX.gap:12.7)/10});
+  if(act==='jig'){ pay.title='Tack jig'; if(out) out.innerHTML='<div class="note">Building the tack jig in Fusion: a cradle under every piece of the tubes the last auto-route built, or of the centrelines you selected…</div>'; }
   fusionCall(act,pay).then(res=>fxRender(tab,res));
 });
 
