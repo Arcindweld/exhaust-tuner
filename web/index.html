@@ -1929,6 +1929,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <li><b>Two-stroke paper and the lecture slides.</b> A 2018 polytechnic paper (Ismail et al., Politeknik Sultan Mizan Zainal Abidin) re-applies Blair’s empirical expansion-chamber proportions and confirms the constants already on the Two-Stroke tab, including that the third section is 0.14 of the tuned length where its text misprints 0.41; its dyno tables, which show negative brake power “from back pressure” and peak power at 3,500 rpm on a 108 cc engine, and its exhaust temperatures (road racing 450 °C, enduro 300 °C against Blair’s 650 and 500) are not used. A 2025 induction and exhaust slide deck reproduces Heywood’s and Stone’s valve-size tables and a ValveFlow.m check case (100 × 100 mm, CR 10: VE 0.95 at 2,000 rpm, 0.89 at 4,000 rpm); only its text layer could be read, its tables are to be verified against the originals before use, and its statement that the exhaust critical pressure ratio is “about 3” because of the lower gamma is wrong, a lower gamma moves the ratio toward 1.8 (1.86 at γ = 1.35), though the cylinder-to-port ratio at opening is often above 3.</li>
       <li><b>Airbox CFD and the Clemson proposal.</b> Andrews and Srinivasan 2015 (CFD on a production airbox) report pressure-drop cuts of 33% from a mesh and bell-mouth at the inlet, 28% from baffles under the filter and 22% overall; those are kept as the size of gain a clean airbox path offers, while their “10 to 20 horsepower” is unsupported by any engine test and is not repeated. A 2011 Clemson course proposal is used only for the magnitudes it cites from Sammut and Alkidas (SAE 2007-01-0492): intake length tuning worth up to +12% volumetric efficiency and exhaust length up to +5%, independent and additive at full throttle, with pressure at intake closing up to 1.25 × the untuned value. The Auto Math Handbook’s airflow chapters (cfm = rpm × cu in ÷ 3,456, hp = BMEP × cu in × rpm ÷ 792,000, Urich’s volumetric-efficiency classes, the SAE J607 correction) add nothing the page does not already compute.</li>
       <li><b>Resonators.</b> Helmholtz frequency is c ÷ 2π × √(neck area ÷ (volume × (neck length + 0.6133 × neck diameter))), with the end correction and the side-branch transmission-loss formula from <a href="https://eprints.soton.ac.uk/455667/1/APAC_2018_615.pdf" target="_blank" rel="noopener">Southampton, APAC 2018</a> (after Möser and Selamet), used here in its lossless form. That form gives a 3 dB band of K × the target frequency, where K = √(neck area × volume ÷ effective neck length) ÷ (2 × pipe area). A J-pipe is c ÷ (4 × frequency) long (<a href="https://www.stainlessheaders.com/p-35891-quarter-wave-resonator.html" target="_blank" rel="noopener">Stainless Headers</a>), less this calculator’s allowance of 0.3 × its diameter for the open end. Stainless Headers measured a branch at about 90 to 110 °F at cruise, so side branches are tuned at the resonator temperature, not the exhaust temperature. Real resonators peak lower and broader than these lossless curves, which the chart caps at 40 dB.</li>
+      <li><b>Fabrication jigs.</b> The Fusion panel on the Headers, Intake, Mufflers and Parts tabs builds 3D-printed fixtures under the tubes the last auto-route built (or selected centrelines), cut to the tube outside diameter plus a clearance and open at the centreline so each piece drops in and lifts out. Five styles: separate cradles; cradles tied into one frame by ribs along the shortest tree between their feet; a plate following each tube with its cradles, bridged between tubes; continuous saddles broken at every weld joint between the cut pieces (the torch’s room) and split to the print bed; and a flange frame of locator plates (bore and bolt circle) at the free tube ends joined by beams. Layout as drawn, or laid flat on the part’s widest side (the normal of the best-fit plane through its centrelines), which on the test Tri-Y header cut the tallest part from 635 to 171 mm. Free-standing parts get feet that grow with their height (0.5 × along the tube, 0.6 × across); on a fixture table, bolt holes go on its grid (System 16: 50 mm pitch, 16 mm holes; System 28: 100 mm, 28 mm; 5/8 in on 2 in; or any) only where a foot, rib or tab has a rim round them and a bolt head clears the blocks, with tabs out to the nearest grid holes where a part has too few. Cradles step a block and a weld gap off the joints; parts bigger than the bed are listed.</li>
       <li><b>Timbre tube bundle.</b> Borla’s “timbre scaled exhaust system” (<a href="https://patents.google.com/patent/US10808584" target="_blank" rel="noopener">US 10,808,584 B2</a>, David Akiba Borla, priority 25 July 2016; continuations US 11,661,870 B2 and US 12,037,930 B2, EP 3 488 087 B1) claims 3 to 5 parallel, unperforated tuning tubes of 1 to 1.5 in diameter and about 1 to 8 in length between an inlet and an outlet collector, in line ahead of the muffler or on each side of a dual system, the outer tubes longer, each tube’s diameter and length chosen from the vehicle’s root note for a desired note. The patent gives no formula. The Mufflers tab models the bundle with plane waves: each tube a lossless duct with 0.3 × its diameter added at each collector, the collectors as point junctions, the tubes’ admittance matrices added in parallel and the result turned back into a transfer matrix for the transmission loss between equal pipes. It reproduces the two-path Herschel–Quincke notch at c ÷ (2 × the length difference). Tubes this short resonate in the kilohertz range, so the bundle changes the harmonics of the note (its colour), not its pitch; the tab can size the tubes so their half-wave resonances land on chosen harmonics of the firing tone.</li>
       <li><b>Spiral sound traps and auger mufflers.</b> The spiral trap inside a Spintech (a wall bent a little over one turn standing across the case, the main flow crossing its opening, vents in its back face drawn out by the venturi between the trap and the case wall, no packing) is the design of <a href="https://patents.justia.com/patent/5824972" target="_blank" rel="noopener">US 5,824,972</a> (Boyd L. Butler, filed 1997); Spintech says only that its “spin sound trap” is patented, so the link is the match of the design, not a confirmed assignment. The patent compares, at 2½ in inlet and outlet and 5 in of water: friction mufflers 13 to 20 dBA at 70 to 100 CFM, straight-through absorption 2 to 7 dBA at about 200 CFM, the spiral traps 8 to 15 dBA at about 175 CFM. The Mufflers tab scales those with inlet area and the square law (drop ∝ density × flow²) to this engine’s redline flow, and lists Spintech’s case sizes against the space limits (<a href="https://spintechmufflers.com/spintech-muffler-case-size-chart/" target="_blank" rel="noopener">case size chart</a>). Auger mufflers (the Lobak, by forum accounts later Moroso’s; the Moroso Spiral Flow; the design of <a href="https://patents.justia.com/patent/3963092" target="_blank" rel="noopener">US 3,963,092</a>, Soares, 1976) wind a helical baffle round a straight centre tube; the tab models the tube and the helical channel (N √((π Dm)² + p²) long) as two parallel paths with the same transfer matrices as the tube bundle. No maker data for the Lobak was found; Moroso claims 5 to 7 dB and 850 CFM with no method.</li>
       <li><b>Plain chamber.</b> Transmission loss is 10 log [1 + ¼ (m − 1/m)² sin²(kL)], with m the area ratio and L the chamber length; it drops to zero wherever the chamber is a whole number of half waves long (<a href="https://en.wikipedia.org/wiki/Transmission_loss_(duct_acoustics)" target="_blank" rel="noopener">Wikipedia</a>). The formula assumes plane waves, which a round chamber carries only below its first cross mode, at k × radius = 1.8412. Potente (“General Design Principles for an Automotive Muffler,” Proc. Acoustics 2005, Australian Acoustical Society) recommends a chamber at least 1.5 times as long as its diameter, inlet and outlet extensions at least 1.5 chamber diameters apart, and notes that a bigger expansion ratio gives more loss; a GT-Power study of a 15 L muffler on a 1.6 L engine found a bigger shell quieter and trusted its plane-wave model only to about 1 kHz (<a href="https://doi.org/10.11113/jt.v79.12263" target="_blank" rel="noopener">Mohammad et al. 2017</a>).</li>
@@ -10491,12 +10492,59 @@ window.fusionJavaScriptHandler={handle:function(action,data){
 const FX={}; // latest build payload per tab
 FX.parts={title:'Exhaust with parts',noun:'pipe',od_mm:76.2,wall_mm:1.651};
 const fxBtn=(act,label,tab)=>'<button type="button" class="btn" data-fx="'+act+'" data-tab="'+tab+'">'+label+'</button>';
+/* ----- Fabrication jig options (Fusion: jig.plan_fab) -----
+   Style: separate cradles, cradles on one base frame, or continuous saddles broken at the weld joints. Mount:
+   free-standing, or bolted to a fixture table on its hole grid (System 16: 50 mm pitch, 16 mm holes; System 28:
+   100 mm, 28 mm; or any grid), with tabs out to the nearest holes. Flange locators at the tube ends. Lengths in mm. */
+const JIG_UI={style:'cradles',layout:'model',mount:'free',table:'s16',pitch:50,hole:16.5,gx:0,gy:0,gang:0,free_holes:true,
+  flange:'none',fsize:0,fthick:10,fn:0,fpcd:0,fhole:0,fang:0,gap:20,bed:256,clear:0.25,spacing:150};
+const JIG_STYLES={
+  cradles:{name:'Separate cradles under each piece',short:'separate cradles',why:'A cradle under every straight and bend piece, each printed on its own: the least plastic, and quick to reprint one.'},
+  base:{name:'Cradles joined on one base frame',short:'cradles on a base frame',why:'The cradles tied together by ribs at base level along the shortest tree between them: one rigid part that keeps every cradle where it was designed.'},
+  plate:{name:'Plate with cradles along the tubes',short:'plate with cradles',why:'A flat printed plate following each tube’s path with the cradles standing on it, bridged between tubes: easy to set square on a table.'},
+  saddle:{name:'Continuous saddle along the tube',short:'continuous saddles',why:'A solid block with the tube’s shape cut along its whole length, broken at the weld joints: the most support, best for flat parts.'},
+  frame:{name:'Flange frame (held at the flanges only)',short:'flange frame',why:'Locator plates at the free tube ends, with the flange bolt holes, joined by a printed frame: for pipes that bolt up at both ends, nothing in between.'}};
+const JIG_TABLES={s16:{name:'System 16: 50 mm grid, 16 mm holes',pitch:50,hole:16.5},s28:{name:'System 28: 100 mm grid, 28 mm holes',pitch:100,hole:28.5},
+  imp58:{name:'5/8 in holes on a 2 in grid',pitch:50.8,hole:16.3},custom:{name:'Another grid'}};
+function jigBlock(tab){
+  const J=JIG_UI, sel=(k,opts)=>'<span class="inp"><select class="jigsel" data-k="'+k+'">'+opts.map(o=>'<option value="'+o[0]+'"'+(String(J[k])===String(o[0])?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></span>';
+  const len=(k,lab,step)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="jigx" data-k="'+k+'" type="number" step="'+(step||'any')+'" inputmode="decimal" data-kind="len" value="'+(U==='imp'?+(J[k]/25.4).toFixed(3):+(+J[k]).toFixed(2))+'"><em data-u="len">'+(U==='imp'?'in':'mm')+'</em></span></label>';
+  const num=(k,lab,unit,step)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="jigx" data-k="'+k+'" type="number" step="'+(step||'any')+'" inputmode="decimal" data-kind="num" value="'+(+J[k])+'">'+(unit?'<em>'+unit+'</em>':'')+'</span></label>';
+  let h='<details class="jigopts" id="jigopts-'+tab+'"'+(JIG_UI.open?' open':'')+' style="margin-top:12px"><summary><b>Fabrication jig</b>: '+esc(JIG_STYLES[J.style].short)+(J.layout==='flat'?', laid flat':'')+', '+(J.mount==='table'?'fixture table':'free-standing')+(J.flange!=='none'?', flange locators':'')+'</summary>'+
+    '<p class="cap">3D-printed fixtures that hold every cut piece where it goes, so the whole header or pipe can be tacked in one setup: under the tubes the last auto-route built, or the centrelines you select. Saddles stop at the centreline so the pieces drop in and lift out.</p><div class="grid2" style="max-width:640px">'+
+    '<label class="f span2"><span class="lab">Style</span>'+sel('style',Object.entries(JIG_STYLES).map(([k,v])=>[k,v.name]))+'</label>'+
+    '<p class="cap span2" style="margin:0">'+esc(JIG_STYLES[J.style].why)+'</p>'+
+    '<label class="f"><span class="lab">Layout</span>'+sel('layout',[['model','As drawn: under the part as it sits in the model'],['flat','Laid flat: on its widest side, the lowest jig']])+'</label>'+
+    '<label class="f"><span class="lab">Mounting</span>'+sel('mount',[['free','Free-standing'],['table','Bolted to a fixture table']])+'</label>';
+  if(J.mount==='table'){
+    h+='<label class="f span2"><span class="lab">Table</span>'+sel('table',Object.entries(JIG_TABLES).map(([k,t])=>[k,t.name]))+'</label>';
+    if(J.table==='custom') h+=len('pitch','Hole spacing (grid pitch)')+len('hole','Bolt hole in the jig');
+    h+=len('gx','Grid hole at X (from the model origin)')+len('gy','Grid hole at Y')+num('gang','Grid turned by','°',1);
+  } else h+='<label class="f"><span class="lab">Screw holes in the feet</span>'+sel('free_holes',[['true','M6 holes, to screw down if you want'],['false','None']])+'</label>';
+  h+=(J.style==='frame'?'':'<label class="f"><span class="lab">Flange locators</span>'+sel('flange',[['none','None'],['start','At the start of each tube (head flange)'],['both','At both free ends']])+'</label>');
+  if(J.flange!=='none'||J.style==='frame') h+=len('fsize','Locator plate size (0: tube + 60 mm)')+len('fthick','Plate thickness')+num('fn','Bolt holes','',1)+len('fpcd','Bolt circle (PCD)')+len('fhole','Bolt hole diameter')+num('fang','Bolt circle turned by','°',1);
+  h+=len('gap','Weld gap at each joint')+len('clear','Clearance round the tube, per side',0.05)+len('spacing','Cradle spacing on long straights')+len('bed','Printer bed (largest side)')+'</div>'+
+    '<p class="cap">On a fixture table the grid is laid from one of its holes placed at the X, Y given, in the model’s units; set it to a hole under your part (measure in Fusion). Bolt holes go only where a foot, rib or tab has room round them and a bolt head clears the blocks; parts with fewer than two (three for a base frame) get tabs out to the nearest holes. Weld gaps keep saddles and cradles off the joints between pieces so the torch reaches the tack. Parts bigger than the bed are listed.</p></details>';
+  return h;
+}
+function jigPayload(){
+  const J=JIG_UI, T=JIG_TABLES[J.table]||{}, pitch=J.table==='custom'?J.pitch:T.pitch, hole=J.table==='custom'?J.hole:T.hole;
+  return {style:J.style,layout:J.layout,mount:J.mount,grid_pitch_mm:pitch,grid_hole_mm:hole,grid_x_mm:J.gx,grid_y_mm:J.gy,grid_angle_deg:J.gang,free_holes:J.free_holes,
+    flange_ends:J.flange,flange_size_mm:J.fsize>0?J.fsize:null,flange_thick_mm:J.fthick,flange_n:J.fn,flange_pcd_mm:J.fpcd,flange_hole_mm:J.fhole,flange_angle_deg:J.fang,
+    weld_gap_mm:J.gap,clearance_mm:J.clear,spacing_mm:J.spacing,bed_mm:J.bed};
+}
+function jigRerender(){ document.querySelectorAll('.jigopts').forEach(el=>{ const tab=el.id.replace('jigopts-',''); el.outerHTML=jigBlock(tab); }); }
+document.addEventListener('change',e=>{ const el=e.target.closest('select.jigsel'); if(!el) return; const k=el.dataset.k; JIG_UI[k]=k==='free_holes'?el.value==='true':el.value; JIG_UI.open=true; jigRerender(); });
+document.addEventListener('input',e=>{ const el=e.target.closest('input.jigx'); if(!el) return; readInput(el); const v=el._b; if(Number.isFinite(v)) JIG_UI[el.dataset.k]=v; });
+document.addEventListener('toggle',e=>{ if(e.target.classList&&e.target.classList.contains('jigopts')) JIG_UI.open=e.target.open; },true);
+window.__jig={JIG_UI,jigPayload};
 function fusionTools(tab,buttons){
   return '<div class="fx"><h3>Fusion</h3><p class="cap" style="margin-top:0">Select geometry in the model first, then pick an action. Results stay here until the next action.</p>'+
     (FX_TIPS[tab]?'<p class="cap">'+FX_TIPS[tab]+'</p>':'')+
     '<div class="actions" style="margin-top:10px">'+buttons.map(b=>fxBtn(b[0],b[1],tab)).join('')+'</div>'+
     (buttons.some(b=>b[0]==='clearance')?'<div class="grid2" style="margin-top:12px;max-width:360px"><label class="f"><span class="lab">Minimum clearance</span><span class="inp"><input class="fxgap" type="number" step="any" inputmode="decimal" data-kind="len" data-base="12.7"><em data-u="len">in</em></span></label></div>':'')+
     (ROUTE_TABS[tab]?routeBlock():'')+
+    (buttons.some(b=>b[0]==='jig')?jigBlock(tab):'')+
     '<div class="out" id="fx-out-'+tab+'"></div></div>';
 }
 const FX_BUTTONS={
@@ -10513,7 +10561,7 @@ const FX_BUTTONS={
 };
 FX_BUTTONS.headers.splice(4,0,['routeHeader','Auto-route primaries through the scan'],['routeTriY','Auto-route a two-stage header (Tri-Y, 8-4-1) with its Y merges'],['routeBundle180','Lay out 180-degree headers (V8 template)']);
 // a tack jig under the tubes just routed (or the selected centrelines): printable cradles that hold every piece
-['headers','intake','muf','parts'].forEach(t=>FX_BUTTONS[t].push(['jig','Build tack jig for the routed tubes']));
+['headers','intake','muf','parts'].forEach(t=>FX_BUTTONS[t].push(['jig','Build fabrication jig for the routed tubes']));
 FX_BUTTONS.intake.splice(3,0,['routeSingle','Auto-route this tube through the scan'],['routeParts','Auto-route with the parts in the build list']);
 FX_BUTTONS.muf.push(['routeSingleMuf','Auto-route the J-pipe through the scan'],['helmholtz','Build the Helmholtz can']);
 const ROUTE_TABS={headers:1,intake:1,parts:1,muf:1};
@@ -10627,6 +10675,11 @@ function fxRender(tab,res){
   const out=$('fx-out-'+tab); if(!out) return;
   if(!res||!res.ok){ out.innerHTML='<div class="note bad">'+esc((res&&res.msg)||'Fusion did not answer.')+'</div>'; return; }
   let h=res.msg?'<div class="note '+(res.route_ok===false?'warn':'ok')+'">'+esc(res.msg)+'</div>':'';
+  if(res.jig&&res.jig.parts&&res.jig.parts.length){
+    const both=mm=>(mm/25.4).toFixed(2)+' in ('+Math.round(mm)+' mm)', bed=JIG_UI.bed;
+    h+='<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Part</th><th>Print size, largest to smallest</th><th>Bolt holes</th></tr></thead><tbody>'+
+      res.jig.parts.map(q=>{ const z=[...q.size_mm].sort((a,b)=>b-a); return '<tr><td>'+esc(q.name)+'</td><td'+(z[1]>bed+0.5?' class="st-warn"':'')+'>'+z.map(both).join(' × ')+'</td><td>'+q.holes+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  }
   if(res.items&&res.items.length){
     const useBtn=(target,mm,label)=>'<button type="button" class="btn" data-use="1" data-target="'+target+'" data-mm="'+mm.toFixed(3)+'">'+label+'</button>';
     const lens=[], cuts=[];
@@ -10786,7 +10839,7 @@ document.addEventListener('click',e=>{
   if(act==='helmholtz'&&!(FX.helm&&FX.helm.vol_cm3>0)){ if(out) out.innerHTML='<div class="note bad">Fill in the Helmholtz resonator above first: the tab shows the problem.</div>'; return; }
   if(out) out.innerHTML='<div class="note">'+(act==='helmholtz'?'Building the can and its neck in Fusion…':'Working in Fusion…')+'</div>';
   const pay=Object.assign({},((act==='helmholtz'?FX.helm:FX[tab])||{}),{gap_cm:(FX.gap!=null?FX.gap:12.7)/10});
-  if(act==='jig'){ pay.title='Tack jig'; if(out) out.innerHTML='<div class="note">Building the tack jig in Fusion: a cradle under every piece of the tubes the last auto-route built, or of the centrelines you selected…</div>'; }
+  if(act==='jig'){ pay.title='Fabrication jig'; pay.jig=jigPayload(); if(out) out.innerHTML='<div class="note">Building the fabrication jig in Fusion under the tubes the last auto-route built, or the centrelines you selected…</div>'; }
   fusionCall(act,pay).then(res=>fxRender(tab,res));
 });
 
@@ -16564,7 +16617,7 @@ function projSnapshot(name){
   const ui={}; for(const k in PROJ_UI) ui[k]=projUiCopy(PROJ_UI[k][0],PROJ_UI[k][1]);
   return {exhaustTunerProject:1,name:String(name||'').trim()||'Untitled build',saved:new Date().toISOString(),
     units:U,mode:document.body.classList.contains('simple')?'simple':'expert',tab:(location.hash||'').slice(1),
-    vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n,pg:HUEL.pg,pr:HUEL.pr},tw:twSave(),build:JSON.parse(JSON.stringify(BUILD.items))};
+    vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n,pg:HUEL.pg,pr:HUEL.pr},tw:twSave(),jig:Object.assign({},JIG_UI,{open:undefined}),build:JSON.parse(JSON.stringify(BUILD.items))};
 }
 function projApply(d){
   if(!d||!d.vals) throw new Error('not an Exhaust Tuner project');
@@ -16589,6 +16642,7 @@ function projApply(d){
     for(const kk in v){ if(o[kk]&&typeof o[kk]==='object'&&!Array.isArray(o[kk])&&v[kk]&&typeof v[kk]==='object'&&!Array.isArray(v[kk])) Object.assign(o[kk],v[kk]); else o[kk]=v[kk]; } }
   if(d.huel){ HUEL.c=Object.assign({},d.huel.c||{}); HUEL.g=Object.assign({},d.huel.g||{}); if(Number.isFinite(d.huel.n)) HUEL.n=d.huel.n; HUEL.pg=Number.isFinite(d.huel.pg)?d.huel.pg:NaN; HUEL.pr=Number.isFinite(d.huel.pr)?d.huel.pr:NaN; }
   if(d.tw) twLoad(d.tw);
+  if(d.jig) Object.keys(JIG_UI).forEach(k=>{ if(d.jig[k]!==undefined&&k!=='open') JIG_UI[k]=d.jig[k]; });
   if(Array.isArray(d.build)){ BUILD.items=JSON.parse(JSON.stringify(d.build)); saveBuild(); }
   renderActive();
 }

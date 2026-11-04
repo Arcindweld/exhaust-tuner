@@ -624,7 +624,16 @@ def tack_jig():
     balls = [d for d in diffs if d[1].kind == 'sphere']
     ok(len(holes) == 6, 'two M6 clearance holes per foot')
     ok(len(saddle) > 3 * 5 and len(balls) > 3 * 5, 'saddles cut by %d tube cylinders and %d joint balls' % (len(saddle), len(balls)))
-    ok('Built 3 cradles for the tubes the last auto-route built' in res['msg'] and 'M6' in res['msg'], res['msg'][:110])
+    ok('Built a fabrication jig for the tubes the last auto-route built: 3 cradles' in res['msg'] and 'M6' in res['msg'], res['msg'][:110])
+    # the page's options: continuous saddles on a System 16 fixture table
+    del LOG[:]
+    res2 = CT.act_jig({'title': 'Fabrication jig', 'jig': {'style': 'saddle', 'mount': 'table', 'grid_pitch_mm': 50, 'grid_hole_mm': 16.5,
+                                                            'weld_gap_mm': 20, 'bed_mm': 256}})
+    b2 = design.made[-1].bRepBodies.xs
+    tbl = [c for b in b2 for c in b.cuts if c[0] == 'diff' and c[1].kind == 'cyl' and abs(c[1].kw['r1'] - 0.825) < 1e-9]
+    ok(res2['jig']['style'] == 'saddle' and all(b.name.startswith('Saddle Primary 1') for b in b2) and len(b2) == res2['jig']['count'] >= 2,
+       'saddle style: %d saddle pieces built (%s)' % (len(b2), ', '.join(b.name for b in b2)))
+    ok(len(tbl) == res2['jig']['holes'] >= 2 * len(b2) and 'fixture table' in res2['msg'], 'table mount: %d 16.5 mm holes cut, %d parts' % (len(tbl), len(b2)))
 
 
 def route_triy_glue():

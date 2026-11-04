@@ -408,6 +408,12 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   TemporaryBRepManager.get() re-raises it); saddle cuts that hit near-coincident faces (ASM_BAD_CONTAINMENT) retried
   0.03 mm larger / 0.1 mm longer, else listed; a cradle slid to clear a crossing tube no longer lands on a steep
   stretch and the note gives the real reason. Fusion MCP scripts must define run(context) or their changes roll back.
+  Fabrication jig generator (owner's photos, 2026-11-03): jig.plan_fab (styles cradles / base / plate / saddle / frame;
+  layout model / flat via best-fit plane; mount free / table on a System 16/28/5-8in/custom grid with tabs; flange
+  locators at free ends; weld gaps; bed check) -> primitives -> cadtools.fab_body; page "Fabrication jig" options in
+  the Fusion panel (jigBlock, jigPayload, projects keep them). Live on the owner's PC: Tri-Y base frame on System 16
+  (19 s), plate laid flat (tallest 635 -> 171 mm, 6 s), flange frame on a crossover. tests/test_fabjig.py,
+  web/tests/fabjig_ui.js, mock glue (saddle on a table). Instagram example post not reachable (robots).
   Two-stroke OpenWAM writer openwam/make_wam2t.py (tests/test_2t.py; nm2T block, TLumbrera ports from timing,
   TDepVolVariable crankcase, reed TLamina or piston-port intake, chamber segs). 125 with our chamber: 31.7 hp peak at
   12000 (straight pipe 15-20 hp); Maico 490 with the Wizard's chamber: 35 hp peak at 5500 (claimed 53 at 6500).

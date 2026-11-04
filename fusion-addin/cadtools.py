@@ -2919,35 +2919,103 @@ def jig_body(tbm, c):
     return blk
 
 
+def fab_body(tbm, part):
+    """One planned jig part (jig.plan_fab) as a temporary body: its boxes joined, then the tube saddles cut (short
+    cylinders and joint balls, retried a hair larger where faces nearly meet), the flange bores and bolt circles, and
+    the bolt holes through the base."""
+    P, V = (lambda p: adsk.core.Point3D.create(*p)), (lambda v: adsk.core.Vector3D.create(*v))
+    OBB = adsk.core.OrientedBoundingBox3D.create
+    B = adsk.fusion.BooleanTypes
+
+    def make(q, g=0.0):
+        if q['k'] == 'box':
+            return tbm.createBox(OBB(P(q['c']), V(q['d']), V(q['w']), q['L'], q['W'], q['H']))
+        if q['k'] == 'sph':
+            return tbm.createSphere(P(q['p']), q['r'] + g)
+        a, b = q['a'], q['b']
+        if g:
+            d = _unit(_sub(b, a))
+            e = 10 * g / 3
+            a = tuple(a[k] - d[k] * e for k in range(3))
+            b = tuple(b[k] + d[k] * e for k in range(3))
+        return tbm.createCylinderOrCone(P(a), q['r'] + g, P(b), q['r'] + g)
+    body = None
+    for q in part['add']:
+        if body is None:
+            body = make(q)
+        else:
+            tbm.booleanOperation(body, make(q), B.UnionBooleanType)
+    skipped = 0
+    for q in part['cut'] + part.get('hole_cuts', []):
+        if q['k'] == 'sph' and not hasattr(tbm, 'createSphere'):
+            continue
+        for g in ((0.0, 0.003) if q.get('soft') else (0.0,)):
+            try:
+                tbm.booleanOperation(body, make(q, g), B.DifferenceBooleanType)
+                break
+            except RuntimeError:
+                continue
+        else:
+            skipped += 1
+    part['skipped_cuts'] = skipped
+    return body
+
+
+def _jig_opts(data):
+    """The page's Fabrication jig options (mm and degrees) for jig.plan_fab (cm)."""
+    j = data.get('jig') or {}
+    mm = lambda k: (float(j[k]) / 10.0) if j.get(k) not in (None, '') else None
+    o = {'style': j.get('style') or 'cradles', 'layout': j.get('layout') or 'model', 'mount': j.get('mount') or 'free',
+         'spacing': _cm(data, 'spacing_mm') or mm('spacing_mm'), 'block_len': _cm(data, 'block_mm') or mm('block_mm'),
+         'max_height': _cm(data, 'max_height_mm'), 'weld_gap': mm('weld_gap_mm'), 'bed': mm('bed_mm'),
+         'clearance': mm('clearance_mm'), 'grid_pitch': mm('grid_pitch_mm'), 'grid_hole': mm('grid_hole_mm'),
+         'flange_ends': j.get('flange_ends') or 'none', 'flange_size': mm('flange_size_mm'),
+         'flange_thick': mm('flange_thick_mm'), 'flange_pcd': mm('flange_pcd_mm'), 'flange_hole': mm('flange_hole_mm'),
+         'flange_n': int(j['flange_n']) if j.get('flange_n') not in (None, '') else None,
+         'flange_angle_deg': float(j['flange_angle_deg']) if j.get('flange_angle_deg') not in (None, '') else None,
+         'grid_angle_deg': float(j['grid_angle_deg']) if j.get('grid_angle_deg') not in (None, '') else None,
+         'free_holes': bool(j['free_holes']) if 'free_holes' in j else None}
+    if j.get('grid_x_mm') not in (None, '') or j.get('grid_y_mm') not in (None, ''):
+        o['grid_origin'] = (float(j.get('grid_x_mm') or 0) / 10.0, float(j.get('grid_y_mm') or 0) / 10.0)
+    return o
+
+
 def act_jig(data):
     tubes, src = _jig_tubes(data)
     z_up = _z_up()
-    opts = {'spacing': _cm(data, 'spacing_mm'), 'block_len': _cm(data, 'block_mm'), 'max_height': _cm(data, 'max_height_mm')}
-    plan = JIG.plan(tubes, (0.0, 0.0, 1.0) if z_up else (0.0, 1.0, 0.0), opts)
-    if not plan['cradles']:
-        raise ValueError('No place along these tubes is level enough for a cradle. ' + ' '.join(plan['notes']))
+    o = _jig_opts(data)
+    plan = JIG.plan_fab(tubes, (0.0, 0.0, 1.0) if z_up else (0.0, 1.0, 0.0), o)
+    if not plan['parts']:
+        raise ValueError('No place along these tubes is level enough for a jig. ' + ' '.join(plan['notes']))
     tbm = adsk.fusion.TemporaryBRepManager.get()         # before the component (see new_component)
-    comp = _new_component(str(data.get('title') or 'Tack jig'))
-    named = []
-    for n, c in enumerate(plan['cradles'], 1):
-        named.append((jig_body(tbm, c), 'Cradle %d (%s at %.0f mm)' % (n, c['tube'], 10 * c['s'])))
+    style = plan['opts']['style']
+    comp = _new_component(str(data.get('title') or 'Fabrication jig'))
+    named = [(fab_body(tbm, q), q['name']) for q in plan['parts']]
     bodies = _add_bodies(comp, named)
-    sm = JIG.summary(plan)
+    sm = JIG.fab_summary(plan)
     split = [b.name for b in bodies if getattr(getattr(b, 'lumps', None), 'count', 1) > 1]
     if split:
         plan['notes'].append('%s came out in more than one piece (a tube cuts through it): move or delete %s.' % (
             ', '.join(split), 'it' if len(split) == 1 else 'them'))
-    rough = ['Cradle %d' % n for n, c in enumerate(plan['cradles'], 1) if c.get('skipped_cuts')]
+    rough = [q['name'] for q in plan['parts'] if q.get('skipped_cuts')]
     if rough:
-        plan['notes'].append('Fusion could not cut part of the saddle in %s (faces too nearly touching): check the saddle '
-                             'there before printing.' % ', '.join(rough))
-    msg = ('Built %d cradles for %s: %s. Each stands on one level %.0f mm under the lowest tube, its saddle open at the '
-           'top; the tallest is %.0f mm. Print them, bolt them down through the two M6 holes in each foot, lay the cut '
-           'pieces in and tack.' % (sm['count'], src, ', '.join('%s: %d' % (k, v) for k, v in sm['per_tube'].items()),
-                                    10 * plan['opts']['min_below'], 10 * sm['tallest']))
+        plan['notes'].append('Fusion could not cut part of the saddle in %s (faces too nearly touching): check it there '
+                             'before printing.' % ', '.join(rough))
+    what = {'cradles': 'separate cradles', 'base': 'cradles on one base frame', 'plate': 'a plate with cradles along the tubes',
+            'saddle': 'continuous saddles', 'frame': 'a flange frame'}[style]
+    kinds = ', '.join('%d %s' % (v, {'cradle': 'cradle', 'base': 'base frame', 'plate': 'plate', 'saddle': 'saddle piece', 'flange': 'flange locator', 'frame': 'flange frame'}[k] + ('s' if v > 1 else ''))
+                      for k, v in sm['kinds'].items())
+    mount = ('bolted to the fixture table through %d holes on its grid' % sm['holes']) if plan['opts']['mount'] == 'table' else \
+        ('free-standing' + (', with M6 holes to screw down if you want' if sm['holes'] else ''))
+    msg = ('Built a fabrication jig for %s: %s (%s), %s. Every part stands on one level %.0f mm under the lowest tube, its '
+           'saddles open at the top so the pieces drop in; the tallest is %.0f mm. Print them, set them down, lay the cut '
+           'pieces in and tack.' % (src, kinds, what, mount, 10 * plan['opts']['min_below'], 10 * sm['tallest']))
     if plan['notes']:
         msg += ' ' + ' '.join(plan['notes'])
-    return {'ok': True, 'msg': msg, 'jig': {'count': sm['count'], 'per_tube': sm['per_tube'], 'tallest_mm': 10 * sm['tallest'],
+    return {'ok': True, 'msg': msg, 'jig': {'count': sm['count'], 'kinds': sm['kinds'], 'holes': sm['holes'],
+                                             'tallest_mm': 10 * sm['tallest'], 'style': style, 'mount': plan['opts']['mount'],
+                                             'parts': [{'name': q['name'], 'size_mm': [round(10 * x, 1) for x in q['size']],
+                                                        'holes': len(q['holes'])} for q in plan['parts']],
                                              'skipped': [{'tube': k['tube'], 's_mm': 10 * k['s'], 'why': k['why']} for k in plan['skipped']]}}
 
 
