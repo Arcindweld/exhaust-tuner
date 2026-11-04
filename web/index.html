@@ -9822,6 +9822,111 @@ function drawPulses(svg,groups){
   });
 }
 
+/* ===== Tube skin temperature and heat clearance (docs/research/header_skin_temperature.md) =====
+   Along the tube, per unit length: gas to wall by Gnielinski (Petukhov friction factor) times an enhancement for
+   pulsating exhaust flow (CAF: 2.5 fitted on a gasoline car by Konstantinidis, Koltsakis and Stamatelos 1997; 2.3
+   for manifolds, 3.0 takedown pipes, 1.6 tailpipes per Daniel), on the time-averaged mass flow; through the wall, a
+   ceramic coat and wrap layers by conduction; off the outside by Churchill-Chu natural convection, Churchill-Bernstein
+   cross flow when air moves (combined as the cube root of the sum of cubes) and grey radiation to surroundings at the
+   ambient temperature. The gas cools by what leaves (m cp dT). Air properties stand in for exhaust gas. Nearby
+   part: a flat strip facing the tube, seeing it with view factor r/(r + s) (an infinitely long cylinder), cooled
+   on its one face by natural convection and radiation to ambient, the radiation between them grey (eps_tube x eps_part,
+   right for small view factors) from L of tube facing it: an upper bound with no shield and no conduction
+   away, so treat its distances as a guide next to the published rules. */
+const SIG=5.670374e-8;
+const airMu=T=>1.716e-5*Math.pow(T/273.15,1.5)*(273.15+110.4)/(T+110.4);   // Sutherland, Pa s (T in K)
+const airK=T=>0.0241*Math.pow(T/273.15,0.81);                               // W/m K, within about 3 % of tables to 1000 K
+const airCp=T=>1005+0.195*(T-300);                                          // J/kg K
+const SKIN_MAT={'304':{k:20,name:'304 stainless'},'321':{k:20,name:'321 stainless'},mild:{k:45,name:'mild or aluminized steel'},ti:{k:12,name:'titanium'}};
+const SKIN_FIN={ox:{eps:0.85,name:'Bare, oxidised (run in, dark straw to blue)'},tint:{eps:0.70,name:'Bare, lightly heat-tinted'},new:{eps:0.30,name:'Bare, new or polished'},
+  ceramic:{eps:0.30,coat:{t:0.25,k:0.1},name:'Silver ceramic coating (emissivity not measured by its makers)'},black:{eps:0.90,name:'Black high-temperature coating'},
+  wrap1:{eps:0.90,wrap:1,name:'Wrapped, one layer (1/16 in)'},wrap2:{eps:0.90,wrap:2,name:'Wrapped, two layers'}};
+function outerH(Ts,Ta,D,v){   // W/m2 K, convection off a horizontal cylinder of OD D (m), air at v m/s across it
+  const Tf=(Ts+Ta)/2, mu=airMu(Tf), k=airK(Tf), cp=airCp(Tf), rho=P_ATM/(R_AIR*Tf), nu=mu/rho, Pr=mu*cp/k;
+  const Ra=9.81*(1/Tf)*Math.max(Ts-Ta,1e-6)*D*D*D/(nu*nu)*Pr;
+  const Nn=Math.pow(0.60+0.387*Math.pow(Ra,1/6)/Math.pow(1+Math.pow(0.559/Pr,9/16),8/27),2);
+  let Nf=0;
+  if(v>0){ const Re=v*D/nu; Nf=0.3+0.62*Math.sqrt(Re)*Math.cbrt(Pr)/Math.pow(1+Math.pow(0.4/Pr,2/3),0.25)*Math.pow(1+Math.pow(Re/282000,5/8),4/5); }
+  return Math.cbrt(Nn*Nn*Nn+Nf*Nf*Nf)*k/D;
+}
+function calcSkin(p){
+  // p: mdot kg/s per tube, Tg °C at the start, di and wall mm, mat, fin, Ta °C, v m/s, L mm, caf, wrapK W/m K
+  if(!(p.mdot>0&&p.di>0&&p.wall>0&&p.L>0&&Number.isFinite(p.Tg)&&Number.isFinite(p.Ta)&&p.Tg>p.Ta)) return {err:'Needs the tube size, the length, the flow and a gas temperature above the air around it.'};
+  const M=SKIN_MAT[p.mat]||SKIN_MAT['304'], F=SKIN_FIN[p.fin]||SKIN_FIN.ox, caf=p.caf>0?p.caf:2.5, wk=p.wrapK>0?p.wrapK:0.08;
+  const ri=p.di/2000, rw=ri+p.wall/1000, rc=rw+(F.coat?F.coat.t/1000:0), ro=rc+(F.wrap?F.wrap*1.6e-3:0), Do=2*ro, Ta=p.Ta+273.15;
+  const Rw=Math.log(rw/ri)/(2*Math.PI*M.k), Rc=F.coat?Math.log(rc/rw)/(2*Math.PI*F.coat.k):0, Rr=F.wrap?Math.log(ro/rc)/(2*Math.PI*wk):0;
+  const n=Math.max(20,Math.ceil(p.L/10)), dx=p.L/1000/n, out=[];
+  let Tg=p.Tg+273.15, lowRe=false, Ts=Ta+0.6*(Tg-Ta);
+  for(let i=0;i<=n;i++){
+    const mu=airMu(Tg), k=airK(Tg), cp=airCp(Tg), Pr=mu*cp/k, Re=4*p.mdot/(Math.PI*2*ri*mu);
+    if(Re<1e4) lowRe=true;
+    const f=Math.pow(0.79*Math.log(Re)-1.64,-2), Nu=Math.max(3.66,(f/8)*(Re-1000)*Pr/(1+12.7*Math.sqrt(f/8)*(Math.pow(Pr,2/3)-1)));
+    const hi=caf*Nu*k/(2*ri), Ri=1/(hi*2*Math.PI*ri), Rin=Ri+Rw+Rc+Rr;
+    // outer surface temperature: what reaches it through the layers leaves it by convection and radiation
+    let lo=Ta, hiT=Tg;
+    for(let it=0;it<60;it++){ Ts=(lo+hiT)/2; const qin=(Tg-Ts)/Rin, qout=Math.PI*Do*(outerH(Ts,Ta,Do,p.v||0)*(Ts-Ta)+F.eps*SIG*(Ts**4-Ta**4)); if(qout>qin) hiT=Ts; else lo=Ts; }
+    const q=(Tg-Ts)/Rin, Tsteel=Tg-q*(Ri+Rw/2), Tin=Tg-q*Ri;
+    out.push({x:i*dx*1000,Tg:Tg-273.15,Tsteel:Tsteel-273.15,Tsurf:Ts-273.15,Tin:Tin-273.15,q,Re,hi});
+    if(i<n) Tg-=q*dx/(p.mdot*cp);
+  }
+  const Q=out.slice(0,-1).reduce((a,r)=>a+r.q*dx,0);
+  return {pts:out,Q,Do:Do*1000,eps:F.eps,fin:F,mat:M,caf,lowRe,wrap:!!F.wrap};
+}
+// a flat strip s mm from the tube surface, facing it: its temperature
+function nearTemp(TsC,DoMm,sMm,TaC,epsT,Lmm,epsS){
+  // view factor of the strip to the tube: r/(r + s) for an endless tube, times (2/pi) atan(L / 2h) for L of it facing
+  // the strip (h: strip to tube axis), the share of the view along the axis a finite tube fills
+  const Ts=TsC+273.15, Ta=TaC+273.15, r=DoMm/2, hA=r+Math.max(0,sMm), F=r/hA*(Lmm>0?2/Math.PI*Math.atan(Lmm/(2*hA)):1), e=epsT||0.9, h=10;   // h: natural convection off a small plate, W/m2 K
+  let lo=Ta, hi=Ts, T=Ta;
+  const es=epsS>0?epsS:0.85;   // the tube's emissivity: grey exchange with a small view factor, eps_tube x eps_strip
+  for(let it=0;it<60;it++){ T=(lo+hi)/2; const qin=es*e*SIG*F*(Ts**4-T**4), qout=h*(T-Ta)+e*SIG*(1-F)*(T**4-Ta**4); if(qout>qin) hi=T; else lo=T; }
+  return T-273.15;
+}
+function clearFor(TsC,DoMm,TaC,limC,Lmm,epsS){   // the smallest gap that keeps the strip at or under its limit (mm), or null past 1 m
+  if(nearTemp(TsC,DoMm,0,TaC,0.9,Lmm,epsS)<=limC) return 0;
+  if(nearTemp(TsC,DoMm,1000,TaC,0.9,Lmm,epsS)>limC) return null;
+  let lo=0, hi=1000; for(let it=0;it<50;it++){ const m=(lo+hi)/2; if(nearTemp(TsC,DoMm,m,TaC,0.9,Lmm,epsS)>limC) lo=m; else hi=m; } return hi;
+}
+const NEAR_PARTS=[
+  {name:'PVC wire insulation (GPT, HDT)',lim:80,src:'Sycor'},{name:'Engine computer and modules',lim:85,src:'GM upfitter guide: under 185 °F at all times'},
+  {name:'Nylon fuel line, long-term (SAE J2260)',lim:90,src:'SAE J2260: 115 °C peak, 90 °C continuous',rule:127,ruleTxt:'GM: 5 in from the exhaust, or a metal shield'},
+  {name:'Brake fluid, kept under boiling water',lim:100,src:'GM: below the boiling point of water at all times',rule:51,ruleTxt:'GM: brake hoses 2 in from all exhaust parts'},
+  {name:'Neoprene CV or steering boot',lim:110,src:'SAE 880311'},{name:'XLPE wire insulation (GXL, TXL)',lim:125,src:'Sycor'},
+  {name:'Rubber fuel hose (SAE J30R9)',lim:150,src:'one maker’s rating'},{name:'Silicone wire insulation',lim:200,src:'Hi-Line'}];
+const HEAT_UI={Tg:'',load:100,fin:'ox',mat:'304',Ta:40,v:0,ve:95,afr:12.5,caf:2.5,Lf:300};
+function heatSection(r,p,e){
+  const H=HEAT_UI, ncyl=e.order.length, rpm=val('h-rpm'), disp=val('h-disp');
+  const Tg=Number.isFinite(parseFloat(H.Tg))?parseFloat(H.Tg):(val('f-egt')>200?val('f-egt'):760);
+  const fl=engineFlow({cyc:'4',disp,rpm,ve:(H.ve||95)/100,boost:0,afr:H.afr||12.5,tgas:Tg});
+  const mdot=fl.mEx/ncyl*Math.max(0.05,Math.min(1,(H.load||100)/100));
+  const wall=val('h-wall')>0?val('h-wall'):1.651;
+  const sk=calcSkin({mdot,Tg,di:p.dp,wall,mat:H.mat,fin:H.fin,Ta:+H.Ta,v:+H.v,L:r.tube>0?r.tube:r.total,caf:+H.caf});
+  const sel=(k,opts)=>'<span class="inp"><select class="heatx" data-k="'+k+'">'+opts.map(([v,l])=>'<option value="'+v+'"'+(String(H[k])===String(v)?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select></span>';
+  const num=(k,lab,unit,ph)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="heatx" data-k="'+k+'" type="number" step="any" inputmode="decimal" value="'+esc(H[k]===''?'':String(H[k]))+'"'+(ph?' placeholder="'+esc(ph)+'"':'')+'>'+(unit?'<em>'+unit+'</em>':'')+'</span></label>';
+  let h='<p class="cap" style="margin-top:0">How hot the primaries run and how close things can sit. Temperatures in °C, as entered.</p><div class="grid2" style="max-width:640px">'+
+    num('Tg','Gas temperature at the port','°C',String(Math.round(Tg)))+num('load','Airflow, % of full throttle at the tuning RPM','%')+
+    '<label class="f"><span class="lab">Tube</span>'+sel('mat',Object.keys(SKIN_MAT).map(k=>[k,SKIN_MAT[k].name]))+'</label>'+
+    '<label class="f"><span class="lab">Finish</span>'+sel('fin',Object.keys(SKIN_FIN).map(k=>[k,SKIN_FIN[k].name]))+'</label>'+
+    num('Ta','Air around the header','°C')+num('v','Air speed past it (0: parked, dyno)','m/s')+num('Lf','Length of hot tube a nearby part faces, mm','mm')+
+    '<label class="f"><span class="lab">Flow enhancement for pulsing gas (CAF)</span>'+sel('caf',[['2.5','2.5, whole exhaust (Konstantinidis 1997)'],['2.3','2.3, manifold or primaries (Daniel)'],['3','3.0, takedown pipe (Daniel)'],['1.6','1.6, tailpipe (Daniel)']])+'</label></div>';
+  if(sk.err) return sec('Skin temperature and clearance',h+'<div class="note">'+esc(sk.err)+'</div>');
+  const P=sk.pts, at=f=>P[Math.round(f*(P.length-1))], C=v=>Math.round(v)+' °C ('+Math.round(v*9/5+32)+' °F)';
+  const top=P.reduce((a,x)=>x.Tsurf>a.Tsurf?x:a,P[0]);
+  h+='<div class="tblwrap" style="margin-top:12px"><table><thead><tr><th>Along the primary</th><th>Gas</th><th>Steel</th><th>'+(sk.wrap?'Wrap outside':'Outside surface')+'</th><th>Heat loss</th></tr></thead><tbody>'+
+    [[0,'At the port'],[0.25,'Quarter way'],[0.5,'Halfway'],[1,'At the collector']].map(([f,l])=>{ const x=at(f); return '<tr><td>'+l+' ('+clen(x.x)+')</td><td>'+C(x.Tg)+'</td><td>'+C(x.Tsteel)+'</td><td>'+C(x.Tsurf)+'</td><td>'+(x.q/1000).toFixed(2)+' kW/m</td></tr>'; }).join('')+
+    '</tbody></table></div>';
+  h+='<p class="cap">'+(mdot*1000).toFixed(1)+' g/s through each primary ('+ncyl+' cylinders, '+Math.round(H.ve||95)+'% volumetric efficiency, air-fuel '+(H.afr||12.5)+', '+Math.round(H.load||100)+'% airflow at '+Math.round(rpm)+' RPM). Each primary sheds about '+(sk.Q/1000).toFixed(2)+' kW. Emissivity '+sk.eps+' for this finish'+(sk.lowRe?'. The flow is below Gnielinski’s range (Reynolds number under 10,000), so read these as rough':'')+(sk.wrap?'. Wrap keeps the outside cooler but runs the steel hotter, which shortens the life of thin stainless':'')+'.</p>';
+  const rows=NEAR_PARTS.map(q=>{ const s=clearFor(top.Tsurf,sk.Do,+H.Ta,q.lim,+H.Lf>0?+H.Lf:300,sk.eps); const d=s==null?'over 1 m (39 in)':(s===0?'any gap':(s/25.4).toFixed(1)+' in ('+Math.round(s)+' mm)');
+    return '<tr><td>'+esc(q.name)+'</td><td>'+C(q.lim)+'</td><td>'+d+'</td><td>'+(q.rule?esc(q.ruleTxt):'')+'</td></tr>'; }).join('');
+  h+='<p class="sub" style="margin-top:14px">How close things can sit, at the hottest point ('+C(top.Tsurf)+' outside, '+clen(top.x)+' from the port)</p><div class="tblwrap"><table><thead><tr><th>Part</th><th>Limit</th><th>Gap to stay under it</th><th>Published rule</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<p class="cap">The gap is to a flat part facing '+clen(+H.Lf>0?+H.Lf:300)+' of tube with nothing between them, cooled only by the still air on its face, held at the full-throttle temperature for as long as it takes to soak through, so it errs long; a metal heat shield or moving air shortens it a lot. Where a published rule asks for more, follow the rule. Limits: Sycor, GM upfitter guides, SAE J2260 and 880311, Hi-Line.</p>';
+  return sec('Skin temperature and clearance',h);
+}
+document.addEventListener('change',e=>{ const el=e.target.closest('select.heatx'); if(!el) return; HEAT_UI[el.dataset.k]=el.value; renderActive(); });
+document.addEventListener('input',e=>{ const el=e.target.closest('input.heatx'); if(!el) return; HEAT_UI[el.dataset.k]=el.value; });
+document.addEventListener('change',e=>{ const el=e.target.closest('input.heatx'); if(!el) return; renderActive(); });
+window.__heat={calcSkin,nearTemp,clearFor,ui:HEAT_UI};
+
 function renderHeaders(){
   const eng=$('h-eng').value, custom=eng==='custom';
   const merge=$('h-merge').value, profSel=$('h-prof').value, uelOn=$('h-lenmode').value==='unequal', prof=merge==='triy'||uelOn?'const':profSel;
@@ -9953,6 +10058,7 @@ function renderHeaders(){
     '<li>One builder put Gen 5 LT heads on an LS block with the stock LS cam; the LT’s reversed valve order turns the intake ports into exhaust ports, and the goal was an 8-into-1 with 25 to 30 in primaries and later turbos.</li>'+
     '<li>Watch for: intake valves doing exhaust duty run hot, the rocker ratio and lift change with the heads, both intake manifolds have to be made, and the valley holds heat next to wiring and fuel lines.</li></ul>':
     '<p class="cap" style="margin-top:0">With the ports on the outside, collectors that mix banks (180° headers, 8-into-1) need runners that cross over or under the engine. Ports facing into the V (a hot-V, or heads swapped so the exhaust exits the valley) make those groupings compact.</p>');
+  html+=heatSection(r,p,e);
   html+=guideHtml('headers');
   html+=actions('headers');
   FX.headers={title:'Header runner',segs:r.segs.map(s=>[s.name,s.len,s.d0,s.d1]),wall_mm:val('h-wall')>0?val('h-wall'):1.651,od_mm:p.dp+2*(val('h-wall')>0?val('h-wall'):1.651),target_mm:r.tube};
@@ -15203,7 +15309,7 @@ const PROJ_VEH=['v-mode','v-class','v-make','v-pick'];
 const projUiCopy=(o,skip)=>{ const r={}; for(const k in o){ if(skip.includes(k)) continue; const v=o[k]; if(typeof v==='function') continue; r[k]=v; } return JSON.parse(JSON.stringify(r)); };
 const PROJ_UI={   // the per-section settings kept with a project: [object, keys left out]
   wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
-  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]]};
+  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]]};
 function projLoadAll(){ try{ const a=JSON.parse(localStorage.getItem(PROJ_KEY)||'[]'); return Array.isArray(a)?a.filter(p=>p&&p.data&&p.name):[]; }catch(e){ return []; } }
 function projStoreAll(a){ try{ localStorage.setItem(PROJ_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 function projSnapshot(name){

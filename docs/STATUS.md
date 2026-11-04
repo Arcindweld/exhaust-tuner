@@ -367,7 +367,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   orders 1-14 dB below the strongest, 8-4-1s 28-55 dB (180 pairs 52-55), 8-1 67+.
   2-Stroke tab "From the engine" (Blair by BMEP, 2/3 stage), compared with 2 Stroke Wizard 8 and Dual Power (method
   notes; the Wizard's test file Test125.d2t was saved in the owner's Documents folder).
-  Research notes: docs/research/header_skin_temperature.md (for the skin-temperature upgrade, not built yet).
+  Skin temperature and clearance (Headers tab, heatSection/calcSkin, tests/heat_ui.js): Gnielinski x CAF inside,
+  wall/coat/wrap conduction, Churchill-Chu + Churchill-Bernstein + grey radiation outside, gas marched along the
+  primary; nearby-part gap from a facing strip (finite-tube view factor, eps_tube x eps_part) against part limits and
+  GM rules. Matches the research note's independent sanity run (703 C bare WOT, 413/806 C wrapped). Research:
+  docs/research/header_skin_temperature.md.
   v8_841_study.py now resumes (finished runs of the same case text are kept; fresh=1 forces);
   the v4 rerun on the calibrated engine is in openwam/runs/v8_841/*_v4*.
 - Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the
