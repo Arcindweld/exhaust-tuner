@@ -360,6 +360,14 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   stage loss_K put a quadratic pressure-loss BC (TCCPerdidadePresion, type 10) on every line into that merge, 3
   cells before it; an LS3 dual 4-1 at 5000 rpm with K 0.6 lost 0.5 % torque (PMEP 0.79 -> 0.84 bar). Page: K inputs
   under the line after the collector, and "Use K in OpenWAM" under the exhaust CFD results (collector / secondary).
+  8-4-1 study re-run on the calibrated LS3 (v4, openwam/ref/v8_841/results_v4*.json): against per-bank 4-1s the
+  180 deg pairs are within 3 %, 270/450 pairs within 2 %, 360 deg cross-bank within 1.4 % to 6000 rpm and -4.9 % at
+  6600; first merge 250/500 mm and secondary 0.8/1.0 area ratio move torque 2 % or less. The old (pre-fix) -28 % /
+  -35 % figures were an artefact of the wrong cam timing; Headers-tab note updated. Sound at 5000: per-bank 4-1 half
+  orders 1-14 dB below the strongest, 8-4-1s 28-55 dB (180 pairs 52-55), 8-1 67+.
+  2-Stroke tab "From the engine" (Blair by BMEP, 2/3 stage), compared with 2 Stroke Wizard 8 and Dual Power (method
+  notes; the Wizard's test file Test125.d2t was saved in the owner's Documents folder).
+  Research notes: docs/research/header_skin_temperature.md (for the skin-temperature upgrade, not built yet).
   v8_841_study.py now resumes (finished runs of the same case text are kept; fresh=1 forces);
   the v4 rerun on the calibrated engine is in openwam/runs/v8_841/*_v4*.
 - Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the
