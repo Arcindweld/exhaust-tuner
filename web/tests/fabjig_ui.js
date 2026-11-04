@@ -50,5 +50,5 @@ const { chromium } = require('playwright');
     await ctx.close();
   }
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.join(' | ') : ''));
-  console.log('FAILS:', fails.length); await b.close(); process.exit(fails.length ? 1 : 0);
+  console.log('failures:', fails.length); await b.close(); process.exit(fails.length ? 1 : 0);
 })();

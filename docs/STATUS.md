@@ -545,6 +545,19 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   Not published anywhere found: V-band lip heights and recess depths, Wiggins ferrules, 5-bolt outlet coordinates.
   Round plates now stand on legs under the rim (on the square's corners they floated: "more than one piece" in Fusion).
   Live in Fusion: Ace 3 in male and QR female, T3 inlet locators each one piece. test_fabjig checks every preset.
+- Hangers tab (2026-11-03, the owner: "generate good looking exhaust and intake hangers and brackets", like Deeds,
+  ProTouring/Ultimate Headers, Stainless Works, GSI): weld-on pipe tab (across the tube, coped to it, or along it as a
+  fin; 1 or more adjustment holes), body-side tab (weld edge or 1-2 bolts, slots), a tab pair with the grommet between,
+  a bent rod hanger with its bend sheet, and a split ring clamp (printed or machined). Outlines are circles joined by
+  tangents or concave fillets (styles sculpted / clean / minimal), checked closed and simple with metal round every hole.
+  Drawing to scale in inches and mm, DXF (R12, mm), SendCutSend checks and stock thicknesses, strength (net section,
+  tear-out with 0.577 fy, sideways bending scan; rod bending at the weld) as load to yield and multiple of the weight it
+  carries. No published hanger load factor was found, so no verdict. Data: docs/research/hangers_brackets.md (grommets:
+  Stainless Works, McMaster 1061T13x, Deeds; strap isolators EPMAN, COBB, GrimmSpeed, LLRacing; Bambu filament HDT;
+  yields). Fusion: "Read the tube and reach" (cylinder face clicked + optional mount pick) and "Build it" (sketch +
+  symmetric extrude per plate, rod swept, grommet/bolt bodies, ring bolt holes cut), fusion-addin/hangers.py places it.
+  Live: all seven parts built on a 3 in tube, each one piece; a pick toward a mount point read 108.5 mm and pointed the
+  pair at it. Tests: web/tests/hang_ui.js (writes fusion-addin/tests/hang_payloads.json), tests/test_hangers.py.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

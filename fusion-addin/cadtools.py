@@ -35,10 +35,12 @@ try:
     from . import router as RT
     from . import templates as TPL
     from . import jig as JIG
+    from . import hangers as HGR
 except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path)
     import router as RT
     import templates as TPL
     import jig as JIG
+    import hangers as HGR
 
 PALETTE_ID = 'exhaustTunerPalette'
 PANEL_CMD_ID = 'exhaustTunerPanelCmd'
@@ -3032,9 +3034,193 @@ def act_jig(data):
                                              'skipped': [{'tube': k['tube'], 's_mm': 10 * k['s'], 'why': k['why']} for k in plan['skipped']]}}
 
 
+# --------------------------------------------------------------------------
+# Hangers and brackets: the page's flat parts (Hangers tab) put on the tube where the user clicked (hangers.py)
+# --------------------------------------------------------------------------
+
+def _hang_frame(data):
+    """The tube frame from the selection: the pipe's outside face clicked where the hanger goes (or a straight
+    centreline: a sketch line or linear edge), and optionally a second pick on the body where it mounts."""
+    sels = _ui.activeSelections
+    picks = [(sels.item(i).entity, sels.item(i).point) for i in range(sels.count)]
+    if not picks:
+        raise ValueError('Click the pipe’s outside face where the hanger goes (Ctrl+click a mount point on the body too, if you want the reach measured).')
+    ent, click = picks[0]
+    click = _t(click) if click is not None else None
+    k, od = _kind(ent), None
+    if k == 'BRepFace':
+        if click is None:            # selected in code, not clicked: a point on the face stands in
+            click = _t(ent.pointOnFace)
+        g = ent.geometry
+        if g.surfaceType != adsk.core.SurfaceTypes.CylinderSurfaceType:
+            raise ValueError('That face is not a straight piece of tube: click a cylindrical face (bends are not supported yet).')
+        ap, ad, od = _t(g.origin), _t(g.axis), 2.0 * g.radius
+    elif k in ('sketch', 'BRepEdge'):
+        geo = _world_geometry(ent)
+        if geo.curveType != adsk.core.Curve3DTypes.Line3DCurveType:
+            raise ValueError('Pick a straight centreline (a sketch line or a straight edge), or the tube’s outside face.')
+        _ok, a, b = geo.evaluator.getEndPoints()
+        ap, ad = _t(a), _sub(_t(b), _t(a))
+        if click is None:
+            click = _t(a)
+    else:
+        raise ValueError('Click the pipe’s outside face first (a cylindrical face of the tube body).')
+    mount = None
+    if len(picks) > 1:
+        m_ent, m_pt = picks[1]
+        if m_pt is None:               # selected in code: a sketch point's or vertex's own position
+            g = getattr(m_ent, 'worldGeometry', None) or getattr(m_ent, 'geometry', None)
+            m_pt = g if g is not None and hasattr(g, 'x') else None
+            if m_pt is None and _kind(m_ent) == 'BRepFace':
+                m_pt = m_ent.pointOnFace
+        if m_pt is not None:
+            mount = _t(m_pt)
+    up = (0.0, 0.0, 1.0) if _z_up() else (0.0, 1.0, 0.0)
+    fr = HGR.frame(ap, ad, click, mount, up)
+    return fr, od
+
+
+def act_hang_pick(data):
+    fr, od = _hang_frame(data)
+    out = {'ok': True}
+    bits = []
+    if od:
+        out['od_mm'] = round(10.0 * od, 3)
+        bits.append('tube %.1f mm (%.3f in) outside' % (10 * od, 10 * od / 25.4))
+    if fr['reach_cm'] is not None:
+        out['reach_mm'] = round(10.0 * fr['reach_cm'], 2)
+        bits.append('the mount %.1f mm (%.3f in) out from the tube centre' % (10 * fr['reach_cm'], 10 * fr['reach_cm'] / 25.4))
+    out['msg'] = ('Read ' + ' and '.join(bits) + '.') if bits else 'Read the tube there; select its outside face to read its size.'
+    return out
+
+
+def _hang_loop(sk, loop):
+    """One closed loop of ('L', a, b) and ('A', a, m, b) model points as connected sketch curves. Fusion orders an
+    arc's two ends its own way (counter-clockwise about the sketch normal), so each next curve starts from whichever
+    end of the last sits on that segment's end, and the loop closes on the first curve's starting point."""
+    S = lambda p: sk.modelToSketchSpace(_P3(p))
+    lines, arcs = sk.sketchCurves.sketchLines, sk.sketchCurves.sketchArcs
+    first_sp, cur_sp = None, None
+    for i, sg in enumerate(loop):
+        last = i == len(loop) - 1
+        p0, p1 = S(sg[1]), S(sg[-1])
+        start = cur_sp if cur_sp is not None else p0
+        end = first_sp if (last and first_sp is not None) else p1
+        cur = lines.addByTwoPoints(start, end) if sg[0] == 'L' else arcs.addByThreePoints(start, S(sg[2]), end)
+        a, b = cur.startSketchPoint, cur.endSketchPoint
+        if first_sp is None:
+            first_sp = a if a.geometry.distanceTo(p0) <= b.geometry.distanceTo(p0) else b
+        cur_sp = b if b.geometry.distanceTo(p1) <= a.geometry.distanceTo(p1) else a
+    return first_sp
+
+
+def _hang_plate(comp, pl):
+    plane = _plane_3pt(comp, pl['plane3'][0], pl['plane3'][1], pl['plane3'][2], pl['name'])
+    sk = comp.sketches.add(plane)
+    sk.name = pl['name']
+    for loop in pl['loops']:
+        _hang_loop(sk, loop)
+    for c, r in pl['circles']:
+        sk.sketchCurves.sketchCircles.addByCenterRadius(sk.modelToSketchSpace(_P3(c)), r)
+    best, area = None, -1.0
+    for i in range(sk.profiles.count):
+        pr = sk.profiles.item(i)
+        a = pr.areaProperties().area
+        if a > area:
+            best, area = pr, a
+    if best is None:
+        raise RuntimeError('Fusion made no closed profile from the %s outline.' % pl['name'])
+    ext = comp.features.extrudeFeatures
+    inp = ext.createInput(best, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+    inp.setSymmetricExtent(adsk.core.ValueInput.createByReal(pl['t']), True)
+    f = ext.add(inp)
+    body = f.bodies.item(0)
+    body.name = pl['name']
+    return body
+
+
+def _hang_rod(comp, rd):
+    plane = _plane_3pt(comp, rd['plane3'][0], rd['plane3'][1], rd['plane3'][2], rd['name'])
+    sk = comp.sketches.add(plane)
+    sk.name = rd['name'] + ' path'
+    S = lambda p: sk.modelToSketchSpace(_P3(p))
+    lines, arcs = sk.sketchCurves.sketchLines, sk.sketchCurves.sketchArcs
+    curves, end_pt = [], None
+    for sg in rd['path']:
+        start = end_pt if end_pt is not None else S(sg[1])
+        cur = lines.addByTwoPoints(start, S(sg[-1])) if sg[0] == 'L' else arcs.addByThreePoints(start, S(sg[2]), S(sg[-1]))
+        tgt = _P3(sg[-1])
+        a, b = cur.startSketchPoint, cur.endSketchPoint
+        end_pt = b if b.worldGeometry.distanceTo(tgt) <= a.worldGeometry.distanceTo(tgt) else a
+        curves.append(cur)
+    path = adsk.fusion.Path.create(_ctx(comp, curves[0]), adsk.fusion.ChainedCurveOptions.connectedChainedCurves)
+    planes = comp.constructionPlanes
+    pin = planes.createInput()
+    zero = adsk.core.ValueInput.createByReal(0)
+    if hasattr(pin, 'setByPath'):
+        pin.setByPath(path, adsk.fusion.PathDistanceTypes.ProportionalPathDistanceType, zero)
+    else:
+        pin.setByDistanceOnPath(path, zero)
+    pl = planes.add(pin)
+    sk2 = comp.sketches.add(pl)
+    sk2.name = rd['name'] + ' section'
+    sk2.sketchCurves.sketchCircles.addByCenterRadius(sk2.modelToSketchSpace(_P3(rd['path'][0][1])), rd['d'] / 2.0)
+    prof = sk2.profiles.item(0)
+    sw = comp.features.sweepFeatures
+    f = sw.add(sw.createInput(prof, path, adsk.fusion.FeatureOperations.NewBodyFeatureOperation))
+    body = f.bodies.item(0)
+    body.name = rd['name']
+    return body
+
+
+def act_hang(data):
+    h = data.get('hanger') or {}
+    fr, od = _hang_frame(data)
+    if od and h.get('od_mm') and abs(10.0 * od - float(h['od_mm'])) > 0.5:
+        raise ValueError('The tube clicked is %.1f mm (%.3f in) across but the page has %.1f mm: press Read the tube and reach first.'
+                         % (10 * od, 10 * od / 25.4, float(h['od_mm'])))
+    P = HGR.plan(h, fr)
+    comp = _new_component(str(data.get('title') or 'Hanger'))
+    made = []
+    try:
+        plates = [(_hang_plate(comp, pl), pl) for pl in P['plates']]
+        made += [b.name for b, _pl in plates]
+        for rd in P['rods']:
+            made.append(_hang_rod(comp, rd).name)
+        if P['cyls'] or P['cuts']:
+            tbm = adsk.fusion.TemporaryBRepManager.get()
+            named = [(tbm.createCylinderOrCone(_P3(c['a']), c['r'], _P3(c['b']), c['r']), c['name']) for c in P['cyls']]
+            if named:
+                made += [b.name for b in _add_bodies(comp, named)]
+            if P['cuts'] and plates:
+                tools = _add_bodies(comp, [(tbm.createCylinderOrCone(_P3(c['a']), c['r'], _P3(c['b']), c['r']), c['name']) for c in P['cuts']])
+                for body, _pl in plates:
+                    col = adsk.core.ObjectCollection.create()
+                    for t in tools:
+                        col.add(t)
+                    ci = comp.features.combineFeatures.createInput(body, col)
+                    ci.operation = adsk.fusion.FeatureOperations.CutFeatureOperation
+                    ci.isKeepToolBodies = body is not plates[-1][0]
+                    comp.features.combineFeatures.add(ci)
+    except Exception:
+        _drop_component(comp)
+        raise
+    # the frame sketches, profiles and construction planes stay in the timeline (edit the part there) but out of sight
+    try:
+        for i in range(comp.sketches.count):
+            comp.sketches.item(i).isVisible = False
+        for i in range(comp.constructionPlanes.count):
+            comp.constructionPlanes.item(i).isLightBulbOn = False
+    except Exception:
+        pass
+    where = 'square to the tube, pointing ' + ('at the mount you picked' if fr['reach_cm'] is not None else 'out through the point you clicked')
+    return {'ok': True, 'msg': 'Built %s %s: %s.' % (str(data.get('title') or 'the hanger').lower(), where, ', '.join(made)),
+            'bodies': made}
+
+
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'jig': act_jig, 'helmholtz': act_helmholtz, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
+           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult')}
 
 

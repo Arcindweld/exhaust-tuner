@@ -110,6 +110,6 @@ function runOne(dir, name) {
   const u3 = await pg.evaluate(() => { const svg = document.getElementById('tw-svg'); return { lines: svg ? svg.querySelectorAll('polyline').length : 0, txt: [...document.querySelectorAll('#two-details .sec h3')].find(x => x.textContent === 'Run it in OpenWAM').parentElement.innerText }; });
   ok(u3.lines === 3 && /With the dual power insert/.test(u3.txt) && /second set of models/.test(u3.txt), 'three power curves with the insert line and its caption');
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.join(' | ') : ''));
-  console.log('FAILS:', fails.length);
+  console.log('failures:', fails.length);
   await b.close(); process.exit(fails.length ? 1 : 0);
 })();

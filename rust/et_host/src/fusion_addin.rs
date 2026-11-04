@@ -6,7 +6,7 @@ use serde_json::Value;
 use std::path::Path;
 
 /// The add-in's own files; anything else in the target folder (the user's notes, layouts) is left alone.
-pub const FILES: &[&str] = &["ExhaustTuner.py", "ExhaustTuner.manifest", "cadtools.py", "router.py", "templates.py", "jig.py", "native.py", "README.txt"];
+pub const FILES: &[&str] = &["ExhaustTuner.py", "ExhaustTuner.manifest", "cadtools.py", "router.py", "templates.py", "jig.py", "hangers.py", "native.py", "README.txt"];
 
 /// The Rust core the router loads when it is there (native.py falls back to Python without it). Copied when the
 /// bundle has it; a copy left in the add-in folder by an older install is removed when the bundle does not, so a

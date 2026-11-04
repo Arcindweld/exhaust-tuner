@@ -43,7 +43,7 @@ const { chromium } = require('playwright');
   await pg.click('#fx-headers button[data-fx="jig"]'); await pg.waitForTimeout(300);
   const sent = await pg.evaluate(() => window.__sent.map(([a, d]) => [a, JSON.parse(d)]));
   const js = sent.find(x => x[0] === 'jig');
-  ok(js && js[1].title === 'Tack jig' && js[1].od_mm > 40, 'Build tack jig sends the tube OD (' + (js ? js[1].od_mm : '-') + ' mm) and titles the component');
+  ok(js && js[1].title === 'Fabrication jig' && js[1].od_mm > 40, 'Build tack jig sends the tube OD (' + (js ? js[1].od_mm : '-') + ' mm) and titles the component');
   ok(/Built 4 cradles/.test(await pg.$eval('#fx-out-headers', e => e.innerText)), 'and shows what Fusion built');
   ok(errs.length === 0, 'no page errors ' + errs.join('|'));
   console.log(fails.length ? 'FAILS: ' + fails.length : 'all passed');

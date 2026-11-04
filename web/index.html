@@ -510,6 +510,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     <button type="button" role="tab" id="tab-muf" data-tab="mufflers" aria-controls="panel-muf" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 7h11a3 3 0 0 1 3 3v4a3 3 0 0 1-3 3h-11a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3zM1 12h2.5M20.5 12H23M8 12h8"/></svg><span>Mufflers</span></button>
     <button type="button" role="tab" id="tab-cat" data-tab="cats" aria-controls="panel-cat" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 6h13a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 15.5v-7A2.5 2.5 0 0 1 5.5 6zM9 6v12M15 6v12M3 12h18"/></svg><span>Cats</span></button>
     <button type="button" role="tab" id="tab-boom" data-tab="boom-tubes" aria-controls="panel-boom" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 8h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-16M5.5 12c1.6-2.2 3.2-2.2 4.8 0s3.2 2.2 4.8 0"/></svg><span>Boom tubes</span></button>
+    <button type="button" role="tab" id="tab-hang" data-tab="hangers" aria-controls="panel-hang" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20.5h18M12 3.5v4.5"/><circle cx="12" cy="10.5" r="2.5"/><path d="M9.6 11.4 7.5 17h9l-2.1-5.6"/></svg><span>Hangers</span></button>
     <span class="navgrp" aria-hidden="true">Library</span>
     <button type="button" role="tab" id="tab-parts" data-tab="parts" aria-controls="panel-parts" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21v-6.5A8.5 8.5 0 0 1 12.5 6H20M8.5 21v-6.5a4 4 0 0 1 4-4H20M20 4v8"/></svg><span>Parts</span></button>
     <button type="button" role="tab" id="tab-opt" data-tab="options" aria-controls="panel-opt" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7h9M17.5 7h3M3.5 17h3M11.5 17h9"/><circle cx="15" cy="7" r="2.3"/><circle cx="9" cy="17" r="2.3"/></svg><span>Options</span></button>
@@ -1831,6 +1832,111 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       </div>
     </form>
     <div class="area-details"><div id="b-details"></div><div id="fx-boom"></div></div>
+  </section>
+
+  <!-- ============ HANGERS AND BRACKETS ============ -->
+  <section class="panel" id="panel-hang" role="tabpanel" aria-labelledby="tab-hang" hidden>
+    <div class="area-key" id="hg-key"></div>
+    <figure class="area-draw card" style="margin:0">
+      <svg class="prof" id="hg-svg" role="img" aria-label="Dimensioned drawing of the hanger or bracket"></svg>
+      <p class="cap" id="hg-cap"></p>
+    </figure>
+    <form class="area-inputs card" onsubmit="return false" autocomplete="off">
+      <div class="grp">Part</div>
+      <div class="grid2">
+        <label class="f span2"><span class="lab">Part</span>
+          <span class="inp"><select id="hg-part"><option value="tab" selected>Weld-on pipe tab (laser cut)</option><option value="pair">Tab pair: pipe tab, grommet, body tab</option><option value="body">Body-side tab (laser cut)</option><option value="rod">Bent rod hanger, for strap isolators</option><option value="ring">Split ring clamp, no welding (printed or machined)</option></select></span></label>
+        <label class="f"><span class="lab">For</span>
+          <span class="inp"><select id="hg-for"><option value="exh" selected>Exhaust</option><option value="int">Intake</option></select></span></label>
+        <label class="f" id="hg-style-w"><span class="lab">Style</span>
+          <span class="inp"><select id="hg-style"><option value="sculpted" selected>Sculpted: flowing neck, wide saddle foot</option><option value="clean">Clean: straight tapered sides</option><option value="minimal">Minimal: narrow and light</option></select></span></label>
+      </div>
+      <div class="grp">Tube and reach</div>
+      <div class="grid2">
+        <label class="f" id="hg-od-w"><span class="lab">Tube outside diameter</span>
+          <span class="inp"><input id="hg-od" type="number" step="any" inputmode="decimal" data-kind="len" data-base="76.2"><em data-u="len">in</em></span></label>
+        <label class="f" id="hg-reach-w"><span class="lab" id="hg-reach-lab">Tube centre to the hole</span>
+          <span class="inp"><input id="hg-reach" type="number" step="any" inputmode="decimal" data-kind="len" data-base="63.5"><em data-u="len">in</em></span></label>
+        <label class="f" id="hg-orient-w"><span class="lab">Tab on the tube</span>
+          <span class="inp"><select id="hg-orient"><option value="across" selected>Across it, coped to the tube</option><option value="along">Along it, a fin with a straight weld</option></select></span></label>
+        <label class="f" id="hg-nh-w"><span class="lab">Holes, for adjustment</span>
+          <span class="inp"><input id="hg-nh" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="1"></span></label>
+        <label class="f" id="hg-pitch-w"><span class="lab">Hole spacing</span>
+          <span class="inp"><input id="hg-pitch" type="number" step="any" inputmode="decimal" data-kind="len" data-base="31.75"><em data-u="len">in</em></span></label>
+        <label class="f" id="hg-foot-w"><span class="lab">Foot width on the tube, 0 for the style’s</span>
+          <span class="inp"><input id="hg-foot" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+        <label class="f" id="hg-light-w"><span class="lab">Lightening hole</span>
+          <span class="inp"><select id="hg-light"><option value="1" selected>Where it fits</option><option value="0">None</option></select></span></label>
+      </div>
+      <div class="grp" id="hg-g-body">Body tab</div>
+      <div class="grid2" id="hg-body">
+        <label class="f"><span class="lab">Isolator hole to the mount</span>
+          <span class="inp"><input id="hg-blen" type="number" step="any" inputmode="decimal" data-kind="len" data-base="50.8"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Mounts by</span>
+          <span class="inp"><select id="hg-bmount"><option value="bolt" selected>Bolts</option><option value="weld">Welding its top edge</option></select></span></label>
+        <label class="f" id="hg-bn-w"><span class="lab">Bolts</span>
+          <span class="inp"><select id="hg-bn"><option value="1">1</option><option value="2" selected>2</option></select></span></label>
+        <label class="f" id="hg-bs-w"><span class="lab">Bolt spacing, 0 to suit the tab</span>
+          <span class="inp"><input id="hg-bs" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+        <label class="f" id="hg-bmh-w"><span class="lab">Mounting holes</span>
+          <span class="inp"><input id="hg-bmh" type="number" step="any" inputmode="decimal" data-kind="len" data-base="10.5"><em data-u="len">in</em></span></label>
+        <label class="f" id="hg-bslot-w"><span class="lab">Slot them for adjustment by, 0 for round holes</span>
+          <span class="inp"><input id="hg-bslot" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+        <label class="f" id="hg-gap-w"><span class="lab">Space between the tabs, 0 for the grommet’s</span>
+          <span class="inp"><input id="hg-gap" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+      </div>
+      <div class="grp" id="hg-g-iso">Isolator</div>
+      <div class="grid2" id="hg-iso">
+        <label class="f span2" id="hg-grom-w"><span class="lab">Grommet or bushing</span>
+          <span class="inp"><select id="hg-grom"><option value="sw">Stainless Works hanger grommet, 11/16 in hole</option><option value="mc132" selected>McMaster-Carr 1061T132 silicone, 1/8 in plate</option><option value="mc133">McMaster-Carr 1061T133 silicone, 3/16 in plate</option><option value="mc134">McMaster-Carr 1061T134 silicone, 1/4 in plate</option><option value="exgro">Stainless Works EXGRO, 5/8 in hole</option><option value="deeds">Deeds Engineering bushing, 1/4 in plate</option><option value="bolt">Plain bolt hole, no grommet</option><option value="custom">Another one: enter the hole</option></select></span></label>
+        <label class="f span2" id="hg-strap-w"><span class="lab">Strap isolator</span>
+          <span class="inp"><select id="hg-strap"><option value="epman" selected>EPMAN rubber, 40 mm centres</option><option value="cobb">COBB silicone, 35 mm centres</option><option value="grimm">GrimmSpeed 12 mm, 1.5 in centres</option><option value="llr4">LLRacing 4-hole, 39 / 57 / 75 mm</option><option value="custom">Another isolator</option></select></span></label>
+        <label class="f" id="hg-hole-w"><span class="lab" id="hg-hole-lab">Hole for the grommet or bolt</span>
+          <span class="inp"><input id="hg-hole" type="number" step="any" inputmode="decimal" data-kind="len" data-base="17.4625"><em data-u="len">in</em></span></label>
+        <label class="f" id="hg-bolt-w"><span class="lab">Bolt</span>
+          <span class="inp"><input id="hg-bolt" type="number" step="any" inputmode="decimal" data-kind="len" data-base="9.525"><em data-u="len">in</em></span></label>
+      </div>
+      <div class="grp" id="hg-g-rod">Rod</div>
+      <div class="grid2" id="hg-rodf">
+        <label class="f"><span class="lab">Rod diameter</span>
+          <span class="inp"><input id="hg-rod" type="number" step="any" inputmode="decimal" data-kind="len" data-base="9.525"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Bend radius (centreline), 0 for 1.5 × rod</span>
+          <span class="inp"><input id="hg-bend" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Rise angle</span>
+          <span class="inp"><input id="hg-ang" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="90"><em>°</em></span></label>
+        <label class="f"><span class="lab">Shape</span>
+          <span class="inp"><select id="hg-shape"><option value="z" selected>Pin carries on past the weld</option><option value="j">Pin turns back over the weld</option></select></span></label>
+        <label class="f"><span class="lab">Weld leg on the tube</span>
+          <span class="inp"><input id="hg-weld" type="number" step="any" inputmode="decimal" data-kind="len" data-base="50.8"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Pin length</span>
+          <span class="inp"><input id="hg-pin" type="number" step="any" inputmode="decimal" data-kind="len" data-base="63.5"><em data-u="len">in</em></span></label>
+        <label class="f adv"><span class="lab">Isolator on the pin, from its root, 0 for the middle</span>
+          <span class="inp"><input id="hg-ipos" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+      </div>
+      <div class="grp" id="hg-g-ring">Ring clamp</div>
+      <div class="grid2" id="hg-ringf">
+        <label class="f"><span class="lab">Ring wall, 0 for 12% of the tube</span>
+          <span class="inp"><input id="hg-wall" type="number" step="any" inputmode="decimal" data-kind="len" data-base="6"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Thickness along the tube</span>
+          <span class="inp"><input id="hg-width" type="number" step="any" inputmode="decimal" data-kind="len" data-base="15"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Gap for a rubber liner</span>
+          <span class="inp"><input id="hg-liner" type="number" step="any" inputmode="decimal" data-kind="len" data-base="1.5"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Clamp bolts</span>
+          <span class="inp"><select id="hg-cbolt"><option value="5">M5</option><option value="6" selected>M6</option><option value="6.35">1/4 in</option></select></span></label>
+        <label class="f"><span class="lab">Mounting hole</span>
+          <span class="inp"><input id="hg-rmh" type="number" step="any" inputmode="decimal" data-kind="len" data-base="8.5"><em data-u="len">in</em></span></label>
+      </div>
+      <div class="grp">Material and load</div>
+      <div class="grid2">
+        <label class="f span2"><span class="lab">Material</span>
+          <span class="inp"><select id="hg-mat"><option value="ss304" selected>304 stainless</option><option value="a36">Mild steel, A36</option><option value="al5052">5052-H32 aluminium</option><option value="al6061w">6061-T6 aluminium, welded on</option><option value="al6061">6061-T6 aluminium, bolted</option><option value="petg">PETG HF, printed</option><option value="asa">ASA, printed</option><option value="pc">PC, printed</option><option value="pa6cf">PA6-CF, printed</option><option value="pahtcf">PAHT-CF, printed</option><option value="petcf">PET-CF, printed</option><option value="ppacf">PPA-CF, printed</option></select></span></label>
+        <label class="f" id="hg-t-w"><span class="lab">Plate thickness</span>
+          <span class="inp"><input id="hg-t" type="number" step="any" inputmode="decimal" data-kind="len" data-base="3.175"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Weight this hanger carries</span>
+          <span class="inp"><input id="hg-w" type="number" step="any" inputmode="decimal" data-kind="mass" data-base="4.5"><em data-u="mass">lb</em></span></label>
+      </div>
+    </form>
+    <div class="area-details"><div id="hg-details"></div></div>
   </section>
 
   <!-- ============ OPTIONS GUIDE ============ -->
@@ -10974,6 +11080,631 @@ function drawPulses(svg,groups){
   });
 }
 
+/* ===== Hangers and brackets: flat outlines built from circles joined by tangent lines or concave fillets, so every
+   edge runs into the next without a corner (except where a part meets the tube). mm, y up, origin at the tube centre
+   (weld-on tabs) or the isolator hole (body tabs). An outline is a list of segments {t:'L',a,b} or
+   {t:'A',c,r,a0,a1,ccw} (radians; a ccw arc runs a0 -> a1 increasing), traversed counter-clockwise. */
+const HG=(()=>{
+  const add=(a,b)=>[a[0]+b[0],a[1]+b[1]], sub=(a,b)=>[a[0]-b[0],a[1]-b[1]], mul=(a,k)=>[a[0]*k,a[1]*k];
+  const len=a=>Math.hypot(a[0],a[1]), unit=a=>{ const l=len(a); return [a[0]/l,a[1]/l]; }, perpR=d=>[d[1],-d[0]];
+  const pol=(r,t)=>[r*Math.cos(t),r*Math.sin(t)], ang=(p,c)=>Math.atan2(p[1]-c[1],p[0]-c[0]);
+  const TAU=2*Math.PI, md=x=>((x%TAU)+TAU)%TAU;
+  // join from node A to node B (circles {c,r}, r = 0 for a point), both travelled counter-clockwise, inside on the left.
+  // line: the outer tangent (the outward normal n is to the right of travel, n·(cB - cA) = rA - rB)
+  function tangent(A,B){
+    const D=sub(B.c,A.c), L=len(D);
+    if(!(L>Math.abs(A.r-B.r)+1e-9)) return null;
+    const d=mul(D,1/L), cs=(A.r-B.r)/L, sn=Math.sqrt(Math.max(0,1-cs*cs)), n=add(mul(d,cs),mul(perpR(d),sn));
+    return {pa:add(A.c,mul(n,A.r)),pb:add(B.c,mul(n,B.r)),seg:a=>({t:'L',a:add(A.c,mul(n,A.r)),b:add(B.c,mul(n,B.r))})};
+  }
+  // concave fillet of radius R outside the line A-B, tangent to both (a point node is passed through)
+  function fillet(A,B,R){
+    const D=sub(B.c,A.c), L=len(D), ra=A.r+R, rb=B.r+R;
+    if(!(L<ra+rb-1e-9&&L>Math.abs(ra-rb)+1e-9)) return null;
+    const d=mul(D,1/L), a=(L*L+ra*ra-rb*rb)/(2*L), h=Math.sqrt(Math.max(0,ra*ra-a*a));
+    const F=add(add(A.c,mul(d,a)),mul(perpR(d),h));
+    const pa=add(A.c,mul(unit(sub(F,A.c)),A.r)), pb=add(B.c,mul(unit(sub(F,B.c)),B.r));
+    return {pa,pb,F,R,seg:()=>({t:'A',c:F,r:R,a0:ang(pa,F),a1:ang(pb,F),ccw:false})};
+  }
+  // the fillet radius that leaves the web at least `waist` wide (half each side of the line from the
+  // web's start to its end, mid): the narrowest point of the arc is R from its centre
+  function filletForWaist(A,B,half,axis){
+    // the narrowest the web gets: the closest the arc (over its own span) comes to the web's centre line
+    const minD=f=>{ let m=1e18; const a0=ang(f.pa,f.F), a1=ang(f.pb,f.F); let sw=a1-a0; sw=-md(-sw);
+      for(let k=0;k<=40;k++){ const p=add(f.F,pol(f.R,a0+sw*k/40)), q=sub(p,axis.p); m=Math.min(m,Math.abs(q[0]*axis.d[1]-q[1]*axis.d[0])); } return m; };
+    const gap=R=>{ const f=fillet(A,B,R); return f?minD(f)-half:null; };
+    const D=len(sub(B.c,A.c)); let lo=Math.max(1e-3,(D-A.r-B.r)/2+1e-6), hi=1e5;
+    const ghi=gap(hi);
+    if(ghi==null||ghi<0) return null;              // even nearly straight it is too narrow: use a line
+    const glo=gap(lo);
+    if(!(glo!=null&&glo>=0)) for(let k=0;k<80;k++){ const m=Math.sqrt(lo*hi), g=gap(m); if(g!=null&&g>=0) hi=m; else lo=m; }
+    else hi=lo;
+    // never tighter than minR: a small fillet reads as a notch, not a flowing neck
+    return fillet(A,B,Math.max(hi,axis.minR||0))||fillet(A,B,hi);
+  }
+  // a closed outline through nodes[0..n-1] with joins[i] from node i to node i+1 (mod n):
+  // 'line', {R}, {waist,axis}, or {arc:{c,r,ccw}} between two points on that circle
+  function loop(nodes,joins){
+    const n=nodes.length, J=[];
+    for(let i=0;i<n;i++){
+      const A=nodes[i], B=nodes[(i+1)%n], j=joins[i]; let r=null;
+      if(j==='line') r=tangent(A,B);
+      else if(j&&j.F){ const F=j.F, pa=A.r>0?add(A.c,mul(unit(sub(F,A.c)),A.r)):A.c, pb=B.r>0?add(B.c,mul(unit(sub(F,B.c)),B.r)):B.c;
+        r={pa,pb,seg:()=>({t:'A',c:F,r:j.R,a0:ang(pa,F),a1:ang(pb,F),ccw:false})}; }
+      else if(j&&j.arc){ const C=j.arc; r={pa:A.c,pb:B.c,seg:()=>({t:'A',c:C.c,r:C.r,a0:ang(A.c,C.c),a1:ang(B.c,C.c),ccw:!!C.ccw})}; }
+      else if(j&&j.waist!=null){ r=filletForWaist(A,B,j.waist/2,j.axis)||tangent(A,B); }
+      else if(j&&j.R) r=fillet(A,B,j.R)||tangent(A,B);
+      if(!r) throw new Error('These sizes do not fit together (join '+(i+1)+'): the holes or corners overlap. Make the reach longer or the holes smaller.');
+      J.push(r);
+    }
+    const segs=[];
+    for(let i=0;i<n;i++){
+      const N=nodes[i], jin=J[(i-1+n)%n], jout=J[i];
+      if(N.r>1e-9){
+        const a0=ang(jin.pb,N.c), a1=ang(jout.pa,N.c); let sw=md(a1-a0);
+        if(sw>TAU-1e-7) sw=0;
+        if(sw>1.6*Math.PI) throw new Error('A corner of this shape turned inside out (node '+(i+1)+'): the sizes do not fit.');
+        if(sw>1e-9) segs.push({t:'A',c:N.c,r:N.r,a0,a1:a0+sw,ccw:true});
+      }
+      segs.push(jout.seg());
+    }
+    return segs;
+  }
+  const P=(x,y)=>({c:[x,y],r:0}), C=(x,y,r)=>({c:[x,y],r});
+  // points along a segment / outline (for drawing, checks and the add-in's midpoints)
+  function sweepOf(s){ if(s.t!=='A') return 0; let sw=s.a1-s.a0; if(s.ccw){ sw=md(sw); } else { sw=-md(-sw); } return sw; }
+  function at(s,u){ if(s.t==='L') return add(s.a,mul(sub(s.b,s.a),u)); return add(s.c,pol(s.r,s.a0+sweepOf(s)*u)); }
+  function sample(segs,step){
+    const pts=[];
+    for(const s of segs){ const L=s.t==='L'?len(sub(s.b,s.a)):Math.abs(sweepOf(s))*s.r, n=Math.max(1,Math.ceil(L/(step||1)));
+      for(let k=0;k<n;k++) pts.push(at(s,k/n)); }
+    return pts;
+  }
+  function area(pts){ let A=0; for(let i=0;i<pts.length;i++){ const p=pts[i], q=pts[(i+1)%pts.length]; A+=p[0]*q[1]-q[0]*p[1]; } return A/2; }
+  function segX(p1,p2,p3,p4){ const d=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
+    const d1=d(p3,p4,p1), d2=d(p3,p4,p2), d3=d(p1,p2,p3), d4=d(p1,p2,p4); return d1*d2<-1e-12&&d3*d4<-1e-12; }
+  function simple(pts){ const n=pts.length; for(let i=0;i<n;i++) for(let j=i+2;j<n;j++){ if(i===0&&j===n-1) continue;
+    if(segX(pts[i],pts[(i+1)%n],pts[j],pts[(j+1)%n])) return false; } return true; }
+  function distToPoly(p,pts){ let m=1e18; for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length], ab=sub(b,a), t=Math.max(0,Math.min(1,((p[0]-a[0])*ab[0]+(p[1]-a[1])*ab[1])/Math.max(1e-12,ab[0]*ab[0]+ab[1]*ab[1])));
+    m=Math.min(m,len(sub(p,add(a,mul(ab,t))))); } return m; }
+  function inside(p,pts){ let c=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const a=pts[i], b=pts[j];
+    if(((a[1]>p[1])!==(b[1]>p[1]))&&(p[0]<(b[0]-a[0])*(p[1]-a[1])/(b[1]-a[1])+a[0])) c=!c; } return c; }
+  // a slot (two holes joined), as an outline; a round hole is {t:'C',c,r}
+  function slot(c1,c2,r){ const d=unit(sub(c2,c1)), n=perpR(d), t=Math.atan2(n[1],n[0]);
+    return [{t:'A',c:c2,r,a0:t,a1:t+Math.PI,ccw:true},{t:'L',a:sub(c2,mul(n,r)),b:sub(c1,mul(n,r))},
+      {t:'A',c:c1,r,a0:t+Math.PI,a1:t+2*Math.PI,ccw:true},{t:'L',a:add(c1,mul(n,r)),b:add(c2,mul(n,r))}]; }
+  return {add,sub,mul,len,unit,pol,ang,tangent,fillet,loop,P,C,sample,area,simple,distToPoly,inside,at,sweepOf,slot};
+})();
+
+/* ---- the parts. Every builder returns {kind, outline, holes:[{t:'C',c,r,what}|{t:'S',segs,what}], t, notes, dims, weldEdge}
+   or throws an Error in plain words. */
+const HANG={};
+// a weld-on tab: across the tube (coped to its curve) or along it (a fin with a straight weld edge)
+HANG.weldTab=function(o){
+  const Ro=o.od/2, n=Math.max(1,Math.round(o.nh||1)), pitch=o.pitch||0, rh=o.hole/2, rb=o.boss>0?o.boss/2:Math.max(rh+6,1.9*rh);
+  const along=o.orient==='along', style=o.style||'sculpted';
+  const ys=[...Array(n)].map((_,i)=>o.reach+(i-(n-1)/2)*pitch), yLo=ys[0], yHi=ys[n-1];
+  // the foot: wide and hugging the tube when sculpted (it reads as a gusset), the boss width when minimal
+  const wf0=style==='sculpted'?Math.max(3.0*rb,2*rb+20):style==='clean'?2.5*rb:2*rb+4;
+  const wf=o.foot>0?o.foot:along?wf0*1.1:Math.min(wf0,1.6*Ro);
+  if(!along&&wf>=2*Ro*0.995) throw new Error('The foot is wider than the tube: make it narrower than '+(2*Ro).toFixed(1)+' mm.');
+  const rk=o.corner>0?o.corner:style==='minimal'?Math.max(2.5,Math.min(4,0.1*wf)):Math.max(3,Math.min(8,0.14*wf));
+  const fy=along?Math.sqrt(Ro*Ro-(o.t/2)**2):Math.sqrt(Ro*Ro-(wf/2)**2);      // where the side edges meet the tube
+  const sh=style==='minimal'?Math.max(rk*1.2,o.t):Math.max(rk*1.6,0.6*o.t+rk,4);     // shoulder above the foot
+  const ky=fy+sh, kx=wf/2-rk;
+  if(yLo-rb<ky+0.5*rk) throw new Error('The hole is too close to the tube for this foot: reach at least '+(ky+0.5*rk+rb+(n-1)/2*pitch).toFixed(1)+' mm from the tube centre, or a smaller hole.');
+  const FR=HG.P(wf/2,fy), FL=HG.P(-wf/2,fy), KR=HG.C(kx,ky,rk), KL=HG.C(-kx,ky,rk);
+  const B=ys.map(y=>HG.C(0,y,rb));
+  const axis={p:[0,ky],d:[0,1],minR:Math.max(2*rk,1.0*rb)}, waist=Math.max(o.minWeb||0,(style==='sculpted'?0.66:style==='minimal'?0.8:1)*2*rb,o.hole+2*Math.max(o.t,3));
+  const web=style==='clean'?'line':{waist,axis};
+  const base=along?'line':{arc:{c:[0,0],r:Ro,ccw:false}};
+  // n = 1: FR KR B KL FL. n > 1: the bosses make a slot-shaped lobe 2 rb wide; a concave fillet runs from each
+  // shoulder into the lobe's straight side (circle-to-line fillet: centre at x = rb + R, R + rk from the shoulder)
+  let nodes, J;
+  if(n===1){ nodes=[FR,KR,B[0],KL,FL]; J=['line',web,web,'line',base]; }
+  else {
+    const Rf=style==='clean'?0:Math.max(6,0.9*rb), fx=rb+Rf, dy2=(Rf+rk)**2-(fx-kx)**2;
+    const fy2=dy2>0?ky+Math.sqrt(dy2):NaN;
+    if(Rf>0&&fy2<yHi&&fy2>ky){ const TR=HG.P(rb,fy2), TL=HG.P(-rb,fy2);
+      nodes=[FR,KR,TR,B[n-1],TL,KL,FL]; J=['line',{F:[fx,fy2],R:Rf},'line','line',{F:[-fx,fy2],R:Rf},'line',base]; }
+    else { nodes=[FR,KR,B[n-1],KL,FL]; J=['line','line','line','line',base]; }
+  }
+  const holes=ys.map(y=>({t:'C',c:[0,y],r:rh,what:n>1?'adjustment hole':'isolator hole'}));
+  const outline=fitLoop(nodes,J,holes,o.t);
+  const notes=[];
+  if(o.lighten&&style!=='minimal'&&n===1){ const lh=lightHole(outline,holes,o,[0,(ky+rk+yLo-rb)/2],along?null:Ro); if(lh){ holes.push(lh); } else notes.push('No room for a lightening hole at this reach.'); }
+  return {kind:'weldTab',along,outline,holes,t:o.t,notes,dims:{reach:o.reach,foot:wf,boss:2*rb,hole:o.hole,ys,top:yHi+rb,fy},weld:along?{len:wf}:{arc:{r:Ro,w:wf}}};
+};
+// the outline, checked: a simple closed shape with every hole inside and at least max(t, 3 mm) of metal round it.
+// A sculpted (concave) join that pinches a hole falls back to a straight tangent.
+function fitLoop(nodes,J,holes,t){
+  const ok=segs=>{ const pts=HG.sample(segs,0.5), lig=Math.max(t||0,3)-1e-6;
+    if(!(HG.area(pts)>0)||!HG.simple(HG.sample(segs,2))) return false;
+    return holes.every(h=>HG.inside(h.c,pts)&&HG.distToPoly(h.c,pts)-(h.t==='S'?h.r+0:h.r)>=lig&&(h.t!=='S'||HG.sample(h.segs,1).every(p=>HG.distToPoly(p,pts)>=lig))); };
+  let segs=null, err=null;
+  try{ segs=HG.loop(nodes,J); }catch(e){ err=e; }
+  if(segs&&ok(segs)) return segs;
+  const J2=J.map(j=>j==='line'||(j&&j.arc)?j:'line');
+  try{ const s2=HG.loop(nodes,J2); if(ok(s2)) return s2; }catch(e){ err=err||e; }
+  throw err||new Error('There is not enough metal round the holes at these sizes: make the boss bigger or the holes smaller.');
+}
+// the largest round hole that leaves `lig` of metal to the edge and the other holes (and clear of the tube top)
+function lightHole(outline,holes,o,seed,Ro){
+  const pts=HG.sample(outline,0.5), lig=Math.max(o.lig||0,o.t*1.5,4);
+  let best=null;
+  for(let dy=-12;dy<=12;dy+=0.5){ const c=[seed[0],seed[1]+dy];
+    if(!HG.inside(c,pts)) continue;
+    let r=HG.distToPoly(c,pts)-lig;
+    for(const h of holes) r=Math.min(r,HG.len(HG.sub(c,h.c))-h.r-lig);
+    if(Ro) r=Math.min(r,c[1]-Ro-lig);
+    if(!best||r>best.r) best={t:'C',c,r,what:'lightening hole'}; }
+  if(!best||best.r<3) return null;
+  best.r=Math.floor(best.r*2)/2;     // to the half millimetre
+  return best;
+}
+// a body-side tab: the isolator hole at the origin, the mount above it: a straight weld edge, or bolt holes
+HANG.bodyTab=function(o){
+  const rh=o.hole/2, rb=o.boss>0?o.boss/2:Math.max(rh+6,1.9*rh), L=o.len, style=o.style||'sculpted', nodes=[], J=[];
+  if(!(L>rb+5)) throw new Error('The body tab has to be longer than its boss: at least '+(rb+5).toFixed(1)+' mm.');
+  const B=HG.C(0,0,rb);
+  const waist=Math.max(o.minWeb||0,(style==='sculpted'?0.66:style==='minimal'?0.8:1)*2*rb,o.hole+2*Math.max(o.t,3)), axis={p:[0,0],d:[0,1],minR:rb}, web=style==='clean'?'line':{waist,axis};
+  const holes=[{t:'C',c:[0,0],r:rh,what:'isolator hole'}];
+  if(o.mount==='weld'){
+    const w=o.w>0?o.w:style==='sculpted'?Math.max(3*rb,2*rb+20):style==='clean'?Math.max(2.4*rb,30):2*rb+4, rk=Math.max(3,Math.min(8,0.14*w));
+    const TL=HG.P(-w/2,L), TR=HG.P(w/2,L), KL=HG.C(-w/2+rk,L-Math.max(rk*1.6,4),rk), KR=HG.C(w/2-rk,L-Math.max(rk*1.6,4),rk);
+    nodes.push(B,KR,TR,TL,KL); J.push(web,'line','line','line',web);
+    return {kind:'bodyTab',outline:HG.loop(nodes,J),holes,t:o.t,notes:[],dims:{len:L,w},weld:{len:w}};
+  }
+  // bolted: one or two holes (slotted up and down for adjustment if asked) along the top
+  const nm=Math.max(1,Math.round(o.nm||2)), s=o.ms||Math.max(2.6*rb,35), rm=o.mhole/2, rbm=Math.max(rm+Math.max(5,0.9*rm),rm*1.9), sl=o.slot||0;
+  const xs=nm===1?[0]:[-s/2,s/2], top=L+sl/2;
+  if(nm===1){ const M=HG.C(0,L+sl,rbm); nodes.push(B,M); J.push(web,web); }   // a slot: the web runs to its top end
+  else { const MR=HG.C(xs[1],L,rbm), ML=HG.C(xs[0],L,rbm);
+    if(sl>0){ const MR2=HG.C(xs[1],L+sl,rbm), ML2=HG.C(xs[0],L+sl,rbm); nodes.push(B,MR,MR2,ML2,ML); J.push(web,'line',style==='clean'?'line':{R:Math.max(20,s)},'line',web); }
+    else { nodes.push(B,MR,ML); J.push(web,style==='clean'?'line':{R:Math.max(20,s)},web); } }
+  for(const x of xs){ if(sl>0) holes.push({t:'S',segs:HG.slot([x,L],[x,L+sl],rm),c:[x,L+sl/2],r:rm,len:sl,what:'mounting slot'}); else holes.push({t:'C',c:[x,L],r:rm,what:'mounting hole'}); }
+  const outline=fitLoop(nodes,J,holes,o.t), notes=[];
+  if(o.lighten&&style!=='minimal'){ const lh=lightHole(outline,holes,o,[0,L/2],null); if(lh) holes.push(lh); }
+  return {kind:'bodyTab',outline,holes,t:o.t,notes,dims:{len:L,spacing:nm>1?s:0,top}};
+};
+// a split ring clamp (printed or machined): two halves, bolts through the ears in the plane, a mounting boss on top
+HANG.ring=function(o){
+  const Ri=o.od/2+(o.liner||0), w=o.wall>0?o.wall:Math.max(4,0.12*o.od), Rout=Ri+w, g=o.gap>0?o.gap:2, rb_=o.bolt/2;
+  const re=Math.max(rb_+Math.max(4,1.1*rb_),o.earR||0), xe=Rout+re*0.6, he=Math.max(re+1,o.earH||re*1.7);
+  const rbm=o.mhole/2, rbB=Math.max(rbm+Math.max(5,rbm),o.boss>0?o.boss/2:0), H=o.reach;
+  if(!(Ri<xe-rb_-1.2)) throw new Error('The clamp bolts would cut into the bore: use a smaller bolt or a thicker wall.');
+  if(!(H-rbB>Ri+1)) throw new Error('The mounting hole is inside the clamp: reach at least '+(Ri+rbB+2).toFixed(1)+' mm.');
+  const O=HG.C(0,0,Rout), y0=g/2;
+  const half=top=>{
+    const ER=HG.C(xe,y0+he-re,re), EL=HG.C(-xe,y0+he-re,re);
+    const xi=Math.sqrt(Ri*Ri-y0*y0), p1=HG.P(xi,y0), p2=HG.P(xe+re,y0), p3=HG.P(-xe-re,y0), p4=HG.P(-xi,y0), R=Math.max(3,0.4*w);
+    const nodes=[p1,p2,ER,O], J=['line','line',{R}];
+    if(top){ const B=HG.C(0,H,rbB), neck={waist:Math.max(2*rbB*0.7,o.mhole+2*Math.max(3,0.25*w)),axis:{p:[0,0],d:[0,1],minR:Math.max(6,rbB)}};
+      nodes.push(B,O); J.push(neck,neck); }
+    nodes.push(EL,p3,p4); J.push({R},'line','line',{arc:{c:[0,0],r:Ri,ccw:false}});
+    return HG.loop(nodes,J);
+  };
+  const flip=segs=>segs.slice().reverse().map(s=>s.t==='L'?{t:'L',a:[s.b[0],-s.b[1]],b:[s.a[0],-s.a[1]]}:{t:'A',c:[s.c[0],-s.c[1]],r:s.r,a0:-(s.a0+HG.sweepOf(s)),a1:-s.a0,ccw:s.ccw});
+  const upper=half(true), lower=flip(half(false));
+  return {kind:'ring',outline:upper,lower,holes:[{t:'C',c:[0,H],r:rbm,what:'mounting hole'}],t:o.width,notes:[],
+    bolts:[{x:xe,y0:-(y0+he),y1:y0+he,d:o.bolt}],dims:{Ri,Rout,xe,he,reach:H,gap:g}};
+};
+// a bent rod hanger: a leg welded along the tube, two bends of `a` degrees to the pin, the pin along the tube.
+// (u along the tube, v out from its centre); 'z' carries on past the weld leg, 'j' turns back over it
+HANG.rod=function(o){
+  const Ro=o.od/2, d=o.rod, R=o.bendR>0?o.bendR:Math.max(1.5*d,o.minR||0), deg=o.angle||90, a=deg*Math.PI/180, v0=Ro+d/2, v1=o.reach;
+  const j=o.shape==='j', a2=j?Math.PI-a:a;                     // the second bend: back to along the tube, or on round over the leg
+  const rise=v1-v0, bendRise=R*(1-Math.cos(a))+R*(1-Math.cos(a2)*(j?-1:1));
+  if(!(a>0&&a<=Math.PI/2+1e-9)) throw new Error('The rise angle has to be between 1 and 90 degrees.');
+  if(!(rise>=bendRise-1e-9)) throw new Error('The pin is too close to the tube for these bends ('+R.toFixed(1)+' mm radius): reach at least '+(v0+bendRise).toFixed(1)+' mm from the tube centre, or a smaller angle'+(j?'':' or radius')+'.');
+  const ls=(rise-bendRise)/Math.sin(a), lw=o.weld, lp=o.pin;
+  const p0=[0,v0], p1=[lw,v0], c1=[lw,v0+R], e1=HG.add(c1,HG.pol(R,-Math.PI/2+a)), sd=[Math.cos(a),Math.sin(a)], s1=HG.add(e1,HG.mul(sd,ls));
+  const segs=[{t:'L',a:p0,b:p1},{t:'A',c:c1,r:R,a0:-Math.PI/2,a1:-Math.PI/2+a,ccw:true}];
+  if(ls>1e-6) segs.push({t:'L',a:e1,b:s1});
+  let c2, e2, pinEnd;
+  if(!j){ c2=HG.add(s1,HG.mul([Math.sin(a),-Math.cos(a)],R)); segs.push({t:'A',c:c2,r:R,a0:Math.PI/2+a,a1:Math.PI/2,ccw:false}); e2=[c2[0],c2[1]+R]; pinEnd=[e2[0]+lp,e2[1]]; }
+  else { c2=HG.add(s1,HG.mul([-Math.sin(a),Math.cos(a)],R)); segs.push({t:'A',c:c2,r:R,a0:a-Math.PI/2,a1:Math.PI/2,ccw:true}); e2=[c2[0],c2[1]+R]; pinEnd=[e2[0]-lp,e2[1]]; }
+  segs.push({t:'L',a:e2,b:pinEnd});
+  const arc1=R*a, arc2=R*a2, cut=lw+ls+lp+arc1+arc2;
+  return {kind:'rod',path:segs,rod:d,R,a:deg,a2:a2*180/Math.PI,shape:j?'j':'z',notes:[],
+    sheet:{weld:lw,straight:ls,pin:lp,arc1,arc2,cut,marks:[lw,lw+arc1+ls]},dims:{reach:v1,pin:[e2,pinEnd]}};
+};
+
+const HG_UI={last:null};
+/* ---- data (docs/research/hangers_brackets.md). Grommets and bushings that sit in a hole in a flat tab; strap
+   isolators that a hanger rod pushes through; materials with their minimum yield (printed: tensile, in the plane). */
+const HG_GROM={
+  sw:{name:'Stainless Works hanger grommet (UH and Trick hangers)',hole:17.4625,plate:3.175,bolt:9.525,src:'https://www.vividracing.com/stainless-works-universal-weldon-hanger-304-stainless-steel-temp-grommet-p-153882761.html',
+    note:'Silicone, high temperature, for a 3/8 in bolt; their tabs are 1/8 in 304 with 11/16 in holes.'},
+  mc132:{name:'McMaster-Carr 1061T132 silicone grommet, 1/8 in panel',hole:17.4625,plate:3.175,bolt:9.525,od:23.8125,h:9.525,id:11.1125,src:'https://www.mcmaster.com/grommets/for-hole-diameter~11-16',
+    note:'Red silicone, −60 to 500 °F; 7/16 in inside, 15/16 in flange, 3/8 in tall.'},
+  mc133:{name:'McMaster-Carr 1061T133 silicone grommet, 3/16 in panel',hole:17.4625,plate:4.7625,bolt:9.525,od:23.8125,h:11.1125,id:11.1125,src:'https://www.mcmaster.com/grommets/for-hole-diameter~11-16',
+    note:'Red silicone, −60 to 500 °F; 7/16 in inside, 15/16 in flange, 7/16 in tall.'},
+  mc134:{name:'McMaster-Carr 1061T134 silicone grommet, 1/4 in panel',hole:17.4625,plate:6.35,bolt:9.525,od:23.8125,h:12.7,id:11.1125,src:'https://www.mcmaster.com/grommets/for-hole-diameter~11-16',
+    note:'Red silicone, −60 to 500 °F; 7/16 in inside, 15/16 in flange, 1/2 in tall.'},
+  exgro:{name:'Stainless Works EXGRO grommet (spare)',hole:15.875,plate:3.175,bolt:9.525,od:28.575,h:22.225,src:'https://www.autobarn.net/products/stainless-works-stainless-works-grommet-t14-115890',
+    note:'Silicone, 1-1/8 in across, 7/8 in thick, fits a 5/8 in hole, 3/8 in bolt.'},
+  deeds:{name:'Deeds Engineering hanger bushing (EHBK312, 5/16 in bolt)',hole:20.6375,plate:6.35,bolt:7.9375,od:20.6375,h:19.05,src:'https://cdn.shopify.com/s/files/1/0623/0589/4636/products/deeds-bushing-specs.jpg',
+    note:'500 °F; its groove is 0.8125 in across and 0.25 in wide, so it sits in a 13/16 in hole in 1/4 in plate (our reading of the drawing); 3/4 in long, sleeve bore 0.323 in.'},
+  bolt:{name:'Plain bolt hole (bolt-through rubber isolator)',hole:0,plate:0,bolt:9.525,note:'A clearance hole for the bolt, no grommet.'},
+  custom:{name:'Another grommet or bushing (enter the hole)',hole:0,plate:0,bolt:0,note:''}};
+const HG_STRAP={
+  epman:{name:'EPMAN 2-hole rubber, 40 mm centres',cc:40,hole:11.5,src:'https://www.llracing.eu/2-hole-exhaust-hanger-rubber-insulator-40mm-spacing-115mm-holes-red-epman',note:'73 × 47 × 21 mm, for 12 mm rod.'},
+  cobb:{name:'COBB silicone, 35 mm centres, 15 mm holes',cc:35,hole:15,src:'https://www.cobbtuning.com/products/exhaust/cobb-silicone-exhaust-hanger-15mm-x-35mm',note:'80A silicone.'},
+  grimm:{name:'GrimmSpeed 12 mm two-position (1.5 or 2.0 in)',cc:38.1,hole:12,src:'https://www.grimmspeed.com/products/two-position-exhaust-hanger-12mm-polyurethane',note:'70A polyurethane; 1.5 in centres is the OE spacing, 2.0 in the other.'},
+  llr4:{name:'LLRacing 4-hole adjustable, 39 / 57 / 75 mm',cc:39,hole:11.5,src:'https://www.llracing.eu/4-hole-adjustable-exhaust-hanger-rubber-black-39-57-75-11-5mm',note:'Rubber; 11.5 mm holes.'},
+  custom:{name:'Another isolator (enter its centres)',cc:0,hole:0,note:''}};
+// yield (MPa) or printed tensile; density g/cm³ for the weight; hdt [0.45, 1.8 MPa] °C for printed parts
+const HG_MAT={
+  ss304:{name:'304 stainless (ASTM A240 plate / A276 bar)',fy:205,rho:8.0,laser:1,src:'ASTM A240: 30 ksi minimum yield'},
+  a36:{name:'Mild steel, A36',fy:248,rho:7.85,laser:1,src:'ASTM A36: 36 ksi minimum yield'},
+  al5052:{name:'5052-H32 aluminium',fy:159,rho:2.68,laser:1,src:'Aluminum Association: 23 ksi minimum yield'},
+  al6061w:{name:'6061-T6 aluminium, welded on',fy:103,rho:2.70,laser:1,src:'Aluminum Design Manual: 15 ksi as welded (to 3/8 in)'},
+  al6061:{name:'6061-T6 aluminium, bolted (not welded)',fy:241,rho:2.70,laser:1,src:'Aluminum Association: 35 ksi minimum yield (extruded figure)'},
+  petg:{name:'PETG HF, printed',fy:34,print:1,hdt:[69,62]}, asa:{name:'ASA, printed',fy:37,print:1,hdt:[100,92]}, pc:{name:'PC, printed',fy:55,print:1,hdt:[112,117]},
+  pa6cf:{name:'PA6-CF, printed',fy:102,print:1,hdt:[186,164]}, pahtcf:{name:'PAHT-CF, printed',fy:88,print:1,hdt:[194,170]},
+  petcf:{name:'PET-CF, printed',fy:74,print:1,hdt:[205,182]}, ppacf:{name:'PPA-CF, printed',fy:168,print:1,hdt:[227,196]}};
+// SendCutSend stock thicknesses (in), by material
+const HG_STOCK={ss304:[.060,.074,.100,.125,.187,.250,.375],a36:[.059,.074,.104,.119,.135,.187,.250,.313,.375],al5052:[.063,.080,.090,.100,.125,.187,.250,.313,.375],
+  al6061w:[.063,.080,.100,.125,.187,.250,.313,.375],al6061:[.063,.080,.100,.125,.187,.250,.313,.375]};
+const HG_PART={tab:'Weld-on pipe tab',body:'Body-side tab',pair:'Tab pair',rod:'Bent rod hanger',ring:'Split ring clamp'};
+const bothL=mm=>(mm/25.4).toFixed(mm<25.4?3:2)+' in ('+(Math.abs(mm)<10?mm.toFixed(2):mm.toFixed(1))+' mm)';
+const hgThick=t=>t>=0.1?'0.'+String(Math.round(t*1000)).padStart(3,'0').replace(/0$/,'')+' in':'0.'+String(Math.round(t*1000)).padStart(3,'0')+' in';
+
+/* ---- DXF (R12, mm): outlines as LINE and ARC, round holes as CIRCLE; parts laid side by side */
+function hgDxf(parts){
+  const out=['0','SECTION','2','HEADER','9','$INSUNITS','70','4','9','$MEASUREMENT','70','1','0','ENDSEC','0','SECTION','2','ENTITIES'];
+  const f=v=>(Math.abs(v)<1e-9?0:v).toFixed(4);
+  const seg=(s,dx,dy)=>{
+    if(s.t==='L'){ out.push('0','LINE','8','CUT','10',f(s.a[0]+dx),'20',f(s.a[1]+dy),'30','0','11',f(s.b[0]+dx),'21',f(s.b[1]+dy),'31','0'); return; }
+    const sw=HG.sweepOf(s), a0=s.a0*180/Math.PI, a1=(s.a0+sw)*180/Math.PI;
+    const [st,en]=sw>=0?[a0,a1]:[a1,a0];           // DXF arcs run counter-clockwise from start to end
+    out.push('0','ARC','8','CUT','10',f(s.c[0]+dx),'20',f(s.c[1]+dy),'30','0','40',f(s.r),'50',f(((st%360)+360)%360),'51',f(((en%360)+360)%360));
+  };
+  let x=0;
+  for(const p of parts){
+    const pts=HG.sample(p.outline,1).concat(p.lower?HG.sample(p.lower,1):[]), minX=Math.min(...pts.map(q=>q[0])), maxX=Math.max(...pts.map(q=>q[0]));
+    const dx=x-minX, dy=0;
+    p.outline.forEach(s=>seg(s,dx,dy)); if(p.lower) p.lower.forEach(s=>seg(s,dx,dy));
+    for(const h of p.holes){ if(h.t==='C') out.push('0','CIRCLE','8','CUT','10',f(h.c[0]+dx),'20',f(h.c[1]+dy),'30','0','40',f(h.r)); else h.segs.forEach(s=>seg(s,dx,dy)); }
+    x+=maxX-minX+15;
+  }
+  out.push('0','ENDSEC','0','EOF');
+  return out.join('\r\n')+'\r\n';
+}
+// SVG path data for an outline (y up in the part, so y is flipped), with a transform
+function hgPath(segs,T,close){
+  let d='';
+  segs.forEach((s,i)=>{ const p0=T(HG.at(s,0)), p1=T(HG.at(s,1));
+    if(i===0) d+='M'+p0[0].toFixed(2)+' '+p0[1].toFixed(2);
+    if(s.t==='L') d+=' L'+p1[0].toFixed(2)+' '+p1[1].toFixed(2);
+    else { const sw=HG.sweepOf(s), r=s.r*T.k; d+=' A'+r.toFixed(2)+' '+r.toFixed(2)+' 0 '+(Math.abs(sw)>Math.PI?1:0)+' '+(sw>0?0:1)+' '+p1[0].toFixed(2)+' '+p1[1].toFixed(2); } });
+  return d+(close===false?'':' Z');
+}
+const hgHolePath=(h,T)=>h.t==='C'?(()=>{ const c=T(h.c), r=h.r*T.k; return 'M'+(c[0]+r).toFixed(2)+' '+c[1].toFixed(2)+' a'+r.toFixed(2)+' '+r.toFixed(2)+' 0 1 0 '+(-2*r).toFixed(2)+' 0 a'+r.toFixed(2)+' '+r.toFixed(2)+' 0 1 0 '+(2*r).toFixed(2)+' 0'; })():hgPath(h.segs,T);
+
+/* ---- strength: the load each part takes before it yields (printed: before it breaks), for the weight it carries.
+   Pulling straight along the tab: the net section (the narrowest width across it, holes taken out) in tension, and
+   tear-out past the hole (two shear planes, shear yield 0.577 × yield, von Mises). Sideways: the tab bending flat
+   about its root. Rod: bending at the end of the weld from the load on the pin. */
+function hgNet(part,y0,y1){ const sc=hgScan(part,y0,y1); return sc.reduce((m,q)=>q.w<m.w?q:m,{w:1e9,y:y0}); }
+function hgScan(part,y0,y1){
+  const pts=HG.sample(part.outline,0.4), out=[];
+  for(let y=y0;y<=y1+1e-9;y+=Math.max(0.25,(y1-y0)/200)){
+    const xs=[];
+    for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length]; if((a[1]>y)!==(b[1]>y)) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); }
+    xs.sort((a,b)=>a-b); let w=0; for(let k=0;k+1<xs.length;k+=2) w+=xs[k+1]-xs[k];
+    for(const h of part.holes){ const dy=Math.abs(y-h.c[1]); if(h.t==='C'&&dy<h.r) w-=2*Math.sqrt(h.r*h.r-dy*dy);
+      if(h.t==='S'){ const lo=Math.min(h.c[1]-h.len/2,h.c[1]+h.len/2)-h.r, hi=lo+h.len+2*h.r; if(y>lo&&y<hi) w-=2*h.r; } }
+    out.push({w,y});
+  }
+  return out;
+}
+function hgEdge(part,c,dir){   // distance from c along dir to the outline
+  const pts=HG.sample(part.outline,0.3); let best=1e9;
+  for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length], e=HG.sub(b,a), den=dir[0]*e[1]-dir[1]*e[0];
+    if(Math.abs(den)<1e-12) continue;
+    const w=HG.sub(a,c), t=(w[0]*e[1]-w[1]*e[0])/den, u=(w[0]*dir[1]-w[1]*dir[0])/den;
+    if(t>0&&u>=0&&u<=1) best=Math.min(best,t); }
+  return best;
+}
+function hgStrength(o,part,mat){
+  const fy=mat.fy, t=o.t, rows=[];
+  if(part.kind==='weldTab'||part.kind==='bodyTab'){
+    const body=part.kind==='bodyTab', hs=part.holes.filter(h=>h.what!=='lightening hole'&&h.what!=='mounting hole'&&h.what!=='mounting slot');
+    const hole=body?hs[0]:hs[hs.length-1];                   // the pipe hangs from its top hole; the body tab carries it from below
+    // the section the load crosses: from above the tube (an across tab's lower edge is the cope) or the mount, to the hole
+    const yA=body?hole.c[1]:Math.max(part.dims.fy,part.along?0:o.od/2)+0.3, yB=body?part.dims.len-0.3:hole.c[1];
+    const lo=Math.min(yA,yB), hi=Math.max(yA,yB), scan=hgScan(part,lo,hi), net=scan.reduce((m,q)=>q.w<m.w?q:m,{w:1e9,y:lo});
+    rows.push({m:'Pulling apart across the narrowest section',F:fy*net.w*t,how:'net width '+bothL(net.w)+' × '+bothL(t)});
+    const e=hgEdge(part,hole.c,body?[0,-1]:[0,1])-hole.r;
+    rows.push({m:'Tearing out past the '+(body?'isolator hole':'top hole'),F:0.577*fy*2*e*t,how:bothL(e)+' of metal '+(body?'below':'above')+' the hole, two shear planes'});
+    // sideways: a push at the hole bends the tab flat; the worst section is where width ÷ lever is smallest
+    let sw=null;
+    for(const q of scan){ const lev=Math.abs(hole.c[1]-q.y); if(lev<1||q.w<=0) continue; const F=fy*q.w*t*t/(6*lev); if(!sw||F<sw.F) sw={F,w:q.w,lev}; }
+    const root=body?part.dims.len:(part.along?part.dims.fy:o.od/2), levR=Math.abs(hole.c[1]-root), wR=body?(part.dims.w||part.dims.spacing||30):part.dims.foot, FR=fy*wR*t*t/(6*Math.max(levR,1));
+    if(!sw||FR<sw.F) sw={F:FR,w:wR,lev:levR};
+    if(sw) rows.push({m:'Bending sideways (along the '+(body?'mount':'tube')+')',F:sw.F,how:bothL(sw.w)+' wide, '+bothL(sw.lev)+' below the hole; the weak way for a flat tab',side:1});
+  } else if(part.kind==='rod'){
+    const sh=part.sheet, pinRoot=part.dims.pin[0][0], dir=part.shape==='j'?-1:1, pos=o.ipos>0?Math.min(o.ipos,sh.pin):sh.pin/2;
+    const uLoad=pinRoot+dir*pos, lever=Math.abs(uLoad-sh.weld), d=part.rod;
+    if(lever>0.5) rows.push({m:'Bending the rod at the end of the weld',F:fy*Math.PI*d*d*d/(32*lever),how:'load '+bothL(lever)+' out from the weld, '+bothL(d)+' rod'});
+  } else if(part.kind==='ring'){
+    const yTop=part.dims.reach, net=hgNet(part,part.dims.Rout,yTop);
+    rows.push({m:'Pulling the mounting boss off the ring',F:fy*net.w*o.width,how:'net width '+bothL(net.w)+' × '+bothL(o.width)+' printed or machined thickness'});
+    const e=hgEdge(part,[0,yTop],[0,1])-o.mhole/2;
+    rows.push({m:'Tearing out past the mounting hole',F:0.577*fy*2*e*o.width,how:bothL(e)+' of material above the hole'});
+  }
+  return rows;
+}
+
+/* ---- the parts for the inputs, the drawing and the cut files */
+function hgParts(o){
+  const parts=[];
+  if(o.part==='tab'||o.part==='pair'){
+    const p=HANG.weldTab({od:o.od,t:o.t,reach:o.reach,hole:o.hole,nh:o.nh,pitch:o.pitch,foot:o.foot,style:o.style,orient:o.orient,lighten:o.light});
+    p.name='Pipe tab'; parts.push(p);
+  }
+  if(o.part==='body'||o.part==='pair'){
+    const hole=o.part==='pair'?o.bolt+1.0:o.hole;
+    const p=HANG.bodyTab({hole,len:o.blen,t:o.t,mount:o.bmount,nm:o.bn,ms:o.bs,mhole:o.bmh,slot:o.bslot,style:o.style,lighten:o.light});
+    p.name='Body tab'; parts.push(p);
+  }
+  if(o.part==='rod'){ const p=HANG.rod({od:o.od,rod:o.rod,reach:o.reach,weld:o.weld,pin:o.pin,angle:o.ang,shape:o.shape,bendR:o.bend}); p.name='Rod hanger'; parts.push(p); }
+  if(o.part==='ring'){ const p=HANG.ring({od:o.od,liner:o.liner,wall:o.wall,bolt:o.cbolt,mhole:o.rmh,reach:o.reach,width:o.width}); p.name='Ring clamp'; parts.push(p); }
+  return parts;
+}
+function hgRead(){
+  const v=id=>val(id), part=$('hg-part').value;
+  return {part,use:$('hg-for').value,style:$('hg-style').value,od:v('hg-od'),reach:v('hg-reach'),orient:$('hg-orient').value,nh:Math.max(1,Math.round(v('hg-nh')||1)),
+    pitch:v('hg-pitch')||0,foot:v('hg-foot')||0,light:$('hg-light').value==='1',grom:$('hg-grom').value,hole:v('hg-hole'),bolt:v('hg-bolt'),
+    blen:v('hg-blen'),bmount:$('hg-bmount').value,bn:+$('hg-bn').value,bs:v('hg-bs')||0,bmh:v('hg-bmh'),bslot:v('hg-bslot')||0,gap:v('hg-gap')||0,
+    rod:v('hg-rod'),bend:v('hg-bend')||0,ang:v('hg-ang'),weld:v('hg-weld'),pin:v('hg-pin'),shape:$('hg-shape').value,strap:$('hg-strap').value,ipos:v('hg-ipos')||0,
+    wall:v('hg-wall')||0,width:v('hg-width'),liner:v('hg-liner')||0,cbolt:+$('hg-cbolt').value,rmh:v('hg-rmh'),
+    mat:$('hg-mat').value,t:v('hg-t'),w:v('hg-w')};
+}
+// which fields go with which part
+function hgFields(o){
+  const plate=o.part==='tab'||o.part==='body'||o.part==='pair', tab=o.part==='tab'||o.part==='pair', body=o.part==='body'||o.part==='pair';
+  const show=(id,on)=>{ const el=$(id); if(el) el.hidden=!on; };
+  show('hg-style-w',plate); show('hg-orient-w',tab); show('hg-nh-w',tab); show('hg-pitch-w',tab&&o.nh>1); show('hg-foot-w',tab); show('hg-light-w',plate);
+  show('hg-od-w',true); show('hg-reach-w',true);
+  show('hg-g-body',body); show('hg-body',body); show('hg-bs-w',body&&o.bmount==='bolt'&&o.bn>1); show('hg-bmh-w',body&&o.bmount==='bolt'); show('hg-bslot-w',body&&o.bmount==='bolt'); show('hg-bn-w',body&&o.bmount==='bolt');
+  show('hg-gap-w',o.part==='pair');
+  show('hg-g-iso',o.part!=='ring'); show('hg-iso',o.part!=='ring'); show('hg-grom-w',plate); show('hg-strap-w',o.part==='rod'); show('hg-hole-w',plate&&o.part!=='pair'||o.part==='pair'); show('hg-bolt-w',plate);
+  show('hg-g-rod',o.part==='rod'); show('hg-rodf',o.part==='rod');
+  show('hg-g-ring',o.part==='ring'); show('hg-ringf',o.part==='ring'); show('hg-t-w',o.part!=='ring'&&o.part!=='rod');
+  $('hg-reach-lab').textContent=o.part==='rod'?'Tube centre to the pin centre':o.part==='ring'?'Tube centre to the mounting hole':o.part==='body'?'Tube centre to the isolator hole (where Fusion puts it)':'Tube centre to the hole';
+  $('hg-hole-lab').textContent=o.part==='pair'?'Grommet hole in the pipe tab':'Hole for the grommet or bolt';
+}
+document.addEventListener('change',e=>{
+  const id=e.target&&e.target.id;
+  const put=(fid,mm)=>{ const el=$(fid); if(el&&mm>0){ el._b=mm; showInput(el); } };
+  if(id==='hg-grom'){ const g=HG_GROM[e.target.value]; if(g){ if(g.hole>0) put('hg-hole',g.hole); else if(g.bolt>0) put('hg-hole',g.bolt+1.0); if(g.bolt>0) put('hg-bolt',g.bolt); if(g.plate>0) put('hg-t',g.plate); } }
+  if(id==='hg-part'){ const v=e.target.value, m=$('hg-mat'), R=val('hg-od')/2;
+    if(v==='ring'){ if(m&&!HG_MAT[m.value].print) m.value='asa'; const f=$('hg-for'); if(f) f.value='int'; }
+    else if(m&&HG_MAT[m.value].print) m.value='ss304';
+    // a reach that fits the new part
+    const rod=val('hg-rod')||9.525, bend=val('hg-bend')>0?val('hg-bend'):1.5*rod, ang=(val('hg-ang')||90)*Math.PI/180;
+    const minR=v==='rod'?R+rod/2+bend*(1-Math.cos(ang))*2+12:v==='ring'?R+(val('hg-wall')||6)+22:0;
+    if(minR>0&&val('hg-reach')<minR) put('hg-reach',Math.ceil(minR/6.35)*6.35); }
+  if(id==='hg-mat'&&HG_MAT[e.target.value]&&HG_MAT[e.target.value].print&&$('hg-part').value!=='ring'){ $('hg-part').value='ring'; }
+},true);
+
+/* ---- the drawing: the part to scale where it sits on the tube, with its dimensions in inches and millimetres */
+function drawHang(svg,o,parts){
+  clearSvg(svg);
+  const W=widthOf(svg), Ro=o.od/2;
+  // what is in the picture, in part mm (y up): the parts placed, the tube
+  const items=[]; let tubeKind=null;
+  const P0=parts[0];
+  if(o.part==='rod') tubeKind='band'; else if(o.part==='body') tubeKind=null; else tubeKind=o.part!=='ring'&&o.orient==='along'?'band':'circle';
+  const place=(p,dx,dy)=>({p,dx,dy});
+  if(o.part==='pair'){ const top=P0.dims.ys[P0.dims.ys.length-1]; items.push(place(P0,0,0),place(parts[1],0,top)); }
+  else items.push(place(P0,0,0));
+  const pts=[];
+  for(const it of items){ const segs=it.p.kind==='rod'?it.p.path:it.p.outline; HG.sample(segs,1).forEach(q=>pts.push([q[0]+it.dx,q[1]+it.dy])); if(it.p.lower) HG.sample(it.p.lower,1).forEach(q=>pts.push([q[0]+it.dx,q[1]+it.dy])); }
+  if(tubeKind==='circle') pts.push([-Ro,-Ro],[Ro,Ro]);
+  if(tubeKind==='band'){ const xs=pts.map(q=>q[0]); pts.push([Math.min(...xs)-10,-Ro],[Math.max(...xs)+10,Ro]); }
+  if(o.part==='rod'){ pts.push([0,o.reach+o.rod]); }
+  let x0=Math.min(...pts.map(q=>q[0])), x1=Math.max(...pts.map(q=>q[0])), y0=Math.min(...pts.map(q=>q[1])), y1=Math.max(...pts.map(q=>q[1]));
+  const padL=26, padR=150, padT=24, padB=o.part==='ring'?64:46, Hmax=Math.min(560,Math.max(300,W*0.95));
+  const k=Math.min((W-padL-padR)/Math.max(1,x1-x0),(Hmax-padT-padB)/Math.max(1,y1-y0));
+  const H=Math.round((y1-y0)*k+padT+padB);
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.setAttribute('height',H);
+  const ox=padL+((W-padL-padR)-(x1-x0)*k)/2-x0*k, oy=padT+y1*k;
+  const T=q=>[ox+q[0]*k,oy-q[1]*k]; T.k=k;
+  const st=(fill,stroke,w,extra)=>'fill:'+fill+';stroke:'+stroke+';stroke-width:'+w+(extra||'');
+  // the tube
+  if(tubeKind==='circle'){ const c=T([0,0]); mk('circle',{cx:c[0],cy:c[1],r:Ro*k,style:st('var(--well)','var(--muted)',1,';stroke-dasharray:5 3')},svg);
+    mk('line',{x1:c[0]-6,x2:c[0]+6,y1:c[1],y2:c[1],style:st('none','var(--muted)',1)},svg); mk('line',{x1:c[0],x2:c[0],y1:c[1]-6,y2:c[1]+6,style:st('none','var(--muted)',1)},svg); }
+  if(tubeKind==='band'){ const a=T([x0,Ro]), b=T([x1,-Ro]); mk('rect',{x:a[0],y:a[1],width:b[0]-a[0],height:b[1]-a[1],style:st('var(--well)','var(--muted)',1,';stroke-dasharray:5 3')},svg);
+    const c1=T([x0,0]), c2=T([x1,0]); mk('line',{x1:c1[0],x2:c2[0],y1:c1[1],y2:c2[1],style:st('none','var(--muted)',0.8,';stroke-dasharray:12 3 2 3')},svg); }
+  // the parts
+  items.forEach((it,i)=>{
+    const Ti=q=>T([q[0]+it.dx,q[1]+it.dy]); Ti.k=k;
+    if(it.p.kind==='rod'){ mk('path',{d:hgPath(it.p.path,Ti,false),style:st('none','var(--t2)',Math.max(2,it.p.rod*k),';stroke-linecap:round;stroke-linejoin:round;opacity:.9')},svg);
+      mk('path',{d:hgPath(it.p.path,Ti,false),style:st('none','var(--ink)',0.8,';stroke-dasharray:6 3 1.5 3')},svg); return; }
+    let d=hgPath(it.p.outline,Ti); if(it.p.lower) d+=' '+hgPath(it.p.lower,Ti);
+    d+=' '+it.p.holes.map(h=>hgHolePath(h,Ti)).join(' ');
+    mk('path',{d,style:st(i?'var(--t4)':'var(--t2)','var(--ink)',1.2,';fill-rule:evenodd;fill-opacity:'+(i?'.55':'.8'))},svg);
+    it.p.holes.forEach(h=>{ const c=Ti(h.c); mk('line',{x1:c[0]-h.r*k-3,x2:c[0]+h.r*k+3,y1:c[1],y2:c[1],style:st('none','var(--muted)',0.6)},svg); mk('line',{x1:c[0],x2:c[0],y1:c[1]-h.r*k-3,y2:c[1]+h.r*k+3,style:st('none','var(--muted)',0.6)},svg); });
+    if(it.p.bolts) it.p.bolts.forEach(b=>[1,-1].forEach(s=>{ const a=Ti([s*b.x,b.y0]), c=Ti([s*b.x,b.y1]); mk('line',{x1:a[0],x2:c[0],y1:a[1],y2:c[1],style:st('none','var(--ink)',0.9,';stroke-dasharray:4 2')},svg); }));
+  });
+  // dimensions, on the right
+  const ink='var(--ink)';
+  let col=0;
+  const dimV=(ya,yb,label,xr)=>{ const A=T([0,ya]), B=T([0,yb]), X=(xr!=null?T([xr,0])[0]:T([x1,0])[0])+18+col*0;
+    mk('line',{x1:X,x2:X,y1:A[1],y2:B[1],style:st('none',ink,0.9)},svg);
+    [A,B].forEach(p=>{ mk('line',{x1:X-4,x2:X+4,y1:p[1],y2:p[1],style:st('none',ink,0.9)},svg); mk('line',{x1:Math.min(p[0],X)-0,x2:X,y1:p[1],y2:p[1],style:st('none','var(--muted)',0.5,';stroke-dasharray:2 2')},svg); });
+    const t=mk('text',{x:X+6,y:(A[1]+B[1])/2+4,style:'font-size:11px;fill:var(--ink)'},svg); t.textContent=label; };
+  const dimH=(y,xa,xb,label,below)=>{ const A=T([xa,y]), B=T([xb,y]), Y=A[1]+(below?14:-10);
+    mk('line',{x1:A[0],x2:B[0],y1:Y,y2:Y,style:st('none',ink,0.9)},svg);
+    [A,B].forEach(p=>mk('line',{x1:p[0],x2:p[0],y1:Y-4,y2:Y+4,style:st('none',ink,0.9)},svg));
+    const t=mk('text',{x:(A[0]+B[0])/2,y:Y+(below?13:-4),style:'font-size:11px;fill:var(--ink);text-anchor:middle'},svg); t.textContent=label; };
+  const call=(q,label)=>{ const A=T(q), X=T([x1,0])[0]+18; mk('path',{d:'M'+A[0].toFixed(1)+' '+A[1].toFixed(1)+' L'+(X-4)+' '+(A[1]-14).toFixed(1)+' H'+(X+2),style:st('none','var(--muted)',0.7)},svg);
+    const t=mk('text',{x:X+6,y:A[1]-10,style:'font-size:11px;fill:var(--ink)'},svg); t.textContent=label; };
+  if(P0.kind==='weldTab'){
+    const top=P0.dims.ys[P0.dims.ys.length-1];
+    if(o.part!=='pair') dimV(0,top,bothL(top)+' to the '+(P0.dims.ys.length>1?'top hole':'hole'));
+    dimH(P0.dims.fy,-P0.dims.foot/2,P0.dims.foot/2,'foot '+bothL(P0.dims.foot),true);
+    const h=P0.holes[P0.holes.length-1]&&P0.holes.find(q=>q.what!=='lightening hole');
+    if(o.part!=='pair') call([h.r*0.7,top+h.r*0.7],'Ø'+bothL(2*h.r));
+  }
+  if(o.part==='pair'){ const top=P0.dims.ys[P0.dims.ys.length-1], B=parts[1];
+    dimV(0,top,bothL(top)+' pipe tab');
+    dimV(top,top+B.dims.len,bothL(B.dims.len)+' body tab', x1);
+    call([0,top+B.dims.len+ (B.dims.top?0:0)],'mount line '+bothL(top+B.dims.len)+' above the tube centre'); }
+  if(o.part==='body'){ dimV(0,P0.dims.len,bothL(P0.dims.len)+' hole to mount'); if(P0.dims.spacing) dimH(P0.dims.len,-P0.dims.spacing/2,P0.dims.spacing/2,bothL(P0.dims.spacing)+' apart'); }
+  if(P0.kind==='rod'){ const s=P0.sheet, pin=P0.dims.pin;
+    dimV(0,o.reach,bothL(o.reach)+' to the pin');
+    dimH(-Ro,0,s.weld,'weld '+bothL(s.weld),true);
+    dimH(pin[0][1]+o.rod/2,pin[0][0],pin[1][0],'pin '+bothL(s.pin));
+  }
+  if(P0.kind==='ring'){ const d=P0.dims; dimV(0,d.reach,bothL(d.reach)+' to the hole'); dimH(-d.Rout-6,-d.xe,d.xe,'bolts '+bothL(2*d.xe)+' apart',true); call([d.Ri*0.7,-d.Ri*0.7],'bore Ø'+bothL(2*d.Ri)); }
+  return k;
+}
+
+/* ---- the tab */
+function renderHang(){
+  const o=hgRead(); hgFields(o);
+  const key=$('hg-key'), det=$('hg-details'), svg=$('hg-svg');
+  const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; det.innerHTML=hgFusion(); clearSvg(svg); $('hg-cap').textContent=''; HG_UI.last=null; };
+  const need=[['hg-od',o.part!=='body'],['hg-reach',o.part!=='body'],['hg-t',o.part!=='ring'&&o.part!=='rod'],['hg-hole',o.part!=='ring'&&o.part!=='rod'],['hg-rod',o.part==='rod'],['hg-weld',o.part==='rod'],['hg-pin',o.part==='rod'],['hg-width',o.part==='ring'],['hg-blen',o.part==='body'||o.part==='pair']];
+  for(const [id,on] of need) if(on&&!(val(id)>0)) return fail('Fill in '+($(id).closest('label').querySelector('.lab').textContent.toLowerCase())+' with a positive number.');
+  const mat=HG_MAT[o.mat];
+  if(mat.print&&o.part!=='ring') return fail('Printed plastic is for the ring clamp only: pick a metal for a welded or laser-cut part.');
+  if(!mat.print&&o.part==='ring'&&!/6061|5052/.test(o.mat)&&o.mat!=='a36'&&o.mat!=='ss304') return fail('Pick a material for the clamp.');
+  let parts; try{ parts=hgParts(o); }catch(e){ return fail(e.message); }
+  HG_UI.last={o,parts};
+  const P0=parts[0], N=o.w*9.80665, notes=[];
+  // the key figures
+  const sizeOf=p=>{ const q=HG.sample(p.kind==='rod'?p.path:p.outline,1).concat(p.lower?HG.sample(p.lower,1):[]), xs=q.map(a=>a[0]), ys=q.map(a=>a[1]); return [Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys)]; };
+  const plateArea=p=>{ const A=HG.area(HG.sample(p.outline,0.5))+(p.lower?HG.area(HG.sample(p.lower,0.5)):0); return A-p.holes.reduce((a,h)=>a+(h.t==='C'?Math.PI*h.r*h.r:Math.PI*h.r*h.r+2*h.r*h.len),0); };
+  let figs='';
+  if(P0.kind==='rod'){ figs+=figL('Rod to cut',P0.sheet.cut,'l')+figT('Bends',Math.round(P0.a)+'° and '+Math.round(P0.a2)+'°','','at '+bothL(P0.R)+' radius'); }
+  else { const sz=sizeOf(P0); figs+=figT(P0.name,'','',bothL(sz[0])+' × '+bothL(sz[1]));
+    if(parts[1]){ const s2=sizeOf(parts[1]); figs+=figT(parts[1].name,'','',bothL(s2[0])+' × '+bothL(s2[1])); } }
+  const rows=parts.flatMap(p=>hgStrength(o,p,mat).map(r=>Object.assign(r,{part:p.name})));
+  const worst=rows.filter(r=>!r.side).sort((a,b)=>a.F-b.F)[0], side=rows.filter(r=>r.side).sort((a,b)=>a.F-b.F)[0];
+  if(worst&&N>0) figs+=figT('Holds before '+(mat.print?'breaking':'yielding'),(worst.F/N).toFixed(worst.F/N<10?1:0),'× its weight',Math.round(worst.F)+' N ('+Math.round(worst.F/4.44822)+' lbf) pulling','');
+  if(side&&N>0) figs+=figT('Sideways','',(side.F/N).toFixed(side.F/N<10?1:0)+'× its weight',Math.round(side.F)+' N ('+Math.round(side.F/4.44822)+' lbf) across the tab','');
+  if(!mat.print&&P0.kind!=='rod'){ const g=parts.reduce((a,p)=>a+plateArea(p)*o.t*mat.rho/1000,0); figs+=figT('Weight',g.toFixed(g<10?1:0),'g',(g/28.3495).toFixed(2)+' oz',''); }
+  key.innerHTML='<div class="figs">'+figs+'</div>';
+  const k=drawHang(svg,o,parts);
+  $('hg-cap').textContent=(o.part==='rod'?'Side view along the tube, rod centreline dashed, bends '+bothL(P0.R)+' radius':'Face view')+', to scale'+(o.part==='pair'?': the body tab (lighter) bolted through the grommet in the pipe tab':'')+'. Dimensions in inches and millimetres.';
+  // details
+  let h='';
+  if(P0.kind!=='rod'){
+    h+=sec('Cut file','<p class="cap" style="margin-top:0">A DXF of the flat '+(parts.length>1?'parts':'part')+' in millimetres, outlines and holes on one layer (CUT), ready for a laser or waterjet service.'+(o.part==='ring'?' For printing, build it in Fusion and export the body.':'')+'</p><div class="actions"><button type="button" class="btn" data-hg="dxf">Save the DXF</button></div><p class="cap" id="hg-msg"></p>'+hgChecks(o,parts,mat));
+  } else {
+    const s=P0.sheet;
+    h+=sec('Bend sheet','<div class="tblwrap"><table><thead><tr><th>Step</th><th>Along the rod from the weld end</th><th>Do</th></tr></thead><tbody>'+
+      '<tr><td>1</td><td>'+bothL(0)+' to '+bothL(s.weld)+'</td><td>Weld leg, straight</td></tr>'+
+      '<tr><td>2</td><td>mark at '+bothL(s.marks[0])+'</td><td>Bend '+Math.round(P0.a)+'° on a '+bothL(P0.R)+' radius die</td></tr>'+
+      (s.straight>0.05?'<tr><td>3</td><td>'+bothL(s.straight)+' straight</td><td>Rise</td></tr>':'')+
+      '<tr><td>'+(s.straight>0.05?4:3)+'</td><td>mark at '+bothL(s.marks[1])+'</td><td>Bend '+Math.round(P0.a2)+'° '+(P0.shape==='j'?'the same way, back over the weld leg':'back the other way, to run along the tube')+'</td></tr>'+
+      '<tr><td>'+(s.straight>0.05?5:4)+'</td><td>'+bothL(s.pin)+'</td><td>Pin, straight</td></tr></tbody></table></div>'+
+      '<p class="cap">Cut '+bothL(s.cut)+' of rod (centreline: straights plus '+bothL(s.arc1)+' and '+bothL(s.arc2)+' of bend). Marks are bend starts on the centreline; check them against your bender, which may need a different allowance. No published minimum bend radius for hanger rod was found, so the default is 1.5 × the rod; use your die’s radius.</p>');
+  }
+  // strength
+  if(rows.length){
+    h+=sec('Strength','<div class="tblwrap"><table><thead><tr><th>Part</th><th>Failure mode</th><th>Load</th><th>× its weight</th></tr></thead><tbody>'+
+      rows.map(r=>'<tr><td>'+esc(r.part)+'</td><td>'+esc(r.m)+'<br><small>'+esc(r.how)+'</small></td><td>'+Math.round(r.F)+' N<br><small>'+Math.round(r.F/4.44822)+' lbf</small></td><td>'+(N>0?(r.F/N).toFixed(1):'')+'</td></tr>').join('')+'</tbody></table></div>'+
+      '<p class="cap">Loads where the '+(mat.print?'printed part breaks (its in-plane tensile strength, '+mat.fy+' MPa; layers across the load are weaker)':'metal starts to yield ('+esc(mat.src)+')')+', for '+mass(o.w)+' hanging on this one. No published load factor for exhaust hangers was found, so pick your own margin for bumps; the welds are taken as strong as the parts. A flat tab is many times weaker sideways than along itself: line it up with the load, and with the pipe’s heat growth (Deeds: hang dog-bone isolators in line with the pipe so they swing as it grows).</p>');
+  }
+  // isolator
+  if(P0.kind==='rod'){ const s=HG_STRAP[o.strap]; if(s&&s.cc) h+=sec('Isolator',rowT(s.name,bothL(s.cc)+' between holes',(s.hole?bothL(s.hole)+' holes. ':'')+esc(s.note))+'<p class="cap">The body-side rod goes '+bothL(s.cc)+' above this pin. <a href="'+s.src+'" target="_blank" rel="noopener">Source</a>.</p>'); }
+  else if(o.part!=='ring'){ const g=HG_GROM[o.grom]; if(g) h+=sec('Grommet',rowT(g.name,g.hole?bothL(g.hole)+' hole':'—',esc(g.note))+(g.plate&&Math.abs(g.plate-o.t)>0.2?'<div class="note warn">This grommet is made for '+bothL(g.plate)+' plate; the tab is '+bothL(o.t)+'.</div>':'')+(g.src?'<p class="cap"><a href="'+g.src+'" target="_blank" rel="noopener">Source</a>.</p>':'')); }
+  if(o.part==='ring'){ const m=HG_MAT[o.mat];
+    h+=sec('Printing',(m.print?rowT(m.name,'softens near '+m.hdt[0]+' °C',m.hdt[1]+' °C under 1.8 MPa, Bambu Lab data sheet'):'')+
+      '<div class="tblwrap"><table><thead><tr><th>Filament</th><th>Heat deflection, 0.45 MPa</th><th>1.8 MPa</th><th>Tensile</th></tr></thead><tbody>'+
+      Object.values(HG_MAT).filter(q=>q.print).map(q=>'<tr><td>'+q.name.replace(', printed','')+'</td><td>'+q.hdt[0]+' °C</td><td>'+q.hdt[1]+' °C</td><td>'+q.fy+' MPa</td></tr>').join('')+'</tbody></table></div>'+
+      '<p class="cap">Print it flat, the face shown here on the bed, so the load runs along the layers. The clamp bolts run through the ears in the plane of the part: the holes are built in Fusion as drawn (dashed here), a bolt and nut through each pair of ears. A strip of rubber or silicone in the '+bothL(o.liner)+' gap stops it rubbing. Engine-bay intake tubes near the head or a turbo run hot: keep PLA and PETG away from them (heat deflection 57 and 69 °C, Bambu Lab).</p>'+
+      (o.use==='exh'?'<div class="note bad">An exhaust runs far hotter than any of these: use a metal clamp there.</div>':''));
+  }
+  h+=hgFusion();
+  det.innerHTML=h;
+}
+// laser service rules (SendCutSend guidelines; docs/research/hangers_brackets.md)
+function hgChecks(o,parts,mat){
+  if(mat.print) return '';
+  const t=o.t, rows=[];
+  for(const p of parts){
+    const pts=HG.sample(p.outline,0.4).concat(p.lower?HG.sample(p.lower,0.4):[]);
+    let edge=1e9, bridge=1e9, minHole=1e9;
+    p.holes.forEach((h,i)=>{ edge=Math.min(edge,HG.distToPoly(h.c,pts)-h.r); minHole=Math.min(minHole,2*h.r);
+      p.holes.forEach((q,j)=>{ if(j>i) bridge=Math.min(bridge,HG.len(HG.sub(h.c,q.c))-h.r-q.r); }); });
+    const need=o.mat==='al5052'?2*t:/6061/.test(o.mat)?1.5*t:t;
+    rows.push([p.name+': metal round the holes',edge,edge>=Math.max(0.5*t,need)?'ok':edge>=0.5*t?'warn':'bad','at least '+bothL(need)+(o.mat==='al5052'?' (2 × thickness for 5052)':/6061/.test(o.mat)?' (1.5–2 × thickness for 6061)':' (1 × thickness)')]);
+    if(bridge<1e9) rows.push([p.name+': between holes',bridge,bridge>=t?'ok':bridge>=0.5*t?'warn':'bad','at least '+bothL(t)+' preferred, '+bothL(0.5*t)+' minimum']);
+    if(/5052|6061/.test(o.mat)) rows.push([p.name+': smallest hole',minHole,minHole>=t?'ok':'bad','at least the thickness for aluminium']);
+  }
+  const stock=HG_STOCK[o.mat]||[], ti=t/25.4, isStock=stock.some(s=>Math.abs(s-ti)<0.004);
+  return '<div class="tblwrap"><table><thead><tr><th>Laser cutting check</th><th>Here</th><th>Rule</th><th></th></tr></thead><tbody>'+
+    rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+bothL(r[1])+'</td><td>'+esc(r[3])+'</td><td class="'+(r[2]==='ok'?'st-ok':r[2]==='warn'?'st-warn':'st-bad')+'">'+(r[2]==='ok'?'ok':r[2]==='warn'?'tight':'too small')+'</td></tr>').join('')+
+    '<tr><td>Plate thickness</td><td>'+bothL(t)+'</td><td>SendCutSend stock: '+stock.map(s=>s.toFixed(3)).join(', ')+' in</td><td class="'+(isStock?'st-ok':'st-warn')+'">'+(isStock?'stock':'not stock')+'</td></tr></tbody></table></div>'+
+    '<p class="cap">SendCutSend’s guidelines: holes and bridges at least half the thickness at the very least, the thickness or more preferred; hole to edge at least the hole diameter is their general advice, which hanger tabs usually beat on strength alone (the table above), so it is not flagged here.</p>';
+}
+function hgFusion(){
+  if(!FUSION) return '';
+  return '<div class="fx"><h3>Fusion</h3><p class="cap" style="margin-top:0">Click the pipe’s outside face where the hanger goes'+
+    ', then Ctrl+click a point, vertex or face on the body where it mounts, if you want the reach measured. The part is built square to the tube there, pointing at the mount, or straight out through the point you clicked.</p>'+
+    '<div class="actions"><button type="button" class="btn" data-hg="pick">Read the tube and reach</button><button type="button" class="btn" data-hg="build">Build it in Fusion</button></div><div class="out" id="fx-out-hang">'+(HG_UI.fx?'<div class="note '+HG_UI.fx[0]+'">'+esc(HG_UI.fx[1])+'</div>':'')+'</div></div>';
+}
+// what the add-in builds: each flat part with where it sits (2-D in the tube's frame, in mm), the rod path, the grommet
+function hgPayload(){
+  const L=HG_UI.last; if(!L) return null;
+  const o=L.o, out={kind:o.part,od_mm:o.od,parts:[],rods:[],cyls:[],cuts:[]};
+  const flat=p=>({outline:p.outline,lower:p.lower||null,holes:p.holes.map(h=>h.t==='C'?{t:'C',c:h.c,r:h.r}:{t:'S',segs:h.segs})});
+  const P0=L.parts[0];
+  if(P0.kind==='weldTab') out.parts.push(Object.assign(flat(P0),{name:'Pipe tab',plane:P0.along?'along':'across',o2:[0,0],off:0,t:o.t}));
+  if(P0.kind==='bodyTab') out.parts.push(Object.assign(flat(P0),{name:'Body tab',plane:'across',o2:[0,o.reach],off:0,t:o.t}));   // its hole where a pipe tab's would be
+  if(o.part==='pair'){ const B=L.parts[1], top=P0.dims.ys[P0.dims.ys.length-1], g=HG_GROM[o.grom]||{}, gap=o.gap>0?o.gap:Math.max(1,((g.h||o.t+6)-o.t)/2);
+    out.parts.push(Object.assign(flat(B),{name:'Body tab',plane:P0.along?'along':'across',o2:[0,top],off:o.t/2+gap+o.t/2,t:o.t}));
+    const gr=(g.od||o.hole+6)/2, gh=g.h||o.t+2*gap;
+    out.cyls.push({name:'Grommet',c2:[0,top],z0:-gh/2,z1:gh/2,r:gr,plane:P0.along?'along':'across'});
+    out.cyls.push({name:'Bolt',c2:[0,top],z0:-gh/2-4,z1:o.t+gap+o.t/2+8,r:o.bolt/2,plane:P0.along?'along':'across'}); }
+  if(P0.kind==='rod') out.rods.push({name:'Rod hanger',path:P0.path,d:P0.rod});
+  if(P0.kind==='ring'){ out.parts.push(Object.assign(flat(P0),{name:'Ring clamp, upper',plane:'across',o2:[0,0],off:0,t:o.width,lower:null}));
+    out.parts.push({name:'Ring clamp, lower',outline:P0.lower,holes:[],plane:'across',o2:[0,0],off:0,t:o.width});
+    P0.bolts.forEach(b=>[1,-1].forEach(s=>out.cuts.push({name:'Clamp bolt',x:s*b.x,y0:b.y0-1,y1:b.y1+1,r:b.d/2+0.2}))); }
+  return out;
+}
+async function hgSave(){
+  const L=HG_UI.last, msg=$('hg-msg'), say=(t,bad)=>{ if(msg){ msg.textContent=t; msg.className='cap'+(bad?' st-bad':''); } };
+  if(!L) return;
+  const P=L.parts.filter(p=>p.outline), text=hgDxf(P.map(p=>p.kind==='ring'?{outline:p.outline,lower:p.lower,holes:p.holes}:p));
+  const name=(L.o.part==='pair'?'hanger_tab_pair':L.o.part==='body'?'body_tab':L.o.part==='ring'?'ring_clamp':'pipe_tab')+'_'+L.o.od.toFixed(1).replace('.','p')+'mm.dxf';
+  window.__hgDxf={name,text};
+  if(FUSION||HOST){ const res=await saveCall('saveText',{filename:name,text,title:'Save the cut file'}); say(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.')); return; }
+  const blob=new Blob([text],{type:'application/dxf'});
+  if(ES_DLP){ const dl=await ES_DLP; if(!dl){ say('Saving files is not available in this view.',true); return; }
+    try{ await dl.save({filename:name,data:blob}); say('Saved '+name+'.'); }catch(e){ const c=e&&e.code; say(c==='declined'?'Not saved.':'This view could not save the file ('+(c||'error')+').',c!=='declined'); } return; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+  say('Downloaded '+name+'.');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-hg]'); if(!b) return;
+  const act=b.dataset.hg;
+  if(act==='dxf'){ hgSave(); return; }
+  // the message stays in HG_UI.fx, so a re-render of the tab keeps it
+  const say=(cls,t)=>{ HG_UI.fx=[cls,t]; const o2=$('fx-out-hang'); if(o2) o2.innerHTML='<div class="note '+cls+'">'+esc(t)+'</div>'; };
+  if(act==='pick'){ say('','Reading the selection…');
+    fusionCall('hangPick',{}).then(res=>{
+      if(!res||!res.ok){ say('bad',(res&&res.msg)||'No answer from Fusion.'); return; }
+      const put=(id,mm)=>{ const el=$(id); if(el&&mm>0){ el._b=mm; showInput(el); } };
+      if(res.od_mm>0) put('hg-od',res.od_mm);
+      if(res.reach_mm>0){ const o=hgRead(), stack=o.part==='pair'?o.blen:0; put('hg-reach',Math.max(1,res.reach_mm-stack)); }
+      HG_UI.fx=['ok',res.msg]; renderActive(); });
+    return; }
+  if(act==='build'){ const pay=hgPayload(); if(!pay){ say('bad','Fix the inputs first.'); return; }
+    say('','Building in Fusion…');
+    fusionCall('hang',{hanger:pay,title:HG_PART[pay.kind]}).then(res=>say(res&&res.ok?'ok':'bad',(res&&res.msg)||'No answer from Fusion.')); }
+});
+window.__hang={HG,HANG,hgRead,hgParts,hgDxf,hgPayload,hgStrength,HG_GROM,HG_MAT,last:()=>HG_UI.last,val:id=>val(id),snap:()=>projSnapshot('t'),
+  set:(id,mm)=>{ const el=$(id); el._b=mm; showInput(el); el.dispatchEvent(new Event('input',{bubbles:true})); }};
+
 /* ===== Tube skin temperature and heat clearance (docs/research/header_skin_temperature.md) =====
    Along the tube, per unit length: gas to wall by Gnielinski (Petukhov friction factor) times an enhancement for
    pulsating exhaust flow (CAF: 2.5 fitted on a gasoline car by Konstantinidis, Koltsakis and Stamatelos 1997; 2.3
@@ -12343,7 +13074,7 @@ const LOUD_TXT={'-2':'much quieter','-1':'quieter','0':'about the same','1':'lou
 const DRONE_TXT={'-2':'cures drone','-1':'less drone','0':'no change','1':'more drone risk','2':'much more drone risk'};
 const STREET_TXT={ok:'Street: usually fine',noise:'Street: watch the 95 dBA limit for cars',eo:'Street in CA: needs a CARB EO',race:'Race or off-road'};
 const OPT_STATE={goals:[]};
-const TAB_NAME={intake:'Intake',parts:'Parts','quick':'Quick','four-stroke':'4-Stroke','two-stroke':'2-Stroke','sound':'Sound','headers':'Headers','crossover':'Crossover','mufflers':'Mufflers','cats':'Cats','boom-tubes':'Boom tubes'};
+const TAB_NAME={intake:'Intake',parts:'Parts','quick':'Quick','four-stroke':'4-Stroke','two-stroke':'2-Stroke','sound':'Sound','headers':'Headers','crossover':'Crossover','mufflers':'Mufflers','cats':'Cats','boom-tubes':'Boom tubes','hangers':'Hangers'};
 function renderOpt(){
   const gEl=$('o-goals');
   if(!gEl.childElementCount){
@@ -16565,7 +17296,7 @@ function renderIntake(){
 }
 
 /* ===== tabs, events, copy ===== */
-const TABS={'quick':{panel:'panel-quick',tab:'tab-quick',render:renderQuick},'four-stroke':{panel:'panel-four',tab:'tab-four',render:renderFour},'two-stroke':{panel:'panel-two',tab:'tab-two',render:renderTwo},'sound':{panel:'panel-sound',tab:'tab-sound',render:renderSound},'headers':{panel:'panel-headers',tab:'tab-headers',render:renderHeaders},'crossover':{panel:'panel-cross',tab:'tab-cross',render:renderCross},'mufflers':{panel:'panel-muf',tab:'tab-muf',render:renderMuf},'cats':{panel:'panel-cat',tab:'tab-cat',render:renderCat},'boom-tubes':{panel:'panel-boom',tab:'tab-boom',render:renderBoom},'intake':{panel:'panel-intake',tab:'tab-intake',render:renderIntake},'parts':{panel:'panel-parts',tab:'tab-parts',render:renderParts},'options':{panel:'panel-opt',tab:'tab-opt',render:renderOpt}};
+const TABS={'quick':{panel:'panel-quick',tab:'tab-quick',render:renderQuick},'four-stroke':{panel:'panel-four',tab:'tab-four',render:renderFour},'two-stroke':{panel:'panel-two',tab:'tab-two',render:renderTwo},'sound':{panel:'panel-sound',tab:'tab-sound',render:renderSound},'headers':{panel:'panel-headers',tab:'tab-headers',render:renderHeaders},'crossover':{panel:'panel-cross',tab:'tab-cross',render:renderCross},'mufflers':{panel:'panel-muf',tab:'tab-muf',render:renderMuf},'cats':{panel:'panel-cat',tab:'tab-cat',render:renderCat},'boom-tubes':{panel:'panel-boom',tab:'tab-boom',render:renderBoom},'hangers':{panel:'panel-hang',tab:'tab-hang',render:renderHang},'intake':{panel:'panel-intake',tab:'tab-intake',render:renderIntake},'parts':{panel:'panel-parts',tab:'tab-parts',render:renderParts},'options':{panel:'panel-opt',tab:'tab-opt',render:renderOpt}};
 let cur='quick';
 function renderActive(){ syncShapes(); TABS[cur].render(); }
 function showTab(){
