@@ -1951,6 +1951,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <li><b>Ultimate Headers.</b> 324 entries: 254 complete header sets by engine, make, chassis and years with the primary and collector sizes where the maker states them (a size read off a part-number suffix is marked so), the cast 316L cylinder-head flange kits by engine family (socket size per family; thickness, port size and bolt spacing are not published), cast tight-radius elbows (1.25 in centreline radius on 1.625 to 2 in tube, about 0.67 diameters), mandrel elbows, stamped 304 four-into-one collectors, V-band and low-profile clamps, hydroformed X-pipes, a 200-cell cat, tips, valves, Cometic gaskets and ARP bolt kits. The company is in Berea, Ohio; its primaries are 321 stainless, 18 gauge, on investment-cast 316L flanges and port elbows, jig-fixtured and back-purged, with the cast elbow’s uniform wall and tight radius as its flow argument. The only measured data found is Katech’s February 2013 LS7 427 engine dyno: 579 hp and 560 lb-ft with the Ultimate mid-length against 531 and 513 on iron manifolds, 18 hp and 10 lb-ft over the Z06 manifold, and 2 hp down, 6 lb-ft up, on Katech’s long-tube at the peaks. The “+22 hp” and “+25 whp” figures elsewhere on the site have no data behind them, no equal-length or runner-length claim is made for any product, gaskets are used (Cometic HTS included), and the site’s own pages disagree about flange material (cast 316L in the news, “CNC-machined 304/mild” on the home page); those are left as the maker’s words.</li>
       <li><b>Stainless Bros, Ticon Industries and Cone Engineering.</b> 2,136 fabrication parts from these three makers are on the Parts tab, one entry per size and part number: mandrel bends (OD, wall, centreline radius, angle, legs), straight tube, pie cuts (angle per cut, cuts per 90°, radius), slip joints, reducers and transitions, cones and megaphones (Cone Engineering’s taper column is the included angle; where only the two diameters and the length are published the angle is worked out as 2·atan((D₂−D₁)/2L) and marked), merge collectors with the inlet count as a number so they can be filtered by cylinder group (Cone’s 2- to 8-into-1 conical collectors give inlet OD, outlet and length for all 197; the merge angle is only published for the 3D-printed Stainless Bros and Ticon units), V-band flanges and clamps, header, turbo and exhaust flanges (thickness is missing on most Stainless Bros and Ticon flanges and is shown as not published), muffler bodies, perforated cores, end caps and ready-made race mufflers, plus Ticon’s titanium velocity stacks. Ticon’s catalogue came from its store data, Stainless Bros from 807 product pages, Cone Engineering from its PDF price sheets checked against every part number. Material is carried on every entry (304, 321, 316, Inconel 625, CP1 titanium, mild). Gaps are left as “not published”: slip-joint lengths (no maker states them), leg lengths on “with leg” elbows, centreline radius on Alucon aluminium bends, and 36 Stainless Bros option-only pages without part numbers.</li>
       <li><b>OpenWAM.</b> The 4-Stroke tab writes a complete OpenWAM 2.2 case (<a href="https://www.openwam.org/" target="_blank" rel="noopener">openwam.org</a>, the free 1-D engine code from CMT, Universitat Politècnica de València): one .wam per engine speed with the cylinders on this collector, their valves with lift and discharge curves, intake runners, primaries, collector segments and megaphone as pipes, plus a batch file that runs them in turn and a reader for the AVG.DAT output. The writer is a line-for-line port of a Python generator that was checked against OpenWAM’s shipped single-cylinder example and then on 4-1, Tri-Y, stepped-primary and dual-bank V8 cases that all run to completion with no warnings (a 2.0 L four at 6,000 RPM: 195 N·m net, 107% delivered VE); the JavaScript output matches the Python writer byte for byte on 98 cases. Combustion (Wiebe), heat transfer (Woschni), friction and wall temperatures are generator defaults held constant across runs, so OpenWAM’s absolute torque is not a dyno number; the point is that header changes show up in the same physics the calculator’s own wave model approximates, including the port, the collector and the megaphone. The pipes are cut into 10 mm cells: at 5 mm the net torque moves by under 1% (the four at 4,000 and 6,000 RPM, a dual-bank V8 at 5,500 RPM), but in the outflow’s order spectrum an order that sits in a dip between pipe resonances can move by many dB (up to 15 dB on one test model), so read that spectrum as a pattern, not order by order. OpenWAM’s mean flows inside the pipes are no mass balance either (its valve and open-end boundaries do not conserve mass); the cylinders’ own masses, which the reader uses for torque and VE, are consistent. Side-branch chambers (a resonator can on a primary) are written as a junction, a neck and a closed volume on every primary, with the neck’s flow area and length the wave simulation uses (a neck shorter than three cells is lengthened with its area raised by the same factor, which keeps its Helmholtz tuning). The WAMer front end was not used; the files are written directly.</li>
+      <li><b>OpenWAM for two-strokes.</b> The 2-Stroke tab (From the engine) writes the designed chamber into a two-stroke OpenWAM case: the piston uncovering the exhaust and transfer windows (their exposed area worked out from the window shape and the crank-slider law), the crankcase as a volume the piston drives, a reed valve (petals as a lumped mass and spring from their size and material) or a piston-controlled intake port, Wiebe combustion, and the chamber as conical pipes. OpenWAM 2.2 closes a two-stroke cycle at the latest intake-side port, which would be transfer closing; a dummy port that never flows makes it exhaust closing, so the chamber’s plugging pulse counts. It has no loop-scavenging model (the cylinder is perfectly mixed), so trapping and power read low; brake power adds the crankcase pumping work from the INS file and takes off a friction estimate. The writer is a port of a Python generator, the same bytes on 52 test specs; on a 125 MX it gave 31 hp at 12,000 RPM against 14 hp for a straight pipe of the same length.</li>
       <li><b>Intake CFD (OpenFOAM).</b> The Intake tab writes a complete OpenFOAM v2412 case (<a href="https://www.openfoam.com/" target="_blank" rel="noopener">openfoam.com</a>, ESI’s free release) for the tube on the tab: a body-fitted axisymmetric mesh (blockMesh, wall-resolved at y+ ≈ 1) of the mouth, an atmosphere region in front of it so the entry flow is computed rather than imposed, the tube, the cone to the throttle and an outlet extension; steady compressible RANS (rhoSimpleFoam, perfect gas, Sutherland viscosity) with Menter’s k-ω SST turbulence model, the engine’s cycle-mean airflow at the peak-power RPM set at the outlet, and a report script that gives PR, K, Cd, Blair and Lau’s vena-contracta CD for 1-D models and the MAF-plane uniformity. Checked against Blair and Cahoon’s FLUENT and QUB flow-bench study of 23 mm bellmouths (<i>Race Engine Technology</i>, Sept. 2006): at the published pressure ratios the sharp-edged pipe flows 30.34 g/s against their 30.02 (+1.1%), the 6 mm radius 36.30 against 34.83 (+4.2%) and the elliptical bellmouth 38.06 against 36.15 (+5.3%). The ranking is right, and so is the pattern: the radius gains a lot over the plain end and the bellmouth only a little more (+23% and +2.3% at PR 1.039, against Blair’s “near constant 16%” and “a mere 1.5%”), the first gain larger than theirs. The 4 to 5% on the rounded inlets is the size of the dependence on where the static-pressure station sits, about 1 to 1.2% per pipe diameter, which the article does not specify. Mesh refinement from medium to fine moves the airflow by 0.15% or less. What it does not do: the flow is steady, so there is no pulsation, no wave tuning and no sound (those are the wave simulation and OpenWAM sections); losses at cycle-mean flow understate the pulse peak (use the flow factor); walls are smooth and adiabatic; the filter element, throttle plate and sensor body are not in the model. The browser writer is a port of the Python generator and matches it byte for byte on 8 axisymmetric cases; tubes with bends are three-dimensional and the download then holds the design and the Python generator for snappyHexMesh.</li>
       <li><b>Exhaust component CFD (OpenFOAM).</b> The Headers tab writes the same kind of case for one exhaust part from a CAD STL whose inlet and outlet faces are named: a merge collector, a Tri-Y secondary, an X- or H-pipe section, a muffler or resonator shell or a tailpipe tip. Each inlet is extruded two diameters upstream and fed the engine’s cycle-mean exhaust flow (air × (1 + 1/AFR) at the tuning RPM and VE, split equally between the primaries unless set) as hot gas, 650 °C by default at a header and 400 °C downstream, with air’s gas constant and Sutherland viscosity at that temperature (exhaust gas has a few percent more heat capacity; K is a ratio of pressures, so it hardly notices); the outlet is extruded two diameters and held at ambient static pressure. It reports the total-pressure loss from the inlet faces to the exit face in Pa, kPa and mbar, K in dynamic heads of the inlet gas speed, K to ambient (the exit’s dynamic head included), the back pressure, the flow split between the inlets and the exit velocity uniformity. Checked against known answers: a sudden expansion from 50 to 100 mm bore gives K 0.635 after the friction of its own straight pipes (0.037) is taken off, against Borda–Carnot’s (1 − A₁/A₂)² = 0.562 (0.56 to 0.61 with Idelchik’s correction for the inlet velocity profile); a 90° mandrel bend of 50 mm bore at R/D 1.5 gives K 0.20 for the bend itself (friction of the straights, 0.25, taken off), at the bottom of the 0.20 to 0.30 of Idelchik’s diagrams and Crane TP-410’s 14 f<sub>T</sub> = 0.27 (medium mesh, gas at 650 °C, inlet 100 m/s, Re about 50,000; both runs converged). So the expansion reads a little high and the bend at the low end of the published range. What it does not do, plainly: the flow is steady, so there is no pulsation, no scavenging or wave tuning between primaries (that is the OpenWAM section), no sound and no heat loss through the walls; a cycle-mean run understates the loss at the pulse peak, which goes with the square of the instantaneous flow. Use it to rank collector shapes, merge angles, crossover sections and tips by their steady loss, not to predict torque.</li>
       <li><b>Unequal-length primaries.</b> The Headers tab’s Primary lengths selector takes one length per cylinder (and per Y pair on a Tri-Y, with the pairs typed as built, for example a Subaru 4-2-1 as 1,3 | 2,4). For each primary it shows the RPM this page’s length rule gives for that length (L = 850 × (180 + EVO) ÷ RPM − 3 in, solved for RPM), the wave round trip 2L ÷ a with a = 20.05 √T, and the spread of those times; and for each collector the order content of the pulse-arrival train (firing angle plus L ÷ a, identical pulses), which shows the half orders (0.5, 1.5, 2.5 × crank) that unequal arrival puts into the sound and that equal lengths on an evenly firing collector remove. It is first-order acoustics: the gas velocity, pulse strength and the rest of the system are left out, and Blair’s fuller treatment (<i>Design and Simulation of Four-Stroke Engines</i>, SAE, 1999) was not available to check against. The lengths go into the OpenWAM case (every cylinder with its own primary, the Tri-Y secondaries per pair, open at the collector exit, plus the open-end flow for an order-spectrum reader that splits the simulated outflow into orders), the Engine Simulator file (one primary length per cylinder) and the Fusion route (one target length per port marker). Subaru’s reasons for unequal and equal manifolds are from its engineers in <a href="https://toyotatimes.jp/en/series/sound/002.html" target="_blank" rel="noopener">TOYOTA TIMES (2024)</a>; no controlled equal-against-unequal dyno or sound test was found.</li>
@@ -3053,6 +3054,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
  *   WamExport.outStepForRate(rpm, fs)   -> out_step_deg that gives fs rows per second.
  *   WamExport.batFile(models, exePath)  -> Windows .bat that runs each model in its own subfolder in turn.
  *   WamExport.DEFAULTS, WamExport.EXTRA_DEFAULTS
+ *   WamExport.Writer, splitRuns, FS_GASOLINE_SIMPLE, COMB_COMPLETE, fmtG, pyRound: shared with wam2t_export.js
  *
  * v3 (sound): collector.tail / exhaust.tail = the line after the collector as a list of
  *   {L_mm, d0_mm, d1_mm, [Tw_C]} pipe segments and {V_litres, [T0_C]} expansion-volume mufflers (constant-volume
@@ -4250,13 +4252,728 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   const START_SHIFT_DEG = 45.0;   // see makeWam: where the engine clock starts relative to cylinder 1's firing TDC
   const WamExport = {
     makeWam, makeWamLegacy, modelFromSpec, writeModel, legacyModel, readAvg, readIns, outStepForRate, batFile,
-    DEFAULTS, EXTRA_DEFAULTS, fmtG, pyRound, START_SHIFT_DEG, R_BURNT,
+    DEFAULTS, EXTRA_DEFAULTS, fmtG, pyRound, pyRoundInt, START_SHIFT_DEG, R_BURNT,
+    Writer, splitRuns, FS_GASOLINE_SIMPLE, COMB_COMPLETE,     // for wam2t_export.js (two-strokes)
     USER_EXE: '%USERPROFILE%\\Desktop\\openwam2.2-win-x64\\openwam2.2-win-x64\\Win32_x86_64\\OpenWAM2.2-win-x64.exe',
   };
   if (typeof module !== 'undefined' && module && module.exports) module.exports = WamExport;
   if (root) root.WamExport = WamExport;
 })(typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : this));
+// ---- OpenWAM 2.2 two-stroke writer and results summary (wam2t_export.js, a tested port of make_wam2t.py) ----
+/* wam2t_export.js - OpenWAM 2.2 input files (.wam) for a piston-ported, crankcase-scavenged two-stroke, in the browser.
+ *
+ * A line-for-line port of make_wam2t.py (same folder; its docstring says what is modelled and why): for the same spec
+ * and run settings, Wam2T.makeWam(spec, run) returns exactly the text make_wam2t.make_wam2t() writes
+ * (test_py_js_2t.js checks this byte for byte), and Wam2T.summary() gives the numbers make_wam2t.wam2t_summary() gives
+ * from the same AVG.DAT / INS.DAT. It uses wam_export.js's writer, number formatting and line splitter (WamExport,
+ * loaded first in the page; require()d in Node).
+ *
+ * API
+ *   Wam2T.makeWam(spec, run)                 -> .wam text (spec in SI units, see make_wam2t.py SPEC)
+ *   Wam2T.modelFromSpec(spec, run), Wam2T.writeModel(model)   -> the two layers underneath; model.warnings lists
+ *                                                what make_wam2t.py prints to stderr (CD clipped at 1)
+ *   Wam2T.summary(model, {avg, ins, log | finished}, fmepCoef)  -> make_wam2t.wam2t_summary's dict (keys the same)
+ *   Wam2T.portTopForDuration, openingAngle, crownAboveBdc, windowArea, timeArea, reedLumped: the geometry helpers
+ *   Wam2T.RUN_DEFAULTS, CD_EXHAUST, CD_TRANSFER, CD_REED, CD_INTAKE_PORT, FMEP_COEF_PA
+ */
+(function (root) {
+  'use strict';
+  const WX = (typeof module !== 'undefined' && module && module.exports && typeof require === 'function')
+    ? require('./wam_export.js') : root.WamExport;
+  const { Writer, splitRuns, FS_GASOLINE_SIMPLE, COMB_COMPLETE, fmtG, pyRound } = WX;
+
+  const pctG = x => fmtG(x, 6);                        // Python "%g"
+  const pctF = (x, n) => pyRound(x, n).toFixed(n);     // Python "%.nf" (half to even on the exact value)
+  const pctD = x => String(Math.trunc(x));
+  function pmod(a, b) { let r = a % b; if (r !== 0 && (r < 0) !== (b < 0)) r += b; return r; }   // Python float %
+  const radians = x => x * (Math.PI / 180.0);
+  const num = x => Number(x);
+
+  const K0 = 273.15;
+  const ENGINE_START_DEG = 256.0;
+  const FMEP_COEF_PA = 100.0;
+  const RUN_DEFAULTS = {
+    name: 'twostroke', rpm: 11000.0, cycles: 30, out_step_deg: 1.0, p_amb_bar: 1.01325, T_amb_C: 25.0, gamma_model: 2,
+    cell_mm: 8.0, courant: 0.8, roughness_mm: 0.02, end_loss: 1.0, pipe_htc_mult: 1.0, pipe_fric_mult: 1.0,
+    cd_points: 41, closing_fix: 1, exhaust_Tgas0_C: 500.0, crankcase_T0_C: 40.0, lhv_J_kg: 44.0e6, fuel_density: 740.0,
+  };
+  const CD_EXHAUST = 0.70, CD_TRANSFER = 0.65, CD_REED = 0.60, CD_INTAKE_PORT = 0.65;
+
+  // ------------------------------------------------------------------ geometry
+  function crownAboveBdc(thetaDeg, S, L) {
+    const c = radians(thetaDeg), q = S * Math.sin(c) / 2.0;
+    return S - (L + S * (1.0 - Math.cos(c)) / 2.0 - Math.sqrt(L * L - q * q));
+  }
+  function portTopForDuration(dur, S, L) {
+    if (!(0.0 < dur && dur < 360.0)) throw new Error('port duration ' + pctG(dur) + ' must lie in (0, 360)');
+    return crownAboveBdc(180.0 - dur / 2.0, S, L);
+  }
+  function openingAngle(H, S, L) {
+    let a0 = 0.0, a1 = 180.0;
+    for (let i = 0; i < 60; i++) {
+      const a = (a0 + a1) / 2.0;
+      if (H - crownAboveBdc(a, S, L) > 0.0) a1 = a; else a0 = a;
+    }
+    return (a0 + a1) / 2.0;
+  }
+  function windowWidth(y, W, Hw, rt, rb) {
+    if (y < 0.0 || y > Hw) return 0.0;
+    let w = W;
+    if (rt > 0.0 && y < rt) { const q = rt - y; w -= 2.0 * (rt - Math.sqrt(Math.max(0.0, rt * rt - q * q))); }
+    const yb = Hw - y;
+    if (rb > 0.0 && yb < rb) { const q = rb - yb; w -= 2.0 * (rb - Math.sqrt(Math.max(0.0, rb * rb - q * q))); }
+    return Math.max(0.0, w);
+  }
+  function windowArea(h, W, Hw, rt, rb, n) {
+    n = n === undefined ? 200 : n;
+    h = Math.min(Math.max(h, 0.0), Hw);
+    if (h <= 0.0) return 0.0;
+    n += n % 2;
+    const dy = h / n;
+    let s = windowWidth(0.0, W, Hw, rt, rb) + windowWidth(h, W, Hw, rt, rb);
+    for (let i = 1; i < n; i++) s += (i % 2 ? 4.0 : 2.0) * windowWidth(i * dy, W, Hw, rt, rb);
+    return s * dy / 3.0;
+  }
+  const rTop = p => (p.r_top !== undefined && p.r_top !== null ? num(p.r_top) : 0.0);
+  const rBot = p => (p.r_bot !== undefined && p.r_bot !== null ? num(p.r_bot) : 0.0);
+  const winArea = (h, p) => windowArea(h, p.width, p.Hw, rTop(p), rBot(p));
+  function checkWindow(port, what) {
+    const W = port.width, rt = rTop(port), rb = rBot(port), Hw = port.Hw;
+    if (!(W > 0.0 && Hw > 0.0)) throw new Error(what + ': width and window height must be positive');
+    if (2.0 * Math.max(rt, rb) > W + 1e-12 || rt + rb > Hw + 1e-12)
+      throw new Error(what + ': corner radii ' + pctG(rt * 1e3) + '/' + pctG(rb * 1e3) + ' mm do not fit a ' + pctG(W * 1e3) + ' x ' + pctG(Hw * 1e3) + ' mm window');
+  }
+  function portCdTable(port, H, aRef, cd, npts, clip) {
+    clip = clip === undefined ? 1.0 : clip;
+    const opens = [], cds = [];
+    for (let i = 0; i < npts; i++) {
+      const h = H * i / (npts - 1);
+      const a = winArea(h, port);
+      opens.push(pyRound(h, 9));
+      cds.push(pyRound(Math.min(clip, cd * a / aRef), 6));
+    }
+    return [opens, cds];
+  }
+  function timeArea(port, H, S, L, rpm, Vd, cd) {
+    cd = cd === undefined ? 1.0 : cd;
+    const aOpen = openingAngle(H, S, L), n = 720;
+    let tot = 0.0;
+    for (let i = 0; i < n; i++) {
+      const th = aOpen + (360.0 - 2.0 * aOpen) * (i + 0.5) / n;
+      tot += winArea(H - crownAboveBdc(th, S, L), port);
+    }
+    const dth = (360.0 - 2.0 * aOpen) / n;
+    return cd * tot * dth / (6.0 * rpm) / Vd;
+  }
+  function reedLumped(r) {
+    const n = Math.trunc(num(r.petals)), L = num(r.L), w = num(r.w), t = num(r.t);
+    const E = num(r.E), rho = num(r.rho), zeta = num(r.zeta !== undefined && r.zeta !== null ? r.zeta : 0.15);
+    const I = w * Math.pow(t, 3) / 12.0;
+    const k1 = 3.0 * E * I / Math.pow(L, 3);
+    const m1 = 0.2357 * rho * w * t * L;
+    const a1 = 3.0 / 8.0 * w * L;
+    const k = n * k1, m = n * m1, A = n * a1;
+    const c = 2.0 * zeta * Math.sqrt(k * m);
+    const f1 = 3.516 / (2.0 * Math.PI * L * L) * Math.sqrt(E * I / (rho * w * t));
+    return { m, c, k, A, f_n_Hz: f1, perimeter: n * (w + L) };
+  }
+
+  // ------------------------------------------------------------------ model
+  const BC_DESC = { open: 'open end', closed: 'closed end', step: 'diameter step', plenum: 'plenum port', eport: 'exhaust port', tport: 'transfer port' };
+  const BC_ENDS = { open: [1, 1], closed: [1, 1], step: [2, 2], plenum: [1, 1], eport: [1, 1], tport: [1, 1] };
+  function numberModel(pipes, bcs) {
+    const n = new Map(), order = [], ends = new Map();
+    pipes.forEach((pp, i) => {
+      if (pp.left === pp.right) throw new Error('pipe ' + (i + 1) + ' has the same BC at both ends');
+      for (const side of ['left', 'right']) {
+        const k = pp[side];
+        if (!bcs.has(k)) throw new Error('pipe ' + (i + 1) + ' refers to unknown BC ' + k);
+        if (!n.has(k)) { order.push(k); n.set(k, order.length); }
+        if (!ends.has(k)) ends.set(k, []);
+        ends.get(k).push([i, side]);
+      }
+    });
+    for (const k of bcs.keys()) {
+      if (!n.has(k)) throw new Error('BC ' + k + ' is not attached to any pipe');
+      const [lo, hi] = BC_ENDS[bcs.get(k).type], c = ends.get(k).length;
+      if (!(lo <= c && c <= hi)) throw new Error('BC ' + k + ' of type ' + bcs.get(k).type + ' has ' + c + ' pipe ends');
+    }
+    return { num: n, order, ends };
+  }
+  const given = v => v !== undefined && v !== null;
+
+  function modelFromSpec(spec, run) {
+    run = Object.assign({}, run || {});
+    for (const k in run) if (!(k in RUN_DEFAULTS)) throw new Error('unknown run setting ' + k);
+    const p = Object.assign({}, RUN_DEFAULTS, run);
+    const e = spec.e;
+    const B = num(e.bore), S = num(e.stroke), L = num(e.rod);
+    const Ap = Math.PI / 4.0 * B * B, Vd = Ap * S;
+    const ncyl = Math.trunc(num(given(e.ncyl) ? e.ncyl : 1));
+    const ph0 = (e.phases && e.phases.length) ? e.phases : Array.from({ length: ncyl }, (_, c) => 360.0 * c / ncyl);
+    const phases = ph0.map(x => pmod(num(x), 360.0));
+    if (phases.length !== ncyl) throw new Error('e.phases must list one firing angle per cylinder');
+    const warnings = [];
+
+    const ex = Object.assign({}, spec.exhaust_port);
+    const Hex = portTopForDuration(num(ex.dur), S, L);
+    ex.H = Hex; ex.Hw = num(ex.height) || Hex;
+    checkWindow(ex, 'exhaust port');
+    const trs = [];
+    spec.transfers.forEach((t0, j) => {
+      const t = Object.assign({}, t0);
+      t.H = portTopForDuration(num(t.dur), S, L);
+      t.Hw = num(t.height) || t.H;
+      checkWindow(t, 'transfer ' + (j + 1));
+      if (t.H >= Hex) throw new Error('transfer ' + (j + 1) + ' opens before the exhaust port (top ' + pctG(t.H * 1e3) + ' >= ' + pctG(Hex * 1e3) + ' mm)');
+      trs.push(t);
+    });
+
+    let crg, Vc;
+    if (given(e.cr_geom)) { crg = num(e.cr_geom); Vc = Vd / (crg - 1.0); }
+    else if (given(e.cr_trapped)) { const Vtr = Ap * (S - Hex); Vc = Vtr / (num(e.cr_trapped) - 1.0); crg = (Vc + Vd) / Vc; }
+    else throw new Error('give e.cr_trapped or e.cr_geom');
+    const crTrapped = (Vc + Ap * (S - Hex)) / Vc;
+    let ccr;
+    if (given(e.ccr)) ccr = num(e.ccr);
+    else if (given(e.Vcc_min)) ccr = (num(e.Vcc_min) + Vd) / num(e.Vcc_min);
+    else throw new Error('give e.ccr (crankcase compression ratio) or e.Vcc_min (m3)');
+    if (!(ccr > 1.0)) throw new Error('crankcase compression ratio must exceed 1');
+    const afr = num(e.afr), phi = (1.0 / afr) / FS_GASOLINE_SIMPLE;
+    const combEff = given(e.combEff) ? num(e.combEff) : COMB_COMPLETE * Math.min(1.0, 1.0 / phi);
+    const burn = e.burn, tw = e.Twall || {};
+    const dflt = (o, k, v) => (given(o[k]) ? num(o[k]) : v);
+    const eng = {
+      B, S, L, Ap, Vd, Vc, cr_geom: crg, cr_trapped: crTrapped, ccr, Vcc_min: Vd / (ccr - 1.0), afr, phi, comb_eff: combEff,
+      burn_start: num(burn.start), burn_dur: num(burn.dur), wiebe_a: dflt(burn, 'a', 5.0), wiebe_m: dflt(burn, 'm', 2.0),
+      T_piston: dflt(tw, 'piston', 280.0), T_head: dflt(tw, 'head', 220.0), T_liner: dflt(tw, 'liner', 180.0),
+      ex_open_atdc: openingAngle(Hex, S, L),
+    };
+
+    const pipes = [], bcs = new Map(), plenums = [], vtypes = [];
+    const vtype = d => { vtypes.push(d); return vtypes.length; };
+    function addLine(segs, left, right, role, Twc, Tgc, comp, ht) {
+      const runs = splitRuns(segs), keys = [left];
+      for (let j = 1; j < runs.length; j++) {
+        const sk = role + '/step' + j;
+        bcs.set(sk, { type: 'step', note: role + ' diameter step ' + pctG(runs[j - 1].d1 * 1e3) + ' to ' + pctG(runs[j].D0 * 1e3) + ' mm' });
+        keys.push(sk);
+      }
+      keys.push(right);
+      runs.forEach((rn, j) => {
+        pipes.push({ role: runs.length === 1 ? role : role + ' part ' + (j + 1), left: keys[j], right: keys[j + 1],
+          D0: rn.D0, secs: rn.secs.map(s => s.slice()), Tw_C: Twc, Tg_C: Tgc, comp, ht });
+      });
+    }
+
+    const cdfix = vtype({ kind: 'cdfix', cd: 1.0, note: 'fixed CD 1, transfer ducts and silencer into their plenums' });
+    const exh = spec.exhaust, intake = spec.intake;
+    const air = [0.0, 0.0, 1.0], burnt = [1.0, 0.0, 0.0];
+    const Tex = num(exh.Tw) - K0;
+    const Tin = (num(intake.Tw) || (p.T_amb_C + K0)) - K0;
+    const info = { cyl: [] };
+    let vePipe = 0;
+    for (let c = 0; c < ncyl; c++) {
+      const C = c + 1;
+      plenums.push({ kind: 'crankcase', cyl: C, desfase: pmod(180.0 + phases[c], 360.0), ccr, p_bar: p.p_amb_bar, T_C: p.crankcase_T0_C, comp: air,
+        note: 'cylinder ' + C + ' crankcase, CCR ' + pctF(ccr, 3) + ', ' + pctF(eng.Vcc_min * 1e6, 1) + ' cm3 at BDC' });
+      const nplCc = plenums.length;
+      let segs = intake.segs;
+      const Din = num(segs[segs.length - 1].d1), aIn = Math.PI / 4.0 * Din * Din;
+      const ok = 'c' + C + '/in/open', ck = 'c' + C + '/in/cc';
+      bcs.set(ok, { type: 'open', note: 'cylinder ' + C + ' intake inlet, open end to atmosphere' });
+      let infoIn;
+      if ((intake.type || 'reed') === 'reed') {
+        const r = intake.reed, lp = reedLumped(r), model = r.model || '1d';
+        const cdr = num(given(r.cd) ? r.cd : CD_REED);
+        const area = lift => pyRound(Math.min(1.0, cdr * Math.min(lp.perimeter * lift, num(r.A_block)) / aIn), 6);
+        const nlift = 31;
+        const desc = pctD(num(r.petals)) + ' petals ' + pctG(num(r.L) * 1e3) + 'x' + pctG(num(r.w) * 1e3) + 'x' + pctG(num(r.t) * 1e3) + ' mm, k ' +
+          pctF(lp.k, 0) + ' N/m, m ' + fmtG(lp.m, 3) + ' kg, f_n ' + pctF(lp.f_n_Hz, 0) + ' Hz';
+        let vt;
+        if (model === '1d') {
+          const lmax = num(given(r.lift_table_max) ? r.lift_table_max : 0.015);
+          const lifts = Array.from({ length: nlift }, (_, i) => lmax * i / (nlift - 1));
+          vt = vtype({ kind: 'reed', model: 1, lp, step: lmax / (nlift - 1), cds: lifts.map(area), note: 'reed 1-D (no lift stop in OpenWAM), ' + desc });
+        } else if (model === '0d') {
+          const stop = num(given(r.lift_stop) ? r.lift_stop : 0.010);
+          const dpStop = stop * lp.k / lp.A / 1e5;
+          const dps = Array.from({ length: nlift }, (_, i) => 1.5 * dpStop * i / (nlift - 1));
+          vt = vtype({ kind: 'reed', model: 0, lp, step: dps[1], cds: dps.map(d => area(Math.min(stop, d * 1e5 * lp.A / lp.k))),
+            note: 'reed quasi-steady 0-D: static lift dp*A/k, stop ' + pctG(stop * 1e3) + ' mm reached at ' + pctF(dpStop, 3) + ' bar, ' + desc });
+        } else throw new Error('intake.reed.model must be 0d or 1d');
+        bcs.set(ck, { type: 'plenum', plenum: nplCc, vt, note: 'cylinder ' + C + ' reed valve into the crankcase' });
+        infoIn = { type: 'reed', lumped: lp };
+      } else if (intake.type === 'port') {
+        const ip = Object.assign({}, intake.port);
+        const aO = 360.0 - num(ip.open_btdc);
+        const hOpen = crownAboveBdc(aO, S, L);
+        ip.Hw = num(ip.height) || (S - hOpen);
+        checkWindow(ip, 'intake port');
+        const cdv = num(given(ip.cd) ? ip.cd : CD_INTAKE_PORT);
+        const angs = [], cdt = [];
+        for (let i = 0; i < 361; i++) {
+          const phiBc = i;
+          const th = pmod(phiBc - phases[c], 360.0);
+          const h = crownAboveBdc(th, S, L) - hOpen;
+          const aa = winArea(h, ip);
+          angs.push(phiBc);
+          cdt.push(pyRound(Math.min(1.0, cdv * aa / aIn), 6));
+        }
+        const vt = vtype({ kind: 'disc', angles: angs, cds: cdt, note: 'piston-controlled intake port, opens ' + pctG(num(ip.open_btdc)) + ' BTDC, as a rotary-disc CD(angle) table' });
+        bcs.set(ck, { type: 'plenum', plenum: nplCc, vt, note: 'cylinder ' + C + ' piston-controlled intake port into the crankcase' });
+        infoIn = { type: 'port', open_btdc: num(ip.open_btdc) };
+      } else throw new Error('intake.type must be reed or port');
+      addLine(segs, ok, ck, 'cylinder ' + C + ' intake', Tin, p.T_amb_C, air, 1);
+      if (c === 0) vePipe = pipes.length;
+      let aTrMax = 0.0;
+      trs.forEach((t, j) => {
+        const d = num(t.duct.d), aDuct = Math.PI / 4.0 * d * d;
+        const cdT = num(given(t.cd) ? t.cd : CD_TRANSFER);
+        const [opens, cds] = portCdTable(t, t.H, aDuct, cdT, Math.trunc(p.cd_points));
+        const amax = winArea(t.H, t);
+        aTrMax += amax;
+        if (amax * cdT > aDuct) warnings.push('transfer ' + (j + 1) + ' effective window area exceeds its duct area: CD clipped at 1');
+        const vt = vtype({ kind: 'port', port: t, opens, cdin: cds, cdout: cds,
+          note: 'transfer ' + (j + 1) + ': ' + pctG(num(t.dur)) + ' deg, top ' + pctF(t.H * 1e3, 2) + ' mm above BDC crown, ' + pctG(t.width * 1e3) + ' mm wide, opens ' + pctF(openingAngle(t.H, S, L), 1) + ' ATDC' });
+        const pk = 'c' + C + '/tr' + (j + 1) + '/cc', tk = 'c' + C + '/tr' + (j + 1) + '/port';
+        bcs.set(pk, { type: 'plenum', plenum: nplCc, vt: cdfix, note: 'cylinder ' + C + ' transfer duct ' + (j + 1) + ' from the crankcase' });
+        bcs.set(tk, { type: 'tport', cyl: C, vt, note: 'cylinder ' + C + ' transfer port ' + (j + 1) });
+        addLine([{ L: num(t.duct.L), d0: d, d1: d }], pk, tk, 'cylinder ' + C + ' transfer duct ' + (j + 1), p.crankcase_T0_C, p.crankcase_T0_C, air, 1);
+      });
+      if (Math.trunc(p.closing_fix) === 1) {
+        const dfix = 0.01;
+        const vt = vtype({ kind: 'port', port: { width: ex.width, Hw: ex.Hw, r_top: 0.0, r_bot: 0.0, H: Hex }, opens: [0.0, Hex], cdin: [0.0, 0.0], cdout: [0.0, 0.0],
+          note: 'CD-0 port with the exhaust port\'s height: makes OpenWAM close the cycle at exhaust closing' });
+        const fk = 'c' + C + '/fix/port', fc = 'c' + C + '/fix/closed';
+        bcs.set(fk, { type: 'tport', cyl: C, vt, note: 'cylinder ' + C + ' cycle-closing port, never flows' });
+        bcs.set(fc, { type: 'closed', note: 'cylinder ' + C + ' cycle-closing stub, closed end' });
+        const Lstub = 3.0 * p.cell_mm / 1000.0;
+        addLine([{ L: Lstub, d0: dfix, d1: dfix }], fk, fc, 'cylinder ' + C + ' cycle-closing stub', Tin, p.T_amb_C, air, 1);
+      }
+      segs = exh.segs;
+      const Dex = num(segs[0].d0), aEx = Math.PI / 4.0 * Dex * Dex;
+      const cdE = num(given(ex.cd) ? ex.cd : CD_EXHAUST);
+      const [opens, cds] = portCdTable(ex, Hex, aEx, cdE, Math.trunc(p.cd_points));
+      const aExMax = winArea(Hex, ex);
+      if (aExMax * cdE > aEx) warnings.push('exhaust effective window area exceeds the header area: CD clipped at 1');
+      const vt = vtype({ kind: 'port', port: ex, opens, cdin: cds, cdout: cds,
+        note: 'exhaust port: ' + pctG(num(ex.dur)) + ' deg, top ' + pctF(Hex * 1e3, 2) + ' mm above BDC crown, ' + pctG(ex.width * 1e3) + ' mm wide, opens ' + pctF(eng.ex_open_atdc, 1) + ' ATDC' });
+      const ek = 'c' + C + '/ex/port', xk = 'c' + C + '/ex/open';
+      bcs.set(ek, { type: 'eport', cyl: C, vt, note: 'cylinder ' + C + ' exhaust port' });
+      bcs.set(xk, { type: 'open', note: 'cylinder ' + C + ' exhaust outlet, open end to atmosphere' });
+      const sil = exh.silencer;
+      if (sil) {
+        plenums.push({ kind: 'const', V_m3: num(sil.V_m3), p_bar: p.p_amb_bar, T_C: p.exhaust_Tgas0_C, comp: burnt,
+          note: 'cylinder ' + C + ' silencer, ' + pctG(num(sil.V_m3) * 1e3) + ' litres' });
+        const si = 'c' + C + '/sil/in', so = 'c' + C + '/sil/out';
+        bcs.set(si, { type: 'plenum', plenum: plenums.length, vt: cdfix, note: 'cylinder ' + C + ' silencer inlet' });
+        bcs.set(so, { type: 'plenum', plenum: plenums.length, vt: cdfix, note: 'cylinder ' + C + ' silencer outlet' });
+        addLine(segs, ek, si, 'cylinder ' + C + ' exhaust chamber', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        addLine(sil.segs, so, xk, 'cylinder ' + C + ' tailpipe', Tex, p.exhaust_Tgas0_C, burnt, 2);
+      } else {
+        addLine(segs, ek, xk, 'cylinder ' + C + ' exhaust chamber', Tex, p.exhaust_Tgas0_C, burnt, 2);
+      }
+      info.cyl.push({ intake: infoIn, A_ex_max_mm2: aExMax * 1e6, A_tr_max_mm2: aTrMax * 1e6, A_header_mm2: aEx * 1e6 });
+    }
+    eng.H_ex = Hex;
+    eng.H_tr = trs.map(t => t.H);
+    eng.tr_open_atdc = trs.map(t => openingAngle(t.H, S, L));
+    return { p, eng, phases, pipes, bcs, plenums, vtypes, ve_pipe: vePipe, info, spec, warnings };
+  }
+
+  // ------------------------------------------------------------------ writer
+  function writeModel(m) {
+    const p = m.p, g = m.eng, pipes = m.pipes, bcs = m.bcs, plenums = m.plenums, vtypes = m.vtypes, phases = m.phases;
+    const ncyl = phases.length;
+    const { num: N, order } = numberModel(pipes, bcs);
+    const w = new Writer();
+    const T = 'TOpenWAM.cpp', E = 'TBloqueMotor.cpp', U = 'TTubo.cpp';
+    w.comment('OpenWAM 2.2 two-stroke input written by make_wam2t.py - ' + p.name + ', ' + pctG(p.rpm) + ' rpm');
+    w.comment('labels give the reader source file:line; units as used by that reader');
+    w.comment('geometric CR ' + pctF(g.cr_geom, 3) + ', trapped CR ' + pctF(g.cr_trapped, 3) + ', crankcase CR ' + pctF(g.ccr, 3) + ', exhaust opens ' + pctF(g.ex_open_atdc, 2) + ' ATDC');
+
+    w.section('HEADER  TOpenWAM::ReadInputData');
+    w.v(2200, T + ':477 version, must equal vers 2200 Globales.h:53');
+    w.v(0, T + ':485 Independent 0 = common time step for all pipes');
+
+    w.section('GENERAL DATA  TOpenWAM::ReadGeneralData');
+    w.v(num(p.out_step_deg), T + ':606 agincr, instantaneous output interval deg');
+    w.v(Math.trunc(p.cycles), T + ':606 SimulationDuration = number of engine cycles');
+    w.v(num(p.p_amb_bar), T + ':607 ambient pressure bar');
+    w.v(num(p.T_amb_C), T + ':607 ambient temperature degC');
+    w.v(0, T + ':608 species model 0 = simple: burnt gas, fuel, air');
+    w.v(Math.trunc(p.gamma_model), T + ':608 gamma 0 const, 1 f-composition, 2 f-composition-temperature');
+    w.v(1, T + ':622 engine block present');
+    w.v(1, T + ':627 cycle type 1 = two-stroke nm2T, 360 deg cycle TBloqueMotor.cpp:138');
+    w.v(0, T + ':627 simulation type 0 = steady speed');
+    w.v(0, T + ':627 EGR transport 0 = no');
+    w.v(1, T + ':743 fuel present');
+    w.v(1, T + ':745 fuel type 1 = gasoline');
+    w.row([0.0, 0.0, 1.0], T + ':802 atmosphere mass fractions burnt, fuel, air; sum must be exactly 1');
+
+    w.section('ENGINE  TBloqueMotor::LeeMotor');
+    w.v(0, E + ':117 ACT combustion model 0 = off, Wiebe law used');
+    w.v(ncyl, E + ':134 number of cylinders');
+    w.v(num(p.rpm), E + ':148 engine speed rpm');
+    w.v(num(p.p_amb_bar), E + ':149 initial cylinder pressure at closing bar');
+    const m0 = p.p_amb_bar * 1e5 * (g.Vd + g.Vc) / (287.0 * (p.T_amb_C + K0 + 35.0));
+    w.v(pyRound(m0, 9), E + ':150 initial cylinder mass kg, start-up guess only');
+    w.v(0, E + ':153 impose composition at exhaust opening 0 = no');
+    w.row([0.0, 0.0, 1.0], E + ':156 initial cylinder mass fractions burnt, fuel, air');
+    w.v(0, E + ':176 pressure at exhaust opening 0 = calculated');
+    w.v(1, E + ':185 combustion type 1 = spark ignition, fuel from trapped air TCilindro2T.cpp:430,497');
+    w.v(pyRound(g.phi, 10), E + ':196 relative fuel-air ratio = (1/AFR)/0.068468349, TCilindro.cpp:2735');
+    w.v(pyRound(g.comb_eff, 6), E + ':199 combustion efficiency, multiplies released heat TCilindro2T.cpp:630');
+    w.v(num(p.lhv_J_kg), E + ':200 lower heating value J/kg');
+    w.v(num(p.fuel_density), E + ':201 fuel density kg/m3, not used');
+    w.v(m.ve_pipe, E + ':203 pipe used for volumetric efficiency = cylinder 1 intake pipe at the reed / port');
+    w.v(g.T_piston, E + ':209 piston wall temperature degC');
+    w.v(g.T_head, E + ':210 head wall temperature degC');
+    w.v(g.T_liner, E + ':211 liner wall temperature degC');
+    w.v(pyRound(g.Ap, 9), E + ':213 piston heat-transfer area m2');
+    w.v(pyRound(g.Ap + 4.0 * g.Vc / g.B, 9), E + ':214 head heat-transfer area m2 = bore area + 4 Vc/B');
+    w.row([0.01, 150.0, 2700.0, 900.0], E + ':216 piston wall thickness m, k W/mK, rho, cp; unused, walls fixed');
+    w.row([0.01, 150.0, 2700.0, 900.0], E + ':218 head wall thickness m, k, rho, cp; unused');
+    w.row([0.01, 150.0, 2700.0, 900.0], E + ':220 liner wall thickness m, k, rho, cp; unused');
+    w.row([1.0, 1.0, 10.0, 90.0], E + ':223 HT multipliers intake, exhaust (CI Woschni only), torque at max power Nm, coolant degC');
+    w.v(2, E + ':225 wall temperature 2 = fixed');
+    w.v(2.28, E + ':241 Woschni cw1, not used for SI two-strokes TCilindro2T.cpp:521-531');
+    w.v(0.308, E + ':242 Woschni cw2, not used for SI');
+    w.v(0.0, E + ':243 Woschni xpe, read but not used');
+    w.v(g.L, E + ':249 connecting rod length m');
+    w.v(g.S, E + ':250 stroke m');
+    w.v(g.B, E + ':251 bore m');
+    w.v(pyRound(g.cr_geom, 9), E + ':252 geometric compression ratio, Vc = Vd/(CR-1) :266; trapped CR ' + pctF(g.cr_trapped, 3));
+    w.v(0.0, E + ':253 bowl diameter m, 0 = flat');
+    w.v(0.0, E + ':254 bowl height m');
+    w.v(g.B, E + ':255 distance between valves m, four-stroke short-circuit model only');
+    w.v(0.0, E + ':256 blow-by area');
+    w.v(0.0, E + ':257 blow-by CD, 0 = no blow-by TCilindro2T.cpp:343');
+    w.v(0.0, E + ':258 piston pin offset mm');
+    w.v(0.015, E + ':259 pin diameter m, deformation only');
+    w.v(0.02, E + ':260 piston crown height m, deformation only');
+    w.v(0.2, E + ':261 rod mass kg, deformation only');
+    w.v(0.2, E + ':262 piston+rings+pin mass kg, deformation only');
+    w.v(2.1e11, E + ':263 elastic modulus Pa, deformation only');
+    w.v(0.0, E + ':264 deformation coefficient 0 = rigid');
+    w.row([0.0, 0.0, 0.0, 0.0], E + ':274 FMEP coefficients all 0: OpenWAM torque = indicated; friction applied in wam2t_summary');
+    w.v(1, E + ':358 number of burn laws');
+    w.row([pyRound(m0, 9), pyRound(m0 / g.afr, 12), num(p.rpm)], E + ':360 law reference air mass kg, fuel kg, rpm; blending only');
+    w.v(1, E + ':367 number of Wiebe functions');
+    w.row([g.wiebe_m, g.wiebe_a, 1.0, g.burn_dur, g.burn_start], E + ':369 Wiebe m, C=a, share, duration deg, start deg BTDC entered positive :371');
+    w.v(0, E + ':384 injection data 0 = none');
+    if (ncyl > 1) {
+      w.v(0, E + ':446 firing angles 0 = one angle per cylinder, read at 457');
+      phases.forEach((ph, c) => w.v(num(ph), E + ':457 cylinder ' + (c + 1) + ' firing angle deg in the 360 deg engine cycle'));
+    }
+    w.v(0, E + ':485 engine controllers');
+    for (let c = 0; c < ncyl; c++) w.v(0, E + ':503 controllers for cylinder ' + (c + 1));
+
+    w.section('PIPES  TOpenWAM::ReadPipes');
+    w.v(pipes.length, T + ':852 number of pipes');
+    pipes.forEach((pp, i) => {
+      const nl = N.get(pp.left), nr = N.get(pp.right);
+      w.comment(pp.role + ' pipe ' + (i + 1) + ', ' + BC_DESC[bcs.get(pp.left).type] + ' BC' + nl + ' to ' + BC_DESC[bcs.get(pp.right).type] + ' BC' + nr);
+      w.row([nl, nr, pp.secs.length, 1], U + ':546 left BC, right BC, number of sections, number of identical ducts');
+      w.v(num(p.roughness_mm), U + ':547 wall roughness mm');
+      w.row([num(pp.Tw_C), num(pp.Tg_C), num(p.p_amb_bar), 0.0], U + ':548 initial wall T degC, gas T degC, pressure bar, velocity m/s');
+      w.row([Math.trunc(pp.ht), num(p.pipe_htc_mult), num(p.pipe_fric_mult)], U + ':549 HT type 1 intake 2 exhaust, HT multiplier, friction multiplier');
+      w.row(pp.comp.map(num), U + ':568 initial mass fractions burnt, fuel, air');
+      w.row([p.cell_mm / 1000.0, 2], U + ':590 mesh size m, wall T 2 = constant');
+      w.v(2, U + ':604 solver 2 = TVD');
+      w.v(num(p.courant), U + ':665 Courant number');
+      w.v(num(pp.D0), U + ':710 diameter at section start m');
+      for (const sec of pp.secs) w.row([num(sec[0]), num(sec[1])], U + ':712 section length m, diameter at section end m');
+    });
+
+    w.section('VALVE TYPES  TOpenWAM::ReadValves');
+    w.v(vtypes.length, T + ':956 number of valve types');
+    const LU = 'TLumbrera.cpp', LA = 'TLamina.cpp', DR = 'TDiscoRotativo.cpp';
+    vtypes.forEach((vt, j) => {
+      w.comment('valve type ' + (j + 1) + ': ' + vt.note);
+      const k = vt.kind;
+      if (k === 'cdfix') {
+        w.v(0, T + ':976 valve type 0 = TCDFijo fixed CD');
+        w.row([vt.cd, vt.cd, 0], 'TCDFijo.cpp:85 CD pipe to plenum, CD plenum to pipe, 0 = referred to the pipe-end area');
+      } else if (k === 'port') {
+        const pt = vt.port;
+        w.v(4, T + ':996 valve type 4 = TLumbrera piston-controlled port');
+        w.row([pyRound(pt.H, 9), pyRound(pt.width, 9), pyRound(rTop(pt), 9), pyRound(rBot(pt), 9), 0.0, 0.0],
+          LU + ':103 height m (port top above BDC crown, opening = this - crown height :138), width, top radius, ' +
+          'bottom radius (read, unused), position above BDC 0, reference diameter 0 = pipe end');
+        w.v(vt.opens.length, LU + ':104 number of CD points');
+        w.row(vt.opens, LU + ':111 opening m');
+        w.row(vt.cdin, LU + ':114 CD pipe to cylinder = Cd x exposed window area / pipe-end area');
+        w.row(vt.cdout, LU + ':117 CD cylinder to pipe');
+      } else if (k === 'reed') {
+        const lp = vt.lp;
+        w.v(2, T + ':986 valve type 2 = TLamina reed valve');
+        if (vt.model === 1) {
+          w.row([1, 0.0, 0], LA + ':158 model 1 = 1-D mass-spring-damper, reference diameter 0 = pipe end, 0 = opens when pipe p exceeds plenum p');
+          w.row([pyRound(lp.m, 9), pyRound(lp.c, 9), pyRound(lp.k, 6), pyRound(lp.A, 9)],
+            LA + ':186 mass kg, damping N s/m, stiffness N/m, pressure area m2 (lumped petals, reed_lumped)');
+        } else {
+          w.row([0, 0.0, 0], LA + ':158 model 0 = 0-D, CD from the pressure difference, closed (both CD 0) when it is negative, GetCDin :333-338, GetCDout :420-425; ' +
+            'reference diameter 0 = pipe end; 0 = opens when pipe p exceeds plenum p');
+        }
+        w.row([vt.cds.length, vt.cds.length], LA + ':191 CD points inflow, outflow');
+        w.v(pyRound(vt.step, 9), LA + ':198 table step, ' + (vt.model === 1 ? 'lift m' : 'pressure difference bar'));
+        w.row([1.0, 1.0], LA + ':199 CD multipliers inflow, outflow');
+        w.row(vt.cds, LA + ':202 CD pipe to plenum = Cd x min(perimeter x lift, block window) / pipe-end area');
+        w.row(vt.cds, LA + ':206 CD plenum to pipe');
+      } else if (k === 'disc') {
+        w.v(3, T + ':991 valve type 3 = TDiscoRotativo, CD vs angle');
+        w.v(0.0, DR + ':113 reference diameter 0 = pipe end');
+        w.row([1.0, 0.0, 1.0], DR + ':114 CD multiplier 1 (the outflow loop multiplies the inflow table again :132), shift, duration factor');
+        w.v(vt.angles.length, DR + ':116 number of points');
+        w.row(vt.angles, DR + ':123 angle deg on the pipe-to-plenum BC clock = cylinder-1 angle, measured, see notes');
+        w.row(vt.cds, DR + ':127 CD pipe to plenum');
+        w.row(vt.cds, DR + ':131 CD plenum to pipe');
+        w.v(1, DR + ':135 speed control 1 = engine');
+        w.v(1.0, DR + ':149 speed ratio to the engine');
+      } else throw new Error(k);
+    });
+
+    w.section('PLENUMS  TOpenWAM::ReadPlenums');
+    w.v(plenums.length, T + ':1063 number of plenums');
+    w.row([0, 0, 0], T + ':1065 WAMer counts turbines, venturis, directional junctions');
+    const DV = 'TDepVolVariable.cpp';
+    plenums.forEach((pl, j) => {
+      w.comment('plenum ' + (j + 1) + ': ' + pl.note);
+      if (pl.kind === 'crankcase') {
+        w.v(1, T + ':1089 plenum type 1 = TDepVolVariable, variable volume');
+        w.row(pl.comp.map(num), 'TDeposito.cpp:161 initial mass fractions burnt, fuel, air');
+        w.row([num(pl.p_bar), num(pl.T_C)], 'TDeposito.cpp:209 initial pressure bar, temperature degC');
+        w.row([g.L, g.S, g.B], DV + ':65 rod m, stroke m, bore m');
+        w.row([pyRound(pl.ccr, 9), num(pl.desfase), 0.0],
+          DV + ':66 compression ratio = crankcase CR, Vdead = A S/(CR-1) :91; phase deg = 180 + firing angle, ' +
+          'minimum volume at BDC IniciaVolumen :221; offset unused');
+        w.v(1, DV + ':68 speed control 1 = engine');
+        w.v(1.0, DV + ':82 speed ratio to the engine');
+      } else {
+        w.v(0, T + ':1085 plenum type 0 = TDepVolCte constant volume, adiabatic');
+        w.row(pl.comp.map(num), 'TDeposito.cpp:161 initial mass fractions burnt, fuel, air');
+        w.row([num(pl.V_m3), num(pl.p_bar), num(pl.T_C)], 'TDeposito.cpp:185 volume m3, initial pressure bar, temperature degC');
+      }
+    });
+    w.section('COMPRESSORS  TOpenWAM::ReadCompressors');
+    w.v(0, T + ':1181 number of compressors');
+
+    w.section('CONNECTIONS  TOpenWAM::ReadConnections');
+    w.v(order.length, T + ':1242 number of boundary conditions');
+    w.row([0, 0, 0, 0, 0, 0, 0, 0, 0], T + ':1244 nine WAMer-only counts, read and ignored');
+    let firstOpen = true;
+    for (const k of order) {
+      const b = bcs.get(k), t = b.type;
+      w.comment('BC' + N.get(k) + ': ' + b.note);
+      if (t === 'open') {
+        w.v(0, T + ':1260 BC type 0 = open end to atmosphere');
+        w.v(num(p.end_loss), 'TCCDescargaExtremoAbierto.cpp:141 inflow velocity coefficient' + (firstOpen ? ', 1 = no loss' : ''));
+        firstOpen = false;
+      } else if (t === 'closed') {
+        w.v(3, T + ':1294 BC type 3 = closed end, reads no data');
+      } else if (t === 'step') {
+        w.v(6, T + ':1314 BC type 6 = pipe-to-pipe connection TCCUnionEntreTubos');
+        w.row([0.0, 0.0], 'TCCUnionEntreTubos.cpp:200 wall thickness m, conductivity W/mK; unused');
+      } else if (t === 'eport' || t === 'tport') {
+        w.v(t === 'eport' ? 8 : 7, T + (t === 'eport' ? ':1335 BC type 8 = exhaust valve BC' : ':1324 BC type 7 = intake valve BC, here a transfer / closing port'));
+        w.v(0, 'TCCCilindro.cpp:169 WAMer id, ignored');
+        w.v(Math.trunc(b.cyl), 'TCCCilindro.cpp:171 cylinder number');
+        w.v(Math.trunc(b.vt), T + ':1460 valve type index 1-based');
+      } else if (t === 'plenum') {
+        w.v(11, T + ':1366 BC type 11 = pipe-to-plenum connection TCCDeposito');
+        w.v(0, 'TCCDeposito.cpp:204 WAMer id, ignored');
+        w.v(Math.trunc(b.plenum), 'TCCDeposito.cpp:206 plenum number');
+        w.v(Math.trunc(b.vt), T + ':1460 valve type index 1-based');
+      } else throw new Error(t);
+    }
+
+    w.section('TURBOCHARGERS, SENSORS, CONTROLLERS');
+    w.v(0, T + ':1669 turbocharger axes');
+    w.v(0, T + ':1699 sensors');
+    w.v(0, T + ':1720 controllers');
+
+    const O = 'TOutputResults.cpp';
+    const portBcs = order.filter(k => (bcs.get(k).type === 'eport' || bcs.get(k).type === 'tport') && k.indexOf('/fix/') < 0);
+    w.section('AVERAGE RESULTS  TOutputResults::ReadAverageResults');
+    w.v(0, O + ':37 instantaneous results 0 = last cycle only');
+    w.v(pipes.length, O + ':63 pipes with average results');
+    w.v(0, O + ':64 WAMer number, ignored');
+    pipes.forEach((pp, i) => {
+      let Lp = 0; for (const s of pp.secs) Lp += s[0];
+      w.v(i + 1, O + ':66 pipe ' + (i + 1));
+      w.v(1, U + ':2465 points');
+      w.row([Lp / 2.0, 3, 0, 1, 3], U + ':2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow');
+    });
+    w.v(ncyl, O + ':78 cylinders with average results');
+    const cylAvg = [0, 1, 4, 5, 6, 7, 8, 9, 20, 22, 23, 24, 25, 27];
+    for (let c = 0; c < ncyl; c++) {
+      w.v(c + 1, O + ':80 cylinder ' + (c + 1));
+      w.v(cylAvg.length, 'TCilindro.cpp:738 number of variables');
+      w.row(cylAvg, 'TCilindro.cpp:740 0 Wnet 1 NMEP 4 Qcomb 5-7 Q liner head piston 8 IMEP 9 trapped 20 AFR 22 intake ' +
+        '23 exhaust 24 short-circuit 25 mean T 27 VE');
+    }
+    w.v(1, O + ':92 engine average results on');
+    const engAvg = Array.from({ length: 23 }, (_, i) => i).concat([25, 26]);
+    w.v(engAvg.length, E + ':648 number of variables');
+    w.row(engAvg, E + ':650 0-22 torque, work, MEPs, power, masses, rpm, VE, efficiencies, BSFC; 25 F/A; 26 AFR', 25);
+    w.v(plenums.length, O + ':105 plenums');
+    plenums.forEach((_, j) => { w.v(j + 1, O + ':107 plenum ' + (j + 1)); w.row([2, 0, 1], 'TDeposito.cpp:791 n vars, 0 pressure, 1 temperature'); });
+    w.v(0, O + ':119 turbocharger axes');
+    w.v(0, O + ':133 compressors');
+    w.v(0, O + ':147 turbines');
+    w.v(portBcs.length, O + ':161 valves');
+    for (const k of portBcs) {
+      w.v(N.get(k), O + ':163 BC' + N.get(k) + ' ' + bcs.get(k).note);
+      w.row([2, 0, 1], 'TTipoValvula.cpp:239 n vars, 0 CD in, 1 CD out');
+    }
+    w.v(0, O + ':184 root compressors');
+    w.v(0, O + ':199 venturis');
+    w.v(0, O + ':214 plenum-to-plenum connections');
+    w.v(0, O + ':249 sensors');
+    w.v(0, O + ':263 controllers');
+
+    w.section('INSTANTANEOUS RESULTS  TOutputResults::ReadInstantaneousResults');
+    w.v(ncyl, O + ':540 cylinders');
+    const cylIns = [0, 1, 4, 5, 10, 11, 13, 25];
+    for (let c = 0; c < ncyl; c++) {
+      w.v(c + 1, O + ':542 cylinder ' + (c + 1));
+      w.v(cylIns.length, 'TCilindro.cpp:1342 number of variables');
+      w.row(cylIns, 'TCilindro.cpp:1344 0 p 1 T 4 exhaust flow 5 intake flow 10 mass 11 volume 13 burned fraction 25 torque');
+    }
+    w.v(plenums.length, O + ':554 plenums');
+    plenums.forEach((_, j) => { w.v(j + 1, O + ':556 plenum ' + (j + 1)); w.row([4, 0, 1, 2, 3], 'TDeposito.cpp:746 n vars, 0 pressure 1 temperature 2 volume 3 mass'); });
+    const insPts = [], cell = p.cell_mm / 1000.0;
+    pipes.forEach((pp, i) => { if (bcs.get(pp.left).type === 'eport') insPts.push([i, cell]); });
+    w.v(insPts.length, O + ':568 pipes');
+    w.v(0, O + ':571 WAMer number, ignored');
+    for (const [i, x] of insPts) {
+      w.v(i + 1, O + ':573 pipe ' + (i + 1));
+      w.v(1, U + ':2700 points');
+      w.row([x, 3, 0, 1, 2], U + ':2737 distance m one cell from the exhaust port, n vars; vars 0 p 1 u 2 T');
+    }
+    w.v(0, O + ':585 venturis');
+    const insValves = portBcs.concat(order.filter(k => k.endsWith('/in/cc')));
+    w.v(insValves.length, O + ':599 valves');
+    for (const k of insValves) {
+      w.v(N.get(k), O + ':601 BC' + N.get(k) + ' ' + bcs.get(k).note);
+      w.row([2, 0, 1], 'TTipoValvula.cpp:134 n vars, 0 CD in 1 CD out');
+    }
+    w.v(0, O + ':621 turbocharger axes');
+    w.v(0, O + ':634 compressors');
+    w.v(0, O + ':647 turbines');
+    w.v(0, O + ':660 root compressors');
+    w.v(0, O + ':674 plenum-to-plenum connections');
+    w.v(0, O + ':695 waste-gates');
+    w.v(0, O + ':721 reed valves');
+    w.v(0, O + ':764 sensors');
+    w.v(0, O + ':779 controllers');
+
+    w.section('SPACE-TIME RESULTS  TOutputResults::ReadSpaceTimeResults');
+    w.v(0, O + ':808 number of space-time quantities, 0 = none');
+    w.section('TAIL');
+    w.v(0, T + ':531 external DLL 0 = none');
+    return w.text();
+  }
+
+  function makeWam(spec, run) { return writeModel(modelFromSpec(spec, run)); }
+
+  // ------------------------------------------------------------------ results
+  function pyFloat(s) {
+    const t = String(s).trim();
+    if (/^[+-]?nan$/i.test(t)) return NaN;
+    if (/^[+-]?inf(inity)?$/i.test(t)) return t[0] === '-' ? -Infinity : Infinity;
+    if (!/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(t)) throw new Error('not a number');
+    return Number(t);
+  }
+  function readTable(text) {
+    const rows = String(text).split('\n').map(l => l.replace(/\r$/, '')).filter(l => l.trim()).map(l => l.split('\t'));
+    if (!rows.length) throw new Error('the file is empty');
+    const head = rows[0].map(h => h.trim()), data = [];
+    for (const r of rows.slice(1)) {
+      try { data.push(r.slice(0, head.length).map(pyFloat)); } catch (e) { /* a text row */ }
+    }
+    return [head, data];
+  }
+  function col(head, ...keys) {
+    for (let i = 0; i < head.length; i++) if (keys.every(k => head[i].indexOf(k) >= 0)) return i;
+    throw new Error('no column with ' + keys.join(', ') + ' in the file');
+  }
+  // files: {avg, ins, log} texts (ins optional: without it the crankcase pumping work is left out, as Python does on
+  // a missing INS.DAT); files.finished may stand in for the log
+  function summary(model, files, fmepCoef) {
+    fmepCoef = fmepCoef === undefined ? FMEP_COEF_PA : fmepCoef;
+    const p = model.p, g = model.eng, name = p.name, ncyl = model.phases.length;
+    const finished = files.log !== undefined && files.log !== null ? String(files.log).indexOf('SIMULATION FINISHED CORRECTLY') >= 0 : !!files.finished;
+    const [head, data] = readTable(files.avg);
+    const rho = p.p_amb_bar * 1e5 / (287.0 * (p.T_amb_C + K0));
+    const Vd = g.Vd, rpm = p.rpm, omega = 2.0 * Math.PI * rpm / 60.0;
+    const hasSc = head.some(h => h.indexOf('Short_Circuit') >= 0);
+    const rows = data.map(r => {
+      const cyc = [];
+      for (let c = 1; c <= ncyl; c++) {
+        cyc.push({ NMEP: r[col(head, 'NMEP_Cyl_' + c)], intake: r[col(head, 'Intake_Mass_Cyl_' + c)], trapped: r[col(head, 'Trapped_Mass_Cyl_' + c)],
+          short_circuit: hasSc ? r[col(head, 'Short_Circuit_Mass_Cyl_' + c)] : NaN });
+      }
+      return { cycle: Math.trunc(r[col(head, 'Cycle')]), cyl: cyc, fuel: r[col(head, 'Fuel_Mass')] };
+    });
+    if (!rows.length) throw new Error('no cycles in the AVG.DAT file');
+    const last = rows[rows.length - 1];
+    const out = { name, rpm, finished, cycles: rows.length };
+    const sumN = cs => { let s = 0; for (const c of cs) s += c.NMEP; return s; };
+    const nm = rows.map(r => sumN(r.cyl) / ncyl);
+    const tail = nm.length >= 5 ? nm.slice(-5) : nm;
+    let ts = 0; for (const x of tail) ts += x;
+    out.NMEP_spread_last5_pct = tail.length && ts ? 100.0 * (Math.max(...tail) - Math.min(...tail)) / Math.abs(ts / tail.length) : NaN;
+    out.NMEP_history = nm;
+    const c1 = last.cyl[0];
+    const airTrapped = last.fuel * g.afr;
+    out.IMEP_bar = sumN(last.cyl) / ncyl;
+    out.DR = c1.intake / (rho * Vd);
+    out.TE = c1.intake > 0 ? airTrapped / c1.intake : NaN;
+    out.SE = c1.trapped > 0 ? airTrapped / c1.trapped : NaN;
+    out.CE = airTrapped / (rho * Vd);
+    out.short_circuit_kg = c1.short_circuit;
+    const pmepCc = [];
+    try {
+      if (files.ins === undefined || files.ins === null) throw new Error('no INS.DAT');
+      const [ih, idata] = readTable(files.ins);
+      model.plenums.forEach((pl, k) => {
+        if (pl.kind !== 'crankcase') return;
+        const ip = col(ih, 'Pressure_plenum_' + (k + 1)), iv = col(ih, 'Volume_plenum_' + (k + 1));
+        let W = 0.0;
+        for (let i = 0; i + 1 < idata.length; i++) { const a = idata[i], b = idata[i + 1]; W += 0.5 * (a[ip] + b[ip]) * 1e5 * (b[iv] - a[iv]); }
+        pmepCc.push(W / Vd / 1e5);
+      });
+    } catch (exc) { out.ins_error = exc.message; }
+    let sc = 0; for (const x of pmepCc) sc += x;
+    out.crankcase_MEP_bar = pmepCc.length ? sc / pmepCc.length : NaN;
+    const fmep = fmepCoef * g.S * rpm / 1e5;
+    out.FMEP_bar = fmep;
+    out.BMEP_bar = out.IMEP_bar + (pmepCc.length ? out.crankcase_MEP_bar : 0.0) - fmep;
+    const mep2kw = mep => mep * 1e5 * Vd * ncyl / (2.0 * Math.PI) * omega / 1000.0;
+    out.T_ind_Nm = out.IMEP_bar * 1e5 * Vd * ncyl / (2.0 * Math.PI);
+    out.P_ind_kW = mep2kw(out.IMEP_bar);
+    out.T_brake_Nm = out.BMEP_bar * 1e5 * Vd * ncyl / (2.0 * Math.PI);
+    out.P_brake_kW = mep2kw(out.BMEP_bar);
+    out.P_ind_hp = out.P_ind_kW / 0.7457;
+    out.P_brake_hp = out.P_brake_kW / 0.7457;
+    const fuelDeliv = c1.intake / g.afr * ncyl * rpm / 60.0;
+    out.BSFC_g_kWh = out.P_brake_kW > 0 ? fuelDeliv * 3.6e6 / out.P_brake_kW : NaN;
+    return out;
+  }
+
+  const Wam2T = {
+    makeWam, modelFromSpec, writeModel, summary, readTable,
+    crownAboveBdc, portTopForDuration, openingAngle, windowWidth, windowArea, timeArea, reedLumped,
+    RUN_DEFAULTS, CD_EXHAUST, CD_TRANSFER, CD_REED, CD_INTAKE_PORT, FMEP_COEF_PA, ENGINE_START_DEG,
+  };
+  if (typeof module !== 'undefined' && module && module.exports) module.exports = Wam2T;
+  if (root) root.Wam2T = Wam2T;
+})(typeof globalThis !== 'undefined' ? globalThis : (typeof window !== 'undefined' ? window : this));
 const WAMX=WamExport;
+const WAM2T=Wam2T;
 const ESX=(function(){
 'use strict';
 /**
@@ -8652,6 +9369,7 @@ function renderTwoSpec(){
   }
   const trs=r.sens.map(s0=>'<tr'+(s0.f===1?' class="cur"':'')+'><td>'+Math.round(s0.rpm)+'</td><td>'+clen(s0.lt)+'</td><td>'+clen(r.L[0]+s0.lt-r.lt)+'</td></tr>').join('');
   html+=sec('Tuned length against RPM','<div class="tblwrap"><table><thead><tr><th>Peak RPM</th><th>Tuned length</th><th>Header, if only it changes</th></tr></thead><tbody>'+trs+'</tbody></table></div>');
+  html+=twoWamSection(p,r);
   html+=sec('About this method','<p class="cap" style="margin-top:0">Gordon Blair’s chamber (<i>Design and Simulation of Two-Stroke Engines</i>, SAE 1996): the tuned length is 83.3 × the speed of sound × the exhaust duration ÷ RPM, split 10 / 41 / 14 / 11 / 24% into header, diffusers, belly and baffle, with the stinger as long as the baffle. His gas temperature and diameter constants are given for three classes of engine; here they follow the engine’s BMEP on a straight line between them'+(p.stg===3?', and his first diffuser is split 60 / 40 along the profile through his three diameters, so the cones open more evenly':'')+'. Treat it as the starting shape, then trim the header on the dyno.</p>');
   html+=guideHtml('two');
   html+=actions('two');
@@ -8661,7 +9379,236 @@ function renderTwoSpec(){
     'Peak '+Math.round(p.rpm)+' RPM, '+p.hp+' hp, BMEP '+r.bmep.toFixed(2)+' bar, port duration '+p.ed+'°, gas '+tempStr(r.T)+', port diameter '+plain(D0,'d'),
     'Tuned length, port face to stinger: '+plain(r.lt,'l')].concat(r.segs.map(sg=>sg.name+': '+plain(sg.len,'l')+(sg.d0===sg.d1?' at '+plain(sg.d0,'d'):', '+plain(sg.d0,'d')+' to '+plain(sg.d1,'d')+' ('+sg.ang.toFixed(1)+'° included)'))).concat(['Total: '+plain(r.total,'l')]).concat(r.dual?['Dual power insert (second point '+Math.round(r.dual.rpm2)+' RPM): cone '+plain(r.dual.Li,'l')+' from '+plain(r.dual.Dm,'d')+' to '+plain(r.dual.di,'d')+', starting '+plain(r.dual.x0,'l')+' from the port face; pipe '+plain(r.dual.Lp,'l')+' at '+plain(r.dual.di,'d')+'; upper half perforated, '+r.dual.open+'% open; second tuned length '+plain(r.dual.L2,'l')]:[]).join('\n');
   S.two.points=pointsCsv(r.segs);
+  twoWamDraw();
 }
+
+/* ===== 2-Stroke tab: run the designed chamber in OpenWAM (wam2t_export.js, a tested port of make_wam2t.py) =====
+   The engine, its ports, transfers and intake are entered here; blank fields take the defaults shown (each one an
+   assumption, listed with the case). One .wam per engine speed, the chamber and, for comparison, a straight pipe of
+   the same length at the header diameter. Results: OpenWAM's indicated work, the crankcase pumping work from INS.DAT,
+   and a brake estimate with FMEP = 100 Pa x stroke [m] x RPM (make_wam2t.py). */
+const TW_UI={v:{},rpms:'',cycles:30,cell:8,straight:true,intake:'reed',reedModel:'1d',port:'rect',cool:'water',msg:null,res:[],last:null};
+const TW_MAT={carbon:{name:'Carbon fibre',E:45e9,rho:1550},glass:{name:'Glass fibre',E:25e9,rho:1900},steel:{name:'Spring steel',E:200e9,rho:7850}};
+function twDefaults(p,r){
+  const B=p.bore, S=p.stroke, cc=Math.PI/4*B*B*S/1000;
+  return {rod:Math.round(2*S), crt:r.bmep>=9?8.5:7.5, ccr:1.4, afr:12.5, ign:20, burn:B>75?60:50,
+    exw:Math.round(0.70*B*10)/10, exrt:Math.round(0.15*0.70*B*10)/10, exrb:Math.round(0.08*0.70*B*10)/10, exd:Math.round(0.70*B*10)/10, excd:0.70,
+    td:p.td>0?p.td:Math.max(100,p.ed-64), trw:Math.round(B*10)/10, trL:Math.round(1.3*S), trd:Math.round(0.6*B), trcd:0.65,
+    carb:Math.round(Math.min(44,28+0.08*cc)), inL:250, pet:4, petL:Math.round(0.7*B), petW:Math.round(0.45*B), petT:0.45, mat:'carbon',
+    blk:0, stop:8, ipo:75, ipw:Math.round(0.65*B), ipcd:0.65};
+}
+const twV=(k,d)=>Number.isFinite(TW_UI.v[k])?TW_UI.v[k]:d[k];
+// the OpenWAM spec (SI) from the 2-Stroke tab's design and this section's fields
+function twSpec(p,r){
+  const d=twDefaults(p,r), v=k=>twV(k,d), mm=x=>x/1000, used=[];
+  const assumed=(k,label,txt)=>{ if(!Number.isFinite(TW_UI.v[k])) used.push(label+' '+txt); };
+  assumed('rod','rod',d.rod+' mm (2 × stroke)'); assumed('crt','trapped CR',String(d.crt)); assumed('ccr','crankcase CR',String(d.ccr));
+  assumed('exw','exhaust window width',d.exw+' mm (70% of the bore)'); assumed('td','transfer duration',d.td+'°'+(p.td>0?'':' (exhaust − 64°)'));
+  assumed('trw','transfer total width',d.trw+' mm (= bore)'); assumed('trL','transfer duct',d.trL+' × '+d.trd+' mm');
+  const tw=TW_UI.cool==='air'?{piston:300,head:250,liner:220}:{piston:280,head:220,liner:180};
+  const e={bore:mm(p.bore),stroke:mm(p.stroke),rod:mm(v('rod')),cr_trapped:v('crt'),ccr:v('ccr'),afr:v('afr'),
+    burn:{start:v('ign'),dur:v('burn'),a:5,m:2},Twall:tw,ncyl:Math.max(1,Math.round(p.cyl))};
+  let ex;
+  if(TW_UI.port==='round'){ const D=v('exd'); ex={dur:p.ed,width:mm(D),height:mm(D),r_top:mm(D/2),r_bot:mm(D/2),cd:v('excd')}; }
+  else ex={dur:p.ed,width:mm(v('exw')),r_top:mm(v('exrt')),r_bot:mm(v('exrb')),cd:v('excd')};
+  const trs=[{dur:v('td'),width:mm(v('trw')),r_top:mm(3),r_bot:mm(2),cd:v('trcd'),duct:{L:mm(v('trL')),d:mm(v('trd'))}}];
+  const carb=v('carb'), inSegs=[{L:mm(v('inL')),d0:mm(carb),d1:mm(carb)}];
+  let intake;
+  if(TW_UI.intake==='port') intake={type:'port',segs:inSegs,Tw:318.15,port:{open_btdc:v('ipo'),width:mm(v('ipw')),r_top:mm(3),r_bot:mm(3),cd:v('ipcd')}};
+  else { const m=TW_MAT[TW_UI.v.mat||d.mat]||TW_MAT.carbon, n=Math.round(v('pet')), blk=v('blk')>0?v('blk'):0.71*n*v('petW')*v('petL');
+    if(!(v('blk')>0)) used.push('reed block window '+Math.round(blk)+' mm² (71% of the petals)');
+    intake={type:'reed',segs:inSegs,Tw:318.15,reed:{petals:n,L:mm(v('petL')),w:mm(v('petW')),t:mm(v('petT')),E:m.E,rho:m.rho,zeta:0.15,cd:0.60,A_block:blk*1e-6,
+      model:TW_UI.reedModel,lift_stop:mm(v('stop'))}}; }
+  const segs=r.segs.map(sg=>({L:mm(sg.len),d0:mm(sg.d0),d1:mm(sg.d1)})).filter(sg=>sg.L>1e-6);
+  const Tw=Math.max(250,r.T-150)+273.15;
+  const spec={e,exhaust_port:ex,transfers:trs,intake,exhaust:{Tw,segs}};
+  const Ltot=segs.reduce((a,s)=>a+s.L,0), straight=Object.assign({},spec,{exhaust:{Tw,segs:[{L:Ltot,d0:segs[0].d0,d1:segs[0].d0}]}});
+  return {spec,straight,used,Tgas:r.T};
+}
+function twRpms(p){
+  if(TW_UI.rpms&&TW_UI.rpms.trim()) return [...new Set(TW_UI.rpms.split(/[\s,;]+/).map(Number).filter(x=>x>=1000&&x<=25000).map(x=>Math.round(x/50)*50))].sort((a,b)=>a-b);
+  return [0.7,0.8,0.9,0.95,1,1.05,1.1,1.2].map(f=>Math.round(p.rpm*f/250)*250);
+}
+function twName(){ return (TW_UI.v.name||'twostroke').replace(/[^A-Za-z0-9_.-]/g,'')||'twostroke'; }
+// the case: {files, models:[{name, pipe, rpm, model}]}
+function twFiles(p,r){
+  const sp=twSpec(p,r), rpms=twRpms(p), base=twName(), models=[], files=[], warn=new Set();
+  const cyc=Math.max(5,Math.round(TW_UI.cycles)||30), cell=Math.min(20,Math.max(3,+TW_UI.cell||8));
+  for(const pipe of TW_UI.straight?['chamber','straight']:['chamber']) for(const rpm of rpms){
+    const name=base+'_'+pipe+'_'+rpm, run={name,rpm,cycles:cyc,cell_mm:cell,exhaust_Tgas0_C:Math.round(sp.Tgas)};
+    const model=WAM2T.modelFromSpec(pipe==='chamber'?sp.spec:sp.straight,run);
+    model.warnings.forEach(w=>warn.add(w));
+    files.push({name:name+'.wam',text:WAM2T.writeModel(model)}); models.push({name,pipe,rpm,model});
+  }
+  files.push({name:'run_all.bat',text:WAMX.batFile(models.map(m=>m.name),WAMX.USER_EXE)});
+  const g=models[0].model.eng;
+  files.push({name:'README.txt',text:['Two-stroke OpenWAM case written by the Exhaust Tuner 2-Stroke tab (make_wam2t.py, ported to the page).','',
+    'One .wam per engine speed: '+rpms.join(', ')+' RPM'+(TW_UI.straight?', for the expansion chamber and for a straight pipe of the same length at the header diameter':'')+'.',
+    'Run run_all.bat (set OPENWAM inside it to your OpenWAM.exe). Each model NAME runs in its own folder NAME.',
+    'Read the results on the 2-Stroke tab, "Run it in OpenWAM": pick each NAMEAVG.DAT and NAMEINS.DAT (the INS file gives the crankcase pumping work).','',
+    'Engine: '+p.bore+' x '+p.stroke+' mm, '+e2(g.cr_geom)+' geometric CR ('+e2(g.cr_trapped)+' trapped), crankcase CR '+e2(g.ccr)+', exhaust opens '+e2(g.ex_open_atdc)+' deg ATDC.',
+    'Assumed (blank fields): '+(sp.used.join('; ')||'none')+'.',
+    'Scavenging is perfect mixing (OpenWAM 2.2 has no two-stroke scavenging model), so trapping efficiency is pessimistic.',
+    'Brake power = indicated + crankcase pumping - FMEP, FMEP = 100 Pa x stroke [m] x RPM, an estimate. Compare runs with each other.'].join('\r\n')});
+  return {files,models,rpms,sp,warn:[...warn],name:base};
+}
+const e2=x=>(+x).toFixed(2);
+// results: [{name,pipe,rpm,s|err}]
+function twRead(list,models){
+  const by=new Map(models.map(m=>[m.name.toLowerCase(),m])), groups=new Map();
+  for(const f of list){
+    const m=f.name.match(/^(.*?)(AVG|INS)\.DAT$/i); if(!m) continue;
+    const k=m[1].toLowerCase(); if(!groups.has(k)) groups.set(k,{}); groups.get(k)[m[2].toLowerCase()]=f.text;
+    if(f.log!==undefined) groups.get(k).log=f.log; if(f.finished!==undefined) groups.get(k).finished=f.finished;
+  }
+  const out=[];
+  for(const [k,g] of groups){
+    const mm=by.get(k)||(()=>{ const q=k.match(/_(chamber|straight)_(\d+)$/); return q?models.find(x=>x.pipe===q[1]&&x.rpm===+q[2]):null; })();
+    if(!mm){ out.push({name:k,err:'not a model of this case (make the case again from these inputs, or keep the file names)'}); continue; }
+    if(!g.avg){ out.push({name:mm.name,pipe:mm.pipe,rpm:mm.rpm,err:'no AVG.DAT'}); continue; }
+    try{ const s=WAM2T.summary(mm.model,{avg:g.avg,ins:g.ins,log:g.log,finished:g.log===undefined?(g.finished!==undefined?g.finished:true):undefined});
+      if(!Number.isFinite(s.IMEP_bar)) throw new Error('the run blew up (NaN in the last cycle)');
+      out.push({name:mm.name,pipe:mm.pipe,rpm:mm.rpm,s}); }
+    catch(e){ out.push({name:mm.name,pipe:mm.pipe,rpm:mm.rpm,err:e.message}); }
+  }
+  return out.sort((a,b)=>(a.pipe>b.pipe?1:a.pipe<b.pipe?-1:0)||(a.rpm-b.rpm));
+}
+function twMsg(t,bad){ TW_UI.msg={t,bad:!!bad}; const n=document.querySelector('.twmsg'); if(n){ n.className='note twmsg'+(bad?' bad':''); n.textContent=t; n.hidden=false; } }
+function twInp(k,lab,kind,d,step){
+  const has=Number.isFinite(TW_UI.v[k]), sh=x=>kind==='len'&&U==='imp'?+(x/25.4).toFixed(4):+(+x).toFixed(2);
+  const unit=kind==='len'?'<em data-u="len">'+(U==='imp'?'in':'mm')+'</em>':kind==='deg'?'<em>°</em>':kind==='mm2'?'<em>mm²</em>':'';
+  return '<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="twam" data-k="'+k+'" type="number" step="'+(step||'any')+'" inputmode="decimal" data-kind="'+(kind==='len'?'len':'num')+'" value="'+(has?sh(TW_UI.v[k]):'')+'" placeholder="'+(d[k]>0||d[k]===0?sh(d[k]):'')+'">'+unit+'</span></label>';
+}
+function twSel(k,lab,opts){ return '<label class="f"><span class="lab">'+lab+'</span><span class="inp"><select class="twsel" data-k="'+k+'">'+opts.map(o=>'<option value="'+o[0]+'"'+(String(TW_UI[k])===String(o[0])?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></span></label>'; }
+function twoWamSection(p,r){
+  const d=twDefaults(p,r);
+  TW_UI.last={p,r};
+  let h='<p class="cap" style="margin-top:0">Runs this chamber on a one-dimensional model of the whole engine in OpenWAM: the piston opening and closing the exhaust and transfer ports, the crankcase pumping the charge through the reed or the intake port, and the chamber’s returning waves pulling at blowdown and plugging the port before it closes. It writes one input file per engine speed, for this chamber and, to compare, a straight pipe of the same length. Blank fields use the values shown in grey, each an assumption listed with the case; measure the ports on your cylinder for numbers you can trust.</p>';
+  h+='<p class="sub">Engine</p><div class="grid2">'+twInp('rod','Connecting rod, centre to centre','len',d)+twInp('crt','Trapped compression ratio (from exhaust closing)','num',d,0.1)+
+    twInp('ccr','Crankcase compression ratio','num',d,0.01)+twInp('afr','Air-fuel ratio','num',d,0.1)+twInp('ign','Ignition, burn start before TDC','deg',d)+twInp('burn','Burn duration','deg',d)+
+    twSel('cool','Cooling',[['water','Water'],['air','Air']])+'</div>';
+  h+='<p class="sub">Exhaust port window, in the bore</p><div class="grid2">'+twSel('port','Window shape',[['rect','Rectangle with corner radii (main and side ports as one)'],['round','Round']])+
+    (TW_UI.port==='round'?twInp('exd','Diameter','len',d):twInp('exw','Width across the bore','len',d)+twInp('exrt','Top corner radius','len',d)+twInp('exrb','Bottom corner radius','len',d))+
+    twInp('excd','Discharge coefficient','num',d,0.01)+'</div><p class="cap">The port top comes from the exhaust duration ('+p.ed+'°); the window reaches down to the crown at bottom dead centre.</p>';
+  h+='<p class="sub">Transfer ports, as one equivalent port</p><div class="grid2">'+twInp('td','Transfer duration','deg',d)+twInp('trw','Total width of all transfer windows','len',d)+
+    twInp('trL','Duct length, crankcase to port','len',d)+twInp('trd','Duct equivalent diameter','len',d)+twInp('trcd','Discharge coefficient','num',d,0.01)+'</div>';
+  h+='<p class="sub">Intake</p><div class="grid2">'+twSel('intake','Intake into the crankcase',[['reed','Reed valve'],['port','Piston port (the skirt opens it)']])+twInp('carb','Carburettor bore','len',d)+twInp('inL','Bellmouth to reed or port','len',d);
+  if(TW_UI.intake==='port') h+=twInp('ipo','Port opens, before TDC','deg',d)+twInp('ipw','Port width','len',d)+twInp('ipcd','Discharge coefficient','num',d,0.01);
+  else h+=twInp('pet','Petals','num',d,1)+twInp('petL','Petal free length','len',d)+twInp('petW','Petal width','len',d)+twInp('petT','Petal thickness','len',d,0.01)+
+    '<label class="f"><span class="lab">Petal material</span><span class="inp"><select class="twmat">'+Object.entries(TW_MAT).map(([k,m])=>'<option value="'+k+'"'+((TW_UI.v.mat||d.mat)===k?' selected':'')+'>'+m.name+'</option>').join('')+'</select></span></label>'+
+    twInp('blk','Reed block window area (blank: 71% of the petals)','mm2',{blk:''})+
+    twSel('reedModel','Reed model',[['1d','Petal mass and spring (no lift stop)'],['0d','Quasi-steady, with a lift stop']])+(TW_UI.reedModel==='0d'?twInp('stop','Lift stop (tip opening)','len',d):'');
+  h+='</div>';
+  if(TW_UI.intake==='reed') h+='<p class="cap">OpenWAM’s moving reed has no stop, so it can open too far and close late; the quasi-steady reed with a stop opens to a lift set by the pressure across it, with no inertia. On both test engines the moving reed passed more air, so it is the default.</p>';
+  const rpms=twRpms(p);
+  h+='<p class="sub">Runs</p><div class="grid2"><label class="f span2"><span class="lab">Engine speeds (RPM, separated by spaces)</span><span class="inp"><input class="twx" data-k="rpms" type="text" inputmode="numeric" value="'+esc(TW_UI.rpms||rpms.join(' '))+'"></span></label>'+
+    '<label class="f"><span class="lab">Cycles per run</span><span class="inp"><input class="twx" data-k="cycles" type="number" step="1" min="5" max="200" value="'+TW_UI.cycles+'"></span></label>'+
+    '<label class="f"><span class="lab">Cell size</span><span class="inp"><input class="twx" data-k="cell" type="number" step="1" min="3" max="20" value="'+TW_UI.cell+'"><em>mm</em></span></label>'+
+    twSel('straight','Also run',[['true','A straight pipe of the same length, to compare'],['false','The chamber only']])+
+    '<label class="f"><span class="lab">Case name</span><span class="inp"><input class="twx" data-k="name" type="text" value="'+esc(twName())+'"></span></label></div>';
+  let cs=null; try{ cs=twFiles(p,r); }catch(e){ h+='<div class="note bad">'+esc('The case cannot be written: '+e.message)+'</div>'; }
+  if(cs){
+    const g=cs.models[0].model.eng, I=cs.models[0].model.info.cyl[0], a2=x=>Math.round(x)+' mm²';
+    h+='<div class="tblwrap" style="margin-top:8px"><table><tbody>'+
+      '<tr><td>Exhaust opens · transfers open</td><td>'+g.ex_open_atdc.toFixed(1)+'° · '+g.tr_open_atdc[0].toFixed(1)+'° after TDC; blowdown '+(g.tr_open_atdc[0]-g.ex_open_atdc).toFixed(1)+'°</td></tr>'+
+      '<tr><td>Port tops above the crown at BDC</td><td>exhaust '+cdim(g.H_ex*1000)+', transfers '+cdim(g.H_tr[0]*1000)+'</td></tr>'+
+      '<tr><td>Compression ratio</td><td>'+g.cr_trapped.toFixed(2)+' trapped, '+g.cr_geom.toFixed(2)+' geometric (what OpenWAM takes)</td></tr>'+
+      '<tr><td>Window areas, fully open</td><td>exhaust '+a2(I.A_ex_max_mm2)+' against a '+a2(I.A_header_mm2)+' header; transfers '+a2(I.A_tr_max_mm2)+'</td></tr>'+
+      '<tr><td>Files</td><td>'+cs.models.length+' models, '+rpms.length+' speeds'+(TW_UI.straight?' × 2 pipes':'')+', '+Math.max(5,Math.round(TW_UI.cycles)||30)+' cycles each</td></tr></tbody></table></div>';
+    if(cs.warn.length) h+='<div class="note warn">'+esc(cs.warn.map(w=>w[0].toUpperCase()+w.slice(1)).join('. ')+'. The port can pass more than the pipe behind it: check the window or the header.')+'</div>';
+    if(cs.sp.used.length) h+='<p class="cap">Assumed: '+esc(cs.sp.used.join('; '))+'.</p>';
+    if(r.dual) h+='<p class="cap">The dual power insert is not in the model: OpenWAM here has one path through the chamber, and the insert is a second path in parallel. The runs are the chamber without it.</p>';
+  }
+  h+='<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-tw="dl">Download OpenWAM case (.zip)</button>'+(hostHas('openwam')?'<button type="button" class="btn" data-tw="run">Run in OpenWAM on this PC</button><button type="button" class="btn" data-tw="stop">Stop</button>':'')+'</div>'+
+    '<div class="note twmsg'+(TW_UI.msg&&TW_UI.msg.bad?' bad':'')+'"'+(TW_UI.msg?'':' hidden')+'>'+(TW_UI.msg?esc(TW_UI.msg.t):'')+'</div>';
+  h+='<p class="sub" style="margin-top:14px">Results</p>';
+  const R=TW_UI.res, ok=R.filter(x=>x.s);
+  if(ok.length){
+    const ch=ok.filter(x=>x.pipe==='chamber'), st=ok.filter(x=>x.pipe==='straight');
+    const pk=ch.length?ch.reduce((a,b)=>b.s.P_brake_hp>a.s.P_brake_hp?b:a):null;
+    if(pk) h+='<div class="figs">'+figT('Peak power, chamber',pk.s.P_brake_hp.toFixed(1),'hp',(pk.s.P_brake_kW).toFixed(1)+' kW at '+pk.rpm+' RPM')+
+      figT('Design RPM',Math.round(p.rpm),'RPM',pk.rpm===Math.round(p.rpm/250)*250||Math.abs(pk.rpm-p.rpm)/p.rpm<0.04?'the peak is on it':(pk.rpm>p.rpm?'peaks higher':'peaks lower')+' by '+Math.round(Math.abs(pk.rpm-p.rpm))+' RPM')+
+      figT('Delivery ratio at the peak',pk.s.DR.toFixed(2),'','trapping '+(100*pk.s.TE).toFixed(0)+'%')+'</div>';
+    h+='<figure class="card" style="margin:12px 0 0"><svg class="camp" id="tw-svg" role="img" aria-label="Brake power against RPM, chamber and straight pipe"></svg>'+
+      '<div class="legend"><span><i class="sw" style="--c:var('+SIM_COL[0]+')"></i>Expansion chamber</span>'+(st.length?'<span><i class="sw" style="--c:var('+SIM_COL[1]+');border-top-style:dashed"></i>Straight pipe, same length</span>':'')+'</div></figure>';
+    const f1=x=>Number.isFinite(x)?x.toFixed(1):'?', f2=x=>Number.isFinite(x)?x.toFixed(2):'?', tq=U==='imp'?0.737562:1;
+    h+='<div class="tblwrap" style="margin-top:12px"><table><thead><tr><th>Pipe</th><th>RPM</th><th>Brake power</th><th>Brake torque</th><th>BMEP</th><th>IMEP</th><th>Crankcase</th><th>Delivery ratio</th><th>Trapping</th><th>Charging</th><th>Settled?</th></tr></thead><tbody>'+
+      R.map(x=>x.err?'<tr><td>'+esc(x.pipe||'')+'</td><td>'+(x.rpm||'')+'</td><td colspan="9">'+esc(x.name+': '+x.err)+'</td></tr>':
+        '<tr><td>'+x.pipe+'</td><td>'+x.rpm+'</td><td>'+f1(x.s.P_brake_hp)+' hp ('+f1(x.s.P_brake_kW)+' kW)</td><td>'+f1(x.s.T_brake_Nm*tq)+' '+(U==='imp'?'lb-ft':'N·m')+'</td><td>'+f2(x.s.BMEP_bar)+' bar</td><td>'+f2(x.s.IMEP_bar)+' bar</td><td>'+(Number.isFinite(x.s.crankcase_MEP_bar)?f2(x.s.crankcase_MEP_bar)+' bar':'no INS file')+'</td><td>'+f2(x.s.DR)+'</td><td>'+Math.round(100*x.s.TE)+'%</td><td>'+f2(x.s.CE)+'</td><td>'+(!x.s.finished?'did not finish':x.s.NMEP_spread_last5_pct<2?'yes':'moving '+x.s.NMEP_spread_last5_pct.toFixed(1)+'%')+'</td></tr>').join('')+'</tbody></table></div>'+
+      '<p class="cap">Brake power is OpenWAM’s cylinder work plus the crankcase pumping work, less a friction estimate (100 Pa × stroke in metres × RPM). Delivery ratio is the air the crankcase took in against the swept volume at 25 °C; trapping is the share of it still in the cylinder when the exhaust closes, charging the trapped air against the swept volume. OpenWAM mixes the fresh charge with the burnt gas perfectly (it has no loop-scavenging model), so trapping reads low and power with it; rank pipes and port changes by these numbers, not a dyno.</p>';
+  } else if(R.length) h+='<div class="note bad">'+esc(R.map(x=>x.name+': '+x.err).join('; '))+'</div>';
+  h+='<p class="cap">'+(hostHas('openwam')?'“Run in OpenWAM on this PC” fills this in. ':'')+'For a case run elsewhere, pick its <b>AVG.DAT</b> and <b>INS.DAT</b> files (several at once); they are read against the inputs above, so keep them as they were when the case was made.</p>'+
+    '<label class="f"><span class="lab">AVG.DAT and INS.DAT files</span><span class="inp"><input type="file" id="tw-files" multiple accept=".dat,.DAT,text/plain"></span></label>';
+  return sec('Run it in OpenWAM',h);
+}
+function twoWamDraw(){
+  const svg=document.getElementById('tw-svg'); if(!svg) return;
+  const ok=TW_UI.res.filter(x=>x.s), rp=[...new Set(ok.map(x=>x.rpm))].sort((a,b)=>a-b);
+  if(rp.length<2){ clearSvg(svg); return; }
+  clearSvg(svg);
+  const W=widthOf(svg), H=240, ml=46, mr=14, mt=16, mb=32;
+  svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.setAttribute('height',H);
+  const ys=ok.map(x=>x.s.P_brake_hp);
+  let y1=Math.max(...ys), y0=Math.min(0,Math.min(...ys)); const st=niceStep(y1-y0,[1,2,5,10,20,25,50,100]); y1=Math.ceil(y1/st)*st; y0=Math.floor(y0/st)*st;
+  const x0=rp[0], x1=rp[rp.length-1], X=v=>ml+(v-x0)/(x1-x0)*(W-ml-mr), Y=v=>H-mb-(v-y0)/(y1-y0)*(H-mt-mb);
+  for(let v=y0;v<=y1+1e-9;v+=st){ mk('line',{x1:ml,x2:W-mr,y1:Y(v),y2:Y(v),'class':'grid'},svg); const t=mk('text',{x:ml-6,y:Y(v)+3.5,'class':'tr'},svg); t.textContent=+v.toFixed(1); }
+  const xs=niceStep(x1-x0,[250,500,1000,2000,2500,5000]);
+  for(let v=Math.ceil(x0/xs)*xs;v<=x1;v+=xs){ const t=mk('text',{x:X(v),y:H-mb+16,style:'text-anchor:middle'},svg); t.textContent=v; }
+  mk('line',{x1:ml,x2:W-mr,y1:H-mb,y2:H-mb,'class':'axis'},svg);
+  ['chamber','straight'].forEach((pipe,k)=>{ const pts=ok.filter(x=>x.pipe===pipe).sort((a,b)=>a.rpm-b.rpm); if(pts.length<2) return;
+    mk('polyline',{points:pts.map(x=>X(x.rpm).toFixed(1)+','+Y(x.s.P_brake_hp).toFixed(1)).join(' '),'class':'ord',style:'stroke:var('+SIM_COL[k]+');stroke-width:'+(k?1.8:2.6)+';'+(k?'stroke-dasharray:6 4':'')},svg);
+    pts.forEach(x=>mk('circle',{cx:X(x.rpm).toFixed(1),cy:Y(x.s.P_brake_hp).toFixed(1),r:2.6,style:'fill:var('+SIM_COL[k]+')'},svg)); });
+  const ty=mk('text',{x:4,y:10},svg); ty.textContent='hp, brake'; const tx=mk('text',{x:W-mr,y:H-4,'class':'tr'},svg); tx.textContent='RPM';
+}
+async function twDownload(){
+  const L=TW_UI.last; if(!L){ twMsg('Fill in the 2-Stroke tab first.',true); return null; }
+  let out; try{ out=twFiles(L.p,L.r); }catch(e){ twMsg('OpenWAM export: '+e.message,true); return null; }
+  window.__twLast=out;
+  const zname=out.name+'_openwam2t.zip';
+  if(FUSION||HOST){ const res=await saveCall('saveFiles',{files:out.files,title:'Choose a folder for the OpenWAM case'});
+    twMsg(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.')); return out; }
+  const blob=zipMany(out.files);
+  if(ES_DLP){ const dl=await ES_DLP;
+    if(!dl){ twMsg('Saving files is not available in this view. Open the calculator in a browser tab or in the Fusion add-in.',true); return out; }
+    try{ await dl.save({filename:zname,data:blob}); twMsg('Saved '+zname+': '+out.models.length+' models, run_all.bat and a README.'); }
+    catch(e){ const c=e&&e.code; twMsg(c==='declined'?'Not saved.':'This view could not save the file ('+(c||'error')+').',c!=='declined'); }
+    return out; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=zname; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+  twMsg('Downloaded '+zname+'.'); return out;
+}
+async function twRun(){
+  const L=TW_UI.last; if(!HOST||!L) return;
+  let out; try{ out=twFiles(L.p,L.r); }catch(e){ twMsg('OpenWAM export: '+e.message,true); return; }
+  window.__twLast=out;
+  twMsg('Running '+out.models.length+' OpenWAM models on this PC, several at once. Each takes from seconds to a few minutes.');
+  let res;
+  try{ res=await HOST.call('runOpenWAM',{name:out.name,files:out.files},ev=>{
+      if(ev.event==='done') twMsg('OpenWAM: '+ev.count+' of '+ev.of+' done ('+ev.model+(ev.finished?' finished':' did NOT finish')+', '+ev.seconds+' s).',!ev.finished); }); }
+  catch(e){ twMsg('OpenWAM did not run: '+e.message,true); return; }
+  const ms=res.models||[], files=[];
+  ms.forEach(m=>{ if(m.avg) files.push({name:m.name+'AVG.DAT',text:m.avg,finished:!!m.finished}); if(m.ins) files.push({name:m.name+'INS.DAT',text:m.ins}); });
+  TW_UI.res=twRead(files,out.models).concat(ms.filter(m=>!m.avg).map(m=>({name:m.name,err:'did not finish: '+String(m.logTail||'').split('\n').filter(Boolean).pop()})));
+  window.__twResults=TW_UI.res;
+  const bad=ms.filter(m=>!(m.finished&&m.avg));
+  twMsg((bad.length?bad.length+' of '+ms.length+' models did not finish. ':'All '+ms.length+' models finished. ')+'The case and OpenWAM’s output are in '+res.folder+'.',bad.length>0);
+  renderActive();
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-tw]'); if(!b) return;
+  if(b.dataset.tw==='dl') twDownload(); else if(b.dataset.tw==='run') twRun(); else if(b.dataset.tw==='stop'&&HOST) HOST.cancel(); });
+document.addEventListener('input',e=>{ const el=e.target.closest('input.twam'); if(!el) return; readInput(el); TW_UI.v[el.dataset.k]=el._b>0||el._b===0?el._b:NaN; });
+document.addEventListener('change',e=>{ if(e.target.closest('input.twam')) renderActive(); });
+document.addEventListener('input',e=>{ const el=e.target.closest('input.twx'); if(!el) return; const k=el.dataset.k;
+  if(k==='name') TW_UI.v.name=el.value; else if(k==='rpms') TW_UI.rpms=el.value; else TW_UI[k]=parseFloat(el.value); });
+document.addEventListener('change',e=>{ const el=e.target.closest('select.twsel'); if(!el) return; const k=el.dataset.k; TW_UI[k]=k==='straight'?el.value==='true':el.value; renderActive(); });
+document.addEventListener('change',e=>{ const el=e.target.closest('select.twmat'); if(!el) return; TW_UI.v.mat=el.value; renderActive(); });
+document.addEventListener('change',e=>{ const el=e.target.closest('#tw-files'); if(!(el&&el.files&&el.files.length)||!TW_UI.last) return;
+  const L=TW_UI.last; let cs; try{ cs=twFiles(L.p,L.r); }catch(err){ twMsg(err.message,true); return; }
+  Promise.all([...el.files].map(f=>f.text().then(t=>({name:f.name,text:t})))).then(list=>{ TW_UI.res=twRead(list,cs.models); window.__twResults=TW_UI.res; renderActive(); }); });
+// projects: the fields (blank ones stay blank, NaN is not JSON) and the run settings; results are not kept
+const TW_KEYS=['rpms','cycles','cell','straight','intake','reedModel','port','cool'];
+function twSave(){ const v={}; for(const k in TW_UI.v){ const x=TW_UI.v[k]; if(typeof x==='string'||Number.isFinite(x)) v[k]=x; } const o={v}; TW_KEYS.forEach(k=>{ o[k]=TW_UI[k]; }); return o; }
+function twLoad(o){ TW_UI.v=Object.assign({},o.v||{}); TW_KEYS.forEach(k=>{ if(o[k]!==undefined) TW_UI[k]=o[k]; }); TW_UI.res=[]; TW_UI.msg=null; }
+window.__tw={twSpec,twFiles,twRead,TW_UI,twSave,twLoad};
 
 // Inputs for calcSound, shared with the Mufflers tab
 function soundParams(){
@@ -13916,6 +14863,62 @@ function uelCompute(r,p){
   const ret=rows.map(x=>x.tRet), dt=Math.max(...ret)-Math.min(...ret);
   return {rows,prs,secs,a,Tc,dt,maxM,speeds,eq:uelOrders(r.groups,Leq,p.rpm,a,maxM),yours:speeds.map(s=>uelOrders(r.groups,Lv,s,a,maxM)),dsecDefault:d.sec};
 }
+// Pulse pairing (a sound engineer's way in, 2026-11-03): pulses arriving at even gaps give one tone; bring them together
+// in pairs (a short gap, then a long one) and the train repeats at half the rate, so a second tone an octave below the
+// firing tone joins in, and the short and long gaps colour it. The gaps at the collector are the firing angles plus each
+// pipe's travel time L / a, so a fixed length difference closes the gap by 6 x RPM x dL / a degrees: more at high RPM,
+// next to nothing at idle. uelGaps: the arrival gaps of one collector; uelPairPlan: the lengths that give a chosen short
+// gap at a chosen RPM (half the difference added to the first pulse of each pair, half taken off the second, so the
+// average length, and the RPM it tunes for, stays).
+function uelGaps(g,Lv,rpm,a){
+  const th=g.pulses.map(q=>((q.ang+6*rpm*(Lv[q.cyl]/1000)/a)%720+720)%720).sort((x,y)=>x-y);
+  return th.map((t,i)=>i+1<th.length?th[i+1]-t:th[0]+720-t);
+}
+function uelPairPlan(r,u,gap,rpm){
+  if(r.triy) return {err:'On a Tri-Y the Y pairs already decide which pulses travel together; set the pairs and the secondaries above.'};
+  if(!(gap>0&&rpm>0)) return {err:'Enter the short gap and the RPM it should have.'};
+  const d=uelDefaults(r), set={}, lines=[];
+  for(const g of r.groups){
+    const n=g.pulses.length; if(n<2) continue;
+    if(n%2) return {err:'Collector '+lab(r.groups.indexOf(g))+' takes '+n+' pulses a cycle, an odd number, so they cannot all go in pairs.'};
+    const ps=g.pulses.slice().sort((x,y)=>x.ang-y.ang);
+    for(let i=0;i<n;i+=2){
+      const sp=ps[i+1].ang-ps[i].ang, dth=sp-gap;
+      if(!(gap<sp)) return {err:'The short gap has to be under the even gap of '+Math.round(sp)+'° between cylinders '+ps[i].cyl+' and '+ps[i+1].cyl+'.'};
+      const dL=dth*u.a/(6*rpm)*1000;
+      set[ps[i].cyl]=d.prim+dL/2; set[ps[i+1].cyl]=d.prim-dL/2;
+      lines.push({a:ps[i].cyl,b:ps[i+1].cyl,dL,dth});
+      if(!(d.prim-dL/2>100)) return {err:'Cylinder '+ps[i+1].cyl+' would need a primary of '+clen(d.prim-dL/2)+': pick a higher RPM or a wider short gap.'};
+    }
+  }
+  return {set,lines};
+}
+window.__pair={plan:(g,r)=>uelPairPlan(HDR_LAST.r,HDR_LAST.uel,g,r),gaps:rpm=>{ const H=HDR_LAST, Lv={}; H.uel.rows.forEach(x=>{ Lv[x.c]=x.Lv; }); return uelGaps(H.r.groups[0],Lv,rpm,H.uel.a); },
+  orders:rpm=>{ const H=HDR_LAST, Lv={}; H.uel.rows.forEach(x=>{ Lv[x.c]=x.Lv; }); return uelOrders(H.r.groups,Lv,rpm,H.uel.a,8)[0]; },a:()=>HDR_LAST.uel.a,
+  mean:()=>HDR_LAST.uel.rows.reduce((s,x)=>s+x.prim,0)/HDR_LAST.uel.rows.length,prim:()=>uelDefaults(HDR_LAST.r).prim};
+function uelPairHtml(r,p,u){
+  const f0=x=>Math.round(x).toLocaleString('en-US'), Lv={}; u.rows.forEach(x=>{ Lv[x.c]=x.Lv; });
+  const speeds=[...new Set([0.25,0.5,0.75,1].map(f=>Math.round(p.rpm*f/100)*100).concat(u.speeds.map(Math.round)))].sort((x,y)=>x-y);
+  let h='<p class="sub" style="margin-top:14px">Pulse gaps at the collector</p><p class="cap">The same thing in time: how far apart the pulses reach each collector, in crank degrees. Even gaps give one tone, the firing tone. Paired pulses (a short gap, then a long one) repeat at half the rate, which adds a tone an octave below it (the 1st order on an inline four), and the short and long gaps colour that note: their rates are the two pitches in the last columns. The pairing grows with RPM, because a length difference is a fixed delay in time: at idle the pulses are almost even again.</p>';
+  r.groups.forEach((g,gi)=>{
+    if(g.pulses.length<2) return;
+    const n=g.pulses.length, fire=x=>x*n/120;
+    h+='<p class="cap" style="margin:8px 0 4px"><b>Collector '+lab(gi)+'</b>, '+n+' pulses a cycle</p><div class="tblwrap"><table><thead><tr><th>RPM</th><th>Gaps, in arrival order</th><th>Firing tone</th><th>Rate of the short gaps</th><th>Rate of the long gaps</th></tr></thead><tbody>'+
+      speeds.map(s=>{ const G=uelGaps(g,Lv,s,u.a), mn=Math.min(...G), mx=Math.max(...G), even=mx-mn<1;
+        return '<tr'+(s===Math.round(p.rpm)?' class="cur"':'')+'><td>'+f0(s)+'</td><td>'+G.map(x=>Math.round(x)+'°').join(' · ')+'</td><td>'+f0(fire(s))+' Hz</td><td>'+(even?'even':f0(6*s/mn)+' Hz ('+Math.round(mn)+'°)')+'</td><td>'+(even?'even':f0(6*s/mx)+' Hz ('+Math.round(mx)+'°)')+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  });
+  if(r.triy) return h;
+  const gap=Number.isFinite(HUEL.pg)?HUEL.pg:Math.round(0.8*720/Math.max(2,r.groups[0].pulses.length)), rpm=Number.isFinite(HUEL.pr)?HUEL.pr:Math.round(p.rpm);
+  const plan=uelPairPlan(r,u,gap,rpm);
+  h+='<p class="sub" style="margin-top:14px">Pair the pulses</p><p class="cap">Pick the short gap and the RPM where you want it; this works out the lengths. Half the difference goes on the first pulse of each pair and comes off the second, so the average length and its tuned RPM stay where the design put them.</p>'+
+    '<div class="grid2" style="max-width:640px"><label class="f"><span class="lab">Short gap</span><span class="inp"><input class="uelpair" data-k="pg" type="number" step="1" inputmode="decimal" value="'+gap+'"><em>°</em></span></label>'+
+    '<label class="f"><span class="lab">At</span><span class="inp"><input class="uelpair" data-k="pr" type="number" step="100" inputmode="decimal" value="'+rpm+'"><em>rpm</em></span></label></div>';
+  if(plan.err) h+='<div class="note warn">'+esc(plan.err)+'</div>';
+  else h+='<ul class="list">'+plan.lines.map(x=>'<li>Cylinders '+x.a+' and '+x.b+': '+x.a+' '+clen(plan.set[x.a])+', '+x.b+' '+clen(plan.set[x.b])+', a difference of <b>'+clen(x.dL)+'</b> that closes their gap by '+Math.round(x.dth)+'° at '+f0(rpm)+' RPM ('+Math.round(x.dth*0.5)+'° at '+f0(rpm/2)+').</li>').join('')+'</ul>'+
+    '<div class="actions"><button type="button" class="btn" id="h-uel-pair">Use these lengths</button></div>'+
+    '<p class="cap">Then compare by ear-range: the tables above show where the energy goes order by order, and the OpenWAM case on the 4-Stroke tab runs these lengths with the real wave action, its order spectrum included. Long differences cost tuning on the long and short pipes alike; most road builds stop at a few inches.</p>';
+  return h;
+}
 function uelSection(r,p,u,profSel){
   const T='Unequal primary lengths';
   if(!u) return '';
@@ -13937,6 +14940,7 @@ function uelSection(r,p,u,profSel){
     rows+='<tr><td>Half orders, energy share</td><td>'+(100*half(u.eq[gi])).toFixed(0)+'%</td>'+u.yours.map(Y=>'<td>'+(100*half(Y[gi])).toFixed(0)+'%</td>').join('')+'</tr>';
     h+='<p class="cap" style="margin:12px 0 4px"><b>Collector '+lab(gi)+'</b>, cylinders '+g.pulses.map(q=>q.cyl).join(', ')+' in firing order</p><div class="tblwrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div>';
   });
+  h+=uelPairHtml(r,p,u);
   h+='<p class="sub" style="margin-top:14px">Why a maker builds them</p><p class="cap">Subaru’s engineers describe the boxer’s case in <a href="https://toyotatimes.jp/en/series/sound/002.html" target="_blank" rel="noopener">TOYOTA TIMES, 20 August 2024</a> (Jun Hirano and Nobuyoshi Takashima of Subaru): the left and right pipes differ in length, so the gas from the four firings reaches the merge at different times, which gave the 1990s cars their “throbbing” sound; Subaru changed to uniform-length manifolds for the 2003 fourth-generation Legacy and second-generation Impreza “to create a more powerful engine with better response” and lost the sound; the CB18 went back to unequal lengths, one side a little over 100 mm and the other 350 to 400 mm, for quicker turbo response and to put the catalyst close to the engine. So unequal lengths come from packaging, the catalyst and turbo placement; the sound comes with them, and the wave tuning of each primary is a compromise, as the RPM column shows. No back-to-back dyno or sound test of one car with equal and unequal headers under stated conditions was found; aftermarket pages (for example MAPerformance and a 2025 SlashGear article) state differences without data.</p>';
   if(profSel!=='const'&&!r.triy) h+='<div class="note">Unequal lengths use constant-diameter primaries; the stepped profile is off while this is on.</div>';
   const gr=Math.min(HUEL.route||0,r.nColl-1), cr=r.groups[gr].cyls.slice().sort((a,b)=>a-b), byc=Object.fromEntries(u.rows.map(x=>[x.c,x]));
@@ -14043,6 +15047,10 @@ $('h-uel-wrap').addEventListener('input',e=>{   // runs before the form's own ha
 });
 $('h-uel-wrap').addEventListener('change',e=>{ if(e.target.id==='h-uel-route') HUEL.route=+e.target.value||0; },true);
 document.addEventListener('click',e=>{ if(e.target.closest('#h-uel-reset')){ HUEL.c={}; HUEL.g={}; HUEL.T=NaN; renderActive(); } });
+document.addEventListener('change',e=>{ const el=e.target.closest('input.uelpair'); if(!el) return; const v=parseFloat(el.value); HUEL[el.dataset.k]=Number.isFinite(v)?v:NaN; renderActive(); });
+document.addEventListener('click',e=>{ if(!e.target.closest('#h-uel-pair')) return; const H=HDR_LAST; if(!(H&&H.uel&&H.r)) return;
+  const pl=uelPairPlan(H.r,H.uel,Number.isFinite(HUEL.pg)?HUEL.pg:Math.round(0.8*720/Math.max(2,H.r.groups[0].pulses.length)),Number.isFinite(HUEL.pr)?HUEL.pr:Math.round(H.p.rpm));
+  if(pl.err) return; Object.assign(HUEL.c,pl.set); renderActive(); });
 
 /* ===== OpenWAM: a full 1-D case for the free OpenWAM 2.2 solver, several engine speeds, run with a .bat ===== */
 const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[],
@@ -15374,7 +16382,7 @@ function projSnapshot(name){
   const ui={}; for(const k in PROJ_UI) ui[k]=projUiCopy(PROJ_UI[k][0],PROJ_UI[k][1]);
   return {exhaustTunerProject:1,name:String(name||'').trim()||'Untitled build',saved:new Date().toISOString(),
     units:U,mode:document.body.classList.contains('simple')?'simple':'expert',tab:(location.hash||'').slice(1),
-    vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n},build:JSON.parse(JSON.stringify(BUILD.items))};
+    vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n,pg:HUEL.pg,pr:HUEL.pr},tw:twSave(),build:JSON.parse(JSON.stringify(BUILD.items))};
 }
 function projApply(d){
   if(!d||!d.vals) throw new Error('not an Exhaust Tuner project');
@@ -15397,7 +16405,8 @@ function projApply(d){
   const ui=d.ui||{};
   for(const k in PROJ_UI){ const [o]=PROJ_UI[k], v=ui[k]; if(!v) continue;
     for(const kk in v){ if(o[kk]&&typeof o[kk]==='object'&&!Array.isArray(o[kk])&&v[kk]&&typeof v[kk]==='object'&&!Array.isArray(v[kk])) Object.assign(o[kk],v[kk]); else o[kk]=v[kk]; } }
-  if(d.huel){ HUEL.c=Object.assign({},d.huel.c||{}); HUEL.g=Object.assign({},d.huel.g||{}); if(Number.isFinite(d.huel.n)) HUEL.n=d.huel.n; }
+  if(d.huel){ HUEL.c=Object.assign({},d.huel.c||{}); HUEL.g=Object.assign({},d.huel.g||{}); if(Number.isFinite(d.huel.n)) HUEL.n=d.huel.n; HUEL.pg=Number.isFinite(d.huel.pg)?d.huel.pg:NaN; HUEL.pr=Number.isFinite(d.huel.pr)?d.huel.pr:NaN; }
+  if(d.tw) twLoad(d.tw);
   if(Array.isArray(d.build)){ BUILD.items=JSON.parse(JSON.stringify(d.build)); saveBuild(); }
   renderActive();
 }

@@ -374,6 +374,19 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   header"): primaries of each group into a Y merge at its marker, then the secondaries into the collector, one
   TubeSet across both stages; each Y is lengthened to bring the tubes together at 15 deg and the extra comes off the
   secondary. tests/test_header_triy.py, the mock glue test, web/tests/triy_route_ui.js. Not run in Fusion yet.
+  2-Stroke tab "Run it in OpenWAM" (2026-11-03, "add whatevers needed for the 2 stroke tab"): openwam/wam2t_export.js,
+  a byte-identical JS port of make_wam2t.py plus wam2t_summary (test_py_js_2t.js: 52 specs incl. piston port, 0-D reed,
+  silencer, twins, 40 random; the summary equal to 3e-16 on the 30 runs2t folders; in CI), embedded in the page
+  (tools/sync_wam_export.py checks both writers). Fields for rod, trapped CR, crankcase CR, AFR, ignition/burn,
+  exhaust window (rectangle with radii or round, Cd), one equivalent transfer (duration, width, duct, Cd), reed (petals,
+  size, material, block window, moving or quasi-steady with a stop) or piston-port intake; blank = listed assumptions.
+  One .wam per speed for the designed chamber and a straight pipe of the same length; download, run on this PC (host
+  runOpenWAM), or pick AVG/INS files; brake hp curve, BMEP, IMEP, crankcase work, DR, TE, CE. web/tests/two_wam_ui.js
+  runs real OpenWAM through a stand-in host: 125 MX 31.2 hp chamber vs 14.3 straight at 12000 (20 cycles). The dual
+  power insert is not modelled (a parallel path).
+  Headers tab "Pulse gaps at the collector" and "Pair the pulses" (the owner's sound-engineering note, 2026-11-03):
+  arrival gaps L/a at several RPMs with the short- and long-gap rates; pairing helper puts +dL/2 on the first pulse of
+  each pair and -dL/2 on the second (dL = (even - short gap) a / (6 rpm)), mean length unchanged. web/tests/pair_ui.js.
   Two-stroke OpenWAM writer openwam/make_wam2t.py (tests/test_2t.py; nm2T block, TLumbrera ports from timing,
   TDepVolVariable crankcase, reed TLamina or piston-port intake, chamber segs). 125 with our chamber: 31.7 hp peak at
   12000 (straight pipe 15-20 hp); Maico 490 with the Wizard's chamber: 35 hp peak at 5500 (claimed 53 at 6500).

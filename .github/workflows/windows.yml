@@ -68,6 +68,7 @@ jobs:
         run: |
           /usr/bin/python3 tools/sync_wam_export.py
           node openwam/test_py_js.js
+          node openwam/test_py_js_2t.js
       # Python 3.11 here: its sum() adds plainly, 3.12 and later with Neumaier's compensation, and the Rust core follows
       # whichever Python loads it; the Windows job checks it on 3.12, so both ways are covered
       - uses: actions/setup-python@v5

@@ -17,6 +17,7 @@
  *   WamExport.outStepForRate(rpm, fs)   -> out_step_deg that gives fs rows per second.
  *   WamExport.batFile(models, exePath)  -> Windows .bat that runs each model in its own subfolder in turn.
  *   WamExport.DEFAULTS, WamExport.EXTRA_DEFAULTS
+ *   WamExport.Writer, splitRuns, FS_GASOLINE_SIMPLE, COMB_COMPLETE, fmtG, pyRound: shared with wam2t_export.js
  *
  * v3 (sound): collector.tail / exhaust.tail = the line after the collector as a list of
  *   {L_mm, d0_mm, d1_mm, [Tw_C]} pipe segments and {V_litres, [T0_C]} expansion-volume mufflers (constant-volume
@@ -1214,7 +1215,8 @@
   const START_SHIFT_DEG = 45.0;   // see makeWam: where the engine clock starts relative to cylinder 1's firing TDC
   const WamExport = {
     makeWam, makeWamLegacy, modelFromSpec, writeModel, legacyModel, readAvg, readIns, outStepForRate, batFile,
-    DEFAULTS, EXTRA_DEFAULTS, fmtG, pyRound, START_SHIFT_DEG, R_BURNT,
+    DEFAULTS, EXTRA_DEFAULTS, fmtG, pyRound, pyRoundInt, START_SHIFT_DEG, R_BURNT,
+    Writer, splitRuns, FS_GASOLINE_SIMPLE, COMB_COMPLETE,     // for wam2t_export.js (two-strokes)
     USER_EXE: '%USERPROFILE%\\Desktop\\openwam2.2-win-x64\\openwam2.2-win-x64\\Win32_x86_64\\OpenWAM2.2-win-x64.exe',
   };
   if (typeof module !== 'undefined' && module && module.exports) module.exports = WamExport;
