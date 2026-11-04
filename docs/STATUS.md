@@ -374,6 +374,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   header"): primaries of each group into a Y merge at its marker, then the secondaries into the collector, one
   TubeSet across both stages; each Y is lengthened to bring the tubes together at 15 deg and the extra comes off the
   secondary. tests/test_header_triy.py, the mock glue test, web/tests/triy_route_ui.js. Not run in Fusion yet.
+  Two-stroke OpenWAM writer openwam/make_wam2t.py (tests/test_2t.py; nm2T block, TLumbrera ports from timing,
+  TDepVolVariable crankcase, reed TLamina or piston-port intake, chamber segs). 125 with our chamber: 31.7 hp peak at
+  12000 (straight pipe 15-20 hp); Maico 490 with the Wizard's chamber: 35 hp peak at 5500 (claimed 53 at 6500).
+  Low power from assumed port widths, Cd and a reed without a lift stop; a dummy port moves OpenWAM's end of gas
+  exchange from transfer closing to exhaust closing. Not wired into the page yet (needs a JS port like wam_export.js).
   v8_841_study.py now resumes (finished runs of the same case text are kept; fresh=1 forces);
   the v4 rerun on the calibrated engine is in openwam/runs/v8_841/*_v4*.
 - Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the
