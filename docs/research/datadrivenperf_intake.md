@@ -19,3 +19,22 @@ Use: none as a calibration source. One build reference for an LSA NA-tube defaul
 
 Sources: https://datadrivenperf.com, https://datadrivenperf.com/product/ddp-velocity-intake-system-for-09-15-gen2-cadillac-cts-v/,
 https://datadrivenperf.com/product-category/intakes/, https://montmotorsports.com/ddp-velocity-cold-air-intake-kit-09-15-cts-v
+
+## The dyno sheet (sent by the owner, 2026-11-03)
+Dedicated Motorsports, Mainline DynoLog chassis dyno, 8 Aug 2019, SAE J607 correction. Car: FED LS9 heads, "SheGone"
+cam, Stainless Works 2 in primaries / 3 in. Axle speed 800-1800 = engine 3000-6760 RPM (x 3.755).
+- DDP Intake Ver 1 (test 2107.2, 11:48, air density 91.6 %): 823.3 hp at 1750 axle (about 6570 RPM); torque 742 ft-lb
+  at 1300 axle; average 717 ft-lb over 875-1625 axle.
+- 4.5 Inch Intake Ver 1 (test 2106.1, 11:45, 91.9 %): 800.6 hp at 1725 axle; 727 ft-lb at 1200; average 708.
+- Difference: +22.7 hp at the peak (+2.8 %), +9 ft-lb average (+1.3 %). The curves lie together to about 1400 axle
+  (5300 RPM); the gain is at the top, where the airflow is highest, as an inlet pressure-loss gain would be.
+- One pull each, 3 minutes apart: chassis-dyno repeatability is of the same order (1-2 %). The DDP pull was second
+  (hotter), which usually costs power. Air density differs by 0.3 %, inside the correction.
+Reading for our model: on a blown engine at ~800 whp a 2.8 % gain is a ~2-3 kPa smaller loss ahead of the blower, about
+one velocity head of a 4.5 in tube at ~60 m/s; the converging duct into a port-matched throttle body is the plausible
+cause. A reference case for the intake CFD's pressure-drop comparison, not a calibration.
+
+## turbohoses.com velocity stacks (AirRam), researched 2026-11-03
+T6-6061 aluminium bellmouths from 3 / 3.5 / 4 in OD to a 6 in OD mouth, with silicone couplers. No profile, radius,
+length or flow data; "5-7 HP gain", "250 rpm less spool" are claims. Nothing to use as design input.
+Source: https://www.turbohoses.com/velocity_stack.htm

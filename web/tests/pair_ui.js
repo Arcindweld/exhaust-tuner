@@ -33,6 +33,7 @@ const { chromium } = require('playwright');
     const firstOrder = await p.evaluate(() => window.__pair.orders(6000));
     ok(Math.abs(firstOrder[1] - Math.sin(Math.PI / 12)) < 1e-9 && Math.abs(firstOrder[3] - Math.cos(Math.PI / 6)) < 1e-9, vp.n + ': ±15° shifts: order 1 sin 15° = ' + (20 * Math.log10(firstOrder[1])).toFixed(1) + ' dB against the firing order');
     ok(/Rate of the short gaps/.test(t) && /240 Hz \(150°\)/.test(t) && /171 Hz \(210°\)/.test(t), vp.n + ': the two gap rates at 6000: 240 and 171 Hz');
+    ok(/1\.400, tritone \(dissonant\)/.test(t) && /144° gives a perfect fifth/.test(t), vp.n + ': 150/210 named a tritone; 144° offered for a perfect fifth');
     ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), vp.n + ': no page overflow');
     // an odd collector and a too-small gap are refused
     const bad = await p.evaluate(() => window.__pair.plan(200, 6000).err || '');
