@@ -1866,7 +1866,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <label class="f" id="hg-foot-w"><span class="lab">Foot width on the tube, 0 for the style’s</span>
           <span class="inp"><input id="hg-foot" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
         <label class="f" id="hg-light-w"><span class="lab">Lightening hole</span>
-          <span class="inp"><select id="hg-light"><option value="1" selected>Where it fits</option><option value="0">None</option></select></span></label>
+          <span class="inp"><select id="hg-light"><option value="1" selected>Round hole where it fits</option><option value="truss">Rounded-triangle window (aerospace)</option><option value="0">None</option></select></span></label>
       </div>
       <div class="grp" id="hg-g-body">Body tab</div>
       <div class="grid2" id="hg-body">
@@ -1934,6 +1934,15 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="hg-t" type="number" step="any" inputmode="decimal" data-kind="len" data-base="3.175"><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Weight this hanger carries</span>
           <span class="inp"><input id="hg-w" type="number" step="any" inputmode="decimal" data-kind="mass" data-base="4.5"><em data-u="mass">lb</em></span></label>
+      </div>
+      <div class="grp">Heat</div>
+      <div class="grid2">
+        <label class="f"><span class="lab">Pipe surface temperature at the hanger</span>
+          <span class="inp"><input id="hg-tp" type="number" step="any" inputmode="decimal" data-kind="temp" data-base="315.556"><em data-u="temp">°F</em></span></label>
+        <label class="f"><span class="lab">Air around it</span>
+          <span class="inp"><input id="hg-ta" type="number" step="any" inputmode="decimal" data-kind="temp" data-base="37.778"><em data-u="temp">°F</em></span></label>
+        <label class="f span2"><span class="lab">Pipe and tab surface</span>
+          <span class="inp"><select id="hg-fin"><option value="ox" selected>Bare, oxidised (run in)</option><option value="tint">Bare, lightly heat-tinted</option><option value="new">Bare, new or polished</option><option value="black">Black high-temperature coating</option></select></span></label>
       </div>
     </form>
     <div class="area-details"><div id="hg-details"></div></div>
@@ -11212,7 +11221,11 @@ HANG.weldTab=function(o){
   const holes=ys.map(y=>({t:'C',c:[0,y],r:rh,what:n>1?'adjustment hole':'isolator hole'}));
   const outline=fitLoop(nodes,J,holes,o.t);
   const notes=[];
-  if(o.lighten&&style!=='minimal'&&n===1){ const lh=lightHole(outline,holes,o,[0,(ky+rk+yLo-rb)/2],along?null:Ro); if(lh){ holes.push(lh); } else notes.push('No room for a lightening hole at this reach.'); }
+  const lm=o.lighten===true?'round':o.lighten||'none';
+  if(lm!=='none'&&style!=='minimal'){
+    const floor=(along?fy:Ro), top=yLo-rh;            // between the tube (or the weld edge) and the lowest hole
+    const lh=lm==='truss'?trussPocket(outline,holes,o,{up:true,floor,top,Ro:along?null:Ro}):n===1?lightHole(outline,holes,o,[0,(ky+rk+yLo-rb)/2],along?null:Ro):null;
+    if(lh) holes.push(lh); else notes.push('No room for a lightening '+(lm==='truss'?'window':'hole')+' at this reach.'); }
   return {kind:'weldTab',along,outline,holes,t:o.t,notes,dims:{reach:o.reach,foot:wf,boss:2*rb,hole:o.hole,ys,top:yHi+rb,fy},weld:along?{len:wf}:{arc:{r:Ro,w:wf}}};
 };
 // the outline, checked: a simple closed shape with every hole inside and at least max(t, 3 mm) of metal round it.
@@ -11227,6 +11240,29 @@ function fitLoop(nodes,J,holes,t){
   const J2=J.map(j=>j==='line'||(j&&j.arc)?j:'line');
   try{ const s2=HG.loop(nodes,J2); if(ok(s2)) return s2; }catch(e){ err=err||e; }
   throw err||new Error('There is not enough metal round the holes at these sizes: make the boss bigger or the holes smaller.');
+}
+// an aerospace-style window: a rounded triangle (corner radius rp) pointing at the load hole, as big as leaves `lig` of
+// metal to the edge, to the holes and (on a tube) to the tube; shrunk about its centre until it fits
+function trussPocket(outline,holes,o,g){
+  const pts=HG.sample(outline,0.5), lig=Math.max(o.lig||0,o.t*1.5,4), rp=Math.max(2,o.t*0.8,1.6);
+  const y0=g.floor+lig+rp, y1=g.top-lig-rp;
+  if(!(y1-y0>3*rp)) return null;
+  // half width available near the wide end
+  const wide=g.up?y0:y1, scan=y=>{ let xs=[]; for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length]; if((a[1]>y)!==(b[1]>y)) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); } return xs.length?Math.min(...xs.map(Math.abs)):0; };
+  const hw=scan(wide)-lig-rp; if(!(hw>rp)) return null;
+  const base=g.up?[[-hw,y0],[hw,y0],[0,y1]]:[[0,y0],[hw,y1],[-hw,y1]];
+  const cx=(base[0][0]+base[1][0]+base[2][0])/3, cy=(base[0][1]+base[1][1]+base[2][1])/3;
+  const fits=segs=>{ const q=HG.sample(segs,0.5);
+    if(!q.every(p=>HG.inside(p,pts)&&HG.distToPoly(p,pts)>=lig)) return false;
+    if(!holes.every(h=>q.every(p=>HG.len(HG.sub(p,h.c))>=h.r+lig))) return false;
+    if(g.Ro&&!q.every(p=>HG.len(p)>=g.Ro+lig)) return false;
+    return true; };
+  for(let s=1;s>=0.35;s-=0.025){
+    const c=base.map(p=>HG.C(cx+(p[0]-cx)*s,cy+(p[1]-cy)*s,rp));
+    let segs; try{ segs=HG.loop(c,['line','line','line']); }catch(e){ continue; }
+    if(fits(segs)){ const A=HG.area(HG.sample(segs,0.5)); return {t:'P',segs,c:[cx,cy],r:0,area:A,what:'lightening window'}; }
+  }
+  return null;
 }
 // the largest round hole that leaves `lig` of metal to the edge and the other holes (and clear of the tube top)
 function lightHole(outline,holes,o,seed,Ro){
@@ -11264,7 +11300,8 @@ HANG.bodyTab=function(o){
     else { nodes.push(B,MR,ML); J.push(web,style==='clean'?'line':{R:Math.max(20,s)},web); } }
   for(const x of xs){ if(sl>0) holes.push({t:'S',segs:HG.slot([x,L],[x,L+sl],rm),c:[x,L+sl/2],r:rm,len:sl,what:'mounting slot'}); else holes.push({t:'C',c:[x,L],r:rm,what:'mounting hole'}); }
   const outline=fitLoop(nodes,J,holes,o.t), notes=[];
-  if(o.lighten&&style!=='minimal'){ const lh=lightHole(outline,holes,o,[0,L/2],null); if(lh) holes.push(lh); }
+  const lm=o.lighten===true?'round':o.lighten||'none';
+  if(lm!=='none'&&style!=='minimal'){ const lh=lm==='truss'?trussPocket(outline,holes,o,{up:false,floor:rh,top:L-(nm===1&&!sl?rbm:rm),Ro:null}):lightHole(outline,holes,o,[0,L/2],null); if(lh) holes.push(lh); }
   return {kind:'bodyTab',outline,holes,t:o.t,notes,dims:{len:L,spacing:nm>1?s:0,top}};
 };
 // a split ring clamp (printed or machined): two halves, bolts through the ears in the plane, a mounting boss on top
@@ -11395,7 +11432,9 @@ function hgScan(part,y0,y1){
     for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length]; if((a[1]>y)!==(b[1]>y)) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); }
     xs.sort((a,b)=>a-b); let w=0; for(let k=0;k+1<xs.length;k+=2) w+=xs[k+1]-xs[k];
     for(const h of part.holes){ const dy=Math.abs(y-h.c[1]); if(h.t==='C'&&dy<h.r) w-=2*Math.sqrt(h.r*h.r-dy*dy);
-      if(h.t==='S'){ const lo=Math.min(h.c[1]-h.len/2,h.c[1]+h.len/2)-h.r, hi=lo+h.len+2*h.r; if(y>lo&&y<hi) w-=2*h.r; } }
+      if(h.t!=='C'){ const q=h._pts||(h._pts=HG.sample(h.segs,0.4)), xs2=[];
+        for(let k=0;k<q.length;k++){ const a=q[k], b=q[(k+1)%q.length]; if((a[1]>y)!==(b[1]>y)) xs2.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); }
+        xs2.sort((a,b)=>a-b); for(let k=0;k+1<xs2.length;k+=2) w-=xs2[k+1]-xs2[k]; } }
     out.push({w,y});
   }
   return out;
@@ -11438,6 +11477,70 @@ function hgStrength(o,part,mat){
   return rows;
 }
 
+/* ---- how hot the isolator runs: the tab (or rod) as a fin from the hot pipe out to the isolator. Along it, heat
+   conducts out (k A dT/ds); off both faces it leaves by natural convection (Churchill-Chu, vertical plate, the tab's
+   height) and radiation to the surroundings, and it takes radiation in from the pipe, which each face sees with
+   view factor (1 - cos b)/2, sin b = r / (distance from the tube axis) (a strip parallel to an endless tube, seen
+   edge-on; the across tab is given the same), grey exchange eps_pipe × eps_tab as on the Headers tab. The root is at
+   the pipe temperature where the part leaves the tube; the far end loses nothing (adiabatic). Solved by finite
+   differences with the radiation linearised and iterated. An estimate: no heat shield, still air, no wind. */
+function hgFin(prof,o){
+  // prof: [{s (mm from the root), w (mm, net width; rod: diameter), d (mm from the tube surface)}], round: rod
+  const Tp=o.tp+273.15, Ta=o.ta+273.15, eps=o.eps, epsP=o.eps, k=o.k, Ro=o.od/2/1000, n=prof.length;
+  if(n<3||!(Tp>Ta)) return null;
+  const A=prof.map(q=>o.round?Math.PI*(q.w/1000)**2/4:(q.w/1000)*(o.t/1000)), P=prof.map(q=>o.round?Math.PI*q.w/1000:2*(q.w/1000)+2*o.t/1000);
+  const F=prof.map(q=>{ const rho=Ro+Math.max(0,q.d)/1000, b=Math.asin(Math.min(1,Ro/rho)); return (1-Math.cos(b))/2; });
+  const L=(prof[n-1].s-prof[0].s)/1000||0.01;
+  let T=prof.map(()=>(Tp+Ta)/2); T[0]=Tp;
+  for(let it=0;it<80;it++){
+    const Tm=T.reduce((a,x)=>a+x,0)/n, Tf=(Tm+Ta)/2, mu=airMu(Tf), ka=airK(Tf), cp=airCp(Tf), rho=P_ATM/(R_AIR*Tf), nu=mu/rho, Pr=mu*cp/ka;
+    const Lc=o.round?o.rod/1000:L, Ra=9.81/Tf*Math.max(Tm-Ta,1e-3)*Lc**3/(nu*nu)*Pr;
+    const Nu=o.round?Math.pow(0.60+0.387*Math.pow(Ra,1/6)/Math.pow(1+Math.pow(0.559/Pr,9/16),8/27),2):Math.pow(0.825+0.387*Math.pow(Ra,1/6)/Math.pow(1+Math.pow(0.492/Pr,9/16),8/27),2);
+    const hc=Nu*ka/Lc;
+    // tridiagonal: a_i T_{i-1} + b_i T_i + c_i T_{i+1} = r_i in theta = T - Ta
+    const a=[],bb=[],c=[],r=[];
+    for(let i=0;i<n;i++){
+      if(i===0){ a.push(0); bb.push(1); c.push(0); r.push(Tp-Ta); continue; }
+      const dsL=(prof[i].s-prof[i-1].s)/1000, dsR=i<n-1?(prof[i+1].s-prof[i].s)/1000:dsL, dsC=(dsL+(i<n-1?dsR:0))/2||dsL/2;
+      const kL=k*(A[i]+A[i-1])/2/dsL, kR=i<n-1?k*(A[i]+A[i+1])/2/dsR:0, Ti=T[i];
+      const hra=eps*SIG*(1-F[i])*(Ti*Ti+Ta*Ta)*(Ti+Ta), cin=epsP*eps*SIG*F[i]*(Tp*Tp+Ti*Ti)*(Tp+Ti), H=(hc+hra+cin)*P[i]*dsC;
+      a.push(-kL); c.push(-kR); bb.push(kL+kR+H); r.push(cin*P[i]*dsC*(Tp-Ta));
+    }
+    for(let i=1;i<n;i++){ const m=a[i]/bb[i-1]; bb[i]-=m*c[i-1]; r[i]-=m*r[i-1]; }
+    const th=new Array(n); th[n-1]=r[n-1]/bb[n-1]; for(let i=n-2;i>=0;i--) th[i]=(r[i]-c[i]*th[i+1])/bb[i];
+    const Tn=th.map(x=>x+Ta), d=Math.max(...Tn.map((x,i)=>Math.abs(x-T[i])));
+    T=Tn.map((x,i)=>0.5*x+0.5*T[i]); T[0]=Tp; if(d<0.01) break;
+  }
+  return {T:T.map(x=>x-273.15),s:prof.map(q=>q.s)};
+}
+// the fin's profile for a part: plates from the tube top up to the top of the tab, the rod from the end of its weld
+function hgFinProfile(o,part){
+  if(part.kind==='weldTab'){
+    const y0=part.along?part.dims.fy:o.od/2, y1=part.dims.top-0.5, sc=hgScan(part,y0+0.2,y1);
+    const prof=sc.map(q=>({s:q.y-y0,w:Math.max(q.w,o.t),d:q.y-o.od/2}));
+    const hs=part.holes.filter(h=>h.what!=='lightening hole'&&h.what!=='lightening window'), at=hs[hs.length-1].c[1]-y0;
+    return {prof,at,round:false};
+  }
+  if(part.kind==='rod'){
+    const segs=part.path.slice(1), prof=[]; let s=0;
+    const pin0=part.dims.pin[0], dir=part.shape==='j'?-1:1, pos=o.ipos>0?Math.min(o.ipos,part.sheet.pin):part.sheet.pin/2;
+    for(const sg of segs){ const Lg=sg.t==='L'?HG.len(HG.sub(sg.b,sg.a)):Math.abs(HG.sweepOf(sg))*sg.r, m=Math.max(2,Math.ceil(Lg/1));
+      for(let k=0;k<m;k++){ const q=HG.at(sg,k/m); prof.push({s:s+Lg*k/m,w:o.rod,d:q[1]-o.od/2-o.rod/2}); } s+=Lg; }
+    const q=HG.at(segs[segs.length-1],1); prof.push({s,w:o.rod,d:q[1]-o.od/2-o.rod/2});
+    const at=s-part.sheet.pin+pos;
+    return {prof,at,round:true};
+  }
+  return null;
+}
+function hgIsoTemp(o,part,mat){
+  const fp=hgFinProfile(o,part); if(!fp||!(o.tp>o.ta)) return null;
+  const k=HG_K[o.mat]||20, eps=(SKIN_FIN[o.fin]||SKIN_FIN.ox).eps;
+  const res=hgFin(fp.prof,Object.assign({},o,{k,eps,round:fp.round}));
+  if(!res) return null;
+  let Ti=res.T[res.T.length-1]; for(let i=1;i<res.s.length;i++) if(res.s[i]>=fp.at){ const u=(fp.at-res.s[i-1])/(res.s[i]-res.s[i-1]); Ti=res.T[i-1]+u*(res.T[i]-res.T[i-1]); break; }
+  return {T:Ti,res,at:fp.at};
+}
+
 /* ---- the parts for the inputs, the drawing and the cut files */
 function hgParts(o){
   const parts=[];
@@ -11457,11 +11560,11 @@ function hgParts(o){
 function hgRead(){
   const v=id=>val(id), part=$('hg-part').value;
   return {part,use:$('hg-for').value,style:$('hg-style').value,od:v('hg-od'),reach:v('hg-reach'),orient:$('hg-orient').value,nh:Math.max(1,Math.round(v('hg-nh')||1)),
-    pitch:v('hg-pitch')||0,foot:v('hg-foot')||0,light:$('hg-light').value==='1',grom:$('hg-grom').value,hole:v('hg-hole'),bolt:v('hg-bolt'),
+    pitch:v('hg-pitch')||0,foot:v('hg-foot')||0,light:{'1':'round','0':'none'}[$('hg-light').value]||$('hg-light').value,grom:$('hg-grom').value,hole:v('hg-hole'),bolt:v('hg-bolt'),
     blen:v('hg-blen'),bmount:$('hg-bmount').value,bn:+$('hg-bn').value,bs:v('hg-bs')||0,bmh:v('hg-bmh'),bslot:v('hg-bslot')||0,gap:v('hg-gap')||0,
     rod:v('hg-rod'),bend:v('hg-bend')||0,ang:v('hg-ang'),weld:v('hg-weld'),pin:v('hg-pin'),shape:$('hg-shape').value,strap:$('hg-strap').value,ipos:v('hg-ipos')||0,
     wall:v('hg-wall')||0,width:v('hg-width'),liner:v('hg-liner')||0,cbolt:+$('hg-cbolt').value,rmh:v('hg-rmh'),
-    mat:$('hg-mat').value,t:v('hg-t'),w:v('hg-w')};
+    mat:$('hg-mat').value,t:v('hg-t'),w:v('hg-w'),tp:v('hg-tp'),ta:v('hg-ta'),fin:$('hg-fin').value};
 }
 // which fields go with which part
 function hgFields(o){
@@ -11528,7 +11631,7 @@ function drawHang(svg,o,parts){
     let d=hgPath(it.p.outline,Ti); if(it.p.lower) d+=' '+hgPath(it.p.lower,Ti);
     d+=' '+it.p.holes.map(h=>hgHolePath(h,Ti)).join(' ');
     mk('path',{d,style:st(i?'var(--t4)':'var(--t2)','var(--ink)',1.2,';fill-rule:evenodd;fill-opacity:'+(i?'.55':'.8'))},svg);
-    it.p.holes.forEach(h=>{ const c=Ti(h.c); mk('line',{x1:c[0]-h.r*k-3,x2:c[0]+h.r*k+3,y1:c[1],y2:c[1],style:st('none','var(--muted)',0.6)},svg); mk('line',{x1:c[0],x2:c[0],y1:c[1]-h.r*k-3,y2:c[1]+h.r*k+3,style:st('none','var(--muted)',0.6)},svg); });
+    it.p.holes.forEach(h=>{ if(h.t!=='C') return; const c=Ti(h.c); mk('line',{x1:c[0]-h.r*k-3,x2:c[0]+h.r*k+3,y1:c[1],y2:c[1],style:st('none','var(--muted)',0.6)},svg); mk('line',{x1:c[0],x2:c[0],y1:c[1]-h.r*k-3,y2:c[1]+h.r*k+3,style:st('none','var(--muted)',0.6)},svg); });
     if(it.p.bolts) it.p.bolts.forEach(b=>[1,-1].forEach(s=>{ const a=Ti([s*b.x,b.y0]), c=Ti([s*b.x,b.y1]); mk('line',{x1:a[0],x2:c[0],y1:a[1],y2:c[1],style:st('none','var(--ink)',0.9,';stroke-dasharray:4 2')},svg); }));
   });
   // dimensions, on the right
@@ -11580,7 +11683,7 @@ function renderHang(){
   const P0=parts[0], N=o.w*9.80665, notes=[];
   // the key figures
   const sizeOf=p=>{ const q=HG.sample(p.kind==='rod'?p.path:p.outline,1).concat(p.lower?HG.sample(p.lower,1):[]), xs=q.map(a=>a[0]), ys=q.map(a=>a[1]); return [Math.max(...xs)-Math.min(...xs),Math.max(...ys)-Math.min(...ys)]; };
-  const plateArea=p=>{ const A=HG.area(HG.sample(p.outline,0.5))+(p.lower?HG.area(HG.sample(p.lower,0.5)):0); return A-p.holes.reduce((a,h)=>a+(h.t==='C'?Math.PI*h.r*h.r:Math.PI*h.r*h.r+2*h.r*h.len),0); };
+  const plateArea=p=>{ const A=HG.area(HG.sample(p.outline,0.5))+(p.lower?HG.area(HG.sample(p.lower,0.5)):0); return A-p.holes.reduce((a,h)=>a+(h.t==='C'?Math.PI*h.r*h.r:Math.abs(HG.area(HG.sample(h.segs,0.4)))),0); };
   let figs='';
   if(P0.kind==='rod'){ figs+=figL('Rod to cut',P0.sheet.cut,'l')+figT('Bends',Math.round(P0.a)+'° and '+Math.round(P0.a2)+'°','','at '+bothL(P0.R)+' radius'); }
   else { const sz=sizeOf(P0); figs+=figT(P0.name,'','',bothL(sz[0])+' × '+bothL(sz[1]));
@@ -11633,8 +11736,14 @@ function hgChecks(o,parts,mat){
   for(const p of parts){
     const pts=HG.sample(p.outline,0.4).concat(p.lower?HG.sample(p.lower,0.4):[]);
     let edge=1e9, bridge=1e9, minHole=1e9;
-    p.holes.forEach((h,i)=>{ edge=Math.min(edge,HG.distToPoly(h.c,pts)-h.r); minHole=Math.min(minHole,2*h.r);
-      p.holes.forEach((q,j)=>{ if(j>i) bridge=Math.min(bridge,HG.len(HG.sub(h.c,q.c))-h.r-q.r); }); });
+    const hp=h=>h.t==='C'?null:(h._pts||(h._pts=HG.sample(h.segs,0.4)));
+    const gap=(h,q)=>{ const a=hp(h), b=hp(q);
+      if(!a&&!b) return HG.len(HG.sub(h.c,q.c))-h.r-q.r;
+      if(a&&!b) return Math.min(...a.map(p=>HG.len(HG.sub(p,q.c))))-q.r;
+      if(!a&&b) return Math.min(...b.map(p=>HG.len(HG.sub(p,h.c))))-h.r;
+      return Math.min(...a.map(p=>HG.distToPoly(p,b))); };
+    p.holes.forEach((h,i)=>{ edge=Math.min(edge,h.t==='C'?HG.distToPoly(h.c,pts)-h.r:Math.min(...hp(h).map(q=>HG.distToPoly(q,pts)))); if(h.t==='C') minHole=Math.min(minHole,2*h.r);
+      p.holes.forEach((q,j)=>{ if(j>i) bridge=Math.min(bridge,gap(h,q)); }); });
     const need=o.mat==='al5052'?2*t:/6061/.test(o.mat)?1.5*t:t;
     rows.push([p.name+': metal round the holes',edge,edge>=Math.max(0.5*t,need)?'ok':edge>=0.5*t?'warn':'bad','at least '+bothL(need)+(o.mat==='al5052'?' (2 × thickness for 5052)':/6061/.test(o.mat)?' (1.5–2 × thickness for 6061)':' (1 × thickness)')]);
     if(bridge<1e9) rows.push([p.name+': between holes',bridge,bridge>=t?'ok':bridge>=0.5*t?'warn':'bad','at least '+bothL(t)+' preferred, '+bothL(0.5*t)+' minimum']);
