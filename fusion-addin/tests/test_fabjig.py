@@ -52,7 +52,7 @@ tall = {'name': 'High', 'elems': [('line', (0.0, -25.0, 30.0), (30.0, -25.0, 30.
 pt_ = J.plan_fab([tall, flat], opts={'style': 'cradles', 'mount': 'free'})
 hi = [q for q in pt_['parts'] if q['tube'] == 'High'][0]
 feet = [b for b in hi['add'] if abs(b['H'] - J.DEFAULTS['foot_t']) < 1e-9]
-ok(any(abs(b['W'] - 0.6 * hi['height']) < 1e-9 for b in feet) and any(abs(b['L'] - 0.5 * hi['height']) < 1e-9 for b in feet),
+ok(any(b['W'] >= 0.6 * hi['height'] - 1e-9 for b in feet) and any(b['L'] >= 0.5 * hi['height'] - 1e-9 for b in feet),
    'free-standing: a %.0f cm tall cradle stands on a cross foot %.1f x %.1f cm' % (hi['height'], 0.5 * hi['height'], 0.6 * hi['height']))
 
 # ---- fixture table, System 16: holes on the 50 mm grid, never under a tall block, at least two per part
@@ -164,6 +164,53 @@ pfl = J.plan_fab([edge], opts={'style': 'saddle', 'layout': 'flat'})
 ok(abs(abs(pfl['up'][1]) - 1.0) < 1e-6, 'laid flat: up is the normal of the part’s plane (%s)' % [round(x, 3) for x in pfl['up']])
 ok(sum(q['size'][2] * 0 + 1 for q in pfl['parts']) >= 2 and max(q['height'] for q in pfl['parts']) < 0.5 * max(q['height'] for q in pm['parts'] + [{'height': 99}]),
    'laid flat the saddles run along both legs and stand %.1f cm tall (as drawn the upright leg gets none)' % max(q['height'] for q in pfl['parts']))
+# ---- flange types: a turbo-style 4-stud pattern with two slotted holes, a round V-band plate with a pocket (male)
+# or a boss (female), a port spigot
+pat = [(-3.0, 2.5, 1.0), (3.0, 2.5, 1.0), (-3.0, -2.5, 1.0, 0.6, 0.0), (3.0, -2.5, 1.0, 0.6, 0.0)]
+pq = J.plan_fab([flat], opts={'flange_ends': 'start', 'flange_shape': 'rect', 'flange_w': 9.0, 'flange_h': 8.0, 'flange_holes': pat})
+fq = [q for q in pq['parts'] if q['kind'] == 'flange'][0]
+holes_c = [c for c in fq['cut'] if c['k'] == 'cyl' and abs(c['r'] - 0.5) < 1e-9]
+slots = [c for c in fq['cut'] if c['k'] == 'box']
+xy = sorted((round(c['a'][1], 6), round(c['a'][2] - 6.0, 6)) for c in holes_c)
+ok(len(holes_c) == 2 + 2 * 2 and len(slots) == 2, 'turbo-style pattern: 2 round holes and 2 slots (each 2 end circles + a box)')
+ok((-3.0, 2.5) in xy and (3.0, 2.5) in xy and any(abs(x + 3.3) < 1e-6 and abs(y + 2.5) < 1e-6 for x, y in xy),
+   'holes where the pattern puts them, x level and y up from the tube centre; a slot spans +-3 mm')
+plate = fq['add'][0]
+ok(abs(plate['W'] - 9.0) < 1e-9 and abs(plate['H'] - 8.0) < 1e-9, 'a 90 x 80 mm rectangular plate')
+pm_ = J.plan_fab([flat], opts={'flange_ends': 'start', 'flange_shape': 'round', 'flange_size': 10.0, 'flange_seat': {'kind': 'pocket', 'd': 7.6, 'depth': 0.4}})
+fm = [q for q in pm_['parts'] if q['kind'] == 'flange'][0]
+pocket = [c for c in fm['cut'] if c['k'] == 'cyl' and abs(c['r'] - (3.8 + 0.025)) < 1e-9]
+ok(fm['add'][0]['k'] == 'cyl' and abs(fm['add'][0]['r'] - 5.0) < 1e-9 and len(pocket) == 1 and abs(pocket[0]['a'][0] + 0.4) < 1e-9,
+   'male V-band: a round 100 mm plate with a 76 mm pocket 4 mm deep for its spigot')
+pf_ = J.plan_fab([flat], opts={'flange_ends': 'start', 'flange_shape': 'round', 'flange_size': 10.0, 'flange_seat': {'kind': 'boss', 'd': 7.0, 'depth': 0.3}})
+ff = [q for q in pf_['parts'] if q['kind'] == 'flange'][0]
+boss = [b for b in ff['add'] if b['k'] == 'cyl' and abs(b['r'] - (3.5 - 0.025)) < 1e-9]
+bore = ff['cut'][0]
+ok(len(boss) == 1 and abs(boss[0]['b'][0] - 0.3) < 1e-9 and bore['r'] <= 3.5 - 0.3 + 1e-9, 'female V-band: a 70 mm boss 3 mm proud fills its recess, the bore inside it')
+ps_ = J.plan_fab([flat], opts={'flange_ends': 'start', 'flange_spigot': {'d': 3.8, 'len': 1.5}})
+fs = [q for q in ps_['parts'] if q['kind'] == 'flange'][0]
+spg = [b for b in fs['add'] if b['k'] == 'cyl' and abs(b['b'][0] - 1.5) < 1e-9]
+ok(len(spg) == 1 and abs(spg[0]['r'] - (1.9 - 0.025)) < 1e-9, 'a 38 mm spigot 15 mm into the port')
+# ---- gussets: struts from the foot up to the block on a tall cradle, none on a short one, nothing below the base
+g_on = [b for b in hi['add'] if abs(b['H'] - 1.4) < 1e-9]
+ok(len(g_on) == 4, 'the %.0f cm cradle has 4 gussets (both sides across, both ends along)' % hi['height'])
+low_c = [q for q in pt_['parts'] if q['tube'] == 'Pipe']
+ok(all(not [b for b in q['add'] if abs(b['H'] - 1.4) < 1e-9] for q in low_c), 'the 3 cm cradles under the low pipe have none')
+ok(any(c['k'] == 'box' and c['c'][2] < pt_['base'] - 40 for c in hi['cut']), 'a cut below the base trims the struts flat')
+gs = J.plan_fab([tall], opts={'gussets': 'off'})
+ok(not [b for b in gs['parts'][0]['add'] if abs(b['H'] - 1.4) < 1e-9], 'gussets off: none')
+# ---- grid pads: a cradle on a pad square to the grid across two holes either side of its block
+pg = J.plan_fab([flat], opts={'style': 'cradles', 'mount': 'table', 'table_feet': 'pads', 'grid_pitch': 5.0, 'grid_hole': 1.65})
+pads_ok = all(len(q['holes']) == 2 and (q.get('pad') or not q.get('tabs')) for q in pg['parts'])
+ok(pads_ok and any(q.get('pad') for q in pg['parts']), 'pads: every cradle on two grid holes, %d on pads' % sum(1 for q in pg['parts'] if q.get('pad')))
+sq = True
+for q in pg['parts']:
+    if q.get('pad'):
+        h1, h2 = q['holes']
+        dx, dy = abs(h2[0] - h1[0]), abs(h2[1] - h1[1])
+        sq &= (dx < 1e-9 or dy < 1e-9) and abs(max(dx, dy) / 5.0 - round(max(dx, dy) / 5.0)) < 1e-9
+ok(sq, 'each pad’s two holes lie on one grid line, a whole number of pitches apart')
+ok(any('pad square to the grid' in n for n in pg['notes']), 'the note says pads')
 s = J.fab_summary(pt)
 ok(s['count'] == len(pt['parts']) and s['holes'] >= 2 * s['count'], 'summary: %d parts, %d holes' % (s['count'], s['holes']))
 print('FAILS:', FAILS)

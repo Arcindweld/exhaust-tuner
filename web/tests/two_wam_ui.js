@@ -94,6 +94,21 @@ function runOne(dir, name) {
   await pg.waitForFunction(() => window.__twResults && window.__twResults.length, null, { timeout: 30000 });
   const R2 = await pg.evaluate(() => window.__twResults.map(x => ({ pipe: x.pipe, rpm: x.rpm, hp: x.s && x.s.P_brake_hp })));
   ok(R2.length === 8 && R2.every(x => Math.abs(x.hp - at(x.pipe, x.rpm)) < 1e-9), 'the files picked from disk read the same');
+  // the dual power insert runs as a third set of models
+  await setv('t-dual', '1');
+  await pg.waitForTimeout(300);
+  await pg.evaluate(() => { const el = document.querySelector('input.twx[data-k="rpms"]'); el.value = '10000 12000'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
+  const f3 = await pg.evaluate(() => { const L = window.__tw.TW_UI.last, o = window.__tw.twFiles(L.p, L.r); return { names: o.files.map(f => f.name), models: o.models.length, wam: (o.files.find(f => /_insert_/.test(f.name)) || {}).text || '' }; });
+  ok(f3.models === 6 && f3.names.includes('twostroke_insert_10000.wam') && /dual power insert/.test(f3.wam), 'with the insert: 6 models (chamber, insert, straight at 2 speeds), the insert .wam has the second path');
+  await pg.evaluate(() => { window.__twResults = null; });
+  await pg.click('button[data-tw="run"]');
+  await pg.waitForFunction(() => window.__twResults && window.__twResults.length, null, { timeout: 1500000 });
+  await pg.waitForTimeout(400);
+  const R3 = await pg.evaluate(() => window.__twResults.map(x => ({ pipe: x.pipe, rpm: x.rpm, err: x.err, hp: x.s && x.s.P_brake_hp, fin: x.s && x.s.finished })));
+  R3.forEach(x => console.log('  ' + x.pipe + ' ' + x.rpm + ': ' + (x.err || x.hp.toFixed(1) + ' hp')));
+  ok(R3.length === 6 && R3.every(x => !x.err && x.fin), 'all 6 runs with the insert finished');
+  const u3 = await pg.evaluate(() => { const svg = document.getElementById('tw-svg'); return { lines: svg ? svg.querySelectorAll('polyline').length : 0, txt: [...document.querySelectorAll('#two-details .sec h3')].find(x => x.textContent === 'Run it in OpenWAM').parentElement.innerText }; });
+  ok(u3.lines === 3 && /With the dual power insert/.test(u3.txt) && /second set of models/.test(u3.txt), 'three power curves with the insert line and its caption');
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.join(' | ') : ''));
   console.log('FAILS:', fails.length);
   await b.close(); process.exit(fails.length ? 1 : 0);

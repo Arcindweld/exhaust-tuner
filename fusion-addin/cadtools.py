@@ -2975,6 +2975,19 @@ def _jig_opts(data):
          'flange_angle_deg': float(j['flange_angle_deg']) if j.get('flange_angle_deg') not in (None, '') else None,
          'grid_angle_deg': float(j['grid_angle_deg']) if j.get('grid_angle_deg') not in (None, '') else None,
          'free_holes': bool(j['free_holes']) if 'free_holes' in j else None}
+    o['gussets'] = j.get('gussets') or None
+    o['table_feet'] = j.get('table_feet') or None
+    o['flange_shape'] = j.get('flange_shape') or None
+    o['flange_w'], o['flange_h'], o['flange_bore'] = mm('flange_w_mm'), mm('flange_h_mm'), mm('flange_bore_mm')
+    hl = j.get('flange_holes')
+    if hl:
+        o['flange_holes'] = [tuple(float(x) / 10.0 if k != 4 else float(x) for k, x in enumerate(h)) for h in hl]
+    sd = j.get('flange_seat')
+    if sd and sd.get('kind') in ('pocket', 'boss') and float(sd.get('d_mm') or 0) > 0:
+        o['flange_seat'] = {'kind': sd['kind'], 'd': float(sd['d_mm']) / 10.0, 'depth': float(sd.get('depth_mm') or 0) / 10.0}
+    sg = j.get('flange_spigot')
+    if sg and float(sg.get('d_mm') or 0) > 0 and float(sg.get('len_mm') or 0) > 0:
+        o['flange_spigot'] = {'d': float(sg['d_mm']) / 10.0, 'len': float(sg['len_mm']) / 10.0}
     if j.get('grid_x_mm') not in (None, '') or j.get('grid_y_mm') not in (None, ''):
         o['grid_origin'] = (float(j.get('grid_x_mm') or 0) / 10.0, float(j.get('grid_y_mm') or 0) / 10.0)
     return o

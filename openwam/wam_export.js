@@ -1216,7 +1216,7 @@
   const WamExport = {
     makeWam, makeWamLegacy, modelFromSpec, writeModel, legacyModel, readAvg, readIns, outStepForRate, batFile,
     DEFAULTS, EXTRA_DEFAULTS, fmtG, pyRound, pyRoundInt, START_SHIFT_DEG, R_BURNT,
-    Writer, splitRuns, FS_GASOLINE_SIMPLE, COMB_COMPLETE,     // for wam2t_export.js (two-strokes)
+    Writer, splitRuns, splitSegsAt, FS_GASOLINE_SIMPLE, COMB_COMPLETE,     // for wam2t_export.js (two-strokes)
     USER_EXE: '%USERPROFILE%\\Desktop\\openwam2.2-win-x64\\openwam2.2-win-x64\\Win32_x86_64\\OpenWAM2.2-win-x64.exe',
   };
   if (typeof module !== 'undefined' && module && module.exports) module.exports = WamExport;

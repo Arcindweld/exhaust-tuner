@@ -4256,7 +4256,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   const WamExport = {
     makeWam, makeWamLegacy, modelFromSpec, writeModel, legacyModel, readAvg, readIns, outStepForRate, batFile,
     DEFAULTS, EXTRA_DEFAULTS, fmtG, pyRound, pyRoundInt, START_SHIFT_DEG, R_BURNT,
-    Writer, splitRuns, FS_GASOLINE_SIMPLE, COMB_COMPLETE,     // for wam2t_export.js (two-strokes)
+    Writer, splitRuns, splitSegsAt, FS_GASOLINE_SIMPLE, COMB_COMPLETE,     // for wam2t_export.js (two-strokes)
     USER_EXE: '%USERPROFILE%\\Desktop\\openwam2.2-win-x64\\openwam2.2-win-x64\\Win32_x86_64\\OpenWAM2.2-win-x64.exe',
   };
   if (typeof module !== 'undefined' && module && module.exports) module.exports = WamExport;
@@ -4278,12 +4278,13 @@ ul.list li+li,ol.list li+li{margin-top:6px}
  *   Wam2T.summary(model, {avg, ins, log | finished}, fmepCoef)  -> make_wam2t.wam2t_summary's dict (keys the same)
  *   Wam2T.portTopForDuration, openingAngle, crownAboveBdc, windowArea, timeArea, reedLumped: the geometry helpers
  *   Wam2T.RUN_DEFAULTS, CD_EXHAUST, CD_TRANSFER, CD_REED, CD_INTAKE_PORT, FMEP_COEF_PA
+ *   exhaust.dual = {x0, Li, Dm, di, Lp} [m]: the dual power insert as a second path between two junctions (dualLines)
  */
 (function (root) {
   'use strict';
   const WX = (typeof module !== 'undefined' && module && module.exports && typeof require === 'function')
     ? require('./wam_export.js') : root.WamExport;
-  const { Writer, splitRuns, FS_GASOLINE_SIMPLE, COMB_COMPLETE, fmtG, pyRound } = WX;
+  const { Writer, splitRuns, splitSegsAt, FS_GASOLINE_SIMPLE, COMB_COMPLETE, fmtG, pyRound } = WX;
 
   const pctG = x => fmtG(x, 6);                        // Python "%g"
   const pctF = (x, n) => pyRound(x, n).toFixed(n);     // Python "%.nf" (half to even on the exact value)
@@ -4382,8 +4383,44 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   }
 
   // ------------------------------------------------------------------ model
-  const BC_DESC = { open: 'open end', closed: 'closed end', step: 'diameter step', plenum: 'plenum port', eport: 'exhaust port', tport: 'transfer port' };
-  const BC_ENDS = { open: [1, 1], closed: [1, 1], step: [2, 2], plenum: [1, 1], eport: [1, 1], tport: [1, 1] };
+  const BC_DESC = { open: 'open end', closed: 'closed end', step: 'diameter step', plenum: 'plenum port', eport: 'exhaust port', tport: 'transfer port', branch: 'junction' };
+  const BC_ENDS = { open: [1, 1], closed: [1, 1], step: [2, 2], plenum: [1, 1], eport: [1, 1], tport: [1, 1], branch: [3, 3] };
+  // make_wam2t.dual_lines: exhaust segs and a dual power insert {x0, Li, Dm, di, Lp} [m] -> [before, annulus, insert, after]
+  function dualLines(segs, d) {
+    const x0 = num(d.x0), Li = num(d.Li), Dm = num(d.Dm), di = num(d.di), Lp = num(d.Lp);
+    const x2 = x0 + Li + Lp;
+    let total = 0; for (const sg of segs) total += num(sg.L);
+    if (!(Li > 0.0 && Lp >= 0.0 && Dm > di && di > 0.0 && 0.0 < x0 && x0 < x2 && x2 < total))
+      throw new Error('the dual power insert must lie inside the chamber, its mouth wider than its pipe');
+    const [before, rest] = splitSegsAt(segs, x0);
+    const [mid, after] = splitSegsAt(rest, x2 - x0);
+    const cuts = []; let a = 0.0;
+    for (const sg of mid) { a += num(sg.L); cuts.push(a); }
+    let xs = Array.from(new Set([0.0, Li].concat(cuts))).sort((p, q) => p - q);
+    xs = xs.filter(x => x <= x2 - x0 + 1e-12);
+    const inner = x => (x <= Li ? Dm + (di - Dm) * x / Li : di);
+    const ann = [];
+    for (let k = 0; k + 1 < xs.length; k++) {
+      const a0 = xs[k], b0 = xs[k + 1];
+      if (b0 - a0 <= 1e-9) continue;
+      const m = 0.5 * (a0 + b0);
+      let acc = 0.0, o0 = NaN, o1 = NaN;
+      for (const sg of mid) {
+        const L = num(sg.L);
+        if (acc <= m && m <= acc + L) {
+          o0 = num(sg.d0) + (num(sg.d1) - num(sg.d0)) * (a0 - acc) / L;
+          o1 = num(sg.d0) + (num(sg.d1) - num(sg.d0)) * (b0 - acc) / L;
+          break;
+        }
+        acc += L;
+      }
+      const i0 = m <= Li ? inner(a0) : di, i1 = m <= Li ? inner(b0) : di;
+      if (!(o0 > i0 && o1 > i1)) throw new Error('the dual power insert touches the chamber wall');
+      ann.push({ L: b0 - a0, d0: Math.sqrt(o0 * o0 - i0 * i0), d1: Math.sqrt(o1 * o1 - i1 * i1) });
+    }
+    const ins = [{ L: Li, d0: Dm, d1: di }].concat(Lp > 1e-6 ? [{ L: Lp, d0: di, d1: di }] : []);
+    return [before, ann, ins, after];
+  }
   function numberModel(pipes, bcs) {
     const n = new Map(), order = [], ends = new Map();
     pipes.forEach((pp, i) => {
@@ -4565,17 +4602,30 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       const ek = 'c' + C + '/ex/port', xk = 'c' + C + '/ex/open';
       bcs.set(ek, { type: 'eport', cyl: C, vt, note: 'cylinder ' + C + ' exhaust port' });
       bcs.set(xk, { type: 'open', note: 'cylinder ' + C + ' exhaust outlet, open end to atmosphere' });
-      const sil = exh.silencer;
+      const sil = exh.silencer, dual = exh.dual;
+      let ekk = ek;
+      if (dual) {
+        const [before, ann, ins, after] = dualLines(segs, dual);
+        const j1 = 'c' + C + '/dual/j1', j2 = 'c' + C + '/dual/j2';
+        bcs.set(j1, { type: 'branch', note: 'cylinder ' + C + ' dual power insert, junction at its mouth' });
+        bcs.set(j2, { type: 'branch', note: 'cylinder ' + C + ' dual power insert, junction at the end of its pipe' });
+        addLine(before, ekk, j1, 'cylinder ' + C + ' exhaust chamber', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        addLine(ann, j1, j2, 'cylinder ' + C + ' chamber round the insert', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        addLine(ins, j1, j2, 'cylinder ' + C + ' dual power insert', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        segs = after;
+        ekk = j2;
+      }
+      const tailRole = dual ? 'cylinder ' + C + ' stinger after the insert' : 'cylinder ' + C + ' exhaust chamber';
       if (sil) {
         plenums.push({ kind: 'const', V_m3: num(sil.V_m3), p_bar: p.p_amb_bar, T_C: p.exhaust_Tgas0_C, comp: burnt,
           note: 'cylinder ' + C + ' silencer, ' + pctG(num(sil.V_m3) * 1e3) + ' litres' });
         const si = 'c' + C + '/sil/in', so = 'c' + C + '/sil/out';
         bcs.set(si, { type: 'plenum', plenum: plenums.length, vt: cdfix, note: 'cylinder ' + C + ' silencer inlet' });
         bcs.set(so, { type: 'plenum', plenum: plenums.length, vt: cdfix, note: 'cylinder ' + C + ' silencer outlet' });
-        addLine(segs, ek, si, 'cylinder ' + C + ' exhaust chamber', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        addLine(segs, ekk, si, tailRole, Tex, p.exhaust_Tgas0_C, burnt, 2);
         addLine(sil.segs, so, xk, 'cylinder ' + C + ' tailpipe', Tex, p.exhaust_Tgas0_C, burnt, 2);
       } else {
-        addLine(segs, ek, xk, 'cylinder ' + C + ' exhaust chamber', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        addLine(segs, ekk, xk, tailRole, Tex, p.exhaust_Tgas0_C, burnt, 2);
       }
       info.cyl.push({ intake: infoIn, A_ex_max_mm2: aExMax * 1e6, A_tr_max_mm2: aTrMax * 1e6, A_header_mm2: aEx * 1e6 });
     }
@@ -4784,6 +4834,9 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         w.v(0, 'TCCCilindro.cpp:169 WAMer id, ignored');
         w.v(Math.trunc(b.cyl), 'TCCCilindro.cpp:171 cylinder number');
         w.v(Math.trunc(b.vt), T + ':1460 valve type index 1-based');
+      } else if (t === 'branch') {
+        w.v(12, T + ':1376 BC type 12 = branch TCCRamificacion, takes every pipe end with this number, ' +
+          'reads no data TCCRamificacion.cpp:94-147');
       } else if (t === 'plenum') {
         w.v(11, T + ':1366 BC type 11 = pipe-to-plenum connection TCCDeposito');
         w.v(0, 'TCCDeposito.cpp:204 WAMer id, ignored');
@@ -4968,7 +5021,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   }
 
   const Wam2T = {
-    makeWam, modelFromSpec, writeModel, summary, readTable,
+    makeWam, modelFromSpec, writeModel, summary, readTable, dualLines,
     crownAboveBdc, portTopForDuration, openingAngle, windowWidth, windowArea, timeArea, reedLumped,
     RUN_DEFAULTS, CD_EXHAUST, CD_TRANSFER, CD_REED, CD_INTAKE_PORT, FMEP_COEF_PA, ENGINE_START_DEG,
   };
@@ -9426,7 +9479,9 @@ function twSpec(p,r){
   const Tw=Math.max(250,r.T-150)+273.15;
   const spec={e,exhaust_port:ex,transfers:trs,intake,exhaust:{Tw,segs}};
   const Ltot=segs.reduce((a,s)=>a+s.L,0), straight=Object.assign({},spec,{exhaust:{Tw,segs:[{L:Ltot,d0:segs[0].d0,d1:segs[0].d0}]}});
-  return {spec,straight,used,Tgas:r.T};
+  // the dual power insert as a second path through the baffle (make_wam2t dual_lines), when the tab designed one
+  const insert=r.dual?Object.assign({},spec,{exhaust:{Tw,segs,dual:{x0:mm(r.dual.x0),Li:mm(r.dual.Li),Dm:mm(r.dual.Dm),di:mm(r.dual.di),Lp:mm(r.dual.Lp)}}}):null;
+  return {spec,straight,insert,used,Tgas:r.T};
 }
 function twRpms(p){
   if(TW_UI.rpms&&TW_UI.rpms.trim()) return [...new Set(TW_UI.rpms.split(/[\s,;]+/).map(Number).filter(x=>x>=1000&&x<=25000).map(x=>Math.round(x/50)*50))].sort((a,b)=>a-b);
@@ -9437,9 +9492,10 @@ function twName(){ return (TW_UI.v.name||'twostroke').replace(/[^A-Za-z0-9_.-]/g
 function twFiles(p,r){
   const sp=twSpec(p,r), rpms=twRpms(p), base=twName(), models=[], files=[], warn=new Set();
   const cyc=Math.max(5,Math.round(TW_UI.cycles)||30), cell=Math.min(20,Math.max(3,+TW_UI.cell||8));
-  for(const pipe of TW_UI.straight?['chamber','straight']:['chamber']) for(const rpm of rpms){
+  const pipes=['chamber'].concat(sp.insert?['insert']:[],TW_UI.straight?['straight']:[]);
+  for(const pipe of pipes) for(const rpm of rpms){
     const name=base+'_'+pipe+'_'+rpm, run={name,rpm,cycles:cyc,cell_mm:cell,exhaust_Tgas0_C:Math.round(sp.Tgas)};
-    const model=WAM2T.modelFromSpec(pipe==='chamber'?sp.spec:sp.straight,run);
+    const model=WAM2T.modelFromSpec(pipe==='chamber'?sp.spec:pipe==='insert'?sp.insert:sp.straight,run);
     model.warnings.forEach(w=>warn.add(w));
     files.push({name:name+'.wam',text:WAM2T.writeModel(model)}); models.push({name,pipe,rpm,model});
   }
@@ -9466,7 +9522,7 @@ function twRead(list,models){
   }
   const out=[];
   for(const [k,g] of groups){
-    const mm=by.get(k)||(()=>{ const q=k.match(/_(chamber|straight)_(\d+)$/); return q?models.find(x=>x.pipe===q[1]&&x.rpm===+q[2]):null; })();
+    const mm=by.get(k)||(()=>{ const q=k.match(/_(chamber|insert|straight)_(\d+)$/); return q?models.find(x=>x.pipe===q[1]&&x.rpm===+q[2]):null; })();
     if(!mm){ out.push({name:k,err:'not a model of this case (make the case again from these inputs, or keep the file names)'}); continue; }
     if(!g.avg){ out.push({name:mm.name,pipe:mm.pipe,rpm:mm.rpm,err:'no AVG.DAT'}); continue; }
     try{ const s=WAM2T.summary(mm.model,{avg:g.avg,ins:g.ins,log:g.log,finished:g.log===undefined?(g.finished!==undefined?g.finished:true):undefined});
@@ -9517,23 +9573,23 @@ function twoWamSection(p,r){
       '<tr><td>Port tops above the crown at BDC</td><td>exhaust '+cdim(g.H_ex*1000)+', transfers '+cdim(g.H_tr[0]*1000)+'</td></tr>'+
       '<tr><td>Compression ratio</td><td>'+g.cr_trapped.toFixed(2)+' trapped, '+g.cr_geom.toFixed(2)+' geometric (what OpenWAM takes)</td></tr>'+
       '<tr><td>Window areas, fully open</td><td>exhaust '+a2(I.A_ex_max_mm2)+' against a '+a2(I.A_header_mm2)+' header; transfers '+a2(I.A_tr_max_mm2)+'</td></tr>'+
-      '<tr><td>Files</td><td>'+cs.models.length+' models, '+rpms.length+' speeds'+(TW_UI.straight?' × 2 pipes':'')+', '+Math.max(5,Math.round(TW_UI.cycles)||30)+' cycles each</td></tr></tbody></table></div>';
+      '<tr><td>Files</td><td>'+cs.models.length+' models, '+rpms.length+' speeds × '+(cs.models.length/rpms.length)+' pipe'+(cs.models.length/rpms.length>1?'s':'')+', '+Math.max(5,Math.round(TW_UI.cycles)||30)+' cycles each</td></tr></tbody></table></div>';
     if(cs.warn.length) h+='<div class="note warn">'+esc(cs.warn.map(w=>w[0].toUpperCase()+w.slice(1)).join('. ')+'. The port can pass more than the pipe behind it: check the window or the header.')+'</div>';
     if(cs.sp.used.length) h+='<p class="cap">Assumed: '+esc(cs.sp.used.join('; '))+'.</p>';
-    if(r.dual) h+='<p class="cap">The dual power insert is not in the model: OpenWAM here has one path through the chamber, and the insert is a second path in parallel. The runs are the chamber without it.</p>';
+    if(r.dual) h+='<p class="cap">The dual power insert runs as a second set of models: the chamber with its insert as a second path from the belly end to the end of its pipe (two junctions), against the same chamber without it. The perforated half is not modelled, so the insert acts as a solid-walled path, the limit of a closed perforation; on the 125 MX test it added 2 hp at its second power point and cost 1 to 2 hp at the peak.</p>';
   }
   h+='<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-tw="dl">Download OpenWAM case (.zip)</button>'+(hostHas('openwam')?'<button type="button" class="btn" data-tw="run">Run in OpenWAM on this PC</button><button type="button" class="btn" data-tw="stop">Stop</button>':'')+'</div>'+
     '<div class="note twmsg'+(TW_UI.msg&&TW_UI.msg.bad?' bad':'')+'"'+(TW_UI.msg?'':' hidden')+'>'+(TW_UI.msg?esc(TW_UI.msg.t):'')+'</div>';
   h+='<p class="sub" style="margin-top:14px">Results</p>';
   const R=TW_UI.res, ok=R.filter(x=>x.s);
   if(ok.length){
-    const ch=ok.filter(x=>x.pipe==='chamber'), st=ok.filter(x=>x.pipe==='straight');
+    const ch=ok.filter(x=>x.pipe==='chamber'), st=ok.filter(x=>x.pipe==='straight'), ins=ok.filter(x=>x.pipe==='insert');
     const pk=ch.length?ch.reduce((a,b)=>b.s.P_brake_hp>a.s.P_brake_hp?b:a):null;
     if(pk) h+='<div class="figs">'+figT('Peak power, chamber',pk.s.P_brake_hp.toFixed(1),'hp',(pk.s.P_brake_kW).toFixed(1)+' kW at '+pk.rpm+' RPM')+
       figT('Design RPM',Math.round(p.rpm),'RPM',pk.rpm===Math.round(p.rpm/250)*250||Math.abs(pk.rpm-p.rpm)/p.rpm<0.04?'the peak is on it':(pk.rpm>p.rpm?'peaks higher':'peaks lower')+' by '+Math.round(Math.abs(pk.rpm-p.rpm))+' RPM')+
       figT('Delivery ratio at the peak',pk.s.DR.toFixed(2),'','trapping '+(100*pk.s.TE).toFixed(0)+'%')+'</div>';
     h+='<figure class="card" style="margin:12px 0 0"><svg class="camp" id="tw-svg" role="img" aria-label="Brake power against RPM, chamber and straight pipe"></svg>'+
-      '<div class="legend"><span><i class="sw" style="--c:var('+SIM_COL[0]+')"></i>Expansion chamber</span>'+(st.length?'<span><i class="sw" style="--c:var('+SIM_COL[1]+');border-top-style:dashed"></i>Straight pipe, same length</span>':'')+'</div></figure>';
+      '<div class="legend"><span><i class="sw" style="--c:var('+SIM_COL[0]+')"></i>Expansion chamber</span>'+(ins.length?'<span><i class="sw" style="--c:var('+SIM_COL[2]+');border-top-style:dotted"></i>With the dual power insert</span>':'')+(st.length?'<span><i class="sw" style="--c:var('+SIM_COL[1]+');border-top-style:dashed"></i>Straight pipe, same length</span>':'')+'</div></figure>';
     const f1=x=>Number.isFinite(x)?x.toFixed(1):'?', f2=x=>Number.isFinite(x)?x.toFixed(2):'?', tq=U==='imp'?0.737562:1;
     h+='<div class="tblwrap" style="margin-top:12px"><table><thead><tr><th>Pipe</th><th>RPM</th><th>Brake power</th><th>Brake torque</th><th>BMEP</th><th>IMEP</th><th>Crankcase</th><th>Delivery ratio</th><th>Trapping</th><th>Charging</th><th>Settled?</th></tr></thead><tbody>'+
       R.map(x=>x.err?'<tr><td>'+esc(x.pipe||'')+'</td><td>'+(x.rpm||'')+'</td><td colspan="9">'+esc(x.name+': '+x.err)+'</td></tr>':
@@ -9558,8 +9614,8 @@ function twoWamDraw(){
   const xs=niceStep(x1-x0,[250,500,1000,2000,2500,5000]);
   for(let v=Math.ceil(x0/xs)*xs;v<=x1;v+=xs){ const t=mk('text',{x:X(v),y:H-mb+16,style:'text-anchor:middle'},svg); t.textContent=v; }
   mk('line',{x1:ml,x2:W-mr,y1:H-mb,y2:H-mb,'class':'axis'},svg);
-  ['chamber','straight'].forEach((pipe,k)=>{ const pts=ok.filter(x=>x.pipe===pipe).sort((a,b)=>a.rpm-b.rpm); if(pts.length<2) return;
-    mk('polyline',{points:pts.map(x=>X(x.rpm).toFixed(1)+','+Y(x.s.P_brake_hp).toFixed(1)).join(' '),'class':'ord',style:'stroke:var('+SIM_COL[k]+');stroke-width:'+(k?1.8:2.6)+';'+(k?'stroke-dasharray:6 4':'')},svg);
+  [['chamber',0,''],['straight',1,'6 4'],['insert',2,'2 3']].forEach(([pipe,k,dash])=>{ const pts=ok.filter(x=>x.pipe===pipe).sort((a,b)=>a.rpm-b.rpm); if(pts.length<2) return;
+    mk('polyline',{points:pts.map(x=>X(x.rpm).toFixed(1)+','+Y(x.s.P_brake_hp).toFixed(1)).join(' '),'class':'ord',style:'stroke:var('+SIM_COL[k]+');stroke-width:'+(k?1.8:2.6)+';'+(dash?'stroke-dasharray:'+dash:'')},svg);
     pts.forEach(x=>mk('circle',{cx:X(x.rpm).toFixed(1),cy:Y(x.s.P_brake_hp).toFixed(1),r:2.6,style:'fill:var('+SIM_COL[k]+')'},svg)); });
   const ty=mk('text',{x:4,y:10},svg); ty.textContent='hp, brake'; const tx=mk('text',{x:W-mr,y:H-4,'class':'tr'},svg); tx.textContent='RPM';
 }
@@ -10497,13 +10553,15 @@ const fxBtn=(act,label,tab)=>'<button type="button" class="btn" data-fx="'+act+'
    free-standing, or bolted to a fixture table on its hole grid (System 16: 50 mm pitch, 16 mm holes; System 28:
    100 mm, 28 mm; or any grid), with tabs out to the nearest holes. Flange locators at the tube ends. Lengths in mm. */
 const JIG_UI={style:'cradles',layout:'model',mount:'free',table:'s16',pitch:50,hole:16.5,gx:0,gy:0,gang:0,free_holes:true,
-  flange:'none',fsize:0,fthick:10,fn:0,fpcd:0,fhole:0,fang:0,gap:20,bed:256,clear:0.25,spacing:150};
+  flange:'none',fsize:0,fthick:10,fn:0,fpcd:0,fhole:0,fang:0,gap:20,bed:256,clear:0.25,spacing:150,
+  gussets:'auto',tfeet:'tabs',fpreset:'custom',fshape:'square',fw:0,fh:0,fholes:'',seat:'none',seatd:0,seatdep:0,spigd:0,spigl:0};
 const JIG_STYLES={
   cradles:{name:'Separate cradles under each piece',short:'separate cradles',why:'A cradle under every straight and bend piece, each printed on its own: the least plastic, and quick to reprint one.'},
   base:{name:'Cradles joined on one base frame',short:'cradles on a base frame',why:'The cradles tied together by ribs at base level along the shortest tree between them: one rigid part that keeps every cradle where it was designed.'},
   plate:{name:'Plate with cradles along the tubes',short:'plate with cradles',why:'A flat printed plate following each tube’s path with the cradles standing on it, bridged between tubes: easy to set square on a table.'},
   saddle:{name:'Continuous saddle along the tube',short:'continuous saddles',why:'A solid block with the tube’s shape cut along its whole length, broken at the weld joints: the most support, best for flat parts.'},
   frame:{name:'Flange frame (held at the flanges only)',short:'flange frame',why:'Locator plates at the free tube ends, with the flange bolt holes, joined by a printed frame: for pipes that bolt up at both ends, nothing in between.'}};
+const FLANGE_PRESETS=[];   // filled below from sourced dimensions
 const JIG_TABLES={s16:{name:'System 16: 50 mm grid, 16 mm holes',pitch:50,hole:16.5},s28:{name:'System 28: 100 mm grid, 28 mm holes',pitch:100,hole:28.5},
   imp58:{name:'5/8 in holes on a 2 in grid',pitch:50.8,hole:16.3},custom:{name:'Another grid'}};
 function jigBlock(tab){
@@ -10516,13 +10574,25 @@ function jigBlock(tab){
     '<p class="cap span2" style="margin:0">'+esc(JIG_STYLES[J.style].why)+'</p>'+
     '<label class="f"><span class="lab">Layout</span>'+sel('layout',[['model','As drawn: under the part as it sits in the model'],['flat','Laid flat: on its widest side, the lowest jig']])+'</label>'+
     '<label class="f"><span class="lab">Mounting</span>'+sel('mount',[['free','Free-standing'],['table','Bolted to a fixture table']])+'</label>';
+  if(J.style!=='saddle'&&J.style!=='frame') h+='<label class="f"><span class="lab">Gussets on tall cradles</span>'+sel('gussets',[['auto','Over 60 mm tall'],['on','On every cradle'],['off','None']])+'</label>';
   if(J.mount==='table'){
-    h+='<label class="f span2"><span class="lab">Table</span>'+sel('table',Object.entries(JIG_TABLES).map(([k,t])=>[k,t.name]))+'</label>';
+    h+='<label class="f span2"><span class="lab">Table</span>'+sel('table',Object.entries(JIG_TABLES).map(([k,t])=>[k,t.name]))+'</label>'+
+      '<label class="f span2"><span class="lab">Bolting down</span>'+sel('tfeet',[['tabs','Tabs out to the nearest grid holes'],['pads','A pad square to the grid under each part, across two holes']])+'</label>';
     if(J.table==='custom') h+=len('pitch','Hole spacing (grid pitch)')+len('hole','Bolt hole in the jig');
     h+=len('gx','Grid hole at X (from the model origin)')+len('gy','Grid hole at Y')+num('gang','Grid turned by','°',1);
   } else h+='<label class="f"><span class="lab">Screw holes in the feet</span>'+sel('free_holes',[['true','M6 holes, to screw down if you want'],['false','None']])+'</label>';
   h+=(J.style==='frame'?'':'<label class="f"><span class="lab">Flange locators</span>'+sel('flange',[['none','None'],['start','At the start of each tube (head flange)'],['both','At both free ends']])+'</label>');
-  if(J.flange!=='none'||J.style==='frame') h+=len('fsize','Locator plate size (0: tube + 60 mm)')+len('fthick','Plate thickness')+num('fn','Bolt holes','',1)+len('fpcd','Bolt circle (PCD)')+len('fhole','Bolt hole diameter')+num('fang','Bolt circle turned by','°',1);
+  if(J.flange!=='none'||J.style==='frame'){
+    h+='<label class="f span2"><span class="lab">Flange</span>'+sel('fpreset',[['custom','Enter it yourself']].concat(FLANGE_PRESETS.map((f,i)=>[String(i),f.name])))+'</label>';
+    const fp=FLANGE_PRESETS[+J.fpreset];
+    if(fp) h+='<p class="cap span2" style="margin:0">'+esc(fp.note||'')+(fp.src?' <a href="'+fp.src+'" target="_blank" rel="noopener">Source</a>.':'')+'</p>';
+    h+='<label class="f"><span class="lab">Plate shape</span>'+sel('fshape',[['square','Square'],['rect','Rectangle'],['round','Round']])+'</label>'+
+      (J.fshape==='rect'?len('fw','Plate width (level)')+len('fh','Plate height'):len('fsize','Plate size (0: tube + 60 mm)'))+len('fthick','Plate thickness')+
+      '<label class="f span2"><span class="lab">Bolt holes, mm from the tube centre: x level, y up, diameter; a slot adds its length and angle (x,y,d; x,y,d,len,deg)</span><span class="inp"><input class="jigt" data-k="fholes" type="text" value="'+esc(J.fholes)+'" placeholder="blank: use the bolt circle below"></span></label>'+
+      num('fn','Or: bolt holes on a circle','',1)+len('fpcd','Bolt circle (PCD)')+len('fhole','Bolt hole diameter')+num('fang','Pattern turned by','°',1)+
+      '<label class="f"><span class="lab">Clamp flange seat</span>'+sel('seat',[['none','None (bolted flange)'],['pocket','Pocket: male V-band spigot or Wiggins ferrule drops in'],['boss','Boss: fills a female V-band recess']])+'</label>'+
+      (J.seat!=='none'?len('seatd','Seat diameter')+len('seatdep','Seat depth'):'')+len('spigd','Port spigot diameter (0: none)')+(J.spigd>0?len('spigl','Spigot length'):'');
+  }
   h+=len('gap','Weld gap at each joint')+len('clear','Clearance round the tube, per side',0.05)+len('spacing','Cradle spacing on long straights')+len('bed','Printer bed (largest side)')+'</div>'+
     '<p class="cap">On a fixture table the grid is laid from one of its holes placed at the X, Y given, in the model’s units; set it to a hole under your part (measure in Fusion). Bolt holes go only where a foot, rib or tab has room round them and a bolt head clears the blocks; parts with fewer than two (three for a base frame) get tabs out to the nearest holes. Weld gaps keep saddles and cradles off the joints between pieces so the torch reaches the tack. Parts bigger than the bed are listed.</p></details>';
   return h;
@@ -10531,10 +10601,19 @@ function jigPayload(){
   const J=JIG_UI, T=JIG_TABLES[J.table]||{}, pitch=J.table==='custom'?J.pitch:T.pitch, hole=J.table==='custom'?J.hole:T.hole;
   return {style:J.style,layout:J.layout,mount:J.mount,grid_pitch_mm:pitch,grid_hole_mm:hole,grid_x_mm:J.gx,grid_y_mm:J.gy,grid_angle_deg:J.gang,free_holes:J.free_holes,
     flange_ends:J.flange,flange_size_mm:J.fsize>0?J.fsize:null,flange_thick_mm:J.fthick,flange_n:J.fn,flange_pcd_mm:J.fpcd,flange_hole_mm:J.fhole,flange_angle_deg:J.fang,
-    weld_gap_mm:J.gap,clearance_mm:J.clear,spacing_mm:J.spacing,bed_mm:J.bed};
+    weld_gap_mm:J.gap,clearance_mm:J.clear,spacing_mm:J.spacing,bed_mm:J.bed,gussets:J.gussets,table_feet:J.tfeet,
+    flange_shape:J.fshape,flange_w_mm:J.fw||null,flange_h_mm:J.fh||null,flange_holes:jigHoles(J.fholes),
+    flange_seat:J.seat!=='none'?{kind:J.seat,d_mm:J.seatd,depth_mm:J.seatdep}:null,flange_spigot:J.spigd>0?{d_mm:J.spigd,len_mm:J.spigl||15}:null};
 }
+// "x,y,d; x,y,d,len,deg" in mm -> [[x,y,d(,len,deg)],...]; bad entries are left out
+function jigHoles(txt){ return String(txt||'').split(';').map(e=>e.split(',').map(v=>parseFloat(v))).filter(a=>(a.length===3||a.length===5)&&a.every(Number.isFinite)&&a[2]>0); }
+function jigApplyPreset(i){ const f=FLANGE_PRESETS[+i]; if(!f) return; const J=JIG_UI;
+  Object.assign(J,{fshape:f.shape||'square',fsize:f.size||0,fw:f.w||0,fh:f.h||0,fthick:f.thick||10,fholes:(f.holes||[]).map(h=>h.join(',')).join('; '),
+    fn:f.n||0,fpcd:f.pcd||0,fhole:f.hole||0,fang:f.ang||0,seat:f.seat||'none',seatd:f.seatd||0,seatdep:f.seatdep||0,spigd:0,spigl:0}); }
 function jigRerender(){ document.querySelectorAll('.jigopts').forEach(el=>{ const tab=el.id.replace('jigopts-',''); el.outerHTML=jigBlock(tab); }); }
-document.addEventListener('change',e=>{ const el=e.target.closest('select.jigsel'); if(!el) return; const k=el.dataset.k; JIG_UI[k]=k==='free_holes'?el.value==='true':el.value; JIG_UI.open=true; jigRerender(); });
+document.addEventListener('change',e=>{ const el=e.target.closest('select.jigsel'); if(!el) return; const k=el.dataset.k; JIG_UI[k]=k==='free_holes'?el.value==='true':el.value; if(k==='fpreset') jigApplyPreset(el.value); JIG_UI.open=true; jigRerender(); });
+document.addEventListener('input',e=>{ const el=e.target.closest('input.jigt'); if(!el) return; JIG_UI[el.dataset.k]=el.value; });
+document.addEventListener('change',e=>{ if(e.target.closest('input.jigx[data-k="spigd"]')) jigRerender(); });
 document.addEventListener('input',e=>{ const el=e.target.closest('input.jigx'); if(!el) return; readInput(el); const v=el._b; if(Number.isFinite(v)) JIG_UI[el.dataset.k]=v; });
 document.addEventListener('toggle',e=>{ if(e.target.classList&&e.target.classList.contains('jigopts')) JIG_UI.open=e.target.open; },true);
 window.__jig={JIG_UI,jigPayload};

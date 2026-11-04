@@ -13,12 +13,13 @@
  *   Wam2T.summary(model, {avg, ins, log | finished}, fmepCoef)  -> make_wam2t.wam2t_summary's dict (keys the same)
  *   Wam2T.portTopForDuration, openingAngle, crownAboveBdc, windowArea, timeArea, reedLumped: the geometry helpers
  *   Wam2T.RUN_DEFAULTS, CD_EXHAUST, CD_TRANSFER, CD_REED, CD_INTAKE_PORT, FMEP_COEF_PA
+ *   exhaust.dual = {x0, Li, Dm, di, Lp} [m]: the dual power insert as a second path between two junctions (dualLines)
  */
 (function (root) {
   'use strict';
   const WX = (typeof module !== 'undefined' && module && module.exports && typeof require === 'function')
     ? require('./wam_export.js') : root.WamExport;
-  const { Writer, splitRuns, FS_GASOLINE_SIMPLE, COMB_COMPLETE, fmtG, pyRound } = WX;
+  const { Writer, splitRuns, splitSegsAt, FS_GASOLINE_SIMPLE, COMB_COMPLETE, fmtG, pyRound } = WX;
 
   const pctG = x => fmtG(x, 6);                        // Python "%g"
   const pctF = (x, n) => pyRound(x, n).toFixed(n);     // Python "%.nf" (half to even on the exact value)
@@ -117,8 +118,44 @@
   }
 
   // ------------------------------------------------------------------ model
-  const BC_DESC = { open: 'open end', closed: 'closed end', step: 'diameter step', plenum: 'plenum port', eport: 'exhaust port', tport: 'transfer port' };
-  const BC_ENDS = { open: [1, 1], closed: [1, 1], step: [2, 2], plenum: [1, 1], eport: [1, 1], tport: [1, 1] };
+  const BC_DESC = { open: 'open end', closed: 'closed end', step: 'diameter step', plenum: 'plenum port', eport: 'exhaust port', tport: 'transfer port', branch: 'junction' };
+  const BC_ENDS = { open: [1, 1], closed: [1, 1], step: [2, 2], plenum: [1, 1], eport: [1, 1], tport: [1, 1], branch: [3, 3] };
+  // make_wam2t.dual_lines: exhaust segs and a dual power insert {x0, Li, Dm, di, Lp} [m] -> [before, annulus, insert, after]
+  function dualLines(segs, d) {
+    const x0 = num(d.x0), Li = num(d.Li), Dm = num(d.Dm), di = num(d.di), Lp = num(d.Lp);
+    const x2 = x0 + Li + Lp;
+    let total = 0; for (const sg of segs) total += num(sg.L);
+    if (!(Li > 0.0 && Lp >= 0.0 && Dm > di && di > 0.0 && 0.0 < x0 && x0 < x2 && x2 < total))
+      throw new Error('the dual power insert must lie inside the chamber, its mouth wider than its pipe');
+    const [before, rest] = splitSegsAt(segs, x0);
+    const [mid, after] = splitSegsAt(rest, x2 - x0);
+    const cuts = []; let a = 0.0;
+    for (const sg of mid) { a += num(sg.L); cuts.push(a); }
+    let xs = Array.from(new Set([0.0, Li].concat(cuts))).sort((p, q) => p - q);
+    xs = xs.filter(x => x <= x2 - x0 + 1e-12);
+    const inner = x => (x <= Li ? Dm + (di - Dm) * x / Li : di);
+    const ann = [];
+    for (let k = 0; k + 1 < xs.length; k++) {
+      const a0 = xs[k], b0 = xs[k + 1];
+      if (b0 - a0 <= 1e-9) continue;
+      const m = 0.5 * (a0 + b0);
+      let acc = 0.0, o0 = NaN, o1 = NaN;
+      for (const sg of mid) {
+        const L = num(sg.L);
+        if (acc <= m && m <= acc + L) {
+          o0 = num(sg.d0) + (num(sg.d1) - num(sg.d0)) * (a0 - acc) / L;
+          o1 = num(sg.d0) + (num(sg.d1) - num(sg.d0)) * (b0 - acc) / L;
+          break;
+        }
+        acc += L;
+      }
+      const i0 = m <= Li ? inner(a0) : di, i1 = m <= Li ? inner(b0) : di;
+      if (!(o0 > i0 && o1 > i1)) throw new Error('the dual power insert touches the chamber wall');
+      ann.push({ L: b0 - a0, d0: Math.sqrt(o0 * o0 - i0 * i0), d1: Math.sqrt(o1 * o1 - i1 * i1) });
+    }
+    const ins = [{ L: Li, d0: Dm, d1: di }].concat(Lp > 1e-6 ? [{ L: Lp, d0: di, d1: di }] : []);
+    return [before, ann, ins, after];
+  }
   function numberModel(pipes, bcs) {
     const n = new Map(), order = [], ends = new Map();
     pipes.forEach((pp, i) => {
@@ -300,17 +337,30 @@
       const ek = 'c' + C + '/ex/port', xk = 'c' + C + '/ex/open';
       bcs.set(ek, { type: 'eport', cyl: C, vt, note: 'cylinder ' + C + ' exhaust port' });
       bcs.set(xk, { type: 'open', note: 'cylinder ' + C + ' exhaust outlet, open end to atmosphere' });
-      const sil = exh.silencer;
+      const sil = exh.silencer, dual = exh.dual;
+      let ekk = ek;
+      if (dual) {
+        const [before, ann, ins, after] = dualLines(segs, dual);
+        const j1 = 'c' + C + '/dual/j1', j2 = 'c' + C + '/dual/j2';
+        bcs.set(j1, { type: 'branch', note: 'cylinder ' + C + ' dual power insert, junction at its mouth' });
+        bcs.set(j2, { type: 'branch', note: 'cylinder ' + C + ' dual power insert, junction at the end of its pipe' });
+        addLine(before, ekk, j1, 'cylinder ' + C + ' exhaust chamber', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        addLine(ann, j1, j2, 'cylinder ' + C + ' chamber round the insert', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        addLine(ins, j1, j2, 'cylinder ' + C + ' dual power insert', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        segs = after;
+        ekk = j2;
+      }
+      const tailRole = dual ? 'cylinder ' + C + ' stinger after the insert' : 'cylinder ' + C + ' exhaust chamber';
       if (sil) {
         plenums.push({ kind: 'const', V_m3: num(sil.V_m3), p_bar: p.p_amb_bar, T_C: p.exhaust_Tgas0_C, comp: burnt,
           note: 'cylinder ' + C + ' silencer, ' + pctG(num(sil.V_m3) * 1e3) + ' litres' });
         const si = 'c' + C + '/sil/in', so = 'c' + C + '/sil/out';
         bcs.set(si, { type: 'plenum', plenum: plenums.length, vt: cdfix, note: 'cylinder ' + C + ' silencer inlet' });
         bcs.set(so, { type: 'plenum', plenum: plenums.length, vt: cdfix, note: 'cylinder ' + C + ' silencer outlet' });
-        addLine(segs, ek, si, 'cylinder ' + C + ' exhaust chamber', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        addLine(segs, ekk, si, tailRole, Tex, p.exhaust_Tgas0_C, burnt, 2);
         addLine(sil.segs, so, xk, 'cylinder ' + C + ' tailpipe', Tex, p.exhaust_Tgas0_C, burnt, 2);
       } else {
-        addLine(segs, ek, xk, 'cylinder ' + C + ' exhaust chamber', Tex, p.exhaust_Tgas0_C, burnt, 2);
+        addLine(segs, ekk, xk, tailRole, Tex, p.exhaust_Tgas0_C, burnt, 2);
       }
       info.cyl.push({ intake: infoIn, A_ex_max_mm2: aExMax * 1e6, A_tr_max_mm2: aTrMax * 1e6, A_header_mm2: aEx * 1e6 });
     }
@@ -519,6 +569,9 @@
         w.v(0, 'TCCCilindro.cpp:169 WAMer id, ignored');
         w.v(Math.trunc(b.cyl), 'TCCCilindro.cpp:171 cylinder number');
         w.v(Math.trunc(b.vt), T + ':1460 valve type index 1-based');
+      } else if (t === 'branch') {
+        w.v(12, T + ':1376 BC type 12 = branch TCCRamificacion, takes every pipe end with this number, ' +
+          'reads no data TCCRamificacion.cpp:94-147');
       } else if (t === 'plenum') {
         w.v(11, T + ':1366 BC type 11 = pipe-to-plenum connection TCCDeposito');
         w.v(0, 'TCCDeposito.cpp:204 WAMer id, ignored');
@@ -703,7 +756,7 @@
   }
 
   const Wam2T = {
-    makeWam, modelFromSpec, writeModel, summary, readTable,
+    makeWam, modelFromSpec, writeModel, summary, readTable, dualLines,
     crownAboveBdc, portTopForDuration, openingAngle, windowWidth, windowArea, timeArea, reedLumped,
     RUN_DEFAULTS, CD_EXHAUST, CD_TRANSFER, CD_REED, CD_INTAKE_PORT, FMEP_COEF_PA, ENGINE_START_DEG,
   };

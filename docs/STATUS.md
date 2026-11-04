@@ -383,7 +383,10 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   One .wam per speed for the designed chamber and a straight pipe of the same length; download, run on this PC (host
   runOpenWAM), or pick AVG/INS files; brake hp curve, BMEP, IMEP, crankcase work, DR, TE, CE. web/tests/two_wam_ui.js
   runs real OpenWAM through a stand-in host: 125 MX 31.2 hp chamber vs 14.3 straight at 12000 (20 cycles). The dual
-  power insert is not modelled (a parallel path).
+  power insert (2026-11-03) is a second path between two junctions (TCCRamificacion, BC 12) from the belly end x0 to
+  the end of its pipe, the cone annulus as an equivalent diameter sqrt(Do^2 - Di^2); perforation not modelled (solid
+  wall). make_wam2t dual_lines + the JS port (test_py_js_2t: 55 of 56 the same bytes, 1 both refuse). With an insert
+  designed, the tab writes a third set of models; 125 MX: 25.0 -> 25.5 hp at 10000, 31.2 -> 29.7 at 12000.
   Headers tab "Pulse gaps at the collector" and "Pair the pulses" (the owner's sound-engineering note, 2026-11-03):
   arrival gaps L/a at several RPMs with the short- and long-gap rates; pairing helper puts +dL/2 on the first pulse of
   each pair and -dL/2 on the second (dL = (even - short gap) a / (6 rpm)), mean length unchanged. web/tests/pair_ui.js.

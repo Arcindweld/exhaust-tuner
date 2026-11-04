@@ -253,6 +253,9 @@ FAB_DEFAULTS = {'style': 'cradles', 'mount': 'free', 'layout': 'model', 'beam_h'
                 'grid_angle_deg': 0.0, 'free_holes': True, 'weld_gap': 2.0, 'bed': 25.6, 'saddle_step': 1.5,
                 'rib_w': 3.0, 'flange_ends': 'none', 'flange_size': 0.0, 'flange_thick': 1.0, 'flange_n': 0,
                 'flange_pcd': 0.0, 'flange_hole': 0.0, 'flange_angle_deg': 0.0, 'tab_rim': 1.0, 'min_holes': 2,
+                'flange_shape': 'square', 'flange_w': 0.0, 'flange_h': 0.0, 'flange_holes': None, 'flange_bore': 0.0,
+                'flange_seat': None, 'flange_spigot': None, 'gussets': 'auto', 'gusset_min_h': 6.0, 'gusset_t': 1.0,
+                'table_feet': 'tabs',
                 'leg': 2.0}
 
 
@@ -342,6 +345,13 @@ def plan_fab(tubes, up=(0.0, 0.0, 1.0), opts=None):
     base = low - o['min_below']
     fe = o['flange_ends']
 
+    def plate_wh(sz):
+        # (width along the level axis a2, height along a1): a rectangle from flange_w x flange_h, else a square of sz;
+        # a round plate stands on the square round it
+        if o['flange_shape'] == 'rect' and o['flange_w'] > 0 and o['flange_h'] > 0:
+            return o['flange_w'], o['flange_h']
+        return sz, sz
+
     def flange_frame(t, end):
         p0, tan = t.at(0.0 if end == 'start' else t.total)
         tin = tan if end == 'start' else _v((0.0, 0.0, 0.0), tan, -1.0)
@@ -350,7 +360,8 @@ def plan_fab(tubes, up=(0.0, 0.0, 1.0), opts=None):
         a2 = _unit(_cross(tin, a1))
         sz = o['flange_size'] if o['flange_size'] > 0 else t.od + 6.0
         pc = _v(p0, tin, -o['flange_thick'] / 2.0)
-        corners = [_v(_v(pc, a1, i * sz / 2.0), a2, j * sz / 2.0) for i in (-1.0, 1.0) for j in (-1.0, 1.0)]
+        pw, ph = plate_wh(sz)
+        corners = [_v(_v(pc, a1, i * ph / 2.0), a2, j * pw / 2.0) for i in (-1.0, 1.0) for j in (-1.0, 1.0)]
         return p0, tin, a1, a2, sz, pc, corners
     ends = [(t, e) for t in T for e in (('start', 'end') if fe == 'both' else ('start',) if fe == 'start' else ())]
     if fe == 'both' and len(T) > 1:
@@ -387,13 +398,37 @@ def plan_fab(tubes, up=(0.0, 0.0, 1.0), opts=None):
             fl = c['length'] if mount == 'table' else max(c['length'], 0.5 * H)       # free-standing: a cross foot
             fw = c['foot']['width'] if mount == 'table' else max(c['foot']['width'], 0.6 * H)
             fc = c['foot']['centre']
+            # gussets (the campsite.precision towers): diagonal struts from the foot up to the block's sides, across the
+            # tube on every tall cradle, along it too on the tallest; the feet grow to take them
+            gus = o['gussets'] == 'on' or (o['gussets'] == 'auto' and H >= o['gusset_min_h'])
+            reach_w = min(0.45 * H, 8.0) if gus else 0.0
+            reach_d = min(0.35 * H, 6.0) if gus and H >= 2.0 * o['gusset_min_h'] else 0.0
+            if gus:
+                fw = max(fw, c['width'] + 2.0 * reach_w + 1.0)
+                fl = max(fl, c['length'] + 2.0 * reach_d + 1.0) if reach_d else fl
             add = [_box(c['centre'], c['d'], c['w'], c['length'], c['width'], H),
                    _box(fc, c['d'], c['w'], c['length'], fw, ft)]
             if fl > c['length'] + 1e-9:
                 add.append(_box(fc, c['d'], c['w'], fl, c['width'], ft))
+            gcut = []
+            if gus:
+                tg = o['gusset_t']
+                for axis, half, reach, thick_dir in ((c['w'], c['width'] / 2.0, reach_w, c['d']), (c['d'], c['length'] / 2.0, reach_d, c['w'])):
+                    if reach <= 0:
+                        continue
+                    hg = min(0.6 * H, reach / math.tan(math.radians(35.0)))
+                    for sgn in (-1.0, 1.0):
+                        A = _v(_v(fc, axis, sgn * (half + reach)), up, ft / 2.0)
+                        Bp = _v(_v(fc, axis, sgn * half * 0.5), up, ft / 2.0 + hg)
+                        dd = _v(Bp, A, -1.0)
+                        Ls = math.sqrt(_dot(dd, dd))
+                        dd = _unit(dd)
+                        mid = _v(A, dd, Ls / 2.0)
+                        add.append(_box(mid, dd, thick_dir, Ls + 1.0, min(tg, c['length'] if thick_dir is c['d'] else c['width']), 1.4))
+                gcut.append(_box(_v(fc, up, -50.0 - ft / 2.0), c['d'], c['w'], 400.0, 400.0, 100.0))   # nothing below the base
             d2, c2 = _unit2(to2(c['d'])), to2(c['centre'])
             foot = [_rect(c2, d2, c['length'], fw), _rect(c2, d2, fl, c['width']), _rect(c2, d2, c['length'], c['width'], False)]
-            cut = _cuts_prims(c['cut'])
+            cut = _cuts_prims(c['cut']) + gcut
             holes = []
             if mount == 'free' and o['free_holes']:
                 holes = [to2(q) for q in c['foot']['holes']] if fw <= c['foot']['width'] + 1e-9 else \
@@ -531,12 +566,51 @@ def plan_fab(tubes, up=(0.0, 0.0, 1.0), opts=None):
         for t, end in ends:
                 p0, tin, a1, a2, sz, pc, corners = flange_frame(t, end)   # tin points into the tube; a2 level
                 th = o['flange_thick']
-                add = [_box(pc, tin, a2, th, sz, sz)]
-                cut = [{'k': 'cyl', 'a': _v(p0, tin, -th - 0.2), 'b': _v(p0, tin, 0.2), 'r': t.od / 2.0 + o['clearance']}]
-                if o['flange_n'] > 0 and o['flange_pcd'] > 0 and o['flange_hole'] > 0:
+                pw, ph = plate_wh(sz)
+                if o['flange_shape'] == 'round':
+                    add = [{'k': 'cyl', 'a': _v(p0, tin, -th), 'b': p0, 'r': sz / 2.0}]
+                else:
+                    add = [_box(pc, tin, a2, th, pw, ph)]
+                seat = o['flange_seat'] or {}
+                boss_r = seat.get('d', 0.0) / 2.0 if seat.get('kind') == 'boss' else 0.0
+                bore = (o['flange_bore'] if o['flange_bore'] > 0 else t.od) / 2.0 + o['clearance']
+                if boss_r > 0:
+                    bore = min(bore, boss_r - 0.3)
+                cut = [{'k': 'cyl', 'a': _v(p0, tin, -th - 0.2), 'b': _v(p0, tin, 0.2 + max(seat.get('depth', 0.0), 0.0) + 0.1), 'r': bore}]
+                # seats for clamp flanges: a pocket the male V-band (or Wiggins ferrule) spigot drops into, or a boss
+                # that fills a female V-band's recess, so the flange centres itself on the plate
+                if seat.get('kind') == 'pocket' and seat.get('d', 0) > 0 and seat.get('depth', 0) > 0:
+                    cut.append({'k': 'cyl', 'a': _v(p0, tin, -seat['depth']), 'b': _v(p0, tin, 0.2), 'r': seat['d'] / 2.0 + o['clearance']})
+                elif boss_r > 0 and seat.get('depth', 0) > 0:
+                    add.append({'k': 'cyl', 'a': _v(p0, tin, -0.05), 'b': _v(p0, tin, seat['depth']), 'r': boss_r - o['clearance']})
+                sp = o['flange_spigot'] or {}
+                if sp.get('d', 0) > 0 and sp.get('len', 0) > 0:
+                    # a plug into the port or the tube end: locates a flangeless end or a head port
+                    add.append({'k': 'cyl', 'a': _v(p0, tin, -0.05), 'b': _v(p0, tin, sp['len']), 'r': sp['d'] / 2.0 - o['clearance']})
+                    cut[0]['r'] = min(cut[0]['r'], sp['d'] / 2.0 - o['clearance'] - 0.3)
+                ang0 = math.radians(o['flange_angle_deg'])
+                def hole_at(x, y):
+                    xr, yr = x * math.cos(ang0) - y * math.sin(ang0), x * math.sin(ang0) + y * math.cos(ang0)
+                    return _v(_v(p0, a2, xr), a1, yr)
+                holes_l = o['flange_holes']
+                if holes_l:
+                    # any pattern: (x, y, d) round holes or (x, y, d, length, angle_deg) slots, x level, y up, from the tube centre
+                    for hh in holes_l:
+                        q = hole_at(hh[0], hh[1])
+                        if len(hh) >= 5 and hh[3] > 0:
+                            ga = math.radians(hh[4]) + ang0
+                            e = _v(_v((0.0, 0.0, 0.0), a2, math.cos(ga) * hh[3] / 2.0), a1, math.sin(ga) * hh[3] / 2.0)
+                            qa, qb = _v(q, e, -1.0), _v(q, e, 1.0)
+                            for qq in (qa, qb):
+                                cut.append({'k': 'cyl', 'a': _v(qq, tin, -th - 0.2), 'b': _v(qq, tin, 0.2), 'r': hh[2] / 2.0})
+                            ed = _unit(e)
+                            cut.append(_box(_v(q, tin, -th / 2.0), tin, ed, th + 0.4, hh[3], hh[2]))
+                        else:
+                            cut.append({'k': 'cyl', 'a': _v(q, tin, -th - 0.2), 'b': _v(q, tin, 0.2), 'r': hh[2] / 2.0})
+                elif o['flange_n'] > 0 and o['flange_pcd'] > 0 and o['flange_hole'] > 0:
                     for i in range(int(o['flange_n'])):
-                        ang = math.radians(o['flange_angle_deg']) + 2.0 * math.pi * i / int(o['flange_n'])
-                        q = _v(_v(p0, a1, 0.5 * o['flange_pcd'] * math.cos(ang)), a2, 0.5 * o['flange_pcd'] * math.sin(ang))
+                        ang = 2.0 * math.pi * i / int(o['flange_n'])
+                        q = hole_at(0.5 * o['flange_pcd'] * math.sin(ang), 0.5 * o['flange_pcd'] * math.cos(ang))
                         cut.append({'k': 'cyl', 'a': _v(q, tin, -th - 0.2), 'b': _v(q, tin, 0.2), 'r': o['flange_hole'] / 2.0})
                 # two legs from the plate's two lowest corners to the base, each with a pad
                 corners.sort(key=lambda q: _dot(q, up))
@@ -615,6 +689,34 @@ def plan_fab(tubes, up=(0.0, 0.0, 1.0), opts=None):
             # keep holes spread out: at least a pitch apart (all of them are), at most 6 per part
             ok_pts.sort(key=lambda g: -math.hypot(g[0] - ctr[0], g[1] - ctr[1]))
             holes = ok_pts[:6]
+            if o['table_feet'] == 'pads' and q['kind'] in ('cradle', 'flange', 'saddle') and len(holes) < 2:
+                # a pad square to the table grid under the part, spanning two grid holes either side of its blocks
+                tall_all = [dict(r, L=r['L'] + 2 * head, W=r['W'] + 2 * head) for r in talls]
+                best_pad = None
+                for ax, ay in ((gu, gv), (gv, gu)):
+                    for g in grid_near(ctr, ext + 2 * pitch):
+                        if any(_in_rect(r, g, 0.0) for r in tall_all):
+                            continue
+                        for n in range(1, 6):
+                            h2 = (g[0] + n * pitch * ax[0], g[1] + n * pitch * ax[1])
+                            if any(_in_rect(r, h2, 0.0) for r in tall_all):
+                                continue
+                            m2 = ((g[0] + h2[0]) / 2.0, (g[1] + h2[1]) / 2.0)
+                            off = math.hypot(m2[0] - ctr[0], m2[1] - ctr[1])
+                            score = off + 0.3 * n * pitch
+                            if best_pad is None or score < best_pad[0]:
+                                best_pad = (score, g, h2, m2, ax, ay, n)
+                            break
+                if best_pad:
+                    _, g1, g2, m2, ax, ay, n = best_pad
+                    Lp = n * pitch + hd + 2.0 * o['tab_rim']
+                    # wide enough across to reach the part's own feet
+                    across = max([abs((r['c'][0] - m2[0]) * ay[0] + (r['c'][1] - m2[1]) * ay[1]) + max(r['L'], r['W']) / 2.0 for r in flats] + [hd / 2.0 + o['tab_rim']])
+                    Wp = 2.0 * across
+                    q['add'].append(_box(lift(m2, base + ft / 2.0), lift(ax, 0.0), _cross(up, lift(ax, 0.0)), Lp, Wp, ft))
+                    q['foot'].append(_rect(m2, ax, Lp, Wp))
+                    holes = [g1, g2]
+                    q['pad'] = True
             need = max(int(o['min_holes']), 3 if q['kind'] == 'base' else 2) - len(holes)
             if need > 0:
                 cand = [g for g in grid_near(ctr, ext + 3 * pitch) if g not in holes
@@ -640,9 +742,10 @@ def plan_fab(tubes, up=(0.0, 0.0, 1.0), opts=None):
                 q['tabs'] = len(picked)
             q['holes'] = holes
             q['hole_d'] = hd
-        notes.append('Fixture-table mount: bolt holes %.0f mm on the table’s %.0f mm grid (origin %.0f, %.0f mm, %.0f deg), '
-                     'tabs out to the nearest holes where a part had too few under it.' % (
-                         10 * hd, 10 * pitch, 10 * g0[0], 10 * g0[1], o['grid_angle_deg']))
+        notes.append(('Fixture-table mount: bolt holes %.0f mm on the table’s %.0f mm grid (origin %.0f, %.0f mm, %.0f deg), ' % (
+            10 * hd, 10 * pitch, 10 * g0[0], 10 * g0[1], o['grid_angle_deg'])) +
+            ('each part on a pad square to the grid across two of its holes (tabs where no pad fits).' if o['table_feet'] == 'pads'
+             else 'tabs out to the nearest holes where a part had too few under it.'))
     for q in parts:
         q['hole_cuts'] = [{'k': 'cyl', 'a': lift(h, base - 0.2), 'b': lift(h, base + ft + 0.2), 'r': q['hole_d'] / 2.0} for h in q['holes']]
     # ---- print bed

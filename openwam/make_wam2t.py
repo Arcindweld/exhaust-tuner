@@ -71,6 +71,13 @@ WHAT IS MODELLED (per cylinder; N cylinders = N copies, each with its own crankc
   exhaust line  the expansion chamber as conical segments {L, d0, d1} [m] from the port face (header, diffusers,
                 belly, baffle, stinger), wall temperature Tw, then optionally a silencer volume (constant-volume
                 plenum, as make_wam.py) and tailpipe, open end.
+  dual power    exhaust.dual = {x0, Li, Dm, di, Lp} [m]: an insert cone (mouth Dm at x0 from the port face, the belly end,
+                small end di after Li) and its pipe (di, Lp) inside the baffle and stinger. Two paths between two
+                junctions (TCCRamificacion, BC type 12): the annulus round the insert (the equivalent diameter of the
+                area between the outer wall and the insert, sqrt(Do^2 - Di^2), at every break of either profile) and
+                the insert itself, joined again where its pipe ends (x0 + Li + Lp); the stinger runs on to the tip. The
+                perforated half of the cone is not modelled (no cross-flow through the holes): the insert as a
+                solid-walled second path, the limit of a closed perforation.
   friction      OpenWAM's FMEP is set to zero (OpenWAM's torque = indicated). wam2t_summary reports indicated
                 (cylinder), crankcase pumping, and a brake estimate with fmep = fmep_coef * S[m] * rpm [Pa]
                 (default 100, a Blair-style motored-friction form quoted from memory - an assumption, see
@@ -251,8 +258,46 @@ def reed_lumped(r):
 
 # --------------------------------------------------------------------------------------------- model
 BC_DESC = {"open": "open end", "closed": "closed end", "step": "diameter step", "plenum": "plenum port",
-           "eport": "exhaust port", "tport": "transfer port"}
-BC_ENDS = {"open": (1, 1), "closed": (1, 1), "step": (2, 2), "plenum": (1, 1), "eport": (1, 1), "tport": (1, 1)}
+           "eport": "exhaust port", "tport": "transfer port", "branch": "junction"}
+BC_ENDS = {"open": (1, 1), "closed": (1, 1), "step": (2, 2), "plenum": (1, 1), "eport": (1, 1), "tport": (1, 1), "branch": (3, 3)}
+
+
+def dual_lines(segs, d):
+    """Exhaust segs and a dual power insert d = {x0, Li, Dm, di, Lp} [m] -> (before, annulus, insert, after) seg lists."""
+    x0, Li, Dm, di, Lp = float(d["x0"]), float(d["Li"]), float(d["Dm"]), float(d["di"]), float(d["Lp"])
+    x2 = x0 + Li + Lp
+    total = sum(float(sg["L"]) for sg in segs)
+    if not (Li > 0.0 and Lp >= 0.0 and Dm > di > 0.0 and 0.0 < x0 < x2 < total):
+        raise ValueError("the dual power insert must lie inside the chamber, its mouth wider than its pipe")
+    before, rest = make_wam.split_segs_at(segs, x0)
+    mid, after = make_wam.split_segs_at(rest, x2 - x0)
+    cuts, a = [], 0.0
+    for sg in mid:
+        a += float(sg["L"])
+        cuts.append(a)
+    xs = sorted(set([0.0, Li] + cuts))
+    xs = [x for x in xs if x <= x2 - x0 + 1e-12]
+    inner = lambda x: Dm + (di - Dm) * x / Li if x <= Li else di
+    ann = []
+    for a, b in zip(xs, xs[1:]):
+        if b - a <= 1e-9:
+            continue
+        m = 0.5 * (a + b)
+        acc = 0.0
+        for sg in mid:
+            L = float(sg["L"])
+            if acc <= m <= acc + L:
+                o0 = float(sg["d0"]) + (float(sg["d1"]) - float(sg["d0"])) * (a - acc) / L
+                o1 = float(sg["d0"]) + (float(sg["d1"]) - float(sg["d0"])) * (b - acc) / L
+                break
+            acc += L
+        i0 = inner(a) if m <= Li else di
+        i1 = inner(b) if m <= Li else di
+        if not (o0 > i0 and o1 > i1):
+            raise ValueError("the dual power insert touches the chamber wall")
+        ann.append({"L": b - a, "d0": math.sqrt(o0 * o0 - i0 * i0), "d1": math.sqrt(o1 * o1 - i1 * i1)})
+    ins = [{"L": Li, "d0": Dm, "d1": di}] + ([{"L": Lp, "d0": di, "d1": di}] if Lp > 1e-6 else [])
+    return before, ann, ins, after
 
 
 def number_model(pipes, bcs):
@@ -471,16 +516,29 @@ def model_from_spec(spec, run=None):
         bcs[ek] = {"type": "eport", "cyl": C, "vt": vt, "note": "cylinder %d exhaust port" % C}
         bcs[xk] = {"type": "open", "note": "cylinder %d exhaust outlet, open end to atmosphere" % C}
         sil = exh.get("silencer")
+        dual = exh.get("dual")
+        if dual:
+            # the insert: two paths between junction 1 (the belly end) and junction 2 (the end of its pipe)
+            before, ann, ins, after = dual_lines(segs, dual)
+            j1, j2 = "c%d/dual/j1" % C, "c%d/dual/j2" % C
+            bcs[j1] = {"type": "branch", "note": "cylinder %d dual power insert, junction at its mouth" % C}
+            bcs[j2] = {"type": "branch", "note": "cylinder %d dual power insert, junction at the end of its pipe" % C}
+            add_line(before, ek, j1, "cylinder %d exhaust chamber" % C, Tex, p["exhaust_Tgas0_C"], burnt, 2)
+            add_line(ann, j1, j2, "cylinder %d chamber round the insert" % C, Tex, p["exhaust_Tgas0_C"], burnt, 2)
+            add_line(ins, j1, j2, "cylinder %d dual power insert" % C, Tex, p["exhaust_Tgas0_C"], burnt, 2)
+            segs = after
+            ek = j2
+        tail_role = "cylinder %d stinger after the insert" % C if dual else "cylinder %d exhaust chamber" % C
         if sil:
             plenums.append({"kind": "const", "V_m3": float(sil["V_m3"]), "p_bar": p["p_amb_bar"], "T_C": p["exhaust_Tgas0_C"],
                             "comp": burnt, "note": "cylinder %d silencer, %g litres" % (C, float(sil["V_m3"]) * 1e3)})
             si, so = "c%d/sil/in" % C, "c%d/sil/out" % C
             bcs[si] = {"type": "plenum", "plenum": len(plenums), "vt": cdfix, "note": "cylinder %d silencer inlet" % C}
             bcs[so] = {"type": "plenum", "plenum": len(plenums), "vt": cdfix, "note": "cylinder %d silencer outlet" % C}
-            add_line(segs, ek, si, "cylinder %d exhaust chamber" % C, Tex, p["exhaust_Tgas0_C"], burnt, 2)
+            add_line(segs, ek, si, tail_role, Tex, p["exhaust_Tgas0_C"], burnt, 2)
             add_line(sil["segs"], so, xk, "cylinder %d tailpipe" % C, Tex, p["exhaust_Tgas0_C"], burnt, 2)
         else:
-            add_line(segs, ek, xk, "cylinder %d exhaust chamber" % C, Tex, p["exhaust_Tgas0_C"], burnt, 2)
+            add_line(segs, ek, xk, tail_role, Tex, p["exhaust_Tgas0_C"], burnt, 2)
         info["cyl"].append({"intake": info_in, "A_ex_max_mm2": a_ex_max * 1e6, "A_tr_max_mm2": a_tr_max * 1e6,
                             "A_header_mm2": a_ex * 1e6})
     eng["H_ex"] = Hex
@@ -698,6 +756,9 @@ def write_model(m):
             w.v(0, "TCCCilindro.cpp:169 WAMer id, ignored")
             w.v(int(b["cyl"]), "TCCCilindro.cpp:171 cylinder number")
             w.v(int(b["vt"]), T + ":1460 valve type index 1-based")
+        elif t == "branch":
+            w.v(12, T + ":1376 BC type 12 = branch TCCRamificacion, takes every pipe end with this number, "
+                "reads no data TCCRamificacion.cpp:94-147")
         elif t == "plenum":
             w.v(11, T + ":1366 BC type 11 = pipe-to-plenum connection TCCDeposito")
             w.v(0, "TCCDeposito.cpp:204 WAMer id, ignored")

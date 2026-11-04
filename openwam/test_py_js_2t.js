@@ -55,6 +55,10 @@ add('maico no closing fix', sMaico, { rpm: 5000.0, closing_fix: 0, name: 'b' });
 { const s = clone(s125); s.transfers.push({ dur: 124.0, width: 0.02, r_top: 0.002, r_bot: 0.0, cd: 0.6, height: 0.008, duct: { L: 0.07, d: 0.02 } }); s.exhaust_port.height = 0.03; add('125 two transfers', s, { rpm: 11000.0, name: 'tr2' }); }
 { const s = clone(s125); delete s.e.Twall; delete s.e.burn.a; delete s.e.burn.m; delete s.exhaust_port.cd; delete s.transfers[0].cd; delete s.intake.reed.cd; add('125 defaults', s, { rpm: 11000.0, name: 'df' }); }
 
+{ const s = clone(s125); const x0 = s.exhaust.segs.slice(0, 5).reduce((a, g) => a + g.L, 0); s.exhaust.dual = { x0, Li: 0.2615, Dm: 0.02825, di: 0.01368, Lp: 0.0498 }; add('125 dual power insert', s, { rpm: 10000.0, name: 'dual' }); }
+{ const s = clone(s125); const x0 = s.exhaust.segs.slice(0, 5).reduce((a, g) => a + g.L, 0); s.exhaust.dual = { x0, Li: 0.10, Dm: 0.09, di: 0.02, Lp: 0.0 }; s.exhaust.silencer = { V_m3: 0.002, segs: [{ L: 0.15, d0: 0.024, d1: 0.024 }] }; add('125 dual, no pipe, silencer', s, { rpm: 11000.0, name: 'ds' }); }
+{ const s = clone(sMaico); s.e.ncyl = 2; const x0 = s.exhaust.segs.slice(0, 5).reduce((a, g) => a + g.L, 0); s.exhaust.dual = { x0, Li: 0.15, Dm: 0.05, di: 0.015, Lp: 0.05 }; add('twin maico dual', s, { rpm: 6000.0, name: 'dm' }); }
+{ const s = clone(s125); s.exhaust.dual = { x0: 0.1, Li: 0.3, Dm: 0.2, di: 0.02, Lp: 0.0 }; add('dual too wide (refused)', s, { rpm: 10000.0, name: 'dw' }); }
 // randomised
 let seed = 12345;
 const rnd = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
