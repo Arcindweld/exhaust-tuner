@@ -386,7 +386,8 @@
         dv = p.d_exh_mm; lmax = p.lift_exh_mm; dur = d.dur_exh; ao = d.evo; nv = p.n_exh;
       }
       w.v(1, T + ':974 valve type 1 = TValvula4T poppet valve');
-      const lifts = liftTable(lmax, dur, p.lift_step_deg);
+      const prof = vtype === 'ivalve' ? p.lift_profile_int : p.lift_profile_exh;
+      const lifts = prof ? profileTable(prof, dur, p.lift_step_deg) : liftTable(lmax, dur, p.lift_step_deg);
       const [ncd, cds] = cdTable(nv, dv, lmax, p.cd_step_mm, p.valve_cd, p.curtain_cap, apipe, p.cd_clip);
       w.v(dv / 1000.0, V + ':149 valve diameter m, short-circuit model only');
       w.v(lifts.length, V + ':149 number of lift points');
@@ -394,7 +395,7 @@
       w.v(ao, V + ':149 opening angle, cylinder frame 0 = firing TDC');
       w.v(0.0, V + ':149 reference diameter 0 = CD referred to pipe-end area TTipoValvula.cpp:89,323');
       w.v(0.0, V + ':149 mean swirl coefficient');
-      w.row(lifts, V + ':162 lift mm, sin^2 profile, closes at opening + (n-1)*step');
+      w.row(lifts, V + ':162 lift mm, ' + (prof ? 'measured profile, centreline ' + pctG(prof.cl) + ' deg ' + (vtype === 'ivalve' ? 'ATDC' : 'BTDC') : 'sin^2 profile') + ', closes at opening + (n-1)*step');
       w.v(ncd, V + ':165 number of CD points');
       w.v(p.cd_step_mm, V + ':165 lift step of CD table mm');
       w.row(cds, V + ':174 CD inflow pipe to cylinder');
@@ -636,6 +637,42 @@
     }
     return [before, after];
   }
+  // make_wam.py profile_table / profile_events (v9): a measured lift profile instead of the sin^2 curve
+  function profileTable(prof, dur, step) {
+    const n = pyRoundInt(dur / step);
+    if (Math.abs(n * step - dur) > 1e-9) throw new Error('valve duration ' + pctG(dur) + ' is not a multiple of lift_step_deg ' + pctG(step));
+    const xs = prof.deg, ys = prof.mm, out = [];
+    for (let i = 0; i <= n; i++) {
+      const a = prof.a0 + i * step;
+      let v = 0.0;
+      if (xs[0] <= a && a <= xs[xs.length - 1]) {
+        let k = 0;
+        while (k < xs.length - 2 && xs[k + 1] < a) k += 1;
+        const t = (a - xs[k]) / (xs[k + 1] - xs[k]);
+        v = ys[k] + t * (ys[k + 1] - ys[k]);
+      }
+      out.push(pyRound(Math.max(0.0, v), 6));
+    }
+    return out;
+  }
+  function profileEvents(cam, pr, kind) {
+    const xs = pr.deg.map(Number), ys = pr.mm.map(Number);
+    if (xs.length !== ys.length || xs.length < 3) throw new Error('camProfile.' + kind + ': deg and mm need the same number of points, at least 3');
+    for (let i = 0; i < xs.length - 1; i++) if (!(xs[i + 1] > xs[i])) throw new Error('camProfile.' + kind + ': deg must increase');
+    if (ys.some(y => y < 0) || !(Math.max(...ys) > 0)) throw new Error('camProfile.' + kind + ': lifts must be zero or more, with some lift');
+    const nz = ys.map((y, i) => y > 0 ? i : -1).filter(i => i >= 0);
+    const i0 = Math.max(0, nz[0] - 1), i1 = Math.min(xs.length - 1, nz[nz.length - 1] + 1);
+    const a0 = Math.floor(xs[i0]), a1 = Math.ceil(xs[i1]);
+    let cl, ev;
+    if (kind === 'in') {
+      cl = pr.cl !== undefined && pr.cl !== null ? Number(pr.cl) : (180.0 + Number(cam.ivc) - Number(cam.ivo)) / 2.0;
+      ev = [round01(-(cl + a0)), round01(cl + a1 - 180.0)];
+    } else {
+      cl = pr.cl !== undefined && pr.cl !== null ? Number(pr.cl) : (180.0 + Number(cam.evo) - Number(cam.evc)) / 2.0;
+      ev = [round01(cl - a0 - 180.0), round01(a1 - cl)];
+    }
+    return [ev, { a0: a0, deg: xs, mm: ys, cl, max_mm: Math.max(...ys) }];
+  }
   function seatEvents(cam, liftInMm, liftExMm) {
     const h = +(cam.checkLift_mm || 0);
     const ev = { ivo: +cam.ivo, ivc: +cam.ivc, evo: +cam.evo, evc: +cam.evc };
@@ -671,6 +708,12 @@
     const p = Object.assign({}, DEFAULTS, EXTRA_DEFAULTS);
     const twc = (e.Twall ? e.Twall : CALC_TWALL_CYL_K) - K0;
     const seat = seatEvents(cam, e.liftIn * 1000.0, e.liftEx * 1000.0);
+    // a measured lift profile (v9) replaces the sin^2 curve of its valve: its events and peak lift come from it
+    const profs = {};
+    for (const [kind, o, c] of [['in', 'ivo', 'ivc'], ['ex', 'evo', 'evc']]) {
+      const pr = (e.camProfile || {})[kind];
+      if (pr) { const [ev, q] = profileEvents(cam, pr, kind); seat[o] = ev[0]; seat[c] = ev[1]; profs[kind] = q; }
+    }
     Object.assign(p, {
       name: 'simspec', p_amb_bar: CALC_P_ATM_BAR, T_amb_C: CALC_T_ATM_C,
       bore_mm: e.bore * 1000.0, stroke_mm: e.stroke * 1000.0, rod_mm: e.rod * 1000.0, cr: +e.cr,
@@ -681,6 +724,8 @@
       burn_start_btdc: +burn.start, burn_dur_deg: +burn.dur, afr: +e.afr, comb_eff: combEffFor(e),
       T_piston_C: twc, T_head_C: twc, T_liner_C: twc, exhaust_Tgas0_C: CALC_T0_EXHAUST_K - K0,
     });
+    if (profs.in) { p.lift_int_mm = profs.in.max_mm; p.lift_profile_int = profs.in; }
+    if (profs.ex) { p.lift_exh_mm = profs.ex.max_mm; p.lift_profile_exh = profs.ex; }
     p.lift_step_deg = liftStepFor([180.0 + p.ivo_btdc + p.ivc_abdc, 180.0 + p.evo_bbdc + p.evc_atdc]);
     Object.assign(p, run);
 

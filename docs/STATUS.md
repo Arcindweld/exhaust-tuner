@@ -623,6 +623,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Published V8 header comparisons (task 89, docs/research/v8_header_comparisons.md): back-to-back long-tube tests
   differ 0.5-2 % on peak figures (LSX Mag LS3, Engine Masters 400 SBC primaries), the same order as the model's
   layout spread (within 3 %); no published numbers put 180-degree or 8-4-1 headers against per-bank 4-1s.
+- Measured lift profiles (2026-11-04, the last open part of upgrades 6-10): make_wam v9 / wam_export.js
+  spec.e.camProfile.in / .ex {deg from the lobe centreline (crank), mm at the valve, [cl]}: the valve opens and closes
+  where the profile leaves and returns to the seat (whole degrees, outward), its peak lift sets the CD table, the
+  table is the profile linearly resampled at the lift step. A sin^2 profile sampled every degree reproduces the
+  built-in curve byte for byte (only the comment differs); OpenWAM runs it (i4_41 6000 rpm). test_py_js.js 132
+  cases. Page: 4-Stroke "Run it in OpenWAM", "Measured lift profiles": paste or a file, crank or cam degrees, valve
+  or lobe lift x rocker ratio, page units; kept in projects (WAM_UI); wamline_ui.js.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

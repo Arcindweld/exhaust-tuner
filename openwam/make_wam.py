@@ -270,6 +270,51 @@ def lift_table(lmax_mm, dur_deg, step_deg):
     return [round(lmax_mm * math.sin(math.pi * i / n) ** 2, 6) for i in range(n + 1)]
 
 
+def profile_table(prof, dur_deg, step_deg):
+    """A measured lift profile (profile_events) as OpenWAM's lift table: lift every step_deg from the opening, linear
+    between the given points, 0 outside them."""
+    n = int(round(dur_deg / step_deg))
+    if abs(n * step_deg - dur_deg) > 1e-9:
+        raise ValueError("valve duration %g is not a multiple of lift_step_deg %g" % (dur_deg, step_deg))
+    xs, ys = prof["deg"], prof["mm"]
+    out = []
+    for i in range(n + 1):
+        a = prof["a0"] + i * step_deg
+        v = 0.0
+        if xs[0] <= a <= xs[-1]:
+            k = 0
+            while k < len(xs) - 2 and xs[k + 1] < a:
+                k += 1
+            t = (a - xs[k]) / (xs[k + 1] - xs[k])
+            v = ys[k] + t * (ys[k + 1] - ys[k])
+        out.append(round(max(0.0, v), 6))
+    return out
+
+
+def profile_events(cam, pr, kind):
+    """spec.e.camProfile.in / .ex: {deg: [crank degrees from the lobe's centreline, increasing], mm: [valve lift],
+    [cl: the centreline, intake deg ATDC / exhaust deg BTDC; default from the cam card's events]} -> the seat events
+    (opening and closing whole degrees from the centreline, outward from where the lift leaves and returns to zero) and
+    the profile for profile_table. Returns (open, close) as (ivo BTDC, ivc ABDC) or (evo BBDC, evc ATDC), and the profile."""
+    xs, ys = [float(x) for x in pr["deg"]], [float(y) for y in pr["mm"]]
+    if len(xs) != len(ys) or len(xs) < 3:
+        raise ValueError("camProfile.%s: deg and mm need the same number of points, at least 3" % kind)
+    if any(xs[i + 1] <= xs[i] for i in range(len(xs) - 1)):
+        raise ValueError("camProfile.%s: deg must increase" % kind)
+    if any(y < 0 for y in ys) or max(ys) <= 0:
+        raise ValueError("camProfile.%s: lifts must be zero or more, with some lift" % kind)
+    nz = [i for i, y in enumerate(ys) if y > 0]
+    i0, i1 = max(0, nz[0] - 1), min(len(xs) - 1, nz[-1] + 1)
+    a0, a1 = math.floor(xs[i0]), math.ceil(xs[i1])
+    if kind == "in":
+        cl = float(pr["cl"]) if pr.get("cl") is not None else (180.0 + float(cam["ivc"]) - float(cam["ivo"])) / 2.0
+        ev = (round01(-(cl + a0)), round01(cl + a1 - 180.0))
+    else:
+        cl = float(pr["cl"]) if pr.get("cl") is not None else (180.0 + float(cam["evo"]) - float(cam["evc"])) / 2.0
+        ev = (round01(cl - a0 - 180.0), round01(a1 - cl))
+    return ev, {"a0": float(a0), "deg": xs, "mm": ys, "cl": cl, "max_mm": max(ys)}
+
+
 def cd_table(n_valves, d_mm, lmax_mm, step_mm, cd, cap, a_pipe_m2, clip):
     """CD referred to the pipe-end area, as a function of lift [mm], 0..lmax (and a bit past)."""
     npts = int(math.ceil(lmax_mm / step_mm - 1e-9)) + 1
@@ -521,7 +566,8 @@ def write_model(m):
                       (j + 1, p["n_exh"], p["d_exh_mm"], p["lift_exh_mm"], p["evo_bbdc"], p["evc_atdc"], extra))
             dv, lmax, dur, ao, nv = p["d_exh_mm"], p["lift_exh_mm"], d["dur_exh"], d["evo"], p["n_exh"]
         w.v(1, T + ":974 valve type 1 = TValvula4T poppet valve")
-        lifts = lift_table(lmax, dur, p["lift_step_deg"])
+        prof = p.get("lift_profile_int" if vtype == "ivalve" else "lift_profile_exh")
+        lifts = profile_table(prof, dur, p["lift_step_deg"]) if prof else lift_table(lmax, dur, p["lift_step_deg"])
         ncd, cds = cd_table(nv, dv, lmax, p["cd_step_mm"], p["valve_cd"], p["curtain_cap"], a_pipe, p["cd_clip"])
         w.v(dv / 1000.0, V + ":149 valve diameter m, short-circuit model only")
         w.v(len(lifts), V + ":149 number of lift points")
@@ -529,7 +575,8 @@ def write_model(m):
         w.v(float(ao), V + ":149 opening angle, cylinder frame 0 = firing TDC")
         w.v(0.0, V + ":149 reference diameter 0 = CD referred to pipe-end area TTipoValvula.cpp:89,323")
         w.v(0.0, V + ":149 mean swirl coefficient")
-        w.row(lifts, V + ":162 lift mm, sin^2 profile, closes at opening + (n-1)*step")
+        w.row(lifts, V + ":162 lift mm, " + ("measured profile, centreline %g deg %s" % (prof["cl"], "ATDC" if vtype == "ivalve" else "BTDC")
+                                             if prof else "sin^2 profile") + ", closes at opening + (n-1)*step")
         w.v(ncd, V + ":165 number of CD points")
         w.v(float(p["cd_step_mm"]), V + ":165 lift step of CD table mm")
         w.row(cds, V + ":174 CD inflow pipe to cylinder")
@@ -895,6 +942,12 @@ def model_from_spec(spec, run=None):
     p.update(EXTRA_DEFAULTS)
     twc = (e["Twall"] if e.get("Twall") else CALC_TWALL_CYL_K) - K0
     seat = seat_events(cam, e["liftIn"] * 1000.0, e["liftEx"] * 1000.0)
+    # a measured lift profile (v9) replaces the sin^2 curve of its valve: its events and peak lift come from it
+    profs = {}
+    for kind, (o, c) in (("in", ("ivo", "ivc")), ("ex", ("evo", "evc"))):
+        pr = (e.get("camProfile") or {}).get(kind)
+        if pr:
+            (seat[o], seat[c]), profs[kind] = profile_events(cam, pr, kind)
     p.update({
         "name": "simspec",
         "p_amb_bar": CALC_P_ATM_BAR, "T_amb_C": CALC_T_ATM_C,
@@ -910,6 +963,10 @@ def model_from_spec(spec, run=None):
         "T_piston_C": twc, "T_head_C": twc, "T_liner_C": twc,
         "exhaust_Tgas0_C": CALC_T0_EXHAUST_K - K0,
     })
+    if "in" in profs:
+        p["lift_int_mm"], p["lift_profile_int"] = profs["in"]["max_mm"], profs["in"]
+    if "ex" in profs:
+        p["lift_exh_mm"], p["lift_profile_exh"] = profs["ex"]["max_mm"], profs["ex"]
     p["lift_step_deg"] = lift_step_for([180.0 + p["ivo_btdc"] + p["ivc_abdc"], 180.0 + p["evo_bbdc"] + p["evc_atdc"]])
     p.update(run)
 

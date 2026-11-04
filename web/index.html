@@ -3543,7 +3543,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         dv = p.d_exh_mm; lmax = p.lift_exh_mm; dur = d.dur_exh; ao = d.evo; nv = p.n_exh;
       }
       w.v(1, T + ':974 valve type 1 = TValvula4T poppet valve');
-      const lifts = liftTable(lmax, dur, p.lift_step_deg);
+      const prof = vtype === 'ivalve' ? p.lift_profile_int : p.lift_profile_exh;
+      const lifts = prof ? profileTable(prof, dur, p.lift_step_deg) : liftTable(lmax, dur, p.lift_step_deg);
       const [ncd, cds] = cdTable(nv, dv, lmax, p.cd_step_mm, p.valve_cd, p.curtain_cap, apipe, p.cd_clip);
       w.v(dv / 1000.0, V + ':149 valve diameter m, short-circuit model only');
       w.v(lifts.length, V + ':149 number of lift points');
@@ -3551,7 +3552,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       w.v(ao, V + ':149 opening angle, cylinder frame 0 = firing TDC');
       w.v(0.0, V + ':149 reference diameter 0 = CD referred to pipe-end area TTipoValvula.cpp:89,323');
       w.v(0.0, V + ':149 mean swirl coefficient');
-      w.row(lifts, V + ':162 lift mm, sin^2 profile, closes at opening + (n-1)*step');
+      w.row(lifts, V + ':162 lift mm, ' + (prof ? 'measured profile, centreline ' + pctG(prof.cl) + ' deg ' + (vtype === 'ivalve' ? 'ATDC' : 'BTDC') : 'sin^2 profile') + ', closes at opening + (n-1)*step');
       w.v(ncd, V + ':165 number of CD points');
       w.v(p.cd_step_mm, V + ':165 lift step of CD table mm');
       w.row(cds, V + ':174 CD inflow pipe to cylinder');
@@ -3793,6 +3794,42 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     }
     return [before, after];
   }
+  // make_wam.py profile_table / profile_events (v9): a measured lift profile instead of the sin^2 curve
+  function profileTable(prof, dur, step) {
+    const n = pyRoundInt(dur / step);
+    if (Math.abs(n * step - dur) > 1e-9) throw new Error('valve duration ' + pctG(dur) + ' is not a multiple of lift_step_deg ' + pctG(step));
+    const xs = prof.deg, ys = prof.mm, out = [];
+    for (let i = 0; i <= n; i++) {
+      const a = prof.a0 + i * step;
+      let v = 0.0;
+      if (xs[0] <= a && a <= xs[xs.length - 1]) {
+        let k = 0;
+        while (k < xs.length - 2 && xs[k + 1] < a) k += 1;
+        const t = (a - xs[k]) / (xs[k + 1] - xs[k]);
+        v = ys[k] + t * (ys[k + 1] - ys[k]);
+      }
+      out.push(pyRound(Math.max(0.0, v), 6));
+    }
+    return out;
+  }
+  function profileEvents(cam, pr, kind) {
+    const xs = pr.deg.map(Number), ys = pr.mm.map(Number);
+    if (xs.length !== ys.length || xs.length < 3) throw new Error('camProfile.' + kind + ': deg and mm need the same number of points, at least 3');
+    for (let i = 0; i < xs.length - 1; i++) if (!(xs[i + 1] > xs[i])) throw new Error('camProfile.' + kind + ': deg must increase');
+    if (ys.some(y => y < 0) || !(Math.max(...ys) > 0)) throw new Error('camProfile.' + kind + ': lifts must be zero or more, with some lift');
+    const nz = ys.map((y, i) => y > 0 ? i : -1).filter(i => i >= 0);
+    const i0 = Math.max(0, nz[0] - 1), i1 = Math.min(xs.length - 1, nz[nz.length - 1] + 1);
+    const a0 = Math.floor(xs[i0]), a1 = Math.ceil(xs[i1]);
+    let cl, ev;
+    if (kind === 'in') {
+      cl = pr.cl !== undefined && pr.cl !== null ? Number(pr.cl) : (180.0 + Number(cam.ivc) - Number(cam.ivo)) / 2.0;
+      ev = [round01(-(cl + a0)), round01(cl + a1 - 180.0)];
+    } else {
+      cl = pr.cl !== undefined && pr.cl !== null ? Number(pr.cl) : (180.0 + Number(cam.evo) - Number(cam.evc)) / 2.0;
+      ev = [round01(cl - a0 - 180.0), round01(a1 - cl)];
+    }
+    return [ev, { a0: a0, deg: xs, mm: ys, cl, max_mm: Math.max(...ys) }];
+  }
   function seatEvents(cam, liftInMm, liftExMm) {
     const h = +(cam.checkLift_mm || 0);
     const ev = { ivo: +cam.ivo, ivc: +cam.ivc, evo: +cam.evo, evc: +cam.evc };
@@ -3828,6 +3865,12 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     const p = Object.assign({}, DEFAULTS, EXTRA_DEFAULTS);
     const twc = (e.Twall ? e.Twall : CALC_TWALL_CYL_K) - K0;
     const seat = seatEvents(cam, e.liftIn * 1000.0, e.liftEx * 1000.0);
+    // a measured lift profile (v9) replaces the sin^2 curve of its valve: its events and peak lift come from it
+    const profs = {};
+    for (const [kind, o, c] of [['in', 'ivo', 'ivc'], ['ex', 'evo', 'evc']]) {
+      const pr = (e.camProfile || {})[kind];
+      if (pr) { const [ev, q] = profileEvents(cam, pr, kind); seat[o] = ev[0]; seat[c] = ev[1]; profs[kind] = q; }
+    }
     Object.assign(p, {
       name: 'simspec', p_amb_bar: CALC_P_ATM_BAR, T_amb_C: CALC_T_ATM_C,
       bore_mm: e.bore * 1000.0, stroke_mm: e.stroke * 1000.0, rod_mm: e.rod * 1000.0, cr: +e.cr,
@@ -3838,6 +3881,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       burn_start_btdc: +burn.start, burn_dur_deg: +burn.dur, afr: +e.afr, comb_eff: combEffFor(e),
       T_piston_C: twc, T_head_C: twc, T_liner_C: twc, exhaust_Tgas0_C: CALC_T0_EXHAUST_K - K0,
     });
+    if (profs.in) { p.lift_int_mm = profs.in.max_mm; p.lift_profile_int = profs.in; }
+    if (profs.ex) { p.lift_exh_mm = profs.ex.max_mm; p.lift_profile_exh = profs.ex; }
     p.lift_step_deg = liftStepFor([180.0 + p.ivo_btdc + p.ivc_abdc, 180.0 + p.evo_bbdc + p.evc_atdc]);
     Object.assign(p, run);
 
@@ -8798,6 +8843,8 @@ function simSpec(p){
     cam:{ivo:Number.isFinite(p.ivo)?p.ivo:evc,ivc:Number.isFinite(p.ivc)?p.ivc:p.evo,evo:p.evo,evc},burn:{start:18,dur:55},afr:12.8,eta:0.72};
   if(p.camAt==='050') e.cam.checkLift_mm=CAM_CHECK_050;
   if(p.vcd>0) e.cd=p.vcd;               // valve flow coefficient (the dyno fit sets it; both simulations use it)
+  // measured lift profiles (OpenWAM only, make_wam v9): from the OpenWAM section's import
+  try{ const P=WAM_UI.prof; if(P&&(P.in||P.ex)){ e.camProfile={}; if(P.in) e.camProfile.in={deg:P.in.deg.slice(),mm:P.in.mm.slice()}; if(P.ex) e.camProfile.ex={deg:P.ex.deg.slice(),mm:P.ex.mm.slice()}; } }catch(err){}
   if(p.ceff>0) e.combEff=p.ceff;        // OpenWAM's combustion efficiency (the dyno fit sets it; blank: from the AFR)   // the events are at 0.050 in: the sin² lift is stretched to pass it there
   const dI=Math.sqrt(0.6*nIn)*dIn;
   const intake={segs:[{L:(p.intakeL>0?p.intakeL:300)/1000,d0:dI,d1:dI}],Tw:320};
@@ -16680,7 +16727,8 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#h-uel-pair')) retu
 /* ===== OpenWAM: a full 1-D case for the free OpenWAM 2.2 solver, several engine speeds, run with a .bat ===== */
 const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[],
   line:{on:false,L:2500,d:76.2,muf:0,tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38,par:'none',px:1500},
-  loss:{K:0,Ky:0,src:''}};   // merge losses (make_wam v8): the collector's and the Tri-Y merges' K, from the exhaust CFD   // the line after the collector (mm, litres)
+  loss:{K:0,Ky:0,src:''},
+  prof:{in:null,ex:null,angle:'crank',lift:'valve',rr:1.7,err:''}};   // measured lift profiles (make_wam v9)   // merge losses (make_wam v8): the collector's and the Tri-Y merges' K, from the exhaust CFD   // the line after the collector (mm, litres)
 // The line after the collector for the OpenWAM case (make_wam tail elements): pipe, an optional drone fix off the pipe
 // (a J-pipe = quarter-wave tube to a closed end, or a Helmholtz can on a neck) at x from the collector, an optional
 // muffler as an expansion volume, and the tailpipe to the open end. null when off; {err} when it does not add up.
@@ -16765,6 +16813,48 @@ function wamFiles(q,sp,extra,uel){
     'they are the same for every run, so compare runs with each other, not with a dyno sheet.'].concat(uel?uelReadme(uel):[]).join('\r\n')});
   return {files,name,rpms,cycles,uel:!!uel};
 }
+// a measured lift profile: two numbers a line (angle from the lobe centreline, lift), any separator, header lines
+// skipped; cam degrees are doubled to crank degrees, lobe lift times the rocker ratio is valve lift; lift in the
+// page's units. Sorted by angle; at least 3 points with some lift.
+function wamProfParse(text,o){
+  const pts=[];
+  String(text||'').split(/\r?\n/).forEach(ln=>{ const m=ln.trim().match(/^([-+]?\d*\.?\d+(?:e[-+]?\d+)?)[\s,;\t]+([-+]?\d*\.?\d+(?:e[-+]?\d+)?)/i); if(m) pts.push([+m[1],+m[2]]); });
+  if(pts.length<3) return {err:'Need at least three lines of angle and lift.'};
+  pts.sort((a,b)=>a[0]-b[0]);
+  for(let i=1;i<pts.length;i++) if(pts[i][0]===pts[i-1][0]) return {err:'Two lines give the same angle ('+pts[i][0]+').'};
+  const ka=o.angle==='cam'?2:1, kl=(U==='imp'?25.4:1)*(o.lift==='lobe'?(+o.rr>0?+o.rr:NaN):1);
+  if(!Number.isFinite(kl)) return {err:'Give the rocker ratio for lobe lift.'};
+  const deg=pts.map(q=>+(q[0]*ka).toFixed(4)), mm=pts.map(q=>+Math.max(0,q[1]*kl).toFixed(5));
+  if(!(Math.max(...mm)>0)) return {err:'No lift in the profile.'};
+  // duration at the seat and at 0.050 in, from the profile itself
+  const at=h=>{ let a=null,b=null; for(let i=1;i<mm.length;i++){ if(a===null&&mm[i-1]<h&&mm[i]>=h) a=deg[i-1]+(h-mm[i-1])/(mm[i]-mm[i-1])*(deg[i]-deg[i-1]); if(mm[i-1]>=h&&mm[i]<h) b=deg[i-1]+(mm[i-1]-h)/(mm[i-1]-mm[i])*(deg[i]-deg[i-1]); } return a!==null&&b!==null?b-a:null; };
+  return {deg,mm,n:deg.length,max:Math.max(...mm),d050:at(1.27),dseat:at(0.001)};
+}
+function wamProfUi(){
+  const P=WAM_UI.prof, sel=(k,opts)=>'<select class="wamprof" data-k="'+k+'">'+opts.map(o=>'<option value="'+o[0]+'"'+(P[k]===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>';
+  const row=(v,lab)=>{ const q=P[v];
+    return '<div class="span2"><p class="sub" style="margin:8px 0 4px">'+lab+'</p>'+(q?'<p class="cap">'+q.n+' points, '+cdim(q.max)+' peak at the valve'+(q.d050!=null?', '+q.d050.toFixed(1)+'° at 0.050 in':'')+(q.dseat!=null?', '+q.dseat.toFixed(1)+'° seat to seat':'')+'. <button type="button" class="btn" data-wamprof="clear" data-v="'+v+'">Use the sin² curve again</button></p>':
+      '<label class="f span2"><span class="inp"><textarea class="wamproftxt" data-v="'+v+'" rows="3" placeholder="angle, lift (one pair a line)"></textarea></span></label><div class="actions"><button type="button" class="btn" data-wamprof="use" data-v="'+v+'">Use this profile</button><label class="btn">From a file<input type="file" class="wamproffile" data-v="'+v+'" accept=".csv,.txt,.dat,text/plain" hidden></label></div>')+'</div>'; };
+  return '<div class="grid2 span2" style="max-width:640px"><p class="sub span2" style="margin-bottom:0">Measured lift profiles (OpenWAM only)</p>'+
+    '<p class="cap span2">Without one, each valve follows a sin² curve through the cam card’s events. A measured profile (a cam-doctor export, the grinder’s lobe data) replaces it: angle from the lobe’s centreline (the centreline from the cam card above), lift. The case then opens and closes the valve where the profile leaves and returns to the seat, with its own peak lift. The wave simulation on this tab keeps the sin² curve.</p>'+
+    '<label class="f"><span class="lab">Angles are</span><span class="inp">'+sel('angle',[['crank','crank degrees'],['cam','cam degrees (doubled)']])+'</span></label>'+
+    '<label class="f"><span class="lab">Lift is</span><span class="inp">'+sel('lift',[['valve','at the valve'],['lobe','at the lobe (times the rocker ratio)']])+'</span></label>'+
+    (P.lift==='lobe'?'<label class="f"><span class="lab">Rocker ratio</span><span class="inp"><input class="wamprofrr" type="number" step="0.01" min="1" inputmode="decimal" value="'+(+P.rr)+'"></span></label>':'')+
+    row('in','Intake')+row('ex','Exhaust')+(P.err?'<div class="note bad span2">'+esc(P.err)+'</div>':'')+'</div>';
+}
+function wamProfSet(v,text){
+  const P=WAM_UI.prof, r=wamProfParse(text,P);
+  if(r.err){ P.err=(v==='in'?'Intake':'Exhaust')+' profile: '+r.err; } else { P[v]=r; P.err=''; }
+  renderActive();
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wamprof]'); if(!b) return; const v=b.dataset.v;
+  if(b.dataset.wamprof==='clear'){ WAM_UI.prof[v]=null; WAM_UI.prof.err=''; renderActive(); return; }
+  const ta=document.querySelector('textarea.wamproftxt[data-v="'+v+'"]'); wamProfSet(v,ta?ta.value:''); });
+document.addEventListener('change',e=>{ const el=e.target;
+  if(el.matches&&el.matches('select.wamprof')){ WAM_UI.prof[el.dataset.k]=el.value; renderActive(); }
+  else if(el.matches&&el.matches('input.wamprofrr')){ const v=parseFloat(el.value); if(v>0){ WAM_UI.prof.rr=v; renderActive(); } }
+  else if(el.matches&&el.matches('input.wamproffile')&&el.files&&el.files[0]){ const v=el.dataset.v; el.files[0].text().then(t=>wamProfSet(v,t)); } },true);
+window.__wamProf={wamProfParse,wamProfSet,P:()=>WAM_UI.prof};
 function wamLineUi(){
   const W=WAM_UI.line, shown=(v,kind)=>kind==='len'&&U==='imp'?+(v/25.4).toFixed(3):+(+v).toFixed(kind==='len'?1:2);
   const L=(k,lab,kind)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="wamline" data-k="'+k+'" type="number" step="any" inputmode="decimal" data-kind="'+kind+'" value="'+shown(W[k],kind)+'">'+(kind==='len'?'<em data-u="len">'+(U==='imp'?'in':'mm')+'</em>':'<em>L</em>')+'</span></label>';
@@ -16837,7 +16927,7 @@ function wamSection(q,sp){
     '<label class="f span2"><span class="lab">Engine speeds to run (RPM, separated by spaces)</span><span class="inp"><input class="wamx" data-k="rpms" type="text" inputmode="numeric" value="'+esc(WAM_UI.rpms||rpms.join(' '))+'"></span></label>'+
     '<label class="f"><span class="lab">Cycles per run</span><span class="inp"><input class="wamx" data-k="cycles" type="number" step="1" min="5" max="200" inputmode="numeric" value="'+WAM_UI.cycles+'"></span></label>'+
     '<label class="f"><span class="lab">Case name</span><span class="inp"><input class="wamx" data-k="name" type="text" value="'+esc(WAM_UI.name||wamName(q))+'"></span></label></div>'+
-    wamLineUi()+
+    wamLineUi()+wamProfUi()+
     '<p class="cap">About 25 cycles settle a naturally aspirated case; the results table shows how much the last five cycles still moved. Each run takes OpenWAM from a few seconds to a minute or two on a desktop. Every cylinder’s firing angle is written 45° later than the engine’s own clock (the firing intervals are unchanged): with the clock on cylinder 1’s TDC, an LS3 bank at 0/180/450/630° started one cylinder in a state OpenWAM could not integrate (the numbers blew up at 3,600 RPM, a mass-study crash at 6,400 RPM, with or without a finer mesh), while any shift of 10° to 90° ran clean at both speeds and agreed on torque within 1%. Sanity check: the C6 Corvette LS3 preset’s case (one bank, 1.875 in primaries into a 4-1), run on OpenWAM 2.2 for Windows, gave 440 lb-ft net at 4,600 RPM and 426 hp net at 5,300–5,900 RPM for the two banks together against GM’s 424 lb-ft at 4,600 and 430 hp at 5,900; net means friction is not taken off, so a real dyno would read a little lower, and the agreement is a check that the valves, cam and pipes are in the right range, not a calibration. The batch expects OpenWAM at <code>'+esc(WAMX.USER_EXE)+'</code>; edit the first line of run_all.bat if it lives elsewhere.</p>'+
     '<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-wam="dl">Download OpenWAM case (.zip)</button>'+(hostHas('openwam')?'<button type="button" class="btn" data-wam="run">Run in OpenWAM on this PC</button><button type="button" class="btn" data-wam="stop">Stop</button>':'')+'</div>'+
     '<div class="note wammsg'+(WAM_UI.msg&&WAM_UI.msg.bad?' bad':'')+'"'+(WAM_UI.msg?'':' hidden')+'>'+(WAM_UI.msg?esc(WAM_UI.msg.t):'')+'</div>';

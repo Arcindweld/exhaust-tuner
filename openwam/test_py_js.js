@@ -177,6 +177,20 @@ for (let k = 0; k < 6; k++) {
   if (k % 3 === 0) tail.push({ V_litres: U(1, 15) }, { L_mm: U(100, 600), d0_mm: 55, d1_mm: 55 });
   jobs.push({ label: 'random parallel ' + k, kind: 'spec', spec: withTail(s, JSON.parse(JSON.stringify(tail))), run: { rpm: Math.round(U(700, 7000)), cycles: 8 + k, ins_outlet: k % 2, cell_mm: 12.0 } });
 }
+// v9 measured lift profiles (spec.e.camProfile): an asymmetric intake lobe every 2 deg (a faster closing ramp), an
+// exhaust lobe every 4 deg with a centreline given, both, with a run-set lift step, and the errors
+const lobe = (span, Lmax, skew, step) => { const deg = [], mm = []; for (let a = -span / 2 - 6; a <= span / 2 + 6 + 1e-9; a += step) { deg.push(+a.toFixed(3)); const x = (a + span / 2) / span; const y = x <= 0 || x >= 1 ? 0 : Math.pow(Math.sin(Math.PI * Math.pow(x, skew)), 2); mm.push(+(Lmax * y).toFixed(4)); } return { deg, mm }; };
+{ const s = spec('i4_41'); s.e.camProfile = { in: lobe(250, 11.2, 0.9, 2) }; jobs.push({ label: 'v9: measured intake profile', kind: 'spec', spec: s, run: { rpm: 6000.0 } }); }
+{ const s = spec('i4_triy'); s.e.camProfile = { ex: Object.assign(lobe(262, 10.4, 1.1, 4), { cl: 112.5 }) }; jobs.push({ label: 'v9: measured exhaust profile, centreline 112.5 BTDC', kind: 'spec', spec: s, run: { rpm: 4500.0 } }); }
+{ const s = spec('v8_dual'); s.e.camProfile = { in: lobe(244.3, 12.7, 1.0, 1), ex: lobe(252.7, 12.3, 1.0, 1.5) }; jobs.push({ label: 'v9: both profiles on a V8, half-degree lift step', kind: 'spec', spec: s, run: { rpm: 5000.0, lift_step_deg: 0.5 } }); }
+{ const s = spec('i4_41'); s.e.camProfile = { in: { deg: [0, 10, 5], mm: [0, 1, 0] } }; jobs.push({ label: 'error: profile degrees not increasing', kind: 'spec', spec: s, run: {} }); }
+{ const s = spec('i4_41'); s.e.camProfile = { ex: { deg: [0, 10, 20], mm: [0, 0, 0] } }; jobs.push({ label: 'error: a profile with no lift', kind: 'spec', spec: s, run: {} }); }
+{ const s = spec('i4_41'); s.e.camProfile = { in: { deg: [0, 10], mm: [0, 1] } }; jobs.push({ label: 'error: a profile of two points', kind: 'spec', spec: s, run: {} }); }
+for (let k = 0; k < 6; k++) {
+  const s = randomSpec(spec(['i4_41', 'i4_triy', 'v8_dual'][k % 3]), 500 + k);
+  s.e.camProfile = {}; if (k % 3 !== 1) s.e.camProfile.in = lobe(U(200, 290), U(8, 14), U(0.8, 1.2), [0.5, 1, 2, 3][k % 4]); if (k % 3 !== 2) s.e.camProfile.ex = Object.assign(lobe(U(200, 290), U(8, 14), U(0.8, 1.2), [1, 2, 0.75][k % 3]), k % 2 ? { cl: U(100, 120) } : {});
+  jobs.push({ label: 'random profile ' + k, kind: 'spec', spec: JSON.parse(JSON.stringify(s)), run: { rpm: Math.round(U(1500, 7000)), cycles: 8 } });
+}
 // v8: merge losses from CFD (a quadratic pressure loss on each line into the junction)
 { const sp = spec('i4_41'); sp.opt.collector.loss_K = 0.55; jobs.push({ label: 'v8: 4-1 merge loss K 0.55', kind: 'spec', spec: sp, run: { rpm: 6000.0 } }); }
 { const sp = spec('i4_triy'); sp.opt.collectors[0].stages[0].loss_K = 0.3; sp.opt.collectors[0].loss_K = 0.45; jobs.push({ label: 'v8: Tri-Y, both merges with a loss', kind: 'spec', spec: sp, run: { rpm: 6000.0 } }); }

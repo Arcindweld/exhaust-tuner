@@ -58,6 +58,21 @@ const { chromium } = require('playwright');
   await pg.fill('input.wamline[data-k="px"]', '50'); await pg.dispatchEvent('input.wamline[data-k="px"]', 'input');
   t = await wam();
   ok(!/^ERR/.test(t) && t.indexOf('side branch 1 junction') >= 0 && /parallel paths 1/.test(t), 'drone fix at 20 in, then the bundle at 50 in');
+  // measured lift profiles (make_wam v9): a 0.550 in intake lobe in crank degrees, then the same as cam degrees of lobe lift
+  const prof = []; for (let a = -130; a <= 130; a += 2) { const x = (a + 125) / 250; prof.push(a + ', ' + (x <= 0 || x >= 1 ? 0 : (0.55 * Math.sin(Math.PI * x) ** 2)).toFixed(4)); }
+  await pg.fill('textarea.wamproftxt[data-v="in"]', 'deg, lift\n' + prof.join('\n')); await pg.click('button[data-wamprof="use"][data-v="in"]'); await pg.waitForTimeout(300);
+  t = await wam();
+  const P = await pg.evaluate(() => window.__wamProf.P());
+  ok(P.in && P.in.n === 131 && Math.abs(P.in.max - 13.97) < 0.01 && /measured profile, centreline/.test(t) && /intake, \d+ x [\d.]+ mm, 13\.97 mm lift/.test(t), 'an intake profile (131 points, 0.550 in) goes into the case: ' + (P.in ? P.in.dseat.toFixed(1) + ' deg seat to seat' : 'none'));
+  ok((t.match(/measured profile/g) || []).length === 1, 'the exhaust keeps the sin\u00b2 curve');
+  await pg.click('button[data-wamprof="clear"][data-v="in"]'); await pg.waitForTimeout(250);
+  await pg.selectOption('select.wamprof[data-k="angle"]', 'cam'); await pg.selectOption('select.wamprof[data-k="lift"]', 'lobe'); await pg.waitForTimeout(250);
+  const half = []; for (let a = -65; a <= 65; a += 1) { const x = (2 * a + 125) / 250; half.push(a + '\t' + (x <= 0 || x >= 1 ? 0 : (0.55 / 1.7 * Math.sin(Math.PI * x) ** 2)).toFixed(5)); }
+  await pg.fill('textarea.wamproftxt[data-v="ex"]', half.join('\n')); await pg.click('button[data-wamprof="use"][data-v="ex"]'); await pg.waitForTimeout(300);
+  const P2 = await pg.evaluate(() => window.__wamProf.P());
+  ok(P2.ex && Math.abs(P2.ex.deg[P2.ex.deg.length - 1] - 130) < 1e-9 && Math.abs(P2.ex.max - 13.97) < 0.02, 'cam degrees doubled, lobe lift times the 1.7 rocker: ' + (P2.ex ? P2.ex.max.toFixed(2) + ' mm' : 'none'));
+  await pg.fill('textarea.wamproftxt[data-v="in"]', '0, 1\n10, 2'); await pg.click('button[data-wamprof="use"][data-v="in"]'); await pg.waitForTimeout(250);
+  ok(/Intake profile: Need at least three lines/.test(await pg.$eval('#panel-four', e => e.innerText)), 'a two-line profile is refused with the reason');
   ok(errs.length === 0, 'no page errors ' + errs.join('|'));
   console.log(fails.length ? 'FAILS: ' + fails.length : 'all passed');
   await b.close(); process.exit(fails.length ? 1 : 0);
