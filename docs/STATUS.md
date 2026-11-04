@@ -387,6 +387,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   Headers tab "Pulse gaps at the collector" and "Pair the pulses" (the owner's sound-engineering note, 2026-11-03):
   arrival gaps L/a at several RPMs with the short- and long-gap rates; pairing helper puts +dL/2 on the first pulse of
   each pair and -dL/2 on the second (dL = (even - short gap) a / (6 rpm)), mean length unchanged. web/tests/pair_ui.js.
+  Videos 2026-11-03 (captions; frames refused 403, Gemini 503, retrying): stepped primaries (step halfway = our 50/50;
+  4A-GE test: smaller section out of the head a small gain), Borla Polyphonic (+ David Borla: asymmetric duals a fifth
+  apart) -> Sound tab "Two notes on true duals" (tests/duo_ui.js) and interval names in the pulse-gap table, a truck
+  J-pipe drone cure (2.5 x 28 7/8 in, 117 Hz; best at 2000-2100 RPM = branch near 150 C) -> J-pipe hot start length.
+  DDP intake dyno sheet (+2.8 % peak, one pull each) and AirRam stacks: docs/research/datadrivenperf_intake.md.
   Two-stroke OpenWAM writer openwam/make_wam2t.py (tests/test_2t.py; nm2T block, TLumbrera ports from timing,
   TDepVolVariable crankcase, reed TLamina or piston-port intake, chamber segs). 125 with our chamber: 31.7 hp peak at
   12000 (straight pipe 15-20 hp); Maico 490 with the Wizard's chamber: 35 hp peak at 5500 (claimed 53 at 6500).
