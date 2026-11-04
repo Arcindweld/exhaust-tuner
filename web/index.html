@@ -7399,7 +7399,7 @@ function camSeat(cam,liftInMm,liftExMm){
   }
   return out;
 }
-window.__camSeat=camSeat;   // for tests/cam_ui.js
+if(typeof window!=="undefined") window.__camSeat=camSeat;   // for tests/cam_ui.js (the wave model is also loaded outside a page)
 function liftAt(th,open,dur,Lmax){              // sin² lift over the valve's duration
   let a=th-open; a=((a%720)+720)%720;
   if(a>=dur) return 0;
