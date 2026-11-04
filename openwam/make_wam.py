@@ -782,6 +782,24 @@ def split_runs(segs):
     return runs
 
 
+def split_segs_at(segs, x):
+    """segs ({L,d0,d1}, m) cut at x from their start: (before, after), a cone cut with its diameter interpolated."""
+    before, after, a = [], [], 0.0
+    for sg in segs:
+        L, d0, d1 = float(sg["L"]), float(sg["d0"]), float(sg["d1"])
+        b = a + L
+        if b <= x:
+            before.append(dict(sg))
+        elif a >= x:
+            after.append(dict(sg))
+        else:
+            dx = d0 + (d1 - d0) * (x - a) / L
+            before.append(dict(sg, L=x - a, d0=d0, d1=dx))
+            after.append(dict(sg, L=b - x, d0=dx, d1=d1))
+        a = b
+    return before, after
+
+
 def round01(x):
     """Round to 0.1 deg, halves up (the page's JS port rounds the same way)."""
     return math.floor(x * 10.0 + 0.5) / 10.0
@@ -841,7 +859,12 @@ def model_from_spec(spec, run=None):
                   [reservoir: {p_bar, [T_C]}  the runner inlet opens into a space held at this pressure instead of
                   the atmosphere (BC type 1): the throttled intake plenum at manifold pressure, for part-load /
                   no-load runs; the load is then a stable, monotonic function of p_bar (v4)]}
-    spec.exhaust: {segs:[{L,d0,d1}] from the valve outward (the primary), Tw, chambers (must be empty),
+    spec.exhaust: {segs:[{L,d0,d1}] from the valve outward (the primary), Tw,
+                   [chambers: [{x m from the valve, V m3, A m2 total hole area, Le m neck length}] side-branch
+                   resonators on every primary, as the wave simulation has them (v7): the primary splits at x into a
+                   junction, a neck of area 0.75 A (the wave model's CdA) and length Le runs to a closed constant-volume
+                   plenum V; a neck shorter than 3 cells is lengthened to 3 cells with its area raised by the same
+                   factor, which keeps Le/A and so the Helmholtz tuning],
                    [per_cyl: [segs or None, ...] one primary geometry per cylinder, in cylinder index order,
                    None = use segs  (v4: unequal-length headers)]
     spec.opt: {phases:[deg after cylinder 1, one per cylinder], collector:{segs, Tw}}  (calculator form:
@@ -888,8 +911,9 @@ def model_from_spec(spec, run=None):
     phases = [(float(x) + shift) % 720.0 for x in (opt.get("phases") or [0.0])]
     ncyl = len(phases)
     ex = spec["exhaust"]
-    if ex.get("chambers"):
-        raise ValueError("side-branch chambers (exhaust.chambers) have no OpenWAM equivalent in this generator")
+    chambers = sorted(ex.get("chambers") or [], key=lambda c: float(c["x"]))
+    if chambers and ex.get("tail"):
+        raise ValueError("side-branch chambers (exhaust.chambers) with an exhaust tail are not written; give one or the other")
     if opt.get("collectors"):
         cols = opt["collectors"]
     elif opt.get("collector"):
@@ -1101,6 +1125,39 @@ def model_from_spec(spec, run=None):
         plenums.append({"V_m3": float(ipl["V_m3"]), "T_C": p["T_amb_C"], "p_bar": p["p_amb_bar"], "comp": [0.0, 0.0, 1.0],
                         "note": "intake plenum, %g litres" % (float(ipl["V_m3"]) * 1000.0)})
         ipl_n = len(plenums)
+    def add_primary(segs, ev, right, c):
+        """the primary, split at every chamber: valve -> junction -> ... -> right; each junction also feeds a neck to
+        its chamber's plenum"""
+        if not chambers:
+            add_line(segs, ev, right, "cylinder %d exhaust primary" % (c + 1), tw_c(ex), T0x, [1.0, 0.0, 0.0], 2)
+            return
+        total = 0.0
+        for sg in segs:
+            total += float(sg["L"])        # a plain running sum, as the JS port adds
+        rest, left, done = [dict(sg) for sg in segs], ev, 0.0
+        for k, ch in enumerate(chambers):
+            x = float(ch["x"])
+            if not (0.0 < x < total):
+                raise ValueError("chamber %d at %g m is not inside the primary (0 to %g m)" % (k + 1, x, total))
+            if not (float(ch["V"]) > 0.0 and float(ch["A"]) > 0.0 and float(ch["Le"]) > 0.0):
+                raise ValueError("chamber %d needs a positive V, A and Le" % (k + 1))
+            before, rest = split_segs_at(rest, x - done)
+            jk = "c%d/ch%d" % (c + 1, k + 1)
+            bcs[jk] = {"type": "branch", "note": "cylinder %d chamber %d junction, %g mm from the valve" % (c + 1, k + 1, x * 1000.0)}
+            add_line(before, left, jk, "cylinder %d exhaust primary part %d" % (c + 1, k + 1), tw_c(ex), T0x, [1.0, 0.0, 0.0], 2)
+            plenums.append({"V_m3": float(ch["V"]), "T_C": T0x, "p_bar": p["p_amb_bar"], "comp": [1.0, 0.0, 0.0],
+                            "note": "cylinder %d chamber %d, %g litres" % (c + 1, k + 1, float(ch["V"]) * 1000.0)})
+            pk = "c%d/ch%d/port" % (c + 1, k + 1)
+            bcs[pk] = {"type": "plenum", "plenum": len(plenums), "note": "cylinder %d chamber %d neck into the chamber" % (c + 1, k + 1)}
+            Le, Ae = float(ch["Le"]), 0.75 * float(ch["A"])
+            Lmin = 3.0 * p["cell_mm"] / 1000.0
+            if Le < Lmin:
+                Ae, Le = Ae * Lmin / Le, Lmin
+            dn = math.sqrt(4.0 * Ae / math.pi)
+            add_line([{"L": Le, "d0": dn, "d1": dn}], jk, pk, "cylinder %d chamber %d neck" % (c + 1, k + 1), tw_c(ex), T0x, [1.0, 0.0, 0.0], 2)
+            left, done = jk, x
+        add_line(rest, left, right, "cylinder %d exhaust primary part %d" % (c + 1, len(chambers) + 1), tw_c(ex), T0x, [1.0, 0.0, 0.0], 2)
+
     for c in range(ncyl):
         ik, iv, ev = "c%d/in/open" % (c + 1), "c%d/iv" % (c + 1), "c%d/ev" % (c + 1)
         rsv = spec["intake"].get("reservoir")
@@ -1118,7 +1175,7 @@ def model_from_spec(spec, run=None):
                  tw_c(spec["intake"]), p["T_amb_C"], [0.0, 0.0, 1.0], 1)
         if c in prim_end:
             right = prim_end[c]
-            add_line(prim_segs(c), ev, right, "cylinder %d exhaust primary" % (c + 1), tw_c(ex), T0x, [1.0, 0.0, 0.0], 2)
+            add_primary(prim_segs(c), ev, right, c)
         else:
             right = "c%d/ex/open" % (c + 1)
             bcs[right] = {"type": "open", "note": "cylinder %d exhaust outlet, open end to atmosphere" % (c + 1)}
@@ -1127,7 +1184,7 @@ def model_from_spec(spec, run=None):
                 items += tail_items(ex["tail"], tw_c(ex), T0x)
                 add_chain(items, ev, right, "cylinder %d exhaust line" % (c + 1), T0x, [1.0, 0.0, 0.0], 2)
             else:
-                add_line(prim_segs(c), ev, right, "cylinder %d exhaust primary" % (c + 1), tw_c(ex), T0x, [1.0, 0.0, 0.0], 2)
+                add_primary(prim_segs(c), ev, right, c)
     if ipl:
         bcs["in/open"] = {"type": "open", "note": "intake inlet, open end to atmosphere"}
         bcs["in/plenum"] = {"type": "plenum", "plenum": ipl_n, "note": "intake inlet into the plenum"}

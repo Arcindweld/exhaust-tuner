@@ -614,6 +614,22 @@
   }
   // make_wam.py round01 / seat_events: cam events at a check lift (cam.checkLift_mm) -> seat-to-seat sin² events
   function round01(x) { return Math.floor(x * 10.0 + 0.5) / 10.0; }
+  // make_wam.py split_segs_at: segs cut at x from their start, a cone cut with its diameter interpolated
+  function splitSegsAt(segs, x) {
+    const before = [], after = []; let a = 0.0;
+    for (const sg of segs) {
+      const L = Number(sg.L), d0 = Number(sg.d0), d1 = Number(sg.d1), b = a + L;
+      if (b <= x) before.push(Object.assign({}, sg));
+      else if (a >= x) after.push(Object.assign({}, sg));
+      else {
+        const dx = d0 + (d1 - d0) * (x - a) / L;
+        before.push(Object.assign({}, sg, { L: x - a, d0: d0, d1: dx }));
+        after.push(Object.assign({}, sg, { L: b - x, d0: dx, d1: d1 }));
+      }
+      a = b;
+    }
+    return [before, after];
+  }
   function seatEvents(cam, liftInMm, liftExMm) {
     const h = +(cam.checkLift_mm || 0);
     const ev = { ivo: +cam.ivo, ivc: +cam.ivc, evo: +cam.evo, evc: +cam.evc };
@@ -672,7 +688,8 @@
     const shift = opt.start_shift_deg === undefined ? START_SHIFT_DEG : Number(opt.start_shift_deg);
     const phases = (opt.phases && opt.phases.length ? opt.phases : [0.0]).map(x => ((Number(x) + shift) % 720 + 720) % 720);
     const ncyl = phases.length, ex = spec.exhaust;
-    if (ex.chambers && ex.chambers.length) throw new Error('side-branch chambers (exhaust.chambers) have no OpenWAM equivalent in this generator');
+    const chambers = (ex.chambers || []).slice().sort((u, v) => Number(u.x) - Number(v.x));
+    if (chambers.length && ex.tail && ex.tail.length) throw new Error('side-branch chambers (exhaust.chambers) with an exhaust tail are not written; give one or the other');
     let cols;
     if (opt.collectors && opt.collectors.length) cols = opt.collectors;
     else if (opt.collector) cols = [Object.assign({}, opt.collector, { cyls: phases.map((_, i) => i) })];
@@ -826,6 +843,31 @@
     const perCyl = ex.per_cyl;
     if (perCyl && perCyl.length && perCyl.length !== ncyl) throw new Error('exhaust.per_cyl must list one primary per cylinder (' + ncyl + ' entries, None = exhaust.segs), got ' + perCyl.length);
     const primSegs = c => (perCyl && perCyl.length && perCyl[c] !== null && perCyl[c] !== undefined ? perCyl[c] : ex.segs);     // v4 unequal-length headers
+    // v7, make_wam.py add_primary: the primary split at every side-branch chamber, each junction feeding a neck to its plenum
+    const addPrimary = (segs, ev, right, c) => {
+      if (!chambers.length) { addLine(segs, ev, right, 'cylinder ' + (c + 1) + ' exhaust primary', twC(ex), T0x, [1.0, 0.0, 0.0], 2); return; }
+      let total = 0.0; for (const sg of segs) total += Number(sg.L);
+      let rest = segs.map(sg => Object.assign({}, sg)), left = ev, done = 0.0;
+      chambers.forEach((ch, k) => {
+        const x = Number(ch.x);
+        if (!(0.0 < x && x < total)) throw new Error('chamber ' + (k + 1) + ' at ' + pctG(x) + ' m is not inside the primary (0 to ' + pctG(total) + ' m)');
+        if (!(Number(ch.V) > 0.0 && Number(ch.A) > 0.0 && Number(ch.Le) > 0.0)) throw new Error('chamber ' + (k + 1) + ' needs a positive V, A and Le');
+        const sp = splitSegsAt(rest, x - done), before = sp[0]; rest = sp[1];
+        const jk = 'c' + (c + 1) + '/ch' + (k + 1);
+        bcs.set(jk, { type: 'branch', note: 'cylinder ' + (c + 1) + ' chamber ' + (k + 1) + ' junction, ' + pctG(x * 1000.0) + ' mm from the valve' });
+        addLine(before, left, jk, 'cylinder ' + (c + 1) + ' exhaust primary part ' + (k + 1), twC(ex), T0x, [1.0, 0.0, 0.0], 2);
+        plenums.push({ V_m3: Number(ch.V), T_C: T0x, p_bar: p.p_amb_bar, comp: [1.0, 0.0, 0.0], note: 'cylinder ' + (c + 1) + ' chamber ' + (k + 1) + ', ' + pctG(Number(ch.V) * 1000.0) + ' litres' });
+        const pk = 'c' + (c + 1) + '/ch' + (k + 1) + '/port';
+        bcs.set(pk, { type: 'plenum', plenum: plenums.length, note: 'cylinder ' + (c + 1) + ' chamber ' + (k + 1) + ' neck into the chamber' });
+        let Le = Number(ch.Le), Ae = 0.75 * Number(ch.A);
+        const Lmin = 3.0 * p.cell_mm / 1000.0;
+        if (Le < Lmin) { Ae = Ae * Lmin / Le; Le = Lmin; }
+        const dn = Math.sqrt(4.0 * Ae / Math.PI);
+        addLine([{ L: Le, d0: dn, d1: dn }], jk, pk, 'cylinder ' + (c + 1) + ' chamber ' + (k + 1) + ' neck', twC(ex), T0x, [1.0, 0.0, 0.0], 2);
+        left = jk; done = x;
+      });
+      addLine(rest, left, right, 'cylinder ' + (c + 1) + ' exhaust primary part ' + (chambers.length + 1), twC(ex), T0x, [1.0, 0.0, 0.0], 2);
+    };
     const ipl = spec.intake.plenum;
     let iplN = 0;
     if (ipl) {
@@ -848,13 +890,13 @@
       addLine(spec.intake.segs, ik, iv, 'cylinder ' + (c + 1) + ' intake runner', twC(spec.intake), p.T_amb_C, [0.0, 0.0, 1.0], 1);
       const segItems = (segs, tw) => segs.map(s => ['seg', { L: s.L, d0: s.d0, d1: s.d1 }, tw]);
       if (primEnd.has(c)) {
-        addLine(primSegs(c), ev, primEnd.get(c), 'cylinder ' + (c + 1) + ' exhaust primary', twC(ex), T0x, [1.0, 0.0, 0.0], 2);
+        addPrimary(primSegs(c), ev, primEnd.get(c), c);
       } else {
         const right = 'c' + (c + 1) + '/ex/open';
         bcs.set(right, { type: 'open', note: 'cylinder ' + (c + 1) + ' exhaust outlet, open end to atmosphere' });
         if (ex.tail && ex.tail.length)
           addChain(segItems(primSegs(c), twC(ex)).concat(tailItems(ex.tail, twC(ex), T0x)), ev, right, 'cylinder ' + (c + 1) + ' exhaust line', T0x, [1.0, 0.0, 0.0], 2);
-        else addLine(primSegs(c), ev, right, 'cylinder ' + (c + 1) + ' exhaust primary', twC(ex), T0x, [1.0, 0.0, 0.0], 2);
+        else addPrimary(primSegs(c), ev, right, c);
       }
     }
     if (ipl) {

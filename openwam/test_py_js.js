@@ -58,6 +58,11 @@ function randomSpec(base, k) {
   const dp = U(0.03, 0.055);
   s.exhaust.segs = [{ L: U(0.05, 0.2), d0: dp, d1: dp }, { L: U(0.2, 0.8), d0: dp, d1: dp * (k % 2 ? 1 : U(1.0, 1.15)) }];
   if (k % 5 === 2) s.exhaust.segs.push({ L: U(0.05, 0.3), d0: dp * 1.1, d1: dp * 1.1 });   // a step
+  if (k % 6 === 5) {   // v7 side-branch chambers on the primary (one, or two out of order), the second at a cone or a step
+    const tot = s.exhaust.segs.reduce((a, q) => a + q.L, 0);
+    s.exhaust.chambers = [{ x: tot * U(0.3, 0.9), V: U(0.1e-3, 1.5e-3), A: U(20e-6, 400e-6), Le: U(0.002, 0.06) }];
+    if (k % 12 === 11) s.exhaust.chambers.unshift({ x: tot * U(0.05, 0.25), V: U(0.1e-3, 1e-3), A: U(20e-6, 200e-6), Le: U(0.03, 0.08) });
+  }
   s.exhaust.Tw = U(600, 800);
   const n = s.opt.phases.length;
   if (k % 7 === 3) s.opt.phases = s.opt.phases.map((ph, i) => (i === 0 ? 0 : (ph + U(-20, 20) + 720) % 720));   // uneven firing
