@@ -13096,7 +13096,7 @@ function simSection(q){
   if(e) h+='<p class="cap">Assumed for this run: bore '+cdim(e.bore*1000)+', stroke '+cdim(e.stroke*1000)+', '+(e.nIn*2)+' valves ('+cdim(e.dIn*1000)+' intake, '+cdim(e.dEx*1000)+' exhaust), cam '+
     e.cam.ivo+'-'+e.cam.ivc+' intake and '+e.cam.evo+'-'+e.cam.evc+' exhaust as on a cam card, compression '+(+e.cr.toFixed(1))+':1, an intake runner '+clen(sp.intake.segs[0].L*1000)+' long at '+cdim(sp.intake.segs[0].d0*1000)+'. '+
     (hdr?'Primaries '+cdim(plan.H.p.dp)+' and collectors as on the Headers tab. Not modeled: mufflers, converters or crossovers past the open ends. ':nc>1?'Not modeled: the engine’s other collectors, and mufflers, converters or crossovers past the open end. ':'Not modeled: mufflers, converters or crossovers past the open end. ')+'The Expert inputs under Wave simulation set the engine.</p>';
-  return sec('Wave simulation',h)+esSection(q,sp)+wamSection(q,sp)+(sp&&!simCheck(q)?dynoSection(q,sp):'');
+  return sec('Wave simulation',h)+esSection(q,sp)+wamSection(q,sp)+(sp&&!simCheck(q)?dynoSection(q,sp)+optSection(q,sp):'');
 }
 
 /* ----- Engine Simulator export (rough listening preview) ----- */
@@ -13638,6 +13638,114 @@ async function dynoRun(){
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-dyno]'); if(b&&b.dataset.dyno==='fit') dynoRun(); });
 document.addEventListener('input',e=>{ if(e.target.id==='dyno-pts') DYNO_UI.pts=e.target.value; else if(e.target.id==='dyno-loss') DYNO_UI.loss=parseFloat(e.target.value)||0; });
 document.addEventListener('change',e=>{ if(e.target.id==='dyno-src'){ DYNO_UI.src=e.target.value; } });
+/* ===== Header optimiser: the Headers tab's design on the 4-Stroke tab's engine, candidates run in OpenWAM =====
+   One batch: the design as it is and one-at-a-time changes around it (the tuned length through the tuning rpm, and on
+   a two-stage header the Y position, the secondary size and, on an 8-4-1, the other same-bank pairing), each at every
+   speed of the band; the score is the mean brake torque over the band. Then the best change of each kind together,
+   run once more, so the winner is a design that was actually simulated. Every candidate keeps the primary diameter,
+   collector rules and engine. */
+const OPT_UI={rpms:'',msg:null,res:null};
+function hdrWamSpec(r,p,sp){
+  if(r.err) return {err:r.err};
+  const N=p.order.length, dp=p.dp/1000, port=(r.port||0)/1000, pos=a=>a.filter(x=>x.L>1e-6), ang={};
+  r.groups.forEach(g=>g.pulses.forEach(x=>{ ang[x.cyl]=x.ang; }));
+  const mm=x=>x/1000, seg=x=>({L:mm(x.len),d0:mm(x.d0),d1:mm(x.d1)});
+  const ci=r.segs.findIndex(x=>x.name==='Collector merge'), prim=r.triy?[r.segs[0]]:r.segs.slice(0,ci);
+  const primSegs=pos([{L:port,d0:dp,d1:dp,primary:true}].concat(prim.map(x=>Object.assign(seg(x),{primary:true}))));
+  const per_cyl=[], phases=[]; for(let c=1;c<=N;c++){ per_cyl.push(primSegs); phases.push(ang[c]); }
+  const coll=pos(r.segs.slice(ci).map(seg)), collectors=[];
+  r.groups.forEach((g,gi)=>{
+    const cyls=g.cyls.map(c=>c-1); if(cyls.length<2) return;
+    if(r.triy){
+      const prs=r.pairs[gi].pairs.map(x=>x.cyls?x.cyls:[x.a,x.b]);
+      collectors.push({cyls,stages:[{groups:prs.map(q=>q.map(c=>c-1)),segs:pos([seg(r.segs[1]),seg(r.segs[2])]),Tw:675}],segs:coll,Tw:650});
+    } else collectors.push({cyls,segs:coll,Tw:650});
+  });
+  return {spec:{e:sp.e,intake:sp.intake,exhaust:{segs:primSegs,per_cyl,Tw:700,chambers:[]},opt:{phases,collectors},n:N}};
+}
+function optCandidates(p,r){
+  const out=[{label:'as designed',p}], add=(label,ch)=>out.push({label,p:Object.assign({},p,ch),kind:label.split(' ')[0]});
+  [0.85,0.92,1.08,1.16].forEach(k=>add('length: tuned for '+Math.round(p.rpm*k)+' rpm',{rpm:p.rpm*k}));
+  if(r.triy){
+    [0.75,1.25].forEach(k=>add('Y: first section '+Math.round(k*100)+' %',{first:p.first*k}));
+    [0.64,0.8,1.0].filter(v=>Math.abs(v-p.yr)>1e-6).forEach(v=>add('secondary: area ratio '+v.toFixed(2),{yr:v}));
+    if(r.Ng===8&&p.banks&&p.banks.length===2){
+      const by=Object.fromEntries(r.groups[0].pulses.map(x=>[x.cyl,x]));
+      const alt=[].concat(...p.banks.map(b=>bestPairing(b.map(c=>by[c]),720).pairs.map(x=>[x.a,x.b])));
+      const cur=r.pairs[0].pairs.map(x=>[x.a,x.b].sort((u,v)=>u-v).join('+')).sort().join(','), alts=alt.map(x=>x.slice().sort((u,v)=>u-v).join('+')).sort().join(',');
+      if(alts!==cur) add('pairs: '+alt.map(x=>x.join('+')).join(', ')+' (most evenly spaced on each bank)',{ypairs:alt});
+    }
+  }
+  return out;
+}
+window.__opt={hdrWamSpec,optCandidates};   // for tests/opt_ui.js
+window.__hdrLast=()=>HDR_LAST;
+function optSection(q,sp){
+  const H=HDR_LAST;
+  let h='<p class="cap" style="margin-top:0">Runs the Headers tab’s header on this engine in OpenWAM, with changes around it one at a time: the tuned length (as if tuned for 15 % and 8 % lower and higher rpm)'+
+    (H&&H.r&&H.r.triy?', the Y position (first section 25 % shorter and longer), the secondary size'+(H.r.Ng===8?' and the other same-bank pairing':''):'')+
+    '. Each design runs at every speed below; the score is the mean brake torque over them. The best change of each kind is then combined and run once more.</p>';
+  if(!H||!H.r||H.r.err||!H.p){ return sec('Optimise the Headers tab’s header',h+'<div class="note">Lay out a header on the Headers tab first.</div>'); }
+  if(H.p.order.length!==q.cyl) return sec('Optimise the Headers tab’s header',h+'<div class="note bad">The Headers tab engine has '+H.p.order.length+' cylinders and this tab has '+q.cyl+'. Make them match.</div>');
+  const cands=optCandidates(H.p,H.r), rp=OPT_UI.rpms||wamRpms(q).join(' ');
+  h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Speeds to score (RPM)</span><span class="inp"><input id="opt-rpms" type="text" inputmode="numeric" value="'+esc(rp)+'"></span></label></div>'+
+    '<p class="cap">'+cands.length+' designs × '+rp.split(/[\s,;]+/).filter(Boolean).length+' speeds = '+cands.length*rp.split(/[\s,;]+/).filter(Boolean).length+' OpenWAM runs, then one more design: allow a few minutes per ten runs.</p>'+
+    '<div class="actions">'+(hostHas('openwam')?'<button type="button" class="btn" data-opt="run">Optimise in OpenWAM</button>':'<span class="cap">The optimiser runs OpenWAM, so it needs the desktop program.</span>')+'</div>'+
+    '<div class="note optmsg'+(OPT_UI.msg&&OPT_UI.msg.bad?' bad':'')+'"'+(OPT_UI.msg?'':' hidden')+'>'+(OPT_UI.msg?esc(OPT_UI.msg.t):'')+'</div>';
+  const R=OPT_UI.res;
+  if(R){
+    const nm=U!=='imp', f=t=>Number.isFinite(t)?(nm?Math.round(t)+' N·m':Math.round(t/1.3558179483)+' lb-ft'):'?', base=R.rows[0].score;
+    h+='<div class="tblwrap"><table><thead><tr><th>Design</th><th>Mean brake torque</th><th>Change</th>'+R.rpms.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+
+      R.rows.slice().sort((a,b)=>(b.score||-1)-(a.score||-1)).map(x=>'<tr'+(x===R.best?' style="font-weight:600"':'')+'><td>'+esc(x.label)+'</td><td>'+f(x.score)+'</td><td>'+(Number.isFinite(x.score)?((x.score/base-1)*100).toFixed(1)+' %':'')+'</td>'+x.T.map(t=>'<td>'+f(t)+'</td>').join('')+'</tr>').join('')+
+      '</tbody></table></div><p class="cap">Bold: the best design that was run. '+(R.best!==R.rows[0]?'<button type="button" class="btn" data-opt="apply">Use it on the Headers tab</button>':'The design as it is scored best.')+'</p>';
+  }
+  return sec('Optimise the Headers tab’s header',h);
+}
+async function optRun(){
+  if(!HOST) return;
+  const say=(t,bad)=>{ OPT_UI.msg={t,bad:!!bad}; renderActive(); };
+  const q=SIM.inp, err=q?simCheck(q):'Fill in the 4-Stroke tab first.'; if(err){ say(err,true); return; }
+  const H=HDR_LAST; if(!H||!H.r||H.r.err||!H.p){ say('Lay out a header on the Headers tab first.',true); return; }
+  const rpms=[...new Set((OPT_UI.rpms||wamRpms(q).join(' ')).split(/[\s,;]+/).map(Number).filter(v=>v>=500&&v<=20000).map(v=>Math.round(v/50)*50))].sort((a,b)=>a-b);
+  if(!rpms.length){ say('Enter at least one speed.',true); return; }
+  const sp=simSpec(q), cycles=WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25;
+  const build=(list,tag0)=>{ const files=[], rows=[];
+    list.forEach((c,k)=>{ const r=calcLayout(c.p), w=hdrWamSpec(r,c.p,sp); if(w.err){ rows.push(Object.assign({},c,{err:w.err})); return; }
+      const tag=tag0+k; rows.push(Object.assign({},c,{tag}));
+      rpms.forEach(x=>files.push({name:tag+'_'+x+'.wam',text:WAMX.makeWam(w.spec,{rpm:x,cycles,name:tag+'_'+x})})); });
+    return {files,rows}; };
+  const score=(res,rows)=>rows.forEach(x=>{ if(!x.tag) return; x.T=rpms.map(v=>{ const m=(res.models||[]).find(y=>y.name===x.tag+'_'+v); if(!m||!m.finished||!m.avg) return NaN; const cy=WAMX.readAvg(m.avg).cycles; return cy.length?cy[cy.length-1].torque_brake_Nm:NaN; });
+    x.score=x.T.every(Number.isFinite)?x.T.reduce((a,b)=>a+b,0)/x.T.length:NaN; });
+  const c1=optCandidates(H.p,H.r), b1=build(c1,'opt');
+  say('Optimiser: running '+b1.files.length+' OpenWAM models ('+c1.length+' designs × '+rpms.length+' speeds).');
+  let res; try{ res=await HOST.call('runOpenWAM',{name:'header_opt',files:b1.files},ev=>{ if(ev.event==='done') say('Optimiser: '+ev.count+' of '+ev.of+' runs done.'); }); }catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
+  score(res,b1.rows);
+  const rows=b1.rows, base=rows[0];
+  if(!Number.isFinite(base.score)){ say('The design as it is did not finish in OpenWAM, so nothing can be compared. Run folder: '+res.folder,true); return; }
+  // the best change of each kind together
+  const kinds={}; rows.slice(1).forEach(x=>{ if(Number.isFinite(x.score)&&x.score>base.score&&(!kinds[x.kind]||x.score>kinds[x.kind].score)) kinds[x.kind]=x; });
+  const ks=Object.values(kinds);
+  if(ks.length>1){
+    const comb=Object.assign({},H.p); ks.forEach(x=>{ ['rpm','first','yr','ypairs'].forEach(k=>{ if(x.p[k]!==H.p[k]) comb[k]=x.p[k]; }); });
+    const b2=build([{label:'combined: '+ks.map(x=>x.label).join(' + '),p:comb,kind:'combined'}],'optc');
+    say('Optimiser: running the combined design ('+b2.files.length+' runs).');
+    try{ const r2=await HOST.call('runOpenWAM',{name:'header_opt_combined',files:b2.files}); score(r2,b2.rows); rows.push(...b2.rows); }catch(e){ say('The combined run failed: '+e.message,true); }
+  }
+  const best=rows.filter(x=>Number.isFinite(x.score)).reduce((a,b)=>b.score>a.score?b:a);
+  OPT_UI.res={rows,rpms,best};
+  say(best===base?'Done: the design as it is scored best of the '+rows.length+' tried.':'Done: '+best.label+' scored '+((best.score/base.score-1)*100).toFixed(1)+' % more mean brake torque than the design as it is.');
+}
+function optApply(){
+  const R=OPT_UI.res; if(!R||!R.best) return; const b=R.best.p, H=HDR_LAST&&HDR_LAST.p; if(!H) return;
+  if(b.rpm!==H.rpm) setBase('h-rpm',Math.round(b.rpm));
+  if(b.first!==H.first) setBase('h-first',b.first);
+  if(b.yr!==H.yr) setBase('h-yr',b.yr);
+  if(b.ypairs!==H.ypairs) $('h-pairs').value=(b.ypairs||[]).map(x=>x.join(',')).join(' | ');
+  $('h-rpm').dispatchEvent(new Event('input',{bubbles:true}));
+  OPT_UI.msg={t:'Applied to the Headers tab: '+R.best.label+'.',bad:false}; renderActive();
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-opt]'); if(!b) return; if(b.dataset.opt==='run') optRun(); else if(b.dataset.opt==='apply') optApply(); });
+document.addEventListener('input',e=>{ if(e.target.id==='opt-rpms') OPT_UI.rpms=e.target.value; });
 // Desktop program: write the same case, run every model with the bundled OpenWAM, and read the results straight into
 // the tables above (the same readers the file pickers use, so the numbers are identical to a manual run).
 async function wamRun(){
