@@ -1595,6 +1595,8 @@ def _route_item(name, r, gap, od=None, data=None):
           'lra': r.get('lra'), 'note': r.get('msg')}
     if r.get('min_gap') is not None:
         it['min_gap'] = r['min_gap']
+    if od:
+        it['od'] = [od]          # the page's cut list picks stock bends of this OD
     if r.get('elems') and od:
         data = data or {}
         it['fab'] = RT.fab_report(r['elems'], od, _cm(data, 'clamp_mm'), _cm(data, 'min_clr_mm'),

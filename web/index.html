@@ -9348,6 +9348,84 @@ function fxSetup(){
   document.querySelectorAll('.fxr').forEach(el=>el.addEventListener('input',()=>{ readInput(el); if(Number.isFinite(el._b)&&el._b>=0){ FX.route[el.dataset.k]=el._b; document.querySelectorAll('.fxr[data-k="'+el.dataset.k+'"]').forEach(o=>{ if(o!==el){ o._b=el._b; showInput(o); } }); } }));
   document.querySelectorAll('.fxmat').forEach(el=>el.addEventListener('change',()=>{ FX.route.material=el.value; document.querySelectorAll('.fxmat').forEach(o=>o.value=el.value); }));
 }
+/* ===== Cut list from off-the-shelf mandrel bends: a routed tube's bend schedule (lra rows from the add-in: straight
+   before each bend, rotation, bend angle, centerline radius) turned into pieces to cut and the stock to buy.
+   Each bend is cut from a stock mandrel bend of the same OD and centerline radius (a U-bend or a 90), each straight
+   from straight tube; the pieces are butt-welded in order, clocked by the rotation. Bend pieces are packed into the
+   fewest stock bends (first fit, largest first), a kerf between two pieces of one arc. Marks: the arc length to measure along the
+   outside and the inside of the bend for each cut piece. */
+const BEND_KERF_MM=1.6;   // a 1/16 in cut-off wheel or band-saw blade
+function matClass(m){ m=String(m||'').toLowerCase(); return /titan/.test(m)?'ti':/alum/.test(m)?'al':/stainless|30[0-9]|321|316/.test(m)?'ss':/mild|alumini|steel|crmo|chromoly/.test(m)?'mild':'?'; }
+function bendStock(){
+  const out=[];
+  PARTS.filter(q=>q.kind==='bend'&&q.type!=='straight'&&q.od&&q.clr&&q.angle).forEach(q=>out.push({supplier:q.brand,od:q.od,wall:q.wall,mat:q.mat,angle:q.angle,clr:q.clr,legs:q.leg,pn:q.pn,title:q.model,url:q.src}));
+  if(typeof BEND_STOCK_DATA!=='undefined') BEND_STOCK_DATA.forEach(q=>{ if(q.od&&q.clr&&q.angle&&!out.some(o=>o.pn&&o.pn===q.pn&&o.supplier===q.supplier)) out.push(q); });
+  return out;
+}
+// odIn, wallIn (null = any), mat ('304', '321', 'ti', 'mild', 'al' or a material name); rows: {L,R,A,CLR} in mm
+function cutList(rows,odIn,mat,opt){
+  opt=opt||{}; const kerf=opt.kerf_mm!=null?opt.kerf_mm:BEND_KERF_MM, minStraight=opt.min_straight_mm!=null?opt.min_straight_mm:1;
+  const want=mat==='ti'?'ti':mat==='al'?'al':mat==='mild'?'mild':'ss';
+  const stock=(opt.stock||bendStock()).filter(s=>Math.abs(s.od-odIn)<=0.011);
+  const odMm=odIn*MM, pieces=[], R=Math.PI/180;
+  rows.forEach((r,i)=>{
+    if(r.L>minStraight) pieces.push({kind:'straight',L:r.L});
+    if(r.A!=null&&r.A>0) pieces.push({kind:'bend',A:r.A,CLR:r.CLR,rot:r.R,arc:r.CLR*r.A*R,outer:(r.CLR+odMm/2)*r.A*R,inner:Math.max(0,(r.CLR-odMm/2)*r.A*R)});
+  });
+  // stock for each bend: same OD, centerline radius within 0.03 in or 1 %; this material first
+  const groups=new Map(), missing=[];
+  pieces.filter(p=>p.kind==='bend').forEach(p=>{
+    const clrIn=p.CLR/MM, tol=Math.max(0.03,clrIn*0.01);
+    const fit=stock.filter(s=>Math.abs(s.clr-clrIn)<=tol&&s.angle>=p.A-0.05);
+    const wIn=opt.wall_in>0?opt.wall_in:0.065, dw=s=>s.wall>0?Math.abs(s.wall-wIn):0.02;   // 16 gauge unless the tab says
+    const sameMat=fit.filter(s=>matClass(s.mat)===want), pick=(sameMat.length?sameMat:fit).sort((a,b)=>b.angle-a.angle||dw(a)-dw(b)||(a.pn?0:1)-(b.pn?0:1))[0];
+    if(!pick){ const near=stock.filter(s=>matClass(s.mat)===want||!stock.some(t=>matClass(t.mat)===want)).map(s=>s.clr).filter((v,k,a)=>a.indexOf(v)===k).sort((a,b)=>Math.abs(a-clrIn)-Math.abs(b-clrIn));
+      p.stock=null; p.near=near.slice(0,3); missing.push(p); return; }
+    p.stock=pick; p.matOk=matClass(pick.mat)===want;
+    const key=pick.supplier+'|'+(pick.pn||pick.title);
+    if(!groups.has(key)) groups.set(key,{s:pick,items:[]});
+    groups.get(key).items.push(p);
+  });
+  const buy=[];
+  groups.forEach(g=>{
+    const S=g.s.angle, kdeg=kerf/(g.s.clr*MM)/R, bins=[];
+    g.items.slice().sort((a,b)=>b.A-a.A).forEach(p=>{
+      // the stock bend's ends are cut in its legs (or come cut, for a no-leg elbow): kerf only between two pieces of one arc
+      let bin=bins.find(b=>b.left>=p.A+(b.cuts.length?kdeg:0)-0.05);
+      if(!bin){ bin={n:bins.length+1,left:S,cuts:[]}; bins.push(bin); }
+      bin.left=Math.max(0,bin.left-p.A-(bin.cuts.length?kdeg:0)); bin.cuts.push(p); p.from=bin.n;
+    });
+    buy.push({s:g.s,count:bins.length,bins});
+  });
+  const straight=pieces.filter(p=>p.kind==='straight'), straightTotal=straight.reduce((a,p)=>a+p.L+kerf,0);
+  return {pieces,buy,missing,straightTotal,odIn,kerf};
+}
+// both units, the user's way: inches to 1/16 and decimal, mm to 0.5
+function inMm(mm){ const i=mm/MM, s=Math.round(i*16)/16, w=Math.floor(s), f=Math.round((s-w)*16);
+  const g=(a,b)=>b?g(b,a%b):a, d=g(f,16); const frac=f?(w?w+' ':'')+(f/d)+'/'+(16/d):String(w);
+  return frac+' in ('+(Math.round(mm*2)/2).toFixed(1)+' mm)'; }
+function cutListHtml(c,name){
+  if(!c.pieces.length) return '';
+  let h='<p class="sub" style="margin-top:12px">Cut list'+(name?' · '+esc(name):'')+'</p><div class="tblwrap"><table><thead><tr><th>#</th><th>Piece</th><th>Cut</th><th>Mark along outside / inside</th><th>Clock from last bend</th><th>From</th></tr></thead><tbody>'+
+    c.pieces.map((p,j)=>p.kind==='straight'?
+      '<tr><td>'+(j+1)+'</td><td>Straight</td><td>'+inMm(p.L)+'</td><td></td><td></td><td>'+(c.odIn)+' in straight tube</td></tr>':
+      '<tr><td>'+(j+1)+'</td><td>Bend '+p.A.toFixed(1)+'° on '+inMm(p.CLR)+' CLR</td><td>'+inMm(p.arc)+' on the centerline</td><td>'+inMm(p.outer)+' / '+inMm(p.inner)+'</td><td>'+(p.rot==null?'':Math.round(p.rot)+'°')+'</td><td>'+
+        (p.stock?esc(p.stock.supplier+' '+(p.stock.pn||'')+' '+p.stock.angle+'°')+' #'+p.from+(p.matOk?'':' <span class="st-bad">other material</span>'):'<span class="st-bad">no stock bend at this radius</span>')+'</td></tr>').join('')+
+    '</tbody></table></div>';
+  if(c.missing.length) h+='<div class="note warn">'+c.missing.length+' bend'+(c.missing.length===1?' has':'s have')+' no '+c.odIn+' in stock bend at '+[...new Set(c.missing.map(p=>inMm(p.CLR)))].join(', ')+' centerline radius in the parts list'+
+    (c.missing[0].near&&c.missing[0].near.length?'; stocked radii for this OD: '+c.missing[0].near.map(v=>inMm(v*MM)).join(', ')+'. Set Bend radius in the auto-route settings to one of them and route again':'; no '+c.odIn+' in bends are listed')+'.</div>';
+  return h;
+}
+function cutBuyHtml(lists){
+  const all=new Map(); let straight=0, od=null;
+  lists.forEach(c=>{ straight+=c.straightTotal; od=c.odIn; c.buy.forEach(b=>{ const k=b.s.supplier+'|'+(b.s.pn||b.s.title); const e=all.get(k)||{s:b.s,count:0,used:0}; e.count+=b.count; e.used+=b.bins.reduce((a,x)=>a+(b.s.angle-x.left),0); all.set(k,e); }); });
+  if(!all.size&&!straight) return '';
+  let h='<p class="sub" style="margin-top:14px">To buy, all tubes</p><div class="tblwrap"><table><thead><tr><th>Qty</th><th>Part</th><th>Supplier, part number</th><th>Bend use</th></tr></thead><tbody>';
+  all.forEach(e=>{ h+='<tr><td>'+e.count+'</td><td>'+esc(e.s.od+' in OD · '+e.s.angle+'° · '+e.s.clr+' in CLR'+(e.s.wall?' · '+e.s.wall+' in wall':'')+' · '+(e.s.mat||''))+'</td><td>'+(e.s.url?'<a href="'+esc(e.s.url)+'" target="_blank" rel="noopener">':'')+esc(e.s.supplier+' '+(e.s.pn||e.s.title||''))+(e.s.url?'</a>':'')+'</td><td>'+Math.round(e.used)+'° of '+(e.count*e.s.angle)+'°</td></tr>'; });
+  if(straight>0) h+='<tr><td>1</td><td>'+od+' in straight tube</td><td>any</td><td>'+inMm(straight)+' with kerf; buy the next stock length up</td></tr>';
+  return h+'</tbody></table></div><p class="cap">Bends are cut from stock mandrel bends of the same OD and centerline radius and butt-welded in order; each cut takes '+inMm(BEND_KERF_MM)+' of kerf. Measure each bend piece along the outside and the inside of the bend, mark both, and cut square to the tube. Clock each piece from the previous bend plane as listed (right-hand rule about the gas flow), tack, and check against the jig.</p>';
+}
+window.__cut={cutList,cutListHtml,cutBuyHtml,bendStock,inMm};
 const cmToMm=v=>v*10;
 function fxRender(tab,res){
   const out=$('fx-out-'+tab); if(!out) return;
@@ -9355,7 +9433,7 @@ function fxRender(tab,res){
   let h=res.msg?'<div class="note '+(res.route_ok===false?'warn':'ok')+'">'+esc(res.msg)+'</div>':'';
   if(res.items&&res.items.length){
     const useBtn=(target,mm,label)=>'<button type="button" class="btn" data-use="1" data-target="'+target+'" data-mm="'+mm.toFixed(3)+'">'+label+'</button>';
-    const lens=[];
+    const lens=[], cuts=[];
     res.items.forEach((it,i)=>{
       let rows='';
       if(it.length!=null){ const mm=cmToMm(it.length); lens.push({name:it.name,mm}); rows+=rowL('Centerline length',mm,'l'); }
@@ -9396,6 +9474,13 @@ function fxRender(tab,res){
           it.lra.map((q,j)=>'<tr><td>'+(j+1)+'</td><td>'+clen(cmToMm(q.L))+'</td><td>'+(q.R==null?'':Math.round(q.R)+'°')+'</td><td>'+(q.A==null?'':q.A.toFixed(1)+'°')+'</td><td>'+(q.CLR==null?'':cdim(cmToMm(q.CLR)))+'</td></tr>').join('')+'</tbody></table></div>'+
           '<p class="cap">Bend schedule in feed order: run the straight, rotate the tube, then bend. Rotation is measured from the previous bend plane, right-hand rule about the feed direction.</p>';
       }
+      // the same schedule as pieces cut from stock mandrel bends; a measured path takes the tab's tube OD
+      const odCm=it.od&&it.od.length?it.od[0]:tab==='headers'&&val('h-dp')>0?(val('h-dp')+2*(val('h-wall')>0?val('h-wall'):1.651))/10:tab==='four'&&val('f-dp')>0?(val('f-dp')+2*(val('f-wall')>0?val('f-wall'):1.651))/10:null;
+      if(it.lra&&it.lra.length&&odCm&&it.lra.some(q=>q.A!=null)){
+        const c=cutList(it.lra.map(q=>({L:cmToMm(q.L),R:q.R,A:q.A,CLR:q.CLR==null?null:cmToMm(q.CLR)})),+(odCm/2.54).toFixed(3),(FX.route&&FX.route.material)||'304',
+          {wall_in:tab==='headers'&&val('h-wall')>0?val('h-wall')/MM:tab==='four'&&val('f-wall')>0?val('f-wall')/MM:null});
+        cuts.push(c); lra+=cutListHtml(c);
+      }
       let btns='';
       if(it.length!=null){
         if(tab==='headers') btns+=useBtn('h-maxrun',cmToMm(it.length),'Use as runner space');
@@ -9421,6 +9506,7 @@ function fxRender(tab,res){
       if(it.box&&it.box.length===3&&tab==='muf') btns+='<button type="button" class="btn" data-use="1" data-target="m-maxl,m-maxw,m-maxh" data-mm="'+it.box.map(d=>cmToMm(d).toFixed(3)).join(',')+'">Use size as muffler space</button>';
       h+=sec((i+1)+' · '+esc(it.name||it.kind),rows+lra+(btns?'<div class="actions" style="margin-top:10px">'+btns+'</div>':''));
     });
+    if(cuts.length) h+=cutBuyHtml(cuts);
     if(lens.length>1){
       const mean=lens.reduce((a,b)=>a+b.mm,0)/lens.length, target=FX.target&&FX.target[tab];
       h+=sec('Equal-length check','<div class="tblwrap"><table><thead><tr><th>Item</th><th>Length</th><th>vs average</th>'+(target?'<th>vs target</th>':'')+'</tr></thead><tbody>'+
