@@ -13,12 +13,14 @@ collector and the same collector rules, so only the grouping changes:
   c841_270  8-4-1, pairs on the same bank as evenly spaced as the bank allows (270 / 450 deg)
   c841_x    8-4-1, pairs across the banks that fire 360 deg apart (each needs a crossover tube)
 
-The engine is a 6.2 L GM LS3-like V8 with stated, not measured, parameters (below): 103.25 x 92 mm, rod 154 mm,
-10.7:1, one 55.0 mm intake and one 40.4 mm exhaust valve per cylinder, 14.0 / 13.26 mm lift (0.551 / 0.522 in), the
-LS3 cam's 204 / 211 deg at 0.050 in (GM's crate engine sheet) on a 117 deg lobe separation, installed 4 deg advanced
-(intake centreline 113 deg ATDC), the events given at 0.050 in (checkLift_mm 1.27, so the model's lift passes 0.050 in
-there; before 2026-11-03 these runs fed the 0.050 in events in as seat timing, about 25 deg short at each end),
-firing order 1-8-7-2-6-5-4-3 (odd cylinders on the left bank). Header tubes follow Concept 841's published C7
+The engine is a 6.2 L GM LS3 V8 (stated, not measured, parameters; the cylinder and cam from GM): 103.25 x 92 mm,
+rod 154 mm, 10.7:1, one 55.0 mm intake and one 40.4 mm exhaust valve per cylinder, 14.01 / 13.33 mm lift, and GM's
+2008 LS3 valve events at 0.050 in (Corvette Action Center's reproduction of GM's LS3 technical briefing): intake opens
+19 deg ATDC and closes 43 deg ABDC, exhaust opens 38 deg BBDC and closes 7 deg BTDC (204 / 211 deg), given at 0.050 in
+(checkLift_mm 1.27, so the model's lift passes 0.050 in there). Before 2026-11-03 these runs fed 0.050 in events in as
+seat timing (about 25 deg short at each end) and assumed the cam 4 deg advanced, where GM's events put the intake
+centreline 121 deg ATDC on a 117 deg lobe separation (4 deg retarded); the results in openwam/ref/v8_841/results*.json
+from then are kept for the record but superseded by the _v3 runs. firing order 1-8-7-2-6-5-4-3 (odd cylinders on the left bank). Header tubes follow Concept 841's published C7
 8-4-1 sizes (2.00 in primaries, 2.25 in secondaries, a 4.5 in 4-1 collector outlet; 16-gauge wall assumed:
 47.5 / 53.9 / 111.0 mm inside), and the same primary is used for every layout. Path from the valve to the last
 collector: 36 in (914 mm), the first merge of the 8-4-1s at 14.5 in (368 mm, the Headers tab's Tri-Y default).
@@ -61,17 +63,10 @@ def cone(d0, d1, half_deg=15.0):
 
 
 def engine():
-    """LS3-like cylinder; cam events at 0.050 in from duration and centrelines (ivo/evc negative = after/before TDC)."""
-    dur_i, dur_e, lsa, adv = 204.0, 211.0, 117.0, 4.0
-    icl, ecl = lsa - adv, lsa + adv
-    # intake opens (icl - dur/2) after TDC... in card convention IVO is deg BTDC
-    ivo = dur_i / 2 - icl
-    ivc = dur_i - 180 - ivo
-    evc = dur_e / 2 - ecl
-    evo = dur_e - 180 - evc
+    """LS3 cylinder; cam events at 0.050 in as GM published them for the 2008 LS3 (ivo/evc negative = after/before TDC)."""
     return {"bore": 0.10325, "stroke": 0.092, "rod": 0.154, "cr": 10.7, "cd": 0.7,
-            "nIn": 1, "dIn": 0.0550, "liftIn": 0.0140, "nEx": 1, "dEx": 0.0404, "liftEx": 0.01326,
-            "cam": {"ivo": ivo, "ivc": ivc, "evo": evo, "evc": evc, "checkLift_mm": CHECK},
+            "nIn": 1, "dIn": 0.0550, "liftIn": 0.01401, "nEx": 1, "dEx": 0.0404, "liftEx": 0.01333,
+            "cam": {"ivo": -19.0, "ivc": 43.0, "evo": 38.0, "evc": -7.0, "checkLift_mm": CHECK},
             "burn": {"start": 18, "dur": 55}, "afr": 12.8, "eta": 0.72}
 
 
