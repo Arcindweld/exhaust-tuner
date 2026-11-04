@@ -59,6 +59,7 @@ IN = 0.0254
 B, S, ROD = 4.040 * IN, 3.000 * IN, 5.090 * IN
 REC_JSON = os.path.join(HERE, "..", "recording_orders.json")
 CELL_MM = 15.0
+FLOOR_DB = -25.0
 
 
 def cr(chamber_cc=58.0, dome_cc=7.0, deck_in=0.010):
@@ -85,10 +86,14 @@ MUFFLERS = {
     "venom": [{"V_litres": 2.0, "note": "front chamber"}, seg(40, T=330),
               {"parallel": [[seg(280, 70.0, T=330)], [seg(280, 70.0, T=330)]], "note": "the two side passages around the V baffle"},
               seg(40, T=330), {"V_litres": 2.0, "note": "rear chamber"}],
+    # the same 6.5 L as a 1-D chamber with the case's length (356 mm; the oval's area as a 152 mm round): its
+    # length passes and stops frequencies as an expansion chamber does, which a 0-D volume cannot
+    "chamber": [seg(356, 152.0, T=330)],
+    "pipe": [seg(356, T=330)],
 }
 
 
-def build_spec(fo="ho", muffler="box"):
+def build_spec(fo="ho", muffler="box", exit_mm=600):
     e = {"bore": B, "stroke": S, "rod": ROD, "cr": round(cr(), 2), "cd": 0.7,
          "nIn": 1, "dIn": 2.02 * IN, "liftIn": 0.576 * IN, "nEx": 1, "dEx": 1.60 * IN, "liftEx": 0.576 * IN,
          "cam": {"ivo": 15, "ivc": 45, "evo": 59, "evc": 9, "checkLift_mm": 0.080 * 25.4},
@@ -97,7 +102,7 @@ def build_spec(fo="ho", muffler="box"):
     prim = [{"L": 0.762, "d0": dp, "d1": dp, "primary": True}]
     col_segs = [{"L": 0.15, "d0": 2 * dp, "d1": 0.073}, {"L": 0.15, "d0": 0.073, "d1": 0.073}, {"L": 0.10, "d0": 0.073, "d1": D25 / 1000}]
     to_x = [seg(1000, T=450)]
-    after = [seg(300, T=350)] + MUFFLERS[muffler] + [seg(600, T=250)]
+    after = [seg(300, T=350)] + MUFFLERS[muffler] + [seg(exit_mm, T=250)]
     return {
         "e": e,
         "intake": {"segs": [{"L": 0.28, "d0": 0.047, "d1": 0.047}], "Tw": 330},
@@ -112,7 +117,10 @@ def build_spec(fo="ho", muffler="box"):
 
 
 CASES = {"ho_box_5000": ("ho", "box", 5000.0), "ho_box_5800": ("ho", "box", 5800.0),
-         "std_box_5800": ("std", "box", 5800.0), "ho_venom_5800": ("ho", "venom", 5800.0)}
+         "std_box_5800": ("std", "box", 5800.0), "ho_venom_5800": ("ho", "venom", 5800.0),
+         "ho_chamber_5800": ("ho", "chamber", 5800.0), "ho_pipe_5800": ("ho", "pipe", 5800.0),
+         "ho_chamber_5000": ("ho", "chamber", 5000.0), "std_chamber_5800": ("std", "chamber", 5800.0),
+         "ho_chamber_exit300_5800": ("ho", "chamber", 5800.0, 300), "ho_box_exit300_5800": ("ho", "box", 5800.0, 300)}
 
 
 def run_settings(rpm, cycles, name):
@@ -121,8 +129,8 @@ def run_settings(rpm, cycles, name):
 
 
 def run_case(name):
-    fo, mu, rpm = CASES[name]
-    spec = build_spec(fo, mu)
+    fo, mu, rpm = CASES[name][:3]
+    spec = build_spec(fo, mu, *CASES[name][3:])
     run = run_settings(rpm, int(os.environ.get("NCYC", "30")), name)
     folder = os.path.join(HERE, "runs", name)
     os.makedirs(folder, exist_ok=True)
@@ -138,11 +146,11 @@ def sound(names):
     rec = json.load(open(REC_JSON))
     res = {}
     for name in names:
-        fo, mu, rpm = CASES[name]
+        fo, mu, rpm = CASES[name][:3]
         folder = os.path.join(HERE, "runs", name)
         if not os.path.exists(os.path.join(folder, name + "INS.DAT")):
             continue
-        model = make_wam.model_from_spec(build_spec(fo, mu), run_settings(rpm, 1, name))
+        model = make_wam.model_from_spec(build_spec(fo, mu, *CASES[name][3:]), run_settings(rpm, 1, name))
         txt = open(os.path.join(folder, name + "INS.DAT")).read()
         base = make_wam.read_ins(txt, keep_cycles=2, model=model)
         srcs = []
@@ -159,6 +167,12 @@ def sound(names):
                 meas = np.array([rv["orders_dB_rel"].get("%g" % o, np.nan) for o in O])
                 cm = order_compare.compare(meas, md, O, min_order=1.5, max_order=12.0)
                 res[name][vn]["vs"][rk] = round(float(cm["rms_delta_dB"]), 2)
+                # the recording's floor: every non-firing order sits near -20..-25 dB (road, wind and tyre noise and the
+                # speed change within each window), so below FLOOR_DB neither side says anything; both clipped there,
+                # each relative to its own strongest order, orders 1.5-12
+                k = (O >= 1.5) & (O <= 12.0) & np.isfinite(meas)
+                a = np.maximum(meas[k] - np.nanmax(meas[k]), FLOOR_DB); b = np.maximum(md[k] - md[k].max(), FLOOR_DB)
+                res[name][vn].setdefault("vs_floor", {})[rk] = round(float(np.sqrt(np.mean((a - b) ** 2))), 2)
         s = run_models.summarise(folder, name, model)
         res[name]["NMEP_bar"] = s["last"]["NMEP"]
         res[name]["finished"] = s["finished"]
@@ -166,7 +180,8 @@ def sound(names):
     O = ["%g" % o for o in np.arange(0.5, 12.01, 0.5)]
     for name, r in res.items():
         for vn in ("both_exits", "near_exit"):
-            print("%-14s %-10s RMS vs pulls %s" % (name, vn, " ".join("%5.1f" % v for v in r[vn]["vs"].values())))
+            print("%-24s %-10s RMS vs pulls %s | floored at %g dB %s" % (name, vn, " ".join("%5.1f" % v for v in r[vn]["vs"].values()),
+                  FLOOR_DB, " ".join("%5.1f" % v for v in r[vn]["vs_floor"].values())))
             print("   model ", " ".join("%4.0f" % r[vn]["model_dB_rel"][o] for o in O))
     rk = list(rec)[0]
     print("   record", " ".join("%4.0f" % rec[rk]["orders_dB_rel"][o] for o in O), "(%s)" % rk)
