@@ -29,6 +29,13 @@ gives no sizes and no frequency data, and no cutaway of a 3331 was found. Each t
 side resonator of a few hundred cm3; at exhaust temperature a trap that size behind a 15-20 mm slot tunes in the high
 hundreds of Hz, which is where the model is brightest. That is a likely mechanism, not a measured one.
 
+How much of it can the catalyst be? A 400 cpsi brick (6.5 mil walls: 1.10 mm channels, 76 % open) 100 mm long at
+300 C, by Kirchhoff's viscothermal attenuation in each channel (wide-tube form, (1/(r c)) sqrt(omega nu / 2)
+(1 + (gamma - 1)/sqrt(Pr)) Np/m), takes off 0.6 dB at 100 Hz, 0.8 at 200, 1.2 at 400, 1.6 at 800 and 2.3 at 1600 Hz:
+a tilt of about -0.5 dB per octave. Below a few hundred Hz the boundary layer (0.2-0.4 mm) is not thin against the
+0.55 mm channel radius, so the wide-tube form reads low there, but even doubled it stays near 1 dB per octave. The
+catalyst explains at most a small part of the -7; the Spintech, as an empty box, is the larger miss.
+
 The page's "Compare a recording" now reports this tilt and the RMS with it removed, for any build and recording.
 
 To close the gap with data rather than a fitted slope: the Spintech's inside (trap count, size, slot width; a borescope
