@@ -4682,13 +4682,19 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           const lmax = num(given(r.lift_table_max) ? r.lift_table_max : 0.015);
           const lifts = Array.from({ length: nlift }, (_, i) => lmax * i / (nlift - 1));
           vt = vtype({ kind: 'reed', model: 1, lp, step: lmax / (nlift - 1), cds: lifts.map(area), note: 'reed 1-D (no lift stop in OpenWAM), ' + desc });
+        } else if (model === '1d_stop') {
+          // our OpenWAM build only (openwam/patches/0001-reed-lift-stop.patch, TLamina model 2)
+          const stop = num(given(r.lift_stop) ? r.lift_stop : 0.010);
+          if (!(stop > 0.0)) throw new Error('intake.reed.lift_stop must be positive');
+          const lifts = Array.from({ length: nlift }, (_, i) => stop * i / (nlift - 1));
+          vt = vtype({ kind: 'reed', model: 2, lp, stop, step: stop / (nlift - 1), cds: lifts.map(area), note: 'reed 1-D with a ' + pctG(stop * 1e3) + ' mm lift stop (patched OpenWAM), ' + desc });
         } else if (model === '0d') {
           const stop = num(given(r.lift_stop) ? r.lift_stop : 0.010);
           const dpStop = stop * lp.k / lp.A / 1e5;
           const dps = Array.from({ length: nlift }, (_, i) => 1.5 * dpStop * i / (nlift - 1));
           vt = vtype({ kind: 'reed', model: 0, lp, step: dps[1], cds: dps.map(d => area(Math.min(stop, d * 1e5 * lp.A / lp.k))),
             note: 'reed quasi-steady 0-D: static lift dp*A/k, stop ' + pctG(stop * 1e3) + ' mm reached at ' + pctF(dpStop, 3) + ' bar, ' + desc });
-        } else throw new Error('intake.reed.model must be 0d or 1d');
+        } else throw new Error('intake.reed.model must be 0d, 1d or 1d_stop');
         bcs.set(ck, { type: 'plenum', plenum: nplCc, vt, note: 'cylinder ' + C + ' reed valve into the crankcase' });
         infoIn = { type: 'reed', lumped: lp };
       } else if (intake.type === 'port') {
@@ -4913,12 +4919,17 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           w.row([1, 0.0, 0], LA + ':158 model 1 = 1-D mass-spring-damper, reference diameter 0 = pipe end, 0 = opens when pipe p exceeds plenum p');
           w.row([pyRound(lp.m, 9), pyRound(lp.c, 9), pyRound(lp.k, 6), pyRound(lp.A, 9)],
             LA + ':186 mass kg, damping N s/m, stiffness N/m, pressure area m2 (lumped petals, reed_lumped)');
+        } else if (vt.model === 2) {
+          w.row([2, 0.0, 0], LA + ':158 model 2 = 1-D mass-spring-damper with a lift stop (patched build, openwam/patches/0001), ' +
+            'reference diameter 0 = pipe end, 0 = opens when pipe p exceeds plenum p');
+          w.row([pyRound(lp.m, 9), pyRound(lp.c, 9), pyRound(lp.k, 6), pyRound(lp.A, 9), pyRound(vt.stop, 9)],
+            LA + ':186 mass kg, damping N s/m, stiffness N/m, pressure area m2, lift stop m');
         } else {
           w.row([0, 0.0, 0], LA + ':158 model 0 = 0-D, CD from the pressure difference, closed (both CD 0) when it is negative, GetCDin :333-338, GetCDout :420-425; ' +
             'reference diameter 0 = pipe end; 0 = opens when pipe p exceeds plenum p');
         }
         w.row([vt.cds.length, vt.cds.length], LA + ':191 CD points inflow, outflow');
-        w.v(pyRound(vt.step, 9), LA + ':198 table step, ' + (vt.model === 1 ? 'lift m' : 'pressure difference bar'));
+        w.v(pyRound(vt.step, 9), LA + ':198 table step, ' + (vt.model === 1 || vt.model === 2 ? 'lift m' : 'pressure difference bar'));
         w.row([1.0, 1.0], LA + ':199 CD multipliers inflow, outflow');
         w.row(vt.cds, LA + ':202 CD pipe to plenum = Cd x min(perimeter x lift, block window) / pipe-end area');
         w.row(vt.cds, LA + ':206 CD plenum to pipe');
@@ -9703,9 +9714,9 @@ function twoWamSection(p,r){
   else h+=twInp('pet','Petals','num',d,1)+twInp('petL','Petal free length','len',d)+twInp('petW','Petal width','len',d)+twInp('petT','Petal thickness','len',d,0.01)+
     '<label class="f"><span class="lab">Petal material</span><span class="inp"><select class="twmat">'+Object.entries(TW_MAT).map(([k,m])=>'<option value="'+k+'"'+((TW_UI.v.mat||d.mat)===k?' selected':'')+'>'+m.name+'</option>').join('')+'</select></span></label>'+
     twInp('blk','Reed block window area (blank: 71% of the petals)','mm2',{blk:''})+
-    twSel('reedModel','Reed model',[['1d','Petal mass and spring (no lift stop)'],['0d','Quasi-steady, with a lift stop']])+(TW_UI.reedModel==='0d'?twInp('stop','Lift stop (tip opening)','len',d):'');
+    twSel('reedModel','Reed model',[['1d','Petal mass and spring (no lift stop)'],['1d_stop','Petal mass and spring, with a lift stop'],['0d','Quasi-steady, with a lift stop']])+(TW_UI.reedModel!=='1d'?twInp('stop','Lift stop (tip opening)','len',d):'');
   h+='</div>';
-  if(TW_UI.intake==='reed') h+='<p class="cap">OpenWAM’s moving reed has no stop, so it can open too far and close late; the quasi-steady reed with a stop opens to a lift set by the pressure across it, with no inertia. On both test engines the moving reed passed more air, so it is the default.</p>';
+  if(TW_UI.intake==='reed') h+='<p class="cap">OpenWAM’s own moving reed has no stop, so it can open too far and close late; the quasi-steady reed with a stop opens to a lift set by the pressure across it, with no inertia. The moving reed with a stop is the same petal held at the stop plate (no rebound) until the pressure lets it go: it needs the OpenWAM this program ships, which carries that one change (a stock OpenWAM 2.2 stops at “Seleccion Tipo de Lamina”). On the Maico test engine a 15 mm stop gives exactly the free petal’s numbers, as it never gets that far; a 4 mm one changes delivery and power. On both test engines the moving reed passed more air than the quasi-steady one, so it is the default.</p>';
   const rpms=twRpms(p);
   h+='<p class="sub">Runs</p><div class="grid2"><label class="f span2"><span class="lab">Engine speeds (RPM, separated by spaces)</span><span class="inp"><input class="twx" data-k="rpms" type="text" inputmode="numeric" value="'+esc(TW_UI.rpms||rpms.join(' '))+'"></span></label>'+
     '<label class="f"><span class="lab">Cycles per run</span><span class="inp"><input class="twx" data-k="cycles" type="number" step="1" min="5" max="200" value="'+TW_UI.cycles+'"></span></label>'+

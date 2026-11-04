@@ -1,0 +1,131 @@
+diff --git a/Source/Connections/TLamina.cpp b/Source/Connections/TLamina.cpp
+index 6da4f19..d20d04d 100644
+--- a/Source/Connections/TLamina.cpp
++++ b/Source/Connections/TLamina.cpp
+@@ -45,6 +45,7 @@ TLamina::TLamina() :
+ 	FLev1 = NULL;
+ 	FLev2 = NULL;
+ 	FLev3 = NULL;
++	FLevMax = 99999911.0e-3;
+ 	FTime0 = 0;
+ 	fun_CDin = NULL;
+ 	fun_CDout = NULL;
+@@ -79,8 +80,10 @@ TLamina::TLamina(TLamina *Origen, int Valvula) :
+ 	FLev1 = NULL;
+ 	FLev2 = NULL;
+ 	FLev3 = NULL;
++	FLevMax = 99999911.0e-3;
+ 
+ 	FTipoLamina = Origen->FTipoLamina;
++	FLevMax = Origen->FLevMax;
+ 	FSentidoLamina = Origen->FSentidoLamina;
+ 	FDiametroRef = Origen->FDiametroRef;
+ 	FNumeroOrden = Origen->FNumeroOrden;
+@@ -149,6 +152,7 @@ TLamina::TLamina(TLamina *Origen, int Valvula) :
+ void TLamina::LeeDatosIniciales(const char *FileWAM, fpos_t &filepos, int norden, bool HayMotor, TBloqueMotor *Engine) {
+ 	try {
+ 		int tipo = 0, sentido = 0;
++		bool tope = false;
+ 
+ 		FILE *fich = fopen(FileWAM, "r");
+ 		fsetpos(fich, &filepos);
+@@ -163,6 +167,12 @@ void TLamina::LeeDatosIniciales(const char *FileWAM, fpos_t &filepos, int norden
+ 		case 1:
+ 			FTipoLamina = nmLamina1D;
+ 			break;
++		case 2:
++			// 1-D with a lift stop: the lumped data, then the stop lift (m); at the stop the reed is held with no
++			// rebound (inelastic contact) until the net force takes it off again
++			FTipoLamina = nmLamina1D;
++			tope = true;
++			break;
+ 		case 3:
+ 			FTipoLamina = nmLamina2D;
+ 			break;
+@@ -184,6 +194,8 @@ void TLamina::LeeDatosIniciales(const char *FileWAM, fpos_t &filepos, int norden
+ 
+ 		if(FTipoLamina == nmLamina1D) {
+ 			fscanf(fich, "%lf %lf %lf %lf ", &FMasa, &FAmortiguamiento, &FRigidez, &FArea);
++			if(tope)
++				fscanf(fich, "%lf ", &FLevMax);
+ 		} else if(FTipoLamina == nmLamina2D) {
+ 			fscanf(fich, "%lf %lf %lf %lf %lf %d %lf %lf ", &FDensidad, &FAmortiguamiento, &FModuloYoung, &FAnchoPetalo, &FEspesor,
+ 				   &FNumPestanyas, &FLongitud, &FLongReal);
+@@ -245,8 +257,8 @@ void TLamina::CalculaCD(double deltaP, double ttotal) {
+ 			FLev = FLev + FdLev * deltaT + FddLev / 2 * pow2(deltaT);
+ 			FdLev = FdLev + FddLev * deltaT;
+ 
+-			if(FLev > 99999911.0e-3) {
+-				FLev = 99999911.0e-3;
++			if(FLev > FLevMax) {
++				FLev = FLevMax;
+ 				FdLev = 0.;
+ 			}
+ 			if(FLev > 0) {
+@@ -292,8 +304,8 @@ void TLamina::CalculaCD(double deltaP, double ttotal) {
+ 			}
+ 			FLev = FLev3[FNodosLamina + FNodosFijos + 1];
+ 
+-			if(FLev > 99999911.0e-3) {
+-				FLev = 99999911.0e-3;
++			if(FLev > FLevMax) {
++				FLev = FLevMax;
+ 				FdLev = 0.;
+ 			}
+ 			if(FLev > 0) {
+@@ -342,8 +354,8 @@ void TLamina::GetCDin(double Time) {
+ 		FLev = FLev + FdLev * deltaT + FddLev / 2 * pow2(deltaT);
+ 		FdLev = FdLev + FddLev * deltaT;
+ 
+-		if(FLev > 99999911.0e-3) {
+-			FLev = 99999911.0e-3;
++		if(FLev > FLevMax) {
++			FLev = FLevMax;
+ 			FdLev = 0.;
+ 		}
+ 		if(FLev > 0) {
+@@ -388,8 +400,8 @@ void TLamina::GetCDin(double Time) {
+ 		}
+ 		FLev = FLev3[FNodosLamina + FNodosFijos + 1];
+ 
+-		if(FLev > 99999911.0e-3) {
+-			FLev = 99999911.0e-3;
++		if(FLev > FLevMax) {
++			FLev = FLevMax;
+ 			FdLev = 0.;
+ 		}
+ 		if(FLev > 0) {
+@@ -429,8 +441,8 @@ void TLamina::GetCDout(double Time) {
+ 		FLev = FLev + FdLev * deltaT + FddLev / 2 * pow2(deltaT);
+ 		FdLev = FdLev + FddLev * deltaT;
+ 
+-		if(FLev > 99999911.0e-3) {
+-			FLev = 99999911.0e-3;
++		if(FLev > FLevMax) {
++			FLev = FLevMax;
+ 			FdLev = 0.;
+ 		}
+ 		if(FLev > 0) {
+@@ -474,8 +486,8 @@ void TLamina::GetCDout(double Time) {
+ 		}
+ 		FLev = FLev3[FNodosLamina + FNodosFijos + 1];
+ 
+-		if(FLev > 99999911.0e-3) {
+-			FLev = 99999911.0e-3;
++		if(FLev > FLevMax) {
++			FLev = FLevMax;
+ 			FdLev = 0.;
+ 		}
+ 		if(FLev > 0) {
+diff --git a/Source/Connections/TLamina.h b/Source/Connections/TLamina.h
+index 865537b..f411658 100644
+--- a/Source/Connections/TLamina.h
++++ b/Source/Connections/TLamina.h
+@@ -91,6 +91,7 @@ class TLamina: public TTipoValvula {
+ 	int FValvula;
+ 
+ 	double FLev;
++	double FLevMax; // lift stop, m (reed type 2 in the input; otherwise no stop, 99999911e-3 as before)
+ 	double FdLev;
+ 	double FddLev;
+ 

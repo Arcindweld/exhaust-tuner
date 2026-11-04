@@ -97,7 +97,8 @@ SPEC (SI units, angles in degrees; see example_125() in tests/test_2t.py)
                  [cd]}
   transfers: [{dur, width, r_top, r_bot, [height], [cd], duct: {L, d}}, ...]
   intake: {type: "reed", segs: [{L,d0,d1}] open end -> reed, Tw, reed: {petals, L, w, t, E, rho, zeta, cd, A_block,
-           [model "1d" | "0d"], [lift_stop m, 0d only], [lift_table_max m, 1d only]}}
+           [model "1d" | "1d_stop" | "0d"], [lift_stop m, 0d and 1d_stop], [lift_table_max m, 1d only]}}
+                (1d_stop needs our patched OpenWAM, openwam/patches/0001-reed-lift-stop.patch: TLamina model 2)
           {type: "port", segs, Tw, port: {open_btdc, width, r_top, r_bot, [height], [cd]}}
   exhaust: {segs: [{L,d0,d1}], Tw (K), [silencer: {V_m3, segs}]}
   run: name, rpm, cycles, cell_mm, courant, out_step_deg, closing_fix, ...
@@ -437,6 +438,15 @@ def model_from_spec(spec, run=None):
                 lifts = [lmax * i / (nlift - 1) for i in range(nlift)]
                 vt = vtype({"kind": "reed", "model": 1, "lp": lp, "step": lmax / (nlift - 1), "cds": [area(x) for x in lifts],
                             "note": "reed 1-D (no lift stop in OpenWAM), " + desc})
+            elif model == "1d_stop":
+                # our OpenWAM build only (openwam/patches/0001-reed-lift-stop.patch, TLamina model 2): the same petal
+                # dynamics, held at the stop with no rebound; the CD table runs to the stop
+                stop = float(r.get("lift_stop", 0.010))
+                if not (stop > 0.0):
+                    raise ValueError("intake.reed.lift_stop must be positive")
+                lifts = [stop * i / (nlift - 1) for i in range(nlift)]
+                vt = vtype({"kind": "reed", "model": 2, "lp": lp, "stop": stop, "step": stop / (nlift - 1), "cds": [area(x) for x in lifts],
+                            "note": "reed 1-D with a %g mm lift stop (patched OpenWAM), " % (stop * 1e3) + desc})
             elif model == "0d":
                 stop = float(r.get("lift_stop", 0.010))
                 dp_stop = stop * lp["k"] / lp["A"] / 1e5           # bar at which the static lift reaches the stop
@@ -444,7 +454,7 @@ def model_from_spec(spec, run=None):
                 vt = vtype({"kind": "reed", "model": 0, "lp": lp, "step": dps[1], "cds": [area(min(stop, d * 1e5 * lp["A"] / lp["k"])) for d in dps],
                             "note": "reed quasi-steady 0-D: static lift dp*A/k, stop %g mm reached at %.3f bar, " % (stop * 1e3, dp_stop) + desc})
             else:
-                raise ValueError("intake.reed.model must be 0d or 1d")
+                raise ValueError("intake.reed.model must be 0d, 1d or 1d_stop")
             bcs[ck] = {"type": "plenum", "plenum": npl_cc, "vt": vt, "note": "cylinder %d reed valve into the crankcase" % C}
             info_in = {"type": "reed", "lumped": lp}
         elif intake["type"] == "port":
@@ -689,11 +699,16 @@ def write_model(m):
                 w.row([1, 0.0, 0], LA + ":158 model 1 = 1-D mass-spring-damper, reference diameter 0 = pipe end, 0 = opens when pipe p exceeds plenum p")
                 w.row([round(lp["m"], 9), round(lp["c"], 9), round(lp["k"], 6), round(lp["A"], 9)],
                       LA + ":186 mass kg, damping N s/m, stiffness N/m, pressure area m2 (lumped petals, reed_lumped)")
+            elif vt["model"] == 2:
+                w.row([2, 0.0, 0], LA + ":158 model 2 = 1-D mass-spring-damper with a lift stop (patched build, openwam/patches/0001), "
+                      "reference diameter 0 = pipe end, 0 = opens when pipe p exceeds plenum p")
+                w.row([round(lp["m"], 9), round(lp["c"], 9), round(lp["k"], 6), round(lp["A"], 9), round(vt["stop"], 9)],
+                      LA + ":186 mass kg, damping N s/m, stiffness N/m, pressure area m2, lift stop m")
             else:
                 w.row([0, 0.0, 0], LA + ":158 model 0 = 0-D, CD from the pressure difference, closed (both CD 0) when it is negative, GetCDin :333-338, GetCDout :420-425; "
                       "reference diameter 0 = pipe end; 0 = opens when pipe p exceeds plenum p")
             w.row([len(vt["cds"]), len(vt["cds"])], LA + ":191 CD points inflow, outflow")
-            w.v(round(vt["step"], 9), LA + ":198 table step, " + ("lift m" if vt["model"] == 1 else "pressure difference bar"))
+            w.v(round(vt["step"], 9), LA + ":198 table step, " + ("lift m" if vt["model"] in (1, 2) else "pressure difference bar"))
             w.row([1.0, 1.0], LA + ":199 CD multipliers inflow, outflow")
             w.row(vt["cds"], LA + ":202 CD pipe to plenum = Cd x min(perimeter x lift, block window) / pipe-end area")
             w.row(vt["cds"], LA + ":206 CD plenum to pipe")

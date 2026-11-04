@@ -103,20 +103,28 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      # OpenWAM from CMT-UPV's own source, unchanged, built with MinGW-w64 (its CMake files are written for GCC), and
-      # only when the pinned commit is not in the cache yet: a build takes two runner minutes, a restore seconds
+      # OpenWAM from CMT-UPV's own source at the pinned commit with our patches (openwam/patches: 0001 the reed lift
+      # stop, TLamina model 2, which leaves every other input as it was), built with MinGW-w64 (its CMake files are
+      # written for GCC), and only when that commit and those patches are not in the cache yet: a build takes two
+      # runner minutes, a restore seconds
       - name: OpenWAM from the cache
         id: wam
         uses: actions/cache@v4
         with:
           path: engines/openwam
-          key: openwam-win-x64-${{ env.OPENWAM_COMMIT }}-mingw-static-v1
+          key: openwam-win-x64-${{ env.OPENWAM_COMMIT }}-${{ hashFiles('openwam/patches/*.patch') }}-mingw-static-v1
       - uses: actions/checkout@v4
         if: steps.wam.outputs.cache-hit != 'true'
         with:
           repository: CMT-UPV/OpenWAM
           ref: ${{ env.OPENWAM_COMMIT }}
           path: openwam-src
+      - name: Patch OpenWAM (cache miss)
+        if: steps.wam.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          for p in openwam/patches/*.patch; do echo "applying $p"; git -C openwam-src apply --ignore-whitespace --verbose "$GITHUB_WORKSPACE/$p"; done
+          grep -q FLevMax openwam-src/Source/Connections/TLamina.cpp
       - uses: msys2/setup-msys2@v2
         if: steps.wam.outputs.cache-hit != 'true'
         with:

@@ -67,6 +67,14 @@ function runOne(dir, name) {
   const files = await pg.evaluate(() => { const L = window.__tw.TW_UI.last, o = window.__tw.twFiles(L.p, L.r); return { names: o.files.map(f => f.name), wam: o.files[0].text, models: o.models.length }; });
   ok(files.models === 8 && files.names.includes('run_all.bat') && files.names.includes('README.txt') && files.names.includes('twostroke_straight_13000.wam'), '8 models (4 speeds, chamber and straight), run_all.bat and README');
   ok(/cycle type 1 = two-stroke nm2T/.test(files.wam) && /reed 1-D/.test(files.wam), 'a two-stroke .wam with the reed');
+  // the moving reed with a lift stop (our OpenWAM's TLamina model 2): the stop field appears and reaches the .wam
+  await pg.evaluate(() => { const s = document.querySelector('select.twsel[data-k="reedModel"]') || [...document.querySelectorAll('#two-details select')].find(x => [...x.options].some(o => o.value === '1d_stop'));
+    s.value = '1d_stop'; s.dispatchEvent(new Event('change', { bubbles: true })); }); await pg.waitForTimeout(300);
+  await pg.evaluate(() => { const el = document.querySelector('input.twam[data-k="stop"]'); el.value = '7.5'; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
+  const fs2 = await pg.evaluate(() => { const L = window.__tw.TW_UI.last, o = window.__tw.twFiles(L.p, L.r); return { wam: o.files[0].text, model: window.__tw.twSpec(L.p, L.r).spec.intake.reed }; });
+  ok(fs2.model.model === '1d_stop' && Math.abs(fs2.model.lift_stop - 0.0075) < 1e-12 && /model 2 = 1-D mass-spring-damper with a lift stop/.test(fs2.wam) && /reed 1-D with a 7\.5 mm lift stop/.test(fs2.wam),
+    'the moving reed with a 7.5 mm lift stop goes into the .wam as TLamina model 2');
+  await pg.evaluate(() => { const s = [...document.querySelectorAll('#two-details select')].find(x => [...x.options].some(o => o.value === '1d_stop')); s.value = '1d'; s.dispatchEvent(new Event('change', { bubbles: true })); }); await pg.waitForTimeout(300);
   if (!have) { console.log('skipped'); await b.close(); process.exit(0); }
   await pg.click('button[data-tw="run"]');
   const t0 = Date.now();

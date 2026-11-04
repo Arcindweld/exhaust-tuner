@@ -612,6 +612,14 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   nearest orders. Page: "In line on the pipe" on the line after the collector: the Mufflers tab's auger (centre tube +
   spiral as a round pipe of the channel's area; capped = spiral alone) or timbre tube bundle, at a distance from the
   collector; wamline_ui.js. Limits: no junction end allowance, no swirl or spiral friction beyond the pipe's own.
+- Reed lift stop in OpenWAM (2026-11-04, task 104): openwam/patches/0001-reed-lift-stop.patch (TLamina model 2 =
+  model 1 plus a lift stop in m; held at the stop, no rebound; the old 1e5 m cap is now FLevMax, unchanged for the
+  other models). CI applies openwam/patches/*.patch before the MinGW build (cache key includes their hash); the local
+  build in ext/OpenWAM is patched and rebuilt. Writers: intake.reed.model "1d_stop" (make_wam2t.py, wam2t_export.js,
+  page synced; test_py_js_2t.js 57 of 60 identical, the other 3 refused by both). 2-Stroke tab: "Petal mass and
+  spring, with a lift stop" (two_wam_ui.js). Checked on the Maico 490 (30 cycles): a 15 mm stop gives model 1's
+  numbers exactly (31.0 hp at 6500, 27.6 at 8000), 6 mm the same, 4 mm 30.0 / 20.1 hp (8000 not settled: NMEP spread
+  37 %), 2 mm 28.8 / 26.1 hp: the model's free petal opens between 4 and 6 mm. A stock OpenWAM 2.2 rejects model 2.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

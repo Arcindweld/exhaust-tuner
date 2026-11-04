@@ -270,13 +270,19 @@
           const lmax = num(given(r.lift_table_max) ? r.lift_table_max : 0.015);
           const lifts = Array.from({ length: nlift }, (_, i) => lmax * i / (nlift - 1));
           vt = vtype({ kind: 'reed', model: 1, lp, step: lmax / (nlift - 1), cds: lifts.map(area), note: 'reed 1-D (no lift stop in OpenWAM), ' + desc });
+        } else if (model === '1d_stop') {
+          // our OpenWAM build only (openwam/patches/0001-reed-lift-stop.patch, TLamina model 2)
+          const stop = num(given(r.lift_stop) ? r.lift_stop : 0.010);
+          if (!(stop > 0.0)) throw new Error('intake.reed.lift_stop must be positive');
+          const lifts = Array.from({ length: nlift }, (_, i) => stop * i / (nlift - 1));
+          vt = vtype({ kind: 'reed', model: 2, lp, stop, step: stop / (nlift - 1), cds: lifts.map(area), note: 'reed 1-D with a ' + pctG(stop * 1e3) + ' mm lift stop (patched OpenWAM), ' + desc });
         } else if (model === '0d') {
           const stop = num(given(r.lift_stop) ? r.lift_stop : 0.010);
           const dpStop = stop * lp.k / lp.A / 1e5;
           const dps = Array.from({ length: nlift }, (_, i) => 1.5 * dpStop * i / (nlift - 1));
           vt = vtype({ kind: 'reed', model: 0, lp, step: dps[1], cds: dps.map(d => area(Math.min(stop, d * 1e5 * lp.A / lp.k))),
             note: 'reed quasi-steady 0-D: static lift dp*A/k, stop ' + pctG(stop * 1e3) + ' mm reached at ' + pctF(dpStop, 3) + ' bar, ' + desc });
-        } else throw new Error('intake.reed.model must be 0d or 1d');
+        } else throw new Error('intake.reed.model must be 0d, 1d or 1d_stop');
         bcs.set(ck, { type: 'plenum', plenum: nplCc, vt, note: 'cylinder ' + C + ' reed valve into the crankcase' });
         infoIn = { type: 'reed', lumped: lp };
       } else if (intake.type === 'port') {
@@ -501,12 +507,17 @@
           w.row([1, 0.0, 0], LA + ':158 model 1 = 1-D mass-spring-damper, reference diameter 0 = pipe end, 0 = opens when pipe p exceeds plenum p');
           w.row([pyRound(lp.m, 9), pyRound(lp.c, 9), pyRound(lp.k, 6), pyRound(lp.A, 9)],
             LA + ':186 mass kg, damping N s/m, stiffness N/m, pressure area m2 (lumped petals, reed_lumped)');
+        } else if (vt.model === 2) {
+          w.row([2, 0.0, 0], LA + ':158 model 2 = 1-D mass-spring-damper with a lift stop (patched build, openwam/patches/0001), ' +
+            'reference diameter 0 = pipe end, 0 = opens when pipe p exceeds plenum p');
+          w.row([pyRound(lp.m, 9), pyRound(lp.c, 9), pyRound(lp.k, 6), pyRound(lp.A, 9), pyRound(vt.stop, 9)],
+            LA + ':186 mass kg, damping N s/m, stiffness N/m, pressure area m2, lift stop m');
         } else {
           w.row([0, 0.0, 0], LA + ':158 model 0 = 0-D, CD from the pressure difference, closed (both CD 0) when it is negative, GetCDin :333-338, GetCDout :420-425; ' +
             'reference diameter 0 = pipe end; 0 = opens when pipe p exceeds plenum p');
         }
         w.row([vt.cds.length, vt.cds.length], LA + ':191 CD points inflow, outflow');
-        w.v(pyRound(vt.step, 9), LA + ':198 table step, ' + (vt.model === 1 ? 'lift m' : 'pressure difference bar'));
+        w.v(pyRound(vt.step, 9), LA + ':198 table step, ' + (vt.model === 1 || vt.model === 2 ? 'lift m' : 'pressure difference bar'));
         w.row([1.0, 1.0], LA + ':199 CD multipliers inflow, outflow');
         w.row(vt.cds, LA + ':202 CD pipe to plenum = Cd x min(perimeter x lift, block window) / pipe-end area');
         w.row(vt.cds, LA + ':206 CD plenum to pipe');

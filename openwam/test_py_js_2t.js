@@ -48,6 +48,10 @@ add('maico', sMaico, { rpm: 6500.0, name: 'maico' });
 add('maico no closing fix', sMaico, { rpm: 5000.0, closing_fix: 0, name: 'b' });
 { const s = clone(s125); s.intake = { type: 'port', segs: s.intake.segs, Tw: 318.15, port: { open_btdc: 75.0, width: 0.04, r_top: 0.005, r_bot: 0.004, cd: 0.62 } }; add('125 piston port', s, { rpm: 10000.0, name: 'pp' }); }
 { const s = clone(s125); s.intake.reed.model = '0d'; s.intake.reed.lift_stop = 0.009; add('125 0-D reed', s, { rpm: 12000.0, name: 'r0' }); }
+{ const s = clone(s125); s.intake.reed.model = '1d_stop'; s.intake.reed.lift_stop = 0.0075; add('125 1-D reed with a lift stop', s, { rpm: 11500.0, name: 'rs' }); }
+{ const s = clone(s125); s.intake.reed.model = '1d_stop'; add('125 1-D reed, default stop', s, { rpm: 9000.0, name: 'rs2' }); }
+{ const s = clone(s125); s.intake.reed.model = '1d_stop'; s.intake.reed.lift_stop = 0; add('error: a zero lift stop', s, { rpm: 9000.0, name: 'rs3' }); }
+{ const s = clone(s125); s.intake.reed.model = '2d'; add('error: an unknown reed model', s, { rpm: 9000.0, name: 'rs4' }); }
 { const s = clone(s125); s.exhaust.silencer = { V_m3: 0.0025, segs: [{ L: 0.15, d0: 0.024, d1: 0.024 }, { L: 0.1, d0: 0.03, d1: 0.03 }] }; add('125 silencer', s, { rpm: 11000.0, name: 'sil' }); }
 { const s = clone(s125); s.e.ncyl = 2; add('twin 180', s, { rpm: 11000.0, name: 'twin' }); }
 { const s = clone(s125); s.e.ncyl = 2; s.e.phases = [0.0, -90.0]; add('twin phases', s, { rpm: 9000.0, name: 'tw2' }); }
@@ -77,6 +81,7 @@ for (let i = 0; i < 40; i++) {
   base.exhaust.Tw = U(600, 800);
   base.intake.reed.petals = 2 + Math.floor(U(0, 6)); base.intake.reed.t = U(0.0003, 0.0007);
   if (i % 5 === 0) base.intake.reed.model = '0d';
+  if (i % 5 === 3) { base.intake.reed.model = '1d_stop'; base.intake.reed.lift_stop = U(0.004, 0.012); }
   if (i % 7 === 0) { base.e.ncyl = 2 + (i % 3); }
   add('random ' + i, base, { rpm: Math.round(U(4000, 13000)), cycles: 20 + (i % 15), cell_mm: U(5, 10), name: 'r' + i, courant: U(0.6, 0.9) });
 }
