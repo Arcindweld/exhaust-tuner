@@ -1,0 +1,4159 @@
+{
+ "retrieved": "2026-11-03",
+ "entries": [
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-150200180",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/112/1-1/2-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-150250180",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 2-1/2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/113/1-1/2-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-150300180",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 3\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/114/1-1/2-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-150400180",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 4\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/115/1-1/2-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-163200180",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/222/1-5/8-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-163250180",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 2-1/2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-1-5-8-on-a-2-1-2-clr-180.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-163300180",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 3\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/118/1-5/8-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-163400180",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 4\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/474/1-5/8-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-175200180",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/119/1-3/4-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-175250180",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 2-1/2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/120/1-3/4-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-175300180",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 3\" CLR - 180",
+   "url": "https://www.jmdtubes.com/products/121/1-3/4-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-175400180",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 4\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/123/1-3/4-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-175600180",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 6\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/124/1-3/4-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-188200180",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/274/1-7/8-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/1-7/8-diameter-tube-159"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-188300180",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 3\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/125/1-7/8-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/1-7/8-diameter-tube-159"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-188400180",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 4\" CLR - 180",
+   "url": "https://www.jmdtubes.com/1-7/8-x-4-clr-ss-.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/1-7/8-diameter-tube-159"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-188600180",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 6\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-7/8-x-6-clr-ss-1178.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/1-7/8-diameter-tube-159"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-200200180",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on 2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/2-x-2-clr-ss-180.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-200300180",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 3\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/126/2-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-200400180",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 4\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/134/2-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 5.0,
+   "clr_text": "5\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-200500180",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 5\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-2-on-a-5-clr-180.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-200600180",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 6\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/135/2-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.125,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-213300180",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/8\" on a 3\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/137/2-1/8-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.25,
+   "clr_text": "2-1/4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-225225180",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 2-1/4\" CLR - 180",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-2-1-4-on-a-2-1-4-clr-180.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-225300180",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 3\" CLR - 180",
+   "url": "https://www.jmdtubes.com/products/138/2-1/4-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-225400180",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 4\" CLR - 180",
+   "url": "https://www.jmdtubes.com/products/139/2-1/4-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-250250180",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 2-1/2\" CLR - 180",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-2-1-2-on-a-2-1-2-clr-180.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-250300180",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 3\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/141/2-1/2-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-250400180",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 4\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/142/2-1/2-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-250600180",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 6\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/374/2-1/2-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-300400180",
+   "title": "Mandrel Bend - Stainless Steel - 3\" OD on a 4\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-3-od-on-a-4-clr-180.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.5,
+   "clr_text": "4-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-300450180",
+   "title": "Mandrel Bend - Stainless Steel - 3\" OD on a 4-1/2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-3-od-on-a-4-1-2-clr-180.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 5.0,
+   "clr_text": "5\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-300500180",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 5\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-3-on-a-5-clr-180.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-300600180",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 6\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/147/3-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.5,
+   "clr_text": "4-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-350450180",
+   "title": "Mandrel Bend - Stainless Steel - 3-1/2\" on a 4-1/2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/148/3-1/2-X-4-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 4.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 5.5,
+   "clr_text": "5-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-400550180",
+   "title": "Mandrel Bend - Stainless Steel - 4\" on a 5-1/2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/149/4-X-5-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-15020090",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/199/1-1/2-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-15025090",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 2-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/204/1-1/2-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-15030090",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/210/1-1/2-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-15040090",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-1/2-x-4-clr-90-degree.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-16320090",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/468/1-5/8-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-16325090",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 2-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/225/1-5/8-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-16330090",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/231/1-5/8-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-16340090",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/477/1-5/8-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17520090",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/237/1-3/4-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17525090",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 2-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/243/1-3/4-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17530090",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/249/1-3/4-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17540090",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/263/1-3/4-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17560090",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 6\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/269/1-3/4-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-18820090",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/277/1-7/8-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-18830090",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/283/1-7/8-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-18840090",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/1-7/8-x-4-clr-ss-90-.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-18860090",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 6\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-7/8-x-6-clr-90-degree-.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-20020090",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/292/2-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-20030090",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/298/2-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-20040090",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/304/2-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/2-diameter-tube-213"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 5.0,
+   "clr_text": "5\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-20050090",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 5\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-2-on-a-5-clr-90.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/2-diameter-tube-213"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-20060090",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 6\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/310/2-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/2-diameter-tube-213"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.125,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-21330090",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/8\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/322/2-1/8-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.25,
+   "clr_text": "2-1/4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-22522590",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 2-1/4\" CLR - 90",
+   "url": "https://www.jmdtubes.com/products/331/2-1/4-X-2-1/4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-22530090",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 3\" CLR - 90",
+   "url": "https://www.jmdtubes.com/products/337/2-1/4-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-22540090",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 4\" CLR - 90",
+   "url": "https://www.jmdtubes.com/products/343/2-1/4-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-25025090",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 2-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/358/2-1/2-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-25030090",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/364/2-1/2-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-25040090",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/370/2-1/2-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-25060090",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 6\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/377/2-1/2-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30030090",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/407/3-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30040090",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/413/3-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.5,
+   "clr_text": "4-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30045090",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 4-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/419/3-X-4-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 5.0,
+   "clr_text": "5\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30050090",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 5\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-3-on-a-5-clr-90.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30060090",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 6\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/425/3-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.5,
+   "clr_text": "3-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-35035090",
+   "title": "Mandrel Bend - Stainless Steel - 3-1/2\" on a 3-1/2\" CLR - 90",
+   "url": "https://www.jmdtubes.com/products/435/3-1/2-X-3-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.5,
+   "clr_text": "4-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-35045090",
+   "title": "Mandrel Bend - Stainless Steel - 3-1/2\" on a 4-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/441/3-1/2-X-4-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 4.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-40040090",
+   "title": "Mandrel Bend - Stainless Steel - 4\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/450/4-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 4.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 5.5,
+   "clr_text": "5-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-40055090",
+   "title": "Mandrel Bend - Stainless Steel - 4\" on a 5-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/456/4-X-5-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/90-bends-185"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-15020045",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/201/1-1/2-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-15025045",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 2-1/2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/207/1-1/2-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-15030045",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 3\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/213/1-1/2-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-15040045",
+   "title": "Mandrel Bend - Stainless Steel - 1-1/2\" on a 4\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-1/2-x-4-clr-ss-.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-16320045",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/471/1-5/8-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-16325045",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 2-1/2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/228/1-5/8-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-16330045",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 3\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/234/1-5/8-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-16340045",
+   "title": "Mandrel Bend - Stainless Steel - 1-5/8\" on a 4\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/480/1-5/8-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17520045",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/240/1-3/4-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17525045",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 2-1/2\" CLR - 45",
+   "url": "https://www.jmdtubes.com/products/246/1-3/4-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17530045",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 3\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/252/1-3/4-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17540045",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 4\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/266/1-3/4-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-17560045",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 6\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/272/1-3/4-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-18820045",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/280/1-7/8-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-18830045",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 3\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/286/1-7/8-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-18840045",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 4\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/1-7/8-x-4-clr-ss-1067.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-18860045",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 6\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-7/8-x-6-clr-ss-.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-20020045",
+   "title": "Mandrel Bend - Stainless Steel - 2\" on a 2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/295/2-X-2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.125,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-21330045",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/8\" on a 3\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/325/2-1/8-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.25,
+   "clr_text": "2-1/4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-22522545",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 2-1/4\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/334/2-1/4-X-2-1/4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-22530045",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 3\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/340/2-1/4-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-22540045",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 4\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/346/2-1/4-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-25025045",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 2-1/2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/361/2-1/2-X-2-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-25030045",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 3\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/367/2-1/2-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-25040045",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 4\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/373/2-1/2-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-25060045",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/2\" on a 6\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/380/2-1/2-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30030045",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 3\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/410/3-X-3-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30040045",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 4\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/416/3-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.5,
+   "clr_text": "4-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30045045",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 4-1/2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/422/3-X-4-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 5.0,
+   "clr_text": "5\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30050045",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 5\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-3-on-a-5-clr-45.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-30060045",
+   "title": "Mandrel Bend - Stainless Steel - 3\" on a 6\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/429/3-X-6-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.5,
+   "clr_text": "3-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-35035045",
+   "title": "Mandrel Bend - Stainless Steel - 3-1/2\" on a 3-1/2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/438/3-1/2-X-3-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.5,
+   "clr_text": "4-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-35045045",
+   "title": "Mandrel Bend - Stainless Steel - 3-1/2\" on a 4-1/2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/444/3-1/2-X-4-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 4.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-40040045",
+   "title": "Mandrel Bend - Stainless Steel - 4\" on a 4\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/453/4-X-4-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 4.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 5.5,
+   "clr_text": "5-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-SS-40055045",
+   "title": "Mandrel Bend - Stainless Steel - 4\" on a 5-1/2\" CLR - 45°",
+   "url": "https://www.jmdtubes.com/products/459/4-X-5-1/2-CLR-SS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/45-bends-170"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-175200",
+   "title": "Mandrel Bend - Stainless Steel - 1-3/4\" on a 2\" CLR - 180° w/ Attached 45°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-3/4-on-a-2-clr-uj-pipe.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": null,
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-175250",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-3/4-on-a-2-1/2-clr-uj-pipe-.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-175300",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-3/4-on-a-3-clr-uj-pipe-.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-175400",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-3/4-on-a-4-clr-uj-pipe-.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-188200",
+   "title": "Mandrel Bend - Stainless Steel - 1-7/8\" on a 2\" CLR - 180° w/ Attached 45°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-7/8-on-a-2-clr-uj-pipe-.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": null,
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-188300",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-1-7/8-on-a-3-clr-uj-pipe.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-188400",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-1-7-8-on-a-4-clr-180-w-attached-45.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-200300",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-2-on-a-3-clr-uj-pipe.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-200400",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-2-on-a-4-clr-uj-pipe.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.125,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-213300",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-2-1-8-on-a-3-clr-180-w-attached-45.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-225300",
+   "title": "Mandrel Bend - Stainless Steel - 2-1/4\" on a 3\" CLR - U Bend w/ Attached 45",
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-225-on-a-3-clr-uj-pipe.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": null,
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-225400",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-2-1-4-on-a-4-clr-u-bend-w-attached-45.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-250300",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-2-1/2-on-a-3-clr-uj-pipe.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-250400",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-2-1/2-on-a-4-clr-uj-pipe.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-300400",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-3-on-a-4-clr-uj-pipe.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 4.5,
+   "clr_text": "4-1/2\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-350450",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-steel-3-1-2-on-a-4-1-2-clr-u-bend-w-attached-45.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 4.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + attached 45)",
+   "clr": 5.5,
+   "clr_text": "5-1/2\" CLR",
+   "legs": [
+    6,
+    12,
+    6
+   ],
+   "pn": "UJP-SS-400550",
+   "title": null,
+   "url": "https://www.jmdtubes.com/mandrel-bend-stainless-4-on-a-550-clr-uj-pipe.aspx",
+   "legs_note": "A 6 / B 12 / C 6",
+   "title_note": "exact title not captured; listing shows OD/CLR/SKU only",
+   "seen_on": "https://www.jmdtubes.com/u-j-pipes.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": null,
+   "material": "titanium (grade not listed)",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": null,
+   "pn": "MB-Ti-15030090",
+   "title": "Mandrel Bend - Titanium - 1-1/2\" OD on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-titanium-1-1-2-od-on-a-3-clr-90.aspx",
+   "seen_on": "https://www.jmdtubes.com/90.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": null,
+   "material": "titanium (grade not listed)",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": null,
+   "pn": "MB-Ti-17530090",
+   "title": "Mandrel Bend - Titanium - 1-3/4\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-titanium-1-3-4-on-a-3-clr-90.aspx",
+   "seen_on": "https://www.jmdtubes.com/90.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "wall": null,
+   "material": "titanium (grade not listed)",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": null,
+   "pn": "MB-Ti-20030090",
+   "title": "Mandrel Bend - Titanium - 2\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-titanium-2-on-a-3-clr-90.aspx",
+   "seen_on": "https://www.jmdtubes.com/90.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "wall": null,
+   "material": "titanium (grade not listed)",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": null,
+   "pn": "MB-Ti-25030090",
+   "title": "Mandrel Bend - Titanium - 2-1/2\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-titanium-2-1-2-on-a-3-clr-90.aspx",
+   "seen_on": "https://www.jmdtubes.com/90.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "wall": null,
+   "material": "titanium (grade not listed)",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": null,
+   "pn": "MB-Ti-30040090",
+   "title": "Mandrel Bend - Titanium - 3\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-titanium-3-on-a-4-clr-90.aspx",
+   "seen_on": "https://www.jmdtubes.com/90.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.5,
+   "wall": null,
+   "material": "titanium (grade not listed)",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.5,
+   "clr_text": "4-1/2\" CLR",
+   "legs": null,
+   "pn": "MB-Ti-35045090",
+   "title": "Mandrel Bend - Titanium - 3-1/2\" on a 4-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-titanium-3-1-2-on-a-4-1-2-clr-90.aspx",
+   "seen_on": "https://www.jmdtubes.com/90.aspx"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-150400180",
+   "title": "Mandrel Bend - Mild Steel - 1-1/2\" on a 4\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/mandrel-bend-mild-1-1/2-x-4-clr-ms.aspx",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-150200180",
+   "title": "Mandrel Bend - Mild Steel - 1-1/2\" on a 2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/73/1-1/2-X-2-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-15020090",
+   "title": "Mandrel Bend - Mild Steel - 1-1/2\" on a 2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/198/1-1/2-X-2-CLR-MS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-150250180",
+   "title": "Mandrel Bend - Mild Steel - 1-1/2\" on a 2-1/2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/74/1-1/2-X-2-1/2-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-150300180",
+   "title": "Mandrel Bend - Mild Steel - 1-1/2\" on a 3\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/75/1-1/2-X-3-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-175200180",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/80/1-3/4-X-2-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-17520090",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/236/1-3/4-X-2-CLR-MS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-175250180",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 2-1/2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/81/1-3/4-X-2-1/2-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-17525090",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 2-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/242/1-3/4-X-2-1/2-CLR-MS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-175300180",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 3\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/82/1-3/4-X-3-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-17530090",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 3\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/248/1-3/4-X-3-CLR-MS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-175400180",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 4\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/84/1-3/4-X-4-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-17540090",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 4\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/262/1-3/4-X-4-CLR-MS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-175600180",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 6\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/85/1-3/4-X-6-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 6.0,
+   "clr_text": "6\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-17560090",
+   "title": "Mandrel Bend - Mild Steel - 1-3/4\" on a 6\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/268/1-3/4-X-6-CLR-MS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-163200180",
+   "title": "Mandrel Bend - Mild Steel - 1-5/8\" on a 2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/77/1-5/8-X-2-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-16320090",
+   "title": "Mandrel Bend - Mild Steel - 1-5/8\" on a 2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/467/1-5/8-X-2-CLR-MS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-163250180",
+   "title": "Mandrel Bend - Mild Steel - 1-5/8\" on a 2-1/2\" CLR - 180°",
+   "url": "https://www.jmdtubes.com/products/78/1-5/8-X-2-1/2-CLR",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "mild steel",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.5,
+   "clr_text": "2-1/2\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "MB-MS-16325090",
+   "title": "Mandrel Bend - Mild Steel - 1-5/8\" on a 2-1/2\" CLR - 90°",
+   "url": "https://www.jmdtubes.com/products/224/1-5/8-X-2-1/2-CLR-MS",
+   "legs_note": "listed as ≈ 6\" (approximate)",
+   "seen_on": "https://www.jmdtubes.com/mild-steel-bends"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 1.5,
+   "clr_text": "1.500\"",
+   "legs": [
+    4,
+    4
+   ],
+   "pn": "2620",
+   "title": "Vibrant Performance 1.5\"O.D. 304 Stainless Steel 180° Mandrel Bend - 1.5in Centerline Radius (2620)",
+   "url": "https://maperformance.com/products/vibrant-1-5in-o-d-t304-ss-u-bend-1-5in-centerline-radius-2620"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.375,
+   "clr_text": "2.375in Centerline Radius",
+   "legs": null,
+   "pn": "2694",
+   "title": "Vibrant 1.5in O.D. T304 SS U-Bend (2.375in Centerline Radius)",
+   "url": "https://www.autobarn.net/products/vibrant-vibrant-1-5in-o-d-t304-ss-u-bend-2-375in-centerline-radius-t14-4311429",
+   "doubt": "wall given as 16 gauge only"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.5,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2 in. CLR",
+   "legs": null,
+   "pn": "18182",
+   "title": "Vibrant Performance - 18182 - 180 Degree Mandrel Bend, 1.50 in. O.D. x 2 in. CLR",
+   "url": "https://jbspowercentre.com/products/bhsr-18182"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.5,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2 inches CLR",
+   "legs": null,
+   "pn": "18184",
+   "title": "VIB Tubing - T304SS Round - 18184",
+   "url": "https://eurosporttuning.com/vib-tubing-t304ss-round-18184/",
+   "doubt": "two retailers list 18184 with the same 1.50 x 2in CLR spec as 18182; one of them is probably mis-described (Vibrant's 180 table lists a 1.5 x 4in CLR size) - confirm before ordering"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.5,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3\" CLR",
+   "legs": null,
+   "pn": "18183",
+   "title": "Vibrant 180 Degree Mandrel Bend 1.50\" OD x 3\" CLR 304 Stainless Steel Tubing - 18183",
+   "url": "https://nipponpower.com/products/vibrant-180-degree-mandrel-bend-1-50in-od-x-3in-clr-304-stainless-steel-tubing.oembed"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.5,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 6.0,
+   "clr_text": "6in CLR",
+   "legs": null,
+   "pn": "18186",
+   "title": "Vibrant 180 Degree Mandrel Bend 1.50in OD x 6in CLR 304 Stainless Steel Tubing",
+   "url": "https://fidanza.com/vibrant-180-degree-mandrel-bend-2in-od-x-6in-clr-304-stainless-steel-tubing-18786",
+   "doubt": "seen in a product grid on this Fidanza page, not on its own page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 3.0,
+   "clr_text": "Radius (R) 3.00\"",
+   "legs": [
+    4,
+    7,
+    10
+   ],
+   "pn": "2601",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.5,
+   "wall": 0.049,
+   "material": "321 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.25,
+   "clr_text": "2.25\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "13820",
+   "title": "Vibrant 180 Degree Stainless Steel Mandrel Bend Piping, 1.50\" O.D. x 2.25\" CLR - 18 Gauge Wall Thickness - 13820",
+   "url": "https://nipponpower.com/products/vibrant-180-degree-stainless-steel-mandrel-bend-piping-1-50-o-d-x-2-25-clr-18-gauge-wall-thickness-13820.oembed",
+   "doubt": "listed as 18 gauge; .049 is the nominal 18 ga wall, not stated in inches"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.625,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 1.625,
+   "clr_text": "1.625 in. CLR",
+   "legs": null,
+   "pn": "2621",
+   "title": "Vibrant Performance - 2621 - 180 Degree Mandrel Bend 1.625 in. O.D. x 1.625 in. CLR",
+   "url": "https://milkymotorsports.com/products/vibrant-performance-2621-180-degree-mandrel-bend-1-625-in-o-d-x-1-625-in-clr"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.625,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2in CLR",
+   "legs": null,
+   "pn": "18282",
+   "title": "Vibrant 18282 180 Degree Mandrel Bend 1.625in OD x 2in CLR 304 SS Tubing",
+   "url": "https://performancemods.com/products/vibrant-180-degree-mandrel-bend-1-625in-od-x-2in-clr-304-stainless-steel-tubing-1"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.625,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4\" CLR",
+   "legs": null,
+   "pn": "18284",
+   "title": "Vibrant 180 Degree Mandrel Bend 1.625\" OD x 4\" CLR 304 Stainless Steel Tubing - 18284",
+   "url": "https://nipponpower.com/products/vibrant-180-degree-mandrel-bend-1-625in-od-x-4in-clr-304-stainless-steel-tubing.oembed"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.625,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 1.625,
+   "clr_text": "1.625in Centerline Radius",
+   "legs": [
+    4,
+    12
+   ],
+   "pn": "13033",
+   "title": "Vibrant 1.625in O.D. T304 SS 90 deg Mandrel Bend 4in x 12in leg lengths (1.625in Centerline Radius)",
+   "url": "https://fidanza.com/vibrant-1-625in-1-5-8in-o-d-t304-ss-u-bend-1-625in-centerline-radius-2621",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.625,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4in CLR",
+   "legs": null,
+   "pn": "18294",
+   "title": "Vibrant 90 Degree Mandrel Bend 1.625in OD x 4in CLR 304 Stainless Steel Tubing",
+   "url": "https://fidanza.com/vibrant-90-degree-mandrel-bend-1-625in-od-x-2in-clr-304-stainless-steel-tubing-18292",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.63,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 2.25,
+   "clr_text": "Radius (R) 2.25\"",
+   "legs": [
+    4.5,
+    8,
+    9
+   ],
+   "pn": "2602",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.63,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 2.5,
+   "clr_text": "Radius (R) 2.50\"",
+   "legs": [
+    4.5,
+    8,
+    9
+   ],
+   "pn": "26020",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 1.75,
+   "clr_text": "1.750 in.",
+   "legs": [
+    5,
+    5
+   ],
+   "pn": "2622",
+   "title": "Vibrant Performance 2622 - Stainless Tubing; 1.75 in./44.5mm O.D. Tight Radius 180 Degree U-Bend;",
+   "url": "https://www.finditparts.com/products/10484821/vibrant-performance-2622",
+   "doubt": "wall given as 16 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.5,
+   "clr_text": "2.5in Centerline Radius",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "2699",
+   "title": "Vibrant 1.75in O.D. T304 SS 180 Degree U-Bend - 2.5in Centerline Radius (2699)",
+   "url": "https://maperformance.com/products/vibrant-1-75in-o-d-t304-ss-180-degree-u-bend-2-5in-centerline-radius-2699",
+   "doubt": "retailer feature list also says 'Aluminized Steel', conflicting with title"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.625,
+   "clr_text": "2.625in Centerline Radius",
+   "legs": null,
+   "pn": null,
+   "title": "Vibrant 1.75in O.D. T304 SS U-Bend (2.625in Centerline Radius)",
+   "url": "https://jp3motorsports.com/products/vibrant-1-75in-o-d-t304-ss-u-bend-2-625in-centerline-radius",
+   "doubt": "part number not shown on page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.5,
+   "clr_text": "3.5 in. CLR",
+   "legs": null,
+   "pn": "18383",
+   "title": "Vibrant Performance - 18383 - 180 Degree Mandrel Bend, 1.75 in. O.D. x 3.5 in. CLR",
+   "url": "https://jbspowercentre.com/products/bhsr-18383"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4in CLR",
+   "legs": null,
+   "pn": "18384",
+   "title": "Vibrant 180 Degree Mandrel Bend 1.75in OD x 4in CLR 304 Stainless Steel Tubing - 18384",
+   "url": "https://fidanza.com/vibrant-180-degree-mandrel-bend-1-75in-od-x-2in-clr-304-stainless-steel-tubing-18382",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 6.0,
+   "clr_text": "6in CLR",
+   "legs": null,
+   "pn": "18386",
+   "title": "Vibrant 180 Degree Mandrel Bend 1.75in OD x 6in CLR 304 Stainless Steel Tubing - 18386",
+   "url": "https://fidanza.com/vibrant-180-degree-mandrel-bend-1-75in-od-x-2in-clr-304-stainless-steel-tubing-18382",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": 0.049,
+   "material": "321 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.625,
+   "clr_text": "2.625\" CLR",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "13822",
+   "title": "Vibrant 180 Degree Stainless Steel Mandrel Bend Piping, 1.75\" O.D. x 2.625\" CLR - 18 Gauge Wall Thickness - 13822",
+   "url": "https://nipponpower.com/products/vibrant-180-degree-stainless-steel-mandrel-bend-piping-1-75-o-d-x-2-625-clr-18-gauge-wall-thickness-13822.oembed",
+   "doubt": "listed as 18 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 1.75,
+   "clr_text": "Bend Radius (in.): 1.750",
+   "legs": null,
+   "pn": "13034",
+   "title": "Vibrant Performance Mandrel-Bent Round Tubing 1.75 Inch 304 Stainless Steel Exhaust Pipe 13034",
+   "url": "https://www.summitracing.com/parts/VPE-13034",
+   "doubt": "Summit gives 'bend radius', assumed CLR; wall 16 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2.000 in. bend radius",
+   "legs": null,
+   "pn": "18392",
+   "title": "Vibrant Performance Mandrel-Bent Round Tubing 1.75 Inch 304 Stainless Steel Exhaust Pipe 18392",
+   "url": "https://www.summitracing.com/parts/VPE-18392",
+   "doubt": "wall 16 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 3.5,
+   "clr_text": "Radius (R) 3.50\"",
+   "legs": [
+    4.5,
+    8,
+    8
+   ],
+   "pn": "2603",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel",
+   "doubt": "Modbargains lists 2603 with 2.75in CLR (legs 4.5/8/8); Verocious table says 3.50 - conflicting"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2.00 in",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "2623",
+   "title": "Vibrant Performance 2623 - 1.875OD SS TIGHT RADIUS U",
+   "url": "https://www-build.finditparts.com/products/10484822/vibrant-performance-2623",
+   "doubt": "wall 16 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.875,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.875,
+   "clr_text": "2.875in Centerline Radius",
+   "legs": null,
+   "pn": "VIB2697",
+   "title": "Vibrant 1.875in (1-7/8in) O.D. T304 SS U-Bend (2.875in Centerline Radius)",
+   "url": "https://www.velocityshop.com/products/vibrant-1-875in-1-7-8in-o-d-t304-ss-u-bend-2-875in-centerline-radius",
+   "doubt": "retailer SKU VIB2697; Vibrant number 2697"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.875,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4 in. CLR",
+   "legs": null,
+   "pn": "VBR18684",
+   "title": "Vibrant Performance - 18684 - 180 Degree Mandrel Bend, 1.875 in. O.D. x 4 in. CLR",
+   "url": "https://jbspowercentre.com/products/bhsr-18684",
+   "doubt": "retailer SKU; Vibrant number 18684"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.875,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 6.0,
+   "clr_text": "6in CLR",
+   "legs": null,
+   "pn": "18686",
+   "title": "Vibrant 180 Degree Mandrel Bend 1.875in OD x 6in CLR 304 Stainless Steel Tubing",
+   "url": "https://fidanza.com/vibrant-180-degree-mandrel-bend-2in-od-x-6in-clr-304-stainless-steel-tubing-18786",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.875,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 1.875,
+   "clr_text": "1.875in Centerline Radius",
+   "legs": null,
+   "pn": "13305",
+   "title": "Vibrant 1.875in OD T304 SS 90 Deg Mandrel Bend Elbow (1.875in Centerline Radius) - 13305",
+   "url": "https://fidanza.com/vibrant-1-875in-o-d-t304-ss-90-deg-mandrel-bend-4in-x-12in-leg-lengths-1-875in-centerline-radius-13035",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.875,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 6.0,
+   "clr_text": "6in CLR",
+   "legs": null,
+   "pn": "18696",
+   "title": "Vibrant 90 Degree Mandrel Bend 1.875in OD x 6in CLR 304 Stainless Steel Tubing",
+   "url": "https://fidanza.com/vibrant-90-degree-mandrel-bend-1-875in-od-x-4in-clr-304-stainless-steel-tubing-18694",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.875,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 1.875,
+   "clr_text": "1.875in Centerline Radius",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "13095",
+   "title": "Vibrant 1.875in O.D. T304 SS 45 deg Mandrel Bend 6in x 6in leg lengths (1.875in Centerline Radius) - 13095",
+   "url": "https://fidanza.com/vibrant-1-875in-o-d-t304-ss-90-deg-mandrel-bend-4in-x-12in-leg-lengths-1-875in-centerline-radius-13035",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.88,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 4.0,
+   "clr_text": "Radius (R) 4.00\"",
+   "legs": [
+    4.5,
+    7,
+    8
+   ],
+   "pn": "2604",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel",
+   "doubt": "Modbargains lists 2604 with 3in CLR and legs 6/7/13 - conflicting"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.0,
+   "clr_text": "2in Centerline Radius",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "2624",
+   "title": "Vibrant 2in O.D. T304 SS U-Bend (2in Centerline Radius)",
+   "url": "https://www.autobarn.net/products/vibrant-vibrant-2in-o-d-t304-ss-u-bend-2in-centerline-radius-t14-4311373",
+   "doubt": "wall 16 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.0,
+   "clr_text": "4.000\"",
+   "legs": [
+    5,
+    5
+   ],
+   "pn": "26240",
+   "title": "Vibrant Performance 2\" OD Tight Radius 180 Degree Mandrel U-Bend Tubing (26240)",
+   "url": "https://www.maperformance.com/products/vibrant-2in-od-tight-radius-180-degree-mandrel-u-bend-t304-ss-tubing-26240",
+   "doubt": "title says 'Tight Radius' but spec lists 4.000in CLR - verify"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.0,
+   "wall": 0.049,
+   "material": "321 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3.000\"",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "13824",
+   "title": "Vibrant 180 Degree Stainless Steel Mandrel Bend Piping, 2.00\" O.D. x 3.00\" CLR - 18 Gauge Wall Thickness - 13824",
+   "url": "https://nipponpower.com/products/vibrant-180-degree-stainless-steel-mandrel-bend-piping-2-00-o-d-x-3-00-clr-18-gauge-wall-thickness-13824.oembed",
+   "doubt": "listed as 18 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 2.0,
+   "clr_text": "2.000 in. (50.8 mm)",
+   "legs": [
+    4,
+    12
+   ],
+   "pn": "13036",
+   "title": "Vibrant Performance 13036 - Stainless Tubing; 2.00 in./50.8mm OD 90 Degree Mandrel Bend;",
+   "url": "https://finditparts.com/products/10484287/vibrant-performance-13036",
+   "doubt": "wall 16 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.0,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4in CLR",
+   "legs": [
+    4,
+    12
+   ],
+   "pn": "18794",
+   "title": "Vibrant 18794 - 90 Degree Mandrel Bend 2in OD x 4in CLR 304 Stainless Steel Tubing",
+   "url": "https://www.cspracing.com/products/vibrant-18794-90-degree-mandrel-bend-2in-od-x-4in-clr-304-stainless-steel-tubing"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.0,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 5.0,
+   "clr_text": "5in CLR",
+   "legs": null,
+   "pn": "VIB18795",
+   "title": "Vibrant 90 Degree Mandrel Bend 2in OD x 5in CLR 304 Stainless Steel Tubing",
+   "url": "https://www.velocityshop.com/products/vibrant-90-degree-mandrel-bend-2in-od-x-5in-clr-304-stainless-steel-tubing",
+   "doubt": "retailer SKU; Vibrant number 18795"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 4.0,
+   "clr_text": "Radius (R) 4.00\"",
+   "legs": [
+    4.5,
+    7,
+    7
+   ],
+   "pn": "2605",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel",
+   "doubt": "Modbargains gives legs 4.5/6.5/7 for 2605"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.125,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.125,
+   "clr_text": "3.125\"",
+   "legs": [
+    5,
+    5
+   ],
+   "pn": "2625",
+   "title": "Vibrant 2.125\" (54mm) O.D. Tight Radius 180 Degree U-Bend",
+   "url": "https://frsport.com/products/vibrant-2625-2-125in-o-d-t304-ss-u-bend-3-125in-centerline-radius",
+   "doubt": "MPN 2625 (retailer SKU 0JXU1)"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.125,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.125,
+   "clr_text": "3.125in Centerline Radius",
+   "legs": [
+    4,
+    12
+   ],
+   "pn": "13037",
+   "title": "Vibrant 2.125in O.D. T304 SS 90 deg Mandrel Bend 4in x 12in leg lengths (3.125in Centerline Radius)",
+   "url": "https://www.rvautoparts.com/products/vibrant-2-125in-o-d-t304-ss-90-deg-mandrel-bend-4in-x-12in-leg-lengths-3-125in-centerline-radius"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.375,
+   "clr_text": "3.375in Centerline Radius",
+   "legs": [
+    5,
+    5
+   ],
+   "pn": "2626",
+   "title": "Vibrant 2.25\" O.D./T304 Stainless Steel U-Bend - 3.375in Centerline Radius (2626)",
+   "url": "https://www.maperformance.com/products/vibrant-2-25in-o-d-t304-ss-u-bend-3-375in-centerline-radius-2626",
+   "doubt": "wall 16 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.25,
+   "wall": 0.049,
+   "material": "321 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.375,
+   "clr_text": "3.375 in. Centerline Radius",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "13826",
+   "title": "180 Degree Stainless Steel Bend; 2.25 in. OD; 3.375 in. Centerline Radius",
+   "url": "https://www.yittzyoffroad.com/product/180-degree-mandrel-bend-2-25in-o-d-18-gauge-ss",
+   "doubt": "listed 'Coming Soon' at retailer; title truncated by retailer"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.375,
+   "clr_text": "3.375\"",
+   "legs": [
+    4,
+    12
+   ],
+   "pn": null,
+   "title": "Vibrant Performance 2.25\" (57mm) O.D. 90 Degree Mandrel Bend",
+   "url": "https://ipgparts.com/products/vibrant-performance-2-25-57mm-o-d-90-degree-mandrel-bend",
+   "doubt": "part number not shown (image filename hints 20908 - unconfirmed)"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.25,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 3.5,
+   "clr_text": "Radius (R) 3.50\"",
+   "legs": [
+    4.5,
+    8,
+    8
+   ],
+   "pn": "2607",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel",
+   "doubt": "Finditparts lists 2607 legs 4.5/7.5/8"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 2.5,
+   "clr_text": "2.500\"",
+   "legs": [
+    4.5,
+    4.5
+   ],
+   "pn": "2684",
+   "title": "Vibrant 2.5in O.D.Tight Radius 180 Degree U-Bend Stainless Tubing (2684)",
+   "url": "https://www.maperformance.com/products/vibrant-2-5in-o-d-tight-radius-180-degree-u-bend-stainless-tubing-2684",
+   "doubt": "wall 16 gauge"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "321 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.75,
+   "clr_text": "3.750\"",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "13848",
+   "title": "Vibrant 180 Degree Stainless Steel Mandrel Bend Piping, 2.50\" O.D. x 3.75\" CLR - 16 Gauge Wall Thickness - 13848",
+   "url": "https://nipponpower.com/products/vibrant-180-degree-stainless-steel-mandrel-bend-piping-2-50-o-d-x-3-75-clr-16-gauge-wall-thickness-13848.oembed"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.5,
+   "wall": 0.049,
+   "material": "321 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.75,
+   "clr_text": "3.750\"",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": "13828",
+   "title": "Vibrant 180 Degree Stainless Steel Mandrel Bend Piping, 2.50\" O.D. x 3.75\" CLR - 18 Gauge Wall Thickness - 13828",
+   "url": "https://nipponpower.com/products/vibrant-180-degree-stainless-steel-mandrel-bend-piping-2-50-o-d-x-3-75-clr-18-gauge-wall-thickness-13828.oembed"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 2.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 3.5,
+   "clr_text": "Radius (R) 3.50\"",
+   "legs": [
+    5,
+    7,
+    8
+   ],
+   "pn": "2609",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 3.0,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 3.0,
+   "clr_text": "3 in.",
+   "legs": [
+    7,
+    7
+   ],
+   "pn": "26330",
+   "title": "Vibrant 3-inch OD Stainless Steel 180 Degree Mandrel Bend Part 26330",
+   "url": "https://modbargains.com/vibrant-3-inch-od-stainless-steel-180-degree-mandrel-bend-part-26330/",
+   "doubt": "leg 7in from tangent"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "321 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": 4.5,
+   "clr_text": "4.50 in. CLR",
+   "legs": null,
+   "pn": "13850",
+   "title": "Vibrant Performance 13850 - 180 Degree Mandrel Bend; 321 Stainless Steel; 3.0 in. Tube O.D.; 4.50 in. CLR; 16 Gauge Wall Thickness",
+   "url": "https://finditparts.com/products/15483878/vibrant-performance-13850"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 3.0,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-bend (180)",
+   "clr": null,
+   "clr_text": null,
+   "legs": null,
+   "pn": "2656",
+   "title": "Vibrant 3\" T304 Stainless Steel 180 Degree U-bend Universal 2656",
+   "url": "https://swagperformanceparts.com/vibrant-3-t304-stainless-steel-180-degree-u-bend-universal-2656",
+   "doubt": "CLR not listed; image filename says 2629 - verify part number"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 3.0,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.0,
+   "clr_text": "3in Centerline Radius",
+   "legs": null,
+   "pn": "13312",
+   "title": "Vibrant 3in OD T304 SS 90 Deg Mandrel Bend (3in Centerline Radius) - 13312",
+   "url": "https://fidanza.com/vibrant-2in-od-t304-ss-90-deg-mandrel-bend-3in-centerline-radius-13055",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 3.0,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 45,
+   "type": "45 elbow",
+   "clr": 3.0,
+   "clr_text": "3in Centerline Radius",
+   "legs": null,
+   "pn": "13332",
+   "title": "Vibrant 3in O.D. T304 SS 45 deg Mandrel Bend (3in Centerline Radius) - 13332",
+   "url": "https://fidanza.com/vibrant-2in-od-t304-ss-90-deg-mandrel-bend-3in-centerline-radius-13055",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 3.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 5.0,
+   "clr_text": "Radius (R) 5.00\"",
+   "legs": [
+    6.5,
+    9,
+    12
+   ],
+   "pn": "2611",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 3.5,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 3.5,
+   "clr_text": "3.5in Centerline Radius",
+   "legs": [
+    6,
+    6
+   ],
+   "pn": null,
+   "title": "Vibrant 3.5in O.D. T304 SS 90 Deg Mandrel Bend 6in x 6in Leg Lengths (3.5in Centerline Radius)",
+   "url": "https://jp3motorsports.com/products/vibrant-3-5in-o-d-t304-ss-90-deg-mandrel-bend-6in-x-6in-leg-lengths-3-5in-centerline-radius",
+   "doubt": "part number not shown on page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 3.5,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 5.75,
+   "clr_text": "Radius (R) 5.75\"",
+   "legs": [
+    7,
+    9,
+    9
+   ],
+   "pn": "2612",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 4.0,
+   "wall": null,
+   "material": "304 stainless",
+   "angle": 90,
+   "type": "90 elbow",
+   "clr": 4.0,
+   "clr_text": "4in Centerline Radius",
+   "legs": null,
+   "pn": "13059",
+   "title": "Vibrant 4in OD T304 SS 90 Deg Mandrel Bend (4in Centerline Radius) - 13059",
+   "url": "https://fidanza.com/vibrant-2in-od-t304-ss-90-deg-mandrel-bend-3in-centerline-radius-13055",
+   "doubt": "seen in a product grid on this Fidanza page"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 4.0,
+   "wall": 0.065,
+   "material": "304 stainless",
+   "angle": 180,
+   "type": "U-J (180 + 45)",
+   "clr": 6.0,
+   "clr_text": "Radius (R) 6.00\"",
+   "legs": [
+    7.5,
+    8.5,
+    10
+   ],
+   "pn": "2613",
+   "title": "Vibrant U-J Combination Mandrel Bends, 304 Stainless Steel",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel"
+  }
+ ],
+ "size_tables": [
+  {
+   "supplier": "Vibrant Performance",
+   "od": null,
+   "clrs": null,
+   "angles": [
+    180
+   ],
+   "note": "Vibrant 304 SS 180-degree bend size table (OD: CLRs): 1: 2; 1.25: 2, 2.75; 1.375: 2.375; 1.5: 1.5, 2, 2.375, 3, 4, 6; 1.625: 1.625, 2, 4, 6; 1.75: 1.75, 2, 2.625, 3.5, 4, 6; 1.875: 2, 3, 4, 6; 2: 2, 2.5, 3, 4, 5, 6; 2.125: 3.125; 2.25: 3.375; 2.375: 3.5; 2.5: 2.5, 3.5; 2.75: 4.125; 3: 3, 5; 3.5: 5.5; 4: 6; 5: 7.5. Wall/legs/part numbers not given on the table.",
+   "url": "https://sdhqoffroad.com/products/vibrant-304-stainless-steel-180-mandrel-bends"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": 1.75,
+   "clrs": [
+    2,
+    3.5,
+    4,
+    6
+   ],
+   "angles": [
+    180
+   ],
+   "note": "Speedway dropdown lists 2, 3-1/2, 4, 6 in radius; its Details text lists 3.5, 4, 5, 6 (conflict). Speedway #32118300.",
+   "url": "https://www.speedwaymotors.com/Vibrant-304-Stainless-Steel-180-Degree-Mandrel-Bends,568373.html"
+  },
+  {
+   "supplier": "Vibrant Performance",
+   "od": null,
+   "clrs": null,
+   "angles": [
+    180,
+    45
+   ],
+   "note": "Vibrant U-J (180 + 45) 304 SS .065 table, OD: CLR (legs A/B/C): 1.50: 3.00 (4/7/10) #2601; 1.63: 2.25 (4.5/8/9) #2602; 1.63: 2.50 (4.5/8/9) #26020; 1.75: 3.50 (4.5/8/8) #2603; 1.88: 4.00 (4.5/7/8) #2604; 2.00: 4.00 (4.5/7/7) #2605; 2.25: 3.50 (4.5/8/8) #2607; 2.50: 3.50 (5/7/8) #2609; 2.75: 4.13 (6/7/11) #2615; 3.00: 5.00 (6.5/9/12) #2611; 3.50: 5.75 (7/9/9) #2612; 4.00: 6.00 (7.5/8.5/10) #2613",
+   "url": "https://www.verociousmotorsports.com/vibrant-u-j-combination-mandrel-bends-304-stainless-steel"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.5,
+   "clrs": [
+    2.0,
+    2.5,
+    3.0,
+    4.0
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 2, 2.5, 3, 4; 90°: 2, 2.5, 3, 4; 45°: 2, 2.5, 3, 4",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.625,
+   "clrs": [
+    2.0,
+    2.5,
+    3.0,
+    4.0
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 2, 2.5, 3, 4; 90°: 2, 2.5, 3, 4; 45°: 2, 2.5, 3, 4",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.75,
+   "clrs": [
+    2.0,
+    2.5,
+    3.0,
+    4.0,
+    6.0
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 2, 2.5, 3, 4, 6; 90°: 2, 2.5, 3, 4, 6; 45°: 2, 2.5, 3, 4, 6",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 1.875,
+   "clrs": [
+    2.0,
+    3.0,
+    4.0,
+    6.0
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 2, 3, 4, 6; 90°: 2, 3, 4, 6; 45°: 2, 3, 4, 6",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.0,
+   "clrs": [
+    2.0,
+    3.0,
+    4.0,
+    5.0,
+    6.0
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 2, 3, 4, 5, 6; 90°: 2, 3, 4, 5, 6; 45°: 2",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.125,
+   "clrs": [
+    3.0
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 3; 90°: 3; 45°: 3",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.25,
+   "clrs": [
+    2.25,
+    3.0,
+    4.0
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 2.25, 3, 4; 90°: 2.25, 3, 4; 45°: 2.25, 3, 4",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 2.5,
+   "clrs": [
+    2.5,
+    3.0,
+    4.0,
+    6.0
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 2.5, 3, 4, 6; 90°: 2.5, 3, 4, 6; 45°: 2.5, 3, 4, 6",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.0,
+   "clrs": [
+    3.0,
+    4.0,
+    4.5,
+    5.0,
+    6.0
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 4, 4.5, 5, 6; 90°: 3, 4, 4.5, 5, 6; 45°: 3, 4, 4.5, 5, 6",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 3.5,
+   "clrs": [
+    3.5,
+    4.5
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 4.5; 90°: 3.5, 4.5; 45°: 3.5, 4.5",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": 4.0,
+   "clrs": [
+    4.0,
+    5.5
+   ],
+   "angles": [
+    180,
+    90,
+    45
+   ],
+   "note": "304 SS 16ga (.065), legs ≈ 6\". CLRs by angle -> 180°: 5.5; 90°: 4, 5.5; 45°: 4, 5.5",
+   "url": "https://www.jmdtubes.com/180-bends-92"
+  },
+  {
+   "supplier": "JMD Tubes",
+   "od": null,
+   "clrs": null,
+   "angles": [
+    15,
+    45,
+    90,
+    120,
+    135,
+    180
+   ],
+   "note": "JMD Mandrel Bends hub: stainless, aluminum, titanium and mild steel bends, 0.75 to 5 in OD; SS angles 15/45/90/120/135/180 plus U-J pipes and a .120 wall line; titanium 45/90/135.",
+   "url": "https://www.jmdtubes.com/mandrel-bends"
+  },
+  {
+   "supplier": "Alucon",
+   "od": null,
+   "clrs": null,
+   "angles": [
+    45,
+    90,
+    180
+   ],
+   "note": "Ticon Industries' 'Alucon Aluminum' collection shows 'Aluminum 45/90/180 Mandrel Bend - 6061' products; sizes, wall, CLR and part numbers were not visible. alucon.com / aluconmfg pages could not be reached or found.",
+   "url": "https://www.ticonindustries.com/collections/alucon-aluminum"
+  }
+ ],
+ "notes": [
+  "Scope per coordinator: Stainless Bros, Ticon, Cone, SPD, Stainless Headers Mfg and Ace Race Parts deliberately excluded; Vibrant 13051/13042 and the Vibrant aluminum parts already in the tool were not re-added.",
+  "JMD Tubes lists CLR for every SKU on its own site (jmdtubes.com) and its item numbers encode OD/CLR/angle (e.g. MB-SS-188300180 = 1-7/8 OD, 3.00 CLR, 180). Leg lengths are shown as '≈ 6\"' (approximate); legs [6,6] are recorded but treat them as nominal.",
+  "JMD entries were read from category listing pages (seen_on field), the product URL is the link those listings give. Only MB-SS-188300180 was opened individually to confirm the listing data.",
+  "JMD category pages show only the first 48 items; the SS 180 page (48 shown) and SS 45 page (48 of 53) may have a few more SKUs not captured. Mild steel listing: only page 1 (19 header-size items) captured; 146 mild-steel bends exist.",
+  "JMD U-J pipes: listing data only had OD/CLR/SKU; titles are null where the exact title was not captured.",
+  "JMD titanium bends: wall thickness and grade not listed.",
+  "Vibrant data comes from retailers (Vibrant's own site was not reachable through search). Several retailers list only gauge (16 ga = .065, 18 ga = .049); wall is set from the stated gauge.",
+  "Vibrant 138xx 'Stainless Steel Mandrel Bend Piping' bends are 321 stainless (16 or 18 ga, 6x6 legs), not 304.",
+  "Vibrant 18xxx bends (e.g. 18182, 18383, 18794) generally list no wall or legs; 90s in that line show 4 x 12 tangents where stated.",
+  "Entries marked 'seen in a product grid on this Fidanza page' came from a related-products grid, not the URL's own product; title and part number were visible together.",
+  "Retailer SKUs with prefixes (VIB2697, VBR18684, VIB18795) are kept as shown; the Vibrant number is the numeric part.",
+  "Alucon: no verifiable bend listings found. alucon.com and aluconmfg returned nothing usable; Ticon's Alucon collection shows 6061 bends with no visible sizes.",
+  "For a 1.5D CLR, CLR in inches = 1.5 x OD; JMD and Vibrant both state CLR in inches directly, so no conversions were needed."
+ ]
+}
