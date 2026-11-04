@@ -759,7 +759,35 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><select id="t-shape">
             <option value="jen" selected>One diffuser cone (Jennings)</option>
             <option value="blair">Two-stage diffuser (Blair)</option>
+            <option value="spec">From the engine: bore, stroke and power (Blair, two or three diffuser stages)</option>
           </select></span></label>
+        <div class="grid2 span2" id="t-spec-wrap" style="grid-column:1/-1" hidden>
+          <label class="f"><span class="lab">Bore</span>
+            <span class="inp"><input id="t-bore" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">Stroke</span>
+            <span class="inp"><input id="t-stroke" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">Cylinders (one pipe each)</span>
+            <span class="inp"><input id="t-cyl" type="number" step="1" inputmode="numeric" data-kind="num" data-dp="0" data-base="1"></span></label>
+          <label class="f"><span class="lab">Power at that RPM, all cylinders</span>
+            <span class="inp"><input id="t-hp" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base=""><em>hp</em></span></label>
+          <label class="f"><span class="lab">Transfer port duration, blank if unknown</span>
+            <span class="inp"><input id="t-td" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>°</em></span></label>
+          <label class="f"><span class="lab">Diffuser</span>
+            <span class="inp"><select id="t-stg"><option value="2">Two stages (Blair)</option><option value="3" selected>Three stages</option></select></span></label>
+          <label class="f"><span class="lab">Exhaust port at the flange</span>
+            <span class="inp"><select id="t-pshape"><option value="round" selected>Round</option><option value="ellipse">Oval (ellipse)</option><option value="stadium">Racetrack: straight sides, round ends</option><option value="rrect">Rectangle with corner radius</option></select></span></label>
+          <label class="f"><span class="lab" id="t-pw-lab">Diameter</span>
+            <span class="inp"><input id="t-pw" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+          <label class="f" id="t-ph-wrap" hidden><span class="lab">Height</span>
+            <span class="inp"><input id="t-ph" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+          <label class="f" id="t-pr-wrap" hidden><span class="lab">Corner radius</span>
+            <span class="inp"><input id="t-pr" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+          <label class="f span2"><span class="lab">Powerband: <span id="t-bias-lab">as the engine’s mean effective pressure gives</span></span>
+            <span class="inp"><input id="t-bias" type="range" min="-100" max="100" step="5" value="0" aria-describedby="t-bias-hint" style="width:100%"></span></label>
+          <span class="hint" id="t-bias-hint" style="grid-column:1/-1">Left: race, a bigger belly and smaller stinger for more peak power over a narrower band (Blair’s Grand Prix end). Right: broad, a smaller belly and bigger stinger for more over-rev (his enduro end). Lengths do not move; they follow the RPM and the gas temperature.</span>
+          <label class="f adv"><span class="lab">Average gas temperature, blank to follow the engine</span>
+            <span class="inp"><input id="t-tgas" type="number" step="any" inputmode="decimal" data-kind="temp" data-base=""><em data-u="temp">°F</em></span></label>
+        </div>
         <label class="f span2" id="t-type-wrap" hidden><span class="lab">Engine type, for Blair’s constants</span>
           <span class="inp"><select id="t-type">
             <option value="gp">Grand Prix racer, about 11 bar or more</option>
@@ -1910,6 +1938,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <li><b>Helmholtz intake tuning.</b> From H. W. Engelman, <i>Design of a Tuned Intake Manifold</i>, ASME paper 73-WA/DGP-2 (1973): the cylinder at mid-stroke, volume = half the swept volume × (CR + 1) ÷ (CR − 1), and its runner resonate together, and the runner helps most where that resonance is about 2.1 times the crank speed. Runner area is sized for the 200 ft/s mean speed the paper found best. With a plenum and the tube feeding it, the paper’s two-resonator model is solved exactly in place of its charts. On the paper’s own worked example this gives 3,415 RPM where the paper gives 3,400, and 4,535 RPM for the upper peak where the paper reads 4,540 off its chart.</li>
       <li><b>Engine Simulator file.</b> The 4-Stroke tab writes an engine file for Engine Simulator (Community Edition v0.1.14a or the open-source engine-sim) for a rough listen. Bore, stroke, compression, cam, header and intake sizes come from the tab. Head flow, masses, ignition and gearing come from an Engine Simulator example engine, using the values in the MIT-licensed open-source repository, each named in the file with its line. Files for 18 engines, from a single to a V12, were compiled with Engine Simulator’s own script compiler, and every cylinder’s firing point, compression and valve events were read back within 0.1°. Two of them were then run in Engine Simulator v0.1.14a itself: both started, idled and took a full dyno pull. The pull also showed that ideal-orifice flow coefficients for the real pipe sizes over-read power by about 75% (913 hp for a mild 350), so the export now uses the example engine’s flow ratings (521 hp for the same file, still high; a 2.0 L four read 151 hp). Engine Simulator treats each exhaust as one volume with the pipe length as a sound delay, and the muffler sound comes from a recorded file, so it cannot judge a header. The wave simulation does that. A third target, <b>Arcindweld fork with the 1-D exhaust</b>, writes the same file plus the pipe geometry the fork understands (primary diameter, collector diameter and length, megaphone length and exit, tailpipe, cell size), which switches its one-dimensional exhaust model on for that file while the shipped engines keep the original behaviour. In the fork each exhaust system is a network of 1-D pipes (one primary per cylinder, a constant-pressure junction, collector, cone and tailpipe, characteristic open end) solved with a MUSCL-Hancock/HLLC scheme ported from this page’s wave simulation, and the sound is taken at the tailpipe exit, so header length changes both the torque curve and the harmonics. Its validation: Sod’s shock tube within 0.34% of the exact solution (density, 400 cells), a closed-open pulse returns at −0.66% of 2L/c, quarter-wave resonance within 0.15%, a temperature front crosses its junctions without a pressure step, mass and energy conserved to round-off, all 25 shipped engines run, legacy mode bit-identical. Each cylinder’s exhaust port feeds its primary through a characteristic (valve-type) boundary solved at every one of Engine Simulator’s fluid sub-steps, and the pipes advance at their own CFL step, so the torque converges: the test four at 6,000 RPM makes 141, 138, 137 and 137 N·m on 4, 2, 1 and 0.5 cm cells and 140, 138 and 139 N·m at 15, 20 and 40 kHz, against a spread of about 3 N·m between runs with different seeds of Engine Simulator’s random burn, and 4 cm and 2 cm cells agree on every primary-length change from 4,000 to 7,000 RPM and within 5% from 4,000 to 7,800 RPM. Known limits, stated in its docs: the 4-1 low-RPM hole is real but exaggerated (no junction losses, lumped intake, fixed wall temperature), the default 4 cm cells cost about three times the legacy model’s time on a V8 or a flat four, and Engine Simulator needs a simulation step of no more than about 2° of crank (the fork export sets the frequency to three times the redline for that). Treat its torque as a ranking between headers, not a dyno number.</li>
       <li><b>Header Wizard comparison.</b> All five Fast Header Wizard v4.8 Pro programs (singles and twins; fours; fives and tens; threes, sixes and twelves; V8s) were run. For a 2.0 L four (84 × 89 mm, 11.5:1, 160 kW at 7,800 RPM, cam 32/44/48/20, 4-2-1, 43 × 31 mm racetrack port 150 mm long), its port size (37.88 mm), cam figures (256° and 248°, 52° overlap, 100° lobe separation, 4° advanced) and mean effective pressure (12.47 bar) match this calculator’s. Its runners came out 1.4 to 1.7 times the length the primary-length formula here gives, in every program: 893 mm against 554 mm from the valve to the last merge on that four, 1,238 against 865 mm on a 350 V8, 887 against 633 mm on a five and 781 against 469 mm on a 450 single. It does not publish its method, so neither can be called right from its output. Things to know when using it: entering a racetrack port with width and height the other way round silently gives a smaller port (34.53 mm here) and lengthened every section about 17%; its rectangle-with-corner-radius option gave 42.51 mm for a 38 × 35 mm port with 6 mm corners, larger than the 41.15 mm of the same rectangle with square corners, so that option adds area where it should subtract it; the port boxes drop decimal points; the turbo setting and the application choice changed nothing in any run; its termination box is always 8 times one cylinder’s displacement (which is David Vizard’s published termination-box rule, so that part has a traceable source), and its intake plenum about 1.36 times the displacement it feeds, neither with a stated source. Its 2nd-harmonic intake length follows ECD ÷ RPM like Grape Ape Racing’s formula, with a different constant. Its single-cylinder Megabomb output (chamber size, cone lengths and hole pattern) and its 6-2-1 layout are covered here by the resonance chamber on the 4-Stroke tab and the two-stage merge on the Headers tab.</li>
+      <li><b>2 Stroke Wizard comparison.</b> 2 Stroke Wizard Tuned Pipe Pro 8 and its Dual Power companion were run for a 125 cc single (54 × 54.5 mm, 38 hp at 11,500 RPM, 194° exhaust, 130° transfers, 38 mm round port 60 mm long, three-stage diffuser, curved header). Its mean effective pressure (11.85 bar) matches this calculator’s. Its tuned length to the stinger was 868.5 mm, 1.4% longer than Blair’s 856 mm at 650 °C (it implies 677 °C), with section shares close to Blair’s (header 8%, diffusers 55%, belly 12%, baffle 25%); its belly was 108.1 mm (2.84 port diameters, Blair’s Grand Prix constant gives 3.25) and its stinger 20.4 mm (0.54, Blair 0.60), 163 mm long against Blair’s stinger as long as the baffle. Its powerband slider changed only the first two diffuser diameters (65.1 and 78.2 mm at the race end, 54.0 and 71.1 mm at 150). Its straight-header version came out 0.7% longer in every section than the curved one. Dual Power adds a second tuned length (975.7 mm here, about 10,240 RPM) with an inner cone in the baffle, half perforated, ending in a small inner pipe. It does not publish its method. The 2-Stroke tab’s “From the engine” design does the same job with Blair’s published method throughout: BMEP from the power, gas temperature and diameter constants from BMEP, two or three diffuser cones, the blowdown angle, and a powerband setting.</li>
       <li><b>Making the intake by 3D printing.</b> The How it will be made selector adds FDM on the shop’s Bambu X1 Carbon, SLS or MJF nylon from a service, and laser-sintered AlSi10Mg. Every material row is a maker datasheet (Bambu, Polymaker, HP via Weerg, EOS, CRP), HDT per ISO 75 on annealed, dry specimens; the suggested continuous temperatures and boost limits are the research notes’ own derating (the lower of HDT₁.₈ − 30 °C or 0.85 × HDT₀.₄₅, Tg − 20 °C for PC and ASA, and the vendor service cases), and are labelled as such. Design temperatures come from measured values: 201 °C in a charge pipe after the compressor (MotoIQ), 44 to 107 °C on a diesel manifold wall (CRP), 55 to 90 °C on printed flanges (Audizine), a 0 to 100 °C OE test envelope (PRI). The wall solver is thin-wall hoop stress for round sections and simply supported plate bending for flats, against the hot, wet, across-layer strength at a safety factor of 3, because every published failure is a flat panel, a boss or a flange and never a round wall; the temperature factor (1 at 23 °C to 0.4 at the 1.8 MPa HDT) is an assumption, since no vendor publishes hot strength. Where sheets disagree the lower figure is used: Bambu PC lists 117 °C at 1.8 MPa and 112 at 0.45; Bambu PPS-CF claims 235 °C at 1.8 MPa where Polymaker’s PPS-CF10 claims 133; PA12 is 95 °C (HP), 86 (EOS) or “147” (JLC3DP, load unstated); a third-party ISO 75 test on unannealed PPA-CF prints gave 82.5 to 83 °C for two brands against Bambu’s 196 on annealed specimens; HP’s 3 bar race manifold does not say gauge or absolute. Across-layer strengths for the EOS and Windform powders are not published and take PA2200’s ratio. Data Driven Performance (datadrivenperf.com), often cited as a printed-intake maker, sells one product: an FDM cold-air tube for the 2009–15 CTS-V (6 in filter tapering to a 4.5 in MAF housing, port-matched to a 103, 112 or 120 mm throttle, with a heat enclosure), one piece over 350 mm long with visible layer lines and an embossed logo, polymer unstated. Its “test proven” and “highest flowing” claims have no published numbers, methodology or reviews, and the only Gen 2 CTS-V intake dyno figures found are a competitor’s (stock 457 whp, Airaid 478). Such a tube works for ordinary reasons: a 6 in filter cuts face velocity to 44% of a 4 in inlet, a steady taper gives the MAF a flat profile, the port match removes a step, and the enclosure keeps the air cooler before the blower multiplies every degree; the gain is bounded by the few kPa of pre-compressor depression, single digits of percent in density. It is not a manifold and says nothing about runners or plenums. The bellmouth proportions are Blair and Cahoon’s (Race Engine Technology, September 2006) via a <a href="https://nsxprime.com/threads/excellent-report-on-bellmouth-design-for-throttle-bodies.140378" target="_blank" rel="noopener">forum reproduction</a>; the discharge coefficients offered beside them are from memory of the paper and marked to verify. Insert pull-out is Sculpteo’s MJF PA12 test; prices are JLC3DP’s and 3D People’s published rates, and the metal range is a placeholder from bureau marketing and a forum thread.</li>
       <li><b>Charge pipes.</b> The hot and cold sides are routed like any other tube, with the intercooler, turbo and exhaust as keep-outs. Blow-off valves and sensor bungs from the Parts tab are weld-on fittings: the router stands each one on a straight run, clocked in 45° steps for the most room, the valve nearest the throttle (Turbosmart and GFB) and never on the inside of a bend, and proves its gap against the scan’s triangles like a tube. The bead, coupler, clamp, valve and sensor rules in the charge pipe section are each tied to their source; what no maker publishes (bead width, most valve flange sizes, an ovality limit for automotive tube) is left out rather than guessed.</li>
       <li><b>Stainless Headers, Ace Race Parts, SPD Exhaust, RaceMufflers, Burns, CXRacing and TurboHoses.</b> 4,488 more parts: Stainless Headers Mfg (1,214: slip-on and formed merge collectors in 304, 321, 18 ga, CP2 titanium and 3D-printed 316, J-bends and U-bends, transition reducers, double slip joints, megaphones, header and collector flanges by engine family with thickness, O2 and EGT bungs, oval bullet mufflers), Ace Race Parts (777: pie cuts with the angle per piece, mandrel bends in 1D and 1.5D, complete V-band tables with flange OD, apex and retainer sizes, interlock flex), SPD Exhaust (950: merge collectors at 12, 15, 20 and 25°, formed collectors with lengths, transition cones at 3, 7 and 13°, flanges, bends and V-bands from its 114-page catalogue), RaceMufflers (1,029: the same merge collector line with base, straight and transitional exits to 6 in, oval bends and pie cuts), Burns Stainless (199, including its 25° 8-into-1 in 321), CXRacing’s cast 8-into-1, and TurboHoses R&amp;D (316 silicone couplers, reducers, humps, elbows and T-hoses, all 2-ply 0.110 in wall fibreglass-reinforced silicone rated −65 to 600 °F, 3- or 4-ply above 4 in, plus T-bolt, spring T-bolt and constant-torque clamps and beaded aluminium connectors). Across every vendor 110 collectors are 8-into-1, 106 6-into-1 and 113 5-into-1. No vendor publishes the overall length of a slip-on merge collector; the merge angle is missing from Ace, Burns’ standard line and CXRacing; SPD encodes bend legs only by shading; those stay “not published”. The catalogues are packed in the page as one compressed block and unpacked when it loads, so the file stays small; a browser without that feature keeps the built-in parts and says so on the Parts tab.</li>
@@ -5288,6 +5317,59 @@ function calcTwoBlair(p){   // p: rpm, ed (°), exd mm (port-equivalent diameter
     sens:[0.9,0.95,1,1.05,1.1].map(f=>({f,rpm:p.rpm*f,lt:blairLt(k.T,p.ed,p.rpm*f)})),notes};
 }
 
+/* ----- From the engine: Blair's chamber sized from bore, stroke and power ----- */
+// Blair ties his gas temperature and his diameter constants to how hard the engine works (its brake mean effective
+// pressure, BMEP): enduro 8 bar, motocross 9 to 10, Grand Prix 11 and up. Here BMEP comes from the power at the tuning RPM
+// (two-stroke: one power stroke per revolution, BMEP = P / (swept volume × rev/s)) and the temperature and constants are
+// read off a straight line through his three classes (motocross taken at 9.5 bar), held at the ends. The powerband
+// setting slides the diameter constants only, by up to 1.5 bar of BMEP either way. Three diffuser stages: the first of
+// Blair's two is split in two along the diffuser profile that passes through his three diameters, D(x) = D1 + (D3 − D1)
+// (x/Ld)^p with p set so it meets his D2 at the end of his first stage; with two stages it is Blair's pipe exactly.
+const BLAIR_PTS=[{b:8,T:500,K0:0.70,K1:1.125,K2:2.25},{b:9.5,T:600,K0:0.65,K1:1.0875,K2:2.75},{b:11,T:650,K0:0.60,K1:1.05,K2:3.25}];
+function blairAt(bmep){
+  const P=BLAIR_PTS, x=Math.min(P[2].b,Math.max(P[0].b,bmep)), i=x<=P[1].b?0:1, f=(x-P[i].b)/(P[i+1].b-P[i].b), o={};
+  ['T','K0','K1','K2'].forEach(k=>{ o[k]=P[i][k]+f*(P[i+1][k]-P[i][k]); });
+  return o;
+}
+function calcTwoSpec(p){
+  if(!fin(p.rpm,p.ed,p.bore,p.stroke,p.cyl,p.hp)||!(p.rpm>0&&p.ed>0&&p.bore>0&&p.stroke>0&&p.cyl>=1&&p.hp>0))
+    return {err:'Fill in the RPM, the exhaust port duration, the bore, the stroke, the cylinders and the power.'};
+  if(p.ed>=360) return {err:'The exhaust port duration has to be under 360°.'};
+  const pe=portEqD(p.pshape,p.pw,p.ph,p.pr); if(!pe||pe.err) return {err:'Exhaust port at the flange: '+((pe&&pe.err)||'enter its size.')};
+  const Vs=Math.PI/4*p.bore*p.bore*p.stroke*1e-9*Math.round(p.cyl), W=p.hp*745.7, bmep=W/(Vs*p.rpm/60)/1e5;
+  const bias=Math.max(-1,Math.min(1,(p.bias||0)/100));
+  const kT=blairAt(bmep), kD=blairAt(bmep-1.5*bias);
+  const T=p.tgas>100?p.tgas:kT.T, c=sos(T), lt=blairLt(T,p.ed,p.rpm);
+  const D0=pe.d, D1=kD.K1*D0, D3=kD.K2*D0, D4=kD.K0*D0, L=BLAIR_LP.map(f=>f*lt);
+  const Ld=L[1]+L[2], D2=D3*Math.pow(L[1]/Ld,1.33);       // Blair's diameter at the end of his first diffuser
+  const notes=[];
+  if(!(D2>D1)) return {err:'With these constants the diffuser would not open up: check the port size.'};
+  const pw=Math.log((D2-D1)/(D3-D1))/Math.log(L[1]/Ld);    // the profile exponent through Blair's three diameters
+  const Dx=x=>D1+(D3-D1)*Math.pow(x/Ld,pw);
+  let diff;
+  if(p.stg===3){ const x1=0.6*L[1]; diff=[{name:'First diffuser',len:x1,d1:Dx(x1)},{name:'Second diffuser',len:L[1]-x1,d1:D2},{name:'Third diffuser',len:L[2],d1:D3}]; }
+  else diff=[{name:'First diffuser',len:L[1],d1:D2},{name:'Second diffuser',len:L[2],d1:D3}];
+  const port=p.port>0?p.port:0;
+  if(port>=L[0]) return {err:'The port inside the cylinder is as long as the whole header section ('+Math.round(L[0])+' mm). Check the port length.'};
+  const segs=[{tag:'A',name:'Header',len:L[0],d0:D0,d1:D1}];
+  let dPrev=D1; diff.forEach(d=>{ segs.push({tag:String.fromCharCode(65+segs.length),name:d.name,len:d.len,d0:dPrev,d1:d.d1}); dPrev=d.d1; });
+  segs.push({tag:String.fromCharCode(65+segs.length),name:'Belly',len:L[3],d0:D3,d1:D3},
+    {tag:String.fromCharCode(66+segs.length),name:'Baffle cone',len:L[4],d0:D3,d1:D4},
+    {tag:String.fromCharCode(67+segs.length),name:'Stinger',len:L[4],d0:D4,d1:D4});
+  const ang=(a,b,l)=>2*Math.atan(Math.abs(b-a)/2/l)*180/Math.PI;
+  segs.forEach(sg=>{ sg.ang=ang(sg.d0,sg.d1,sg.len); });
+  const cls=bmep>=11?'Grand Prix':bmep>=9?'motocross':bmep>=8?'enduro':'below Blair’s enduro class';
+  if(bmep<8) notes.push({k:'info',t:'A BMEP of '+bmep.toFixed(1)+' bar is below Blair’s enduro class (8 bar), so his enduro constants are used; a road engine near 5 bar runs cooler gas (about 350 °C) and wants a milder pipe.'});
+  if(bmep>13) notes.push({k:'warn',t:'A BMEP of '+bmep.toFixed(1)+' bar is above what racing two-strokes reach (about 11 to 12 bar). Check the power and the RPM.'});
+  // blowdown: the exhaust opens before the transfers by (ed − td)/2 crank degrees
+  const blow=p.td>0&&p.td<p.ed?(p.ed-p.td)/2:null;
+  if(p.td>0&&!(p.td<p.ed)) notes.push({k:'warn',t:'The transfer duration should be shorter than the exhaust duration: the exhaust has to open first.'});
+  return {bmep,cls,kT,kD,T,c,lt,L,D:[D0,D1,D2,D3,D4],pw,segs,port,build:L[0]-port,dBuild:D0+(D1-D0)*port/L[0],toStinger:L.reduce((a,x)=>a+x,0),
+    total:segs.reduce((a,sg)=>a+sg.len,0),blow,ms:p.ed/(6*p.rpm)*1000,peq:pe,bias,
+    sens:[0.9,0.95,1,1.05,1.1].map(f=>({f,rpm:p.rpm*f,lt:blairLt(T,p.ed,p.rpm*f)})),notes};
+}
+window.__two={calcTwoSpec,calcTwoBlair,blairAt};
+
 /* ----- exhaust pulse orders: which tones reach this pipe ----- */
 function pathPulses(cyc,cyl,path){
   const cycle=cyc==='2'?360:720, N=Math.round(cyl);
@@ -8398,10 +8480,12 @@ function renderFour(){
 }
 
 function renderTwo(){
-  const blair=$('t-shape').value==='blair';
-  ['t-jen-a','t-jen-b','t-jen-c','t-jen-d','t-egt-wrap','t-egt-hint'].forEach(id=>{$(id).hidden=blair;});
-  $('t-type-wrap').hidden=!blair; $('t-dh-hint').hidden=!blair;
+  const mode=$('t-shape').value, blair=mode==='blair', spec=mode==='spec';
+  ['t-jen-a','t-jen-b','t-jen-c','t-jen-d','t-egt-wrap','t-egt-hint'].forEach(id=>{$(id).hidden=blair||spec;});
+  $('t-type-wrap').hidden=!blair; $('t-dh-hint').hidden=!blair; $('t-spec-wrap').hidden=!spec;
+  $('t-dh').closest('label').hidden=spec;
   $('t-dh-lab').textContent=blair?'Port equivalent diameter':'Header inside diameter';
+  if(spec) return renderTwoSpec();
   if(blair) return renderTwoBlair();
   const p={rpm:val('t-rpm'),ed:val('t-ed'),egt:val('t-egt'),dh:val('t-dh'),br:val('t-br'),da:val('t-da'),bl:val('t-bl'),ba:val('t-ba'),sr:val('t-sr'),rp:val('t-rp'),port:val('t-port')};
   const r=calcTwo(p), key=$('two-key'), det=$('two-details'), svg=$('two-svg');
@@ -8487,6 +8571,55 @@ function renderTwoBlair(){
     'Second diffuser: '+plain(L[2],'l')+' to '+plain(D3,'d')+' ('+a.d2.toFixed(1)+'° included)',
     'Belly: '+plain(L[3],'l')+' at '+plain(D3,'d'),'Baffle cone: '+plain(L[4],'l')+' to '+plain(D4,'d')+' ('+a.b.toFixed(1)+'° included)','Stinger: '+plain(L[4],'l')+' at '+plain(D4,'d'),
     'Total: '+plain(r.total,'l')].join('\n');
+  S.two.points=pointsCsv(r.segs);
+}
+
+function renderTwoSpec(){
+  const sh=$('t-pshape').value;
+  $('t-pw-lab').textContent=sh==='round'?'Diameter':'Width'; $('t-ph-wrap').hidden=sh==='round'; $('t-pr-wrap').hidden=sh!=='rrect';
+  const bias=+$('t-bias').value||0;
+  $('t-bias-lab').textContent=bias===0?'as the engine’s mean effective pressure gives':(bias<0?'race, ':'broad, ')+Math.abs(bias)+'%';
+  const p={rpm:val('t-rpm'),ed:val('t-ed'),bore:val('t-bore'),stroke:val('t-stroke'),cyl:val('t-cyl'),hp:val('t-hp'),td:val('t-td'),stg:+$('t-stg').value,
+    pshape:sh,pw:val('t-pw'),ph:val('t-ph'),pr:val('t-pr'),port:val('t-port'),bias,tgas:val('t-tgas')};
+  const r=calcTwoSpec(p), key=$('two-key'), det=$('two-details'), svg=$('two-svg');
+  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';det.innerHTML='';clearSvg(svg);$('two-cap').textContent='';S.two={};FX.two=null;return;}
+  const [D0,D1,D2,D3,D4]=r.D, last=r.segs.length;
+  key.innerHTML='<div class="figs">'+figL('Tuned length',r.lt,'l')+figT('BMEP',r.bmep.toFixed(2),'bar',r.cls)+figL('Belly ID',D3,'d')+figL('Stinger ID',D4,'d')+'</div>'+notesHtml(r.notes);
+  const kk=drawProfile(svg,r.segs,[{x:r.toStinger,label:'R'}]);
+  $('two-cap').textContent=exagg(kk)+'Dashed line R is where the tuned length ends, at the start of the stinger. The left edge is the exhaust port face in the bore.';
+  const t500=r.lt-blairLt(r.T,p.ed,p.rpm+500);
+  let html=explainBox([
+    'At '+Math.round(p.hp*10)/10+' hp ('+(p.hp*0.7457).toFixed(1)+' kW) from '+(Math.PI/4*p.bore*p.bore*p.stroke*Math.round(p.cyl)/1000).toFixed(1)+' cc at '+Math.round(p.rpm)+' RPM the engine works at a BMEP of <b>'+r.bmep.toFixed(2)+' bar</b>, '+(r.bmep>=8?'Blair’s '+r.cls+' class':'below Blair’s classes')+'. Its gas averages about <b>'+tempStr(r.T)+'</b> in the pipe'+(p.tgas>100?' (as you set it)':'')+', so the return wave reaches the port at '+Math.round(p.rpm)+' RPM with a <b>'+clen(r.lt)+'</b> tuned length from the port face to the stinger.',
+    'From the port face: a '+clen(r.L[0])+' header opening from '+cdim(D0)+' to '+cdim(D1)+', '+(p.stg===3?'three':'two')+' diffuser cones to the <b>'+cdim(D3)+'</b> belly, the baffle cone down to a <b>'+cdim(D4)+'</b> stinger as long as the baffle. '+(Math.round(p.cyl)>1?'Each of the '+Math.round(p.cyl)+' cylinders gets its own pipe like this.':''),
+    'To move the peak 500 RPM higher, scale the whole pipe about '+clen(t500)+' shorter, or trim the header that much on a built pipe. A quiet silencer on the stinger backs the pipe up: open the stinger 10 to 20% in area for a restrictive one.']);
+  html+=sec('Engine and timing',
+    rowT('Swept volume',(Math.PI/4*p.bore*p.bore*p.stroke/1000).toFixed(1)+' cc per cylinder',Math.round(p.cyl)+' cylinder'+(Math.round(p.cyl)>1?'s':''))+
+    rowT('Brake mean effective pressure',r.bmep.toFixed(2)+' bar',(r.bmep*14.5038).toFixed(0)+' psi, '+r.cls)+
+    rowT('Average gas in the pipe',tempStr(r.T),p.tgas>100?'as set':'Blair, by BMEP')+
+    rowT('Speed of sound',Math.round(r.c)+' m/s',Math.round(r.c*3.28084)+' ft/s')+
+    rowT('Port open time',r.ms.toFixed(2)+' ms',p.ed+'° at '+Math.round(p.rpm)+' RPM')+
+    (r.blow!=null?rowT('Blowdown, exhaust open before the transfers',r.blow.toFixed(1)+'° each side',p.ed+'° exhaust, '+p.td+'° transfers'):'')+
+    rowL('Port equivalent diameter',D0,'d')+
+    rowT('Blair’s constants used','K0 '+r.kD.K0.toFixed(3)+' · K1 '+r.kD.K1.toFixed(4)+' · K2 '+r.kD.K2.toFixed(3),'stinger, header end, belly × port diameter'+(r.bias?', powerband '+(r.bias<0?'race':'broad')+' '+Math.round(Math.abs(r.bias)*100)+'%':'')));
+  r.segs.forEach((sg,i)=>{
+    let rows=rowL(i===0?'Length from the port face':'Length',sg.len,'l');
+    if(i===0&&r.port>0) rows+=rowL('Pipe to build, flange to diffuser',r.build,'l')+rowL('Inside diameter at the flange',r.dBuild,'d');
+    rows+=(sg.d0===sg.d1?rowL('Inside diameter',sg.d0,'d'):rowL('Inside diameter, start',sg.d0,'d')+rowL('Inside diameter, end',sg.d1,'d'));
+    if(sg.d0!==sg.d1) rows+=rowT('Included · half angle',sg.ang.toFixed(1)+'° · '+(sg.ang/2).toFixed(2)+'°');
+    rows+=rowT('Share of tuned length',i<last-1?(100*sg.len/r.lt).toFixed(1)+'%':'not in it');
+    html+=sec(sg.tag+' · '+sg.name,rows);
+  });
+  html+=sec('Overall',rowL('Total length, port face to stinger tip',r.total,'l')+rowL('Tuned length, port face to stinger',r.toStinger,'l'));
+  const trs=r.sens.map(s0=>'<tr'+(s0.f===1?' class="cur"':'')+'><td>'+Math.round(s0.rpm)+'</td><td>'+clen(s0.lt)+'</td><td>'+clen(r.L[0]+s0.lt-r.lt)+'</td></tr>').join('');
+  html+=sec('Tuned length against RPM','<div class="tblwrap"><table><thead><tr><th>Peak RPM</th><th>Tuned length</th><th>Header, if only it changes</th></tr></thead><tbody>'+trs+'</tbody></table></div>');
+  html+=sec('About this method','<p class="cap" style="margin-top:0">Gordon Blair’s chamber (<i>Design and Simulation of Two-Stroke Engines</i>, SAE 1996): the tuned length is 83.3 × the speed of sound × the exhaust duration ÷ RPM, split 10 / 41 / 14 / 11 / 24% into header, diffusers, belly and baffle, with the stinger as long as the baffle. His gas temperature and diameter constants are given for three classes of engine; here they follow the engine’s BMEP on a straight line between them'+(p.stg===3?', and his first diffuser is split 60 / 40 along the profile through his three diameters, so the cones open more evenly':'')+'. Treat it as the starting shape, then trim the header on the dyno.</p>');
+  html+=guideHtml('two');
+  html+=actions('two');
+  FX.two={title:'Expansion chamber',segs:r.segs.map((sg,i)=>i===0?[sg.name,r.build,r.dBuild,sg.d1]:[sg.name,sg.len,sg.d0,sg.d1]),wall_mm:1.2};
+  det.innerHTML=html;
+  S.two.summary=['2-STROKE EXPANSION CHAMBER FROM THE ENGINE ('+(p.stg===3?'THREE':'TWO')+'-STAGE DIFFUSER)',
+    'Peak '+Math.round(p.rpm)+' RPM, '+p.hp+' hp, BMEP '+r.bmep.toFixed(2)+' bar, port duration '+p.ed+'°, gas '+tempStr(r.T)+', port diameter '+plain(D0,'d'),
+    'Tuned length, port face to stinger: '+plain(r.lt,'l')].concat(r.segs.map(sg=>sg.name+': '+plain(sg.len,'l')+(sg.d0===sg.d1?' at '+plain(sg.d0,'d'):', '+plain(sg.d0,'d')+' to '+plain(sg.d1,'d')+' ('+sg.ang.toFixed(1)+'° included)'))).concat(['Total: '+plain(r.total,'l')]).join('\n');
   S.two.points=pointsCsv(r.segs);
 }
 
