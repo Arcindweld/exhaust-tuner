@@ -584,6 +584,23 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   muffler as a plain volume; a capillary-substrate cat adds only about 2 dB at 400 Hz by the narrow-tube estimate).
 - Live in Fusion 2026-11-03 (the owner's PC, add-in files from today): fusion_live_drone_parts.py all ok (can, path,
   route on the Rust core, tilt, scan, hole: every tool cuts), fusion_live_cfd_stl.py ok (196 triangles, inlet/outlet/wall).
+- Merge collectors and Y merges as one welded part (2026-11-04, task 95, "fully featured"): fusion-addin/merge.py
+  plans in plain Python, cadtools _merge_collector builds it at every merge (header, Tri-Y Ys and collector, 180-degree
+  bundle): a 3/4 in slip sleeve (ID = the bundle envelope), a merge plate inside it with one BORE-size hole per tube end
+  (OD holes would touch at points: neither cuttable nor weldable; bore holes leave two walls between holes, one to the
+  rim), plate from 1/8, 3/16 or 1/4 in stock (thinnest >= 1.5 x tube wall), the cone to the outlet OD, and a centre
+  spike when the void is >= 0.15 OD (n >= 4) whose length keeps the open area from growing (Ls >= r_b^2/(R0|R'|), x1.15,
+  at least 3 r_b; capped at 0.9 of the cone). Spikes 1.5 in across or wider are hollow rolled cones, smaller ones solid
+  (turned bar). Features: shell + spike revolved from one half section, plate extruded, joined, one lump; else a fixed
+  body (TBM); tube ends off one ring -> the old plain cone with a note. The cone's included angle is reported against
+  Burns Stainless (15 deg recommended, 7 to 18 deg best). Each merge is listed as a part with its weight, and the
+  answer carries cut files (DXF R12 mm, CUT layer): the plate on its own; the cone, the sleeve and a rolled spike as
+  flat patterns at mid-wall in the tube gauge. Page: "Cut files" save buttons on any Fusion answer (saveTextFile shared
+  with the Hangers tab). Tests: fusion-addin/tests/test_merge.py (plan, area rule, ligaments, DXF read back, writes
+  web/tests/fixtures/merge_route.json), test_drone_fusion_mock.py merge_glue + triy checks (stand-in now has extrudes,
+  circles, real profile counts), web/tests/merge_files_ui.js. Live: fusion_live_merge.py written, NOT yet run (the PC
+  was offline). Honest limit: a flat plate is a step (open area 1.5-2.4 x the bores at the plate); a formed (pie-cut)
+  merge is smoother but needs press tooling.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

@@ -36,11 +36,13 @@ try:
     from . import templates as TPL
     from . import jig as JIG
     from . import hangers as HGR
+    from . import merge as MRG
 except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path)
     import router as RT
     import templates as TPL
     import jig as JIG
     import hangers as HGR
+    import merge as MRG
 
 PALETTE_ID = 'exhaustTunerPalette'
 PANEL_CMD_ID = 'exhaustTunerPanelCmd'
@@ -1486,6 +1488,166 @@ def _cone_shell(p0, r0, p1, r1, wall):
     return outer
 
 
+def _merge_param(comp, p, name):
+    """The merge (merge.plan) as features: the shell and the spike revolved from one half section, the merge plate
+    extruded from its holes, all joined into one body. Anything made before a refusal is taken out again."""
+    u = p['axis']
+    e1, e2 = RT.perp_basis(u)
+    A = lambda x, r=0.0: MRG.at(p, x, r, e1)
+    feats = []
+    try:
+        plane = _plane_3pt(comp, A(0.0), A(1.0), A(0.0, 1.0), name)
+        sk = comp.sketches.add(plane)
+        sk.name = name + ' section'
+        S = lambda q: sk.modelToSketchSpace(_P3(q))
+        axis = sk.sketchCurves.sketchLines.addByTwoPoints(S(A(-p['sleeve'] - 0.5)), S(A(p['length'] + 0.5)))
+        axis.isConstruction = True
+        _poly(sk, [A(x, r) for x, r in p['section']])
+        t = p['plate_t']
+        if p['spike']:
+            sp = p['spike']
+            rb, Ls = sp['r'], sp['len']
+            # its foot runs half into the plate so the two join through metal, not along a face; a rolled spike is
+            # a cone of sheet, closed underneath by the plate
+            if sp['hollow']:
+                _poly(sk, [A(0.5 * t, sp['r_in']), A(0.5 * t, rb), A(t, rb), A(t + Ls), A(t + sp['len_in']), A(t, sp['r_in'])])
+            else:
+                _poly(sk, [A(0.5 * t), A(0.5 * t, rb), A(t, rb), A(t + Ls)])
+        profs = adsk.core.ObjectCollection.create()
+        for i in range(sk.profiles.count):
+            if sk.profiles.item(i).profileLoops.count == 1:
+                profs.add(sk.profiles.item(i))
+        if profs.count != (2 if p['spike'] else 1):
+            raise RuntimeError('section profiles')
+        rv = comp.features.revolveFeatures
+        inp = rv.createInput(profs, axis, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        inp.setAngleExtent(False, adsk.core.ValueInput.createByString('360 deg'))
+        f = rv.add(inp)
+        feats.append(f)
+        bodies = [f.bodies.item(i) for i in range(f.bodies.count)]
+        if p['plate']:
+            pl = p['plate']
+
+            def outline(sk2):
+                C = sk2.sketchCurves.sketchCircles
+                # the plate's rim runs half a wall into the sleeve, again so they join through metal
+                C.addByCenterRadius(sk2.modelToSketchSpace(_P3(pl['center'])), pl['r'] + 0.5 * p['wall'])
+                for c, r in pl['holes']:
+                    C.addByCenterRadius(sk2.modelToSketchSpace(_P3(c)), r)
+            fp = _extrude_section(comp, pl['center'], e1, e2, u, t, outline, name + ' plate')
+            feats.append(fp)
+            bodies += [fp.bodies.item(i) for i in range(fp.bodies.count)]
+        target = max(bodies, key=lambda b: b.volume)
+        tools = adsk.core.ObjectCollection.create()
+        for b in bodies:
+            if b != target:
+                tools.add(b)
+        if tools.count:
+            ci = comp.features.combineFeatures.createInput(target, tools)
+            ci.operation = adsk.fusion.FeatureOperations.JoinFeatureOperation
+            feats.append(comp.features.combineFeatures.add(ci))
+        target.name = name
+        if target.lumps.count != 1:
+            raise RuntimeError('the merge came out in %d pieces' % target.lumps.count)
+        try:
+            sk.isVisible = False
+            plane.isLightBulbOn = False
+        except Exception:
+            pass
+        return target
+    except Exception:
+        for f in reversed(feats):
+            try:
+                f.deleteMe()
+            except Exception:
+                pass
+        raise
+
+
+def _merge_body(p):
+    """The same merge as one fixed body (temporary B-Rep), when the features are refused."""
+    tbm = adsk.fusion.TemporaryBRepManager.get()
+    BT = adsk.fusion.BooleanTypes
+    u = p['axis']
+    e1, _e2 = RT.perp_basis(u)
+    A = lambda x, r=0.0: _P3(MRG.at(p, x, r, e1))
+    s, t, L, e = p['sleeve'], p['plate_t'], p['length'], 0.05
+    Ri0, Ro0, Ri1, Ro1 = p['Ri0'], p['Ro0'], p['Ri1'], p['Ro1']
+    k = (Ri1 - Ri0) / (L - t)
+
+    def cc(x0, r0, x1, r1):
+        b = tbm.createCylinderOrCone(A(x0), r0, A(x1), r1)
+        if b is None:
+            raise RuntimeError('cone')
+        return b
+
+    def op(a, b, how):
+        if not tbm.booleanOperation(a, b, how):
+            raise RuntimeError('boolean')
+    shell = cc(-s, Ro0, t, Ro0)
+    op(shell, cc(t, Ro0, L, Ro1), BT.UnionBooleanType)
+    hole = cc(-s - e, Ri0, t, Ri0)
+    op(hole, cc(t, Ri0, L + e, Ri1 + k * e), BT.UnionBooleanType)
+    op(shell, hole, BT.DifferenceBooleanType)
+    if p['plate']:
+        pl = p['plate']
+        plate = cc(0.0, Ri0 + 0.5 * p['wall'], t, Ri0 + 0.5 * p['wall'])
+        for c, r in pl['holes']:
+            a = tuple(c[i] - u[i] * e for i in range(3))
+            b = tuple(c[i] + u[i] * (t + e) for i in range(3))
+            h = tbm.createCylinderOrCone(_P3(a), r, _P3(b), r)
+            op(plate, h, BT.DifferenceBooleanType)
+        op(shell, plate, BT.UnionBooleanType)
+    if p['spike']:
+        S = p['spike']
+        rb, Ls = S['r'], S['len']
+        sp = cc(0.5 * t, rb, t, rb)
+
+        def cone(r0, h):
+            for r_tip in (0.0, 0.002):
+                try:
+                    return cc(t, r0, t + h, r_tip)
+                except Exception:
+                    pass
+            return None
+        tip = cone(rb, Ls)
+        if tip is not None:
+            op(sp, tip, BT.UnionBooleanType)
+            if S['hollow']:
+                inner = cone(S['r_in'], S['len_in'])
+                if inner is not None:
+                    op(sp, inner, BT.DifferenceBooleanType)
+        op(shell, sp, BT.UnionBooleanType)
+    return shell
+
+
+def _merge_collector(comp, col, ends, od, wall, name, notes, lead_end=None):
+    """A merge collector or Y merge as one welded part: slip sleeve, merge plate with a bore-size hole per tube,
+    cone and centre spike (merge.plan), as features, else as a fixed body; a plain cone when the tube ends do not
+    sit on one ring at the inlet. Returns what the builders list."""
+    L = _norm(_sub(col['end'], col['start']))
+    try:
+        p = MRG.plan(col['start'], _sub(col['end'], col['start']), [tuple(q) for q in ends], od, wall,
+                     col['d_in'], col['d_out'], L, lead_end=lead_end)
+    except ValueError as ex:
+        notes.append('%s was built as a plain cone: %s' % (name, ex))
+        try:
+            _revolve_cone(comp, col['start'], col['d_in'], col['end'], col['d_out'], wall, name)
+            return {'param': True}
+        except Exception:
+            body = _cone_shell(col['start'], col['d_in'] / 2.0, col['end'], col['d_out'] / 2.0, wall)
+            _add_bodies(comp, [(body, name + ' (outline)')])
+            return {'param': False}
+    for s in p['notes']:
+        notes.append('%s: %s' % (name, s))
+    try:
+        _merge_param(comp, p, name)
+        return {'param': True, 'merge': p, 'name': name}
+    except Exception:
+        _add_bodies(comp, [(_merge_body(p), name + ' (fixed)')])
+        return {'param': False, 'merge': p, 'name': name}
+
+
 def _part_bodies(part, g):
     """An off-the-shelf part's outline as one fixed body, when the sketches and extrudes are refused: the same
     shapes as _part_param (round, flat oval, box or cone case, and the inlet and outlet stubs). Returns a list:
@@ -1879,12 +2041,10 @@ def _route_bundle180(data, sp, mk, scene, log, notes, title):
         col = RT.collector_body(m['p'], m['d'], 4, od, clen, cout, scene, sp['gap'])
         nm = 'Collector %s (cyl %s)' % (tag, ', '.join(str(c) for c in res['groups'][tag]))
         try:
-            _revolve_cone(comp, col['start'], col['d_in'], col['end'], col['d_out'], wall, nm)
-            built.append({'param': True})
+            ends = [frame.elems(res['tubes'][c]['elems'])[-1][2] for c in res['groups'][tag]]
         except Exception:
-            body = _cone_shell(col['start'], col['d_in'] / 2.0, col['end'], col['d_out'] / 2.0, wall)
-            _add_bodies(comp, [(body, nm + ' (outline)')])
-            built.append({'param': False})
+            ends = RT.collector_slots(m['p'], m['d'], 4, od)
+        built.append(_merge_collector(comp, col, ends, od, wall, nm, notes))
         if col.get('min_gap') is not None and col['min_gap'] < sp['gap']:
             notes.append('%s comes within %.1f mm of the scan.' % (nm, 10 * col['min_gap']))
     for k, v in res['pairs'].items():
@@ -1975,13 +2135,7 @@ def act_route(data):
             items.append(_route_item(nm, r, sp['gap'], od, data))
         col = res.get('collector')
         if col:
-            try:
-                _revolve_cone(comp, col['start'], col['d_in'], col['end'], col['d_out'], wall, 'Merge collector')
-                built.append({'param': True})
-            except Exception:
-                body = _cone_shell(col['start'], col['d_in'] / 2.0, col['end'], col['d_out'] / 2.0, wall)
-                _add_bodies(comp, [(body, 'Merge collector (outline)')])
-                built.append({'param': False})
+            built.append(_merge_collector(comp, col, res['slots'], od, wall, 'Merge collector', notes, hs.get('lead_end')))
             if col.get('min_gap') is not None and col['min_gap'] < sp['gap']:
                 notes.append('The merge collector comes within %.2f cm of the scan.' % col['min_gap'])
         lens = [r['length'] for r in res['primaries'] if r.get('length')]
@@ -2008,22 +2162,16 @@ def act_route(data):
             if r and r.get('elems'):
                 built.append(_build_route(comp, r, nm, od, wall, title + '_primary'))
             items.append(_route_item(nm, r or {}, sp['gap'], od, data))
-        cones = [(y, 'Y merge %d' % (gi + 1)) for gi, y in enumerate(res['ys'])]
+        cones = [(y, 'Y merge %d' % (gi + 1), res['stage1'][gi]['slots'], od) for gi, y in enumerate(res['ys'])]
         if res.get('collector'):
-            cones.append((res['collector'], 'Merge collector'))
+            cones.append((res['collector'], 'Merge collector', res['stage2']['slots'], sec_od))
         for gi, r in enumerate(res['secondaries']):
             nm = 'Secondary %d' % (gi + 1)
             if r and r.get('elems'):
                 built.append(_build_route(comp, r, nm, sec_od, wall, title + '_secondary'))
             items.append(_route_item(nm, r or {}, sp['gap'], sec_od, data))
-        for c, nm in cones:
-            try:
-                _revolve_cone(comp, c['start'], c['d_in'], c['end'], c['d_out'], wall, nm)
-                built.append({'param': True})
-            except Exception:
-                body = _cone_shell(c['start'], c['d_in'] / 2.0, c['end'], c['d_out'] / 2.0, wall)
-                _add_bodies(comp, [(body, nm + ' (outline)')])
-                built.append({'param': False})
+        for c, nm, slots, tod in cones:
+            built.append(_merge_collector(comp, c, slots, tod, wall, nm, notes, ts.get('lead_end')))
             if c.get('min_gap') is not None and c['min_gap'] < sp['gap']:
                 notes.append('%s comes within %.2f cm of the scan.' % (nm, c['min_gap']))
         msg = ('Built %d primaries into %d Y merges (%.1f cm long, each a %d-into-1 at a 15 deg included angle) and %d '
@@ -2126,6 +2274,12 @@ def act_route(data):
     msg += ' %.0f s, %s.' % (secs, RT.NATIVE_NOTE)
     if notes:
         msg += ' ' + ' '.join(notes)
+    # each merge as a part of its own in the list, with its cut files (the plate, the cone and the sleeve flat)
+    files = []
+    for b in built:
+        if b.get('merge'):
+            items.append({'kind': 'merge', 'name': b['name'], 'ok': True, 'note': MRG.summary(b['merge'], b['name'])})
+            files += [{k: f[k] for k in ('name', 'text', 'what')} for f in MRG.cut_files(b['merge'], b['name'])]
     allok = all(it.get('ok', True) for it in items)
     if built and not all(b.get('param') for b in built):
         msg += (' Some geometry could not be made as editable sketches and features, so it was added as '
@@ -2133,7 +2287,7 @@ def act_route(data):
     elif built:
         msg += (' Everything%s is sketch-driven: tube size and wall follow the user parameters named after '
                 'the build, and each centreline sketch can be edited.' % (' but the coped end' if coped else ''))
-    return {'ok': True, 'msg': msg, 'items': items, 'route_ok': allok,
+    return {'ok': True, 'msg': msg, 'items': items, 'route_ok': allok, 'files': files,
             'scan': {'triangles': scene.ntri, 'points': scene.npoints, 'e_cover': scene.e_cover}}
 
 

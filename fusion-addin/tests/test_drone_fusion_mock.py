@@ -60,6 +60,13 @@ class Coll(list):
     def add(self, x):
         self.append(x)
 
+    @property
+    def count(self):          # an ObjectCollection's count is a property, not list.count
+        return len(self)
+
+    def item(self, i):
+        return self[i]
+
 
 core.ObjectCollection = Coll
 core.SurfaceTypes = types.SimpleNamespace(CylinderSurfaceType='cyl', PlaneSurfaceType='plane')
@@ -73,6 +80,8 @@ class Body(object):
     def __init__(self, kind, **kw):
         self.kind, self.kw, self.name, self.isLightBulbOn, self.cuts = kind, kw, None, True, []
         self.objectType = 'adsk::fusion::BRepBody'
+        self.volume = kw.get('volume', 1.0)
+        self.lumps = Items([1])
 
 
 class TBM(object):
@@ -136,18 +145,48 @@ class Lines(object):
 
 
 class Profile(object):
-    profileLoops = Items([1])
+    def __init__(self, loops=1, area=1.0, what=None):
+        self.profileLoops = Items([1] * loops)
+        self.area, self.what = area, what
 
     def areaProperties(self):
-        return types.SimpleNamespace(area=1.0)
+        return types.SimpleNamespace(area=self.area)
+
+
+class Circles(object):
+    def __init__(self, sk):
+        self.sk = sk
+
+    def addByCenterRadius(self, c, r):
+        self.sk.circles.append(((c.x, c.y, c.z), r))
+        return types.SimpleNamespace(centerSketchPoint=SketchPoint((c.x, c.y, c.z)), radius=r)
 
 
 class Sketch(object):
     def __init__(self, plane):
-        self.plane, self.name, self.lines = plane, None, []
-        self.sketchCurves = types.SimpleNamespace(sketchLines=Lines(self), sketchCircles=None, sketchArcs=None)
+        self.plane, self.name, self.lines, self.circles = plane, None, [], []
+        self.sketchCurves = types.SimpleNamespace(sketchLines=Lines(self), sketchCircles=Circles(self), sketchArcs=None)
         self.sketchPoints = types.SimpleNamespace(add=lambda p: SketchPoint((p.x, p.y, p.z)))
-        self.profiles = Items([Profile()])
+        self.xDirection, self.yDirection = P3(1, 0, 0), P3(0, 1, 0)
+        self.isVisible = True
+
+    @property
+    def profiles(self):
+        """One single-loop profile per closed chain of lines (a chain starts where a line does not carry on from the
+        last one's end), and for circles drawn one inside another, the outer with the inner ones as its holes plus
+        each inner one on its own; a sketch with nothing closed keeps the one profile the older tests expect."""
+        out, prev = [], None
+        for ln in self.lines:
+            if ln.isConstruction:
+                continue
+            if prev is None or ln.startSketchPoint is not prev.endSketchPoint:
+                out.append(Profile(1, 1.0, 'chain'))
+            prev = ln
+        if self.circles:
+            big = max(r for _c, r in self.circles)
+            out.append(Profile(len(self.circles), big * big, 'disc'))
+            out += [Profile(1, r * r * 0.5, 'hole') for _c, r in self.circles if r != big]
+        return Items(out or [Profile()])
 
     def modelToSketchSpace(self, p):
         return p
@@ -173,9 +212,23 @@ class Revolves(object):
 
     def add(self, inp):
         sk = self.comp.sketches.xs[-1]
-        f = Feature('revolve', sketch=sk, axis=inp.axis)
-        self.comp.bRepBodies.xs.append(f.bodies.item(0))
+        f = Feature('revolve', sketch=sk, axis=inp.axis, profiles=inp.prof)
+        n = len(inp.prof) if isinstance(inp.prof, Coll) else 1
+        f.bodies = Items([Body('revolve', volume=10.0 if i == 0 else 1.0) for i in range(n)])
+        self.comp.bRepBodies.xs.extend(f.bodies.xs)
         self.comp.revolves.append(f)
+        return f
+
+
+class Extrudes(object):
+    def __init__(self, comp):
+        self.comp = comp
+
+    def addSimple(self, prof, dist, op):
+        f = Feature('extrude', profile=prof, dist=dist, op=op, sketch=self.comp.sketches.xs[-1])
+        f.bodies = Items([Body('extrude', volume=2.0)])
+        self.comp.bRepBodies.xs.extend(f.bodies.xs)
+        self.comp.extrudes.append(f)
         return f
 
 
@@ -214,11 +267,11 @@ class Comp(object):
         self.sketches = Items()
         self.sketches.add = self._add_sketch
         self.bRepBodies = Bodies()
-        self.revolves, self.combines, self.planes = [], [], []
+        self.revolves, self.combines, self.planes, self.extrudes = [], [], [], []
         self.xYConstructionPlane = 'XY'
         self.constructionPlanes = types.SimpleNamespace(createInput=lambda: types.SimpleNamespace(setByThreePoints=lambda a, b, c: None),
                                                         add=self._add_plane)
-        self.features = types.SimpleNamespace(revolveFeatures=Revolves(self), combineFeatures=Combines(self),
+        self.features = types.SimpleNamespace(revolveFeatures=Revolves(self), combineFeatures=Combines(self), extrudeFeatures=Extrudes(self),
                                               baseFeatures=types.SimpleNamespace(add=lambda: BaseFeature()))
 
     def _add_sketch(self, plane):
@@ -227,7 +280,7 @@ class Comp(object):
         return sk
 
     def _add_plane(self, inp):
-        pl = types.SimpleNamespace(name=None)
+        pl = types.SimpleNamespace(name=None, isLightBulbOn=True)
         self.planes.append(pl)
         return pl
 
@@ -325,6 +378,26 @@ import cadtools as CT     # noqa: E402
 import router as RT       # noqa: E402
 import templates as TPL   # noqa: E402
 import test_router as TR  # noqa: E402
+import merge as MRG       # noqa: E402
+
+# what the triy build planned, for the checks: the router's answer and each merge's plan arguments
+LAST_TRIY, LAST_PLAN = {}, []
+_rt_triy, _mrg_plan = RT.route_triy, MRG.plan
+
+
+def _spy_triy(*a, **k):
+    r = _rt_triy(*a, **k)
+    LAST_TRIY.clear()
+    LAST_TRIY.update(r)
+    return r
+
+
+def _spy_plan(*a, **k):
+    LAST_PLAN.append((a, k))
+    return _mrg_plan(*a, **k)
+
+
+RT.route_triy, MRG.plan = _spy_triy, _spy_plan
 
 fails = []
 
@@ -676,9 +749,54 @@ def route_triy_glue():
        'four primaries at 1.625 in OD, 40 cm each: %s' % [round(b[2], 2) for b in prim])
     ok(len(sec) == 2 and all(abs(b[1] - 5.08) < 1e-9 for b in sec), 'two secondaries at 2 in OD: %s' % [round(b[2], 2) for b in sec])
     comp = design.made[-1]
-    ok(len(comp.revolves) == 3, 'two Y merges and the collector revolved (%d)' % len(comp.revolves))
+    ok(len(comp.revolves) == 3 and all(len(f.kw['profiles']) == 1 for f in comp.revolves),
+       'two Y merges and the collector revolved, each from one half section (2-into-1s: no spike) (%d)' % len(comp.revolves))
+    ok(len(comp.extrudes) == 3 and len(comp.combines) == 3, 'each merge plate extruded and joined to its shell')
+    ok(not any((b.name or '').endswith('(fixed)') for b in comp.bRepBodies.xs), 'no merge fell back to a fixed body')
+    plates = [f.kw['sketch'] for f in comp.extrudes]
+    yslots = [res_y['slots'] for res_y in LAST_TRIY['stage1']] + [LAST_TRIY['stage2']['slots']]
+    ok(all(len(sk.circles) == 3 and all(any(RT.vdist(c, sl) < 1e-9 for c, _r in sk.circles) for sl in slots)
+           for sk, slots in zip(plates, yslots)), 'every plate: the rim and a hole on each tube end')
+    ok(all(f.kw['profile'].what == 'disc' and abs(abs(f.kw['dist'][1]) - _mrg_plan(*LAST_PLAN[i][0], **LAST_PLAN[i][1])['plate_t']) < 1e-9 for i, f in enumerate(comp.extrudes)),
+       'the plate is the region between the rim and the holes, extruded its own thickness')
+    merges = [it for it in res['items'] if it.get('kind') == 'merge']
+    ok([m['name'] for m in merges] == ['Y merge 1', 'Y merge 2', 'Merge collector'] and all('2 into 1' in m['note'] for m in merges),
+       'each merge listed as a part: ' + ', '.join(m['name'] for m in merges))
+    ok(len(res['files']) == 6 and all('ENTITIES' in f['text'] for f in res['files']),
+       'cut files: a plate and a cone-and-sleeve for each merge (%d)' % len(res['files']))
     ok('Y merges' in res['msg'] and 'valve-to-collector length is as asked' in res['msg'], res['msg'][:140])
     ok(bad is not None and 'in cylinder order' in bad and '7 markers in all' in bad, 'a wrong marker count is refused: %s' % (bad or '')[:90])
+
+
+def merge_glue():
+    """_merge_collector for a 4-into-1: the shell and the spike from one section (two profiles), the plate with four
+    holes, joined; when Fusion refuses the revolve, the same merge as one fixed body from cylinders and cones; tube ends
+    off one ring give the plain cone and say why."""
+    st, ax, od, w = (5.0, -3.0, 2.0), RT.vunit((0.1, 0.2, -1.0)), 4.128, 0.165
+    sl = RT.collector_slots(st, ax, 4, od, 0.0)
+    col = RT.collector_body(st, ax, 4, od, 10.16, 7.62, None, 1.0)
+    comp, notes = Comp(), []
+    b = CT._merge_collector(comp, col, sl, od, w, 'Merge collector', notes, 2.54)
+    ok(b['param'] and len(comp.revolves) == 1 and len(comp.revolves[0].kw['profiles']) == 2 and len(comp.extrudes) == 1 and
+       len(comp.extrudes[0].kw['sketch'].circles) == 5 and len(comp.combines) == 1 and len(comp.combines[0].tools) == 2,
+       '4-into-1: shell and spike revolved together, a plate with four holes, both joined to the shell')
+    tgt = comp.combines[0].target
+    ok(tgt.name == 'Merge collector' and tgt.volume == 10.0, 'the joined body is the shell, named for the merge')
+    comp2 = Comp()
+    def refuse(inp):
+        raise RuntimeError('refused')
+    comp2.features.revolveFeatures.add = refuse
+    n0 = len(LOG)
+    b2 = CT._merge_collector(comp2, col, sl, od, w, 'Merge collector', [], 2.54)
+    cyl = [e for e in LOG[n0:] if e[0] == 'cyl']
+    ok(not b2['param'] and [x.name for x in comp2.bRepBodies.xs] == ['Merge collector (fixed)'] and len(cyl) == 4 + 1 + 4 + 2,
+       'refused: one fixed body from %d cylinders and cones (shell 4, plate 1, holes 4, spike 2)' % len(cyl))
+    bad = list(sl)
+    bad[0] = RT.vadd(st, RT.vmul(RT.vsub(bad[0], st), 0.7))
+    comp3, notes3 = Comp(), []
+    b3 = CT._merge_collector(comp3, col, bad, od, w, 'Merge collector', notes3, 2.54)
+    ok(b3['param'] and 'merge' not in b3 and len(comp3.revolves) == 1 and any('plain cone' in n and 'one ring' in n for n in notes3),
+       'tube ends off one ring: the plain cone, and the note says why')
 
 
 off_square_and_refusals()
@@ -686,5 +804,6 @@ offset_part()
 buildable_route()
 tack_jig()
 route_triy_glue()
+merge_glue()
 print('FAILS:', fails)
 sys.exit(1 if fails else 0)

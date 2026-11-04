@@ -83,6 +83,7 @@ jobs:
           cd fusion-addin/tests
           EXHAUST_TUNER_NATIVE_DIR=$GITHUB_WORKSPACE/rust/et_core/target/release python3 test_native.py --quick --require
           EXHAUST_TUNER_NATIVE_DIR=$GITHUB_WORKSPACE/rust/et_core/target/release python3 test_router.py
+          python3 test_merge.py
       # the page's wave simulation in Rust (rust/et_wave, WebAssembly) against its JavaScript: built from this commit's
       # source, then the copy embedded in the page (tools/build_wave_wasm.sh), each the same to the last digit
       - name: The wave model in Rust against the page's JavaScript
@@ -318,7 +319,7 @@ jobs:
           # the Fusion palette gets it, so it renders in standards mode like the published page
           python web/make_palette.py web/index.html "$s/web/app.html"
           if (-not (Test-Path "$s/web/app.html")) { throw "app.html was not written" }
-          foreach ($f in "ExhaustTuner.py","ExhaustTuner.manifest","cadtools.py","router.py","templates.py","jig.py","hangers.py","native.py","README.txt") { Copy-Item "fusion-addin/$f" "$s/fusion-addin/" }
+          foreach ($f in "ExhaustTuner.py","ExhaustTuner.manifest","cadtools.py","router.py","templates.py","jig.py","hangers.py","merge.py","native.py","README.txt") { Copy-Item "fusion-addin/$f" "$s/fusion-addin/" }
           # the router's Rust core, built on this runner (the add-in falls back to its Python without it). It uses the
           # C runtime DLLs Fusion's Python already has loaded (vcruntime140, the UCRT), so its sin, cos and acos are the
           # very ones the Python router calls, and the two give the same numbers; a static runtime could differ.

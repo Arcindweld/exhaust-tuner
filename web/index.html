@@ -11281,8 +11281,30 @@ function fxRender(tab,res){
     h+=sec('Clearance','<div class="tblwrap"><table><thead><tr><th>Part</th><th>Keep-out</th><th>Gap</th><th></th></tr></thead><tbody>'+
       res.rows.map(q=>{const mm=cmToMm(q.d); return '<tr><td>'+esc(q.a)+'</td><td>'+esc(q.b)+'</td><td>'+clen(mm)+'</td><td class="'+(mm<gap?'st-bad':'st-ok')+'">'+(mm<0.01?'touching':(mm<gap?'too close':'ok'))+'</td></tr>';}).join('')+'</tbody></table></div>');
   }
+  // cut files the build sent back (a merge's plate, its cone and sleeve as flat patterns): one save button each
+  FX.files=FX.files||{}; FX.files[tab]=(res.files||[]).filter(f=>f&&f.name&&f.text);
+  if(FX.files[tab].length) h+=sec('Cut files','<p class="cap">DXF in millimetres, every line on the CUT layer, ready for a laser or waterjet service. One file per sheet thickness.</p>'+
+    '<div class="actions">'+FX.files[tab].map((f,i)=>'<button type="button" class="btn" data-fxfile="'+i+'" data-tab="'+tab+'">Save '+esc(f.name)+'</button>').join('')+'</div>'+
+    '<ul class="cap">'+FX.files[tab].map(f=>'<li>'+esc(f.what||f.name)+'</li>').join('')+'</ul><p class="cap" id="fx-files-msg-'+tab+'"></p>');
   out.innerHTML=h;
 }
+window.__fxRender=fxRender;   // test hook: render an add-in answer
+// save a text file the way this page can: through Fusion or the desktop host, the artifact's save capability, or a download
+async function saveTextFile(name,text,type,say){
+  if(FUSION||HOST){ const res=await saveCall('saveText',{filename:name,text,title:'Save the cut file'}); say(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.')); return; }
+  const blob=new Blob([text],{type});
+  if(ES_DLP){ const dl=await ES_DLP; if(!dl){ say('Saving files is not available in this view.',true); return; }
+    try{ await dl.save({filename:name,data:blob}); say('Saved '+name+'.'); }catch(e){ const c=e&&e.code; say(c==='declined'?'Not saved.':'This view could not save the file ('+(c||'error')+').',c!=='declined'); } return; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+  say('Downloaded '+name+'.');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-fxfile]'); if(!b) return;
+  const tab=b.dataset.tab, f=((FX.files||{})[tab]||[])[+b.dataset.fxfile]; if(!f) return;
+  const msg=$('fx-files-msg-'+tab), say=(t,bad)=>{ if(msg){ msg.textContent=t; msg.className='cap'+(bad?' st-bad':''); } };
+  window.__fxFile={name:f.name,text:f.text};
+  saveTextFile(f.name,f.text,'application/dxf',say);
+});
 document.addEventListener('click',e=>{
   const b=e.target.closest('button[data-fx]'); if(!b) return;
   const tab=b.dataset.tab, act=b.dataset.fx, out=$('fx-out-'+tab);
@@ -12195,12 +12217,7 @@ async function hgSave(){
   const P=L.parts.filter(p=>p.outline), text=hgDxf(P.map(p=>p.kind==='ring'?{outline:p.outline,lower:p.lower,holes:p.holes}:p));
   const name=(L.o.part==='pair'?'hanger_tab_pair':L.o.part==='body'?'body_tab':L.o.part==='ring'?'ring_clamp':'pipe_tab')+'_'+L.o.od.toFixed(1).replace('.','p')+'mm.dxf';
   window.__hgDxf={name,text};
-  if(FUSION||HOST){ const res=await saveCall('saveText',{filename:name,text,title:'Save the cut file'}); say(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.')); return; }
-  const blob=new Blob([text],{type:'application/dxf'});
-  if(ES_DLP){ const dl=await ES_DLP; if(!dl){ say('Saving files is not available in this view.',true); return; }
-    try{ await dl.save({filename:name,data:blob}); say('Saved '+name+'.'); }catch(e){ const c=e&&e.code; say(c==='declined'?'Not saved.':'This view could not save the file ('+(c||'error')+').',c!=='declined'); } return; }
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
-  say('Downloaded '+name+'.');
+  return saveTextFile(name,text,'application/dxf',say);
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest('button[data-hg]'); if(!b) return;

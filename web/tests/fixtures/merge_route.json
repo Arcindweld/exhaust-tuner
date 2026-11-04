@@ -1,0 +1,25 @@
+{
+ "ok": true,
+ "msg": "Built 4 primaries into the collector.",
+ "route_ok": true,
+ "items": [
+  {
+   "kind": "merge",
+   "name": "Merge collector",
+   "ok": true,
+   "note": "Merge collector: 4 into 1; a 0.125 in (3.2 mm) merge plate with 4 bore-size holes (0.130 in (3.3 mm) between holes, 0.065 in (1.7 mm) to the rim); a 0.750 in (19.1 mm) slip sleeve; a 1.107 in (28.1 mm) spike, 0.738 in (18.7 mm) at its base, turned from round bar; the cone 15.5 deg included; open area 1.66 times the bores at the plate, 0.92 at the outlet; about 1.23 lb (556 g) in 304."
+  }
+ ],
+ "files": [
+  {
+   "name": "merge_collector_plate_0.125in.dxf",
+   "text": "0\r\nSECTION\r\n2\r\nHEADER\r\n9\r\n$INSUNITS\r\n70\r\n4\r\n9\r\n$MEASUREMENT\r\n70\r\n1\r\n0\r\nENDSEC\r\n0\r\nSECTION\r\n2\r\nENTITIES\r\n0\r\nCIRCLE\r\n8\r\nCUT\r\n10\r\n49.7483\r\n20\r\n49.7483\r\n30\r\n0\r\n40\r\n49.7483\r\n0\r\nCIRCLE\r\n8\r\nCUT\r\n10\r\n41.2152\r\n20\r\n77.6589\r\n30\r\n0\r\n40\r\n18.9865\r\n0\r\nCIRCLE\r\n8\r\nCUT\r\n10\r\n21.8378\r\n20\r\n41.2152\r\n30\r\n0\r\n40\r\n18.9865\r\n0\r\nCIRCLE\r\n8\r\nCUT\r\n10\r\n58.2814\r\n20\r\n21.8378\r\n30\r\n0\r\n40\r\n18.9865\r\n0\r\nCIRCLE\r\n8\r\nCUT\r\n10\r\n77.6589\r\n20\r\n58.2814\r\n30\r\n0\r\n40\r\n18.9865\r\n0\r\nENDSEC\r\n0\r\nEOF\r\n",
+   "what": "Merge collector: the merge plate, 0.125 in (3.17 mm) sheet"
+  },
+  {
+   "name": "merge_collector_cone_and_sleeve_0.065in.dxf",
+   "text": "0\r\nSECTION\r\n2\r\nHEADER\r\n9\r\n$INSUNITS\r\n70\r\n4\r\n9\r\n$MEASUREMENT\r\n70\r\n1\r\n0\r\nENDSEC\r\n0\r\nSECTION\r\n2\r\nENTITIES\r\n0\r\nARC\r\n8\r\nCUT\r\n10\r\n154.4151\r\n20\r\n-252.4331\r\n30\r\n0\r\n40\r\n376.1626\r\n50\r\n65.7637\r\n51\r\n114.2363\r\n0\r\nLINE\r\n8\r\nCUT\r\n10\r\n268.0553\r\n20\r\n0.0000\r\n30\r\n0\r\n11\r\n308.8301\r\n21\r\n90.5746\r\n31\r\n0\r\n0\r\nLINE\r\n8\r\nCUT\r\n10\r\n40.7748\r\n20\r\n0.0000\r\n30\r\n0\r\n11\r\n0.0000\r\n21\r\n90.5746\r\n31\r\n0\r\n0\r\nARC\r\n8\r\nCUT\r\n10\r\n154.4151\r\n20\r\n-252.4331\r\n30\r\n0\r\n40\r\n276.8331\r\n50\r\n65.7637\r\n51\r\n114.2363\r\n0\r\nLINE\r\n8\r\nCUT\r\n10\r\n323.8301\r\n20\r\n0.0000\r\n30\r\n0\r\n11\r\n642.0661\r\n21\r\n0.0000\r\n31\r\n0\r\n0\r\nLINE\r\n8\r\nCUT\r\n10\r\n642.0661\r\n20\r\n0.0000\r\n30\r\n0\r\n11\r\n642.0661\r\n21\r\n22.2250\r\n31\r\n0\r\n0\r\nLINE\r\n8\r\nCUT\r\n10\r\n642.0661\r\n20\r\n22.2250\r\n30\r\n0\r\n11\r\n323.8301\r\n21\r\n22.2250\r\n31\r\n0\r\n0\r\nLINE\r\n8\r\nCUT\r\n10\r\n323.8301\r\n20\r\n22.2250\r\n30\r\n0\r\n11\r\n323.8301\r\n21\r\n0.0000\r\n31\r\n0\r\n0\r\nENDSEC\r\n0\r\nEOF\r\n",
+   "what": "Merge collector: the cone, the sleeve as flat patterns, 0.065 in (1.65 mm) sheet, rolled with a butt seam"
+  }
+ ]
+}
