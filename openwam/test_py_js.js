@@ -48,7 +48,8 @@ function randomSpec(base, k) {
   e.bore = U(0.05, 0.11); e.stroke = U(0.045, 0.1); e.rod = e.stroke * U(1.5, 2.1); e.cr = U(8, 14);
   e.cd = U(0.55, 0.8); e.dIn = e.bore * U(0.32, 0.45); e.dEx = e.bore * U(0.28, 0.4); e.liftIn = e.dIn * U(0.2, 0.32); e.liftEx = e.dEx * U(0.2, 0.32);
   e.cam = { ivo: Math.round(U(5, 60)), ivc: Math.round(U(20, 80)) + (k % 3 === 0 ? 0.5 : 0), evo: Math.round(U(25, 80)), evc: Math.round(U(5, 50)) + (k % 3 === 0 ? 0.5 : 0) };
-  if (k % 3 === 1) e.cam.checkLift_mm = U(0.15, 1.3);   // events at a check lift (0.050 in = 1.27 mm): seat events from them
+  if (k % 3 === 1) e.cam.checkLift_mm = U(0.15, 1.3);
+  if (k % 5 === 4) e.combEff = U(0.7, 0.98);   // an explicit combustion efficiency (otherwise it follows the AFR)   // events at a check lift (0.050 in = 1.27 mm): seat events from them
   e.burn = { start: U(5, 35), dur: U(35, 70) }; e.afr = U(11.5, 14.5); e.eta = U(0.6, 0.9);
   if (k % 4 === 1) e.Twall = U(400, 520);
   const d = U(0.03, 0.06);

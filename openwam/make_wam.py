@@ -117,7 +117,7 @@ DEFAULTS = {
     "wiebe_m": 2.0,
     "afr": 12.8,
     "lhv_J_kg": 44.0e6,
-    "comb_eff": 0.72,             # share of fuel LHV released into the gas (wavesim eta)
+    "comb_eff": 0.72,             # share of fuel LHV released into the gas (v1 entry point; spec cases: comb_eff_for)
     "fuel_density": 740.0,        # read but not used by OpenWAM 2.2
     # ---- in-cylinder heat transfer (Woschni), fixed wall temperatures --------------
     "T_piston_C": 176.85, "T_head_C": 176.85, "T_liner_C": 176.85,
@@ -808,6 +808,21 @@ def seat_events(cam, lift_in_mm, lift_ex_mm):
     return out
 
 
+COMB_COMPLETE = 0.98     # share of the burnable fuel that burns completely (combustion inefficiency ~2 %, assumed)
+
+
+def comb_eff_for(e):
+    """OpenWAM's combustion efficiency (the share of the fuel's heat released into the gas). spec.e.combEff when given;
+    otherwise the share of the fuel the air can burn, min(1, 1/phi) (a rich mixture leaves the excess fuel unburnt),
+    times COMB_COMPLETE. OpenWAM takes the heat lost to the walls itself (Woschni), so the wave simulation's eta, which
+    lumps that heat loss in (0.72), is not used here: before v6 it was, and the losses were counted twice (a stock LS3
+    then made 352 lb-ft at 4600 rpm against GM's 425; with this, 423)."""
+    if e.get("combEff") is not None:
+        return float(e["combEff"])
+    phi = (1.0 / float(e["afr"])) / FS_GASOLINE_SIMPLE
+    return COMB_COMPLETE * min(1.0, 1.0 / phi)
+
+
 def lift_step_for(durs):
     for st in (1.0, 0.5, 0.25, 0.2, 0.1):
         if all(abs(round(dd / st) * st - dd) <= 1e-9 for dd in durs):
@@ -819,7 +834,7 @@ def model_from_spec(spec, run=None):
     """simSpec() structure -> model. Lengths in m, temperatures in K, cam in cam-card degrees.
 
     spec.e: {bore, stroke, rod, cr, cd, nIn, dIn, liftIn, nEx, dEx, liftEx, cam:{ivo,ivc,evo,evc,[checkLift_mm]},
-             burn:{start, dur}, afr, eta, [Twall K]}
+             burn:{start, dur}, afr, eta (the wave simulation's; not used here), [combEff], [Twall K]}
     spec.intake: {segs:[{L,d0,d1}] from the airbox to the valve, Tw,
                   [plenum: {V_m3, inlet:[{L,d0,d1}] from the open end (air filter) to the plenum: a diameter jump in it
                   is the throttle body}  every runner then starts at this one plenum instead of open air (v5)],
@@ -859,7 +874,7 @@ def model_from_spec(spec, run=None):
         "evo_bbdc": seat["evo"], "evc_atdc": seat["evc"],
         "valve_cd": float(e["cd"]), "curtain_cap": CALC_CURTAIN_CAP,
         "burn_start_btdc": float(burn["start"]), "burn_dur_deg": float(burn["dur"]),
-        "afr": float(e["afr"]), "comb_eff": float(e["eta"]),
+        "afr": float(e["afr"]), "comb_eff": comb_eff_for(e),
         "T_piston_C": twc, "T_head_C": twc, "T_liner_C": twc,
         "exhaust_Tgas0_C": CALC_T0_EXHAUST_K - K0,
     })

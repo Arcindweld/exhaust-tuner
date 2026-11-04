@@ -18,9 +18,12 @@ rod 154 mm, 10.7:1, one 55.0 mm intake and one 40.4 mm exhaust valve per cylinde
 2008 LS3 valve events at 0.050 in (Corvette Action Center's reproduction of GM's LS3 technical briefing): intake opens
 19 deg ATDC and closes 43 deg ABDC, exhaust opens 38 deg BBDC and closes 7 deg BTDC (204 / 211 deg), given at 0.050 in
 (checkLift_mm 1.27, so the model's lift passes 0.050 in there). Before 2026-11-03 these runs fed 0.050 in events in as
-seat timing (about 25 deg short at each end) and assumed the cam 4 deg advanced, where GM's events put the intake
-centreline 121 deg ATDC on a 117 deg lobe separation (4 deg retarded); the results in openwam/ref/v8_841/results*.json
-from then are kept for the record but superseded by the _v3 runs. firing order 1-8-7-2-6-5-4-3 (odd cylinders on the left bank). Header tubes follow Concept 841's published C7
+seat timing (about 25 deg short at each end), assumed the cam 4 deg advanced, where GM's events put the intake
+centreline 121 deg ATDC on a 117 deg lobe separation (4 deg retarded), and OpenWAM's combustion efficiency was the wave
+model's 0.72, which lumps in the wall heat loss OpenWAM also takes itself (now 0.98 x the air-limited share, 0.86 at
+12.8:1; make_wam.comb_eff_for). With all three fixed the model's LS3 gives 423 lb-ft brake at 4600 rpm and 461 hp at
+5900 (GM rates 425 lb-ft and 430 hp; a stock-cam LS3 on LSX Magazine's engine dyno made 461.5 hp at 5900). The older
+results in openwam/ref/v8_841/results*.json are kept for the record; the _v4 runs replace them. firing order 1-8-7-2-6-5-4-3 (odd cylinders on the left bank). Header tubes follow Concept 841's published C7
 8-4-1 sizes (2.00 in primaries, 2.25 in secondaries, a 4.5 in 4-1 collector outlet; 16-gauge wall assumed:
 47.5 / 53.9 / 111.0 mm inside), and the same primary is used for every layout. Path from the valve to the last
 collector: 36 in (914 mm), the first merge of the 8-4-1s at 14.5 in (368 mm, the Headers tab's Tri-Y default).

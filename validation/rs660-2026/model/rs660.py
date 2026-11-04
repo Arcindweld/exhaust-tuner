@@ -80,7 +80,11 @@ def build_spec(p_map_bar):
     dIn, dEx = 0.40 * B, 0.33 * B
     e = {"bore": B, "stroke": S, "rod": 1.7 * S, "cr": 13.5, "cd": 0.7, "nIn": 2, "dIn": dIn, "liftIn": 0.0095,
          "nEx": 2, "dEx": dEx, "liftEx": 0.0080, "cam": {"ivo": 25, "ivc": 55, "evo": 50, "evc": 20},
-         "burn": {"start": 12, "dur": 65}, "afr": 14.6, "eta": 0.72}
+         "burn": {"start": 12, "dur": 65}, "afr": 14.6, "eta": 0.72,
+         # combEff pinned at the value these validation runs were made with (before make_wam v6 the OpenWAM case
+         # used the wave model's eta, 0.72, which also counts the wall heat loss OpenWAM takes itself); unset it to
+         # rerun with v6's 0.98 x the air-limited share
+         "combEff": 0.72}
     intake = {"segs": [{"L": 0.25, "d0": 0.046, "d1": 0.046}], "Tw": 320, "reservoir": {"p_bar": p_map_bar}}
     prim = lambda L2: [{"L": 0.225, "d0": 0.0355, "d1": 0.0355, "primary": True}, {"L": L2, "d0": 0.048, "d1": 0.048}]
     return {

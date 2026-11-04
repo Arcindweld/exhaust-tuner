@@ -116,7 +116,11 @@ def build_spec(load="noload", p_map_bar=0.4):
     dIn, dEx = 0.036, 0.0314
     e = {"bore": B, "stroke": S, "rod": 1.7 * S, "cr": 10.0, "cd": 0.7, "nIn": 2, "dIn": dIn, "liftIn": 5.535e-3 * 1.6,
          "nEx": 2, "dEx": dEx, "liftEx": 5.307e-3 * 1.6, "cam": {"ivo": 1, "ivc": 51, "evo": 50, "evc": 6},
-         "burn": {"start": 18, "dur": 55}, "afr": 12.8, "eta": 0.72}
+         "burn": {"start": 18, "dur": 55}, "afr": 12.8, "eta": 0.72,
+         # combEff pinned at the value these validation runs were made with (before make_wam v6 the OpenWAM case
+         # used the wave model's eta, 0.72, which also counts the wall heat loss OpenWAM takes itself); unset it to
+         # rerun with v6's 0.98 x the air-limited share
+         "combEff": 0.72}
     if load == "noload":
         e["burn"] = {"start": 12, "dur": 65}
         e["afr"] = 14.6

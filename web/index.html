@@ -3555,6 +3555,14 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     }
     return out;
   }
+  // make_wam.py comb_eff_for: OpenWAM's combustion efficiency, the share of the fuel the air can burn x 0.98 (OpenWAM
+  // takes the wall heat loss itself, so the wave simulation's eta is not used), or spec.e.combEff when given
+  const COMB_COMPLETE = 0.98;
+  function combEffFor(e) {
+    if (e.combEff !== undefined && e.combEff !== null) return Number(e.combEff);
+    const phi = (1.0 / Number(e.afr)) / FS_GASOLINE_SIMPLE;
+    return COMB_COMPLETE * Math.min(1.0, 1.0 / phi);
+  }
   function liftStepFor(durs) {
     for (const st of [1.0, 0.5, 0.25, 0.2, 0.1])
       if (durs.every(dd => Math.abs(pyRoundInt(dd / st) * st - dd) <= 1e-9)) return st;
@@ -3575,7 +3583,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       n_exh: Math.trunc(e.nEx), d_exh_mm: e.dEx * 1000.0, lift_exh_mm: e.liftEx * 1000.0,
       ivo_btdc: seat.ivo, ivc_abdc: seat.ivc, evo_bbdc: seat.evo, evc_atdc: seat.evc,
       valve_cd: +e.cd, curtain_cap: CALC_CURTAIN_CAP,
-      burn_start_btdc: +burn.start, burn_dur_deg: +burn.dur, afr: +e.afr, comb_eff: +e.eta,
+      burn_start_btdc: +burn.start, burn_dur_deg: +burn.dur, afr: +e.afr, comb_eff: combEffFor(e),
       T_piston_C: twc, T_head_C: twc, T_liner_C: twc, exhaust_Tgas0_C: CALC_T0_EXHAUST_K - K0,
     });
     p.lift_step_deg = liftStepFor([180.0 + p.ivo_btdc + p.ivc_abdc, 180.0 + p.evo_bbdc + p.evc_atdc]);
