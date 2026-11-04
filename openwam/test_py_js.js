@@ -154,6 +154,29 @@ jobs.push({ label: 'error: empty outlet', kind: 'spec', spec: withTail(spec('i4_
 jobs.push({ label: 'error: outlet segment without d1_mm', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 50, d1_mm: 50 }, { V_litres: 5 }, { outlets: [[{ L_mm: 100, d0_mm: 40 }]] }]), run: {} });
 jobs.push({ label: 'error: per_cyl count', kind: 'spec', spec: (() => { const s = spec('i4_41'); s.exhaust.per_cyl = [s.exhaust.segs, s.exhaust.segs]; return s; })(), run: {} });
 jobs.push({ label: 'error: segs_by_group count', kind: 'spec', spec: (() => { const s = spec('i4_triy'); s.opt.collectors[0].stages[0].segs_by_group = [null]; return s; })(), run: {} });
+// v8 parallel paths between two junctions: a 4-tube timbre bundle, an auger's centre tube and spiral channel (with a
+// Tw change on one path), parallel paths after a side branch's line and before a muffler, a V8 pair, and the errors
+const BUNDLE = [{ L_mm: 400, d0_mm: 63.5, d1_mm: 63.5 }, { parallel: [[{ L_mm: 76, d0_mm: 31.75, d1_mm: 31.75 }], [{ L_mm: 127, d0_mm: 31.75, d1_mm: 31.75 }],
+  [{ L_mm: 127, d0_mm: 31.75, d1_mm: 31.75 }], [{ L_mm: 178, d0_mm: 38.1, d1_mm: 38.1 }]] }, { L_mm: 600, d0_mm: 63.5, d1_mm: 63.5 }];
+const AUGER = [{ L_mm: 300, d0_mm: 63.5, d1_mm: 63.5 }, { parallel: [[{ L_mm: 610, d0_mm: 50.8, d1_mm: 50.8 }],
+  [{ L_mm: 900, d0_mm: 40, d1_mm: 40, Tw_C: 250 }, { L_mm: 900, d0_mm: 40, d1_mm: 40, Tw_C: 200 }]] }, { L_mm: 400, d0_mm: 63.5, d1_mm: 63.5 }, { V_litres: 8 }, { L_mm: 300, d0_mm: 63.5, d1_mm: 63.5 }];
+jobs.push({ label: 'v8: tail with a four-tube timbre bundle', kind: 'spec', spec: withTail(spec('i4_41'), BUNDLE), run: { rpm: 3000.0, ins_outlet: 1, cell_mm: 15.0 } });
+jobs.push({ label: 'v8: tail with an auger (centre tube and spiral) then a muffler', kind: 'spec', spec: withTail(spec('i4_triy'), AUGER), run: { rpm: 4500.0, ins_outlet: 1 } });
+jobs.push({ label: 'v8: side branch, then parallel paths', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { side: { type: 'quarter', L_mm: 450, d_mm: 50 } },
+  { L_mm: 300, d0_mm: 60, d1_mm: 60 }, { parallel: [[{ L_mm: 200, d0_mm: 40, d1_mm: 40 }], [{ L_mm: 350, d0_mm: 40, d1_mm: 40 }]] }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }]), run: { rpm: 2500.0 } });
+jobs.push({ label: 'v8: bundles on both V8 banks', kind: 'spec', spec: (() => { const s = spec('v8_dual'); s.opt.collectors.forEach(c => { c.tail = BUNDLE; }); return s; })(), run: { rpm: 4000.0, ins_outlet: 1, cell_mm: 15.0 } });
+jobs.push({ label: 'error: one parallel path', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { parallel: [[{ L_mm: 200, d0_mm: 40, d1_mm: 40 }]] }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }]), run: {} });
+jobs.push({ label: 'error: parallel paths at the end', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { parallel: [[{ L_mm: 200, d0_mm: 40, d1_mm: 40 }], [{ L_mm: 300, d0_mm: 40, d1_mm: 40 }]] }]), run: {} });
+jobs.push({ label: 'error: parallel right after a plenum', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { V_litres: 4 }, { parallel: [[{ L_mm: 200, d0_mm: 40, d1_mm: 40 }], [{ L_mm: 300, d0_mm: 40, d1_mm: 40 }]] }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }]), run: {} });
+jobs.push({ label: 'error: parallel segment without L_mm', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { parallel: [[{ d0_mm: 40, d1_mm: 40 }], [{ L_mm: 300, d0_mm: 40, d1_mm: 40 }]] }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }]), run: {} });
+for (let k = 0; k < 6; k++) {
+  const s = randomSpec(spec(['i4_41', 'i4_triy'][k % 2]), 400 + k), np = 2 + (k % 4);
+  const paths = [];
+  for (let i = 0; i < np; i++) { const pa = [{ L_mm: U(60, 900), d0_mm: U(25, 50), d1_mm: U(25, 50), Tw_C: k % 2 ? U(150, 400) : undefined }]; if (i % 2) pa.push({ L_mm: U(60, 400), d0_mm: U(25, 50), d1_mm: U(25, 50) }); paths.push(pa); }
+  const tail = [{ L_mm: U(200, 1500), d0_mm: U(45, 65), d1_mm: U(45, 65) }, { parallel: paths }, { L_mm: U(200, 800), d0_mm: U(45, 65), d1_mm: U(45, 65) }];
+  if (k % 3 === 0) tail.push({ V_litres: U(1, 15) }, { L_mm: U(100, 600), d0_mm: 55, d1_mm: 55 });
+  jobs.push({ label: 'random parallel ' + k, kind: 'spec', spec: withTail(s, JSON.parse(JSON.stringify(tail))), run: { rpm: Math.round(U(700, 7000)), cycles: 8 + k, ins_outlet: k % 2, cell_mm: 12.0 } });
+}
 // v8: merge losses from CFD (a quadratic pressure loss on each line into the junction)
 { const sp = spec('i4_41'); sp.opt.collector.loss_K = 0.55; jobs.push({ label: 'v8: 4-1 merge loss K 0.55', kind: 'spec', spec: sp, run: { rpm: 6000.0 } }); }
 { const sp = spec('i4_triy'); sp.opt.collectors[0].stages[0].loss_K = 0.3; sp.opt.collectors[0].loss_K = 0.45; jobs.push({ label: 'v8: Tri-Y, both merges with a loss', kind: 'spec', spec: sp, run: { rpm: 6000.0 } }); }

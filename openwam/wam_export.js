@@ -754,6 +754,20 @@
           items.push(['outlets', outs]);
           return;
         }
+        if (has(el, 'parallel')) {
+          // v8 (make_wam.py tail_items): two or more pipes side by side between two junctions
+          const paths = el.parallel.map((pa, k) => {
+            if (!pa || !pa.length) throw new Error('tail element ' + (n + 1) + ': parallel path ' + (k + 1) + ' has no pipe segments');
+            return pa.map((sg, m) => {
+              for (const kk of ['L_mm', 'd0_mm', 'd1_mm']) if (!has(sg, kk)) throw new Error('tail element ' + (n + 1) + ' parallel path ' + (k + 1) + ' segment ' + (m + 1) + ' needs ' + kk);
+              return ['seg', { L: Number(sg.L_mm) / 1000.0, d0: Number(sg.d0_mm) / 1000.0, d1: Number(sg.d1_mm) / 1000.0 }, has(sg, 'Tw_C') ? Number(sg.Tw_C) : TwcDefault];
+            });
+          });
+          if (paths.length < 2) throw new Error('tail element ' + (n + 1) + ": 'parallel' needs at least two paths");
+          if (!items.length || items[items.length - 1][0] !== 'seg') throw new Error('tail element ' + (n + 1) + ': parallel paths must come after a pipe segment');
+          items.push(['parallel', paths]);
+          return;
+        }
         if (has(el, 'side')) {
           // v7 side branch (make_wam.py tail_items): a quarter-wave tube to a closed end, or a Helmholtz neck and volume
           const sd = el.side, tw = has(sd, 'Tw_C') ? Number(sd.Tw_C) : TwcDefault;
@@ -779,8 +793,11 @@
           items.push(['seg', { L: Number(el.L_mm) / 1000.0, d0: Number(el.d0_mm) / 1000.0, d1: Number(el.d1_mm) / 1000.0 }, has(el, 'Tw_C') ? Number(el.Tw_C) : TwcDefault]);
         }
       });
-      for (let n = 0; n < items.length - 1; n++) if (items[n][0] === 'side' && items[n + 1][0] !== 'seg') throw new Error('a side branch must be followed by a pipe segment');
-      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum or a side branch');
+      for (let n = 0; n < items.length - 1; n++) {
+        if (items[n][0] === 'side' && items[n + 1][0] !== 'seg') throw new Error('a side branch must be followed by a pipe segment');
+        if (items[n][0] === 'parallel' && items[n + 1][0] !== 'seg') throw new Error('parallel paths must be followed by a pipe segment');
+      }
+      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum, a side branch or parallel paths');
       if (items[0][0] !== 'seg') throw new Error('a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)');
       return items;
     }
@@ -789,11 +806,12 @@
       const groups = [];
       let cur = null;
       for (const it of items) {
-        if (it[0] === 'plenum' || it[0] === 'outlets' || it[0] === 'side') { groups.push(it); cur = null; }
+        if (it[0] === 'plenum' || it[0] === 'outlets' || it[0] === 'side' || it[0] === 'parallel') { groups.push(it); cur = null; }
         else { if (cur === null) { cur = []; groups.push(cur); } cur.push([it[1], it[2]]); }
       }
-      let npl = 0, npipe = 0, nside = 0;
+      let npl = 0, npipe = 0, nside = 0, npar = 0;
       const sideKey = new Map(), sideNum = new Map();      // side-branch group index -> its junction BC key, its number
+      const parKeys = new Map();                            // parallel group index -> [junction in, junction out]
       const addGroup = (g, lk, rk) => {
         const runs = [];
         for (const [sg, tw] of g) {
@@ -832,7 +850,7 @@
         }
       };
       groups.forEach((g, gi) => {
-        if (g[0] === 'side') return;
+        if (g[0] === 'side' || g[0] === 'parallel') return;
         if (g[0] === 'plenum') {
           npl += 1;
           plenums.push({ V_m3: g[1], T_C: g[2], p_bar: p.p_amb_bar, comp: comp.slice(), note: role + ' muffler ' + npl + ' as a ' + pctG(g[1] * 1000.0) + ' litre expansion volume' });
@@ -850,17 +868,29 @@
         }
         let lk, rk;
         const isSide = q => q !== undefined && q[0] === 'side';
+        const isPar = q => q !== undefined && q[0] === 'parallel';
         if (gi === 0) lk = left;
         else if (isSide(groups[gi - 1])) lk = sideKey.get(gi - 1);
+        else if (isPar(groups[gi - 1])) lk = parKeys.get(gi - 1)[1];
         else { lk = role + '/muffler' + npl + '/out'; bcs.set(lk, { type: 'plenum', plenum: plenums.length, note: role + ' muffler ' + npl + ' outlet port' }); }
         if (gi === groups.length - 1) rk = right;
         else if (isSide(groups[gi + 1])) {
           nside += 1; rk = role + '/side' + nside;
           sideKey.set(gi + 1, rk); sideNum.set(gi + 1, nside);
           bcs.set(rk, { type: 'branch', note: role + ' side branch ' + nside + ' junction' });
+        } else if (isPar(groups[gi + 1])) {
+          npar += 1; rk = role + '/par' + npar + '/in';
+          const ok = role + '/par' + npar + '/out';
+          parKeys.set(gi + 1, [rk, ok]);
+          bcs.set(rk, { type: 'branch', note: role + ' parallel paths ' + npar + ', inlet junction' });
+          bcs.set(ok, { type: 'branch', note: role + ' parallel paths ' + npar + ', outlet junction' });
         } else { rk = role + '/muffler' + (npl + 1) + '/in'; bcs.set(rk, { type: 'plenum', plenum: plenums.length + 1, note: role + ' muffler ' + (npl + 1) + ' inlet port' }); }
         addGroup(g, lk, rk);
         if (gi + 1 < groups.length && isSide(groups[gi + 1])) addSide(gi + 1, groups[gi + 1][1], groups[gi + 1][2]);
+        if (gi + 1 < groups.length && isPar(groups[gi + 1])) {
+          const [jin, jout] = parKeys.get(gi + 1);
+          for (const pa of groups[gi + 1][1]) addGroup(pa.map(sg => [sg[1], sg[2]]), jin, jout);
+        }
       });
     }
 

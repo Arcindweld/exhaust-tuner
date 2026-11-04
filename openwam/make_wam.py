@@ -995,6 +995,28 @@ def model_from_spec(spec, run=None):
                     raise ValueError("tail element %d: 'outlets' lists no outlet" % (n + 1))
                 items.append(("outlets", outs))
                 continue
+            if el.get("parallel") is not None:
+                # v8: two or more pipes side by side between two junctions (a timbre tube bundle, an auger's centre tube
+                # and spiral channel, a Herschel-Quincke pair); each path a list of segments like the tail's own
+                paths = []
+                for k, pa in enumerate(el["parallel"]):
+                    if not pa:
+                        raise ValueError("tail element %d: parallel path %d has no pipe segments" % (n + 1, k + 1))
+                    segs = []
+                    for m, sg in enumerate(pa):
+                        for kk in ("L_mm", "d0_mm", "d1_mm"):
+                            if sg.get(kk) is None:
+                                raise ValueError("tail element %d parallel path %d segment %d needs %s" % (n + 1, k + 1, m + 1, kk))
+                        segs.append(("seg", {"L": float(sg["L_mm"]) / 1000.0, "d0": float(sg["d0_mm"]) / 1000.0,
+                                             "d1": float(sg["d1_mm"]) / 1000.0},
+                                     float(sg["Tw_C"]) if sg.get("Tw_C") is not None else Twc_default))
+                    paths.append(segs)
+                if len(paths) < 2:
+                    raise ValueError("tail element %d: 'parallel' needs at least two paths" % (n + 1))
+                if not items or items[-1][0] != "seg":
+                    raise ValueError("tail element %d: parallel paths must come after a pipe segment" % (n + 1))
+                items.append(("parallel", paths))
+                continue
             if el.get("side") is not None:
                 sd = el["side"]
                 tw = float(sd["Tw_C"]) if sd.get("Tw_C") is not None else Twc_default
@@ -1032,8 +1054,10 @@ def model_from_spec(spec, run=None):
         for n in range(len(items) - 1):
             if items[n][0] == "side" and items[n + 1][0] != "seg":
                 raise ValueError("a side branch must be followed by a pipe segment")
+            if items[n][0] == "parallel" and items[n + 1][0] != "seg":
+                raise ValueError("parallel paths must be followed by a pipe segment")
         if not items or items[-1][0] not in ("seg", "outlets"):
-            raise ValueError("a tail must end with a pipe segment at the open end, not a plenum or a side branch")
+            raise ValueError("a tail must end with a pipe segment at the open end, not a plenum, a side branch or parallel paths")
         if items[0][0] != "seg":
             raise ValueError("a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)")
         return items
@@ -1044,7 +1068,7 @@ def model_from_spec(spec, run=None):
         joined by the step BC (TCCUnionEntreTubos with no area change = continuity), plenums by TCCDeposito."""
         groups, cur = [], None          # [[(seg, Tw)...] or ("plenum", V, T) or ("outlets", [[seg items]...])]
         for it in items:
-            if it[0] in ("plenum", "outlets", "side"):
+            if it[0] in ("plenum", "outlets", "side", "parallel"):
                 groups.append(it)
                 cur = None
             else:
@@ -1073,8 +1097,9 @@ def model_from_spec(spec, run=None):
                 state["npipe"] += 1
                 add_line(segs, keys[j], keys[j + 1], "%s section %d" % (role, state["npipe"]), tw, Tgc, comp, ht)
 
-        npl, nside = 0, 0
+        npl, nside, npar = 0, 0, 0
         side_key, side_num = {}, {}         # side-branch group index -> its junction BC key, its number
+        par_keys = {}                       # parallel group index -> (junction in, junction out)
 
         def add_side(gi, sd, tw):
             """v7: a side branch off the line at the junction before group gi+1 (quarter-wave: a pipe to a closed end;
@@ -1102,7 +1127,7 @@ def model_from_spec(spec, run=None):
                          tw, Tgc, comp, ht)
 
         for gi, g in enumerate(groups):
-            if isinstance(g, tuple) and g[0] == "side":
+            if isinstance(g, tuple) and g[0] in ("side", "parallel"):
                 continue
             if isinstance(g, tuple) and g[0] == "plenum":
                 npl += 1
@@ -1126,6 +1151,8 @@ def model_from_spec(spec, run=None):
                 lk = left
             elif isinstance(groups[gi - 1], tuple) and groups[gi - 1][0] == "side":
                 lk = side_key[gi - 1]
+            elif isinstance(groups[gi - 1], tuple) and groups[gi - 1][0] == "parallel":
+                lk = par_keys[gi - 1][1]
             else:
                 lk = "%s/muffler%d/out" % (role, npl)
                 bcs[lk] = {"type": "plenum", "plenum": len(plenums), "note": "%s muffler %d outlet port" % (role, npl)}
@@ -1136,12 +1163,22 @@ def model_from_spec(spec, run=None):
                 rk = "%s/side%d" % (role, nside)
                 side_key[gi + 1], side_num[gi + 1] = rk, nside
                 bcs[rk] = {"type": "branch", "note": "%s side branch %d junction" % (role, nside)}
+            elif isinstance(groups[gi + 1], tuple) and groups[gi + 1][0] == "parallel":
+                npar += 1
+                rk, ok_ = "%s/par%d/in" % (role, npar), "%s/par%d/out" % (role, npar)
+                par_keys[gi + 1] = (rk, ok_)
+                bcs[rk] = {"type": "branch", "note": "%s parallel paths %d, inlet junction" % (role, npar)}
+                bcs[ok_] = {"type": "branch", "note": "%s parallel paths %d, outlet junction" % (role, npar)}
             else:
                 rk = "%s/muffler%d/in" % (role, npl + 1)
                 bcs[rk] = {"type": "plenum", "plenum": len(plenums) + 1, "note": "%s muffler %d inlet port" % (role, npl + 1)}
             add_group(g, lk, rk)
             if gi + 1 < len(groups) and isinstance(groups[gi + 1], tuple) and groups[gi + 1][0] == "side":
                 add_side(gi + 1, groups[gi + 1][1], groups[gi + 1][2])
+            if gi + 1 < len(groups) and isinstance(groups[gi + 1], tuple) and groups[gi + 1][0] == "parallel":
+                jin, jout = par_keys[gi + 1]
+                for pa in groups[gi + 1][1]:
+                    add_group([(sg[1], sg[2]) for sg in pa], jin, jout)
 
     # where each cylinder's primary ends, and each stage pipe's right end
     prim_end = {}

@@ -3911,6 +3911,20 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           items.push(['outlets', outs]);
           return;
         }
+        if (has(el, 'parallel')) {
+          // v8 (make_wam.py tail_items): two or more pipes side by side between two junctions
+          const paths = el.parallel.map((pa, k) => {
+            if (!pa || !pa.length) throw new Error('tail element ' + (n + 1) + ': parallel path ' + (k + 1) + ' has no pipe segments');
+            return pa.map((sg, m) => {
+              for (const kk of ['L_mm', 'd0_mm', 'd1_mm']) if (!has(sg, kk)) throw new Error('tail element ' + (n + 1) + ' parallel path ' + (k + 1) + ' segment ' + (m + 1) + ' needs ' + kk);
+              return ['seg', { L: Number(sg.L_mm) / 1000.0, d0: Number(sg.d0_mm) / 1000.0, d1: Number(sg.d1_mm) / 1000.0 }, has(sg, 'Tw_C') ? Number(sg.Tw_C) : TwcDefault];
+            });
+          });
+          if (paths.length < 2) throw new Error('tail element ' + (n + 1) + ": 'parallel' needs at least two paths");
+          if (!items.length || items[items.length - 1][0] !== 'seg') throw new Error('tail element ' + (n + 1) + ': parallel paths must come after a pipe segment');
+          items.push(['parallel', paths]);
+          return;
+        }
         if (has(el, 'side')) {
           // v7 side branch (make_wam.py tail_items): a quarter-wave tube to a closed end, or a Helmholtz neck and volume
           const sd = el.side, tw = has(sd, 'Tw_C') ? Number(sd.Tw_C) : TwcDefault;
@@ -3936,8 +3950,11 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           items.push(['seg', { L: Number(el.L_mm) / 1000.0, d0: Number(el.d0_mm) / 1000.0, d1: Number(el.d1_mm) / 1000.0 }, has(el, 'Tw_C') ? Number(el.Tw_C) : TwcDefault]);
         }
       });
-      for (let n = 0; n < items.length - 1; n++) if (items[n][0] === 'side' && items[n + 1][0] !== 'seg') throw new Error('a side branch must be followed by a pipe segment');
-      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum or a side branch');
+      for (let n = 0; n < items.length - 1; n++) {
+        if (items[n][0] === 'side' && items[n + 1][0] !== 'seg') throw new Error('a side branch must be followed by a pipe segment');
+        if (items[n][0] === 'parallel' && items[n + 1][0] !== 'seg') throw new Error('parallel paths must be followed by a pipe segment');
+      }
+      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum, a side branch or parallel paths');
       if (items[0][0] !== 'seg') throw new Error('a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)');
       return items;
     }
@@ -3946,11 +3963,12 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       const groups = [];
       let cur = null;
       for (const it of items) {
-        if (it[0] === 'plenum' || it[0] === 'outlets' || it[0] === 'side') { groups.push(it); cur = null; }
+        if (it[0] === 'plenum' || it[0] === 'outlets' || it[0] === 'side' || it[0] === 'parallel') { groups.push(it); cur = null; }
         else { if (cur === null) { cur = []; groups.push(cur); } cur.push([it[1], it[2]]); }
       }
-      let npl = 0, npipe = 0, nside = 0;
+      let npl = 0, npipe = 0, nside = 0, npar = 0;
       const sideKey = new Map(), sideNum = new Map();      // side-branch group index -> its junction BC key, its number
+      const parKeys = new Map();                            // parallel group index -> [junction in, junction out]
       const addGroup = (g, lk, rk) => {
         const runs = [];
         for (const [sg, tw] of g) {
@@ -3989,7 +4007,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         }
       };
       groups.forEach((g, gi) => {
-        if (g[0] === 'side') return;
+        if (g[0] === 'side' || g[0] === 'parallel') return;
         if (g[0] === 'plenum') {
           npl += 1;
           plenums.push({ V_m3: g[1], T_C: g[2], p_bar: p.p_amb_bar, comp: comp.slice(), note: role + ' muffler ' + npl + ' as a ' + pctG(g[1] * 1000.0) + ' litre expansion volume' });
@@ -4007,17 +4025,29 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         }
         let lk, rk;
         const isSide = q => q !== undefined && q[0] === 'side';
+        const isPar = q => q !== undefined && q[0] === 'parallel';
         if (gi === 0) lk = left;
         else if (isSide(groups[gi - 1])) lk = sideKey.get(gi - 1);
+        else if (isPar(groups[gi - 1])) lk = parKeys.get(gi - 1)[1];
         else { lk = role + '/muffler' + npl + '/out'; bcs.set(lk, { type: 'plenum', plenum: plenums.length, note: role + ' muffler ' + npl + ' outlet port' }); }
         if (gi === groups.length - 1) rk = right;
         else if (isSide(groups[gi + 1])) {
           nside += 1; rk = role + '/side' + nside;
           sideKey.set(gi + 1, rk); sideNum.set(gi + 1, nside);
           bcs.set(rk, { type: 'branch', note: role + ' side branch ' + nside + ' junction' });
+        } else if (isPar(groups[gi + 1])) {
+          npar += 1; rk = role + '/par' + npar + '/in';
+          const ok = role + '/par' + npar + '/out';
+          parKeys.set(gi + 1, [rk, ok]);
+          bcs.set(rk, { type: 'branch', note: role + ' parallel paths ' + npar + ', inlet junction' });
+          bcs.set(ok, { type: 'branch', note: role + ' parallel paths ' + npar + ', outlet junction' });
         } else { rk = role + '/muffler' + (npl + 1) + '/in'; bcs.set(rk, { type: 'plenum', plenum: plenums.length + 1, note: role + ' muffler ' + (npl + 1) + ' inlet port' }); }
         addGroup(g, lk, rk);
         if (gi + 1 < groups.length && isSide(groups[gi + 1])) addSide(gi + 1, groups[gi + 1][1], groups[gi + 1][2]);
+        if (gi + 1 < groups.length && isPar(groups[gi + 1])) {
+          const [jin, jout] = parKeys.get(gi + 1);
+          for (const pa of groups[gi + 1][1]) addGroup(pa.map(sg => [sg[1], sg[2]]), jin, jout);
+        }
       });
     }
 
@@ -16638,22 +16668,52 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#h-uel-pair')) retu
 
 /* ===== OpenWAM: a full 1-D case for the free OpenWAM 2.2 solver, several engine speeds, run with a .bat ===== */
 const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[],
-  line:{on:false,L:2500,d:76.2,muf:0,tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38},
+  line:{on:false,L:2500,d:76.2,muf:0,tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38,par:'none',px:1500},
   loss:{K:0,Ky:0,src:''}};   // merge losses (make_wam v8): the collector's and the Tri-Y merges' K, from the exhaust CFD   // the line after the collector (mm, litres)
 // The line after the collector for the OpenWAM case (make_wam tail elements): pipe, an optional drone fix off the pipe
 // (a J-pipe = quarter-wave tube to a closed end, or a Helmholtz can on a neck) at x from the collector, an optional
 // muffler as an expansion volume, and the tailpipe to the open end. null when off; {err} when it does not add up.
+// the parallel paths of an in-line auger or tube bundle as the Mufflers tab has them (mm): an auger's centre tube and
+// its spiral channel (a channel's flow area as a round pipe of the same area: a 1-D model carries area, not shape), or
+// the bundle's 3 to 5 tubes. A capped auger is one path, the spiral alone.
+function wamParPaths(kind){
+  const seg=(L,d)=>({L_mm:+L.toFixed(3),d0_mm:+d.toFixed(3),d1_mm:+d.toFixed(3)});
+  if(kind==='auger'){
+    const a=AUG, h=(a.Ds-a.Dc)/2, Dm=(a.Ds+a.Dc)/2, N=a.L/a.pitch, Lh=N*Math.sqrt((Math.PI*Dm)**2+a.pitch**2);
+    if(!(a.Ds>a.Dc&&a.Dc>0&&a.pitch>a.t&&a.L>0)) return {err:'Auger muffler (Mufflers tab): the shell has to be wider than the centre tube, and the pitch more than the blade.'};
+    const Ah=(a.pitch-a.t)*h, de=Math.sqrt(4*Ah/Math.PI), spiral=[seg(Lh,de)];
+    return a.capped?{single:spiral,what:'auger, centre tube capped: the '+Math.round(Lh)+' mm spiral alone'}:
+      {paths:[[seg(a.L,a.Dc)],spiral],what:'auger: '+Math.round(a.L)+' mm centre tube and '+Math.round(Lh)+' mm spiral ('+Math.round(Ah)+' mm² channel)'};
+  }
+  if(kind==='bundle'){
+    const n=Math.min(5,Math.max(3,Math.round(TT.n)||4)), L=TT.L.length?TT.L:[100,125,150,175,200];
+    return {paths:Array.from({length:n},(_,i)=>[seg(L[i],TT.d[i])]),what:'tube bundle: '+n+' tubes, '+Array.from({length:n},(_,i)=>Math.round(L[i])).join(', ')+' mm'};
+  }
+  return null;
+}
+window.__wamParPaths=k=>wamParPaths(k);   // test hook
 function wamLineTail(){
   const W=WAM_UI.line; if(!W.on) return null;
   const n=x=>Number(x);
   if(!(n(W.L)>0&&n(W.d)>0)) return {err:'Line after the collector: give the pipe length and diameter.'};
-  const pipe=L=>({L_mm:L,d0_mm:n(W.d),d1_mm:n(W.d)}), out=[];
+  const pipe=L=>({L_mm:L,d0_mm:n(W.d),d1_mm:n(W.d)}), out=[], at=[];
   if(W.fix!=='none'){
     if(!(n(W.x)>0&&n(W.x)<n(W.L))) return {err:'Line after the collector: the drone fix has to sit on the pipe, between the collector and the muffler or tailpipe.'};
-    out.push(pipe(n(W.x)));
-    out.push(W.fix==='jpipe'?{side:{type:'quarter',L_mm:n(W.qL),d_mm:n(W.qd)}}:{side:{type:'helmholtz',V_litres:n(W.hV),neck_L_mm:n(W.hL),neck_d_mm:n(W.hd)}});
-    out.push(pipe(n(W.L)-n(W.x)));
-  } else out.push(pipe(n(W.L)));
+    at.push({x:n(W.x),els:[W.fix==='jpipe'?{side:{type:'quarter',L_mm:n(W.qL),d_mm:n(W.qd)}}:{side:{type:'helmholtz',V_litres:n(W.hV),neck_L_mm:n(W.hL),neck_d_mm:n(W.hd)}}]});
+  }
+  if(W.par&&W.par!=='none'){
+    const P=wamParPaths(W.par); if(P&&P.err) return {err:P.err};
+    if(!(n(W.px)>0&&n(W.px)<n(W.L))) return {err:'Line after the collector: the '+(W.par==='auger'?'auger':'tube bundle')+' has to sit on the pipe, between the collector and the muffler or tailpipe.'};
+    at.push({x:n(W.px),els:P.single?P.single:[{parallel:P.paths}]});
+  }
+  at.sort((a,b)=>a.x-b.x);
+  let x0=0;
+  for(const q of at){
+    if(q.x-x0<30) return {err:'Line after the collector: the drone fix and the in-line piece need at least 30 mm of pipe between them and from the collector.'};
+    out.push(pipe(q.x-x0)); out.push(...q.els); x0=q.x;
+  }
+  if(n(W.L)-x0<30) return {err:'Line after the collector: leave at least 30 mm of pipe after the drone fix or the in-line piece.'};
+  out.push(pipe(n(W.L)-x0));
   if(n(W.muf)>0){ out.push({V_litres:n(W.muf)}); out.push(pipe(n(W.tail)>0?n(W.tail):300)); }
   return {tail:out};
 }
@@ -16702,7 +16762,10 @@ function wamLineUi(){
     h+='<div class="grid2 span2">'+L('L','Pipe from the collector, length','len')+L('d','Pipe inside diameter','len')+L('muf','Muffler volume (0: none)','num')+L('tail','Tailpipe after the muffler','len')+
       '<label class="f span2"><span class="lab">Drone fix on the pipe</span><span class="inp"><select class="wamline" data-k="fix"><option value="none"'+(W.fix==='none'?' selected':'')+'>None</option><option value="jpipe"'+(W.fix==='jpipe'?' selected':'')+'>J-pipe (quarter-wave tube, closed end)</option><option value="helm"'+(W.fix==='helm'?' selected':'')+'>Helmholtz can on a neck</option></select></span></label>';
     if(W.fix!=='none') h+=L('x','Distance from the collector','len')+(W.fix==='jpipe'?L('qL','J-pipe length','len')+L('qd','J-pipe inside diameter','len'):L('hV','Can volume','num')+L('hL','Neck length','len')+L('hd','Neck inside diameter','len'));
-    h+='</div><p class="cap">The muffler is an expansion volume (it has the low-frequency behaviour of a chambered muffler, not its baffles or packing). The J-pipe and the can sit on the pipe at the distance given; the Mufflers tab works out their lengths and volumes for a drone frequency. Every case written, run, fitted or optimised here uses this line.</p>';
+    const pv=W.par||'none', P=pv!=='none'?wamParPaths(pv):null;
+    h+='<label class="f span2"><span class="lab">In line on the pipe</span><span class="inp"><select class="wamline" data-k="par"><option value="none"'+(pv==='none'?' selected':'')+'>Nothing</option><option value="auger"'+(pv==='auger'?' selected':'')+'>Auger muffler (as on the Mufflers tab)</option><option value="bundle"'+(pv==='bundle'?' selected':'')+'>Timbre tube bundle (as on the Mufflers tab)</option></select></span></label>';
+    if(pv!=='none') h+=L('px','Its inlet, from the collector','len')+'<p class="cap span2">'+(P&&P.err?'<span class="st-bad">'+esc(P.err)+'</span>':esc(P.what.charAt(0).toUpperCase()+P.what.slice(1))+'.')+'</p>';
+    h+='</div><p class="cap">The muffler is an expansion volume (it has the low-frequency behaviour of a chambered muffler, not its baffles or packing). The J-pipe and the can sit on the pipe at the distance given; the Mufflers tab works out their lengths and volumes for a drone frequency. An auger or a tube bundle is written as parallel pipes between two junctions, each path its own length and area, so OpenWAM carries the waves round both and they cancel where the paths differ by half a wavelength (checked: a 1.2 m difference took 40 dB off 200 Hz against a plain pipe, the Herschel–Quincke notch c ÷ 2ΔL = 210 Hz). A 1-D model has no end allowance at the junctions and no swirl losses. Every case written, run, fitted or optimised here uses this line.</p>';
   }
   const Lo=WAM_UI.loss;
   h+='<div class="grid2 span2"><label class="f"><span class="lab">Collector merge loss K (0: none)</span><span class="inp"><input class="wamloss" data-k="K" type="number" step="0.01" min="0" inputmode="decimal" value="'+(+(+Lo.K||0).toFixed(3))+'"></span></label>'+

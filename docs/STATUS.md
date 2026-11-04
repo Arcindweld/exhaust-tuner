@@ -601,6 +601,17 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   circles, real profile counts), web/tests/merge_files_ui.js. Live: fusion_live_merge.py written, NOT yet run (the PC
   was offline). Honest limit: a flat plate is a step (open area 1.5-2.4 x the bores at the plate); a formed (pie-cut)
   merge is smoother but needs press tooling.
+- OpenWAM 4-stroke line: parallel paths (2026-11-04, task 105): make_wam.py / wam_export.js tail element
+  {"parallel": [[segs], [segs], ...]} (two or more paths between two TCCRamificacion junctions, each path its own
+  segments and Tw; must follow and be followed by a pipe segment); page copy synced (tools/sync_wam_export.py);
+  test_py_js.js 120 cases identical (bundle, auger + muffler, side branch then parallel, V8 pair, 4 errors, 6 random).
+  RUN on OpenWAM (i4_41, 30 cycles, scratchpad par/run_hq.py): an equal-area Herschel-Quincke pair (two 40 mm tubes,
+  300 and 1500 mm) against one 56.6 mm pipe: finished, no warnings, NMEP unchanged (13.38 bar at 3000 rpm); outflow
+  d(mdot)/dt order 4 (200 Hz) -40.3 dB at 3000 rpm and order 3 (210 Hz) -25.5 dB at 4200 rpm, against the predicted
+  notch c/(2 dL) = 210 / 222 Hz (outlet gas 658 / 733 K). The third-harmonic notch (630-666 Hz) shows only 4 dB at the
+  nearest orders. Page: "In line on the pipe" on the line after the collector: the Mufflers tab's auger (centre tube +
+  spiral as a round pipe of the channel's area; capped = spiral alone) or timbre tube bundle, at a distance from the
+  collector; wamline_ui.js. Limits: no junction end allowance, no swirl or spiral friction beyond the pipe's own.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
