@@ -53,6 +53,7 @@ function randomSpec(base, k) {
   if (k % 4 === 1) e.Twall = U(400, 520);
   const d = U(0.03, 0.06);
   s.intake = { segs: [{ L: U(0.08, 0.5), d0: d * 1.2, d1: d }, { L: U(0.05, 0.3), d0: d, d1: d }], Tw: U(300, 340) };
+  if (k % 4 === 2) s.intake.plenum = { V_m3: U(0.5e-3, 6e-3), inlet: [{ L: U(0.1, 0.6), d0: d * 2.2, d1: d * 2.2 }, { L: U(0.03, 0.1), d0: d * 1.6, d1: d * 1.6 }] };   // v5 plenum, a throttle-body step
   const dp = U(0.03, 0.055);
   s.exhaust.segs = [{ L: U(0.05, 0.2), d0: dp, d1: dp }, { L: U(0.2, 0.8), d0: dp, d1: dp * (k % 2 ? 1 : U(1.0, 1.15)) }];
   if (k % 5 === 2) s.exhaust.segs.push({ L: U(0.05, 0.3), d0: dp * 1.1, d1: dp * 1.1 });   // a step

@@ -818,10 +818,21 @@
     const perCyl = ex.per_cyl;
     if (perCyl && perCyl.length && perCyl.length !== ncyl) throw new Error('exhaust.per_cyl must list one primary per cylinder (' + ncyl + ' entries, None = exhaust.segs), got ' + perCyl.length);
     const primSegs = c => (perCyl && perCyl.length && perCyl[c] !== null && perCyl[c] !== undefined ? perCyl[c] : ex.segs);     // v4 unequal-length headers
+    const ipl = spec.intake.plenum;
+    let iplN = 0;
+    if (ipl) {
+      // v5: every runner starts at one intake plenum (a constant volume), fed by an inlet line from an open end
+      if (spec.intake.reservoir) throw new Error('intake.plenum and intake.reservoir are alternatives: give one');
+      if (!(Number(ipl.V_m3 || 0) > 0)) throw new Error('intake.plenum.V_m3 must be positive');
+      if (!ipl.inlet || !ipl.inlet.length) throw new Error('intake.plenum.inlet needs at least one pipe segment (air filter to plenum)');
+      plenums.push({ V_m3: Number(ipl.V_m3), T_C: p.T_amb_C, p_bar: p.p_amb_bar, comp: [0.0, 0.0, 1.0], note: 'intake plenum, ' + pctG(Number(ipl.V_m3) * 1000.0) + ' litres' });
+      iplN = plenums.length;
+    }
     for (let c = 0; c < ncyl; c++) {
       const ik = 'c' + (c + 1) + '/in/open', iv = 'c' + (c + 1) + '/iv', ev = 'c' + (c + 1) + '/ev';
       const rsv = spec.intake.reservoir;
-      if (rsv) bcs.set(ik, { type: 'reservoir', p_bar: Number(rsv.p_bar), T_C: has(rsv, 'T_C') ? Number(rsv.T_C) : p.T_amb_C, comp: [0.0, 0.0, 1.0],
+      if (ipl) bcs.set(ik, { type: 'plenum', plenum: iplN, note: 'cylinder ' + (c + 1) + ' intake runner inlet, from the intake plenum' });
+      else if (rsv) bcs.set(ik, { type: 'reservoir', p_bar: Number(rsv.p_bar), T_C: has(rsv, 'T_C') ? Number(rsv.T_C) : p.T_amb_C, comp: [0.0, 0.0, 1.0],
         note: 'cylinder ' + (c + 1) + ' intake runner inlet, reservoir at ' + pctG(Number(rsv.p_bar)) + ' bar (throttled plenum)' });
       else bcs.set(ik, { type: 'open', note: 'cylinder ' + (c + 1) + ' intake runner inlet, open end to atmosphere' });
       bcs.set(iv, { type: 'ivalve', cyl: c + 1, note: 'intake valve, cylinder ' + (c + 1) });
@@ -837,6 +848,11 @@
           addChain(segItems(primSegs(c), twC(ex)).concat(tailItems(ex.tail, twC(ex), T0x)), ev, right, 'cylinder ' + (c + 1) + ' exhaust line', T0x, [1.0, 0.0, 0.0], 2);
         else addLine(primSegs(c), ev, right, 'cylinder ' + (c + 1) + ' exhaust primary', twC(ex), T0x, [1.0, 0.0, 0.0], 2);
       }
+    }
+    if (ipl) {
+      bcs.set('in/open', { type: 'open', note: 'intake inlet, open end to atmosphere' });
+      bcs.set('in/plenum', { type: 'plenum', plenum: iplN, note: 'intake inlet into the plenum' });
+      addLine(ipl.inlet, 'in/open', 'in/plenum', 'intake inlet', twC(spec.intake), p.T_amb_C, [0.0, 0.0, 1.0], 1);
     }
     for (const [ci, col, levels, jkey] of colPlan) {
       levels.forEach((lv, si) => {

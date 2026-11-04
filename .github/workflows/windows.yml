@@ -62,6 +62,12 @@ jobs:
         run: |
           /usr/bin/python3 cfd/gen_rust_templates.py --check
           /usr/bin/python3 cfd/gen_rs_vs_py.py rust/target/release/exhaust-tuner-host
+      # the OpenWAM writer: the page's JavaScript against make_wam.py, byte for byte (98 cases, random specs with check-lift
+      # cams and intake plenums among them), and the copy the page embeds is the file
+      - name: OpenWAM writer, JavaScript against Python
+        run: |
+          /usr/bin/python3 tools/sync_wam_export.py
+          node openwam/test_py_js.js
       # Python 3.11 here: its sum() adds plainly, 3.12 and later with Neumaier's compensation, and the Rust core follows
       # whichever Python loads it; the Windows job checks it on 3.12, so both ways are covered
       - uses: actions/setup-python@v5

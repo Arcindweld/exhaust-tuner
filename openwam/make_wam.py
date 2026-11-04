@@ -821,6 +821,8 @@ def model_from_spec(spec, run=None):
     spec.e: {bore, stroke, rod, cr, cd, nIn, dIn, liftIn, nEx, dEx, liftEx, cam:{ivo,ivc,evo,evc,[checkLift_mm]},
              burn:{start, dur}, afr, eta, [Twall K]}
     spec.intake: {segs:[{L,d0,d1}] from the airbox to the valve, Tw,
+                  [plenum: {V_m3, inlet:[{L,d0,d1}] from the open end (air filter) to the plenum: a diameter jump in it
+                  is the throttle body}  every runner then starts at this one plenum instead of open air (v5)],
                   [reservoir: {p_bar, [T_C]}  the runner inlet opens into a space held at this pressure instead of
                   the atmosphere (BC type 1): the throttled intake plenum at manifold pressure, for part-load /
                   no-load runs; the load is then a stable, monotonic function of p_bar (v4)]}
@@ -1072,10 +1074,24 @@ def model_from_spec(spec, run=None):
         raise ValueError("exhaust.per_cyl must list one primary per cylinder (%d entries, None = exhaust.segs), got %d"
                          % (ncyl, len(per_cyl)))
     prim_segs = lambda c: per_cyl[c] if (per_cyl and per_cyl[c] is not None) else ex["segs"]
+    ipl = spec["intake"].get("plenum")
+    if ipl:
+        # v5: every runner starts at one intake plenum (a constant volume), fed by an inlet line from an open end
+        if spec["intake"].get("reservoir"):
+            raise ValueError("intake.plenum and intake.reservoir are alternatives: give one")
+        if not (float(ipl.get("V_m3") or 0.0) > 0.0):
+            raise ValueError("intake.plenum.V_m3 must be positive")
+        if not ipl.get("inlet"):
+            raise ValueError("intake.plenum.inlet needs at least one pipe segment (air filter to plenum)")
+        plenums.append({"V_m3": float(ipl["V_m3"]), "T_C": p["T_amb_C"], "p_bar": p["p_amb_bar"], "comp": [0.0, 0.0, 1.0],
+                        "note": "intake plenum, %g litres" % (float(ipl["V_m3"]) * 1000.0)})
+        ipl_n = len(plenums)
     for c in range(ncyl):
         ik, iv, ev = "c%d/in/open" % (c + 1), "c%d/iv" % (c + 1), "c%d/ev" % (c + 1)
         rsv = spec["intake"].get("reservoir")
-        if rsv:
+        if ipl:
+            bcs[ik] = {"type": "plenum", "plenum": ipl_n, "note": "cylinder %d intake runner inlet, from the intake plenum" % (c + 1)}
+        elif rsv:
             bcs[ik] = {"type": "reservoir", "p_bar": float(rsv["p_bar"]),
                        "T_C": float(rsv["T_C"]) if rsv.get("T_C") is not None else p["T_amb_C"], "comp": [0.0, 0.0, 1.0],
                        "note": "cylinder %d intake runner inlet, reservoir at %g bar (throttled plenum)" % (c + 1, float(rsv["p_bar"]))}
@@ -1097,6 +1113,10 @@ def model_from_spec(spec, run=None):
                 add_chain(items, ev, right, "cylinder %d exhaust line" % (c + 1), T0x, [1.0, 0.0, 0.0], 2)
             else:
                 add_line(prim_segs(c), ev, right, "cylinder %d exhaust primary" % (c + 1), tw_c(ex), T0x, [1.0, 0.0, 0.0], 2)
+    if ipl:
+        bcs["in/open"] = {"type": "open", "note": "intake inlet, open end to atmosphere"}
+        bcs["in/plenum"] = {"type": "plenum", "plenum": ipl_n, "note": "intake inlet into the plenum"}
+        add_line(ipl["inlet"], "in/open", "in/plenum", "intake inlet", tw_c(spec["intake"]), p["T_amb_C"], [0.0, 0.0, 1.0], 1)
     for (ci, col, levels, jkey) in col_plan:
         for si, lv in enumerate(levels):
             for gi in range(len(lv["groups"])):

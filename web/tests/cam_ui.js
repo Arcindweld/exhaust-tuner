@@ -29,6 +29,17 @@ const { chromium } = require('playwright');
   await setv('f-ivo', ''); await setv('f-ivc', ''); await setv('f-evc', ''); await pg.waitForTimeout(150);
   const err = await pg.evaluate(() => window.__sim.inp ? window.__sim.simCheck(window.__sim.inp()) : null);
   ok(/0\.050 in lift, enter all four/.test(err || ''), 'blank intake events refused at 0.050 in: ' + err);
+  // the intake: runners from a plenum through a throttle body, in the OpenWAM case
+  await setv('f-ivo', '-11'); await setv('f-ivc', '35'); await setv('f-evc', '-15.5');
+  ok(await pg.$eval('#f-intk-wrap', e => e.hidden), 'plenum inputs hidden for open runners');
+  await setv('f-intk', 'plenum'); await pg.waitForTimeout(200);
+  ok(!(await pg.$eval('#f-intk-wrap', e => e.hidden)), 'plenum inputs shown');
+  const ip = await pg.evaluate(() => { const sp = window.__sim.simSpec(window.__sim.inp()); return { pl: sp.intake.plenum, wam: window.WamExport.makeWam(sp, { rpm: 5000, cycles: 5, name: 't' }) }; });
+  ok(ip.pl && Math.abs(ip.pl.V_m3 - 0.006) < 1e-12 && ip.pl.inlet.length === 2 && Math.abs(ip.pl.inlet[1].d0 - 0.09) < 1e-12, 'spec: 6 L plenum, 90 mm throttle body, inlet tube (' + JSON.stringify(ip.pl) + ')');
+  ok(/intake plenum, 6 litres/.test(ip.wam) && /intake inlet part 2 pipe \d+, diameter step BC\d+ to plenum port/.test(ip.wam) && /cylinder 1 intake runner pipe 1, plenum port BC1 to intake valve/.test(ip.wam), 'the OpenWAM case has the plenum, its inlet through the throttle-body step, and the runners from it');
+  await setv('f-plv', ''); await pg.waitForTimeout(150);
+  const perr = await pg.evaluate(() => window.__sim.simCheck(window.__sim.inp()));
+  ok(/With a plenum, fill in its volume/.test(perr || ''), 'a plenum without a volume refused: ' + perr);
   ok(errs.length === 0, 'no page errors ' + errs.join('|'));
   console.log(fails.length ? 'FAILS: ' + fails.length : 'all passed');
   await b.close(); process.exit(fails.length ? 1 : 0);
