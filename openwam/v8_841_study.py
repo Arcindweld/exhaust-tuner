@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """v8_841_study.py - 8-4-1 headers on a cross-plane V8 in OpenWAM, against the layouts they replace.
 
-    python3 v8_841_study.py [rpm ...] [cycles=40] [jobs=2] [cell_mm=7.07] [sound=5000] [layouts=a,b] [tag=_x] [yr=0.8]
+    python3 v8_841_study.py [rpm ...] [cycles=40] [jobs=2] [cell_mm=7.07] [sound=5000] [layouts=a,b] [tag=_x] [yr=0.8] [first=368]
 
 One engine, six exhaust layouts, the same primary tube, the same path length from the valve to the last
 collector and the same collector rules, so only the grouping changes:
@@ -14,8 +14,10 @@ collector and the same collector rules, so only the grouping changes:
   c841_x    8-4-1, pairs across the banks that fire 360 deg apart (each needs a crossover tube)
 
 The engine is a 6.2 L GM LS3-like V8 with stated, not measured, parameters (below): 103.25 x 92 mm, rod 154 mm,
-10.7:1, one 55.0 mm intake and one 40.4 mm exhaust valve per cylinder, 14.0 / 13.5 mm lift, the LS3 cam's
-204 / 211 deg at 0.050 in on a 117 deg lobe separation, installed 4 deg advanced (intake centreline 113 deg ATDC),
+10.7:1, one 55.0 mm intake and one 40.4 mm exhaust valve per cylinder, 14.0 / 13.26 mm lift (0.551 / 0.522 in), the
+LS3 cam's 204 / 211 deg at 0.050 in (GM's crate engine sheet) on a 117 deg lobe separation, installed 4 deg advanced
+(intake centreline 113 deg ATDC), the events given at 0.050 in (checkLift_mm 1.27, so the model's lift passes 0.050 in
+there; before 2026-11-03 these runs fed the 0.050 in events in as seat timing, about 25 deg short at each end),
 firing order 1-8-7-2-6-5-4-3 (odd cylinders on the left bank). Header tubes follow Concept 841's published C7
 8-4-1 sizes (2.00 in primaries, 2.25 in secondaries, a 4.5 in 4-1 collector outlet; 16-gauge wall assumed:
 47.5 / 53.9 / 111.0 mm inside), and the same primary is used for every layout. Path from the valve to the last
@@ -42,6 +44,7 @@ import make_wam  # noqa: E402
 import run_models  # noqa: E402
 
 IN = 0.0254
+CHECK = 1.27            # the cam events are the card's 0.050 in timing (make_wam seat_events stretches the sin^2 lift)
 FIRING = [1, 8, 7, 2, 6, 5, 4, 3]            # GM LS / LT
 LEFT, RIGHT = [1, 3, 5, 7], [2, 4, 6, 8]
 DP = 2.00 * IN - 2 * 0.065 * IN             # 47.5 mm
@@ -67,8 +70,8 @@ def engine():
     evc = dur_e / 2 - ecl
     evo = dur_e - 180 - evc
     return {"bore": 0.10325, "stroke": 0.092, "rod": 0.154, "cr": 10.7, "cd": 0.7,
-            "nIn": 1, "dIn": 0.0550, "liftIn": 0.0140, "nEx": 1, "dEx": 0.0404, "liftEx": 0.0135,
-            "cam": {"ivo": ivo, "ivc": ivc, "evo": evo, "evc": evc},
+            "nIn": 1, "dIn": 0.0550, "liftIn": 0.0140, "nEx": 1, "dEx": 0.0404, "liftEx": 0.01326,
+            "cam": {"ivo": ivo, "ivc": ivc, "evo": evo, "evc": evc, "checkLift_mm": CHECK},
             "burn": {"start": 18, "dur": 55}, "afr": 12.8, "eta": 0.72}
 
 
@@ -111,6 +114,18 @@ def spec(layout):
         else:
             s["opt"]["collectors"] = [four(g) for g in groups]
         return s
+    if layout in ("triy_180", "triy_270"):
+        # each bank its own Tri-Y (4-2-1): pairs on the bank, two secondaries into a 2-1 per bank
+        pp = {"triy_180": [[[1, 7], [5, 3]], [[8, 2], [6, 4]]], "triy_270": [[[1, 5], [7, 3]], [[8, 6], [2, 4]]]}[layout]
+        s["exhaust"]["segs"] = [{"L": FIRST, "d0": DP, "d1": DP, "primary": True}]
+        yc = cone(DP * math.sqrt(2), DSEC)
+        s["opt"]["collectors"] = [{
+            "cyls": idx(bank), "Tw": 650,
+            "stages": [{"groups": [sorted(idx(p)) for p in prs], "Tw": 675,
+                        "segs": [{"L": yc, "d0": DP * math.sqrt(2), "d1": DSEC},
+                                 {"L": TOTAL - FIRST - yc, "d0": DSEC, "d1": DSEC}]}],
+            "segs": collector(DSEC * math.sqrt(2), DSEC * math.sqrt(2 * CR))} for bank, prs in zip([LEFT, RIGHT], pp)]
+        return s
     pairs = {"c841_180": [[1, 7], [5, 3], [8, 2], [6, 4]],          # same bank, 180 deg apart
              "c841_270": [[1, 5], [7, 3], [8, 6], [2, 4]],          # same bank, 270 / 450 deg
              "c841_x": [[1, 6], [8, 5], [7, 4], [2, 3]]}[layout]    # across the banks, 360 deg
@@ -126,6 +141,7 @@ def spec(layout):
 
 
 LAYOUTS = ["dual41", "bank180", "all81", "c841_180", "c841_270", "c841_x"]
+MORE = ["triy_180", "triy_270"]           # per-bank Tri-Y, run with layouts=
 
 
 def pulse_gaps(cyls):
@@ -166,7 +182,7 @@ def run_one(layout, rpm, over, sound=False, tag=""):
 
 
 def main(argv):
-    rpms, over, jobs, sound_rpm, layouts, tag, yr = [], {"cycles": 40, "cell_mm": 7.07}, 2, None, LAYOUTS, "", None
+    rpms, over, jobs, sound_rpm, layouts, tag, yr, first = [], {"cycles": 40, "cell_mm": 7.07}, 2, None, LAYOUTS, "", None, None
     for a in argv[1:]:
         if "=" in a:
             k, v = a.split("=", 1)
@@ -180,20 +196,25 @@ def main(argv):
                 tag = v
             elif k == "yr":
                 yr = float(v)
+            elif k == "first":
+                first = float(v) / 1000.0
             else:
                 over[k] = float(v) if k != "cycles" else int(v)
         else:
             rpms.append(int(a))
     rpms = rpms or [3000, 4000, 5000, 6000, 6600]
-    global DSEC
-    if yr:                                   # secondary area / the two primaries feeding it (Concept 841: 0.64)
-        DSEC = DP * math.sqrt(2 * yr)
+    global DSEC, DC841, FIRST
+    if yr:                                   # secondary area / the two primaries feeding it (Concept 841: 0.64); the
+        DSEC = DP * math.sqrt(2 * yr)        # 4-1 keeps Concept's 1.06 x the four secondaries
+        DC841 = DSEC * math.sqrt(4 * (111.0e-3 / (53.85e-3 * 2)) ** 2)
+    if first:                                # valve to the first merge, mm
+        FIRST = first
     todo = [(l, r, r == sound_rpm) for l in layouts for r in rpms]
     with ThreadPoolExecutor(max_workers=jobs) as ex:
         res = list(ex.map(lambda t: run_one(t[0], t[1], over, t[2], tag), todo))
     groups = {"dual41": [LEFT, RIGHT], "bank180": [FIRING[0::2], FIRING[1::2]], "all81": [FIRING]}
     meta = {"engine": engine(), "firing": FIRING, "d_primary_mm": DP * 1e3, "d_secondary_mm": DSEC * 1e3,
-            "d_collector_841_mm": DC841 * 1e3, "layouts": layouts, "tag": tag, "total_mm": TOTAL * 1e3, "first_mm": FIRST * 1e3, "run": over,
+            "d_collector_841_mm": DC841 * 1e3, "layouts": layouts, "tag": tag, "yr": (DSEC / DP) ** 2 / 2, "total_mm": TOTAL * 1e3, "first_mm": FIRST * 1e3, "run": over,
             "collector_pulse_gaps_deg": {k: [pulse_gaps(g) for g in v] for k, v in groups.items()}}
     json.dump({"meta": meta, "results": res}, open(os.path.join(HERE, "runs", "v8_841", "results%s.json" % tag), "w"), indent=1)
     print("%-9s %5s %8s %8s %7s %7s %5s" % ("layout", "rpm", "T_Nm", "P_kW", "VEdel", "PMEP", "ok"))

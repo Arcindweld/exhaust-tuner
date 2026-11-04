@@ -782,6 +782,32 @@ def split_runs(segs):
     return runs
 
 
+def round01(x):
+    """Round to 0.1 deg, halves up (the page's JS port rounds the same way)."""
+    return math.floor(x * 10.0 + 0.5) / 10.0
+
+
+def seat_events(cam, lift_in_mm, lift_ex_mm):
+    """Cam events measured at a check lift (cam.checkLift_mm, e.g. 1.27 = 0.050 in) -> the seat-to-seat events of the
+    sin^2 lift curve this generator uses, so that curve passes the check lift at the card's angles. A sin^2 lobe of
+    duration D and lift L is at h when its angle from opening is a0 = D/pi*asin(sqrt(h/L)); with the card's duration
+    d = D - 2 a0, each event moves out by a0 = d*k / (2 (1 - k)), k = (2/pi) asin(sqrt(h/L)). No check lift: the events
+    are seat to seat already and come back unchanged."""
+    h = float(cam.get("checkLift_mm") or 0.0)
+    ev = {k: float(cam[k]) for k in ("ivo", "ivc", "evo", "evc")}
+    if h <= 0.0:
+        return ev
+    out = {}
+    for (o, c, L) in (("ivo", "ivc", lift_in_mm), ("evo", "evc", lift_ex_mm)):
+        if not (L > h):
+            raise ValueError("valve lift %g mm must exceed the check lift %g mm" % (L, h))
+        d = ev[o] + 180.0 + ev[c]
+        k = 2.0 / math.pi * math.asin(math.sqrt(h / L))
+        a0 = d * k / (2.0 * (1.0 - k))
+        out[o], out[c] = round01(ev[o] + a0), round01(ev[c] + a0)
+    return out
+
+
 def lift_step_for(durs):
     for st in (1.0, 0.5, 0.25, 0.2, 0.1):
         if all(abs(round(dd / st) * st - dd) <= 1e-9 for dd in durs):
@@ -792,7 +818,7 @@ def lift_step_for(durs):
 def model_from_spec(spec, run=None):
     """simSpec() structure -> model. Lengths in m, temperatures in K, cam in cam-card degrees.
 
-    spec.e: {bore, stroke, rod, cr, cd, nIn, dIn, liftIn, nEx, dEx, liftEx, cam:{ivo,ivc,evo,evc},
+    spec.e: {bore, stroke, rod, cr, cd, nIn, dIn, liftIn, nEx, dEx, liftEx, cam:{ivo,ivc,evo,evc,[checkLift_mm]},
              burn:{start, dur}, afr, eta, [Twall K]}
     spec.intake: {segs:[{L,d0,d1}] from the airbox to the valve, Tw,
                   [reservoir: {p_bar, [T_C]}  the runner inlet opens into a space held at this pressure instead of
@@ -819,6 +845,7 @@ def model_from_spec(spec, run=None):
     p = dict(DEFAULTS)
     p.update(EXTRA_DEFAULTS)
     twc = (e["Twall"] if e.get("Twall") else CALC_TWALL_CYL_K) - K0
+    seat = seat_events(cam, e["liftIn"] * 1000.0, e["liftEx"] * 1000.0)
     p.update({
         "name": "simspec",
         "p_amb_bar": CALC_P_ATM_BAR, "T_amb_C": CALC_T_ATM_C,
@@ -826,8 +853,8 @@ def model_from_spec(spec, run=None):
         "cr": float(e["cr"]),
         "n_int": int(e["nIn"]), "d_int_mm": e["dIn"] * 1000.0, "lift_int_mm": e["liftIn"] * 1000.0,
         "n_exh": int(e["nEx"]), "d_exh_mm": e["dEx"] * 1000.0, "lift_exh_mm": e["liftEx"] * 1000.0,
-        "ivo_btdc": float(cam["ivo"]), "ivc_abdc": float(cam["ivc"]),
-        "evo_bbdc": float(cam["evo"]), "evc_atdc": float(cam["evc"]),
+        "ivo_btdc": seat["ivo"], "ivc_abdc": seat["ivc"],
+        "evo_bbdc": seat["evo"], "evc_atdc": seat["evc"],
         "valve_cd": float(e["cd"]), "curtain_cap": CALC_CURTAIN_CAP,
         "burn_start_btdc": float(burn["start"]), "burn_dur_deg": float(burn["dur"]),
         "afr": float(e["afr"]), "comb_eff": float(e["eta"]),

@@ -612,6 +612,22 @@
     if (!runs.length) throw new Error('a line has no segment longer than 1 micron');
     return runs;
   }
+  // make_wam.py round01 / seat_events: cam events at a check lift (cam.checkLift_mm) -> seat-to-seat sin² events
+  function round01(x) { return Math.floor(x * 10.0 + 0.5) / 10.0; }
+  function seatEvents(cam, liftInMm, liftExMm) {
+    const h = +(cam.checkLift_mm || 0);
+    const ev = { ivo: +cam.ivo, ivc: +cam.ivc, evo: +cam.evo, evc: +cam.evc };
+    if (!(h > 0)) return ev;
+    const out = {};
+    for (const [o, c, L] of [['ivo', 'ivc', liftInMm], ['evo', 'evc', liftExMm]]) {
+      if (!(L > h)) throw new Error('valve lift ' + L + ' mm must exceed the check lift ' + h + ' mm');
+      const d = ev[o] + 180.0 + ev[c];
+      const k = 2.0 / Math.PI * Math.asin(Math.sqrt(h / L));
+      const a0 = d * k / (2.0 * (1.0 - k));
+      out[o] = round01(ev[o] + a0); out[c] = round01(ev[c] + a0);
+    }
+    return out;
+  }
   function liftStepFor(durs) {
     for (const st of [1.0, 0.5, 0.25, 0.2, 0.1])
       if (durs.every(dd => Math.abs(pyRoundInt(dd / st) * st - dd) <= 1e-9)) return st;
@@ -624,12 +640,13 @@
     const e = spec.e, cam = e.cam, burn = e.burn;
     const p = Object.assign({}, DEFAULTS, EXTRA_DEFAULTS);
     const twc = (e.Twall ? e.Twall : CALC_TWALL_CYL_K) - K0;
+    const seat = seatEvents(cam, e.liftIn * 1000.0, e.liftEx * 1000.0);
     Object.assign(p, {
       name: 'simspec', p_amb_bar: CALC_P_ATM_BAR, T_amb_C: CALC_T_ATM_C,
       bore_mm: e.bore * 1000.0, stroke_mm: e.stroke * 1000.0, rod_mm: e.rod * 1000.0, cr: +e.cr,
       n_int: Math.trunc(e.nIn), d_int_mm: e.dIn * 1000.0, lift_int_mm: e.liftIn * 1000.0,
       n_exh: Math.trunc(e.nEx), d_exh_mm: e.dEx * 1000.0, lift_exh_mm: e.liftEx * 1000.0,
-      ivo_btdc: +cam.ivo, ivc_abdc: +cam.ivc, evo_bbdc: +cam.evo, evc_atdc: +cam.evc,
+      ivo_btdc: seat.ivo, ivc_abdc: seat.ivc, evo_bbdc: seat.evo, evc_atdc: seat.evc,
       valve_cd: +e.cd, curtain_cap: CALC_CURTAIN_CAP,
       burn_start_btdc: +burn.start, burn_dur_deg: +burn.dur, afr: +e.afr, comb_eff: +e.eta,
       T_piston_C: twc, T_head_C: twc, T_liner_C: twc, exhaust_Tgas0_C: CALC_T0_EXHAUST_K - K0,

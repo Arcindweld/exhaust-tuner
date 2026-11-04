@@ -643,6 +643,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="f-ivc" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>° ABDC</em></span></label>
         <label class="f"><span class="lab">Exhaust closes</span>
           <span class="inp"><input id="f-evc" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>° ATDC</em></span></label>
+        <label class="f"><span class="lab">Cam events measured at</span>
+          <span class="inp"><select id="f-camat"><option value="seat" selected>Seat to seat (advertised)</option><option value="050">0.050 in lift (most cam cards)</option></select></span></label>
         <span class="hint" id="f-cam-hint" style="grid-column:1/-1"></span>
         <label class="f span2" id="f-gaps-wrap"><span class="lab">Crank degrees between firings on this collector, blank for even</span>
           <span class="inp"><input id="f-gaps" type="text" inputmode="numeric" placeholder="270, 180, 90, 180" autocomplete="off"></span></label>
@@ -3513,6 +3515,22 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     if (!runs.length) throw new Error('a line has no segment longer than 1 micron');
     return runs;
   }
+  // make_wam.py round01 / seat_events: cam events at a check lift (cam.checkLift_mm) -> seat-to-seat sin² events
+  function round01(x) { return Math.floor(x * 10.0 + 0.5) / 10.0; }
+  function seatEvents(cam, liftInMm, liftExMm) {
+    const h = +(cam.checkLift_mm || 0);
+    const ev = { ivo: +cam.ivo, ivc: +cam.ivc, evo: +cam.evo, evc: +cam.evc };
+    if (!(h > 0)) return ev;
+    const out = {};
+    for (const [o, c, L] of [['ivo', 'ivc', liftInMm], ['evo', 'evc', liftExMm]]) {
+      if (!(L > h)) throw new Error('valve lift ' + L + ' mm must exceed the check lift ' + h + ' mm');
+      const d = ev[o] + 180.0 + ev[c];
+      const k = 2.0 / Math.PI * Math.asin(Math.sqrt(h / L));
+      const a0 = d * k / (2.0 * (1.0 - k));
+      out[o] = round01(ev[o] + a0); out[c] = round01(ev[c] + a0);
+    }
+    return out;
+  }
   function liftStepFor(durs) {
     for (const st of [1.0, 0.5, 0.25, 0.2, 0.1])
       if (durs.every(dd => Math.abs(pyRoundInt(dd / st) * st - dd) <= 1e-9)) return st;
@@ -3525,12 +3543,13 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     const e = spec.e, cam = e.cam, burn = e.burn;
     const p = Object.assign({}, DEFAULTS, EXTRA_DEFAULTS);
     const twc = (e.Twall ? e.Twall : CALC_TWALL_CYL_K) - K0;
+    const seat = seatEvents(cam, e.liftIn * 1000.0, e.liftEx * 1000.0);
     Object.assign(p, {
       name: 'simspec', p_amb_bar: CALC_P_ATM_BAR, T_amb_C: CALC_T_ATM_C,
       bore_mm: e.bore * 1000.0, stroke_mm: e.stroke * 1000.0, rod_mm: e.rod * 1000.0, cr: +e.cr,
       n_int: Math.trunc(e.nIn), d_int_mm: e.dIn * 1000.0, lift_int_mm: e.liftIn * 1000.0,
       n_exh: Math.trunc(e.nEx), d_exh_mm: e.dEx * 1000.0, lift_exh_mm: e.liftEx * 1000.0,
-      ivo_btdc: +cam.ivo, ivc_abdc: +cam.ivc, evo_bbdc: +cam.evo, evc_atdc: +cam.evc,
+      ivo_btdc: seat.ivo, ivc_abdc: seat.ivc, evo_bbdc: seat.evo, evc_atdc: seat.evc,
       valve_cd: +e.cd, curtain_cap: CALC_CURTAIN_CAP,
       burn_start_btdc: +burn.start, burn_dur_deg: +burn.dur, afr: +e.afr, comb_eff: +e.eta,
       T_piston_C: twc, T_head_C: twc, T_liner_C: twc, exhaust_Tgas0_C: CALC_T0_EXHAUST_K - K0,
@@ -7186,6 +7205,20 @@ function valveFlow(CdA,cyl,P,i){
 
 // ---------- engine ----------
 const rad=d=>d*Math.PI/180;
+// Cam events measured at a check lift (cam.checkLift_mm, 1.27 = 0.050 in) -> the seat-to-seat events of the sin² lift
+// below, so it passes that lift at the card's angles (make_wam.py seat_events, the same arithmetic and rounding).
+function camSeat(cam,liftInMm,liftExMm){
+  const h=+(cam.checkLift_mm||0), ev={ivo:+cam.ivo,ivc:+cam.ivc,evo:+cam.evo,evc:+cam.evc};
+  if(!(h>0)) return ev;
+  const out={}, r1=x=>Math.floor(x*10+0.5)/10;
+  for(const [o,c,L] of [['ivo','ivc',liftInMm],['evo','evc',liftExMm]]){
+    if(!(L>h)) throw new Error('valve lift '+L+' mm must exceed the check lift '+h+' mm');
+    const d=ev[o]+180+ev[c], k=2/Math.PI*Math.asin(Math.sqrt(h/L)), a0=d*k/(2*(1-k));
+    out[o]=r1(ev[o]+a0); out[c]=r1(ev[c]+a0);
+  }
+  return out;
+}
+window.__camSeat=camSeat;   // for tests/cam_ui.js
 function liftAt(th,open,dur,Lmax){              // sin² lift over the valve's duration
   let a=th-open; a=((a%720)+720)%720;
   if(a>=dur) return 0;
@@ -7242,7 +7275,7 @@ function makeEngine(e,intake,exhaust,opt){
   const Ap=Math.PI*e.bore*e.bore/4, Vd=Ap*e.stroke, Vc=Vd/(e.cr-1), cr=e.stroke/2, rod=e.rod;
   const vol=th=>{ const t=rad(th), s=Math.sin(t); return Vc+Ap*(cr+rod-cr*Math.cos(t)-Math.sqrt(rod*rod-cr*cr*s*s)); };
   const dvol=th=>{ const t=rad(th), s=Math.sin(t), c=Math.cos(t); return Ap*cr*(s+cr*s*c/Math.sqrt(rod*rod-cr*cr*s*s)); };
-  const cam=e.cam;
+  const cam=camSeat(e.cam,e.liftIn*1000,e.liftEx*1000);      // seat-to-seat events of the sin² lift (checkLift_mm: card at that lift)
   const evo=180-cam.evo, evdur=180+cam.evo+cam.evc;          // firing TDC at 0°, overlap TDC at 360°
   const ivo=360-cam.ivo, ivdur=180+cam.ivo+cam.ivc;
   const ivc=(ivo+ivdur)%720, ign=(720-e.burn.start)%720;
@@ -7473,6 +7506,7 @@ function simPhases(n,gaps){
   for(let i=0;i<n-1;i++) out.push(out[i]+g[i]);
   return out;
 }
+const CAM_CHECK_050=1.27, CAM_CHECK_SEAT=0.1524;   // mm: 0.050 in, and 0.006 in (the usual advertised-duration check lift)
 function simSpec(p){
   const per=p.cc/p.cyl*1e-6;
   let B=p.bore>0?p.bore/1000:null, S=p.stroke>0?p.stroke/1000:null;
@@ -7480,6 +7514,7 @@ function simSpec(p){
   const four=p.valves===4, nIn=four?2:1, nEx=four?2:1, dIn=(four?0.40:0.49)*B, dEx=(four?0.34:0.40)*B, evc=Number.isFinite(p.evc)?p.evc:Math.max(10,p.evo-40);
   const e={bore:B,stroke:S,rod:1.7*S,cr:p.cr,cd:0.7,nIn,dIn,liftIn:0.26*dIn,nEx,dEx,liftEx:0.28*dEx,
     cam:{ivo:Number.isFinite(p.ivo)?p.ivo:evc,ivc:Number.isFinite(p.ivc)?p.ivc:p.evo,evo:p.evo,evc},burn:{start:18,dur:55},afr:12.8,eta:0.72};
+  if(p.camAt==='050') e.cam.checkLift_mm=CAM_CHECK_050;   // the events are at 0.050 in: the sin² lift is stretched to pass it there
   const dI=Math.sqrt(0.6*nIn)*dIn;
   const intake={segs:[{L:(p.intakeL>0?p.intakeL:300)/1000,d0:dI,d1:dI}],Tw:320};
   const dPort=(p.portD>0?p.portD:p.dp)/1000;
@@ -8097,7 +8132,7 @@ function renderFour(){
       ' The wave simulation models the port at this size.';
     const cq={ivo:val('f-ivo'),ivc:val('f-ivc'),evc:val('f-evc')}, full=['ivo','ivc','evc'].every(k=>Number.isFinite(cq[k]));
     if(full){ const k=camCard({ivo:cq.ivo,ivc:cq.ivc,evo:p.evo,evc:cq.evc});
-      $('f-cam-hint').textContent='From the cam card: intake '+k.inDur.toFixed(0)+'°, exhaust '+k.exDur.toFixed(0)+'° duration, overlap '+k.overlap.toFixed(0)+'°, intake centerline '+k.ICL.toFixed(1)+'° ATDC, exhaust '+k.ECL.toFixed(1)+'° BTDC, lobe separation '+k.LSA.toFixed(1)+'°, installed '+Math.abs(k.adv).toFixed(1)+'° '+(k.adv>=0?'advanced':'retarded')+'. Use the events at the same check lift as the exhaust opening above.'+b5IvcHint(cq.ivc,val('f-disp'),Math.max(1,Math.round(val('f-cyl'))),val('f-bore'),val('f-stroke'),p.rpm); }
+      $('f-cam-hint').textContent='From the cam card: intake '+k.inDur.toFixed(0)+'°, exhaust '+k.exDur.toFixed(0)+'° duration, overlap '+k.overlap.toFixed(0)+'°, intake centerline '+k.ICL.toFixed(1)+'° ATDC, exhaust '+k.ECL.toFixed(1)+'° BTDC, lobe separation '+k.LSA.toFixed(1)+'°, installed '+Math.abs(k.adv).toFixed(1)+'° '+(k.adv>=0?'advanced':'retarded')+'. Use the events at the same check lift as the exhaust opening above, and say which below'+($('f-camat')&&$('f-camat').value==='050'?': at 0.050 in, the simulations open each valve earlier and close it later, so their sin² lift curve passes 0.050 in at these angles.':'.')+b5IvcHint(cq.ivc,val('f-disp'),Math.max(1,Math.round(val('f-cyl'))),val('f-bore'),val('f-stroke'),p.rpm); }
     else $('f-cam-hint').textContent='Blank: the wave simulation assumes intake opens and exhaust closes 40° before the exhaust opening (at least 10°), and intake closes at the exhaust opening, a symmetric cam. Enter all three from your cam card to use the real timing.';
   }
   SIM.inp=simInputs(r,p,ch);
@@ -12737,12 +12772,13 @@ document.addEventListener('click',e=>{
 
 /* ===== wave simulation on the 4-Stroke tab ===== */
 const SIM={key:'',status:'idle',msg:'',res:null,rpms:null,inp:null,workers:[],run:0,prog:{},par:1,ncyl:1};
-window.__sim={WS,simSpec,simVariants,simRpms,inp:()=>SIM.inp,state:SIM};   // for the tests
+window.__sim={WS,simSpec,simVariants,simRpms,inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
 const SIM_COL=['--t4','--t2','--t3','--t1','--t5'], SIM_DASH=['','6 4','2 3','9 3','4 2 1 2'];
 function simInputs(r,p,ch){
   return {cc:val('f-disp'),cyl:Math.max(1,Math.round(val('f-cyl'))),segs:r.segs.map(s=>({len:s.len,d0:s.d0,d1:s.d1})),port:r.port,dp:p.dp,evo:p.evo,
     bore:val('f-bore'),stroke:val('f-stroke'),cr:val('f-cratio'),valves:+$('f-valves').value,intakeL:val('f-intl'),tune:p.rpm,
     portD:(()=>{ const r=portEqD($('f-pshape').value,val('f-pw'),val('f-ph'),val('f-pr')); return r&&r.d>0?r.d:null; })(),
+    camAt:$('f-camat')?$('f-camat').value:'seat',
     ivo:Number.isFinite(val('f-ivo'))?val('f-ivo'):null,ivc:Number.isFinite(val('f-ivc'))?val('f-ivc'):null,evc:Number.isFinite(val('f-evc'))?val('f-evc'):null,
     n:r.one?1:p.n,gaps:r.one||!$('f-gaps').value.trim()?null:parseNums($('f-gaps').value),
     chamber:ch&&!ch.err?{type:$('f-ch').value,x:val('f-chx'),dc:val('f-chd'),lc:val('f-chl'),nh:val('f-chn'),dh:val('f-chh'),wall:val('f-wall')>0?val('f-wall'):1.651}:null};
@@ -12754,6 +12790,7 @@ function simCheck(q){
   if(!(q.intakeL>=50)) return 'Enter an intake runner length of at least 2 in (50 mm).';
   const nCam=[q.ivo,q.ivc,q.evc].filter(x=>x!==null&&x!==undefined).length;
   if(nCam&&nCam<3) return 'Enter all three cam events (intake opens, intake closes, exhaust closes), or leave all three blank to estimate them.';
+  if(q.camAt==='050'&&nCam<3) return 'With the cam events at 0.050 in lift, enter all four from the cam card: the estimate from the exhaust opening is for seat-to-seat timing.';
   if(nCam===3){ const k=camCard({ivo:q.ivo,ivc:q.ivc,evo:q.evo,evc:q.evc}); if(!(k.inDur>120&&k.inDur<360&&k.exDur>120&&k.exDur<360)) return 'Those cam events give a duration outside 120 to 360°. Check them against the cam card.'; }
   if(q.n>q.cyl) return 'The engine has '+q.cyl+' cylinder'+(q.cyl===1?'':'s')+', fewer than the '+q.n+' primaries on this collector. Fix the cylinders or the primaries per collector.';
   if(q.gaps){
@@ -12996,7 +13033,8 @@ function esSpecFrom(q,sp){
   const spec={name:'ExhaustTuner '+E.name.split(' · ')[0],cylinders:q.cyl,layout:lay[0],
     bore_mm:+(e.bore*1000).toFixed(3),stroke_mm:+(e.stroke*1000).toFixed(3),rod_mm:+(e.rod*1000).toFixed(3),cr:e.cr,
     firingOrder:E.order.slice(),redline_rpm:redline,idle_rpm:ES_UI.idle>0?ES_UI.idle:800,
-    cam:{ivo:e.cam.ivo,ivc:e.cam.ivc,evo:e.cam.evo,evc:e.cam.evc,liftIn_mm:+(e.liftIn*1000).toFixed(3),liftEx_mm:+(e.liftEx*1000).toFixed(3)},
+    cam:{ivo:e.cam.ivo,ivc:e.cam.ivc,evo:e.cam.evo,evc:e.cam.evc,liftIn_mm:+(e.liftIn*1000).toFixed(3),liftEx_mm:+(e.liftEx*1000).toFixed(3),
+      checkLift_mm:e.cam.checkLift_mm||CAM_CHECK_SEAT},   // Engine Simulator's lobe crosses this lift at the events, as the wave model and OpenWAM do
     intake:{runnerL_mm:sp.intake.segs[0].L*1000,runnerD_mm:+(sp.intake.segs[0].d0*1000).toFixed(3),plenumL:+(q.cc/1000/2).toFixed(4)},
     exhaust:{primaryL_mm:+prim.len.toFixed(3),primaryD_mm:+q.dp.toFixed(3),collectorD_mm:+collD.toFixed(3),systemL_mm:+sysL.toFixed(3),
       tipD_mm:+segs[segs.length-1].d1.toFixed(3),dual:q.cyl>1&&groups>=2}};
