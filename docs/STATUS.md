@@ -372,6 +372,10 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   primary; nearby-part gap from a facing strip (finite-tube view factor, eps_tube x eps_part) against part limits and
   GM rules. Matches the research note's independent sanity run (703 C bare WOT, 413/806 C wrapped). Research:
   docs/research/header_skin_temperature.md.
+  Two-stage header routing (router.route_triy, cadtools act_route mode 'triy', page button "Auto-route a two-stage
+  header"): primaries of each group into a Y merge at its marker, then the secondaries into the collector, one
+  TubeSet across both stages; each Y is lengthened to bring the tubes together at 15 deg and the extra comes off the
+  secondary. tests/test_header_triy.py, the mock glue test, web/tests/triy_route_ui.js. Not run in Fusion yet.
   v8_841_study.py now resumes (finished runs of the same case text are kept; fresh=1 forces);
   the v4 rerun on the calibrated engine is in openwam/runs/v8_841/*_v4*.
 - Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the

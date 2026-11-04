@@ -43,7 +43,7 @@ cd openwam && node test_py_js.js
 
 # router (Python 3, no Fusion): on the Rust core when EXHAUST_TUNER_NATIVE_DIR points at the built library (or it sits
 # beside the add-in), on the Python otherwise
-cd fusion-addin/tests && python3 test_router.py && python3 test_header.py && python3 test_header_uel.py
+cd fusion-addin/tests && python3 test_router.py && python3 test_header.py && python3 test_header_uel.py && python3 test_header_triy.py && python3 test_jig.py
 
 # the Rust core (Rust 1.78+): its own tests, then everything it does against the Python router, number for number
 # (--require: fail, not skip, when the built core does not load)

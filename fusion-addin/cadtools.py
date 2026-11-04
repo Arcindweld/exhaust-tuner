@@ -1908,6 +1908,14 @@ def act_route(data):
     if mode in ('single', 'parts') and len(mk) != 2:
         raise ValueError('Select two marker lines: one at the start and one at the end. Draw each from the '
                          'centre of the pipe the way the gas flows (a circular edge works too).')
+    if mode == 'triy':
+        grp = data.get('groups') or []
+        nport = sum(len(g) for g in grp)
+        if not grp or len(mk) != nport + len(grp) + 1:
+            raise ValueError('Two-stage header: select the %d port markers in cylinder order, then one marker for each of '
+                             'the %d Y merges (in the order the page lists the pairs), then the collector marker last: '
+                             '%d markers in all, %d are selected. Draw each from the centre the way the gas flows.' % (
+                                 nport, len(grp), nport + len(grp) + 1, len(mk)))
     if mode == 'header' and len(mk) < 2:
         raise ValueError('Select a marker line at each port, then the collector marker last. Draw each from '
                          'the centre the way the gas flows: out of the port, and into the collector.')
@@ -1976,6 +1984,45 @@ def act_route(data):
         elif len(lens) > 1:
             msg += '; lengths within %.2f mm of each other' % (10 * (max(lens) - min(lens)))
         msg += '.' if res['ok'] else '. Some primaries need attention (see below).'
+    elif mode == 'triy':
+        grp = [[int(i) for i in g] for g in data['groups']]
+        nport = sum(len(g) for g in grp)
+        sec_od = _cm(data, 'sec_od_mm')
+        ts = dict(rspec, target=_cm(data, 'target_mm'), y_len=_cm(data, 'y_len_mm'), sec_od=sec_od,
+                  sec_target=_cm(data, 'sec_target_mm'), collector_len=_cm(data, 'collector_len_mm'),
+                  collector_out_d=_cm(data, 'collector_out_mm'))
+        res = RT.route_triy(scene, [(m['p'], m['d']) for m in mk[:nport]], [(m['p'], m['d']) for m in mk[nport:-1]],
+                            (ends['p'], ends['d']), grp, ts, log=log)
+        comp = _new_component(title)
+        for i, r in enumerate(res['primaries']):
+            nm = 'Primary %d' % (i + 1)
+            if r and r.get('elems'):
+                built.append(_build_route(comp, r, nm, od, wall, title + '_primary'))
+            items.append(_route_item(nm, r or {}, sp['gap'], od, data))
+        cones = [(y, 'Y merge %d' % (gi + 1)) for gi, y in enumerate(res['ys'])]
+        if res.get('collector'):
+            cones.append((res['collector'], 'Merge collector'))
+        for gi, r in enumerate(res['secondaries']):
+            nm = 'Secondary %d' % (gi + 1)
+            if r and r.get('elems'):
+                built.append(_build_route(comp, r, nm, sec_od, wall, title + '_secondary'))
+            items.append(_route_item(nm, r or {}, sp['gap'], sec_od, data))
+        for c, nm in cones:
+            try:
+                _revolve_cone(comp, c['start'], c['d_in'], c['end'], c['d_out'], wall, nm)
+                built.append({'param': True})
+            except Exception:
+                body = _cone_shell(c['start'], c['d_in'] / 2.0, c['end'], c['d_out'] / 2.0, wall)
+                _add_bodies(comp, [(body, nm + ' (outline)')])
+                built.append({'param': False})
+            if c.get('min_gap') is not None and c['min_gap'] < sp['gap']:
+                notes.append('%s comes within %.2f cm of the scan.' % (nm, c['min_gap']))
+        msg = ('Built %d primaries into %d Y merges (%.1f cm long, each a %d-into-1 at a 15 deg included angle) and %d '
+               'secondaries into the collector' % (nport, len(grp), res['y_len'], max(len(g) for g in grp), len(grp),))
+        if res.get('sec_target') is not None and ts.get('sec_target') and abs(res['sec_target'] - ts['sec_target']) > 1e-6:
+            msg += '; the secondaries are %.1f cm, shorter by what the Y merges take beyond the page\'s %.1f cm, so the valve-to-collector length is as asked' % (
+                res['sec_target'], ts['y_len'] or 0.0)
+        msg += '.' if res['ok'] else '. Some tubes need attention (see below).'
     elif mode == 'parts':
         parts = [_part_spec(dict(p, tube_od_in=p.get('tube_od_in') or sp['od'] / 2.54)) for p in (data.get('parts') or [])]
         if not parts:

@@ -9507,7 +9507,7 @@ const FX_BUTTONS={
   boom:[['measure','Measure selection'],['boom','Build this boom tube'],['setKeepouts','Set keep-outs from selection'],['clearance','Check clearance of selection']],
   parts:[['measure','Measure selection'],['setKeepouts','Set keep-outs from selection'],['routeParts','Auto-route the pipe with these parts'],['clearance','Check clearance of selection']]
 };
-FX_BUTTONS.headers.splice(4,0,['routeHeader','Auto-route primaries through the scan'],['routeBundle180','Lay out 180-degree headers (V8 template)']);
+FX_BUTTONS.headers.splice(4,0,['routeHeader','Auto-route primaries through the scan'],['routeTriY','Auto-route a two-stage header (Tri-Y, 8-4-1) with its Y merges'],['routeBundle180','Lay out 180-degree headers (V8 template)']);
 // a tack jig under the tubes just routed (or the selected centrelines): printable cradles that hold every piece
 ['headers','intake','muf','parts'].forEach(t=>FX_BUTTONS[t].push(['jig','Build tack jig for the routed tubes']));
 FX_BUTTONS.intake.splice(3,0,['routeSingle','Auto-route this tube through the scan'],['routeParts','Auto-route with the parts in the build list']);
@@ -9733,7 +9733,19 @@ document.addEventListener('click',e=>{
       fusionCall('route',pay).then(res=>fxRender(tab,res));
       return;
     }
-    if(act==='routeHeader'){
+    if(act==='routeTriY'){   // two stages: primaries into Y merges at their markers, secondaries into the collector (add-in: route_triy)
+      const H=tab==='headers'?HDR_LAST:null;
+      if(!(H&&H.r&&H.r.triy&&H.r.pairs)){ if(out) out.innerHTML='<div class="note bad">Set the merge to a two-stage one (Tri-Y, 8-4-1, 6-2-1) on this tab first.</div>'; return; }
+      if(H.uel){ if(out) out.innerHTML='<div class="note bad">Unequal lengths with Y merges are not routed yet: route it with equal lengths, or use Auto-route primaries.</div>'; return; }
+      const gi=Math.min(HUEL.route||0,H.r.nColl-1), cy=H.r.groups[gi].cyls.slice().sort((a,b)=>a-b), prs=H.r.pairs[gi].pairs;
+      const sg=n=>H.r.segs.find(x=>x.name===n), w=val('h-wall')>0?val('h-wall'):1.651;
+      const first=sg('First section'), ym=sg('Y merge'), sec=sg('Secondary'), cm=sg('Collector merge');
+      pay.mode='triy'; pay.title='Two-stage header'+(H.r.nColl>1?', collector '+lab(gi):'');
+      pay.groups=prs.map(q=>(q.cyls||[q.a,q.b]).map(c=>cy.indexOf(c)));
+      pay.target_mm=first.len; pay.y_len_mm=ym?ym.len:0; pay.sec_target_mm=sec.len; pay.sec_od_mm=H.r.dsec+2*w;
+      if(cm){ pay.collector_len_mm=cm.len; pay.collector_out_mm=H.r.dc+2*w; }
+      preNote='Two-stage header: select the port markers of cylinders '+cy.join(', ')+' in that order, then one marker for each Y merge, in this order: '+prs.map(q=>(q.cyls||[q.a,q.b]).join(' + ')).join(', ')+', then the collector marker. Draw each Y marker at the Y’s inlet, pointing the way the gas flows. The primaries come out '+clen(first.len)+' to their Y, each secondary '+clen(sec.len)+' plus whatever its Y merge needs beyond '+clen(ym?ym.len:0)+' to bring the tubes together at 15° (taken off the secondary, so the valve-to-collector length stays '+clen(H.r.tube)+').';
+    } else if(act==='routeHeader'){
       pay.mode='header'; pay.title='Header';
       const H=tab==='headers'?HDR_LAST:null;
       if(H&&H.uel){   // unequal lengths: one target per port marker, in cylinder order (add-in 4.10: targets_mm)

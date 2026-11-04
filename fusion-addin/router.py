@@ -1845,6 +1845,70 @@ def route_header(scene, ports, collector, spec, log=None):
     return out
 
 
+def route_triy(scene, ports, ymarks, collector, groups, spec, log=None):
+    """A two-stage header (Tri-Y 4-2-1, 8-4-1, 6-2-1): the primaries of each group into a Y merge at its marker, then
+    one secondary from every Y into the collector. ports: (point, direction out of the port) per primary; ymarks:
+    (point at the Y merge's inlet plane, direction the gas flows) per group; groups: lists of port indices, one list
+    per Y. spec: as route_header, plus target (valve to the Y), y_len, sec_od, sec_target (Y outlet to the collector),
+    collector_len, collector_out_d. Every tube keeps clear of every other: one TubeSet across both stages, with each Y
+    merge laid in as a short fat tube once its primaries are done."""
+    if len(ymarks) != len(groups):
+        raise ValueError('%d Y markers for %d groups: select one Y marker per pair.' % (len(ymarks), len(groups)))
+    seen = sorted(i for g in groups for i in g)
+    if seen != list(range(len(ports))):
+        raise ValueError('every port has to be in exactly one group')
+    for g in groups:
+        if len(g) < 2:
+            raise ValueError('a Y joins at least two primaries')
+    od = float(spec['od'])
+    sec_od = float(spec.get('sec_od') or od * math.sqrt(2.0) * 0.85)
+    y_len = float(spec.get('y_len') or 2.0 * od)
+    tubes = TubeSet()
+    stage1, ys, base = [], [], 0
+    sec_base = len(ports) + 100
+    # a Y has to be long enough to take the tubes side by side down to the secondary at a 15 deg included angle; what
+    # it takes beyond y_len comes off the secondary, so valve to collector stays as asked
+    y_need = []
+    for g in groups:
+        n = len(g)
+        d_in = od + (0.0 if n == 1 else od / math.sin(math.pi / n))
+        y_need.append(max(y_len, (d_in - sec_od) / (2.0 * math.tan(math.radians(7.5)))))
+    y_use = max(y_need)
+    for gi, g in enumerate(groups):
+        sp = dict(spec, tubes=tubes, owner_base=base, collector_len=y_use, collector_out_d=sec_od)
+        sp.pop('targets', None)
+        if spec.get('targets'):
+            sp['targets'] = [spec['targets'][i] for i in g]
+            sp['target'] = None
+        if log:
+            log('Routing the primaries into Y %d of %d...' % (gi + 1, len(groups)))
+        r = route_header(scene, [ports[i] for i in g], ymarks[gi], sp, log=log)
+        y = r['collector']
+        # owned by its own secondary's fixed end, so that secondary may start inside it and every other tube keeps clear
+        tubes.add_polyline([y['start'], y['end']], max(y['d_in'], y['d_out']) / 2.0, ('lead', sec_base + gi))
+        stage1.append(r)
+        ys.append(y)
+        base += len(g)
+    sec_t = spec.get('sec_target')
+    if sec_t:
+        sec_t = float(sec_t) - (y_use - y_len)
+        if sec_t <= 0:
+            raise ValueError('The Y merges take up the whole secondary length: shorten them or lengthen the secondaries.')
+    sp = dict(spec, od=sec_od, target=sec_t, tubes=tubes, owner_base=sec_base,
+              collector_len=spec.get('collector_len'), collector_out_d=spec.get('collector_out_d'))
+    sp.pop('targets', None)
+    if log:
+        log('Routing the secondaries into the collector...')
+    sec = route_header(scene, [(y['end'], ymarks[gi][1]) for gi, y in enumerate(ys)], collector, sp, log=log)
+    prim = [None] * len(ports)
+    for g, r in zip(groups, stage1):
+        for k, i in enumerate(g):
+            prim[i] = r['primaries'][k]
+    return {'primaries': prim, 'ys': ys, 'y_len': y_use, 'sec_target': sec_t, 'secondaries': sec['primaries'], 'collector': sec.get('collector'),
+            'ok': all(r['ok'] for r in stage1) and sec['ok'] and all(y['ok'] for y in ys),
+            'stage1': stage1, 'stage2': sec}
+
+
 class _Filtered(object):
     """A TubeSet view that ignores one primary's own fixed ends."""
 

@@ -627,9 +627,55 @@ def tack_jig():
     ok('Built 3 cradles for the tubes the last auto-route built' in res['msg'] and 'M6' in res['msg'], res['msg'][:110])
 
 
+def route_triy_glue():
+    """act_route mode 'triy': the markers split into ports, Y markers and the collector; every primary and secondary is
+    built at its own OD, the Y merges and the collector revolved; a wrong marker count is refused with the order."""
+    design = Design()
+    setup(design, [])
+    ports = [((0.0, 4.0 + 10.0 * i, 0.0), (1.0, 0.0, 0.0)) for i in range(4)]
+    ys = [((26.0, 9.0, -14.0), RT.vunit((0.4, 0.0, -1.0))), ((26.0, 29.0, -14.0), RT.vunit((0.4, 0.0, -1.0)))]
+    col = ((40.0, 19.0, -55.0), (0.0, 0.0, -1.0))
+    mks = [{'p': p, 'd': d, 'signed': True} for p, d in ports + ys + [col]]
+    built = []
+    saved = (CT._markers, CT._scene, CT._build_route)
+    CT._markers = lambda: [dict(m) for m in mks]
+    def scene(lo, hi, pad, notes):
+        sc = RT.Scene(cell=1.0)
+        sc.build(lo, hi, pad)
+        return sc
+    CT._scene = scene
+    def br(comp, r, name, od, wall, pbase):
+        built.append((name, od, r['length']))
+        return {'path': 'sketch', 'param': True, 'body': None}
+    CT._build_route = br
+    data = {'mode': 'triy', 'title': 'Two-stage header', 'groups': [[0, 1], [2, 3]], 'od_mm': 41.28, 'wall_mm': 1.651,
+            'target_mm': 400.0, 'y_len_mm': 24.0, 'sec_target_mm': 500.0, 'sec_od_mm': 50.8, 'collector_len_mm': 100.0,
+            'collector_out_mm': 76.2, 'gap_mm': 12.7}
+    try:
+        res = CT.act_route(data)
+        bad = None
+        try:
+            CT._markers = lambda: [dict(m) for m in mks[:-2]]
+            CT.act_route(data)
+        except ValueError as ex:
+            bad = str(ex)
+    finally:
+        CT._markers, CT._scene, CT._build_route = saved
+    prim = [b for b in built if b[0].startswith('Primary')]
+    sec = [b for b in built if b[0].startswith('Secondary')]
+    ok(len(prim) == 4 and all(abs(b[1] - 4.128) < 1e-9 for b in prim) and all(abs(b[2] - 40.0) < 0.06 for b in prim),
+       'four primaries at 1.625 in OD, 40 cm each: %s' % [round(b[2], 2) for b in prim])
+    ok(len(sec) == 2 and all(abs(b[1] - 5.08) < 1e-9 for b in sec), 'two secondaries at 2 in OD: %s' % [round(b[2], 2) for b in sec])
+    comp = design.made[-1]
+    ok(len(comp.revolves) == 3, 'two Y merges and the collector revolved (%d)' % len(comp.revolves))
+    ok('Y merges' in res['msg'] and 'valve-to-collector length is as asked' in res['msg'], res['msg'][:140])
+    ok(bad is not None and 'in cylinder order' in bad and '7 markers in all' in bad, 'a wrong marker count is refused: %s' % (bad or '')[:90])
+
+
 off_square_and_refusals()
 offset_part()
 buildable_route()
 tack_jig()
+route_triy_glue()
 print('FAILS:', fails)
 sys.exit(1 if fails else 0)
