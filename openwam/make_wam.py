@@ -930,6 +930,9 @@ def model_from_spec(spec, run=None):
               A collector may carry loss_K, and a stage loss_K (v8): the merge's total-pressure loss coefficient on
               the inlet's velocity head (the exhaust CFD's K). Each line into that junction then ends in a quadratic
               pressure-loss BC (TCCPerdidadePresion, type 10) 3 cells before it; the junction itself stays lossless.
+              opt.crossover (v10): {cols:[a, b] (0-based collectors), type:'x'|'h', tails:[tail_a, tail_b],
+              [tube:{L_mm, d_mm, [Tw_C]} for 'h']}: the two collectors' lines end at an X junction (or one H
+              junction each, joined by the tube) and tails[k] runs from there to outlet k (same form as a tail).
     run: run settings / overrides of DEFAULTS and EXTRA_DEFAULTS keys (rpm, cycles, name, cell_mm ...).
     """
     run = dict(run or {})
@@ -1381,6 +1384,36 @@ def model_from_spec(spec, run=None):
         bcs["in/open"] = {"type": "open", "note": "intake inlet, open end to atmosphere"}
         bcs["in/plenum"] = {"type": "plenum", "plenum": ipl_n, "note": "intake inlet into the plenum"}
         add_line(ipl["inlet"], "in/open", "in/plenum", "intake inlet", tw_c(spec["intake"]), p["T_amb_C"], [0.0, 0.0, 1.0], 1)
+    # v10: a crossover between two collectors' lines (dual exhaust): an X-pipe is one junction that both lines run
+    # into and both outlet lines leave (the merged section lumped into the junction: OpenWAM's branch is a
+    # constant-pressure node, so the X's own short shared length, ~100-150 mm, is not resolved); an H-pipe is a
+    # junction on each line joined by a balance tube. Each collector's own tail then ends at the crossover, and
+    # crossover.tails[k] (the same mm / litre form as a collector tail) runs from it to outlet k's open end.
+    xo = opt.get("crossover")
+    xo_right = {}
+    if xo:
+        xc = [int(c) for c in xo.get("cols") or []]
+        if len(xc) != 2 or xc[0] == xc[1] or not all(0 <= c < len(cols) for c in xc):
+            raise ValueError("crossover.cols must name two different collectors (0-based), got %r" % (xo.get("cols"),))
+        if xo.get("type") not in ("x", "h"):
+            raise ValueError("crossover.type must be 'x' or 'h'")
+        if len(xo.get("tails") or []) != 2:
+            raise ValueError("crossover.tails must give the two outlet lines, one per collector in cols order")
+        if xo["type"] == "x":
+            bcs["xo/J"] = {"type": "branch", "note": "X-pipe junction (both banks' lines in, both outlet lines out)"}
+            xo_right = {xc[0]: "xo/J", xc[1]: "xo/J"}
+        else:
+            tb = xo.get("tube") or {}
+            if not (float(tb.get("L_mm") or 0) > 0 and float(tb.get("d_mm") or 0) > 0):
+                raise ValueError("an H-pipe crossover needs tube: {L_mm, d_mm}")
+            for k, c in enumerate(xc):
+                bcs["xo/J%d" % (k + 1)] = {"type": "branch", "note": "H-pipe junction on collector %d's line" % (c + 1)}
+                xo_right[c] = "xo/J%d" % (k + 1)
+            if 3.0 * p["cell_mm"] > float(tb["L_mm"]):
+                raise ValueError("the H-pipe balance tube is shorter than 3 cells (%g mm)" % (3.0 * p["cell_mm"]))
+            dtb = float(tb["d_mm"]) / 1000.0
+            add_line([{"L": float(tb["L_mm"]) / 1000.0, "d0": dtb, "d1": dtb}], "xo/J1", "xo/J2", "H-pipe balance tube",
+                     float(tb["Tw_C"]) if tb.get("Tw_C") is not None else 250.0, T0x, [1.0, 0.0, 0.0], 2)
     for (ci, col, levels, jkey) in col_plan:
         for si, lv in enumerate(levels):
             for gi in range(len(lv["groups"])):
@@ -1388,6 +1421,18 @@ def model_from_spec(spec, run=None):
                 add_line(gsegs, lv["jkeys"][gi], lv["right"][gi],
                          "collector %d level %d branch %d" % (ci + 1, si + 1, gi + 1),
                          tw_c({"Tw": lv["Tw"]}), T0x, [1.0, 0.0, 0.0], 2)
+        if ci in xo_right:
+            ok = xo_right[ci]
+            role = "collector %d line to the crossover" % (ci + 1)
+            if col.get("tail"):
+                items = [("seg", {"L": s["L"], "d0": s["d0"], "d1": s["d1"]}, tw_c(col)) for s in col["segs"]]
+                items += tail_items(col["tail"], tw_c(col), T0x)
+                if items[-1][0] != "seg":
+                    raise ValueError("collector %d: a tail into a crossover must end with a pipe segment" % (ci + 1))
+                add_chain(items, jkey, ok, role, T0x, [1.0, 0.0, 0.0], 2)
+            else:
+                add_line(col["segs"], jkey, ok, role, tw_c(col), T0x, [1.0, 0.0, 0.0], 2)
+            continue
         ok = "col%d/out" % (ci + 1)
         bcs[ok] = {"type": "open", "note": "collector %d outlet, open end to atmosphere" % (ci + 1)}
         if col.get("tail"):
@@ -1396,6 +1441,12 @@ def model_from_spec(spec, run=None):
             add_chain(items, jkey, ok, "collector %d line" % (ci + 1), T0x, [1.0, 0.0, 0.0], 2)
         else:
             add_line(col["segs"], jkey, ok, "collector %d" % (ci + 1), tw_c(col), T0x, [1.0, 0.0, 0.0], 2)
+    if xo:
+        for k, c in enumerate(xc):
+            ok = "xo/out%d" % (k + 1)
+            bcs[ok] = {"type": "open", "note": "crossover outlet %d (collector %d's side), open end to atmosphere" % (k + 1, c + 1)}
+            items = tail_items(xo["tails"][k], tw_c(cols[c]), T0x)
+            add_chain(items, xo_right[c], ok, "crossover outlet %d line" % (k + 1), T0x, [1.0, 0.0, 0.0], 2)
     return {"p": p, "phases": phases, "pipes": pipes, "bcs": bcs, "plenums": plenums}
 
 

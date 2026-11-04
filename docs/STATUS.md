@@ -643,6 +643,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   not the method. A -7.2 dB/octave tilt fitted leave-one-out lowers every hold's RMS (10.8 -> 9.5 dB overall). The
   Spintech's inside is unpublished (US 5,824,972 layout only). Page: Compare a recording reports the tilt and the RMS
   without it (rec_ui.js).
+  The Spintech's traps, modelled from the owner's cutaway as three Helmholtz volumes (slot or vents) between end spaces,
+  make it worse, not better (RMS 12.3 / 12.6 dB against the empty box's 10.5 at 1980 rpm); the loss is most likely
+  friction at the slots, which a lossless model leaves out. The empty box stays.
 - Merge cut files reviewed independently (2026-11-04, a separate agent with its own scripts): no defects; plate,
   section, spike area rule, hollow spike, volume (within 0.03 % of a numerical integration), flat patterns rolled
   back up, DXF entities all check. Its four minor points fixed: the sleeve bore now clears the bundle by 0.4 mm on the

@@ -154,6 +154,17 @@ jobs.push({ label: 'error: empty outlet', kind: 'spec', spec: withTail(spec('i4_
 jobs.push({ label: 'error: outlet segment without d1_mm', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 50, d1_mm: 50 }, { V_litres: 5 }, { outlets: [[{ L_mm: 100, d0_mm: 40 }]] }]), run: {} });
 jobs.push({ label: 'error: per_cyl count', kind: 'spec', spec: (() => { const s = spec('i4_41'); s.exhaust.per_cyl = [s.exhaust.segs, s.exhaust.segs]; return s; })(), run: {} });
 jobs.push({ label: 'error: segs_by_group count', kind: 'spec', spec: (() => { const s = spec('i4_triy'); s.opt.collectors[0].stages[0].segs_by_group = [null]; return s; })(), run: {} });
+// v10 crossover between the two banks: an X-pipe (one junction, both lines through it) and an H-pipe (a balance tube),
+// each side then to its own exit through a muffler; and the errors
+const XT = [{ L_mm: 400, d0_mm: 63.5, d1_mm: 63.5, Tw_C: 300 }];
+const XO = [{ L_mm: 500, d0_mm: 63.5, d1_mm: 63.5, Tw_C: 250 }, { V_litres: 6.0 }, { L_mm: 600, d0_mm: 63.5, d1_mm: 63.5, Tw_C: 150 }];
+const xSpec = (xo, tail) => { const s = spec('v8_dual'); s.opt.collectors.forEach(c => { if (tail) c.tail = tail; }); s.opt.crossover = xo; return s; };
+jobs.push({ label: 'v10: X-pipe between the V8 banks, a muffler each side', kind: 'spec', spec: xSpec({ cols: [0, 1], type: 'x', tails: [XO, XO] }, XT), run: { rpm: 4000.0, ins_outlet: 1 } });
+jobs.push({ label: 'v10: H-pipe, no collector tails, unequal outlets', kind: 'spec', spec: xSpec({ cols: [1, 0], type: 'h', tube: { L_mm: 180, d_mm: 50.8, Tw_C: 280 }, tails: [XO, [{ L_mm: 900, d0_mm: 60, d1_mm: 63.5 }]] }, null), run: { rpm: 2500.0, ins_outlet: 1 } });
+jobs.push({ label: 'error: crossover with one collector', kind: 'spec', spec: xSpec({ cols: [0, 0], type: 'x', tails: [XO, XO] }, XT), run: {} });
+jobs.push({ label: 'error: crossover type', kind: 'spec', spec: xSpec({ cols: [0, 1], type: 'y', tails: [XO, XO] }, XT), run: {} });
+jobs.push({ label: 'error: H-pipe without a tube', kind: 'spec', spec: xSpec({ cols: [0, 1], type: 'h', tails: [XO, XO] }, XT), run: {} });
+jobs.push({ label: 'error: collector tail into the crossover ends in a muffler box with outlets', kind: 'spec', spec: xSpec({ cols: [0, 1], type: 'x', tails: [XO, XO] }, [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { V_litres: 4 }, { outlets: [[{ L_mm: 100, d0_mm: 50, d1_mm: 50 }]] }]), run: {} });
 // v8 parallel paths between two junctions: a 4-tube timbre bundle, an auger's centre tube and spiral channel (with a
 // Tw change on one path), parallel paths after a side branch's line and before a muffler, a V8 pair, and the errors
 const BUNDLE = [{ L_mm: 400, d0_mm: 63.5, d1_mm: 63.5 }, { parallel: [[{ L_mm: 76, d0_mm: 31.75, d1_mm: 31.75 }], [{ L_mm: 127, d0_mm: 31.75, d1_mm: 31.75 }],

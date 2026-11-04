@@ -1051,6 +1051,32 @@
       bcs.set('in/plenum', { type: 'plenum', plenum: iplN, note: 'intake inlet into the plenum' });
       addLine(ipl.inlet, 'in/open', 'in/plenum', 'intake inlet', twC(spec.intake), p.T_amb_C, [0.0, 0.0, 1.0], 1);
     }
+    // v10 (make_wam.py): a crossover between two collectors' lines; 'x' = one junction both lines run into and both
+    // outlet lines leave, 'h' = a junction on each line joined by a balance tube; tails[k] runs on to outlet k
+    const xo = opt.crossover;
+    const xoRight = new Map();
+    let xc = [];
+    if (xo) {
+      xc = (xo.cols || []).map(c => Math.trunc(Number(c)));
+      if (xc.length !== 2 || xc[0] === xc[1] || !xc.every(c => c >= 0 && c < cols.length)) throw new Error('crossover.cols must name two different collectors (0-based), got ' + JSON.stringify(xo.cols));
+      if (xo.type !== 'x' && xo.type !== 'h') throw new Error("crossover.type must be 'x' or 'h'");
+      if (!xo.tails || xo.tails.length !== 2) throw new Error('crossover.tails must give the two outlet lines, one per collector in cols order');
+      if (xo.type === 'x') {
+        bcs.set('xo/J', { type: 'branch', note: "X-pipe junction (both banks' lines in, both outlet lines out)" });
+        xoRight.set(xc[0], 'xo/J'); xoRight.set(xc[1], 'xo/J');
+      } else {
+        const tb = xo.tube || {};
+        if (!(Number(tb.L_mm || 0) > 0 && Number(tb.d_mm || 0) > 0)) throw new Error('an H-pipe crossover needs tube: {L_mm, d_mm}');
+        xc.forEach((c, k) => {
+          bcs.set('xo/J' + (k + 1), { type: 'branch', note: "H-pipe junction on collector " + (c + 1) + "'s line" });
+          xoRight.set(c, 'xo/J' + (k + 1));
+        });
+        if (3.0 * p.cell_mm > Number(tb.L_mm)) throw new Error('the H-pipe balance tube is shorter than 3 cells (' + (3.0 * p.cell_mm) + ' mm)');
+        const dtb = Number(tb.d_mm) / 1000.0;
+        addLine([{ L: Number(tb.L_mm) / 1000.0, d0: dtb, d1: dtb }], 'xo/J1', 'xo/J2', 'H-pipe balance tube',
+          tb.Tw_C !== undefined && tb.Tw_C !== null ? Number(tb.Tw_C) : 250.0, T0x, [1.0, 0.0, 0.0], 2);
+      }
+    }
     for (const [ci, col, levels, jkey] of colPlan) {
       levels.forEach((lv, si) => {
         for (let gi = 0; gi < lv.groups.length; gi++) {
@@ -1058,12 +1084,28 @@
           addLine(gsegs, lv.jkeys[gi], lv.right[gi], 'collector ' + (ci + 1) + ' level ' + (si + 1) + ' branch ' + (gi + 1), twC({ Tw: lv.Tw }), T0x, [1.0, 0.0, 0.0], 2);
         }
       });
+      if (xoRight.has(ci)) {
+        const xk = xoRight.get(ci), role = 'collector ' + (ci + 1) + ' line to the crossover';
+        if (col.tail && col.tail.length) {
+          const items = col.segs.map(s => ['seg', { L: s.L, d0: s.d0, d1: s.d1 }, twC(col)]).concat(tailItems(col.tail, twC(col), T0x));
+          if (items[items.length - 1][0] !== 'seg') throw new Error('collector ' + (ci + 1) + ': a tail into a crossover must end with a pipe segment');
+          addChain(items, jkey, xk, role, T0x, [1.0, 0.0, 0.0], 2);
+        } else addLine(col.segs, jkey, xk, role, twC(col), T0x, [1.0, 0.0, 0.0], 2);
+        continue;
+      }
       const ok = 'col' + (ci + 1) + '/out';
       bcs.set(ok, { type: 'open', note: 'collector ' + (ci + 1) + ' outlet, open end to atmosphere' });
       if (col.tail && col.tail.length) {
         const items = col.segs.map(s => ['seg', { L: s.L, d0: s.d0, d1: s.d1 }, twC(col)]).concat(tailItems(col.tail, twC(col), T0x));
         addChain(items, jkey, ok, 'collector ' + (ci + 1) + ' line', T0x, [1.0, 0.0, 0.0], 2);
       } else addLine(col.segs, jkey, ok, 'collector ' + (ci + 1), twC(col), T0x, [1.0, 0.0, 0.0], 2);
+    }
+    if (xo) {
+      xc.forEach((c, k) => {
+        const ok = 'xo/out' + (k + 1);
+        bcs.set(ok, { type: 'open', note: 'crossover outlet ' + (k + 1) + ' (collector ' + (c + 1) + "'s side), open end to atmosphere" });
+        addChain(tailItems(xo.tails[k], twC(cols[c]), T0x), xoRight.get(c), ok, 'crossover outlet ' + (k + 1) + ' line', T0x, [1.0, 0.0, 0.0], 2);
+      });
     }
     return { p, phases, pipes, bcs, plenums };
   }

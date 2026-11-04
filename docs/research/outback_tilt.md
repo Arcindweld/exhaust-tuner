@@ -40,3 +40,22 @@ The page's "Compare a recording" now reports this tilt and the RMS with it remov
 
 To close the gap with data rather than a fitted slope: the Spintech's inside (trap count, size, slot width; a borescope
 through the outlet would show them), and the catalyst's size and cell density.
+
+## Spintech inside, modelled from the owner's cutaway (2026-11-04)
+
+The owner's cutaway photo shows the layout: a short open inlet space, three spiral traps along the case, a short
+outlet space. Four versions of the 3331's 7.24 L were run in OpenWAM at the 1980 rpm hold, everything else
+unchanged (scratchpad study, `spinwam/run.py`):
+
+| Muffler as modelled | Cycles | RMS against the recording | Tilt (recording - model) |
+|---|---|---|---|
+| one empty 7.24 L box (the validation model) | 48 | 10.5 dB | -4.4 dB/oct |
+| 1 L + 250 mm x 113 mm passage + 1 L | 48 | 12.6 dB | -9.7 dB/oct |
+| 1 L, three traps of 0.746 L behind a 59 x 54.4 mm slot, 1 L | 40 | 12.3 dB | -8.1 dB/oct |
+| the same traps behind 45 x 121 mm vents | 40 | 12.6 dB | -10.4 dB/oct |
+
+Trap volumes come from the case less the end spaces, split three ways; slot and vent sizes are read off the photo
+against the 2.5 in inlet (estimates). Every split version is worse than the plain box: they put more sound in the
+upper orders, not less. So lumped Helmholtz traps do not explain the missing high-frequency loss. A real trap's loss is
+most likely friction and jet mixing at the slot edges and the vents, which a lossless junction-and-volume model leaves
+out. The plain box stays as the model. The next real step needs a measured transmission loss of a 3331 (or one like it).
