@@ -12821,6 +12821,77 @@ const MUF_RATED=[{type:'chambered',name:'Chambered (baffles)',dB:[13,20],cfm:[70
 const RATED_PA=5*249.0889, RATED_D=63.5, CFM_M3S=0.000471947;
 // Spintech case chart (street and race), thickness x width x length in inches, from spintechmufflers.com
 const SPIN_CASES=[['9000',[[4,6,9]]],['9000XL',[[4,8.5,10]]],['6000',[[4,6,12]]],['6000XLP',[[4,7.5,16]]],['300SC',[[4,9,13],[4,10,15],[5,11,17]]],['300DSC/SCS/SCT',[[4,9,13],[4,10,13],[4,10,15]]],['3000',[[4,8.5,13]]],['3000F',[[3,8.5,13],[3.5,8.5,13]]],['3000XL',[[4,9.5,16]]],['3000XLF',[[3,9.5,16],[3.5,10.25,16],[4,10.25,16]]],['3000XLV',[[3,9.5,16],[3.5,9.5,16]]],['3000XLP',[[4,10,16]]],['5000',[[4,8.5,22]]],['5000D',[[5.5,8.5,22]]],['7000RD',[[2.25,9,16]]],['7000VL',[[2.5,9.5,16]]],['8000',[[4,10.5,20]]],['1000 (race)',[[4,8.5,12],[4.75,9.5,14],[5.25,10.5,14]]],['1000XL (race)',[[4,9,15],[4.75,9.5,15],[5.25,10.5,14],[5.25,10.5,16]]],['2000 (race)',[[3,10.25,14],[2.75,14,18],[3.5,10.25,14],[4,14,18],[4,11,15]]],['4000 (race)',[[4,6,12],[4,6,9],[5,6.75,13],[6,7,14.5]]],['4000VL (race)',[[3,8,13],[4,8.5,14.5]]]];
+/* ===== Muffler designer: the smallest can of two kinds that takes at least a set number of dB off a band of
+   frequencies and fits the space. Both kinds use the tab's own plane-wave models: the packed straight-through can
+   (calcAbsorb, Antebas/Denia packing on a perforated core the pipe's size, the tab's hole size and wall) and the plain
+   expansion chamber (calcChamber). Inside sizes from 3.5 to 10 in across in half inches and 4 to 36 in long in whole
+   inches; packing 80, 100 or 130 kg/m³ and 10 or 20 % porosity; the band checked at 9 frequencies spaced evenly
+   in ratio; a design whose band runs past its first cross mode is left out (the plane-wave answer no longer holds). */
+const MD={tl:10,f0:NaN,f1:NaN,kinds:'both',res:null,key:'',busy:false};
+function mdInputs(p){
+  const f0=Number.isFinite(MD.f0)?MD.f0:Math.round(0.8*p.f), f1=Number.isFinite(MD.f1)?MD.f1:Math.round(1.25*p.f);
+  const mw=val('m-maxw'), mh=val('m-maxh'), ml=val('m-maxl');
+  const maxD=Math.min(...[mw,mh].filter(v=>v>0).concat([254])), maxL=ml>0?Math.min(ml,914.4):914.4;
+  return {f0,f1,tl:MD.tl,maxD,maxL,dpipe:p.dpipe,tC:p.tmain,dh:val('m-ph'),tw:val('m-pw'),kinds:MD.kinds};
+}
+function mdSearch(q){
+  if(!(q.f0>0&&q.f1>q.f0&&q.tl>0&&q.dpipe>0)) return {err:'Give a band (low below high) and how many dB to take off.'};
+  const fs=[...Array(9).keys()].map(i=>q.f0*Math.pow(q.f1/q.f0,i/8)), c=sos(q.tC), out=[];
+  for(let Din=3.5;Din<=10+1e-9;Din+=0.5){
+    const D=Din*25.4; if(D>q.maxD+1e-6||D<q.dpipe+12.7) continue;
+    if(fs[8]>1.8412*c/(Math.PI*D/1000)) continue;              // past the first cross mode of this shell
+    for(let Lin=4;Lin<=36;Lin++){
+      const L=Lin*25.4; if(L>q.maxL+1e-6) continue;
+      const vol=Math.PI/4*(D/1000)**2*L/1000*1000;
+      if(q.kinds!=='packed'){
+        const ch=calcChamber({dpipe:q.dpipe,dch:D,lch:L,tmain:q.tC});
+        if(!ch.err){ const t=fs.map(ch.tl); out.push({kind:'chamber',D,L,vol,tl:t,min:Math.min(...t)}); }
+      }
+      if(q.kinds!=='chamber') for(const rho of [80,100,130]) for(const por of [10,20]){
+        const ab=calcAbsorb({dpipe:q.dpipe,dsh:D,len:L,dh:q.dh,tw:q.tw,rho,sigma:por/100,tC:q.tC});
+        if(ab.err) continue;
+        const t=fs.map(ab.tl); out.push({kind:'packed',D,L,vol,rho,por,tl:t,min:Math.min(...t)});
+      }
+    }
+  }
+  const ok=out.filter(d=>d.min>=q.tl).sort((a,b)=>a.vol-b.vol||b.min-a.min);
+  const best=[];
+  for(const d of ok){ if(best.length>=6) break; if(!best.some(b=>b.kind===d.kind&&b.D===d.D&&b.L===d.L)) best.push(d); }
+  const closest=ok.length?null:out.sort((a,b)=>b.min-a.min)[0]||null;
+  return {fs,best,closest,tried:out.length};
+}
+function mdSection(p){
+  const q=mdInputs(p), key=JSON.stringify(q), stale=MD.res&&MD.key!==key;
+  const num=(k,lab,v,u,st)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="mdx" data-k="'+k+'" type="number" step="'+(st||'any')+'" inputmode="decimal" value="'+v+'"><em>'+u+'</em></span></label>';
+  let h='<p class="cap" style="margin-top:0">The smallest can that takes at least the dB you ask for off a band of frequencies, of the two kinds this tab models: a packed straight-through (a perforated core the size of the pipe in packing, the hole size and wall above) and a plain expansion chamber. Inside sizes 3½ to 10 in across and 4 to 36 in long, within the space limits below if they are set ('+cdim(q.maxD)+' across, '+clen(q.maxL)+' long now). The band defaults to this tab’s target tone, 20 % below to 25 % above.</p>'+
+    '<div class="grid2" style="max-width:640px">'+num('f0','Band from',Math.round(q.f0),'Hz',1)+num('f1','Band to',Math.round(q.f1),'Hz',1)+num('tl','Take off at least',q.tl,'dB',0.5)+
+    '<label class="f"><span class="lab">Kinds</span><span class="inp"><select class="mdsel"><option value="both"'+(MD.kinds==='both'?' selected':'')+'>Both</option><option value="packed"'+(MD.kinds==='packed'?' selected':'')+'>Packed straight-through</option><option value="chamber"'+(MD.kinds==='chamber'?' selected':'')+'>Plain chamber</option></select></span></label></div>'+
+    '<div class="actions"><button type="button" class="btn" id="md-run">Find designs</button></div>';
+  const R=MD.res;
+  if(R&&R.err) h+='<div class="note bad">'+esc(R.err)+'</div>';
+  else if(R){
+    if(stale) h+='<div class="note">The inputs changed since this list was made: find designs again.</div>';
+    const row=(d,i)=>'<tr><td>'+(d.kind==='packed'?'Packed straight-through, '+d.rho+' kg/m³, '+d.por+' % core':'Plain chamber')+'</td><td>'+cdim(d.D)+' × '+clen(d.L)+'</td><td>'+d.vol.toFixed(1)+' L</td><td>'+d.min.toFixed(1)+' dB</td><td>'+d.tl[0].toFixed(0)+' / '+d.tl[4].toFixed(0)+' / '+d.tl[8].toFixed(0)+' dB</td><td>'+(i==null?'':'<button type="button" class="btn" data-md="'+i+'">Use</button>')+'</td></tr>';
+    const head='<thead><tr><th>Kind</th><th>Inside, across × long</th><th>Volume</th><th>Least in the band</th><th>At '+Math.round(R.fs[0])+' / '+Math.round(R.fs[4])+' / '+Math.round(R.fs[8])+' Hz</th><th></th></tr></thead>';
+    if(R.best.length) h+='<div class="tblwrap"><table>'+head+'<tbody>'+R.best.map(row).join('')+'</tbody></table></div><p class="cap">'+R.tried+' designs tried; the smallest that meet the goal first. “Use” puts its size, packing and porosity into the fields above, so every section on this tab works it out in full. Plane waves, no mean flow: the packed figures are a little optimistic at high gas speed, the chamber’s dips sharper than a real can’s.</p>';
+    else h+='<div class="note warn">No can of these kinds and sizes takes '+q.tl+' dB off all of '+Math.round(q.f0)+' to '+Math.round(q.f1)+' Hz'+(R.closest?'. The closest: '+(R.closest.kind==='packed'?'packed straight-through':'plain chamber')+' '+cdim(R.closest.D)+' × '+clen(R.closest.L)+', '+R.closest.min.toFixed(1)+' dB at worst':'')+'. Ask for fewer dB, a narrower band, or more room; a resonator for one tone (below) takes more off a narrow band.</div>';
+  }
+  return sec('Muffler designer',h);
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('#md-run')){ const sp=mufP(); if(!sp) return; MD.res=mdSearch(mdInputs(sp)); MD.key=JSON.stringify(mdInputs(sp)); renderActive(); return; }
+  const b=e.target.closest('button[data-md]'); if(!b||!MD.res||!MD.res.best) return;
+  const d=MD.res.best[+b.dataset.md]; if(!d) return;
+  const put=(id,v)=>{ const el=$(id); if(el){ el._b=v; showInput(el); } };
+  put('m-dch',d.D); put('m-lch',d.L); if(d.kind==='packed'){ put('m-pack',d.rho); put('m-por',d.por); }
+  renderActive();
+});
+document.addEventListener('change',e=>{ const el=e.target;
+  if(el.matches&&el.matches('input.mdx')){ const v=parseFloat(el.value); MD[el.dataset.k]=Number.isFinite(v)&&v>0?v:NaN; if(el.dataset.k==='tl'&&!(v>0)) MD.tl=10; renderActive(); }
+  else if(el.matches&&el.matches('select.mdsel')){ MD.kinds=el.value; renderActive(); } });
+// the Mufflers tab's own inputs, as renderMuf reads them (for the designer's button)
+function mufP(){ const bore=boreOf('m-dp-shape'); if(bore.err) return null; return {f:val('m-f'),dpipe:bore.Deq,tmain:val('m-tmain')}; }
+window.__md={MD,mdSearch,mdInputs,mufP};
 function mtSection(p){
   let h='<p class="cap" style="margin-top:0">The same test for three kinds of muffler, from US 5,824,972 (Boyd Butler, 1997), the patent that describes the spiral sound trap in a Spintech: with a 2½ in inlet and outlet and 5 in of water across it, a chambered (baffle) muffler takes 13 to 20 dBA off and passes 70 to 100 CFM, a packed straight-through 2 to 7 dBA at about 200 CFM, and the spiral traps 8 to 15 dBA at about 175 CFM. A spiral trap is a wall bent a little over one turn, standing across the case; part of the flow swirls inside it and is drawn out of vents in its back by the faster flow past it, so it quiets without the flow turning back on itself as it does through baffles, and with no packing to burn out.</p>';
   let sp=null; try{ sp=soundParams(); }catch(e){}
@@ -13148,6 +13219,7 @@ function renderMuf(){
     '<dt>A drone fix inside the same can</dt><dd>When a car boomed at 1,400 RPM, adding a sealed end chamber fed by a pipe through the baffles (a built-in Helmholtz resonator) cut the drone order by 5 to 12 dB with no change in outside size, and the muffler came out lighter (<a href="https://www.extrica.com/article/16371" target="_blank" rel="noopener">Xie 2015</a>).</dd>'+
     '<dt>Packing</dt><dd>Denser packing quiets the mid and high range more but slightly less at the very bottom, and a more open perforated core (20% against 5%) helps the high range. Packing that settles unevenly or fills with soot changes the attenuation by several dB, which is why a repack restores a tired silencer (<a href="https://doi.org/10.1016/j.mcm.2012.01.021" target="_blank" rel="noopener">Antebas et al. 2013</a>).</dd>'+
     '<dt>Shell noise</dt><dd>The shell itself radiates sound. Faurecia found that 1.0 mm shell sheet rings higher and quieter than 0.8 mm, and a two-layer skin damps it further; ribs and dimples stiffen a flat side (<a href="https://doi.org/10.1007/978-3-319-24055-8_6" target="_blank" rel="noopener">Bönnen et al. 2016</a>).</dd></dl>');
+  html+=mdSection(p);
   html+=mtSection(p);
   html+=ttSection(p);
   html+=augSection(p);

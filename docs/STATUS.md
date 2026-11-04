@@ -630,6 +630,12 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   built-in curve byte for byte (only the comment differs); OpenWAM runs it (i4_41 6000 rpm). test_py_js.js 132
   cases. Page: 4-Stroke "Run it in OpenWAM", "Measured lift profiles": paste or a file, crank or cam degrees, valve
   or lobe lift x rocker ratio, page units; kept in projects (WAM_UI); wamline_ui.js.
+- Muffler designer (2026-11-04, task 106 with the recording fit done earlier): Mufflers tab "Muffler designer": the
+  smallest packed straight-through (calcAbsorb, 80/100/130 kg/m3, 10/20 % core) or plain chamber (calcChamber) that
+  takes at least N dB off a band (9 frequencies, even in ratio; default the tab's target -20 % / +25 %), 3.5-10 in
+  across and 4-36 in long inside the space limits, leaving out any whose band passes its first cross mode; "Use" puts
+  the design into the tab's fields; an impossible goal gives the closest. tests/mdesign_ui.js (the tab's own packed-can
+  figure at the target matches the designer's).
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
