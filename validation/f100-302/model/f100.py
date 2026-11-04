@@ -93,7 +93,7 @@ MUFFLERS = {
 }
 
 
-def build_spec(fo="ho", muffler="box", exit_mm=600):
+def build_spec(fo="ho", muffler="box", exit_mm=600, plenum=False):
     e = {"bore": B, "stroke": S, "rod": ROD, "cr": round(cr(), 2), "cd": 0.7,
          "nIn": 1, "dIn": 2.02 * IN, "liftIn": 0.576 * IN, "nEx": 1, "dEx": 1.60 * IN, "liftEx": 0.576 * IN,
          "cam": {"ivo": 15, "ivc": 45, "evo": 59, "evc": 9, "checkLift_mm": 0.080 * 25.4},
@@ -105,7 +105,11 @@ def build_spec(fo="ho", muffler="box", exit_mm=600):
     after = [seg(300, T=350)] + MUFFLERS[muffler] + [seg(exit_mm, T=250)]
     return {
         "e": e,
-        "intake": {"segs": [{"L": 0.28, "d0": 0.047, "d1": 0.047}], "Tw": 330},
+        "intake": dict({"segs": [{"L": 0.28, "d0": 0.047, "d1": 0.047}], "Tw": 330},
+                       # the single plane's shared plenum under the carburettor (1.8 L [est]), fed through the four
+                       # throttle bores as one 86 mm inlet (4 x 1-11/16 in bores' area [est]) behind a 100 mm air-cleaner
+                       # stack, instead of every runner open to the air
+                       **({"plenum": {"V_m3": 1.8e-3, "inlet": [{"L": 0.10, "d0": 0.086, "d1": 0.086}]}} if plenum else {})),
         "exhaust": {"segs": prim, "Tw": 800},
         "opt": {"phases": phases_for(ORDERS[fo]),
                 "collectors": [{"cyls": [0, 1, 2, 3], "segs": col_segs, "Tw": 750, "tail": to_x},
@@ -120,7 +124,9 @@ CASES = {"ho_box_5000": ("ho", "box", 5000.0), "ho_box_5800": ("ho", "box", 5800
          "std_box_5800": ("std", "box", 5800.0), "ho_venom_5800": ("ho", "venom", 5800.0),
          "ho_chamber_5800": ("ho", "chamber", 5800.0), "ho_pipe_5800": ("ho", "pipe", 5800.0),
          "ho_chamber_5000": ("ho", "chamber", 5000.0), "std_chamber_5800": ("std", "chamber", 5800.0),
-         "ho_chamber_exit300_5800": ("ho", "chamber", 5800.0, 300), "ho_box_exit300_5800": ("ho", "box", 5800.0, 300)}
+         "ho_chamber_exit300_5800": ("ho", "chamber", 5800.0, 300), "ho_box_exit300_5800": ("ho", "box", 5800.0, 300),
+         "ho_venom_plenum_5800": ("ho", "venom", 5800.0, 600, True), "ho_pipe_plenum_5800": ("ho", "pipe", 5800.0, 600, True),
+         "std_venom_plenum_5800": ("std", "venom", 5800.0, 600, True), "ho_venom_plenum_5000": ("ho", "venom", 5000.0, 600, True)}
 
 
 def run_settings(rpm, cycles, name):
