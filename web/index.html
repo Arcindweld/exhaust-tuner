@@ -656,6 +656,17 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="f-ivc" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>° ABDC</em></span></label>
         <label class="f"><span class="lab">Exhaust closes</span>
           <span class="inp"><input id="f-evc" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>° ATDC</em></span></label>
+        <label class="f span2"><span class="lab">Fill from a stock engine and cam</span>
+          <span class="inp"><select id="f-camlib"><option value="">Choose one (fills the engine, cam, valves and lift)</option></select></span></label>
+        <span class="hint" id="f-camlib-hint" style="grid-column:1/-1" hidden></span>
+        <label class="f"><span class="lab">Intake valve diameter, blank to scale from the bore</span>
+          <span class="inp"><input id="f-vdi" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Exhaust valve diameter</span>
+          <span class="inp"><input id="f-vde" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Intake valve lift, blank to scale from the valve</span>
+          <span class="inp"><input id="f-lin" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Exhaust valve lift</span>
+          <span class="inp"><input id="f-lex" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Cam events measured at</span>
           <span class="inp"><select id="f-camat"><option value="seat" selected>Seat to seat (advertised)</option><option value="050">0.050 in lift (most cam cards)</option></select></span></label>
         <span class="hint" id="f-cam-hint" style="grid-column:1/-1"></span>
@@ -7540,8 +7551,9 @@ function simSpec(p){
   const per=p.cc/p.cyl*1e-6;
   let B=p.bore>0?p.bore/1000:null, S=p.stroke>0?p.stroke/1000:null;
   if(B&&!S) S=per/(Math.PI*B*B/4); else if(S&&!B) B=Math.sqrt(per/S*4/Math.PI); else if(!B&&!S){ S=Math.cbrt(per*4/(Math.PI*1.44)); B=1.2*S; }
-  const four=p.valves===4, nIn=four?2:1, nEx=four?2:1, dIn=(four?0.40:0.49)*B, dEx=(four?0.34:0.40)*B, evc=Number.isFinite(p.evc)?p.evc:Math.max(10,p.evo-40);
-  const e={bore:B,stroke:S,rod:1.7*S,cr:p.cr,cd:0.7,nIn,dIn,liftIn:0.26*dIn,nEx,dEx,liftEx:0.28*dEx,
+  const four=p.valves===4, nIn=four?2:1, nEx=four?2:1, evc=Number.isFinite(p.evc)?p.evc:Math.max(10,p.evo-40);
+  const dIn=p.vdi>0?p.vdi/1000:(four?0.40:0.49)*B, dEx=p.vde>0?p.vde/1000:(four?0.34:0.40)*B;   // valve sizes as entered, else scaled from the bore
+  const e={bore:B,stroke:S,rod:1.7*S,cr:p.cr,cd:0.7,nIn,dIn,liftIn:p.lin>0?p.lin/1000:0.26*dIn,nEx,dEx,liftEx:p.lex>0?p.lex/1000:0.28*dEx,
     cam:{ivo:Number.isFinite(p.ivo)?p.ivo:evc,ivc:Number.isFinite(p.ivc)?p.ivc:p.evo,evo:p.evo,evc},burn:{start:18,dur:55},afr:12.8,eta:0.72};
   if(p.camAt==='050') e.cam.checkLift_mm=CAM_CHECK_050;   // the events are at 0.050 in: the sin² lift is stretched to pass it there
   const dI=Math.sqrt(0.6*nIn)*dIn;
@@ -9666,6 +9678,49 @@ function renderCross(){
 
 /* ===== mufflers and resonators ===== */
 const setBase=(id,v)=>{ const el=$(id); if(el&&Number.isFinite(v)){ el._b=v; showInput(el); } };
+/* Stock engines and cams for the 4-Stroke tab's simulations, cam events at 0.050 in (deg; ivo/evc negative = after/before
+   TDC), lift and valve sizes in inches as published. Where the source gives only durations and lobe separation, the cam
+   is placed straight up (intake centreline = lobe separation) and marked "assumed". */
+const CAM_SRC={
+  cac:['GM LS3 technical briefing, reproduced by Corvette Action Center','https://corvetteactioncenter.com/specs/c6/2008/ls3_page6.html'],
+  ls9:['Lingenfelter, GM 12638427 LS9 cam card','https://www.lingenfelter.com/PDFdownloads/12638427.pdf'],
+  oac1:['OnAllCylinders LS1 spec guide','https://www.onallcylinders.com/2017/10/12/ls1-engine-specs-performance-bore-stroke-cylinder-heads-cam-specs/'],
+  oac6:['OnAllCylinders LS6 spec guide','https://www.onallcylinders.com/2018/01/04/ls6-engine-specs-performance-bore-stroke-cylinder-heads-cam-specs/'],
+  oac7:['OnAllCylinders LS7 spec guide','https://www.onallcylinders.com/2018/01/18/ls7-engine-specs-performance-bore-stroke-cylinder-heads-cam-specs/'],
+  oact:['OnAllCylinders Gen V LT1 spec guide','https://www.onallcylinders.com/2018/02/08/lt1-2014-present-engine-specs-performance-bore-stroke-cylinder-heads-cam-specs-more/'],
+  gm3:['Chevrolet Performance LS3 crate engine sheet (19435098)','https://www.crateenginedepot.com/Pdfs/19435098_Information.pdf']};
+const straightUp=(di,de,lsa)=>{ const ivo=di/2-lsa, evc=de/2-lsa; return {ivo,ivc:di-180-ivo,evo:de-180-evc,evc}; };
+const CAM_LIB=[
+  {k:'ls3',name:'GM LS3 6.2 L (2008 on)',bore:4.065,stroke:3.622,cr:10.7,cyl:8,cam:{ivo:-19,ivc:43,evo:38,evc:-7},lift:[0.551,0.525],valves:[2.165,1.590],
+   rated:'430 hp at 5,900 rpm, 425 lb-ft at 4,600 (crate engine sheet)',src:['cac','gm3']},
+  {k:'ls9',name:'GM LS9 6.2 L supercharged (ZR1)',bore:4.065,stroke:3.622,cr:9.1,cyl:8,cam:{ivo:-17,ivc:48,evo:57.5,evc:-7.5},lift:[0.558,0.553],valves:[2.165,1.590],
+   rated:'638 hp at 6,300 rpm (with its supercharger; this simulation is naturally aspirated)',src:['ls9']},
+  {k:'ls7',name:'GM LS7 7.0 L (Z06)',bore:4.125,stroke:4.000,cr:11.0,cyl:8,cam:straightUp(210,230,120),assumed:true,lift:[0.593,0.589],valves:[2.205,1.610],
+   rated:'505 hp at 6,300 rpm, 470 to 481 lb-ft at 4,800',src:['oac7']},
+  {k:'ls6',name:'GM LS6 5.7 L (2002 to 2004)',bore:3.898,stroke:3.622,cr:10.5,cyl:8,cam:straightUp(204,218,117.5),assumed:true,lift:[0.555,0.551],valves:[2.000,1.550],
+   rated:'385 to 405 hp (no rpm in the source)',src:['oac6']},
+  {k:'ls1',name:'GM LS1 5.7 L (1997 to 1999 Corvette)',bore:3.898,stroke:3.622,cr:10.2,cyl:8,cam:straightUp(199,207,117),assumed:true,lift:[0.472,0.479],valves:[2.000,1.550],
+   rated:'305 to 350 hp across the LS1’s years (no rpm in the source)',src:['oac1']},
+  {k:'lt1',name:'GM LT1 6.2 L Gen V (2014 on)',bore:4.065,stroke:3.622,cr:11.5,cyl:8,cam:straightUp(200,207,116.5),assumed:true,vvt:true,lift:[0.551,0.524],valves:[2.126,1.590],
+   rated:'455 hp at 6,000 rpm, 460 lb-ft at 4,600',src:['oact']}];
+function camLibFill(k){
+  const c=CAM_LIB.find(x=>x.k===k), hint=$('f-camlib-hint'); if(!c){ if(hint) hint.hidden=true; return; }
+  const inch=x=>x*25.4;
+  setBase('f-bore',inch(c.bore)); setBase('f-stroke',inch(c.stroke)); setBase('f-cratio',c.cr); setBase('f-cyl',c.cyl);
+  setBase('f-disp',Math.PI/4*inch(c.bore)**2*inch(c.stroke)*c.cyl/1000);
+  setBase('f-evo',c.cam.evo); setBase('f-ivo',c.cam.ivo); setBase('f-ivc',c.cam.ivc); setBase('f-evc',c.cam.evc);
+  setBase('f-vdi',inch(c.valves[0])); setBase('f-vde',inch(c.valves[1])); setBase('f-lin',inch(c.lift[0])); setBase('f-lex',inch(c.lift[1]));
+  $('f-camat').value='050'; $('f-valves').value='2';
+  const k2=camCard(c.cam);
+  hint.hidden=false;
+  hint.innerHTML=esc(c.name)+': '+Math.round(k2.inDur)+'° / '+Math.round(k2.exDur)+'° at 0.050 in, '+c.lift[0].toFixed(3)+' / '+c.lift[1].toFixed(3)+' in lift, lobe separation '+k2.LSA.toFixed(1)+'°, intake centreline '+k2.ICL.toFixed(1)+'° ATDC'+
+    (c.assumed?' (assumed: the source gives durations and lobe separation only, so the cam is placed straight up)':' (as published)')+(c.vvt?'. The engine moves its cam with a phaser; this is one fixed position':'')+
+    '. Rated '+esc(c.rated)+'. Sources: '+c.src.map(x=>'<a href="'+CAM_SRC[x][1]+'" target="_blank" rel="noopener">'+esc(CAM_SRC[x][0])+'</a>').join(', ')+'.';
+  $('f-evo').dispatchEvent(new Event('input',{bubbles:true}));
+}
+(()=>{ const sel=$('f-camlib'); if(!sel) return;
+  CAM_LIB.forEach(c=>{ const o=document.createElement('option'); o.value=c.k; o.textContent=c.name+(c.assumed?' (cam timing assumed straight up)':''); sel.appendChild(o); });
+  sel.addEventListener('change',()=>camLibFill(sel.value)); })();
 function drawTL(svg,curves,f0,band){
   clearSvg(svg);
   const W=widthOf(svg), H=240, ml=36, mr=12, mt=20, mb=30;
@@ -12813,6 +12868,7 @@ function simInputs(r,p,ch){
     intk:$('f-intk')?$('f-intk').value:'open',plv:val('f-plv'),tbd:val('f-tbd'),itl:val('f-itl'),itd:val('f-itd'),
     portD:(()=>{ const r=portEqD($('f-pshape').value,val('f-pw'),val('f-ph'),val('f-pr')); return r&&r.d>0?r.d:null; })(),
     camAt:$('f-camat')?$('f-camat').value:'seat',
+    vdi:val('f-vdi'),vde:val('f-vde'),lin:val('f-lin'),lex:val('f-lex'),
     ivo:Number.isFinite(val('f-ivo'))?val('f-ivo'):null,ivc:Number.isFinite(val('f-ivc'))?val('f-ivc'):null,evc:Number.isFinite(val('f-evc'))?val('f-evc'):null,
     n:r.one?1:p.n,gaps:r.one||!$('f-gaps').value.trim()?null:parseNums($('f-gaps').value),
     chamber:ch&&!ch.err?{type:$('f-ch').value,x:val('f-chx'),dc:val('f-chd'),lc:val('f-chl'),nh:val('f-chn'),dh:val('f-chh'),wall:val('f-wall')>0?val('f-wall'):1.651}:null};

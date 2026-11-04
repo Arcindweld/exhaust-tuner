@@ -40,6 +40,17 @@ const { chromium } = require('playwright');
   await setv('f-plv', ''); await pg.waitForTimeout(150);
   const perr = await pg.evaluate(() => window.__sim.simCheck(window.__sim.inp()));
   ok(/With a plenum, fill in its volume/.test(perr || ''), 'a plenum without a volume refused: ' + perr);
+  // the stock engine and cam library
+  await setv('f-intk', 'open'); await setv('f-plv', '6');
+  await setv('f-camlib', 'ls3'); await pg.waitForTimeout(250);
+  const ls3 = await pg.evaluate(() => { const sp = window.__sim.simSpec(window.__sim.inp()); return { e: sp.e, hint: document.getElementById('f-camlib-hint').textContent, at: document.getElementById('f-camat').value }; });
+  ok(JSON.stringify([ls3.e.cam.ivo, ls3.e.cam.ivc, ls3.e.cam.evo, ls3.e.cam.evc, ls3.e.cam.checkLift_mm]) === JSON.stringify([-19, 43, 38, -7, 1.27]) && ls3.at === '050', 'LS3: GM events at 0.050 in (' + JSON.stringify(ls3.e.cam) + ')');
+  ok(Math.abs(ls3.e.dIn - 0.054991) < 1e-6 && Math.abs(ls3.e.dEx - 0.040386) < 1e-6 && Math.abs(ls3.e.liftIn - 0.0139954) < 1e-6 && Math.abs(ls3.e.liftEx - 0.013335) < 1e-6, 'LS3 valves 2.165 / 1.590 in and lift .551 / .525 in');
+  ok(Math.abs(ls3.e.bore - 0.103251) < 1e-6 && ls3.e.cr === 10.7, 'LS3 bore and compression');
+  ok(/as published/.test(ls3.hint) && /Corvette Action Center/.test(ls3.hint) && /204° \/ 211°/.test(ls3.hint), 'LS3 hint: as published, 204 / 211, with its source');
+  await setv('f-camlib', 'ls7'); await pg.waitForTimeout(250);
+  const ls7 = await pg.$eval('#f-camlib-hint', e => e.textContent);
+  ok(/assumed/.test(ls7) && /210° \/ 230°/.test(ls7) && /lobe separation 120\.0°/.test(ls7), 'LS7: durations and LSA from the source, timing assumed straight up');
   ok(errs.length === 0, 'no page errors ' + errs.join('|'));
   console.log(fails.length ? 'FAILS: ' + fails.length : 'all passed');
   await b.close(); process.exit(fails.length ? 1 : 0);
