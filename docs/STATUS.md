@@ -646,6 +646,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   The Spintech's traps, modelled from the owner's cutaway as three Helmholtz volumes (slot or vents) between end spaces,
   make it worse, not better (RMS 12.3 / 12.6 dB against the empty box's 10.5 at 1980 rpm); the loss is most likely
   friction at the slots, which a lossless model leaves out. The empty box stays.
+- F-100 302 validation (2026-11-04, validation/f100-302): a built 302 with long tubes, a 2.5 in X-pipe and chambered
+  mufflers against roadside pass-bys, the first case with a crossover (make_wam v10, Python and page). The recording is
+  order 4 on top, then 8 and 12, with everything else at the floor. A chambered muffler layout matches best (4.7-7.0 dB
+  RMS with both sides clipped at -25 dB); a 0-D 6.5 L box makes order 1 the loudest, which the recording rules out.
+  Still open: the model's integer orders 1-3 and 5-7 sit at -8..-15 dB against <= -18 in the recording, from an
+  18-26 % NMEP spread across cylinders (scavenging by bank with a 315 deg cam), which the model probably overstates.
+  Header and pipe lengths are placeholders.
 - Merge cut files reviewed independently (2026-11-04, a separate agent with its own scripts): no defects; plate,
   section, spike area rule, hollow spike, volume (within 0.03 % of a numerical integration), flat patterns rolled
   back up, DXF entities all check. Its four minor points fixed: the sleeve bore now clears the bundle by 0.4 mm on the
