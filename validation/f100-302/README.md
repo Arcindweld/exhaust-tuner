@@ -49,7 +49,7 @@ What it shows:
   about -18 in the recording. Both exits carry the same flow (the lumped X mixes the banks completely), so these orders
   come from the cylinders differing from each other. In the model the cylinders' NMEP spans 18-26 % (VE 0.94-1.09),
   largest in the cylinders that follow a same-bank firing. Adding the shared intake plenum does not change that. With
-  a 315 deg cam (about 55 deg of overlap at the seat), each cylinder's scavenging follows the pressure its own bank's
+  a 315 deg cam (24 deg of overlap at 0.050 in, about 100 deg seat to seat in the model), each cylinder's scavenging follows the pressure its own bank's
   collector sees, and each bank fires unevenly (90-180-270-180 deg). Real engines show the same effect, but the model
   probably overstates it. Its combustion is identical in every cylinder and its X is a single point, and nothing in
   it damps the collector waves (no packing, no wall losses beyond friction and heat).
