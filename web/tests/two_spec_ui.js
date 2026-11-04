@@ -33,6 +33,11 @@ const { chromium } = require('playwright');
   ok(Math.abs(r.mx.bmep - 9.57) < 0.02 && r.mx.T > 600 && r.mx.T < 610 && Math.abs(r.mx.k.K2 - (2.75 + (r.mx.bmep - 9.5) / 1.5 * 0.5)) < 1e-9, 'between classes: temperature and constants on the line (' + r.mx.bmep.toFixed(2) + ' bar, ' + r.mx.T.toFixed(1) + ' °C)');
   ok(Math.abs(r.two - s3.bmep) < 1e-9, 'a twin at twice the power: the same BMEP');
   ok(/Fill in the RPM/.test(r.e1) && /Exhaust port at the flange/.test(r.e2), 'missing power or port refused');
+  // 2 Stroke Wizard's own sample engine, a vintage Maico 490: below Blair's enduro class, the gas temperature on the line
+  // toward his road engine (5 bar, 350 C), enduro diameters
+  const mai = await pg.evaluate(() => window.__two.calcTwoSpec({ rpm: 6500, ed: 179, bore: 86.5, stroke: 83, cyl: 1, hp: 53, td: 123, pshape: 'round', pw: 43, port: 55, bias: 0, stg: 3 }));
+  ok(Math.abs(mai.bmep - 7.48) < 0.01 && Math.abs(mai.T - 474.0) < 0.1 && Math.abs(mai.lt - 1257.2) < 0.2 && Math.abs(mai.D[3] - 96.75) < 1e-9 && Math.abs(mai.D[4] - 30.1) < 1e-9,
+    'Maico 490 (the Wizard’s sample): ' + mai.bmep.toFixed(2) + ' bar, ' + mai.T.toFixed(0) + ' C, ' + mai.lt.toFixed(1) + ' mm (Wizard 1,189.2), belly ' + mai.D[3].toFixed(1) + ' (89.3), stinger ' + mai.D[4].toFixed(1) + ' (22.8)');
   // dual power insert: second tuned length at the second RPM, the cone from the belly end, its pipe end at that length,
   // fitting 3 mm inside the baffle and stinger
   const dp = await pg.evaluate(() => {
