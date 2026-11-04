@@ -44,3 +44,5 @@ fusion-addin/libet_core.dylib
 fusion-addin/native/
 ext/
 openwam/runs2t/
+# console captures of validation runs
+validation/*/model/*.out
