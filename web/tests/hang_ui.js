@@ -51,6 +51,30 @@ const path = require('path');
   // laser checks shown, and the grommet
   const det = await p.evaluate(() => document.getElementById('hg-details').innerText);
   ok(/Laser cutting check/.test(det) && /metal round the holes/.test(det) && /SendCutSend stock/.test(det) && /1061T132/.test(det), 'the cut-file section has the laser checks, the stock thickness and the grommet');
+  // the fin model against the textbook fin: constant width, no radiation, fixed h, adiabatic tip:
+  // theta(x)/theta0 = cosh(m (L - x)) / cosh(m L), m = sqrt(h P / (k A)) (Incropera eq. 3.75)
+  const fin = await p.evaluate(() => { const H = window.__hang, n = 301, L = 80, w = 30, t = 3, k = 16.2, h = 12;
+    const prof = [...Array(n)].map((_, i) => ({ s: i * L / (n - 1), w, d: 1e6 }));
+    const r = H.hgFin(prof, { tp: 300, ta: 30, eps: 0, k, od: 50, t, hcFix: h }), P = 2 * (w + t) / 1000, A = w * t / 1e6, m = Math.sqrt(h * P / (k * A)), Lm = L / 1000;
+    return r.s.map((x, i) => [r.T[i], 30 + 270 * Math.cosh(m * (Lm - x / 1000)) / Math.cosh(m * Lm)]); });
+  const finErr = Math.max(...fin.map(q => Math.abs(q[0] - q[1])));
+  ok(finErr < 0.5, 'fin model matches the textbook fin (cosh profile) within ' + finErr.toFixed(3) + ' °C; tip ' + fin[fin.length - 1][0].toFixed(1) + ' °C');
+  // heat at the isolator: between the air and the pipe, cooler further out, and the right isolator called for
+  await sel('hg-part', 'tab'); await put('hg-nh', 1); await put('hg-tp', 316); await put('hg-reach', 63.5); await p.waitForTimeout(200);
+  const heat = async () => p.evaluate(() => { const H = window.__hang, o = H.hgRead(), ps = H.hgParts(o); return { T: H.hgIsoTemp(o, ps[0], H.HG_MAT[o.mat]).T, txt: [...document.querySelectorAll('#hg-details .sec')].map(x => x.innerText).find(x => /Heat and isolation/.test(x)) || '' }; });
+  const h1 = await heat(); await put('hg-reach', 127); await p.waitForTimeout(200); const h2 = await heat();
+  ok(h1.T > 38 && h1.T < 316 && h2.T < h1.T - 20, 'isolator ' + h1.T.toFixed(0) + ' °C at 2.5 in out, ' + h2.T.toFixed(0) + ' °C at 5 in, on a 316 °C pipe');
+  ok(/Silicone/.test(h2.txt) && /Reach for 15 °C margin/.test(h2.txt) && /EPDM/.test(h2.txt), 'the heat section lists the isolators with their ratings and the reach each needs; silicone at 5 in');
+  await put('hg-tp', 600); await put('hg-reach', 63.5); await p.waitForTimeout(200); const h3 = await heat();
+  ok(/metal only|wire-rope/.test(h3.txt), 'on a 600 °C pipe it calls for an all-metal isolator (' + h3.T.toFixed(0) + ' °C at the hole)');
+  await put('hg-tp', 316);
+  // design cues: the aerospace window and dimple-die flanged holes
+  await put('hg-reach', 101.6); await sel('hg-light', 'truss'); await p.waitForTimeout(200);
+  const win = await p.evaluate(() => window.__hang.last().parts[0].holes.filter(h => h.what === 'lightening window').length);
+  await sel('hg-light', 'flanged'); await sel('hg-mat', 'a36'); await p.waitForTimeout(200);
+  const fl = await p.evaluate(() => { const q = window.__hang.last().parts[0]; return { n: q.holes.filter(h => h.flange).length, d: document.getElementById('hg-details').innerText }; });
+  ok(win === 1 && fl.n >= 1 && /dimple dies/.test(fl.d) && /punch size/.test(fl.d), 'a rounded-triangle window, and ' + fl.n + ' flanged hole(s) with the die set’s thickness check');
+  await sel('hg-light', '1'); await sel('hg-mat', 'ss304'); await put('hg-reach', 63.5);
   // the rod: bend sheet adds up, pin at the reach
   await sel('hg-part', 'rod'); await p.waitForTimeout(200);
   const R = await p.evaluate(() => { const L = window.__hang.last(), q = L.parts[0]; return { s: q.sheet, R: q.R, pin: q.dims.pin, reach: L.o.reach, od: L.o.od, rod: L.o.rod, det: document.getElementById('hg-details').innerText }; });

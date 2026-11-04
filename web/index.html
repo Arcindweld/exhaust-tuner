@@ -1866,7 +1866,9 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <label class="f" id="hg-foot-w"><span class="lab">Foot width on the tube, 0 for the style’s</span>
           <span class="inp"><input id="hg-foot" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
         <label class="f" id="hg-light-w"><span class="lab">Lightening hole</span>
-          <span class="inp"><select id="hg-light"><option value="1" selected>Round hole where it fits</option><option value="truss">Rounded-triangle window (aerospace)</option><option value="0">None</option></select></span></label>
+          <span class="inp"><select id="hg-light"><option value="1" selected>Round hole where it fits</option><option value="truss">Rounded-triangle window (aerospace)</option><option value="flanged">Dimple-die flanged holes (hot rod)</option><option value="0">None</option></select></span></label>
+        <label class="f" id="hg-dies-w"><span class="lab">Dimple dies</span>
+          <span class="inp"><select id="hg-dies"><option value="mcm" selected>McMaster-Carr 3423N61 (SWAG sizes)</option><option value="eastwood">Eastwood 21316</option></select></span></label>
       </div>
       <div class="grp" id="hg-g-body">Body tab</div>
       <div class="grid2" id="hg-body">
@@ -11189,8 +11191,10 @@ const HG=(()=>{
    or throws an Error in plain words. */
 const HANG={};
 // a weld-on tab: across the tube (coped to its curve) or along it (a fin with a straight weld edge)
+// flanged holes need a web wide enough for the smallest die's flange plus flat metal both sides: the bosses grow to it
+const hgFlangeBoss=o=>{ if(o.lighten!=='flanged') return 0; const D=HG_DIES[o.dies||'mcm']; return D.dies[0][1]/2+Math.max(o.t*1.5,4)+1; };
 HANG.weldTab=function(o){
-  const Ro=o.od/2, n=Math.max(1,Math.round(o.nh||1)), pitch=o.pitch||0, rh=o.hole/2, rb=o.boss>0?o.boss/2:Math.max(rh+6,1.9*rh);
+  const Ro=o.od/2, n=Math.max(1,Math.round(o.nh||1)), pitch=o.pitch||0, rh=o.hole/2, rb=Math.max(o.boss>0?o.boss/2:Math.max(rh+6,1.9*rh),hgFlangeBoss(o));
   const along=o.orient==='along', style=o.style||'sculpted';
   const ys=[...Array(n)].map((_,i)=>o.reach+(i-(n-1)/2)*pitch), yLo=ys[0], yHi=ys[n-1];
   // the foot: wide and hugging the tube when sculpted (it reads as a gusset), the boss width when minimal
@@ -11204,7 +11208,7 @@ HANG.weldTab=function(o){
   if(yLo-rb<ky+0.5*rk) throw new Error('The hole is too close to the tube for this foot: reach at least '+(ky+0.5*rk+rb+(n-1)/2*pitch).toFixed(1)+' mm from the tube centre, or a smaller hole.');
   const FR=HG.P(wf/2,fy), FL=HG.P(-wf/2,fy), KR=HG.C(kx,ky,rk), KL=HG.C(-kx,ky,rk);
   const B=ys.map(y=>HG.C(0,y,rb));
-  const axis={p:[0,ky],d:[0,1],minR:Math.max(2*rk,1.0*rb)}, waist=Math.max(o.minWeb||0,(style==='sculpted'?0.66:style==='minimal'?0.8:1)*2*rb,o.hole+2*Math.max(o.t,3));
+  const axis={p:[0,ky],d:[0,1],minR:Math.max(2*rk,1.0*rb)}, waist=Math.max(o.minWeb||0,2*hgFlangeBoss(o)-2,(style==='sculpted'?0.66:style==='minimal'?0.8:1)*2*rb,o.hole+2*Math.max(o.t,3));
   const web=style==='clean'?'line':{waist,axis};
   const base=along?'line':{arc:{c:[0,0],r:Ro,ccw:false}};
   // n = 1: FR KR B KL FL. n > 1: the bosses make a slot-shaped lobe 2 rb wide; a concave fillet runs from each
@@ -11224,8 +11228,9 @@ HANG.weldTab=function(o){
   const lm=o.lighten===true?'round':o.lighten||'none';
   if(lm!=='none'&&style!=='minimal'){
     const floor=(along?fy:Ro), top=yLo-rh;            // between the tube (or the weld edge) and the lowest hole
-    const lh=lm==='truss'?trussPocket(outline,holes,o,{up:true,floor,top,Ro:along?null:Ro}):n===1?lightHole(outline,holes,o,[0,(ky+rk+yLo-rb)/2],along?null:Ro):null;
-    if(lh) holes.push(lh); else notes.push('No room for a lightening '+(lm==='truss'?'window':'hole')+' at this reach.'); }
+    if(lm==='flanged'){ const fh=flangedHoles(outline,holes,o,floor,top,along?null:Ro); if(fh.length) holes.push(...fh); else notes.push('No dimple die fits at this reach.'); }
+    else { const lh=lm==='truss'?trussPocket(outline,holes,o,{up:true,floor,top,Ro:along?null:Ro}):n===1?lightHole(outline,holes,o,[0,(ky+rk+yLo-rb)/2],along?null:Ro):null;
+      if(lh) holes.push(lh); else notes.push('No room for a lightening '+(lm==='truss'?'window':'hole')+' at this reach.'); } }
   return {kind:'weldTab',along,outline,holes,t:o.t,notes,dims:{reach:o.reach,foot:wf,boss:2*rb,hole:o.hole,ys,top:yHi+rb,fy},weld:along?{len:wf}:{arc:{r:Ro,w:wf}}};
 };
 // the outline, checked: a simple closed shape with every hole inside and at least max(t, 3 mm) of metal round it.
@@ -11240,6 +11245,27 @@ function fitLoop(nodes,J,holes,t){
   const J2=J.map(j=>j==='line'||(j&&j.arc)?j:'line');
   try{ const s2=HG.loop(nodes,J2); if(ok(s2)) return s2; }catch(e){ err=err||e; }
   throw err||new Error('There is not enough metal round the holes at these sizes: make the boss bigger or the holes smaller.');
+}
+// dimple dies (docs/research/hanger_isolation_lightening.md B1): [hole to cut, finished flange outside], mm; max plate
+const HG_DIES={mcm:{name:'McMaster-Carr 3423N61 (SWAG pattern) dimple dies',max:{steel:4.7625},dies:[[12.7,31.75],[19.05,38.1],[25.4,50.8],[31.75,60.325],[38.1,69.85],[44.45,79.375],[50.8,85.725],[63.5,107.95]],src:'https://www.mcmaster.com/dimple-die-sets'},
+  eastwood:{name:'Eastwood 21316 punch and flare set',max:{steel:3.175,al:3.175,ss:2.38125},dies:[[12.7,17.78],[25.4,35.56],[38.1,54.61],[50.8,72.39],[63.5,88.9]],src:'https://www.jbtools.com/eastwood-sheet-metal-hole-punch-and-flare-dimple-die-set-21316/'}};
+// flanged holes down the middle of the web, the biggest die that fits first, then the next, so a long part gets a
+// row that steps down in size where it narrows (the hot-rod look). Each keeps `lig` of flat metal round its flange.
+function flangedHoles(outline,holes,o,y0,y1,Ro){
+  const set=HG_DIES[o.dies||'mcm'], pts=HG.sample(outline,1), lig=Math.max(o.lig||0,o.t*1.5,4), out=[];
+  const foot=h=>h.flange||h.r;
+  // the room at each height on the centre line, worked out once: distance to the edge (0 outside)
+  const ys=[]; for(let y=y0;y<=y1;y+=1) ys.push(y);
+  const room=ys.map(y=>HG.inside([0,y],pts)?HG.distToPoly([0,y],pts):0);
+  const fits=(i,R)=>{ const c=[0,ys[i]]; return room[i]>=R+lig&&holes.concat(out).every(h=>h.t!=='C'?true:HG.len(HG.sub(c,h.c))>=R+foot(h)+lig)&&(!Ro||c[1]-Ro>=R+lig); };
+  for(let guard=0;guard<12;guard++){
+    let best=null;
+    for(let d=set.dies.length-1;d>=0&&!best;d--){ const R=set.dies[d][1]/2, ok=[];
+      for(let i=0;i<ys.length;i++) if(fits(i,R)) ok.push(ys[i]);
+      if(ok.length){ const y=ok[Math.floor(ok.length/2)]; best={t:'C',c:[0,y],r:set.dies[d][0]/2,flange:R,what:'flanged lightening hole',die:d}; } }
+    if(!best) break; out.push(best);
+  }
+  return out;
 }
 // an aerospace-style window: a rounded triangle (corner radius rp) pointing at the load hole, as big as leaves `lig` of
 // metal to the edge, to the holes and (on a tube) to the tube; shrunk about its centre until it fits
@@ -11280,10 +11306,10 @@ function lightHole(outline,holes,o,seed,Ro){
 }
 // a body-side tab: the isolator hole at the origin, the mount above it: a straight weld edge, or bolt holes
 HANG.bodyTab=function(o){
-  const rh=o.hole/2, rb=o.boss>0?o.boss/2:Math.max(rh+6,1.9*rh), L=o.len, style=o.style||'sculpted', nodes=[], J=[];
+  const rh=o.hole/2, rb=Math.max(o.boss>0?o.boss/2:Math.max(rh+6,1.9*rh),hgFlangeBoss(o)), L=o.len, style=o.style||'sculpted', nodes=[], J=[];
   if(!(L>rb+5)) throw new Error('The body tab has to be longer than its boss: at least '+(rb+5).toFixed(1)+' mm.');
   const B=HG.C(0,0,rb);
-  const waist=Math.max(o.minWeb||0,(style==='sculpted'?0.66:style==='minimal'?0.8:1)*2*rb,o.hole+2*Math.max(o.t,3)), axis={p:[0,0],d:[0,1],minR:rb}, web=style==='clean'?'line':{waist,axis};
+  const waist=Math.max(o.minWeb||0,2*hgFlangeBoss(o)-2,(style==='sculpted'?0.66:style==='minimal'?0.8:1)*2*rb,o.hole+2*Math.max(o.t,3)), axis={p:[0,0],d:[0,1],minR:rb}, web=style==='clean'?'line':{waist,axis};
   const holes=[{t:'C',c:[0,0],r:rh,what:'isolator hole'}];
   if(o.mount==='weld'){
     const w=o.w>0?o.w:style==='sculpted'?Math.max(3*rb,2*rb+20):style==='clean'?Math.max(2.4*rb,30):2*rb+4, rk=Math.max(3,Math.min(8,0.14*w));
@@ -11301,7 +11327,8 @@ HANG.bodyTab=function(o){
   for(const x of xs){ if(sl>0) holes.push({t:'S',segs:HG.slot([x,L],[x,L+sl],rm),c:[x,L+sl/2],r:rm,len:sl,what:'mounting slot'}); else holes.push({t:'C',c:[x,L],r:rm,what:'mounting hole'}); }
   const outline=fitLoop(nodes,J,holes,o.t), notes=[];
   const lm=o.lighten===true?'round':o.lighten||'none';
-  if(lm!=='none'&&style!=='minimal'){ const lh=lm==='truss'?trussPocket(outline,holes,o,{up:false,floor:rh,top:L-(nm===1&&!sl?rbm:rm),Ro:null}):lightHole(outline,holes,o,[0,L/2],null); if(lh) holes.push(lh); }
+  if(lm==='flanged'&&style!=='minimal'){ const fh=flangedHoles(outline,holes,o,0,L,null); holes.push(...fh); }
+  else if(lm!=='none'&&style!=='minimal'){ const lh=lm==='truss'?trussPocket(outline,holes,o,{up:false,floor:rh,top:L-(nm===1&&!sl?rbm:rm),Ro:null}):lightHole(outline,holes,o,[0,L/2],null); if(lh) holes.push(lh); }
   return {kind:'bodyTab',outline,holes,t:o.t,notes,dims:{len:L,spacing:nm>1?s:0,top}};
 };
 // a split ring clamp (printed or machined): two halves, bolts through the ears in the plane, a mounting boss on top
@@ -11384,6 +11411,21 @@ const HG_MAT={
 // SendCutSend stock thicknesses (in), by material
 const HG_STOCK={ss304:[.060,.074,.100,.125,.187,.250,.375],a36:[.059,.074,.104,.119,.135,.187,.250,.313,.375],al5052:[.063,.080,.090,.100,.125,.187,.250,.313,.375],
   al6061w:[.063,.080,.100,.125,.187,.250,.313,.375],al6061:[.063,.080,.100,.125,.187,.250,.313,.375]};
+// conductivity W/m·K (docs/research/hanger_isolation_lightening.md A4): 304 from Cleveland-Cliffs (16.2 at 100 °C, 21.4 at
+// 500 °C, interpolated), 1018 from Elgin, 6061-T6 from the Aluminum Association; none found for 5052, 6061's is used
+const HG_K={ss304:T=>16.2+(21.4-16.2)*(Math.min(Math.max(T,100),500)-100)/400,a36:()=>51.9,al5052:()=>167,al6061w:()=>167,al6061:()=>167};
+// isolators by how hot they may run, continuous (same file, A1-A2): the lowest figure of the sources where they differ
+const HG_ISO=[
+  {k:'pu',name:'Polyurethane bushing or strap',lim:82,src:'Parker O-Ring Handbook: −40 to 180 °F; Pepson: standard grades to 93 °C dry',note:'Stiff, cheap; hydrolyses above 70 °C when wet (Pepson). Poly hanger makers publish no temperature.'},
+  {k:'nr',name:'Natural rubber strap',lim:70,src:'Datwyler: 158 °F continuous',note:'Soft, but the lowest limit of all.'},
+  {k:'epdm',name:'EPDM rubber strap or grommet (OE type)',lim:121,src:'Parker: −70 to 250 °F (Datwyler 300 °F, JIOrings 110 °C)',note:'The usual OE hanger rubber; Ford’s patent US 6,572,070 names EPDM or silicone grommets behind a heat shield.'},
+  {k:'fkm',name:'FKM (Viton) bushing',lim:205,src:'Parker: −15 to 400 °F (JIOrings 200 °C)',note:'Hot-rated but stiff and rarely sold as a hanger.'},
+  {k:'vmq',name:'Silicone grommet or bushing',lim:232,lim2:260,src:'Parker: −175 to 450 °F; hanger grommets rated 500 °F (McMaster 1061T13x, Deeds, GSI)',note:'The laser-cut tab hanger’s isolator: soft, looks clean, takes heat. BOOST rates its reinforced silicone hanger at 220 °C continuous.'},
+  {k:'rope',name:'Stainless wire-rope isolator',lim:260,src:'Enidine WR series: −150 to 500 °F; Socitec HH02 to 570 °F',note:'Aerospace hardware: stainless cable loops between two aluminium bars, 5–15% damping (Enidine). No exhaust use was found in print.'},
+  {k:'mesh',name:'Knitted stainless-mesh mount',lim:300,lim2:600,src:'Vibratec and Paulstra: −90 / −70 to +300 °C; Vibratec VTCI to 600 °C',note:'All metal, sold to hold exhaust pipes on ships and vehicles; 15–22 Hz natural frequency on the small ones (Vibratec).'}];
+const HG_ROPE=[   // Enidine WR2 / WR3 ends of each range (catalog ENI877R4): max static load in compression and its stiffness
+  {name:'Enidine WR2-100',h:17.8,bar:79.5,W:47,K:35900},{name:'Enidine WR2-800',h:33,bar:79.5,W:20,K:7880},
+  {name:'Enidine WR3-100',h:22.9,bar:112.3,W:85,K:64800},{name:'Enidine WR3-800',h:38.1,bar:112.3,W:40,K:15800}];
 const HG_PART={tab:'Weld-on pipe tab',body:'Body-side tab',pair:'Tab pair',rod:'Bent rod hanger',ring:'Split ring clamp'};
 const bothL=mm=>(mm/25.4).toFixed(mm<25.4?3:2)+' in ('+(Math.abs(mm)<10?mm.toFixed(2):mm.toFixed(1))+' mm)';
 const hgThick=t=>t>=0.1?'0.'+String(Math.round(t*1000)).padStart(3,'0').replace(/0$/,'')+' in':'0.'+String(Math.round(t*1000)).padStart(3,'0')+' in';
@@ -11491,12 +11533,12 @@ function hgFin(prof,o){
   const A=prof.map(q=>o.round?Math.PI*(q.w/1000)**2/4:(q.w/1000)*(o.t/1000)), P=prof.map(q=>o.round?Math.PI*q.w/1000:2*(q.w/1000)+2*o.t/1000);
   const F=prof.map(q=>{ const rho=Ro+Math.max(0,q.d)/1000, b=Math.asin(Math.min(1,Ro/rho)); return (1-Math.cos(b))/2; });
   const L=(prof[n-1].s-prof[0].s)/1000||0.01;
-  let T=prof.map(()=>(Tp+Ta)/2); T[0]=Tp;
+  let T=prof.map(()=>(Tp+Ta)/2), hcLast=0; T[0]=Tp;
   for(let it=0;it<80;it++){
     const Tm=T.reduce((a,x)=>a+x,0)/n, Tf=(Tm+Ta)/2, mu=airMu(Tf), ka=airK(Tf), cp=airCp(Tf), rho=P_ATM/(R_AIR*Tf), nu=mu/rho, Pr=mu*cp/ka;
     const Lc=o.round?o.rod/1000:L, Ra=9.81/Tf*Math.max(Tm-Ta,1e-3)*Lc**3/(nu*nu)*Pr;
     const Nu=o.round?Math.pow(0.60+0.387*Math.pow(Ra,1/6)/Math.pow(1+Math.pow(0.559/Pr,9/16),8/27),2):Math.pow(0.825+0.387*Math.pow(Ra,1/6)/Math.pow(1+Math.pow(0.492/Pr,9/16),8/27),2);
-    const hc=Nu*ka/Lc;
+    const hc=o.hcFix>0?o.hcFix:Nu*ka/Lc; hcLast=hc;
     // tridiagonal: a_i T_{i-1} + b_i T_i + c_i T_{i+1} = r_i in theta = T - Ta
     const a=[],bb=[],c=[],r=[];
     for(let i=0;i<n;i++){
@@ -11511,7 +11553,7 @@ function hgFin(prof,o){
     const Tn=th.map(x=>x+Ta), d=Math.max(...Tn.map((x,i)=>Math.abs(x-T[i])));
     T=Tn.map((x,i)=>0.5*x+0.5*T[i]); T[0]=Tp; if(d<0.01) break;
   }
-  return {T:T.map(x=>x-273.15),s:prof.map(q=>q.s)};
+  return {T:T.map(x=>x-273.15),s:prof.map(q=>q.s),hc:hcLast};
 }
 // the fin's profile for a part: plates from the tube top up to the top of the tab, the rod from the end of its weld
 function hgFinProfile(o,part){
@@ -11534,7 +11576,7 @@ function hgFinProfile(o,part){
 }
 function hgIsoTemp(o,part,mat){
   const fp=hgFinProfile(o,part); if(!fp||!(o.tp>o.ta)) return null;
-  const k=HG_K[o.mat]||20, eps=(SKIN_FIN[o.fin]||SKIN_FIN.ox).eps;
+  const kf=HG_K[o.mat]||(()=>20), k=kf((o.tp+o.ta)/2), eps=(SKIN_FIN[o.fin]||SKIN_FIN.ox).eps;
   const res=hgFin(fp.prof,Object.assign({},o,{k,eps,round:fp.round}));
   if(!res) return null;
   let Ti=res.T[res.T.length-1]; for(let i=1;i<res.s.length;i++) if(res.s[i]>=fp.at){ const u=(fp.at-res.s[i-1])/(res.s[i]-res.s[i-1]); Ti=res.T[i-1]+u*(res.T[i]-res.T[i-1]); break; }
@@ -11545,12 +11587,12 @@ function hgIsoTemp(o,part,mat){
 function hgParts(o){
   const parts=[];
   if(o.part==='tab'||o.part==='pair'){
-    const p=HANG.weldTab({od:o.od,t:o.t,reach:o.reach,hole:o.hole,nh:o.nh,pitch:o.pitch,foot:o.foot,style:o.style,orient:o.orient,lighten:o.light});
+    const p=HANG.weldTab({od:o.od,t:o.t,reach:o.reach,hole:o.hole,nh:o.nh,pitch:o.pitch,foot:o.foot,style:o.style,orient:o.orient,lighten:o.light,dies:o.dies});
     p.name='Pipe tab'; parts.push(p);
   }
   if(o.part==='body'||o.part==='pair'){
     const hole=o.part==='pair'?o.bolt+1.0:o.hole;
-    const p=HANG.bodyTab({hole,len:o.blen,t:o.t,mount:o.bmount,nm:o.bn,ms:o.bs,mhole:o.bmh,slot:o.bslot,style:o.style,lighten:o.light});
+    const p=HANG.bodyTab({hole,len:o.blen,t:o.t,mount:o.bmount,nm:o.bn,ms:o.bs,mhole:o.bmh,slot:o.bslot,style:o.style,lighten:o.light,dies:o.dies});
     p.name='Body tab'; parts.push(p);
   }
   if(o.part==='rod'){ const p=HANG.rod({od:o.od,rod:o.rod,reach:o.reach,weld:o.weld,pin:o.pin,angle:o.ang,shape:o.shape,bendR:o.bend}); p.name='Rod hanger'; parts.push(p); }
@@ -11560,7 +11602,7 @@ function hgParts(o){
 function hgRead(){
   const v=id=>val(id), part=$('hg-part').value;
   return {part,use:$('hg-for').value,style:$('hg-style').value,od:v('hg-od'),reach:v('hg-reach'),orient:$('hg-orient').value,nh:Math.max(1,Math.round(v('hg-nh')||1)),
-    pitch:v('hg-pitch')||0,foot:v('hg-foot')||0,light:{'1':'round','0':'none'}[$('hg-light').value]||$('hg-light').value,grom:$('hg-grom').value,hole:v('hg-hole'),bolt:v('hg-bolt'),
+    pitch:v('hg-pitch')||0,foot:v('hg-foot')||0,light:{'1':'round','0':'none'}[$('hg-light').value]||$('hg-light').value,dies:$('hg-dies').value,grom:$('hg-grom').value,hole:v('hg-hole'),bolt:v('hg-bolt'),
     blen:v('hg-blen'),bmount:$('hg-bmount').value,bn:+$('hg-bn').value,bs:v('hg-bs')||0,bmh:v('hg-bmh'),bslot:v('hg-bslot')||0,gap:v('hg-gap')||0,
     rod:v('hg-rod'),bend:v('hg-bend')||0,ang:v('hg-ang'),weld:v('hg-weld'),pin:v('hg-pin'),shape:$('hg-shape').value,strap:$('hg-strap').value,ipos:v('hg-ipos')||0,
     wall:v('hg-wall')||0,width:v('hg-width'),liner:v('hg-liner')||0,cbolt:+$('hg-cbolt').value,rmh:v('hg-rmh'),
@@ -11570,7 +11612,7 @@ function hgRead(){
 function hgFields(o){
   const plate=o.part==='tab'||o.part==='body'||o.part==='pair', tab=o.part==='tab'||o.part==='pair', body=o.part==='body'||o.part==='pair';
   const show=(id,on)=>{ const el=$(id); if(el) el.hidden=!on; };
-  show('hg-style-w',plate); show('hg-orient-w',tab); show('hg-nh-w',tab); show('hg-pitch-w',tab&&o.nh>1); show('hg-foot-w',tab); show('hg-light-w',plate);
+  show('hg-style-w',plate); show('hg-orient-w',tab); show('hg-nh-w',tab); show('hg-pitch-w',tab&&o.nh>1); show('hg-foot-w',tab); show('hg-light-w',plate); show('hg-dies-w',plate&&o.light==='flanged');
   show('hg-od-w',true); show('hg-reach-w',true);
   show('hg-g-body',body); show('hg-body',body); show('hg-bs-w',body&&o.bmount==='bolt'&&o.bn>1); show('hg-bmh-w',body&&o.bmount==='bolt'); show('hg-bslot-w',body&&o.bmount==='bolt'); show('hg-bn-w',body&&o.bmount==='bolt');
   show('hg-gap-w',o.part==='pair');
@@ -11631,6 +11673,7 @@ function drawHang(svg,o,parts){
     let d=hgPath(it.p.outline,Ti); if(it.p.lower) d+=' '+hgPath(it.p.lower,Ti);
     d+=' '+it.p.holes.map(h=>hgHolePath(h,Ti)).join(' ');
     mk('path',{d,style:st(i?'var(--t4)':'var(--t2)','var(--ink)',1.2,';fill-rule:evenodd;fill-opacity:'+(i?'.55':'.8'))},svg);
+    it.p.holes.forEach(h=>{ if(h.flange){ const c=Ti(h.c); mk('circle',{cx:c[0],cy:c[1],r:h.flange*k,style:st('none','var(--ink)',0.8,';stroke-dasharray:3 2')},svg); } });
     it.p.holes.forEach(h=>{ if(h.t!=='C') return; const c=Ti(h.c); mk('line',{x1:c[0]-h.r*k-3,x2:c[0]+h.r*k+3,y1:c[1],y2:c[1],style:st('none','var(--muted)',0.6)},svg); mk('line',{x1:c[0],x2:c[0],y1:c[1]-h.r*k-3,y2:c[1]+h.r*k+3,style:st('none','var(--muted)',0.6)},svg); });
     if(it.p.bolts) it.p.bolts.forEach(b=>[1,-1].forEach(s=>{ const a=Ti([s*b.x,b.y0]), c=Ti([s*b.x,b.y1]); mk('line',{x1:a[0],x2:c[0],y1:a[1],y2:c[1],style:st('none','var(--ink)',0.9,';stroke-dasharray:4 2')},svg); }));
   });
@@ -11726,8 +11769,56 @@ function renderHang(){
       '<p class="cap">Print it flat, the face shown here on the bed, so the load runs along the layers. The clamp bolts run through the ears in the plane of the part: the holes are built in Fusion as drawn (dashed here), a bolt and nut through each pair of ears. A strip of rubber or silicone in the '+bothL(o.liner)+' gap stops it rubbing. Engine-bay intake tubes near the head or a turbo run hot: keep PLA and PETG away from them (heat deflection 57 and 69 °C, Bambu Lab).</p>'+
       (o.use==='exh'?'<div class="note bad">An exhaust runs far hotter than any of these: use a metal clamp there.</div>':''));
   }
+  h+=hgHeat(o,parts,mat);
   h+=hgFusion();
   det.innerHTML=h;
+}
+// heat at the isolator and which isolator takes it (docs/research/hanger_isolation_lightening.md)
+function hgHeat(o,parts,mat){
+  const P0=parts[0];
+  if(o.part==='ring'){ if(!(o.tp>0)) return ''; const m=HG_MAT[o.mat];
+    return m.print?sec('Heat',(o.tp>=m.hdt[1]?'<div class="note bad">The tube at '+tempStr(o.tp)+' is past this filament’s heat deflection ('+m.hdt[1]+' °C under 1.8 MPa, '+m.hdt[0]+' °C under 0.45 MPa): the clamp will creep. Pick one rated above it, or a metal clamp.</div>':
+      '<p class="cap">The clamp touches the tube, so it runs at about the tube’s '+tempStr(o.tp)+'; this filament’s heat deflection is '+m.hdt[1]+' °C under 1.8 MPa (Bambu Lab).</p>')):''; }
+  if(P0.kind!=='weldTab'&&P0.kind!=='rod') return '';
+  if(!(o.tp>o.ta)) return sec('Heat and isolation','<p class="cap">Fill in the pipe temperature at the hanger to see how hot the isolator runs.</p>');
+  // the reach search rebuilds the part without lightening holes: a little more metal conducts a little more heat,
+  // so the reach it gives errs long (and it is much quicker)
+  const at=q=>{ try{ const q2=Object.assign({},q,{light:'none'}), pp=hgParts(q2); return hgIsoTemp(q2,pp[0],HG_MAT[q.mat]); }catch(e){ return null; } };
+  const here=hgIsoTemp(o,P0,mat); if(!here) return '';
+  const Ti=here.T;
+  // the reach that brings the isolator down to a limit (the part rebuilt longer; null when 250 mm more is not enough)
+  const reachFor=lim=>{ if(Ti<=lim) return 0; let lo=o.reach, hi=o.reach+250, th=at(Object.assign({},o,{reach:hi}));
+    if(!th||th.T>lim) return null;
+    for(let k=0;k<30;k++){ const m=(lo+hi)/2, tm=at(Object.assign({},o,{reach:m})); if(tm&&tm.T<=lim) hi=m; else lo=m; } return hi; };
+  // a grommet its maker rates to 500 °F (McMaster 1061T13x, Deeds) is held to that, any other silicone to Parker's 450 °F
+  const rated=/^(mc13|deeds)/.test(o.grom)&&P0.kind!=='rod', limOf=q=>q.k==='vmq'&&rated?q.lim2:q.lim;
+  const margin=15, rows=HG_ISO.map(q=>{ const L=limOf(q), ok=Ti<=L-margin, rf=ok?0:reachFor(L-margin); return Object.assign({},q,{ok,rf,L}); });
+  const siL=limOf(HG_ISO.find(q=>q.k==='vmq')), best=P0.kind==='rod'?(Ti<=121-margin?'epdm':Ti<=232-margin?'vmq':'mesh'):Ti<=siL-margin?'vmq':Ti<=260-margin?'rope':'mesh';
+  const B=HG_ISO.find(q=>q.k===best);
+  // isolation at idle: the Sound tab's engine, else the 22-28 Hz idle band of the hanger study
+  let fIdle=25, fSrc='the 22–28 Hz idle band in the exhaust-hanger study (MEIC-14), your engine not set on the Sound tab';
+  try{ const sp=soundParams(); if(!sp.err&&sp.p){ const kk=(sp.p.cyc==='4'?0.5:1)*sp.p.cyl; fIdle=kk*sp.p.idle/60; fSrc='the Sound tab’s engine firing at '+Math.round(sp.p.idle)+' RPM idle'; } }catch(e){}
+  const W=o.w*9.80665, zeta=0.10;
+  const tr=(fn,f)=>{ const r=f/fn; return Math.sqrt(1+(2*zeta*r)**2)/Math.sqrt((1-r*r)**2+(2*zeta*r)**2); };
+  const ropes=HG_ROPE.filter(q=>q.W>=W).map(q=>{ const fn=Math.sqrt(q.K*9.80665/W)/(2*Math.PI); return Object.assign({},q,{fn,T:tr(fn,fIdle)}); });
+  let h='<div class="figs">'+figT('Isolator runs at',U==='imp'?Math.round(Ti*9/5+32):Math.round(Ti),U==='imp'?'°F':'°C','pipe '+tempStr(o.tp)+', air '+tempStr(o.ta),Ti>260?'st-bad':Ti>232?'st-warn':'st-ok')+
+    figT('Best here','','',B.name,'')+'</div>'+
+    '<p class="cap">The '+(P0.kind==='rod'?'rod':'tab')+' works as a fin: heat conducts out from the pipe and leaves both faces by natural convection and radiation, while the faces take radiation back from the pipe. Still air, no heat shield: driving air cools it more, a shield between pipe and isolator more still. Read it as the isolator’s temperature at a standstill, the hottest case.</p>'+
+    '<div class="tblwrap"><table><thead><tr><th>Isolator</th><th>Rated to (continuous)</th><th>Here</th><th>Reach for '+margin+' °C margin</th></tr></thead><tbody>'+
+    rows.map(q=>'<tr'+(q.k===best?' class="cur"':'')+'><td>'+esc(q.name)+'<br><small>'+esc(q.src)+'</small></td><td>'+tempStr(q.L)+(q.lim2&&q.L!==q.lim2?'<br><small>'+tempStr(q.lim2)+' for the rated ones</small>':'')+'</td><td class="'+(q.ok?'st-ok':'st-bad')+'">'+(q.ok?'ok':'too hot')+'</td><td>'+(q.ok?'—':q.rf==null?'not within 250 mm more':bothL(q.rf)+' from the tube centre')+'</td></tr>').join('')+'</tbody></table></div>'+
+    '<p class="cap">'+esc(B.note)+' Where the sources disagree the lowest continuous rating is used.</p>';
+  if(best==='epdm') h+='<div class="note ok"><b>Rubber strap isolators are fine here.</b> The rod end runs '+Math.round(121-Ti)+' °C under EPDM’s rating; silicone straps (COBB) take more heat if you want the margin.</div>';
+  else if(best==='vmq') h+='<div class="note ok"><b>Silicone '+(P0.kind==='rod'?'strap isolator':'grommet in the tab')+'.</b> The best mix here: soft isolation, a clean look, and '+Math.round(siL-Ti)+' °C under '+(rated?'the grommet maker’s 500 °F rating':'silicone’s rating')+'.'+(P0.kind==='rod'?'':' Keep the grommet’s flange off the pipe side of the tab.')+'</div>';
+  else if(best==='rope') h+='<div class="note warn"><b>Too hot for rubber or silicone here.</b> Lengthen the tab to the reach in the table, put a heat shield between the pipe and the grommet, or use an all-metal isolator: a stainless wire-rope isolator (to '+tempStr(260)+') has the aerospace look and real damping.</div>';
+  else if(best==='mesh'&&P0.kind==='rod'&&Ti<=232-margin) h+='';
+  else h+='<div class="note bad"><b>Hot enough for metal only.</b> Knitted stainless-mesh mounts are rated to '+tempStr(300)+' (Vibratec’s VTCI to 600 °C). Or move the hanger further from the heat.</div>';
+  if(ropes.length||best!=='vmq'){
+    h+='<p class="sub" style="margin-top:12px">Stainless wire-rope isolators for '+mass(o.w)+'</p>'+(ropes.length?'<div class="tblwrap"><table><thead><tr><th>Isolator</th><th>Height × bar</th><th>Holds</th><th>Bounce</th><th>Shake passed at idle ('+fIdle.toFixed(0)+' Hz)</th></tr></thead><tbody>'+
+      ropes.map(q=>'<tr><td>'+q.name+'</td><td>'+bothL(q.h)+' × '+bothL(q.bar)+'</td><td>'+Math.round(q.W)+' N max</td><td>'+q.fn.toFixed(1)+' Hz</td><td class="'+(q.T<0.5?'st-ok':q.T<1?'st-warn':'st-bad')+'">'+Math.round(100*q.T)+'%</td></tr>').join('')+'</tbody></table></div>'+
+      '<p class="cap">Enidine’s catalog: stiffness in compression at the ends of the WR2 and WR3 ranges, 5–15% damping (10% used); for 80% isolation the bounce frequency should be a third of the shake (here '+(fIdle/3).toFixed(1)+' Hz), from '+esc(fSrc)+'. Their threaded inserts take 6 in·lb at most.</p>':
+      '<p class="cap">No WR2 or WR3 isolator carries '+mass(o.w)+' in compression (WR3-100: 85 N): share the load over more hangers.</p>');
+  }
+  return sec('Heat and isolation',h);
 }
 // laser service rules (SendCutSend guidelines; docs/research/hangers_brackets.md)
 function hgChecks(o,parts,mat){
@@ -11749,10 +11840,15 @@ function hgChecks(o,parts,mat){
     if(bridge<1e9) rows.push([p.name+': between holes',bridge,bridge>=t?'ok':bridge>=0.5*t?'warn':'bad','at least '+bothL(t)+' preferred, '+bothL(0.5*t)+' minimum']);
     if(/5052|6061/.test(o.mat)) rows.push([p.name+': smallest hole',minHole,minHole>=t?'ok':'bad','at least the thickness for aluminium']);
   }
+  // dimple dies: the thickness each set is sold for, by material
+  const fl=parts.flatMap(p=>p.holes.filter(h=>h.flange));
+  if(fl.length){ const D=HG_DIES[o.dies||'mcm'], cls=o.mat==='ss304'?'ss':/^al/.test(o.mat)?'al':'steel', mx=D.max[cls];
+    rows.push([fl.length+' flanged hole'+(fl.length>1?'s':'')+', '+D.name,t,mx==null?'warn':t<=mx+1e-6?'ok':'bad',mx==null?'the maker gives no thickness for '+(cls==='ss'?'stainless':'aluminium'):'up to '+bothL(mx)+' '+(cls==='ss'?'stainless':cls==='al'?'aluminium':'steel')]); }
   const stock=HG_STOCK[o.mat]||[], ti=t/25.4, isStock=stock.some(s=>Math.abs(s-ti)<0.004);
   return '<div class="tblwrap"><table><thead><tr><th>Laser cutting check</th><th>Here</th><th>Rule</th><th></th></tr></thead><tbody>'+
     rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+bothL(r[1])+'</td><td>'+esc(r[3])+'</td><td class="'+(r[2]==='ok'?'st-ok':r[2]==='warn'?'st-warn':'st-bad')+'">'+(r[2]==='ok'?'ok':r[2]==='warn'?'tight':'too small')+'</td></tr>').join('')+
     '<tr><td>Plate thickness</td><td>'+bothL(t)+'</td><td>SendCutSend stock: '+stock.map(s=>s.toFixed(3)).join(', ')+' in</td><td class="'+(isStock?'st-ok':'st-warn')+'">'+(isStock?'stock':'not stock')+'</td></tr></tbody></table></div>'+
+    (fl.length?'<p class="cap">Flanged holes: cut each hole at the die’s punch size ('+[...new Set(fl.map(h=>bothL(2*h.r)))].join(', ')+'), then press the flare; the dashed ring is the finished flange ('+[...new Set(fl.map(h=>bothL(2*h.flange)))].join(', ')+'). The flare stands proud of one face (JMR: 0.176 in on 14 ga): put it on the side away from the grommet and the pipe. NACA’s tests on flanged lightening holes in shear webs (Kuhn 1942) found strength for the weight nearly the same whatever the hole size at the best spacing; the strength figures here count only the hole, not the stiffer flange.</p>':'')+
     '<p class="cap">SendCutSend’s guidelines: holes and bridges at least half the thickness at the very least, the thickness or more preferred; hole to edge at least the hole diameter is their general advice, which hanger tabs usually beat on strength alone (the table above), so it is not flagged here.</p>';
 }
 function hgFusion(){
@@ -11811,7 +11907,7 @@ document.addEventListener('click',e=>{
     say('','Building in Fusion…');
     fusionCall('hang',{hanger:pay,title:HG_PART[pay.kind]}).then(res=>say(res&&res.ok?'ok':'bad',(res&&res.msg)||'No answer from Fusion.')); }
 });
-window.__hang={HG,HANG,hgRead,hgParts,hgDxf,hgPayload,hgStrength,HG_GROM,HG_MAT,last:()=>HG_UI.last,val:id=>val(id),snap:()=>projSnapshot('t'),
+window.__hang={HG,HANG,hgRead,hgParts,hgDxf,hgPayload,hgStrength,HG_GROM,HG_MAT,hgIsoTemp,hgFin,last:()=>HG_UI.last,val:id=>val(id),snap:()=>projSnapshot('t'),
   set:(id,mm)=>{ const el=$(id); el._b=mm; showInput(el); el.dispatchEvent(new Event('input',{bubbles:true})); }};
 
 /* ===== Tube skin temperature and heat clearance (docs/research/header_skin_temperature.md) =====

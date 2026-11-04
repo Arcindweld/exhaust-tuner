@@ -558,6 +558,16 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   symmetric extrude per plate, rod swept, grommet/bolt bodies, ring bolt holes cut), fusion-addin/hangers.py places it.
   Live: all seven parts built on a 3 in tube, each one piece; a pick toward a mount point read 108.5 mm and pointed the
   pair at it. Tests: web/tests/hang_ui.js (writes fusion-addin/tests/hang_payloads.json), tests/test_hangers.py.
+  Heat and isolation (the owner: "the best high temp vibration isolation method... as well as looking good"): the tab
+  or rod as a fin from the pipe (k from Cleveland-Cliffs / Elgin / AA, Churchill-Chu vertical plate, radiation out and
+  in from the pipe with view factor (1 - cos b)/2), checked against the textbook cosh fin within 0.004 °C. Isolators by
+  continuous rating (lowest source): PU 82, NR 70, EPDM 121, FKM 205, silicone 232 (260 for the 500 °F-rated
+  grommets), stainless wire rope 260 (Enidine WR), knitted stainless mesh 300 (Vibratec; VTCI 600); the reach each
+  needs for 15 °C margin; best = silicone grommet where it fits, else wire rope, else mesh. Wire-rope picks (WR2/WR3)
+  with bounce frequency and the share of idle shake passed (Sound tab engine, else the MEIC 22-28 Hz idle band).
+  Design cues: rounded-triangle aerospace window; dimple-die flanged holes (McMaster 3423N61 / SWAG and Eastwood
+  21316 sizes, thickness by material), placed biggest first down the web so long parts get a graduated row.
+  Data: docs/research/hanger_isolation_lightening.md (de Havilland DS 11 is proprietary-marked: cited, not copied).
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
