@@ -45,6 +45,7 @@ def _unit(a):
 
 
 SPIKE_ROLL_CM = 3.81     # 1.5 in: a spike this wide or wider is rolled from sheet, a smaller one turned from bar
+SLEEVE_FIT_CM = 0.04     # the sleeve's bore over the bundle's outer circle: 0.4 mm on the diameter, a slip fit
 SLEEVE_CM = 1.905        # 3/4 in of slip into the sleeve
 PLATE_STOCK_CM = (0.3175, 0.47625, 0.635)    # 1/8, 3/16 and 1/4 in sheet: the merge plate is cut from one of these
 
@@ -65,7 +66,7 @@ def plan(start, axis, slots, od, wall, d_in, d_out, length, sleeve=None, plate_t
     # wall without burning through, so the thinnest stock at least half again the tube wall
     t = float(plate_t) if plate_t is not None else next((v for v in PLATE_STOCK_CM if v >= 1.5 * wall), PLATE_STOCK_CM[-1])
     idr = od / 2.0 - wall
-    Ri0 = d_in / 2.0
+    Ri0 = d_in / 2.0 + SLEEVE_FIT_CM / 2.0      # the primaries slip into the sleeve with this clearance
     Ro0 = Ri0 + wall
     Ro1 = d_out / 2.0
     Ri1 = Ro1 - wall
@@ -94,8 +95,12 @@ def plan(start, axis, slots, od, wall, d_in, d_out, length, sleeve=None, plate_t
     rpack = sum(rad) / len(rad) if n >= 2 else 0.0
     if n >= 2 and (max(rad) - min(rad) > 0.05 or rpack + od / 2.0 > Ri0 + 0.05):
         raise ValueError('The tubes do not end on one ring inside the collector inlet.')
-    # the plate's metal: between neighbouring holes, and from each hole to the rim
-    lig_nb = (2.0 * rpack * math.sin(math.pi / n) - 2.0 * idr) if n >= 2 else None
+    # the plate's metal: between neighbouring holes (measured from the holes themselves, so uneven spacing shows), and
+    # from each hole to the rim
+    gaps = [math.sqrt(sum((slots[i][k] - slots[j][k]) ** 2 for k in range(3))) for i in range(n) for j in range(i + 1, n)] if n >= 2 else []
+    if n >= 2 and min(gaps) < od - 0.05:
+        raise ValueError('Two tubes overlap at the collector inlet (%.1f mm apart for %.1f mm tubes).' % (10 * min(gaps), 10 * od))
+    lig_nb = (min(gaps) - 2.0 * idr) if n >= 2 else None
     lig_rim = (Ri0 - rpack - idr) if n >= 2 else None
     plate = None
     if n >= 2:
@@ -111,8 +116,12 @@ def plan(start, axis, slots, od, wall, d_in, d_out, length, sleeve=None, plate_t
         Ls = max(1.15 * need, 3.0 * r_b) if need != float('inf') else 3.0 * r_b
         cap = 0.9 * Lc
         if Ls > cap:
-            notes.append('The merge spike would need %.1f mm to keep the open area from growing behind it; the cone '
-                         'leaves room for %.1f mm.' % (10 * Ls, 10 * cap))
+            if 1.15 * need > cap:
+                notes.append('The merge spike would need %.1f mm to keep the open area from growing behind it; the cone '
+                             'leaves room for %.1f mm.' % (10 * 1.15 * need, 10 * cap))
+            else:
+                notes.append('The merge spike is cut to %.1f mm, the room the cone leaves, from the %.1f mm a slender spike '
+                             '(three base radii) would have; the open area still does not grow.' % (10 * cap, 10 * Ls))
             Ls = cap
         base = _v(start, u, t)
         sp = {'base': base, 'tip': _v(base, u, Ls), 'r': r_b, 'len': Ls, 'hollow': False}
@@ -185,7 +194,8 @@ PLATE_FIT_CM = 0.0075     # the plate's radius under the sleeve's bore: 0.15 mm 
 
 
 def _dxf(ents):
-    out = ['0', 'SECTION', '2', 'HEADER', '9', '$INSUNITS', '70', '4', '9', '$MEASUREMENT', '70', '1', '0', 'ENDSEC',
+    # R12 (AC1009); $INSUNITS is a later variable that R12-only readers skip, so the file name and the page say mm too
+    out = ['0', 'SECTION', '2', 'HEADER', '9', '$ACADVER', '1', 'AC1009', '9', '$INSUNITS', '70', '4', '9', '$MEASUREMENT', '70', '1', '0', 'ENDSEC',
            '0', 'SECTION', '2', 'ENTITIES']
     f = lambda v: '%.4f' % (0.0 if abs(v) < 1e-9 else v)
     for e in ents:
@@ -307,12 +317,12 @@ def cut_files(p, name):
     out = []
     pf = plate_flat(p)
     if pf:
-        out.append({'name': '%s_plate_%.3fin.dxf' % (tag, p['plate_t'] / 2.54), 'text': _dxf(_row([pf])),
+        out.append({'name': '%s_plate_%.3fin_mm.dxf' % (tag, p['plate_t'] / 2.54), 'text': _dxf(_row([pf])),
                     'what': '%s: the merge plate, %.3f in (%.2f mm) sheet' % (name, p['plate_t'] / 2.54, 10 * p['plate_t'])})
     cf, ci = cone_flat(p)
     sf, si = sleeve_flat(p)
     kf, ki = spike_flat(p) if (p['spike'] and p['spike']['hollow']) else (None, None)
-    out.append({'name': '%s_cone_and_sleeve_%.3fin.dxf' % (tag, w_in), 'text': _dxf(_row([cf, sf] + ([kf] if kf else []))),
+    out.append({'name': '%s_cone_and_sleeve_%.3fin_mm.dxf' % (tag, w_in), 'text': _dxf(_row([cf, sf] + ([kf] if kf else []))),
                 'what': '%s: the cone, the sleeve%s as flat patterns, %.3f in (%.2f mm) sheet, rolled with a butt seam' % (
                     name, ' and the spike' if kf else '', w_in, 10 * p['wall']),
                 'cone': ci, 'sleeve': si, 'spike': ki})

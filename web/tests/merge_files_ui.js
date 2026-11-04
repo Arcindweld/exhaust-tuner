@@ -18,7 +18,7 @@ const fs = require('fs');
     const t = await p.evaluate(() => document.getElementById('fx-out-headers').innerText);
     ok(/Merge collector/.test(t) && /4 into 1/.test(t) && /merge plate/.test(t) && /spike/.test(t), vp.n + ': the merge is listed with its plate and spike');
     const btns = await p.evaluate(() => [...document.querySelectorAll('#fx-out-headers button[data-fxfile]')].map(x => x.textContent));
-    ok(btns.length === 2 && /plate_0\.125in\.dxf/.test(btns[0]) && /cone_and_sleeve_0\.065in\.dxf/.test(btns[1]), vp.n + ': a save button per cut file: ' + btns.join(' | '));
+    ok(btns.length === 2 && /plate_0\.125in_mm\.dxf/.test(btns[0]) && /cone_and_sleeve_0\.065in_mm\.dxf/.test(btns[1]), vp.n + ': a save button per cut file: ' + btns.join(' | '));
     ok(/CUT layer/.test(t) && /rolled with a butt seam/.test(t), vp.n + ': what each file holds');
     for (let i = 0; i < 2; i++) {
       await p.click('#fx-out-headers button[data-fxfile="' + i + '"]'); await p.waitForTimeout(250);

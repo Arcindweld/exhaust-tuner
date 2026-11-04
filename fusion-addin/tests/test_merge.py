@@ -44,10 +44,10 @@ for n, od_in, out_in, L_in, spike in ((4, 1.625, 3.0, 4.0, True), (2, 1.625, 2.0
     rr = pl['holes'][0][1]
     between = min(d3(a, b) for i, a in enumerate(cs) for b in cs[i + 1:]) - 2 * rr
     rim = min(pl['r'] - math.sqrt(max(0.0, d3(c, p['start']) ** 2)) - rr for c in cs)
-    ok(abs(between - 2 * wall) < 1e-6 and abs(rim - wall) < 1e-6 and abs(pl['lig_between'] - between) < 1e-6 and abs(pl['lig_rim'] - rim) < 1e-6,
+    ok(abs(between - 2 * wall) < 1e-6 and abs(rim - wall - M.SLEEVE_FIT_CM / 2) < 1e-6 and abs(pl['lig_between'] - between) < 1e-6 and abs(pl['lig_rim'] - rim) < 1e-6,
        tag + ': %.3f in of plate between holes (two walls), %.3f in to the rim (one wall)' % (between / IN, rim / IN))
-    ok(abs(pl['r'] - col['d_in'] / 2) < 1e-9 and abs(p['Ro0'] - p['Ri0'] - wall) < 1e-9 and abs(p['Ro1'] - out_in * IN / 2) < 1e-9 and abs(p['Ro1'] - p['Ri1'] - wall) < 1e-9,
-       tag + ': the sleeve takes the bundle, the outlet is %.1f in outside, one wall throughout' % out_in)
+    ok(abs(pl['r'] - col['d_in'] / 2 - M.SLEEVE_FIT_CM / 2) < 1e-9 and abs(p['Ro0'] - p['Ri0'] - wall) < 1e-9 and abs(p['Ro1'] - out_in * IN / 2) < 1e-9 and abs(p['Ro1'] - p['Ri1'] - wall) < 1e-9,
+       tag + ': the sleeve takes the bundle with a 0.4 mm slip fit, the outlet is %.1f in outside, one wall throughout' % out_in)
     ok(p['sleeve'] <= 0.9 * 2.54 + 1e-9 and p['plate_t'] in M.PLATE_STOCK_CM and p['plate_t'] >= 1.5 * wall, tag + ': sleeve inside the tubes\' last straight, plate cut from %.4f in stock' % (p['plate_t'] / IN))
     sp = p['spike']
     ok(bool(sp) == spike, tag + (': a merge spike (%.2f in long, %.2f in base)' % (sp['len'] / IN, 2 * sp['r'] / IN) if sp else ': no spike (no room in the middle)'))
@@ -118,14 +118,14 @@ def dxf_ents(text):
 
 p, slots, col = case(4, od, wall, 3.0 * IN, 4.0 * IN)
 F = M.cut_files(p, 'Merge collector')
-ok([f['name'] for f in F] == ['merge_collector_plate_0.125in.dxf', 'merge_collector_cone_and_sleeve_0.065in.dxf'],
+ok([f['name'] for f in F] == ['merge_collector_plate_0.125in_mm.dxf', 'merge_collector_cone_and_sleeve_0.065in_mm.dxf'],
    'two cut files, one per sheet thickness: ' + ', '.join(f['name'] for f in F))
 E = dxf_ents(F[0]['text'])
-ok(all(e[1]['8'] == 'CUT' for e in E) and '$INSUNITS\r\n70\r\n4' in F[0]['text'], 'every entity on the CUT layer, millimetres')
+ok(all(e[1]['8'] == 'CUT' for e in E) and '$INSUNITS\r\n70\r\n4' in F[0]['text'] and '$ACADVER\r\n1\r\nAC1009' in F[0]['text'], 'every entity on the CUT layer, millimetres')
 C = sorted([e[1] for e in E if e[0] == 'CIRCLE'], key=lambda d: -d['40'])
 rim, holes = C[0], C[1:]
 ok(len(holes) == 4 and all(abs(h['40'] - 10 * (od / 2 - wall)) < 1e-3 for h in holes), 'plate: four bore-size holes, %.2f mm' % (2 * holes[0]['40']))
-ok(abs(rim['40'] - (10 * col['d_in'] / 2 - 0.075)) < 1e-3, 'plate: %.2f mm across, 0.15 mm under the sleeve bore' % (2 * rim['40']))
+ok(abs(rim['40'] - (10 * (col['d_in'] + M.SLEEVE_FIT_CM) / 2 - 0.075)) < 1e-3, 'plate: %.2f mm across, 0.15 mm under the sleeve bore' % (2 * rim['40']))
 cen = [((h['10'] - rim['10']), (h['20'] - rim['20'])) for h in holes]
 ok(all(abs(math.hypot(*c) - 10 * od / (2 * math.sin(math.pi / 4))) < 1e-3 for c in cen) and
    abs(min(math.hypot(a[0] - b[0], a[1] - b[1]) for i, a in enumerate(cen) for b in cen[i + 1:]) - 10 * od) < 1e-3,
@@ -156,7 +156,7 @@ ok(len(A6) == 3 and abs(A6[0]['40'] * sweep(A6[0]) - 2 * math.pi * 10 * rm) < 1e
 _, si = M.sleeve_flat(p)
 ok(abs(si['w_mm'] - 2 * math.pi * 10 * ra) < 1e-6 and abs(si['h_mm'] - 10 * (p['sleeve'] + p['plate_t'])) < 1e-9, 'sleeve: %.1f × %.1f mm' % (si['w_mm'], si['h_mm']))
 # a straight collector rolls from a band
-cf, ci = M.cone_flat(M.plan(p['start'], p['axis'], slots, od, wall, col['d_in'], col['d_in'] + 2 * wall, 4.0 * IN, spike=False))
+cf, ci = M.cone_flat(M.plan(p['start'], p['axis'], slots, od, wall, col['d_in'], col['d_in'] + M.SLEEVE_FIT_CM + 2 * wall, 4.0 * IN, spike=False))
 ok(ci['kind'] == 'band' and abs(ci['w_mm'] - 2 * math.pi * 10 * ra) < 1e-6, 'no taper: the cone is a band')
 # the page's fixture: what the add-in sends back for a 4-into-1 (tests in web/tests/merge_files_ui.js)
 import json
@@ -164,5 +164,21 @@ fx = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web',
 json.dump({'ok': True, 'msg': 'Built 4 primaries into the collector.', 'route_ok': True,
            'items': [{'kind': 'merge', 'name': 'Merge collector', 'ok': True, 'note': M.summary(p, 'Merge collector')}],
            'files': [{k: f[k] for k in ('name', 'text', 'what')} for f in F]}, open(fx, 'w'), indent=1)
+# two tubes closer than their own diameter are refused; a spike cut short by the cone says which rule set it
+od2 = 1.625 * IN
+st = (0.0, 0.0, 0.0)
+sl2 = RT.collector_slots(st, (0.0, 0.0, 1.0), 4, od2, 0.0)
+cb = RT.collector_body(st, (0.0, 0.0, 1.0), 4, od2, 4.0 * IN, 3.0 * IN, None, 1.0)
+ang = math.radians(60.0)
+r0 = math.hypot(sl2[1][0], sl2[1][1])
+sl2[1] = (r0 * math.cos(ang), r0 * math.sin(ang), 0.0)
+try:
+    M.plan(st, (0.0, 0.0, 1.0), sl2, od2, wall, cb['d_in'], cb['d_out'], 4.0 * IN)
+    ok(False, 'unevenly spaced tubes that overlap are refused')
+except ValueError as ex:
+    ok('overlap' in str(ex), 'unevenly spaced tubes that overlap are refused: ' + str(ex))
+p8, s8, c8 = case(8, 2.0 * IN, wall, 4.0 * IN, 5.0 * IN)
+ok(any('three base radii' in n and 'does not grow' in n for n in p8['notes']) and p8['growth_ratio'] <= 1.0 + 1e-12,
+   '8 into 1, 2 in into 4 in, 5 in long: the spike is cut by the cone and the note says the open area still does not grow')
 print('failures:', len(fails))
 sys.exit(1 if fails else 0)

@@ -643,6 +643,12 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   not the method. A -7.2 dB/octave tilt fitted leave-one-out lowers every hold's RMS (10.8 -> 9.5 dB overall). The
   Spintech's inside is unpublished (US 5,824,972 layout only). Page: Compare a recording reports the tilt and the RMS
   without it (rec_ui.js).
+- Merge cut files reviewed independently (2026-11-04, a separate agent with its own scripts): no defects; plate,
+  section, spike area rule, hollow spike, volume (within 0.03 % of a numerical integration), flat patterns rolled
+  back up, DXF entities all check. Its four minor points fixed: the sleeve bore now clears the bundle by 0.4 mm on the
+  diameter (SLEEVE_FIT_CM; the plate is 0.15 mm under that), $ACADVER AC1009 in the DXF header and _mm in the file
+  names, the ligament between holes measured from the actual hole centres and overlapping tubes refused, and the
+  spike note says which rule cut it.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
