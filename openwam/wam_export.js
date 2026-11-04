@@ -198,8 +198,8 @@
   }
 
   // ------------------------------------------------------------------ model -> text
-  const BC_DESC = { open: 'open end', closed: 'closed end', ivalve: 'intake valve', evalve: 'exhaust valve', branch: 'junction', step: 'diameter step', plenum: 'plenum port', reservoir: 'reservoir' };
-  const BC_ENDS = { open: [1, 1], closed: [1, 1], ivalve: [1, 1], evalve: [1, 1], step: [2, 2], branch: [2, 999], plenum: [1, 1], reservoir: [1, 1] };
+  const BC_DESC = { open: 'open end', closed: 'closed end', ivalve: 'intake valve', evalve: 'exhaust valve', branch: 'junction', step: 'diameter step', plenum: 'plenum port', reservoir: 'reservoir', loss: 'pressure loss' };
+  const BC_ENDS = { open: [1, 1], closed: [1, 1], ivalve: [1, 1], evalve: [1, 1], step: [2, 2], branch: [2, 999], plenum: [1, 1], reservoir: [1, 1], loss: [2, 2] };
   function pipeLen(pp) { let s = 0.0; for (const sec of pp.secs) s += sec[0]; return s; }
   function endD(pp, side) { return side === 'left' ? pp.D0 : pp.secs[pp.secs.length - 1][1]; }
   function getBc(bcs, k) { return bcs instanceof Map ? bcs.get(k) : bcs[k]; }
@@ -443,6 +443,9 @@
         w.v(12, T + ':1376 BC type 12 = branch TCCRamificacion, takes every pipe end with this number, reads no data TCCRamificacion.cpp:94-147');
       } else if (t === 'closed') {
         w.v(3, T + ':1294 BC type 3 = closed end TCCExtremoCerrado, reads no data');
+      } else if (t === 'loss') {
+        w.v(10, T + ':1356 BC type 10 = quadratic pressure loss TCCPerdidadePresion between two pipe ends');
+        w.v(+b.K, 'TCCPerdidadePresion.cpp:134 loss coefficient K on the velocity head of the pipe the flow leaves');
       } else if (t === 'step') {
         w.v(6, T + ':1314 BC type 6 = pipe-to-pipe connection TCCUnionEntreTubos');
         w.row([0.0, 0.0], 'TCCUnionEntreTubos.cpp:200 wall thickness m, conductivity W/mK; wall conduction only, unused with constant wall T');
@@ -701,7 +704,24 @@
     if (!stepT) throw new Error('step_bc must be union or branch');
     const pipes = [], bcs = new Map(), plenums = [];
     const twC = line => (line.Tw ? line.Tw : CALC_TATM_K) - K0;
+    const lossAt = new Map();   // v8: junction key -> [K, what]: each line into it ends in a pressure loss
+    // a line of pipes; into a junction with a loss coefficient, its last 3 cells go after a quadratic pressure-loss BC
     function addLine(segs, left, right, role, Twc, Tgc, comp, ht) {
+      if (lossAt.has(right)) {
+        const [K, what] = lossAt.get(right);
+        let total = 0.0;
+        for (const sg of segs) total += +sg.L;
+        const Lk = 3.0 * p.cell_mm / 1000.0;
+        if (total <= 2.0 * Lk) throw new Error(role + ' is ' + pctG(total * 1000.0) + ' mm, too short to end in the ' + what + ' loss (needs over ' + pctG(2.0 * Lk * 1000.0) + ' mm)');
+        const sp = splitSegsAt(segs, total - Lk), lk = role + '/loss';
+        bcs.set(lk, { type: 'loss', K, note: role + ', ' + what + ' loss K ' + pctG(K) });
+        addLineRaw(sp[0], left, lk, role, Twc, Tgc, comp, ht);
+        addLineRaw(sp[1], lk, right, role + ' into the ' + what, Twc, Tgc, comp, ht);
+        return;
+      }
+      addLineRaw(segs, left, right, role, Twc, Tgc, comp, ht);
+    }
+    function addLineRaw(segs, left, right, role, Twc, Tgc, comp, ht) {
       const runs = splitRuns(segs), keys = [left];
       for (let j = 1; j < runs.length; j++) {
         const sk = role + '/step' + j;
@@ -865,11 +885,17 @@
       if (nfinal < 2) throw new Error('collector ' + (ci + 1) + ': the last junction needs at least two inlets');
       const jkey = 'col' + (ci + 1) + '/J';
       bcs.set(jkey, { type: 'branch', note: 'collector ' + (ci + 1) + ' junction' });
+      if (has(col, 'loss_K')) {
+        if (!(+col.loss_K >= 0.0)) throw new Error('collector ' + (ci + 1) + ': loss_K must be zero or more');
+        if (+col.loss_K > 0.0) lossAt.set(jkey, [+col.loss_K, 'collector ' + (ci + 1) + ' merge']);
+      }
       levels.forEach((lv, si) => {
         lv.jkeys = [];
         lv.groups.forEach((grp, gi) => {
           const k = 'col' + (ci + 1) + '/L' + (si + 1) + '/J' + (gi + 1);
           bcs.set(k, { type: 'branch', note: 'collector ' + (ci + 1) + ' level ' + (si + 1) + ' junction ' + (gi + 1) });
+          const lk_ = (col.stages || [])[si].loss_K;
+          if (lk_ !== undefined && lk_ !== null && +lk_ > 0.0) lossAt.set(k, [+lk_, 'collector ' + (ci + 1) + ' level ' + (si + 1) + ' merge ' + (gi + 1)]);
           lv.jkeys.push(k);
           if (si === 0) for (const g of grp) primEnd.set(g, k);
         });

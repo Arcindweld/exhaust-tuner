@@ -25,6 +25,15 @@ const { chromium } = require('playwright');
   await pg.fill('input.wamline[data-k="x"]', '200'); await pg.dispatchEvent('input.wamline[data-k="x"]', 'input');
   t = await wam();
   ok(/^ERR .*has to sit on the pipe/.test(t), 'a drone fix past the pipe is refused: ' + t.slice(0, 120));
+  // merge losses from the exhaust CFD (make_wam v8): a quadratic pressure loss on each primary into the collector
+  await pg.fill('input.wamline[data-k="x"]', '20'); await pg.dispatchEvent('input.wamline[data-k="x"]', 'input');
+  await pg.fill('input.wamloss[data-k="K"]', '0.6'); await pg.dispatchEvent('input.wamloss[data-k="K"]', 'input');
+  t = await wam();
+  const n10 = (t.match(/BC type 10 = quadratic pressure loss/g) || []).length;
+  ok(n10 >= 2 && /collector 1 merge loss K 0\.6/.test(t) && /^0\.6\s+<TCCPerdidadePresion/m.test(t), 'K 0.6 on the merge: ' + n10 + ' pressure-loss BCs, one per primary');
+  await pg.fill('input.wamloss[data-k="K"]', '0'); await pg.dispatchEvent('input.wamloss[data-k="K"]', 'input');
+  t = await wam();
+  ok(!/BC type 10/.test(t), 'K 0: no loss in the case');
   ok(errs.length === 0, 'no page errors ' + errs.join('|'));
   console.log(fails.length ? 'FAILS: ' + fails.length : 'all passed');
   await b.close(); process.exit(fails.length ? 1 : 0);

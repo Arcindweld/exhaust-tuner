@@ -154,6 +154,12 @@ jobs.push({ label: 'error: empty outlet', kind: 'spec', spec: withTail(spec('i4_
 jobs.push({ label: 'error: outlet segment without d1_mm', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 50, d1_mm: 50 }, { V_litres: 5 }, { outlets: [[{ L_mm: 100, d0_mm: 40 }]] }]), run: {} });
 jobs.push({ label: 'error: per_cyl count', kind: 'spec', spec: (() => { const s = spec('i4_41'); s.exhaust.per_cyl = [s.exhaust.segs, s.exhaust.segs]; return s; })(), run: {} });
 jobs.push({ label: 'error: segs_by_group count', kind: 'spec', spec: (() => { const s = spec('i4_triy'); s.opt.collectors[0].stages[0].segs_by_group = [null]; return s; })(), run: {} });
+// v8: merge losses from CFD (a quadratic pressure loss on each line into the junction)
+{ const sp = spec('i4_41'); sp.opt.collector.loss_K = 0.55; jobs.push({ label: 'v8: 4-1 merge loss K 0.55', kind: 'spec', spec: sp, run: { rpm: 6000.0 } }); }
+{ const sp = spec('i4_triy'); sp.opt.collectors[0].stages[0].loss_K = 0.3; sp.opt.collectors[0].loss_K = 0.45; jobs.push({ label: 'v8: Tri-Y, both merges with a loss', kind: 'spec', spec: sp, run: { rpm: 6000.0 } }); }
+{ const sp = spec('v8_dual'); sp.opt.collectors[1].loss_K = 0.123456789; jobs.push({ label: 'v8: dual 4-1, one collector with a loss', kind: 'spec', spec: sp, run: { rpm: 5000.0, step_bc: 'branch' } }); }
+{ const sp = spec('i4_41'); sp.opt.collector.loss_K = 0.5; jobs.push({ label: 'error: a primary too short for the merge loss', kind: 'spec', spec: sp, run: { rpm: 6000.0, cell_mm: 300 } }); }
+{ const sp = spec('i4_41'); sp.opt.collector.loss_K = -1; jobs.push({ label: 'error: a negative merge loss', kind: 'spec', spec: sp, run: { rpm: 6000.0 } }); }
 jobs.push({ label: 'error: chambers', kind: 'spec', spec: Object.assign(spec('i4_41'), { exhaust: Object.assign(spec('i4_41').exhaust, { chambers: [{ x: 0.1, V: 1e-4, A: 1e-5, Le: 0.002 }] }) }), run: {} });
 jobs.push({ label: 'error: tail ends in a plenum', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 60, d1_mm: 60 }, { V_litres: 5 }]), run: {} });
 jobs.push({ label: 'error: tail starts with a plenum', kind: 'spec', spec: withTail(spec('i4_41'), [{ V_litres: 5 }, { L_mm: 500, d0_mm: 60, d1_mm: 60 }]), run: {} });

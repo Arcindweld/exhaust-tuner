@@ -3199,8 +3199,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   }
 
   // ------------------------------------------------------------------ model -> text
-  const BC_DESC = { open: 'open end', closed: 'closed end', ivalve: 'intake valve', evalve: 'exhaust valve', branch: 'junction', step: 'diameter step', plenum: 'plenum port', reservoir: 'reservoir' };
-  const BC_ENDS = { open: [1, 1], closed: [1, 1], ivalve: [1, 1], evalve: [1, 1], step: [2, 2], branch: [2, 999], plenum: [1, 1], reservoir: [1, 1] };
+  const BC_DESC = { open: 'open end', closed: 'closed end', ivalve: 'intake valve', evalve: 'exhaust valve', branch: 'junction', step: 'diameter step', plenum: 'plenum port', reservoir: 'reservoir', loss: 'pressure loss' };
+  const BC_ENDS = { open: [1, 1], closed: [1, 1], ivalve: [1, 1], evalve: [1, 1], step: [2, 2], branch: [2, 999], plenum: [1, 1], reservoir: [1, 1], loss: [2, 2] };
   function pipeLen(pp) { let s = 0.0; for (const sec of pp.secs) s += sec[0]; return s; }
   function endD(pp, side) { return side === 'left' ? pp.D0 : pp.secs[pp.secs.length - 1][1]; }
   function getBc(bcs, k) { return bcs instanceof Map ? bcs.get(k) : bcs[k]; }
@@ -3444,6 +3444,9 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         w.v(12, T + ':1376 BC type 12 = branch TCCRamificacion, takes every pipe end with this number, reads no data TCCRamificacion.cpp:94-147');
       } else if (t === 'closed') {
         w.v(3, T + ':1294 BC type 3 = closed end TCCExtremoCerrado, reads no data');
+      } else if (t === 'loss') {
+        w.v(10, T + ':1356 BC type 10 = quadratic pressure loss TCCPerdidadePresion between two pipe ends');
+        w.v(+b.K, 'TCCPerdidadePresion.cpp:134 loss coefficient K on the velocity head of the pipe the flow leaves');
       } else if (t === 'step') {
         w.v(6, T + ':1314 BC type 6 = pipe-to-pipe connection TCCUnionEntreTubos');
         w.row([0.0, 0.0], 'TCCUnionEntreTubos.cpp:200 wall thickness m, conductivity W/mK; wall conduction only, unused with constant wall T');
@@ -3702,7 +3705,24 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     if (!stepT) throw new Error('step_bc must be union or branch');
     const pipes = [], bcs = new Map(), plenums = [];
     const twC = line => (line.Tw ? line.Tw : CALC_TATM_K) - K0;
+    const lossAt = new Map();   // v8: junction key -> [K, what]: each line into it ends in a pressure loss
+    // a line of pipes; into a junction with a loss coefficient, its last 3 cells go after a quadratic pressure-loss BC
     function addLine(segs, left, right, role, Twc, Tgc, comp, ht) {
+      if (lossAt.has(right)) {
+        const [K, what] = lossAt.get(right);
+        let total = 0.0;
+        for (const sg of segs) total += +sg.L;
+        const Lk = 3.0 * p.cell_mm / 1000.0;
+        if (total <= 2.0 * Lk) throw new Error(role + ' is ' + pctG(total * 1000.0) + ' mm, too short to end in the ' + what + ' loss (needs over ' + pctG(2.0 * Lk * 1000.0) + ' mm)');
+        const sp = splitSegsAt(segs, total - Lk), lk = role + '/loss';
+        bcs.set(lk, { type: 'loss', K, note: role + ', ' + what + ' loss K ' + pctG(K) });
+        addLineRaw(sp[0], left, lk, role, Twc, Tgc, comp, ht);
+        addLineRaw(sp[1], lk, right, role + ' into the ' + what, Twc, Tgc, comp, ht);
+        return;
+      }
+      addLineRaw(segs, left, right, role, Twc, Tgc, comp, ht);
+    }
+    function addLineRaw(segs, left, right, role, Twc, Tgc, comp, ht) {
       const runs = splitRuns(segs), keys = [left];
       for (let j = 1; j < runs.length; j++) {
         const sk = role + '/step' + j;
@@ -3866,11 +3886,17 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       if (nfinal < 2) throw new Error('collector ' + (ci + 1) + ': the last junction needs at least two inlets');
       const jkey = 'col' + (ci + 1) + '/J';
       bcs.set(jkey, { type: 'branch', note: 'collector ' + (ci + 1) + ' junction' });
+      if (has(col, 'loss_K')) {
+        if (!(+col.loss_K >= 0.0)) throw new Error('collector ' + (ci + 1) + ': loss_K must be zero or more');
+        if (+col.loss_K > 0.0) lossAt.set(jkey, [+col.loss_K, 'collector ' + (ci + 1) + ' merge']);
+      }
       levels.forEach((lv, si) => {
         lv.jkeys = [];
         lv.groups.forEach((grp, gi) => {
           const k = 'col' + (ci + 1) + '/L' + (si + 1) + '/J' + (gi + 1);
           bcs.set(k, { type: 'branch', note: 'collector ' + (ci + 1) + ' level ' + (si + 1) + ' junction ' + (gi + 1) });
+          const lk_ = (col.stages || [])[si].loss_K;
+          if (lk_ !== undefined && lk_ !== null && +lk_ > 0.0) lossAt.set(k, [+lk_, 'collector ' + (ci + 1) + ' level ' + (si + 1) + ' merge ' + (gi + 1)]);
           lv.jkeys.push(k);
           if (si === 0) for (const g of grp) primEnd.set(g, k);
         });
@@ -13729,7 +13755,8 @@ document.addEventListener('click',e=>{ if(e.target.closest('#h-uel-reset')){ HUE
 
 /* ===== OpenWAM: a full 1-D case for the free OpenWAM 2.2 solver, several engine speeds, run with a .bat ===== */
 const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[],
-  line:{on:false,L:2500,d:76.2,muf:0,tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38}};   // the line after the collector (mm, litres)
+  line:{on:false,L:2500,d:76.2,muf:0,tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38},
+  loss:{K:0,Ky:0,src:''}};   // merge losses (make_wam v8): the collector's and the Tri-Y merges' K, from the exhaust CFD   // the line after the collector (mm, litres)
 // The line after the collector for the OpenWAM case (make_wam tail elements): pipe, an optional drone fix off the pipe
 // (a J-pipe = quarter-wave tube to a closed end, or a Helmholtz can on a neck) at x from the collector, an optional
 // muffler as an expansion volume, and the tailpipe to the open end. null when off; {err} when it does not add up.
@@ -13748,8 +13775,12 @@ function wamLineTail(){
   return {tail:out};
 }
 function wamWithLine(spec){
-  const t=wamLineTail(); if(!t) return {spec}; if(t.err) return {err:t.err};
-  const sp=JSON.parse(JSON.stringify(spec)), o=sp.opt||{};
+  const t=wamLineTail(); if(t&&t.err) return {err:t.err};
+  const sp=JSON.parse(JSON.stringify(spec)), o=sp.opt||{}, L=WAM_UI.loss||{};
+  // merge losses from the exhaust CFD: K on the inlet's velocity head, at the collector and at the Tri-Y merges
+  if(L.K>0){ if(o.collector) o.collector.loss_K=+L.K; else (o.collectors||[]).forEach(c=>{ c.loss_K=+L.K; }); }
+  if(L.Ky>0) (o.collectors||[]).forEach(c=>{ if(c.stages&&c.stages.length) c.stages[0].loss_K=+L.Ky; });
+  if(!t) return {spec:sp};
   if(o.collector) o.collector.tail=t.tail; else if(o.collectors&&o.collectors.length) o.collectors.forEach(c=>{ c.tail=t.tail; });
   else { if(sp.exhaust.chambers&&sp.exhaust.chambers.length) return {err:'Line after the collector: a single primary with a chamber on it cannot also take the line here.'}; sp.exhaust.tail=t.tail; }
   return {spec:sp};
@@ -13790,8 +13821,13 @@ function wamLineUi(){
     if(W.fix!=='none') h+=L('x','Distance from the collector','len')+(W.fix==='jpipe'?L('qL','J-pipe length','len')+L('qd','J-pipe inside diameter','len'):L('hV','Can volume','num')+L('hL','Neck length','len')+L('hd','Neck inside diameter','len'));
     h+='</div><p class="cap">The muffler is an expansion volume (it has the low-frequency behaviour of a chambered muffler, not its baffles or packing). The J-pipe and the can sit on the pipe at the distance given; the Mufflers tab works out their lengths and volumes for a drone frequency. Every case written, run, fitted or optimised here uses this line.</p>';
   }
+  const Lo=WAM_UI.loss;
+  h+='<div class="grid2 span2"><label class="f"><span class="lab">Collector merge loss K (0: none)</span><span class="inp"><input class="wamloss" data-k="K" type="number" step="0.01" min="0" inputmode="decimal" value="'+(+(+Lo.K||0).toFixed(3))+'"></span></label>'+
+    '<label class="f"><span class="lab">Tri-Y / 8-4-1 first merge loss K (0: none)</span><span class="inp"><input class="wamloss" data-k="Ky" type="number" step="0.01" min="0" inputmode="decimal" value="'+(+(+Lo.Ky||0).toFixed(3))+'"></span></label></div>'+
+    '<p class="cap span2">OpenWAM joins pipes without loss. A K here (the total-pressure loss on the inlet’s velocity head, as the exhaust CFD on the Headers tab reports it) puts a quadratic pressure loss on every pipe into that merge, 3 cells before it.'+(Lo.src?' Now: '+esc(Lo.src)+'.':' “Use K in OpenWAM” under the exhaust CFD results fills it.')+'</p>';
   return '<div class="grid2 span2" style="max-width:640px">'+h+'</div>';
 }
+document.addEventListener('input',e=>{ const el=e.target.closest('input.wamloss'); if(!el) return; const v=parseFloat(el.value); WAM_UI.loss[el.dataset.k]=Number.isFinite(v)&&v>0?v:0; WAM_UI.loss.src=''; });
 document.addEventListener('change',e=>{ const el=e.target.closest('select.wamline'); if(!el) return; const k=el.dataset.k; WAM_UI.line[k]=k==='on'?el.value==='1':el.value; renderActive(); });
 document.addEventListener('input',e=>{ const el=e.target.closest('input.wamline'); if(!el) return; readInput(el); if(Number.isFinite(el._b)) WAM_UI.line[el.dataset.k]=el._b; });
 window.__wamFiles=(q,sp)=>wamFiles(q,sp);   // for tests/wamline_ui.js
@@ -14418,10 +14454,18 @@ function exhSection(r,p,e){
         '<tr><td>'+esc(c.case||c.name)+'<br><small>'+esc(c.solver)+', '+Math.round(c.it)+' it, '+(c.conv?'converged':'NOT converged')+'</small></td><td>'+(c.mdot*1000).toFixed(1)+' g/s at '+Math.round(c.T-273.15)+' °C</td><td>'+Math.round(c.U)+' m/s (M '+f2(c.M)+')</td><td>'+f2(c.dpt/1000)+' kPa<br><small>'+Math.round(c.dpt/100)+' mbar</small></td><td>'+f3(c.K)+'</td><td>'+f3(c.Ka)+'</td><td>'+f2(c.bp/1000)+' kPa</td><td>'+(Object.keys(c.split).length>1?Object.keys(c.split).map(k=>esc(k)+' '+Math.round(c.split[k]*1000)/10+'%').join('<br>'):'one inlet')+'</td><td>'+f3(c.ui)+'</td></tr>').join('')+'</tbody></table></div>';
     const lines=R.filter(c=>!c.err).map(c=>{ let t=esc(c.case||c.name)+': '+IntakeCFD.interpretExhaustK(c.K,EXH_PARTS[EXH_UI.part]?EXH_PARTS[EXH_UI.part].label.toLowerCase():'this part'); const ks=Object.keys(c.split); if(ks.length>1){ const v=ks.map(k=>c.split[k]), sp=Math.max(...v)-Math.min(...v); t+=sp<0.03?' The inlets share the flow evenly.':' The inlets are '+Math.round(sp*100)+' points apart in flow: the merge favours '+esc(ks[v.indexOf(Math.max(...v))])+'.'; } if(!c.conv) t+=' The run did not meet the convergence checks ('+esc(c.notes.join('; '))+'); treat the numbers as provisional.'; return t; });
     if(lines.length) h+='<ul class="list" id="exh-reading">'+lines.map(t=>'<li>'+t+'</li>').join('')+'</ul>';
+    if(EXH_UI.part==='collector'||EXH_UI.part==='secondary'){
+      const ok=R.map((c,i)=>c.err||!(c.K>0)?'':'<button type="button" class="btn" data-exhk="'+i+'">Use K '+c.K.toFixed(2)+' of '+esc(c.case||c.name)+' in OpenWAM</button>').join('');
+      if(ok) h+='<div class="actions" style="margin-top:10px">'+ok+'</div><p class="cap">Sets the '+(EXH_UI.part==='collector'?'collector merge':'Tri-Y / 8-4-1 first merge')+' loss in the OpenWAM cases from the 4-Stroke tab (Run it in OpenWAM, the dyno fit and the header optimiser).</p>';
+    }
   }
   return '<div class="adv" id="headers-cfd">'+sec('Exhaust component CFD (OpenFOAM)',h)+'</div>';
 }
 window.__exh={design:()=>EXH_LAST?exhDesign(EXH_LAST.r,EXH_LAST.p,EXH_LAST.e):null,build:exhBuild,download:exhDownload,run:exhRun,ui:EXH_UI};
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-exhk]'); if(!b) return;
+  const c=EXH_UI.results[+b.dataset.exhk]; if(!c||!(c.K>0)) return;
+  const key=EXH_UI.part==='secondary'?'Ky':'K'; WAM_UI.loss[key]=+c.K.toFixed(4); WAM_UI.loss.src=(key==='K'?'collector':'first merge')+' K '+c.K.toFixed(2)+' from '+(c.case||c.name);
+  b.textContent='Set: K '+c.K.toFixed(2)+' in OpenWAM'; });
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-exh]'); if(!b) return;
   if(b.dataset.exh==='dl') exhDownload(); else if(b.dataset.exh==='run') exhRun(); else if(b.dataset.exh==='stop'&&HOST) HOST.cancel();
   else if(b.dataset.exh==='stl'&&FUSION&&EXH_LAST){ const d=exhDesign(EXH_LAST.r,EXH_LAST.p,EXH_LAST.e);

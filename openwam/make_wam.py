@@ -291,9 +291,10 @@ def cd_table(n_valves, d_mm, lmax_mm, step_mm, cd, cap, a_pipe_m2, clip):
 # plenums (optional list): V_m3, T_C (initial gas temperature), p_bar, comp [burnt, fuel, air], note.
 # BCs are numbered in order of first reference, walking the pipes in order, left end first.
 BC_DESC = {"open": "open end", "closed": "closed end", "ivalve": "intake valve", "evalve": "exhaust valve",
-           "branch": "junction", "step": "diameter step", "plenum": "plenum port", "reservoir": "reservoir"}
+           "branch": "junction", "step": "diameter step", "plenum": "plenum port", "reservoir": "reservoir",
+           "loss": "pressure loss"}
 BC_ENDS = {"open": (1, 1), "closed": (1, 1), "ivalve": (1, 1), "evalve": (1, 1), "step": (2, 2), "branch": (2, 999), "plenum": (1, 1),
-           "reservoir": (1, 1)}
+           "reservoir": (1, 1), "loss": (2, 2)}
 
 
 def pipe_len(pp):
@@ -586,6 +587,9 @@ def write_model(m):
                 "reads no data TCCRamificacion.cpp:94-147")
         elif t == "closed":
             w.v(3, T + ":1294 BC type 3 = closed end TCCExtremoCerrado, reads no data")
+        elif t == "loss":
+            w.v(10, T + ":1356 BC type 10 = quadratic pressure loss TCCPerdidadePresion between two pipe ends")
+            w.v(float(b["K"]), "TCCPerdidadePresion.cpp:134 loss coefficient K on the velocity head of the pipe the flow leaves")
         elif t == "step":
             w.v(6, T + ":1314 BC type 6 = pipe-to-pipe connection TCCUnionEntreTubos")
             w.row([0.0, 0.0], "TCCUnionEntreTubos.cpp:200 wall thickness m, conductivity W/mK; wall conduction "
@@ -876,6 +880,9 @@ def model_from_spec(spec, run=None):
               stage-0 groups list cylinder indices, later groups list the previous stage's group indices.
               A stage may carry segs_by_group: [segs or None, ...], one per group, None = the stage's segs
               (v4: unequal secondaries).
+              A collector may carry loss_K, and a stage loss_K (v8): the merge's total-pressure loss coefficient on
+              the inlet's velocity head (the exhaust CFD's K). Each line into that junction then ends in a quadratic
+              pressure-loss BC (TCCPerdidadePresion, type 10) 3 cells before it; the junction itself stays lossless.
     run: run settings / overrides of DEFAULTS and EXTRA_DEFAULTS keys (rpm, cycles, name, cell_mm ...).
     """
     run = dict(run or {})
@@ -929,7 +936,28 @@ def model_from_spec(spec, run=None):
     def tw_c(line):
         return (line["Tw"] if line.get("Tw") else CALC_TATM_K) - K0
 
+    loss_at = {}       # v8: junction key -> (loss coefficient K, what it is): each line into it ends in a pressure loss
+
     def add_line(segs, left, right, role, Twc, Tgc, comp, ht):
+        """a line of pipes; into a junction with a loss coefficient, its last 3 cells go after a quadratic pressure-loss
+        BC (the merge's loss, from CFD: K on the inlet's velocity head)"""
+        if right in loss_at:
+            K, what = loss_at[right]
+            total = 0.0
+            for sg in segs:
+                total += float(sg["L"])
+            Lk = 3.0 * p["cell_mm"] / 1000.0
+            if total <= 2.0 * Lk:
+                raise ValueError("%s is %g mm, too short to end in the %s loss (needs over %g mm)" % (role, total * 1000.0, what, 2.0 * Lk * 1000.0))
+            before, last = split_segs_at(segs, total - Lk)
+            lk = "%s/loss" % role
+            bcs[lk] = {"type": "loss", "K": K, "note": "%s, %s loss K %g" % (role, what, K)}
+            add_line_raw(before, left, lk, role, Twc, Tgc, comp, ht)
+            add_line_raw(last, lk, right, role + " into the " + what, Twc, Tgc, comp, ht)
+            return
+        add_line_raw(segs, left, right, role, Twc, Tgc, comp, ht)
+
+    def add_line_raw(segs, left, right, role, Twc, Tgc, comp, ht):
         runs = split_runs(segs)
         keys = [left]
         for j in range(1, len(runs)):
@@ -1146,12 +1174,20 @@ def model_from_spec(spec, run=None):
             raise ValueError("collector %d: the last junction needs at least two inlets" % (ci + 1))
         jkey = "col%d/J" % (ci + 1)
         bcs[jkey] = {"type": "branch", "note": "collector %d junction" % (ci + 1)}
+        if col.get("loss_K") is not None:
+            if not (float(col["loss_K"]) >= 0.0):
+                raise ValueError("collector %d: loss_K must be zero or more" % (ci + 1))
+            if float(col["loss_K"]) > 0.0:
+                loss_at[jkey] = (float(col["loss_K"]), "collector %d merge" % (ci + 1))
         # right end of each inlet into level 0 / later levels
         for si, lv in enumerate(levels):
             lv["jkeys"] = []
             for gi, grp in enumerate(lv["groups"]):
                 k = "col%d/L%d/J%d" % (ci + 1, si + 1, gi + 1)
                 bcs[k] = {"type": "branch", "note": "collector %d level %d junction %d" % (ci + 1, si + 1, gi + 1)}
+                lk_ = (col.get("stages") or [])[si].get("loss_K")
+                if lk_ is not None and float(lk_) > 0.0:
+                    loss_at[k] = (float(lk_), "collector %d level %d merge %d" % (ci + 1, si + 1, gi + 1))
                 lv["jkeys"].append(k)
                 for g in grp:
                     if si == 0:

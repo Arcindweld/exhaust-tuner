@@ -356,6 +356,10 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   tab and exhaust opening from a card on the Headers tab, prompted by the CamCalc Wizard sheet (BuildAndClick, sent by
   the owner 2026-11-03; standard cam-card arithmetic, the sheet itself not copied into the repo); mandrel bend research
   (web/data/mandrel_bends_research.json: 152 JMD, 60 Vibrant, no Alucon found) merged into the parts list as PARTS_BENDS2 (209 new; the cut list and the Parts tab use them).
+  CFD merge losses into OpenWAM (make_wam v8, wam_export.js the same, test_py_js 106 cases): collector loss_K and
+  stage loss_K put a quadratic pressure-loss BC (TCCPerdidadePresion, type 10) on every line into that merge, 3
+  cells before it; an LS3 dual 4-1 at 5000 rpm with K 0.6 lost 0.5 % torque (PMEP 0.79 -> 0.84 bar). Page: K inputs
+  under the line after the collector, and "Use K in OpenWAM" under the exhaust CFD results (collector / secondary).
   v8_841_study.py now resumes (finished runs of the same case text are kept; fresh=1 forces);
   the v4 rerun on the calibrated engine is in openwam/runs/v8_841/*_v4*.
 - Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the
