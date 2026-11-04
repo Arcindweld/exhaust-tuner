@@ -84,6 +84,18 @@ ok(len(da) == 2 and all(abs(c['s'] - x) < 1e-9 for c, x in zip(da, (5.0, 15.0)))
    all(any(abs(sg[0][1] - 3.6) < 1e-9 for sg in c['cut']) for c in da),
    'a tube beside the block (a header bundle) does not move it: it notches the side wall (the cradle holds both)')
 ok(all(len(c['foot']['holes']) == 2 and abs(c['foot']['width'] - (od + 1.6 + 4.8)) < 1e-9 for c in cs), 'each foot: two M6 holes')
+# a crossing tube under a level run that turns steep within a block length or two: the cradle may not slide onto the
+# steep part, and the note must say a tube runs under it, not quote the level run's angle (seen live on a Tri-Y)
+L1e = ('line', (0.0, 0.0, 10.0), (16.0, 0.0, 10.0), 16.0)
+up70 = (math.cos(math.radians(70)), 0.0, math.sin(math.radians(70)))
+L2e = ('line', (16.0, 0.0, 10.0), tuple((16.0, 0.0, 10.0)[k] + 20.0 * up70[k] for k in range(3)), 20.0)
+tubeE = {'name': 'Kinked', 'elems': [L1e, L2e], 'od': od}
+tubeF = {'name': 'Under', 'elems': [('line', (8.0, -10.0, 6.0), (8.0, 10.0, 6.0), 20.0), ('line', (8.0, 10.0, 6.0), (12.0, 10.0, 6.0), 4.0)], 'od': 5.08}
+pe = J.plan([tubeE, tubeF])
+why = [k['why'] for k in pe['skipped'] if k['tube'] == 'Kinked' and k['s'] < 16.0]
+ce = [c for c in pe['cradles'] if c['tube'] == 'Kinked' and c['s'] < 16.0]
+ok(all('runs under' in w for w in why) and all(RT.vdot(c['d'], (0, 0, 1)) < 0.5 for c in ce),
+   'a blocked cradle on a level run never lands on the steep part, and its note names the tube under it: %s' % (why or [c['s'] for c in ce]))
 s = J.summary(p)
 ok(s['count'] == len(cs) and s['per_tube']['Primary 1'] == 4, 'summary: %d cradles, tallest %.1f cm' % (s['count'], s['tallest']))
 

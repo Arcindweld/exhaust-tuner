@@ -1073,6 +1073,13 @@ def new_component(design, name):
     """A new component named name, or the root component in a Part Design document (Fusion 2025+ Part
     documents hold one component only; everything then goes into the root, named bodies and sketches tell them apart)."""
     root = design.rootComponent
+    # ask first: a failed addNewComponent leaves Fusion's error set, and the next TemporaryBRepManager.get() raises it
+    # again (seen live, Fusion 2026, a Part Design document); designIntent is a preview property, so read it carefully
+    try:
+        if int(getattr(design, 'designIntent')) == 0:        # DesignIntentTypes.PartDesignIntentType
+            return root
+    except Exception:
+        pass
     try:
         occ = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
         comp = occ.component
@@ -2882,14 +2889,27 @@ def jig_body(tbm, c):
     tbm.booleanOperation(blk, tbm.createBox(OBB(P(f['centre']), V(c['d']), V(c['w']), c['length'], f['width'], f['thick'])),
                          B.UnionBooleanType)
     joints = set()
+    def cut(make):
+        # a cut whose faces nearly meet the block's (seen live: ASM_BAD_CONTAINMENT on a two-stage header) is tried
+        # again 0.03 mm larger and 0.1 mm longer at each end, well inside the 0.25 mm clearance; still failing, skipped
+        for grow in (0.0, 0.003):
+            try:
+                tbm.booleanOperation(blk, make(grow), B.DifferenceBooleanType)
+                return
+            except RuntimeError:
+                pass
+        c['skipped_cuts'] = c.get('skipped_cuts', 0) + 1
+    def ext(a, b, e):
+        d = _unit(_sub(b, a))
+        return tuple(a[k] - d[k] * e for k in range(3)), tuple(b[k] + d[k] * e for k in range(3))
     for a, b, r in c['cut']:
-        tbm.booleanOperation(blk, tbm.createCylinderOrCone(P(a), r, P(b), r), B.DifferenceBooleanType)
+        cut(lambda g, a=a, b=b, r=r: (lambda q: tbm.createCylinderOrCone(P(q[0]), r + g, P(q[1]), r + g))(ext(a, b, 10 * g / 3) if g else (a, b)))
         for q in (a, b):
             k = tuple(round(x, 5) for x in q) + (round(r, 5),)
             if k not in joints:
                 joints.add(k)
                 if hasattr(tbm, 'createSphere'):
-                    tbm.booleanOperation(blk, tbm.createSphere(P(q), r), B.DifferenceBooleanType)
+                    cut(lambda g, q=q, r=r: tbm.createSphere(P(q), r + g))
     up, h = c['up'], f['thick'] + 0.2
     for q in f['holes']:
         a = tuple(q[k] - up[k] * h for k in range(3))
@@ -2906,8 +2926,8 @@ def act_jig(data):
     plan = JIG.plan(tubes, (0.0, 0.0, 1.0) if z_up else (0.0, 1.0, 0.0), opts)
     if not plan['cradles']:
         raise ValueError('No place along these tubes is level enough for a cradle. ' + ' '.join(plan['notes']))
+    tbm = adsk.fusion.TemporaryBRepManager.get()         # before the component (see new_component)
     comp = _new_component(str(data.get('title') or 'Tack jig'))
-    tbm = adsk.fusion.TemporaryBRepManager.get()
     named = []
     for n, c in enumerate(plan['cradles'], 1):
         named.append((jig_body(tbm, c), 'Cradle %d (%s at %.0f mm)' % (n, c['tube'], 10 * c['s'])))
@@ -2917,6 +2937,10 @@ def act_jig(data):
     if split:
         plan['notes'].append('%s came out in more than one piece (a tube cuts through it): move or delete %s.' % (
             ', '.join(split), 'it' if len(split) == 1 else 'them'))
+    rough = ['Cradle %d' % n for n, c in enumerate(plan['cradles'], 1) if c.get('skipped_cuts')]
+    if rough:
+        plan['notes'].append('Fusion could not cut part of the saddle in %s (faces too nearly touching): check the saddle '
+                             'there before printing.' % ', '.join(rough))
     msg = ('Built %d cradles for %s: %s. Each stands on one level %.0f mm under the lowest tube, its saddle open at the '
            'top; the tallest is %.0f mm. Print them, bolt them down through the two M6 holes in each foot, lay the cut '
            'pieces in and tack.' % (sm['count'], src, ', '.join('%s: %d' % (k, v) for k, v in sm['per_tube'].items()),

@@ -175,17 +175,28 @@ def plan(tubes, up=(0.0, 0.0, 1.0), opts=None):
     for t in T:
         for s0 in _stations(t, o):
             # where another tube runs through the block, slide the cradle along this tube (up to three block lengths)
+            # where another tube runs through the block, slide the cradle along this tube (up to three block lengths);
+            # a slid position that is too steep is passed over, not taken as the answer (seen live: a cradle slid off a
+            # 16 deg run onto a 68 deg one was reported as too steep at 16 deg)
+            c, was_blocked = None, False
             for shift in (0.0, 1.0, -1.0, 2.0, -2.0, 3.0, -3.0):
                 s = min(max(s0 + shift * o['block_len'], o['end_margin']), t.total - o['end_margin'])
-                c = _cradle(t, s, o, up, base, chains)
-                if c is None or not blocked(t, s, c):
-                    break
-            else:
-                skipped.append({'tube': t.name, 's': s0, 'why': 'another tube runs under it here'})
-                continue
+                cc = _cradle(t, s, o, up, base, chains)
+                if cc is None:
+                    if shift == 0.0:
+                        break                                # steep where it belongs: no cradle here
+                    continue
+                if blocked(t, s, cc):
+                    was_blocked = True
+                    continue
+                c = cc
+                break
             if c is None:
-                tan = t.at(s0)[1]
-                skipped.append({'tube': t.name, 's': s0, 'why': 'runs %.0f deg from level here' % math.degrees(math.asin(min(1.0, abs(_dot(tan, up)))))})
+                if was_blocked:
+                    skipped.append({'tube': t.name, 's': s0, 'why': 'another tube runs under it here'})
+                else:
+                    tan = t.at(s0)[1]
+                    skipped.append({'tube': t.name, 's': s0, 'why': 'runs %.0f deg from level here' % math.degrees(math.asin(min(1.0, abs(_dot(tan, up)))))})
                 continue
             if cradles and cradles[-1]['tube'] == t.name and abs(cradles[-1]['s'] - c['s']) < 1.5 * o['block_len']:
                 continue                                     # slid onto the one before

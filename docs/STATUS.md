@@ -401,6 +401,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   to redline flow; inlet for 5 inH2O and 1 psi) + Spintech case chart vs the space limits; Spintech parts retyped
   'spiral'. tests/spiral_ui.js. Lobak (research agent): auger muffler, no primary source; Moroso Spiral Flow; US
   3,963,092. Mufflers tab "Auger muffler": core tube + helical channel as two ttMatrix paths. tests/auger_ui.js.
+  LIVE in Fusion (2026-11-03 21:10, owner's PC, add-in updated in place from this tree): two-stage route (4 primaries,
+  2 Y merges 12.1 cm at 15 deg, 2 secondaries 40.3 cm, collector) built in 1.5 s with the Rust core, all clear of a
+  frame-rail keep-out; tack jig 25 cradles in 2.9 s. Fixes from it: Part Design documents (new_component reads
+  design.designIntent first: a failed addNewComponent leaves Fusion's error set and the next
+  TemporaryBRepManager.get() re-raises it); saddle cuts that hit near-coincident faces (ASM_BAD_CONTAINMENT) retried
+  0.03 mm larger / 0.1 mm longer, else listed; a cradle slid to clear a crossing tube no longer lands on a steep
+  stretch and the note gives the real reason. Fusion MCP scripts must define run(context) or their changes roll back.
   Two-stroke OpenWAM writer openwam/make_wam2t.py (tests/test_2t.py; nm2T block, TLumbrera ports from timing,
   TDepVolVariable crankcase, reed TLamina or piston-port intake, chamber segs). 125 with our chamber: 31.7 hp peak at
   12000 (straight pipe 15-20 hp); Maico 490 with the Wizard's chamber: 35 hp peak at 5500 (claimed 53 at 6500).
