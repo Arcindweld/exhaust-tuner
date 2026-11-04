@@ -93,7 +93,7 @@ MUFFLERS = {
 }
 
 
-def build_spec(fo="ho", muffler="box", exit_mm=600, plenum=False):
+def build_spec(fo="ho", muffler="box", exit_mm=600, plenum=False, to_x_mm=1000):
     e = {"bore": B, "stroke": S, "rod": ROD, "cr": round(cr(), 2), "cd": 0.7,
          "nIn": 1, "dIn": 2.02 * IN, "liftIn": 0.576 * IN, "nEx": 1, "dEx": 1.60 * IN, "liftEx": 0.576 * IN,
          "cam": {"ivo": 15, "ivc": 45, "evo": 59, "evc": 9, "checkLift_mm": 0.080 * 25.4},
@@ -101,7 +101,7 @@ def build_spec(fo="ho", muffler="box", exit_mm=600, plenum=False):
     dp = 38.8e-3
     prim = [{"L": 0.762, "d0": dp, "d1": dp, "primary": True}]
     col_segs = [{"L": 0.15, "d0": 2 * dp, "d1": 0.073}, {"L": 0.15, "d0": 0.073, "d1": 0.073}, {"L": 0.10, "d0": 0.073, "d1": D25 / 1000}]
-    to_x = [seg(1000, T=450)]
+    to_x = [seg(to_x_mm, T=450)]
     after = [seg(300, T=350)] + MUFFLERS[muffler] + [seg(exit_mm, T=250)]
     return {
         "e": e,
@@ -126,7 +126,11 @@ CASES = {"ho_box_5000": ("ho", "box", 5000.0), "ho_box_5800": ("ho", "box", 5800
          "ho_chamber_5000": ("ho", "chamber", 5000.0), "std_chamber_5800": ("std", "chamber", 5800.0),
          "ho_chamber_exit300_5800": ("ho", "chamber", 5800.0, 300), "ho_box_exit300_5800": ("ho", "box", 5800.0, 300),
          "ho_venom_plenum_5800": ("ho", "venom", 5800.0, 600, True), "ho_pipe_plenum_5800": ("ho", "pipe", 5800.0, 600, True),
-         "std_venom_plenum_5800": ("std", "venom", 5800.0, 600, True), "ho_venom_plenum_5000": ("ho", "venom", 5000.0, 600, True)}
+         "std_venom_plenum_5800": ("std", "venom", 5800.0, 600, True), "ho_venom_plenum_5000": ("ho", "venom", 5000.0, 600, True),
+         # where the X sits: collector reducer to the X junction
+         "ho_venom_plenum_x400_5800": ("ho", "venom", 5800.0, 600, True, 400),
+         "ho_venom_plenum_x700_5800": ("ho", "venom", 5800.0, 600, True, 700),
+         "ho_venom_plenum_x1400_5800": ("ho", "venom", 5800.0, 600, True, 1400)}
 
 
 def run_settings(rpm, cycles, name):

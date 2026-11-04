@@ -12761,6 +12761,7 @@ function xBuildSheet(r,p){
   h+='<p class="cap">Why the angle and lengths matter: a shallow angle turns the gas gently, so more of each pulse’s momentum carries into the other pipe and pulls on it, at the cost of length. A steep angle makes a compact part but turns the gas harder, so less carries across and the X starts to act like an H. Burns Stainless is reported to recommend about 15° for flow and scavenging (<a href="https://ls1tech.com/forums/advanced-engineering-tech/1578209-don-t-x-pipes-reduce-cross-sectional-area.html" target="_blank" rel="noopener">LS1Tech</a>). A longer merged section gives the pulses more time together, which cancels more of the low notes and raises the pitch (<a href="https://www.holley.com/blog/post/x-pipe_vs_h-pipe_exhaust_which_is_better_/" target="_blank" rel="noopener">Holley</a>). Distance from the collectors sets when the X’s pressure wave gets back to the headers, so moving it farther back shifts its help toward lower RPM. No maker publishes test data on these choices, so treat the angle and merge length as tuning variables: build the angle you can package, keep both sides identical, and listen and test.</p>';
   return sec('X-pipe build sheet',h);
 }
+let CROSS_LAST=null;   // the Crossover tab's last good result (mm), for the OpenWAM line (make_wam v10 crossover)
 function renderCross(){
   const t=$('x-type').value;
   ['h','x','z','y'].forEach(k=>{$('x-wrap-'+k).hidden=k!==t;});
@@ -12769,7 +12770,8 @@ function renderCross(){
   const p={type:t,d:xb.err?NaN:xb.Deq,dplan:xs.w,s:val('x-s'),pos:val('x-pos'),ratio:val('x-ratio'),ang:val('x-ang'),mrg:val('x-mrg'),
     sout:val('x-sout'),jang:val('x-jang'),yratio:val('x-yr'),yang:val('x-yang')};
   const r=calcCross(p), key=$('x-key'), det=$('x-details'), svg=$('x-svg');
-  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';det.innerHTML='';clearSvg(svg);$('x-cap').textContent='';S.cross={};return;}
+  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';det.innerHTML='';clearSvg(svg);$('x-cap').textContent='';S.cross={};CROSS_LAST=null;return;}
+  CROSS_LAST={type:t,pos:r.place?r.place.pos:NaN,dc:r.dc,tube:r.tube,name:{h:'H-pipe',x:'X-pipe',z:'Z-pipe',y:'Y-pipe'}[t]};
   const win=U==='imp'?'8 to 18 in':'203 to 457 mm';
   const posFig=r.place?(()=>{const v=L(r.place.pos,'l');return figT('From collector ends',v.n,v.u,'best '+win,r.place.ok?'st-ok':'st-warn');})()
     :figT('Outlet area ratio',p.yratio.toFixed(2),'','outlet ÷ both inlets');
@@ -16919,7 +16921,7 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#h-uel-pair')) retu
 
 /* ===== OpenWAM: a full 1-D case for the free OpenWAM 2.2 solver, several engine speeds, run with a .bat ===== */
 const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[],
-  line:{on:false,L:2500,d:76.2,muf:0,tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38,par:'none',px:1500},
+  line:{on:false,L:2500,d:76.2,muf:0,tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38,par:'none',px:1500,xo:'none'},
   loss:{K:0,Ky:0,src:''},
   prof:{in:null,ex:null,angle:'crank',lift:'valve',rr:1.7,err:''}};   // measured lift profiles (make_wam v9)   // merge losses (make_wam v8): the collector's and the Tri-Y merges' K, from the exhaust CFD   // the line after the collector (mm, litres)
 // The line after the collector for the OpenWAM case (make_wam tail elements): pipe, an optional drone fix off the pipe
@@ -16969,6 +16971,29 @@ function wamLineTail(){
   if(n(W.muf)>0){ out.push({V_litres:n(W.muf)}); out.push(pipe(n(W.tail)>0?n(W.tail):300)); }
   return {tail:out};
 }
+// the Crossover tab's X- or H-pipe between the two collectors' lines (make_wam v10): the line's pipe up to the tab's
+// "collector ends to crossover" distance runs from each collector to the crossover, and the rest of the line (drone fix,
+// in-line piece, muffler, tailpipe) runs from the crossover to each side's own exit, the same on both sides. null when
+// off; {err} when it cannot be written.
+function wamCrossover(o,tail){
+  const W=WAM_UI.line; if(!W.xo||W.xo==='none') return null;
+  const C=CROSS_LAST;
+  if(!(o.collectors&&o.collectors.length===2)) return {err:'Crossover in the OpenWAM line: it joins two collectors, and this header has '+((o.collectors||[]).length||1)+'. Use the Headers tab with two collectors (a V engine’s two banks).'};
+  if(!C) return {err:'Crossover in the OpenWAM line: the Crossover tab has no valid design yet.'};
+  if(C.type==='y') return {err:'Crossover in the OpenWAM line: a Y-pipe joins both pipes into one, which is not a crossover between two exits. Pick an X-, Z- or H-pipe on the Crossover tab.'};
+  const pos=+C.pos, first=tail[0];
+  if(!(pos>=30)) return {err:'Crossover in the OpenWAM line: give the distance from the collector ends on the Crossover tab (at least 30 mm).'};
+  if(!(first&&first.L_mm!==undefined&&pos<=first.L_mm-30)) return {err:'Crossover in the OpenWAM line: the crossover, '+Math.round(pos)+' mm from the collectors, has to sit on the pipe at least 30 mm before the drone fix, the in-line piece or the muffler (the first '+Math.round(first&&first.L_mm||0)+' mm).'};
+  const before=[Object.assign({},first,{L_mm:+pos.toFixed(3)})], after=[Object.assign({},first,{L_mm:+(first.L_mm-pos).toFixed(3)})].concat(tail.slice(1));
+  const crossover={cols:[0,1],type:C.type==='h'?'h':'x',tails:[after,JSON.parse(JSON.stringify(after))]};
+  if(C.type==='h'){
+    if(!(C.tube>=3*15&&C.dc>0)) return {err:'Crossover in the OpenWAM line: the H-pipe’s tube is too short to write ('+Math.round(C.tube)+' mm; OpenWAM needs at least 3 cells, 45 mm).'};
+    crossover.tube={L_mm:+C.tube.toFixed(3),d_mm:+C.dc.toFixed(3)};
+  }
+  return {before,crossover,what:C.name+' '+Math.round(pos)+' mm from the collectors'+(C.type==='z'?' (written as an X: both pipes meet at one junction)':'')+(C.type==='h'?', '+Math.round(C.tube)+' mm × '+(+C.dc.toFixed(1))+' mm balance tube':'')};
+}
+window.__wamCrossover=(o,t)=>wamCrossover(o,t);   // test hooks
+window.__wamLine={W:()=>WAM_UI.line,cross:()=>CROSS_LAST,withLine:sp=>wamWithLine(sp),lineUi:()=>wamLineUi(),makeWam:(sp,run)=>WAMX.makeWam(sp,run)};
 function wamWithLine(spec){
   const t=wamLineTail(); if(t&&t.err) return {err:t.err};
   const sp=JSON.parse(JSON.stringify(spec)), o=sp.opt||{}, L=WAM_UI.loss||{};
@@ -16976,6 +17001,8 @@ function wamWithLine(spec){
   if(L.K>0){ if(o.collector) o.collector.loss_K=+L.K; else (o.collectors||[]).forEach(c=>{ c.loss_K=+L.K; }); }
   if(L.Ky>0) (o.collectors||[]).forEach(c=>{ if(c.stages&&c.stages.length) c.stages[0].loss_K=+L.Ky; });
   if(!t) return {spec:sp};
+  const xo=wamCrossover(o,t.tail); if(xo&&xo.err) return {err:xo.err};
+  if(xo){ o.collectors.forEach(c=>{ c.tail=xo.before; }); o.crossover=xo.crossover; return {spec:sp,xo:xo.what}; }
   if(o.collector) o.collector.tail=t.tail; else if(o.collectors&&o.collectors.length) o.collectors.forEach(c=>{ c.tail=t.tail; });
   else { if(sp.exhaust.chambers&&sp.exhaust.chambers.length) return {err:'Line after the collector: a single primary with a chamber on it cannot also take the line here.'}; sp.exhaust.tail=t.tail; }
   return {spec:sp};
@@ -17003,7 +17030,7 @@ function wamFiles(q,sp,extra,uel){
     'Reading the results: on the calculator, 4-Stroke tab, "Run it in OpenWAM", pick the AVG.DAT files; it reads the last cycle of each',
     'and tabulates torque, power and volumetric efficiency against RPM, with a convergence check over the last five cycles.','',
     'Cycles per run: '+cycles+'. Combustion, friction and heat transfer use the generator defaults (Wiebe burn, Woschni, a Chen-Flynn style FMEP law);',
-    'they are the same for every run, so compare runs with each other, not with a dyno sheet.'].concat(uel?uelReadme(uel):[]).join('\r\n')});
+    'they are the same for every run, so compare runs with each other, not with a dyno sheet.'].concat(uel?uelReadme(uel):[]).concat(wl.xo?['','Crossover: '+wl.xo+' (Crossover tab). Each side then runs to its own open end, so NAMEINS.DAT has two outlet points; the order spectrum below reads the first.']:[]).join('\r\n')});
   return {files,name,rpms,cycles,uel:!!uel};
 }
 // a measured lift profile: two numbers a line (angle from the lobe centreline, lift), any separator, header lines
@@ -17058,6 +17085,9 @@ function wamLineUi(){
     if(W.fix!=='none') h+=L('x','Distance from the collector','len')+(W.fix==='jpipe'?L('qL','J-pipe length','len')+L('qd','J-pipe inside diameter','len'):L('hV','Can volume','num')+L('hL','Neck length','len')+L('hd','Neck inside diameter','len'));
     const pv=W.par||'none', P=pv!=='none'?wamParPaths(pv):null;
     h+='<label class="f span2"><span class="lab">In line on the pipe</span><span class="inp"><select class="wamline" data-k="par"><option value="none"'+(pv==='none'?' selected':'')+'>Nothing</option><option value="auger"'+(pv==='auger'?' selected':'')+'>Auger muffler (as on the Mufflers tab)</option><option value="bundle"'+(pv==='bundle'?' selected':'')+'>Timbre tube bundle (as on the Mufflers tab)</option></select></span></label>';
+    const xv=W.xo||'none';
+    h+='<label class="f span2"><span class="lab">Crossover between the two collectors</span><span class="inp"><select class="wamline" data-k="xo"><option value="none"'+(xv==='none'?' selected':'')+'>None: each collector to its own exit</option><option value="tab"'+(xv==='tab'?' selected':'')+'>The Crossover tab’s design'+(CROSS_LAST&&CROSS_LAST.type!=='y'?' ('+CROSS_LAST.name+')':'')+'</option></select></span></label>';
+    if(xv!=='none'){ const xr=wamCrossover({collectors:[{},{}]},[{L_mm:+W.L||0,d0_mm:+W.d,d1_mm:+W.d}]); h+='<p class="cap span2">'+(xr&&xr.err?'<span class="st-bad">'+esc(xr.err)+'</span>':esc((xr?xr.what:'')+'. The pipe below runs from each collector to the crossover, then on to each side’s own exit with the drone fix, in-line piece and muffler, the same on both sides; an X is written as one junction both lines meet at (its short shared section is not resolved).'))+'</p>'; }
     if(pv!=='none') h+=L('px','Its inlet, from the collector','len')+'<p class="cap span2">'+(P&&P.err?'<span class="st-bad">'+esc(P.err)+'</span>':esc(P.what.charAt(0).toUpperCase()+P.what.slice(1))+'.')+'</p>';
     h+='</div><p class="cap">The muffler is an expansion volume (it has the low-frequency behaviour of a chambered muffler, not its baffles or packing). The J-pipe and the can sit on the pipe at the distance given; the Mufflers tab works out their lengths and volumes for a drone frequency. An auger or a tube bundle is written as parallel pipes between two junctions, each path its own length and area, so OpenWAM carries the waves round both and they cancel where the paths differ by half a wavelength (checked: a 1.2 m difference took 40 dB off 200 Hz against a plain pipe, the Herschel–Quincke notch c ÷ 2ΔL = 210 Hz). A 1-D model has no end allowance at the junctions and no swirl losses. Every case written, run, fitted or optimised here uses this line.</p>';
   }
