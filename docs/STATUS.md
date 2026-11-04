@@ -336,6 +336,22 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   6600; 8-1 and 180-degree headers within 4 %. Sound at 5000 rpm (open pipe): per-bank 4-1 half orders 8-16 dB below
   the strongest; every 8-4-1 and the 8-1 24-66 dB (180 deg pairs 55-66). The model's absolute torque falls off
   faster above 5000 rpm than a real LS3's (crude intake: open 0.3 m runners), so read differences, not levels.
+- Upgrades (2026-11-03, "I want all of these upgrades", from the list of 11): DONE so far:
+  cam events at 0.050 in (checkLift_mm; the sin^2 lift stretched to pass the check lift at the card's angles; make_wam
+  seat_events = page camSeat), GM's LS3 events (ivo -19, ivc 43, evo 38, evc -7 at 0.050 in); intake plenum with
+  throttle body and inlet tube (make_wam v5, 4-Stroke inputs); combustion efficiency 0.98 min(1, 1/phi) (v6; Woschni
+  already takes the wall heat, the old 0.72 counted it twice; rs660/outback04 pin 0.72 to keep their documented
+  results; tests/fixtures/wam_default regenerated for it) -> stock LS3 brake 423 lb-ft @ 4600 (GM 425), 461 hp @ 5900
+  (GM 430, LSX Mag dyno 461.5); cam library (LS3, LS9 card; LS7/LS6/LS1/LT1 straight up, marked assumed); dyno fit
+  (valve Cd and combustion efficiency fitted to measured brake torque, two runs per point and a check run); header
+  optimiser (10 designs around the Headers-tab layout, ranked by mean brake torque in OpenWAM); side-branch chambers on
+  primaries (v7) and J-pipes / Helmholtz cans on the line after the collector (closed-end BC); Projects (header
+  button: save the whole build by name, load it back exactly, export/import .exhaust.json, compare two: inputs that
+  differ in the units chosen and OpenWAM brake torque speed by speed; tests/project_ui.js). LEFT: Fusion Y junctions /
+  merge collectors for Tri-Y and 8-4-1; CFD collector losses into the 1-D model; build sheet with mandrel-bend part
+  numbers and tack jigs; tube skin temperature / clearance; code signing (needs the owner's SignPath or Azure Trusted
+  Signing account). v8_841_study.py now resumes (finished runs of the same case text are kept; fresh=1 forces);
+  the v4 rerun on the calibrated engine is in openwam/runs/v8_841/*_v4*.
 - Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the
   SmartScreen screen, options, Fusion add-in, updates, where files go, uninstall, troubleshooting); README and every
   release's notes point at it. The installer is one click ("one click install like a proper software"): no page

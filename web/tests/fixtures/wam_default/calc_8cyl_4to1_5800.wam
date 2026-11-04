@@ -31,7 +31,7 @@
 0                  <TBloqueMotor.cpp:176 pressure at EVO 0 = calculated>
 1                  <TBloqueMotor.cpp:185 combustion type 1 = spark ignition, fuel from trapped air>
 1.1410381752       <TBloqueMotor.cpp:196 relative fuel-air ratio = (1/AFR)/0.068468349, TCilindro.cpp:2735>
-0.72               <TBloqueMotor.cpp:199 combustion efficiency, multiplies released heat TCilindro4T.cpp:634>
+0.858866969856     <TBloqueMotor.cpp:199 combustion efficiency, multiplies released heat TCilindro4T.cpp:634>
 44000000           <TBloqueMotor.cpp:200 lower heating value J/kg>
 740                <TBloqueMotor.cpp:201 fuel density kg/m3, not used>
 1                  <TBloqueMotor.cpp:203 pipe used for volumetric efficiency, 1 = intake pipe of cylinder 1; engine VE then counts one runner, use the per-cylinder VE>

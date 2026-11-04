@@ -147,7 +147,7 @@ def pulse_gaps(cyls):
     return [round((a[(i + 1) % len(a)] - a[i]) % 720 or 720) for i in range(len(a))]
 
 
-def run_one(layout, rpm, over, sound=False, tag=""):
+def run_one(layout, rpm, over, sound=False, tag="", fresh=False):
     name = "%s_%d%s" % (layout, rpm, tag)
     folder = os.path.join(HERE, "runs", "v8_841", name)
     os.makedirs(folder, exist_ok=True)
@@ -156,7 +156,7 @@ def run_one(layout, rpm, over, sound=False, tag=""):
         run["ins_outlet"] = 1
     sp = spec(layout)
     model = make_wam.model_from_spec(sp, run)
-    run_models.write_and_run(folder, name, model, rerun=True)
+    run_models.write_and_run(folder, name, model, rerun=fresh)   # finished runs of the same case text are kept (resume)
     s = run_models.summarise(folder, name, model)
     out = {"layout": layout, "rpm": rpm, "finished": s["finished"], "warnings": len(s["warning_or_error_lines"]),
            "sonic": s["sonic_messages"], "T_net_Nm": s["last"]["T_net_from_NMEP"], "P_net_kW": s["last"]["P_net_kW"],
@@ -180,7 +180,7 @@ def run_one(layout, rpm, over, sound=False, tag=""):
 
 
 def main(argv):
-    rpms, over, jobs, sound_rpm, layouts, tag, yr, first = [], {"cycles": 40, "cell_mm": 7.07}, 2, None, LAYOUTS, "", None, None
+    rpms, over, jobs, sound_rpm, layouts, tag, yr, first, fresh = [], {"cycles": 40, "cell_mm": 7.07}, 2, None, LAYOUTS, "", None, None, False
     for a in argv[1:]:
         if "=" in a:
             k, v = a.split("=", 1)
@@ -194,6 +194,8 @@ def main(argv):
                 tag = v
             elif k == "yr":
                 yr = float(v)
+            elif k == "fresh":
+                fresh = v == "1"
             elif k == "first":
                 first = float(v) / 1000.0
             else:
@@ -209,7 +211,7 @@ def main(argv):
         FIRST = first
     todo = [(l, r, r == sound_rpm) for l in layouts for r in rpms]
     with ThreadPoolExecutor(max_workers=jobs) as ex:
-        res = list(ex.map(lambda t: run_one(t[0], t[1], over, t[2], tag), todo))
+        res = list(ex.map(lambda t: run_one(t[0], t[1], over, t[2], tag, fresh), todo))
     groups = {"dual41": [LEFT, RIGHT], "bank180": [FIRING[0::2], FIRING[1::2]], "all81": [FIRING]}
     meta = {"engine": engine(), "firing": FIRING, "d_primary_mm": DP * 1e3, "d_secondary_mm": DSEC * 1e3,
             "d_collector_841_mm": DC841 * 1e3, "layouts": layouts, "tag": tag, "yr": (DSEC / DP) ** 2 / 2, "total_mm": TOTAL * 1e3, "first_mm": FIRST * 1e3, "run": over,

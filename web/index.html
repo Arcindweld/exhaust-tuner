@@ -85,6 +85,25 @@ h1{margin:0;font:700 17px/1.1 var(--f-display);font-stretch:118%;letter-spacing:
 .iconbtn svg{width:18px;height:18px}
 .vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .hostbtn circle{fill:currentColor}
+/* projects: save, load and compare whole builds */
+.projbtn{min-height:36px;padding:6px 12px;font-size:13px}
+.projdlg{width:min(880px,calc(100vw - 32px));max-height:calc(100vh - 48px);padding:0;border:1px solid var(--line-2);border-radius:16px;
+  background:var(--raised);color:var(--ink);box-shadow:var(--lift);overflow:hidden}
+.projdlg[open]{display:flex;flex-direction:column}
+.projdlg::backdrop{background:rgba(8,12,16,.45)}
+.pj-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px 12px 20px;border-bottom:1px solid var(--line)}
+.pj-head h2{margin:0;font:650 17px/1.2 var(--f-display)}
+.pj-body{padding:16px 20px 22px;overflow:auto;min-height:0}
+.pj-save{margin-top:14px}
+.pj-save,.pj-cmp{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px}
+.pj-save .f{flex:1 1 260px}.pj-cmp .f{flex:1 1 200px}
+.pj-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 0;border-top:1px solid var(--line)}
+.pj-row:last-child{border-bottom:1px solid var(--line)}
+.pj-row .pj-n{flex:1 1 220px;min-width:0;overflow-wrap:anywhere}
+.pj-row .pj-n small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+.pj-row .btn{min-height:32px;padding:5px 11px;font-size:12.5px}
+.pj-row .btn.bad{border-color:var(--bad);color:var(--bad)}
+.pj-up{color:var(--ok)}.pj-dn{color:var(--bad)}
 /* the program's own menu (Windows program only) */
 .hostwrap{position:relative;display:flex}
 .hostmenu{position:absolute;right:0;top:calc(100% + 8px);z-index:50;width:min(380px,calc(100vw - 32px));padding:6px;
@@ -415,6 +434,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <button type="button" id="u-imp" aria-pressed="true">in · °F</button>
         <button type="button" id="u-met" aria-pressed="false">mm · °C</button>
       </div>
+      <button type="button" class="btn projbtn" id="proj-btn" aria-haspopup="dialog" title="Save, load and compare builds">Projects</button>
       <button type="button" class="iconbtn themebtn" id="theme-btn" aria-label="Colour theme: follows the system" title="Colour theme: follows the system"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path class="fillhalf" d="M12 3.8a8.2 8.2 0 0 1 0 16.4z"/></svg></button>
       <div class="hostwrap">
         <button type="button" class="iconbtn hostbtn" id="host-btn" aria-haspopup="true" aria-expanded="false" aria-controls="host-menu" title="Program: runs folder, updates, Fusion add-in, engines" hidden><span class="hostdot" id="host-dot" hidden></span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></svg><span class="vh">Program menu</span></button>
@@ -450,6 +470,27 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       </div>
     </div>
   </header>
+  <dialog class="projdlg" id="proj-dlg" aria-labelledby="proj-h">
+    <div class="pj-head"><h2 id="proj-h">Projects</h2><button type="button" class="iconbtn" id="proj-close" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button></div>
+    <div class="pj-body">
+      <p class="cap" style="margin-top:0">A project is the whole build: every input on every tab, the parts list, the OpenWAM settings and the line after the collector, the last OpenWAM results, and the dyno points and fit. Projects are kept in this program on this PC; export one to keep a copy or move it to another PC.</p>
+      <div class="pj-save">
+        <label class="f"><span class="lab">Project name</span><span class="inp"><input id="proj-name" type="text" autocomplete="off" placeholder="LS3 8-4-1, 1-7/8 primaries"></span></label>
+        <button type="button" class="btn primary" id="proj-save">Save this build</button>
+      </div>
+      <div class="note" id="proj-msg" aria-live="polite" hidden></div>
+      <p class="sub" style="margin-top:18px">Saved projects</p>
+      <div id="proj-list"></div>
+      <label class="f" style="margin-top:12px;max-width:420px"><span class="lab">Import a project file (.json)</span><span class="inp"><input type="file" id="proj-file" accept=".json,application/json"></span></label>
+      <p class="sub" style="margin-top:22px">Compare two projects</p>
+      <div class="pj-cmp">
+        <label class="f"><span class="lab">A</span><span class="inp"><select id="proj-a"></select></span></label>
+        <label class="f"><span class="lab">B</span><span class="inp"><select id="proj-b"></select></span></label>
+        <button type="button" class="btn" id="proj-cmp">Compare</button>
+      </div>
+      <div id="proj-out"></div>
+    </div>
+  </dialog>
 
   <div class="shell">
   <nav class="tabs" role="tablist" aria-label="Calculators">
@@ -14827,6 +14868,163 @@ document.addEventListener('click',e=>{
   const el=$(b.dataset.sel); if(!el) return;
   el.value=b.dataset.val; renderActive();
 });
+
+/* ===== Projects: save the whole build under a name, load it back, export or import it as a file, compare two =====
+   A snapshot holds the units and level of detail, every input and select the tabs are built from (the base value of a
+   number field, in mm, °C, cc, so it reads back in either units), the parts list, the unequal-length table, the
+   OpenWAM, dyno, optimiser, CFD and Engine Simulator settings, and the last OpenWAM results. Kept in this browser's
+   storage ('exhaust-projects-v1'); a file export is the copy that travels. */
+const PROJ_KEY='exhaust-projects-v1';
+const PROJ_STATIC=[...document.querySelectorAll('form input[id], form select[id], form textarea[id], #v-mode, #v-class, #v-make, #v-pick')]
+  .filter(el=>!/^(file|password|hidden|button|submit)$/.test(el.type));
+const PROJ_VEH=['v-mode','v-class','v-make','v-pick'];
+const projUiCopy=(o,skip)=>{ const r={}; for(const k in o){ if(skip.includes(k)) continue; const v=o[k]; if(typeof v==='function') continue; r[k]=v; } return JSON.parse(JSON.stringify(r)); };
+const PROJ_UI={   // the per-section settings kept with a project: [object, keys left out]
+  wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
+  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]]};
+function projLoadAll(){ try{ const a=JSON.parse(localStorage.getItem(PROJ_KEY)||'[]'); return Array.isArray(a)?a.filter(p=>p&&p.data&&p.name):[]; }catch(e){ return []; } }
+function projStoreAll(a){ try{ localStorage.setItem(PROJ_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
+function projSnapshot(name){
+  const vals={};
+  for(const el of PROJ_STATIC){
+    if(el.dataset.kind) vals[el.id]={b:Number.isFinite(el._b)?el._b:null};
+    else if(el.type==='checkbox') vals[el.id]={c:el.checked};
+    else vals[el.id]={v:el.value};
+  }
+  const ui={}; for(const k in PROJ_UI) ui[k]=projUiCopy(PROJ_UI[k][0],PROJ_UI[k][1]);
+  return {exhaustTunerProject:1,name:String(name||'').trim()||'Untitled build',saved:new Date().toISOString(),
+    units:U,mode:document.body.classList.contains('simple')?'simple':'expert',tab:(location.hash||'').slice(1),
+    vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n},build:JSON.parse(JSON.stringify(BUILD.items))};
+}
+function projApply(d){
+  if(!d||!d.vals) throw new Error('not an Exhaust Tuner project');
+  if(d.units==='imp'||d.units==='met') setUnits(d.units);
+  if(d.mode==='simple'||d.mode==='expert') setMode(d.mode,false);
+  const fire=(el,t)=>el.dispatchEvent(new Event(t,{bubbles:true}));
+  const setSel=el=>{ const s=d.vals[el.id]; if(!s||!('v' in s)||el.value===s.v) return false;
+    if(![...el.options].some(o=>o.value===s.v)) return false; el.value=s.v; fire(el,'change'); return true; };
+  const setInp=el=>{ const s=d.vals[el.id]; if(!s) return false;
+    if(el.dataset.kind){ const b=s.b===null?NaN:+s.b; if(Object.is(el._b,b)||(el._b===b)) return false; el._b=b; if(Number.isFinite(b)) showInput(el); else el.value=''; fire(el,'input'); return true; }
+    if('c' in s){ if(el.checked===s.c) return false; el.checked=s.c; fire(el,'change'); return true; }
+    if(el.value===s.v) return false; el.value=s.v; fire(el,'input'); return true; };
+  const sels=PROJ_STATIC.filter(el=>el.tagName==='SELECT'), inps=PROJ_STATIC.filter(el=>el.tagName!=='SELECT');
+  // the vehicle picker first (it fills the engine fields), then the selects (each may fill fields of its own), then the
+  // fields; a select a field's handler moved is put back and the pass repeated
+  PROJ_VEH.forEach(id=>{ const el=$(id); if(el) setSel(el); });
+  for(let pass=0;pass<4;pass++){ let moved=false; sels.forEach(el=>{ if(setSel(el)) moved=true; }); inps.forEach(el=>{ if(setInp(el)) moved=true; }); if(!moved) break; }
+  // the exact base values (a field's input event reads back its rounded display)
+  inps.forEach(el=>{ const s=d.vals[el.id]; if(el.dataset.kind&&s){ el._b=s.b===null?NaN:+s.b; if(Number.isFinite(el._b)) showInput(el); else el.value=''; } });
+  const ui=d.ui||{};
+  for(const k in PROJ_UI){ const [o]=PROJ_UI[k], v=ui[k]; if(!v) continue;
+    for(const kk in v){ if(o[kk]&&typeof o[kk]==='object'&&!Array.isArray(o[kk])&&v[kk]&&typeof v[kk]==='object'&&!Array.isArray(v[kk])) Object.assign(o[kk],v[kk]); else o[kk]=v[kk]; } }
+  if(d.huel){ HUEL.c=Object.assign({},d.huel.c||{}); HUEL.g=Object.assign({},d.huel.g||{}); if(Number.isFinite(d.huel.n)) HUEL.n=d.huel.n; }
+  if(Array.isArray(d.build)){ BUILD.items=JSON.parse(JSON.stringify(d.build)); saveBuild(); }
+  renderActive();
+}
+// what a saved field reads as, in the units now chosen
+function projFieldText(id,s){
+  const el=$(id); if(!el||!s) return '';
+  if(el.dataset.kind){ if(s.b===null||!Number.isFinite(+s.b)) return 'blank';
+    const t=document.createElement('input'); t.dataset.kind=el.dataset.kind; if(el.dataset.dp) t.dataset.dp=el.dataset.dp; t._b=+s.b; showInput(t);
+    const u=el.parentElement&&el.parentElement.querySelector('em'); return t.value+(u?' '+u.textContent:''); }
+  if('c' in s) return s.c?'on':'off';
+  if(el.tagName==='SELECT'){ const o=[...el.options].find(o=>o.value===s.v); return o?o.textContent:(s.v||'blank'); }
+  return s.v===''?'blank':s.v;
+}
+function projFieldName(id){
+  const el=$(id); if(!el) return id;
+  const lab=el.closest('label'), l=lab&&lab.querySelector('.lab'), panel=el.closest('section[id^="panel-"]');
+  let tab=''; if(panel) for(const n in TABS) if(TABS[n].panel===panel.id) tab=TAB_NAME[n]||n;
+  if(!tab&&/^v-/.test(id)) tab='Vehicle';
+  return (tab?tab+': ':'')+(l?l.textContent.trim():id);
+}
+function projCompare(A,B){
+  const ids=[...new Set([...Object.keys(A.vals||{}),...Object.keys(B.vals||{})])].filter(id=>$(id));
+  const same=(a,b)=>JSON.stringify(a||null)===JSON.stringify(b||null)||(a&&b&&'b' in a&&'b' in b&&a.b!==null&&b.b!==null&&Math.abs(a.b-b.b)<1e-9*Math.max(1,Math.abs(a.b)));
+  const diff=ids.filter(id=>!same(A.vals[id],B.vals[id]));
+  let h='<p class="cap"><b>A</b> '+esc(A.name)+' &nbsp; <b>B</b> '+esc(B.name)+'</p>';
+  if(!diff.length) h+='<div class="note">Every input is the same in both.</div>';
+  else h+='<div class="tblwrap"><table><thead><tr><th>Input</th><th>A</th><th>B</th></tr></thead><tbody>'+
+    diff.map(id=>'<tr><td>'+esc(projFieldName(id))+'</td><td>'+esc(projFieldText(id,A.vals[id]))+'</td><td>'+esc(projFieldText(id,B.vals[id]))+'</td></tr>').join('')+'</tbody></table></div>'+
+    '<p class="cap">'+diff.length+(diff.length===1?' input differs.':' inputs differ.')+' Number fields read in the units now chosen.</p>';
+  const ba=(A.build||[]).length, bb=(B.build||[]).length;
+  if(JSON.stringify(A.build||[])!==JSON.stringify(B.build||[])) h+='<p class="cap">Parts lists differ: A has '+ba+' part'+(ba===1?'':'s')+', B has '+bb+'.</p>';
+  // OpenWAM torque, speed by speed
+  const res=p=>((p.ui&&p.ui.wam&&p.ui.wam.results)||[]).filter(r=>!r.err&&Number.isFinite(r.rpm));
+  const ra=res(A), rb=res(B);
+  h+='<p class="sub" style="margin-top:16px">OpenWAM torque</p>';
+  if(!ra.length&&!rb.length) h+='<div class="note">Neither project has OpenWAM results. Run the case (or read its AVG.DAT files) on the 4-Stroke tab, then save the project again.</div>';
+  else {
+    const rpms=[...new Set([...ra,...rb].map(r=>Math.round(r.rpm)))].sort((x,y)=>x-y);
+    const at=(R,n)=>R.find(r=>Math.round(r.rpm)===n);
+    const tq=r=>r?(Number.isFinite(r.tqb)?r.tqb:r.tq):NaN;
+    const brake=[...ra,...rb].every(r=>Number.isFinite(r.tqb));
+    const f=x=>Number.isFinite(x)?Math.round(x)+' N·m ('+Math.round(x*0.737562)+' lb-ft)':'not run';
+    h+='<div class="tblwrap"><table><thead><tr><th>RPM</th><th>A</th><th>B</th><th>B against A</th></tr></thead><tbody>'+
+      rpms.map(n=>{ const a=tq(at(ra,n)), b=tq(at(rb,n)), d=Number.isFinite(a)&&Number.isFinite(b)&&a!==0?(b-a)/Math.abs(a)*100:NaN;
+        return '<tr><td>'+n+'</td><td>'+f(a)+'</td><td>'+f(b)+'</td><td>'+(Number.isFinite(d)?'<span class="'+(d>=0?'pj-up':'pj-dn')+'">'+(d>=0?'+':'−')+Math.abs(d).toFixed(1)+'%</span>':'')+'</td></tr>'; }).join('')+
+      '</tbody></table></div><p class="cap">'+(brake?'Brake torque (OpenWAM’s friction law taken off).':'Net indicated torque where a run has no brake figure; compare like with like.')+' Each project’s last OpenWAM results as saved.</p>';
+  }
+  return {html:h,diff};
+}
+function projMsg(t,bad){ const n=$('proj-msg'); n.textContent=t; n.className='note'+(bad?' bad':''); n.hidden=!t; }
+function projRender(){
+  const all=projLoadAll(), L=$('proj-list');
+  L.innerHTML=all.length?all.map((p,i)=>{ const d=new Date(p.saved), nr=((p.data.ui&&p.data.ui.wam&&p.data.ui.wam.results)||[]).filter(r=>!r.err).length;
+    return '<div class="pj-row" data-i="'+i+'"><div class="pj-n"><b>'+esc(p.name)+'</b><small>Saved '+esc(isNaN(d)?p.saved:d.toLocaleString())+(nr?' · '+nr+' OpenWAM run'+(nr===1?'':'s'):'')+'</small></div>'+
+      '<button type="button" class="btn" data-pj="load">Load</button><button type="button" class="btn" data-pj="over">Save over</button><button type="button" class="btn" data-pj="exp">Export</button><button type="button" class="btn" data-pj="del">Delete</button></div>'; }).join('')
+    :'<p class="cap">No projects saved yet. Name this build and save it.</p>';
+  const opts=all.map((p,i)=>'<option value="'+i+'">'+esc(p.name)+'</option>').join('');
+  ['proj-a','proj-b'].forEach((id,k)=>{ const el=$(id), keep=el.value; el.innerHTML=opts; if(keep!==''&&+keep<all.length) el.value=keep; else if(all.length>k) el.value=String(all.length>1?all.length-2+k:0); });
+  if(all.length>1&&$('proj-a').value===$('proj-b').value){ const ai=+$('proj-a').value; $('proj-b').value=String(ai===all.length-1?(ai?ai-1:1):all.length-1); }
+  $('proj-cmp').disabled=all.length<2;
+}
+function projSave(name,at){
+  const all=projLoadAll(), d=projSnapshot(name);
+  const p={name:d.name,saved:d.saved,data:d};
+  if(Number.isInteger(at)&&all[at]){ p.name=all[at].name; d.name=p.name; all[at]=p; }
+  else { const j=all.findIndex(x=>x.name===p.name); if(j>=0) all[j]=p; else all.push(p); }
+  if(!projStoreAll(all)){ projMsg('This browser would not keep the project (its storage is full or turned off). Export it as a file instead.',true); return null; }
+  projRender(); projMsg('Saved “'+p.name+'”.'); return p;
+}
+async function projExport(p){
+  const fname=(p.name.replace(/[^\w\- .]+/g,'_').trim()||'project')+'.exhaust.json', text=JSON.stringify(p.data,null,1);
+  if(FUSION||HOST){ const res=await saveCall('saveText',{filename:fname,text,title:'Export project'}); projMsg(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.')); return; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:'application/json'})); a.download=fname; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000);
+  projMsg('Exported '+fname+'.');
+}
+$('proj-btn').addEventListener('click',()=>{ const d=$('proj-dlg'); projRender(); projMsg(''); $('proj-out').innerHTML=''; if(d.showModal) d.showModal(); else d.setAttribute('open',''); });
+$('proj-close').addEventListener('click',()=>{ const d=$('proj-dlg'); if(d.close) d.close(); else d.removeAttribute('open'); });
+$('proj-save').addEventListener('click',()=>{ const n=$('proj-name').value.trim(); if(!n){ projMsg('Give the project a name first.',true); $('proj-name').focus(); return; } projSave(n); });
+$('proj-name').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); $('proj-save').click(); } });
+$('proj-list').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-pj]'), row=b&&b.closest('.pj-row'); if(!row) return;
+  const all=projLoadAll(), i=+row.dataset.i, p=all[i]; if(!p) return;
+  const k=b.dataset.pj;
+  if(k==='load'){ try{ projApply(p.data); $('proj-name').value=p.name; projMsg('Loaded “'+p.name+'”.'); }catch(err){ projMsg('Could not load it: '+err.message,true); } }
+  else if(k==='over') projSave(p.name,i);
+  else if(k==='exp') projExport(p);
+  else if(k==='del'){ if(b.dataset.armed!=='1'){ b.dataset.armed='1'; b.textContent='Delete for good?'; b.classList.add('bad'); return; }
+    all.splice(i,1); projStoreAll(all); projRender(); projMsg('Deleted “'+p.name+'”.'); $('proj-out').innerHTML=''; }
+});
+$('proj-file').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  f.text().then(t=>{ let d; try{ d=JSON.parse(t); }catch(err){ throw new Error('the file is not JSON'); }
+    if(!d||d.exhaustTunerProject!==1||!d.vals) throw new Error('the file is not an Exhaust Tuner project');
+    const all=projLoadAll(); let name=String(d.name||f.name.replace(/\.exhaust\.json$|\.json$/i,'')), n=2; const base=name;
+    while(all.some(p=>p.name===name)) name=base+' ('+(n++)+')';
+    d.name=name; all.push({name,saved:d.saved||new Date().toISOString(),data:d});
+    if(!projStoreAll(all)) throw new Error('this browser would not keep it (storage full or turned off)');
+    projRender(); projMsg('Imported “'+name+'”. Load it to use it, or compare it.'); })
+  .catch(err=>projMsg('Could not import '+f.name+': '+err.message,true)).finally(()=>{ e.target.value=''; });
+});
+$('proj-cmp').addEventListener('click',()=>{
+  const all=projLoadAll(), A=all[+$('proj-a').value], B=all[+$('proj-b').value];
+  if(!A||!B){ projMsg('Save or import two projects to compare them.',true); return; }
+  if(A===B){ projMsg('Pick two different projects.',true); return; }
+  projMsg(''); $('proj-out').innerHTML=projCompare(A.data,B.data).html;
+});
+window.__proj={snapshot:projSnapshot,apply:projApply,compare:projCompare,loadAll:projLoadAll,save:projSave,wam:WAM_UI};
 
 let raf=0;
 if(window.ResizeObserver){ new ResizeObserver(()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(renderActive);}).observe(document.querySelector('.wrap')); }
