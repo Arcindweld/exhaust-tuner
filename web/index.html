@@ -310,6 +310,8 @@ input[type=range]{accent-color:var(--accent)}
 .inp input[type=file]::file-selector-button{font:500 13px/1.2 var(--f-ui);margin-right:10px;padding:6px 12px;border:1px solid var(--line-2);border-radius:7px;background:var(--raised);color:var(--ink);cursor:pointer}
 audio{display:block;width:100%;max-width:440px;margin-top:4px}
 .hint{font-size:12px;color:var(--muted);line-height:1.35}
+.hint.bad{color:var(--bad)}
+.camcard summary{cursor:pointer;font-size:13px;color:var(--muted)}
 
 /* ---------- details: the spec sheet ---------- */
 .sec{margin-top:26px}
@@ -700,6 +702,20 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <label class="f span2"><span class="lab">Fill from a stock engine and cam</span>
           <span class="inp"><select id="f-camlib"><option value="">Choose one (fills the engine, cam, valves and lift)</option></select></span></label>
         <span class="hint" id="f-camlib-hint" style="grid-column:1/-1" hidden></span>
+        <details class="camcard" style="grid-column:1/-1"><summary>Enter a cam card instead (duration, lobe separation, advance)</summary>
+          <div class="grid2" style="margin-top:8px">
+            <label class="f"><span class="lab">Intake duration</span>
+              <span class="inp"><input id="f-cdi" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base=""><em>°</em></span></label>
+            <label class="f"><span class="lab">Exhaust duration</span>
+              <span class="inp"><input id="f-cde" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base=""><em>°</em></span></label>
+            <label class="f"><span class="lab">Lobe separation</span>
+              <span class="inp"><input id="f-clsa" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base=""><em>°</em></span></label>
+            <label class="f"><span class="lab">Installed advance, blank for straight up</span>
+              <span class="inp"><input id="f-cadv" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base=""><em>°</em></span></label>
+          </div>
+          <div class="actions" style="margin-top:10px"><button type="button" class="btn" id="f-cfill">Fill the valve events from the card</button></div>
+          <span class="hint" id="f-ccard-hint">Durations as the card gives them, at 0.050 in lift on most cards (set “Cam events measured at” to match). Advance moves the intake centerline earlier than the lobe separation: a 110° cam installed 4° advanced has its intake centerline at 106° after TDC.</span>
+        </details>
         <label class="f"><span class="lab">Intake valve diameter, blank to scale from the bore</span>
           <span class="inp"><input id="f-vdi" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Exhaust valve diameter</span>
@@ -1341,6 +1357,18 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="h-rpm" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="6500"><em>rpm</em></span></label>
         <label class="f"><span class="lab">Exhaust valve opens</span>
           <span class="inp"><input id="h-evo" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="60"><em>° BBDC</em></span></label>
+        <details class="camcard" style="grid-column:1/-1"><summary>Exhaust opening from a cam card</summary>
+          <div class="grid2" style="margin-top:8px">
+            <label class="f"><span class="lab">Exhaust duration</span>
+              <span class="inp"><input id="h-cde" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base=""><em>°</em></span></label>
+            <label class="f"><span class="lab">Lobe separation</span>
+              <span class="inp"><input id="h-clsa" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base=""><em>°</em></span></label>
+            <label class="f"><span class="lab">Installed advance, blank for straight up</span>
+              <span class="inp"><input id="h-cadv" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base=""><em>°</em></span></label>
+          </div>
+          <div class="actions" style="margin-top:10px"><button type="button" class="btn" id="h-cfill">Work out the exhaust opening</button></div>
+          <span class="hint" id="h-ccard-hint">Exhaust opens (BBDC) = exhaust centerline + duration/2 − 180, the exhaust centerline being the lobe separation plus the advance. Use the advertised (seat) duration for the header lengths if the card gives it; the 0.050 in figure opens later.</span>
+        </details>
       </div>
       <div class="grp">Layout</div>
       <div class="grid2">
@@ -9921,7 +9949,23 @@ const CAM_SRC={
   oac7:['OnAllCylinders LS7 spec guide','https://www.onallcylinders.com/2018/01/18/ls7-engine-specs-performance-bore-stroke-cylinder-heads-cam-specs/'],
   oact:['OnAllCylinders Gen V LT1 spec guide','https://www.onallcylinders.com/2018/02/08/lt1-2014-present-engine-specs-performance-bore-stroke-cylinder-heads-cam-specs-more/'],
   gm3:['Chevrolet Performance LS3 crate engine sheet (19435098)','https://www.crateenginedepot.com/Pdfs/19435098_Information.pdf']};
-const straightUp=(di,de,lsa)=>{ const ivo=di/2-lsa, evc=de/2-lsa; return {ivo,ivc:di-180-ivo,evo:de-180-evc,evc}; };
+// cam card to valve events: intake centerline = lobe separation − advance, exhaust centerline = lobe separation +
+// advance; IVO (BTDC) = duration/2 − ICL, IVC (ABDC) = ICL + duration/2 − 180, EVO (BBDC) = ECL + duration/2 − 180,
+// EVC (ATDC) = duration/2 − ECL (the inverse of camCard)
+const camEvents=(di,de,lsa,adv)=>{ adv=adv||0; const icl=lsa-adv, ecl=lsa+adv; return {ivo:di/2-icl,ivc:icl+di/2-180,evo:ecl+de/2-180,evc:de/2-ecl}; };
+const straightUp=(di,de,lsa)=>camEvents(di,de,lsa,0);
+function camCardFill(){
+  const di=val('f-cdi'), de=Number.isFinite(val('f-cde'))?val('f-cde'):val('f-cdi'), lsa=val('f-clsa'), adv=Number.isFinite(val('f-cadv'))?val('f-cadv'):0, h=$('f-ccard-hint');
+  const bad=!(di>=120&&di<=360)?'Enter the intake duration (120 to 360°).':!(de>=120&&de<=360)?'The exhaust duration should be 120 to 360°.':
+    !(lsa>=95&&lsa<=135)?'Enter the lobe separation (95 to 135°).':Math.abs(adv)>20?'Advance over 20° is not a cam card value.':null;
+  if(bad){ h.textContent=bad; h.classList.add('bad'); return null; }
+  const e=camEvents(di,de,lsa,adv);
+  setBase('f-ivo',e.ivo); setBase('f-ivc',e.ivc); setBase('f-evo',e.evo); setBase('f-evc',e.evc); $('f-camlib').value='';
+  h.classList.remove('bad');
+  h.textContent='Filled: intake opens '+(+e.ivo.toFixed(1))+'° BTDC, closes '+(+e.ivc.toFixed(1))+'° ABDC; exhaust opens '+(+e.evo.toFixed(1))+'° BBDC, closes '+(+e.evc.toFixed(1))+'° ATDC; overlap '+(+(e.ivo+e.evc).toFixed(1))+'°'+($('f-camat').value==='050'?' at 0.050 in.':'. Check “Cam events measured at”: most cards give durations at 0.050 in.');
+  renderActive(); return e;
+}
+window.__camEvents=camEvents;
 const CAM_LIB=[
   {k:'ls3',name:'GM LS3 6.2 L (2008 on)',bore:4.065,stroke:3.622,cr:10.7,cyl:8,cam:{ivo:-19,ivc:43,evo:38,evc:-7},lift:[0.551,0.525],valves:[2.165,1.590],
    rated:'430 hp at 5,900 rpm, 425 lb-ft at 4,600 (crate engine sheet)',src:['cac','gm3']},
@@ -14926,6 +14970,15 @@ else { let tries=0; const watch=setInterval(()=>{
 $('s-edit').addEventListener('click',()=>editFiringOrder('s'));
 $('h-edit').addEventListener('click',()=>editFiringOrder('h'));
 $('c-type').addEventListener('change',()=>{ syncCatType(); renderActive(); });
+$('f-cfill').addEventListener('click',camCardFill);
+$('h-cfill').addEventListener('click',()=>{
+  const de=val('h-cde'), lsa=val('h-clsa'), adv=Number.isFinite(val('h-cadv'))?val('h-cadv'):0, h=$('h-ccard-hint');
+  const bad=!(de>=120&&de<=360)?'Enter the exhaust duration (120 to 360°).':!(lsa>=95&&lsa<=135)?'Enter the lobe separation (95 to 135°).':Math.abs(adv)>20?'Advance over 20° is not a cam card value.':null;
+  if(bad){ h.textContent=bad; h.classList.add('bad'); return; }
+  const e=camEvents(de,de,lsa,adv); setBase('h-evo',e.evo); h.classList.remove('bad');
+  h.textContent='Exhaust opens '+(+e.evo.toFixed(1))+'° BBDC and closes '+(+e.evc.toFixed(1))+'° ATDC (centerline '+(+(lsa+adv).toFixed(1))+'° BTDC).';
+  renderActive();
+});
 $('f-ch').addEventListener('change',()=>{
   const t=$('f-ch').value, dp=val('f-dp'), od=dp+2*(val('f-wall')>0?val('f-wall'):1.651);
   if(t==='wrap'&&!(val('f-chd')>od+6)) setBase('f-chd',Math.round((od+20)*2)/2);

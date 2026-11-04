@@ -350,7 +350,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   differ in the units chosen and OpenWAM brake torque speed by speed; tests/project_ui.js). LEFT: Fusion Y junctions /
   merge collectors for Tri-Y and 8-4-1; CFD collector losses into the 1-D model; build sheet with mandrel-bend part
   numbers and tack jigs; tube skin temperature / clearance; code signing (needs the owner's SignPath or Azure Trusted
-  Signing account). v8_841_study.py now resumes (finished runs of the same case text are kept; fresh=1 forces);
+  Signing account). Since: cut list from stock mandrel bends under every routed tube (tests/cut_ui.js); tack jig
+  cradles in Fusion (jig.py, act_jig, tests/test_jig.py, checked live: one lump each, no overlap with the tubes); cam
+  card entry (duration, lobe separation, advance -> the four events, camEvents = inverse of camCard) on the 4-Stroke
+  tab and exhaust opening from a card on the Headers tab, prompted by the CamCalc Wizard sheet (BuildAndClick, sent by
+  the owner 2026-11-03; standard cam-card arithmetic, the sheet itself not copied into the repo); mandrel bend research
+  (web/data/mandrel_bends_research.json: 152 JMD, 60 Vibrant, no Alucon found) not merged into the parts list yet.
+  v8_841_study.py now resumes (finished runs of the same case text are kept; fresh=1 forces);
   the v4 rerun on the calibrated engine is in openwam/runs/v8_841/*_v4*.
 - Install made simpler (2026-11-03, "write instructions and simplify install"): INSTALL.md (download link, the
   SmartScreen screen, options, Fusion add-in, updates, where files go, uninstall, troubleshooting); README and every

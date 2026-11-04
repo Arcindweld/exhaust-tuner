@@ -51,6 +51,25 @@ const { chromium } = require('playwright');
   await setv('f-camlib', 'ls7'); await pg.waitForTimeout(250);
   const ls7 = await pg.$eval('#f-camlib-hint', e => e.textContent);
   ok(/assumed/.test(ls7) && /210° \/ 230°/.test(ls7) && /lobe separation 120\.0°/.test(ls7), 'LS7: durations and LSA from the source, timing assumed straight up');
+  // a cam card (duration, lobe separation, advance) to the four events: the formulas every cam calculator uses
+  const ev = await pg.evaluate(() => [window.__camEvents(250, 250, 110, 0), window.__camEvents(224, 230, 112, 4), window.__camEvents(204, 211, 117, -4)]);
+  ok(JSON.stringify(ev[0]) === JSON.stringify({ ivo: 15, ivc: 55, evo: 55, evc: 15 }), '250/250 on 110 straight up: 15 / 55 / 55 / 15');
+  ok(JSON.stringify(ev[1]) === JSON.stringify({ ivo: 4, ivc: 40, evo: 51, evc: -1 }), '224/230 on 112, 4 advanced: 4 / 40 / 51 / -1');
+  ok(JSON.stringify(ev[2]) === JSON.stringify({ ivo: -19, ivc: 43, evo: 38.5, evc: -7.5 }), 'LS3 204/211 on 117, 4 retarded: -19 / 43 / 38.5 / -7.5 (GM: -19 / 43 / 38 / -7; GM rounds its 116.75 lobe separation to 117)');
+  await pg.evaluate(() => { document.querySelector('details.camcard').open = true; });
+  for (const [id, v] of [['#f-cdi', '224'], ['#f-cde', '230'], ['#f-clsa', '112'], ['#f-cadv', '4']]) { await pg.fill(id, v); await pg.dispatchEvent(id, 'input'); }
+  await pg.click('#f-cfill'); await pg.waitForTimeout(200);
+  const filled = await pg.evaluate(() => ['f-ivo', 'f-ivc', 'f-evo', 'f-evc', 'f-camlib'].map(id => id === 'f-camlib' ? document.getElementById(id).value : document.getElementById(id)._b));
+  ok(JSON.stringify(filled) === JSON.stringify([4, 40, 51, -1, '']), 'the button fills the four events and clears the stock-cam pick: ' + JSON.stringify(filled));
+  ok(/overlap 3°/.test(await pg.$eval('#f-ccard-hint', e => e.textContent)), 'and says what it filled');
+  await pg.fill('#f-clsa', '150'); await pg.dispatchEvent('#f-clsa', 'input'); await pg.click('#f-cfill');
+  ok(/lobe separation \(95 to 135/.test(await pg.$eval('#f-ccard-hint', e => e.textContent)), 'a lobe separation off the scale is refused');
+  // the Headers tab: exhaust opening from the card
+  await pg.evaluate(() => { location.hash = 'headers'; }); await pg.waitForTimeout(300);
+  await pg.evaluate(() => { document.querySelectorAll('details.camcard').forEach(d => d.open = true); });
+  for (const [id, v] of [['#h-cde', '250'], ['#h-clsa', '110'], ['#h-cadv', '0']]) { await pg.fill(id, v); await pg.dispatchEvent(id, 'input'); }
+  await pg.click('#h-cfill'); await pg.waitForTimeout(200);
+  ok(await pg.evaluate(() => document.getElementById('h-evo')._b) === 55, 'Headers: 250° on 110 straight up opens the exhaust 55° BBDC');
   ok(errs.length === 0, 'no page errors ' + errs.join('|'));
   console.log(fails.length ? 'FAILS: ' + fails.length : 'all passed');
   await b.close(); process.exit(fails.length ? 1 : 0);
