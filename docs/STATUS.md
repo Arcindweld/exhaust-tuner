@@ -598,8 +598,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   flat patterns at mid-wall in the tube gauge. Page: "Cut files" save buttons on any Fusion answer (saveTextFile shared
   with the Hangers tab). Tests: fusion-addin/tests/test_merge.py (plan, area rule, ligaments, DXF read back, writes
   web/tests/fixtures/merge_route.json), test_drone_fusion_mock.py merge_glue + triy checks (stand-in now has extrudes,
-  circles, real profile counts), web/tests/merge_files_ui.js. Live: fusion_live_merge.py written, NOT yet run (the PC
-  was offline). Honest limit: a flat plate is a step (open area 1.5-2.4 x the bores at the plate); a formed (pie-cut)
+  circles, real profile counts), web/tests/merge_files_ui.js. LIVE in Fusion 2026-11-04 (the owner's PC, add-in 4.13.1 files from this tree):
+  4-into-1 as features: one body, one lump, volume = the plan's to 2e-14; the same as a fixed body: one lump, 1e-15;
+  2-into-1 Y merge as features: one lump, 2e-13 (its 2.4 in test cone is 33.7 deg included, and the note says so). Honest limit: a flat plate is a step (open area 1.5-2.4 x the bores at the plate); a formed (pie-cut)
   merge is smoother but needs press tooling.
 - OpenWAM 4-stroke line: parallel paths (2026-11-04, task 105): make_wam.py / wam_export.js tail element
   {"parallel": [[segs], [segs], ...]} (two or more paths between two TCCRamificacion junctions, each path its own

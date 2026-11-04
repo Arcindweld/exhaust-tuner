@@ -32,6 +32,7 @@ def run(_context=None):
         ct = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(ct)
         ct._ui = ui
+        ct._app = app              # what the add-in sets when it starts; _add_bodies reads the design from it
         RT, MRG = ct.RT, ct.MRG
         doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
         des = adsk.fusion.Design.cast(app.activeProduct)
