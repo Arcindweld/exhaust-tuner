@@ -107,11 +107,18 @@ jobs.push({ label: 'tail on Tri-Y', kind: 'spec', spec: withTail(spec('i4_triy')
 jobs.push({ label: 'tail on both V8 banks', kind: 'spec', spec: (() => { const s = spec('v8_dual'); s.opt.collectors.forEach(c => { c.tail = TAIL1; }); return s; })(), run: { rpm: 4000.0, ins_outlet: 1, ins_cycles: 2 } });
 jobs.push({ label: 'exhaust.tail on a single cylinder (no collector)', kind: 'spec', spec: (() => { const s = spec('i4_single_cyl'); s.exhaust.tail = TAIL1; return s; })(), run: { rpm: 6000.0, ins_outlet: 1 } });
 jobs.push({ label: 'ins_outlet without a tail', kind: 'spec', spec: spec('i4_41'), run: { rpm: 6000.0, ins_outlet: 1 } });
+// v7 side branches on the line: a quarter-wave tube, a Helmholtz can (short neck lengthened), both before a muffler
+const SIDES = [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { side: { type: 'quarter', L_mm: 450, d_mm: 50 } }, { L_mm: 400, d0_mm: 60, d1_mm: 60, Tw_C: 300 },
+  { side: { type: 'helmholtz', V_litres: 2.0, neck_L_mm: 12, neck_d_mm: 40, Tw_C: 280 } }, { L_mm: 500, d0_mm: 60, d1_mm: 60 }, { V_litres: 6 }, { L_mm: 400, d0_mm: 55, d1_mm: 55 }];
+jobs.push({ label: 'tail: quarter-wave and Helmholtz side branches, then a muffler', kind: 'spec', spec: withTail(spec('i4_41'), SIDES), run: { rpm: 2500.0, ins_outlet: 1 } });
+jobs.push({ label: 'error: a side branch at the end of the tail', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { side: { type: 'quarter', L_mm: 450, d_mm: 50 } }]), run: { rpm: 2500.0 } });
+jobs.push({ label: 'error: an unknown side type', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { side: { type: 'resonator' } }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }]), run: { rpm: 2500.0 } });
 for (let k = 0; k < 12; k++) {
   const s = randomSpec(spec(['i4_41', 'i4_triy'][k % 2]), 100 + k);
   const tail = [{ L_mm: U(200, 3000), d0_mm: U(45, 65), d1_mm: U(45, 65), Tw_C: U(150, 450) }];
   if (k % 3) tail.push({ V_litres: U(1, 20), Tw_C: k % 2 ? U(100, 400) : undefined });
   tail.push({ L_mm: U(200, 800), d0_mm: U(45, 65), d1_mm: U(45, 65) });
+  if (k % 5 === 1) tail.push({ side: k % 2 ? { type: 'quarter', L_mm: U(100, 900), d_mm: U(30, 70) } : { type: 'helmholtz', V_litres: U(0.5, 5), neck_L_mm: U(5, 150), neck_d_mm: U(20, 60) } }, { L_mm: U(100, 600), d0_mm: U(45, 65), d1_mm: U(45, 65) });
   if (k % 4 === 0) tail.push({ V_litres: U(1, 20) }, { L_mm: U(100, 600), d0_mm: 55, d1_mm: 55, Tw_C: U(100, 300) });
   jobs.push({ label: 'random tail ' + k, kind: 'spec', spec: withTail(s, JSON.parse(JSON.stringify(tail))), run: { rpm: Math.round(U(700, 7000)), cycles: 10 + k, ins_outlet: k % 2, ins_cycles: 1 + (k % 3), out_step_deg: U(0.05, 1) } });
 }

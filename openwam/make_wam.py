@@ -290,9 +290,9 @@ def cd_table(n_valves, d_mm, lmax_mm, step_mm, cd, cap, a_pipe_m2, clip):
 #     p_bar, T_C, comp (reservoir: an open end into a space held at fixed pressure and temperature), note.
 # plenums (optional list): V_m3, T_C (initial gas temperature), p_bar, comp [burnt, fuel, air], note.
 # BCs are numbered in order of first reference, walking the pipes in order, left end first.
-BC_DESC = {"open": "open end", "ivalve": "intake valve", "evalve": "exhaust valve",
+BC_DESC = {"open": "open end", "closed": "closed end", "ivalve": "intake valve", "evalve": "exhaust valve",
            "branch": "junction", "step": "diameter step", "plenum": "plenum port", "reservoir": "reservoir"}
-BC_ENDS = {"open": (1, 1), "ivalve": (1, 1), "evalve": (1, 1), "step": (2, 2), "branch": (2, 999), "plenum": (1, 1),
+BC_ENDS = {"open": (1, 1), "closed": (1, 1), "ivalve": (1, 1), "evalve": (1, 1), "step": (2, 2), "branch": (2, 999), "plenum": (1, 1),
            "reservoir": (1, 1)}
 
 
@@ -584,6 +584,8 @@ def write_model(m):
         elif t == "branch":
             w.v(12, T + ":1376 BC type 12 = branch TCCRamificacion, takes every pipe end with this number, "
                 "reads no data TCCRamificacion.cpp:94-147")
+        elif t == "closed":
+            w.v(3, T + ":1294 BC type 3 = closed end TCCExtremoCerrado, reads no data")
         elif t == "step":
             w.v(6, T + ":1314 BC type 6 = pipe-to-pipe connection TCCUnionEntreTubos")
             w.row([0.0, 0.0], "TCCUnionEntreTubos.cpp:200 wall thickness m, conductivity W/mK; wall conduction "
@@ -965,6 +967,25 @@ def model_from_spec(spec, run=None):
                     raise ValueError("tail element %d: 'outlets' lists no outlet" % (n + 1))
                 items.append(("outlets", outs))
                 continue
+            if el.get("side") is not None:
+                sd = el["side"]
+                tw = float(sd["Tw_C"]) if sd.get("Tw_C") is not None else Twc_default
+                if sd.get("type") == "quarter":
+                    L, d = float(sd.get("L_mm") or 0.0) / 1000.0, float(sd.get("d_mm") or 0.0) / 1000.0
+                    if not (L > 0.0 and d > 0.0):
+                        raise ValueError("tail element %d: a quarter-wave side branch needs L_mm and d_mm" % (n + 1))
+                    items.append(("side", {"type": "quarter", "L": L, "d": d}, tw))
+                elif sd.get("type") == "helmholtz":
+                    V, L, d = float(sd.get("V_litres") or 0.0) / 1000.0, float(sd.get("neck_L_mm") or 0.0) / 1000.0, float(sd.get("neck_d_mm") or 0.0) / 1000.0
+                    if not (V > 0.0 and L > 0.0 and d > 0.0):
+                        raise ValueError("tail element %d: a Helmholtz side branch needs V_litres, neck_L_mm and neck_d_mm" % (n + 1))
+                    items.append(("side", {"type": "helmholtz", "V": V, "L": L, "d": d,
+                                           "T0": float(sd["T0_C"]) if sd.get("T0_C") is not None else T0_default}, tw))
+                else:
+                    raise ValueError("tail element %d: side.type must be quarter or helmholtz" % (n + 1))
+                if not items[:-1] or items[-2][0] != "seg":
+                    raise ValueError("tail element %d: a side branch must come after a pipe segment" % (n + 1))
+                continue
             if el.get("V_litres") is not None:
                 V = float(el["V_litres"])
                 if not (V > 0.0):
@@ -980,8 +1001,11 @@ def model_from_spec(spec, run=None):
                 items.append(("seg", {"L": float(el["L_mm"]) / 1000.0, "d0": float(el["d0_mm"]) / 1000.0,
                                       "d1": float(el["d1_mm"]) / 1000.0},
                               float(el["Tw_C"]) if el.get("Tw_C") is not None else Twc_default))
+        for n in range(len(items) - 1):
+            if items[n][0] == "side" and items[n + 1][0] != "seg":
+                raise ValueError("a side branch must be followed by a pipe segment")
         if not items or items[-1][0] not in ("seg", "outlets"):
-            raise ValueError("a tail must end with a pipe segment at the open end, not a plenum")
+            raise ValueError("a tail must end with a pipe segment at the open end, not a plenum or a side branch")
         if items[0][0] != "seg":
             raise ValueError("a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)")
         return items
@@ -992,7 +1016,7 @@ def model_from_spec(spec, run=None):
         joined by the step BC (TCCUnionEntreTubos with no area change = continuity), plenums by TCCDeposito."""
         groups, cur = [], None          # [[(seg, Tw)...] or ("plenum", V, T) or ("outlets", [[seg items]...])]
         for it in items:
-            if it[0] in ("plenum", "outlets"):
+            if it[0] in ("plenum", "outlets", "side"):
                 groups.append(it)
                 cur = None
             else:
@@ -1021,8 +1045,37 @@ def model_from_spec(spec, run=None):
                 state["npipe"] += 1
                 add_line(segs, keys[j], keys[j + 1], "%s section %d" % (role, state["npipe"]), tw, Tgc, comp, ht)
 
-        npl = 0
+        npl, nside = 0, 0
+        side_key, side_num = {}, {}         # side-branch group index -> its junction BC key, its number
+
+        def add_side(gi, sd, tw):
+            """v7: a side branch off the line at the junction before group gi+1 (quarter-wave: a pipe to a closed end;
+            Helmholtz: a neck to a closed constant-volume plenum; a neck or tube shorter than 3 cells is lengthened, a
+            neck with its area raised by the same factor so its Helmholtz tuning stays)"""
+            bk = side_key[gi]
+            Lmin = 3.0 * p["cell_mm"] / 1000.0
+            if sd["type"] == "quarter":
+                if sd["L"] < Lmin:
+                    raise ValueError("%s: a quarter-wave branch shorter than 3 cells (%g mm) cannot be written" % (role, Lmin * 1000.0))
+                ck = bk + "/closed"
+                bcs[ck] = {"type": "closed", "note": "%s side branch %d closed end" % (role, side_num[gi])}
+                add_line([{"L": sd["L"], "d0": sd["d"], "d1": sd["d"]}], bk, ck, "%s side branch %d, quarter-wave tube" % (role, side_num[gi]),
+                         tw, Tgc, comp, ht)
+            else:
+                plenums.append({"V_m3": sd["V"], "T_C": sd["T0"], "p_bar": p["p_amb_bar"], "comp": list(comp),
+                                "note": "%s side branch %d, Helmholtz %g litres" % (role, side_num[gi], sd["V"] * 1000.0)})
+                pk = bk + "/port"
+                bcs[pk] = {"type": "plenum", "plenum": len(plenums), "note": "%s side branch %d neck into the volume" % (role, side_num[gi])}
+                L, A = sd["L"], math.pi / 4.0 * sd["d"] * sd["d"]
+                if L < Lmin:
+                    A, L = A * Lmin / L, Lmin
+                dn = math.sqrt(4.0 * A / math.pi)
+                add_line([{"L": L, "d0": dn, "d1": dn}], bk, pk, "%s side branch %d, Helmholtz neck" % (role, side_num[gi]),
+                         tw, Tgc, comp, ht)
+
         for gi, g in enumerate(groups):
+            if isinstance(g, tuple) and g[0] == "side":
+                continue
             if isinstance(g, tuple) and g[0] == "plenum":
                 npl += 1
                 plenums.append({"V_m3": g[1], "T_C": g[2], "p_bar": p["p_amb_bar"], "comp": list(comp),
@@ -1043,15 +1096,24 @@ def model_from_spec(spec, run=None):
             # the BC on each side of this group of pipes
             if gi == 0:
                 lk = left
+            elif isinstance(groups[gi - 1], tuple) and groups[gi - 1][0] == "side":
+                lk = side_key[gi - 1]
             else:
                 lk = "%s/muffler%d/out" % (role, npl)
                 bcs[lk] = {"type": "plenum", "plenum": len(plenums), "note": "%s muffler %d outlet port" % (role, npl)}
             if gi == len(groups) - 1:
                 rk = right
+            elif isinstance(groups[gi + 1], tuple) and groups[gi + 1][0] == "side":
+                nside += 1
+                rk = "%s/side%d" % (role, nside)
+                side_key[gi + 1], side_num[gi + 1] = rk, nside
+                bcs[rk] = {"type": "branch", "note": "%s side branch %d junction" % (role, nside)}
             else:
                 rk = "%s/muffler%d/in" % (role, npl + 1)
                 bcs[rk] = {"type": "plenum", "plenum": len(plenums) + 1, "note": "%s muffler %d inlet port" % (role, npl + 1)}
             add_group(g, lk, rk)
+            if gi + 1 < len(groups) and isinstance(groups[gi + 1], tuple) and groups[gi + 1][0] == "side":
+                add_side(gi + 1, groups[gi + 1][1], groups[gi + 1][2])
 
     # where each cylinder's primary ends, and each stage pipe's right end
     prim_end = {}

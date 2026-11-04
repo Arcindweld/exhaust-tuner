@@ -3130,8 +3130,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   }
 
   // ------------------------------------------------------------------ model -> text
-  const BC_DESC = { open: 'open end', ivalve: 'intake valve', evalve: 'exhaust valve', branch: 'junction', step: 'diameter step', plenum: 'plenum port', reservoir: 'reservoir' };
-  const BC_ENDS = { open: [1, 1], ivalve: [1, 1], evalve: [1, 1], step: [2, 2], branch: [2, 999], plenum: [1, 1], reservoir: [1, 1] };
+  const BC_DESC = { open: 'open end', closed: 'closed end', ivalve: 'intake valve', evalve: 'exhaust valve', branch: 'junction', step: 'diameter step', plenum: 'plenum port', reservoir: 'reservoir' };
+  const BC_ENDS = { open: [1, 1], closed: [1, 1], ivalve: [1, 1], evalve: [1, 1], step: [2, 2], branch: [2, 999], plenum: [1, 1], reservoir: [1, 1] };
   function pipeLen(pp) { let s = 0.0; for (const sec of pp.secs) s += sec[0]; return s; }
   function endD(pp, side) { return side === 'left' ? pp.D0 : pp.secs[pp.secs.length - 1][1]; }
   function getBc(bcs, k) { return bcs instanceof Map ? bcs.get(k) : bcs[k]; }
@@ -3373,6 +3373,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         w.v(vtOf.get(k), T + ':1460 valve type index 1-based = valve type ' + vtOf.get(k));
       } else if (t === 'branch') {
         w.v(12, T + ':1376 BC type 12 = branch TCCRamificacion, takes every pipe end with this number, reads no data TCCRamificacion.cpp:94-147');
+      } else if (t === 'closed') {
+        w.v(3, T + ':1294 BC type 3 = closed end TCCExtremoCerrado, reads no data');
       } else if (t === 'step') {
         w.v(6, T + ':1314 BC type 6 = pipe-to-pipe connection TCCUnionEntreTubos');
         w.row([0.0, 0.0], 'TCCUnionEntreTubos.cpp:200 wall thickness m, conductivity W/mK; wall conduction only, unused with constant wall T');
@@ -3663,6 +3665,21 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           items.push(['outlets', outs]);
           return;
         }
+        if (has(el, 'side')) {
+          // v7 side branch (make_wam.py tail_items): a quarter-wave tube to a closed end, or a Helmholtz neck and volume
+          const sd = el.side, tw = has(sd, 'Tw_C') ? Number(sd.Tw_C) : TwcDefault;
+          if (sd.type === 'quarter') {
+            const L = Number(sd.L_mm || 0.0) / 1000.0, d = Number(sd.d_mm || 0.0) / 1000.0;
+            if (!(L > 0.0 && d > 0.0)) throw new Error('tail element ' + (n + 1) + ': a quarter-wave side branch needs L_mm and d_mm');
+            items.push(['side', { type: 'quarter', L, d }, tw]);
+          } else if (sd.type === 'helmholtz') {
+            const V = Number(sd.V_litres || 0.0) / 1000.0, L = Number(sd.neck_L_mm || 0.0) / 1000.0, d = Number(sd.neck_d_mm || 0.0) / 1000.0;
+            if (!(V > 0.0 && L > 0.0 && d > 0.0)) throw new Error('tail element ' + (n + 1) + ': a Helmholtz side branch needs V_litres, neck_L_mm and neck_d_mm');
+            items.push(['side', { type: 'helmholtz', V, L, d, T0: has(sd, 'T0_C') ? Number(sd.T0_C) : T0Default }, tw]);
+          } else throw new Error('tail element ' + (n + 1) + ': side.type must be quarter or helmholtz');
+          if (items.length < 2 || items[items.length - 2][0] !== 'seg') throw new Error('tail element ' + (n + 1) + ': a side branch must come after a pipe segment');
+          return;
+        }
         if (has(el, 'V_litres')) {
           const V = Number(el.V_litres);
           if (!(V > 0.0)) throw new Error('tail element ' + (n + 1) + ': V_litres must be positive');
@@ -3673,7 +3690,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           items.push(['seg', { L: Number(el.L_mm) / 1000.0, d0: Number(el.d0_mm) / 1000.0, d1: Number(el.d1_mm) / 1000.0 }, has(el, 'Tw_C') ? Number(el.Tw_C) : TwcDefault]);
         }
       });
-      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum');
+      for (let n = 0; n < items.length - 1; n++) if (items[n][0] === 'side' && items[n + 1][0] !== 'seg') throw new Error('a side branch must be followed by a pipe segment');
+      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum or a side branch');
       if (items[0][0] !== 'seg') throw new Error('a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)');
       return items;
     }
@@ -3682,10 +3700,11 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       const groups = [];
       let cur = null;
       for (const it of items) {
-        if (it[0] === 'plenum' || it[0] === 'outlets') { groups.push(it); cur = null; }
+        if (it[0] === 'plenum' || it[0] === 'outlets' || it[0] === 'side') { groups.push(it); cur = null; }
         else { if (cur === null) { cur = []; groups.push(cur); } cur.push([it[1], it[2]]); }
       }
-      let npl = 0, npipe = 0;
+      let npl = 0, npipe = 0, nside = 0;
+      const sideKey = new Map(), sideNum = new Map();      // side-branch group index -> its junction BC key, its number
       const addGroup = (g, lk, rk) => {
         const runs = [];
         for (const [sg, tw] of g) {
@@ -3705,7 +3724,26 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           addLine(segs, keys[j], keys[j + 1], role + ' section ' + npipe, tw, Tgc, comp, ht);
         });
       };
+      // v7 (make_wam.py add_side): the side branch at group gi, off the junction before the next group
+      const addSide = (gi, sd, tw) => {
+        const bk = sideKey.get(gi), nn = sideNum.get(gi), Lmin = 3.0 * p.cell_mm / 1000.0;
+        if (sd.type === 'quarter') {
+          if (sd.L < Lmin) throw new Error(role + ': a quarter-wave branch shorter than 3 cells (' + pctG(Lmin * 1000.0) + ' mm) cannot be written');
+          const ck = bk + '/closed';
+          bcs.set(ck, { type: 'closed', note: role + ' side branch ' + nn + ' closed end' });
+          addLine([{ L: sd.L, d0: sd.d, d1: sd.d }], bk, ck, role + ' side branch ' + nn + ', quarter-wave tube', tw, Tgc, comp, ht);
+        } else {
+          plenums.push({ V_m3: sd.V, T_C: sd.T0, p_bar: p.p_amb_bar, comp: comp.slice(), note: role + ' side branch ' + nn + ', Helmholtz ' + pctG(sd.V * 1000.0) + ' litres' });
+          const pk = bk + '/port';
+          bcs.set(pk, { type: 'plenum', plenum: plenums.length, note: role + ' side branch ' + nn + ' neck into the volume' });
+          let L = sd.L, A = Math.PI / 4.0 * sd.d * sd.d;
+          if (L < Lmin) { A = A * Lmin / L; L = Lmin; }
+          const dn = Math.sqrt(4.0 * A / Math.PI);
+          addLine([{ L, d0: dn, d1: dn }], bk, pk, role + ' side branch ' + nn + ', Helmholtz neck', tw, Tgc, comp, ht);
+        }
+      };
       groups.forEach((g, gi) => {
+        if (g[0] === 'side') return;
         if (g[0] === 'plenum') {
           npl += 1;
           plenums.push({ V_m3: g[1], T_C: g[2], p_bar: p.p_amb_bar, comp: comp.slice(), note: role + ' muffler ' + npl + ' as a ' + pctG(g[1] * 1000.0) + ' litre expansion volume' });
@@ -3722,11 +3760,18 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           return;
         }
         let lk, rk;
+        const isSide = q => q !== undefined && q[0] === 'side';
         if (gi === 0) lk = left;
+        else if (isSide(groups[gi - 1])) lk = sideKey.get(gi - 1);
         else { lk = role + '/muffler' + npl + '/out'; bcs.set(lk, { type: 'plenum', plenum: plenums.length, note: role + ' muffler ' + npl + ' outlet port' }); }
         if (gi === groups.length - 1) rk = right;
-        else { rk = role + '/muffler' + (npl + 1) + '/in'; bcs.set(rk, { type: 'plenum', plenum: plenums.length + 1, note: role + ' muffler ' + (npl + 1) + ' inlet port' }); }
+        else if (isSide(groups[gi + 1])) {
+          nside += 1; rk = role + '/side' + nside;
+          sideKey.set(gi + 1, rk); sideNum.set(gi + 1, nside);
+          bcs.set(rk, { type: 'branch', note: role + ' side branch ' + nside + ' junction' });
+        } else { rk = role + '/muffler' + (npl + 1) + '/in'; bcs.set(rk, { type: 'plenum', plenum: plenums.length + 1, note: role + ' muffler ' + (npl + 1) + ' inlet port' }); }
         addGroup(g, lk, rk);
+        if (gi + 1 < groups.length && isSide(groups[gi + 1])) addSide(gi + 1, groups[gi + 1][1], groups[gi + 1][2]);
       });
     }
 
@@ -13506,7 +13551,32 @@ $('h-uel-wrap').addEventListener('change',e=>{ if(e.target.id==='h-uel-route') H
 document.addEventListener('click',e=>{ if(e.target.closest('#h-uel-reset')){ HUEL.c={}; HUEL.g={}; HUEL.T=NaN; renderActive(); } });
 
 /* ===== OpenWAM: a full 1-D case for the free OpenWAM 2.2 solver, several engine speeds, run with a .bat ===== */
-const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[]};
+const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[],
+  line:{on:false,L:2500,d:76.2,muf:0,tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38}};   // the line after the collector (mm, litres)
+// The line after the collector for the OpenWAM case (make_wam tail elements): pipe, an optional drone fix off the pipe
+// (a J-pipe = quarter-wave tube to a closed end, or a Helmholtz can on a neck) at x from the collector, an optional
+// muffler as an expansion volume, and the tailpipe to the open end. null when off; {err} when it does not add up.
+function wamLineTail(){
+  const W=WAM_UI.line; if(!W.on) return null;
+  const n=x=>Number(x);
+  if(!(n(W.L)>0&&n(W.d)>0)) return {err:'Line after the collector: give the pipe length and diameter.'};
+  const pipe=L=>({L_mm:L,d0_mm:n(W.d),d1_mm:n(W.d)}), out=[];
+  if(W.fix!=='none'){
+    if(!(n(W.x)>0&&n(W.x)<n(W.L))) return {err:'Line after the collector: the drone fix has to sit on the pipe, between the collector and the muffler or tailpipe.'};
+    out.push(pipe(n(W.x)));
+    out.push(W.fix==='jpipe'?{side:{type:'quarter',L_mm:n(W.qL),d_mm:n(W.qd)}}:{side:{type:'helmholtz',V_litres:n(W.hV),neck_L_mm:n(W.hL),neck_d_mm:n(W.hd)}});
+    out.push(pipe(n(W.L)-n(W.x)));
+  } else out.push(pipe(n(W.L)));
+  if(n(W.muf)>0){ out.push({V_litres:n(W.muf)}); out.push(pipe(n(W.tail)>0?n(W.tail):300)); }
+  return {tail:out};
+}
+function wamWithLine(spec){
+  const t=wamLineTail(); if(!t) return {spec}; if(t.err) return {err:t.err};
+  const sp=JSON.parse(JSON.stringify(spec)), o=sp.opt||{};
+  if(o.collector) o.collector.tail=t.tail; else if(o.collectors&&o.collectors.length) o.collectors.forEach(c=>{ c.tail=t.tail; });
+  else { if(sp.exhaust.chambers&&sp.exhaust.chambers.length) return {err:'Line after the collector: a single primary with a chamber on it cannot also take the line here.'}; sp.exhaust.tail=t.tail; }
+  return {spec:sp};
+}
 function wamName(q){ const e=q&&q.n?q.n:1; return ('calc_'+(q&&q.cyl?q.cyl+'cyl':'')+'_'+(e>1?e+'to1':'single')).replace(/[^A-Za-z0-9_.-]/g,''); }
 function wamRpms(q){
   if(WAM_UI.rpms&&WAM_UI.rpms.trim()) return WAM_UI.rpms.split(/[\s,;]+/).map(Number).filter(v=>v>=500&&v<=20000).map(v=>Math.round(v/50)*50);
@@ -13518,7 +13588,8 @@ function wamFiles(q,sp,extra,uel){
   const name=(WAM_UI.name||wamName(q)+(uel?'_uel':'')).replace(/[^A-Za-z0-9_.-]/g,'')||'calc', cycles=WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25, rpms=wamRpms(q);
   if(!rpms.length) throw new Error('Enter at least one engine speed between 500 and 20,000 RPM.');
   const files=[], names=[];
-  rpms.forEach(r=>{ const nm=name+'_'+r; names.push(nm); files.push({name:nm+'.wam',text:WAMX.makeWam(sp,Object.assign({rpm:r,cycles,name:nm},extra||{}))}); });
+  const wl=wamWithLine(sp); if(wl.err) throw new Error(wl.err);
+  rpms.forEach(r=>{ const nm=name+'_'+r; names.push(nm); files.push({name:nm+'.wam',text:WAMX.makeWam(wl.spec,Object.assign({rpm:r,cycles,name:nm},extra||{}))}); });
   files.push({name:'run_all.bat',text:WAMX.batFile(names,WAMX.USER_EXE)});
   files.push({name:'README.txt',text:['OpenWAM case from the Arcindweld exhaust calculator ('+new Date().toISOString().slice(0,10)+')','',
     'What is here: one .wam input file per engine speed ('+rpms.join(', ')+' RPM) for the engine and header on the 4-Stroke tab,',
@@ -13532,6 +13603,21 @@ function wamFiles(q,sp,extra,uel){
     'they are the same for every run, so compare runs with each other, not with a dyno sheet.'].concat(uel?uelReadme(uel):[]).join('\r\n')});
   return {files,name,rpms,cycles,uel:!!uel};
 }
+function wamLineUi(){
+  const W=WAM_UI.line, shown=(v,kind)=>kind==='len'&&U==='imp'?+(v/25.4).toFixed(3):+(+v).toFixed(kind==='len'?1:2);
+  const L=(k,lab,kind)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="wamline" data-k="'+k+'" type="number" step="any" inputmode="decimal" data-kind="'+kind+'" value="'+shown(W[k],kind)+'">'+(kind==='len'?'<em data-u="len">'+(U==='imp'?'in':'mm')+'</em>':'<em>L</em>')+'</span></label>';
+  let h='<label class="f span2"><span class="lab">After the collector</span><span class="inp"><select class="wamline" data-k="on"><option value="0"'+(W.on?'':' selected')+'>Open to the air at the collector (compare headers on their own)</option><option value="1"'+(W.on?' selected':'')+'>The rest of the system: pipe, muffler, drone fix</option></select></span></label>';
+  if(W.on){
+    h+='<div class="grid2 span2">'+L('L','Pipe from the collector, length','len')+L('d','Pipe inside diameter','len')+L('muf','Muffler volume (0: none)','num')+L('tail','Tailpipe after the muffler','len')+
+      '<label class="f span2"><span class="lab">Drone fix on the pipe</span><span class="inp"><select class="wamline" data-k="fix"><option value="none"'+(W.fix==='none'?' selected':'')+'>None</option><option value="jpipe"'+(W.fix==='jpipe'?' selected':'')+'>J-pipe (quarter-wave tube, closed end)</option><option value="helm"'+(W.fix==='helm'?' selected':'')+'>Helmholtz can on a neck</option></select></span></label>';
+    if(W.fix!=='none') h+=L('x','Distance from the collector','len')+(W.fix==='jpipe'?L('qL','J-pipe length','len')+L('qd','J-pipe inside diameter','len'):L('hV','Can volume','num')+L('hL','Neck length','len')+L('hd','Neck inside diameter','len'));
+    h+='</div><p class="cap">The muffler is an expansion volume (it has the low-frequency behaviour of a chambered muffler, not its baffles or packing). The J-pipe and the can sit on the pipe at the distance given; the Mufflers tab works out their lengths and volumes for a drone frequency. Every case written, run, fitted or optimised here uses this line.</p>';
+  }
+  return '<div class="grid2 span2" style="max-width:640px">'+h+'</div>';
+}
+document.addEventListener('change',e=>{ const el=e.target.closest('select.wamline'); if(!el) return; const k=el.dataset.k; WAM_UI.line[k]=k==='on'?el.value==='1':el.value; renderActive(); });
+document.addEventListener('input',e=>{ const el=e.target.closest('input.wamline'); if(!el) return; readInput(el); if(Number.isFinite(el._b)) WAM_UI.line[el.dataset.k]=el._b; });
+window.__wamFiles=(q,sp)=>wamFiles(q,sp);   // for tests/wamline_ui.js
 function wamMsg(t,bad){ WAM_UI.msg={t,bad:!!bad}; const n=document.querySelector('.wammsg'); if(n){ n.className='note wammsg'+(bad?' bad':''); n.textContent=t; n.hidden=false; } }
 async function wamDownload(){
   const q=SIM.inp, err=q?simCheck(q):'Fill in the 4-Stroke tab first.'; if(err){ wamMsg(err,true); return null; }
@@ -13581,6 +13667,7 @@ function wamSection(q,sp){
     '<label class="f span2"><span class="lab">Engine speeds to run (RPM, separated by spaces)</span><span class="inp"><input class="wamx" data-k="rpms" type="text" inputmode="numeric" value="'+esc(WAM_UI.rpms||rpms.join(' '))+'"></span></label>'+
     '<label class="f"><span class="lab">Cycles per run</span><span class="inp"><input class="wamx" data-k="cycles" type="number" step="1" min="5" max="200" inputmode="numeric" value="'+WAM_UI.cycles+'"></span></label>'+
     '<label class="f"><span class="lab">Case name</span><span class="inp"><input class="wamx" data-k="name" type="text" value="'+esc(WAM_UI.name||wamName(q))+'"></span></label></div>'+
+    wamLineUi()+
     '<p class="cap">About 25 cycles settle a naturally aspirated case; the results table shows how much the last five cycles still moved. Each run takes OpenWAM from a few seconds to a minute or two on a desktop. Every cylinder’s firing angle is written 45° later than the engine’s own clock (the firing intervals are unchanged): with the clock on cylinder 1’s TDC, an LS3 bank at 0/180/450/630° started one cylinder in a state OpenWAM could not integrate (the numbers blew up at 3,600 RPM, a mass-study crash at 6,400 RPM, with or without a finer mesh), while any shift of 10° to 90° ran clean at both speeds and agreed on torque within 1%. Sanity check: the C6 Corvette LS3 preset’s case (one bank, 1.875 in primaries into a 4-1), run on OpenWAM 2.2 for Windows, gave 440 lb-ft net at 4,600 RPM and 426 hp net at 5,300–5,900 RPM for the two banks together against GM’s 424 lb-ft at 4,600 and 430 hp at 5,900; net means friction is not taken off, so a real dyno would read a little lower, and the agreement is a check that the valves, cam and pipes are in the right range, not a calibration. The batch expects OpenWAM at <code>'+esc(WAMX.USER_EXE)+'</code>; edit the first line of run_all.bat if it lives elsewhere.</p>'+
     '<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-wam="dl">Download OpenWAM case (.zip)</button>'+(hostHas('openwam')?'<button type="button" class="btn" data-wam="run">Run in OpenWAM on this PC</button><button type="button" class="btn" data-wam="stop">Stop</button>':'')+'</div>'+
     '<div class="note wammsg'+(WAM_UI.msg&&WAM_UI.msg.bad?' bad':'')+'"'+(WAM_UI.msg?'':' hidden')+'>'+(WAM_UI.msg?esc(WAM_UI.msg.t):'')+'</div>';
@@ -13656,9 +13743,9 @@ async function dynoRun(){
   const pts=raw.map(p=>({rpm:p.rpm,Nm:p.Nm/k}));
   const sp=simSpec(q), src=wamSource(q,sp); if(src.err){ say(src.err,true); return; }
   const cd0=sp.e.cd, ce0=sp.e.combEff>0?sp.e.combEff:null;
-  const mk=(spec,tag)=>pts.map(p=>({name:'dyno_'+tag+'_'+p.rpm+'.wam',text:WAMX.makeWam(spec,Object.assign({rpm:p.rpm,cycles:WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25,name:'dyno_'+tag+'_'+p.rpm},src.run||{}))}));
+  const mk=(spec0,tag)=>{ const wl=wamWithLine(spec0); if(wl.err) throw new Error(wl.err); const spec=wl.spec; return pts.map(p=>({name:'dyno_'+tag+'_'+p.rpm+'.wam',text:WAMX.makeWam(spec,Object.assign({rpm:p.rpm,cycles:WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25,name:'dyno_'+tag+'_'+p.rpm},src.run||{}))})); };
   const base=JSON.parse(JSON.stringify(src.spec)), pert=JSON.parse(JSON.stringify(src.spec)); pert.e.cd=cd0+0.1;
-  const files=mk(base,'a').concat(mk(pert,'b'));
+  let files; try{ files=mk(base,'a').concat(mk(pert,'b')); }catch(e){ say(e.message,true); return; }
   say('Running '+files.length+' OpenWAM models for the fit (two per dyno point). This takes a few minutes.');
   let res; try{ res=await HOST.call('runOpenWAM',{name:'dyno_fit',files},ev=>{ if(ev.event==='done') say('Fitting: '+ev.count+' of '+ev.of+' runs done.'); }); }catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
   const tq=nm=>{ const m=(res.models||[]).find(x=>x.name===nm); if(!m||!m.finished||!m.avg) return NaN; const cy=WAMX.readAvg(m.avg).cycles; return cy.length?cy[cy.length-1].torque_brake_Nm:NaN; };
@@ -13752,7 +13839,7 @@ async function optRun(){
   if(!rpms.length){ say('Enter at least one speed.',true); return; }
   const sp=simSpec(q), cycles=WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25;
   const build=(list,tag0)=>{ const files=[], rows=[];
-    list.forEach((c,k)=>{ const r=calcLayout(c.p), w=hdrWamSpec(r,c.p,sp); if(w.err){ rows.push(Object.assign({},c,{err:w.err})); return; }
+    list.forEach((c,k)=>{ const r=calcLayout(c.p), w0=hdrWamSpec(r,c.p,sp), w=w0.err?w0:wamWithLine(w0.spec); if(w.err){ rows.push(Object.assign({},c,{err:w.err})); return; }
       const tag=tag0+k; rows.push(Object.assign({},c,{tag}));
       rpms.forEach(x=>files.push({name:tag+'_'+x+'.wam',text:WAMX.makeWam(w.spec,{rpm:x,cycles,name:tag+'_'+x})})); });
     return {files,rows}; };

@@ -198,8 +198,8 @@
   }
 
   // ------------------------------------------------------------------ model -> text
-  const BC_DESC = { open: 'open end', ivalve: 'intake valve', evalve: 'exhaust valve', branch: 'junction', step: 'diameter step', plenum: 'plenum port', reservoir: 'reservoir' };
-  const BC_ENDS = { open: [1, 1], ivalve: [1, 1], evalve: [1, 1], step: [2, 2], branch: [2, 999], plenum: [1, 1], reservoir: [1, 1] };
+  const BC_DESC = { open: 'open end', closed: 'closed end', ivalve: 'intake valve', evalve: 'exhaust valve', branch: 'junction', step: 'diameter step', plenum: 'plenum port', reservoir: 'reservoir' };
+  const BC_ENDS = { open: [1, 1], closed: [1, 1], ivalve: [1, 1], evalve: [1, 1], step: [2, 2], branch: [2, 999], plenum: [1, 1], reservoir: [1, 1] };
   function pipeLen(pp) { let s = 0.0; for (const sec of pp.secs) s += sec[0]; return s; }
   function endD(pp, side) { return side === 'left' ? pp.D0 : pp.secs[pp.secs.length - 1][1]; }
   function getBc(bcs, k) { return bcs instanceof Map ? bcs.get(k) : bcs[k]; }
@@ -441,6 +441,8 @@
         w.v(vtOf.get(k), T + ':1460 valve type index 1-based = valve type ' + vtOf.get(k));
       } else if (t === 'branch') {
         w.v(12, T + ':1376 BC type 12 = branch TCCRamificacion, takes every pipe end with this number, reads no data TCCRamificacion.cpp:94-147');
+      } else if (t === 'closed') {
+        w.v(3, T + ':1294 BC type 3 = closed end TCCExtremoCerrado, reads no data');
       } else if (t === 'step') {
         w.v(6, T + ':1314 BC type 6 = pipe-to-pipe connection TCCUnionEntreTubos');
         w.row([0.0, 0.0], 'TCCUnionEntreTubos.cpp:200 wall thickness m, conductivity W/mK; wall conduction only, unused with constant wall T');
@@ -731,6 +733,21 @@
           items.push(['outlets', outs]);
           return;
         }
+        if (has(el, 'side')) {
+          // v7 side branch (make_wam.py tail_items): a quarter-wave tube to a closed end, or a Helmholtz neck and volume
+          const sd = el.side, tw = has(sd, 'Tw_C') ? Number(sd.Tw_C) : TwcDefault;
+          if (sd.type === 'quarter') {
+            const L = Number(sd.L_mm || 0.0) / 1000.0, d = Number(sd.d_mm || 0.0) / 1000.0;
+            if (!(L > 0.0 && d > 0.0)) throw new Error('tail element ' + (n + 1) + ': a quarter-wave side branch needs L_mm and d_mm');
+            items.push(['side', { type: 'quarter', L, d }, tw]);
+          } else if (sd.type === 'helmholtz') {
+            const V = Number(sd.V_litres || 0.0) / 1000.0, L = Number(sd.neck_L_mm || 0.0) / 1000.0, d = Number(sd.neck_d_mm || 0.0) / 1000.0;
+            if (!(V > 0.0 && L > 0.0 && d > 0.0)) throw new Error('tail element ' + (n + 1) + ': a Helmholtz side branch needs V_litres, neck_L_mm and neck_d_mm');
+            items.push(['side', { type: 'helmholtz', V, L, d, T0: has(sd, 'T0_C') ? Number(sd.T0_C) : T0Default }, tw]);
+          } else throw new Error('tail element ' + (n + 1) + ': side.type must be quarter or helmholtz');
+          if (items.length < 2 || items[items.length - 2][0] !== 'seg') throw new Error('tail element ' + (n + 1) + ': a side branch must come after a pipe segment');
+          return;
+        }
         if (has(el, 'V_litres')) {
           const V = Number(el.V_litres);
           if (!(V > 0.0)) throw new Error('tail element ' + (n + 1) + ': V_litres must be positive');
@@ -741,7 +758,8 @@
           items.push(['seg', { L: Number(el.L_mm) / 1000.0, d0: Number(el.d0_mm) / 1000.0, d1: Number(el.d1_mm) / 1000.0 }, has(el, 'Tw_C') ? Number(el.Tw_C) : TwcDefault]);
         }
       });
-      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum');
+      for (let n = 0; n < items.length - 1; n++) if (items[n][0] === 'side' && items[n + 1][0] !== 'seg') throw new Error('a side branch must be followed by a pipe segment');
+      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum or a side branch');
       if (items[0][0] !== 'seg') throw new Error('a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)');
       return items;
     }
@@ -750,10 +768,11 @@
       const groups = [];
       let cur = null;
       for (const it of items) {
-        if (it[0] === 'plenum' || it[0] === 'outlets') { groups.push(it); cur = null; }
+        if (it[0] === 'plenum' || it[0] === 'outlets' || it[0] === 'side') { groups.push(it); cur = null; }
         else { if (cur === null) { cur = []; groups.push(cur); } cur.push([it[1], it[2]]); }
       }
-      let npl = 0, npipe = 0;
+      let npl = 0, npipe = 0, nside = 0;
+      const sideKey = new Map(), sideNum = new Map();      // side-branch group index -> its junction BC key, its number
       const addGroup = (g, lk, rk) => {
         const runs = [];
         for (const [sg, tw] of g) {
@@ -773,7 +792,26 @@
           addLine(segs, keys[j], keys[j + 1], role + ' section ' + npipe, tw, Tgc, comp, ht);
         });
       };
+      // v7 (make_wam.py add_side): the side branch at group gi, off the junction before the next group
+      const addSide = (gi, sd, tw) => {
+        const bk = sideKey.get(gi), nn = sideNum.get(gi), Lmin = 3.0 * p.cell_mm / 1000.0;
+        if (sd.type === 'quarter') {
+          if (sd.L < Lmin) throw new Error(role + ': a quarter-wave branch shorter than 3 cells (' + pctG(Lmin * 1000.0) + ' mm) cannot be written');
+          const ck = bk + '/closed';
+          bcs.set(ck, { type: 'closed', note: role + ' side branch ' + nn + ' closed end' });
+          addLine([{ L: sd.L, d0: sd.d, d1: sd.d }], bk, ck, role + ' side branch ' + nn + ', quarter-wave tube', tw, Tgc, comp, ht);
+        } else {
+          plenums.push({ V_m3: sd.V, T_C: sd.T0, p_bar: p.p_amb_bar, comp: comp.slice(), note: role + ' side branch ' + nn + ', Helmholtz ' + pctG(sd.V * 1000.0) + ' litres' });
+          const pk = bk + '/port';
+          bcs.set(pk, { type: 'plenum', plenum: plenums.length, note: role + ' side branch ' + nn + ' neck into the volume' });
+          let L = sd.L, A = Math.PI / 4.0 * sd.d * sd.d;
+          if (L < Lmin) { A = A * Lmin / L; L = Lmin; }
+          const dn = Math.sqrt(4.0 * A / Math.PI);
+          addLine([{ L, d0: dn, d1: dn }], bk, pk, role + ' side branch ' + nn + ', Helmholtz neck', tw, Tgc, comp, ht);
+        }
+      };
       groups.forEach((g, gi) => {
+        if (g[0] === 'side') return;
         if (g[0] === 'plenum') {
           npl += 1;
           plenums.push({ V_m3: g[1], T_C: g[2], p_bar: p.p_amb_bar, comp: comp.slice(), note: role + ' muffler ' + npl + ' as a ' + pctG(g[1] * 1000.0) + ' litre expansion volume' });
@@ -790,11 +828,18 @@
           return;
         }
         let lk, rk;
+        const isSide = q => q !== undefined && q[0] === 'side';
         if (gi === 0) lk = left;
+        else if (isSide(groups[gi - 1])) lk = sideKey.get(gi - 1);
         else { lk = role + '/muffler' + npl + '/out'; bcs.set(lk, { type: 'plenum', plenum: plenums.length, note: role + ' muffler ' + npl + ' outlet port' }); }
         if (gi === groups.length - 1) rk = right;
-        else { rk = role + '/muffler' + (npl + 1) + '/in'; bcs.set(rk, { type: 'plenum', plenum: plenums.length + 1, note: role + ' muffler ' + (npl + 1) + ' inlet port' }); }
+        else if (isSide(groups[gi + 1])) {
+          nside += 1; rk = role + '/side' + nside;
+          sideKey.set(gi + 1, rk); sideNum.set(gi + 1, nside);
+          bcs.set(rk, { type: 'branch', note: role + ' side branch ' + nside + ' junction' });
+        } else { rk = role + '/muffler' + (npl + 1) + '/in'; bcs.set(rk, { type: 'plenum', plenum: plenums.length + 1, note: role + ' muffler ' + (npl + 1) + ' inlet port' }); }
         addGroup(g, lk, rk);
+        if (gi + 1 < groups.length && isSide(groups[gi + 1])) addSide(gi + 1, groups[gi + 1][1], groups[gi + 1][2]);
       });
     }
 
