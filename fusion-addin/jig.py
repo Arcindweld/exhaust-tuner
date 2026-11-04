@@ -361,7 +361,13 @@ def plan_fab(tubes, up=(0.0, 0.0, 1.0), opts=None):
         sz = o['flange_size'] if o['flange_size'] > 0 else t.od + 6.0
         pc = _v(p0, tin, -o['flange_thick'] / 2.0)
         pw, ph = plate_wh(sz)
-        corners = [_v(_v(pc, a1, i * ph / 2.0), a2, j * pw / 2.0) for i in (-1.0, 1.0) for j in (-1.0, 1.0)]
+        if o['flange_shape'] == 'round':
+            # a round plate has no corners: the legs stand on its rim at 45 deg either side of the bottom, inset by half a
+            # leg so each leg overlaps the disc (on the square's corners they would float clear of it)
+            k = max(sz / 2.0 - o['leg'] / 2.0, 0.1) / math.sqrt(2.0)
+            corners = [_v(_v(pc, a1, i * k), a2, j * k) for i in (-1.0, 1.0) for j in (-1.0, 1.0)]
+        else:
+            corners = [_v(_v(pc, a1, i * ph / 2.0), a2, j * pw / 2.0) for i in (-1.0, 1.0) for j in (-1.0, 1.0)]
         return p0, tin, a1, a2, sz, pc, corners
     ends = [(t, e) for t in T for e in (('start', 'end') if fe == 'both' else ('start',) if fe == 'start' else ())]
     if fe == 'both' and len(T) > 1:

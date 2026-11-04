@@ -182,6 +182,9 @@ fm = [q for q in pm_['parts'] if q['kind'] == 'flange'][0]
 pocket = [c for c in fm['cut'] if c['k'] == 'cyl' and abs(c['r'] - (3.8 + 0.025)) < 1e-9]
 ok(fm['add'][0]['k'] == 'cyl' and abs(fm['add'][0]['r'] - 5.0) < 1e-9 and len(pocket) == 1 and abs(pocket[0]['a'][0] + 0.4) < 1e-9,
    'male V-band: a round 100 mm plate with a 76 mm pocket 4 mm deep for its spigot')
+legs_r = [b for b in fm['add'] if b['k'] == 'box' and abs(b['L'] - 2.0) < 1e-9 and abs(b['W'] - 2.0) < 1e-9]
+on_disc = all(math.hypot(b['c'][1], b['c'][2] + b['H'] / 2.0 - 1.0 - 6.0) <= 5.0 - 0.99 for b in legs_r)
+ok(len(legs_r) == 2 and on_disc, 'a round plate stands on two legs under its rim, each overlapping the disc (not on the square corners)')
 pf_ = J.plan_fab([flat], opts={'flange_ends': 'start', 'flange_shape': 'round', 'flange_size': 10.0, 'flange_seat': {'kind': 'boss', 'd': 7.0, 'depth': 0.3}})
 ff = [q for q in pf_['parts'] if q['kind'] == 'flange'][0]
 boss = [b for b in ff['add'] if b['k'] == 'cyl' and abs(b['r'] - (3.5 - 0.025)) < 1e-9]
@@ -211,6 +214,50 @@ for q in pg['parts']:
         sq &= (dx < 1e-9 or dy < 1e-9) and abs(max(dx, dy) / 5.0 - round(max(dx, dy) / 5.0)) < 1e-9
 ok(sq, 'each pad’s two holes lie on one grid line, a whole number of pitches apart')
 ok(any('pad square to the grid' in n for n in pg['notes']), 'the note says pads')
+# ---- the page's flange presets (web/index.html FLANGE_PRESETS, mm): each one builds a locator on a tube of its size,
+# every bolt hole and seat inside the plate
+import json
+import re
+_page = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'web', 'index.html'), encoding='utf-8').read()
+PRE = json.loads(re.search(r'const FLANGE_PRESETS=(\[.*?\]);\n', _page).group(1))
+bad = []
+for f in PRE:
+    m = re.match(r'([\d.]+) in', f['name'])
+    tod = float(m.group(1)) * 2.54 if m else 5.08
+    pipe = {'name': 'P', 'elems': [('line', (0.0, 0.0, 6.0), (30.0, 0.0, 6.0), 30.0)], 'od': tod}
+    o = {'flange_ends': 'start', 'flange_shape': f.get('shape', 'square'), 'flange_thick': f.get('thick', 10) / 10.0}
+    if f.get('size'):
+        o['flange_size'] = f['size'] / 10.0
+    if f.get('w'):
+        o['flange_w'], o['flange_h'] = f['w'] / 10.0, f['h'] / 10.0
+    if f.get('holes'):
+        o['flange_holes'] = [tuple(v / 10.0 if k != 4 else v for k, v in enumerate(h)) for h in f['holes']]
+    if f.get('n'):
+        o.update(flange_n=f['n'], flange_pcd=f['pcd'] / 10.0, flange_hole=f['hole'] / 10.0, flange_angle_deg=f.get('ang', 0))
+    if f.get('seat'):
+        o['flange_seat'] = {'kind': f['seat'], 'd': f.get('seatd', 0) / 10.0, 'depth': f.get('seatdep', 0) / 10.0}
+    try:
+        pp = J.plan_fab([pipe], opts=o)
+    except Exception as ex:
+        bad.append('%s: %s' % (f['name'], ex))
+        continue
+    fl = [q for q in pp['parts'] if q['kind'] == 'flange'][0]
+    pl = fl['add'][0]
+    if pl['k'] == 'cyl':
+        half_w = half_h = pl['r']
+    else:
+        half_w, half_h = pl['W'] / 2.0, pl['H'] / 2.0
+    for c in fl['cut'][1:]:
+        if c['k'] != 'cyl':
+            continue
+        y, z, r = c['a'][1], c['a'][2] - 6.0, c['r']
+        inside = (math.hypot(y, z) + r <= pl['r'] + 1e-6) if pl['k'] == 'cyl' else (abs(y) + r <= half_w + 1e-6 and abs(z) + r <= half_h + 1e-6)
+        if not inside:
+            bad.append('%s: a hole or seat runs off the plate (%.1f, %.1f) r %.1f mm' % (f['group'] + ' ' + f['name'], 10 * y, 10 * z, 10 * r))
+            break
+ok(len(PRE) >= 40 and not bad, 'all %d flange presets build a locator with every hole and seat on the plate%s' % (len(PRE), (': ' + '; '.join(bad)) if bad else ''))
+kinds = {(f['group'].split(',')[0], f.get('seat')) for f in PRE}
+ok(('V-band', 'pocket') in kinds and ('V-band', 'boss') in kinds, 'V-band presets for male (pocket) and female (boss) flanges')
 s = J.fab_summary(pt)
 ok(s['count'] == len(pt['parts']) and s['holes'] >= 2 * s['count'], 'summary: %d parts, %d holes' % (s['count'], s['holes']))
 print('FAILS:', FAILS)

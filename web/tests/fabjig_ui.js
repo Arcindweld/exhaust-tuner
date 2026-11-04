@@ -27,6 +27,21 @@ const { chromium } = require('playwright');
     const j = pay && pay.jig;
     ok(j && j.style === 'plate' && j.layout === 'flat' && j.mount === 'table' && j.grid_pitch_mm === 100 && j.grid_hole_mm === 28.5 && j.flange_ends === 'both' &&
        Math.abs(j.flange_pcd_mm - 80) < 1e-9 && j.flange_n === 3 && j.weld_gap_mm === 20 && j.bed_mm === 256, vp.n + ': payload: plate, flat, System 28, flanges 3 on 80 mm');
+    // flange presets: grouped by type and brand, male and female V-bands, turbo flanges; applying one fills the fields
+    const pre = await p.evaluate(() => [...document.querySelectorAll('#jigopts-headers select[data-k="fpreset"] optgroup')].map(g => [g.label, [...g.querySelectorAll('option')].map(o => [o.value, o.textContent])]));
+    const find = (g, re) => { const G = pre.find(x => x[0] === g); const o = G && G[1].find(x => re.test(x[1])); return o && o[0]; };
+    ok(pre.length >= 9 && ['2-bolt exhaust flanges', '3-bolt exhaust flanges', 'V-band, Ace Standard (304)', 'V-band, Ace Quick Release', 'V-band, Vibrant 14xx', 'Turbo inlets', 'Turbo outlets (V-band)', 'Turbo outlets (bolted)', 'Wastegates', 'Wiggins (Eaton) quick disconnect'].every(g => pre.some(x => x[0] === g)), vp.n + ': flange presets grouped: 2-bolt, 3-bolt, V-band by brand, turbo, wastegate, Wiggins');
+    const jigNow = async () => { await p.evaluate(() => document.querySelector('#fx-headers button[data-fx="jig"]').click()); await p.waitForTimeout(300); return (await p.evaluate(() => (window.__sent.filter(x => x[0] === 'jig').pop() || [])[1].jig)); };
+    await sel('fpreset', find('V-band, Ace Standard (304)', /^3\.0 in, male/)); t = await txt(); let q = await jigNow();
+    ok(/lip drops into a 77\.2 mm pocket/.test(t) && /Source/.test(t) && q.flange_shape === 'round' && q.flange_seat && q.flange_seat.kind === 'pocket' && Math.abs(q.flange_seat.d_mm - 77.19) < 0.01 && q.flange_seat.depth_mm === 4 && Math.abs(q.flange_size_mm - 107) < 0.1, vp.n + ': Ace Standard 3 in male: round plate, 77.2 mm pocket 4 mm deep');
+    await sel('fpreset', find('V-band, Ace Quick Release', /^3\.0 in, female/)); q = await jigNow();
+    ok(q.flange_seat && q.flange_seat.kind === 'boss' && Math.abs(q.flange_seat.d_mm - 80.67) < 0.01 && q.flange_seat.depth_mm === 1.2, vp.n + ': Ace Quick Release 3 in female: 80.7 mm boss 1.2 mm tall');
+    await sel('fpreset', find('Turbo inlets', /^T3 \(Ace\)/)); q = await jigNow();
+    ok(q.flange_shape === 'rect' && q.flange_w_mm === 110 && q.flange_holes.length === 4 && Math.abs(q.flange_holes[1][0] - 42.86) < 0.01 && Math.abs(q.flange_holes[1][1] + 22.225) < 0.01 && q.flange_holes[0][2] === 11 && !q.flange_seat, vp.n + ': T3 inlet: 110 × 69 plate, studs 85.7 × 44.5 mm, 11 mm holes');
+    await sel('fpreset', find('2-bolt exhaust flanges', /^2\.5 in/)); q = await jigNow();
+    ok(q.flange_holes.length === 2 && Math.abs(q.flange_holes[1][0] - 50.8) < 0.01 && q.flange_n === 0, vp.n + ': 2-bolt 2.5 in: bolts 4 in apart on the level line');
+    await sel('fpreset', find('Turbo outlets (bolted)', /Garrett 4-bolt/)); q = await jigNow();
+    ok(q.flange_n === 4 && q.flange_pcd_mm === 89 && q.flange_angle_deg === 45 && q.flange_holes.length === 0, vp.n + ': Garrett 4-bolt outlet: 4 on 89 mm turned 45°');
     const out = await p.evaluate(() => document.getElementById('fx-out-headers').innerText);
     ok(/Plate\s+29\.32 in \(745 mm\) × 19\.41 in \(493 mm\) × 6\.72 in \(171 mm\)\s+6/.test(out), vp.n + ': parts table, largest side first, inches and mm');
     await sel('style', 'frame'); t = await txt();

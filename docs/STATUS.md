@@ -538,6 +538,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   Rust host. The Windows window type-checks from Linux (x86_64-pc-windows-msvc); NOT yet built or run on Windows (CI
   billing). The installer ships ExhaustTuner.exe + exhaust-tuner-host.exe and removes the C# program's files on update.
   app/ stays as the port's reference until the owner has run the Rust program, then goes.
+- Flange presets for the jig locators (2026-11-03): 51 in web/index.html FLANGE_PRESETS from published dimensions
+  (docs/research/flange_dimensions.md): Vibrant 2-bolt and 3-bolt, V-bands by brand (Ace Standard and Quick Release,
+  male = 4 mm pocket for the lip, female = 1.2 mm boss in the recess; Vibrant by OD as a rim pocket), Tial and Garrett
+  turbo V-bands, T25/T3/T4/T6 4-stud inlets, Garrett/Vibrant bolted outlets, Tial wastegates, Wiggins (measured OD).
+  Not published anywhere found: V-band lip heights and recess depths, Wiggins ferrules, 5-bolt outlet coordinates.
+  Round plates now stand on legs under the rim (on the square's corners they floated: "more than one piece" in Fusion).
+  Live in Fusion: Ace 3 in male and QR female, T3 inlet locators each one piece. test_fabjig checks every preset.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
