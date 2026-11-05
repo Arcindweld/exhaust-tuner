@@ -17,7 +17,7 @@
   --ink:#0F161B; --muted:#52606A; --faint:#7B8892; --line:#CFD7DD; --line-2:#B3BEC6;
   --accent:#935A06; --accent-hi:#A8690B; --on-accent:#FFFFFF; --accent-soft:#F1E2C4; --accent-line:#D2A55A;
   --warn:#774800; --warn-bg:#F6E8CB; --bad:#A3241C; --bad-bg:#F7DCD8; --ok:#1B673F; --ok-bg:#D5EBDC; --info-bg:#DFE6EC;
-  --t1:#D9B35C; --t2:#C47A30; --t3:#8C4F9F; --t4:#3F5DC8; --t5:#8FB4E4;
+  --t1:#D9B35C; --t2:#C47A30; --t3:#8C4F9F; --t4:#3F5DC8; --t5:#8FB4E4; --t6:#4E9A6B;
   --lift:0 1px 2px rgba(16,24,32,.07),0 4px 14px rgba(16,24,32,.06);
   --f-ui:'Archivo','Bahnschrift','Segoe UI Variable Text','Segoe UI',system-ui,-apple-system,sans-serif;
   --f-display:var(--f-ui);
@@ -32,7 +32,7 @@
     --ink:#E6ECF0; --muted:#90A0AA; --faint:#67757F; --line:#222D36; --line-2:#323F49;
     --accent:#E8AF48; --accent-hi:#F4C266; --on-accent:#1A1205; --accent-soft:#35280F; --accent-line:#7C5D21;
     --warn:#F0C987; --warn-bg:#31260F; --bad:#FF968C; --bad-bg:#3A1D1A; --ok:#86D6A6; --ok-bg:#12291C; --info-bg:#172129;
-    --t1:#E2BD6A; --t2:#D98A3F; --t3:#A56BB8; --t4:#6384EE; --t5:#9CC0EE;
+    --t1:#E2BD6A; --t2:#D98A3F; --t3:#A56BB8; --t4:#6384EE; --t5:#9CC0EE; --t6:#6FBF8C;
     --lift:0 1px 2px rgba(0,0,0,.5),0 6px 20px rgba(0,0,0,.32);
     color-scheme:dark;
   }
@@ -42,7 +42,7 @@
   --ink:#E6ECF0; --muted:#90A0AA; --faint:#67757F; --line:#222D36; --line-2:#323F49;
   --accent:#E8AF48; --accent-hi:#F4C266; --on-accent:#1A1205; --accent-soft:#35280F; --accent-line:#7C5D21;
   --warn:#F0C987; --warn-bg:#31260F; --bad:#FF968C; --bad-bg:#3A1D1A; --ok:#86D6A6; --ok-bg:#12291C; --info-bg:#172129;
-  --t1:#E2BD6A; --t2:#D98A3F; --t3:#A56BB8; --t4:#6384EE; --t5:#9CC0EE;
+  --t1:#E2BD6A; --t2:#D98A3F; --t3:#A56BB8; --t4:#6384EE; --t5:#9CC0EE; --t6:#6FBF8C;
   --lift:0 1px 2px rgba(0,0,0,.5),0 6px 20px rgba(0,0,0,.32);
   color-scheme:dark;
 }
@@ -1646,6 +1646,10 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="m-pw" type="number" step="any" inputmode="decimal" data-kind="len" data-base="1"><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Mean flow in the core</span>
           <span class="inp"><input id="m-mach" type="number" step="0.01" min="0" max="0.3" inputmode="decimal" data-kind="num" data-dp="2" data-base="0"><em>Mach</em></span></label>
+        <label class="f"><span class="lab">Baffled chambers in the shell, 0 for none</span>
+          <span class="inp"><input id="m-nbaf" type="number" step="1" min="0" inputmode="numeric" data-kind="num" data-dp="0" data-base="0"></span></label>
+        <label class="f"><span class="lab">Baffle hole diameter</span>
+          <span class="inp"><input id="m-bh" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Plug muffler: perforate each side of the plug</span>
           <span class="inp"><input id="m-plugl" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
         <span class="hint" style="grid-column:1/-1">The core is the main pipe size, perforated, inside the chamber shell. Glass-fibre fills run about 90 to 200 kg/m³ (100 kg/m³ is about 6 lb/ft³). Set the density to 0 for a bare core, which a stainless-wool wrap comes close to. The mean flow is the gas speed in the core as a Mach number (0 for a bench test with no flow; a 1.6 L four measured Mach 0.13 at the muffler inlet at 2,500 rpm full load and 0.30 at 5,500 rpm, Liu, Hao and Liu 2012): grazing flow raises the perforate’s resistance about 1 + 72 × Mach (Rao and Munjal 1986), which is most of what a straight-through muffler does at speed. <b id="m-mach-eng"></b></span>
@@ -6892,9 +6896,15 @@ function calcHelm(p){        // p: f Hz, dn, ln, dpipe mm, tres °C
   const cans=[101.6,127,152.4,177.8,203.2,254].map(D=>({D,len:V/(Math.PI*(D/2000)**2)*1000}));
   return {c,A,Le,S,V,K,band:K*p.f,lo:p.f*(Math.sqrt(K*K+4)-K)/2,hi:p.f*(Math.sqrt(K*K+4)+K)/2,tl,cans,liters:V*1000,in3:V*61023.7};
 }
+// End correction (mm) of a closed side branch of diameter db on a main pipe of diameter dp (Ji 2005 via Calton and Sommerfeldt 2017,
+// eq. 3): a(0.8216 - 0.0644 x - 0.694 x^2) for x = db / dp <= 0.4, a(0.9326 - 0.6196 x) for x > 0.4, a the branch radius.
+function branchEndCorr(db,dp){ const x=Math.min(1.5,db/dp), a=db/2; return a*(x<=0.4?0.8216-0.0644*x-0.694*x*x:Math.max(0.05,0.9326-0.6196*x)); }
 function calcQW(p){          // p: f, db, dpipe mm, tres °C
   if(!fin(p.f,p.db,p.dpipe,p.tres)||p.f<=0||p.db<=0||p.dpipe<=0) return {err:'Fill in the target frequency and the J-pipe and main pipe diameters.'};
-  const c=sos(p.tres), Lac=c/(4*p.f)*1000, end=0.3*p.db, L=Lac-end;
+  // the branch's mouth adds an end correction that falls as the branch approaches the main pipe's size (Ji 2005, J. Sound
+  // Vib. 283, by BEM, as fitted in Calton and Sommerfeldt: l0 = a (0.8216 - 0.0644 x - 0.694 x^2) for x <= 0.4, a (0.9326 -
+  // 0.6196 x) above, x = branch / main diameter); the old flat 0.3 d sits right near x = 0.5 and is twice too much at x = 1
+  const c=sos(p.tres), Lac=c/(4*p.f)*1000, end=branchEndCorr(p.db,p.dpipe), L=Lac-end;
   const r=(p.db/p.dpipe)**2/2;                          // branch area ÷ (2 × pipe area)
   const tl=f=>{ const t=Math.tan(2*Math.PI*f*Lac/1000/c); return Math.min(TLCAP,10*Math.log10(1+(r*t)**2)); };
   return {c,Lac,L,end,tl,ratio:(p.db/p.dpipe)**2};
@@ -8372,6 +8382,22 @@ function calcPlug(p){
   };
   return {c,rho0,fCut,gap:gap*1000,S1,S2,at,tl:f=>Math.min(TLCAP,at(f).tl)};
 }
+// Chain of N equal chambers joined by baffle holes (Morse and Ingard, Theoretical Acoustics, 9.1, eqs. 9.1.31-35 and Fig. 9.8):
+// each hole is an inertance L = rho D0 / (4 S0) (a thin hole of area S0, perimeter D0, the 0.785 d total end correction built
+// in; a thick baffle adds rho t / S0), each chamber a compliance C = V / (rho c^2). Below w0 = 1 / sqrt(L C) the wave crawls
+// through with little loss; above the cut-off w_c = 2 w0 the chambers oscillate against each other and each section costs
+// 8.69 acosh(0.5 (w / w0)^2 - 1) dB. Long wavelengths only (the chamber short next to the wavelength), no mean flow, lossless
+// below the cut-off, and with the baffle hole's own quarter-wave/half-wave resonances of a long chamber left out.
+// p: dpipe (in and out pipe, mm), dsh (shell ID), lch (shell length), n (chambers), dh (baffle hole), t (baffle thickness), tC
+function calcBaffles(p){
+  if(!fin(p.dpipe,p.dsh,p.lch,p.n,p.dh,p.tC)||p.dsh<=p.dpipe||p.lch<=0||!(p.n>=1)||p.dh<=0||p.dh>=p.dsh) return {err:'Baffled chambers need a shell wider than the pipe, a length, a chamber count and a hole smaller than the shell.'};
+  const c=sos(p.tC), N=Math.round(p.n), l=p.lch/1000/N, S=Math.PI/4*(p.dsh/1000)**2, S0=Math.PI/4*(p.dh/1000)**2, D0=Math.PI*p.dh/1000, t=Math.max(0,p.t||0)/1000;
+  const LoverRho=D0/(4*S0)+t/S0, CtimesRho=S*l/(c*c), w0=1/Math.sqrt(LoverRho*CtimesRho), f0=w0/(2*Math.PI), fc=2*f0;
+  const per=f=>{ const x=0.5*(2*Math.PI*f/w0)**2-1; return x>1?8.686*Math.acosh(x):0; };
+  const lam=c/f0, lumped=l<lam/8;                           // each chamber short next to the wavelength at f0
+  return {c,N,l:l*1000,f0,fc,per,tl:f=>Math.min(TLCAP,N*per(f)),cPhase:c*Math.sqrt(4*S0*l/(S*D0)),lumped,fCut:1.8412*c/(Math.PI*p.dsh/1000)};
+}
+window.__baffles=calcBaffles; window.__sos=sos;
 window.__plug=calcPlug; window.__crossMode=crossModeHz;
 // Davies 1996 (J. Sound Vib. 190(4), eqs. 2.2, 2.3, 2.6, 2.7, data sheets 3 and 5): side-branch quarter-wave length l1 = c/(4·f),
 // a set of m branches in the ratio 3^(−1/m) so each covers the odd multiples of the next, folded branch l_s = X_i + (So/Si)·X_o for So/Si < 2,
@@ -13405,12 +13431,14 @@ function renderMuf(){
   const ab=calcAbsorb({dpipe:p.dpipe,dsh:p.dch,len:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')});
   const abMemo={}, abTL=f=>{ const k=Math.round(f); if(abMemo[k]==null) abMemo[k]=Math.min(TLCAP,ab.tl(k)); return abMemo[k]; };
   const pipeCut=crossModeHz(sos(p.tmain),bore.err?null:bore);
+  let engM=null;   // the pipe's Mach number at redline from the Sound tab's engine, when it can be worked out
   (()=>{ const el=$('m-mach-eng'); if(!el) return; let txt=''; try{ const sp=soundParams(); if(!sp.err&&p.dpipe>0&&val('s-disp')>0&&sp.p.red>0){
       const e=sp.e, share=sp.p.pp.n/e.order.length, tg=val('s-ft'), fl=engineFlow({cyc:e.cyc,disp:val('s-disp'),rpm:sp.p.red,ve:0.9,boost:0,afr:12.5,tgas:tg});
-      const Mred=fl.Q*share/(bore.A/1e6)/sos(tg), Mcr=Mred*sp.p.cruise/sp.p.red;
+      const Mred=fl.Q*share/(bore.A/1e6)/sos(tg), Mcr=Mred*sp.p.cruise/sp.p.red; engM={red:Mred,cruise:Mcr,rpmCruise:sp.p.cruise,c:sos(tg)};
       txt='On the Sound tab’s engine this pipe runs about Mach '+Mred.toFixed(2)+' at redline and Mach '+Mcr.toFixed(2)+' at '+Math.round(sp.p.cruise).toLocaleString('en-US')+' rpm, both full throttle (part throttle is far less), 90% volumetric efficiency, gas at '+tempStr(tg)+(share<1?', this pipe carrying '+Math.round(share*100)+'% of the flow':'')+'.'; } }catch(e){} el.textContent=txt; })();
   const pg=val('m-plugl')>0?calcPlug({dpipe:p.dpipe,dsh:p.dch,lperf:val('m-plugl'),lch:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')}):null;
   const pgMemo={}, pgTL=f=>{ const k=Math.round(f); if(pgMemo[k]==null) pgMemo[k]=pg.tl(k); return pgMemo[k]; };
+  const bf=val('m-nbaf')>=1?calcBaffles({dpipe:p.dpipe,dsh:p.dch,lch:p.lch,n:val('m-nbaf'),dh:val('m-bh')>0?val('m-bh'):p.dpipe,t:val('m-pw')>0?val('m-pw'):1.5,tC:p.tmain}):null;
   const firstErr=[hm,qw,pl].find(x=>x.err);
   if(firstErr){ key.innerHTML='<div class="note bad">'+esc(firstErr.err)+'</div>'; det.innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   const can=[...hm.cans].sort((a,b)=>Math.abs(a.len/a.D-2)-Math.abs(b.len/b.D-2))[0];   // a can about twice as long as wide
@@ -13427,6 +13455,7 @@ function renderMuf(){
   if(!ch.err) curves.push({fn:ch.tl,col:'--t3',dash:'2 3',label:ch.rev?'Reverse-flow chamber':ch.ext?'Extended-tube chamber':'Plain chamber'});
   if(!ab.err) curves.push({fn:abTL,col:'--t5',dash:'1 3',label:'Packed can'});
   if(pg&&!pg.err) curves.push({fn:pgTL,col:'--t1',dash:'8 3 2 3',label:'Plug muffler'});
+  if(bf&&!bf.err) curves.push({fn:bf.tl,col:'--t6',dash:'4 2',label:'Baffled chambers'});
   drawTL($('m-tl'),curves,p.f,[hm.lo,hm.hi]);
   $('m-legend').innerHTML=curves.map(c=>'<span><i class="sw" style="--c:var('+c.col+')'+(c.dash?';border-top-style:dashed':'')+'"></i>'+c.label+'</span>').join('')+'<span><i class="sw bandsw"></i>Helmholtz 3 dB band</span>';
   drawPlace($('m-place'),pl,p.len,endName,p.secs?pathSecs(p.secs):null);
@@ -13451,8 +13480,13 @@ function renderMuf(){
       (nin>0?' With the neck '+clen(nin)+' in, the '+tubIn(can.D)+' can is '+clen(((p.dn/2+bw)/(can.D/2))**2*nin)+' longer to keep the volume round the neck: '+clen(can.len+((p.dn/2+bw)/(can.D/2))**2*nin)+' inside.':'')+'</p>'+
     (longCan?'<div class="note warn">This can and neck are long next to the tone’s wavelength in the resonator ('+clen(lamRes)+'), so the simple formula is less exact here. A wider, shorter can tunes more predictably, or use a J-pipe.</div>':''));
   html+=sec('Quarter-wave tube (J-pipe)',
-    rowL('Cut length, capped end to pipe wall',qw.L,'l')+rowL('Acoustic length (quarter wave)',qw.Lac,'l')+rowL('Inside diameter',p.db,'d')+
+    rowL('Cut length, capped end to pipe wall',qw.L,'l')+rowL('Acoustic length (quarter wave)',qw.Lac,'l')+rowL('Mouth end correction, taken off the cut',qw.end,'l')+rowL('Inside diameter',p.db,'d')+
     rowT('Branch area ÷ pipe area',qw.ratio.toFixed(2))+
+    (()=>{ if(!engM) return ''; const Ur=engM.red*engM.c, Uc=engM.cruise*engM.c, w=p.db/1000;
+      // Rienstra and Hirschberg 5.6 (eqs 5.91-5.93): the shear layer over an opening of streamwise width w convects at about 0.4 U and
+      // drives the branch when f w / (0.4 U) is a whole number, the first mode strongest; no tone when the opening is shorter than half a period
+      const f1=0.4*Ur/w, f1c=0.4*Uc/w, near=[1,2,3].map(n=>n*f1c).some(f=>Math.abs(f/p.f-1)<0.15)||[1,2,3].map(n=>n*f1).some(f=>Math.abs(f/p.f-1)<0.15);
+      return rowT('Flow over the mouth can sing at',Math.round(f1c)+' Hz at '+Math.round(engM.rpmCruise).toLocaleString('en-US')+' RPM, '+Math.round(f1)+' Hz at redline','first mode, 0.4 × gas speed ÷ mouth width, with the second and third at twice and three times (Rienstra and Hirschberg, 5.6); '+(near?'<b>one of those sits within 15% of the tuned note, so the branch may be driven by the flow instead of damping it</b>: round or chamfer the upstream edge of the mouth, or fit it on the outside of a bend':'none within 15% of the tuned note; a rounded upstream edge keeps it quiet')); })()+
     (()=>{ const hot=calcQW({f:p.f,db:p.db,dpipe:p.dpipe,tres:150}); if(hot.err||!(150>p.tres+10)) return '';
       const v=L(hot.L,'l'); return rowT('Start this long if the branch may run hot',v.n+' '+v.u,v.a+', tuned at '+tempStr(150)+'; the cut length above tunes to '+Math.round(p.f*hot.c/qw.c)+' Hz there'); })()+
     '<p class="cap">Tuned at '+tempStr(p.tres)+', because the branch holds still gas that runs near ambient (Stainless Headers measured about 90 to 110 °F at cruise). One truck build’s results point warmer: a 2.5 in J-pipe 28⅞ in long for a 117 Hz drone (a V8 at 1,750 RPM) worked best around 2,000 to 2,100 RPM, which puts its branch near 150 °C (300 °F). A hotter branch tunes higher, so start at the longer length and trim toward the cut length while you listen: trimming only raises the note. The cut length allows '+clen(qw.end)+' for the open end. Bends are fine: measure along the centerline.</p>');
@@ -13471,6 +13505,12 @@ function renderMuf(){
         (ch.fPocketIn?', the inlet pocket tuned at '+Math.round(ch.fPocketIn)+' Hz':'')+(ch.fPocketOut?', the outlet pocket at '+Math.round(ch.fPocketOut)+' Hz':'')+' (quarter waves of '+clen(ch.la)+' and '+clen(ch.lb)+')')
       :rowT('No attenuation at',Math.round(ch.fZero)+' Hz','and every multiple, where the chamber is a half wave long'))+
     rowT('Munjal’s double-tuned chamber','inlet '+clen(ch.tune.la)+', outlet '+clen(ch.tune.lb),'half and a quarter of the chamber length, which tune out the first two troughs <button type="button" class="btn" id="m-dtune" style="padding:2px 10px;margin-left:6px">Set</button>')+
+    (()=>{ const Lt=val('m-tail'); if(!(Lt>0)) return '';
+      // Davies 1996 §2.2: the chamber's attenuation and the tailpipe's are the same shape with opposite sign, minima at integer 2Xf/c;
+      // where a chamber minimum and a tailpipe minimum coincide the pair collapses, so X_c / i should not equal X_p / j for small i, j
+      const hits=[]; for(let i=1;i<=3;i++) for(let j=1;j<=3;j++){ const r=(p.lch/i)/(Lt/j); if(Math.abs(r-1)<0.08&&(i===1||j===1||i!==j)) hits.push(i+':'+j); }
+      const ratio=p.lch/Lt;
+      return rowT('Chamber length ÷ tailpipe length',ratio.toFixed(2),hits.length?'<b>close to '+hits.join(', ')+'</b>: the chamber’s pass-through notes land on the tailpipe’s own (Davies 1996, eq. 2.1), so the pair loses attenuation there; change one length by 10 to 15%':'not a small-integer ratio, so the chamber’s troughs and the tailpipe’s do not pile up (Davies 1996)'); })()+
     rowT('Curve holds up to about',hzs(ch.fCut),'the first cross mode of a '+cdim(p.dch)+' round chamber')+
     (()=>{ const V=Math.PI/4*(p.dch/1000)**2*p.lch/1000*1e6, cc=val('s-disp'); if(!(cc>0)) return '';
       const k=V/cc, nP=$('s-feed').value==='all'?1:2, single=Math.round(val('s-cyl'))===1&&$('s-cyc').value!=='r';
@@ -13512,6 +13552,18 @@ function renderMuf(){
       const show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
       return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'about '+bp.rows[0].k.toFixed(1)+' dynamic heads, H = '+show(bp.H)+' (Munjal 1987, 8.3: a cross-flow element costs 2 to 4 H, a plain chamber under 1 H)'); })()+
     '<p class="cap">The inlet pipe is plugged at the end of its holes and the shell is closed behind each perforate, so all the gas and all the sound go out through the inlet holes into the annulus and back in through the outlet holes: Munjal’s cross-flow expansion and cross-flow contraction elements under one shell (<i>Acoustics of Ducts and Mufflers</i>, 1987, 3.8.1, Fig. 3.10b–c), carried by the same coupled plane-wave equations as the packed can with his boundary conditions (eqs. 3.120 and 3.122, end pockets closed up) and Sullivan’s cross-flow perforate impedance (eq. 3.153). The packing density above fills the annulus if it is set. Cross-flow elements cut more, and more evenly, than a chamber of the same size, and the flow through the holes adds damping that smooths the curve; the price is back pressure.</p>');
+  if(bf) html+=sec('Baffled chambers (low-pass filter)',bf.err?'<div class="note bad">'+esc(bf.err)+'</div>':
+    rowT('Chambers',bf.N+' × '+clen(bf.l),'holes '+cdim(val('m-bh')>0?val('m-bh'):p.dpipe)+' through '+cdim(val('m-pw')>0?val('m-pw'):1.5)+' baffles')+
+    rowT('Chain resonance f₀',Math.round(bf.f0)+' Hz','each hole’s air plug on its chamber’s springiness')+
+    rowT('Cut-off, 2 f₀',Math.round(bf.fc)+' Hz','below it sound crawls through at about '+Math.round(bf.cPhase)+' m/s with little loss; above it each chamber shuts the next out')+
+    rowT('Attenuation per chamber',[1.5,2,3,4].map(k=>Math.round(bf.per(k*bf.f0))+' dB at '+Math.round(k*bf.f0)+' Hz').join(', '),'8.69 acosh(½ (f ÷ f₀)² − 1) dB; '+bf.N+' chambers give '+bf.N+' times that, capped at '+TLCAP+' dB')+
+    rowT('Curve holds up to about',hzs(bf.fCut),'the shell’s first cross mode'+(bf.lumped?'':'; and each chamber is not short next to the wavelength at f₀ ('+clen(bf.l)+' against '+clen(bf.c/bf.f0*1000)+'), so the chambers’ own length resonances, which this filter leaves out, sit inside the band'))+
+    (()=>{ const M=val('m-mach'); if(!(M>0)) return '';
+      const n=(p.dpipe/((val('m-bh')>0?val('m-bh'):p.dpipe)))**2, nh=Math.min(1,((val('m-bh')>0?val('m-bh'):p.dpipe)/p.dch)**2), nc=(p.dpipe/p.dch)**2;
+      const items=[{kind:'expansion',n:nc,what:'pipe into the first chamber'}]; for(let i=1;i<bf.N;i++) items.push({kind:'contraction',n:nh,what:'into baffle hole '+i},{kind:'expansion',n:nh,what:'out of baffle hole '+i}); items.push({kind:'contraction',n:nc,what:'last chamber into the pipe'});
+      const bp=mufBackPressure(M,101325,items), show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
+      return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'each baffle hole is a contraction and an expansion (Munjal 1987, eq. 8.4), on top of the chamber’s own'); })()+
+    '<p class="cap">Morse and Ingard’s chain filter (<i>Theoretical Acoustics</i>, 9.1, eqs. 9.1.31–35): a row of equal chambers joined by holes is a ladder of air masses (the holes) and springs (the chambers). Below f₀ = (c ÷ π) √(S₀ ÷ (D₀ S l)) it passes nearly everything, above the cut-off 2 f₀ true wave motion through the chain is impossible and each chamber adds 8.69 acosh(½ (f ÷ f₀)² − 1) dB. It is the closed form behind the baffle rules quoted under Muffler types (a smaller or farther-apart hole lowers f₀; more chambers steepen the roll-off). Lossless and long-wave only: real baffles leak round the edges and the holes make flow noise, so take the dB per chamber as an upper bound, and read the plain-chamber curve for the chambers’ own length resonances.</p>');
   } else html+=sec('Packed straight-through can','<div class="note bad">'+esc(ab.err)+'</div>');
 
   /* Davies 1996: silencer layout rules */

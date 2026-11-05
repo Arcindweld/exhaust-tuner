@@ -53,9 +53,17 @@ unchanged (scratchpad study, `spinwam/run.py`):
 | 1 L + 250 mm x 113 mm passage + 1 L | 48 | 12.6 dB | -9.7 dB/oct |
 | 1 L, three traps of 0.746 L behind a 59 x 54.4 mm slot, 1 L | 40 | 12.3 dB | -8.1 dB/oct |
 | the same traps behind 45 x 121 mm vents | 40 | 12.6 dB | -10.4 dB/oct |
+| the slot traps with the neck end correction (writer v13) and a K = 2.8 sharp-edge loss on each slot | 40 | 10.7 dB | -4.9 dB/oct |
+| the vent traps, same correction and loss | 40 | 13.9 dB | -8.7 dB/oct |
 
 Trap volumes come from the case less the end spaces, split three ways; slot and vent sizes are read off the photo
 against the 2.5 in inlet (estimates). Every split version is worse than the plain box: they put more sound in the
 upper orders, not less. So lumped Helmholtz traps do not explain the missing high-frequency loss. A real trap's loss is
 most likely friction and jet mixing at the slot edges and the vents, which a lossless junction-and-volume model leaves
-out. The plain box stays as the model. The next real step needs a measured transmission loss of a 3331 (or one like it).
+out. Adding that loss (writer v11 `loss_K` on each trap neck, K = 2.8 for a sharp-edged opening, with the v13 neck end
+correction) brings the slot version back to the plain box's score (10.7 dB, tilt -4.9 dB/oct against the box's 10.5 and
+-4.4): the loss takes out what the lossless traps had added to the upper orders, but no further. The vents stay worse.
+Rienstra and Hirschberg (8.3) give the first-harmonic equivalent of that quadratic loss as R = (4K / 3 pi) rho u_hat, so
+its damping grows with the level through the slot; and Morse and Ingard (9.1.26-27) make a slot's end correction
+logarithmic in its width, (2b / pi) ln(2a / (pi b)), about twice the round-hole figure used here for a 10 mm slot in a 100 mm
+case, both still to try. The plain box stays as the model. The next real step needs a measured transmission loss of a 3331 (or one like it).
