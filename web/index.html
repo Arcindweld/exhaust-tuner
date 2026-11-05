@@ -13482,7 +13482,7 @@ window.__md={MD,mdSearch,mdInputs,mufP,calcChamber,sec:insideSection};
    minus the design's, order by order, for the orders that land in the band (and are within 20 dB of the loudest order
    at that speed, so a quiet order's noise does not set the answer). Also: the A-weighted sum of the orders at 1 m, and
    the mean brake torque, the back pressure's cost. */
-const MDW={rpms:'',msg:null,res:null,key:''};
+const MDW={rpms:'',msg:null,res:null,key:'',pocket:'volume',pocketNeck:null};
 function mdwRpmsDefault(q,f0,f1){
   // the speeds that put the firing order (cylinders / 2 per revolution, four-stroke) at the band's ends and middle
   const o=Math.max(0.5,(q&&q.cyl||8)/2), fs=[f0,Math.sqrt(f0*f1),f1];
@@ -13497,7 +13497,7 @@ function mdwLabel(d){ return d.kind==='exttube'?'Chamber with extended tubes, '+
 function mdwPart(R){
   const q=SIM.inp, cands=R.best.filter(d=>d.kind!=='packed').slice(0,4), rp=q?mdwRpms(q,R):[];
   let h='<h4 style="margin:18px 0 6px">Check the chambers in OpenWAM</h4><p class="cap">Puts each chamber above ('+cands.length+' of them; a packed can has no 1-D model here) into the 4-Stroke tab’s OpenWAM line, ahead of its tailpipe, and runs it with that engine and header, along with the same line with no muffler. What a design takes off is the no-muffler level minus its own, order by order, at 1 m from the open end, for the orders that land in '+Math.round(R.fs[0])+' to '+Math.round(R.fs[8])+' Hz. The engine’s own pulses are far stronger than the small waves the transmission-loss sums assume, so the two need not agree; the full run is the better answer.</p>';
-  if(cands.some(d=>d.kind==='exttube')) h+='<p class="cap">The extended-tube chambers’ pockets go into the 1-D line as side branches wider than they are deep, which a 1-D junction handles badly: on the default V8 those runs never settled, even at 25 cycles. Read them only if the note under the table does not flag them.</p>';
+  if(cands.some(d=>d.kind==='exttube')) h+='<p class="cap">Each extended-tube pocket goes into the 1-D line as a volume of its size on a neck that puts its resonance where the tube’s quarter wave is, with the loss of a sharp-edged mouth (a side tube wider than it is deep does not settle in OpenWAM).</p>';
   if(!q){ return h+'<div class="note">Open the 4-Stroke tab and fill it in: the runs use its engine, cam and header.</div>'; }
   { const tm=val('m-tail'), tw=+WAM_UI.line.tail||300; if(MD.inst&&WAM_UI.line.on&&tm>0&&Math.abs(tm-tw)>25) h+='<div class="note">The designer scored the cans with this tab’s '+clen(tm)+' tailpipe; the OpenWAM line has '+clen(tw)+'. Make them the same so the two answers are about the same exhaust.</div>'; }
   if(!WAM_UI.line.on) h+='<div class="note">Turn on the line after the collector under “Run it in OpenWAM” on the 4-Stroke tab: the chambers go into that line, ahead of its tailpipe.</div>';
@@ -17755,10 +17755,26 @@ function wamChamberEls(dPipe){
   if(la+lb>=lch) return {err:'Line after the collector: the chamber’s extended tubes meet inside it.'};
   const wall=val('m-bw')>0?val('m-bw'):1.651, Aan=Math.PI/4*(dch*dch-(dPipe+2*wall)**2), dAn=Math.sqrt(4*Aan/Math.PI);
   const seg=(L,d)=>({L_mm:+L.toFixed(3),d0_mm:+d.toFixed(3),d1_mm:+d.toFixed(3)}), els=[];
-  if(la>0) els.push({side:{type:'quarter',L_mm:+la.toFixed(3),d_mm:+dAn.toFixed(3)}});
+  // pocket: 'volume' (default) or 'quarter' (a closed tube of the annulus's area, as before). The tube is wider than it
+  // is deep, which OpenWAM's three-pipe junction cannot carry: on the default V8 those runs never settled (15-184 % between
+  // the last two cycles at 25 cycles). A lumped pocket with no loss rang on its own at its neck's frequency (409 Hz,
+  // between the engine's harmonics). With the mouth's separation loss, K = 1 on the neck (a sharp-edged annular gap:
+  // about 0.5 going in and 1 coming out, Idelchik; the amplitude-dependent neck resistance of Rienstra and Hirschberg
+  // 8.3), the runs settle (2-3 % at most points) and the tone goes (-29 dB). MDW.pocketNeck {L, d, K} overrides (mm).
+  const mode=(O&&O.pocket)||MDW.pocket||'quarter', nk=Object.assign({d:dAn,K:1},MDW.pocketNeck||{});
+  // a volume of the pocket's size (A l, its low-frequency compliance) on a neck 4 l / pi^2 long of the annulus's area:
+  // (c / 2 pi) sqrt(A / (V L)) is then c / 4 l, the closed tube's first resonance (OpenWAM needs 45 mm, three cells)
+  // a pocket whose neck would be shorter than that keeps the 45 mm and widens the neck in step (area over length sets
+  // the resonance), up to just under the chamber's bore; the volume is then what puts the resonance at c / 4 l,
+  // V = A_neck / (L (pi / 2 l)^2), which is A l whenever the neck did not have to stop at the bore
+  const pocket=l=>{ if(mode!=='volume') return {side:{type:'quarter',L_mm:+l.toFixed(3),d_mm:+dAn.toFixed(3)}};
+    const d0=Math.min(nk.d,dAn), L0=nk.L>0?nk.L:4*l/Math.PI**2, L=Math.max(45,L0), d=Math.min(d0*Math.sqrt(L/L0),0.98*dch);
+    const V=nk.L>0?Aan*l:Math.PI/4*d*d/(L*(Math.PI/(2*l))**2);
+    return {side:{type:'helmholtz',V_litres:+(V/1e6).toFixed(4),neck_L_mm:+L.toFixed(3),neck_d_mm:+d.toFixed(3),loss_K:nk.K!=null?nk.K:0}}; };
+  if(la>0) els.push(pocket(la));
   els.push(seg(lch-la-lb,dch));
-  if(lb>0) els.push({side:{type:'quarter',L_mm:+lb.toFixed(3),d_mm:+dAn.toFixed(3)}});
-  return {els,what:cdim(dch)+' × '+clen(lch)+' chamber'+(la>0||lb>0?' with the inlet in '+clen(la)+' and the outlet '+clen(lb)+' (pockets of '+Math.round(Aan)+' mm²)':'')};
+  if(lb>0) els.push(pocket(lb));
+  return {els,what:cdim(dch)+' × '+clen(lch)+' chamber'+(la>0||lb>0?' with the inlet in '+clen(la)+' and the outlet '+clen(lb)+' (pockets of '+Math.round(Aan)+' mm²'+(mode==='volume'?', as volumes tuned to the tubes’ quarter waves':'')+')':'')};
 }
 window.__wamChamberEls=wamChamberEls;
 function wamLineTail(){

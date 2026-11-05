@@ -121,7 +121,8 @@ collector, 2.5 m of 76.2 mm line), band 117-183 Hz, designer goal 10 dB of trans
 Settling. At 25 cycles the plain chambers settle (the last two cycles of the outflow differ by about 1 %); the
 extended-tube chambers never do (15-184 %). In the 1-D line each pocket is a quarter-wave side branch of the annulus's
 area, about 214 mm across and 150 mm deep: wider than it is long, which a 1-D three-pipe junction cannot represent, and
-the solver oscillates. Their numbers are not results; the page flags any run whose last two cycles differ by more than 5 %.
+the solver oscillates. Their numbers were not results (fixed below: pockets as tuned volumes with the mouth's loss); the
+page flags any run whose last two cycles differ by more than 5 %.
 Plain chambers at 8 cycles agree with 25 cycles within about 2 dB on the overall level, so 8 is enough for them.
 
 Order by order (plain 228.6 x 305 mm and 241.3 x 279 mm, 25 cycles). At 1750 rpm the V8's main orders (2, 4, 6, 8, 10,
@@ -152,3 +153,33 @@ at the low end of the band (here order 6 at 1750 rpm, +6.5 dB) while taking 15-2
 stays as a hook for this comparison (its anechoic case equals the installed attenuation, which the tests hold), not as a
 designer option. The desktop host now passes the last four cycles of each INS.DAT to the page (ten 25-cycle runs were
 100 MB of text and crashed the page); the full files stay in the run folder.
+
+### Extended-tube pockets that settle (2026-11-05, later)
+
+Why the pockets did not settle: with each pocket as a quarter-wave side tube (214 mm across, 150 mm deep) the runs
+wandered 15-184 % between cycles. As a lumped volume on a 45 mm neck of the annulus's area and no loss they settled at
+1750 rpm but not at 2700 (72-85 %), and the outflow's spectrum showed why: a strong tone at 409 Hz (and 818 Hz), between
+the engine's 22.5 Hz harmonics, the pocket's own neck resonance, self-excited in the run. A real pocket's mouth is a
+sharp-edged annular gap where the flow in and out separates; that loss (about K = 0.5 in and 1 out, Idelchik; the
+amplitude-dependent neck resistance R = (4K/3 pi) rho u of Rienstra and Hirschberg 8.3) is what the lumped pocket was
+missing. With K = 1 on the neck the runs settle (1-4 %, one point 7.5 %) and the tone drops 29 dB.
+
+Keeping the tube's tuning: a lumped volume on a neck rings where the neck puts it, not at the tube's quarter wave c/4l,
+which is the reason for extended tubes. A volume V = A l (the closed tube's low-frequency compliance) on a neck
+L = 4 l / pi^2 of area A has (c / 2 pi) sqrt(A / (V L)) = c / 4 l exactly. A neck that would come out shorter than
+OpenWAM's 45 mm keeps 45 mm and widens (area over length sets the resonance), up to 0.98 of the chamber bore, with the
+volume then V = A_neck / (L (pi / 2 l)^2). This is the default in `wamChamberEls`; the side tube stays as an option.
+
+Results, 25 cycles, 1750 and 2700 rpm (A-weighted sum of the first 12 orders at 1 m, worst in-band order):
+
+| | no muffler | plain 228.6 x 305 | plain 241.3 x 279 | ext. tube 228.6 x 305 | ext. tube 241.3 x 279 |
+|---|---|---|---|---|---|
+| dB(A), mean of the two speeds | 105.7 | 98.5 | 97.6 | 91.5 | 93.5 |
+| worst in-band order, dB taken off | | -6.5 | -6.4 | -1.1 | +0.4 |
+| mean brake torque, N m | 259.0 | 258.2 | 257.9 | 259.4 | 260.2 |
+| last two cycles differ, 1750 / 2700 rpm | 4.8 / 0.7 % | 1.0 / 1.5 % | 0.8 / 5.8 % | 2.2 / 1.7 % | 3.2 / 4.2 % |
+
+(The final widened-neck version; with the short necks only clamped to 45 mm the two extended-tube cans came out at
+88.3 and 89.7 dB(A), one point unsettled at 12 %.) So in the full run the double-tuned chambers do what Munjal says
+they should, 6-7 dB(A) better than plain ones of the same size, and the band's worst order is about level instead of
+6.5 dB louder, at no cost in torque.

@@ -55,6 +55,7 @@ function runOne(dir, name) {
   await pg.click('#m-expert'); await pg.waitForTimeout(200);
   await pg.selectOption('select.mdsel', 'chamber'); await pg.waitForTimeout(200);
   await pg.click('#md-run'); await pg.waitForTimeout(500);
+  if (process.env.MDW_POCKET) await pg.evaluate(([m, n]) => { window.__mdw.MDW.pocket = m; if (n) { const [L, d, K] = n.split(',').map(Number); window.__mdw.MDW.pocketNeck = Object.assign({ L }, d > 0 ? { d } : {}, K >= 0 ? { K } : {}); } }, [process.env.MDW_POCKET, process.env.MDW_NECK || '']);
   const pre = await pg.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler designer'); return h ? h.parentElement.innerText : ''; });
   ok(/Check the chambers in OpenWAM/.test(pre) && /Run them in OpenWAM/.test(pre), 'the designer offers the OpenWAM check with a run button');
   const dd = await pg.evaluate(() => { const R = window.__md.MD.res, cyl = window.__mdw.cyl(), d = window.__mdw.mdwRpmsDefault({ cyl }, R.fs[0], R.fs[8]); return { cyl, d, x: d.map(r => r * cyl / 2 / 60 / R.fs[0]) }; });

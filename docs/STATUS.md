@@ -741,6 +741,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   line) predicts the run's overall result across speeds within about 8 dB; details in docs/research/duct_acoustics_check.md.
   Build/score split (mdwBuild, mdwScore). Desktop host: ins_tail passes the last 4 cycles of each INS.DAT (ten 25-cycle
   runs were 100 MB and crashed the page); cargo test covers it, the test stand-in host does the same.
+  Extended-tube pockets in the OpenWAM line are now lumped volumes (V = A l) on a neck 4 l / pi^2 long, so the volume
+  rings at the tube's quarter wave c / 4 l, with a sharp-edge mouth loss K = 1 (MDW.pocket 'volume', default; 'quarter'
+  keeps the old side tube). Without the loss the pocket self-excited at its neck frequency (409 Hz) in the run. Now
+  every run settles under 5 % at 25 cycles and the double-tuned cans come out 6-7 dB(A) under plain chambers of the
+  same size (91.5 / 93.5 vs 98.5 / 97.6; no muffler 105.7), worst in-band order about level instead of -6.5 dB.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
