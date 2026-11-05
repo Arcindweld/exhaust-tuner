@@ -70,3 +70,24 @@ What it shows:
 
 To narrow this further: the header's primary size and length, the X-pipe's position, the exit length, and the
 muffler model (a box photo).
+
+### Length fit (model/fit.py, writers v13/v14)
+
+One step each way from the base layout (X 400 mm behind the collectors, 600 mm exits, 762 mm primaries) at 5,800 rpm,
+40 cycles, scored on both exits against the pull windows (clipped RMS, mean and spread over the pulls; `fit.json`):
+
+| X to collectors | Exit | Primary | Clipped RMS | vs base |
+|---|---|---|---|---|
+| 400 mm (15.7 in) | 600 mm (23.6 in) | 762 mm (30 in) | 4.82 dB (0.87) | base |
+| 250 mm (9.8 in) | 600 | 762 | 4.89 (0.91) | +0.07 |
+| 550 mm (21.7 in) | 600 | 762 | 5.52 (0.87) | +0.70 |
+| 400 | 300 mm (11.8 in) | 762 | 5.20 (0.73) | +0.38 |
+| 400 | 900 mm (35.4 in) | 762 | 5.78 (0.91) | +0.96 |
+| 400 | 600 | 660 mm (26 in) | 5.02 (0.92) | +0.20 |
+| 400 | 600 | 860 mm (33.9 in) | 4.24 (0.91) | **-0.58** |
+
+The X position is flat between 250 and 400 mm and worsens past 550; the 600 mm exit beats both 300 and 900; longer
+primaries help a little (860 mm, about 34 in, is the one step that gains more than the spread). These runs carry the
+neck and open-end corrections added to the writers after the table above (v13, v14), so the base score moved from the
+earlier 3.8-6.2 dB band to 4.82 dB. The remaining gap is still orders 8 and 12. The next step along this line would be
+primaries of 860-960 mm with the 400 mm X, and then the muffler's inside.
