@@ -21,6 +21,8 @@ env:
   # every build gets its own version, so the installed programs can tell a newer release (updater.rs); builds on a PC
   # are 0.1.0 (et_host's version(), EXHAUST_TUNER_VERSION unset)
   APP_VERSION: 0.1.${{ github.run_number }}
+  # code signing happens only when the owner has set this secret (see "Sign the programs" below)
+  CODESIGN_PFX_BASE64: ${{ secrets.CODESIGN_PFX_BASE64 }}
 
 permissions:
   contents: read
@@ -348,6 +350,29 @@ jobs:
           Invoke-WebRequest "https://go.microsoft.com/fwlink/p/?LinkId=2124703" -OutFile webview2/MicrosoftEdgeWebview2Setup.exe -MaximumRetryCount 4 -RetryIntervalSec 10
           Get-ChildItem $s -Recurse | Measure-Object -Property Length -Sum | ForEach-Object { "stage: {0:N1} MB in {1} files" -f ($_.Sum/1MB), $_.Count }
 
+      # Code signing (optional): with the repository secrets CODESIGN_PFX_BASE64 (a .pfx, base64) and CODESIGN_PFX_PASSWORD
+      # set, the two programs and then the installer are Authenticode-signed with signtool and timestamped, and Windows
+      # opens the installer without the "Windows protected your PC" screen. Without the secrets nothing is signed and
+      # the build is as before. An OV or EV certificate from a CA, or Azure Trusted Signing (then replace this step with
+      # its action), is the owner's to buy; a self-signed certificate does not remove the screen.
+      - name: Sign the programs
+        if: env.CODESIGN_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          CODESIGN_PFX_BASE64: ${{ secrets.CODESIGN_PFX_BASE64 }}
+          CODESIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+        run: |
+          $pfx = "$env:RUNNER_TEMP\codesign.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CODESIGN_PFX_BASE64))
+          $st = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
+          if (-not $st) { throw "signtool.exe not found in the Windows SDK" }
+          foreach ($f in "stage/ExhaustTuner.exe", "stage/exhaust-tuner-host.exe") {
+            & $st.FullName sign /f $pfx /p $env:CODESIGN_PFX_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /d "Exhaust Tuner" $f
+            if ($LASTEXITCODE -ne 0) { throw "signing $f failed" }
+            & $st.FullName verify /pa /v $f | Select-String "Successfully verified|Signing Certificate Chain|Issued to"
+          }
+          Remove-Item $pfx
+
       - name: Build the installer
         shell: pwsh
         run: |
@@ -355,6 +380,23 @@ jobs:
           if (-not (Test-Path $iscc)) { choco install innosetup -y --no-progress; $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
           & $iscc /DAppVersion=${{ env.APP_VERSION }} /DStage=..\stage installer\ExhaustTuner.iss
           Get-ChildItem dist
+
+      - name: Sign the installer
+        if: env.CODESIGN_PFX_BASE64 != ''
+        shell: pwsh
+        env:
+          CODESIGN_PFX_BASE64: ${{ secrets.CODESIGN_PFX_BASE64 }}
+          CODESIGN_PFX_PASSWORD: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+        run: |
+          $pfx = "$env:RUNNER_TEMP\codesign.pfx"
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:CODESIGN_PFX_BASE64))
+          $st = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\signtool.exe" | Sort-Object FullName | Select-Object -Last 1
+          $setup = Get-ChildItem dist/ExhaustTuner-Setup-*.exe | Select-Object -First 1
+          & $st.FullName sign /f $pfx /p $env:CODESIGN_PFX_PASSWORD /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /d "Exhaust Tuner Setup" $setup.FullName
+          if ($LASTEXITCODE -ne 0) { throw "signing the installer failed" }
+          & $st.FullName verify /pa /v $setup.FullName | Select-String "Successfully verified"
+          Remove-Item $pfx
+          echo "SIGNED=1" >> $env:GITHUB_ENV
 
       # Install it silently like a user would, then drive the installed program's own host with a real OpenWAM run
       - name: Install and run from the installed folder
@@ -545,8 +587,12 @@ jobs:
           (cd dist && sha256sum "$setup" ExhaustTuner-Setup.exe > SHA256SUMS.txt && cat SHA256SUMS.txt)
           prev=$(gh release list --limit 1 --exclude-drafts --json tagName --jq '.[0].tagName // ""')
           {
-            echo "**Install:** download ExhaustTuner-Setup.exe below and open it. If Windows says \"Windows protected your PC\", click"
-            echo "More info, then Run anyway (the installer is not code-signed). It installs and opens the program. Full steps: [INSTALL.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/INSTALL.md)."
+            if [ "${SIGNED:-}" = "1" ]; then
+              echo "**Install:** download ExhaustTuner-Setup.exe below and open it (code-signed). It installs and opens the program. Full steps: [INSTALL.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/INSTALL.md)."
+            else
+              echo "**Install:** download ExhaustTuner-Setup.exe below and open it. If Windows says \"Windows protected your PC\", click"
+              echo "More info, then Run anyway (the installer is not code-signed). It installs and opens the program. Full steps: [INSTALL.md](https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_REF_NAME/INSTALL.md)."
+            fi
             echo "Already installed? The program updates itself (menu > Restart and update)."
             echo
             echo "Built from ${GITHUB_SHA::7} on $GITHUB_REF_NAME ($(date -u +%Y-%m-%d))."
