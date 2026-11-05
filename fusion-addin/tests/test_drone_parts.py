@@ -288,8 +288,28 @@ def scene_checks():
 tees()
 holes()
 cans()
+
+
+def chamber():
+    # an inline chamber with extended tubes: 2.5 in pipe, 6 x 14 in inside, tubes in 7 and 3.5 in (Munjal's double tuning)
+    lay = T.ext_chamber(6.35, 0.165, 15.24, 0.152, 35.56, 17.78, 8.89, 5.08)
+    gas = math.pi * 7.62 ** 2 * 35.56 - math.pi * (3.175 + 0.165) ** 2 * (17.78 + 8.89)
+    ok(abs(lay['gas'] - gas) < 1e-6, 'chamber: gas volume is the inside less the two tubes (%.0f cm3)' % lay['gas'])
+    ok(abs(T.section_area(lay['shell']) - (0.152 * (35.56 + 0.304) + 2 * 0.152 * (7.62 - 3.34))) < 1e-6, 'chamber: shell section = wall strip over the outside length + two end-plate rings')
+    ok(lay['inlet'][0][1] == -5.08 and abs(lay['inlet'][2][1] - (0.152 + 17.78)) < 1e-9, 'chamber: inlet tube from the stub to l_in past the near plate')
+    ok(abs(lay['outlet'][0][1] - (0.152 + 35.56 - 8.89)) < 1e-9 and abs(lay['outlet'][2][1] - (35.56 + 0.304 + 5.08)) < 1e-9, 'chamber: outlet tube from l_out before the far plate to the stub')
+    for bad in [(6.35, 0.165, 15.24, 0.152, 35.56, 20.0, 16.0, 5.08), (6.35, 0.165, 6.5, 0.152, 35.56, 0, 0, 5.08)]:
+        try:
+            T.ext_chamber(*bad); ok(False, 'chamber: bad sizes refused %s' % (bad,))
+        except ValueError:
+            ok(True, 'chamber: bad sizes refused')
+    pts, err = T.cylinder_samples((0, 0, 0), (1, 0, 0), lay['R_out'], 0.0, lay['z1'], 0.4)
+    ok(all(abs(math.hypot(q[1], q[2]) - lay['R_out']) < 1e-9 or q[0] < 1e-9 or abs(q[0] - lay['z1']) < 1e-9 for q in pts), 'chamber: samples sit on the shell or the end plates')
+
+
 samples()
 fits()
 scene_checks()
+chamber()
 print('FAILS:', fails)
 sys.exit(1 if fails else 0)

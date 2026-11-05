@@ -1,4 +1,9 @@
-EXHAUST TUNER (Fusion add-in), version 4.13.1
+EXHAUST TUNER (Fusion add-in), version 4.14.0
+
+4.14.0 (November 5, 2026)
+  Build the expansion chamber: an inline chamber with extended inlet and outlet tubes from the
+  Mufflers tab (Munjal's double-tuned layout with the tab's Set button), three sketch-driven
+  revolves along one marker on the pipe's centreline; clearance against the keep-outs.
 
 4.13.1 (November 3, 2026)
 - Starts with Fusion: the add-in is set to run on startup, so after the Windows program installs it
@@ -99,6 +104,13 @@ EXHAUST TUNER (Fusion add-in), version 4.13.1
   the scan fit), tests/test_drone_fusion_mock.py (the builders against a stand-in for Fusion's
   API that records what they ask for) and tests/fusion_live_drone_parts.py, to run inside
   Fusion: it builds each part in a throw-away design and checks it in Fusion's own numbers.
+
+  "Build the expansion chamber": draw one sketch line along the pipe's centreline where the chamber's
+  near end plate goes, pointing the way the gas flows. Sizes come from the Mufflers tab (pipe inside
+  diameter and wall, chamber inside diameter and length, the inlet and outlet tube extensions, the
+  chamber wall); three sketch-driven revolves in one component (shell with end plates, inlet tube,
+  outlet tube), each stub 2 in past the plates. The straight-through layout only: the reverse-flow
+  chamber's pipes sit side by side and are not a revolve.
 
 4.11.1 (November 2, 2026)
 - Fixed: "Auto-route the J-pipe through the scan" (Mufflers tab) dropped the J-pipe's cut

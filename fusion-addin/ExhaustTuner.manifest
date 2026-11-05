@@ -6,7 +6,7 @@
   "description": {
     "": "Exhaust design tools for Fusion: a docked calculator panel (headers, megaphones, expansion chambers, crossovers, sound, pipe vibration, hangers and flex pipes, turbo and supercharger tones, resonators and a muffler finder, catalytic converters, boom tubes, intakes, parts by brand and model, and stock-vehicle presets) that measures selected routes and tube bodies, checks clearance, auto-routes pipes and headers through a scan, and builds parametric tubes and boom tubes, plus a native calculator dialog."
   },
-  "version": "4.13.1",
+  "version": "4.14.0",
   "runOnStartup": true,
   "supportedOS": "windows|mac",
   "editEnabled": true

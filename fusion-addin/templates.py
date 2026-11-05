@@ -547,6 +547,21 @@ def helm_samples(start, d, lay, step=0.4, lift=1.5, neck=True):
     return pts, step * 0.75
 
 
+def cylinder_samples(start, d, R, z0, z1, step=0.4):
+    """Points on the outside of a closed cylinder of radius R from z0 to z1 along d from start (an inline chamber's
+    shell and end plates), about step apart; returns (points, err) as helm_samples does."""
+    d = RT.vunit(d)
+    pts = []
+    nz = max(2, int(math.ceil((z1 - z0) / step)))
+    for i in range(nz + 1):
+        _ring_pts(start, d, R, z0 + (z1 - z0) * i / nz, step, pts)
+    nr = max(2, int(math.ceil(R / step)))
+    for j in range(nr + 1):
+        _ring_pts(start, d, R * j / nr, z0, step, pts)
+        _ring_pts(start, d, R * j / nr, z1, step, pts)
+    return pts, step * 0.75
+
+
 def scene_points_near(scene, c, rad, cap=6000):
     """Scan sample points (the router's Scene) within rad of c, thinned evenly to at most cap."""
     out = scene.points_near(c, rad)
@@ -684,3 +699,32 @@ def clearance(scene, pts, err, cap=12.0):
     if at is None:
         return None, None
     return max(0.0, best - err), at
+
+
+def ext_chamber(pipe_id, pipe_wall, can_id, can_wall, length, l_in, l_out, stub):
+    """An inline expansion chamber with extended inlet and outlet tubes (Munjal's double-tuned chamber when l_in and
+    l_out are half and a quarter of the inside length). z runs along the pipe from the can's near outside face
+    (z = 0). The shell is a tube of can_id inside with end plates can_wall thick; the inlet tube (pipe_id inside,
+    pipe_wall) comes in from z = -stub through the near plate and ends l_in past it; the outlet tube starts l_out
+    before the far plate's inside face and runs stub past the far outside face. Returns closed half-sections (r, z) for
+    three revolves (shell, inlet tube, outlet tube), the inside length and the gas volume. cm throughout. Raises
+    ValueError when the sizes do not make a chamber."""
+    vals = (pipe_id, pipe_wall, can_id, can_wall, length, l_in, l_out, stub)
+    if not all(isinstance(v, (int, float)) and math.isfinite(v) for v in vals):
+        raise ValueError('Fill in the pipe, the chamber and its walls on the Mufflers tab first.')
+    if pipe_id <= 0 or pipe_wall <= 0 or can_id <= 0 or can_wall <= 0 or length <= 0 or stub < 0:
+        raise ValueError('The pipe, the chamber and their walls need sizes above zero.')
+    r_pi, r_po, Rc = pipe_id / 2.0, pipe_id / 2.0 + pipe_wall, can_id / 2.0
+    if r_po >= Rc - 0.3:
+        raise ValueError('The pipe is about as wide as the chamber. Use a wider chamber.')
+    if l_in < 0 or l_out < 0 or l_in + l_out >= length:
+        raise ValueError('The extended tubes meet inside the chamber: together they must be shorter than it.')
+    z_in, z_far = can_wall, can_wall + length            # inside faces of the end plates
+    z1 = z_far + can_wall                                 # far outside face
+    Rco = Rc + can_wall
+    shell = [(r_po, 0.0), (Rco, 0.0), (Rco, z1), (r_po, z1), (r_po, z_far), (Rc, z_far), (Rc, z_in), (r_po, z_in)]
+    inlet = [(r_pi, -stub), (r_po, -stub), (r_po, z_in + l_in), (r_pi, z_in + l_in)]
+    outlet = [(r_pi, z_far - l_out), (r_po, z_far - l_out), (r_po, z1 + stub), (r_pi, z1 + stub)]
+    gas = math.pi * Rc ** 2 * length - math.pi * r_po ** 2 * (l_in + l_out)
+    return {'shell': shell, 'inlet': inlet, 'outlet': outlet, 'L_in': length, 'z1': z1, 'R_out': Rco, 'gas': gas,
+            'outside_len': z1, 'overall': z1 + 2 * stub}

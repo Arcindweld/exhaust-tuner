@@ -3372,9 +3372,70 @@ def act_hang(data):
             'bodies': made}
 
 
+def act_chamber(data):
+    """An inline expansion chamber with extended inlet and outlet tubes, from one marker on the pipe's axis: a sketch
+    line drawn along the pipe's centreline where the chamber's near end plate goes, pointing the way the gas flows.
+    Sizes come from the Mufflers tab (pipe inside diameter and wall, chamber inside diameter and length, the two
+    extensions, the chamber wall); each stub runs 2 in past the end plates for the slip joint or weld. Three
+    sketch-driven revolves in one component: the shell with its end plates, the inlet tube, the outlet tube."""
+    t0 = time.time()
+    mk = [m for m in _markers() if m['signed']]
+    if len(mk) != 1:
+        raise ValueError('Select one sketch line, drawn along the pipe\'s centreline where the chamber\'s near end plate '
+                         'goes, pointing the way the gas flows.')
+    start, d = mk[0]['p'], _unit(mk[0]['d'])
+    pipe_id, wall = _cm(data, 'pipe_id_mm', 0.0), _cm(data, 'wall_mm', 0.1651)
+    can_id, cw, L = _cm(data, 'can_id_mm', 0.0), _cm(data, 'can_wall_mm', 0.1519), _cm(data, 'can_len_mm', 0.0)
+    l_in, l_out, stub = _cm(data, 'in_mm', 0.0), _cm(data, 'out_mm', 0.0), _cm(data, 'stub_mm', 5.08)
+    lay = TPL.ext_chamber(pipe_id, wall, can_id, cw, L, l_in, l_out, stub)
+    title = str(data.get('title') or 'Expansion chamber')
+    notes = []
+    scene = None
+    if _keepouts:
+        reach = lay['overall'] + lay['R_out'] + 3.0
+        try:
+            scene = _scene(tuple(start[k] - reach for k in range(3)), tuple(start[k] + reach for k in range(3)), 1.0, notes)
+        except ValueError:
+            scene = None
+    _status('Building the chamber…')
+    comp = _new_component(title)
+    try:
+        _revolve_section(comp, start, d, lay['shell'], title + ' shell')
+        _revolve_section(comp, start, d, lay['inlet'], title + ' inlet tube')
+        _revolve_section(comp, start, d, lay['outlet'], title + ' outlet tube')
+    except Exception as ex:
+        _drop_component(comp)
+        raise ValueError('Fusion would not build the chamber (%s). Nothing was left in the design.' % ex)
+    gap, gap_over, ok_gap = None, False, True
+    if scene is not None:
+        _status('Checking the chamber against the keep-outs…')
+        pts, err = TPL.cylinder_samples(start, d, lay['R_out'], 0.0, lay['z1'], step=0.3)
+        gap, _at = TPL.clearance(scene, pts, err)
+        if gap is None:
+            gap, gap_over = 12.0, True
+        ok_gap = gap_over or gap >= float(data.get('gap_cm', 1.27))
+    note = ('Inside %.2f in across and %.2f in long, %.2f L of gas; inlet tube runs %.2f in in, outlet tube %.2f in; '
+            '%.2f in long outside with %.3f in wall and end plates, %.2f in over the stubs.' % (
+                can_id / 2.54, L / 2.54, lay['gas'] / 1000.0, l_in / 2.54, l_out / 2.54, lay['outside_len'] / 2.54,
+                cw / 2.54, lay['overall'] / 2.54))
+    items = [{'kind': 'part', 'name': title, 'ok': ok_gap, 'note': note,
+              'chamber': {'gas_cm3': lay['gas'], 'can_id_cm': can_id, 'can_len_cm': L, 'in_cm': l_in, 'out_cm': l_out}}]
+    if gap is not None:
+        items[0]['min_gap'] = gap
+        items[0]['gap_over'] = gap_over
+    msg = 'Built the expansion chamber with its extended tubes in a new component, along the marker.'
+    if scene is None and not _keepouts:
+        msg += ' Set the scan as a keep-out to check its clearance.'
+    msg += ' %.0f s.' % (time.time() - t0)
+    if notes:
+        msg += ' ' + ' '.join(notes)
+    msg += ' The shell and both tubes are sketch-driven revolves (edit their section sketches); the tubes pass through the end plates, so join or weld them there.'
+    return {'ok': True, 'msg': msg, 'items': items, 'route_ok': ok_gap}
+
+
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
+           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult')}
 
 

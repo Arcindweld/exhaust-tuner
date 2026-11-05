@@ -15,7 +15,8 @@ const { chromium } = require('playwright');
         setKeepouts:{ok:true,msg:'2 keep-out bodies stored.'},
         pipe:{ok:true,msg:'Built a 1.875 in OD runner along the path (72.4 cm).'},
         build:{ok:true,msg:'Built Header runner.'},
-        boom:{ok:true,msg:'Built boom tube along X in a new component.'}
+        boom:{ok:true,msg:'Built boom tube along X in a new component.'},
+        chamber:{ok:true,msg:'Built the expansion chamber with its extended tubes in a new component, along the marker.',items:[{kind:'part',name:'Expansion chamber',ok:true,note:'Inside 6.00 in across'}]}
       };
       return Promise.resolve(JSON.stringify(replies[action]||{ok:false,msg:'unknown'}));
     }};
@@ -58,5 +59,13 @@ const { chromium } = require('playwright');
   await pg.screenshot({path:'fx-headers.png',fullPage:true});
   await pg.click('#m-simple');
   await pg.screenshot({path:'fx-headers-simple.png',fullPage:true});
-  console.log(out.join('\n')); await b.close();
+    // the expansion chamber button on the Mufflers tab sends the chamber's sizes (double-tuned extensions after Set)
+  await pg.goto('file://'+process.cwd()+'/index.html#mufflers'); await pg.click('#m-expert'); await pg.waitForTimeout(300);
+  await pg.click('#m-dtune'); await pg.waitForTimeout(150);
+  await pg.click('#fx-muf button[data-fx="chamber"]'); await pg.waitForTimeout(300);
+  const sentCh = await pg.evaluate(() => window.__sent.filter(x => x[0] === 'chamber').pop());
+  out.push('chamber payload: '+JSON.stringify(sentCh && sentCh[1]).slice(0,300));
+  if(!(sentCh && sentCh[1].can_id_mm>0 && Math.abs(sentCh[1].in_mm - sentCh[1].can_len_mm/2) < 0.01 && Math.abs(sentCh[1].out_mm - sentCh[1].can_len_mm/4) < 0.01)) out.push('FAIL chamber payload (can and double-tuned extensions)');
+  t=await pg.textContent('#fx-out-muf'); if(!/expansion chamber/i.test(t)) out.push('FAIL chamber result not shown');
+console.log(out.join('\n')); await b.close();
 })();
