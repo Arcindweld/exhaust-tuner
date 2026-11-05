@@ -25,6 +25,8 @@ const { chromium } = require('playwright');
   chk(/Cut files for this chamber/.test(txt) && /Shell wrap/.test(txt) && !/\bNaN\b/.test(txt), 'section rendered');
   const [dl] = await Promise.all([pg.waitForEvent('download', { timeout: 5000 }).catch(() => null), pg.click('#m-cut-dxf')]);
   chk(!!dl && /muffler_chamber_152x356_reverse_mm\.dxf/.test(dl.suggestedFilename()), 'download named for the chamber: ' + (dl && dl.suggestedFilename()));
+  const cp = await pg.evaluate(() => { const c = window.__cope(54.1, 63.5); return { rise: c.rise, want: 63.5 / 2 - Math.sqrt((63.5 / 2) ** 2 - (54.1 / 2) ** 2), width: c.width, lines: (c.text.match(/LINE/g) || []).length, none: window.__cope(70, 63.5) }; });
+  chk(Math.abs(cp.rise - cp.want) < 1e-9 && Math.abs(cp.width - Math.PI * 54.1) < 1e-9 && cp.lines === 75 && cp.none === null, 'cope template: rise R - sqrt(R^2 - r^2), strip pi d wide, 72 cut segments + 3 edges, refused when the branch is larger');
   await pg.selectOption('#m-chlay', 'through'); await pg.selectOption('#m-case', 'round'); await pg.fill('#m-nbaf', '0'); await pg.dispatchEvent('#m-nbaf', 'input'); await pg.waitForTimeout(100);
   await b.close(); console.log(out.join('\n')); console.log(fails ? 'mufcut_ui: ' + fails + ' FAIL' : 'mufcut_ui: all pass'); process.exit(fails ? 1 : 0);
 })();
