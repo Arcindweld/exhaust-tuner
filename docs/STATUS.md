@@ -696,6 +696,12 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   jet with a jet's directivity, Morse and Ingard 11.4); sound/sweep.py passby() takes the jet apart the same way
   (pull(split=True)); rec_ui.js checks the Doppler ratio and the level law. The muffler designer also searches Munjal's
   double-tuned extended-tube chamber. Page V56.
+- F-100 muffler inside (2026-11-05, from the owner's photos into Black Widow mufflers: a square channel straight through
+  the oval case to an end plate with the outlet, the case a separate volume through a small hole): modelled as a 79 mm
+  round channel the recording is too bright (orders 8/12 at -5/-10 against -14/-22), as closed chambers too dull
+  (-17/-28); the case as one small-hole Helmholtz barely dulls it; as three big openings it swallows order 4. The real
+  one is a sealed channel plus losses the plane-wave model lacks. Table in the case README. Needs: the channel's
+  inside width and its openings measured.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

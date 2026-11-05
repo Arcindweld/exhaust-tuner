@@ -112,11 +112,14 @@ primaries, scored on both exits against the pull windows (clipped RMS, four pull
 | the same chambers as 1-D expansions (`venom1d`) | 3.9 / 3.1 / 5.3 / 4.2 | -21 | -24 | the same score, orders traded |
 | square channel alone, 79 mm round, 330 mm (`venom_sq`) | 6.9 / 6.7 / 6.9 / 5.8 | -5 | -10 | too bright: orders 8-12 at -1 to -10 |
 | channel + case as a 195 Hz Helmholtz on the inlet end (`venom_sq_h`) | 8.7 / 8.8 / 8.1 / 7.3 | -7 | -16 | a little duller, order 2 up |
+| channel with the case as three 1.63 L side volumes through 32 mm openings (`venom_sq3`, 385 mm) | 10.4 / 10.3 / 9.7 / 9.6 | -9 | 0 | far worse: the big openings swallow order 4 (-22 dB) and leave orders 10-12 on top |
 | recording | | -14 | -22 | |
 
 The real muffler sits between the sealed channel and the closed chambers: its channel must let more into the case
 along its length than one small hole (slots, louvres or a perforated wall the photos cannot show), or the gussets and
-the end-plate step lose more than a plane-wave model gives. `venom_sq3` (the case as three side volumes along the
-channel) is the next guess. The clipped score punishes overshooting orders more than the unclipped one, which is why
+the end-plate step lose more than a plane-wave model gives. Large openings along the channel are ruled out by `venom_sq3`: side volumes
+that size turn the muffler into a low-frequency absorber and wreck the firing order. So the openings are small, and
+what the plane-wave channel is missing is loss (the gussets, the end-plate step, flow noise and friction in a square
+channel) rather than coupling. The clipped score punishes overshooting orders more than the unclipped one, which is why
 the straight channel's unclipped RMS (6.2-8.0) beats the chambers' (8.0-9.4) while its clipped score is worse. A
 measured channel width and opening size would settle it.
