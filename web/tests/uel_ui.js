@@ -114,7 +114,7 @@ const HERE = __dirname, RUNS = path.join(HERE, 'uel_runs');
     await p.selectOption('#wam-src', 'four'); await p.waitForTimeout(300);
     await p.click('button[data-wam="dl"]'); await p.waitForTimeout(600);
     const w2 = await p.evaluate(() => ({ n: window.__wamLast.files[0].name, uel: window.__wamLast.uel, t: window.__wamLast.files[0].text }));
-    ok(!w2.uel && !/_uel_/.test(w2.n) && !/level 1 branch/.test(w2.t) && !/instantaneous results 2/.test(w2.t), vp.n + ': "This tab" writes the equal single-collector case again (' + w2.n + ')');
+    ok(!w2.uel && !/_uel_/.test(w2.n) && !/level 1 branch/.test(w2.t), vp.n + ': "This tab" writes the equal single-collector case again (' + w2.n + ')');
     // equal mode again: feeds revert
     await p.evaluate(() => { location.hash = 'headers'; }); await p.waitForTimeout(300);
     await set('h-lenmode', 'equal'); await p.waitForTimeout(200);

@@ -8477,6 +8477,23 @@ function installedAL(Tf,f,Lt,a,c,rho,S){
   return 20*Math.log10(cabs(pPlusIn)/Math.max(1e-30,cabs(pPlusEnd)));
 }
 window.__installedAL=installedAL; window.__Cx=Cx;
+// Insertion loss (Munjal 1987, Acoustics of Ducts and Mufflers, 2.15 and 2.16): the source (pressure p_s behind an internal
+// impedance Z_s), an upstream pipe Lu from the source to the element, the element, the tailpipe Lt and the radiating end
+// Z_r (Levine and Schwinger as above). The tip's velocity is v_e = p_s / ((A Z_r + B) + Z_s (C Z_r + D)) for the whole
+// chain [A B; C D], so IL = 20 log |that denominator with the element / with the element taken out| (the line and
+// tailpipe alone, as the OpenWAM check's reference). zs is Z_s over the pipe's Zc: 1 an anechoic source, Infinity a
+// constant-velocity one (Munjal 2.16: a reciprocating engine's exhaust is nearer this than anechoic while its valves are
+// shut). Lu, Lt m.
+function insertionLoss(Tf,f,Lt,Lu,a,c,rho,S,zs){
+  const k=2*Math.PI*f/c, ka=Math.min(1.5,k*a), Zc=rho*c/S;
+  const R0=Math.min(1,Math.max(0.05,1+0.01336*ka-0.59079*ka*ka+0.33576*ka**3-0.06432*ka**4)), l0=a*(ka<0.5?0.6133-0.1168*ka*ka:0.6393-0.1104*ka);
+  const r=cscale(Cx(Math.cos(2*k*l0),-Math.sin(2*k*l0)),-R0), Zr=cscale(cdiv(cadd(C1,r),csub(C1,r)),Zc);
+  const up=tmSeg(Cx(k,0),Cx(Zc,0),Lu), tail=tmSeg(Cx(k,0),Cx(Zc,0),Lt), I=[C1,Cx(0,0),Cx(0,0),C1];
+  const den=M=>{ const m=tmMul(tmMul(up,M),tail), A=cadd(cmul(m[0],Zr),m[1]), B=cadd(cmul(m[2],Zr),m[3]); return zs===Infinity?B:cadd(A,cscale(B,zs*Zc)); };
+  return 20*Math.log10(cabs(den(Tf(f)))/Math.max(1e-30,cabs(den(I))));
+}
+window.__insertionLoss=insertionLoss;
+
 window.__plug=calcPlug; window.__crossMode=crossModeHz;
 // Davies 1996 (J. Sound Vib. 190(4), eqs. 2.2, 2.3, 2.6, 2.7, data sheets 3 and 5): side-branch quarter-wave length l1 = c/(4·f),
 // a set of m branches in the ratio 3^(−1/m) so each covers the odd multiples of the next, folded branch l_s = X_i + (So/Si)·X_o for So/Si < 2,
@@ -13436,6 +13453,7 @@ function mdSection(p){
     if(R.best.length) h+='<div class="tblwrap"><table>'+head+'<tbody>'+R.best.map(row).join('')+'</tbody></table></div><p class="cap">'+R.tried+' designs tried; the smallest that meet the goal first. “Use” puts its size, packing and porosity into the fields above, so every section on this tab works it out in full. Plane waves, no mean flow: the packed figures are a little optimistic at high gas speed, the chamber’s dips sharper than a real can’s.</p>';
     else h+='<div class="note warn">No can of these kinds and sizes takes '+q.tl+' dB off all of '+Math.round(q.f0)+' to '+Math.round(q.f1)+' Hz'+(R.closest?'. The closest: '+(R.closest.kind==='packed'?'packed straight-through':R.closest.kind==='exttube'?'chamber with extended tubes':'plain chamber')+' '+cdim(R.closest.D)+' × '+clen(R.closest.L)+', '+R.closest.min.toFixed(1)+' dB at worst':'')+'. Ask for fewer dB, a narrower band, or more room; a resonator for one tone (below) takes more off a narrow band.</div>';
   }
+  if(R&&!R.err&&R.best&&R.best.some(d=>d.kind!=='packed')) h+=mdwPart(R);
   return sec('Muffler designer',h);
 }
 document.addEventListener('click',e=>{
@@ -13454,6 +13472,91 @@ document.addEventListener('change',e=>{ const el=e.target;
 // the Mufflers tab's own inputs, as renderMuf reads them (for the designer's button)
 function mufP(){ const bore=boreOf('m-dp-shape'); if(bore.err) return null; return {f:val('m-f'),dpipe:bore.Deq,tmain:val('m-tmain')}; }
 window.__md={MD,mdSearch,mdInputs,mufP,calcChamber,sec:insideSection};
+/* ===== Muffler designer, checked in OpenWAM: the designer's chambers (plain and extended-tube; a packed can has no 1-D
+   model here) each put into the 4-Stroke tab's OpenWAM line ahead of its tailpipe, and the same line with no muffler,
+   run at a few engine speeds on the desktop program. Each run's outflow at the open end gives the level of every half
+   order at 1 m (wamInsOrders: the open end as a monopole), so what a design takes off the band is the no-muffler level
+   minus the design's, order by order, for the orders that land in the band (and are within 20 dB of the loudest order
+   at that speed, so a quiet order's noise does not set the answer). Also: the A-weighted sum of the orders at 1 m, and
+   the mean brake torque, the back pressure's cost. */
+const MDW={rpms:'',msg:null,res:null,key:''};
+function mdwRpmsDefault(q,f0,f1){
+  // the speeds that put the firing order (cylinders / 2 per revolution, four-stroke) at the band's ends and middle
+  const o=Math.max(0.5,(q&&q.cyl||8)/2), fs=[f0,Math.sqrt(f0*f1),f1];
+  return [...new Set(fs.map(f=>Math.round(Math.min(9000,Math.max(800,60*f/o))/50)*50))].sort((a,b)=>a-b);
+}
+function mdwRpms(q,R){
+  const t=MDW.rpms&&MDW.rpms.trim();
+  if(!t) return mdwRpmsDefault(q,R.fs[0],R.fs[8]);
+  return [...new Set(t.split(/[\s,;]+/).map(Number).filter(v=>v>=500&&v<=20000).map(v=>Math.round(v/50)*50))].sort((a,b)=>a-b);
+}
+function mdwLabel(d){ return d.kind==='exttube'?'Chamber with extended tubes, '+cdim(d.D)+' × '+clen(d.L)+' (in '+clen(d.lin)+', out '+clen(d.lout)+')':'Plain chamber, '+cdim(d.D)+' × '+clen(d.L); }
+function mdwPart(R){
+  const q=SIM.inp, cands=R.best.filter(d=>d.kind!=='packed').slice(0,4), rp=q?mdwRpms(q,R):[];
+  let h='<h4 style="margin:18px 0 6px">Check the chambers in OpenWAM</h4><p class="cap">Puts each chamber above ('+cands.length+' of them; a packed can has no 1-D model here) into the 4-Stroke tab’s OpenWAM line, ahead of its tailpipe, and runs it with that engine and header, along with the same line with no muffler. What a design takes off is the no-muffler level minus its own, order by order, at 1 m from the open end, for the orders that land in '+Math.round(R.fs[0])+' to '+Math.round(R.fs[8])+' Hz. The engine’s own pulses are far stronger than the small waves the transmission-loss sums assume, so the two need not agree; the full run is the better answer.</p>';
+  if(!q){ return h+'<div class="note">Open the 4-Stroke tab and fill it in: the runs use its engine, cam and header.</div>'; }
+  { const tm=val('m-tail'), tw=+WAM_UI.line.tail||300; if(MD.inst&&WAM_UI.line.on&&tm>0&&Math.abs(tm-tw)>25) h+='<div class="note">The designer scored the cans with this tab’s '+clen(tm)+' tailpipe; the OpenWAM line has '+clen(tw)+'. Make them the same so the two answers are about the same exhaust.</div>'; }
+  if(!WAM_UI.line.on) h+='<div class="note">Turn on the line after the collector under “Run it in OpenWAM” on the 4-Stroke tab: the chambers go into that line, ahead of its tailpipe.</div>';
+  h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Engine speeds (RPM; blank puts the firing order at the band’s ends and middle)</span><span class="inp"><input id="mdw-rpms" type="text" inputmode="numeric" value="'+esc(MDW.rpms||rp.join(' '))+'"></span></label></div>'+
+    '<p class="cap">'+(cands.length+1)+' designs × '+rp.length+' speeds = '+(cands.length+1)*rp.length+' OpenWAM runs.</p>'+
+    '<div class="actions">'+(hostHas('openwam')?'<button type="button" class="btn" data-mdw="run">Run them in OpenWAM</button>':'<span class="cap">This runs OpenWAM, so it needs the desktop program.</span>')+'</div>'+
+    '<div class="note mdwmsg'+(MDW.msg&&MDW.msg.bad?' bad':'')+'"'+(MDW.msg?'':' hidden')+'>'+(MDW.msg?esc(MDW.msg.t):'')+'</div>';
+  const X=MDW.res;
+  if(X){
+    const nm=U!=='imp', tq=t=>Number.isFinite(t)?(nm?Math.round(t)+' N·m':Math.round(t/1.3558179483)+' lb-ft'):'?', db=v=>Number.isFinite(v)?v.toFixed(1)+' dB':'–', b=X.rows[0];
+    if(X.key!==MD.key) h+='<div class="note">The designer’s list changed since these runs.</div>';
+    h+='<div class="tblwrap"><table><thead><tr><th>Design</th><th>Least taken off the band (OpenWAM)</th><th>The designer said</th><th>A-weighted, first 12 orders at 1 m, mean over the speeds</th><th>Mean brake torque</th></tr></thead><tbody>'+
+      X.rows.map(x=>'<tr><td>'+esc(x.label)+'</td><td>'+(x.base?'reference':x.err?esc(x.err):db(x.least)+(x.least<0&&x.worst?' (louder: order '+(Number.isInteger(x.worst.order)?x.worst.order:x.worst.order.toFixed(1))+' at '+x.worst.rpm+' RPM)':''))+'</td><td>'+(x.d?db(x.d.min):'')+'</td><td>'+(Number.isFinite(x.la)?x.la.toFixed(1)+' dB(A)'+(x.base?'':' ('+(x.la-b.la>=0?'+':'')+(x.la-b.la).toFixed(1)+')'):'–')+'</td><td>'+tq(x.tq)+(x.base||!Number.isFinite(x.tq)||!Number.isFinite(b.tq)?'':' ('+((x.tq/b.tq-1)*100).toFixed(1)+' %)')+'</td></tr>').join('')+
+      '</tbody></table></div>'+(()=>{ const un=[]; X.rows.forEach(x=>Object.entries(x.per||{}).forEach(([r,v])=>{ if(v!=null&&v>0.05) un.push((x.base?'no muffler':x.label.split(',')[0].toLowerCase())+' at '+r+' RPM ('+(100*v).toFixed(0)+' %)'); }));
+      return un.length?'<div class="note warn">Not settled: the last two cycles differ by more than 5 % in '+esc(un.join('; '))+'. A big chamber takes many cycles to fill and cool; raise “Cycles per run” on the 4-Stroke tab (25 or more) and run again before trusting these.</div>':''; })()+'<p class="cap">At '+X.rpms.join(', ')+' RPM, '+X.inBand+' order'+(X.inBand===1?'':'s')+' in the band in all. '+(X.inBand?'':'No order the engine makes at these speeds lands in the band: change the speeds. ')+'The level is the open end alone, free field, 1 m away (no jet noise, no shell noise); compare designs with each other.</p>';
+  }
+  return h;
+}
+async function mdwRun(){
+  if(!HOST) return;
+  const say=(t,bad)=>{ MDW.msg={t,bad:!!bad}; renderActive(); };
+  const R=MD.res, cands=(R&&R.best||[]).filter(d=>d.kind!=='packed').slice(0,4);
+  if(!cands.length){ say('Find designs first; the plain and extended-tube chambers run in OpenWAM.',true); return; }
+  const q=SIM.inp, err=q?simCheck(q):'Open the 4-Stroke tab and fill it in first.'; if(err){ say(err,true); return; }
+  if(!WAM_UI.line.on){ say('Turn on the line after the collector under “Run it in OpenWAM” on the 4-Stroke tab first.',true); return; }
+  const rpms=mdwRpms(q,R); if(!rpms.length){ say('Enter at least one engine speed between 500 and 20,000 RPM.',true); return; }
+  const sp=simSpec(q), src=wamSource(q,sp); if(src.err){ say(src.err,true); return; }
+  const cycles=WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25, files=[];
+  const rows=[{label:'No muffler (the line and tailpipe alone)',ov:{none:true},base:true}].concat(cands.map(d=>({label:mdwLabel(d),ov:{dch:d.D,lch:d.L,lin:d.lin||0,lout:d.lout||0},d})));
+  try{ rows.forEach((x,k)=>{ MDW_OVR=x.ov; const wl=wamWithLine(src.spec); if(wl.err){ x.err=wl.err; return; }
+      x.tag='mdw'+k; x.mdl=WAMX.modelFromSpec(wl.spec,Object.assign({rpm:3000,cycles:5,name:'x'},src.run));
+      rpms.forEach(r=>files.push({name:x.tag+'_'+r+'.wam',text:WAMX.makeWam(wl.spec,Object.assign({rpm:r,cycles,name:x.tag+'_'+r},src.run))})); }); }
+  finally{ MDW_OVR=null; }
+  if(rows[0].err){ say(rows[0].err,true); return; }
+  say('Running '+files.length+' OpenWAM models ('+rows.length+' designs × '+rpms.length+' speeds) on this PC.');
+  let res; try{ res=await HOST.call('runOpenWAM',{name:'muffler_check',files},ev=>{ if(ev.event==='done') say('OpenWAM: '+ev.count+' of '+ev.of+' runs done.'); }); }
+  catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
+  const f0=R.fs[0], f1=R.fs[8];
+  rows.forEach(x=>{ if(!x.tag) return; x.spl={}; const T=[];
+    rpms.forEach(r=>{ const m=(res.models||[]).find(y=>y.name===x.tag+'_'+r); if(!m||!m.finished) return;
+      if(m.avg){ const cy=WAMX.readAvg(m.avg).cycles; if(cy.length) T.push(cy[cy.length-1].torque_brake_Nm); }
+      if(m.ins){ try{ const Y=wamMore(m.ins,x.mdl,r), o=wamInsOrders(Y.ins,24,Y.more,r); if(o.spl1) x.spl[r]=o.spl1; x.per=x.per||{}; x.per[r]=o.per; if(o.jet){ x.Ttip=x.Ttip||{}; x.Ttip[r]=o.jet.T.reduce((u,v)=>u+v,0)/o.jet.T.length; } }catch(e){} } });
+    x.tq=T.length===rpms.length?T.reduce((a,b)=>a+b,0)/T.length:NaN;
+    const las=rpms.filter(r=>x.spl[r]).map(r=>10*Math.log10(x.spl[r].reduce((a,L,i)=>a+Math.pow(10,(L+aWeight((i+1)/2*r/60))/10),0)));
+    x.la=las.length===rpms.length?las.reduce((a,b)=>a+b,0)/las.length:NaN;
+    if(Object.keys(x.spl).length<rpms.length&&!x.base) x.err='did not finish at every speed'; });
+  const b=rows[0]; let inBand=0;
+  if(Object.keys(b.spl||{}).length<rpms.length){ say('The no-muffler line did not finish at every speed, so nothing can be compared. Run folder: '+res.folder,true); return; }
+  rpms.forEach(r=>{ const B=b.spl[r], top=Math.max(...B); B.forEach((L,i)=>{ const f=(i+1)/2*r/60; if(f>=f0&&f<=f1&&L>=top-20) inBand++; }); });
+  rows.slice(1).forEach(x=>{ if(x.err) return; let least=Infinity, worst=null;
+    rpms.forEach(r=>{ const B=b.spl[r], top=Math.max(...B); B.forEach((L,i)=>{ const f=(i+1)/2*r/60, d=L-x.spl[r][i]; if(f>=f0&&f<=f1&&L>=top-20&&d<least){ least=d; worst={rpm:r,order:(i+1)/2,f}; } }); });
+    x.least=Number.isFinite(least)?least:NaN; x.worst=worst; });
+  rows.forEach(x=>{ delete x.mdl; });
+  MDW.res={rows,rpms,inBand,key:MD.key,f0,f1}; window.__mdwLast=MDW.res;
+  const ok=rows.slice(1).filter(x=>Number.isFinite(x.least)), best=ok.length?ok.reduce((a,c)=>c.least>a.least?c:a):null;
+  const odd=o=>(Number.isInteger(o)?o:o.toFixed(1)), w=best&&best.worst;
+  say(!best?'Done, but no order landed in the band at these speeds, or the designs did not finish. Run folder: '+res.folder:
+    best.least>=0?'Done. Most taken off the band in OpenWAM: '+best.label+', at least '+best.least.toFixed(1)+' dB (the designer said '+best.d.min.toFixed(1)+' dB).':
+    'Done. Every chamber makes part of the band louder at some speed: the best, '+best.label+', still adds '+(-best.least).toFixed(1)+' dB to order '+odd(w.order)+' at '+w.rpm+' RPM ('+Math.round(w.f)+' Hz). That is the chamber ringing with the pipes around it (the tailpipe’s mass on the chamber’s volume, and the line’s own lengths), which a transmission loss leaves out'+(MD.inst?'':'; score the designs “Installed” and find them again')+', or change the tailpipe length.',!best);
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-mdw]'); if(b&&b.dataset.mdw==='run') mdwRun(); });
+document.addEventListener('change',e=>{ if(e.target.id==='mdw-rpms'){ MDW.rpms=e.target.value; renderActive(); } });
+window.__mdw={MDW,mdwRpmsDefault,mdwRun,cyl:()=>SIM.inp&&SIM.inp.cyl};
 /* ===== Muffler cut files: the shell wrap, the end plates and the baffles of the chamber above as DXF (R12, mm, CUT layer),
    plus the tube list. The acoustics use a round chamber of the given bore; a flat-oval case is drawn with the same inside
    area at the height asked for (W = H + (A - pi H^2 / 4) / H), so the model's volume is the built one's. The wrap is a
@@ -17624,8 +17727,12 @@ window.__wamParPaths=k=>wamParPaths(k);   // test hook
 // annulus's area (a round pipe of the same area; a 1-D model carries area, not shape) at that mouth. A plain chamber
 // (no extensions) is one pipe of the chamber's bore. Unlike a 0-D volume this passes the bands a real chamber passes
 // (the F-100 case: 0-D volumes in series are a low-pass that loses the high firing orders). dPipe: the line's bore, mm.
+// MDW_OVR: the muffler designer's OpenWAM check puts one of its designs in here while it writes that design's case
+// ({dch, lch, lin, lout} in mm), or {none:true} for the line and tailpipe with no muffler; null otherwise
+let MDW_OVR=null;
 function wamChamberEls(dPipe){
-  const dch=val('m-dch'), lch=val('m-lch'), la=Math.max(0,val('m-lin')||0), lb=Math.max(0,val('m-lout')||0), rev=$('m-chlay')&&$('m-chlay').value==='reverse';
+  const O=MDW_OVR&&MDW_OVR.dch>0?MDW_OVR:null;
+  const dch=O?O.dch:val('m-dch'), lch=O?O.lch:val('m-lch'), la=Math.max(0,(O?O.lin:val('m-lin'))||0), lb=Math.max(0,(O?O.lout:val('m-lout'))||0), rev=!O&&$('m-chlay')&&$('m-chlay').value==='reverse';
   if(!(dch>dPipe&&lch>0)) return {err:'Line after the collector: the Mufflers tab’s chamber has to be wider than this pipe, with a length.'};
   if(rev) return {err:'Line after the collector: the reverse-flow chamber has its pipes side by side, which the 1-D line cannot carry; use the straight-through layout or a volume.'};
   if(la+lb>=lch) return {err:'Line after the collector: the chamber’s extended tubes meet inside it.'};
@@ -17659,7 +17766,8 @@ function wamLineTail(){
   }
   if(n(W.L)-x0<30) return {err:'Line after the collector: leave at least 30 mm of pipe after the drone fix or the in-line piece.'};
   out.push(pipe(n(W.L)-x0));
-  if(W.mufKind==='chamber'){
+  if(MDW_OVR&&MDW_OVR.none) out.push(pipe(n(W.tail)>0?n(W.tail):300));
+  else if(W.mufKind==='chamber'||MDW_OVR){
     const M=wamChamberEls(n(W.d)); if(M.err) return {err:M.err};
     out.push(...M.els); out.push(pipe(n(W.tail)>0?n(W.tail):300));
   } else if(n(W.muf)>0){ out.push({V_litres:n(W.muf)}); out.push(pipe(n(W.tail)>0?n(W.tail):300)); }

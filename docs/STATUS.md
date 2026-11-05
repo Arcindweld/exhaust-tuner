@@ -723,6 +723,18 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   for an inflow); intakemouth_ui.js runs OpenWAM on a 6-cycle case end to end (6 s). The quiet target's job list goes
   to the muffler designer with one button (installed scoring on). Fusion chamber builder takes baffles. Page gets a
   jump list of sections on long results columns.
+- Muffler designer checked in OpenWAM (2026-11-05): "Check the chambers in OpenWAM" under the designer (desktop
+  program) puts its top four chambers (plain and extended-tube; packed cans have no 1-D model) into the 4-Stroke tab's
+  OpenWAM line ahead of its tailpipe (MDW_OVR in wamChamberEls / wamLineTail), plus the same line with no muffler, at
+  speeds that put the firing order at the band's ends and middle. Score: no-muffler minus design, per half order at 1 m
+  (wamInsOrders monopole), over the orders in the band within 20 dB of the loudest; also the A-weighted sum of the first
+  12 orders and the mean brake torque. mdwam_ui.js runs it end to end with the real OpenWAM (10 runs, 8 cycles). First
+  result on the default V8 (2.5 m line, 500 mm tailpipe, band 117-183 Hz, 1750 and 2700 RPM): every TL-scored can
+  (designer: 10 dB) makes order 6 at 1750 RPM 8-12 dB LOUDER (chamber ringing with the pipes around it) while taking
+  10-20 dB off at 2700 RPM; installed-scored cans are 2-6 dB better at the worst order (-5 to -7 dB) and cost no torque.
+  The page names the order and speed that got worse, and flags a designer tailpipe that differs from the line's.
+  Golden wam_default fixtures regenerated (only the INS recording lines differ); uel_ui's equal-case check no longer
+  expects the INS recording to be absent.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

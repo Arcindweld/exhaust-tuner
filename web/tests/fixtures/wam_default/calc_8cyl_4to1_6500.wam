@@ -384,7 +384,7 @@
 0                  <TOpenWAM.cpp:1720 controllers>
 
 <==== AVERAGE RESULTS  TOutputResults::ReadAverageResults ====>
-0                  <TOutputResults.cpp:37 instantaneous results 0 = last cycle only>
+2                  <TOutputResults.cpp:37 instantaneous results 2 = all cycles concatenated in one INS file; readIns keeps the last 2>
 9                  <TOutputResults.cpp:63 pipes with average results>
 0                  <TOutputResults.cpp:64 WAMer number, ignored>
 1                  <TOutputResults.cpp:66 pipe 1>
@@ -503,8 +503,9 @@
 1                  <TTubo.cpp:2700 points>
 0.01 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
 9                  <TOutputResults.cpp:573 pipe 9>
-1                  <TTubo.cpp:2700 points>
+2                  <TTubo.cpp:2700 points>
 0.01 3 0 1 2 <TTubo.cpp:2737 distance m after the junction, n vars; vars 0 p 1 u 2 T>
+0.527429282566 4 0 1 2 3 <TTubo.cpp:2737 distance m = past the end, clamped to the last node at the open end, n vars; vars 0 p 1 u 2 T 3 mass flow>
 0                  <TOutputResults.cpp:585 venturis>
 8                  <TOutputResults.cpp:599 valves>
 2                  <TOutputResults.cpp:601 BC2 intake valve, cylinder 1>
