@@ -317,6 +317,7 @@ audio{display:block;width:100%;max-width:440px;margin-top:4px}
 .sec{margin-top:26px}
 .sec:first-child{margin-top:0}
 .sec h3{font:650 17px/1.2 var(--f-display);font-stretch:112%;letter-spacing:-.003em;margin:0 0 8px}
+.toc{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}.toc button{font:500 12.5px/1.2 var(--f-ui);padding:5px 10px;border:1px solid var(--line);border-radius:999px;background:var(--raised);color:var(--ink);cursor:pointer}.toc button:hover{border-color:var(--accent)}
 .explain{margin-top:0;padding:16px 18px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
 .explain h3{margin:0 0 8px}
 .explain p{margin:0 0 8px;font-size:14.5px}
@@ -9593,7 +9594,16 @@ const rowT=(label,main,alt)=>'<div class="r"><dt>'+label+'</dt><dd><b>'+main+'</
 const figL=(label,mm,kind)=>{const v=L(mm,kind||'l');return '<div class="fig"><span class="fl">'+label+'</span><span class="fv">'+v.n+'<small>'+v.u+'</small></span><span class="fa">'+v.a+'</span></div>';};
 const figT=(label,num,unit,alt,cls)=>'<div class="fig"><span class="fl">'+label+'</span><span class="fv '+(cls||'')+'">'+num+(unit?'<small>'+unit+'</small>':'')+'</span><span class="fa">'+(alt||'&nbsp;')+'</span></div>';
 const notesHtml=n=>n.map(x=>'<div class="note '+(x.k==='info'?'':x.k)+'">'+esc(x.t)+'</div>').join('');
-const sec=(title,body)=>'<div class="sec"><h3>'+title+'</h3>'+body+'</div>';
+const sec=(title,body)=>'<div class="sec" data-sec="'+String(title).replace(/<[^>]*>/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'"><h3>'+title+'</h3>'+body+'</div>';
+// a jump list at the top of a long results column: one chip per section when there are more than six (buttons, not
+// anchors, because the page's hash is its tab)
+function addToc(det){
+  if(!det) return; const secs=[...det.querySelectorAll(':scope > .sec[data-sec], :scope > * > .sec[data-sec]')]; if(secs.length<=6) return;
+  const nav=document.createElement('nav'); nav.className='toc'; nav.setAttribute('aria-label','Sections');
+  nav.innerHTML=secs.map(x=>'<button type="button" data-toc="'+x.dataset.sec+'">'+x.querySelector('h3').textContent+'</button>').join('');
+  det.insertBefore(nav,det.firstChild);
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-toc]'); if(!b) return; const nav=b.closest('.toc'), host=nav&&nav.parentElement; const t=host&&host.querySelector('.sec[data-sec="'+b.dataset.toc+'"]'); if(t) t.scrollIntoView({behavior:'smooth',block:'start'}); });
 const actions=panel=>'<div class="actions"><button type="button" class="btn primary" data-copy="summary" data-panel="'+panel+'">Copy summary</button>'+(panel==='sound'||panel==='muf'||panel==='cat'?'':'<button type="button" class="btn" data-copy="points" data-panel="'+panel+'">'+(panel==='cross'?'Copy centerline points':'Copy profile points')+'</button>')+'</div><textarea class="copybox" id="'+panel+'-copybox" readonly hidden aria-label="Text to copy"></textarea>';
 
 function pointsCsv(segs){
@@ -9803,7 +9813,7 @@ function renderFour(){
   html+=guideHtml('four');
   html+=actions('four');
   FX.four={title:'Header '+p.n+'-1 + megaphone',segs:r.segs.map(s=>[s.name,s.len,s.d0,s.d1]),wall_mm:val('f-wall')>0?val('f-wall'):1.651};
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   esAfterRender();
   if(ch&&!ch.err) drawTL($('f-ch-tl'),[{fn:ch.tl,col:'--t3'}],ch.type==='bulge'?ch.fPeak:ch.f0,ch.type==='bulge'?null:[ch.lo,ch.hi]);
   if(SIM.res&&$('sim-svg')) drawSim($('sim-svg'),SIM.rpms,SIM.res);
@@ -9857,7 +9867,7 @@ function renderTwo(){
   html+=actions('two');
   // Fusion builds what you weld: the header starts at the flange
   FX.two={title:'Expansion chamber',segs:r.segs.map((s,i)=>[s.name,i===0?Math.max(s.len-r.port,0):s.len,s.d0,s.d1]),wall_mm:1.2};
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   S.two.summary=['2-STROKE EXPANSION CHAMBER','Peak '+Math.round(p.rpm)+' RPM, port duration '+p.ed+'°, gas '+tempStr(p.egt),
     'Tuned length: '+plain(r.lt,'l'),'Header: '+plain(r.hl,'l')+' from the port face at '+plain(p.dh,'d')+' ID'+(r.port>0?', pipe to build '+plain(r.build,'l')+' after '+plain(r.port,'l')+' of port':''),'Diffuser: '+plain(r.ld,'l')+' to '+plain(r.db,'d')+' ('+p.da+'° included)',
     'Belly: '+plain(r.lbel,'l')+' at '+plain(r.db,'d'),'Baffle cone: '+plain(r.lb,'l')+' to '+plain(r.ds,'d')+' ('+p.ba+'° included)','Stinger: '+plain(r.lst,'l')+' at '+plain(r.ds,'d'),
@@ -9899,7 +9909,7 @@ function renderTwoBlair(){
   html+=guideHtml('two');
   html+=actions('two');
   FX.two={title:'Expansion chamber',segs:r.segs.map((s,i)=>i===0?[s.name,r.build,r.dBuild,s.d1]:[s.name,s.len,s.d0,s.d1]),wall_mm:1.2};
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   S.two.summary=['2-STROKE EXPANSION CHAMBER, BLAIR TWO-STAGE','Peak '+Math.round(p.rpm)+' RPM, port duration '+p.ed+'°, '+k.name.toLowerCase()+' ('+tempStr(k.T)+' gas), port diameter '+plain(D0,'d'),
     'Tuned length, port face to stinger: '+plain(r.lt,'l'),
     'Header: '+plain(L[0],'l')+', '+plain(D0,'d')+' to '+plain(D1,'d')+(r.port>0?' (pipe to build '+plain(r.build,'l')+' after '+plain(r.port,'l')+' of port)':''),
@@ -9963,7 +9973,7 @@ function renderTwoSpec(){
   html+=guideHtml('two');
   html+=actions('two');
   FX.two={title:'Expansion chamber',segs:r.segs.map((sg,i)=>i===0?[sg.name,r.build,r.dBuild,sg.d1]:[sg.name,sg.len,sg.d0,sg.d1]),wall_mm:1.2};
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   S.two.summary=['2-STROKE EXPANSION CHAMBER FROM THE ENGINE ('+(p.stg===3?'THREE':'TWO')+'-STAGE DIFFUSER)',
     'Peak '+Math.round(p.rpm)+' RPM, '+p.hp+' hp, BMEP '+r.bmep.toFixed(2)+' bar, port duration '+p.ed+'°, gas '+tempStr(r.T)+', port diameter '+plain(D0,'d'),
     'Tuned length, port face to stinger: '+plain(r.lt,'l')].concat(r.segs.map(sg=>sg.name+': '+plain(sg.len,'l')+(sg.d0===sg.d1?' at '+plain(sg.d0,'d'):', '+plain(sg.d0,'d')+' to '+plain(sg.d1,'d')+' ('+sg.ang.toFixed(1)+'° included)'))).concat(['Total: '+plain(r.total,'l')]).concat(r.dual?['Dual power insert (second point '+Math.round(r.dual.rpm2)+' RPM): cone '+plain(r.dual.Li,'l')+' from '+plain(r.dual.Dm,'d')+' to '+plain(r.dual.di,'d')+', starting '+plain(r.dual.x0,'l')+' from the port face; pipe '+plain(r.dual.Lp,'l')+' at '+plain(r.dual.di,'d')+'; upper half perforated, '+r.dual.open+'% open; second tuned length '+plain(r.dual.L2,'l')]:[]).join('\n');
@@ -13110,7 +13120,7 @@ function renderHeaders(){
   html+=actions('headers');
   FX.headers={title:'Header runner',segs:r.segs.map(s=>[s.name,s.len,s.d0,s.d1]),wall_mm:val('h-wall')>0?val('h-wall'):1.651,od_mm:p.dp+2*(val('h-wall')>0?val('h-wall'):1.651),target_mm:r.tube};
   FX.target=FX.target||{}; FX.target.headers=r.tube;
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
 
   const gname={bank:()=>banks.length>1?'per bank':'one collector',alt:()=>'180° alternate firing order',all:()=>'all into one'}[p.mode]();
   const pname=prof==='const'?'constant diameter':(prof==='step2'?'stepped, 2 sections':'stepped, 3 sections');
@@ -13237,7 +13247,7 @@ function renderCross(){
   html+=guideHtml('cross');
   html+=actions('cross');
   FX.cross={title:'Crossover '+names[t],strokes:r.strokes};
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   S.cross.summary=['CROSSOVER · '+names[t],'Main pipe ID: '+plain(p.d,'d'),'Spacing, centre to centre: '+plain(p.s,'l')].concat(
     t==='h'?['Crossover ID: '+plain(r.dc,'d'),'Tube length between walls: '+plain(r.tube,'l')]:
     t==='x'?['Total length: '+plain(r.len,'l'),'Converging run each side: '+plain(r.lc,'l'),'Merged section: '+plain(r.lm,'l')+' at '+plain(r.dm,'d')+' equivalent ID','Crossing angle: '+p.ang+'° each pipe ('+(2*p.ang)+'° included)',
@@ -13905,7 +13915,7 @@ function renderMuf(){
   html+=augSection(p);
   html+=guideHtml('muf');
   html+=actions('muf');
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   ttDraw(); augDraw();
   if(!ab.err&&$('m-abs')){ const fm=Math.min(4000,Math.max(500,Math.ceil(ab.fCut*1.15/250)*250)), pts=[...Array(121).keys()].map(i=>{ const f=10+i*(fm-10)/120; return [f,abTL(f)]; });
     drawLines($('m-abs'),{curves:[{pts,col:'--t5',w:2.4}],xmax:fm,ymax:TLCAP,xlab:'Hz',ylab:'dB removed',h:200,band:[Math.min(fm,ab.fCut),fm],k:true,marks:[{x:p.f,label:Math.round(p.f)+' Hz'}].concat(rs?[{x:rs.f.cruise,label:'cruise firing '+Math.round(rs.f.cruise)+' Hz'}]:[])}); }
@@ -14147,7 +14157,7 @@ function renderCat(){
   html+=guideHtml('cat');
   html+=actions('cat');
   FX.cat={title:'Catalytic converter'};
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   S.cat.summary=['CATALYTIC CONVERTER CHECK',(rot?Math.round(p.cyl)+'-rotor':Math.round(p.cyl)+'-cylinder')+', '+Math.round(p.disp)+' cc, peak '+Math.round(p.rpm)+' RPM',
     none?'No converter':CAT_TYPES[type]?CAT_TYPES[type].name:'Custom '+p.cpsi+' cpsi, '+p.mil+' mil',
     'Substrate: '+sizeTxt(sub)+' × '+plain(p.len*1000,'l')+', '+r.count+' side by side, '+r.series+' in a row',
@@ -14226,7 +14236,7 @@ function renderBoom(){
   html+=actions('boom');
   const pts=['x_'+(U==='imp'?'in':'mm')+',inside_width,inside_height'].concat([[0,p.inDeq*r.nIn,p.inDeq],[p.ltrans,r.w,p.h],[p.ltrans+p.lflat,r.w,p.h],[r.Ltot,r.wout,r.hout]].map(q=>q.map(v=>(U==='imp'?v/MM:v).toFixed(U==='imp'?3:1)).join(',')));
   FX.boom={title:'Boom tube',stations:[[0,p.inDeq*r.nIn,p.inDeq],[p.ltrans,r.w,p.h],[p.ltrans+p.lflat,r.w,p.h],[r.Ltot,r.wout,r.hout]],wall_mm:p.t};
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   S.boom.summary=['BOOM TUBE','Inlet: '+(r.nIn>1?r.nIn+' × ':'')+sizeTxt(inl)+' inside','Flat run: '+plain(r.w,'d')+' × '+plain(p.h,'d')+' inside, '+plain(p.lflat,'l')+' long',
     'Transition: '+plain(p.ltrans,'l')+'; flare: '+plain(p.lflare,'l')+' to '+plain(r.wout,'d')+' × '+plain(r.hout,'d'),
     'Sheet: '+MATS[p.mat].name+' '+plain(p.t,'d')+(r.ribMax==null?', no ribs needed':', ribs every '+plain(r.ribMax,'l')+' or closer'),
@@ -14281,7 +14291,7 @@ function renderHeadersRotary(e){
   html+=guideHtml('headers');
   html+=actions('headers');
   FX.headers={title:'Rotary collector',segs:[['Primary',300,dp,dp],['Collector merge',coneLen(dp,dcs[0],15),dp,dcs[0]],['Collector straight',1.5*dcs[0],dcs[0],dcs[0]]],wall_mm:val('h-wall')>0?val('h-wall'):1.651};
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   S.headers.summary=['ROTARY COLLECTORS · '+e.name,'Collectors: '+an.map((g,i)=>lab(i)+' = rotors '+g.cyls.join('-')+' (gaps '+g.gaps.map(x=>Math.round(x)).join('/')+'°)').join('; '),
     'Collector ID: '+dcs.map(d=>plain(d,'d')).join(', '),'Runner length: not given for rotaries'].join('\n');
   S.headers.points='';
@@ -16765,7 +16775,7 @@ function renderQuick(){
     (r.cross?'<button type="button" class="btn" data-qgo="crossover">Lay out the '+XNAME[r.cross.type]+'</button>':'')+
     '<button type="button" class="btn" data-copy="summary" data-panel="quick">Copy summary</button>'+(sh?'<button type="button" class="btn" data-copy="sheet" data-panel="quick">Copy build sheet</button>':'')+'</div><textarea class="copybox" id="quick-copybox" readonly hidden aria-label="Text to copy"></textarea>'+
     '<p class="cap" id="q-applied"></p>';
-  det.innerHTML=html;
+  det.innerHTML=html; addToc(det);
   S.quick={summary:['QUICK BUILD · '+e2name(r.e),f0(p.cc)+' cc, peak power '+f0(p.rpm)+' RPM, '+f0(r.hp)+' hp'+(r.hpGiven?'':' (estimated)'),
     'Goals: '+LOUD[p.loud]+', '+{deep:'deep',bal:'in-between',high:'higher, smoother'}[p.tone]+' tone, '+BAND_TXT[p.band]+', '+{street:'street',track:'track or strip',off:'off-road or show'}[p.use]]
     .concat(L1.map(t=>t.replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ')))
