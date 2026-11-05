@@ -1370,8 +1370,9 @@ def _revolve_cone(comp, p0, d0, p1, d1, wall, name):
     return f
 
 
-def _extrude_section(comp, origin, x, y, z, length, outline, name):
-    """Extrude a closed outline drawn in the plane through origin (axes x, y) along z by length."""
+def _extrude_section(comp, origin, x, y, z, length, outline, name, op=None):
+    """Extrude a closed outline drawn in the plane through origin (axes x, y) along z by length; op: a Fusion
+    FeatureOperations value (new body when None; a cut with CutFeatureOperation)."""
     plane = _plane_3pt(comp, origin, RT.vadd(origin, x), RT.vadd(origin, y), name)
     sk = comp.sketches.add(plane)
     sk.name = name + ' section'
@@ -1390,9 +1391,31 @@ def _extrude_section(comp, origin, x, y, z, length, outline, name):
     sign = 1.0 if _dot(nrm, z) >= 0 else -1.0
     ex = comp.features.extrudeFeatures
     f = ex.addSimple(prof, adsk.core.ValueInput.createByReal(sign * length),
-                     adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    f.bodies.item(0).name = name
+                     op if op is not None else adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+    if op is None:
+        f.bodies.item(0).name = name
     return f
+
+
+def _stadium(sk, c0, x, y, w, h):
+    """A flat oval (stadium) w across x by h across y, centred on c0, drawn as two lines and two arcs from plain
+    points (coincident ends close the profile); a circle when w = h."""
+    S = lambda p: sk.modelToSketchSpace(_P3(p))
+    at = lambda u, v: RT.vadd(c0, RT.vadd(RT.vmul(x, u), RT.vmul(y, v)))
+    if abs(w - h) < 1e-6:
+        sk.sketchCurves.sketchCircles.addByCenterRadius(S(c0), w / 2.0)
+        return
+    big, small = max(w, h), min(w, h)
+    fl, r = (big - small) / 2.0, small / 2.0
+    if w >= h:
+        pa, pb, pc, pd, ma, mb = at(-fl, -r), at(fl, -r), at(fl, r), at(-fl, r), at(fl + r, 0), at(-fl - r, 0)
+    else:
+        pa, pb, pc, pd, ma, mb = at(r, -fl), at(r, fl), at(-r, fl), at(-r, -fl), at(0, fl + r), at(0, -fl - r)
+    lines, arcs = sk.sketchCurves.sketchLines, sk.sketchCurves.sketchArcs
+    lines.addByTwoPoints(S(pa), S(pb))
+    arcs.addByThreePoints(S(pb), S(ma), S(pc))
+    lines.addByTwoPoints(S(pc), S(pd))
+    arcs.addByThreePoints(S(pd), S(mb), S(pa))
 
 
 def _part_param(comp, part, g):
@@ -3436,9 +3459,66 @@ def act_chamber(data):
     return {'ok': True, 'msg': msg, 'items': items, 'route_ok': ok_gap}
 
 
+def act_revchamber(data):
+    """A reverse-flow chamber, the layout of most chambered street mufflers: a round or flat-oval case with the inlet
+    and outlet tubes side by side through one end plate, each running the same distance into the case, the far plate
+    blank. One marker: a sketch line along the case's axis from the middle of the pipe end plate's outside face,
+    pointing into the case; the tubes sit either side of it across the case's width (the marker's own square-to
+    direction, the longer way of the oval). Sizes come from the Mufflers tab: pipe ID and wall, the case (round
+    chamber bore, or a flat oval of the same area at the given height, inside), its wall, the inside length, the
+    tubes' run-in and centre spacing, the stubs. Built as a shell (an outer extrusion with the inside cut away between
+    the end plates), two holes cut through the pipe plate, and the two tubes as revolves."""
+    t0 = time.time()
+    mk = [m for m in _markers() if m['signed']]
+    if len(mk) != 1:
+        raise ValueError('Select one sketch line, drawn along the case\'s centreline from the middle of the pipe end plate, pointing into the case.')
+    start, d = mk[0]['p'], _unit(mk[0]['d'])
+    pipe_id, wall = _cm(data, 'pipe_id_mm', 0.0), _cm(data, 'wall_mm', 0.1651)
+    W, H, cw, L = _cm(data, 'case_w_mm', 0.0), _cm(data, 'case_h_mm', 0.0), _cm(data, 'can_wall_mm', 0.1519), _cm(data, 'can_len_mm', 0.0)
+    run_in, sp, stub = _cm(data, 'in_mm', 0.0), _cm(data, 'spacing_mm', 0.0), _cm(data, 'stub_mm', 5.08)
+    od = pipe_id + 2 * wall
+    if not (pipe_id > 0 and wall > 0 and W > 0 and H > 0 and cw > 0 and L > 0):
+        raise ValueError('Fill in the pipe, the case and its walls on the Mufflers tab first.')
+    if sp <= 0:
+        sp = od + 1.2
+    if run_in < 0 or run_in >= L:
+        raise ValueError('The tubes run in by less than the case\'s length.')
+    if sp + od > W - 0.2 or od > H - 0.2:
+        raise ValueError('The two tubes side by side do not fit across the case: a wider case or a smaller pipe.')
+    title = str(data.get('title') or 'Reverse-flow chamber')
+    e1, e2 = RT.perp_basis(d)                        # e1 across the case's width, e2 its height
+    Wo, Ho, Lo = W + 2 * cw, H + 2 * cw, L + 2 * cw
+    _status('Building the case…')
+    comp = _new_component(title)
+    try:
+        _extrude_section(comp, start, e1, e2, d, Lo, lambda sk: _stadium(sk, start, e1, e2, Wo, Ho), title + ' case')
+        inside0 = RT.vadd(start, RT.vmul(d, cw))
+        _extrude_section(comp, inside0, e1, e2, d, L, lambda sk: _stadium(sk, inside0, e1, e2, W, H), title + ' inside',
+                         op=adsk.fusion.FeatureOperations.CutFeatureOperation)
+        hole_r = od / 2.0 + 0.025
+        back = RT.vadd(start, RT.vmul(d, -0.1))
+        for k, sgn in ((0, -1.0), (1, 1.0)):
+            c = RT.vadd(back, RT.vmul(e1, sgn * sp / 2.0))
+            _extrude_section(comp, back, e1, e2, d, cw + 0.2, lambda sk, c=c: sk.sketchCurves.sketchCircles.addByCenterRadius(sk.modelToSketchSpace(_P3(c)), hole_r),
+                             title + (' inlet hole' if k == 0 else ' outlet hole'), op=adsk.fusion.FeatureOperations.CutFeatureOperation)
+            o = RT.vadd(start, RT.vmul(e1, sgn * sp / 2.0))
+            tube = [(pipe_id / 2.0, -stub), (od / 2.0, -stub), (od / 2.0, cw + run_in), (pipe_id / 2.0, cw + run_in)]
+            _revolve_section(comp, o, d, tube, title + (' inlet tube' if k == 0 else ' outlet tube'))
+    except Exception as ex:
+        _drop_component(comp)
+        raise ValueError('Fusion would not build the chamber (%s). Nothing was left in the design.' % ex)
+    gas = (math.pi * H * H / 4.0 + (W - H) * H) * L - 2 * math.pi * (od / 2.0) ** 2 * run_in
+    note = ('Case %.2f x %.2f in outside, %.2f in long over the plates (%.2f in inside), %.2f in wall; two %.2f in OD tubes %.2f in '
+            'apart, run in %.2f in, stubs %.2f in; %.2f L of gas.' % (Wo / 2.54, Ho / 2.54, Lo / 2.54, L / 2.54, cw / 2.54, od / 2.54, sp / 2.54, run_in / 2.54, stub / 2.54, gas / 1000.0))
+    items = [{'kind': 'part', 'name': title, 'ok': True, 'note': note, 'chamber': {'gas_cm3': gas, 'W_cm': W, 'H_cm': H, 'L_cm': L, 'in_cm': run_in, 'spacing_cm': sp}}]
+    msg = 'Built the reverse-flow chamber in a new component: the case as a shell, two holes through the pipe plate, the two tubes as revolves. %.0f s.' % (time.time() - t0)
+    msg += ' The case and the holes are sketch-driven extrudes and the tubes revolves (edit their sketches); the tubes pass through the plate, so weld them there. Internal gussets round the outlet are yours to add.'
+    return {'ok': True, 'msg': msg, 'items': items}
+
+
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
+           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult')}
 
 

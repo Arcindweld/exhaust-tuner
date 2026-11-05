@@ -162,10 +162,20 @@ class Circles(object):
         return types.SimpleNamespace(centerSketchPoint=SketchPoint((c.x, c.y, c.z)), radius=r)
 
 
+class Arcs(object):
+    def __init__(self, sk):
+        self.sk = sk
+
+    def addByThreePoints(self, a, m, b):
+        arc = types.SimpleNamespace(startSketchPoint=SketchPoint((a.x, a.y, a.z)), endSketchPoint=SketchPoint((b.x, b.y, b.z)), mid=(m.x, m.y, m.z))
+        self.sk.arcs.append(arc)
+        return arc
+
+
 class Sketch(object):
     def __init__(self, plane):
-        self.plane, self.name, self.lines, self.circles = plane, None, [], []
-        self.sketchCurves = types.SimpleNamespace(sketchLines=Lines(self), sketchCircles=Circles(self), sketchArcs=None)
+        self.plane, self.name, self.lines, self.circles, self.arcs = plane, None, [], [], []
+        self.sketchCurves = types.SimpleNamespace(sketchLines=Lines(self), sketchCircles=Circles(self), sketchArcs=Arcs(self))
         self.sketchPoints = types.SimpleNamespace(add=lambda p: SketchPoint((p.x, p.y, p.z)))
         self.xDirection, self.yDirection = P3(1, 0, 0), P3(0, 1, 0)
         self.isVisible = True
@@ -186,6 +196,8 @@ class Sketch(object):
             big = max(r for _c, r in self.circles)
             out.append(Profile(len(self.circles), big * big, 'disc'))
             out += [Profile(1, r * r * 0.5, 'hole') for _c, r in self.circles if r != big]
+        if self.arcs and not self.circles:          # a stadium: lines and arcs closing on each other
+            out = [Profile(1, 1.0, 'stadium')]
         return Items(out or [Profile()])
 
     def modelToSketchSpace(self, p):
@@ -576,8 +588,36 @@ def fallbacks():
        'part outline: flat-oval case (box and two round ends) with its inlet and outlet, as one body')
 
 
+def reverse_chamber():
+    des = Design([])
+    marker = sketch_line((0.0, 0.0, 0.0), (0.0, 0.0, 4.0))          # the case's axis along z from the pipe plate
+    setup(des, [marker])
+    data = {'pipe_id_mm': 60.198, 'wall_mm': 1.651, 'case_w_mm': 206.2, 'case_h_mm': 98.6, 'can_wall_mm': 1.519, 'can_len_mm': 355.6,
+            'in_mm': 177.8, 'spacing_mm': 75.5, 'stub_mm': 50.8, 'title': 'Reverse-flow chamber'}
+    res = CT.dispatch('revchamber', __import__('json').dumps(data))
+    ok(res.get('ok'), 'act_revchamber runs to the end (%s)' % res.get('msg', '')[:160])
+    if not res.get('ok'):
+        print(res.get('msg'))
+        return
+    comp = des.made[0]
+    ops = [f.kw['op'] for f in comp.extrudes]
+    ok(ops == ['new', 'cut', 'cut', 'cut'], 'case extruded as a new body, the inside and two holes cut (%s)' % ops)
+    ok(len(comp.revolves) == 2, 'two tube revolves')
+    st = [sk for sk in comp.sketches.xs if sk.arcs]
+    ok(len(st) == 2 and all(len(sk.arcs) == 2 and len(sk.lines) == 2 for sk in st), 'two stadium sketches (outer case, inside cut), two lines and two arcs each')
+    outer = st[0].lines[0].startSketchPoint.worldGeometry
+    # the marker runs along z, so the width runs along perp_basis's first direction (+y) and the height along its second (-x)
+    ok(abs(abs(outer.y) - (20.62 - 9.86) / 2.0) < 1e-3 and abs(abs(outer.x) - (9.86 + 2 * 0.1519) / 2.0) < 1e-3, 'outer stadium: flats at half the (W - H) across the width, half-height out')
+    holes = [sk for sk in comp.sketches.xs if sk.circles and not sk.arcs]
+    ok(len(holes) == 2 and abs(holes[0].circles[0][0][1] + 7.55 / 2.0) < 1e-9 and abs(holes[1].circles[0][0][1] - 7.55 / 2.0) < 1e-9 and abs(holes[0].circles[0][1] - (6.35 / 2.0 + 0.025)) < 1e-9,
+       'holes either side of the axis at the spacing, OD/2 + 0.25 mm')
+    bad = CT.dispatch('revchamber', __import__('json').dumps(dict(data, case_w_mm=120.0)))
+    ok(not bad.get('ok') and 'side by side' in bad.get('msg', ''), 'a case too narrow for both tubes is refused')
+
+
 helmholtz_on_a_solid()
 helmholtz_on_a_scan()
+reverse_chamber()
 jpipe_fittings()
 frames()
 fallbacks()

@@ -11714,7 +11714,7 @@ FX_BUTTONS.headers.splice(4,0,['routeHeader','Auto-route primaries through the s
 // a tack jig under the tubes just routed (or the selected centrelines): printable cradles that hold every piece
 ['headers','intake','muf','parts'].forEach(t=>FX_BUTTONS[t].push(['jig','Build fabrication jig for the routed tubes']));
 FX_BUTTONS.intake.splice(3,0,['routeSingle','Auto-route this tube through the scan'],['routeParts','Auto-route with the parts in the build list']);
-FX_BUTTONS.muf.push(['routeSingleMuf','Auto-route the J-pipe through the scan'],['helmholtz','Build the Helmholtz can'],['chamber','Build the expansion chamber']);
+FX_BUTTONS.muf.push(['routeSingleMuf','Auto-route the J-pipe through the scan'],['helmholtz','Build the Helmholtz can'],['chamber','Build the expansion chamber'],['revchamber','Build the reverse-flow chamber']);
 const ROUTE_TABS={headers:1,intake:1,parts:1,muf:1};
 const ROUTE_FIELDS=[['clr_mm','Bend centerline radius (0 = 1.5 × tube OD)','len',0],['min_clr_mm','Tightest radius you can get (0 = any)','len',0],
   ['clamp_mm','Straight your bender clamps between bends (0 = cut from mandrel bends)','len',0],['gap_tt_mm','Gap between tubes','len',3.175],
@@ -12010,9 +12010,10 @@ document.addEventListener('click',e=>{
     return;
   }
   if(act==='helmholtz'&&!(FX.helm&&FX.helm.vol_cm3>0)){ if(out) out.innerHTML='<div class="note bad">Fill in the Helmholtz resonator above first: the tab shows the problem.</div>'; return; }
+  if(act==='revchamber'&&!(FX.revchamber&&FX.revchamber.case_w_mm>0)){ if(out) out.innerHTML='<div class="note bad">The reverse-flow chamber needs a round main pipe and the reverse-flow layout above (the case comes from the cut-file settings: round, or a flat oval of the same area at the height given).</div>'; return; }
   if(act==='chamber'&&!(FX.chamber&&FX.chamber.can_id_mm>0)){ if(out) out.innerHTML='<div class="note bad">The chamber needs a round main pipe and the straight-through layout with a chamber wider than the pipe: set those above first.</div>'; return; }
-  if(out) out.innerHTML='<div class="note">'+(act==='helmholtz'?'Building the can and its neck in Fusion…':act==='chamber'?'Building the chamber and its tubes in Fusion… draw one line along the pipe’s centreline where the near end plate goes, pointing the way the gas flows.':'Working in Fusion…')+'</div>';
-  const pay=Object.assign({},((act==='helmholtz'?FX.helm:act==='chamber'?FX.chamber:FX[tab])||{}),{gap_cm:(FX.gap!=null?FX.gap:12.7)/10});
+  if(out) out.innerHTML='<div class="note">'+(act==='helmholtz'?'Building the can and its neck in Fusion…':act==='chamber'?'Building the chamber and its tubes in Fusion… draw one line along the pipe’s centreline where the near end plate goes, pointing the way the gas flows.':act==='revchamber'?'Building the reverse-flow chamber in Fusion… draw one line along the case’s axis from the middle of the pipe end plate, pointing into the case; the tubes sit either side of it across the case’s width.':'Working in Fusion…')+'</div>';
+  const pay=Object.assign({},((act==='helmholtz'?FX.helm:act==='chamber'?FX.chamber:act==='revchamber'?FX.revchamber:FX[tab])||{}),{gap_cm:(FX.gap!=null?FX.gap:12.7)/10});
   if(act==='jig'){ pay.title='Fabrication jig'; pay.jig=jigPayload(); if(out) out.innerHTML='<div class="note">Building the fabrication jig in Fusion under the tubes the last auto-route built, or the centrelines you selected…</div>'; }
   fusionCall(act,pay).then(res=>fxRender(tab,res));
 });
@@ -13704,6 +13705,8 @@ function renderMuf(){
   FX.muf={title:'J-pipe',noun:'J-pipe',od_mm:p.db+2*bw,wall_mm:bw,target_mm:qw.L,cap:true,tee:true,cap_mm:jc,main_od_mm:mainOD};
   FX.helm={title:'Helmholtz can',neck_id_mm:p.dn,neck_len_mm:p.ln,wall_mm:bw,can_id_mm:can.D,vol_cm3:hm.V*1e6,can_wall_mm:cw,neck_into_mm:nin,main_od_mm:mainOD};
   // the inline chamber for Fusion (a straight-through layout; the reverse-flow one has its pipes side by side, which this axisymmetric part cannot be)
+  FX.revchamber=null;
+  if(!ch.err&&ch.rev&&$('m-dp-shape').value==='round'){ const pl=mufCutPlan({dpipe:p.dpipe,dch:p.dch,lch:p.lch}); if(!pl.err) FX.revchamber={title:'Reverse-flow chamber',pipe_id_mm:p.dpipe,wall_mm:bw,case_w_mm:pl.W,case_h_mm:pl.H,can_wall_mm:cw,can_len_mm:p.lch,in_mm:pl.la,spacing_mm:pl.sp,stub_mm:pl.stub}; }
   FX.chamber=!ch.err&&!ch.rev&&$('m-dp-shape').value==='round'?{title:ch.ext?'Expansion chamber with extended tubes':'Expansion chamber',pipe_id_mm:p.dpipe,wall_mm:bw,can_id_mm:p.dch,can_len_mm:p.lch,can_wall_mm:cw,in_mm:ch.la||0,out_mm:ch.lb||0,stub_mm:50.8,baffles:Math.max(0,Math.round(val('m-nbaf')||0)),baffle_hole_mm:val('m-bh')>0?val('m-bh'):p.dpipe}:null;
   FX.mufTune={L:qw.L,end:qw.end,c:qw.c,f:p.f,hc:hm.c};   // to read a measured or built J-pipe or can back as a frequency (kept out of what goes to Fusion)
   key.innerHTML='<div class="figs">'+figT('Helmholtz volume',(U==='imp'?hm.in3.toFixed(0):hm.liters.toFixed(2)),U==='imp'?'cu in':'L',(U==='imp'?hm.liters.toFixed(2)+' L':hm.in3.toFixed(0)+' cu in'))+

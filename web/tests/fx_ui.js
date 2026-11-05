@@ -16,7 +16,8 @@ const { chromium } = require('playwright');
         pipe:{ok:true,msg:'Built a 1.875 in OD runner along the path (72.4 cm).'},
         build:{ok:true,msg:'Built Header runner.'},
         boom:{ok:true,msg:'Built boom tube along X in a new component.'},
-        chamber:{ok:true,msg:'Built the expansion chamber with its extended tubes in a new component, along the marker.',items:[{kind:'part',name:'Expansion chamber',ok:true,note:'Inside 6.00 in across'}]}
+        chamber:{ok:true,msg:'Built the expansion chamber with its extended tubes in a new component, along the marker.',items:[{kind:'part',name:'Expansion chamber',ok:true,note:'Inside 6.00 in across'}]},
+        revchamber:{ok:true,msg:'Built the reverse-flow chamber in a new component: the case as a shell, two holes through the pipe plate, the two tubes as revolves.',items:[{kind:'part',name:'Reverse-flow chamber',ok:true,note:'Case 8.26 x 4.00 in outside'}]}
       };
       return Promise.resolve(JSON.stringify(replies[action]||{ok:false,msg:'unknown'}));
     }};
@@ -67,5 +68,13 @@ const { chromium } = require('playwright');
   out.push('chamber payload: '+JSON.stringify(sentCh && sentCh[1]).slice(0,300));
   if(!(sentCh && sentCh[1].can_id_mm>0 && Math.abs(sentCh[1].in_mm - sentCh[1].can_len_mm/2) < 0.01 && Math.abs(sentCh[1].out_mm - sentCh[1].can_len_mm/4) < 0.01)) out.push('FAIL chamber payload (can and double-tuned extensions)');
   t=await pg.textContent('#fx-out-muf'); if(!/expansion chamber/i.test(t)) out.push('FAIL chamber result not shown');
+  // the reverse-flow chamber: layout reverse, oval case 4 in tall
+  await pg.selectOption('#m-chlay','reverse'); await pg.selectOption('#m-case','oval'); await pg.fill('#m-caseh','4'); await pg.dispatchEvent('#m-caseh','input'); await pg.waitForTimeout(200);
+  await pg.click('#fx-muf button[data-fx="revchamber"]'); await pg.waitForTimeout(300);
+  const sentRv = await pg.evaluate(() => window.__sent.filter(x => x[0] === 'revchamber').pop());
+  out.push('revchamber payload: '+JSON.stringify(sentRv && sentRv[1]).slice(0,300));
+  if(!(sentRv && sentRv[1].case_w_mm > sentRv[1].case_h_mm && Math.abs(sentRv[1].case_h_mm - (101.6 - 2*1.519)) < 0.01 && sentRv[1].spacing_mm > 60)) out.push('FAIL revchamber payload (oval case from the cut-file plan)');
+  t=await pg.textContent('#fx-out-muf'); if(!/reverse-flow chamber/i.test(t)) out.push('FAIL revchamber result not shown');
+  await pg.selectOption('#m-chlay','through'); await pg.selectOption('#m-case','round');
 console.log(out.join('\n')); await b.close();
 })();

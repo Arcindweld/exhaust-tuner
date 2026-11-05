@@ -1,6 +1,8 @@
 EXHAUST TUNER (Fusion add-in), version 4.14.0
 
 4.14.0 (November 5, 2026)
+  Build the reverse-flow chamber: a round or flat-oval case with both tubes through one end plate
+  (the Mufflers tab's reverse-flow layout), as a shelled extrusion, two cut holes and two revolves.
   Build the expansion chamber: an inline chamber with extended inlet and outlet tubes from the
   Mufflers tab (Munjal's double-tuned layout with the tab's Set button), three sketch-driven
   revolves along one marker on the pipe's centreline; clearance against the keep-outs.
@@ -112,6 +114,15 @@ EXHAUST TUNER (Fusion add-in), version 4.14.0
   (shell with end plates, inlet tube, outlet tube, a washer per baffle spaced evenly between the tube
   mouths), each stub 2 in past the plates. The straight-through layout only: the reverse-flow
   chamber's pipes sit side by side and are not a revolve.
+
+  "Build the reverse-flow chamber": the layout of most chambered street mufflers, inlet and outlet
+  side by side through one end plate, the far plate blank. Draw one sketch line along the case's
+  axis from the middle of the pipe end plate's outside face, pointing into the case; the tubes sit
+  either side of it across the case's width (the longer way of a flat oval). Sizes from the Mufflers
+  tab with the reverse-flow layout: the case is round (the chamber bore) or a flat oval of the same
+  inside area at the cut-file height, the tubes run in by the tab's inlet figure at OD + 12 mm
+  centres. Built as a shell (outer extrusion, inside cut away between the plates), two holes cut
+  through the pipe plate, and the two tubes as revolves. Gussets are yours to add.
 
 4.11.1 (November 2, 2026)
 - Fixed: "Auto-route the J-pipe through the scan" (Mufflers tab) dropped the J-pipe's cut
