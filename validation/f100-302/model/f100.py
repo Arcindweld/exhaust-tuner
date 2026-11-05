@@ -130,7 +130,11 @@ CASES = {"ho_box_5000": ("ho", "box", 5000.0), "ho_box_5800": ("ho", "box", 5800
          # where the X sits: collector reducer to the X junction
          "ho_venom_plenum_x400_5800": ("ho", "venom", 5800.0, 600, True, 400),
          "ho_venom_plenum_x700_5800": ("ho", "venom", 5800.0, 600, True, 700),
-         "ho_venom_plenum_x1400_5800": ("ho", "venom", 5800.0, 600, True, 1400)}
+         "ho_venom_plenum_x1400_5800": ("ho", "venom", 5800.0, 600, True, 1400),
+         "ho_venom_plenum_x250_5800": ("ho", "venom", 5800.0, 600, True, 250),
+         "ho_venom_plenum_x550_5800": ("ho", "venom", 5800.0, 600, True, 550),
+         "ho_venom_plenum_x400_5000": ("ho", "venom", 5000.0, 600, True, 400),
+         "std_venom_plenum_x400_5800": ("std", "venom", 5800.0, 600, True, 400)}
 
 
 def run_settings(rpm, cycles, name):
