@@ -183,3 +183,23 @@ Results, 25 cycles, 1750 and 2700 rpm (A-weighted sum of the first 12 orders at 
 88.3 and 89.7 dB(A), one point unsettled at 12 %.) So in the full run the double-tuned chambers do what Munjal says
 they should, 6-7 dB(A) better than plain ones of the same size, and the band's worst order is about level instead of
 6.5 dB louder, at no cost in torque.
+
+### Other engines and layouts (2026-11-05, later)
+
+Inline 4 (2.0 L, 4-into-1, the same 2.5 m line; band 117-183 Hz, so 3450 and 5400 rpm), 25 cycles:
+
+| | no muffler | plain 228.6 x 305 | plain 241.3 x 279 | ext. tube 228.6 x 305 | ext. tube 241.3 x 279 |
+|---|---|---|---|---|---|
+| dB(A), mean of the two speeds | 115.2 | 106.5 | 107.7 | 93.3 | 92.9 |
+| worst in-band order, dB taken off | | -3.1 | -3.5 | +6.1 | +7.0 |
+| last two cycles differ, 3450 / 5400 rpm | 4.6 / 2.2 % | 0.9 / 2.8 % | 0.5 / 4.3 % | 1.4 / 6.6 % | 7.4 / 67 % |
+
+At 8 cycles the inline 4 does not settle (11-12 % even with no muffler), so a four-cylinder check wants 25. The 241.3 mm
+extended-tube can at 5400 rpm runs with a free tone near 413 Hz (beside the 9th harmonic, 405 Hz, which is the
+strongest line of the other extended-tube can there): a larger mouth loss (K = 2) halves it but does not settle it
+(72 %), and keeping the 70 mm outlet pocket's neck at the annulus's size with a smaller volume makes both cans worse
+(83 % and 137 %, a tone at 419 Hz). Left as it is: the page flags that run.
+
+The unequal-length header with the Crossover tab's H-pipe builds every design with both H-pipe junctions and the
+chamber on each bank's line (15 cases, 5 designs x 3 speeds); the 4-Stroke tab's own model has one collector and the
+check says to use the Headers tab for a crossover.

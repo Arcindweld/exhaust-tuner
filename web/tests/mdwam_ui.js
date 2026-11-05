@@ -51,9 +51,11 @@ function runOne(dir, name) {
   await pg.click('#u-met'); await pg.waitForTimeout(200);
   // MDW_CFG: 'dual' (two collectors), 'xo' (two collectors joined by the Crossover tab's X), '4cyl' (an inline 4, 4-into-1)
   const cfg = process.env.MDW_CFG || '';
+  // 'uel': the Headers tab's unequal-length header (two banks on the V8) is what OpenWAM runs
+  if (/uel/.test(cfg)) { await pg.evaluate(() => { location.hash = 'headers'; }); await pg.waitForTimeout(400); await pg.selectOption('#h-lenmode', 'unequal'); await pg.waitForTimeout(400); await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400); }
   if (/xo/.test(cfg)) { await pg.click('#tab-cross'); await pg.waitForTimeout(300); await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400); }
   if (/4cyl/.test(cfg)) { await pg.fill('#f-cyl', '4'); await pg.fill('#f-disp', '2000'); await pg.dispatchEvent('#f-disp', 'input'); await pg.selectOption('#f-n', '4'); await pg.waitForTimeout(200); }
-  if (/dual|xo/.test(cfg)) { await pg.selectOption('#f-n', '4'); await pg.waitForTimeout(200); }
+  if (/dual/.test(cfg)) { await pg.selectOption('#f-n', '4'); await pg.waitForTimeout(200); }
   await pg.selectOption('select.wamline[data-k="on"]', '1'); await pg.waitForTimeout(200);
   if (/xo/.test(cfg)) { await pg.selectOption('select.wamline[data-k="xo"]', 'tab'); await pg.waitForTimeout(200); }
   await pg.evaluate(cy => { const c = document.querySelector('input.wamx[data-k="cycles"]'); c.value = cy; c.dispatchEvent(new Event('input', { bubbles: true })); }, process.env.MDW_CYC || '8');
@@ -61,7 +63,9 @@ function runOne(dir, name) {
   await pg.click('#m-expert'); await pg.waitForTimeout(200);
   await pg.selectOption('select.mdsel', 'chamber'); await pg.waitForTimeout(200);
   await pg.click('#md-run'); await pg.waitForTimeout(500);
-  if (process.env.MDW_POCKET) await pg.evaluate(([m, n]) => { window.__mdw.MDW.pocket = m; if (n) { const [L, d, K] = n.split(',').map(Number); window.__mdw.MDW.pocketNeck = Object.assign({ L }, d > 0 ? { d } : {}, K >= 0 ? { K } : {}); } }, [process.env.MDW_POCKET, process.env.MDW_NECK || '']);
+  const floor0 = await pg.evaluate(() => window.__mdw.MDW.minCycles); ok(floor0 === 20, 'the check runs at least 20 cycles a run by default (' + floor0 + ')');
+  await pg.evaluate(c => { window.__mdw.MDW.minCycles = +c; }, process.env.MDW_CYC || '8');   // the test runs short; the page's floor is 20
+  if (process.env.MDW_POCKET || process.env.MDW_NECK) await pg.evaluate(([m, n]) => { if (m) window.__mdw.MDW.pocket = m; if (n) { const [L, d, K] = n.split(',').map(Number); window.__mdw.MDW.pocketNeck = Object.assign({ L }, d > 0 ? { d } : {}, K >= 0 ? { K } : {}); } }, [process.env.MDW_POCKET, process.env.MDW_NECK || '']);
   const pre = await pg.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler designer'); return h ? h.parentElement.innerText : ''; });
   ok(/Check the chambers in OpenWAM/.test(pre) && /Run them in OpenWAM/.test(pre), 'the designer offers the OpenWAM check with a run button');
   const dd = await pg.evaluate(() => { const R = window.__md.MD.res, cyl = window.__mdw.cyl(), d = window.__mdw.mdwRpmsDefault({ cyl }, R.fs[0], R.fs[8]); return { cyl, d, x: d.map(r => r * cyl / 2 / 60 / R.fs[0]) }; });

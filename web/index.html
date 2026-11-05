@@ -13500,7 +13500,7 @@ window.__md={MD,mdSearch,mdInputs,mufP,calcChamber,sec:insideSection};
    minus the design's, order by order, for the orders that land in the band (and are within 20 dB of the loudest order
    at that speed, so a quiet order's noise does not set the answer). Also: the A-weighted sum of the orders at 1 m, and
    the mean brake torque, the back pressure's cost. */
-const MDW={rpms:'',msg:null,res:null,key:'',pocket:'volume',pocketNeck:null};
+const MDW={rpms:'',msg:null,res:null,key:'',pocket:'volume',pocketNeck:null,minCycles:20};
 function mdwRpmsDefault(q,f0,f1){
   // the speeds that put the firing order (cylinders / 2 per revolution, four-stroke) at the band's ends and middle
   const o=Math.max(0.5,(q&&q.cyl||8)/2), fs=[f0,Math.sqrt(f0*f1),f1];
@@ -13520,7 +13520,7 @@ function mdwPart(R){
   { const tm=val('m-tail'), tw=+WAM_UI.line.tail||300; if(MD.inst&&WAM_UI.line.on&&tm>0&&Math.abs(tm-tw)>25) h+='<div class="note">The designer scored the cans with this tab’s '+clen(tm)+' tailpipe; the OpenWAM line has '+clen(tw)+'. Make them the same so the two answers are about the same exhaust.</div>'; }
   if(!WAM_UI.line.on) h+='<div class="note">Turn on the line after the collector under “Run it in OpenWAM” on the 4-Stroke tab: the chambers go into that line, ahead of its tailpipe.</div>';
   h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Engine speeds (RPM; blank puts the firing order at the band’s ends and middle)</span><span class="inp"><input id="mdw-rpms" type="text" inputmode="numeric" value="'+esc(MDW.rpms||rp.join(' '))+'"></span></label></div>'+
-    '<p class="cap">'+(cands.length+1)+' designs × '+rp.length+' speeds = '+(cands.length+1)*rp.length+' OpenWAM runs.</p>'+
+    '<p class="cap">'+(cands.length+1)+' designs × '+rp.length+' speeds = '+(cands.length+1)*rp.length+' OpenWAM runs of '+Math.max(MDW.minCycles||0,WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25)+' cycles each (at least '+MDW.minCycles+': a chamber takes that long to settle, an inline 4 longer than a V8).</p>'+
     '<div class="actions">'+(hostHas('openwam')?'<button type="button" class="btn" data-mdw="run">Run them in OpenWAM</button>':'<span class="cap">This runs OpenWAM, so it needs the desktop program.</span>')+'</div>'+
     '<div class="note mdwmsg'+(MDW.msg&&MDW.msg.bad?' bad':'')+'"'+(MDW.msg?'':' hidden')+'>'+(MDW.msg?esc(MDW.msg.t):'')+'</div>';
   const X=MDW.res;
@@ -13542,7 +13542,8 @@ function mdwBuild(){
   if(!WAM_UI.line.on) return {err:'Turn on the line after the collector under “Run it in OpenWAM” on the 4-Stroke tab first.'};
   const rpms=mdwRpms(q,R); if(!rpms.length) return {err:'Enter at least one engine speed between 500 and 20,000 RPM.'};
   const sp=simSpec(q), src=wamSource(q,sp); if(src.err) return {err:src.err};
-  const cycles=WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25, files=[];
+  // a chamber takes many cycles to fill and cool (and an inline 4 more than a V8): at least MDW.minCycles
+  const cycles=Math.max(MDW.minCycles||0,WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25), files=[];
   const rows=[{label:'No muffler (the line and tailpipe alone)',ov:{none:true},base:true}].concat(cands.map(d=>({label:mdwLabel(d),ov:{dch:d.D,lch:d.L,lin:d.lin||0,lout:d.lout||0},d})));
   try{ rows.forEach((x,k)=>{ MDW_OVR=x.ov; const wl=wamWithLine(src.spec); if(wl.err){ x.err=wl.err; return; }
       x.tag='mdw'+k; x.mdl=WAMX.modelFromSpec(wl.spec,Object.assign({rpm:3000,cycles:5,name:'x'},src.run));

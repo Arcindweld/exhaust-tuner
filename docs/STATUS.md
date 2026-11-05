@@ -759,6 +759,10 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   clamp's tear-out row read the form's hole as `mhole` (undefined: always NaN) and now reads the part's hole; zero
   hanger weight no longer gives an infinite bounce frequency; a pipe or air temperature past absolute zero or 5000 C is
   asked again; boom-tube panels and the hanger strength caption no longer print NaN with an empty field.
+- OpenWAM muffler check on other layouts (2026-11-05): inline 4 (needs 25 cycles; extended-tube cans 14 dB(A) under
+  plain ones there too; one can at 5400 RPM keeps a free tone near 413 Hz that neither more mouth loss nor a smaller
+  pocket volume settles, flagged on the page) and the unequal-length header with the H-pipe (builds with both
+  junctions and a chamber on each bank). The check now runs at least 20 cycles a run (MDW.minCycles) and says so.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
