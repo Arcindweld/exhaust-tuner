@@ -10330,9 +10330,24 @@ function recTrack(F,ctx){
     D.push(cur); B.push(bk); }
   let c=0; const last=D[D.length-1]; for(let q=1;q<nC;q++) if(last[q]>last[c]) c=q;
   const path=new Array(S.length); for(let j=S.length-1;j>=0;j--){ path[j]=c; c=B[j][c]; }
-  const raw=path.map(c=>cands[c]);
+  const raw=path.map(c=>cands[c]), sc=path.map((c,j)=>S[j][c]);
+  // the octave check (as validation/f100-302 found in a cab recording, where a comb reads double the speed): if the
+  // track is twice the true speed, the engine's real lines sit halfway between its half orders (they are the true
+  // half orders); on a right track nothing does. A frame whose midpoint lines are within 6 dB of its order lines and
+  // 4 dB above its median is flagged, and where most of the frames within 1 s either side are flagged, the speed is
+  // halved (the half orders of a four-stroke, the orders of a two-stroke)
+  const stp=ctx.cyc==='4'?0.5:1, flag=F.fr.map((f,j)=>{ const r=raw[j]; if(r/2<lo) return false;
+    const n=f.P.length, L=new Float64Array(n); for(let k=0;k<n;k++) L[k]=10*Math.log10(f.P[k]+1e-20);
+    // a line's prominence: its peak (within a bin) over the spectrum a quarter of the spacing either side, so a smear
+    // (a Doppler sweep, reverberation) that only raises the level between the lines does not count
+    const at=fq=>{ const k=Math.round(fq/F.df); return k>=1&&k+1<n?L[k]:null; }, d4=stp/4*r/60;
+    const pk=fq=>{ const k=Math.round(fq/F.df); if(k<1||k+1>=n) return null; const lo_=at(fq-d4), hi_=at(fq+d4); if(lo_===null||hi_===null) return null; return Math.max(L[k-1],L[k],L[k+1])-(lo_+hi_)/2; };
+    let q=0,nq=0,m=0,nm=0; for(let o=stp;o<=8+1e-9;o+=stp){ const a=pk(o*r/60), b=pk((o+stp/2)*r/60); if(a!==null&&b!==null){ q+=a; nq++; m+=b; nm++; } }
+    if(!nq) return false; q/=nq; m/=nm; return m>3&&m>q-6; });
+  const halved=raw.map((r,j)=>{ let a=0,c=0; for(let i=Math.max(0,j-10);i<=Math.min(raw.length-1,j+10);i++){ c++; if(flag[i]) a++; } return a/c>0.6?r/2:r; });
+  raw.splice(0,raw.length,...halved);
   return F.fr.map((f,j)=>{ const w=raw.slice(Math.max(0,j-2),j+3).sort((a,b)=>a-b);   // and a 5-frame running median
-    return {t:f.t,rpm:raw[j],rpmS:w[w.length>>1],score:S[j][path[j]],lev:10*Math.log10(f.tot*F.df+1e-20),pk:f.pk}; });
+    return {t:f.t,rpm:raw[j],rpmS:w[w.length>>1],score:sc[j],lev:10*Math.log10(f.tot*F.df+1e-20),pk:f.pk,oct:flag[j]}; });
 }
 // how strongly an ideal train of this engine's pulses puts energy at order o (0..1)
 function recPulseAmp(ctx,o){
