@@ -93,7 +93,7 @@
 2                  <TTubo.cpp:604 solver 2 = TVD>
 0.8                <TTubo.cpp:665 Courant number>
 0.0391257425112    <TTubo.cpp:710 diameter at section start m>
-0.3 0.0391257425112 <TTubo.cpp:712 section length m, diameter at section end m>
+0.311997908941 0.0391257425112 <TTubo.cpp:712 section length m, diameter at section end m>
 <TTubo.cpp:716-776 reads no wall data: wall T constant and HT type 1 or 2>
 <cylinder 1 exhaust primary pipe 2, exhaust valve BC3 to junction BC4>
 3 4 1 1 <TTubo.cpp:546 left BC, right BC, number of sections, number of identical ducts>
@@ -117,7 +117,7 @@
 2                  <TTubo.cpp:604 solver 2 = TVD>
 0.8                <TTubo.cpp:665 Courant number>
 0.0391257425112    <TTubo.cpp:710 diameter at section start m>
-0.3 0.0391257425112 <TTubo.cpp:712 section length m, diameter at section end m>
+0.311997908941 0.0391257425112 <TTubo.cpp:712 section length m, diameter at section end m>
 <TTubo.cpp:716-776 reads no wall data: wall T constant and HT type 1 or 2>
 <cylinder 2 exhaust primary pipe 4, exhaust valve BC7 to junction BC4>
 7 4 1 1 <TTubo.cpp:546 left BC, right BC, number of sections, number of identical ducts>
@@ -141,7 +141,7 @@
 2                  <TTubo.cpp:604 solver 2 = TVD>
 0.8                <TTubo.cpp:665 Courant number>
 0.0391257425112    <TTubo.cpp:710 diameter at section start m>
-0.3 0.0391257425112 <TTubo.cpp:712 section length m, diameter at section end m>
+0.311997908941 0.0391257425112 <TTubo.cpp:712 section length m, diameter at section end m>
 <TTubo.cpp:716-776 reads no wall data: wall T constant and HT type 1 or 2>
 <cylinder 3 exhaust primary pipe 6, exhaust valve BC10 to junction BC4>
 10 4 1 1 <TTubo.cpp:546 left BC, right BC, number of sections, number of identical ducts>
@@ -165,7 +165,7 @@
 2                  <TTubo.cpp:604 solver 2 = TVD>
 0.8                <TTubo.cpp:665 Courant number>
 0.0391257425112    <TTubo.cpp:710 diameter at section start m>
-0.3 0.0391257425112 <TTubo.cpp:712 section length m, diameter at section end m>
+0.311997908941 0.0391257425112 <TTubo.cpp:712 section length m, diameter at section end m>
 <TTubo.cpp:716-776 reads no wall data: wall T constant and HT type 1 or 2>
 <cylinder 4 exhaust primary pipe 8, exhaust valve BC13 to junction BC4>
 13 4 1 1 <TTubo.cpp:546 left BC, right BC, number of sections, number of identical ducts>
@@ -191,7 +191,7 @@
 0.0889             <TTubo.cpp:710 diameter at section start m>
 0.133170953542 0.0795145772799 <TTubo.cpp:712 section length m, diameter at section end m>
 0.11927186592 0.0795145772799 <TTubo.cpp:712 section length m, diameter at section end m>
-0.235503488578 0.112450593596 <TTubo.cpp:712 section length m, diameter at section end m>
+0.269986463104 0.112450593596 <TTubo.cpp:712 section length m, diameter at section end m>
 <TTubo.cpp:716-776 reads no wall data: wall T constant and HT type 1 or 2>
 
 <==== VALVE TYPES  TOpenWAM::ReadValves ====>
@@ -389,31 +389,31 @@
 0                  <TOutputResults.cpp:64 WAMer number, ignored>
 1                  <TOutputResults.cpp:66 pipe 1>
 1                  <TTubo.cpp:2465 points>
-0.15 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; 2511 vars 0 T, 1 p, 3 mass flow>
+0.155998954471 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; 2511 vars 0 T, 1 p, 3 mass flow>
 2                  <TOutputResults.cpp:66 pipe 2>
 1                  <TTubo.cpp:2465 points>
 0.360484615385 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
 3                  <TOutputResults.cpp:66 pipe 3>
 1                  <TTubo.cpp:2465 points>
-0.15 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
+0.155998954471 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
 4                  <TOutputResults.cpp:66 pipe 4>
 1                  <TTubo.cpp:2465 points>
 0.360484615385 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
 5                  <TOutputResults.cpp:66 pipe 5>
 1                  <TTubo.cpp:2465 points>
-0.15 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
+0.155998954471 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
 6                  <TOutputResults.cpp:66 pipe 6>
 1                  <TTubo.cpp:2465 points>
 0.360484615385 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
 7                  <TOutputResults.cpp:66 pipe 7>
 1                  <TTubo.cpp:2465 points>
-0.15 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
+0.155998954471 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
 8                  <TOutputResults.cpp:66 pipe 8>
 1                  <TTubo.cpp:2465 points>
 0.360484615385 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
 9                  <TOutputResults.cpp:66 pipe 9>
 1                  <TTubo.cpp:2465 points>
-0.24397315402 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
+0.261214641283 3 0 1 3 <TTubo.cpp:2508 distance m, n vars; vars 0 T, 1 p, 3 mass flow>
 4                  <TOutputResults.cpp:78 cylinders with average results>
 1                  <TOutputResults.cpp:80 cylinder 1>
 16                 <TCilindro.cpp:738 number of variables>
@@ -480,25 +480,25 @@
 0                  <TOutputResults.cpp:571 WAMer number, ignored>
 1                  <TOutputResults.cpp:573 pipe 1>
 1                  <TTubo.cpp:2700 points>
-0.29 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; 2740 vars 0 p 1 u 2 T>
+0.301997908941 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; 2740 vars 0 p 1 u 2 T>
 2                  <TOutputResults.cpp:573 pipe 2>
 1                  <TTubo.cpp:2700 points>
 0.01 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
 3                  <TOutputResults.cpp:573 pipe 3>
 1                  <TTubo.cpp:2700 points>
-0.29 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
+0.301997908941 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
 4                  <TOutputResults.cpp:573 pipe 4>
 1                  <TTubo.cpp:2700 points>
 0.01 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
 5                  <TOutputResults.cpp:573 pipe 5>
 1                  <TTubo.cpp:2700 points>
-0.29 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
+0.301997908941 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
 6                  <TOutputResults.cpp:573 pipe 6>
 1                  <TTubo.cpp:2700 points>
 0.01 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
 7                  <TOutputResults.cpp:573 pipe 7>
 1                  <TTubo.cpp:2700 points>
-0.29 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
+0.301997908941 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
 8                  <TOutputResults.cpp:573 pipe 8>
 1                  <TTubo.cpp:2700 points>
 0.01 3 0 1 2 <TTubo.cpp:2737 distance m near the valve, n vars; vars 0 p 1 u 2 T>
