@@ -349,7 +349,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   primaries (v7) and J-pipes / Helmholtz cans on the line after the collector (closed-end BC); Projects (header
   button: save the whole build by name, load it back exactly, export/import .exhaust.json, compare two: inputs that
   differ in the units chosen and OpenWAM brake torque speed by speed; tests/project_ui.js). All done since except
-  code signing: the workflow signs with signtool when the CODESIGN_PFX_BASE64 + _PASSWORD secrets exist (INSTALL.md); needs the owner's certificate: cut list from stock mandrel bends under every routed tube (tests/cut_ui.js); tack jig
+  code signing (the workflow signs with signtool once the owner adds the CODESIGN_PFX_BASE64 + _PASSWORD secrets, INSTALL.md; the certificate is theirs to buy): cut list from stock mandrel bends under every routed tube (tests/cut_ui.js); tack jig
   cradles in Fusion (jig.py, act_jig, tests/test_jig.py, checked live: one lump each, no overlap with the tubes); cam
   card entry (duration, lobe separation, advance -> the four events, camEvents = inverse of camCard) on the 4-Stroke
   tab and exhaust opening from a card on the Headers tab, prompted by the CamCalc Wizard sheet (BuildAndClick, sent by

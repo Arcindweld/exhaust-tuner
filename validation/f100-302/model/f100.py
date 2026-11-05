@@ -93,13 +93,13 @@ MUFFLERS = {
 }
 
 
-def build_spec(fo="ho", muffler="box", exit_mm=600, plenum=False, to_x_mm=1000):
+def build_spec(fo="ho", muffler="box", exit_mm=600, plenum=False, to_x_mm=1000, prim_mm=762):
     e = {"bore": B, "stroke": S, "rod": ROD, "cr": round(cr(), 2), "cd": 0.7,
          "nIn": 1, "dIn": 2.02 * IN, "liftIn": 0.576 * IN, "nEx": 1, "dEx": 1.60 * IN, "liftEx": 0.576 * IN,
          "cam": {"ivo": 15, "ivc": 45, "evo": 59, "evc": 9, "checkLift_mm": 0.080 * 25.4},
          "burn": {"start": 25, "dur": 55}, "afr": 12.8, "eta": 0.72}
     dp = 38.8e-3
-    prim = [{"L": 0.762, "d0": dp, "d1": dp, "primary": True}]
+    prim = [{"L": prim_mm / 1000.0, "d0": dp, "d1": dp, "primary": True}]
     col_segs = [{"L": 0.15, "d0": 2 * dp, "d1": 0.073}, {"L": 0.15, "d0": 0.073, "d1": 0.073}, {"L": 0.10, "d0": 0.073, "d1": D25 / 1000}]
     to_x = [seg(to_x_mm, T=450)]
     after = [seg(300, T=350)] + MUFFLERS[muffler] + [seg(exit_mm, T=250)]
