@@ -97,3 +97,26 @@ than the 762 mm one against the same pull windows (5,800 rpm: 3.1-5.4 dB against
 pass-by (`PRIM=900 python3 passby_synth.py`) moves from 6.1 to 5.8 dB clipped RMS. Orders 8 and 12 are still the gap
 (-15 and -27 dB in the model against -8 and -9 in the recording). The next step along this line is the muffler's inside,
 with 900 mm primaries as the base.
+
+### The muffler's inside (owner's photos, 2026-11-04)
+
+Photos looking into Black Widow mufflers show the inlet opening into a square sheet-metal channel about the pipe's
+width that runs straight down the oval case to an end plate carrying the outlet tube (X gussets round it): a nearly
+straight-through gas path, with the oval case round the channel a separate volume joined through a small hole beside
+the inlet (another model: a plate with a centre hole and two small side holes). Cases at 5,800 rpm, X 400 mm, 900 mm
+primaries, scored on both exits against the pull windows (clipped RMS, four pulls):
+
+| Muffler model | Clipped RMS | Order 8 | Order 12 | Note |
+|---|---|---|---|---|
+| closed chambers in series (`venom`) | 3.8 / 3.1 / 5.4 / 4.2 | -17 | -28 | too dull: two 0-D volumes are a 400 Hz low-pass |
+| the same chambers as 1-D expansions (`venom1d`) | 3.9 / 3.1 / 5.3 / 4.2 | -21 | -24 | the same score, orders traded |
+| square channel alone, 79 mm round, 330 mm (`venom_sq`) | 6.9 / 6.7 / 6.9 / 5.8 | -5 | -10 | too bright: orders 8-12 at -1 to -10 |
+| channel + case as a 195 Hz Helmholtz on the inlet end (`venom_sq_h`) | 8.7 / 8.8 / 8.1 / 7.3 | -7 | -16 | a little duller, order 2 up |
+| recording | | -14 | -22 | |
+
+The real muffler sits between the sealed channel and the closed chambers: its channel must let more into the case
+along its length than one small hole (slots, louvres or a perforated wall the photos cannot show), or the gussets and
+the end-plate step lose more than a plane-wave model gives. `venom_sq3` (the case as three side volumes along the
+channel) is the next guess. The clipped score punishes overshooting orders more than the unclipped one, which is why
+the straight channel's unclipped RMS (6.2-8.0) beats the chambers' (8.0-9.4) while its clipped score is worse. A
+measured channel width and opening size would settle it.

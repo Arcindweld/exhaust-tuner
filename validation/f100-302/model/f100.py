@@ -104,6 +104,10 @@ MUFFLERS = {
     "venom_sq": [seg(330, 79.0, T=330)],
     "venom_sq_h": [{"side": {"type": "helmholtz", "V_litres": 4.9, "neck_L_mm": 2.0, "neck_d_mm": 22.0, "loss_K": 2.8, "Tw_C": 330}},
                    seg(330, 79.0, T=330)],
+    # "venom_sq3": the channel's walls opening into the case along its length (slots or louvres, which the photos cannot
+    # rule out) as three lumped side volumes of 1.63 L through a 32 mm-equivalent opening in 1 mm sheet at thirds of the
+    # channel: a straight-through chambered muffler, between the sealed channel (too bright) and the closed chambers (too dull)
+    "venom_sq3": [seg(55, 79.0, T=330)] + sum([[{"side": {"type": "helmholtz", "V_litres": 1.63, "neck_L_mm": 1.0, "neck_d_mm": 32.0, "loss_K": 2.8, "Tw_C": 330}}, seg(110, 79.0, T=330)] for _ in range(3)], []) + [seg(55 - 110 + 110, 79.0, T=330)][:0],
     "chamber": [seg(356, 152.0, T=330)],
     "pipe": [seg(356, T=330)],
 }
@@ -161,7 +165,8 @@ CASES = {"ho_box_5000": ("ho", "box", 5000.0), "ho_box_5800": ("ho", "box", 5800
          "ho_venom_plenum_x400_p900_6200": ("ho", "venom", 6200.0, 600, True, 400, 900),
          "ho_venom1d_plenum_x400_p900_5800": ("ho", "venom1d", 5800.0, 600, True, 400, 900),
          "ho_venomsq_plenum_x400_p900_5800": ("ho", "venom_sq", 5800.0, 600, True, 400, 900),
-         "ho_venomsqh_plenum_x400_p900_5800": ("ho", "venom_sq_h", 5800.0, 600, True, 400, 900)}
+         "ho_venomsqh_plenum_x400_p900_5800": ("ho", "venom_sq_h", 5800.0, 600, True, 400, 900),
+         "ho_venomsq3_plenum_x400_p900_5800": ("ho", "venom_sq3", 5800.0, 600, True, 400, 900)}
 
 
 def run_settings(rpm, cycles, name):
