@@ -18,7 +18,7 @@ import f100
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 BASE = {"to_x_mm": 400, "exit_mm": 600, "prim_mm": 762}
-STEPS = {"to_x_mm": [250, 550], "exit_mm": [300, 900], "prim_mm": [660, 860]}
+STEPS = {"to_x_mm": [250, 550], "exit_mm": [300, 900], "prim_mm": [660, 860, 960, 1060]}   # 960 and 1060 added after 860 scored best
 
 
 def case_name(p):
@@ -43,8 +43,9 @@ if __name__ == "__main__":
     names = [case_name(q) for q in cases()]
     if sys.argv[1:2] == ["run"]:
         from concurrent.futures import ThreadPoolExecutor
+        todo = [n for n in names if not os.path.exists(os.path.join(HERE, "runs", n, n + "INS.DAT")) and n not in json.load(open(os.path.join(HERE, "results.json")))]
         with ThreadPoolExecutor(max_workers=2) as ex:
-            for name, model, s in ex.map(f100.run_case, names):
+            for name, model, s in ex.map(f100.run_case, todo):
                 print("%-28s finished %s NMEP %.2f" % (name, s["finished"], s["last"]["NMEP"]), flush=True)
     import contextlib, io
     with contextlib.redirect_stdout(io.StringIO()):

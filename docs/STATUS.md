@@ -687,8 +687,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   the entry); Engelman's k shown as the 2.0-2.5 band; Vizard's runner bore as a check on a four; rotary EGT by load;
   baffle-hole back-pressure ratios from the KTM 390 study.
 - F-100 length fit (2026-11-05, validation/f100-302/model/fit.py, writers v13/v14): one step each way from X 400 /
-  exit 600 / primary 762 mm at 5,800 rpm. X flat 250-400, worse past 550; exit 600 beats 300 and 900; 860 mm primaries
-  gain 0.58 dB on a 0.9 dB spread (base 4.82 dB clipped RMS). Table in the case README.
+  exit 600 / primary 762 mm at 5,800 rpm. X flat 250-400, worse past 550; exit 600 beats 300 and 900; primaries best at
+  860-960 mm (-0.5 to -0.6 dB on a 0.9 dB spread, base 4.82 dB clipped RMS) and 2.6 dB worse at 1060: the recording pins
+  the primary length to about 33-39 in. Table in the case README.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

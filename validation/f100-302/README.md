@@ -85,9 +85,12 @@ One step each way from the base layout (X 400 mm behind the collectors, 600 mm e
 | 400 | 900 mm (35.4 in) | 762 | 5.78 (0.91) | +0.96 |
 | 400 | 600 | 660 mm (26 in) | 5.02 (0.92) | +0.20 |
 | 400 | 600 | 860 mm (33.9 in) | 4.24 (0.91) | **-0.58** |
+| 400 | 600 | 960 mm (37.8 in) | 4.31 (0.82) | -0.51 |
+| 400 | 600 | 1060 mm (41.7 in) | 7.41 (0.54) | +2.59 |
 
-The X position is flat between 250 and 400 mm and worsens past 550; the 600 mm exit beats both 300 and 900; longer
-primaries help a little (860 mm, about 34 in, is the one step that gains more than the spread). These runs carry the
+The X position is flat between 250 and 400 mm and worsens past 550; the 600 mm exit beats both 300 and 900; the
+primaries have a broad best between 860 and 960 mm (34 to 38 in, about half a decibel better than 762) and fall off hard
+by 1060 mm (+2.6 dB): the recording does pin the primary length, to roughly 33 to 39 in. These runs carry the
 neck and open-end corrections added to the writers after the table above (v13, v14), so the base score moved from the
-earlier 3.8-6.2 dB band to 4.82 dB. The remaining gap is still orders 8 and 12. The next step along this line would be
-primaries of 860-960 mm with the 400 mm X, and then the muffler's inside.
+earlier 3.8-6.2 dB band to 4.82 dB. The remaining gap is still orders 8 and 12. The next step along this line is
+the muffler's inside, with 900 mm primaries as the base.
