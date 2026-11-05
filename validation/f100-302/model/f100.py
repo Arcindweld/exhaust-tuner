@@ -190,7 +190,11 @@ def sound(names):
         s = run_models.summarise(folder, name, model)
         res[name]["NMEP_bar"] = s["last"]["NMEP"]
         res[name]["finished"] = s["finished"]
-    json.dump(res, open(os.path.join(HERE, "results.json"), "w"), indent=1)
+    # merge into what is there: a call scores the cases asked for and keeps the others' last scores
+    path = os.path.join(HERE, "results.json")
+    allres = json.load(open(path)) if os.path.exists(path) else {}
+    allres.update(res)
+    json.dump({k: allres[k] for k in sorted(allres)}, open(path, "w"), indent=1)
     O = ["%g" % o for o in np.arange(0.5, 12.01, 0.5)]
     for name, r in res.items():
         for vn in ("both_exits", "near_exit"):
