@@ -31,6 +31,9 @@ out['spec'] = sp; print(json.dumps(out))`], { maxBuffer: 1 << 26 }).toString());
     M.layout = 'side'; M.r = 4.0; M.sep = 1.8; o.side = window.__wamMore(t, 5800, mdl);
     M.layout = 'centre'; o.centre = window.__wamMore(t, 5800, mdl);
     o.none = window.__wamMore(t, 5800, null);
+    // settled: each exit against its own cycle before, the worse of the two (not the summed flow against one exit)
+    const W = window.WamExport, ins = W.readIns(t, { keepCycles: 2, model: mdl }), each = ins.outlets.map(pn => window.__wamInsOrders(W.readIns(t, { keepCycles: 2, model: mdl, pipe: pn }), 24, [], 5800).per);
+    o.perEach = each; o.per = o.side.per;
     return o;
   }, { t, spec: py.spec });
   const rel = a => { const top = Math.max(...a); return a.map(v => v - top); };
@@ -41,6 +44,7 @@ out['spec'] = sp; print(json.dumps(out))`], { maxBuffer: 1 << 26 }).toString());
   ok(r.none.exits === 1, 'without a matching model the reader falls back to one outlet');
   const half = i => r.side.db[i] - r.centre.db[i];
   ok(Math.abs(half(1) - half(7)) > 3, 'beside the car the half and odd orders change against the firing order (order 1 ' + half(1).toFixed(1) + ' dB, order 4 ' + half(7).toFixed(1) + ' dB against between the exits)');
+  ok(r.perEach.length === 2 && Math.abs(r.per - Math.max(...r.perEach)) < 1e-9, 'two exits: settling is the worse exit against its own previous cycle (' + r.perEach.map(v => (100 * v).toFixed(1) + '%').join(', ') + ' -> ' + (100 * r.per).toFixed(1) + '%)');
   ok(!errs.length, 'no page errors ' + errs.join('; '));
   await b.close(); console.log('failures:', fails.length); process.exit(fails.length ? 1 : 0);
 })();

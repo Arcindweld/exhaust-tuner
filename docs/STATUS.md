@@ -763,6 +763,10 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   plain ones there too; one can at 5400 RPM keeps a free tone near 413 Hz that neither more mouth loss nor a smaller
   pocket volume settles, flagged on the page) and the unequal-length header with the H-pipe (builds with both
   junctions and a chamber on each bank). The check now runs at least 20 cycles a run (MDW.minCycles) and says so.
+- Dual-exit settling fix (2026-11-05): wamInsOrders compared the summed flow of two exits in the last cycle with the
+  first exit alone in the cycle before, so every dual-exit OpenWAM run read as unsettled (the H-pipe V8: 68-205 %
+  where the exits differ 2-6 %). Each exit is now held against its own previous cycle and the worse reported, as
+  wam_sound.synthesize_multi does; dualexit_ui.js checks it. Crossover results in duct_acoustics_check.md.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave

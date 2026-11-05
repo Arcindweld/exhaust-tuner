@@ -17616,11 +17616,13 @@ function wamInsOrders(ins,maxM,more,rpm){
   const rs=([s0,e],yy)=>{ yy=yy||y; const a0=ang[s0], A=[], Y=[]; for(let i=s0;i<e;i++){ A.push(ang[i]-a0); Y.push(yy[i]); } A.push(720); Y.push(yy[s0]);
     const o=new Float64Array(N); let j=0; for(let i=0;i<N;i++){ while(j<A.length-2&&A[j+1]<=i) j++; const d=A[j+1]-A[j]; o[i]=d>0?Y[j]+(i-A[j])/d*(Y[j+1]-Y[j]):Y[j]; } return o; };
   const last=rs(cyc[cyc.length-1]);
+  // settled: each exit's last cycle against its own cycle before (before the exits are summed, so a second exit's flow is
+  // not taken for a change); the worst of them
+  const perOf=yy=>{ if(cyc.length<2) return null; const L=rs(cyc[cyc.length-1],yy), pv=rs(cyc[cyc.length-2],yy); let mean=0; L.forEach(v=>{mean+=v/N;}); let d2=0,s2=0; for(let i=0;i<N;i++){ d2+=(L[i]-pv[i])**2; s2+=(L[i]-mean)**2; } return Math.sqrt(d2/(s2||1e-30)); };
+  const per=cyc.length>1?Math.max(perOf(y),...(more||[]).map(q=>perOf(q.mdot))):null;
   // more exits (a dual exhaust): [{mdot (the same rows), g (gain, r_near / r_far), dDeg (its delay in crank degrees)}],
   // each added to the near exit's flow, delayed and scaled, so they interfere at the microphone order by order
   (more||[]).forEach(q=>{ const o=rs(cyc[cyc.length-1],q.mdot); for(let i=0;i<N;i++){ const x=((i-q.dDeg)%N+N)%N, j=Math.floor(x), u=x-j; last[i]+=q.g*(o[j]*(1-u)+o[(j+1)%N]*u); } });
-  let per=null;
-  if(cyc.length>1){ const pv=rs(cyc[cyc.length-2]); let mean=0; last.forEach(v=>{mean+=v/N;}); let d2=0,s2=0; for(let i=0;i<N;i++){ d2+=(last[i]-pv[i])**2; s2+=(last[i]-mean)**2; } per=Math.sqrt(d2/(s2||1e-30)); }
   const amp=[];
   for(let m=1;m<=maxM;m++){ let re=0,im=0; for(let i=0;i<N;i++){ const x=2*Math.PI*m*i/N; re+=last[i]*Math.cos(x); im-=last[i]*Math.sin(x); } amp.push(m*Math.hypot(re,im)); }
   const top=Math.max(...amp)||1, tot=amp.reduce((a,v)=>a+v*v,0)||1, half=amp.reduce((a,v,i)=>a+(i%2===0?v*v:0),0);

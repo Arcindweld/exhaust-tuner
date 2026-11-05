@@ -202,4 +202,17 @@ strongest line of the other extended-tube can there): a larger mouth loss (K = 2
 
 The unequal-length header with the Crossover tab's H-pipe builds every design with both H-pipe junctions and the
 chamber on each bank's line (15 cases, 5 designs x 3 speeds); the 4-Stroke tab's own model has one collector and the
-check says to use the Headers tab for a crossover.
+check says to use the Headers tab for a crossover. Solved at 1750 and 2700 rpm, 20 cycles (V8, two banks, one can per
+bank, both exits summed at the microphone):
+
+| | no muffler | plain 228.6 x 305 | plain 241.3 x 279 | ext. tube 228.6 x 305 | ext. tube 241.3 x 279 |
+|---|---|---|---|---|---|
+| dB(A), mean of the two speeds | 108.9 | 102.0 | 101.0 | 93.2 | 91.5 |
+| worst in-band order, dB taken off | | -8.5 | -8.2 | +4.7 | +5.5 |
+| mean brake torque, N m | 521.4 | 518.6 | 518.8 | 520.4 | 520.5 |
+
+The page first reported every one of these runs as unsettled (68-205 %): with two exits it compared the summed flow of
+the last cycle with the first exit's alone in the cycle before, so the figure measured the second exit, not a change.
+Each exit is now held against its own previous cycle and the worse is reported (as wam_sound.synthesize_multi does);
+measured that way the open ends differ by 2-6 % between the last cycles. This touched every dual-exit OpenWAM result
+on the page, not only the muffler check (dualexit_ui.js holds the new rule).
