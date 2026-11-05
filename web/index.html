@@ -2117,6 +2117,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <li><b>Exhaust in the valley.</b> Heads turned so the ports face into the V, as on factory hot-V turbo engines or the backwards LS built with Gen 5 LT heads (<a href="https://www.lsxmag.com/news/backwards-ls-hot-v-build-nivlac57-flips-the-ls-engine/" target="_blank" rel="noopener">LSX Mag</a>, <a href="https://www.motorbiscuit.com/watch-this-youtuber-flow-an-ls-engine-backwards-to-create-the-ultimate-hot-v-monster/" target="_blank" rel="noopener">MotorBiscuit</a>), change where the runners start, not when each cylinder fires, so each bank’s pulses and tones stay the same.</li>
       <li><b>Oval and flat-oval tube.</b> A flat oval’s area and perimeter are exact; an ellipse uses Ramanujan’s perimeter approximation (<a href="https://en.wikipedia.org/wiki/Ellipse#Circumference" target="_blank" rel="noopener">Wikipedia</a>). Flow and wave calculations use the round tube with the same area, and friction uses the hydraulic diameter, 4 × area ÷ perimeter. Bending stiffness is worked out about both axes. Shell (ovaling) frequencies of oval and flat-oval tube come from a small finite-element ring model, checked against the thin-ring formula for round tube.</li>
       <li><b>Pipes made of sections.</b> Each section is a lossless plane-wave transfer matrix with its own area and gas temperature. The resonances are where the pipe responds most between its closed end (valve or turbine) and the open tip, with a 0.6133 × radius end correction at the tip; one uniform section gives the same answer as the quarter-wave formula. Mean flow and wall losses are left out, so real peaks sit a little lower and broader. <b>How tall the peaks are.</b> Each mode now carries its peak height and half-power width from the two losses a lossless chain leaves out: the open tip’s radiation, with the reflection magnitude from Levine and Schwinger’s solution as fitted by Davies (1996, data sheet 3: R₀ = 1 + 0.01336 ka − 0.59079 (ka)² + 0.33576 (ka)³ − 0.06432 (ka)⁴, to ka 1.5; the scan’s last two coefficients are misprinted and the Davies 1988 / Peters 1993 values are used), and the wall’s viscothermal damping α = (1 ÷ ac) √(ων ÷ 2) (1 + (γ − 1) ÷ √Pr) per metre (Rienstra and Hirschberg, <i>An Introduction to Acoustics</i>, 4.5.3 and 5.2.2). The round-trip loss δ = 2 Σ αᵢLᵢ + (1 − R₀) gives the amplification 1 ÷ δ (R&amp;H eq. 5.33 for the wall part) and the half-power width δc ÷ 2πL. Radiation grows as f², wall loss as √f, so the low modes stand tall and narrow and the high ones low and broad; the figures are upper bounds because the engine, the flow and any muffler damp further.</li>
+      <li><b>How loud, and what to take off.</b> The 4-Stroke tab’s INS reading now gives each run’s absolute level: the open end as a monopole, p = (1 ÷ 4πr) d(ṁ)/dt, so a harmonic of the outflow with amplitude (2/N)|Y| at ω gives ω(2/N)|Y| ÷ 4π pascals at 1 m (the same arithmetic as sound/wam_sound.py, to 0.4 dB on the F-100 run), taken to the roadside distance with 1/r and a hard ground’s +6 dB, A-weighted (IEC 61672) and summed over the orders. With a quiet target it follows Davies’ procedure (<i>Piping system design for low noise</i>, 1996, 3.2 and appendix B): the N orders within 15 dB of the loudest brought to the target less 10 log N each, and the table lists the orders that must fall and by how much, which is the job the Mufflers tab then has to do. No jet noise, no directivity and no surroundings, so it is the order content and a ceiling, not a meter reading.</li>
       <li><b>Muffler cut files.</b> The Mufflers tab turns the chamber above into sheet-metal parts: the shell wrap (the inside perimeter at the middle of the wall, by the chamber length plus two plates, for a butt seam), the two end plates and any baffles as a DXF in millimetres on one CUT layer, each plate 0.3 mm under the inside size to slip in, the holes the pipe OD + 0.5 mm, and a tube list with 2 in stubs. A flat-oval case is drawn with the same inside area as the round chamber the tab modelled, at the height you give (W = H + (A − πH² ÷ 4) ÷ H), so the volume built is the volume calculated; a reverse-flow chamber puts both tubes in one plate at OD + 12 mm centres and leaves the far plate blank. The same R12 DXF the hanger and merge-collector files use.</li>
       <li><b>Installed attenuation.</b> Davies (<i>Piping system design for low noise</i>, 1996, C.3–C.5 and 2.4) argues that transmission loss between long anechoic pipes “neglects acoustic interaction with other system elements, so is hardly relevant for intake or exhaust design assessments”: what matters is the element with the real tailpipe behind it and the real open end, worked from the termination back. The Mufflers chart has that as a second mode: the tip reflects with Levine and Schwinger’s magnitude and end correction (Davies’ fits), the tailpipe and the element’s transfer matrix carry pressure and volume velocity back to the element’s inlet, and the curve is the fall in the incident wave from inlet to tip. A bare tailpipe gives 0 dB everywhere, a half-wave chamber is transparent, and averaged over tailpipe lengths the installed cut at a chamber’s peak comes back to its transmission loss (9.2 against 9.4 dB in the test); for any one tailpipe the curve swings either side of that, below zero where pipe and element resonate together, which is Davies’ point.</li>
       <li><b>Real peak of a side branch.</b> The lossless Helmholtz and J-pipe curves peak at the chart’s cap; the Mufflers tab now also gives the peak at the tuned note for a stated tone level in the pipe, from the quadratic edge loss of the neck or mouth (Rienstra and Hirschberg, <i>An Introduction to Acoustics</i>, 8.3, eqs. 8.24–8.33: a drop of K ρ u|u| ÷ 2 across the opening is, for the first harmonic, a resistance (4K ÷ 3π) ρ u, so at resonance the branch is that resistance alone and the neck velocity solves a quadratic in the incident pressure). With K 2.8 (sharp) and a 150 dB tone a typical can peaks near 20 dB and a J-pipe a little higher; at 130 dB both approach the lossless figure. Neck wall friction is left out. The same K is what the OpenWAM line puts on its loss elements.</li>
@@ -17427,7 +17428,7 @@ function uelReadme(H){
   return L;
 }
 // order spectrum of the outflow from an INS.DAT: last complete 720 deg cycle, 1 deg resample, harmonics of d(mdot)/dt
-function wamInsOrders(ins,maxM,more){
+function wamInsOrders(ins,maxM,more,rpm){
   const ang=ins.angle, y=ins.mdot, st=[0], N=720;
   for(let i=1;i<ang.length;i++) if(ang[i]<ang[i-1]-180) st.push(i);
   const cyc=[]; st.forEach((s0,k)=>{ const e=k+1<st.length?st[k+1]:ang.length; if(e-s0>=36&&ang[e-1]-ang[s0]>=600) cyc.push([s0,e]); });
@@ -17448,7 +17449,10 @@ function wamInsOrders(ins,maxM,more){
   if(ins.u&&ins.T&&ins.rho){ const cu=rs(cyc[cyc.length-1],ins.u), cT=rs(cyc[cyc.length-1],ins.T); let sm=0,sru=0; const [s0,e]=cyc[cyc.length-1];
     for(let i=s0;i<e;i++){ sm+=y[i]; sru+=ins.rho[i]*ins.u[i]; }
     const A=sru>0?sm/sru:NaN; if(A>0) jet={u:Array.from(cu),T:Array.from(cT),d:Math.sqrt(4*A/Math.PI)}; }
-  return {db:amp.map(v=>20*Math.log10(Math.max(v/top,1e-6))),half:half/tot,strongest:(amp.indexOf(top)+1)/2,per,cycles:cyc.length,pipe:ins.pipe,cyc:Array.from(last),jet};
+  // absolute level of each order: the open end as a monopole, p = (1 / 4 pi r) d(mdot)/dt (wam_sound.py), so a harmonic of
+  // mdot with amplitude (2/N)|Y| at omega = pi m rpm / 60 gives p_hat = rpm x m|Y| / (120 N) Pa at 1 m, free field
+  const spl1=rpm>0?amp.map(v=>20*Math.log10(Math.max(1e-12,rpm*v/(120*N)/Math.SQRT2/20e-6))):null;
+  return {db:amp.map(v=>20*Math.log10(Math.max(v/top,1e-6))),half:half/tot,strongest:(amp.indexOf(top)+1)/2,per,cycles:cyc.length,pipe:ins.pipe,cyc:Array.from(last),jet,spl1,rpm};
 }
 // the model the tab would write now (for telling a file's exits from its plenum ports): null when it cannot be built
 function wamCurrentModel(){
@@ -17468,18 +17472,33 @@ function wamMore(t,mdl,rpm){
   const more=outs.slice(1).map(pn=>{ const q=WAMX.readIns(t,{keepCycles:2,model:mdl,pipe:pn}); return {mdot:q.mdot,g:r1/r2,dDeg:Number.isFinite(rpm)?(r2-r1)/343*6*rpm:0}; });
   return {ins:base,more,exits:outs.length};
 }
-document.addEventListener('change',e=>{ const id=e.target&&e.target.id; if(id!=='wam-mic'&&id!=='wam-mic-sep'&&id!=='wam-mic-r') return;
+document.addEventListener('change',e=>{ const id=e.target&&e.target.id; if(id==='wam-lv-r'||id==='wam-lv-t'){ const v=parseFloat(e.target.value); if(id==='wam-lv-r') WAM_LEVEL.r_ft=Number.isFinite(v)&&v>=3?v:50; else WAM_LEVEL.target=Number.isFinite(v)&&v>0?v:null; renderActive(); return; }
+  if(id!=='wam-mic'&&id!=='wam-mic-sep'&&id!=='wam-mic-r') return;
   if(id==='wam-mic') WAM_MIC.layout=e.target.value; else { const v=parseFloat(e.target.value); if(Number.isFinite(v)&&v>=(id==='wam-mic-r'?0.1:0)) WAM_MIC[id==='wam-mic-r'?'r':'sep']=v; }
   if(WAM_UI.insFiles&&WAM_UI.insFiles.length) wamReadIns(WAM_UI.insFiles); else renderActive(); });
-window.__wamMic=WAM_MIC; window.__wamMore=(t,rpm,mdl)=>{ const X=wamMore(t,mdl===undefined?wamCurrentModel():mdl,rpm); return Object.assign({exits:X.exits},wamInsOrders(X.ins,24,X.more)); };   // test hooks
+window.__wamMic=WAM_MIC; window.__wamInsOrders=wamInsOrders; window.__wamMore=(t,rpm,mdl)=>{ const X=wamMore(t,mdl===undefined?wamCurrentModel():mdl,rpm); return Object.assign({exits:X.exits},wamInsOrders(X.ins,24,X.more)); };   // test hooks
 function wamReadIns(list){
   const out=[], mdl=wamCurrentModel();
   WAM_UI.insFiles=[...list];
   return Promise.all([...list].map(f=>f.text().then(t=>{
     const nm=f.name.replace(/INS\.DAT$/i,''), m=nm.match(/_(\d{3,5})$/);
     try{ const rpm=m?+m[1]:NaN, X=wamMore(t,mdl,rpm), ins=X.ins;
-      out.push(Object.assign({name:nm,rpm,exits:X.exits},wamInsOrders(ins,12,X.more),{db24:wamInsOrders(ins,24,X.more).db})); }
+      const o24=wamInsOrders(ins,24,X.more,rpm);
+      out.push(Object.assign({name:nm,rpm,exits:X.exits},wamInsOrders(ins,12,X.more,rpm),{db24:o24.db,spl24:o24.spl1})); }
     catch(e){ out.push({name:f.name,err:e.message}); } }))).then(()=>{ out.sort((a,b)=>(a.rpm||0)-(b.rpm||0)); WAM_UI.ins=out; renderActive(); });
+}
+// the run's level at the roadside from its order levels: each half order's A-weighted level at distance r (m) with a hard
+// ground (+6 dB), summed over the orders; also the orders' own levels there. Davies' quiet target (Piping system design for
+// low noise, 1996, 3.2 and appendix B): for N orders brought to one level and a target L_T, each must reach
+// L_T - 10 log10 N; N here is the orders within 15 dB of the loudest.
+const WAM_LEVEL={r_ft:50,target:null};
+function wamLevels(x,rFt,target){
+  if(!x.spl24||!(x.rpm>0)) return null;
+  const r=rFt*0.3048, rows=x.spl24.map((L,i)=>{ const o=(i+1)/2, f=o*x.rpm/60, La=L-20*Math.log10(r)+6+aWeight(f); return {o,f,L:L-20*Math.log10(r)+6,La}; }).filter(q=>q.L>0);
+  const tot=10*Math.log10(rows.reduce((a,q)=>a+Math.pow(10,q.La/10),0)), totZ=10*Math.log10(rows.reduce((a,q)=>a+Math.pow(10,q.L/10),0));
+  const top=Math.max(...rows.map(q=>q.La)), loud=rows.filter(q=>q.La>top-15), N=loud.length;
+  const need=target>0?loud.map(q=>({o:q.o,f:q.f,La:q.La,cut:Math.max(0,q.La-(target-10*Math.log10(N)))})):null;
+  return {rows,tot,totZ,top,N,need,each:target>0?target-10*Math.log10(N):null};
 }
 function wamInsTable(R){
   const ok=R.filter(x=>!x.err), bad=R.filter(x=>x.err);
@@ -17488,13 +17507,18 @@ function wamInsTable(R){
   const head='<tr><th>Order</th>'+ok.map(x=>'<th>'+esc(x.name)+(Number.isFinite(x.rpm)?'<br><span class="hint">'+x.rpm+' RPM</span>':'')+'</th>').join('')+'</tr>';
   let rows='';
   for(let m=1;m<=12;m++) rows+='<tr'+(m%2?' class="cur"':'')+'><td>'+(m/2)+(m%2?' (half)':'')+'</td>'+ok.map(x=>'<td>'+(x.db[m-1]<-60?'—':String(Math.round(x.db[m-1]))+' dB')+'</td>').join('')+'</tr>';
+  const lv=ok.map(x=>wamLevels(x,WAM_LEVEL.r_ft,WAM_LEVEL.target)), anyLv=lv.some(Boolean);
+  if(anyLv) rows+='<tr><td>Level at '+WAM_LEVEL.r_ft+' ft, hard ground</td>'+lv.map(v=>'<td>'+(v?v.tot.toFixed(0)+' dB(A), '+v.totZ.toFixed(0)+' dB':'—')+'</td>').join('')+'</tr>'+
+    (WAM_LEVEL.target>0?'<tr><td>To reach '+WAM_LEVEL.target+' dB(A): take off</td>'+lv.map(v=>'<td>'+(v&&v.need?v.need.filter(q=>q.cut>0).map(q=>'order '+q.o+' '+q.cut.toFixed(0)+' dB').join(', ')||'nothing: already under':'—')+'</td>').join('')+'</tr>':'');
   rows+='<tr><td>Half orders, energy share</td>'+ok.map(x=>'<td>'+(100*x.half).toFixed(0)+'%</td>').join('')+'</tr>'+
     '<tr><td>Strongest order</td>'+ok.map(x=>'<td>'+x.strongest+(Number.isFinite(x.rpm)?' ('+Math.round(x.strongest*x.rpm/60)+' Hz)':'')+'</td>').join('')+'</tr>'+
     '<tr><td>Last two cycles differ by</td>'+ok.map(x=>'<td>'+(x.per==null?'one cycle only':(100*x.per).toFixed(1)+'%'+(x.per>0.05?' (not settled)':''))+'</td>').join('')+'</tr>';
   const dual=ok.some(x=>x.exits>1), M=WAM_MIC;
   const micUi=dual?'<div class="grid2" style="max-width:640px"><label class="f"><span class="lab">Microphone</span><span class="inp"><select id="wam-mic"><option value="centre"'+(M.layout==='centre'?' selected':'')+'>Behind, between the exits (both equally far)</option><option value="side"'+(M.layout==='side'?' selected':'')+'>Beside the car, nearer one exit</option></select></span></label>'+
     (M.layout==='side'?'<label class="f"><span class="lab">Exits apart (far exit this much farther)</span><span class="inp"><input id="wam-mic-sep" type="number" step="0.1" min="0" inputmode="decimal" value="'+M.sep+'"><em>m</em></span></label><label class="f"><span class="lab">Microphone to the near exit</span><span class="inp"><input id="wam-mic-r" type="number" step="0.1" min="0.1" inputmode="decimal" value="'+M.r+'"><em>m</em></span></label>':'')+'</div>':'';
-  return h+micUi+'<div class="tblwrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div><p class="cap">'+(dual?'Exits heard: all '+Math.max(...ok.map(x=>x.exits))+', their flows added at the microphone '+(M.layout==='side'?'with the far one '+M.sep+' m farther ('+(M.r/(M.r+M.sep)).toFixed(2)+' of its level, arriving later), so they reinforce some orders and cancel others':'in step (equally far)')+'; the exits are told from the plenum ports by the model this tab writes now, so load files made from the tab as it is. ':'Outlet read: the last open end in each file (duct '+ok.map(x=>x.pipe).join(', ')+'); with several collectors that is the last one. ')+' A settled run repeats within a few percent from one cycle to the next. Single orders in a dip move with the cell size (see Method), so compare the pattern between cases.</p>';
+  const lvUi=anyLv?'<div class="grid2" style="max-width:640px"><label class="f"><span class="lab">Roadside microphone</span><span class="inp"><input id="wam-lv-r" type="number" step="5" min="3" inputmode="decimal" value="'+WAM_LEVEL.r_ft+'"><em>ft</em></span></label>'+
+    '<label class="f"><span class="lab">Quiet target there, blank for none</span><span class="inp"><input id="wam-lv-t" type="number" step="1" min="40" max="130" inputmode="decimal" value="'+(WAM_LEVEL.target||'')+'"><em>dB(A)</em></span></label></div>':'';
+  return h+micUi+lvUi+'<div class="tblwrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div><p class="cap">'+(anyLv?'Level: the open end as a monopole on a hard ground (+6 dB), the orders’ A-weighted levels summed; no jet noise, no directivity, no walls or trees, and whatever the line above carries is all the muffling there is, so read it as the order content and the ceiling, not a meter reading. The quiet target follows Davies (1996): the N orders within 15 dB of the loudest brought to the target less 10 log N each, and the table says which orders must fall and by how much, which is the muffler’s job list for the Mufflers tab. ':'')+(dual?'Exits heard: all '+Math.max(...ok.map(x=>x.exits))+', their flows added at the microphone '+(M.layout==='side'?'with the far one '+M.sep+' m farther ('+(M.r/(M.r+M.sep)).toFixed(2)+' of its level, arriving later), so they reinforce some orders and cancel others':'in step (equally far)')+'; the exits are told from the plenum ports by the model this tab writes now, so load files made from the tab as it is. ':'Outlet read: the last open end in each file (duct '+ok.map(x=>x.pipe).join(', ')+'); with several collectors that is the last one. ')+' A settled run repeats within a few percent from one cycle to the next. Single orders in a dip move with the cell size (see Method), so compare the pattern between cases.</p>';
 }
 $('h-uel-wrap').addEventListener('input',e=>{   // runs before the form's own handler, so the render sees the edit
   const el=e.target; if(!el.classList||!el.classList.contains('uelx')) return;
