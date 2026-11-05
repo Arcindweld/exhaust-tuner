@@ -164,8 +164,15 @@ EXTRA_DEFAULTS = {
     # open to the air: the air-filter end of the plenum inlet, or each runner's mouth without a plenum), for the
     # intake's sound; 0 = off (the file unchanged)
     "ins_intake": 0,
+    # v14: the open ends' end correction. OpenWAM's open end (TCCDescargaExtremoAbierto) is a constant-pressure
+    # discharge: no inertia of the air just outside, so a pipe's resonances come out a little high. With 1 every pipe
+    # that ends open to the air (an exhaust outlet, an intake mouth) is written 0.6133 x its end radius longer at that
+    # end, the unflanged open-end correction of Levine and Schwinger (1948; Morse and Ingard, Theoretical Acoustics,
+    # 9.1, fig. 9.2; the page's END_CORR), as the plane-wave models have it; 0 writes the bare lengths (pre-v14 files).
+    "open_end_corr": 1,
 }
 
+OPEN_END_CORR = 0.6133   # v14: open-end correction x the end radius (Levine and Schwinger), as the page's END_CORR
 HELM_END_CORR = 0.6133   # v13: Helmholtz neck end correction x neck diameter, as the page's HELM_END (Selamet)
 R_BURNT = 285.4     # Constantes.h:71 __R::Burnt, gas constant of the burnt gas in the simple species model
 
@@ -1493,6 +1500,12 @@ def model_from_spec(spec, run=None):
             bcs[ok] = {"type": "open", "note": "crossover outlet %d (collector %d's side), open end to atmosphere" % (k + 1, c + 1)}
             items = tail_items(xo["tails"][k], tw_c(cols[c]), T0x)
             add_chain(items, xo_right[c], ok, "crossover outlet %d line" % (k + 1), T0x, [1.0, 0.0, 0.0], 2)
+    if int(p["open_end_corr"]) == 1:
+        for pp in pipes:
+            if bcs[pp["right"]]["type"] == "open":
+                pp["secs"][-1][0] += OPEN_END_CORR * pp["secs"][-1][1] / 2.0
+            elif bcs[pp["left"]]["type"] == "open":
+                pp["secs"][0][0] += OPEN_END_CORR * pp["D0"] / 2.0
     return {"p": p, "phases": phases, "pipes": pipes, "bcs": bcs, "plenums": plenums}
 
 

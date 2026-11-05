@@ -3286,7 +3286,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     pipe_method: 'tvd', fct_option: 1, end_loss: 1.0, pipe_htc_mult: 1.0, pipe_fric_mult: 1.0,
   };
   const HELM_END_CORR = 0.6133;   // v13: Helmholtz neck end correction x neck diameter (make_wam.py HELM_END_CORR)
-  const EXTRA_DEFAULTS = { step_bc: 'union', avg_points: 1, ins_outlet: 0, ins_cycles: 1, plenum_cd: 1.0, ins_intake: 0 };   // ins_intake v12
+  const EXTRA_DEFAULTS = { step_bc: 'union', avg_points: 1, ins_outlet: 0, ins_cycles: 1, plenum_cd: 1.0, ins_intake: 0, open_end_corr: 1 };   // ins_intake v12, open_end_corr v14
+  const OPEN_END_CORR = 0.6133;   // v14: open-end correction x the end radius (make_wam.py OPEN_END_CORR)
   const CALC_P_ATM_BAR = 1.01325, CALC_T_ATM_C = 25.0, CALC_T0_EXHAUST_K = 700.0, CALC_TWALL_CYL_K = 450.0,
     CALC_CURTAIN_CAP = 0.85, CALC_TATM_K = 298.15, K0 = 273.15;
   const R_BURNT = 285.4;    // Constantes.h:71 __R::Burnt
@@ -4293,6 +4294,12 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         bcs.set(ok, { type: 'open', note: 'crossover outlet ' + (k + 1) + ' (collector ' + (c + 1) + "'s side), open end to atmosphere" });
         addChain(tailItems(xo.tails[k], twC(cols[c]), T0x), xoRight.get(c), ok, 'crossover outlet ' + (k + 1) + ' line', T0x, [1.0, 0.0, 0.0], 2);
       });
+    }
+    if (Math.trunc(p.open_end_corr) === 1) {       // v14 (make_wam.py): the open ends' end correction
+      for (const pp of pipes) {
+        if (getBc(bcs, pp.right).type === 'open') pp.secs[pp.secs.length - 1][0] += OPEN_END_CORR * pp.secs[pp.secs.length - 1][1] / 2.0;
+        else if (getBc(bcs, pp.left).type === 'open') pp.secs[0][0] += OPEN_END_CORR * pp.D0 / 2.0;
+      }
     }
     return { p, phases, pipes, bcs, plenums };
   }

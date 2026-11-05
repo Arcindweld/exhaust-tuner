@@ -154,6 +154,9 @@ jobs.push({ label: 'error: empty outlet', kind: 'spec', spec: withTail(spec('i4_
 jobs.push({ label: 'error: outlet segment without d1_mm', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 50, d1_mm: 50 }, { V_litres: 5 }, { outlets: [[{ L_mm: 100, d0_mm: 40 }]] }]), run: {} });
 jobs.push({ label: 'error: per_cyl count', kind: 'spec', spec: (() => { const s = spec('i4_41'); s.exhaust.per_cyl = [s.exhaust.segs, s.exhaust.segs]; return s; })(), run: {} });
 jobs.push({ label: 'error: segs_by_group count', kind: 'spec', spec: (() => { const s = spec('i4_triy'); s.opt.collectors[0].stages[0].segs_by_group = [null]; return s; })(), run: {} });
+// v14 open-end correction: on by default (every case above carries it); off writes the bare lengths
+jobs.push({ label: 'v14: open_end_corr 0 on a 4-1 with a tail', kind: 'spec', spec: withTail(spec('i4_41'), TAIL1), run: { rpm: 3000.0, ins_outlet: 1, open_end_corr: 0 } });
+jobs.push({ label: 'v14: open_end_corr 0, open primaries', kind: 'spec', spec: spec('i4_open_primaries'), run: { rpm: 6000.0, open_end_corr: 0 } });
 // v12 the intake's open end recorded (ins_intake): with a plenum (its air-filter inlet) and with open runners
 jobs.push({ label: 'v12: ins_intake with an intake plenum', kind: 'spec', spec: (() => { const s = withTail(spec('i4_41'), TAIL1); s.intake.plenum = { V_m3: 2e-3, inlet: [{ L: 0.2, d0: 0.08, d1: 0.08 }] }; return s; })(), run: { rpm: 4000.0, ins_outlet: 1, ins_intake: 1 } });
 jobs.push({ label: 'v12: ins_intake on open runners, both V8 banks', kind: 'spec', spec: spec('v8_dual'), run: { rpm: 5000.0, ins_outlet: 1, ins_intake: 1 } });
