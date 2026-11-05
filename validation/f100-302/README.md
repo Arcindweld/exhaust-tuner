@@ -92,5 +92,8 @@ The X position is flat between 250 and 400 mm and worsens past 550; the 600 mm e
 primaries have a broad best between 860 and 960 mm (34 to 38 in, about half a decibel better than 762) and fall off hard
 by 1060 mm (+2.6 dB): the recording does pin the primary length, to roughly 33 to 39 in. These runs carry the
 neck and open-end corrections added to the writers after the table above (v13, v14), so the base score moved from the
-earlier 3.8-6.2 dB band to 4.82 dB. The remaining gap is still orders 8 and 12. The next step along this line is
-the muffler's inside, with 900 mm primaries as the base.
+earlier 3.8-6.2 dB band to 4.82 dB. The remaining gap is still orders 8 and 12. With 900 mm primaries at all four pull speeds (the `_p900` cases) every steady hold scores 0.8 to 1.0 dB better
+than the 762 mm one against the same pull windows (5,800 rpm: 3.1-5.4 dB against 3.8-6.2), and the synthesised
+pass-by (`PRIM=900 python3 passby_synth.py`) moves from 6.1 to 5.8 dB clipped RMS. Orders 8 and 12 are still the gap
+(-15 and -27 dB in the model against -8 and -9 in the recording). The next step along this line is the muffler's inside,
+with 900 mm primaries as the base.
