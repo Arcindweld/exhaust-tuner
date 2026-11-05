@@ -113,5 +113,16 @@ function wav(rpm, secs, sr) {
   await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300);
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'phone: no page overflow');
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.join(' | ') : ''));
+  // the drive-past: a 200 Hz tone past at 25 m/s, 5 m off: Doppler ratio approaching/receding, level 1/r from the closest point
+  const pb = await p.evaluate(() => {
+    const sr = 44100, N = 6 * sr, f = 200, x = new Float32Array(N); for (let i = 0; i < N; i++) x[i] = Math.sin(2 * Math.PI * f * i / sr);
+    const out = window.__recPassby(x, null, sr, 25, 5, 0);
+    const peak = (a0) => { const n = 4096, X = new Float64Array(n); for (let i = 0; i < n; i++) X[i] = out[a0 + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / n)); let best = 0, bf = 0;
+      for (let k = 240; k < 360; k++) { const fk = k * sr / 65536; let re = 0, im = 0; for (let i = 0; i < n; i++) { re += X[i] * Math.cos(2 * Math.PI * fk * i / sr); im -= X[i] * Math.sin(2 * Math.PI * fk * i / sr); } const m = re * re + im * im; if (m > best) { best = m; bf = fk; } } return bf; };
+    const rms = (a0, n) => { let s = 0; for (let i = 0; i < n; i++) s += out[a0 + i] ** 2; return Math.sqrt(s / n); };
+    return { ratio: peak(sr * 0.5) / peak(out.length - sr - 4096), want: (343 + 25) / (343 - 25), mid: rms(Math.floor((3 + 5 / 343 - Math.sqrt(75 * 75 + 25) / 343) * sr) - 2000, 4000), end: rms(out.length - 6000, 4000), fin: out.every(Number.isFinite) };
+  });
+  ok(Math.abs(pb.ratio / pb.want - 1) < 0.01, 'drive-past Doppler: approaching / receding ' + pb.ratio.toFixed(3) + ' (want ' + pb.want.toFixed(3) + ')');
+  ok(Math.abs(pb.mid / 0.7071 - 1) < 0.05 && Math.abs(pb.end / (0.7071 * 5 / Math.sqrt(75 * 75 + 25)) - 1) < 0.1 && pb.fin, 'drive-past level: the hold level when the closest point arrives, 1/r after (' + pb.mid.toFixed(3) + ', ' + pb.end.toFixed(4) + ')');
   console.log('failures:', fails.length); await b.close(); process.exit(fails.length ? 1 : 0);
 })();

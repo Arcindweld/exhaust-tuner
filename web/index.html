@@ -10653,21 +10653,41 @@ function recSynth(W,H,o){
       if(J){ const gg=Math.max(0,gw*(1-u)+gw2*u); env[pos]=Math.sqrt((wj[j]*(1-u)+wj[j2]*u)/(wmean||1e-30))*gg*gg*gg*gg; }
       out[pos]=prev==null?0:(v-prev)*sr; prev=v; }
   }
-  let jetDb=null;
+  let jetDb=null, jx=null;
   if(J&&wmean>0){   // the jet in d(mdot)/dt units: rms sqrt(4 pi rho0 c0 W)
     let e2=0; for(let i=0;i<env.length;i++) e2+=env[i]*env[i]; const ek=1/Math.sqrt(e2/env.length||1), amp=Math.sqrt(4*Math.PI*1.2*343*wmean);
     const nz=jetNoise(out.length,sr,JET_ST*Ueff/J.d,(o.seed||12345)+101); let t2=0,j2=0;
-    for(let i=0;i<out.length;i++){ const v=nz[i]*env[i]*ek*amp; j2+=v*v; t2+=out[i]*out[i]; out[i]+=v; }
+    jx=new Float32Array(out.length);
+    for(let i=0;i<out.length;i++){ const v=nz[i]*env[i]*ek*amp; j2+=v*v; t2+=out[i]*out[i]; jx[i]=v; out[i]+=v; }
     jetDb=10*Math.log10((j2||1e-30)/(t2||1e-30));
   }
   // the recording's level, a short fade at both ends
   const a0=Math.round(H.t0*sr), rec=REC.x?REC.x.subarray(a0,Math.min(REC.x.length,a0+out.length)):null;
   const rms=x=>{ let s=0; for(let i=0;i<x.length;i++) s+=x[i]*x[i]; return Math.sqrt(s/(x.length||1)); };
   const k=rec&&rms(out)>0?rms(rec)/rms(out):1, fade=Math.round(0.02*sr);
-  for(let i=0;i<out.length;i++) out[i]*=k*Math.min(1,i/fade,(out.length-1-i)/fade);
-  return {x:out,rec,jetDb,jetFp:J?JET_ST*Ueff/J.d:null};
+  for(let i=0;i<out.length;i++){ const g=k*Math.min(1,i/fade,(out.length-1-i)/fade); out[i]*=g; if(jx) jx[i]*=g; }
+  return {x:out,rec,jetDb,jetFp:J?JET_ST*Ueff/J.d:null,jet:jx,Ueff};
 }
-const REC_AB={cov:2,wander:true,jet:true,play:null,check:null,msg:''};
+// A drive-past of the model (sound/sweep.py passby, in the page): the source goes by on a straight line at v m/s, the
+// microphone d m from that line, closest halfway through. Sound emitted at te from r(te) arrives at te + r/c0, which makes
+// the Doppler shift and the swell and fade; 1/r from the closest distance (the hold's own level is kept at the closest
+// point) and a hard-ground doubling. The tip's jet (jx, kept apart) gets a jet's directivity about the tailpipe's axis,
+// blowing backwards: [(1 - Mc cos th)^2 + (0.3 Mc)^2]^(-5/2) in intensity, Mc = 0.6 U_eff / c0 (Morse and Ingard 11.4),
+// normalised to the same total power. x: the tonal part (already at the hold's level); returns Float32Array.
+function recPassby(x,jx,sr,v,d,Ueff){
+  const N=x.length, c0=343, tc=N/sr/2, Mc=Ueff>0?0.6*Ueff/c0:0;
+  let Dm=1; if(Mc>0){ let sum=0; for(let i=0;i<=400;i++){ const c=-1+2*i/400; sum+=Math.pow((1-Mc*c)**2+(0.3*Mc)**2,-2.5); } Dm=sum/401; }
+  const tr=new Float64Array(N), pe=new Float64Array(N);
+  for(let i=0;i<N;i++){ const t=i/sr, X=v*(t-tc), r=Math.sqrt(X*X+d*d); tr[i]=t+r/c0;
+    let p=x[i]; if(jx&&Mc>0){ const cth=X/r; p+=jx[i]*Math.sqrt(Math.pow((1-Mc*cth)**2+(0.3*Mc)**2,-2.5)/Dm); } else if(jx) p+=jx[i];
+    pe[i]=p*d/r; }
+  const t0=tr[0], t1=tr[N-1], M=Math.floor((t1-t0)*sr), out=new Float32Array(M);
+  let j=0;
+  for(let m=0;m<M;m++){ const t=t0+m/sr; while(j<N-2&&tr[j+1]<t) j++; const u=(t-tr[j])/((tr[j+1]-tr[j])||1e-9); out[m]=pe[j]+(pe[j+1]-pe[j])*Math.max(0,Math.min(1,u)); }
+  return out;
+}
+window.__recPassby=recPassby;
+const REC_AB={cov:2,wander:true,jet:true,play:null,check:null,msg:'',mph:40,ft:25};
 window.__recSynth=(W,H,o)=>recSynth(W,H,o); window.__jet={jetPower,jetNoise,fftIP};   // test hooks
 async function recPlay(x){
   try{ if(REC_AB.play){ try{ REC_AB.play.stop(); }catch(e){} }
@@ -10774,9 +10794,11 @@ function recSection(sp,r){
           '<label class="f"><span class="lab">Cycle-to-cycle variation</span><span class="inp"><input id="rec-cov" type="number" step="0.5" min="0" max="15" inputmode="decimal" value="'+REC_AB.cov+'"><em>%</em></span></label>'+
           '<label class="f"><span class="lab">Engine speed</span><span class="inp"><select id="rec-wander"><option value="1"'+(REC_AB.wander?' selected':'')+'>Wanders as in the recording</option><option value="0"'+(REC_AB.wander?'':' selected')+'>Held exactly</option></select></span></label>'+
           '<label class="f"><span class="lab">Jet noise at the tip</span><span class="inp"><select id="rec-jet"><option value="1"'+(REC_AB.jet?' selected':'')+'>On: the hot gas’s roar (Lighthill)</option><option value="0"'+(REC_AB.jet?'':' selected')+'>Off: the pulses only</option></select></span></label></div>'+
-          '<div class="actions"><button type="button" class="btn" data-rec="play-rec">Play the recording</button><button type="button" class="btn" data-rec="play-model">Play the model</button><button type="button" class="btn" data-rec="play-ab">Recording, then the model</button><button type="button" class="btn" data-rec="ab-check">Compare the gaps between the orders</button></div>'+
+          '<label class="f"><span class="lab">Drive past at</span><span class="inp"><input id="rec-mph" type="number" step="5" min="5" max="150" inputmode="decimal" value="'+REC_AB.mph+'"><em>mph</em></span></label>'+
+          '<label class="f"><span class="lab">Microphone from the road</span><span class="inp"><input id="rec-ft" type="number" step="1" min="3" max="300" inputmode="decimal" value="'+REC_AB.ft+'"><em>ft</em></span></label>'+
+          '<div class="actions"><button type="button" class="btn" data-rec="play-rec">Play the recording</button><button type="button" class="btn" data-rec="play-model">Play the model</button><button type="button" class="btn" data-rec="play-pass">Drive the model past</button><button type="button" class="btn" data-rec="play-ab">Recording, then the model</button><button type="button" class="btn" data-rec="ab-check">Compare the gaps between the orders</button></div>'+
           (C&&C.hold===hi&&C.key===REC_AB.cov+'/'+REC_AB.wander+'/'+REC_AB.jet?'<p class="cap">Between the orders (each order against the gap halfway to the next, averaged over the firing order and up): the recording '+C.rec.toFixed(1)+' dB, the model '+C.model.toFixed(1)+' dB. '+(Math.abs(C.rec-C.model)<=3?'They match within 3 dB.':C.model>C.rec?'The model is cleaner between its orders than the recording: more variation or wander, or a source the model does not have (the engine itself, the intake, wind).':'The model has more between its orders than the recording: less variation.')+'</p>':'')+
-          '<p class="cap">The model is OpenWAM’s one cycle of tailpipe flow made to vary the way a running engine does: each firing’s pulse a little stronger or weaker than the last (the variation above; spark engines run about 1–3 % at part load, more at idle) and, with wander on, each cycle as long as the recording’s own engine speed was at that moment. Then the tip as a small source, at the recording’s loudness. On the owner’s Outback, 2–4 % and the hold’s own wander gave the same gaps between the orders as the recording (within about 4 dB); held exactly, the model was 8 to 20 dB too clean there.</p><p class="cap" id="rec-ab-msg">'+esc(REC_AB.msg||'')+'</p>';
+          '<p class="cap">“Drive the model past” moves the held model along the road past a microphone: emission time to arrival time gives the Doppler shift and the swell and fade, the level falls as 1 ÷ distance from the hold’s own level at the closest point, a hard ground doubles it, and the tailpipe’s jet noise is sent out with a jet’s directivity about the pipe’s axis (louder behind the car than in front, Morse and Ingard 11.4). The model is OpenWAM’s one cycle of tailpipe flow made to vary the way a running engine does: each firing’s pulse a little stronger or weaker than the last (the variation above; spark engines run about 1–3 % at part load, more at idle) and, with wander on, each cycle as long as the recording’s own engine speed was at that moment. Then the tip as a small source, at the recording’s loudness. On the owner’s Outback, 2–4 % and the hold’s own wander gave the same gaps between the orders as the recording (within about 4 dB); held exactly, the model was 8 to 20 dB too clean there.</p><p class="cap" id="rec-ab-msg">'+esc(REC_AB.msg||'')+'</p>';
       }
     }
   }
@@ -10870,6 +10892,8 @@ document.addEventListener('change',e=>{
   if(e.target&&e.target.id==='rec-cov'){ const v=parseFloat(e.target.value); REC_AB.cov=Number.isFinite(v)&&v>=0?Math.min(15,v):2; renderActive(); }
   if(e.target&&e.target.id==='rec-wander'){ REC_AB.wander=e.target.value==='1'; renderActive(); }
   if(e.target&&e.target.id==='rec-jet'){ REC_AB.jet=e.target.value==='1'; renderActive(); }
+  if(e.target&&e.target.id==='rec-mph'){ const v=parseFloat(e.target.value); REC_AB.mph=Number.isFinite(v)&&v>0?Math.min(150,v):40; }
+  if(e.target&&e.target.id==='rec-ft'){ const v=parseFloat(e.target.value); REC_AB.ft=Number.isFinite(v)&&v>0?Math.min(300,v):25; }
 },true);
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button[data-rec]'); if(!b) return;
@@ -10879,8 +10903,9 @@ document.addEventListener('click',async e=>{
     if(b.dataset.rec==='ab-check'){ say('Working out the gaps…'); recAbCheck(W,L.hold).then(r=>{ REC_AB.check=Object.assign(r,{hold:REC.hold,key:REC_AB.cov+'/'+REC_AB.wander+'/'+REC_AB.jet}); REC_AB.msg=''; renderActive(); }); return; }
     const S=recSynth(W,L.hold,{cov:REC_AB.cov/100,wander:REC_AB.wander,jet:REC_AB.jet});
     let x=b.dataset.rec==='play-rec'?S.rec:S.x;
+    if(b.dataset.rec==='play-pass'){ const tonal=S.jet?Float32Array.from(S.x,(v,i)=>v-S.jet[i]):S.x; x=recPassby(tonal,S.jet,REC.sr,REC_AB.mph*0.44704,REC_AB.ft*0.3048,S.Ueff||0); }
     if(b.dataset.rec==='play-ab'&&S.rec){ const gap=Math.round(0.6*REC.sr); x=new Float32Array(S.rec.length+gap+S.x.length); x.set(S.rec,0); x.set(S.x,S.rec.length+gap); }
-    recPlay(x).then(e=>say(e||(b.dataset.rec==='play-ab'?'Playing: the recording, then the model.':b.dataset.rec==='play-rec'?'Playing the recording.':'Playing the model.')));
+    recPlay(x).then(e=>say(e||(b.dataset.rec==='play-ab'?'Playing: the recording, then the model.':b.dataset.rec==='play-rec'?'Playing the recording.':b.dataset.rec==='play-pass'?'Playing the model driving past at '+REC_AB.mph+' mph, '+REC_AB.ft+' ft away: Doppler, the swell and fade, hard ground, and the tailpipe’s jet louder behind the car.':'Playing the model.')));
     return;
   }
   if(b.dataset.rec==='x2'||b.dataset.rec==='x05'){ const k=b.dataset.rec==='x2'?2:0.5; REC.tr.forEach(q=>{ q.rpm*=k; q.rpmS*=k; }); REC.holds=recHolds(REC.tr); REC.sweep=recSweep(REC.F,REC.tr,REC.ctx); REC.hold=0; renderActive(); return; }
