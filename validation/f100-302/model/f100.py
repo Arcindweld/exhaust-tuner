@@ -88,6 +88,12 @@ MUFFLERS = {
               seg(40, T=330), {"V_litres": 2.0, "note": "rear chamber"}],
     # the same 6.5 L as a 1-D chamber with the case's length (356 mm; the oval's area as a 152 mm round): its
     # length passes and stops frequencies as an expansion chamber does, which a 0-D volume cannot
+    # the chambered layout with its two 2 L chambers as short 1-D expansions (110 mm of 152 mm round) instead of 0-D volumes:
+    # a 0-D volume on a 60 mm pipe is a Helmholtz low-pass near 400 Hz, two in series kill orders 8 and 12 (770 and 1160 Hz
+    # at 5800), while a real chamber is a short expansion that passes bands above that (Morse and Ingard 9.1; Davies 1996)
+    "venom1d": [seg(110, 152.0, T=330), seg(40, T=330),
+                {"parallel": [[seg(280, 70.0, T=330)], [seg(280, 70.0, T=330)]], "note": "the two side passages around the V baffle"},
+                seg(40, T=330), seg(110, 152.0, T=330)],
     "chamber": [seg(356, 152.0, T=330)],
     "pipe": [seg(356, T=330)],
 }
@@ -142,7 +148,8 @@ CASES = {"ho_box_5000": ("ho", "box", 5000.0), "ho_box_5800": ("ho", "box", 5800
          "ho_venom_plenum_x400_p900_5000": ("ho", "venom", 5000.0, 600, True, 400, 900),
          "ho_venom_plenum_x400_p900_5400": ("ho", "venom", 5400.0, 600, True, 400, 900),
          "ho_venom_plenum_x400_p900_5800": ("ho", "venom", 5800.0, 600, True, 400, 900),
-         "ho_venom_plenum_x400_p900_6200": ("ho", "venom", 6200.0, 600, True, 400, 900)}
+         "ho_venom_plenum_x400_p900_6200": ("ho", "venom", 6200.0, 600, True, 400, 900),
+         "ho_venom1d_plenum_x400_p900_5800": ("ho", "venom1d", 5800.0, 600, True, 400, 900)}
 
 
 def run_settings(rpm, cycles, name):
