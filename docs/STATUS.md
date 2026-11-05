@@ -7,7 +7,8 @@ OpenWAM, engine-sim fork, the CFD generator/solver and installs the Fusion add-i
 private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 
 ## Pieces and where they live (SP = this scratchpad)
-- Calculator page: SP/exhaust-calculator.html → artifact https://claude.ai/artifact/SkHkuxV2hTacf4KHsCDmmW (Version 33: + unequal-length primaries on the Headers tab (uel_patch.py, uel_ui.js; feeds OpenWAM per_cyl/segs_by_group,
+- Calculator page: SP/exhaust-calculator.html (a copy of web/index.html) → artifact https://claude.ai/artifact/SkHkuxV2hTacf4KHsCDmmW
+  (Version 53, 2026-11-04: web/index.html as of the crossover export; every page test passes. Version 33: + unequal-length primaries on the Headers tab (uel_patch.py, uel_ui.js; feeds OpenWAM per_cyl/segs_by_group,
   engine-sim primaryL array, Fusion targets_mm), 2025+ RS 660 preset (rs660_25_patch.py)). Palette on PC rebuilt from V33.
   Patches are scripts SP/*_patch.py; tests SP/*_ui.js (run_all_tests.sh, full_ui.js). Type selector (cars/trucks vs bikes) added V30.
 - Fusion add-in: /home/claude/ExhaustTuner (cadtools.py, router.py, templates.py, README 4.10.0) mirrored to the PC AddIns folder
