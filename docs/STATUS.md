@@ -653,7 +653,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   RMS with both sides clipped at -25 dB); a 0-D 6.5 L box makes order 1 the loudest, which the recording rules out.
   Still open: the model's integer orders 1-3 and 5-7 sit at -8..-15 dB against <= -18 in the recording, from an
   18-26 % NMEP spread across cylinders (scavenging by bank with a 315 deg cam), which the model probably overstates.
-  Header and pipe lengths are placeholders.
+  Header and pipe lengths are placeholders. With the X 250-400 mm behind the collectors (not 1000) the spread falls to
+  7.6 % and the low orders to the recording's level (clipped RMS 3.8-6.2 dB); what is left is orders 8 and 12, 5-20 dB
+  weak in the model.
 - Merge cut files reviewed independently (2026-11-04, a separate agent with its own scripts): no defects; plate,
   section, spike area rule, hollow spike, volume (within 0.03 % of a numerical integration), flat patterns rolled
   back up, DXF entities all check. Its four minor points fixed: the sleeve bore now clears the bundle by 0.4 mm on the

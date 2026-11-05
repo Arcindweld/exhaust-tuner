@@ -36,6 +36,13 @@ its floor.
 | chambered, with the single plane's shared intake plenum | 13.0-15.2 | 4.7-7.0 |
 | chambered, plenum, stock firing order | 13.8-15.7 | 4.9-7.0 |
 | chambered, plenum, 5000 rpm | 10.1-10.9 | 7.2-7.8 |
+| chambered, plenum, X 250 mm from the collectors (not 1000) | 12.4-14.5 | 4.0-6.6 |
+| chambered, plenum, X 400 mm | 19.8-20.7 | 3.8-6.2 |
+| chambered, plenum, X 400 mm, stock firing order | 18.6-19.5 | 3.9-6.2 |
+| chambered, plenum, X 400 mm, 5000 rpm | 19.8-20.4 | 4.4-6.3 |
+| chambered, plenum, X 550 mm | 14.3-16.0 | 4.6-6.9 |
+| chambered, plenum, X 700 mm | 9.8-12.5 | 3.8-6.0 |
+| chambered, plenum, X 1400 mm | 13.9-15.6 | 4.0-6.9 |
 
 (Ranges across the four pulls; both exits summed at the microphone, the far one 1.8 m further away. Hearing the near
 exit alone scores 2-3 dB worse throughout.)
@@ -54,6 +61,12 @@ What it shows:
   probably overstates it. Its combustion is identical in every cylinder and its X is a single point, and nothing in
   it damps the collector waves (no packing, no wall losses beyond friction and heat).
 - The firing order barely changes the clipped score: the X evens out both orders.
+- Where the X sits matters more than anything else tried, through the cylinders. The NMEP spread across the eight is
+  7.6-7.7 % with the X 250-400 mm behind the collectors, 12 % at 550, 20 % at 700 and 26 % at 1000-1400 mm. A close X
+  couples the two banks' collectors, so each cylinder's overlap sees a more even pressure. The clipped score moves less
+  (3.8-6.9 dB from 250 to 1400 mm): what is left is the firing harmonics, orders 8 and 12, which the model has 5-20 dB
+  weaker than the recording, and orders 2 and 6, which it has about 8 dB stronger. Neither moves much with the X
+  position, so those are for the muffler's inside and the radiation to fix, not the pipe layout.
 
 To narrow this further: the header's primary size and length, the X-pipe's position, the exit length, and the
 muffler model (a box photo).
