@@ -154,6 +154,16 @@ jobs.push({ label: 'error: empty outlet', kind: 'spec', spec: withTail(spec('i4_
 jobs.push({ label: 'error: outlet segment without d1_mm', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 500, d0_mm: 50, d1_mm: 50 }, { V_litres: 5 }, { outlets: [[{ L_mm: 100, d0_mm: 40 }]] }]), run: {} });
 jobs.push({ label: 'error: per_cyl count', kind: 'spec', spec: (() => { const s = spec('i4_41'); s.exhaust.per_cyl = [s.exhaust.segs, s.exhaust.segs]; return s; })(), run: {} });
 jobs.push({ label: 'error: segs_by_group count', kind: 'spec', spec: (() => { const s = spec('i4_triy'); s.opt.collectors[0].stages[0].segs_by_group = [null]; return s; })(), run: {} });
+// v11 losses: a quadratic loss between two segments (a slot or baffle), a Helmholtz neck with a loss, and the errors
+const LOSS1 = [{ L_mm: 400, d0_mm: 60, d1_mm: 60 }, { loss_K: 1.8 }, { L_mm: 200, d0_mm: 60, d1_mm: 60 }, { V_litres: 5 }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }, { loss_K: 0.45 }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }];
+const LOSS2 = [{ L_mm: 500, d0_mm: 60, d1_mm: 60 }, { side: { type: 'helmholtz', V_litres: 0.75, neck_L_mm: 59, neck_d_mm: 54.4, loss_K: 2.5 } }, { L_mm: 500, d0_mm: 60, d1_mm: 60 }];
+jobs.push({ label: 'v11: losses between segments and after a muffler', kind: 'spec', spec: withTail(spec('i4_41'), LOSS1), run: { rpm: 3000.0, ins_outlet: 1 } });
+jobs.push({ label: 'v11: a Helmholtz trap with a lossy neck', kind: 'spec', spec: withTail(spec('i4_41'), LOSS2), run: { rpm: 2000.0, ins_outlet: 1 } });
+jobs.push({ label: 'v11: a lossy neck on both V8 banks into an X', kind: 'spec', spec: (() => { const s = spec('v8_dual'); s.opt.collectors.forEach(c => { c.tail = [{ L_mm: 400, d0_mm: 63.5, d1_mm: 63.5 }]; }); s.opt.crossover = { cols: [0, 1], type: 'x', tails: [LOSS2, LOSS1] }; return s; })(), run: { rpm: 5000.0, ins_outlet: 1, cell_mm: 10.0 } });
+jobs.push({ label: 'error: a loss at the end of the tail', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { loss_K: 1 }]), run: {} });
+jobs.push({ label: 'error: a loss right after a muffler', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { V_litres: 4 }, { loss_K: 1 }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }]), run: {} });
+jobs.push({ label: 'error: a zero loss', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { loss_K: 0 }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }]), run: {} });
+jobs.push({ label: 'error: a negative neck loss', kind: 'spec', spec: withTail(spec('i4_41'), [{ L_mm: 300, d0_mm: 60, d1_mm: 60 }, { side: { type: 'helmholtz', V_litres: 1, neck_L_mm: 50, neck_d_mm: 40, loss_K: -1 } }, { L_mm: 300, d0_mm: 60, d1_mm: 60 }]), run: {} });
 // v10 crossover between the two banks: an X-pipe (one junction, both lines through it) and an H-pipe (a balance tube),
 // each side then to its own exit through a muffler; and the errors
 const XT = [{ L_mm: 400, d0_mm: 63.5, d1_mm: 63.5, Tw_C: 300 }];

@@ -823,9 +823,19 @@
           } else if (sd.type === 'helmholtz') {
             const V = Number(sd.V_litres || 0.0) / 1000.0, L = Number(sd.neck_L_mm || 0.0) / 1000.0, d = Number(sd.neck_d_mm || 0.0) / 1000.0;
             if (!(V > 0.0 && L > 0.0 && d > 0.0)) throw new Error('tail element ' + (n + 1) + ': a Helmholtz side branch needs V_litres, neck_L_mm and neck_d_mm');
-            items.push(['side', { type: 'helmholtz', V, L, d, T0: has(sd, 'T0_C') ? Number(sd.T0_C) : T0Default }, tw]);
+            const lk = has(sd, 'loss_K') ? Number(sd.loss_K) : 0.0;
+            if (lk < 0.0) throw new Error('tail element ' + (n + 1) + ": a Helmholtz neck's loss_K must be zero or more");
+            items.push(['side', { type: 'helmholtz', V, L, d, K: lk, T0: has(sd, 'T0_C') ? Number(sd.T0_C) : T0Default }, tw]);
           } else throw new Error('tail element ' + (n + 1) + ': side.type must be quarter or helmholtz');
           if (items.length < 2 || items[items.length - 2][0] !== 'seg') throw new Error('tail element ' + (n + 1) + ': a side branch must come after a pipe segment');
+          return;
+        }
+        if (has(el, 'loss_K') && !has(el, 'L_mm') && !has(el, 'V_litres')) {
+          // v11 (make_wam.py tail_items): a quadratic total-pressure loss between two pipe segments
+          const K = Number(el.loss_K);
+          if (!(K > 0.0)) throw new Error('tail element ' + (n + 1) + ': loss_K must be positive');
+          if (!items.length || items[items.length - 1][0] !== 'seg') throw new Error('tail element ' + (n + 1) + ': a loss must come after a pipe segment');
+          items.push(['loss', K]);
           return;
         }
         if (has(el, 'V_litres')) {
@@ -841,8 +851,9 @@
       for (let n = 0; n < items.length - 1; n++) {
         if (items[n][0] === 'side' && items[n + 1][0] !== 'seg') throw new Error('a side branch must be followed by a pipe segment');
         if (items[n][0] === 'parallel' && items[n + 1][0] !== 'seg') throw new Error('parallel paths must be followed by a pipe segment');
+        if (items[n][0] === 'loss' && items[n + 1][0] !== 'seg') throw new Error('a loss must be followed by a pipe segment');
       }
-      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum, a side branch or parallel paths');
+      if (!items.length || (items[items.length - 1][0] !== 'seg' && items[items.length - 1][0] !== 'outlets')) throw new Error('a tail must end with a pipe segment at the open end, not a plenum, a side branch, parallel paths or a loss');
       if (items[0][0] !== 'seg') throw new Error('a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)');
       return items;
     }
@@ -851,10 +862,11 @@
       const groups = [];
       let cur = null;
       for (const it of items) {
-        if (it[0] === 'plenum' || it[0] === 'outlets' || it[0] === 'side' || it[0] === 'parallel') { groups.push(it); cur = null; }
+        if (it[0] === 'plenum' || it[0] === 'outlets' || it[0] === 'side' || it[0] === 'parallel' || it[0] === 'loss') { groups.push(it); cur = null; }
         else { if (cur === null) { cur = []; groups.push(cur); } cur.push([it[1], it[2]]); }
       }
-      let npl = 0, npipe = 0, nside = 0, npar = 0;
+      let npl = 0, npipe = 0, nside = 0, npar = 0, nloss = 0;
+      const lossKey = new Map();                            // loss group index -> its BC key
       const sideKey = new Map(), sideNum = new Map();      // side-branch group index -> its junction BC key, its number
       const parKeys = new Map();                            // parallel group index -> [junction in, junction out]
       const addGroup = (g, lk, rk) => {
@@ -889,13 +901,21 @@
           const pk = bk + '/port';
           bcs.set(pk, { type: 'plenum', plenum: plenums.length, note: role + ' side branch ' + nn + ' neck into the volume' });
           let L = sd.L, A = Math.PI / 4.0 * sd.d * sd.d;
-          if (L < Lmin) { A = A * Lmin / L; L = Lmin; }
+          const LminN = sd.K ? 2.0 * Lmin : Lmin;          // v11: a neck with a loss is two halves of 3 cells or more
+          if (L < LminN) { A = A * LminN / L; L = LminN; }
           const dn = Math.sqrt(4.0 * A / Math.PI);
+          if (sd.K) {
+            const mk = bk + '/neckloss';
+            bcs.set(mk, { type: 'loss', K: sd.K, note: role + ' side branch ' + nn + ', loss in the Helmholtz neck K ' + pctG(sd.K) });
+            addLine([{ L: L / 2.0, d0: dn, d1: dn }], bk, mk, role + ' side branch ' + nn + ', Helmholtz neck part 1', tw, Tgc, comp, ht);
+            addLine([{ L: L / 2.0, d0: dn, d1: dn }], mk, pk, role + ' side branch ' + nn + ', Helmholtz neck part 2', tw, Tgc, comp, ht);
+            return;
+          }
           addLine([{ L, d0: dn, d1: dn }], bk, pk, role + ' side branch ' + nn + ', Helmholtz neck', tw, Tgc, comp, ht);
         }
       };
       groups.forEach((g, gi) => {
-        if (g[0] === 'side' || g[0] === 'parallel') return;
+        if (g[0] === 'side' || g[0] === 'parallel' || g[0] === 'loss') return;
         if (g[0] === 'plenum') {
           npl += 1;
           plenums.push({ V_m3: g[1], T_C: g[2], p_bar: p.p_amb_bar, comp: comp.slice(), note: role + ' muffler ' + npl + ' as a ' + pctG(g[1] * 1000.0) + ' litre expansion volume' });
@@ -914,15 +934,21 @@
         let lk, rk;
         const isSide = q => q !== undefined && q[0] === 'side';
         const isPar = q => q !== undefined && q[0] === 'parallel';
+        const isLoss = q => q !== undefined && q[0] === 'loss';
         if (gi === 0) lk = left;
         else if (isSide(groups[gi - 1])) lk = sideKey.get(gi - 1);
         else if (isPar(groups[gi - 1])) lk = parKeys.get(gi - 1)[1];
+        else if (isLoss(groups[gi - 1])) lk = lossKey.get(gi - 1);
         else { lk = role + '/muffler' + npl + '/out'; bcs.set(lk, { type: 'plenum', plenum: plenums.length, note: role + ' muffler ' + npl + ' outlet port' }); }
         if (gi === groups.length - 1) rk = right;
         else if (isSide(groups[gi + 1])) {
           nside += 1; rk = role + '/side' + nside;
           sideKey.set(gi + 1, rk); sideNum.set(gi + 1, nside);
           bcs.set(rk, { type: 'branch', note: role + ' side branch ' + nside + ' junction' });
+        } else if (isLoss(groups[gi + 1])) {
+          nloss += 1; rk = role + '/loss' + nloss;
+          lossKey.set(gi + 1, rk);
+          bcs.set(rk, { type: 'loss', K: groups[gi + 1][1], note: role + ' loss ' + nloss + ', K ' + pctG(groups[gi + 1][1]) });
         } else if (isPar(groups[gi + 1])) {
           npar += 1; rk = role + '/par' + npar + '/in';
           const ok = role + '/par' + npar + '/out';

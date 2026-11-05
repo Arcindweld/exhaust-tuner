@@ -933,6 +933,9 @@ def model_from_spec(spec, run=None):
               opt.crossover (v10): {cols:[a, b] (0-based collectors), type:'x'|'h', tails:[tail_a, tail_b],
               [tube:{L_mm, d_mm, [Tw_C]} for 'h']}: the two collectors' lines end at an X junction (or one H
               junction each, joined by the tube) and tails[k] runs from there to outlet k (same form as a tail).
+    tail elements (v11): {loss_K} alone between two pipe segments is a quadratic total-pressure loss there (a slot, a
+              perforated baffle, a passage entry); a Helmholtz side branch may carry loss_K, a loss halfway along its
+              neck (the neck is then at least 6 cells, its area raised with its length to keep the tuning).
     run: run settings / overrides of DEFAULTS and EXTRA_DEFAULTS keys (rpm, cycles, name, cell_mm ...).
     """
     run = dict(run or {})
@@ -1089,12 +1092,25 @@ def model_from_spec(spec, run=None):
                     V, L, d = float(sd.get("V_litres") or 0.0) / 1000.0, float(sd.get("neck_L_mm") or 0.0) / 1000.0, float(sd.get("neck_d_mm") or 0.0) / 1000.0
                     if not (V > 0.0 and L > 0.0 and d > 0.0):
                         raise ValueError("tail element %d: a Helmholtz side branch needs V_litres, neck_L_mm and neck_d_mm" % (n + 1))
-                    items.append(("side", {"type": "helmholtz", "V": V, "L": L, "d": d,
+                    lk_ = float(sd["loss_K"]) if sd.get("loss_K") is not None else 0.0
+                    if lk_ < 0.0:
+                        raise ValueError("tail element %d: a Helmholtz neck's loss_K must be zero or more" % (n + 1))
+                    items.append(("side", {"type": "helmholtz", "V": V, "L": L, "d": d, "K": lk_,
                                            "T0": float(sd["T0_C"]) if sd.get("T0_C") is not None else T0_default}, tw))
                 else:
                     raise ValueError("tail element %d: side.type must be quarter or helmholtz" % (n + 1))
                 if not items[:-1] or items[-2][0] != "seg":
                     raise ValueError("tail element %d: a side branch must come after a pipe segment" % (n + 1))
+                continue
+            if el.get("loss_K") is not None and el.get("L_mm") is None and el.get("V_litres") is None:
+                # v11: a quadratic total-pressure loss between two pipe segments (a slot, a perforated baffle, a
+                # passage entry: K on the velocity head of the pipe the flow leaves, either way), TCCPerdidadePresion
+                K = float(el["loss_K"])
+                if not (K > 0.0):
+                    raise ValueError("tail element %d: loss_K must be positive" % (n + 1))
+                if not items or items[-1][0] != "seg":
+                    raise ValueError("tail element %d: a loss must come after a pipe segment" % (n + 1))
+                items.append(("loss", K))
                 continue
             if el.get("V_litres") is not None:
                 V = float(el["V_litres"])
@@ -1116,8 +1132,10 @@ def model_from_spec(spec, run=None):
                 raise ValueError("a side branch must be followed by a pipe segment")
             if items[n][0] == "parallel" and items[n + 1][0] != "seg":
                 raise ValueError("parallel paths must be followed by a pipe segment")
+            if items[n][0] == "loss" and items[n + 1][0] != "seg":
+                raise ValueError("a loss must be followed by a pipe segment")
         if not items or items[-1][0] not in ("seg", "outlets"):
-            raise ValueError("a tail must end with a pipe segment at the open end, not a plenum, a side branch or parallel paths")
+            raise ValueError("a tail must end with a pipe segment at the open end, not a plenum, a side branch, parallel paths or a loss")
         if items[0][0] != "seg":
             raise ValueError("a tail must start with a pipe segment (the collector or primary cannot open into a plenum directly)")
         return items
@@ -1128,7 +1146,7 @@ def model_from_spec(spec, run=None):
         joined by the step BC (TCCUnionEntreTubos with no area change = continuity), plenums by TCCDeposito."""
         groups, cur = [], None          # [[(seg, Tw)...] or ("plenum", V, T) or ("outlets", [[seg items]...])]
         for it in items:
-            if it[0] in ("plenum", "outlets", "side", "parallel"):
+            if it[0] in ("plenum", "outlets", "side", "parallel", "loss"):
                 groups.append(it)
                 cur = None
             else:
@@ -1157,7 +1175,8 @@ def model_from_spec(spec, run=None):
                 state["npipe"] += 1
                 add_line(segs, keys[j], keys[j + 1], "%s section %d" % (role, state["npipe"]), tw, Tgc, comp, ht)
 
-        npl, nside, npar = 0, 0, 0
+        npl, nside, npar, nloss = 0, 0, 0, 0
+        loss_key = {}                       # loss group index -> its BC key
         side_key, side_num = {}, {}         # side-branch group index -> its junction BC key, its number
         par_keys = {}                       # parallel group index -> (junction in, junction out)
 
@@ -1180,14 +1199,21 @@ def model_from_spec(spec, run=None):
                 pk = bk + "/port"
                 bcs[pk] = {"type": "plenum", "plenum": len(plenums), "note": "%s side branch %d neck into the volume" % (role, side_num[gi])}
                 L, A = sd["L"], math.pi / 4.0 * sd["d"] * sd["d"]
-                if L < Lmin:
-                    A, L = A * Lmin / L, Lmin
+                Lmin_n = 2.0 * Lmin if sd.get("K") else Lmin     # v11: a neck with a loss is two halves of 3 cells or more
+                if L < Lmin_n:
+                    A, L = A * Lmin_n / L, Lmin_n
                 dn = math.sqrt(4.0 * A / math.pi)
+                if sd.get("K"):
+                    mk = bk + "/neckloss"
+                    bcs[mk] = {"type": "loss", "K": sd["K"], "note": "%s side branch %d, loss in the Helmholtz neck K %g" % (role, side_num[gi], sd["K"])}
+                    add_line([{"L": L / 2.0, "d0": dn, "d1": dn}], bk, mk, "%s side branch %d, Helmholtz neck part 1" % (role, side_num[gi]), tw, Tgc, comp, ht)
+                    add_line([{"L": L / 2.0, "d0": dn, "d1": dn}], mk, pk, "%s side branch %d, Helmholtz neck part 2" % (role, side_num[gi]), tw, Tgc, comp, ht)
+                    return
                 add_line([{"L": L, "d0": dn, "d1": dn}], bk, pk, "%s side branch %d, Helmholtz neck" % (role, side_num[gi]),
                          tw, Tgc, comp, ht)
 
         for gi, g in enumerate(groups):
-            if isinstance(g, tuple) and g[0] in ("side", "parallel"):
+            if isinstance(g, tuple) and g[0] in ("side", "parallel", "loss"):
                 continue
             if isinstance(g, tuple) and g[0] == "plenum":
                 npl += 1
@@ -1213,6 +1239,8 @@ def model_from_spec(spec, run=None):
                 lk = side_key[gi - 1]
             elif isinstance(groups[gi - 1], tuple) and groups[gi - 1][0] == "parallel":
                 lk = par_keys[gi - 1][1]
+            elif isinstance(groups[gi - 1], tuple) and groups[gi - 1][0] == "loss":
+                lk = loss_key[gi - 1]
             else:
                 lk = "%s/muffler%d/out" % (role, npl)
                 bcs[lk] = {"type": "plenum", "plenum": len(plenums), "note": "%s muffler %d outlet port" % (role, npl)}
@@ -1223,6 +1251,11 @@ def model_from_spec(spec, run=None):
                 rk = "%s/side%d" % (role, nside)
                 side_key[gi + 1], side_num[gi + 1] = rk, nside
                 bcs[rk] = {"type": "branch", "note": "%s side branch %d junction" % (role, nside)}
+            elif isinstance(groups[gi + 1], tuple) and groups[gi + 1][0] == "loss":
+                nloss += 1
+                rk = "%s/loss%d" % (role, nloss)
+                loss_key[gi + 1] = rk
+                bcs[rk] = {"type": "loss", "K": groups[gi + 1][1], "note": "%s loss %d, K %g" % (role, nloss, groups[gi + 1][1])}
             elif isinstance(groups[gi + 1], tuple) and groups[gi + 1][0] == "parallel":
                 npar += 1
                 rk, ok_ = "%s/par%d/in" % (role, npar), "%s/par%d/out" % (role, npar)
