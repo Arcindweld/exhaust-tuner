@@ -80,5 +80,24 @@ bands = [Pq[(fq >= e / 2 ** (1 / 6.)) & (fq < e * 2 ** (1 / 6.))].sum() for e in
 fpk = edges[int(np.argmax(bands))]
 ok(abs(np.log2(fpk / info["fp_Hz"])) <= 0.34, 'the jet noise peaks in the third octave at %.0f Hz (St 0.2 gives %.0f Hz)' % (fpk, info["fp_Hz"]))
 ok(abs(np.mean(pj)) < 1e-2 * np.std(pj), 'the jet noise has no mean')
+# muffler shell: a panel on a spring, mass controlled above its first mode, stiffness controlled below, 1/eta at it
+ok(abs(RZ.plate_f11(0.356, 0.229, 0.0015) - 97.0) < 2.0, 'first mode of a 14 x 9 in, 1.5 mm steel face: %.0f Hz (hand calculation 97)' % RZ.plate_f11(0.356, 0.229, 0.0015))
+n2, rpm2 = 4000, 3000.0
+k_of = lambda f: int(round(f / (rpm2 / 120.0)))
+def vamp(fq, f11, eta=0.03):
+    k = k_of(fq); pin = 1000.0 * np.cos(2 * math.pi * k * np.arange(n2) / n2)
+    q = RZ.shell_flow(pin, rpm2, S=1.0, h=0.0015, f11=f11, eta=eta)
+    return np.max(np.abs(np.fft.rfft(q))[1:]) * 2 / n2 / 1.2, k * rpm2 / 120.0      # velocity amplitude (m/s)
+v_hi, fq = vamp(1000.0, 97.0); mass = 1000.0 / (2 * math.pi * fq * 7850 * 0.0015)
+ok(abs(20 * np.log10(v_hi / mass)) < 0.2, 'above the mode the wall moves as mass law: %.4f m/s against p/(w m) %.4f' % (v_hi, mass))
+v_res, fr_ = vamp(97.0 * 1.0, 97.0 * 1.0)
+fq0 = fr_; v_res = vamp(fq0, fq0)[0]; mass0 = 1000.0 / (2 * math.pi * fq0 * 7850 * 0.0015)
+ok(abs(v_res / mass0 - 1 / 0.03) / (1 / 0.03) < 0.05, 'at the mode it moves 1/eta = %.0f times the mass law (%.1f)' % (1 / 0.03, v_res / mass0))
+v_lo, fql = vamp(25.0, 97.0); mass_l = 1000.0 / (2 * math.pi * fql * 7850 * 0.0015)
+ok(v_lo < mass_l / 10, 'well below the mode it is stiffness controlled: %.5f m/s against a mass-law %.4f' % (v_lo, mass_l))
+y0 = RZ.cycle_of(ins, rpm, int(round(fs * 120 / rpm)))
+pq, _ = RZ.realize(ins, rpm, nfire, seconds=4.0, fs=fs, cov=0.0, extra=np.zeros_like(y0))
+pz, _ = RZ.realize(ins, rpm, nfire, seconds=4.0, fs=fs, cov=0.0)
+ok(np.allclose(pq, pz), 'a zero extra flow changes nothing')
 print('failures:', len(fails))
 sys.exit(1 if fails else 0)

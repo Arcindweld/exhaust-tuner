@@ -30,6 +30,15 @@ fine-scale similarity spectrum, Tam, Golebiowski and Seiner 1996). The tip's gas
 so the noise is modulated: the instantaneous power follows U(t)^8, which is what makes an exhaust's roar pulse with
 the firing. Free field p^2 = rho0 c0 W / (4 pi r^2), no directivity (a jet radiates most at 30-40 deg off its axis
 and a few dB less at 90).
+
+SHELL RADIATION (extra= with shell_flow): the pressure inside a muffler pushes its case walls, and the walls radiate.
+Each broad face is a panel on a spring: its velocity v = p_in / Z, Z = j w m (1 - (f11 / f)^2 (1 + j eta)), m its mass
+per area, f11 its first bending mode, eta its loss factor (single-mode panel model, e.g. Fahy and Gardonio, Sound and
+Structural Vibration, ch. 2). Below f11 it is stiffness controlled and moves little; above, mass controlled, v ~ p / (w m).
+Faces that breathe in phase are, at the wavelengths here, a compact monopole of volume velocity S v, so they add to the
+tailpipe's outflow as an equivalent mass flow rho0 S v (the monopole p = (1 / 4 pi r) d(rho0 S v)/dt). For a simply
+supported flat plate f11 = (pi / 2) sqrt(D / m) (1 / a^2 + 1 / b^2), D = E h^3 / (12 (1 - nu^2)); a curved or ribbed
+case is stiffer.
 """
 import math
 
@@ -103,6 +112,31 @@ def jet_signal(env, U_eff, D, nsamp, fs, r, ground, power_mean, seed=5, rho0=1.2
     return x * env * p_rms * (2.0 if ground else 1.0)
 
 
+STEEL = {"E": 2.0e11, "rho": 7850.0, "nu": 0.29}
+
+
+def plate_f11(a, b, h, E=STEEL["E"], rho=STEEL["rho"], nu=STEEL["nu"]):
+    """First bending mode (Hz) of a simply supported flat plate a x b, thickness h (m)."""
+    D = E * h ** 3 / (12.0 * (1.0 - nu * nu))
+    return math.pi / 2.0 * math.sqrt(D / (rho * h)) * (1.0 / a ** 2 + 1.0 / b ** 2)
+
+
+def shell_flow(p_in, rpm, S, h, f11, eta=0.03, rho_wall=STEEL["rho"], rho0=1.2):
+    """The equivalent mass flow (kg/s) of a muffler case breathing: p_in one cycle of the pressure inside (Pa, n
+    points, its mean ignored), S the area of the faces that move together (m2), h the wall (m), f11 their first mode."""
+    p_in = np.asarray(p_in, float)
+    n = len(p_in)
+    P = np.fft.rfft(p_in - p_in.mean())
+    f = np.arange(len(P)) * rpm / 120.0
+    w = 2 * math.pi * f
+    m = rho_wall * h
+    V = np.zeros_like(P)
+    k = f > 0
+    Z = 1j * w[k] * m * (1.0 - (f11 / f[k]) ** 2 * (1.0 + 1j * eta))
+    V[k] = P[k] / Z
+    return rho0 * S * np.fft.irfft(V, n)
+
+
 def firing_windows(n, nfire, phase0=0.0, overlap=0.5):
     """nfire smooth windows over a cycle of n samples, centred phase0 + k / nfire of the cycle, raised-cosine edges
     `overlap` of a firing interval wide; they add up to one everywhere."""
@@ -140,7 +174,7 @@ def rpm_walk(seconds, sd, tau=0.5, dt=0.05, seed=2):
 
 
 def realize(ins, rpm, nfire, seconds=20.0, fs=22050, cov=0.02, spread=None, seed=1, r=1.0, ground=True,
-            wander=None, jet=None):
+            wander=None, jet=None, extra=None):
     """A pressure signal at r (Pa) of `seconds` of running: every firing scaled by 1 + spread[k] + cov N(0, 1).
     spread: one steady offset per firing in the cycle (None = all zero). wander: (t, fraction) of the engine speed
     (rpm_walk, or a measured track divided by its mean, less one): each cycle is stretched to its own length, so
@@ -148,11 +182,18 @@ def realize(ins, rpm, nfire, seconds=20.0, fs=22050, cov=0.02, spread=None, seed
     own resonances do not move with speed, so this smears them slightly too).
     jet: None, or {"d_m": tip inside diameter, ["K": Lighthill constant]}: adds the tip's jet noise (module notes),
     from the INS velocity and temperature at the open end, modulated through each cycle and by each firing's gain.
-    The second value returned is fs; with jet, a third is {"jet_rms_Pa", "tone_rms_Pa", "U_eff", "fp_Hz"}."""
+    The second value returned is fs; with jet, a third is {"jet_rms_Pa", "tone_rms_Pa", "U_eff", "fp_Hz"}.
+    extra: one cycle (n = round(fs 120 / rpm) points) of further equivalent outflow at the same place, a muffler shell's
+    (shell_flow), added before the firing-by-firing variation so it varies with the firings too."""
     rng = np.random.default_rng(seed)
     n = int(round(fs * 120.0 / rpm))
     y = cycle_of(ins, rpm, n)
     W = firing_windows(n, nfire, pulse_phase(y, nfire))
+    if extra is not None:
+        ex = np.asarray(extra, float)
+        if len(ex) != n:
+            ex = np.interp(np.arange(n) / n, np.arange(len(ex)) / len(ex), ex, period=1.0)
+        y = y + ex
     m = y.mean()
     dev = y - m
     s = np.zeros(nfire) if spread is None else np.asarray(spread, float)

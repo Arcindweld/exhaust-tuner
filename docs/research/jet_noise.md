@@ -29,3 +29,25 @@ higher still: on a moving truck, road, tyre and wind noise make up the rest. It 
 
 Checks: `sound/test_realism.py` (the U^8 law, the hot-jet term, the peak frequency and the absolute level of a steady
 jet) and `web/tests/rec_ui.js` (the page's diameter from the flow, its level and the law).
+
+# Muffler shell radiation
+
+`sound/realism.py` `shell_flow()` (used through `realize(extra=)`): the pressure inside a muffler chamber drives its
+broad faces as a panel on a spring, v = p_in / Z, Z = j w m (1 - (f11 / f)^2 (1 + j eta)) (single-mode panel, Fahy and
+Gardonio, *Sound and Structural Vibration*, ch. 2). The faces that breathe in phase are a compact monopole of volume
+velocity S v, so they add to the tailpipe's outflow as rho0 S v. f11 for a simply supported flat plate:
+(pi / 2) sqrt(D / m) (1 / a^2 + 1 / b^2). Checked: mass law above f11, 1/eta times it at f11, stiffness control below.
+
+On the F-100 (both chambers of the near exit's muffler, 1.5 mm steel, eta 0.03, both broad faces):
+
+| Faces as | f11 | Shell against the tailpipe, orders 4 / 8 / 12 | Clipped RMS against the pulls |
+|---|---|---|---|
+| (no shell) | | | 4.1-6.8 dB |
+| whole 14 x 9 in flat faces | 97 Hz | order 1 +42 dB (the mode sits on order 1 at 5800 rpm) | 11.3-12.9 dB: ruled out |
+| split in three by the internal baffles, 119 x 229 mm | 322 Hz | +2 / +1 / 0 dB | 4.6-7.1 dB |
+| the same, eta 0.1 | 322 Hz | +2 / +1 / 0 dB | 4.8-7.0 dB |
+
+So a flat, unbraced face whose first mode lands on a strong order would dominate, and the recording rules that out for
+this muffler. Braced by its baffles, a thin flat-faced case radiates about as much as its tailpipe in this model, which
+is an upper bound: the whole face area is taken as moving in phase. The recording neither needs it nor rules it out,
+so it stays an option, off by default. The case's real gauge, curvature and bracing would decide it.
