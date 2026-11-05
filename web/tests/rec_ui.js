@@ -83,6 +83,14 @@ function wav(rpm, secs, sr) {
     const dd = [2, 4, 6].map(o => Math.abs(sy.lev[o] - sy.W[2 * o - 1]));
     ok(Math.abs(sy.len - Math.min(sy.hold, 8)) < 0.01 && Math.abs(sy.ratio - 1) < 0.03 && Math.max(...dd) < 1.5,
        'held exactly with no variation, the played model has OpenWAM\'s own order levels (orders 2, 4, 6 within ' + Math.max(...dd).toFixed(2) + ' dB) at the recording\'s loudness (' + sy.len.toFixed(2) + ' s of a ' + sy.hold.toFixed(2) + ' s hold, RMS ratio ' + sy.ratio.toFixed(3) + ')');
+    // jet noise at the tip: the diameter read back from the flow, the level against the pulses, the eighth-power law
+    const jt = await p.evaluate(() => { const R = window.__rec, L = R.REC.last, W = window.__wamIns().find(q => q.name === L.W);
+      const S = R.recSynth(W, L.hold, { cov: 0, wander: false, jet: true }), J = window.__jet;
+      const umax = Math.max(...W.jet.u.map(Math.abs));
+      return { d: W.jet.d, db: S.jetDb, fp: S.jetFp, umax, law: 10 * Math.log10(J.jetPower(80, 298.15, 0.06) / J.jetPower(40, 298.15, 0.06)) }; });
+    ok(Math.abs(jt.d * 1000 - 60.3) < 3, 'the tip diameter from the INS flow (mdot / rho u): ' + (jt.d * 1000).toFixed(1) + ' mm (the Outback model: 60.3)');
+    ok(Number.isFinite(jt.db) && jt.db < -10, 'jet noise at the 1980 rpm no-load hold, tip gas up to ' + jt.umax.toFixed(0) + ' m/s: ' + jt.db.toFixed(1) + ' dB against the pulses (slow gas: well below them)');
+    ok(Math.abs(jt.law - 24.1) < 0.6, 'jet power: twice the speed, ' + jt.law.toFixed(1) + ' dB (U^8: 24.1)');
     await p.click('button[data-rec="ab-check"]'); await p.waitForFunction(() => window.__rec.REC_AB.check, null, { timeout: 60000 }); await p.waitForTimeout(300);
     const C = await p.evaluate(() => window.__rec.REC_AB.check);
     ok(Math.abs(C.model - C.rec) < 9, 'with 2 % variation and the hold\'s own wander, the gaps between the orders: model ' + C.model.toFixed(1) + ' dB, recording ' + C.rec.toFixed(1) + ' dB');

@@ -60,5 +60,25 @@ pw, _ = RZ.realize(ins, rpm, nfire, seconds=8.0, fs=fs, cov=0.0, wander=RZ.rpm_w
 Lw, Fw = RZ.levels(pw, fs, rpm, win=1.0)
 ok(np.mean([Fw[k] for k in Fw if 6 <= k <= 12]) > np.mean([F0[k] for k in F0 if 6 <= k <= 12]) + 20, '1.2 % speed wander fills the gaps between the higher orders')
 ok(abs(np.mean(RZ.realize(ins, rpm, nfire, seconds=8.0, fs=fs, cov=0.04, ground=False)[0])) < 1e-3, 'the radiated pressure has no mean')
+# jet noise: Lighthill's U^8, the hot-jet density exponent, the spectrum's peak and the absolute level
+D = 0.0603
+d8 = 10 * np.log10(RZ.jet_power(80.0, 298.15, D) / RZ.jet_power(40.0, 298.15, D))
+ok(abs(d8 - 24.08) < 0.6, 'cold jet: twice the speed is %.1f dB louder (U^8: 24.1, with the small density term)' % d8)
+dh = 10 * np.log10(RZ.jet_power(60.0, 600.0, D) / RZ.jet_power(60.0, 298.15, D))
+ok(2.0 < dh < 3.2, 'a jet at about twice ambient temperature, 60 m/s: %.1f dB louder than cold (Hoch et al.: about 3)' % dh)
+ok(abs(RZ.jet_band_shape(1000.0, 1000.0) - 1.0) < 1e-9 and RZ.jet_band_shape(500.0, 1000.0) < 1 and RZ.jet_band_shape(2000.0, 1000.0) < 1, 'the band shape peaks, at 1, at fp')
+# a steady jet (constant U and T in the INS) through realize: level and peak as the formulas give
+tt = np.arange(0, 3 * T, 1.0 / 20000)
+ins_j = dict(ins); ins_j["u"] = [70.0] * len(ins["time"]); ins_j["T"] = [700.0] * len(ins["time"])
+pj, _, info = RZ.realize(ins_j, rpm, nfire, seconds=8.0, fs=44100, cov=0.0, r=2.0, ground=False, jet={"d_m": D})
+W0 = float(RZ.jet_power(70.0, 700.0, D)); want = math.sqrt(1.2 * 343.0 * W0 / (4 * math.pi * 4.0))
+ok(abs(20 * np.log10(info["jet_rms_Pa"] / want)) < 0.2, 'steady jet: %.4f Pa rms at 2 m against %.4f from the power law' % (info["jet_rms_Pa"], want))
+from scipy.signal import welch as _w
+fq, Pq = _w(pj, 44100, nperseg=8192)
+edges = 1000 * 2 ** (np.arange(-12, 10) / 3.0)
+bands = [Pq[(fq >= e / 2 ** (1 / 6.)) & (fq < e * 2 ** (1 / 6.))].sum() for e in edges]
+fpk = edges[int(np.argmax(bands))]
+ok(abs(np.log2(fpk / info["fp_Hz"])) <= 0.34, 'the jet noise peaks in the third octave at %.0f Hz (St 0.2 gives %.0f Hz)' % (fpk, info["fp_Hz"]))
+ok(abs(np.mean(pj)) < 1e-2 * np.std(pj), 'the jet noise has no mean')
 print('failures:', len(fails))
 sys.exit(1 if fails else 0)
