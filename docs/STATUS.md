@@ -708,6 +708,12 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   cut returns its TL to 0.3 dB: installed_ui.js); the designer can score that way too. Fusion add-in 4.14.0 builds the
   expansion chamber with extended tubes (templates.ext_chamber, act_chamber; mock-tested, live test pending the PC).
   Page V58.
+- Chamber to metal (2026-11-05): the Mufflers tab writes cut files for its chamber (shell wrap, end plates, baffles as
+  R12 DXF; tube list; a flat-oval case of the same inside area at a given height; reverse-flow plate with both tubes),
+  mufcut_ui.js; the OpenWAM line can carry the Mufflers tab's chamber in 1-D (open chamber at its bore, extended-tube
+  pockets as quarter-wave branches of the annulus area) instead of a 0-D volume, wamchamber_ui.js. Quick tab rounds
+  mid-band primaries down to the stock size unless the larger is within 3 % (Sanderson). Two-stroke header length in
+  diameters against Jennings. Page V59.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
