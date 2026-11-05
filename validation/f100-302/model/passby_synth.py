@@ -21,7 +21,9 @@ import make_wam      # noqa: E402
 import sweep as SW   # noqa: E402
 import wam_sound     # noqa: E402
 
-SPEEDS = ["ho_venom_plenum_x400_5000", "ho_venom_plenum_x400_5400", "ho_venom_plenum_x400_5800", "ho_venom_plenum_x400_6200"]
+# PRIM=900 in the environment uses the runs with 900 mm primaries (fit.py's best) instead of the 762 mm base
+TAG = "_p900" if os.environ.get("PRIM") == "900" else ""
+SPEEDS = ["ho_venom_plenum_x400%s_%d" % (TAG, r) for r in (5000, 5400, 5800, 6200)]
 FS = 44100
 
 
@@ -62,8 +64,8 @@ if __name__ == "__main__":
     eng_rpm = app(tt) / dop
     p_e, rp = SW.pull(runs, (tt, eng_rpm), T, fs=FS, jet=True)
     p_m, t_r, r_m = SW.passby(p_e, FS, v, d, t_close, ground=True)
-    wam_sound.write_wav(os.path.join(HERE, "passby_model.wav"), p_m, FS)
-    print("wrote passby_model.wav: %.1f s, engine %.0f-%.0f rpm, %.0f mph, closest %.0f m" % (len(p_m) / FS, eng_rpm.min(), eng_rpm.max(), v_mph, d))
+    wam_sound.write_wav(os.path.join(HERE, "passby_model%s.wav" % TAG), p_m, FS)
+    print("wrote passby_model%s.wav:" % TAG + " %.1f s, engine %.0f-%.0f rpm, %.0f mph, closest %.0f m" % (len(p_m) / FS, eng_rpm.min(), eng_rpm.max(), v_mph, d))
     # order levels in 0.4 s windows as the recording was read (the apparent rpm from the firing line itself)
     rec = json.load(open(os.path.join(HERE, "..", "recording_orders.json")))["pass2_pull_a"]
     O = np.arange(0.5, 12.01, 0.5)
