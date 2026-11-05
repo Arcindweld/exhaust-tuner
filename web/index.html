@@ -9285,7 +9285,9 @@ function calcQuick(p){
     if(sz.err) return {err:sz.err};
     const near=o=>o&&Math.abs(o.id-sz.id)/sz.id<=0.08?o:null;
     const lo=near(sz.lo), hi=near(sz.hi);
-    const choice=p.band==='low'?(lo||hi):p.band==='top'?(hi||lo):[lo,hi].filter(Boolean).sort((a,b)=>Math.abs(a.id-sz.id)-Math.abs(b.id-sz.id))[0];
+    // mid band: the nearer stock size, but the smaller one unless the larger is within 3 % of the formula's bore (Sanderson 2007, read
+    // for the page: a primary slightly small costs a little top end, one slightly large loses a lot of torque)
+    const choice=p.band==='low'?(lo||hi):p.band==='top'?(hi||lo):(lo&&hi?((hi.id-sz.id)/sz.id<=0.03?hi:lo):(lo||hi));
     const dp=choice?choice.id:Math.round(sz.id*2)/2, std=!!choice;
     const total=(850*(180+QUICK_EVO)/tune-3)*MM;
     if(!(total>0)) return {err:'That RPM is too high for the header formula. Check the peak power RPM.'};
@@ -16632,7 +16634,7 @@ function renderQuick(){
       (h.pipesEach>1?' Build one per cylinder.':''));
   } else if(h){
     const g=h.groups.map(x=>x.cyls.length+'-into-1').join(' and ');
-    L1.push('<b>Primaries:</b> '+cdim(h.dp)+' inside'+(h.std?' ('+tubIn(h.od)+' OD tube)':'')+(h.long?
+    L1.push('<b>Primaries:</b> '+cdim(h.dp)+' inside'+(h.std?' ('+tubIn(h.od)+' OD tube'+(h.sizeId>h.dp*1.01?', the stock size under the formula’s '+cdim(h.sizeId)+': a primary slightly small costs a little top end, one slightly large loses a lot of torque, Sanderson 2007':h.sizeId<h.dp*0.99?', the stock size over the formula’s '+cdim(h.sizeId):'')+')':'')+(h.long?
       ', all the same length. The formula asks for '+clen(h.formulaTube)+' to tune '+f0(h.formulaRpm)+' RPM, longer than most cars can fit. An EngineLabs article on exhaust design says primaries from 24 to 42 in change the power curve only a little, with longer ones helping the low end, so build them <b>as long as fits, up to about '+clen(h.tube)+'</b>, which tunes for about '+f0(r.tune)+' RPM.':
       ', each about <b>'+clen(h.tube)+'</b> from the head flange to the collector, all the same length. Tuned for about '+f0(r.tune)+' RPM, for '+BAND_TXT[p.band]+'.'));
     L1.push('<b>Collectors:</b> '+h.nColl+' ('+g+(h.triy?', Tri-Y: pairs join first, '+clen(h.segs[0].len)+' from the flange':'')+'), about <b>'+cdim(h.dc)+'</b> inside with '+clen(h.lay.cstraight)+' of straight after the merge.'+
