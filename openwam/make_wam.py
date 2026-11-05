@@ -166,6 +166,7 @@ EXTRA_DEFAULTS = {
     "ins_intake": 0,
 }
 
+HELM_END_CORR = 0.6133   # v13: Helmholtz neck end correction x neck diameter, as the page's HELM_END (Selamet)
 R_BURNT = 285.4     # Constantes.h:71 __R::Burnt, gas constant of the burnt gas in the simple species model
 
 
@@ -1205,6 +1206,12 @@ def model_from_spec(spec, run=None):
                 pk = bk + "/port"
                 bcs[pk] = {"type": "plenum", "plenum": len(plenums), "note": "%s side branch %d neck into the volume" % (role, side_num[gi])}
                 L, A = sd["L"], math.pi / 4.0 * sd["d"] * sd["d"]
+                # v13: the end correction. The written neck runs from a point junction to a 0-D volume, so the inertia of
+                # the air just outside each end is missing; the plane-wave model (the page's Mufflers tab) adds
+                # 0.6133 x the diameter to the length for it (Rienstra and Hirschberg, An Introduction to Acoustics,
+                # 4.4.3: L_eff = L + 2 delta, delta of the order of the radius), and so does this: the neck is written
+                # that much longer, same area, so its Helmholtz tuning matches the plane-wave model's
+                L = L + HELM_END_CORR * sd["d"]
                 Lmin_n = 2.0 * Lmin if sd.get("K") else Lmin     # v11: a neck with a loss is two halves of 3 cells or more
                 if L < Lmin_n:
                     A, L = A * Lmin_n / L, Lmin_n
