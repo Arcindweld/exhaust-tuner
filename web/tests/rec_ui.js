@@ -124,5 +124,14 @@ function wav(rpm, secs, sr) {
   });
   ok(Math.abs(pb.ratio / pb.want - 1) < 0.01, 'drive-past Doppler: approaching / receding ' + pb.ratio.toFixed(3) + ' (want ' + pb.want.toFixed(3) + ')');
   ok(Math.abs(pb.mid / 0.7071 - 1) < 0.05 && Math.abs(pb.end / (0.7071 * 5 / Math.sqrt(75 * 75 + 25)) - 1) < 0.1 && pb.fin, 'drive-past level: the hold level when the closest point arrives, 1/r after (' + pb.mid.toFixed(3) + ', ' + pb.end.toFixed(4) + ')');
+  // the pull: two synthetic runs (order-2 pulses), 2000 -> 4000 rpm over 4 s; the strongest line's frequency follows the rpm track
+  const pl = await p.evaluate(() => {
+    const N = 720, mk = (rpm, amp) => { const cyc = []; for (let i = 0; i < N; i++) cyc.push(0.05 + amp * Math.max(0, Math.sin(4 * 2 * Math.PI * i / N)) ** 3); return { rpm, cyc, jet: null }; };
+    const sr = 44100, P = window.__recPull([mk(2000, 0.02), mk(4000, 0.04)], 2000, 4000, 4, sr, {});
+    const peak = (a0) => { const n = 8192, X = new Float64Array(n); for (let i = 0; i < n; i++) X[i] = P.x[a0 + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / n)); let best = 0, bf = 0;
+      for (let k = 20; k < 400; k++) { const fk = k * sr / 65536; let re = 0, im = 0; for (let i = 0; i < n; i++) { re += X[i] * Math.cos(2 * Math.PI * fk * i / sr); im -= X[i] * Math.sin(2 * Math.PI * fk * i / sr); } const m = re * re + im * im; if (m > best) { best = m; bf = fk; } } return bf; };
+    return { fin: P.x.every(Number.isFinite), ratio: peak(sr * 3.3) / peak(sr * 0.5), want: (2000 + 2000 * 3.4 / 4) / (2000 + 2000 * 0.6 / 4) };
+  });
+  ok(pl.fin && Math.abs(pl.ratio / pl.want - 1) < 0.02, 'pull: the strongest line tracks the rpm (ratio ' + pl.ratio.toFixed(3) + ', want ' + pl.want.toFixed(3) + ')');
   console.log('failures:', fails.length); await b.close(); process.exit(fails.length ? 1 : 0);
 })();
