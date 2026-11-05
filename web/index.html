@@ -1640,6 +1640,10 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <label class="f"><span class="lab">Outlet tube extended into the chamber</span>
           <span class="inp"><input id="m-lout" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
         <span class="hint" style="grid-column:1/-1">Run the inlet and outlet pipes on into the chamber and the ring of space behind each becomes a closed quarter-wave pocket that fills the plain chamber’s pass-through notes. Munjal’s double-tuned chamber: inlet half the chamber length, outlet a quarter (the button in the results sets both). 0 is a plain chamber. In a reverse-flow chamber both tubes go in the same depth (the inlet figure) and the chamber length is from the end plate to the far wall.</span>
+        <label class="f adv"><span class="lab">Case for the cut files</span>
+          <span class="inp"><select id="m-case"><option value="round" selected>Round, the chamber diameter</option><option value="oval">Flat oval of the same area, this tall</option></select></span></label>
+        <label class="f adv"><span class="lab">Oval case height, outside</span>
+          <span class="inp"><input id="m-caseh" type="number" step="any" inputmode="decimal" data-kind="len" data-base="101.6"><em data-u="len">in</em></span></label>
       </div>
       <div class="grp adv">Packed straight-through can, in the chamber shell above</div>
       <div class="grid2 adv">
@@ -2113,6 +2117,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <li><b>Exhaust in the valley.</b> Heads turned so the ports face into the V, as on factory hot-V turbo engines or the backwards LS built with Gen 5 LT heads (<a href="https://www.lsxmag.com/news/backwards-ls-hot-v-build-nivlac57-flips-the-ls-engine/" target="_blank" rel="noopener">LSX Mag</a>, <a href="https://www.motorbiscuit.com/watch-this-youtuber-flow-an-ls-engine-backwards-to-create-the-ultimate-hot-v-monster/" target="_blank" rel="noopener">MotorBiscuit</a>), change where the runners start, not when each cylinder fires, so each bank’s pulses and tones stay the same.</li>
       <li><b>Oval and flat-oval tube.</b> A flat oval’s area and perimeter are exact; an ellipse uses Ramanujan’s perimeter approximation (<a href="https://en.wikipedia.org/wiki/Ellipse#Circumference" target="_blank" rel="noopener">Wikipedia</a>). Flow and wave calculations use the round tube with the same area, and friction uses the hydraulic diameter, 4 × area ÷ perimeter. Bending stiffness is worked out about both axes. Shell (ovaling) frequencies of oval and flat-oval tube come from a small finite-element ring model, checked against the thin-ring formula for round tube.</li>
       <li><b>Pipes made of sections.</b> Each section is a lossless plane-wave transfer matrix with its own area and gas temperature. The resonances are where the pipe responds most between its closed end (valve or turbine) and the open tip, with a 0.6133 × radius end correction at the tip; one uniform section gives the same answer as the quarter-wave formula. Mean flow and wall losses are left out, so real peaks sit a little lower and broader. <b>How tall the peaks are.</b> Each mode now carries its peak height and half-power width from the two losses a lossless chain leaves out: the open tip’s radiation, with the reflection magnitude from Levine and Schwinger’s solution as fitted by Davies (1996, data sheet 3: R₀ = 1 + 0.01336 ka − 0.59079 (ka)² + 0.33576 (ka)³ − 0.06432 (ka)⁴, to ka 1.5; the scan’s last two coefficients are misprinted and the Davies 1988 / Peters 1993 values are used), and the wall’s viscothermal damping α = (1 ÷ ac) √(ων ÷ 2) (1 + (γ − 1) ÷ √Pr) per metre (Rienstra and Hirschberg, <i>An Introduction to Acoustics</i>, 4.5.3 and 5.2.2). The round-trip loss δ = 2 Σ αᵢLᵢ + (1 − R₀) gives the amplification 1 ÷ δ (R&amp;H eq. 5.33 for the wall part) and the half-power width δc ÷ 2πL. Radiation grows as f², wall loss as √f, so the low modes stand tall and narrow and the high ones low and broad; the figures are upper bounds because the engine, the flow and any muffler damp further.</li>
+      <li><b>Muffler cut files.</b> The Mufflers tab turns the chamber above into sheet-metal parts: the shell wrap (the inside perimeter at the middle of the wall, by the chamber length plus two plates, for a butt seam), the two end plates and any baffles as a DXF in millimetres on one CUT layer, each plate 0.3 mm under the inside size to slip in, the holes the pipe OD + 0.5 mm, and a tube list with 2 in stubs. A flat-oval case is drawn with the same inside area as the round chamber the tab modelled, at the height you give (W = H + (A − πH² ÷ 4) ÷ H), so the volume built is the volume calculated; a reverse-flow chamber puts both tubes in one plate at OD + 12 mm centres and leaves the far plate blank. The same R12 DXF the hanger and merge-collector files use.</li>
       <li><b>Installed attenuation.</b> Davies (<i>Piping system design for low noise</i>, 1996, C.3–C.5 and 2.4) argues that transmission loss between long anechoic pipes “neglects acoustic interaction with other system elements, so is hardly relevant for intake or exhaust design assessments”: what matters is the element with the real tailpipe behind it and the real open end, worked from the termination back. The Mufflers chart has that as a second mode: the tip reflects with Levine and Schwinger’s magnitude and end correction (Davies’ fits), the tailpipe and the element’s transfer matrix carry pressure and volume velocity back to the element’s inlet, and the curve is the fall in the incident wave from inlet to tip. A bare tailpipe gives 0 dB everywhere, a half-wave chamber is transparent, and averaged over tailpipe lengths the installed cut at a chamber’s peak comes back to its transmission loss (9.2 against 9.4 dB in the test); for any one tailpipe the curve swings either side of that, below zero where pipe and element resonate together, which is Davies’ point.</li>
       <li><b>Real peak of a side branch.</b> The lossless Helmholtz and J-pipe curves peak at the chart’s cap; the Mufflers tab now also gives the peak at the tuned note for a stated tone level in the pipe, from the quadratic edge loss of the neck or mouth (Rienstra and Hirschberg, <i>An Introduction to Acoustics</i>, 8.3, eqs. 8.24–8.33: a drop of K ρ u|u| ÷ 2 across the opening is, for the first harmonic, a resistance (4K ÷ 3π) ρ u, so at resonance the branch is that resistance alone and the neck velocity solves a quadratic in the incident pressure). With K 2.8 (sharp) and a 150 dB tone a typical can peaks near 20 dB and a J-pipe a little higher; at 130 dB both approach the lossless figure. Neck wall friction is left out. The same K is what the OpenWAM line puts on its loss elements.</li>
       <li><b>Books read in full, November 2026.</b> Munjal, <i>Acoustics of Ducts and Mufflers</i> (1987; the extended-tube, reverse-flow and plug elements above, the junction losses of 8.3, the perforate impedances of 3.9); Rienstra and Hirschberg, <i>An Introduction to Acoustics</i> (the wall damping, the grazing-flow whistle of 5.6, the amplitude-dependent neck loss of 8.3 noted for later); Morse and Ingard, <i>Theoretical Acoustics</i> (the chain-of-chambers filter of 9.1, the (1 − M²) flow shift of 11.1, Strouhal shedding of 11.3); Davies, <i>Piping system design for low noise</i> (1996; the open-end reflection fit, the chamber-against-tailpipe rule, his two case studies’ back-pressure numbers); Calton and Sommerfeldt (2017; Ji’s side-branch end correction); Bönnen et al. in <i>Automotive NVH Technology</i> (valve numbers); Bell, <i>Maximum Boost</i> (charge pipes, intercoolers, turbine-inlet pressure); MacInnes, <i>Turbochargers</i>; Vizard, <i>How to Modify Ford SOHC Engines</i> (filters, Tri-Y against 4-1 by cam); Lawlor and Hancock, <i>Auto Math Handbook</i>; Engelman 1973 in the original; Norbye, <i>The Wankel Engine</i> (rotary exhaust duty and temperatures); Howe, Hamilton and Blackstock, Crighton, Kolbrek and Rucz (theses), the Perth College bellmouth thesis (Blair and Cahoon’s Cd fit), the Singh FSAE thesis, and the Samara jet-splitting paper. What each gave the page is cited where it is used; what was read and not used is in docs/research/duct_acoustics_check.md and the reader reports behind it. Smith and Morrison’s <i>Scientific Design of Exhaust and Intake Systems</i> is still unread: the file under that name is Smith and Wenner.</li>
@@ -13437,6 +13442,65 @@ document.addEventListener('change',e=>{ const el=e.target;
 // the Mufflers tab's own inputs, as renderMuf reads them (for the designer's button)
 function mufP(){ const bore=boreOf('m-dp-shape'); if(bore.err) return null; return {f:val('m-f'),dpipe:bore.Deq,tmain:val('m-tmain')}; }
 window.__md={MD,mdSearch,mdInputs,mufP,calcChamber,sec:insideSection};
+/* ===== Muffler cut files: the shell wrap, the end plates and the baffles of the chamber above as DXF (R12, mm, CUT layer),
+   plus the tube list. The acoustics use a round chamber of the given bore; a flat-oval case is drawn with the same inside
+   area at the height asked for (W = H + (A - pi H^2 / 4) / H), so the model's volume is the built one's. The wrap is a
+   rectangle, the inside perimeter at the middle of the wall by the chamber length plus two plate thicknesses, for a butt
+   seam; the end plates sit inside the wrap (0.3 mm under the inside size); a straight-through chamber has one hole in
+   each plate, a reverse-flow one both holes in one plate (centres the pipe OD plus 12 mm apart) and the other blank;
+   each baffle is a plate with its hole centred. Holes are the pipe's OD plus 0.5 mm. */
+function mufCutPlan(p){
+  const dp=p.dpipe, bw=val('m-bw')>0?val('m-bw'):1.651, od=dp+2*bw, cw=val('m-cw')>0?val('m-cw'):1.519, dch=p.dch, lch=p.lch;
+  if(!(dch>od+6&&lch>0&&dp>0)) return {err:'The chamber has to be wider than the pipe (plus its wall), with a length.'};
+  const rev=$('m-chlay')&&$('m-chlay').value==='reverse', oval=$('m-case')&&$('m-case').value==='oval';
+  const A=Math.PI/4*dch*dch; let W=dch, H=dch;                                   // inside sizes of the case
+  if(oval){ H=(val('m-caseh')>0?val('m-caseh'):101.6)-2*cw; if(!(H>od+6)) return {err:'The oval case is too flat for the pipe: make it taller.'};
+    W=H+(A-Math.PI*H*H/4)/H; if(W<H) return {err:'A flat oval this tall holds the chamber’s area as a circle: pick a lower height or the round case.'}; }
+  const la=Math.max(0,val('m-lin')||0), lb=rev?la:Math.max(0,val('m-lout')||0), stub=50.8, hole=od+0.5, fit=0.3;
+  const sp=od+12;                                                                // reverse flow: the two tubes' centre spacing
+  if(rev&&(sp+od>W-2)) return {err:'The two tubes side by side do not fit across the case: a wider case or a smaller pipe.'};
+  const nb=Math.max(0,Math.round(val('m-nbaf')||0)), bh=val('m-bh')>0?val('m-bh'):dp;
+  const perim=oval?(2*(W-H)+Math.PI*H):Math.PI*dch, wrap={w:perim+Math.PI*cw,h:lch+2*cw};   // mid-wall perimeter
+  const plates=[]; const stad=(w,h)=>({w:w-fit,h:h-fit});
+  if(rev){ plates.push({name:'Pipe end plate',holes:[[-sp/2,0,hole],[sp/2,0,hole]]}); plates.push({name:'Far end plate',holes:[]}); }
+  else { plates.push({name:'Inlet end plate',holes:[[0,0,hole]]}); plates.push({name:'Outlet end plate',holes:[[0,0,hole]]}); }
+  for(let i=1;i<=nb;i++) plates.push({name:'Baffle '+i,holes:[[0,0,bh]]});
+  plates.forEach(q=>Object.assign(q,stad(W,H)));
+  const tubes=rev?[{name:'Inlet tube',L:stub+cw+la},{name:'Outlet tube',L:stub+cw+la}]:[{name:'Inlet tube',L:stub+cw+la},{name:'Outlet tube',L:stub+cw+lb}];
+  return {oval,W,H,cw,od,wrap,plates,tubes,rev,nb,bh,sp,la,lb,stub,Win:W,Hin:H};
+}
+function mufCutDxf(plan){
+  const out=['0','SECTION','2','HEADER','9','$ACADVER','1','AC1009','9','$INSUNITS','70','4','9','$MEASUREMENT','70','1','0','ENDSEC','0','SECTION','2','ENTITIES'];
+  const f=v=>(Math.abs(v)<1e-9?0:v).toFixed(4), L=(a,b)=>out.push('0','LINE','8','CUT','10',f(a[0]),'20',f(a[1]),'30','0','11',f(b[0]),'21',f(b[1]),'31','0');
+  const C=(c,r)=>out.push('0','CIRCLE','8','CUT','10',f(c[0]),'20',f(c[1]),'30','0','40',f(r));
+  const Arc=(c,r,a0,a1)=>out.push('0','ARC','8','CUT','10',f(c[0]),'20',f(c[1]),'30','0','40',f(r),'50',f(a0),'51',f(a1));
+  const stadium=(cx,cy,w,h)=>{ if(Math.abs(w-h)<1e-6){ C([cx,cy],w/2); return; } const fl=(w-h)/2, r=h/2;
+    L([cx-fl,cy-r],[cx+fl,cy-r]); Arc([cx+fl,cy],r,270,90); L([cx+fl,cy+r],[cx-fl,cy+r]); Arc([cx-fl,cy],r,90,270); };
+  let x=0; const gap=15;
+  // the wrap
+  L([x,0],[x+plan.wrap.w,0]); L([x+plan.wrap.w,0],[x+plan.wrap.w,plan.wrap.h]); L([x+plan.wrap.w,plan.wrap.h],[x,plan.wrap.h]); L([x,plan.wrap.h],[x,0]); x+=plan.wrap.w+gap;
+  for(const q of plan.plates){ const cx=x+q.w/2, cy=q.h/2; stadium(cx,cy,q.w,q.h); q.holes.forEach(h=>C([cx+h[0],cy+h[1]],h[2]/2)); x+=q.w+gap; }
+  out.push('0','ENDSEC','0','EOF'); return out.join('\r\n')+'\r\n';
+}
+window.__mufCut={plan:mufCutPlan,dxf:mufCutDxf};
+function mufCutSection(p){
+  const pl=mufCutPlan(p);
+  if(pl.err) return sec('Cut files for this chamber','<div class="note">'+esc(pl.err)+'</div>');
+  const row=(a,b,c)=>'<tr><td>'+a+'</td><td>'+b+'</td><td>'+(c||'')+'</td></tr>';
+  let h='<div class="tblwrap"><table><thead><tr><th>Part</th><th>Size</th><th>Holes</th></tr></thead><tbody>'+
+    row('Shell wrap, '+cdim(pl.cw)+' sheet',clen(pl.wrap.w)+' × '+clen(pl.wrap.h),'rolled to '+(pl.oval?'a flat oval '+cdim(pl.W+2*pl.cw)+' × '+cdim(pl.H+2*pl.cw)+' outside':cdim(p.dch+2*pl.cw)+' outside')+', butt seam')+
+    pl.plates.map(q=>row(q.name+', '+cdim(pl.cw)+' sheet',(pl.oval?clen(q.w)+' × '+clen(q.h)+' flat oval':cdim(q.w)+' round'),q.holes.length?q.holes.map(hh=>cdim(hh[2])).join(', ')+(q.holes.length>1?' at '+clen(pl.sp)+' centres':''):'none')).join('')+
+    pl.tubes.map(t=>row(t.name+', '+cdim(pl.od)+' OD tube',clen(t.L)+' long',clen(pl.stub)+' stub outside the plate')).join('')+'</tbody></table></div>'+
+    '<div class="actions"><button type="button" class="btn" id="m-cut-dxf">Save the cut files (DXF)</button></div><p class="cap" id="m-cut-msg"></p>'+
+    '<p class="cap">One DXF in millimetres, everything on the CUT layer: the wrap (the inside perimeter at the middle of the wall, for a butt seam), then the end plates and baffles side by side, each '+clen(0.3)+' under the inside size to slip in, holes the pipe OD + '+clen(0.5)+'. '+
+    (pl.oval?'The flat oval keeps the chamber’s inside area, so what the tab works out is what you build. ':'')+(pl.rev?'Reverse flow: both tubes in one plate, the far plate blank; the gussets round the outlet are yours to add. ':'')+'Tube lengths count the stub, the plate and the run inside; trim to suit the slip joints.</p>';
+  return sec('Cut files for this chamber',h);
+}
+document.addEventListener('click',e=>{ if(!e.target.closest('#m-cut-dxf')) return; const sp=mufP(); if(!sp) return;
+  const p={dpipe:sp.dpipe,dch:val('m-dch'),lch:val('m-lch')}, pl=mufCutPlan(p), say=t=>{ const m=$('m-cut-msg'); if(m) m.textContent=t; };
+  if(pl.err){ say(pl.err); return; }
+  const name='muffler_chamber_'+Math.round(p.dch)+'x'+Math.round(p.lch)+'_'+(pl.rev?'reverse':'through')+'_mm.dxf';
+  saveTextFile(name,mufCutDxf(pl),'application/dxf',say); });
 function mtSection(p){
   let h='<p class="cap" style="margin-top:0">The same test for three kinds of muffler, from US 5,824,972 (Boyd Butler, 1997), the patent that describes the spiral sound trap in a Spintech: with a 2½ in inlet and outlet and 5 in of water across it, a chambered (baffle) muffler takes 13 to 20 dBA off and passes 70 to 100 CFM, a packed straight-through 2 to 7 dBA at about 200 CFM, and the spiral traps 8 to 15 dBA at about 175 CFM. A spiral trap is a wall bent a little over one turn, standing across the case; part of the flow swirls inside it and is drawn out of vents in its back by the faster flow past it, so it quiets without the flow turning back on itself as it does through baffles, and with no packing to burn out.</p>';
   let sp=null; try{ sp=soundParams(); }catch(e){}
@@ -13834,6 +13898,7 @@ function renderMuf(){
     '<dt>Packing</dt><dd>Denser packing quiets the mid and high range more but slightly less at the very bottom, and a more open perforated core (20% against 5%) helps the high range. Packing that settles unevenly or fills with soot changes the attenuation by several dB, which is why a repack restores a tired silencer (<a href="https://doi.org/10.1016/j.mcm.2012.01.021" target="_blank" rel="noopener">Antebas et al. 2013</a>).</dd>'+
     '<dt>Shell noise</dt><dd>The shell itself radiates sound. Faurecia found that 1.0 mm shell sheet rings higher and quieter than 0.8 mm, and a two-layer skin damps it further; ribs and dimples stiffen a flat side (<a href="https://doi.org/10.1007/978-3-319-24055-8_6" target="_blank" rel="noopener">Bönnen et al. 2016</a>).</dd></dl>');
   html+=mdSection(p);
+  html+=mufCutSection(p);
   html+=mtSection(p);
   html+=ttSection(p);
   html+=augSection(p);
