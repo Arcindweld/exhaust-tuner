@@ -137,7 +137,12 @@ CASES = {"ho_box_5000": ("ho", "box", 5000.0), "ho_box_5800": ("ho", "box", 5800
          "std_venom_plenum_x400_5800": ("std", "venom", 5800.0, 600, True, 400),
          # the speeds a pull is put together from (sound/sweep.py), with ho_venom_plenum_x400_5000 and _5800
          "ho_venom_plenum_x400_5400": ("ho", "venom", 5400.0, 600, True, 400),
-         "ho_venom_plenum_x400_6200": ("ho", "venom", 6200.0, 600, True, 400)}
+         "ho_venom_plenum_x400_6200": ("ho", "venom", 6200.0, 600, True, 400),
+         # the same four speeds with 900 mm primaries, the fit's best (fit.py: 860-960 mm beat 762 by half a decibel)
+         "ho_venom_plenum_x400_p900_5000": ("ho", "venom", 5000.0, 600, True, 400, 900),
+         "ho_venom_plenum_x400_p900_5400": ("ho", "venom", 5400.0, 600, True, 400, 900),
+         "ho_venom_plenum_x400_p900_5800": ("ho", "venom", 5800.0, 600, True, 400, 900),
+         "ho_venom_plenum_x400_p900_6200": ("ho", "venom", 6200.0, 600, True, 400, 900)}
 
 
 def run_settings(rpm, cycles, name):
