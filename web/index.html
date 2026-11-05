@@ -17413,8 +17413,12 @@ function uelLayoutSpec(q,sp,eq){
 }
 function wamSource(q,sp){
   const H=HDR_LAST;
-  if(WAM_UI.src!=='four'&&H&&H.uel){ const s=uelWamSpec(q,sp); if(s) return s; }
-  return {spec:sp,run:{},uel:null};
+  let out=null;
+  if(WAM_UI.src!=='four'&&H&&H.uel){ const s=uelWamSpec(q,sp); if(s) out=s; }
+  if(!out) out={spec:sp,run:{},uel:null};
+  // the open ends' flow for the sound reading: the exhaust outlet always, and the intake's mouth when asked (make_wam v12)
+  if(WAM_UI.insMouth){ out.run=Object.assign({ins_outlet:1,ins_cycles:2},out.run,{ins_outlet:1,ins_intake:1}); }
+  return out;
 }
 // "Header to simulate": the wave simulation and the OpenWAM case share the choice (WAM_UI.src)
 function hdrSrcSelect(H,useH,id){
@@ -17489,7 +17493,8 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wam
   const job=v.need.filter(q=>q.cut>0); if(!job.length) return;
   MD.f0=Math.round(Math.min(...job.map(q=>q.f))*0.95); MD.f1=Math.round(Math.max(...job.map(q=>q.f))*1.05); MD.tl=Math.ceil(Math.max(...job.map(q=>q.cut))); MD.inst=true; MD.res=null; MD.key='';
   location.hash='mufflers'; renderActive(); setTimeout(()=>{ const el=$('md-run'); if(el) el.scrollIntoView({block:'center'}); },50); });
-document.addEventListener('change',e=>{ const id=e.target&&e.target.id; if(id==='wam-lv-r'||id==='wam-lv-t'){ const v=parseFloat(e.target.value); if(id==='wam-lv-r') WAM_LEVEL.r_ft=Number.isFinite(v)&&v>=3?v:50; else WAM_LEVEL.target=Number.isFinite(v)&&v>0?v:null; renderActive(); return; }
+document.addEventListener('change',e=>{ const id=e.target&&e.target.id; if(id==='wam-insmouth'){ WAM_UI.insMouth=e.target.value==='1'; renderActive(); return; }
+  if(id==='wam-lv-r'||id==='wam-lv-t'){ const v=parseFloat(e.target.value); if(id==='wam-lv-r') WAM_LEVEL.r_ft=Number.isFinite(v)&&v>=3?v:50; else WAM_LEVEL.target=Number.isFinite(v)&&v>0?v:null; renderActive(); return; }
   if(id!=='wam-mic'&&id!=='wam-mic-sep'&&id!=='wam-mic-r') return;
   if(id==='wam-mic') WAM_MIC.layout=e.target.value; else { const v=parseFloat(e.target.value); if(Number.isFinite(v)&&v>=(id==='wam-mic-r'?0.1:0)) WAM_MIC[id==='wam-mic-r'?'r':'sep']=v; }
   if(WAM_UI.insFiles&&WAM_UI.insFiles.length) wamReadIns(WAM_UI.insFiles); else renderActive(); });
@@ -17501,7 +17506,10 @@ function wamReadIns(list){
     const nm=f.name.replace(/INS\.DAT$/i,''), m=nm.match(/_(\d{3,5})$/);
     try{ const rpm=m?+m[1]:NaN, X=wamMore(t,mdl,rpm), ins=X.ins;
       const o24=wamInsOrders(ins,24,X.more,rpm);
-      out.push(Object.assign({name:nm,rpm,exits:X.exits},wamInsOrders(ins,12,X.more,rpm),{db24:o24.db,spl24:o24.spl1})); }
+      out.push(Object.assign({name:nm,rpm,exits:X.exits},wamInsOrders(ins,12,X.more,rpm),{db24:o24.db,spl24:o24.spl1}));
+      // the intake's mouth, when the run recorded it (ins_intake = 1): its own column, the same monopole arithmetic
+      if(mdl){ try{ const im=WAMX.readIns(t,{keepCycles:2,model:mdl,intake:true}), i24=wamInsOrders(im,24,[],rpm);
+        out.push(Object.assign({name:nm+' intake mouth',rpm,exits:1,intake:true},wamInsOrders(im,12,[],rpm),{db24:i24.db,spl24:i24.spl1})); }catch(e){} } }
     catch(e){ out.push({name:f.name,err:e.message}); } }))).then(()=>{ out.sort((a,b)=>(a.rpm||0)-(b.rpm||0)); WAM_UI.ins=out; renderActive(); });
 }
 // the run's level at the roadside from its order levels: each half order's A-weighted level at distance r (m) with a hard
@@ -17515,7 +17523,7 @@ function wamLevels(x,rFt,target){
   // the tip's jet (realism.py's Lighthill law on the run's own gas speed): its mean power as a broadband floor at the roadside,
   // A-weighted at its spectrum's peak St 0.2 U / d
   let jet=null;
-  if(x.jet&&x.jet.u&&x.jet.u.length){ const N=x.jet.u.length, wj=x.jet.u.map((U,i)=>jetPower(U,x.jet.T[i],x.jet.d)), W=wj.reduce((a,b)=>a+b,0)/N;
+  if(!x.intake&&x.jet&&x.jet.u&&x.jet.u.length){ const N=x.jet.u.length, wj=x.jet.u.map((U,i)=>jetPower(U,x.jet.T[i],x.jet.d)), W=wj.reduce((a,b)=>a+b,0)/N;
     const Ue=Math.pow(x.jet.u.reduce((a,U)=>a+Math.pow(Math.abs(U),8),0)/N,1/8), fp=JET_ST*Ue/x.jet.d;
     if(W>0){ const L=10*Math.log10(1.2*343*W/(4*Math.PI*r*r)/(20e-6)**2)+6; jet={W,fp,L,La:L+aWeight(fp)}; } }
   const tot=10*Math.log10(rows.reduce((a,q)=>a+Math.pow(10,q.La/10),0)+(jet?Math.pow(10,jet.La/10):0)), totZ=10*Math.log10(rows.reduce((a,q)=>a+Math.pow(10,q.L/10),0)+(jet?Math.pow(10,jet.L/10):0));
@@ -17541,7 +17549,7 @@ function wamInsTable(R){
     (M.layout==='side'?'<label class="f"><span class="lab">Exits apart (far exit this much farther)</span><span class="inp"><input id="wam-mic-sep" type="number" step="0.1" min="0" inputmode="decimal" value="'+M.sep+'"><em>m</em></span></label><label class="f"><span class="lab">Microphone to the near exit</span><span class="inp"><input id="wam-mic-r" type="number" step="0.1" min="0.1" inputmode="decimal" value="'+M.r+'"><em>m</em></span></label>':'')+'</div>':'';
   const lvUi=anyLv?'<div class="grid2" style="max-width:640px"><label class="f"><span class="lab">Roadside microphone</span><span class="inp"><input id="wam-lv-r" type="number" step="5" min="3" inputmode="decimal" value="'+WAM_LEVEL.r_ft+'"><em>ft</em></span></label>'+
     '<label class="f"><span class="lab">Quiet target there, blank for none</span><span class="inp"><input id="wam-lv-t" type="number" step="1" min="40" max="130" inputmode="decimal" value="'+(WAM_LEVEL.target||'')+'"><em>dB(A)</em></span></label></div>':'';
-  return h+micUi+lvUi+'<div class="tblwrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div><p class="cap">'+(anyLv?'Level: the open end as a monopole on a hard ground (+6 dB), the orders’ A-weighted levels summed, plus the tip’s jet as a broadband floor from its mean power (Lighthill on the run’s own gas speed, as the Listen model) where the file carries the gas speed; no directivity, no walls or trees, and whatever the line above carries is all the muffling there is, so read it as the order content and the ceiling, not a meter reading. The quiet target follows Davies (1996): the N orders within 15 dB of the loudest brought to the target less 10 log N each, and the table says which orders must fall and by how much, which is the muffler’s job list for the Mufflers tab. ':'')+(dual?'Exits heard: all '+Math.max(...ok.map(x=>x.exits))+', their flows added at the microphone '+(M.layout==='side'?'with the far one '+M.sep+' m farther ('+(M.r/(M.r+M.sep)).toFixed(2)+' of its level, arriving later), so they reinforce some orders and cancel others':'in step (equally far)')+'; the exits are told from the plenum ports by the model this tab writes now, so load files made from the tab as it is. ':'Outlet read: the last open end in each file (duct '+ok.map(x=>x.pipe).join(', ')+'); with several collectors that is the last one. ')+' A settled run repeats within a few percent from one cycle to the next. Single orders in a dip move with the cell size (see Method), so compare the pattern between cases.</p>';
+  return h+micUi+lvUi+'<div class="tblwrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div><p class="cap">'+(anyLv?'Level: the open end as a monopole on a hard ground (+6 dB), the orders’ A-weighted levels summed, plus the tip’s jet as a broadband floor from its mean power (Lighthill on the run’s own gas speed, as the Listen model) where the file carries the gas speed; no directivity, no walls or trees, and whatever the line above carries is all the muffling there is, so read it as the order content and the ceiling, not a meter reading. An “intake mouth” column is the intake’s open end read the same way (the case was written with the mouth recorded): what the airbox or trumpets put out, before any filter or box the model does not carry. The quiet target follows Davies (1996): the N orders within 15 dB of the loudest brought to the target less 10 log N each, and the table says which orders must fall and by how much, which is the muffler’s job list for the Mufflers tab. ':'')+(dual?'Exits heard: all '+Math.max(...ok.map(x=>x.exits))+', their flows added at the microphone '+(M.layout==='side'?'with the far one '+M.sep+' m farther ('+(M.r/(M.r+M.sep)).toFixed(2)+' of its level, arriving later), so they reinforce some orders and cancel others':'in step (equally far)')+'; the exits are told from the plenum ports by the model this tab writes now, so load files made from the tab as it is. ':'Outlet read: the last open end in each file (duct '+ok.map(x=>x.pipe).join(', ')+'); with several collectors that is the last one. ')+' A settled run repeats within a few percent from one cycle to the next. Single orders in a dip move with the cell size (see Method), so compare the pattern between cases.</p>';
 }
 $('h-uel-wrap').addEventListener('input',e=>{   // runs before the form's own handler, so the render sees the edit
   const el=e.target; if(!el.classList||!el.classList.contains('uelx')) return;
@@ -17558,7 +17566,7 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#h-uel-pair')) retu
   if(pl.err) return; Object.assign(HUEL.c,pl.set); renderActive(); });
 
 /* ===== OpenWAM: a full 1-D case for the free OpenWAM 2.2 solver, several engine speeds, run with a .bat ===== */
-const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[],
+const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[],insMouth:false,
   line:{on:false,L:2500,d:76.2,muf:0,mufKind:'volume',tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38,par:'none',px:1500,xo:'none'},
   loss:{K:0,Ky:0,src:''},
   prof:{in:null,ex:null,angle:'crank',lift:'valve',rr:1.7,err:''}};   // measured lift profiles (make_wam v9)   // merge losses (make_wam v8): the collector's and the Tri-Y merges' K, from the exhaust CFD   // the line after the collector (mm, litres)
@@ -17828,7 +17836,8 @@ function wamSection(q,sp){
       '<p class="cap">Torque and power are indicated net (pumping included, friction not), so they read above a dyno; use them to rank designs. VE delivered is the air that passed the intake valves against the swept volume at 25 °C and 1.013 bar; VE trapped is what stayed for combustion. Run the same speeds for each header you compare and keep the cycles equal.</p>';
   }
   h+='<p class="sub" style="margin-top:14px">Order spectrum of the outflow</p><p class="cap">Pick <b>NAMEINS.DAT</b> files from an unequal-length case (those cases ask OpenWAM for the open-end flow; an equal-length case from this tab does not, and is reported as such). For each file the last complete 720° cycle of the mass flow out of the last open end in the file is resampled to 1° steps and split into engine orders; each order’s level is its harmonic of d(ṁ)/dt, the sound source of a small open pipe end (a compact monopole, the method of the project’s wam_sound.py), in dB against the strongest order; the energy share is that of the half orders among orders 0.5 to 6. Half orders (0.5, 1.5, 2.5 …) repeat once per two crank turns, so they exist only when the cylinders’ pulses differ from one another. Relative levels only: no microphone distance, ground or directivity, and no muffler or pipe past the collector unless the case had one.</p>'+
-    '<label class="f"><span class="lab">INS.DAT files</span><span class="inp"><input type="file" id="wam-ins" multiple accept=".dat,.DAT,text/plain"></span></label>';
+    '<label class="f"><span class="lab">INS.DAT files</span><span class="inp"><input type="file" id="wam-ins" multiple accept=".dat,.DAT,text/plain"></span></label>'+
+    '<label class="f"><span class="lab">Record the intake’s mouth too</span><span class="inp"><select id="wam-insmouth"><option value="0"'+(WAM_UI.insMouth?'':' selected')+'>No: the exhaust outlet only</option><option value="1"'+(WAM_UI.insMouth?' selected':'')+'>Yes: the case writes the intake’s open end as well (its own column here)</option></select></span></label>';
   if(WAM_UI.ins.length) h+=wamInsTable(WAM_UI.ins);
   return sec('Run it in OpenWAM',h);
 }
