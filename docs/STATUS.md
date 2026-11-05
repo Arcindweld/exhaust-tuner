@@ -714,6 +714,10 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   pockets as quarter-wave branches of the annulus area) instead of a 0-D volume, wamchamber_ui.js. Quick tab rounds
   mid-band primaries down to the stock size unless the larger is within 3 % (Sanderson). Two-stroke header length in
   diameters against Jennings. Page V59.
+- Roadside level and quiet target (2026-11-05): the 4-Stroke tab's INS table gives each run's absolute level at a
+  roadside distance (monopole, 1/r, hard ground +6, A-weighted, summed; to 0.4 dB of wam_sound.py per order) and,
+  with a target dB(A), Davies' per-order cuts (N orders within 15 dB of the loudest to L_T - 10 log N). wamlevel_ui.js
+  (uses the kept F-100 p900 run; dualexit_ui.js moved to it). Page V60.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
