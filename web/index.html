@@ -13272,6 +13272,9 @@ function mdSearch(q){
       if(q.kinds!=='packed'){
         const ch=calcChamber({dpipe:q.dpipe,dch:D,lch:L,tmain:q.tC});
         if(!ch.err){ const t=fs.map(ch.tl); out.push({kind:'chamber',D,L,vol,tl:t,min:Math.min(...t)}); }
+        // Munjal's double-tuned chamber: the same shell with the inlet run in L/2 and the outlet L/4 (the pockets fill the troughs)
+        const ex=calcChamber({dpipe:q.dpipe,dch:D,lch:L,tmain:q.tC,lin:L/2,lout:L/4});
+        if(!ex.err){ const t=fs.map(ex.tl); out.push({kind:'exttube',D,L,vol,lin:L/2,lout:L/4,tl:t,min:Math.min(...t)}); }
       }
       if(q.kinds!=='chamber') for(const rho of [80,100,130]) for(const por of [10,20]){
         const ab=calcAbsorb({dpipe:q.dpipe,dsh:D,len:L,dh:q.dh,tw:q.tw,rho,sigma:por/100,tC:q.tC,M:val('m-mach')});
@@ -13282,14 +13285,14 @@ function mdSearch(q){
   }
   const ok=out.filter(d=>d.min>=q.tl).sort((a,b)=>a.vol-b.vol||b.min-a.min);
   const best=[];
-  for(const d of ok){ if(best.length>=6) break; if(!best.some(b=>b.kind===d.kind&&b.D===d.D&&b.L===d.L)) best.push(d); }
+  for(const d of ok){ if(best.length>=8) break; if(!best.some(b=>b.kind===d.kind&&b.D===d.D&&b.L===d.L)) best.push(d); }
   const closest=ok.length?null:out.sort((a,b)=>b.min-a.min)[0]||null;
   return {fs,best,closest,tried:out.length};
 }
 function mdSection(p){
   const q=mdInputs(p), key=JSON.stringify(q), stale=MD.res&&MD.key!==key;
   const num=(k,lab,v,u,st)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="mdx" data-k="'+k+'" type="number" step="'+(st||'any')+'" inputmode="decimal" value="'+v+'"><em>'+u+'</em></span></label>';
-  let h='<p class="cap" style="margin-top:0">The smallest can that takes at least the dB you ask for off a band of frequencies, of the two kinds this tab models: a packed straight-through (a perforated core the size of the pipe in packing, the hole size and wall above) and a plain expansion chamber. Inside sizes 3½ to 10 in across and 4 to 36 in long, within the space limits below if they are set ('+cdim(q.maxD)+' across, '+clen(q.maxL)+' long now). The band defaults to this tab’s target tone, 20 % below to 25 % above.</p>'+
+  let h='<p class="cap" style="margin-top:0">The smallest can that takes at least the dB you ask for off a band of frequencies, of the kinds this tab models (a plain chamber, the same chamber with Munjal’s double-tuned extended tubes at half and a quarter of its length, and a packed can): a packed straight-through (a perforated core the size of the pipe in packing, the hole size and wall above) and a plain expansion chamber. Inside sizes 3½ to 10 in across and 4 to 36 in long, within the space limits below if they are set ('+cdim(q.maxD)+' across, '+clen(q.maxL)+' long now). The band defaults to this tab’s target tone, 20 % below to 25 % above.</p>'+
     '<div class="grid2" style="max-width:640px">'+num('f0','Band from',Math.round(q.f0),'Hz',1)+num('f1','Band to',Math.round(q.f1),'Hz',1)+num('tl','Take off at least',q.tl,'dB',0.5)+
     '<label class="f"><span class="lab">Kinds</span><span class="inp"><select class="mdsel"><option value="both"'+(MD.kinds==='both'?' selected':'')+'>Both</option><option value="packed"'+(MD.kinds==='packed'?' selected':'')+'>Packed straight-through</option><option value="chamber"'+(MD.kinds==='chamber'?' selected':'')+'>Plain chamber</option></select></span></label></div>'+
     '<div class="actions"><button type="button" class="btn" id="md-run">Find designs</button></div>';
@@ -13297,10 +13300,10 @@ function mdSection(p){
   if(R&&R.err) h+='<div class="note bad">'+esc(R.err)+'</div>';
   else if(R){
     if(stale) h+='<div class="note">The inputs changed since this list was made: find designs again.</div>';
-    const row=(d,i)=>'<tr><td>'+(d.kind==='packed'?'Packed straight-through, '+d.rho+' kg/m³, '+d.por+' % core':'Plain chamber')+'</td><td>'+cdim(d.D)+' × '+clen(d.L)+'</td><td>'+d.vol.toFixed(1)+' L</td><td>'+d.min.toFixed(1)+' dB</td><td>'+d.tl[0].toFixed(0)+' / '+d.tl[4].toFixed(0)+' / '+d.tl[8].toFixed(0)+' dB</td><td>'+(i==null?'':'<button type="button" class="btn" data-md="'+i+'">Use</button>')+'</td></tr>';
+    const row=(d,i)=>'<tr><td>'+(d.kind==='packed'?'Packed straight-through, '+d.rho+' kg/m³, '+d.por+' % core':d.kind==='exttube'?'Chamber with extended tubes, inlet '+clen(d.lin)+' in, outlet '+clen(d.lout):'Plain chamber')+'</td><td>'+cdim(d.D)+' × '+clen(d.L)+'</td><td>'+d.vol.toFixed(1)+' L</td><td>'+d.min.toFixed(1)+' dB</td><td>'+d.tl[0].toFixed(0)+' / '+d.tl[4].toFixed(0)+' / '+d.tl[8].toFixed(0)+' dB</td><td>'+(i==null?'':'<button type="button" class="btn" data-md="'+i+'">Use</button>')+'</td></tr>';
     const head='<thead><tr><th>Kind</th><th>Inside, across × long</th><th>Volume</th><th>Least in the band</th><th>At '+Math.round(R.fs[0])+' / '+Math.round(R.fs[4])+' / '+Math.round(R.fs[8])+' Hz</th><th></th></tr></thead>';
     if(R.best.length) h+='<div class="tblwrap"><table>'+head+'<tbody>'+R.best.map(row).join('')+'</tbody></table></div><p class="cap">'+R.tried+' designs tried; the smallest that meet the goal first. “Use” puts its size, packing and porosity into the fields above, so every section on this tab works it out in full. Plane waves, no mean flow: the packed figures are a little optimistic at high gas speed, the chamber’s dips sharper than a real can’s.</p>';
-    else h+='<div class="note warn">No can of these kinds and sizes takes '+q.tl+' dB off all of '+Math.round(q.f0)+' to '+Math.round(q.f1)+' Hz'+(R.closest?'. The closest: '+(R.closest.kind==='packed'?'packed straight-through':'plain chamber')+' '+cdim(R.closest.D)+' × '+clen(R.closest.L)+', '+R.closest.min.toFixed(1)+' dB at worst':'')+'. Ask for fewer dB, a narrower band, or more room; a resonator for one tone (below) takes more off a narrow band.</div>';
+    else h+='<div class="note warn">No can of these kinds and sizes takes '+q.tl+' dB off all of '+Math.round(q.f0)+' to '+Math.round(q.f1)+' Hz'+(R.closest?'. The closest: '+(R.closest.kind==='packed'?'packed straight-through':R.closest.kind==='exttube'?'chamber with extended tubes':'plain chamber')+' '+cdim(R.closest.D)+' × '+clen(R.closest.L)+', '+R.closest.min.toFixed(1)+' dB at worst':'')+'. Ask for fewer dB, a narrower band, or more room; a resonator for one tone (below) takes more off a narrow band.</div>';
   }
   return sec('Muffler designer',h);
 }
@@ -13310,7 +13313,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button[data-md]'); if(!b||!MD.res||!MD.res.best) return;
   const d=MD.res.best[+b.dataset.md]; if(!d) return;
   const put=(id,v)=>{ const el=$(id); if(el){ el._b=v; showInput(el); } };
-  put('m-dch',d.D); put('m-lch',d.L); if(d.kind==='packed'){ put('m-pack',d.rho); put('m-por',d.por); }
+  put('m-dch',d.D); put('m-lch',d.L); if(d.kind==='packed'){ put('m-pack',d.rho); put('m-por',d.por); } if(d.kind==='exttube'){ put('m-lin',d.lin); put('m-lout',d.lout); $('m-chlay').value='through'; } else if(d.kind==='chamber'){ put('m-lin',0); put('m-lout',0); }
   renderActive();
 });
 document.addEventListener('change',e=>{ const el=e.target;
