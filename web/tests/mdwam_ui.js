@@ -7,6 +7,12 @@ const fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
 const EXE = process.env.EXHAUST_TUNER_OPENWAM || path.resolve(__dirname, '../../ext/OpenWAM/build/bin/release/OpenWAM');
 
+// the desktop host's ins_tail (rust/et_host/src/openwam.rs): the header and the last 4 cycles of an INS.DAT
+function insTail(t, keep = 4) {
+  if (!t) return t; const L = t.split(/(?<=\n)/), col = L[0].trimEnd().split('\t').indexOf('Angle(deg)'); if (col < 0) return t;
+  const st = []; let prev = null; for (let i = 1; i < L.length; i++) { const a = parseFloat(L[i].split('\t')[col]); if (!Number.isFinite(a)) continue; if (prev !== null && a < prev - 180) st.push(i); prev = a; }
+  return st.length < keep ? t : L[0] + L.slice(st[st.length - keep]).join('');
+}
 function runOne(dir, name) {
   return new Promise(res => {
     const d = path.join(dir, name); fs.mkdirSync(d, { recursive: true });
@@ -16,7 +22,7 @@ function runOne(dir, name) {
     p.on('close', code => {
       const f = n => fs.existsSync(path.join(d, n)) ? fs.readFileSync(path.join(d, n), 'utf8') : null;
       res({ name, finished: log.includes('SIMULATION FINISHED CORRECTLY'), exitCode: code, seconds: (Date.now() - t0) / 1000, folder: d,
-        avg: f(name + 'AVG.DAT'), ins: f(name + 'INS.DAT'), logTail: log.split('\n').slice(-5).join('\n') });
+        avg: f(name + 'AVG.DAT'), ins: insTail(f(name + 'INS.DAT')), logTail: log.split('\n').slice(-5).join('\n') });
     });
   });
 }
@@ -70,11 +76,14 @@ function runOne(dir, name) {
     ok(Number.isFinite(b0.la) && Number.isFinite(b0.tq), 'the no-muffler line has a level and a torque');
     ok(X.inBand > 0, 'orders land in the band at those speeds (' + X.inBand + ')');
     ok(ds.every(r => Number.isFinite(r.least) && r.least > -30 && r.least < 60), 'each chamber has a finite figure for what it takes off the band');
-    ok(ds.every(r => Number.isFinite(r.la) && r.la < b0.la), 'every chamber lowers the A-weighted sum of the orders');
+    const unset = r => Object.values(r.per || {}).some(v => v != null && v > 0.05);
+    ok(ds.filter(r => !/extended/.test(r.label)).every(r => Number.isFinite(r.la) && r.la < b0.la), 'every plain chamber lowers the A-weighted sum of the orders');
+    ok(ds.filter(r => /extended/.test(r.label)).every(r => r.la < b0.la || unset(r)), 'an extended-tube chamber that comes out louder is flagged as not settled');
     ok(ds.every(r => r.least >= 0 || (r.worst && r.worst.f >= X.f0 - 1 && r.worst.f <= X.f1 + 1 && r.worst.rpm > 0)), 'a chamber that makes the band louder names the order and speed, inside the band');
     const txt = await pg.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler designer'); return h.parentElement.innerText; });
     ok(/Least taken off the band \(OpenWAM\)/.test(txt) && /reference/.test(txt) && !/NaN/.test(txt), 'the results table is on the page, no NaN');
     ok(/Done\./.test(txt), 'the message says it is done');
+    ok(!ds.some(unset) || /Not settled/.test(txt), 'unsettled runs get the note under the table');
     await pg.setViewportSize({ width: 400, height: 800 }); await pg.waitForTimeout(300);
     const sw = await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     ok(sw <= 0, 'phone width: no sideways scroll with the results table (' + sw + ' px)');

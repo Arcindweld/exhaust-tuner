@@ -139,10 +139,40 @@ impl OpenWamRunner {
             seconds: o.seconds,
             folder: dir.clone(),
             avg: read("AVG.DAT"),
-            ins: read("INS.DAT"),
+            ins: read("INS.DAT").map(|t| ins_tail(&t, INS_KEEP_CYCLES)),
             log_tail: tail(&log, 8, true),
         })
     }
+}
+
+/// Cycles of an INS.DAT handed back to the page. The case writes every cycle into one file (instantaneous results 2)
+/// so the page can check the last two against each other; the file grows with the cycle count (about 0.4 MB a cycle
+/// for a V8 with its line), and ten 25-cycle runs came to 100 MB of text, more than a page holds. The page reads only
+/// the last two complete cycles, so the host passes the last four (at least three complete); the full file stays on disk.
+pub const INS_KEEP_CYCLES: usize = 4;
+
+/// The header and the last `keep` cycles of an INS.DAT: a cycle starts where the "Angle(deg)" column drops by more
+/// than 180 degrees. The text comes back unchanged when it has no such column or no more than `keep` cycles.
+pub fn ins_tail(text: &str, keep: usize) -> String {
+    let lines: Vec<&str> = text.split_inclusive('\n').collect();
+    let Some(head) = lines.first() else { return text.to_string() };
+    let Some(col) = head.trim_end().split('\t').position(|h| h.trim() == "Angle(deg)") else { return text.to_string() };
+    let angle = |l: &str| l.split('\t').nth(col).and_then(|v| v.trim().parse::<f64>().ok());
+    let mut starts = Vec::new();
+    let mut prev: Option<f64> = None;
+    for (i, l) in lines.iter().enumerate().skip(1) {
+        if let Some(a) = angle(l) {
+            if let Some(p) = prev { if a < p - 180.0 { starts.push(i); } }
+            prev = Some(a);
+        }
+    }
+    // starts holds the first line of the 2nd, 3rd, ... cycles; with n of them the file has n + 1 cycles
+    if keep == 0 || starts.len() < keep { return text.to_string(); }
+    let from = starts[starts.len() - keep];
+    let mut out = String::with_capacity(text.len() / 4);
+    out.push_str(head);
+    for l in &lines[from..] { out.push_str(l); }
+    out
 }
 
 fn opt(s: &Option<String>) -> Value {
@@ -179,6 +209,20 @@ pub fn to_json(case_dir: &Path, results: &[ModelResult]) -> Value {
 mod tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn ins_tail_keeps_the_last_cycles() {
+        let mut t = String::from("Time\tAngle(deg)\tP\r\n");
+        for c in 0..6 { for k in 0..8 { t.push_str(&format!("{}\t{}\t{}\r\n", c * 8 + k, 100 + k * 90, c)); } }
+        let o = ins_tail(&t, 4);
+        let rows: Vec<&str> = o.lines().collect();
+        assert_eq!(rows[0], "Time\tAngle(deg)\tP");
+        assert_eq!(rows.len(), 1 + 4 * 8);
+        assert!(rows[1].starts_with("16\t100\t2"), "{}", rows[1]);
+        assert!(o.ends_with("\r\n"));
+        assert_eq!(ins_tail(&t, 6), t);            // six cycles: nothing to cut
+        assert_eq!(ins_tail("a\tb\n1\t2\n", 4), "a\tb\n1\t2\n");   // no angle column
+    }
 
     #[test]
     fn runner_logic_with_a_stand_in_solver() {

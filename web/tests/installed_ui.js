@@ -19,6 +19,21 @@ const { chromium } = require('playwright');
   chk(r.bare.every(v => Math.abs(v) < 1e-6), 'bare tailpipe is 0 dB at every frequency');
   chk(Math.abs(r.atZero) < 1e-6, 'a chamber a half wave long is transparent installed too');
   chk(r.meanPeak > 2 && r.meanPeak < r.tlPeak + 3, 'averaged over tail lengths the installed cut at the TL peak is positive and near TL (' + r.meanPeak.toFixed(1) + ' vs ' + r.tlPeak.toFixed(1) + ')');
+  // Munjal's insertion loss: with an anechoic source it is the installed attenuation (the upstream pipe carries only the
+  // incident wave then); the bare line is 0 dB for any source; a constant-velocity source gives finite, different figures
+  const il = await pg.evaluate(() => { const md = window.__md, tC = 343.333, c = window.__sos(tC), rho = 101325 / (287 * (tC + 273.15)), a = 0.0381, S = Math.PI * a * a;
+    const ch = md.calcChamber({ dpipe: 76.2, dch: 228.6, lch: 304.8, tmain: tC }), I = () => [window.__Cx(1, 0), window.__Cx(0, 0), window.__Cx(0, 0), window.__Cx(1, 0)];
+    const fs = [60, 117, 175, 233, 350, 500]; let dA = 0, bare = 0, cvOk = true, cvDiff = 0;
+    for (const f of fs) { const an = window.__insertionLoss(ch.T, f, 0.5, 2.5, a, c, rho, S, 1), inst = window.__installedAL(ch.T, f, 0.5, a, c, rho, S), cv = window.__insertionLoss(ch.T, f, 0.5, 2.5, a, c, rho, S, Infinity);
+      dA = Math.max(dA, Math.abs(an - inst)); bare = Math.max(bare, Math.abs(window.__insertionLoss(I, f, 0.5, 2.5, a, c, rho, S, Infinity)), Math.abs(window.__insertionLoss(I, f, 0.5, 2.5, a, c, rho, S, 3)));
+      cvOk = cvOk && Number.isFinite(cv); cvDiff = Math.max(cvDiff, Math.abs(cv - an)); }
+    const hot = window.__insertionLoss(ch.T, 175, 0.5, 2.5, a, c, rho, S, Infinity, { c: window.__sos(500), rho: 101325 / (287 * 773.15) });
+    return { dA, bare, cvOk, cvDiff, hot, cold: window.__insertionLoss(ch.T, 175, 0.5, 2.5, a, c, rho, S, Infinity) }; });
+  out.push(JSON.stringify(il));
+  chk(il.dA < 1e-6, 'insertion loss with an anechoic source equals the installed attenuation');
+  chk(il.bare < 1e-9, 'insertion loss of no element is 0 dB for any source');
+  chk(il.cvOk && il.cvDiff > 1, 'a constant-velocity source gives its own finite figures');
+  chk(Number.isFinite(il.hot) && Math.abs(il.hot - il.cold) > 0.1, 'a hotter upstream pipe changes the figure');
   await pg.selectOption('#m-tlmode', 'inst'); await pg.waitForTimeout(400);
   const leg = await pg.evaluate(() => document.getElementById('m-legend').innerText), cap = await pg.evaluate(() => document.getElementById('m-cap').textContent);
   chk(/Bare tailpipe/.test(leg) && /installed/.test(cap), 'installed mode legend and caption');

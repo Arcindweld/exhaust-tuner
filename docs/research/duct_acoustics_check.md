@@ -111,3 +111,44 @@ temperature) and takes the firing order down 28 dB where the chart says 11, and 
 pipe louder where the chart has it a little quieter. So the installed chart is the right shape to compare designs on
 their own tailpipe, and the run is the final word; the page says so under the chart. Every case from the tab now
 records the outlet flow (ins_outlet 1, two cycles) so this comparison can be made on any design.
+
+## The muffler designer's chambers in OpenWAM (2026-11-05)
+
+"Check the chambers in OpenWAM" (Mufflers tab, under the designer) puts the designer's top chambers into the 4-Stroke
+tab's OpenWAM line ahead of its 500 mm tailpipe and runs them against the same line with no muffler. Default V8 (one
+collector, 2.5 m of 76.2 mm line), band 117-183 Hz, designer goal 10 dB of transmission loss.
+
+Settling. At 25 cycles the plain chambers settle (the last two cycles of the outflow differ by about 1 %); the
+extended-tube chambers never do (15-184 %). In the 1-D line each pocket is a quarter-wave side branch of the annulus's
+area, about 214 mm across and 150 mm deep: wider than it is long, which a 1-D three-pipe junction cannot represent, and
+the solver oscillates. Their numbers are not results; the page flags any run whose last two cycles differ by more than 5 %.
+Plain chambers at 8 cycles agree with 25 cycles within about 2 dB on the overall level, so 8 is enough for them.
+
+Order by order (plain 228.6 x 305 mm and 241.3 x 279 mm, 25 cycles). At 1750 rpm the V8's main orders (2, 4, 6, 8, 10,
+12) come through with -14 to +4 dB of insertion loss, almost the same for both chambers, while the orders between them
+drop 20-45 dB; at 2700 rpm every order drops 14-30 dB. Neither the transmission loss nor the linear insertion loss
+(Munjal 2.15-2.16, `insertionLoss`: anechoic or constant-velocity source, 0-2.9 m of upstream pipe, 150-700 C gas)
+follows this: about 16 dB RMS over the 36 points within 20 dB of the loudest order, sign right 78-83 %.
+
+Overall (A-weighted sum of the first 12 orders at 1 m, no-muffler minus chamber):
+
+| | 1750 rpm | 2700 rpm |
+|---|---|---|
+| OpenWAM, 228.6 x 305 / 241.3 x 279 | -4.0 / -3.7 dB (louder) | +18.4 / +20.0 dB |
+| transmission loss (343 C) | +10.9 / +11.3 | +11.7 / +13.0 |
+| installed, anechoic source (343 C) | +12.6 / +12.9 | +9.4 / +10.6 |
+| constant-velocity source, 2.5 m upstream, 200 C (the tip's OpenWAM temperature) | +6.3 / +2.6 | +19.4 / +20.2 |
+
+A two-temperature line (upstream 400 C, chamber and tail 200 C, constant velocity) fits these four points to 4.6 dB RMS
+with every sign right, but on the 8-cycle run at five speeds (1500-2700 rpm, not used in the fit) it ranks 48th of 80
+settings at 11.2 dB RMS, and the best setting there is a different one (8.3 dB). No frequency-domain linear model tried
+predicts the engine-installed result across speeds to better than about 8 dB; transmission loss is about 12 dB off.
+The gas temperature in the run is far below the tab's 343 C at the tip (164-255 C), and the engine's own outflow
+changes with the load (the main orders are set by the source and the line's resonances, not the can).
+
+What follows for the page: the designer's figures are for comparing cans with each other; whether a can helps a given
+engine and line at a given speed is the OpenWAM check's answer, and a plain chamber can make the firing orders louder
+at the low end of the band (here order 6 at 1750 rpm, +6.5 dB) while taking 15-20 dB off higher up. `insertionLoss`
+stays as a hook for this comparison (its anechoic case equals the installed attenuation, which the tests hold), not as a
+designer option. The desktop host now passes the last four cycles of each INS.DAT to the page (ten 25-cycle runs were
+100 MB of text and crashed the page); the full files stay in the run folder.

@@ -735,6 +735,12 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   The page names the order and speed that got worse, and flags a designer tailpipe that differs from the line's.
   Golden wam_default fixtures regenerated (only the INS recording lines differ); uel_ui's equal-case check no longer
   expects the INS recording to be absent.
+  Follow-up the same day: at 25 cycles plain chambers settle (about 1 %) and still make order 6 at 1750 RPM 6.5 dB
+  louder; extended-tube chambers never settle (1-D side branches wider than deep), now flagged on the page. No linear
+  model (TL, anechoic or constant-velocity insertion loss, Munjal 2.15-2.16, `insertionLoss`, one- or two-temperature
+  line) predicts the run's overall result across speeds within about 8 dB; details in docs/research/duct_acoustics_check.md.
+  Build/score split (mdwBuild, mdwScore). Desktop host: ins_tail passes the last 4 cycles of each INS.DAT (ten 25-cycle
+  runs were 100 MB and crashed the page); cargo test covers it, the test stand-in host does the same.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
