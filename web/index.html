@@ -9288,7 +9288,9 @@ function calcQuick(p){
 //  "Intake Pulse Calculation" (team-integra): Vizard's 17.8 cm at 10,000 RPM plus 4.3 cm per 1,000 RPM lower; Magnante N × L = 84,000 (in);
 //    Thompson: intake tube area about 1.25 to 1.33 × throttle bore area.
 //  Blair and Cahoon (2006): Cd 0.567 plain pipe, 0.719 simple radius, 0.743 elliptical bellmouth; best bellmouth length 1 × exit diameter,
-//    entry 2.13 × exit, corner radius 0.08 × entry.
+//    entry 2.13 × exit (the Perth College thesis's rule 2.148), corner radius 3 mm on their 23 mm exit / 49 mm entry bell, 0.06 × entry (0.08 was
+//    remembered earlier; the thesis's figure is 3 mm). The thesis also quotes the elliptical bell's Cd against pressure ratio (cdPR below), that
+//    the best bell beats a simple radius by about 3.5% in Cd and 1.5% in mass flow at PR 1.04 to 1.1, and that entry diameter matters, length barely.
 //  SAE J1349 power correction: CF = 1.18 × (99 ÷ Pd) × √((T + 273) ÷ 298) − 0.18, Pd in kPa.
 //  Racing Beat, Great Miata Intake Shootout: about 1% of power per 10 °F of intake air.
 /* ----- Helmholtz intake tuning: H. W. Engelman, "Design of a Tuned Intake Manifold", ASME paper 73-WA/DGP-2 (1973) ----- */
@@ -9345,9 +9347,15 @@ function calcIntake(p){
   if(itbRec&&itbRec.hpCyl){ const row=jenvey.find(r=>itbRec.hpCyl<=r[0])||jenvey[jenvey.length-1]; itbRec.jenvey=row[1]; itbRec.jenveyOver=itbRec.hpCyl>65; }
   // pressure drop: friction, smooth 90° bends (K ≈ 0.2, Crane TP-410 for r/D = 1.5), and the inlet's vena contracta (Borda–Carnot)
   const rho=rhoGas(p.tin), q=rho*v*v/2, Re=rho*v*(p.dt/1000)/visc(p.tin), f=haaland(Re,p.dt/1000);
-  const cd=INTAKE_CD[p.mouth]||INTAKE_CD.plain, kIn=(1/cd-1)**2;
+  // the elliptical bell's Cd rises a little with the pressure ratio across it (Blair and Cahoon's steady-rig fit, quoted in the
+  // Perth College bellmouth thesis: Cd = 1.7869 - 2.9326 PR + 2.5275 PR^2 - 0.6446 PR^3, PR = upstream total / downstream static,
+  // 0.740 at 1.015 to 0.756 at 1.08); PR here from the dynamic pressure at the bell's throat, held inside the fit's 1.01 to 1.10
+  const cdPR=PR=>{ const x=Math.min(1.10,Math.max(1.01,PR)); return 1.7869-2.9326*x+2.5275*x*x-0.6446*x*x*x; };
+  const PRin=1+q/(0.743*0.743)/P_ATM;
+  const cdOf=k=>k==='ellipse'?cdPR(PRin):INTAKE_CD[k];
+  const cd=cdOf(INTAKE_CD[p.mouth]?p.mouth:'plain'), kIn=(1/cd-1)**2;
   const dpF=f*(p.lt/p.dt)*q, dpB=0.2*Math.max(0,p.bends||0)*q, dpIn=kIn*q, dp=dpF+dpB+dpIn;
-  const inl=Object.keys(INTAKE_CD).map(k=>({k,cd:INTAKE_CD[k],dp:(1/INTAKE_CD[k]-1)**2*q}));
+  const inl=Object.keys(INTAKE_CD).map(k=>({k,cd:cdOf(k),dp:(1/cdOf(k)-1)**2*q}));
   // filter capacity (K&N's rule), inches
   const mmIn=x=>x/25.4;
   // K&N's round rule is circumference × height × 6, so a taper uses the mean diameter and an oval its perimeter (Ramanujan)
@@ -18406,7 +18414,7 @@ function renderIntake(){
     '<p class="cap">Power follows the air’s density, so this uses the SAE J1349 dyno correction between the outside air and the air the filter actually draws. The filter’s own loss is not included; a filter sized by the rule below adds little. Racing Beat measured a stock Miata airbox at 78 to 112 °F at speed and after traffic, heat that went straight into the engine when the throttle opened, while the cold-air kits held steady.</p>');
   // inlet shape
   h+=sec('Inlet end and bellmouth',
-    r.inl.map(x=>rowT({plain:'Plain cut tube',radius:'Rolled lip or radius',ellipse:'Elliptical bellmouth'}[x.k],'Cd '+x.cd.toFixed(3),'loses '+pa(x.dp)+' at peak power'+(x.k===p.mouth?' (yours)':''))).join('')+
+    r.inl.map(x=>rowT({plain:'Plain cut tube',radius:'Rolled lip or radius',ellipse:'Elliptical bellmouth'}[x.k],'Cd '+x.cd.toFixed(3),'loses '+pa(x.dp)+' at peak power'+(x.k===p.mouth?' (yours)':'')+(x.k==='ellipse'?'; Cd from Blair and Cahoon’s fit against the pressure ratio across the bell, 0.740 at PR 1.015 up to 0.756 at 1.08':''))).join('')+
     rowL('Best bellmouth: entry diameter',r.bell.Di,'d')+rowL('Length',r.bell.L,'l')+rowL('Lip radius',r.bell.Rc,'d')+
     '<p class="cap">From Blair and Cahoon’s CFD study: even a simple radius on the tube end flows about 16% more air than a plain cut, and the best bellmouth, short and fat with an elliptical profile, adds only a few percent more. They put the best length at one exit diameter, the entry at 2.13 times the exit and the lip radius at 0.08 times the entry, and found rectangular inlets worse than round ones.</p>');
   h+=stackSection(p,r);
@@ -18464,7 +18472,8 @@ function renderIntake(){
       hb=rowL('Runner, valve to '+(itb?'the open end':'the plenum')+(ht.solvedL?', for '+rpmT(r.tr).toLocaleString('en-US')+' RPM':''),ht.L1*1000,'l')+
         (val('i-port')>0&&ht.L1*1000>val('i-port')?rowL('… outside the head (port deducted)',ht.L1*1000-val('i-port'),'l'):'')+
         rowL('Runner inside diameter'+(ht.sizedA?', sized for 200 ft/s':''),ht.d1*1000,'d')+
-        rowT('Runner tuning peak',rpmT(ht.Np).toLocaleString('en-US')+' RPM')+
+        rowT('Runner tuning peak',rpmT(ht.Np).toLocaleString('en-US')+' RPM','for Engelman’s k = 2.1; the literature’s 2.0 to 2.5 puts it between '+rpmT(ht.Np*2.1/2.5).toLocaleString('en-US')+' and '+rpmT(ht.Np*2.1/2.0).toLocaleString('en-US')+' RPM')+
+        (nCyl===4?(()=>{ const dv=Math.sqrt(r.tr*(p.disp/1000)*p.ve/3330)*25.4; return rowL('Vizard’s runner bore for the same peak',dv,'d'); })():'')+
         rowT('Mean air speed in the runner at that peak',fts(ht.vMean),ht.vMean>210*0.3048+0.01?'above the 180 to 210 ft/s Engelman found best':ht.vMean<180*0.3048-0.01?'below the 180 to 210 ft/s Engelman found best':'within the 180 to 210 ft/s Engelman found best');
       if(ht.N1){
         hb+=rowT('With the plenum and the tube feeding it: lower peak',rpmT(ht.N1).toLocaleString('en-US')+' RPM','runner and plenum in phase; most of the ram comes from the feed tube')+
@@ -18473,7 +18482,7 @@ function renderIntake(){
       }
       hb+='<p class="cap">From H. W. Engelman, <i>Design of a Tuned Intake Manifold</i>, ASME paper 73-WA/DGP-2 (1973). The cylinder at mid-stroke and its runner act as a Helmholtz resonator. The runner helps most where that resonance is about 2.1 times the crank speed, and Thompson found 2.0 to 2.5 depending on cam timing, so treat the peak as ±10%. Lengths are centerline from the valve, with no end correction, as Engelman recommends. The speed of sound is taken at the intake air temperature above. '+
         (ht.N1?'The two-peak figures treat the plenum ('+(Math.round(V2*1e6/100)/10)+' L, with the idle runners) and the tube into it as a second resonator. Engelman’s model holds while intake strokes on one plenum do not overlap, generally up to 4 cylinders'+(nCyl>4?', so with '+nCyl+' cylinders on one plenum read them as a rough guide':'')+'. ':'')+
-        (ind!=='na'&&!itb?'With boost the tube before the compressor is not part of this resonator, so only the runner peak is shown. ':'')+'The Grape Ape lengths above use reflected pressure waves instead, so the two methods can disagree. A wave simulation or a dyno settles which one is closer for an engine.</p>';
+        (ind!=='na'&&!itb?'With boost the tube before the compressor is not part of this resonator, so only the runner peak is shown. ':'')+'The Grape Ape lengths above use reflected pressure waves instead, so the two methods can disagree. A wave simulation or a dyno settles which one is closer for an engine.'+(nCyl===4?' Vizard’s runner bore, √(peak RPM × litres × VE ÷ 3,330) inches, is an independent check on the 200 ft/s sizing (team-integra, Intake Pulse Calculation; it is written for a four).':'')+(ht.N1?' Grape Ape tunes the pipe into the plenum about 1,000 RPM below the runners for the best average, moving it ½ in at a time on test.':'')+'</p>';
     }
     h+=sec('Helmholtz tuning (Engelman)',hb);
   }
