@@ -18,3 +18,26 @@ sections read against our code so far, and what changed:
 Still to read against the code: 7 (duct modes and the open end's reflection and radiation: our monopole-with-piston
 directivity), 5.2.2 (resonance of a duct segment, our quarter-wave branches), 8.3 (the multiple-scales treatment of
 a lossy neck, for a frequency-dependent K), and 2.5 / 3.2.5 (mean-flow effects on propagation and impedance).
+
+## The library (2026-11-04)
+
+Open-access texts found and read against the code (kept in the session scratchpad, not the repository; each is on its
+publisher's or author's own server):
+
+| Text | What it is | Read for |
+|---|---|---|
+| Rienstra & Hirschberg, *An Introduction to Acoustics*, TU/e 2004 (pure.tue.nl, 372 pp.) | the free duct-acoustics text | the table above: end corrections, orifice losses, flow damping |
+| Zhou & Bodén, *Experimental investigation of an in-duct orifice with bias flow under medium and high level acoustic excitation*, KTH MWL, 2013 (mediatum.ub.tum.de, 12 pp.) | measurements of a 6 mm orifice, 0-19 m/s through it, 100-155 dB | **discharge coefficients 0.6-0.7 when the flow is turbulent (loss 1/Cc^2 = 2-2.8 velocity heads; 0.8 at low Reynolds number)**; the resistance with bias flow about U / (c0 Cc_M Cc), linear in the flow; end correction (pi/4) r a side, falling at high level; the thin edge far more level-sensitive than the 3 mm one. Our v11 loss element and K 2.8 for a sharp edge sit inside these numbers |
+| Hubbard (ed.), *Aeroacoustics of Flight Vehicles, vol. 1: Noise Sources*, NASA RP-1258, 1991 (ntrs.nasa.gov, 610 pp.) | the reference work on jet noise (Lilley's chapter) | confirms the U^8 law and cites Hoch et al. 1973 for the density (hot-jet) effect, which realism.py uses |
+| NPTEL course 112104299, *Muffler Acoustics: Application to Automotive Exhaust Noise Control* (IIT Kanpur; 47 lectures, transcripts for 1-28, free) | Munjal's transfer-matrix method taught end to end, with MATLAB | the elements the Mufflers tab lacks: extended inlet/outlet, concentric-tube resonators, perforate impedance, cross-flow and plug mufflers, three-pass, Herschel-Quincke, 3-D piston-driven chambers |
+
+KTH MWL doctoral theses that bear on the same questions and are open on DiVA (not reachable from this session's
+network; read them on the PC): Zhou 2015 (orifices and perforates with flow at high level), Karlsson 2010
+(aeroacoustics of duct branches, for silencers), Knutsson 2009 (IC-engine intake noise), Rämmal 2009 (flow duct
+acoustics on turbocharged engines), Alenius 2012 (flow duct acoustics by LES), Hynninen 2015 (in-duct
+characterisation of IC engines as sources).
+
+Paid books worth having, in order: Munjal, *Acoustics of Ducts and Mufflers*, 2nd ed., Wiley 2014 (the method and
+the muffler elements); Dokumaci, *Duct Acoustics*, Cambridge 2021 (the same with flow, the ADEM program's basis);
+Blair, *Design and Simulation of Four-Stroke Engines*, SAE 1999 (the gas-dynamic side: the one Rienstra and Munjal
+leave out, and what OpenWAM solves).
