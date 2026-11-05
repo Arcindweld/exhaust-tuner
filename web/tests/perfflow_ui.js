@@ -25,6 +25,12 @@ const { chromium } = require('playwright');
     return { a: a.slice(0, 400), c: c.slice(0, 400), same: a === c };
   });
   ok(!tl.same, 'the packed-can section changes when the flow is set to Mach 0.1');
+  // Munjal's back-pressure coefficients (eq. 8.4): a 2.5 in pipe into a 6 in chamber at Mach 0.1
+  const bp = await p.evaluate(() => { const n = (63.5 / 152.4) ** 2; return window.__mufBP(0.1, 101325, [{ kind: 'expansion', n }, { kind: 'contraction', n }, { kind: 'tail' }]); });
+  const H = 1.4 * 101325 * 0.01 / 2, n = (63.5 / 152.4) ** 2, want = ((1 - n) ** 2 + (1 - n) / 2 + 0.4) * H;
+  ok(Math.abs(bp.H - H) < 1e-6 && Math.abs(bp.total - want) < 1e-6, 'back pressure: H = ' + (H / 1000).toFixed(3) + ' kPa at Mach 0.1, chamber in + out + tailpipe jet = ' + (bp.total / 1000).toFixed(2) + ' kPa (' + (want / 1000).toFixed(2) + ')');
+  const txt = await p.evaluate(() => document.getElementById('m-details').innerText);
+  ok(/Back pressure at Mach 0\.10/.test(txt) && /3\.5 × \(low-output/.test(txt), 'the chamber section shows the back pressure row and Munjal’s sizing rule');
   ok(!errs.length, 'no page errors ' + errs.join('; '));
   await b.close(); console.log('failures:', fails.length); process.exit(fails.length ? 1 : 0);
 })();

@@ -6880,6 +6880,26 @@ function calcQW(p){          // p: f, db, dpipe mm, tres °C
   const tl=f=>{ const t=Math.tan(2*Math.PI*f*Lac/1000/c); return Math.min(TLCAP,10*Math.log10(1+(r*t)**2)); };
   return {c,Lac,L,end,tl,ratio:(p.db/p.dpipe)**2};
 }
+// Back pressure of muffler elements from the mean flow (Munjal, Acoustics of Ducts and Mufflers, 1987, 8.3): the loss
+// in stagnation pressure in dynamic heads H = 1/2 rho0 U^2 = gamma p0 M^2 / 2 (about 0.7 M^2 bar) of the mean flow in the
+// pipe, measured in steady flow (eq. 8.4): sudden expansion or extended inlet (1 - n)^2 H, sudden contraction or extended
+// outlet (1 - n) H / 2, flow reversal with expansion H, with contraction 0.5 H (n < 0.25), the free jet at the tailpipe
+// end 0.4 H, with n = smaller area / larger area; a plug or three-duct cross-flow element (eq. 8.7) 2 to 2.5 H when the
+// perforate's open area is more than the pipe's, plus 2 {(1 - n)^2 + (1 - n)/2} H otherwise, n = open area / pipe area.
+// M is the pipe's mean-flow Mach number, p0 the pressure (Pa).
+function mufBackPressure(M,p0,items){
+  const H=1.4*p0*M*M/2, out={H,total:0,rows:[]};
+  for(const it of items){
+    let k;
+    if(it.kind==='expansion') k=(1-it.n)**2; else if(it.kind==='contraction') k=(1-it.n)/2;
+    else if(it.kind==='reversal_expansion') k=1; else if(it.kind==='reversal_contraction') k=0.5; else if(it.kind==='tail') k=0.4;
+    else if(it.kind==='crossflow') k=2.25+(it.n<1?2*((1-it.n)**2+(1-it.n)/2):0);
+    else k=0;
+    out.rows.push({what:it.what,k,dp:k*H}); out.total+=k*H;
+  }
+  return out;
+}
+window.__mufBP=mufBackPressure;   // test hook
 function calcChamber(p){     // p: dpipe, dch, lch mm, tmain °C
   if(!fin(p.dpipe,p.dch,p.lch,p.tmain)||p.dpipe<=0||p.dch<=p.dpipe||p.lch<=0) return {err:'The chamber must be wider than the pipe, with a positive length.'};
   const c=sos(p.tmain), m=(p.dch/p.dpipe)**2, L=p.lch/1000;
@@ -10881,7 +10901,8 @@ const GUIDE={
     ['J-pipe length','The length sets the frequency. The branch runs cool, so it is tuned for near-ambient air, not exhaust heat.'],
     ['Muffler type','Packed straight-through mufflers are generally the loudest, turbo mufflers the quietest, and chambered ones in between.'],
     ['Inline resonator','A packed resonator trims rasp and some drone; it is not tuned to one frequency.'],
-    ['Volume','Production cars now carry roughly 12 times the engine’s displacement in muffler volume, up from about 5 times; more volume is the surest way to quiet the low notes.']],
+    ['Volume','Production cars now carry roughly 12 times the engine’s displacement in muffler volume, up from about 5 times; more volume is the surest way to quiet the low notes. Munjal: 20 dB(A) takes 3.5 to 12.5 times the displacement, and each extra dB(A) about 0.38 times more.'],
+    ['Chambers','Munjal’s design criteria: extended inlet and outlet tubes beat plain chambers; more chambers in the same shell quiet the high notes but let more low notes through; a bigger area ratio always helps; mean flow barely changes an unperforated muffler’s insertion loss but is most of a perforated one’s.']],
   cat:[
     ['Cell density','Fewer cells per square inch flow more and quiet less. Factory converters run 400 to 900; high-flow and race ones 100 to 400.'],
     ['Substrate size','A bigger face area cuts back pressure much faster than it cuts sound, so a larger high-flow converter can be both freer and quieter than a small one.'],
@@ -13314,8 +13335,12 @@ function renderMuf(){
     rowT('Curve holds up to about',hzs(ch.fCut),'the first cross mode of a '+cdim(p.dch)+' round chamber')+
     (()=>{ const V=Math.PI/4*(p.dch/1000)**2*p.lch/1000*1e6, cc=val('s-disp'); if(!(cc>0)) return '';
       const k=V/cc, nP=$('s-feed').value==='all'?1:2, single=Math.round(val('s-cyl'))===1&&$('s-cyc').value!=='r';
-      return rowT('Chamber volume',(V/1000).toFixed(2)+' L',(+k.toFixed(1))+' × the engine’s '+Math.round(cc).toLocaleString('en-US')+' cc. Production cars now carry about 12 × displacement across all their mufflers, up from about 5 × (<a href="https://doi.org/10.1016/j.apacoust.2012.06.007" target="_blank" rel="noopener">Yasuda et al. 2013</a>)')+
+      return rowT('Chamber volume',(V/1000).toFixed(2)+' L',(+k.toFixed(1))+' × the engine’s '+Math.round(cc).toLocaleString('en-US')+' cc. Production cars now carry about 12 × displacement across all their mufflers, up from about 5 × (<a href="https://doi.org/10.1016/j.apacoust.2012.06.007" target="_blank" rel="noopener">Yasuda et al. 2013</a>). Munjal’s rule: about 20 dB(A) of insertion loss takes 3.5 × (low-output engines) to 12.5 × (high-output), and each further dB(A) about 0.38 × more (Acoustics of Ducts and Mufflers, 1987, 8.4)')+
         (single&&k<12?'<div class="note">That is under the 12 to 25 times the swept volume that a 2023 design study of a KTM 390 single’s muffler cites as typical. A small can attenuates less at the firing tone; check the loudness on the Sound tab or go bigger if it fits (<a href="https://doi.org/10.3390/metrology3030015" target="_blank" rel="noopener">Saadabadi et al. 2023</a>).</div>':''); })()+
+    (()=>{ const M=val('m-mach'); if(!(M>0)) return rowT('Back pressure','set the mean flow above','Munjal’s measured junction losses need the pipe’s Mach number');
+      const n=(p.dpipe/p.dch)**2, bp=mufBackPressure(M,101325,[{kind:'expansion',n,what:'pipe into the chamber'},{kind:'contraction',n,what:'chamber into the pipe'}]);
+      const show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
+      return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'(1 − n)² H in and (1 − n) H ÷ 2 out, n = '+n.toFixed(2)+', dynamic head H = '+show(bp.H)+' (Munjal 1987, eq. 8.4); a flow-reversal chamber costs 1.5 H, a plug or cross-flow element 2 to 4 H, the tailpipe’s free jet 0.4 H'); })()+
     (ch.short?'<div class="note warn">This chamber is shorter than 1.5 times its diameter, the minimum Potente recommends (Acoustics 2005). Short chambers fall short of the curve, because the sound has not settled into plane waves before it leaves.</div>':'')+
     '<p class="cap">A plain can shows how a chamber muffler works: it removes broad bands and passes the frequencies where its length is a whole number of half waves. A bigger area ratio removes more. Running the inlet and outlet tubes into the chamber adds resonator dips; keep their ends at least 1.5 chamber diameters apart. Above the cross-mode frequency the sound bounces across the can and the plane-wave curve no longer applies.</p>');
   /* packed straight-through can (Antebas/Denia material and perforate, coupled core and annulus plane waves) */
