@@ -702,6 +702,12 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   (-17/-28); the case as one small-hole Helmholtz barely dulls it; as three big openings it swallows order 4. The real
   one is a sealed channel plus losses the plane-wave model lacks. Table in the case README. Needs: the channel's
   inside width and its openings measured.
+- Installed attenuation and the chamber builder (2026-11-05): the Mufflers chart has a second mode, Davies' attenuation
+  with the real tailpipe and the open end's reflection worked back from the tip (every element now carries a [p; v]
+  transfer matrix; bare tailpipe 0 dB, half-wave chamber transparent, the tail-length average of a chamber's installed
+  cut returns its TL to 0.3 dB: installed_ui.js); the designer can score that way too. Fusion add-in 4.14.0 builds the
+  expansion chamber with extended tubes (templates.ext_chamber, act_chamber; mock-tested, live test pending the PC).
+  Page V58.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
