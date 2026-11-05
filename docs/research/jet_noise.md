@@ -51,3 +51,14 @@ So a flat, unbraced face whose first mode lands on a strong order would dominate
 this muffler. Braced by its baffles, a thin flat-faced case radiates about as much as its tailpipe in this model, which
 is an upper bound: the whole face area is taken as moving in phase. The recording neither needs it nor rules it out,
 so it stays an option, off by default. The case's real gauge, curvature and bracing would decide it.
+
+# The intake as a second source
+
+OpenWAM writers v12 (`ins_intake` run setting) record the intake's open end (the air-filter end of the plenum inlet, or
+each runner's mouth), and `read_ins(intake=True)` / `readIns({intake})` read it; its flow is positive into the engine, so
+the radiated outflow is its negative. On the F-100 at 5800 rpm WOT (single plane with a shared plenum, one 86 mm inlet
+behind a 100 mm stack, open to the air), the bare intake mouth radiates 103 dB against the tailpipe's 97 at the same
+distance, mostly on orders 2, 4.5 and 5 (where the exhaust has little), the firing order 10 dB below the exhaust's. A
+bare stack is this loud in life too; in the truck the mouth is under the hood behind an air filter, and the pass-by
+recording is beside the exits, so the intake is left out of that comparison. It is the first thing to add for a cab or
+hood-open recording, with the hood and filter as a transmission loss to be measured or estimated.
