@@ -1,0 +1,31 @@
+// The OpenWAM line's muffler as the Mufflers tab's chamber (1-D pipe with extended-tube pockets as quarter-wave branches).
+const { chromium } = require('playwright');
+(async () => {
+  const b = await chromium.launch(); const out = []; let fails = 0; const chk = (ok, m) => { if (!ok) { out.push('FAIL ' + m); fails++; } };
+  const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
+  pg.on('pageerror', e => { out.push('PAGEERROR ' + e.message); fails++; });
+  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await pg.click('#m-expert'); await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await pg.click('#m-dtune'); await pg.waitForTimeout(100);
+  const r = await pg.evaluate(() => window.__wamChamberEls(76.2));
+  out.push(JSON.stringify(r));
+  const Aan = Math.PI / 4 * (152.4 ** 2 - (76.2 + 2 * 1.651) ** 2);
+  chk(r.els.length === 3 && r.els[0].side.type === 'quarter' && Math.abs(r.els[0].side.L_mm - 177.8) < 0.01 && Math.abs(r.els[2].side.L_mm - 88.9) < 0.01, 'two pockets at the double-tuned lengths');
+  chk(Math.abs(Math.PI / 4 * r.els[0].side.d_mm ** 2 - Aan) / Aan < 1e-3, 'pocket branch has the annulus area');
+  chk(Math.abs(r.els[1].L_mm - (355.6 - 177.8 - 88.9)) < 0.01 && r.els[1].d0_mm === 152.4, 'open chamber between the mouths at the chamber bore');
+  await pg.fill('#m-lin', '0'); await pg.dispatchEvent('#m-lin', 'input'); await pg.fill('#m-lout', '0'); await pg.dispatchEvent('#m-lout', 'input'); await pg.waitForTimeout(100);
+  const r0 = await pg.evaluate(() => window.__wamChamberEls(76.2));
+  chk(r0.els.length === 1 && Math.abs(r0.els[0].L_mm - 355.6) < 0.01, 'plain chamber is one pipe');
+  await pg.selectOption('#m-chlay', 'reverse'); await pg.waitForTimeout(100);
+  chk(/side by side/.test((await pg.evaluate(() => window.__wamChamberEls(76.2))).err || ''), 'reverse flow refused for the 1-D line');
+  await pg.selectOption('#m-chlay', 'through'); await pg.click('#m-dtune'); await pg.waitForTimeout(100);
+  await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(300);
+  await pg.selectOption('select.wamline[data-k="on"]', '1'); await pg.waitForTimeout(200);
+  await pg.selectOption('select.wamline[data-k="mufKind"]', 'chamber'); await pg.waitForTimeout(300);
+  await pg.click('button[data-wam="dl"]'); await pg.waitForTimeout(800);
+  const files = await pg.evaluate(() => window.__wamLast && window.__wamLast.files.filter(x => /\.wam$/.test(x.name)).map(x => x.text));
+  chk(files && files.length >= 3, 'OpenWAM cases written with the chamber');
+  chk(files && files.every(t => /130\.02|0\.13002/.test(t)), 'the pocket branches (130 mm equivalent) are in the case');
+  const txt = await pg.evaluate(() => document.querySelector('#panel-four').innerText);
+  chk(!/Line after the collector/.test(txt) && !/\bNaN\b/.test(txt), 'no line error, no NaN');
+  await b.close(); console.log(out.join('\n')); console.log(fails ? 'wamchamber_ui: ' + fails + ' FAIL' : 'wamchamber_ui: all pass'); process.exit(fails ? 1 : 0);
+})();

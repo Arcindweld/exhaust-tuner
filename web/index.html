@@ -17440,7 +17440,7 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#h-uel-pair')) retu
 
 /* ===== OpenWAM: a full 1-D case for the free OpenWAM 2.2 solver, several engine speeds, run with a .bat ===== */
 const WAM_UI={rpms:'',cycles:25,name:'',msg:null,results:[],src:'',ins:[],
-  line:{on:false,L:2500,d:76.2,muf:0,tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38,par:'none',px:1500,xo:'none'},
+  line:{on:false,L:2500,d:76.2,muf:0,mufKind:'volume',tail:500,fix:'none',x:600,qL:600,qd:50.8,hV:2,hL:80,hd:38,par:'none',px:1500,xo:'none'},
   loss:{K:0,Ky:0,src:''},
   prof:{in:null,ex:null,angle:'crank',lift:'valve',rr:1.7,err:''}};   // measured lift profiles (make_wam v9)   // merge losses (make_wam v8): the collector's and the Tri-Y merges' K, from the exhaust CFD   // the line after the collector (mm, litres)
 // The line after the collector for the OpenWAM case (make_wam tail elements): pipe, an optional drone fix off the pipe
@@ -17465,6 +17465,24 @@ function wamParPaths(kind){
   return null;
 }
 window.__wamParPaths=k=>wamParPaths(k);   // test hook
+// The Mufflers tab's expansion chamber as 1-D tail elements (make_wam): the open chamber a pipe of the chamber's bore
+// between the two tube mouths, and the pocket behind each extended tube a closed quarter-wave side branch of the
+// annulus's area (a round pipe of the same area; a 1-D model carries area, not shape) at that mouth. A plain chamber
+// (no extensions) is one pipe of the chamber's bore. Unlike a 0-D volume this passes the bands a real chamber passes
+// (the F-100 case: 0-D volumes in series are a low-pass that loses the high firing orders). dPipe: the line's bore, mm.
+function wamChamberEls(dPipe){
+  const dch=val('m-dch'), lch=val('m-lch'), la=Math.max(0,val('m-lin')||0), lb=Math.max(0,val('m-lout')||0), rev=$('m-chlay')&&$('m-chlay').value==='reverse';
+  if(!(dch>dPipe&&lch>0)) return {err:'Line after the collector: the Mufflers tab’s chamber has to be wider than this pipe, with a length.'};
+  if(rev) return {err:'Line after the collector: the reverse-flow chamber has its pipes side by side, which the 1-D line cannot carry; use the straight-through layout or a volume.'};
+  if(la+lb>=lch) return {err:'Line after the collector: the chamber’s extended tubes meet inside it.'};
+  const wall=val('m-bw')>0?val('m-bw'):1.651, Aan=Math.PI/4*(dch*dch-(dPipe+2*wall)**2), dAn=Math.sqrt(4*Aan/Math.PI);
+  const seg=(L,d)=>({L_mm:+L.toFixed(3),d0_mm:+d.toFixed(3),d1_mm:+d.toFixed(3)}), els=[];
+  if(la>0) els.push({side:{type:'quarter',L_mm:+la.toFixed(3),d_mm:+dAn.toFixed(3)}});
+  els.push(seg(lch-la-lb,dch));
+  if(lb>0) els.push({side:{type:'quarter',L_mm:+lb.toFixed(3),d_mm:+dAn.toFixed(3)}});
+  return {els,what:cdim(dch)+' × '+clen(lch)+' chamber'+(la>0||lb>0?' with the inlet in '+clen(la)+' and the outlet '+clen(lb)+' (pockets of '+Math.round(Aan)+' mm²)':'')};
+}
+window.__wamChamberEls=wamChamberEls;
 function wamLineTail(){
   const W=WAM_UI.line; if(!W.on) return null;
   const n=x=>Number(x);
@@ -17487,7 +17505,10 @@ function wamLineTail(){
   }
   if(n(W.L)-x0<30) return {err:'Line after the collector: leave at least 30 mm of pipe after the drone fix or the in-line piece.'};
   out.push(pipe(n(W.L)-x0));
-  if(n(W.muf)>0){ out.push({V_litres:n(W.muf)}); out.push(pipe(n(W.tail)>0?n(W.tail):300)); }
+  if(W.mufKind==='chamber'){
+    const M=wamChamberEls(n(W.d)); if(M.err) return {err:M.err};
+    out.push(...M.els); out.push(pipe(n(W.tail)>0?n(W.tail):300));
+  } else if(n(W.muf)>0){ out.push({V_litres:n(W.muf)}); out.push(pipe(n(W.tail)>0?n(W.tail):300)); }
   return {tail:out};
 }
 // the Crossover tab's X- or H-pipe between the two collectors' lines (make_wam v10): the line's pipe up to the tab's
@@ -17599,7 +17620,11 @@ function wamLineUi(){
   const L=(k,lab,kind)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="wamline" data-k="'+k+'" type="number" step="any" inputmode="decimal" data-kind="'+kind+'" value="'+shown(W[k],kind)+'">'+(kind==='len'?'<em data-u="len">'+(U==='imp'?'in':'mm')+'</em>':'<em>L</em>')+'</span></label>';
   let h='<label class="f span2"><span class="lab">After the collector</span><span class="inp"><select class="wamline" data-k="on"><option value="0"'+(W.on?'':' selected')+'>Open to the air at the collector (compare headers on their own)</option><option value="1"'+(W.on?' selected':'')+'>The rest of the system: pipe, muffler, drone fix</option></select></span></label>';
   if(W.on){
-    h+='<div class="grid2 span2">'+L('L','Pipe from the collector, length','len')+L('d','Pipe inside diameter','len')+L('muf','Muffler volume (0: none)','num')+L('tail','Tailpipe after the muffler','len')+
+    const mk=W.mufKind||'volume';
+    h+='<div class="grid2 span2">'+L('L','Pipe from the collector, length','len')+L('d','Pipe inside diameter','len')+
+      '<label class="f"><span class="lab">Muffler</span><span class="inp"><select class="wamline" data-k="mufKind"><option value="volume"'+(mk==='volume'?' selected':'')+'>A volume (0-D)</option><option value="chamber"'+(mk==='chamber'?' selected':'')+'>The Mufflers tab’s chamber (1-D, with its extended tubes)</option></select></span></label>'+
+      (mk==='chamber'?(()=>{ const M=wamChamberEls(+W.d); return '<p class="cap" style="align-self:end">'+(M.err?'<span class="st-bad">'+esc(M.err)+'</span>':esc(M.what)+'.')+'</p>'; })():L('muf','Muffler volume (0: none)','num'))+
+      L('tail','Tailpipe after the muffler','len')+
       '<label class="f span2"><span class="lab">Drone fix on the pipe</span><span class="inp"><select class="wamline" data-k="fix"><option value="none"'+(W.fix==='none'?' selected':'')+'>None</option><option value="jpipe"'+(W.fix==='jpipe'?' selected':'')+'>J-pipe (quarter-wave tube, closed end)</option><option value="helm"'+(W.fix==='helm'?' selected':'')+'>Helmholtz can on a neck</option></select></span></label>';
     if(W.fix!=='none') h+=L('x','Distance from the collector','len')+(W.fix==='jpipe'?L('qL','J-pipe length','len')+L('qd','J-pipe inside diameter','len'):L('hV','Can volume','num')+L('hL','Neck length','len')+L('hd','Neck inside diameter','len'));
     const pv=W.par||'none', P=pv!=='none'?wamParPaths(pv):null;
@@ -17608,7 +17633,7 @@ function wamLineUi(){
     h+='<label class="f span2"><span class="lab">Crossover between the two collectors</span><span class="inp"><select class="wamline" data-k="xo"><option value="none"'+(xv==='none'?' selected':'')+'>None: each collector to its own exit</option><option value="tab"'+(xv==='tab'?' selected':'')+'>The Crossover tab’s design'+(CROSS_LAST&&CROSS_LAST.type!=='y'?' ('+CROSS_LAST.name+')':'')+'</option></select></span></label>';
     if(xv!=='none'){ const xr=wamCrossover({collectors:[{},{}]},[{L_mm:+W.L||0,d0_mm:+W.d,d1_mm:+W.d}]); h+='<p class="cap span2">'+(xr&&xr.err?'<span class="st-bad">'+esc(xr.err)+'</span>':esc((xr?xr.what:'')+'. The pipe below runs from each collector to the crossover, then on to each side’s own exit with the drone fix, in-line piece and muffler, the same on both sides; an X is written as one junction both lines meet at (its short shared section is not resolved).'))+'</p>'; }
     if(pv!=='none') h+=L('px','Its inlet, from the collector','len')+'<p class="cap span2">'+(P&&P.err?'<span class="st-bad">'+esc(P.err)+'</span>':esc(P.what.charAt(0).toUpperCase()+P.what.slice(1))+'.')+'</p>';
-    h+='</div><p class="cap">The muffler is an expansion volume (it has the low-frequency behaviour of a chambered muffler, not its baffles or packing). The J-pipe and the can sit on the pipe at the distance given; the Mufflers tab works out their lengths and volumes for a drone frequency. An auger or a tube bundle is written as parallel pipes between two junctions, each path its own length and area, so OpenWAM carries the waves round both and they cancel where the paths differ by half a wavelength (checked: a 1.2 m difference took 40 dB off 200 Hz against a plain pipe, the Herschel–Quincke notch c ÷ 2ΔL = 210 Hz). A 1-D model has no end allowance at the junctions and no swirl losses. Every case written, run, fitted or optimised here uses this line.</p>';
+    h+='</div><p class="cap">The muffler is either an expansion volume (the low-frequency behaviour of a chambered muffler, not its baffles or packing) or the Mufflers tab’s chamber carried as 1-D pipes, the open part at the chamber’s bore and the pocket behind each extended tube as a closed branch of the ring’s area at that tube’s mouth, which keeps the bands a real chamber passes. The J-pipe and the can sit on the pipe at the distance given; the Mufflers tab works out their lengths and volumes for a drone frequency. An auger or a tube bundle is written as parallel pipes between two junctions, each path its own length and area, so OpenWAM carries the waves round both and they cancel where the paths differ by half a wavelength (checked: a 1.2 m difference took 40 dB off 200 Hz against a plain pipe, the Herschel–Quincke notch c ÷ 2ΔL = 210 Hz). A 1-D model has no end allowance at the junctions and no swirl losses. Every case written, run, fitted or optimised here uses this line.</p>';
   }
   const Lo=WAM_UI.loss;
   h+='<div class="grid2 span2"><label class="f"><span class="lab">Collector merge loss K (0: none)</span><span class="inp"><input class="wamloss" data-k="K" type="number" step="0.01" min="0" inputmode="decimal" value="'+(+(+Lo.K||0).toFixed(3))+'"></span></label>'+
