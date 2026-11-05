@@ -94,6 +94,16 @@ MUFFLERS = {
     "venom1d": [seg(110, 152.0, T=330), seg(40, T=330),
                 {"parallel": [[seg(280, 70.0, T=330)], [seg(280, 70.0, T=330)]], "note": "the two side passages around the V baffle"},
                 seg(40, T=330), seg(110, 152.0, T=330)],
+    # From the owner's photos looking into Black Widow mufflers (2026-11-04): the inlet opens into a square sheet-metal channel
+    # about the pipe's width that runs straight down the oval case to an end plate carrying the outlet tube (X gussets round
+    # it), so the gas path is nearly straight through; the oval case round the channel is a separate volume, joined to the
+    # path by a small hole seen in the inlet end (another model has a plate with a centre hole and two small side holes).
+    # "venom_sq": the channel as a 70 mm square (79 mm round of the same area), 330 mm long, between the pipe's two steps;
+    # "venom_sq_h": the same with the case's remaining 4.9 L hung on the inlet end as a Helmholtz volume through one 22 mm
+    # hole in 2 mm plate (K 2.8 sharp edge), about 195 Hz in 330 C gas.
+    "venom_sq": [seg(330, 79.0, T=330)],
+    "venom_sq_h": [{"side": {"type": "helmholtz", "V_litres": 4.9, "neck_L_mm": 2.0, "neck_d_mm": 22.0, "loss_K": 2.8, "Tw_C": 330}},
+                   seg(330, 79.0, T=330)],
     "chamber": [seg(356, 152.0, T=330)],
     "pipe": [seg(356, T=330)],
 }
@@ -149,7 +159,9 @@ CASES = {"ho_box_5000": ("ho", "box", 5000.0), "ho_box_5800": ("ho", "box", 5800
          "ho_venom_plenum_x400_p900_5400": ("ho", "venom", 5400.0, 600, True, 400, 900),
          "ho_venom_plenum_x400_p900_5800": ("ho", "venom", 5800.0, 600, True, 400, 900),
          "ho_venom_plenum_x400_p900_6200": ("ho", "venom", 6200.0, 600, True, 400, 900),
-         "ho_venom1d_plenum_x400_p900_5800": ("ho", "venom1d", 5800.0, 600, True, 400, 900)}
+         "ho_venom1d_plenum_x400_p900_5800": ("ho", "venom1d", 5800.0, 600, True, 400, 900),
+         "ho_venomsq_plenum_x400_p900_5800": ("ho", "venom_sq", 5800.0, 600, True, 400, 900),
+         "ho_venomsqh_plenum_x400_p900_5800": ("ho", "venom_sq_h", 5800.0, 600, True, 400, 900)}
 
 
 def run_settings(rpm, cycles, name):
