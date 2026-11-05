@@ -673,6 +673,19 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   hold, the model, or one then the other; cycle-to-cycle variation %, wander as recorded or held; "Compare the gaps
   between the orders" runs the tab's own analysis on the model's sound); rec_ui.js (held exactly with no variation
   the played model has OpenWAM's order levels to 0.01 dB at the recording's loudness).
+- Munjal elements on the Mufflers tab (2026-11-04, from the owner's copy of Acoustics of Ducts and Mufflers, 1987):
+  expansion chamber with extended inlet and outlet tubes (2.13-2.14, 3.7: the pocket behind each tube a closed
+  quarter-wave shunt of area S2 - S1; the double-tuned L/2 and L/4 set by a button; with both at 0 the plain-chamber
+  curve to 1e-6 dB), the reverse-flow end chamber (reversal elements back to back; hard cut at c/4L, pass at c/2L,
+  back pressure 1 H + 0.5 H) and the plug (cross-flow) muffler (3.8.1, the packed can's coupled equations with eqs
+  3.120/3.122 boundary conditions and Sullivan's cross-flow perforate impedance 3.153). exttube_ui.js, plug_ui.js.
+- Drive and book reading pass (2026-11-04, four reader agents over the Drive folder and the extracted books; reports in
+  the session scratchpad, findings folded in): the pipe's Mach number at the muffler now computed from the Sound tab's
+  engine (Liu, Hao and Liu 2012 measured 0.13-0.30, the old hint said 0.05-0.15); a flat-oval pipe's plane-wave limit
+  c/2W (Joseph, ISVR); Inconel 625 in the pipe materials and a 304 sensitisation-window note (427-866 C); the elliptical
+  bell's Cd against pressure ratio (Blair and Cahoon fit via the Perth College thesis, lip radius corrected to 0.06 of
+  the entry); Engelman's k shown as the 2.0-2.5 band; Vizard's runner bore as a check on a four; rotary EGT by load;
+  baffle-hole back-pressure ratios from the KTM 390 study.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
