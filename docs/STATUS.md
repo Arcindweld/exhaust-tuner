@@ -691,6 +691,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   860-960 mm (-0.5 to -0.6 dB on a 0.9 dB spread, base 4.82 dB clipped RMS) and 2.6 dB worse at 1060: the recording pins
   the primary length to about 33-39 in. Table in the case README. The four pull speeds rerun with 900 mm primaries: every hold
   0.8-1.0 dB better, the pass-by 6.1 -> 5.8 dB; orders 8 and 12 remain the gap.
+- Pass-by in the page and jet directivity (2026-11-05): Compare a recording has "Drive the model past" (speed and
+  microphone distance; Doppler by emission-to-arrival time, 1/r from the hold's level at the closest point, the tip's
+  jet with a jet's directivity, Morse and Ingard 11.4); sound/sweep.py passby() takes the jet apart the same way
+  (pull(split=True)); rec_ui.js checks the Doppler ratio and the level law. The muffler designer also searches Munjal's
+  double-tuned extended-tube chamber. Page V56.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
