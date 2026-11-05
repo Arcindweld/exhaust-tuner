@@ -17477,7 +17477,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wam
   const ok=(WAM_UI.ins||[]).filter(x=>!x.err), x=ok[+b.dataset.wamjob]; if(!x) return;
   const v=wamLevels(x,WAM_LEVEL.r_ft,WAM_LEVEL.target); if(!v||!v.need) return;
   const job=v.need.filter(q=>q.cut>0); if(!job.length) return;
-  MD.f0=Math.round(Math.min(...job.map(q=>q.f))*0.95); MD.f1=Math.round(Math.max(...job.map(q=>q.f))*1.05); MD.tl=Math.ceil(Math.max(...job.map(q=>q.cut))); MD.res=null; MD.key='';
+  MD.f0=Math.round(Math.min(...job.map(q=>q.f))*0.95); MD.f1=Math.round(Math.max(...job.map(q=>q.f))*1.05); MD.tl=Math.ceil(Math.max(...job.map(q=>q.cut))); MD.inst=true; MD.res=null; MD.key='';
   location.hash='mufflers'; renderActive(); setTimeout(()=>{ const el=$('md-run'); if(el) el.scrollIntoView({block:'center'}); },50); });
 document.addEventListener('change',e=>{ const id=e.target&&e.target.id; if(id==='wam-lv-r'||id==='wam-lv-t'){ const v=parseFloat(e.target.value); if(id==='wam-lv-r') WAM_LEVEL.r_ft=Number.isFinite(v)&&v>=3?v:50; else WAM_LEVEL.target=Number.isFinite(v)&&v>0?v:null; renderActive(); return; }
   if(id!=='wam-mic'&&id!=='wam-mic-sep'&&id!=='wam-mic-r') return;
@@ -17502,10 +17502,16 @@ const WAM_LEVEL={r_ft:50,target:null};
 function wamLevels(x,rFt,target){
   if(!x.spl24||!(x.rpm>0)) return null;
   const r=rFt*0.3048, rows=x.spl24.map((L,i)=>{ const o=(i+1)/2, f=o*x.rpm/60, La=L-20*Math.log10(r)+6+aWeight(f); return {o,f,L:L-20*Math.log10(r)+6,La}; }).filter(q=>q.L>0);
-  const tot=10*Math.log10(rows.reduce((a,q)=>a+Math.pow(10,q.La/10),0)), totZ=10*Math.log10(rows.reduce((a,q)=>a+Math.pow(10,q.L/10),0));
+  // the tip's jet (realism.py's Lighthill law on the run's own gas speed): its mean power as a broadband floor at the roadside,
+  // A-weighted at its spectrum's peak St 0.2 U / d
+  let jet=null;
+  if(x.jet&&x.jet.u&&x.jet.u.length){ const N=x.jet.u.length, wj=x.jet.u.map((U,i)=>jetPower(U,x.jet.T[i],x.jet.d)), W=wj.reduce((a,b)=>a+b,0)/N;
+    const Ue=Math.pow(x.jet.u.reduce((a,U)=>a+Math.pow(Math.abs(U),8),0)/N,1/8), fp=JET_ST*Ue/x.jet.d;
+    if(W>0){ const L=10*Math.log10(1.2*343*W/(4*Math.PI*r*r)/(20e-6)**2)+6; jet={W,fp,L,La:L+aWeight(fp)}; } }
+  const tot=10*Math.log10(rows.reduce((a,q)=>a+Math.pow(10,q.La/10),0)+(jet?Math.pow(10,jet.La/10):0)), totZ=10*Math.log10(rows.reduce((a,q)=>a+Math.pow(10,q.L/10),0)+(jet?Math.pow(10,jet.L/10):0));
   const top=Math.max(...rows.map(q=>q.La)), loud=rows.filter(q=>q.La>top-15), N=loud.length;
   const need=target>0?loud.map(q=>({o:q.o,f:q.f,La:q.La,cut:Math.max(0,q.La-(target-10*Math.log10(N)))})):null;
-  return {rows,tot,totZ,top,N,need,each:target>0?target-10*Math.log10(N):null};
+  return {rows,tot,totZ,top,N,need,jet,each:target>0?target-10*Math.log10(N):null};
 }
 function wamInsTable(R){
   const ok=R.filter(x=>!x.err), bad=R.filter(x=>x.err);
@@ -17515,7 +17521,7 @@ function wamInsTable(R){
   let rows='';
   for(let m=1;m<=12;m++) rows+='<tr'+(m%2?' class="cur"':'')+'><td>'+(m/2)+(m%2?' (half)':'')+'</td>'+ok.map(x=>'<td>'+(x.db[m-1]<-60?'—':String(Math.round(x.db[m-1]))+' dB')+'</td>').join('')+'</tr>';
   const lv=ok.map(x=>wamLevels(x,WAM_LEVEL.r_ft,WAM_LEVEL.target)), anyLv=lv.some(Boolean);
-  if(anyLv) rows+='<tr><td>Level at '+WAM_LEVEL.r_ft+' ft, hard ground</td>'+lv.map(v=>'<td>'+(v?v.tot.toFixed(0)+' dB(A), '+v.totZ.toFixed(0)+' dB':'—')+'</td>').join('')+'</tr>'+
+  if(anyLv) rows+='<tr><td>Level at '+WAM_LEVEL.r_ft+' ft, hard ground</td>'+lv.map(v=>'<td>'+(v?v.tot.toFixed(0)+' dB(A), '+v.totZ.toFixed(0)+' dB'+(v.jet?'<br><span class="hint">tip jet '+v.jet.La.toFixed(0)+' dB(A), peak near '+Math.round(v.jet.fp)+' Hz</span>':''):'—')+'</td>').join('')+'</tr>'+
     (WAM_LEVEL.target>0?'<tr><td>To reach '+WAM_LEVEL.target+' dB(A): take off</td>'+lv.map((v,i)=>'<td>'+(v&&v.need?(v.need.filter(q=>q.cut>0).map(q=>'order '+q.o+' '+q.cut.toFixed(0)+' dB').join(', ')||'nothing: already under')+(v.need.some(q=>q.cut>0)?' <button type="button" class="btn" data-wamjob="'+i+'" style="padding:2px 8px;margin-left:6px">To the muffler designer</button>':''):'—')+'</td>').join('')+'</tr>':'');
   rows+='<tr><td>Half orders, energy share</td>'+ok.map(x=>'<td>'+(100*x.half).toFixed(0)+'%</td>').join('')+'</tr>'+
     '<tr><td>Strongest order</td>'+ok.map(x=>'<td>'+x.strongest+(Number.isFinite(x.rpm)?' ('+Math.round(x.strongest*x.rpm/60)+' Hz)':'')+'</td>').join('')+'</tr>'+
@@ -17525,7 +17531,7 @@ function wamInsTable(R){
     (M.layout==='side'?'<label class="f"><span class="lab">Exits apart (far exit this much farther)</span><span class="inp"><input id="wam-mic-sep" type="number" step="0.1" min="0" inputmode="decimal" value="'+M.sep+'"><em>m</em></span></label><label class="f"><span class="lab">Microphone to the near exit</span><span class="inp"><input id="wam-mic-r" type="number" step="0.1" min="0.1" inputmode="decimal" value="'+M.r+'"><em>m</em></span></label>':'')+'</div>':'';
   const lvUi=anyLv?'<div class="grid2" style="max-width:640px"><label class="f"><span class="lab">Roadside microphone</span><span class="inp"><input id="wam-lv-r" type="number" step="5" min="3" inputmode="decimal" value="'+WAM_LEVEL.r_ft+'"><em>ft</em></span></label>'+
     '<label class="f"><span class="lab">Quiet target there, blank for none</span><span class="inp"><input id="wam-lv-t" type="number" step="1" min="40" max="130" inputmode="decimal" value="'+(WAM_LEVEL.target||'')+'"><em>dB(A)</em></span></label></div>':'';
-  return h+micUi+lvUi+'<div class="tblwrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div><p class="cap">'+(anyLv?'Level: the open end as a monopole on a hard ground (+6 dB), the orders’ A-weighted levels summed; no jet noise, no directivity, no walls or trees, and whatever the line above carries is all the muffling there is, so read it as the order content and the ceiling, not a meter reading. The quiet target follows Davies (1996): the N orders within 15 dB of the loudest brought to the target less 10 log N each, and the table says which orders must fall and by how much, which is the muffler’s job list for the Mufflers tab. ':'')+(dual?'Exits heard: all '+Math.max(...ok.map(x=>x.exits))+', their flows added at the microphone '+(M.layout==='side'?'with the far one '+M.sep+' m farther ('+(M.r/(M.r+M.sep)).toFixed(2)+' of its level, arriving later), so they reinforce some orders and cancel others':'in step (equally far)')+'; the exits are told from the plenum ports by the model this tab writes now, so load files made from the tab as it is. ':'Outlet read: the last open end in each file (duct '+ok.map(x=>x.pipe).join(', ')+'); with several collectors that is the last one. ')+' A settled run repeats within a few percent from one cycle to the next. Single orders in a dip move with the cell size (see Method), so compare the pattern between cases.</p>';
+  return h+micUi+lvUi+'<div class="tblwrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div><p class="cap">'+(anyLv?'Level: the open end as a monopole on a hard ground (+6 dB), the orders’ A-weighted levels summed, plus the tip’s jet as a broadband floor from its mean power (Lighthill on the run’s own gas speed, as the Listen model) where the file carries the gas speed; no directivity, no walls or trees, and whatever the line above carries is all the muffling there is, so read it as the order content and the ceiling, not a meter reading. The quiet target follows Davies (1996): the N orders within 15 dB of the loudest brought to the target less 10 log N each, and the table says which orders must fall and by how much, which is the muffler’s job list for the Mufflers tab. ':'')+(dual?'Exits heard: all '+Math.max(...ok.map(x=>x.exits))+', their flows added at the microphone '+(M.layout==='side'?'with the far one '+M.sep+' m farther ('+(M.r/(M.r+M.sep)).toFixed(2)+' of its level, arriving later), so they reinforce some orders and cancel others':'in step (equally far)')+'; the exits are told from the plenum ports by the model this tab writes now, so load files made from the tab as it is. ':'Outlet read: the last open end in each file (duct '+ok.map(x=>x.pipe).join(', ')+'); with several collectors that is the last one. ')+' A settled run repeats within a few percent from one cycle to the next. Single orders in a dip move with the cell size (see Method), so compare the pattern between cases.</p>';
 }
 $('h-uel-wrap').addEventListener('input',e=>{   // runs before the form's own handler, so the render sees the edit
   const el=e.target; if(!el.classList||!el.classList.contains('uelx')) return;
