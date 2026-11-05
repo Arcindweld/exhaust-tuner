@@ -6361,6 +6361,11 @@ function calcTwo(p){
   if(lh<=0) notes.push({k:'bad',t:'The cones and belly already use more than the tuned length, so the header comes out at zero or below. Widen the cone angles, lower the belly ratio, or tune for a lower RPM.'});
   else if(port>=lh) notes.push({k:'bad',t:'The port inside the cylinder is as long as the whole header, so there is no header pipe left to build. Check the port length, or tune for a lower RPM.'});
   if(p.sr<0.58||p.sr>0.63) notes.push({k:'info',t:'Stinger ratio is outside the usual 0.58 to 0.63 of header diameter.'});
+  // Jennings (Two-Stroke Tuner's Handbook, 1973, as read in the two-stroke summary): the header 6 to 8 diameters long for peak power,
+  // about 11 for a broad curve; a header may diverge 2 to 3 degrees; header area 10 to 15% above the port's
+  if(lh>0){ const nd=lh/p.dh; if(nd<6) notes.push({k:'info',t:'The header comes out '+nd.toFixed(1)+' diameters long: Jennings puts it at 6 to 8 for peak power and about 11 for a broad curve, so this one is short for its bore. A smaller header bore or a longer tuned length (lower RPM) lengthens it.'});
+    else if(nd>11.5) notes.push({k:'info',t:'The header comes out '+nd.toFixed(1)+' diameters long, past Jennings’ 11 for a broad curve (6 to 8 for peak power): the diffuser starts late. A larger header bore shortens it in diameters.'});
+    else notes.push({k:'ok',t:'Header length '+nd.toFixed(1)+' diameters: '+(nd<=8.5?'in Jennings’ 6 to 8 for peak power':'toward Jennings’ 11 for a broad curve')+'. He also allows the header to diverge 2 to 3° and run 10 to 15% over the port’s area.'}); }
   if(p.da<7||p.da>10) notes.push({k:'info',t:'Diffuser included angle is outside the typical 7° to 10°.'});
   if(p.ba<14||p.ba>25) notes.push({k:'info',t:'Baffle included angle is outside the typical 14° to 25°. A steep baffle narrows the powerband.'});
   const hl=Math.max(lh,0);
