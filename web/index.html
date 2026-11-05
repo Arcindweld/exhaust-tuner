@@ -1136,6 +1136,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
             <option value="ss409">409 stainless</option>
             <option value="ss304" selected>304 or 321 stainless</option>
             <option value="ti2">Titanium, grade 2</option>
+            <option value="in625">Inconel 625</option>
           </select></span></label>
         <label class="f"><span class="lab">Tube shape</span>
           <span class="inp"><select id="s-shape" class="shapesel" data-w="s-od" data-h="s-oh" data-lab="Tube outside {d}"><option value="round" selected>Round</option><option value="oval">Oval</option><option value="flat">Flat oval</option></select></span></label>
@@ -1647,7 +1648,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="m-mach" type="number" step="0.01" min="0" max="0.3" inputmode="decimal" data-kind="num" data-dp="2" data-base="0"><em>Mach</em></span></label>
         <label class="f"><span class="lab">Plug muffler: perforate each side of the plug</span>
           <span class="inp"><input id="m-plugl" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
-        <span class="hint" style="grid-column:1/-1">The core is the main pipe size, perforated, inside the chamber shell. Glass-fibre fills run about 90 to 200 kg/m³ (100 kg/m³ is about 6 lb/ft³). Set the density to 0 for a bare core, which a stainless-wool wrap comes close to. The mean flow is the gas speed in the core as a Mach number (0.05 to 0.15 at full throttle on most road engines; 0 for a bench test with no flow): grazing flow raises the perforate’s resistance about 1 + 72 × Mach (Rao and Munjal 1986), which is most of what a straight-through muffler does at speed.</span>
+        <span class="hint" style="grid-column:1/-1">The core is the main pipe size, perforated, inside the chamber shell. Glass-fibre fills run about 90 to 200 kg/m³ (100 kg/m³ is about 6 lb/ft³). Set the density to 0 for a bare core, which a stainless-wool wrap comes close to. The mean flow is the gas speed in the core as a Mach number (0 for a bench test with no flow; a 1.6 L four measured Mach 0.13 at the muffler inlet at 2,500 rpm full load and 0.30 at 5,500 rpm, Liu, Hao and Liu 2012): grazing flow raises the perforate’s resistance about 1 + 72 × Mach (Rao and Munjal 1986), which is most of what a straight-through muffler does at speed. <b id="m-mach-eng"></b></span>
       </div>
       <div class="grp adv">Layout rules</div>
       <div class="grid2 adv">
@@ -1831,6 +1832,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
             <option value="ss409">409 stainless</option>
             <option value="ss304" selected>304 or 321 stainless</option>
             <option value="ti2">Titanium, grade 2</option>
+            <option value="in625">Inconel 625</option>
           </select></span></label>
         <label class="f"><span class="lab">Sheet thickness</span>
           <span class="inp"><input id="b-t" type="number" step="any" inputmode="decimal" data-kind="len" data-base="1.2446"><em data-u="len">in</em></span></label>
@@ -6569,11 +6571,12 @@ const MATS={
   mild:{name:'Mild steel (1010)',E:205,rho:7870,nu:0.29,t:'carbon'},
   ss409:{name:'409 stainless',E:208.2,rho:7750,nu:0.29,t:'chrome'},
   ss304:{name:'304 or 321 stainless',E:193,rho:8030,nu:0.27,t:'aus'},
-  ti2:{name:'Titanium grade 2',E:105,rho:4510,nu:0.37,t:'ti'}
+  ti2:{name:'Titanium grade 2',E:105,rho:4510,nu:0.37,t:'ti'},
+  in625:{name:'Inconel 625',E:207,rho:8440,nu:0.31,t:'aus'}   // 30 × 10⁶ psi, 0.305 lb/in³ (nsxprime Exhaust Theory table); its modulus is scaled with temperature like the austenitic steels, which is close for a nickel alloy
 };
 // Mean thermal expansion per °C: mild steel, 304/321 and titanium from the material table in the nsxprime Exhaust Theory FAQ (7.228, 9.9 and 4.8 × 10⁻⁶ per °F),
 // 409 from Atlas Steels (11.7 µm/m per °C, 0 to 315 °C). Hotter walls grow a few percent more than these room-range values.
-const ALPHA={mild:13.0e-6,ss409:11.7e-6,ss304:17.8e-6,ti2:8.6e-6};
+const ALPHA={mild:13.0e-6,ss409:11.7e-6,ss304:17.8e-6,ti2:8.6e-6,in625:9.9e-6};   // Inconel 625: 5.5 × 10⁻⁶ per °F (nsxprime table), about the lowest of the exhaust metals
 // Wall temperature each steel is generally used up to, °C (Potente, Acoustics 2005); 321 stainless suits hotter parts
 const TMAX={mild:500,ss409:700};
 const heatGrowth=(mat,tWall,len)=>ALPHA[mat]*(tWall-20)*len;   // mm of growth over len mm, from 20 °C
@@ -7881,6 +7884,11 @@ function tubeSection(q){
 }
 // inside flow area of a tube described by its inside size
 const insideSection=(shape,w,h)=>tubeSection({shape,w,h,t:0});
+// First cross mode of a duct section, above which plane waves no longer hold: a round pipe at ka = 1.8412 (j'11), 0.586 c / D;
+// a rectangular duct at c / (2 W) across its long side (Joseph, Fundamentals of Duct Acoustics, ISVR: f = (c / 2) sqrt((n_y / L_y)^2
+// + (n_z / L_z)^2)); a flat oval or an ellipse is taken as its long side, which is a little low for an ellipse and close for a
+// flat oval. sec: a tubeSection/insideSection result (wi, hi, Deq, shape); c m/s; -> Hz
+function crossModeHz(c,sec){ if(!sec||sec.err) return NaN; return sec.shape==='round'?1.8412*c/(Math.PI*sec.Deq/1000):c/(2*Math.max(sec.wi,sec.hi)/1000); }
 
 /* ----- cross-section ring modes: a closed frame of beam elements round the mid-wall line ----- */
 // Gives the shell (ovaling) modes of a long tube of any section. For a round tube it reproduces the thin-ring formula.
@@ -8364,7 +8372,7 @@ function calcPlug(p){
   };
   return {c,rho0,fCut,gap:gap*1000,S1,S2,at,tl:f=>Math.min(TLCAP,at(f).tl)};
 }
-window.__plug=calcPlug;
+window.__plug=calcPlug; window.__crossMode=crossModeHz;
 // Davies 1996 (J. Sound Vib. 190(4), eqs. 2.2, 2.3, 2.6, 2.7, data sheets 3 and 5): side-branch quarter-wave length l1 = c/(4·f),
 // a set of m branches in the ratio 3^(−1/m) so each covers the odd multiples of the next, folded branch l_s = X_i + (So/Si)·X_o for So/Si < 2,
 // chamber area 10 to 15× the pipe, peak-to-trough 20·log10(Sc/Sp), open-end correction l0/a = 0.6133 − 0.1168·(ka)² (ka < 0.5) or
@@ -10266,6 +10274,7 @@ function renderSound(){
       rowT('Tube weight',(sh.ml*0.671969).toFixed(2)+' lb/ft',sh.ml.toFixed(2)+' kg/m');
     const matK=$('s-mat').value, tw=val('s-twall'), grow=heatGrowth(matK,tw,r.len), tmax=TMAX[matK];
     if(grow>0) out+=rowT('Heat growth, '+(turbo?'turbine outlet':'valve')+' to tip',cdim(grow),'at a '+tempStr(tw)+' wall over '+clen(r.len)+', '+(ALPHA[matK]*1e6).toFixed(1)+' µm per m per °C');
+    if(matK==='ss304'&&tw>=427&&tw<=866) out+='<div class="note">At '+tempStr(tw)+' an unstabilised austenitic steel (304, 316) sits in the sensitisation window, '+tempStr(427)+' to '+tempStr(866)+', where chromium carbides form at the grain boundaries and the metal can corrode along them; 321 and 347 are stabilised (titanium or niobium) and 316L’s 0.03% carbon is low enough, so pick those for a header or turbo part that lives there (nsxprime Exhaust Theory FAQ, materials section).</div>';
     if(tmax&&tw>tmax) out+='<div class="note warn"><b>Too hot for '+(matK==='mild'?'mild or aluminized steel':'409 stainless')+'.</b> At '+tempStr(tw)+' the wall is above the '+tempStr(tmax)+' it is generally used up to (Potente, Acoustics 2005). '+
       (matK==='mild'?'409 stainless suits walls to about '+tempStr(700)+', and 321 stainless hotter parts.':'Atlas Steels rates 409 against scaling to '+tempStr(675)+' in continuous service and '+tempStr(815)+' in intermittent service; 321 stainless suits hotter parts.')+'</div>';
     out+='<div class="tblwrap" style="margin-top:10px"><table><thead><tr><th>Mode</th><th>Frequency</th><th>Meets tone at RPM</th></tr></thead><tbody>'+
@@ -13232,7 +13241,7 @@ document.addEventListener('change',e=>{ const el=e.target;
   else if(el.matches&&el.matches('select.mdsel')){ MD.kinds=el.value; renderActive(); } });
 // the Mufflers tab's own inputs, as renderMuf reads them (for the designer's button)
 function mufP(){ const bore=boreOf('m-dp-shape'); if(bore.err) return null; return {f:val('m-f'),dpipe:bore.Deq,tmain:val('m-tmain')}; }
-window.__md={MD,mdSearch,mdInputs,mufP,calcChamber};
+window.__md={MD,mdSearch,mdInputs,mufP,calcChamber,sec:insideSection};
 function mtSection(p){
   let h='<p class="cap" style="margin-top:0">The same test for three kinds of muffler, from US 5,824,972 (Boyd Butler, 1997), the patent that describes the spiral sound trap in a Spintech: with a 2½ in inlet and outlet and 5 in of water across it, a chambered (baffle) muffler takes 13 to 20 dBA off and passes 70 to 100 CFM, a packed straight-through 2 to 7 dBA at about 200 CFM, and the spiral traps 8 to 15 dBA at about 175 CFM. A spiral trap is a wall bent a little over one turn, standing across the case; part of the flow swirls inside it and is drawn out of vents in its back by the faster flow past it, so it quiets without the flow turning back on itself as it does through baffles, and with no packing to burn out.</p>';
   let sp=null; try{ sp=soundParams(); }catch(e){}
@@ -13322,7 +13331,7 @@ function ttTune(n,f0,c){   // lengths whose half-wave resonance sits on harmonic
 }
 function ttSection(p){
   const fire=ttFire(), c=sos(p.tmain), rho=101325/(287*(p.tmain+273.15)), S=Math.PI*(p.dpipe/2000)**2;
-  const fCut=1.8412*c/(Math.PI*p.dpipe/1000);   // first cross mode of the main pipe: plane waves hold below it
+  const bsec=boreOf('m-dp-shape'), fCut=crossModeHz(c,bsec.err?null:bsec)||1.8412*c/(Math.PI*p.dpipe/1000);   // first cross mode of the main pipe (c / 2W for a flat oval): plane waves hold below it
   let h='<p class="cap" style="margin-top:0">Borla’s patented “timbre scaled exhaust system” (US 10,808,584 B2, David Borla, filed 2016, and its continuations) splits the flow into 3 to 5 parallel tubes, 1 to 1.5 in across and about 1 to 8 in long, between two collectors ahead of the muffler, each sized from the engine’s root note for a note of its own. The patents give no formula. Tubes that short resonate in the kilohertz range, so the bundle works on the harmonics above the engine note, its timbre: where the tubes’ waves meet out of phase at the outlet collector, that harmonic is taken out. This works out those dips from plane waves through the tubes you enter, and can size the tubes so their resonances land on chosen harmonics of the firing tone.</p>';
   if(!(p.dpipe>0&&c>0)) return sec('Timbre tube bundle',h+'<div class="note">Enter the main pipe size above.</div>');
   const n=Math.min(5,Math.max(3,Math.round(TT.n)||4));
@@ -13386,6 +13395,11 @@ function renderMuf(){
   const hm=calcHelm(p), qw=calcQW(p), ch=calcChamber(p), pl=calcPlace(p);
   const ab=calcAbsorb({dpipe:p.dpipe,dsh:p.dch,len:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')});
   const abMemo={}, abTL=f=>{ const k=Math.round(f); if(abMemo[k]==null) abMemo[k]=Math.min(TLCAP,ab.tl(k)); return abMemo[k]; };
+  const pipeCut=crossModeHz(sos(p.tmain),bore.err?null:bore);
+  (()=>{ const el=$('m-mach-eng'); if(!el) return; let txt=''; try{ const sp=soundParams(); if(!sp.err&&p.dpipe>0&&val('s-disp')>0&&sp.p.red>0){
+      const e=sp.e, share=sp.p.pp.n/e.order.length, tg=val('s-ft'), fl=engineFlow({cyc:e.cyc,disp:val('s-disp'),rpm:sp.p.red,ve:0.9,boost:0,afr:12.5,tgas:tg});
+      const Mred=fl.Q*share/(bore.A/1e6)/sos(tg), Mcr=Mred*sp.p.cruise/sp.p.red;
+      txt='On the Sound tab’s engine this pipe runs about Mach '+Mred.toFixed(2)+' at redline and Mach '+Mcr.toFixed(2)+' at '+Math.round(sp.p.cruise).toLocaleString('en-US')+' rpm, both full throttle (part throttle is far less), 90% volumetric efficiency, gas at '+tempStr(tg)+(share<1?', this pipe carrying '+Math.round(share*100)+'% of the flow':'')+'.'; } }catch(e){} el.textContent=txt; })();
   const pg=val('m-plugl')>0?calcPlug({dpipe:p.dpipe,dsh:p.dch,lperf:val('m-plugl'),lch:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')}):null;
   const pgMemo={}, pgTL=f=>{ const k=Math.round(f); if(pgMemo[k]==null) pgMemo[k]=pg.tl(k); return pgMemo[k]; };
   const firstErr=[hm,qw,pl].find(x=>x.err);
@@ -13472,7 +13486,7 @@ function renderMuf(){
       (rs?rowT('At the firing tone',tlTxt(rs.f.idle)+' · '+tlTxt(rs.f.cruise)+' · '+tlTxt(rs.f.red),'idle · cruise · redline, from the Sound tab'):'')+
       rowT('Packing',val('m-pack')>0?Math.round(val('m-pack'))+' kg/m³, flow resistivity '+Math.round(ab.R).toLocaleString('en-US')+' Pa·s/m²':'none: bare perforated core','R = 1.316 × density^1.782 for texturized glass roving')+
       rowT('Core',pct(val('m-por')/100)+' open, '+cdim(val('m-ph'))+' holes in a '+cdim(val('m-pw'))+' wall','gas at '+tempStr(p.tmain))+
-      rowT('Curve holds up to about',hzs(ab.fCut),'the first cross mode of the shell; the core’s own limit is '+hzs(ab.fCore))+
+      rowT('Curve holds up to about',hzs(ab.fCut),'the first cross mode of the shell; the core’s own limit is '+hzs(pipeCut>0?pipeCut:ab.fCore)+(bore.shape!=='round'?' (a '+bore.shape+' pipe cuts off at c ÷ 2 × its long side, lower than a round one of the same area)':''))+
       (rs?'<div class="tblwrap" style="margin-top:10px"><table><thead><tr><th>Tone</th><th>Idle</th><th>Cruise</th><th>Redline</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'')+
       '<figure class="card" style="margin:10px 0 0;padding:10px"><svg class="camp" id="m-abs" role="img" aria-label="Transmission loss of the packed can against frequency"></svg>'+
       '<div class="legend"><span><i class="sw" style="--c:var(--t5)"></i>Packed can</span><span><i class="sw bandsw"></i>Above the plane-wave limit</span></div></figure>'+
