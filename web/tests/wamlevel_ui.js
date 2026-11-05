@@ -37,6 +37,10 @@ print(json.dumps({'spl': wam_sound.synthesize_multi(S, 5800.0, orders_max=12)['s
   await pg.fill('#wam-lv-t', '80'); await pg.dispatchEvent('#wam-lv-t', 'change'); await pg.waitForTimeout(500);
   txt = await pg.evaluate(() => document.getElementById('panel-four').innerText);
   ok(/To reach 80 dB\(A\): take off\s+(order [\d.]+ \d+ dB|nothing)/.test(txt), 'quiet-target row lists the orders to cut');
+  const hadBtn = await pg.$('button[data-wamjob]');
+  if (hadBtn) { await hadBtn.click(); await pg.waitForTimeout(400);
+    const md = await pg.evaluate(() => ({ hash: location.hash, f0: window.__md.MD.f0, f1: window.__md.MD.f1, tl: window.__md.MD.tl }));
+    ok(md.hash === '#mufflers' && md.f1 > md.f0 && md.tl >= 1, 'job list goes to the muffler designer: ' + JSON.stringify(md)); }
   ok(!/\bNaN\b/.test(txt) && !errs.length, 'no NaN, no page errors ' + errs.join(' | '));
   await b.close(); console.log('failures:', fails.length); process.exit(fails.length ? 1 : 0);
 })();

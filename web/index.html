@@ -17472,6 +17472,13 @@ function wamMore(t,mdl,rpm){
   const more=outs.slice(1).map(pn=>{ const q=WAMX.readIns(t,{keepCycles:2,model:mdl,pipe:pn}); return {mdot:q.mdot,g:r1/r2,dDeg:Number.isFinite(rpm)?(r2-r1)/343*6*rpm:0}; });
   return {ins:base,more,exits:outs.length};
 }
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wamjob]'); if(!b) return;
+  // the quiet target's job list into the muffler designer: a band from the lowest to the highest order that must fall, and the largest cut
+  const ok=(WAM_UI.ins||[]).filter(x=>!x.err), x=ok[+b.dataset.wamjob]; if(!x) return;
+  const v=wamLevels(x,WAM_LEVEL.r_ft,WAM_LEVEL.target); if(!v||!v.need) return;
+  const job=v.need.filter(q=>q.cut>0); if(!job.length) return;
+  MD.f0=Math.round(Math.min(...job.map(q=>q.f))*0.95); MD.f1=Math.round(Math.max(...job.map(q=>q.f))*1.05); MD.tl=Math.ceil(Math.max(...job.map(q=>q.cut))); MD.res=null; MD.key='';
+  location.hash='mufflers'; renderActive(); setTimeout(()=>{ const el=$('md-run'); if(el) el.scrollIntoView({block:'center'}); },50); });
 document.addEventListener('change',e=>{ const id=e.target&&e.target.id; if(id==='wam-lv-r'||id==='wam-lv-t'){ const v=parseFloat(e.target.value); if(id==='wam-lv-r') WAM_LEVEL.r_ft=Number.isFinite(v)&&v>=3?v:50; else WAM_LEVEL.target=Number.isFinite(v)&&v>0?v:null; renderActive(); return; }
   if(id!=='wam-mic'&&id!=='wam-mic-sep'&&id!=='wam-mic-r') return;
   if(id==='wam-mic') WAM_MIC.layout=e.target.value; else { const v=parseFloat(e.target.value); if(Number.isFinite(v)&&v>=(id==='wam-mic-r'?0.1:0)) WAM_MIC[id==='wam-mic-r'?'r':'sep']=v; }
@@ -17509,7 +17516,7 @@ function wamInsTable(R){
   for(let m=1;m<=12;m++) rows+='<tr'+(m%2?' class="cur"':'')+'><td>'+(m/2)+(m%2?' (half)':'')+'</td>'+ok.map(x=>'<td>'+(x.db[m-1]<-60?'—':String(Math.round(x.db[m-1]))+' dB')+'</td>').join('')+'</tr>';
   const lv=ok.map(x=>wamLevels(x,WAM_LEVEL.r_ft,WAM_LEVEL.target)), anyLv=lv.some(Boolean);
   if(anyLv) rows+='<tr><td>Level at '+WAM_LEVEL.r_ft+' ft, hard ground</td>'+lv.map(v=>'<td>'+(v?v.tot.toFixed(0)+' dB(A), '+v.totZ.toFixed(0)+' dB':'—')+'</td>').join('')+'</tr>'+
-    (WAM_LEVEL.target>0?'<tr><td>To reach '+WAM_LEVEL.target+' dB(A): take off</td>'+lv.map(v=>'<td>'+(v&&v.need?v.need.filter(q=>q.cut>0).map(q=>'order '+q.o+' '+q.cut.toFixed(0)+' dB').join(', ')||'nothing: already under':'—')+'</td>').join('')+'</tr>':'');
+    (WAM_LEVEL.target>0?'<tr><td>To reach '+WAM_LEVEL.target+' dB(A): take off</td>'+lv.map((v,i)=>'<td>'+(v&&v.need?(v.need.filter(q=>q.cut>0).map(q=>'order '+q.o+' '+q.cut.toFixed(0)+' dB').join(', ')||'nothing: already under')+(v.need.some(q=>q.cut>0)?' <button type="button" class="btn" data-wamjob="'+i+'" style="padding:2px 8px;margin-left:6px">To the muffler designer</button>':''):'—')+'</td>').join('')+'</tr>':'');
   rows+='<tr><td>Half orders, energy share</td>'+ok.map(x=>'<td>'+(100*x.half).toFixed(0)+'%</td>').join('')+'</tr>'+
     '<tr><td>Strongest order</td>'+ok.map(x=>'<td>'+x.strongest+(Number.isFinite(x.rpm)?' ('+Math.round(x.strongest*x.rpm/60)+' Hz)':'')+'</td>').join('')+'</tr>'+
     '<tr><td>Last two cycles differ by</td>'+ok.map(x=>'<td>'+(x.per==null?'one cycle only':(100*x.per).toFixed(1)+'%'+(x.per>0.05?' (not settled)':''))+'</td>').join('')+'</tr>';
