@@ -44,3 +44,13 @@ Paid books worth having, in order: Munjal, *Acoustics of Ducts and Mufflers*, 2n
 the muffler elements); Dokumaci, *Duct Acoustics*, Cambridge 2021 (the same with flow, the ADEM program's basis);
 Blair, *Design and Simulation of Four-Stroke Engines*, SAE 1999 (the gas-dynamic side: the one Rienstra and Munjal
 leave out, and what OpenWAM solves).
+
+## More texts read against the code (2026-11-04, evening; the user's copies)
+
+| Text | Finding | Change |
+|---|---|---|
+| Bodén, Glav & ter Riet, *Sound transmission through a 90° bend with flow*, ICSV6 1999 (KTH MWL, measured two-ports, M 0-0.09) | a smoothly curved bend (R/d 2.2) transmits plane waves almost as a straight duct (transmission near 1, little reflection) below 0.3 of the cut-on; sharp bends (R/d 0.5) reflect noticeably; flow to M 0.09 lowers the upstream transmission a little at low frequency | none: mandrel bends (CLR 1.5-2 D) as straight lengths, which every model here does, is justified |
+| Hamilton & Blackstock, *Nonlinear Acoustics*, 3rd ed. 2024 | shock formation distance x = rho0 c0^3 / (beta f'max) (eq. 4.27): for 6 kPa at 390 Hz about 3 m, so a 600 mm tailpipe moves about 10 % of the firing fundamental into its second harmonic (order 8) | none: OpenWAM solves the nonlinear flow inside the pipes, so this is in the model; past the tip the amplitude falls too fast to steepen further |
+| Howe, *Theory of Vortex Sound*, 2003 | Lighthill's v^8 law (2.2), vortex sound at apertures (8.6): the theory behind the orifice losses (Rienstra 4.4.3) and the jet noise already in the code | none |
+| Crighton, *Basic Principles of Aerodynamic Noise Generation*, Prog. Aerospace Sci. 1975 | the standard review: source convection and jet directivity | none; our jet radiates evenly (a real jet peaks 30-40 deg off its axis), noted in jet_noise.md |
+| Rodriguez, *Applied CFD and Turbulence Modeling* 2019; Nieuwstadt et al., *Turbulence* 2016; Al Makky, *Coding Tutorials for CFD* 2014 | CFD background | the intake/collector CFD side, not the sound; not read against the code |
