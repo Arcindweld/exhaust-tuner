@@ -1355,6 +1355,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="i-tune" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>rpm</em></span></label>
         <label class="f"><span class="lab">Runner inside diameter, blank to size for 200 ft/s</span>
           <span class="inp"><input id="i-rd" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+        <label class="f adv"><span class="lab">Runner diameter at the plenum end, blank if straight</span>
+          <span class="inp"><input id="i-rd2" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Runner, valve to plenum, blank to solve</span>
           <span class="inp"><input id="i-rl" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Compression ratio</span>
@@ -18575,7 +18577,10 @@ function renderIntake(){
   // Helmholtz tuning (Engelman)
   if(e.cyc==='4'){
     const nCyl=e.order.length, vd=p.disp/1e6/nCyl, plenOn=!itb&&ind==='na', V2=plenOn?(p.plen>0?p.plen:0.5*p.disp)/1e6:0;
-    const ht=helmTune({vd,cr:val('i-cr'),c:sos(p.tin),tune:r.tr,A1:val('i-rd')>0?Math.PI*(val('i-rd')/2000)**2:0,L1:val('i-rl')>0?val('i-rl')/1000:0,
+    // a tapered runner counts by Engelman's composite rule (L/A)eff = sum L_i / A_i (eq. 5); for a straight taper from d1 to d2 the integral is
+    // L / (pi/4 d1 d2), so the runner acts like a straight one of area pi/4 d1 d2 (the geometric mean diameter)
+    const dEff=val('i-rd')>0?(val('i-rd2')>0?Math.sqrt(val('i-rd')*val('i-rd2')):val('i-rd')):0;
+    const ht=helmTune({vd,cr:val('i-cr'),c:sos(p.tin),tune:r.tr,A1:dEff>0?Math.PI*(dEff/2000)**2:0,L1:val('i-rl')>0?val('i-rl')/1000:0,
       V2,L2:p.lt/1000,A2:Math.PI*(p.dt/2000)**2*Math.max(1,p.n)});   // tubes in parallel add their areas
     let hb='';
     if(ht.err) hb='<div class="note">'+esc(ht.err)+'</div>';
@@ -18583,7 +18588,7 @@ function renderIntake(){
       const fts=ms=>Math.round(ms/0.3048)+' ft/s', rpmT=x=>Math.round(x/10)*10;
       hb=rowL('Runner, valve to '+(itb?'the open end':'the plenum')+(ht.solvedL?', for '+rpmT(r.tr).toLocaleString('en-US')+' RPM':''),ht.L1*1000,'l')+
         (val('i-port')>0&&ht.L1*1000>val('i-port')?rowL('… outside the head (port deducted)',ht.L1*1000-val('i-port'),'l'):'')+
-        rowL('Runner inside diameter'+(ht.sizedA?', sized for 200 ft/s':''),ht.d1*1000,'d')+
+        rowL('Runner inside diameter'+(ht.sizedA?', sized for 200 ft/s':val('i-rd2')>0?', effective: √(valve end × plenum end) for a straight taper (Engelman eq. 5)':''),ht.d1*1000,'d')+
         rowT('Runner tuning peak',rpmT(ht.Np).toLocaleString('en-US')+' RPM','for Engelman’s k = 2.1; the literature’s 2.0 to 2.5 puts it between '+rpmT(ht.Np*2.1/2.5).toLocaleString('en-US')+' and '+rpmT(ht.Np*2.1/2.0).toLocaleString('en-US')+' RPM')+
         (nCyl===4?(()=>{ const dv=Math.sqrt(r.tr*(p.disp/1000)*p.ve/3330)*25.4; return rowL('Vizard’s runner bore for the same peak',dv,'d'); })():'')+
         rowT('Mean air speed in the runner at that peak',fts(ht.vMean),ht.vMean>210*0.3048+0.01?'above the 180 to 210 ft/s Engelman found best':ht.vMean<180*0.3048-0.01?'below the 180 to 210 ft/s Engelman found best':'within the 180 to 210 ft/s Engelman found best');
