@@ -11019,6 +11019,7 @@ const GUIDE={
     ['Muffler type','Packed straight-through mufflers are generally the loudest, turbo mufflers the quietest, and chambered ones in between.'],
     ['Inline resonator','A packed resonator trims rasp and some drone; it is not tuned to one frequency.'],
     ['Volume','Production cars now carry roughly 12 times the engine’s displacement in muffler volume, up from about 5 times; more volume is the surest way to quiet the low notes. Munjal: 20 dB(A) takes 3.5 to 12.5 times the displacement, and each extra dB(A) about 0.38 times more.'],
+    ['Baffle holes','Keep the baffle hole centred and generous: in the KTM 390 muffler study (ratios only, its flow was wrong) an 80 mm hole moved 20, 40 and 60 mm off centre cost 1.3, 3.7 and 4.6 times the back pressure of the centred one for 6 to 24% more mid-band attenuation, a 40 mm hole 4.6 times an 80 mm one, and running the inlet and outlet tubes 70 mm into the can cut back pressure by a third while raising 300 to 1,500 Hz attenuation 24 to 45%; stretching the can at the same volume raised back pressure and lowered attenuation.'],
     ['Chambers','Munjal’s design criteria: extended inlet and outlet tubes beat plain chambers; more chambers in the same shell quiet the high notes but let more low notes through; a bigger area ratio always helps; mean flow barely changes an unperforated muffler’s insertion loss but is most of a perforated one’s.']],
   cat:[
     ['Cell density','Fewer cells per square inch flow more and quiet less. Factory converters run 400 to 900; high-flow and race ones 100 to 400.'],
@@ -13984,7 +13985,7 @@ function renderHeadersRotary(e){
   let html=explainBox([
     'Each rotor sends one exhaust pulse every turn of the eccentric shaft, so '+(e.order.length>1?'a collector joining '+e.order.length+' rotors sees a pulse every '+Math.round(360/e.order.length)+'° of shaft rotation.':'the pipe sees one pulse per shaft turn.'),
     'Size the runners from the port and the RPM where you want the power, then build them so they can be trimmed: this tab gives no rotary runner length.',
-    'Rotary exhaust runs well over 100 °C hotter than a piston engine’s at low and medium load and can pass 1,300 K at full load, so use high-temperature material and leave room for growth.']);
+    'Rotary exhaust runs well over 100 °C hotter than a piston engine’s at low and medium load and can pass 1,300 K at full load, so use high-temperature material and leave room for growth. Measured by load (Blair’s table as extended in the two-stroke summary on the Sources tab): a street RX-7 turbo at 12 bar BMEP about '+tempStr(700)+', a 12A racer at 11 bar about '+tempStr(960)+'; set the gas temperature on the Sound tab from those rather than the piston-engine default.']);
   html+=sec('Pulse spacing','<div class="tblwrap"><table><thead><tr><th>Collector</th><th>Rotors at shaft angle</th><th>Gaps</th><th></th></tr></thead><tbody>'+pr+'</tbody></table></div>');
   html+=sec('Collector',an.map((g,i)=>rowL('Collector '+lab(i)+' inside diameter, '+g.cyls.length+' into 1',dcs[i],'d')).join('')+rowL('Primary inside diameter',dp,'d')+rowT('Collector area ÷ its primaries',cr.toFixed(2)));
   html+=b5RotaryCard();
