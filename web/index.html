@@ -3283,7 +3283,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     exhaust_Twall_C: 426.85, exhaust_Tgas0_C: 426.85, roughness_mm: 0.02, cell_mm: 10.0, courant: 0.8,
     pipe_method: 'tvd', fct_option: 1, end_loss: 1.0, pipe_htc_mult: 1.0, pipe_fric_mult: 1.0,
   };
-  const EXTRA_DEFAULTS = { step_bc: 'union', avg_points: 1, ins_outlet: 0, ins_cycles: 1, plenum_cd: 1.0 };
+  const EXTRA_DEFAULTS = { step_bc: 'union', avg_points: 1, ins_outlet: 0, ins_cycles: 1, plenum_cd: 1.0, ins_intake: 0 };   // ins_intake v12
   const CALC_P_ATM_BAR = 1.01325, CALC_T_ATM_C = 25.0, CALC_T0_EXHAUST_K = 700.0, CALC_TWALL_CYL_K = 450.0,
     CALC_CURTAIN_CAP = 0.85, CALC_TATM_K = 298.15, K0 = 273.15;
   const R_BURNT = 285.4;    // Constantes.h:71 __R::Burnt
@@ -3699,6 +3699,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       if (tr === 'ivalve' || tr === 'evalve') pts.push([L - h, 'near the valve', [0, 1, 2]]);
       // past the end on purpose: TTubo.cpp:3155-3157 floor(x/dx) >= FNin-1 selects the last node (the open-end cell)
       if (insOutlet && tl === 'plenum') pts.push([0.0, '= first node, plenum outlet port', [0, 1, 2, 3]]);      // x = 0 -> node 0 (TTubo.cpp:3212)
+      if (Math.trunc(p.ins_intake) === 1 && tl === 'open' && Math.trunc(pp.ht) === 1) pts.push([0.0, "= first node, the intake's open end", [0, 1, 2, 3]]);   // v12
       if (insOutlet && tr === 'plenum') pts.push([L + cell / 2.0, '= past the end, clamped to the last node, plenum inlet port', [0, 1, 2, 3]]);
       if (insOutlet && tr === 'open' && Math.trunc(pp.ht) === 2) pts.push([L + cell / 2.0, '= past the end, clamped to the last node at the open end', [0, 1, 2, 3]]);
       if (pts.length) insPts.push([i, pts]);
@@ -4406,6 +4407,14 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     } else {
       const maxPipe = Math.max(...fpts.map(k => k.pipe));
       outlets = [last(fpts.filter(k => k.pipe === maxPipe))];
+    }
+    if (opts.intake) {
+      // v12 (make_wam.py read_ins intake=True): the intake's open end; its mdot is positive into the engine
+      if (!opts.model) throw new Error("reading the intake's open end needs the model the file was written from");
+      const m = opts.model, bc = k => getBc(m.bcs, k);
+      outlets = [];
+      m.pipes.forEach((pp, i) => { if (bc(pp.left).type === 'open' && Math.trunc(pp.ht) === 1) { const c = fpts.filter(k => k.pipe === i + 1 && k.x === 0.0); if (c.length) outlets.push(c[0]); } });
+      if (!outlets.length) throw new Error('no intake open-end point in the INS header; write the model with ins_intake=1');
     }
     if (!outlets.length) throw new Error('no outlet point in the INS header');
     let key;

@@ -160,6 +160,10 @@ EXTRA_DEFAULTS = {
     "ins_cycles": 1,
     # discharge coefficient of the pipe-to-plenum ports, referred to the pipe-end area (TCDFijo both ways)
     "plenum_cd": 1.0,
+    # v12: 1 = also the instantaneous output at the intake's open end (the first node of every intake pipe that starts
+    # open to the air: the air-filter end of the plenum inlet, or each runner's mouth without a plenum), for the
+    # intake's sound; 0 = off (the file unchanged)
+    "ins_intake": 0,
 }
 
 R_BURNT = 285.4     # Constantes.h:71 __R::Burnt, gas constant of the burnt gas in the simple species model
@@ -741,6 +745,8 @@ def write_model(m):
             pts.append((L - h, "near the valve", [0, 1, 2]))
         if ins_outlet and tl == "plenum":
             pts.append((0.0, "= first node, plenum outlet port", [0, 1, 2, 3]))      # x = 0 -> node 0 (TTubo.cpp:3212)
+        if int(p["ins_intake"]) == 1 and tl == "open" and int(pp["ht"]) == 1:
+            pts.append((0.0, "= first node, the intake's open end", [0, 1, 2, 3]))
         if ins_outlet and tr == "plenum":
             pts.append((L + cell / 2.0, "= past the end, clamped to the last node, plenum inlet port", [0, 1, 2, 3]))
         if ins_outlet and tr == "open" and int(pp["ht"]) == 2:
@@ -1488,12 +1494,15 @@ def make_wam_spec(spec, run=None):
 
 
 # --------------------------------------------------------------------------------------
-def read_ins(text, pipe=None, keep_cycles=None, model=None):
+def read_ins(text, pipe=None, keep_cycles=None, model=None, intake=False):
     """Read an OpenWAM INS.DAT (tab-separated, one header row) and return the open-end node of an exhaust
     outlet pipe (the point written with ins_outlet=1; those points are the only pipe points that carry a
     mass-flow column).
 
     pipe: 1-based pipe number of the outlet to use (several collectors give several outlets).
+    intake: (v12, needs model and a run with ins_intake = 1) the intake's open end instead of an exhaust outlet (pipe
+           then picks among the intake pipes, which "outlets" then lists); its mdot is positive INTO the engine, so the
+           intake's radiated outflow is -mdot.
     model: the model dict the file was written from (model_from_spec); with it the outlet pipes and the plenum
            ports are identified exactly and "ports" is filled; without it the outlet is taken as the mass-flow
            point with the highest pipe number and, on that pipe, the largest distance (the tailpipe is the last
@@ -1549,6 +1558,13 @@ def read_ins(text, pipe=None, keep_cycles=None, model=None):
                         ports.setdefault(bcs[key]["plenum"], {})[side] = (max(cand) if side == "in" else min(cand))
     else:
         outlets = [max(k for k in fpts if k[0] == max(k2[0] for k2 in fpts))]
+    if intake:
+        if model is None:
+            raise ValueError("reading the intake's open end needs the model the file was written from")
+        intake_pipes = [i + 1 for i, pp in enumerate(model["pipes"]) if bcs[pp["left"]]["type"] == "open" and int(pp["ht"]) == 1]
+        outlets = [min(k for k in fpts if k[0] == n) for n in intake_pipes if [k for k in fpts if k[0] == n and k[1] == 0.0]]
+        if not outlets:
+            raise ValueError("no intake open-end point in the INS header; write the model with ins_intake=1")
     if not outlets:
         raise ValueError("no outlet point in the INS header")
     if pipe is None:
