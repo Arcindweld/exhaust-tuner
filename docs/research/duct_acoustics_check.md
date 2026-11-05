@@ -90,3 +90,24 @@ only); Davies' attenuation index with the real termination in place of TL; Harri
 quiet-target band arithmetic (needs an absolute level, which the page only has from OpenWAM). Not in hand: Smith &
 Morrison, *Scientific Design of Exhaust and Intake Systems* (the file under that name is Smith & Wenner); the SAE heat
 transfer deck's exhaust part (Drive returned 80 of its slides).
+
+## Installed attenuation against OpenWAM (2026-11-05)
+
+The Mufflers chart's installed mode (Davies' attenuation index with the real tailpipe and open end) was checked against
+the page's own 4-Stroke OpenWAM case at 4,000 rpm, 10 cycles: the line with no muffler against the same line with the
+Mufflers tab's plain 152 x 356 mm chamber carried in 1-D (`wamChamberEls`), 500 mm tailpipe, orders from the outlet INS.
+
+| Order | bare, dB at 1 m | chamber | drop in OpenWAM | installed attenuation (page) |
+|---|---|---|---|---|
+| 2 | 107.5 | 110.6 | -3.1 | +2.1 |
+| 4 (firing) | 110.6 | 82.6 | +27.9 | +11.3 |
+| 6 | 101.2 | 97.5 | +3.7 | +6.7 |
+| 8 | 109.0 | 107.5 | +1.5 | +2.4 |
+
+(The other orders are at the numerical floor, 50-70 dB, and mean nothing.) The direction agrees at orders 6 and 8 and
+roughly at 4, but the size does not: the chart is a linear figure with the engine as a fixed incident wave, while in
+the full run the engine answers the muffler by changing its own outflow (source impedance, mean flow, the tailpipe's
+temperature) and takes the firing order down 28 dB where the chart says 11, and at order 2 the chamber makes the
+pipe louder where the chart has it a little quieter. So the installed chart is the right shape to compare designs on
+their own tailpipe, and the run is the final word; the page says so under the chart. Every case from the tab now
+records the outlet flow (ins_outlet 1, two cycles) so this comparison can be made on any design.
