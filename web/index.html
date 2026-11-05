@@ -1665,6 +1665,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <div class="grid2 adv">
         <label class="f"><span class="lab">Side branches in one box</span>
           <span class="inp"><input id="m-nsb" type="number" step="1" inputmode="numeric" data-kind="num" data-dp="0" data-base="3"></span></label>
+        <label class="f span2"><span class="lab">Chart shows</span>
+          <span class="inp"><select id="m-tlmode"><option value="tl" selected>Transmission loss between long pipes (compare designs)</option><option value="inst">Installed: with the tailpipe below and the open end (what the car gets)</option></select></span></label>
         <label class="f"><span class="lab">Tailpipe after the can</span>
           <span class="inp"><input id="m-tail" type="number" step="any" inputmode="decimal" data-kind="len" data-base="670"><em data-u="len">in</em></span></label>
         <label class="f span2"><span class="lab">Return pipe, if the can is split in two chambers</span>
@@ -2111,6 +2113,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <li><b>Exhaust in the valley.</b> Heads turned so the ports face into the V, as on factory hot-V turbo engines or the backwards LS built with Gen 5 LT heads (<a href="https://www.lsxmag.com/news/backwards-ls-hot-v-build-nivlac57-flips-the-ls-engine/" target="_blank" rel="noopener">LSX Mag</a>, <a href="https://www.motorbiscuit.com/watch-this-youtuber-flow-an-ls-engine-backwards-to-create-the-ultimate-hot-v-monster/" target="_blank" rel="noopener">MotorBiscuit</a>), change where the runners start, not when each cylinder fires, so each bank’s pulses and tones stay the same.</li>
       <li><b>Oval and flat-oval tube.</b> A flat oval’s area and perimeter are exact; an ellipse uses Ramanujan’s perimeter approximation (<a href="https://en.wikipedia.org/wiki/Ellipse#Circumference" target="_blank" rel="noopener">Wikipedia</a>). Flow and wave calculations use the round tube with the same area, and friction uses the hydraulic diameter, 4 × area ÷ perimeter. Bending stiffness is worked out about both axes. Shell (ovaling) frequencies of oval and flat-oval tube come from a small finite-element ring model, checked against the thin-ring formula for round tube.</li>
       <li><b>Pipes made of sections.</b> Each section is a lossless plane-wave transfer matrix with its own area and gas temperature. The resonances are where the pipe responds most between its closed end (valve or turbine) and the open tip, with a 0.6133 × radius end correction at the tip; one uniform section gives the same answer as the quarter-wave formula. Mean flow and wall losses are left out, so real peaks sit a little lower and broader. <b>How tall the peaks are.</b> Each mode now carries its peak height and half-power width from the two losses a lossless chain leaves out: the open tip’s radiation, with the reflection magnitude from Levine and Schwinger’s solution as fitted by Davies (1996, data sheet 3: R₀ = 1 + 0.01336 ka − 0.59079 (ka)² + 0.33576 (ka)³ − 0.06432 (ka)⁴, to ka 1.5; the scan’s last two coefficients are misprinted and the Davies 1988 / Peters 1993 values are used), and the wall’s viscothermal damping α = (1 ÷ ac) √(ων ÷ 2) (1 + (γ − 1) ÷ √Pr) per metre (Rienstra and Hirschberg, <i>An Introduction to Acoustics</i>, 4.5.3 and 5.2.2). The round-trip loss δ = 2 Σ αᵢLᵢ + (1 − R₀) gives the amplification 1 ÷ δ (R&amp;H eq. 5.33 for the wall part) and the half-power width δc ÷ 2πL. Radiation grows as f², wall loss as √f, so the low modes stand tall and narrow and the high ones low and broad; the figures are upper bounds because the engine, the flow and any muffler damp further.</li>
+      <li><b>Installed attenuation.</b> Davies (<i>Piping system design for low noise</i>, 1996, C.3–C.5 and 2.4) argues that transmission loss between long anechoic pipes “neglects acoustic interaction with other system elements, so is hardly relevant for intake or exhaust design assessments”: what matters is the element with the real tailpipe behind it and the real open end, worked from the termination back. The Mufflers chart has that as a second mode: the tip reflects with Levine and Schwinger’s magnitude and end correction (Davies’ fits), the tailpipe and the element’s transfer matrix carry pressure and volume velocity back to the element’s inlet, and the curve is the fall in the incident wave from inlet to tip. A bare tailpipe gives 0 dB everywhere, a half-wave chamber is transparent, and averaged over tailpipe lengths the installed cut at a chamber’s peak comes back to its transmission loss (9.2 against 9.4 dB in the test); for any one tailpipe the curve swings either side of that, below zero where pipe and element resonate together, which is Davies’ point.</li>
       <li><b>Real peak of a side branch.</b> The lossless Helmholtz and J-pipe curves peak at the chart’s cap; the Mufflers tab now also gives the peak at the tuned note for a stated tone level in the pipe, from the quadratic edge loss of the neck or mouth (Rienstra and Hirschberg, <i>An Introduction to Acoustics</i>, 8.3, eqs. 8.24–8.33: a drop of K ρ u|u| ÷ 2 across the opening is, for the first harmonic, a resistance (4K ÷ 3π) ρ u, so at resonance the branch is that resistance alone and the neck velocity solves a quadratic in the incident pressure). With K 2.8 (sharp) and a 150 dB tone a typical can peaks near 20 dB and a J-pipe a little higher; at 130 dB both approach the lossless figure. Neck wall friction is left out. The same K is what the OpenWAM line puts on its loss elements.</li>
       <li><b>Books read in full, November 2026.</b> Munjal, <i>Acoustics of Ducts and Mufflers</i> (1987; the extended-tube, reverse-flow and plug elements above, the junction losses of 8.3, the perforate impedances of 3.9); Rienstra and Hirschberg, <i>An Introduction to Acoustics</i> (the wall damping, the grazing-flow whistle of 5.6, the amplitude-dependent neck loss of 8.3 noted for later); Morse and Ingard, <i>Theoretical Acoustics</i> (the chain-of-chambers filter of 9.1, the (1 − M²) flow shift of 11.1, Strouhal shedding of 11.3); Davies, <i>Piping system design for low noise</i> (1996; the open-end reflection fit, the chamber-against-tailpipe rule, his two case studies’ back-pressure numbers); Calton and Sommerfeldt (2017; Ji’s side-branch end correction); Bönnen et al. in <i>Automotive NVH Technology</i> (valve numbers); Bell, <i>Maximum Boost</i> (charge pipes, intercoolers, turbine-inlet pressure); MacInnes, <i>Turbochargers</i>; Vizard, <i>How to Modify Ford SOHC Engines</i> (filters, Tri-Y against 4-1 by cam); Lawlor and Hancock, <i>Auto Math Handbook</i>; Engelman 1973 in the original; Norbye, <i>The Wankel Engine</i> (rotary exhaust duty and temperatures); Howe, Hamilton and Blackstock, Crighton, Kolbrek and Rucz (theses), the Perth College bellmouth thesis (Blair and Cahoon’s Cd fit), the Singh FSAE thesis, and the Samara jet-splitting paper. What each gave the page is cited where it is used; what was read and not used is in docs/research/duct_acoustics_check.md and the reader reports behind it. Smith and Morrison’s <i>Scientific Design of Exhaust and Intake Systems</i> is still unread: the file under that name is Smith and Wenner.</li>
       <li><b>Pipes that split in two.</b> With branches, the main pipe runs from the closed end to the split and each branch runs to its own open tip with its own end correction. At the split the branches share the pressure and their flows add, so their admittances add; the resonances are where the closed end sees no flow. The page was checked against the closed-form answer for two identical branches, which act like one branch of twice the area.</li>
@@ -6929,8 +6932,10 @@ function calcHelm(p){        // p: f Hz, dn, ln, dpipe mm, tres °C
   const V=A*c*c/((2*Math.PI*p.f)**2*Le);
   const K=Math.sqrt(A*V/Le)/(2*S);                   // 3 dB band = K × f0
   const tl=f=>{ const x=f/p.f-p.f/f; return Math.abs(x)<1e-9?TLCAP:Math.min(TLCAP,10*Math.log10(1+(K/x)**2)); };
+  // transfer matrix in [p; volume velocity]: a shunt with the branch's acoustic impedance j rho (w Le / A - c^2 / (w V))
+  const rho=rhoGas(p.tres), T=f=>{ const w=2*Math.PI*f, X=rho*(w*Le/A-c*c/(w*V)); return [C1,Cx(0,0),Math.abs(X)<1e-12?Cx(0,1e12):Cx(0,-1/X),C1]; };
   const cans=[101.6,127,152.4,177.8,203.2,254].map(D=>({D,len:V/(Math.PI*(D/2000)**2)*1000}));
-  return {c,A,Le,S,V,K,band:K*p.f,lo:p.f*(Math.sqrt(K*K+4)-K)/2,hi:p.f*(Math.sqrt(K*K+4)+K)/2,tl,cans,liters:V*1000,in3:V*61023.7};
+  return {c,A,Le,S,V,K,band:K*p.f,lo:p.f*(Math.sqrt(K*K+4)-K)/2,hi:p.f*(Math.sqrt(K*K+4)+K)/2,tl,T,cans,liters:V*1000,in3:V*61023.7};
 }
 // End correction (mm) of a closed side branch of diameter db on a main pipe of diameter dp (Ji 2005 via Calton and Sommerfeldt 2017,
 // eq. 3): a(0.8216 - 0.0644 x - 0.694 x^2) for x = db / dp <= 0.4, a(0.9326 - 0.6196 x) for x > 0.4, a the branch radius.
@@ -6943,7 +6948,9 @@ function calcQW(p){          // p: f, db, dpipe mm, tres °C
   const c=sos(p.tres), Lac=c/(4*p.f)*1000, end=branchEndCorr(p.db,p.dpipe), L=Lac-end;
   const r=(p.db/p.dpipe)**2/2;                          // branch area ÷ (2 × pipe area)
   const tl=f=>{ const t=Math.tan(2*Math.PI*f*Lac/1000/c); return Math.min(TLCAP,10*Math.log10(1+(r*t)**2)); };
-  return {c,Lac,L,end,tl,ratio:(p.db/p.dpipe)**2};
+  // transfer matrix in [p; v]: shunt Z = -j (rho c / Ab) cot(k Lac)
+  const rhoQ=rhoGas(p.tres), Ab=Math.PI*(p.db/2000)**2, T=f=>{ const t=Math.tan(2*Math.PI*f*Lac/1000/c); return [C1,Cx(0,0),Cx(0,Number.isFinite(t)?t*Ab/(rhoQ*c):0),C1]; };
+  return {c,Lac,L,end,tl,T,ratio:(p.db/p.dpipe)**2};
 }
 // Back pressure of muffler elements from the mean flow (Munjal, Acoustics of Ducts and Mufflers, 1987, 8.3): the loss
 // in stagnation pressure in dynamic heads H = 1/2 rho0 U^2 = gamma p0 M^2 / 2 (about 0.7 M^2 bar) of the mean flow in the
@@ -6979,7 +6986,8 @@ function calcChamber(p){     // p: dpipe, dch, lch mm, tmain °C; lin, lout mm (
   const S1=Math.PI/4*(p.dpipe/1000)**2, S2=Math.PI/4*(p.dch/1000)**2, rho=101325/(287*(p.tmain+273.15));
   const Z1=Cx(rho*c/S1,0), Z2=Cx(rho*c/S2,0), Zan=rho*c/(S2-S1);
   const shunt=(k,l)=>{ const t=Math.tan(k*l); return [Cx(1,0),Cx(0,0),Cx(0,Number.isFinite(t)?t/Zan:0),Cx(1,0)]; };   // 1/Z = j tan(kl) / Zan
-  const tlExt=f=>{ const k=2*Math.PI*f/c; let T=tmSeg(Cx(k,0),Z2,L-la-lb); if(la>0) T=tmMul(shunt(k,la),T); if(lb>0) T=tmMul(T,shunt(k,lb)); return tmTL(T,Z1); };
+  const Tmat=f=>{ const k=2*Math.PI*f/c; let T=tmSeg(Cx(k,0),Z2,L-la-lb); if(la>0) T=tmMul(shunt(k,la),T); if(lb>0) T=tmMul(T,shunt(k,lb)); return T; };
+  const tlExt=f=>tmTL(Tmat(f),Z1);
   if(p.rev){
     // Reverse-flow (end) chamber: inlet and outlet open side by side into one end of a chamber closed at the far wall (Munjal's
     // reversal-expansion and reversal-contraction elements, 3.7, Fig. 2.13c-d, back to back; for a stationary medium each is
@@ -6990,12 +6998,13 @@ function calcChamber(p){     // p: dpipe, dch, lch mm, tmain °C; lin, lout mm (
     if(S2<=2*S1) return {err:'A reverse-flow chamber must be wider than the two pipes side by side.'};
     const Lc=L-la, Y=f=>{ const k=2*Math.PI*f/c; return (Math.tan(k*Lc)*S2+(la>0?Math.tan(k*la)*(S2-2*S1):0))/(rho*c); };
     const tlR=f=>{ const y=Y(f); return Number.isFinite(y)?10*Math.log10(1+(rho*c/S1*y/2)**2):TLCAP; };
-    return {c,m,rev:true,peakTL:NaN,fPeak:c/(4*Lc),fZero:c/(2*Lc),tl:f=>Math.min(TLCAP,Math.max(0,tlR(f))),fCut:1.8412*c/(Math.PI*p.dch/1000),short:p.lch<1.5*p.dch,
+    const TR=f=>{ const y=Y(f); return [C1,Cx(0,0),Cx(0,Number.isFinite(y)?y:0),C1]; };
+    return {c,m,rev:true,T:TR,peakTL:NaN,fPeak:c/(4*Lc),fZero:c/(2*Lc),tl:f=>Math.min(TLCAP,Math.max(0,tlR(f))),fCut:1.8412*c/(Math.PI*p.dch/1000),short:p.lch<1.5*p.dch,
       ext:la>0,la:la*1000,lb:la*1000,tune:{la:p.lch/2,lb:p.lch/4},fPocketIn:la>0?c/(4*la):null,fPocketOut:null,Lc:Lc*1000};
   }
   const tl=f=>Math.min(TLCAP,Math.max(0,ext?tlExt(f):plain(f)));
   // plane waves only hold below the first cross mode of a round chamber, ka = 1.8412
-  return {c,m,peakTL:10*Math.log10(1+0.25*(m-1/m)**2),fPeak:c/(4*L),fZero:c/(2*L),tl,fCut:1.8412*c/(Math.PI*p.dch/1000),short:p.lch<1.5*p.dch,
+  return {c,m,T:Tmat,peakTL:10*Math.log10(1+0.25*(m-1/m)**2),fPeak:c/(4*L),fZero:c/(2*L),tl,fCut:1.8412*c/(Math.PI*p.dch/1000),short:p.lch<1.5*p.dch,
     ext,la:la*1000,lb:lb*1000,tune:{la:p.lch/2,lb:p.lch/4},fPocketIn:la>0?c/(4*la):null,fPocketOut:lb>0?c/(4*lb):null};
 }
 function calcPlace(p){       // p: f, len mm (closed end at the valve or turbine), tmain °C; or secs (SI, with kind) for a pipe whose size changes
@@ -8367,10 +8376,11 @@ function calcAbsorb(p){
     const c0=col(0), c1=col(1);                                                                   // forward map Fm: [p0;u0] → [pL;uL]
     const det=csub(cmul(c0[0],c1[1]),cmul(c1[0],c0[1]));
     const T=[cdiv(c1[1],det),cdiv(cscale(c1[0],-1),det),cdiv(cscale(c0[1],-1),det),cdiv(c0[0],det)];   // inverse: [p0;u0] = T [pL;uL]
-    return {tl:Math.max(0,tmTL(T,C1)),X:fb.X};
+    const Zc=rho0*c/(Math.PI*r1*r1);   // [p; rho c u] -> [p; v] with v = S u
+    return {tl:Math.max(0,tmTL(T,C1)),X:fb.X,T:[T[0],cscale(T[1],Zc),cscale(T[2],1/Zc),T[3]]};
   };
-  const tl=f=>at(f).tl;
-  return {c,rho0,R,fCut,fCore,at,tl,xRange:f=>{ const X=f*rho0/R; return R>0?(X<0.01?'below':X>1?'above':'in'):'none'; }};
+  const tl=f=>at(f).tl, T=f=>at(f).T;
+  return {c,rho0,R,fCut,fCore,at,tl,T,xRange:f=>{ const X=f*rho0/R; return R>0?(X<0.01?'below':X>1?'above':'in'):'none'; }};
 }
 // Plug (cross-flow) muffler: Munjal, Acoustics of Ducts and Mufflers, 1987, 3.8.1 and Fig. 3.10b-c, the cross-flow expansion
 // element and the cross-flow contraction element back to back under one shell. The two-duct equations are calcAbsorb's
@@ -8414,9 +8424,9 @@ function calcPlug(p){
     if(gap>1e-6) T=tmMul(T,tmSeg(km,cscale(fb.Zm,Z2),gap));
     T=tmMul(T,cfc);
     const tl=tmTL(T,Cx(Z1,0));
-    return {tl:Number.isFinite(tl)?Math.max(0,tl):TLCAP,zp};
+    return {tl:Number.isFinite(tl)?Math.max(0,tl):TLCAP,zp,T};
   };
-  return {c,rho0,fCut,gap:gap*1000,S1,S2,at,tl:f=>Math.min(TLCAP,at(f).tl)};
+  return {c,rho0,fCut,gap:gap*1000,S1,S2,at,tl:f=>Math.min(TLCAP,at(f).tl),T:f=>at(f).T};
 }
 // Chain of N equal chambers joined by baffle holes (Morse and Ingard, Theoretical Acoustics, 9.1, eqs. 9.1.31-35 and Fig. 9.8):
 // each hole is an inertance L = rho D0 / (4 S0) (a thin hole of area S0, perimeter D0, the 0.785 d total end correction built
@@ -8431,9 +8441,30 @@ function calcBaffles(p){
   const LoverRho=D0/(4*S0)+t/S0, CtimesRho=S*l/(c*c), w0=1/Math.sqrt(LoverRho*CtimesRho), f0=w0/(2*Math.PI), fc=2*f0;
   const per=f=>{ const x=0.5*(2*Math.PI*f/w0)**2-1; return x>1?8.686*Math.acosh(x):0; };
   const lam=c/f0, lumped=l<lam/8;                           // each chamber short next to the wavelength at f0
-  return {c,N,l:l*1000,f0,fc,per,tl:f=>Math.min(TLCAP,N*per(f)),cPhase:c*Math.sqrt(4*S0*l/(S*D0)),lumped,fCut:1.8412*c/(Math.PI*p.dsh/1000)};
+  const rhoB=rhoGas(p.tC), T=f=>{ const w=2*Math.PI*f, ZL=Cx(0,w*rhoB*LoverRho), YC=Cx(0,w*CtimesRho/rhoB); let M=[C1,Cx(0,0),Cx(0,0),C1];
+    for(let i=0;i<N;i++) M=tmMul(M,tmMul([C1,ZL,Cx(0,0),C1],[C1,Cx(0,0),YC,C1])); return M; };
+  return {c,N,T,l:l*1000,f0,fc,per,tl:f=>Math.min(TLCAP,N*per(f)),cPhase:c*Math.sqrt(4*S0*l/(S*D0)),lumped,fCut:1.8412*c/(Math.PI*p.dsh/1000)};
 }
 window.__baffles=calcBaffles; window.__sos=sos;
+// Installed attenuation (Davies 1996, Piping system design for low noise, C.3-C.5 and 2.4): transmission loss between
+// equal anechoic pipes "neglects acoustic interaction with other system elements"; what the car gets is the element with
+// the real tailpipe behind it and the real open end. Here the chain is worked from the open end back: the tip reflects
+// with Levine and Schwinger's magnitude R0(ka) and end correction l0 (Davies' fits, as the Sound tab), r = -R0 e^(-2 i k l0),
+// Z_t = Zc (1 + r) / (1 - r); the tailpipe (length Lt, the pipe's area) and the element's transfer matrix carry [p; v] up to
+// the element's inlet; the attenuation is 20 log of the incident-wave amplitude ratio, p+ = (p + Zc v) / 2, at the inlet
+// over at the open end. 0 dB for a bare tailpipe; a chamber's troughs and the tailpipe's own resonances both show.
+// Tf(f): the element's [p; v] transfer matrix; Lt m; a tip radius m; c, rho the gas; S the pipe area.
+function installedAL(Tf,f,Lt,a,c,rho,S){
+  const k=2*Math.PI*f/c, ka=Math.min(1.5,k*a), Zc=rho*c/S;
+  const R0=Math.min(1,Math.max(0.05,1+0.01336*ka-0.59079*ka*ka+0.33576*ka**3-0.06432*ka**4)), l0=a*(ka<0.5?0.6133-0.1168*ka*ka:0.6393-0.1104*ka);
+  const r=cscale(Cx(Math.cos(2*k*l0),-Math.sin(2*k*l0)),-R0), Zt=cscale(cdiv(cadd(C1,r),csub(C1,r)),Zc);
+  const vEnd=cdiv(C1,Zt), tail=tmSeg(Cx(k,0),Cx(Zc,0),Lt);
+  const pt=cadd(tail[0],cmul(tail[1],vEnd)), vt=cadd(tail[2],cmul(tail[3],vEnd));
+  const T=Tf(f), pin=cadd(cmul(T[0],pt),cmul(T[1],vt)), vin=cadd(cmul(T[2],pt),cmul(T[3],vt));
+  const pPlusIn=cscale(cadd(pin,cscale(vin,Zc)),0.5), pPlusEnd=cscale(cadd(C1,cscale(vEnd,Zc)),0.5);
+  return 20*Math.log10(cabs(pPlusIn)/Math.max(1e-30,cabs(pPlusEnd)));
+}
+window.__installedAL=installedAL; window.__Cx=Cx;
 window.__plug=calcPlug; window.__crossMode=crossModeHz;
 // Davies 1996 (J. Sound Vib. 190(4), eqs. 2.2, 2.3, 2.6, 2.7, data sheets 3 and 5): side-branch quarter-wave length l1 = c/(4·f),
 // a set of m branches in the ratio 3^(−1/m) so each covers the odd multiples of the next, folded branch l_s = X_i + (So/Si)·X_o for So/Si < 2,
@@ -13269,14 +13300,14 @@ function camLibFill(k){
 (()=>{ const sel=$('f-camlib'); if(!sel) return;
   CAM_LIB.forEach(c=>{ const o=document.createElement('option'); o.value=c.k; o.textContent=c.name+(c.assumed?' (cam timing assumed straight up)':''); sel.appendChild(o); });
   sel.addEventListener('change',()=>camLibFill(sel.value)); })();
-function drawTL(svg,curves,f0,band){
+function drawTL(svg,curves,f0,band,opt){
   clearSvg(svg);
-  const W=widthOf(svg), H=240, ml=36, mr=12, mt=20, mb=30;
+  const W=widthOf(svg), H=240, ml=36, mr=12, mt=20, mb=30, lo=opt&&opt.lo<0?opt.lo:0, label=opt&&opt.label||'dB removed';
   svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.setAttribute('height',H);
   const fmax=Math.max(100,Math.ceil(f0*3/50)*50);
-  const X=f=>ml+f/fmax*(W-ml-mr), Y=d=>H-mb-d/TLCAP*(H-mt-mb);
+  const X=f=>ml+f/fmax*(W-ml-mr), Y=d=>H-mb-(Math.max(lo,Math.min(TLCAP,d))-lo)/(TLCAP-lo)*(H-mt-mb);
   if(band) mk('rect',{x:X(Math.max(0,band[0])),y:mt,width:Math.max(0,X(Math.min(fmax,band[1]))-X(Math.max(0,band[0]))),height:H-mt-mb,'class':'band'},svg);
-  for(let d=0;d<=TLCAP;d+=10){ mk('line',{x1:ml,x2:W-mr,y1:Y(d),y2:Y(d),'class':'grid'},svg); const t=mk('text',{x:ml-6,y:Y(d)+3.5,'class':'tr'},svg); t.textContent=d; }
+  for(let d=lo;d<=TLCAP;d+=10){ mk('line',{x1:ml,x2:W-mr,y1:Y(d),y2:Y(d),'class':'grid'},svg); const t=mk('text',{x:ml-6,y:Y(d)+3.5,'class':'tr'},svg); t.textContent=d; }
   const xs=niceStep(fmax,[25,50,100,200,250,500,1000]);
   for(let f=0;f<=fmax;f+=xs){ const t=mk('text',{x:X(f),y:H-mb+16,style:'text-anchor:middle'},svg); t.textContent=f; }
   mk('line',{x1:ml,x2:W-mr,y1:Y(0),y2:Y(0),'class':'axis'},svg);
@@ -13286,7 +13317,7 @@ function drawTL(svg,curves,f0,band){
   });
   mk('line',{x1:X(f0),x2:X(f0),y1:mt,y2:Y(0),'class':'mark0'},svg);
   const t=mk('text',{x:X(f0)+4,y:mt+10,'class':'halo',style:'fill:var(--ink);font-weight:500'},svg); t.textContent=Math.round(f0)+' Hz';
-  const ty=mk('text',{x:4,y:10},svg); ty.textContent='dB removed'; const tx=mk('text',{x:W-mr,y:H-4,'class':'tr'},svg); tx.textContent='Hz';
+  const ty=mk('text',{x:4,y:10},svg); ty.textContent=label; const tx=mk('text',{x:W-mr,y:H-4,'class':'tr'},svg); tx.textContent='Hz';
 }
 function drawPlace(svg,pl,len,endName,secs){
   clearSvg(svg);
@@ -13573,10 +13604,14 @@ function renderMuf(){
   if(!ab.err) curves.push({fn:abTL,col:'--t5',dash:'1 3',label:'Packed can'});
   if(pg&&!pg.err) curves.push({fn:pgTL,col:'--t1',dash:'8 3 2 3',label:'Plug muffler'});
   if(bf&&!bf.err) curves.push({fn:bf.tl,col:'--t6',dash:'4 2',label:'Baffled chambers'});
-  drawTL($('m-tl'),curves,p.f,[hm.lo,hm.hi]);
-  $('m-legend').innerHTML=curves.map(c=>'<span><i class="sw" style="--c:var('+c.col+')'+(c.dash?';border-top-style:dashed':'')+'"></i>'+c.label+'</span>').join('')+'<span><i class="sw bandsw"></i>Helmholtz 3 dB band</span>';
+  const inst=$('m-tlmode')&&$('m-tlmode').value==='inst', Lt=val('m-tail')>0?val('m-tail')/1000:0.67, elT={'Helmholtz':hm.T,'J-pipe':qw.T,'Plain chamber':ch.T,'Extended-tube chamber':ch.T,'Reverse-flow chamber':ch.T,'Packed can':ab.err?null:ab.T,'Plug muffler':pg&&!pg.err?pg.T:null,'Baffled chambers':bf&&!bf.err?bf.T:null};
+  const cMain=sos(p.tmain), rhoMain=rhoGas(p.tmain), Smain=Math.PI*(p.dpipe/2000)**2, aTip=p.dpipe/2000;
+  const shown=inst?curves.filter(c=>elT[c.label]).map(c=>{ const memo={}; return Object.assign({},c,{fn:f=>{ const k=Math.round(f); if(memo[k]==null) memo[k]=installedAL(elT[c.label],k,Lt,aTip,cMain,rhoMain,Smain); return memo[k]; }}); }):curves;
+  if(inst) shown.push({fn:f=>installedAL(f=>[C1,Cx(0,0),Cx(0,0),C1],f,Lt,aTip,cMain,rhoMain,Smain),col:'--muted',dash:'1 2',label:'Bare tailpipe (0 dB)'});
+  drawTL($('m-tl'),shown,p.f,[hm.lo,hm.hi],inst?{lo:-10,label:'dB, installed'}:null);
+  $('m-legend').innerHTML=shown.map(c=>'<span><i class="sw" style="--c:var('+c.col+')'+(c.dash?';border-top-style:dashed':'')+'"></i>'+c.label+'</span>').join('')+'<span><i class="sw bandsw"></i>Helmholtz 3 dB band</span>';
   drawPlace($('m-place'),pl,p.len,endName,p.secs?pathSecs(p.secs):null);
-  $('m-cap').textContent='Top: how much each design removes, from lossless formulas capped at '+TLCAP+' dB. Real parts peak lower and broader. Bottom: the target tone’s pressure along the pipe. Green dots mark the peaks, where a side resonator works best; ticks mark the dead spots.'+(p.secs?' Grey bands are muffler or converter bodies.':'');
+  $('m-cap').textContent=inst?'Top: each design installed, with '+clen(Lt*1000)+' of '+cdim(p.dpipe)+' tailpipe behind it and the open end’s real reflection: the drop in the incident wave from the design’s inlet to the tip (Davies 1996). Below 0 the pipe and design together resonate and the tone comes out louder than with no muffler; the tailpipe’s own notes show on every curve, so change its length to move them. Transmission loss, the other chart, is for comparing designs, not for what the car gets.':'Top: how much each design removes, from lossless formulas capped at '+TLCAP+' dB. Real parts peak lower and broader. Bottom: the target tone’s pressure along the pipe. Green dots mark the peaks, where a side resonator works best; ticks mark the dead spots.'+(p.secs?' Grey bands are muffler or converter bodies.':'');
 
   const lenTxt=c=>clen(c.len)+' long';
   let html=explainBox([
