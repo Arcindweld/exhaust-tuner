@@ -13519,11 +13519,11 @@ function mufCutSection(p){
   if(pl.err) return sec('Cut files for this chamber','<div class="note">'+esc(pl.err)+'</div>');
   const row=(a,b,c)=>'<tr><td>'+a+'</td><td>'+b+'</td><td>'+(c||'')+'</td></tr>';
   let h='<div class="tblwrap"><table><thead><tr><th>Part</th><th>Size</th><th>Holes</th></tr></thead><tbody>'+
-    row('Shell wrap, '+cdim(pl.cw)+' sheet',clen(pl.wrap.w)+' × '+clen(pl.wrap.h),'rolled to '+(pl.oval?'a flat oval '+cdim(pl.W+2*pl.cw)+' × '+cdim(pl.H+2*pl.cw)+' outside':cdim(p.dch+2*pl.cw)+' outside')+', butt seam')+
-    pl.plates.map(q=>row(q.name+', '+cdim(pl.cw)+' sheet',(pl.oval?clen(q.w)+' × '+clen(q.h)+' flat oval':cdim(q.w)+' round'),q.holes.length?q.holes.map(hh=>cdim(hh[2])).join(', ')+(q.holes.length>1?' at '+clen(pl.sp)+' centres':''):'none')).join('')+
-    pl.tubes.map(t=>row(t.name+', '+cdim(pl.od)+' OD tube',clen(t.L)+' long',clen(pl.stub)+' stub outside the plate')).join('')+'</tbody></table></div>'+
+    row('Shell wrap, '+bothL(pl.cw)+' sheet',bothL(pl.wrap.w)+' × '+bothL(pl.wrap.h),'rolled to '+(pl.oval?'a flat oval '+bothL(pl.W+2*pl.cw)+' × '+bothL(pl.H+2*pl.cw)+' outside':bothL(p.dch+2*pl.cw)+' outside')+', butt seam')+
+    pl.plates.map(q=>row(q.name+', '+bothL(pl.cw)+' sheet',(pl.oval?bothL(q.w)+' × '+bothL(q.h)+' flat oval':bothL(q.w)+' round'),q.holes.length?q.holes.map(hh=>bothL(hh[2])).join(', ')+(q.holes.length>1?' at '+bothL(pl.sp)+' centres':''):'none')).join('')+
+    pl.tubes.map(t=>row(t.name+', '+bothL(pl.od)+' OD tube',bothL(t.L)+' long',bothL(pl.stub)+' stub outside the plate')).join('')+'</tbody></table></div>'+
     '<div class="actions"><button type="button" class="btn" id="m-cut-dxf">Save the cut files (DXF)</button></div><p class="cap" id="m-cut-msg"></p>'+
-    '<p class="cap">One DXF in millimetres, everything on the CUT layer: the wrap (the inside perimeter at the middle of the wall, for a butt seam), then the end plates and baffles side by side, each '+clen(0.3)+' under the inside size to slip in, holes the pipe OD + '+clen(0.5)+'. '+
+    '<p class="cap">One DXF in millimetres, everything on the CUT layer: the wrap (the inside perimeter at the middle of the wall, for a butt seam), then the end plates and baffles side by side, each '+bothL(0.3)+' under the inside size to slip in, holes the pipe OD + '+bothL(0.5)+'. '+
     (pl.oval?'The flat oval keeps the chamber’s inside area, so what the tab works out is what you build. ':'')+(pl.rev?'Reverse flow: both tubes in one plate, the far plate blank; the gussets round the outlet are yours to add. ':'')+'Tube lengths count the stub, the plate and the run inside; trim to suit the slip joints.</p>';
   return sec('Cut files for this chamber',h);
 }
