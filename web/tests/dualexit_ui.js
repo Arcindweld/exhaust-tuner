@@ -3,9 +3,9 @@
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 (async () => {
-  const run = path.resolve('../validation/f100-302/model/runs/ho_venom_plenum_x400_5800');
-  const insF = path.join(run, 'ho_venom_plenum_x400_5800INS.DAT');
-  if (!fs.existsSync(insF)) { console.log('skipped'); console.log('SKIP: the F-100 run is not here (validation/f100-302/model: python3 f100.py run ho_venom_plenum_x400_5800)'); process.exit(0); }
+  const run = path.resolve('../validation/f100-302/model/runs/ho_venom_plenum_x400_p900_5800');
+  const insF = path.join(run, 'ho_venom_plenum_x400_p900_5800INS.DAT');
+  if (!fs.existsSync(insF)) { console.log('skipped'); console.log('SKIP: the F-100 run is not here (validation/f100-302/model: python3 f100.py run ho_venom_plenum_x400_p900_5800)'); process.exit(0); }
   const fails = []; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   // the file is about 100 MB: keep the header and the last three cycles (an Angle drop marks a cycle start)
   const all = fs.readFileSync(insF, 'utf8').split(/\r?\n/).filter(l => l.trim() !== ''), hd = all[0].split('\t'), ai = hd.findIndex(h => /^Angle/i.test(h));
