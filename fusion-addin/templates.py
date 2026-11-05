@@ -701,7 +701,7 @@ def clearance(scene, pts, err, cap=12.0):
     return max(0.0, best - err), at
 
 
-def ext_chamber(pipe_id, pipe_wall, can_id, can_wall, length, l_in, l_out, stub):
+def ext_chamber(pipe_id, pipe_wall, can_id, can_wall, length, l_in, l_out, stub, n_baffles=0, hole=0.0, t_baffle=0.0):
     """An inline expansion chamber with extended inlet and outlet tubes (Munjal's double-tuned chamber when l_in and
     l_out are half and a quarter of the inside length). z runs along the pipe from the can's near outside face
     (z = 0). The shell is a tube of can_id inside with end plates can_wall thick; the inlet tube (pipe_id inside,
@@ -726,5 +726,18 @@ def ext_chamber(pipe_id, pipe_wall, can_id, can_wall, length, l_in, l_out, stub)
     inlet = [(r_pi, -stub), (r_po, -stub), (r_po, z_in + l_in), (r_pi, z_in + l_in)]
     outlet = [(r_pi, z_far - l_out), (r_po, z_far - l_out), (r_po, z1 + stub), (r_pi, z1 + stub)]
     gas = math.pi * Rc ** 2 * length - math.pi * r_po ** 2 * (l_in + l_out)
-    return {'shell': shell, 'inlet': inlet, 'outlet': outlet, 'L_in': length, 'z1': z1, 'R_out': Rco, 'gas': gas,
+    # baffles: n washers of the chamber's bore with a centred hole, spaced evenly through the open part between the tube
+    # mouths (none where the tubes would pass through them)
+    baffles = []
+    if n_baffles and n_baffles > 0:
+        if not (hole > 0 and hole < can_id - 0.2 and t_baffle > 0):
+            raise ValueError('A baffle needs a hole smaller than the chamber and a thickness.')
+        open0, open1 = z_in + l_in, z_far - l_out
+        span = open1 - open0
+        if span < (n_baffles + 1) * (t_baffle + 1.0):
+            raise ValueError('There is no room for %d baffles between the tube mouths.' % n_baffles)
+        for i in range(int(n_baffles)):
+            zc = open0 + span * (i + 1) / (n_baffles + 1)
+            baffles.append([(hole / 2.0, zc - t_baffle / 2.0), (Rc + 0.05, zc - t_baffle / 2.0), (Rc + 0.05, zc + t_baffle / 2.0), (hole / 2.0, zc + t_baffle / 2.0)])
+    return {'shell': shell, 'inlet': inlet, 'outlet': outlet, 'baffles': baffles, 'L_in': length, 'z1': z1, 'R_out': Rco, 'gas': gas,
             'outside_len': z1, 'overall': z1 + 2 * stub}

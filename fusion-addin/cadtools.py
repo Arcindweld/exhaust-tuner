@@ -3387,7 +3387,8 @@ def act_chamber(data):
     pipe_id, wall = _cm(data, 'pipe_id_mm', 0.0), _cm(data, 'wall_mm', 0.1651)
     can_id, cw, L = _cm(data, 'can_id_mm', 0.0), _cm(data, 'can_wall_mm', 0.1519), _cm(data, 'can_len_mm', 0.0)
     l_in, l_out, stub = _cm(data, 'in_mm', 0.0), _cm(data, 'out_mm', 0.0), _cm(data, 'stub_mm', 5.08)
-    lay = TPL.ext_chamber(pipe_id, wall, can_id, cw, L, l_in, l_out, stub)
+    nb, hole = int(float(data.get('baffles') or 0)), _cm(data, 'baffle_hole_mm', 0.0)
+    lay = TPL.ext_chamber(pipe_id, wall, can_id, cw, L, l_in, l_out, stub, nb, hole, cw)
     title = str(data.get('title') or 'Expansion chamber')
     notes = []
     scene = None
@@ -3403,6 +3404,8 @@ def act_chamber(data):
         _revolve_section(comp, start, d, lay['shell'], title + ' shell')
         _revolve_section(comp, start, d, lay['inlet'], title + ' inlet tube')
         _revolve_section(comp, start, d, lay['outlet'], title + ' outlet tube')
+        for i, sec in enumerate(lay['baffles']):
+            _revolve_section(comp, start, d, sec, '%s baffle %d' % (title, i + 1))
     except Exception as ex:
         _drop_component(comp)
         raise ValueError('Fusion would not build the chamber (%s). Nothing was left in the design.' % ex)
@@ -3414,7 +3417,7 @@ def act_chamber(data):
         if gap is None:
             gap, gap_over = 12.0, True
         ok_gap = gap_over or gap >= float(data.get('gap_cm', 1.27))
-    note = ('Inside %.2f in across and %.2f in long, %.2f L of gas; inlet tube runs %.2f in in, outlet tube %.2f in; '
+    note = (('%d baffle%s with a %.2f in hole, evenly spaced between the tube mouths. ' % (nb, '' if nb == 1 else 's', hole / 2.54)) if nb else '') + ('Inside %.2f in across and %.2f in long, %.2f L of gas; inlet tube runs %.2f in in, outlet tube %.2f in; '
             '%.2f in long outside with %.3f in wall and end plates, %.2f in over the stubs.' % (
                 can_id / 2.54, L / 2.54, lay['gas'] / 1000.0, l_in / 2.54, l_out / 2.54, lay['outside_len'] / 2.54,
                 cw / 2.54, lay['overall'] / 2.54))

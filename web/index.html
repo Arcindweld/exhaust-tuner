@@ -13684,7 +13684,7 @@ function renderMuf(){
   FX.muf={title:'J-pipe',noun:'J-pipe',od_mm:p.db+2*bw,wall_mm:bw,target_mm:qw.L,cap:true,tee:true,cap_mm:jc,main_od_mm:mainOD};
   FX.helm={title:'Helmholtz can',neck_id_mm:p.dn,neck_len_mm:p.ln,wall_mm:bw,can_id_mm:can.D,vol_cm3:hm.V*1e6,can_wall_mm:cw,neck_into_mm:nin,main_od_mm:mainOD};
   // the inline chamber for Fusion (a straight-through layout; the reverse-flow one has its pipes side by side, which this axisymmetric part cannot be)
-  FX.chamber=!ch.err&&!ch.rev&&$('m-dp-shape').value==='round'?{title:ch.ext?'Expansion chamber with extended tubes':'Expansion chamber',pipe_id_mm:p.dpipe,wall_mm:bw,can_id_mm:p.dch,can_len_mm:p.lch,can_wall_mm:cw,in_mm:ch.la||0,out_mm:ch.lb||0,stub_mm:50.8}:null;
+  FX.chamber=!ch.err&&!ch.rev&&$('m-dp-shape').value==='round'?{title:ch.ext?'Expansion chamber with extended tubes':'Expansion chamber',pipe_id_mm:p.dpipe,wall_mm:bw,can_id_mm:p.dch,can_len_mm:p.lch,can_wall_mm:cw,in_mm:ch.la||0,out_mm:ch.lb||0,stub_mm:50.8,baffles:Math.max(0,Math.round(val('m-nbaf')||0)),baffle_hole_mm:val('m-bh')>0?val('m-bh'):p.dpipe}:null;
   FX.mufTune={L:qw.L,end:qw.end,c:qw.c,f:p.f,hc:hm.c};   // to read a measured or built J-pipe or can back as a frequency (kept out of what goes to Fusion)
   key.innerHTML='<div class="figs">'+figT('Helmholtz volume',(U==='imp'?hm.in3.toFixed(0):hm.liters.toFixed(2)),U==='imp'?'cu in':'L',(U==='imp'?hm.liters.toFixed(2)+' L':hm.in3.toFixed(0)+' cu in'))+
     figL('J-pipe length',qw.L,'l')+(pl.best.length?figL('Tap in at',pl.best[0],'l'):figT('Tap in at','near '+endName,'','pipe is short for this tone'))+'</div>'+(FX.mufNote?'<div class="note">'+esc(FX.mufNote)+'</div>':'');

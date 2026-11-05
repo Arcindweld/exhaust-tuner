@@ -303,6 +303,13 @@ def chamber():
             T.ext_chamber(*bad); ok(False, 'chamber: bad sizes refused %s' % (bad,))
         except ValueError:
             ok(True, 'chamber: bad sizes refused')
+    lb = T.ext_chamber(6.35, 0.165, 15.24, 0.152, 35.56, 5.0, 5.0, 5.08, 2, 6.0, 0.152)
+    zs = [(b[0][1] + b[2][1]) / 2.0 for b in lb['baffles']]
+    ok(len(lb['baffles']) == 2 and abs(zs[0] - (0.152 + 5.0 + 25.56 / 3.0)) < 1e-9 and abs(zs[1] - (0.152 + 5.0 + 2 * 25.56 / 3.0)) < 1e-9 and lb['baffles'][0][0][0] == 3.0, 'chamber: two baffles at thirds of the open part, hole radius 3 cm')
+    try:
+        T.ext_chamber(6.35, 0.165, 15.24, 0.152, 35.56, 17.0, 17.0, 5.08, 3, 6.0, 0.152); ok(False, 'chamber: baffles with no room refused')
+    except ValueError:
+        ok(True, 'chamber: baffles with no room refused')
     pts, err = T.cylinder_samples((0, 0, 0), (1, 0, 0), lay['R_out'], 0.0, lay['z1'], 0.4)
     ok(all(abs(math.hypot(q[1], q[2]) - lay['R_out']) < 1e-9 or q[0] < 1e-9 or abs(q[0] - lay['z1']) < 1e-9 for q in pts), 'chamber: samples sit on the shell or the end plates')
 

@@ -108,8 +108,9 @@ EXHAUST TUNER (Fusion add-in), version 4.14.0
   "Build the expansion chamber": draw one sketch line along the pipe's centreline where the chamber's
   near end plate goes, pointing the way the gas flows. Sizes come from the Mufflers tab (pipe inside
   diameter and wall, chamber inside diameter and length, the inlet and outlet tube extensions, the
-  chamber wall); three sketch-driven revolves in one component (shell with end plates, inlet tube,
-  outlet tube), each stub 2 in past the plates. The straight-through layout only: the reverse-flow
+  chamber wall, and the Mufflers tab's baffle count and hole); sketch-driven revolves in one component
+  (shell with end plates, inlet tube, outlet tube, a washer per baffle spaced evenly between the tube
+  mouths), each stub 2 in past the plates. The straight-through layout only: the reverse-flow
   chamber's pipes sit side by side and are not a revolve.
 
 4.11.1 (November 2, 2026)
