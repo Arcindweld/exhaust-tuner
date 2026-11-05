@@ -718,6 +718,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   roadside distance (monopole, 1/r, hard ground +6, A-weighted, summed; to 0.4 dB of wam_sound.py per order) and,
   with a target dB(A), Davies' per-order cuts (N orders within 15 dB of the loudest to L_T - 10 log N). wamlevel_ui.js
   (uses the kept F-100 p900 run; dualexit_ui.js moved to it). Page V60.
+- Intake mouth from the page (2026-11-05): the 4-Stroke OpenWAM section can write the case with the intake's open end
+  recorded (ins_intake, writer v12) and reads it back as an "intake mouth" column with its own roadside level (no jet
+  for an inflow); intakemouth_ui.js runs OpenWAM on a 6-cycle case end to end (6 s). The quiet target's job list goes
+  to the muffler designer with one button (installed scoring on). Fusion chamber builder takes baffles. Page gets a
+  jump list of sections on long results columns.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
