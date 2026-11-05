@@ -62,8 +62,9 @@ if __name__ == "__main__":
     cos_th = -x / np.sqrt(x * x + d * d)      # +1 approaching
     dop = c0 / (c0 - v * cos_th)
     eng_rpm = app(tt) / dop
-    p_e, rp = SW.pull(runs, (tt, eng_rpm), T, fs=FS, jet=True)
-    p_m, t_r, r_m = SW.passby(p_e, FS, v, d, t_close, ground=True)
+    # the tip's jet kept apart so it radiates with a jet's directivity (louder behind the truck, where the tailpipe points)
+    p_t, p_j, rp, Ue = SW.pull(runs, (tt, eng_rpm), T, fs=FS, jet=True, split=True)
+    p_m, t_r, r_m = SW.passby(p_t, FS, v, d, t_close, ground=True, p_jet=p_j, U_jet=Ue, tip_dir=-1.0)
     wam_sound.write_wav(os.path.join(HERE, "passby_model%s.wav" % TAG), p_m, FS)
     print("wrote passby_model%s.wav:" % TAG + " %.1f s, engine %.0f-%.0f rpm, %.0f mph, closest %.0f m" % (len(p_m) / FS, eng_rpm.min(), eng_rpm.max(), v_mph, d))
     # order levels in 0.4 s windows as the recording was read (the apparent rpm from the firing line itself)

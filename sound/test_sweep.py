@@ -72,5 +72,14 @@ pj, _ = SW.pull([r3], lambda t: 3000.0, 4.0, fs=fs, jet=True)
 jet_only = pj - SW.pull([r3], lambda t: 3000.0, 4.0, fs=fs, jet=False)[0]
 want_j = math.sqrt(1.2 * 343.0 * r3["jet"]["W"] / (4 * math.pi))
 ok(abs(20 * np.log10(np.sqrt(np.mean(jet_only ** 2)) / want_j)) < 0.5, 'the jet noise at a run\'s speed has that run\'s mean power (%.4f Pa at 1 m against %.4f)' % (np.sqrt(np.mean(jet_only ** 2)), want_j))
+# jet directivity: the sphere average of the intensity is one (power unchanged), downstream louder than upstream, and
+# split=True gives the same total as the plain pull
+cs = np.linspace(-1, 1, 4001); D = SW.jet_directivity(cs, 0.2)
+ok(abs(np.mean(D ** 2) - 1) < 1e-3 and D[-1] > 1 > D[0], 'jet directivity: sphere mean 1 (%.4f), downstream %.2f, upstream %.2f' % (np.mean(D ** 2), D[-1], D[0]))
+pt, pjt, _, Ue = SW.pull([r3], lambda t: 3000.0, 4.0, fs=fs, jet=True, split=True)
+ok(np.allclose(pt + pjt, pj) and Ue > 0, 'split pull adds back to the plain pull (U_eff %.0f m/s)' % Ue)
+pa_, _, ra = SW.passby(pt, fs, 25.0, 5.0, 2.0, ground=False, p_jet=pjt, U_jet=Ue)
+pb_, _, _ = SW.passby(pt + pjt, fs, 25.0, 5.0, 2.0, ground=False)
+ok(len(pa_) == len(pb_) and not np.allclose(pa_, pb_), 'pass-by with the jet apart differs from the plain one (directivity applied)')
 print('failures:', len(fails))
 sys.exit(1 if fails else 0)

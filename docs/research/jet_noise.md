@@ -62,3 +62,14 @@ distance, mostly on orders 2, 4.5 and 5 (where the exhaust has little), the firi
 bare stack is this loud in life too; in the truck the mouth is under the hood behind an air filter, and the pass-by
 recording is beside the exits, so the intake is left out of that comparison. It is the first thing to add for a cab or
 hood-open recording, with the hood and filter as a transmission loss to be measured or estimated.
+
+## Directivity (2026-11-05)
+
+The pass-by now radiates the tip's jet with a jet's directivity instead of evenly: intensity
+[(1 - Mc cos theta)^2 + (0.3 Mc)^2]^(-5/2) about the tailpipe's axis, Mc = 0.6 U_eff / c (Morse and Ingard 11.4,
+eq. 11.4.28, with Ffowcs Williams' alpha term), normalised so the jet's total power is unchanged (sound/sweep.py,
+jet_directivity; passby() takes the jet apart through pull(split=True)). For a tailpipe blowing backwards at
+U_eff 120 m/s that is +4 dB behind the vehicle after it passes and -5 dB on approach; at the F-100's 35 m/s U_eff
+about +-1.5 dB. On the F-100 pass-by the order score moved 5.8 -> 6.0 dB (the orders are tonal, the jet is the floor
+between them), within the pull-to-pull spread. The frequency shift of the jet's spectrum in the forward arc comes
+out of the pass-by's time warping on its own.

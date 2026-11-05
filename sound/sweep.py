@@ -69,9 +69,10 @@ def harm_at(runs, rpm):
     return np.exp(La + u * (Lb - La)) * np.exp(1j * (pa + u * dp))
 
 
-def pull(runs, rpm_of_t, seconds, fs=44100, jet=True, seed=7, chunk=0.02):
+def pull(runs, rpm_of_t, seconds, fs=44100, jet=True, seed=7, chunk=0.02, split=False):
     """The emitted sound (Pa at 1 m, free field) of the engine following rpm_of_t(t) (a function or (t, rpm) arrays) for
-    `seconds`. runs: harmonics() of each run, any order. Returns (p, rpm track per sample)."""
+    `seconds`. runs: harmonics() of each run, any order. Returns (p, rpm track per sample); with split=True
+    (p_tonal, p_jet, rpm track, U_eff), the jet kept apart so passby() can give it its own directivity."""
     runs = sorted(runs, key=lambda r: r["rpm"])
     N = int(round(seconds * fs))
     t = np.arange(N) / fs
@@ -109,15 +110,43 @@ def pull(runs, rpm_of_t, seconds, fs=44100, jet=True, seed=7, chunk=0.02):
         d = runs[0]["jet"]["d_m"]
         noise = RZ.jet_signal(np.ones(N), Ue, d, N, fs, 1.0, False, 1.0, seed=seed)   # unit power at 1 m
         unit = math.sqrt(1.2 * 343.0 * 1.0 / (4 * math.pi))
-        p = p + noise / unit * np.sqrt(1.2 * 343.0 * Wt / (4 * math.pi)) * env
+        pj = noise / unit * np.sqrt(1.2 * 343.0 * Wt / (4 * math.pi)) * env
+        if split:
+            return p, pj, rp, Ue
+        p = p + pj
+    elif split:
+        return p, np.zeros(N), rp, 0.0
     return p, rp
 
 
-def passby(p_e, fs, v, d, t_closest, c0=343.0, ground=True):
+def jet_directivity(cos_th, Mc, alpha=0.3):
+    """Amplitude factor of jet mixing noise at angle theta from the jet axis (cos_th = +1 straight downstream of the tip),
+    for eddies convecting at Mach Mc: intensity ~ [(1 - Mc cos theta)^2 + alpha^2 Mc^2]^(-5/2) (Morse and Ingard,
+    Theoretical Acoustics, 11.4, eq. 11.4.28; Ffowcs Williams' alpha term keeps it finite), normalised so the sphere
+    average of the intensity is 1 and the jet's total power is unchanged."""
+    f = lambda c: ((1 - Mc * c) ** 2 + (alpha * Mc) ** 2) ** -2.5
+    cs = np.linspace(-1, 1, 2001)
+    mean = float(np.mean(f(cs)))                      # the sphere average of a function of cos theta is its mean over cos theta
+    return np.sqrt(f(np.asarray(cos_th, float)) / mean)
+
+
+def passby(p_e, fs, v, d, t_closest, c0=343.0, ground=True, p_jet=None, U_jet=0.0, tip_dir=-1.0):
     """The emitted sound p_e (Pa at 1 m) heard by a microphone d m from the line the source drives along at v m/s
     (a number, or an array per sample), closest at t_closest (s of emission time). Returns (p at the microphone, the
-    reception times of the output samples, the distance per output sample)."""
+    reception times of the output samples, the distance per output sample). p_jet (same length), when given, is the
+    tip's jet noise kept apart: it gets the jet's directivity (jet_directivity, Mc = 0.6 U_jet / c0) about the tip's axis,
+    which points along tip_dir times the direction of travel (-1: a tailpipe blowing backwards), before the two are added."""
     N = len(p_e)
+    if p_jet is not None and U_jet > 0:
+        te0 = np.arange(N) / fs
+        vv0 = np.full(N, float(v)) if np.isscalar(v) else np.asarray(v, float)
+        x0 = np.cumsum(vv0) / fs
+        x0 -= np.interp(t_closest, te0, x0)
+        # angle between the jet axis (tip_dir x direction of travel) and the line from the tip to the microphone
+        cos_th = tip_dir * (-x0) / np.sqrt(x0 * x0 + d * d)
+        p_e = p_e + p_jet * jet_directivity(cos_th, 0.6 * U_jet / c0)
+    elif p_jet is not None:
+        p_e = p_e + p_jet
     te = np.arange(N) / fs
     vv = np.full(N, float(v)) if np.isscalar(v) else np.asarray(v, float)
     x = np.cumsum(vv) / fs
