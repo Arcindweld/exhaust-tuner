@@ -49,7 +49,13 @@ function runOne(dir, name) {
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(800);
   await pg.click('#u-met'); await pg.waitForTimeout(200);
+  // MDW_CFG: 'dual' (two collectors), 'xo' (two collectors joined by the Crossover tab's X), '4cyl' (an inline 4, 4-into-1)
+  const cfg = process.env.MDW_CFG || '';
+  if (/xo/.test(cfg)) { await pg.click('#tab-cross'); await pg.waitForTimeout(300); await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400); }
+  if (/4cyl/.test(cfg)) { await pg.fill('#f-cyl', '4'); await pg.fill('#f-disp', '2000'); await pg.dispatchEvent('#f-disp', 'input'); await pg.selectOption('#f-n', '4'); await pg.waitForTimeout(200); }
+  if (/dual|xo/.test(cfg)) { await pg.selectOption('#f-n', '4'); await pg.waitForTimeout(200); }
   await pg.selectOption('select.wamline[data-k="on"]', '1'); await pg.waitForTimeout(200);
+  if (/xo/.test(cfg)) { await pg.selectOption('select.wamline[data-k="xo"]', 'tab'); await pg.waitForTimeout(200); }
   await pg.evaluate(cy => { const c = document.querySelector('input.wamx[data-k="cycles"]'); c.value = cy; c.dispatchEvent(new Event('input', { bubbles: true })); }, process.env.MDW_CYC || '8');
   await pg.evaluate(() => { location.hash = 'mufflers'; }); await pg.waitForTimeout(400);
   await pg.click('#m-expert'); await pg.waitForTimeout(200);
@@ -66,8 +72,9 @@ function runOne(dir, name) {
   const rp = process.env.MDW_RPMS || [dd.d[0], dd.d[dd.d.length - 1]].join(' ');
   await pg.fill('#mdw-rpms', rp); await pg.dispatchEvent('#mdw-rpms', 'change'); await pg.waitForTimeout(200);
   await pg.click('button[data-mdw="run"]');
-  await pg.waitForFunction(() => window.__mdwLast || /did not run|nothing can be compared/.test((document.querySelector('.mdwmsg') || {}).textContent || ''), null, { timeout: +(process.env.MDW_WAIT || 600000) });
+  await pg.waitForFunction(() => window.__mdwLast || (document.querySelector('.mdwmsg.bad') && !/Running|runs done/.test(document.querySelector('.mdwmsg').textContent)), null, { timeout: +(process.env.MDW_WAIT || 600000) });
   const X = await pg.evaluate(() => window.__mdwLast);
+  if (!X) console.log('message: ' + await pg.evaluate(() => (document.querySelector('.mdwmsg') || {}).textContent));
   if (X && process.env.MDW_DUMP) fs.writeFileSync(process.env.MDW_DUMP, JSON.stringify(X));
   ok(X && X.rows.length >= 2, 'the designs ran (' + (X ? X.rows.length : 0) + ' rows)');
   if (X) {

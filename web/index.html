@@ -228,6 +228,7 @@ body:not(.simple) .simple-only{display:none!important}
 .fv small{font-size:.4em;font-weight:500;font-stretch:100%;letter-spacing:0;color:var(--muted);margin-left:5px}
 .fa{display:block;margin-top:8px;font:400 12.5px/1.35 var(--f-ui);color:var(--muted);overflow-wrap:anywhere}
 .st-ok{color:var(--ok)} .st-warn{color:var(--warn)} .st-bad{color:var(--bad)}
+input.oor{color:var(--bad);text-decoration:underline wavy var(--bad);text-underline-offset:3px}
 
 /* drawing well */
 .area-draw{--bg:var(--well);--panel:var(--well)}
@@ -6324,6 +6325,7 @@ const fin=(...v)=>v.every(x=>Number.isFinite(x));
 function calcFour(p){
   if(!fin(p.n,p.rpm,p.evo,p.dp,p.cr,p.cs,p.er,p.ang,p.egt)||p.rpm<=0||p.dp<=0||p.cr<=0||p.er<1||p.ang<=0||p.ang>=60||p.cs<0||(p.place==='tail'&&!(p.tail>=0)))
     return {err:'Fill in every field with a positive number. Area ratio must be at least 1 and the cone angle between 0 and 60°.'};
+  if(!(p.evo>=0&&p.evo<180)) return {err:'The exhaust valve opens before bottom center: enter 0 to 180° BBDC (most cams open it 40 to 90°).'};
   const ED=180+p.evo;
   const lenAt=r=>(850*ED/r-3)*MM;
   const lp=lenAt(p.rpm); const port=p.port>0?p.port:0;
@@ -6772,6 +6774,7 @@ function calcLayout(p){
     return {err:'The firing order must list every cylinder once, numbered 1 to N, for example 1-8-4-3-6-5-7-2.'};
   if(!fin(p.rpm,p.evo,p.dp,p.cr,p.cs)||p.rpm<=0||p.dp<=0||p.cr<=0||p.cs<0)
     return {err:'Fill in RPM, valve opening, primary diameter and collector ratio with positive numbers.'};
+  if(!(p.evo>=0&&p.evo<180)) return {err:'The exhaust valve opens before bottom center: enter 0 to 180° BBDC (most cams open it 40 to 90°).'};
   const cyc=p.cycle||CYCLE;
   let ang=null;
   if(p.gaps&&p.gaps.length){
@@ -6935,8 +6938,9 @@ const HELM_END=0.6133;      // neck end correction × neck diameter (Selamet, vi
 // friction in the neck is left out (smaller at these levels), so the peak is a little high. Returns {u, Ra, tl}.
 function branchPeak(spl,K,rho,c,S,Sn){
   const pi=Math.sqrt(2)*20e-6*Math.pow(10,spl/20), Zp=rho*c/S, a=4*K*rho/(3*Math.PI*Sn);
-  const u=(-Zp*Sn+Math.sqrt(Zp*Zp*Sn*Sn+16*a*Sn*pi))/(4*a*Sn), Ra=a*u;
-  return {u,Ra,pi,tl:20*Math.log10(1+Zp/(2*Ra))};
+  // the root of 2 a Sn u^2 + Zp Sn u - pi = 0 in the form that does not cancel when Zp Sn is large next to the rest
+  const u=4*pi/(Math.sqrt(Zp*Zp*Sn*Sn+16*a*Sn*pi)+Zp*Sn), Ra=a*u;
+  return {u,Ra,pi,tl:Ra>0?Math.min(TLCAP,20*Math.log10(1+Zp/(2*Ra))):TLCAP};
 }
 function calcHelm(p){        // p: f Hz, dn, ln, dpipe mm, tres °C
   if(!fin(p.f,p.dn,p.ln,p.dpipe,p.tres)||p.f<=0||p.dn<=0||p.ln<0||p.dpipe<=0) return {err:'Fill in the target frequency, neck size and main pipe diameter.'};
@@ -9575,12 +9579,24 @@ function showInput(el){
   else if(el.dataset.dp) dp=+el.dataset.dp;
   el.value=String(+v.toFixed(dp));
 }
+// plausible values by kind, in the base units (mm, °C, cc, kPa, kg, N/mm; num as entered): a value outside reads as empty,
+// so the calculation asks for it again, and the field is marked. Some sums walk a value (a length in steps, a frequency
+// in hertz, a count of holes), and a slip of the keyboard (1e9 mm, 1e-9 RPM) would otherwise hang or crash the page.
+// data-min / data-max (base units) narrow a field further.
+const IN_RANGE={len:[-1e5,1e5,1e-3],temp:[-273.15,3000,0],disp:[0,1e6,0.01],press:[-200,1e5,0],mass:[0,1e5,0],stiff:[0,1e7,0],num:[-1e6,1e6,1e-6]};
+function inRange(el,b){
+  const R=IN_RANGE[el.dataset.kind]||IN_RANGE.num, lo=el.dataset.min!=null&&el.dataset.min!==''?+el.dataset.min:R[0], hi=el.dataset.max!=null&&el.dataset.max!==''?+el.dataset.max:R[1];
+  return b>=lo&&b<=hi&&!(b!==0&&Math.abs(b)<R[2]);
+}
 function readInput(el){
   const v=parseFloat(el.value);
-  if(!Number.isFinite(v)){el._b=NaN;return;}
+  if(!Number.isFinite(v)){el._b=NaN;el.classList.remove('oor');el.removeAttribute('aria-invalid');return;}
   const k=el.dataset.kind;
-  el._b=k==='len'?(U==='imp'?v*MM:v):k==='temp'?(U==='imp'?(v-32)*5/9:v):k==='disp'?(U==='imp'?v*16.387064:v):
+  const b=k==='len'?(U==='imp'?v*MM:v):k==='temp'?(U==='imp'?(v-32)*5/9:v):k==='disp'?(U==='imp'?v*16.387064:v):
     k==='press'?(U==='imp'?v*6.894757:v):k==='mass'?(U==='imp'?v/2.20462:v):k==='stiff'?(U==='imp'?v/5.71015:v):v;
+  const ok=inRange(el,b); el._b=ok?b:NaN;
+  el.classList.toggle('oor',!ok); if(ok){ el.removeAttribute('aria-invalid'); if(el.dataset.oorT){ el.title=el.dataset.oorT==='-'?'':el.dataset.oorT; delete el.dataset.oorT; } }
+  else { el.setAttribute('aria-invalid','true'); if(!el.dataset.oorT) el.dataset.oorT=el.title||'-'; el.title='Out of range for this field'; }
 }
 const inputsAll=[...document.querySelectorAll('input[data-kind]')];
 inputsAll.forEach(el=>{el._b=parseFloat(el.dataset.base);showInput(el);});
@@ -12508,7 +12524,7 @@ function hgStrength(o,part,mat){
   } else if(part.kind==='ring'){
     const yTop=part.dims.reach, net=hgNet(part,part.dims.Rout,yTop);
     rows.push({m:'Pulling the mounting boss off the ring',F:fy*net.w*o.width,how:'net width '+bothL(net.w)+' × '+bothL(o.width)+' printed or machined thickness'});
-    const e=hgEdge(part,[0,yTop],[0,1])-o.mhole/2;
+    const mh=part.holes.find(h=>h.what==='mounting hole'), e=hgEdge(part,[0,yTop],[0,1])-(mh?mh.r:0);   // the part's own hole (the form's is rmh)
     rows.push({m:'Tearing out past the mounting hole',F:0.577*fy*2*e*o.width,how:bothL(e)+' of material above the hole'});
   }
   return rows;
@@ -12752,7 +12768,7 @@ function renderHang(){
   if(rows.length){
     h+=sec('Strength','<div class="tblwrap"><table><thead><tr><th>Part</th><th>Failure mode</th><th>Load</th><th>× its weight</th></tr></thead><tbody>'+
       rows.map(r=>'<tr><td>'+esc(r.part)+'</td><td>'+esc(r.m)+'<br><small>'+esc(r.how)+'</small></td><td>'+Math.round(r.F)+' N<br><small>'+Math.round(r.F/4.44822)+' lbf</small></td><td>'+(N>0?(r.F/N).toFixed(1):'')+'</td></tr>').join('')+'</tbody></table></div>'+
-      '<p class="cap">Loads where the '+(mat.print?'printed part breaks (its in-plane tensile strength, '+mat.fy+' MPa; layers across the load are weaker)':'metal starts to yield ('+esc(mat.src)+')')+', for '+mass(o.w)+' hanging on this one. No published load factor for exhaust hangers was found, so pick your own margin for bumps; the welds are taken as strong as the parts. A flat tab is many times weaker sideways than along itself: line it up with the load, and with the pipe’s heat growth (Deeds: hang dog-bone isolators in line with the pipe so they swing as it grows).</p>');
+      '<p class="cap">Loads where the '+(mat.print?'printed part breaks (its in-plane tensile strength, '+mat.fy+' MPa; layers across the load are weaker)':'metal starts to yield ('+esc(mat.src)+')')+', for '+(o.w>0?mass(o.w):'the weight you enter')+' hanging on this one. No published load factor for exhaust hangers was found, so pick your own margin for bumps; the welds are taken as strong as the parts. A flat tab is many times weaker sideways than along itself: line it up with the load, and with the pipe’s heat growth (Deeds: hang dog-bone isolators in line with the pipe so they swing as it grows).</p>');
   }
   // isolator
   if(P0.kind==='rod'){ const s=HG_STRAP[o.strap]; if(s&&s.cc) h+=sec('Isolator',rowT(s.name,bothL(s.cc)+' between holes',(s.hole?bothL(s.hole)+' holes. ':'')+esc(s.note))+'<p class="cap">The body-side rod goes '+bothL(s.cc)+' above this pin. <a href="'+s.src+'" target="_blank" rel="noopener">Source</a>.</p>'); }
@@ -12775,6 +12791,7 @@ function hgHeat(o,parts,mat){
     return m.print?sec('Heat',(o.tp>=m.hdt[1]?'<div class="note bad">The tube at '+tempStr(o.tp)+' is past this filament’s heat deflection ('+m.hdt[1]+' °C under 1.8 MPa, '+m.hdt[0]+' °C under 0.45 MPa): the clamp will creep. Pick one rated above it, or a metal clamp.</div>':
       '<p class="cap">The clamp touches the tube, so it runs at about the tube’s '+tempStr(o.tp)+'; this filament’s heat deflection is '+m.hdt[1]+' °C under 1.8 MPa (Bambu Lab).</p>')):''; }
   if(P0.kind!=='weldTab'&&P0.kind!=='rod') return '';
+  if(!(o.ta>-273.15)||!(o.tp<5000)) return sec('Heat and isolation','<p class="cap">Check the temperatures: the air has to be above absolute zero ('+tempStr(-273.15)+') and the pipe below '+tempStr(5000)+'.</p>');
   if(!(o.tp>o.ta)) return sec('Heat and isolation','<p class="cap">Fill in the pipe temperature at the hanger to see how hot the isolator runs.</p>');
   // the reach search rebuilds the part without lightening holes: a little more metal conducts a little more heat,
   // so the reach it gives errs long (and it is much quicker)
@@ -12795,7 +12812,7 @@ function hgHeat(o,parts,mat){
   try{ const sp=soundParams(); if(!sp.err&&sp.p){ const kk=(sp.p.cyc==='4'?0.5:1)*sp.p.cyl; fIdle=kk*sp.p.idle/60; fSrc='the Sound tab’s engine firing at '+Math.round(sp.p.idle)+' RPM idle'; } }catch(e){}
   const W=o.w*9.80665, zeta=0.10;
   const tr=(fn,f)=>{ const r=f/fn; return Math.sqrt(1+(2*zeta*r)**2)/Math.sqrt((1-r*r)**2+(2*zeta*r)**2); };
-  const ropes=HG_ROPE.filter(q=>q.W>=W).map(q=>{ const fn=Math.sqrt(q.K*9.80665/W)/(2*Math.PI); return Object.assign({},q,{fn,T:tr(fn,fIdle)}); });
+  const ropes=!(W>0)?[]:HG_ROPE.filter(q=>q.W>=W).map(q=>{ const fn=Math.sqrt(q.K*9.80665/W)/(2*Math.PI); return Object.assign({},q,{fn,T:tr(fn,fIdle)}); });
   let h='<div class="figs">'+figT('Isolator runs at',U==='imp'?Math.round(Ti*9/5+32):Math.round(Ti),U==='imp'?'°F':'°C','pipe '+tempStr(o.tp)+', air '+tempStr(o.ta),Ti>260?'st-bad':Ti>232?'st-warn':'st-ok')+
     figT('Best here','','',B.name,'')+'</div>'+
     '<p class="cap">The '+(P0.kind==='rod'?'rod':'tab')+' works as a fin: heat conducts out from the pipe and leaves both faces by natural convection and radiation, while the faces take radiation back from the pipe. Still air, no heat shield: driving air cools it more, a shield between pipe and isolator more still. Read it as the isolator’s temperature at a standstill, the hottest case.</p>'+
@@ -12807,7 +12824,8 @@ function hgHeat(o,parts,mat){
   else if(best==='rope') h+='<div class="note warn"><b>Too hot for rubber or silicone here.</b> Lengthen the tab to the reach in the table, put a heat shield between the pipe and the grommet, or use an all-metal isolator: a stainless wire-rope isolator (to '+tempStr(260)+') has the aerospace look and real damping.</div>';
   else if(best==='mesh'&&P0.kind==='rod'&&Ti<=232-margin) h+='';
   else h+='<div class="note bad"><b>Hot enough for metal only.</b> Knitted stainless-mesh mounts are rated to '+tempStr(300)+' (Vibratec’s VTCI to 600 °C). Or move the hanger further from the heat.</div>';
-  if(ropes.length||best!=='vmq'){
+  if(!(W>0)&&best!=='vmq') h+='<p class="cap">Enter the weight this hanger carries to size a wire-rope isolator for it.</p>';
+  else if(ropes.length||best!=='vmq'){
     h+='<p class="sub" style="margin-top:12px">Stainless wire-rope isolators for '+mass(o.w)+'</p>'+(ropes.length?'<div class="tblwrap"><table><thead><tr><th>Isolator</th><th>Height × bar</th><th>Holds</th><th>Bounce</th><th>Shake passed at idle ('+fIdle.toFixed(0)+' Hz)</th></tr></thead><tbody>'+
       ropes.map(q=>'<tr><td>'+q.name+'</td><td>'+bothL(q.h)+' × '+bothL(q.bar)+'</td><td>'+Math.round(q.W)+' N max</td><td>'+q.fn.toFixed(1)+' Hz</td><td class="'+(q.T<0.5?'st-ok':q.T<1?'st-warn':'st-bad')+'">'+Math.round(100*q.T)+'%</td></tr>').join('')+'</tbody></table></div>'+
       '<p class="cap">Enidine’s catalog: stiffness in compression at the ends of the WR2 and WR3 ranges, 5–15% damping (10% used); for 80% isolation the bounce frequency should be a third of the shake (here '+(fIdle/3).toFixed(1)+' Hz), from '+esc(fSrc)+'. Their threaded inserts take 6 in·lb at most.</p>':
@@ -14371,8 +14389,8 @@ function renderBoom(){
   html+=sec('Flat panels and ribs',rowT('Flat width between the round edges',cdim(r.b))+rowT('Sheet',MATS[p.mat].name+', '+cdim(p.t),Math.round(r.E/1e9)+' GPa at '+tempStr(p.twall))+
     rowT('Lowest wall mode, no ribs',hzs(r.fNone),'whole-section ring model and flat strip, whichever is lower')+
     (p.rib>0?rowT('With ribs every '+clen(p.rib),hzs(r.fRib)):'')+
-    rowT('Firing tone into this tube at redline',hzs(p.fire),'keep panels above '+p.margin+' × that = '+hzs(r.target))+
-    rowT('Rib spacing that does it',r.ribMax==null?'not needed':clen(r.ribMax)+' or closer')+
+    (Number.isFinite(p.fire)&&p.fire>0?rowT('Firing tone into this tube at redline',hzs(p.fire),'keep panels above '+p.margin+' × that = '+hzs(r.target))+
+    rowT('Rib spacing that does it',r.ribMax==null?'not needed':clen(r.ribMax)+' or closer'):rowT('Firing tone at redline','–','fill in the cylinders and redline to check the panels against it'))+
     '<p class="cap">The patent for flattened boom tubes uses internal ribs to cut vibration and fatigue. Ribs across the run, a bead down the middle, or thicker sheet all raise the panel modes.</p>');
   html+=sec('Clearance and weight',rowT('Outside height of the flat run',cdim(r.heightOut))+rowT('Round pipe with the same area, outside',cdim(r.roundOD))+rowT('Height saved',cdim(Math.max(0,r.saved)))+
     rowT('Sheet weight, each tube',mass(r.weight),'skin only; add flanges and ribs'));

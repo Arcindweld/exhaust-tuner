@@ -89,6 +89,9 @@ const path = require('path');
   await sel('hg-for', 'exh'); await p.waitForTimeout(150);
   rt = await p.evaluate(() => document.getElementById('hg-details').innerText);
   ok(/far hotter/.test(rt), 'a printed clamp on an exhaust is warned off');
+  const ringRows = await p.evaluate(() => { const H = window.__hang, o = H.hgRead(), part = H.hgParts(o).find(q => q.kind === 'ring'); return H.hgStrength(o, part, H.HG_MAT[o.mat] || H.HG_MAT.asa).map(r => [r.m, r.F]); });
+  ok(ringRows.length >= 2 && ringRows.every(r => Number.isFinite(r[1]) && r[1] > 0), 'ring clamp: every strength row is a number (' + ringRows.map(r => r[0].split(' ')[0] + ' ' + Math.round(r[1]) + ' N').join(', ') + ')');
+  ok(!/NaN/.test(rt), 'ring clamp details have no NaN');
   await sel('hg-part', 'tab'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => document.getElementById('hg-mat').value === 'ss304'), 'back to a tab: the material goes back to metal');
   // Fusion: hide/show and the two actions (the page thinks it is in Fusion when adsk is there)

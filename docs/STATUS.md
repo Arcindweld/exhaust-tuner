@@ -746,6 +746,19 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   keeps the old side tube). Without the loss the pocket self-excited at its neck frequency (409 Hz) in the run. Now
   every run settles under 5 % at 25 cycles and the double-tuned cans come out 6-7 dB(A) under plain chambers of the
   same size (91.5 / 93.5 vs 98.5 / 97.6; no muffler 105.7), worst in-band order about level instead of -6.5 dB.
+- Input robustness (2026-11-05): two new tests. fuzz_ui.js feeds every tab seeded random values (0.3-3x each
+  field, plus 0, negative, 1e9, blank, text, random selects and checkboxes; FUZZ_SEED, FUZZ_ROUNDS, FUZZ_UNITS=met,
+  FUZZ_TABS, FUZZ_LOG) and fails on a page error or NaN / Infinity / undefined on screen, printing the section, the
+  row and the whole tab's inputs. extremes_ui.js sets every numeric field alone to 1e9, -1e9 and 1e-9 and fails on a
+  crash, a hang (60 s), a recompute over 4 s, or bad text. First pass: 17 failures in 273 settings (5 hangs, 4 crashes:
+  e.g. exhaust opening 1e9 deg, muffler length 1e9, cat RPM 1e9, hanger reach 1e9). Fixes: readInput rejects values
+  outside a plausible range per field kind (IN_RANGE: length 100 m, temperature -273.15 to 3000 C, displacement 1e6 cc,
+  numbers 1e6, nonzero magnitudes under a micron / 1e-6; data-min / data-max narrow a field), marks the field
+  (input.oor, aria-invalid, a title); exhaust opening range-checked 0-180 deg BBDC on the 4-Stroke and Headers tabs;
+  branchPeak in the cancellation-free root form (Infinity dB at a huge neck), capped at the chart's limit; the ring
+  clamp's tear-out row read the form's hole as `mhole` (undefined: always NaN) and now reads the part's hole; zero
+  hanger weight no longer gives an infinite bounce frequency; a pipe or air temperature past absolute zero or 5000 C is
+  asked again; boom-tube panels and the hanger strength caption no longer print NaN with an empty field.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
