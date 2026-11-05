@@ -16934,7 +16934,7 @@ function uelReadme(H){
   return L;
 }
 // order spectrum of the outflow from an INS.DAT: last complete 720 deg cycle, 1 deg resample, harmonics of d(mdot)/dt
-function wamInsOrders(ins,maxM){
+function wamInsOrders(ins,maxM,more){
   const ang=ins.angle, y=ins.mdot, st=[0], N=720;
   for(let i=1;i<ang.length;i++) if(ang[i]<ang[i-1]-180) st.push(i);
   const cyc=[]; st.forEach((s0,k)=>{ const e=k+1<st.length?st[k+1]:ang.length; if(e-s0>=36&&ang[e-1]-ang[s0]>=600) cyc.push([s0,e]); });
@@ -16942,6 +16942,9 @@ function wamInsOrders(ins,maxM){
   const rs=([s0,e],yy)=>{ yy=yy||y; const a0=ang[s0], A=[], Y=[]; for(let i=s0;i<e;i++){ A.push(ang[i]-a0); Y.push(yy[i]); } A.push(720); Y.push(yy[s0]);
     const o=new Float64Array(N); let j=0; for(let i=0;i<N;i++){ while(j<A.length-2&&A[j+1]<=i) j++; const d=A[j+1]-A[j]; o[i]=d>0?Y[j]+(i-A[j])/d*(Y[j+1]-Y[j]):Y[j]; } return o; };
   const last=rs(cyc[cyc.length-1]);
+  // more exits (a dual exhaust): [{mdot (the same rows), g (gain, r_near / r_far), dDeg (its delay in crank degrees)}],
+  // each added to the near exit's flow, delayed and scaled, so they interfere at the microphone order by order
+  (more||[]).forEach(q=>{ const o=rs(cyc[cyc.length-1],q.mdot); for(let i=0;i<N;i++){ const x=((i-q.dDeg)%N+N)%N, j=Math.floor(x), u=x-j; last[i]+=q.g*(o[j]*(1-u)+o[(j+1)%N]*u); } });
   let per=null;
   if(cyc.length>1){ const pv=rs(cyc[cyc.length-2]); let mean=0; last.forEach(v=>{mean+=v/N;}); let d2=0,s2=0; for(let i=0;i<N;i++){ d2+=(last[i]-pv[i])**2; s2+=(last[i]-mean)**2; } per=Math.sqrt(d2/(s2||1e-30)); }
   const amp=[];
@@ -16954,11 +16957,35 @@ function wamInsOrders(ins,maxM){
     const A=sru>0?sm/sru:NaN; if(A>0) jet={u:Array.from(cu),T:Array.from(cT),d:Math.sqrt(4*A/Math.PI)}; }
   return {db:amp.map(v=>20*Math.log10(Math.max(v/top,1e-6))),half:half/tot,strongest:(amp.indexOf(top)+1)/2,per,cycles:cyc.length,pipe:ins.pipe,cyc:Array.from(last),jet};
 }
+// the model the tab would write now (for telling a file's exits from its plenum ports): null when it cannot be built
+function wamCurrentModel(){
+  try{ const q=SIM.inp; if(!q||simCheck(q)) return null; const sp=simSpec(q), src=wamSource(q,sp); if(src.err) return null;
+    const wl=wamWithLine(src.spec); if(wl.err) return null;
+    return WAMX.modelFromSpec(wl.spec,Object.assign({rpm:3000,cycles:5,name:'x',ins_outlet:1},src.run||{})); }catch(e){ return null; }
+}
+// where the microphone is when the case has two exits: 'centre' (equally far from both: behind the car, between the
+// tips) or 'side' (beside the car: the far exit sep m farther than the near one, r from it)
+const WAM_MIC={layout:'centre',sep:1.5,r:1.0};
+function wamMore(t,mdl,rpm){
+  const nd=Math.max(0,...[...(t.slice(0,200000).split(/\r?\n/)[0]||'').matchAll(/_duct_(\d+)_/g)].map(x=>+x[1]));
+  if(!mdl||mdl.pipes.length!==nd) return {ins:WAMX.readIns(t,{keepCycles:2}),more:[],exits:1};
+  const ins=WAMX.readIns(t,{keepCycles:2,model:mdl}), outs=ins.outlets||[];
+  if(outs.length<2) return {ins,more:[],exits:outs.length||1};
+  const base=WAMX.readIns(t,{keepCycles:2,model:mdl,pipe:outs[0]}), M=WAM_MIC, r1=M.r, r2=M.layout==='side'?Math.hypot(M.r,0)+M.sep:M.r;
+  const more=outs.slice(1).map(pn=>{ const q=WAMX.readIns(t,{keepCycles:2,model:mdl,pipe:pn}); return {mdot:q.mdot,g:r1/r2,dDeg:Number.isFinite(rpm)?(r2-r1)/343*6*rpm:0}; });
+  return {ins:base,more,exits:outs.length};
+}
+document.addEventListener('change',e=>{ const id=e.target&&e.target.id; if(id!=='wam-mic'&&id!=='wam-mic-sep'&&id!=='wam-mic-r') return;
+  if(id==='wam-mic') WAM_MIC.layout=e.target.value; else { const v=parseFloat(e.target.value); if(Number.isFinite(v)&&v>=(id==='wam-mic-r'?0.1:0)) WAM_MIC[id==='wam-mic-r'?'r':'sep']=v; }
+  if(WAM_UI.insFiles&&WAM_UI.insFiles.length) wamReadIns(WAM_UI.insFiles); else renderActive(); });
+window.__wamMic=WAM_MIC; window.__wamMore=(t,rpm,mdl)=>{ const X=wamMore(t,mdl===undefined?wamCurrentModel():mdl,rpm); return Object.assign({exits:X.exits},wamInsOrders(X.ins,24,X.more)); };   // test hooks
 function wamReadIns(list){
-  const out=[];
+  const out=[], mdl=wamCurrentModel();
+  WAM_UI.insFiles=[...list];
   return Promise.all([...list].map(f=>f.text().then(t=>{
     const nm=f.name.replace(/INS\.DAT$/i,''), m=nm.match(/_(\d{3,5})$/);
-    try{ const ins=WAMX.readIns(t,{keepCycles:2}); out.push(Object.assign({name:nm,rpm:m?+m[1]:NaN},wamInsOrders(ins,12),{db24:wamInsOrders(ins,24).db})); }
+    try{ const rpm=m?+m[1]:NaN, X=wamMore(t,mdl,rpm), ins=X.ins;
+      out.push(Object.assign({name:nm,rpm,exits:X.exits},wamInsOrders(ins,12,X.more),{db24:wamInsOrders(ins,24,X.more).db})); }
     catch(e){ out.push({name:f.name,err:e.message}); } }))).then(()=>{ out.sort((a,b)=>(a.rpm||0)-(b.rpm||0)); WAM_UI.ins=out; renderActive(); });
 }
 function wamInsTable(R){
@@ -16971,7 +16998,10 @@ function wamInsTable(R){
   rows+='<tr><td>Half orders, energy share</td>'+ok.map(x=>'<td>'+(100*x.half).toFixed(0)+'%</td>').join('')+'</tr>'+
     '<tr><td>Strongest order</td>'+ok.map(x=>'<td>'+x.strongest+(Number.isFinite(x.rpm)?' ('+Math.round(x.strongest*x.rpm/60)+' Hz)':'')+'</td>').join('')+'</tr>'+
     '<tr><td>Last two cycles differ by</td>'+ok.map(x=>'<td>'+(x.per==null?'one cycle only':(100*x.per).toFixed(1)+'%'+(x.per>0.05?' (not settled)':''))+'</td>').join('')+'</tr>';
-  return h+'<div class="tblwrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div><p class="cap">Outlet read: the last open end in each file (duct '+ok.map(x=>x.pipe).join(', ')+'); with several collectors that is the last one. A settled run repeats within a few percent from one cycle to the next. Single orders in a dip move with the cell size (see Method), so compare the pattern between cases.</p>';
+  const dual=ok.some(x=>x.exits>1), M=WAM_MIC;
+  const micUi=dual?'<div class="grid2" style="max-width:640px"><label class="f"><span class="lab">Microphone</span><span class="inp"><select id="wam-mic"><option value="centre"'+(M.layout==='centre'?' selected':'')+'>Behind, between the exits (both equally far)</option><option value="side"'+(M.layout==='side'?' selected':'')+'>Beside the car, nearer one exit</option></select></span></label>'+
+    (M.layout==='side'?'<label class="f"><span class="lab">Exits apart (far exit this much farther)</span><span class="inp"><input id="wam-mic-sep" type="number" step="0.1" min="0" inputmode="decimal" value="'+M.sep+'"><em>m</em></span></label><label class="f"><span class="lab">Microphone to the near exit</span><span class="inp"><input id="wam-mic-r" type="number" step="0.1" min="0.1" inputmode="decimal" value="'+M.r+'"><em>m</em></span></label>':'')+'</div>':'';
+  return h+micUi+'<div class="tblwrap"><table><thead>'+head+'</thead><tbody>'+rows+'</tbody></table></div><p class="cap">'+(dual?'Exits heard: all '+Math.max(...ok.map(x=>x.exits))+', their flows added at the microphone '+(M.layout==='side'?'with the far one '+M.sep+' m farther ('+(M.r/(M.r+M.sep)).toFixed(2)+' of its level, arriving later), so they reinforce some orders and cancel others':'in step (equally far)')+'; the exits are told from the plenum ports by the model this tab writes now, so load files made from the tab as it is. ':'Outlet read: the last open end in each file (duct '+ok.map(x=>x.pipe).join(', ')+'); with several collectors that is the last one. ')+' A settled run repeats within a few percent from one cycle to the next. Single orders in a dip move with the cell size (see Method), so compare the pattern between cases.</p>';
 }
 $('h-uel-wrap').addEventListener('input',e=>{   // runs before the form's own handler, so the render sees the edit
   const el=e.target; if(!el.classList||!el.classList.contains('uelx')) return;
