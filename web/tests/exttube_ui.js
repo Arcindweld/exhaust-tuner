@@ -38,6 +38,18 @@ const { chromium } = require('playwright');
   chk(!/\bNaN\b|undefined/.test(txt), 'no NaN in the muffler details');
   const leg = await pg.evaluate(() => document.getElementById('m-legend').innerText);
   chk(/Extended-tube chamber/.test(leg), 'legend renames the curve');
+  // reverse-flow layout
+  await pg.selectOption('#m-chlay', 'reverse'); await pg.waitForTimeout(80);
+  txt = await pg.evaluate(() => document.getElementById('m-details').innerText);
+  chk(/Reverse-flow chamber/.test(txt) && /Cuts most at/.test(txt), 'reverse-flow section');
+  chk(!/\bNaN\b|undefined/.test(txt), 'no NaN in reverse-flow details');
+  const rv = await pg.evaluate(() => { const c = window.__md.calcChamber({ dpipe: 63.5, dch: 152.4, lch: 355.6, tmain: 400, rev: true, lin: 0 });
+    const q = c.fPeak, h = c.fZero; return { atQ: c.tl(q), atH: c.tl(h), fin: [50, 120, 300, 700].every(f => Number.isFinite(c.tl(f))), narrow: window.__md.calcChamber({ dpipe: 63.5, dch: 80, lch: 300, tmain: 400, rev: true }).err || '' }; });
+  out.push('reverse: ' + JSON.stringify(rv));
+  chk(rv.atQ >= 39, 'reverse flow cuts hardest at its quarter wave');
+  chk(rv.atH < 0.01, 'reverse flow passes at its half wave');
+  chk(rv.fin && /wider/.test(rv.narrow), 'finite and narrow-chamber error');
+  await pg.selectOption('#m-chlay', 'through'); await pg.waitForTimeout(40);
   await b.close();
   console.log(out.join('\n')); console.log(fails ? 'exttube_ui: ' + fails + ' FAIL' : 'exttube_ui: all pass');
   process.exit(fails ? 1 : 0);
