@@ -12,6 +12,13 @@ const { chromium } = require('playwright');
     for (const mf of ['housing', 'sd', 'card']) { await pg.selectOption('#i-maf', mf); await pg.waitForTimeout(80); const t = await pg.evaluate(() => document.querySelector('#panel-intake').innerText); ok(!bad.test(t) && /Mass airflow sensor placement/i.test(t), vp + ': MAF ' + mf + ' renders'); }
     for (const fl of ['cyl', 'oval', 'panel', 'cone']) { await pg.selectOption('#i-filt', fl); await pg.waitForTimeout(60); const t = await pg.evaluate(() => document.querySelector('#panel-intake').innerText); ok(!bad.test(t) && /This filter flows/.test(t), vp + ': filter ' + fl + ' renders'); }
     for (const ty of ['cone', 'box', 'itb', 'cai']) { await pg.selectOption('#i-type', ty); await pg.waitForTimeout(80); const t = await pg.evaluate(() => document.querySelector('#panel-intake').innerText); ok(!bad.test(t) && /Induction sound/i.test(t), vp + ': type ' + ty + ' renders'); }
+    // the mouth's end correction follows the mouth (Levine-Schwinger open end; a bellmouth as its length plus a flanged mouth): the tube tunes lower with a bellmouth
+    await pg.selectOption('#i-type', 'cone'); await pg.selectOption('#i-mouth', 'plain'); await pg.waitForTimeout(80);
+    const fPlain = await pg.evaluate(() => +document.querySelector('#panel-intake').innerText.match(/[Tt]ube on the plenum\s+(\d+) Hz/)[1]);
+    await pg.selectOption('#i-mouth', 'ellipse'); await pg.waitForTimeout(80);
+    const tB = await pg.evaluate(() => document.querySelector('#panel-intake').innerText), fBell = +tB.match(/[Tt]ube on the plenum\s+(\d+) Hz/)[1];
+    ok(fBell < fPlain && /Mouth end correction/.test(tB) && /Whistle risk/.test(tB) && /resonates below either one/.test(tB), vp + ': a bellmouth tunes the tube lower (' + fBell + ' against ' + fPlain + ' Hz plain); end-correction, whistle and parallel-resonator notes shown');
+    await pg.selectOption('#i-mouth', 'radius');
     await pg.selectOption('#i-filt', 'panel'); await pg.waitForTimeout(60); ok((await pg.textContent('#i-fd-lab')) === 'Filter length', vp + ': panel filter labels');
     await pg.click('#u-met'); await pg.waitForTimeout(80); let t = await pg.evaluate(() => document.querySelector('#panel-intake').innerText); ok(!bad.test(t), vp + ': metric fine');
     const v = await pg.$$eval('#v-pick option', os => os.map(o => [o.value, o.textContent]));
