@@ -8759,8 +8759,9 @@ function openGhost(r,u,p,x,dir,pa,Ta,xa){
     if(un>=Math.sqrt(GAM*p/r)&&p>=pa){ GS.r=r; GS.u=u; GS.p=p; GS.x=x; return GS; }   // a supersonic exit only while it is above the outside pressure
     GS.p=pa; GS.r=r*Math.pow(pa/p,1/GAM); GS.u=u; GS.x=x; return GS;
   }
-  // inflow from still air at pa and Ta, expanding isentropically to the end cell's pressure
-  const pg=Math.min(p,pa), Tg=Ta*Math.pow(pg/pa,G1/GAM), v=Math.sqrt(Math.max(0,2*CP*(Ta-Tg)));
+  // inflow from still air at pa and Ta, expanding isentropically to the end cell's pressure, but no lower than the
+  // critical pressure: the inflow chokes there (sonic at the mouth), it cannot speed up past it
+  const pg=Math.max(PRC*pa,Math.min(p,pa)), Tg=Ta*Math.pow(pg/pa,G1/GAM), v=Math.sqrt(Math.max(0,2*CP*(Ta-Tg)));
   GS.p=pg; GS.r=pg/(RG*Tg); GS.u=-dir*v; GS.x=xa; return GS;
 }
 // one MUSCL-Hancock step; the boundary functions P.left and P.right fill the end fluxes
@@ -8799,7 +8800,7 @@ function stepPipe(P,dt){
 function openEnd(side,pa,Ta,xa){
   return P=>{
     const i=side>0?P.n-1:0, j=side>0?P.n:0;
-    const g=openGhost(P.r[i],P.u[i],P.p[i],P.x[i],side,pa,Ta,xa);
+    const g=openGhost(P.r[i],P.u[i],P.p[i],P.x[i],side,typeof pa==='function'?pa():pa,Ta,xa);
     if(side>0) hllc(P.r[i],P.u[i],P.p[i],P.x[i],g.r,g.u,g.p,g.x); else hllc(g.r,g.u,g.p,g.x,P.r[i],P.u[i],P.p[i],P.x[i]);
     const af=P.Af[j]; P.f1[j]=HF[0]*af; P.f2[j]=HF[1]*af; P.f3[j]=HF[2]*af; P.f4[j]=HF[3]*af;
   };
@@ -9076,6 +9077,12 @@ const localTh=(th,ph)=>((th-ph)%720+720)%720;
 function runSpeed(eng,opts){
   const e=eng.e, w=opts.rpm*6, dx=opts.dx||0.01, N=eng.phases.length;
   const st=opts.state||freshState(eng,dx), {ins,prims,coll,nets,chambers,cyls}=st, cEnd=st.ctail||coll;
+  // the intake mouth's pressure (opts.pIn, behind a part-open throttle; else the atmosphere). Run on from a state left at
+  // another pressure, it moves there over the first cycle, as a throttle does, not in one step: a sudden step sends a
+  // strong compression up a runner into a shut valve, sharper than the scheme holds
+  const pNew=opts.pIn>0?opts.pIn:PATM, pOld=st.pMouth>0?st.pMouth:pNew, thM=st.th||0;
+  const mouthP=pOld===pNew?pNew:()=>{ const f=Math.min(1,Math.max(0,((st.th||0)-thM)/720)); return pOld+(pNew-pOld)*f; };
+  st.pMouth=pNew;
   const all=[].concat(...ins,...prims,coll||[],...(st.xl||[]).map(L=>L),...(nets||[]).map(n=>[].concat(...n.lines)));
   all.forEach(P=>{ P.left=NOOP; P.right=NOOP; });
   (st.walls||[]).forEach(w=>{ if(w.side>0) w.P.right=wallEnd(+1); else w.P.left=wallEnd(-1); });   // dead-end stubs (a reverse-flow can's chamber)
@@ -9083,7 +9090,7 @@ function runSpeed(eng,opts){
   for(let k=0;k<N;k++){
     vIn.push({m:0,h:CP*TATM,x:1,uj:0}); vEx.push({m:0,h:CP*700,x:0,uj:0}); exFlow.push({m:0,h:0,x:0,uj:0});
     const ip=ins[k][ins[k].length-1], ep=prims[k][0];
-    ins[k][0].left=openEnd(-1,opts.pIn>0?opts.pIn:PATM,TATM,1);   // opts.pIn: the manifold pressure behind a part-open throttle (Pa)
+    ins[k][0].left=openEnd(-1,mouthP,TATM,1);   // opts.pIn: the manifold pressure behind a part-open throttle (Pa)
     ip.right=fedEnd(+1,()=>vIn[k]);
     ep.left=fedEnd(-1,()=>{ const f=exFlow[k], v=vEx[k]; f.m=-v.m; f.h=v.h; f.x=v.x; f.uj=v.uj; return f; });
   }
@@ -11286,13 +11293,16 @@ function wsndSpeedRun(WS,eng,rpm,j,st){
   let pIn=0, r;
   if(j.load==='none'){
     const PA=101325, fm=(0.5+0.012*rpm/60)*1e5;
-    const at=(p,s0,c)=>{ const q=conv(WS.runSpeed(eng,{rpm:rpm,cycles:c,dx:j.dx,state:s0,pIn:p}),p); return {r:q,n:q.imep}; };
+    const at=(p,s0,c)=>{ let q=conv(WS.runSpeed(eng,{rpm:rpm,cycles:c,dx:j.dx,state:s0,pIn:p}),p);
+      if(!(isFinite(q.state.th)&&isFinite(q.imep))) q=conv(WS.runSpeed(eng,{rpm:rpm,cycles:8,dx:j.dx,state:null,pIn:p}),p);   // broke: a cold start at that pressure
+      return {r:q,n:q.imep}; };
     let p1=0.3*PA, a=at(p1,st,st?4:8), p2=0.55*PA, b=at(p2,a.r.state,4);
     for(let it=0;it<4;it++){ const sl=(b.n-a.n)/(p2-p1); if(!(sl>0)||Math.abs(b.n-fm)<0.04e5) break;
       const p=Math.min(0.95*PA,Math.max(0.1*PA,p2+(fm-b.n)/sl)); a=b; p1=p2; p2=p; b=at(p,b.r.state,4); }
     pIn=p2; r=b.r;
   } else r=conv(WS.runSpeed(eng,{rpm:rpm,cycles:st?4:8,dx:j.dx,state:st}),0);
-  const y=WS.runSpeed(eng,{rpm:rpm,cycles:7,dx:j.dx,state:r.state,record:true,recordCycles:6,pIn:pIn});
+  let y=WS.runSpeed(eng,{rpm:rpm,cycles:7,dx:j.dx,state:r.state,record:true,recordCycles:6,pIn:pIn});
+  if(!(isFinite(y.state.th)&&y.rec&&y.rec.angle.length)) y=WS.runSpeed(eng,{rpm:rpm,cycles:12,dx:j.dx,state:null,record:true,recordCycles:6,pIn:pIn});
   return {y:y,pIn:pIn};
 }
 function wsndWorkerSrc(){
@@ -11334,23 +11344,25 @@ function wsndEntry(m,q,sp,label){
   const M=WAM_MIC, r1=M.r, r2=M.layout==='side'?Math.hypot(M.r,0)+M.sep:M.r;
   const more=outs.slice(1).map(o=>({mdot:o.mdot,g:r1/r2,dDeg:(r2-r1)/343*6*m.rpm}));
   const base=outs[0], o24=wamInsOrders(base,24,more,m.rpm);
+  // the loudest single outlet on its own (the stationary test measures the loudest outlet)
+  const en=z=>z.spl1?z.spl1.reduce((a,v)=>a+Math.pow(10,v/10),0):0, loud=more.length?outs.map(o=>wamInsOrders(o,24,[],m.rpm)).reduce((a,z)=>en(z)>en(a)?z:a):o24;
   return Object.assign({name:(label||'Wave model')+' '+m.rpm+(m.pIn>0?' no load':''),rpm:m.rpm,exits:outs.length,src:'wave',pMap:m.pIn>0?m.pIn:null,tq:m.imep*m.Vd/(4*Math.PI)*(sp.nIn||1)},wamInsOrders(base,12,more,m.rpm),
-    {db24:o24.db,spl24:o24.spl1,per:A.spread,spread:A.spread,nAvg:A.n,kf:Math.max(1,Math.round((sp.whole?q.cyl:sp.nIn)/2))});
+    {db24:o24.db,spl24:o24.spl1,spl24x1:loud.spl1,jetX1:loud.jet,per:A.spread,spread:A.spread,nAvg:A.n,kf:Math.max(1,Math.round((sp.whole?q.cyl:sp.nIn)/2))});
 }
 // runs variants [{key,label,parts}] at the speeds; done(sets) with sets [{key,label,what,runs,notes}]
-function wsndJob(variants,done){
+function wsndJob(variants,done,o){ o=o||{};
   const q=SIM.inp, err=q?simCheck(q):'Fill in the 4-Stroke tab first: the estimate runs its engine and header.';
   const say=(t,bad)=>{ WSND.msg={t,bad:!!bad}; renderActive(); };
   if(err){ say(err,true); return; }
   if(WSND.busy){ say('Still simulating the last request…'); return; }
-  const rpms=wsndRpms(q); if(!rpms.length){ say('Enter at least one engine speed between 500 and 20,000 RPM.',true); return; }
+  const rpms=o.rpms||wsndRpms(q); if(!rpms.length){ say('Enter at least one engine speed between 500 and 20,000 RPM.',true); return; }
   const Ss=variants.map(v=>{ const S=Object.assign({},v,wsndSpec(q,v.parts)); if(v.dead&&v.dead.length) S.spec.e=Object.assign({},S.spec.e,{dead:v.dead.slice()}); return S; });
   WSND.notes=[...new Set([].concat(...Ss.map(S=>S.notes)))]; WSND.busy=true;
   const got=Ss.map(()=>[]), total=Ss.length*rpms.length; let n=0;
   const finish=()=>{ WSND.busy=false;
     const sets=Ss.map((S,k)=>({key:S.key,label:S.label,what:wsndHeaderWhat(q)+'; '+S.what+(job.load==='none'?'; no load':''),rpms,load:job.load,runs:got[k].map(m=>{ try{ return wsndEntry(m,q,S,S.label); }catch(e){ return {name:S.label+' '+m.rpm,rpm:m.rpm,err:e.message,src:'wave'}; } })}));
     done(sets); };
-  const job={variants:Ss.map(S=>({spec:S.spec})),rpms,dx:WSND.dx||0.02,load:WSND.load==='none'?'none':'wot'};
+  const job={variants:Ss.map(S=>({spec:S.spec})),rpms,dx:WSND.dx||0.02,load:(o.load||WSND.load)==='none'?'none':'wot'};
   say('Simulating '+total+' run'+(total>1?'s':'')+(job.load==='none'?' with no load (a free-rev hold)':' at full throttle')+(Ss.length>1?' ('+Ss.length+' designs × '+rpms.length+' speeds)':'')+'…');
   const prog=d=>{ got[d.v].push(d); n++; WSND.msg={t:'Simulated '+n+' of '+total+'…'}; const el=$('wsnd-msg'); if(el) el.textContent=WSND.msg.t; };
   let w=null; try{ w=new Worker(URL.createObjectURL(new Blob([wsndWorkerSrc()],{type:'text/javascript'}))); }catch(e){ w=null; }
@@ -11414,6 +11426,12 @@ function wsndPart(sp){
     (WSND.sets.length?'<button type="button" class="btn" data-wsnd="keep">Keep this design to compare</button>':'')+(WSND.kept.length?'<button type="button" class="btn" data-wsnd="clear">Clear the kept designs</button>':'')+'</div>'+
     '<div class="grid2" style="max-width:640px;margin-top:8px"><label class="f span2"><span class="lab">For “Hear a misfire”</span><span class="inp"><select id="wsnd-dead">'+wsndDeadOpts(q).map(o=>'<option value="'+o.v+'"'+((WSND.dead||'c1')===o.v?' selected':'')+'>'+esc(o.t)+'</option>').join('')+'</select></span></label></div>'+
     '<p class="cap">“Hear a misfire” runs your design again with cylinder 1, or one collector’s cylinders, not burning, so you can hear what a misfire or a dead bank does to the note and tell it from an exhaust problem. “Hear each part” builds your exhaust up one addition at a time (the open headers, then the line and tailpipe, the muffler, the resonator), runs each, and lets you play any two side by side. “Keep this design” holds the result while you change something (primary length, a different can, another resonator) and estimate again.</p>'+
+    '<h3 style="margin-top:14px">Stationary sound test (California, 95 dB(A))</h3>'+
+    '<div class="grid2" style="max-width:640px"><label class="f"><span class="lab">Maximum engine speed (redline)</span><span class="inp"><input id="wsnd-rmax" type="number" step="100" min="1500" max="20000" inputmode="decimal" value="'+esc(String(WSND.rmax||6000))+'"><em>RPM</em></span></label>'+
+    '<label class="f"><span class="lab">Outlet height above the ground</span><span class="inp"><input id="wsnd-hout" type="number" step="0.5" min="8" max="60" inputmode="decimal" value="'+esc(String(WSND.hout||12))+'"><em>in</em></span></label></div>'+
+    '<div class="actions"><button type="button" class="btn" data-wsnd="stat"'+(WSND.busy?' disabled':'')+'>Estimate the stationary test</button></div>'+
+    (WSND.stat?'<div class="tblwrap" style="max-width:640px"><table id="wsnd-stat"><tr><th>At 20 in (508 mm), 45°</th><th>dB(A)</th></tr><tr><td>Pulses (the firing orders)</td><td>'+WSND.stat.pulse.toFixed(1)+'</td></tr>'+(WSND.stat.jet!=null?'<tr><td>Jet noise at the tip</td><td>'+WSND.stat.jet.toFixed(1)+'</td></tr>':'')+'<tr><td><b>Total</b> at '+WSND.stat.rpm.toLocaleString('en-US')+' RPM in neutral</td><td><b>'+WSND.stat.total.toFixed(1)+'</b></td></tr><tr><td>California limit (13 CCR 1036, SAE J1169)</td><td>95.0</td></tr></table></div>':'')+
+    '<p class="cap">The test California’s referees run on cars and trucks under 6,000 lb GVWR other than motorcycles (<a href="https://leginfo.legislature.ca.gov/faces/codes_displaySection.xhtml?lawCode=VEH&amp;sectionNum=27150.2" target="_blank" rel="noopener">Vehicle Code §27150.2</a>, <a href="https://www.law.cornell.edu/regulations/california/13-CCR-1036" target="_blank" rel="noopener">13 CCR §1036</a>, SAE J1169): engine warm, in neutral, held at three-quarters of its maximum speed; a sound level meter on A weighting 20 in (508 mm) from the outlet’s edge, 45° off its axis, at the outlet’s height and at least 8 in (203 mm) up, nothing that reflects within 10 ft (3 m); the highest reading at the loudest outlet; 95 dB(A) is the limit. The page runs your design with no load at that speed, takes the outlet’s pulses as a point source with the pavement’s reflection, adds the tip’s jet noise, and weights it all as the meter does. It leaves out the muffler shell’s own noise and how the sound leans off the axis, so treat it as a way to compare designs and see how much margin you have, not as the reading.</p>'+
     '<div class="note'+(WSND.msg&&WSND.msg.bad?' bad':'')+'" id="wsnd-msg"'+(WSND.msg?'':' hidden')+'>'+(WSND.msg?esc(WSND.msg.t):'')+'</div>'+
     (WSND.notes.length?'<ul class="list">'+WSND.notes.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'');
   if(!all.length) return h;
@@ -11482,6 +11500,38 @@ async function wsndSaveWav(){
   if(ES_DLP){ const dl=await ES_DLP; if(!dl){ say('Saving files is not available in this view.'); return; } try{ await dl.save({filename:name,data:blob}); say('Saved '+name+'.'); }catch(err){ say(err&&err.code==='declined'?'Not saved.':'This view could not save the file.'); } return; }
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); say('Downloaded '+name+'.');
 }
+/* California's stationary exhaust test (13 CCR 1036, with Vehicle Code 27150.2 and SAE J1169): the engine at normal
+   temperature in neutral at three-quarters of its maximum speed; the microphone at the outlet's height (at least 8 in
+   up), 20 in from the outlet's edge, 45 degrees off its axis; the highest A-weighted reading, the loudest outlet;
+   95 dB(A) for vehicles under 6,000 lb GVWR other than motorcycles. From one no-load run: the outflow's orders as a
+   monopole (spl24x1, at 1 m) brought to 0.508 m, each with the hard ground's reflection (an image source 2h below, added
+   in phase at the order's frequency, c = 343 m/s), A-weighted; plus the tip's jet noise (Lighthill, jetPower, its
+   power averaged over the cycle; spectrum peaking at a Strouhal number of 0.2, +6 dB an octave below and -3 above,
+   A-weighted band by band; the ground adds 3 dB to a broadband sound). No shell noise, no directivity. */
+const STAT_R=0.508, STAT_LIMIT=95;
+function statLevel(x,h){
+  if(!x||!x.spl24x1) return null;
+  const r1=STAT_R, r2=Math.hypot(r1,2*Math.max(0.2032,h)), g=r1/r2, rpm=x.rpm; let e=0;
+  x.spl24x1.forEach((L1,i)=>{ const f=(i+1)/2*rpm/60, k=2*Math.PI*f/343, ph=k*(r2-r1), G=(1+g*Math.cos(ph))**2+(g*Math.sin(ph))**2;
+    const L=L1-20*Math.log10(r1)+10*Math.log10(G)+aWeight(f); e+=Math.pow(10,L/10); });
+  const pulse=10*Math.log10(e);
+  let jet=null;
+  const J0=x.jetX1||x.jet;
+  if(J0&&J0.d>0){ const J=J0, n=J.u.length; let W=0, U2=0; for(let i=0;i<n;i++){ W+=jetPower(J.u[i],J.T[i],J.d)/n; U2+=J.u[i]*J.u[i]/n; }
+    if(W>0){ const Lw=10*Math.log10(W/1e-12), Lp=Lw-10*Math.log10(4*Math.PI*r1*r1)+3, fp=JET_ST*Math.sqrt(U2)/J.d;
+      let s0=0, sA=0; for(let b=-17;b<=13;b++){ const f=1000*Math.pow(2,b/3), o=Math.log2(f/fp), sh=o<0?6*o:-3*o, w=Math.pow(10,sh/10); s0+=w; sA+=w*Math.pow(10,aWeight(f)/10); }
+      jet=Lp+10*Math.log10(sA/s0); } }
+  const total=10*Math.log10(Math.pow(10,pulse/10)+(jet!=null?Math.pow(10,jet/10):0));
+  return {pulse,jet,total,rpm};
+}
+function wsndStat(){
+  const q=SIM.inp; if(!q){ wsndJob([],()=>{}); return; }
+  const rmax=+WSND.rmax||6000, rpm=Math.round(0.75*rmax/50)*50, hIn=+WSND.hout||12, h=hIn*0.0254;
+  wsndJob([{key:'stat',label:'Stationary test, '+rpm.toLocaleString('en-US')+' RPM in neutral',parts:{}}],sets=>{
+    const x=sets[0]&&sets[0].runs[0], L=x&&!x.err?statLevel(x,h):null;
+    WSND.stat=L?Object.assign({rmax,hIn},L):null;
+    WSND.msg=L?{t:'Estimated '+L.total.toFixed(1)+' dB(A) at 20 in (508 mm), 45°, at '+rpm.toLocaleString('en-US')+' RPM in neutral (three-quarters of '+rmax.toLocaleString('en-US')+'), outlet '+hIn+' in ('+Math.round(hIn*25.4)+' mm) up: pulses '+L.pulse.toFixed(1)+(L.jet!=null?', jet noise '+L.jet.toFixed(1):'')+' dB(A). California’s limit is 95 dB(A) (13 CCR 1036, SAE J1169; under 6,000 lb GVWR). '+(L.total>STAT_LIMIT?'Over by '+(L.total-STAT_LIMIT).toFixed(1)+' dB: take that much off with the muffler before it goes on the street.':L.total>STAT_LIMIT-5?'Within 5 dB of it: the model leaves out shell noise and the surroundings, so measure before you rely on it.':'Under it by '+(STAT_LIMIT-L.total).toFixed(1)+' dB.')+' This is an estimate from the wave model with no shell noise or directivity; a sound level meter on the real car decides.',bad:L.total>STAT_LIMIT}:{t:'The test speed did not run.',bad:true};
+    renderActive(); },{rpms:[rpm],load:'none'}); }
 function wsndPlay(kind){
   const P=WSND.play, all=wsndAll(), how=P.how||'hold', hw={hold:'held at '+P.rpm.toLocaleString('en-US')+' RPM',pass:'driving past at '+P.mph+' mph, '+P.rpm.toLocaleString('en-US')+' RPM',pull:'pulling from '+(P.pull0||'')+' to '+(P.pull1||'')+' RPM',pullpass:'pulling while driving past'};
   if(kind==='playA'||kind==='playB'||kind==='ab'||kind==='steps'){
@@ -11494,19 +11544,21 @@ function wsndPlay(kind){
   wsndPlayList([wsndSound(runs,kind,P)],'Playing '+(kind==='hold'?P.rpm.toLocaleString('en-US')+' RPM held':kind==='pass'?'a drive-past at '+P.mph+' mph':'a pull'+(kind==='pullpass'?' while driving past':''))+', '+P.ft+' ft.');
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wsnd]'); if(!b) return; const k=b.dataset.wsnd;
-  if(k==='run') wsndRun(); else if(k==='parts') wsndParts(); else if(k==='misfire') wsndMisfire(); else if(k==='savewav') wsndSaveWav(); else if(k==='keep') wsndKeep(); else if(k==='clear'){ WSND.kept=[]; WSND.A=WSND.sets.length?0:null; WSND.B=null; renderActive(); } else wsndPlay(k); });
+  if(k==='run') wsndRun(); else if(k==='parts') wsndParts(); else if(k==='misfire') wsndMisfire(); else if(k==='savewav') wsndSaveWav(); else if(k==='stat') wsndStat(); else if(k==='keep') wsndKeep(); else if(k==='clear'){ WSND.kept=[]; WSND.A=WSND.sets.length?0:null; WSND.B=null; renderActive(); } else wsndPlay(k); });
 document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   if(t.name==='wsnd-a'){ WSND.A=+t.value; renderActive(); return; } if(t.name==='wsnd-b'){ WSND.B=+t.value; renderActive(); return; }
   if(!t.id||!/^wsnd-/.test(t.id)) return;
   if(t.id==='wsnd-rpms'){ WSND.rpms=t.value; return; }
   if(t.id==='wsnd-dead'){ WSND.dead=t.value; return; }
   if(t.id==='wsnd-load'){ WSND.load=t.value; return; }
+  if(t.id==='wsnd-rmax'){ WSND.rmax=t.value; return; }
+  if(t.id==='wsnd-hout'){ WSND.hout=t.value; return; }
   if(t.id==='wsnd-src') WSND.src=t.value; else if(t.id==='wsnd-rpm') P.rpm=+t.value; else if(t.id==='wsnd-jet') P.jet=t.value==='1'; else if(t.id==='wsnd-how') P.how=t.value;
   else if(t.id==='wsnd-mph'){ const v=+t.value; if(v>=5&&v<=150) P.mph=v; } else if(t.id==='wsnd-ft'){ const v=+t.value; if(v>=3&&v<=300) P.ft=v; }
   else if(t.id==='wsnd-p0'){ const v=+t.value; if(v>0) P.pull0=v; } else if(t.id==='wsnd-p1'){ const v=+t.value; if(v>0) P.pull1=v; }
   renderActive(); });
 window.__calcAbsorb=calcAbsorb;
-window.__wsnd={wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
+window.__wsnd={simInp:()=>SIM.inp,statLevel,wsndStat,wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
 
 /* ===== primary size, headers and crossover ===== */
 const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u;};
