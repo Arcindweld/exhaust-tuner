@@ -11374,12 +11374,20 @@ function wsndRun(){ wsndJob([{key:'full',label:'Your design',parts:{}}],sets=>{ 
   WSND.msg={t:n?'Done: '+n+' speed'+(n>1?'s':'')+(nl?' with no load; the throttle was closed until the engine made no torque, which left the manifold at '+pm+' (absolute).':' at full throttle.')+' Play it below, keep it to compare with a change, or hear each part.':'The simulation did not finish a speed.',bad:!n}; renderActive(); }); }
 // the cylinders a misfire choice stops: 'c1' cylinder 1 (index 0: first in the firing order on the 4-Stroke tab's layout,
 // cylinder number - 1 on a Headers layout, where cylinder 1 is also the first); 'bank' the first collector's cylinders
-function wsndDeadOpts(q){ const o=[{v:'c1',t:'Cylinder 1 not firing (a misfire)'}];
-  try{ const S=wsndSpec(q,{}), C=S.spec.opt&&S.spec.opt.collectors; if(C&&C.length>=2) o.push({v:'bank',t:'Collector A’s cylinders not firing (a dead bank)'}); }catch(e){}
+// on a Headers layout (the whole engine, index = cylinder number - 1) every cylinder can be picked; on the 4-Stroke
+// tab's own layout (one collector's cylinders, by firing order) only "one of them"
+function wsndDeadOpts(q){ let S=null; try{ S=wsndSpec(q,{}); }catch(e){}
+  const o=[], n=S&&S.spec.opt&&S.spec.opt.phases?S.spec.opt.phases.length:1;
+  if(S&&S.whole) for(let c=1;c<=n;c++) o.push({v:'c'+c,t:'Cylinder '+c+' not firing'+(c===1?' (a misfire)':'')});
+  else o.push({v:'c1',t:'One cylinder not firing (a misfire)'});
+  const C=S&&S.spec.opt&&S.spec.opt.collectors; if(C&&C.length>=2) o.push({v:'bank',t:'Collector A’s cylinders not firing (a dead bank)'});
   return o; }
-function wsndDead(q,v){ if(v==='bank'){ const S=wsndSpec(q,{}), C=S.spec.opt&&S.spec.opt.collectors; return C&&C.length>=2?C[0].cyls.map(c=>Math.trunc(c)):[0]; } return [0]; }
+function wsndDead(q,v){ const S=wsndSpec(q,{}), C=S.spec.opt&&S.spec.opt.collectors;
+  if(v==='bank') return C&&C.length>=2?C[0].cyls.map(c=>Math.trunc(c)):[0];
+  const m=/^c(\d+)$/.exec(v||''), n=S.spec.opt.phases?S.spec.opt.phases.length:1, c=m?+m[1]:1;
+  return [S.whole&&c>=1&&c<=n?c-1:0]; }
 function wsndMisfire(){ const q=SIM.inp; if(!q){ wsndJob([],()=>{}); return; }
-  const v=WSND.dead||'c1', dead=wsndDead(q,v), lab=v==='bank'?'Cylinders '+dead.map(c=>c+1).join(', ')+' not firing (collector A, a dead bank)':'Cylinder 1 not firing';
+  const opts=wsndDeadOpts(q), v=opts.some(o=>o.v===WSND.dead)?WSND.dead:'c1', dead=wsndDead(q,v), whole=wsndSpec(q,{}).whole, lab=v==='bank'?'Cylinders '+dead.map(c=>c+1).join(', ')+' not firing (collector A, a dead bank)':whole?'Cylinder '+(dead[0]+1)+' not firing':'One cylinder not firing';
   wsndJob([{key:'dead',label:lab,parts:{},dead},{key:'full',label:'Your design, all firing',parts:{}}],sets=>{ WSND.sets=sets; WSND.A=1; WSND.B=0; wsndSetRuns(sets);
     WSND.msg={t:'Done: play A (all firing) and B ('+lab.charAt(0).toLowerCase()+lab.slice(1)+'). A cylinder that does not fire still pumps its charge out, so its pulse is weak'+(v==='bank'?': with a whole bank dead, only the other bank’s pulses are left, and the note drops to that bank’s own rhythm, as if it were a smaller engine. ':' and the note loses its even rhythm: a once-per-cycle beat (half an order, '+(q.cyl>1?'one in every '+q.cyl+' pulses':'every cycle')+') comes in that a healthy engine does not make. ')+'If your own car sounds like B, find the dead '+(v==='bank'?'bank (a coil pack, an injector driver or an ECU output)':'cylinder')+' before you change the exhaust.'}; renderActive(); }); }
 function wsndParts(){ const st=wsndSteps(); wsndJob(st,sets=>{ WSND.sets=sets; WSND.A=Math.max(0,sets.length-2); WSND.B=sets.length-1; wsndSetRuns(sets); window.__wsndSets=sets;

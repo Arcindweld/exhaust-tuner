@@ -34,6 +34,8 @@ const { chromium } = require('playwright');
   await pg.evaluate(() => { location.hash = 'sound'; }); await pg.waitForTimeout(500);
   const o2 = await pg.evaluate(() => [...document.getElementById('wsnd-dead').options].map(o => o.value));
   ok(o2.includes('bank'), 'with two collectors the choice offers a dead bank (' + o2.join(', ') + ')');
+  ok(['c1', 'c2', 'c3', 'c4', 'c5', 'c6', 'c7', 'c8'].every(v => o2.includes(v)), 'on the whole-engine layout every cylinder can be picked');
+  ok(await pg.evaluate(() => JSON.stringify(window.__wsnd.wsndDead(window.__sim.inp(), 'c3'))) === '[2]', 'cylinder 3 is index 2 (cylinder number − 1 on a Headers layout)');
   const bank = await pg.evaluate(() => { const q = window.__sim.inp(); return { dead: window.__wsnd.wsndDead(q, 'bank'), c0: window.__wsnd.wsndSpec(q, {}).spec.opt.collectors[0].cyls }; });
   ok(bank.dead.length === 4 && bank.dead.join() === bank.c0.join(), 'a dead bank is collector A’s four cylinders (' + bank.dead.join(', ') + ')');
   await pg.selectOption('#wsnd-dead', 'bank'); await pg.fill('#wsnd-rpms', '3000'); await pg.dispatchEvent('#wsnd-rpms', 'change');
