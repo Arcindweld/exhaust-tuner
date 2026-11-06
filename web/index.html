@@ -8950,7 +8950,7 @@ function makeEngine(e,intake,exhaust,opt){
   const area=(th,open,dur,lift,d,nv)=>{ const l=liftAt(th,open,dur,lift); return l>0?nv*e.cd*Math.min(Math.PI*d*l,0.85*Math.PI/4*d*d):0; };
   const o=opt||{}, phases=o.phases&&o.phases.length?o.phases.slice():[0];
   return {e,Ap,Vd,Vc,vol,dvol,evo,evdur,ivo,ivdur,ivc,ign,phases,collector:phases.length>1||o.collector?o.collector:null,
-    collectors:o.collectors&&o.collectors.length?o.collectors:null,
+    collectors:o.collectors&&o.collectors.length?o.collectors:null,crossover:o.crossover||null,
     CdAin:th=>area(th,ivo,ivdur,e.liftIn,e.dIn,e.nIn),CdAex:th=>area(th,evo,evdur,e.liftEx,e.dEx,e.nEx),intake,exhaust};
 }
 // split a run of segments into pipes wherever the diameter jumps; cones stay inside a pipe
@@ -8968,11 +8968,40 @@ function buildLine(line,dx,T0,x0){
     P.start=x0pos; x0pos+=rn.L; return P;
   });
 }
+// a line's segments cut at pos (m from its start): [before, after], a cone split at its diameter there
+function splitSegs(segs,pos){ const a=[], b=[]; let x=0;
+  segs.forEach(sg=>{ if(x+sg.L<=pos+1e-9) a.push(sg); else if(x>=pos-1e-9) b.push(sg);
+    else { const f=(pos-x)/sg.L, dm=sg.d0+(sg.d1-sg.d0)*f; a.push(Object.assign({},sg,{L:pos-x,d1:dm})); b.push(Object.assign({},sg,{L:x+sg.L-pos,d0:dm})); }
+    x+=sg.L; });
+  return [a,b]; }
+// a line with pieces along it (opt.collector / collectors[i] .pieces, sorted by x, m from the line's start): {x, paths
+// [[segs], ...]} parallel paths side by side from a node there to a node where they rejoin (an auger's centre tube and
+// spiral, a tube bundle), or {x, stub [segs]} a dead-end pipe off a node there, closed at its far end (a reverse-flow
+// can: the inlet and outlet meet at its end plate and the chamber runs back to the closed end). The line runs on from
+// each node, its x carried on so side branches find their places. off (m): where this line starts on its collector's
+// coordinate. {head, tail, juncs, lines, blines, walls}
+function lineWithPieces(segs,pieces,dx,Tw,off){
+  off=off||0; const ps=(pieces||[]).filter(q=>q.x>0).sort((a,b)=>a.x-b.x), juncs=[], lines=[], main=[], walls=[];
+  let rest=segs, at=0, prev=null;
+  const part=(sg,x0)=>{ const L=buildLine({segs:sg,Tw},dx,700,0); L.forEach(P=>{ P.start+=off+x0; }); return L; };
+  ps.forEach(q=>{ const [a,b]=splitSegs(rest,q.x-at), A=part(a,at); if(prev) prev(A); lines.push(A); main.push(A);
+    if(q.paths){ const Ps=q.paths.map(pth=>buildLine({segs:pth,Tw},dx,700,0)); lines.push(...Ps);
+      juncs.push({p:0,ends:[{P:A[A.length-1],side:+1}].concat(Ps.map(L=>({P:L[0],side:-1})))});
+      const J={p:0,ends:Ps.map(L=>({P:L[L.length-1],side:+1}))}; juncs.push(J); prev=B=>{ J.ends.push({P:B[0],side:-1}); }; }
+    else { const S=buildLine({segs:q.stub,Tw},dx,700,0); lines.push(S); walls.push({P:S[S.length-1],side:+1});
+      const J={p:0,ends:[{P:A[A.length-1],side:+1},{P:S[0],side:-1}]}; juncs.push(J); prev=B=>{ J.ends.push({P:B[0],side:-1}); }; }
+    rest=b; at=q.x; });
+  const T=part(rest,at); if(prev) prev(T); lines.push(T); main.push(T);
+  return {head:main[0],tail:T,juncs,lines,blines:[].concat(...main),walls};
+}
+const piecesOf=c=>c?(c.pieces||[]).concat(c.parallel?[c.parallel]:[]):[];
 // opt.collectors -> junction networks: each junction is a constant-pressure node (junctionN) between the lines that run
-// into it and the one that leaves it; the collector's own line ends open
-function collectorNets(cols,prims,dx){
+// into it and the one that leaves it; the collector's own line ends open. xo (opt.crossover, two collectors):
+// {type 'h' | 'x', pos [m along each collector's line], tube {L, d} for an H}: each line is cut there; an H joins the two
+// with a balance tube at a three-way node on each, an X meets both at one four-way node and leaves on both sides
+function collectorNets(cols,prims,dx,xo){
   const used=new Set();
-  return cols.map((col,ci)=>{
+  const nets=cols.map((col,ci)=>{
     const cyls=col.cyls.map(c=>Math.trunc(c)), juncs=[], lines=[];
     cyls.forEach(c=>{ if(!(c>=0&&c<prims.length)) throw new Error('collector '+(ci+1)+' lists cylinder index '+c+' of '+prims.length);
       if(used.has(c)) throw new Error('cylinder index '+c+' is on two collectors'); used.add(c); });
@@ -8990,11 +9019,22 @@ function collectorNets(cols,prims,dx){
     });
     const feed=prev||cyls.map(c=>prims[c]);
     if(feed.length<2) throw new Error('collector '+(ci+1)+': the last junction needs at least two inlets');
-    const main=buildLine({segs:col.segs,Tw:col.Tw},dx,700,0);
-    juncs.push({p:0,ends:feed.map(L=>({P:L[L.length-1],side:+1})).concat([{P:main[0],side:-1}])});
-    lines.push(main);
-    return {cyls,juncs,lines,main};
+    if(xo&&cols.length===2){ const pos=xo.pos[ci], [sa,sb]=splitSegs(col.segs,pos);
+      const mA=buildLine({segs:sa,Tw:col.Tw},dx,700,0), R=lineWithPieces(sb,piecesOf(col).filter(q=>q.x>pos).map(q=>Object.assign({},q,{x:q.x-pos})),dx,col.Tw,pos);
+      juncs.push({p:0,ends:feed.map(L=>({P:L[L.length-1],side:+1})).concat([{P:mA[0],side:-1}])});
+      juncs.push(...R.juncs); lines.push(mA,...R.lines); return {cyls,juncs,lines,main:R.tail,mainA:mA,mainB0:R.head,blines:mA.concat(R.blines),walls:R.walls}; }
+    const R=lineWithPieces(col.segs,piecesOf(col),dx,col.Tw,0);
+    juncs.push({p:0,ends:feed.map(L=>({P:L[L.length-1],side:+1})).concat([{P:R.head[0],side:-1}])});
+    juncs.push(...R.juncs); lines.push(...R.lines);
+    return {cyls,juncs,lines,main:R.tail,blines:R.blines,walls:R.walls};
   });
+  if(xo&&nets.length===2){ const [n0,n1]=nets, A0=n0.mainA, A1=n1.mainA, B0=n0.mainB0, B1=n1.mainB0;
+    if(xo.type==='h'){ const t=buildLine({segs:[{L:xo.tube.L,d0:xo.tube.d,d1:xo.tube.d}],Tw:650},dx,700,0);
+      n0.juncs.push({p:0,ends:[{P:A0[A0.length-1],side:+1},{P:B0[0],side:-1},{P:t[0],side:-1}]});
+      n1.juncs.push({p:0,ends:[{P:A1[A1.length-1],side:+1},{P:B1[0],side:-1},{P:t[t.length-1],side:+1}]});
+      n0.lines.push(t); }
+    else n0.juncs.push({p:0,ends:[{P:A0[A0.length-1],side:+1},{P:A1[A1.length-1],side:+1},{P:B0[0],side:-1},{P:B1[0],side:-1}]}); }
+  return nets;
 }
 function freshState(eng,dx){
   const N=eng.phases.length, cyls=[], ins=[], prims=[], chambers=[], per=eng.exhaust.per_cyl;
@@ -9013,15 +9053,20 @@ function freshState(eng,dx){
     cy.work=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.pEvo=0; cy.exM=0; cy.exH=0; cy.ovP=0; cy.ovN=0; cy.done=null; cy.started=false;
     cyls.push(cy);
   }
-  const coll=eng.collectors?null:eng.collector?buildLine(eng.collector,dx,700,0):null, nets=eng.collectors?collectorNets(eng.collectors,prims,dx):null;
-  // side branches on the collector's line (a resonator, a J-pipe or an extended tube's pocket as a tuned volume):
-  // collector.branches [{x (m from the collector's start), V (m3), CdA (m2), Le (m)}], the same lumped neck as above
+  const C1R=!eng.collectors&&eng.collector?lineWithPieces(eng.collector.segs,piecesOf(eng.collector),dx,eng.collector.Tw,0):null;
+  const coll=C1R?C1R.head:null, nets=eng.collectors?collectorNets(eng.collectors,prims,dx,eng.crossover):null;
+  // a parallel section on the single collector's line: its paths and the rest of the line (xl) with their nodes (xj)
+  const xj=C1R&&C1R.juncs.length?C1R.juncs:null, xl=xj?C1R.lines.slice(1):null, ctail=C1R?C1R.tail:null;
+  // side branches on the collector's line (a resonator, a J-pipe, an extended tube's pocket as a tuned volume, a slice of
+  // a packed can's annulus): collector.branches [{x (m from the collector's start), V (m3), CdA (m2), Le (m), Rp (packing
+  // resistance, Pa s / m3 times density)}], the same lumped neck as above
   const onLine=(line,brs)=>(brs||[]).forEach(c=>{ let q=line.findIndex(P=>c.x>=P.start&&c.x<P.start+P.n*P.dx); if(q<0) q=line.length-1;
     const P=line[q], cell=Math.min(P.n-1,Math.max(0,Math.floor((c.x-P.start)/P.dx)));
-    chambers.push({P,cell,V:c.V,CdA:c.CdA,Le:c.Le,m:PATM*c.V/(RG*600),T:600,x:0,mdot:0}); });
-  if(coll) onLine(coll,eng.collector.branches);
-  if(nets) nets.forEach((n,i)=>{ const c=eng.collectors[i]; if(c&&c.branches&&n.main) onLine(n.main,c.branches); });
-  return {ins,prims,coll,nets,chambers,cyls,jn:{p:0,ends:null},th:eng.ivc};      // th: cylinder 1's crank angle, carried on from run to run
+    chambers.push({P,cell,V:c.V,CdA:c.CdA,Le:c.Le,Rp:c.Rp||0,m:PATM*c.V/(RG*600),T:600,x:0,mdot:0}); });
+  if(coll) onLine(C1R.blines,eng.collector.branches);
+  if(nets) nets.forEach((n,i)=>{ const c=eng.collectors[i]; if(c&&c.branches&&n.main) onLine(n.blines||n.main,c.branches); });
+  const walls=(C1R?C1R.walls:[]).concat(...(nets||[]).map(n=>n.walls||[]));
+  return {ins,prims,coll,nets,chambers,cyls,jn:{p:0,ends:null},th:eng.ivc,xj,xl,ctail,walls};      // th: cylinder 1's crank angle, carried on from run to run
 }
 const NOOP=()=>{};
 // a cylinder's local crank angle, its firing TDC at 0
@@ -9030,9 +9075,10 @@ const localTh=(th,ph)=>((th-ph)%720+720)%720;
    opts: {rpm, cycles, dx, state (to warm-start from the previous speed)}. Results average the cylinders on the collector. */
 function runSpeed(eng,opts){
   const e=eng.e, w=opts.rpm*6, dx=opts.dx||0.01, N=eng.phases.length;
-  const st=opts.state||freshState(eng,dx), {ins,prims,coll,nets,chambers,cyls}=st;
-  const all=[].concat(...ins,...prims,coll||[],...(nets||[]).map(n=>[].concat(...n.lines)));
+  const st=opts.state||freshState(eng,dx), {ins,prims,coll,nets,chambers,cyls}=st, cEnd=st.ctail||coll;
+  const all=[].concat(...ins,...prims,coll||[],...(st.xl||[]).map(L=>L),...(nets||[]).map(n=>[].concat(...n.lines)));
   all.forEach(P=>{ P.left=NOOP; P.right=NOOP; });
+  (st.walls||[]).forEach(w=>{ if(w.side>0) w.P.right=wallEnd(+1); else w.P.left=wallEnd(-1); });   // dead-end stubs (a reverse-flow can's chamber)
   const vIn=[], vEx=[], exFlow=[];
   for(let k=0;k<N;k++){
     vIn.push({m:0,h:CP*TATM,x:1,uj:0}); vEx.push({m:0,h:CP*700,x:0,uj:0}); exFlow.push({m:0,h:0,x:0,uj:0});
@@ -9047,11 +9093,11 @@ function runSpeed(eng,opts){
     prims.forEach((ch,k)=>{ if(!on.has(k)) ch[ch.length-1].right=openEnd(+1,PATM,TATM,1); });
   } else if(coll){
     st.jn.ends=prims.map(ch=>({P:ch[ch.length-1],side:+1})).concat([{P:coll[0],side:-1}]);
-    coll[coll.length-1].right=openEnd(+1,PATM,TATM,1);
+    cEnd[cEnd.length-1].right=openEnd(+1,PATM,TATM,1);
   } else prims.forEach(ch=>{ ch[ch.length-1].right=openEnd(+1,PATM,TATM,1); });
   // opts.record: the open ends' last cell over the last opts.recordCycles cycles (2 unless set) (crank angle of the firing frame; mass flow out, gas
   // speed, temperature, density), what OpenWAM's outlet columns hold, for the sound reading without a file
-  const outs=nets?nets.map(n=>n.main[n.main.length-1]).concat(prims.filter((ch,k)=>!nets.some(n=>n.cyls.indexOf(k)>=0)).map(ch=>ch[ch.length-1])):coll?[coll[coll.length-1]]:prims.map(ch=>ch[ch.length-1]);
+  const outs=nets?nets.map(n=>n.main[n.main.length-1]).concat(prims.filter((ch,k)=>!nets.some(n=>n.cyls.indexOf(k)>=0)).map(ch=>ch[ch.length-1])):coll?[cEnd[cEnd.length-1]]:prims.map(ch=>ch[ch.length-1]);
   const nCyc=opts.cycles||6, recN=Math.min(nCyc,Math.max(2,opts.recordCycles||2)), rec=opts.record?{angle:[],time:[],outs:outs.map(()=>({mdot:[],u:[],T:[],rho:[]}))}:null; let tRec=0;
   const rhoRef=PATM/(RG*TATM), out=[];
   let th0=0;
@@ -9072,13 +9118,15 @@ function runSpeed(eng,opts){
       let dt=0.8*dmin/Math.max(smax,sj);
       const dth=Math.min(dt*w,0.5); dt=dth/w;
       for(let k=0;k<N;k++){ for(let q=1;q<ins[k].length;q++) junction(ins[k][q-1],ins[k][q]); for(let q=1;q<prims[k].length;q++) junction(prims[k][q-1],prims[k][q]); }
-      if(coll){ junctionN(st.jn); for(let q=1;q<coll.length;q++) junction(coll[q-1],coll[q]); }
+      if(coll){ junctionN(st.jn); for(let q=1;q<coll.length;q++) junction(coll[q-1],coll[q]); if(st.xj){ for(const J of st.xj) junctionN(J); for(const L of st.xl) for(let q=1;q<L.length;q++) junction(L[q-1],L[q]); } }
       if(nets) for(const n of nets){ for(const J of n.juncs) junctionN(J); for(const L of n.lines) for(let q=1;q<L.length;q++) junction(L[q-1],L[q]); }
       for(const ch of chambers){
         const P=ch.P||prims[ch.cyl][ch.pipe], i=ch.cell, r=P.r[i], p=P.p[i], T=p/(RG*r);
         ch.p=ch.m*RG*ch.T/ch.V;
         const rhoN=p>ch.p?r:ch.m/ch.V;
-        ch.mdot+=dt*(ch.CdA*(p-ch.p)/ch.Le-ch.mdot*Math.abs(ch.mdot)/(2*rhoN*ch.CdA*ch.Le));
+        // a packed branch also loses Rp mdot / rho across its packing (Darcy: R x depth x face velocity), taken implicitly
+        // so a dense packing stays stable at any step
+        ch.mdot=(ch.mdot+dt*(ch.CdA*(p-ch.p)/ch.Le-ch.mdot*Math.abs(ch.mdot)/(2*rhoN*ch.CdA*ch.Le)))/(1+(ch.Rp?dt*ch.CdA*ch.Rp/(rhoN*ch.Le):0));
         const md=ch.mdot, hh=md>0?CP*T+0.5*P.u[i]*P.u[i]:CP*ch.T, xin=md>0?P.x[i]:ch.x;
         const U=ch.m*CV*ch.T+dt*md*hh, m2=Math.max(1e-9,ch.m+dt*md);
         ch.x=Math.min(1,Math.max(0,(ch.m*ch.x+dt*md*xin)/m2)); ch.m=m2; ch.T=Math.max(200,U/(m2*CV));
@@ -11098,41 +11146,75 @@ const POCKET_LE=l=>4*l/Math.PI**2;    // a closed tube's first resonance from a 
 // what is after the collector, from the OpenWAM line: parts {line, muf, fix} picks the additions (all by default).
 // segs (m) and branches [{x m from the start of these segs, V m3, CdA m2, Le m}]
 function wsndExt(parts){
-  const P=Object.assign({line:true,muf:true,fix:true},parts||{}), W=WAM_UI.line, notes=[], br=[];
-  if(!W.on||!P.line) return {segs:[],branches:[],notes:W.on?[]:['No line after the collector is set (OpenWAM panel on the 4-Stroke tab), so this is the collector as the 4-Stroke tab draws it, open to the air.'],what:'the headers and collector, open'};
-  const d=+W.d/1000, Ad=Math.PI*d*d/4, segs=[{L:Math.max(0.05,+W.L/1000),d0:d,d1:d}]; let x=segs[0].L, what=[cdim(+W.d)+' line, '+clen(+W.L)];
+  const P=Object.assign({line:true,muf:true,fix:true,par:true},parts||{}), W=WAM_UI.line, notes=[], br=[];
+  if(!W.on||!P.line) return {segs:[],branches:[],pieces:[],par:null,pack:null,notes:W.on?[]:['No line after the collector is set (OpenWAM panel on the 4-Stroke tab), so this is the collector as the 4-Stroke tab draws it, open to the air.'],what:'the headers and collector, open'};
+  const d=+W.d/1000, Ad=Math.PI*d*d/4, segs=[{L:Math.max(0.05,+W.L/1000),d0:d,d1:d}]; let x=segs[0].L, what=[cdim(+W.d)+' line, '+clen(+W.L)], pack=null; const pieces=[];
   if(P.muf){
     if(W.mufKind==='chamber'){ const D=val('m-dch'), L=val('m-lch');
       if(D>0&&L>0){ const Dm=D/1000, la=Math.max(0,val('m-lin')||0)/1000, lb=Math.max(0,val('m-lout')||0)/1000, rev=$('m-chlay')&&$('m-chlay').value==='reverse';
         const Lc=Math.max(0.02,L/1000-(rev?0:la+lb)), Aan=Math.max(1e-5,Math.PI/4*(Dm*Dm-Math.pow(d+2*0.0016,2)));
-        if(!rev&&la>0) br.push({x:x+1e-4,V:Aan*la,CdA:Aan,Le:POCKET_LE(la),what:'inlet pocket'});
-        segs.push({L:Lc,d0:Dm,d1:Dm}); x+=Lc;
-        if(!rev&&lb>0) br.push({x:x-1e-4,V:Aan*lb,CdA:Aan,Le:POCKET_LE(lb),what:'outlet pocket'});
-        if(rev) notes.push('The reverse-flow layout runs as a straight-through chamber of the same size (its side-by-side pipes are not 1-D).');
-        what.push((la>0||lb>0)&&!rev?'chamber '+cdim(D)+' × '+clen(L)+' with extended tubes':'chamber '+cdim(D)+' × '+clen(L)); }
+        if(rev){ // reverse flow: the inlet and outlet meet at the end plate, the chamber a dead-end pipe of its bore back to the
+          // closed far end (Munjal 3.7: the reversal is the chamber's impedance at the plate); the tubes' extensions are left out
+          pieces.push({x,stub:[{L:L/1000,d0:Dm,d1:Dm}]});
+          if(la>0||lb>0) notes.push('The reverse-flow can’s tube extensions are left out: its chamber runs as a closed pipe off the end plate.');
+          what.push('reverse-flow chamber '+cdim(D)+' × '+clen(L)); }
+        else { if(la>0) br.push({x:x+1e-4,V:Aan*la,CdA:Aan,Le:POCKET_LE(la),what:'inlet pocket'});
+          segs.push({L:Lc,d0:Dm,d1:Dm}); x+=Lc;
+          if(lb>0) br.push({x:x-1e-4,V:Aan*lb,CdA:Aan,Le:POCKET_LE(lb),what:'outlet pocket'});
+          what.push(la>0||lb>0?'chamber '+cdim(D)+' × '+clen(L)+' with extended tubes':'chamber '+cdim(D)+' × '+clen(L)); } }
       else notes.push('The line’s muffler is the Mufflers tab’s chamber, which is not filled in: no muffler.'); }
+    else if(W.mufKind==='packed'){ const D=val('m-dch')/1000, L=val('m-lch')/1000;
+      if(D>d&&L>0){ // the perforated core straight through, its annulus in slices of about 50 mm: each a side volume of the
+        // annulus's open space (fibre at 2500 kg/m3) through that slice's holes, the neck the wall plus 0.85 of a hole
+        // (perforate end corrections, Munjal 3.8), and the packing's Darcy loss R x depth x face velocity, R from its density
+        // (packR, Antebas et al. 2013), the depth a quarter of the annulus (the gas moves into half of it and back)
+        const rhoF=Math.max(0,val('m-pack')||0), por=Math.min(0.9,Math.max(0.01,(val('m-por')||10)/100)), dh=Math.max(0.5,val('m-ph')||3.5)/1000, tw=Math.max(0.3,val('m-pw')||1.2)/1000;
+        const n=Math.max(3,Math.round(L/0.05)), ls=L/n, Aan=Math.PI/4*(D*D-Math.pow(d+2*tw,2)), Af=Math.PI*d*ls;
+        segs.push({L,d0:d,d1:d});
+        // The slices carry the bare perforated can (the core, the holes, the annulus's volume). The packing's own loss is
+        // waves dying in the fibre as they run along the annulus, which lumped slices cannot carry (their Darcy loss moved
+        // the level under 1 dB from 0 to 150 kg/m3 where the transfer-matrix model gives 9 to 26 dB more at 1 kHz), so it
+        // is applied to the run's outflow afterwards: the packed can's transmission loss less the bare can's (calcAbsorb).
+        for(let k=0;k<n;k++) br.push({x:x+(k+0.5)*ls,V:Math.max(1e-7,Aan*(1-0)*ls),CdA:por*Af,Le:tw+0.85*dh,what:'perforated slice'});
+        if(rhoF>0) pack={dpipe:d*1000,dsh:D*1000,len:L*1000,dh:dh*1000,tw:tw*1000,rho:rhoF,sigma:por,tC:val('m-tmain')>0?val('m-tmain'):400,M:0};
+        x+=L; what.push('packed can '+cdim(D*1000)+' × '+clen(L*1000)+(rhoF>0?', '+Math.round(rhoF)+' kg/m³':', no packing')); }
+      else notes.push('The line’s muffler is the Mufflers tab’s packed can, which is not filled in (it needs a shell wider than the line): no muffler.'); }
     else if(+W.muf>0){ const V=+W.muf/1000, D=Math.cbrt(4*V/(Math.PI*1.5)); segs.push({L:1.5*D,d0:D,d1:D}); x+=1.5*D; what.push((+W.muf)+' L can');
       notes.push('The '+(+W.muf)+' L muffler runs as an empty can of that volume, 1.5 times as long as it is wide (packing and baffles are not in this model).'); }
-    if(W.par&&W.par!=='none') notes.push('The '+(W.par==='auger'?'auger':'tube bundle')+' in parallel is left out (OpenWAM runs it).');
   }
   if(+W.tail>0){ segs.push({L:+W.tail/1000,d0:d,d1:d}); x+=+W.tail/1000; what.push(clen(+W.tail)+' tailpipe'); }
+  // the auger or tube bundle in line: its parallel paths (wamParPaths, the same as the OpenWAM case) from px on the line pipe
+  let par=null;
+  if(P.par&&W.par&&W.par!=='none'){ const R=wamParPaths(W.par), px=+W.px/1000;
+    if(!R||R.err) notes.push((R&&R.err)||'The in-line piece is not set up on the Mufflers tab: left out.');
+    else if(!(px>=0.03&&px<=segs[0].L-0.03)) notes.push('The '+(W.par==='auger'?'auger':'tube bundle')+' has to sit on the line pipe, at least 30 mm from either end: left out.');
+    else { const toM=ps=>ps.map(g=>({L:g.L_mm/1000,d0:g.d0_mm/1000,d1:g.d1_mm/1000}));
+      par={x:px,paths:R.single?[toM(R.single)]:R.paths.map(toM)}; pieces.push(par); what.push(R.what); } }
   if(P.fix&&W.fix&&W.fix!=='none'){ const at=Math.min(x-0.01,Math.max(0.01,+W.x/1000));
     if(W.fix==='jpipe'){ const qd=+W.qd/1000, l=+W.qL/1000+0.6133*qd/2, A=Math.PI*qd*qd/4; br.push({x:at,V:A*l,CdA:A,Le:POCKET_LE(l),what:'J-pipe'}); what.push('J-pipe '+cdim(+W.qd)+' × '+clen(+W.qL)); }
     else if(W.fix==='helm'){ const hd=+W.hd/1000, A=Math.PI*hd*hd/4; br.push({x:at,V:+W.hV/1000,CdA:A,Le:+W.hL/1000+HELM_END*hd,what:'Helmholtz can'}); what.push('Helmholtz can '+(+W.hV)+' L'); } }
-  if(W.xo&&W.xo!=='none') notes.push('The crossover is left out (OpenWAM runs it).');
-  return {segs,branches:br,notes,what:what.join(', ')};
+  return {segs,branches:br,notes,what:what.join(', '),pack,par,pieces};
 }
 function wsndSpec(q,parts){
   const sp=simSpec(q), H=HDR_LAST, ext=wsndExt(parts); let spec, whole=false; const notes=ext.notes.slice();
   if(H&&H.uel&&WAM_UI.src!=='four'){ const a=uelLayoutSpec(q,sp,false); if(a&&!a.err){ spec=JSON.parse(JSON.stringify(a.spec)); whole=true; } }
   if(!spec) spec=JSON.parse(JSON.stringify(sp));
-  const add=c=>{ const L0=(c.segs||[]).reduce((a,g)=>a+g.L,0); c.segs=(c.segs||[]).concat(ext.segs); c.branches=ext.branches.map(b=>Object.assign({},b,{x:b.x+L0})); };
+  const L0s=[], add=c=>{ const L0=(c.segs||[]).reduce((a,g)=>a+g.L,0); L0s.push(L0); c.segs=(c.segs||[]).concat(ext.segs); c.branches=ext.branches.map(b=>Object.assign({},b,{x:b.x+L0})); if(ext.pieces.length) c.pieces=ext.pieces.map(q=>Object.assign({},q,{x:q.x+L0})); };
   if(spec.opt&&spec.opt.collectors) spec.opt.collectors.forEach(add);
+  // the crossover between the two banks' lines, from the Crossover tab (as the OpenWAM case takes it)
+  const W=WAM_UI.line, PP=Object.assign({line:true,xo:true},parts||{}); let xoWhat='';
+  if(W.on&&PP.line&&PP.xo&&W.xo&&W.xo!=='none'){ const C=CROSS_LAST, lineL=+W.L/1000;
+    if(!(spec.opt&&spec.opt.collectors&&spec.opt.collectors.length===2)) notes.push('The crossover joins two banks’ lines: set the Headers tab to unequal lengths with two collectors, so every cylinder and both lines run.');
+    else if(!C||C.type==='y') notes.push(C?'The Crossover tab has a Y-pipe, which merges the pipes into one: no crossover between two exits.':'The Crossover tab has no design yet: no crossover.');
+    else if(ext.par&&C.pos/1000>=ext.par.x) notes.push('The crossover has to sit before the '+(W.par==='auger'?'auger':'tube bundle')+' on the line: left out.');
+    else if(!(C.pos/1000>=0.03&&C.pos/1000<=lineL-0.03)) notes.push('The crossover, '+clen(C.pos)+' from the collectors, has to sit on the line pipe ('+clen(+W.L)+'): left out.');
+    else { spec.opt.crossover={type:C.type==='h'?'h':'x',pos:L0s.map(L=>L+C.pos/1000),tube:{L:Math.max(0.03,(C.tube||100)/1000),d:Math.max(0.01,(C.dc||50)/1000)}};
+      xoWhat=C.name+' '+clen(C.pos)+' from the collectors'+(C.type==='h'?' ('+clen(C.tube)+' × '+cdim(C.dc)+' tube)':C.type==='z'?' (as an X)':''); } }
   else if(spec.opt&&spec.opt.collector) add(spec.opt.collector);
-  else { spec.exhaust.segs=spec.exhaust.segs.concat(ext.segs); if(ext.branches.length) notes.push('One cylinder with no collector: the resonator and pockets are left out.'); }
+  else { spec.exhaust.segs=spec.exhaust.segs.concat(ext.segs); if(ext.branches.length||ext.pieces.length) notes.push('One cylinder with no collector: the resonator, the pockets and the in-line piece are left out.'); }
   const nIn=spec.opt&&spec.opt.phases?spec.opt.phases.length:1;
   if(!whole&&q.cyl>nIn) notes.push('This is one collector’s exit, '+nIn+' of the '+q.cyl+' cylinders (the 4-Stroke tab models one). The Headers tab with unequal lengths runs every cylinder and every exit.');
-  return {spec,notes,whole,nIn,what:ext.what};
+  return {spec,notes,whole,nIn,what:ext.what+(xoWhat?', '+xoWhat:''),pack:ext.pack,xo:!!xoWhat};
 }
 // the header in a few words, for the kept designs
 function wsndHeaderWhat(q){ const s=q.segs||[]; return s.length?'primaries '+cdim(s[0].d0)+' × '+clen(s[0].len)+(s[1]?', collector '+cdim(s[1].d1||s[1].d0):''):''; }
@@ -11140,10 +11222,14 @@ function wsndHeaderWhat(q){ const s=q.segs||[]; return s.length?'primaries '+cdi
 function wsndSteps(){
   const W=WAM_UI.line, st=[{key:'open',label:'Headers and collector, open',parts:{line:false}}];
   if(!W.on) return st;
-  st.push({key:'line',label:'+ the line and tailpipe',parts:{line:true,muf:false,fix:false}});
-  const hasMuf=W.mufKind==='chamber'?val('m-dch')>0&&val('m-lch')>0:+W.muf>0;
-  if(hasMuf) st.push({key:'muf',label:'+ the muffler',parts:{line:true,muf:true,fix:false}});
-  if(W.fix&&W.fix!=='none') st.push({key:'fix',label:'+ the '+(W.fix==='jpipe'?'J-pipe':'Helmholtz can'),parts:{line:true,muf:true,fix:true}});
+  const xo=W.xo&&W.xo!=='none'&&CROSS_LAST&&CROSS_LAST.type!=='y';
+  st.push({key:'line',label:'+ the line and tailpipe',parts:{line:true,muf:false,fix:false,xo:false,par:false}});
+  if(xo) st.push({key:'xo',label:'+ the '+(CROSS_LAST.name||'crossover'),parts:{line:true,muf:false,fix:false,xo:true,par:false}});
+  const par=W.par&&W.par!=='none';
+  if(par) st.push({key:'par',label:'+ the '+(W.par==='auger'?'auger':'tube bundle'),parts:{line:true,muf:false,fix:false,xo:true,par:true}});
+  const hasMuf=W.mufKind==='chamber'||W.mufKind==='packed'?val('m-dch')>0&&val('m-lch')>0:+W.muf>0;
+  if(hasMuf) st.push({key:'muf',label:'+ the muffler',parts:{line:true,muf:true,fix:false,xo:true,par:true}});
+  if(W.fix&&W.fix!=='none') st.push({key:'fix',label:'+ the '+(W.fix==='jpipe'?'J-pipe':'Helmholtz can'),parts:{line:true,muf:true,fix:true,xo:true,par:true}});
   return st;
 }
 function wsndDefaultRpms(q){ const t=q&&q.tune>0?q.tune:5500; return [...new Set([2000,0.75*t,t].map(v=>Math.round(v/100)*100))].sort((a,b)=>a-b); }
@@ -11171,8 +11257,20 @@ function wsndAvg(R){
   return {n:cyc.length,spread,outs:R.outs.map(o=>({angle:ang,mdot:twice(avg(o.mdot)),u:twice(avg(o.u)),T:twice(avg(o.T)),rho:twice(avg(o.rho))}))};
 }
 // one run's entry, the shape wamReadIns makes from an INS.DAT
+// the packing's extra loss on one averaged cycle of outflow (720 points, twice over): each harmonic m of the 720-degree
+// cycle, at m rpm / 120 Hz, down by the packed can's transmission loss less the bare can's
+function wsndPackFilter(o,pk,rpm){
+  const ab=calcAbsorb(pk), ab0=calcAbsorb(Object.assign({},pk,{rho:0})); if(ab.err||ab0.err) return o;
+  const N=720, y=o.mdot.slice(0,N), out=new Float64Array(N); let mean=0; y.forEach(v=>{ mean+=v/N; });
+  for(let i=0;i<N;i++) out[i]=mean;
+  for(let k=1;k<N/2;k++){ let re=0,im=0; for(let i=0;i<N;i++){ const a=2*Math.PI*k*i/N; re+=(y[i]-mean)*Math.cos(a); im-=(y[i]-mean)*Math.sin(a); }
+    const f=k*rpm/120, g=f>0?Math.pow(10,-(ab.tl(f)-ab0.tl(f))/20):1; re*=2*g/N; im*=2*g/N;
+    for(let i=0;i<N;i++){ const a=2*Math.PI*k*i/N; out[i]+=re*Math.cos(a)-im*Math.sin(a); } }
+  const two=Array.from(out).concat(Array.from(out));
+  return Object.assign({},o,{mdot:two});
+}
 function wsndEntry(m,q,sp,label){
-  const A=wsndAvg(m.rec), outs=A.outs;
+  const A=wsndAvg(m.rec), outs=sp.pack?A.outs.map(o=>wsndPackFilter(o,sp.pack,m.rpm)):A.outs;
   const M=WAM_MIC, r1=M.r, r2=M.layout==='side'?Math.hypot(M.r,0)+M.sep:M.r;
   const more=outs.slice(1).map(o=>({mdot:o.mdot,g:r1/r2,dDeg:(r2-r1)/343*6*m.rpm}));
   const base=outs[0], o24=wamInsOrders(base,24,more,m.rpm);
@@ -11307,6 +11405,7 @@ document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   else if(t.id==='wsnd-mph'){ const v=+t.value; if(v>=5&&v<=150) P.mph=v; } else if(t.id==='wsnd-ft'){ const v=+t.value; if(v>=3&&v<=300) P.ft=v; }
   else if(t.id==='wsnd-p0'){ const v=+t.value; if(v>0) P.pull0=v; } else if(t.id==='wsnd-p1'){ const v=+t.value; if(v>0) P.pull1=v; }
   renderActive(); });
+window.__calcAbsorb=calcAbsorb;
 window.__wsnd={WSND,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
 
 /* ===== primary size, headers and crossover ===== */
@@ -18082,6 +18181,9 @@ function wamLineTail(){
   else if(W.mufKind==='chamber'||MDW_OVR){
     const M=wamChamberEls(n(W.d)); if(M.err) return {err:M.err};
     out.push(...M.els); out.push(pipe(n(W.tail)>0?n(W.tail):300));
+  } else if(W.mufKind==='packed'){ const Lc=val('m-lch');   // OpenWAM has no absorptive element: the packed can's bare core
+    if(!(Lc>0)) return {err:'Line after the collector: the packed can needs its length on the Mufflers tab.'};
+    out.push(pipe(Lc)); out.push(pipe(n(W.tail)>0?n(W.tail):300));
   } else if(n(W.muf)>0){ out.push({V_litres:n(W.muf)}); out.push(pipe(n(W.tail)>0?n(W.tail):300)); }
   return {tail:out};
 }
@@ -18196,8 +18298,9 @@ function wamLineUi(){
   if(W.on){
     const mk=W.mufKind||'volume';
     h+='<div class="grid2 span2">'+L('L','Pipe from the collector, length','len')+L('d','Pipe inside diameter','len')+
-      '<label class="f"><span class="lab">Muffler</span><span class="inp"><select class="wamline" data-k="mufKind"><option value="volume"'+(mk==='volume'?' selected':'')+'>A volume (0-D)</option><option value="chamber"'+(mk==='chamber'?' selected':'')+'>The Mufflers tab’s chamber (1-D, with its extended tubes)</option></select></span></label>'+
-      (mk==='chamber'?(()=>{ const M=wamChamberEls(+W.d); return '<p class="cap" style="align-self:end">'+(M.err?'<span class="st-bad">'+esc(M.err)+'</span>':esc(M.what)+'.')+'</p>'; })():L('muf','Muffler volume (0: none)','num'))+
+      '<label class="f"><span class="lab">Muffler</span><span class="inp"><select class="wamline" data-k="mufKind"><option value="volume"'+(mk==='volume'?' selected':'')+'>A volume (0-D)</option><option value="chamber"'+(mk==='chamber'?' selected':'')+'>The Mufflers tab’s chamber (1-D, with its extended tubes)</option><option value="packed"'+(mk==='packed'?' selected':'')+'>The Mufflers tab’s packed straight-through</option></select></span></label>'+
+      (mk==='chamber'?(()=>{ const M=wamChamberEls(+W.d); return '<p class="cap" style="align-self:end">'+(M.err?'<span class="st-bad">'+esc(M.err)+'</span>':esc(M.what)+'.')+'</p>'; })():
+       mk==='packed'?'<p class="cap" style="align-self:end">'+(val('m-dch')>0&&val('m-lch')>0?'A '+cdim(val('m-dch'))+' × '+clen(val('m-lch'))+' can, '+(val('m-pack')>0?Math.round(val('m-pack'))+' kg/m³ packing':'no packing')+', '+(+val('m-por')||0)+' % open core. OpenWAM has no packing, so its case runs the bare core; the sound estimate on the Sound tab includes the packing.':'<span class="st-bad">Fill in the can’s size on the Mufflers tab.</span>')+'</p>':L('muf','Muffler volume (0: none)','num'))+
       L('tail','Tailpipe after the muffler','len')+
       '<label class="f span2"><span class="lab">Drone fix on the pipe</span><span class="inp"><select class="wamline" data-k="fix"><option value="none"'+(W.fix==='none'?' selected':'')+'>None</option><option value="jpipe"'+(W.fix==='jpipe'?' selected':'')+'>J-pipe (quarter-wave tube, closed end)</option><option value="helm"'+(W.fix==='helm'?' selected':'')+'>Helmholtz can on a neck</option></select></span></label>';
     if(W.fix!=='none') h+=L('x','Distance from the collector','len')+(W.fix==='jpipe'?L('qL','J-pipe length','len')+L('qd','J-pipe inside diameter','len'):L('hV','Can volume','num')+L('hL','Neck length','len')+L('hd','Neck inside diameter','len'));

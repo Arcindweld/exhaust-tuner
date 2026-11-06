@@ -44,7 +44,20 @@ const { chromium } = require('playwright');
   const LA = x => 10 * Math.log10(x.spl.reduce((a, L, i) => a + Math.pow(10, (L + aw((i + 1) / 2 * x.rpm / 60)) / 10), 0));
   const dL = line.map((x, i) => LA(x) - LA(muf[i]));
   ok(kind === 'chamber' && dL.every(v => v > 3), 'a 230 x 400 mm chamber on the line takes ' + dL.map(v => v.toFixed(1)).join(' and ') + ' dB(A) off (line ' + line.map(x => LA(x).toFixed(1)).join(', ') + ')');
-  // every addition heard on its own: extended tubes on the chamber and a J-pipe on the line, then "Hear each part"
+  // a packed straight-through on the line: the packing takes the upper band down and leaves the low end
+  const setv = kv => pg.evaluate(kv => { for (const [id, v] of kv) { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } }, kv);
+  await setv([['m-por', '10'], ['m-ph', '3.5'], ['m-pw', '1.2']]);
+  await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400); await pg.selectOption('select.wamline[data-k="mufKind"]', 'packed'); await pg.waitForTimeout(200);
+  const band = (x, lo, hi) => 10 * Math.log10(x.spl.reduce((a, L, i) => { const f = (i + 1) / 2 * x.rpm / 60; return a + (f >= lo && f < hi ? Math.pow(10, L / 10) : 0); }, 1e-30));
+  const pk = {};
+  for (const rho of ['0', '150']) { await setv([['m-pack', rho]]); await pg.evaluate(() => { location.hash = 'sound'; }); await pg.waitForTimeout(400); pk[rho] = await run('2500'); await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(300); }
+  const hi0 = band(pk['0'][0], 300, 1000), hi1 = band(pk['150'][0], 300, 1000), lo0 = band(pk['0'][0], 0, 150), lo1 = band(pk['150'][0], 0, 150);
+  ok(pk['0'][0].spl.every(Number.isFinite) && hi0 - hi1 > 5 && Math.abs(lo0 - lo1) < 3, 'packing (150 kg/m³ against none) takes ' + (hi0 - hi1).toFixed(1) + ' dB off 300-1000 Hz, ' + (lo1 - lo0).toFixed(1) + ' dB change below 150 Hz');
+  const wamPk = await pg.evaluate(() => { const t = window.__wamLine.lineUi ? window.__wamLine.lineUi() : document.getElementById('panel-four').innerText; return /bare core/.test(t); });
+  ok(wamPk, 'the OpenWAM panel says its case runs the bare core');
+  await pg.selectOption('select.wamline[data-k="mufKind"]', 'chamber'); await pg.waitForTimeout(200);
+  await pg.evaluate(() => { location.hash = 'sound'; }); await pg.waitForTimeout(400);
+  // every addition heard on its own: extended tubes on the chamber and a J-pipe on the line, then "Hear each part
   await pg.evaluate(() => { for (const [id, v] of [['m-lin', '150'], ['m-lout', '75']]) { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } }); await pg.waitForTimeout(200);
   await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400);
   await pg.selectOption('select.wamline[data-k="fix"]', 'jpipe'); await pg.waitForTimeout(300);
