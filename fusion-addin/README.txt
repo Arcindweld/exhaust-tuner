@@ -1,4 +1,8 @@
-EXHAUST TUNER (Fusion add-in), version 4.15.0
+EXHAUST TUNER (Fusion add-in), version 4.15.1
+
+4.15.1 (November 6, 2026)
+  The Sound tab's "Save the last sound (WAV)" saves through Fusion's file dialog (saveBase64). The panel's sound
+  estimate also runs at no load (a free-rev hold), and "Hear a misfire" can stop any cylinder on a Headers layout.
 
 4.15.0 (November 5, 2026)
   The panel runs OpenWAM itself (hostrun.py): "Run in OpenWAM on this PC" on the 4-Stroke and Two-Stroke tabs,

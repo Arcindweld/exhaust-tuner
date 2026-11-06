@@ -11434,7 +11434,7 @@ function wsndPart(sp){
     '<label class="f"><span class="lab">Microphone from the road</span><span class="inp"><input id="wsnd-ft" type="number" step="1" min="3" max="300" inputmode="decimal" value="'+P.ft+'"><em>ft</em></span></label>'+
     '<label class="f"><span class="lab">Drive past at</span><span class="inp"><input id="wsnd-mph" type="number" step="5" min="5" max="150" inputmode="decimal" value="'+P.mph+'"><em>mph</em></span></label>'+
     (speeds.length>1?'<label class="f"><span class="lab">Pull from</span><span class="inp"><input id="wsnd-p0" type="number" step="100" inputmode="decimal" value="'+(P.pull0||speeds[0])+'"><em>RPM</em></span></label><label class="f"><span class="lab">to</span><span class="inp"><input id="wsnd-p1" type="number" step="100" inputmode="decimal" value="'+(P.pull1||speeds[speeds.length-1])+'"><em>RPM</em></span></label>':'')+'</div>'+
-    '<div class="actions"><button type="button" class="btn" data-wsnd="playA">Play A</button><button type="button" class="btn" data-wsnd="playB"'+(WSND.B==null?' disabled':'')+'>Play B</button><button type="button" class="btn" data-wsnd="ab"'+(WSND.B==null?' disabled':'')+'>A, then B</button>'+(all.length>1?'<button type="button" class="btn" data-wsnd="steps">Every row in order</button>':'')+'</div>'+
+    '<div class="actions"><button type="button" class="btn" data-wsnd="playA">Play A</button><button type="button" class="btn" data-wsnd="playB"'+(WSND.B==null?' disabled':'')+'>Play B</button><button type="button" class="btn" data-wsnd="ab"'+(WSND.B==null?' disabled':'')+'>A, then B</button>'+(all.length>1?'<button type="button" class="btn" data-wsnd="steps">Every row in order</button>':'')+'<button type="button" class="btn" data-wsnd="savewav"'+(WSND.lastWav?'':' disabled')+' title="The last sound played, as a WAV file">Save the last sound (WAV)</button></div>'+
     // the older buttons, for the full design alone
     '<div class="actions" hidden><button type="button" data-wsnd="hold"></button><button type="button" data-wsnd="pass"></button><button type="button" data-wsnd="pull"></button><button type="button" data-wsnd="pullpass"></button></div>'+
     '<p class="cap" id="wsnd-play-msg">Played at the level the model gives at '+P.ft+' ft, the same scale for every design, so a quieter one plays quieter (the browser’s volume sets how loud that is in the room).</p>';
@@ -11462,7 +11462,25 @@ function wsndPlayList(list,msgOk){
   const n=clips.reduce((a,c)=>a+c.length,0)+gap*(clips.length-1), x=new Float32Array(n); let o=0, pk=0;
   clips.forEach((c,ci)=>{ for(let i=0;i<c.length;i++){ const v=c[i]/FS*Math.min(1,i/fade,(c.length-1-i)/fade); x[o+i]=v; pk=Math.max(pk,Math.abs(v)); } o+=c.length+gap; });
   if(pk>0.98) for(let i=0;i<x.length;i++) x[i]*=0.98/pk;
+  WSND.lastWav={x,sr,label:msgOk}; const sb=document.querySelector('button[data-wsnd="savewav"]'); if(sb) sb.disabled=false;
   recPlay(x,sr).then(e=>msg(e||msgOk+(pk>0.98?' (Turned down to fit: its peaks pass 135 dB at the microphone.)':'')));
+}
+// the last sound played, as a 16-bit WAV (plays anywhere): saved through Fusion's or the program's file dialog, the
+// artifact viewer's downloads, or a plain download in a browser
+function wavPcm16(x,sr){ const b=new ArrayBuffer(44+2*x.length), v=new DataView(b), w=(o,t)=>{ for(let i=0;i<4;i++) v.setUint8(o+i,t.charCodeAt(i)); };
+  w(0,'RIFF'); v.setUint32(4,36+2*x.length,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
+  v.setUint32(24,sr,true); v.setUint32(28,2*sr,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,2*x.length,true);
+  for(let i=0;i<x.length;i++){ const s=Math.max(-1,Math.min(1,x[i])); v.setInt16(44+2*i,Math.round(s*32767),true); } return b; }
+async function wsndSaveWav(){
+  const L=WSND.lastWav, say=t=>{ const el=$('wsnd-play-msg'); if(el) el.textContent=t; };
+  if(!L){ say('Play something first.'); return; }
+  const buf=wavPcm16(L.x,L.sr), d=new Date(), name='Exhaust sound '+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+'.wav';
+  window.__wsndWav={name,bytes:buf.byteLength};
+  if(FUSION||HOST){ let bin=''; const u=new Uint8Array(buf); for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));
+    const res=await saveCall('saveBase64',{filename:name,b64:btoa(bin),title:'Save the sound'}); say((res&&res.msg)||'Not saved.'); return; }
+  const blob=new Blob([buf],{type:'audio/wav'});
+  if(ES_DLP){ const dl=await ES_DLP; if(!dl){ say('Saving files is not available in this view.'); return; } try{ await dl.save({filename:name,data:blob}); say('Saved '+name+'.'); }catch(err){ say(err&&err.code==='declined'?'Not saved.':'This view could not save the file.'); } return; }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); say('Downloaded '+name+'.');
 }
 function wsndPlay(kind){
   const P=WSND.play, all=wsndAll(), how=P.how||'hold', hw={hold:'held at '+P.rpm.toLocaleString('en-US')+' RPM',pass:'driving past at '+P.mph+' mph, '+P.rpm.toLocaleString('en-US')+' RPM',pull:'pulling from '+(P.pull0||'')+' to '+(P.pull1||'')+' RPM',pullpass:'pulling while driving past'};
@@ -11476,7 +11494,7 @@ function wsndPlay(kind){
   wsndPlayList([wsndSound(runs,kind,P)],'Playing '+(kind==='hold'?P.rpm.toLocaleString('en-US')+' RPM held':kind==='pass'?'a drive-past at '+P.mph+' mph':'a pull'+(kind==='pullpass'?' while driving past':''))+', '+P.ft+' ft.');
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wsnd]'); if(!b) return; const k=b.dataset.wsnd;
-  if(k==='run') wsndRun(); else if(k==='parts') wsndParts(); else if(k==='misfire') wsndMisfire(); else if(k==='keep') wsndKeep(); else if(k==='clear'){ WSND.kept=[]; WSND.A=WSND.sets.length?0:null; WSND.B=null; renderActive(); } else wsndPlay(k); });
+  if(k==='run') wsndRun(); else if(k==='parts') wsndParts(); else if(k==='misfire') wsndMisfire(); else if(k==='savewav') wsndSaveWav(); else if(k==='keep') wsndKeep(); else if(k==='clear'){ WSND.kept=[]; WSND.A=WSND.sets.length?0:null; WSND.B=null; renderActive(); } else wsndPlay(k); });
 document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   if(t.name==='wsnd-a'){ WSND.A=+t.value; renderActive(); return; } if(t.name==='wsnd-b'){ WSND.B=+t.value; renderActive(); return; }
   if(!t.id||!/^wsnd-/.test(t.id)) return;
@@ -11488,7 +11506,7 @@ document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   else if(t.id==='wsnd-p0'){ const v=+t.value; if(v>0) P.pull0=v; } else if(t.id==='wsnd-p1'){ const v=+t.value; if(v>0) P.pull1=v; }
   renderActive(); });
 window.__calcAbsorb=calcAbsorb;
-window.__wsnd={WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
+window.__wsnd={wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
 
 /* ===== primary size, headers and crossover ===== */
 const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u;};

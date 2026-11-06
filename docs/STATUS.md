@@ -583,6 +583,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   recording's odd orders 1, 3, 5 are 13-31 dB above the tailpipe model (intake and engine-structure noise reach the
   microphone, cylinder-to-cylinder spread), and the model is 20 dB too bright at order 12 (cat as a plain pipe,
   muffler as a plain volume; a capillary-substrate cat adds only about 2 dB at 400 Hz by the narrow-tube estimate).
+- Save the estimated sound (2026-11-06): "Save the last sound (WAV)" writes what was last played as 16-bit 48 kHz mono (wavPcm16): a download, the artifact viewer's downloads, or saveBase64 in the add-in (act_save_base64) and the desktop host (dispatcher saveBase64). tests/wsndwav_ui.js. Add-in 4.15.1.
 - No-load sound estimate (2026-11-06): the Sound tab's Load choice "No load (a free-rev hold in the driveway)" holds
   the intake mouth at a manifold pressure (runSpeed opts.pIn; validation/outback-2004's fixed-pressure plenum) found so
   the net IMEP meets FMEP = 0.5 + 0.012 rpm/60 bar (the page's OpenWAM default law): two runs and secant steps per

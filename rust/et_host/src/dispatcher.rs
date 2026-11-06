@@ -159,6 +159,24 @@ impl Dispatcher {
                 Ok(obj([("ok", true.into()), ("path", s(&path)), ("msg", format!("Saved {}.", path.display()).into())]))
             }
 
+            "saveBase64" => {
+                use base64::Engine as _;
+                let name = case_files::safe_name(&get_str(data, "filename")?.unwrap_or_else(|| "file.bin".into()));
+                let raw = match get_str(data, "b64")?.map(|t| base64::engine::general_purpose::STANDARD.decode(t.as_bytes())) {
+                    Some(Ok(b)) if !b.is_empty() => b,
+                    _ => return Ok(obj([("ok", false.into()), ("msg", "Nothing to save.".into())])),
+                };
+                let title = get_str(data, "title")?.unwrap_or_else(|| "Save".into());
+                let Some(path) = self.ui.pick_save_file(&title, &name) else {
+                    return Ok(obj([("ok", false.into()), ("msg", "Not saved.".into())]));
+                };
+                std::fs::write(&path, &raw)?;
+                if let Some(dir) = full_path(&path).parent() {
+                    self.remember(dir);
+                }
+                Ok(obj([("ok", true.into()), ("path", s(&path)), ("msg", format!("Saved {}.", path.display()).into())]))
+            }
+
             "openFolder" => {
                 let Some(pth) = get_str(data, "path")?.filter(|s| !s.is_empty()) else {
                     return Ok(obj([("ok", false.into()), ("msg", "No such folder.".into())]));

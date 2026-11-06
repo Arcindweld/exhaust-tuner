@@ -2907,6 +2907,29 @@ def act_save_text(data):
     return {'ok': True, 'msg': 'Saved ' + path, 'path': path}
 
 
+def act_save_base64(data):
+    """Save one binary file the page made (a WAV of the estimated sound), sent as base64, where the user picks."""
+    import base64
+    name = os.path.basename(str(data.get('filename') or 'file.bin'))
+    try:
+        raw = base64.b64decode(data.get('b64') or '', validate=True)
+    except Exception:
+        return {'ok': False, 'msg': 'The file could not be read.'}
+    if not raw:
+        return {'ok': False, 'msg': 'Nothing to save.'}
+    ui = _ui or adsk.core.Application.get().userInterface
+    dlg = ui.createFileDialog()
+    dlg.title = data.get('title') or 'Save file'
+    ext = os.path.splitext(name)[1].lower() or '.bin'
+    dlg.filter = '%s (*%s);;All files (*.*)' % ('Sound' if ext == '.wav' else 'File', ext)
+    dlg.initialFilename = name
+    if dlg.showSave() != adsk.core.DialogResults.DialogOK:
+        return {'ok': False, 'msg': 'Not saved.'}
+    with open(dlg.filename, 'wb') as f:
+        f.write(raw)
+    return {'ok': True, 'msg': 'Saved ' + dlg.filename, 'path': dlg.filename}
+
+
 def act_save_files(data):
     """Save several text files the page made (an OpenWAM case: .wam inputs, run_all.bat, README) into a folder the user picks."""
     files = data.get('files') or []
@@ -3520,7 +3543,7 @@ def act_revchamber(data):
 
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
+           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveBase64': act_save_base64, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult'),
            # the page's solver runs on this PC (hostrun.py): OpenWAM without leaving Fusion
            'hostInfo': HR.host_info, 'hostCall': HR.host_call, 'hostChunk': HR.host_chunk, 'hostCancel': HR.host_cancel,
