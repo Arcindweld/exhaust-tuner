@@ -10936,7 +10936,10 @@ function recSection(sp,r){
   const p=sp.p, kf=(p.cyc==='4'?0.5:1)*p.cyl;
   REC.ctx={cyc:p.cyc,cyl:p.cyl,kf,idle:p.idle,red:p.red,egt:p.egt,modes:r.res,cool:!!(sp.cool&&sp.cool.used),pp:r.pp};
   let h='<p class="cap" style="margin-top:0">Load a recording of this exhaust (WAV is read as recorded; other formats the browser decodes at 48 kHz). The page finds the engine speed from the orders, the steady holds and the order levels at each, and compares them with the model. Nothing leaves this computer.</p>'+
-    '<label class="f" style="max-width:420px"><span class="lab">Recording</span><span class="inp"><input type="file" id="rec-file" accept=".wav,audio/*"></span></label>';
+    '<label class="f" style="max-width:420px"><span class="lab">Recording</span><span class="inp"><input type="file" id="rec-file" accept=".wav,audio/*"></span></label>'+
+    (micOk()?'<div class="actions">'+(MIC.on?'<button type="button" class="btn" data-mic="stop">Stop and read it</button><span class="cap" id="rec-mic-t" aria-live="polite">'+Math.round((Date.now()-MIC.t0)/1000)+' s</span>':'<button type="button" class="btn" data-mic="start">Record with this computer’s microphone</button>')+'</div>'+
+      '<p class="cap">Or record here, with no file: hold the mic (a phone headset or a USB mic on a long lead works) about 3 ft behind the tailpipe, start, then hold each speed for a few seconds. The browser’s echo cancelling, noise suppression and gain control are turned off. A laptop’s own mic rolls off the low end, so trust the order pattern and speeds more than the absolute levels.</p>'+
+      (MIC.err?'<div class="note bad">'+esc(MIC.err)+'</div>':''):'');
   if(REC.busy) return sec('Compare with a recording of your car (optional)',h+'<div class="note">Reading '+esc(REC.name)+'… '+Math.round(100*REC.prog)+'%</div>');
   if(REC.err) return sec('Compare with a recording of your car (optional)',h+'<div class="note bad">'+esc(REC.err)+'</div>');
   if(!REC.fr) return sec('Compare with a recording of your car (optional)',h+recGuide());
@@ -11027,6 +11030,33 @@ function recGuide(){
     '<li>Engine warm, fans off if you can, no wind on the microphone. WAV at 48 kHz, 24-bit mono is ideal; a phone app that saves WAV works.</li>'+
     '<li>A calibrated microphone turns these relative levels into real loudness later; the comparison here does not need one.</li></ul></details>';
 }
+/* recording straight from a microphone, so no file has to be saved and loaded: 48 kHz mono, written to a float WAV and
+   read by recLoad like a picked file */
+const MIC={on:false,chunks:[],sr:48000,ctx:null,stream:null,node:null,t0:0,timer:null,err:null};
+const micOk=()=>!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+function wavFloat(x,sr){ const b=new ArrayBuffer(44+4*x.length), v=new DataView(b), w=(o,t)=>{ for(let i=0;i<4;i++) v.setUint8(o+i,t.charCodeAt(i)); };
+  w(0,'RIFF'); v.setUint32(4,36+4*x.length,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,3,true); v.setUint16(22,1,true);
+  v.setUint32(24,sr,true); v.setUint32(28,4*sr,true); v.setUint16(32,4,true); v.setUint16(34,32,true); w(36,'data'); v.setUint32(40,4*x.length,true);
+  for(let i=0;i<x.length;i++) v.setFloat32(44+4*i,x[i],true); return b; }
+async function micStart(){
+  if(MIC.on) return; MIC.err=null;
+  try{
+    const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});
+    const AC=window.AudioContext||window.webkitAudioContext; let ctx; try{ ctx=new AC({sampleRate:48000}); }catch(e){ ctx=new AC(); }
+    const src=ctx.createMediaStreamSource(st), node=ctx.createScriptProcessor(4096,1,1), mute=ctx.createGain(); mute.gain.value=0;
+    MIC.chunks=[]; node.onaudioprocess=e=>{ if(MIC.on) MIC.chunks.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+    src.connect(node); node.connect(mute); mute.connect(ctx.destination);
+    Object.assign(MIC,{on:true,ctx,stream:st,node,sr:ctx.sampleRate,t0:Date.now()});
+    MIC.timer=setInterval(()=>{ const el=$('rec-mic-t'); if(el) el.textContent=Math.round((Date.now()-MIC.t0)/1000)+' s'; },500);
+  }catch(e){ MIC.err=e&&e.name==='NotAllowedError'?'The microphone was not allowed. Allow it for this window, or load a WAV instead.':'No microphone could be opened here ('+(e&&e.message||e)+'). Load a WAV instead.'; }
+  renderActive(); }
+function micStop(){
+  if(!MIC.on) return; MIC.on=false; clearInterval(MIC.timer);
+  try{ MIC.node.disconnect(); }catch(e){} try{ MIC.stream.getTracks().forEach(t=>t.stop()); }catch(e){} try{ MIC.ctx.close(); }catch(e){}
+  const n=MIC.chunks.reduce((a,c)=>a+c.length,0), x=new Float32Array(n); let o=0; MIC.chunks.forEach(c=>{ x.set(c,o); o+=c.length; }); MIC.chunks=[];
+  const d=new Date(), nm='Microphone '+d.getHours()+'-'+String(d.getMinutes()).padStart(2,'0')+'-'+String(d.getSeconds()).padStart(2,'0')+'.wav';
+  recLoad(new File([wavFloat(x,MIC.sr)],nm,{type:'audio/wav'})); }
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-mic]'); if(!b) return; if(b.dataset.mic==='start') micStart(); else micStop(); });
 async function recLoad(file){
   Object.assign(REC,{name:file.name,busy:true,prog:0,err:null,fr:null,holds:[],hold:0,sweep:null,fit:null,msg:null}); renderActive();
   try{
@@ -11132,7 +11162,7 @@ document.addEventListener('click',async e=>{
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); say('Downloaded '+name+'.');
   }
 });
-window.__wamIns=()=>WAM_UI.ins; window.__rec={recSynth,recAbCheck,REC_AB,REC,recWav,recFrames,recTrack,recHolds,recOrderLevels,recSweep,recFitModes,recLoad};
+window.__wamIns=()=>WAM_UI.ins; window.__rec={MIC,wavFloat,micStart,micStop,recSynth,recAbCheck,REC_AB,REC,recWav,recFrames,recTrack,recHolds,recOrderLevels,recSweep,recFitModes,recLoad};
 /* ===== Hear the model without a file (Sound tab): the page's own wave simulation (wsFactory) runs the 4-Stroke tab's
    engine and header at full throttle, with the OpenWAM line after the collector when it is on (its pipe; the muffler as
    the Mufflers tab's chamber, its extended tubes' pockets as tuned side volumes, or a can of the stated volume; the J-pipe

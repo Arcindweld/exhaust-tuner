@@ -583,6 +583,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   recording's odd orders 1, 3, 5 are 13-31 dB above the tailpipe model (intake and engine-structure noise reach the
   microphone, cylinder-to-cylinder spread), and the model is 20 dB too bright at order 12 (cat as a plain pipe,
   muffler as a plain volume; a capillary-substrate cat adds only about 2 dB at 400 Hz by the narrow-tube estimate).
+- Record from the microphone (2026-11-05): the Sound tab's "Compare with a recording" can take a take straight from a mic (getUserMedia with echo cancelling, noise suppression and AGC off; 48 kHz ScriptProcessor; written to a float WAV, wavFloat, and read by recLoad), so no file is saved and loaded. tests/mic_ui.js (Chromium's fake mic; WAV round trip; refused mic).
 - OpenWAM inside the Fusion panel (2026-11-05, add-in 4.15.0; the owner asked for one clean program with no files to
   carry between programs): fusion-addin/hostrun.py runs the page's OpenWAM cases on the PC the way et_host does
   (each model in its own folder, finished only on OpenWAM's marker, INS.DAT cut to 4 cycles, CRLF inputs, half the
