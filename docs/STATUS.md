@@ -778,7 +778,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   the microphone distance (135 dB peak at full scale), with no recording loaded: recSynth takes o.sr / o.kf / o.noRec,
   recPlay a sample rate. The levels table on the 4-Stroke tab marks wave runs. Checked against OpenWAM (default V8,
   2.5 m line, no muffler, 25 cycles): firing orders within 1-9 dB, A-weighted sum of 12 orders +4 dB at 1750 and -9.5
-  dB at 2700 rpm, between-firing orders 20-40 dB weaker than OpenWAM's (cause not found). A 230 x 400 mm chamber on
+  dB at 2700 rpm. Between-firing orders 20-40 dB weaker than OpenWAM's at 1750 rpm: both models fire the four cylinders
+  evenly into one symmetric 5-way junction (OpenWAM BC type 12), so a settled run has only the firing orders; OpenWAM's
+  there come from its last cycles still changing (4.8 %), which one analysed cycle spreads over every order. A 230 x 400 mm chamber on
   the line takes 15 and 5 dB(A) off at 2500 and 4500 rpm. wsnd_ui.js.
 - Engine pickers list the LS and LT engines by name (GM_LS_NAMED, engFam); OpenWAM check: Use buttons, winner marked,
   the tab's straight-through chamber runs alongside.
