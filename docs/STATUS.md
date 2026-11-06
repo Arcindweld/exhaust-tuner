@@ -47,7 +47,8 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Unequal-length (asked 2026-10-30 14:04): router.route_header spec['targets'] + add-in targets_mm DONE (rt/test_header_uel.py);
   OpenWAM writers v4 DONE; page UI + feeds DONE (V33). Two page-written Subaru cases ran in OpenWAM: UEL 63% half-order
   energy vs EL 0%. Limits: router does not build Y junctions; 4-Stroke tab wave sim still equal length.
-  Minor: router chains show a 0.02 mm element gap on one primary (pre-existing; rt/test_header.py P2) - find and fix.
+  Router element gap: rechecked 2026-11-06 (fusion-addin/tests/test_header.py): every primary's chain has 0 gap; P2 keeps a
+  0.02 degree kink and 76.202 against 76.200 in its brute-force length, inside the test's tolerances.
 - Second validation vehicle: 2026 Aprilia RS 660 stock (659 cc 270-deg twin, 81 x 63.93, 13.5:1, 105 hp @10,500 / 67 Nm @8,500
   per 1000ps.com 2026 page; Wikipedia: 2025 engine update to 105 hp). Preset exists (2021+ 100 hp entry) - add 2025+ note.
   Stock exhaust geometry (2-1, cat, underbelly silencer, FULL STAINLESS, outlets both sides) needs sourced dimensions.
