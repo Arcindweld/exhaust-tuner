@@ -9142,7 +9142,7 @@ function runSpeed(eng,opts){
         if(crossed||!cy.started){
           if(cy.started&&crossed) cy.done={ve:cy.m*cy.x/(rhoRef*eng.Vd),imep:cy.work/eng.Vd,pmax:cy.pmax,resid:1-cy.x,pEvo:cy.pEvo,
             tEx:cy.exM>0?cy.exH/(cy.exM*CP):0,overlapPort:cy.ovN?cy.ovP/cy.ovN:PATM};
-          cy.fresh=cy.m*cy.x; cy.burnQ=cy.fresh/e.afr*LHV*e.eta;
+          cy.fresh=cy.m*cy.x; cy.burnQ=e.dead&&e.dead.indexOf(k)>=0?0:cy.fresh/e.afr*LHV*e.eta;   // e.dead: cylinder indices that do not fire (a misfire, a dead coil bank)
           cy.ivcP=cy.m*RG*cy.T/eng.vol(tk); cy.ivcT=cy.T; cy.ivcV=eng.vol(tk);
           cy.work=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.exM=0; cy.exH=0; cy.ovP=0; cy.ovN=0; cy.started=true;
         }
@@ -10229,7 +10229,7 @@ function twoWamSection(p,r){
     if(cs.sp.used.length) h+='<p class="cap">Assumed: '+esc(cs.sp.used.join('; '))+'.</p>';
     if(r.dual) h+='<p class="cap">The dual power insert runs as a second set of models: the chamber with its insert as a second path from the belly end to the end of its pipe (two junctions), against the same chamber without it. The perforated half is not modelled, so the insert acts as a solid-walled path, the limit of a closed perforation; on the 125 MX test it added 2 hp at its second power point and cost 1 to 2 hp at the peak.</p>';
   }
-  h+='<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-tw="dl">Download OpenWAM case (.zip)</button>'+(hostHas('openwam')?'<button type="button" class="btn" data-tw="run">Run in OpenWAM on this PC</button><button type="button" class="btn" data-tw="stop">Stop</button>':'')+'</div>'+
+  h+='<div class="actions" style="margin-top:8px">'+(hostHas('openwam')?'<button type="button" class="btn" data-tw="run">Run in OpenWAM on this PC</button><button type="button" class="btn" data-tw="stop">Stop</button>':FUSION&&!window.exhaustTunerHost?'<button type="button" class="btn" data-findwam="1">Find OpenWAM.exe on this PC</button>':'')+'<button type="button" class="btn" data-tw="dl">'+(hostHas('openwam')?'Save the case files':'Download OpenWAM case (.zip)')+'</button></div>'+
     '<div class="note twmsg'+(TW_UI.msg&&TW_UI.msg.bad?' bad':'')+'"'+(TW_UI.msg?'':' hidden')+'>'+(TW_UI.msg?esc(TW_UI.msg.t):'')+'</div>';
   h+='<p class="sub" style="margin-top:14px">Results</p>';
   const R=TW_UI.res, ok=R.filter(x=>x.s);
@@ -10247,8 +10247,8 @@ function twoWamSection(p,r){
         '<tr><td>'+x.pipe+'</td><td>'+x.rpm+'</td><td>'+f1(x.s.P_brake_hp)+' hp ('+f1(x.s.P_brake_kW)+' kW)</td><td>'+f1(x.s.T_brake_Nm*tq)+' '+(U==='imp'?'lb-ft':'N·m')+'</td><td>'+f2(x.s.BMEP_bar)+' bar</td><td>'+f2(x.s.IMEP_bar)+' bar</td><td>'+(Number.isFinite(x.s.crankcase_MEP_bar)?f2(x.s.crankcase_MEP_bar)+' bar':'no INS file')+'</td><td>'+f2(x.s.DR)+'</td><td>'+Math.round(100*x.s.TE)+'%</td><td>'+f2(x.s.CE)+'</td><td>'+(!x.s.finished?'did not finish':x.s.NMEP_spread_last5_pct<2?'yes':'moving '+x.s.NMEP_spread_last5_pct.toFixed(1)+'%')+'</td></tr>').join('')+'</tbody></table></div>'+
       '<p class="cap">Brake power is OpenWAM’s cylinder work plus the crankcase pumping work, less a friction estimate (100 Pa × stroke in metres × RPM). Delivery ratio is the air the crankcase took in against the swept volume at 25 °C; trapping is the share of it still in the cylinder when the exhaust closes, charging the trapped air against the swept volume. OpenWAM mixes the fresh charge with the burnt gas perfectly (it has no loop-scavenging model), so trapping reads low and power with it; rank pipes and port changes by these numbers, not a dyno.</p>';
   } else if(R.length) h+='<div class="note bad">'+esc(R.map(x=>x.name+': '+x.err).join('; '))+'</div>';
-  h+='<p class="cap">'+(hostHas('openwam')?'“Run in OpenWAM on this PC” fills this in. ':'')+'For a case run elsewhere, pick its <b>AVG.DAT</b> and <b>INS.DAT</b> files (several at once); they are read against the inputs above, so keep them as they were when the case was made.</p>'+
-    '<label class="f"><span class="lab">AVG.DAT and INS.DAT files</span><span class="inp"><input type="file" id="tw-files" multiple accept=".dat,.DAT,text/plain"></span></label>';
+  h+='<p class="cap">'+(hostHas('openwam')?'“Run in OpenWAM on this PC” fills this in; nothing to save or load. ':'')+'For a case run elsewhere, pick its <b>AVG.DAT</b> and <b>INS.DAT</b> files (several at once); they are read against the inputs above, so keep them as they were when the case was made.</p>'+
+    (hostHas('openwam')?'<details class="files-else"><summary>Load files from a run done elsewhere</summary>'+'<label class="f"><span class="lab">AVG.DAT and INS.DAT files</span><span class="inp"><input type="file" id="tw-files" multiple accept=".dat,.DAT,text/plain"></span></label>'+'</details>':'<label class="f"><span class="lab">AVG.DAT and INS.DAT files</span><span class="inp"><input type="file" id="tw-files" multiple accept=".dat,.DAT,text/plain"></span></label>');
   return sec('Run it in OpenWAM',h);
 }
 function twoWamDraw(){
@@ -10937,9 +10937,9 @@ function recSection(sp,r){
   REC.ctx={cyc:p.cyc,cyl:p.cyl,kf,idle:p.idle,red:p.red,egt:p.egt,modes:r.res,cool:!!(sp.cool&&sp.cool.used),pp:r.pp};
   let h='<p class="cap" style="margin-top:0">Load a recording of this exhaust (WAV is read as recorded; other formats the browser decodes at 48 kHz). The page finds the engine speed from the orders, the steady holds and the order levels at each, and compares them with the model. Nothing leaves this computer.</p>'+
     '<label class="f" style="max-width:420px"><span class="lab">Recording</span><span class="inp"><input type="file" id="rec-file" accept=".wav,audio/*"></span></label>';
-  if(REC.busy) return sec('Compare a recording',h+'<div class="note">Reading '+esc(REC.name)+'… '+Math.round(100*REC.prog)+'%</div>');
-  if(REC.err) return sec('Compare a recording',h+'<div class="note bad">'+esc(REC.err)+'</div>');
-  if(!REC.fr) return sec('Compare a recording',h+recGuide());
+  if(REC.busy) return sec('Compare with a recording of your car (optional)',h+'<div class="note">Reading '+esc(REC.name)+'… '+Math.round(100*REC.prog)+'%</div>');
+  if(REC.err) return sec('Compare with a recording of your car (optional)',h+'<div class="note bad">'+esc(REC.err)+'</div>');
+  if(!REC.fr) return sec('Compare with a recording of your car (optional)',h+recGuide());
   const I=REC.info;
   h+='<div class="figs">'+figT('Recording',(I.dur).toFixed(1),'s',esc(REC.name)+', '+(I.sr/1000).toFixed(1)+' kHz'+(I.bits?', '+I.bits+'-bit':'')+(I.ch>1?', '+I.ch+' channels mixed':''))+
     figT('Peak',I.peakDb.toFixed(1),'dBFS',I.clip>0?(100*I.clip).toFixed(2)+'% of samples clipped':'no clipping',I.clip>1e-4?'st-bad':I.peakDb>-1?'st-warn':'st-ok')+
@@ -11017,7 +11017,7 @@ function recSection(sp,r){
     }
   }
   h+='<div class="actions" style="margin-top:10px"><button type="button" class="btn" data-rec="save">Save the order levels (JSON)</button></div><p class="cap" id="rec-msg">'+(REC.msg?esc(REC.msg):'')+'</p>'+recGuide();
-  return sec('Compare a recording',h);
+  return sec('Compare with a recording of your car (optional)',h);
 }
 function recGuide(){
   return '<details style="margin-top:10px"><summary><b>How to record it</b></summary><ul class="list">'+
@@ -11284,7 +11284,7 @@ function wsndJob(variants,done){
   if(err){ say(err,true); return; }
   if(WSND.busy){ say('Still simulating the last request…'); return; }
   const rpms=wsndRpms(q); if(!rpms.length){ say('Enter at least one engine speed between 500 and 20,000 RPM.',true); return; }
-  const Ss=variants.map(v=>Object.assign({},v,wsndSpec(q,v.parts)));
+  const Ss=variants.map(v=>{ const S=Object.assign({},v,wsndSpec(q,v.parts)); if(v.dead&&v.dead.length) S.spec.e=Object.assign({},S.spec.e,{dead:v.dead.slice()}); return S; });
   WSND.notes=[...new Set([].concat(...Ss.map(S=>S.notes)))]; WSND.busy=true;
   const got=Ss.map(()=>[]), total=Ss.length*rpms.length; let n=0;
   const finish=()=>{ WSND.busy=false;
@@ -11312,6 +11312,16 @@ function wsndSetRuns(sets){ // the full design's runs into the OpenWAM runs list
 }
 function wsndRun(){ wsndJob([{key:'full',label:'Your design',parts:{}}],sets=>{ WSND.sets=sets; WSND.A=0; WSND.B=null; const n=wsndSetRuns(sets);
   WSND.msg={t:n?'Done: '+n+' speed'+(n>1?'s':'')+' at full throttle. Play it below, keep it to compare with a change, or hear each part.':'The simulation did not finish a speed.',bad:!n}; renderActive(); }); }
+// the cylinders a misfire choice stops: 'c1' cylinder 1 (index 0: first in the firing order on the 4-Stroke tab's layout,
+// cylinder number - 1 on a Headers layout, where cylinder 1 is also the first); 'bank' the first collector's cylinders
+function wsndDeadOpts(q){ const o=[{v:'c1',t:'Cylinder 1 not firing (a misfire)'}];
+  try{ const S=wsndSpec(q,{}), C=S.spec.opt&&S.spec.opt.collectors; if(C&&C.length>=2) o.push({v:'bank',t:'Collector A’s cylinders not firing (a dead bank)'}); }catch(e){}
+  return o; }
+function wsndDead(q,v){ if(v==='bank'){ const S=wsndSpec(q,{}), C=S.spec.opt&&S.spec.opt.collectors; return C&&C.length>=2?C[0].cyls.map(c=>Math.trunc(c)):[0]; } return [0]; }
+function wsndMisfire(){ const q=SIM.inp; if(!q){ wsndJob([],()=>{}); return; }
+  const v=WSND.dead||'c1', dead=wsndDead(q,v), lab=v==='bank'?'Cylinders '+dead.map(c=>c+1).join(', ')+' not firing (collector A, a dead bank)':'Cylinder 1 not firing';
+  wsndJob([{key:'dead',label:lab,parts:{},dead},{key:'full',label:'Your design, all firing',parts:{}}],sets=>{ WSND.sets=sets; WSND.A=1; WSND.B=0; wsndSetRuns(sets);
+    WSND.msg={t:'Done: play A (all firing) and B ('+lab.charAt(0).toLowerCase()+lab.slice(1)+'). A cylinder that does not fire still pumps its charge out, so its pulse is weak'+(v==='bank'?': with a whole bank dead, only the other bank’s pulses are left, and the note drops to that bank’s own rhythm, as if it were a smaller engine. ':' and the note loses its even rhythm: a once-per-cycle beat (half an order, '+(q.cyl>1?'one in every '+q.cyl+' pulses':'every cycle')+') comes in that a healthy engine does not make. ')+'If your own car sounds like B, find the dead '+(v==='bank'?'bank (a coil pack, an injector driver or an ECU output)':'cylinder')+' before you change the exhaust.'}; renderActive(); }); }
 function wsndParts(){ const st=wsndSteps(); wsndJob(st,sets=>{ WSND.sets=sets; WSND.A=Math.max(0,sets.length-2); WSND.B=sets.length-1; wsndSetRuns(sets); window.__wsndSets=sets;
   WSND.msg={t:sets.length>1?'Done: '+sets.length+' steps, each with one more part. Pick any two as A and B, or play every step in order.':'Only the open headers to run: turn on the line after the collector (OpenWAM panel, 4-Stroke tab) to add a line, a muffler and a resonator.'}; renderActive(); }); }
 function wsndKeep(){ const s=WSND.sets[WSND.sets.length-1]; if(!s) return; const k=WSND.kept.length+1;
@@ -11331,9 +11341,10 @@ function wsndPart(sp){
   let h='<p class="cap" style="margin-top:0">No recording or OpenWAM file needed: the page’s own wave simulation runs the 4-Stroke tab’s engine and header at full throttle'+(WAM_UI.line.on?', with the line, muffler, resonator and tailpipe from the OpenWAM panel,':'')+' and the sound is worked out from the flow leaving the tailpipe, the same way an OpenWAM run is read. It is an estimate: a 1-D plane-wave model, the open end as a point source, no shell noise or intake. Checked against OpenWAM on the default V8 with a 2.5 m line and no muffler: the firing orders within 1 to 9 dB, the overall level within 4 to 10 dB. With identical cylinders firing evenly a settled model has only the firing orders; a real engine adds weaker orders between them from cylinder-to-cylinder differences, which the playback stands in for with a little pulse-to-pulse variation. For a design you will build, the OpenWAM run is the better answer.</p>';
   if(!q) return h+'<div class="note">Open the 4-Stroke tab and fill it in: the estimate runs its engine and header.</div>';
   h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Engine speeds, full throttle (RPM)</span><span class="inp"><input id="wsnd-rpms" type="text" inputmode="numeric" value="'+esc(WSND.rpms||rp.join(' '))+'"></span></label></div>'+
-    '<div class="actions"><button type="button" class="btn" data-wsnd="run"'+(WSND.busy?' disabled':'')+'>Estimate the sound</button><button type="button" class="btn" data-wsnd="parts"'+(WSND.busy?' disabled':'')+'>Hear each part</button>'+
+    '<div class="actions"><button type="button" class="btn" data-wsnd="run"'+(WSND.busy?' disabled':'')+'>Estimate the sound</button><button type="button" class="btn" data-wsnd="parts"'+(WSND.busy?' disabled':'')+'>Hear each part</button><button type="button" class="btn" data-wsnd="misfire"'+(WSND.busy?' disabled':'')+'>Hear a misfire</button>'+
     (WSND.sets.length?'<button type="button" class="btn" data-wsnd="keep">Keep this design to compare</button>':'')+(WSND.kept.length?'<button type="button" class="btn" data-wsnd="clear">Clear the kept designs</button>':'')+'</div>'+
-    '<p class="cap">“Hear each part” builds your exhaust up one addition at a time (the open headers, then the line and tailpipe, the muffler, the resonator), runs each, and lets you play any two side by side. “Keep this design” holds the result while you change something (primary length, a different can, another resonator) and estimate again.</p>'+
+    '<div class="grid2" style="max-width:640px;margin-top:8px"><label class="f span2"><span class="lab">For “Hear a misfire”</span><span class="inp"><select id="wsnd-dead">'+wsndDeadOpts(q).map(o=>'<option value="'+o.v+'"'+((WSND.dead||'c1')===o.v?' selected':'')+'>'+esc(o.t)+'</option>').join('')+'</select></span></label></div>'+
+    '<p class="cap">“Hear a misfire” runs your design again with cylinder 1, or one collector’s cylinders, not burning, so you can hear what a misfire or a dead bank does to the note and tell it from an exhaust problem. “Hear each part” builds your exhaust up one addition at a time (the open headers, then the line and tailpipe, the muffler, the resonator), runs each, and lets you play any two side by side. “Keep this design” holds the result while you change something (primary length, a different can, another resonator) and estimate again.</p>'+
     '<div class="note'+(WSND.msg&&WSND.msg.bad?' bad':'')+'" id="wsnd-msg"'+(WSND.msg?'':' hidden')+'>'+(WSND.msg?esc(WSND.msg.t):'')+'</div>'+
     (WSND.notes.length?'<ul class="list">'+WSND.notes.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'');
   if(!all.length) return h;
@@ -11396,17 +11407,18 @@ function wsndPlay(kind){
   wsndPlayList([wsndSound(runs,kind,P)],'Playing '+(kind==='hold'?P.rpm.toLocaleString('en-US')+' RPM held':kind==='pass'?'a drive-past at '+P.mph+' mph':'a pull'+(kind==='pullpass'?' while driving past':''))+', '+P.ft+' ft.');
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wsnd]'); if(!b) return; const k=b.dataset.wsnd;
-  if(k==='run') wsndRun(); else if(k==='parts') wsndParts(); else if(k==='keep') wsndKeep(); else if(k==='clear'){ WSND.kept=[]; WSND.A=WSND.sets.length?0:null; WSND.B=null; renderActive(); } else wsndPlay(k); });
+  if(k==='run') wsndRun(); else if(k==='parts') wsndParts(); else if(k==='misfire') wsndMisfire(); else if(k==='keep') wsndKeep(); else if(k==='clear'){ WSND.kept=[]; WSND.A=WSND.sets.length?0:null; WSND.B=null; renderActive(); } else wsndPlay(k); });
 document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   if(t.name==='wsnd-a'){ WSND.A=+t.value; renderActive(); return; } if(t.name==='wsnd-b'){ WSND.B=+t.value; renderActive(); return; }
   if(!t.id||!/^wsnd-/.test(t.id)) return;
   if(t.id==='wsnd-rpms'){ WSND.rpms=t.value; return; }
+  if(t.id==='wsnd-dead'){ WSND.dead=t.value; return; }
   if(t.id==='wsnd-src') WSND.src=t.value; else if(t.id==='wsnd-rpm') P.rpm=+t.value; else if(t.id==='wsnd-jet') P.jet=t.value==='1'; else if(t.id==='wsnd-how') P.how=t.value;
   else if(t.id==='wsnd-mph'){ const v=+t.value; if(v>=5&&v<=150) P.mph=v; } else if(t.id==='wsnd-ft'){ const v=+t.value; if(v>=3&&v<=300) P.ft=v; }
   else if(t.id==='wsnd-p0'){ const v=+t.value; if(v>0) P.pull0=v; } else if(t.id==='wsnd-p1'){ const v=+t.value; if(v>0) P.pull1=v; }
   renderActive(); });
 window.__calcAbsorb=calcAbsorb;
-window.__wsnd={WSND,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
+window.__wsnd={WSND,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
 
 /* ===== primary size, headers and crossover ===== */
 const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u;};
@@ -11820,7 +11832,7 @@ function fusionCall(action,data){
 }
 /* ===== Desktop program: inside Exhaust Tuner for Windows the page can run the solvers on this PC =====
    The program injects window.exhaustTunerHost (call(action, data, onEvent) -> Promise); in a browser or in Fusion it is absent. */
-const HOST=window.exhaustTunerHost||null;
+let HOST=window.exhaustTunerHost||null;
 let HOST_INFO=null;
 function hostCall(action,data,onEvent){
   if(!HOST) return Promise.resolve({ok:false,msg:'Not running in the Exhaust Tuner program.'});
@@ -11830,6 +11842,31 @@ const saveCall=(a,d)=>FUSION?fusionCall(a,d):hostCall(a,d);
 const asFiles=list=>list.map(x=>({name:x.name,text:()=>Promise.resolve(x.text)}));
 const hostHas=k=>!!(HOST_INFO&&HOST_INFO.engines&&HOST_INFO.engines[k]);
 if(HOST) HOST.call('hostInfo',{}).then(i=>{ HOST_INFO=i; document.documentElement.classList.add('in-desktop'); if(typeof renderActive==='function') renderActive(); }).catch(()=>{});
+/* In the Fusion panel the add-in runs OpenWAM on this PC (fusion-addin/hostrun.py), so the same run buttons work there:
+   hostCall starts a run and answers at once; progress comes back as 'hostEvent' and the end as 'hostDone' through
+   fusionJavaScriptHandler, and the result is fetched in pieces (hostChunk). Its HOST_INFO.where is 'fusion'. */
+const FHOST=(()=>{ const pend={}; let n=0;
+  return {where:'fusion',
+    call(action,data,onEvent){ const id=(++n)+'_'+Date.now();
+      return new Promise((res,rej)=>{ pend[id]={res,rej,onEvent};
+        fusionCall('hostCall',{id,action,data:data||{}}).then(r=>{ if(!r||r.ok===false){ delete pend[id]; rej(new Error((r&&r.msg)||'Fusion did not answer.')); } else if(!r.started){ delete pend[id]; res(r); } }); }); },
+    cancel(){ fusionCall('hostCancel',{}); },
+    event(d){ const p=d&&pend[d.id]; if(p&&p.onEvent){ try{ p.onEvent(d.ev||{}); }catch(e){} } },
+    async done(d){ const p=d&&pend[d.id]; if(!p) return; delete pend[d.id];
+      if(!d.ok){ p.rej(new Error(d.msg||'The run did not finish.')); return; }
+      let t='', i=0;
+      for(;;){ const c=await fusionCall('hostChunk',{id:d.id,i}); if(!c||!c.ok){ p.rej(new Error((c&&c.msg)||'Could not read the result.')); return; } t+=c.text; i++; if(c.last) break; }
+      try{ p.res(JSON.parse(t)); }catch(e){ p.rej(e); } } }; })();
+function fusionHostSetup(){ if(!FUSION||window.exhaustTunerHost) return;
+  fusionCall('hostInfo',{}).then(i=>{ if(i&&i.ok&&i.engines){ HOST_INFO=i; HOST=FHOST; if(typeof renderActive==='function') renderActive(); } }); }
+const inFusionHost=()=>!!(HOST_INFO&&HOST_INFO.where==='fusion');
+// where OpenWAM is not on hand: in the Fusion panel a button to point to OpenWAM.exe, elsewhere where it runs
+const wamNeed=lead=>FUSION&&!window.exhaustTunerHost?'<span class="cap">'+lead+' on this PC: OpenWAM was not found here.</span> <button type="button" class="btn" data-findwam="1">Find OpenWAM.exe</button>':
+  '<span class="cap">'+lead+' on your PC, so it needs the Exhaust Tuner program or the Fusion panel.</span>';
+document.addEventListener('click',e=>{ if(e.target.closest('button[data-findwam]')) findOpenWAM(); });
+async function findOpenWAM(){ const i=await fusionCall('findOpenWAM',{}); if(i&&i.ok&&i.engines){ HOST_INFO=i; HOST=FHOST; } renderActive(); return i; }
+if(FUSION) setTimeout(fusionHostSetup,0);
+window.__fhost={info:()=>inFusionHost()?HOST_INFO:null};
 /* the program's menu (only inside the Windows program): runs folder, Fusion add-in, reload, developer tools, engines */
 const ABOUT_TEXT=()=>'Exhaust Tuner '+((HOST_INFO&&HOST_INFO.version)||(HOST&&HOST.version)||'')+'\n\nBundled engines (separate programs, each under its own licence):\n'+
   '• OpenWAM 2.2, CMT-Motores Térmicos, Universitat Politècnica de València. GPL-3.0. Source: github.com/CMT-UPV/OpenWAM\n'+
@@ -11977,6 +12014,7 @@ window.addEventListener('error',e=>{ PAGE_ERRS.push(String(e&&e.message||e)); if
 window.fusionJavaScriptHandler={handle:function(action,data){
   try{
     if(action==='status'&&$('fusion-status')) $('fusion-status').textContent=data;
+    if(action==='hostEvent'||action==='hostDone'){ let d={}; try{ d=JSON.parse(data||'{}'); }catch(e){} if(action==='hostEvent') FHOST.event(d); else FHOST.done(d); return 'OK'; }
     // a test hook for the add-in: report what the page shows, after optionally opening a tab, switching mode or starting the simulation
     if(action==='probe'){
       let d={}; try{ d=JSON.parse(data||'{}'); }catch(e){}
@@ -13872,7 +13910,7 @@ function mdwPart(R){
   if(!WAM_UI.line.on) h+='<div class="note">Turn on the line after the collector under “Run it in OpenWAM” on the 4-Stroke tab: the chambers go into that line, ahead of its tailpipe.</div>';
   h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Engine speeds (RPM; blank puts the firing order at the band’s ends and middle)</span><span class="inp"><input id="mdw-rpms" type="text" inputmode="numeric" value="'+esc(MDW.rpms||rp.join(' '))+'"></span></label></div>'+
     '<p class="cap">'+(cands.length+1)+' designs × '+rp.length+' speeds = '+(cands.length+1)*rp.length+' OpenWAM runs of '+Math.max(MDW.minCycles||0,WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25)+' cycles each (at least '+MDW.minCycles+': a chamber takes that long to settle, an inline 4 longer than a V8).</p>'+
-    '<div class="actions">'+(hostHas('openwam')?'<button type="button" class="btn" data-mdw="run">Run them in OpenWAM</button>':'<span class="cap">This runs OpenWAM, so it needs the desktop program.</span>')+'</div>'+
+    '<div class="actions">'+(hostHas('openwam')?'<button type="button" class="btn" data-mdw="run">Run them in OpenWAM</button>':wamNeed('This runs OpenWAM'))+'</div>'+
     '<div class="note mdwmsg'+(MDW.msg&&MDW.msg.bad?' bad':'')+'"'+(MDW.msg?'':' hidden')+'>'+(MDW.msg?esc(MDW.msg.t):'')+'</div>';
   const X=MDW.res;
   if(X){
@@ -18375,10 +18413,10 @@ function wamSection(q,sp){
     '<label class="f"><span class="lab">Case name</span><span class="inp"><input class="wamx" data-k="name" type="text" value="'+esc(WAM_UI.name||wamName(q))+'"></span></label></div>'+
     wamLineUi()+wamProfUi()+
     '<p class="cap">About 25 cycles settle a naturally aspirated case; the results table shows how much the last five cycles still moved. Each run takes OpenWAM from a few seconds to a minute or two on a desktop. Every cylinder’s firing angle is written 45° later than the engine’s own clock (the firing intervals are unchanged): with the clock on cylinder 1’s TDC, an LS3 bank at 0/180/450/630° started one cylinder in a state OpenWAM could not integrate (the numbers blew up at 3,600 RPM, a mass-study crash at 6,400 RPM, with or without a finer mesh), while any shift of 10° to 90° ran clean at both speeds and agreed on torque within 1%. Sanity check: the C6 Corvette LS3 preset’s case (one bank, 1.875 in primaries into a 4-1), run on OpenWAM 2.2 for Windows, gave 440 lb-ft net at 4,600 RPM and 426 hp net at 5,300–5,900 RPM for the two banks together against GM’s 424 lb-ft at 4,600 and 430 hp at 5,900; net means friction is not taken off, so a real dyno would read a little lower, and the agreement is a check that the valves, cam and pipes are in the right range, not a calibration. The batch expects OpenWAM at <code>'+esc(WAMX.USER_EXE)+'</code>; edit the first line of run_all.bat if it lives elsewhere.</p>'+
-    '<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-wam="dl">Download OpenWAM case (.zip)</button>'+(hostHas('openwam')?'<button type="button" class="btn" data-wam="run">Run in OpenWAM on this PC</button><button type="button" class="btn" data-wam="stop">Stop</button>':'')+'</div>'+
+    '<div class="actions" style="margin-top:8px">'+(hostHas('openwam')?'<button type="button" class="btn" data-wam="run">Run in OpenWAM on this PC</button><button type="button" class="btn" data-wam="stop">Stop</button>':FUSION&&!window.exhaustTunerHost?'<button type="button" class="btn" data-findwam="1">Find OpenWAM.exe on this PC</button>':'')+'<button type="button" class="btn" data-wam="dl">'+(hostHas('openwam')?'Save the case files':'Download OpenWAM case (.zip)')+'</button></div>'+
     '<div class="note wammsg'+(WAM_UI.msg&&WAM_UI.msg.bad?' bad':'')+'"'+(WAM_UI.msg?'':' hidden')+'>'+(WAM_UI.msg?esc(WAM_UI.msg.t):'')+'</div>';
-  h+='<p class="sub" style="margin-top:14px">Read the results</p><p class="cap">After the batch finishes, pick the <b>NAMEAVG.DAT</b> files from the run folders (several at once). The table takes the last cycle of each.</p>'+
-    '<label class="f"><span class="lab">AVG.DAT files</span><span class="inp"><input type="file" id="wam-files" multiple accept=".dat,.DAT,text/plain"></span></label>';
+  h+='<p class="sub" style="margin-top:14px">Read the results</p><p class="cap">'+(hostHas('openwam')?'“Run in OpenWAM on this PC” reads the results straight into the tables below and the Sound tab; nothing to save or load. ':'After the batch finishes, pick the <b>NAMEAVG.DAT</b> files from the run folders (several at once). ')+'The table takes the last cycle of each.</p>'+
+    (hostHas('openwam')?'<details class="files-else"><summary>Load files from a run done elsewhere</summary>'+'<label class="f"><span class="lab">AVG.DAT files</span><span class="inp"><input type="file" id="wam-files" multiple accept=".dat,.DAT,text/plain"></span></label>'+'</details>':'<label class="f"><span class="lab">AVG.DAT files</span><span class="inp"><input type="file" id="wam-files" multiple accept=".dat,.DAT,text/plain"></span></label>');
   const R=WAM_UI.results;
   if(R.length){
     const hp=kw=>Math.round(kw*1.34102), f1=x=>Number.isFinite(x)?(+x.toFixed(1)):'?', f2=x=>Number.isFinite(x)?(+x.toFixed(2)):'?';
@@ -18388,7 +18426,7 @@ function wamSection(q,sp){
       '<p class="cap">Torque and power are indicated net (pumping included, friction not), so they read above a dyno; use them to rank designs. VE delivered is the air that passed the intake valves against the swept volume at 25 °C and 1.013 bar; VE trapped is what stayed for combustion. Run the same speeds for each header you compare and keep the cycles equal.</p>';
   }
   h+='<p class="sub" style="margin-top:14px">Order spectrum of the outflow</p><p class="cap">Pick the <b>NAMEINS.DAT</b> files the runs wrote (every case from this tab asks OpenWAM for the open-end flow over the last two cycles). For each file the last complete 720° cycle of the mass flow out of the last open end in the file is resampled to 1° steps and split into engine orders; each order’s level is its harmonic of d(ṁ)/dt, the sound source of a small open pipe end (a compact monopole, the method of the project’s wam_sound.py), in dB against the strongest order; the energy share is that of the half orders among orders 0.5 to 6. Half orders (0.5, 1.5, 2.5 …) repeat once per two crank turns, so they exist only when the cylinders’ pulses differ from one another. Relative levels only: no microphone distance, ground or directivity, and no muffler or pipe past the collector unless the case had one.</p>'+
-    '<label class="f"><span class="lab">INS.DAT files</span><span class="inp"><input type="file" id="wam-ins" multiple accept=".dat,.DAT,text/plain"></span></label>'+
+    (hostHas('openwam')?'<details class="files-else"><summary>Load files from a run done elsewhere</summary>'+'<label class="f"><span class="lab">INS.DAT files</span><span class="inp"><input type="file" id="wam-ins" multiple accept=".dat,.DAT,text/plain"></span></label>'+'</details>':'<label class="f"><span class="lab">INS.DAT files</span><span class="inp"><input type="file" id="wam-ins" multiple accept=".dat,.DAT,text/plain"></span></label>')+
     '<label class="f"><span class="lab">Record the intake’s mouth too</span><span class="inp"><select id="wam-insmouth"><option value="0"'+(WAM_UI.insMouth?'':' selected')+'>No: the exhaust outlet only</option><option value="1"'+(WAM_UI.insMouth?' selected':'')+'>Yes: the case writes the intake’s open end as well (its own column here)</option></select></span></label>';
   if(WAM_UI.ins.length) h+=wamInsTable(WAM_UI.ins);
   return sec('Run it in OpenWAM',h);
@@ -18429,7 +18467,7 @@ function dynoSection(q,sp){
     '<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Dyno points: rpm and brake torque ('+unit+')</span><span class="inp"><textarea id="dyno-pts" rows="5" placeholder="3000 380&#10;4600 425&#10;5900 383">'+esc(DYNO_UI.pts)+'</textarea></span></label>'+
     '<label class="f"><span class="lab">Measured at</span><span class="inp"><select id="dyno-src"><option value="engine"'+(DYNO_UI.src==='engine'?' selected':'')+'>The flywheel (engine dyno)</option><option value="wheel"'+(DYNO_UI.src==='wheel'?' selected':'')+'>The wheels (chassis dyno)</option></select></span></label>'+
     '<label class="f"><span class="lab">Drivetrain loss, chassis dyno</span><span class="inp"><input id="dyno-loss" type="number" step="1" inputmode="decimal" value="'+DYNO_UI.loss+'"><em>%</em></span></label></div>'+
-    '<div class="actions" style="margin-top:8px">'+(hostHas('openwam')?'<button type="button" class="btn" data-dyno="fit">Fit the model to these points</button>':'<span class="cap">Fitting runs OpenWAM, so it needs the desktop program.</span>')+'</div>'+
+    '<div class="actions" style="margin-top:8px">'+(hostHas('openwam')?'<button type="button" class="btn" data-dyno="fit">Fit the model to these points</button>':wamNeed('Fitting runs OpenWAM'))+'</div>'+
     '<div class="note dynomsg'+(DYNO_UI.msg&&DYNO_UI.msg.bad?' bad':'')+'"'+(DYNO_UI.msg?'':' hidden')+'>'+(DYNO_UI.msg?esc(DYNO_UI.msg.t):'')+'</div>';
   const F=DYNO_UI.fit;
   if(F){
@@ -18526,7 +18564,7 @@ function optSection(q,sp){
   const cands=optCandidates(H.p,H.r), rp=OPT_UI.rpms||wamRpms(q).join(' ');
   h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Speeds to score (RPM)</span><span class="inp"><input id="opt-rpms" type="text" inputmode="numeric" value="'+esc(rp)+'"></span></label></div>'+
     '<p class="cap">'+cands.length+' designs × '+rp.split(/[\s,;]+/).filter(Boolean).length+' speeds = '+cands.length*rp.split(/[\s,;]+/).filter(Boolean).length+' OpenWAM runs, then one more design: allow a few minutes per ten runs.</p>'+
-    '<div class="actions">'+(hostHas('openwam')?'<button type="button" class="btn" data-opt="run">Optimise in OpenWAM</button>':'<span class="cap">The optimiser runs OpenWAM, so it needs the desktop program.</span>')+'</div>'+
+    '<div class="actions">'+(hostHas('openwam')?'<button type="button" class="btn" data-opt="run">Optimise in OpenWAM</button>':wamNeed('The optimiser runs OpenWAM'))+'</div>'+
     '<div class="note optmsg'+(OPT_UI.msg&&OPT_UI.msg.bad?' bad':'')+'"'+(OPT_UI.msg?'':' hidden')+'>'+(OPT_UI.msg?esc(OPT_UI.msg.t):'')+'</div>';
   const R=OPT_UI.res;
   if(R){
@@ -19528,7 +19566,7 @@ fxSetup();
 // inside Fusion the bridge can arrive a moment after load: watch for it for a few seconds, then turn on the Fusion tools
 if(FUSION) setTimeout(sendReady,400);
 else { let tries=0; const watch=setInterval(()=>{
-  if(hasBridge()){ clearInterval(watch); FUSION=true; fxSetup(); renderActive(); sendReady(); }
+  if(hasBridge()){ clearInterval(watch); FUSION=true; fxSetup(); fusionHostSetup(); renderActive(); sendReady(); }
   else if(++tries>=60) clearInterval(watch);
 },100); }
 $('s-edit').addEventListener('click',()=>editFiringOrder('s'));

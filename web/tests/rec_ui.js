@@ -1,4 +1,4 @@
-// Sound tab, "Compare a recording": a synthetic WAV with known orders comes back at its speed and levels; the owner's
+// Sound tab, "Compare with a recording": a synthetic WAV with known orders comes back at its speed and levels; the owner's
 // Outback and RS 660 recordings give the steady holds where the Python tools found them and the same order levels
 // (validation/*/recording_orders.json, sound/order_spectrum.py), with OpenWAM's outflow spectrum compared when
 // loaded; the JSON export; no page errors. Run from web/.
@@ -31,7 +31,7 @@ function wav(rpm, secs, sr) {
   const eng = async v => { await p.evaluate(E => { const s = document.getElementById('s-eng'); s.value = E; s.dispatchEvent(new Event('change', { bubbles: true })); }, v); await p.waitForTimeout(700); };
   const load = async f => { await p.evaluate(() => { window.__rec.REC.fr = null; window.__rec.REC.err = null; }); await p.waitForTimeout(400);
     await p.setInputFiles('#rec-file', f); await p.waitForFunction(() => window.__rec.REC.fr || window.__rec.REC.err, null, { timeout: 180000 }).catch(async e => { console.log('load stuck:', await p.evaluate(() => JSON.stringify({ busy: window.__rec.REC.busy, err: window.__rec.REC.err, name: window.__rec.REC.name, hasInput: !!document.getElementById('rec-file'), hash: location.hash }))); throw e; }); await p.waitForTimeout(300); };
-  ok(await p.evaluate(() => [...document.querySelectorAll('#sound-details .sec h3')].some(h => h.textContent === 'Compare a recording')), 'the Sound tab has a Compare a recording section');
+  ok(await p.evaluate(() => [...document.querySelectorAll('#sound-details .sec h3')].some(h => /^Compare with a recording/.test(h.textContent))), 'the Sound tab has a Compare with a recording section');
   // synthetic: an inline-4 at 2400 RPM
   await eng('i4');
   const tmp = path.join(os.tmpdir(), 'rec_synth.wav'); fs.writeFileSync(tmp, wav(2400, 6, 44100));
@@ -67,7 +67,7 @@ function wav(rpm, secs, sr) {
     await eng('f4'); await load(path.resolve('../validation/outback-2004/recordings/full_idle_revs.wav'));
     const hi = await p.evaluate(() => window.__rec.REC.holds.findIndex(h => Math.abs(h.rpm - 1980) < 80));
     await p.evaluate(i => { const s = document.getElementById('rec-hold'); s.value = String(i); s.dispatchEvent(new Event('change', { bubbles: true })); }, hi); await p.waitForTimeout(500);
-    const t = await p.evaluate(() => [...document.querySelectorAll('#sound-details .sec')].find(x => /Compare a recording/.test(x.innerText)).innerText);
+    const t = await p.evaluate(() => [...document.querySelectorAll('#sound-details .sec')].find(x => /Compare with a recording/.test(x.innerText)).innerText);
     const m = t.match(/RMS over (\d+) firing-and-above orders: ([\d.]+) dB/);
     ok(/OpenWAM \(hold_1980\)/.test(t) && m && +m[2] > 5 && +m[2] < 15, 'OpenWAM hold_1980 compared order by order: ' + (m ? m[2] + ' dB RMS over ' + m[1] + ' orders (Python: 10.5 dB)' : 'no RMS'));
     const tl = t.match(/tilts by ([-+−\d.]+) dB per octave/), L = await p.evaluate(() => window.__rec.REC.last);
@@ -103,7 +103,7 @@ function wav(rpm, secs, sr) {
     ok(/Playing|cannot play|Could not play/.test(pm), 'the play button answers: ' + pm);
   } else console.log('SKIP: OpenWAM comparison, hold_1980INS.DAT not here');
   // the page: spectrogram, table, export
-  const ui = await p.evaluate(() => { const s = [...document.querySelectorAll('#sound-details .sec')].find(x => /Compare a recording/.test(x.innerText)); const cv = document.getElementById('rec-cv');
+  const ui = await p.evaluate(() => { const s = [...document.querySelectorAll('#sound-details .sec')].find(x => /Compare with a recording/.test(x.innerText)); const cv = document.getElementById('rec-cv');
     return { txt: s.innerText, cv: cv && cv.width > 0, rows: s.querySelectorAll('table tbody tr').length }; });
   ok(ui.cv && /Steady holds/.test(ui.txt) && ui.rows >= 20 && /Above the noise/.test(ui.txt), 'spectrogram drawn, holds listed, an order table with the noise check');
   await p.evaluate(() => { window.__recJson = null; }); await p.click('button[data-rec="save"]').catch(() => {}); await p.waitForTimeout(400);

@@ -37,12 +37,14 @@ try:
     from . import jig as JIG
     from . import hangers as HGR
     from . import merge as MRG
+    from . import hostrun as HR
 except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path)
     import router as RT
     import templates as TPL
     import jig as JIG
     import hangers as HGR
     import merge as MRG
+    import hostrun as HR
 
 PALETTE_ID = 'exhaustTunerPalette'
 PANEL_CMD_ID = 'exhaustTunerPanelCmd'
@@ -3519,7 +3521,10 @@ def act_revchamber(data):
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
            'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl,
-           'pageReady': _note('pageReady'), 'probeResult': _note('probeResult')}
+           'pageReady': _note('pageReady'), 'probeResult': _note('probeResult'),
+           # the page's solver runs on this PC (hostrun.py): OpenWAM without leaving Fusion
+           'hostInfo': HR.host_info, 'hostCall': HR.host_call, 'hostChunk': HR.host_chunk, 'hostCancel': HR.host_cancel,
+           'findOpenWAM': lambda d: HR.pick_openwam(_ui or adsk.core.Application.get().userInterface)}
 
 
 def dispatch(action, data_str):
@@ -3616,9 +3621,53 @@ class _PanelCreated(adsk.core.CommandCreatedEventHandler):
             _ui.messageBox('Could not start the Exhaust Tuner panel:\n%s' % traceback.format_exc())
 
 
+HOST_EVENT_ID = 'exhaustTunerHostEvent'
+_host_q = []
+_host_qlock = __import__('threading').Lock()
+
+
+class _HostEvent(getattr(adsk.core, 'CustomEventHandler', object)):
+    """On Fusion's main thread: send the queued run messages (hostrun.py's threads) to the panel."""
+    def notify(self, args):
+        with _host_qlock:
+            items = _host_q[:]
+            del _host_q[:]
+        try:
+            pal = _ui.palettes.itemById(PALETTE_ID)
+        except Exception:
+            pal = None
+        for kind, payload in items:
+            try:
+                if pal and pal.isValid:
+                    pal.sendInfoToHTML(kind, payload)
+            except Exception:
+                pass
+
+
+def _host_post(kind, payload):
+    with _host_qlock:
+        _host_q.append((kind, json.dumps(payload)))
+    try:
+        _app.fireCustomEvent(HOST_EVENT_ID, '')
+    except Exception:
+        pass
+
+
 def start(app, ui, handlers, panel_id, build_pipe, build_centerlines):
     global _app, _ui, _handlers, _build_pipe, _build_centerlines
     _app, _ui, _handlers = app, ui, handlers
+    try:
+        try:
+            app.unregisterCustomEvent(HOST_EVENT_ID)
+        except Exception:
+            pass
+        ev = app.registerCustomEvent(HOST_EVENT_ID)
+        he = _HostEvent()
+        ev.add(he)
+        handlers.append(he)
+        HR._post = _host_post
+    except Exception:
+        HR._post = None
     _build_pipe, _build_centerlines = build_pipe, build_centerlines
     old = ui.commandDefinitions.itemById(PANEL_CMD_ID)
     if old:
@@ -3633,6 +3682,11 @@ def start(app, ui, handlers, panel_id, build_pipe, build_centerlines):
 
 
 def stop(ui, panel_id):
+    try:
+        HR.host_cancel()
+        adsk.core.Application.get().unregisterCustomEvent(HOST_EVENT_ID)
+    except Exception:
+        pass
     try:
         pal = ui.palettes.itemById(PALETTE_ID)
         if pal:

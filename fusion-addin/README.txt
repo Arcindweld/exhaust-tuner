@@ -1,4 +1,12 @@
-EXHAUST TUNER (Fusion add-in), version 4.14.1
+EXHAUST TUNER (Fusion add-in), version 4.15.0
+
+4.15.0 (November 5, 2026)
+  The panel runs OpenWAM itself (hostrun.py): "Run in OpenWAM on this PC" on the 4-Stroke and Two-Stroke tabs,
+  the Muffler designer's check, the dyno fit and the header optimiser now work inside Fusion, and the results go
+  straight into the tables and the Sound tab, with no case to save, run by hand or load back. Runs go to
+  Documents\Exhaust Tuner\runs. OpenWAM is taken from engines\openwam\OpenWAM.exe in this folder, else the Exhaust
+  Tuner program's copy, else one on the Desktop, in Downloads or in Documents; "Find OpenWAM.exe" in the panel
+  points to any other. The Sound tab's estimate and "Hear a misfire" need no OpenWAM at all.
 
 4.14.1 (November 5, 2026)
   Chamber baffles are cut to the chamber's bore (a line-on-line fit for welding in) instead of reaching
