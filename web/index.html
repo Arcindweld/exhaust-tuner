@@ -9083,7 +9083,7 @@ function runSpeed(eng,opts){
   for(let k=0;k<N;k++){
     vIn.push({m:0,h:CP*TATM,x:1,uj:0}); vEx.push({m:0,h:CP*700,x:0,uj:0}); exFlow.push({m:0,h:0,x:0,uj:0});
     const ip=ins[k][ins[k].length-1], ep=prims[k][0];
-    ins[k][0].left=openEnd(-1,PATM,TATM,1);
+    ins[k][0].left=openEnd(-1,opts.pIn>0?opts.pIn:PATM,TATM,1);   // opts.pIn: the manifold pressure behind a part-open throttle (Pa)
     ip.right=fedEnd(+1,()=>vIn[k]);
     ep.left=fedEnd(-1,()=>{ const f=exFlow[k], v=vEx[k]; f.m=-v.m; f.h=v.h; f.x=v.x; f.uj=v.uj; return f; });
   }
@@ -10977,7 +10977,7 @@ function recSection(sp,r){
         const mx=x.reduce((a,b)=>a+b,0)/x.length, my=y.reduce((a,b)=>a+b,0)/y.length;
         let sxy=0,sxx=0; x.forEach((v,i)=>{ sxy+=(v-mx)*(y[i]-my); sxx+=(v-mx)**2; });
         if(sxx>0){ tilt=sxy/sxx; rmsT=Math.sqrt(x.reduce((a,v,i)=>a+(y[i]-my-tilt*(v-mx))**2,0)/x.length); } }
-      REC.last={hold:H,ol,model,W:W&&W.name,tilt,rmsT};
+      REC.last={hold:H,ol,model,W:W&&W.name,tilt,rmsT,misfire:recMisfire(ol,model,off,REC.ctx.kf)};
       h+='<div class="tblwrap"><table><thead><tr><th>Order</th><th>Hz</th><th>Recording</th><th>Above the noise</th>'+(model?'<th>OpenWAM ('+esc(W.name)+')</th><th>Difference</th>':'')+'</tr></thead><tbody>'+
         ords.map(o=>{ const m=model&&model[o]!=null?model[o]:null, dd=m!=null?ol.lev[o]-m-off:null;
           return '<tr'+(Math.abs(o/REC.ctx.kf-Math.round(o/REC.ctx.kf))<1e-9?' class="cur"':'')+'><td>'+o+'</td><td>'+Math.round(o*H.rpm/60)+'</td><td>'+ol.lev[o].toFixed(1)+' dB</td><td class="'+(ol.snr[o]>=6?'':'st-warn')+'">'+ol.snr[o].toFixed(0)+' dB'+(ol.snr[o]<6?' (in the noise)':'')+'</td>'+
@@ -10986,6 +10986,8 @@ function recSection(sp,r){
         (model?' OpenWAM’s outflow spectrum is its rate of change at the open end (the tip as a monopole) and both are made relative; the difference has the mean offset ('+off.toFixed(1)+' dB) taken out, so a gain difference does not count. '+(rms!=null?'RMS over '+use.length+' firing-and-above orders: <b>'+rms.toFixed(1)+' dB</b> (0 is the same shape, 3 dB a factor 1.4 in amplitude).'+
             (tilt!=null?' The difference tilts by <b>'+(tilt>=0?'+':'')+tilt.toFixed(1)+' dB per octave</b> of frequency'+(Math.abs(tilt)>=3?(tilt<0?': the recording falls off faster than the model, so something after the engine takes out more of the high frequencies than the model has (a muffler modelled as a plain volume, a catalyst as plain pipe)':': the recording keeps more of the high frequencies than the model (a muffler or catalyst modelled as more restrictive than it is, or a sound path besides the tailpipe)'):', no steady tilt')+'; with the tilt taken out the RMS is '+rmsT.toFixed(1)+' dB. On the owner’s Outback, with its Spintech modelled as a plain 7.2 L volume, the tilt was −4 to −10 dB per octave at every hold (−7.2 fitted on all four; on the RS 660 with its stock muffler, −0.5 to +1.8 at idle).':''):'Too few orders above the noise to compare.'):
           ' Load the OpenWAM INS.DAT of a run at this speed on the 4-Stroke tab (Order spectrum of the outflow) to compare order by order.')+'</p>';
+      if(REC.last.misfire) h+='<div class="note warn">'+esc(REC.last.misfire.t)+'</div>';
+      if(W&&W.src==='wave'&&!W.pMap) h+='<div class="note">The model run here is at full throttle. A hold in the driveway is at no load, which changes the order pattern and the level: set Load to “No load” under Hear the model and estimate again to compare like with like.</div>';
       if(model&&W.cyc&&REC.x){
         const C=REC_AB.check;
         h+='<p class="sub" style="margin-top:12px">Listen: the recording against the model</p><div class="grid2" style="max-width:640px">'+
@@ -11029,6 +11031,17 @@ function recGuide(){
     '<li>Hold steady speeds for 5 s or more (idle, then each 500 RPM); then one slow, smooth sweep from idle to well past cruise, in neutral or on a dyno. Holds give the order levels; the sweep gives the resonances.</li>'+
     '<li>Engine warm, fans off if you can, no wind on the microphone. WAV at 48 kHz, 24-bit mono is ideal; a phone app that saves WAV works.</li>'+
     '<li>A calibrated microphone turns these relative levels into real loudness later; the comparison here does not need one.</li></ul></details>';
+}
+/* A misfire check on a hold: the orders below the firing order (once-per-cycle beats, 0.5 to kf - 0.5) far stronger in
+   the recording than in the healthy model, after the mean offset of the firing orders is taken out. In the wave model a
+   cylinder that does not fire lifts them by 30 to 70 dB against the firing order (tests/wsndmis_ui.js); 10 dB over the
+   model at two or more of them, each at least 6 dB above the noise, is flagged. Returns {t, orders} or null. */
+function recMisfire(ol,model,off,kf){
+  if(!ol||!model) return null;
+  const sub=Object.keys(ol.lev).map(Number).sort((a,b)=>a-b).filter(o=>o<kf&&Math.abs(o/kf-Math.round(o/kf))>1e-9&&model[o]!=null&&ol.snr[o]>=6);
+  const hi=sub.map(o=>({o,d:ol.lev[o]-model[o]-off})).filter(x=>x.d>=10);
+  if(hi.length<2) return null;
+  return {orders:hi.map(x=>x.o),t:'Orders '+hi.map(x=>x.o).join(', ')+' (once-per-cycle beats below the firing order) are '+Math.round(Math.min(...hi.map(x=>x.d)))+' to '+Math.round(Math.max(...hi.map(x=>x.d)))+' dB stronger than the healthy model. A cylinder that fires weakly or not at all does this; so can an exhaust leak before the collector, or headers more unequal than the model. Compare with “Hear a misfire” above before changing the exhaust.'};
 }
 /* recording straight from a microphone, so no file has to be saved and loaded: 48 kHz mono, written to a float WAV and
    read by recLoad like a picked file */
@@ -11162,7 +11175,7 @@ document.addEventListener('click',async e=>{
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); say('Downloaded '+name+'.');
   }
 });
-window.__wamIns=()=>WAM_UI.ins; window.__rec={MIC,wavFloat,micStart,micStop,recSynth,recAbCheck,REC_AB,REC,recWav,recFrames,recTrack,recHolds,recOrderLevels,recSweep,recFitModes,recLoad};
+window.__wamIns=()=>WAM_UI.ins; window.__rec={recMisfire,MIC,wavFloat,micStart,micStop,recSynth,recAbCheck,REC_AB,REC,recWav,recFrames,recTrack,recHolds,recOrderLevels,recSweep,recFitModes,recLoad};
 /* ===== Hear the model without a file (Sound tab): the page's own wave simulation (wsFactory) runs the 4-Stroke tab's
    engine and header at full throttle, with the OpenWAM line after the collector when it is on (its pipe; the muffler as
    the Mufflers tab's chamber, its extended tubes' pockets as tuned side volumes, or a can of the stated volume; the J-pipe
@@ -11264,13 +11277,30 @@ function wsndSteps(){
 }
 function wsndDefaultRpms(q){ const t=q&&q.tune>0?q.tune:5500; return [...new Set([2000,0.75*t,t].map(v=>Math.round(v/100)*100))].sort((a,b)=>a-b); }
 function wsndRpms(q){ const t=WSND.rpms&&WSND.rpms.trim(); return t?[...new Set(t.split(/[\s,;]+/).map(Number).filter(v=>v>=500&&v<=20000).map(v=>Math.round(v/50)*50))].sort((a,b)=>a-b):wsndDefaultRpms(q); }
+// one speed of the sound estimate. j.load 'none': no load, as a free-rev hold in the driveway: the intake mouth is held
+// at the manifold pressure pIn behind the throttle (as validation/outback-2004 does in OpenWAM, a fixed-pressure plenum)
+// and pIn is found so the net IMEP (pumping included) meets the friction law the page writes into its OpenWAM cases,
+// FMEP = 0.5 + 0.012 rpm/60 bar (OpenWAM's own default), i.e. zero brake torque: two runs, then secant steps.
+function wsndSpeedRun(WS,eng,rpm,j,st){
+  const conv=(r,pIn)=>{ for(let k=0;k<6;k++){ const h=r.history,n=h.length; if(n>=2&&Math.abs(h[n-1].ve-h[n-2].ve)<0.003*h[n-1].ve) break; r=WS.runSpeed(eng,{rpm:rpm,cycles:2,dx:j.dx,state:r.state,pIn:pIn}); } return r; };
+  let pIn=0, r;
+  if(j.load==='none'){
+    const PA=101325, fm=(0.5+0.012*rpm/60)*1e5;
+    const at=(p,s0,c)=>{ const q=conv(WS.runSpeed(eng,{rpm:rpm,cycles:c,dx:j.dx,state:s0,pIn:p}),p); return {r:q,n:q.imep}; };
+    let p1=0.3*PA, a=at(p1,st,st?4:8), p2=0.55*PA, b=at(p2,a.r.state,4);
+    for(let it=0;it<4;it++){ const sl=(b.n-a.n)/(p2-p1); if(!(sl>0)||Math.abs(b.n-fm)<0.04e5) break;
+      const p=Math.min(0.95*PA,Math.max(0.1*PA,p2+(fm-b.n)/sl)); a=b; p1=p2; p2=p; b=at(p,b.r.state,4); }
+    pIn=p2; r=b.r;
+  } else r=conv(WS.runSpeed(eng,{rpm:rpm,cycles:st?4:8,dx:j.dx,state:st}),0);
+  const y=WS.runSpeed(eng,{rpm:rpm,cycles:7,dx:j.dx,state:r.state,record:true,recordCycles:6,pIn:pIn});
+  return {y:y,pIn:pIn};
+}
 function wsndWorkerSrc(){
   return 'const WS=('+wsFactory.toString()+')();\n'+
+    'const wsndSpeedRun='+wsndSpeedRun.toString()+';\n'+
     'self.onmessage=function(ev){var j=ev.data; j.variants.forEach(function(v,vi){var s=v.spec,eng=WS.makeEngine(s.e,s.intake,s.exhaust,s.opt),st=null;\n'+
-    ' j.rpms.forEach(function(rpm,i){var r=WS.runSpeed(eng,{rpm:rpm,cycles:st?4:8,dx:j.dx,state:st});\n'+
-    '  for(var k=0;k<6;k++){var h=r.history,n=h.length; if(n>=2&&Math.abs(h[n-1].ve-h[n-2].ve)<0.003*h[n-1].ve) break; r=WS.runSpeed(eng,{rpm:rpm,cycles:2,dx:j.dx,state:r.state});}\n'+
-    '  var y=WS.runSpeed(eng,{rpm:rpm,cycles:7,dx:j.dx,state:r.state,record:true,recordCycles:6}); st=y.state;\n'+
-    '  self.postMessage({type:"speed",v:vi,i:i,rpm:rpm,ve:y.ve,imep:y.imep,Vd:eng.Vd,rec:y.rec});});});\n'+
+    ' j.rpms.forEach(function(rpm,i){var o=wsndSpeedRun(WS,eng,rpm,j,st),y=o.y; st=y.state;\n'+
+    '  self.postMessage({type:"speed",v:vi,i:i,rpm:rpm,ve:y.ve,imep:y.imep,Vd:eng.Vd,rec:y.rec,pIn:o.pIn});});});\n'+
     ' self.postMessage({type:"done"});};';
 }
 // The solver's open end varies from cycle to cycle (10-20 % RMS between cycles, at either grid size, without settling
@@ -11304,7 +11334,7 @@ function wsndEntry(m,q,sp,label){
   const M=WAM_MIC, r1=M.r, r2=M.layout==='side'?Math.hypot(M.r,0)+M.sep:M.r;
   const more=outs.slice(1).map(o=>({mdot:o.mdot,g:r1/r2,dDeg:(r2-r1)/343*6*m.rpm}));
   const base=outs[0], o24=wamInsOrders(base,24,more,m.rpm);
-  return Object.assign({name:(label||'Wave model')+' '+m.rpm,rpm:m.rpm,exits:outs.length,src:'wave',tq:m.imep*m.Vd/(4*Math.PI)*(sp.nIn||1)},wamInsOrders(base,12,more,m.rpm),
+  return Object.assign({name:(label||'Wave model')+' '+m.rpm+(m.pIn>0?' no load':''),rpm:m.rpm,exits:outs.length,src:'wave',pMap:m.pIn>0?m.pIn:null,tq:m.imep*m.Vd/(4*Math.PI)*(sp.nIn||1)},wamInsOrders(base,12,more,m.rpm),
     {db24:o24.db,spl24:o24.spl1,per:A.spread,spread:A.spread,nAvg:A.n,kf:Math.max(1,Math.round((sp.whole?q.cyl:sp.nIn)/2))});
 }
 // runs variants [{key,label,parts}] at the speeds; done(sets) with sets [{key,label,what,runs,notes}]
@@ -11318,10 +11348,10 @@ function wsndJob(variants,done){
   WSND.notes=[...new Set([].concat(...Ss.map(S=>S.notes)))]; WSND.busy=true;
   const got=Ss.map(()=>[]), total=Ss.length*rpms.length; let n=0;
   const finish=()=>{ WSND.busy=false;
-    const sets=Ss.map((S,k)=>({key:S.key,label:S.label,what:wsndHeaderWhat(q)+'; '+S.what,rpms,runs:got[k].map(m=>{ try{ return wsndEntry(m,q,S,S.label); }catch(e){ return {name:S.label+' '+m.rpm,rpm:m.rpm,err:e.message,src:'wave'}; } })}));
+    const sets=Ss.map((S,k)=>({key:S.key,label:S.label,what:wsndHeaderWhat(q)+'; '+S.what+(job.load==='none'?'; no load':''),rpms,load:job.load,runs:got[k].map(m=>{ try{ return wsndEntry(m,q,S,S.label); }catch(e){ return {name:S.label+' '+m.rpm,rpm:m.rpm,err:e.message,src:'wave'}; } })}));
     done(sets); };
-  const job={variants:Ss.map(S=>({spec:S.spec})),rpms,dx:WSND.dx||0.02};
-  say('Simulating '+total+' run'+(total>1?'s':'')+' at full throttle'+(Ss.length>1?' ('+Ss.length+' designs × '+rpms.length+' speeds)':'')+'…');
+  const job={variants:Ss.map(S=>({spec:S.spec})),rpms,dx:WSND.dx||0.02,load:WSND.load==='none'?'none':'wot'};
+  say('Simulating '+total+' run'+(total>1?'s':'')+(job.load==='none'?' with no load (a free-rev hold)':' at full throttle')+(Ss.length>1?' ('+Ss.length+' designs × '+rpms.length+' speeds)':'')+'…');
   const prog=d=>{ got[d.v].push(d); n++; WSND.msg={t:'Simulated '+n+' of '+total+'…'}; const el=$('wsnd-msg'); if(el) el.textContent=WSND.msg.t; };
   let w=null; try{ w=new Worker(URL.createObjectURL(new Blob([wsndWorkerSrc()],{type:'text/javascript'}))); }catch(e){ w=null; }
   if(w){ WSND.worker=w; w.onmessage=ev=>{ const d=ev.data; if(d.type==='speed') prog(d); else if(d.type==='done'){ w.terminate(); WSND.worker=null; finish(); } };
@@ -11329,8 +11359,7 @@ function wsndJob(variants,done){
   // no background worker allowed: the same on the page, one run at a time
   let vi=0, i=0, eng=null, st=null;
   const step=()=>{ if(vi>=Ss.length){ finish(); return; } if(!eng){ const s=Ss[vi].spec; eng=WS.makeEngine(s.e,s.intake,s.exhaust,s.opt); st=null; }
-    const rpm=rpms[i]; let r=WS.runSpeed(eng,{rpm,cycles:st?4:8,dx:job.dx,state:st}); for(let k=0;k<6;k++){ const h=r.history,nn=h.length; if(nn>=2&&Math.abs(h[nn-1].ve-h[nn-2].ve)<0.003*h[nn-1].ve) break; r=WS.runSpeed(eng,{rpm,cycles:2,dx:job.dx,state:r.state}); }
-    const y=WS.runSpeed(eng,{rpm,cycles:7,dx:job.dx,state:r.state,record:true,recordCycles:6}); st=y.state; prog({v:vi,i,rpm,ve:y.ve,imep:y.imep,Vd:eng.Vd,rec:y.rec});
+    const rpm=rpms[i], o=wsndSpeedRun(WS,eng,rpm,job,st), y=o.y; st=y.state; prog({v:vi,i,rpm,ve:y.ve,imep:y.imep,Vd:eng.Vd,rec:y.rec,pIn:o.pIn});
     i++; if(i>=rpms.length){ i=0; vi++; eng=null; } setTimeout(step,0); };
   setTimeout(step,0);
 }
@@ -11341,7 +11370,8 @@ function wsndSetRuns(sets){ // the full design's runs into the OpenWAM runs list
   window.__wsndLast=full.runs; return ok.length;
 }
 function wsndRun(){ wsndJob([{key:'full',label:'Your design',parts:{}}],sets=>{ WSND.sets=sets; WSND.A=0; WSND.B=null; const n=wsndSetRuns(sets);
-  WSND.msg={t:n?'Done: '+n+' speed'+(n>1?'s':'')+' at full throttle. Play it below, keep it to compare with a change, or hear each part.':'The simulation did not finish a speed.',bad:!n}; renderActive(); }); }
+  const nl=sets[0].load==='none', pm=nl?sets[0].runs.filter(x=>!x.err&&x.pMap).map(x=>x.rpm.toLocaleString('en-US')+' RPM '+Math.round(x.pMap/1000)+' kPa').join(', '):'';
+  WSND.msg={t:n?'Done: '+n+' speed'+(n>1?'s':'')+(nl?' with no load; the throttle was closed until the engine made no torque, which left the manifold at '+pm+' (absolute).':' at full throttle.')+' Play it below, keep it to compare with a change, or hear each part.':'The simulation did not finish a speed.',bad:!n}; renderActive(); }); }
 // the cylinders a misfire choice stops: 'c1' cylinder 1 (index 0: first in the firing order on the 4-Stroke tab's layout,
 // cylinder number - 1 on a Headers layout, where cylinder 1 is also the first); 'bank' the first collector's cylinders
 function wsndDeadOpts(q){ const o=[{v:'c1',t:'Cylinder 1 not firing (a misfire)'}];
@@ -11370,7 +11400,8 @@ function wsndPart(sp){
   const q=SIM.inp, rp=q?wsndRpms(q):[], P=WSND.play, all=wsndAll();
   let h='<p class="cap" style="margin-top:0">No recording or OpenWAM file needed: the page’s own wave simulation runs the 4-Stroke tab’s engine and header at full throttle'+(WAM_UI.line.on?', with the line, muffler, resonator and tailpipe from the OpenWAM panel,':'')+' and the sound is worked out from the flow leaving the tailpipe, the same way an OpenWAM run is read. It is an estimate: a 1-D plane-wave model, the open end as a point source, no shell noise or intake. Checked against OpenWAM on the default V8 with a 2.5 m line and no muffler: the firing orders within 1 to 9 dB, the overall level within 4 to 10 dB. With identical cylinders firing evenly a settled model has only the firing orders; a real engine adds weaker orders between them from cylinder-to-cylinder differences, which the playback stands in for with a little pulse-to-pulse variation. For a design you will build, the OpenWAM run is the better answer.</p>';
   if(!q) return h+'<div class="note">Open the 4-Stroke tab and fill it in: the estimate runs its engine and header.</div>';
-  h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Engine speeds, full throttle (RPM)</span><span class="inp"><input id="wsnd-rpms" type="text" inputmode="numeric" value="'+esc(WSND.rpms||rp.join(' '))+'"></span></label></div>'+
+  h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Engine speeds (RPM)</span><span class="inp"><input id="wsnd-rpms" type="text" inputmode="numeric" value="'+esc(WSND.rpms||rp.join(' '))+'"></span></label>'+
+    '<label class="f span2"><span class="lab">Load</span><span class="inp"><select id="wsnd-load"><option value="wot"'+(WSND.load==='none'?'':' selected')+'>Full throttle (a pull on the dyno or the road)</option><option value="none"'+(WSND.load==='none'?' selected':'')+'>No load (a free-rev hold in the driveway)</option></select></span></label></div>'+
     '<div class="actions"><button type="button" class="btn" data-wsnd="run"'+(WSND.busy?' disabled':'')+'>Estimate the sound</button><button type="button" class="btn" data-wsnd="parts"'+(WSND.busy?' disabled':'')+'>Hear each part</button><button type="button" class="btn" data-wsnd="misfire"'+(WSND.busy?' disabled':'')+'>Hear a misfire</button>'+
     (WSND.sets.length?'<button type="button" class="btn" data-wsnd="keep">Keep this design to compare</button>':'')+(WSND.kept.length?'<button type="button" class="btn" data-wsnd="clear">Clear the kept designs</button>':'')+'</div>'+
     '<div class="grid2" style="max-width:640px;margin-top:8px"><label class="f span2"><span class="lab">For “Hear a misfire”</span><span class="inp"><select id="wsnd-dead">'+wsndDeadOpts(q).map(o=>'<option value="'+o.v+'"'+((WSND.dead||'c1')===o.v?' selected':'')+'>'+esc(o.t)+'</option>').join('')+'</select></span></label></div>'+
@@ -11443,6 +11474,7 @@ document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   if(!t.id||!/^wsnd-/.test(t.id)) return;
   if(t.id==='wsnd-rpms'){ WSND.rpms=t.value; return; }
   if(t.id==='wsnd-dead'){ WSND.dead=t.value; return; }
+  if(t.id==='wsnd-load'){ WSND.load=t.value; return; }
   if(t.id==='wsnd-src') WSND.src=t.value; else if(t.id==='wsnd-rpm') P.rpm=+t.value; else if(t.id==='wsnd-jet') P.jet=t.value==='1'; else if(t.id==='wsnd-how') P.how=t.value;
   else if(t.id==='wsnd-mph'){ const v=+t.value; if(v>=5&&v<=150) P.mph=v; } else if(t.id==='wsnd-ft'){ const v=+t.value; if(v>=3&&v<=300) P.ft=v; }
   else if(t.id==='wsnd-p0'){ const v=+t.value; if(v>0) P.pull0=v; } else if(t.id==='wsnd-p1'){ const v=+t.value; if(v>0) P.pull1=v; }

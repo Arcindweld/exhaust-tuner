@@ -583,6 +583,17 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   recording's odd orders 1, 3, 5 are 13-31 dB above the tailpipe model (intake and engine-structure noise reach the
   microphone, cylinder-to-cylinder spread), and the model is 20 dB too bright at order 12 (cat as a plain pipe,
   muffler as a plain volume; a capillary-substrate cat adds only about 2 dB at 400 Hz by the narrow-tube estimate).
+- No-load sound estimate (2026-11-06): the Sound tab's Load choice "No load (a free-rev hold in the driveway)" holds
+  the intake mouth at a manifold pressure (runSpeed opts.pIn; validation/outback-2004's fixed-pressure plenum) found so
+  the net IMEP meets FMEP = 0.5 + 0.012 rpm/60 bar (the page's OpenWAM default law): two runs and secant steps per
+  speed (wsndSpeedRun, shared by the worker and the page fallback). Default engine: 21-22 kPa at 2,000-3,000 RPM (the
+  OpenWAM Outback calibration gave 24 kPa at 1,980), flow out 10-18% of full throttle, 6 dB quieter
+  (tests/wsndload_ui.js). The recording comparison asks for a no-load run when the model was at full throttle.
+  rust/et_wave does not carry opts.pIn or e.dead (the sound estimate runs the JavaScript solver; the 4-Stroke tab's
+  wasm runs use neither, so parity holds).
+- Recording misfire check (2026-11-06): recMisfire flags a hold whose orders below the firing order are 10 dB or more
+  over the healthy model at two or more orders (each 6 dB above the noise) and points to Hear a misfire; also names a
+  leak before the collector or more unequal headers as causes (tests/recmis_ui.js).
 - Record from the microphone (2026-11-05): the Sound tab's "Compare with a recording" can take a take straight from a mic (getUserMedia with echo cancelling, noise suppression and AGC off; 48 kHz ScriptProcessor; written to a float WAV, wavFloat, and read by recLoad), so no file is saved and loaded. tests/mic_ui.js (Chromium's fake mic; WAV round trip; refused mic).
 - OpenWAM inside the Fusion panel (2026-11-05, add-in 4.15.0; the owner asked for one clean program with no files to
   carry between programs): fusion-addin/hostrun.py runs the page's OpenWAM cases on the PC the way et_host does
