@@ -609,6 +609,8 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   power, St 0.2 peak, +6 / -3 dB per octave, A-weighted by third octave, +3 dB ground). Inputs: redline, outlet height
   (in, mm shown). Default V8 open headers 4,500 RPM: 118.8 dB(A); the Outback spec with its Spintech volume at 4,500:
   103.6 (pulses; jet noise ~31 at no-load flow). No shell noise or directivity: said on the page. tests/wsndstat_ui.js.
+  "Test each part" runs the test for each Hear-each-part step and names the first under 95: default V8 at 4,500,
+  open 118.8, + line and tailpipe 115.6, + a 230 x 400 mm chamber 91.0 dB(A).
   Solver fix found by it: a run continued from a state left at another intake-mouth pressure (the no-load secant's
   0.30 -> 0.55 atm step) sent a compression into a shut intake valve that broke the scheme (NaN state, empty record);
   runSpeed now moves the mouth pressure to the new value over the first cycle (st.pMouth), wsndSpeedRun redoes a broken
