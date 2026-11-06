@@ -600,18 +600,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
   has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
   the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
-- Stationary sound test estimate (2026-11-06): Sound tab, "Estimate the stationary test": California's referee test for
-  vehicles under 6,000 lb GVWR other than motorcycles (Vehicle Code 27150.2(b), 95 dB(A); 13 CCR 1036 with SAE J1169:
-  neutral, warm, three-quarters of the maximum rpm, meter 20 in / 508 mm from the outlet's edge, 45 deg off its axis, at
-  outlet height >= 8 in, no reflector within 10 ft, highest reading at the loudest outlet). One no-load run at 0.75 x
-  the entered redline; the first outlet's orders as a monopole (spl24x1) moved from 1 m to 0.508 m, each with the
-  pavement's image source 2h below added in phase, A-weighted; plus Lighthill jet noise at the tip (cycle-averaged
-  power, St 0.2 peak, +6 / -3 dB per octave, A-weighted by third octave, +3 dB ground). Inputs: redline, outlet height
-  (in, mm shown). Default V8 open headers 4,500 RPM: 118.8 dB(A); the Outback spec with its Spintech volume at 4,500:
-  103.6 (pulses; jet noise ~31 at no-load flow). No shell noise or directivity: said on the page. tests/wsndstat_ui.js.
-  "Test each part" runs the test for each Hear-each-part step and names the first under 95: default V8 at 4,500,
-  open 118.8, + line and tailpipe 115.6, + a 230 x 400 mm chamber 91.0 dB(A).
-  Solver fix found by it: a run continued from a state left at another intake-mouth pressure (the no-load secant's
+- Stationary road-noise test (California 95 dB(A)) added and then removed 2026-11-06 at the owner's request (the
+  builds are off-road vehicles). Kept from it:
+  a solver fix: a run continued from a state left at another intake-mouth pressure (the no-load secant's
   0.30 -> 0.55 atm step) sent a compression into a shut intake valve that broke the scheme (NaN state, empty record);
   runSpeed now moves the mouth pressure to the new value over the first cycle (st.pMouth), wsndSpeedRun redoes a broken
   run from a cold start, and open-end inflow is held at the critical pressure (choked) instead of past it.
