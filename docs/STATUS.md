@@ -596,7 +596,8 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   three folders down. With a host the AVG/INS pickers fold under "Load files from a run done elsewhere". Tests:
   fusion-addin/tests/test_hostrun.py (stand-in solver), web/tests/fusionhost_ui.js (the page, hostrun.py through a
   stand-in bridge, the real OpenWAM build: 5 models, results and Sound tab orders). Releases now also carry the
-  patched OpenWAM as OpenWAM-win-x64.exe for the add-in folder. Not yet run live in Fusion (its MCP was down).
+  patched OpenWAM as OpenWAM-win-x64.exe for the add-in folder (v0.1.187 is the first; its copy, sha256 a0521446..., is in
+  the owner's AddIns\ExhaustTuner\engines\openwam with the GPL text). Not yet run live in Fusion (its MCP was down).
 - Hear a misfire (2026-11-05): the Sound tab's estimate can run the design with cylinder 1 (index 0) or collector A's cylinders not burning (engine e.dead, cylinder indices; runSpeed sets burnQ 0, the cylinder still pumps) beside the healthy one as A/B. Checked (tests/wsndmis_ui.js): torque drops by one cylinder's share (24 to 26% of 4 simulated; 54% for a dead V8 bank), mean flow out within 3%, and the half orders rise from 80 and 14 dB below the firing order to 10 and 1 dB below. Prompted by Maisteer's V12, whose bad sound was a dead bank.
 - Headers tab clocking (2026-11-05): each n-into-1 collector (not a Tri-Y) lists its tubes in firing order for builders who clock them round the collector (#h-clock; tests/clocking_ui.js). The note says no test of it is known and the wave model cannot show it. Shop videos added to Sources as checks (back pressure 0.4 to 18 psi, megaphone angles, 4A-GE 4-2-1 vs 4-1, turbo bend test, explainers).
 - Live in Fusion 2026-11-05 (the owner's PC, add-in 4.14.1 installed): fusion_live_chambers.py all ok (the inline
