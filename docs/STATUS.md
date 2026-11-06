@@ -583,6 +583,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   recording's odd orders 1, 3, 5 are 13-31 dB above the tailpipe model (intake and engine-structure noise reach the
   microphone, cylinder-to-cylinder spread), and the model is 20 dB too bright at order 12 (cat as a plain pipe,
   muffler as a plain volume; a capillary-substrate cat adds only about 2 dB at 400 Hz by the narrow-tube estimate).
+- Headers tab clocking (2026-11-05): each n-into-1 collector (not a Tri-Y) lists its tubes in firing order for builders who clock them round the collector (#h-clock; tests/clocking_ui.js). The note says no test of it is known and the wave model cannot show it. Shop videos added to Sources as checks (back pressure 0.4 to 18 psi, megaphone angles, 4A-GE 4-2-1 vs 4-1, turbo bend test, explainers).
 - Live in Fusion 2026-11-05 (the owner's PC, add-in 4.14.1 installed): fusion_live_chambers.py all ok (the inline
   chamber with extended tubes, the same with two baffles, the flat-oval reverse-flow case: every body's volume within
   0.2 % of its section by Pappus, the tubes and baffles clear of each other, the reverse case's holes cut through
