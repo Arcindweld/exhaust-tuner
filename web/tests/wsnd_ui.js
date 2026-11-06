@@ -23,8 +23,8 @@ const { chromium } = require('playwright');
   const listed = await pg.evaluate(() => window.__wamIns().filter(x => x.src === 'wave').length);
   ok(listed === 2, 'the runs join the OpenWAM runs list (' + listed + ')');
   const t1 = await sec();
-  ok(/dB\(A\)/.test(t1) && /cycles averaged/.test(t1) && !/NaN|undefined/.test(t1), 'levels table with the cycle-to-cycle spread, no NaN');
-  for (const k of ['hold', 'pass', 'pull', 'pullpass']) { const n0 = await pg.evaluate(() => window.__played.length); await pg.click('button[data-wsnd="' + k + '"]'); await pg.waitForTimeout(k === 'pull' || k === 'pullpass' ? 2500 : 1200);
+  ok(/dB\(A\)/.test(t1) && /Play A/.test(t1) && !/NaN|undefined/.test(t1), 'levels table and the A / B player, no NaN');
+  for (const k of ['hold', 'pass', 'pull', 'pullpass']) { const n0 = await pg.evaluate(() => window.__played.length); await pg.selectOption('#wsnd-how', k); await pg.waitForTimeout(200); await pg.click('button[data-wsnd="playA"]'); await pg.waitForTimeout(k === 'pull' || k === 'pullpass' ? 2500 : 1200);
     const p = await pg.evaluate(() => window.__played[window.__played.length - 1]), n1 = await pg.evaluate(() => window.__played.length);
     if (n1 <= n0) console.log('   message: ' + await pg.evaluate(() => (document.getElementById('wsnd-play-msg') || {}).textContent));
     ok(n1 > n0 && p && p.n > 48000 && p.pk > 0.001 && p.pk <= 1, k + ': plays ' + (p ? (p.n / p.sr).toFixed(1) + ' s, peak ' + p.pk.toFixed(3) : 'nothing')); }
@@ -44,8 +44,40 @@ const { chromium } = require('playwright');
   const LA = x => 10 * Math.log10(x.spl.reduce((a, L, i) => a + Math.pow(10, (L + aw((i + 1) / 2 * x.rpm / 60)) / 10), 0));
   const dL = line.map((x, i) => LA(x) - LA(muf[i]));
   ok(kind === 'chamber' && dL.every(v => v > 3), 'a 230 x 400 mm chamber on the line takes ' + dL.map(v => v.toFixed(1)).join(' and ') + ' dB(A) off (line ' + line.map(x => LA(x).toFixed(1)).join(', ') + ')');
-  const notes = await sec();
-  ok(/plain one|straight-through|chamber/.test(notes) || true, 'notes shown');
+  // every addition heard on its own: extended tubes on the chamber and a J-pipe on the line, then "Hear each part"
+  await pg.evaluate(() => { for (const [id, v] of [['m-lin', '150'], ['m-lout', '75']]) { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); } }); await pg.waitForTimeout(200);
+  await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400);
+  await pg.selectOption('select.wamline[data-k="fix"]', 'jpipe'); await pg.waitForTimeout(300);
+  const fixOn = await pg.evaluate(() => window.__wamLine.W().fix);
+  await pg.evaluate(() => { location.hash = 'sound'; }); await pg.waitForTimeout(500);
+  const ext = await pg.evaluate(() => window.__wsnd.wsndExt());
+  ok(ext.branches.length === 3 && ext.branches.filter(b => /pocket/.test(b.what)).length === 2 && ext.branches.some(b => b.what === 'J-pipe'), 'the pockets and the J-pipe go into the line as side branches (' + ext.branches.map(b => b.what).join(', ') + ')');
+  await pg.evaluate(() => { window.__wsndSets = null; }); await pg.click('button[data-wsnd="parts"]'); await pg.waitForFunction(() => window.__wsndSets, null, { timeout: 600000 });
+  const sets = await pg.evaluate(() => window.__wsndSets.map(s => ({ key: s.key, label: s.label, runs: s.runs.map(x => ({ rpm: x.rpm, err: x.err, spl: x.spl24 })) })));
+  ok(fixOn === 'jpipe' && sets.map(s => s.key).join() === 'open,line,muf,fix', 'Hear each part: the open headers, + line, + muffler, + J-pipe (' + sets.map(s => s.key).join(', ') + ')');
+  const LAs = sets.map(s => s.runs.map(LA));
+  console.log('   dB(A) at 1 m by step: ' + sets.map((s, k) => s.key + ' ' + LAs[k].map(v => v.toFixed(1)).join('/')).join(', '));
+  const dSpec = (a, c) => Math.max(...a.spl.map((v, i) => Math.abs(v - c.spl[i])));
+  ok(sets.every(s => s.runs.every(x => !x.err && x.spl.every(Number.isFinite))), 'every step ran at every speed');
+  ok(sets.slice(1).every((s, k) => s.runs.every((x, i) => dSpec(x, sets[k].runs[i]) > 1)), 'every addition changes the sound (largest order change per step, at each speed: ' + sets.slice(1).map((s, k) => s.runs.map((x, i) => dSpec(x, sets[k].runs[i]).toFixed(0)).join('/')).join(', ') + ' dB)');
+  ok(LAs[2].every((v, i) => v < LAs[1][i]), 'the muffler takes level off the line and tailpipe');
+  // the extended tubes are heard: the same can without them
+  const plainVsExt = await pg.evaluate(() => { const W = document.getElementById('m-lin'), Z = document.getElementById('m-lout'); const a = window.__wsnd.wsndExt().branches.length; W.value = '0'; W.dispatchEvent(new Event('input', { bubbles: true })); Z.value = '0'; Z.dispatchEvent(new Event('input', { bubbles: true })); const b = window.__wsnd.wsndExt().branches.length; return [a, b]; });
+  ok(plainVsExt[0] === 3 && plainVsExt[1] === 1, 'without the extended tubes the pockets go (branches ' + plainVsExt.join(' -> ') + ')');
+  // A / B between two steps, and every row in order
+  const txt = await sec();
+  ok(/Headers and collector, open/.test(txt) && /\+ the muffler/.test(txt) && /\+ the J-pipe/.test(txt) && /\([+-]\d/.test(txt), 'the table shows each step with what its addition changed');
+  for (const k of ['ab', 'steps']) { await pg.selectOption('#wsnd-how', 'hold'); await pg.waitForTimeout(150); const n0 = await pg.evaluate(() => window.__played.length); await pg.click('button[data-wsnd="' + k + '"]'); await pg.waitForTimeout(2500);
+    const p = await pg.evaluate(() => window.__played[window.__played.length - 1]), n1 = await pg.evaluate(() => window.__played.length), m = await pg.evaluate(() => document.getElementById('wsnd-play-msg').textContent);
+    ok(n1 > n0 && p && p.n > (k === 'ab' ? 2 : 4) * 4 * 48000, k + ': plays ' + (p ? (p.n / 48000).toFixed(1) + ' s' : 'nothing') + ' (' + m.slice(0, 90) + ')'); }
+  // keep the design, change the primaries, estimate again: both on show
+  await pg.click('button[data-wsnd="keep"]'); await pg.waitForTimeout(300);
+  await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(500);
+  const p0 = await pg.evaluate(() => { const el = document.getElementById('f-ex1') || document.querySelector('#panel-four input[data-kind="len"]'); return el ? el.id : null; });
+  await pg.evaluate(() => { location.hash = 'sound'; }); await pg.waitForTimeout(500);
+  await pg.evaluate(() => { window.__wsndLast = null; }); await pg.click('button[data-wsnd="run"]'); await pg.waitForFunction(() => window.__wsndLast, null, { timeout: 300000 });
+  const kept = await pg.evaluate(() => ({ n: window.__wsnd.WSND.kept.length, rows: document.querySelectorAll('input[name="wsnd-a"]').length, t: [...document.querySelectorAll('.sec h3')].find(x => /Hear the model/.test(x.textContent)).parentElement.innerText }));
+  ok(kept.n === 1 && kept.rows === 2 && /Kept 1: primaries/.test(kept.t), 'a kept design stays beside the new estimate (' + kept.rows + ' rows)');
   await pg.setViewportSize({ width: 400, height: 800 }); await pg.waitForTimeout(300);
   const sw = await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   ok(sw <= 0, 'phone width: no sideways scroll (' + sw + ' px)');

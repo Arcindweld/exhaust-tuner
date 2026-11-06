@@ -782,6 +782,17 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   evenly into one symmetric 5-way junction (OpenWAM BC type 12), so a settled run has only the firing orders; OpenWAM's
   there come from its last cycles still changing (4.8 %), which one analysed cycle spreads over every order. A 230 x 400 mm chamber on
   the line takes 15 and 5 dB(A) off at 2500 and 4500 rpm. wsnd_ui.js.
+- Hear each part (2026-11-05): the no-file sound estimate now carries every addition on the line: the Mufflers tab's
+  chamber with its extended tubes' pockets as tuned side volumes (V = A l, neck 4 l / pi^2, the same as the OpenWAM
+  case), the J-pipe (closed tube as a tuned volume, mouth end correction 0.6133 r) or Helmholtz can at its place, a can
+  of the stated volume, the tailpipe; freshState puts collector.branches on the collector's line (any pipe, ch.P).
+  "Hear each part" runs the exhaust built up one addition at a time (open headers, + line and tailpipe, + muffler, +
+  resonator) at the same speeds; the table shows each step's dB(A) and what its addition changed; any two rows play as
+  A and B (held, driving past, pulled through the speeds, or both), or every row in order, on one level scale.
+  "Keep this design" holds a design's runs (with a one-line description) beside later estimates (up to 6). Default V8,
+  2500 / 4500 RPM, dB(A) at 1 m: open 106.6 / 121.1, + 2.5 m line 105.1 / 106.6, + 230 x 400 mm extended-tube chamber
+  92.6 / 98.3, + J-pipe 93.3 / 95.4; every step moves some order by 10-41 dB. Still left out (noted on the page):
+  parallel auger / bundle paths, the crossover, packing, the reverse-flow layout (runs straight through).
 - Engine pickers list the LS and LT engines by name (GM_LS_NAMED, engFam); OpenWAM check: Use buttons, winner marked,
   the tab's straight-through chamber runs alongside.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
