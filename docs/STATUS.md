@@ -591,6 +591,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   (tests/wsndload_ui.js). The recording comparison asks for a no-load run when the model was at full throttle.
   rust/et_wave does not carry opts.pIn or e.dead (the sound estimate runs the JavaScript solver; the 4-Stroke tab's
   wasm runs use neither, so parity holds).
+- No-load wave estimate on the Outback (validation/outback-2004/wave_noload.js -> wave_noload.json, 2026-11-06): the
+  page's solver on the OpenWAM spec (tail as segments, the Spintech case as a 7.24 L straight volume) finds the manifold
+  at 22.9 / 22.1 / 23.4 / 24.9 kPa at 1,980 / 2,585 / 2,955 / 3,550 RPM, against OpenWAM's calibrated 24 kPa: the
+  no-load method agrees. Order levels 2-12 against the recording, offset out: wave 13.4 / 15.9 / 13.7 / 13.2 dB RMS,
+  OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
+  has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
+  the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
 - Recording misfire check (2026-11-06): recMisfire flags a hold whose orders below the firing order are 10 dB or more
   over the healthy model at two or more orders (each 6 dB above the noise) and points to Hear a misfire; also names a
   leak before the collector or more unequal headers as causes (tests/recmis_ui.js).
