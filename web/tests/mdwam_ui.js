@@ -62,6 +62,10 @@ function runOne(dir, name) {
   await pg.evaluate(() => { location.hash = 'mufflers'; }); await pg.waitForTimeout(400);
   await pg.click('#m-expert'); await pg.waitForTimeout(200);
   await pg.selectOption('select.mdsel', 'chamber'); await pg.waitForTimeout(200);
+  // the tab's own chamber: a straight-through can, 200 x 400 mm, which the designer would not offer
+  await pg.fill('#m-dch', '200'); await pg.dispatchEvent('#m-dch', 'input'); await pg.fill('#m-lch', '400'); await pg.dispatchEvent('#m-lch', 'input');
+  await pg.selectOption('#m-chlay', 'reverse'); await pg.waitForTimeout(300);
+  await pg.selectOption('#m-chlay', 'through'); await pg.waitForTimeout(300);
   await pg.click('#md-run'); await pg.waitForTimeout(500);
   const floor0 = await pg.evaluate(() => window.__mdw.MDW.minCycles); ok(floor0 === 20, 'the check runs at least 20 cycles a run by default (' + floor0 + ')');
   await pg.evaluate(c => { window.__mdw.MDW.minCycles = +c; }, process.env.MDW_CYC || '8');   // the test runs short; the page's floor is 20
@@ -84,7 +88,7 @@ function runOne(dir, name) {
   if (X) {
     console.log(JSON.stringify(X.rows.map(r => ({ l: r.label, least: r.least, said: r.d && r.d.min, la: r.la, tq: r.tq, err: r.err }))));
     const b0 = X.rows[0], ds = X.rows.slice(1);
-    for (const r of X.rpms) { const B = b0.spl[r]; console.log('rpm', r, 'base', B.slice(0, 16).map(v => v.toFixed(0)).join(' ')); for (const d of ds) console.log('   ', d.spl[r].slice(0, 16).map(v => v.toFixed(0)).join(' ')); }
+    for (const r of X.rpms) { const B = b0.spl[r]; for (const d of ds) if (!d.spl || !d.spl[r]) console.log('   no result: ' + d.label + ' ' + (d.err || '')); console.log('rpm', r, 'base', B.slice(0, 16).map(v => v.toFixed(0)).join(' ')); for (const d of ds) if (d.spl && d.spl[r]) console.log('   ', d.spl[r].slice(0, 16).map(v => v.toFixed(0)).join(' ')); }
     ok(Number.isFinite(b0.la) && Number.isFinite(b0.tq), 'the no-muffler line has a level and a torque');
     ok(X.inBand > 0, 'orders land in the band at those speeds (' + X.inBand + ')');
     ok(ds.every(r => Number.isFinite(r.least) && r.least > -30 && r.least < 60), 'each chamber has a finite figure for what it takes off the band');
@@ -95,6 +99,19 @@ function runOne(dir, name) {
     const txt = await pg.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler designer'); return h.parentElement.innerText; });
     ok(/Least taken off the band \(OpenWAM\)/.test(txt) && /reference/.test(txt) && !/NaN/.test(txt), 'the results table is on the page, no NaN');
     ok(/Done\./.test(txt), 'the message says it is done');
+    const mine = X.rows.find(r => r.mine);
+    ok(mine && /plain chamber, 200/.test(mine.label) && Number.isFinite(mine.la) && Number.isFinite(mine.least), 'the tab\'s own chamber ran with the rest (' + (mine ? mine.label + ', ' + (mine.la || 0).toFixed(1) + ' dB(A)' : 'missing') + ')');
+    const nUse = await pg.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler designer'); const t = [...h.parentElement.querySelectorAll('table')].pop(); return [...t.querySelectorAll('button[data-md]')].length; });
+    ok(nUse === X.rows.filter(r => r.d).length, 'every designer chamber in the results has a Use button (' + nUse + ')');
+    const win = await pg.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler designer'); const t = [...h.parentElement.querySelectorAll('table')].pop(); const r = t.querySelector('tr.cur'); return r ? r.innerText : ''; });
+    ok(/most off the band/.test(win), 'the winner is marked');
+    const pick = X.rows.filter(r => r.d)[0];
+    await pg.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler designer'); const t = [...h.parentElement.querySelectorAll('table')].pop(); t.querySelector('button[data-md]').click(); }); await pg.waitForTimeout(400);
+    const dch = await pg.evaluate(() => window.__md && document.getElementById('m-dch')._b);
+    ok(Math.abs(dch - pick.d.D) < 0.01, 'Use on a result puts that chamber into the fields (' + dch + ' mm)');
+    await pg.selectOption('#m-chlay', 'reverse'); await pg.waitForTimeout(400);
+    const rv = await pg.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler designer'); return { t: h.parentElement.innerText, mine: window.__mdw.mdwBuild().rows.some(r => r.mine) }; });
+    ok(/reverse-flow chamber on this tab is left out/.test(rv.t) && !rv.mine, 'a reverse-flow chamber on the tab is left out, and the page says why');
     ok(!ds.some(unset) || /Not settled/.test(txt), 'unsettled runs get the note under the table');
     await pg.setViewportSize({ width: 400, height: 800 }); await pg.waitForTimeout(300);
     const sw = await pg.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

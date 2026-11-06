@@ -7898,6 +7898,16 @@ const ENGLIB={
   r3:{grp:'rot',name:'Rotary, three rotors (20B)',cyc:'r',order:[1,2,3],src:'https://en.wikipedia.org/wiki/Wankel_engine'},
   r4:{grp:'rot',name:'Rotary, four rotors (R26B)',cyc:'r',order:[1,2,3,4],banks:[[1,2],[3,4]],src:'https://en.wikipedia.org/wiki/Wankel_engine'}
 };
+// the LS and LT engines by name: each shares the family's firing order 1-8-7-2-6-5-4-3 and odd-even bank split (GM Gen
+// III, IV and V small-blocks; EngineLabs as above, Chevrolet's Gen V pages), listed so an LS3 or LT4 can be picked by name
+const GM_LS_NAMED=[['gm_ls1','LS1 5.7 (Gen III)'],['gm_ls6','LS6 5.7 (Gen III)'],['gm_lm7','LM7 / L59 5.3 truck (Gen III)'],['gm_lq4','LQ4 / LQ9 6.0 truck (Gen III)'],
+  ['gm_ls2','LS2 6.0 (Gen IV)'],['gm_ls3','LS3 6.2 (Gen IV)'],['gm_l99','L99 6.2 (Gen IV)'],['gm_l92','L92 / L9H 6.2 truck (Gen IV)'],['gm_ls7','LS7 7.0 (Gen IV)'],
+  ['gm_lsa','LSA 6.2 supercharged (Gen IV)'],['gm_ls9','LS9 6.2 supercharged (Gen IV)'],['gm_lsx','LSX 376 / 454 crate (Gen IV)'],
+  ['gm_lt1','LT1 6.2 (Gen V)'],['gm_lt2','LT2 6.2 (Gen V, C8)'],['gm_lt4','LT4 6.2 supercharged (Gen V)'],['gm_lt5','LT5 6.2 supercharged (Gen V, ZR1)'],
+  ['gm_l83','L83 / L84 5.3 truck (Gen V)'],['gm_l86','L86 / L87 6.2 truck (Gen V)'],['gm_l8t','L8T 6.6 (Gen V)']];
+GM_LS_NAMED.forEach(([k,n])=>{ ENGLIB[k]=Object.assign({},ENGLIB.ls,{name:'GM '+n+' V8 · 1-8-7-2-6-5-4-3',family:'ls'}); });
+// an engine's family key: the named LS / LT engines count as 'ls' wherever the page lists or tests family keys
+const engFam=k=>ENGLIB[k]&&ENGLIB[k].family||k;
 const ENG_GROUPS=[['car','Cars and trucks'],['moto','Motorcycles'],['two','Two-strokes'],['rot','Rotary']];
 const V8_ORDERS=['sbc','sbc47','ls','sbf','f351','coy','bmw8','fp8','fp8c'];
 const cycleOf=cyc=>cyc==='4'?720:360;
@@ -13148,7 +13158,7 @@ function renderHeaders(){
     };
     html+=sec('Fit to your space',fit.items.map(it=>'<div class="note '+(it.k==='ok'?'ok':it.k)+'">'+t(it)+'</div>').join(''));
   }
-  if(V8_ORDERS.indexOf(e.key)>=0||(e.custom&&order.length===8&&!e.gaps)) html+=firingOrderSection(e);
+  if(V8_ORDERS.indexOf(engFam(e.key))>=0||(e.custom&&order.length===8&&!e.gaps)) html+=firingOrderSection(e);
   if(banks.length>1) html+=sec('Ports facing '+(hotV?'into the V':'outward'),hotV?
     '<ul class="list"><li>Hot-V layouts put the exhaust in the valley, which shortens the path to turbos and puts every runner start next to each other, so equal-length 180° or 8-into-1 headers fit without crossing over the engine.</li>'+
     '<li>One builder put Gen 5 LT heads on an LS block with the stock LS cam; the LT’s reversed valve order turns the intake ports into exhaust ports, and the goal was an 8-into-1 with 25 to 30 in primaries and later turbos.</li>'+
@@ -13515,6 +13525,7 @@ function mdwLabel(d){ return d.kind==='exttube'?'Chamber with extended tubes, '+
 function mdwPart(R){
   const q=SIM.inp, cands=R.best.filter(d=>d.kind!=='packed').slice(0,4), rp=q?mdwRpms(q,R):[];
   let h='<h4 style="margin:18px 0 6px">Check the chambers in OpenWAM</h4><p class="cap">Puts each chamber above ('+cands.length+' of them; a packed can has no 1-D model here) into the 4-Stroke tab’s OpenWAM line, ahead of its tailpipe, and runs it with that engine and header, along with the same line with no muffler. What a design takes off is the no-muffler level minus its own, order by order, at 1 m from the open end, for the orders that land in '+Math.round(R.fs[0])+' to '+Math.round(R.fs[8])+' Hz. The engine’s own pulses are far stronger than the small waves the transmission-loss sums assume, so the two need not agree; the full run is the better answer.</p>';
+  h+=val('m-dch')>0&&val('m-lch')>0?($('m-chlay')&&$('m-chlay').value==='reverse'?'<p class="cap">Your reverse-flow chamber on this tab is left out: its inlet and outlet sit side by side in one end plate, which a 1-D line cannot carry. A straight-through chamber you enter here runs with the rest.</p>':'<p class="cap">Your chamber on this tab ('+cdim(val('m-dch'))+' × '+clen(val('m-lch'))+') runs with the rest.</p>'):'';
   if(cands.some(d=>d.kind==='exttube')) h+='<p class="cap">Each extended-tube pocket goes into the 1-D line as a volume of its size on a neck that puts its resonance where the tube’s quarter wave is, with the loss of a sharp-edged mouth (a side tube wider than it is deep does not settle in OpenWAM).</p>';
   if(!q){ return h+'<div class="note">Open the 4-Stroke tab and fill it in: the runs use its engine, cam and header.</div>'; }
   { const tm=val('m-tail'), tw=+WAM_UI.line.tail||300; if(MD.inst&&WAM_UI.line.on&&tm>0&&Math.abs(tm-tw)>25) h+='<div class="note">The designer scored the cans with this tab’s '+clen(tm)+' tailpipe; the OpenWAM line has '+clen(tw)+'. Make them the same so the two answers are about the same exhaust.</div>'; }
@@ -13527,8 +13538,9 @@ function mdwPart(R){
   if(X){
     const nm=U!=='imp', tq=t=>Number.isFinite(t)?(nm?Math.round(t)+' N·m':Math.round(t/1.3558179483)+' lb-ft'):'?', db=v=>Number.isFinite(v)?v.toFixed(1)+' dB':'–', b=X.rows[0];
     if(X.key!==MD.key) h+='<div class="note">The designer’s list changed since these runs.</div>';
-    h+='<div class="tblwrap"><table><thead><tr><th>Design</th><th>Least taken off the band (OpenWAM)</th><th>The designer said</th><th>A-weighted, first 12 orders at 1 m, mean over the speeds</th><th>Mean brake torque</th></tr></thead><tbody>'+
-      X.rows.map(x=>'<tr><td>'+esc(x.label)+'</td><td>'+(x.base?'reference':x.err?esc(x.err):db(x.least)+(x.least<0&&x.worst?' (louder: order '+(Number.isInteger(x.worst.order)?x.worst.order:x.worst.order.toFixed(1))+' at '+x.worst.rpm+' RPM)':''))+'</td><td>'+(x.d?db(x.d.min):'')+'</td><td>'+(Number.isFinite(x.la)?x.la.toFixed(1)+' dB(A)'+(x.base?'':' ('+(x.la-b.la>=0?'+':'')+(x.la-b.la).toFixed(1)+')'):'–')+'</td><td>'+tq(x.tq)+(x.base||!Number.isFinite(x.tq)||!Number.isFinite(b.tq)?'':' ('+((x.tq/b.tq-1)*100).toFixed(1)+' %)')+'</td></tr>').join('')+
+    const okR=X.rows.filter(x=>!x.base&&Number.isFinite(x.least)), win=okR.length?okR.reduce((a,c)=>c.least>a.least?c:a):null, fresh=X.key===MD.key;
+    h+='<div class="tblwrap"><table><thead><tr><th>Design</th><th>Least taken off the band (OpenWAM)</th><th>The designer said</th><th>A-weighted, first 12 orders at 1 m, mean over the speeds</th><th>Mean brake torque</th><th></th></tr></thead><tbody>'+
+      X.rows.map(x=>'<tr'+(x===win?' class="cur"':'')+'><td>'+esc(x.label)+(x===win?' <b>(most off the band)</b>':'')+'</td><td>'+(x.base?'reference':x.err?esc(x.err):db(x.least)+(x.least<0&&x.worst?' (louder: order '+(Number.isInteger(x.worst.order)?x.worst.order:x.worst.order.toFixed(1))+' at '+x.worst.rpm+' RPM)':''))+'</td><td>'+(x.d?db(x.d.min):'')+'</td><td>'+(Number.isFinite(x.la)?x.la.toFixed(1)+' dB(A)'+(x.base?'':' ('+(x.la-b.la>=0?'+':'')+(x.la-b.la).toFixed(1)+')'):'–')+'</td><td>'+tq(x.tq)+(x.base||!Number.isFinite(x.tq)||!Number.isFinite(b.tq)?'':' ('+((x.tq/b.tq-1)*100).toFixed(1)+' %)')+'</td><td>'+(fresh&&x.idx>=0&&x.d?'<button type="button" class="btn" data-md="'+x.idx+'">Use</button>':'')+'</td></tr>').join('')+
       '</tbody></table></div>'+(()=>{ const un=[]; X.rows.forEach(x=>Object.entries(x.per||{}).forEach(([r,v])=>{ if(v!=null&&v>0.05) un.push((x.base?'no muffler':x.label.split(',')[0].toLowerCase())+' at '+r+' RPM ('+(100*v).toFixed(0)+' %)'); }));
       return un.length?'<div class="note warn">Not settled: the last two cycles differ by more than 5 % in '+esc(un.join('; '))+'. A big chamber takes many cycles to fill and cool; raise “Cycles per run” on the 4-Stroke tab (25 or more) and run again before trusting these.</div>':''; })()+'<p class="cap">At '+X.rpms.join(', ')+' RPM, '+X.inBand+' order'+(X.inBand===1?'':'s')+' in the band in all. '+(X.inBand?'':'No order the engine makes at these speeds lands in the band: change the speeds. ')+'The level is the open end alone, free field, 1 m away (no jet noise, no shell noise); compare designs with each other.</p>';
   }
@@ -13544,7 +13556,12 @@ function mdwBuild(){
   const sp=simSpec(q), src=wamSource(q,sp); if(src.err) return {err:src.err};
   // a chamber takes many cycles to fill and cool (and an inline 4 more than a V8): at least MDW.minCycles
   const cycles=Math.max(MDW.minCycles||0,WAM_UI.cycles>=5?Math.round(WAM_UI.cycles):25), files=[];
-  const rows=[{label:'No muffler (the line and tailpipe alone)',ov:{none:true},base:true}].concat(cands.map(d=>({label:mdwLabel(d),ov:{dch:d.D,lch:d.L,lin:d.lin||0,lout:d.lout||0},d})));
+  const rows=[{label:'No muffler (the line and tailpipe alone)',ov:{none:true},base:true}].concat(cands.map(d=>({label:mdwLabel(d),ov:{dch:d.D,lch:d.L,lin:d.lin||0,lout:d.lout||0},d,idx:R.best.indexOf(d)})));
+  // the chamber entered on this tab (its layout too: a reverse-flow can runs as the tab draws it), when it is filled in
+  const tdc=val('m-dch'), tlc=val('m-lch');
+  if(tdc>0&&tlc>0&&!($('m-chlay')&&$('m-chlay').value==='reverse')){ const rev=false, li=Math.max(0,val('m-lin')||0), lo=Math.max(0,val('m-lout')||0);
+    if(!rows.some(x=>x.ov.dch&&Math.abs(x.ov.dch-tdc)<0.5&&Math.abs(x.ov.lch-tlc)<0.5&&Math.abs((x.ov.lin||0)-li)<0.5&&Math.abs((x.ov.lout||0)-lo)<0.5&&!rev))
+      rows.push({label:'Yours on this tab: '+(rev?'reverse-flow chamber':li>0||lo>0?'chamber with extended tubes':'plain chamber')+', '+cdim(tdc)+' × '+clen(tlc)+(li>0||lo>0?' (in '+clen(li)+', out '+clen(lo)+')':''),ov:{tab:true},mine:true}); }
   try{ rows.forEach((x,k)=>{ MDW_OVR=x.ov; const wl=wamWithLine(src.spec); if(wl.err){ x.err=wl.err; return; }
       x.tag='mdw'+k; x.mdl=WAMX.modelFromSpec(wl.spec,Object.assign({rpm:3000,cycles:5,name:'x'},src.run));
       rpms.forEach(r=>files.push({name:x.tag+'_'+r+'.wam',text:WAMX.makeWam(wl.spec,Object.assign({rpm:r,cycles,name:x.tag+'_'+r},src.run))})); }); }
@@ -13576,7 +13593,7 @@ function mdwScore(rows,rpms,models){
   const odd=o=>(Number.isInteger(o)?o:o.toFixed(1)), w=best&&best.worst;
   const msg=!best?'Done, but no order landed in the band at these speeds, or the designs did not finish.':
     (unsettled?'Some runs had not settled (see the note under the table), so read these as rough. ':'')+
-    (best.least>=0?'Done. Most taken off the band in OpenWAM: '+best.label+', at least '+best.least.toFixed(1)+' dB (the designer said '+best.d.min.toFixed(1)+' dB).':
+    (best.least>=0?'Done. Most taken off the band in OpenWAM: '+best.label+', at least '+best.least.toFixed(1)+' dB'+(best.d?' (the designer said '+best.d.min.toFixed(1)+' dB).':'.'):
     'Done. Every chamber makes part of the band louder at some speed: the best, '+best.label+', still adds '+(-best.least).toFixed(1)+' dB to order '+odd(w.order)+' at '+w.rpm+' RPM ('+Math.round(w.f)+' Hz). A chamber can ring with the pipes around it (the tailpipe’s mass on its volume, and the line’s own lengths), which a transmission loss leaves out'+(MD.inst?'':'; score the designs “Installed” and find them again')+', or change the tailpipe length.');
   return {res,msg,bad:!best};
 }
@@ -14139,6 +14156,7 @@ const ENG_MAKER={v6a:'Chevrolet / GM',v6b:'Buick',v6c:'Buick',f4:'Subaru',f6:'Po
   sbf:'Ford',f351:'Ford',coy:'Ford',fp8:'Ford',bmw8:'BMW',v10b:'BMW',mb2:'BMW',v10v:'Dodge',v12:'Lamborghini',
   mv45:'Harley-Davidson',mv52:'Honda',m6:'Honda',mv4h:'Honda',mv4v:'Honda',mv4c:'Honda',mv4b:'Honda',t4b:'Honda',mv60:'Aprilia',mv75:'KTM',mv90:'Ducati',mv4d:'Ducati',
   m3t:'Triumph',m4x:'Yamaha',t3:'Suzuki',r2:'Mazda',r3:'Mazda',r4:'Mazda'};
+GM_LS_NAMED.forEach(([k])=>{ ENG_MAKER[k]='Chevrolet / GM'; });
 function fillEngineSelects(){
   document.querySelectorAll('select.engsel').forEach(sel=>{
     const allow=(sel.dataset.cycles||'4,2,r').split(',');
@@ -14416,7 +14434,7 @@ function firingOrderSection(e){
     const ea=engAngles(en); if(ea.err) return '';
     const bp=bankPattern(en), alt=bankPattern(en,altGroups(en.order));
     const tri=bp.groups.map(g=>{ const pulses=g.cyls.map(c=>({cyl:c,ang:ea.ang[c]})); return g.cyls.length===4?bestPairing(pulses,720).pairs.map(x=>x.a+'+'+x.b).join(', '):'–'; });
-    return '<tr'+(k===e.key?' class="cur"':'')+'><td>'+esc(label)+'<br><span class="hint">'+en.order.join('-')+'</span></td>'+
+    return '<tr'+(k===engFam(e.key)?' class="cur"':'')+'><td>'+esc(label)+'<br><span class="hint">'+en.order.join('-')+'</span></td>'+
       bp.groups.slice(0,2).map(g=>'<td>'+g.cyls.join('-')+'<br><span class="hint">'+g.gaps.map(x=>Math.round(x)).join('/')+'°</span></td>').join('')+
       '<td>'+tri.join('<br>')+'</td><td>'+(alt.groups.every(g=>g.even)?'even':'uneven')+'</td></tr>';
   };
@@ -17231,6 +17249,7 @@ const ES_LAYOUT={i3:['inline'],i4:['inline'],i5:['inline'],i6:['inline'],m1:['in
   sbf:['V',90,'sequential'],f351:['V',90,'sequential'],coy:['V',90,'sequential'],bmw8:['V',90,'sequential'],fp8:['V',90,'sequential'],
   v10v:['V',90,'alternate'],v10b:['V',90,'sequential'],v10e:['V',72,'sequential'],v12:['V',60,'sequential'],
   mb2:['flat',180,'alternate'],mv45:['V',45,'alternate'],mv52:['V',52,'alternate'],mv60:['V',60,'alternate'],mv75:['V',75,'alternate'],mv90:['V',90,'alternate']};
+GM_LS_NAMED.forEach(([k])=>{ ES_LAYOUT[k]=ES_LAYOUT.ls; });
 const ES_DEF={1:'m1',2:'m2c',3:'i3',4:'i4',5:'i5',6:'i6',8:'sbc',10:'v10e',12:'v12'};
 const ES_UI={eng:'',redline:null,idle:800,sysL:null,ir:'',target:'ce',msg:null,rpms:'1500, 3000, 4500',clips:[]};
 function esEngines(n){ return Object.keys(ES_LAYOUT).filter(k=>ENGLIB[k]&&ENGLIB[k].cyc==='4'&&ENGLIB[k].order.length===n); }
@@ -17276,7 +17295,7 @@ function esSpecFrom(q,sp){
   if(ES_UI.ir) spec.exhaust.impulseResponse=ES_UI.ir;
   { const H=HDR_LAST;
     if(H&&H.uel&&!H.uel.err){
-      if(H.e&&H.e.key===key&&H.p.order.length===q.cyl){
+      if(H.e&&engFam(H.e.key)===engFam(key)&&H.p.order.length===q.cyl){
         const by=Object.fromEntries(H.uel.rows.map(x=>[x.c,x]));
         spec.exhaust.primaryL_mm=E.order.slice().sort((a,b)=>a-b).map(c=>+by[c].tube.toFixed(3));
         notes.push('Unequal primaries from the Headers tab, cylinder 1 to '+q.cyl+': '+spec.exhaust.primaryL_mm.map(v=>clen(v)).join(', ')+'. Engine Simulator takes the shortest as the primary length and adds each cylinder’s extra as its own sound delay'+(H.r.triy?'; it has no Y junction, so each Tri-Y primary is given its primary plus its pair’s secondary':'')+'. The pipe diameters still come from this tab.');
