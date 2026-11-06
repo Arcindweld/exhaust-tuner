@@ -1,4 +1,10 @@
-EXHAUST TUNER (Fusion add-in), version 4.14.0
+EXHAUST TUNER (Fusion add-in), version 4.14.1
+
+4.14.1 (November 5, 2026)
+  Chamber baffles are cut to the chamber's bore (a line-on-line fit for welding in) instead of reaching
+  0.5 mm into the shell wall, and the gas volume the chamber reports now takes the baffles off. Checked
+  live in Fusion (tests/fusion_live_chambers.py): the plain, baffled and reverse-flow chambers, every
+  body's volume against its section, the tubes and baffles clear of each other and the gas reported.
 
 4.14.0 (November 5, 2026)
   Build the reverse-flow chamber: a round or flat-oval case with both tubes through one end plate

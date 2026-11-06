@@ -306,6 +306,8 @@ def chamber():
     lb = T.ext_chamber(6.35, 0.165, 15.24, 0.152, 35.56, 5.0, 5.0, 5.08, 2, 6.0, 0.152)
     zs = [(b[0][1] + b[2][1]) / 2.0 for b in lb['baffles']]
     ok(len(lb['baffles']) == 2 and abs(zs[0] - (0.152 + 5.0 + 25.56 / 3.0)) < 1e-9 and abs(zs[1] - (0.152 + 5.0 + 2 * 25.56 / 3.0)) < 1e-9 and lb['baffles'][0][0][0] == 3.0, 'chamber: two baffles at thirds of the open part, hole radius 3 cm')
+    l0 = T.ext_chamber(6.35, 0.165, 15.24, 0.152, 35.56, 5.0, 5.0, 5.08)
+    ok(abs(l0['gas'] - lb['gas'] - 2 * math.pi * (7.62 ** 2 - 3.0 ** 2) * 0.152) < 1e-9, 'chamber: each baffle takes its own share of the bore off the gas')
     try:
         T.ext_chamber(6.35, 0.165, 15.24, 0.152, 35.56, 17.0, 17.0, 5.08, 3, 6.0, 0.152); ok(False, 'chamber: baffles with no room refused')
     except ValueError:

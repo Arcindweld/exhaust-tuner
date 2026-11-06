@@ -583,6 +583,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   recording's odd orders 1, 3, 5 are 13-31 dB above the tailpipe model (intake and engine-structure noise reach the
   microphone, cylinder-to-cylinder spread), and the model is 20 dB too bright at order 12 (cat as a plain pipe,
   muffler as a plain volume; a capillary-substrate cat adds only about 2 dB at 400 Hz by the narrow-tube estimate).
+- Live in Fusion 2026-11-05 (the owner's PC, add-in 4.14.1 installed): fusion_live_chambers.py all ok (the inline
+  chamber with extended tubes, the same with two baffles, the flat-oval reverse-flow case: every body's volume within
+  0.2 % of its section by Pappus, the tubes and baffles clear of each other, the reverse case's holes cut through
+  the plate, the reported gas exact) and fusion_live_drone_parts.py all ok again. The run found the baffles reaching
+  0.5 mm into the shell wall and the reported gas not taking them off; both fixed in 4.14.1 (templates.ext_chamber).
 - Live in Fusion 2026-11-03 (the owner's PC, add-in files from today): fusion_live_drone_parts.py all ok (can, path,
   route on the Rust core, tilt, scan, hole: every tool cuts), fusion_live_cfd_stl.py ok (196 triangles, inlet/outlet/wall).
 - Merge collectors and Y merges as one welded part (2026-11-04, task 95, "fully featured"): fusion-addin/merge.py
@@ -793,6 +798,24 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   2500 / 4500 RPM, dB(A) at 1 m: open 106.6 / 121.1, + 2.5 m line 105.1 / 106.6, + 230 x 400 mm extended-tube chamber
   92.6 / 98.3, + J-pipe 93.3 / 95.4; every step moves some order by 10-41 dB. Still left out (noted on the page):
   parallel auger / bundle paths, the crossover, packing, the reverse-flow layout (runs straight through).
+- Packed straight-through in the sound estimate (2026-11-05): the OpenWAM panel's muffler can be the Mufflers tab's
+  packed can (mufKind 'packed'). The estimate runs it as the bare perforated core (the core straight through, the
+  annulus in ~50 mm slices as side volumes through each slice's holes, neck = wall + 0.85 hole) and applies the
+  packing's extra loss to the outflow afterwards, harmonic by harmonic: calcAbsorb's packed TL less its bare TL
+  (lumped slices with a Darcy loss moved the level under 1 dB from 0 to 150 kg/m3 where the transfer-matrix model gives
+  9-26 dB more at 1 kHz; the slices drop that loss). 230 x 400 mm can, 10 % open core, 2500 RPM: 300-1000 Hz band
+  83.4 / 78.6 / 74.4 dB at 0 / 60 / 150 kg/m3, below 150 Hz within 1.6 dB. OpenWAM has no packing: its case runs the
+  bare core, and the panel says so. Solver: an optional per-branch linear resistance Rp, taken implicitly.
+- Crossovers, in-line pieces and reverse-flow cans in the sound estimate (2026-11-05): the wave solver now carries
+  opt.crossover {type 'h' | 'x', pos [per collector], tube} between two banks' lines (collectorNets cuts each line;
+  an H is a balance tube between two three-way nodes, an X one four-way node; a Z runs as an X), and pieces along any
+  collector line (lineWithPieces): parallel paths between two nodes (the auger's centre tube and spiral, a tube
+  bundle, from wamParPaths as the OpenWAM case has them; a capped auger as one path) and dead-end stubs closed at their
+  far end (a reverse-flow can: the chamber off the end plate's node, Munjal 3.7; its tube extensions left out).
+  Hear each part adds a step for each (+ the H-pipe / X-pipe, + the auger / tube bundle). Default V8, two banks, 2500
+  RPM: the H-pipe moves orders by up to 34 dB at -0.4 dB(A) overall; the X and the H differ by up to 36 dB; the
+  auger takes the firing orders 15-25 dB down (its two paths 950 mm apart in length), the bundle moves them up to 9 dB;
+  reverse flow against straight through in the same 230 x 400 mm shell: up to 23 dB. wsndxo_ui.js, wsndpar_ui.js.
 - Engine pickers list the LS and LT engines by name (GM_LS_NAMED, engFam); OpenWAM check: Use buttons, winner marked,
   the tab's straight-through chamber runs alongside.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is

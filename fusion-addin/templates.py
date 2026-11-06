@@ -726,7 +726,7 @@ def ext_chamber(pipe_id, pipe_wall, can_id, can_wall, length, l_in, l_out, stub,
     inlet = [(r_pi, -stub), (r_po, -stub), (r_po, z_in + l_in), (r_pi, z_in + l_in)]
     outlet = [(r_pi, z_far - l_out), (r_po, z_far - l_out), (r_po, z1 + stub), (r_pi, z1 + stub)]
     gas = math.pi * Rc ** 2 * length - math.pi * r_po ** 2 * (l_in + l_out)
-    # baffles: n washers of the chamber's bore with a centred hole, spaced evenly through the open part between the tube
+    # baffles: n washers cut to the chamber's bore (a line-on-line fit, welded in) with a centred hole, spaced evenly through the open part between the tube
     # mouths (none where the tubes would pass through them)
     baffles = []
     if n_baffles and n_baffles > 0:
@@ -738,6 +738,7 @@ def ext_chamber(pipe_id, pipe_wall, can_id, can_wall, length, l_in, l_out, stub,
             raise ValueError('There is no room for %d baffles between the tube mouths.' % n_baffles)
         for i in range(int(n_baffles)):
             zc = open0 + span * (i + 1) / (n_baffles + 1)
-            baffles.append([(hole / 2.0, zc - t_baffle / 2.0), (Rc + 0.05, zc - t_baffle / 2.0), (Rc + 0.05, zc + t_baffle / 2.0), (hole / 2.0, zc + t_baffle / 2.0)])
+            baffles.append([(hole / 2.0, zc - t_baffle / 2.0), (Rc, zc - t_baffle / 2.0), (Rc, zc + t_baffle / 2.0), (hole / 2.0, zc + t_baffle / 2.0)])
+            gas -= math.pi * (Rc ** 2 - (hole / 2.0) ** 2) * t_baffle    # the plate's own share of the bore
     return {'shell': shell, 'inlet': inlet, 'outlet': outlet, 'baffles': baffles, 'L_in': length, 'z1': z1, 'R_out': Rco, 'gas': gas,
             'outside_len': z1, 'overall': z1 + 2 * stub}
