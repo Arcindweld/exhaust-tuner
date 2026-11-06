@@ -9042,9 +9042,14 @@ function runSpeed(eng,opts){
     st.jn.ends=prims.map(ch=>({P:ch[ch.length-1],side:+1})).concat([{P:coll[0],side:-1}]);
     coll[coll.length-1].right=openEnd(+1,PATM,TATM,1);
   } else prims.forEach(ch=>{ ch[ch.length-1].right=openEnd(+1,PATM,TATM,1); });
+  // opts.record: the open ends' last cell over the last opts.recordCycles cycles (2 unless set) (crank angle of the firing frame; mass flow out, gas
+  // speed, temperature, density), what OpenWAM's outlet columns hold, for the sound reading without a file
+  const outs=nets?nets.map(n=>n.main[n.main.length-1]).concat(prims.filter((ch,k)=>!nets.some(n=>n.cyls.indexOf(k)>=0)).map(ch=>ch[ch.length-1])):coll?[coll[coll.length-1]]:prims.map(ch=>ch[ch.length-1]);
+  const nCyc=opts.cycles||6, recN=Math.min(nCyc,Math.max(2,opts.recordCycles||2)), rec=opts.record?{angle:[],time:[],outs:outs.map(()=>({mdot:[],u:[],T:[],rho:[]}))}:null; let tRec=0;
   const rhoRef=PATM/(RG*TATM), out=[];
-  for(let c=0;c<(opts.cycles||6);c++){
-    const end=st.th+720;
+  let th0=0;
+  for(let c=0;c<nCyc;c++){
+    const end=st.th+720; if(rec&&c===nCyc-recN) th0=st.th;
     while(st.th<end-1e-9){
       let smax=0, dmin=1;
       for(const P of all){ prim(P); const v=maxSpeed(P); if(v>smax) smax=v; if(P.dx<dmin) dmin=P.dx; }
@@ -9110,6 +9115,8 @@ function runSpeed(eng,opts){
         if(mE<0){ cy.exM-=mE; cy.exH-=mE*vEx[k].h; }
         if(tk>345&&tk<375){ cy.ovP+=ep.p[0]; cy.ovN++; }
       }
+      if(rec&&c>=nCyc-recN){ rec.angle.push((st.th-th0)%720); rec.time.push(tRec); tRec+=dt;
+        outs.forEach((P,j)=>{ prim(P); const i=P.n-1, R=rec.outs[j], md=P.f1[P.n]; R.mdot.push(md); R.u.push(P.u[i]); R.T.push(P.p[i]/(RG*P.r[i])); R.rho.push(P.r[i]); }); }   // the open end's face flux (kg/s, out positive), as its boundary set it this step
       st.th+=dth;
     }
     // average the cylinders' last finished cycles
@@ -9119,7 +9126,7 @@ function runSpeed(eng,opts){
         perCyl:d.map(x=>({ve:x.ve,imep:x.imep}))}); }
   }
   if(!out.length) out.push({ve:NaN,imep:NaN,pmax:NaN,resid:NaN,pEvo:NaN,tEx:NaN,overlapPort:NaN,perCyl:[]});
-  return Object.assign({rpm:opts.rpm,history:out,state:st},out[out.length-1]);
+  return Object.assign({rpm:opts.rpm,history:out,state:st,rec},out[out.length-1]);
 }
 /* Sweep a list of speeds, warm-starting each from the last. onStep(i, result) is called after each. */
 function sweep(eng,rpms,opts,onStep){
@@ -10533,6 +10540,7 @@ function renderSound(){
     '<p class="cap">Tuned for resonator gas at '+tempStr(p.tres)+'. The Mufflers tab shows where to tap it in, how wide a band it covers, and mufflers and resonators that fit.</p>');
   html+=duoHtml(p,r);
   html+=guideHtml('sound');
+  html+=wsndSection(sp);
   html+=recSection(sp,r);
   html+=actions('sound');
   const x0=r.near[0];
@@ -10730,8 +10738,9 @@ function jetNoise(len,sr,fp,seed){   // unit-rms noise with the jet's spectrum p
   fftIP(re,im,true); let s2=0; for(let i=0;i<len;i++) s2+=re[i]*re[i]; const k=1/Math.sqrt(s2/len||1);
   const o=new Float64Array(len); for(let i=0;i<len;i++) o[i]=re[i]*k; return o;
 }
+// o.sr, o.kf and o.noRec play a run with no recording loaded (Hear the model): its own sample rate and firing pulses
 function recSynth(W,H,o){
-  const sr=REC.sr, N=W.cyc.length, nf=2*REC.ctx.kf, cov=+o.cov||0, dur=Math.min(H.t1-H.t0,8);
+  const sr=o.sr||REC.sr, N=W.cyc.length, nf=2*(o.kf||REC.ctx.kf), cov=+o.cov||0, dur=Math.min(H.t1-H.t0,8);
   const y=W.cyc, m=y.reduce((a,b)=>a+b,0)/N, dev=y.map(v=>v-m);
   // windows centred on the firing pulses (the phase of the firing-order harmonic)
   let re=0,im=0; for(let i=0;i<N;i++){ const x=2*Math.PI*nf*i/N; re+=dev[i]*Math.cos(x); im-=dev[i]*Math.sin(x); }
@@ -10740,7 +10749,7 @@ function recSynth(W,H,o){
   for(let i=0;i<N;i++){ let s=0; for(let k=0;k<nf;k++) s+=Wn[k][i]; for(let k=0;k<nf;k++) Wn[k][i]/=s; }
   let seed=o.seed||12345; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
   const gauss=()=>{ const u=Math.max(1e-12,rnd()), v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
-  const tr=REC.tr.filter(q=>q.t>=H.t0-0.2&&q.t<=H.t1+0.2), rpmAt=t=>{ if(!o.wander||tr.length<2) return H.rpm; const tt=H.t0+t; let j=0; while(j<tr.length-2&&tr[j+1].t<tt) j++; const u=Math.max(0,Math.min(1,(tt-tr[j].t)/((tr[j+1].t-tr[j].t)||1))); return tr[j].rpmS+u*(tr[j+1].rpmS-tr[j].rpmS); };
+  const tr=(o.noRec?[]:REC.tr||[]).filter(q=>q.t>=H.t0-0.2&&q.t<=H.t1+0.2), rpmAt=t=>{ if(!o.wander||tr.length<2) return H.rpm; const tt=H.t0+t; let j=0; while(j<tr.length-2&&tr[j+1].t<tt) j++; const u=Math.max(0,Math.min(1,(tt-tr[j].t)/((tr[j+1].t-tr[j].t)||1))); return tr[j].rpmS+u*(tr[j+1].rpmS-tr[j].rpmS); };
   const out=new Float32Array(Math.round(dur*sr)); let pos=0, prev=null;
   const J=o.jet&&W.jet&&W.jet.u&&W.jet.u.length===N?W.jet:null, env=J?new Float64Array(out.length):null;
   let wj=null, wmean=0, Ueff=0;
@@ -10762,7 +10771,7 @@ function recSynth(W,H,o){
     jetDb=10*Math.log10((j2||1e-30)/(t2||1e-30));
   }
   // the recording's level, a short fade at both ends
-  const a0=Math.round(H.t0*sr), rec=REC.x?REC.x.subarray(a0,Math.min(REC.x.length,a0+out.length)):null;
+  const a0=Math.round(H.t0*sr), rec=!o.noRec&&REC.x?REC.x.subarray(a0,Math.min(REC.x.length,a0+out.length)):null;
   const rms=x=>{ let s=0; for(let i=0;i<x.length;i++) s+=x[i]*x[i]; return Math.sqrt(s/(x.length||1)); };
   const k=rec&&rms(out)>0?rms(rec)/rms(out):1, fade=Math.round(0.02*sr);
   for(let i=0;i<out.length;i++){ const g=k*Math.min(1,i/fade,(out.length-1-i)/fade); out[i]*=g; if(jx) jx[i]*=g; }
@@ -10820,10 +10829,10 @@ function recPull(Ws,rpm0,rpm1,T,sr,o){
 window.__recPull=recPull;
 const REC_AB={cov:2,wander:true,jet:true,play:null,check:null,msg:'',mph:40,ft:25};
 window.__recSynth=(W,H,o)=>recSynth(W,H,o); window.__jet={jetPower,jetNoise,fftIP};   // test hooks
-async function recPlay(x){
+async function recPlay(x,sr){
   try{ if(REC_AB.play){ try{ REC_AB.play.stop(); }catch(e){} }
     const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return 'This browser cannot play sound.';
-    REC_AB.ac=REC_AB.ac||new AC(); const b=REC_AB.ac.createBuffer(1,x.length,REC.sr); b.copyToChannel(x,0);
+    REC_AB.ac=REC_AB.ac||new AC(); const b=REC_AB.ac.createBuffer(1,x.length,sr||REC.sr); b.copyToChannel(x,0);
     const src=REC_AB.ac.createBufferSource(); src.buffer=b; src.connect(REC_AB.ac.destination); src.start(); REC_AB.play=src; return null; }
   catch(e){ return 'Could not play: '+(e&&e.message||e); }
 }
@@ -11069,6 +11078,157 @@ document.addEventListener('click',async e=>{
   }
 });
 window.__wamIns=()=>WAM_UI.ins; window.__rec={recSynth,recAbCheck,REC_AB,REC,recWav,recFrames,recTrack,recHolds,recOrderLevels,recSweep,recFitModes,recLoad};
+/* ===== Hear the model without a file (Sound tab): the page's own wave simulation (wsFactory) runs the 4-Stroke tab's
+   engine and header at full throttle, with the OpenWAM line after the collector when it is on (its pipe, the muffler as a
+   plain chamber of the Mufflers tab's size or a can of the stated volume, and the tailpipe), records the flow out of each
+   open end over two settled cycles (runSpeed opts.record), and reads it exactly as an OpenWAM INS.DAT is read: the open
+   end as a monopole, p = (1 / 4 pi r) d(mdot)/dt (wamInsOrders). Those runs join the OpenWAM runs list, so the levels
+   table, the quiet target and the recording comparison use them too, and they play here with no recording loaded. */
+const WSND={dx:0.02,rpms:'',busy:false,msg:null,notes:[],src:'wave',play:{rpm:null,jet:true,mph:30,ft:25,cov:2,pull0:null,pull1:null},worker:null};
+// the extra pipe after each collector, from the OpenWAM line (mm in, m out)
+function wsndExt(){
+  const W=WAM_UI.line, notes=[]; if(!W.on) return {segs:[],notes:['No line after the collector is set (OpenWAM panel on the 4-Stroke tab), so this is the collector as the 4-Stroke tab draws it, open to the air.']};
+  const d=+W.d/1000, segs=[{L:Math.max(0.05,+W.L/1000),d0:d,d1:d}];
+  if(W.mufKind==='chamber'){ const D=val('m-dch'), L=val('m-lch');
+    if(D>0&&L>0){ segs.push({L:L/1000,d0:D/1000,d1:D/1000});
+      if(val('m-lin')>0||val('m-lout')>0) notes.push('The extended tubes are left out: this simulation has no side branches, so the chamber runs as a plain one of the same size.');
+      if($('m-chlay')&&$('m-chlay').value==='reverse') notes.push('The reverse-flow layout runs as a straight-through chamber of the same size.'); }
+    else notes.push('The line’s muffler is the Mufflers tab’s chamber, which is not filled in: no muffler.'); }
+  else if(+W.muf>0){ const V=+W.muf/1000, D=Math.cbrt(4*V/(Math.PI*1.5)); segs.push({L:1.5*D,d0:D,d1:D}); notes.push('The '+(+W.muf)+' L muffler runs as an empty can of that volume, 1.5 times as long as it is wide (a chamber: packing and baffles are not in this model).'); }
+  if(+W.tail>0) segs.push({L:+W.tail/1000,d0:d,d1:d});
+  if(W.xo&&W.xo!=='none') notes.push('The crossover is left out (OpenWAM runs it).');
+  if(W.fix&&W.fix!=='none') notes.push('The resonator on the line is left out (OpenWAM runs it).');
+  return {segs,notes};
+}
+function wsndSpec(q){
+  const sp=simSpec(q), H=HDR_LAST, ext=wsndExt(); let spec, whole=false; const notes=ext.notes.slice();
+  if(H&&H.uel&&WAM_UI.src!=='four'){ const a=uelLayoutSpec(q,sp,false); if(a&&!a.err){ spec=JSON.parse(JSON.stringify(a.spec)); whole=true; } }
+  if(!spec) spec=JSON.parse(JSON.stringify(sp));
+  if(spec.opt&&spec.opt.collectors) spec.opt.collectors.forEach(c=>{ c.segs=(c.segs||[]).concat(ext.segs); });
+  else if(spec.opt&&spec.opt.collector) spec.opt.collector.segs=spec.opt.collector.segs.concat(ext.segs);
+  else spec.exhaust.segs=spec.exhaust.segs.concat(ext.segs);
+  const nIn=spec.opt&&spec.opt.phases?spec.opt.phases.length:1;
+  if(!whole&&q.cyl>nIn) notes.push('This is one collector’s exit, '+nIn+' of the '+q.cyl+' cylinders (the 4-Stroke tab models one). The Headers tab with unequal lengths runs every cylinder and every exit.');
+  return {spec,notes,whole,nIn};
+}
+function wsndDefaultRpms(q){ const t=q&&q.tune>0?q.tune:5500; return [...new Set([2000,0.75*t,t].map(v=>Math.round(v/100)*100))].sort((a,b)=>a-b); }
+function wsndRpms(q){ const t=WSND.rpms&&WSND.rpms.trim(); return t?[...new Set(t.split(/[\s,;]+/).map(Number).filter(v=>v>=500&&v<=20000).map(v=>Math.round(v/50)*50))].sort((a,b)=>a-b):wsndDefaultRpms(q); }
+function wsndWorkerSrc(){
+  return 'const WS=('+wsFactory.toString()+')();\n'+
+    'self.onmessage=function(ev){var j=ev.data,s=j.spec,eng=WS.makeEngine(s.e,s.intake,s.exhaust,s.opt),st=null;\n'+
+    ' j.rpms.forEach(function(rpm,i){var r=WS.runSpeed(eng,{rpm:rpm,cycles:st?4:8,dx:j.dx,state:st});\n'+
+    '  for(var k=0;k<6;k++){var h=r.history,n=h.length; if(n>=2&&Math.abs(h[n-1].ve-h[n-2].ve)<0.003*h[n-1].ve) break; r=WS.runSpeed(eng,{rpm:rpm,cycles:2,dx:j.dx,state:r.state});}\n'+
+    '  var y=WS.runSpeed(eng,{rpm:rpm,cycles:7,dx:j.dx,state:r.state,record:true,recordCycles:6}); st=y.state;\n'+
+    '  self.postMessage({type:"speed",i:i,rpm:rpm,ve:y.ve,imep:y.imep,Vd:eng.Vd,rec:y.rec});});\n'+
+    ' self.postMessage({type:"done"});};';
+}
+// one run's entry, the shape wamReadIns makes from an INS.DAT
+// The solver's open end varies from cycle to cycle (10-20 % RMS between cycles, at either grid size, without settling
+// further), so the run's periodic part is the average of its recorded cycles, each resampled to 720 points, and the
+// spread between them is kept as its cycle-to-cycle variation.
+function wsndAvg(R){
+  const a=R.angle, st=[0]; for(let i=1;i<a.length;i++) if(a[i]<a[i-1]-180) st.push(i);
+  const cyc=st.map((s0,k)=>[s0,k+1<st.length?st[k+1]:a.length]).filter(([s0,e])=>e-s0>=36&&a[e-1]-a[s0]>=600), N=720;
+  const rs=([s0,e],y)=>{ const o=new Float64Array(N); let j=s0; for(let i=0;i<N;i++){ while(j<e-2&&a[j+1]<=i) j++; const d=a[j+1]-a[j]; o[i]=d>0?y[j]+(i-a[j])/d*(y[j+1]-y[j]):y[j]; } return o; };
+  const avg=y=>{ const o=new Float64Array(N); cyc.forEach(c=>{ const r=rs(c,y); for(let i=0;i<N;i++) o[i]+=r[i]/cyc.length; }); return o; };
+  let spread=null; if(cyc.length>1){ const y=R.outs[0].mdot, all=cyc.map(c=>rs(c,y)), m=avg(y); let d2=0,s2=0; const mu=m.reduce((u,v)=>u+v,0)/N;
+    all.forEach(r=>{ for(let i=0;i<N;i++){ d2+=(r[i]-m[i])**2; s2+=(m[i]-mu)**2; } }); spread=Math.sqrt(d2/(s2||1e-30)); }
+  const twice=x=>{ const o=new Array(2*N); for(let i=0;i<2*N;i++) o[i]=x[i%N]; return o; }, ang=twice(Array.from({length:N},(_,i)=>i));
+  return {n:cyc.length,spread,outs:R.outs.map(o=>({angle:ang,mdot:twice(avg(o.mdot)),u:twice(avg(o.u)),T:twice(avg(o.T)),rho:twice(avg(o.rho))}))};
+}
+function wsndEntry(m,q,sp){
+  const A=wsndAvg(m.rec), R={outs:A.outs}, ins=o=>o;
+  const M=WAM_MIC, r1=M.r, r2=M.layout==='side'?Math.hypot(M.r,0)+M.sep:M.r;
+  const more=R.outs.slice(1).map(o=>({mdot:o.mdot,g:r1/r2,dDeg:(r2-r1)/343*6*m.rpm}));
+  const base=ins(R.outs[0]), o24=wamInsOrders(base,24,more,m.rpm);
+  return Object.assign({name:'Wave model '+m.rpm,rpm:m.rpm,exits:R.outs.length,src:'wave',tq:m.imep*m.Vd/(4*Math.PI)*(sp.nIn||1)},wamInsOrders(base,12,more,m.rpm),
+    {db24:o24.db,spl24:o24.spl1,per:A.spread,spread:A.spread,nAvg:A.n,kf:Math.max(1,Math.round((sp.whole?q.cyl:sp.nIn)/2))});
+}
+function wsndRun(){
+  const q=SIM.inp, err=q?simCheck(q):'Fill in the 4-Stroke tab first: the estimate runs its engine and header.';
+  const say=(t,bad)=>{ WSND.msg={t,bad:!!bad}; renderActive(); };
+  if(err){ say(err,true); return; }
+  const rpms=wsndRpms(q); if(!rpms.length){ say('Enter at least one engine speed between 500 and 20,000 RPM.',true); return; }
+  const S=wsndSpec(q); WSND.notes=S.notes; WSND.busy=true; const got=[];
+  const finish=()=>{ WSND.busy=false; const ent=got.map(m=>{ try{ return wsndEntry(m,q,S); }catch(e){ return {name:'Wave model '+m.rpm,rpm:m.rpm,err:e.message,src:'wave'}; } });
+    WAM_UI.ins=(WAM_UI.ins||[]).filter(x=>x.src!=='wave').concat(ent).sort((a,b)=>(a.rpm||0)-(b.rpm||0)); WSND.src='wave';
+    const ok=ent.filter(x=>!x.err); if(!WSND.play.rpm||!ok.some(x=>x.rpm===WSND.play.rpm)) WSND.play.rpm=ok.length?ok[ok.length>2?1:0].rpm:null;
+    say(ok.length?'Done: '+ok.length+' speed'+(ok.length>1?'s':'')+' at full throttle. Play them below, or see the order levels.':'The simulation did not finish a speed.',!ok.length); window.__wsndLast=ent; };
+  const job={spec:S.spec,rpms,dx:WSND.dx||0.02};
+  say('Simulating '+rpms.length+' speed'+(rpms.length>1?'s':'')+' at full throttle…');
+  let w=null; try{ w=new Worker(URL.createObjectURL(new Blob([wsndWorkerSrc()],{type:'text/javascript'}))); }catch(e){ w=null; }
+  if(w){ WSND.worker=w; w.onmessage=ev=>{ const d=ev.data; if(d.type==='speed'){ got.push(d); WSND.msg={t:'Simulated '+got.length+' of '+rpms.length+' ('+d.rpm+' RPM)…'}; const el=$('wsnd-msg'); if(el) el.textContent=WSND.msg.t; } else if(d.type==='done'){ w.terminate(); WSND.worker=null; finish(); } };
+    w.onerror=e=>{ w.terminate(); WSND.worker=null; WSND.busy=false; say('The simulation stopped: '+(e.message||'worker error'),true); }; w.postMessage(job); return; }
+  // no background worker allowed: the same on the page, one speed at a time
+  const eng=WS.makeEngine(S.spec.e,S.spec.intake,S.spec.exhaust,S.spec.opt); let st=null, i=0;
+  const step=()=>{ if(i>=rpms.length){ finish(); return; } const rpm=rpms[i];
+    let r=WS.runSpeed(eng,{rpm,cycles:st?4:8,dx:job.dx,state:st}); for(let k=0;k<6;k++){ const h=r.history,n=h.length; if(n>=2&&Math.abs(h[n-1].ve-h[n-2].ve)<0.003*h[n-1].ve) break; r=WS.runSpeed(eng,{rpm,cycles:2,dx:job.dx,state:r.state}); }
+    const y=WS.runSpeed(eng,{rpm,cycles:7,dx:job.dx,state:r.state,record:true,recordCycles:6}); st=y.state; got.push({rpm,ve:y.ve,imep:y.imep,Vd:eng.Vd,rec:y.rec}); i++; setTimeout(step,0); };
+  setTimeout(step,0);
+}
+// the runs to play: the wave estimate or the OpenWAM files, whichever is chosen and present
+function wsndRuns(){ const all=(WAM_UI.ins||[]).filter(x=>!x.err&&x.cyc&&x.rpm>0&&!x.intake), w=all.filter(x=>x.src==='wave'), f=all.filter(x=>x.src!=='wave');
+  return WSND.src==='files'&&f.length?f:w.length?w:f; }
+// sound for one run held at its speed, no recording: recSynth with its own context (48 kHz, the run's firing pulses),
+// then pressure at the microphone, p = (d mdot / dt) / (4 pi r) x 2 (hard ground)
+function wsndHold(W,dur,o){
+  const sr=48000, kf=W.kf||Math.max(1,Math.round(W.strongest||2)), H={t0:0,t1:dur,rpm:W.rpm};
+  const S=recSynth(W,H,{cov:o.cov,wander:false,jet:o.jet,sr,kf,noRec:true});
+  return Object.assign(S,{sr});
+}
+function wsndPart(sp){
+  const q=SIM.inp, runs=wsndRuns(), hasF=(WAM_UI.ins||[]).some(x=>!x.err&&x.cyc&&x.src!=='wave'), rp=q?wsndRpms(q):[];
+  let h='<p class="cap" style="margin-top:0">No recording or OpenWAM file needed: the page’s own wave simulation runs the 4-Stroke tab’s engine and header at full throttle'+(WAM_UI.line.on?', with the line, muffler and tailpipe from the OpenWAM panel,':'')+' and the sound is worked out from the flow leaving the tailpipe, the same way an OpenWAM run is read. It is an estimate: a 1-D plane-wave model, the open end as a point source, no shell noise or intake. Checked against OpenWAM on the default V8 with a 2.5 m line and no muffler: the firing orders within 1 to 9 dB, the overall level within 4 to 10 dB, while the orders between the firing orders come out much weaker than OpenWAM’s. For a design you will build, the OpenWAM run is the better answer.</p>';
+  if(!q) return h+'<div class="note">Open the 4-Stroke tab and fill it in: the estimate runs its engine and header.</div>';
+  h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Engine speeds, full throttle (RPM)</span><span class="inp"><input id="wsnd-rpms" type="text" inputmode="numeric" value="'+esc(WSND.rpms||rp.join(' '))+'"></span></label></div>'+
+    '<div class="actions"><button type="button" class="btn" data-wsnd="run"'+(WSND.busy?' disabled':'')+'>Estimate the sound</button></div>'+
+    '<div class="note'+(WSND.msg&&WSND.msg.bad?' bad':'')+'" id="wsnd-msg"'+(WSND.msg?'':' hidden')+'>'+(WSND.msg?esc(WSND.msg.t):'')+'</div>'+
+    (WSND.notes.length?'<ul class="list">'+WSND.notes.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'');
+  if(!runs.length) return h;
+  const P=WSND.play, lv=runs.map(x=>wamLevels(x,P.ft,null));
+  h+=(hasF&&runs.some(x=>x.src==='wave')?'<label class="f" style="max-width:420px"><span class="lab">Play</span><span class="inp"><select id="wsnd-src"><option value="wave"'+(WSND.src!=='files'?' selected':'')+'>The wave-model estimate</option><option value="files"'+(WSND.src==='files'?' selected':'')+'>The OpenWAM runs loaded on the 4-Stroke tab</option></select></span></label>':'')+
+    '<div class="tblwrap"><table><thead><tr><th>Speed</th><th>Loudest order</th><th>Level at '+P.ft+' ft, hard ground</th><th>Last two cycles differ</th></tr></thead><tbody>'+
+    runs.map((x,i)=>'<tr'+(x.rpm===P.rpm?' class="cur"':'')+'><td>'+x.rpm.toLocaleString('en-US')+' RPM'+(x.src==='wave'?'':' (OpenWAM)')+'</td><td>'+(x.strongest%1?x.strongest.toFixed(1):x.strongest)+' ('+Math.round(x.strongest*x.rpm/60)+' Hz)</td><td>'+(lv[i]?lv[i].tot.toFixed(0)+' dB(A)':'–')+'</td><td>'+(x.src==='wave'?(x.spread==null?'–':(100*x.spread).toFixed(0)+' % spread, '+x.nAvg+' cycles averaged'):x.per==null?'–':(100*x.per).toFixed(1)+' %'+(x.per>0.05?' (not settled)':''))+'</td></tr>').join('')+'</tbody></table></div>'+
+    '<div class="grid2" style="max-width:640px">'+
+    '<label class="f"><span class="lab">Hold at</span><span class="inp"><select id="wsnd-rpm">'+runs.map(x=>'<option value="'+x.rpm+'"'+(x.rpm===P.rpm?' selected':'')+'>'+x.rpm.toLocaleString('en-US')+' RPM</option>').join('')+'</select></span></label>'+
+    '<label class="f"><span class="lab">Jet noise at the tip</span><span class="inp"><select id="wsnd-jet"><option value="1"'+(P.jet?' selected':'')+'>On: the hot gas’s roar (Lighthill)</option><option value="0"'+(P.jet?'':' selected')+'>Off: the orders only</option></select></span></label>'+
+    '<label class="f"><span class="lab">Drive past at</span><span class="inp"><input id="wsnd-mph" type="number" step="5" min="5" max="150" inputmode="decimal" value="'+P.mph+'"><em>mph</em></span></label>'+
+    '<label class="f"><span class="lab">Microphone from the road</span><span class="inp"><input id="wsnd-ft" type="number" step="1" min="3" max="300" inputmode="decimal" value="'+P.ft+'"><em>ft</em></span></label>'+
+    (runs.length>=2?'<label class="f"><span class="lab">Pull from</span><span class="inp"><input id="wsnd-p0" type="number" step="100" inputmode="decimal" value="'+(P.pull0||runs[0].rpm)+'"><em>RPM</em></span></label><label class="f"><span class="lab">to</span><span class="inp"><input id="wsnd-p1" type="number" step="100" inputmode="decimal" value="'+(P.pull1||runs[runs.length-1].rpm)+'"><em>RPM</em></span></label>':'')+'</div>'+
+    '<div class="actions"><button type="button" class="btn" data-wsnd="hold">Play it held</button><button type="button" class="btn" data-wsnd="pass">Drive past</button>'+(runs.length>=2?'<button type="button" class="btn" data-wsnd="pull">Pull through the speeds</button><button type="button" class="btn" data-wsnd="pullpass">Pull while driving past</button>':'')+'</div>'+
+    '<p class="cap" id="wsnd-play-msg">Played at the level the model gives at '+P.ft+' ft (the browser’s volume sets how loud that is in the room). '+(runs.length<2?'Two or more speeds give a pull through them.':'')+'</p>';
+  return h;
+}
+function wsndSection(sp){ return sec('Hear the model (no recording needed)',wsndPart(sp)); }
+function wsndPlay(kind){
+  const runs=wsndRuns(), P=WSND.play, msg=t=>{ const el=$('wsnd-play-msg'); if(el) el.textContent=t; };
+  if(!runs.length) return;
+  const W=runs.find(x=>x.rpm===P.rpm)||runs[0], d=P.ft*0.3048, sr=48000;
+  // d(mdot)/dt to pressure at the microphone: / (4 pi d), x 2 for the hard ground; the playback scale keeps
+  // a 135 dB peak re 20 uPa a little under full scale (an open collector's pulses peak 15 dB or so over its level), so
+  // quieter runs play quieter
+  const toP=a=>{ const k=2/(4*Math.PI*d); for(let i=0;i<a.length;i++) a[i]*=k; return a; };
+  const FS=20e-6*Math.pow(10,135/20)/0.9;
+  let x;
+  if(kind==='hold'||kind==='pass'){ const S=wsndHold(W,kind==='pass'?8:4,{cov:P.cov/100,jet:P.jet});
+    if(kind==='pass'){ const tonal=S.jet?Float32Array.from(S.x,(v,i)=>v-S.jet[i]):S.x; x=recPassby(toP(Float32Array.from(tonal)),S.jet?toP(Float32Array.from(S.jet)):null,sr,P.mph*0.44704,d,S.Ueff||0); }
+    else x=toP(Float32Array.from(S.x)); }
+  else { const r0=P.pull0||runs[0].rpm, r1=P.pull1||runs[runs.length-1].rpm, R=recPull(runs,r0,r1,6,sr,{}); if(!R){ msg('Two or more speeds are needed for a pull.'); return; }
+    const tonal=toP(Float32Array.from(R.x)), jet=R.jet&&P.jet?toP(Float32Array.from(R.jet)):null;
+    if(kind==='pullpass') x=recPassby(tonal,jet,sr,P.mph*0.44704,d,R.Ueff||0); else { x=tonal; if(jet) for(let i=0;i<x.length;i++) x[i]+=jet[i]; } }
+  let pk=0; for(let i=0;i<x.length;i++){ x[i]/=FS; pk=Math.max(pk,Math.abs(x[i])); }
+  if(pk>0.98) for(let i=0;i<x.length;i++) x[i]*=0.98/pk;
+  const fade=Math.round(0.02*sr); for(let i=0;i<x.length;i++) x[i]*=Math.min(1,i/fade,(x.length-1-i)/fade);
+  recPlay(x,sr).then(e=>msg(e||(kind==='hold'?'Playing '+W.rpm.toLocaleString('en-US')+' RPM held, at '+P.ft+' ft.':kind==='pass'?'Playing a drive-past at '+P.mph+' mph, '+P.ft+' ft from the road, at '+W.rpm.toLocaleString('en-US')+' RPM.':'Playing a pull from '+(P.pull0||runs[0].rpm)+' to '+(P.pull1||runs[runs.length-1].rpm)+' RPM'+(kind==='pullpass'?' while driving past.':'.'))+(pk>0.98?' (Turned down to fit: its peaks pass 135 dB at the microphone.)':'')));
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wsnd]'); if(!b) return; if(b.dataset.wsnd==='run') wsndRun(); else wsndPlay(b.dataset.wsnd); });
+document.addEventListener('change',e=>{ const t=e.target, P=WSND.play; if(!t.id||!/^wsnd-/.test(t.id)) return;
+  if(t.id==='wsnd-rpms'){ WSND.rpms=t.value; return; }
+  if(t.id==='wsnd-src') WSND.src=t.value; else if(t.id==='wsnd-rpm') P.rpm=+t.value; else if(t.id==='wsnd-jet') P.jet=t.value==='1';
+  else if(t.id==='wsnd-mph'){ const v=+t.value; if(v>=5&&v<=150) P.mph=v; } else if(t.id==='wsnd-ft'){ const v=+t.value; if(v>=3&&v<=300) P.ft=v; }
+  else if(t.id==='wsnd-p0'){ const v=+t.value; if(v>0) P.pull0=v; } else if(t.id==='wsnd-p1'){ const v=+t.value; if(v>0) P.pull1=v; }
+  renderActive(); });
+window.__wsnd={WSND,wsndSpec,wsndExt,wsndRun,wsndRuns,wsndHold,wsndEntry,wsndPlay};
 
 /* ===== primary size, headers and crossover ===== */
 const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u;};
@@ -17730,7 +17890,7 @@ function wamInsTable(R){
     (WAM_LEVEL.target>0?'<tr><td>To reach '+WAM_LEVEL.target+' dB(A): take off</td>'+lv.map((v,i)=>'<td>'+(v&&v.need?(v.need.filter(q=>q.cut>0).map(q=>'order '+q.o+' '+q.cut.toFixed(0)+' dB').join(', ')||'nothing: already under')+(v.need.some(q=>q.cut>0)?' <button type="button" class="btn" data-wamjob="'+i+'" style="padding:2px 8px;margin-left:6px">To the muffler designer</button>':''):'—')+'</td>').join('')+'</tr>':'');
   rows+='<tr><td>Half orders, energy share</td>'+ok.map(x=>'<td>'+(100*x.half).toFixed(0)+'%</td>').join('')+'</tr>'+
     '<tr><td>Strongest order</td>'+ok.map(x=>'<td>'+x.strongest+(Number.isFinite(x.rpm)?' ('+Math.round(x.strongest*x.rpm/60)+' Hz)':'')+'</td>').join('')+'</tr>'+
-    '<tr><td>Last two cycles differ by</td>'+ok.map(x=>'<td>'+(x.per==null?'one cycle only':(100*x.per).toFixed(1)+'%'+(x.per>0.05?' (not settled)':''))+'</td>').join('')+'</tr>';
+    '<tr><td>Last two cycles differ by</td>'+ok.map(x=>'<td>'+(x.src==='wave'?(x.spread==null?'–':(100*x.spread).toFixed(0)+'% spread, '+x.nAvg+' cycles averaged (wave model)'):x.per==null?'one cycle only':(100*x.per).toFixed(1)+'%'+(x.per>0.05?' (not settled)':''))+'</td>').join('')+'</tr>';
   const dual=ok.some(x=>x.exits>1), M=WAM_MIC;
   const micUi=dual?'<div class="grid2" style="max-width:640px"><label class="f"><span class="lab">Microphone</span><span class="inp"><select id="wam-mic"><option value="centre"'+(M.layout==='centre'?' selected':'')+'>Behind, between the exits (both equally far)</option><option value="side"'+(M.layout==='side'?' selected':'')+'>Beside the car, nearer one exit</option></select></span></label>'+
     (M.layout==='side'?'<label class="f"><span class="lab">Exits apart (far exit this much farther)</span><span class="inp"><input id="wam-mic-sep" type="number" step="0.1" min="0" inputmode="decimal" value="'+M.sep+'"><em>m</em></span></label><label class="f"><span class="lab">Microphone to the near exit</span><span class="inp"><input id="wam-mic-r" type="number" step="0.1" min="0.1" inputmode="decimal" value="'+M.r+'"><em>m</em></span></label>':'')+'</div>':'';

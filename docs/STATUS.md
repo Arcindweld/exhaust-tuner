@@ -767,6 +767,21 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   first exit alone in the cycle before, so every dual-exit OpenWAM run read as unsettled (the H-pipe V8: 68-205 %
   where the exits differ 2-6 %). Each exit is now held against its own previous cycle and the worse reported, as
   wam_sound.synthesize_multi does; dualexit_ui.js checks it. Crossover results in duct_acoustics_check.md.
+- Sound with no file (2026-11-05): Sound tab "Hear the model (no recording needed)". The page's own wave simulation
+  (wsFactory, JS, in a worker) runs the 4-Stroke tab's engine and header at full throttle (the whole engine when the
+  Headers tab has unequal lengths), with the OpenWAM panel's line after each collector (pipe, the Mufflers tab's
+  chamber as a plain one or a can of the stated volume, tailpipe). runSpeed opts.record / recordCycles records each open
+  end's face flux, gas speed, temperature and density from the start of the window (cycles 0-720), six cycles averaged
+  after resampling (the solver's open end varies 10-20 % RMS between cycles at either grid and does not settle further;
+  kept as the spread). The runs are read as INS.DAT runs (wamInsOrders, monopole p = (1/4 pi r) d mdot/dt), join
+  WAM_UI.ins (src 'wave'), and play held, driving past, pulled through the speeds, or both, at the model's own level at
+  the microphone distance (135 dB peak at full scale), with no recording loaded: recSynth takes o.sr / o.kf / o.noRec,
+  recPlay a sample rate. The levels table on the 4-Stroke tab marks wave runs. Checked against OpenWAM (default V8,
+  2.5 m line, no muffler, 25 cycles): firing orders within 1-9 dB, A-weighted sum of 12 orders +4 dB at 1750 and -9.5
+  dB at 2700 rpm, between-firing orders 20-40 dB weaker than OpenWAM's (cause not found). A 230 x 400 mm chamber on
+  the line takes 15 and 5 dB(A) off at 2500 and 4500 rpm. wsnd_ui.js.
+- Engine pickers list the LS and LT engines by name (GM_LS_NAMED, engFam); OpenWAM check: Use buttons, winner marked,
+  the tab's straight-through chamber runs alongside.
 - OPEN (owner decisions / later): primary-length reference point when a port length is entered (Stainless Headers is
   ambiguous); Tri-Y first section measured from the port vs the valve; Helmholtz neck end correction 0.6133 d (two
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
