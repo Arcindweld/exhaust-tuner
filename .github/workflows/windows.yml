@@ -553,6 +553,12 @@ jobs:
           name: ExhaustTuner-Setup
           path: dist/ExhaustTuner-Setup-*.exe
           retention-days: 30
+      # the patched OpenWAM on its own, for the release (the Fusion add-in's engines/openwam folder)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenWAM-win-x64
+          path: engines/openwam/OpenWAM.exe
+          retention-days: 30
 
   # A push to the program branch that passed everything above becomes release v<APP_VERSION> with the installer and
   # SHA256SUMS.txt; the notes list the commits since the previous release. The installed program checks the newest
@@ -572,6 +578,10 @@ jobs:
         with:
           name: ExhaustTuner-Setup
           path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: OpenWAM-win-x64
+          path: openwam-dl
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -586,7 +596,7 @@ jobs:
           cp "dist/$setup" dist/ExhaustTuner-Setup.exe
           # the patched OpenWAM on its own, for the Fusion add-in (engines/openwam/OpenWAM.exe in its folder lets the
           # Fusion panel run OpenWAM without the program)
-          cp engines/openwam/OpenWAM.exe dist/OpenWAM-win-x64.exe
+          cp openwam-dl/OpenWAM.exe dist/OpenWAM-win-x64.exe
           (cd dist && sha256sum "$setup" ExhaustTuner-Setup.exe OpenWAM-win-x64.exe > SHA256SUMS.txt && cat SHA256SUMS.txt)
           prev=$(gh release list --limit 1 --exclude-drafts --json tagName --jq '.[0].tagName // ""')
           {
