@@ -336,6 +336,18 @@ TWO COMMANDS, both in the Solid tab > Create panel
    The native dialog from version 2: 4-stroke header + megaphone, 2-stroke chamber,
    header layout and crossover, with values saved as user parameters.
 
+SPLIT A TUBE FOR PRINTING (Split the selected tube for printing, on the Intake, Headers, Muffler, Parts and Boom tabs)
+For a printed pipe longer than the printer: click the tube's outside face (Ctrl+click its centreline sketch curves too
+if it was not made with Pipe). printsplit.py plans the cuts: only in straights, the whole joint clear of bends and of
+anything raised or recessed on the tube (lettering, bosses, end lips), every piece standing on an end (its axis
+vertical) within the printer's bed and height, the fewest pieces. Each joint is a flush lap: the receiving piece keeps
+the inner half of its wall for the lap length, the other piece carries the outer half over it, with an epoxy gap
+between, so neither the outside nor the bore shows a step and nothing sits in the flow. A 45 degree chamfer fills the
+step each piece prints over (no supports). Every piece stands on an end with no outer tongue. The features go into a
+"Print split" group at the end of the timeline; print-ready STLs (each stood on its end) go to
+Documents\Exhaust Tuner\prints\<design>. Settings: printer (bed size), lap length (20 mm), epoxy gap (0.15 mm per
+side), material (for the weight and filament length). Scuff both lap faces and use a plastic-rated epoxy.
+
 WORKING TO REAL PARTS
 - Model each route as a 3D sketch of lines with fillets at your bender's centerline radius.
   The bend schedule then matches the tube bender, and the length is exact.

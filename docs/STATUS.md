@@ -600,6 +600,16 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
   has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
   the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
+- Split for printing (2026-11-07, add-in 4.16.0): Fusion panel button "Split the selected tube for printing" (Intake,
+  Headers, Muffler, Parts, Boom tabs) with printer presets (Bambu, Prusa, Creality, Voron, custom), lap length, epoxy
+  gap and material. fusion-addin/printsplit.py plans (pure Python, tests/test_printsplit.py: the owner's 4 in CAI
+  splits into 5 pieces on a 256 mm bed in ~5 s, cuts in straights clear of the lettering, every piece standing on an
+  end with no outer tongue); cadtools.act_print_split finds the Pipe path (or selected curves), the bore and OD from the
+  straight's cylinders, keep-outs from any face that is not plain wall, then builds planes, split bodies, flush lap
+  joints (inner tongue to r_mid - gap/2, outer from r_mid + gap/2, 45 degree shoulder/tip chamfers), a "Print split"
+  timeline group, clash check, and upright STLs to Documents/Exhaust Tuner/prints/<design>. Done by hand on the owner's
+  intake first (Fusion + Bambu Studio slice: 500 m / 1.52 kg PLA-equivalent, ~40 h). Live test written
+  (tests/fusion_live_printsplit.py), not yet run: Fusion was not connected. web/tests/psplit_ui.js.
 - More printing filaments (2026-11-06): Intake tab, 3D printed (FDM): 31 more rows from the makers' own TDS, read by a research pass
   and transcribed with their sources: Siraya Tech Fibreheart (PPA-CF Core, PPA-CF, PPA, PPA-GF, PET-CF, PET-GF, ABS-CF, ABS-CF Core,
   ABS-GF, ASA-GF, PETG-CF Pro), Polymaker Fiberon (PA6-GF25, PA12-CF10, PA612-CF15, PET-CF17, PET-GF15, PETG-rCF08, ASA-CF08,

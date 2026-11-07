@@ -12216,6 +12216,7 @@ function fusionTools(tab,buttons){
     (buttons.some(b=>b[0]==='clearance')?'<div class="grid2" style="margin-top:12px;max-width:360px"><label class="f"><span class="lab">Minimum clearance</span><span class="inp"><input class="fxgap" type="number" step="any" inputmode="decimal" data-kind="len" data-base="12.7"><em data-u="len">in</em></span></label></div>':'')+
     (ROUTE_TABS[tab]?routeBlock():'')+
     (buttons.some(b=>b[0]==='jig')?jigBlock(tab):'')+
+    (buttons.some(b=>b[0]==='printSplit')?psBlock():'')+
     '<div class="out" id="fx-out-'+tab+'"></div></div>';
 }
 const FX_BUTTONS={
@@ -12233,6 +12234,32 @@ const FX_BUTTONS={
 FX_BUTTONS.headers.splice(4,0,['routeHeader','Auto-route primaries through the scan'],['routeTriY','Auto-route a two-stage header (Tri-Y, 8-4-1) with its Y merges'],['routeBundle180','Lay out 180-degree headers (V8 template)']);
 // a tack jig under the tubes just routed (or the selected centrelines): printable cradles that hold every piece
 ['headers','intake','muf','parts'].forEach(t=>FX_BUTTONS[t].push(['jig','Build fabrication jig for the routed tubes']));
+// a tube too big for the printer, cut into pieces that print standing up and bond with flush lap joints (printsplit.py)
+['intake','headers','muf','parts','boom'].forEach(t=>FX_BUTTONS[t].push(['printSplit','Split the selected tube for printing']));
+const PS_PRINTERS={x1c:['Bambu Lab X1 Carbon / X1E / P1S / P1P / P2S',256,256,256],a1:['Bambu Lab A1',256,256,256],a1m:['Bambu Lab A1 mini',180,180,180],
+  h2d:['Bambu Lab H2D (one nozzle)',325,320,325],mk4:['Prusa MK4S / Core One',250,210,220],xl:['Prusa XL',360,360,360],
+  k1max:['Creality K1 Max',300,300,300],ender3v3:['Creality Ender-3 V3',220,220,250],voron350:['Voron 2.4 350',350,350,350],custom:['Custom size',256,256,256]};
+const PS_UI={open:false,printer:'x1c',bx:256,by:256,bz:256,lap:20,clr:0.15,mat:'sy_ppacfcore'};
+function psBlock(){
+  const P=PS_UI, fdm=PRINT_MATS.filter(m=>m.proc==='fdm'), mat=fdm.find(m=>m.id===P.mat)||fdm[0];
+  const len=(k,lab,step)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="psx" data-k="'+k+'" type="number" step="'+(step||'any')+'" inputmode="decimal" data-kind="len" value="'+(U==='imp'?+(P[k]/25.4).toFixed(3):+(+P[k]).toFixed(2))+'"><em data-u="len">'+(U==='imp'?'in':'mm')+'</em></span></label>';
+  return '<details class="psopts"'+(P.open?' open':'')+' style="margin-top:12px"><summary><b>Split for printing</b>: '+esc(PS_PRINTERS[P.printer][0])+', '+esc(mat.name)+'</summary>'+
+    '<p class="cap">For a pipe too long for the printer: click the tube’s outside face (and Ctrl+click its centreline if it was not made with Pipe), then Split the selected tube for printing. It cuts only in straights, clear of bends and lettering, so every piece prints standing on its end and fits the bed. Each joint is a flush lap: both walls are thinned to about half where they overlap, with an epoxy gap, so the outside and the bore stay smooth with no sleeve and nothing in the flow. A 45° step at each lap prints without supports. Print-ready STLs go to Documents\Exhaust Tuner\prints.</p><div class="grid2" style="max-width:640px">'+
+    '<label class="f span2"><span class="lab">Printer</span><span class="inp"><select class="pssel" data-k="printer">'+Object.entries(PS_PRINTERS).map(([k,v])=>'<option value="'+k+'"'+(k===P.printer?' selected':'')+'>'+esc(v[0])+' ('+v[1]+' × '+v[2]+' × '+v[3]+' mm)</option>').join('')+'</select></span></label>'+
+    (P.printer==='custom'?len('bx','Bed X')+len('by','Bed Y')+len('bz','Build height'):'')+
+    len('lap','Lap length (bonded overlap)')+len('clr','Epoxy gap per side')+
+    '<label class="f span2"><span class="lab">Material (for the weight and filament)</span><span class="inp"><select class="pssel" data-k="mat">'+fdm.map(m=>'<option value="'+m.id+'"'+(m.id===mat.id?' selected':'')+'>'+esc(m.name)+'</option>').join('')+'</select></span></label>'+
+    '</div></details>';
+}
+function psPayload(){
+  const P=PS_UI, pr=PS_PRINTERS[P.printer], fdm=PRINT_MATS.filter(m=>m.proc==='fdm'), mat=fdm.find(m=>m.id===P.mat)||fdm[0];
+  return {bed_x_mm:P.printer==='custom'?P.bx:pr[1],bed_y_mm:P.printer==='custom'?P.by:pr[2],bed_z_mm:P.printer==='custom'?P.bz:pr[3],lap_mm:P.lap,clearance_mm:P.clr,density:mat.dens,material:mat.name};
+}
+document.addEventListener('change',e=>{ const el=e.target.closest('select.pssel'); if(!el) return; PS_UI[el.dataset.k]=el.value; PS_UI.open=true;
+  if(el.dataset.k==='printer'&&el.value!=='custom'){ const v=PS_PRINTERS[el.value]; PS_UI.bx=v[1]; PS_UI.by=v[2]; PS_UI.bz=v[3]; }
+  document.querySelectorAll('details.psopts').forEach(d=>{ d.outerHTML=psBlock(); }); });
+window.__ps={PS_UI,PS_PRINTERS,psPayload,psBlock};
+document.addEventListener('input',e=>{ const el=e.target.closest('input.psx'); if(!el) return; readInput(el); const v=el._b; if(Number.isFinite(v)&&v>0) PS_UI[el.dataset.k]=v; });
 FX_BUTTONS.intake.splice(3,0,['routeSingle','Auto-route this tube through the scan'],['routeParts','Auto-route with the parts in the build list']);
 FX_BUTTONS.muf.push(['routeSingleMuf','Auto-route the J-pipe through the scan'],['helmholtz','Build the Helmholtz can'],['chamber','Build the expansion chamber'],['revchamber','Build the reverse-flow chamber']);
 const ROUTE_TABS={headers:1,intake:1,parts:1,muf:1};
@@ -12350,6 +12377,12 @@ function fxRender(tab,res){
     const both=mm=>(mm/25.4).toFixed(2)+' in ('+Math.round(mm)+' mm)', bed=JIG_UI.bed;
     h+='<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Part</th><th>Print size, largest to smallest</th><th>Bolt holes</th></tr></thead><tbody>'+
       res.jig.parts.map(q=>{ const z=[...q.size_mm].sort((a,b)=>b-a); return '<tr><td>'+esc(q.name)+'</td><td'+(z[1]>bed+0.5?' class="st-warn"':'')+'>'+z.map(both).join(' × ')+'</td><td>'+q.holes+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  }
+  if(res.split&&res.split.pieces&&res.split.pieces.length){
+    const both=mm=>(mm/25.4).toFixed(2)+' in ('+Math.round(mm)+' mm)', S=res.split;
+    h+='<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>Piece</th><th>Along the tube</th><th>Printed height</th><th>Footprint</th><th>Stands on</th><th>Volume</th></tr></thead><tbody>'+
+      S.pieces.map(q=>'<tr><td>'+esc(q.name)+'</td><td>'+both(q.length_mm)+'</td><td>'+both(q.height_mm)+'</td><td>'+q.footprint_mm.map(both).join(' × ')+'</td><td>'+(q.base==='start'?'its upstream end':'its downstream end')+'</td><td>'+q.vol_cm3.toFixed(1)+' cm³</td></tr>').join('')+
+      '<tr><td><b>All</b></td><td></td><td></td><td></td><td></td><td><b>'+S.volume_cm3.toFixed(1)+' cm³</b>, '+(S.mass_g/1000).toFixed(2)+' kg, '+S.filament_m+' m</td></tr></tbody></table></div>';
   }
   if(res.items&&res.items.length){
     const useBtn=(target,mm,label)=>'<button type="button" class="btn" data-use="1" data-target="'+target+'" data-mm="'+mm.toFixed(3)+'">'+label+'</button>';
@@ -12534,6 +12567,7 @@ document.addEventListener('click',e=>{
   if(act==='chamber'&&!(FX.chamber&&FX.chamber.can_id_mm>0)){ if(out) out.innerHTML='<div class="note bad">The chamber needs a round main pipe and the straight-through layout with a chamber wider than the pipe: set those above first.</div>'; return; }
   if(out) out.innerHTML='<div class="note">'+(act==='helmholtz'?'Building the can and its neck in Fusion…':act==='chamber'?'Building the chamber and its tubes in Fusion… draw one line along the pipe’s centreline where the near end plate goes, pointing the way the gas flows.':act==='revchamber'?'Building the reverse-flow chamber in Fusion… draw one line along the case’s axis from the middle of the pipe end plate, pointing into the case; the tubes sit either side of it across the case’s width.':'Working in Fusion…')+'</div>';
   const pay=Object.assign({},((act==='helmholtz'?FX.helm:act==='chamber'?FX.chamber:act==='revchamber'?FX.revchamber:FX[tab])||{}),{gap_cm:(FX.gap!=null?FX.gap:12.7)/10});
+  if(act==='printSplit'){ Object.assign(pay,psPayload()); if(out) out.innerHTML='<div class="note">Planning the cuts and building the lap joints in Fusion… a long tube can take a minute.</div>'; }
   if(act==='jig'){ pay.title='Fabrication jig'; pay.jig=jigPayload(); if(out) out.innerHTML='<div class="note">Building the fabrication jig in Fusion under the tubes the last auto-route built, or the centrelines you selected…</div>'; }
   fusionCall(act,pay).then(res=>fxRender(tab,res));
 });
