@@ -19230,7 +19230,7 @@ const PRINT_MATS=[
   src:'https://cdn.shopify.com/s/files/1/0584/7236/6216/files/Bambu_PC_Technical_Data_Sheet.pdf',srcName:'Bambu PC TDS'},
  {id:'asa',name:'Bambu ASA',proc:'fdm',tg:100,tgAss:1,hdt18:92,hdt045:100,amorph:1,sxy:52,sz:35,wet:0.9,dens:1.07,densAss:1,nozzle:'240–270',chamber:'45–60',x1c:'ok',dry:'80 °C 8 h',anneal:'80–90 °C 6–12 h',tmax:70,boost:0,locs:'tube',fuel:0,note:'the only grade sold for UV; at its limit under the hood (a printed ASA MAF housing collapsed at its clamp after about 10,000 km, Audizine). Gasoline and PCV oil mist attack it',
   src:'https://cdn.shopify.com/s/files/1/0584/7236/6216/files/Bambu_ASA_Technical_Data_Sheet.pdf',srcName:'Bambu ASA TDS'},
- {id:'pmpa6cf',name:'Polymaker Fiberon PA6-CF20',proc:'fdm',tg:74.2,hdt18:173,hdt045:215,sxy:109.3,sz:54.0,wet:0.47,wetMeas:1,dens:1.1,densAss:1,nozzle:'not on the sheet',chamber:'not on the sheet',x1c:'ok',dry:'per Polymaker',anneal:'100 °C 16 h',tmax:120,boost:20,locs:'tube tubehot cpcold plenum runner',fuel:1,pa6:1,note:'the only sheet with wet strengths: 109.3 → 54.7 MPa in-plane and 54.0 → 25.5 MPa across layers after 48 h in 60 °C water; 3.3% equilibrium water',
+ {id:'pmpa6cf',name:'Polymaker Fiberon PA6-CF20',proc:'fdm',tg:74.2,hdt18:173,hdt045:215,sxy:109.3,sz:54.0,wet:0.47,wetMeas:1,dens:1.17,nozzle:'280–300',chamber:'room temperature',x1c:'ok',dry:'100 °C 10 h',anneal:'100 °C 16 h',tmax:120,boost:20,locs:'tube tubehot cpcold plenum runner',fuel:1,pa6:1,note:'the only sheet with wet strengths: 109.3 → 54.7 MPa in-plane and 54.0 → 25.5 MPa across layers after 48 h in 60 °C water; 3.3% equilibrium water',
   src:'https://fiberon.polymaker.com/wp-content/uploads/TDS_FIBERON-PA6-CF20_V1.1_EN.pdf',srcName:'Polymaker PA6-CF20 TDS'},
  {id:'mjfpa12',name:'HP MJF PA12 (HP 3D HR PA 12), or EOS PA 2200 SLS',proc:'sls',hdt18:95,hdt045:175,sxy:48,sz:27,wet:0.75,dens:1.01,dry:'',anneal:'',tmax:90,boost:30,locs:'tube tubehot cpcold plenum runner',fuel:1,note:'HP’s sheet gives 48 MPa; EOS PA 2200 is 48 in-plane and 27 across layers on Xometry’s sheet, and the lower figure is used. HDT at 1.8 MPa is 95 °C (HP) or 86 (EOS); JLC3DP’s “147 °C” does not state the load. A race manifold in this material ran 3 bar at up to 80 °C (HP case; gauge or absolute not stated)',
   src:'https://weerg.com/hubfs/Datasheets/Datasheets%202024/ENG/EN_NylonPA12.pdf',srcName:'Weerg HP MJF PA12 TDS'},
@@ -19256,6 +19256,118 @@ const PRINT_BED={fdm:256,sls:284,metal:250};   // the X1C cube; the smallest sid
 // The notes' derating rule for a continuous wall temperature: min(HDT at 1.8 MPa − 30 °C, 0.85 × HDT at 0.45 MPa) for filled nylons and PPS,
 // glass transition − 20 °C for the amorphous PC and ASA. HDT is a short-test deflection temperature, not a service rating; nobody here publishes one.
 const printRule=m=>m.proc==='metal'?m.tmax:m.amorph?m.tg-20:Math.min(m.hdt18-30,m.hdt045!=null?0.85*m.hdt045:1e9);
+/* More FDM filaments: Siraya Tech Fibreheart, Polymaker Fiberon, SUNLU, 3DXTech, Raise3D and QIDI, each read off the maker's own
+   technical data sheet (src). Numbers are the sheet's; where a sheet gives annealed values those are used (the parts here are annealed), and
+   the note says so. Gaps are filled by stated rules, marked on the row and starred in the table:
+   - zAss: no across-layer (Z) strength on the sheet, so 30% of the in-plane figure is taken, the low end of the sheets that do give one
+     (Bambu PPS-CF 28%, Polymaker PPS-GF20 36%, PA6-GF 36%).
+   - hdtAss: no HDT at 1.8 MPa (SUNLU publishes 0.45 MPa only): 73.5 °C for a nylon, the lowest as-printed nylon figure on these sheets
+     (Siraya PPA), and 8 °C under the 0.45 MPa figure for the amorphous ones (ABS, ASA, PC, PETG: 4 to 8 °C apart on the sheets that give both).
+   - tgAss: no believable glass transition (SUNLU's ABS-GF 135 °C, its PC none): the 0.45 MPa HDT is taken, which sits just under it.
+   - wet: measured where the sheet tests it (Polymaker's nylons after 48 h in 60 °C water); otherwise 0.5 for PA6 and plain PPA,
+     0.75 for PA12, PA612 and the filled PPAs, 0.9 for PET, PPS, ABS, ASA, PC and PETG (the assumptions above).
+   Derived, the same for every added row: tmax = the derating rule rounded down to 5 °C (capped by a published continuous-use rating);
+   boost from the hot-wet across-layer strength sz × wet: 40 MPa or more 20 psi, 25 to 40 15 psi, 12 to 25 10 psi, under 12 5 psi, and vacuum
+   only if tmax is under 75 °C; where = every place whose design temperature (PRINT_LOCS) is at or below tmax, the charge pipe only with
+   boost and the head flange only from 121 °C; X1 Carbon = 'no' if the sheet's lowest nozzle temperature is over 300 °C (or the sheet asks
+   for a hotend that holds more), 'marginal' at 300 °C, else 'ok'. */
+const PRINT_MORE=[
+ {id:'sy_ppacfcore',name:'Siraya Tech Fibreheart PPA-CF Core',tg:80,hdt18:126,hdt045:199,sxy:121,wet:0.75,dens:1.23,nozzle:'280–320',chamber:'enclosure',dry:'80–100 °C 4–6 h',anneal:'80–100 °C 4–8 h',fuel:1,
+  note:'25% carbon fibre in the core of the strand, plain PPA outside; annealed figures (as printed 84 / 97 °C and 112 MPa); hardened nozzle; Siraya says it is not AMS compatible; no across-layer figure on the sheet. QIDI’s UltraPA-CF25 has a near-identical sheet and does give one (58 MPa)',
+  src:'https://siraya.tech/pages/siraya-tech-fibreheart-ppa-cf-core-tds',srcName:'Siraya Tech PPA-CF Core TDS'},
+ {id:'sy_ppacf',name:'Siraya Tech Fibreheart PPA-CF',tg:80,hdt18:119,hdt045:192,sxy:98,wet:0.75,dens:1.2,nozzle:'300–320',chamber:'enclosure',dry:'100 °C 4–6 h',anneal:'80–100 °C 4–8 h',fuel:1,
+  note:'15% carbon fibre; annealed figures (as printed 82.5 / 84.5 °C, 95 MPa); hardened nozzle and a 12 mm or longer heater block; 1.37% water',
+  src:'https://siraya.tech/pages/siraya-tech-fibreheart-paht-cf-ppa-based-tds',srcName:'Siraya Tech PPA-CF TDS'},
+ {id:'sy_ppa',name:'Siraya Tech Fibreheart PPA (unfilled)',tg:80,hdt18:73.5,hdt045:81,sxy:72,wet:0.5,dens:1.21,nozzle:'280–300',chamber:'enclosure',dry:'80–100 °C 4–6 h',anneal:'the sheet advises against it (warping)',fuel:1,
+  note:'as printed; the only sheet with a wet HDT, 48.5 °C at 1.8 MPa once it has taken up water (2.59%), so keep it away from heat',
+  src:'https://siraya.tech/pages/siraya-tech-fibreheart-paht-filament-tds-ppa-based',srcName:'Siraya Tech PPA TDS'},
+ {id:'sy_ppagf',name:'Siraya Tech Fibreheart PPA-GF',tg:80,hdt18:112.2,hdt045:185,sxy:94,sz:63,wet:0.75,dens:1.27,nozzle:'300–320',chamber:'60–80',dry:'80–100 °C 4–6 h before every print',anneal:'90 °C 4 h, cool in the oven',fuel:1,x1cHot:320,
+  note:'15% glass fibre; annealed figures, across layers as printed; the sheet asks for a hotend that holds 320 °C and a hardened nozzle; not AMS compatible',
+  src:'https://drive.google.com/file/d/1NZ55bEwNwbDDViix2e_D6BPaPidtgY9e/view',srcName:'Siraya Tech PPA-GF TDS'},
+ {id:'sy_petcf',name:'Siraya Tech Fibreheart PET-CF',tg:80,hdt18:118,hdt045:176,sxy:73,sz:35,wet:0.9,dens:1.3,nozzle:'280–320',chamber:'enclosure',dry:'90 °C 4–6 h',anneal:'90–100 °C 4–6 h',fuel:1,
+  note:'15% carbon fibre; annealed figures (as printed 76.6 / 86.7 °C); watch the shrinkage when annealing; 0.5% water',
+  src:'https://siraya.tech/pages/siraya-tech-fibreheart-pet-cf-tds',srcName:'Siraya Tech PET-CF TDS'},
+ {id:'sy_petgf',name:'Siraya Tech Fibreheart PET-GF',hdt18:105,hdt045:134.1,sxy:71,sz:36,wet:0.9,dens:1.3,nozzle:'300',chamber:'enclosure required',dry:'100–120 °C 4–6 h',anneal:'95 °C 4 h packed in aluminium-oxide sand',fuel:1,
+  note:'annealed figures (as printed 74 / 78 °C); the sheet’s 135 °C glass transition is above its own HDT and is not used',
+  src:'https://siraya.tech/pages/fibreheart-pet-gf-tds',srcName:'Siraya Tech PET-GF TDS'},
+ {id:'sy_abscf',name:'Siraya Tech Fibreheart ABS-CF',amorph:1,tg:101,hdt18:94,hdt045:99,sxy:45,wet:0.9,dens:1.06,nozzle:'250–270',chamber:'60–80 if heated',dry:'70–80 °C 4–6 h',anneal:'',fuel:0,
+  note:'ABS crazes in gasoline and PCV vapour; hardened nozzle recommended',src:'https://siraya.tech/pages/siraya-tech-fibreheart-abs-cf-tds',srcName:'Siraya Tech ABS-CF TDS'},
+ {id:'sy_abscfcore',name:'Siraya Tech Fibreheart ABS-CF Core',amorph:1,tg:101,hdt18:84,hdt045:91,sxy:49.9,wet:0.9,dens:1.06,nozzle:'250–280',chamber:'60–80 if heated',dry:'60–70 °C 4–6 h',anneal:'',fuel:0,
+  note:'carbon in the core of the strand; hardened nozzle and a 12 mm or longer heater block; ABS crazes in gasoline and PCV vapour',src:'https://siraya.tech/pages/siraya-tech-fibreheart-abs-cf-core-tds',srcName:'Siraya Tech ABS-CF Core TDS'},
+ {id:'sy_absgf',name:'Siraya Tech Fibreheart ABS-GF',amorph:1,tg:101,hdt18:93,hdt045:97,sxy:44,wet:0.9,dens:1.08,nozzle:'250–270',chamber:'about 50',dry:'65 °C 4–6 h',anneal:'',fuel:0,
+  note:'the web page gives 44 MPa and the PDF 46.5, the lower is used; ABS crazes in gasoline and PCV vapour',src:'https://siraya.tech/pages/fibreheart-abs-gf-filament-tds',srcName:'Siraya Tech ABS-GF TDS'},
+ {id:'sy_asagf',name:'Siraya Tech Fibreheart ASA-GF',amorph:1,tg:106,hdt18:94,hdt045:98,sxy:47.5,wet:0.9,dens:1.1,nozzle:'250–270',chamber:'60–80',dry:'70–80 °C 4–6 h',anneal:'',fuel:0,
+  note:'UV-stable; hardened nozzle; ASA is attacked by gasoline and PCV oil mist',src:'https://siraya.tech/pages/siraya-tech-fibreheart-asa-gf-tds',srcName:'Siraya Tech ASA-GF TDS'},
+ {id:'sy_petgcf',name:'Siraya Tech Fibreheart PETG-CF Pro',amorph:1,tg:68,hdt18:69,hdt045:75,sxy:44,wet:0.9,dens:1.3,nozzle:'250–270',chamber:'enclosure recommended',dry:'70–80 °C 4–6 h',anneal:'',fuel:0,
+  note:'too soft for under the hood; hardened nozzle',src:'https://siraya.tech/pages/fibreheart-petg-cf-pro-filament-technical-data-tds',srcName:'Siraya Tech PETG-CF Pro TDS'},
+ {id:'pm_pa6gf25',name:'Polymaker Fiberon PA6-GF25',tg:70.4,hdt18:157,hdt045:191,sxy:80.1,sz:60.7,wet:0.43,wetMeas:1,dens:1.2,nozzle:'280–300',chamber:'room temperature',dry:'100 °C 10 h',anneal:'100 °C 16 h',fuel:1,pa6:1,
+  note:'annealed; wet strength measured: 80.1 → 40.2 MPa in-plane and 60.7 → 26.3 across layers after 48 h in 60 °C water; a brass nozzle lasts about 9 h, use a hardened one',
+  src:'https://cdn.shopify.com/s/files/1/0548/7299/7945/files/TDS_FIBERON_PA6-GF25_V1.1_EN.pdf',srcName:'Polymaker PA6-GF25 TDS'},
+ {id:'pm_pa12cf10',name:'Polymaker Fiberon PA12-CF10',tg:55,hdt18:105,hdt045:131,sxy:77.4,sz:52.2,wet:0.81,wetMeas:1,dens:1.06,nozzle:'280–300',chamber:'room temperature',dry:'100 °C 10 h',anneal:'100 °C 16 h',fuel:1,
+  note:'annealed; loses the least when wet of the Fiberon nylons (52.2 → 42.1 MPa across layers), 1.5% equilibrium water',
+  src:'https://cdn.shopify.com/s/files/1/0548/7299/7945/files/TDS_FIBERON_PA12-CF10_V1.1_EN.pdf',srcName:'Polymaker PA12-CF10 TDS'},
+ {id:'pm_pa612cf15',name:'Polymaker Fiberon PA612-CF15',hdt18:114,hdt045:175,sxy:91.9,sz:48.3,wet:0.74,wetMeas:1,dens:1.03,nozzle:'250–300',chamber:'room temperature',dry:'100 °C 10 h',anneal:'100 °C 16 h',fuel:1,
+  note:'annealed; wet strength measured (48.3 → 35.6 MPa across layers); 2.2% equilibrium water',
+  src:'https://cdn.shopify.com/s/files/1/0548/7299/7945/files/TDS_FIBERON_PA612-CF15_V1.1_EN.pdf',srcName:'Polymaker PA612-CF15 TDS'},
+ {id:'pm_petcf17',name:'Polymaker Fiberon PET-CF17',tg:79.3,hdt18:105,hdt045:147.5,sxy:65.9,sz:27.9,wet:0.9,dens:1.34,nozzle:'270–300',chamber:'room temperature',dry:'100 °C 10 h',anneal:'120 °C 10 h, strongly recommended',fuel:1,
+  note:'annealed; the sheet warns walls under 4 mm may deform when annealed, so rib or thicken them; weak across layers (27.9 MPa, 0.8%)',
+  src:'https://fiberon.polymaker.com/wp-content/uploads/TDS_FIBERON-PET-CF17_V1.0_EN.pdf',srcName:'Polymaker PET-CF17 TDS'},
+ {id:'pm_petgf15',name:'Polymaker Fiberon PET-GF15',tg:59.5,hdt18:87.3,hdt045:133.7,sxy:59.9,sz:48.2,wet:0.9,dens:1.43,nozzle:'280–310',chamber:'room temperature',dry:'100 °C 10 h',anneal:'120 °C 16 h',fuel:1,
+  note:'annealed figures (as printed 71.8 / 81.6 °C); hardened nozzle; 0.32% water',
+  src:'https://wiki.polymaker.com/polymaker-products/more-about-our-products/documents/technical-data-sheets/petg-pet/fiberon-tm-pet-gf15',srcName:'Polymaker PET-GF15 TDS'},
+ {id:'pm_petgrcf08',name:'Polymaker Fiberon PETG-rCF08',amorph:1,tg:69.7,hdt18:65.7,hdt045:68.6,sxy:59.8,sz:41.1,wet:0.9,dens:1.3,nozzle:'240–270',chamber:'room temperature',dry:'65 °C 3 h',anneal:'',fuel:0,
+  note:'too soft for under the hood; hardened nozzle',src:'https://fiberon.polymaker.com/wp-content/uploads/TDS_FIBERON-PETG-rCF08_V1.0_EN.pdf',srcName:'Polymaker PETG-rCF08 TDS'},
+ {id:'pm_asacf08',name:'Polymaker Fiberon ASA-CF08',amorph:1,tg:106.6,hdt18:97.3,hdt045:103,sxy:43.5,sz:25,wet:0.9,dens:1.09,nozzle:'260–280',chamber:'room temperature',dry:'90 °C 6 h',anneal:'',fuel:0,
+  note:'hardened nozzle; ASA is attacked by gasoline and PCV oil mist',src:'https://wiki.polymaker.com/polymaker-products/more-about-our-products/documents/technical-data-sheets/abs-asa/fiberon-tm-asa-cf08',srcName:'Polymaker ASA-CF08 TDS'},
+ {id:'pm_ppscf10',name:'Polymaker Fiberon PPS-CF10',tg:97.7,hdt18:133,hdt045:252.5,sxy:59.4,sz:32,wet:0.9,dens:1.29,nozzle:'310–350',chamber:'room temperature (no heated chamber needed)',dry:'100 °C 10 h',anneal:'125 °C 16 h',fuel:1,
+  note:'annealed; flame-retardant (V0) and chemically resistant; 0.23% water; hardened nozzle',src:'https://fiberon.polymaker.com/wp-content/uploads/TDS_FIBERON-PPS-CF10_V1.1_EN.pdf',srcName:'Polymaker PPS-CF10 TDS'},
+ {id:'pm_ppsgf20',name:'Polymaker Fiberon PPS-GF20',tg:95,hdt18:125.8,hdt045:236.3,sxy:64.1,sz:22.9,wet:0.9,dens:1.36,nozzle:'310–350',chamber:'room temperature',dry:'100 °C 10 h',anneal:'130 °C 10 h (230 °C gives 219.6 / 248.9 °C but darkens the part)',fuel:1,
+  note:'annealed at 130 °C; very weak across layers (22.9 MPa); hardened nozzle',src:'https://cdn.shopify.com/s/files/1/0548/7299/7945/files/TDS_FIBERON_PPS-GF20_V1.1.pdf',srcName:'Polymaker PPS-GF20 TDS'},
+ {id:'su_pa12cf',name:'SUNLU PA12-CF',hdt18:73.5,hdtAss:1,hdt045:175,sxy:86,wet:0.75,dens:1.08,nozzle:'260–280',chamber:'room temperature',dry:'80–110 °C (no time on the sheet)',anneal:'',fuel:1,
+  note:'the sheet gives HDT at 0.45 MPa only, no across-layer strength and an implausible 99 °C glass transition; rates petroleum fuels excellent',src:'https://cdn.shopify.com/s/files/1/0152/6507/1190/files/TDS_PA12-CF_A1.pdf',srcName:'SUNLU PA12-CF TDS'},
+ {id:'su_pa6cf',name:'SUNLU PA6-CF',tg:65,hdt18:73.5,hdtAss:1,hdt045:203,sxy:112,wet:0.5,dens:1.12,nozzle:'270–290',chamber:'room temperature',dry:'80–110 °C (no time on the sheet)',anneal:'',fuel:1,pa6:1,
+  note:'HDT at 0.45 MPa only and no across-layer strength on the sheet; its 12% elongation is high for a CF nylon (Polymaker’s is 2.1%), so the specimens were probably not dry; rates petroleum fuels excellent',src:'https://cdn.shopify.com/s/files/1/0152/6507/1190/files/TDS_PA6-CF_A1.pdf',srcName:'SUNLU PA6-CF TDS'},
+ {id:'su_pa6gf',name:'SUNLU PA6-GF',tg:65,hdt18:73.5,hdtAss:1,hdt045:205.2,sxy:89,wet:0.5,dens:1.269,nozzle:'270–290',chamber:'room temperature',dry:'80–110 °C (no time on the sheet)',anneal:'',fuel:1,pa6:1,
+  note:'HDT at 0.45 MPa only and no across-layer strength on the sheet; rates petroleum fuels excellent',src:'https://cdn.shopify.com/s/files/1/0152/6507/1190/files/TDS_PA6-GF_A1.pdf',srcName:'SUNLU PA6-GF TDS'},
+ {id:'su_absgf',name:'SUNLU ABS-GF',amorph:1,tg:104,tgAss:1,hdt18:96,hdtAss:1,hdt045:104,sxy:54,wet:0.9,dens:1.016,nozzle:'260–280',chamber:'room temperature',dry:'80 °C',anneal:'',fuel:0,
+  note:'the sheet’s 135 °C glass transition and 148 °C melting point are not believable for ABS, so its 104 °C HDT stands in; HDT at 0.45 MPa only',src:'https://cdn.shopify.com/s/files/1/0152/6507/1190/files/SL-TE-WI-132_ISO_ABS-GF_A0.pdf',srcName:'SUNLU ABS-GF TDS'},
+ {id:'su_petgcf',name:'SUNLU PETG-CF',amorph:1,tg:65,hdt18:62,hdtAss:1,hdt045:70,sxy:35,wet:0.9,dens:1.26,nozzle:'240–250',chamber:'room temperature',dry:'70 °C',anneal:'',fuel:0,
+  note:'too soft for under the hood; HDT at 0.45 MPa only',src:'https://cdn.shopify.com/s/files/1/0152/6507/1190/files/TDS_SUNLU_PETG-cf_filament.pdf',srcName:'SUNLU PETG-CF TDS'},
+ {id:'su_pc',name:'SUNLU PC',amorph:1,tg:101,tgAss:1,hdt18:93,hdtAss:1,hdt045:101,sxy:50,wet:0.9,dens:1.15,nozzle:'260–280',chamber:'room temperature',dry:'70–80 °C',anneal:'',fuel:0,
+  note:'no glass transition on the sheet and a low 101 °C HDT at 0.45 MPa for PC (Bambu’s PC: 145 °C glass transition), so the sheet’s figure is used; rates petroleum fuels fair, alcohol poor',src:'https://cdn.shopify.com/s/files/1/0152/6507/1190/files/TDS_PC_A1.pdf',srcName:'SUNLU PC TDS'},
+ {id:'su_asa',name:'SUNLU ASA',amorph:1,tg:108,hdt18:93,hdtAss:1,hdt045:101,sxy:39,wet:0.9,dens:1.04,nozzle:'250–280',chamber:'room temperature',dry:'80 °C',anneal:'',fuel:0,
+  note:'HDT at 0.45 MPa only; ASA is attacked by gasoline and PCV oil mist',src:'https://cdn.shopify.com/s/files/1/0152/6507/1190/files/TDS_ASA_A1.pdf',srcName:'SUNLU ASA TDS'},
+ {id:'dx_htncf',name:'3DXTech CarbonX HTN+CF',hdt18:200,hdt045:null,sxy:106.9,sz:31,wet:0.75,dens:1.25,nozzle:'285–315 (sheet bars printed on an X1C at 295)',chamber:'heated chamber recommended',dry:'120 °C 4 h',anneal:'',fuel:1,tCont:150,
+  note:'high-temperature nylon; 150 °C continuous-use rating (IEC 60216, 20,000 h) on the sheet caps the suggested max; across layers 31 MPa (4,500 psi, vertical bars); hardened 0.4 mm or larger nozzle',
+  src:'https://cdn.shopify.com/s/files/1/0625/4185/6821/files/CARBONX_HTN-CF_TDS_v1.0.pdf',srcName:'3DXTech CarbonX HTN+CF TDS'},
+ {id:'dx_pps',name:'3DXTech ThermaX PPS (unfilled)',tg:85,hdt18:85,hdtAss:1,hdt045:90,sxy:50,wet:0.9,dens:1.28,nozzle:'315–345',chamber:'50–90',dry:'110 °C 4 h',anneal:'',fuel:1,
+  note:'as printed, HDT at 0.45 MPa only; resists every solvent below 200 °C (3DXTech); a filled, annealed PPS is far stiffer when hot',src:'https://cdn.shopify.com/s/files/1/0625/4185/6821/files/THERMAX_PPS_TDS_v3.pdf',srcName:'3DXTech ThermaX PPS TDS'},
+ {id:'r3_ppacf',name:'Raise3D Industrial PPA CF',hdt18:113,hdt045:188,sxy:122,sz:30.2,wet:0.75,dens:1.15,nozzle:'not on the sheet',chamber:'not on the sheet',dry:'80–100 °C 6–12 h',anneal:'80–100 °C 8 h (up to 0.5% shrinkage)',fuel:1,x1cNote:'is sold for Raise3D’s own E2CF and RMF500 printers and its sheet gives no print temperature',
+  note:'annealed; 15% carbon fibre; the across-layer figure is Raise3D’s own single-layer test, not comparable with the others',src:'https://s1.raise3d.com/2022/04/Raise3D-Industrial-PPA-CF_TDS-V21.pdf',srcName:'Raise3D PPA CF TDS'},
+ {id:'r3_ppscf',name:'Raise3D Industrial PPS CF',hdt18:132,hdt045:251,sxy:60,sz:32,wet:0.9,dens:1.29,nozzle:'340 (sheet test bars)',chamber:'unheated',dry:'not on the sheet',anneal:'125 °C 16 h',fuel:1,
+  note:'annealed (as printed 50 MPa in-plane, 22 across layers); hardened nozzle',src:'https://s1.raise3d.com/2025/08/Raise3D-Industrial-PPS-CF_TDS_V1.1.pdf',srcName:'Raise3D PPS CF TDS'},
+ {id:'qd_pahtcf',name:'QIDI PAHT-CF (PPA-CF)',hdt18:117.5,hdt045:190.7,sxy:95.53,sz:51.03,wet:0.75,dens:1.2,nozzle:'300–320',chamber:'enclosure',dry:'80–100 °C 4–6 h',anneal:'80–100 °C 4–8 h',fuel:1,
+  note:'annealed (as printed 82 / 84.8 °C); the sheet’s wet values match or beat the dry ones, which is not believable, so the usual 0.75 is kept',src:'https://drive.google.com/file/d/1XhEJWU8RdDIwFbbN9-Wk6l61StsjTttA/view',srcName:'QIDI PAHT-CF TDS'},
+ {id:'qd_pahtgf',name:'QIDI PAHT-GF (PPA-GF)',hdt18:109.4,hdt045:180.2,sxy:90.5,sz:59.58,wet:0.75,dens:1.27,nozzle:'300–320',chamber:'enclosure',dry:'80–100 °C 4–6 h',anneal:'80–100 °C 4–8 h',fuel:1,
+  note:'annealed (as printed 79.5 / 83.4 °C), across layers as printed; hardened nozzle',src:'https://drive.google.com/file/d/1cfCgrOt6BVsi7KmyJTOV4UomS9R6rjna/view',srcName:'QIDI PAHT-GF TDS'},
+ {id:'qd_ultrapacf25',name:'QIDI UltraPA-CF25 (core-shell PPA-CF)',hdt18:124.2,hdt045:196.9,sxy:118.19,sz:58.01,wet:0.75,dens:1.23,nozzle:'300–340 (sheet bars at 340)',chamber:'enclosure',dry:'80–100 °C 4–6 h',anneal:'100 °C 8 h',fuel:1,
+  note:'annealed; carbon in the core of the strand like Siraya’s PPA-CF Core, whose sheet it matches; the sheet labels the two HDT methods the wrong way round, so the figures are taken by load',src:'https://drive.google.com/file/d/1sj_ffiHJFT5iXPimBso-ESgJU3J3Y7yB/view',srcName:'QIDI UltraPA-CF25 TDS'},
+ {id:'qd_ultrapa',name:'QIDI UltraPA (unfilled PPA)',hdt18:72.5,hdt045:79.6,sxy:69.29,sz:50.03,wet:0.5,dens:1.21,nozzle:'260–280',chamber:'enclosure',dry:'80–100 °C 4–6 h',anneal:'',fuel:1,
+  note:'as printed; the across-layer figure is QIDI’s single-layer test, not comparable with the others; 2.1% water',src:'https://drive.google.com/file/d/1jmsVT1VEDuBnvCmDz2Kv86LoPw0sGFFU/view',srcName:'QIDI UltraPA TDS'},
+ {id:'qd_ppscf10',name:'QIDI PPS-CF10',hdt18:125.8,hdtAss:1,hdt045:242.7,sxy:55,wet:0.9,dens:1.3,nozzle:'310–350',chamber:'not on the sheet',dry:'not on the sheet',anneal:'not on the sheet',fuel:1,
+  note:'a thin sheet with ranges only (55 to 65 MPa, the low end used) and HDT at 0.45 MPa only; 125.8 °C at 1.8 MPa is taken from Polymaker’s annealed PPS-GF20, the lowest annealed PPS here',src:'https://drive.google.com/file/d/1DTDb7ew0Uv_E0KyMK8YkJJ4p9OL6M9Gt/view',srcName:'QIDI PPS-CF10 TDS'}];
+function printDerive(m){
+  m=Object.assign({proc:'fdm'},m);
+  if(!(m.sz>0)){ m.sz=Math.round(0.3*m.sxy*10)/10; m.zAss=1; }
+  const rule=printRule(m); m.tmax=Math.floor(Math.min(rule,m.tCont||1e9)/5)*5;
+  const hw=m.sz*m.wet; m.boost=m.tmax<75?0:hw>=40?20:hw>=25?15:hw>=12?10:5;
+  m.locs=['tube','tubehot','cpcold','plenum','runner','head'].filter(k=>k==='head'?m.tmax>=121:k==='cpcold'?m.boost>0&&m.tmax>=PRINT_LOCS[k].t:m.tmax>=PRINT_LOCS[k].t).join(' ')||'tube';
+  const lo=parseFloat(String(m.nozzle).replace(/^[^0-9]*/,''));
+  m.x1c=m.x1cNote?'marginal':(m.x1cHot>300||lo>300)?'no':lo===300?'marginal':'ok';
+  if(m.x1c==='no'&&!m.x1cNote) m.x1cNote=m.x1cHot>300?'asks for a hotend that holds '+m.x1cHot+' °C':'wants '+m.nozzle+' °C at the nozzle';
+  return m;
+}
+PRINT_MATS.push(...PRINT_MORE.map(printDerive));
 // Wall solver. Hoop stress in a round section σ = p·D ÷ (2t); a flat panel under uniform pressure σ ≈ β·p·b² ÷ t² (Roark, Table 11.4), where
 // β grows with the panel's length-to-width ratio a/b: simply supported 0.29 square, 0.49 at 1.5, 0.61 at 2, 0.71 at 3, 0.75 long; clamped
 // (stress at the middle of the long edge) 0.31 square, 0.45 at 1.5, 0.50 at 2 and beyond. The page has no panel length, so it uses the
@@ -19279,7 +19391,8 @@ window.__printTest={PRINT_MATS,PRINT_LOCS,printWall,printRule,last:()=>PRINT_LAS
 function printFill(fab){
   const sel=$('i-pmat'), list=PRINT_MATS.filter(m=>m.proc===fab);
   if(!list.length) return null;
-  if(sel.dataset.proc!==fab){ sel.innerHTML=list.map(m=>'<option value="'+m.id+'">'+esc(m.name)+'</option>').join(''); sel.dataset.proc=fab; sel.value=list[0].id; }
+  if(sel.dataset.proc!==fab){ const brand=m=>m.name.split(' ')[0], groups=[]; list.forEach(m=>{ const g=groups.find(x=>x.b===brand(m)); if(g) g.l.push(m); else groups.push({b:brand(m),l:[m]}); });
+    sel.innerHTML=fab==='fdm'?groups.map(g=>'<optgroup label="'+esc(g.b)+'">'+g.l.map(m=>'<option value="'+m.id+'">'+esc(m.name)+'</option>').join('')+'</optgroup>').join(''):list.map(m=>'<option value="'+m.id+'">'+esc(m.name)+'</option>').join(''); sel.dataset.proc=fab; sel.value=list[0].id; }
   return PRINT_MATS.find(m=>m.id===sel.value&&m.proc===fab)||list[0];
 }
 function printSection(ind,p,r){
@@ -19308,8 +19421,8 @@ function printSection(ind,p,r){
   const flags=[]; let worst='ok';
   const flag=(k,t)=>{ flags.push({k,t}); if(k==='bad') worst='bad'; else if(k==='warn'&&worst!=='bad') worst='warn'; };
   if(locK==='cphot'&&fab!=='metal') flag('bad','Charge pipe before the intercooler: metal only. MotoIQ measured 201 °C in the pipe 2 ft after the compressor at 28 psi, above every FDM polymer the X1 Carbon can print; even PPS-CF on an X1E is marginal under a clamp. Weld it in aluminium or print it in AlSi10Mg.');
-  if(onX1C&&m.x1c==='no') flag('bad',m.name+' is sold for the X1E and H2 series only: it wants '+m.nozzle+' °C at the nozzle and a '+m.chamber+' °C chamber, and the X1 Carbon’s hotend stops at 300 °C with a passive chamber near 50 °C (about 60 °C under a blanket).');
-  if(onX1C&&m.x1c==='marginal') flag('warn',m.name+' is marginal on the X1 Carbon: '+m.nozzle+' °C at the nozzle against a 300 °C hotend, and a '+m.chamber+' °C chamber the X1C only reaches passively. Expect less than the datasheet across layers.');
+  if(onX1C&&m.x1c==='no') flag('bad',m.x1cNote?m.name+' cannot be printed on the X1 Carbon: it '+m.x1cNote+' (its datasheet), and the X1 Carbon’s hotend stops at 300 °C.':m.name+' is sold for the X1E and H2 series only: it wants '+m.nozzle+' °C at the nozzle and a '+m.chamber+' °C chamber, and the X1 Carbon’s hotend stops at 300 °C with a passive chamber near 50 °C (about 60 °C under a blanket).');
+  if(onX1C&&m.x1c==='marginal') flag('warn',m.x1cNote?m.name+' '+m.x1cNote+', so treat it as untested on the X1 Carbon.':m.name+' is marginal on the X1 Carbon: '+m.nozzle+' °C at the nozzle against a 300 °C hotend'+(/^[0-9]/.test(String(m.chamber))?', and a '+m.chamber+' °C chamber the X1C only reaches passively':'')+'. Expect less than the datasheet across layers.');
   if(w.over) flag('bad','The wall runs at about '+tempStr(T)+', above this material’s 1.8 MPa heat deflection temperature of '+tempStr(m.hdt18)+'. It will sag under a clamp or bolt load.');
   else if(T>m.tmax) flag('bad','The wall runs at about '+tempStr(T)+', above the suggested continuous limit of '+tempStr(m.tmax)+' for '+m.name+'. Heat sag at clamps is the first field failure (a printed ASA MAF housing collapsed at its outlet clamp after about 10,000 km; PLA-CF softens at 60–65 °C).');
   else if(T>m.tmax-20) flag('warn','About '+tempStr(T)+' at the wall is within 20 °C of the suggested continuous limit of '+tempStr(m.tmax)+'; after a heat soak it will be closer. Keep clamps off the hottest spot and use a steel sleeve under any clamp.');
@@ -19359,8 +19472,8 @@ function printSection(ind,p,r){
   // material and temperature tables (expert)
   const list=PRINT_MATS.filter(x=>x.proc===fab), locName=k=>({tube:'T',tubehot:'T·',cphot:'CP-hot',cpcold:'CP-cold',plenum:'P',runner:'R',head:'H'})[k];
   if(fab!=='metal') h+='<div class="adv"><p class="sub" style="margin-top:14px">Materials for this process</p><div class="tblwrap"><table><thead><tr><th>Material</th><th>HDT 1.8 / 0.45 MPa</th><th>Across layers, dry → wet</th><th>Rule</th><th>Suggested max</th><th>Boost</th><th>Where</th>'+(fab==='fdm'?'<th>Nozzle / chamber</th><th>X1C</th>':'')+'<th>Source</th></tr></thead><tbody>'+
-    list.map(x=>'<tr'+(x.id===m.id?' class="cur"':'')+'><td>'+esc(x.name)+'</td><td>'+Math.round(x.hdt18)+' / '+(x.hdt045!=null?Math.round(x.hdt045):'–')+' °C</td><td>'+x.sz+' → '+(x.sz*x.wet).toFixed(0)+' MPa'+(x.zAss?' *':'')+'</td><td>'+Math.round(printRule(x))+' °C</td><td>'+x.tmax+' °C</td><td>'+(x.boost===0?'vacuum only':x.boost+' psi')+'</td><td>'+x.locs.split(' ').map(locName).join(' ')+(x.spacer?' H*':'')+(x.cphot?' CP-hot?':'')+'</td>'+(fab==='fdm'?'<td>'+esc(x.nozzle)+' / '+esc(x.chamber)+' °C</td><td>'+(x.x1c==='ok'?'yes':x.x1c==='marginal'?'marginal':'X1E/H2 only')+'</td>':'')+'<td>'+link(x.srcName,x.src)+'</td></tr>').join('')+
-    '</tbody></table></div><p class="cap">Where: T = NA intake tube (T· also within 100 mm of the exhaust), CP-hot and CP-cold = charge pipe before and after the intercooler, P = plenum, R = runners, H = head flange (H* only on a spacer); CP-hot? = marginal, unloaded and short. Rule = min(HDT₁.₈ − 30 °C, 0.85 × HDT₀.₄₅), or Tg − 20 °C for PC and ASA. Suggested max is the notes’ continuous wall temperature: usually below the rule, for the wet knock-down and layer brittleness (PET-CF: rule 152 °C, suggested 120), and above it where a vendor ran the part hotter (PA12: rule 65 °C, but HP ran a race manifold at 80 °C, so 90). The checks above use the suggested figure. * across-layer strength not published, PA2200’s 27 ÷ 48 taken. Boost figures are the notes’ suggestions for ribbed 5–6 mm FDM or 3 mm SLS walls with compression limiters, annealed, soap-tested at 1.5×. '+esc(m.name)+': '+esc(m.note)+'.</p>'+
+    list.map(x=>'<tr'+(x.id===m.id?' class="cur"':'')+'><td>'+esc(x.name)+'</td><td>'+Math.round(x.hdt18)+(x.hdtAss?' *':'')+' / '+(x.hdt045!=null?Math.round(x.hdt045):'–')+' °C</td><td>'+x.sz+' → '+(x.sz*x.wet).toFixed(0)+' MPa'+(x.zAss?' *':'')+'</td><td>'+Math.round(printRule(x))+' °C</td><td>'+x.tmax+' °C</td><td>'+(x.boost===0?'vacuum only':x.boost+' psi')+'</td><td>'+x.locs.split(' ').map(locName).join(' ')+(x.spacer?' H*':'')+(x.cphot?' CP-hot?':'')+'</td>'+(fab==='fdm'?'<td>'+esc(x.nozzle)+' / '+esc(x.chamber)+' °C</td><td>'+(x.x1c==='ok'?'yes':x.x1c==='marginal'?'marginal':'X1E/H2 only')+'</td>':'')+'<td>'+link(x.srcName,x.src)+'</td></tr>').join('')+
+    '</tbody></table></div><p class="cap">Where: T = NA intake tube (T· also within 100 mm of the exhaust), CP-hot and CP-cold = charge pipe before and after the intercooler, P = plenum, R = runners, H = head flange (H* only on a spacer); CP-hot? = marginal, unloaded and short. Rule = min(HDT₁.₈ − 30 °C, 0.85 × HDT₀.₄₅), or Tg − 20 °C for PC and ASA. Suggested max is the notes’ continuous wall temperature: usually below the rule, for the wet knock-down and layer brittleness (PET-CF: rule 152 °C, suggested 120), and above it where a vendor ran the part hotter (PA12: rule 65 °C, but HP ran a race manifold at 80 °C, so 90). The checks above use the suggested figure. * not on the maker’s sheet: across-layer strength for a powder-bed row is PA2200’s 27 ÷ 48, for a filament 30% of in-plane (the low end of the sheets that give it); HDT at 1.8 MPa is 73.5 °C for a nylon (the lowest as-printed nylon figure here) or 8 °C under the 0.45 MPa figure for ABS, ASA, PC and PETG. Filament figures are each maker’s datasheet, annealed where the sheet gives it. Boost figures are the notes’ suggestions for ribbed 5–6 mm FDM or 3 mm SLS walls with compression limiters, annealed, soap-tested at 1.5×. '+esc(m.name)+': '+esc(m.note)+'.</p>'+
     '<p class="sub" style="margin-top:14px">Where it gets hot</p><dl class="guide" style="margin:0">'+Object.keys(PRINT_LOCS).map(k=>'<dt>'+(k===locK?'<b>':'')+esc(PRINT_LOCS[k].name.charAt(0).toUpperCase()+PRINT_LOCS[k].name.slice(1))+': '+(PRINT_LOCS[k].t!=null?tempStr(PRINT_LOCS[k].t):'the compressor outlet')+(k===locK?'</b>':'')+'</dt><dd>'+esc(PRINT_LOCS[k].why)+'.</dd>').join('')+'</dl>'+
     '<p class="cap">Sources: '+link('MotoIQ intercooler testing','https://motoiq.com/turbo-tech-intercooler-testing/4/')+', '+link('U. Washington vehicle-fire surface temperatures','https://depts.washington.edu/vehfire/ignition/autoignition/surftemperdetail.html')+', '+link('CRP Windform diesel manifold case','https://www.crp-group.com/case-studies/3d-printed-intake-manifold-testing-turbo-diesel-engine-automotive/')+', '+link('Audizine printed manifold thread','https://forums.audizine.com/threads/3d-printed-intake-manifold.1000457/')+', '+link('S2000 heat-soak log','https://www.s2ki.com/forums/s2000-forced-induction-142/heat-soaked-intake-manifold-939242/')+', '+link('HP MJF race manifold','https://reinvent.hp.com/us-en-3dprint-heli-racing')+', '+link('PRI on Performance Design’s plenum testing','https://www.performanceracing.com/magazine/featured/09-02-2024/breakthrough')+', '+link('Ilardo & Williams 2009','https://utw10945.utweb.utexas.edu/Manuscripts/2009/2009-67-Ilardo.pdf')+'.</p></div>';
   else h+='<div class="adv"><p class="cap">'+esc(m.note)+'. Source: '+link(m.srcName,m.src)+'. When metal is the answer (the notes): wall temperature above about 130 °C sustained, boost above about 30 psi with any backfire risk, or anything the customer will not treat as a prototype.</p></div>';

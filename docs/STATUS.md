@@ -600,6 +600,14 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
   has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
   the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
+- More printing filaments (2026-11-06): Intake tab, 3D printed (FDM): 31 more rows from the makers' own TDS, read by a research pass
+  and transcribed with their sources: Siraya Tech Fibreheart (PPA-CF Core, PPA-CF, PPA, PPA-GF, PET-CF, PET-GF, ABS-CF, ABS-CF Core,
+  ABS-GF, ASA-GF, PETG-CF Pro), Polymaker Fiberon (PA6-GF25, PA12-CF10, PA612-CF15, PET-CF17, PET-GF15, PETG-rCF08, ASA-CF08,
+  PPS-CF10, PPS-GF20; PA6-CF20's print settings and density corrected from its V1.1 sheet), SUNLU (PA12-CF, PA6-CF, PA6-GF, ABS-GF,
+  PETG-CF, PC, ASA), 3DXTech (CarbonX HTN+CF, ThermaX PPS), Raise3D (PPA CF, PPS CF), QIDI (PAHT-CF, PAHT-GF, UltraPA-CF25, UltraPA,
+  PPS-CF10). Annealed figures where the sheet gives them. Gaps filled by stated rules and starred (PRINT_MORE comment: Z = 30% of XY,
+  nylon HDT1.8 73.5 C, amorphous HDT1.8 = HDT0.45 - 8); tmax, boost, locations and X1C fit derived the same way for every added row
+  (printDerive). The material list is grouped by maker. tests/printmats_ui.js.
 - Stationary road-noise test (California 95 dB(A)) added and then removed 2026-11-06 at the owner's request (the
   builds are off-road vehicles). Kept from it:
   a solver fix: a run continued from a state left at another intake-mouth pressure (the no-load secant's
