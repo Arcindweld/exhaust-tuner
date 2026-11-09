@@ -1266,10 +1266,16 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="i-n" type="number" step="1" inputmode="numeric" data-kind="num" data-dp="0" data-base="1"></span></label>
         <label class="f"><span class="lab">90° bends in each tube</span>
           <span class="inp"><input id="i-bends" type="number" step="1" inputmode="numeric" data-kind="num" data-dp="0" data-base="2"></span></label>
+        <label class="f"><span class="lab">Bend angles, each (blank: that many 90° bends)</span>
+          <span class="inp"><input id="i-bendang" type="text" inputmode="decimal" placeholder="e.g. 84, 30"><em>°</em></span></label>
+        <label class="f"><span class="lab">Bend centre-line radius, blank for 1.5 × diameter</span>
+          <span class="inp"><input id="i-bendr" type="number" step="any" inputmode="decimal" data-kind="len"><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Throttle bore, blank to skip</span>
           <span class="inp"><input id="i-tb" type="number" step="any" inputmode="decimal" data-kind="len" data-base="76.2"><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Inlet end</span>
           <span class="inp"><select id="i-mouth"><option value="plain">Plain cut tube</option><option value="radius" selected>Rolled lip or radius</option><option value="ellipse">Elliptical bellmouth</option></select></span></label>
+        <label class="f" id="i-lipr-wrap"><span class="lab">Lip radius, blank for a full roll</span>
+          <span class="inp"><input id="i-lipr" type="number" step="any" inputmode="decimal" data-kind="len"><em data-u="len">in</em></span></label>
         <div class="grid2" id="i-box-wrap" style="grid-column:1/-1" hidden>
           <label class="f"><span class="lab">Airbox volume</span>
             <span class="inp"><input id="i-boxv" type="number" step="any" inputmode="decimal" data-kind="disp" data-base="8000"><em data-u="disp">cu in</em></span></label>
@@ -9529,6 +9535,23 @@ function helmTune(q){
   return out;
 }
 const INTAKE_CD={plain:0.567,radius:0.719,ellipse:0.743};
+/* Rounded pipe entrance, loss coefficient against lip radius over diameter: Crane TP-410 (as tabulated by Neutrium),
+   square-edged 0.5; linear between the points, 0.04 from r/D 0.15 on. */
+const CRANE_ENTRY=[[0,0.5],[0.02,0.28],[0.04,0.24],[0.06,0.15],[0.10,0.09],[0.15,0.04]];
+function craneEntryK(rd){ const T=CRANE_ENTRY; if(!(rd>0)) return T[0][1]; if(rd>=T[T.length-1][0]) return T[T.length-1][1];
+  for(let i=1;i<T.length;i++) if(rd<=T[i][0]) return T[i-1][1]+(T[i][1]-T[i-1][1])*(rd-T[i-1][0])/(T[i][0]-T[i-1][0]); return 0.04; }
+/* A smooth bend's loss: Crane TP-410's 90° bend as a multiple of the fully turbulent friction factor against r/D (20 at 1,
+   14 at 1.5, 12 at 2 and 3, 14 at 4, 17 at 6, 24 at 8, 30 at 10), times Idelchik's angle factor A1 (0.9 sin θ up to 70°,
+   1 at 90°, 0.7 + 0.35 θ/90 from 100°, linear between). f is the tube's own friction factor. */
+const CRANE_BEND=[[1,20],[1.5,14],[2,12],[3,12],[4,14],[6,17],[8,24],[10,30]];
+function bendK(deg,rd,f){
+  const T=CRANE_BEND, x=Math.min(Math.max(rd,T[0][0]),T[T.length-1][0]);
+  let m=T[T.length-1][1]; for(let i=1;i<T.length;i++) if(x<=T[i][0]){ m=T[i-1][1]+(T[i][1]-T[i-1][1])*(x-T[i-1][0])/(T[i][0]-T[i-1][0]); break; }
+  if(rd<1) m*=Math.pow(1/rd,2);                       // tighter than 1 D: Idelchik's B1 rises as (R/D)^-2.5 against ^-0.5 above
+  const a=Math.max(0,deg), A1=a<=70?0.9*Math.sin(a*Math.PI/180):a>=100?0.7+0.35*a/90:(()=>{ const a70=0.9*Math.sin(70*Math.PI/180), a100=0.7+0.35*100/90; return a<=90?a70+(1-a70)*(a-70)/20:1+(a100-1)*(a-90)/10; })();
+  return m*f*A1;
+}
+function bendsOf(p){ const L=(p.bendAng||[]).filter(a=>a>0); return L.length?L:Array(Math.max(0,Math.round(p.bends||0))).fill(90); }
 const J1349=(tC,pdKpa)=>1.18*(99/pdKpa)*Math.sqrt((tC+273)/298)-0.18;
 const CFM=2118.88;                                      // cfm per m³/s
 function calcIntake(p){
@@ -9555,7 +9578,7 @@ function calcIntake(p){
   const itbRec=p.type==='itb'&&vcylL?{d:0.8*Math.sqrt(vcylL*p.rpm),d9:0.9*Math.sqrt(vcylL*p.rpm),hpCyl:p.hp>0&&p.cyl>0?p.hp/p.cyl:null}:null;
   const jenvey=[[35,40],[40,42],[45,45],[55,48],[65,50]];
   if(itbRec&&itbRec.hpCyl){ const row=jenvey.find(r=>itbRec.hpCyl<=r[0])||jenvey[jenvey.length-1]; itbRec.jenvey=row[1]; itbRec.jenveyOver=itbRec.hpCyl>65; }
-  // pressure drop: friction, smooth 90° bends (K ≈ 0.2, Crane TP-410 for r/D = 1.5), and the inlet's vena contracta (Borda–Carnot)
+  // pressure drop: friction, the bends, and the inlet's vena contracta (Borda–Carnot)
   const rho=rhoGas(p.tin), q=rho*v*v/2, Re=rho*v*(p.dt/1000)/visc(p.tin), f=haaland(Re,p.dt/1000);
   // the elliptical bell's Cd rises a little with the pressure ratio across it (Blair and Cahoon's steady-rig fit, quoted in the
   // Perth College bellmouth thesis: Cd = 1.7869 - 2.9326 PR + 2.5275 PR^2 - 0.6446 PR^3, PR = upstream total / downstream static,
@@ -9563,8 +9586,12 @@ function calcIntake(p){
   const cdPR=PR=>{ const x=Math.min(1.10,Math.max(1.01,PR)); return 1.7869-2.9326*x+2.5275*x*x-0.6446*x*x*x; };
   const PRin=1+q/(0.743*0.743)/P_ATM;
   const cdOf=k=>k==='ellipse'?cdPR(PRin):INTAKE_CD[k];
-  const cd=cdOf(INTAKE_CD[p.mouth]?p.mouth:'plain'), kIn=(1/cd-1)**2;
-  const dpF=f*(p.lt/p.dt)*q, dpB=0.2*Math.max(0,p.bends||0)*q, dpIn=kIn*q, dp=dpF+dpB+dpIn;
+  let cd=cdOf(INTAKE_CD[p.mouth]?p.mouth:'plain'), kIn=(1/cd-1)**2, lipRD=null;
+  // a lip radius given: Crane TP-410's rounded-entrance loss against r/D (0.5 square, 0.28 at 0.02, 0.24 at 0.04, 0.15 at
+  // 0.06, 0.09 at 0.10, 0.04 from 0.15), in place of Blair's single radius
+  if(p.mouth==='radius'&&p.lipR>0){ lipRD=p.lipR/p.dt; kIn=craneEntryK(lipRD); cd=1/(1+Math.sqrt(kIn)); }
+  const bendList=bendsOf(p), clrD=(p.bendR>0?p.bendR:1.5*p.dt)/p.dt, kBends=bendList.map(a=>bendK(a,clrD,f));
+  const dpF=f*(p.lt/p.dt)*q, dpB=kBends.reduce((a,k)=>a+k,0)*q, dpIn=kIn*q, dp=dpF+dpB+dpIn;
   const inl=Object.keys(INTAKE_CD).map(k=>({k,cd:cdOf(k),dp:(1/cdOf(k)-1)**2*q}));
   // filter capacity (K&N's rule), inches
   const mmIn=x=>x/25.4;
@@ -9634,7 +9661,7 @@ function calcIntake(p){
   if(tbRange&&(p.dt<tbRange[0]*0.97)) notes.push({k:'warn',t:'The tube is smaller than the throttle body calls for: Dave Thompson’s rule is a tube area about 1.25 to 1.33 times the throttle bore area.'});
   if(fcap!=null&&fcap<kn.cfm) notes.push({k:'warn',t:'By K&N’s rule this filter flows less air than the engine needs at full power. Use a taller or wider filter.'});
   if(p.mouth==='plain') notes.push({k:'info',t:'A plain, sharp-edged tube end costs flow: Blair and Cahoon found even a simple radius gives about 16% more airflow at the same pressure difference.'});
-  return {pr,Q,Qt,cfm:Q*CFM,kn,A,v,vmax,dRec,tbRange,tbRec,itbRec,rho,q,Re,f,cd,kIn,dpF,dpB,dpIn,dp,inl,fcap,farea,ratioT,ratioP,ratio,ruleT,bell,tr,runner,vizard,magnante,ram,
+  return {pr,Q,Qt,cfm:Q*CFM,kn,A,v,vmax,dRec,tbRange,tbRec,itbRec,rho,q,Re,f,cd,kIn,dpF,dpB,dpIn,dp,inl,lipRD,bendList,kBends,clrD,fcap,farea,ratioT,ratioP,ratio,ruleT,bell,tr,runner,vizard,magnante,ram,
     c,plen,res,cross,near,wot,band,target,qw,helm,whistle,mouthCorr,maf,notes};
 }
 
@@ -11516,6 +11543,7 @@ document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   else if(t.id==='wsnd-p0'){ const v=+t.value; if(v>0) P.pull0=v; } else if(t.id==='wsnd-p1'){ const v=+t.value; if(v>0) P.pull1=v; }
   renderActive(); });
 window.__calcAbsorb=calcAbsorb;
+window.__intakeK={bendK,craneEntryK,bendsOf};
 window.__wsnd={simInp:()=>SIM.inp,wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
 
 /* ===== primary size, headers and crossover ===== */
@@ -19566,9 +19594,10 @@ function renderIntake(){
   const fp=feedPulses(e,e.order); if(fp.err) return fail(fp.err);
   po=pulseOrders(fp);
   const n=itb?Math.max(1,Math.round(val('i-n'))):Math.max(1,Math.round(val('i-n')));
-  const p={cyc:e.cyc,disp:val('i-disp'),rpm:val('i-rpm'),ve:val('i-ve')/100,boost:ind==='na'?0:(val('i-boost')||0),eff:val('i-eff')/100,n,type,lt:val('i-lt'),dt:val('i-dt'),bends:val('i-bends')||0,
+  const p={cyc:e.cyc,disp:val('i-disp'),rpm:val('i-rpm'),ve:val('i-ve')/100,boost:ind==='na'?0:(val('i-boost')||0),eff:val('i-eff')/100,n,type,lt:val('i-lt'),dt:val('i-dt'),bends:val('i-bends')||0,bendAng:($('i-bendang').value||'').split(/[ ,;]+/).map(Number).filter(x=>x>0&&x<=180),bendR:val('i-bendr'),lipR:$('i-mouth').value==='radius'?val('i-lipr'):null,
     tb:val('i-tb'),type,cyl:(engineFrom('i').order||[]).length||val('i-cyl'),hp:val('i-hp'),mouth:$('i-mouth').value,tamb:val('i-tamb'),tin:val('i-tin'),filt,fd:val('i-fd'),ft:val('i-ft'),fh:val('i-fh'),maf:$('i-maf').value,
     boxV:val('i-boxv'),snd:val('i-snd'),snl:val('i-snl'),plen:val('i-plen'),idle:val('i-idle'),cruise:val('i-cruise'),red:val('i-red'),dur:val('i-dur'),tune:val('i-tune'),po};
+  { const w=$('i-lipr-wrap'); if(w) w.hidden=p.mouth!=='radius'; }
   const r=calcIntake(p); if(r.err) return fail(r.err);
   const imp=U==='imp', spd=ms=>imp?Math.round(ms/0.3048)+' ft/s':Math.round(ms)+' m/s', spdAlt=ms=>imp?Math.round(ms)+' m/s':Math.round(ms/0.3048)+' ft/s';
   const pa=x=>imp?(x/249.09).toFixed(1)+' inH₂O':Math.round(x)+' Pa', paAlt=x=>imp?Math.round(x)+' Pa':(x/249.09).toFixed(1)+' inH₂O';
@@ -19625,7 +19654,7 @@ function renderIntake(){
   }
   // losses and temperature
   h+=sec('Air temperature and duct loss',
-    rowT('Duct pressure loss at peak power',pa(r.dp),paAlt(r.dp)+'; friction '+pa(r.dpF)+', bends '+pa(r.dpB)+', inlet '+pa(r.dpIn))+
+    rowT('Duct pressure loss at peak power',pa(r.dp),paAlt(r.dp)+'; friction '+pa(r.dpF)+', bends '+pa(r.dpB)+(r.bendList.length?' ('+r.bendList.map((a,i)=>Math.round(a)+'° K '+r.kBends[i].toFixed(2)).join(', ')+' at '+r.clrD.toFixed(2)+' D)':'')+', inlet '+pa(r.dpIn)+(r.lipRD!=null?' (lip r/D '+r.lipRD.toFixed(3)+', K '+r.kIn.toFixed(2)+', Crane)':''))+
     rowT('Power from the duct loss',pct(100*(r.ratioP-1)),'SAE J1349 correction at the lower inlet pressure')+
     rowT('Power from the air temperature',pct(100*(r.ratioT-1)),tempStr(p.tin)+' against '+tempStr(p.tamb)+'; the Racing Beat rule of 1% per 10 °F gives '+pct(r.ruleT))+
     rowT('Both together',pct(loss))+

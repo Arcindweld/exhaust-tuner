@@ -600,6 +600,13 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
   has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
   the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
+- Intake bends and lip radius (2026-11-09): Intake tab takes each bend's angle ("84, 30") and the centre-line radius,
+  and a rolled lip's radius. Bend K = Crane TP-410's 90 degree bend (multiples of f against r/D: 20, 14, 12, 12, 14, 17,
+  24, 30 at 1 to 10 D) x Idelchik's angle factor A1 (replaces the fixed 0.2 per bend); lip K from Crane's rounded
+  entrance against r/D (0.5, 0.28, 0.24, 0.15, 0.09, 0.04 at 0 to 0.15). On the owner's LS3 CAI at 6,600 RPM the 1-D
+  total is 5.8 inH2O plain and 4.1 with a 3.5 mm lip, against the CFD's 4.7 and 2.8 (medium mesh): the 1-D runs ~20%
+  high (its dynamic pressure ~9% above the CFD's, Blair's plain-cut Cd 0.567 a little lossier than CFD's flush square
+  edge), and the lip's gain matches (K down 0.34 in 1-D, 0.38 in CFD). tests/intakebend_ui.js.
 - Split for printing (2026-11-07, add-in 4.16.0): Fusion panel button "Split the selected tube for printing" (Intake,
   Headers, Muffler, Parts, Boom tabs) with printer presets (Bambu, Prusa, Creality, Voron, custom), lap length, epoxy
   gap and material. fusion-addin/printsplit.py plans (pure Python, tests/test_printsplit.py: the owner's 4 in CAI
