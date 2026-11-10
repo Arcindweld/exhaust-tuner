@@ -1266,7 +1266,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="i-n" type="number" step="1" inputmode="numeric" data-kind="num" data-dp="0" data-base="1"></span></label>
         <label class="f"><span class="lab">90° bends in each tube</span>
           <span class="inp"><input id="i-bends" type="number" step="1" inputmode="numeric" data-kind="num" data-dp="0" data-base="2"></span></label>
-        <label class="f"><span class="lab">Bend angles, each (blank: that many 90° bends)</span>
+        <label class="f"><span class="lab">Bend angles, from the mouth end (blank: that many 90° bends)</span>
           <span class="inp"><input id="i-bendang" type="text" inputmode="decimal" placeholder="e.g. 84, 30"><em>°</em></span></label>
         <label class="f"><span class="lab">Bend centre-line radius, blank for 1.5 × diameter</span>
           <span class="inp"><input id="i-bendr" type="number" step="any" inputmode="decimal" data-kind="len"><em data-u="len">in</em></span></label>
@@ -18814,14 +18814,14 @@ document.addEventListener('change',e=>{ const el=e.target.closest('#wam-ins'); i
 document.addEventListener('change',e=>{ const el=e.target.closest('select.wamsrc'); if(!el) return; WAM_UI.src=el.value; WAM_UI.msg=null; renderActive(); });
 
 /* ===== Intake CFD: an OpenFOAM v2412 case for the intake tract on this tab, written in the browser by intake_cfd.js ===== */
-const CFD_UI={mount:'',lip:'',protr:'',clr:'',maf:'',mesh:'medium',ff:1,pr:'',name:'',cone:true,msg:null,results:[]};
+const CFD_UI={mount:'',lip:'',protr:'',clr:'',bpos:'',maf:'',mesh:'medium',ff:1,pr:'',name:'',cone:true,msg:null,results:[]};
 let CFD_LAST=null;
 const cfdNum=v=>{ const x=parseFloat(v); return Number.isFinite(x)?x:null; };
-function cfdName(p){ return ('intake_'+Math.round(p.dt)+'mm_'+(p.mouth||'plain')+(p.bends>0?'_'+Math.round(p.bends)+'bend':'')).replace(/[^A-Za-z0-9_.-]/g,''); }
+function cfdName(p){ const nb=bendsOf(p).length; return ('intake_'+Math.round(p.dt)+'mm_'+(p.mouth||'plain')+(nb>0?'_'+nb+'bend':'')).replace(/[^A-Za-z0-9_.-]/g,''); }
 function cfdDesign(p,r){
   // the design dictionary intake_cfd.py / intake_cfd.js take, from the Intake tab's inputs (lengths in mm)
   const notes=[], D=p.dt, L=p.lt, b=r.bell;
-  const lip=cfdNum(CFD_UI.lip), lipR=lip!=null&&lip>0?lip:b.Rc;
+  const lip=cfdNum(CFD_UI.lip), lipR=lip!=null&&lip>0?lip:p.lipR>0?p.lipR:b.Rc;     // the panel's value, else the tab's lip radius, else the bell's corner
   let inlet, inletLen;
   if(p.mouth==='ellipse'){ inlet={type:'ellipse',length_mm:+b.L.toFixed(3),entry_diameter_mm:+b.Di.toFixed(3),exit_diameter_mm:D,corner_radius_mm:+b.Rc.toFixed(3)}; inletLen=b.L; }
   else if(p.mouth==='radius'){ inlet={type:'radius',lip_radius_mm:+lipR.toFixed(3)}; inletLen=lipR; }
@@ -18837,18 +18837,39 @@ function cfdDesign(p,r){
     if(coneStart>inletLen+D){ geometry.diameter_change={to_diameter_mm:p.tb,cone_half_angle_deg:7,start_mm:+coneStart.toFixed(2)}; }
     else { notes.push('No room for the cone to the '+cdim(p.tb)+' throttle bore inside this tube length; the case keeps the tube diameter to the end.'); coneStart=null; }
   }
-  // bends: the tab counts 90 deg bends; here they are placed evenly along the straight part at the given centre-line radius
-  const nb=Math.max(0,Math.round(p.bends||0));
+  // bends: the tab's list of angles from the mouth end (or its count of 90 deg bends) at the tab's centre-line radius (the
+  // panel can override it), starting where the panel says or else spread evenly, each turning in a plane 90 deg round from
+  // the last. Where they sit matters: a bend close behind a sharp mouth turns the separated entry flow and costs far more
+  const angs=bendsOf(p), nb=angs.length;
   if(nb>0){
-    const clrIn=cfdNum(CFD_UI.clr), clr=clrIn!=null&&clrIn>=0.6*D?clrIn:1.5*D, arc=clr*Math.PI/2;
-    const s0=inletLen+0.25*D, fits=end=>(end-0.25*D-s0)>=nb*arc+(nb+1)*0.1*D;
-    if(coneStart!=null&&!fits(coneStart)&&fits(L)){ delete geometry.diameter_change; coneStart=null; notes.push('The bends leave no room for the cone to the throttle bore; the case keeps the tube diameter to the end.'); }
-    const s1=(coneStart!=null?coneStart:L)-0.25*D, avail=s1-s0;
-    if(fits(coneStart!=null?coneStart:L)){
-      const gap=(avail-nb*arc)/(nb+1), bends=[];
-      for(let k=0;k<nb;k++) bends.push({clr_mm:+clr.toFixed(2),angle_deg:90,start_mm:+(s0+gap*(k+1)+arc*k).toFixed(2),plane_deg:k%2?90:0});
+    const clrIn=cfdNum(CFD_UI.clr), clrTab=p.bendR>0?p.bendR:null;
+    let clr=clrIn!=null&&clrIn>0?clrIn:clrTab!=null?clrTab:1.5*D;
+    if(clr<0.6*D){ notes.push('A '+cdim(clr)+' centre-line radius is under 0.6 D; the case uses 0.6 D ('+cdim(0.6*D)+'), the tightest a swept tube meshes cleanly.'); clr=0.6*D; }
+    const arcs=angs.map(a=>clr*a*Math.PI/180), arcSum=arcs.reduce((x,y)=>x+y,0);
+    const s0=inletLen+0.25*D, fits=end=>(end-0.25*D-s0)>=arcSum+(nb+1)*0.1*D;
+    // starts given in the panel (mm from the mouth, one per bend, in order, none overlapping, all before the tract end)
+    const posIn=String(CFD_UI.bpos||'').split(/[ ,;]+/).filter(x=>x!=='').map(Number);
+    let starts=null;
+    if(posIn.length){
+      const lo=Math.max(inletLen,0)+0.1*D, okp=posIn.length===nb&&posIn.every(Number.isFinite)&&posIn[0]>=lo&&posIn.every((x,k)=>k===0||x>=posIn[k-1]+arcs[k-1]+0.1*D)&&posIn[nb-1]+arcs[nb-1]<=L-0.25*D;
+      if(okp){
+        starts=posIn;
+        const endB=posIn[nb-1]+arcs[nb-1];
+        if(coneStart!=null&&endB>coneStart){ delete geometry.diameter_change; coneStart=null; notes.push('The last bend runs into the cone to the throttle bore; the case keeps the tube diameter to the end.'); }
+      } else notes.push('The bend starts ('+posIn.join(', ')+' mm) need one per bend ('+nb+'), in order, each after the last bend ends, the first at least '+lo.toFixed(0)+' mm from the mouth and the last ending '+(0.25*D).toFixed(0)+' mm before the tract end; the bends are spread evenly instead.');
+    }
+    if(starts){
+      geometry.bend=starts.map((x,k)=>({clr_mm:+clr.toFixed(2),angle_deg:+angs[k].toFixed(2),start_mm:+x.toFixed(2),plane_deg:k%2?90:0}));
+      if(nb===1) geometry.bend=geometry.bend[0];
+    } else {
+      if(coneStart!=null&&!fits(coneStart)&&fits(L)){ delete geometry.diameter_change; coneStart=null; notes.push('The bends leave no room for the cone to the throttle bore; the case keeps the tube diameter to the end.'); }
+      const avail=(coneStart!=null?coneStart:L)-0.25*D-s0;
+      if(fits(coneStart!=null?coneStart:L)){
+      const gap=(avail-arcSum)/(nb+1), bends=[]; let at=s0;
+      for(let k=0;k<nb;k++){ at+=gap; bends.push({clr_mm:+clr.toFixed(2),angle_deg:+angs[k].toFixed(2),start_mm:+at.toFixed(2),plane_deg:k%2?90:0}); at+=arcs[k]; }
       geometry.bend=bends.length===1?bends[0]:bends;
-    } else notes.push(nb+' bend'+(nb>1?'s':'')+' of 90 deg at a '+cdim(clr)+' centre-line radius do not fit in this tube length; the case is written straight.');
+      } else notes.push(angs.map(a=>Math.round(a)+' deg').join(', ')+' of bend at a '+cdim(clr)+' centre-line radius do not fit in this tube length; the case is written straight.');
+    }
   }
   // measurement planes: the MAF, GM's 10 in from the throttle body unless set here
   if(p.maf==='card'||p.maf==='housing'){
@@ -18947,9 +18968,9 @@ function cfdSection(p,r){
   const opt=(v,cur,label)=>'<option value="'+v+'"'+(v===cur?' selected':'')+'>'+label+'</option>';
   h+='<div class="grid2" style="max-width:640px">'+
     '<label class="f"><span class="lab">Mouth stands</span><span class="inp"><select class="cfdx" data-k="mount">'+opt('',CFD_UI.mount,(mountDefault==='free'?'In open air (default here)':'Flush in a wall (default here)'))+opt('free',CFD_UI.mount,'In open air: a stack in an airbox or a filter around it')+opt('flange',CFD_UI.mount,'Flush in a wall: a hole in the airbox or plenum')+'</select></span></label>'+
-    (p.mouth==='radius'?'<label class="f"><span class="lab">Lip radius</span><span class="inp"><input class="cfdx" data-k="lip" type="number" step="any" inputmode="decimal" placeholder="'+(+r.bell.Rc.toFixed(1))+'" value="'+esc(CFD_UI.lip)+'"><em>mm</em></span></label>':'')+
+    (p.mouth==='radius'?'<label class="f"><span class="lab">Lip radius</span><span class="inp"><input class="cfdx" data-k="lip" type="number" step="any" inputmode="decimal" placeholder="'+(+(p.lipR>0?p.lipR:r.bell.Rc).toFixed(1))+'" value="'+esc(CFD_UI.lip)+'"><em>mm</em></span></label>':'')+
     ((CFD_UI.mount||mountDefault)==='free'?'<label class="f"><span class="lab">Mouth ahead of the floor or filter base</span><span class="inp"><input class="cfdx" data-k="protr" type="number" step="any" inputmode="decimal" placeholder="'+Math.round(Math.max(d?d.inletLen:0,D))+'" value="'+esc(CFD_UI.protr)+'"><em>mm</em></span></label>':'')+
-    (p.bends>0?'<label class="f"><span class="lab">Bend centre-line radius</span><span class="inp"><input class="cfdx" data-k="clr" type="number" step="any" inputmode="decimal" placeholder="'+(+(1.5*D).toFixed(1))+'" value="'+esc(CFD_UI.clr)+'"><em>mm</em></span></label>':'')+
+    (bendsOf(p).length>0?'<label class="f"><span class="lab">Bend centre-line radius</span><span class="inp"><input class="cfdx" data-k="clr" type="number" step="any" inputmode="decimal" placeholder="'+(+(p.bendR>0?p.bendR:1.5*D).toFixed(1))+'" value="'+esc(CFD_UI.clr)+'"><em>mm</em></span></label>'+'<label class="f"><span class="lab">Where each bend starts, from the mouth (blank: spread evenly)</span><span class="inp"><input class="cfdx" data-k="bpos" type="text" inputmode="decimal" placeholder="e.g. 95, 500" value="'+esc(CFD_UI.bpos)+'"><em>mm</em></span></label>':'')+
     (p.maf==='card'||p.maf==='housing'?'<label class="f"><span class="lab">MAF plane from the mouth</span><span class="inp"><input class="cfdx" data-k="maf" type="number" step="any" inputmode="decimal" placeholder="'+Math.round(Math.max(0,p.lt-254))+'" value="'+esc(CFD_UI.maf)+'"><em>mm</em></span></label>':'')+
     '<label class="f"><span class="lab">Flow factor (1 = cycle mean)</span><span class="inp"><input class="cfdx" data-k="ff" type="number" step="0.1" min="0.1" max="5" inputmode="decimal" value="'+CFD_UI.ff+'"></span></label>'+
     '<label class="f"><span class="lab">Or a pressure ratio p₀/p (blank = engine flow)</span><span class="inp"><input class="cfdx" data-k="pr" type="number" step="0.001" min="1" max="1.9" inputmode="decimal" value="'+esc(CFD_UI.pr)+'"></span></label>'+
@@ -18961,7 +18982,7 @@ function cfdSection(p,r){
     const g=d.design.geometry, op=d.design.operating_point;
     const mdotTxt=op.engine?(r.rho*r.Qt*d.ff*1000).toFixed(1)+' g/s per tube (cycle mean'+(d.boost>1?', × '+d.boost.toFixed(2)+' for boost':'')+(d.ff!==1?', × '+d.ff+' flow factor':'')+')':op.pressure_ratio?'pressure ratio '+op.pressure_ratio:(op.mass_flow_kg_s*1000).toFixed(1)+' g/s';
     h+='<p class="cap">The case: '+cdim(D)+' tube, '+clen(p.lt)+' from the mouth to the throttle end, '+(g.inlet.type==='plain'?'square-cut end':g.inlet.type==='radius'?'lip radius '+cdim(g.inlet.lip_radius_mm):'elliptical bellmouth '+cdim(g.inlet.entry_diameter_mm)+' entry, '+clen(g.inlet.length_mm)+' long')+', '+(g.mount.type==='free'?'standing in open air':'flush in a wall')+
-      (g.diameter_change?', cone to '+cdim(g.diameter_change.to_diameter_mm)+' from '+clen(g.diameter_change.start_mm):'')+(g.bend?', '+(Array.isArray(g.bend)?g.bend.length:1)+' × 90° bend at '+cdim((Array.isArray(g.bend)?g.bend[0]:g.bend).clr_mm)+' centre-line radius (3-D)':'')+
+      (g.diameter_change?', cone to '+cdim(g.diameter_change.to_diameter_mm)+' from '+clen(g.diameter_change.start_mm):'')+(g.bend?(()=>{ const bl=Array.isArray(g.bend)?g.bend:[g.bend]; return ', '+(bl.length===1?'a '+bl[0].angle_deg+'° bend':bl.map(b=>b.angle_deg+'°').join(' and ')+' bends')+' at '+cdim(bl[0].clr_mm)+' centre-line radius (3-D)'; })():'')+
       (g.maf_plane_mm?', MAF plane '+clen(g.maf_plane_mm)+' from the mouth':'')+'; airflow '+mdotTxt+' at '+Math.round(p.rpm).toLocaleString('en-US')+' RPM, air at '+tempStr(p.tin)+'. '+
       (g.bend?(hostHas('openfoam')?'A bend makes the tract three-dimensional: on this PC the program writes the snappyHexMesh case itself (the generator intake_cfd.py, in Rust: the same files) and then runs OpenFOAM, on one core (minutes on a coarse mesh, up to an hour on a fine one); the download holds design.json and the Python generator for any machine with Python 3.':'A bend makes the tract three-dimensional: the download holds design.json and the Python generator (intake_cfd.py), which writes the snappyHexMesh case on any machine with Python 3.'):'The axisymmetric case is written here and runs in 1 to 5 minutes on a desktop; about 10,000 to 25,000 cells.')+
       ' A flow factor of 2 to 3 stands for the peak of the induction pulse in one runner; losses go with the square of the airflow, so a cycle-mean run understates them.</p>';

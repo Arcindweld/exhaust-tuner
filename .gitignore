@@ -4,6 +4,7 @@ node_modules/
 # test scratch
 web/cfd_ui_tmp/
 web/tests/uel_runs/
+web/tests/out/
 web/uel_prepage.html
 *.png.tmp
 # simulation outputs (large; regenerate)

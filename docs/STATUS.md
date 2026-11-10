@@ -600,6 +600,18 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
   has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
   the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
+- Intake CFD case takes the tab's bends (2026-11-10): the case the Intake tab writes now uses the tab's bend angles
+  (listed from the mouth end), its centre-line radius and its rolled-lip radius (it placed every bend as 90 degrees at
+  its own radius); the CFD panel can still override the radius and can say where each bend starts (mm from the mouth;
+  blank spreads them evenly; bad lists fall back with a note); radii under 0.6 D are raised to 0.6 D with a note.
+  tests/intakecfdbend_ui.js. Run on the owner's LS3 CAI (6,600 RPM, medium mesh): the parametric 3-D case with a
+  3.5 mm lip gives 709 Pa total loss at the tract end against 700 for the CFD of the CAD STL (2.8 inH2O both).
+  FOUND: the parametric 3-D plain (square-cut) mouth reads about 0.6 velocity heads too lossy: 1,992-2,059 Pa against
+  1,177 for the CAD STL, whatever the solver (rhoSimpleFoam or simpleFoam within 3%), the bend order or positions
+  (30 then 84 degrees at the CAD's 100 and 572 mm: 1,998), and the 0.05 mm edge arc (a square corner: same). A straight
+  50 mm tube, flush sharp mouth, medium 3-D mesh: K 1.00 (the re-entrant value) against 0.40 to 0.47 in 2-D and 0.5 in
+  Crane; a 0.04 D lip in 3-D: K 0.19 (Crane 0.24). No cells behind the wall; meshes, schemes and boundary conditions
+  match the STL case. Diagnosis continues below.
 - Intake bends and lip radius (2026-11-09): Intake tab takes each bend's angle ("84, 30") and the centre-line radius,
   and a rolled lip's radius. Bend K = Crane TP-410's 90 degree bend (multiples of f against r/D: 20, 14, 12, 12, 14, 17,
   24, 30 at 1 to 10 D) x Idelchik's angle factor A1 (replaces the fixed 0.2 per bend); lip K from Crane's rounded
