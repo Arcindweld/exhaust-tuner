@@ -657,7 +657,7 @@ addLayersControls
     minThickness        %(tmin)s;
     nGrow               0;
     featureAngle        120;
-    slipFeatureAngle    30;
+    slipFeatureAngle    100;
     nRelaxIter          5;
     nSmoothSurfaceNormals 1;
     nSmoothNormals      3;
@@ -893,6 +893,7 @@ pub const M3_PROV1: &str = r#"tract walls refined to level %d-%d (cell %.3f mm =
 pub const M3_PROV2: &str = r#"mouth region (sphere radius = mouth dia. %.1f mm) level %d, feature edges level %d"#;
 pub const M3_PROV3: &str = r#"wall-function layers: %d layers, first %.4g mm, expansion %.2f -> first-cell y+ ~ %.0f at bulk velocity %.1f m/s (target 30-100; nutUSpaldingWallFunction tolerates lower)"#;
 pub const M3_PROV4: &str = r#"locationInMesh is inside the plenum (atmosphere side of the floor)"#;
+pub const M3_PROV5: &str = r#"slipFeatureAngle 100: the tract-wall layers stop at the mouth instead of sliding along the plenum floor; at 30 their end faces became floor (wall) faces, a ledge one layer stack deep inside the mouth that read a sharp flush entrance as K 1.0 instead of 0.5"#;
 pub const MQ_PROV: &str = r#"standard snappyHexMesh quality limits"#;
 pub const M3_NOTE: &str = r#"3-D snappyHexMesh, roughly %d cells (estimate)"#;
 pub const MX_BPROV1: &str = r#"background box: the part's bounding box plus 0.75 D (D = outlet dia. %.2f mm); base cell %.2f mm = D/%g"#;

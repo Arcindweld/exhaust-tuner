@@ -2009,6 +2009,7 @@ fn write_3d_mesh(cw: &mut CaseWriter, d: &Design, der: &Der, lv: &Lv) -> R<(i64,
             pct(T::M3_PROV2, &[A::F(dm * 1e3), A::I(level), A::I(level + 1)]),
             pct(T::M3_PROV3, &[A::I(nl), A::F(t1 * 1e3), A::F(er), A::F(yplus_est), A::F(der.u_bulk)]),
             T::M3_PROV4.to_string(),
+            T::M3_PROV5.to_string(),
         ],
         None,
     )?;

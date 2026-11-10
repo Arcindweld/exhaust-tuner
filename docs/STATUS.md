@@ -606,12 +606,16 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   blank spreads them evenly; bad lists fall back with a note); radii under 0.6 D are raised to 0.6 D with a note.
   tests/intakecfdbend_ui.js. Run on the owner's LS3 CAI (6,600 RPM, medium mesh): the parametric 3-D case with a
   3.5 mm lip gives 709 Pa total loss at the tract end against 700 for the CFD of the CAD STL (2.8 inH2O both).
-  FOUND: the parametric 3-D plain (square-cut) mouth reads about 0.6 velocity heads too lossy: 1,992-2,059 Pa against
-  1,177 for the CAD STL, whatever the solver (rhoSimpleFoam or simpleFoam within 3%), the bend order or positions
-  (30 then 84 degrees at the CAD's 100 and 572 mm: 1,998), and the 0.05 mm edge arc (a square corner: same). A straight
-  50 mm tube, flush sharp mouth, medium 3-D mesh: K 1.00 (the re-entrant value) against 0.40 to 0.47 in 2-D and 0.5 in
-  Crane; a 0.04 D lip in 3-D: K 0.19 (Crane 0.24). No cells behind the wall; meshes, schemes and boundary conditions
-  match the STL case. Diagnosis continues below.
+  FOUND AND FIXED: every 3-D intake case (parametric or CAD STL) read a sharp flush mouth as re-entrant. The tract-wall
+  boundary layers slid along the plenum floor (slipFeatureAngle 30), and their end faces in the mouth plane became floor
+  (wall) faces: a ledge one layer stack deep (7-8% of R) inside the mouth. A straight 50 mm tube read K 1.00-1.03
+  (medium, fine and STL alike) against 0.40 in 2-D and 0.5 in Crane; the jet contracted to 0.53 (Borda). Rounded lips
+  were unaffected. Fix: slipFeatureAngle 100 in the intake 3-D snappyHexMeshDict (Python and Rust generators, the
+  page's embedded copy; parity tests pass): sharp K 0.33, r/D 0.04 K 0.19 (unchanged), 0 floor faces in the bore,
+  99.7% layer coverage. cfd/NOTES.md 4(c3). The owner's CAI, plain end, after the fix: 1,106 Pa (4.4 inH2O) from the
+  CAD STL (was 1,177) and 1,050 Pa (4.2) from the parametric case laid out as the CAD (30 deg at 100 mm, 84 deg at
+  572 mm, no cone), 5% apart; the 3.5 mm lip 700-709 Pa (2.8). The 1-D tab (5.8 and 4.1 inH2O) runs about 30% high
+  against these. Still open: the 3-D medium mesh's pipe friction is ~25% above Colebrook (wall functions at ~D/26).
 - Intake bends and lip radius (2026-11-09): Intake tab takes each bend's angle ("84, 30") and the centre-line radius,
   and a rolled lip's radius. Bend K = Crane TP-410's 90 degree bend (multiples of f against r/D: 20, 14, 12, 12, 14, 17,
   24, 30 at 1 to 10 D) x Idelchik's angle factor A1 (replaces the fixed 0.2 per bend); lip K from Crane's rounded

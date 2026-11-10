@@ -87,7 +87,7 @@ WANT = {
     "M3_BPROV3": ("write_3d_mesh", 'only the plenum part'), "M3_BPROV4": ("write_3d_mesh", 'its outer faces'),
     "M3_SFE_PROV": ("write_3d_mesh", 'feature edges (lip'), "M3_PROV1": ("write_3d_mesh", 'tract walls refined'),
     "M3_PROV2": ("write_3d_mesh", 'mouth region'), "M3_PROV3": ("write_3d_mesh", 'wall-function layers'),
-    "M3_PROV4": ("write_3d_mesh", 'locationInMesh is inside the plenum'), "MQ_PROV": ("write_3d_mesh", 'standard snappyHexMesh quality'),
+    "M3_PROV4": ("write_3d_mesh", 'locationInMesh is inside the plenum'), "M3_PROV5": ("write_3d_mesh", 'slipFeatureAngle 100: the tract'), "MQ_PROV": ("write_3d_mesh", 'standard snappyHexMesh quality'),
     "M3_NOTE": ("write_3d_mesh", '3-D snappyHexMesh, roughly'),
     "MX_BPROV1": ("write_3d_mesh_exhaust", "background box: the part's"), "MX_BPROV2": ("write_3d_mesh_exhaust", 'the box is discarded'),
     "MX_BPROV3": ("write_3d_mesh_exhaust", 'inlets %s extruded'), "MX_SFE_PROV": ("write_3d_mesh_exhaust", 'feature edges (merge'),

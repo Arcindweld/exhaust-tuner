@@ -393,6 +393,38 @@ the pressure solver at about iteration 140), so `entrance_results.json` was
 empty, although these notes called the suite "not yet run". The incompressible
 cases now run classic SIMPLE.
 
+### (c3) The same entrance in 3-D, and the mouth-ledge fix (2026-11-10)
+
+The 3-D (snappyHexMesh) path had no entrance check. Run as in (c) but 3-D (`force_3d`, flange mount, D = 50 mm,
+L = 25 D, total-pressure K extrapolated from 10–22 D, medium mesh, simpleFoam):
+
+| case | 3-D before | 3-D after the fix | 2-D (c), total pressure | Crane |
+|---|---|---|---|---|
+| sharp, parametric | 1.005 | 0.329 | 0.396 | 0.50 |
+| sharp, parametric, fine mesh | 1.031 | | 0.392 | 0.50 |
+| sharp, from a CAD-style STL | 1.023 | | | 0.50 |
+| r/D 0.04 | 0.194 | 0.194 | 0.141 | 0.24 |
+
+**Cause.** The tract-wall boundary layers (layers on `tract_wall` and `extension_wall` only) met the mouth edge, where
+the next patch (`plenum_wall`, the floor) has none, and with `slipFeatureAngle 30` snappyHexMesh slid the layer stack
+along the floor: the stack's end faces in the mouth plane, from R minus the layer thickness to R, were given the floor
+(wall) patch. That is a ledge one layer stack deep (7–8 % of R here) around the inside of the mouth, which turns a
+flush sharp entrance into a slightly smaller orifice: the jet contracted to 0.53 of the tube area (sampled at
+0.5 D), Borda's re-entrant value, and K came out at the re-entrant 1.0. A finer mesh keeps the same layer thickness,
+so it did not help; `featureAngle` (edges between two layered patches) did not change it; a rounded lip has no
+convex edge, so it was never affected. Counted as plenum faces with centres inside the bore: 396 (medium), 708 (fine),
+364 (STL); 0 after the fix. **Fix (generator 1.1.0, unchanged version):** `slipFeatureAngle 100` in the intake 3-D
+`snappyHexMeshDict`: the layers stop at the mouth edge instead of sliding (layer coverage 99.7 %, `checkMesh` OK).
+Exhaust-component mode is unchanged (its tube ends are inlet and outlet patches, not walls).
+
+**Remaining.** After the fix the 3-D sharp entrance reads 0.33 against the 2-D 0.40 (total pressure), and the 3-D
+medium mesh's developed friction factor is 0.022–0.023 against Colebrook 0.018 (the 2-D sector is within 3–8 % of
+it): the 3-D medium mesh, about D/26 at the wall with wall functions, is coarse for friction. The losses of a whole
+tract are within the ±15 % class of the other checks; friction-dominated long tracts read high.
+
+**On the owner's CAI** (LS3, 6,600 RPM, 369 g/s, medium mesh, total-pressure loss at the tract end): see
+docs/STATUS.md, 2026-11-10.
+
 ### (d) Exhaust-component mode: known-answer checks (gas 650 °C, inlet 100 m/s, medium mesh)
 
 K is the total-pressure loss from the part's inlet face to its exit face in dynamic heads of the inlet velocity. The part's own straight pipes between those faces (inlet 1 D or 2 D, outlet 10 D; the 2 D extensions the generator adds lie outside the measured section) add wall friction, estimated with Colebrook at the run's Reynolds number and taken off to give the component's own K.

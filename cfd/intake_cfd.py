@@ -3452,7 +3452,7 @@ addLayersControls
     minThickness        %(tmin)s;
     nGrow               0;
     featureAngle        120;
-    slipFeatureAngle    30;
+    slipFeatureAngle    100;
     nRelaxIter          5;
     nSmoothSurfaceNormals 1;
     nSmoothNormals      3;
@@ -3479,7 +3479,10 @@ mergeTolerance 1e-6;
         "wall-function layers: %d layers, first %.4g mm, expansion %.2f -> first-cell y+ ~ %.0f at bulk"
         " velocity %.1f m/s (target 30-100; nutUSpaldingWallFunction tolerates lower)" %
         (nl, t1 * 1e3, er, yplus_est, der["U_bulk"]),
-        "locationInMesh is inside the plenum (atmosphere side of the floor)"])
+        "locationInMesh is inside the plenum (atmosphere side of the floor)",
+        "slipFeatureAngle 100: the tract-wall layers stop at the mouth instead of sliding along the plenum floor; at 30"
+        " their end faces became floor (wall) faces, a ledge one layer stack deep inside the mouth that read a sharp"
+        " flush entrance as K 1.0 instead of 0.5"])
     cw.foam("system/meshQualityDict", "dictionary", "meshQualityDict",
             '#includeEtc "caseDicts/mesh/generation/meshQualityDict.cfg"\n', ["standard snappyHexMesh quality limits"])
     est = int(nx[0] * nx[1] * nx[2] * 0.3 + math.pi * (Dref / 2) ** 2 * (bb1[0] - bb0[0] + 2 * Dref) / hcell ** 3 * 1.5)
