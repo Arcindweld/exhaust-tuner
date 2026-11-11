@@ -2230,9 +2230,12 @@ relaxationFactors
     # likely the transpose done in place in the reused temporary): on the snappy mesh it acted as a body force of
     # ~20 % of the wall stress (laminar pipe 1.25x Hagen-Poiseuille, developed turbulent pipe 1.2-1.3x). A cached
     # gradient is a registered field, not a reusable temporary, and the same library then gets the term right; the
-    # numerics are unchanged, so a correct build gives the same result. Exhaust-component mode is left as it was
-    # (not proven there). cfd/NOTES.md 4(c4).
-    cache_grad = is3d and d["mode_kind"] != "exhaust"
+    # numerics are unchanged, so a correct build gives the same result. cfd/NOTES.md 4(c4). Exhaust-component mode
+    # (always 3-D) caches it too since 2026-11-11: its 90 deg bend read K 0.47634 on the conda-forge build without
+    # the cache, 0.44839 with it, against 0.44838 from ESI's package on the byte-identical mesh (NOTES 4(f)). The 2-D
+    # cyclic sector is not affected (laminar pipe 1.0078 x Hagen-Poiseuille with and without the cache, as on ESI's
+    # builds), so its cases are left byte-identical.
+    cache_grad = is3d
     if cache_grad:
         sol += "\ncache\n{\n    grad(U);\n}\n"
     # what the results depend on besides the mesh, recorded in case_info.json and results.json, and compared

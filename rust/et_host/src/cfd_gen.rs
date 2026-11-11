@@ -1821,7 +1821,7 @@ fn physics_files(cw: &mut CaseWriter, der: &Der) -> R<()> {
     cw.foam("constant/turbulenceProperties", "dictionary", "turbulenceProperties", T::PH_TURB, &prov, Some("constant"))
 }
 
-fn numerics_files(cw: &mut CaseWriter, der: &mut Der, is3d: bool, nonortho: i64, exhaust: bool) -> R<()> {
+fn numerics_files(cw: &mut CaseWriter, der: &mut Der, is3d: bool, nonortho: i64) -> R<()> {
     let comp = der.compressible;
     let psolver = if is3d { T::NU_PSOLVER_3D } else { T::NU_PSOLVER_2D };
     let lim = if is3d { T::NU_LIM_3D } else { "corrected" };
@@ -1851,9 +1851,10 @@ fn numerics_files(cw: &mut CaseWriter, der: &mut Der, is3d: bool, nonortho: i64,
     } else {
         pct(T::NU_SOL_INC, &[A::I(nonortho)]).replace("@PSOLVER@", psolver)
     };
-    // 3-D intake cases cache grad(U), so that the explicit viscous-stress term is not taken from a reused temporary
-    // (the conda-forge Linux build gets it wrong there: pipe friction 1.25x); cfd/NOTES.md 4(c4)
-    let cache_grad = is3d && !exhaust;
+    // 3-D cases (intake and exhaust-component mode) cache grad(U), so that the explicit viscous-stress term is not taken
+    // from a reused temporary (the conda-forge Linux build gets it wrong there: pipe friction 1.25x, exhaust bend K +6 %);
+    // cfd/NOTES.md 4(c4), 4(f)
+    let cache_grad = is3d;
     if cache_grad {
         sol.push_str(T::NU_CACHE_GRADU);
     }
@@ -2223,7 +2224,7 @@ pub fn generate_case(design_text: &str, out_dir: &Path, base_dir: &Path) -> R<Py
     control_dict(&mut cw, &der, &monitors, &surf, n_iter, write_int, "")?;
     field_files(&mut cw, &d, &mut der, &patches)?;
     physics_files(&mut cw, &der)?;
-    numerics_files(&mut cw, &mut der, is3d, nonortho, exhaust)?;
+    numerics_files(&mut cw, &mut der, is3d, nonortho)?;
     cw.foam("system/decomposeParDict", "dictionary", "decomposeParDict", T::GC_DECOMPOSE, &[T::GC_DECOMP_PROV.to_string()], None)?;
     // case_info.json for the report
     let mut info = Dict::new();
