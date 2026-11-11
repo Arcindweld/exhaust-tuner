@@ -42,7 +42,10 @@
    572.1
   ],
   "mouth": "plain",
-  "lip_mm": null
+  "mouth_read": "plain",
+  "lip_mm": null,
+  "tb_mm": null,
+  "reducer": null
  },
  "bends": [
   {
@@ -72,5 +75,18 @@
  "path_beyond_mm": [
   0.0,
   0.0
- ]
+ ],
+ "body_beyond_path_mm": [
+  0.0,
+  0.0
+ ],
+ "mouth": {
+  "kind": "plain",
+  "len": 0.05,
+  "dev": 0.0
+ },
+ "cone": null,
+ "notes": [],
+ "probes": 6777,
+ "read_s": 0.14
 }

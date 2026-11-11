@@ -2,9 +2,16 @@
 no Fusion: cadtools.act_cfd_tube samples the tube's centreline curves and probes its bore, then hands the samples here.
 Units are mm and degrees.
 
-What it takes: a constant-bore round tube whose centreline is straights and circular arcs, joined end to end and
-tangent (a Pipe along a sketch of lines and arcs, or a bent tube modelled that way). Anything else is refused with a
-sentence saying why (a spline, a kink, a bend tighter than the mesher takes, a bend right at the mouth).
+What it takes: a round tube whose centreline is straights and circular arcs, joined end to end and tangent (a Pipe
+along a sketch of lines and arcs, or a bent tube modelled that way). Its bore is read by probing (probe_bore: rays
+from the centreline out to the first solid, so beads, cuffs and hose barbs on the outside never matter) and mapped to
+what the generator models (analyse_bore): a mouth that is square cut, rounded (a lip: inlet 'radius'), an elliptical
+bellmouth ('ellipse') or a straight flare with a rounded lip ('taper'); one constant bore after it; and at most ONE
+diameter change (cfd/intake_cfd.py takes one 'diameter_change': a straight cone on a straight, normalise() and
+tube_radius()), e.g. the cone to the throttle bore or a reducer mid-run. An S-shaped reducer is modelled as the
+straight cone of the same length and end diameters, and the result says by how much the two differ. Anything else is
+refused with a sentence saying why (a spline, a kink, a bend tighter than the mesher takes, a bend right at the mouth,
+an oval bore, two diameter changes, a cone in a bend, a bore that narrows and opens again).
 
 The generator's bends (Path3D in cfd/intake_cfd.py): the path starts at the mouth heading +x with a frame
 (n1, n2) = (+y, +z) that is carried along the path: unchanged on a straight, turned with the tube on an arc (the arc's
@@ -260,12 +267,526 @@ def mouth_lip(tori, mouth_p, mouth_t, r_in, tol=0.15, tol_along=0.5):
     return best
 
 
-def design_geometry(segs, bore_mm, wall_mm, lip_mm=None):
-    """The 'geometry' block of a design for intake_cfd.py, and what was read (for the panel)."""
+# ----------------------------------------------------------------------------------- the bore, probed from the centreline
+RAY_ANGLES = [0.3 + 2 * math.pi * k / 8 for k in range(8)]     # off the seams Pipe puts at angle 0 (as cadtools._PS_ANGLES)
+RAY_TOL = 0.002          # mm: each ray's bore radius is bisected to this
+
+
+def extend(segs, e0, e1):
+    """The path with a straight e0 mm added before its start and e1 mm after its end, along its end tangents: a body
+    often runs on past its Pipe path (a cone, a cuff or a bellmouth joined on), and the probe must be able to see it."""
+    a, t0 = segs[0]['a'], segs[0]['t0']
+    b, t1 = segs[-1]['b'], segs[-1]['t1']
+    pre = {'kind': 'line', 'a': _sub(a, _mul(t0, e0)), 'b': a, 't0': t0, 't1': t0, 'length': e0}
+    post = {'kind': 'line', 'a': b, 'b': _add(b, _mul(t1, e1)), 't0': t1, 't1': t1, 'length': e1}
+    return ([pre] if e0 > 0 else []) + list(segs) + ([post] if e1 > 0 else [])
+
+
+def frame_at(segs, s):
+    """(point, tangent, u, v) s mm along the path, (u, v) square to the tangent and carried along it (unchanged on a
+    straight, turned with the tube on an arc), so a ray's angle means the same place round the tube all along."""
+    u = perp(segs[0]['t0'])
+    s = max(0.0, s)
+    for g in segs:
+        if s <= g['length'] or g is segs[-1]:
+            d = min(s, g['length'])
+            if g['kind'] == 'line':
+                p, t = _add(g['a'], _mul(g['t0'], d)), g['t0']
+            else:
+                p, t = _arc_point(g, d)
+                u = rotate(u, g['n'], d / g['R'])
+            u = _unit(_sub(u, _mul(t, _dot(u, t))))
+            return p, t, u, _cross(t, u)
+        if g['kind'] == 'arc':
+            u = rotate(u, g['n'], g['length'] / g['R'])
+        s -= g['length']
+    return segs[-1]['b'], segs[-1]['t1'], u, _cross(segs[-1]['t1'], u)
+
+
+def _ray(solid, g, h, reach):
+    """Radius of the first solid going out from the centreline along one ray, searched from the guess g (mm): solid(r)
+    says whether the point r out along the ray is in the body. h: the largest search step (under the wall, so the
+    search cannot step over it); reach: how far past the guess to look. None when there is no wall near (past the end
+    of the tube). Only the bore is looked for: what is on the outside (a bead, a cuff, a hose barb) is never reached.
+    The bore where it was guessed costs two probes; elsewhere the step grows from 0.04 mm, then the edge is bisected."""
+    dl = 0.005
+    a = g - dl > 0 and solid(g - dl)
+    if not a and solid(g + dl):
+        return g
+
+    def inward(r):                            # from a solid point r, in to the first air: (air, solid) or None
+        st = 0.04
+        while True:
+            r2 = r - st
+            if r2 <= 0.05 * g:
+                return None
+            if not solid(r2):
+                return r2, r
+            r, st = r2, min(h, 2.0 * st)
+    if a:                                     # the guess is in the wall: inward to the bore
+        found = inward(g - dl)
+    else:                                     # air at the guess: out to the wall, else in to a narrower bore
+        r, st, found = g + dl, 0.04, None
+        while r < g + reach:
+            if solid(r + st):
+                found = (r, r + st)
+                break
+            r, st = r + st, min(h, 2.0 * st)
+        if found is None:
+            r, st = g - dl, 0.04
+            while r > 0.2 * g:
+                if solid(r - st):
+                    found = inward(r - st)
+                    break
+                r, st = r - st, min(h, 2.0 * st)
+    if found is None:
+        return None
+    lo, hi = found
+    while hi - lo > RAY_TOL:
+        m = 0.5 * (lo + hi)
+        if solid(m):
+            hi = m
+        else:
+            lo = m
+    return 0.5 * (lo + hi)
+
+
+def _median(xs):
+    xs = sorted(xs)
+    n = len(xs)
+    return xs[n // 2] if n % 2 else 0.5 * (xs[n // 2 - 1] + xs[n // 2])
+
+
+def probe_bore(segs, inside, r_in, wall, ext=None, step=5.0):
+    """The tube's bore all along, probed from its centreline. inside(p) (p in mm) says whether a point is in the solid.
+    The path is first run on straight past both ends (extend) so a cone, cuff or bellmouth beyond the Pipe path is seen.
+    From the middle of the path, stations step out both ways (every `step` mm, finer where the bore changes or stops)
+    until the tube ends; at each, 8 rays find the bore radius. A station is in the tube when its centre point is air
+    and at least 5 of the 8 rays find a wall. Then the first 25 mm at either end are probed finely (0.25 mm to 4 mm,
+    0.5 to 10, 1 to 25: the lip or flare at whichever end is the mouth) and every stretch where the bore changes at 1 mm.
+    -> {'segs': the run-on path, 'e0': mm added before the path's start, 's0', 's1': where the tube body starts and ends
+    on it, 'samples': [(s, median, smallest, largest radius)] sorted by s}."""
+    D = 2.0 * r_in
+    e = ext if ext is not None else max(150.0, 3.0 * D)
+    L0 = total(segs)
+    ex = extend(segs, e, e)
+    Lx = total(ex)
+    w = max(0.5, wall)
+    h, reach = 0.4 * w, max(3.0 * w, 0.3 * r_in)
+    got = {}
+
+    def bore(s, g):
+        p, t, u, v = frame_at(ex, s)
+        if inside(p):
+            return None
+        rs, miss = [], 0
+        for a in RAY_ANGLES:
+            d = _add(_mul(u, math.cos(a)), _mul(v, math.sin(a)))
+            r = _ray(lambda rr: inside(_add(p, _mul(d, rr))), g, h, reach)
+            if r is None:
+                miss += 1
+                if miss > 3:
+                    return None
+            else:
+                rs.append(r)
+        got[s] = rs
+        return rs
+
+    start = None
+    for f in (0.5, 0.35, 0.65, 0.2, 0.8, 0.05, 0.95):
+        s = e + f * L0
+        if bore(s, r_in):
+            start = s
+            break
+    if start is None:
+        raise Refused('The centreline curves do not run inside this tube: select the tube and its own centreline.')
+
+    def walk(direction):
+        s, g, hc = start, _median(got[start]), step
+        while True:
+            s2 = s + direction * hc
+            if s2 < 0.0 or s2 > Lx:
+                return max(0.0, min(Lx, s2))
+            rs = bore(s2, g)
+            if rs:
+                s, g, hc = s2, _median(rs), min(step, 2.0 * hc)
+                continue
+            if hc > 0.2:
+                hc /= 4.0
+                continue
+            a, b = s, s2
+            for _ in range(8):
+                m = 0.5 * (a + b)
+                rs = bore(m, g)
+                if rs:
+                    a, g = m, _median(rs)
+                else:
+                    b = m
+            return a
+    s1, s0 = walk(1.0), walk(-1.0)
+
+    def near(s):
+        k = min(got, key=lambda x: abs(x - s))
+        return _median(got[k])
+    dense = [0.05, 0.1] + [0.25 * i for i in range(1, 17)] + [4.0 + 0.5 * i for i in range(1, 13)] + [10.0 + i for i in range(1, 16)]
+    for d in dense:
+        for s in (s0 + d, s1 - d):
+            if s0 < s < s1 and not any(abs(s - x) < 0.01 for x in got):
+                bore(s, near(s))
+    tol = bore_tol(r_in)
+    ks = sorted(got)
+    for a, b in zip(ks, ks[1:]):
+        if b - a > 1.2 and abs(_median(got[a]) - _median(got[b])) > tol:
+            n = int(math.ceil(b - a))
+            g = _median(got[a])
+            for i in range(1, n):
+                rs = bore(a + (b - a) * i / n, g)
+                if rs:
+                    g = _median(rs)
+    samples = [(s, _median(got[s]), min(got[s]), max(got[s])) for s in sorted(got) if s0 - 1e-9 <= s <= s1 + 1e-9 and got[s]]
+    return {'segs': ex, 'e0': e, 's0': s0, 's1': s1, 'samples': samples}
+
+
+def profile_from(probe, at_end):
+    """The probe's samples as (s mm from the mouth, median, smallest, largest radius), the mouth at the tube's start
+    (at_end False) or end."""
+    s0, s1 = probe['s0'], probe['s1']
+    out = [((s1 - s) if at_end else (s - s0), m, lo, hi) for s, m, lo, hi in probe['samples']]
+    return sorted(out)
+
+
+def bore_tol(R):
+    """How far (mm) the bore radius may wander and still be one constant bore."""
+    return max(0.08, 0.0015 * R)
+
+
+def _dp(pts, tol):
+    """Douglas-Peucker: indices of the corners of the polyline through pts [(x, y)] within tol."""
+    keep = {0, len(pts) - 1}
+    stack = [(0, len(pts) - 1)]
+    while stack:
+        i, j = stack.pop()
+        (x0, y0), (x1, y1) = pts[i], pts[j]
+        best, k = -1.0, None
+        for m in range(i + 1, j):
+            x, y = pts[m]
+            yl = y0 + (y1 - y0) * (x - x0) / (x1 - x0) if x1 > x0 else y0
+            dv = abs(y - yl)
+            if dv > best:
+                best, k = dv, m
+        if k is not None and best > tol:
+            keep.add(k)
+            stack += [(i, k), (k, j)]
+    return sorted(keep)
+
+
+def _line_fit(pts):
+    """Least-squares y = a + b x."""
+    n = float(len(pts))
+    sx = sum(p[0] for p in pts)
+    sy = sum(p[1] for p in pts)
+    sxx = sum(p[0] * p[0] for p in pts)
+    sxy = sum(p[0] * p[1] for p in pts)
+    den = n * sxx - sx * sx
+    b = (n * sxy - sx * sy) / den if abs(den) > 1e-12 else 0.0
+    return (sy - b * sx) / n, b
+
+
+def _golden(f, a, b, n=40):
+    g = (math.sqrt(5) - 1) / 2
+    c, d = b - g * (b - a), a + g * (b - a)
+    fc, fd = f(c), f(d)
+    for _ in range(n):
+        if fc < fd:
+            b, d, fd = d, c, fc
+            c = b - g * (b - a)
+            fc = f(c)
+        else:
+            a, c, fc = c, d, fd
+            d = a + g * (b - a)
+            fd = f(d)
+    return (c, fc) if fc < fd else (d, fd)
+
+
+def mouth_model(kind, R, **k):
+    """The generator's inlet piece as r(x) (mm, x from the mouth plane), following intake_cfd.inlet_profile: 'radius'
+    (rc: a quarter round, radial at the mouth), 'ellipse' (L, h: Blair's quarter ellipse, entry radius R + h),
+    'taper' (alpha deg, rl, ri: a lip arc of radius rl, then a straight cone from radius ri down to R). -> (r(x), length)."""
+    if kind == 'radius':
+        rc = k['rc']
+        return (lambda x: R if x >= rc else R + rc - math.sqrt(max(0.0, rc * rc - (rc - x) ** 2))), rc
+    if kind == 'ellipse':
+        Le, he = k['L'], k['h']
+        return (lambda x: R if x >= Le else R + he - he * math.sqrt(max(0.0, 1.0 - ((Le - x) / Le) ** 2))), Le
+    al, rl, ri = math.radians(k['alpha']), k['rl'], k['ri']
+    cr = ri + rl * math.cos(al)
+    Sx = rl * (1.0 - math.sin(al))
+    Tx = Sx + (ri - R) / math.tan(al)
+
+    def r(x):
+        if x <= Sx:
+            return cr - math.sqrt(max(0.0, rl * rl - (rl - x) ** 2))
+        if x <= Tx:
+            return ri - (x - Sx) * math.tan(al)
+        return R
+    return r, Tx
+
+
+def _fit_mouth(pts, R, lip_mm, s_flat):
+    """The best of the generator's mouths for the flare samples pts [(s, r)] (the bore wider at the mouth, back to R
+    by s_flat). -> (kind, params, max deviation mm, model length)."""
+    def dev(fn):
+        return max(abs(r - fn(s)) for s, r in pts)
+    cands = []
+    # a rounded lip: the torus face's radius when there is one, else the best quarter round
+    if lip_mm:
+        fn, Lm = mouth_model('radius', R, rc=lip_mm)
+        cands.append(('radius', {'rc': lip_mm}, dev(fn), Lm))
+    else:
+        rc, dv = _golden(lambda rc: dev(mouth_model('radius', R, rc=rc)[0]), 0.2, max(1.0, 2.5 * s_flat))
+        cands.append(('radius', {'rc': rc}, dv, rc))
+    # an elliptical bellmouth: its length and entry radius
+    h0 = max(r for s, r in pts) - R
+
+    def ell(Le):
+        hv, dv = _golden(lambda he: dev(mouth_model('ellipse', R, L=Le, h=he)[0]), 0.5 * h0, 2.0 * h0 + 0.5, 30)
+        return dv, hv
+    Le, dv = _golden(lambda Le: ell(Le)[0], 0.3 * s_flat + 0.1, 2.0 * s_flat + 1.0, 30)
+    he = ell(Le)[1]
+    cands.append(('ellipse', {'L': Le, 'h': he}, dv, Le))
+    # a straight flare with a rounded lip: the straight from a line fit through the flare's middle
+    mid = [(s, r) for s, r in pts if R + 0.1 * h0 < r < R + 0.6 * h0]     # the straight, clear of the lip arc
+    if len(mid) >= 3:
+        a, b = _line_fit(mid)
+        if b < -math.tan(math.radians(1.0)) and b > -math.tan(math.radians(60.0)):
+            al = math.degrees(math.atan(-b))
+            f = (1.0 - math.sin(math.radians(al))) / math.cos(math.radians(al))
+            r0 = max(r for s, r in pts)
+
+            def tap(rl):
+                ri = a - rl * (1.0 - math.sin(math.radians(al))) * (-b)
+                return mouth_model('taper', R, alpha=al, rl=rl, ri=ri)
+            rl0 = max(0.2, (r0 - a) / f if f > 1e-9 else 0.2)
+            rl, dv = _golden(lambda rl: dev(tap(rl)[0]), 0.2, max(0.4, 3.0 * rl0 + 1.0))
+            ri = a - rl * (1.0 - math.sin(math.radians(al))) * (-b)
+            if ri > R:
+                cands.append(('taper', {'alpha': al, 'rl': rl, 'ri': ri}, dv, tap(rl)[1]))
+    best = min(cands, key=lambda c: c[2])
+    # a quarter round is the simplest (and a quarter ellipse with equal axes is one): it wins a tie
+    return cands[0] if cands[0][2] <= best[2] + 0.02 else best
+
+
+def analyse_bore(profile, L, R_ref, wall, lip_mm=None, bends=(), name_D=None):
+    """What the probed bore is in the generator's terms. profile: [(s from the mouth, median, smallest, largest radius)]
+    (mm); L: the tube's centreline length; R_ref: the bore radius read from the tube's cylinder faces (used when the
+    first constant bore matches it); bends: [(start, end)] mm from the mouth. Refuses (Refused) what the generator
+    cannot model; approximations go in 'notes' with how big they are.
+    -> {'R': the tube bore radius after the mouth, 'mouth': {'kind', params, 'len', 'dev'}, 'change': None or
+        {'x0', 'x1', 'R2', 'end': is it the cone to the throttle at the end, 'dev'}, 'notes': [...]}"""
+    tol = bore_tol(R_ref)
+    notes = []
+    w = max(0.5, wall)
+    tol_round = 2.0 * min(0.5, 0.25 * w)
+    for s, m, lo, hi in profile:
+        if 0.3 < s < L - 0.3 and hi - lo > tol_round:
+            raise Refused('The bore is not round %s from the mouth: it measures %s to %s across there (an oval or '
+                          'flattened section, a dent, a seam or a branch); the CFD test takes round bores.'
+                          % (mm_in(s), mm_in(2 * lo, 2), mm_in(2 * hi, 2)))
+    pts = [(s, m) for s, m, lo, hi in profile]
+    ix = _dp(pts, tol)
+    # pieces between the corners: flat (one bore) or a ramp; a flat must be long enough to count, except at either end
+    flat_min = max(5.0, 0.1 * 2 * R_ref)
+    pieces = []
+    for i, j in zip(ix, ix[1:]):
+        (sa, ra), (sb, rb) = pts[i], pts[j]
+        # (a short stub of the end bore after a cone at the far end still counts; at the mouth a short one is the lip's)
+        flat = abs(rb - ra) <= 2 * tol and (sb - sa >= flat_min or (j == len(pts) - 1 and sb - sa >= 1.0))
+        pieces.append({'i': i, 'j': j, 'flat': flat})
+    # runs: consecutive flats are one flat, consecutive ramps one transition
+    runs = []
+    for p in pieces:
+        if runs and runs[-1]['flat'] == p['flat']:
+            runs[-1]['j'] = p['j']
+        else:
+            runs.append(dict(p))
+    for r_ in runs:
+        seg = pts[r_['i']:r_['j'] + 1]
+        r_['sa'], r_['sb'] = seg[0][0], seg[-1][0]
+        if r_['flat']:
+            r_['r'] = _median([q[1] for q in seg])
+    flats = [r_ for r_ in runs if r_['flat']]
+    if not flats:
+        raise Refused('The bore never runs at one size for even %s: the CFD test takes a tube of one bore, with at most '
+                      'one cone (to the throttle bore or a reducer) and a lip or bellmouth at the mouth.' % mm_in(flat_min))
+    # the mouth: anything before the first flat
+    F1 = flats[0]
+
+    def snap(r):            # a bore that matches the cylinder faces' exact radius takes it (the probe is good to
+        # ~0.005 mm; R_ref may come from a coarser scan when the faces do not give it, and then the probe wins)
+        return R_ref if abs(r - R_ref) <= 0.012 else round(2.0 * r, 2) / 2.0     # probed: to 0.01 mm on the diameter
+    R1 = snap(F1['r'])
+    mouth = {'kind': 'plain', 'len': min(1e-3 * 2 * R1, 0.05), 'dev': 0.0}
+    if lip_mm and runs[0]['flat']:
+        mouth = {'kind': 'radius', 'rc': lip_mm, 'len': lip_mm, 'dev': 0.0}
+    elif not runs[0]['flat']:
+        fl = [(s, r) for s, r in pts if 0.05 <= s <= F1['sa'] + min(5.0, 0.5 * (F1['sb'] - F1['sa']))]
+        rmax = max(r for s, r in fl[:max(1, len(fl) // 2 + 1)])
+        rmin = min(r for s, r in fl)
+        if rmin < R1 - 2 * tol:
+            raise Refused('The bore at the mouth is narrower than the tube (%s at the mouth, %s bore): a ring or a lip '
+                          'turned inward, which the CFD case has no model for.' % (mm_in(2 * rmin, 2), mm_in(2 * R1, 2)))
+        kind, prm, dv, Lm = _fit_mouth(fl, R1, lip_mm, F1['sa'])
+        hgt = rmax - R1
+        what = {'radius': 'a rounded lip', 'ellipse': 'an elliptical bellmouth', 'taper': 'a straight flare with a rounded lip'}[kind]
+        if dv > max(0.25, 0.25 * hgt):
+            raise Refused('The mouth flares from the %s bore to %s over %s, in a shape the CFD case has no model for: it '
+                          'takes a rounded lip, an elliptical bellmouth or a straight flare with a rounded lip, and the '
+                          'nearest (%s) is %s off.' % (mm_in(2 * R1, 2), mm_in(2 * rmax, 2), mm_in(F1['sa']), what, mm_in(dv, 2)))
+        if dv > max(0.15, 0.05 * hgt):
+            notes.append('The mouth is modelled as %s; the real flare is up to %s from it.' % (what, mm_in(dv, 2)))
+        mouth = dict(prm, kind=kind, len=Lm, dev=dv)
+    if mouth['kind'] == 'taper' and mouth['rl'] < 0.25:
+        mouth['rl'] = max(0.2, mouth['rl'])
+        notes.append('The flare\'s rim is square; it is modelled with a 0.2 mm (0.008 in) radius, the smallest the CFD case takes.')
+    # changes of bore after the first flat; tiny ones (a joint between two tubes of nearly one size) are let go
+    k1 = runs.index(F1)
+    rest = runs[k1:]
+    trans = []
+    cur = {'r': R1, 'sa': F1['sa'], 'sb': F1['sb'], 'len': F1['sb'] - F1['sa']}
+    level = [cur]
+    small = 0.0
+    i = 1
+    while i < len(rest):
+        t = rest[i]
+        nxt = rest[i + 1] if i + 1 < len(rest) else None
+        r_to = nxt['r'] if nxt else pts[t['j']][1]
+        seg = pts[t['i']:t['j'] + 1]
+        dr = r_to - level[-1]['r']
+        lo_ = min(level[-1]['r'], r_to)
+        hi_ = max(level[-1]['r'], r_to)
+        if any(q[1] < lo_ - 2 * tol or q[1] > hi_ + 2 * tol for q in seg):
+            ext = min(q[1] for q in seg) if any(q[1] < lo_ - 2 * tol for q in seg) else max(q[1] for q in seg)
+            raise Refused('%s from the mouth the bore %s to %s and back again (an inside bead, a ring, a step or a '
+                          'pocket): the CFD test takes a bore that changes size at most once, along a cone.'
+                          % (mm_in(seg[0][0]), 'narrows' if ext < lo_ else 'widens', mm_in(2 * ext, 2)))
+        if abs(dr) <= max(0.25, 0.0025 * 2 * R1):
+            small = max(small, abs(dr))
+            if nxt:
+                prev = level[-1]
+                Lp, Ln = prev['len'], nxt['sb'] - nxt['sa']
+                prev['r'] = (prev['r'] * Lp + nxt['r'] * Ln) / (Lp + Ln) if Lp + Ln > 0 else prev['r']
+                prev['sb'], prev['len'] = nxt['sb'], Lp + Ln
+            i += 2
+            continue
+        trans.append({'seg': seg, 'r_from': level[-1]['r'], 'r_to': r_to, 'run_end': nxt is None,
+                      'sa': seg[0][0], 'sb': seg[-1][0]})
+        if nxt:
+            level.append({'r': snap(nxt['r']), 'sa': nxt['sa'], 'sb': nxt['sb'], 'len': nxt['sb'] - nxt['sa']})
+        i += 2
+    if small > 0:
+        notes.append('The bore steps by up to %s along the tube (a joint between tubes of nearly one size); it is '
+                     'modelled as one bore.' % mm_in(2 * small, 2))
+    if len(trans) > 1:
+        raise Refused('The bore changes size %d times (%s): the CFD case takes one diameter change (one cone) along the '
+                      'tube.' % (len(trans), '; '.join('%s to %s at %s from the mouth' % (mm_in(2 * t['r_from'], 1), mm_in(2 * t['r_to'], 1), mm_in(t['sa']))
+                                                       for t in trans)))
+    change = None
+    if trans:
+        t = trans[0]
+        Ra, Rb = t['r_from'], snap(t['r_to'])
+        seg = t['seg']
+        # a straight cone: the line through the samples well clear of both bores, met with each bore (a cone that runs
+        # to the very end face has no bore after it: its end is the end face, its end bore the bore there)
+        core = [q for q in seg if min(abs(q[1] - Ra), abs(q[1] - Rb)) > 2 * tol]
+        if t['run_end']:
+            core = [q for q in seg if abs(q[1] - Ra) > 2 * tol]
+        x0, x1 = t['sa'], t['sb']
+        if len(core) >= 3:
+            a, b = _line_fit(core)
+            if abs(b) > 1e-6:
+                lx0, lx1 = (Ra - a) / b, (Rb - a) / b
+                if t['sa'] - 2.0 <= lx0 <= t['sb'] + 2.0:
+                    x0 = lx0
+                if not t['run_end'] and t['sa'] - 2.0 <= lx1 <= t['sb'] + 2.0:
+                    x1 = lx1
+                if t['run_end']:
+                    x1 = L
+                    Rb = snap(round(2.0 * (a + b * x1), 2) / 2.0)
+        if x1 - x0 < 1e-3:
+            x1 = x0 + 1e-3
+        line = lambda s: Ra + (Rb - Ra) * min(1.0, max(0.0, (s - x0) / (x1 - x0)))
+        dv = max(abs(q[1] - line(q[0])) for q in seg)
+        if dv > max(0.15, 0.03 * abs(Rb - Ra)):
+            # not a straight cone (an S-shaped reducer): its ends are where it leaves the one bore and reaches the
+            # other, and it is taken as the straight cone between those
+            near_ = [q for q in pts if t['sa'] - flat_min <= q[0] <= t['sb'] + flat_min]
+            off_a = [k for k, q in enumerate(near_) if abs(q[1] - Ra) > 5 * RAY_TOL]
+            off_b = [k for k, q in enumerate(near_) if abs(q[1] - Rb) > 5 * RAY_TOL]
+            def cross(k0, k1, Rl):        # where |r - Rl| passes 5 RAY_TOL between two samples
+                (sa_, ra_), (sb_, rb_) = near_[k0], near_[k1]
+                da, db = abs(ra_ - Rl), abs(rb_ - Rl)
+                return sa_ + (sb_ - sa_) * (5 * RAY_TOL - da) / (db - da) if db != da else sa_
+            if off_a and off_b:
+                ka, kb = off_a[0], off_b[-1]
+                x0 = cross(ka - 1, ka, Ra) if ka > 0 else near_[0][0]
+                x1 = (cross(kb + 1, kb, Rb) if kb + 1 < len(near_) else near_[-1][0]) if not t['run_end'] else L
+            line = lambda s: Ra + (Rb - Ra) * min(1.0, max(0.0, (s - x0) / (x1 - x0)))
+            dv = max(abs(q[1] - line(q[0])) for q in near_)
+        ang = math.degrees(math.atan(abs(Rb - Ra) / (x1 - x0)))
+        if ang > 60.0:
+            if Rb < Ra:
+                raise Refused('%s from the mouth the bore steps down from %s to %s (%.0f degrees a side): the CFD case '
+                              'takes cones up to 60 degrees a side.' % (mm_in(x0), mm_in(2 * Ra, 2), mm_in(2 * Rb, 2), ang))
+            xm = 0.5 * (x0 + x1)
+            Lc = abs(Rb - Ra) / math.tan(math.radians(60.0))
+            x0, x1 = xm - 0.5 * Lc, xm + 0.5 * Lc
+            notes.append('The step from %s to %s bore at %s from the mouth is modelled as a 60 degree cone (%s long), the '
+                         'steepest the CFD case takes; a 60 degree diffuser loses about what a sudden step does.'
+                         % (mm_in(2 * Ra, 1), mm_in(2 * Rb, 1), mm_in(xm), mm_in(Lc)))
+            ang, dv = 60.0, 0.0
+        elif dv > max(0.15, 0.03 * abs(Rb - Ra)):
+            notes.append('The %s from %s to %s bore is not a straight cone (its bore is up to %s from one): it is modelled '
+                         'as the straight cone of the same length (%s) and end diameters, %.2f degrees a side.'
+                         % ('reducer' if Rb < Ra else 'cone', mm_in(2 * Ra, 1), mm_in(2 * Rb, 1), mm_in(dv, 2), mm_in(x1 - x0), ang))
+        for k, (b0, b1) in enumerate(bends, 1):
+            if x0 < b1 - 0.05 and x1 > b0 + 0.05:
+                raise Refused('The bore changes from %s to %s between %s and %s from the mouth, inside bend %d (%s to %s): '
+                              'the CFD case takes a cone on a straight only.' % (mm_in(2 * Ra, 1), mm_in(2 * Rb, 1), mm_in(x0), mm_in(x1),
+                                                                                 k, mm_in(b0), mm_in(b1)))
+        if x0 < mouth['len'] + 0.1:
+            raise Refused('The bore changes size right at the mouth (from %s, within %s of it): the CFD case needs a '
+                          'stretch of one bore after the mouth.' % (mm_in(x0), mm_in(mouth['len'] + 0.1)))
+        after = [b for b in bends if b[0] >= x1 - 0.05]
+        end = not after and (L - x1) <= 0.5 * 2 * R1 + 1e-6
+        change = {'x0': x0, 'x1': x1, 'R2': Rb, 'R1': Ra, 'angle': ang, 'end': end, 'dev': dv}
+    return {'R': R1, 'mouth': mouth, 'change': change, 'notes': notes}
+
+
+def design_geometry(segs, bore_mm, wall_mm, lip_mm=None, profile=None):
+    """The 'geometry' block of a design for intake_cfd.py, and what was read (for the panel). profile: the probed bore
+    (profile_from), read with analyse_bore; without it the bore is taken as constant."""
     L = total(segs)
     bends, frame = bends_from_path(segs)
     D = bore_mm
-    if lip_mm:
+    an = None
+    if profile is not None:
+        spans = [(b['start_mm'], b['start_mm'] + b['clr_mm'] * math.radians(b['angle_deg'])) for b in bends]
+        an = analyse_bore(profile, L, bore_mm / 2.0, wall_mm, lip_mm, spans)
+        D = 2.0 * an['R']
+        mo = an['mouth']
+        if mo['kind'] == 'radius':
+            lip_mm = mo['rc']
+    if an is not None and an['mouth']['kind'] == 'ellipse':
+        mo = an['mouth']
+        inlet = {'type': 'ellipse', 'length_mm': round(mo['L'], 3), 'entry_diameter_mm': round(D + 2 * mo['h'], 3),
+                 'exit_diameter_mm': round(D, 3), 'corner_radius_mm': 0.0}
+        inlet_len = mo['L']
+    elif an is not None and an['mouth']['kind'] == 'taper':
+        mo = an['mouth']
+        inlet = {'type': 'taper', 'entry_diameter_mm': round(2 * mo['ri'], 3), 'wall_half_angle_deg': round(mo['alpha'], 3),
+                 'lip_radius_mm': round(mo['rl'], 3)}
+        inlet_len = mo['len']
+    elif lip_mm:
         inlet = {'type': 'radius', 'lip_radius_mm': round(lip_mm, 3)}
         inlet_len = lip_mm
     else:
@@ -291,8 +812,42 @@ def design_geometry(segs, bore_mm, wall_mm, lip_mm=None):
         end = last['start_mm'] + last['clr_mm'] * math.radians(last['angle_deg'])
         if geometry['tube_length_mm'] < end:
             geometry['tube_length_mm'] = math.ceil(end * 1000.0) / 1000.0
+    ch = an['change'] if an else None
+    cone = None
+    if ch:
+        # the generator's one diameter_change: start, end diameter and half-angle (its length follows from those:
+        # intake_cfd.tube_radius), worked from the rounded diameters so its cone ends where this one does
+        Dr, D2 = geometry['tube_diameter_mm'], round(2.0 * ch['R2'], 3)
+        x0 = round(ch['x0'], 3)
+        beta = round(math.degrees(math.atan(abs(D2 - Dr) / 2.0 / (ch['x1'] - ch['x0']))), 6)
+        Lc = abs(D2 - Dr) / 2.0 / math.tan(math.radians(beta))
+        # rounding must not put the cone a hair into a bend (the generator refuses any overlap)
+        for b in geometry.get('bend', []):
+            e = b['start_mm'] + b['clr_mm'] * math.radians(b['angle_deg'])
+            if b['start_mm'] - 0.06 < x0 + Lc and x0 + Lc > b['start_mm'] and x0 < b['start_mm']:
+                x0 = math.floor((b['start_mm'] - Lc) * 1000.0) / 1000.0
+            if e - 0.06 < x0 < e:
+                x0 = math.ceil(e * 1000.0) / 1000.0
+        x1 = x0 + Lc
+        geometry['diameter_change'] = {'to_diameter_mm': D2, 'cone_half_angle_deg': beta, 'start_mm': x0}
+        if ch['end']:
+            # the cone to the throttle bore: the tract-end plane half a tube bore past the throttle face, where the
+            # Intake tab's own CFD case puts it (cfdDesign in web/index.html: its cone ends 0.5 D before the tract end);
+            # the generator runs the throttle bore on straight past the tract end anyway, so this only places the plane
+            geometry['tube_length_mm'] = math.ceil((x1 + 0.5 * Dr) * 1000.0) / 1000.0
+            geometry['planes_mm'] = {'tube_end': x0, 'throttle_face': round(x1, 4)}
+        else:
+            geometry['tube_length_mm'] = max(geometry['tube_length_mm'], math.ceil(x1 * 1000.0) / 1000.0)
+            geometry['planes_mm'] = {'reducer_in': x0, 'reducer_out': round(x1, 4)}
+        cone = {'start_mm': x0, 'end_mm': x1, 'from_mm': Dr, 'to_mm': D2, 'half_angle_deg': beta, 'length_mm': Lc,
+                'at_throttle': bool(ch['end']), 'off_straight_mm': ch['dev']}
     geometry['outlet_extension_D'] = 4
-    return geometry, {'length_mm': L, 'bore_mm': D, 'wall_mm': wall_mm, 'lip_mm': lip_mm, 'bends': bends, 'frame': frame}
+    mouth = {'kind': inlet['type']}
+    if an is not None:
+        mouth.update({k: v for k, v in an['mouth'].items() if k != 'kind'})
+    return geometry, {'length_mm': L, 'bore_mm': D, 'wall_mm': wall_mm, 'lip_mm': lip_mm if inlet['type'] == 'radius' else None,
+                      'bends': bends, 'frame': frame, 'inlet': inlet, 'mouth': mouth, 'cone': cone,
+                      'notes': list(an['notes']) if an else [], 'case_length_mm': geometry['tube_length_mm']}
 
 
 def tab_fill(info):
@@ -301,12 +856,34 @@ def tab_fill(info):
     bends = info['bends']
     radii = [b['clr_mm'] for b in bends]
     same = bool(radii) and max(radii) - min(radii) <= 0.5
-    return {'lt_mm': round(info['length_mm'], 2), 'dt_mm': round(info['bore_mm'], 3), 'wall_mm': round(info['wall_mm'], 3),
+    cone = info.get('cone')
+    kind = (info.get('inlet') or {}).get('type') or ('radius' if info.get('lip_mm') else 'plain')
+    # the tab's mouth list: plain cut, rolled lip or radius, elliptical bellmouth (its nearest to a straight flare)
+    mouth = {'plain': 'plain', 'radius': 'radius', 'ellipse': 'ellipse', 'taper': 'ellipse'}[kind]
+    at_tb = bool(cone and cone['at_throttle'])
+    return {'lt_mm': round(info['case_length_mm'] if at_tb else info['length_mm'], 2), 'dt_mm': round(info['bore_mm'], 3),
+            'wall_mm': round(info['wall_mm'], 3),
             'bend_angles': [round(b['angle_deg'], 1) for b in bends], 'bend_count': len(bends),
             'bend_r_mm': round(sum(radii) / len(radii), 2) if same else None,
             'bend_r_mean_mm': round(sum(radii) / len(radii), 2) if radii else None,
             'bend_starts_mm': [round(b['start_mm'], 1) for b in bends],
-            'mouth': 'radius' if info.get('lip_mm') else 'plain', 'lip_mm': round(info['lip_mm'], 2) if info.get('lip_mm') else None}
+            'mouth': mouth, 'mouth_read': kind, 'lip_mm': round(info['lip_mm'], 2) if mouth == 'radius' and info.get('lip_mm') else None,
+            # the throttle-body bore: the cone's large end, only when the tube ends in that cone
+            'tb_mm': round(cone['to_mm'], 2) if at_tb else None,
+            'reducer': {'from_mm': cone['from_mm'], 'to_mm': cone['to_mm'], 'start_mm': round(cone['start_mm'], 1)} if cone and not at_tb else None}
+
+
+def describe_mouth(info):
+    m, inl = info.get('mouth') or {}, info.get('inlet') or {}
+    t = inl.get('type') or ('radius' if info.get('lip_mm') else 'plain')
+    if t == 'radius':
+        return 'a %s radius on the inside edge' % mm_in(info['lip_mm'] if info.get('lip_mm') else inl['lip_radius_mm'], 2)
+    if t == 'ellipse':
+        return 'an elliptical bellmouth %s long from a %s entry' % (mm_in(inl['length_mm']), mm_in(inl['entry_diameter_mm'], 1))
+    if t == 'taper':
+        return 'a straight flare, %.1f degrees a side from a %s entry, with a %s lip radius' % (
+            inl['wall_half_angle_deg'], mm_in(inl['entry_diameter_mm'], 1), mm_in(inl['lip_radius_mm'], 2))
+    return 'square cut'
 
 
 def describe(info, name='The tube'):
@@ -322,8 +899,15 @@ def describe(info, name='The tube'):
             i, b['angle_deg'], mm_in(b['clr_mm']), mm_in(b['start_mm']), rot))
     if not info['bends']:
         parts.append('straight')
-    parts.append('mouth: %s' % ('a %s radius on the inside edge' % mm_in(info['lip_mm'], 2) if info.get('lip_mm') else 'square cut'))
-    return '; '.join(parts) + '.'
+    parts.append('mouth: %s' % describe_mouth(info))
+    c = info.get('cone')
+    if c:
+        parts.append('%s from %s to %s bore, %s long (%.2f degrees a side) from %s to %s from the mouth%s' % (
+            'a cone' if c['to_mm'] > c['from_mm'] else 'a reducer', mm_in(c['from_mm'], 2), mm_in(c['to_mm'], 2), mm_in(c['length_mm']),
+            c['half_angle_deg'], mm_in(c['start_mm']), mm_in(c['end_mm']),
+            ', ending at the throttle face; the tract-end plane is half a tube bore past it, in the throttle bore, where the Intake '
+            'tab\'s own CFD case measures' if c['at_throttle'] else ''))
+    return '; '.join(parts) + '.' + ''.join(' ' + n for n in info.get('notes') or [])
 
 
 def tube_design(curves, bore_mm, wall_mm, lip_mm=None, mouth_at_end=False, cover=None):
@@ -338,4 +922,22 @@ def tube_design(curves, bore_mm, wall_mm, lip_mm=None, mouth_at_end=False, cover
     if mouth_at_end:
         segs = reverse(segs)
     geometry, info = design_geometry(segs, bore_mm, wall_mm, lip_mm)
+    return geometry, info, segs
+
+
+def covered(probe):
+    """The probed path trimmed to the tube body (from the body's start to its end, as the path runs)."""
+    segs = trim(probe['segs'], probe['s0'], probe['s1'])
+    if not segs:
+        raise Refused('The tube body does not cover its centreline.')
+    return segs
+
+
+def tube_from_probe(probe, bore_mm, wall_mm, at_end=False, lip_mm=None):
+    """A probed tube (probe_bore) as the generator's design: trimmed to the body, the mouth at its start or (at_end)
+    its end, the bore read with analyse_bore. -> (geometry, info, segs from the mouth)."""
+    segs = covered(probe)
+    if at_end:
+        segs = reverse(segs)
+    geometry, info = design_geometry(segs, bore_mm, wall_mm, lip_mm, profile=profile_from(probe, at_end))
     return geometry, info, segs

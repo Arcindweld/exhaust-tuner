@@ -11,7 +11,14 @@ on 127 mm, 122.1 mm / 4.81 in straight: 880.6 mm / 34.67 in), made with the add-
   3. the Exhaust Tuner program: found (foamrun.status), its host started from Fusion's Python and answering hostInfo
      with its OpenFOAM;
   4. with ET_RUN_CFD=1 only: the 3-D tube's CFD on the coarse mesh through foamrun.run_openfoam (design.json only, the
-     program generates the case), about 5-15 minutes on one core with Fusion busy: the drop at the tract end, K, cells.
+     program generates the case), about 5-15 minutes on one core with Fusion busy: the drop at the tract end, K, cells;
+     with ET_RUN_CFD_CONE=1 also the cone-ended tube of 5b (its tube_end, throttle_face and tract_end planes);
+  5. the bore read from the solid: (a) a straight tube revolved from one section, a 3.5 mm (0.138 in) lip arc at the
+     mouth and a 60 mm (2.36 in) cone to a 105 mm (4.134 in) throttle bore past the end of its 400 mm (15.75 in)
+     centreline line: the lip from its torus face, the cone found past the line, the planes, the throttle bore for the
+     tab; (b) the 3-D tube of 2 with that cone revolved on at its engine end and joined: the cone found past its Pipe
+     path, the bends unchanged. info_ keys: the face types Fusion made, probe counts and read times (not counted).
+     New API use here, not yet run live: an arc inside a revolved profile (sketch arcs and revolves are each proven).
 Prints JSON (the failing ok_ keys say what broke), closes the design (set ET_KEEP_DOC=1 to keep it)."""
 import importlib.util
 import json
@@ -181,6 +188,116 @@ def run(_context=None):
             r['ok_3d_read'] = False
             tube3 = None
 
+        # ---------------------------------------------------------------- 5. a cone to the throttle bore, a lipped mouth
+        # 5a: a straight tube revolved from one section (a 3.5 mm lip arc at the mouth, 400 mm of bore, a 60 mm cone to
+        # 105 mm), not made with Pipe: its centreline is a separate 400 mm sketch line (it stops where the cone starts, so
+        # the reader must find the cone past it). Calls: sketch lines and arcs, a revolve of the profile about a
+        # construction line, as _revolve_section does (live-proven by fusion_live_chambers.py); the arc in a revolved
+        # profile is new here.
+        tube_cone = None
+        try:
+            Rb, w, rc, Lt, Lc, R2 = o['bore'] / 20.0, o['wall'] / 10.0, 0.35, 40.0, 6.0, 5.25
+            skc = root.sketches.add(root.xYConstructionPlane)
+            skc.name = 'cone tube section'
+            ln, ar = skc.sketchCurves.sketchLines, skc.sketchCurves.sketchArcs
+            ax = ln.addByTwoPoints(P(-1.0, 0, 0), P(Lt + Lc + 1.0, 0, 0))
+            ax.isConstruction = True
+            lip_arc = ar.addByCenterStartSweep(P(rc, Rb + rc, 0), P(0, Rb + rc, 0), math.pi / 2.0)
+            a_end = lip_arc.endSketchPoint if abs(lip_arc.endSketchPoint.geometry.y - Rb) < 1e-6 else lip_arc.startSketchPoint
+            a_beg = lip_arc.startSketchPoint if a_end is lip_arc.endSketchPoint else lip_arc.endSketchPoint
+            q1 = ln.addByTwoPoints(a_end, P(Lt, Rb, 0))
+            q2 = ln.addByTwoPoints(q1.endSketchPoint, P(Lt + Lc, R2, 0))
+            q3 = ln.addByTwoPoints(q2.endSketchPoint, P(Lt + Lc, R2 + w, 0))
+            q4 = ln.addByTwoPoints(q3.endSketchPoint, P(Lt, Rb + w, 0))
+            q5 = ln.addByTwoPoints(q4.endSketchPoint, P(0, Rb + w, 0))
+            ln.addByTwoPoints(q5.endSketchPoint, a_beg)
+            prof = None
+            for i in range(skc.profiles.count):
+                if skc.profiles.item(i).profileLoops.count == 1:
+                    prof = skc.profiles.item(i)
+            rv = root.features.revolveFeatures
+            rin = rv.createInput(prof, ax, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+            rin.setAngleExtent(False, adsk.core.ValueInput.createByString('360 deg'))
+            bc = rv.add(rin).bodies.item(0)
+            bc.name = 'CONE TUBE'
+            kinds = {}
+            for i in range(bc.faces.count):
+                st = bc.faces.item(i).geometry.surfaceType
+                kinds[st] = kinds.get(st, 0) + 1
+            r['info_cone_tube_face_types'] = {str(k): v for k, v in kinds.items()}      # want torus 1, cone 2, cylinder 2, plane 2
+            skl = root.sketches.add(root.xYConstructionPlane)
+            skl.name = 'cone tube centreline'
+            cl = skl.sketchCurves.sketchLines.addByTwoPoints(P(0, 0, 0), P(Lt, 0, 0))
+            body.isVisible = False
+            outside = None
+            for i in range(bc.faces.count):
+                f = bc.faces.item(i)
+                g = f.geometry
+                if g.surfaceType == adsk.core.SurfaceTypes.CylinderSurfaceType and abs(g.radius - (Rb + w)) < 1e-4:
+                    outside = f
+            ui.activeSelections.clear()
+            ui.activeSelections.add(outside)
+            ui.activeSelections.add(cl)
+            rr = ct.dispatch('cfdTube', json.dumps({'mouth': 'auto'}))
+            t = rr.get('tube') or {}
+            g = t.get('geometry') or {}
+            dcg = g.get('diameter_change') or {}
+            r['cone_straight_msg'] = rr.get('msg')
+            r['cone_straight_geometry'] = g
+            r['cone_straight_probes'], r['cone_straight_read_s'] = t.get('probes'), t.get('read_s')
+            want_ang = math.degrees(math.atan((R2 - Rb) * 10.0 / (Lc * 10.0)))
+            r['ok_cone_straight_read'] = bool(rr.get('ok'))
+            r['ok_cone_straight_lip'] = g.get('inlet') == {'type': 'radius', 'lip_radius_mm': 3.5}
+            r['ok_cone_straight_cone'] = (dcg.get('to_diameter_mm') == 105.0 and abs(dcg.get('start_mm', 0) - 400.0) < 0.1
+                                          and abs(dcg.get('cone_half_angle_deg', 0) - want_ang) < 0.02)
+            r['ok_cone_straight_planes'] = (abs(g.get('tube_length_mm', 0) - (460.0 + 0.5 * o['bore'])) < 0.1
+                                            and set((g.get('planes_mm') or {})) == {'tube_end', 'throttle_face'})
+            r['ok_cone_straight_fill'] = (t.get('fill') or {}).get('tb_mm') == 105.0 and (t.get('fill') or {}).get('lip_mm') == 3.5
+            r['ok_cone_straight_beyond'] = abs((t.get('body_beyond_path_mm') or [0, 0])[1] - 60.0) < 0.1
+            bc.isVisible = False
+        except Exception:
+            r['error_cone_straight'] = traceback.format_exc()
+            r['ok_cone_straight_read'] = False
+        # 5b: the 3-D CAI of section 2 with a 60 mm cone to 105 mm revolved on at its engine end and joined to it
+        # (_revolve_section as the chambers use it; a combine join as the print split's tongue joins, both live-proven)
+        try:
+            if tube3 is not None:
+                endp = tuple(want_end[i] + L3 * t3[i] for i in range(3))
+                Rb, w = o['bore'] / 20.0, o['wall'] / 10.0
+                fcone = ct._revolve_section(root, endp, t3, [(Rb, 0.0), (Rb + w, 0.0), (5.25 + w, 6.0), (5.25, 6.0)], 'CAI CONE')
+                cone_body = fcone.bodies.item(0)
+                tools = adsk.core.ObjectCollection.create()
+                tools.add(cone_body)
+                ci = root.features.combineFeatures.createInput(body3, tools)
+                ci.operation = adsk.fusion.FeatureOperations.JoinFeatureOperation
+                root.features.combineFeatures.add(ci)
+                r['info_cai_cone_lumps'] = body3.lumps.count
+                mouth3 = None              # the join remakes the body's faces: find the mouth's end face again
+                for i in range(body3.faces.count):
+                    f = body3.faces.item(i)
+                    if f.geometry.surfaceType == adsk.core.SurfaceTypes.PlaneSurfaceType:
+                        q = f.pointOnFace
+                        if math.sqrt(q.x ** 2 + q.y ** 2 + q.z ** 2) < od / 2 + 0.1:
+                            mouth3 = f
+                ui.activeSelections.clear()
+                ui.activeSelections.add(mouth3)
+                rr = ct.dispatch('cfdTube', json.dumps({'mouth': 'auto'}))
+                t = rr.get('tube') or {}
+                g = t.get('geometry') or {}
+                dcg = g.get('diameter_change') or {}
+                r['cai_cone_msg'] = rr.get('msg')
+                r['cai_cone_geometry'] = g
+                r['cai_cone_probes'], r['cai_cone_read_s'] = t.get('probes'), t.get('read_s')
+                Ltot = o['L1'] + o['L2'] + o['L3'] + o['R'] * (a1 + a2)
+                r['ok_cai_cone_read'] = bool(rr.get('ok'))
+                r['ok_cai_cone_cone'] = dcg.get('to_diameter_mm') == 105.0 and abs(dcg.get('start_mm', 0) - Ltot) < 0.2
+                r['ok_cai_cone_bends'] = [round(b['angle_deg'], 1) for b in g.get('bend', [])] == [round(o['A1'], 1), round(o['A2'], 1)]
+                r['ok_cai_cone_planes'] = abs(g.get('tube_length_mm', 0) - (Ltot + 60.0 + 0.5 * o['bore'])) < 0.2
+                tube_cone = t if r['ok_cai_cone_read'] else None
+        except Exception:
+            r['error_cai_cone'] = traceback.format_exc()
+            r['ok_cai_cone_read'] = False
+
         # ---------------------------------------------------------------- 3. the program
         host, why = FR.status()
         r['program'] = host or why
@@ -209,6 +326,17 @@ def run(_context=None):
                         'iterations': res.get('iterations'), 'seconds': res.get('seconds_total'), 'case': res.get('case'),
                         'steps': [e.get('step') for e in evs if e.get('event') == 'step'], 'msg': res.get('msg')}
             r['ok_cfd'] = bool(res.get('ok')) and 300 < (te.get('dp_total_Pa') or 0) < 3000 and (res.get('cells') or 0) > 1000
+        if os.environ.get('ET_RUN_CFD_CONE') == '1' and host and tube_cone:
+            # the cone-ended CAI (5b) the same way: the loss at the end of the constant tube, the throttle face, the tract end
+            design = {'name': 'live_intakecfd_cone', 'geometry': tube_cone['geometry'],
+                      'operating_point': {'engine': {'displacement_cc': 6162.0, 'rpm': 6600, 've': 0.92, 'strokes': 4, 'cylinders': 8, 'cylinders_fed': 8}},
+                      'ambient': {'p_pa': 101325, 'T_c': 25.0}, 'mesh': {'level': 'coarse'}}
+            job = {'cancel': threading.Event(), 'procs': [], 'result': None}
+            res = FR.run_openfoam({'name': design['name'], 'files': [{'name': 'design.json', 'text': json.dumps(design, indent=1)}]}, job, lambda e: None, host=host)
+            pls = (res.get('results') or {}).get('planes') or {}
+            r['cfd_cone'] = {'ok': res.get('ok'), 'cells': res.get('cells'), 'seconds': res.get('seconds_total'), 'msg': res.get('msg'),
+                             'dp_total_Pa': {k: (v or {}).get('dp_total_Pa') for k, v in pls.items()}}
+            r['ok_cfd_cone'] = bool(res.get('ok')) and all(k in pls for k in ('tract_end', 'tube_end', 'throttle_face'))
         r['ok'] = all(v for k, v in r.items() if k.startswith('ok_'))
         out['ok'] = r['ok']
     except Exception:

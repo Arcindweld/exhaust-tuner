@@ -4120,56 +4120,12 @@ def _cfd_stations(segs, ds=5.0):
     return PS.stations_from_polyline(pts, runs)
 
 
-def _cfd_ring(segs, s, r, a):
-    p, t = TC.point_at(segs, s)
-    u, v = PS._perp(t)
-    c, sn = math.cos(a), math.sin(a)
-    return tuple(p[k] + r * (c * u[k] + sn * v[k]) for k in range(3))
-
-
-def _cfd_cover(body, segs, r_in, r_out):
-    """(s0, s1) mm of the path inside the tube's wall: the first and last station with wall round it, then bisected
-    to the ends of the body (a path often runs on into the throttle body or a flange). Probed a quarter, half and
-    three quarters through the wall, so a fillet on the mouth's inside edge does not move the mouth."""
-    L = TC.total(segs)
-    probes = [(r_in + f * (r_out - r_in), a) for f in (0.25, 0.5, 0.75) for a in (0.3, 2.4, 4.5)]
-
-    def solid(s):
-        return any(_ps_inside(body, _cfd_ring(segs, s, r, a)) for r, a in probes)
-    n = max(4, int(L / 5.0))
-    grid = [L * i / n for i in range(n + 1)]
-    inside = [solid(s) for s in grid]
-    if not any(inside):
-        raise ValueError('The centreline curves do not run inside this tube: select the tube and its own centreline.')
-    i0 = inside.index(True)
-    i1 = len(inside) - 1 - inside[::-1].index(True)
-
-    def edge(out_s, in_s):
-        for _ in range(30):
-            m = 0.5 * (out_s + in_s)
-            if solid(m):
-                in_s = m
-            else:
-                out_s = m
-        return in_s
-    s0 = edge(grid[i0 - 1], grid[i0]) if i0 > 0 else 0.0
-    s1 = edge(grid[i1 + 1], grid[i1]) if i1 < n else L
-    return s0, s1
-
-
-def _cfd_bore_check(body, segs, r_in, wall, skip0, skip1):
-    """Probe the bore all along (12 angles every 10 mm or so): clear just inside it, solid just outside it. The
-    first place that is not, as mm from the mouth, or None."""
-    L = TC.total(segs)
-    d = min(0.5, 0.25 * wall)
-    angs = [0.17 + 2 * math.pi * k / 12 for k in range(12)]
-    n = max(4, int(L / 10.0))
-    for i in range(n + 1):
-        s = skip0 + (L - skip0 - skip1) * i / n
-        for a in angs:
-            if _ps_inside(body, _cfd_ring(segs, s, r_in - d, a)) or not _ps_inside(body, _cfd_ring(segs, s, r_in + d, a)):
-                return s
-    return None
+def _cfd_inside(body, counter):
+    """pointContainment for tubecfd.probe_bore (points in mm), counting the probes."""
+    def inside(p):
+        counter[0] += 1
+        return _ps_inside(body, p)
+    return inside
 
 
 def act_cfd_tube(data):
@@ -4224,9 +4180,13 @@ def act_cfd_tube(data):
     chain = _ps_chain(curves)
     segs = TC.join([TC.classify(c['pts'], c['length']) for c in _cfd_samples(chain, xf)])
     r_in, r_out = _ps_radii(body, _cfd_stations(segs))
-    s0, s1 = _cfd_cover(body, segs, r_in, r_out)
     L_path = TC.total(segs)
-    segs = TC.trim(segs, s0, s1)
+    # the bore all along, probed from the centreline run on past both ends of the path (a cone, cuff or bellmouth
+    # joined on past the Pipe path is part of the tube); only the bore is read, so beads on the outside do not matter
+    probes, t_read = [0], time.time()
+    probe = TC.probe_bore(segs, _cfd_inside(body, probes), r_in, r_out - r_in)
+    s0, s1 = probe['s0'] - probe['e0'], probe['s1'] - probe['e0']
+    segs = TC.covered(probe)
     L = TC.total(segs)
     # which end the air goes in
     how = 'the first end of its centreline'
@@ -4246,20 +4206,18 @@ def act_cfd_tube(data):
         if g.surfaceType == adsk.core.SurfaceTypes.TorusSurfaceType:
             tori.append((tuple(10.0 * c for c in _t(g.origin)), _t(g.axis), 10.0 * g.majorRadius, 10.0 * g.minorRadius))
     lip = TC.mouth_lip(tori, mouth_p, mouth_t, r_in)
-    bad = _cfd_bore_check(body, segs, r_in, r_out - r_in, (lip or 0.0) + 1.5, 1.5)
-    if bad is not None:
-        raise ValueError('The bore is not the same round size all along: %s from the mouth it is not where it is in the tube\'s '
-                         'longest straight (%s bore). That is a taper, an oval or flattened section, a dent, a bead or a branch; '
-                         'the CFD test takes constant-bore round tubes only.' % (TC.mm_in(bad), TC.mm_in(2 * r_in, 2)))
-    geometry, info = TC.design_geometry(segs, 2.0 * r_in, r_out - r_in, lip)
+    geometry, info = TC.design_geometry(segs, 2.0 * r_in, r_out - r_in, lip, profile=TC.profile_from(probe, at_end))
     name = body.name
     msg = TC.describe(info, name) + ' Air enters at %s, at (%s) mm.' % (how, ', '.join('%.1f' % c for c in mouth_p))
     bends = [{'clr_mm': round(b['clr_mm'], 2), 'angle_deg': round(b['angle_deg'], 2), 'start_mm': round(b['start_mm'], 1),
               'plane_deg': round(b['plane_deg'], 1)} for b in info['bends']]
     return {'ok': True, 'msg': msg, 'tube': {'name': name, 'geometry': geometry, 'fill': TC.tab_fill(info), 'bends': bends,
-                                             'bore_mm': round(2.0 * r_in, 3), 'od_mm': round(2.0 * r_out, 3), 'wall_mm': round(r_out - r_in, 3),
-                                             'length_mm': round(L, 2), 'lip_mm': lip, 'mouth_mm': [round(c, 2) for c in mouth_p],
-                                             'mouth_how': how, 'path_beyond_mm': [round(s0, 1), round(L_path - s1, 1)]}}
+                                             'bore_mm': round(info['bore_mm'], 3), 'od_mm': round(2.0 * r_out, 3), 'wall_mm': round(r_out - r_in, 3),
+                                             'length_mm': round(L, 2), 'lip_mm': info['lip_mm'], 'mouth_mm': [round(c, 2) for c in mouth_p],
+                                             'mouth_how': how, 'path_beyond_mm': [round(max(0.0, s0), 1), round(max(0.0, L_path - s1), 1)],
+                                             'body_beyond_path_mm': [round(max(0.0, -s0), 1), round(max(0.0, s1 - L_path), 1)],
+                                             'mouth': info['mouth'], 'cone': info['cone'], 'notes': info['notes'],
+                                             'probes': probes[0], 'read_s': round(time.time() - t_read, 2)}}
 
 
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
