@@ -1,0 +1,76 @@
+{
+ "name": "INTAKE TUBE",
+ "geometry": {
+  "tube_diameter_mm": 92.61,
+  "tube_length_mm": 880.62,
+  "inlet": {
+   "type": "plain",
+   "wall_thickness_mm": 4.76
+  },
+  "mount": {
+   "type": "flange"
+  },
+  "bend": [
+   {
+    "clr_mm": 127.0,
+    "angle_deg": 29.501,
+    "start_mm": 99.994,
+    "plane_deg": 0.0
+   },
+   {
+    "clr_mm": 127.0,
+    "angle_deg": 84.103,
+    "start_mm": 572.091,
+    "plane_deg": 139.246
+   }
+  ],
+  "outlet_extension_D": 4
+ },
+ "fill": {
+  "lt_mm": 880.62,
+  "dt_mm": 92.61,
+  "wall_mm": 4.76,
+  "bend_angles": [
+   29.5,
+   84.1
+  ],
+  "bend_count": 2,
+  "bend_r_mm": 127.0,
+  "bend_r_mean_mm": 127.0,
+  "bend_starts_mm": [
+   100.0,
+   572.1
+  ],
+  "mouth": "plain",
+  "lip_mm": null
+ },
+ "bends": [
+  {
+   "clr_mm": 127.0,
+   "angle_deg": 29.5,
+   "start_mm": 100.0,
+   "plane_deg": 0.0
+  },
+  {
+   "clr_mm": 127.0,
+   "angle_deg": 84.1,
+   "start_mm": 572.1,
+   "plane_deg": 139.2
+  }
+ ],
+ "bore_mm": 92.61,
+ "od_mm": 102.13,
+ "wall_mm": 4.76,
+ "length_mm": 880.62,
+ "lip_mm": null,
+ "mouth_mm": [
+  -673.7,
+  -493.2,
+  -233.9
+ ],
+ "mouth_how": "the end nearer where the tube was clicked",
+ "path_beyond_mm": [
+  0.0,
+  0.0
+ ]
+}

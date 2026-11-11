@@ -1,4 +1,11 @@
-EXHAUST TUNER (Fusion add-in), version 4.15.1
+EXHAUST TUNER (Fusion add-in), version 4.18.0
+
+4.18.0 (November 10, 2026)
+  "Test this intake (CFD)" on the Intake tab: select an intake tube in the model, click once, and the pressure drop
+  at its far end comes back in the panel (inH2O, Pa and kPa, the loss coefficient, the tab's own 1-D figure for the
+  same tube beside it, the mesh size and the run time). The tube is read from the model (tubecfd.py) and run on the
+  Exhaust Tuner program's own OpenFOAM (foamrun.py); "Use this tube in the Intake tab" fills the tab from it. See
+  TEST AN INTAKE TUBE IN CFD below.
 
 4.15.1 (November 6, 2026)
   The Sound tab's "Save the last sound (WAV)" saves through Fusion's file dialog (saveBase64). The panel's sound
@@ -356,6 +363,38 @@ that). If a step fails part way, what was made sits in a "Print split (incomplet
 trying again. A chamfer Fusion will not make is reported (add it by hand) rather than stopping the split.
 Tests: tests/test_printsplit.py and tests/test_printsplit_edges.py (the planner), tests/test_printsplit_fusion_fake.py
 (the add-in's glue against a stand-in for Fusion's API), tests/fusion_live_printsplit.py (inside Fusion).
+
+TEST AN INTAKE TUBE IN CFD (Test this intake (CFD) and Use this tube in the Intake tab, on the Intake tab)
+Click the intake tube's outside face near the end the air goes in (or click that end face), then Test this intake
+(CFD). Nothing else to set and no files to handle. The add-in reads the tube (tubecfd.py): its centreline from the
+Pipe feature that made it (or Ctrl+click the centreline sketch curves too), trimmed to the part the tube covers, the
+bore and wall from its faces, every bend's centre-line radius, angle, start (mm from the mouth) and direction round
+the tube, and a fillet on the mouth's inside edge as a lip radius (else a square-cut mouth with the real wall). The
+mouth is the end nearer where you clicked; "Air goes in at: the other end" turns it round. The airflow is the Intake
+tab's (engine, RPM, VE, the same cycle-mean flow its own CFD case uses), with the tube from Fusion in place of the
+tab's. The case is a steady-flow OpenFOAM case of the tube alone with its mouth flush in a flat wall (a straight tube
+in 2-D, a bent one in 3-D, medium mesh), written by the same generator as the tab's CFD case and run on this PC by the
+Exhaust Tuner program (its exhaust-tuner-host, the bundled OpenFOAM; the add-in bundles no solver). The panel shows
+the meshing and solving steps, the iteration count and a Stop button; a bent tube takes minutes on one core. The
+result: the total-pressure drop at the tube's far end, its loss coefficient K, the tab's quick 1-D estimate for the
+same tube, the airflow used, the cell count and the run time; "Open the case folder" shows the case and its logs
+(in %LOCALAPPDATA%\ExhaustTuner\runs). A tube tested before (same tube, airflow, mesh and program build) shows its
+result at once from Documents\Exhaust Tuner\cfd-cache.
+It takes constant-bore round tubes whose centreline is straights and circular arcs, end to end and tangent. It says
+why, in a sentence, when the tube is not that: a spline or a mitre in the centreline, a bore that tapers, goes oval or
+has a branch, a bend tighter than 0.6 times the bore, a bend right at the mouth, a mesh body, nothing or two bodies
+selected, no centreline. If the Exhaust Tuner program (or its OpenFOAM) is not installed it says so, and still shows
+the tube it read and the 1-D estimate.
+Use this tube in the Intake tab: the same reading fills the tab's tube length, inside diameter, bend angles (from the
+mouth), bend radius (their mean, said so, when they differ), mouth (plain cut or lip radius) and the CFD panel's bend
+starts, so the tab's own 1-D figures and CFD case describe the tube in the model.
+The program is looked for where its installer puts it: exhaust-tuner-host.exe in Exhaust Tuner under
+%LOCALAPPDATA%\Programs or Program Files (settings.json "program_host", or EXHAUST_TUNER_HOST_EXE, point elsewhere),
+its OpenFOAM in engines\openfoam\OpenFOAM-v2412 beside it.
+Tests: tests/test_tubecfd.py (the tube to the design; the design rebuilt with the generator's own path),
+tests/test_intakecfd_fusion_fake.py (the add-in's glue against a stand-in for Fusion's API), tests/test_foamrun.py
+(the run, with a stand-in for the program), web/tests/fxcfd_ui.js (the panel), tests/fusion_live_intakecfd.py
+(inside Fusion, on the owner's PC).
 
 WORKING TO REAL PARTS
 - Model each route as a 3D sketch of lines with fillets at your bender's centerline radius.

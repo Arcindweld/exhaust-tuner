@@ -12277,6 +12277,7 @@ function fusionTools(tab,buttons){
     (ROUTE_TABS[tab]?routeBlock():'')+
     (buttons.some(b=>b[0]==='jig')?jigBlock(tab):'')+
     (buttons.some(b=>b[0]==='printSplit')?psBlock():'')+
+    (tab==='intake'?fxCfdBlock():'')+
     '<div class="out" id="fx-out-'+tab+'"></div></div>';
 }
 const FX_BUTTONS={
@@ -12320,6 +12321,129 @@ document.addEventListener('change',e=>{ const el=e.target.closest('select.pssel'
   document.querySelectorAll('details.psopts').forEach(d=>{ d.outerHTML=psBlock(); }); });
 window.__ps={PS_UI,PS_PRINTERS,psPayload,psBlock};
 document.addEventListener('input',e=>{ const el=e.target.closest('input.psx'); if(!el) return; readInput(el); const v=el._b; if(Number.isFinite(v)&&v>0) PS_UI[el.dataset.k]=v; });
+/* ----- Fusion: "Test this intake (CFD)". The add-in reads the selected tube as the CFD generator's parametric design
+   (cadtools.act_cfd_tube, fusion-addin/tubecfd.py: bore, wall, length, each bend's radius, angle, start and plane from the
+   centreline); the airflow is the Intake tab's own, from the same cfdDesign() its CFD case uses, with the tube from Fusion
+   in place of the tab's; the case is written by the same IntakeCFD generator and run on the Exhaust Tuner program's
+   OpenFOAM through the add-in (hostCall runOpenFOAM, fusion-addin/foamrun.py). One click, no files, no settings; a tube
+   tested before (the same design) shows its result at once. "Use this tube in the Intake tab" fills the tab from it. */
+const FXCFD={mouth:'auto',busy:false,cache:{},last:null,msg:null,bad:false,fill:null};
+const PA_INH2O=249.0889;     // Pa per inch of water at 4 °C (NIST SP 811)
+function fxCfdBlock(){
+  const o=(v,t)=>'<option value="'+v+'"'+(FXCFD.mouth===v?' selected':'')+'>'+t+'</option>';
+  return '<div class="fxcfd" style="margin-top:12px"><p class="sub">Test this intake (CFD)</p>'+
+    '<p class="cap">Click the intake tube’s outside face near the end the air goes in (or that end face), then <b>Test this intake (CFD)</b>. The add-in reads the tube from the model (bore, wall, length, every bend’s radius, angle, place and direction), takes the airflow from this tab’s engine, RPM and VE, and runs a steady-flow OpenFOAM case on this PC with the Exhaust Tuner program’s OpenFOAM: the pressure drop comes back here. Constant-bore round tubes of straights and bends; a few minutes on one core for a bent tube.</p>'+
+    '<div class="grid2" style="max-width:560px"><label class="f span2"><span class="lab">Air goes in at</span><span class="inp"><select class="fxcfdsel" data-k="mouth">'+
+      o('auto','The end I clicked nearer (or the end face I clicked)')+o('other','The other end')+'</select></span></label></div>'+
+    '<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-fxcfd="test">Test this intake (CFD)</button>'+
+      '<button type="button" class="btn" data-fxcfd="fill">Use this tube in the Intake tab</button>'+
+      '<button type="button" class="btn" data-fxcfd="stop"'+(FXCFD.busy?'':' hidden')+'>Stop</button></div>'+
+    '<div class="note" id="fxcfd-msg" hidden></div><div id="fxcfd-out"></div></div>';
+}
+function fxCfdSay(t,bad){ FXCFD.msg=t; FXCFD.bad=!!bad; const n=$('fxcfd-msg'); if(n){ n.textContent=t; n.className='note'+(bad?' bad':''); n.hidden=!t; } }
+function fxCfdBusy(b){ FXCFD.busy=b; document.querySelectorAll('button[data-fxcfd="stop"]').forEach(x=>x.hidden=!b); document.querySelectorAll('button[data-fxcfd="test"],button[data-fxcfd="fill"]').forEach(x=>x.disabled=b); }
+const fxIn=mm=>(mm/25.4).toFixed(mm<25.4?3:2)+' in ('+(+mm.toFixed(mm<10?2:1))+' mm)';
+const fxPa=pa=>{ const w=pa/PA_INH2O; return (w<1?w.toFixed(2):w.toFixed(1))+' inH₂O ('+Math.round(pa).toLocaleString('en-US')+' Pa, '+(pa/1000).toFixed(2)+' kPa)'; };
+const fxTime=s=>{ s=Math.max(0,Math.round(s)); return s<60?s+' s':Math.floor(s/60)+' min '+String(s%60).padStart(2,'0')+' s'; };
+// the Intake tab's inputs with the tube from Fusion in place of the tab's tube
+function fxCfdTabParams(tube){
+  if(!CFD_LAST&&typeof renderIntake==='function') try{ renderIntake(); }catch(e){}
+  if(!CFD_LAST) return {err:'Fill in the Intake tab first (engine, RPM, VE): the CFD needs the airflow from it.'};
+  const f=tube.fill, p=Object.assign({},CFD_LAST.p,{dt:f.dt_mm,lt:f.lt_mm,bends:f.bend_count,bendAng:f.bend_angles.slice(),
+    bendR:f.bend_r_mm||f.bend_r_mean_mm||NaN,mouth:f.mouth,lipR:f.mouth==='radius'?f.lip_mm:null});
+  const r=calcIntake(p); if(r.err) return {err:r.err};
+  return {p,r};
+}
+function fxCfdDesign(tube){
+  const tp=fxCfdTabParams(tube); if(tp.err) return tp;
+  const {p,r}=tp;
+  let d; try{ d=cfdDesign(p,r); }catch(e){ return {err:'The Intake tab’s airflow could not be worked out: '+e.message}; }
+  const op=d.design.operating_point, name=('fusion_'+String(tube.name||'tube')+'_'+Math.round(tube.bore_mm)+'mm').replace(/[^A-Za-z0-9_.-]/g,'_');
+  const design={name,geometry:tube.geometry,operating_point:op,ambient:d.design.ambient,mesh:d.design.mesh};
+  const flow=op.engine?(r.rho*r.Qt*d.ff*1000).toFixed(1)+' g/s ('+Math.round(r.Qt*d.ff*CFM).toLocaleString('en-US')+' cfm) through this tube: the cycle mean at '+Math.round(p.rpm).toLocaleString('en-US')+' RPM, '+
+      (+(p.disp/16.387064).toFixed(0))+' cu in ('+(p.disp/1000).toFixed(2)+' L), VE '+Math.round(p.ve*100)+'%'+(d.boost>1?', × '+d.boost.toFixed(2)+' for boost':'')+(d.ff!==1?', × '+d.ff+' flow factor':'')+', from this tab':
+    op.pressure_ratio?'pressure ratio '+op.pressure_ratio+' (set in the Intake CFD panel)':(op.mass_flow_kg_s*1000).toFixed(1)+' g/s, from this tab';
+  const radii=(tube.bends||[]).map(b=>b.clr_mm), mixed=radii.length>1&&Math.max(...radii)-Math.min(...radii)>0.5;
+  return {design,p,r,flow,est:r.dpEnd,estNote:mixed?'the tab takes one bend radius, so the 1-D figure uses their mean, '+fxIn(tube.fill.bend_r_mean_mm):''};
+}
+function fxCfdTubeHtml(tube){
+  const g=tube.geometry, bl=tube.bends||[];
+  return '<p class="cap"><b>'+esc(tube.name)+'</b>: '+fxIn(tube.bore_mm)+' bore, '+fxIn(tube.wall_mm)+' wall ('+fxIn(tube.od_mm)+' outside), '+fxIn(tube.length_mm)+' along the centreline'+
+    (bl.length?'; '+bl.map((b,i)=>b.angle_deg.toFixed(1)+'° bend on '+fxIn(b.clr_mm)+' radius starting '+fxIn(b.start_mm)+' from the mouth').join('; '):'; straight')+
+    '; mouth '+(g.inlet.type==='radius'?'with a '+fxIn(g.inlet.lip_radius_mm)+' radius on the inside edge':'square cut')+', flush in a flat wall (the case’s plenum). Air enters at '+esc(tube.mouth_how)+'.</p>';
+}
+function fxCfdResultHtml(tube,dd,res){
+  const R=res.results||{}, pl=(R.planes||{}).tract_end||{}, dp=pl.dp_total_Pa, K=pl.K_total_loss, st=(res.steps||[]).find(x=>x.step===res.solver)||{};
+  const est=dd.est, diff=Number.isFinite(dp)&&est>0?Math.round(100*(est-dp)/dp):null;
+  const w=Number.isFinite(dp)?dp/PA_INH2O:null;
+  let h='<div class="figs" id="fxcfd-figs">'+figT('Pressure drop at the tract end (CFD)',w==null?'?':(w<1?w.toFixed(2):w.toFixed(1)),'inH₂O',w==null?'':Math.round(dp).toLocaleString('en-US')+' Pa · '+(dp/1000).toFixed(2)+' kPa')+
+    figT('Loss coefficient K',Number.isFinite(K)?K.toFixed(3):'?','','velocity heads at the tract end')+
+    figT('1-D estimate, same tube',(est/PA_INH2O<1?(est/PA_INH2O).toFixed(2):(est/PA_INH2O).toFixed(1)),'inH₂O',Math.round(est).toLocaleString('en-US')+' Pa · this tab’s method')+'</div>';
+  h+='<ul class="list" id="fxcfd-list">'+
+    '<li><b>Pressure drop</b>: total pressure lost from the open air to the tract end, mass-weighted, '+(Number.isFinite(dp)?esc(fxPa(dp)):'not in the results')+'.</li>'+
+    '<li><b>This tab’s quick 1-D estimate</b> for the same tube (the tube alone at the tract end, as a CFD reads it): '+esc(fxPa(est))+(diff!=null?', '+(diff>=0?diff+'% above':(-diff)+'% below')+' the CFD':'')+(dd.estNote?'; '+esc(dd.estNote):'')+'.</li>'+
+    '<li><b>Airflow</b>: '+esc(dd.flow)+(Number.isFinite(pl.mdot_kg_s)?'; the CFD carried '+(pl.mdot_kg_s*1000).toFixed(1)+' g/s':'')+'.</li>'+
+    '<li><b>Mesh</b>: '+(res.cells?res.cells.toLocaleString('en-US')+' cells':'cell count not read')+', '+esc(dd.design.mesh.level)+' level'+(res.meshWarning?'. <span class="st-warn">'+esc(res.meshWarning)+'</span>':'')+'.</li>'+
+    '<li><b>Run</b>: '+esc(res.solver||'')+', '+(res.iterations||0).toLocaleString('en-US')+' iterations, '+(st.stoppedBy==='convergence'?'stopped once the flow had settled':'stopped at the iteration cap (not settled: read the figure with care)')+', '+fxTime(res.seconds_total||0)+(res.cached?' (shown from the earlier run of this same tube and airflow)':'')+'.</li>'+
+    '</ul>';
+  if(res.case) h+='<div class="actions" style="margin-top:6px"><button type="button" class="btn" data-fxcfd="open" data-path="'+esc(res.case)+'">Open the case folder</button></div>';
+  h+='<p class="cap">Steady flow at the cycle-mean airflow, the tube alone (no filter, MAF or throttle), its mouth flush in a flat wall, smooth walls: compare tubes with it. The tract end is the far end of the tube; losses go with the square of the airflow.</p>';
+  return fxCfdTubeHtml(tube)+h;
+}
+async function fxCfdRead(){
+  const res=await fusionCall('cfdTube',{mouth:FXCFD.mouth});
+  if(!res||!res.ok||!res.tube){ fxCfdSay((res&&res.msg)||'Fusion did not answer.',true); return null; }
+  return res.tube;
+}
+async function fxCfdFill(){
+  fxCfdSay('Reading the tube in Fusion…'); const tube=await fxCfdRead(); if(!tube) return;
+  const f=tube.fill, set=(id,mm)=>{ const el=$(id); if(el&&Number.isFinite(mm)){ el._b=mm; showInput(el); } };
+  set('i-lt',f.lt_mm); set('i-dt',f.dt_mm); set('i-bends',f.bend_count);
+  $('i-bendang').value=f.bend_angles.join(', ');
+  const rr=f.bend_r_mm||f.bend_r_mean_mm; if(rr) set('i-bendr',rr); else { $('i-bendr').value=''; $('i-bendr')._b=NaN; }
+  $('i-mouth').value=f.mouth; if(f.mouth==='radius') set('i-lipr',f.lip_mm);
+  CFD_UI.bpos=f.bend_starts_mm.join(', '); CFD_UI.clr='';
+  FXCFD.fill=f;
+  if(typeof renderActive==='function') renderActive();
+  fxCfdSay('The Intake tab now has this tube: '+fxIn(f.lt_mm)+' long, '+fxIn(f.dt_mm)+' bore'+(f.bend_angles.length?', bends '+f.bend_angles.map(a=>a+'°').join(', ')+' from the mouth'+(f.bend_r_mm?' on '+fxIn(f.bend_r_mm)+' radius':' (their radii differ: the tab takes one, the mean '+fxIn(f.bend_r_mean_mm)+')')+', starting at '+f.bend_starts_mm.join(', ')+' mm in the CFD panel':', straight')+', mouth '+(f.mouth==='radius'?'with a '+fxIn(f.lip_mm)+' lip radius':'square cut')+'.');
+}
+async function fxCfdTest(){
+  const out=$('fxcfd-out'); if(out) out.innerHTML='';
+  fxCfdSay('Reading the tube in Fusion…'); const tube=await fxCfdRead(); if(!tube) return;
+  const dd=fxCfdDesign(tube); if(dd.err){ fxCfdSay(dd.err,true); if(out) out.innerHTML=fxCfdTubeHtml(tube); return; }
+  const key=JSON.stringify(dd.design);
+  FXCFD.last={tube,dd};
+  if(FXCFD.cache[key]){ const res=Object.assign({},FXCFD.cache[key],{cached:true}); if(out) out.innerHTML=fxCfdResultHtml(tube,dd,res); fxCfdSay('Same tube and airflow as before: the earlier result, no new run.'); return; }
+  const pre=fxCfdTubeHtml(tube)+'<p class="cap">Airflow: '+esc(dd.flow)+'. The tab’s quick 1-D estimate for this tube: '+esc(fxPa(dd.est))+'.</p>';
+  if(out) out.innerHTML=pre;
+  if(!HOST||!hostHas('openfoam')){ fxCfdSay((HOST_INFO&&HOST_INFO.openfoamWhy)||'The Exhaust Tuner program is not installed on this PC, and the CFD test runs on the OpenFOAM it carries: install the program, then click the button again.',true); return; }
+  let gen;
+  try{ gen=IntakeCFD.generateCase(dd.design,{out_dir:dd.design.name}); }catch(e){ fxCfdSay((e&&e.name==='DesignError'?'This tube cannot be meshed: ':'The CFD case could not be written: ')+e.message,true); return; }
+  const files=gen.files.map(f=>({name:f.name,text:f.text,exec:!!f.exec}));
+  const t0=Date.now(), NAMES={generate:'writing the 3-D case',blockMesh:'meshing: the background block',surfaceFeatureExtract:'meshing: the tube’s edges',
+    snappyHexMesh:'meshing: fitting the mesh to the tube (the longest meshing step)',checkMesh:'checking the mesh',topoSet:'marking the measuring planes',report:'reading the results'};
+  let res; fxCfdBusy(true);
+  fxCfdSay('Starting OpenFOAM on this PC'+(gen.is3d?' (3-D: a bent tube)':' (2-D: a straight tube)')+'…');
+  try{
+    res=await HOST.call('runOpenFOAM',{name:dd.design.name,files,cache:key},ev=>{
+      const el=' · '+fxTime((Date.now()-t0)/1000);
+      if(ev.event==='cached') fxCfdSay('The program has this exact case from before: reading it.');
+      else if(ev.event==='step') fxCfdSay('OpenFOAM: '+(NAMES[ev.step]||(/Foam$/.test(ev.step)?'solving the flow ('+ev.step+')':ev.step))+'…'+el);
+      else if(ev.event==='progress'){ const pc=ev.of?Math.min(100,Math.round(100*ev.iteration/ev.of)):null;
+        fxCfdSay('OpenFOAM: solving the flow, iteration '+ev.iteration.toLocaleString('en-US')+(ev.of?' ('+pc+'% of the '+ev.of.toLocaleString('en-US')+'-iteration cap; it stops by itself once the flow has settled, usually well before)':'')+el); }
+    });
+  }catch(e){ fxCfdBusy(false); fxCfdSay(/Stopped/.test(e.message)?'Stopped. Nothing was kept from this run.':'OpenFOAM did not finish: '+e.message,!/Stopped/.test(e.message)); return; }
+  fxCfdBusy(false);
+  if(!res||!res.ok){ fxCfdSay('OpenFOAM: '+((res&&res.msg)||'the run failed.')+(res&&res.folder?' The case and its logs are in '+res.folder+'.':''),true); return; }
+  FXCFD.cache[key]=res;
+  if(out) out.innerHTML=fxCfdResultHtml(tube,dd,res);
+  fxCfdSay(res.cached?'Same tube and airflow as an earlier run: its result, no new run.':'Done in '+fxTime(res.seconds_total||(Date.now()-t0)/1000)+'.');
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-fxcfd]'); if(!b) return; const a=b.dataset.fxcfd;
+  if(a==='test'&&!FXCFD.busy) fxCfdTest(); else if(a==='fill'&&!FXCFD.busy) fxCfdFill(); else if(a==='stop'&&HOST) HOST.cancel();
+  else if(a==='open') hostCall('openFolder',{path:b.dataset.path}); });
+document.addEventListener('change',e=>{ const el=e.target.closest('select.fxcfdsel'); if(el) FXCFD[el.dataset.k]=el.value; });
+window.__fxcfd={FXCFD,design:fxCfdDesign,test:fxCfdTest,fill:fxCfdFill,host:()=>HOST_INFO,tabDpEnd:()=>CFD_LAST?calcIntake(CFD_LAST.p).dpEnd:null};   // for the tests
 FX_BUTTONS.intake.splice(3,0,['routeSingle','Auto-route this tube through the scan'],['routeParts','Auto-route with the parts in the build list']);
 FX_BUTTONS.muf.push(['routeSingleMuf','Auto-route the J-pipe through the scan'],['helmholtz','Build the Helmholtz can'],['chamber','Build the expansion chamber'],['revchamber','Build the reverse-flow chamber']);
 const ROUTE_TABS={headers:1,intake:1,parts:1,muf:1};

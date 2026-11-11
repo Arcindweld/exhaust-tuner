@@ -5,13 +5,20 @@ back to the panel as 'hostEvent' / 'hostDone' messages (sent from Fusion's main 
 the result text is fetched in pieces with hostChunk (an INS.DAT can be a few MB).
 
 OpenWAM: engines/openwam/OpenWAM.exe in the add-in folder, else the Exhaust Tuner program's copy, else one found on
-the Desktop or in Downloads, else the path the user picked (settings.json beside this file)."""
+the Desktop or in Downloads, else the path the user picked (settings.json beside this file).
+
+OpenFOAM ('runOpenFOAM'): foamrun.py hands the case to the installed Exhaust Tuner program's own runner."""
 import glob
 import json
 import os
 import subprocess
 import threading
 import time
+
+try:
+    from . import foamrun as FR
+except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path, or the tests)
+    import foamrun as FR
 
 FINISHED_MARKER = 'SIMULATION FINISHED CORRECTLY'
 INS_KEEP_CYCLES = 4
@@ -203,12 +210,14 @@ def run_openwam(data, job, emit):
     return {'ok': True, 'folder': case_dir, 'openwam': exe, 'models': [r for r in out if r]}
 
 
-RUNNERS = {'runOpenWAM': run_openwam}
+RUNNERS = {'runOpenWAM': run_openwam, 'runOpenFOAM': lambda data, job, emit: FR.run_openfoam(data, job, emit)}
 
 
 def host_info(_data=None):
     exe = find_openwam()
-    return {'ok': True, 'where': 'fusion', 'engines': {'openwam': bool(exe)}, 'openwam': exe or '', 'runsFolder': runs_root()}
+    foam, why = FR.status()
+    return {'ok': True, 'where': 'fusion', 'engines': {'openwam': bool(exe), 'openfoam': bool(foam)}, 'openwam': exe or '',
+            'program': foam or '', 'openfoamWhy': why, 'runsFolder': runs_root()}
 
 
 def host_call(data):
