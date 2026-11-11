@@ -69,7 +69,8 @@ const { chromium } = require('playwright');
   // Plug muffler, DEFECT fixed: n = perforate open area / pipe area = 4 x 0.10 x 100 / 60.198 = 0.664 -> 2.81 H = 4.49 kPa at Mach 0.15 (was 4.52 H, 7.2 kPa)
   await setv('m-mach', '0.15'); await setv('m-plugl', '100'); await pg.waitForTimeout(400);
   let t = await secText('Plug \\(cross-flow\\)');
-  ok(/Back pressure at Mach 0\.15\s*\n\s*4\.5 kPa/.test(t) && /about 2\.8 dynamic heads with the holes’ open area 0\.66 × the pipe’s/.test(t), 'plug back pressure 4.5 kPa, 2.8 H at open area 0.66 (independent 4.485 kPa, 2.811 H)');
+  // Munjal et al. 2013: 3.136 x 0.6645^-1.391 + 2.208 x 0.6645^-1.5818 = 5.54 + 4.21 = 9.75 H; H = 1.4 x 101325 x 0.15^2 / 2 = 1595.9 Pa -> 15.6 kPa
+  ok(/Back pressure at Mach 0\.15\s*\n\s*15\.6 kPa/.test(t) && /about 9\.[78] dynamic heads with the holes’ open area 0\.66 × the pipe’s/.test(t), 'plug back pressure 15.6 kPa, 9.75 H at open area 0.66 (Munjal et al. 2013, by hand)');
   // Baffled chambers, DEFECT fixed: the holes' losses at the hole's own dynamic head (pipe area / hole area squared)
   await setv('m-plugl', '0'); await setv('m-nbaf', '3'); await setv('m-bh', '50'); await setv('m-mach', '0.1'); await pg.waitForTimeout(400);
   t = await secText('Baffled chambers');

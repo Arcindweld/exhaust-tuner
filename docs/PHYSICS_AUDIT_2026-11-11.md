@@ -161,3 +161,13 @@ physaudit_ui.js unless marked "-".
 | Crossover, Boom, Cats, Quick | 10 | 0 | Q2, Q3, Q10, Q11, Q12 |
 | Charge and boost | 6 | 2 (D4, D5 text) | Q4 |
 | Total | 57 | 5 | 12 |
+
+
+## Conductor's review (2026-11-11)
+
+Q7 adopted: the plug row now uses the measured cross-flow losses of Munjal, Vijayasree and Chaitanya (2013), read
+from eqs. 4b and 5b of the IJEMS 20(5) paper (expansion 3.136 OAR^-1.391, 0.3 < OAR < 2.2; contraction
+2.208 OAR^-1.5818, 0.31 < OAR < 1.66; H the inner pipe's dynamic head): D1's worked example reads 9.75 H = 15.6 kPa
+(4.52 H before the audit, 2.81 H with the 1987 rule and the right variable). Outside 0.31-1.66 the nearer end is used
+and the row says so. D2's basis (the loss in dynamic heads of the smaller section) was confirmed against Panicker and
+Munjal, J. Indian Inst. Sci. 63(A), 1981.

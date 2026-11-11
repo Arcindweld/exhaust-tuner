@@ -743,6 +743,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   0.194 -> 0.202, sharp 0.329 -> 0.340; rhoSimpleFoam the same (f 0.0221 -> 0.0178); no floor faces in the bore;
   same 183,554 cells, ~900 iterations, 11-18 min on one shared core. Exhaust-component mode unchanged (its 6% bend difference between builds fits the same defect;
   not proven). cfd/NOTES.md 4(c4).
+- Plug muffler back pressure (2026-11-11, conductor's review of the physics audit): measured cross-flow losses of
+  Munjal, Vijayasree and Chaitanya 2013 (3.136 OAR^-1.391 out + 2.208 OAR^-1.5818 back in, OAR = open area / pipe
+  area, clamped to the measured 0.31-1.66 with a note) in place of the 1987 2-2.5 H rule: the audit's example reads
+  9.75 H, 15.6 kPa at Mach 0.15 (7.2 kPa before the audit with the wrong ratio; 4.5 kPa with the old rule and the
+  right one). tests/physaudit_ui.js.
 - First live runs on the owner's PC (2026-11-11, Fusion 2706.1.17, program 0.1.67, add-in 4.18.0 put there by script):
   print split PASSES (fusion_live_printsplit.py: 3 pieces, no overlap, bore and outside flush, volume lost 1.929 cm3 =
   expected, STLs fit and sit on the bed) after one fix: a Pipe's path can only be read with the timeline rolled to before

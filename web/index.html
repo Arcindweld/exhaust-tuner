@@ -6998,6 +6998,11 @@ function mufBackPressure(M,p0,items){
     if(it.kind==='expansion') k=(1-it.n)**2; else if(it.kind==='contraction') k=(1-it.n)/2;
     else if(it.kind==='reversal_expansion') k=1; else if(it.kind==='reversal_contraction') k=0.5; else if(it.kind==='tail') k=0.4;
     else if(it.kind==='crossflow') k=2.25+(it.n<1?2*((1-it.n)**2+(1-it.n)/2):0);
+    // measured cross-flow elements (Munjal, Vijayasree and Chaitanya, Int. J. Acoust. Vib. 18 (2013), as given in eqs. 4b and 5b of
+    // the IJEMS 20(5) back-pressure paper): out through the holes 3.136 OAR^-1.391 H (0.3 < OAR < 2.2), back in
+    // 2.208 OAR^-1.5818 H (0.31 < OAR < 1.66), OAR = the holes' open area / the pipe's area, H the pipe's dynamic head;
+    // a plug muffler is one of each. Outside the measured range the nearer end of it is used.
+    else if(it.kind==='plug13'){ const x=Math.min(1.66,Math.max(0.31,it.n)); k=3.136*Math.pow(x,-1.391)+2.208*Math.pow(x,-1.5818); }
     else k=0;
     out.rows.push({what:it.what,k,dp:k*H}); out.total+=k*H;
   }
@@ -14722,11 +14727,12 @@ function renderMuf(){
     rowT('Annulus area ÷ pipe area',(pg.S2/pg.S1).toFixed(2))+
     rowT('Curve holds up to about',hzs(pg.fCut),'the shell’s first cross mode')+
     (()=>{ const M=val('m-mach'); if(!(M>0)) return rowT('Back pressure','set the mean flow above','the flow has to cross the holes twice, so a plug muffler costs more than a chamber');
-      // Munjal 1987, 8.3 (eq. 8.7): n is the open area of the perforate (one side of the plug: porosity x pi d x its length)
-      // over the pipe's area, the area the gas jets through; physics audit 2026-11-11: the chamber ratio (d/D)^2 was passed here
-      const n=4*(val('m-por')/100)*val('m-plugl')/p.dpipe, bp=mufBackPressure(M,101325,[{kind:'crossflow',n,what:'through the holes, round the plug and back'}]);
+      // n is the open area of the perforate (one side of the plug: porosity x pi d x its length) over the pipe's area, the
+      // area the gas jets through (physics audit 2026-11-11: the chamber ratio (d/D)^2 was passed here, and the 1987 rule
+      // of 2 to 2.5 H read a third of what the 2013 measurements give at an open area of 0.66)
+      const n=4*(val('m-por')/100)*val('m-plugl')/p.dpipe, bp=mufBackPressure(M,101325,[{kind:'plug13',n,what:'through the holes, round the plug and back'}]);
       const show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
-      return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'about '+bp.rows[0].k.toFixed(1)+' dynamic heads with the holes’ open area '+n.toFixed(2)+' × the pipe’s, H = '+show(bp.H)+' (Munjal 1987, 8.3: a cross-flow element costs 2 to 4 H, a plain chamber under 1 H)'); })()+
+      return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'about '+bp.rows[0].k.toFixed(1)+' dynamic heads with the holes’ open area '+n.toFixed(2)+' × the pipe’s, H = '+show(bp.H)+' (measured cross-flow losses, Munjal, Vijayasree and Chaitanya 2013: out through the holes and back in; a plain chamber costs under 1 H)'+(n<0.31||n>1.66?'; <b>the measurements cover open areas of 0.31 to 1.66 × the pipe’s: this is the value at the nearer end of that range</b>':'')+(bp.total>0.1*101325?'; <b>over 10% of the pressure: lengthen the perforate or open it up</b>':'')); })()+
     '<p class="cap">The inlet pipe is plugged at the end of its holes and the shell is closed behind each perforate, so all the gas and all the sound go out through the inlet holes into the annulus and back in through the outlet holes: Munjal’s cross-flow expansion and cross-flow contraction elements under one shell (<i>Acoustics of Ducts and Mufflers</i>, 1987, 3.8.1, Fig. 3.10b–c), carried by the same coupled plane-wave equations as the packed can with his boundary conditions (eqs. 3.120 and 3.122, end pockets closed up) and Sullivan’s cross-flow perforate impedance (eq. 3.153). The packing density above fills the annulus if it is set. Cross-flow elements cut more, and more evenly, than a chamber of the same size, and the flow through the holes adds damping that smooths the curve; the price is back pressure.</p>');
   if(bf) html+=sec('Baffled chambers (low-pass filter)',bf.err?'<div class="note bad">'+esc(bf.err)+'</div>':
     rowT('Chambers',bf.N+' × '+clen(bf.l),'holes '+cdim(val('m-bh')>0?val('m-bh'):p.dpipe)+' through '+cdim(val('m-pw')>0?val('m-pw'):1.5)+' baffles')+
