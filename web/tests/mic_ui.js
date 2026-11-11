@@ -12,7 +12,9 @@ const { chromium } = require('playwright');
     const d = R.recWav(R.wavFloat(x, 48000)); let e = 0; for (let i = 0; i < x.length; i++) e = Math.max(e, Math.abs(d.x[i] - x[i])); return { sr: d.sr, n: d.x.length, e }; });
   ok(rt.sr === 48000 && rt.n === 4800 && rt.e < 1e-6, 'the float WAV the page writes reads back exactly (' + rt.n + ' samples, max error ' + rt.e + ')');
   ok(await pg.isVisible('button[data-mic="start"]'), 'the Sound tab offers to record with the microphone');
-  await pg.click('button[data-mic="start"]'); await pg.waitForTimeout(500);
+  await pg.click('button[data-mic="start"]');
+  // getUserMedia answers when it answers: on a loaded machine that can be well over half a second
+  await pg.waitForFunction(() => window.__rec.MIC.on || window.__rec.MIC.err, null, { timeout: 15000 }).catch(() => {}); await pg.waitForTimeout(200);
   ok(await pg.evaluate(() => window.__rec.MIC.on) && await pg.isVisible('button[data-mic="stop"]'), 'recording: a Stop button and a timer');
   await pg.waitForTimeout(4000);
   await pg.click('button[data-mic="stop"]');

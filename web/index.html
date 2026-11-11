@@ -9855,7 +9855,7 @@ function drawProfile(svg,segs,marks){
     mk('circle',{cx:pos[i],cy:16,r:9,'class':'tagc'},svg);
     const t=mk('text',{x:pos[i],y:19.5,'class':'tagt'},svg); t.textContent=s.tag;
   });
-  const cands=U==='imp'?[1,2,4,6,12,24,48].map(v=>({mm:v*MM,l:v+' in'})):[10,20,25,50,100,200,250,500,1000].map(v=>({mm:v,l:v+' mm'}));
+  const cands=U==='imp'?[1,2,4,6,12,24,48].map(v=>({mm:v*MM,l:v+' in ('+Math.round(v*MM)+' mm)'})):[10,20,25,50,100,200,250,500,1000].map(v=>({mm:v,l:v+' mm ('+(v/MM).toFixed(v<100?2:1)+' in)'}));
   let best=null; cands.forEach(c=>{const px=c.mm*sx; if(px>=36&&px<=130) best=c;});
   if(best){
     const x0=mx, x1=mx+best.mm*sx, y=H-14;
@@ -10058,7 +10058,7 @@ function renderTwo(){
   html+=sec('D · Baffle cone',rowL('Length',r.lb,'l')+rowL('Small end diameter',r.ds,'d')+rowT('Included · half angle',p.ba.toFixed(1)+'° · '+(p.ba/2).toFixed(2)+'°'));
   html+=sec('E · Stinger',rowL('Length (12 diameters)',r.lst,'l')+rowL('Inside diameter',r.ds,'d')+rowT('Area ratio, stinger ÷ header',r.areaSt.toFixed(2)));
   html+=sec('Overall',rowL('Total length, port face to stinger tip',r.total,'l')+rowL('Reflection point from port face',r.reflectX,'l'));
-  const trs=r.sens.map(s=>{const t=L(s.tuned,'l'),h=s.header>0?L(s.header,'l'):null;return '<tr'+(s.f===1?' class="cur"':'')+'><td>'+Math.round(s.rpm)+'</td><td>'+t.n+' '+t.u+'</td><td>'+(h?h.n+' '+h.u:'n/a')+'</td></tr>';}).join('');
+  const trs=r.sens.map(s=>{const t=L(s.tuned,'l'),h=s.header>0?L(s.header,'l'):null;return '<tr'+(s.f===1?' class="cur"':'')+'><td>'+Math.round(s.rpm)+'</td><td>'+t.n+' '+t.u+' ('+t.a+')</td><td>'+(h?h.n+' '+h.u+' ('+h.a+')':'n/a')+'</td></tr>';}).join('');
   html+=sec('Header length against RPM','<div class="tblwrap"><table><thead><tr><th>Peak RPM</th><th>Tuned length</th><th>Header</th></tr></thead><tbody>'+trs+'</tbody></table></div><p class="cap">Only the header length changes here. Cutting it moves the power peak up, and lengthening it moves the peak down.</p>');
   // the same pipe judged by Blair's rule: port face to the start of the stinger, at the average gas temperature for each kind of engine
   const brs=r.blair.map(b=>{ const d=100*(r.toStinger/b.lt-1), t=(Math.abs(d)<0.05?'0.0':(d>0?'+':'')+d.toFixed(1))+'%';
@@ -11608,8 +11608,8 @@ window.__intakeK={bendK,craneEntryK,bendsOf};
 window.__wsnd={simInp:()=>SIM.inp,wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
 
 /* ===== primary size, headers and crossover ===== */
-const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u;};
-const clen=mm=>{const v=L(mm,'l');return v.n+' '+v.u;};
+const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u+' ('+v.a+')';};
+const clen=mm=>{const v=L(mm,'l');return v.n+' '+v.u+' ('+v.a+')';};
 const tubIn=mm=>U==='imp'?String(+(mm/MM).toFixed(3))+' in':mm.toFixed(1)+' mm';
 const lab=i=>String.fromCharCode(65+i);
 
@@ -13437,7 +13437,7 @@ function hgHeat(o,parts,mat){
     figT('Best here','','',B.name,'')+'</div>'+
     '<p class="cap">The '+(P0.kind==='rod'?'rod':'tab')+' works as a fin: heat conducts out from the pipe and leaves both faces by natural convection and radiation, while the faces take radiation back from the pipe. Still air, no heat shield: driving air cools it more, a shield between pipe and isolator more still. Read it as the isolator’s temperature at a standstill, the hottest case.</p>'+
     '<div class="tblwrap"><table><thead><tr><th>Isolator</th><th>Rated to (continuous)</th><th>Here</th><th>Reach for '+margin+' °C margin</th></tr></thead><tbody>'+
-    rows.map(q=>'<tr'+(q.k===best?' class="cur"':'')+'><td>'+esc(q.name)+'<br><small>'+esc(q.src)+'</small></td><td>'+tempStr(q.L)+(q.lim2&&q.L!==q.lim2?'<br><small>'+tempStr(q.lim2)+' for the rated ones</small>':'')+'</td><td class="'+(q.ok?'st-ok':'st-bad')+'">'+(q.ok?'ok':'too hot')+'</td><td>'+(q.ok?'—':q.rf==null?'not within 250 mm more':bothL(q.rf)+' from the tube centre')+'</td></tr>').join('')+'</tbody></table></div>'+
+    rows.map(q=>'<tr'+(q.k===best?' class="cur"':'')+'><td>'+esc(q.name)+'<br><small>'+esc(q.src)+'</small></td><td>'+tempStr(q.L)+(q.lim2&&q.L!==q.lim2?'<br><small>'+tempStr(q.lim2)+' for the rated ones</small>':'')+'</td><td class="'+(q.ok?'st-ok':'st-bad')+'">'+(q.ok?'ok':'too hot')+'</td><td>'+(q.ok?'—':q.rf==null?'not within 250 mm (9.8 in) more':bothL(q.rf)+' from the tube centre')+'</td></tr>').join('')+'</tbody></table></div>'+
     '<p class="cap">'+esc(B.note)+' Where the sources disagree the lowest continuous rating is used.</p>';
   if(best==='epdm') h+='<div class="note ok"><b>Rubber strap isolators are fine here.</b> The rod end runs '+Math.round(121-Ti)+' °C under EPDM’s rating; silicone straps (COBB) take more heat if you want the margin.</div>';
   else if(best==='vmq') h+='<div class="note ok"><b>Silicone '+(P0.kind==='rod'?'strap isolator':'grommet in the tab')+'.</b> The best mix here: soft isolation, a clean look, and '+Math.round(siL-Ti)+' °C under '+(rated?'the grommet maker’s 500 °F rating':'silicone’s rating')+'.'+(P0.kind==='rod'?'':' Keep the grommet’s flange off the pipe side of the tab.')+'</div>';
@@ -13480,7 +13480,7 @@ function hgChecks(o,parts,mat){
   const stock=HG_STOCK[o.mat]||[], ti=t/25.4, isStock=stock.some(s=>Math.abs(s-ti)<0.004);
   return '<div class="tblwrap"><table><thead><tr><th>Laser cutting check</th><th>Here</th><th>Rule</th><th></th></tr></thead><tbody>'+
     rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+bothL(r[1])+'</td><td>'+esc(r[3])+'</td><td class="'+(r[2]==='ok'?'st-ok':r[2]==='warn'?'st-warn':'st-bad')+'">'+(r[2]==='ok'?'ok':r[2]==='warn'?'tight':'too small')+'</td></tr>').join('')+
-    '<tr><td>Plate thickness</td><td>'+bothL(t)+'</td><td>SendCutSend stock: '+stock.map(s=>s.toFixed(3)).join(', ')+' in</td><td class="'+(isStock?'st-ok':'st-warn')+'">'+(isStock?'stock':'not stock')+'</td></tr></tbody></table></div>'+
+    '<tr><td>Plate thickness</td><td>'+bothL(t)+'</td><td>SendCutSend stock: '+stock.map(s=>s.toFixed(3)).join(', ')+' in ('+stock.map(s=>(s*25.4).toFixed(2)).join(', ')+' mm)</td><td class="'+(isStock?'st-ok':'st-warn')+'">'+(isStock?'stock':'not stock')+'</td></tr></tbody></table></div>'+
     (fl.length?'<p class="cap">Flanged holes: cut each hole at the die’s punch size ('+[...new Set(fl.map(h=>bothL(2*h.r)))].join(', ')+'), then press the flare; the dashed ring is the finished flange ('+[...new Set(fl.map(h=>bothL(2*h.flange)))].join(', ')+'). The flare stands proud of one face (JMR: 0.176 in on 14 ga): put it on the side away from the grommet and the pipe. NACA’s tests on flanged lightening holes in shear webs (Kuhn 1942) found strength for the weight nearly the same whatever the hole size at the best spacing; the strength figures here count only the hole, not the stiffer flange.</p>':'')+
     '<p class="cap">SendCutSend’s guidelines: holes and bridges at least half the thickness at the very least, the thickness or more preferred; hole to edge at least the hole diameter is their general advice, which hanger tabs usually beat on strength alone (the table above), so it is not flagged here.</p>';
 }
@@ -13605,8 +13605,8 @@ function clearFor(TsC,DoMm,TaC,limC,Lmm,epsS){   // the smallest gap that keeps 
 }
 const NEAR_PARTS=[
   {name:'PVC wire insulation (GPT, HDT)',lim:80,src:'Sycor'},{name:'Engine computer and modules',lim:85,src:'GM upfitter guide: under 185 °F at all times'},
-  {name:'Nylon fuel line, long-term (SAE J2260)',lim:90,src:'SAE J2260: 115 °C peak, 90 °C continuous',rule:127,ruleTxt:'GM: 5 in from the exhaust, or a metal shield'},
-  {name:'Brake fluid, kept under boiling water',lim:100,src:'GM: below the boiling point of water at all times',rule:51,ruleTxt:'GM: brake hoses 2 in from all exhaust parts'},
+  {name:'Nylon fuel line, long-term (SAE J2260)',lim:90,src:'SAE J2260: 115 °C peak, 90 °C continuous',rule:127,ruleTxt:'GM: 5 in (127 mm) from the exhaust, or a metal shield'},
+  {name:'Brake fluid, kept under boiling water',lim:100,src:'GM: below the boiling point of water at all times',rule:51,ruleTxt:'GM: brake hoses 2 in (51 mm) from all exhaust parts'},
   {name:'Neoprene CV or steering boot',lim:110,src:'SAE 880311'},{name:'XLPE wire insulation (GXL, TXL)',lim:125,src:'Sycor'},
   {name:'Rubber fuel hose (SAE J30R9)',lim:150,src:'one maker’s rating'},{name:'Silicone wire insulation',lim:200,src:'Hi-Line'}];
 const HEAT_UI={Tg:'',load:100,fin:'ox',mat:'304',Ta:40,v:0,ve:95,afr:12.5,caf:2.5,Lf:300};
@@ -13629,7 +13629,7 @@ function heatSection(r,p,e){
   const P=sk.pts, at=f=>P[Math.round(f*(P.length-1))], C=v=>Math.round(v)+' °C ('+Math.round(v*9/5+32)+' °F)';
   const top=P.reduce((a,x)=>x.Tsurf>a.Tsurf?x:a,P[0]);
   h+='<div class="tblwrap" style="margin-top:12px"><table><thead><tr><th>Along the primary</th><th>Gas</th><th>Steel</th><th>'+(sk.wrap?'Wrap outside':'Outside surface')+'</th><th>Heat loss</th></tr></thead><tbody>'+
-    [[0,'At the port'],[0.25,'Quarter way'],[0.5,'Halfway'],[1,'At the collector']].map(([f,l])=>{ const x=at(f); return '<tr><td>'+l+' ('+clen(x.x)+')</td><td>'+C(x.Tg)+'</td><td>'+C(x.Tsteel)+'</td><td>'+C(x.Tsurf)+'</td><td>'+(x.q/1000).toFixed(2)+' kW/m</td></tr>'; }).join('')+
+    [[0,'At the port'],[0.25,'Quarter way'],[0.5,'Halfway'],[1,'At the collector']].map(([f,l])=>{ const x=at(f); return '<tr><td>'+l+', '+clen(x.x)+'</td><td>'+C(x.Tg)+'</td><td>'+C(x.Tsteel)+'</td><td>'+C(x.Tsurf)+'</td><td>'+(x.q/1000).toFixed(2)+' kW/m</td></tr>'; }).join('')+
     '</tbody></table></div>';
   h+='<p class="cap">'+(mdot*1000).toFixed(1)+' g/s through each primary ('+ncyl+' cylinders, '+Math.round(H.ve||95)+'% volumetric efficiency, air-fuel '+(H.afr||12.5)+', '+Math.round(H.load||100)+'% airflow at '+Math.round(rpm)+' RPM). Each primary sheds about '+(sk.Q/1000).toFixed(2)+' kW. Emissivity '+sk.eps+' for this finish'+(sk.lowRe?'. The flow is below Gnielinski’s range (Reynolds number under 10,000), so read these as rough':'')+(sk.wrap?'. Wrap keeps the outside cooler but runs the steel hotter, which shortens the life of thin stainless':'')+'.</p>';
   const rows=NEAR_PARTS.map(q=>{ const s=clearFor(top.Tsurf,sk.Do,+H.Ta,q.lim,+H.Lf>0?+H.Lf:300,sk.eps); const d=s==null?'over 1 m (39 in)':(s===0?'any gap':(s/25.4).toFixed(1)+' in ('+Math.round(s)+' mm)');
@@ -13817,7 +13817,7 @@ function drawPlan(svg,strokes,dimS){
   mk('line',{x1:dx,x2:dx,y1:Y(dimS/2),y2:Y(-dimS/2),'class':'lead'},svg);
   [dimS/2,-dimS/2].forEach(yy=>mk('line',{x1:dx-4,x2:dx+4,y1:Y(yy),y2:Y(yy),'class':'lead'},svg));
   const dt=mk('text',{x:dx+6,y:Y(0)+3.5},svg); dt.textContent=clen(dimS);
-  const cands=U==='imp'?[1,2,4,6,12,24,48].map(v=>({mm:v*MM,l:v+' in'})):[10,20,25,50,100,200,250,500,1000].map(v=>({mm:v,l:v+' mm'}));
+  const cands=U==='imp'?[1,2,4,6,12,24,48].map(v=>({mm:v*MM,l:v+' in ('+Math.round(v*MM)+' mm)'})):[10,20,25,50,100,200,250,500,1000].map(v=>({mm:v,l:v+' mm ('+(v/MM).toFixed(v<100?2:1)+' in)'}));
   let best=null; cands.forEach(c=>{const px=c.mm*sc; if(px>=36&&px<=130) best=c;});
   if(best){
     const bx0=mx, bx1=mx+best.mm*sc, by=H-12;
@@ -14509,7 +14509,7 @@ function renderMuf(){
     (()=>{ const spl=val('m-spl'), K=+$('m-edge').value||2.8; if(!(spl>0)) return ''; const rho=rhoGas(p.tmain), bp=branchPeak(spl,K,rho,hm.c,hm.S,hm.A);
       return rowT('Real peak at the tuned note',bp.tl.toFixed(0)+' dB','with a '+Math.round(spl)+' dB tone in the pipe the neck’s air moves '+bp.u.toFixed(1)+' m/s and its edge loss (K '+K+') caps the cut there; the chart’s '+TLCAP+' dB is the lossless limit (Rienstra and Hirschberg 8.3)'); })()+
     '<div class="tblwrap" style="margin-top:10px"><table><thead><tr><th>Can diameter</th><th>Can length for this volume</th></tr></thead><tbody>'+
-    hm.cans.map(c=>'<tr'+(c===can?' class="cur"':'')+'><td>'+tubIn(c.D)+'</td><td>'+clen(c.len)+'</td></tr>').join('')+'</tbody></table></div>'+
+    hm.cans.map(c=>'<tr'+(c===can?' class="cur"':'')+'><td>'+cdim(c.D)+'</td><td>'+clen(c.len)+'</td></tr>').join('')+'</tbody></table></div>'+
     (()=>{ const bw2=val('m-bw')>0?val('m-bw'):1.651, dOD=p.dn+2*bw2, DOD=p.dpipe+2*bw2; if(!(dOD<=DOD)||$('m-dp-shape').value!=='round') return ''; const c=copeTemplate(dOD,DOD);
       return rowT('Cope template for the neck',clen(c.width)+' × '+clen(c.H),'the neck’s fishmouth on the main pipe, unrolled; the cut rises '+clen(c.rise)+' <button type="button" class="btn" data-cope="'+DOD+'" data-d="'+dOD+'" data-msg="m-cope-msg2" style="padding:2px 10px;margin-left:6px">DXF</button><span id="m-cope-msg2" class="hint"></span>'); })()+
     '<p class="cap">Can sizes are inside dimensions. The neck can run into the can, which saves length without changing the tuning much.'+
@@ -14648,10 +14648,10 @@ function renderMuf(){
     html+=sec('Motorcycle silencers: open pipe against muffler, one test',
       '<div class="tblwrap"><table><thead><tr><th>Exhaust</th><th>Peak hp</th><th>dB at 2 ft, idle · 4,500 · full</th><th>dB at 50 ft</th></tr></thead><tbody>'+
       tr(['Open header, straight tube','58.0','96 · 108 · 117','77 · 94 · 104'])+tr(['Open megaphone','63.0','101 · 119 · 123','85 · 103 · 109'])+
-      tr(['Megaphone with reverse cone, hollow','63.9','99 · 114 · 120','83 · 96 · 109'])+tr(['12 in perforated-core muffler','64.8','93 · 107 · 113','74 · 91 · 98'])+
-      tr(['2 in outlet muffler','64.5','94 · 110 · 115','78 · 94 · 98'])+tr(['18 in perforated-core muffler','<b>65.3</b>','<b>94 · 107 · 113</b>','<b>77 · 87 · 99</b>'])+'</tbody></table></div>'+
+      tr(['Megaphone with reverse cone, hollow','63.9','99 · 114 · 120','83 · 96 · 109'])+tr(['12 in (305 mm) perforated-core muffler','64.8','93 · 107 · 113','74 · 91 · 98'])+
+      tr(['2 in (51 mm) outlet muffler','64.5','94 · 110 · 115','78 · 94 · 98'])+tr(['18 in (457 mm) perforated-core muffler','<b>65.3</b>','<b>94 · 107 · 113</b>','<b>77 · 87 · 99</b>'])+'</tbody></table></div>'+
       '<div class="tblwrap" style="margin-top:12px"><table><thead><tr><th></th><th>hp at 4,000 · 5,000 · 6,000 · 7,000</th><th>Seconds to 25 · 40 · 55 · 64 hp</th></tr></thead><tbody>'+
-      tr(['Open header','36 · 49 · 56 · 58','3.3 · 4.8 · 6.8 · (58 hp at 7.6)'])+tr(['Hollow reverse-cone megaphone','39 · 51 · 61 · 64','3.2 · 4.5 · 6.4 · 8.1'])+tr(['18 in perforated core','39 · 48 · 61 · 65','2.5 · 4.0 · 5.9 · 7.0'])+'</tbody></table></div>'+
+      tr(['Open header','36 · 49 · 56 · 58','3.3 · 4.8 · 6.8 · (58 hp at 7.6)'])+tr(['Hollow reverse-cone megaphone','39 · 51 · 61 · 64','3.2 · 4.5 · 6.4 · 8.1'])+tr(['18 in (457 mm) perforated core','39 · 48 · 61 · 65','2.5 · 4.0 · 5.9 · 7.0'])+'</tbody></table></div>'+
       '<p class="cap">Cone Engineering’s back-to-back dyno and sound test on one carburetted 2007 Triumph Bonneville, each system jetted for itself (“Sound vs Speed,” AHRMA Vintage Views, February 2015). The perforated core is 7 to 12 dB quieter than the hollow reverse-cone megaphone at 4,500 rpm (114 to 107 dB at 2 ft, 96 to 87 at 50 ft) with no loss of power, and it reached each power level sooner in the sweep; the open header gave up 7 hp at the top. A megaphone adds about 6 dB over a plain open pipe. The authors call the sound readings relative and “very unscientific,” the weighting is not stated, and they sell the mufflers, so take the pattern, not the decibels. Their rule for making any muffler quiet is to make it big, heavy and restrictive; lose any one of those and it gets louder.</p>');
   }
 
@@ -14789,9 +14789,10 @@ function engineFrom(prefix){
   const k=$(prefix+'-eng').value;
   if(k!=='custom') return Object.assign({key:k},ENGLIB[k]);
   const cyc=prefix==='s'?$('s-cyc').value:'4';
-  let order=parseList($(prefix+'-order').value);
+  const fv=id=>{ const el=$(prefix+id); return el?el.value:''; };   // the Intake tab has no order, gaps or bank fields
+  let order=parseList(fv('-order'));
   if(!order.length&&prefix==='s'){ const n=Math.round(val('s-cyl')); if(n>=1&&n<=24) order=[...Array(n).keys()].map(i=>i+1); }
-  const gaps=parseNums($(prefix+'-gaps').value), bankA=parseList($(prefix+'-bank').value);
+  const gaps=parseNums(fv('-gaps')), bankA=parseList(fv('-bank'));
   return {key:'custom',name:'Custom firing order',cyc,order,gaps:gaps.length?gaps:null,
     banks:bankA.length?[bankA,order.filter(c=>bankA.indexOf(c)<0)]:null,custom:true};
 }

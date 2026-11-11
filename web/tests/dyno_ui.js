@@ -25,7 +25,7 @@ const { chromium } = require('playwright');
   for (const [id, v] of [['#f-rpm', '6000'], ['#f-evo', '60'], ['#f-dp', '1.875'], ['#f-disp', '376'], ['#f-cyl', '8'], ['#f-trq', '4600'], ['#f-bore', '4.065'], ['#f-stroke', '3.622'], ['#f-cratio', '10.7']]) { await pg.fill(id, v); await pg.dispatchEvent(id, 'input'); }
   await pg.waitForTimeout(400);
   const sec = await pg.evaluate(() => { const h = [...document.querySelectorAll('#four-details .sec h3')].find(x => /Match a dyno curve/.test(x.textContent)); return h ? h.parentElement.innerText : ''; });
-  ok(/Match a dyno curve/.test(sec) && /needs the desktop program/.test(sec), 'the section is there; in a browser it says fitting needs the desktop program');
+  ok(/Match a dyno curve/.test(sec) && /needs the Exhaust Tuner program or the Fusion panel/.test(sec), 'the section is there; in a browser it says fitting needs the desktop program');
   await pg.fill('#f-vcd', '0.78'); await pg.dispatchEvent('#f-vcd', 'input'); await pg.fill('#f-ceff', '0.8'); await pg.dispatchEvent('#f-ceff', 'input'); await pg.waitForTimeout(200);
   const e = await pg.evaluate(() => { const sp = window.__sim.simSpec(window.__sim.inp()); return { cd: sp.e.cd, ce: sp.e.combEff, wam: /0\.8\s+<[^>]*combustion efficiency/.test(window.WamExport.makeWam(sp, { rpm: 4000, cycles: 5, name: 't' })) }; });
   ok(e.cd === 0.78 && e.ce === 0.8 && e.wam, 'the fitted values reach the spec and the OpenWAM case (' + JSON.stringify(e) + ')');

@@ -11,7 +11,7 @@ const { chromium } = require('playwright');
     const txt = () => p.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler types: flow against quieting'); return h ? h.parentElement.innerText : ''; });
     let t = await txt();
     const m = t.match(/drops like (\d+) CFM of cold air/), Qe = m ? +m[1] : NaN;
-    const sp = t.match(/Spiral sound traps\s+8 to 15 dBA\s+175 CFM\s+([\d.]+) mm\s+([\d.]+) mm/);
+    const sp = t.match(/Spiral sound traps\s+8 to 15 dBA\s+175 CFM\s+([\d.]+) mm \([\d.]+ in\)\s+([\d.]+) mm \([\d.]+ in\)/);
     const want5 = 63.5 * Math.sqrt(Qe / 175), want1 = want5 * Math.pow(5 * 249.0889 / 6894.76, 0.25);
     ok(sp && Math.abs(+sp[1] - want5) < 0.6 && Math.abs(+sp[2] - want1) < 0.6, vp.n + ': spiral traps: ' + (sp ? sp[1] + ' / ' + sp[2] : '?') + ' mm inlet for 5 in water / 1 psi at ' + Qe + ' CFM equivalent');
     ok(/Chambered \(baffles\)\s+13 to 20 dBA\s+70 to 100 CFM/.test(t) && /Straight-through, packed\s+2 to 7 dBA\s+200 CFM/.test(t), vp.n + ': the patent’s chambered and packed figures');

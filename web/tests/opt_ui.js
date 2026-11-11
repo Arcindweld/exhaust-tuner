@@ -33,7 +33,7 @@ const fs = require('fs'), path = require('path'), os = require('os'), { spawnSyn
     ok(r.out.every(x => !x.err), 'every candidate makes an OpenWAM case ' + r.out.filter(x => x.err).map(x => x.label + ': ' + x.err).join('; '));
     ok(r.out.every(x => x.groups === 4), 'each case has the 8-4-1 first merge: 4 pairs');
     ok(r.out.every(x => Math.abs(x.toColl - x.total) < 1), 'valve to collector in the case equals the layout\'s tuned length (' + r.out.map(x => Math.round(x.toColl)).join(', ') + ' mm)');
-    ok(/Optimise the Headers tab/.test(r.sec) && /needs the desktop program/.test(r.sec), 'the section is there; in a browser it says it needs the desktop program');
+    ok(/Optimise the Headers tab/.test(r.sec) && /needs the Exhaust Tuner program or the Fusion panel/.test(r.sec), 'the section is there; in a browser it says it needs the desktop program');
     const exe = process.env.EXHAUST_TUNER_OPENWAM || path.join(__dirname, '..', '..', 'ext', 'OpenWAM', 'build', 'bin', 'release', 'OpenWAM');
     if (fs.existsSync(exe)) {
       const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opt_ui_'));
