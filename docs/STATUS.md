@@ -600,6 +600,26 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
   has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
   the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
+- Split for printing audited offline (2026-11-10, add-in 4.17.0): Fusion still offline, so act_print_split was checked
+  against the Fusion API reference and its glue put under tests. Fixed: SurfaceEvaluator.parametricRange returns a bare
+  BoundingBox2D, so the old `ok, rng =` unpack threw inside a try and every keep-out was silently dropped (cuts could
+  land in the lettering); the selected-body test used `is` on API wrappers (always false: "curves do not run inside this
+  tube"); embossed lettering adds a coaxial cylinder outside the tube, which the old radius pick took for the outside;
+  the outer tongue was a Join extrude, which participantBodies does not limit (cut/intersect only), so it would fuse the
+  receiver whose shoulder its tip touches: now a new body combined into the grower; the extrude side now from the
+  sketch's own x/y axes; the cut plane uses setByPath (setByDistanceOnPath retired September 2026), is checked and
+  re-placed from the other end if the path runs backwards; pieces re-found after every feature and checked distinct;
+  chamfer edges by curveType (circles and split arcs); a refused chamfer is a note, a failure part way leaves a
+  "Print split (incomplete)" group and says where; a moved occurrence is refused; messages in mm and inches.
+  printsplit.py: the reach prune used arc length (a U bend that fits spun 45 degrees was refused outright), now the
+  chord; clear notes for no straight, straights too short for the lap, keep-outs over every straight, a tube wider than
+  the bed; a wall whose tongues would be under 0.8 mm (0.031 in, two 0.4 mm perimeters) is refused, under 1.2 mm
+  (0.047 in) warned; gluing check list (piece order, which end carries which tongue, bond area cm2/in2, bond-line mL:
+  0.92 mL a joint on the owner's 4 in tube). tests/test_printsplit_edges.py (planner edge cases, beds 180 cubed,
+  350 x 320 x 325, 256 cubed, 256 x 180 x 300), tests/test_printsplit_fusion_fake.py (the _ps_* helpers against an
+  adsk stand-in). tests/fusion_live_printsplit.py fixed: Pipe via the add-in's _pipe (diameter check), sketch curves
+  joined by SketchPoints, probes kept off the cut planes, wall continuity, volume loss with the chamfers, STL on the
+  bed. Still only a live run can confirm the Fusion features themselves (see the audit report in the commit).
 - Intake CFD case takes the tab's bends (2026-11-10): the case the Intake tab writes now uses the tab's bend angles
   (listed from the mouth end), its centre-line radius and its rolled-lip radius (it placed every bend as 90 degrees at
   its own radius); the CFD panel can still override the radius and can say where each bend starts (mm from the mouth;

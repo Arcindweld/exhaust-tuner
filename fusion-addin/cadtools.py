@@ -3556,6 +3556,28 @@ def _ps_curve_geo(ent):
         return ent.geometry
 
 
+def _ps_native(body):
+    """The body itself when it was picked through an occurrence: the features, the bodies the split makes and the path
+    are all in the component's own space, so a moved occurrence is refused rather than cut in the wrong place."""
+    occ = None
+    try:
+        occ = body.assemblyContext
+    except Exception:
+        pass
+    if occ is None:
+        return body
+    try:
+        m = occ.transform2
+    except Exception:
+        m = occ.transform
+    arr = list(m.asArray())
+    ident = [1.0 if i % 5 == 0 else 0.0 for i in range(16)]
+    if any(abs(a - b) > 1e-9 for a, b in zip(arr, ident)):
+        raise ValueError('The tube is in a component that has been moved (%s): open that component on its own '
+                         '(right-click it, Open in a new window, or Activate it and move it back to the origin), then split it.' % occ.name)
+    return body.nativeObject or body
+
+
 def _ps_find_path(body):
     """The path of the Pipe feature that made this body (its component's pipe features, nearest first)."""
     comp = body.parentComponent
@@ -3566,14 +3588,14 @@ def _ps_find_path(body):
         try:
             path = pf.path
             ents = [path.item(k).entity for k in range(path.count)]
+            pts = []
+            for e in ents:
+                g = _ps_curve_geo(e)
+                ok_, t0, t1 = g.evaluator.getParameterExtents()
+                ok_, pm = g.evaluator.getPointAtParameter(0.5 * (t0 + t1))
+                pts.append(pm)
         except Exception:
             continue
-        pts = []
-        for e in ents:
-            g = _ps_curve_geo(e)
-            ok_, t0, t1 = g.evaluator.getParameterExtents()
-            ok_, pm = g.evaluator.getPointAtParameter(0.5 * (t0 + t1))
-            pts.append(pm)
         inside = sum(1 for q in pts if bb.contains(q))
         if inside and (best is None or inside > best[0]):
             best = (inside, ents)
@@ -3581,7 +3603,7 @@ def _ps_find_path(body):
 
 
 def _ps_chain(ents):
-    """The curves end to end: [(entity, geometry, flipped)], from one free end to the other."""
+    """The curves end to end: [(item, flipped)], from one free end to the other (printsplit.chain_order, cm)."""
     items = []
     for e in ents:
         g = _ps_curve_geo(e)
@@ -3589,40 +3611,7 @@ def _ps_chain(ents):
         ok_, a = g.evaluator.getPointAtParameter(t0)
         ok_, b = g.evaluator.getPointAtParameter(t1)
         items.append({'e': e, 'g': g, 't0': t0, 't1': t1, 'a': _t(a), 'b': _t(b)})
-    tol = 1e-3
-    def near(p, q):
-        return math.dist(p, q) < tol
-    ends = [it['a'] for it in items] + [it['b'] for it in items]
-    start = None
-    for it in items:
-        for side in ('a', 'b'):
-            if sum(1 for q in ends if near(q, it[side])) == 1:
-                start = (it, side)
-                break
-        if start:
-            break
-    if not start:
-        start = (items[0], 'a')
-    chain, used = [], set()
-    it, side = start
-    pos = it[side]
-    while it is not None:
-        flip = side == 'b'
-        chain.append((it, flip))
-        used.add(id(it))
-        pos = it['a'] if flip else it['b']
-        nxt = None
-        for o in items:
-            if id(o) in used:
-                continue
-            if near(o['a'], pos):
-                nxt = (o, 'a'); break
-            if near(o['b'], pos):
-                nxt = (o, 'b'); break
-        it, side = nxt if nxt else (None, None)
-    if len(chain) != len(items):
-        raise ValueError('The path curves are not one connected chain: select them end to end.')
-    return chain
+    return [(items[k], flip) for k, flip in PS.chain_order([(it['a'], it['b']) for it in items], tol=1e-3)]
 
 
 def _ps_stations(chain, ds_cm=0.5):
@@ -3630,15 +3619,10 @@ def _ps_stations(chain, ds_cm=0.5):
     pts, runs, run_ent, k = [], [], {}, 0
     for it, flip in chain:
         g = it['g']
-        line = g.objectType.split('::')[-1] in ('Line3D', 'InfiniteLine3D')
-        if not line:
-            try:
-                L = math.dist(it['a'], it['b'])
-                ok_, length = g.evaluator.getLengthAtParameter(it['t0'], it['t1'])
-                line = abs(length - L) < 1e-4 * max(1.0, L)
-            except Exception:
-                pass
         ok_, length = g.evaluator.getLengthAtParameter(it['t0'], it['t1'])
+        line = g.objectType.split('::')[-1] in ('Line3D', 'InfiniteLine3D')
+        if not line:                    # path curves can come over as NURBS: a straight one is as long as its chord
+            line = abs(length - math.dist(it['a'], it['b'])) < 1e-4 * max(1.0, length)
         n = max(2, int(math.ceil(length / ds_cm)))
         rid = None
         if line:
@@ -3659,8 +3643,29 @@ def _ps_stations(chain, ds_cm=0.5):
     return pts, runs, run_ent
 
 
+def _ps_ring_point(q, s_off, r, ang=0.0):
+    """A point (mm) r from the centreline at station q, s_off along it, ang radians round it."""
+    u, v = PS._perp(q['t'])
+    c, s = math.cos(ang), math.sin(ang)
+    return tuple(q['p'][k] + s_off * q['t'][k] + r * (c * u[k] + s * v[k]) for k in range(3))
+
+
+def _ps_wall_point(q, s_off, r):
+    return _ps_ring_point(q, s_off, r, 0.0)
+
+
+def _ps_inside(body, p_mm):
+    pt = adsk.core.Point3D.create(*[c / 10.0 for c in p_mm])
+    return body.pointContainment(pt) == adsk.fusion.PointContainment.PointInsidePointContainment
+
+
+_PS_ANGLES = [0.3 + 2 * math.pi * k / 8 for k in range(8)]     # off the seams Pipe puts at angle 0
+
+
 def _ps_radii(body, st):
-    """Bore and outside radius (mm) of the tube, scanned across its longest straight."""
+    """Bore and outside radius (mm) of the tube at the middle of its longest straight (or of the path, when it is all
+    bend): the coaxial cylinders' exact radii when there are some, picked by what is solid either side of each
+    (printsplit.pick_wall_radii: embossed lettering adds cylinders), else stepped out from the centreline."""
     best = None
     for i, q in enumerate(st):
         if q['run'] is not None:
@@ -3669,80 +3674,61 @@ def _ps_radii(body, st):
                 j += 1
             if best is None or j - i > best[1] - best[0]:
                 best = (i, j)
-    if best is None:
-        raise ValueError('The path has no straight part to cut in.')
-    q = st[(best[0] + best[1]) // 2]
-    # exact radii from the cylinders round this straight, when it has them
+    q = st[(best[0] + best[1]) // 2] if best else st[len(st) // 2]
+
+    def solid(r):                       # the majority of 8 angles, so a letter on one side does not decide it
+        return sum(1 for a in _PS_ANGLES if _ps_inside(body, _ps_ring_point(q, 0.0, r, a))) >= 5
     rs = []
-    for f in body.faces:
-        g = f.geometry
-        if g.surfaceType != adsk.core.SurfaceTypes.CylinderSurfaceType:
-            continue
-        ax = _t(g.axis)
-        n = math.sqrt(_dot(ax, ax)) or 1.0
-        ax = tuple(x / n for x in ax)
-        if abs(abs(_dot(ax, q['t'])) - 1.0) > 1e-4:
-            continue
-        o = tuple(10.0 * x for x in _t(g.origin))
-        d = _sub(q['p'], o)
-        off = math.sqrt(max(0.0, _dot(d, d) - _dot(d, ax) ** 2))
-        if off < 0.05:
-            rs.append(10.0 * g.radius)
-    if len(set(round(r, 3) for r in rs)) >= 2:
-        return min(rs), max(rs)
-    u, v = PS._perp(q['t'])
-    inside, r_in, r_out = False, None, None
-    for k in range(1, 1600):
-        r = 0.1 * k
-        p = tuple((q['p'][c] + r * u[c]) / 10.0 for c in range(3))
-        pc = body.pointContainment(adsk.core.Point3D.create(*p))
-        ins = pc == adsk.fusion.PointContainment.PointInsidePointContainment
-        if ins and not inside:
-            r_in = r
-        if inside and not ins:
-            r_out = r
-            break
-        inside = ins
-    if r_in is None or r_out is None:
-        raise ValueError('Could not find the tube wall around the path: select the tube body and its centreline.')
-    return r_in - 0.05, r_out - 0.05
+    if best:
+        for i in range(body.faces.count):
+            g = body.faces.item(i).geometry
+            if g.surfaceType != adsk.core.SurfaceTypes.CylinderSurfaceType:
+                continue
+            ax = _t(g.axis)
+            n = math.sqrt(_dot(ax, ax)) or 1.0
+            ax = tuple(x / n for x in ax)
+            if abs(abs(_dot(ax, q['t'])) - 1.0) > 1e-4:
+                continue
+            o = tuple(10.0 * x for x in _t(g.origin))
+            d = _sub(q['p'], o)
+            if math.sqrt(max(0.0, _dot(d, d) - _dot(d, ax) ** 2)) < 0.05:
+                rs.append(10.0 * g.radius)
+    got = PS.pick_wall_radii(rs, solid) if len(set(round(r, 3) for r in rs)) >= 2 else None
+    if got is None:
+        scans = []
+        for a in _PS_ANGLES[::3]:
+            s = PS.scan_wall_radii(lambda r: _ps_inside(body, _ps_ring_point(q, 0.0, r, a)))
+            if s:
+                scans.append(s)
+        if not scans:
+            raise ValueError('Could not find the tube wall around the path: select the tube body and its centreline.')
+        scans.sort()
+        got = scans[len(scans) // 2]
+    return got
 
 
 def _ps_keepouts(body, st, r_in, r_out):
-    """Stretches of the tube (mm along it) with anything but plain wall on them: lettering, bosses, end lips."""
-    out = []
-    for f in body.faces:
-        ev = f.evaluator
+    """Stretches of the tube (mm along it) with anything but plain wall on them: lettering, bosses, end lips. Samples
+    a 5 x 5 grid on each face, keeping only the samples on the face itself (a trimmed face's grid runs off it)."""
+    faces = []
+    for fi in range(body.faces.count):
+        ev = body.faces.item(fi).evaluator
         try:
-            ok_, rng = ev.parametricRange()
+            rng = ev.parametricRange()            # a BoundingBox2D (not a tuple)
+            pts = []
+            for a in range(5):
+                for b in range(5):
+                    prm = adsk.core.Point2D.create(rng.minPoint.x + (rng.maxPoint.x - rng.minPoint.x) * a / 4.0,
+                                                   rng.minPoint.y + (rng.maxPoint.y - rng.minPoint.y) * b / 4.0)
+                    if not ev.isParameterOnFace(prm):
+                        continue
+                    ok_, p = ev.getPointAtParameter(prm)
+                    if ok_:
+                        pts.append(tuple(10.0 * c for c in _t(p)))
         except Exception:
             continue
-        ss = []
-        for a in range(5):
-            for b in range(5):
-                prm = adsk.core.Point2D.create(rng.minPoint.x + (rng.maxPoint.x - rng.minPoint.x) * a / 4.0,
-                                               rng.minPoint.y + (rng.maxPoint.y - rng.minPoint.y) * b / 4.0)
-                ok_, p = ev.getPointAtParameter(prm)
-                if not ok_:
-                    continue
-                p = tuple(10.0 * c for c in _t(p))
-                i = min(range(len(st)), key=lambda k: math.dist(p, st[k]['p']))
-                d = _sub(p, st[i]['p'])
-                ax = _dot(d, st[i]['t'])
-                rad = math.sqrt(max(0.0, _dot(d, d) - ax * ax))
-                plain = abs(rad - r_in) < 0.3 or abs(rad - r_out) < 0.3
-                if not plain:
-                    ss.append(st[i]['s'] + ax)
-        if ss:
-            out.append((min(ss), max(ss)))
-    out.sort()
-    merged = []
-    for a, b in out:
-        if merged and a <= merged[-1][1] + 1.0:
-            merged[-1] = (merged[-1][0], max(merged[-1][1], b))
-        else:
-            merged.append((a, b))
-    return merged
+        faces.append(pts)
+    return PS.keepouts_from_samples(faces, st, r_in, r_out)
 
 
 def _ps_body_at(comp, p_mm):
@@ -3754,9 +3740,62 @@ def _ps_body_at(comp, p_mm):
     return None
 
 
-def _ps_wall_point(q, s_off, r):
-    u, v = PS._perp(q['t'])
-    return tuple(q['p'][c] + s_off * q['t'][c] + r * u[c] for c in range(3))
+def _ps_find(comp, q, r_mid, s_off=0.0):
+    """The solid body in the wall at station q (re-found after every feature: a split or a combine can hand back new
+    body objects)."""
+    for a in _PS_ANGLES[::2]:
+        b = _ps_body_at(comp, _ps_ring_point(q, s_off, r_mid, a))
+        if b is not None:
+            return b
+    return None
+
+
+def _ps_piece(comp, st, pc, r_mid):
+    """Piece pc's body, looked for at its middle station, then a quarter and three quarters along."""
+    for f in (0.5, 0.25, 0.75):
+        b = _ps_find(comp, st[int(round(pc['i0'] + f * (pc['i1'] - pc['i0'])))], r_mid)
+        if b is not None:
+            return b
+    return None
+
+
+def _ps_plane(comp, ln, p_cm, n):
+    """A construction plane normal to the straight ln through p (cm). Placed by proportion along the line; checked,
+    and placed from the other end when the path runs the other way."""
+    g = _ps_curve_geo(ln)
+    ok_, a0, a1 = g.evaluator.getParameterExtents()
+    ok_, pa = g.evaluator.getPointAtParameter(a0)
+    ok_, pb = g.evaluator.getPointAtParameter(a1)
+    a, b = _t(pa), _t(pb)
+    ab = _sub(b, a)
+    r = max(0.0, min(1.0, _dot(_sub(p_cm, a), ab) / _dot(ab, ab)))
+    path = adsk.fusion.Path.create(ln, adsk.fusion.ChainedCurveOptions.noChainedCurves)
+    for rr in (r, 1.0 - r):
+        pi = comp.constructionPlanes.createInput()
+        if hasattr(pi, 'setByPath'):            # September 2026 on; setByDistanceOnPath is retired
+            pi.setByPath(path, adsk.fusion.PathDistanceTypes.ProportionalPathDistanceType, adsk.core.ValueInput.createByReal(rr))
+        else:
+            pi.setByDistanceOnPath(path, adsk.core.ValueInput.createByReal(rr))
+        plane = comp.constructionPlanes.add(pi)
+        pg = plane.geometry
+        nv = _t(pg.normal)
+        nn = math.sqrt(_dot(nv, nv)) or 1.0
+        if abs(_dot(_sub(p_cm, _t(pg.origin)), nv)) / nn < 0.005:
+            return plane
+        plane.deleteMe()
+    raise ValueError('Could not place the plane for cut %d on its straight.' % n)
+
+
+def _ps_circle_edges(body, r_mm, centre_cm):
+    """The circular (or arc) edges of body with radius r_mm centred at centre_cm."""
+    out = []
+    C3, A3 = adsk.core.Curve3DTypes.Circle3DCurveType, adsk.core.Curve3DTypes.Arc3DCurveType
+    for i in range(body.edges.count):
+        e = body.edges.item(i)
+        g = e.geometry
+        if g.curveType in (C3, A3) and abs(g.radius - r_mm / 10.0) < 0.002 and math.dist(_t(g.center), centre_cm) < 0.01:
+            out.append(e)
+    return out
 
 
 def _ps_write_stl(path, body, base, axis, spin_deg):
@@ -3764,16 +3803,8 @@ def _ps_write_stl(path, body, base, axis, spin_deg):
     calc.setQuality(adsk.fusion.TriangleMeshQualityOptions.HighQualityTriangleMesh)
     m = calc.calculate()
     xyz, idx = m.nodeCoordinatesAsFloat, m.nodeIndices
-    u, v = PS._perp(axis)
-    c, s = math.cos(math.radians(spin_deg)), math.sin(math.radians(spin_deg))
-    pts = []
-    for j in range(len(xyz) // 3):
-        p = (10.0 * xyz[3 * j], 10.0 * xyz[3 * j + 1], 10.0 * xyz[3 * j + 2])
-        d = _sub(p, base)
-        x, y, z = _dot(d, u), _dot(d, v), _dot(d, axis)
-        pts.append((c * x - s * y, s * x + c * y, z))
-    z0 = min(p[2] for p in pts)
-    pts = [(p[0], p[1], p[2] - z0) for p in pts]
+    pts = PS.stand_points([(10.0 * xyz[3 * j], 10.0 * xyz[3 * j + 1], 10.0 * xyz[3 * j + 2]) for j in range(len(xyz) // 3)],
+                          base, axis, spin_deg)
     import struct
     with open(path, 'wb') as fh:
         fh.write(b'Exhaust Tuner print split'.ljust(80, b' '))
@@ -3794,6 +3825,7 @@ def act_print_split(data):
     body = bodies[0]
     if _kind(body) != 'BRepBody':
         raise ValueError('That is a mesh: the split needs a solid tube.')
+    body = _ps_native(body)
     comp = body.parentComponent
     if not curves:
         curves = _ps_find_path(body)
@@ -3809,7 +3841,7 @@ def act_print_split(data):
     r_in, r_out = _ps_radii(body, st_all)
     # the part of the path the body covers (a path often runs on into the throttle body or the flange)
     r_mid = 0.5 * (r_in + r_out)
-    inside = [_ps_body_at(comp, _ps_wall_point(q, 0.0, r_mid)) is body for q in st_all]
+    inside = [any(_ps_inside(body, _ps_ring_point(q, 0.0, r_mid, a)) for a in _PS_ANGLES[::3]) for q in st_all]
     if not any(inside):
         raise ValueError('The selected curves do not run inside this tube.')
     i0 = inside.index(True)
@@ -3817,119 +3849,142 @@ def act_print_split(data):
     st = PS.stations_from_polyline([q['p'] for q in st_all[i0:i1 + 1]], [q['run'] for q in st_all[i0:i1 + 1]])
     keep = _ps_keepouts(body, st, r_in, r_out)
     t0 = time.time()
-    pl = PS.plan(st, r_out, keepouts=keep, bed=bed, L=L)
+    pl = PS.plan(st, r_out, keepouts=keep, bed=bed, L=L, r_in=r_in, clearance=clr)
     if not pl['ok']:
         return {'ok': False, 'msg': ' '.join(pl['notes'])}
     if not pl['cuts']:
-        return {'ok': True, 'msg': 'This tube fits the bed in one piece (%.0f mm tall standing on its end): no split needed.' % pl['pieces'][0]['height'],
+        return {'ok': True, 'msg': 'This tube fits the bed in one piece (%s tall standing on its end): no split needed.' % PS.mm_in(pl['pieces'][0]['height'], 0),
                 'split': {'pieces': [], 'cuts': []}}
     jr = PS.joint_radii(r_in, r_out, clr)
+    roles = PS.joint_roles(pl['cuts'])
     V = adsk.core.ValueInput
     FE = adsk.fusion.FeatureOperations
     POS, NEG = adsk.fusion.ExtentDirections.PositiveExtentDirection, adsk.fusion.ExtentDirections.NegativeExtentDirection
     des = adsk.fusion.Design.cast(_app.activeProduct)
-    tl = des.timeline
-    tl_start = tl.count
-    name0 = body.name
-    made = []
-    for n, c in enumerate(pl['cuts'], 1):
-        q = st[c['i']]
-        ln = run_ent[q['run']] if q['run'] in run_ent else None
-        if ln is None:
-            raise ValueError('Lost the straight under cut %d.' % n)
-        g = _ps_curve_geo(ln)
-        ok_, a0, a1 = g.evaluator.getParameterExtents()
-        ok_, pa = g.evaluator.getPointAtParameter(a0)
-        ok_, pb = g.evaluator.getPointAtParameter(a1)
-        a, b = _t(pa), _t(pb)
-        p = tuple(x / 10.0 for x in c['p'])
-        ab = _sub(b, a)
-        r = _dot(_sub(p, a), ab) / _dot(ab, ab)
-        path = adsk.fusion.Path.create(ln, adsk.fusion.ChainedCurveOptions.noChainedCurves)
-        pi = comp.constructionPlanes.createInput()
-        pi.setByDistanceOnPath(path, V.createByReal(r))
-        plane = comp.constructionPlanes.add(pi)
-        plane.name = 'PRINT SPLIT %d' % n
-        made.append((plane, c, p))
-    for n, (plane, c, p) in enumerate(made, 1):
-        sk = comp.sketches.add(plane)
-        sk.name = 'PRINT SPLIT %d CUT' % n
-        sk.sketchCurves.sketchCircles.addByCenterRadius(sk.modelToSketchSpace(adsk.core.Point3D.create(*p)), (r_out + 15.0) / 10.0)
-        pf = comp.features.patchFeatures.add(comp.features.patchFeatures.createInput(sk.profiles.item(0), FE.NewBodyFeatureOperation))
-        pf.name = 'PRINT SPLIT %d TOOL' % n
-        tool = pf.bodies.item(0)
-        q = st[c['i']]
-        tgt = _ps_body_at(comp, _ps_wall_point(q, 0.0, r_mid))
-        if tgt is None:
-            raise ValueError('Lost the tube at cut %d.' % n)
-        sf = comp.features.splitBodyFeatures.add(comp.features.splitBodyFeatures.createInput(tgt, tool, False))
-        sf.name = 'PRINT SPLIT %d' % n
-        tool.isVisible = False
-    pieces = []
-    for k, pc in enumerate(pl['pieces'], 1):
-        mid = st[(pc['i0'] + pc['i1']) // 2]
-        b = _ps_body_at(comp, _ps_wall_point(mid, 0.0, r_mid))
-        if b is None:
-            raise ValueError('Could not find piece %d after the cuts.' % k)
-        b.name = '%s PRINT %d' % (name0, k)
-        pieces.append(b)
-    for n, (plane, c, p) in enumerate(made, 1):
-        q = st[c['i']]
-        t = q['t']
-        up = c['grower'] == 'up'
-        grower = pieces[n - 1] if up else pieces[n]
-        recv = pieces[n] if up else pieces[n - 1]
-        sg = -1.0 if up else 1.0                        # the grower lies at p + sg * t
-        nrm = plane.geometry.normal
-        nd = nrm.x * t[0] + nrm.y * t[1] + nrm.z * t[2]
-        to_recv = POS if nd * (-sg) > 0 else NEG
-        sk = comp.sketches.add(plane)
-        sk.name = 'PRINT SPLIT %d LAP' % n
-        cc = sk.modelToSketchSpace(adsk.core.Point3D.create(*p))
-        radii = (jr['tongue_in'], jr['tongue_out'], r_out, r_out + 2.0)
-        for rr in radii:
-            sk.sketchCurves.sketchCircles.addByCenterRadius(cc, rr / 10.0)
-        profs = [sk.profiles.item(i) for i in range(sk.profiles.count) if sk.profiles.item(i).profileLoops.count == 2]
-        def ring(a_mm, b_mm):
-            want = math.pi * ((b_mm / 10.0) ** 2 - (a_mm / 10.0) ** 2)
-            return min(profs, key=lambda pr: abs(pr.areaProperties().area - want))
-        cut = adsk.core.ObjectCollection.create()
-        for a_mm, b_mm in ((radii[0], radii[1]), (radii[1], radii[2]), (radii[2], radii[3])):
-            cut.add(ring(a_mm, b_mm))
-        e1 = comp.features.extrudeFeatures.createInput(cut, FE.CutFeatureOperation)
-        e1.setOneSideExtent(adsk.fusion.DistanceExtentDefinition.create(V.createByReal(L / 10.0)), to_recv)
-        e1.participantBodies = [recv]
-        comp.features.extrudeFeatures.add(e1).name = 'PRINT SPLIT %d RECESS' % n
-        e2 = comp.features.extrudeFeatures.createInput(ring(radii[1], radii[2]), FE.JoinFeatureOperation)
-        e2.setOneSideExtent(adsk.fusion.DistanceExtentDefinition.create(V.createByReal(L / 10.0)), to_recv)
-        e2.participantBodies = [grower]
-        comp.features.extrudeFeatures.add(e2).name = 'PRINT SPLIT %d TONGUE' % n
-        far = tuple(p[k] - sg * (L / 10.0) * t[k] for k in range(3))
-        for r_mm, size, label in ((jr['tongue_in'], jr['shoulder'], 'SHOULDER'), (jr['tongue_out'], jr['tip'], 'TONGUE TIP')):
-            if size <= 0:
-                continue
-            edge = None
-            for bb in (recv, grower):
-                for e in bb.edges:
-                    g = e.geometry
-                    if isinstance(g, adsk.core.Circle3D) and abs(g.radius - r_mm / 10.0) < 0.002 and math.dist(_t(g.center), far) < 0.01:
-                        edge = e
-                        break
-                if edge:
-                    break
-            if edge:
-                oc = adsk.core.ObjectCollection.create()
-                oc.add(edge)
-                ci = comp.features.chamferFeatures.createInput2()
-                ci.chamferEdgeSets.addEqualDistanceChamferEdgeSet(oc, V.createByReal(size / 10.0), False)
-                comp.features.chamferFeatures.add(ci).name = 'PRINT SPLIT %d %s' % (n, label)
     try:
-        if tl.count - 1 > tl_start:
-            grp = tl.timelineGroups.add(tl_start, tl.count - 1)
-            grp.name = 'Print split'
+        tl = des.timeline                       # none in a direct-modelling design
+        tl_start = tl.count
     except Exception:
-        pass
+        tl, tl_start = None, 0
+    name0 = body.name
+    notes = list(pl['notes'])
+    names = ['%s PRINT %d' % (name0, k) for k in range(1, len(pl['pieces']) + 1)]
+    step = 'the cut planes'
+
+    def group(label):
+        try:
+            if tl is not None and tl.count - 1 > tl_start:
+                tl.timelineGroups.add(tl_start, tl.count - 1).name = label
+        except Exception:
+            pass
+    try:
+        made = []
+        for n, c in enumerate(pl['cuts'], 1):
+            q = st[c['i']]
+            ln = run_ent.get(q['run'])
+            if ln is None:
+                raise ValueError('Lost the straight under cut %d.' % n)
+            p = tuple(x / 10.0 for x in c['p'])
+            plane = _ps_plane(comp, ln, p, n)
+            plane.name = 'PRINT SPLIT %d' % n
+            made.append((plane, c, p))
+        for n, (plane, c, p) in enumerate(made, 1):
+            step = 'cut %d' % n
+            sk = comp.sketches.add(plane)
+            sk.name = 'PRINT SPLIT %d CUT' % n
+            sk.sketchCurves.sketchCircles.addByCenterRadius(sk.modelToSketchSpace(adsk.core.Point3D.create(*p)), (r_out + 15.0) / 10.0)
+            pf = comp.features.patchFeatures.add(comp.features.patchFeatures.createInput(sk.profiles.item(0), FE.NewBodyFeatureOperation))
+            pf.name = 'PRINT SPLIT %d TOOL' % n
+            tool = pf.bodies.item(0)
+            tgt = _ps_find(comp, st[c['i']], r_mid)
+            if tgt is None:
+                raise ValueError('Lost the tube at cut %d.' % n)
+            sf = comp.features.splitBodyFeatures.add(comp.features.splitBodyFeatures.createInput(tgt, tool, False))
+            sf.name = 'PRINT SPLIT %d' % n
+            try:
+                tool.isVisible = False
+            except Exception:
+                pass
+        step = 'naming the pieces'
+        for k, pc in enumerate(pl['pieces']):
+            b = _ps_piece(comp, st, pc, r_mid)
+            if b is None:
+                raise ValueError('Could not find piece %d after the cuts.' % (k + 1))
+            b.name = names[k]
+        for k, pc in enumerate(pl['pieces']):      # two pieces found in one body would leave the first renamed
+            b = _ps_piece(comp, st, pc, r_mid)
+            if b is None or b.name != names[k]:
+                raise ValueError('The cuts did not separate piece %d from its neighbour.' % (k + 1))
+        for n, (plane, c, p) in enumerate(made, 1):
+            step = 'the lap joint at cut %d' % n
+            rl = roles[n - 1]
+            t, sg = st[c['i']]['t'], rl['sg']
+            pg, pr = pl['pieces'][rl['grower']], pl['pieces'][rl['receiver']]
+            sk = comp.sketches.add(plane)
+            sk.name = 'PRINT SPLIT %d LAP' % n
+            to_recv = POS if PS.toward_receiver(_cross(_t(sk.xDirection), _t(sk.yDirection)), t, sg) > 0 else NEG
+            cc = sk.modelToSketchSpace(adsk.core.Point3D.create(*p))
+            radii = (jr['tongue_in'], jr['tongue_out'], r_out, r_out + 2.0)
+            for rr in radii:
+                sk.sketchCurves.sketchCircles.addByCenterRadius(cc, rr / 10.0)
+            profs = [sk.profiles.item(i) for i in range(sk.profiles.count) if sk.profiles.item(i).profileLoops.count == 2]
+            if len(profs) < 3:
+                raise ValueError('The lap sketch at cut %d has %d rings, not 3.' % (n, len(profs)))
+
+            def ring(a_mm, b_mm):
+                want = math.pi * ((b_mm / 10.0) ** 2 - (a_mm / 10.0) ** 2)
+                return min(profs, key=lambda pr_: abs(pr_.areaProperties().area - want))
+            # the receiver: everything from the inner tongue out, L deep (participantBodies holds for a cut)
+            cut = adsk.core.ObjectCollection.create()
+            for a_mm, b_mm in ((radii[0], radii[1]), (radii[1], radii[2]), (radii[2], radii[3])):
+                cut.add(ring(a_mm, b_mm))
+            recv = _ps_piece(comp, st, pr, r_mid)
+            e1 = comp.features.extrudeFeatures.createInput(cut, FE.CutFeatureOperation)
+            e1.setOneSideExtent(adsk.fusion.DistanceExtentDefinition.create(V.createByReal(L / 10.0)), to_recv)
+            e1.participantBodies = [recv]
+            comp.features.extrudeFeatures.add(e1).name = 'PRINT SPLIT %d RECESS' % n
+            # the grower's outer tongue: a new body combined into the grower only. A Join extrude would also take in the
+            # receiver, whose shoulder face the tongue's tip touches (participantBodies is for cut and intersect only).
+            e2 = comp.features.extrudeFeatures.createInput(ring(radii[1], radii[2]), FE.NewBodyFeatureOperation)
+            e2.setOneSideExtent(adsk.fusion.DistanceExtentDefinition.create(V.createByReal(L / 10.0)), to_recv)
+            xf = comp.features.extrudeFeatures.add(e2)
+            xf.name = 'PRINT SPLIT %d TONGUE' % n
+            tongue = xf.bodies.item(0)
+            tools = adsk.core.ObjectCollection.create()
+            tools.add(tongue)
+            grower = _ps_piece(comp, st, pg, r_mid)
+            ci = comp.features.combineFeatures.createInput(grower, tools)
+            ci.operation = FE.JoinFeatureOperation
+            ci.isKeepToolBodies = False
+            comp.features.combineFeatures.add(ci).name = 'PRINT SPLIT %d TONGUE JOIN' % n
+            far = tuple(p[k] - sg * (L / 10.0) * t[k] for k in range(3))
+            for r_mm, size, label, pc in ((jr['tongue_in'], jr['shoulder'], 'SHOULDER', pr), (jr['tongue_out'], jr['tip'], 'TONGUE TIP', pg)):
+                if size <= 0:
+                    continue
+                bb = _ps_piece(comp, st, pc, r_mid)
+                edges = _ps_circle_edges(bb, r_mm, far) if bb is not None else []
+                if not edges:
+                    notes.append('No %s edge found at cut %d: that chamfer was not made.' % (label.lower(), n))
+                    continue
+                oc = adsk.core.ObjectCollection.create()
+                for e in edges:
+                    oc.add(e)
+                try:
+                    ch = comp.features.chamferFeatures.createInput2()
+                    ch.chamferEdgeSets.addEqualDistanceChamferEdgeSet(oc, V.createByReal(size / 10.0), False)
+                    comp.features.chamferFeatures.add(ch).name = 'PRINT SPLIT %d %s' % (n, label)
+                except Exception as ex:
+                    notes.append('Fusion refused the %s chamfer at cut %d (%s): add it by hand (%s, 45 degrees).' % (
+                        label.lower(), n, str(ex).splitlines()[0][:80] if str(ex) else 'no reason given', PS.mm_in(size, 1)))
+    except Exception as ex:
+        group('Print split (incomplete)')
+        raise ValueError('The split stopped at %s: %s. What it made is in the "Print split (incomplete)" timeline group: '
+                         'delete that group (or undo) before trying again.' % (step, str(ex).strip() or type(ex).__name__))
+    group('Print split')
     # clash check, then the print-ready STLs
+    pieces = [_ps_piece(comp, st, pc, r_mid) for pc in pl['pieces']]
+    if any(b is None for b in pieces):
+        raise ValueError('Lost a piece after the lap joints: check the "Print split" group.')
     tbm = adsk.fusion.TemporaryBRepManager.get()
     clash = []
     for i in range(len(pieces)):
@@ -3951,21 +4006,29 @@ def act_print_split(data):
                      'footprint_mm': [round(pc['w'], 1), round(pc['h'], 1)], 'base': pc['base'],
                      'length_mm': round(pc['s1'] - pc['s0'], 1)})
     fil = PS.filament(vol, dens)
-    msg = ('Split %s into %d pieces that each print standing up on a %.0f x %.0f x %.0f mm bed, joined by flush lap joints '
-           '%.0f mm long: the walls are thinned to %.1f and %.1f mm where they overlap with a %.2f mm epoxy gap, so the '
-           'outside stays %.1f mm and the bore %.1f mm straight through. Cuts at %s mm along the tube, clear of the '
-           'bends%s. %.0f cm3 in all: about %.0f g and %.0f m of 1.75 mm filament at %.2f g/cm3. Print-ready STLs (each '
-           'stood on its end) are in %s.' % (
-               name0, len(pieces), bed[0], bed[1], bed[2], L, jr['inner_t'], jr['outer_t'], clr, 2 * r_out, 2 * r_in,
-               ', '.join('%.0f' % c['s'] for c in pl['cuts']), ' and the %d raised or recessed area%s' % (len(keep), '' if len(keep) == 1 else 's') if keep else '',
-               vol, fil['mass_g'], fil['length_m'], dens, folder))
+    sheet = PS.assembly_sheet(pl, r_in, r_out, clr, L, names)
+    msg = ('Split %s into %d pieces that each print standing up on a %.0f x %.0f x %.0f mm (%.1f x %.1f x %.1f in) bed, joined by '
+           'flush lap joints %s long: the walls are thinned to %s and %s where they overlap with a %s epoxy gap, so the '
+           'outside stays %s and the bore %s straight through. Cuts at %s mm (%s in) along the tube, clear of the '
+           'bends%s. %.0f cm3 in all: about %.0f g and %.0f m of 1.75 mm filament at %.2f g/cm3. Epoxy: %.1f mL in the bond '
+           'lines in all (%.2f mL a joint; mix about three times that). Print-ready STLs (each stood on its end) are in %s.' % (
+               name0, len(pieces), bed[0], bed[1], bed[2], bed[0] / 25.4, bed[1] / 25.4, bed[2] / 25.4, PS.mm_in(L, 0),
+               PS.mm_in(jr['inner_t']), PS.mm_in(jr['outer_t']), PS.mm_in(clr, 2), PS.mm_in(2 * r_out), PS.mm_in(2 * r_in),
+               ', '.join('%.0f' % c['s'] for c in pl['cuts']), ', '.join('%.2f' % (c['s'] / 25.4) for c in pl['cuts']),
+               ' and the %d raised or recessed area%s' % (len(keep), '' if len(keep) == 1 else 's') if keep else '',
+               vol, fil['mass_g'], fil['length_m'], dens, sheet['total_bond_ml'],
+               sheet['joints'][0]['bond_ml'] if sheet['joints'] else 0.0, folder))
+    if notes:
+        msg += ' ' + ' '.join(notes)
     if clash:
         msg += ' Check %s: Fusion found them overlapping.' % '; '.join(' and '.join(c) for c in clash)
     return {'ok': not clash, 'msg': msg, 'split': {'pieces': rows, 'cuts': [{'s_mm': round(c['s'], 1), 'grower': c['grower']} for c in pl['cuts']],
                                                     'bore_mm': round(2 * r_in, 2), 'od_mm': round(2 * r_out, 2), 'lap_mm': L,
                                                     'keepouts_mm': [[round(a, 1), round(b, 1)] for a, b in keep],
                                                     'volume_cm3': round(vol, 1), 'mass_g': round(fil['mass_g']), 'filament_m': round(fil['length_m']),
+                                                    'assembly': sheet, 'notes': notes,
                                                     'folder': folder, 'plan_s': round(time.time() - t0, 1)}}
+
 
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,

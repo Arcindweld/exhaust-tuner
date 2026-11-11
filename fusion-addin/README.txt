@@ -347,6 +347,15 @@ step each piece prints over (no supports). Every piece stands on an end with no 
 "Print split" group at the end of the timeline; print-ready STLs (each stood on its end) go to
 Documents\Exhaust Tuner\prints\<design>. Settings: printer (bed size), lap length (20 mm), epoxy gap (0.15 mm per
 side), material (for the weight and filament length). Scuff both lap faces and use a plastic-rated epoxy.
+It refuses, with a note saying why, a wall too thin for the lap (either tongue under 0.8 mm / 0.031 in, two 0.4 mm
+perimeters; it warns under 1.2 mm / 0.047 in), a tube with no straight long enough for the lap both sides of a cut
+plus 5 mm margins, straights all covered by lettering, a tube wider than the bed, and a body inside a moved
+component (open that component on its own first). The result lists the gluing order: for each joint which piece
+carries the outer tongue, the bonded area (cm2 and in2) and the epoxy in the bond line (mL; mix about three times
+that). If a step fails part way, what was made sits in a "Print split (incomplete)" timeline group: delete it before
+trying again. A chamfer Fusion will not make is reported (add it by hand) rather than stopping the split.
+Tests: tests/test_printsplit.py and tests/test_printsplit_edges.py (the planner), tests/test_printsplit_fusion_fake.py
+(the add-in's glue against a stand-in for Fusion's API), tests/fusion_live_printsplit.py (inside Fusion).
 
 WORKING TO REAL PARTS
 - Model each route as a 3D sketch of lines with fillets at your bender's centerline radius.
