@@ -731,6 +731,23 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   0.194 -> 0.202, sharp 0.329 -> 0.340; rhoSimpleFoam the same (f 0.0221 -> 0.0178); no floor faces in the bore;
   same 183,554 cells, ~900 iterations, 11-18 min on one shared core. Exhaust-component mode unchanged (its 6% bend difference between builds fits the same defect;
   not proven). cfd/NOTES.md 4(c4).
+- Round parts come out round (2026-11-11, add-in 4.19.0; offline only, Fusion not on this machine): the owner's printed
+  reducer was out of round in the taper. Cause found in the add-in: every STL it wrote used setQuality(High) alone,
+  which the API reference defines as tolerance = bounding-box diameter / 2^13, ~0.04 mm on a 300 mm long 100 mm tube =
+  79 facets round 100 mm (62 round 95 mm on a 500 mm box; the CFD export's 0.05 mm gave 71). Now (fusion-addin/
+  roundcheck.py, new, pure): every add-in STL is meshed to 0.01 mm chord error (surfaceTolerance 0.001 cm; print
+  pieces also maxNormalDeviation 2 pi / n for the tube's OD: 158 facets round 100 mm; cap 3M triangles, then 0.02 mm)
+  and measured on what was written: slices square to the axis (found: principal moments, then the line through the
+  section circle centres, roundest candidate) or to the centreline (print pieces, bends), best-fit circle per loop
+  (outer and bore), deviation, out-of-roundness, facet count and chord error; round = dev <= 0.05 mm and chord
+  <= 0.02 mm (under Cura's default Maximum Deviation 0.025 mm). Failing pieces say "Do not print" and the panel note
+  turns to a warning. Boom tube pieces between two round sections are revolved (the loft kept for flat ovals and as
+  the fallback); every other taper (megaphones, cones, merge collectors, chambers) was already revolved or an exact
+  cone primitive. The page writes no printable mesh (its DXFs use true ARC/CIRCLE entities). Tests: test_roundcheck.py
+  (straight, cone, quintic, bent pass; 3-lobe 0.2 mm cone reads 0.205-0.208 mm deviation, 24-facet cone 0.380 mm chord
+  error, both fail), test_roundcheck_fusion_fake.py; all fusion-addin tests pass. NOT yet run in Fusion: needs a live
+  print split and CFD export to confirm Fusion's mesher honours the tolerance (the check will say if not) and a boom
+  tube with a round-to-round piece to confirm the revolve. CLI: python3 fusion-addin/roundcheck.py part.stl.
 - First live runs on the owner's PC (2026-11-11, Fusion 2706.1.17, program 0.1.67, add-in 4.18.0 put there by script):
   print split PASSES (fusion_live_printsplit.py: 3 pieces, no overlap, bore and outside flush, volume lost 1.929 cm3 =
   expected, STLs fit and sit on the bed) after one fix: a Pipe's path can only be read with the timeline rolled to before

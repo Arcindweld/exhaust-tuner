@@ -1,4 +1,18 @@
-EXHAUST TUNER (Fusion add-in), version 4.18.0
+EXHAUST TUNER (Fusion add-in), version 4.19.0
+
+4.19.0 (November 11, 2026)
+  Round parts come out round. A printed reducer came out "not perfectly round" in its taper: Fusion's 'high' mesh
+  preset sets the surface tolerance from the part's bounding box (box diameter / 8192), which leaves about 80 flat
+  facets round a 100 mm (3.94 in) tube 300 mm (11.8 in) long, and about 60 round a 95 mm circle on a bigger part.
+  Every STL the add-in writes is now meshed to a 0.01 mm (0.0004 in) chord error (surface tolerance 0.001 cm, and
+  for the print split's pieces the largest angle between adjacent vertex normals that holds the tube's outside to
+  the facets it needs: 158 round a 100 mm circle), and is then measured by roundcheck.py: the verdict, and any
+  section that fails (where along the tube, its size, its facets, its deviation and chord error, in mm and inches),
+  is in the result. A piece that fails says "Do not print this file as it is" and the panel shows the note as a
+  warning. The CFD STL export (Export the STL from Fusion) is meshed to 0.01 mm too (it was 0.05 mm) and its note
+  gives the same measurement for anyone who prints it. A boom tube piece between two round sections is now revolved
+  (exactly round) instead of lofted; flat-oval pieces are lofted as before, and the loft is kept as the fallback if
+  Fusion refuses the revolve. roundcheck.py also runs on its own on any STL: see ROUNDNESS CHECK below.
 
 4.18.0 (November 10, 2026)
   "Test this intake (CFD)" on the Intake tab: select an intake tube in the model, click once, and the pressure drop
@@ -337,6 +351,7 @@ TWO COMMANDS, both in the Solid tab > Create panel
                        Boom tubes tab: lofts the inside shape (round inlet, flat run,
                        flare) through the page's sections along X in a new component,
                        then shells it outward by the sheet thickness with both ends open.
+                       A piece between two round sections is revolved, so it is exactly round.
                        Width runs along Y and height along Z (Z and Y in a Y-up setup).
 
 2. Exhaust Tuner
@@ -361,8 +376,35 @@ component (open that component on its own first). The result lists the gluing or
 carries the outer tongue, the bonded area (cm2 and in2) and the epoxy in the bond line (mL; mix about three times
 that). If a step fails part way, what was made sits in a "Print split (incomplete)" timeline group: delete it before
 trying again. A chamfer Fusion will not make is reported (add it by hand) rather than stopping the split.
+Each STL is meshed to a 0.01 mm (0.0004 in) chord error and measured square to the tube's centreline before the result
+comes back (see ROUNDNESS CHECK); sections under lettering or other keep-outs are skipped, not judged.
 Tests: tests/test_printsplit.py and tests/test_printsplit_edges.py (the planner), tests/test_printsplit_fusion_fake.py
 (the add-in's glue against a stand-in for Fusion's API), tests/fusion_live_printsplit.py (inside Fusion).
+
+ROUNDNESS CHECK (roundcheck.py: run on every STL the add-in writes, and on its own on any STL)
+The standing rule: round parts must come out truly round. Tapers are revolved (exact cones and revolved profiles,
+never lofts between circles), meshes are exported finely enough that the facets are below what the printer resolves,
+and roundness is measured on the exported mesh before the file is handed over. roundcheck.py is the measurement. It
+slices the mesh at 25 stations along its axis (found from the mesh when not given: the axis of best rotational
+symmetry) or square to a bent tube's centreline, and for every closed loop round the axis (the outside and the bore
+separately) reports the best-fit circle's centre and diameter, the largest and the RMS radial deviation from it, the
+out-of-roundness (largest less smallest radius), the number of flat facets round the loop and the chord (sagitta)
+error they make. A section is round when the deviation is 0.05 mm (0.0020 in) or less and the chord error 0.02 mm
+(0.0008 in) or less: under Cura's default Maximum Deviation (0.025 mm, how far the slicer itself may move an outline)
+and a twentieth of a 0.4 mm nozzle (the deviation limit is a judgement: an eighth of the nozzle, well under what an
+FDM part holds across a diameter). For n facets round a radius r the chord error is r (1 - cos(pi / n)), so a chord
+error s needs n >= pi / acos(1 - s / r): 158 facets round a 100 mm circle for 0.01 mm.
+On its own, for an STL made anywhere (a CAD script, another program), in millimetres:
+   python3 roundcheck.py part.stl                      (the axis found from the mesh)
+   python3 roundcheck.py part.stl --axis 0,0,1         (the axis direction given; --point x,y,z for a point on it)
+   python3 roundcheck.py bent.stl --centreline cl.txt  (a tube with bends: x,y,z points in mm along its middle,
+                                                        one a line; it is sliced square to that line)
+   --stations N, --dev MM, --sag MM change the defaults; --json prints the whole report.
+It prints the verdict and one line per section; the exit code is 0 when round, 1 when not, 2 when it could not
+check (an open mesh, no axis found). A single straight axis is all it can find: give a bent tube its centreline.
+Tests: tests/test_roundcheck.py (straight, cone, quintic and bent tubes pass; a cone with three 0.2 mm lobes and one
+with 24 facets fail), tests/test_roundcheck_fusion_fake.py (the add-in's mesh settings, the print split's and the CFD
+export's checks, the boom tube's revolve, against a stand-in for Fusion's API).
 
 TEST AN INTAKE TUBE IN CFD (Test this intake (CFD) and Use this tube in the Intake tab, on the Intake tab)
 Click the intake tube's outside face near the end the air goes in (or click that end face), then Test this intake

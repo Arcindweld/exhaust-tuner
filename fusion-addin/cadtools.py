@@ -40,6 +40,7 @@ try:
     from . import hostrun as HR
     from . import printsplit as PS
     from . import tubecfd as TC
+    from . import roundcheck as RND
 except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path)
     import router as RT
     import templates as TPL
@@ -49,6 +50,7 @@ except ImportError:          # loaded as a top-level module (the add-in's folder
     import hostrun as HR
     import printsplit as PS
     import tubecfd as TC
+    import roundcheck as RND
 
 PALETTE_ID = 'exhaustTunerPalette'
 PANEL_CMD_ID = 'exhaustTunerPanelCmd'
@@ -798,6 +800,15 @@ def obround_pts(w, h):
     return ((r, a), (r, -a), (-r, -a), (-r, a), (0.0, -a - r), (0.0, a + r))
 
 
+def boom_round_pair(a, b):
+    """The (r, x) half-section that revolves into the piece between two boom sections a and b ((x, w, h), cm) when
+    both are circles (coaxial on X by construction): a cone or a cylinder, exactly round. None when either end is a
+    flat oval, which needs the loft."""
+    if abs(a[1] - a[2]) < 1e-6 and abs(b[1] - b[2]) < 1e-6:
+        return [(0.0, a[0]), (a[1] / 2.0, a[0]), (b[1] / 2.0, b[0]), (0.0, b[0])]
+    return None
+
+
 def _z_up():
     try:
         o = _app.preferences.generalPreferences.defaultModelingOrientation
@@ -808,7 +819,8 @@ def _z_up():
 
 def build_boom(design, title, sections, wall, z_up=True):
     """Loft the inside shape through the sections (cm) along X in a new component, then shell
-    it outward by the wall with both ends open. Width runs across, height runs up."""
+    it outward by the wall with both ends open. Width runs across, height runs up. A piece between
+    two round sections is revolved instead (boom_round_pair), so it comes out exactly round."""
     comp = new_component(design, title)
     P = adsk.core.Point3D.create
     up, across = ((0.0, 0.0, 1.0), (0.0, 1.0, 0.0)) if z_up else ((0.0, 1.0, 0.0), (0.0, 0.0, 1.0))
@@ -848,7 +860,16 @@ def build_boom(design, title, sections, wall, z_up=True):
 
     lofts = comp.features.loftFeatures
     bodies = []
-    for pa, pb in zip(profiles[:-1], profiles[1:]):
+    for i, (pa, pb) in enumerate(zip(profiles[:-1], profiles[1:])):
+        # round to round: revolved, so every section between is a true circle (a loft only matches the two ends);
+        # the loft stays for flat ovals, and as the fallback if Fusion refuses the revolve
+        sec = boom_round_pair(sections[i], sections[i + 1])
+        if sec is not None:
+            try:
+                bodies.append(_revolve_section(comp, (0.0, 0.0, 0.0), (1.0, 0.0, 0.0), sec, '%s piece %d' % (title, i + 1)).bodies.item(0))
+                continue
+            except Exception:
+                pass
         li = lofts.createInput(adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
         li.loftSections.add(pa)
         li.loftSections.add(pb)
@@ -2997,6 +3018,49 @@ def stl_ascii(regions, scale=10.0):
     return '\n'.join(out) + '\n', n
 
 
+def _fine_mesh(calc, r_mm=None):
+    """Mesh with calc (a TriangleMeshCalculator) fine enough to print round. setQuality first: it resets every
+    setting from the bounding box (API reference: surface tolerance = box diameter / 2^13 for 'high', which leaves
+    about 80 facets round a 100 mm tube 300 mm long). Then surfaceTolerance (cm) for a chord error of
+    roundcheck.EXPORT_SAG_MM and, given the part's largest radius r_mm, maxNormalDeviation (radians between adjacent
+    vertex normals) to hold that circle to the facets it needs. Over roundcheck.MAX_TRIANGLES it meshes again at
+    roundcheck.SAG_TOL_MM, what the check still passes. Returns (mesh, settings, notes)."""
+    notes = []
+    for sag in (RND.EXPORT_SAG_MM, RND.SAG_TOL_MM):
+        ms = RND.mesh_settings(r_mm if r_mm and r_mm > 0 else 50.0, sag)
+        calc.setQuality(adsk.fusion.TriangleMeshQualityOptions.HighQualityTriangleMesh)
+        try:
+            calc.surfaceTolerance = ms['surface_tolerance_cm']
+        except Exception as ex:
+            notes.append('Fusion refused the mesh tolerance (%s): the STL is at its "high" preset.' % (str(ex).splitlines()[0][:80] if str(ex) else type(ex).__name__))
+        if r_mm:
+            try:
+                calc.maxNormalDeviation = ms['max_normal_deviation_rad']
+            except Exception:
+                pass
+        mesh = calc.calculate()
+        ntri = len(mesh.nodeIndices) // 3
+        ms['triangles'] = ntri
+        if ntri <= RND.MAX_TRIANGLES or sag == RND.SAG_TOL_MM:
+            break
+        notes.append('%d triangles at a %s chord error is too many: meshed again at %s.' % (ntri, RND.mm_in(sag), RND.mm_in(RND.SAG_TOL_MM)))
+    return mesh, ms, notes
+
+
+def _round_brief(rep):
+    """The roundness verdict for a result: the words, and the failing sections in mm and inches."""
+    out = {'verdict': rep['verdict'], 'ok': rep['ok'], 'summary': rep['summary'], 'triangles': rep['triangles']}
+    for k in ('worst_dev_mm', 'worst_sag_mm', 'worst_oor_mm', 'largest', 'judged', 'failing'):
+        if k in rep:
+            out[k] = rep[k]
+    out['failing_at'] = [{'s_mm': round(st['s_mm'], 1), 's_in': round(st['s_mm'] / 25.4, 2),
+                          'loops': [{'role': lp['role'], 'd_mm': round(lp['d_mm'], 2), 'facets': lp['facets'],
+                                     'dev_mm': round(lp['dev_max_mm'], 3), 'sag_mm': round(lp['sag_mm'], 3)}
+                                    for lp in st['loops'] if not lp['round']]}
+                         for st in rep['stations'] if st['status'] == 'not round']
+    return out
+
+
 def _face_triangles(face, tol_cm):
     """Fusion's own triangulation of one face (a proxy face gives assembly coordinates), in cm."""
     calc = face.meshManager.createMeshCalculator()
@@ -3031,7 +3095,8 @@ def act_export_cfd_stl(data, path=None):
     for r, f in zip(roles, faces):
         if f.geometry.surfaceType != adsk.core.SurfaceTypes.PlaneSurfaceType:
             raise ValueError('The face picked as %s is not flat. Each opening must be a flat cap across the pipe end.' % r)
-    tol = float(data.get('tolerance_mm') or 0.05) / 10.0
+    # no coarser than roundcheck.EXPORT_SAG_MM: a round passage gets a chord error of 0.01 mm at most (it was 0.05)
+    tol = min(float(data.get('tolerance_mm') or RND.EXPORT_SAG_MM), RND.EXPORT_SAG_MM) / 10.0
     picked = {}
     for r, f in zip(roles, faces):
         picked[f.tempId] = r
@@ -3056,8 +3121,21 @@ def act_export_cfd_stl(data, path=None):
     with open(path, 'w', encoding='ascii', newline='\n') as fh:
         fh.write(text)
     counts = ', '.join('%s %d' % (r, len(regions[r])) for r in roles + ['wall'])
-    return {'ok': True, 'path': path, 'triangles': ntri,
-            'msg': 'Saved %s: %d triangles (%s), millimetres. Put it in the case folder next to design.json.' % (path, ntri, counts)}
+    rnd, rnote = _stl_export_roundness(regions)
+    return {'ok': True, 'path': path, 'triangles': ntri, 'roundness': rnd,
+            'msg': 'Saved %s: %d triangles (%s), millimetres, meshed to %s. Put it in the case folder next to design.json. %s' % (
+                path, ntri, counts, RND.mm_in(tol * 10.0), rnote)}
+
+
+def _stl_export_roundness(regions):
+    """roundcheck on the CFD STL's triangles (cm, as written in mm), for the words: the CFD mesher does not need the
+    part round, but this file is also what someone would print, so it is never handed over unmeasured."""
+    try:
+        pts = [tuple(10.0 * c for c in q) for name in regions for tri in regions[name] for q in tri]
+        rep = RND.check((pts, [(3 * k, 3 * k + 1, 3 * k + 2) for k in range(len(pts) // 3)]))
+        return _round_brief(rep), 'If you print it: ' + rep['summary']
+    except Exception as ex:
+        return {'verdict': 'not checked', 'ok': False}, 'Roundness not checked (%s).' % (str(ex).splitlines()[0][:80] if str(ex) else type(ex).__name__)
 
 
 # --------------------------------------------------------------------------
@@ -3839,13 +3917,23 @@ def _ps_circle_edges(body, r_mm, centre_cm):
     return out
 
 
-def _ps_write_stl(path, body, base, axis, spin_deg):
+def _ps_write_stl(path, body, base, axis, spin_deg, r_mm=None, centreline=None, skip=(), s_start=0.0, span=None, name=None):
+    """One print-ready binary STL (mm), stood on its end, meshed fine enough to print round (_fine_mesh with the
+    tube's outside radius r_mm), and measured: roundcheck slices the mesh as written square to centreline (model mm,
+    its first point at s_start along the tube), skipping the keep-out ranges. Returns the roundness report (or one
+    that says why it was not checked)."""
     calc = body.meshManager.createMeshCalculator()
-    calc.setQuality(adsk.fusion.TriangleMeshQualityOptions.HighQualityTriangleMesh)
-    m = calc.calculate()
+    m, ms, mnotes = _fine_mesh(calc, r_mm)
     xyz, idx = m.nodeCoordinatesAsFloat, m.nodeIndices
-    pts = PS.stand_points([(10.0 * xyz[3 * j], 10.0 * xyz[3 * j + 1], 10.0 * xyz[3 * j + 2]) for j in range(len(xyz) // 3)],
-                          base, axis, spin_deg)
+    model = [(10.0 * xyz[3 * j], 10.0 * xyz[3 * j + 1], 10.0 * xyz[3 * j + 2]) for j in range(len(xyz) // 3)]
+    try:            # in the model's own frame: standing the piece up turns it and drops it, which changes no section
+        rep = RND.check((model, idx), centreline=centreline, skip=skip, s_start=s_start, span=span, name=name)
+    except Exception as ex:
+        rep = {'verdict': 'not checked', 'ok': False, 'stations': [], 'triangles': len(idx) // 3,
+               'summary': '%sRoundness NOT CHECKED (%s).' % ((name + ': ') if name else '', str(ex).splitlines()[0][:80] if str(ex) else type(ex).__name__)}
+    rep['mesh'] = ms
+    rep['mesh_notes'] = mnotes
+    pts = PS.stand_points(model, base, axis, spin_deg)
     import struct
     with open(path, 'wb') as fh:
         fh.write(b'Exhaust Tuner print split'.ljust(80, b' '))
@@ -3855,6 +3943,21 @@ def _ps_write_stl(path, body, base, axis, spin_deg):
             n = _cross(_sub(B, A), _sub(C, A))
             ln = math.sqrt(_dot(n, n)) or 1.0
             fh.write(struct.pack('<12fH', n[0] / ln, n[1] / ln, n[2] / ln, A[0], A[1], A[2], B[0], B[1], B[2], C[0], C[1], C[2], 0))
+    return rep
+
+
+def _ps_round_words(reps):
+    """What the split's message says about the STLs' roundness: one line when all are round, else each piece that is
+    not with its failing sections (mm and inches) and 'do not print'."""
+    good = [r for r in reps if r.get('verdict') == 'round']
+    if reps and len(good) == len(reps):
+        dev = max(r.get('worst_dev_mm', 0.0) for r in reps)
+        sag = max(r.get('worst_sag_mm', 0.0) for r in reps)
+        lg = max((r['largest'] for r in reps if 'largest' in r), key=lambda q: q['d_mm'], default=None)
+        return True, ('All %d STLs measured round: worst deviation %s from a true circle, worst facet chord error %s%s.' % (
+            len(reps), RND.mm_in(dev), RND.mm_in(sag),
+            ', %d facets round the %s outside' % (lg['facets'], RND.mm_in(lg['d_mm'])) if lg else ''))
+    return False, ' '.join(r['summary'] for r in reps if r.get('verdict') != 'round')
 
 
 def act_print_split(data):
@@ -4036,16 +4139,21 @@ def act_print_split(data):
     doc = _app.activeDocument.name if _app.activeDocument else 'design'
     folder = os.path.join(os.path.expanduser('~'), 'Documents', 'Exhaust Tuner', 'prints', ''.join(ch for ch in doc if ch not in '<>:"/\\|?*'))
     os.makedirs(folder, exist_ok=True)
-    rows, vol = [], 0.0
+    rows, vol, rnds = [], 0.0, []
     for k, (b, pc) in enumerate(zip(pieces, pl['pieces']), 1):
         i = pc['i0'] if pc['base'] == 'start' else pc['i1']
         axis = st[i]['t'] if pc['base'] == 'start' else tuple(-x for x in st[i]['t'])
         fn = os.path.join(folder, b.name + '.stl')
-        _ps_write_stl(fn, b, st[i]['p'], axis, pc['spin_deg'])
+        # the piece's stretch of centreline (with its tongues, a lap either side) for the roundness check
+        cl = [q for q in st if pc['s0'] - L - 2.0 <= q['s'] <= pc['s1'] + L + 2.0]
+        rep = _ps_write_stl(fn, b, st[i]['p'], axis, pc['spin_deg'], r_mm=r_out, centreline=[q['p'] for q in cl] if len(cl) > 1 else None,
+                            skip=keep, s_start=cl[0]['s'] if cl else 0.0, span=(pc['s0'] - L, pc['s1'] + L), name=b.name)
+        rnds.append(rep)
         vol += b.volume
         rows.append({'name': b.name, 'vol_cm3': round(b.volume, 1), 'height_mm': round(pc['height'], 1),
                      'footprint_mm': [round(pc['w'], 1), round(pc['h'], 1)], 'base': pc['base'],
-                     'length_mm': round(pc['s1'] - pc['s0'], 1)})
+                     'length_mm': round(pc['s1'] - pc['s0'], 1), 'roundness': _round_brief(rep) if 'judged' in rep else
+                     {'verdict': rep['verdict'], 'ok': False, 'summary': rep['summary']}})
     fil = PS.filament(vol, dens)
     sheet = PS.assembly_sheet(pl, r_in, r_out, clr, L, names)
     msg = ('Split %s into %d pieces that each print standing up on a %.0f x %.0f x %.0f mm (%.1f x %.1f x %.1f in) bed, joined by '
@@ -4063,7 +4171,12 @@ def act_print_split(data):
         msg += ' ' + ' '.join(notes)
     if clash:
         msg += ' Check %s: Fusion found them overlapping.' % '; '.join(' and '.join(c) for c in clash)
-    return {'ok': not clash, 'msg': msg, 'split': {'pieces': rows, 'cuts': [{'s_mm': round(c['s'], 1), 'grower': c['grower']} for c in pl['cuts']],
+    round_ok, round_msg = _ps_round_words(rnds)
+    mnotes = []
+    for r in rnds:
+        mnotes.extend(n for n in r.get('mesh_notes') or [] if n not in mnotes)
+    msg += ' ' + ' '.join([round_msg] + mnotes)
+    return {'ok': not clash, 'route_ok': round_ok, 'msg': msg, 'roundness_ok': round_ok, 'split': {'pieces': rows, 'cuts': [{'s_mm': round(c['s'], 1), 'grower': c['grower']} for c in pl['cuts']],
                                                     'bore_mm': round(2 * r_in, 2), 'od_mm': round(2 * r_out, 2), 'lap_mm': L,
                                                     'keepouts_mm': [[round(a, 1), round(b, 1)] for a, b in keep],
                                                     'volume_cm3': round(vol, 1), 'mass_g': round(fil['mass_g']), 'filament_m': round(fil['length_m']),
