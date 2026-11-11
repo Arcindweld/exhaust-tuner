@@ -722,6 +722,24 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   motorcycle silencer names); b5_ui, jpipe_ui, spiral_ui and uel_ui read the new two-unit text. Light and dark themes:
   no text under 3:1 contrast on any tab (expert mode); every download button builds its file (.mr, OpenWAM, OpenFOAM
   intake and exhaust zips, cope and chamber DXFs, hanger DXF) without an error.
+- CFD validation round (2026-11-11, conda-forge build here, one core, 20 solver runs; cfd/NOTES.md 4(f)-(h)).
+  (A) The uncached-grad(U) defect also hit exhaust-component mode: the 90 deg R/D 1.5 bend reads K 0.47634 without
+  the cache and 0.44839 with it, against 0.44838 from ESI's package on the byte-identical mesh (92,883 cells), so the
+  6% build difference was this defect. Exhaust cases now write cache { grad(U); } too (Python, Rust, page JS; parity
+  all passed / 172 files identical). Not affected: the 2-D cyclic sector (laminar pipe 1.0078 x Hagen-Poiseuille with
+  and without the cache, as on ESI's builds; the generator's 2-D case made laminar: same static drop to 3e-5);
+  2-D and 3-D intake cases byte-identical to before. No 2-D exhaust cases exist. (B) 3-D rounded entrance, straight
+  50 mm tube, Re 1e5 (cfd/validation/entrance3d.py, entrance3d_results.json), on the handbooks' basis
+  K_total + (alpha - 1): sharp 0.392 (Crane/Idelchik 0.50), r/D 0.02 0.308 (0.28/0.37), 0.04 0.262 (0.24/0.26), 0.06 0.184
+  (0.15/0.20), 0.10 0.141 (0.09/0.12), 0.15 0.114 (0.04/0.07); total-pressure K 0.339, 0.252, 0.202, 0.119, 0.074, 0.046
+  (2-D: sharp 0.396, 0.04 0.141, 0.10 0.013). Crane's lip K is not the outlier at the owner's r/D 0.038 (CFD 0.267 vs
+  0.244); the CFD's sharp edge is 0.11 low on both handbooks. (C) The owner's CAI bend by bend (real layout, plane
+  139.246, cai_bends_results.json): plain 1,063 Pa, 3.5 mm lip 679 Pa (tab 1,093 / 769: +2.8% / +13%). The lip's gap
+  is bend 2, ending 1.3 D before the tract end: +0.078 in K behind the lip against the tab's +0.187 (profile alpha
+  1.13-1.15 still to mix out). The plain cut's agreement is a cancellation: bend 1, 1.08 D behind the sharp mouth,
+  costs +0.278 against +0.090, the CFD's sharp entry is 0.07 low and the two bends interact by -0.117. Miller's
+  outlet-tangent factor (only as digitised in the fluids library, C_o 0.64 for bend 2) would give lip -2% but plain
+  -7%; not applied (unverified against the book, and the gap depends on the inlet). 1-D model unchanged.
 - 3-D intake pipe friction fixed (2026-11-10): the 3-D cases read developed friction 22-25% above Colebrook. Not the
   mesh or wall functions (y+ 45-51, wall shear within 5% of Colebrook as in 2-D): the conda-forge Linux build's
   turbulence library evaluates the explicit stress term -div(nuEff dev2(T(grad U))) wrongly when grad(U) is a

@@ -17,6 +17,7 @@ Files (paths from the repository root):
 | `cfd/cfd_js_vs_py.js` | the byte-for-byte JS-vs-Python test (`node cfd/cfd_js_vs_py.js`) |
 | `cfd/NOTES.md` | this file |
 | `cfd/validation/run_validation.py` | runs every validation case through the generator plus `Allrun` (`blair`, `friction`, `entrance`, `exhaust`, `all`, `table`) |
+| `cfd/validation/entrance3d.py` | the 3-D rounded-entrance sweep (§4 (g)) → `entrance3d_results.json`; `cai_bends_results.json` is the owner's CAI bend-by-bend breakdown (§4 (h)) |
 | `cfd/validation/make_tables.py`, `cfd/validation/write_notes.py` | Markdown tables for this file; `write_notes.py` filled the validation sections once |
 | `cfd/validation/*_results.json` | validation results |
 | `cfd/validation/runs/*/results.json` | each validation case's own result (the case folders themselves are not kept in the repository) |
@@ -66,6 +67,13 @@ known-answer checks are in §4 (c) and (d). Until generator 1.0.0 the 2-D
 cases used wedge patches, which on the Linux build used here carried a
 spurious 25 % pressure gradient in developed flow (§4 (e)); the PP figure was
 then 29.913 g/s (−0.4 %), a closer match that was partly that artifact.
+
+3-D (snappyHexMesh) path, 2026-11-11, after the mouth-ledge and cached-gradient fixes (§4 (c3), (c4), (f), (g)):
+developed pipe friction within 2 % of Colebrook; flush entrance K against r/D, on the handbooks' basis
+(K_total + α − 1): sharp 0.392 (Crane / Idelchik 0.50; 2-D 0.396 as total pressure), r/D 0.02 0.308 (0.28 / 0.37),
+0.04 0.262 (0.24 / 0.26), 0.06 0.184 (0.15 / 0.20), 0.10 0.141 (0.09 / 0.12), 0.15 0.114 (0.04 / 0.07). The
+exhaust-component bend reads K 0.44839 on the conda-forge build with the cache, ESI's package 0.44838 on the same
+mesh (0.47634 without it).
 
 
 ## 1. What a generated case contains
@@ -207,10 +215,11 @@ validation case was run compressible.
   - SIMPLE with p 0.3 / ρ 0.05 converged smoothly.
 - **Pressure linear solver:** PCG/DIC on the small, strongly graded 2-D
   meshes (GAMG needed hundreds of sweeps there); GAMG in 3-D.
-- **Cached `grad(U)` (3-D intake cases):** `fvSolution` has `cache { grad(U); }`.
+- **Cached `grad(U)` (every 3-D case, intake and exhaust-component mode):** `fvSolution` has `cache { grad(U); }`.
   It changes no numerics; it keeps one Linux build (conda-forge) from
   evaluating the explicit viscous-stress term wrongly, which put 3-D pipe
-  friction 25 % high (§4 (c4)).
+  friction 25 % high (§4 (c4)) and the exhaust bend's K 6 % high (§4 (f)).
+  The 2-D sector is not affected and has no cache.
 - **Start-up:** the outlet mass flow or pressure is ramped linearly over the
   first 300 iterations.
 - **Stop criteria:**
@@ -478,9 +487,8 @@ Caching changes no numerics (the gradient is the same, only stored), so on a cor
 on the conda-forge build the explicit term comes out right and 3-D friction lands within 2 % of Colebrook. The
 mesh, layers and wall functions are unchanged.
 
-**Not done.** Exhaust-component mode is unchanged. §4 (e) found its bend K 6 % higher on the conda-forge build than
-on ESI's package on a byte-identical mesh, which fits this defect, but it is not proven here; the same one line
-would apply. The ESI package was not available on this machine, so the "after" figures are from the conda-forge
+**Not done here** (done in §4 (f), 2026-11-11: exhaust mode was affected and now caches too; the 2-D sector is
+not). The ESI package was not available on this machine, so the "after" figures are from the conda-forge
 build with the workaround, not from a second build.
 
 ### (d) Exhaust-component mode: known-answer checks (gas 650 °C, inlet 100 m/s, medium mesh)
@@ -521,7 +529,8 @@ run 41317888445, fresh installs of both): bend K inlet to exit 0.47634
 (0.224 for the bend itself) against ESI's 0.44838, with byte-identical
 meshes (same checksums of `points` and `faces`, 92 883 cells). So it is the
 solver, not snappyHexMesh. The earlier 3-D figures (generator 1.0.0, run on
-the conda-forge build here) carried that difference. ESI's package and our
+the conda-forge build here) carried that difference. It is the explicit-stress defect of §4 (c4): with
+`cache { grad(U); }`, which exhaust cases write since 2026-11-11, the conda-forge build gives 0.44839 (§4 (f)). ESI's package and our
 Windows build compile ESI's source the same way, so the ESI figures are the
 ones to use. As with the intake mode, differences between designs run the
 same way are more reliable than the absolute K.
@@ -570,8 +579,9 @@ differently on wedge patches is not known; it applies no source patches
 -march=nocona -mtune=haswell -ftree-vectorize -fno-plt -O2 -ffunction-sections`,
 linked with `-Wl,--gc-sections -Wl,--as-needed`; GCC 13.3). Until that is
 found, do not trust wedge-patch cases from that build. Its 3-D results
-are off as well: the exhaust bend comes out 6 % higher in K than on ESI's
-package on a byte-identical mesh (§4 (d)). Only the 2-D cyclic cases agree
+were off as well: the exhaust bend came out 6 % higher in K than on ESI's
+package on a byte-identical mesh (§4 (d)); that was the uncached-gradient
+defect, now worked around in every 3-D case (§4 (c4), (f)). Only the 2-D cyclic cases agree
 across all three builds (within 0.05 %). So use the conda-forge build here
 for 2-D work only, run 3-D validation on ESI's package
 (`cfd-validation.yml`, `openfoam-linux-builds.yml`), and keep the third build
@@ -628,6 +638,136 @@ sin(5°)/(5° in rad) = 0.99873 of a true 5° sector, and the flow scale is
   accelerating gas off the pressure drop but did not (5.6 % of the drop at
   Re 2 × 10⁵).
 
+### (f) Does the cached-gradient defect reach the other case kinds? (2026-11-11)
+
+§4 (c4) proved the conda-forge build's explicit-stress defect on the 3-D intake path only. Each other case kind was
+run here (conda-forge build, one core) with and without `cache { grad(U); }`, nothing else changed:
+
+| case kind | check | without the cache | with the cache | reference | verdict |
+|---|---|---|---|---|---|
+| exhaust-component mode (always 3-D) | 90° bend, R/D 1.5, 50 mm, gas 650 °C, 100 m/s, medium, rhoSimpleFoam, `exhaust_case.py bend`: K inlet to exit | 0.47634 (900 it, 716 s) | 0.44839 (900 it, 659 s) | ESI's Ubuntu package, byte-identical mesh (92,883 cells, run 41317888445): 0.44838; the same conda-forge build there: 0.47634 | **affected, +6.2 %; fixed** |
+| 2-D cyclic sector, laminar known answer | `diag/lam_pipe.py` cyclic (Re 483, 240 × 25 cells, 3000 it): developed Δp/Δx over Hagen–Poiseuille | 1.0078 | 1.0078 | ESI's package and our Windows build: 1.0078 (§4 (e)) | not affected |
+| 2-D cyclic sector, generator mesh, laminar | the generator's 2-D case (D 50 mm, r/D 0.04, L 25 D) made laminar with ν × 1000 (Re 101): static drop 10–22 D at the same iteration (1100, not yet converged) | 4140.67 m²/s² | 4140.76 m²/s² | | not affected (3 × 10⁻⁵; the defect is 25 %) |
+| 2-D exhaust cases | — | | | | none exist: exhaust mode needs an STL, so it is always 3-D |
+
+The exhaust bend reproduces both builds to the fifth digit: without the cache this machine gives exactly the
+conda-forge figure of the CI comparison, with it exactly ESI's. So the 6 % build difference noted in §4 (d) and (e)
+was this defect, and the ESI figures in §4 (d) stand. y+ on the bend wall is unchanged (avg 33.9 / 33.7). The 2-D
+sector gives the same answer on all three builds (§4 (e)) and with or without the cache, so its cases are left
+byte-identical. A turbulent 2-D pair was not run; the cross-build agreement of the turbulent 2-D square-cut pipe
+(within 0.05 %, §4 (e)) covers it.
+
+**Fix (generator 1.1.0, unchanged version):** exhaust-component cases write `cache { grad(U); }` in `fvSolution`
+too (Python, Rust, the page's JS; `gen_rs_vs_py.py` all passed, `cfd_js_vs_py.js` 172 files identical). 2-D and
+3-D intake cases are byte-identical to before. On ESI's and our Windows builds nothing changes (caching changes
+no numerics), so `exhaust_results.json` (ESI) stays as it is; the sudden expansion was not rerun here.
+
+### (g) Rounded entrance in 3-D after both fixes (2026-11-11)
+
+`validation/entrance3d.py run` (results `entrance3d_results.json`, each case's `results.json` in `runs/e3d_*`): straight
+tube D 50 mm, L 25 D + 3 D extension, flange mount, `force_3d`, Re 1.0 × 10⁵, simpleFoam, medium mesh, generator
+1.1.0 with `slipFeatureAngle 100` and `cache { grad(U); }`; sharp = plain cut (3 mm wall), else a rolled lip of radius
+r. K extrapolated back to the mouth from the planes at 10, 13, 16, 19, 22 D, as in (c3) and (c4). Every run converged
+by the report's criteria at 900 iterations (936–1319 s on one shared core; the generator estimates 152,804–158,960 cells, the checkMesh counts were not kept; (c4)'s r/D 0.04 mesh had 183,554), y+ on the tube
+wall 45–48.
+
+**Basis.** The CFD's tract-end figure is the mass-averaged total-pressure loss, K_total. The handbooks' K is set on
+static pressure less one velocity head of the bulk velocity, read where the flow has re-developed, so it holds the
+profile's kinetic-energy excess, α − 1; the like-for-like CFD figure is K_total + (α − 1), with α = (p̄0 − p̄s)/q read
+from the CFD at 22 D (1.053–1.068 here; the Intake tab's ALPHA_DEV is the 1/7-power 1.058). (p0 − static line at x =
+0)/q − 1 is listed too; at 10–22 D the profile is still developing (α at 10 D is 1.060–1.085), which this form folds
+into the intercept.
+
+| r/D | 3-D K_total | 3-D K_total + (α₂₂ − 1) | 3-D (p0 − static line)/q − 1 | 2-D K_total / static − 1 (§4 (c), 20–40 D) | Crane TP-410 | Idelchik (diag. 3-4) | Rennels |
+|---|---|---|---|---|---|---|---|
+| 0 (sharp) | 0.339 | **0.392** | 0.449 | 0.396 / 0.466 | 0.50 | 0.50 | 0.570 |
+| 0.02 | 0.252 | **0.308** | 0.347 | | 0.28 | 0.37 | 0.396 |
+| 0.04 | 0.202 | **0.262** | 0.292 | 0.141 / 0.239 | 0.24 | 0.26 | 0.324 |
+| 0.06 | 0.119 | **0.184** | 0.194 | | 0.15 | 0.20 | 0.273 |
+| 0.10 | 0.074 | **0.141** | 0.138 | 0.013 / 0.117 | 0.09 | 0.12 | 0.203 |
+| 0.15 | 0.046 | **0.114** | 0.102 | | 0.04 | 0.068 | 0.148 |
+
+Developed-flow f from the total-pressure slope over 10–22 D: 0.0185 (sharp), 0.0181, 0.0177, 0.0171, 0.0168, 0.0166
+(r/D 0.15), Colebrook 0.0180: behind a well-rounded lip the boundary layer is still thinner than developed at 22 D,
+so the extrapolated K of the rounder inlets carries some of the development (low f over the fit range lifts the
+intercept). Handbook values: Crane's flush rounded-entrance table as the Intake tab's CRANE_ENTRY; Idelchik's as
+transcribed in the fluids library (`entrance_rounded`, method Idelchik, Hamilton's data), linear between its points
+(0.15 → 0.068); Rennels & Hudson, *Pipe Flow* (2012), the formula in the same library.
+
+**Reading.** On the like-for-like basis the 3-D CFD lies between Crane and Idelchik at r/D 0.02–0.06 (0.308 / 0.262 /
+0.184 against 0.28–0.37 / 0.24–0.26 / 0.15–0.20), above both from r/D 0.10 (0.141 and 0.114 against 0.09–0.12 and
+0.04–0.07), and 0.11 under both at the sharp edge (0.392 against 0.50), where 2-D gives the same 0.396 total-pressure
+figure: the k-ω SST vena contracta behind a sharp lip recovers with less loss than the handbook flush square edge, on
+both mesh types. So the 3-D path now agrees with the 2-D sector at the sharp edge (0.339 vs 0.396 total; the 2-D tube
+is 50 D long and fits 20–40 D) and is 0.06 above it at r/D 0.04 and 0.10 (the 2-D sector, y+ ≈ 1 with a near-laminar
+start behind a rounded lip, reads lower, §4 (c)). For the Intake tab's lip entry K (Crane): at the owner's r/D 0.038
+the CFD's straight-tube K is within 0.03 of Crane (0.267 against 0.244, both interpolated) — Crane is not the outlier there;
+at the plain cut the CFD is 0.11 under Crane and Idelchik alike, so the CFD's sharp-edge figure is the outlier. In a
+straight tube the CFD's gain from a 0.038 D lip is therefore 0.13 (0.339 − 0.207 in K_total), against Crane's 0.26.
+
+### (h) The owner's CAI with a 3.5 mm lip: where the 1-D tab and the CFD part (2026-11-11)
+
+The Intake tab's like-for-like figure ("as a CFD reads it", `r.dpEnd`) was +5 % on the CFD for the plain mouth and
++16 % with a 3.5 mm lip (r/D 0.038). To see which term carries that, the owner's tube was run with each bend in
+isolation (`cai_bends_results.json`): bore 92.61 mm, 880.62 mm, flange mount, 29.5° bend from 100 mm and 84.1° from
+572.08 mm (plane 139.246°, the real layout), both 127 mm centre-line radius, 0.3694 kg/s air at 25 °C, simpleFoam
+(forced), medium mesh (131,120–136,233 cells), both fixes; every run converged at 900–960 iterations (543–605 s).
+Configurations keep the bends where they are and drop the others. K = total-pressure loss at the tract end / q
+(q 1,270 Pa); the 1-D column is the tab's calcIntake on the same subset (smooth wall, Crane entry and bends × A1,
+less ALPHA_DEV − 1 = 0.058; a Python transcription, 1,089 / 764 Pa for the full tube against the page's 1,093 / 769).
+
+| tube | CFD plain | 1-D plain | CFD 3.5 mm lip | 1-D lip | CFD lip gain | 1-D lip gain |
+|---|---|---|---|---|---|---|
+| straight (no bends) | 0.507 (644 Pa) | 0.580 (+14 %) | 0.354 (449 Pa) | 0.325 (−8 %) | 0.153 | 0.256 |
+| bend 1 only | 0.785 (996 Pa) | 0.670 (−15 %) | 0.476 (604 Pa) | 0.415 (−13 %) | 0.309 | 0.256 |
+| bend 2 only | 0.677 (859 Pa) | 0.767 (+13 %) | 0.432 (548 Pa) | 0.511 (+18 %) | 0.245 | 0.256 |
+| both (the owner's tube) | 0.837 (1,063 Pa) | 0.857 (+2.4 %) | 0.535 (679 Pa) | 0.602 (+12.5 %) | 0.302 | 0.256 |
+
+Increments (CFD; 1-D in brackets):
+
+| term | plain | lip |
+|---|---|---|
+| straight tube: entry + friction | 0.507 (0.580) | 0.354 (0.325) |
+| + bend 1 (29.5°, starts 1.08 D behind the mouth, 7.7 D of outlet when alone) | +0.278 (+0.090) | +0.122 (+0.090) |
+| + bend 2 (84.1°, ends 1.32 D before the tract end) | +0.170 (+0.187) | +0.078 (+0.187) |
+| interaction of the two (full − b1 − b2 + straight) | −0.117 (0) | −0.019 (0) |
+
+**Reading.**
+- The straight tube repeats §4 (g) at this tube's Re (2.8 × 10⁵): the CFD's plain-cut entry is 0.07 below the tab
+  (CFD's sharp edge is the low one, §4 (g)), the lip's 0.03 above it, so in a straight tube the CFD gains only 0.15
+  from the lip against Crane's 0.26.
+- The lip's +12.5 % is carried by bend 2: behind a rounded entry it adds 0.078 at the tract end, 42 % of the 1-D
+  0.187. That bend ends 1.3 D before the tract end, where the profile still holds α 1.13–1.15 (developed 1.06): most
+  of a bend's loss is the mixing-out of that distorted profile downstream, which a total-pressure plane 1.3 D on
+  has not seen yet. Bend 1 and the interaction are within 0.035 of the 1-D for the lip.
+- The plain cut's +2.4 % is a cancellation: bend 1, starting 1.08 D behind the sharp mouth, costs 3 times the
+  handbook (+0.278 against +0.090: it sits in the separated vena-contracta region, and the total-pressure loss at
+  its start, 100 mm, is already 72 Pa above the straight tube's), against an entry 0.07 low and a −0.117 interaction.
+  So the lip gain grows from 0.15 (straight) to 0.31 as soon as bend 1 is there: the entry-then-bend interaction is
+  what makes the lip worth more in CFD than in the 1-D tab.
+- Plane 139.246° against the 90° used before: 1,063 against 1,043 Pa plain (+1.9 %), 679 against 660 Pa lip
+  (+2.9 %); the owner's PC (ESI-based build, rhoSimpleFoam, same layout) gave 1,085 Pa plain (+2.1 % on this).
+
+**Sourced corrections checked; the 1-D model is unchanged.**
+- Outlet-tangent correction: Miller (*Internal Flow Systems*, 2nd ed., ch. 9) multiplies a bend's K by C_o for an
+  outlet shorter than about 30 D. Miller's chart was not available here; its digitisation in the fluids library
+  (`Miller_bend_unimpeded_correction`, read from its source, not verified against the book) gives C_o 0.64 for
+  bend 2 (Kb ≈ 0.18, L/D 1.32) and 0.57 for bend 1 (4.4 D to bend 2). Applied to bend 2 alone it would move the
+  tab's full tube to 0.779 / 0.524: lip −2 %, plain −7 % (−9 % against the PC's 1,085 Pa). It is not added: the
+  table values could not be checked against Miller, and the measured gap is inlet-dependent (bend 2 costs 0.170
+  behind a plain cut and 0.078 behind the lip), which no inlet-independent bend factor can represent.
+- Bend-to-bend interaction at 4.4 D: Miller's interaction factors for bends in series were not found in any
+  accessible source; a forum summary of them (citing his ch. 10) ("C12 normally 0.8–1 for less than 4 diameters between bends") is not a citation.
+  Measured: −0.117 plain, −0.019 lip.
+- Entry followed by a bend 1.1 D behind it: no published coefficient found (Idelchik's and Miller's entrance data
+  are for a straight run behind the mouth). Measured: bend 1 costs +0.188 (plain) and +0.032 (lip) over the 1-D.
+
+So: on the lip the CFD is the closer one to the handbooks term by term except at the short-outlet bend, where the
+CFD's tract-end plane does not yet hold the bend's whole loss and the tab charges all of it; on the plain cut the
+CFD's sharp entry is low and its bend-behind-the-mouth high, and the two cancel. Both the tab's +2 / +13 % and the
+CFD's own ±15 % class (§4) cover this; the tab's lip gain (0.256) is between the CFD's straight-tube 0.153 and
+full-tube 0.302.
+
 ## 5. Limitations
 
 - **The flow is steady RANS.** An engine intake is pulsating. Wave action
@@ -656,8 +796,8 @@ sin(5°)/(5° in rad) = 0.99873 of a true 5° sector, and the flow scale is
   answer matters, run `fine` and compare: from generator 1.1.0 on, `fine`
   puts medium's refinement levels on a background cell of D/3 instead of D/2,
   about 3.4 times the cells. Before that it gave medium's exact mesh, so a
-  "fine" 3-D run was no check at all. The conda-forge Linux build gives 3-D
-  losses about 6 % above ESI's build on the same mesh (§4 (d)), and our
+  "fine" 3-D run was no check at all. The conda-forge Linux build gave 3-D
+  losses about 6 % above ESI's build on the same mesh until every 3-D case cached grad(U) (§4 (d), (f)), and our
   Windows build has only been compared with Linux on the 2-D cases.
 - **3-D mounting.** Parametric 3-D cases (with a bend) are meshed
   flange-mounted (mouth flush with the plenum floor). A "free"-standing stack
