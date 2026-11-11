@@ -731,6 +731,17 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   0.194 -> 0.202, sharp 0.329 -> 0.340; rhoSimpleFoam the same (f 0.0221 -> 0.0178); no floor faces in the bore;
   same 183,554 cells, ~900 iterations, 11-18 min on one shared core. Exhaust-component mode unchanged (its 6% bend difference between builds fits the same defect;
   not proven). cfd/NOTES.md 4(c4).
+- First live runs on the owner's PC (2026-11-11, Fusion 2706.1.17, program 0.1.67, add-in 4.18.0 put there by script):
+  print split PASSES (fusion_live_printsplit.py: 3 pieces, no overlap, bore and outside flush, volume lost 1.929 cm3 =
+  expected, STLs fit and sit on the bed) after one fix: a Pipe's path can only be read with the timeline rolled to before
+  the feature ("Didn't roll editing feature back"); the roll clears the selection, so it is put back and the owner's real
+  click is kept for "the other end". Intake CFD from Fusion PASSES its read checks (flat and 3-D tubes, both ends,
+  plane_deg 139.246, program found and answering, OpenFOAM present; the test's 3-D tube is now one 3-D sketch) and a
+  coarse run through foamrun finished in 164 s (27,519 cells, rhoSimpleFoam, 908 iterations). Its number is NOT valid
+  yet: the installed 0.1.67 still writes slipFeatureAngle 30 and no grad(U) cache, so the square mouth read 3,561 Pa
+  (K 2.68) against 1,043 here with both fixes. Needs the next installer on the PC, then the same run again.
+- The owner's CAI re-run here with the friction fix (medium, CAD layout, simpleFoam): plain 1,043 Pa (1,050 before the
+  fix), 3.5 mm lip 660 Pa. The tab's "as a CFD reads it" figure: 1,093 (+5%) and 769 (+16%).
 - Intake CFD case takes the tab's bends (2026-11-10): the case the Intake tab writes now uses the tab's bend angles
   (listed from the mouth end), its centre-line radius and its rolled-lip radius (it placed every bend as 90 degrees at
   its own radius); the CFD panel can still override the radius and can say where each bend starts (mm from the mouth;
