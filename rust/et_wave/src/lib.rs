@@ -554,7 +554,9 @@ fn open_ghost(r: f64, u: f64, p: f64, x: f64, dir: f64, pa: f64, ta: f64, xa: f6
         }
         return [r * powf(pa / p, 1.0 / GAM), u, pa, x];
     }
-    let pg = jmin(p, pa);
+    // inflow chokes at the critical pressure ratio (as the page's openGhost, 2026-11-06)
+    let prc = powf(2.0 / (GAM + 1.0), GAM / G1);
+    let pg = jmax(prc * pa, jmin(p, pa));
     let tg = ta * powf(pg / pa, G1 / GAM);
     let v = jmax(0.0, 2.0 * CP * (ta - tg)).sqrt();
     [pg / (RG * tg), -dir * v, pg, xa]
