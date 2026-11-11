@@ -722,6 +722,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   motorcycle silencer names); b5_ui, jpipe_ui, spiral_ui and uel_ui read the new two-unit text. Light and dark themes:
   no text under 3:1 contrast on any tab (expert mode); every download button builds its file (.mr, OpenWAM, OpenFOAM
   intake and exhaust zips, cope and chamber DXFs, hanger DXF) without an error.
+- 3-D intake pipe friction fixed (2026-11-10): the 3-D cases read developed friction 22-25% above Colebrook. Not the
+  mesh or wall functions (y+ 45-51, wall shear within 5% of Colebrook as in 2-D): the conda-forge Linux build's
+  turbulence library evaluates the explicit stress term -div(nuEff dev2(T(grad U))) wrongly when grad(U) is a
+  temporary, a body force of ~20% of the wall stress (laminar pipe on the same mesh 1.247x Hagen-Poiseuille, 1.003x
+  without the term). Fix: 3-D intake cases write cache { grad(U); } in fvSolution (Python, Rust, page JS; no numerics
+  change). Straight 50 mm tube, Re 1e5, medium: f 0.0220 -> 0.0177 (Colebrook 0.0180, -1.7%); entrance K r/D 0.04
+  0.194 -> 0.202, sharp 0.329 -> 0.340; rhoSimpleFoam the same (f 0.0221 -> 0.0178); no floor faces in the bore;
+  same 183,554 cells, ~900 iterations, 11-18 min on one shared core. Exhaust-component mode unchanged (its 6% bend difference between builds fits the same defect;
+  not proven). cfd/NOTES.md 4(c4).
 - Intake CFD case takes the tab's bends (2026-11-10): the case the Intake tab writes now uses the tab's bend angles
   (listed from the mouth end), its centre-line radius and its rolled-lip radius (it placed every bend as 90 degrees at
   its own radius); the CFD panel can still override the radius and can say where each bend starts (mm from the mouth;
@@ -737,7 +746,8 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   99.7% layer coverage. cfd/NOTES.md 4(c3). The owner's CAI, plain end, after the fix: 1,106 Pa (4.4 inH2O) from the
   CAD STL (was 1,177) and 1,050 Pa (4.2) from the parametric case laid out as the CAD (30 deg at 100 mm, 84 deg at
   572 mm, no cone), 5% apart; the 3.5 mm lip 700-709 Pa (2.8). The 1-D tab (5.8 and 4.1 inH2O) runs about 30% high
-  against these. Still open: the 3-D medium mesh's pipe friction is ~25% above Colebrook (wall functions at ~D/26).
+  against these. The 3-D medium mesh's pipe friction ~25% above Colebrook was not the mesh (fixed the same day, see
+  the entry above); the CAI figures above were run before that fix, so their friction share reads high.
 - Intake bends and lip radius (2026-11-09): Intake tab takes each bend's angle ("84, 30") and the centre-line radius,
   and a rolled lip's radius. Bend K = Crane TP-410's 90 degree bend (multiples of f against r/D: 20, 14, 12, 12, 14, 17,
   24, 30 at 1 to 10 D) x Idelchik's angle factor A1 (replaces the fixed 0.2 per bend); lip K from Crane's rounded

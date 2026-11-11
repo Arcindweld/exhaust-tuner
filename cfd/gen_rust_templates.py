@@ -76,6 +76,8 @@ WANT = {
     "NU_PSOLV": ("numerics_files", '; p solver'), "NU_SOLVER": ("numerics_files", 'solver %s: %s'),
     "NU_TRANSONIC": ("numerics_files", 'transonic formulation'), "NU_RESID": ("numerics_files", 'residual targets'),
     "NU_WATCHDOG": ("numerics_files", 'watchdog run by'),
+    "NU_CACHE_GRADU": ("numerics_files", '\ncache\n{'), "NU_CACHE_PROV1": ("numerics_files", 'cache grad(U):'),
+    "NU_CACHE_PROV2": ("numerics_files", 'temporary, which one'),
     "CD_PROV1": ("control_dict", 'application %s chosen'), "CD_PROV2": ("control_dict", 'endTime %d'),
     "CD_PROV3": ("control_dict", 'function objects:'), "CD_PROV4": ("control_dict", 'each named plane'),
     "CD_PROV5": ("control_dict", 'Convergence stop:'), "CD_PROV6": ("control_dict", 'inflow mass flow changes'),
