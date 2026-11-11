@@ -69,6 +69,10 @@ def run(_context=None):
         res = ct.act_print_split({'bed_x_mm': 256, 'bed_y_mm': 256, 'bed_z_mm': 256, 'lap_mm': 20, 'clearance_mm': 0.15, 'density': 1.23})
         r.update({'msg': res.get('msg'), 'ok_reported': bool(res.get('ok'))})
         sp = res.get('split') or {}
+        # 4.19.0: every piece's STL meshed to 0.01 mm and measured round (roundcheck.py) by the add-in itself
+        r['roundness'] = [(q.get('name'), (q.get('roundness') or {}).get('verdict'), (q.get('roundness') or {}).get('worst_sag_mm'),
+                           ((q.get('roundness') or {}).get('largest') or {}).get('facets')) for q in sp.get('pieces') or []]
+        r['ok_round'] = bool(res.get('roundness_ok'))
         # act_print_split names the pieces '<body name> PRINT <n>'; the cut tools are open (surface) bodies
         pieces = [root.bRepBodies.item(i) for i in range(root.bRepBodies.count)
                   if root.bRepBodies.item(i).isSolid and root.bRepBodies.item(i).name.startswith('TUBE PRINT ')]
