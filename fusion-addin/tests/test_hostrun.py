@@ -1,6 +1,7 @@
 """hostrun.py, the panel's OpenWAM runs inside Fusion, with a stand-in solver (a shell script that writes what OpenWAM
 writes): the case written with CRLF inputs, every .wam model run in its own folder, finished only with OpenWAM's
-marker, the INS.DAT cut to its last four cycles, progress events, the result fetched in pieces, and a stop.
+marker, the INS.DAT cut to its last four cycles, progress events, the result fetched in pieces, and a stop (of all
+runs, and of one run by its id).
    python3 tests/test_hostrun.py"""
 import json
 import os
@@ -97,6 +98,30 @@ for _ in range(200):
         break
     time.sleep(0.05)
 ok(done.get('2', {}).get('ok') is False and 'Stopped' in done.get('2', {}).get('msg', '') and time.time() - t0 < 5, 'Stop ends a running model within seconds')
+
+# a stop with an id ends only that run; an unknown id ends nothing; no id ends them all
+done.clear()
+for jid in ('4', '5'):
+    HR.host_call({'id': jid, 'action': 'runOpenWAM', 'data': {'name': 's' + jid, 'files': [{'name': 'slow.wam', 'text': 'x\n'}]}})
+time.sleep(0.5)
+HR.host_cancel({'id': 'nope'})
+time.sleep(0.5)
+ok(not done, 'a stop for an id that is not running ends nothing')
+HR.host_cancel({'id': '4'})
+for _ in range(200):
+    if '4' in done:
+        break
+    time.sleep(0.05)
+time.sleep(0.5)
+ok(done.get('4', {}).get('ok') is False and 'Stopped' in done.get('4', {}).get('msg', ''), 'a stop with an id ends that run')
+ok('5' not in done, 'the other run keeps going')
+HR.host_cancel({})
+for _ in range(200):
+    if '5' in done:
+        break
+    time.sleep(0.05)
+ok(done.get('5', {}).get('ok') is False, 'a stop without an id ends every run')
+ok(HR.host_info().get('cancelsById') is True, 'hostInfo says the panel stops runs by id')
 
 r = HR.host_call({'id': 3, 'action': 'runEngineSim', 'data': {}})
 ok(r.get('ok') is False and 'program' in r.get('msg', ''), 'an action the panel cannot run says so')
