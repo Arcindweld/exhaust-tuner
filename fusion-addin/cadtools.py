@@ -3580,6 +3580,10 @@ def _ps_native(body):
     return body.nativeObject or body
 
 
+_PS_RESTORED = set()     # points of selections this module re-added after a timeline roll
+_CFD_CLICK = {}          # body entityToken -> the owner's last real click on it (mm)
+
+
 def _ps_pipe_path_ents(pf):
     """A Pipe feature's path curves. Fusion only gives a feature's inputs with the timeline rolled to just before it
     ("Didn't roll editing feature back" otherwise, found live 2026-11-11), so roll there, read, and put the marker back."""
@@ -3592,12 +3596,28 @@ def _ps_pipe_path_ents(pf):
     des = adsk.fusion.Design.cast(_app.activeProduct) if _app else adsk.fusion.Design.cast(adsk.core.Application.get().activeProduct)
     tl = des.timeline
     mark = tl.markerPosition
+    sels = adsk.core.Application.get().userInterface.activeSelections
+    kept = [sels.item(k).entity for k in range(sels.count)]      # rolling the timeline clears the selection
     tlo.rollTo(True)
     try:
         path = pf.path
         return [path.item(k).entity for k in range(path.count)]
     finally:
         tl.markerPosition = mark
+        for e in kept:
+            try:
+                sels.add(e)
+            except Exception:
+                pass
+        # a selection put back by code carries a point of Fusion's choosing, not the owner's click: note those points
+        # so act_cfd_tube can tell them from a real click (it keeps the click it read before the roll)
+        _PS_RESTORED.clear()
+        for k in range(sels.count):
+            try:
+                q = sels.item(k).point
+                _PS_RESTORED.add(tuple(round(c, 6) for c in _t(q)))
+            except Exception:
+                pass
 
 
 def _ps_find_path(body):
@@ -4170,6 +4190,26 @@ def act_cfd_tube(data):
         raise ValueError('That is a mesh body (an STL or a scan): the CFD test reads a solid tube with its centreline.')
     curves = [e for e in ents if _kind(e) == 'sketch']
     xf = lambda p: p
+    # the click, read before anything rolls the timeline (which clears the selection); a selection this module put
+    # back is not a click, so the last real click on this body stands in for it
+    pick = None
+    for it in items:
+        try:
+            if _kind(it.entity) == 'BRepFace' and it.point is not None:
+                raw = _t(it.point)
+                if tuple(round(c, 6) for c in raw) not in _PS_RESTORED:
+                    pick = tuple(10.0 * c for c in raw)
+                break
+        except Exception:
+            continue
+    try:
+        tok = body.entityToken
+    except Exception:
+        tok = None
+    if pick is not None:
+        _CFD_CLICK[tok] = pick
+    else:
+        pick = _CFD_CLICK.get(tok)
     if not curves:
         occ = None
         try:
@@ -4189,14 +4229,7 @@ def act_cfd_tube(data):
     segs = TC.trim(segs, s0, s1)
     L = TC.total(segs)
     # which end the air goes in
-    pick, how = None, 'the first end of its centreline'
-    for it in items:
-        try:
-            if _kind(it.entity) == 'BRepFace' and it.point is not None:
-                pick = tuple(10.0 * c for c in _t(it.point))
-                break
-        except Exception:
-            continue
+    how = 'the first end of its centreline'
     at_end = False
     if pick is not None:
         at_end = TC.nearest_s(segs, pick) > 0.5 * L

@@ -122,44 +122,29 @@ def run(_context=None):
             m1 = ln.addByTwoPoints(P(0, 0, 0), P(L1, 0, 0))
             m2 = ar.addByCenterStartSweep(P(L1, R, 0), m1.endSketchPoint, a1)
             s1 = m2.endSketchPoint.geometry
-            M = P(s1.x + 0.5 * L2 * d1[0], s1.y + 0.5 * L2 * d1[1], 0)
-            m3 = ln.addByTwoPoints(m2.endSketchPoint, M)
             A2 = (s1.x + L2 * d1[0], s1.y + L2 * d1[1], 0.0)
+            m3 = ln.addByTwoPoints(m2.endSketchPoint, P(*A2))
             # the carried frame after bend 1: n1 = bend 1's direction turned with the tube = (-sin a1, cos a1, 0); n2 = z
             phi = math.radians(o['phi'])
             k2 = (-math.sin(a1) * math.cos(phi), math.cos(a1) * math.cos(phi), math.sin(phi))
-            plane = None
-            for ang in (phi, -phi, math.pi - phi, phi - math.pi):
-                pin = root.constructionPlanes.createInput()
-                pin.setByAngle(m3, adsk.core.ValueInput.createByReal(ang), root.xYConstructionPlane)
-                pl = root.constructionPlanes.add(pin)
-                n = pl.geometry.normal
-                if abs(n.x * k2[0] + n.y * k2[1] + n.z * k2[2]) < 1e-6:
-                    plane = pl
-                    break
-                pl.deleteMe()
-            r['ok_3d_plane'] = plane is not None
-            sk2 = root.sketches.add(plane)
-            sk2.name = 'cai 3d b'
-            ln2, ar2 = sk2.sketchCurves.sketchLines, sk2.sketchCurves.sketchArcs
-            m4 = ln2.addByTwoPoints(sk2.modelToSketchSpace(M), sk2.modelToSketchSpace(P(*A2)))
+            # bend 2 leaves the sketch plane: drawn in the same sketch as a 3-D arc through three points (the first live
+            # run found a construction plane at an angle through a sketch line is not accepted as a sketch plane)
             C2 = tuple(A2[i] + o['R'] / 10.0 * k2[i] for i in range(3))
             n2v = (d1[1] * k2[2] - 0 * k2[1], 0 * k2[0] - d1[0] * k2[2], d1[0] * k2[1] - d1[1] * k2[0])     # t x k
             rel = tuple(A2[i] - C2[i] for i in range(3))
-            want_end = tuple(C2[i] + rel[i] * math.cos(a2) + (n2v[(i + 1) % 3] * rel[(i + 2) % 3] - n2v[(i + 2) % 3] * rel[(i + 1) % 3]) * math.sin(a2) for i in range(3))
-            m5 = None
-            for sw in (a2, -a2):
-                arc = ar2.addByCenterStartSweep(sk2.modelToSketchSpace(P(*C2)), m4.endSketchPoint, sw)
-                w = arc.endSketchPoint.worldGeometry
-                if math.dist((w.x, w.y, w.z), want_end) < 1e-4:
-                    m5 = arc
-                    break
-                arc.deleteMe()
-            r['ok_3d_arc'] = m5 is not None
+
+            def turned(a):
+                return tuple(C2[i] + rel[i] * math.cos(a) + (n2v[(i + 1) % 3] * rel[(i + 2) % 3] - n2v[(i + 2) % 3] * rel[(i + 1) % 3]) * math.sin(a) for i in range(3))
+            want_end = turned(a2)
+            r['ok_3d_plane'] = True
+            m5 = ar.addByThreePoints(m3.endSketchPoint, P(*turned(a2 / 2.0)), P(*want_end))
+            e5 = m5.endSketchPoint if math.dist(m5.endSketchPoint.geometry.asArray(), want_end) < 1e-4 else m5.startSketchPoint
+            r['ok_3d_arc'] = math.dist(e5.geometry.asArray(), want_end) < 1e-4
             t3 = tuple(math.cos(a2) * (d1[0], d1[1], 0)[i] + math.sin(a2) * k2[i] for i in range(3))
-            m6 = ln2.addByTwoPoints(m5.endSketchPoint, sk2.modelToSketchSpace(P(*[want_end[i] + L3 * t3[i] for i in range(3)])))
+            m6 = ln.addByTwoPoints(e5, P(*[want_end[i] + L3 * t3[i] for i in range(3)]))
+            m4 = None
             col = adsk.core.ObjectCollection.create()
-            for c in (m1, m2, m3, m4, m5, m6):
+            for c in (m1, m2, m3, m5, m6):
                 col.add(c)
             path3 = adsk.fusion.Path.create(col, adsk.fusion.ChainedCurveOptions.noChainedCurves)
             body3 = ct._pipe(root, path3, od, wall).bodies.item(0)
