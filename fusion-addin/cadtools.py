@@ -3580,6 +3580,26 @@ def _ps_native(body):
     return body.nativeObject or body
 
 
+def _ps_pipe_path_ents(pf):
+    """A Pipe feature's path curves. Fusion only gives a feature's inputs with the timeline rolled to just before it
+    ("Didn't roll editing feature back" otherwise, found live 2026-11-11), so roll there, read, and put the marker back."""
+    try:
+        path = pf.path
+        return [path.item(k).entity for k in range(path.count)]
+    except RuntimeError:
+        pass
+    tlo = pf.timelineObject
+    des = adsk.fusion.Design.cast(_app.activeProduct) if _app else adsk.fusion.Design.cast(adsk.core.Application.get().activeProduct)
+    tl = des.timeline
+    mark = tl.markerPosition
+    tlo.rollTo(True)
+    try:
+        path = pf.path
+        return [path.item(k).entity for k in range(path.count)]
+    finally:
+        tl.markerPosition = mark
+
+
 def _ps_find_path(body):
     """The path of the Pipe feature that made this body (its component's pipe features, nearest first)."""
     comp = body.parentComponent
@@ -3588,8 +3608,7 @@ def _ps_find_path(body):
     for i in range(comp.features.pipeFeatures.count):
         pf = comp.features.pipeFeatures.item(i)
         try:
-            path = pf.path
-            ents = [path.item(k).entity for k in range(path.count)]
+            ents = _ps_pipe_path_ents(pf)
             pts = []
             for e in ents:
                 g = _ps_curve_geo(e)
