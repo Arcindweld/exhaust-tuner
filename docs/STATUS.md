@@ -143,6 +143,18 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
 
 ## 2026-11-01: new interface, independent audit
+- Physics audit of the closed-form results (2026-11-11; docs/PHYSICS_AUDIT_2026-11-11.md): 57 formulas on the Headers,
+  4-Stroke, 2-Stroke, Mufflers, Sound, Crossover, Boom, Cats and boost/heat sections checked for units, basis, double
+  counting, validity and source, each with an independent worked example (tests/physaudit_ui.js, hook window.__physAudit).
+  FIXED: (D1) plug-muffler back pressure took the chamber area ratio where Munjal's eq. 8.7 wants the perforate's open area
+  over the pipe's (4.5 H against 2.8 H, +61 %); (D2) baffled-chamber back pressure charged the holes the pipe's dynamic head,
+  not the hole's (2.6 against 4.5 kPa on 50 mm holes at Mach 0.10), with a note past 10 % of the pressure (Crane TP-410);
+  (D3) the Sound tab's J-pipe kept the flat 0.3 d end correction the Mufflers tab had replaced with Ji 2005 (1 mm);
+  (D4) charge pipes used commercial-steel roughness for the aluminium/stainless tube the tab specifies (pipe friction +29 %),
+  now drawn tube 0.0015 mm; (D5) the Stone-chart agreement text overstated the fit. No existing expectation changed.
+  FOR DECISION (unchanged): air's gamma and R for exhaust-gas sound speed (c 1.3-1.8 % high); boom-tube roughness and
+  no diffuser loss below 8 deg; charge-pipe bend K 0.2 uncited; Munjal et al. 2013 cross-flow correlations give ~9.7 H
+  where the 1987 rule gives 2.8 H; long-tube ovaling without 1/(1 - nu^2) (4-8 % low); others in the audit file.
 - Stop per request (2026-11-10): the bridge's Stop was global (router.rs and MessageRouter.cs flagged every request in
   flight, hostrun.py stopped every job), so the automatic intake CFD superseding an older run, or any Stop button, also
   ended an OpenWAM run started on another tab. Now window.exhaustTunerHost.call() returns a promise with .id and

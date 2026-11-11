@@ -6616,7 +6616,9 @@ function calcSound(p){
   const dm=p.hd/1000, lm=p.hl/1000;
   const A=Math.PI*(dm/2)**2, Leff=lm+HELM_END*dm;
   const V=A*cr*cr/((2*Math.PI*p.hf)**2*Leff);
-  const quarter=cr/(4*p.hf)*1000-0.3*p.hd;
+  // the J-pipe's mouth end correction as the Mufflers tab's calcQW (Ji 2005 via Calton and Sommerfeldt 2017, eq. 3), not the flat
+  // 0.3 d (physics audit 2026-11-11); without a pipe size the flat value stays
+  const quarter=cr/(4*p.hf)*1000-(p.dpipe>0?branchEndCorr(p.hd,p.dpipe):0.3*p.hd);
   return {k,c,fire,res,cross,near,status,advice,band,pp,po,len,secs,nearIdle,idleAdvice,box,
     tone:r=>po.main.o*r/60,
     f:{idle:fire(p.idle),cruise:fire(p.cruise),red:fire(p.red)},
@@ -8661,6 +8663,8 @@ const VIZ_HP28=0.248, vizardHeadHp=(cfm28,cyl)=>VIZ_HP28*cfm28*cyl;
 const HEYWOOD_RUNNERS=[[780,106,3200],[680,104,4000],[520,101,4600]], SMITH_TRUMPETS=[[32.5,106,3300],[21.5,104,3900],[15,103,4300],[8,102,4700],[0,97,5000]];
 const HEYWOOD_LN=2.55e6, SMITH_LN=1.3e5, SMITH_PORT_IN=7;   // mm·rpm and in·rpm products fitted to those points by this page, not from the books
 if(typeof window!=='undefined') window.__b5Test={vizardPrimary,vizardId,smithPipe,boreStroke,rotaryEvents,ROT_PORTS,surgeCheck,TO4B,densRatio,boostAtCR,VIZ_BOOST,machIndex,TAYLOR_VALVES,CF_LD,vizardHeadHp,HEYWOOD_RUNNERS,SMITH_TRUMPETS};
+// test hook for tests/physaudit_ui.js (the closed-form worked examples of the 2026-11-11 physics audit)
+if(typeof window!=='undefined') window.__physAudit={calcFour,calcTwo,calcTwoBlair,calcPrimarySize,calcCross,calcHelm,calcQW,calcChamber,calcSound,mufBackPressure,calcBaffles,calcYasuda,calcDavies,calcHdrChamber,calcCharge,calcSkin,catDp,catGeom,densRatio,sos};
 /* ===== END MATH ===== */
 
 /* ----- resonance chamber on a header pipe (KTM, Kawasaki and Pro Circuit cans, FMF Megabomb and Powerbomb) ----- */
@@ -11728,7 +11732,7 @@ function b5BoostSections(ind,p,r){
   if(dr) h+=sec('Charge density after the compressor (Stone)',
     rowT('Density ratio, no intercooler',dr.noIC.toFixed(2)+' × outside air','PR ÷ [1 + (PR^0.286 − 1) ÷ η]; ideal would be '+(r.pr/Math.pow(r.pr,(GAMMA-1)/GAMMA)).toFixed(2)+', and the air leaves at '+tempStr(t2))+
     (cp?rowT('With the intercooler at '+Math.round(ice*100)+'% effectiveness',dr.ic.toFixed(2)+' ×','ε = (T₂ − T₃) ÷ (T₂ − T₁) with the air cooled toward '+tempStr(p.tamb)+'; it leaves at '+tempStr(t3)+'; 100% would give '+r.pr.toFixed(2)):'')+
-    rowT('Check against Stone’s chart','PR 2: 1.65 ideal, 1.60 at η 0.8, 1.55 at 0.7, 1.50 at 0.6, 1.45 at 0.5; with an intercooler at η 0.7: 1.75 at ε 0.6, 1.80 at 0.7, 1.85 at 0.8','PR 3 at η 0.7: about 1.9 without, 2.5 to 2.7 with; the formula lands within 0.03 of the chart')+
+    rowT('Check against Stone’s chart','PR 2: 1.65 ideal, 1.60 at η 0.8, 1.55 at 0.7, 1.50 at 0.6, 1.45 at 0.5; with an intercooler at η 0.7: 1.75 at ε 0.6, 1.80 at 0.7, 1.85 at 0.8','PR 3 at η 0.7: about 1.9 without, 2.5 to 2.7 with; the formula lands within about 0.03 of the chart at η 0.7 and 0.8 and with the intercooler, 0.035 low at η 0.6, 0.06 low at η 0.5 and 0.07 high on the PR 3 “about 1.9”')+
     '<p class="cap">Richard Stone, <i>Introduction to Internal Combustion Engines</i>, charge-density chart and formulas as reproduced on a 2025 lecture deck (slide 55): ρ₂/ρ₁ = PR ÷ [1 + (PR^((γ−1)/γ) − 1)/η_c], and with an intercooler T₃ = T₁[1 + (1 − ε)(PR^((γ−1)/γ) − 1)/η_c]. Density is what boost buys; the pressure ratio alone overstates it by the heating, and a compressor working off its island (the surge check above) heats more. Map efficiencies also include heat soaked into the housings, which Olmeda and colleagues put at up to 45% of the exhaust energy at low speed and load (Mathematical and Computer Modelling 57, 2013, pp. 1847 to 1852), so a turbine-outlet temperature read from a map or the isentropic formula is far off at light load.</p>');
   // boost against compression ratio and octane (Vizard 1983)
   { const ptsOf=c=>c[1].slice().sort((a,b)=>b[0]-a[0]).map(q=>q[0]+':1 → '+pB(q[1])).join(' · ');
@@ -14718,9 +14722,11 @@ function renderMuf(){
     rowT('Annulus area ÷ pipe area',(pg.S2/pg.S1).toFixed(2))+
     rowT('Curve holds up to about',hzs(pg.fCut),'the shell’s first cross mode')+
     (()=>{ const M=val('m-mach'); if(!(M>0)) return rowT('Back pressure','set the mean flow above','the flow has to cross the holes twice, so a plug muffler costs more than a chamber');
-      const n=(p.dpipe/p.dch)**2, bp=mufBackPressure(M,101325,[{kind:'crossflow',n,what:'through the holes, round the plug and back'}]);
+      // Munjal 1987, 8.3 (eq. 8.7): n is the open area of the perforate (one side of the plug: porosity x pi d x its length)
+      // over the pipe's area, the area the gas jets through; physics audit 2026-11-11: the chamber ratio (d/D)^2 was passed here
+      const n=4*(val('m-por')/100)*val('m-plugl')/p.dpipe, bp=mufBackPressure(M,101325,[{kind:'crossflow',n,what:'through the holes, round the plug and back'}]);
       const show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
-      return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'about '+bp.rows[0].k.toFixed(1)+' dynamic heads, H = '+show(bp.H)+' (Munjal 1987, 8.3: a cross-flow element costs 2 to 4 H, a plain chamber under 1 H)'); })()+
+      return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'about '+bp.rows[0].k.toFixed(1)+' dynamic heads with the holes’ open area '+n.toFixed(2)+' × the pipe’s, H = '+show(bp.H)+' (Munjal 1987, 8.3: a cross-flow element costs 2 to 4 H, a plain chamber under 1 H)'); })()+
     '<p class="cap">The inlet pipe is plugged at the end of its holes and the shell is closed behind each perforate, so all the gas and all the sound go out through the inlet holes into the annulus and back in through the outlet holes: Munjal’s cross-flow expansion and cross-flow contraction elements under one shell (<i>Acoustics of Ducts and Mufflers</i>, 1987, 3.8.1, Fig. 3.10b–c), carried by the same coupled plane-wave equations as the packed can with his boundary conditions (eqs. 3.120 and 3.122, end pockets closed up) and Sullivan’s cross-flow perforate impedance (eq. 3.153). The packing density above fills the annulus if it is set. Cross-flow elements cut more, and more evenly, than a chamber of the same size, and the flow through the holes adds damping that smooths the curve; the price is back pressure.</p>');
   if(bf) html+=sec('Baffled chambers (low-pass filter)',bf.err?'<div class="note bad">'+esc(bf.err)+'</div>':
     rowT('Chambers',bf.N+' × '+clen(bf.l),'holes '+cdim(val('m-bh')>0?val('m-bh'):p.dpipe)+' through '+cdim(val('m-pw')>0?val('m-pw'):1.5)+' baffles')+
@@ -14730,9 +14736,12 @@ function renderMuf(){
     rowT('Curve holds up to about',hzs(bf.fCut),'the shell’s first cross mode'+(bf.lumped?'':'; and each chamber is not short next to the wavelength at f₀ ('+clen(bf.l)+' against '+clen(bf.c/bf.f0*1000)+'), so the chambers’ own length resonances, which this filter leaves out, sit inside the band'))+
     (()=>{ const M=val('m-mach'); if(!(M>0)) return '';
       const n=(p.dpipe/((val('m-bh')>0?val('m-bh'):p.dpipe)))**2, nh=Math.min(1,((val('m-bh')>0?val('m-bh'):p.dpipe)/p.dch)**2), nc=(p.dpipe/p.dch)**2;
-      const items=[{kind:'expansion',n:nc,what:'pipe into the first chamber'}]; for(let i=1;i<bf.N;i++) items.push({kind:'contraction',n:nh,what:'into baffle hole '+i},{kind:'expansion',n:nh,what:'out of baffle hole '+i}); items.push({kind:'contraction',n:nc,what:'last chamber into the pipe'});
-      const bp=mufBackPressure(M,101325,items), show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
-      return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'each baffle hole is a contraction and an expansion (Munjal 1987, eq. 8.4), on top of the chamber’s own'); })()+
+      const items=[{kind:'expansion',n:nc,what:'pipe into the first chamber'}], holes=[]; for(let i=1;i<bf.N;i++) holes.push({kind:'contraction',n:nh,what:'into baffle hole '+i},{kind:'expansion',n:nh,what:'out of baffle hole '+i}); items.push({kind:'contraction',n:nc,what:'last chamber into the pipe'});
+      // Munjal 1987, eq. 8.4: each loss is in dynamic heads of the flow in the narrow section, here the hole, whose Mach number is
+      // the pipe's × pipe area ÷ hole area (n); physics audit 2026-11-11: the holes were charged the pipe's head
+      const bp=mufBackPressure(M,101325,items), bh=mufBackPressure(M*n,101325,holes), tot=bp.total+bh.total, show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
+      // Crane TP-410 (ch. 1, compressible flow): incompressible losses hold within about 10% of the inlet pressure
+      return rowT('Back pressure at Mach '+M.toFixed(2),show(tot),'each baffle hole is a contraction and an expansion at the hole’s own speed, Mach '+(M*n).toFixed(2)+' (Munjal 1987, eq. 8.4), on top of the chamber’s own'+(tot>0.1*101325?'; <b>over 10% of the pressure, past where Crane TP-410 lets these incompressible losses stand: read it as a lower bound and open the holes up</b>':'')); })()+
     '<p class="cap">Morse and Ingard’s chain filter (<i>Theoretical Acoustics</i>, 9.1, eqs. 9.1.31–35): a row of equal chambers joined by holes is a ladder of air masses (the holes) and springs (the chambers). Below f₀ = (c ÷ π) √(S₀ ÷ (D₀ S l)) it passes nearly everything, above the cut-off 2 f₀ true wave motion through the chain is impossible and each chamber adds 8.69 acosh(½ (f ÷ f₀)² − 1) dB. It is the closed form behind the baffle rules quoted under Muffler types (a smaller or farther-apart hole lowers f₀; more chambers steepen the roll-off). Lossless and long-wave only: real baffles leak round the edges and the holes make flow noise, so take the dB per chamber as an upper bound, and read the plain-chamber curve for the chambers’ own length resonances.</p>');
   } else html+=sec('Packed straight-through can','<div class="note bad">'+esc(ab.err)+'</div>');
 
@@ -19533,7 +19542,10 @@ function calcCharge(q){
   const dFor=v=>Math.sqrt(4*Qn/(Math.PI*v))*1000, dHi=dFor(200*0.3048), dLo=dFor(300*0.3048);
   const pAbs=P_ATM*q.pr, t3=q.t2-(q.eff>0?q.eff:0)*(q.t2-q.tamb);
   const m=Qn*rhoGas(q.t1);                                                              // kg/s through each pipe
-  const side=(L,tC,pB)=>{ const rho=pB/(R_AIR*(tC+273.15)), v=m/(rho*A), qd=rho*v*v/2, Re=rho*v*(q.d/1000)/visc(tC), f=haaland(Re,q.d/1000);
+  // wall: drawn tubing 0.0015 mm (Moody 1944, Crane TP-410 A-23), the 6061/6063 aluminium or 304 stainless tube this section
+  // builds the pipes from; the page-wide ROUGH is commercial steel pipe (physics audit 2026-11-11). Haaland as haaland().
+  const fTube=(Re,D)=>Re<2300?64/Re:1/Math.pow(-1.8*Math.log10(Math.pow(1.5e-6/D/3.7,1.11)+6.9/Re),2);
+  const side=(L,tC,pB)=>{ const rho=pB/(R_AIR*(tC+273.15)), v=m/(rho*A), qd=rho*v*v/2, Re=rho*v*(q.d/1000)/visc(tC), f=fTube(Re,q.d/1000);
     return {rho,v,dp:f*(L/q.d)*qd,qd}; };
   const hot=side(q.Lh,q.t2,pAbs), cold=side(q.Lc,t3,pAbs-(q.dpIC||0)*1000);
   const kB=0.2*Math.max(0,q.bends||0), dpB=kB*(hot.qd+cold.qd)/2;
@@ -19612,7 +19624,7 @@ function fiSection0(ind,p,r){
         '<li><b>Sensors:</b> the air temperature sensor goes after the intercooler, in the moving air near the throttle, never in a dead corner or the back of the plenum (Haltech). Common bungs are ⅜ NPT for GM-style sensors and M14 × 1.5 for the small-thread type; check the sensor, both are sold as “GM”. Welding can distort a bung’s thread, so re-tap it afterwards (Hawks). Boost reference and MAP lines come off the manifold after the throttle, each its own line, with the MAP sensor above injector level so fuel cannot run down into it (Haltech).</li>'+
         '<li><b>Test:</b> pressurise the system to check clamps, couplers and tank welds before the first drive (Garrett); apply pressure slowly and stand clear above about 10 psi, and find leaks with soapy water (FrozenBoost).</li></ul>'+
         '<p class="cap">Sources: <a href="https://everyspec.com/MS-Specs/MS3/MS33000-MS33999/MS33660D_8939/" target="_blank" rel="noopener">MS33660D</a>, <a href="https://saemobilus.sae.org/content/J1231_202104" target="_blank" rel="noopener">SAE J1231</a>, <a href="https://samcosport.com/installation-and-care/" target="_blank" rel="noopener">Samco</a>, the Vibrant 2024 catalog (pages 32 to 41 and 81 to 90), <a href="https://hpsperformanceproducts.com/products/hps-90-degree-bend-aluminum-elbow-pipe-tubing-piping-tube-intake-intercooler" target="_blank" rel="noopener">HPS</a>, <a href="https://turbosmart.gorgias.help/en-US/genv-raceport-blow-off-valve-instructions-5121080" target="_blank" rel="noopener">Turbosmart</a>, <a href="https://sdda.semadata.org/Standard/Go%20Fast%20Bits/T9035%20Instructions.pdf" target="_blank" rel="noopener">GFB</a>, <a href="https://cdn.shopify.com/s/files/1/0258/4752/9565/files/Reduced_Size_Q_QR_DATA_SHEET.pdf" target="_blank" rel="noopener">TiAL</a>, <a href="https://support.haltech.com/portal/en/kb/articles/inlet-air-temperature-sensor-7-4-2020" target="_blank" rel="noopener">Haltech</a>, <a href="https://frozenboost.com/intercooler-pipe-fabrication-a-intercooler_pipe_fabrication.html" target="_blank" rel="noopener">FrozenBoost</a>. Where makers disagree both are given; the Turbosmart silicone rating of 220 psi for a 3 in coupler is far above Vibrant’s 35 psi for the same size, so the lower figure is the working limit here.</p>'+
-        '<p class="cap">From <a href="https://www.garrettmotion.com/racing-and-performance/choosing-a-turbocharger/turbo-system-optimization/" target="_blank" rel="noopener">Garrett’s Turbo System Optimization</a> and <a href="https://www.garrettmotion.com/knowledge-center-category/racing-and-performance/how-to-size-charge-air-tubing/" target="_blank" rel="noopener">How to Size Charge Air Tubing</a>. Pressure loss is Darcy friction at the actual boosted density plus 0.2 velocity heads per bend; the fill time is the extra air the pipes hold at boost divided by the full-power airflow, so real spool-up is longer.</p>');
+        '<p class="cap">From <a href="https://www.garrettmotion.com/racing-and-performance/choosing-a-turbocharger/turbo-system-optimization/" target="_blank" rel="noopener">Garrett’s Turbo System Optimization</a> and <a href="https://www.garrettmotion.com/knowledge-center-category/racing-and-performance/how-to-size-charge-air-tubing/" target="_blank" rel="noopener">How to Size Charge Air Tubing</a>. Pressure loss is Darcy friction (smooth drawn aluminium or stainless tube, 0.0015 mm) at the actual boosted density plus 0.2 velocity heads per bend; the fill time is the extra air the pipes hold at boost divided by the full-power airflow, so real spool-up is longer.</p>');
     }
   }
   return cp+sec('Boosted intake',h+'<ul class="list">'+list.join('')+'</ul><p class="cap">Sources: <a href="https://compressortech2.com/news/what-is-the-ideal-inlet-piping-length-for-centrifugal-compressors/8022678.article" target="_blank" rel="noopener">CompressorTech², on ASME PTC inlet piping</a>; <a href="https://www.enginelabs.com/?p=167650" target="_blank" rel="noopener">EngineLabs on the ProCharger bellmouth</a>; <a href="https://www.procharger.com/?p=9829" target="_blank" rel="noopener">ProCharger on blow-off valves</a>. Compressor outlet temperature is the ideal-gas compression formula with the efficiency you enter.</p>');
