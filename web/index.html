@@ -1276,6 +1276,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><select id="i-mouth"><option value="plain">Plain cut tube</option><option value="radius" selected>Rolled lip or radius</option><option value="ellipse">Elliptical bellmouth</option></select></span></label>
         <label class="f" id="i-lipr-wrap"><span class="lab">Lip radius, blank for a full roll</span>
           <span class="inp"><input id="i-lipr" type="number" step="any" inputmode="decimal" data-kind="len"><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Tube finish (inside wall)</span>
+          <span class="inp"><select id="i-finish"><option value="smooth" selected>Smooth: drawn aluminium or stainless, mandrel bends, silicone hose</option><option value="print02">3D printed as printed, about 0.2 mm (0.008 in) layers</option><option value="print03">3D printed as printed, about 0.3 mm (0.012 in) layers</option><option value="blasted">3D printed, sand or bead blasted</option><option value="sanded">3D printed, wet sanded to 600 grit or finer</option><option value="steel">Commercial steel pipe</option></select></span></label>
         <div class="grid2" id="i-box-wrap" style="grid-column:1/-1" hidden>
           <label class="f"><span class="lab">Airbox volume</span>
             <span class="inp"><input id="i-boxv" type="number" step="any" inputmode="decimal" data-kind="disp" data-base="8000"><em data-u="disp">cu in</em></span></label>
@@ -9546,6 +9548,29 @@ const INTAKE_KSHARP=0.5;
    numbers; the page-wide ROUGH (commercial steel, 0.045 mm) put f 23% high on the owner's CAI (0.0181 against 0.0147). */
 const INTAKE_ROUGH=1.5e-6;
 const fSmooth=(Re,D)=>Re<2300?64/Re:1/Math.pow(-1.8*Math.log10(Math.pow(INTAKE_ROUGH/D/3.7,1.11)+6.9/Re),2);   // Haaland
+/* Tube finish (Intake tab "Tube finish"): equivalent sand-grain roughness ks, metres, for Haaland's formula. No study to
+   hand measures the friction factor of a printed tube at intake Reynolds numbers (Harmon et al., "A design framework for
+   engineered roughness in additively manufactured thermoplastic pipes", Int. J. Interact. Des. Manuf. 20 (2026)
+   3845-3870, saw no measurable change at Re 6,300 only, where layer ridges sit inside the viscous layer), so the printed
+   rows are measured Ra converted to ks with Adams, Grant and Watson's eps = 5.863 Ra ("A simple algorithm to relate
+   measured surface roughness to equivalent sand-grain roughness", Int. J. Mech. Eng. Mechatronics 1 (2012), article 008,
+   https://ijmem.avestia.com/2012/PDF/008.pdf; a packed-sphere surface, checked against water-flow friction in metal pipes,
+   not against layer lines, so take these ks as good to about a factor of 2: Botros's ks = 1.306 Rq + 0.078 Rq^2, um, as
+   Zilio et al. use it, J. Braz. Soc. Mech. Sci. Eng. 48 (2026) 589, gives a half to two thirds of them).
+   Ra: Kocisko, Stafura, Goryl and Mitalova, "Evaluation of the effect of post-processing methods on the surface parameters
+   of parts produced by FFF/FDM technology", Materials 18 (2025) 4672, https://doi.org/10.3390/ma18204672 (PLA, tactile,
+   Mitutoyo SJ-400): as printed 16.89 um at 0.22 mm layers and 23.14 um at 0.32 mm, sandblasted 2.62 um, wet sanded
+   (SiC 600-2000-4000 grit, on their 0.52 mm-layer parts) 0.72 um; the stylus direction is not stated; Jablonska and Lastowska, Materials 17 (2024) 4250 (PETG, 0.2 mm layers, Ra 12.9-13.6 um,
+   ks 0.076-0.080 mm by the same rule) agrees with the 0.2 mm row. Commercial steel 0.045 mm: Moody (1944), the page's ROUGH.
+   Coated or primed prints are left out: no measured Ra of a coated print was found. */
+const INTAKE_FINISH={
+  smooth:{ks:INTAKE_ROUGH,name:'smooth tube',src:'drawn tubing, Crane TP-410 A-23 and Moody'},
+  print02:{ks:5.863*16.89e-6,name:'3D printed, as printed (0.2 mm layers)',src:'Ra 16.9 µm at 0.22 mm layers (Kočiško et al. 2025) × 5.863 (Adams et al. 2012)'},
+  print03:{ks:5.863*23.14e-6,name:'3D printed, as printed (0.3 mm layers)',src:'Ra 23.1 µm at 0.32 mm layers (Kočiško et al. 2025) × 5.863 (Adams et al. 2012)'},
+  blasted:{ks:5.863*2.62e-6,name:'3D printed, blasted',src:'Ra 2.6 µm after sandblasting (Kočiško et al. 2025) × 5.863 (Adams et al. 2012)'},
+  sanded:{ks:5.863*0.72e-6,name:'3D printed, wet sanded',src:'Ra 0.72 µm after wet sanding to 4000 grit (Kočiško et al. 2025) × 5.863 (Adams et al. 2012)'},
+  steel:{ks:4.5e-5,name:'commercial steel pipe',src:'Moody 1944'}};
+const fFinish=(Re,D,ks)=>Re<2300?64/Re:1/Math.pow(-1.8*Math.log10(Math.pow(ks/D/3.7,1.11)+6.9/Re),2);   // Haaland, as fSmooth
 /* Kinetic-energy coefficient of a developed turbulent profile, 1/7 power law: alpha = (n+1)^3 (2n+1)^3 / (4 n^4 (n+3)(2n+3))
    = 1.058 at n 7 (Idelchik ch. 1; Miller, Internal Flow Systems, ch. 8). Handbook K values (entrance, bends) are set
    against static pressure less one uniform velocity head, measured once the flow has re-developed; a CFD that reports the
@@ -9602,7 +9627,8 @@ function calcIntake(p){
   const jenvey=[[35,40],[40,42],[45,45],[55,48],[65,50]];
   if(itbRec&&itbRec.hpCyl){ const row=jenvey.find(r=>itbRec.hpCyl<=r[0])||jenvey[jenvey.length-1]; itbRec.jenvey=row[1]; itbRec.jenveyOver=itbRec.hpCyl>65; }
   // pressure drop: friction, the bends, and the inlet's vena contracta (Borda–Carnot)
-  const rho=rhoGas(p.tin), q=rho*v*v/2, Re=rho*v*(p.dt/1000)/visc(p.tin), f=fSmooth(Re,p.dt/1000);
+  const finish=INTAKE_FINISH[p.finish]?p.finish:'smooth', ks=INTAKE_FINISH[finish].ks;
+  const rho=rhoGas(p.tin), q=rho*v*v/2, Re=rho*v*(p.dt/1000)/visc(p.tin), fS=fSmooth(Re,p.dt/1000), f=finish==='smooth'?fS:fFinish(Re,p.dt/1000,ks);
   // the elliptical bell's Cd rises a little with the pressure ratio across it (Blair and Cahoon's steady-rig fit, quoted in the
   // Perth College bellmouth thesis: Cd = 1.7869 - 2.9326 PR + 2.5275 PR^2 - 0.6446 PR^3, PR = upstream total / downstream static,
   // 0.740 at 1.015 to 0.756 at 1.08); PR here from the dynamic pressure at the bell's throat, held inside the fit's 1.01 to 1.10
@@ -9622,7 +9648,10 @@ function calcIntake(p){
   const dpF=f*(lStr/p.dt)*q, dpB=kBends.reduce((a,k)=>a+k,0)*q, dpIn=kIn*q, dp=dpF+dpB+dpIn;
   // the tube alone at the tract end on a CFD's basis (mass-weighted total pressure): the developed profile's (alpha - 1) q
   // is not lost yet (ALPHA_DEV). No filter or throttle term is in dp, so this is like for like with a bare-tube CFD.
-  const dpEnd=Math.max(0,dp-(ALPHA_DEV-1)*q);
+  // The CFD case has smooth walls, so this like-for-like figure is the smooth tube's whatever finish is chosen (INTAKE_FINISH);
+  // dpSmooth is the whole loss with a smooth wall, and dp - dpSmooth is what the finish costs (friction and the bends' f).
+  const kBendsS=bendList.map(a=>bendK(a,clrD,fS)), dpSmooth=fS*(lStr/p.dt)*q+kBendsS.reduce((a,k)=>a+k,0)*q+dpIn;
+  const dpEnd=Math.max(0,dpSmooth-(ALPHA_DEV-1)*q);
   const kOf=k=>k==='plain'?INTAKE_KSHARP:(1/cdOf(k)-1)**2;
   const inl=Object.keys(INTAKE_CD).map(k=>({k,cd:cdOf(k),K:kOf(k),dp:kOf(k)*q}));
   // filter capacity (K&N's rule), inches
@@ -9693,7 +9722,7 @@ function calcIntake(p){
   if(tbRange&&(p.dt<tbRange[0]*0.97)) notes.push({k:'warn',t:'The tube is smaller than the throttle body calls for: Dave Thompson’s rule is a tube area about 1.25 to 1.33 times the throttle bore area.'});
   if(fcap!=null&&fcap<kn.cfm) notes.push({k:'warn',t:'By K&N’s rule this filter flows less air than the engine needs at full power. Use a taller or wider filter.'});
   if(p.mouth==='plain') notes.push({k:'info',t:'A plain, sharp-edged tube end costs flow: Blair and Cahoon found even a simple radius gives about 16% more airflow at the same pressure difference.'});
-  return {pr,Q,Qt,cfm:Q*CFM,kn,A,v,vmax,dRec,tbRange,tbRec,itbRec,rho,q,Re,f,cd,kIn,dpF,dpB,dpIn,dp,dpEnd,alpha:ALPHA_DEV,lStr,arcMM,inl,lipRD,bendList,kBends,clrD,fcap,farea,ratioT,ratioP,ratio,ruleT,bell,tr,runner,vizard,magnante,ram,
+  return {pr,Q,Qt,cfm:Q*CFM,kn,A,v,vmax,dRec,tbRange,tbRec,itbRec,rho,q,Re,f,fS,finish,ks,dpSmooth,cd,kIn,dpF,dpB,dpIn,dp,dpEnd,alpha:ALPHA_DEV,lStr,arcMM,inl,lipRD,bendList,kBends,clrD,fcap,farea,ratioT,ratioP,ratio,ruleT,bell,tr,runner,vizard,magnante,ram,
     c,plen,res,cross,near,wot,band,target,qw,helm,whistle,mouthCorr,maf,notes};
 }
 
@@ -18967,29 +18996,31 @@ function cfdReadFiles(list){
 }
 // Desktop program: run the same case with the bundled OpenFOAM (built for Windows from ESI's v2412 source by this
 // project, serial) and the case's own report script; the results join the table like a picked results.json.
-async function cfdRun(){
+async function cfdRun(hook){   // hook (the automatic test, cfdAuto below): sees each progress event; the return value says how the run ended
   if(!HOST) return;
   let out;
-  try{ out=cfdBuild(); }catch(e){ cfdMsg((e&&e.name==='DesignError'?'This design cannot be meshed: ':'Intake CFD: ')+e.message,true); return; }
+  try{ out=cfdBuild(); }catch(e){ cfdMsg((e&&e.name==='DesignError'?'This design cannot be meshed: ':'Intake CFD: ')+e.message,true); return {stage:'build',err:e}; }
   window.__cfdLast=out;
   const pre=out.name+'/', files=out.files.map(f=>({name:f.name.startsWith(pre)?f.name.slice(pre.length):f.name,text:f.text,exec:!!f.exec}));
   cfdMsg('Running '+out.name+' in OpenFOAM on this PC'+(out.is3d?' (3-D: the generator writes the snappyHexMesh case first)':'')+'.');
   let res;
   try{
     res=await HOST.call('runOpenFOAM',{name:out.name,files},ev=>{
+      if(hook) hook(ev);
       if(ev.event==='step') cfdMsg('OpenFOAM: '+({generate:'writing the 3-D case',report:'reading the results'}[ev.step]||ev.step)+'.');
       else if(ev.event==='progress') cfdMsg('OpenFOAM '+ev.step+': iteration '+ev.iteration+(ev.of?' (at most '+ev.of+')':'')+', '+ev.seconds+' s. The run stops by itself once the airflow and the plane pressures have settled.');
     });
-  }catch(e){ cfdMsg('OpenFOAM did not run: '+e.message,true); return; }
+  }catch(e){ cfdMsg('OpenFOAM did not run: '+e.message,true); return {stage:'call',err:e,out}; }
   window.__cfdRunLast=res;
   if(res&&res.folder) CFD_UI.lastFolder=res.case||res.folder;
-  if(!res||!res.ok){ renderActive(); cfdMsg('OpenFOAM: '+((res&&res.msg)||'the run failed.')+(res&&res.folder?' The case and its logs are in '+res.folder+'.':''),true); return; }
+  if(!res||!res.ok){ renderActive(); cfdMsg('OpenFOAM: '+((res&&res.msg)||'the run failed.')+(res&&res.folder?' The case and its logs are in '+res.folder+'.':''),true); return {stage:'run',res,out}; }
   const st=(res.steps||[]).find(x=>x.step===res.solver)||{};
   CFD_UI.results=CFD_UI.results.filter(c=>c.name!==out.name).concat([cfdParse(out.name,JSON.stringify(res.results))]);
   window.__cfdResults=CFD_UI.results;   // for the tests
   renderActive();
   cfdMsg(res.solver+': '+res.iterations+' iterations in '+Math.round(st.seconds||0)+' s, '+(st.stoppedBy==='convergence'?'stopped once settled':'stopped at the iteration cap')+'. '+
     (res.meshWarning?res.meshWarning+'. ':res.meshNote?res.meshNote+'. ':'')+'Results are in the table below; the case is in '+res.case+'.',!!res.meshWarning);
+  return {stage:'done',res,out};
 }
 function cfdSection(p,r){
   CFD_LAST={p,r};
@@ -19022,7 +19053,7 @@ function cfdSection(p,r){
   }
   h+='<div class="actions" style="margin-top:8px"><button type="button" class="btn" id="cfd-dl" data-cfd="dl">Download OpenFOAM case (.zip)</button>'+
     (hostHas('openfoam')?'<button type="button" class="btn" data-cfd="run">Run in OpenFOAM on this PC</button><button type="button" class="btn" data-cfd="stop">Stop</button>'+
-      (CFD_UI.lastFolder?'<button type="button" class="btn" data-cfd="open">Open the case folder</button>':''):'')+'</div>'+
+      (CFD_UI.lastFolder?'<button type="button" class="btn" data-cfd="open">Open the case folder</button>':''):'')+'</div>'+cfdAutoHtml()+
     '<div class="note'+(CFD_UI.msg&&CFD_UI.msg.bad?' bad':'')+'" id="cfd-msg"'+(CFD_UI.msg?'':' hidden')+'>'+(CFD_UI.msg?esc(CFD_UI.msg.t):'')+'</div>';
   h+='<p class="sub" style="margin-top:14px">Read the results</p><p class="cap">After <code>./Allrun</code> finishes, pick the <b>results.json</b> from each case folder (several at once to compare shapes). PR is the ambient total pressure over the area-averaged static pressure at the plane, Blair and Cahoon’s flow-bench definition; K is the total-pressure loss from the atmosphere to the plane in dynamic heads of the plane’s bulk velocity; Cd is the mass flow over the isentropic flow through the plane area at that PR; the uniformity index is 1 for a perfectly even velocity profile.</p>'+
     '<label class="f"><span class="lab">results.json files</span><span class="inp"><input type="file" id="cfd-files" multiple accept=".json,application/json"></span></label>';
@@ -19041,6 +19072,7 @@ function cfdSection(p,r){
     if(lines.length) h+='<ul class="list" id="cfd-reading">'+lines.map(t=>'<li>'+t+'</li>').join('')+'</ul>';
     h+='<p class="cap">For reference, on a 23 mm pipe at PR 1.039 the generator gives K 0.38 and Cd 0.786 for a square-cut end, K 0.046 and Cd 0.963 for a 6 mm radius and K 0.012 and Cd 0.985 for the elliptical bellmouth (tract-end plane, medium mesh). Compare cases run at the same airflow and mesh level.</p>';
   }
+  h+=cfdAutoEnd();
   return '<div class="adv" id="intake-cfd">'+sec('Intake CFD (OpenFOAM)',h)+'</div>';
 }
 window.__cfd={design:()=>CFD_LAST?cfdDesign(CFD_LAST.p,CFD_LAST.r):null,build:cfdBuild,download:cfdDownload,run:cfdRun,ui:CFD_UI,lib:IntakeCFD};   // for the Fusion add-in and tests
@@ -19050,6 +19082,126 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-cfd
 document.addEventListener('input',e=>{ const el=e.target.closest('input.cfdx'); if(!el) return; const k=el.dataset.k; CFD_UI[k]=k==='ff'?(parseFloat(el.value)||1):el.value; });
 document.addEventListener('change',e=>{ const el=e.target.closest('select.cfdx'); if(el){ const k=el.dataset.k; if(k==='cone') CFD_UI.cone=el.value==='1'; else CFD_UI[k]=el.value; renderActive(); return; }
   const f=e.target.closest('#cfd-files'); if(f&&f.files&&f.files.length) cfdReadFiles(f.files); });
+/* Automatic intake test (the desktop program only, where the page can run OpenFOAM): when the design the CFD case is built
+   from (window.__cfd.design(): geometry, operating point, air temperature, mesh level) changes and the inputs have been
+   idle for AC_IDLE, the page runs the case itself through cfdRun, the same path as the button. A run for an older design
+   is stopped first with the program's Stop (HOST.cancel(); note it stops every run the program has going, as the button
+   does); one run waits at most. Results are kept per design (in memory, and the last AC_KEEP summaries in localStorage),
+   so going back to a design shows its result without a rerun; a failure or a Stop is not retried for that design. */
+const AC_IDLE=4000, AC_KEEP=10, AC_KEY='exhaust-autocfd-v1', AC_ON_KEY='exhaust-autocfd-on';
+const AC={on:true,timer:null,seen:null,run:null,next:null,status:null,cache:new Map(),fail:new Map(),noFoam:false,poked:false,started:0};
+try{ const v=localStorage.getItem(AC_ON_KEY); if(v==='0') AC.on=false; }catch(e){}
+try{ const L=JSON.parse(localStorage.getItem(AC_KEY)||'[]'); if(Array.isArray(L)) L.forEach(x=>{ if(x&&x.h&&Number.isFinite(x.dp)) AC.cache.set(x.h,x); }); }catch(e){}
+const acAvail=()=>!!HOST&&hostHas('openfoam');
+const acOn=()=>acAvail()&&AC.on&&!AC.noFoam;
+function acStable(v){ return Array.isArray(v)?'['+v.map(acStable).join(',')+']':v&&typeof v==='object'?'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+acStable(v[k])).join(',')+'}':JSON.stringify(v); }
+function acHashOf(design){ const t=acStable({g:design.geometry,op:design.operating_point,amb:design.ambient,mesh:design.mesh});
+  let h=0x811c9dc5; for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,0x01000193)>>>0; } return h.toString(16).padStart(8,'0')+'-'+t.length; }   // FNV-1a
+function acCur(){ try{ const d=window.__cfd&&window.__cfd.design(); if(!d||!d.design) return null; return {h:acHashOf(d.design),d}; }catch(e){ return null; } }
+function acSave(){ try{ localStorage.setItem(AC_KEY,JSON.stringify([...AC.cache.values()].sort((a,b)=>a.at-b.at).slice(-AC_KEEP))); }catch(e){} }
+const acVisible=()=>{ const el=$('intake-cfd'); return cur==='intake'&&!!el&&el.getClientRects().length>0; };
+const acIn=pa=>(pa/249.09).toFixed(1)+' inH₂O', acKpa=pa=>(pa/1000).toFixed(2)+' kPa, '+Math.round(pa).toLocaleString('en-US')+' Pa';
+function acSay(t,bad){ AC.status={t,bad:!!bad}; const n=$('cfd-auto'); if(n){ n.className='note'+(bad?' bad':''); n.textContent=t; n.hidden=false; } }
+function acResultText(x,again){
+  let t=(again?'Tested before (same design): ':'Tested: ')+'pressure drop '+acIn(x.dp)+' ('+acKpa(x.dp)+') from the mouth to the tract end.';
+  if(Number.isFinite(x.est)&&x.est>0){ const d=100*(x.dp/x.est-1), a=Math.abs(d);
+    t+=' The quick estimate on this tab says '+acIn(x.est)+' ('+Math.round(x.est).toLocaleString('en-US')+' Pa) for the same smooth tube: the test reads '+(a<0.5?'the same':a.toFixed(0)+'% '+(d>0?'higher':'lower'))+', '+
+      (a<=10?'so the two agree (within 10%).':a<=25?'so they roughly agree (within 25%).':'a big difference: look at the details below before trusting either.');
+  } else t+=' No quick estimate to compare with (the case runs at a set pressure ratio).';
+  if(x.cone) t+=' The test includes the cone to the throttle bore; the quick estimate does not.';
+  if(x.conv===false) t+=' The run had not fully settled, so treat the number as provisional.';
+  return t;
+}
+function acShow(h){ const x=AC.cache.get(h); if(x){ acSay(acResultText(x,true)); return; } const f=AC.fail.get(h); if(f) acSay(f,true); }
+function acPoke(){
+  AC.poked=false;
+  if(!acOn()) return;
+  const c=acCur(); if(!c) return;
+  if(c.h===AC.seen) return;                                 // the design that defines the case did not change
+  AC.seen=c.h; clearTimeout(AC.timer); AC.timer=null;
+  if(AC.run&&AC.run.hash===c.h&&!AC.run.superseded){ AC.next=null; acPhase(); return; }   // back to the design being tested
+  if(AC.cache.has(c.h)||AC.fail.has(c.h)){ if(AC.next==='auto') AC.next=null; acShow(c.h); return; }
+  AC.timer=setTimeout(acFire,AC_IDLE);
+  acSay('This intake changed: it will be tested once you stop editing for a few seconds.');
+}
+function acFire(){ AC.timer=null; acDecide(false); }
+function acDecide(manual){
+  const c=acCur(); if(!c) return;
+  if(!manual){
+    if(!acOn()) return;
+    if(AC.cache.has(c.h)||AC.fail.has(c.h)){ acShow(c.h); return; }
+    if(!acVisible()){ AC.seen=null; return; }               // the section is not on screen: decide again when it is drawn
+  }
+  if(AC.run){
+    if(AC.run.hash===c.h&&!AC.run.superseded){ if(manual) acPhase(); return; }
+    AC.next=manual?'manual':'auto';                          // one waiting run at most: the design as it is when the old run has stopped
+    if(!AC.run.superseded){ AC.run.superseded=true; if(HOST) HOST.cancel(); }
+    acSay('Stopping the test of the earlier design…');
+    return;
+  }
+  acStart(c,manual);
+}
+function acPhase(){ const r=AC.run; if(!r) return;
+  acSay('Testing this intake… ('+(r.phase==='solving'?'solving'+(Number.isFinite(r.pct)?', '+r.pct+'%':''):r.phase)+')'); }
+function acStart(c,manual){
+  const L=CFD_LAST, op=c.d.design.operating_point;
+  const est=L&&L.r&&Number.isFinite(L.r.dpEnd)&&!op.pressure_ratio?L.r.dpEnd*c.d.ff*c.d.ff:null;   // losses go with the square of the airflow
+  const run={hash:c.h,manual,phase:'starting',pct:null,est,cone:!!c.d.design.geometry.diameter_change,superseded:false,userStop:false};
+  AC.run=run; AC.started++; acPhase();
+  const meshSteps=/^(generate|blockMesh|surfaceFeatureExtract|snappyHexMesh|checkMesh|topoSet)$/;
+  const hook=ev=>{ if(AC.run!==run) return;
+    if(ev.event==='step'){ run.phase=ev.step==='report'?'reading the results':meshSteps.test(ev.step)?'meshing':'solving'; if(run.phase!=='solving') run.pct=null; acPhase(); }
+    else if(ev.event==='progress'&&!meshSteps.test(ev.step)){ run.phase='solving'; if(ev.of>0) run.pct=Math.min(99,Math.round(100*ev.iteration/ev.of)); acPhase(); } };
+  Promise.resolve(cfdRun(hook)).catch(e=>({stage:'call',err:e})).then(o=>acDone(run,o||{stage:'call',err:new Error('the program did not answer')}));
+}
+function acOutcome(run,o){
+  const first=t=>String(t||'').split(/\n/)[0].replace(/\s+/g,' ').trim().slice(0,160);
+  if(o.stage==='build') return {fail:'This design cannot be tested: '+first(o.err&&o.err.message)};
+  if(o.stage==='call'){ const m=first(o.err&&o.err.message);
+    if(/^Stopped/i.test(m)||run.userStop) return {fail:'Test stopped; it will not run again for this design unless you press Run in OpenFOAM on this PC.'};
+    if(/not installed/i.test(m)){ AC.noFoam=true; return {fail:'OpenFOAM is not installed with this program, so intakes cannot be tested on this PC.'}; }
+    return {fail:'The test could not start: '+m};
+  }
+  if(o.stage==='run'){ const m=first(o.res&&o.res.msg);
+    if(/blockMesh|snappyHexMesh|surfaceFeatureExtract|topoSet|could not write the case/.test(m)) return {fail:'The test could not make a mesh for this intake shape ('+(/could not write the case/.test(m)?'the case generator':m.split(/[ :]/)[0])+' failed); the details below have the log.'};
+    return {fail:'The test failed: '+(m||'OpenFOAM stopped with an error')+'.'};
+  }
+  const R=o.res&&o.res.results, te=R&&R.planes&&R.planes.tract_end, dp=te&&te.dp_total_Pa;
+  if(!Number.isFinite(dp)) return {fail:'The test finished but gave no reading at the tract end.'};
+  return {ok:{h:run.hash,name:o.out&&o.out.name,dp,est:run.est,cone:run.cone,conv:R.converged!==false,at:Date.now()}};
+}
+function acDone(run,o){
+  if(AC.run===run) AC.run=null;
+  const r=acOutcome(run,o), c=acCur();
+  if(r.ok){ AC.cache.delete(run.hash); AC.cache.set(run.hash,r.ok); AC.fail.delete(run.hash); acSave(); }   // a run that finished before its Stop still counts
+  else if(!run.superseded) AC.fail.set(run.hash,r.fail);   // a run stopped for a newer design is not a failure of its own
+  if(c&&c.h===run.hash&&(r.ok||!run.superseded)){ if(r.ok) acSay(acResultText(r.ok,false)); else acSay(r.fail,true); }
+  const nx=AC.next; AC.next=null;
+  if(nx) acDecide(nx==='manual');
+  else if(!AC.run&&!(c&&c.h===run.hash)){ AC.seen=null; acPoke(); }   // the design moved on while this ran
+}
+function cfdAutoHtml(){
+  if(!acAvail()) return '';
+  if(!AC.poked){ AC.poked=true; setTimeout(acPoke,0); }
+  const st=AC.status||(AC.on?null:{t:'Automatic testing is off: press Run in OpenFOAM on this PC to test this intake.'});
+  return '<label class="f" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="cfd-auto-on" role="switch"'+(AC.on?' checked':'')+'><span><b>Test automatically</b>: runs this case on this PC a few seconds after you stop changing the intake, and shows the pressure drop here</span></label>'+
+    '<div class="note'+(st&&st.bad?' bad':'')+'" id="cfd-auto" aria-live="polite"'+(st?'':' hidden')+'>'+(st?esc(st.t):'')+'</div>'+
+    '<details id="cfd-more"'+(CFD_UI.more?' open':'')+'><summary>Details: the run’s messages and the full OpenFOAM numbers</summary>';
+}
+function cfdAutoEnd(){ return acAvail()?'</details>':''; }
+window.__cfdAuto={state:AC,poke:acPoke,hash:()=>{ const c=acCur(); return c&&c.h; }};   // for the tests
+document.addEventListener('change',e=>{ if(e.target.id!=='cfd-auto-on') return;
+  AC.on=!!e.target.checked; try{ localStorage.setItem(AC_ON_KEY,AC.on?'1':'0'); }catch(err){}
+  if(!AC.on){ clearTimeout(AC.timer); AC.timer=null; if(AC.next==='auto') AC.next=null; AC.seen=null;
+    acSay(AC.run?'Automatic testing is off; the test already running will finish.':'Automatic testing is off: press Run in OpenFOAM on this PC to test this intake.'); }
+  else { AC.status=null; AC.seen=null; acPoke(); if(!AC.timer&&!AC.run&&!AC.status) acSay('Automatic testing is on.'); } });
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-cfd]'); if(!b||!acAvail()) return;
+  if(b.dataset.cfd==='run'){ e.stopImmediatePropagation(); clearTimeout(AC.timer); AC.timer=null; const c=acCur(); if(c){ AC.seen=c.h; AC.fail.delete(c.h); } acDecide(true); }   // the button runs through the same queue
+  else if(b.dataset.cfd==='stop'){ clearTimeout(AC.timer); AC.timer=null; AC.next=null; const c=acCur();
+    if(AC.run) AC.run.userStop=true;
+    else if(c&&!AC.cache.has(c.h)){ AC.fail.set(c.h,'Test stopped; it will not run again for this design unless you press Run in OpenFOAM on this PC.'); acSay(AC.fail.get(c.h),true); } } },true);
+document.addEventListener('input',e=>{ if(e.target.closest('input.cfdx')&&acAvail()) setTimeout(acPoke,0); });
+document.addEventListener('toggle',e=>{ if(e.target.id==='cfd-more') CFD_UI.more=e.target.open; },true);
 
 /* ===== Exhaust component CFD: collectors, X/H-pipes, muffler shells and tips from a CAD STL, as a steady loss coefficient ===== */
 const EXH_UI={part:'collector',share:'',T:'',ve:90,afr:12.5,boost:0,mesh:'medium',name:'',split:'',msg:null,stl:null,results:[]};
@@ -19647,7 +19799,7 @@ function renderIntake(){
   const fp=feedPulses(e,e.order); if(fp.err) return fail(fp.err);
   po=pulseOrders(fp);
   const n=itb?Math.max(1,Math.round(val('i-n'))):Math.max(1,Math.round(val('i-n')));
-  const p={cyc:e.cyc,disp:val('i-disp'),rpm:val('i-rpm'),ve:val('i-ve')/100,boost:ind==='na'?0:(val('i-boost')||0),eff:val('i-eff')/100,n,type,lt:val('i-lt'),dt:val('i-dt'),bends:val('i-bends')||0,bendAng:($('i-bendang').value||'').split(/[ ,;]+/).map(Number).filter(x=>x>0&&x<=180),bendR:val('i-bendr'),lipR:$('i-mouth').value==='radius'?val('i-lipr'):null,
+  const p={cyc:e.cyc,disp:val('i-disp'),rpm:val('i-rpm'),ve:val('i-ve')/100,boost:ind==='na'?0:(val('i-boost')||0),eff:val('i-eff')/100,n,type,lt:val('i-lt'),dt:val('i-dt'),bends:val('i-bends')||0,bendAng:($('i-bendang').value||'').split(/[ ,;]+/).map(Number).filter(x=>x>0&&x<=180),bendR:val('i-bendr'),lipR:$('i-mouth').value==='radius'?val('i-lipr'):null,finish:($('i-finish')||{}).value||'smooth',
     tb:val('i-tb'),type,cyl:(engineFrom('i').order||[]).length||val('i-cyl'),hp:val('i-hp'),mouth:$('i-mouth').value,tamb:val('i-tamb'),tin:val('i-tin'),filt,fd:val('i-fd'),ft:val('i-ft'),fh:val('i-fh'),maf:$('i-maf').value,
     boxV:val('i-boxv'),snd:val('i-snd'),snl:val('i-snl'),plen:val('i-plen'),idle:val('i-idle'),cruise:val('i-cruise'),red:val('i-red'),dur:val('i-dur'),tune:val('i-tune'),po};
   { const w=$('i-lipr-wrap'); if(w) w.hidden=p.mouth!=='radius'; }
@@ -19707,8 +19859,11 @@ function renderIntake(){
   }
   // losses and temperature
   h+=sec('Air temperature and duct loss',
-    rowT('Duct pressure loss at peak power',pa(r.dp),paAlt(r.dp)+'; tube only, no filter or throttle: friction '+pa(r.dpF)+' (smooth tube, f '+r.f.toFixed(4)+', over the '+plain(r.lStr,'l')+' of straights; each bend’s arc is in its K), bends '+pa(r.dpB)+(r.bendList.length?' ('+r.bendList.map((a,i)=>Math.round(a)+'° K '+r.kBends[i].toFixed(2)).join(', ')+' at '+r.clrD.toFixed(2)+' D, Crane)':'')+', inlet '+pa(r.dpIn)+(r.lipRD!=null?' (lip r/D '+r.lipRD.toFixed(3)+', K '+r.kIn.toFixed(2)+', Crane)':p.mouth==='plain'?' (square edge, K '+r.kIn.toFixed(2)+', Crane)':''))+
-    rowT('Tube only at the tract end, as a CFD reads it',pa(r.dpEnd),paAlt(r.dpEnd)+'; mass-weighted total pressure, the same tube less the '+pa((r.alpha-1)*r.q)+' still in the velocity profile (α '+r.alpha.toFixed(3)+', developed flow); compare this with a bare-tube CFD')+
+    rowT('Duct pressure loss at peak power',pa(r.dp),paAlt(r.dp)+'; tube only, no filter or throttle: friction '+pa(r.dpF)+' ('+INTAKE_FINISH[r.finish].name+', f '+r.f.toFixed(4)+', over the '+plain(r.lStr,'l')+' of straights; each bend’s arc is in its K), bends '+pa(r.dpB)+(r.bendList.length?' ('+r.bendList.map((a,i)=>Math.round(a)+'° K '+r.kBends[i].toFixed(2)).join(', ')+' at '+r.clrD.toFixed(2)+' D, Crane)':'')+', inlet '+pa(r.dpIn)+(r.lipRD!=null?' (lip r/D '+r.lipRD.toFixed(3)+', K '+r.kIn.toFixed(2)+', Crane)':p.mouth==='plain'?' (square edge, K '+r.kIn.toFixed(2)+', Crane)':'')+
+      (r.finish!=='smooth'?'; the '+INTAKE_FINISH[r.finish].name+' wall adds '+pa(r.dp-r.dpSmooth)+' ('+paAlt(r.dp-r.dpSmooth)+') over a smooth tube (f '+r.fS.toFixed(4)+')':''))+
+    rowT('Tube only at the tract end, as a CFD reads it',pa(r.dpEnd),paAlt(r.dpEnd)+'; mass-weighted total pressure, the same tube less the '+pa((r.alpha-1)*r.q)+' still in the velocity profile (α '+r.alpha.toFixed(3)+', developed flow); compare this with a bare-tube CFD'+(r.finish!=='smooth'?'; with a smooth wall, as the CFD case has, whatever the finish above':''))+
+    (()=>{ const F=INTAKE_FINISH[r.finish], mm=F.ks*1000, inch=mm/25.4, ksT=imp?(+inch.toPrecision(2))+' in ('+(+mm.toPrecision(2))+' mm)':(+mm.toPrecision(2))+' mm ('+(+inch.toPrecision(2))+' in)';
+      return '<p class="cap" id="i-finish-cap">Tube finish: '+esc(F.name)+', wall roughness '+ksT+' (equivalent sand grain; '+esc(F.src)+'), friction factor f '+r.f.toFixed(4)+' against '+r.fS.toFixed(4)+' smooth at Re '+Math.round(r.Re).toLocaleString('en-US')+'. The printed finishes are measured Ra turned into sand-grain roughness with Adams, Grant and Watson’s 5.863 × Ra, a rule checked on metal pipes, not on layer lines, so read them as good to about a factor of two; no friction test of a printed tube at intake airflow was found. Coated or primed prints are not listed: no measured roughness of one was found. The CFD case below has smooth walls, so the “as a CFD reads it” figure and the automatic test compare against the smooth tube.</p>'; })()+
     rowT('Power from the duct loss',pct(100*(r.ratioP-1)),'SAE J1349 correction at the lower inlet pressure')+
     rowT('Power from the air temperature',pct(100*(r.ratioT-1)),tempStr(p.tin)+' against '+tempStr(p.tamb)+'; the Racing Beat rule of 1% per 10 °F gives '+pct(r.ruleT))+
     rowT('Both together',pct(loss))+
