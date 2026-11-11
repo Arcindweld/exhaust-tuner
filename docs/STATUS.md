@@ -143,6 +143,27 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
 
 ## 2026-11-01: new interface, independent audit
+- Automatic intake CFD and tube finish (2026-11-10). (A) Windows program, Intake tab, CFD section: "Test automatically"
+  (on by default, remembered per viewer in localStorage; absent without the program's bridge). When the design the case
+  is built from changes (window.__cfd.design(): geometry, operating point, air temperature, mesh level, as a stable hash)
+  and the inputs are idle 4 s, the page runs the case through cfdRun (runOpenFOAM, the same path as the button); a run
+  for an older design is stopped first with HOST.cancel() (the program's Stop, which stops every running request, an
+  OpenWAM run on another tab included); one waiting run at most. Results per design in memory plus the last 10
+  summaries in localStorage (exhaust-autocfd-v1): a design already tested shows its result with no rerun. Status line:
+  "Testing this intake… (meshing / solving, N% of the iteration cap / reading the results)", then the tract-end total
+  pressure loss in inH2O, kPa and Pa against the tab's smooth-tube "as a CFD reads it" figure (x flow factor squared)
+  with a verdict (within 10% agree, 25% roughly, else check the details); failures (design not meshable, mesh step
+  failed, OpenFOAM not installed, Stop) are one sentence and that design is not retried; OpenFOAM missing stands the
+  automatic test down until reload. The run messages and results table sit under a collapsed Details. The Run button
+  goes through the same queue; no host change. tests/autocfd_ui.js (stubbed bridge). NOT yet run in the real program.
+  (B) "Tube finish" select: smooth 0.0015 mm (default, numbers unchanged); 3D printed as printed, 0.2 mm layers
+  0.099 mm and 0.3 mm layers 0.136 mm; sand/bead blasted 0.015 mm; wet sanded to 600+ grit 0.0042 mm; commercial
+  steel 0.045 mm. Printed rows = measured Ra (Kocisko et al., Materials 18 (2025) 4672, PLA) x 5.863 (Adams, Grant and
+  Watson, IJMEM 1 (2012) 008), a rule checked on metal pipes, not layer lines: good to about a factor of 2 (Botros's
+  Rq rule gives a half to two thirds). No friction test of a printed tube at intake Reynolds numbers was found (Harmon
+  et al. 2026 saw no change at Re 6,300 only); coated/primed prints left out (no measured Ra found). The owner's CAI as
+  printed at 0.2 mm: f 0.0209 against 0.0147, +224 Pa (0.9 inH2O); the bends take the same f. The "as a CFD reads it"
+  row stays smooth-walled (the CFD case is). tests/intakefinish_ui.js.
 - UI redesign (5be9d05; artifact Version 37, same URL): app bar (mark, Simple/Expert, units, colour-theme button,
   program menu in the Windows program), calculators in a grouped rail >= 1180 px / sticky strip below, readout strip,
   CAD-style drawing well, Archivo embedded (OFL). All IDs/hooks unchanged. Windows program: no WPF menu/status bar;
