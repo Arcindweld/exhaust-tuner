@@ -637,6 +637,30 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
   has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
   the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
+- Test this intake (CFD) from Fusion (2026-11-10, add-in 4.18.0; offline only, Fusion and Windows not on this machine):
+  Intake tab, Fusion section: select the intake tube, click "Test this intake (CFD)", the tract-end total-pressure
+  drop comes back in the panel (inH2O, Pa, kPa), with K, the tab's own 1-D tube-only figure for the same tube, the
+  airflow, cells and run time; every dimension in inches and mm; a second click on an unchanged tube answers from the
+  cache (page memory, and Documents/Exhaust Tuner/cfd-cache keyed by sha256 of the design + the program build).
+  "Use this tube in the Intake tab" fills length, bore, bend angles (from the mouth), bend radius (mean, said so, when
+  they differ), mouth and the CFD panel's bend starts. Chain: page fxCfdTest -> fusionCall cfdTube ->
+  cadtools.act_cfd_tube (the print-split helpers _ps_chain/_ps_find_path/_ps_radii; the centreline sampled, trimmed to
+  the body by bisection, the bore probed all along at 12 angles; Selection.point picks the mouth end, or "the other
+  end") -> tubecfd.py (pure: lines/arcs, joins, plane_deg, refusals) -> the page puts the Intake tab's operating point
+  on it (cfdDesign with the tube in place of the tab's), writes the case with IntakeCFD.generateCase (2-D straight /
+  3-D bundle) -> FHOST hostCall runOpenFOAM -> hostrun -> foamrun.py, which starts the installed program's
+  exhaust-tuner-host.exe and speaks its stdin/stdout JSON-line protocol (the program generates, meshes, solves with
+  the watchdog and reports; Stop = its "cancel" line, then a tree kill after 20 s). The installed program carries no
+  Python (installer [InstallDelete] engines\python; generator and report are in Rust), so nothing Python runs outside
+  Fusion. plane_deg: the bend direction measured in the generator's carried (rotation-minimising) frame, which starts
+  as n1 = +y at the mouth and turns with each arc; positive from n1 toward n2 = t x n1; bend 1 is 0. Proved by
+  rebuilding with the generator's own build_param_3d_surface path: the owner's CAI (29.50 deg at 100.0 mm, 84.10 deg
+  at 572.1 mm, 880.6 mm, bend 2 at 139.25 deg) within 0.0024 mm / 0.0003 deg, 185 random 3-D tubes within 0.017 mm.
+  Also in Fusion: the Intake CFD panel's own "Run in OpenFOAM on this PC" now runs there through the same path.
+  Tests: fusion-addin/tests/test_tubecfd.py (+ `python3 cfd/intake_cfd.py design.json out` accepts 3-D, straight 2-D
+  and lip designs; generation only), test_intakecfd_fusion_fake.py, test_foamrun.py (stand-in host), web
+  tests/fxcfd_ui.js; all pass, as do the other add-in tests and the psplit/intake/cfd/intakecfdbend page tests. NOT
+  yet run: Fusion (tests/fusion_live_intakecfd.py; ET_RUN_CFD=1 also runs the coarse 3-D case) and the real host.
 - Intake 1-D pressure loss, term by term against the CAI CFD (2026-11-10): the tab read ~30% high (5.8 / 4.1 inH2O
   plain / 3.5 mm lip against the CFD's 4.2-4.4 / 2.8). Same inputs as the CFD (376 cu in, 6,600 RPM, VE 92%, 25 C,
   369 g/s, 92.61 mm bore, 880.6 mm, 30 + 84 deg on 127 mm): velocity 46.3 m/s, q 1,268 Pa (CFD 1,260-1,300), Re 2.76e5,

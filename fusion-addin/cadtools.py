@@ -39,6 +39,7 @@ try:
     from . import merge as MRG
     from . import hostrun as HR
     from . import printsplit as PS
+    from . import tubecfd as TC
 except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path)
     import router as RT
     import templates as TPL
@@ -47,6 +48,7 @@ except ImportError:          # loaded as a top-level module (the add-in's folder
     import merge as MRG
     import hostrun as HR
     import printsplit as PS
+    import tubecfd as TC
 
 PALETTE_ID = 'exhaustTunerPalette'
 PANEL_CMD_ID = 'exhaustTunerPanelCmd'
@@ -4030,9 +4032,187 @@ def act_print_split(data):
                                                     'folder': folder, 'plan_s': round(time.time() - t0, 1)}}
 
 
+# --------------------------------------------------------------------------
+# Test this intake (CFD): the selected tube read as the CFD generator's parametric design (tubecfd.py turns the
+# samples into it); the page adds the Intake tab's airflow and runs it on the program's OpenFOAM (foamrun.py)
+# --------------------------------------------------------------------------
+
+def _cfd_xf(occ):
+    """Component space -> the assembly's (mm), for a Pipe path found in the component of a body picked through occ."""
+    if occ is None:
+        return lambda p: p
+    try:
+        m = occ.transform2
+    except Exception:
+        m = occ.transform
+    a = list(m.asArray())               # row-major 4 x 4; the translation (cm) in the last column
+    return lambda p: tuple(a[4 * r] * p[0] + a[4 * r + 1] * p[1] + a[4 * r + 2] * p[2] + 10.0 * a[4 * r + 3] for r in range(3))
+
+
+def _cfd_samples(chain, xf):
+    """Each chained curve at 9 equal steps of arc length from its start to its end (mm), with its length."""
+    out = []
+    for it, flip in chain:
+        g = it['g']
+        ok_, length = g.evaluator.getLengthAtParameter(it['t0'], it['t1'])
+        pts = []
+        for i in range(9):
+            f = i / 8.0
+            if flip:
+                f = 1.0 - f
+            ok_, prm = g.evaluator.getParameterAtLength(it['t0'], f * length)
+            ok_, q = g.evaluator.getPointAtParameter(prm)
+            pts.append(xf(tuple(10.0 * c for c in _t(q))))
+        out.append({'pts': pts, 'length': 10.0 * length})
+    return out
+
+
+def _cfd_stations(segs, ds=5.0):
+    """Stations (printsplit form: p, t, s, run) every ds mm, the straights numbered as runs, for _ps_radii."""
+    pts, runs, at = [], [], 0.0
+    for k, g in enumerate(segs):
+        n = max(2, int(math.ceil(g['length'] / ds)))
+        for i in range(n):
+            pts.append(TC.point_at(segs, at + g['length'] * i / n)[0])
+            runs.append(k if g['kind'] == 'line' else None)
+        at += g['length']
+    pts.append(segs[-1]['b'])
+    runs.append(runs[-1])
+    return PS.stations_from_polyline(pts, runs)
+
+
+def _cfd_ring(segs, s, r, a):
+    p, t = TC.point_at(segs, s)
+    u, v = PS._perp(t)
+    c, sn = math.cos(a), math.sin(a)
+    return tuple(p[k] + r * (c * u[k] + sn * v[k]) for k in range(3))
+
+
+def _cfd_cover(body, segs, r_in, r_out):
+    """(s0, s1) mm of the path inside the tube's wall: the first and last station with wall round it, then bisected
+    to the ends of the body (a path often runs on into the throttle body or a flange). Probed a quarter, half and
+    three quarters through the wall, so a fillet on the mouth's inside edge does not move the mouth."""
+    L = TC.total(segs)
+    probes = [(r_in + f * (r_out - r_in), a) for f in (0.25, 0.5, 0.75) for a in (0.3, 2.4, 4.5)]
+
+    def solid(s):
+        return any(_ps_inside(body, _cfd_ring(segs, s, r, a)) for r, a in probes)
+    n = max(4, int(L / 5.0))
+    grid = [L * i / n for i in range(n + 1)]
+    inside = [solid(s) for s in grid]
+    if not any(inside):
+        raise ValueError('The centreline curves do not run inside this tube: select the tube and its own centreline.')
+    i0 = inside.index(True)
+    i1 = len(inside) - 1 - inside[::-1].index(True)
+
+    def edge(out_s, in_s):
+        for _ in range(30):
+            m = 0.5 * (out_s + in_s)
+            if solid(m):
+                in_s = m
+            else:
+                out_s = m
+        return in_s
+    s0 = edge(grid[i0 - 1], grid[i0]) if i0 > 0 else 0.0
+    s1 = edge(grid[i1 + 1], grid[i1]) if i1 < n else L
+    return s0, s1
+
+
+def _cfd_bore_check(body, segs, r_in, wall, skip0, skip1):
+    """Probe the bore all along (12 angles every 10 mm or so): clear just inside it, solid just outside it. The
+    first place that is not, as mm from the mouth, or None."""
+    L = TC.total(segs)
+    d = min(0.5, 0.25 * wall)
+    angs = [0.17 + 2 * math.pi * k / 12 for k in range(12)]
+    n = max(4, int(L / 10.0))
+    for i in range(n + 1):
+        s = skip0 + (L - skip0 - skip1) * i / n
+        for a in angs:
+            if _ps_inside(body, _cfd_ring(segs, s, r_in - d, a)) or not _ps_inside(body, _cfd_ring(segs, s, r_in + d, a)):
+                return s
+    return None
+
+
+def act_cfd_tube(data):
+    """The selected intake tube as the CFD generator's parametric geometry (tubecfd.design_geometry) and the Intake
+    tab's inputs for it. data: {mouth: 'auto' | 'other'}: auto = the end whose end face was clicked, or the end nearer
+    where the tube was clicked; other = the opposite end."""
+    sels = _ui.activeSelections
+    items = [sels.item(i) for i in range(sels.count)]
+    ents = [it.entity for it in items]
+    bodies = _bodies_of([e for e in ents if _kind(e) in ('BRepBody', 'BRepFace', 'MeshBody')])
+    if not bodies:
+        raise ValueError('Select the intake tube first: click its outside face near the end the air goes in (or that end face). '
+                         'If it was not made with Pipe, Ctrl+click its centreline sketch curves too.')
+    if len(bodies) > 1:
+        raise ValueError('%d bodies are selected: select one intake tube (and its centreline curves, if it was not made with Pipe).' % len(bodies))
+    body = bodies[0]
+    if _kind(body) != 'BRepBody':
+        raise ValueError('That is a mesh body (an STL or a scan): the CFD test reads a solid tube with its centreline.')
+    curves = [e for e in ents if _kind(e) == 'sketch']
+    xf = lambda p: p
+    if not curves:
+        occ = None
+        try:
+            occ = body.assemblyContext
+        except Exception:
+            pass
+        native = (body.nativeObject or body) if occ is not None else body
+        curves = _ps_find_path(native)
+        xf = _cfd_xf(occ)
+    if not curves:
+        raise ValueError('No Pipe path found for this tube: Ctrl+click its centreline sketch curves too, then click the button again.')
+    chain = _ps_chain(curves)
+    segs = TC.join([TC.classify(c['pts'], c['length']) for c in _cfd_samples(chain, xf)])
+    r_in, r_out = _ps_radii(body, _cfd_stations(segs))
+    s0, s1 = _cfd_cover(body, segs, r_in, r_out)
+    L_path = TC.total(segs)
+    segs = TC.trim(segs, s0, s1)
+    L = TC.total(segs)
+    # which end the air goes in
+    pick, how = None, 'the first end of its centreline'
+    for it in items:
+        try:
+            if _kind(it.entity) == 'BRepFace' and it.point is not None:
+                pick = tuple(10.0 * c for c in _t(it.point))
+                break
+        except Exception:
+            continue
+    at_end = False
+    if pick is not None:
+        at_end = TC.nearest_s(segs, pick) > 0.5 * L
+        how = 'the end nearer where the tube was clicked'
+    if str(data.get('mouth') or 'auto') == 'other':
+        at_end = not at_end
+        how = 'the other end from ' + how
+    if at_end:
+        segs = TC.reverse(segs)
+    mouth_p, mouth_t = segs[0]['a'], segs[0]['t0']
+    tori = []
+    for i in range(body.faces.count):
+        g = body.faces.item(i).geometry
+        if g.surfaceType == adsk.core.SurfaceTypes.TorusSurfaceType:
+            tori.append((tuple(10.0 * c for c in _t(g.origin)), _t(g.axis), 10.0 * g.majorRadius, 10.0 * g.minorRadius))
+    lip = TC.mouth_lip(tori, mouth_p, mouth_t, r_in)
+    bad = _cfd_bore_check(body, segs, r_in, r_out - r_in, (lip or 0.0) + 1.5, 1.5)
+    if bad is not None:
+        raise ValueError('The bore is not the same round size all along: %s from the mouth it is not where it is in the tube\'s '
+                         'longest straight (%s bore). That is a taper, an oval or flattened section, a dent, a bead or a branch; '
+                         'the CFD test takes constant-bore round tubes only.' % (TC.mm_in(bad), TC.mm_in(2 * r_in, 2)))
+    geometry, info = TC.design_geometry(segs, 2.0 * r_in, r_out - r_in, lip)
+    name = body.name
+    msg = TC.describe(info, name) + ' Air enters at %s, at (%s) mm.' % (how, ', '.join('%.1f' % c for c in mouth_p))
+    bends = [{'clr_mm': round(b['clr_mm'], 2), 'angle_deg': round(b['angle_deg'], 2), 'start_mm': round(b['start_mm'], 1),
+              'plane_deg': round(b['plane_deg'], 1)} for b in info['bends']]
+    return {'ok': True, 'msg': msg, 'tube': {'name': name, 'geometry': geometry, 'fill': TC.tab_fill(info), 'bends': bends,
+                                             'bore_mm': round(2.0 * r_in, 3), 'od_mm': round(2.0 * r_out, 3), 'wall_mm': round(r_out - r_in, 3),
+                                             'length_mm': round(L, 2), 'lip_mm': lip, 'mouth_mm': [round(c, 2) for c in mouth_p],
+                                             'mouth_how': how, 'path_beyond_mm': [round(s0, 1), round(L_path - s1, 1)]}}
+
+
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveBase64': act_save_base64, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl, 'printSplit': act_print_split,
+           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveBase64': act_save_base64, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl, 'printSplit': act_print_split, 'cfdTube': act_cfd_tube,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult'),
            # the page's solver runs on this PC (hostrun.py): OpenWAM without leaving Fusion
            'hostInfo': HR.host_info, 'hostCall': HR.host_call, 'hostChunk': HR.host_chunk, 'hostCancel': HR.host_cancel,
