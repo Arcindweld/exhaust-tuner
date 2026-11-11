@@ -207,6 +207,10 @@ validation case was run compressible.
   - SIMPLE with p 0.3 / ρ 0.05 converged smoothly.
 - **Pressure linear solver:** PCG/DIC on the small, strongly graded 2-D
   meshes (GAMG needed hundreds of sweeps there); GAMG in 3-D.
+- **Cached `grad(U)` (3-D intake cases):** `fvSolution` has `cache { grad(U); }`.
+  It changes no numerics; it keeps one Linux build (conda-forge) from
+  evaluating the explicit viscous-stress term wrongly, which put 3-D pipe
+  friction 25 % high (§4 (c4)).
 - **Start-up:** the outlet mass flow or pressure is ramped linearly over the
   first 300 iterations.
 - **Stop criteria:**
@@ -420,10 +424,64 @@ Exhaust-component mode is unchanged (its tube ends are inlet and outlet patches,
 **Remaining.** After the fix the 3-D sharp entrance reads 0.33 against the 2-D 0.40 (total pressure), and the 3-D
 medium mesh's developed friction factor is 0.022–0.023 against Colebrook 0.018 (the 2-D sector is within 3–8 % of
 it): the 3-D medium mesh, about D/26 at the wall with wall functions, is coarse for friction. The losses of a whole
-tract are within the ±15 % class of the other checks; friction-dominated long tracts read high.
+tract are within the ±15 % class of the other checks; friction-dominated long tracts read high. *(Superseded by (c4):
+the friction excess was not the mesh but the conda-forge build's explicit stress term; fixed, f now within 2 %.)*
 
 **On the owner's CAI** (LS3, 6,600 RPM, 369 g/s, medium mesh, total-pressure loss at the tract end): see
 docs/STATUS.md, 2026-11-10.
+
+### (c4) 3-D pipe friction: the explicit stress term on the conda-forge build (2026-11-10)
+
+The (c3) cases read developed friction 22–25 % above Colebrook on the 3-D medium mesh. Straight 50 mm tube, r/D 0.04
+lip (and the sharp mouth of (c3)), flange mount, L = 25 D + 3 D extension, Re 1.0 × 10⁵, medium mesh, simpleFoam,
+conda-forge build; f is the slope of the mass-averaged total pressure over 10–22 D divided by q, K the total-pressure
+loss extrapolated from 10–22 D to the mouth:
+
+| | before | after (`cache { grad(U); }`) |
+|---|---|---|
+| f, total pressure 10–22 D (Colebrook 0.01796) | 0.02200 (+22.5 %) | 0.01766 (−1.7 %) |
+| f, static pressure 10–22 D | 0.0203 | 0.0163 |
+| f from the wall shear stress, 10–22 D | 0.01712 (−4.7 %) | 0.01717 (−4.4 %) |
+| static Δp 10–22 D / (wall shear + momentum-flux change) | 1.27 | 1.004 |
+| y+ on `tract_wall`, 10–22 D mean (min–max) | 48.5 (44.9–51.5) | 48.5 (46.3–49.4) |
+| y+ on `tract_wall`, whole patch avg | 46.1 | 45.9 |
+| cells | 183,554 | 183,554 |
+| iterations / solver CPU (2 shared cores, one used) | 900 / 723 s | 906 / 644 s |
+| entrance K, r/D 0.04 (Crane 0.24, 2-D 0.141) | 0.194 | 0.202 |
+| entrance K, sharp (Crane 0.50, 2-D 0.396) | 0.329 ((c3)) | 0.340 |
+| `plenum_wall` faces with centres inside the bore (sharp / rounded) | 0 / 0 | 0 / 0 |
+
+Sharp case after the fix: f 0.01845 (+2.7 %; the flow 10–22 D behind a sharp mouth is still developing), layer
+coverage 99.7 %, 902 iterations, 614 s. The r/D 0.04 tube forced compressible (rhoSimpleFoam, M 0.09): f 0.02211
+(+23.1 %) before, 0.01776 (−1.1 %) after; K 0.193 → 0.201; 902 / 905 iterations, 873 / 724 s. So the compressible
+turbulence library has the same defect and the same cure.
+
+**Diagnosis.** The mesh and wall functions were not at fault: y+ sat at 45–51 along the tube, and the wall shear
+stress gave f within 5 % of Colebrook, as in 2-D (§4 (a)); the wall faces have no axial component (no form drag);
+unlimited `grad(U)` with full non-orthogonal correction moved Δp by 0.5 %. The axial momentum balance did not close:
+the static pressure fell 27 % faster than wall shear plus the (falling) momentum flux required, uniformly along the
+tube. Laminar check on the same mesh (ν × 1000, Re 101): stock simpleFoam gives 1.247 × Hagen–Poiseuille, the same
+solver source rebuilt here without the explicit term −∇·(ν_eff dev2((∇U)ᵀ)) gives 1.003. On the converged laminar
+field, a small utility built against the same libraries evaluates that term with the same expression and schemes
+and gets 5 × 10⁻⁵ m⁴/s² over 10–22 D (essentially zero, as it must be), while `turbulence->divDevReff(U)` from the
+prebuilt turbulence library integrates to 9.101 against 7.552 for its Laplacian part alone: its explicit part is
+1.55 m⁴/s², a body force of 20 % of the wall stress spread over the whole cross-section (it matches the grad(p)
+integral, 9.101, so the solver is converged and the excess pressure gradient is this term). With `grad(U)` cached,
+the same library call gives 7.5515 against 7.5516: the prebuilt library goes wrong only when the gradient is a
+reusable temporary (most likely the transpose done in place on it; OpenFOAM's field loops declare their pointers
+`__restrict__`, which an in-place pass does not honour). The utility built here with GCC 13.3 and conda-forge's
+flags gets the temporary case right too, so what that build does differently is still not known. This is very likely the same defect as the wedge's 1.25 in §4 (e); the 2-D cyclic sector is not
+affected (§4 (e)).
+
+**Fix.** 3-D intake cases write `cache { grad(U); }` in `fvSolution` (Python, Rust and the page's JS generators).
+Caching changes no numerics (the gradient is the same, only stored), so on a correct build the result is unchanged;
+on the conda-forge build the explicit term comes out right and 3-D friction lands within 2 % of Colebrook. The
+mesh, layers and wall functions are unchanged.
+
+**Not done.** Exhaust-component mode is unchanged. §4 (e) found its bend K 6 % higher on the conda-forge build than
+on ESI's package on a byte-identical mesh, which fits this defect, but it is not proven here; the same one line
+would apply. The ESI package was not available on this machine, so the "after" figures are from the conda-forge
+build with the workaround, not from a second build.
 
 ### (d) Exhaust-component mode: known-answer checks (gas 650 °C, inlet 100 m/s, medium mesh)
 

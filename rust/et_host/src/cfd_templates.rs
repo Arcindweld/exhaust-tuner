@@ -868,6 +868,14 @@ pub const NU_SOLVER: &str = r#"solver %s: %s"#;
 pub const NU_TRANSONIC: &str = r#"transonic formulation: %s (estimated peak Mach %.3f)"#;
 pub const NU_RESID: &str = r#"residual targets are a secondary stop; the primary stop is the engineering-quantity"#;
 pub const NU_WATCHDOG: &str = r#"watchdog run by Allrun (see controlDict header) plus the iteration cap"#;
+pub const NU_CACHE_GRADU: &str = r#"
+cache
+{
+    grad(U);
+}
+"#;
+pub const NU_CACHE_PROV1: &str = r#"cache grad(U): the explicit viscous-stress term then reads a registered gradient instead of a reused"#;
+pub const NU_CACHE_PROV2: &str = r#"temporary, which one Linux build (conda-forge) evaluates wrongly (3-D pipe friction 1.25x)"#;
 pub const CD_PROV1: &str = r#"application %s chosen because %s"#;
 pub const CD_PROV2: &str = r#"endTime %d iterations = cap; writeInterval %d"#;
 pub const CD_PROV3: &str = r#"function objects: mass flow on atmosphere/outlet patches, area-averaged static pressure on"#;

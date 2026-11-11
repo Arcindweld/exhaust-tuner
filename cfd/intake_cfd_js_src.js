@@ -863,6 +863,10 @@
       sol = "solvers\n{\n    p\n    {\n        @PSOLVER@\n        tolerance       1e-12;\n        relTol          0.01;\n    }\n    \"(U|k|omega)\"\n    {\n        solver          smoothSolver;\n        smoother        symGaussSeidel;\n        tolerance       1e-10;\n        relTol          0.1;\n    }\n}\n\nSIMPLE\n{\n    nNonOrthogonalCorrectors " + nonortho + ";\n    consistent      no;       // classic SIMPLE: SIMPLEC (U 0.8) diverged on long\n                              // flow-rate-driven pipes (80 D at Re 1e5); this gives\n                              // the same converged answer within 0.03 % on the\n                              // square-cut pipe case\n    residualControl\n    {\n        p               1e-6;\n        U               1e-7;\n        \"(k|omega)\"     1e-6;\n    }\n}\n\nrelaxationFactors\n{\n    fields\n    {\n        p               0.3;\n    }\n    equations\n    {\n        U               0.7;\n        \"(k|omega)\"     0.7;\n    }\n}\n";
     }
     sol = sol.replace("@PSOLVER@", psolver);
+    // 3-D intake cases cache grad(U), so that the explicit viscous-stress term is not taken from a reused temporary
+    // (the conda-forge Linux build gets it wrong there: pipe friction 1.25x); cfd/NOTES.md 4(c4)
+    const cache_grad = is3d && d.mode_kind !== "exhaust";
+    if (cache_grad) sol += "\ncache\n{\n    grad(U);\n}\n";
     der.numerics = { algorithm: "SIMPLE", relaxation: comp ? "p 0.3 / rho 0.05 / U, h, k, omega 0.7" : "p 0.3 / U, k, omega 0.7",
       p_solver: is3d ? "GAMG" : "PCG/DIC", mesh: is3d ? "3-D snappyHexMesh" : "2-D sector, rotational cyclic sides" };   // recorded in case_info.json (intake_cfd.py)
     cw.foam("system/fvSolution", "dictionary", "fvSolution", sol, [
@@ -870,7 +874,9 @@
       (comp ? "SIMPLE, relaxation p 0.3 / rho 0.05 / U, h, k, omega 0.7 (robust for separated compressible flow)" : "SIMPLE, relaxation p 0.3 / U, k, omega 0.7") + "; p solver: " + (is3d ? "GAMG (3-D)" : "PCG/DIC (2-D sector)"),
       pf("transonic formulation: %s (estimated peak Mach %.3f)", der.transonic ? "on" : "off", der.M_peak),
       "residual targets are a secondary stop; the primary stop is the engineering-quantity",
-      "watchdog run by Allrun (see controlDict header) plus the iteration cap"]);
+      "watchdog run by Allrun (see controlDict header) plus the iteration cap"].concat(cache_grad ?
+      ["cache grad(U): the explicit viscous-stress term then reads a registered gradient instead of a reused",
+       "temporary, which one Linux build (conda-forge) evaluates wrongly (3-D pipe friction 1.25x)"] : []));
   }
   function control_dict(cw, d, der, monitors, surfaces, n_iter, write_int, conv) {
     const fo = monitors.join("\n");

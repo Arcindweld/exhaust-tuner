@@ -2225,6 +2225,16 @@ relaxationFactors
 }
 """ % nonortho
         sol = sol.replace("@PSOLVER@", psolver)
+    # 3-D intake cases cache grad(U). The turbulence-model libraries of the conda-forge Linux build evaluate the
+    # explicit part of the viscous stress, -div(nuEff dev2(T(grad(U)))), wrongly when grad(U) is a temporary (most
+    # likely the transpose done in place in the reused temporary): on the snappy mesh it acted as a body force of
+    # ~20 % of the wall stress (laminar pipe 1.25x Hagen-Poiseuille, developed turbulent pipe 1.2-1.3x). A cached
+    # gradient is a registered field, not a reusable temporary, and the same library then gets the term right; the
+    # numerics are unchanged, so a correct build gives the same result. Exhaust-component mode is left as it was
+    # (not proven there). cfd/NOTES.md 4(c4).
+    cache_grad = is3d and d["mode_kind"] != "exhaust"
+    if cache_grad:
+        sol += "\ncache\n{\n    grad(U);\n}\n"
     # what the results depend on besides the mesh, recorded in case_info.json and results.json, and compared
     # against a reference run's record by tools/openfoam/compare_results.py
     der["numerics"] = dict(algorithm="SIMPLE",
@@ -2238,7 +2248,10 @@ relaxationFactors
         "; p solver: %s" % ("GAMG (3-D)" if is3d else "PCG/DIC (2-D sector)"),
         "transonic formulation: %s (estimated peak Mach %.3f)" % ("on" if der["transonic"] else "off", der["M_peak"]),
         "residual targets are a secondary stop; the primary stop is the engineering-quantity",
-        "watchdog run by Allrun (see controlDict header) plus the iteration cap"])
+        "watchdog run by Allrun (see controlDict header) plus the iteration cap"] +
+        (["cache grad(U): the explicit viscous-stress term then reads a registered gradient instead of a reused",
+          "temporary, which one Linux build (conda-forge) evaluates wrongly (3-D pipe friction 1.25x)"]
+         if cache_grad else []))
 
 
 def control_dict(cw, d, der, monitors, surfaces, n_iter, write_int, conv):
