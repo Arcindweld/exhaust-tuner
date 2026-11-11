@@ -141,6 +141,88 @@ fn host_info_round_trip_and_unknown_action() {
     assert!(bridge_script().contains("exhaustTunerHost") && !bridge_script().contains("__VERSION__"));
 }
 
+/// Two OpenWAM requests through the router, each with a stand-in solver that sleeps until it is stopped, so the router's
+/// "cancel" can be watched: (the messages it sent, the router).
+#[cfg(unix)]
+fn two_sleeping_runs() -> (Arc<Mutex<Vec<Value>>>, Arc<MessageRouter>) {
+    let app = temp();
+    std::fs::create_dir_all(app.join("engines/openwam")).unwrap();
+    exec(&app.join("engines/openwam/OpenWAM"), "#!/bin/sh\nexec sleep 30\n");
+    let paths = AppPaths::new(Some(app.to_str().unwrap()), Some(temp().to_str().unwrap()), Some(temp().to_str().unwrap()));
+    let sent: Arc<Mutex<Vec<Value>>> = Arc::default();
+    let s2 = Arc::clone(&sent);
+    let r = Arc::new(MessageRouter::new(Arc::new(dispatcher(paths, Arc::default())), Arc::new(move |s: String| s2.lock().unwrap().push(serde_json::from_str(&s).unwrap()))));
+    for id in [11, 12] {
+        let r = Arc::clone(&r);
+        let m = json!({"id": id, "action": "runOpenWAM", "data": {"name": "c", "files": [{"name": "m.wam", "text": "x"}]}}).to_string();
+        std::thread::spawn(move || r.handle(&m));
+    }
+    // both started: each has posted its run folder
+    assert!(wait(&sent, 10.0, |v| [11, 12].iter().all(|i| v.iter().any(|m| m["id"] == *i && m["event"] == "folder"))));
+    std::thread::sleep(std::time::Duration::from_millis(300)); // the solvers are running
+    (sent, r)
+}
+
+#[cfg(unix)]
+fn wait(sent: &Mutex<Vec<Value>>, secs: f64, f: impl Fn(&[Value]) -> bool) -> bool {
+    let t0 = std::time::Instant::now();
+    while t0.elapsed().as_secs_f64() < secs {
+        if f(&sent.lock().unwrap()) {
+            return true;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    false
+}
+
+#[cfg(unix)]
+fn replied(v: &[Value], id: i64) -> bool {
+    v.iter().any(|m| m["id"] == id && m.get("ok").is_some())
+}
+
+#[cfg(unix)]
+#[test]
+fn router_cancel_by_id_stops_only_that_request() {
+    let (sent, r) = two_sleeping_runs();
+    r.handle(r#"{"id":0,"action":"cancel","data":{"id":11}}"#);
+    assert!(wait(&sent, 10.0, |v| replied(v, 11)), "the named request ends");
+    std::thread::sleep(std::time::Duration::from_millis(700));
+    assert!(!replied(&sent.lock().unwrap(), 12), "the other request is still running");
+    r.handle(r#"{"id":0,"action":"cancel","data":{}}"#); // tidy up: the global stop
+    assert!(wait(&sent, 10.0, |v| replied(v, 12)));
+}
+
+#[cfg(unix)]
+#[test]
+fn router_cancel_without_id_stops_every_request() {
+    let (sent, r) = two_sleeping_runs();
+    r.handle(r#"{"id":0,"action":"cancel","data":{}}"#);
+    assert!(wait(&sent, 10.0, |v| replied(v, 11) && replied(v, 12)), "both requests end");
+    // a later request is not stopped by the earlier cancel
+    r.handle("{\"id\":13,\"action\":\"hostInfo\",\"data\":{}}");
+    assert!(sent.lock().unwrap().iter().any(|m| m["id"] == 13 && m["ok"] == true));
+}
+
+#[cfg(unix)]
+#[test]
+fn router_cancel_of_an_unknown_id_stops_nothing() {
+    let (sent, r) = two_sleeping_runs();
+    r.handle(r#"{"id":0,"action":"cancel","data":{"id":99}}"#);
+    r.handle(r#"{"id":0,"action":"cancel","data":{"id":"nope"}}"#);
+    std::thread::sleep(std::time::Duration::from_millis(1000));
+    let v = sent.lock().unwrap().clone();
+    assert!(!replied(&v, 11) && !replied(&v, 12), "both requests are still running");
+    // a stop that comes before its request (each message is handled on its own thread) still stops it
+    r.handle(r#"{"id":0,"action":"cancel","data":{"id":21}}"#);
+    r.handle(&json!({"id": 21, "action": "runOpenWAM", "data": {"name": "c", "files": [{"name": "m.wam", "text": "x"}]}}).to_string());
+    assert!(sent.lock().unwrap().iter().any(|m| m["id"] == 21 && m["ok"] == false));
+    assert!(!replied(&sent.lock().unwrap(), 11) && !replied(&sent.lock().unwrap(), 12));
+    r.handle(r#"{"id":0,"action":"cancel"}"#); // no data at all: the old page's message, a global stop
+    assert!(wait(&sent, 10.0, |v| replied(v, 11) && replied(v, 12)));
+    let v = sent.lock().unwrap().clone();
+    assert!(v.iter().filter(|m| m.get("ok").is_some()).all(|m| m["ok"] == false));
+}
+
 #[test]
 fn save_files_uses_the_picked_folder_and_cancel_is_respected() {
     let ui = Arc::new(FakeUi::default());

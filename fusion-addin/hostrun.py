@@ -208,7 +208,8 @@ RUNNERS = {'runOpenWAM': run_openwam}
 
 def host_info(_data=None):
     exe = find_openwam()
-    return {'ok': True, 'where': 'fusion', 'engines': {'openwam': bool(exe)}, 'openwam': exe or '', 'runsFolder': runs_root()}
+    return {'ok': True, 'where': 'fusion', 'engines': {'openwam': bool(exe)}, 'openwam': exe or '', 'runsFolder': runs_root(),
+            'cancelsById': True}
 
 
 def host_call(data):
@@ -257,9 +258,12 @@ def host_chunk(data):
     return {'ok': True, 'text': part, 'last': last}
 
 
-def host_cancel(_data=None):
+def host_cancel(data=None):
+    """Stop the run named by data['id'] (the page's per-request Stop); without an id, every run (the old page, and
+    the add-in stopping). An id that is not running stops nothing."""
+    jid = (data or {}).get('id')
     with _lock:
-        jobs = list(_jobs.values())
+        jobs = list(_jobs.values()) if jid is None else [j for k, j in _jobs.items() if k == str(jid)]
     for j in jobs:
         j['cancel'].set()
         for p in j['procs']:

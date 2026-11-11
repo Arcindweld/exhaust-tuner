@@ -143,6 +143,22 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
 
 ## 2026-11-01: new interface, independent audit
+- Stop per request (2026-11-10): the bridge's Stop was global (router.rs and MessageRouter.cs flagged every request in
+  flight, hostrun.py stopped every job), so the automatic intake CFD superseding an older run, or any Stop button, also
+  ended an OpenWAM run started on another tab. Now window.exhaustTunerHost.call() returns a promise with .id and
+  .cancel() (that request only), cancel(id) stops one request and cancel() with no id still stops all; the bridge says
+  cancelsById. The page sends {id: 0, action: 'cancel', data: {id}}; router.rs and MessageRouter.cs stop only that
+  request (an id not running stops nothing else; a stop that arrives before its request, each message being handled on
+  its own thread, is kept 2 s and applied when it starts). Fusion: hostrun.host_cancel({id}) stops that job only,
+  hostInfo says cancelsById, and the page's Fusion bridge (FHOST) gives its promises .cancel() only then. Page:
+  hostRun(kind, ...) / hostStop(kind) next to hostCall; the CFD Stop stops the intake CFD runs (button and automatic),
+  the supersede only the automatic run, the 4-Stroke and 2-Stroke OpenWAM Stops and the exhaust CFD Stop only their own.
+  Older programs and add-ins (call() without .cancel()): the page falls back to the global HOST.cancel(), as before.
+  Tests: rust/et_host/tests/core.rs router_cancel_* (by id, without id, unknown id, a stop before its request),
+  fusion-addin/tests/test_hostrun.py (by id, unknown id, all), web/tests/cancelid_ui.js (the real host_bridge.js over a
+  stand-in channel, then an old-style bridge), web/tests/fusionhost_ui.js (two runs at once in the Fusion panel, each
+  Stop ends its own). The C# MessageRouter.cs / HostBridge.js got the same change but could not be compiled here (no
+  .NET SDK); only a live run on Windows and in Fusion can confirm the real WebView2 / palette channels.
 - Automatic intake CFD and tube finish (2026-11-10). (A) Windows program, Intake tab, CFD section: "Test automatically"
   (on by default, remembered per viewer in localStorage; absent without the program's bridge). When the design the case
   is built from changes (window.__cfd.design(): geometry, operating point, air temperature, mesh level, as a stable hash)

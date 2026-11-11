@@ -10387,7 +10387,7 @@ async function twRun(){
   window.__twLast=out;
   twMsg('Running '+out.models.length+' OpenWAM models on this PC, several at once. Each takes from seconds to a few minutes.');
   let res;
-  try{ res=await HOST.call('runOpenWAM',{name:out.name,files:out.files},ev=>{
+  try{ res=await hostRun('tw','runOpenWAM',{name:out.name,files:out.files},ev=>{
       if(ev.event==='done') twMsg('OpenWAM: '+ev.count+' of '+ev.of+' done ('+ev.model+(ev.finished?' finished':' did NOT finish')+', '+ev.seconds+' s).',!ev.finished); }); }
   catch(e){ twMsg('OpenWAM did not run: '+e.message,true); return; }
   const ms=res.models||[], files=[];
@@ -10399,7 +10399,7 @@ async function twRun(){
   renderActive();
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-tw]'); if(!b) return;
-  if(b.dataset.tw==='dl') twDownload(); else if(b.dataset.tw==='run') twRun(); else if(b.dataset.tw==='stop'&&HOST) HOST.cancel(); });
+  if(b.dataset.tw==='dl') twDownload(); else if(b.dataset.tw==='run') twRun(); else if(b.dataset.tw==='stop'&&HOST) hostStop('tw'); });
 document.addEventListener('input',e=>{ const el=e.target.closest('input.twam'); if(!el) return; readInput(el); TW_UI.v[el.dataset.k]=el._b>0||el._b===0?el._b:NaN; });
 document.addEventListener('change',e=>{ if(e.target.closest('input.twam')) renderActive(); });
 document.addEventListener('input',e=>{ const el=e.target.closest('input.twx'); if(!el) return; const k=el.dataset.k;
@@ -12026,6 +12026,16 @@ function hostCall(action,data,onEvent){
   return HOST.call(action,data||{},onEvent).catch(e=>({ok:false,msg:e.message}));
 }
 const saveCall=(a,d)=>FUSION?fusionCall(a,d):hostCall(a,d);
+/* Stop per run: hostRun(kind, ...) is HOST.call that remembers the request under kind, and hostStop(kind) stops only the
+   requests of that kind, so stopping the intake CFD leaves an OpenWAM run on another tab going. That needs a bridge
+   whose call() promise has .cancel() (the program and the Fusion panel from this version on); an older one has only
+   the global HOST.cancel(), which stops every run the program has going, as Stop always did there. */
+const HREQ={};
+function hostRun(kind,action,data,onEvent){ const p=HOST.call(action,data,onEvent), s=HREQ[kind]||(HREQ[kind]=new Set());
+  s.add(p); const end=()=>s.delete(p); p.then(end,end); return p; }
+function hostStop(...kinds){ if(!HOST) return; const ps=kinds.flatMap(k=>[...(HREQ[k]||[])]);
+  if(ps.length&&ps.every(p=>typeof p.cancel==='function')) ps.forEach(p=>p.cancel());
+  else if(ps.length||!HOST.cancelsById) HOST.cancel(); }
 const asFiles=list=>list.map(x=>({name:x.name,text:()=>Promise.resolve(x.text)}));
 const hostHas=k=>!!(HOST_INFO&&HOST_INFO.engines&&HOST_INFO.engines[k]);
 if(HOST) HOST.call('hostInfo',{}).then(i=>{ HOST_INFO=i; document.documentElement.classList.add('in-desktop'); if(typeof renderActive==='function') renderActive(); }).catch(()=>{});
@@ -12035,9 +12045,12 @@ if(HOST) HOST.call('hostInfo',{}).then(i=>{ HOST_INFO=i; document.documentElemen
 const FHOST=(()=>{ const pend={}; let n=0;
   return {where:'fusion',
     call(action,data,onEvent){ const id=(++n)+'_'+Date.now();
-      return new Promise((res,rej)=>{ pend[id]={res,rej,onEvent};
-        fusionCall('hostCall',{id,action,data:data||{}}).then(r=>{ if(!r||r.ok===false){ delete pend[id]; rej(new Error((r&&r.msg)||'Fusion did not answer.')); } else if(!r.started){ delete pend[id]; res(r); } }); }); },
-    cancel(){ fusionCall('hostCancel',{}); },
+      const p=new Promise((res,rej)=>{ pend[id]={res,rej,onEvent};
+        fusionCall('hostCall',{id,action,data:data||{}}).then(r=>{ if(!r||r.ok===false){ delete pend[id]; rej(new Error((r&&r.msg)||'Fusion did not answer.')); } else if(!r.started){ delete pend[id]; res(r); } }); });
+      if(HOST_INFO&&HOST_INFO.cancelsById){ p.id=id; p.cancel=()=>{ fusionCall('hostCancel',{id}); }; }   // an older add-in stops every run
+      return p; },
+    cancel(id){ fusionCall('hostCancel',id==null?{}:{id}); },
+    get cancelsById(){ return !!(HOST_INFO&&HOST_INFO.cancelsById); },
     event(d){ const p=d&&pend[d.id]; if(p&&p.onEvent){ try{ p.onEvent(d.ev||{}); }catch(e){} } },
     async done(d){ const p=d&&pend[d.id]; if(!p) return; delete pend[d.id];
       if(!d.ok){ p.rej(new Error(d.msg||'The run did not finish.')); return; }
@@ -18853,7 +18866,7 @@ async function wamRun(){
   wamMsg('Running '+n+' OpenWAM model'+(n===1?'':'s')+' on this PC. Each takes from seconds to a few minutes.');
   let res;
   try{
-    res=await HOST.call('runOpenWAM',{name:out.name,files:out.files},ev=>{
+    res=await hostRun('wam','runOpenWAM',{name:out.name,files:out.files},ev=>{
       if(ev.event==='done') wamMsg('OpenWAM: '+ev.count+' of '+ev.of+' done ('+ev.model+(ev.finished?' finished':' did NOT finish')+', '+ev.seconds+' s).',!ev.finished);
       else if(ev.event==='output'&&ev.line) wamMsg('OpenWAM '+ev.model+': '+ev.line.slice(0,140));
     });
@@ -18868,7 +18881,7 @@ async function wamRun(){
     'All '+ms.length+' models finished. ')+'Results are in the tables below; the case and OpenWAM output are in '+res.folder+'.',bad.length>0);
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wam]'); if(!b) return;
-  if(b.dataset.wam==='dl') wamDownload(); else if(b.dataset.wam==='run') wamRun(); else if(b.dataset.wam==='stop'&&HOST) HOST.cancel(); });
+  if(b.dataset.wam==='dl') wamDownload(); else if(b.dataset.wam==='run') wamRun(); else if(b.dataset.wam==='stop'&&HOST) hostStop('wam'); });
 document.addEventListener('input',e=>{ const el=e.target.closest('input.wamx'); if(!el) return; const k=el.dataset.k; WAM_UI[k]=k==='cycles'?(parseFloat(el.value)||25):el.value; });
 document.addEventListener('change',e=>{ const el=e.target.closest('#wam-files'); if(el&&el.files&&el.files.length) wamReadFiles(el.files); });
 document.addEventListener('change',e=>{ const el=e.target.closest('#wam-ins'); if(el&&el.files&&el.files.length) wamReadIns(el.files); });
@@ -19005,7 +19018,7 @@ async function cfdRun(hook){   // hook (the automatic test, cfdAuto below): sees
   cfdMsg('Running '+out.name+' in OpenFOAM on this PC'+(out.is3d?' (3-D: the generator writes the snappyHexMesh case first)':'')+'.');
   let res;
   try{
-    res=await HOST.call('runOpenFOAM',{name:out.name,files},ev=>{
+    res=await hostRun(hook?'autocfd':'cfd','runOpenFOAM',{name:out.name,files},ev=>{
       if(hook) hook(ev);
       if(ev.event==='step') cfdMsg('OpenFOAM: '+({generate:'writing the 3-D case',report:'reading the results'}[ev.step]||ev.step)+'.');
       else if(ev.event==='progress') cfdMsg('OpenFOAM '+ev.step+': iteration '+ev.iteration+(ev.of?' (at most '+ev.of+')':'')+', '+ev.seconds+' s. The run stops by itself once the airflow and the plane pressures have settled.');
@@ -19077,7 +19090,7 @@ function cfdSection(p,r){
 }
 window.__cfd={design:()=>CFD_LAST?cfdDesign(CFD_LAST.p,CFD_LAST.r):null,build:cfdBuild,download:cfdDownload,run:cfdRun,ui:CFD_UI,lib:IntakeCFD};   // for the Fusion add-in and tests
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-cfd]'); if(!b) return;
-  if(b.dataset.cfd==='dl') cfdDownload(); else if(b.dataset.cfd==='run') cfdRun(); else if(b.dataset.cfd==='stop'&&HOST) HOST.cancel();
+  if(b.dataset.cfd==='dl') cfdDownload(); else if(b.dataset.cfd==='run') cfdRun(); else if(b.dataset.cfd==='stop'&&HOST) hostStop('cfd','autocfd');
   else if(b.dataset.cfd==='open'&&CFD_UI.lastFolder) hostCall('openFolder',{path:CFD_UI.lastFolder}); });
 document.addEventListener('input',e=>{ const el=e.target.closest('input.cfdx'); if(!el) return; const k=el.dataset.k; CFD_UI[k]=k==='ff'?(parseFloat(el.value)||1):el.value; });
 document.addEventListener('change',e=>{ const el=e.target.closest('select.cfdx'); if(el){ const k=el.dataset.k; if(k==='cone') CFD_UI.cone=el.value==='1'; else CFD_UI[k]=el.value; renderActive(); return; }
@@ -19085,8 +19098,8 @@ document.addEventListener('change',e=>{ const el=e.target.closest('select.cfdx')
 /* Automatic intake test (the desktop program only, where the page can run OpenFOAM): when the design the CFD case is built
    from (window.__cfd.design(): geometry, operating point, air temperature, mesh level) changes and the inputs have been
    idle for AC_IDLE, the page runs the case itself through cfdRun, the same path as the button. A run for an older design
-   is stopped first with the program's Stop (HOST.cancel(); note it stops every run the program has going, as the button
-   does); one run waits at most. Results are kept per design (in memory, and the last AC_KEEP summaries in localStorage),
+   is stopped first (hostStop: only that run, or with an older program's bridge every run the program has going, as the
+   button does there); one run waits at most. Results are kept per design (in memory, and the last AC_KEEP summaries in localStorage),
    so going back to a design shows its result without a rerun; a failure or a Stop is not retried for that design. */
 const AC_IDLE=4000, AC_KEEP=10, AC_KEY='exhaust-autocfd-v1', AC_ON_KEY='exhaust-autocfd-on';
 const AC={on:true,timer:null,seen:null,run:null,next:null,status:null,cache:new Map(),fail:new Map(),noFoam:false,poked:false,started:0};
@@ -19135,7 +19148,7 @@ function acDecide(manual){
   if(AC.run){
     if(AC.run.hash===c.h&&!AC.run.superseded){ if(manual) acPhase(); return; }
     AC.next=manual?'manual':'auto';                          // one waiting run at most: the design as it is when the old run has stopped
-    if(!AC.run.superseded){ AC.run.superseded=true; if(HOST) HOST.cancel(); }
+    if(!AC.run.superseded){ AC.run.superseded=true; if(HOST) hostStop('autocfd'); }
     acSay('Stopping the test of the earlier design…');
     return;
   }
@@ -19291,7 +19304,7 @@ async function exhRun(){
   exhMsg('Running '+design.name+' in OpenFOAM on this PC: the generator meshes the part (snappyHexMesh), then the solver runs. A medium mesh takes from minutes to an hour on one core.');
   let res;
   try{
-    res=await HOST.call('runOpenFOAM',{name:design.name,files},ev=>{
+    res=await hostRun('exh','runOpenFOAM',{name:design.name,files},ev=>{
       if(ev.event==='step') exhMsg('OpenFOAM: '+({generate:'writing the case from the STL',report:'reading the results'}[ev.step]||ev.step)+'.');
       else if(ev.event==='progress') exhMsg('OpenFOAM '+ev.step+': iteration '+ev.iteration+(ev.of?' (at most '+ev.of+')':'')+', '+ev.seconds+' s. The run stops by itself once the flows and pressures have settled.');
     });
@@ -19364,7 +19377,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-exh
   const key=EXH_UI.part==='secondary'?'Ky':'K'; WAM_UI.loss[key]=+c.K.toFixed(4); WAM_UI.loss.src=(key==='K'?'collector':'first merge')+' K '+c.K.toFixed(2)+' from '+(c.case||c.name);
   b.textContent='Set: K '+c.K.toFixed(2)+' in OpenWAM'; });
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-exh]'); if(!b) return;
-  if(b.dataset.exh==='dl') exhDownload(); else if(b.dataset.exh==='run') exhRun(); else if(b.dataset.exh==='stop'&&HOST) HOST.cancel();
+  if(b.dataset.exh==='dl') exhDownload(); else if(b.dataset.exh==='run') exhRun(); else if(b.dataset.exh==='stop'&&HOST) hostStop('exh');
   else if(b.dataset.exh==='stl'&&FUSION&&EXH_LAST){ const d=exhDesign(EXH_LAST.r,EXH_LAST.p,EXH_LAST.e);
     fusionCall('exportCfdStl',{roles:d.inletNames.concat(['outlet']),filename:d.design.geometry.stl,title:'Save the STL next to design.json'}).then(r=>exhMsg((r&&r.msg)||'No answer from the add-in.',!(r&&r.ok)&&!(r&&r.msg==='Not saved.'))); }
   else if(b.dataset.exh==='open'&&EXH_UI.lastFolder) hostCall('openFolder',{path:EXH_UI.lastFolder}); });
