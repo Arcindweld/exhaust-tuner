@@ -600,6 +600,29 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
   has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
   the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
+- Intake 1-D pressure loss, term by term against the CAI CFD (2026-11-10): the tab read ~30% high (5.8 / 4.1 inH2O
+  plain / 3.5 mm lip against the CFD's 4.2-4.4 / 2.8). Same inputs as the CFD (376 cu in, 6,600 RPM, VE 92%, 25 C,
+  369 g/s, 92.61 mm bore, 880.6 mm, 30 + 84 deg on 127 mm): velocity 46.3 m/s, q 1,268 Pa (CFD 1,260-1,300), Re 2.76e5,
+  Mach 0.13, so flow, density and velocity were right. The tab's total has no filter and no throttle term (friction,
+  bends, inlet only), so the comparison was already tube against tube. Pa:
+
+  | term | before | after | why |
+  |---|---|---|---|
+  | friction | 218 (f 0.0181, 880.6 mm) | 126 (f 0.0147, 627.9 mm) | page-wide steel roughness 0.045 mm -> drawn tubing 0.0015 mm (Crane A-23, Moody); bend arcs (66 + 186 mm) were counted twice, Crane's bend K already holds them |
+  | bends | 501 (K 0.127 + 0.268) | 407 (K 0.103 + 0.218) | same Crane x Idelchik A1, with the smooth tube's f; cross-checks 0.31 Rennels, 0.29 Idelchik B1 0.21 (R/D)^-0.5 |
+  | inlet, plain | 740 (K 0.583, Blair Cd 0.567) | 634 (K 0.50) | flush square edge: Crane, Idelchik 3-1, Blevins 0.5 (Rennels 0.57); Blair's plain pipe is not a flush mouth |
+  | inlet, 3.5 mm lip | 310 (K 0.244) | 310 | Crane r/D 0.038, unchanged (Swamee 0.29, Rennels 0.33: Crane is the lowest handbook value) |
+  | total, plain / lip (25 C) | 1,458 / 1,029 (5.9 / 4.1 inH2O; 5.8 / 4.1 at the default 30 C) | 1,167 / 843 (4.7 / 3.4) | handbook basis: static less one head, flow re-developed |
+  | tube only at the tract end (CFD basis) | not shown | 1,093 / 769 (4.4 / 3.1) | less (alpha - 1) q = 74 Pa, alpha 1.058 of a developed 1/7-power profile: the CFD's mass-weighted total pressure still holds it |
+  | CFD | 1,050-1,106 / 700-709 | | +1.4% / +9.2% of the band middles |
+
+  New row "Tube only at the tract end, as a CFD reads it"; the loss line says no filter or throttle is in it and how long
+  the straights are (mm and in). Not applied, no verified source to hand: Miller's interaction factor for two bends 4.4 D
+  apart, Miller's outlet-tangent correction (the 84 deg bend ends 1.3 D before the tract end; it would lower the CFD-basis
+  figure further), any effect of the 30 deg bend sitting 1.1 D after a sharp mouth, a printed tube's roughness (taken as
+  drawn tubing). The lip case's remaining +9% sits with Crane's rounded-entrance K (the 3-D CFD reads 0.19 at r/D 0.04 on
+  a straight tube, total-pressure basis) and the missing outlet correction. tests/intake1dcal_ui.js (within 12% of each
+  CFD band middle), tests/intakebend_ui.js (4.6 / 3.3 inH2O at the default 30 C).
 - Intake CFD case takes the tab's bends (2026-11-10): the case the Intake tab writes now uses the tab's bend angles
   (listed from the mouth end), its centre-line radius and its rolled-lip radius (it placed every bend as 90 degrees at
   its own radius); the CFD panel can still override the radius and can say where each bend starts (mm from the mouth;

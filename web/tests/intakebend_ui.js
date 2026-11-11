@@ -24,5 +24,10 @@ const { chromium } = require('playwright');
   ok(!(await pg.$eval('#i-lipr-wrap', e => e.hidden)) && /lip r\/D 0\.038, K 0\.24, Crane/.test(t2), 'a 3.5 mm lip on the 92.6 mm bore: r/D 0.038, K 0.24');
   const dp = s => { const m = s.match(/Duct pressure loss at peak power\s+([\d.,]+)\s*(inH₂O|Pa|kPa)/); return m ? m[1] + ' ' + m[2] : null; };
   console.log('   plain, 2 x 90°: ' + dp(t0) + ' | plain, 84 + 30 on 5 in: ' + dp(t1) + ' | 3.5 mm lip: ' + dp(t2));
+  // after the 2026-11-10 term-by-term check (square edge K 0.5, smooth-tube f, friction over the straights only), at the
+  // tab's default 30 C intake air: was 5.8 and 4.1 inH2O, now 4.6 and 3.3 (tests/intake1dcal_ui.js holds it to the CFD)
+  const inw = s => parseFloat(dp(s));
+  ok(Math.abs(inw(t1) - 4.6) <= 0.1 && Math.abs(inw(t2) - 3.3) <= 0.1, 'totals 4.6 inH2O plain and 3.3 with the lip (' + dp(t1) + ', ' + dp(t2) + ')');
+  ok(/Tube only at the tract end, as a CFD reads it\s+[\d.]+\s*inH₂O/.test(t2) && /no filter or throttle/.test(t2), 'the tube-only, tract-end figure is shown and the loss line says no filter or throttle is in it');
   ok(!errs.length, 'no page errors ' + errs.join('; '));
   await b.close(); console.log(fails.length ? 'intakebend_ui: ' + fails.length + ' FAIL' : 'intakebend_ui: all pass'); process.exit(fails.length ? 1 : 0); })();
