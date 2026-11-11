@@ -9,8 +9,11 @@ It cannot show what Fusion itself returns (tests/fusion_live_intakecfd.py does t
   - its centreline curves selected by hand, shuffled, one reversed, the bends as NURBS: the same design,
   - a body picked through a moved occurrence (its Pipe path in the component's space): the same design,
   - a fillet on the mouth's inside edge read as the lip radius,
-  - refused, in a sentence: a tapered bore, an oval bore, a mesh body, nothing selected, two bodies, no path, curves
-    that do not run in the tube.
+  - the bore probed from the centreline: the owner's tube with a 60 mm cone to a 105 mm throttle bore joined on past its
+    Pipe path (diameter_change, the tract end half a tube bore past the throttle face, the tab's throttle bore), the same
+    with a 3.5 mm lip fillet, beads / hose barbs / a filter cuff on the outside (no change), a bellmouth ahead of the path,
+  - refused, in a sentence: a taper into a bend, an oval bore, two diameter changes, a mesh body, nothing selected, two
+    bodies, no path, curves that do not run in the tube.
    python3 tests/test_intakecfd_fusion_fake.py"""
 import math
 import os
@@ -184,8 +187,10 @@ class TubeBody(object):
     radius on the mouth's inside edge (the mouth at s = 0); xf: where the body sits (a moved occurrence's transform)."""
     objectType = 'adsk::fusion::BRepBody'
 
-    def __init__(self, segs, r_in, r_out, path_ents=(), taper=None, oval=None, lip=None, xf=None, inv=None, name='INTAKE TUBE'):
+    def __init__(self, segs, r_in, r_out, path_ents=(), taper=None, oval=None, lip=None, xf=None, inv=None, name='INTAKE TUBE',
+                 bore=None, outer=None):
         self.segs, self.r_in, self.r_out, self.taper, self.oval, self.lip = segs, r_in, r_out, taper, oval, lip
+        self.bore, self.outer = bore, outer            # the bore and outside radius as functions of s (mm), when not constant
         self.L = sum(g['L'] for g in segs)
         self.xf, self.inv = xf or (lambda p: p), inv or (lambda p: p)
         self.name, self.isSolid, self.assemblyContext, self.nativeObject = name, True, None, None
@@ -243,7 +248,7 @@ class TubeBody(object):
         if nb is None:
             return OUTSIDE
         d, s, rv = nb
-        ri = self.r_in
+        ri = self.bore(s) if self.bore else self.r_in
         if self.taper and s > self.taper[0]:
             ri += (s - self.taper[0]) * self.taper[1]
         if self.oval and s > self.L / 2:
@@ -251,7 +256,7 @@ class TubeBody(object):
             e = unit(cross(self.segs[-1]['t'], (0.0, 0.0, 1.0)))
             x = dot(rv, e) / self.oval
             d = math.sqrt(max(0.0, d * d - dot(rv, e) ** 2 + x * x))
-        if not (ri < d < self.r_out):
+        if not (ri < d < (self.outer(s) if self.outer else self.r_out)):
             return OUTSIDE
         if self.lip and s < self.lip and (s - self.lip) ** 2 + (d - (ri + self.lip)) ** 2 < self.lip ** 2 and d < ri + self.lip:
             return OUTSIDE
@@ -367,7 +372,58 @@ r8 = run()
 ok(r8.get('ok') and r8['tube']['geometry']['inlet'] == {'type': 'radius', 'lip_radius_mm': 3.5} and abs(r8['tube']['geometry']['tube_length_mm'] - want_geo['tube_length_mm']) < 0.05,
    'a 3.5 mm fillet on the mouth\'s inside edge: a radius inlet, the length unchanged (%s)' % (r8.get('msg') or '')[-120:])
 
-# ---------------------------------------------------------------- 6. refusals
+# ---------------------------------------------------------------- 6. the bore: a cone past the Pipe path, a lip, beads, a bellmouth
+L_own = sum(g['L'] for g in segs)
+segs_c = owner_segments(extra_end=60.0)            # the body runs 60 mm on past its Pipe path: the cone to the throttle
+cone = lambda s: R_IN + (52.5 - R_IN) * min(1.0, max(0.0, (s - L_own) / 60.0))
+bc = TubeBody(segs_c, R_IN, R_OUT, path_ents=sketch_curves(segs), bore=cone, outer=lambda s: cone(s) + 4.76)
+select(Sel(Face(bc, bc.faces[1].geometry), outside_point(bc, segs, 50.0)))
+rc = run()
+tc = rc.get('tube') or {}
+gc = tc.get('geometry') or {}
+dcc = gc.get('diameter_change') or {}
+ok(rc.get('ok') and dcc.get('to_diameter_mm') == 105.0 and abs(dcc.get('start_mm', 0) - L_own) < 0.05 and abs(dcc.get('cone_half_angle_deg', 0) - 5.895) < 0.02
+   and abs(tc['body_beyond_path_mm'][1] - 60.0) < 0.05,
+   'the owner\'s tube with a 60 mm cone (92.61 to 105 mm) joined on past its Pipe path: found (%.2f mm past the path), diameter_change %s' % (tc.get('body_beyond_path_mm', [0, 0])[1], dcc))
+ok(abs(gc.get('tube_length_mm', 0) - (L_own + 60 + 46.305)) < 0.06 and set(gc.get('planes_mm', {})) == {'tube_end', 'throttle_face'}
+   and [round(b['angle_deg'], 1) for b in gc.get('bend', [])] == [29.5, 84.1] and tc['cone']['at_throttle'],
+   'the tract end half a tube bore past the throttle face (%.2f mm), planes at the cone\'s ends, the bends unchanged' % gc.get('tube_length_mm', 0))
+f = tc.get('fill') or {}
+ok(f.get('tb_mm') == 105.0 and f.get('lt_mm') == round(gc.get('tube_length_mm', 0), 2) and f.get('dt_mm') == 92.61 and '105.00 mm (4.1339 in)' in rc.get('msg', '')
+   and tc.get('probes', 0) > 100 and tc.get('read_s') is not None,
+   'the Intake tab gets the 105 mm throttle bore; the message says it in mm and inches; %d probes, %.2f s' % (tc.get('probes', 0), tc.get('read_s', 0)))
+FIX_CONE = tc
+bl_ = TubeBody(segs_c, R_IN, R_OUT, path_ents=sketch_curves(segs), bore=cone, outer=lambda s: cone(s) + 4.76, lip=3.5)
+select(Sel(Face(bl_, bl_.faces[1].geometry), outside_point(bl_, segs, 50.0)))
+rl = run()
+gl = (rl.get('tube') or {}).get('geometry') or {}
+ok(rl.get('ok') and gl.get('inlet') == {'type': 'radius', 'lip_radius_mm': 3.5} and gl.get('diameter_change') == dcc and rl['tube']['fill']['mouth'] == 'radius'
+   and rl['tube']['fill']['lip_mm'] == 3.5, 'and with a 3.5 mm fillet on the mouth\'s inside edge (its torus face): a radius inlet of exactly 3.5 mm, the same cone')
+beads = lambda s: R_OUT + (3.0 if (s % 200.0) < 6.0 else 0.0) + (6.0 if s < 25.0 else 0.0) + (2.0 * ((s - 820.0) % 8.0) / 8.0 if s > 820.0 else 0.0)
+bb = TubeBody(segs, R_IN, R_OUT, path_ents=sketch_curves(segs), outer=beads)
+select(Sel(Face(bb, bb.faces[1].geometry), outside_point(bb, segs, 50.0)))
+rb = run()
+ok(rb.get('ok') and rb['tube']['geometry'] == r['tube']['geometry'], 'beads every 200 mm, hose barbs on the last 60 mm and a 25 mm filter cuff on the outside: the same design as the plain tube')
+st = [{'kind': 'line', 'a': (0.0, 0.0, 0.0), 'b': (0.0, 0.0, 440.0), 't': (0.0, 0.0, 1.0), 'L': 440.0}]
+st_path = [{'kind': 'line', 'a': (0.0, 0.0, 40.0), 'b': (0.0, 0.0, 440.0), 't': (0.0, 0.0, 1.0), 'L': 400.0}]
+h_ = 0.25 * 92.61
+bell = lambda s: (R_IN + h_ - h_ * math.sqrt(max(0.0, 1 - ((40.0 - s) / 40.0) ** 2))) if s < 40.0 else R_IN
+be = TubeBody(st, R_IN, R_OUT, path_ents=sketch_curves(st_path), bore=bell, outer=lambda s: R_IN + h_ + 3.0, name='STACK')
+select(Sel(Face(be, be.faces[1].geometry), (0.0, R_OUT + 20.0, 5.0)))
+rbe = run()
+ib = ((rbe.get('tube') or {}).get('geometry') or {}).get('inlet') or {}
+ok(rbe.get('ok') and ib.get('type') == 'ellipse' and ib.get('exit_diameter_mm') == 92.61 and abs(ib['length_mm'] - 40.0) < 0.5 and abs(ib['entry_diameter_mm'] - 138.91) < 0.5 and rbe['tube']['fill']['mouth'] == 'ellipse'
+   and 'elliptical bellmouth' in rbe.get('msg', ''), 'an elliptical bellmouth (40 mm, 138.9 mm entry) joined on ahead of the path: %s; the tab gets "Elliptical bellmouth" (%s)' % (ib, rbe.get('msg')))
+
+if os.environ.get('ET_WRITE_FIXTURES') == '1':
+    # the page test's add-in answers (web/tests/fxcfd_ui.js): the plain tube and the cone-ended one, as read here
+    fx = os.path.join(os.path.dirname(os.path.dirname(HERE)), 'web', 'tests', 'fixtures')
+    for fn, tt in (('fxcfd_tube.json', r['tube']), ('fxcfd_tube_cone.json', FIX_CONE)):
+        with open(os.path.join(fx, fn), 'w') as fh:
+            __import__('json').dump(tt, fh, indent=1)
+    print('wrote the fixtures in ' + fx)
+
+# ---------------------------------------------------------------- 7. refusals
 def refused(want, what, data=None):
     rr = run(data)
     wants = want if isinstance(want, tuple) else (want,)
@@ -376,10 +432,14 @@ def refused(want, what, data=None):
 
 bt = TubeBody(segs, R_IN, R_OUT, path_ents=sketch_curves(segs), taper=(450.0, 0.02))
 select(Sel(Face(bt, bt.faces[1].geometry), outside_point(bt, segs, 20.0)))
-refused('not the same round size all along', 'a bore that tapers from 450 mm on')
+refused('inside bend 2', 'a bore that tapers from 450 mm on (into bend 2)')
 bo = TubeBody(segs, R_IN, R_OUT, path_ents=sketch_curves(segs), oval=1.06)
 select(Sel(Face(bo, bo.faces[1].geometry), outside_point(bo, segs, 20.0)))
-refused('not the same round size all along', 'a bore squashed 6% oval past the middle')
+refused('The bore is not round', 'a bore squashed 6% oval past the middle')
+two = lambda s: R_IN + (52.5 - R_IN) * min(1.0, max(0.0, (s - L_own) / 60.0)) if s > L_own else (40.0 if s > 230 else (R_IN - (R_IN - 40.0) * (s - 200) / 30.0 if s > 200 else R_IN))
+b2c = TubeBody(segs_c, R_IN, R_OUT, path_ents=sketch_curves(segs), bore=two, outer=lambda s: two(s) + 4.76)
+select(Sel(Face(b2c, b2c.faces[1].geometry), outside_point(b2c, segs, 50.0)))
+refused('changes size 2 times', 'a reducer mid-run and the cone at the end (two diameter changes)')
 mesh = types.SimpleNamespace(objectType='adsk::fusion::MeshBody', entityToken='m')
 select(Sel(mesh))
 refused('mesh body', 'a mesh body (a scan)')

@@ -12389,7 +12389,7 @@ const PA_INH2O=249.0889;     // Pa per inch of water at 4 °C (NIST SP 811)
 function fxCfdBlock(){
   const o=(v,t)=>'<option value="'+v+'"'+(FXCFD.mouth===v?' selected':'')+'>'+t+'</option>';
   return '<div class="fxcfd" style="margin-top:12px"><p class="sub">Test this intake (CFD)</p>'+
-    '<p class="cap">Click the intake tube’s outside face near the end the air goes in (or that end face), then <b>Test this intake (CFD)</b>. The add-in reads the tube from the model (bore, wall, length, every bend’s radius, angle, place and direction), takes the airflow from this tab’s engine, RPM and VE, and runs a steady-flow OpenFOAM case on this PC with the Exhaust Tuner program’s OpenFOAM: the pressure drop comes back here. Constant-bore round tubes of straights and bends; a few minutes on one core for a bent tube.</p>'+
+    '<p class="cap">Click the intake tube’s outside face near the end the air goes in (or that end face), then <b>Test this intake (CFD)</b>. The add-in reads the tube from the model (bore, wall, length, every bend’s radius, angle, place and direction), takes the airflow from this tab’s engine, RPM and VE, and runs a steady-flow OpenFOAM case on this PC with the Exhaust Tuner program’s OpenFOAM: the pressure drop comes back here. Round tubes of straights and bends, with a rolled lip, bellmouth or flare at the mouth and one cone (to the throttle bore, or a reducer) on a straight; what is on the outside (beads, a filter cuff) does not matter. A few minutes on one core for a bent tube.</p>'+
     '<div class="grid2" style="max-width:560px"><label class="f span2"><span class="lab">Air goes in at</span><span class="inp"><select class="fxcfdsel" data-k="mouth">'+
       o('auto','The end I clicked nearer (or the end face I clicked)')+o('other','The other end')+'</select></span></label></div>'+
     '<div class="actions" style="margin-top:8px"><button type="button" class="btn" data-fxcfd="test">Test this intake (CFD)</button>'+
@@ -12407,7 +12407,7 @@ function fxCfdTabParams(tube){
   if(!CFD_LAST&&typeof renderIntake==='function') try{ renderIntake(); }catch(e){}
   if(!CFD_LAST) return {err:'Fill in the Intake tab first (engine, RPM, VE): the CFD needs the airflow from it.'};
   const f=tube.fill, p=Object.assign({},CFD_LAST.p,{dt:f.dt_mm,lt:f.lt_mm,bends:f.bend_count,bendAng:f.bend_angles.slice(),
-    bendR:f.bend_r_mm||f.bend_r_mean_mm||NaN,mouth:f.mouth,lipR:f.mouth==='radius'?f.lip_mm:null});
+    bendR:f.bend_r_mm||f.bend_r_mean_mm||NaN,mouth:f.mouth,lipR:f.mouth==='radius'?f.lip_mm:null},f.tb_mm>0?{tb:f.tb_mm}:{});
   const r=calcIntake(p); if(r.err) return {err:r.err};
   return {p,r};
 }
@@ -12421,13 +12421,29 @@ function fxCfdDesign(tube){
       (+(p.disp/16.387064).toFixed(0))+' cu in ('+(p.disp/1000).toFixed(2)+' L), VE '+Math.round(p.ve*100)+'%'+(d.boost>1?', × '+d.boost.toFixed(2)+' for boost':'')+(d.ff!==1?', × '+d.ff+' flow factor':'')+', from this tab':
     op.pressure_ratio?'pressure ratio '+op.pressure_ratio+' (set in the Intake CFD panel)':(op.mass_flow_kg_s*1000).toFixed(1)+' g/s, from this tab';
   const radii=(tube.bends||[]).map(b=>b.clr_mm), mixed=radii.length>1&&Math.max(...radii)-Math.min(...radii)>0.5;
-  return {design,p,r,flow,est:r.dpEnd,estNote:mixed?'the tab takes one bend radius, so the 1-D figure uses their mean, '+fxIn(tube.fill.bend_r_mean_mm):''};
+  const notes=[]; if(mixed) notes.push('the tab takes one bend radius, so the 1-D figure uses their mean, '+fxIn(tube.fill.bend_r_mean_mm));
+  if(tube.cone) notes.push('the tab’s 1-D method has no cone: it takes the whole '+fxIn(tube.fill.lt_mm)+' at the '+fxIn(tube.fill.dt_mm)+' bore');
+  return {design,p,r,flow,est:r.dpEnd,estNote:notes.join('; ')};
+}
+// the mouth as the add-in read it (the generator's inlet types: plain, radius, ellipse, taper)
+function fxCfdMouthText(g){
+  const i=g.inlet||{};
+  if(i.type==='radius') return 'with a '+fxIn(i.lip_radius_mm)+' radius on the inside edge';
+  if(i.type==='ellipse') return 'an elliptical bellmouth '+fxIn(i.length_mm)+' long from a '+fxIn(i.entry_diameter_mm)+' entry';
+  if(i.type==='taper') return 'a straight flare, '+(+i.wall_half_angle_deg).toFixed(1)+'° a side from a '+fxIn(i.entry_diameter_mm)+' entry, with a '+fxIn(i.lip_radius_mm)+' lip radius';
+  return 'square cut';
+}
+function fxCfdConeText(c){
+  if(!c) return '';
+  return '; '+(c.to_mm>c.from_mm?'a cone':'a reducer')+' from '+fxIn(c.from_mm)+' to '+fxIn(c.to_mm)+' bore, '+fxIn(c.length_mm)+' long ('+(+c.half_angle_deg).toFixed(1)+'° a side), starting '+fxIn(c.start_mm)+' from the mouth'+
+    (c.at_throttle?', ending at the throttle face':'');
 }
 function fxCfdTubeHtml(tube){
   const g=tube.geometry, bl=tube.bends||[];
   return '<p class="cap"><b>'+esc(tube.name)+'</b>: '+fxIn(tube.bore_mm)+' bore, '+fxIn(tube.wall_mm)+' wall ('+fxIn(tube.od_mm)+' outside), '+fxIn(tube.length_mm)+' along the centreline'+
     (bl.length?'; '+bl.map((b,i)=>b.angle_deg.toFixed(1)+'° bend on '+fxIn(b.clr_mm)+' radius starting '+fxIn(b.start_mm)+' from the mouth').join('; '):'; straight')+
-    '; mouth '+(g.inlet.type==='radius'?'with a '+fxIn(g.inlet.lip_radius_mm)+' radius on the inside edge':'square cut')+', flush in a flat wall (the case’s plenum). Air enters at '+esc(tube.mouth_how)+'.</p>';
+    esc(fxCfdConeText(tube.cone))+'; mouth '+esc(fxCfdMouthText(g))+', flush in a flat wall (the case’s plenum). Air enters at '+esc(tube.mouth_how)+'.</p>'+
+    ((tube.notes||[]).length?'<p class="cap" id="fxcfd-notes"><b>As modelled</b>: '+tube.notes.map(esc).join(' ')+'</p>':'');
 }
 function fxCfdResultHtml(tube,dd,res){
   const R=res.results||{}, pl=(R.planes||{}).tract_end||{}, dp=pl.dp_total_Pa, K=pl.K_total_loss, st=(res.steps||[]).find(x=>x.step===res.solver)||{};
@@ -12440,12 +12456,21 @@ function fxCfdResultHtml(tube,dd,res){
     '<li><b>Pressure drop</b>: total pressure lost from the open air to the tract end, mass-weighted, '+(Number.isFinite(dp)?esc(fxPa(dp)):'not in the results')+'.</li>'+
     '<li><b>This tab’s quick 1-D estimate</b> for the same tube (the tube alone at the tract end, as a CFD reads it): '+esc(fxPa(est))+(diff!=null?', '+(diff>=0?diff+'% above':(-diff)+'% below')+' the CFD':'')+(dd.estNote?'; '+esc(dd.estNote):'')+'.</li>'+
     '<li><b>Airflow</b>: '+esc(dd.flow)+(Number.isFinite(pl.mdot_kg_s)?'; the CFD carried '+(pl.mdot_kg_s*1000).toFixed(1)+' g/s':'')+'.</li>'+
+    fxCfdPlanesHtml(tube,R.planes||{})+
     '<li><b>Mesh</b>: '+(res.cells?res.cells.toLocaleString('en-US')+' cells':'cell count not read')+', '+esc(dd.design.mesh.level)+' level'+(res.meshWarning?'. <span class="st-warn">'+esc(res.meshWarning)+'</span>':'')+'.</li>'+
     '<li><b>Run</b>: '+esc(res.solver||'')+', '+(res.iterations||0).toLocaleString('en-US')+' iterations, '+(st.stoppedBy==='convergence'?'stopped once the flow had settled':'stopped at the iteration cap (not settled: read the figure with care)')+', '+fxTime(res.seconds_total||0)+(res.cached?' (shown from the earlier run of this same tube and airflow)':'')+'.</li>'+
     '</ul>';
   if(res.case) h+='<div class="actions" style="margin-top:6px"><button type="button" class="btn" data-fxcfd="open" data-path="'+esc(res.case)+'">Open the case folder</button></div>';
-  h+='<p class="cap">Steady flow at the cycle-mean airflow, the tube alone (no filter, MAF or throttle), its mouth flush in a flat wall, smooth walls: compare tubes with it. The tract end is the far end of the tube; losses go with the square of the airflow.</p>';
+  h+='<p class="cap">Steady flow at the cycle-mean airflow, the tube alone (no filter, MAF or throttle), its mouth flush in a flat wall, smooth walls: compare tubes with it. '+
+    (tube.cone&&tube.cone.at_throttle?'The tract end is half a tube bore ('+fxIn(tube.fill.dt_mm/2)+') past the throttle face, in the throttle bore, where this tab’s own CFD case measures; the case runs the throttle bore on straight past it':'The tract end is the far end of the tube')+'; losses go with the square of the airflow.</p>';
   return fxCfdTubeHtml(tube)+h;
+}
+// the other measuring planes the add-in asked for (planes_mm): the end of the constant tube and the throttle face, or a
+// reducer's two ends; each the total-pressure drop from the open air to there
+function fxCfdPlanesHtml(tube,P){
+  const NAMES={tube_end:'At the end of the constant tube (the cone’s start)',throttle_face:'At the throttle face (the cone’s large end)',reducer_in:'Before the reducer',reducer_out:'After the reducer'};
+  return Object.keys((tube.geometry||{}).planes_mm||{}).filter(k=>NAMES[k]).map(k=>{ const pl=P[k]||{}, dp=pl.dp_total_Pa;
+    return '<li data-plane="'+k+'"><b>'+NAMES[k]+'</b>, '+fxIn(tube.geometry.planes_mm[k])+' from the mouth: '+(Number.isFinite(dp)?esc(fxPa(dp))+(Number.isFinite(pl.K_total_loss)?', K '+pl.K_total_loss.toFixed(3)+' (velocity heads there)':''):'not in the results')+'.</li>'; }).join('');
 }
 async function fxCfdRead(){
   const res=await fusionCall('cfdTube',{mouth:FXCFD.mouth});
@@ -12459,10 +12484,15 @@ async function fxCfdFill(){
   $('i-bendang').value=f.bend_angles.join(', ');
   const rr=f.bend_r_mm||f.bend_r_mean_mm; if(rr) set('i-bendr',rr); else { $('i-bendr').value=''; $('i-bendr')._b=NaN; }
   $('i-mouth').value=f.mouth; if(f.mouth==='radius') set('i-lipr',f.lip_mm);
+  // the cone to the throttle bore: its large end is the throttle-body bore, and the tab's CFD case then puts its own cone
+  // (7° a side) to end half a tube bore before the tract end, as the case read from Fusion has it
+  if(f.tb_mm>0){ set('i-tb',f.tb_mm); CFD_UI.cone=true; }
   CFD_UI.bpos=f.bend_starts_mm.join(', '); CFD_UI.clr='';
   FXCFD.fill=f;
   if(typeof renderActive==='function') renderActive();
-  fxCfdSay('The Intake tab now has this tube: '+fxIn(f.lt_mm)+' long, '+fxIn(f.dt_mm)+' bore'+(f.bend_angles.length?', bends '+f.bend_angles.map(a=>a+'°').join(', ')+' from the mouth'+(f.bend_r_mm?' on '+fxIn(f.bend_r_mm)+' radius':' (their radii differ: the tab takes one, the mean '+fxIn(f.bend_r_mean_mm)+')')+', starting at '+f.bend_starts_mm.join(', ')+' mm in the CFD panel':', straight')+', mouth '+(f.mouth==='radius'?'with a '+fxIn(f.lip_mm)+' lip radius':'square cut')+'.');
+  const mouthT=f.mouth==='radius'?'with a '+fxIn(f.lip_mm)+' lip radius':f.mouth==='ellipse'?(f.mouth_read==='taper'?'Elliptical bellmouth (the tab’s nearest to the straight flare read; the tab sizes its own bell)':'Elliptical bellmouth (the tab sizes its own bell)'):'square cut';
+  fxCfdSay('The Intake tab now has this tube: '+fxIn(f.lt_mm)+' long'+(f.tb_mm>0?' (to half a tube bore past the throttle face, as the tab’s CFD case measures)':'')+', '+fxIn(f.dt_mm)+' bore'+(f.bend_angles.length?', bends '+f.bend_angles.map(a=>a+'°').join(', ')+' from the mouth'+(f.bend_r_mm?' on '+fxIn(f.bend_r_mm)+' radius':' (their radii differ: the tab takes one, the mean '+fxIn(f.bend_r_mean_mm)+')')+', starting at '+f.bend_starts_mm.join(', ')+' mm in the CFD panel':', straight')+', mouth '+mouthT+
+    (f.tb_mm>0?', throttle bore '+fxIn(f.tb_mm)+' (the cone’s large end)':'')+(f.reducer?'. The tab has no reducer mid-run: it keeps the '+fxIn(f.reducer.from_mm)+' bore; the Fusion test models the reducer to '+fxIn(f.reducer.to_mm):'')+'.');
 }
 async function fxCfdTest(){
   const out=$('fxcfd-out'); if(out) out.innerHTML='';

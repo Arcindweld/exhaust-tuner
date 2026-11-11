@@ -5,13 +5,18 @@
 // 3-D generator, the cache key), the progress line, the result (inH2O, Pa, kPa, K, the tab's 1-D figure for the same
 // tube, cells, run time, sizes in inches and mm), a second click answered from the cache with no new run, the mouth
 // option, Stop, a refusal, the program not installed, and the tab filled from the tube (its own CFD case then has the
-// tube's bends where they are).   node tests/fxcfd_ui.js   (from web/)
+// tube's bends where they are). Then the same tube ending in a 60 mm cone to a 105 mm throttle bore
+// (fixtures/fxcfd_tube_cone.json; both fixtures written by ET_WRITE_FIXTURES=1 python3 tests/test_intakecfd_fusion_fake.py):
+// its geometry sent unchanged, the loss at the end of the constant tube, at the throttle face and at the tract end, the
+// throttle bore filled (the tab's own case then ends its cone at the same throttle face), and a bellmouth or lip read
+// setting the tab's mouth.   node tests/fxcfd_ui.js   (from web/)
 const { chromium } = require('playwright');
 const fs = require('fs');
 (async () => { const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const pg = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + process.cwd() + '/index.html');
   const TUBE = JSON.parse(fs.readFileSync(__dirname + '/fixtures/fxcfd_tube.json', 'utf8'));
+  const CONE = JSON.parse(fs.readFileSync(__dirname + '/fixtures/fxcfd_tube_cone.json', 'utf8'));   // the same tube + a 60 mm cone to a 105 mm throttle bore
   const RES = { ok: true, folder: 'C:/runs/20261110-120000_fusion_INTAKE_TUBE_93mm', case: 'C:/runs/20261110-120000_fusion_INTAKE_TUBE_93mm/case', solver: 'rhoSimpleFoam',
     iterations: 1632, endTime: 6000, meshWarning: null, meshNote: null,
     results: { planes: { tract_end: { dp_total_Pa: 1050.4, K_total_loss: 0.834, mdot_kg_s: 0.3691 } } },
@@ -28,10 +33,10 @@ const fs = require('fs');
           setTimeout(() => H('hostEvent', { id, ev: { event: 'step', step: 'snappyHexMesh' } }), 40);
           setTimeout(() => { H('hostEvent', { id, ev: { event: 'progress', step: 'rhoSimpleFoam', iteration: 900, of: 6000, seconds: 40 } }); window.__progress = document.getElementById('fxcfd-msg').textContent;
             window.__stopShown = !document.querySelector('#fx-intake button[data-fxcfd="stop"]').hidden; }, 120);
-          if (!window.__hold) setTimeout(() => { window.__pend = null; H('hostDone', { id, ok: true, msg: '', size: JSON.stringify(RES).length, chunk: 400000 }); }, 250);
+          if (!window.__hold) setTimeout(() => { window.__pend = null; H('hostDone', { id, ok: true, msg: '', size: JSON.stringify(window.__resOverride || RES).length, chunk: 400000 }); }, 250);
           r = { ok: true, started: id }; }
         else r = { ok: true }; }
-      else if (a === 'hostChunk') r = { ok: true, text: JSON.stringify(RES), last: true };
+      else if (a === 'hostChunk') r = { ok: true, text: JSON.stringify(window.__resOverride || RES), last: true };
       else if (a === 'hostCancel') { const id = window.__pend; if (id) setTimeout(() => H('hostDone', { id, ok: false, msg: 'Stopped.', size: 0, chunk: 400000 }), 30); window.__pend = null; }
       return Promise.resolve(JSON.stringify(r)); } };
   }, [TUBE, RES]);
@@ -115,5 +120,41 @@ const fs = require('fs');
      'the tab\'s own CFD case now has the tube\'s bends where they are (' + (bl || []).map(x => x.angle_deg + ' at ' + x.start_mm).join(', ') + ')');
   const same = await pg.evaluate(T => { const d = window.__fxcfd.design(T); return [d.est, window.__fxcfd.tabDpEnd()]; }, TUBE);
   ok(Math.abs(same[0] - same[1]) < 1e-6, 'the 1-D estimate beside the CFD is the tab\'s own figure for the tube (' + same.map(x => Math.round(x)).join(' = ') + ' Pa)');
+  // ---- the owner's tube ending in a 60 mm cone to a 105 mm throttle bore: tested, then put in the tab
+  const RESC = JSON.parse(JSON.stringify(RES)); RESC.results.planes = { tract_end: { dp_total_Pa: 1120.0, K_total_loss: 0.91, mdot_kg_s: 0.3691 },
+    tube_end: { dp_total_Pa: 1180.0, K_total_loss: 0.94 }, throttle_face: { dp_total_Pa: 1131.0, K_total_loss: 1.71 } };
+  await pg.evaluate(([C, R]) => { window.__tubeOverride = C; window.__resOverride = R; }, [CONE, RESC]);
+  const runsC = await pg.evaluate(() => window.__runs);
+  await pg.click('#fx-intake button[data-fxcfd="test"]'); await pg.waitForTimeout(700);
+  const runC = await pg.evaluate(() => window.__lastRun); const djC = (runC.data.files || []).find(f => f.name === 'design.json'); const desC = djC ? JSON.parse(djC.text) : {};
+  ok(await pg.evaluate(() => window.__runs) === runsC + 1 && JSON.stringify(desC.geometry) === JSON.stringify(CONE.geometry) && desC.geometry.diameter_change.to_diameter_mm === 105
+     && desC.geometry.planes_mm.throttle_face > desC.geometry.planes_mm.tube_end, 'the cone-ended tube: run with its geometry unchanged (diameter_change to 105 mm, planes tube_end and throttle_face)');
+  out = await pg.$eval('#fxcfd-out', e => e.innerText);
+  ok(/end of the constant tube[^\n]*1,180 Pa/.test(out) && /throttle face[^\n]*1,131 Pa/.test(out) && /1,120 Pa/.test(out) && /half a tube bore \(1\.82 in \(46\.3 mm\)\) past the throttle face/.test(out),
+     'the loss at the end of the constant tube, at the throttle face and at the tract end (half a tube bore past it, as the tab\'s case measures): ' + (out.match(/At the end[^\n]*/) || [''])[0].slice(0, 120));
+  ok(/a cone from 3\.65 in \(92\.6 mm\) to 4\.13 in \(105 mm\) bore, 2\.36 in \(60 mm\) long/.test(out) && /ending at the throttle face/.test(out) && /has no cone/.test(out),
+     'the cone described in inches and mm; the 1-D figure says it has no cone');
+  await pg.evaluate(() => { window.__resOverride = null; });
+  await pg.click('#fx-intake button[data-fxcfd="fill"]'); await pg.waitForTimeout(500);
+  const fc = await pg.evaluate(() => { const V = id => document.getElementById(id)._b, E = id => document.getElementById(id); return { lt: V('i-lt'), dt: V('i-dt'), tb: V('i-tb'), tbShown: E('i-tb').value, mouth: E('i-mouth').value, cone: window.__cfd.ui.cone, msg: E('fxcfd-msg').textContent }; });
+  ok(Math.abs(fc.tb - 105) < 1e-9 && Math.abs(fc.lt - CONE.fill.lt_mm) < 1e-9 && Math.abs(fc.dt - 92.61) < 1e-9 && fc.mouth === 'plain' && fc.cone === true && /throttle bore 4\.13 in \(105 mm\)/.test(fc.msg),
+     'filled: throttle bore ' + fc.tb + ' mm (shown ' + fc.tbShown + '), length ' + fc.lt + ' mm, and said so: ' + fc.msg.slice(-120));
+  const ownC = await pg.evaluate(() => window.__cfd.design());
+  const gC = ownC && ownC.design.geometry, dcC = gC && gC.diameter_change;
+  const coneEnd = dcC ? dcC.start_mm + (dcC.to_diameter_mm - gC.tube_diameter_mm) / 2 / Math.tan(dcC.cone_half_angle_deg * Math.PI / 180) : NaN;
+  ok(dcC && dcC.to_diameter_mm === 105 && Math.abs(gC.tube_length_mm - CONE.geometry.tube_length_mm) < 0.01 && Math.abs(gC.tube_length_mm - 0.5 * gC.tube_diameter_mm - coneEnd) < 0.01
+     && Math.abs(coneEnd - CONE.geometry.planes_mm.throttle_face) < 0.05,
+     'the tab\'s own CFD case then has its cone to 105 mm ending at the same throttle face (' + coneEnd.toFixed(2) + ' mm) and its tract end at the same place (' + (gC && gC.tube_length_mm) + ' mm)');
+  // a bellmouth and a lip from the add-in: the tab's mouth list follows
+  await pg.evaluate(T => { window.__tubeOverride = Object.assign({}, T, { geometry: Object.assign({}, T.geometry, { inlet: { type: 'ellipse', length_mm: 40, entry_diameter_mm: 138.9, exit_diameter_mm: 92.61, corner_radius_mm: 0 } }),
+    fill: Object.assign({}, T.fill, { mouth: 'ellipse', mouth_read: 'ellipse', lip_mm: null }) }); }, TUBE);
+  await pg.click('#fx-intake button[data-fxcfd="fill"]'); await pg.waitForTimeout(400);
+  const fe = await pg.evaluate(() => [document.getElementById('i-mouth').value, document.getElementById('fxcfd-msg').textContent]);
+  await pg.evaluate(T => { window.__tubeOverride = Object.assign({}, T, { fill: Object.assign({}, T.fill, { mouth: 'radius', mouth_read: 'radius', lip_mm: 3.5 }) }); }, TUBE);
+  await pg.click('#fx-intake button[data-fxcfd="fill"]'); await pg.waitForTimeout(400);
+  const fr = await pg.evaluate(() => [document.getElementById('i-mouth').value, document.getElementById('i-lipr')._b, document.getElementById('i-lipr').value]);
+  ok(fe[0] === 'ellipse' && /Elliptical bellmouth/.test(fe[1]) && fr[0] === 'radius' && Math.abs(fr[1] - 3.5) < 1e-9,
+     'a bellmouth read: the tab\'s mouth set to Elliptical bellmouth; a 3.5 mm lip: Rolled lip, lip radius ' + fr[1] + ' mm (shown ' + fr[2] + ')');
+  await pg.evaluate(() => { window.__tubeOverride = null; });
   ok(!errs.length, 'no page errors ' + errs.join('; '));
   await b.close(); console.log(fails.length ? 'fxcfd_ui: ' + fails.length + ' FAIL' : 'fxcfd_ui: all pass'); process.exit(fails.length ? 1 : 0); })();
