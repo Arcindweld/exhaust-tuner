@@ -740,6 +740,9 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   coarse run through foamrun finished in 164 s (27,519 cells, rhoSimpleFoam, 908 iterations). Its number is NOT valid
   yet: the installed 0.1.67 still writes slipFeatureAngle 30 and no grad(U) cache, so the square mouth read 3,561 Pa
   (K 2.68) against 1,043 here with both fixes. Needs the next installer on the PC, then the same run again.
+  DONE with program 0.1.203 (same tube, medium mesh, started from Fusion's Python through foamrun): 131,430 cells,
+  rhoSimpleFoam, 905 iterations, 743 s; 1,085 Pa (4.35 inH2O), K 0.84, against 1,043 Pa here (simpleFoam, bend 2 at 90
+  deg where the PC's is at the CAD's 139) and the tab's 1,093.
 - The owner's CAI re-run here with the friction fix (medium, CAD layout, simpleFoam): plain 1,043 Pa (1,050 before the
   fix), 3.5 mm lip 660 Pa. The tab's "as a CFD reads it" figure: 1,093 (+5%) and 769 (+16%).
 - Intake CFD case takes the tab's bends (2026-11-10): the case the Intake tab writes now uses the tab's bend angles
