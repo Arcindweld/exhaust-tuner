@@ -205,10 +205,11 @@ ok(PS.mm_in(101.6) == '101.6 mm (4.000 in)' and PS.mm_in(4.7625, 2) == '4.76 mm 
 # --- the gluing check list
 sh = PS.assembly_sheet(mid, 46.3, 50.8, 0.15, 20.0)
 jr = PS.joint_radii(46.3, 50.8, 0.15)
-area = (2 * math.pi * (jr['tongue_in'] + jr['tongue_out']) * 20 + math.pi * (jr['tongue_in'] ** 2 - 46.3 ** 2) + math.pi * (50.8 ** 2 - jr['tongue_out'] ** 2)) / 100
+# one bond surface at the mid radius (2 pi 48.55 x 20 = 61.0 cm2) plus the two butt rings (13.3 cm2): 74.3 cm2
+area = (2 * math.pi * 48.55 * 20 + math.pi * (jr['tongue_in'] ** 2 - 46.3 ** 2) + math.pi * (50.8 ** 2 - jr['tongue_out'] ** 2)) / 100
 vol = math.pi * (jr['tongue_out'] ** 2 - jr['tongue_in'] ** 2) * 20 / 1000
 ok(len(sh['joints']) == len(mid['cuts']) and len(sh['pieces']) == len(mid['pieces']), 'the check list: %d joints, %d pieces' % (len(sh['joints']), len(sh['pieces'])))
-ok(all(abs(x['area_cm2'] - area) < 0.06 and abs(x['area_in2'] - area / 6.4516) < 0.006 and abs(x['bond_ml'] - vol) < 0.006 for x in sh['joints']),
+ok(all(abs(area - 74.28) < 0.01 and abs(x['area_cm2'] - area) < 0.06 and abs(x['area_in2'] - area / 6.4516) < 0.006 and abs(x['bond_ml'] - vol) < 0.006 for x in sh['joints']),
    'each 4 in joint bonds %.1f cm2 (%.2f in2) with %.2f mL in the 0.15 mm gap' % (area, area / 6.4516, vol))
 ok(abs(vol - 0.915) < 0.005, 'the bond line is 2 pi r_mid x gap x lap: 0.915 mL')
 roles = PS.joint_roles(mid['cuts'])

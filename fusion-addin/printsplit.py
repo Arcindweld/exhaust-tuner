@@ -418,12 +418,12 @@ def stand_points(pts, base, axis, spin_deg):
 
 
 def assembly_sheet(pl, r_in, r_out, clearance=0.15, L=20.0, piece_names=None):
-    """The gluing check list: pieces in order, which end is which, and for each joint the bonded area (both tongue
-    faces, cm2 and in2) and the bond-line volume (mL), so the owner mixes enough epoxy. The bond is the radial gap over
+    """The gluing check list: pieces in order, which end is which, and for each joint the bonded area (the lap's
+    one bond surface plus the two butt rings, cm2 and in2) and the bond-line volume (mL), so the owner mixes enough epoxy. The bond is the radial gap over
     the lap; the butt faces at the bore and at the shoulder add the ring areas. Pure: from the plan."""
     j = joint_radii(r_in, r_out, clearance)
     names = piece_names or ['Piece %d' % (k + 1) for k in range(len(pl['pieces']))]
-    lap_area = 2 * math.pi * (j['tongue_in'] + j['tongue_out']) * L                  # both cylinder faces, mm2
+    lap_area = math.pi * (j['tongue_in'] + j['tongue_out']) * L                      # the one bond surface, at the mid radius, mm2
     butt = math.pi * (j['tongue_in'] ** 2 - r_in ** 2) + math.pi * (r_out ** 2 - j['tongue_out'] ** 2)   # end rings, mm2
     gap_vol = math.pi * (j['tongue_out'] ** 2 - j['tongue_in'] ** 2) * L             # mm3 = uL
     rows, steps = [], []
