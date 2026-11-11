@@ -9535,6 +9535,23 @@ function helmTune(q){
   return out;
 }
 const INTAKE_CD={plain:0.567,radius:0.719,ellipse:0.743};
+/* Sharp, square-edged entrance flush with a wall (or a filter base, an airbox wall): K 0.5, Crane TP-410 (A-29), Idelchik
+   (diagram 3-1, b/D 0) and Blevins alike (Miller 0.51, Rennels 0.57). The same 0.5 holds for a tube standing free once its
+   wall is 5% of the bore or thicker (Idelchik 3-1; Rennels' re-entrant fit K = 1.12 - 22 t/d + 216 (t/d)^2 + 80 (t/d)^3
+   gives 0.57 at t/d 0.05); a thin-walled free end climbs towards Borda's 1.0. Blair and Cahoon's plain-pipe Cd 0.567, read
+   as a vena contracta, is K 0.58: lossier than any of these, and it is not a flush mouth. Used for the plain cut since
+   2026-11-10 (Blair's Cd stays in the inlet table for comparison). */
+const INTAKE_KSHARP=0.5;
+/* Duct wall: drawn tubing, 0.0015 mm (Crane TP-410 A-23, Moody 1944), i.e. hydraulically smooth at intake Reynolds
+   numbers; the page-wide ROUGH (commercial steel, 0.045 mm) put f 23% high on the owner's CAI (0.0181 against 0.0147). */
+const INTAKE_ROUGH=1.5e-6;
+const fSmooth=(Re,D)=>Re<2300?64/Re:1/Math.pow(-1.8*Math.log10(Math.pow(INTAKE_ROUGH/D/3.7,1.11)+6.9/Re),2);   // Haaland
+/* Kinetic-energy coefficient of a developed turbulent profile, 1/7 power law: alpha = (n+1)^3 (2n+1)^3 / (4 n^4 (n+3)(2n+3))
+   = 1.058 at n 7 (Idelchik ch. 1; Miller, Internal Flow Systems, ch. 8). Handbook K values (entrance, bends) are set
+   against static pressure less one uniform velocity head, measured once the flow has re-developed; a CFD that reports the
+   mass-weighted total pressure at the tract end still holds (alpha - 1) q in the profile, so on its basis the same tube
+   reads (alpha - 1) q lower. 1.058 is the least it can be: right after a bend the profile is less even. */
+const ALPHA_DEV=(n=>Math.pow(n+1,3)*Math.pow(2*n+1,3)/(4*Math.pow(n,4)*(n+3)*(2*n+3)))(7);
 /* Rounded pipe entrance, loss coefficient against lip radius over diameter: Crane TP-410 (as tabulated by Neutrium),
    square-edged 0.5; linear between the points, 0.04 from r/D 0.15 on. */
 const CRANE_ENTRY=[[0,0.5],[0.02,0.28],[0.04,0.24],[0.06,0.15],[0.10,0.09],[0.15,0.04]];
@@ -9542,7 +9559,13 @@ function craneEntryK(rd){ const T=CRANE_ENTRY; if(!(rd>0)) return T[0][1]; if(rd
   for(let i=1;i<T.length;i++) if(rd<=T[i][0]) return T[i-1][1]+(T[i][1]-T[i-1][1])*(rd-T[i-1][0])/(T[i][0]-T[i-1][0]); return 0.04; }
 /* A smooth bend's loss: Crane TP-410's 90° bend as a multiple of the fully turbulent friction factor against r/D (20 at 1,
    14 at 1.5, 12 at 2 and 3, 14 at 4, 17 at 6, 24 at 8, 30 at 10), times Idelchik's angle factor A1 (0.9 sin θ up to 70°,
-   1 at 90°, 0.7 + 0.35 θ/90 from 100°, linear between). f is the tube's own friction factor. */
+   1 at 90°, 0.7 + 0.35 θ/90 from 100°, linear between). f is the tube's own friction factor. Crane gives these as the
+   bend's total resistance, the friction along its own arc included, as Idelchik (zeta = A1 B1 C1 + 0.0175 lambda delta R/D,
+   diagram 6-1), Miller and Rennels do; so calcIntake runs straight-pipe friction over the straights only (the length less
+   each arc, theta x R). On the owner's 30 + 84 deg bends at 1.37 D with smooth-tube f 0.0147 Crane x A1 gives 0.32 in all,
+   Rennels' smooth-pipe formula 0.31 and Idelchik's B1 = 0.21 (R/D)^-0.5 0.29. Two bends 4.4 D apart are summed with no
+   Miller interaction factor, and no outlet-tangent correction is made (a bend's loss is counted in full even when the
+   tract ends before the flow re-develops; see ALPHA_DEV). */
 const CRANE_BEND=[[1,20],[1.5,14],[2,12],[3,12],[4,14],[6,17],[8,24],[10,30]];
 function bendK(deg,rd,f){
   const T=CRANE_BEND, x=Math.min(Math.max(rd,T[0][0]),T[T.length-1][0]);
@@ -9579,20 +9602,29 @@ function calcIntake(p){
   const jenvey=[[35,40],[40,42],[45,45],[55,48],[65,50]];
   if(itbRec&&itbRec.hpCyl){ const row=jenvey.find(r=>itbRec.hpCyl<=r[0])||jenvey[jenvey.length-1]; itbRec.jenvey=row[1]; itbRec.jenveyOver=itbRec.hpCyl>65; }
   // pressure drop: friction, the bends, and the inlet's vena contracta (Borda–Carnot)
-  const rho=rhoGas(p.tin), q=rho*v*v/2, Re=rho*v*(p.dt/1000)/visc(p.tin), f=haaland(Re,p.dt/1000);
+  const rho=rhoGas(p.tin), q=rho*v*v/2, Re=rho*v*(p.dt/1000)/visc(p.tin), f=fSmooth(Re,p.dt/1000);
   // the elliptical bell's Cd rises a little with the pressure ratio across it (Blair and Cahoon's steady-rig fit, quoted in the
   // Perth College bellmouth thesis: Cd = 1.7869 - 2.9326 PR + 2.5275 PR^2 - 0.6446 PR^3, PR = upstream total / downstream static,
   // 0.740 at 1.015 to 0.756 at 1.08); PR here from the dynamic pressure at the bell's throat, held inside the fit's 1.01 to 1.10
   const cdPR=PR=>{ const x=Math.min(1.10,Math.max(1.01,PR)); return 1.7869-2.9326*x+2.5275*x*x-0.6446*x*x*x; };
   const PRin=1+q/(0.743*0.743)/P_ATM;
   const cdOf=k=>k==='ellipse'?cdPR(PRin):INTAKE_CD[k];
-  let cd=cdOf(INTAKE_CD[p.mouth]?p.mouth:'plain'), kIn=(1/cd-1)**2, lipRD=null;
+  const mouth=INTAKE_CD[p.mouth]?p.mouth:'plain';
+  let cd=cdOf(mouth), kIn=(1/cd-1)**2, lipRD=null;
+  // the plain cut: Crane's flush square edge, 0.5 (INTAKE_KSHARP), not Blair's plain-pipe Cd
+  if(mouth==='plain'){ kIn=INTAKE_KSHARP; cd=1/(1+Math.sqrt(kIn)); }
   // a lip radius given: Crane TP-410's rounded-entrance loss against r/D (0.5 square, 0.28 at 0.02, 0.24 at 0.04, 0.15 at
   // 0.06, 0.09 at 0.10, 0.04 from 0.15), in place of Blair's single radius
-  if(p.mouth==='radius'&&p.lipR>0){ lipRD=p.lipR/p.dt; kIn=craneEntryK(lipRD); cd=1/(1+Math.sqrt(kIn)); }
-  const bendList=bendsOf(p), clrD=(p.bendR>0?p.bendR:1.5*p.dt)/p.dt, kBends=bendList.map(a=>bendK(a,clrD,f));
-  const dpF=f*(p.lt/p.dt)*q, dpB=kBends.reduce((a,k)=>a+k,0)*q, dpIn=kIn*q, dp=dpF+dpB+dpIn;
-  const inl=Object.keys(INTAKE_CD).map(k=>({k,cd:cdOf(k),dp:(1/cdOf(k)-1)**2*q}));
+  if(mouth==='radius'&&p.lipR>0){ lipRD=p.lipR/p.dt; kIn=craneEntryK(lipRD); cd=1/(1+Math.sqrt(kIn)); }
+  const bendList=bendsOf(p), clrMM=p.bendR>0?p.bendR:1.5*p.dt, clrD=clrMM/p.dt, kBends=bendList.map(a=>bendK(a,clrD,f));
+  // Crane's bend K carries the arc's own friction, so friction runs over the straights only (bendK's note)
+  const arcMM=bendList.reduce((s,a)=>s+a*Math.PI/180*clrMM,0), lStr=Math.max(0,p.lt-arcMM);
+  const dpF=f*(lStr/p.dt)*q, dpB=kBends.reduce((a,k)=>a+k,0)*q, dpIn=kIn*q, dp=dpF+dpB+dpIn;
+  // the tube alone at the tract end on a CFD's basis (mass-weighted total pressure): the developed profile's (alpha - 1) q
+  // is not lost yet (ALPHA_DEV). No filter or throttle term is in dp, so this is like for like with a bare-tube CFD.
+  const dpEnd=Math.max(0,dp-(ALPHA_DEV-1)*q);
+  const kOf=k=>k==='plain'?INTAKE_KSHARP:(1/cdOf(k)-1)**2;
+  const inl=Object.keys(INTAKE_CD).map(k=>({k,cd:cdOf(k),K:kOf(k),dp:kOf(k)*q}));
   // filter capacity (K&N's rule), inches
   const mmIn=x=>x/25.4;
   // K&N's round rule is circumference × height × 6, so a taper uses the mean diameter and an oval its perimeter (Ramanujan)
@@ -9661,7 +9693,7 @@ function calcIntake(p){
   if(tbRange&&(p.dt<tbRange[0]*0.97)) notes.push({k:'warn',t:'The tube is smaller than the throttle body calls for: Dave Thompson’s rule is a tube area about 1.25 to 1.33 times the throttle bore area.'});
   if(fcap!=null&&fcap<kn.cfm) notes.push({k:'warn',t:'By K&N’s rule this filter flows less air than the engine needs at full power. Use a taller or wider filter.'});
   if(p.mouth==='plain') notes.push({k:'info',t:'A plain, sharp-edged tube end costs flow: Blair and Cahoon found even a simple radius gives about 16% more airflow at the same pressure difference.'});
-  return {pr,Q,Qt,cfm:Q*CFM,kn,A,v,vmax,dRec,tbRange,tbRec,itbRec,rho,q,Re,f,cd,kIn,dpF,dpB,dpIn,dp,inl,lipRD,bendList,kBends,clrD,fcap,farea,ratioT,ratioP,ratio,ruleT,bell,tr,runner,vizard,magnante,ram,
+  return {pr,Q,Qt,cfm:Q*CFM,kn,A,v,vmax,dRec,tbRange,tbRec,itbRec,rho,q,Re,f,cd,kIn,dpF,dpB,dpIn,dp,dpEnd,alpha:ALPHA_DEV,lStr,arcMM,inl,lipRD,bendList,kBends,clrD,fcap,farea,ratioT,ratioP,ratio,ruleT,bell,tr,runner,vizard,magnante,ram,
     c,plen,res,cross,near,wot,band,target,qw,helm,whistle,mouthCorr,maf,notes};
 }
 
@@ -19675,14 +19707,15 @@ function renderIntake(){
   }
   // losses and temperature
   h+=sec('Air temperature and duct loss',
-    rowT('Duct pressure loss at peak power',pa(r.dp),paAlt(r.dp)+'; friction '+pa(r.dpF)+', bends '+pa(r.dpB)+(r.bendList.length?' ('+r.bendList.map((a,i)=>Math.round(a)+'° K '+r.kBends[i].toFixed(2)).join(', ')+' at '+r.clrD.toFixed(2)+' D)':'')+', inlet '+pa(r.dpIn)+(r.lipRD!=null?' (lip r/D '+r.lipRD.toFixed(3)+', K '+r.kIn.toFixed(2)+', Crane)':''))+
+    rowT('Duct pressure loss at peak power',pa(r.dp),paAlt(r.dp)+'; tube only, no filter or throttle: friction '+pa(r.dpF)+' (smooth tube, f '+r.f.toFixed(4)+', over the '+plain(r.lStr,'l')+' of straights; each bend’s arc is in its K), bends '+pa(r.dpB)+(r.bendList.length?' ('+r.bendList.map((a,i)=>Math.round(a)+'° K '+r.kBends[i].toFixed(2)).join(', ')+' at '+r.clrD.toFixed(2)+' D, Crane)':'')+', inlet '+pa(r.dpIn)+(r.lipRD!=null?' (lip r/D '+r.lipRD.toFixed(3)+', K '+r.kIn.toFixed(2)+', Crane)':p.mouth==='plain'?' (square edge, K '+r.kIn.toFixed(2)+', Crane)':''))+
+    rowT('Tube only at the tract end, as a CFD reads it',pa(r.dpEnd),paAlt(r.dpEnd)+'; mass-weighted total pressure, the same tube less the '+pa((r.alpha-1)*r.q)+' still in the velocity profile (α '+r.alpha.toFixed(3)+', developed flow); compare this with a bare-tube CFD')+
     rowT('Power from the duct loss',pct(100*(r.ratioP-1)),'SAE J1349 correction at the lower inlet pressure')+
     rowT('Power from the air temperature',pct(100*(r.ratioT-1)),tempStr(p.tin)+' against '+tempStr(p.tamb)+'; the Racing Beat rule of 1% per 10 °F gives '+pct(r.ruleT))+
     rowT('Both together',pct(loss))+
     '<p class="cap">Power follows the air’s density, so this uses the SAE J1349 dyno correction between the outside air and the air the filter actually draws. The filter’s own loss is not included; a filter sized by the rule below adds little. Racing Beat measured a stock Miata airbox at 78 to 112 °F at speed and after traffic, heat that went straight into the engine when the throttle opened, while the cold-air kits held steady.</p>');
   // inlet shape
   h+=sec('Inlet end and bellmouth',
-    r.inl.map(x=>rowT({plain:'Plain cut tube',radius:'Rolled lip or radius',ellipse:'Elliptical bellmouth'}[x.k],'Cd '+x.cd.toFixed(3),'loses '+pa(x.dp)+' at peak power'+(x.k===p.mouth?' (yours)':'')+(x.k==='ellipse'?'; Cd from Blair and Cahoon’s fit against the pressure ratio across the bell, 0.740 at PR 1.015 up to 0.756 at 1.08':''))).join('')+
+    r.inl.map(x=>rowT({plain:'Plain cut tube',radius:'Rolled lip or radius',ellipse:'Elliptical bellmouth'}[x.k],x.k==='plain'?'K '+x.K.toFixed(2):'Cd '+x.cd.toFixed(3),'loses '+pa(x.dp)+' at peak power'+(x.k===p.mouth?' (yours)':'')+(x.k==='plain'?'; Crane’s square edge flush in a wall or filter base (Blair and Cahoon’s plain pipe, Cd '+x.cd.toFixed(3)+', would be K '+((1/x.cd-1)**2).toFixed(2)+'; a thin tube end standing free reads up to 1.0)':'')+(x.k==='ellipse'?'; Cd from Blair and Cahoon’s fit against the pressure ratio across the bell, 0.740 at PR 1.015 up to 0.756 at 1.08':''))).join('')+
     rowL('Best bellmouth: entry diameter',r.bell.Di,'d')+rowL('Length',r.bell.L,'l')+rowL('Lip radius',r.bell.Rc,'d')+
     '<p class="cap">From Blair and Cahoon’s CFD study: even a simple radius on the tube end flows about 16% more air than a plain cut, and the best bellmouth, short and fat with an elliptical profile, adds only a few percent more. They put the best length at one exit diameter, the entry at 2.13 times the exit and the lip radius at 0.08 times the entry, and found rectangular inlets worse than round ones.</p>');
   h+=stackSection(p,r);
