@@ -600,6 +600,24 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM 10.5 / 10.3 / 12.3 / 9.8. Both models put the half orders (2.5, 3.5, 4.5) 10-20 dB above the recording, which
   has strong whole orders: the placeholder unequal-length manifold lengths, not the method, are the first suspect;
   the owner's measured EJ251 manifold (primaries, secondaries, cross-pipe) is what would settle it.
+- Regression sweep of the page (2026-11-10): all 90 web/tests/*.js run one at a time: 79 pass, 6 skip (need OpenWAM or
+  the built host), 5 failed. Stale tests fixed: dyno_ui and opt_ui looked for "needs the desktop program" (the wording
+  is "needs the Exhaust Tuner program or the Fusion panel" since 2026-11-05); rec_ui's save check wanted the Outback
+  hold, which is only the last recording loaded when the git-ignored OpenWAM run is present (else the RS 660's);
+  mic_ui waited a fixed 0.5 s for getUserMedia (flaky on a loaded machine; it now waits for the microphone). Left for
+  decision: wave_wasm (rust/et_wave's open-end inflow has no choke at the critical pressure, the JS got it 2026-11-06;
+  the single-with-chamber design at 7150 rpm differs in the 5th digit, so the 4-Stroke tab's WebAssembly runs and the
+  JS solver no longer agree to the last digit). New tests/sweep_ui.js (every tab: defaults in both units, unit round
+  trips, tiny/huge engine with 1/16 cylinders at low/high RPM, every select option, custom engine at 1/16 cylinders,
+  boost 0/40 psi, optional fields blank and zero; no page/console error, NaN, Infinity, undefined, negative length,
+  lone empty cell, or length in one unit only in a results table or drawing label; 400 px: no sideways scroll, every
+  control on screen and usable). Fixed from it: the Intake tab threw on "Custom firing order" (engineFrom read the
+  order/gaps/bank fields the Intake tab does not have); table cells and drawing labels showed lengths in one unit only
+  (clen and cdim now give "28.4 in (721 mm)", the profile and crossover scale bars both units, the 2-Stroke length
+  table, the Headers temperature rows and GM clearance rules, the Helmholtz can sizes, the hanger stock list and the
+  motorcycle silencer names); b5_ui, jpipe_ui, spiral_ui and uel_ui read the new two-unit text. Light and dark themes:
+  no text under 3:1 contrast on any tab (expert mode); every download button builds its file (.mr, OpenWAM, OpenFOAM
+  intake and exhaust zips, cope and chamber DXFs, hanger DXF) without an error.
 - Intake CFD case takes the tab's bends (2026-11-10): the case the Intake tab writes now uses the tab's bend angles
   (listed from the mouth end), its centre-line radius and its rolled-lip radius (it placed every bend as 90 degrees at
   its own radius); the CFD panel can still override the radius and can say where each bend starts (mm from the mouth;

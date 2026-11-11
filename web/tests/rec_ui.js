@@ -109,7 +109,9 @@ function wav(rpm, secs, sr) {
   await p.evaluate(() => { window.__recJson = null; }); await p.click('button[data-rec="save"]').catch(() => {}); await p.waitForTimeout(400);
   const js = await p.evaluate(() => window.__recJson);
   let parsed = null; try { parsed = JSON.parse(js); } catch (e) {}
-  ok(parsed && Object.keys(parsed).some(k => /^hold_19\d\d_/.test(k)) && Object.values(parsed)[0].orders_dB_rel, 'Save the order levels writes recording_orders.json-style JSON (' + (parsed ? Object.keys(parsed).join(', ') : 'none') + ')');
+  // the last recording loaded: the Outback's (1980 RPM hold) when its OpenWAM run is here, otherwise the RS 660's (5400 hold)
+  const lastHold = fs.existsSync(ins) ? /^hold_19\d\d_/ : /^hold_5[34]\d\d_/;
+  ok(parsed && Object.keys(parsed).some(k => lastHold.test(k)) && Object.values(parsed)[0].orders_dB_rel, 'Save the order levels writes recording_orders.json-style JSON (' + (parsed ? Object.keys(parsed).join(', ') : 'none') + ')');
   await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300);
   ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), 'phone: no page overflow');
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.join(' | ') : ''));

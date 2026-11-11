@@ -63,7 +63,7 @@ const HERE = __dirname, RUNS = path.join(HERE, 'uel_runs');
     const share = ord && ord[ord.length - 1];
     ok(share && share[1] === '0%' && parseInt(share[3]) >= 20, vp.n + ': half-order energy share 0% equal against ' + (share && share[3]) + ' unequal at 6,500 RPM');
     ok(/TOYOTA TIMES/.test(t) && /Blair/.test(t) && /No back-to-back dyno or sound test/.test(t), vp.n + ': sources and the missing comparison stated');
-    ok(/430 mm\s+350 mm/.test(t) && /600 mm\s+650 mm/.test(t), vp.n + ': cut list shows each cylinder’s primary and secondary');
+    ok(/430 mm \([\d.]+ in\)\s+350 mm \([\d.]+ in\)/.test(t) && /600 mm \([\d.]+ in\)\s+650 mm \([\d.]+ in\)/.test(t), vp.n + ': cut list shows each cylinder’s primary and secondary');
     ok(await noScroll(), vp.n + ': Headers tab no sideways scroll');
     // Fusion route: one target per port marker, cylinder order, primary + secondary
     rt = await route();
@@ -92,7 +92,7 @@ const HERE = __dirname, RUNS = path.join(HERE, 'uel_runs');
     ok(es && JSON.stringify(es.L) === '[780,1250,780,1250]' && /primary_tube_length: 780\.0 \* units\.mm/.test(es.t) && (es.t.match(/primary_length: 470\.0 \* units\.mm/g) || []).length === 2,
       vp.n + ': Engine Simulator file: primaryL_mm ' + JSON.stringify(es && es.L) + ', two cylinders +470 mm');
     t = await txt('#panel-four');
-    ok(/Unequal primaries from the Headers tab/.test(t) && /primaries 780 mm, 1250 mm, 780 mm, 1250 mm/.test(t), vp.n + ': Engine Simulator section states the per-cylinder lengths');
+    ok(/Unequal primaries from the Headers tab/.test(t) && /primaries 780 mm \([\d.]+ in\), 1250 mm \([\d.]+ in\), 780 mm \([\d.]+ in\), 1250 mm \([\d.]+ in\)/.test(t), vp.n + ': Engine Simulator section states the per-cylinder lengths');
     // results readers: OpenWAM runs of page cases (uel_gen.js), unequal against equal cells
     const ins = ['uel_uel_3000', 'uel_el_3000'].map(n => path.join(RUNS, n, n + 'INS.DAT'));
     if (ins.every(f => fs.existsSync(f))) {

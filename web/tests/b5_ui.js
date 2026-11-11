@@ -62,7 +62,7 @@ const file = path.resolve(process.argv[2] || 'exhaust-calculator.b5base.html');
   ok(/Other published primary lengths/i.test(h) && /Vizard’s dyno curve/.test(h) && /Smith’s 1950s open-pipe rule/.test(h) && /estimated from the displacement/.test(h) && !/Tri-Y/.test(h.split(/other published primary lengths/i)[1].split(/sections along one runner/i)[0]), vp.n + ': Headers shows Vizard and Smith, no Tri-Y rows on a direct collector');
   await setv('h-merge', 'triy'); await pg.waitForTimeout(300);
   h = await txt('#h-details');
-  ok(/Smith’s “good average” Tri-Y/.test(h) && /18\.0 in to the first junction, 24\.0 in on to the second|457 mm to the first junction/.test(h) && /Stone’s four-cylinder example, 1-3-4-2/.test(h) && !badText(h), vp.n + ': Tri-Y averages from Smith and Stone beside the first-section result');
+  ok(/Smith’s “good average” Tri-Y/.test(h) && /18\.0 in \(457 mm\) to the first junction, 24\.0 in \(610 mm\) on to the second|457 mm \(18\.0 in\) to the first junction/.test(h) && /Stone’s four-cylinder example, 1-3-4-2/.test(h) && !badText(h), vp.n + ': Tri-Y averages from Smith and Stone beside the first-section result');
   await setv('h-merge', 'direct');
   await setv('h-eng', 'r2'); await pg.waitForTimeout(300);
   h = await txt('#h-details');

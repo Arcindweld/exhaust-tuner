@@ -38,7 +38,9 @@ const { chromium } = require('playwright');
   ok(/J-pipe: draw the start marker on the main pipe wall/.test(during) && /far end gets a cap plate/.test(during) && /coped to the main pipe/.test(during) && m, 'the note says where the markers go, how long the route comes out, and that it is capped and coped');
   ok(pay && pay.cap === true && pay.tee === true && Math.abs(pay.cap_mm - 3.175) < 1e-9 && Math.abs(pay.main_od_mm - (60.198 + 2 * 1.651)) < 1e-9,
      'the route asks for the cap (1/8 in plate) and the tee, with the main pipe size for reading it from a scan (' + (pay && pay.main_od_mm) + ' mm)');
-  ok(m && new RegExp('Cut length, capped end to pipe wall\\s*' + m[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).test(det), 'and its length is the cut length the tab shows (' + (m && m[1]) + ')');
+  // the note gives both units, "24.0 in (610 mm)"; the row shows the same two figures, the second under the first
+  const esc = x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), mu = m && /^(.+?) \((.+)\)$/.exec(m[1]);
+  ok(mu && new RegExp('Cut length, capped end to pipe wall\\s*' + esc(mu[1]) + '\\s*' + esc(mu[2])).test(det), 'and its length is the cut length the tab shows (' + (m && m[1]) + ')');
 
   // the reply: a route at the cut length reads "on length" and tunes to the target
   await pg.evaluate(L => { window.__reply = { ok: true, msg: 'Built j-pipe along a route that clears the scan.', items: [{ kind: 'path', name: 'J-pipe', length: L / 10, ok: true, min_gap: 1.4 }] }; }, L);
