@@ -143,6 +143,14 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
 
 ## 2026-11-01: new interface, independent audit
+- Physics audit follow-up (2026-11-11; docs/PHYSICS_AUDIT_2026-11-11.md, "Follow-up"): the conductor's decisions on
+  the questionable items. Q1: exhaust acoustics use burned-gas c (sosExh: stoichiometric CH1.87 products, NASA/GRI-Mech
+  polynomials, R 286.6, gamma 1.37-1.30), 1-4 % below the old air c; intake, ambient, Blair and the Jennings default stay
+  air. Q2: Boom tab "Tube finish" (commercial steel default kept, no sourced value for welded tube). Q3/Q10: Rennels'
+  conical diffuser/contraction for the boom flare and transition and the catalyst inlet cone (K 0.05 and the 8-30 deg
+  blend gone). Q4: charge-pipe bends via bendK (14 f at r/D 1.5), arcs off the straights (D4 example 9,238.6 -> 9,072.5
+  Pa). Q8: ovaling in plane strain, E/(1 - nu^2) (Leissa SP-288). Q9: baffled chain has N - 1 holes, TL of the lumped
+  chain between the pipes. Tests: physaudit_ui (new values), baffles_ui, uel_ui expectations moved; full suite run.
 - Physics audit of the closed-form results (2026-11-11; docs/PHYSICS_AUDIT_2026-11-11.md): 57 formulas on the Headers,
   4-Stroke, 2-Stroke, Mufflers, Sound, Crossover, Boom, Cats and boost/heat sections checked for units, basis, double
   counting, validity and source, each with an independent worked example (tests/physaudit_ui.js, hook window.__physAudit).

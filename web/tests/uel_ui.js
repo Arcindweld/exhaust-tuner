@@ -56,7 +56,8 @@ const HERE = __dirname, RUNS = path.join(HERE, 'uel_runs');
     t = await txt('#panel-headers');
     // 850 x 240 / (L/25.4 + 3): 780 mm -> 6,052 RPM, 1250 mm -> 3,907 RPM
     ok(/UNEQUAL PRIMARY LENGTHS/i.test(t) && /6,052 RPM/.test(t) && /3,907 RPM/.test(t), vp.n + ': each primary’s tuned RPM from the inverted length rule (6,052 and 3,907 RPM)');
-    ok(/1\.50 ms/.test(t) && /58° of crank at 6,500 RPM/.test(t), vp.n + ': spread of return times 1.50 ms = 58° at 6,500 RPM');
+    // 2 x 470 mm / a: exhaust-gas a = 602.52 m/s at 704.4 C since the physics audit follow-up 2026-11-11 (air's 626.89 gave 1.50 ms, 58°)
+    ok(/1\.56 ms/.test(t) && /61° of crank at 6,500 RPM/.test(t), vp.n + ': spread of return times 1.56 ms = 61° at 6,500 RPM');
     const ord = await p.evaluate(() => { const tb = [...document.querySelectorAll('#h-details table')].find(x => /Equal lengths/i.test(x.innerText)); if (!tb) return null;
       return [...tb.querySelectorAll('tbody tr')].map(r => [...r.cells].map(c => c.innerText)); });
     ok(ord && ord[0][0] === '0.5 (half)' && ord[0][1] === '—' && /-\d+ dB/.test(ord[0][3]) && ord[3][1] === '0 dB', vp.n + ': order table: half orders absent with equal lengths, present with yours (' + (ord && ord[0].join(' | ')) + ')');

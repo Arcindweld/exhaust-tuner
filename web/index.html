@@ -1861,6 +1861,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
             <option value="ti2">Titanium, grade 2</option>
             <option value="in625">Inconel 625</option>
           </select></span></label>
+        <label class="f span2 adv"><span class="lab">Tube finish (inside wall)</span>
+          <span class="inp"><select id="b-finish"><option value="steel" selected>Commercial steel pipe, 0.045 mm (0.0018 in): welded or rolled sheet</option><option value="smooth">Smooth: drawn stainless or aluminised tube</option></select></span></label>
         <label class="f"><span class="lab">Sheet thickness</span>
           <span class="inp"><input id="b-t" type="number" step="any" inputmode="decimal" data-kind="len" data-base="1.2446"><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Rib spacing, 0 for none</span>
@@ -2066,7 +2068,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <li><b>Collector rules.</b> Collector diameter 1.75 to 2.00 times the primary diameter and collector length 0.5 times the primary length (<a href="https://www.stainlessheaders.com/p-35889-header-collector-sizing.html" target="_blank" rel="noopener">Stainless Headers</a>). The source does not say ID or OD, and its examples use nominal tube sizes, so the check compares outside diameters. It does not say how many primaries either; the check is only shown for four per collector.</li>
       <li><b>Megaphone.</b> Length is (exit ID − inlet ID) ÷ 2 ÷ tan(included angle ÷ 2). Gordon Jennings found an 8° divergence most efficient at recovering pulse energy (<a href="https://issues.cycleworld.com/article/1964/11/1/tuned-exhaust-for-the-two-stroke" target="_blank" rel="noopener">Cycle World, 1964</a>). The warning above 14° is this calculator’s threshold, not a published one.</li>
       <li><b>Expansion chamber.</b> Tuned length is exhaust duration × c ÷ (12 × RPM), from the port face to the reflection point. Jennings used a 1,700 ft/s wave speed for most of the pipe and tuned to the midpoint of the convergent cone (<a href="https://issues.cycleworld.com/article/1964/11/1/tuned-exhaust-for-the-two-stroke" target="_blank" rel="noopener">Cycle World, 1964</a>), so the default effective temperature gives about 1,700 ft/s. Stinger 0.59 to 0.63 of header diameter and 12 diameters long, diffuser 7° to 9°, baffle 16° to 25° (<a href="https://en.wikipedia.org/wiki/Expansion_chamber" target="_blank" rel="noopener">Wikipedia</a>); the formulas from Jennings’s <i>Two-Stroke Tuner’s Handbook</i>, as summarized in “How Two-Stroke Expansion Chambers Work,” give a stinger 0.58 to 0.62 of the header, a diffuser of 7° to 10°, a baffle of 14° to 20° at about twice the diffuser angle, and a header 10 to 15% larger in area than the port, so the notes use the combined ranges. The same summary notes that some measure from the port and some from the cylinder center, and that the reflection point is taken at the center of the baffle cone counted out to its virtual tip, which sits a little past the middle of the cone you build; that is why the reflection point is an input. The belly ratio is a design choice; Jennings’s 1964 example opened to about six times the header area. Lengths run from the port face in the bore, so the port inside the cylinder counts as header. The Blair option follows Gordon Blair’s two-stage diffuser chamber (<i>Design and Simulation of Two-Stroke Engines</i>, SAE 1996), from the same summary: tuned length = 83.3 × speed of sound × exhaust duration ÷ RPM, in mm, from the piston face to the start of the stinger; an average exhaust temperature of 650 °C for Grand Prix engines (about 11 bar mean effective pressure), 600 °C motocross (9 to 10 bar), 500 °C enduro (8 bar) and 350 °C road bikes (5 bar); sections of 10, 41, 14, 11 and 24% of the tuned length, with a stinger as long as the baffle; and diameters of K1, K2 and K0 times the port’s equivalent diameter (1.05, 3.25 and 0.6 Grand Prix; 1.125, 2.25 and 0.7 enduro; motocross K0 0.65), with the second diffuser starting at (41 ÷ 55)<sup>1.33</sup> of the belly diameter. Blair gives no motocross K1 or K2, so this page takes the midpoint of the other two, and none for road bikes, which therefore appear only in the tuned-length check.</li>
-      <li><b>Speed of sound.</b> c = 20.05 × √(temperature in kelvin), the value for air. Exhaust gas runs about 1 to 2% slower.</li>
+      <li><b>Speed of sound.</b> Exhaust acoustics (resonances, branch and chamber lengths, wave travel times) use burned-gas properties: c = √(γ R T) for stoichiometric gasoline exhaust, γ from the NASA (GRI-Mech 3.0) heat capacities of its CO₂, water, nitrogen and argon, R 286.6 J/kg K, about 2 to 4% below air at exhaust temperatures. Intake air, and the empirical rules whose constants were set with air (Blair’s class temperatures, the 2-stroke default tuned to Jennings’ 1,700 ft/s), keep air’s c = 20.05 × √(temperature in kelvin).</li>
       <li><b>Stepped primaries.</b> Each section is 1/8 in (3.2 mm) larger, taking 50/50 or 50/25/25 of the tuned length (<a href="https://www.stainlessheaders.com/p-35903-header-step-sizing.html" target="_blank" rel="noopener">Stainless Headers</a>). Most stepped headers use sharp steps, and smooth transitions are needed on very thin wall, 0.035 in or less (<a href="https://performanceracing.com/magazine/columns/03-01-2023/pri-tech-stepped-pipes-vs-straight-pipes" target="_blank" rel="noopener">PRI</a>), so the default is a sharp step and a transition cone is optional. The RPM listed for each step applies the primary-length formula to the distance from the valve to the step; it is an estimate, not a published rule.</li>
       <li><b>Resonance chambers on the header.</b> A sealed can or a shell around the pipe on bleed holes is treated as a Helmholtz side branch: the volume is the can, or the space between shell and pipe, and each hole’s effective length is the wall plus 0.85 × its diameter, the usual allowance for a hole flanged on both sides. Its sound curve and 3 dB band use the same side-branch formula as the Mufflers tab, and the hole size for a chosen tone solves the same equation backwards. An inline bulge uses the plain-chamber formula, and the share of a pulse it sends back is (1 − area ratio) ÷ (1 + area ratio) (<a href="https://kparker.bg-research.cc.ic.ac.uk/wave_intensity_web/wia-6-1.html" target="_blank" rel="noopener">Parker, Imperial College</a>). Gas in the chamber defaults to the header temperature. What makers and testers report: <a href="https://racerxonline.com/2015/06/02/kawasaki-reveals-all-new-2016-kx450f" target="_blank" rel="noopener">Kawasaki</a>, <a href="https://motocrossactionmag.com/first-look-2019-ktm-250sxf-350sxf-450sxf-four-strokes/" target="_blank" rel="noopener">KTM via Motocross Action</a>, <a href="https://motocrossactionmag.com/10-things-you-need-to-know-about-resonance-chambers/" target="_blank" rel="noopener">Motocross Action’s chamber guide</a>, <a href="https://www.dirtrider.com/features/news/141_0506_fmf_tuned_yz450f" target="_blank" rel="noopener">Dirt Rider on the Megabomb</a>, <a href="https://www.fmfracing.com/products/s-s-powerbomb-header-040014" target="_blank" rel="noopener">FMF on the Powerbomb</a>, <a href="https://dirtbiketest.com/product-tests/pro-circuit-ti-6-exhaust-system-for-the-2016-ktm-350-sx-fxc-f/" target="_blank" rel="noopener">Dirt Bike Test on Pro Circuit’s RC-4</a> and the <a href="https://patents.google.com/patent/US20090000862" target="_blank" rel="noopener">Buell patent application</a>. None publishes dyno curves, so the page does not predict a power change.</li>
       <li><b>Wave simulation.</b> Each cylinder breathes through its own intake runner and the 4-Stroke tab’s header. With more than one primary per collector, every cylinder on that collector is modeled: the primaries meet at the start of the merge cone, which opens at their combined area, and fire at even spacing or at the gaps you enter, so a cross-plane V8 bank’s 90° pair shows up as one cylinder filling worse than the others. The meeting point is solved like the two-pipe junctions, with one pressure shared by every branch and the inflows mixed; a small wave arriving there from one primary splits as linear acoustics says, within 0.3% of the textbook share. Collectors run on a 12.5 mm grid, which gives the same torque as the 10 mm grid within about 0.5%. Each pipe solves the one-dimensional compressible flow equations with area change, wall friction and Reynolds-analogy heat transfer, using a MUSCL-Hancock finite-volume scheme and an HLLC <a href="https://en.wikipedia.org/wiki/Riemann_solver" target="_blank" rel="noopener">Riemann solver</a>. Sudden size changes are joined by characteristic junctions, sealed chambers are lumped volumes on an inertial hole neck, pipe ends open to still air, and valves are compressible orifices with a 0.7 discharge coefficient and sin² lift. The cylinder is a single zone with a Wiebe burn (18° before top center, 55° long, air-fuel 12.8), Woschni wall heat loss, and 72% of the fuel heat kept in the gas, a calibration that brings full-throttle torque into the range of real engines. A fresh-charge tracer sets the trapped air. Checks run here: the <a href="https://en.wikipedia.org/wiki/Sod_shock_tube" target="_blank" rel="noopener">Sod shock tube</a> matches the exact solution within 0.4%, small waves at a fourfold step split −0.60 and 0.40 as linear theory says, a wave at an open end comes back inverted at about −0.96, and halving the grid moves torque by under about 2.5%. It has not been checked against a dyno, so use it to compare designs, not to predict horsepower. Designs are compared at each speed and by their average over the range, the area under the curve that a Formula SAE team used to rank its intakes (<a href="https://saemobilus.sae.org/content/2003-01-2277" target="_blank" rel="noopener">SAE 2003-01-2277</a>); that team also found that resonance formulas only predict a range and finished the plenum on the dyno.</li>
@@ -2120,7 +2122,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       <li><b>MAF sensors.</b> 105 sensors and housings are on the Parts tab under MAF housings: GM (LS1 3-wire 85 mm, the 5-wire tube, LS3/LS7/LS9/LSA card 15865791 and its replacements, the 2009-15 truck card, Gen V LT 8-pin cards, Duramax), Ford (Fox 5.0 through the 2024 Coyote, Cobra and Lightning 90 mm class, GT500, EcoBoost, Power Stroke), Mopar (Hemi, Hellcat, Viper, Cummins), Toyota and Lexus Denso cards and housings (2JZ 22250-46040, 1ZZ/2ZZ, IS F, GR Corolla, GR Supra), Nissan (Z32, the R35/350Z/370Z card 22680-7S000), Subaru, Honda and Acura, BMW, Mercedes, VW, Mitsubishi Karman vortex, and Bosch’s universal HFM-5 and HFM-7 series with the catalogue’s flow ranges and drawing dimensions, plus PMAS HPX and X-MAF, Granatelli, BBK and SCT housings. Each carries its sensor type (card, tube, slot or Karman), wire count, signal type and the vehicles it came on. GM’s placement rule here follows the crate-engine controller sheets word for word: a 4 in tube, the sensor in the middle of a straight section at least 6 in long, the boss centre at least 10 in from the throttle body, the connector between horizontal and straight up, the PCV fresh-air port downstream of the sensor, and a dry filter; an earlier version of this page gave 1 in on the throttle side, which is AEM’s coupler rule, and has been corrected to GM’s 3 in. Ford’s control-pack sheets want the sensor 6 to 8 in upstream of the throttle body and no more than 24 in, in the upper half of the tube, three diameters upstream of the PCV inlet, with the stock tube area kept; any change needs a new PCM calibration. Bosch calibrates element and housing as a unit and says a plug-in sensor’s curve must be determined in the tube it is used in. When the tube changes, every maker asks for a new transfer function; the area ratio new/old is the accepted first guess (HP Academy), then log and correct. NZEFI’s figures for the Nissan card, about 350 hp in a 72.5 mm bore, 500 hp in 85 mm and over 600 hp in 4 in, are a tuner’s test, not Nissan’s. Pro-M, SLP, C&amp;L, Vortech and JLT could not be fetched, and Holley EFI and AEM Infinity run speed-density, so they have no MAF entries.</li>
       <li><b>Weld-on MAF bungs and pads.</b> The Parts tab lists 51 weld-on sensor mounts (card pads for the GM LS3/LT card sensor, slot bungs for Hitachi, Denso, Bosch and HPX sensors, Denso round bosses, Ford blade flanges) from ICT Billet, Hawks, Spectre, Ticon, Torque Solution, Wehrli, IAG, VMP, Treadstone, Radium, PRL, CXRacing and others, each with the tube size its underside is coped for and whatever pad size, bolt pattern and placement text the maker publishes. Only ICT publishes a pad envelope (2 × 2 × 1 in and 3 × 2 × 1 in) and only Ticon and VMP a bolt spacing, so most pads are modelled from a guessed 2 in footprint and flagged. Placement follows the makers’ own instructions: Spectre’s kit sheet puts the pad at least 8 to 10 in from the throttle body with the sensor arrow toward it and the PCV hose between the throttle and the sensor; Flowmaster says the centre of 6 in of straight tube, never right after a sharp bend; AEM says the middle of a straight section, to tape the pad on and check fuel trims before welding, and to keep 1 in of straight at coupler ends. The auto-router therefore stands a pad on the middle of the longest straight run, at least 8 in from the throttle, with GM’s 3 in and 1 in straight leads. No maker publishes a rule in tube diameters or a “top of the tube” rule; the forum figure of 10 in from the throttle attributed to GM is hearsay and is not used beyond GM’s own LS guide. The LS3 card sensor is sold by Hawks and Texas Speed in 100 mm (4 in) housings and the pads for it are cut for 4 in (or 3.5 in) tube; ICT notes the sensor is not restricted to a tube size but the ECU then needs a MAF retune. Vibrant, Speed Engineering, Texas Speed, BTR, Mishimoto, Nick Williams and Holley sell no weld-on pad, and JMD Tubes’ MAF flange page could not be fetched; nothing was invented for them. A pad only goes on a naturally aspirated tube or the pipe before the compressor, never on the charge pipe, so the boosted route list leaves it out. Parts with a <b>CAD model</b> tag have a STEP file in the shop’s CAD library folder; the add-in imports it and stands it where the fitting goes (model Y out of the tube, X along it) beside the stand-in, so the real geometry is in the clearance check; SolidWorks part files cannot be imported by the Fusion API and need saving as STEP.</li>
       <li><b>Parts list.</b> Every part number and dimension comes from the seller or maker page linked on its card, as listed in October 2026. The bike silencers are universal slip-ons with 51 mm inlets. Check fitment, price and stock with the seller before ordering. The list is a starting set and can grow.</li>
-      <li><b>Pipe and shell vibration.</b> Span bending modes use the beam formula and end-condition factors for pinned, fixed and cantilever spans (<a href="https://pages.hmc.edu/spjut/RocketE80/PDFs/DynamBeamAnalyticalModes.pdf" target="_blank" rel="noopener">Harvey Mudd notes after Tedesco</a>). Ovaling and ring frequencies use the thin-ring formulas attributed to Den Hartog and Irvine (<a href="https://www.eng-tips.com/threads/quot-bell-quot-modes-for-a-circular-tube-son-of-chime.152064" target="_blank" rel="noopener">Eng-Tips</a>), and flat panels the simply supported plate formula (<a href="https://docs.sofistik.com/2024/en/verification/_static/verification/pdf/be39.pdf" target="_blank" rel="noopener">SOFiSTiK, after Timoshenko</a>). Room-temperature properties: mild steel 1010 (<a href="https://www.mwcomponents.com/uploads/Resource-Center/Elgin-Material-Sheets/Carbon-Steel-Grade-1010-Data-Sheet_Elgin-Fasteners.pdf" target="_blank" rel="noopener">Elgin</a>), 409 (<a href="https://www.combmet.com/wp-content/uploads/2024/01/409-Stainless-Steel-Alloy-Data-Sheet-2024-01-11.pdf" target="_blank" rel="noopener">Combined Metals</a>, Poisson’s ratio assumed 0.29), 304 (<a href="https://d1io3yog0oux5.cloudfront.net/_7ce3a04c09e74bf31ff5f89fc888db25/clevelandcliffs/db/1190/10510/file/CLF_ProductData_304-304LSS_052021.pdf" target="_blank" rel="noopener">Cleveland-Cliffs</a>, Poisson’s ratio from <a href="https://en.wikipedia.org/wiki/SAE_304_stainless_steel" target="_blank" rel="noopener">Wikipedia</a>), titanium grade 2 (<a href="https://www.aerospacemetals.com/wp-content/uploads/2023/07/Titanium-Grade-2-Data-Sheet.pdf" target="_blank" rel="noopener">Aerospace Metals</a>). Stiffness falls with temperature per the ASME B31.1 table (<a href="https://engineeringtoolbox.com/young-modulus-d_773.html" target="_blank" rel="noopener">Engineering Toolbox</a>); 409 uses the 12% chromium row and titanium is listed only to 800 °F. Heat growth is expansion coefficient × (wall temperature − 20 °C) × length, with 7.228, 9.9 and 4.8 × 10⁻⁶ per °F for mild steel, 304 and titanium from the material table in the <a href="http://www.nsxprime.com/FAQ/Miscellaneous/exhausttheory.htm" target="_blank" rel="noopener">nsxprime “Exhaust Theory” FAQ</a>, and 11.7 µm per m per °C for 409 (0 to 315 °C) from <a href="https://atlassteels.com.au/wp-content/uploads/2021/08/Stainless-Steel-409-Grade-Data-Sheet-11-08-21.pdf" target="_blank" rel="noopener">Atlas Steels</a>, which also rates 409 against scaling to 675 °C in continuous and 815 °C in intermittent service. The warning temperatures, 500 °C for mild or aluminized steel and 700 °C for 409, are Potente’s (Acoustics 2005). Slip-joint clearances and the warning about wrapped pipe come from Hugh MacInnes, <i>Turbochargers</i> (HP Books, 1976).</li>
+      <li><b>Pipe and shell vibration.</b> Span bending modes use the beam formula and end-condition factors for pinned, fixed and cantilever spans (<a href="https://pages.hmc.edu/spjut/RocketE80/PDFs/DynamBeamAnalyticalModes.pdf" target="_blank" rel="noopener">Harvey Mudd notes after Tedesco</a>). Ovaling and ring frequencies use the thin-ring formulas attributed to Den Hartog and Irvine (<a href="https://www.eng-tips.com/threads/quot-bell-quot-modes-for-a-circular-tube-son-of-chime.152064" target="_blank" rel="noopener">Eng-Tips</a>), with the ovaling of a long tube in plane strain, E ÷ (1 − ν²) for E (<a href="https://ntrs.nasa.gov/citations/19730018197" target="_blank" rel="noopener">Leissa, Vibration of Shells, NASA SP-288</a>, eqs. 2.22 to 2.27 and section 4.3), and flat panels the simply supported plate formula (<a href="https://docs.sofistik.com/2024/en/verification/_static/verification/pdf/be39.pdf" target="_blank" rel="noopener">SOFiSTiK, after Timoshenko</a>). Room-temperature properties: mild steel 1010 (<a href="https://www.mwcomponents.com/uploads/Resource-Center/Elgin-Material-Sheets/Carbon-Steel-Grade-1010-Data-Sheet_Elgin-Fasteners.pdf" target="_blank" rel="noopener">Elgin</a>), 409 (<a href="https://www.combmet.com/wp-content/uploads/2024/01/409-Stainless-Steel-Alloy-Data-Sheet-2024-01-11.pdf" target="_blank" rel="noopener">Combined Metals</a>, Poisson’s ratio assumed 0.29), 304 (<a href="https://d1io3yog0oux5.cloudfront.net/_7ce3a04c09e74bf31ff5f89fc888db25/clevelandcliffs/db/1190/10510/file/CLF_ProductData_304-304LSS_052021.pdf" target="_blank" rel="noopener">Cleveland-Cliffs</a>, Poisson’s ratio from <a href="https://en.wikipedia.org/wiki/SAE_304_stainless_steel" target="_blank" rel="noopener">Wikipedia</a>), titanium grade 2 (<a href="https://www.aerospacemetals.com/wp-content/uploads/2023/07/Titanium-Grade-2-Data-Sheet.pdf" target="_blank" rel="noopener">Aerospace Metals</a>). Stiffness falls with temperature per the ASME B31.1 table (<a href="https://engineeringtoolbox.com/young-modulus-d_773.html" target="_blank" rel="noopener">Engineering Toolbox</a>); 409 uses the 12% chromium row and titanium is listed only to 800 °F. Heat growth is expansion coefficient × (wall temperature − 20 °C) × length, with 7.228, 9.9 and 4.8 × 10⁻⁶ per °F for mild steel, 304 and titanium from the material table in the <a href="http://www.nsxprime.com/FAQ/Miscellaneous/exhausttheory.htm" target="_blank" rel="noopener">nsxprime “Exhaust Theory” FAQ</a>, and 11.7 µm per m per °C for 409 (0 to 315 °C) from <a href="https://atlassteels.com.au/wp-content/uploads/2021/08/Stainless-Steel-409-Grade-Data-Sheet-11-08-21.pdf" target="_blank" rel="noopener">Atlas Steels</a>, which also rates 409 against scaling to 675 °C in continuous and 815 °C in intermittent service. The warning temperatures, 500 °C for mild or aluminized steel and 700 °C for 409, are Potente’s (Acoustics 2005). Slip-joint clearances and the warning about wrapped pipe come from Hugh MacInnes, <i>Turbochargers</i> (HP Books, 1976).</li>
       <li><b>Turbos.</b> The turbine changes how low-frequency engine pulses travel on (<a href="https://saemobilus.sae.org/content/2007-01-2205" target="_blank" rel="noopener">SAE 2007-01-2205</a>) and turbo builders describe it as acting like a silencer (<a href="https://www.vargasturbo.com/turbo-info.html" target="_blank" rel="noopener">Vargas Turbo</a>). Treating the turbine as the closed end of the drone check is this calculator’s assumption. Noise types and ranges are from <a href="https://core.ac.uk/download/288375143.pdf" target="_blank" rel="noopener">Pai et al., ICSV22 2015</a>. Six full and six splitter blades is a common compressor layout, and top shaft speeds run from about 118,000 to 150,000 rpm on mid-size Garrett GTX units (<a href="https://motoiq.com/an-inside-look-at-the-new-garrett-gtx-turbochargers/3" target="_blank" rel="noopener">MotoIQ</a>). Blow-off and bypass valves: <a href="https://www.enginelabs.com/?p=7054" target="_blank" rel="noopener">EngineLabs</a>. Screamer pipes: <a href="https://en.wikipedia.org/wiki/Screamer_pipe" target="_blank" rel="noopener">Wikipedia</a>. Hugh MacInnes (<i>Turbochargers</i>, 1976) adds that the turbine housing speeds the gas from about 300 ft/s at the port to about 2,000 ft/s, so an oversized turbo manifold gains nothing, that tuned headers on a turbo engine are “more esthetic than power-increasing,” that the pipe right after the turbine should open up fast to break the swirl and can narrow gently after 18 to 24 in, and that twin-turbo manifolds want a balance tube of at least 3/4 in.</li>
       <li><b>Superchargers.</b> A two-rotor Roots blower discharges 2 × lobes pockets per rotor turn, the ideal count rather than a guaranteed loudest tone (<a href="https://www.firgelliauto.com/blogs/mechanisms/root-rotary-blower" target="_blank" rel="noopener">Firgelli</a>). Eaton’s TVS rotors have four lobes twisted 160° (<a href="https://www.autoblog.com/2008/07/18/eaton-tapped-to-produce-superchargers-for-audi/" target="_blank" rel="noopener">Eaton via Autoblog</a>). A screw compressor’s pocket-passing frequency is male rotor speed × male lobes (<a href="https://www.turbomachinerymag.com/view/operating-dry-screw-compressors" target="_blank" rel="noopener">Turbomachinery Magazine</a>). ProCharger step-up ratios and the F-4X’s 72,000 rpm limit are from <a href="https://www.enginelabs.com/?p=267310" target="_blank" rel="noopener">EngineLabs</a>. The default rotor and belt ratios are examples; use your own pulley sizes.</li>
       <li><b>Engines and firing orders.</b> Each engine in the library carries its source: the <a href="https://en.wikipedia.org/wiki/Firing_order" target="_blank" rel="noopener">firing order</a> and <a href="https://en.wikipedia.org/wiki/Big-bang_firing_order" target="_blank" rel="noopener">big-bang firing order</a> pages, <a href="https://www.enginelabs.com/?p=5763" target="_blank" rel="noopener">EngineLabs</a> for the GM orders and the 4/7 swap, <a href="https://www.aa1car.com/library/ford_firing_orders.htm" target="_blank" rel="noopener">AA1Car</a> for Ford, <a href="https://gmauthority.com/blog/gm/gm-engines/lt6/" target="_blank" rel="noopener">GM Authority</a> for the LT6, and the BMW <a href="https://en.wikipedia.org/wiki/BMW_S65" target="_blank" rel="noopener">S65</a> and <a href="https://en.wikipedia.org/wiki/BMW_S85" target="_blank" rel="noopener">S85</a> pages. A cylinder fires at its place in the order × 720° ÷ cylinders unless the engine lists its own gaps: odd-fire V6s and V10s, V-twins (360° plus or minus the V angle), and crossplane, twin-pulse and big-bang cranks. A rotor fires once per turn of the eccentric shaft (<a href="https://en.wikipedia.org/wiki/Wankel_engine" target="_blank" rel="noopener">Wankel engine</a>). Every cross-plane V8 order in the library was checked here and gives each bank gaps of 90, 180, 270 and 180°.</li>
@@ -6333,6 +6335,31 @@ return {toEngineSim,toEngineSimDetailed,IR_NAMES};
 const MM=25.4;
 const rad=d=>d*Math.PI/180;
 const sos=tC=>20.05*Math.sqrt(tC+273.15);                       // speed of sound, m/s
+/* Speed of sound in exhaust gas, m/s (physics audit follow-up 2026-11-11, Q1). sos() above is air (gamma 1.4, R 287.05) and
+   stays for intake air, the ambient, and the empirical rules whose constants or effective temperatures were set with it
+   (Blair's 83.3 a0 at his class temperatures, the 2-stroke default temperature chosen to give Jennings' 1,700 ft/s). Here
+   c = sqrt(gamma R T) for the products of stoichiometric gasoline combustion, composition frozen (no dissociation at
+   exhaust temperatures). Gasoline CH1.87 and air O2 + 3.773 N2 (N2 standing for nitrogen + argon): MIT 2.61 (Heywood's
+   engine course), lecture 4, "Combustion Stoichiometry" (ocw.mit.edu/courses/2-61-internal-combustion-engines-spring-2017,
+   MIT2_61S17_lec4.pdf); the 3.773 split by NOAA's dry air, 78.084 % N2, 20.946 % O2, 0.934 % Ar by volume
+   (noaa.gov/jetstream/atmosphere). Per C atom: CO2 1, H2O 0.935, N2 1.4675 x 3.7279, Ar 1.4675 x 0.04459; mole fractions
+   0.1338 / 0.1251 / 0.7322 / 0.0088, M 29.008 g/mol, R 286.63 J/kg K (the CO2 outweighs the H2O, so R is air's within 0.2 %).
+   cp/R of each species: the NASA 7-coefficient polynomials of GRI-Mech 3.0 (Cantera data/gri30.yaml, low range to 1,000 K,
+   high range above), checked against NIST-JANAF (Chase 1998, NIST Chemistry WebBook Shomate fits) within 0.25 % at
+   300-1,100 K; gamma = cp / (cp - R): 1.373 at 20 C, 1.334 at 343 C, 1.316 at 500 C, 1.300 at 650 C. Against sos(): -1.1 %
+   at 20 C, -2.5 % at 343 C, -3.2 % at 500 C, -3.7 % at 650 C (about half of it is air's own gamma falling with temperature,
+   which sos() leaves at 1.4). Below the exhaust's dew point (about 50 C) part of the water condenses; that is not modelled. */
+const EXH_GAS=(()=>{
+  const sp=[ // [moles per C atom, M g/mol, a1..a5 below 1000 K, a1..a5 above]
+    [1,44.0095,[2.35677352,8.98459677e-3,-7.12356269e-6,2.45919022e-9,-1.43699548e-13],[3.85746029,4.41437026e-3,-2.21481404e-6,5.23490188e-10,-4.72084164e-14]],      // CO2
+    [0.935,18.01528,[4.19864056,-2.0364341e-3,6.52040211e-6,-5.48797062e-9,1.77197817e-12],[3.03399249,2.17691804e-3,-1.64072518e-7,-9.7041987e-11,1.68200992e-14]],  // H2O
+    [1.4675*3.7279,28.0134,[3.298677,1.4082404e-3,-3.963222e-6,5.641515e-9,-2.444854e-12],[2.92664,1.4879768e-3,-5.68476e-7,1.0097038e-10,-6.753351e-15]],           // N2
+    [1.4675*0.04459,39.948,[2.5,0,0,0,0],[2.5,0,0,0,0]]];                                                                                                               // Ar
+  const n=sp.reduce((a,s)=>a+s[0],0), M=sp.reduce((a,s)=>a+s[0]*s[1],0)/n/1000, mix=k=>[0,1,2,3,4].map(i=>sp.reduce((a,s)=>a+s[0]*s[k][i],0)/n);
+  return {R:8.314462618/M,M,lo:mix(2),hi:mix(3)};
+})();
+const exhGamma=T=>{ const a=T<=1000?EXH_GAS.lo:EXH_GAS.hi, cpR=a[0]+T*(a[1]+T*(a[2]+T*(a[3]+T*a[4]))); return cpR/(cpR-1); };   // T in K
+const sosExh=tC=>{ const T=tC+273.15; return Math.sqrt(exhGamma(T)*EXH_GAS.R*T); };
 const coneLen=(d1,d2,incl)=>Math.abs(d2-d1)/2/Math.tan(rad(incl/2)); // mm, incl = included angle
 const fin=(...v)=>v.every(x=>Number.isFinite(x));
 
@@ -6353,7 +6380,7 @@ function calcFour(p){
   const lm=coneLen(dc,dex,p.ang);
   const tail=p.place==='tail'?p.tail:0;
   const mStart=lp+lmerge+lstr+tail;
-  const c=sos(p.egt);
+  const c=sosExh(p.egt);
   const rt=2*lp/1000/c;
   const rtDeg=rt*6*p.rpm;
   const sens=[0.85,0.92,1,1.08,1.15].map(f=>({f,rpm:p.rpm*f,len:lenAt(p.rpm*f)}));
@@ -6564,7 +6591,7 @@ function calcSound(p){
   const po=pulseOrders(pp);
   const k=(p.cyc==='4'?0.5:1)*p.cyl;          // firing events per revolution, whole engine (a rotor counts like a two-stroke cylinder)
   const fire=r=>r/60*k;
-  const c=sos(p.egt);
+  const c=sosExh(p.egt);
   let res, len=p.len;
   if(secs){ res=pipeModes(secs,12,8000); len=secLen(pathSecs(secs))*1000; }
   else {
@@ -6612,7 +6639,7 @@ function calcSound(p){
   });
   const box=!!secs&&pathSecs(secs).some((s,i,a)=>s.kind==='box'&&i<a.length-1);   // a muffler or cat body with pipe after it
   // Helmholtz resonator and quarter-wave branch for the target tone
-  const cr=sos(Number.isFinite(p.tres)?p.tres:p.egt);        // side branches hold cooler, still gas
+  const cr=sosExh(Number.isFinite(p.tres)?p.tres:p.egt);        // side branches hold cooler, still gas
   const dm=p.hd/1000, lm=p.hl/1000;
   const A=Math.PI*(dm/2)**2, Leff=lm+HELM_END*dm;
   const V=A*cr*cr/((2*Math.PI*p.hf)**2*Leff);
@@ -6664,9 +6691,16 @@ function calcShell(p){
   const t=p.wall/1000, L=p.span/1000, ml=m.rho*sec.Awall/1e6;
   const beamOf=I=>BETA[p.sup].map((b,i)=>({n:i+1,f:b*b/(2*Math.PI*L*L)*Math.sqrt(E*I/1e12/ml)}));
   const beam=beamOf(sec.Ix), beamSide=shape==='round'?null:beamOf(sec.Iy);   // up-and-down, then side-to-side bending
+  // Ovaling of a long tube is plane strain (no motion along it, nothing varying along it), so the wall's stiffness is
+  // E / (1 - nu^2), not a free ring's E (physics audit follow-up 2026-11-11, Q8): Leissa, Vibration of Shells, NASA SP-288
+  // (1973), eqs. 2.22-2.27 (Flugge, after Reismann): Omega^2 = rho (1 - nu^2) R^2 w^2 / E, the flexural root
+  // Omega^2 = k n^2 (n^2 - 1)^2 / (n^2 + 1) to first order in k = h^2 / 12 R^2 (eq. 2.6), i.e. the ring formula with
+  // E / (1 - nu^2); and section 4.3: the plane-strain modes of an infinitely long oval shell are those of the oval ring
+  // (Sathyamoorthy and Pandalai), with the shell's plate stiffnesses, so the non-round ringModes takes the same E'.
+  const Eps=E/(1-m.nu*m.nu);
   let oval;
-  if(shape==='round'){ const dm=(p.od-p.wall)/1000; oval=[2,3].map(n=>({n,f:n*(n*n-1)/Math.sqrt(n*n+1)*Math.sqrt(E*t*t/(3*m.rho))/(Math.PI*dm*dm)})); }
-  else oval=ringModes(shape,p.od/1000,oh/1000,t,E,m.rho,2).map((f,i)=>({n:i+1,f,fe:true}));
+  if(shape==='round'){ const dm=(p.od-p.wall)/1000; oval=[2,3].map(n=>({n,f:n*(n*n-1)/Math.sqrt(n*n+1)*Math.sqrt(Eps*t*t/(3*m.rho))/(Math.PI*dm*dm)})); }
+  else oval=ringModes(shape,p.od/1000,oh/1000,t,Eps,m.rho,2).map((f,i)=>({n:i+1,f,fe:true}));
   const ring=Math.sqrt(E/m.rho)/(sec.Pmid/1000);              // breathing mode, √(E/ρ) ÷ (π × mean diameter)
   const a=p.pl/1000, b=p.pw/1000, h=p.pt/1000, D=E*h**3/(12*(1-m.nu*m.nu));
   const panel=[[1,1],[2,1],[1,2]].map(([i,j])=>({i,j,f:Math.PI/2*((i/a)**2+(j/b)**2)*Math.sqrt(D/(m.rho*h))})).sort((x,y)=>x.f-y.f);
@@ -6960,7 +6994,7 @@ function branchPeak(spl,K,rho,c,S,Sn){
 }
 function calcHelm(p){        // p: f Hz, dn, ln, dpipe mm, tres °C
   if(!fin(p.f,p.dn,p.ln,p.dpipe,p.tres)||p.f<=0||p.dn<=0||p.ln<0||p.dpipe<=0) return {err:'Fill in the target frequency, neck size and main pipe diameter.'};
-  const c=sos(p.tres), A=Math.PI*(p.dn/2000)**2, Le=p.ln/1000+HELM_END*p.dn/1000, S=Math.PI*(p.dpipe/2000)**2;
+  const c=sosExh(p.tres), A=Math.PI*(p.dn/2000)**2, Le=p.ln/1000+HELM_END*p.dn/1000, S=Math.PI*(p.dpipe/2000)**2;
   const V=A*c*c/((2*Math.PI*p.f)**2*Le);
   const K=Math.sqrt(A*V/Le)/(2*S);                   // 3 dB band = K × f0
   const tl=f=>{ const x=f/p.f-p.f/f; return Math.abs(x)<1e-9?TLCAP:Math.min(TLCAP,10*Math.log10(1+(K/x)**2)); };
@@ -6977,7 +7011,7 @@ function calcQW(p){          // p: f, db, dpipe mm, tres °C
   // the branch's mouth adds an end correction that falls as the branch approaches the main pipe's size (Ji 2005, J. Sound
   // Vib. 283, by BEM, as fitted in Calton and Sommerfeldt: l0 = a (0.8216 - 0.0644 x - 0.694 x^2) for x <= 0.4, a (0.9326 -
   // 0.6196 x) above, x = branch / main diameter); the old flat 0.3 d sits right near x = 0.5 and is twice too much at x = 1
-  const c=sos(p.tres), Lac=c/(4*p.f)*1000, end=branchEndCorr(p.db,p.dpipe), L=Lac-end;
+  const c=sosExh(p.tres), Lac=c/(4*p.f)*1000, end=branchEndCorr(p.db,p.dpipe), L=Lac-end;
   const r=(p.db/p.dpipe)**2/2;                          // branch area ÷ (2 × pipe area)
   const tl=f=>{ const t=Math.tan(2*Math.PI*f*Lac/1000/c); return Math.min(TLCAP,10*Math.log10(1+(r*t)**2)); };
   // transfer matrix in [p; v]: shunt Z = -j (rho c / Ab) cot(k Lac)
@@ -7011,7 +7045,7 @@ function mufBackPressure(M,p0,items){
 window.__mufBP=mufBackPressure;   // test hook
 function calcChamber(p){     // p: dpipe, dch, lch mm, tmain °C; lin, lout mm (optional): inlet and outlet tubes run on into the chamber
   if(!fin(p.dpipe,p.dch,p.lch,p.tmain)||p.dpipe<=0||p.dch<=p.dpipe||p.lch<=0) return {err:'The chamber must be wider than the pipe, with a positive length.'};
-  const c=sos(p.tmain), m=(p.dch/p.dpipe)**2, L=p.lch/1000;
+  const c=sosExh(p.tmain), m=(p.dch/p.dpipe)**2, L=p.lch/1000;
   const la=Math.max(0,p.lin>0?p.lin:0)/1000, lb=Math.max(0,p.lout>0?p.lout:0)/1000, ext=la>0||lb>0;
   if(p.rev?la>=L:la+lb>=L) return {err:p.rev?'The tubes run the whole way to the far wall: they must be shorter than the chamber.':'The extended inlet and outlet tubes meet inside the chamber: together they must be shorter than it.'};
   const plain=f=>10*Math.log10(1+0.25*(m-1/m)**2*Math.sin(2*Math.PI*f*L/c)**2);
@@ -7069,7 +7103,7 @@ function calcPlace(p){       // p: f, len mm (closed end at the valve or turbine
       jx:p.secs.split?secLen(p.secs)*1000:null};
   }
   if(!fin(p.f,p.len,p.tmain)||p.f<=0||p.len<=0) return {err:'Fill in the target frequency and the pipe length.'};
-  const c=sos(p.tmain), lam=c/p.f*1000, anti=[], nodes=[];
+  const c=sosExh(p.tmain), lam=c/p.f*1000, anti=[], nodes=[];
   for(let m=0;m*lam/2<=p.len+1e-6;m++) anti.push(m*lam/2);
   for(let m=0;(2*m+1)*lam/4<=p.len+1e-6;m++) nodes.push((2*m+1)*lam/4);
   const amp=x=>Math.abs(Math.cos(2*Math.PI*x/lam));
@@ -8140,11 +8174,17 @@ function catDp(Q,g){
   const qch=rho*v*v/2, dpFric=4*(fRe/Re)*(g.len/g.w)*qch;
   const dpFace=(0.5*(1-g.ofa)+(1-g.ofa)**2)*qch;
   const vp=Q/g.Apipe, qp=rho*vp*vp/2;
-  const dpCone=((1-Math.min(1,g.Apipe/g.Asub))**2+0.05)*qp;
-  return {v,Re,fRe,dpFric,dpFace,dpCone,dp:dpFric+dpFace+dpCone,vp};
+  // inlet cone as a conical diffuser at its own included angle (cone length each end, equivalent diameters; 0 = a sudden
+  // step, 180 deg): Rennels' change of area plus his cone-friction term, on the pipe's head, with the pipe's Darcy f
+  // (Haaland, ROUGH) (physics audit follow-up 2026-11-11, Q10; it was Borda's sudden expansion whatever the cone). The
+  // outlet cone's 0.05 is left as it was: uncited, outside that decision.
+  const dP=Math.sqrt(4*g.Apipe/Math.PI), dS=Math.sqrt(4*g.Asub/Math.PI), bC=Math.min(1,dP/dS), aC=g.cone>0?2*Math.atan(Math.max(0,dS-dP)/2/g.cone)*180/Math.PI:180;
+  const fP=haaland(rho*vp*dP/mu,dP), kIn=rennelsDiffuserK(aC,bC)+rennelsConeFric(aC,bC,fP);
+  const dpCone=(kIn+0.05)*qp;
+  return {v,Re,fRe,dpFric,dpFace,dpCone,dp:dpFric+dpFace+dpCone,vp,kIn,coneAng:aC};
 }
 function catTL(f,g){
-  const c=sos(g.tC), rho=rhoGas(g.tC), k0=Cx(2*Math.PI*f/c,0), Z1=Cx(rho*c/g.Apipe,0);
+  const c=sosExh(g.tC), rho=rhoGas(g.tC), k0=Cx(2*Math.PI*f/c,0), Z1=Cx(rho*c/g.Apipe,0);
   let T=[C1,Cx(0),Cx(0),C1];
   const cone=(A0,A1)=>{ const d0=Math.sqrt(A0), d1=Math.sqrt(A1); for(let i=0;i<8;i++){ const u=(i+0.5)/8, A=(d0+(d1-d0)*u)**2; T=tmMul(T,tmSeg(k0,Cx(rho*c/A,0),g.cone/8)); } };
   const nt=narrowTube(f,SQ_R*g.w,g.tC), Zs=cscale(nt.z,1/(g.Asub*g.ofa));
@@ -8181,7 +8221,7 @@ function calcCat(p){
   const curve=[]; for(let i=0;i<=24;i++){ const r=p.rpm*1.1*i/24; if(r<=0) continue; const d=dpAt(g,r); curve.push([r,d?d.total:0]); }
   const notes=[];
   if(main&&main.Re>2000) notes.push({k:'warn',t:'Flow in the cells reaches Reynolds number '+Math.round(main.Re)+', near the end of the laminar range the formula assumes, so real back pressure will be higher. A bigger substrate or a second converter brings it down.'});
-  if(main&&main.vp>0.3*sos(p.tgas)) notes.push({k:'warn',t:'Gas in the pipe feeding each converter reaches about '+Math.round(main.vp)+' m/s at peak, over 30% of the speed of sound, where the simple loss formulas start to read low. A larger pipe or another converter brings it down.'});
+  if(main&&main.vp>0.3*sosExh(p.tgas)) notes.push({k:'warn',t:'Gas in the pipe feeding each converter reaches about '+Math.round(main.vp)+' m/s at peak, over 30% of the speed of sound, where the simple loss formulas start to read low. A larger pipe or another converter brings it down.'});
   return {none,g,main,snd,fl,count,series,ppr,fCruise,fPeak,compare,curve,notes,dyno:main?davisLoss(main.total):null};
 }
 
@@ -8276,19 +8316,48 @@ function solveTailSplit(secs,n,f){
 }
 /* ----- gas cooling along the pipe: an exponential approach to ambient between a start and a tip temperature ----- */
 const T_AMB=20;
-const cToT=c=>(c/20.05)**2-273.15;       // the even temperature with this speed of sound
+// the even temperature with this exhaust-gas speed of sound (inverse of sosExh; gasProfile and its users are exhaust)
+const cToT=c=>{ let T=c*c/(1.3*EXH_GAS.R); for(let i=0;i<30;i++){ const T1=c*c/(exhGamma(T)*EXH_GAS.R); if(Math.abs(T1-T)<1e-9) break; T=T1; } return T-273.15; };
 function gasProfile(T0,Ttip,L){           // °C at the start and at the tip, L in m; null when there is no drop
   if(!fin(T0,Ttip,L)||L<=0||Ttip>=T0) return null;
   const a=Math.max(Ttip,T_AMB+1), lam=L/Math.log((T0-T_AMB)/(a-T_AMB));
   const T=x=>T_AMB+(T0-T_AMB)*Math.exp(-x/lam);
   // speed of sound with the same travel time as the real profile over x0..x1 (Simpson's rule on 1/c)
-  const cAvg=(x0,x1)=>{ if(!(x1>x0)) return sos(T(x0)); const n=24, d=(x1-x0)/n; let s=0; for(let k=0;k<=n;k++) s+=(k===0||k===n?1:(k%2?4:2))/sos(T(x0+k*d)); return (x1-x0)/(s*d/3); };
+  const cAvg=(x0,x1)=>{ if(!(x1>x0)) return sosExh(T(x0)); const n=24, d=(x1-x0)/n; let s=0; for(let k=0;k<=n;k++) s+=(k===0||k===n?1:(k%2?4:2))/sosExh(T(x0+k*d)); return (x1-x0)/(s*d/3); };
   return {lam,T,cAvg,T0,Ttip:a};
 }
 
 /* ----- NASCAR-style boom tube: a flattened, flared outlet run ----- */
 const ROUGH=4.5e-5;   // m, commercial steel tube
 const haaland=(Re,Dh)=>Re<2300?64/Re:1/Math.pow(-1.8*Math.log10(Math.pow(ROUGH/Dh/3.7,1.11)+6.9/Re),2);
+/* Gradual enlargement and contraction (physics audit follow-up 2026-11-11, Q3 and Q10): Rennels and Hudson, Pipe Flow: A
+   Practical and Comprehensive Guide (Wiley 2012), conical diffuser and conical contraction, as reproduced in python-fluids
+   (fluids.fittings.diffuser_conical and contraction_conical, method 'Rennels', fluids.readthedocs.io). K is on the smaller
+   section's velocity head (upstream for a diffuser, downstream for a contraction); alpha the included cone angle in degrees,
+   beta = smaller / larger diameter. Rennels writes K as the change-of-area part plus the cone's wall friction
+   f (1 - beta^4) / (8 sin(alpha/2)); these return the change-of-area part only, so a caller adds the cone's friction, once
+   (rennelsConeFric, or its own friction along the length). Diffuser, 0 to 20 deg: 8.30 tan(alpha/2)^1.75 (1 - beta^2)^2;
+   20 to 60: {1.366 sqrt(sin(2 pi (alpha - 15) / 180)) - 0.170 [- 3.28 (0.0625 - beta^4) sqrt((alpha - 20) / 40) for beta < 0.5]}
+   (1 - beta^2)^2; 60 to 180 (friction no longer added): [1.205 - 3.28 (0.0625 - beta^4) - 12.8 beta^6 sqrt((alpha - 60) / 120)]
+   (1 - beta^2)^2 for beta < 0.5, [1.205 - 0.20 sqrt((alpha - 60) / 120)] (1 - beta^2)^2 above; a sudden step is alpha 180.
+   Contraction, sharp-cornered (C_B 1, as python-fluids codes it): lambda = 1 + 0.622 (alpha/180)^0.8 (1 - 0.215 beta^2 - 0.785
+   beta^5), K = 0.0696 sin(alpha/2) (1 - beta^5) lambda^2 + (lambda - 1)^2. Crane TP-410's gradual enlargement, 2.6 sin(alpha/2)
+   (1 - beta^2)^2 below 45 deg (the same python-fluids module, diffuser_conical_Crane), is one total that cannot be split
+   from the wall friction and falls to nothing on a long gentle cone, where the friction then carries the
+   loss; at the boom's default 8.2 deg flare it gives 0.066 against Rennels' 0.029 plus 0.035 of cone friction (commercial steel, the flat run's f 0.024). */
+function rennelsDiffuserK(alpha,beta){
+  if(!(alpha>0)||!(beta<1)) return 0;
+  const a=Math.min(alpha,180), b2=beta*beta, b4=b2*b2, e=(1-b2)**2;
+  if(a<=20) return 8.30*Math.pow(Math.tan(a*Math.PI/360),1.75)*e;
+  if(a<=60) return (1.366*Math.sqrt(Math.sin(2*Math.PI*(a-15)/180))-0.170-(beta<0.5?3.28*(0.0625-b4)*Math.sqrt((a-20)/40):0))*e;
+  return (beta<0.5?1.205-3.28*(0.0625-b4)-12.8*b4*b2*Math.sqrt((a-60)/120):1.205-0.20*Math.sqrt((a-60)/120))*e;
+}
+function rennelsContractionK(alpha,beta){
+  if(!(alpha>0)||!(beta<1)) return 0;
+  const a=Math.min(alpha,180), b2=beta*beta, b5=b2*b2*beta, lam=1+0.622*Math.pow(a/180,0.8)*(1-0.215*b2-0.785*b5);
+  return 0.0696*Math.sin(a*Math.PI/360)*(1-b5)*lam*lam+(lam-1)**2;
+}
+const rennelsConeFric=(alpha,beta,f)=>alpha>0&&alpha<=60&&beta<1?f*(1-beta**4)/(8*Math.sin(alpha*Math.PI/360)):0;   // Rennels' friction term, smaller section's head
 function calcBoom(p){
   // p: Q per boom tube (m³/s), tgas °C, inA inlet inside area mm² (one inlet), inP inlet inside perimeter mm, inDeq mm, round (inlet is round),
   //    nIn inlets, h, w (0 = match inlet area), lflat, ltrans, wout, hout (0 = h), lflare (mm), t wall mm, mat, twall °C, rib mm (0 = none),
@@ -8305,17 +8374,27 @@ function calcBoom(p){
   const flatten=p.round&&nIn===1?(()=>{const W=p.h+(p.inP-Math.PI*p.h)/2; return W>=p.h?{w:W,A:obA(W,p.h)}:null;})():null;   // flattening a round tube keeps its perimeter
   const A1=obA(w,p.h), P1=obP(w,p.h), A2=obA(wout,hout), P2=obP(wout,hout);
   const rho=rhoGas(p.tgas), mu=visc(p.tgas);
-  const sec=(A,P)=>{const v=p.Q/(A/1e6), Dh=4*A/P/1000, Re=rho*v*Dh/mu; return {A,P,Dh:Dh*1000,v,Re,f:haaland(Re,Dh),q:rho*v*v/2};};
+  // wall: the Tube finish choice, the Intake tab's INTAKE_FINISH and fFinish (Haaland); default commercial steel 0.045 mm
+  // (Moody 1944), the page-wide ROUGH, as before (physics audit follow-up 2026-11-11, Q2: no roughness measured on welded
+  // stainless or aluminised exhaust tube was found; Neutrium's table puts "stainless steel" at 0.03 mm and new drawn stainless
+  // at 0.0015 to 0.01 mm, so a welded tube is not plainly smooth)
+  const fin0=INTAKE_FINISH[p.finish]?p.finish:'steel', ks=INTAKE_FINISH[fin0].ks;
+  const sec=(A,P)=>{const v=p.Q/(A/1e6), Dh=4*A/P/1000, Re=rho*v*Dh/mu; return {A,P,Dh:Dh*1000,v,Re,f:fFinish(Re,Dh,ks),q:rho*v*v/2};};
   const sIn=sec(Ain,p.inP*nIn), sFlat=sec(A1,P1), sOut=sec(A2,P2);
   const fric=(s,L)=>s.f*(L/1000)/(s.Dh/1000)*s.q;
-  // gentle flares recover pressure; beyond about 8° equivalent cone the flow leaves the walls (blend to a sudden expansion by 30°)
+  // change-of-area losses of the transition and the flare as cones with the same areas (equivalent diameters), Rennels
+  // (above; Q3 of the follow-up: these replace no loss below an 8 deg cone, blended to a sudden step at 30 deg, and the
+  // uncited K 0.05 of the transition and of a narrowing outlet); the wall friction along each stays counted below, once
   const deq=A=>Math.sqrt(4*A/Math.PI);
   const eqAng=p.lflare>0?2*Math.atan((deq(A2)-deq(A1))/2/p.lflare)*180/Math.PI:(A2>A1?180:0);
   const planAng=p.lflare>0?2*Math.atan((wout-w)/2/p.lflare)*180/Math.PI:(wout>w?180:0);
-  const phi=A2<=A1?0:Math.min(1,Math.max(0,(eqAng-8)/22));
+  const areaK=(Au,Ad,L)=>{ if(!(Math.abs(Ad-Au)>1e-9*Au)) return 0; const a=L>0?2*Math.atan(Math.abs(deq(Ad)-deq(Au))/2/L)*180/Math.PI:180, b=Math.sqrt(Math.min(Au,Ad)/Math.max(Au,Ad));
+    return Ad>Au?rennelsDiffuserK(a,b):rennelsContractionK(a,b); };
   const r=Math.min(1,A1/A2);
-  const dpTrans=0.05*Math.max(sIn.q,sFlat.q);
-  const dpFlat=fric(sFlat,p.lflat), dpFlare=fric(sFlat,p.lflare)*0.5+fric(sOut,p.lflare)*0.5+(A2>A1?phi*(1-r)**2*sFlat.q:0.05*sOut.q);
+  const kTrans=areaK(Ain,A1,p.ltrans), kFlare=areaK(A1,A2,p.lflare);
+  const dpTrans=kTrans*(A1<Ain?sFlat.q:sIn.q);                          // on the smaller section's head
+  const dpFlat=fric(sFlat,p.lflat), dpFlare=fric(sFlat,p.lflare)*0.5+fric(sOut,p.lflare)*0.5+kFlare*(A2<A1?sOut.q:sFlat.q);
+  const rec=A2>A1?Math.max(0,1-kFlare/(1-r*r)):null;                     // of the ideal static rise (1 - (A1/A2)^2) q, before friction
   const dpExit=sOut.q, dpBoom=dpTrans+fric(sIn,p.ltrans/2)+fric(sFlat,p.ltrans/2)+dpFlat+dpFlare+dpExit;
   const Ltot=p.ltrans+p.lflat+p.lflare;
   const dpRound=fric(sIn,Ltot)+sIn.q;                                   // the same run in the inlet pipe size, open at the end
@@ -8325,7 +8404,7 @@ function calcBoom(p){
   // Lowest wall mode of a long run: the smaller of the whole-section ring mode and a flat strip held at its edges.
   // Ribs across the run add kp ÷ spacing², the same term a plate gets from its length.
   const b=Math.max(w-p.h,1)/1000;
-  const ring=ringModes('flat',(w+2*p.t)/1000,(p.h+2*p.t)/1000,t,E,m.rho,2);
+  const ring=ringModes('flat',(w+2*p.t)/1000,(p.h+2*p.t)/1000,t,E/(1-m.nu*m.nu),m.rho,2);   // a long run: plane strain, E / (1 - nu^2) (Leissa, NASA SP-288, 2.22-2.27 and 4.3; see calcShell)
   const fBase=Math.min(ring[0],kp/(b*b)), withRibs=a=>fBase+kp/(a*a);
   const fNone=withRibs(Math.max(p.lflat,1)/1000), fRib=p.rib>0?withRibs(p.rib/1000):fNone, target=p.margin*p.fire;
   const ribMax=target>fNone?1000*Math.sqrt(kp/(target-fBase)):null;
@@ -8335,7 +8414,7 @@ function calcBoom(p){
   if(A1<Ain*0.97) notes.push({k:'warn',t:'The flat section has '+Math.round(A1/Ain*100)+'% of the inlet flow area. Make it wider, or taller, to avoid a restriction.'});
   if(eqAng>8.5&&A2>A1) notes.push({k:'warn',t:'The flare opens at about '+eqAng.toFixed(0)+'° equivalent cone, steeper than the 8° that recovers the most. Flow tends to leave the walls of steep flares, so part of the extra outlet area goes unused. A longer flare, or a smaller outlet, keeps it attached.'});
   if(p.rib>0&&fRib<target) notes.push({k:'warn',t:'With ribs every '+Math.round(p.rib)+' mm the flat panels ring at about '+Math.round(fRib)+' Hz, inside the range the firing pulses reach. Closer ribs, a bead down the middle or thicker sheet raise it.'});
-  return {nIn,Ain,w,wNeed,hout,wout,flatten,sIn,sFlat,sOut,A1,A2,eqAng,planAng,phi,dpTrans,dpFlat,dpFlare,dpExit,dpBoom,dpRound,Ltot,jet,
+  return {nIn,Ain,w,wNeed,hout,wout,flatten,sIn,sFlat,sOut,A1,A2,eqAng,planAng,kTrans,kFlare,rec,finish:fin0,ks,dpTrans,dpFlat,dpFlare,dpExit,dpBoom,dpRound,Ltot,jet,
     E,er,b:b*1000,kp,fBase,fNone,fRib,target,ribMax,ring,heightOut,roundOD,saved:roundOD-heightOut,weight:perim*t*m.rho,notes};
 }
 
@@ -8407,7 +8486,7 @@ function m4exp(A){
 function calcAbsorb(p){
   if(!fin(p.dpipe,p.dsh,p.len,p.dh,p.tw,p.rho,p.sigma,p.tC)||p.dpipe<=0||p.dsh<=p.dpipe||p.len<=0||p.dh<=0||p.tw<0||p.rho<0||p.sigma<=0||p.sigma>=1)
     return {err:'The packed can needs a shell wider than the pipe, a positive length, hole size and packing density, and a porosity between 0 and 100%.'};
-  const c=sos(p.tC), rho0=rhoGas(p.tC), R=packR(p.rho), r1=p.dpipe/2000, r2=p.dsh/2000, L=p.len/1000, t=p.tw/1000, dh=p.dh/1000;
+  const c=sosExh(p.tC), rho0=rhoGas(p.tC), R=packR(p.rho), r1=p.dpipe/2000, r2=p.dsh/2000, L=p.len/1000, t=p.tw/1000, dh=p.dh/1000;
   const fCut=1.8412*c/(Math.PI*p.dsh/1000), fCore=1.8412*c/(Math.PI*p.dpipe/1000);
   const at=f=>{
     const k0=2*Math.PI*f/c, fb=fibreProps(f,rho0,R), zp=perfZ(k0,t,dh,p.sigma,fb,p.M);       // zp = Zp/Z0
@@ -8443,7 +8522,7 @@ function calcPlug(p){
   if(!fin(p.dpipe,p.dsh,p.lperf,p.lch,p.dh,p.tw,p.sigma,p.tC)||p.dpipe<=0||p.dsh<=p.dpipe||p.lperf<=0||p.dh<=0||p.tw<0||p.sigma<=0||p.sigma>=1)
     return {err:'The plug muffler needs a shell wider than the pipe, a perforated length, a hole size and a porosity between 0 and 100%.'};
   if(2*p.lperf>p.lch+1e-9) return {err:'The two perforated lengths do not fit in the shell: each must be at most half the chamber length.'};
-  const c=sos(p.tC), rho0=rhoGas(p.tC), R=packR(p.rho>0?p.rho:0), r1=p.dpipe/2000, r2=p.dsh/2000, l=p.lperf/1000, gap=p.lch/1000-2*l, t=p.tw/1000, dh=p.dh/1000;
+  const c=sosExh(p.tC), rho0=rhoGas(p.tC), R=packR(p.rho>0?p.rho:0), r1=p.dpipe/2000, r2=p.dsh/2000, l=p.lperf/1000, gap=p.lch/1000-2*l, t=p.tw/1000, dh=p.dh/1000;
   const S1=Math.PI*r1*r1, S2=Math.PI*(r2*r2-r1*r1), Z1=rho0*c/S1, Z2=rho0*c/S2, M=Math.max(0,p.M||0);
   const fCut=1.8412*c/(Math.PI*p.dsh/1000);
   const inv2=T=>{ const det=csub(cmul(T[0],T[3]),cmul(T[1],T[2])); return [cdiv(T[3],det),cdiv(cscale(T[1],-1),det),cdiv(cscale(T[2],-1),det),cdiv(T[0],det)]; };
@@ -8484,15 +8563,24 @@ function calcPlug(p){
 // p: dpipe (in and out pipe, mm), dsh (shell ID), lch (shell length), n (chambers), dh (baffle hole), t (baffle thickness), tC
 function calcBaffles(p){
   if(!fin(p.dpipe,p.dsh,p.lch,p.n,p.dh,p.tC)||p.dsh<=p.dpipe||p.lch<=0||!(p.n>=1)||p.dh<=0||p.dh>=p.dsh) return {err:'Baffled chambers need a shell wider than the pipe, a length, a chamber count and a hole smaller than the shell.'};
-  const c=sos(p.tC), N=Math.round(p.n), l=p.lch/1000/N, S=Math.PI/4*(p.dsh/1000)**2, S0=Math.PI/4*(p.dh/1000)**2, D0=Math.PI*p.dh/1000, t=Math.max(0,p.t||0)/1000;
+  const c=sosExh(p.tC), N=Math.round(p.n), l=p.lch/1000/N, S=Math.PI/4*(p.dsh/1000)**2, S0=Math.PI/4*(p.dh/1000)**2, D0=Math.PI*p.dh/1000, t=Math.max(0,p.t||0)/1000;
   const LoverRho=D0/(4*S0)+t/S0, CtimesRho=S*l/(c*c), w0=1/Math.sqrt(LoverRho*CtimesRho), f0=w0/(2*Math.PI), fc=2*f0;
   const per=f=>{ const x=0.5*(2*Math.PI*f/w0)**2-1; return x>1?8.686*Math.acosh(x):0; };
   const lam=c/f0, lumped=l<lam/8;                           // each chamber short next to the wavelength at f0
-  const rhoB=rhoGas(p.tC), T=f=>{ const w=2*Math.PI*f, ZL=Cx(0,w*rhoB*LoverRho), YC=Cx(0,w*CtimesRho/rhoB); let M=[C1,Cx(0,0),Cx(0,0),C1];
-    for(let i=0;i<N;i++) M=tmMul(M,tmMul([C1,ZL,Cx(0,0),C1],[C1,Cx(0,0),YC,C1])); return M; };
-  return {c,N,T,l:l*1000,f0,fc,per,tl:f=>Math.min(TLCAP,N*per(f)),cPhase:c*Math.sqrt(4*S0*l/(S*D0)),lumped,fCut:1.8412*c/(Math.PI*p.dsh/1000)};
+  // The chain between the pipes (physics audit follow-up 2026-11-11, Q9): N chambers hold N - 1 baffles, so N compliances
+  // and N - 1 hole inertances, chamber first and last. A chamber between two pipes is a shunt compliance with the pipes on
+  // both sides (Kinsler, Frey, Coppens and Sanders, Fundamentals of Acoustics, low-pass filter, as given in LibreTexts
+  // Acoustics 1.05 "Filter Design and Implementation"); the inlet pipe is the line the wave arrives on, not a lumped mass, so
+  // it is no first hole. This used to chain N inertances (and quote N x the image attenuation) while the back-pressure row
+  // counts N - 1 baffles. The curve is now the lumped chain's own transmission loss between the equal pipes (tmTL, as every
+  // element here): series inertance [1, j w L; 0, 1], shunt compliance [1, 0; j w C, 1]; per() stays Morse and Ingard's
+  // attenuation of one inner hole-and-chamber section, which the N - 1 sections approach well above the cut-off.
+  const rhoB=rhoGas(p.tC), Zp=rhoB*c/(Math.PI/4*(p.dpipe/1000)**2), T=f=>{ const w=2*Math.PI*f, ZL=Cx(0,w*rhoB*LoverRho), YC=Cx(0,w*CtimesRho/rhoB), Cm=[C1,Cx(0,0),YC,C1];
+    let M=Cm; for(let i=1;i<N;i++) M=tmMul(M,tmMul([C1,ZL,Cx(0,0),C1],Cm)); return M; };
+  const tlAt=f=>{ const x=tmTL(T(f),Cx(Zp,0)); return Number.isFinite(x)?Math.max(0,x):TLCAP; };
+  return {c,N,holes:N-1,T,l:l*1000,f0,fc,per,tl:f=>Math.min(TLCAP,tlAt(f)),cPhase:c*Math.sqrt(4*S0*l/(S*D0)),lumped,fCut:1.8412*c/(Math.PI*p.dsh/1000)};
 }
-window.__baffles=calcBaffles; window.__sos=sos;
+window.__baffles=calcBaffles; window.__sos=sos; window.__sosExh=sosExh;
 // Installed attenuation (Davies 1996, Piping system design for low noise, C.3-C.5 and 2.4): transmission loss between
 // equal anechoic pipes "neglects acoustic interaction with other system elements"; what the car gets is the element with
 // the real tailpipe behind it and the real open end. Here the chain is worked from the open end back: the tip reflects
@@ -8669,7 +8757,7 @@ const HEYWOOD_RUNNERS=[[780,106,3200],[680,104,4000],[520,101,4600]], SMITH_TRUM
 const HEYWOOD_LN=2.55e6, SMITH_LN=1.3e5, SMITH_PORT_IN=7;   // mm·rpm and in·rpm products fitted to those points by this page, not from the books
 if(typeof window!=='undefined') window.__b5Test={vizardPrimary,vizardId,smithPipe,boreStroke,rotaryEvents,ROT_PORTS,surgeCheck,TO4B,densRatio,boostAtCR,VIZ_BOOST,machIndex,TAYLOR_VALVES,CF_LD,vizardHeadHp,HEYWOOD_RUNNERS,SMITH_TRUMPETS};
 // test hook for tests/physaudit_ui.js (the closed-form worked examples of the 2026-11-11 physics audit)
-if(typeof window!=='undefined') window.__physAudit={calcFour,calcTwo,calcTwoBlair,calcPrimarySize,calcCross,calcHelm,calcQW,calcChamber,calcSound,mufBackPressure,calcBaffles,calcYasuda,calcDavies,calcHdrChamber,calcCharge,calcSkin,catDp,catGeom,densRatio,sos};
+if(typeof window!=='undefined') window.__physAudit={calcFour,calcTwo,calcTwoBlair,calcPrimarySize,calcCross,calcHelm,calcQW,calcChamber,calcSound,mufBackPressure,calcBaffles,calcYasuda,calcDavies,calcHdrChamber,calcCharge,calcSkin,catDp,catGeom,densRatio,sos,sosExh,cToT,calcBoom,calcShell,rennelsDiffuserK,rennelsContractionK,bendK};
 /* ===== END MATH ===== */
 
 /* ----- resonance chamber on a header pipe (KTM, Kawasaki and Pro Circuit cans, FMF Megabomb and Powerbomb) ----- */
@@ -8682,7 +8770,7 @@ function calcHdrChamber(p){
     return {err:'Fill in the chamber position and size with positive numbers.'};
   const bulge=p.type==='bulge', od=p.dp+2*p.wall;
   if(p.x+(bulge?p.lc:0)>=p.len) return {err:'The chamber has to sit on the header pipe, before it opens into the collector or muffler.'};
-  const c=sos(p.tch), S=Math.PI*(p.dp/2000)**2;
+  const c=sosExh(p.tch), S=Math.PI*(p.dp/2000)**2;
   const peakAt=f=>Math.abs(Math.cos(2*Math.PI*f/c*p.x/1000));      // the tone's pressure at the chamber, pipe closed at the valve
   const half=f=>c/(2*f)*1000;                                         // pressure peaks repeat every half wavelength from the valve
   const kgOf=(d1,inner)=>(Math.PI*(d1+p.wall)*p.lc+2*Math.PI/4*((d1+2*p.wall)**2-inner**2))/1e6*p.wall/1000*RHO_SHEET;
@@ -9491,7 +9579,7 @@ function calcQuick(p){
   const pp=cyc==='2'?{err:'two-stroke'}:feedPulses(e,feed);   // a two-stroke chamber is tuned as a whole, so no drone lengths
   let drone=null;
   if(!pp.err){
-    const po=pulseOrders(pp), f=po.main.o*cruise/60, c=sos(QUICK_TPIPE), r=main.id/2000;
+    const po=pulseOrders(pp), f=po.main.o*cruise/60, c=sosExh(QUICK_TPIPE), r=main.id/2000;
     const lengths=[];
     const maxL=bike?2:6.5;                                   // longest pipe that fits the vehicle, m
     for(let k=1;k<=8;k++){ const Lm=(2*k-1)*c/(4*f)-END_CORR*r; if(Lm>=0.3&&Lm<=maxL) lengths.push(Lm*1000); }
@@ -14189,7 +14277,7 @@ function mdInputs(p){
 }
 function mdSearch(q){
   if(!(q.f0>0&&q.f1>q.f0&&q.tl>0&&q.dpipe>0)) return {err:'Give a band (low below high) and how many dB to take off.'};
-  const fs=[...Array(9).keys()].map(i=>q.f0*Math.pow(q.f1/q.f0,i/8)), c=sos(q.tC), out=[];
+  const fs=[...Array(9).keys()].map(i=>q.f0*Math.pow(q.f1/q.f0,i/8)), c=sosExh(q.tC), out=[];
   // scoring installed: the element's transfer matrix with the tab's tailpipe and the open end (installedAL) instead of its TL
   const rhoQ=rhoGas(q.tC), Sq=Math.PI*(q.dpipe/2000)**2, aq=q.dpipe/2000, score=(el,f)=>q.inst?installedAL(el.T,f,q.Lt,aq,c,rhoQ,Sq):el.tl(f);
   for(let Din=3.5;Din<=10+1e-9;Din+=0.5){
@@ -14476,7 +14564,7 @@ function augCalc(p){
   if(!(Ds>Dc&&Dc>0&&a.pitch>a.t&&a.L>0)) return {err:'The shell has to be wider than the centre tube, and the pitch more than the blade.'};
   const Ah=(a.pitch-a.t)*h/1e6, dh=4*Ah*1e6/(2*((a.pitch-a.t)+h)), Ac=Math.PI*(Dc/2000)**2;
   const tubes=a.capped?[{L:Lh,A:Ah,d:dh}]:[{L:a.L,d:Dc},{L:Lh,A:Ah,d:dh}];
-  const c=sos(p.tmain), rho=101325/(287*(p.tmain+273.15)), S=Math.PI*(p.dpipe/2000)**2, dL=(Lh+0.6*dh)-(a.L+0.6*Dc);
+  const c=sosExh(p.tmain), rho=101325/(287*(p.tmain+273.15)), S=Math.PI*(p.dpipe/2000)**2, dL=(Lh+0.6*dh)-(a.L+0.6*Dc);
   const tl=f=>ttMatrix(tubes,c,rho,S,f), f0=dL>0?c/(2*dL/1000):NaN;
   let pk=null; if(f0>0) for(let i=0;i<=400;i++){ const f=f0*(0.5+i/400), v=tl(f); if(!pk||v>pk.v) pk={f,v}; }
   return {tubes,c,rho,S,Lh,Ah,Ac,dh,N,dL,f1:f0,peak:pk,tl};
@@ -14528,13 +14616,14 @@ function ttTune(n,f0,c){   // lengths whose half-wave resonance sits on harmonic
   return Array.from({length:n},(_,i)=>{ const f=f0*TT.h[i], d=TT.d[i]; return {f,L:c/(2*f)*1000-2*0.3*d}; });
 }
 function ttSection(p){
-  const fire=ttFire(), c=sos(p.tmain), rho=101325/(287*(p.tmain+273.15)), S=Math.PI*(p.dpipe/2000)**2;
+  const fire=ttFire(), c=sosExh(p.tmain), rho=101325/(287*(p.tmain+273.15)), S=Math.PI*(p.dpipe/2000)**2;
   const bsec=boreOf('m-dp-shape'), fCut=crossModeHz(c,bsec.err?null:bsec)||1.8412*c/(Math.PI*p.dpipe/1000);   // first cross mode of the main pipe (c / 2W for a flat oval): plane waves hold below it
   let h='<p class="cap" style="margin-top:0">Borla’s patented “timbre scaled exhaust system” (US 10,808,584 B2, David Borla, filed 2016, and its continuations) splits the flow into 3 to 5 parallel tubes, 1 to 1.5 in across and about 1 to 8 in long, between two collectors ahead of the muffler, each sized from the engine’s root note for a note of its own. The patents give no formula. Tubes that short resonate in the kilohertz range, so the bundle works on the harmonics above the engine note, its timbre: where the tubes’ waves meet out of phase at the outlet collector, that harmonic is taken out. This works out those dips from plane waves through the tubes you enter, and can size the tubes so their resonances land on chosen harmonics of the firing tone.</p>';
   if(!(p.dpipe>0&&c>0)) return sec('Timbre tube bundle',h+'<div class="note">Enter the main pipe size above.</div>');
   const n=Math.min(5,Math.max(3,Math.round(TT.n)||4));
   const f0=fire&&Number.isFinite(TT.rpm)&&TT.rpm>0?TT.rpm/60*fire.perRev:(fire?fire.cruise/60*fire.perRev:NaN), rpm0=fire?(Number.isFinite(TT.rpm)&&TT.rpm>0?TT.rpm:fire.cruise):NaN;
-  if(!TT.L.length&&f0>0) TT.L=ttTune(5,f0,c).map(x=>Math.round(Math.min(203.2,Math.max(25.4,x.L))));
+  // default lengths to 0.1 mm (were whole mm: with the exhaust-gas c of the 2026-11-11 follow-up the 16th landed at 15.93)
+  if(!TT.L.length&&f0>0) TT.L=ttTune(5,f0,c).map(x=>Math.round(10*Math.min(203.2,Math.max(25.4,x.L)))/10);
   if(!TT.L.length) TT.L=[100,125,150,175,200];
   const tubes=Array.from({length:n},(_,i)=>({L:TT.L[i],d:TT.d[i]}));
   const At=tubes.reduce((a,t)=>a+Math.PI*(t.d/2)**2,0), Ap=Math.PI*(p.dpipe/2)**2;
@@ -14593,11 +14682,11 @@ function renderMuf(){
   const hm=calcHelm(p), qw=calcQW(p), ch=calcChamber(p), pl=calcPlace(p);
   const ab=calcAbsorb({dpipe:p.dpipe,dsh:p.dch,len:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')});
   const abMemo={}, abTL=f=>{ const k=Math.round(f); if(abMemo[k]==null) abMemo[k]=Math.min(TLCAP,ab.tl(k)); return abMemo[k]; };
-  const pipeCut=crossModeHz(sos(p.tmain),bore.err?null:bore);
+  const pipeCut=crossModeHz(sosExh(p.tmain),bore.err?null:bore);
   let engM=null;   // the pipe's Mach number at redline from the Sound tab's engine, when it can be worked out
   (()=>{ const el=$('m-mach-eng'); if(!el) return; let txt=''; try{ const sp=soundParams(); if(!sp.err&&p.dpipe>0&&val('s-disp')>0&&sp.p.red>0){
       const e=sp.e, share=sp.p.pp.n/e.order.length, tg=val('s-ft'), fl=engineFlow({cyc:e.cyc,disp:val('s-disp'),rpm:sp.p.red,ve:0.9,boost:0,afr:12.5,tgas:tg});
-      const Mred=fl.Q*share/(bore.A/1e6)/sos(tg), Mcr=Mred*sp.p.cruise/sp.p.red; engM={red:Mred,cruise:Mcr,rpmCruise:sp.p.cruise,c:sos(tg)};
+      const Mred=fl.Q*share/(bore.A/1e6)/sosExh(tg), Mcr=Mred*sp.p.cruise/sp.p.red; engM={red:Mred,cruise:Mcr,rpmCruise:sp.p.cruise,c:sosExh(tg)};
       txt='On the Sound tab’s engine this pipe runs about Mach '+Mred.toFixed(2)+' at redline and Mach '+Mcr.toFixed(2)+' at '+Math.round(sp.p.cruise).toLocaleString('en-US')+' rpm, both full throttle (part throttle is far less), 90% volumetric efficiency, gas at '+tempStr(tg)+(share<1?', this pipe carrying '+Math.round(share*100)+'% of the flow':'')+'.'; } }catch(e){} el.textContent=txt; })();
   const pg=val('m-plugl')>0?calcPlug({dpipe:p.dpipe,dsh:p.dch,lperf:val('m-plugl'),lch:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')}):null;
   const pgMemo={}, pgTL=f=>{ const k=Math.round(f); if(pgMemo[k]==null) pgMemo[k]=pg.tl(k); return pgMemo[k]; };
@@ -14624,7 +14713,7 @@ function renderMuf(){
   if(pg&&!pg.err) curves.push({fn:pgTL,col:'--t1',dash:'8 3 2 3',label:'Plug muffler'});
   if(bf&&!bf.err) curves.push({fn:bf.tl,col:'--t6',dash:'4 2',label:'Baffled chambers'});
   const inst=$('m-tlmode')&&$('m-tlmode').value==='inst', Lt=val('m-tail')>0?val('m-tail')/1000:0.67, elT={'Helmholtz':hm.T,'J-pipe':qw.T,'Plain chamber':ch.T,'Extended-tube chamber':ch.T,'Reverse-flow chamber':ch.T,'Packed can':ab.err?null:ab.T,'Plug muffler':pg&&!pg.err?pg.T:null,'Baffled chambers':bf&&!bf.err?bf.T:null};
-  const cMain=sos(p.tmain), rhoMain=rhoGas(p.tmain), Smain=Math.PI*(p.dpipe/2000)**2, aTip=p.dpipe/2000;
+  const cMain=sosExh(p.tmain), rhoMain=rhoGas(p.tmain), Smain=Math.PI*(p.dpipe/2000)**2, aTip=p.dpipe/2000;
   const shown=inst?curves.filter(c=>elT[c.label]).map(c=>{ const memo={}; return Object.assign({},c,{fn:f=>{ const k=Math.round(f); if(memo[k]==null) memo[k]=installedAL(elT[c.label],k,Lt,aTip,cMain,rhoMain,Smain); return memo[k]; }}); }):curves;
   if(inst) shown.push({fn:f=>installedAL(f=>[C1,Cx(0,0),Cx(0,0),C1],f,Lt,aTip,cMain,rhoMain,Smain),col:'--muted',dash:'1 2',label:'Bare tailpipe (0 dB)'});
   drawTL($('m-tl'),shown,p.f,[hm.lo,hm.hi],inst?{lo:-10,label:'dB, installed'}:null);
@@ -14735,11 +14824,11 @@ function renderMuf(){
       return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'about '+bp.rows[0].k.toFixed(1)+' dynamic heads with the holes’ open area '+n.toFixed(2)+' × the pipe’s, H = '+show(bp.H)+' (measured cross-flow losses, Munjal, Vijayasree and Chaitanya 2013: out through the holes and back in; a plain chamber costs under 1 H)'+(n<0.31||n>1.66?'; <b>the measurements cover open areas of 0.31 to 1.66 × the pipe’s: this is the value at the nearer end of that range</b>':'')+(bp.total>0.1*101325?'; <b>over 10% of the pressure: lengthen the perforate or open it up</b>':'')); })()+
     '<p class="cap">The inlet pipe is plugged at the end of its holes and the shell is closed behind each perforate, so all the gas and all the sound go out through the inlet holes into the annulus and back in through the outlet holes: Munjal’s cross-flow expansion and cross-flow contraction elements under one shell (<i>Acoustics of Ducts and Mufflers</i>, 1987, 3.8.1, Fig. 3.10b–c), carried by the same coupled plane-wave equations as the packed can with his boundary conditions (eqs. 3.120 and 3.122, end pockets closed up) and Sullivan’s cross-flow perforate impedance (eq. 3.153). The packing density above fills the annulus if it is set. Cross-flow elements cut more, and more evenly, than a chamber of the same size, and the flow through the holes adds damping that smooths the curve; the price is back pressure.</p>');
   if(bf) html+=sec('Baffled chambers (low-pass filter)',bf.err?'<div class="note bad">'+esc(bf.err)+'</div>':
-    rowT('Chambers',bf.N+' × '+clen(bf.l),'holes '+cdim(val('m-bh')>0?val('m-bh'):p.dpipe)+' through '+cdim(val('m-pw')>0?val('m-pw'):1.5)+' baffles')+
-    rowT('Chain resonance f₀',Math.round(bf.f0)+' Hz','each hole’s air plug on its chamber’s springiness')+
-    rowT('Cut-off, 2 f₀',Math.round(bf.fc)+' Hz','below it sound crawls through at about '+Math.round(bf.cPhase)+' m/s with little loss; above it each chamber shuts the next out')+
-    rowT('Attenuation per chamber',[1.5,2,3,4].map(k=>Math.round(bf.per(k*bf.f0))+' dB at '+Math.round(k*bf.f0)+' Hz').join(', '),'8.69 acosh(½ (f ÷ f₀)² − 1) dB; '+bf.N+' chambers give '+bf.N+' times that, capped at '+TLCAP+' dB')+
-    rowT('Curve holds up to about',hzs(bf.fCut),'the shell’s first cross mode'+(bf.lumped?'':'; and each chamber is not short next to the wavelength at f₀ ('+clen(bf.l)+' against '+clen(bf.c/bf.f0*1000)+'), so the chambers’ own length resonances, which this filter leaves out, sit inside the band'))+
+    rowT('Chambers',bf.N+' × '+clen(bf.l),bf.holes>0?bf.holes+' baffle'+(bf.holes>1?'s':'')+' with '+cdim(val('m-bh')>0?val('m-bh'):p.dpipe)+' holes through '+cdim(val('m-pw')>0?val('m-pw'):1.5)+' sheet':'no baffle: one chamber, a plain low-pass compliance')+
+    (bf.holes>0?rowT('Chain resonance f₀',Math.round(bf.f0)+' Hz','each hole’s air plug on its chamber’s springiness')+
+    rowT('Cut-off, 2 f₀',Math.round(bf.fc)+' Hz','below it sound crawls through at about '+Math.round(bf.cPhase)+' m/s; above it each chamber shuts the next out')+
+    rowT('Attenuation per baffle',[1.5,2,3,4].map(k=>Math.round(bf.per(k*bf.f0))+' dB at '+Math.round(k*bf.f0)+' Hz').join(', '),'8.69 acosh(½ (f ÷ f₀)² − 1) dB for each inner hole and chamber; the curve is the whole chain of '+bf.N+' chambers and '+bf.holes+' hole'+(bf.holes>1?'s':'')+' between the pipes, capped at '+TLCAP+' dB'):'')+
+    rowT('Curve holds up to about',hzs(bf.fCut),'the shell’s first cross mode'+(bf.lumped||!bf.holes?'':'; and each chamber is not short next to the wavelength at f₀ ('+clen(bf.l)+' against '+clen(bf.c/bf.f0*1000)+'), so the chambers’ own length resonances, which this filter leaves out, sit inside the band'))+
     (()=>{ const M=val('m-mach'); if(!(M>0)) return '';
       const n=(p.dpipe/((val('m-bh')>0?val('m-bh'):p.dpipe)))**2, nh=Math.min(1,((val('m-bh')>0?val('m-bh'):p.dpipe)/p.dch)**2), nc=(p.dpipe/p.dch)**2;
       const items=[{kind:'expansion',n:nc,what:'pipe into the first chamber'}], holes=[]; for(let i=1;i<bf.N;i++) holes.push({kind:'contraction',n:nh,what:'into baffle hole '+i},{kind:'expansion',n:nh,what:'out of baffle hole '+i}); items.push({kind:'contraction',n:nc,what:'last chamber into the pipe'});
@@ -14748,14 +14837,14 @@ function renderMuf(){
       const bp=mufBackPressure(M,101325,items), bh=mufBackPressure(M*n,101325,holes), tot=bp.total+bh.total, show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
       // Crane TP-410 (ch. 1, compressible flow): incompressible losses hold within about 10% of the inlet pressure
       return rowT('Back pressure at Mach '+M.toFixed(2),show(tot),'each baffle hole is a contraction and an expansion at the hole’s own speed, Mach '+(M*n).toFixed(2)+' (Munjal 1987, eq. 8.4), on top of the chamber’s own'+(tot>0.1*101325?'; <b>over 10% of the pressure, past where Crane TP-410 lets these incompressible losses stand: read it as a lower bound and open the holes up</b>':'')); })()+
-    '<p class="cap">Morse and Ingard’s chain filter (<i>Theoretical Acoustics</i>, 9.1, eqs. 9.1.31–35): a row of equal chambers joined by holes is a ladder of air masses (the holes) and springs (the chambers). Below f₀ = (c ÷ π) √(S₀ ÷ (D₀ S l)) it passes nearly everything, above the cut-off 2 f₀ true wave motion through the chain is impossible and each chamber adds 8.69 acosh(½ (f ÷ f₀)² − 1) dB. It is the closed form behind the baffle rules quoted under Muffler types (a smaller or farther-apart hole lowers f₀; more chambers steepen the roll-off). Lossless and long-wave only: real baffles leak round the edges and the holes make flow noise, so take the dB per chamber as an upper bound, and read the plain-chamber curve for the chambers’ own length resonances.</p>');
+    '<p class="cap">Morse and Ingard’s chain filter (<i>Theoretical Acoustics</i>, 9.1, eqs. 9.1.31–35): a row of equal chambers joined by holes is a ladder of air masses (the holes) and springs (the chambers), a chamber at each end next to the pipes, so the same baffles as the back-pressure row (Kinsler and Frey’s low-pass: a chamber between two pipes is a spring with the pipes on both sides). Below f₀ = (c ÷ π) √(S₀ ÷ (D₀ S l)) it passes nearly everything, above the cut-off 2 f₀ true wave motion through the chain is impossible and each baffle with its chamber adds 8.69 acosh(½ (f ÷ f₀)² − 1) dB. It is the closed form behind the baffle rules quoted under Muffler types (a smaller or farther-apart hole lowers f₀; more chambers steepen the roll-off). Lossless and long-wave only: real baffles leak round the edges and the holes make flow noise, so take the dB per baffle as an upper bound, and read the plain-chamber curve for the chambers’ own length resonances.</p>');
   } else html+=sec('Packed straight-through can','<div class="note bad">'+esc(ab.err)+'</div>');
 
   /* Davies 1996: silencer layout rules */
-  const dv=calcDavies({f:p.f,cRes:sos(p.tres),cMain:sos(p.tmain),dpipe:p.dpipe,dch:p.dch,lch:p.lch,m:val('m-nsb')});
+  const dv=calcDavies({f:p.f,cRes:sosExh(p.tres),cMain:sosExh(p.tmain),dpipe:p.dpipe,dch:p.dch,lch:p.lch,m:val('m-nsb')});
   if(!dv.err){
     const setTxt=d=>d.set.map(q=>clen(q.l)).join(' · ');
-    const dvC=rs?calcDavies({f:rs.f.cruise,cRes:sos(p.tres),cMain:sos(p.tmain),dpipe:p.dpipe,dch:p.dch,lch:p.lch,m:val('m-nsb')}):null;
+    const dvC=rs?calcDavies({f:rs.f.cruise,cRes:sosExh(p.tres),cMain:sosExh(p.tmain),dpipe:p.dpipe,dch:p.dch,lch:p.lch,m:val('m-nsb')}):null;
     html+=sec('Silencer layout rules (Davies 1996)',
       rowL('Quarter-wave side branch for '+Math.round(p.f)+' Hz, l = c ÷ 4f',dv.l1,'l')+
       rowT('A set of '+dv.m+' branches in one box',setTxt(dv),'each '+dv.ratio.toFixed(3)+' × the last (3^(−1/'+dv.m+')), tuned at '+dv.set.map(q=>Math.round(q.f)).join(' · ')+' Hz; each also works at 3× and 5× its tone, so the set covers the band without gaps')+
@@ -14772,7 +14861,7 @@ function renderMuf(){
   /* Yasuda 2013: production muffler sizing */
   {
     const Vcan=Math.PI/4*(p.dch/1000)**2*p.lch/1000, cc=val('s-disp');
-    const ys=calcYasuda({c:sos(p.tmain),V:Vcan,d:p.dpipe,lTail:val('m-tail'),lRet:val('m-lret'),dHole:22.6,tHole:1,lFront:200,disp:cc>0?cc:0});
+    const ys=calcYasuda({c:sosExh(p.tmain),V:Vcan,d:p.dpipe,lTail:val('m-tail'),lRet:val('m-lret'),dHole:22.6,tHole:1,lFront:200,disp:cc>0?cc:0});
     if(!ys.err){
       const litre=v=>U==='imp'?(v*61023.7).toFixed(0)+' cu in':(v*1000).toFixed(1)+' L';
       const fireRow=rs?rowT('Firing tone to pass or block',Math.round(rs.f.idle)+' · '+Math.round(rs.f.cruise)+' · '+Math.round(rs.f.red)+' Hz','idle · cruise · redline'):'';
@@ -14988,7 +15077,7 @@ function soundSecs(){
   // gas cooling counts distance from the start along the main pipe, then along each branch
   const prof=gasProfile(egt,val('s-ttip'),lenOf(main)+Math.max(lenOf(ra),lenOf(rb)));
   const place=(list,x)=>list.map(r=>{
-    const useProf=r.Tset==null&&prof&&r.L>0, c=r.Tset!=null?sos(r.Tset):useProf?prof.cAvg(x,x+r.L):sos(egt);
+    const useProf=r.Tset==null&&prof&&r.L>0, c=r.Tset!=null?sosExh(r.Tset):useProf?prof.cAvg(x,x+r.L):sosExh(egt);
     if(r.L>0) x+=r.L;
     return {L:r.L,A:r.A,c,kind:r.kind,shape:r.shape,w:r.w,h:r.h,T:r.Tset!=null?r.Tset:useProf?cToT(c):egt,Deq:r.Deq,prof:!!useProf,row:r.i,part:r.part};
   });
@@ -15077,7 +15166,7 @@ function renderCat(){
       rowT('Cells',Math.round(p.cpsi)+' per sq in, '+p.mil+' mil wall',pct(r.g.ofa)+' open, channels '+cdim(r.g.w*1000)+' across')+
       rowT('Gas speed in the channels',spd(m.v),'Reynolds number '+Math.round(m.Re)+(m.Re<2300?', laminar':', past laminar'))+
       rowT('Gas speed in the pipe',spd(m.vp))+
-      rowT('Loss in the channels',pres(m.dpFric*r.series))+rowT('Entering and leaving the cells',pres(m.dpFace*r.series))+rowT('Inlet and outlet cones',pres(m.dpCone*r.series))+
+      rowT('Loss in the channels',pres(m.dpFric*r.series))+rowT('Entering and leaving the cells',pres(m.dpFace*r.series))+rowT('Inlet and outlet cones',pres(m.dpCone*r.series),'inlet cone '+(m.coneAng>=180?'a sudden step':m.coneAng.toFixed(0)+'° included')+', K '+m.kIn.toFixed(2)+' of the pipe’s dynamic head (Rennels and Hudson, conical diffuser, with its wall friction); outlet cone 0.05')+
       rowT('Total back pressure'+per,'<b>'+pres(m.total)+'</b>',presAlt(m.total))+
       rowT('Pumping power',powr(m.power),'back pressure × swept volume per second')+
       (r.dyno?rowT('Power lost in a dyno test at this back pressure',(r.dyno.beyond?'more than 7%':r.dyno.power.toFixed(1)+'%')+' of peak',(r.dyno.beyond?'more than 7%':r.dyno.torque.toFixed(1)+'%')+' of peak torque')+
@@ -15137,7 +15226,7 @@ function renderBoom(){
   const fl=engineFlow({cyc,disp:val('b-disp'),rpm:val('b-rpm'),ve:val('b-ve')/100,boost:val('b-boost'),afr:val('b-afr'),tgas:val('b-tgas')});
   if(!(fl.Q>0)) return fail('Fill in the engine size, RPM and volumetric efficiency with positive numbers.');
   const p={Q:fl.Q/count,tgas:val('b-tgas'),inA:inS.A,inP:inS.P,inDeq:inS.Deq,round:inl.shape==='round',nIn:+$('b-nin').value,h:val('b-h'),w:val('b-w')||0,
-    lflat:val('b-len'),ltrans:val('b-tr'),wout:val('b-wo'),hout:val('b-ho')||0,lflare:val('b-fl'),t:val('b-t'),mat:$('b-mat').value,twall:val('b-twall'),
+    lflat:val('b-len'),ltrans:val('b-tr'),wout:val('b-wo'),hout:val('b-ho')||0,lflare:val('b-fl'),t:val('b-t'),mat:$('b-mat').value,finish:$('b-finish').value,twall:val('b-twall'),
     rib:val('b-rib')||0,fire:pulsesPerRev(cyc,cyl/count)*val('b-red')/60,margin:val('b-mg')};
   const r=calcBoom(p);
   if(r.err) return fail(r.err);
@@ -15159,9 +15248,11 @@ function renderBoom(){
     rowT('Hydraulic diameter, flat run',cdim(sFlat.Dh),'4 × area ÷ perimeter; friction follows this, not the width')+
     (r.flatten?rowT('Round inlet squashed to '+cdim(p.h),cdim(r.flatten.w)+' wide',pct(r.flatten.A/r.Ain)+' of its area'):''));
   html+=sec('Flare',rowT('Equivalent cone angle',r.eqAng.toFixed(1)+'° included','about 8° recovers the most')+rowT('Spread seen from above',r.planAng.toFixed(1)+'° included')+
-    rowT('Pressure recovered by the flare',r.phi===0?'nearly all':(r.phi>=1?'little':pct(1-r.phi)+' of the ideal'),'blend from 8° to a sudden step at 30°, this calculator’s assumption'));
-  html+=sec('Flow loss at peak power',rowT('Transition and flat run',pres(r.dpTrans+r.dpFlat))+rowT('Flare',pres(r.dpFlare))+rowT('Leaving the outlet',pres(r.dpExit))+
+    (r.rec==null?rowT('Flare loss coefficient',r.kFlare.toFixed(3)+' × the outlet’s dynamic head','the outlet is smaller than the flat run: a narrowing cone (Rennels and Hudson, conical contraction)'):
+    rowT('Pressure recovered by the flare',pct(r.rec)+' of the ideal','change-of-area loss K '+r.kFlare.toFixed(3)+' × the flat run’s dynamic head against the ideal rise 1 − (A₁/A₂)² = '+(1-(r.A1/r.A2)**2).toFixed(3)+', before wall friction (Rennels and Hudson, Pipe Flow, 2012, conical diffuser, at the equivalent cone angle)')));
+  html+=sec('Flow loss at peak power',rowT('Transition and flat run',pres(r.dpTrans+r.dpFlat),'friction'+(r.kTrans>0?' plus the transition’s change of area, K '+r.kTrans.toFixed(3)+' (Rennels, as a cone between the same areas)':'; the transition keeps the inlet’s area, and no published coefficient covers the change of shape alone, so only its friction is counted'))+rowT('Flare',pres(r.dpFlare))+rowT('Leaving the outlet',pres(r.dpExit))+
     rowT('Boom tube total','<b>'+pres(r.dpBoom)+'</b>')+rowT('Same length of plain inlet pipe',pres(r.dpRound),'friction plus its exit')+
+    rowT('Wall friction factor',r.sFlat.f.toFixed(4)+' in the flat run',INTAKE_FINISH[r.finish].name+', roughness '+(U==='imp'?(+(r.ks*1000/25.4).toPrecision(2))+' in ('+(+(r.ks*1000).toPrecision(2))+' mm)':(+(r.ks*1000).toPrecision(2))+' mm ('+(+(r.ks*1000/25.4).toPrecision(2))+' in)')+' ('+INTAKE_FINISH[r.finish].src+'), Haaland at Re '+Math.round(r.sFlat.Re).toLocaleString('en-US'))+
     rowT('Difference',(r.dpBoom<=r.dpRound?'saves ':'costs ')+pres(Math.abs(r.dpRound-r.dpBoom)),powr(Math.abs(r.dpRound-r.dpBoom)*fl.swept/1)+' of pumping work, roughly'));
   html+=sec('Flat panels and ribs',rowT('Flat width between the round edges',cdim(r.b))+rowT('Sheet',MATS[p.mat].name+', '+cdim(p.t),Math.round(r.E/1e9)+' GPa at '+tempStr(p.twall))+
     rowT('Lowest wall mode, no ribs',hzs(r.fNone),'whole-section ring model and flat strip, whichever is lower')+
@@ -18214,7 +18305,7 @@ function uelOrders(groups,Lv,rpm,a,maxM){
     return C; });
 }
 function uelCompute(r,p){
-  const d=uelDefaults(r), prs=uelPairs(r), port=r.port, Tc=uelTemp(), a=sos(Tc);
+  const d=uelDefaults(r), prs=uelPairs(r), port=r.port, Tc=uelTemp(), a=sosExh(Tc);
   if(!(a>0)) return {err:'Enter a gas temperature above absolute zero.'};
   const kOf={}; prs.forEach((q,k)=>q.cyls.forEach(c=>{kOf[c]=k;}));
   const gOf={}; r.groups.forEach((g,gi)=>g.cyls.forEach(c=>{gOf[c]=gi;}));
@@ -19551,15 +19642,22 @@ function calcCharge(q){
   // wall: drawn tubing 0.0015 mm (Moody 1944, Crane TP-410 A-23), the 6061/6063 aluminium or 304 stainless tube this section
   // builds the pipes from; the page-wide ROUGH is commercial steel pipe (physics audit 2026-11-11). Haaland as haaland().
   const fTube=(Re,D)=>Re<2300?64/Re:1/Math.pow(-1.8*Math.log10(Math.pow(1.5e-6/D/3.7,1.11)+6.9/Re),2);
+  // bends (physics audit follow-up 2026-11-11, Q4; was an uncited 0.2 velocity heads per bend on top of friction over the
+  // full lengths): the Intake tab's bendK, Crane TP-410's 90 deg bend as a multiple of f against r/D, which includes the
+  // friction along the bend's own arc; so each side's straight friction runs over its length less its bends' arcs
+  // (pi/2 x r each). The section has no bend-radius input: r/D 1.5, Garrett's minimum (rMin below). The bends are taken
+  // as half on each side, each on its side's dynamic head and friction factor, as the 0.2 rule took them on the average head.
+  const nB=Math.max(0,q.bends||0), rdB=1.5, arc=Math.PI/2*rdB*q.d;
   const side=(L,tC,pB)=>{ const rho=pB/(R_AIR*(tC+273.15)), v=m/(rho*A), qd=rho*v*v/2, Re=rho*v*(q.d/1000)/visc(tC), f=fTube(Re,q.d/1000);
-    return {rho,v,dp:f*(L/q.d)*qd,qd}; };
+    const Ls=Math.max(0,L-nB/2*arc), kb=bendK(90,rdB,f);
+    return {rho,v,dp:f*(Ls/q.d)*qd,qd,f,Ls,kb,dpB:nB/2*kb*qd}; };
   const hot=side(q.Lh,q.t2,pAbs), cold=side(q.Lc,t3,pAbs-(q.dpIC||0)*1000);
-  const kB=0.2*Math.max(0,q.bends||0), dpB=kB*(hot.qd+cold.qd)/2;
+  const dpB=hot.dpB+cold.dpB;
   const dp=hot.dp+cold.dp+dpB+(q.dpIC||0)*1000;
   // air the pipes hold above atmospheric, and how long the compressor takes to supply it at full flow
   const V=A*(q.Lh+q.Lc)/1000, extra=V*(hot.rho+cold.rho)/2-V*rhoGas(q.tamb), fill=extra/m;
   const densGain=(q.t2+273.15)/(t3+273.15);
-  return {A,vStd,dHi,dLo,t3,hot,cold,dpB,dp,V,extra,fill,densGain,rMin:1.5*q.d};
+  return {A,vStd,dHi,dLo,t3,hot,cold,dpB,dp,V,extra,fill,densGain,rMin:1.5*q.d,rdB};
 }
 function fiSection(ind,p,r){ return fiSection0(ind,p,r)+b5BoostSections(ind,p,r); }
 function fiSection0(ind,p,r){
@@ -19594,7 +19692,7 @@ function fiSection0(ind,p,r){
         rowT('Actual speed, hot side',spd(c.hot.v),'denser boosted air moves slower than the cfm figure suggests')+
         rowT('Actual speed, cold side',spd(c.cold.v))+
         rowT('Air leaving the intercooler',tempStr(c.t3),'from '+tempStr(t2)+'; the charge is '+((c.densGain-1)*100).toFixed(0)+'% denser for it')+
-        rowT('Pressure lost, compressor to throttle',pa(c.dp),'pipes '+pa(c.hot.dp+c.cold.dp)+', bends '+pa(c.dpB)+', intercooler '+pa((val('i-icdp')||0)*1000))+
+        rowT('Pressure lost, compressor to throttle',pa(c.dp),'pipes '+pa(c.hot.dp+c.cold.dp)+', bends '+pa(c.dpB)+', intercooler '+pa((val('i-icdp')||0)*1000)+(c.dpB>0?'; each 90° bend at a radius of '+c.rdB+' × the pipe ('+cdim(c.rdB*val('i-cpd'))+') is Crane TP-410’s K '+c.hot.kb.toFixed(2)+' hot side, '+c.cold.kb.toFixed(2)+' cold side, its arc’s friction included, so the straight friction leaves out the arcs; taken as half the bends on each side':''))+
         rowT('Boost at the compressor for '+pa(p.boost*1000)+' at the throttle',pa(p.boost*1000+c.dp),'the turbo has to make up every loss')+
         rowL('Smallest bend radius',c.rMin,'l')+
         rowT('Volume of the charge pipes',(c.V*1000).toFixed(1)+' L','about '+Math.round(c.extra*1000)+' g of extra air at boost, '+Math.round(c.fill*1000)+' ms of the compressor’s full flow')+

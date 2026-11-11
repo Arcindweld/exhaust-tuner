@@ -1,7 +1,10 @@
 // Physics audit of the closed-form results, 2026-11-11 (docs/PHYSICS_AUDIT_2026-11-11.md): every expected number below
 // was computed independently in plain Python from the formula's source (the audit's scratch script), not from the page,
-// and the page has to land within the stated tolerance (0.1% wherever the speed of sound enters: the page's sos() uses
+// and the page has to land within the stated tolerance (0.1% wherever air's speed of sound enters: the page's sos() uses
 // 20.05 sqrt(T), sqrt(1.4 x 287.05) = 20.046 rounded, 0.02% high). The four fixed defects are checked through the page's own rows.
+// Follow-up 2026-11-11 (the conductor's decisions on Q1-Q4, Q8-Q10): exhaust acoustics now use burned-gas c (sosExh), and the
+// expectations that move with it are recomputed in the follow-up's Python script from the sources (NASA polynomials of
+// GRI-Mech 3.0, gasoline CH1.87, NOAA dry air); each says what it was with air.
 // node tests/physaudit_ui.js   (from web/)
 const { chromium } = require('playwright');
 (async () => {
@@ -30,28 +33,38 @@ const { chromium } = require('playwright');
     o.stone = [0.8, 0.7, 0.6, 0.5].map(e => P.densRatio(2, e, 0).noIC); o.stoneIC = [0.6, 0.7, 0.8].map(e => P.densRatio(2, 0.7, e).ic);
     const t2 = (25 + 273.15) * (1 + (Math.pow(2, 0.4 / 1.4) - 1) / 0.7) - 273.15;
     const cg = P.calcCharge({ Q: 0.2, nt: 1, d: 60.198, Lh: 914.4, Lc: 914.4, bends: 4, pr: 2, t1: 25, t2, tamb: 25, eff: 0.75, dpIC: 7 });
-    o.charge = { dpPipes: cg.hot.dp + cg.cold.dp, dp: cg.dp };
+    o.charge = { dpPipes: cg.hot.dp + cg.cold.dp, dp: cg.dp, dpB: cg.dpB, kh: cg.hot.kb, fh: cg.hot.f, Ls: cg.hot.Ls };
+    o.cex = [20, 343.333, 500, 650].map(t => P.sosExh(t)); o.cToT = P.cToT(P.sosExh(412.5));
+    const bm = k => P.calcBoom({ Q: 0.25, tgas: 537.778, inA: Math.PI / 4 * 76.2 ** 2, inP: Math.PI * 76.2, inDeq: 76.2, round: true, nIn: 1, h: 38.1, w: k.w || 0, lflat: 762, ltrans: 152.4, wout: 304.8, hout: 0, lflare: 304.8, t: 1.2446, mat: 'ss304', twall: 204.4, rib: 0, fire: 250, margin: 1.25, finish: k.fin });
+    o.boom = ['steel', 'smooth', undefined].map(fin => { const r = bm({ fin }); return { kF: r.kFlare, kT: r.kTrans, f: r.sFlat.f, dpFlare: r.dpFlare, dp: r.dpBoom, rec: r.rec, fin: r.finish }; });
+    const b150 = bm({ fin: 'steel', w: 150 }); o.boom150 = { kT: b150.kTrans, dpTrans: b150.dpTrans, dp: b150.dpBoom };
+    o.rD = [[5, 0.4], [30, 0.3], [30, 0.6], [100, 0.3], [180, 0.6]].map(([a, b]) => P.rennelsDiffuserK(a, b)); o.rC = P.rennelsContractionK(30, 0.5);
+    const cA = Math.PI / 4 * 0.1524 ** 2, pA = Math.PI / 4 * 0.0635 ** 2;
+    const dc = P.catDp(0.15, Object.assign(P.catGeom(400, 6), { Asub: cA, len: 0.1524, Apipe: pA, cone: 0.0508, tC: 500 })), d0 = P.catDp(0.15, Object.assign(P.catGeom(400, 6), { Asub: cA, len: 0.1524, Apipe: pA, cone: 0, tC: 500 }));
+    o.cat2 = { ang: dc.coneAng, K: dc.kIn, dpCone: dc.dpCone, K0: d0.kIn };
+    const sh = P.calcShell({ shape: 'round', od: 76.2, oh: 76.2, wall: 1.651, span: 1000, twall: 20, pw: 100, pl: 100, pt: 1.5, mat: 'ss304', sup: 'pin' }); o.oval = sh.err ? [NaN, NaN] : sh.oval.map(q => q.f);
+    const bfx = P.calcBaffles({ dpipe: 60.198, dsh: 152.4, lch: 355.6, n: 3, dh: 40, t: 1, tC: 343.333 }); o.bafTL = [0.8, 1.5, 2.2].map(k => bfx.tl(k * bfx.f0)); o.bafHoles = bfx.holes;
     return o;
   });
   // 4-Stroke: A. Graham Bell's primary P = 850 ED / rpm - 3 in; collector d sqrt(n x ratio); wave round trip 2 L / c in crank degrees
-  near(v.bell.lp, 720.96923, 1e-6, 'Bell primary length, mm'); near(v.bell.dc, 79.51458, 1e-6, 'collector diameter, mm'); near(v.bell.rtDeg, 92.3278, 1e-3, 'round trip, crank degrees (c of air at 650 C)');
+  near(v.bell.lp, 720.96923, 1e-6, 'Bell primary length, mm'); near(v.bell.dc, 79.51458, 1e-6, 'collector diameter, mm'); near(v.bell.rtDeg, 95.87303, 1e-4, 'round trip, crank degrees (c of burned gas at 650 C; 92.33 with air)');
   // 2-Stroke: Jennings L = ed x Vs / N (in) = c ed / (12 rpm); Blair Lt = 83.3 a0 theta / rpm, GP class at 650 C
   near(v.jen, 980.6285, 1e-3, 'Jennings tuned length, mm'); near(v.blair, 824.8046, 1e-3, 'Blair GP tuned length, mm');
   // Headers: primary area = rpm x CID per cylinder / 88,200
   near(v.prim, 42.68768, 1e-4, 'primary ID from the 88,200 rule, mm');
   // Mufflers: Helmholtz (neck + 0.6133 d), its 3 dB band (Munjal); J-pipe with Ji 2005's end correction; plain chamber
-  near(v.helm.V, 4.223828, 1e-3, 'Helmholtz volume for 120 Hz, L'); near(v.helm.band, 188.255, 1e-3, 'Helmholtz 3 dB band, Hz');
-  near(v.qw.end, 9.420987, 1e-6, 'J-pipe end correction at x = 1, mm'); near(v.qw.L, 733.5584, 1e-3, 'J-pipe cut length, mm');
-  near(v.ch.peak, 10.32443, 1e-4, 'chamber peak TL, dB'); near(v.ch.f, 349.9303, 1e-3, 'chamber peak frequency, Hz');
+  near(v.helm.V, 4.126817, 1e-4, 'Helmholtz volume for 120 Hz, L (4.224 with air)'); near(v.helm.band, 186.0806, 1e-4, 'Helmholtz 3 dB band, Hz (188.26 with air)');
+  near(v.qw.end, 9.420987, 1e-6, 'J-pipe end correction at x = 1, mm'); near(v.qw.L, 724.9766, 1e-4, 'J-pipe cut length, mm (733.56 with air)');
+  near(v.ch.peak, 10.32443, 1e-4, 'chamber peak TL, dB'); near(v.ch.f, 341.2783, 1e-4, 'chamber peak frequency, Hz (349.93 with air)');
   near(v.bp, 1810.164, 1e-6, 'chamber back pressure at Mach 0.15, Pa (Munjal 1987, eq. 8.4)');
   // Sound: open quarter-wave pipe with 0.6133 a at the tip; its J-pipe now with the Mufflers tab's end correction (was 0.3 d)
   ok(!v.snd.err, 'calcSound runs' + (v.snd.err ? ': ' + v.snd.err : ''));
-  if (!v.snd.err) { near(v.snd.f1, 49.40926, 1e-3, 'first pipe mode, Hz'); near(v.snd.quarter, 732.6838, 1e-3, 'Sound-tab J-pipe cut length, mm (Ji 2005; 731.55 with the old flat 0.3 d)'); near(v.snd.helm, 3.439097, 1e-3, 'Sound-tab Helmholtz volume, L'); }
+  if (!v.snd.err) { near(v.snd.f1, 48.18761, 1e-4, 'first pipe mode, Hz (49.41 with air)'); near(v.snd.quarter, 724.1021, 1e-4, 'Sound-tab J-pipe cut length, mm (Ji 2005; 732.68 with air, 731.55 with air and the old flat 0.3 d)'); near(v.snd.helm, 3.360110, 1e-4, 'Sound-tab Helmholtz volume, L (3.439 with air)'); }
   // Yasuda: the page's own check on the paper's specimen (3.8 + 2.55 L): fRT with 0.61 d per end
   const fRT = await pg.evaluate(() => { const P = window.__physAudit, c = Math.sqrt(1.4 * 287.05 * 800), S = Math.PI / 4 * 0.0407 ** 2, l = 0.06 + 2 * 0.61 * 0.0407; return c / (2 * Math.PI) * Math.sqrt((1 / 0.0038 + 1 / 0.00255) * S / l); });
   near(fRT, 251.6286, 1e-4, 'Yasuda return-pipe resonance on the paper\'s specimen, Hz (paper 241)');
   near(v.yas.fRT, 246.7051, 1e-4, 'Yasuda return-pipe resonance, the same can split in equal halves, Hz'); near(v.yas.fTP, 56.38354, 1e-4, 'Yasuda low-pass cut-off with a 500 mm tailpipe, Hz');
-  near(v.baf, 335.4278, 1e-3, 'baffled chain f0 (Morse and Ingard 9.1), Hz'); near(v.can, 537.6963, 1e-3, 'header can Helmholtz f0 (t + 0.85 d), Hz');
+  near(v.baf, 327.1343, 1e-4, 'baffled chain f0 (Morse and Ingard 9.1), Hz (335.43 with air)'); near(v.can, 520.8679, 1e-4, 'header can Helmholtz f0 (t + 0.85 d), Hz (537.70 with air)');
   // Heat: Gnielinski with Petukhov's f at the port, x CAF 2.5
   near(v.skin.Re, 13531.35, 1e-4, 'primary Reynolds number at the port'); near(v.skin.hi, 149.3704, 1e-3, 'inside heat transfer coefficient, W/m2 K');
   // Cats: Shah and London apparent friction in a square channel
@@ -60,7 +73,36 @@ const { chromium } = require('playwright');
   [1.570146, 1.523372, 1.465177, 1.390794].forEach((w, i) => near(v.stone[i], w, 1e-5, 'Stone density ratio, PR 2, eta ' + [0.8, 0.7, 0.6, 0.5][i]));
   [1.777540, 1.828383, 1.882219].forEach((w, i) => near(v.stoneIC[i], w, 1e-5, 'Stone with intercooler, eta 0.7, eps ' + [0.6, 0.7, 0.8][i]));
   // Charge pipes, DEFECT fixed: drawn tube 0.0015 mm (pipe friction 1,059 Pa with commercial steel's 0.045 mm before)
-  near(v.charge.dpPipes, 818.1744, 2e-3, 'charge-pipe friction, Pa (smooth drawn tube)'); near(v.charge.dp, 9238.618, 1e-3, 'charge-pipe total loss with 7 kPa intercooler and 4 bends, Pa');
+  // Follow-up Q4: Crane's bend K (bendK, 14 f at r/D 1.5) includes the arc's friction, so the straights lose 2 x (pi/2 x 1.5 D)
+  // a side: 818.17 Pa of friction over the full lengths and 9,238.6 Pa in all with 0.2 q per bend before
+  near(v.charge.dpPipes, 564.3503, 2e-3, 'charge-pipe friction over the straights less the bend arcs, Pa (818.17 over the full lengths)');
+  near(v.charge.dpB, 1508.168, 2e-3, 'charge-pipe bends, Crane 14 f per 90 deg at r/D 1.5, half each side, Pa');
+  near(v.charge.kh, 14 * v.charge.fh, 1e-9, 'hot-side bend K = 14 f (bendK at 90 deg, r/D 1.5)'); near(v.charge.Ls, 914.4 - Math.PI * 1.5 * 60.198, 1e-9, 'hot-side straight length, mm');
+  near(v.charge.dp, 9072.518, 1e-3, 'charge-pipe total loss with 7 kPa intercooler and 4 bends, Pa (9,238.6 before)');
+  // Follow-up Q1: burned-gas speed of sound (stoichiometric CH1.87 products, NASA polynomials): independent values
+  [339.6652, 485.4339, 539.9649, 586.5634].forEach((w, i) => near(v.cex[i], w, 1e-5, 'exhaust-gas c at ' + [20, 343.333, 500, 650][i] + ' C, m/s'));
+  near(v.cToT, 412.5, 1e-9, 'cToT inverts sosExh');
+  // Follow-up Q2/Q3: boom tube. Default finish stays commercial steel (f 0.02382); the flare's change of area is Rennels'
+  // 8.30 tan(a/2)^1.75 (1 - b^2)^2 = 0.02939 at the 8.21 deg equivalent cone (friction counted along the flare as before);
+  // total 400.12 Pa (415.83 with the old K 0.05 transition and the 8-30 deg blend)
+  ok(v.boom[0].fin === 'steel' && v.boom[2].fin === 'steel', 'boom default finish: commercial steel');
+  near(v.boom[0].kF, 0.02939303, 1e-6, 'boom flare change-of-area K (Rennels, conical diffuser)'); near(v.boom[0].f, 0.02382186, 1e-4, 'boom flat-run f, commercial steel');
+  near(v.boom[1].f, 0.02187025, 1e-4, 'boom flat-run f, smooth tube'); ok(v.boom[0].kT === 0, 'equal-area transition: no change-of-area loss');
+  near(v.boom[0].dpFlare, 64.62565, 1e-4, 'boom flare loss, Pa'); near(v.boom[0].dp, 400.1206, 1e-4, 'boom total, commercial steel, Pa (415.83 before)');
+  near(v.boom[1].dp, 377.9616, 1e-4, 'boom total, smooth, Pa'); near(v.boom[0].rec, 0.96489, 1e-4, 'flare recovery, share of the ideal rise');
+  near(v.boom150.kT, 2.565858e-4, 1e-4, 'boom transition into a 150 mm flat run: Rennels at its cone angle'); near(v.boom150.dp, 314.1452, 1e-4, 'boom total, 150 mm flat run, Pa (338.86 before)');
+  // Rennels' change-of-area terms (python-fluids diffuser_conical / contraction_conical 'Rennels', less the friction term):
+  // (alpha, beta) = (5, 0.4), (30, 0.3), (30, 0.6), (100, 0.3), (180, 0.6)
+  [0.02442303, 0.5852115, 0.3260039, 0.8456397, 0.4116480].forEach((w, i) => near(v.rD[i], w, 1e-5, 'Rennels diffuser K, case ' + i));
+  near(v.rC, 0.04124472, 1e-5, 'Rennels contraction K at 30 deg, beta 0.5');
+  // Follow-up Q10: catalyst inlet cone 63.5 -> 152.4 mm over 50.8 mm (82.4 deg): Rennels 0.7307 with its friction term (Borda 0.680)
+  near(v.cat2.ang, 82.37185, 1e-6, 'cat inlet cone included angle, deg'); near(v.cat2.K, 0.7306830, 1e-4, 'cat inlet cone K (Rennels)');
+  near(v.cat2.dpCone, 399.8047, 1e-4, 'cat cone loss, Pa (375.34 with Borda)'); near(v.cat2.K0, 0.7046916, 1e-5, 'cat sudden step K (Rennels at 180 deg)');
+  // Follow-up Q8: ovaling, 304 tube 76.2 x 1.651 at room temperature, plane strain E / (1 - nu^2) (Leissa SP-288 2.26-2.27)
+  near(v.oval[0], 745.8934, 1e-5, '2-lobe ovaling, Hz (718.19 with E; Leissa 2.27 exact root 745.87)'); near(v.oval[1], 2109.705, 1e-5, '3-lobe ovaling, Hz');
+  // Follow-up Q9: N chambers, N - 1 holes, chamber first and last, transmission loss of the lumped chain between the pipes
+  ok(v.bafHoles === 2, 'three chambers hold two baffle holes');
+  [2.680914, 7.675617, 28.29671].forEach((w, i) => near(v.bafTL[i], w, 1e-4, 'baffled chain TL at ' + [0.8, 1.5, 2.2][i] + ' f0, dB'));
 
   // ---- the fixed rows, read off the page (metric, expert)
   await pg.click('#m-expert'); await pg.click('#u-met'); await pg.waitForTimeout(200);
@@ -81,7 +123,7 @@ const { chromium } = require('playwright');
   // Sound tab J-pipe row on the default design: 733 mm (was 732)
   await pg.evaluate(() => { location.hash = 'sound'; }); await pg.waitForTimeout(500);
   t = await pg.$eval('#sound-details', e => e.innerText);
-  ok(/J-pipe cut length, as an alternative\s*\n\s*733 mm/.test(t), 'Sound-tab J-pipe cut length 733 mm on the defaults (independent 732.7 mm)');
+  ok(/J-pipe cut length, as an alternative\s*\n\s*724 mm/.test(t), 'Sound-tab J-pipe cut length 724 mm on the defaults (independent 724.1 mm; 733 with air)');
   // Intake, boosted: Stone agreement text
   await pg.evaluate(() => { location.hash = 'intake'; }); await pg.waitForTimeout(300); await setv('i-ind', 'turbo'); await pg.waitForTimeout(400);
   t = await pg.$eval('#i-details', e => e.innerText);

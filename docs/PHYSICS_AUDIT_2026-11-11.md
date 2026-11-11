@@ -171,3 +171,193 @@ from eqs. 4b and 5b of the IJEMS 20(5) paper (expansion 3.136 OAR^-1.391, 0.3 < 
 (4.52 H before the audit, 2.81 H with the 1987 rule and the right variable). Outside 0.31-1.66 the nearer end is used
 and the row says so. D2's basis (the loss in dynamic heads of the smaller section) was confirmed against Panicker and
 Munjal, J. Indian Inst. Sci. 63(A), 1981.
+
+
+## Follow-up (2026-11-11)
+
+The conductor decided the questionable items; this section records what was implemented, on what source, and what moved.
+Every new number is recomputed in a plain Python script written from the sources (not from the page) and asserted in
+`web/tests/physaudit_ui.js`. Sources read for this follow-up:
+
+- Cantera's GRI-Mech 3.0 data, NASA 7-coefficient polynomials (https://raw.githubusercontent.com/Cantera/cantera/main/data/gri30.yaml),
+  checked against NIST-JANAF Shomate fits on the NIST Chemistry WebBook (CO2 https://webbook.nist.gov/cgi/cbook.cgi?ID=C124389&Mask=1,
+  H2O ID=C7732185, N2 ID=C7727379): cp within 0.25 % at 300-1,100 K.
+- MIT 2.61 (Heywood's engine course), lecture 4, Combustion Stoichiometry
+  (https://ocw.mit.edu/courses/2-61-internal-combustion-engines-spring-2017/68a85760cbd84316b8a086354841a873_MIT2_61S17_lec4.pdf):
+  gasoline CnH1.87n, air O2 + 3.773 N2 (nitrogen + argon).
+- NOAA JetStream, Introduction to the Atmosphere (https://www.noaa.gov/jetstream/atmosphere): dry air 78.084 % N2, 20.946 % O2, 0.934 % Ar.
+- python-fluids, fluids/fittings.py (https://raw.githubusercontent.com/CalebBell/fluids/master/fluids/fittings.py and
+  https://fluids.readthedocs.io/_modules/fluids/fittings.html): Rennels and Hudson (2012) conical diffuser and contraction,
+  and Crane TP-410's gradual enlargement and contraction, with their velocity-head conventions.
+- Leissa, Vibration of Shells, NASA SP-288 (1973) (https://ntrs.nasa.gov/citations/19730018197), eqs. 2.6, 2.22-2.27
+  (page 38, read from the scanned page) and section 4.3.
+- LibreTexts Acoustics 1.05, Filter Design and Implementation, after Kinsler, Frey, Coppens and Sanders
+  (https://phys.libretexts.org/Bookshelves/Waves_and_Acoustics/Acoustics/01%3A_Fundamentals/1.05%3A_Filter_Design_and_Implementation).
+- Neutrium, Absolute Roughness of Pipe Material (https://neutrium.net/articles/fluid-flow/absolute-roughness-of-pipe-material/).
+
+### Q1, speed of sound in exhaust gas: done
+
+`sosExh(tC)` next to `sos()` in `web/index.html`: c = sqrt(gamma R T) for the products of stoichiometric gasoline
+combustion, composition frozen. Per C atom (CH1.87 + 1.4675 (O2 + 3.7279 N2 + 0.04459 Ar)): CO2 1, H2O 0.935,
+N2 5.4707, Ar 0.0654; mole fractions 0.1338 / 0.1251 / 0.7322 / 0.0088; M 29.008 g/mol, R 286.63 J/kg K (CO2 outweighs
+H2O, so R is air's within 0.2 %, not the 289-290 the audit guessed). cp/R from the mole-weighted NASA polynomials,
+gamma = cp/(cp - R). `cToT` (gasProfile's equivalent temperature) now inverts `sosExh`.
+
+| T, C | gamma | c exhaust, m/s | sos() (air, gamma 1.4) | real air (NASA, gamma(T)) | exhaust vs sos() | exhaust vs real air |
+|---|---|---|---|---|---|---|
+| 20 | 1.3731 | 339.67 | 343.29 | 343.40 | -1.06 % | -1.09 % |
+| 343.3 | 1.3336 | 485.43 | 497.82 | 493.22 | -2.49 % | -1.58 % |
+| 500 | 1.3157 | 539.96 | 557.50 | 548.86 | -3.15 % | -1.62 % |
+| 650 | 1.3003 | 586.56 | 609.19 | 596.33 | -3.71 % | -1.64 % |
+
+The change on the page is 1-4 %, more than the 1-2 % expected: the burned gas is 1.1-1.6 % slower than real air, and the
+rest is air's own gamma falling with temperature, which `sos()` holds at 1.4. Not modelled: water condensing below the
+exhaust's dew point (about 50 C); lean or rich mixtures.
+
+Call sites of `sos()` before this change, classified:
+
+| Line (before) | Function | Gas | Now |
+|---|---|---|---|
+| 6356 | calcFour, wave round trip | exhaust | sosExh |
+| 6374 | calcTwo, Jennings | empirical: the 2-stroke default temperature was set so air's formula gives Jennings' 1,700 ft/s (Method text) | sos, unchanged |
+| 6418, 6423 | blairLt, calcTwoBlair | empirical: Blair's 83.3 a0 at his class temperatures | sos, unchanged |
+| 6468 | calcTwoSpec | empirical: Blair's form | sos, unchanged |
+| 6567 | calcSound, pipe modes | exhaust | sosExh |
+| 6615 | calcSound, Helmholtz and J-pipe branch | exhaust (cooled) | sosExh |
+| 6963 | calcHelm | exhaust | sosExh |
+| 6980 | calcQW | exhaust | sosExh |
+| 7014 | calcChamber | exhaust | sosExh |
+| 7072 | calcPlace (antinodes) | exhaust | sosExh |
+| 8147 | catTL | exhaust | sosExh |
+| 8184 | cat Mach check | exhaust | sosExh |
+| 8285 (x2) | gasProfile.cAvg | exhaust | sosExh (cToT inverts it) |
+| 8410 | calcAbsorb | exhaust | sosExh |
+| 8446 | calcPlug | exhaust | sosExh |
+| 8487 | calcBaffles | exhaust | sosExh |
+| 8685 | calcHdrChamber | exhaust | sosExh |
+| 9494 | calcQuick drone lengths | exhaust | sosExh |
+| 9692 | intake resonances (p.tin) | intake air | sos, unchanged |
+| 11664 | Taylor Mach index, ci at 20 C | intake air | sos, unchanged |
+| 14192 | mdSearch (muffler designer) | exhaust | sosExh |
+| 14479 | augCalc | exhaust | sosExh |
+| 14531 | ttSection | exhaust | sosExh |
+| 14596 | Mufflers cross-mode cut | exhaust | sosExh |
+| 14600 (x2) | Mufflers engine Mach | exhaust | sosExh |
+| 14627 | Mufflers installed (cMain) | exhaust | sosExh |
+| 14755, 14758 (x2 each) | Davies rules | exhaust | sosExh |
+| 14775 | Yasuda | exhaust | sosExh |
+| 14991 (x2) | Sound tab sections | exhaust | sosExh |
+| 18217 | unequal-length primaries, travel times | exhaust | sosExh |
+| 19603 | charge pipe Mach (hot side) | intake (boosted) air | sos, unchanged |
+| 20088 | intake helmTune | intake air | sos, unchanged |
+
+Not touched: the 1-D wave solver (`runSpeed`, `wsFactory`, no `sos()` inside), Bell's and the other empirical length
+rules (no c), `rhoGas` (density stays air's R; the impedance ratios the acoustics use cancel it). The Method section's
+"Speed of sound" line now says exhaust acoustics use burned-gas properties.
+
+Representative outputs (independent Python, air before / burned gas after): 4-stroke round trip at 650 C 92.33 /
+95.87 crank deg; Helmholtz volume for 120 Hz (50.8 x 76.2 neck, 43.3 C) 4.224 / 4.127 L and its 3 dB band 188.26 /
+186.08 Hz; J-pipe cut (x = 1) 733.56 / 724.98 mm; plain chamber peak 349.93 / 341.28 Hz; first pipe mode (2.5 m, 343 C)
+49.41 / 48.19 Hz; Sound-tab J-pipe 732.68 / 724.10 mm (row 733 / 724 mm); Sound-tab Helmholtz 3.439 / 3.360 L; baffled
+chain f0 335.43 / 327.13 Hz; header can f0 537.70 / 520.87 Hz.
+
+### Q2, boom tube friction: done (default kept)
+
+A "Tube finish (inside wall)" select on the Boom tab (`b-finish`, expert), reusing `INTAKE_FINISH` and `fFinish`:
+commercial steel 0.045 mm (default) or smooth (drawn, 0.0015 mm). The 3D-printed finishes are not offered (a boom tube
+runs at exhaust temperature). Default unchanged: no roughness measured on welded stainless or aluminised exhaust tube was
+found; Neutrium's table gives "stainless steel" 0.03 mm and new drawn stainless 0.0015-0.01 mm, so a welded sheet tube is
+not plainly smooth. A "Wall friction factor" row states the finish, ks and f. Example (Q 0.25 m3/s, 537.8 C, 76.2 mm
+inlet, 38.1 mm flat run 762 mm, 152.4 mm transition, 304.8 mm flare to 304.8 mm): flat-run f 0.02382 steel, 0.02187
+smooth; boom total 400.12 / 377.96 Pa.
+
+### Q3, boom flare and transition: done, with Rennels rather than Crane
+
+`rennelsDiffuserK` / `rennelsContractionK` (Rennels and Hudson 2012 as coded in python-fluids, method 'Rennels'): K on
+the smaller section's head, change-of-area part only; the wall friction along the transition and the flare stays counted
+once, as before. Crane TP-410's 2.6 sin(theta/2) (1 - beta^2)^2 (verified in the same module: K referred to the smaller,
+upstream pipe; below 45 deg) was not used because it is one total that cannot be split from the wall friction and falls to
+zero on a long gentle cone; adding it to the page's own friction would count the cone's friction twice. The transition
+and a narrowing outlet are treated as cones between the same areas over their lengths (Rennels' contraction for A1 < Ain
+or A2 < A1); an equal-area round-to-flat transition gets no local loss (no published coefficient for a shape change
+alone; the row says so) in place of the uncited K 0.05; the "8 deg to 30 deg blend" is gone.
+
+Worked example (as Q2, commercial steel): equivalent flare cone 8.211 deg, beta^2 = A1/A2 = 0.4035; Rennels 8.30
+tan(4.106 deg)^1.75 (0.5965)^2 = 0.02939 (Crane 0.0662; Rennels' own friction term 0.0348); flare loss 64.63 Pa; boom
+total 400.12 Pa (old formulas 415.83 Pa: the transition's 0.05 q went, the flare gained 0.029 q); recovery 96.5 % of the
+ideal rise. With a 150 mm wide flat run: transition K 0.000257, total 314.15 Pa (338.86 before).
+
+### Q4, charge-pipe bends: done
+
+`calcCharge` calls the Intake tab's `bendK(90, 1.5, f)` = 14 f per bend (Crane, its arc's friction included), half the
+bends on each side with that side's f and dynamic head, and each side's straight friction now runs over its length less
+its arcs (bends/2 x pi/2 x 1.5 D). No radius input exists in the section: r/D 1.5 (Garrett's minimum, the section's own
+rMin), stated in the row's caption. Example (D4's: 0.2 m3/s, 60.198 mm, 914.4 mm each side, 4 bends, PR 2): straights
+564.35 Pa (818.17 over the full lengths), bends 1,508.17 Pa, total 9,072.52 Pa (9,238.62 with 0.2 q per bend before).
+
+### Q8, shell ovaling: done (round and non-round)
+
+Leissa SP-288 eqs. 2.26-2.27 (plane strain, Flugge): Omega^2 = rho (1 - nu^2) R^2 w^2 / E, flexural root to first order
+in k = h^2/12R^2 (eq. 2.6) k n^2 (n^2 - 1)^2 / (n^2 + 1): the ring formula with E/(1 - nu^2). Section 4.3: the plane-strain
+modes of an infinitely long oval shell are those of the oval ring (Sathyamoorthy and Pandalai), with the shell's plate
+stiffnesses; so `ringModes` gets E/(1 - nu^2) too, in calcShell and in the boom's long-run ring mode (calcBoom; this moves
+the boom panel's fBase, the Q12 rule itself is unchanged). Example: 304, 76.2 x 1.651 mm, room temperature: n = 2 718.19 /
+745.89 Hz (+3.9 %; Leissa's exact lower root of 2.27 745.87 Hz); n = 3 2,109.7 Hz.
+
+### Q9, baffled chain: done (the acoustic model changed)
+
+N chambers hold N - 1 baffles. Kinsler and Frey's low-pass element is a chamber between two pipes acting as a shunt
+compliance with the pipe on both sides: the inlet pipe is the line the wave arrives on, not a lumped first hole. So the
+chain is now chamber, (hole, chamber) x (N - 1), and the curve is its transmission loss between the equal pipes (tmTL, as
+every other element; series inertance [1, jwL; 0, 1], shunt compliance [1, 0; jwC, 1]). It was N inertances and
+N x Morse's image attenuation (zero below the cut-off). f0 and the per-section attenuation rows stay, now "per baffle";
+with one chamber the rows say there is no baffle. Example (152.4 mm shell, 355.6 mm, 3 chambers, 40 mm holes, 1 mm
+baffles, 343.3 C, 60.198 mm pipes): f0 327.13 Hz; TL 2.681 dB at 0.8 f0, 7.676 dB at 1.5 f0, 28.30 dB at 2.2 f0.
+
+### Q10, catalyst inlet cone: done
+
+`catDp`: the inlet cone (the section has "Cone length, each end" and both areas) is Rennels' diffuser at its included
+angle (equivalent diameters; length 0 = a step, 180 deg) plus Rennels' cone-friction term with the pipe's Haaland f
+(nothing else counted the cone's friction). The outlet cone's 0.05 is left: uncited, outside the decision. Example (Q 0.15
+m3/s, 500 C, 63.5 mm pipe into 152.4 mm substrate over 50.8 mm): 82.37 deg, K 0.7307 (Borda 0.680), cone row 399.80 Pa
+(375.34 before). A steep cone loses slightly more than Borda in Rennels' fit; a sudden step gives 0.7047.
+
+### Q5, Q6, Q11, Q12: unchanged, as decided. Q7: the conductor's change, untouched.
+
+### Other code changes this caused
+
+- Timbre tube bundle: the default tube lengths are now rounded to 0.1 mm (were whole mm). With the slower exhaust-gas c,
+  whole-mm rounding put the 16th-harmonic tube at 15.93 (timbre_ui.js asks for "on the 16th", within 0.05); the physics
+  is unchanged, only the default's rounding.
+- Baffled chambers with one chamber: the rows now say there is no baffle (no f0, cut-off or per-baffle rows).
+
+### Test expectations changed
+
+- physaudit_ui.js: every value that carries the exhaust's c (round trip, Helmholtz volume and band, J-pipe, chamber peak,
+  pipe mode, Sound-tab J-pipe and Helmholtz and the row "733 mm" -> "724 mm", baffled f0, header can f0) moved to the
+  burned-gas values above, each comment giving the air value it replaced; tolerances tightened from 0.1 % to 0.01 % (the
+  page and the script now use the same property data). The charge-pipe friction 818.17 -> 564.35 Pa and total 9,238.6 ->
+  9,072.5 Pa (Q4). New checks: sosExh at four temperatures and cToT, boom (Q2, Q3), Rennels terms, catalyst cone (Q10),
+  ovaling (Q8), baffled chain TL and hole count (Q9).
+- baffles_ui.js: the bisection for "c = 500 m/s" now inverts sosExh (calcBaffles runs on exhaust gas); "no loss below the
+  cut-off" (tl(0.8 f0) === 0) became the lumped chain's own TL there, 2.937 dB (independent Python), because the curve is
+  now the chain between the pipes, not N x the image attenuation. Not loosened: an exact value replaces a zero that the
+  old model gave by construction.
+- uel_ui.js: spread of return times 2 x 470 mm / a at 704.4 C: 1.50 ms, 58 deg (air, a 626.89 m/s) -> 1.56 ms, 61 deg
+  (exhaust gas, a 602.52 m/s; independent 1.5601 ms, 60.84 deg).
+
+### Tests run
+
+The whole suite (tests/run_all_tests.sh) once after the changes: 2 failing (timbre_ui, uel_ui, both from the slower c,
+handled as above), 6 skipped for missing programs or runs (desktop_ui, dualexit_ui, mdwam_ui, two_wam_ui, update_ui,
+wamlevel_ui: no host program, OpenWAM or F-100 runs here), the rest ok. Then, one at a time after the last edits:
+physaudit_ui, baffles_ui, sweep_ui, full_ui, units_ui, extremes_ui, fuzz_ui, timbre_ui, uel_ui, installed_ui.
+
+### Not done
+
+- Q2's default: no sourced roughness for welded stainless or aluminised exhaust tube, so commercial steel stays default.
+- Q3/Q10 used Rennels and Hudson (as reproduced in python-fluids), not Crane's formula, for the reason given under Q3;
+  Rennels' sharp-cornered contraction (C_B = 1) is used as python-fluids codes it (its docstring carries a C_B factor the
+  code sets to 1). Rennels and Hudson's book itself was not read; only the python-fluids reproduction.
+- The catalyst outlet cone's 0.05 is still uncited (outside the decision).
+- Kinsler and Frey were read only through LibreTexts' reproduction; it gives the single-chamber low-pass, not a chain.
