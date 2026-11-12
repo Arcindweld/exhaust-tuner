@@ -20969,7 +20969,7 @@ function turboSection(ind,p,r){
     step:$('i-cpstep').value==='step',inletAt,w:val('i-cpw')};
   const R=calcTurboRoute(q); TS_LAST=R.err?null:{R,q,inletAtP}; TS_PLACE=null; TS_PLACE_HTML=R.err?'':tsPlaceSection(ind,p,r);
   if(R.err){ TS_REC=null; return sec('Inlet and charge pipes: design and sizing','<div class="note bad">'+esc(R.err)+'</div>'); }
-  const T=R.tbl; TS_REC={dt:T.inlet.rec&&T.inlet.rec.d,dh:T.hot.rec&&T.hot.rec.d,dc:T.cold.rec&&T.cold.rec.d,nt};
+  const T=R.tbl; TS_REC={dt:T.inlet.rec&&T.inlet.rec.d,dh:T.hot.rec&&T.hot.rec.d,dc:T.cold.rec&&T.cold.rec.d,odh:T.hot.rec&&T.hot.rec.od,odc:T.cold.rec&&T.cold.rec.od,nt};
   const vf=ms=>ms/0.3048, each=nt>1?', each turbo':'';
   // verdict: plain language, worst first
   const bad=[], warn=[];
@@ -21152,7 +21152,7 @@ function tsSizeSection(ind,p,r){
    M cw dTw/dt = e1 (Th − Tw) − e2 (Tw + e1 (Th − Tw)/Cw − Ta) = a − b Tw, b = e1 + e2 − e1 e2/Cw, a = e1 Th + e2 Ta − e1 e2 Th/Cw;
    Tw → a/b with time constant tau = M cw ÷ b; 90% of the way after tau ln 10. With no front exchanger (ice-box use) the
    soak time for a rise dT at the full heat load Q is M cw dT ÷ Q, plain energy balance. */
-const TSO={turbo:'',hs:'',ictype:'a2a',ic:'',pm:'',pTi:'',pTo:'',pcf:'',pTc:'',ua1:'',wf:'',cool:'water',wTi:'',wdT:10,wV:'',ua2:'',fa:'',wLh:'',wLc:''};
+const TSO={turbo:'',hs:'',ictype:'',icm:'1',tm:'1',oName:'',oType:'a2a',oL:'',oH:'',oW:'',oIn:'',oOut:'',oHp:'',oDp:'',oDpF:'',oPm:'',oTi:'',oTo:'',oCf:'',oTc:'',ic:'',pm:'',pTi:'',pTo:'',pcf:'',pTc:'',ua1:'',wf:'',cool:'water',wTi:'',wdT:10,wV:'',ua2:'',fa:'',wLh:'',wLc:''};
 const COOLANT={water:{name:'water',cp:4183,rho:992},eg50:{name:'50% ethylene glycol (by mass)',cp:3534,rho:1067}};
 // Every row: figures as the maker prints them, on the page in src (read on the date in seen). null = not published there.
 // Precision Turbo & Engine's own site is precisionturbo.com (precisionturbo.net, tried first, is not theirs or not reachable).
@@ -21359,6 +21359,102 @@ const IC_LIB=[
   pub:{cons:null,tanks:null,ptest:null,boost:null,warranty:null}},c));
 // a core's rating as horsepower for the comparison: its hp, or the maker's typical engine power in kW converted (1 hp = 0.7457 kW)
 const icHpOf=c=>c.hp!=null?c.hp:c.kw!=null?c.kw/0.7457:NaN;
+/* ----- Recommending one intercooler and one turbo for this build (2026-11-12, the owner's "Can you recommend a specific
+   intercooler in these design circumstances as well?", "From reputable brands ideally") -----
+   Every rule is stated on the page beside its result. Intercooler, per type:
+   (a) the maker's rating covers the target power per core (twin turbos into one core: the whole engine) times the margin
+       input; where a maker states two figures the lower is used (Mishimoto MMINT-UM "800" and "Rated to 600 whp": 600);
+       a row with no rating but a known thermal point (the user's own core) passes on the thermal check alone;
+   (b) its end-tank necks are not smaller than the charge pipe OD the page recommends (TS_REC), hot side in, cold side out;
+       smaller: rejected, with the sudden-step loss tsStep gives at the neck's estimated bore (neck less twice the pipe wall);
+       unknown (a core sold without tanks, or not published): not rejected, flagged;
+   (c) Bell's flow-area rule (6 in² per 100 hp, 45% of the charge face open) as a cross-check of the charge face, air-to-air
+       only; the charge face per maker: Garrett labels the length as the hot flow (face = height × width), Mishimoto's
+       overall length exceeds its core length (tanks on the length ends: face = height × thickness), CSF does not say (the
+       longest dimension taken as the charge-flow length: an assumption);
+   (d) a row with a thermal point (EJ Bowman's brochure, or the user's own measured point) is predicted at this build's flow
+       (UA held, icPredict) and must remove the heat the target effectiveness needs times the margin.
+   Order: the smallest rating that passes (rating ÷ target per core; a row without a rating by its capacity margin), then
+   the lowest published pressure drop scaled to this flow by (flow ratio)², then the smaller core volume (less charge to
+   fill), then an exact tank match to the pipes, then the row with more published data (the owner's tie rule), then the
+   list order. Turbos: the same flags as the table (the maker's lower figure where published, else this page's half-rating
+   rule) and the smallest maker rating at least the margin × the target per turbo; ties to the smaller compressor inducer,
+   then a maker that publishes a lower figure. No compressor map is read, so no turbo pick is a map match. */
+const icRateOf=c=>{ const v=[c.hp,c.hpAlt].filter(x=>x!=null&&x>0); return v.length?Math.min(...v):c.kw!=null?c.kw/0.7457:NaN; };
+const icDimsIn=c=>c.L?[c.L[0],c.H[0],c.W[0]]:c.dims?c.dims.map(x=>x[0]):null;
+function icFace(c){
+  const D=icDimsIn(c); if(!D) return null;
+  if(c.own) return {a:D[1]*D[2],why:'height × width (your length is the charge-flow length)'};
+  if(c.maker==='Garrett') return {a:D[1]*D[2],why:'height (no flow) × width (cold flow): Garrett labels the length as the hot, charge, flow'};
+  if(c.maker==='Mishimoto') return {a:D[1]*D[2],why:'core height × thickness: Mishimoto’s overall length is longer than its core length, so the tanks sit on the length ends'};
+  const s=D.slice().sort((a,b)=>b-a); return {a:s[1]*s[2],why:'the two shorter dimensions: '+c.maker+' does not say which way the charge flows, so the longest is taken as the charge-flow length (this page’s assumption)'};
+}
+const icVolIn3=c=>{ const D=icDimsIn(c); return D?D[0]*D[1]*D[2]:NaN; };
+const icPubList=c=>{ const P=c.pub||{}; return [['construction',P.cons],['end tanks',P.tanks&&!/^core only/.test(P.tanks)?P.tanks:null],['pressure drop',c.dp?'published at a stated flow':null],
+  ['thermal test point',c.point?'published (charge flow, temperatures, coolant)':null],['pressure test or rated boost',P.ptest||P.boost||null],['warranty',P.warranty]]; };
+const icPubN=c=>icPubList(c).filter(x=>x[1]).length;
+const IC_LITTLE=3;   // fewer than 3 of the 6 published items: "little published data" (this page's threshold)
+function icRecommend(o){
+  // o: list [[core,key]], hpCore (target per core), m (margin), Qreq W, Ch W/K, thi, tamb °C, mc kg/s (cooler flow), mh kg/s
+  //    (one hot pipe), rec {odh,odc,dh,dc} mm (TS_REC), w wall mm, step (bool), P2, Pt Pa, t3 °C, a2a (bool),
+  //    therm(c) -> {Cc,tci,why} or null (this build's cold stream for a row with a point)
+  const rows=o.list.map(([c,key])=>{
+    const r=icRateOf(c), x={c,key,r,fails:[],flags:[]};
+    if(c.point){ const P=c.point, T=o.therm(c);
+      if(T){ const cool=COOLANT[P.coolant||'water']||COOLANT.water, Cc0=P.cool_lbmin!=null?P.cool_lbmin/LBMIN*CP_AIRT:P.cool_lpm/60/1000*cool.rho*cool.cp;
+        const A=icFromPoint({Ch:P.m_kgmin/60*CP_AIRT,Cc:Cc0,thi:P.thi,tho:P.tho,tci:P.tci});
+        if(Number.isFinite(A.UA)){ const Pr=icPredict({UA:A.UA,Ch:o.Ch,Cc:T.Cc,thi:o.thi,tci:T.tci}); x.th={UA:A.UA,tho:Pr.tho,Q:Pr.Q,capM:Pr.Q/o.Qreq,eps:(o.thi-Pr.tho)/(o.thi-o.tamb),why:T.why}; } }
+      else x.flags.push('thermal point not predicted: '+(o.a2a?'enter the outside air through the core':'enter the coolant flow')); }
+    // (a) rating
+    if(r>0){ x.ratio=r/o.hpCore; if(r<o.m*o.hpCore-1e-9) x.fails.push(['a','rating '+Math.round(r)+' hp below '+(o.m!==1?o.m+' × ':'')+'the '+Math.round(o.hpCore)+' hp target per core']); }
+    else if(x.th) x.ratio=x.th.capM;
+    else x.fails.push(['a','no horsepower rating published, and no thermal point']);
+    // (d) thermal
+    if(x.th&&x.th.capM<o.m-1e-9) x.fails.push(['d','predicted to remove '+(x.th.capM*100).toFixed(0)+'% of the heat the target needs'+(o.m!==1?' (× '+o.m+')':'')]);
+    // (b) tanks
+    const w=o.w;
+    if(c.inD!=null&&c.outD!=null){ const ti=c.inD*25.4, to=c.outD*25.4; x.tin=ti; x.tout=to;
+      if(o.rec&&o.rec.odh>0&&o.rec.odc>0){
+        if(ti<o.rec.odh-0.5){ const s=tsStep({dUp:o.rec.dh,dDn:ti-2*w,m:o.mh,tC:o.thi,pAbs:o.P2,step:o.step}); x.fails.push(['b','inlet neck '+ti.toFixed(1)+' mm under the '+o.rec.odh.toFixed(1)+' mm hot pipe',s]); }
+        if(to<o.rec.odc-0.5){ const s=tsStep({dUp:to-2*w,dDn:o.rec.dc,m:o.mc,tC:o.t3,pAbs:o.Pt,step:o.step}); x.fails.push(['b','outlet neck '+to.toFixed(1)+' mm under the '+o.rec.odc.toFixed(1)+' mm cold pipe',s]); }
+        x.exact=Math.abs(ti-o.rec.odh)<=1.3&&Math.abs(to-o.rec.odc)<=1.3; }
+      else x.flags.push('tank check needs the recommended pipe sizes'); }
+    else x.flags.push(c.pub&&/^core only/.test(c.pub.tanks||'')?'core only: weld end tanks with necks of at least the pipe sizes':'tank sizes not published: cannot check');
+    // (c) Bell, air-to-air only
+    const F=icFace(c), need=6*o.hpCore/100/0.45;
+    if(o.a2a&&F){ x.face=F; x.bell=F.a>=need-1e-9; }
+    x.dpS=c.dp?c.dp.kPa*1000*Math.pow(o.mc/(c.dp.kgmin/60),2):Infinity;
+    x.vol=icVolIn3(c); x.pubN=icPubN(c);
+    return x; });
+  const ok=rows.filter(x=>!x.fails.length), cmp=[['rating',x=>x.ratio],['pressure drop',x=>x.dpS],['core volume',x=>Number.isFinite(x.vol)?x.vol:Infinity],['tank match',x=>x.exact?0:1],['published data',x=>-x.pubN]];
+  ok.forEach((x,i)=>x.ord=i);
+  ok.sort((a,b)=>{ for(const [,f] of cmp){ const fa=f(a), fb=f(b); if(Math.abs(fa-fb)>1e-9*Math.max(1,Math.abs(fa))&&!(fa===fb)) return fa<fb?-1:1; } return a.ord-b.ord; });
+  // why each ranks below the one before: the first key that differs
+  ok.forEach((x,i)=>{ if(!i){ x.why='smallest rating that covers the target'+(o.m!==1?' × '+o.m:''); return; } const y=ok[i-1];
+    const k=cmp.find(([,f])=>{ const a=f(x), b=f(y); return !(a===b)&&Math.abs(a-b)>1e-9*Math.max(1,Math.abs(a)); });
+    x.why=!k?'level with the one above on every rule; list order':k[0]==='rating'?'a larger rating than the one above':'same rating as the one above; '+(k[0]==='pressure drop'?'higher or unpublished pressure drop':k[0]==='core volume'?'larger core volume':k[0]==='tank match'?'tanks not an exact match to the pipes':'less published data'); });
+  return {ok,out:rows.filter(x=>x.fails.length),pick:ok[0]||null};
+}
+// the user's own core (the owner: "Let the user add their own core"), kept in TSO and saved with the project
+function icOwn(){ const n=TSO.oName.trim(); if(!n) return null; const f=k=>TSO[k]===''||TSO[k]==null?NaN:+TSO[k], mmi=k=>f(k)>0?[+(f(k)/25.4).toFixed(3),+f(k).toFixed(1)]:null;
+  const D=[mmi('oL'),mmi('oH'),mmi('oW')], pt=f('oPm')>0&&f('oCf')>0&&[f('oTi'),f('oTo'),f('oTc')].every(Number.isFinite);
+  return {maker:'Your core',pn:n,own:true,type:TSO.oType==='w2a'?'w2a':'a2a',model:'your own entry',hp:f('oHp')>0?f('oHp'):null,hpAlt:null,kw:null,hpBasis:'your figure',
+    L:null,H:null,W:null,dims:D.every(Boolean)?D:null,inD:f('oIn')>0?f('oIn')/25.4:null,outD:f('oOut')>0?f('oOut')/25.4:null,
+    dp:f('oDp')>0&&f('oDpF')>0?{kPa:f('oDp'),kgmin:f('oDpF')*0.45359237}:null,
+    point:pt?Object.assign({m_kgmin:f('oPm')*0.45359237,thi:f('oTi'),tho:f('oTo'),tci:f('oTc'),coolant:'water'},TSO.oType==='w2a'?{cool_lpm:f('oCf')}:{cool_lbmin:f('oCf')}):null,
+    water:null,dimNote:'not entered',note:'Entered on this page; checked in hand by you.',src:'',srcName:'your entry',seen:'',pub:{cons:'checked in hand',tanks:null,ptest:null,boost:null,warranty:null}}; }
+const icRow=k=>k==='own'?icOwn():k!==''&&k!=null&&IC_LIB[+k]?IC_LIB[+k]:null;
+function turboRecommend(o){
+  // o: list TURBO_LIB, per hp per turbo, m margin, verdict(t) -> [code,text,basis]
+  const rows=o.list.map((t,i)=>{ const v=o.verdict(t), x={t,i,v,fails:[]};
+    if(v[0]==='below') x.fails.push('rating '+t.hp+' hp below the '+Math.round(o.per)+' hp target');
+    else if(v[0]==='large') x.fails.push(v[1]);
+    else if(t.hp<o.m*o.per-1e-9) x.fails.push('rating '+t.hp+' hp under '+o.m+' × the target ('+Math.round(o.m*o.per)+' hp)');
+    return x; });
+  const ok=rows.filter(x=>!x.fails.length).sort((a,b)=>a.t.hp-b.t.hp||a.t.cInd-b.t.cInd||(a.t.hpLo!=null?0:1)-(b.t.hpLo!=null?0:1)||a.i-b.i);
+  ok.forEach((x,i)=>{ const y=ok[i-1]; x.why=!i?'smallest maker rating that covers the target'+(o.m!==1?' × '+o.m:''):x.t.hp!==y.t.hp?'a larger rating than the one above':x.t.cInd!==y.t.cInd?'same rating; larger compressor inducer':(x.t.hpLo!=null)!==(y.t.hpLo!=null)?'same rating and inducer; the maker gives no lower figure':'level on every rule; list order'; });
+  return {ok,out:rows.filter(x=>x.fails.length),pick:ok[0]||null};
+}
 // the capacity of one exchanger from a known point (route A), and its prediction at new flows with UA held
 function icFromPoint(o){
   // o: Ch, Cc W/K; thi, tho, tci °C at the known point
@@ -21390,6 +21486,89 @@ function w2aLoop(o){
   const Q=(o.th-o.ta)/(1/e1+1/e2-1/o.Cw), tw1=o.th-Q/e1, tw2=tw1+Q/o.Cw;
   const b=e1+e2-e1*e2/o.Cw, a=e1*o.th+e2*o.ta-e1*e2*o.th/o.Cw;
   return {e1,e2,Q,tw1,tw2,tho:o.th-Q/o.Ch,b,a,twSteady:a/b};
+}
+/* The recommendation block of Intercooler options (rules in the comment above icRecommend), with the specification a core must
+   meet for this build (always shown) and the user's own core. Workshop checks for a core with little published data are
+   common workshop practice, labelled so on the page, not sourced claims. */
+function icRecSection(o){
+  const {R,route,p,imp,nt,mc,Ch,Qreq,icHp,F,num,fl,kw,tD,dT,mmIn,lmin,link,OWN}=o;
+  const pD=x=>imp?(x/6894.757).toFixed(2)+' psi ('+(x/1000).toFixed(1)+' kPa)':(x/1000).toFixed(1)+' kPa ('+(x/6894.757).toFixed(2)+' psi)';
+  const a2D=x=>imp?x.toFixed(0)+' in² ('+(x*6.4516).toFixed(0)+' cm²)':(x*6.4516).toFixed(0)+' cm² ('+x.toFixed(0)+' in²)';
+  const v3D=x=>imp?x.toFixed(0)+' cu in ('+(x*0.016387064).toFixed(2)+' L)':(x*0.016387064).toFixed(2)+' L ('+x.toFixed(0)+' cu in)';
+  const hpD=x=>Math.round(x)+' hp ('+Math.round(x*0.7457)+' kW)';
+  const uaD=W=>W.toFixed(0)+' W/K ('+(W*60/1055.06/1.8).toFixed(1)+' BTU/min °F)';
+  const sel2=(k,opts)=>'<select class="tsox" data-k="'+k+'">'+opts.map(([v,t])=>'<option value="'+v+'"'+(String(TSO[k])===v?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select>';
+  const coreDim=c=>{ const D=c.L?[c.L,c.H,c.W]:c.dims; return D?(imp?D.map(x=>(+x[0]).toFixed(2)).join(' × ')+' in ('+D.map(x=>x[1]).join(' × ')+' mm)':D.map(x=>x[1]).join(' × ')+' mm ('+D.map(x=>(+x[0]).toFixed(2)).join(' × ')+' in)'):'size not published'; };
+  const m=F('icm')>0?F('icm'):1, rec=TS_REC, w=val('i-cpw')>0?val('i-cpw'):1.651, thi=R.t2, tamb=p.tamb;
+  const cool=COOLANT[TSO.cool]||COOLANT.water, cwOf=lpm=>lpm/60/1000*cool.rho*cool.cp, wTi=Number.isFinite(F('wTi'))?F('wTi'):tamb;
+  const am=val('i-icam')>0?val('i-icam'):NaN;
+  let g='<p class="sub" style="margin-top:14px">Recommended intercooler for this build</p>';
+  g+='<div class="grid2">'+num('icm','Rating margin over the target per core (1 = none)','×')+'</div>';
+  if(!(icHp>0)){ TG.icrec=null; return g+'<div class="note warn" id="tso-icrec-nohp">Enter the power target (Engine, horsepower) to get a recommended core.</div>'+icSpecBlock(); }
+  const types=TSO.ictype?[TSO.ictype]:['a2a','w2a'], out={};
+  types.forEach(t=>{
+    const list=IC_LIB.map((c,i)=>[c,String(i)]).filter(([c])=>c.type===t).concat(OWN&&OWN.type===t?[[OWN,'own']]:[]);
+    const therm=c=>t==='a2a'?(am>0?{Cc:am/LBMIN*CP_AIRT,tci:tamb,why:'outside air '+fl(am/LBMIN)+' at '+tD(tamb)}:null):
+      (F('wf')>0?{Cc:cwOf(F('wf')),tci:wTi,why:'coolant '+lmin(F('wf'))+' in at '+tD(wTi)}:c.point&&c.point.cool_lpm>0?{Cc:cwOf(c.point.cool_lpm),tci:wTi,why:'the point’s own coolant flow, '+lmin(c.point.cool_lpm)+' (no coolant flow entered), in at '+tD(wTi)}:null);
+    out[t]=icRecommend({list,hpCore:icHp,m,Qreq,Ch,thi,tamb,mc,mh:R.merged?R.mc:R.m,rec,w,step:!!route.q.step,P2:R.P2,Pt:R.Pt,t3:R.t3,a2a:t==='a2a',therm}); });
+  TG.icrec=Object.assign({m,types},out);
+  const bellNeed=6*icHp/100, faceNeed=bellNeed/0.45;
+  const line=(x,k)=>{ const c=x.c, bits=[];
+    bits.push(icRateOf(c)>0?'rated '+hpD(icRateOf(c))+', '+(icRateOf(c)/icHp).toFixed(2)+' × the target per core':'no rating; by its thermal point');
+    if(x.tin!=null) bits.push('tanks '+mmIn(x.tin)+' in / '+mmIn(x.tout)+' out'+(x.exact?', an exact match to the pipes':', not smaller than the pipes'));
+    x.flags.forEach(f=>bits.push(f));
+    if(x.face) bits.push('charge face '+a2D(x.face.a)+(x.bell?' meets':' is under')+' Bell’s '+a2D(faceNeed));
+    if(x.th) bits.push('predicted charge out '+tD(x.th.tho)+', '+(x.th.eps*100).toFixed(0)+'% effectiveness on outside air, removes '+(x.th.capM*100).toFixed(0)+'% of the heat needed ('+esc(x.th.why)+', UA '+uaD(x.th.UA)+' held)');
+    if(Number.isFinite(x.dpS)) bits.push('maker’s air drop scaled to this flow '+pD(x.dpS));
+    if(Number.isFinite(x.vol)) bits.push('core volume '+v3D(x.vol));
+    return esc(c.maker+' '+c.pn)+(k!=null?': '+esc(x.why):'')+' — '+bits.join('; '); };
+  const name={a2a:'air-to-air',w2a:'water-to-air'};
+  types.forEach(t=>{ const Rr=out[t], P=Rr.pick;
+    g+='<div data-icrec="'+t+'">'+(types.length>1?'<p class="cap" style="margin:8px 0 2px"><b>'+(t==='a2a'?'Air-to-air':'Water-to-air')+'</b></p>':'');
+    if(P){ const c=P.c, applied=TSO.ic===P.key&&TSO.ictype===c.type, little=!c.own&&P.pubN<IC_LITTLE;
+      g+='<div class="note" id="tso-icrec-'+t+'"><b>'+esc(c.maker+' '+c.pn)+'</b> <span class="cap">'+esc(c.model)+', '+coreDim(c)+'</span><br>'+line(P,null)+'. Why: '+esc(P.why)+'. '+esc(c.hpBasis)+'.'+
+        (applied?' <b>In use on this build.</b>':'')+(c.src?' Source: '+link(c.src,c.srcName)+', read '+c.seen+'.':'')+'</div>';
+      if(little) g+='<div class="note warn" id="tso-icrec-little-'+t+'">Little published data for this core — check it in hand. <span class="cap">The maker’s page gives '+P.pubN+' of the 6 items in “What the maker publishes”. What to look at (common workshop practice, not sourced claims): fin density and whether the fins are straight and undamaged; internal turbulators in the charge passages (bar-and-plate); the weld quality on the tanks; a smooth tank inlet with no step at the core face; a leak test at '+pD(Math.max(0,R.P2-P_ATM))+' (this build’s boost at the compressor outlet) plus a margin you choose; then on the car measure the pressure drop across the core (enter it under Core drop from the maker’s rating and its flow, i-icrdp / i-icrf, and the page scales it) and the charge temperatures in and out (enter them under Cooling capacity from a known performance point, which turns them into a measured effectiveness).</span></div>';
+      g+='<div class="actions"><button type="button" class="btn primary" data-icuse="'+P.key+'"'+(applied?' disabled':'')+'>'+(applied?'In use':'Use this intercooler')+'</button></div>';
+      g+='<ol class="list" id="tso-icrec-top-'+t+'">'+Rr.ok.slice(0,3).map((x,k)=>'<li data-key="'+x.key+'">'+line(x,k?k:null).replace(/^([^—]*)—/,k?'$1—':'$1(the pick) —')+'</li>').join('')+'</ol>'; }
+    else g+='<div class="note warn" id="tso-icrec-none-'+t+'">No listed '+name[t]+' core meets these rules for this build. The specification below is what a core must meet; '+(m>1?'a lower margin, ':'')+(nt>1&&!R.merged?'':'')+'two cores, or a core from outside this list measured against it.</div>';
+    g+='<details id="tso-icrec-out-'+t+'"><summary>Not recommended here ('+Rr.out.length+')</summary><ul class="list">'+Rr.out.map(x=>'<li data-key="'+x.key+'">'+esc(x.c.maker+' '+x.c.pn)+': '+x.fails.map(f=>esc(f[1])+(f[2]?' (a sudden step there loses '+pD(f[2].dpStep)+')':'')).join('; ')+'</li>').join('')+'</ul></details></div>'; });
+  if(types.length>1){ const A=out.a2a.pick, W=out.w2a.pick, dTw=F('wdT')>0?F('wdT'):10, perL=0.001*cool.rho*cool.cp*dTw/Qreq;
+    const front=c=>{ const D=icDimsIn(c); if(!D) return null; const s=D.slice().sort((a,b)=>b-a); return c.maker==='Garrett'?D[0]*D[1]:s[0]*s[1]; };
+    g+='<div class="note" id="tso-icrec-decide"><b>Air-to-air or water-to-air: what decides, on this build</b><ul class="list">'+
+      '<li>Charge pipes: '+(R.Vsys*1000).toFixed(2)+' L ('+(R.Vsys*61023.74).toFixed(0)+' cu in), '+Math.round(R.fill*1000)+' ms of the compressor’s full flow to fill with the lengths above. A water-to-air core can sit near the throttle: choose Water-to-air and enter the shorter pipe lengths to see the volume and fill time it saves.</li>'+
+      '<li>Front area: '+(A&&front(A.c)?'the air-to-air pick needs '+a2D(front(A.c))+' of frontal opening (its two largest dimensions'+(A.c.maker==='Garrett'?', length × height as Garrett labels them':'')+')':'the air-to-air pick’s front area is not published')+'; a water-to-air core sits anywhere, but its front exchanger needs the frontal area and UA given under Water-to-air (no front exchanger is listed here).</li>'+
+      '<li>Short pulls: with no front exchanger working, each litre (0.26 US gal) of '+cool.name+' in the loop takes '+perL.toFixed(1)+' s at full power to rise '+dT(dTw)+' (energy balance at '+kw(Qreq)+'); a loop of a few litres covers a drag pull, not a road course.</li>'+
+      '<li>'+(A?'Air-to-air pick: '+esc(A.c.maker+' '+A.c.pn):'no air-to-air pick')+'; '+(W?'water-to-air pick: '+esc(W.c.maker+' '+W.c.pn):'no water-to-air pick')+'.</li></ul>'+
+      '<span class="cap">The figures are this page’s own; the trade (no pump, coolant or soak for air-to-air; short pipes and a small core for water-to-air) is common practice, not a sourced rule.</span></div>'; }
+  g+='<p class="cap" id="tso-icrec-rule">The rule (this page’s, stated so it can be checked): (a) the maker’s rating covers the target per core × your margin ('+hpD(icHp)+(nt>1?(R.merged?', both turbos into one core: the whole engine':', each turbo with its own core'):'')+' × '+m+'), the lower figure where a maker states two; (b) end-tank necks not smaller than the recommended charge pipes'+(rec&&rec.odh>0&&rec.odc>0?' ('+mmIn(rec.odh)+' hot, '+mmIn(rec.odc)+' cold, outside)':'')+', a smaller neck being a contraction whose sudden-step loss is shown, unknown tanks flagged, not rejected; (c) Bell’s flow area as a cross-check of the charge face, air-to-air only; (d) where a thermal point is known, the predicted heat removed at this build’s flow at least the margin × the heat needed. Of those passing, the smallest rating first, then the lowest published pressure drop at this flow, then the smaller core volume (less charge to fill), then an exact tank match, then more published data. Margin 1 means none: makers do not state the test conditions behind their ratings (Garrett: “normal or typical operating conditions”). Garrett itself advises choosing the largest core that fits the packaging; this page picks the smallest that covers the target, as it picks pipe sizes; raise the margin to lean toward Garrett’s advice.</p>';
+  g+=icSpecBlock();
+  // the user's own core
+  g+='<details id="tso-own"'+(OWN?' open':'')+'><summary>Your own core (recommended alongside the list; saved with the project)</summary><div class="grid2">'+
+    '<label class="f"><span class="lab">Name or part number</span><span class="inp"><input class="tsox" data-k="oName" type="text" value="'+esc(TSO.oName)+'"></span></label>'+
+    '<label class="f"><span class="lab">Type</span><span class="inp">'+sel2('oType',[['a2a','Air-to-air'],['w2a','Water-to-air']])+'</span></label>'+
+    num('oL','Core length, tank to tank (the charge-flow length)','mm')+num('oH','Core height','mm')+num('oW','Core thickness or width','mm')+
+    num('oIn','Inlet neck, outside','mm')+num('oOut','Outlet neck, outside','mm')+num('oHp','Its power rating, if any','hp')+
+    num('oDp','Measured pressure drop','kPa')+num('oDpF','… at a charge flow of','lb/min')+
+    num('oPm','Measured point: charge flow','lb/min')+num('oTi','Charge in','°C')+num('oTo','Charge out','°C')+
+    num('oCf',TSO.oType==='w2a'?'Coolant flow at the point':'Outside air through the core at the point',TSO.oType==='w2a'?'L/min':'lb/min')+num('oTc',TSO.oType==='w2a'?'Coolant in':'Outside air in','°C')+'</div>'+
+    (OWN?'<p class="cap" id="tso-own-echo">'+esc(OWN.pn)+': '+coreDim(OWN)+(OWN.inD?', necks '+mmIn(OWN.inD*25.4)+' / '+mmIn(OWN.outD*25.4):'')+(OWN.hp?', '+hpD(OWN.hp):'')+(OWN.dp?', drop '+pD(OWN.dp.kPa*1000)+' at '+fl(OWN.dp.kgmin/60):'')+(OWN.point?', point '+fl(OWN.point.m_kgmin/60)+' from '+tD(OWN.point.thi)+' to '+tD(OWN.point.tho):'')+'.</p>':'')+
+    '<p class="cap">A core you have checked yourself. Without a rating it needs a measured point (and, for air-to-air, the outside air through the core above) to be recommended.</p></details>';
+  return g;
+  function icSpecBlock(){
+    const rows=[], ice=Math.min(1,Math.max(0,(val('i-ice')||0)/100));
+    rows.push(rowT('Heat to reject',kw(Qreq)+(nt>1&&!R.merged?' each':''),'charge '+fl(mc)+' from '+tD(R.t2)+' to '+tD(R.t3)+' at '+Math.round(ice*100)+'% effectiveness'));
+    if(icHp>0) rows.push(rowT('Maker’s rating at least',hpD(m*icHp),'the target per core × your margin '+m));
+    const nt2=(t)=>{ if(t==='a2a'){ if(!(am>0)) return rowT('NTU and UA, air-to-air','enter the outside air through the core','under the intercooler inputs (Outside air through the intercooler core)');
+        const Cc=am/LBMIN*CP_AIRT, Cmin=Math.min(Ch,Cc), Cr=Cmin/Math.max(Ch,Cc), e=Qreq/(Cmin*(thi-tamb)), n=ntuFor(e,Cr);
+        return rowT('NTU and UA, air-to-air',Number.isFinite(n)?'NTU '+n.toFixed(2)+', UA '+uaD(n*Cmin):'not reachable','effectiveness '+(e*100).toFixed(1)+'% on the smaller stream, Cr '+Cr.toFixed(3)+', outside air '+fl(am/LBMIN)+' at '+tD(tamb)+'; cross-flow, both unmixed (exact series)'); }
+      const dTw=F('wdT')>0?F('wdT'):10, Cw=F('wf')>0?cwOf(F('wf')):Qreq/dTw, Cmin=Math.min(Ch,Cw), Cr=Cmin/Math.max(Ch,Cw), e=Qreq/(Cmin*(thi-wTi)), n=ntuFor(e,Cr);
+      return rowT('NTU and UA, water-to-air',Number.isFinite(n)?'NTU '+n.toFixed(2)+', UA '+uaD(n*Cmin):'not reachable','coolant '+(F('wf')>0?lmin(F('wf')):lmin(Qreq/dTw/cool.rho*1000*60)+' (the flow for a '+dT(dTw)+' rise)')+' in at '+tD(wTi)+', effectiveness '+(e*100).toFixed(1)+'% on the smaller stream, Cr '+Cr.toFixed(4)+'; cross-flow, both unmixed (exact series), coolant as the cold stream'); };
+    (TSO.ictype?[TSO.ictype]:['a2a','w2a']).forEach(t=>rows.push(nt2(t)));
+    if(icHp>0) rows.push(rowT('Flow area (Bell)',a2D(bellNeed)+' internal','6 in² per 100 hp of the '+hpD(icHp)+' per core; with 45% of the charge face open, a charge face of '+a2D(faceNeed)+' (air-to-air)'));
+    rows.push(rowT('Tank necks at least',rec&&rec.odh>0&&rec.odc>0?mmIn(rec.odh)+' in, '+mmIn(rec.odc)+' out':'see the pipe sizes','the recommended hot and cold charge pipes’ outside diameter'));
+    rows.push(rowT('Pressure-drop budget','at most '+pD(2*6894.757)+' across the core','at this build’s charge flow, '+fl(mc)+': Bell’s 2 psi, the figure the page checks the core drop against; ask the maker for the drop at this flow'));
+    return '<p class="sub" style="margin-top:14px">What a core must meet for this build</p><div id="tso-icspec">'+rows.join('')+'</div><p class="cap">Hand this to a maker, or check a core you are offered against it. Heat from the route section’s converged temperatures; NTU from the exact cross-flow series the page uses (ntuFor).</p>'; }
 }
 function tsOptionsSection(ind,p){
   const route=TS_LAST; if(!route||!route.R) return '';
@@ -21425,6 +21604,20 @@ function tsOptionsSection(ind,p){
       return '<tr data-v="'+v[0]+'" data-basis="'+v[2]+'"'+(TSO.turbo===String(i)?' style="background:var(--accent-soft)"':'')+'><td>'+esc(t.maker+' '+t.model)+'<br><span class="cap">'+esc(t.pn)+'</span></td><td>'+(t.hpLo!=null?t.hpLo+' to ':'up to ')+t.hp+' hp ('+(t.hpLo!=null?Math.round(t.hpLo*0.7457)+' to ':'')+Math.round(t.hp*0.7457)+' kW)</td><td>'+
         mmIn(t.cInd)+' / '+(t.cExd!=null?mmIn(t.cExd)+(t.cExdLab?' ('+t.cExdLab+')':''):'not published')+'</td><td>'+turbCell(t)+'</td><td>'+(t.inlet?esc(t.inlet.kind)+' ('+(t.inlet.d_in*25.4).toFixed(1)+' mm) / '+esc(t.outlet.kind)+' ('+(t.outlet.d_in*25.4).toFixed(1)+' mm)':'not published')+'</td><td>'+flowCell(t)+'</td><td>'+v[1]+'</td></tr>'; }).join('')+'</tbody></table></div>';
   h+='<p class="cap" id="tso-flag-cap">“Far larger”: where the maker publishes a range (Garrett, BorgWarner), the target is under the maker’s own lower figure; what that lower figure assumes, neither maker says. Where the maker gives only a top figure (Precision), it is this page’s rule of thumb, the target under half of the rating, not a sourced threshold. Spool is not computed. No maker here prints a maximum compressor flow in its text (Garrett says its horsepower figures are “calculated based strictly on choke flow of the compressor map” but does not print the flow), and the maps are images that are not read, so there is no flow comparison yet.</p>';
+  // the recommended turbo (2026-11-12): the table's own flags and the smallest maker rating that covers the target × the margin
+  TG.turbRec=null;
+  if(per>0){ const tm=F('tm')>0?F('tm'):1, TR=turboRecommend({list:TURBO_LIB,per,m:tm,verdict}); TG.turbRec=Object.assign({m:tm,per},TR);
+    const hpkw=t=>(t.hpLo!=null?t.hpLo+' to ':'up to ')+t.hp+' hp ('+(t.hpLo!=null?Math.round(t.hpLo*0.7457)+' to ':'')+Math.round(t.hp*0.7457)+' kW)';
+    let tr='<p class="sub" style="margin-top:14px">Recommended turbo for this build</p><div class="grid2">'+num('tm','Rating margin over the target per turbo (1 = none)','×')+'</div>';
+    if(TR.pick){ const t=TR.pick.t, applied=TSO.turbo===String(TR.pick.i);
+      tr+='<div class="note" id="tso-turbrec"><b>'+esc(t.maker+' '+t.model)+'</b> <span class="cap">'+esc(t.pn)+'</span><br>Maker’s rating '+hpkw(t)+', '+(t.hp/per).toFixed(2)+' × the '+Math.round(per)+' hp ('+Math.round(per*0.7457)+' kW) target per turbo: '+TR.pick.why+'; '+esc(TR.pick.v[1])+'. Compressor inducer '+mmIn(t.cInd)+'. '+
+        (applied?'<b>In use on this build.</b> ':'')+'A rating match, not a compressor-map match: check the demand line above on this turbo’s map before buying. Source: '+link(t.src,t.srcName)+', read '+t.seen+'.</div>'+
+        '<div class="actions"><button type="button" class="btn primary" data-turuse="'+TR.pick.i+'"'+(applied?' disabled':'')+'>'+(applied?'In use':'Use this turbo')+'</button></div>';
+      tr+='<ol class="list" id="tso-turbrec-top">'+TR.ok.slice(0,3).map((x,k)=>'<li>'+esc(x.t.maker+' '+x.t.model)+', '+hpkw(x.t)+', inducer '+mmIn(x.t.cInd)+(k?': '+x.why:': the pick')+'</li>').join('')+'</ol>'; }
+    else tr+='<div class="note warn" id="tso-turbrec-none">No listed turbo covers '+Math.round(tm*per)+' hp ('+Math.round(tm*per*0.7457)+' kW) per turbo without being far larger than needed: '+(tm>1?'lower the margin, ':'')+'add turbos, or look past this list.</div>';
+    tr+='<details id="tso-turbrec-out"><summary>Not recommended here ('+TR.out.length+')</summary><ul class="list">'+TR.out.map(x=>'<li>'+esc(x.t.maker+' '+x.t.model)+': '+esc(x.fails[0])+'</li>').join('')+'</ul></details>';
+    tr+='<p class="cap" id="tso-turbrec-rule">The rule (this page’s, stated so it can be checked): the turbo must not be flagged in the table (rating below the target, or far larger by the maker’s own lower figure or, for a maker with only a top figure, this page’s half-rating rule), and its maker rating must be at least the margin × the target per turbo; of those, the smallest rating, then the smaller compressor inducer, then a maker that publishes a lower figure. The margin is yours: 1 means none; makers do not say what conditions their ratings assume. A maker’s horsepower rating is its own claim (Garrett: “calculated based strictly on choke flow of the compressor map”); no map is read here, so surge, choke and efficiency at this build’s points are not checked.</p>';
+    h+=tr; }
   h+='<label class="f span2"><span class="lab">Use a turbo’s compressor cover sizes</span><span class="inp">'+sel('turbo',[['','None']].concat(TURBO_LIB.map((t,i)=>[String(i),t.maker+' '+t.model])))+'</span></label>';
   const T=TURBO_LIB[+TSO.turbo];
   TG.turbo={per,wa,t:TSO.turbo!==''&&T?T:null,v:TSO.turbo!==''&&T?verdict(T):null};
@@ -21437,27 +21630,30 @@ function tsOptionsSection(ind,p){
   let out=sec('Turbo options',h);
   // ---- intercoolers ----
   const mc=R.mc, Ch=mc*CP_AIRT, Qreq=Ch*(R.t2-R.t3), icHp=hp>0?hp/(R.merged||nt===1?1:nt):NaN, w2a=TSO.ictype==='w2a';
-  let g='<label class="f span2"><span class="lab">Intercooler type</span><span class="inp">'+sel('ictype',[['a2a','Air-to-air'],['w2a','Water-to-air (air-to-liquid charge cooler)']])+'</span></label>';
+  let g='<label class="f span2"><span class="lab">Intercooler type</span><span class="inp">'+sel('ictype',[['','Not decided: recommend one of each'],['a2a','Air-to-air'],['w2a','Water-to-air (air-to-liquid charge cooler)']])+'</span></label>';
   g+=rowT('Heat to remove at full power, this build',kw(Qreq),'charge '+fl(mc)+' from '+tD(R.t2)+' to '+tD(R.t3)+' (the effectiveness typed above)');
-  const list=IC_LIB.map((c,i)=>[c,i]).filter(([c])=>c.type===TSO.ictype);
-  const icV=c=>{ const ch=icHpOf(c); return !(icHp>0)||!(ch>0)?'–':ch<icHp?'rating is below this build’s target':ch>2*icHp?'far larger than needed (this page’s rule of thumb)':'rating covers this build'; };
+  const OWN=icOwn(), list=IC_LIB.map((c,i)=>[c,String(i)]).concat(OWN?[[OWN,'own']]:[]).filter(([c])=>!TSO.ictype||c.type===TSO.ictype);
+  const icV=c=>{ const ch=icRateOf(c); return !(icHp>0)?'–':!(ch>0)?'no horsepower rating':ch<icHp?'rating is below this build’s target':ch>2*icHp?'far larger than needed (this page’s rule of thumb)':'rating covers this build'; };
   const inD=x=>imp?x+' in ('+(x*25.4).toFixed(1)+' mm)':(x*25.4).toFixed(1)+' mm ('+x+' in)';
-  g+='<div class="tblwrap"><table id="tso-ics"><thead><tr><th>Core</th><th>Core size as the maker labels it</th><th>Maker’s rating</th><th>Flow, drop, tanks, ports</th><th>Against this build</th></tr></thead><tbody>'+
+  g+='<div class="tblwrap"><table id="tso-ics"><thead><tr><th>Core</th><th>Core size as the maker labels it</th><th>Maker’s rating</th><th>Flow, drop, tanks, ports</th><th>What the maker publishes</th><th>Against this build</th></tr></thead><tbody>'+
     list.map(([c,i])=>{ const v=icV(c);
       const D=c.L?[c.L,c.H,c.W]:c.dims, d=x=>imp?x[0].toFixed(1)+' in':x[1]+' mm';
       const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
-      const rate=c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
+      const rate=c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
       const P=c.point, fx=[];
       if(c.inD) fx.push('end tanks '+inD(c.inD)+' in / '+inD(c.outD)+' out');
-      if(P) fx.push('maker’s point: '+fl(P.m_kgmin/60)+' charge, '+tD(P.thi)+' in, '+tD(P.tho)+' out, '+kw(P.Q_kW*1000)+' rejected, water '+lmin(P.cool_lpm)+' at '+tD(P.tci));
+      if(P) fx.push((c.own?'your point: ':'maker’s point: ')+fl(P.m_kgmin/60)+' charge, '+tD(P.thi)+' in, '+tD(P.tho)+' out, '+(P.Q_kW!=null?kw(P.Q_kW*1000)+' rejected, ':'')+(P.cool_lpm!=null?'water '+lmin(P.cool_lpm):'outside air '+fl(P.cool_lbmin/LBMIN))+' at '+tD(P.tci));
       if(c.dp) fx.push('air drop '+(imp?(c.dp.kPa/6.894757).toFixed(2)+' psi ('+c.dp.kPa+' kPa)':c.dp.kPa+' kPa ('+(c.dp.kPa/6.894757).toFixed(2)+' psi)')+' at that flow'+(P?', water drop '+(imp?(P.wdp_kPa/6.894757).toFixed(2)+' psi ('+P.wdp_kPa+' kPa)':P.wdp_kPa+' kPa ('+(P.wdp_kPa/6.894757).toFixed(2)+' psi)'):''));
       if(c.water) fx.push(esc(c.water));
-      return '<tr data-i="'+i+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+esc(c.model)+'</span></td><td>'+dims+'</td><td>'+rate+'</td><td>'+(fx.length?fx.join('; '):'not published')+'</td><td>'+v+'</td></tr>'; }).join('')+'</tbody></table></div>';
-  g+='<p class="cap" id="tso-ic-cap">Sources, read 2026-11-12, makers’ own pages: '+link(IC_SRC,'Garrett intercooler cores')+' (“Supported Horsepower”, “for normal operating conditions”), '+link(MISH,'Mishimoto')+' (MMINT-UM, MMINT-UR, MMUIC-W3, MMUIC-W4 product pages), '+link(CSFU,'CSF bar and plate cores')+' and the '+link(BOWU,'EJ Bowman charge air cooler brochure')+' (a copy on a dealer’s site). Inches-only makers are converted to mm here. A maker’s hp rating is its own claim under its own assumptions; “far larger” is over twice the target, this page’s rule of thumb. Only Bowman publishes thermal performance (charge outlet temperature and heat rejection at a stated charge flow, water flow and inlet temperatures); picking a Bowman cooler fills the cooling-capacity inputs below from it. Searched and not listed: Vibrant Performance (only dealer listings and a dealer-hosted sheet with no named publisher and unlabelled columns), Treadstone, Bell Intercoolers, PWR, Wagner Tuning, Frozenboost and Spearco/Turbonetics (only dealer listings found), Laminova, AFCO and Chargecooler (no maker data sheet found); Garrett’s intercooler technology article gives only one car’s intake temperatures, no core data.</p>';
-  g+='<label class="f span2"><span class="lab">Pick a core</span><span class="inp">'+sel('ic',[['','None']].concat(list.map(([c,i])=>[String(i),c.maker+' '+c.pn+', '+c.hp+' hp'])))+'</span></label>';
-  const C=IC_LIB[+TSO.ic];
-  TG.ic={type:TSO.ictype,c:TSO.ic!==''&&C&&C.type===TSO.ictype?C:null,Qreq,v:TSO.ic!==''&&C&&C.type===TSO.ictype?icV(C):null};
-  if(TSO.ic!==''&&C&&C.type===TSO.ictype){
+      const pubC=c.own?'your own entry':icPubList(c).map(([k,x])=>x?'<b>'+k+'</b>: '+esc(x):k+': not published').join('; ');
+      return '<tr data-i="'+i+'" data-pub="'+(c.own?'':icPubN(c))+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+(TSO.ictype?'':(c.type==='w2a'?'water-to-air; ':'air-to-air; '))+esc(c.model)+'</span></td><td>'+dims+'</td><td>'+rate+'</td><td>'+(fx.length?fx.join('; '):'not published')+'</td><td class="cap">'+pubC+'</td><td>'+v+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  g+='<p class="cap" id="tso-ic-cap">Sources, read 2026-11-12, makers’ own pages: '+link(IC_SRC,'Garrett intercooler cores')+' (“Supported Horsepower”, “for normal operating conditions”), '+link(MISH,'Mishimoto')+' (MMINT-UZ, MMINT-UG, MMINT-US, MMINT-UM, MMINT-UR, MMUIC-W3, MMUIC-W4 product pages), '+link(CSFU,'CSF bar and plate cores')+' and the '+link(BOWU,'EJ Bowman charge air cooler brochure')+' (a copy on a dealer’s site). Inches-only makers are converted to mm here. “What the maker publishes” lists only what the maker’s own page states (construction, end tanks, pressure drop, a thermal test point, a pressure test or rated boost, warranty); “not published” means that page does not say. It is not a quality rating: this page has no data to rate build quality. A maker’s hp rating is its own claim under its own assumptions; “far larger” is over twice the target, this page’s rule of thumb. Only Bowman publishes thermal performance (charge outlet temperature and heat rejection at a stated charge flow, water flow and inlet temperatures); picking a Bowman cooler fills the cooling-capacity inputs below from it. Searched and not listed (again on 2026-11-12): Vibrant Performance (only dealer listings and a dealer-hosted sheet with no named publisher and unlabelled columns), Treadstone (dealer listings and a marketplace store only), Bell Intercoolers, PWR, Wagner Tuning, Frozenboost and Spearco/Turbonetics (only dealer listings found), Laminova, AFCO and Chargecooler (no maker data sheet found); Garrett’s intercooler technology article gives only one car’s intake temperatures, no core data.</p>';
+  g+=icRecSection({R,route,p,imp,hp,nt,mc,Ch,Qreq,icHp,F,num,fl,kw,tD,dT,mmIn,lmin,link,OWN});
+  g+='<label class="f span2"><span class="lab">Pick a core</span><span class="inp">'+sel('ic',[['','None']].concat(list.map(([c,i])=>[i,c.maker+' '+c.pn+', '+(icRateOf(c)>0?Math.round(icRateOf(c))+' hp':'no hp rating')])))+'</span></label>';
+  const C=icRow(TSO.ic), cOk=C&&(!TSO.ictype||C.type===TSO.ictype);
+  TG.ic={type:cOk?C.type:TSO.ictype,c:cOk?C:null,key:cOk?TSO.ic:'',Qreq,v:cOk?icV(C):null};
+  if(cOk&&C.own) g+='<div class="note" id="tso-own-pick"><b>Your core '+esc(C.pn)+'</b> is picked'+(C.point?'; its measured point fills the cooling-capacity inputs below':'; enter a measured point under “Your own core” to work out what it removes')+'.</div>';
+  else if(cOk){
     if(C.point){ const P=C.point;
       g+='<div class="note" id="tso-routea-fill"><b>'+esc(C.maker+' '+C.pn)+'</b>: the inputs below were filled from the maker’s typical-performance point, '+fl(P.m_kgmin/60)+' of charge air at '+tD(P.thi)+' and '+P.p_barg+' bar g ('+(P.p_barg*14.50377).toFixed(1)+' psi g) leaving at '+tD(P.tho)+', '+kw(P.Q_kW*1000)+' rejected, with '+lmin(P.cool_lpm)+' of cooling water in at '+tD(P.tci)+'. '+esc(C.note||'')+' The page uses its water properties at 40 °C for the coolant. Source: '+link(C.src,C.srcName)+', read '+C.seen+'.</div>'; }
     else g+='<div class="note warn" id="tso-routeb"><b>'+esc(C.maker+' '+C.pn)+'</b> is rated '+(C.hp!=null?C.hp+' hp':C.kw+' kW')+' only. A horsepower rating gives no cooling capacity: it cannot be turned into kW of heat removed. The maker publishes no flow, temperatures or pressure drop for it, so nothing was filled in; enter a known performance point below (your own measurement, or a data sheet) to work out what it removes. '+esc(C.hpBasis)+'.'+(C.note?' '+esc(C.note):'')+' Source: '+link(C.src,C.srcName)+', read '+C.seen+'.</div>';
@@ -21506,11 +21702,24 @@ function tsOptionsSection(ind,p){
   }
   return out+sec('Intercooler options and cooling capacity',g);
 }
+// picking a core from the list and "Use this intercooler" do the same (2026-11-12): the type, the core, its tank necks as the
+// intercooler inlet / outlet (the neck less twice the charge-pipe wall, an estimated bore), the maker's air drop and its flow
+// where published, and a known thermal point into the cooling-capacity inputs
+function icApply(key){ const C=icRow(key); TSO.ic=C?String(key):''; if(!C) return;
+  TSO.ictype=C.type; const w=val('i-cpw')>0?val('i-cpw'):1.651;
+  if(C.inD>0&&C.outD>0){ setBase('i-ici',C.inD*25.4-2*w); setBase('i-ico',C.outD*25.4-2*w); }
+  if(C.dp){ setBase('i-icrdp',C.dp.kPa); setBase('i-icrf',C.dp.kgmin/0.45359237); }
+  if(C.point){ const P=C.point;
+    Object.assign(TSO,{pm:String(+(P.m_kgmin/0.45359237).toPrecision(10)),pTi:String(P.thi),pTo:String(P.tho),pcf:String(P.cool_lpm!=null?P.cool_lpm:P.cool_lbmin),pTc:String(P.tci),ua1:'',cool:P.coolant||'water'}); } }
+function tsoApplyTurbo(v){ const T=TURBO_LIB[+v]; TSO.turbo=v===''||!T?'':String(v); if(TSO.turbo!==''&&T.inlet){ setBase('i-cid',T.inlet.d_in*25.4); setBase('i-cod',T.outlet.d_in*25.4); } }
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-icuse],button[data-turuse]'); if(!b) return;
+  if(b.dataset.icuse!=null) icApply(b.dataset.icuse);
+  else { tsoApplyTurbo(b.dataset.turuse); TSO.hs=''; const th=$('i-thsg'); if(th) th.value=''; }
+  renderActive(); });
 document.addEventListener('change',e=>{ const el=e.target.closest('.tsox'); if(!el) return; const k=el.dataset.k; TSO[k]=el.value;
   if(k==='ictype') TSO.ic='';
-  if(k==='ic'){ const C=IC_LIB[+el.value]; if(el.value!==''&&C&&C.point){ const P=C.point;
-    Object.assign(TSO,{pm:String(+(P.m_kgmin/0.45359237).toPrecision(10)),pTi:String(P.thi),pTo:String(P.tho),pcf:String(P.cool_lpm),pTc:String(P.tci),ua1:'',cool:P.coolant||'water'}); } }
-  if(k==='turbo'){ const T=TURBO_LIB[+el.value]; if(el.value!==''&&T&&T.inlet){ setBase('i-cid',T.inlet.d_in*25.4); setBase('i-cod',T.outlet.d_in*25.4); } }
+  if(k==='ic') icApply(el.value);
+  if(k==='turbo') tsoApplyTurbo(el.value);
   // a turbine housing: its A/R and label become the build's (saved with the project); a new turbo clears the housing
   if(k==='turbo'){ TSO.hs=''; const th=$('i-thsg'); if(th) th.value=''; }
   if(k==='hs'){ const T=TURBO_LIB[+TSO.turbo], x=T&&el.value!==''?T.hs[+el.value]:null, th=$('i-thsg');
@@ -21680,7 +21889,7 @@ function arSection(T,R,p,route){
   b+='<p class="cap" id="tso-ar-cap">A/R is the housing’s inlet cross-section area divided by the radius from the turbo centreline to the centroid of that area (Garrett, catalogue p. 7). A smaller A/R sends the gas into the wheel faster and more tangentially: more turbine power low down and quicker boost, but less flow capacity and more back pressure at high RPM; a larger A/R the reverse (Garrett). For a vaneless volute, conservation of mass and of angular momentum give tan α = 2π b ÷ (A/R) at the rotor inlet, α from the radial direction and b the rotor’s inlet width (incompressible; derived on the page), which is why a smaller A/R turns the flow more tangential. The volute A/r sets the rotor inlet angle and the swallowing capacity for one wheel (Lee, Barrans, Jupp and Nickson, Aerospace 2017), but how capacity scales with A/R was not found in a source, so housings are only put in order. One engine’s result (Garrett’s A/R article): a GTX3076R GEN II on a 1.9 L Honda made 600 whp and 400 lb-ft on a “divided v-band .83 A/R” housing with full spool at 5,250 RPM; on 1.01 A/R it gained 50 whp and 75 lb-ft and full spool moved to almost 6,000 RPM. That is one engine, not a rule; Garrett’s G25-660 test of 0.72 against 0.92 “did not make as significant of a difference”. (Garrett’s GTX3076R GEN II product page lists its V-band 0.83 and 1.01 housings as undivided; the article calls the car’s 0.83 divided.)</p>';
   return h+b;
 }
-window.__tso={TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop,icScaleUA,icHpOf,UA_EXP,arDemand,arFlowVerdict,arPlan,arDivMsg,thLabel};
+window.__tso={icRecommend,turboRecommend,icRateOf,icFace,icPubN,icOwn,icRow,icApply,TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop,icScaleUA,icHpOf,UA_EXP,arDemand,arFlowVerdict,arPlan,arDivMsg,thLabel};
 /* ----- Wastegate and blow-off valve: where they go on this build, and their size (2026-11-11, phase 3) -----
    Flow through a valve: isentropic flow through a restriction, m = Cd A p0 sqrt(2 g / ((g - 1) R T0) (r^(2/g) - r^((g+1)/g))),
    r = p / p0 held at the critical (2 / (g + 1))^(g / (g - 1)) once choked (Heywood, Internal Combustion Engine
@@ -22133,7 +22342,9 @@ function tgSteps(ind,p){
   add('air','Boost and airflow needed',G?'ok':'todo',G?'needs '+F.fl(G.wa/LBMIN)+' per compressor at pressure ratio '+G.pr.toFixed(2)+' (Garrett’s method); the tab’s airflow and boost give '+F.fl(R.m)+' at '+R.PRc.toFixed(2):
     'the tab’s airflow and boost give '+F.fl(R.m)+' per compressor at pressure ratio '+R.PRc.toFixed(2)+'; enter the target power for Garrett’s figure','turbo-and-intercooler-sizing');
   if(turbo){ const T=TG.turbo;
-    add('turbo','Pick a turbo',!T||!T.t?'todo':T.v&&T.v[0]==='below'?'warn':'ok',T&&T.t?T.t.maker+' '+T.t.model+(T.v&&T.v[1]!=='–'?': '+T.v[1]:''):'not chosen yet','turbo-options');
+    const TR=TG.turbRec, tp=TR&&TR.pick, tIn=tp&&T&&T.t===tp.t;
+    add('turbo','Pick a turbo',!T||!T.t?'todo':T.v&&T.v[0]==='below'?'warn':'ok',(T&&T.t?T.t.maker+' '+T.t.model+(T.v&&T.v[1]!=='–'?': '+T.v[1]:''):'not chosen yet')+
+      (tp?'; recommended '+tp.t.maker+' '+tp.t.model+' ('+tp.t.hp+' hp rating'+(TR.m!==1?', margin '+TR.m:'')+(tIn?', in use)':', not applied: Use this turbo)'):TR?'; no listed turbo fits the rule':''),'turbo-options');
     const A=TG.ar, ar=val('i-tar'), lab=$('i-thsg')&&$('i-thsg').value, probs=[];
     if(A){ if(A.div) probs.push(A.div); if(A.bellBad) probs.push('measured pressure before the turbine: '+A.bell); if(A.limit) probs.push('the housing is at its published flow limit'); }
     add('ar','Turbine housing A/R',probs.length?'warn':ar>0?'ok':'todo',(ar>0?(+ar).toFixed(2)+' A/R'+(lab?', '+lab.replace(/^.*?: [0-9.]+ A\/R, /,''):''):'not chosen yet')+(probs.length?'; '+probs.join('; '):''),'turbo-options'); }
@@ -22141,8 +22352,10 @@ function tgSteps(ind,p){
   { const r=TS_REC, same=(a,b)=>a>0&&b>0&&Math.abs(a-b)<0.05, cur='inlet '+cdim(p.dt)+', hot side '+cdim(q.dh)+', cold side '+cdim(R.dc);
     const match=r&&same(p.dt,r.dt)&&same(q.dh,r.dh)&&same(R.dc,r.dc), bad=TG.route&&TG.route.bad.length;
     add('pipes','Inlet and charge pipe sizes',bad?'warn':match?'ok':'todo',cur+(match?': the recommended sizes':r&&r.dt&&r.dh&&r.dc?'; recommended inlet '+cdim(r.dt)+', hot '+cdim(r.dh)+', cold '+cdim(r.dc)+' (Use these sizes)':'')+(bad?'; '+TG.route.bad[0]:''),'inlet-and-charge-pipes-design-and-sizing'); }
-  { const I=TG.ic, ice=val('i-ice')||0, bad=I&&I.v==='rating is below this build’s target', nb=TG.ntuBad;
-    add('ic','Intercooler',bad||nb?'warn':I&&I.c?'ok':ice>0?'todo':'info',(ice>0?(I&&I.type==='w2a'?'water-to-air':'air-to-air')+', '+Math.round(ice)+'% effectiveness, '+(I?F.kw(I.Qreq)+' to remove':'')+'; '+(I&&I.c?I.c.maker+' '+I.c.pn+(I.v&&I.v!=='–'?': '+I.v:''):'no core picked yet'):'none (effectiveness 0)')+(nb?'; no core reaches the target with the outside air entered':''),'intercooler-options-and-cooling-capacity'); }
+  { const I=TG.ic, ice=val('i-ice')||0, bad=I&&I.v==='rating is below this build’s target', nb=TG.ntuBad, IR=TG.icrec;
+    const rl=!IR||!(ice>0)?'':'; '+IR.types.map(t=>{ const P=IR[t].pick, nm=t==='a2a'?'air-to-air':'water-to-air';
+      return P?'recommended '+(IR.types.length>1?nm+' ':'')+P.c.maker+' '+P.c.pn+(I&&I.c===P.c?' (in use)':' (not applied: Use this intercooler)'):'no listed '+nm+' core fits (see the specification)'; }).join('; ');
+    add('ic','Intercooler',bad||nb?'warn':I&&I.c?'ok':ice>0?'todo':'info',(ice>0?(I&&I.type==='w2a'?'water-to-air':I&&I.type==='a2a'?'air-to-air':'type not decided')+', '+Math.round(ice)+'% effectiveness, '+(I?F.kw(I.Qreq)+' to remove':'')+'; '+(I&&I.c?I.c.maker+' '+I.c.pn+(I.v&&I.v!=='–'?': '+I.v:''):'no core picked yet'):'none (effectiveness 0)')+rl+(nb?'; no core reaches the target with the outside air entered':''),'intercooler-options-and-cooling-capacity'); }
   { const P=TS_PLACE, B=P&&P.bov, W=P&&P.wg, probs=[];
     if(B&&!B.fits) probs.push('the blow-off valve does not fit on its straight');
     if(B&&!B.pick) probs.push('no listed blow-off valve size passes the full flow');
@@ -22185,7 +22398,7 @@ function tsSheet(){
   const parts=[], nums=[], assume=[], P=(a,b,c)=>parts.push([a,b,c||'']), N=(a,b)=>nums.push([a,b]);
   const bends=(list,n)=>list&&list.length?list.map(a=>Math.round(a)+'°').join(' + ')+' bends':n>0?(+n.toFixed(1))+' × 90° bends':'no bends';
   const T=TG.turbo&&TG.turbo.t, H=tsHsg();
-  if(turbo){ P('Turbo'+each,T?T.maker+' '+T.model:'not chosen',T?T.pn:'');
+  if(turbo){ P('Turbo'+each,T?T.maker+' '+T.model:'not chosen',T?T.pn+'; source '+T.src+' (read '+T.seen+')':'');
     P('Turbine housing',val('i-tar')>0?(+val('i-tar')).toFixed(2)+' A/R'+(H?', '+H.flange+' inlet, '+H.outlet+' outlet'+(H.outletIn?' '+cdim(H.outletIn*25.4):''):''):'not chosen',H&&H.pn?H.pn:''); }
   P('Compressor inlet / outlet',(q.dci>0?cdim(q.dci):'not entered')+' / '+(q.dco>0?cdim(q.dco):'not entered'),'the cover’s sizes');
   P('Inlet tube'+each,'ID '+cdim(p.dt)+', '+clen(p.lt)+' long, '+bends(p.bendAng,p.bends),'filter to compressor');
@@ -22195,7 +22408,11 @@ function tsSheet(){
   cone('Cone, inlet tube → compressor',R.trIn); const tr=x=>{ const f=R.trs.find(y=>y[0]===x); return f?f[1]:null; };
   cone('Cone, compressor outlet → hot pipe',tr('co')); cone('Cone, hot pipe → intercooler',tr('ici')); cone('Cone, intercooler → cold pipe',tr('ico')); cone('Cone, cold pipe → throttle',tr('tb'));
   const I=TG.ic, ice=val('i-ice')||0;
-  P('Intercooler',ice>0?(I&&I.type==='w2a'?'water-to-air':'air-to-air')+(I&&I.c?', '+I.c.maker+' '+I.c.pn:', core not picked')+', '+Math.round(ice)+'% effectiveness':'none',ice>0?'core drop '+F.pD((val('i-icdp')||0)*1000)+(q.dici>0?', inlet '+cdim(q.dici):'')+(q.dico>0?', outlet '+cdim(q.dico):''):'');
+  if(ice>0&&I&&I.c){ const c=I.c, D=c.L?[c.L,c.H,c.W]:c.dims;
+    P('Intercooler core',c.maker+' '+c.pn+', '+(c.type==='w2a'?'water-to-air':'air-to-air')+(D?', core '+D.map(x=>(+x[0]).toFixed(2)).join(' × ')+' in ('+D.map(x=>x[1]).join(' × ')+' mm)':', size not published')+(c.inD?', necks '+cdim(c.inD*25.4)+' in / '+cdim(c.outD*25.4)+' out':''),
+      (c.own?'your own core':'source '+c.src+' (read '+c.seen+')')+(TG.icrec&&TG.icrec[c.type]&&TG.icrec[c.type].pick?(TG.icrec[c.type].pick.c===c?'; the page’s recommendation':'; the page recommends '+TG.icrec[c.type].pick.c.maker+' '+TG.icrec[c.type].pick.c.pn):'')); }
+  else if(ice>0&&TG.icrec) TG.icrec.types.forEach(t=>{ const R2=TG.icrec[t].pick; if(R2) P('Intercooler core, recommended ('+(t==='w2a'?'water-to-air':'air-to-air')+', not applied)',R2.c.maker+' '+R2.c.pn,R2.c.src?'source '+R2.c.src:''); });
+  P('Intercooler',ice>0?(I&&I.type==='w2a'?'water-to-air':I&&I.type==='a2a'?'air-to-air':'type not decided')+(I&&I.c?', '+I.c.maker+' '+I.c.pn:', core not picked')+', '+Math.round(ice)+'% effectiveness':'none',ice>0?'core drop '+F.pD((val('i-icdp')||0)*1000)+(q.dici>0?', inlet '+cdim(q.dici):'')+(q.dico>0?', outlet '+cdim(q.dico):''):'');
   const PL=TS_PLACE, B=PL&&PL.bov, W=PL&&PL.wg;
   if(B) P('Blow-off valve',(B.pick?cdim(B.pick)+' or larger':'larger than '+cdim(50))+', effective area '+(B.Aeff*1e6).toFixed(0)+' mm² ('+(B.Aeff*1550.0031).toFixed(2)+' in²)',(B.side==='cold'?'cold side, centre '+clen(B.x)+' before the throttle face':'hot side, centre '+clen(B.x)+' after the compressor outlet')+(B.vent==='recirc'?', recirculated to the inlet tube':', vented'));
   if(turbo&&W){ if(W.type==='ext') P('Wastegate',W.mw>0?(W.pick?cdim(W.pick)+' valve and branch at 45°':'over '+cdim(60)+', or two gates')+', effective area '+(W.Aeff*1e6).toFixed(0)+' mm² ('+(W.Aeff*1550.0031).toFixed(2)+' in²)':'no gate flow at peak on these assumptions',
@@ -22978,7 +23195,7 @@ const PROJ_VEH=['v-mode','v-class','v-make','v-pick'];
 const projUiCopy=(o,skip)=>{ const r={}; for(const k in o){ if(skip.includes(k)) continue; const v=o[k]; if(typeof v==='function') continue; r[k]=v; } return JSON.parse(JSON.stringify(r)); };
 const PROJ_UI={   // the per-section settings kept with a project: [object, keys left out]
   wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
-  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]]};
+  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]]};
 function projLoadAll(){ try{ const a=JSON.parse(localStorage.getItem(PROJ_KEY)||'[]'); return Array.isArray(a)?a.filter(p=>p&&p.data&&p.name):[]; }catch(e){ return []; } }
 function projStoreAll(a){ try{ localStorage.setItem(PROJ_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 function projSnapshot(name){

@@ -121,9 +121,12 @@ const { chromium } = require('playwright');
   ok(/rated to support up to 700 horsepower/.test(tn) && /hose/.test(tn) && /dealer’s listing only/.test(tn) && /Full-Race \(dealer\)/.test(tn), 'turbo note: the rating as written, hose sizes, which figures are the dealer’s');
   const tt = await pg.$eval('#tso-turbos', e => e.innerText);
   ok(/2\.28 in \(58\.0 mm\)/.test(tt) && /101\.6 mm/.test(tt) && /522 kW/.test(tt), 'turbo table in inches and mm, hp and kW');
-  // intercoolers: type filter, route B
-  let ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.map(r => r.cells[0].innerText.split('\n')[0]));
-  ok(ics.length === 12 && ics.filter(x => /^Garrett 7035/.test(x)).length === 5 && ics.indexOf('Mishimoto MMINT-UR') >= 0 && ics.indexOf('CSF 8045') >= 0, 'air-to-air list: 5 Garrett, 2 Mishimoto, 5 CSF (' + ics.join(', ') + ')');
+  // intercoolers: type filter, route B (the type now starts undecided, 2026-11-12: every row listed; pick air-to-air first)
+  let ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.length);
+  ok(ics === 67, 'type not decided: every core listed, 50 air-to-air and 17 water-to-air (' + ics + ')');
+  await setx('ictype', 'a2a'); await pg.waitForTimeout(400);
+  ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.map(r => r.cells[0].innerText.split('\n')[0]));
+  ok(ics.length === 50 && ics.filter(x => /^Garrett /.test(x)).length === 31 && ics.filter(x => /^Mishimoto /.test(x)).length === 5 && ics.filter(x => /^CSF /.test(x)).length === 14 && ics.indexOf('Mishimoto MMINT-UR') >= 0 && ics.indexOf('CSF 8045') >= 0, 'air-to-air list: 31 Garrett (the maker’s full table, 2026-11-12), 5 Mishimoto, 14 CSF (' + ics.length + ')');
   const ur = await pg.evaluate(() => window.__tso.IC_LIB.find(c => c.pn === 'MMINT-UR')), c45 = await pg.evaluate(() => window.__tso.IC_LIB.find(c => c.pn === '8045'));
   ok(ur.hp === 1000 && ur.inD === 3 && ur.dims[0][0] === 24 && ur.dims[1][0] === 12 && ur.dims[2][0] === 4 && ur.dims[2][1] === 101.6 && ur.point === null, 'Mishimoto MMINT-UR 24 x 12 x 4 in (101.6 mm), 3 in tanks, 1000 hp, no thermal point');
   ok(c45.hp === 1000 && c45.dims.map(x => x[0]).join() === '25,12,3.5', 'CSF 8045 25 x 12 x 3.5 in, 1000 hp');
@@ -134,7 +137,7 @@ const { chromium } = require('playwright');
   ok(/gives no cooling capacity/.test(rb) && /nothing was filled in/.test(rb), 'route B: hp-only core says no capacity can be computed');
   await setx('ictype', 'w2a'); await pg.waitForTimeout(400);
   ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.map(r => r.cells[0].innerText.split('\n')[0]));
-  ok(ics.length === 14 && ics.indexOf('Garrett 717874-6008') >= 0 && ics.filter(x => /^EJ Bowman/.test(x)).length === 6, 'water-to-air list: 3 Garrett, 2 Mishimoto, 3 CSF, 6 Bowman (' + ics.join(', ') + ')');
+  ok(ics.length === 17 && ics.indexOf('Garrett 717874-6008') >= 0 && ics.indexOf('Garrett 734408-6005') >= 0 && ics.filter(x => /^EJ Bowman/.test(x)).length === 6, 'water-to-air list: 4 Garrett, 2 Mishimoto, 5 CSF, 6 Bowman (' + ics.join(', ') + ')');
   const t2 = await pg.$eval('#tso-ics', e => e.innerText);
   ok(/conflict/.test(t2) && /typical engine power 50 kW \(67 hp\)/.test(t2) && /¾ in BSP/.test(t2), 'w2a table: Mishimoto’s conflicting sizes said, Bowman kW rating, water ports');
   // route A on the page, water-to-air, with the loop
