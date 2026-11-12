@@ -16,3 +16,9 @@
         housing A/R a visible field (options choice, summary rows, drawing, saved with project), check GTX3076R/G25-660 A/R lists.
 - [x] audit doc + STATUS written
 - [ ] A/R feature (next)
+A/R plan: form inputs i-tar (A/R number, visible), i-thsg (readonly text, housing label, restores TSO), i-p3m (measured
+  pre-turbine pressure gauge -> replaces k, Bell step); TURBO_LIB[].hs structured; arSection in Turbo options; drawing
+  turbine label; route summary row; 'Turbine housing A/R' section first-hand Garrett (catalogue p7 "WHAT IS A/R?", article
+  GTX3076R example); divided vs i-mani (BorgWarner catalogue twin-scroll text). No maker publishes per-housing turbine flow
+  in text (Garrett catalogue: only wheel "flows up to 43/56 LBS/MIN", no reference conditions) -> verdict path tested on a
+  synthetic row. Fetched so far: PT5862, PT6266, GTX3076R, G25-660, G35-900, EFR catalogue.
