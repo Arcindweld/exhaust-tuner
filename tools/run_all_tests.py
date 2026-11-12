@@ -212,9 +212,9 @@ def plan(tools, quick):
                  'exhaust-tuner-host'], ROOT, runner_skip=nocargo))
     out.append(T('build_et_core', 'build', ['cargo', 'build', '--release', '--manifest-path', 'rust/et_core/Cargo.toml'],
                  ROOT, runner_skip=nocargo))
+    nowasm = nocargo or (None if tools['wasm32'] else ('no-wasm32', 'the wasm32-unknown-unknown target is not installed (rustup target add wasm32-unknown-unknown)'))
     out.append(T('build_wave_wasm', 'build', ['cargo', 'build', '--release', '--target', 'wasm32-unknown-unknown',
-                 '--manifest-path', 'rust/et_wave/Cargo.toml'], ROOT,
-                 runner_skip=nocargo or (None if tools['wasm32'] else ('no-wasm32', 'the wasm32-unknown-unknown target is not installed (rustup target add wasm32-unknown-unknown)'))))
+                 '--manifest-path', 'rust/et_wave/Cargo.toml'], ROOT, runner_skip=nowasm))
     # rust: cargo test for every crate, then the wave model built from this checkout against the page's JavaScript
     # rust/'s tests use shell-script stand-ins for the solvers, and EXHAUST_TUNER_OPENWAM / _OPENFOAM would replace
     # those (rust/et_host/src/paths.rs reads them first: the router cancel tests then fail), so they run without them;
@@ -228,7 +228,7 @@ def plan(tools, quick):
                          '--', '--show-output'], ROOT, unset=solvers[1:],
                          runner_skip=nocargo or (None if tools['openwam'] else ('no-openwam', 'no OpenWAM build (EXHAUST_TUNER_OPENWAM)')),
                          note='the tests named real_solver, with EXHAUST_TUNER_OPENWAM'))
-    out.append(T('wave_wasm_built', 'rust', [node, 'wave_wasm.js'], rel('web', 'tests'), dict(q, WAVE_WASM=WASM), needs={'wasm'},
+    out.append(T('wave_wasm_built', 'rust', [node, 'wave_wasm.js'], rel('web', 'tests'), dict(q, WAVE_WASM=WASM), needs={'wasm'}, runner_skip=nowasm,
                  note='the wave model built from rust/et_wave against the page\'s JavaScript'))
     # web: every web/tests/*.js; the arguments a test takes are read from its source
     for f in sorted(os.listdir(rel('web', 'tests'))):
