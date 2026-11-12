@@ -19,7 +19,10 @@
 //     f 0.0154206 at the small end, least at a = 8.0 deg, K 0.022768, length (72.898 - 60.198) / (2 tan 4 deg) = 90.81 mm, on
 //     the small section's head 32802.98 Pa: 746.87 Pa;
 //   total 39301.66 Pa = 5.700 psi. The test recomputes every line above from these formulas (only R.m, R.t2 and the speed of
-//   sound are taken from the page) and checks the page's breakdown and the filled input against it.
+//   sound are taken from the page) and checks the first method's breakdown (exhAfterTurbine) against it. Since 2026-11-12 part 2
+//   the page's figure is the cooled, compressible march (exhMarch: 7716.37 Pa static at the turbine outlet for this build, checked
+//   in xflow_ui.js against tools/validation/boost/xflow.py); this first-method figure is its "First method" row, and the filled
+//   input is the march's figure (pin changed: 39301.66 -> 7716.37 Pa; the reasons are listed in xflow_ui.js and the audit).
 // Downpipe size: COBB Tuning (cobbtuning.com/different-types-of-downpipes-explained), 2.5 in for 300-350 hp, 3 in for 500-600 hp,
 //   the lower end of each range per downpipe, size as tube OD: 280 hp -> 2.5 in, 450 hp -> 3 in, 600 hp -> none; twins at 560 hp
 //   -> 280 each -> 2.5 in; a T4 housing's 3 5/8 in V-band outlet at 450 hp -> 3.625 in (not narrower than the outlet).
@@ -76,7 +79,11 @@ const { chromium } = require('playwright');
   // case A, by hand
   await setv('s-ind', 'turbo1'); await setv('m-dp', '72.898'); await setv('s-od', '76.2'); await setv('s-len', '2500'); await setv('i-xcat', 'none');
   await setv('i-dpb', '0');
-  const A = await pg.evaluate(() => { const X = window.__tsx.last(), R = window.__tsLast(); return X && { rows: X.X.rows.map(x => ({ k: x.k, d: x.d, L: x.L, dp: x.dp, alpha: x.cone && x.cone.alpha, len: x.cone && x.cone.len, K: x.cone && x.cone.Kcone })), bp: X.X.bp, c: X.X.c, t4: X.G.t4, me: X.G.me, miss: X.G.miss, Rm: R.m, t2: R.t2 }; });
+  // the hand case checks the first method (exhAfterTurbine, kept on the page as the start of "What each change moved"); the
+  // page's figure is now the cooled, compressible march (xflow_ui.js checks that one against xflow.py)
+  const A = await pg.evaluate(() => { const X = window.__tsx.last(), R = window.__tsLast(); if (!X) return null; const G = X.G;
+    const O = window.__tsx.exhAfterTurbine({ me: G.me, nt: G.nt, xn: G.xn, t4: G.t4, dOut: G.dOut, d: G.d, L: G.L, n90: G.n90, xb: G.xb, cat: G.cat, muf: G.muf, tail: G.tail });
+    return { rows: O.rows.map(x => ({ k: x.k, d: x.d, L: x.L, dp: x.dp, alpha: x.cone && x.cone.alpha, len: x.cone && x.cone.len, K: x.cone && x.cone.Kcone })), bp: O.bp, c: O.c, t4: G.t4, me: G.me, miss: G.miss, Rm: R.m, t2: R.t2, bpNew: X.X.bp, first: X.X.S.v0 }; });
   ok(!!A && A.miss.length === 0, 'case A: every part read from the tabs (nothing missing)');
   if (A) {
     const RA = 287.05, PA = 101325, cpe = 1310.8562261020516, me = A.Rm * (1 + 1 / 12), Wc = A.Rm * (1.4 * RA / 0.4) * (A.t2 - 30), T4 = 950 - Wc / (me * cpe), T = T4 + 273.15, c = A.c;
@@ -99,14 +106,15 @@ const { chromium } = require('playwright');
     ok(cone && cone.alpha === am && Math.abs(cone.len - (72.898 - 60.198) / 2 / Math.tan(am * Math.PI / 360)) < 1e-9 && Math.abs(cone.K - Km) < 1e-12, 'cone: least-loss angle ' + am + '°, K ' + Km.toFixed(6) + ', length ' + (cone && cone.len.toFixed(2)) + ' mm by hand');
     near(A.bp, P - PA, 1e-9, 'back pressure after the turbine, Pa (' + ((P - PA) / 6894.757).toFixed(3) + ' psi)');
     near(A.rows.reduce((a, r) => a + r.dp, 0), A.bp, 1e-12, 'the breakdown adds up to the total');
+    near(A.first, P - PA, 1e-9, 'the section’s “First method” row is this hand figure');
     await pg.click('button[data-tsx="use"]'); await pg.waitForTimeout(300);
     const tobp = await pg.evaluate(() => document.getElementById('i-tobp')._b);
-    near(tobp * 1000, P - PA, 1e-9, '“Use my exhaust’s back pressure” fills Back pressure after the turbine');
+    near(tobp * 1000, A.bpNew, 1e-9, '“Use my exhaust’s back pressure” fills Back pressure after the turbine with the march’s figure (' + (A.bpNew / 1000).toFixed(2) + ' kPa)');
     const t = await secTxt('turbo-and-intercooler-sizing');
-    const kp = ((P - PA) / 1000).toFixed(2) + ' kPa (' + ((P - PA) / 6894.757).toFixed(2) + ' psi)';
+    const kp = (A.bpNew / 1000).toFixed(2) + ' kPa (' + (A.bpNew / 6894.757).toFixed(2) + ' psi)';
     ok(t.includes('plus your ' + kp + ' back pressure after the turbine'), 'the turbine balance uses it (its caption states ' + kp + ')');
     s = await steps(); ok(s.exh.state === 'ok' && /used in the turbine balance/.test(s.exh.text), 'step 8 done once the back pressure is in use: ' + s.exh.text.split('\n').pop());
-    ok(/Past the simple formulas’ range/.test(await secTxt('exhaust-after-the-turbine')) && await pg.evaluate(() => !!document.querySelector('#tsx-bp tr[data-flag="1"]')), 'parts past Mach 0.3 or a tenth of the pressure are flagged');
+    ok(await pg.evaluate(() => /39\.30 kPa \(5\.70 psi\)/.test((document.querySelector('#tsx-steps tr[data-st="old"]') || {}).innerText || '')), 'the first method’s 39.30 kPa (5.70 psi) is shown as the comparison’s start (the parts past Mach 0.3 are now worked compressibly)');
     await setv('i-tobp', ''); s = await steps(); ok(s.exh.state === 'todo', 'cleared by hand: manual entry stays possible, the step reopens');
   }
   // the size rule
@@ -149,14 +157,15 @@ const { chromium } = require('playwright');
     ok(one.length === 0, 'every length in the sheet’s tables and drawings in both inches and mm' + (one.length ? ': ' + one.slice(0, 3).join(' / ') : ''));
     ok(/psi/.test(sh.all) && /kPa/.test(sh.all) && /°F/.test(sh.all) && /°C/.test(sh.all) && /lb\/min/.test(sh.all) && /kg\/s/.test(sh.all), 'pressures, temperatures and flows in both units');
     ok(sh.svgs === 2 && sh.texts.some(t => /Downpipe/.test(t)) && sh.texts.some(t => /Inlet tube/.test(t)) && !/var\(--/.test(JSON.stringify(sh.texts)), 'both route drawings, intake and exhaust side, colours fixed for paper');
-    ok(/Assumptions and unsourced items/.test(sh.all) && /COBB Tuning/.test(sh.all) && /not cooled along the pipe/.test(sh.all) && /filter’s own loss/.test(sh.all), 'assumptions that apply: downpipe rule, exhaust gas, filter');
-    ok(/Pressure ratio|pressure ratio/.test(sh.all) && /Back pressure after the turbine, worked out/.test(sh.all), 'key numbers: pressure ratio, back pressure');
+    ok(/Assumptions and unsourced items/.test(sh.all) && /COBB Tuning/.test(sh.all) && /cooled along the pipe by the steady-flow heat transfer/.test(sh.all) && /compressible 1-D relations/.test(sh.all) && /filter’s own loss/.test(sh.all), 'assumptions that apply: downpipe rule, exhaust gas (cooled, compressible), filter');
+    ok(/Pressure ratio|pressure ratio/.test(sh.all) && /Back pressure after the turbine, worked out/.test(sh.all) && /static at the turbine outlet/.test(sh.all) && /Gas at the tip/.test(sh.all), 'key numbers: pressure ratio, back pressure (static at the turbine outlet), gas at the tip');
   }
   // the converter row by hand (Cats tab at High-flow 200 cpsi, 2 mil, its default substrate, pipe and cones): catDp's documented
   // formulas, Shah and London's apparent f Re for a square channel, the faces 0.5 (1 - OFA) + (1 - OFA)², and the cones as
   // Rennels' conical diffuser and contraction with their friction on the pipe's head, each at T4 and the converter's own
   // downstream pressure, the whole exhaust split over the converters side by side
-  const Cc = await pg.evaluate(() => { const X = window.__tsx.last(), r = X.X.rows.find(x => x.k === 'cat'); return r && { g: X.G.cat.g, count: X.G.cat.count, series: X.G.cat.series, p: r.p, dp: r.dp, t4: X.G.t4, me: X.G.me }; });
+  const Cc = await pg.evaluate(() => { const X = window.__tsx.last(), G = X.G, O = window.__tsx.exhAfterTurbine({ me: G.me, nt: G.nt, xn: G.xn, t4: G.t4, dOut: G.dOut, d: G.d, L: G.L, n90: G.n90, xb: G.xb, cat: G.cat, muf: G.muf, tail: G.tail }), r = O.rows.find(x => x.k === 'cat');
+    return r && { g: X.G.cat.g, count: X.G.cat.count, series: X.G.cat.series, p: r.p, dp: r.dp, t4: X.G.t4, me: X.G.me }; });
   if (Cc) { const T = Cc.t4 + 273.15, g = Cc.g, rho = Cc.p / (287.05 * T), mu = 1.716e-5 * Math.pow(T / 273.15, 1.5) * (273.15 + 110.4) / (T + 110.4), Q = Cc.me / Cc.count / rho;
     const v = Q / (g.Asub * g.ofa), Re = rho * v * g.w / mu, xp = g.len / (g.w * Re), fRe = 3.44 / Math.sqrt(xp) + (14.227 + 1.43 / (4 * xp) - 3.44 / Math.sqrt(xp)) / (1 + 0.00029 / (xp * xp)), qch = rho * v * v / 2;
     const vp = Q / g.Apipe, qp = rho * vp * vp / 2, dP = Math.sqrt(4 * g.Apipe / Math.PI), dS = Math.sqrt(4 * g.Asub / Math.PI), bC = Math.min(1, dP / dS), aC = g.cone > 0 ? 2 * Math.atan((dS - dP) / 2 / g.cone) * 180 / Math.PI : 180;

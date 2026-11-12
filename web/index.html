@@ -22103,7 +22103,8 @@ function tsExhSection(ind,p){
     else if(x.k==='cat'){ size=esc(G.cat.what); how='catDp (Shah and London channels, faces, Rennels cones) at the gas’s own density, as the Cats tab works it'; }
     else if(x.k==='muf'){ size=esc(G.muf.what)+', pipe '+cdim(x.d); how=esc(G.muf.how)+', H '+F.pD(x.H)+(x.hole?', holes at Mach '+x.hole.M.toFixed(2):'')+'; the Mufflers tab’s own elements'; }
     else if(x.k==='tip'){ size='ID '+cdim(x.d); how='free jet, 0.4 H (Munjal 1987, 8.3), the exit at the outside pressure'; }
-    return '<tr data-x="'+x.k+'"><td>'+nameOf[x.k]+'</td><td>'+size+'</td><td>'+gas(x)+'</td><td>'+F.sD(x.sIn.v)+' → '+F.sD(x.sOut.v)+'<br><span class="hint">Mach '+x.sIn.M.toFixed(2)+' → '+x.sOut.M.toFixed(2)+'</span></td><td>'+F.pD(x.dp)+'</td><td style="white-space:normal;min-width:12em">'+how+'</td></tr>'; };
+    const big=x.k!=='dp'&&x.k!=='tail'&&x.dp0>0.1*x.sIn.p0;
+    return '<tr data-x="'+x.k+'"'+(big?' data-flag="1"':'')+'><td>'+(big?'<span class="st-warn" aria-label="indicative">⚠</span> ':'')+nameOf[x.k]+'</td><td>'+size+'</td><td>'+gas(x)+'</td><td>'+F.sD(x.sIn.v)+' → '+F.sD(x.sOut.v)+'<br><span class="hint">Mach '+x.sIn.M.toFixed(2)+' → '+x.sOut.M.toFixed(2)+'</span></td><td>'+F.pD(x.dp)+'</td><td style="white-space:normal;min-width:12em">'+how+'</td></tr>'; };
   const chokeTxt=c=>{ const nm=c.k==='tail'?'the pipe after the downpipe':c.k==='dp'?'the downpipe':c.k==='tip'?'the tip':c.k==='muf'?'the muffler':c.k==='cat'?'the converters':c.k==='cone'?'the turbine outlet':'a size change';
     return 'This exhaust chokes at '+nm+(c.d>0?' ('+cdim(c.d)+')':'')+': '+esc(c.why)+'. The flow cannot pass at a subsonic back pressure: the pipe or part is too small for '+F.fl(G.me)+(nt>1?' a turbo':'')+'. To pass it there the gas would need at least '+F.pD(c.need-P_ATM)+' of total pressure at that section (Mach 1), and more upstream; no back pressure is given.'; };
   let h=head;
@@ -22117,6 +22118,8 @@ function tsExhSection(ind,p){
     rowT('Exhaust through each downpipe',F.fl(G.me),(nt>1?'per turbo; '+F.fl(G.me*nt)+' in all, '+(G.xn>1?G.xn+' pipes after the downpipes':'one pipe after the downpipes (the Y where they meet is not counted)'):'air + fuel at A/F '+G.afr));
   h+='<div class="tblwrap"><table id="tsx-bp"><thead><tr><th>Part</th><th>Size</th><th>Gas in → out (static)</th><th>Speed in → out</th><th>Static pressure rise</th><th>How</th></tr></thead><tbody>'+X.rows.map(row).join('')+
     (X.choke?'':'<tr data-x="total"><td><b>Total</b></td><td></td><td></td><td></td><td><b>'+F.pD(X.bp)+'</b></td><td style="white-space:normal">static pressure at the turbine outlet over the outside air’s: the rises add up, part by part from the tip back</td></tr>')+'</tbody></table></div>';
+  if(X.rows.some(x=>x.k!=='dp'&&x.k!=='tail'&&x.dp0>0.1*x.sIn.p0)) h+='<p class="cap" id="tsx-flag">⚠ That part loses more than a tenth of the total pressure at it. Its loss coefficient is a low-speed measurement, taken here on the head at its inlet; how such a loss splits as the gas speeds up through the part is not known, so read its figure as indicative (Crane TP-410 holds the incompressible losses within about 10% only below a tenth of the pressure). A larger part or pipe brings it down.</p>';
+  if(G.cat&&G.cat.count!==G.xn) G.notes.push('the steps into and out of the converters (their count, '+G.cat.count+', differs from the pipes’, '+G.xn+')');
   // what each change moved
   const dl=(a,b)=>a==null||b==null?'chokes':(b-a>=0?'+':'−')+F.pD(Math.abs(b-a));
   h+='<p class="sub" style="margin-top:14px">What each change moved, on this build</p><div class="tblwrap"><table id="tsx-steps"><thead><tr><th>Method</th><th>Back pressure</th><th>Change</th><th>What changed</th></tr></thead><tbody>'+
