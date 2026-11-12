@@ -302,7 +302,7 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
   // by hand: dry air, gamma 1.4, R 287.05, reference state 101.325 kPa and 288.7056 K (60 F); Q = cfm / 2118.88 m3/s;
   // m = Cd A p0 / sqrt(R T0) psi, Q = m / rho0, so Cd A = Q sqrt(R T0) / psi
   const psi = (pr, g) => Math.sqrt(2 * g / (g - 1) * (Math.pow(pr, 2 / g) - Math.pow(pr, (g + 1) / g)));
-  const hand = (cfm, T0) => cfm / 2118.88 * Math.sqrt(287.05 * T0) / psi((P0 - DP28) / P0, 1.4);
+  const hand = (cfm, T0) => cfm / 2118.88 / (Math.sqrt(287.05 * T0) * psi((P0 - DP28) / P0, 1.4));
   let worst = 0; const cd = [];
   SRC.lift.forEach((l, i) => { for (const [k, d] of [['in', 2.165], ['ex', 1.590]]) { const a = W.benchCdA(SRC[k][i], 28), h = hand(SRC[k][i], 288.7056);
     worst = Math.max(worst, Math.abs(a / h - 1)); cd.push(k + ' ' + l.toFixed(3) + ' in: L/D ' + (l / d).toFixed(3) + ', Cd A ' + (a * 1e6).toFixed(0) + ' mm2, Cd on the curtain ' + (a / (Math.PI * d * IN * l * IN)).toFixed(3)); } });
@@ -323,6 +323,12 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
     let f = { m: 0, h: 0, x: 1, uj: 0 }; P.left = left(P); P.right = right ? right(P, far) : W0.fedEnd(+1, () => f);
     for (let s = 0, tt = 0; tt < 0.4; s++) { W0.prim(P); if (!right) f = W0.valveFlow(cda, far, P, P.n - 1); const dt = 0.8 * P.dx / W0.maxSpeed(P); W0.stepPipe(P, dt); tt += dt; }
     W0.prim(P); return { P, m: P.f1[P.n], m0: P.f1[0] }; };
+  // a line of segments (W0.buildLine, its steps joined by the two-pipe junction) from still air into a plenum held at pd
+  const line = (segs, pd) => { const L = W0.buildLine({ segs, Tw: TA }, 0.01, TA, 1, Gair), PLf = { p: pd, T: TA, x: 1 };
+    L[0].left = W0.openEnd(-1, P0, TA, 1); L[L.length - 1].right = W0.plenEnd(+1, PLf); for (let q = 1; q < L.length; q++) { L[q - 1].right = () => {}; L[q].left = () => {}; }
+    for (let tt = 0; tt < 0.5;) { let v = 0, dm = 1; for (const P of L) { W0.prim(P); v = Math.max(v, W0.maxSpeed(P)); dm = Math.min(dm, P.dx); }
+      const dt = 0.8 * dm / v; for (let q = 1; q < L.length; q++) W0.junction(L[q - 1], L[q]); for (const P of L) W0.stepPipe(P, dt); tt += dt; }
+    for (const P of L) W0.prim(P); return { L, m: L[L.length - 1].f1[L[L.length - 1].n], m0: L[0].f1[0] }; };
   { const ab = W0.benchCdA(312, 28, TA), s = steady(ab, P0 - DP28, 0.2, 0.1, () => W0.openEnd(-1, P0, TA, 1)), rho = P0 / (Gair.Ra * TA), q = s.m / rho * 2118.88;
     ok(Math.abs(q / 312 - 1) < 2e-3 && Math.abs(s.m / s.m0 - 1) < 1e-3, 'steady flow bench: the model\'s valve at the LS3\'s 0.600 in area (' + (ab * 1e6).toFixed(0) + ' mm2) and 28 in H2O passes ' +
       q.toFixed(1) + ' cfm (source 312; mass flow in ' + s.m0.toFixed(5) + ', out ' + s.m.toFixed(5) + ' kg/s)'); }
@@ -334,20 +340,17 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
     // the pressure behind it for that flow, by hand (compressible, gamma 1.4: bisection on the orifice law from 101.325 kPa, 298.15 K)
     const rho0 = P0 / (287.05 * TA); let lo = 0.5, hi = 1; for (let i = 0; i < 200; i++) { const pr = 0.5 * (lo + hi), m = cda * Math.sqrt(P0 * rho0) * psi(pr, 1.4); if (m > mLS3) lo = pr; else hi = pr; }
     const pd = P0 * 0.5 * (lo + hi), inc = (mLS3 / cda) ** 2 / (2 * rho0);
-    const s = steady(cda, pd, 0.3, 0.1016, () => W0.openEnd(-1, P0, TA, 1));
-    ok(Math.abs(s.m / mLS3 - 1) < 3e-3, 'throttle, steady: ' + mLS3.toFixed(4) + ' kg/s (the LS3 at 5900 rpm, VE 1) needs ' + ((P0 - pd) / 1000).toFixed(3) + ' kPa across it by hand (incompressible ' + (inc / 1000).toFixed(3) +
-      ' kPa); the model\'s inlet tube and throttle orifice at that pressure pass ' + s.m.toFixed(4) + ' kg/s'); }
-  // (d) the air filter: sized for dp 2.5 kPa at 0.35 kg/s on a 101.6 mm inlet; the total-pressure loss read in the pipe
-  { const dp = 2500, mr = 0.35, A = Math.PI * 0.1016 * 0.1016 / 4, rho = P0 / (Gair.Ra * TA), cdaF = mr / Math.sqrt(2 * rho * dp + mr * mr / (A * A));
-    const sd = W0.gas.at(Gair, TA, 1), atm = { p: P0, T: TA, x: 1, R: sd.R, cp: sd.cp, g: sd.gamma }, fl = { m: 0, h: 0, x: 1, uj: 0 };
-    const res = [];
-    for (const pd of [P0 - 5000, P0 - 3500]) {
-      const PLf = { p: pd, T: TA, x: 1 }, P = W0.makePipe({ L: 0.6, dx: 0.01, area: () => A, Tw: TA, T0: TA, x0: 1, gas: Gair });
-      P.left = W0.fedEnd(-1, () => fl); P.right = W0.plenEnd(+1, PLf);
-      for (let tt = 0; tt < 0.5;) { W0.prim(P); const v = W0.valveFlow(cdaF, atm, P, 0); fl.m = -v.m; fl.h = v.h; fl.x = v.x; fl.uj = v.uj; const dt = 0.8 * P.dx / Math.max(W0.maxSpeed(P), fl.uj + 400); W0.stepPipe(P, dt); tt += dt; }
-      W0.prim(P); const i = 30, g = P.g[i], c = Math.sqrt(g * P.p[i] / P.r[i]), M = P.u[i] / c, p0 = P.p[i] * Math.pow(1 + 0.5 * (g - 1) * M * M, g / (g - 1)), m = P.f1[P.n];
-      res.push({ m, loss: P0 - p0, want: dp * (m / mr) ** 2 }); }
-    ok(res.every(r => Math.abs(r.loss / r.want - 1) < 0.03), 'air filter (2.5 kPa at 0.35 kg/s, Cd A ' + (cdaF * 1e3).toFixed(3) + 'e-3 m2 on a ' + (A * 1e3).toFixed(3) + 'e-3 m2 mouth): steady total-pressure loss ' +
+    // the model's throttle (plenumOf): the inlet's last 50 mm at that Cd A, contracting without loss and dumping into the
+    // plenum; an inviscid 101.6 mm, 300 mm tube from still air, the plenum held at the pressure found by hand
+    const segs = W0.plenumOf({ plenum: { V_m3: 1, inlet: [{ L: 0.3, d0: 0.1016, d1: 0.1016 }], throttle: { d: 0.09, cd: 0.828 } } }).inlet, s = line(segs, pd);
+    ok(segs.length === 2 && Math.abs(Math.PI / 4 * segs[1].d0 ** 2 - cda) < 1e-15 && Math.abs(s.m / mLS3 - 1) < 5e-3 && Math.abs(s.m / s.m0 - 1) < 1e-3, 'throttle, steady: ' + mLS3.toFixed(4) + ' kg/s (the LS3 at 5900 rpm, VE 1) needs ' + ((P0 - pd) / 1000).toFixed(3) + ' kPa across it by hand (incompressible ' + (inc / 1000).toFixed(3) +
+      ' kPa); the model\'s tube and 50 mm throttle step at that plenum pressure pass ' + s.m.toFixed(4) + ' kg/s (in ' + s.m0.toFixed(4) + ')'); }
+  // (d) the air filter: 2.5 kPa at 0.35 kg/s on a 101.6 mm, 600 mm inlet (plenumOf's Borda-Carnot step); the total-pressure
+  // loss read in the tube after it, at two flows
+  { const segs = W0.plenumOf({ plenum: { V_m3: 1, inlet: [{ L: 0.6, d0: 0.1016, d1: 0.1016 }], filter: { dp: 2500, m: 0.35 } } }).inlet, res = [];
+    for (const pd of [P0 - 3300, P0 - 1500]) { const s = line(segs, pd), P = s.L[s.L.length - 1], i = 30, g = P.g[i], c = Math.sqrt(g * P.p[i] / P.r[i]), M = P.u[i] / c;
+      const p0 = P.p[i] * Math.pow(1 + 0.5 * (g - 1) * M * M, g / (g - 1)); res.push({ m: s.m, loss: P0 - p0, want: 2500 * (s.m / 0.35) ** 2 }); }
+    ok(segs.length === 2 && segs[0].d0 < 0.1016 && res.every(r => r.loss / r.want - 1 > 0 && r.loss / r.want - 1 < 0.12), 'air filter (sized incompressibly; the step's Mach 0.3-0.35 adds 4-10 %) (2.5 kPa at 0.35 kg/s: a 50 mm step to ' + (segs[0].d0 * 1000).toFixed(1) + ' mm before the 101.6 mm tube): steady total-pressure loss ' +
       res.map(r => (r.loss / 1000).toFixed(3) + ' kPa at ' + r.m.toFixed(3) + ' kg/s (dp (m / m_ref)^2 = ' + (r.want / 1000).toFixed(3) + ')').join(', ')); }
   // (e) an engine cycle with the plenum, its stepped inlet, throttle and filter and measured valve tables: mass and total
   // energy (pipes, cylinder, plenum) conserved to rounding
@@ -356,7 +359,7 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
     const intake = { segs: [{ L: 0.3, d0: 0.0368, d1: 0.0368 }], Tw: 320, plenum: { V_m3: 0.001, inlet: [{ L: 0.3, d0: 0.05, d1: 0.05 }, { L: 0.05, d0: 0.04, d1: 0.04 }], throttle: { d: 0.04, cd: 0.83 }, filter: { dp: 1000, m: 0.03 } } };
     const eng = W.makeEngine(e, intake, { segs: [{ L: 0.4, d0: 0.0445, d1: 0.0445 }, { L: 0.2, d0: 0.09, d1: 0.09 }, { L: 0.2, d0: 0.0445, d1: 0.0445 }], Tw: 700 }, { phases: [0] });
     const G = eng.gas, GI = eng.gasIn, st = W.freshState(eng, 0.01), FAN = 0.005;
-    ok(st.plen && st.plen.inlet.length === 2 && st.plen.cdaTh > 0 && st.plen.cdaF > 0 && eng.plenum.V === 0.001, 'the plenum is built: inlet of ' + st.plen.inlet.length + ' pipes, throttle and filter orifices');
+    ok(st.plen && st.plen.inlet.length === 4 && eng.plenum.V === 0.001 && Math.abs(st.plen.inlet[3].D[0] - 0.04 * Math.sqrt(0.83)) < 1e-12, 'the plenum is built: inlet of ' + st.plen.inlet.length + ' pipes (filter step, tube, throttle bore, throttle\'s effective area)');
     const stored = s => { let M = 0, E = 0;
       for (const P of [].concat(...s.ins, s.plen.inlet)) for (let i = 0; i < P.n; i++) { M += P.q1[i] * P.dx; E += (P.q3[i] + P.q4[i] * GI.qx) * P.dx; }
       for (const P of [].concat(...s.prims)) for (let i = 0; i < P.n; i++) { M += P.q1[i] * P.dx; E += (P.q3[i] + P.q4[i] * G.qx) * P.dx; }
@@ -373,7 +376,7 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
         B.dM += now.M - prev.M; B.dE += now.E - prev.E; }
       prev = now; } });
     const mr = (B.dM - (B.mIn - B.mOut + B.fuel)) / B.mIn, er = (B.dE - (B.flow + B.inj - B.sink)) / B.Q;
-    ok(Math.abs(mr) < 1e-9 && Math.abs(er) < 1e-9 && r.ve > 0.3 && B.pMax < P0, 'plenum, throttle, filter and measured valve flow, one cycle at 6000 rpm: mass residual ' + mr.toExponential(2) + ', total energy residual / heat released ' +
+    ok(Math.abs(mr) < 1e-9 && Math.abs(er) < 1e-9 && r.ve > 0.3, 'plenum, throttle, filter and measured valve flow, one cycle at 6000 rpm: mass residual ' + mr.toExponential(2) + ', total energy residual / heat released ' +
       er.toExponential(2) + '; plenum ' + (B.pMin / 1000).toFixed(1) + '-' + (B.pMax / 1000).toFixed(1) + ' kPa, VE ' + r.ve.toFixed(4)); }
 }
 

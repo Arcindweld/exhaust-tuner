@@ -62,7 +62,7 @@ const jobs = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_j
   const pl = { V_m3: 0.002, inlet: [{ L: 0.4, d0: 0.08, d1: 0.08 }, { L: 0.05, d0: 0.06, d1: 0.06 }], throttle: { d: 0.06, cd: 0.83 }, filter: { dp: 1500, m: 0.15 } };
   jobs.push({ name: 'plenum and bench flow', job: { dx: jobs[1].job.dx, rpms: [3000, 5000, 7000], variants: [{ label: 'flow tables, plenum, throttle, filter, four on one collector', spec: Object.assign({}, s1,
     { e: Object.assign({}, s1.e, { flowIn: tab(s1.e.dIn, 1), flowEx: tab(s1.e.dEx, 0.9) }), intake: Object.assign({}, s1.intake, { plenum: pl }) }) }] } });
-  jobs.push({ name: 'plenum, constant gas', job: { dx: jobs[1].job.dx, rpms: [3000, 6000], variants: [{ label: 'open inlet, no throttle orifice, spec.e.gas const', spec: Object.assign({}, s1,
+  jobs.push({ name: 'plenum, constant gas', job: { dx: jobs[1].job.dx, rpms: [3000, 6000], variants: [{ label: 'open inlet, no throttle step, spec.e.gas const', spec: Object.assign({}, s1,
     { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, { plenum: { V_m3: 0.003, inlet: [{ L: 0.5, d0: 0.07, d1: 0.07 }] } }) }) }] } }); }
 let tJs = 0, tW = 0;
 for (const { name, job } of jobs) {
