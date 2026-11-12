@@ -34,19 +34,30 @@ const { chromium } = require('playwright');
   ok(await pg.$eval('#f-intk-wrap', e => e.hidden), 'plenum inputs hidden for open runners');
   await setv('f-intk', 'plenum'); await pg.waitForTimeout(200);
   ok(!(await pg.$eval('#f-intk-wrap', e => e.hidden)), 'plenum inputs shown');
-  const ip = await pg.evaluate(() => { const sp = window.__sim.simSpec(window.__sim.inp()); return { pl: sp.intake.plenum, wam: window.WamExport.makeWam(sp, { rpm: 5000, cycles: 5, name: 't' }) }; });
-  ok(ip.pl && Math.abs(ip.pl.V_m3 - 0.006) < 1e-12 && ip.pl.inlet.length === 2 && Math.abs(ip.pl.inlet[1].d0 - 0.09) < 1e-12, 'spec: 6 L plenum, 90 mm throttle body, inlet tube (' + JSON.stringify(ip.pl) + ')');
-  ok(/intake plenum, 6 litres/.test(ip.wam) && /intake inlet part 2 pipe \d+, diameter step BC\d+ to plenum port/.test(ip.wam) && /cylinder 1 intake runner pipe 1, plenum port BC1 to intake valve/.test(ip.wam), 'the OpenWAM case has the plenum, its inlet through the throttle-body step, and the runners from it');
+  const ip = await pg.evaluate(() => { const q = window.__sim.inp(), sp = window.__sim.simSpec(q); return { pl: sp.intake.plenum, share: Math.min(1, (q.n > 1 ? Math.round(q.n) : 1) / q.cyl), wam: window.WamExport.makeWam(sp, { rpm: 5000, cycles: 5, name: 't' }) }; });
+  // since 2026-11-12 part 3 the cylinders simulated get their share of the whole engine's 6 L plenum, 90 mm throttle and tube
+  // (the share of the volume and of the areas), and the wave model's throttle orifice its wide-open coefficient 0.83
+  const sh = ip.share, lit = +(6 * sh).toPrecision(6);
+  ok(ip.pl && Math.abs(ip.pl.V_m3 - 0.006 * sh) < 1e-12 && ip.pl.inlet.length === 2 && Math.abs(ip.pl.inlet[1].d0 - 0.09 * Math.sqrt(sh)) < 1e-12 && ip.pl.throttle.cd === 0.83 && Math.abs(ip.pl.throttle.d - 0.09 * Math.sqrt(sh)) < 1e-12 && !ip.pl.filter,
+    'spec: the simulated cylinders\' share ' + sh + ' of a 6 L plenum, 90 mm throttle body (Cd 0.83 at wide open), inlet tube, no filter loss (' + JSON.stringify(ip.pl) + ')');
+  ok(new RegExp('intake plenum, ' + String(lit).replace('.', '\\.') + ' litres').test(ip.wam) && /intake inlet part 2 pipe \d+, diameter step BC\d+ to plenum port/.test(ip.wam) && /cylinder 1 intake runner pipe 1, plenum port BC1 to intake valve/.test(ip.wam), 'the OpenWAM case has the plenum (' + lit + ' L), its inlet through the throttle-body step, and the runners from it');
+  await setv('f-fdp', '0.2'); await pg.waitForTimeout(150);
+  const fl = await pg.evaluate(() => window.__sim.simSpec(window.__sim.inp()).intake.plenum.filter);
+  ok(fl && fl.dp > 1300 && fl.dp < 1450 && fl.m > 0, 'a filter loss entered (0.2 psi) reaches the wave spec in Pa with its reference airflow: ' + JSON.stringify(fl));
+  await setv('f-fdp', '0');
   await setv('f-plv', ''); await pg.waitForTimeout(150);
   const perr = await pg.evaluate(() => window.__sim.simCheck(window.__sim.inp()));
   ok(/With a plenum, fill in its volume/.test(perr || ''), 'a plenum without a volume refused: ' + perr);
   // the stock engine and cam library
-  await setv('f-intk', 'open'); await setv('f-plv', '6');
+  await setv('f-intk', 'open'); await setv('f-plv', '366.14');
   await setv('f-camlib', 'ls3'); await pg.waitForTimeout(250);
   const ls3 = await pg.evaluate(() => { const sp = window.__sim.simSpec(window.__sim.inp()); return { e: sp.e, hint: document.getElementById('f-camlib-hint').textContent, at: document.getElementById('f-camat').value }; });
   ok(JSON.stringify([ls3.e.cam.ivo, ls3.e.cam.ivc, ls3.e.cam.evo, ls3.e.cam.evc, ls3.e.cam.checkLift_mm]) === JSON.stringify([-19, 43, 38, -7, 1.27]) && ls3.at === '050', 'LS3: GM events at 0.050 in (' + JSON.stringify(ls3.e.cam) + ')');
   ok(Math.abs(ls3.e.dIn - 0.054991) < 1e-6 && Math.abs(ls3.e.dEx - 0.040386) < 1e-6 && Math.abs(ls3.e.liftIn - 0.0139954) < 1e-6 && Math.abs(ls3.e.liftEx - 0.013335) < 1e-6, 'LS3 valves 2.165 / 1.590 in and lift .551 / .525 in');
   ok(Math.abs(ls3.e.bore - 0.103251) < 1e-6 && ls3.e.cr === 10.7, 'LS3 bore and compression');
+  // 2026-11-12 part 3: the LS3's measured head flow (Hot Rod 2011, cfm at 28 in) as the wave model's valve areas
+  ok(ls3.e.flowIn && ls3.e.flowIn.lift.length === 9 && ls3.e.flowEx.cdA.length === 9 && Math.abs(ls3.e.flowIn.lift[6] - 0.01524) < 1e-12 && Math.abs(ls3.e.flowIn.cdA[6] / 1.4322e-3 - 1) < 1e-3,
+    'LS3: the head\'s flow-bench curve becomes the valves\' effective area (312 cfm at 0.600 in -> ' + (ls3.e.flowIn ? (ls3.e.flowIn.cdA[6] * 1e6).toFixed(0) : '?') + ' mm2)');
   ok(/as published/.test(ls3.hint) && /Corvette Action Center/.test(ls3.hint) && /204° \/ 211°/.test(ls3.hint), 'LS3 hint: as published, 204 / 211, with its source');
   await setv('f-camlib', 'ls7'); await pg.waitForTimeout(250);
   const ls7 = await pg.$eval('#f-camlib-hint', e => e.textContent);

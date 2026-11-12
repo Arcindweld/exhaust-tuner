@@ -20,7 +20,11 @@
 //     model's quadratic), and the total energy (sensible + chemical) of an engine cycle conserved to rounding;
 //  9. friction: Heywood's tfmep by hand, and the brake torque's gross loop against p dV integrated here;
 // 10. fuel vapour (the default since part 2; spec.e.fuel 'air' leaves it out): the vapour's cp against NASA's 9-coefficient fits evaluated here, the mixture's
-//     R, and an engine cycle's mass and total energy with the port injector's fuel as the only source.
+//     R, and an engine cycle's mass and total energy with the port injector's fuel as the only source;
+// 11. measured valve flow and the intake system (part 3): the flow-bench conversion against the source table listed here
+//     (Hot Rod 2011's stock LS3 heads) and a hand formula, flowTab's interpolation, a steady flow bench built from the
+//     model's pipe and valve recovering the source's cfm, the throttle orifice by hand and in steady flow, the filter's
+//     loss in steady flow, and an engine cycle with plenum, throttle, filter and valve tables conserving mass and energy.
 const fs = require('fs'), path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
@@ -285,6 +289,95 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
   ok(Math.abs(mr) < 1e-9 && Math.abs(er) < 1e-9 && Math.abs(B.fuel / (B.mIn * 1 / 12.8) - 1) < 0.05,
     'fuel vapour, one cycle at 6000 rpm: mass residual ' + mr.toExponential(2) + ' with the injector\'s ' + (B.fuel * 1e6).toFixed(2) + ' mg of fuel (' + (100 * B.fuel / B.mIn).toFixed(2) +
     ' % of the air drawn in; 1/AFR = 7.81 %), total energy residual / heat released ' + er.toExponential(2) + ' (the reverted fuel\'s sensible enthalpy ' + B.inj.toFixed(2) + ' J); VE ' + r.ve.toFixed(4) + ', IMEP ' + (r.imep / 1e5).toFixed(3) + ' bar');
+}
+
+// ---------- 11. measured valve flow, the intake plenum, the throttle and the air filter (2026-11-12, part 3)
+{ const IN = 0.0254, P0 = 101325, DP28 = 28 * 249.089, TA = 298.15;
+  // (a) the source table, listed here: Holdener, "LS3/L92 rectangle-port cylinder heads test", Hot Rod, February 2011,
+  // stock LS3/L92 0821 castings (2.165 / 1.59 in valves), "FLOW DATA: CFM AT 28 INCHES"
+  const SRC = { lift: [0.050, 0.100, 0.200, 0.300, 0.400, 0.500, 0.600, 0.650, 0.700], in: [34, 67, 147, 211, 259, 297, 312, 312, 314], ex: [24, 59, 116, 157, 188, 207, 216, 219, 223] };
+  const lib = html.slice(html.indexOf('const CAM_LIB=['), html.indexOf('];', html.indexOf('const CAM_LIB=[')));
+  const m3 = lib.match(/k:'ls3'[\s\S]*?flow:\{dp:28,lift:\[([^\]]*)\],in:\[([^\]]*)\],ex:\[([^\]]*)\]/), arr = s => s.split(',').map(Number);
+  ok(m3 && JSON.stringify([arr(m3[1]), arr(m3[2]), arr(m3[3])]) === JSON.stringify([SRC.lift, SRC.in, SRC.ex]), 'the page\'s LS3 flow curve (CAM_LIB) is the source table, every point');
+  // by hand: dry air, gamma 1.4, R 287.05, reference state 101.325 kPa and 288.7056 K (60 F); Q = cfm / 2118.88 m3/s;
+  // m = Cd A p0 / sqrt(R T0) psi, Q = m / rho0, so Cd A = Q sqrt(R T0) / psi
+  const psi = (pr, g) => Math.sqrt(2 * g / (g - 1) * (Math.pow(pr, 2 / g) - Math.pow(pr, (g + 1) / g)));
+  const hand = (cfm, T0) => cfm / 2118.88 / (Math.sqrt(287.05 * T0) * psi((P0 - DP28) / P0, 1.4));
+  let worst = 0; const cd = [];
+  SRC.lift.forEach((l, i) => { for (const [k, d] of [['in', 2.165], ['ex', 1.590]]) { const a = W.benchCdA(SRC[k][i], 28), h = hand(SRC[k][i], 288.7056);
+    worst = Math.max(worst, Math.abs(a / h - 1)); cd.push(k + ' ' + l.toFixed(3) + ' in: L/D ' + (l / d).toFixed(3) + ', Cd A ' + (a * 1e6).toFixed(0) + ' mm2, Cd on the curtain ' + (a / (Math.PI * d * IN * l * IN)).toFixed(3)); } });
+  ok(worst < 5e-4, 'flow bench to effective area, 18 points: the model\'s benchCdA within ' + (100 * worst).toFixed(3) + ' % of the hand formula (gamma 1.4; the model\'s air has 1.4006 at 288.7 K): ' + cd.filter((s, i) => i % 4 === 0).join('; '));
+  const a3 = W.benchCdA(211, 28) / (Math.PI * 2.165 * IN * 0.300 * IN), a5 = W.benchCdA(207, 28) / (Math.PI * 1.590 * IN * 0.500 * IN), a6 = W.benchCdA(312, 28) / (Math.PI / 4 * (2.165 * IN) ** 2);
+  ok(Math.abs(a3 - 0.736) < 0.002 && Math.abs(a5 - 0.590) < 0.002 && Math.abs(a6 - 0.603) < 0.002, 'LS3 Cd on the curtain: intake at 0.300 in (L/D 0.139) ' + a3.toFixed(3) + ', exhaust at 0.500 in (L/D 0.314) ' + a5.toFixed(3) +
+    '; intake at 0.600 in on the seat area ' + a6.toFixed(3) + ' (the legacy law: 0.7 x 0.85 = 0.595 of the seat at full lift)');
+  // flowTab: the measured points exactly, linear between, from (0, 0) to the first, held beyond the last
+  const t = { lift: SRC.lift.map(l => l * IN), cdA: SRC.in.map(q => W.benchCdA(q, 28)) };
+  ok(t.lift.every((l, i) => W.flowTab(t, l) === t.cdA[i]) && Math.abs(W.flowTab(t, 0.25 * IN) - 0.5 * (t.cdA[2] + t.cdA[3])) < 1e-15 && W.flowTab(t, 0.025 * IN) === t.cdA[0] * 0.5 && W.flowTab(t, 1) === t.cdA[8],
+    'flowTab: the table\'s points, the midpoint 0.25 in, half the first area at half its lift, the last area beyond the last lift');
+  // (b) a steady flow bench made of the model's own parts: an inviscid 100 mm pipe open to still air at 298.15 K, the
+  // valve at its far end with the effective area at 0.600 in, the cylinder side held at 28 in H2O below; the steady flow
+  // read as a volume at the outside air must give the source's 312 cfm (benchCdA at that air state)
+  const Gair = W0.gas.makeGas(14.6, false), steady = (cda, pd, L, D, left, right) => {
+    const P = W0.makePipe({ L, dx: 0.01, area: () => Math.PI * D * D / 4, Tw: TA, T0: TA, x0: 1, gas: Gair });
+    const sd = W0.gas.at(Gair, TA, 1), far = { p: pd, T: TA, x: 1, R: sd.R, cp: sd.cp, g: sd.gamma };
+    let f = { m: 0, h: 0, x: 1, uj: 0 }; P.left = left(P); P.right = right ? right(P, far) : W0.fedEnd(+1, () => f);
+    for (let s = 0, tt = 0; tt < 0.4; s++) { W0.prim(P); if (!right) f = W0.valveFlow(cda, far, P, P.n - 1); const dt = 0.8 * P.dx / W0.maxSpeed(P); W0.stepPipe(P, dt); tt += dt; }
+    W0.prim(P); return { P, m: P.f1[P.n], m0: P.f1[0] }; };
+  // a line of segments (W0.buildLine, its steps joined by the two-pipe junction) from still air into a plenum held at pd
+  const line = (segs, pd) => { const L = W0.buildLine({ segs, Tw: TA }, 0.01, TA, 1, Gair), PLf = { p: pd, T: TA, x: 1 };
+    L[0].left = W0.openEnd(-1, P0, TA, 1); L[L.length - 1].right = W0.plenEnd(+1, PLf); for (let q = 1; q < L.length; q++) { L[q - 1].right = () => {}; L[q].left = () => {}; }
+    for (let tt = 0; tt < 0.5;) { let v = 0, dm = 1; for (const P of L) { W0.prim(P); v = Math.max(v, W0.maxSpeed(P)); dm = Math.min(dm, P.dx); }
+      const dt = 0.8 * dm / v; for (let q = 1; q < L.length; q++) W0.junction(L[q - 1], L[q]); for (const P of L) W0.stepPipe(P, dt); tt += dt; }
+    for (const P of L) W0.prim(P); return { L, m: L[L.length - 1].f1[L[L.length - 1].n], m0: L[0].f1[0] }; };
+  { const ab = W0.benchCdA(312, 28, TA), s = steady(ab, P0 - DP28, 0.2, 0.1, () => W0.openEnd(-1, P0, TA, 1)), rho = P0 / (Gair.Ra * TA), q = s.m / rho * 2118.88;
+    ok(Math.abs(q / 312 - 1) < 2e-3 && Math.abs(s.m / s.m0 - 1) < 1e-3, 'steady flow bench: the model\'s valve at the LS3\'s 0.600 in area (' + (ab * 1e6).toFixed(0) + ' mm2) and 28 in H2O passes ' +
+      q.toFixed(1) + ' cfm (source 312; mass flow in ' + s.m0.toFixed(5) + ', out ' + s.m.toFixed(5) + ' kg/s)'); }
+  // (c) the throttle by hand: the LS3's 90 mm bore at 0.828 (a stock GM 87 mm throttle body measured 916 cfm at 20 in H2O:
+  // Cd A = 4.920e-3 m2 by the law above, 0.828 of its bore area) at the engine's air at 5900 rpm with VE 1
+  { const cda = 0.828 * Math.PI * 0.09 * 0.09 / 4, mLS3 = 1.1839 * (Math.PI / 4 * (4.065 * IN) ** 2 * 3.622 * IN * 8) * 5900 / 120;
+    const r87 = W.benchCdA(916, 20) / (Math.PI * 0.087 * 0.087 / 4);
+    ok(Math.abs(cda - 5.2675e-3) < 1e-7 && Math.abs(r87 - 0.828) < 1e-3, 'throttle: Cd A = 0.828 x pi 0.09^2 / 4 = ' + (cda * 1e3).toFixed(4) + 'e-3 m2 by hand; the GM 87 mm body\'s 916 cfm at 20 in H2O gives ' + r87.toFixed(4) + ' of its bore area');
+    // the pressure behind it for that flow, by hand (compressible, gamma 1.4: bisection on the orifice law from 101.325 kPa, 298.15 K)
+    const rho0 = P0 / (287.05 * TA); let lo = 0.5, hi = 1; for (let i = 0; i < 200; i++) { const pr = 0.5 * (lo + hi), m = cda * Math.sqrt(P0 * rho0) * psi(pr, 1.4); if (m > mLS3) lo = pr; else hi = pr; }
+    const pd = P0 * 0.5 * (lo + hi), inc = (mLS3 / cda) ** 2 / (2 * rho0);
+    // the model's throttle (plenumOf): the inlet's last 50 mm at that Cd A, contracting without loss and dumping into the
+    // plenum; an inviscid 101.6 mm, 300 mm tube from still air, the plenum held at the pressure found by hand
+    const segs = W0.plenumOf({ plenum: { V_m3: 1, inlet: [{ L: 0.3, d0: 0.1016, d1: 0.1016 }], throttle: { d: 0.09, cd: 0.828 } } }).inlet, s = line(segs, pd);
+    ok(segs.length === 2 && Math.abs(Math.PI / 4 * segs[1].d0 ** 2 - cda) < 1e-15 && Math.abs(s.m / mLS3 - 1) < 5e-3 && Math.abs(s.m / s.m0 - 1) < 1e-3, 'throttle, steady: ' + mLS3.toFixed(4) + ' kg/s (the LS3 at 5900 rpm, VE 1) needs ' + ((P0 - pd) / 1000).toFixed(3) + ' kPa across it by hand (incompressible ' + (inc / 1000).toFixed(3) +
+      ' kPa); the model\'s tube and 50 mm throttle step at that plenum pressure pass ' + s.m.toFixed(4) + ' kg/s (in ' + s.m0.toFixed(4) + ')'); }
+  // (d) the air filter: 2.5 kPa at 0.35 kg/s on a 101.6 mm, 600 mm inlet (plenumOf's Borda-Carnot step); the total-pressure
+  // loss read in the tube after it, at two flows
+  { const segs = W0.plenumOf({ plenum: { V_m3: 1, inlet: [{ L: 0.6, d0: 0.1016, d1: 0.1016 }], filter: { dp: 2500, m: 0.35 } } }).inlet, res = [];
+    for (const pd of [P0 - 3300, P0 - 1500]) { const s = line(segs, pd), P = s.L[s.L.length - 1], i = 30, g = P.g[i], c = Math.sqrt(g * P.p[i] / P.r[i]), M = P.u[i] / c;
+      const p0 = P.p[i] * Math.pow(1 + 0.5 * (g - 1) * M * M, g / (g - 1)); res.push({ m: s.m, loss: P0 - p0, want: 2500 * (s.m / 0.35) ** 2 }); }
+    ok(segs.length === 2 && segs[0].d0 < 0.1016 && res.every(r => r.loss / r.want - 1 > 0 && r.loss / r.want - 1 < 0.12), 'air filter (sized incompressibly; the step\'s Mach 0.3-0.35 adds 4-10 %) (2.5 kPa at 0.35 kg/s: a 50 mm step to ' + (segs[0].d0 * 1000).toFixed(1) + ' mm before the 101.6 mm tube): steady total-pressure loss ' +
+      res.map(r => (r.loss / 1000).toFixed(3) + ' kPa at ' + r.m.toFixed(3) + ' kg/s (dp (m / m_ref)^2 = ' + (r.want / 1000).toFixed(3) + ')').join(', ')); }
+  // (e) an engine cycle with the plenum, its stepped inlet, throttle and filter and measured valve tables: mass and total
+  // energy (pipes, cylinder, plenum) conserved to rounding
+  { const tab = d => ({ lift: [0.002, 0.005, 0.008], cdA: [0.7, 0.7, 0.6].map((c, i) => c * Math.PI * d * [0.002, 0.005, 0.008][i]) });
+    const e = Object.assign({}, ENG, { flowIn: tab(ENG.dIn), flowEx: tab(ENG.dEx) });
+    const intake = { segs: [{ L: 0.3, d0: 0.0368, d1: 0.0368 }], Tw: 320, plenum: { V_m3: 0.001, inlet: [{ L: 0.3, d0: 0.05, d1: 0.05 }, { L: 0.05, d0: 0.04, d1: 0.04 }], throttle: { d: 0.04, cd: 0.83 }, filter: { dp: 1000, m: 0.03 } } };
+    const eng = W.makeEngine(e, intake, { segs: [{ L: 0.4, d0: 0.0445, d1: 0.0445 }, { L: 0.2, d0: 0.09, d1: 0.09 }, { L: 0.2, d0: 0.0445, d1: 0.0445 }], Tw: 700 }, { phases: [0] });
+    const G = eng.gas, GI = eng.gasIn, st = W.freshState(eng, 0.01), FAN = 0.005;
+    ok(st.plen && st.plen.inlet.length === 4 && eng.plenum.V === 0.001 && Math.abs(st.plen.inlet[3].D[0] - 0.04 * Math.sqrt(0.83)) < 1e-12, 'the plenum is built: inlet of ' + st.plen.inlet.length + ' pipes (filter step, tube, throttle bore, throttle\'s effective area)');
+    const stored = s => { let M = 0, E = 0;
+      for (const P of [].concat(...s.ins, s.plen.inlet)) for (let i = 0; i < P.n; i++) { M += P.q1[i] * P.dx; E += (P.q3[i] + P.q4[i] * GI.qx) * P.dx; }
+      for (const P of [].concat(...s.prims)) for (let i = 0; i < P.n; i++) { M += P.q1[i] * P.dx; E += (P.q3[i] + P.q4[i] * G.qx) * P.dx; }
+      for (const c of s.cyls) { M += c.m; E += c.m * (GS.at(G, c.T, c.x).e + c.x * G.qx); }
+      const q = s.plen; M += q.m; E += q.m * (GS.at(GI, q.T, q.x).e + q.x * GI.qx); return { M, E }; };
+    let prev = stored(st), th0 = null; const B = { mIn: 0, mOut: 0, fuel: 0, flow: 0, sink: 0, dM: 0, dE: 0, Q: 0, inj: 0, pMin: 1e9, pMax: 0 };
+    const r = W.runSpeed(eng, { rpm: 6000, cycles: 6, dx: 0.01, state: st, hook: c => {
+      if (th0 === null) th0 = c.st.th; const last = c.st.th - th0 >= 5 * 720 - 1e-9, now = stored(c.st);
+      if (last) { const dt = c.dt, I0 = c.st.plen.inlet[0];
+        B.mIn += I0.f1[0] * dt; B.flow += (I0.f3[0] + I0.f4[0] * GI.qx) * dt; B.pMin = Math.min(B.pMin, c.st.plen.p); B.pMax = Math.max(B.pMax, c.st.plen.p);
+        for (const P of c.outs) { B.mOut += P.f1[P.n] * dt; B.flow -= (P.f3[P.n] + P.f4[P.n] * G.qx) * dt; }
+        for (const cy of c.cyls) { B.fuel += cy._mC - cy._mP; B.inj += cy._eC - cy._eP; B.sink += cy._qw + cy._pdV + cy._Q * (1 - GS.ETA_C) / GS.ETA_C; B.Q += cy._Q; }
+        for (const P of c.all) for (let i = 0; i < P.n; i++) B.sink -= dt * 2 * FAN * P.r[i] * Math.abs(P.u[i]) * P.A[i] / P.D[i] * P.cp[i] * (P.Tw - P.p[i] / (P.Rm[i] * P.r[i])) * P.dx;
+        B.dM += now.M - prev.M; B.dE += now.E - prev.E; }
+      prev = now; } });
+    const mr = (B.dM - (B.mIn - B.mOut + B.fuel)) / B.mIn, er = (B.dE - (B.flow + B.inj - B.sink)) / B.Q;
+    ok(Math.abs(mr) < 1e-9 && Math.abs(er) < 1e-9 && r.ve > 0.3, 'plenum, throttle, filter and measured valve flow, one cycle at 6000 rpm: mass residual ' + mr.toExponential(2) + ', total energy residual / heat released ' +
+      er.toExponential(2) + '; plenum ' + (B.pMin / 1000).toFixed(1) + '-' + (B.pMax / 1000).toFixed(1) + ' kPa, VE ' + r.ve.toFixed(4)); }
 }
 
 console.log(fails.length ? 'FAILS ' + fails.length : 'all passed');

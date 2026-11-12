@@ -1429,3 +1429,26 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   emptied the end cell (a megaphone at 7850 rpm never finished); the end now takes the post-shock state.
 - Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum 2026-11-12 part 2; tests wavegas_ui.js 8-10, wave_wasm.js (gross
   IMEP, lean/etaC and air-only jobs).
+
+## 2026-11-12, part 3: measured valve flow, intake plenum / throttle / filter, cylinder against OpenWAM
+
+- Valve flow: a head's flow-bench curve (cfm at 28 in H2O) becomes each valve's effective area against lift by the
+  isentropic orifice law (wsFactory benchCdA, flowTab; Rust flow_tab), for the LS3 (Hot Rod Feb 2011, stock 0821 heads)
+  and LT1 (WCCH via EngineLabs) in CAM_LIB.flow; the page uses it when the engine comes from the list ("Valve flow"
+  selector; a coefficient entered or fitted takes over; OpenWAM keeps the 0.7 law). The 0.7 law (curtain, capped at 0.85
+  seat) is within 10 % of the LS3's measured intake at every lift; its exhaust flows up to 34 % more. No tabulated Cd(L/D)
+  map could be fetched.
+- Intake system in the wave model (JS and Rust, bit parity): spec.intake.plenum {V_m3, inlet, throttle {d, cd}, filter
+  {dp, m}}: a well-mixed plenum (runner mouths and the inlet as open ends on it; mass and energy to 1e-14), the throttle as
+  a 50 mm step at its wide-open Cd A (0.828 of the bore, measured on a stock GM 87 mm body) dumping into the plenum, the
+  filter loss as a Borda-Carnot step (an input; no sourced filter loss exists on the page). An explicit orifice coupling
+  was tried first and flipped between two states every step at a throttle's small pressure drop; replaced. 4-Stroke tab:
+  plenum volume (cu in / cc), throttle bore and coefficient, filter loss, inlet tube; simulated cylinders get their share.
+- Ratings (whole engines, plenum + throttle + measured head flow; plenum volume, runner length, inlet tube and filter loss
+  are assumptions with sensitivity runs): brake torque +4 to +16 % (was +8 to +20), brake power +6 to +16 %; torque peak
+  still 200-400 rpm late; the unknown runner length moves torque -6 to +9 % and the peak 600-800 rpm.
+- OpenWAM like for like (cyl_expts.py): valve areas, timing, Wiebe and heat per charge agree; the wave model traps ~3 %
+  more and, from OpenWAM's own IVC p, T and heat, still does 6-10 % more closed-cycle work: open (gas properties /
+  in-cylinder heat by phase are the candidates left). No model change for it.
+- Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum part 3 (C1-C10); tests wavegas_ui.js 11, wave_wasm.js (two jobs),
+  cam_ui.js (plenum share, head curve).
