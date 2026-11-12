@@ -74,35 +74,35 @@ const FANNING: f64 = 0.005;
 // ------------------------------------------------------------------------------------------- gas properties (2026-11-12)
 // The page's "gas properties" block, line for line: air (x = 1) and its burned gas (x = 0) at the engine's air-fuel ratio,
 // thermally perfect, mixed by mass with the fresh-charge fraction x; each species' cp/R from the NASA 7-coefficient
-// polynomials of NASA TM-4513 (McBride, Gordon and Reno 1993); spec.e.gas = "const" keeps gamma 1.35, R 287.
+// polynomials of GRI-Mech 3.0 (Cantera's data/gri30.yaml); spec.e.gas = "const" keeps gamma 1.35, R 287.
 const RU: f64 = 8.314462618;
 const TREF: f64 = 298.15;
-/// NASA TM-4513: M g/mol, cp/R a1..a5 below 1000 K, a1..a5 above (to 6000 K); order N2, O2, Ar, CO2, H2O, CO, H2.
+const TMAX: f64 = 3500.0;
+/// GRI-Mech 3.0: M g/mol, cp/R a1..a5 below 1000 K, a1..a5 above; order N2, O2, Ar, CO2, H2O, CO, H2.
 #[allow(clippy::excessive_precision)]
 const SPEC: [(f64, [f64; 5], [f64; 5]); 7] = [
-    (28.01348, [3.53100528, -1.23660987e-4, -5.02999437e-7, 2.43530612e-9, -1.40881235e-12], [2.95257626, 1.39690057e-3, -4.92631691e-7, 7.86010367e-11, -4.60755321e-15]),
-    (31.9988, [3.78245636, -2.99673415e-3, 9.847302e-6, -9.68129508e-9, 3.24372836e-12], [3.66096083, 6.56365523e-4, -1.41149485e-7, 2.05797658e-11, -1.29913248e-15]),
+    (28.0134, [3.298677, 1.4082404e-3, -3.963222e-6, 5.641515e-9, -2.444854e-12], [2.92664, 1.4879768e-3, -5.68476e-7, 1.0097038e-10, -6.753351e-15]),
+    (31.9988, [3.78245636, -2.99673416e-3, 9.84730201e-6, -9.68129509e-9, 3.24372837e-12], [3.28253784, 1.48308754e-3, -7.57966669e-7, 2.09470555e-10, -2.16717794e-14]),
     (39.948, [2.5, 0.0, 0.0, 0.0, 0.0], [2.5, 0.0, 0.0, 0.0, 0.0]),
-    (44.0098, [2.35677352, 8.98459677e-3, -7.12356269e-6, 2.45919022e-9, -1.43699548e-13], [4.63659493, 2.74131991e-3, -9.95828531e-7, 1.60373011e-10, -9.16103468e-15]),
-    (18.01528, [4.19864056, -2.0364341e-3, 6.52040211e-6, -5.48797062e-9, 1.77197817e-12], [2.67703787, 2.97318329e-3, -7.7376969e-7, 9.44336689e-11, -4.26900959e-15]),
-    (28.0104, [3.57953347, -6.1035368e-4, 1.01681433e-6, 9.07005884e-10, -9.04424499e-13], [3.04848583, 1.35172818e-3, -4.85794075e-7, 7.88536486e-11, -4.69807489e-15]),
-    (2.01588, [2.34433112, 7.98052075e-3, -1.9478151e-5, 2.01572094e-8, -7.37611761e-12], [2.93286579, 8.26607967e-4, -1.46402335e-7, 1.54100359e-11, -6.88804432e-16]),
+    (44.0095, [2.35677352, 8.98459677e-3, -7.12356269e-6, 2.45919022e-9, -1.43699548e-13], [3.85746029, 4.41437026e-3, -2.21481404e-6, 5.23490188e-10, -4.72084164e-14]),
+    (18.01528, [4.19864056, -2.0364341e-3, 6.52040211e-6, -5.48797062e-9, 1.77197817e-12], [3.03399249, 2.17691804e-3, -1.64072518e-7, -9.7041987e-11, 1.68200992e-14]),
+    (28.0101, [3.57953347, -6.1035368e-4, 1.01681433e-6, 9.07005884e-10, -9.04424499e-13], [2.71518561, 2.06252743e-3, -9.98825771e-7, 2.30053008e-10, -2.03647716e-14]),
+    (2.01588, [2.34433112, 7.98052075e-3, -1.9478151e-5, 2.01572094e-8, -7.37611761e-12], [3.3372792, -4.94024731e-5, 4.99456778e-7, -1.79566394e-10, 2.00255376e-14]),
 ];
-const AIR_N2: f64 = 0.78084;
-const AIR_O2: f64 = 0.20946;
-const AIR_AR: f64 = 0.00934;
+const AIR_N2: f64 = 3.7279; // per mole of O2
+const AIR_AR: f64 = 0.04459;
 const FUEL_Y: f64 = 1.87;
 const K_WGS: f64 = 3.5;
 fn afr_st() -> f64 {
-    (1.0 + FUEL_Y / 4.0) * (AIR_N2 / AIR_O2 * SPEC[0].0 + SPEC[1].0 + AIR_AR / AIR_O2 * SPEC[2].0) / (12.011 + FUEL_Y * 1.008)
+    (1.0 + FUEL_Y / 4.0) * (AIR_N2 * SPEC[0].0 + SPEC[1].0 + AIR_AR * SPEC[2].0) / (12.0107 + FUEL_Y * 1.00794)
 }
 /// Moles of each species per C atom in the products at relative air-fuel ratio lam (held to 0.5-4).
 fn burned_moles(lam: f64) -> [f64; 7] {
     let lam = jmin(4.0, jmax(0.5, lam));
     let y = FUEL_Y;
     let o = 1.0 + y / 4.0;
-    let n2 = lam * o * (AIR_N2 / AIR_O2);
-    let ar = lam * o * (AIR_AR / AIR_O2);
+    let n2 = lam * o * AIR_N2;
+    let ar = lam * o * AIR_AR;
     if lam >= 1.0 {
         return [n2, (lam - 1.0) * o, ar, 1.0, y / 2.0, 0.0, 0.0];
     }
@@ -150,7 +150,7 @@ struct Gas {
     dhi: [f64; 11],
 }
 fn make_gas(afr: f64) -> Gas {
-    let (ra, alo, ahi) = gas_poly(&[AIR_N2, AIR_O2, AIR_AR, 0.0, 0.0, 0.0, 0.0]);
+    let (ra, alo, ahi) = gas_poly(&[AIR_N2, 1.0, AIR_AR, 0.0, 0.0, 0.0, 0.0]);
     let (rb, blo, bhi) = gas_poly(&burned_moles(afr / afr_st()));
     let d = |a: &[f64; 11], b: &[f64; 11]| {
         let mut o = [0.0; 11];
@@ -161,10 +161,10 @@ fn make_gas(afr: f64) -> Gas {
     };
     Gas { ra, rb, rd: ra - rb, blo, bhi, dlo: d(&alo, &blo), dhi: d(&ahi, &bhi) }
 }
-/// cp, h, R at (T, x); cp held at its end value outside 200-6000 K (h linear there).
+/// cp, h, R at (T, x); cp held at its end value outside 200-3500 K (h linear there).
 fn gas_at(g: &Gas, t: f64, x: f64) -> (f64, f64, f64) {
-    let tc = if t > 6000.0 {
-        6000.0
+    let tc = if t > TMAX {
+        TMAX
     } else if t < 200.0 {
         200.0
     } else {

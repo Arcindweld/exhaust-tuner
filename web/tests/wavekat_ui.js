@@ -11,9 +11,10 @@ const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ?
 const a0 = html.indexOf('function wsFactory(){'), z0 = html.indexOf('\nconst WS=wsFactory();');
 let src = html.slice(a0, z0);
 const inviscid = src.replace('const FANNING=0.005;', 'const FANNING=0;');
-const hooked = src.replace('const U=cy.m*CV*cy.T-cy.p*dV+', 'cy._pdV=cy.p*dV; cy._qw=qw; cy._Q=cy.burnQ*dxb;\n        const U=cy.m*CV*cy.T-cy.p*dV+')
+// (the cylinder's energy line since 2026-11-12 has the gas's m e(T, x) or the constant gas's m cv T)
+const hooked = src.replace('const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+', 'cy._pdV=cy.p*dV; cy._qw=qw; cy._Q=cy.burnQ*dxb;\n        const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+')
   .replace('      st.th+=dth;\n', '      if(opts.hook) opts.hook({st,all,dt,cyls,ins,outs});\n      st.th+=dth;\n');
-ok(inviscid !== src && hooked.indexOf('opts.hook') > 0, 'the model loads with friction off and with a step hook (the texts the checks rely on are there)');
+ok(inviscid !== src && hooked.indexOf('opts.hook') > 0 && hooked.indexOf('cy._pdV') > 0, 'the model loads with friction off and with a step hook (the texts the checks rely on are there)');
 const W = new Function(inviscid + '\nreturn wsFactory();')(), WH = new Function(hooked + '\nreturn wsFactory();')();
 const G = W.GAM, R = W.RG, CP = W.CP, PATM = W.PATM, TATM = W.TATM;
 let T = 0;
@@ -120,7 +121,7 @@ for (const dir of ['contraction', 'expansion']) {
 
 // one engine (single cylinder, plain 0.8 m pipe, 6000 rpm, 6 cycles): mass and energy balance of the last cycle
 { const e = { bore: 0.084, stroke: 0.089, rod: 0.1513, cr: 11.5, cd: 0.7, nIn: 2, dIn: 0.0336, liftIn: 0.008736, nEx: 2, dEx: 0.02856, liftEx: 0.0079968,
-    cam: { ivo: 32, ivc: 44, evo: 48, evc: 20 }, burn: { start: 18, dur: 55 }, afr: 12.8, eta: 0.72 };
+    cam: { ivo: 32, ivc: 44, evo: 48, evc: 20 }, burn: { start: 18, dur: 55 }, afr: 12.8, eta: 0.72, gas: 'const' };   // the constant gas (the gas's own balance: wavegas_ui.js)
   const eng = WH.makeEngine(e, { segs: [{ L: 0.3, d0: 0.0368, d1: 0.0368 }], Tw: 320 }, { segs: [{ L: 0.4, d0: 0.0445, d1: 0.0445 }, { L: 0.2, d0: 0.09, d1: 0.09 }, { L: 0.2, d0: 0.0445, d1: 0.0445 }], Tw: 700 }, { phases: [0] });
   const st = WH.freshState(eng, 0.01), FAN = 0.005;
   const stored = s => { let M = 0, E = 0; for (const P of [].concat(...s.ins, ...s.prims)) for (let i = 0; i < P.n; i++) { M += P.q1[i] * P.dx; E += P.q3[i] * P.dx; }
