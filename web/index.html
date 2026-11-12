@@ -12703,7 +12703,7 @@ function cutList(rows,odIn,mat,opt){
   const straight=pieces.filter(p=>p.kind==='straight'), straightTotal=straight.reduce((a,p)=>a+p.L+kerf,0);
   return {pieces,buy,missing,straightTotal,odIn,kerf};
 }
-// both units, the user's way: inches to 1/16 and decimal, mm to 0.5
+// both units, the user's way: inches to the nearest 1/16, mm to the nearest 0.5
 function inMm(mm){ const i=mm/MM, s=Math.round(i*16)/16, w=Math.floor(s), f=Math.round((s-w)*16);
   const g=(a,b)=>b?g(b,a%b):a, d=g(f,16); const frac=f?(w?w+' ':'')+(f/d)+'/'+(16/d):String(w);
   return frac+' in ('+(Math.round(mm*2)/2).toFixed(1)+' mm)'; }
@@ -12712,7 +12712,7 @@ function cutListHtml(c,name){
   let h='<p class="sub" style="margin-top:12px">Cut list'+(name?' · '+esc(name):'')+'</p><div class="tblwrap"><table><thead><tr><th>#</th><th>Piece</th><th>Cut</th><th>Mark along outside / inside</th><th>Clock from last bend</th><th>From</th></tr></thead><tbody>'+
     c.pieces.map((p,j)=>p.kind==='straight'?
       '<tr><td>'+(j+1)+'</td><td>Straight</td><td>'+inMm(p.L)+'</td><td></td><td></td><td>'+(c.odIn)+' in straight tube</td></tr>':
-      '<tr><td>'+(j+1)+'</td><td>Bend '+p.A.toFixed(1)+'° on '+inMm(p.CLR)+' CLR</td><td>'+inMm(p.arc)+' on the centerline</td><td>'+inMm(p.outer)+' / '+inMm(p.inner)+'</td><td>'+(p.rot==null?'':Math.round(p.rot)+'°')+'</td><td>'+
+      '<tr><td>'+(j+1)+'</td><td>Bend '+p.A.toFixed(1)+'° on '+inMm(p.CLR)+' CLR</td><td>'+inMm(p.arc)+' on the centerline</td><td>'+inMm(p.outer)+' / '+inMm(p.inner)+'</td><td>'+(p.rot==null?'':(+p.rot.toFixed(1))+'°')+'</td><td>'+
         (p.stock?esc(p.stock.supplier+' '+(p.stock.pn||'')+' '+p.stock.angle+'°')+' #'+p.from+(p.matOk?'':' <span class="st-bad">other material</span>'):'<span class="st-bad">no stock bend at this radius</span>')+'</td></tr>').join('')+
     '</tbody></table></div>';
   if(c.missing.length) h+='<div class="note warn">'+c.missing.length+' bend'+(c.missing.length===1?' has':'s have')+' no '+c.odIn+' in stock bend at '+[...new Set(c.missing.map(p=>inMm(p.CLR)))].join(', ')+' centerline radius in the parts list'+
@@ -12726,7 +12726,7 @@ function cutBuyHtml(lists){
   let h='<p class="sub" style="margin-top:14px">To buy, all tubes</p><div class="tblwrap"><table><thead><tr><th>Qty</th><th>Part</th><th>Supplier, part number</th><th>Bend use</th></tr></thead><tbody>';
   all.forEach(e=>{ h+='<tr><td>'+e.count+'</td><td>'+esc(e.s.od+' in OD · '+e.s.angle+'° · '+e.s.clr+' in CLR'+(e.s.wall?' · '+e.s.wall+' in wall':'')+' · '+(e.s.mat||''))+'</td><td>'+(e.s.url?'<a href="'+esc(e.s.url)+'" target="_blank" rel="noopener">':'')+esc(e.s.supplier+' '+(e.s.pn||e.s.title||''))+(e.s.url?'</a>':'')+'</td><td>'+Math.round(e.used)+'° of '+(e.count*e.s.angle)+'°</td></tr>'; });
   if(straight>0) h+='<tr><td>1</td><td>'+od+' in straight tube</td><td>any</td><td>'+inMm(straight)+' with kerf; buy the next stock length up</td></tr>';
-  return h+'</tbody></table></div><p class="cap">Bends are cut from stock mandrel bends of the same OD and centerline radius and butt-welded in order; each cut takes '+inMm(BEND_KERF_MM)+' of kerf. Measure each bend piece along the outside and the inside of the bend, mark both, and cut square to the tube. Clock each piece from the previous bend plane as listed (right-hand rule about the gas flow), tack, and check against the jig.</p>';
+  return h+'</tbody></table></div><p class="cap">Bends are cut from stock mandrel bends of the same OD and centerline radius and butt-welded in order; each cut takes '+inMm(BEND_KERF_MM)+' of kerf. Measure each bend piece along the outside and the inside of the bend, mark both, and cut square to the tube. Clock each piece from the previous bend plane as listed (right-hand rule about the feed direction, first piece to last), tack, and check against the jig. Inches are rounded to the nearest 1/16, mm to 0.5; angles to 0.1°.</p>';
 }
 window.__cut={cutList,cutListHtml,cutBuyHtml,bendStock,inMm};
 const cmToMm=v=>v*10;
@@ -12785,8 +12785,8 @@ function fxRender(tab,res){
       let lra='';
       if(it.lra&&it.lra.length){
         lra='<div class="tblwrap" style="margin-top:8px"><table><thead><tr><th>#</th><th>Straight</th><th>Rotate</th><th>Bend</th><th>CLR</th></tr></thead><tbody>'+
-          it.lra.map((q,j)=>'<tr><td>'+(j+1)+'</td><td>'+clen(cmToMm(q.L))+'</td><td>'+(q.R==null?'':Math.round(q.R)+'°')+'</td><td>'+(q.A==null?'':q.A.toFixed(1)+'°')+'</td><td>'+(q.CLR==null?'':cdim(cmToMm(q.CLR)))+'</td></tr>').join('')+'</tbody></table></div>'+
-          '<p class="cap">Bend schedule in feed order: run the straight, rotate the tube, then bend. Rotation is measured from the previous bend plane, right-hand rule about the feed direction.</p>';
+          it.lra.map((q,j)=>'<tr><td>'+(j+1)+'</td><td>'+inMm(cmToMm(q.L))+'</td><td>'+(q.R==null?'':(+q.R.toFixed(1))+'°')+'</td><td>'+(q.A==null?'':q.A.toFixed(1)+'°')+'</td><td>'+(q.CLR==null?'':cdim(cmToMm(q.CLR)))+'</td></tr>').join('')+'</tbody></table></div>'+
+          '<p class="cap">Bend schedule in feed order: run the straight, rotate the tube, then bend. Rotation is measured from the previous bend plane, right-hand rule about the feed direction (first row to last); straights are tangent to tangent, inches to the nearest 1/16 and mm to 0.5.</p>';
       }
       // the same schedule as pieces cut from stock mandrel bends; a measured path takes the tab's tube OD
       const odCm=it.od&&it.od.length?it.od[0]:tab==='headers'&&val('h-dp')>0?(val('h-dp')+2*(val('h-wall')>0?val('h-wall'):1.651))/10:tab==='four'&&val('f-dp')>0?(val('f-dp')+2*(val('f-wall')>0?val('f-wall'):1.651))/10:null;
@@ -14522,14 +14522,18 @@ function mufCutDxf(plan){
   out.push('0','ENDSEC','0','EOF'); return out.join('\r\n')+'\r\n';
 }
 window.__mufCut={plan:mufCutPlan,dxf:mufCutDxf};
-// A branch tube's cope (fishmouth) as a wrap-around template: a tube of outside diameter d meeting a pipe of outside
-// diameter D square on. Unrolled round the branch (x = r theta, theta from the saddle's deepest point), the cut line is
-// z(theta) = R - sqrt(R^2 - (r sin theta)^2), deepest (0) at the sides, highest at the crown and the root; the pattern
-// is laid out as a strip pi d long by the cut's rise, to wrap round the tube end and scribe. DXF, mm.
-function copeTemplate(d,D,extra){
+// A branch tube's cope (fishmouth) as a wrap-around template: a tube of outside diameter d and wall w meeting a pipe of
+// outside diameter D square on. The paper wraps round the branch's OUTSIDE (x = r theta, r = d/2, theta from the line in
+// line with the main pipe, where the branch is shortest). A cut square to the wall has one height across the wall, and
+// there the main pipe stands highest under the wall's INSIDE edge (radius ri = r - w), so the line is
+// z(theta) = R - sqrt(R^2 - (ri sin theta)^2): the inside edge touches the main pipe all round and the outside edge opens
+// a small V for the weld (a line from the outside radius leaves the inside edge standing into the main pipe at the
+// flanks: 9 mm on two 2 in tubes). w = 0 gives the outside-edge line. The pattern is a strip pi d long, its straight
+// edge laid on the square tube end; what the paper covers is cut away. DXF, mm.
+function copeTemplate(d,D,extra,w){
   if(!(d>0&&D>=d)) return null;
-  const r=d/2, R=D/2, n=72, pts=[]; let zmax=0;
-  for(let i=0;i<=n;i++){ const th=2*Math.PI*i/n, z=R-Math.sqrt(Math.max(0,R*R-(r*Math.sin(th))**2)); pts.push([r*th,z]); zmax=Math.max(zmax,z); }
+  const r=d/2, R=D/2, ri=w>0&&w<r?r-w:r, n=72, pts=[]; let zmax=0;
+  for(let i=0;i<=n;i++){ const th=2*Math.PI*i/n, z=R-Math.sqrt(Math.max(0,R*R-(ri*Math.sin(th))**2)); pts.push([r*th,z]); zmax=Math.max(zmax,z); }
   const H=zmax+(extra||25);
   const out=['0','SECTION','2','HEADER','9','$ACADVER','1','AC1009','9','$INSUNITS','70','4','9','$MEASUREMENT','70','1','0','ENDSEC','0','SECTION','2','ENTITIES'];
   const f=v=>(Math.abs(v)<1e-9?0:v).toFixed(4), L=(a,b)=>out.push('0','LINE','8','CUT','10',f(a[0]),'20',f(a[1]),'30','0','11',f(b[0]),'21',f(b[1]),'31','0');
@@ -14539,8 +14543,9 @@ function copeTemplate(d,D,extra){
   return {text:out.join('\r\n')+'\r\n',rise:zmax,width:Math.PI*d,H};
 }
 window.__cope=copeTemplate;
+const COPE_HOW='Print it 1:1 (the strip is the width shown: check it with a rule) and wrap it round the outside of the branch, its straight edge on the square-cut end and its two ends meeting in line with the main pipe; cut away what the paper covers, square to the tube wall. The line is worked from the branch’s inside edge, which then touches the main pipe all round, the outside edge opening a small V for the weld.';
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-cope]'); if(!b) return; const d=+b.dataset.d, D=+b.dataset.cope, say=t=>{ const m=$(b.dataset.msg); if(m) m.textContent=t; };
-  const c=copeTemplate(d,D); if(!c){ say('The branch has to be no larger than the main pipe.'); return; }
+  const c=copeTemplate(d,D,null,+b.dataset.wall||0); if(!c){ say('The branch has to be no larger than the main pipe.'); return; }
   saveTextFile('cope_'+d.toFixed(1).replace('.','p')+'_on_'+D.toFixed(1).replace('.','p')+'_mm.dxf',c.text,'application/dxf',say); });
 function mufCutSection(p){
   const pl=mufCutPlan(p);
@@ -14770,8 +14775,8 @@ function renderMuf(){
       return rowT('Real peak at the tuned note',bp.tl.toFixed(0)+' dB','with a '+Math.round(spl)+' dB tone in the pipe the neck’s air moves '+bp.u.toFixed(1)+' m/s and its edge loss (K '+K+') caps the cut there; the chart’s '+TLCAP+' dB is the lossless limit (Rienstra and Hirschberg 8.3)'); })()+
     '<div class="tblwrap" style="margin-top:10px"><table><thead><tr><th>Can diameter</th><th>Can length for this volume</th></tr></thead><tbody>'+
     hm.cans.map(c=>'<tr'+(c===can?' class="cur"':'')+'><td>'+cdim(c.D)+'</td><td>'+clen(c.len)+'</td></tr>').join('')+'</tbody></table></div>'+
-    (()=>{ const bw2=val('m-bw')>0?val('m-bw'):1.651, dOD=p.dn+2*bw2, DOD=p.dpipe+2*bw2; if(!(dOD<=DOD)||$('m-dp-shape').value!=='round') return ''; const c=copeTemplate(dOD,DOD);
-      return rowT('Cope template for the neck',clen(c.width)+' × '+clen(c.H),'the neck’s fishmouth on the main pipe, unrolled; the cut rises '+clen(c.rise)+' <button type="button" class="btn" data-cope="'+DOD+'" data-d="'+dOD+'" data-msg="m-cope-msg2" style="padding:2px 10px;margin-left:6px">DXF</button><span id="m-cope-msg2" class="hint"></span>'); })()+
+    (()=>{ const bw2=val('m-bw')>0?val('m-bw'):1.651, dOD=p.dn+2*bw2, DOD=p.dpipe+2*bw2; if(!(dOD<=DOD)||$('m-dp-shape').value!=='round') return ''; const c=copeTemplate(dOD,DOD,null,bw2);
+      return rowT('Cope template for the neck',bothL(c.width)+' × '+bothL(c.H),'the neck’s fishmouth on the main pipe, unrolled; the cut rises '+bothL(c.rise)+'. '+COPE_HOW+' <button type="button" class="btn" data-cope="'+DOD+'" data-d="'+dOD+'" data-wall="'+bw2+'" data-msg="m-cope-msg2" style="padding:2px 10px;margin-left:6px">DXF</button><span id="m-cope-msg2" class="hint"></span>'); })()+
     '<p class="cap">Can sizes are inside dimensions. The neck can run into the can, which saves length without changing the tuning much.'+
       (nin>0?' With the neck '+clen(nin)+' in, the '+tubIn(can.D)+' can is '+clen(((p.dn/2+bw)/(can.D/2))**2*nin)+' longer to keep the volume round the neck: '+clen(can.len+((p.dn/2+bw)/(can.D/2))**2*nin)+' inside.':'')+'</p>'+
     (longCan?'<div class="note warn">This can and neck are long next to the tone’s wavelength in the resonator ('+clen(lamRes)+'), so the simple formula is less exact here. A wider, shorter can tunes more predictably, or use a J-pipe.</div>':''));
@@ -14787,8 +14792,8 @@ function renderMuf(){
       return rowT('Flow over the mouth can sing at',Math.round(f1c)+' Hz at '+Math.round(engM.rpmCruise).toLocaleString('en-US')+' RPM, '+Math.round(f1)+' Hz at redline','first mode, 0.4 × gas speed ÷ mouth width, with the second and third at twice and three times (Rienstra and Hirschberg, 5.6); '+(near?'<b>one of those sits within 15% of the tuned note, so the branch may be driven by the flow instead of damping it</b>: round or chamfer the upstream edge of the mouth, or fit it on the outside of a bend':'none within 15% of the tuned note; a rounded upstream edge keeps it quiet')); })()+
     (()=>{ const hot=calcQW({f:p.f,db:p.db,dpipe:p.dpipe,tres:150}); if(hot.err||!(150>p.tres+10)) return '';
       const v=L(hot.L,'l'); return rowT('Start this long if the branch may run hot',v.n+' '+v.u,v.a+', tuned at '+tempStr(150)+'; the cut length above tunes to '+Math.round(p.f*hot.c/qw.c)+' Hz there'); })()+
-    (()=>{ const bw2=val('m-bw')>0?val('m-bw'):1.651, dOD=p.db+2*bw2, DOD=p.dpipe+2*bw2; if(!(dOD<=DOD)||$('m-dp-shape').value!=='round') return ''; const c=copeTemplate(dOD,DOD);
-      return rowT('Cope template for the tee',clen(c.width)+' × '+clen(c.H),'the fishmouth unrolled: wrap the strip round the branch end and scribe; the cut rises '+clen(c.rise)+' from the sides to the crown <button type="button" class="btn" data-cope="'+DOD+'" data-d="'+dOD+'" data-msg="m-cope-msg" style="padding:2px 10px;margin-left:6px">DXF</button><span id="m-cope-msg" class="hint"></span>'); })()+
+    (()=>{ const bw2=val('m-bw')>0?val('m-bw'):1.651, dOD=p.db+2*bw2, DOD=p.dpipe+2*bw2; if(!(dOD<=DOD)||$('m-dp-shape').value!=='round') return ''; const c=copeTemplate(dOD,DOD,null,bw2);
+      return rowT('Cope template for the tee',bothL(c.width)+' × '+bothL(c.H),'the fishmouth unrolled; the cut rises '+bothL(c.rise)+'. '+COPE_HOW+' <button type="button" class="btn" data-cope="'+DOD+'" data-d="'+dOD+'" data-wall="'+bw2+'" data-msg="m-cope-msg" style="padding:2px 10px;margin-left:6px">DXF</button><span id="m-cope-msg" class="hint"></span>'); })()+
     '<p class="cap">Tuned at '+tempStr(p.tres)+', because the branch holds still gas that runs near ambient (Stainless Headers measured about 90 to 110 °F at cruise). One truck build’s results point warmer: a 2.5 in J-pipe 28⅞ in long for a 117 Hz drone (a V8 at 1,750 RPM) worked best around 2,000 to 2,100 RPM, which puts its branch near 150 °C (300 °F). A hotter branch tunes higher, so start at the longer length and trim toward the cut length while you listen: trimming only raises the note. The cut length allows '+clen(qw.end)+' for the open end. Bends are fine: measure along the centerline.</p>');
   if(!ch.err&&ch.rev) html+=sec('Reverse-flow chamber',
     rowT('Area ratio, chamber ÷ pipe',ch.m.toFixed(2))+rowT('Cuts most at',Math.round(ch.fPeak)+' Hz','and odd multiples: the chamber beyond the tube mouths ('+clen(ch.Lc)+') is a quarter wave long and loads the junction hard')+
@@ -17613,7 +17618,7 @@ function quickSheet(p,r){
     add(cn.kind+each,cone(dEnd,mid)+', 15° included',cn.len,'The flow rule’s pipe is smaller than the collector; 15°, the same as the merge cones.');
   }
   if(cn){ const fl=coneFlat(Math.min(dEnd,mid),Math.max(dEnd,mid),cn.len,W);
-    buy.push([cn.kind,cone(dEnd,mid)+' × '+clen(cn.len),sides+'',fl?'from 16 ga sheet: arcs of '+clen(fl.R0)+' and '+clen(fl.R1)+' radius over '+fl.sweep.toFixed(1)+'° (mid-wall), or buy a cone':'']); }
+    buy.push([cn.kind,cone(dEnd,mid)+' × '+clen(cn.len),sides+'',fl?'from 16 ga sheet: arcs of '+bothL(fl.R0)+' and '+bothL(fl.R1)+' radius over '+fl.sweep.toFixed(1)+'° (mid-wall, butt seam, no allowance), or buy a cone':'']); }
   buy.push(['V-band clamps',tubIn(od)+' tube',sides+'','at the collector outlets, so the headers come off']);
   // the open race alternative: the 4-Stroke tab's megaphone (twice the collector's area, 8° included)
   if(p.use!=='street') alts.push('Open megaphone instead of mufflers (race, off-road): '+cone(dEnd,dEnd*Math.SQRT2)+' over '+clen(coneLen(dEnd,dEnd*Math.SQRT2,8))+

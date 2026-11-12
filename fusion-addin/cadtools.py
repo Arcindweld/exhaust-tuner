@@ -2635,10 +2635,11 @@ def _cope_tube(comp, tube, piece, main, c, start, d, od, notes, name):
 
 def _tee_note(name, main, c, length=None, start=None, d=None, hole=True, joined=True):
     how = {'face': 'the face of %s' % main['name'], 'scan': 'the scan'}.get(main['how'], main['name'])
-    s = ('%s is coped to the main pipe (%.2f in across, from %s): the fishmouth reaches %.2f in below the centreline '
-         'at its sides' % (name, 2 * c['R'] / 2.54, how, c['depth'] / 2.54))
+    s = ('%s is coped to the main pipe (%.2f in, %.1f mm across, from %s): the fishmouth reaches %.3f in (%.1f mm) below '
+         'the point where its centreline meets the main pipe, at its sides' % (
+             name, 2 * c['R'] / 2.54, 20 * c['R'], how, c['depth'] / 2.54, 10 * c['depth']))
     if length:
-        s += ', so cut the tube %.2f in long at its longest side' % ((length + c['depth']) / 2.54)
+        s += ', so cut the tube %.3f in (%.1f mm) long at its longest side' % ((length + c['depth']) / 2.54, 10 * (length + c['depth']))
     if c['trim'] > 0:
         s += (' (the last %.1f mm of its tips is left off, where a branch the size of the main pipe meets it '
               'tangentially; finish them by hand)' % (10 * c['trim']))
