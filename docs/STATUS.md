@@ -159,6 +159,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   converged air and the merged cold flow of twins (it was one turbo's flow); bends longer than their run are flagged;
   GTX3076R GEN II wastegate filled from Garrett; Hooper's 45 deg mitres acknowledged; Garrett's cfm density and the
   preprint's status stated. Open: wire the exhaust tabs' back pressure into i-tobp; Bell's figures not re-read (book).
+  Then the owner's "make sure to consider the turbo A/R" (web/tests/turboar_ui.js; audit doc, own section): every
+  TURBO_LIB row's turbine housings structured from the maker pages (flange, A/R, outlet size, divided, gate, part number);
+  the housing A/R is a build field (i-tar, i-thsg, saved with projects) shown in Turbo options, the route summary, the
+  drawing and the placement rows; Garrett's own A/R definition and the GTX3076R 0.83 -> 1.01 result (one engine) replace
+  a second-hand citation; housings are put in A/R order (no capacity scaled: no source for it) and tied to the build's
+  turbine balance at peak and full-boost RPM; the one published housing flow (G40-1150 1.19 T4, 43 lb/min, no basis) gets
+  an indicative verdict; a measured pre-turbine pressure (i-p3m) replaces the assumed multiple and moves one A/R step by
+  Bell's rule; divided housings are checked against the manifold (BorgWarner). Also fixed: the gate range table threw on
+  a multiple with more than four decimals (B30).
 - Turbo and intercooler catalogue (2026-11-12, branch agent6/catalogue; web/tests/turbolib_ui.js, sound_ui.js): every figure
   read this session on the page in each row's src, makers' own pages only (a maker's document on a dealer's site is labelled
   so). Turbos 4 -> 22 rows, 500 to 1200 hp top ratings: Precision is at precisionturbo.com (the .net address was the dead

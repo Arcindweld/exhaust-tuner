@@ -181,9 +181,82 @@ boost, eta 55%) the gate's share is 0 and the page showed a 0 mm² gate with "38
 flow on those assumptions and why. At zero boost a dangling comma in the turbine table is gone. Checked with no NaN /
 Infinity on the page: boost 0 and 200 kPa, twins, zero charge-pipe lengths, intercooler 0 and 100%, 20000 rpm.
 
+**B30. Range-table row match. FIXED.** `tsWgRange` rounds the multiples to four decimals and then looked for the typed
+one at 1e-9, so a multiple with more decimals (typed, or a measured pressure over the boost, e.g. 9 psi / 8 psi in kPa)
+found no row and the section threw. It now compares at the same rounding (boostaudit_ui: 2.123456 is marked as yours).
+
+## Turbine housing A/R (the owner's addition, after the audit fixes)
+
+Asked for: make the turbine housing A/R part of the sizing as far as sources allow. What is on the page now, and the
+basis of each statement:
+
+Sourced (read 2026-11-12):
+- Definition: Garrett, Turbocharger Catalog vol. 9, p. 7 "WHAT IS A/R?": "the inlet (or, for compressor housings, the
+  discharge) cross-sectional area divided by the radius from the turbo centerline to the centroid of that area"; the same
+  in Garrett's article "the difference an A/R makes" (the owner's link). This replaces the page's earlier citation of a
+  Garrett graphic "as reproduced on a 2025 lecture deck".
+- Effect: the same catalogue page: a smaller A/R raises gas velocity into the wheel, "quicker boost response", the flow
+  enters "more tangentially, which reduces the ultimate flow capacity", more back pressure; a larger A/R "more radial",
+  "increasing the wheel's effective flow capacity", lower back pressure, delayed boost.
+- One engine's result: Garrett's article, GTX3076R GEN II on a 1.9 L Honda, "divided v-band .83 A/R" 600 whp / 400 lb-ft,
+  full spool 5,250 RPM; 1.01 A/R +50 whp, +75 lb-ft, full spool "almost 6000rpm"; the .83 curve "dips at the end of the
+  pull". G25-660 0.72 vs 0.92: "did not make as significant of a difference"; RX-7 1.44 vs 1.15: lower back pressure
+  "with minimal effect on boost response". On the page as one engine, not a rule, and not made into a formula. Conflict
+  noted on the page: Garrett's GTX3076R GEN II product page lists its V-band 0.83 and 1.01 housings as undivided.
+- A/r sets the rotor inlet angle and the swallowing capacity for one wheel: Lee, Barrans, Jupp and Nickson, Aerospace 4
+  (2017) 56 (open access, eprints.hud.ac.uk/34087), who also found 4.3% more mass flow parameter at the same A/r with a
+  different volute aspect ratio, so A/R orders capacity but does not fix it.
+- Housings: structured per row (`TURBO_HS`, flange, A/R, outlet and its size where printed, divided, gate type, part
+  number) from the maker pages re-read today: Precision PT5558 (selector only: the page does not pair flanges with A/Rs,
+  said in the row), PT5862, PT6062, PT6266, PT6466 (Details lists); Garrett G25-550, GTX2867R GEN II, G25-660, GTX3076R GEN
+  II, G30-770, GTX3582R GEN II, G35-900, G35-1050, G40-1150, G42-1200 (turbine kit and assembly tables); BorgWarner EFR
+  6758, 7163, 8374, 9180 (catalogue tables, twin-scroll entries as divided); AirWerks super-cores: none (sold without a
+  housing, said on the page).
+- Published turbine flow per housing in text: one only, Garrett G40-1150, "The largest 1.19 A/R T4 turbine housing flows
+  43 LBS/MIN of air", no reference temperature, pressure or expansion ratio. Garrett's catalogue text has only wheel
+  figures ("77MM INCONEL TURBINE WHEEL FLOWS UP TO 43 LBS/MIN", "89MM ... UP TO 56 LBS/MIN"), BorgWarner's catalogue
+  only its Match-Bot example's "Turbine Corrected Flow @ 59F", Precision none. Maps are images and were not digitised.
+- Divided housings: BorgWarner's catalogue, the channels of cylinders 1-4 and 2-3 "separated from each other" to the
+  turbine and "reunited again directly at the turbine wheel", boost "1000 RPMs earlier".
+- Measured pre-turbine pressure: Bell (Maximum Boost pp. 37, 169-170, as already quoted in Boosted intake; not re-read).
+
+Derived (in the page's comment):
+- tan(alpha2) = 2 pi b2 (rho2/rho) / (A/Rc), incompressible 2 pi b2 / (A/R): mass through the volute section
+  m = rho A V_tc, free vortex r V_t = Rc V_tc to the rotor tip, continuity m = rho2 2 pi r2 b2 V_r2. A smaller A/R gives a
+  more tangential inflow, as Garrett states. No source was found that the swallowing capacity scales in proportion to
+  A/R, so no capacity is scaled with it: housings without a published flow are only put in A/R order.
+- The build tie: the existing turbine balance at peak and at the full-boost RPM (i-lorpm) with the assumed (or measured)
+  inlet pressure. If at full-boost RPM the turbine needs more than all of the exhaust at that pressure, the housing has to
+  build more pressure there, which is the smaller-A/R direction (Garrett); if at peak it needs more than all of it, the
+  larger-A/R direction; otherwise either end works on the balance and the choice is the power band (Garrett's wording).
+  Default build, GTX3076R: 37% of the exhaust through the turbine at peak (63% round the gate), 35% at 3,500 RPM.
+- Housing with a published flow: the maker's lb/min / 132.277 = kg/s against the exhaust per turbine; all of it ->
+  "passes all the exhaust without the gate"; more than the housing's figure but the turbine's share within it -> "needs the
+  gate to bypass at least 1 - cap/me"; the turbine's share above it -> "at its flow limit ... choose a larger A/R". The
+  G40-1150 figure has no stated basis, so actual mass flow is compared and the verdict is labelled indicative. Hand case in
+  turboar_ui.js: me 0.4692829 kg/s, turbine share 0.3710464 (0.1741257 kg/s), flow parameter 7.754875 (all) and 2.877418
+  (through the turbine) kg sqrt(K)/(s bar); 10 / 30 / 70 lb/min -> limit / gate at least 51.67% / all.
+
+Common practice / this page's own reading (labelled on the page):
+- "Near 1 x boost" read as at most 1.25 x (AR_NEAR1); the step is one A/R on the picked turbo's list, the same flange and
+  scroll family first.
+- An undivided housing on a divided manifold loses the pulse separation (follows from BorgWarner's description); one gate
+  per scroll or a divided-entry gate (as the placement rows already said).
+
+On the page: Intake inputs "Turbine housing A/R" (i-tar), "Turbine housing picked" (i-thsg, read-only) and "Measured
+pressure before the turbine" (i-p3m, which replaces the assumed multiple everywhere it is used); Turbo options shows the
+picked turbo's housings in A/R order with flange, outlet (in and mm), gate, part number and the verdict, a housing select
+that sets the A/R and the label (both saved with the project), the build tie, the Bell step and the divided check; the
+route summary has a Turbine housing row, the drawing's turbine label the A/R, the placement rows the housing's flange and
+its outlet as the downpipe start (no downpipe input exists on this tab, so none is fed); the Turbine housing A/R section
+keeps Vizard's quotes, now with Garrett's own definition and the GTX3076R result, and points to the per-build result.
+Tests: web/tests/turboar_ui.js.
+
 ## Open
 
 - Wire the Mufflers / Headers back-pressure results into i-tobp (B13) rather than typing them.
 - Bell's figures (Mach 0.4, 2-2.5 x boost, pages) were not re-read; the book is not online.
 - Hooper's 45 deg mitres could be offered for 45 deg pie cuts (data in hand, not used: B17).
 - A rich-mixture burned-gas composition for the turbine properties (B8).
+- Turbine flow per housing: makers print it only on map images (not digitised); the A/R verdict path for published
+  flows is exercised on the one text figure (G40-1150, basis unstated) and on synthetic rows in turboar_ui.js.
