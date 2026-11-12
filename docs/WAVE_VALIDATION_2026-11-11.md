@@ -571,8 +571,8 @@ R: air 287.10, burned at AFR 12.8 294.40, stoichiometric 286.63 J/kg K.
   of a junction its own; every enthalpy that crosses is h(T, x) of the crossing state (inflow at an open end: the still
   outside air's h(Ta), exactly). Mass and energy remain conserved to rounding.
 - Side volumes (chambers, branches): m e(T, x), T by Newton.
-- Cost: the JavaScript takes about twice as long (wave_wasm.js: 93 s against 47 s for the page's captured jobs), the
-  Rust/WebAssembly copy likewise more.
+- Cost: the JavaScript takes about twice as long (the page's captured jobs: 93 s with the gas, 47 s with the constant
+  gas, on an otherwise lightly loaded machine); the Rust/WebAssembly copy's slowdown was not measured separately.
 
 ### A3 Verification
 
@@ -695,8 +695,9 @@ was not made here, so its share of the 6-12 % is not known.
 - Full-throttle torque from the wave simulation: 11-16 % lower (the 48 runs above); VE -3 to +2 %. The page's eta 0.72
   ("calibration that brings full-throttle torque into the range of real engines") was set with the old gas and was not
   retuned (it is a calibration input, and no dyno curve is in hand here); the method text says so and points to the
-  dyno fit. The tests that run the simulation check ranges and relations, not torque values; see the commit for any
-  pinned value changed.
+  dyno fit. The page tests that run the simulation check ranges and relations, not torque values: all of them (sim_ui,
+  sound_ui, uel_sim_ui, multi_ui, extremes_ui, fuzz_ui, dyno_ui, wsnd*_ui) pass unchanged, and no pinned value was
+  changed.
 - Sound: the orders change by about a dB, both ways; the exhaust gas in the pipes is hotter and so faster.
 - `sosExh` and everything acoustic that uses it: unchanged (same species table, same numbers).
 - Cost: about twice the computing time.
