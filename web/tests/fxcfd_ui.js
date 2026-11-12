@@ -156,5 +156,25 @@ const fs = require('fs');
   ok(fe[0] === 'ellipse' && /Elliptical bellmouth/.test(fe[1]) && fr[0] === 'radius' && Math.abs(fr[1] - 3.5) < 1e-9,
      'a bellmouth read: the tab\'s mouth set to Elliptical bellmouth; a 3.5 mm lip: Rolled lip, lip radius ' + fr[1] + ' mm (shown ' + fr[2] + ')');
   await pg.evaluate(() => { window.__tubeOverride = null; });
+  // ---- where the mouth stands (2026-11-12): flange (default, as before), free or auto, passed to act_cfd_tube as mount
+  const tcAll = await sentOf('cfdTube');
+  ok(tcAll.length > 3 && tcAll.every(x => x.mount === 'flange'), 'every request so far sent mount: flange (the default, the case as before)');
+  const mountSel = '#fx-intake select.fxcfdsel[data-k="mount"]';
+  ok(await pg.$eval(mountSel, e => e.value === 'flange' && e.options.length === 3), 'the Mouth stands choice is there, flush in a wall by default');
+  await pg.selectOption(mountSel, 'free');
+  ok(/In open air the tube’s outside and its lip are walls too/.test(await pg.$eval('#fx-intake .fxcfd .hint', e => e.textContent)), 'with a one-line explanation');
+  // the add-in's answer for a free-standing, thin plain-cut tube (1.5 mm wall on a 92.61 mm bore: under 3 %)
+  await pg.evaluate(T => { const g = Object.assign({}, T.geometry, { mount: { type: 'free' }, inlet: { type: 'plain', wall_thickness_mm: 1.5 } });
+    window.__tubeOverride = Object.assign({}, T, { name: 'THIN', geometry: g, wall_mm: 1.5, mount: 'free', mount_how: 'free', protrusion_mm: 92.61 }); }, TUBE);
+  await pg.click('#fx-intake button[data-fxcfd="test"]'); await pg.waitForTimeout(700);
+  let tcm = await sentOf('cfdTube'); out = await pg.$eval('#fxcfd-out', e => e.innerText);
+  ok(tcm[tcm.length - 1].mount === 'free' && /standing free in open air 3\.65 in \(92\.6 mm\) proud/.test(out), 'free: mount sent as free, the tube described standing free');
+  ok(await pg.$eval('#fxcfd-thin', e => /A free-standing 0\.06 in \(1\.5 mm\) wall needs cells under/.test(e.textContent)).catch(() => false), 'and the page’s thin-wall warning for a free-standing plain mouth');
+  await pg.selectOption(mountSel, 'auto');
+  await pg.evaluate(T => { window.__tubeOverride = Object.assign({}, T, { name: 'AUTO', geometry: Object.assign({}, T.geometry, { mount: { type: 'free' } }), mount: 'free', mount_how: 'auto: nothing is against the mouth face', protrusion_mm: 92.61 }); }, TUBE);
+  await pg.click('#fx-intake button[data-fxcfd="test"]'); await pg.waitForTimeout(700);
+  tcm = await sentOf('cfdTube'); out = await pg.$eval('#fxcfd-out', e => e.innerText);
+  ok(tcm[tcm.length - 1].mount === 'auto' && /auto: nothing is against the mouth face/.test(out) && !(await pg.$('#fxcfd-thin')), 'auto: sent as auto, how the add-in decided is shown; a 4.76 mm wall gets no thin-wall warning');
+  await pg.selectOption(mountSel, 'flange'); await pg.evaluate(() => { window.__tubeOverride = null; });
   ok(!errs.length, 'no page errors ' + errs.join('; '));
   await b.close(); console.log(fails.length ? 'fxcfd_ui: ' + fails.length + ' FAIL' : 'fxcfd_ui: all pass'); process.exit(fails.length ? 1 : 0); })();

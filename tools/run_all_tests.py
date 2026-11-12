@@ -170,9 +170,6 @@ OTHER = (('cfd/*_vs_py.py', 'root'), ('cfd/*_vs_py.js', 'root'), ('cfd/test_*.py
 # files the patterns find that are not run, each with the reason (shown by --list and in every results table, so an
 # exclusion is never silent); remove the line once the reason is gone
 EXCLUDED = {
-    'layouts_test_bundle_mode': 'stale: its Fusion stub (layouts/ls3-180/fake/adsk) has no TemporaryBRepManager, which '
-                                'cadtools._merge_body has used since the merge collectors became one welded body; it '
-                                'fails with AttributeError before checking anything. Extend the stub, then remove this line',
 }
 # and these, which are checks with their own command line
 CHECKS = (('gen_rust_templates_check', ['cfd/gen_rust_templates.py', '--check']),
@@ -217,13 +214,13 @@ def plan(tools, quick):
     out.append(T('build_wave_wasm', 'build', ['cargo', 'build', '--release', '--target', 'wasm32-unknown-unknown',
                  '--manifest-path', 'rust/et_wave/Cargo.toml'], ROOT, runner_skip=nowasm))
     # rust: cargo test for every crate, then the wave model built from this checkout against the page's JavaScript
-    # rust/'s tests use shell-script stand-ins for the solvers, and EXHAUST_TUNER_OPENWAM / _OPENFOAM would replace
-    # those (rust/et_host/src/paths.rs reads them first: the router cancel tests then fail), so they run without them;
-    # the tests named *real_solver* run once more with the real OpenWAM
+    # rust/'s tests use shell-script stand-ins for the solvers; the router cancel tests build their AppPaths with
+    # without_engine_env(), so EXHAUST_TUNER_OPENWAM / _OPENFOAM no longer replace the stand-ins (2026-11-12) and the
+    # suite runs with the environment as it is; the tests named *real_solver* run once more with the real OpenWAM
     solvers = ('EXHAUST_TUNER_OPENWAM', 'EXHAUST_TUNER_OPENFOAM')
     for crate, man in crates():
         out.append(T('cargo_test_' + crate, 'rust', ['cargo', 'test', '--release', '--manifest-path', man, '--', '--show-output']
-                     + (['--skip', 'real_solver'] if crate == 'rust' else []), ROOT, runner_skip=nocargo, unset=solvers))
+                     + (['--skip', 'real_solver'] if crate == 'rust' else []), ROOT, runner_skip=nocargo))
         if crate == 'rust':
             out.append(T('cargo_test_rust_real_openwam', 'rust', ['cargo', 'test', '--release', '--manifest-path', man, 'real_solver',
                          '--', '--show-output'], ROOT, unset=solvers[1:],

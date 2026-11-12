@@ -24,7 +24,7 @@ const { chromium } = require('playwright');
   const cases = [[41.402, 63.5, 1.651, 'a 1.5 in ID neck on a 2.5 in pipe, 16 ga'], [50.8, 50.8, 1.651, 'same size, two 2 in tubes'], [25.4, 76.2, 3.05, 'small d/D, thick wall (1 in on 3 in, 0.120 in)']];
   for (const [d, D, w, what] of cases) {
     const c = await pg.evaluate(a => { const c = window.__cope(a[0], a[1], null, a[2]); return { text: c.text, rise: c.rise, width: c.width }; }, [d, D, w]);
-    const { hdr, ents } = parse(c.text), lines = ents.filter(e => e.type === 'LINE');
+    const { hdr, ents } = parse(c.text), lines = ents.filter(e => e.type === 'LINE' && e['8'] === 'CUT');   // the outline; the quarter marks and scale bars are on MARKS (2026-11-12)
     chk(hdr.$INSUNITS === '4' && hdr.$MEASUREMENT === '1', what + ': DXF in millimetres ($INSUNITS 4, $MEASUREMENT 1)');
     let worst = 0;
     for (let i = 0; i < 72; i++) { const x = +lines[i]['10'], y = +lines[i]['20'], z = copeRef(d, D, w, x / (d / 2)); worst = Math.max(worst, Math.abs(y - z)); }

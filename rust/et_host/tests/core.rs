@@ -148,7 +148,9 @@ fn two_sleeping_runs() -> (Arc<Mutex<Vec<Value>>>, Arc<MessageRouter>) {
     let app = temp();
     std::fs::create_dir_all(app.join("engines/openwam")).unwrap();
     exec(&app.join("engines/openwam/OpenWAM"), "#!/bin/sh\nexec sleep 30\n");
-    let paths = AppPaths::new(Some(app.to_str().unwrap()), Some(temp().to_str().unwrap()), Some(temp().to_str().unwrap()));
+    // the stand-in under engines/, whatever EXHAUST_TUNER_OPENWAM says (a developer's or CI's real build would run and
+    // finish instead of sleeping until stopped)
+    let paths = AppPaths::new(Some(app.to_str().unwrap()), Some(temp().to_str().unwrap()), Some(temp().to_str().unwrap())).without_engine_env();
     let sent: Arc<Mutex<Vec<Value>>> = Arc::default();
     let s2 = Arc::clone(&sent);
     let r = Arc::new(MessageRouter::new(Arc::new(dispatcher(paths, Arc::default())), Arc::new(move |s: String| s2.lock().unwrap().push(serde_json::from_str(&s).unwrap()))));
