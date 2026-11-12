@@ -143,6 +143,25 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
 
 ## 2026-11-01: new interface, independent audit
+- Charge piping from a scan (2026-11-11, branch agent4/scanroute; offline only, no Fusion here): Intake tab, Fusion
+  section, "Charge piping from your scan". Legs filter -> compressor inlet, compressor outlet -> intercooler inlet,
+  intercooler outlet -> throttle body (any subset; a start and an end marker each, selected in leg order; each leg its
+  own ID, wall, clearance). fusion-addin/chargeroute.py routes each leg with router.route once per stocked centre-line
+  radius for the tube OD and material (from the page's parts list, every bend sourced; the 3 nearest 1.5 D, none under
+  1 D) with no bend over the largest stocked angle at that radius, plus once at twice the clearance; ranks the routes the
+  router proves clear (certify on the exact triangles) by the Intake tab's 1-D loss at the tab's design flow
+  (friction over the straights + Crane bendK per bend, ported with parity tested against the page), then volume, bends,
+  clearance. Hot keep-outs (setHotKeepouts): a second scene whose distance counts hot_gap - gap less (UnionScene; the
+  route then runs its search and fit in Python). Output: cut list from stocked bends (in and mm), couplers at each end
+  (+ an optional joint in the longest straight a coupler long), smallest clearance and where, chargeRouteBuild builds
+  the chosen routes with _build_route; "Use this route's lengths and bends in the Intake tab" sets i-cph / i-cpc /
+  i-cpb (equivalent 90s at 1.5 D by Crane K, rounded) and i-cpah / i-cpac / i-cpr when present. Defaults: 12.7 mm
+  clearance (the auto-route's), 50.8 mm hot clearance (ASSUMPTION, no source found), 76.2 mm couplers (HPS HTSC-300-BLK,
+  Vibrant 2714 on the parts list). router.py: repair() takes seed_min_straight (default min_straight, so other modes are
+  unchanged); chargeroute passes 0, as a lattice path with a long minimum straight could otherwise lose every corner.
+  The browser page and the Windows program cannot read a mesh: the tab says scan routing runs in the add-in.
+  Tests: test_chargeroute.py, test_chargeroute_fusion_fake.py, web/tests/chargeroute_ui.js; NOT RUN live:
+  fusion-addin/tests/fusion_live_chargeroute.py (for the owner's PC).
 - Fabrication audit (2026-11-11; docs/FAB_AUDIT_2026-11-11.md): every cut, bend, print and template output recomputed
   from geometry (marched cylinders, a centreline rebuilt from the bend table, sampled solids). Fixed: F1 the page's cope
   template is worked from the branch's inside edge (a square-to-wall cut from the outside line left the inside edge

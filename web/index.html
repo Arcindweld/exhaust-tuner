@@ -12470,6 +12470,7 @@ function fusionTools(tab,buttons){
     (ROUTE_TABS[tab]?routeBlock():'')+
     (buttons.some(b=>b[0]==='jig')?jigBlock(tab):'')+
     (buttons.some(b=>b[0]==='printSplit')?psBlock():'')+
+    (tab==='intake'?crBlock():'')+   // charge piping from a scan (the block after window.__cut)
     (tab==='intake'?fxCfdBlock():'')+
     '<div class="out" id="fx-out-'+tab+'"></div></div>';
 }
@@ -12775,6 +12776,213 @@ function cutBuyHtml(lists){
   return h+'</tbody></table></div><p class="cap">Bends are cut from stock mandrel bends of the same OD and centerline radius and butt-welded in order; each cut takes '+inMm(BEND_KERF_MM)+' of kerf. Measure each bend piece along the outside and the inside of the bend, mark both, and cut square to the tube. Clock each piece from the previous bend plane as listed (right-hand rule about the feed direction, first piece to last), tack, and check against the jig. Inches are rounded to the nearest 1/16, mm to 0.5; angles to 0.1°.</p>';
 }
 window.__cut={cutList,cutListHtml,cutBuyHtml,bendStock,inMm};
+/* ===== Charge piping from a scan (Fusion add-in: chargeroute.py, actions chargeRoute, chargeRouteBuild, setHotKeepouts) =====
+   The owner's scan as the space limit and a marker at each pipe end; the add-in routes each leg once per stocked bend radius
+   and ranks the routes that clear the scan by an estimated pressure loss at the design flow (chargeroute.py's docstring
+   defines "ideal"; the loss is the Intake tab's 1-D bendK and friction, computed in the add-in and checked against this page
+   by tests/chargeroute_ui.js). Routing reads the scan's triangles, which only Fusion has here: in a browser or the Windows
+   program this block says so. Kept apart from the Intake tab's charge-pipe sizing; it reads that section's inputs (i-cpd,
+   i-cpw, i-cpd2 when present) and crUseInIntake writes its lengths and bends. */
+const CR_LEGS=[['inlet','Filter to compressor inlet'],['hot','Compressor outlet to intercooler inlet'],['cold','Intercooler outlet to throttle body']];
+const CR_UI={legs:{inlet:{on:false,id:0,wall:0,gap:12.7},hot:{on:true,id:0,wall:0,gap:12.7},cold:{on:true,id:0,wall:0,gap:12.7}},
+  hot_gap:50.8,coupler:76.2,joints:'weld',min_straight:0,mat:'al',clr:0,time_s:30,open:false,plan:null,pick:{},sent:null,build:null,msg:''};
+/* Defaults, each one an input:
+   clearance to the scan 12.7 mm (0.5 in): the auto-route's default (router.py DEFAULTS), the owner's choice, no published rule.
+   hot clearance 50.8 mm (2 in): an ASSUMPTION, no published figure found for charge pipes near a turbine or manifold.
+   coupler 76.2 mm (3 in): the straight silicone couplers on the parts list (HPS HTSC-300-BLK, Vibrant 2714) are 3 in long, so
+   each pipe end has half of that, 38.1 mm, of straight before its first bend.
+   straight between bends 0: bends butt-welded end to end, as the cut list builds them (or a coupler's length with coupler joints).
+   material aluminium: an assumption for charge pipes; the stocked radii come from the parts list for the material picked. */
+function crTabSize(kind){
+  const g=id=>{ const el=$(id); return el&&Number.isFinite(el._b)&&el._b>0?el._b:0; };
+  const wall=g('i-cpw')||1.651;
+  if(kind==='inlet') return {id:g('i-dt'),wall,from:'the Intake tab’s tube'};
+  if(kind==='cold'&&g('i-cpd2')) return {id:g('i-cpd2'),wall,from:'the Intake tab’s cold side'};
+  return {id:g('i-cpd'),wall,from:'the Intake tab’s charge pipe'};
+}
+function crLegSize(kind){ const L=CR_UI.legs[kind], t=crTabSize(kind);
+  return {id:L.id>0?L.id:t.id,wall:L.wall>0?L.wall:t.wall,from:L.id>0?'entered here':t.from}; }
+// stocked centre-line radii for this OD from the parts list (bendStock: every bend there carries its supplier page), the
+// material asked for first; none: the radius entered here, else 1.5 x the inside diameter (Garrett's minimum, as calcCharge)
+function crStock(odMm,idMm,mat){
+  const odIn=odMm/MM, all=bendStock().filter(s=>Math.abs(s.od-odIn)<=0.011&&s.clr>0&&s.angle>0);
+  const same=all.filter(s=>matClass(s.mat)===mat), use=same.length?same:all, by=new Map();
+  use.forEach(s=>{ const k=+(s.clr*MM).toFixed(3); const e=by.get(k)||{clr_mm:k,angles:[],note:[]}; if(!e.angles.includes(s.angle)) e.angles.push(s.angle);
+    const n=s.supplier+(s.pn?' '+s.pn:''); if(e.note.length<3&&!e.note.includes(n)) e.note.push(n); by.set(k,e); });
+  const list=[...by.values()].sort((a,b)=>a.clr_mm-b.clr_mm).map(e=>({clr_mm:e.clr_mm,angles:e.angles.sort((a,b)=>a-b),note:e.note.join(', ')}));
+  if(list.length) return {list,stocked:true,otherMat:!same.length};
+  const clr=CR_UI.clr>0?CR_UI.clr:1.5*idMm;
+  return {list:[{clr_mm:clr,angles:[45,90,180],note:'not a stocked radius'}],stocked:false};
+}
+// the design flow in each pipe from the Intake tab, as its charge-pipe section works it out (calcCharge, fiSection0): the
+// engine's flow per turbo at the inlet density, the compressor outlet temperature at the tab's efficiency, the intercooler's
+// effectiveness and pressure drop
+function crFlows(){
+  if(!CFD_LAST&&typeof renderIntake==='function') try{ renderIntake(); }catch(e){}
+  if(!CFD_LAST) return {err:'Fill in the Intake tab first (engine, RPM, VE, boost): the ranking needs its airflow.'};
+  const p=CFD_LAST.p, r=CFD_LAST.r, ind=$('i-ind').value;
+  if(!(ind==='turbo'||ind==='centri')) return {err:'Set Forced induction on the Intake tab to a turbo or a centrifugal blower: the charge pipes take their airflow and temperatures from it.'};
+  const nt=Math.max(1,Math.round(val('i-nt')||1)), m=r.Q/nt*rhoGas(p.tin), eff=p.eff>0&&p.eff<=1?p.eff:0.7;
+  const t2=compOut(p.tin,r.pr,eff), ice=(val('i-ice')||0)/100, t3=t2-ice*(t2-p.tamb), pAbs=P_ATM*r.pr, rhoAmb=rhoGas(p.tamb);
+  return {inlet:{m_kg_s:m,T_C:p.tin,p_Pa:P_ATM,rho_amb:rhoAmb},hot:{m_kg_s:m,T_C:t2,p_Pa:pAbs,rho_amb:rhoAmb},
+    cold:{m_kg_s:m,T_C:t3,p_Pa:pAbs-(val('i-icdp')||0)*1000,rho_amb:rhoAmb},nt};
+}
+// the same loss as chargeroute.leg_loss, from this page's own bendK, visc and drawn-tube Haaland (the parity check)
+function crLoss(lenMm,bends,idMm,fl){
+  const D=idMm/1000, A=Math.PI*D*D/4, rho=rhoGas(fl.T_C,fl.p_Pa), v=fl.m_kg_s/(rho*A), q=rho*v*v/2, Re=rho*v*D/visc(fl.T_C);
+  const f=Re<2300?64/Re:1/Math.pow(-1.8*Math.log10(Math.pow(1.5e-6/D/3.7,1.11)+6.9/Re),2);
+  const arcs=bends.reduce((s,b)=>s+b[0]*Math.PI/180*b[1],0), Ls=Math.max(0,lenMm-arcs);
+  const dp=f*(Ls/idMm)*q+bends.reduce((s,b)=>s+bendK(b[0],b[1]/idMm,f),0)*q, V=A*lenMm/1000;
+  return {dp,volume_L:V*1000,fill_s:fl.rho_amb?Math.max(0,V*(rho-fl.rho_amb))/fl.m_kg_s:null};
+}
+function crLen(k,lab,hint){ const v=k.split('.').reduce((o,x)=>o[x],CR_UI);
+  return '<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="crx" data-k="'+k+'" type="number" step="any" inputmode="decimal" data-kind="len" value="'+
+    (v>0?(U==='imp'?+(v/MM).toFixed(3):+(+v).toFixed(1)):'')+'"'+(hint?' placeholder="'+esc(hint)+'"':'')+'><em data-u="len">'+(U==='imp'?'in':'mm')+'</em></span></label>'; }
+function crOrder(){ const on=CR_LEGS.filter(([k])=>CR_UI.legs[k].on); let n=0;
+  return on.map(([k,name])=>{ const [a,b]=name.split(' to '); return (++n)+'. '+a+', '+(++n)+'. '+b; }).join('; '); }
+function crBlock(){
+  const legRow=([k,name])=>{ const L=CR_UI.legs[k], t=crTabSize(k), hint=t.id>0?(U==='imp'?+(t.id/MM).toFixed(3):+t.id.toFixed(1))+' from the tab':'';
+    return '<div class="crleg" data-leg="'+k+'" style="margin-top:8px"><label class="f" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" class="crleg-on" data-leg="'+k+'"'+(L.on?' checked':'')+'><span><b>'+esc(name)+'</b></span></label>'+
+      (L.on?'<div class="grid2" style="max-width:560px">'+crLen('legs.'+k+'.id','Inside diameter (blank: the tab’s)',hint)+crLen('legs.'+k+'.wall','Wall (blank: the tab’s)',(U==='imp'?+(t.wall/MM).toFixed(3):+t.wall.toFixed(2))+'')+
+        crLen('legs.'+k+'.gap','Clearance to the scan')+'</div>':'')+'</div>'; };
+  const sel=(k,opts)=>'<span class="inp"><select class="crsel" data-k="'+k+'">'+opts.map(o=>'<option value="'+o[0]+'"'+(CR_UI[k]===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></span>';
+  return '<details class="crblock" id="cr-block"'+(CR_UI.open?' open':'')+' style="margin-top:12px"><summary><b>Charge piping from your scan</b>: recommend the route, then build it</summary>'+
+    '<ol class="cap" id="cr-guide" style="padding-left:20px">'+
+    '<li>Insert the scan (Insert &gt; Insert Mesh) where the engine sits. Select it, and any solids the pipes must clear, and press <b>Set keep-outs from selection</b> above.</li>'+
+    '<li>Optional: select the exhaust manifold and turbine housing (or a box you draw round them) and press <b>Mark hot</b>. The pipes keep the hot clearance from those. If the whole engine bay is one scan, draw the box: marking the scan hot keeps every pipe that far from everything.</li>'+
+    '<li>At each pipe end draw a short sketch line from the centre of the outlet or inlet, pointing the way the air flows (a circular edge works too).</li>'+
+    '<li>Select the markers in this order: <span id="cr-order">'+esc(crOrder())+'</span>.</li>'+
+    '<li>Press <b>Recommend piping</b>. Each leg lists the routes that fit, lowest loss first and picked; pick another if you like, then <b>Build the chosen pipes</b>.</li></ol>'+
+    CR_LEGS.map(legRow).join('')+
+    '<div class="grid2" style="max-width:560px;margin-top:10px">'+crLen('hot_gap','Clearance to bodies marked hot')+crLen('coupler','Coupler length (each pipe end has half of it straight)')+
+    '<label class="f"><span class="lab">Joints between bends</span>'+sel('joints',[['weld','Welded (bends cut from mandrel bends)'],['coupler','A coupler between every bend']])+'</label>'+
+    (CR_UI.joints==='weld'?crLen('min_straight','Straight between bends (0: welded end to end)'):'')+
+    '<label class="f"><span class="lab">Tube material</span>'+sel('mat',[['al','Aluminium'],['ss','Stainless'],['mild','Mild steel'],['ti','Titanium']])+'</label>'+
+    crLen('clr','Bend radius when no stocked bend fits the tube (blank: 1.5 × inside diameter)')+'</div>'+
+    '<p class="cap" id="cr-stock">'+crStockLine()+'</p>'+
+    '<p class="cap">Defaults, all yours to change: 0.5 in (12.7 mm) clearance as the other auto-routes; 2 in (50.8 mm) from hot bodies is an assumption, no published figure was found; 3 in (76.2 mm) couplers are the straight silicone couplers on the parts list (HPS HTSC-300-BLK, Vibrant 2714). Ideal means: of the routes that keep the clearance everywhere (checked against the scan’s triangles), the lowest estimated pressure loss at the Intake tab’s airflow, then the least air volume, then the fewest bends, then the most clearance. The loss is the tab’s 1-D estimate (friction along the straights plus Crane’s K for each bend), not a measurement.</p>'+
+    '<div class="actions"><button type="button" class="btn" data-cr="hot">Mark hot</button><button type="button" class="btn" data-cr="unhot">Clear hot</button>'+
+    '<button type="button" class="btn" data-cr="rec">Recommend piping</button><button type="button" class="btn" data-cr="build" hidden>Build the chosen pipes</button>'+
+    '<button type="button" class="btn" data-cr="use" hidden>Use this route’s lengths and bends in the Intake tab</button></div><div class="out" id="cr-out"></div></details>';
+}
+function crStockLine(){
+  return CR_LEGS.filter(([k])=>CR_UI.legs[k].on).map(([k,name])=>{ const s=crLegSize(k); if(!(s.id>0)) return esc(name)+': no tube size yet.';
+    const od=s.id+2*s.wall, st=crStock(od,s.id,CR_UI.mat);
+    return esc(name)+', '+tubIn(od)+' OD: '+(st.stocked?'stocked bend radii '+st.list.map(x=>clen(x.clr_mm)).join(', ')+(st.otherMat?' (not in this material)':''):
+      'no stocked bend for this OD on the parts list, so '+clen(st.list[0].clr_mm)+(CR_UI.clr>0?' as entered':' (1.5 × the inside diameter)')+' is used: check you can get it');
+  }).concat((()=>{ const tb=$('i-tb'), c=crLegSize('cold'); return CR_UI.legs.cold.on&&tb&&tb._b>0&&c.id>0&&Math.abs(tb._b-c.id)>1?
+    ['The throttle bore is '+cdim(tb._b)+' and the cold pipe '+cdim(c.id)+' inside: the route ends at the marker in the pipe’s size, so a cone or reducing coupler is needed at the throttle body.']:[]; })()).join('<br>');
+}
+function crRequest(){
+  const fl=crFlows(); if(fl.err) return {err:fl.err};
+  const legs=[];
+  for(const [k,name] of CR_LEGS){ const L=CR_UI.legs[k]; if(!L.on) continue; const s=crLegSize(k);
+    if(!(s.id>0&&s.wall>0)) return {err:name+': fill in its inside diameter and wall (here or on the Intake tab).'};
+    if(!(L.gap>0)) return {err:name+': fill in its clearance to the scan.'};
+    const st=crStock(s.id+2*s.wall,s.id,CR_UI.mat);
+    legs.push({kind:k,name,id_mm:s.id,wall_mm:s.wall,gap_mm:L.gap,stock:st.list,flow:fl[k]}); }
+  if(!legs.length) return {err:'Tick at least one leg.'};
+  return {legs,hot_gap_mm:CR_UI.hot_gap,coupler_mm:CR_UI.coupler,joints:CR_UI.joints,min_straight_mm:CR_UI.joints==='weld'?CR_UI.min_straight:CR_UI.coupler,
+    gap_tt_mm:FX.route&&FX.route.gap_tt_mm>0?FX.route.gap_tt_mm:3.175,time_s:CR_UI.time_s,max_radii:3};
+}
+const crPa=x=>Math.round(x)+' Pa ('+(x/249.09).toFixed(1)+' inH₂O)';
+function crRender(){
+  const out=$('cr-out'); if(!out) return; const P=CR_UI.plan;
+  let h=CR_UI.msg?'<div class="note '+(CR_UI.msgBad?'bad':CR_UI.msgWarn?'warn':'ok')+'">'+esc(CR_UI.msg)+'</div>':'';
+  if(P) P.legs.forEach((L,li)=>{
+    const sent=(CR_UI.sent&&CR_UI.sent.legs[li])||{}, ok=L.candidates.filter(c=>c.ok);
+    h+='<p class="sub" style="margin-top:12px">'+esc(L.name)+'</p>';
+    if(!L.ok){ h+='<div class="note bad">'+esc(L.msg)+'</div>'; return; }
+    h+='<div class="tblwrap"><table class="crtab" data-leg="'+li+'"><thead><tr><th></th><th>#</th><th>Bend radius</th><th>Length</th><th>Bends</th><th>Loss</th><th>Air held</th><th>Smallest clearance</th></tr></thead><tbody>'+
+      ok.map(c=>'<tr><td><input type="radio" name="cr-pick-'+li+'" value="'+c.id+'"'+((CR_UI.pick[li]??ok[0].id)===c.id?' checked':'')+' aria-label="Choose route '+c.rank+'"></td><td>'+c.rank+'</td><td>'+clen(c.clr_mm)+'<br><span class="cap">'+c.clr_d.toFixed(2)+' D'+(c.tag?', '+esc(c.tag):'')+'</span></td><td>'+clen(c.length_mm)+'</td><td>'+c.n_bends+
+        (c.bends.length?'<br><span class="cap">'+c.bends.map(b=>b.angle_deg.toFixed(0)+'°').join(', ')+'</span>':'')+'</td><td>'+crPa(c.dp_Pa)+'</td><td>'+c.volume_L.toFixed(2)+' L ('+(c.volume_L*61.0237).toFixed(0)+' in³)'+
+        (c.fill_s!=null?'<br><span class="cap">'+Math.round(c.fill_s*1000)+' ms to fill</span>':'')+'</td><td>'+(c.min_gap_mm!=null?clen(c.min_gap_mm):'more than '+clen(c.gap_mm+100))+
+        (c.hot_gap_mm!=null?'<br><span class="cap">hot: '+clen(c.hot_gap_mm)+'</span>':'')+'</td></tr>').join('')+'</tbody></table></div>';
+    const bad=L.candidates.filter(c=>!c.ok);
+    if(bad.length) h+='<p class="cap">Did not fit: '+bad.map(c=>esc(c.label)+' ('+esc(c.note||'no route')+')').join('; ')+'</p>';
+    const c=ok.find(x=>x.id===(CR_UI.pick[li]??ok[0].id))||ok[0];
+    h+=crDetail(c,sent);
+  });
+  if(CR_UI.build) h+='<div class="note '+(CR_UI.build.ok?(CR_UI.build.route_ok===false?'warn':'ok'):'bad')+'">'+esc(CR_UI.build.msg||'')+'</div>';
+  out.innerHTML=h;
+  const any=!!(P&&P.legs.some(L=>L.ok));
+  document.querySelectorAll('#cr-block button[data-cr="build"],#cr-block button[data-cr="use"]').forEach(b=>b.hidden=!any);
+}
+// the chosen route: where its smallest clearance is, the couplers, and the cut list (in and mm)
+function crDetail(c,sent){
+  const pt=a=>a?'('+a.map(v=>U==='imp'?(v/MM).toFixed(1):Math.round(v)).join(', ')+') '+(U==='imp'?'in':'mm'):'';
+  let h='<p class="cap"><b>Route '+c.rank+'</b>: '+esc(c.label)+'. Smallest clearance '+(c.min_gap_mm!=null?clen(c.min_gap_mm)+' at '+pt(c.min_gap_at_mm):'more than '+clen(c.gap_mm+100)+' (nothing nearer)')+
+    (c.hot_gap_mm!=null?'; to hot bodies '+clen(c.hot_gap_mm)+' at '+pt(c.hot_gap_at_mm):'')+'. Loss '+crPa(c.dp_Pa)+': friction '+crPa(c.dp_friction_Pa||0)+', bends '+crPa(c.dp_bends_Pa||0)+
+    ', at '+(c.v_m_s!=null?(U==='imp'?Math.round(c.v_m_s/0.3048)+' ft/s':Math.round(c.v_m_s)+' m/s'):'')+'.'+(c.flags&&c.flags.length?' '+c.flags.map(esc).join(' '):'')+'</p>';
+  h+='<p class="cap">Couplers: '+c.couplers.map(k=>esc(k.at)+' '+clen(k.s_mm)+' along').join('; ')+'.</p>';
+  h+='<div class="tblwrap"><table><thead><tr><th>#</th><th>Piece</th><th>Cut</th><th>Clock from last bend</th><th>Cut from</th></tr></thead><tbody>'+
+    c.cut.map((p,j)=>'<tr><td>'+(j+1)+'</td><td>'+(p.kind==='bend'?'Bend '+p.A_deg.toFixed(1)+'° on '+inMm(p.CLR_mm)+' CLR':'Straight'+(p.note?' ('+esc(p.note)+')':''))+'</td><td>'+inMm(p.L_mm)+(p.kind==='bend'?' on the centreline':'')+'</td><td>'+
+      (p.kind==='bend'&&p.rot_deg!=null?(+p.rot_deg.toFixed(1))+'°':'')+'</td><td>'+(p.kind==='bend'?(p.from_deg?p.from_deg+'° stock bend':'<span class="st-bad">none stocked</span>'):'straight tube')+'</td></tr>').join('')+
+    '<tr><td></td><td><b>Total</b></td><td><b>'+inMm(c.cut.reduce((s,p)=>s+p.L_mm,0))+'</b></td><td></td><td></td></tr></tbody></table></div>';
+  return h;
+}
+// the chosen routes' lengths and bends into the Intake tab's charge-pipe section. One function, guarded: an input that is
+// not on the page is skipped. i-cpb counts 90 degree bends at 1.5 D (calcCharge's basis), so the routes' bends go in as the
+// number of those with the same Crane K (bendK is linear in f, so f drops out), rounded to whole bends; the per-side angle
+// and radius inputs (i-cpah, i-cpac, i-cpr), where the page has them, get the bends as they are.
+function crUseInIntake(){
+  const P=CR_UI.plan; if(!P) return {err:'Recommend piping first.'};
+  const pick={}; P.legs.forEach((L,li)=>{ if(!L.ok) return; const ok=L.candidates.filter(c=>c.ok); pick[L.kind]=ok.find(c=>c.id===(CR_UI.pick[li]??ok[0].id))||ok[0]; });
+  const setN=(id,v)=>{ const el=$(id); if(!el||!Number.isFinite(v)) return false; el._b=v; showInput(el); return true; };
+  const setT=(id,v)=>{ const el=$(id); if(!el) return false; el.value=v; return true; };
+  const done=[], idOf=k=>crLegSize(k).id;
+  const eq90=k=>pick[k]?pick[k].bends.reduce((s,b)=>s+bendK(b.angle_deg,b.clr_mm/idOf(k),1)/bendK(90,1.5,1),0):0;
+  if(pick.hot&&setN('i-cph',pick.hot.length_mm)) done.push('hot side '+clen(pick.hot.length_mm));
+  if(pick.cold&&setN('i-cpc',pick.cold.length_mm)) done.push('cold side '+clen(pick.cold.length_mm));
+  let eq=null;
+  if(pick.hot||pick.cold){ eq=eq90('hot')+eq90('cold'); if(setN('i-cpb',Math.round(eq))) done.push(Math.round(eq)+' bends of 90° at 1.5 D ('+eq.toFixed(2)+' by Crane’s K)'); }
+  const angs=k=>pick[k]?pick[k].bends.map(b=>+b.angle_deg.toFixed(1)).join(', '):'';
+  if(pick.hot&&setT('i-cpah',angs('hot'))) done.push('hot-side angles');
+  if(pick.cold&&setT('i-cpac',angs('cold'))) done.push('cold-side angles');
+  const radii=['hot','cold'].filter(k=>pick[k]).flatMap(k=>pick[k].bends.map(b=>b.clr_mm));
+  if(radii.length&&setN('i-cpr',radii.reduce((a,b)=>a+b,0)/radii.length)) done.push('bend radius');
+  if(pick.inlet){ const c=pick.inlet;
+    if(setN('i-lt',c.length_mm)) done.push('intake tube '+clen(c.length_mm));
+    if(setN('i-bends',c.n_bends)&&setT('i-bendang',angs('inlet'))) done.push('its bends');
+    if(c.bends.length&&setN('i-bendr',c.bends.reduce((a,b)=>a+b.clr_mm,0)/c.bends.length)) done.push('its bend radius'); }
+  window.CR_ROUTE_BENDS={hot:pick.hot?pick.hot.bends:null,cold:pick.cold?pick.cold.bends:null,inlet:pick.inlet?pick.inlet.bends:null};   // for a per-side input later
+  if(done.length) renderActive();
+  return {done,eq};
+}
+function crSay(t,bad,warn){ CR_UI.msg=t; CR_UI.msgBad=!!bad; CR_UI.msgWarn=!!warn; crRender(); }
+async function crRecommend(){
+  const q=crRequest(); if(q.err){ crSay(q.err,true); return; }
+  CR_UI.plan=null; CR_UI.pick={}; CR_UI.build=null; CR_UI.sent=q; { const s=$('cr-stock'); if(s) s.innerHTML=crStockLine(); }
+  crSay('Routing '+q.legs.length+' leg'+(q.legs.length===1?'':'s')+' in Fusion on each stocked bend radius… this can take a few minutes.');
+  const res=await fusionCall('chargeRoute',q);
+  if(!res||!res.ok){ crSay((res&&res.msg)||'Fusion did not answer.',true); return; }
+  CR_UI.plan=res.plan; crSay(res.msg,false,res.route_ok===false);
+}
+async function crBuild(){
+  const P=CR_UI.plan; if(!P) return;
+  const choice=P.legs.map((L,li)=>{ if(!L.ok) return null; const ok=L.candidates.filter(c=>c.ok); return CR_UI.pick[li]??ok[0].id; });
+  CR_UI.build={ok:true,msg:'Building in Fusion…'}; crRender();
+  const res=await fusionCall('chargeRouteBuild',{choice,title:'Charge pipes'});
+  CR_UI.build=res||{ok:false,msg:'Fusion did not answer.'}; crRender();
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-cr]'); if(!b) return; const a=b.dataset.cr;
+  if(a==='rec') crRecommend(); else if(a==='build') crBuild();
+  else if(a==='hot'||a==='unhot') fusionCall('setHotKeepouts',a==='unhot'?{clear:true}:{}).then(r=>crSay((r&&r.msg)||'Fusion did not answer.',!(r&&r.ok)));
+  else if(a==='use'){ const r=crUseInIntake(); crSay(r.err||(r.done.length?'Set on the Intake tab: '+r.done.join(', ')+'.':'The Intake tab has none of these inputs.'),!!r.err); } });
+document.addEventListener('input',e=>{ const el=e.target.closest('input.crx'); if(!el) return; readInput(el); const ks=el.dataset.k.split('.'), v=el.value===''?0:el._b;
+  if(!Number.isFinite(v)||v<0) return; let o=CR_UI; ks.slice(0,-1).forEach(k=>o=o[k]); o[ks[ks.length-1]]=v; const s=$('cr-stock'); if(s) s.innerHTML=crStockLine(); });
+document.addEventListener('change',e=>{ const t=e.target;
+  if(t.matches&&t.matches('input.crleg-on')){ CR_UI.legs[t.dataset.leg].on=t.checked; crRerender(); }
+  else if(t.matches&&t.matches('select.crsel')){ CR_UI[t.dataset.k]=t.value; crRerender(); }
+  else if(t.name&&t.name.indexOf('cr-pick-')===0){ CR_UI.pick[+t.name.slice(8)]=+t.value; crRender(); } });
+document.addEventListener('toggle',e=>{ if(e.target.id==='cr-block') CR_UI.open=e.target.open; },true);
+function crRerender(keep){ const el=$('cr-block'); if(!el) return; if(!keep) CR_UI.open=true; el.outerHTML=crBlock(); crRender(); }
+// a units switch: this block's inputs hold their values as typed, so draw it again in the new units (setUnits redraws the rest)
+document.addEventListener('click',e=>{ if(e.target.closest('#u-imp,#u-met')) setTimeout(()=>crRerender(true),0); });
+// without Fusion: no scan to route through here (the page and the Windows program cannot read a mesh), so say where it runs
+function crStandalone(){ return '<div class="note" id="cr-standalone" style="margin-top:12px"><b>Charge piping from a scan</b> runs in the Fusion add-in: open this page in Fusion’s Exhaust Tuner panel, set your scan as the keep-out, mark the pipe ends and press Recommend piping. This page and the Windows program cannot read a scan, so they size the pipes (above) but do not route them.</div>'; }
+{ const h=$('fx-intake'); if(h&&!FUSION&&!h.innerHTML) h.innerHTML=crStandalone(); }
+window.__cr={CR_UI,crRequest,crFlows,crStock,crLoss,crUseInIntake,crRender,crBlock,visc};
 const cmToMm=v=>v*10;
 function fxRender(tab,res){
   const out=$('fx-out-'+tab); if(!out) return;
