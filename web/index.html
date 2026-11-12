@@ -19959,7 +19959,7 @@ function turboSection(ind,p,r){
   // the size tables
   const tbl=(id,title,t,isIn)=>{ const rows=t.rows.map(x=>'<tr data-od="'+(x.od/25.4).toFixed(2)+'"'+(t.rec===x?' data-rec="1" style="background:var(--accent-soft)"':'')+'><td>'+cdim(x.od)+(t.rec===x?' <b>recommended</b>':'')+'</td><td>'+cdim(x.d)+'</td><td>'+sD(x.vG)+'</td><td>'+sD(x.v)+'</td><td>'+x.mach.toFixed(3)+'</td><td>'+(Number.isFinite(x.dp)?pD(x.dp):'–')+'</td>'+(isIn?'':'<td>'+volD(x.V)+'</td><td>'+(x.fill*1000).toFixed(1)+' ms</td>')+'</tr>').join('');
     return '<p class="sub" style="margin-top:14px">'+title+'</p><div class="tblwrap"><table id="'+id+'"><thead><tr><th>Tube OD</th><th>Inside</th><th>Garrett speed</th><th>Actual speed</th><th>Mach</th><th>Loss</th>'+(isIn?'':'<th>Volume</th><th>Fill</th>')+'</tr></thead><tbody>'+rows+'</tbody></table></div>'+
-      (t.rec?'':'<div class="note warn">No standard size here meets the rule; the flow needs more than one pipe or a larger one than 5 in.</div>')+
+      (t.rec?'':'<div class="note warn">No standard size here meets the rule; the flow needs more than one pipe or a larger one than 5 in (127 mm).</div>')+
       (t.rec&&vf(t.rec.vG)<200?'<p class="cap">No size on the list falls inside 200 to 300 ft/s; this is the smallest under 300 ft/s.</p>':''); };
   h+=tbl('ts-tbl-in','Size it: turbo inlet tube'+each+' ('+clen(p.lt)+' long, the intake tube above)',T.inlet,true)+
     tbl('ts-tbl-hot','Size it: hot side'+each+' ('+clen(q.Lh)+')',T.hot,false)+
@@ -20123,7 +20123,7 @@ function tsPlaceSection(ind,p,r){
   const arcOf=(angs,D)=>{ const rmm=q.rb>0?q.rb:1.5*D; return (angs.length?angs.reduce((s,a)=>s+a,0):90*q.bends/2)*Math.PI/180*rmm; };
   let wgIn=null;
   if(ind==='turbo'){ const afr=val('i-afr')>0?val('i-afr'):12, tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, eta=val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75, bst=(p.boost||0)*1000;
-    const tb=turbineBalance({ma:R.m,afr,t1:p.tin,t2:R.t2,tit,p3:P_ATM+2*bst,p4:P_ATM,eta}); wgIn={share:tb.wg,me:tb.me,tit,p3:P_ATM+2*bst,p4:P_ATM,eta,etaGiven:val('i-teff')>0}; }
+    if(bst>0){ const tb=turbineBalance({ma:R.m,afr,t1:p.tin,t2:R.t2,tit,p3:P_ATM+2*bst,p4:P_ATM,eta}); wgIn={share:tb.wg,me:tb.me,tit,p3:P_ATM+2*bst,p4:P_ATM,eta,etaGiven:val('i-teff')>0}; } }
   const P=tsPlacement({ind,meter,mafpos:$('i-mafpos').value,side:$('i-bovside').value,bovd:val('i-bovd'),Lc:q.Lc,Lh:q.Lh,cst:val('i-cpst'),arcC:arcOf(q.angC,R.dc),arcH:arcOf(q.angH,q.dh),
     lt:p.lt,dt:p.dt,t2:R.t2,t3:R.t3,tin:p.tin,Pt:R.Pt,P2:R.P2,P1:R.P1,mc:R.mc,m:R.m,wg:wgIn,wgtype:$('i-wgtype').value,mani:$('i-mani').value,colL:val('i-wgcl')>0?val('i-wgcl'):152.4});
   TS_PLACE=P;
@@ -20131,28 +20131,28 @@ function tsPlaceSection(ind,p,r){
   const row=(what,where,src,id)=>rows.push('<tr'+(id?' data-place="'+id+'"':'')+'><td style="white-space:normal;min-width:7em">'+what+'</td><td style="white-space:normal;min-width:13em">'+where+'</td><td style="white-space:normal;min-width:13em">'+src+'</td></tr>');
   row('Blow-off valve',(B.side==='cold'?'cold side, centre '+clen(B.x)+' before the throttle face':'hot side, centre '+clen(B.x)+' after the compressor outlet')+(B.fits?', on the straight':'; <b>does not fit on the '+clen(B.straight)+' straight there</b>')+
     (B.side==='cold'&&!B.cstGiven?' (the final straight is taken as the cold side less its bends’ arcs, '+clen(B.straight)+'; enter the real one)':''),
-    B.side==='cold'?V+'Turbosmart, GFB: as close to the throttle as possible, after the intercooler, never on a bend (a direction: the distance is the coupler’s 1½ in plus half the valve'+(B.blow?', behind the MAF':'')+')':V+'Garrett: close to the turbo outlet if the valve takes the heat; it sees '+tD(B.tValve)+' here, and no maker’s temperature rating for a blow-off valve was found','bov');
+    B.side==='cold'?V+'Turbosmart, GFB: as close to the throttle as possible, after the intercooler, never on a bend (a direction: the distance is the coupler’s 1.5 in (38 mm) plus half the valve'+(B.blow?', behind the MAF':'')+')':V+'Garrett: close to the turbo outlet if the valve takes the heat; it sees '+tD(B.tValve)+' here, and no maker’s temperature rating for a blow-off valve was found','bov');
   if(B.blow) row('MAF sensor (blow-through)','centre at least '+clen(254)+' before the throttle, 3 in (76 mm) of straight each side; the valve goes upstream of it so the air it dumps was never metered',V+'GM (MAF section above); the order follows from the metering','maf');
   row('What it does with the air',B.vent==='recirc'?'recirculates to the inlet tube between the MAF and the compressor':meter==='sd'?'may vent: the engine meters by manifold pressure':'may vent: it sits ahead of the MAF',
     B.vent==='recirc'?V+'Garrett, TiAL, GFB (bypass for MAF engines)':meter==='sd'?V+'Garrett (vent for MAP engines)':'follows from the metering; no maker statement found for blow-through','vent');
   if(P.ret) row('Return port on the inlet tube',P.ret.fits?'centre between '+clen(P.ret.lo)+' and '+clen(P.ret.hi)+' from the compressor inlet (MAF centre '+clen(P.ret.mafC)+' from it)':'<b>no room</b>: the '+clen(p.lt)+' tube cannot hold the MAF’s straight and a return port; lengthen it',
-    V+'GM’s 10 in and 3 in, with the compressor in the throttle body’s place; no source gives a spot inside the window or an angle for the port','ret');
+    V+'GM’s 10 in (254 mm) and 3 in (76 mm), with the compressor in the throttle body’s place; no source gives a spot inside the window or an angle for the port','ret');
   row('Valve reference line','manifold, after the throttle, its own line',V+'TiAL, Turbosmart, GFB (Charge pipes section)');
   if(P.wg){ const W=P.wg;
     if(W.type==='ext'){
       row('Wastegate take-off',(W.mani==='div'?'one gate per scroll, each on its scroll’s merge, or one divided-inlet gate, so the scrolls stay apart':W.mani==='log'?'at the turbine end of the log, where every runner’s flow passes':'on the collector after the last merge, where it sees every cylinder')+
-        (W.pick?'; centre between '+clen(Math.max(0,W.lo))+' and '+clen(W.hi)+' from the turbine flange on the '+clen(W.colL)+' collector'+(W.fits?'':' — <b>too short</b> for a 45° branch of '+W.pick+' mm ('+clen(W.foot)+' along the collector)'):''),CP+' (no instructions read state it)','wg');
+        (W.pick?'; centre between '+clen(Math.max(0,W.lo))+' and '+clen(W.hi)+' from the turbine flange on the '+clen(W.colL)+' collector'+(W.fits?'':' — <b>too short</b> for a 45° branch of '+cdim(W.pick)+' ('+clen(W.foot)+' along the collector)'):''),CP+' (no instructions read state it)','wg');
       row('Take-off angle','45° to the flow toward the turbine, smooth transition; not 90°',V+'Garrett (90° loses up to 50% of flow capacity); Turbosmart (90° poor, can add to over-boost)','wgang');
-      row('Branch and valve',W.pick?W.pick+' mm valve and branch bore ('+cdim(W.pick)+')':'larger than 60 mm, or two gates',
+      row('Branch and valve',W.pick?cdim(W.pick)+' valve and branch bore':'larger than '+cdim(60)+', or two gates',
         'effective area '+aD(W.Aeff)+' (Cd·A) for '+(W.mw*LBMIN).toFixed(1)+' lb/min ('+W.mw.toFixed(3)+' kg/s) of exhaust; no published Cd for a wastegate valve, so allow for it','wgsize');
       row('Dump tube','to the atmosphere or back into the downpipe after the turbine','no published re-entry angle or distance was found, so none is given');
       row('Boost signal and heat','from the compressor outlet, not the manifold; diaphragm housing at least '+clen(100)+' from any heat source',V+'Garrett, Turbosmart GenV','wgref'); }
     else row('Internal wastegate','in the turbine housing; it must pass '+(W.mw*LBMIN).toFixed(1)+' lb/min ('+W.mw.toFixed(3)+' kg/s), effective area '+aD(W.Aeff),'makers do not publish internal port sizes per housing; if boost climbs past the spring setting at high RPM (boost creep) the gate or its porting is too small','wgint'); }
   let h='<div class="tblwrap"><table id="ts-place"><thead><tr><th>Part</th><th>On this build</th><th>Basis</th></tr></thead><tbody>'+rows.join('')+'</tbody></table></div>';
   h+=rowT('Blow-off valve flow when the throttle shuts',(B.m*LBMIN).toFixed(1)+' lb/min ('+B.m.toFixed(3)+' kg/s)','the compressor’s full flow at that moment, from '+pD(B.pUp)+' absolute to '+pD(B.pDn)+(B.choked?', choked':''))+
-    rowT('Effective area it needs',aD(B.Aeff),'Cd × A; equal to a '+cdim(B.dEff)+' hole at Cd 1. '+TS_BOV_MM.map(d=>d+' mm '+(Math.PI/4*d*d/1e6>=B.Aeff?'passes':'is short')).join(', ')+' (round bores for comparison, not maker data); a restrictive valve or outlet lets the compressor surge (Garrett), see the surge check below');
+    rowT('Effective area it needs',aD(B.Aeff),'Cd × A; equal to a '+cdim(B.dEff)+' hole at Cd 1. '+TS_BOV_MM.map(d=>cdim(d)+' '+(Math.PI/4*d*d/1e6>=B.Aeff?'passes':'is short')).join(', ')+' (round bores for comparison, not maker data); a restrictive valve or outlet lets the compressor surge (Garrett), see the surge check below');
   if(P.wg) h+=rowT('Wastegate flow at peak power',(P.wg.mw*LBMIN).toFixed(1)+' lb/min ('+P.wg.mw.toFixed(3)+' kg/s)'+(nt>1?' each':''),Math.round(wgIn.share*100)+'% of the exhaust at turbine efficiency '+Math.round(wgIn.eta*100)+'%'+(wgIn.etaGiven?'':' (the top of the sweep, the most flow: enter yours)')+', inlet at 2 × boost (Bell), out at atmosphere')+
-    rowT('Effective area the gate needs',aD(P.wg.Aeff),'Cd × A, '+cdim(P.wg.dEff)+' at Cd 1; '+TS_WG_MM.map(d=>d+' mm '+(Math.PI/4*d*d/1e6>=P.wg.Aeff?'passes':'is short')).join(', ')+'. More flow goes through it at lower boost or higher RPM; a gate too small or badly placed shows as boost creep.');
+    rowT('Effective area the gate needs',aD(P.wg.Aeff),'Cd × A, '+cdim(P.wg.dEff)+' at Cd 1; '+TS_WG_MM.map(d=>cdim(d)+' '+(Math.PI/4*d*d/1e6>=P.wg.Aeff?'passes':'is short')).join(', ')+'. More flow goes through it at lower boost or higher RPM; a gate too small or badly placed shows as boost creep.');
   h+='<p class="cap">Valve flow is isentropic flow through a restriction (Heywood, <i>Internal Combustion Engine Fundamentals</i>, appendix C). Sources: Garrett, Turbo System Optimization; Turbosmart, <a href="https://turbosmart.gorgias.help/en-US/genv-wastegate--standard--motorsport--high-pressure-instructions-5768197" target="_blank" rel="noopener">GenV wastegate instructions</a>; the blow-off valve, MAF and coupler sources in the sections above. Rows marked common practice are not in any maker’s instructions read for this page.</p>';
   return sec('Where to put them on this build',h);
 }
@@ -20172,7 +20172,7 @@ function tsSvg(R,q,p,F){
   cone(R.trIn,p.dt,q.dci,'Into the compressor');
   items.push({k:'comp',h:62,t:'Compressor'+each,l:['pressure ratio '+R.PRc.toFixed(3),'out '+F.tD(R.t2),q.dci>0||q.dco>0?(q.dci>0?'inlet '+cdim(q.dci):'')+(q.dci>0&&q.dco>0?', ':'')+(q.dco>0?'outlet '+cdim(q.dco):''):'']});
   const PL=TS_PLACE;
-  if(PL&&PL.wg) items.push({k:'turb',t:'Turbine side'+each,h:PL.wg.type==='ext'&&PL.wg.pick?86:72,l:PL.wg.type==='ext'?['wastegate '+(PL.wg.pick?PL.wg.pick+' mm':'over 60 mm')+' at 45°, on the',PL.wg.mani==='div'?'merge of each scroll':PL.wg.mani==='log'?'turbine end of the log':'collector after the last merge',PL.wg.pick?'centre from the turbine flange:':'',PL.wg.pick?clen(Math.max(0,PL.wg.lo))+' to '+clen(PL.wg.hi):'']:['internal wastegate','needs '+(PL.wg.Aeff*1e6).toFixed(0)+' mm² effective']});
+  if(PL&&PL.wg) items.push({k:'turb',t:'Turbine side'+each,h:PL.wg.type==='ext'&&PL.wg.pick?86:72,l:PL.wg.type==='ext'?['wastegate '+(PL.wg.pick?cdim(PL.wg.pick):'over '+cdim(60))+', 45°, on the',PL.wg.mani==='div'?'merge of each scroll':PL.wg.mani==='log'?'turbine end of the log':'collector after the last merge',PL.wg.pick?'centre from the turbine flange:':'',PL.wg.pick?clen(Math.max(0,PL.wg.lo))+' to '+clen(PL.wg.hi):'']:['internal wastegate','needs '+(PL.wg.Aeff*1e6).toFixed(0)+' mm² effective']});
   const tr=x=>{ const f=R.trs.find(y=>y[0]===x); return f?f[1]:null; };
   cone(tr('co'),q.dco,q.dh,'Compressor outlet step');
   items.push({k:'pipe',d:q.dh,t:'Hot side'+each,l:['ID '+cdim(q.dh),clen(q.Lh)+' long, '+bendTxt(q.angH.length?0:q.bends/2,q.angH),F.sD(R.hot.v)+', Mach '+R.hot.mach.toFixed(2),'loss '+F.pD(R.dpHot)].concat(PL0&&PL0.bov.side==='hot'?['blow-off valve, from compressor:',clen(PL0.bov.x)]:[]),L:q.Lh,h:PL0&&PL0.bov.side==='hot'?112:84,
