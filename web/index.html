@@ -12952,7 +12952,7 @@ function crUseInIntake(){
 function crSay(t,bad,warn){ CR_UI.msg=t; CR_UI.msgBad=!!bad; CR_UI.msgWarn=!!warn; crRender(); }
 async function crRecommend(){
   const q=crRequest(); if(q.err){ crSay(q.err,true); return; }
-  CR_UI.plan=null; CR_UI.pick={}; CR_UI.build=null; CR_UI.sent=q;
+  CR_UI.plan=null; CR_UI.pick={}; CR_UI.build=null; CR_UI.sent=q; { const s=$('cr-stock'); if(s) s.innerHTML=crStockLine(); }
   crSay('Routing '+q.legs.length+' leg'+(q.legs.length===1?'':'s')+' in Fusion on each stocked bend radius… this can take a few minutes.');
   const res=await fusionCall('chargeRoute',q);
   if(!res||!res.ok){ crSay((res&&res.msg)||'Fusion did not answer.',true); return; }
@@ -12976,7 +12976,9 @@ document.addEventListener('change',e=>{ const t=e.target;
   else if(t.matches&&t.matches('select.crsel')){ CR_UI[t.dataset.k]=t.value; crRerender(); }
   else if(t.name&&t.name.indexOf('cr-pick-')===0){ CR_UI.pick[+t.name.slice(8)]=+t.value; crRender(); } });
 document.addEventListener('toggle',e=>{ if(e.target.id==='cr-block') CR_UI.open=e.target.open; },true);
-function crRerender(){ const el=$('cr-block'); if(!el) return; CR_UI.open=true; el.outerHTML=crBlock(); crRender(); }
+function crRerender(keep){ const el=$('cr-block'); if(!el) return; if(!keep) CR_UI.open=true; el.outerHTML=crBlock(); crRender(); }
+// a units switch: this block's inputs hold their values as typed, so draw it again in the new units (setUnits redraws the rest)
+document.addEventListener('click',e=>{ if(e.target.closest('#u-imp,#u-met')) setTimeout(()=>crRerender(true),0); });
 // without Fusion: no scan to route through here (the page and the Windows program cannot read a mesh), so say where it runs
 function crStandalone(){ return '<div class="note" id="cr-standalone" style="margin-top:12px"><b>Charge piping from a scan</b> runs in the Fusion add-in: open this page in Fusion’s Exhaust Tuner panel, set your scan as the keep-out, mark the pipe ends and press Recommend piping. This page and the Windows program cannot read a scan, so they size the pipes (above) but do not route them.</div>'; }
 { const h=$('fx-intake'); if(h&&!FUSION&&!h.innerHTML) h.innerHTML=crStandalone(); }
