@@ -20,15 +20,24 @@
 //  - density scaling: 100012 at 0.50 kg/s into 300 kPa abs. at 150 °C: 16.0 x (350/473.15)/(300/423.15) = 16.6936 kPa.
 //  - warmer coolant: at the maker's coolant flow the effectiveness does not change, so 100013 at 0.70 kg/s with coolant at 40 °C:
 //    Tout = 250 - 0.90 x 210 = 61.0 °C, Q = 0.90 x 0.70 x 1004.675 x 210 = 132.92 kW.
-// K24 builds (Honda K24A2, single turbo, Garrett's manifold pressure for each power entered as boost):
-//  450 hp, 29.541 psi: the tab's charge flow 0.4208 kg/s (above Garrett's 0.374: the tab's VE airflow at that boost).
-//    Ratings in hp (kW / 0.7457): 100011 536.4, 100012 804.6, 100013 1206.9; water-to-air rows >= 450: JK190 489.5, Garrett 500, 750,
-//    CSF 8134 800, Conflux 100012 804.6, ... Order by rating: JK190, 717874-6009, 717874-6008, CSF 8134, Conflux 100012.
-//    100011 (536.4 >= 450) is out on the thermal check: at 0.4208 kg/s (outside its 0.20-0.40 plot) UA by the power law fitted to
-//    its five UA values (computed here), the maker's coolant flow (no flow entered), coolant in at the outside 25 °C: the heat it
-//    removes over the heat for 75% effectiveness, eps_core x (t2 - 25) / (0.75 x (t2 - 25)) = eps_core / 0.75 < 1 (computed here).
-//    100013 passes with the flag "under the maker's optimised range" (450 hp < 500 kW = 670.5 hp).
-//  600 hp, 46.945 psi: rows >= 600: Garrett 717874-6008 750, CSF 8134 800, Conflux 100012 804.6 -> that order; 100011 out (536 < 600).
+// K24 builds (Honda K24A2, single turbo, Garrett's manifold pressure for each power entered as boost). Water-to-air order on the
+// evidence (reviewer, 2026-11-12): rows passing the rating and tank checks, grouped 0 thermal data meeting the target inside its flow
+// range (a single point: within +-10% of its flow), 1 meeting it only by extrapolation, 2 rating only; groups 0 and 1 by the smallest
+// capacity margin (heat removed / heat needed), group 2 by rating. Coolant in at the outside 25 °C (none entered), the makers' own
+// coolant flows, target 75%: heat needed 0.75 x Ch x (t2 - 25); a core with effectiveness e (on Ch, the smaller stream) removes
+// e x Ch x (t2 - 25), so its margin is e / 0.75, whatever t2.
+//  450 hp, 29.541 psi: the tab's charge flow 0.42079 kg/s (above Garrett's 0.374: the tab's VE airflow at that boost), t2 198.54 °C.
+//    Conflux 100012 (plotted 0.40-0.60: inside): UA linear between the UA inverted (here) at 0.40 and 0.45 -> e about 0.864, margin
+//    about 1.154, group 0. Bowman JK190: 0.42079 / 0.50167 = 0.839 x its point's flow, UA held -> margin about 1.271, group 1.
+//    Conflux 100013 (0.60-0.80: outside, power law fitted here) -> margin about 1.274, group 1. Then rating only: Garrett 717874-6009
+//    (500), 717874-6008 (750). Expected: 100012, JK190, 100013, 717874-6009, 717874-6008 (margins computed below).
+//    Conflux 100011 (536.4 hp >= 450) fails the thermal check: 0.42079 kg/s is outside its 0.20-0.40 plot, UA by the fitted power
+//    law -> e about 0.720, margin about 0.960: within 5% of the heat needed, so it is listed as just short: it reaches
+//    0.75 x 0.960 = 72.0% against the 75% target; at fixed flows e is independent of temperatures, so it passes with the coolant
+//    into the core at t2 - (t2 - 25) / 0.960 = 198.54 - 180.8 = about 17.8 °C.
+//  600 hp, 46.945 psi: 0.58634 kg/s, t2 259.26 °C. Conflux 100012 inside its range (margin about 1.074), group 0; 100013 (0.586 just
+//    below its 0.60) extrapolated, group 1; Garrett 717874-6008 (750 hp) rating only, group 2, with the reason line. 100011 out on
+//    rating (536 < 600); JK190 out on rating (489.5 < 600).
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
@@ -83,21 +92,39 @@ const { chromium } = require('playwright');
   // the K24 builds
   await pg.evaluate(() => { const s = (i, v) => { const e = document.getElementById(i); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }; s('v-mode', 'eng'); s('v-pick', [...document.getElementById('v-pick').options].find(o => /^K24A2 /.test(o.text)).value); });
   await set('i-ind', 'turbo'); await set('i-boost', '29.541'); await set('i-hp', '450'); await pg.waitForTimeout(500); await setx('ictype', 'w2a');
-  const rec = () => pg.evaluate(() => { const r = window.__tso.TG().icrec.w2a; return { ok: r.ok.map(x => ({ n: x.c.maker + ' ' + x.c.pn, flags: x.flags, capM: x.th ? x.th.capM : null })), out: r.out.map(x => ({ n: x.c.maker + ' ' + x.c.pn, f: x.fails.map(f => f[1]).join('; '), capM: x.th ? x.th.capM : null })) }; });
+  const rec = () => pg.evaluate(() => { const r = window.__tso.TG().icrec.w2a; return { ok: r.ok.map(x => ({ n: x.c.maker + ' ' + x.c.pn, flags: x.flags, capM: x.th ? x.th.capM : null, evG: x.evG })), out: r.out.map(x => ({ n: x.c.maker + ' ' + x.c.pn, f: x.fails.map(f => f[1]).join('; '), capM: x.th ? x.th.capM : null })) }; });
   let R = await pg.evaluate(() => window.__tsLast()), Rc = await rec();
   near(R.mc, 0.4208, 0.0001, '450 hp at 29.541 psi: the tab’s charge flow, kg/s');
-  ok(Rc.ok.slice(0, 5).map(x => x.n).join() === 'EJ Bowman JK190-4078-3,Garrett 717874-6009,Garrett 717874-6008,CSF 8134,Conflux Technology 100012', '450 hp water-to-air order by rating: ' + Rc.ok.slice(0, 5).map(x => x.n).join(', '));
+  // the hand capacity margins: UA from the curve (inverted here), linear inside the plotted range, the power law fitted here outside
+  const capCurve = (pn, m) => { const r = rows.find(x => x.pn === pn), K = r.curve, Cc = r.rated.kgs * cpc, U = K.m.map((q, i) => ntuOf(K.eff[i] / 100, q * cp / Cc) * q * cp);
+    let ua; if (m >= K.m[0] && m <= K.m[4]) { for (let i = 0; i < 4; i++) if (m <= K.m[i + 1]) { ua = U[i] + (U[i + 1] - U[i]) * (m - K.m[i]) / (K.m[i + 1] - K.m[i]); break; } }
+    else { const lx = K.m.map(Math.log), ly = U.map(Math.log), mx = lx.reduce((a, b) => a + b) / 5, my = ly.reduce((a, b) => a + b) / 5, bb = lx.reduce((q, x, i) => q + (x - mx) * (ly[i] - my), 0) / lx.reduce((q, x) => q + (x - mx) ** 2, 0); ua = Math.exp(my - bb * mx) * Math.pow(m, bb); }
+    return eps(ua / (m * cp), m * cp / Cc) / 0.75; };
+  const capJK = m => { const Ch0 = 30.1 / 60 * cp, Cw = 270 / 60 / 1000 * 992 * 4183, UA = ntuOf(138.5 / 150, Ch0 / Cw) * Ch0, Ch = m * cp; return eps(UA / Ch, Ch / Cw) / 0.75; };
+  { const h = [['Conflux Technology 100012', capCurve('100012', R.mc), 0], ['EJ Bowman JK190-4078-3', capJK(R.mc), 1], ['Conflux Technology 100013', capCurve('100013', R.mc), 1]];
+    const top = Rc.ok.slice(0, 5);
+    ok(top.map(x => x.n).join() === 'Conflux Technology 100012,EJ Bowman JK190-4078-3,Conflux Technology 100013,Garrett 717874-6009,Garrett 717874-6008', '450 hp water-to-air on the evidence: ' + top.map(x => x.n).join(', '));
+    ok(h.every(([n, v, g], i) => top[i].n === n && Math.abs(top[i].capM - v) < 1e-6 && top[i].evG === g) && h[0][1] < h[1][1] && h[1][1] < h[2][1] && top[3].evG === 2 && top[4].evG === 2,
+      '450 hp: capacity margins by hand ' + h.map(([n, v, g]) => n.split(' ').pop() + ' ' + v.toFixed(4) + ' (group ' + g + ')').join(', ') + '; then rating only'); }
   { // 100011's thermal gate by hand: UA by the power law fitted (here) to its five UA values
     const K = C1, Cc = 0.34 * cpc, U = K.m.map((m, i) => { const Ch = m * cp, cr = Ch / Cc; return ntuOf(K.eff[i] / 100, cr) * Ch; });
     const lx = K.m.map(Math.log), ly = U.map(Math.log), mx = lx.reduce((a, b) => a + b) / 5, my = ly.reduce((a, b) => a + b) / 5;
     const bb = lx.reduce((s, x, i) => s + (x - mx) * (ly[i] - my), 0) / lx.reduce((s, x) => s + (x - mx) ** 2, 0), a = Math.exp(my - bb * mx);
     const Ch = R.mc * cp, UA = a * Math.pow(R.mc, bb), e = eps(UA / Ch, Ch / Cc), capM = e / 0.75, o11 = Rc.out.find(x => x.n === 'Conflux Technology 100011');
-    ok(o11 && capM < 1 && /predicted to remove [0-9]+% of the heat the target needs/.test(o11.f) && Math.abs(o11.capM - capM) < 1e-6, '450 hp: 100011 out on the thermal check, hand ' + (capM * 100).toFixed(2) + '% (UA ' + UA.toFixed(1) + ' W/K, ∝ m^' + bb.toFixed(4) + '), page ' + (o11 ? (o11.capM * 100).toFixed(2) : '–') + '%'); }
+    ok(o11 && capM < 1 && /predicted to remove [0-9]+% of the heat the target needs/.test(o11.f) && Math.abs(o11.capM - capM) < 1e-6, '450 hp: 100011 out on the thermal check, hand ' + (capM * 100).toFixed(2) + '% (UA ' + UA.toFixed(1) + ' W/K, ∝ m^' + bb.toFixed(4) + '), page ' + (o11 ? (o11.capM * 100).toFixed(2) : '–') + '%');
+    const js = await pg.$eval('#tso-icrec-short-w2a', e => e.innerText).catch(() => ''), tc = R.t2 - (R.t2 - 25) / capM;
+    const want = 'Conflux Technology 100011: just short: reaches ' + (75 * capM).toFixed(1) + '% against your 75% target; lowering the target to ' + (75 * capM).toFixed(1) + '% or the coolant temperature into the core to ';
+    ok(js.indexOf(want) >= 0 && new RegExp('\\(' + Math.round(tc) + ' °C\\) \\(from 77 °F \\(25 °C\\)\\) would make it pass|' + Math.round(tc) + ' °C \\([0-9]+ °F\\) \\(from 25 °C').test(js), '450 hp: 100011 just short, reaches ' + (75 * capM).toFixed(2) + '%, passes at coolant ' + tc.toFixed(2) + ' °C: ' + js.split('\n').find(l => /100011/.test(l)));
+    const P = await pg.evaluate(([m, t]) => { const T = window.__tso, c = T.IC_LIB.find(x => x.pn === '100011'); return T.cfxPredict(c, { m, Cc: 0.34 * 3917, thi: t, tci: 25 }); }, [R.mc, R.t2]);
+    near(P.x.tho, R.t2 - (R.t2 - 25) * capM * 0.75, 1e-6, '450 hp: 100011 predicted charge out (°C) = t2 - e (t2 - 25)'); }
   const r13 = Rc.ok.find(x => x.n === 'Conflux Technology 100013');
   ok(r13 && r13.flags.some(f => /under the maker’s optimised range \(500 to 900 kW/.test(f)) && r13.flags.some(f => /outside the maker’s plotted 0\.60-0\.80 kg\/s/.test(f)), '450 hp: 100013 flagged under its optimised range and outside its plotted flows');
   await set('i-boost', '46.945'); await set('i-hp', '600'); await pg.waitForTimeout(500);
   Rc = await rec();
-  ok(Rc.ok.slice(0, 3).map(x => x.n).join() === 'Garrett 717874-6008,CSF 8134,Conflux Technology 100012', '600 hp water-to-air: ' + Rc.ok.slice(0, 3).map(x => x.n).join(', '));
+  R = await pg.evaluate(() => window.__tsLast());
+  ok(Rc.ok.slice(0, 3).map(x => x.n).join() === 'Conflux Technology 100012,Conflux Technology 100013,Garrett 717874-6008' && Rc.ok[0].evG === 0 && Rc.ok[1].evG === 1 && Rc.ok[2].evG === 2, '600 hp water-to-air on the evidence: ' + Rc.ok.slice(0, 3).map(x => x.n + ' (group ' + x.evG + ')').join(', '));
+  near(Rc.ok[0].capM, capCurve('100012', R.mc), 1e-6, '600 hp: 100012 capacity margin by hand at ' + R.mc.toFixed(5) + ' kg/s');
+  ok(/Garrett 717874-6008: rating only, so it ranks behind the cores whose thermal data meets the target[^\n]*rating only: the maker publishes no thermal data for this core, so the page cannot check it against your target/.test(await pg.$eval('#tso-icrec-top-w2a', e => e.innerText)) && /Ordered on the evidence/.test(await pg.$eval('#tso-icrec-group-w2a', e => e.innerText)), '600 hp: the rating-only Garrett says why, and the grouping rule is stated next to the pick');
   ok(/rating 536 hp below the 600 hp target/.test((Rc.out.find(x => x.n === 'Conflux Technology 100011') || {}).f || ''), '600 hp: 100011 out on its 400 kW (536 hp) rating');
 
   // 7. picking 100012 fills the inputs

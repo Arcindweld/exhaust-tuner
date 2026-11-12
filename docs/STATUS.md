@@ -1555,3 +1555,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   so nothing was added; a possible future feature.
 - Tests: web/tests/conflux_ui.js (new); icrec_ui.js (water-to-air orders now include Conflux 100011 / 100012 where the rules
   put them) and turbolib_ui.js (70 rows, 20 water-to-air) updated.
+- Review change (same day): the intercooler order rewards evidence. Among rows passing the rating and tank checks (inside
+  each Bell group for air-to-air): (0) thermal data (a maker's curve or point, or the user's measured point) evaluated at
+  this build's flow that meets the target × margin inside the data's flow range (a single point: within ±10% of its
+  charge flow, IC_PT_RANGE); (1) meets it only by extrapolation (flagged); (2) rating only, with the line "rating only:
+  the maker publishes no thermal data for this core, so the page cannot check it against your target". Groups 0 and 1:
+  smallest capacity margin that meets the target, then drop at this flow and density, volume, weight, rating; group 2 the
+  old keys. The rule is stated next to the pick. A core whose thermal data misses by under 5% of the heat needed is listed
+  as "just short" with the target it does reach and, water-to-air, the coolant temperature into the core that would make it
+  pass (tci' = t2 − (t2 − tci) × margin ÷ capacity margin; effectiveness is independent of temperatures at fixed flows).
+  K24 + PTE 5862, water-to-air: 450 hp (29.541 psi, 0.4208 kg/s) Conflux 100012, EJ Bowman JK190, Conflux 100013; 100011
+  just short (72.0% against 75%, passes with coolant at about 18 °C); 600 hp (46.945 psi, 0.5863 kg/s) Conflux 100012,
+  100013, then the rating-only Garrett 717874-6008. icrec_ui.js and conflux_ui.js expectations recomputed by hand.
