@@ -120,7 +120,10 @@ class Thermo:
 class Charge:
     """moles per kg of fresh mixture (air + fuel vapour at the AFR) and of its products; fuel enthalpy from the LHV."""
 
-    def __init__(self, th, afr, vapour=True):
+    def __init__(self, th, afr, vapour=True, beta=None):
+        """beta: instead of the frozen products at the AFR, OpenWAM's composition (its simple species model): a share beta of
+        the fuel burned to CO2 and H2O with oxygen from the air (stoichiometric products), the rest of the fuel left as vapour
+        and the rest of the air as air"""
         self.th = th
         ix = {n: i for i, n in enumerate(NAMES)}
         self.ix = ix
@@ -147,6 +150,11 @@ class Charge:
             qa, qb = K_WGS - 1, K_WGS * (FUEL_Y / 2 - S) + 1 + S
             a = (-qb + math.sqrt(qb * qb + 4 * qa * S)) / (2 * qa)
             nb[ix["CO2"]], nb[ix["H2O"]], nb[ix["CO"]], nb[ix["H2"]] = a, S - a, 1 - a, FUEL_Y / 2 - S + a
+        if beta is not None:
+            nb = np.zeros(len(NAMES))
+            nb[ix["N2"]], nb[ix["Ar"]] = lam * o * AIR_N2, lam * o * AIR_AR
+            nb[ix["O2"]], nb[ix["CO2"]], nb[ix["H2O"]] = (lam - beta) * o, beta, beta * FUEL_Y / 2
+            nb[ix["C8H18,isooctane"]], nb[ix["C7H8"]] = (1 - beta) * X_ISO / cfv, (1 - beta) * (1 - X_ISO) / cfv
         self.mb_per_C = mf if vapour else (lam * o * mair_o2 + self.mfuelC) / 1000.0
         self.nf = nf / mf                      # mol per kg of fresh mixture
         self.nb = nb / self.mb_per_C           # mol per kg of products
@@ -231,6 +239,18 @@ def wam_cv(T, Yb, Yf):
     return cvb * Yb + cvf * Yf + cva * (1 - Yf - Yb)
 
 
+def wam_u(T, k, T0=TREF):
+    """sensible internal energy from T0 of OpenWAM's cv polynomials (closed-form integrals), J/kg"""
+    def F(T):
+        if k == "a":
+            rt = math.sqrt(T)
+            return -10.4199 * 2 / 3 * T * rt + 2522.88 * T - 67227.1 * 2 * rt + 917124.4 * math.log(T) + 4174853.6 * 2 / rt
+        if k == "b":
+            return 641.154 * T + 0.43045 * T ** 2 / 2 - 0.0001125 * T ** 3 / 3 + 8.979e-9 * T ** 4 / 4
+        return 4.2e-7 * T ** 4 / 4 - 2.524e-3 * T ** 3 / 3 + 5.834 * T ** 2 / 2 + (1.890E+02 - 72.42) * T
+    return F(T) - F(T0)
+
+
 def wam_R(Yb, Yf):
     return 285.4 * Yb + 72.42 * Yf + 287.0 * (1 - Yb - Yf)
 
@@ -283,7 +303,7 @@ WOSCHNI = {
 
 
 # ---------------------------------------------------------------- the closed cycle
-def run(case, gas="frozen", woschni="heywood", pm="motored", integ="rk4", dth=0.05, steps=None, record=False, _pm_table=None):
+def run(case, gas="frozen", woschni="heywood", pm="motored", integ="rk4", dth=0.1, steps=None, record=False, _pm_table=None):
     """case: geom {bore, stroke, rod, cr}, rpm, ivc, evo, ign (deg, cylinder frame, firing TDC 0/720), dur, afr, Q (J to
     release; None = the frozen chemistry's), m (kg), T (K), x (fresh mass fraction at IVC, the rest burned products at the
     AFR), Twall (K), [vapour True]. gas: 'frozen' | 'equil' | 'openwam'; woschni: a WOSCHNI key or 'none';
@@ -380,6 +400,7 @@ def run(case, gas="frozen", woschni="heywood", pm="motored", integ="rk4", dth=0.
 
     rel_end = span
     t_burn_end = ign_rel + dur
+    bps = [ign_rel, t_burn_end]       # steps end on the burn's start and end (kinks of the Wiebe law)
 
     def xb_at(rel):
         return 0.0 if motored else wiebe(rel - ign_rel, dur)
@@ -427,17 +448,19 @@ def run(case, gas="frozen", woschni="heywood", pm="motored", integ="rk4", dth=0.
             th = th0 + rel
             V = g.V(th)
             xb = xb_at(rel)
-            T, n = T_of(Uv, xb, V, Tg)
+            # the state variable is U + loss xb: the chemistry not released leaves with the burned fraction itself (Wiebe's
+            # last 0.7 % included, which both codes burn at once at the end of the duration)
+            T, n = T_of(Uv - loss * xb, xb, V, Tg)
             p = pressure(n, T, V)
             q, h, A = woschni_q(p, T, V, rel, ivc_state) if W else (0.0, 0.0, 0.0)
-            dxb = 0.0 if motored else dwiebe(rel - ign_rel, dur)
-            dU = -p * g.dV(th) - q / omega - loss * dxb      # per degree
+            dxb = 0.0
+            dU = -p * g.dV(th) - q / omega      # per degree
             return dU, T, p, q, h, A, n, dxb
 
         rel = 0.0
         Uv = U0
         while rel < rel_end - 1e-12:
-            h_ = min(dth, rel_end - rel)
+            h_ = min(dth, rel_end - rel, *[b - rel for b in bps if b > rel + 1e-9])
             k1, T1, p1, q1, hc1, A1, n1, dx1 = deriv(rel, Uv, Tcur)
             if record:
                 R, cp = props(n1, T1)
@@ -455,9 +478,9 @@ def run(case, gas="frozen", woschni="heywood", pm="motored", integ="rk4", dth=0.
             Uv = Uv + h_ / 6 * (k1 + 2 * k2[0] + 2 * k3[0] + k4[0])
             Tcur = k4[1]
             rel += h_
-        Tend, nend = T_of(Uv, xb_at(rel_end), g.V(th0 + rel_end), Tcur)
+        Tend, nend = T_of(Uv - loss * xb_at(rel_end), xb_at(rel_end), g.V(th0 + rel_end), Tcur)
         pend = pressure(nend, Tend, g.V(th0 + rel_end))
-        Uend = Uv
+        Uend = Uv - loss * xb_at(rel_end)
     else:
         # OpenWAM: dlnT = (gamma - 1) (-dV/V + dm/m) + dQ / (m cv T), R and cv from (Yb, Yf, T); fuel injected from IVC + 2 deg
         # over inj_deg (TCilindro4T.cpp:180-181) with h = cp T (the mass term of its energy equation, line 911); burnt =
@@ -492,6 +515,14 @@ def run(case, gas="frozen", woschni="heywood", pm="motored", integ="rk4", dth=0.
             dQ = 0.0 if motored else Q * dwiebe(rel - ign_rel, dur)
             gm1 = R / cv
             dT = T * (gm1 * (-g.dV(th) / V + dfin / mt)) + (dQ - q / omega) / (mt * cv)
+            if case.get("wam_consistent") and not motored:
+                # the term OpenWAM's energy equation leaves out: converting dm of air and fuel into burnt gas at T changes U
+                # by dm (u_b(T) - u_unburned(T)), u the sensible energies of its own cv polynomials from 298.15 K (the LHV's datum)
+                dxb = dwiebe(rel - ign_rel, dur)
+                dmf = (case.get("mfuel0", 0.0) + mf_inj if case.get("wam_burn_all") else Q / LHVw) * dxb
+                dma = dmf / FS
+                dU = (dmf + dma) * wam_u(T, "b") - dmf * wam_u(T, "f") - dma * wam_u(T, "a")
+                dT -= dU / (mt * cv)
             return dT, p, q, h, A, R, cv
 
         T = case["T"]
@@ -499,7 +530,7 @@ def run(case, gas="frozen", woschni="heywood", pm="motored", integ="rk4", dth=0.
         ivc_state = (mt0 * wam_R(Yb0, case.get("mfuel0", 0.0) / mt0) * T / V0, T, V0)
         rel = 0.0
         while rel < rel_end - 1e-12:
-            h_ = min(dth, rel_end - rel)
+            h_ = min(dth, rel_end - rel, *[b - rel for b in bps if b > rel + 1e-9])
             k1 = deriv(rel, T)
             if record:
                 R, cv = k1[5], k1[6]

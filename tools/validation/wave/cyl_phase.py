@@ -158,16 +158,22 @@ def main(argv):
             R["wam_state:openwam_gas[premixed fuel],openwam,pm1.36"] = cc.run(prem, "openwam", "openwam", 1.36)
             R["wam_state:openwam_gas[all fuel burned],openwam,pm1.36"] = cc.run(dict(orep, wam_burn_all=True), "openwam", "openwam", 1.36)
             R["wam_state:openwam_gas[premixed, all burned],openwam,pm1.36"] = cc.run(dict(prem, wam_burn_all=True), "openwam", "openwam", 1.36)
+            R["wam_state:openwam_gas[premixed, all burned, + composition term],openwam,pm1.36"] = cc.run(dict(prem, wam_burn_all=True, wam_consistent=True), "openwam", "openwam", 1.36)
+            R["wam_state:openwam_gas[+ composition term],openwam,pm1.36"] = cc.run(dict(orep, wam_consistent=True), "openwam", "openwam", 1.36)
+            R["wam_state:openwam_gas[premixed, + composition term],openwam,pm1.36"] = cc.run(dict(prem, wam_consistent=True), "openwam", "openwam", 1.36)
             R["wam_state:frozen,openwam,pm1.36"] = cc.run(dict(ost, mtrap=mw), "frozen", "openwam", 1.36)
+            # NASA properties, consistent energy, but OpenWAM's composition: stoichiometric products of the fuel it burns
+            # (beta = its heat / (fuel x LHV)), the rest of the fuel as vapour, the rest of the air as air
+            beta = wm["Qcomb"] / (mfuel * 44e6)
+            R["wam_state:frozen[OpenWAM's composition],openwam,pm1.36"] = cc.run(dict(ost, mtrap=mw, _charge=cc.Charge(TH, e["afr"], beta=beta)), "frozen", "openwam", 1.36)
             R["wam_state:frozen,heywood,pm1.32"] = cc.run(ost, "frozen", "heywood", 1.32)
             R["wam_state:frozen,heywood,motored"] = cc.run(ost, "frozen", "heywood", "motored")
             R["wam_state:frozen,none"] = cc.run(ost, "frozen", "none")
             if o["fast"] != "1":
-                R["wave_state:equil,heywood,motored"] = cc.run(wst, "equil", "heywood", "motored")
-                R["wave_state:equil,heywood,pm1.32"] = cc.run(wst, "equil", "heywood", 1.32)
-                R["wam_state:equil,heywood,motored"] = cc.run(ost, "equil", "heywood", "motored")
-                R["wam_state:equil,none"] = cc.run(ost, "equil", "none")
-                R["wave_state:equil,none"] = cc.run(wst, "equil", "none")
+                R["wave_state:equil,heywood,pm1.32"] = cc.run(wst, "equil", "heywood", 1.32, dth=0.25)
+                R["wave_state:equil,none"] = cc.run(wst, "equil", "none", dth=0.25)
+                R["wam_state:equil,heywood,pm1.32"] = cc.run(ost, "equil", "heywood", 1.32, dth=0.25)
+                R["wam_state:equil,none"] = cc.run(ost, "equil", "none", dth=0.25)
             el = time.time() - t0
             Wwave, Wwam = tot(wacc), tot(oacc)
             print("\n%s %d rpm (independent runs %.0f s): closed-cycle work wave %.2f J, OpenWAM %.2f J, ratio %.4f" % (cfg, rpm, el, Wwave, Wwam, Wwave / Wwam))
