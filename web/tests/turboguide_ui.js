@@ -143,7 +143,7 @@ const { chromium } = require('playwright');
     const names = sh.rows.map(r => r[0]);
     ['Turbo', 'Turbine housing', 'Compressor inlet / outlet', 'Inlet tube', 'Hot side pipe', 'Cold side pipe', 'Intercooler', 'Blow-off valve', 'Wastegate', 'Cone, turbine outlet → downpipe', 'Downpipe', 'Converters (Cats tab)', 'Muffler (Mufflers tab)', 'Pipe after the downpipe (Sound tab)', 'Tip'].forEach(n =>
       ok(names.includes(n), 'sheet lists ' + n + ': ' + ((sh.rows.find(r => r[0] === n) || []).slice(1).join(' | '))));
-    ok(names.some(n => /^Cone, /.test(n) && !/turbine/.test(n)) || true, 'intake cones listed where there are steps');
+    ok(names.filter(n => /^Cone, /.test(n) && !/turbine/.test(n)).length >= 1, 'the intake side’s cones are listed: ' + names.filter(n => /^Cone, /.test(n)).join('; '));
     const INCH = /\d\s?(in|″)(?![a-z²³])/, MM = /\d\s?mm(?![a-z²³])/;
     const one = sh.rows.flat().concat(sh.texts).filter(c => (INCH.test(c) || MM.test(c)) && !(INCH.test(c) && MM.test(c)));
     ok(one.length === 0, 'every length in the sheet’s tables and drawings in both inches and mm' + (one.length ? ': ' + one.slice(0, 3).join(' / ') : ''));
@@ -175,9 +175,10 @@ const { chromium } = require('playwright');
   // phone width
   const ph = await b.newPage({ viewport: { width: 400, height: 800 } }); ph.on('pageerror', e => errs.push(e.message));
   await ph.goto('file://' + process.cwd() + '/index.html#intake'); await ph.waitForTimeout(900);
-  await ph.evaluate(() => { const el = document.getElementById('i-ind'); el.value = 'turbo'; el.dispatchEvent(new Event('change', { bubbles: true })); }); await ph.waitForTimeout(400);
-  ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1 && !!document.getElementById('tg') && !!document.getElementById('ts-xsvg') || (document.documentElement.scrollWidth <= innerWidth + 1 && !!document.getElementById('tg'))), '400 px: no sideways page scroll with the checklist and the exhaust section');
-
+  await ph.evaluate(() => { const set = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); };
+    set('i-ind', 'turbo'); set('i-hp', '450'); set('s-ind', 'turbo1'); }); await ph.waitForTimeout(600);
+  ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1 && !!document.getElementById('tg') && !!document.getElementById('ts-xsvg') && !!document.getElementById('tsx-bp')),
+    '400 px: no sideways page scroll with the checklist, the exhaust tables and drawing');
   ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   await b.close();
   if (fails.length) { console.log(fails.length + ' FAILED'); process.exit(1); }
