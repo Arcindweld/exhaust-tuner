@@ -11,6 +11,9 @@ pub struct AppPaths {
     pub data_root: PathBuf,
     /// Fusion's add-in folder: %APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns.
     pub fusion_addins_root: PathBuf,
+    /// Whether EXHAUST_TUNER_OPENWAM / _OPENFOAM / _ENGINESIM may replace the solvers under engines/ (true unless
+    /// without_engine_env() was called: tests with stand-in solvers there must not pick up a developer's real build).
+    pub engine_env: bool,
 }
 
 fn nonempty_env(k: &str) -> Option<String> {
@@ -70,6 +73,21 @@ impl AppPaths {
             fusion_addins_root: full_path(&fusion_root.map(PathBuf::from).unwrap_or_else(|| {
                 app_data().join("Autodesk").join("Autodesk Fusion 360").join("API").join("AddIns")
             })),
+            engine_env: true,
+        }
+    }
+
+    /// The same paths, with the solvers always taken from app_root/engines (the environment overrides ignored).
+    pub fn without_engine_env(mut self) -> AppPaths {
+        self.engine_env = false;
+        self
+    }
+
+    fn engine_override(&self, k: &str) -> Option<String> {
+        if self.engine_env {
+            nonempty_env(k)
+        } else {
+            None
         }
     }
 
@@ -92,21 +110,21 @@ impl AppPaths {
         self.fusion_addins_root.join("ExhaustTuner")
     }
 
-    /// OpenWAM. EXHAUST_TUNER_OPENWAM overrides (the tests, developers).
+    /// OpenWAM. EXHAUST_TUNER_OPENWAM overrides (the real-solver test, developers), unless without_engine_env().
     pub fn openwam_exe(&self) -> PathBuf {
-        nonempty_env("EXHAUST_TUNER_OPENWAM")
+        self.engine_override("EXHAUST_TUNER_OPENWAM")
             .map(PathBuf::from)
             .unwrap_or_else(|| self.engines_dir().join("openwam").join(if cfg!(windows) { "OpenWAM.exe" } else { "OpenWAM" }))
     }
 
     /// The packaged Engine Simulator fork (bin\engine-sim-headless.exe, es\). EXHAUST_TUNER_ENGINESIM overrides.
     pub fn enginesim_dir(&self) -> PathBuf {
-        nonempty_env("EXHAUST_TUNER_ENGINESIM").map(PathBuf::from).unwrap_or_else(|| self.engines_dir().join("engine-sim"))
+        self.engine_override("EXHAUST_TUNER_ENGINESIM").map(PathBuf::from).unwrap_or_else(|| self.engines_dir().join("engine-sim"))
     }
 
     /// The packaged OpenFOAM (bin\ with the programs and DLLs, etc\). EXHAUST_TUNER_OPENFOAM overrides.
     pub fn openfoam_dir(&self) -> PathBuf {
-        nonempty_env("EXHAUST_TUNER_OPENFOAM")
+        self.engine_override("EXHAUST_TUNER_OPENFOAM")
             .map(PathBuf::from)
             .unwrap_or_else(|| self.engines_dir().join("openfoam").join("OpenFOAM-v2412"))
     }
