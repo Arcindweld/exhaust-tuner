@@ -24,6 +24,11 @@ const { chromium } = require('playwright');
       await pg.selectOption('#s-eng', eng); t = await chk('eng ' + eng);
       out.push(`${name} ${eng}: ${await key()}`);
     }
+    // the general explanation follows the engine: a four-stroke fires n/2 times per crank turn (V8 4x, inline four 2x, V12 6x)
+    for (const [eng, re] of [['sbc', /this 8-cylinder fires at 4×/], ['i4', /this 4-cylinder fires at 2×/], ['v12', /this 12-cylinder fires at 6×/]]) {
+      await pg.selectOption('#s-eng', eng); t = await chk('firing ' + eng);
+      out.push(name + ' firing sentence ' + eng + ': ' + (re.test(t) && !/a four-stroke V8 fires at 4×/.test(t) ? 'ok' : 'BAD'));
+    }
     await pg.selectOption('#s-eng', 'sbc');
     // feeds and induction
     for (const [feed, ind] of [['a', 'na'], ['a', 'turbo2'], ['all', 'turbo1'], ['a', 'turbo1'], ['all', 'roots'], ['all', 'screw'], ['all', 'centri']]) {
