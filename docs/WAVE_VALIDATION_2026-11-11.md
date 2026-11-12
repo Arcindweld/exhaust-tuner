@@ -1028,3 +1028,248 @@ Test run (2026-11-12, part 2, `python3 tools/run_all_tests.py -j 2`, with cargo_
 untouched here) left out): 146 tests, 143 passed, 2 skipped and 4 partial skips, all expected, 1 failed: multi_ui, the
 polyline count above. It passes after that change, and sim_ui and uel_sim_ui were rerun on the final page. In that run
 wave_wasm and wave_wasm_built (full, every speed) passed bit for bit; mdwam_ui and jpipe_ui did not time out.
+
+## Addendum 2026-11-12, part 3: measured valve flow, the intake system, and the cylinder against OpenWAM
+
+Part 2 left the wave model 8-20 % high on brake torque against three GM V8 ratings, with three places named for the surplus:
+the breathing (open 300 mm runners, no plenum, throttle or filter, valve Cd 0.7), the model's indicated work 10-14 % above
+OpenWAM like for like, and the frozen products (about 1 %). Here the valve flow and the intake are made as real as the
+sources allow and the cylinder is compared with OpenWAM part by part. Nothing was fitted to the ratings or to OpenWAM. The
+old behaviour stays the default where no new data is given: open runners (no `intake.plenum`) and the 0.7 law (no
+`e.flowIn`/`e.flowEx`) run bit for bit as before (C8).
+
+### C1 Valve flow: the reference area, and why measured flow replaces a Cd(L/D) map
+
+The model's valve (`makeEngine` `area`, Rust `Engine::area`): effective area = n_valves x Cd x min(pi D L, 0.85 pi D^2 / 4),
+Cd = 0.7: the curtain area pi D L (D the valve head diameter, L the lift) as reference, capped at 0.85 of the seat area
+pi D^2 / 4 at high lift. OpenWAM's writer gives OpenWAM the same table (`cdTable`, Cd referred to the pipe-end area, clipped
+at 1, which none of the runs here reaches; C6).
+
+A published Cd(L/D) map was looked for (Heywood ch. 6 via open course notes, Annand and Roe, Blair, SAE tables). Found and
+read: FAMU-FSU propulsion notes "Valve Flows" (web1.eng.famu.fsu.edu/~shih/propulsion/lecture%20notes/Valve%20Flows.pdf,
+fetched 2026-11-12), which defines the discharge coefficient on the curtain, C_D = A_f / (pi D L), and the flow coefficient
+on the seat, C_f = A_f / (pi D^2 / 4), and shows the three lift regimes (markers at L/D 0.09, 0.2, 0.25), but gives no
+values. No source with tabulated values could be fetched. What could be fetched instead is better for these engines:
+measured flow-bench curves of the stock heads themselves, which give each engine's own effective area at every lift.
+
+Conversion (`benchCdA`, JS; the tables reach Rust as data): a bench draws air through port and valve at a fixed lift and a
+fixed depression dp (28 in H2O = 28 x 249.089 = 6974.5 Pa) and reports the volume flow Q in cfm at its reference air state.
+With the isentropic orifice law the model's valves obey (`orifice`): m = Cd A sqrt(p0 rho0) psi(p/p0, gamma),
+psi = sqrt(2 gamma / (gamma - 1) ((p/p0)^(2/gamma) - (p/p0)^((gamma+1)/gamma))), Q = m / rho0, so
+Cd A = Q / (sqrt(R T0) psi). Reference state taken as 101.325 kPa, 288.71 K (60 F), dry air (R 287.10, gamma 1.4006 from
+the model's gas): an assumption, since neither source states it; at 68 F the areas would be 0.8 % smaller. Worked: p/p0 =
+94350.5 / 101325 = 0.93117, psi = 0.35702 (gamma 1.4), sqrt(R T0) = 287.9 m/s; 312 cfm = 0.147248 m3/s -> Cd A = 1.4322e-3 m2.
+Intake: flowed into the cylinder (the engine's direction). Exhaust: flowed out of the cylinder (the engine's direction).
+Reverse flow uses the same area (a bench measures one direction; OpenWAM's writer also gives one table for both).
+
+Sources (both in `CAM_LIB`, `flow`):
+- LS3: Holdener, "LS3/L92 rectangle-port cylinder heads test", Hot Rod, February 2011 (PDF reprint:
+  https://cache.nebula.phx3.secureserver.net/b443dbc4abe481862a65b4c1f1b178ab?AccessKeyId=0BDEF12C755C415CB626&disposition=0&alloworigin=1),
+  "Test 1, stock LS3/L92 (0821 casting)", intake valve 2.165, exhaust 1.59 in (the library's), "FLOW DATA: CFM AT 28 INCHES"
+  (the unit "of water" is the bench convention, not printed). Bench, bore adapter, radius plate and exhaust pipe not stated.
+- LT1: EngineLabs, "The direct injection flow path: porting factory LT1 DI heads" (https://www.enginelabs.com/?p=249650),
+  stock head, "All tests performed at 28 inches of water test depression", "on a 4.065-inch bore", West Coast Racing
+  Cylinder Heads' bench; valves 2.120 / 1.59 in (the library has 2.126 / 1.590: the page's valve sizes stay the library's).
+- LS7: no stock curve with its test pressure and exhaust was found (a forum porter's intake-only figures,
+  ls1tech.com thread 280923 page 3, "@ 28"" without units, were not used). Runs use the LS3's Cd on the curtain against L/D
+  at the LS7's valve sizes (`ratings.js flow=family`): an assumption.
+
+LS3 (C1 table; `wavegas_ui.js` 11 lists the source and checks every point):
+
+| lift (in) | intake cfm | L/D | Cd A (mm2) | Cd on curtain | 0.7 law (mm2) | exhaust cfm | L/D | Cd A (mm2) | Cd on curtain | Cd on seat | 0.7 law (mm2) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0.050 | 34 | 0.023 | 156 | 0.711 | 154 | 24 | 0.031 | 110 | 0.684 | 0.086 | 113 |
+| 0.100 | 67 | 0.046 | 308 | 0.701 | 307 | 59 | 0.063 | 271 | 0.840 | 0.211 | 226 |
+| 0.200 | 147 | 0.092 | 675 | 0.769 | 614 | 116 | 0.126 | 533 | 0.826 | 0.416 | 451 |
+| 0.300 | 211 | 0.139 | 969 | 0.736 | 922 | 157 | 0.189 | 721 | 0.745 | 0.563 | 677 |
+| 0.400 | 259 | 0.185 | 1189 | 0.677 | 1229 | 188 | 0.252 | 863 | 0.669 | 0.674 | 762 |
+| 0.500 | 297 | 0.231 | 1363 | 0.621 | 1413 | 207 | 0.315 | 950 | 0.590 | 0.742 | 762 |
+| 0.600 | 312 | 0.277 | 1432 | 0.544 | 1413 | 216 | 0.377 | 992 | 0.513 | 0.774 | 762 |
+| 0.650 | 312 | 0.300 | 1432 | 0.502 | 1413 | 219 | 0.409 | 1005 | 0.480 | 0.785 | 762 |
+| 0.700 | 314 | 0.323 | 1441 | 0.469 | 1413 | 223 | 0.440 | 1024 | 0.454 | 0.799 | 762 |
+
+LT1 (WCCH): intake Cd on the curtain 0.68 / 0.71 / 0.74 / 0.69 / 0.63 / 0.59 / 0.52 / 0.45 at 0.1 / 0.2 / 0.3 / 0.4 / 0.5 /
+0.55 / 0.6 / 0.7 in; exhaust 0.64 / 0.86 / 0.72 / 0.66 / 0.60 / 0.55 / 0.53 / 0.46 (Cd A 207 ... 1047 mm2).
+
+Read: the 0.7 law on the curtain capped at 0.85 of the seat is, for the LS3's intake, within 10 % of the measured area at
+every lift (the measured Cd on the curtain falls from 0.77 to 0.47 with L/D, which the cap imitates). The LS3's exhaust flows
+up to 34 % more than the law at full lift (0.80 of the seat against 0.595). So the measured heads do not support part 2's
+"Cd 0.7 -> 0.6" lever; they open the exhaust a little.
+
+### C2 The intake system (`plenumOf`, `plenEnd`; Rust `plenum_of`, `Bnd::Plen`)
+
+`spec.intake.plenum = {V_m3, inlet: [segs, filter to plenum], throttle: {d, cd}, filter: {dp, m}}` (the OpenWAM writer's
+form, which already had `V_m3` and `inlet`):
+- Plenum: one well-mixed volume of the intake's gas (m, e(T, x), x); every runner's mouth and the inlet's end are open ends
+  on it (`openState` with the plenum's p, T, x: isentropic outflow from it, a Borda-Carnot dump into it). Its mass, energy and
+  fresh charge change by exactly the end fluxes the pipes were given (`wavegas_ui.js` 11 e: mass residual -2.8e-15, total
+  energy 2.7e-14 of the heat released, over a cycle with plenum, filter, stepped inlet, throttle and valve tables).
+- Throttle body: the inlet's last 50 mm at the effective area cd x pi d^2 / 4; the two-pipe junction contracts the flow into
+  it without loss and the plenum port dumps its dynamic head: an orifice of that Cd A into a large volume (`wavegas_ui.js`
+  11 c: at 2.001 kPa, the compressible orifice law by hand for the LS3's 0.3587 kg/s at 5900 rpm, VE 1, the model passes
+  0.3587 kg/s). A first version coupled an explicit orifice law between the inlet's end cell and the plenum; at a throttle's
+  small pressure drop (dm/dp large) the end cell flipped between 72 and 120 kPa every step (the explicit coupling's gain,
+  estimated as dm/dp x dt x c^2 / V_cell, is about 2.4 there, above the 2 at which such a step goes unstable), so it was replaced before any result was used.
+  Cd at wide open: 0.828 of the bore area, from a measurement: a stock GM LT1/LT4 87 mm throttle body flowed 916 cfm at
+  20 in H2O wide open, on a radius inlet plate (Mamo Motorsports, a vendor, Corvette Forum thread 4018317, 2017-07-22,
+  https://www.corvetteforum.com/forums/c7-z06-discussion/4018317-throttle-body-flow-testing-results-inside.html); by C1's law
+  Cd A = 4.920e-3 m2, 0.828 of pi 0.087^2 / 4. Heywood's throttle-area relation (eq. 7.21, as reproduced in Carlsson,
+  "Flow through a throttle body", Linkoping University LIU-IEI-TEK-A--07/0071-SE, 2007,
+  https://www.therangerstation.com/tech_library/pdf_documents/flow_through_a_throttle_body.pdf) at wide open reduces to the
+  bore less the shaft's strip, (D^2 / 2)(b sqrt(1 - b^2) + asin b), b = shaft / D: with an assumed 10 mm shaft that is 0.969 of
+  the open area. The same 0.828 is used for the LS3/LS7's 90 mm bodies (assumed similar).
+- Air filter: the Intake tab has no sourced filter loss ("the filter's own loss is not modelled (no published loss curve to
+  hand)"), so it is an input: a 50 mm step at sigma = 1 / (1 + sqrt(dp / q)) of the inlet's mouth area, q = m^2 / (2 rho A^2),
+  rho 1.1839 kg/m3, whose sudden expansion loses dp at the flow m and scales with m^2. Steady check (`wavegas_ui.js` 11 d):
+  2.5 kPa at 0.35 kg/s on 101.6 mm gives 2.544 kPa at 0.337 kg/s against 2.320 by the m^2 scaling (+9.7 %) and 1.148 against
+  1.101 at 0.232 kg/s (+4 %): the step runs at Mach 0.3-0.35 and the sizing is incompressible. Stated, not corrected.
+- On the page (4-Stroke tab, "Runners breathe from: A plenum fed through a throttle body"): plenum volume (whole engine, cu in /
+  cc), throttle bore, wide-open throttle coefficient (0.83), filter loss at full power (psi / kPa, 0 = none; referred to the
+  simulated cylinders' air at VE 1 at the top speed swept), inlet tube length and diameter. The cylinders simulated (n of the
+  engine's cylinders) get their share n / cyl of the volume and of the throttle's and the tube's areas (diameters x
+  sqrt(share)); the OpenWAM case is written from the same spec (its throttle stays the 50 mm step at the bore). Open air
+  stays the default and is unchanged.
+
+### C3 Stock dimensions used, with sources or as assumptions
+
+| item | value | basis |
+|---|---|---|
+| LS3 / LS7 throttle bore | 90 mm | GM 12605109 / Chevrolet Performance 19420707, "LS3/LS7 90mm" (e.g. https://www.jegs.com/i/chevrolet-performance-809-19420707-throttle-body-drive-by-wire-gm-ls3-ls7-l99-l77-6-0l-6-2l-7-0l, https://www.michiganmotorsports.com/intake-throttle-body-fuel-injectors/90mm-ls3-throttle-body-genuine-gm-12605109-19420707-ls7-l99-l76-217-3153-gold-blade). LSX Magazine's intake test (https://www.lsxmag.com/tech-stories/dyno-testing-four-popular-ls3-bolt-on-intake-manifolds/) says the stock LS3 intake "is designed for the stock 92 mm unit": sensitivity run at 92 |
+| LT1 throttle bore | 87 mm | GM 12729495, "87mm Throttle Body LT1 / LT2 / LT4 / L86" (https://sdparts.com/i-19880009-genuine-gm-parts-12733469-87mm-throttle-body-lt1-lt2-lt4-l86.html) |
+| throttle Cd at wide open | 0.828 of the bore area | measured, C2 (an LT body; for the 90 mm bodies an assumption) |
+| plenum volume | 0.5 x displacement (LS3 3.08 L, LS7 3.50 L, LT1 3.08 L) | ASSUMPTION: no published figure found; the Intake tab's own rule for an unknown plenum. Sensitivity 1.55 / 6.2 L |
+| runner length, valve to plenum | 300 mm | ASSUMPTION: not published; the page's default and part 2's value. Sensitivity 250 / 350 / 450 mm |
+| runner diameter | sqrt(0.6) x the intake valve | the 4-Stroke tab's rule (as part 2) |
+| inlet tube, filter to throttle | 600 mm x 101.6 mm | ASSUMPTION: the page's defaults. Sensitivity 300 / 1200 mm |
+| air filter loss | 0 | ASSUMPTION (not published; the rating's test set-up is not known). Sensitivity 2.5 kPa at the rated-power airflow at VE 1 |
+| valve flow | LS3, LT1 measured (C1); LS7 the LS3's Cd(L/D) | C1 |
+
+Whole engine (`ratings.js whole=1`, implied by `intake=plenum`): both banks, cylinders 1-8 firing 1-8-7-2-6-5-4-3 at 90 deg,
+odd cylinders on the left bank, each bank on part 2's long-tube 4-1. With open runners the banks are independent and the
+whole engine gives part 2's one-bank numbers within 1 lb-ft (`c_whole`).
+
+### C4 Ratings, before and after (`ratings.js`, `ratings_report.py after c_bench c_plen c_final`)
+
+after = part 2 (open runners, 0.7 law, one bank); c_bench = measured valve flow only; c_plen = whole engine with plenum,
+throttle and inlet, 0.7 law; c_final = both (the realistic case). Brake = gross IMEP - Heywood tfmep (B4).
+
+| engine | rating | case | indicated torque | indicated power | brake torque | brake power | VE peak; at the rated torque speed | gross IMEP at the rated torque speed (bar) |
+|---|---|---|---|---|---|---|---|---|
+| LS3 | 425 lb-ft @ 4600, 430 hp @ 5900 | after | 568 @ 5000 (+34 %) | 593 @ 5800 (+38 %) | 497 @ 5000 (+17 %) | 510 @ 5800 (+19 %) | 1.130 @ 5000; 1.088 | 16.08 |
+| LS3 | | c_bench | 576 @ 5000 (+35 %) | 629 @ 6600 (+46 %) | 495 @ 5000 (+16 %) | 520 @ 5800 (+21 %) | 1.125; 1.080 | 15.95 |
+| LS3 | | c_plen | 553 @ 5000 (+30 %) | 575 @ 5800 (+34 %) | 481 @ 5000 (+13 %) | 491 @ 5800 (+14 %) | 1.100; 1.059 | 15.65 |
+| LS3 | | **c_final** | 560 @ 5000 (+32 %) | 608 @ 6600 (+41 %) | **479 @ 5000 (+13 %)** | **499 @ 5800 (+16 %)** | 1.096; 1.051 | 15.52 |
+| LS7 (cam assumed) | 470 lb-ft @ 4800, 505 hp @ 6300 | after | 650 @ 5000 (+38 %) | 660 @ 5800 (+31 %) | 565 @ 5000 (+20 %) | 563 @ 5600 (+11 %) | 1.126; 1.116 | 16.53 |
+| LS7 | | c_bench (family) | 663 @ 5000 (+41 %) | 702 @ 6400 (+39 %) | 565 @ 5000 (+20 %) | 576 @ 5800 (+14 %) | 1.127; 1.112 | 16.46 |
+| LS7 | | c_plen | 630 @ 4800 (+34 %) | 637 @ 5800 (+26 %) | 546 @ 4800 (+16 %) | 539 @ 5600 (+7 %) | 1.091; 1.088 | 16.10 |
+| LS7 | | **c_final** | 641 @ 5000 (+36 %) | 674 @ 6400 (+34 %) | **543 @ 5000 (+16 %)** | **549 @ 5800 (+9 %)** | 1.092; 1.084 | 16.03 |
+| LT1 (cam assumed) | 460 lb-ft @ 4600, 455 hp @ 6000 | after | 569 @ 5000 (+24 %) | 572 @ 5600 (+26 %) | 496 @ 5000 (+8 %) | 489 @ 5600 (+8 %) | 1.107; 1.084 | 16.28 |
+| LT1 | | c_bench | 578 @ 5000 (+26 %) | 599 @ 5800 (+32 %) | 496 @ 5000 (+8 %) | 500 @ 5600 (+10 %) | 1.107; 1.081 | 16.24 |
+| LT1 | | c_plen | 553 @ 4800 (+20 %) | 555 @ 5600 (+22 %) | 480 @ 4800 (+4 %) | 471 @ 5600 (+3 %) | 1.077; 1.054 | 15.83 |
+| LT1 | | **c_final** | 561 @ 5000 (+22 %) | 580 @ 5800 (+27 %) | **479 @ 4800 (+4 %)** | **480 @ 5600 (+6 %)** | 1.076; 1.052 | 15.79 |
+
+Read: brake torque +4 to +16 % (part 2: +8 to +20 %), brake power +6 to +16 % (+8 to +19 %); the torque peak still 200-400
+rpm late (LS3 5000 against 4600; LT1 now 4800 against 4600); VE at peak 1.08-1.10 (1.11-1.13). The intake system takes
+3-4 % of torque; the measured valve flow under 1 % of torque and adds top-end power (the exhaust valve flows more than the
+0.7 law). Part 2 estimated the LS3 needs about 14.5 bar of gross IMEP at 4600 rpm; it has 15.5 (16.1 before). The rest is
+mostly the model's own indicated work (C6).
+
+Sensitivity (LS3, c_final, one change at a time; `results/ratings_cs_*.json`):
+
+| one change | LS3 brake torque | LS3 brake power | |
+|---|---|---|---|
+| none (c_final) | 479 @ 5000 (+13 %) | 499 @ 5800 (+16 %) | |
+| plenum 1.55 L / 6.2 L (0.5x / 2x) | 478 @ 5000 / 479 @ 5000 | 498 / 499 | under 0.3 %: the assumed volume does not matter here |
+| throttle 92 mm | 480 @ 5000 | 500 | +0.2 % |
+| throttle Cd 1.0 / 0.7 | 482 / 474 @ 5000 | 504 / 493 | +0.6 / -1.0 % |
+| runner 250 / 350 / 450 mm | 449 @ 5600 / 491 @ 4400 / 520 @ 4200 | 501 @ 6200 / 489 @ 5800 / 464 @ 5000 | the runner sets the peaks: -6 % to +9 % and 600-800 rpm. 350-400 mm would put the torque peak at the rating's 4600 rpm, but the length is not known and was not picked |
+| filter 2.5 kPa at the rated airflow | 464 @ 5000 (+9 %) | 478 (+11 %) | -3.1 % / -4.2 % |
+| inlet tube 300 / 1200 mm | 481 / 476 | 500 / 496 | under 0.7 % |
+| LS3 with the "family" law (its own curve by L/D; check) | 479 | 499 | identical, as it must be |
+| ETA_C 0.95 | 465 (+9 %) | 484 (+13 %) | -2.9 % |
+
+### C5 What the rating comparison now rests on
+
+Measured: the LS3's and LT1's head flow; the 87 mm body's flow; the throttle bores. Assumed (each with its sensitivity):
+plenum volume (no effect), runner length (the largest single effect on the curve's shape: unknown, and the stock LS3 runner
+with its head port is likely longer than 300 mm, which would raise the torque and move its peak toward the rating), inlet
+tube, filter loss (each kPa about -1.3 %), the LS7's flow and the LS7/LT1 cams. Not modelled: the stock exhaust (catalysts,
+mufflers; the rating's set-up is not known), the friction of a modern V8 (likely below Heywood's), the LT1's direct
+injection and phaser.
+
+### C6 The cylinder against OpenWAM, like for like (`cyl_expts.py`, `cyl_trace.js`, `results/cyl_c6.json`)
+
+Same geometry, both codes, part 1's matrix engines single_L800 and i4_41 (12 speeds), OpenWAM releasing the wave model's
+heat per kg of charge (compare.comb_eff). Each experiment changes one thing.
+
+1. Valve flow areas actually used (OpenWAM's instantaneous `Inflow_Discharge_Coef` / `Outflow_Discharge_Coef` x the
+   pipe-end area against the wave model's CdA(theta)): peaks equal to 5 digits (intake 1.055e-3 m2, exhaust 7.623e-4 m2;
+   OpenWAM's table is the same law, not clipped); where the flow keeps its direction through the valve event (6000 rpm
+   single, 6500 rpm i4) the curves agree within 0.6-1.2 % of peak and the opening and closing angles within 1.3 deg. At other
+   speeds OpenWAM's reported coefficient follows the flow's direction (it reports the inflow coefficient only while gas
+   flows in), so its "edges" there are not the valve's. Ruled out: lift-dependent Cd, a different reference area, clipping,
+   valve timing convention.
+2. Burn: the crank angles of 10, 50 and 90 % burned agree within 0.4 deg at every speed (wave 15.19 / 28.47 / 42.47 deg after
+   ignition; OpenWAM 15.05-15.49 / 28.33-28.77 / 42.33-42.78, its heat release law output `HRL`). Ruled out: the Wiebe a, m,
+   start, duration as applied.
+3. Heat per charge: the wave cylinder run from its own IVC state but with OpenWAM's heat per kg of charge gives its own work
+   to 0.03 % (`wave_ivc_openwam_heat_per_charge`). Ruled out: the heat release.
+4. Trapped charge (IVC): the wave model traps more. VE (trapped fresh) wave / OpenWAM 0.966 / 0.935 ... 1.112 / 1.053 (ratio
+   0.97-1.06, mean 1.03); total mass at IVC 6-13 % more, of which about 7.7 % is the fuel vapour the wave model puts into the
+   charge at the valve and OpenWAM's cylinder mass does not yet hold at IVC (OpenWAM's R = p V / (m T) at IVC is 282.6 J/kg K in
+   every run, against the wave mixture's 272.0; part 1 found 272 in OpenWAM later in compression, so its fuel enters after
+   IVC). Residual: OpenWAM 1.8-4.8 %, wave 1.5-5.2 %.
+5. The closed cycle (IVC to EVO): wave / OpenWAM work 1.044-1.173 (mean 1.12). The wave cylinder run again from OpenWAM's own
+   pressure and temperature at IVC, with OpenWAM's heat (`openwam_pT`; the copy of the cylinder step reproduces the wave run's
+   own closed-cycle work to 1e-6 first): 1.057-1.098 (mean 1.078); from OpenWAM's mass plus its fuel at OpenWAM's temperature
+   (`openwam_ivc`): 1.063-1.103. So of the closed-cycle surplus about two thirds (7-8 points) stays with the same charge and
+   the same heat: it is the cylinder's thermodynamics during compression, burn and expansion, not the valves, the burn law or
+   the trapped mass; the other third (3-5 points) is the larger trapped charge. Wall heat in the closed cycle (wave, from
+   OpenWAM's state) 103-194 J against OpenWAM's whole-cycle 139-176 J: the same size; not separated further here.
+   Candidates left: the gas properties in the closed cycle (OpenWAM's own species model with R 285.4 for its burned gas and
+   its fuel added during compression, against the wave model's frozen GRI products and premixed vapour), and the in-cylinder
+   wall heat's split by phase. Not tested here; no model change was made for this item, since no defect was found.
+   Not modelled in either code: crevices and blow-by (OpenWAM's writer sets its blow-by area 0).
+
+### C7 Pinned values and tests changed
+
+- `web/tests/cam_ui.js`: the plenum spec now holds the simulated cylinders' share of the 6 L plenum, the 90 mm throttle and the
+  tube (V_m3 0.006 x share, diameters x sqrt(share)) and the throttle's cd 0.83; the OpenWAM case's "intake plenum, 6 litres"
+  becomes the share in litres. Reason: the cylinders simulated breathe from their share of the engine's plenum (before, the
+  OpenWAM case gave the whole plenum to one bank). The plenum volume input moved from litres (num) to the page's
+  displacement unit (cu in / cc), so the test types 366.14 cu in where it typed 6. New: filter loss reaches the spec; the
+  LS3's head curve reaches the spec (312 cfm -> 1432 mm2).
+- `web/tests/wavegas_ui.js` 11 (new), `web/tests/wave_wasm.js` (two jobs added: tables + plenum + stepped inlet + throttle
+  + filter on the four-cylinder collector; plenum with the constant gas). Nothing removed or loosened.
+- No numeric pin of the existing tests changed: open runners and the 0.7 law are bit for bit as before (C8).
+
+### C8 Verification
+
+- `kat.js` 66 of 66, `results/kat.json` byte-identical; `constref.js` 112 speeds identical (constant gamma).
+- `ratings.js tag=c_open` reproduces part 2's `after` to the last printed digit.
+- `wavegas_ui.js` 11: the source table in the page; benchCdA within 0.013 % of a hand formula (gamma 1.4) on 18 points; the
+  LS3's Cd values; flowTab's interpolation; a steady numerical flow bench of the model's own pipe and valve at 0.600 in and
+  28 in H2O gives 312.0 cfm (source 312); the throttle by hand and in steady flow (0.3587 kg/s both); the filter's loss in
+  steady flow (C2); plenum mass and total energy over a cycle to 1e-14.
+- `wave_wasm.js`: JS and Rust/WebAssembly bit for bit on every job, the two new ones included.
+- Suite: see STATUS.md (2026-11-12 part 3).
+
+### C9 Summary rows (section 6, as of 2026-11-12, part 3)
+
+| Difference | Status | Evidence |
+|---|---|---|
+| Valve Cd 0.7 constant | measured head flow for the LS3 and LT1 (cfm at 28 in H2O -> Cd A by the orifice law); 0.7 law kept as the default and for heads without data; it is within 10 % of the LS3's measured intake, the LS3's exhaust flows up to 34 % more | C1 |
+| No plenum, throttle, filter | modelled (plenum volume, throttle step at its measured wide-open Cd A, filter loss as an input); page inputs | C2 |
+| Against real ratings | brake torque +4 to +16 %, power +6 to +16 % (part 2: +8 to +20 %, +8 to +19 %); torque peak 200-400 rpm late; most sensitive to the (unknown) runner length | C4 |
+| Indicated work above OpenWAM | not the valve areas, timing, Wiebe or heat: about 3-5 points trapped charge, 6-10 points closed-cycle thermodynamics from the same IVC state and heat; open | C6 |
+
+### C10 How to rerun (additions)
+
+```
+node web/tests/wavegas_ui.js                       # 11: valve tables, flow bench, throttle, filter, plenum balances
+QUICK=1 node web/tests/wave_wasm.js
+node tools/validation/wave/ratings.js tag=c_final intake=plenum flow=benchfam      # whole engines, ~5 min
+node tools/validation/wave/ratings.js engines=ls3 tag=cs_rl350 intake=plenum flow=benchfam intakeL=0.35   # and plv=, tbd=, tcd=, fdp=, itl=
+python3 tools/validation/wave/ratings_report.py after c_bench c_plen c_final
+python3 tools/validation/wave/cyl_expts.py configs=single_L800,i4_41 tag=c6          # OpenWAM, ~5 min
+```
