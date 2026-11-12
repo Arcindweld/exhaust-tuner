@@ -1350,6 +1350,22 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <label class="f adv"><span class="lab">Twin turbos are piped</span>
             <span class="inp"><select id="i-cpy"><option value="tb" selected>Apart, meeting at the throttle</option><option value="ic">Into one intercooler, one cold pipe</option></select></span></label>
           <span class="hint" style="grid-column:1/-1">The compressor sizes are on the turbo’s spec sheet or measured on the housing. The intake tube above is the tube from the filter to the compressor.</span>
+          <label class="f"><span class="lab">RPM where full boost arrives (low end of the demand line)</span>
+            <span class="inp"><input id="i-lorpm" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="3500"><em>rpm</em></span></label>
+          <label class="f"><span class="lab">Air-fuel ratio at full power</span>
+            <span class="inp"><input id="i-afr" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base="12"><em>:1</em></span></label>
+          <label class="f adv"><span class="lab">Brake specific fuel consumption, for Garrett’s method</span>
+            <span class="inp"><input id="i-bsfc" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="2" data-base="0.55"><em>lb/hp·h</em></span></label>
+          <label class="f adv"><span class="lab">Turbine inlet temperature</span>
+            <span class="inp"><input id="i-tit" type="number" step="any" inputmode="decimal" data-kind="temp" data-base="950"><em data-u="temp">°F</em></span></label>
+          <label class="f adv"><span class="lab">Turbine efficiency from its map, blank for a sweep</span>
+            <span class="inp"><input id="i-teff" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0"><em>%</em></span></label>
+          <label class="f adv"><span class="lab">Outside air through the intercooler core, blank to skip</span>
+            <span class="inp"><input id="i-icam" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1"><em>lb/min</em></span></label>
+          <label class="f adv"><span class="lab">Core drop from the maker’s rating, blank to skip</span>
+            <span class="inp"><input id="i-icrdp" type="number" step="any" inputmode="decimal" data-kind="press"><em data-u="press">psi</em></span></label>
+          <label class="f adv"><span class="lab">… at a charge flow of</span>
+            <span class="inp"><input id="i-icrf" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1"><em>lb/min</em></span></label>
         </div>
       </div>
       <div class="grp">Filter</div>
@@ -19874,7 +19890,7 @@ function calcTurboRoute(q){
 }
 // angle list from a text field, as the Intake tab reads its bend angles
 const tsAngles=id=>{ const el=$(id); return el?(el.value||'').split(/[ ,;]+/).map(Number).filter(x=>x>0&&x<=180):[]; };
-let TS_REC=null;
+let TS_REC=null, TS_LAST=null;
 function turboSection(ind,p,r){
   const imp=U==='imp', nt=Math.max(1,Math.round(val('i-nt'))||1), eff=p.eff>0&&p.eff<=1?p.eff:0.7;
   const pD=x=>imp?(x/6894.757).toFixed(2)+' psi ('+(x/1000).toFixed(2)+' kPa)':(x/1000).toFixed(2)+' kPa ('+(x/6894.757).toFixed(2)+' psi)';
@@ -19882,13 +19898,13 @@ function turboSection(ind,p,r){
   const tD=c=>imp?Math.round(c*1.8+32)+' °F ('+Math.round(c)+' °C)':Math.round(c)+' °C ('+Math.round(c*1.8+32)+' °F)';
   const dtD=c=>imp?Math.round(c*1.8)+' °F ('+c.toFixed(0)+' °C)':c.toFixed(0)+' °C ('+Math.round(c*1.8)+' °F)';
   const volD=m3=>imp?(m3*61023.74).toFixed(0)+' cu in ('+(m3*1000).toFixed(2)+' L)':(m3*1000).toFixed(2)+' L ('+(m3*61023.74).toFixed(0)+' cu in)';
-  const inletAt=d=>{ const x=calcIntake(Object.assign({},p,{n:nt,dt:d})); return x.err?null:{dp:x.dp,v:x.v,dpF:x.dpF,dpB:x.dpB,dpIn:x.dpIn,f:x.f}; };
+  const inletAtP=pp=>d=>{ const x=calcIntake(Object.assign({},pp,{n:nt,dt:d})); return x.err?null:{dp:x.dp,v:x.v,dpF:x.dpF,dpB:x.dpB,dpIn:x.dpIn,f:x.f}; }, inletAt=inletAtP(p);
   const inl=inletAt(p.dt);
   const q={Q:r.Q,nt,tin:p.tin,tamb:p.tamb,eff,ice:Math.min(1,Math.max(0,(val('i-ice')||0)/100)),dpIC:(val('i-icdp')||0)*1000,boost:(p.boost||0)*1000,
     inlet:inl,dt:p.dt,dci:val('i-cid'),dco:val('i-cod'),dh:val('i-cpd'),dc:val('i-cpd2'),Lh:val('i-cph'),Lc:val('i-cpc'),bends:val('i-cpb')||0,
     angH:tsAngles('i-cpah'),angC:tsAngles('i-cpac'),rb:val('i-cpr'),dici:val('i-ici'),dico:val('i-ico'),dtb:p.tb,merge:nt>1&&$('i-cpy').value==='ic',
     step:$('i-cpstep').value==='step',inletAt,w:val('i-cpw')};
-  const R=calcTurboRoute(q);
+  const R=calcTurboRoute(q); TS_LAST=R.err?null:{R,q,inletAtP};
   if(R.err){ TS_REC=null; return sec('Inlet and charge pipes: design and sizing','<div class="note bad">'+esc(R.err)+'</div>'); }
   const T=R.tbl; TS_REC={dt:T.inlet.rec&&T.inlet.rec.d,dh:T.hot.rec&&T.hot.rec.d,dc:T.cold.rec&&T.cold.rec.d,nt};
   const vf=ms=>ms/0.3048, each=nt>1?', each turbo':'';
@@ -19947,7 +19963,89 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-tsu
   if(TS_REC.dc>0) put('i-cpd2',Math.abs(TS_REC.dc-TS_REC.dh)<0.01?NaN:TS_REC.dc);
   if(TS_REC.nt>1&&Math.round(val('i-n'))!==TS_REC.nt) put('i-n',TS_REC.nt);
   renderActive(); });
-if(typeof window!=='undefined') window.__turbo={calcCharge,chargeSide,tsStep,calcTurboRoute,compOut};
+/* ----- Turbo and intercooler sizing (2026-11-11, phase 2) -----
+   Compressor: Garrett, Turbo Tech 103 (garrettmotion.com/wp-content/uploads/2018/06/Turbo-Tech-103.pdf) and "How to
+   select a turbo, part 2" (garrettmotion.com news): Wa = HP x A/F x BSFC / 60 (lb/min); MAPreq = Wa R (460 + Tm) /
+   (VE x N/2 x Vd), R = 639.6, Tm °F, Vd cu in, psia (the equation is an image in the PDF; this form reproduces both of its
+   worked results: 400 hp, A/F 12, BSFC 0.55 -> 44 lb/min; 2.0 L, 7200 RPM, VE 0.92, 130 °F -> 41.1 psia; 5.0 L (302 cu
+   in), 6000 RPM, VE 0.85 -> 21.6 psia); PR = (MAP + loss after the compressor) / (14.7 - inlet depression), its examples
+   with a 2 psi loss and 1 psi depression giving 3.14 and 1.72. Choke on Garrett maps: where efficiency falls below 58%.
+   Corrected flow: Wc = W sqrt((T1 + 460) / 545) / (P1 / 13.95), T1 °F, P1 psia (ATP Turbo, "General definitions",
+   atpturbo.com/root/technicinfo/gendef.htm; a map states its own reference, re-correct if it differs).
+   Turbine: power balance, compressor work m_a cp (T2 - T1) = eta_tm m_t cp_e T3 (1 - (p4/p3)^((g-1)/g)), eta_tm the
+   turbine map's efficiency, which makers usually quote with the bearing losses in (thermo-mechanical: Marelli et al., SAE
+   2019-01-0324); turbine flow parameter m sqrt(T3) / p3, kg sqrt(K) / (s bar) (same paper). Exhaust = air + fuel, its cp
+   and gamma from EXH_GAS / exhGamma at T3. No typical turbine efficiency was found in a source in hand, so the page
+   sweeps it (0.55 to 0.75) instead of assuming one. Turbine inlet pressure: Bell, Maximum Boost pp. 37, 169-170, about 2
+   to 2.5 x boost, the page's own check; turbine outlet at atmosphere (the downpipe's loss is not added).
+   Intercooler: heat Q = m cp (T2 - T3), cp = gamma R / (gamma - 1) for air as compOut uses; effectiveness of a single-pass
+   cross-flow exchanger, both streams unmixed: eps = 1 - exp((1/Cr) NTU^0.22 (exp(-Cr NTU^0.78) - 1)) (Bergman, Lavine,
+   Incropera and DeWitt, Introduction to Heat Transfer, as coded in python-ht effectiveness_from_NTU 'crossflow
+   approximate'); NTU = UA / Cmin, Cr = Cmin / Cmax. No published UA for a charge-air core is used: the page gives the NTU
+   and UA the target effectiveness needs. */
+const CP_AIRT=GAMMA*R_AIR/(GAMMA-1);   // 1004.7 J/kg K, the gamma 1.4 compOut uses
+const LBMIN=60/0.45359237;             // (lb/min) per (kg/s)
+function garrettMatch(o){
+  // o: hp, afr, bsfc (lb/hp h), tmF, ve (0-1), rpm, ci (cu in), loss psi after the compressor, dep psi inlet depression, patm psia (14.7)
+  const pa=o.patm||14.7, wa=o.hp*o.afr*o.bsfc/60, map=wa*639.6*(460+o.tmF)/(o.ve*o.rpm/2*o.ci);
+  return {wa,map,boost:map-pa,pr:(map+(o.loss||0))/(pa-(o.dep||0))};
+}
+const corrFlow=(kgs,tC,pPa)=>kgs*Math.sqrt((tC*1.8+32+460)/545)/(pPa/6894.757/13.95);
+const epsXflow=(ntu,cr)=>cr<=0?1-Math.exp(-ntu):1-Math.exp(1/cr*Math.pow(ntu,0.22)*(Math.exp(-cr*Math.pow(ntu,0.78))-1));
+function ntuFor(eps,cr){ if(!(eps>0&&eps<1)) return NaN; let lo=0,hi=1; while(epsXflow(hi,cr)<eps&&hi<1e3) hi*=2; if(epsXflow(hi,cr)<eps) return NaN;
+  for(let i=0;i<100;i++){ const mid=(lo+hi)/2; if(epsXflow(mid,cr)<eps) lo=mid; else hi=mid; } return (lo+hi)/2; }
+function turbineBalance(o){
+  // o: ma kg/s air per turbo, afr, t1, t2 °C (compressor in/out), tit °C, p3 Pa (absolute), p4 Pa, eta (thermo-mechanical)
+  const T3=o.tit+273.15, g=exhGamma(T3), cpe=g*EXH_GAS.R/(g-1), k=(g-1)/g, me=o.ma*(1+1/o.afr);
+  const Wc=o.ma*CP_AIRT*(o.t2-o.t1), per=me*cpe*T3*o.eta;            // W; turbine work per unit (1 - ER^-k), all exhaust through it
+  const need=Wc/per, ER=need<1?Math.pow(1-need,-1/k):Infinity;        // expansion ratio with every bit of exhaust through the turbine
+  const avail=1-Math.pow(o.p4/o.p3,k), x=need/avail;                  // share of the exhaust the turbine needs at p3
+  return {g,cpe,me,Wc,ER,p3need:ER*o.p4,x,wg:Math.max(0,1-x),Ft:(me*Math.min(1,x))*Math.sqrt(T3)/(o.p3/1e5)};
+}
+function tsSizeSection(ind,p,r){
+  const imp=U==='imp', nt=Math.max(1,Math.round(val('i-nt'))||1), eff=p.eff>0&&p.eff<=1?p.eff:0.7, afr=val('i-afr')>0?val('i-afr'):12, bsfc=val('i-bsfc')>0?val('i-bsfc'):0.55;
+  const fl=kgs=>imp?(kgs*LBMIN).toFixed(1)+' lb/min ('+kgs.toFixed(3)+' kg/s)':kgs.toFixed(3)+' kg/s ('+(kgs*LBMIN).toFixed(1)+' lb/min)';
+  const pw=W=>imp?(W/745.7).toFixed(1)+' hp ('+(W/1000).toFixed(1)+' kW)':(W/1000).toFixed(1)+' kW ('+(W/745.7).toFixed(1)+' hp)';
+  const qD=W=>imp?(W/1000*56.869).toFixed(0)+' BTU/min ('+(W/1000).toFixed(1)+' kW)':(W/1000).toFixed(1)+' kW ('+(W/1000*56.869).toFixed(0)+' BTU/min)';
+  const pD=x=>imp?(x/6894.757).toFixed(2)+' psi ('+(x/1000).toFixed(2)+' kPa)':(x/1000).toFixed(2)+' kPa ('+(x/6894.757).toFixed(2)+' psi)';
+  const tD=c=>imp?Math.round(c*1.8+32)+' °F ('+Math.round(c)+' °C)':Math.round(c)+' °C ('+Math.round(c*1.8+32)+' °F)';
+  const route=TS_LAST; if(!route||route.err) return '';
+  const R=route.R, lo=val('i-lorpm')>0&&val('i-lorpm')<p.rpm?val('i-lorpm'):null;
+  let RL=null; if(lo){ const pL=Object.assign({},p,{rpm:lo}), rL=calcIntake(pL); if(!rL.err){ const qL=Object.assign({},route.q,{Q:rL.Q,inlet:route.inletAtP(pL)(p.dt),inletAt:null}); RL=calcTurboRoute(qL); if(RL.err) RL=null; } }
+  const pt=(X,rpm)=>({rpm,m:X.m,PR:X.PRc,cor:corrFlow(X.m,p.tin,X.P1),t2:X.t2});
+  const pts=[pt(R,p.rpm)].concat(RL?[pt(RL,lo)]:[]);
+  let h=rowT('Air through each compressor at '+Math.round(p.rpm).toLocaleString('en-US')+' RPM',fl(R.m),'the tab’s airflow ÷ '+nt+(nt>1?' turbos':' turbo'));
+  h+='<div class="tblwrap"><table id="ts-demand"><thead><tr><th>RPM</th><th>Air per compressor</th><th>Corrected flow</th><th>Pressure ratio</th><th>Outlet</th></tr></thead><tbody>'+
+    pts.map(x=>'<tr><td>'+Math.round(x.rpm).toLocaleString('en-US')+'</td><td>'+fl(x.m)+'</td><td>'+fl(x.cor)+'</td><td>'+x.PR.toFixed(3)+'</td><td>'+tD(x.t2)+'</td></tr>').join('')+'</tbody></table></div>'+
+    '<p class="cap">The demand line to draw on a compressor map'+(RL?', from '+Math.round(lo).toLocaleString('en-US')+' RPM (same VE and boost; enter the RPM where full boost arrives) to peak power':'')+'. Pressure ratio includes the inlet and charge-side losses worked out above. Corrected flow = actual × √((T₁ + 460) ÷ 545) ÷ (P₁ ÷ 13.95), T₁ °F, P₁ psia at the compressor inlet (ATP Turbo’s definition: 85 °F and 13.95 psia); a map that states other reference conditions needs the same formula with its own. Garrett marks choke where the map’s efficiency drops below 58%: keep both points left of that line and right of the surge line. No published margin to either line was found, so none is given; the TO4B check below is one example map.</p>';
+  if(val('i-hp')>0){ const G=garrettMatch({hp:val('i-hp')/nt,afr,bsfc,tmF:route.R.t3*1.8+32,ve:p.ve,rpm:p.rpm,ci:p.disp/16.387064/nt,loss:R.dpAfter/6894.757,dep:R.dpInlet/6894.757,patm:P_ATM/6894.757});
+    h+=rowT('Garrett’s method for '+Math.round(val('i-hp'))+' hp',fl(G.wa/LBMIN)+' per compressor','HP × A/F '+afr+' × BSFC '+bsfc+' ÷ 60; manifold pressure needed '+(imp?G.map.toFixed(1)+' psia ('+(G.map*6.894757).toFixed(0)+' kPa)':(G.map*6.894757).toFixed(0)+' kPa ('+G.map.toFixed(1)+' psia)')+' at '+tD(route.R.t3)+' manifold air, pressure ratio '+G.pr.toFixed(2)+' with the losses above; the tab’s boost gives '+R.PRc.toFixed(2)); }
+  h+=rowT('Compressor power',pw(R.m*CP_AIRT*(R.t2-p.tin))+(nt>1?' each':''),'m × cp × (T₂ − T₁), cp '+CP_AIRT.toFixed(0)+' J/kg K');
+  // turbine
+  const tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, p4=P_ATM, bst=(p.boost||0)*1000, etaIn=val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:null;
+  const etas=[0.55,0.60,0.65,0.70,0.75].concat(etaIn&&![55,60,65,70,75].includes(Math.round(etaIn*100*1e6)/1e6)?[etaIn]:[]).sort((a,b)=>a-b);
+  const tb=etas.map(eta=>({eta,a:turbineBalance({ma:R.m,afr,t1:p.tin,t2:R.t2,tit,p3:P_ATM+2*bst,p4,eta}),b:turbineBalance({ma:R.m,afr,t1:p.tin,t2:R.t2,tit,p3:P_ATM+2.5*bst,p4,eta})}));
+  const e0=tb[0].a;
+  h+=rowT('Exhaust through each turbine',fl(e0.me),'air + fuel at A/F '+afr+'; turbine inlet '+tD(tit)+(Number.isFinite(val('i-tit'))?'':' (Garrett’s design figure for a gasoline turbine, an upper value: enter yours)')+', exhaust cp '+e0.cpe.toFixed(0)+' J/kg K, γ '+e0.g.toFixed(3));
+  h+='<div class="tblwrap"><table id="ts-turb"><thead><tr><th>Turbine efficiency (map)</th><th>Expansion ratio, all exhaust through the turbine</th><th>Turbine inlet pressure that needs</th><th>Wastegate share at 2 × boost</th><th>at 2.5 × boost</th><th>Turbine flow parameter at 2 × boost</th></tr></thead><tbody>'+
+    tb.map(x=>'<tr'+(etaIn&&Math.abs(x.eta-etaIn)<1e-9?' data-rec="1" style="background:var(--accent-soft)"':'')+'><td>'+(x.eta*100).toFixed(0)+'%'+(etaIn&&Math.abs(x.eta-etaIn)<1e-9?' (yours)':'')+'</td><td>'+(Number.isFinite(x.a.ER)?x.a.ER.toFixed(2):'not reachable')+'</td><td>'+(Number.isFinite(x.a.p3need)?pD(x.a.p3need-P_ATM)+' gauge, '+(bst>0?((x.a.p3need-P_ATM)/bst).toFixed(2)+' × boost':''):'–')+'</td><td>'+(x.a.x<=1?(x.a.wg*100).toFixed(0)+'%':'none: needs more')+'</td><td>'+(x.b.x<=1?(x.b.wg*100).toFixed(0)+'%':'none: needs more')+'</td><td>'+x.a.Ft.toFixed(3)+' kg√K/(s·bar)</td></tr>').join('')+'</tbody></table></div>'+
+    '<p class="cap">Power balance: compressor power = turbine efficiency × exhaust flow × cp × T₃ × (1 − (p₄/p₃)^((γ−1)/γ)), outlet at atmosphere. Read the efficiency off the turbine map (makers usually quote it with the bearing losses in, Marelli et al., SAE 2019-01-0324); no source in hand gives a typical value, so the table sweeps it'+(etaIn?'':'; enter yours under Turbine efficiency')+'. Bell puts the turbine inlet at 2 to 2.5 × boost; where the turbine needs less, the rest is the wastegate’s share of the exhaust at peak power. At lower boost or higher RPM with the same gate setting the share grows. The turbine flow parameter, flow × √T₃ ÷ p₃, is what turbine maps plot; A/R choice beyond Bell’s pressure check is left to the map.</p>';
+  // intercooler
+  const ice=Math.min(1,Math.max(0,(val('i-ice')||0)/100));
+  let ic='';
+  if(ice>0){ const mc=R.mc, Qw=mc*CP_AIRT*(R.t2-R.t3), Ch=mc*CP_AIRT, am=val('i-icam')>0?val('i-icam')/LBMIN:null;
+    ic+=rowT('Heat the intercooler must remove',qD(Qw)+(R.merged||nt===1?'':' each'),'charge flow × cp × ('+tD(R.t2)+' − '+tD(R.t3)+')')+rowT('Charge density gain',(((R.t2+273.15)/(R.t3+273.15)-1)*100).toFixed(0)+'%','compressor outlet ÷ intercooler outlet, absolute temperatures');
+    if(am){ const Cc=am*CP_AIRT, Cmin=Math.min(Ch,Cc), Cr=Cmin/Math.max(Ch,Cc), epsMax=Qw/(Cmin*(R.t2-p.tamb)), ntu=ntuFor(epsMax,Cr);
+      ic+=rowT('Capacity-rate ratio Cmin ÷ Cmax',Cr.toFixed(3),(Cc<Ch?'the outside air is the smaller stream':'the charge is the smaller stream')+'; outside air '+fl(am))+
+        (Number.isFinite(ntu)?rowT('NTU this effectiveness needs',ntu.toFixed(2),'UA = NTU × Cmin = '+(ntu*Cmin).toFixed(0)+' W/K ('+(ntu*Cmin*60/1055.06/1.8).toFixed(1)+' BTU/min °F); single-pass cross-flow, both streams unmixed (Incropera)'):'<div class="note warn" id="ts-ntu-warn">With this little outside air no core reaches '+Math.round(ice*100)+'%: the heat to remove needs effectiveness '+(epsMax*100).toFixed(0)+'% on the smaller stream. More air through the core, or a lower target.</div>'); }
+    else ic+='<p class="cap">Enter the outside air through the core to get the heat-exchanger NTU and UA the target needs.</p>';
+    const rdp=val('i-icrdp'), rf=val('i-icrf');
+    if(rdp>0&&rf>0){ const est=rdp*1000*Math.pow(R.mc*LBMIN/rf,2), RR=calcTurboRoute(Object.assign({},route.q,{dpIC:est,inletAt:null}));
+      ic+=rowT('Core drop scaled to this flow',pD(est),'rated '+pD(rdp*1000)+' at '+rf.toFixed(1)+' lb/min, × (flow ratio)², density taken as at the rating; '+(est>2*6894.757?'over':'under')+' Bell’s 2 psi; with it the compressor ratio is '+(RR.err?'–':RR.PRc.toFixed(3))+' against '+R.PRc.toFixed(3)+' with the typed drop'); }
+    ic+='<p class="cap">A maker’s data sheet must give the core’s heat rejection or UA at a charge and outside-air flow, and its pressure drop at a flow; no published UA for bar-and-plate or tube-and-fin charge coolers was found, so none is assumed. Bell’s flow-area rule and core drop check are under Charge pipes. Air-to-water cores are left out: no source in hand sizes one. The tanks’ inlet and outlet sizes are the intercooler diameters above, whose steps are in the size-change table.</p>'; }
+  return sec('Turbo and intercooler sizing',h)+(ic?sec('Intercooler sizing',ic):'');
+}
+if(typeof window!=='undefined') window.__turbo={calcCharge,chargeSide,tsStep,calcTurboRoute,compOut,garrettMatch,corrFlow,epsXflow,ntuFor,turbineBalance};
 // the route as a dimensioned schematic, top to bottom; inline SVG on the page's theme tokens
 function tsSvg(R,q,p,F){
   const W=360, cx=58, wMax=64, dMax=Math.max(p.dt,q.dh,R.dc,q.dci||0,q.dco||0,q.dici||0,q.dico||0,q.dtb||0), k=wMax/dMax, half=d=>d*k/2;
@@ -20069,7 +20167,7 @@ function fiSection0(ind,p,r){
         '<p class="cap">From <a href="https://www.garrettmotion.com/racing-and-performance/choosing-a-turbocharger/turbo-system-optimization/" target="_blank" rel="noopener">Garrett’s Turbo System Optimization</a> and <a href="https://www.garrettmotion.com/knowledge-center-category/racing-and-performance/how-to-size-charge-air-tubing/" target="_blank" rel="noopener">How to Size Charge Air Tubing</a>. Pressure loss is Darcy friction (smooth drawn aluminium or stainless tube, 0.0015 mm) at the actual boosted density plus Crane TP-410’s bend K (via the Intake tab’s bendK); the fill time is the extra air the pipes hold at boost divided by the full-power airflow, so real spool-up is longer.</p>');
     }
   }
-  if(ind==='turbo'||ind==='centri') cp+=turboSection(ind,p,r);
+  if(ind==='turbo'||ind==='centri') cp+=turboSection(ind,p,r)+tsSizeSection(ind,p,r);
   return cp+sec('Boosted intake',h+'<ul class="list">'+list.join('')+'</ul><p class="cap">Sources: <a href="https://compressortech2.com/news/what-is-the-ideal-inlet-piping-length-for-centrifugal-compressors/8022678.article" target="_blank" rel="noopener">CompressorTech², on ASME PTC inlet piping</a>; <a href="https://www.enginelabs.com/?p=167650" target="_blank" rel="noopener">EngineLabs on the ProCharger bellmouth</a>; <a href="https://www.procharger.com/?p=9829" target="_blank" rel="noopener">ProCharger on blow-off valves</a>. Compressor outlet temperature is the ideal-gas compression formula with the efficiency you enter.</p>');
 }
 /* ----- making it by 3D printing ----- */
