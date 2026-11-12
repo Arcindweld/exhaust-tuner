@@ -32,10 +32,40 @@ stated estimate, and limits are written down plainly next to the result they aff
 | `cad/` | Rough parametric models of bought parts for laying out around (Holley 105 mm throttle body; K&N round tapered filter). |
 | `docs/` | Project status and open items (`STATUS.md`). |
 
-## Running the checks
+## Running the tests
+
+Everything at once, from a clean checkout on Linux (or macOS): Node 18+ with Playwright (`npm i playwright && npx
+playwright install chromium`), Python 3.12+ with numpy and scipy, and Rust (cargo, `rustup target add
+wasm32-unknown-unknown`) for the Rust parts; what is missing is skipped and says why.
 
 ```
-# page tests (Node 18+ and Playwright: npm i playwright && npx playwright install chromium)
+python3 tools/run_all_tests.py                 # everything, one test at a time (30-45 min); -j 2 runs two at a time
+python3 tools/run_all_tests.py --list          # the plan: every test, its folder and command line
+python3 tools/run_all_tests.py --only 'wam|cfd' --no-build      # some of them, with the programs as built
+EXHAUST_TUNER_OPENWAM=/path/to/OpenWAM python3 tools/run_all_tests.py   # with the OpenWAM tests too
+```
+
+It builds exhaust-tuner-host, the router core and the wave model (WebAssembly) when cargo is here, then runs `cargo
+test` for every crate under `rust/`, every `web/tests/*.js` (with `index.html` for the ones that take the page path),
+every `fusion-addin/tests/test_*.py`, and the parity checks (`cfd/*_vs_py.*`, `openwam/test_*.js`, `sound/test_*.py`,
+`layouts/*/test_*.py`, the generator's templates, the embedded OpenWAM writer). New test files there are picked up
+without editing anything. Results: `test-results/results.txt` (the table: test, PASS / FAIL / SKIP / PASS+SKIP /
+FLAKY, seconds, why), `results.json`, `results.md` and a log per test in `test-results/logs/`; the exit code is 0 only
+when nothing failed and every skip was expected.
+
+- A test that cannot run says so: `TEST SKIPPED: <why>` for the whole test, `SKIP: <why>` for a part
+  (`web/tests/skip.js`; the Python tests print the same line). Run on its own such a test still exits 0.
+- `tests/expected_skips.txt` lists the skips allowed and when (`name kind condition reason`, e.g. `desktop_ui part
+  no-openfoam ...`); any other skip fails the run, so a test that stops running is noticed.
+- `tests/flaky.txt` lists the tests run a second time after a failure, each with its reason (empty: a timing-sensitive
+  test is fixed by waiting on its condition instead).
+- `.github/workflows/tests.yml` runs it on every push and pull request, in shards balanced on `tools/test_timings.json`
+  (refresh with `--write-timings`), with the table in the job summary.
+
+The pieces one at a time:
+
+```
+# page tests (Node 18+ and Playwright: npm i playwright && npx playwright install chromium); the runner's web suite
 web/tests/run_all_tests.sh
 
 # OpenWAM writers agree (Python 3 + Node)
