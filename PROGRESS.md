@@ -21,3 +21,9 @@ mufCutPlan 14491/mufCutDxf 14511; X-pipe sheet 14090; quickSheet/coneFlat 17559/
 - flange presets: in-note inch->mm conversions all consistent (read).
 - pie cuts/lobster: no calculator on page or add-in (parts catalogue category only). perforation layout: none (porosity input only).
 ## Next: add tests for 2-stroke blanks + X sheet units + oval wrap + hanger foot; run test suite; write doc + STATUS.
+- DEFECT FIXED jig.py _cradle + saddle loop: block top sampled over arc length +-half, but the block is half long LEVEL; on a slope
+  the block's downhill end stood above the centreline: before fix worst +6.07 mm (1 in tube, 55 deg, cradles), +4.96 mm saddles,
+  +4.04 mm steep path; h cos(slope) 3.48 mm > lift-out limit sqrt((r+c)^2-r^2)=2.53 mm -> binds. After: <= +0.009 mm.
+  New helper _top_under; test_jig rising-tube expectation corrected: top at s - 1/cos20 (not s - 1) along tube, same 1e-6 tol.
+- Previous agent's jig test compared top with the same arc-length rule (not independent) -> replaced by footprint reference.
+## Next: grep miter in add-in; run full test list; doc + STATUS.
