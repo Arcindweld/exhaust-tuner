@@ -5,7 +5,8 @@
 
 Each configuration is one engine spec in the page's simSpec form (SI units), which both the wave model (engine.js) and
 OpenWAM's writer (openwam/make_wam.py) read, so the two codes get the same geometry, valve lift and flow-area law,
-cam timing, Wiebe burn, heat release (OpenWAM's combustion efficiency set to the wave model's eta), cylinder wall
+cam timing, Wiebe burn, heat release (OpenWAM's combustion efficiency set so that it releases the wave model's heat: since
+2026-11-12 part 2 the wave model's chemistry x ETA_C, i.e. etaC x q_f(lambda) / 44 MJ/kg; with spec.e.gas 'const' its eta), cylinder wall
 temperature, pipe wall temperatures and initial gas temperatures. Run settings that make OpenWAM like the wave model:
 open_end_corr 0 (the wave model has no radiation end correction), 10 mm cells, TVD scheme, 30 cycles; the wave model
 runs each speed from a cold start for `cycles` cycles at the page's grid (10 mm, 12.5 mm with a collector).
@@ -17,10 +18,15 @@ Tags switch one thing in both codes for the mechanism experiments:
   gamma14   OpenWAM with constant gamma (its gamma_model 0), wave at constant gamma 1.35
   gamma14b  OpenWAM with constant gamma (gamma_model 0) and the wave model at constant gamma 1.4: the gas properties alike
   gamma130w OpenWAM as base, the wave model at constant gamma 1.30 (the sensitivity of its work to the gas's gamma)
-  motored   no heat released in either code (spec.e.eta 0: OpenWAM's combustion efficiency 0), the wave model's default gas
+  motored   no heat released in either code (spec.e.eta 0 and etaC 0: OpenWAM's combustion efficiency 0), the wave model's default gas
   motoredconst  the same with the wave model's constant gas
   eta085    0.85 of the fuel's heat released in both codes instead of 0.72 (phi x 0.85 < 1, so OpenWAM's burn is not
-            cut short by the air running out), the wave model's default gas
+            cut short by the air running out), the wave model's default gas (a 2026-11-12 experiment on the old eta; since
+            part 2 the wave model's gas ignores eta, so this tag now runs as base)
+  chem      2026-11-12 part 2: the heat release from the chemistry with part 1's fresh charge of air alone (spec.e.fuel
+            'air'), OpenWAM as base (its combustion efficiency releasing the same heat)
+  fuelvap   the wave model with fuel vapour in its fresh charge (spec.e.fuel 'vapour'; adopted as the default in part 2,
+            so this tag now runs as base)
   before    the wave model of the page before this validation's fixes (page=...), OpenWAM as base (reuses its runs)
   endp      a candidate page (page=...) against the base OpenWAM runs, before it replaces the page
 Results: tools/validation/wave/results/<tag>.json (metrics per configuration and speed, and the traces).
@@ -87,8 +93,25 @@ def wam_spec(s):
             c["segs"] = before
             tails.append([{"L_mm": sg["L"] * 1000, "d0_mm": sg["d0"] * 1000, "d1_mm": sg["d1"] * 1000} for sg in after])
         w["opt"]["crossover"] = {"cols": [0, 1], "type": xo["type"], "tails": tails}
-    w["e"]["combEff"] = w["e"]["eta"]
+    w["e"]["combEff"] = comb_eff(w["e"])
     return w
+
+
+_CE = {}
+
+
+def comb_eff(e):
+    """OpenWAM's combustion efficiency that releases the wave model's heat per cycle: eta for the constant gas, else
+    etaC x (the chemistry's heat per kg of fuel at this AFR) / 44 MJ/kg, from the page's own heatRelease."""
+    if e.get("gas") == "const":
+        return e["eta"]
+    key = (e["afr"], e.get("etaC"), os.environ.get("PAGE", ""))
+    if key not in _CE:
+        js = ("const {load}=require(%s); const W=load(), g=W.gas, h=g.heatRelease(%r/g.AFR_ST);"
+              "process.stdout.write(String((%s)*h.perFuel/44e6));") % (
+            json.dumps(os.path.join(HERE, "lib.js")), float(e["afr"]), "g.ETA_C" if e.get("etaC") is None else repr(float(e["etaC"])))
+        _CE[key] = float(subprocess.run(["node", "-e", js], check=True, capture_output=True, text=True).stdout)
+    return _CE[key]
 
 
 SINGLE_RPM = [3000, 4000, 5000, 6000, 7000, 8000]
@@ -113,9 +136,11 @@ TAGS = {
     "gamma14": ({"gamma_model": 0}, None, None, "const"),
     "gamma14b": ({"gamma_model": 0}, None, 1.4, "const"),
     "gamma130w": ({}, None, 1.30, "const"),
-    "motored": ({}, None, None, None, {"eta": 0.0}),
+    "motored": ({}, None, None, None, {"eta": 0.0, "etaC": 0.0}),
     "motoredconst": ({}, None, None, "const", {"eta": 0.0}),
     "eta085": ({}, None, None, None, {"eta": 0.85}),
+    "chem": ({}, None, None, None, {"fuel": "air"}),
+    "fuelvap": ({}, None, None, None, {"fuel": "vapour"}),
     "before": ({}, None, None, None),
     "endp": ({}, None, None, None),
 }
@@ -168,7 +193,7 @@ def wam_one(name, spec, rpm, over, cycles=30):
     ai = {h: i for i, h in enumerate(ah)}
     # OpenWAM's Combustion_Heat column stays 0 in this build: the heat released is its fuel mass per cycle (a mean per cylinder)
     # times the LHV (44 MJ/kg, as the wave model) times the combustion efficiency it was given; wall heat as heat lost (> 0)
-    q = ad[-1][ai["Fuel_Mass(kg/cc)"]] * 44e6 * spec["e"]["eta"]
+    q = ad[-1][ai["Fuel_Mass(kg/cc)"]] * 44e6 * comb_eff(spec["e"])
     qw = -sum(ad[-1][ai[k]] for k in ("Heat_Through_Liner_Cyl_1(J)", "Heat_Through_Cylinder_Head_Cyl_1(J)", "Heat_Through_Piston_Cyl_1(J)"))
     return {"rpm": rpm, "Qcomb": q, "Qwall": qw, "finished": s["finished"], "ve": L["VE_trapped_fresh"], "veDelivered": L["VE_delivered"],
             "nmep": L["NMEP"] * 1e5, "imep": L["IMEP"] * 1e5, "nmepChange": s["convergence"]["NMEP"]["last_change"],

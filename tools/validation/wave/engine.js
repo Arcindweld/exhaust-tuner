@@ -17,7 +17,7 @@ const spec = job.spec, dx = job.dx || 0.01, nCyc = job.cycles || 12;
 const e = job.gas ? Object.assign({}, spec.e, { gas: job.gas }) : spec.e;
 const eng = WS.makeEngine(e, spec.intake, spec.exhaust, spec.opt), G = eng.gas;
 const eOf = (T, x) => G ? WS.gas.at(G, T, x).e : CV * T;   // internal energy per kg on the model's own datum
-const rhoRef = PATM / ((G ? G.Ra : RG) * TATM), N = eng.phases.length;
+const rhoRef = PATM / ((G ? (G.Rair || G.Ra) : RG) * TATM), N = eng.phases.length, FA = G && G.fa ? G.fa : 1;   // VE: air (fa: its share of the fresh charge)
 
 function pipesOf(st) {
   return [].concat(...st.ins, ...st.prims, st.coll || [], ...(st.xl || []), ...(st.nets || []).map(n => [].concat(...n.lines)));
@@ -74,7 +74,7 @@ for (const rpm of job.rpms) {
     massResidual: (b.dM - (b.mIn - b.mOut)) / Math.max(1e-12, Math.abs(b.mIn)),
     energyResidual: (b.dE - (b.eIn - b.eOut + b.Q - b.qw - b.pdV + b.qPipe)) / Math.max(1e-12, Math.abs(b.Q)),
     mIn: b.mIn, mOut: b.mOut, dM: b.dM, Q: b.Q, qw: b.qw, pdV: b.pdV, qPipe: b.qPipe, eIn: b.eIn, eOut: b.eOut, dE: b.dE,
-    veDelivered: b.mValveIn / (N * rhoRef * eng.Vd)
+    veDelivered: b.mValveIn * FA / (N * rhoRef * eng.Vd)
   }));
   out.runs.push({ rpm, err, seconds: (Date.now() - t0) / 1000, ve: last.ve, imep: last.imep, resid: last.resid, pEvo: last.pEvo, tEx: last.tEx,
     veHistory: h.map(x => x.ve), veDelivered: balances.length ? balances[balances.length - 1].veDelivered : NaN, balances, trace: tr });

@@ -531,7 +531,7 @@ old gas stays available as `spec.e.gas = 'const'`, bit for bit; the building blo
   it would move `sosExh` by up to 0.03 % and with it pinned acoustic and turbo numbers unrelated to this work; kept as
   a possible follow-up. In the mixtures the difference to JANAF is at most 0.001 in gamma.
 - Fresh charge: dry air, O2 + 3.7279 N2 + 0.04459 Ar (the split of Heywood's 3.773 by NOAA's dry air, as `sosExh`).
-  Fuel vapour is not modelled (the model counts the fresh charge as air, as before).
+  Fuel vapour is not modelled (the model counts the fresh charge as air, as before). [Part 2, B6: now it is.]
 - Burned gas: frozen products of CH1.87 at the engine's air-fuel ratio (stoichiometric 14.596 with these atomic weights:
   C 12.0107, H 1.00794): lean CO2, H2O, O2, N2, Ar; rich CO2, CO, H2O, H2, N2, Ar with the water-gas ratio
   [CO][H2O]/([CO2][H2]) = 3.5 (Heywood, ICE Fundamentals ch. 4; MIT 2.61 lecture 4 says "3.5 to 3.7", the equilibrium
@@ -540,7 +540,8 @@ old gas stays available as `spec.e.gas = 'const'`, bit for bit; the building blo
   volume: R(x) = Rb + x (Ra - Rb); cp(T, x) and the sensible enthalpy h(T, x) (integral of cp from 298.15 K, continuous
   at 1000 K by construction) mix the same way; e = h - R T. The burn's heat is added as before (fresh charge / AFR x
   LHV x eta), so no formation enthalpies are needed; converting fresh charge to burned gas at fixed T changes e by the
-  sensible difference only, which is the right accounting with the heat added as LHV.
+  sensible difference only, which is the right accounting with the heat added as LHV. [Part 2, B1: the heat is now the
+  heat of reaction from formation enthalpies, on the same sensible datum.]
 
 Spot values (model / the same mixture of JANAF's cp; `web/tests/wavegas_ui.js`):
 
@@ -722,3 +723,308 @@ python3 tools/validation/wave/compare.py tag=const       # and tag=base; configs
 python3 tools/validation/wave/gas_report.py              # A6 (before=const after=base)
 python3 tools/validation/wave/work_split.py tag=base     # A7
 ```
+
+## Addendum 2026-11-12, part 2: heat release from chemistry, fuel vapour, friction, and real engines
+
+Part 1 left the cylinder releasing "72 % of the fuel's heat" (`eta` 0.72), a number tuned when every gas had gamma 1.35;
+with the new gas the model's torque dropped 11-16 % and the 72 % could no longer be defended. It is replaced here by the
+heat the model's own chemistry gives and one named, cited residual; the fuel's vapour joins the charge (part 1's next
+experiment, adopted); and a cited friction law gives the page brake torque and power. Nothing was fitted to OpenWAM or
+to the ratings. `spec.e.gas = 'const'` (the model before part 1) is unchanged bit for bit; `spec.e.fuel = 'air'` keeps
+part 1's charge of air alone with the new heat release.
+
+### B1 Heat release from enthalpies of formation
+
+Datum. e(T, x) is sensible (h = integral of cp from 298.15 K, A1), so the chemical energy rides on the fresh fraction x:
+the conserved quantity is the total internal energy m (e(T, x) + x qx), qx the heat of reaction per kg of fresh charge at
+298.15 K. Burning dm of fresh charge moves dm qx from the second term into the first, so the cylinder's energy equation
+keeps its form with the source cy.fresh qx dxb (`burnHeat`). No constant-volume correction (the "minus delta-n R T"
+between constant-pressure and constant-volume heating values) is needed: e = h - R(x) T follows R(x) as fresh charge
+turns into products. Shown to rounding over whole engine cycles, with and without fuel vapour (B8).
+
+Enthalpies at 298.15 K: the model's own GRI-Mech 3.0 polynomials (Cantera `data/gri30.yaml`, fetched 2026-11-12), H(298.15)
+from a1..a5 and a6 below 1000 K (a6 now in `SPEC`), against NIST-JANAF's enthalpies of formation (janaf.nist.gov tables
+C-095, H-064, C-093, fetched 2026-11-12):
+
+| species | GRI-Mech 3.0 H(298.15), kJ/mol | NIST-JANAF dfH(298.15), kJ/mol |
+|---|---|---|
+| CO2 | -393.508 | -393.522 |
+| H2O (gas) | -241.825 | -241.826 |
+| CO | -110.529 | -110.527 |
+| N2 | +0.0014 | 0 |
+| O2, Ar, H2 | 0.0000 | 0 |
+
+The fuel: CH1.87 with LHV 44.0 MJ/kg, Heywood's gasoline (MIT 2.61, spring 2017, lecture 4, fetched: "Gasoline CnH1.87n
+44 MJ/kg"; the page's value before). Heywood's Table D.4 itself could not be fetched. M = 12.0107 + 1.87 x 1.00794 =
+13.8955 g/mol. Its formation enthalpy follows from the LHV: CH1.87 + 1.4675 O2 -> CO2 + 0.935 H2O(g) releases
+44.0 MJ/kg x 13.8955 g/mol = 611.404 kJ/mol, so dfH(CH1.87) = -393.522 + 0.935 x (-241.826) + 611.404 = -8.225 kJ/mol
+(JANAF values; -8.210 with the GRI ones the model uses). The LHV is a liquid-fuel value; the evaporation enthalpy (well
+under 1 % of it) is neither charged to the charge nor credited (B6).
+
+Products: the model's own frozen composition (A1). Q = dfH(fuel) + lambda 1.4675 (3.7279 dfH(N2) + dfH(O2) + 0.04459
+dfH(Ar)) - sum n_i dfH(i), per mol of CH1.87. Worked by hand (JANAF values; the model's GRI values agree to 1e-4):
+- AFR 14.6 (lambda 1.00025; stoichiometric is 14.5964): products CO2 1, H2O 0.935, O2 0.0004 (N2 and Ar as in the air).
+  Q = -8.225 + 393.522 + 0.935 x 241.826 = 611.40 kJ = 44.00 MJ/kg of fuel. Air per mol of fuel: 1.00025 x 1.4675 x
+  138.212 g = 202.88 g; mixture 216.78 g: 2.8205 MJ/kg of mixture (3.0137 MJ per kg of air).
+- AFR 12.8 (lambda 0.8769): O atoms for C and H, S = 2 lambda 1.4675 - 1 = 1.5739; with a = n_CO2, n_H2O = S - a,
+  n_CO = 1 - a, n_H2 = 0.935 - S + a and (1 - a)(S - a) = 3.5 a (0.935 - S + a): a = 0.7287, CO 0.2713, H2O 0.8451,
+  H2 0.0899. Q = -8.225 + 0.7287 x 393.522 + 0.2713 x 110.527 + 0.8451 x 241.826 = 512.88 kJ = 36.91 MJ/kg of fuel
+  (0.839 of the LHV); 2.6746 MJ/kg of mixture (2.8836 MJ per kg of air).
+Rich mixtures need no "combustion efficiency for richness": the CO and H2 left over do it. Against Heywood's rich-mixture
+combustion efficiency (his Fig. 3-9): not verifiable here (the book could not be fetched; MIT 2.61 lecture 4's slide
+"Gasoline fuel-rich combustion" plots "combustion efficiency or relative energy released" against the equivalence ratio,
+but its values cannot be read from the PDF). What can be said: at AFR 12.8 (phi 1.140) the chemistry releases 0.839 of
+the LHV, below the oxygen-limited bound 1/phi = 0.877, because part of the oxygen goes to CO rather than CO2 at the
+water-gas ratio; the page's OpenWAM cases use 0.98 min(1, 1/phi) = 0.860.
+
+The residual, `ETA_C` = 0.975, named and cited, not fitted: "for an SI engine eta_c ~ 97-98 %; H2 and CO ~ 1 to 2 % of
+fuel energy, HC ~ 1 % of fuel energy" (MIT 2.61, spring 2017, lecture 6, "Real cycle effects", fetched), the midpoint, for
+unburned hydrocarbons (crevices, blow-by, quench) and the CO and H2 a real flame leaves beyond the frozen products.
+Heywood's "0.95-0.98 for lean and stoichiometric" (from the brief) could not be fetched; it brackets the same value
+(0.95 costs 2.8 % of torque, B5). spec.e.etaC overrides it (0 = motored).
+
+Net effect at AFR 12.8: 0.975 x 0.839 = 0.818 of "fresh / AFR x 44 MJ/kg" released, against the old 0.72: 13.6 % more
+heat. JS (`heatRelease`, `burnHeat`) and Rust (`heat_release`, `burn_heat`) line for line.
+
+### B2 Dissociation: the size of the frozen-products assumption
+
+`tools/validation/wave/dissociation.py` (independent of the model: GRI-Mech 3.0 with a6 and a7, minimum Helmholtz energy
+over N2, O2, Ar, CO2, H2O, CO, H2, OH, H, O, NO, N; element and energy balances asserted): an adiabatic constant-volume
+burn from an unburned state at TDC, then isentropic expansion to 8 times the volume, frozen products against shifting
+equilibrium.
+
+| AFR, unburned state | peak T frozen / equilibrium (K) | peak p frozen / equilibrium (bar) | expansion work frozen / equilibrium (MJ/kg) |
+|---|---|---|---|
+| 14.6, 750 K 25 bar | 3293 / 2956 | 102.5 / 93.9 | 1.540 / 1.487 (+3.6 %) |
+| 14.6, 800 K 35 bar | 3329 / 2992 | 136.0 / 124.7 | 1.558 / 1.503 (+3.6 %) |
+| 12.8, 750 K 25 bar | 3159 / 2989 | 100.1 / 95.7 | 1.509 / 1.494 (+1.0 %) |
+| 12.8, 800 K 35 bar | 3195 / 3025 | 132.9 / 127.1 | 1.526 / 1.511 (+1.0 %) |
+
+So the frozen products overstate the peak temperature by 170 K at AFR 12.8 (340 K at stoichiometric), the peak pressure
+by 4-5 % (8-9 %), and the expansion work by about 1 % (3.6 %). These are upper estimates (the real burn is spread over 55
+degrees and loses heat to the walls, so its peak is lower and dissociates less); no allowance was added for them.
+
+### B3 Wall heat: Woschni as implemented, against the published form
+
+Published (Woschni, SAE 670931, 1967, in Heywood's units; reproduced in FAMU-FSU propulsion lecture notes, "Convective
+Heat Transfer", fetched 2026-11-12): h = 3.26 B^-0.2 p^0.8 T^-0.55 w^0.8 W/m2 K (B in m, p in kPa, T in K, w in m/s);
+w = C1 Sp + C2 (Vd Tr / (pr Vr)) (p - pm), with Tr, pr, Vr at intake valve closing and pm the motored pressure; gas
+exchange C1 = 6.18, C2 = 0; compression C1 = 2.28, C2 = 0; combustion and expansion C1 = 2.28, C2 = 3.24e-3.
+The model (`runSpeed`, Rust the same): 3.26 bore^-0.2 (p/1000)^0.8 T^-0.55 w^0.8; 6.18 Sp with a valve open, 2.28 Sp
+with both shut, plus 3.24e-3 Vd T_ivc / (p_ivc V_ivc) max(0, p - pm) from the start of the burn to EVO (cy.burning stays
+set through the expansion); the reference state at IVC; pm = p_ivc (V_ivc / V)^1.32 (a polytropic motored pressure, the
+exponent libICEpost also defaults to). Area: piston and head as flat discs plus the liner over the swept and clearance
+heights; one wall temperature, 450 K. It matches the published form term for term; not changed.
+Heat to the walls as a share of the fuel's chemical energy, full load: LS3 (B5) 11.0 % at 3000 rpm, 9.5 % at 4600, 9.2 %
+at 5800 (of the heat released: 13.4, 11.6, 11.2 %); single_L800 / i4_41 12-16 % of the heat released, where OpenWAM's
+own Woschni on the same engines gives 10-12 %. Heywood's chapter 12 ranges for SI engines at full load (named in the
+brief) could not be fetched, so the check against them is not made here; the values are reported, not tuned. If the
+published range is higher, the model's torque surplus (B5) is partly here.
+
+### B4 Friction and brake torque
+
+Law: total friction mean effective pressure of SI engines, tfmep (bar) = 0.97 + 0.15 (N/1000) + 0.05 (N/1000)^2, N in
+rpm (`tfmep` in wsFactory): 1.87 bar at 3000 rpm, 2.72 at 4600, 3.67 at 6000. Source: Heywood 1988, ch. 13 (the brief
+gives it as eq. 13.6, from motored four-cylinder SI engines at wide-open throttle); verified by fetch only through a
+secondary source that states the same coefficients for "the friction under motoring mode for 4-cylinder SI engines"
+(Marwaha and Subramanian, Int. J. Automotive Science and Technology 6 (2022) 39-48, eq. 2). Heywood's own page, its
+equation number and its data set could not be fetched.
+Pumping, handled explicitly: motored at wide-open throttle, that total includes the engine's pumping loop, so it is taken
+off the GROSS indicated mean effective pressure (compression and expansion strokes, BDC to BDC through firing TDC; a new
+model output, `gimep`, JS and Rust): brake mep = gimep - tfmep. Taking it off the net IMEP would count pumping twice. The
+consequence, stated on the page: the brake figure's pumping is that of Heywood's motored engines, not the model's own
+fired loop (0.15-1.6 bar on the LS3 at full throttle with open pipes, B5); the page's design comparisons stay on indicated
+(net) torque, which keeps the header's own pumping. "net - tfmep" is reported in B5 as the low bracket.
+Not used: Chen-Flynn (a + b pmax + c Sp + d Sp^2): its published constants are for diesels, and the SI constants found
+(x-engineer.org) are a worked example, not a published fit; Patton-Nitschke-Heywood / Sandoval-Heywood (SAE 890836,
+2003-01-0725; Sandoval's MIT thesis was fetched but its equations do not survive the scan) needs bearing dimensions the
+page does not have. Heywood's law dates from 1980s engines of 0.85-2 L; a modern V8 likely has less friction per litre,
+which would raise the brake figures below.
+On the page: the 4-Stroke tab's wave simulation shows, for the first design, indicated and brake torque and power per
+speed, their peaks, and a dotted brake line on the chart, with the friction method named; the comparison columns stay
+indicated. The Sound tab's wave runs report no torque to the user.
+
+### B5 Real engines: the published ratings (the truth test)
+
+The page's cam library (`CAM_LIB`) has full cam data only for GM V8s: the LS3 with GM's published events (ivo -19, ivc 43,
+evo 38, evc -7 at 0.050 in), the LS7 and LT1 with durations and lobe separation only (placed straight up, the library
+marks them "assumed"; the LT1 also has a cam phaser, here one fixed position, and direct injection), the LS9 (rated with
+its supercharger; not comparable) and the LS6 and LS1 (ratings without rpm). No stock engine of another layout in the
+library has cam data (the Honda K-series presets carry ratings but no cam events), so three engines of one layout are
+compared. Ratings: LS3 430 hp @ 5900, 425 lb-ft @ 4600 (Chevrolet Performance crate engine sheet 19435098, fetched: its
+test procedure page was not in the fetched text); LS7 505 hp @ 6300, 470 lb-ft @ 4800; LT1 455 hp @ 6000, 460 lb-ft @
+4600 (the library's sources).
+
+How each is run (`tools/validation/wave/ratings.js`, the 4-Stroke tab's simSpec assumptions): rod 1.7 x stroke, valve Cd
+0.7, Wiebe 18 deg BTDC / 55 deg, AFR 12.8, one 300 mm intake runner per cylinder open to the air (diameter sqrt(0.6) x the
+intake valve), one bank of four cylinders at the cross-plane bank's firing gaps (0, 180, 450, 630 deg) on a long-tube 4-1
+header: 150 mm port + 610 mm primary at 44.5 mm (1-7/8 in tube), a 130 mm cone from 89 to 76 mm and a 300 mm 3 in
+collector, open; 3000-6600 rpm in 200 rpm steps, the page's sweep settings; torque = the bank's mean IMEP x 6.2 L / 4 pi.
+`ratings_report.py` makes the table. Before = the page at commit dc9878f (eta 0.72; it had no brake torque, so the same
+friction law is applied here to its gross loop); chem = the heat release of B1 with part 1's air charge; after = the page
+now (B1 and the fuel vapour of B6).
+
+| engine | rating | page | indicated torque, lb-ft @ rpm | indicated power, hp @ rpm | brake torque | brake power | bracket: net - tfmep, torque / power |
+|---|---|---|---|---|---|---|---|
+| LS3 | 425 @ 4600, 430 hp @ 5900 | before | 489 @ 5000 (+15 %) | 510 @ 5800 (+19 %) | 414 @ 5000 (-3 %) | 421 @ 5800 (-2 %) | 382 (-10 %) / 373 (-13 %) |
+| LS3 | | chem | 553 @ 5000 (+30 %) | 581 @ 6000 (+35 %) | 480 @ 5000 (+13 %) | 494 @ 5800 (+15 %) | 446 (+5 %) / 441 (+2 %) |
+| LS3 | | after | 568 @ 5000 (+34 %) | 593 @ 5800 (+38 %) | **497 @ 5000 (+17 %)** | **510 @ 5800 (+19 %)** | 461 (+8 %) / 454 (+6 %) |
+| LS7 (cam assumed) | 470 @ 4800, 505 hp @ 6300 | before | 559 @ 5000 (+19 %) | 568 @ 5800 (+12 %) | 471 @ 5000 (+0 %) | 465 @ 5600 (-8 %) | 444 (-6 %) / 421 (-17 %) |
+| LS7 | | chem | 634 @ 5000 (+35 %) | 647 @ 5800 (+28 %) | 546 @ 5000 (+16 %) | 545 @ 5600 (+8 %) | 515 (+10 %) / 496 (-2 %) |
+| LS7 | | after | 650 @ 5000 (+38 %) | 660 @ 5800 (+31 %) | **565 @ 5000 (+20 %)** | **563 @ 5600 (+11 %)** | 532 (+13 %) / 511 (+1 %) |
+| LT1 (cam assumed) | 460 @ 4600, 455 hp @ 6000 | before | 489 @ 5000 (+6 %) | 492 @ 5600 (+8 %) | 412 @ 4400 (-10 %) | 404 @ 5600 (-11 %) | 391 (-15 %) / 366 (-19 %) |
+| LT1 | | chem | 553 @ 5000 (+20 %) | 559 @ 5600 (+23 %) | 478 @ 5000 (+4 %) | 473 @ 5600 (+4 %) | 455 (-1 %) / 431 (-5 %) |
+| LT1 | | after | 569 @ 5000 (+24 %) | 572 @ 5600 (+26 %) | **496 @ 5000 (+8 %)** | **489 @ 5600 (+8 %)** | 469 (+2 %) / 444 (-2 %) |
+
+Read: the tuned 0.72 had (with this friction law) put brake torque within -10 to 0 % of the ratings; with the heat the
+chemistry gives, brake torque reads 8-20 % high and brake power 8-19 % high, the torque peak at 5000 rpm (rated 4600-4800)
+and the power peak at 5600-5800 (rated 5900-6300). The error is systematic (all three high), so it was investigated one
+change at a time on "after" (LS3; the LS7 and LT1 move alike, `results/ratings_s_*.json`):
+
+| one change | LS3 brake torque | LS3 brake power | what it says |
+|---|---|---|---|
+| none (after) | 497 @ 5000 (+17 %) | 510 @ 5800 (+19 %) | |
+| valve Cd 0.7 -> 0.6 | 468 @ 4400 (+10 %) | 450 @ 5600 (+5 %) | the largest lever; also moves the torque peak |
+| 3 kPa intake loss (mouth at 98.3 kPa: filter, throttle, plenum) | 478 @ 5000 (+13 %) | 491 @ 5800 (+14 %) | -4 %: the model's open runners have none |
+| intake runner 300 -> 450 mm | 540 @ 4200 (+27 %) | 476 @ 5000 (+11 %) | moves both peaks 800 rpm: the runner, not the header, sets them |
+| burn 55 -> 45 deg | 509 @ 5000 (+20 %) | 523 @ 5800 (+22 %) | +2.4 % |
+| ignition 18 -> 25 deg BTDC | 504 @ 5000 (+19 %) | 518 @ 5800 (+20 %) | +1.4 % |
+| ETA_C 0.975 -> 0.95 | 483 @ 5000 (+14 %) | 495 @ 5800 (+15 %) | -2.8 % (the cited range's low end) |
+| 2 m tail pipe after the collector | 494 @ 5000 (+16 %) | 509 @ 5800 (+18 %) | -0.6 % |
+| primaries 610 -> 300 mm | 498 @ 5000 (+17 %) | 510 @ 5800 (+18 %) | none |
+| wall temperature 450 -> 500 K | 494 @ 5000 (+16 %) | 508 @ 5800 (+18 %) | -0.6 % |
+
+What the remaining surplus is made of, as far as shown: (1) the breathing: VE peaks at 1.13 (LS3 5000 rpm) with open
+300 mm runners and no intake losses, while the rated BMEP (11.75 bar at 4600) with this friction needs a gross IMEP of
+about 14.5 bar where the model has 16.1; the intake as the stock engine has it (plenum, throttle body, filter, the real
+runner length) is not modelled, and the model is most sensitive to the valve Cd and the runner; (2) the model itself:
+run like for like against OpenWAM (B7) its indicated work is 10-14 % higher, about a third to half of it the pipe wall
+laws (A7); (3) the frozen products overstate the expansion work by about 1 % at AFR 12.8 (B2). Pulling the other way: a
+modern V8's friction is likely below Heywood's 1980s law. Not changed: none of these was tuned; the cams of the LS7 and
+LT1 are assumed; the stock exhaust (catalysts, mufflers) and the rating's test conditions are not known here.
+
+### B6 Fuel vapour in the charge (part 1's next one-change experiment): adopted
+
+Property: gasoline vapour CH1.87 as 0.62608 isooctane + 0.37392 toluene by mole (H/C 1.87 exactly; 7.62608 C per molecule,
+M 105.9685 g/mol), each from NASA's 9-coefficient fits (McBride, Zehe and Gordon 2002, NASA TP-2002-211556; NASA CEA
+`data/thermo.inp`, github.com/nasa/cea, fetched 2026-11-12: "C8H18,isooctane 2,2,4-Trimethylpentane TRC(4/85)" and "C7H8
+TRC(4/98)"), mixed and refitted to the model's 7-term form: within 0.24 % over 300-1000 K, 0.83 % over 1000-3500 K
+(`SPEC[7]`; `wavegas_ui.js` 10 evaluates NASA's fits itself). cp 1486 J/kg K at 300 K, 2333 at 500 K, 3208 at 800 K.
+Heywood's gasoline-vapour polynomial (named in the brief) could not be fetched; NASA's data are primary. Mixture at AFR
+12.8: R 271.98 J/kg K (OpenWAM's own cylinder output during compression: 272, A7), gamma 1.355 at 300 K and 1.319 at 500 K
+(air 1.401 / 1.386). Its formation enthalpy is the fuel's (B1), so the heat of reaction is unchanged, now per kg of
+mixture.
+Where the fuel enters: at the intake valve, as a port injector (`portFuel`, JS; `port_fuel`, Rust): the air flowing into
+the cylinder brings 1/AFR of its mass as vapour at 298.15 K (the energy datum; its evaporation is taken from the port, not
+the charge: no charge cooling is modelled); gas pushed back into the port leaves its fuel at the valve (the injector meters
+the net air). The cylinder and the exhaust carry air-fuel mixture as their fresh charge, the intake pipes air, so the
+runner acoustics stay those of air (a premixed runner would lower its sound speed by about 4 %, right only for a
+carburettor). The fuel's chemical energy rides on the intake's air (qx per kg of air there = qx per kg of mixture x the
+mixture per kg of air), so the total energy stays conserved; only the sensible enthalpy of fuel pushed back out leaves.
+Approximation: outside air drawn back into a tail pipe counts as fresh mixture there (exhaust side only).
+
+The experiment, one change, both codes as base (`compare.py tag=chem` = the heat of B1 with an air charge, `tag=fuelvap`;
+OpenWAM releasing the same heat, its combustion efficiency set by `compare.comb_eff` to etaC x q_f / 44 MJ/kg = 0.818 at
+AFR 12.8; `work_split.py`, `gas_report.py before=chem after=fuelvap`):
+
+| single_L800 / i4_41 | chem (air charge) | fuelvap (adopted) |
+|---|---|---|
+| compression exponent 60 -> 20 deg BTDC, wave (OpenWAM 1.286 / 1.287) | 1.358 / 1.361 | **1.300 / 1.302** |
+| peak pressure ratio wave / OpenWAM | 1.113 / 1.135 | 1.052 / 1.073 |
+| exhaust port gas T, wave - OpenWAM (K) | +177 / +194 | +113 / +137 |
+| VE correlation with OpenWAM | 0.963 / 0.896 | 0.983 / 0.979 |
+| firing orders: median abs diff to OpenWAM (dB) | 1.3 / 6.2 | 1.6 / 3.6 |
+| NMEP ratio wave / OpenWAM | 1.082 / 1.113 | 1.105 / 1.138 |
+| gross-loop ratio | 1.076 / 1.106 | 1.103 / 1.133 |
+
+Verified: OpenWAM's softer compression (A7) is the fuel vapour (the exponent gap 0.072 -> 0.014); the peak pressure and
+the exhaust temperatures move to OpenWAM's. Adopted on that basis (sourced, and it removes a known inconsistency: the
+charge used to burn the fuel's heat without its mass). It raises the work (NMEP +2-3 %: the same heat in 7.8 % more mass
+runs cooler, so the burned gas's gamma is higher and less heat reaches the walls) and so the gap to OpenWAM, which
+therefore sits elsewhere in the gross loop (the expansion and the pipe wall laws) and stays open. Its share of the
+ratings' error: +3.5 % (B5, chem -> after).
+
+### B6b A defect found on the way (D5): a supersonic exit beyond a normal shock's reach
+
+With the chemistry's heat (stronger blowdown), the page's captured job "single with a chamber" (a single cylinder whose
+pipe ends in a 127 mm megaphone cone, open) never finished its sweep: at 7850 rpm the cone's exit ran at Mach 1.97 and
+24 kPa, and once a normal shock at the exit could no longer hold the outside pressure (pa > p (1 + 2 gamma / (gamma + 1)
+(M^2 - 1)), the D4 limit), `openState` applied its subsonic solution to the supersonic state itself: the sonic state on
+the cell's characteristic, which passes more mass than the cell brings (the end flux jumped 17 % in one step). The end
+cell emptied in ten steps (1 Pa, -4.4e8 m/s) and the time step fell to 1.8e-11 s, so the run never ended (this is what
+held up `wave_wasm.js` and part of the first suite run). Fix (JS `openState`, Rust `open_state`): in that case the end
+takes the state behind a normal shock (Rankine-Hugoniot with the cell's frozen gamma: subsonic, the same mass flux) and
+solves the subsonic exit from there, so the shock moves into the pipe, as in the inviscid steady solution of an
+over-expanded nozzle. Test (`wavegas_ui.js` 5, D5): that job swept to 8600 rpm with a guard on the time step; on the page
+before the fix the guard trips (at 7150 rpm from that sweep's cold start), after it the smallest step is 4.5e-6 s. A
+uniform Mach 1.6-2.0 stream at 20-30 kPa does not show the defect (it recovers either way), so it is not the test.
+Unaffected: the constant-gamma reference (112 speeds, bit for bit), kat.js (66 of 66), and the runs of B5-B7 that were
+rerun after the fix (the ratings, tag after; the OpenWAM cross-check, tag fuelvap) gave the same numbers to the last
+digit (the branch is not reached there); the chem and sensitivity runs were made before it and not rerun.
+
+### B7 Engine level against OpenWAM (the cross-check), part 1 -> now
+
+single_L800 / i4_41 (the OpenWAM runs rerun with the new heat release): NMEP ratio 1.091 / 1.115 (part 1, both codes at
+0.72) -> 1.082 / 1.113 (chem, both codes at the chemistry's heat) -> 1.105 / 1.138 (after). The heat release change by
+itself leaves the like-for-like gap where it was (as part 1's eta085 run predicted). The other six configurations were
+not rerun (about 45 minutes of OpenWAM); `results/base.json` is part 1's, `chem.json` and `fuelvap.json` hold these two.
+
+### B8 What changed on the page, tests, pinned values
+
+- Torque from the wave simulation: +13.6 % heat released (B1) and +2-3 % from the vapour: on the LS3 the indicated torque
+  rises 16 % (489 -> 568 lb-ft peak); VE changes by -0.8 to +0.2 % (the three V8s, every speed); exhaust-valve outflow +39 K on the OpenWAM matrix
+  engines against part 1 (+110 K from the heat, -71 K from the vapour). The method text says what the heat is, names
+  the friction law and gives the ratings comparison; the 72 % sentence is gone.
+- Sound: the wave model's tailpipe firing orders against part 1, single_L800 / i4_41 (24 / 18 order-speed points): median
+  change +0.9 / +0.9 dB, median absolute 1.3 / 1.2 dB. The strong orders rise 0.5-2 dB at every speed, in step with the
+  stronger blowdown (NMEP +15 %); the large moves (-4.7 dB, -6.9 dB) are weak orders at interference minima (single
+  5000 rpm 2nd order, i4 2500 rpm 8th), whose level depends on phase. The port gas temperature, and so the sound speed,
+  ends within 8-12 K of part 1's, so no order moved for a sound-speed reason.
+- `web/tests/wavegas_ui.js`: 5 (D5, B6b), 8 (formation enthalpies against JANAF hand-listed; the fuel's from the LHV by hand; the heat
+  per kg of mixture at AFR 14.6 and 12.8 by hand, products by bisection; total energy, sensible + chemical, over an engine
+  cycle: residual / heat released -7.9e-15), 9 (tfmep by hand at 3000, 4600, 6000, 7500 rpm; the gross loop against p dV
+  integrated in the test, cycle by cycle), 10 (the vapour's cp against NASA's fits; the mixture's R; an engine cycle with
+  the injector: mass residual 5e-15 with 7.88 % fuel per air drawn in, total energy residual 4e-15). Sections 6 and 8 use
+  spec.e.fuel 'air' (part 1's balances), 10 the default.
+- `web/tests/wave_wasm.js`: the gross IMEP is compared too (the WebAssembly's output gains it: ve, imep, pmax, resid,
+  pEvo, tEx, overlapPort, gimep, then each cylinder's ve, imep; the page's reader follows); two jobs added (a lean AFR
+  15.5 with etaC 0.9: the lean branch and the override; spec.e.fuel 'air'); nothing removed or loosened.
+- Pinned values changed: one count. `web/tests/multi_ui.js` "four lines drawn" counted every polyline on the wave
+  chart; the chart now adds a fifth, the first design's brake torque (class `brake`), so the test counts the design lines
+  (still 4) and the brake line (1) separately. No numeric value was re-pinned: the page tests check ranges and relations, not torque values; the captured jobs are
+  compared JS against Rust, which both changed; the constant-gamma reference (`fixtures/wave_const_ref.json`) is
+  unchanged and still met bit for bit (JS `constref.js`, 112 speeds; Rust in `wave_wasm.js`); `kat.js` 66 of 66, its
+  results file byte-identical.
+
+### B9 Summary rows (section 6, as of 2026-11-12, part 2)
+
+| Difference | Status | Evidence |
+|---|---|---|
+| Heat release (eta 0.72, tuned) | replaced: enthalpies of formation to the model's own products, fuel from its LHV, ETA_C 0.975 cited | B1 |
+| Dissociation | not modelled; frozen products overstate expansion work by about 1 % at AFR 12.8, 3.6 % at stoichiometric | B2 |
+| Woschni | matches the published form; wall heat 9-11 % of fuel energy at full load (LS3), above OpenWAM's own | B3 |
+| Brake torque | Heywood's tfmep off the gross loop | B4 |
+| Against real ratings (LS3, LS7, LT1) | brake torque +8 to +20 %, power +8 to +19 %; torque peak 200-400 rpm late, power peak 100-700 rpm early; most sensitive to the valve Cd and the intake | B5 |
+| OpenWAM's softer compression | the fuel vapour (exponent 1.30 against 1.29); adopted | B6 |
+| Net IMEP above OpenWAM | 10-14 %, in the gross loop; open | B6, B7, A7 |
+| Supersonic exit beyond a normal shock's reach emptied the end cell (D5) | defect, fixed | B6b |
+
+### B10 How to rerun (additions)
+
+```
+node web/tests/wavegas_ui.js                               # + heat release, total energy, friction, fuel vapour, ~40 s
+QUICK=1 node web/tests/wave_wasm.js                         # JS / Rust / WebAssembly, 3 speeds per job (full: ~10+ min)
+node tools/validation/wave/ratings.js tag=after             # LS3, LS7, LT1, ~1 min; tag=before with PAGE=<page at dc9878f>
+node tools/validation/wave/ratings.js tag=s_cd06 e.cd=0.6   # one change: e.*=<JSON>, intakeL=, primL=, coll=, tail=, pIn=
+python3 tools/validation/wave/ratings_report.py before chem after
+python3 tools/validation/wave/compare.py configs=single_L800,i4_41 tag=chem      # and tag=fuelvap (= base now)
+python3 tools/validation/wave/work_split.py tag=fuelvap configs=single_L800,i4_41  # + compression exponent column
+python3 tools/validation/wave/gas_report.py before=chem after=fuelvap
+curl -sSLO https://raw.githubusercontent.com/Cantera/cantera/main/data/gri30.yaml
+python3 tools/validation/wave/dissociation.py gri30.yaml
+```
+
+Test run (2026-11-12, part 2, `python3 tools/run_all_tests.py -j 2`, with cargo_test_rust (the et_host/et_app workspace,
+untouched here) left out): 146 tests, 143 passed, 2 skipped and 4 partial skips, all expected, 1 failed: multi_ui, the
+polyline count above. It passes after that change, and sim_ui and uel_sim_ui were rerun on the final page. In that run
+wave_wasm and wave_wasm_built (full, every speed) passed bit for bit; mdwam_ui and jpipe_ui did not time out.
