@@ -20547,7 +20547,7 @@ function tsOptionsSection(ind,p){
   if(w2a){
     const cw=cool.cp, dTw=F('wdT')>0?F('wdT'):NaN;
     if(dTw>0){ const mw=Qreq/(cw*dTw), lpm=mw/cool.rho*1000*60;
-      g+=rowT('Coolant flow for a '+dT(dTw)+' rise',lmin(lpm),fl(mw).replace(/lb\/min/,'lb/min of '+cool.name)+'; m = Q ÷ (cp × ΔT), cp '+cw+' J/kg K, '+cool.rho+' kg/m³ at 40 °C (Engineering ToolBox)');
+      g+=rowT('Coolant flow for a rise of '+dT(dTw),lmin(lpm),fl(mw).replace(/lb\/min/,'lb/min of '+cool.name)+'; m = Q ÷ (cp × ΔT), cp '+cw+' J/kg K, '+cool.rho+' kg/m³ at 40 °C (Engineering ToolBox)');
       if(F('fa')>0&&Number.isFinite(F('wTi'))){ const Cw=F('wf')>0?cwOf(F('wf')):mw*cw, tw2=F('wTi')+Qreq/Cw, Ca=F('fa')/LBMIN*CP_AIRT, c2=Math.min(Ca,Cw), e=Qreq/(c2*(tw2-p.tamb)), n2=ntuFor(e,c2/Math.max(Ca,Cw));
         g+=Number.isFinite(n2)?rowT('Front exchanger must reject '+kw(Qreq),'UA at least '+uaD(n2*c2),'coolant in at '+tD(tw2)+', out at '+tD(F('wTi'))+', outside air at '+tD(p.tamb)+': effectiveness '+(e*100).toFixed(1)+'%, NTU '+n2.toFixed(3)+' (cross-flow); the maker’s data must meet this'):
           '<div class="note bad" id="tso-front-bad">With that airflow and coolant temperature no front exchanger can reject '+kw(Qreq)+': it needs '+(e*100).toFixed(0)+'% effectiveness. Raise the coolant temperature or the airflow.</div>'; }
