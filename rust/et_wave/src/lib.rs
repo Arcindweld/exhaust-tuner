@@ -78,16 +78,16 @@ const FANNING: f64 = 0.005;
 const RU: f64 = 8.314462618;
 const TREF: f64 = 298.15;
 const TMAX: f64 = 3500.0;
-/// GRI-Mech 3.0: M g/mol, cp/R a1..a5 below 1000 K, a1..a5 above; order N2, O2, Ar, CO2, H2O, CO, H2.
+/// GRI-Mech 3.0: M g/mol, cp/R a1..a5 below 1000 K, a1..a5 above, a6 below 1000 K; order N2, O2, Ar, CO2, H2O, CO, H2.
 #[allow(clippy::excessive_precision)]
-const SPEC: [(f64, [f64; 5], [f64; 5]); 7] = [
-    (28.0134, [3.298677, 1.4082404e-3, -3.963222e-6, 5.641515e-9, -2.444854e-12], [2.92664, 1.4879768e-3, -5.68476e-7, 1.0097038e-10, -6.753351e-15]),
-    (31.9988, [3.78245636, -2.99673416e-3, 9.84730201e-6, -9.68129509e-9, 3.24372837e-12], [3.28253784, 1.48308754e-3, -7.57966669e-7, 2.09470555e-10, -2.16717794e-14]),
-    (39.948, [2.5, 0.0, 0.0, 0.0, 0.0], [2.5, 0.0, 0.0, 0.0, 0.0]),
-    (44.0095, [2.35677352, 8.98459677e-3, -7.12356269e-6, 2.45919022e-9, -1.43699548e-13], [3.85746029, 4.41437026e-3, -2.21481404e-6, 5.23490188e-10, -4.72084164e-14]),
-    (18.01528, [4.19864056, -2.0364341e-3, 6.52040211e-6, -5.48797062e-9, 1.77197817e-12], [3.03399249, 2.17691804e-3, -1.64072518e-7, -9.7041987e-11, 1.68200992e-14]),
-    (28.0101, [3.57953347, -6.1035368e-4, 1.01681433e-6, 9.07005884e-10, -9.04424499e-13], [2.71518561, 2.06252743e-3, -9.98825771e-7, 2.30053008e-10, -2.03647716e-14]),
-    (2.01588, [2.34433112, 7.98052075e-3, -1.9478151e-5, 2.01572094e-8, -7.37611761e-12], [3.3372792, -4.94024731e-5, 4.99456778e-7, -1.79566394e-10, 2.00255376e-14]),
+const SPEC: [(f64, [f64; 5], [f64; 5], f64); 7] = [
+    (28.0134, [3.298677, 1.4082404e-3, -3.963222e-6, 5.641515e-9, -2.444854e-12], [2.92664, 1.4879768e-3, -5.68476e-7, 1.0097038e-10, -6.753351e-15], -1020.8999),
+    (31.9988, [3.78245636, -2.99673416e-3, 9.84730201e-6, -9.68129509e-9, 3.24372837e-12], [3.28253784, 1.48308754e-3, -7.57966669e-7, 2.09470555e-10, -2.16717794e-14], -1063.94356),
+    (39.948, [2.5, 0.0, 0.0, 0.0, 0.0], [2.5, 0.0, 0.0, 0.0, 0.0], -745.375),
+    (44.0095, [2.35677352, 8.98459677e-3, -7.12356269e-6, 2.45919022e-9, -1.43699548e-13], [3.85746029, 4.41437026e-3, -2.21481404e-6, 5.23490188e-10, -4.72084164e-14], -4.83719697e4),
+    (18.01528, [4.19864056, -2.0364341e-3, 6.52040211e-6, -5.48797062e-9, 1.77197817e-12], [3.03399249, 2.17691804e-3, -1.64072518e-7, -9.7041987e-11, 1.68200992e-14], -3.02937267e4),
+    (28.0101, [3.57953347, -6.1035368e-4, 1.01681433e-6, 9.07005884e-10, -9.04424499e-13], [2.71518561, 2.06252743e-3, -9.98825771e-7, 2.30053008e-10, -2.03647716e-14], -1.4344086e4),
+    (2.01588, [2.34433112, 7.98052075e-3, -1.9478151e-5, 2.01572094e-8, -7.37611761e-12], [3.3372792, -4.94024731e-5, 4.99456778e-7, -1.79566394e-10, 2.00255376e-14], -917.935173),
 ];
 const AIR_N2: f64 = 3.7279; // per mole of O2
 const AIR_AR: f64 = 0.04459;
@@ -141,6 +141,7 @@ fn gas_poly(n: &[f64; 7]) -> (f64, [f64; 11], [f64; 11]) {
 }
 #[derive(Clone, Copy)]
 struct Gas {
+    qx: f64, // the fresh charge's chemical energy, J per kg (heat_release)
     ra: f64,
     rb: f64,
     rd: f64,
@@ -159,7 +160,45 @@ fn make_gas(afr: f64) -> Gas {
         }
         o
     };
-    Gas { ra, rb, rd: ra - rb, blo, bhi, dlo: d(&alo, &blo), dhi: d(&ahi, &bhi) }
+    Gas { qx: heat_release(afr / afr_st()).1, ra, rb, rd: ra - rb, blo, bhi, dlo: d(&alo, &blo), dhi: d(&ahi, &bhi) }
+}
+// ------------------------------------------------------------------------------------------- heat release (2026-11-12, part 2)
+// The page's "heat release" block, line for line: the heat of reaction from enthalpies of formation (the GRI-Mech 3.0
+// polynomials' H(298.15 K), with a6) to the model's own frozen products; the fuel CH1.87's formation enthalpy from its
+// 44.0 MJ/kg lower heating value; ETA_C 0.975 the residual combustion efficiency (MIT 2.61 lecture 6: "~97-98 %").
+const LHV_F: f64 = 44.0e6;
+const ETA_C: f64 = 0.975;
+fn m_fuel() -> f64 {
+    12.0107 + FUEL_Y * 1.00794
+}
+/// H(298.15 K) of species k, J/mol.
+fn hform(k: usize) -> f64 {
+    let a = SPEC[k].1;
+    let t = TREF;
+    RU * (t * (a[0] + t * (a[1] / 2.0 + t * (a[2] / 3.0 + t * (a[3] / 4.0 + t * a[4] / 5.0)))) + SPEC[k].3)
+}
+fn hf_fuel() -> f64 {
+    hform(3) + FUEL_Y / 2.0 * hform(4) + LHV_F * m_fuel() / 1000.0
+}
+/// Heat of reaction at relative air-fuel ratio lam (held to 0.5-4): J per mol of fuel, J per kg of air.
+fn heat_release(lam: f64) -> (f64, f64) {
+    let lam = jmin(4.0, jmax(0.5, lam));
+    let o = 1.0 + FUEL_Y / 4.0;
+    let n = burned_moles(lam);
+    let mut hp = 0.0;
+    for k in 0..7 {
+        hp += n[k] * hform(k);
+    }
+    let q = hf_fuel() + lam * o * (AIR_N2 * hform(0) + hform(1) + AIR_AR * hform(2)) - hp;
+    let m_air = lam * o * (AIR_N2 * SPEC[0].0 + SPEC[1].0 + AIR_AR * SPEC[2].0) / 1000.0;
+    (q, q / m_air)
+}
+/// The burn's heat per cycle: the gas's chemistry x the combustion efficiency, or (the constant gas) fresh / AFR x LHV x eta.
+fn burn_heat(eng: &Engine, fresh: f64) -> f64 {
+    match &eng.gas {
+        Some(g) => fresh * g.qx * eng.eta_c,
+        None => fresh / eng.afr * LHV * eng.eta,
+    }
 }
 /// cp, h, R at (T, x); cp held at its end value outside 200-3500 K (h linear there).
 fn gas_at(g: &Gas, t: f64, x: f64) -> (f64, f64, f64) {
@@ -327,6 +366,7 @@ struct Engine {
     stroke: f64,
     afr: f64,
     eta: f64,
+    eta_c: f64, // e.etaC, else ETA_C (the engine's gas only)
     burn_dur: f64,
     woschni: bool,
     twall: f64,
@@ -491,6 +531,7 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         stroke,
         afr: num(&e["afr"]),
         eta: num(&e["eta"]),
+        eta_c: if e["etaC"].is_null() { ETA_C } else { num(&e["etaC"]) },
         burn_dur: num(&e["burn"]["dur"]),
         woschni: e["woschni"] != Value::Bool(false),
         twall: or(&e["Twall"], 450.0),
@@ -1262,6 +1303,7 @@ struct Cyl {
     ivc_t: f64,
     ivc_v: f64,
     work: f64,
+    work_g: f64, // the gross loop, BDC to BDC through firing TDC (540-720 and 0-180 deg)
     pmax: f64,
     xb: f64,
     burning: bool,
@@ -1275,7 +1317,7 @@ struct Cyl {
     rg: f64, // the gas's R, cp and gamma at this step's start
     cp: f64,
     gm: f64,
-    done: Option<[f64; 7]>, // ve, imep, pmax, resid, pEvo, tEx, overlapPort
+    done: Option<[f64; 8]>, // ve, imep, pmax, resid, pEvo, tEx, overlapPort, gross imep
     started: bool,
     last_tk: Option<f64>,
 }
@@ -1528,11 +1570,12 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
             p: PATM,
             th: 0.0,
             fresh,
-            burn_q: fresh / eng.afr * LHV * eng.eta,
+            burn_q: burn_heat(eng, fresh),
             ivc_p: PATM,
             ivc_t: 330.0,
             ivc_v: eng.vol(eng.ivc),
             work: 0.0,
+            work_g: 0.0,
             pmax: 0.0,
             xb: 0.0,
             burning: false,
@@ -1578,7 +1621,7 @@ fn local_th(th: f64, ph: f64) -> f64 {
 /// One speed's result: the last cycle's averages over the cylinders, and each cylinder's.
 #[derive(Clone)]
 pub struct Res {
-    pub v: [f64; 7], // ve, imep, pmax, resid, pEvo, tEx, overlapPort
+    pub v: [f64; 8], // ve, imep, pmax, resid, pEvo, tEx, overlapPort, gross imep
     pub per_cyl: Vec<[f64; 2]>,
 }
 
@@ -1806,14 +1849,16 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                                 0.0
                             },
                             if cy.ov_n != 0.0 { cy.ov_p / cy.ov_n } else { PATM },
+                            cy.work_g / eng.vd,
                         ]);
                     }
                     cy.fresh = cy.m * cy.x;
-                    cy.burn_q = cy.fresh / eng.afr * LHV * eng.eta;
+                    cy.burn_q = burn_heat(eng, cy.fresh);
                     cy.ivc_p = cy.m * (match &gas { Some(g) => gas_r(g, cy.x), None => RG }) * cy.t / eng.vol(tk);
                     cy.ivc_t = cy.t;
                     cy.ivc_v = eng.vol(tk);
                     cy.work = 0.0;
+                    cy.work_g = 0.0;
                     cy.pmax = 0.0;
                     cy.xb = 0.0;
                     cy.burning = false;
@@ -1870,6 +1915,9 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                     cy.x = jmin(1.0, jmax(0.0, mf / cy.m));
                 }
                 cy.work += cy.p * dv;
+                if tk >= 540.0 || tk < 180.0 {
+                    cy.work_g += cy.p * dv;
+                }
                 if cy.p > cy.pmax {
                     cy.pmax = cy.p;
                 }
@@ -1888,7 +1936,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
             }
             st.th += dth;
         }
-        let d: Vec<[f64; 7]> = st.cyls.iter().filter_map(|cy| cy.done).collect();
+        let d: Vec<[f64; 8]> = st.cyls.iter().filter_map(|cy| cy.done).collect();
         if !d.is_empty() {
             let av = |f: usize| {
                 let mut s = 0.0;
@@ -1901,12 +1949,12 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
             for x in &d {
                 pmax = jmax(pmax, x[2]);
             }
-            out.push(Res { v: [av(0), av(1), pmax, av(3), av(4), av(5), av(6)], per_cyl: d.iter().map(|x| [x[0], x[1]]).collect() });
+            out.push(Res { v: [av(0), av(1), pmax, av(3), av(4), av(5), av(6), av(7)], per_cyl: d.iter().map(|x| [x[0], x[1]]).collect() });
         }
         c += 1.0;
     }
     if out.is_empty() {
-        out.push(Res { v: [f64::NAN; 7], per_cyl: Vec::new() });
+        out.push(Res { v: [f64::NAN; 8], per_cyl: Vec::new() });
     }
     Ok(out)
 }
@@ -2000,7 +2048,7 @@ pub unsafe extern "C" fn wave_new(p: *const u8, n: usize) -> u32 {
     }
 }
 /// One speed. Returns the number of doubles in wave_out (0 on an error): ve, imep, pmax, resid, pEvo, tEx,
-/// overlapPort, then each cylinder's ve and imep.
+/// overlapPort, gross imep, then each cylinder's ve and imep.
 #[no_mangle]
 #[allow(clippy::too_many_arguments)]
 pub extern "C" fn wave_step(id: u32, rpm: f64, first: u32, dx: f64, cycles: f64, first_cycles: f64, max_extra: f64, tol: f64) -> u32 {

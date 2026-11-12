@@ -28,13 +28,14 @@ function wNew(spec) {
   if (!id) throw new Error(new TextDecoder().decode(new Uint8Array(X.memory.buffer, X.wave_error(), X.wave_error_len())));
   return id;
 }
-const KEYS = ['ve', 'imep', 'pmax', 'resid', 'pEvo', 'tEx', 'overlapPort'];
+const KEYS = ['ve', 'imep', 'pmax', 'resid', 'pEvo', 'tEx', 'overlapPort', 'gimep'];   // gimep (the gross loop): 2026-11-12, part 2
+const KEYS7 = KEYS.slice(0, 7);   // what fixtures/wave_const_ref.json holds
 function wStep(id, rpm, first, o) {
   const n = X.wave_step(id, rpm, first ? 1 : 0, o.dx, o.cycles, o.firstCycles, o.maxExtra, NaN);
   if (!n) throw new Error(new TextDecoder().decode(new Uint8Array(X.memory.buffer, X.wave_error(), X.wave_error_len())));
   const v = new Float64Array(X.memory.buffer, X.wave_out(), n), r = { rpm };
   KEYS.forEach((k, i) => { r[k] = v[i]; });
-  r.perCyl = []; for (let i = 7; i + 1 < n; i += 2) r.perCyl.push({ ve: v[i], imep: v[i + 1] });
+  r.perCyl = []; for (let i = KEYS.length; i + 1 < n; i += 2) r.perCyl.push({ ve: v[i], imep: v[i + 1] });
   return r;
 }
 const jobs = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_jobs.json'), 'utf8'));
@@ -45,7 +46,10 @@ const jobs = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_j
   jobs.push({ name: 'diameter steps', job: { dx: 0.01, rpms: [3000, 5000, 7000, 9000], variants: [{ label: 'chamber and stepped runner', spec: { e,
     intake: { segs: [{ L: 0.15, d0: 0.06, d1: 0.06 }, { L: 0.15, d0: 0.045, d1: 0.045 }], Tw: 320 },
     exhaust: { segs: [{ L: 0.5, d0: 0.0445, d1: 0.0445 }, { L: 0.3, d0: 0.127, d1: 0.127 }, { L: 0.6, d0: 0.0445, d1: 0.0445 }], Tw: 700, chambers: [] },
-    opt: { phases: [0] } } }] } }); }
+    opt: { phases: [0] } } }] } });
+  // the heat release's lean branch (no CO or H2 in the products) and an explicit combustion efficiency (spec.e.etaC)
+  jobs.push({ name: 'lean, etaC', job: { dx: 0.01, rpms: [4000, 6000, 8000], variants: [{ label: 'AFR 15.5, etaC 0.9', spec: Object.assign({}, jobs[0].job.variants[0].spec,
+    { e: Object.assign({}, e, { afr: 15.5, etaC: 0.9 }) }) }] } }); }
 let tJs = 0, tW = 0;
 for (const { name, job } of jobs) {
   const rpms = process.env.QUICK === '1' ? job.rpms.slice(0, 3) : job.rpms;
@@ -76,7 +80,7 @@ for (const { name, job } of jobs) {
     const o = { dx: j.dx, cycles: 3, firstCycles: 8, maxExtra: 5 }, spec = Object.assign({}, j.spec, { e: Object.assign({}, j.spec.e, { gas: 'const' }) });
     const id = wNew(spec), ws = rpms.map((rpm, i) => wStep(id, rpm, i === 0, o)); X.wave_drop(id);
     let bad = '';
-    rpms.forEach((rpm, i) => { for (const k of KEYS) if (!bad && !Object.is(r.res[i][k], ws[i][k])) bad = rpm + ' rpm ' + k + ': reference ' + r.res[i][k] + ', Rust ' + ws[i][k];
+    rpms.forEach((rpm, i) => { for (const k of KEYS7) if (!bad && !Object.is(r.res[i][k], ws[i][k])) bad = rpm + ' rpm ' + k + ': reference ' + r.res[i][k] + ', Rust ' + ws[i][k];
       r.res[i].perCyl.forEach((c, q) => { if (!bad && !(Object.is(c[0], ws[i].perCyl[q].ve) && Object.is(c[1], ws[i].perCyl[q].imep))) bad = rpm + ' rpm cylinder ' + (q + 1); }); });
     ok(!bad, 'constant gamma: ' + r.name + ', ' + r.label + ': ' + rpms.length + ' speeds the same as the reference to the last digit' + (bad ? ' (' + bad + ')' : ''));
   } }

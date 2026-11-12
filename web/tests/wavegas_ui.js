@@ -14,7 +14,11 @@
 //     shock could hold the outside pressure leaves unchanged (before the fix the end emptied its cell and ran away);
 //  6. one engine cycle's mass and energy balance with the gas;
 //  7. the constant-gamma mode (spec.e.gas 'const') gives the page's results before the change to the last digit
-//     (fixtures/wave_const_ref.json, first three speeds of each design).
+//     (fixtures/wave_const_ref.json, first three speeds of each design);
+//  8. the heat release (2026-11-12, part 2): enthalpies of formation against NIST-JANAF, the fuel's from its lower heating
+//     value, the heat per kg of mixture at AFR 14.6 and 12.8 worked by hand here (products found by bisection, not the
+//     model's quadratic), and the total energy (sensible + chemical) of an engine cycle conserved to rounding;
+//  9. friction: Heywood's tfmep by hand, and the brake torque's gross loop against p dV integrated here.
 const fs = require('fs'), path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
@@ -170,6 +174,58 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
     const res = W.sweep(eng, rpms, { dx: j.dx, cycles: 3, firstCycles: 8, maxExtra: 5 });
     let bad = ''; res.forEach((x, i) => { for (const k of KEYS) if (!bad && !Object.is(x[k], r.res[i][k])) bad = rpms[i] + ' rpm ' + k + ' ' + x[k] + ' vs ' + r.res[i][k]; });
     ok(!bad, 'constant gamma: ' + r.name + ', ' + r.label + ': ' + rpms.length + ' speeds as before the change, to the last digit' + (bad ? ' (' + bad + ')' : '')); } }
+
+// ---------- 8. heat release from enthalpies of formation
+{ // NIST-JANAF dfH(298.15 K), kJ/mol (janaf.nist.gov/tables C-095 CO2, H-064 H2O gas, C-093 CO; N2, O2, Ar, H2: 0 by definition)
+  const JF = { CO2: -393.522, H2O: -241.826, CO: -110.527, N2: 0, O2: 0, Ar: 0, H2: 0 };
+  ORDER.forEach((sp, k) => ok(Math.abs(GS.HFORM[k] / 1000 - JF[sp]) < 0.02, sp + ': H(298.15 K) of the GRI-Mech 3.0 polynomial (with a6) ' + (GS.HFORM[k] / 1000).toFixed(4) +
+    ' kJ/mol against JANAF\'s enthalpy of formation ' + JF[sp] + ' (within 0.02)'));
+  // the fuel CH1.87: LHV 44.0 MJ/kg (Heywood; MIT 2.61 lecture 4 "Gasoline CnH1.87n 44 MJ/kg"), M = 12.0107 + 1.87 x 1.00794
+  const Mf = 12.0107 + 1.87 * 1.00794, LHV = 44.0e6, hfF = JF.CO2 + 0.935 * JF.H2O + LHV * Mf / 1e6;   // kJ/mol
+  ok(Math.abs(Mf - 13.8955) < 1e-4 && Math.abs(hfF - (-8.2253)) < 1e-3 && Math.abs(GS.HF_FUEL / 1000 - hfF) < 0.03,
+    'fuel CH1.87: M ' + Mf.toFixed(4) + ' g/mol, dfH = dfH(CO2) + 0.935 dfH(H2O) + 44.0 MJ/kg x M = ' + hfF.toFixed(4) + ' kJ/mol by hand (JANAF), model ' + (GS.HF_FUEL / 1000).toFixed(4));
+  const mAirOf = lam => lam * o * (3.7279 * 28.0134 + 31.9988 + 0.04459 * 39.948) / 1000;   // kg of air per mol of fuel
+  const byHand = afr => {   // products by element balance and K = n_CO n_H2O / (n_CO2 n_H2) = 3.5, the CO2 moles by bisection
+    const lam = afr / GS.AFR_ST; let n;
+    if (lam >= 1) n = { CO2: 1, H2O: 0.935, O2: (lam - 1) * o };
+    else { const S = 2 * lam * o - 1; let lo = 0, hi = 1;   // O: 2 a + (S - a) + (1 - a) ... a = n_CO2, n_H2O = S - a, n_CO = 1 - a, n_H2 = 0.935 - S + a
+      for (let it = 0; it < 200; it++) { const a = 0.5 * (lo + hi), f = (1 - a) * (S - a) - 3.5 * a * (0.935 - S + a); if (f > 0) lo = a; else hi = a; }
+      const a = 0.5 * (lo + hi); n = { CO2: a, H2O: S - a, CO: 1 - a, H2: 0.935 - S + a }; }
+    let hp = 0; for (const k in n) hp += n[k] * JF[k];
+    const Q = hfF - hp, mA = mAirOf(lam), mix = mA + Mf / 1000;   // kJ per mol of fuel (N2, Ar, O2: zero on both sides)
+    return { lam, n, Q, perMix: Q * 1e3 / mix, perFuel: Q * 1e3 / (Mf / 1000), perAir: Q * 1e3 / mA }; };
+  for (const [afr, want] of [[14.6, 2.82051], [12.8, 2.67465]]) {
+    const h = byHand(afr), m = GS.heatRelease(afr / GS.AFR_ST);
+    ok(Math.abs(h.perMix / 1e6 - want) < 2e-4 && Math.abs(m.perMix / h.perMix - 1) < 1e-4 && Math.abs(m.perAir / h.perAir - 1) < 1e-4,
+      'AFR ' + afr + ' (lambda ' + h.lam.toFixed(4) + '): products ' + Object.keys(h.n).map(k => k + ' ' + h.n[k].toFixed(4)).join(', ') + ' per mol of fuel; heat ' + h.Q.toFixed(2) +
+      ' kJ/mol = ' + (h.perFuel / 1e6).toFixed(3) + ' MJ/kg of fuel (' + (100 * h.perFuel / LHV).toFixed(1) + ' % of the LHV) = ' + (h.perMix / 1e6).toFixed(4) +
+      ' MJ/kg of mixture by hand; model ' + (m.perMix / 1e6).toFixed(4) + ' MJ/kg of mixture, ' + (m.perAir / 1e6).toFixed(4) + ' MJ per kg of air (the fresh charge\'s qx)');
+  }
+  ok(Math.abs(G128.qx - GS.heatRelease(lam128).perAir) === 0 && GS.ETA_C === 0.975, 'the engine\'s gas carries qx = the heat per kg of fresh charge (air); residual combustion efficiency ' + GS.ETA_C);
+  // total energy over a cycle: sensible m e(T, x) + chemical m x qx in pipes, cylinders and side volumes; in and out at the
+  // ends with h + x qx; sinks: wall heat, work, pipe wall heat, and the (1 - ETA_C) of the chemical energy that burns
+  // without being released (unburned fuel, counted as leaving the model)
+  const eng = W.makeEngine(ENG, { segs: [{ L: 0.3, d0: 0.0368, d1: 0.0368 }], Tw: 320 }, { segs: [{ L: 0.4, d0: 0.0445, d1: 0.0445 }, { L: 0.2, d0: 0.09, d1: 0.09 }, { L: 0.2, d0: 0.0445, d1: 0.0445 }], Tw: 700 }, { phases: [0] });
+  const G = eng.gas, qx = G.qx, st = W.freshState(eng, 0.01), FAN = 0.005;
+  const stored = s => { let E = 0; for (const P of [].concat(...s.ins, ...s.prims)) for (let i = 0; i < P.n; i++) E += (P.q3[i] + P.q4[i] * qx) * P.dx;
+    for (const c of s.cyls) E += c.m * (GS.at(G, c.T, c.x).e + c.x * qx); return E; };
+  let prev = stored(st), th0 = null; const B = { flow: 0, sink: 0, dE: 0, Q: 0, lost: 0, g: 0 };
+  const r = W.runSpeed(eng, { rpm: 6000, cycles: 6, dx: 0.01, state: st, hook: c => {
+    if (th0 === null) th0 = c.st.th; const last = c.st.th - th0 >= 5 * 720 - 1e-9, now = stored(c.st);
+    if (last) { const dt = c.dt; for (const L of c.ins) B.flow += (L[0].f3[0] + L[0].f4[0] * qx) * dt; for (const P of c.outs) B.flow -= (P.f3[P.n] + P.f4[P.n] * qx) * dt;
+      for (const cy of c.cyls) { B.sink += cy._qw + cy._pdV + cy._Q * (1 - GS.ETA_C) / GS.ETA_C; B.Q += cy._Q; B.lost += cy._Q * (1 - GS.ETA_C) / GS.ETA_C; if (cy.th >= 540 || cy.th < 180) B.g += cy._pdV; }
+      for (const P of c.all) for (let i = 0; i < P.n; i++) B.sink -= dt * 2 * FAN * P.r[i] * Math.abs(P.u[i]) * P.A[i] / P.D[i] * P.cp[i] * (P.Tw - P.p[i] / (P.Rm[i] * P.r[i])) * P.dx;
+      B.dE += now - prev; }
+    prev = now; } });
+  const er = (B.dE - (B.flow - B.sink)) / B.Q;
+  ok(Math.abs(er) < 1e-9 && B.Q > 0, 'total energy (sensible + chemical, qx ' + (qx / 1e6).toFixed(4) + ' MJ/kg of fresh charge) over the last of 6 cycles at 6000 rpm: residual / heat released = ' +
+    er.toExponential(2) + ' (released ' + B.Q.toFixed(1) + ' J, not released by the residual combustion efficiency ' + B.lost.toFixed(1) + ' J)');
+  // ---------- 9. friction and the gross loop
+  const tf = [[3000, 1.87], [4600, 2.7180], [6000, 3.67], [7500, 4.9075]];
+  tf.forEach(([n, bar]) => ok(Math.abs(W.tfmep(n) / 1e5 - bar) < 1e-12, 'Heywood tfmep at ' + n + ' rpm: 0.97 + 0.15 (' + n / 1000 + ') + 0.05 (' + n / 1000 + ')^2 = ' + bar + ' bar by hand, model ' + (W.tfmep(n) / 1e5).toFixed(4)));
+  ok(Math.abs(r.gimep * eng.Vd / B.g - 1) < 1e-12 && r.gimep > r.imep, 'gross IMEP (BDC to BDC through firing TDC) ' + (r.gimep / 1e5).toFixed(3) + ' bar = p dV over 540-180 deg integrated here; net ' +
+    (r.imep / 1e5).toFixed(3) + ' bar, so the pumping loop costs ' + ((r.gimep - r.imep) / 1e5).toFixed(3) + ' bar; brake mep = gross - tfmep = ' + ((r.gimep - W.tfmep(6000)) / 1e5).toFixed(3) + ' bar');
+}
 
 console.log(fails.length ? 'FAILS ' + fails.length : 'all passed');
 process.exit(fails.length ? 1 : 0);
