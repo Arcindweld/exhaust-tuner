@@ -254,7 +254,8 @@ Tests: web/tests/turboar_ui.js.
 
 ## Open
 
-- Wire the Mufflers / Headers back-pressure results into i-tobp (B13) rather than typing them.
+- Wire the Mufflers / Headers back-pressure results into i-tobp (B13) rather than typing them. Done 2026-11-12 (agent7/guide):
+  Intake tab, Exhaust after the turbine, "Use my exhaust's back pressure" (docs/STATUS.md, tests/turboguide_ui.js).
 - Bell's figures (Mach 0.4, 2-2.5 x boost, pages) were not re-read; the book is not online.
 - Hooper's 45 deg mitres could be offered for 45 deg pie cuts (data in hand, not used: B17).
 - A rich-mixture burned-gas composition for the turbine properties (B8).
