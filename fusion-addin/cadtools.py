@@ -19,6 +19,10 @@ Actions
                and copes the near end to the main pipe, with a tool body for the hole.
   helmholtz    Build a Helmholtz can on a neck from a marker on the main pipe: the neck coped to the
                main pipe, the can sized to hold the page's volume around the neck.
+  chargeRoute  Recommend charge pipes (and the turbo intake) through the scan from a start and an end marker per
+               leg: routed on each stocked bend radius, ranked by estimated loss (chargeroute.py). Builds nothing.
+  chargeRouteBuild  Build the routes chosen from the last recommendation.
+  setHotKeepouts    Mark the selected keep-outs hot (a larger clearance for the charge pipes), or clear the marks.
 
 Lengths sent back are centimeters (Fusion's internal unit). The page converts them.
 """

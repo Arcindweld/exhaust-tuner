@@ -12870,7 +12870,8 @@ function crStockLine(){
     const od=s.id+2*s.wall, st=crStock(od,s.id,CR_UI.mat);
     return esc(name)+', '+tubIn(od)+' OD: '+(st.stocked?'stocked bend radii '+st.list.map(x=>clen(x.clr_mm)).join(', ')+(st.otherMat?' (not in this material)':''):
       'no stocked bend for this OD on the parts list, so '+clen(st.list[0].clr_mm)+(CR_UI.clr>0?' as entered':' (1.5 × the inside diameter)')+' is used: check you can get it');
-  }).join('<br>');
+  }).concat((()=>{ const tb=$('i-tb'), c=crLegSize('cold'); return CR_UI.legs.cold.on&&tb&&tb._b>0&&c.id>0&&Math.abs(tb._b-c.id)>1?
+    ['The throttle bore is '+cdim(tb._b)+' and the cold pipe '+cdim(c.id)+' inside: the route ends at the marker in the pipe’s size, so a cone or reducing coupler is needed at the throttle body.']:[]; })()).join('<br>');
 }
 function crRequest(){
   const fl=crFlows(); if(fl.err) return {err:fl.err};
