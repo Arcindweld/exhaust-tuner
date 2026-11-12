@@ -1484,6 +1484,15 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Note: the heat and pipe sizes come from the tab's airflow at the boost entered, not the power target; the page says so
   when Garrett's method differs by more than 10%. Garrett advises the largest core that fits the packaging; this page picks
   the smallest that covers the target (the margin leans toward Garrett's advice), said on the page.
+- Review change (same day): air-to-air order is now Bell first. Among rows passing (a) and (b): those whose charge face
+  meets Bell's face for the target × the margin (6 in² per 100 hp ÷ 0.45 = 13.33 in² per 100 hp), then face unknown, then
+  failing; the old keys within each group. A pick that does not meet Bell says "no listed core meets Bell's face area for
+  this power; this is the closest by rating" with the shortfall; a pass that rests on the CSF flow-direction assumption
+  says so. New optional "Largest core that fits" (length × height × thickness, mm with inches shown; Garrett's advice):
+  cores are checked on the maker's overall size where published (Mishimoto, with tanks; `over`) else the core as
+  published (length and height may swap), and with a limit the largest charge face that fits comes first (stated on the
+  page). Water-to-air keeps its order; the limit applies to it too. icrec_ui.js updated (Bell arithmetic per candidate in
+  its comments; size-limit cases; a 1300 hp case where nothing meets Bell).
 - Tests: web/tests/icrec_ui.js (new); turbolib_ui.js row counts updated (type starts undecided; 50 + 17 rows) and the
   Bowman water ports now read "BSP size ¾" (a thread designation; the sweep found "1 in" with no mm once the water-to-air
   rows are listed by default).

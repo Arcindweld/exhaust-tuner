@@ -19,9 +19,37 @@
 //   water-to-air: Garrett 500, 750, 980, 1000; Mishimoto W3 1000, W4 1500; CSF 8134 800, 8113 1000, 8084 1000, 8085 1500, 8086 2000;
 //   EJ Bowman typical engine power 50, 90, 120, 175, 280, 365 kW = 67.05, 120.69, 160.92, 234.68, 375.49, 489.47 hp (÷ 0.7457).
 //
-// Build 1, 350 hp, air-to-air, margin 1: rated >= 350: smallest 375 (Garrett 703521-6003), then 410 (703518-6016), 425 (703520-6025).
-//   Out: 848054-6012 (300), 703518-6015 (310), MMINT-UZ (no rating) = 3. Margin 1.2 (420 hp): 425 (703520-6025), 450 (848054-6013),
-//   475 (703518-6018); out 5 (adds 375 and 410).
+// Air-to-air order (reviewer, 2026-11-12): among rows passing (a) and (b), first those whose charge face meets Bell's face for the
+//   target x margin, then face unknown, then failing; within each group the old order. Bell face = 6 in² per 100 hp / 0.45 =
+//   13.33 in² per 100 hp. Charge face: Garrett height (no flow) x width (cold flow); Mishimoto core height x thickness; CSF height x
+//   width, or length x width on its vertical-flow rows (assumptions). Faces of the rows that matter (in²):
+//   Garrett 703521-6003 (375) 12.3 x 4.5 = 55.35; 703518-6016 (410) 8.0 x 3.0 = 24; 703520-6025 (425) 8.0 x 3.5 = 28;
+//   848054-6013 (450) 8.6 x 5.5 = 47.30; 703518-6018 (475) 6.4 x 3.0 = 19.2; 848054-6037 (750, vertical, Garrett labels L as hot flow)
+//   24.0 x 3.5 = 84; 858893-6001 (750) 22.1 x 4.0 = 88.4; 703522-6008 (750) 11.2 x 4.5 = 50.4; 848054-6015 (750) 9.4 x 5.3 = 49.82;
+//   703522-6004 (785) 12.1 x 4.5 = 54.45; 703520-6011 (800) 10.5 x 3.5 = 36.75; 848054-6020 (800) 7.8 x 4.3 = 33.54;
+//   848054-6039 (1100) 22.4 x 4.5 = 100.8; 701596-6001 (1260) 12.7 x 5.1 = 64.77; 858893-6003 (1275) 22.1 x 4.5 = 99.45;
+//   Mishimoto UG (700) 11.75 x 2.76 = 32.43, US (800) 12 x 3 = 36, UR (1000) 12 x 4 = 48; CSF 8056 (700) 12 x 3 = 36, 8053 (800, vertical)
+//   24 x 3.5 = 84, 8068 (800, vertical) 27 x 3 = 81, 8063 (850) 12 x 4 = 48, 8054 (1100, vertical) 27 x 4.5 = 121.5, 8040 (1300) 12 x 6 = 72,
+//   8055 (1400, vertical) 27 x 6 = 162.
+// Build 1, 350 hp, air-to-air, margin 1: Bell face 46.67 in². Rated >= 350 and passing Bell: 703521-6003 (55.35), 848054-6013 (47.30),
+//   then the 750s 848054-6037 (84; volume 8 x 24 x 3.5 = 672 cu in) ahead of 858893-6001 (88.4; 9 x 22.1 x 4 = 795.6) on volume.
+//   Out: 848054-6012 (300), 703518-6015 (310), MMINT-UZ (no rating) = 3. Margin 1.2 (420 hp, Bell face 56 in²): 848054-6037,
+//   858893-6001, then CSF 8068 (800, 81 in², on the vertical-flow assumption); out 5 (adds 375 and 410).
+//   Own core 380 hp, 600 x 300 x 102 mm (23.62 x 11.81 x 4.016 in): face 11.81 x 4.016 = 47.43 >= 46.67 -> second.
+// Build 3, 800 hp, air-to-air, margin 1: Bell face 106.67 in². Passing: CSF 8054 (1100, 121.5), CSF 8055 (1400, 162), both only on the
+//   vertical-flow assumption; then the failing group by rating and volume: CSF 8068 (800, 486 cu in; 81 in², 25.67 in² short).
+//   MMINT-UM out (600 whp is its lower figure).
+// Nothing passes Bell: 1300 hp air-to-air, Bell face 173.33 in²: >= 1300 are CSF 8040 (72) and 8055 (162) -> 8040 by rating, with
+//   "no listed core meets Bell's face area" and 101.3 in² short.
+// Size limit 610 x 305 x 89 mm (24.02 x 12.01 x 3.504 in; length and height may swap; Mishimoto checked on its overall size with
+//   tanks, Garrett and CSF on the core): at 450 hp the rows covering 450 that fit are Garrett 475 (19.2), 500 (22.4), 510 (31.5), 600
+//   487085-6002 (33.6), 600 703520-6010 (28), 750 848054-6037 (84), 800 703520-6011 (36.75); CSF 8056 (36), 8047 (42), 8053 (84), 8067 (36);
+//   largest face first: 848054-6037 and CSF 8053 tie at 84 -> rating -> 848054-6037, CSF 8053, then CSF 8047 (42). Mishimoto US
+//   (overall 31 in) does not fit. Limit 610 x 305 x 77 mm (thickness 3.031 in): 3 in cores only: CSF 8056 (36, 700) and 8067
+//   (36, 850) tie -> 8056, 8067, then 487085-6002 (33.6).
+// Water-to-air, size limit 305 x 150 x 305 mm (12.01 x 5.91 x 12.01 in), 450 hp: fits and covers: Garrett 717874-6009 (500),
+//   717874-6008 (750), CSF 8134 (800, 8.5 x 4.5 x 6), ... -> order unchanged (rating): 717874-6009, 717874-6008, CSF 8134; Bowman out
+//   (size not published).
 // Build 2, 450 hp, water-to-air, margin 1: >= 450: Bowman JK190-4078-3 489.47 hp (ratio 1.0877), Garrett 717874-6009 500,
 //   717874-6008 750. JK190 thermal gate, its point 30.1 kg/min, 180 -> 41.5 °C, 270 L/min water at 30 °C (water 992 kg/m³,
 //   4183 J/kg K): Ch0 = 30.1/60 x 1004.675 = 504.0120 W/K, Cw0 = 270/60/1000 x 992 x 4183 = 18672.91 W/K, Q0 = Ch0 x 138.5,
@@ -64,19 +92,19 @@ const { chromium } = require('playwright');
 
   // build 1
   await setx('ictype', 'a2a');
-  let t = await top('a2a'); ok(t.join() === 'Garrett 703521-6003,Garrett 703518-6016,Garrett 703520-6025', 'build 1, 350 hp air-to-air: ' + t.join(', '));
+  let t = await top('a2a'); ok(t.join() === 'Garrett 703521-6003,Garrett 848054-6013,Garrett 848054-6037', 'build 1, 350 hp air-to-air, Bell first: ' + t.join(', '));
   ok(await outN('a2a') === 3, 'build 1: three not recommended (300, 310, no rating)');
   const n1 = await pg.$eval('#tso-icrec-a2a', e => e.innerText);
   ok(/1\.07 × the target per core/.test(n1) && /core only: weld end tanks/.test(n1) && /Bell’s 47 in² \(301 cm²\)/.test(n1), 'build 1 pick: ratio 375/350 = 1.07, tank flag for a core sold without tanks, Bell face 6 x 350/100/0.45 = 46.7 in² (301.1 cm²)');
   ok(await pg.$('#tso-icrec-little-a2a') && /common workshop practice, not sourced claims/.test(await pg.$eval('#tso-icrec-little-a2a', e => e.innerText)), 'Garrett publishes 1 of 6 items: “little published data — check it in hand” with the workshop checklist, labelled');
   await setx('icm', '1.2');
-  t = await top('a2a'); ok(t.join() === 'Garrett 703520-6025,Garrett 848054-6013,Garrett 703518-6018', 'build 1, margin 1.2: ' + t.join(', '));
+  t = await top('a2a'); ok(t.join() === 'Garrett 848054-6037,Garrett 858893-6001,CSF 8068', 'build 1, margin 1.2 (Bell face 56 in²): ' + t.join(', '));
   ok(await outN('a2a') === 5, 'build 1, margin 1.2: five not recommended');
   await setx('icm', '1');
 
   // own core, recommended alongside the list: 380 hp, 63.5 mm necks -> second; 2 in necks -> out with the step loss
-  for (const [k, v] of [['oName', 'Shop core A'], ['oL', '600'], ['oH', '300'], ['oW', '76'], ['oIn', '63.5'], ['oOut', '63.5'], ['oHp', '380']]) await setx(k, v);
-  t = await top('a2a'); ok(t.join() === 'Garrett 703521-6003,Your core Shop core A,Garrett 703518-6016', 'own core (380 hp) ranks between 375 and 410: ' + t.join(', '));
+  for (const [k, v] of [['oName', 'Shop core A'], ['oL', '600'], ['oH', '300'], ['oW', '102'], ['oIn', '63.5'], ['oOut', '63.5'], ['oHp', '380']]) await setx(k, v);
+  t = await top('a2a'); ok(t.join() === 'Garrett 703521-6003,Your core Shop core A,Garrett 848054-6013', 'own core (380 hp, face 47.43 in²) ranks between 375 and 450: ' + t.join(', '));
   await setx('oIn', '50.8');
   const o2 = await pg.$eval('#tso-icrec-out-a2a', e => e.textContent);
   ok(/Shop core A: inlet neck 50\.8 mm under the 63\.5 mm hot pipe \(a sudden step there loses [0-9.]+ (psi|kPa)/.test(o2), 'own core with 2 in necks: rejected, with the step loss shown');
@@ -90,11 +118,32 @@ const { chromium } = require('playwright');
 
   // build 3
   await hp(800);
-  t = await top('a2a'); ok(t.join() === 'CSF 8068,CSF 8053,Mishimoto MMINT-US', 'build 3, 800 hp air-to-air, ties at 800 by core volume: ' + t.join(', '));
+  t = await top('a2a'); ok(t.join() === 'CSF 8054,CSF 8055,CSF 8068', 'build 3, 800 hp air-to-air, Bell first: ' + t.join(', '));
   const top3 = await pg.$eval('#tso-icrec-top-a2a', e => e.innerText);
-  ok(/same rating as the one above; larger core volume/.test(top3), 'build 3: the reason for the order is said');
+  ok(/CSF 8055: a larger rating than the one above; its charge face meets Bell’s 106\.7 in² \(688 cm²\) only on this page’s assumption/.test(top3) &&
+    /CSF 8068: fails Bell’s face area[^—]*81\.0 in² \(523 cm²\), is 25\.7 in² \(166 cm²\) short of Bell’s 106\.7 in²/.test(top3), 'build 3: a pass on the CSF flow-direction assumption says so; the failing row shows its shortfall');
+  await hp(1300);
+  t = await top('a2a'); ok(t[0] === 'CSF 8040', '1300 hp: nothing meets Bell, the pick is CSF 8040 by rating (' + t.join(', ') + ')');
+  const n13 = await pg.$eval('#tso-icrec-a2a', e => e.innerText);
+  ok(/no listed core meets Bell’s face area for this power; this is the closest by rating; its charge face, 72\.0 in² \(465 cm²\), is 101\.3 in² \(654 cm²\) short of Bell’s 173\.3 in²/.test(n13), '1300 hp: the pick says no core meets Bell and gives the shortfall');
+  await hp(800);
   const um = await pg.$eval('#tso-icrec-out-a2a', e => e.textContent);
   ok(/Mishimoto MMINT-UM: rating 600 hp below/.test(um), 'MMINT-UM: the lower of its two figures (600 whp) is used and it is out');
+
+  // size limit (Garrett: the largest core that fits)
+  await hp(450);
+  for (const [k, v] of [['lmL', '610'], ['lmH', '305'], ['lmT', '89']]) await setx(k, v);
+  t = await top('a2a'); ok(t.join() === 'Garrett 848054-6037,CSF 8053,CSF 8047', 'size limit 610 x 305 x 89 mm, 450 hp: largest face that fits first: ' + t.join(', '));
+  ok(/largest charge face/.test(await pg.$eval('#tso-lim-echo', e => e.innerText)) && /24\.02 × 12\.01 × 3\.50 in \(610 × 305 × 89 mm\)/.test(await pg.$eval('#tso-lim-echo', e => e.innerText)), 'the switch of rule is stated, the space in in and mm');
+  ok(/Mishimoto MMINT-US: overall size 31 × 12 × 3 in \(787 × 305 × 76 mm\) does not fit your space/.test(await pg.$eval('#tso-icrec-out-a2a', e => e.textContent)), 'Mishimoto checked on its overall size with tanks');
+  await setx('lmT', '77');
+  t = await top('a2a'); ok(t.join() === 'CSF 8056,CSF 8067,Garrett 487085-6002', 'size limit 610 x 305 x 77 mm: ' + t.join(', '));
+  await setx('ictype', 'w2a');
+  for (const [k, v] of [['lmL', '305'], ['lmH', '150'], ['lmT', '305']]) await setx(k, v);
+  t = await top('w2a'); ok(t.join() === 'Garrett 717874-6009,Garrett 717874-6008,CSF 8134', 'water-to-air, size limit 305 x 150 x 305 mm: order unchanged: ' + t.join(', '));
+  ok(/EJ Bowman JK190-4078-3: size not published: cannot be checked against your space/.test(await pg.$eval('#tso-icrec-out-w2a', e => e.textContent)), 'water-to-air: a core with no published size is out under a limit');
+  for (const k of ['lmL', 'lmH', 'lmT']) await setx(k, '');
+  await setx('ictype', 'a2a');
 
   // build 2
   await hp(450); await setx('ictype', 'w2a');
