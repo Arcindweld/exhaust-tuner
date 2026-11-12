@@ -48,15 +48,16 @@
 //   (overall 31 in) does not fit. Limit 610 x 305 x 77 mm (thickness 3.031 in): 3 in cores only: CSF 8056 (36, 700) and 8067
 //   (36, 850) tie -> 8056, 8067, then 487085-6002 (33.6).
 // Water-to-air, size limit 305 x 150 x 305 mm (12.01 x 5.91 x 12.01 in), 450 hp: fits and covers: Garrett 717874-6009 (500),
-//   717874-6008 (750), CSF 8134 (800, 8.5 x 4.5 x 6), ... -> order unchanged (rating): 717874-6009, 717874-6008, CSF 8134; Bowman out
-//   (size not published).
+//   717874-6008 (750), CSF 8134 (800, 8.5 x 4.5 x 6), Conflux 100011 (400 kW = 536.4 hp, overall 140 x 133 x 155 mm = 5.51 x 5.24 x
+//   6.10 in; it passes its thermal check from the maker's curve at this 15 psi flow) ... -> by rating: 717874-6009, Conflux 100011,
+//   717874-6008; Bowman out (size not published).
 // Build 2, 450 hp, water-to-air, margin 1: >= 450: Bowman JK190-4078-3 489.47 hp (ratio 1.0877), Garrett 717874-6009 500,
-//   717874-6008 750. JK190 thermal gate, its point 30.1 kg/min, 180 -> 41.5 °C, 270 L/min water at 30 °C (water 992 kg/m³,
+//   Conflux 100011 536.4 (400 kW; passes its curve-based thermal check at this flow, tested in conflux_ui.js), 717874-6008 750. JK190 thermal gate, its point 30.1 kg/min, 180 -> 41.5 °C, 270 L/min water at 30 °C (water 992 kg/m³,
 //   4183 J/kg K): Ch0 = 30.1/60 x 1004.675 = 504.0120 W/K, Cw0 = 270/60/1000 x 992 x 4183 = 18672.91 W/K, Q0 = Ch0 x 138.5,
 //   eps0 = 138.5/150 = 0.92333, NTU0 from the exact series (computed below, independent of the page), UA = NTU0 x Ch0; at this build
 //   (charge mc from the route, 134.4 °C in, no coolant flow entered so the point's 270 L/min, coolant in at the outside 25 °C) the
 //   predicted heat over the heat needed must be >= 1 (computed below and compared with the page's "removes N%").
-//   Out: the five smaller Bowman coolers. Margin 1.2 (540 hp): JK190 out; 717874-6008 (750), CSF 8134 (800), 873213-6002 (980).
+//   Out: the five smaller Bowman coolers. Margin 1.2 (540 hp): JK190 and Conflux 100011 (536.4) out; 717874-6008 (750), CSF 8134 (800), Conflux 100012 (804.6).
 // Build 3, 800 hp, air-to-air, margin 1: rated exactly 800: Garrett 703520-6011 (24 x 10.5 x 3.5 = 882.0 cu in), 848054-6020
 //   (26.3 x 7.8 x 4.3 = 882.102), CSF 8053 (24 x 6 x 3.5 = 504), CSF 8068 (27 x 6 x 3 = 486), Mishimoto MMINT-US (23 x 12 x 3 = 828,
 //   3 in necks >= the 2.5 in pipes); MMINT-UM out (600 whp is its lower figure). No pressure drop is published for any of them,
@@ -140,14 +141,14 @@ const { chromium } = require('playwright');
   t = await top('a2a'); ok(t.join() === 'CSF 8056,CSF 8067,Garrett 487085-6002', 'size limit 610 x 305 x 77 mm: ' + t.join(', '));
   await setx('ictype', 'w2a');
   for (const [k, v] of [['lmL', '305'], ['lmH', '150'], ['lmT', '305']]) await setx(k, v);
-  t = await top('w2a'); ok(t.join() === 'Garrett 717874-6009,Garrett 717874-6008,CSF 8134', 'water-to-air, size limit 305 x 150 x 305 mm: order unchanged: ' + t.join(', '));
+  t = await top('w2a'); ok(t.join() === 'Garrett 717874-6009,Conflux Technology 100011,Garrett 717874-6008', 'water-to-air, size limit 305 x 150 x 305 mm: order by rating, the Conflux 100011 (overall 140 x 133 x 155 mm) fits: ' + t.join(', '));
   ok(/EJ Bowman JK190-4078-3: size not published: cannot be checked against your space/.test(await pg.$eval('#tso-icrec-out-w2a', e => e.textContent)), 'water-to-air: a core with no published size is out under a limit');
   for (const k of ['lmL', 'lmH', 'lmT']) await setx(k, '');
   await setx('ictype', 'a2a');
 
   // build 2
   await hp(450); await setx('ictype', 'w2a');
-  t = await top('w2a'); ok(t.join() === 'EJ Bowman JK190-4078-3,Garrett 717874-6009,Garrett 717874-6008', 'build 2, 450 hp water-to-air: ' + t.join(', '));
+  t = await top('w2a'); ok(t.join() === 'EJ Bowman JK190-4078-3,Garrett 717874-6009,Conflux Technology 100011', 'build 2, 450 hp water-to-air: ' + t.join(', '));
   ok(await outN('w2a') === 5, 'build 2: the five smaller Bowman coolers not recommended');
   // the JK190 thermal gate, by hand (exact cross-flow series written here, not the page's)
   const R = await pg.evaluate(() => window.__tsLast());
@@ -160,7 +161,7 @@ const { chromium } = require('playwright');
   const pct = +(w2.match(/removes ([0-9]+)% of the heat needed/) || [])[1];
   ok(capM >= 1 && Math.abs(pct - Math.round(capM * 100)) <= 1, 'JK190 thermal gate: hand capacity margin ' + capM.toFixed(4) + ' (UA ' + UA.toFixed(1) + ' W/K), page ' + pct + '%');
   await setx('icm', '1.2');
-  t = await top('w2a'); ok(t.join() === 'Garrett 717874-6008,CSF 8134,Garrett 873213-6002', 'build 2, margin 1.2 (540 hp): ' + t.join(', '));
+  t = await top('w2a'); ok(t.join() === 'Garrett 717874-6008,CSF 8134,Conflux Technology 100012', 'build 2, margin 1.2 (540 hp): ' + t.join(', '));
   await setx('icm', '1');
   // Use this intercooler: JK190
   await pg.click('#tso-icrec-w2a ~ .actions button[data-icuse], [data-icrec="w2a"] button[data-icuse]'); await pg.waitForTimeout(500);
