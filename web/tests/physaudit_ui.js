@@ -41,7 +41,7 @@ const { chromium } = require('playwright');
     o.rD = [[5, 0.4], [30, 0.3], [30, 0.6], [100, 0.3], [180, 0.6]].map(([a, b]) => P.rennelsDiffuserK(a, b)); o.rC = P.rennelsContractionK(30, 0.5);
     const cA = Math.PI / 4 * 0.1524 ** 2, pA = Math.PI / 4 * 0.0635 ** 2;
     const dc = P.catDp(0.15, Object.assign(P.catGeom(400, 6), { Asub: cA, len: 0.1524, Apipe: pA, cone: 0.0508, tC: 500 })), d0 = P.catDp(0.15, Object.assign(P.catGeom(400, 6), { Asub: cA, len: 0.1524, Apipe: pA, cone: 0, tC: 500 }));
-    o.cat2 = { ang: dc.coneAng, K: dc.kIn, dpCone: dc.dpCone, K0: d0.kIn };
+    o.cat2 = { ang: dc.coneAng, K: dc.kIn, dpCone: dc.dpCone, K0: d0.kIn, kOut: dc.kOut, fP: dc.fP, kOut0: d0.kOut };
     const sh = P.calcShell({ shape: 'round', od: 76.2, oh: 76.2, wall: 1.651, span: 1000, twall: 20, pw: 100, pl: 100, pt: 1.5, mat: 'ss304', sup: 'pin' }); o.oval = sh.err ? [NaN, NaN] : sh.oval.map(q => q.f);
     const bfx = P.calcBaffles({ dpipe: 60.198, dsh: 152.4, lch: 355.6, n: 3, dh: 40, t: 1, tC: 343.333 }); o.bafTL = [0.8, 1.5, 2.2].map(k => bfx.tl(k * bfx.f0)); o.bafHoles = bfx.holes;
     return o;
@@ -97,7 +97,17 @@ const { chromium } = require('playwright');
   near(v.rC, 0.04124472, 1e-5, 'Rennels contraction K at 30 deg, beta 0.5');
   // Follow-up Q10: catalyst inlet cone 63.5 -> 152.4 mm over 50.8 mm (82.4 deg): Rennels 0.7307 with its friction term (Borda 0.680)
   near(v.cat2.ang, 82.37185, 1e-6, 'cat inlet cone included angle, deg'); near(v.cat2.K, 0.7306830, 1e-4, 'cat inlet cone K (Rennels)');
-  near(v.cat2.dpCone, 399.8047, 1e-4, 'cat cone loss, Pa (375.34 with Borda)'); near(v.cat2.K0, 0.7046916, 1e-5, 'cat sudden step K (Rennels at 180 deg)');
+  near(v.cat2.K0, 0.7046916, 1e-5, 'cat sudden step K (Rennels at 180 deg)');
+  // 2026-11-12: the outlet cone (was an uncited 0.05) is the same 82.37 deg cone back down as Rennels' conical contraction
+  // (python-fluids contraction_conical 'Rennels', C_B 1), on the pipe's head. By hand, beta = 63.5 / 152.4 = 0.416667:
+  //   lambda = 1 + 0.622 (82.37185 / 180)^0.8 (1 - 0.215 beta^2 - 0.785 beta^5) = 1 + 0.622 x 0.535073 x 0.952815 = 1.317106
+  //   0.0696 sin(41.18593 deg) (1 - beta^5) lambda^2 + (lambda - 1)^2 = 0.0696 x 0.658505 x 0.987441 x 1.734767 + 0.100556 = 0.179065
+  //   friction f (1 - beta^4) / (8 sin(alpha/2)) with the pipe's Haaland f (0.023855, checked under Haaland) = 0.004392; K 0.183457
+  //   the pipe's head q = 399.8047 / (0.7306830 + 0.05) = 512.1217 Pa from the old figure, so (0.730683 + 0.183457) x 512.1217 = 468.151 Pa
+  //   sudden step (no cone, alpha 180): lambda 1.592651, K 0.0696 x 0.987441 x 2.536537 + 0.351236 = 0.525561, no friction
+  near(v.cat2.kOut, 0.179065236 + v.cat2.fP * (1 - (63.5 / 152.4) ** 4) / (8 * Math.sin(82.37185033 * Math.PI / 360)), 1e-6, 'cat outlet cone K (Rennels contraction + its friction)');
+  near(v.cat2.kOut, 0.1834570, 1e-5, 'cat outlet cone K, by hand'); near(v.cat2.kOut0, 0.5255610, 1e-5, 'cat outlet sudden step K (Rennels at 180 deg, no cone friction)');
+  near(v.cat2.dpCone, 468.1509, 1e-4, 'cat cone loss, Pa (399.80 with the old 0.05 outlet, 375.34 with Borda in)');
   // Follow-up Q8: ovaling, 304 tube 76.2 x 1.651 at room temperature, plane strain E / (1 - nu^2) (Leissa SP-288 2.26-2.27)
   near(v.oval[0], 745.8934, 1e-5, '2-lobe ovaling, Hz (718.19 with E; Leissa 2.27 exact root 745.87)'); near(v.oval[1], 2109.705, 1e-5, '3-lobe ovaling, Hz');
   // Follow-up Q9: N chambers, N - 1 holes, chamber first and last, transmission loss of the lumped chain between the pipes
