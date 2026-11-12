@@ -379,4 +379,5 @@ its inlet total pressure, so its figure is indicative; such parts carry a warnin
 burned-gas transport properties (air's mu, k in the film, as before). There is no naturally aspirated whole-exhaust
 back-pressure sum on the page (the Cats tab works its converter at its own typed gas temperature, the Mufflers tab at a
 typed Mach number), so nothing there changed; `exhMarch` takes any exhaust and could serve one.
-Tests: web/tests/xflow_ui.js (new), turboguide_ui.js (pins above); tools/validation/boost/xflow.py and xflow_page.js.
+Tests: web/tests/xflow_ui.js (new), turboguide_ui.js (pins above); tools/validation/boost/xflow.py and xflow_page.js. Web suite
+(run_all_tests.py --suite web --no-build -j 2): 108 tests, 103 passed, 0 failed, 5 skipped (expected), 7 partial skips, 0 unexpected.
