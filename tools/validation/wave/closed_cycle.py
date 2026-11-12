@@ -24,10 +24,12 @@ energy equation; woschni='openwam'; integ='euler' with a given step list: the wa
 difference can be priced by itself.
 
     curl -sSL -o thermo.inp https://raw.githubusercontent.com/nasa/cea/main/data/thermo.inp
-    python3 tools/validation/wave/closed_cycle.py thermo.inp            # self-checks (known answers), a few seconds
+    python3 tools/validation/wave/closed_cycle.py thermo.inp [gri30.yaml]   # self-checks; with gri30.yaml (dissociation.py's
+                                                                           # file) the equilibrium against dissociation.py
 Used by cyl_phase.py (the comparison against both codes).
 """
 import math
+import os
 import sys
 
 import numpy as np
@@ -653,5 +655,142 @@ def selfcheck(path):
     return ok
 
 
+def crosscheck(path, gri):
+    """the equilibrium solver: (1) with this script's NASA-9 data, the equilibrium constants of CO2 = CO + 1/2 O2 and
+    H2O = OH + 1/2 H2 hold to 1e-9 in ln K on the products of AFR 12.8 and 14.6 at 2000-3000 K and 20-120 bar; (2) run on
+    GRI-Mech 3.0 data, against dissociation.py's solution (an independent method: SLSQP minimum of the Helmholtz energy) at
+    the same T and V: mole fractions above 1e-3 within 2 % wherever dissociation.py's own minimum satisfies those two
+    equilibrium constants to 0.02 in ln K (where it does not, its optimiser stopped short; reported, not counted)."""
+    src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "dissociation.py")).read()
+    src = src[:src.index("def case(")]
+    ns = {}
+    argv = sys.argv
+    sys.argv = ["dissociation.py", gri]
+    try:
+        exec(compile(src, "dissociation.py", "exec"), ns)
+    finally:
+        sys.argv = argv
+    th = Thermo(path)
+    key = lambda nm: "AR" if nm == "Ar" else nm
+
+    class GriData:
+        A, M = th.A, th.M
+
+        def sp(self, T, which=None):
+            which = which or NAMES
+            return (np.zeros(len(which)), np.array([ns["h_RT"](key(n), T) for n in which]), np.array([ns["s_R"](key(n), T) for n in which]))
+
+    def lnres(x, T, P, gfun):
+        L = lambda k: math.log(max(x[k], 1e-300))
+        r1 = L("CO") + 0.5 * L("O2") - L("CO2") + 0.5 * math.log(P / P0) + gfun("CO") + 0.5 * gfun("O2") - gfun("CO2")
+        r2 = L("OH") + 0.5 * L("H2") - L("H2O") + 0.5 * math.log(P / P0) + gfun("OH") + 0.5 * gfun("H2") - gfun("H2O")
+        return max(abs(r1), abs(r2))
+
+    ok, worst, worstK, skipped = True, 0.0, 0.0, []
+    for afr in (12.8, 14.6):
+        b = th.A[:, :12] @ Charge(th, afr).nb[:12]
+        el = dict(zip(ELEMS, b))
+        for T in (2000.0, 2500.0, 3000.0):
+            for p in (20e5, 120e5):
+                n = Equil(th).tp(b, T, p)
+                _, h, s_ = th.sp(T, GAS12)
+                gN = dict(zip(GAS12, h - s_))
+                worstK = max(worstK, lnres(dict(zip(GAS12, n / n.sum())), T, p, lambda k: gN[k]))
+                ng = Equil(GriData()).tp(b, T, p)
+                V = ng.sum() * RU * T / p
+                d = ns["equil"](el, T, V)
+                N2 = sum(d.values())
+                xd = {nm: max(d[key(nm)] / N2, 1e-300) for nm in GAS12}
+                gG = lambda k: ns["h_RT"](key(k), T) - ns["s_R"](key(k), T)
+                rd = lnres(xd, T, N2 * RU * T / V, gG)
+                if rd > 0.02:
+                    skipped.append("AFR %g %g K %g bar (its ln K residual %.3g)" % (afr, T, p / 1e5, rd))
+                    continue
+                for k, nm in enumerate(GAS12):
+                    if xd[nm] > 1e-3:
+                        worst = max(worst, abs(ng[k] / ng.sum() / xd[nm] - 1))
+    ok = worstK < 1e-9 and worst < 0.02
+    print(("PASS " if worstK < 1e-9 else "FAIL ") + "equilibrium constants hold to %.1e in ln K (AFR 12.8 / 14.6, 2000-3000 K, 20-120 bar)" % worstK)
+    print(("PASS " if worst < 0.02 else "FAIL ") + "on GRI data, against dissociation.py: largest relative difference %.2f %% of a mole fraction above 1e-3"
+          % (100 * worst) + ("; not compared (dissociation.py's optimiser stopped short): " + "; ".join(skipped) if skipped else ""))
+    return ok
+
+
+def b2(path):
+    """addendum part 2's B2 case again with this script's equilibrium solver: an adiabatic constant-volume burn of the fresh
+    mixture from (Tu, pu), then expansion to 8 times the volume (dU = -p dV, RK4 in ln V, 4000 steps), the products frozen
+    against shifting equilibrium; ETA_C not applied (all of the chemistry released, as B2)"""
+    th = Thermo(path)
+    eq = Equil(th)
+    for afr in (14.6, 12.8):
+        ch = Charge(th, afr)
+        for Tu, pu in ((750.0, 25e5), (800.0, 35e5)):
+            m = 1.0
+            nu = ch.nf * m
+            V0 = nu.sum() * RU * Tu / pu
+            U0 = ch.U(nu, Tu)
+            bel = th.A[:, :12] @ ch.nb[:12]
+            res = {}
+            for mode in ("frozen", "equil"):
+                st = {"n": None}
+
+                def comp(T, V):
+                    if mode == "frozen":
+                        return ch.nb * m
+                    ne = st["n"] if st["n"] is not None else ch.nb[:12] * m + 1e-10
+                    p = ne.sum() * RU * T / V
+                    for _ in range(6):
+                        ne = eq.tp(bel * m, T, p, ne)
+                        p2 = ne.sum() * RU * T / V
+                        if abs(p2 / p - 1) < 1e-13:
+                            break
+                        p = p2
+                    st["n"] = ne
+                    out = np.zeros(len(NAMES))
+                    out[:12] = ne
+                    return out
+
+                def T_of(U, V, T):
+                    for _ in range(80):
+                        u1 = ch.U(comp(T, V), T)
+                        c = (ch.U(comp(T + 0.5, V), T + 0.5) - u1) / 0.5
+                        d = (u1 - U) / c
+                        T -= d
+                        if abs(d) < 1e-9 * T:
+                            break
+                    return T
+
+                T1 = T_of(U0, V0, 3000.0)
+                n1 = comp(T1, V0)
+                p1 = n1.sum() * RU * T1 / V0
+                N = 4000
+                dl = math.log(8.0) / N
+                U, T, lv = U0, T1, math.log(V0)
+
+                def f(lv, U, Tg):
+                    V = math.exp(lv)
+                    T = T_of(U, V, Tg)
+                    p = comp(T, V).sum() * RU * T / V
+                    return -p * V, T
+                for _ in range(N):
+                    k1, t1 = f(lv, U, T)
+                    k2, t2 = f(lv + dl / 2, U + dl / 2 * k1, t1)
+                    k3, t3 = f(lv + dl / 2, U + dl / 2 * k2, t2)
+                    k4, t4 = f(lv + dl, U + dl * k3, t3)
+                    U += dl / 6 * (k1 + 2 * k2 + 2 * k3 + k4)
+                    lv += dl
+                    T = t4
+                res[mode] = (T1, p1, (U0 - U) / m, T)
+            f_, e_ = res["frozen"], res["equil"]
+            print("AFR %g, unburned %g K %g bar: peak T frozen %.0f / equilibrium %.0f K, p %.1f / %.1f bar, expansion work x8 %.4f / %.4f MJ/kg (%+.2f %%), end T %.0f / %.0f K"
+                  % (afr, Tu, pu / 1e5, f_[0], e_[0], f_[1] / 1e5, e_[1] / 1e5, f_[2] / 1e6, e_[2] / 1e6, 100 * (f_[2] / e_[2] - 1), f_[3], e_[3]))
+
+
 if __name__ == "__main__":
-    sys.exit(0 if selfcheck(sys.argv[1]) else 1)
+    if len(sys.argv) > 2 and sys.argv[2] == "b2":
+        b2(sys.argv[1])
+        sys.exit(0)
+    good = selfcheck(sys.argv[1])
+    if len(sys.argv) > 2:
+        good = crosscheck(sys.argv[1], sys.argv[2]) and good
+    sys.exit(0 if good else 1)
