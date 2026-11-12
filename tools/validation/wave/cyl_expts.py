@@ -108,9 +108,9 @@ def main(argv):
             avg = {h: ad[-1][i] for i, h in enumerate(ah)}
             th = wm["trace"]["th"]
             kP, kT, kM, kV = find(head, "pressure_cyl_1"), find(head, "temperature_cyl_1"), find(head, "mass_cyl_1"), find(head, "volume_cyl_1")
-            kX = find(head, "burn", "cyl_1") or find(head, "fraction", "cyl_1")
-            cdIn = [h for h in head if "cd" in h.lower() and ("in" in h.lower()) and "valv" in h.lower()]
-            cdEx = [h for h in head if "cd" in h.lower() and ("out" in h.lower() or "ex" in h.lower()) and "valv" in h.lower()]
+            kX = find(head, "hrl_cyl_1")          # OpenWAM's heat release law: the burned fraction
+            cdIn = [h for h in head if h.lower().startswith("inflow_discharge_coef")]    # the intake valve's CD (pipe to cylinder)
+            cdEx = [h for h in head if h.lower().startswith("outflow_discharge_coef")]   # the exhaust valve's CD (cylinder to pipe)
             # the wave model's run and its cylinder from OpenWAM's IVC state
             jf = os.path.join(compare.SCRATCH, "wave", "%s_%d_cyl_job.json" % (cfg, rpm))
             of = os.path.join(compare.SCRATCH, "wave", "%s_%d_cyl_out.json" % (cfg, rpm))
@@ -127,17 +127,24 @@ def main(argv):
             mw = C[kM] if kM else None
             vw = C[kV]
             s = {"p": interp(th, pw, ivc), "T": interp(th, Tw, ivc) if Tw else None, "m": interp(th, mw, ivc) if mw else None, "V": interp(th, vw, ivc)}
-            # OpenWAM's fresh charge at IVC: its trapped-fresh VE x the reference density x Vd, as air, plus its fuel (1/AFR):
-            # the wave model's fresh charge is the mixture
+            # OpenWAM's charge at IVC: its cylinder mass holds air and residual but not yet the fuel (its SI model takes the
+            # fuel from the trapped air, 1/AFR of it); the trapped air is its trapped-fresh VE x the reference density x Vd.
+            # The wave model's fresh charge is air with its fuel vapour, so the like-for-like start state is OpenWAM's mass
+            # plus that fuel, at OpenWAM's temperature, releasing OpenWAM's heat (Qcomb, per cycle)
             rho_ref = 101325.0 / (287.1 * 298.15)
             mair = wm["ve"] * rho_ref * wv["Vd"]
-            x_wam = min(1.0, mair * (1 + 1 / spec["e"]["afr"]) / s["m"]) if s["m"] else None
-            # the wave cylinder from OpenWAM's state: its m, T and x (the heat follows the fresh charge)
+            mfuel = mair / spec["e"]["afr"]
+            resid_wam = (s["m"] - mair) / s["m"] if s["m"] else None
+            m_eq = s["m"] + mfuel if s["m"] else None
+            x_wam = (mair + mfuel) / m_eq if m_eq else None
             starts = []
             if s["m"] and s["T"]:
-                starts = [{"label": "openwam_ivc", "m": s["m"], "T": s["T"], "x": x_wam},
-                          {"label": "openwam_m_x_wave_T", "m": s["m"], "T": wv["ivc"]["T"], "x": x_wam},
-                          {"label": "wave_m_x_openwam_T", "m": wv["ivc"]["m"], "T": s["T"], "x": wv["ivc"]["x"]}]
+                starts = [{"label": "openwam_ivc", "m": m_eq, "T": s["T"], "x": x_wam, "burnQ": wm["Qcomb"]},
+                          {"label": "openwam_ivc_wave_T", "m": m_eq, "T": wv["ivc"]["T"], "x": x_wam, "burnQ": wm["Qcomb"]},
+                          # OpenWAM's pressure and temperature at IVC (so the same p V / T), the wave model's own composition, OpenWAM's heat
+                          {"label": "openwam_pT", "m": s["p"] * s["V"] / ((wv["Rburnt"] + wv["ivc"]["x"] * (wv["Rfresh"] - wv["Rburnt"])) * s["T"]), "T": s["T"], "x": wv["ivc"]["x"], "burnQ": wm["Qcomb"]},
+                          {"label": "wave_ivc_openwam_heat_per_charge", "m": wv["ivc"]["m"], "T": wv["ivc"]["T"], "x": wv["ivc"]["x"],
+                           "burnQ": wm["Qcomb"] * (wv["ivc"]["fresh"] / (mair + mfuel))}]
                 first["starts"] = starts
                 with open(jf, "w") as f:
                     json.dump(first, f)
@@ -159,7 +166,7 @@ def main(argv):
                 dif = max(abs(interp(th, aw, t) - a) for t, a in zip(tr["th"], wa)) / pk
                 area[side] = {"column": keys[0], "peakWave": pk, "peakWam": max(aw), "maxDiffOfPeak": dif,
                               "edgesWave": edges(tr["th"], wa), "edgesWam": edges(th, aw)}
-            row = {"rpm": rpm, "wam": {"ve": wm["ve"], "nmep": wm["nmep"], "ivc": s, "xIvc": x_wam, "Wclosed": Wwam,
+            row = {"rpm": rpm, "wam": {"ve": wm["ve"], "nmep": wm["nmep"], "ivc": s, "Rivc": s["p"] * s["V"] / (s["m"] * s["T"]) if s["m"] and s["T"] else None, "xIvc": x_wam, "mAir": mair, "residual": resid_wam, "Wclosed": Wwam,
                                        "Qcomb": wm["Qcomb"], "Qwall": wm["Qwall"],
                                        "burn": burn_angles(th, C[kX], ign) if kX else None},
                    "wave": {"ve": wv["ve"], "nmep": wv["imep"], "ivc": wv["ivc"], "Wclosed": wv["closedRun"]["W"], "Qclosed": wv["closedRun"]["Q"],
