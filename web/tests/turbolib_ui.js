@@ -139,7 +139,7 @@ const { chromium } = require('playwright');
   ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.map(r => r.cells[0].innerText.split('\n')[0]));
   ok(ics.length === 17 && ics.indexOf('Garrett 717874-6008') >= 0 && ics.indexOf('Garrett 734408-6005') >= 0 && ics.filter(x => /^EJ Bowman/.test(x)).length === 6, 'water-to-air list: 4 Garrett, 2 Mishimoto, 5 CSF, 6 Bowman (' + ics.join(', ') + ')');
   const t2 = await pg.$eval('#tso-ics', e => e.innerText);
-  ok(/conflict/.test(t2) && /typical engine power 50 kW \(67 hp\)/.test(t2) && /¾ in BSP/.test(t2), 'w2a table: Mishimoto’s conflicting sizes said, Bowman kW rating, water ports');
+  ok(/conflict/.test(t2) && /typical engine power 50 kW \(67 hp\)/.test(t2) && /BSP size ¾ /.test(t2), 'w2a table: Mishimoto’s conflicting sizes said, Bowman kW rating, water ports');
   // route A on the page, water-to-air, with the loop
   for (const [k, x] of [['pm', '30'], ['pTi', '150'], ['pTo', '60'], ['pcf', '20'], ['pTc', '30'], ['wf', '20'], ['wTi', '35'], ['wdT', '10'], ['wV', '8'], ['ua2', '1200'], ['fa', '200']]) { await setx(k, x); await pg.waitForTimeout(150); }
   await pg.waitForTimeout(400);

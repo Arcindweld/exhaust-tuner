@@ -1484,4 +1484,6 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Note: the heat and pipe sizes come from the tab's airflow at the boost entered, not the power target; the page says so
   when Garrett's method differs by more than 10%. Garrett advises the largest core that fits the packaging; this page picks
   the smallest that covers the target (the margin leans toward Garrett's advice), said on the page.
-- Tests: web/tests/icrec_ui.js (new); turbolib_ui.js row counts updated (type starts undecided; 50 + 17 rows).
+- Tests: web/tests/icrec_ui.js (new); turbolib_ui.js row counts updated (type starts undecided; 50 + 17 rows) and the
+  Bowman water ports now read "BSP size ¾" (a thread designation; the sweep found "1 in" with no mm once the water-to-air
+  rows are listed by default).
