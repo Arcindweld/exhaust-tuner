@@ -1,6 +1,7 @@
 // The intake's mouth recorded in the page's own OpenWAM case (ins_intake) and read back as its own column with a roadside
 // level. Runs OpenWAM on a 6-cycle case when the solver is here (a few seconds); otherwise skips the run part.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
+const { skipPart, openwam } = require('./skip.js');
 (async () => {
   const fails = []; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   const b = await chromium.launch(); const pg = await b.newPage(); const errs = []; pg.on('pageerror', e => errs.push(e.message));
@@ -11,8 +12,8 @@ const { chromium } = require('playwright'); const fs = require('fs'), path = req
   await pg.click('button[data-wam="dl"]'); await pg.waitForTimeout(800);
   const f = await pg.evaluate(() => window.__wamLast.files.filter(x => /\.wam$/.test(x.name)).map(x => [x.name, x.text]));
   ok(f.length === 1 && /intake's open end/.test(f[0][1]) && /ins_intake|INS/.test(f[0][1]), 'the case carries the intake open-end point');
-  const exe = path.resolve('../ext/OpenWAM/build/bin/release/OpenWAM');
-  if (!fs.existsSync(exe)) { console.log('SKIP: OpenWAM is not built here'); await b.close(); console.log('failures:', fails.length); process.exit(fails.length ? 1 : 0); }
+  const exe = openwam();   // EXHAUST_TUNER_OPENWAM, as the other OpenWAM tests (this one used to look in ext/ only)
+  if (!fs.existsSync(exe)) { skipPart('the OpenWAM run: no OpenWAM build at ' + exe + ' (EXHAUST_TUNER_OPENWAM)'); await b.close(); console.log('failures:', fails.length); process.exit(fails.length ? 1 : 0); }
   const dir = fs.mkdtempSync(path.join(require('os').tmpdir(), 'mouth-')); fs.writeFileSync(path.join(dir, f[0][0]), f[0][1]);
   execFileSync(exe, [f[0][0]], { cwd: dir, stdio: 'ignore', timeout: 600000 });
   const insF = path.join(dir, f[0][0].replace(/\.wam$/, 'INS.DAT'));

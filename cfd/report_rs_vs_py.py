@@ -17,14 +17,12 @@ sys.path.insert(0, HERE)
 import intake_cfd as ic  # noqa: E402
 
 if sys.version_info < (3, 12):
-    print("report_rs_vs_py: Python %d.%d adds sums without compensation; needs 3.12 or later" % sys.version_info[:2])
-    print("skipped")
+    print("TEST SKIPPED: report_rs_vs_py: Python %d.%d adds sums without compensation; needs 3.12 or later" % sys.version_info[:2])
     sys.exit(0)
 host = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "rust", "target", "release",
                                                           "exhaust-tuner-host" + (".exe" if os.name == "nt" else ""))
 if not os.path.isfile(host):
-    print("report_rs_vs_py: host program not built (%s)" % host)
-    print("skipped")
+    print("TEST SKIPPED: report_rs_vs_py: host program not built (%s)" % host)
     sys.exit(0)
 BASE = os.path.join(HERE, "tests", "report_case")
 info0 = json.load(open(os.path.join(BASE, "case_info.json")))

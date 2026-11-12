@@ -15,14 +15,12 @@ sys.path.insert(0, os.path.join(HERE, "validation"))
 import intake_cfd as ic  # noqa: E402
 
 if sys.version_info < (3, 12):
-    print("gen_rs_vs_py: Python %d.%d adds sums without compensation; needs 3.12 or later" % sys.version_info[:2])
-    print("skipped")
+    print("TEST SKIPPED: gen_rs_vs_py: Python %d.%d adds sums without compensation; needs 3.12 or later" % sys.version_info[:2])
     sys.exit(0)
 host = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, "..", "rust", "target", "release",
                                                           "exhaust-tuner-host" + (".exe" if os.name == "nt" else ""))
 if not os.path.isfile(host):
-    print("gen_rs_vs_py: host program not built (%s)" % host)
-    print("skipped")
+    print("TEST SKIPPED: gen_rs_vs_py: host program not built (%s)" % host)
     sys.exit(0)
 host = os.path.abspath(host)
 tmp = tempfile.mkdtemp(prefix="gen_rs_vs_py_")

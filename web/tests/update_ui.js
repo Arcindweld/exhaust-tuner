@@ -6,6 +6,7 @@
 // --release --manifest-path rust/Cargo.toml; HOST_CLI to override); without it the test says so and exits 0, unless
 // REQUIRE_ALL=1.
 const { chromium } = require('playwright');
+const { skip } = require('./skip.js');
 const { spawn, execFileSync } = require('child_process');
 const http = require('http'), crypto = require('crypto');
 const fs = require('fs'), path = require('path'), os = require('os'), { pathToFileURL } = require('url');
@@ -15,9 +16,9 @@ const TOKEN = 'github_pat_11TESTTOKEN0000000000_abcdefghijklmnopqrstuvwxyz012345
 (async () => {
   const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   if (!fs.existsSync(CLI)) {
-    console.log('update_ui: host program not built (' + CLI + ')');
-    if (process.env.REQUIRE_ALL === '1') { console.log('FAIL required'); process.exit(1); }
-    console.log('skipped'); process.exit(0);
+    const why = 'update_ui: host program not built (' + CLI + ')';
+    if (process.env.REQUIRE_ALL === '1') { console.log(why); console.log('FAIL required'); process.exit(1); }
+    skip(why);
   }
   // ---- the stand-in GitHub: one release, v0.1.999, with the installer and its checksum
   const setup = Buffer.from('MZ pretend installer ' + 'x'.repeat(200000));
