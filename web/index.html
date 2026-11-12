@@ -8984,14 +8984,14 @@ const FANNING=0.005;
    cell's (or the cylinder's) gamma frozen over the half-cell isentropic step they solve, with energy carried exactly as
    h(T, x), so mass and energy stay conserved to rounding. The single-zone cylinder uses the mixture's mean temperature. */
 const RU=8.314462618, TREF=298.15, TMAX=3500;
-const SPEC=[ // GRI-Mech 3.0 (Cantera data/gri30.yaml): M g/mol, then cp/R a1..a5 below 1000 K, a1..a5 above (to 3500 K; N2, Ar 5000 K)
-  [28.0134,[3.298677,1.4082404e-3,-3.963222e-6,5.641515e-9,-2.444854e-12],[2.92664,1.4879768e-3,-5.68476e-7,1.0097038e-10,-6.753351e-15]],               // N2  121286
-  [31.9988,[3.78245636,-2.99673416e-3,9.84730201e-6,-9.68129509e-9,3.24372837e-12],[3.28253784,1.48308754e-3,-7.57966669e-7,2.09470555e-10,-2.16717794e-14]],   // O2  TPIS89
-  [39.948,[2.5,0,0,0,0],[2.5,0,0,0,0]],                                                                                                                 // Ar  120186
-  [44.0095,[2.35677352,8.98459677e-3,-7.12356269e-6,2.45919022e-9,-1.43699548e-13],[3.85746029,4.41437026e-3,-2.21481404e-6,5.23490188e-10,-4.72084164e-14]],    // CO2 L7/88
-  [18.01528,[4.19864056,-2.0364341e-3,6.52040211e-6,-5.48797062e-9,1.77197817e-12],[3.03399249,2.17691804e-3,-1.64072518e-7,-9.7041987e-11,1.68200992e-14]],     // H2O L8/89
-  [28.0101,[3.57953347,-6.1035368e-4,1.01681433e-6,9.07005884e-10,-9.04424499e-13],[2.71518561,2.06252743e-3,-9.98825771e-7,2.30053008e-10,-2.03647716e-14]],    // CO  TPIS79
-  [2.01588,[2.34433112,7.98052075e-3,-1.9478151e-5,2.01572094e-8,-7.37611761e-12],[3.3372792,-4.94024731e-5,4.99456778e-7,-1.79566394e-10,2.00255376e-14]]];    // H2  TPIS78
+const SPEC=[ // GRI-Mech 3.0 (Cantera data/gri30.yaml): M g/mol, then cp/R a1..a5 below 1000 K, a1..a5 above (to 3500 K; N2, Ar 5000 K), a6 below 1000 K (H/R = a1 T + ... + a5 T^5/5 + a6)
+  [28.0134,[3.298677,1.4082404e-3,-3.963222e-6,5.641515e-9,-2.444854e-12],[2.92664,1.4879768e-3,-5.68476e-7,1.0097038e-10,-6.753351e-15],-1020.8999],               // N2  121286
+  [31.9988,[3.78245636,-2.99673416e-3,9.84730201e-6,-9.68129509e-9,3.24372837e-12],[3.28253784,1.48308754e-3,-7.57966669e-7,2.09470555e-10,-2.16717794e-14],-1063.94356],   // O2  TPIS89
+  [39.948,[2.5,0,0,0,0],[2.5,0,0,0,0],-745.375],                                                                                                                 // Ar  120186
+  [44.0095,[2.35677352,8.98459677e-3,-7.12356269e-6,2.45919022e-9,-1.43699548e-13],[3.85746029,4.41437026e-3,-2.21481404e-6,5.23490188e-10,-4.72084164e-14],-4.83719697e4],    // CO2 L7/88
+  [18.01528,[4.19864056,-2.0364341e-3,6.52040211e-6,-5.48797062e-9,1.77197817e-12],[3.03399249,2.17691804e-3,-1.64072518e-7,-9.7041987e-11,1.68200992e-14],-3.02937267e4],     // H2O L8/89
+  [28.0101,[3.57953347,-6.1035368e-4,1.01681433e-6,9.07005884e-10,-9.04424499e-13],[2.71518561,2.06252743e-3,-9.98825771e-7,2.30053008e-10,-2.03647716e-14],-1.4344086e4],    // CO  TPIS79
+  [2.01588,[2.34433112,7.98052075e-3,-1.9478151e-5,2.01572094e-8,-7.37611761e-12],[3.3372792,-4.94024731e-5,4.99456778e-7,-1.79566394e-10,2.00255376e-14],-917.935173]];    // H2  TPIS78
 // air per mole of O2: N2 3.7279, Ar 0.04459 (sosExh's split of Heywood's 3.773 by NOAA's dry air); fuel CH1.87
 const AIR_N2=3.7279, AIR_AR=0.04459, FUEL_Y=1.87, K_WGS=3.5;
 // air per mole of O2 (g) over fuel per C atom (g; C 12.0107, H 1.00794, the atomic weights behind the molar masses above): 14.596
@@ -9014,11 +9014,55 @@ function gasPoly(n){
   lo[10]=-H(lo,TREF); hi[10]=H(lo,1000)+lo[10]-H(hi,1000);
   return {R:s*N,lo,hi};
 }
-// the engine's gas: air (x = 1) and its burned gas (x = 0) at the engine's air-fuel ratio, as base + x times difference
+/* ---------- heat release (2026-11-12, part 2) ----------
+   Until then the burn released "72 % of the fuel heat" (eta 0.72, tuned when every gas had gamma 1.35). Now the heat is
+   what the chemistry gives: the enthalpy of the reactants (air and fuel at 298.15 K) minus the enthalpy of the model's
+   own frozen products at the engine's air-fuel ratio (burnedMoles above), both from enthalpies of formation:
+   - CO2, H2O (vapour), CO, H2, N2, O2, Ar: H(298.15 K) of the same GRI-Mech 3.0 polynomials (a1..a6 below 1000 K):
+     CO2 -393.508, H2O -241.825, CO -110.529 kJ/mol (NIST-JANAF: -393.522, -241.826, -110.527), N2 +0.0014, O2, Ar, H2 0;
+   - the fuel CH1.87 (gasoline, Heywood; MIT 2.61 lecture 4 lists "Gasoline CnH1.87n 44 MJ/kg"): its enthalpy of formation
+     is fixed by that lower heating value, CH1.87 + 1.4675 O2 -> CO2 + 0.935 H2O(g) releasing 44.0 MJ/kg x 13.8955 g/mol:
+     HF_FUEL = H(CO2) + 0.935 H(H2O) + 611.40 kJ = -8.23 kJ per mol of CH1.87, so a lean or stoichiometric burn releases
+     exactly 44.0 MJ per kg of fuel and a rich one less, by the CO and H2 its products keep (AFR 12.8: 36.9 MJ/kg, 0.839).
+   Energy datum: e(T, x) above is sensible (h = integral of cp from 298.15 K), so the chemical energy is carried by the
+   fresh fraction x: per kg of fresh charge it is qx = (heat of reaction per mol of fuel) / (kg of air per mol of fuel). The
+   total internal energy m (e(T, x) + x qx) is what is conserved; burning dm of fresh charge moves dm qx from the second
+   term to the first, so the burn's source term in the cylinder's energy is cy.fresh qx dxb (the -R T part of e(T, x)
+   follows R(x), so no constant-volume correction is needed). The fuel's mass is not in the model's gas (the fresh charge
+   is air; its products take the air's mass), so the heat is counted per kg of air, which keeps the pressure rise right.
+   One residual allowance, named and cited, not tuned: ETA_C 0.975, the combustion efficiency of SI engines "~97-98 %"
+   (MIT 2.61, spring 2017, lecture 6: "H2 and CO ~1 to 2 % of fuel energy, HC ~1 % of fuel energy"), for the unburned
+   hydrocarbons, crevices and blow-by and the CO and H2 a real flame leaves beyond the water-gas products. Dissociation at
+   the peak temperature is not modelled (frozen products); docs/WAVE_VALIDATION_2026-11-11.md (addendum part 2) gives its
+   size against an equilibrium calculation. spec.e.etaC overrides ETA_C (0 = motored); spec.e.eta is used only by the
+   constant gas (spec.e.gas 'const': fresh charge / AFR x 44 MJ/kg x eta, as before). */
+const LHV_F=44.0e6, ETA_C=0.975, M_FUEL=12.0107+FUEL_Y*1.00794;
+const HFORM=SPEC.map(s=>{ const a=s[1], T=TREF; return RU*(T*(a[0]+T*(a[1]/2+T*(a[2]/3+T*(a[3]/4+T*a[4]/5))))+s[3]); });   // J/mol at 298.15 K
+const HF_FUEL=HFORM[3]+FUEL_Y/2*HFORM[4]+LHV_F*M_FUEL/1000;                                                              // J per mol of CH1.87
+// heat of reaction at relative air-fuel ratio lam (held to 0.5-4, as burnedMoles): J per mol of fuel, per kg of air, of fuel
+function heatRelease(lam){
+  lam=Math.min(4,Math.max(0.5,lam));
+  const o=1+FUEL_Y/4, n=burnedMoles(lam);
+  let hp=0; for(let k=0;k<7;k++) hp+=n[k]*HFORM[k];
+  const Q=HF_FUEL+lam*o*(AIR_N2*HFORM[0]+HFORM[1]+AIR_AR*HFORM[2])-hp, mAir=lam*o*(AIR_N2*SPEC[0][0]+SPEC[1][0]+AIR_AR*SPEC[2][0])/1000;
+  return {Q,perAir:Q/mAir,perFuel:Q/(M_FUEL/1000),perMix:Q/(mAir+M_FUEL/1000)};
+}
+// the engine's gas: air (x = 1) and its burned gas (x = 0) at the engine's air-fuel ratio, as base + x times difference;
+// qx: the chemical energy of the fresh charge, J per kg of it (heatRelease above)
 function makeGas(afr){
   const A=gasPoly([AIR_N2,1,AIR_AR,0,0,0,0]), B=gasPoly(burnedMoles(afr/AFR_ST)), d=(a,b)=>a.map((v,j)=>v-b[j]);
-  return {Ra:A.R,Rb:B.R,Rd:A.R-B.R,blo:B.lo,bhi:B.hi,dlo:d(A.lo,B.lo),dhi:d(A.hi,B.hi),lam:afr/AFR_ST};
+  return {Ra:A.R,Rb:B.R,Rd:A.R-B.R,blo:B.lo,bhi:B.hi,dlo:d(A.lo,B.lo),dhi:d(A.hi,B.hi),lam:afr/AFR_ST,qx:heatRelease(afr/AFR_ST).perAir};
 }
+// the burn's heat per cycle: the gas's chemistry x ETA_C, or (the constant gas) fresh / AFR x LHV x eta as before
+const burnHeat=(eng,fresh)=>eng.gas?fresh*eng.gas.qx*(eng.e.etaC!=null?eng.e.etaC:ETA_C):fresh/eng.e.afr*LHV*eng.e.eta;
+/* ---------- friction (2026-11-12, part 2): brake = gross indicated - total friction ----------
+   Total friction mean effective pressure of SI engines, tfmep (bar) = 0.97 + 0.15 (N/1000) + 0.05 (N/1000)^2, N in rpm
+   (Heywood, Internal Combustion Engine Fundamentals, 1988, ch. 13: motored four-cylinder SI engines of 845-2000 cm3 at
+   wide-open throttle; the coefficients as quoted by Marwaha and Subramanian, Int. J. Automotive Science and Technology 6
+   (2022) 39-48, eq. 2). Motored at wide-open throttle, that total includes the engine's pumping loop, so it is taken off
+   the GROSS indicated work (compression and expansion strokes, from BDC to BDC), not the net: the model's own pumping
+   loop is not counted a second time. Brake mep = gross IMEP - tfmep. Not fitted to anything here. */
+const tfmep=rpm=>{ const n=rpm/1000; return 1e5*(0.97+0.15*n+0.05*n*n); };
 // cp, h and R at (T, x) into GV. Outside the polynomials' 200-3500 K, cp is held at the end value (h linear), so e(T) stays
 // monotonic for the Newton solve below even in a nearly empty cell
 const GV={cp:0,h:0,R:0};
@@ -9470,8 +9514,8 @@ function freshState(eng,dx){
     });
     const th=((eng.ivc-eng.phases[k])%720+720)%720;
     const cy={m:0,T:330,x:0.95,p:PATM}; cy.m=PATM*eng.vol(th)/((G?gasR(G,cy.x):RG)*cy.T);
-    cy.fresh=cy.m*cy.x; cy.burnQ=cy.fresh/eng.e.afr*LHV*eng.e.eta; cy.ivcP=PATM; cy.ivcT=330; cy.ivcV=eng.vol(eng.ivc);
-    cy.work=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.pEvo=0; cy.exM=0; cy.exH=0; cy.ovP=0; cy.ovN=0; cy.done=null; cy.started=false;
+    cy.fresh=cy.m*cy.x; cy.burnQ=burnHeat(eng,cy.fresh); cy.ivcP=PATM; cy.ivcT=330; cy.ivcV=eng.vol(eng.ivc);
+    cy.work=0; cy.workG=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.pEvo=0; cy.exM=0; cy.exH=0; cy.ovP=0; cy.ovN=0; cy.done=null; cy.started=false;
     cyls.push(cy);
   }
   const C1R=!eng.collectors&&eng.collector?lineWithPieces(eng.collector.segs,piecesOf(eng.collector),dx,eng.collector.Tw,0,G):null;
@@ -9570,11 +9614,11 @@ function runSpeed(eng,opts){
         cy.lastTk=tk;
         if(crossed||!cy.started){
           // tEx: the temperature of the mass-averaged enthalpy that left through the exhaust valve (the engine's gas: at its mean x)
-          if(cy.started&&crossed) cy.done={ve:cy.m*cy.x/(rhoRef*eng.Vd),imep:cy.work/eng.Vd,pmax:cy.pmax,resid:1-cy.x,pEvo:cy.pEvo,
+          if(cy.started&&crossed) cy.done={ve:cy.m*cy.x/(rhoRef*eng.Vd),imep:cy.work/eng.Vd,gimep:cy.workG/eng.Vd,pmax:cy.pmax,resid:1-cy.x,pEvo:cy.pEvo,
             tEx:cy.exM>0?(G?gasT(G,cy.exH/cy.exM,cy.exX/cy.exM,800,true):cy.exH/(cy.exM*CP)):0,overlapPort:cy.ovN?cy.ovP/cy.ovN:PATM};
-          cy.fresh=cy.m*cy.x; cy.burnQ=e.dead&&e.dead.indexOf(k)>=0?0:cy.fresh/e.afr*LHV*e.eta;   // e.dead: cylinder indices that do not fire (a misfire, a dead coil bank)
+          cy.fresh=cy.m*cy.x; cy.burnQ=e.dead&&e.dead.indexOf(k)>=0?0:burnHeat(eng,cy.fresh);   // e.dead: cylinder indices that do not fire (a misfire, a dead coil bank)
           cy.ivcP=cy.m*(G?gasR(G,cy.x):RG)*cy.T/eng.vol(tk); cy.ivcT=cy.T; cy.ivcV=eng.vol(tk);
-          cy.work=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.exM=0; cy.exH=0; cy.exX=0; cy.ovP=0; cy.ovN=0; cy.started=true;
+          cy.work=0; cy.workG=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.exM=0; cy.exH=0; cy.exX=0; cy.ovP=0; cy.ovN=0; cy.started=true;
         }
         const a=((tk-eng.ign)%720+720)%720;
         let xb=cy.xb;
@@ -9598,7 +9642,7 @@ function runSpeed(eng,opts){
         const mf=cy.m*cy.x+mI*vIn[k].x+mE*vEx[k].x-cy.fresh*dxb;
         if(G){ cy.m=Math.max(1e-7,cy.m+mI+mE); cy.x=Math.min(1,Math.max(0,mf/cy.m)); cy.T=Math.max(200,gasT(G,U/cy.m,cy.x,cy.T,false)); }
         else { cy.m=Math.max(1e-7,cy.m+mI+mE); cy.T=Math.max(200,U/(cy.m*CV)); cy.x=Math.min(1,Math.max(0,mf/cy.m)); }
-        cy.work+=cy.p*dV; if(cy.p>cy.pmax) cy.pmax=cy.p;
+        cy.work+=cy.p*dV; if(tk>=540||tk<180) cy.workG+=cy.p*dV; if(cy.p>cy.pmax) cy.pmax=cy.p;   // workG: the gross loop, BDC to BDC through firing TDC
         if(Math.abs(tk-eng.evo)<dth) cy.pEvo=cy.p;
         if(mE<0){ cy.exM-=mE; cy.exH-=mE*vEx[k].h; cy.exX-=mE*vEx[k].x; }
         if(tk>345&&tk<375){ cy.ovP+=ep.p[0]; cy.ovN++; }
@@ -9610,10 +9654,10 @@ function runSpeed(eng,opts){
     // average the cylinders' last finished cycles
     const d=cyls.map(cy=>cy.done).filter(Boolean);
     if(d.length){ const av=f=>d.reduce((a,x)=>a+x[f],0)/d.length;
-      out.push({ve:av('ve'),imep:av('imep'),pmax:Math.max(...d.map(x=>x.pmax)),resid:av('resid'),pEvo:av('pEvo'),tEx:av('tEx'),overlapPort:av('overlapPort'),
+      out.push({ve:av('ve'),imep:av('imep'),gimep:av('gimep'),pmax:Math.max(...d.map(x=>x.pmax)),resid:av('resid'),pEvo:av('pEvo'),tEx:av('tEx'),overlapPort:av('overlapPort'),
         perCyl:d.map(x=>({ve:x.ve,imep:x.imep}))}); }
   }
-  if(!out.length) out.push({ve:NaN,imep:NaN,pmax:NaN,resid:NaN,pEvo:NaN,tEx:NaN,overlapPort:NaN,perCyl:[]});
+  if(!out.length) out.push({ve:NaN,imep:NaN,gimep:NaN,pmax:NaN,resid:NaN,pEvo:NaN,tEx:NaN,overlapPort:NaN,perCyl:[]});
   return Object.assign({rpm:opts.rpm,history:out,state:st,rec},out[out.length-1]);
 }
 /* Sweep a list of speeds, warm-starting each from the last. onStep(i, result) is called after each. */
@@ -9632,7 +9676,8 @@ function sweep(eng,rpms,opts,onStep){
   return res;
 }
 return {GAM,RG,CV,CP,PATM,TATM,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
-  gas:{RU,TREF,SPEC,AFR_ST,K_WGS,burnedMoles,gasPoly,makeGas,at:(G,T,x)=>{ gasAt(G,T,x); return {cp:GV.cp,h:GV.h,R:GV.R,e:GV.h-GV.R*T,gamma:GV.cp/(GV.cp-GV.R)}; },
+  tfmep,friction:{name:'Heywood (1988) total motored fmep of SI engines, 0.97 + 0.15 (N/1000) + 0.05 (N/1000)^2 bar, taken off the gross indicated work',basis:'gross'},
+  gas:{RU,TREF,SPEC,AFR_ST,K_WGS,LHV_F,ETA_C,HFORM,HF_FUEL,heatRelease,burnedMoles,gasPoly,makeGas,at:(G,T,x)=>{ gasAt(G,T,x); return {cp:GV.cp,h:GV.h,R:GV.R,e:GV.h-GV.R*T,gamma:GV.cp/(GV.cp-GV.R)}; },
     T:(G,v,x,T,byH)=>gasT(G,v,x,T||800,!!byH)}};
 }
 const WS=wsFactory();
