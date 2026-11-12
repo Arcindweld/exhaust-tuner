@@ -143,6 +143,34 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
 
 ## 2026-11-01: new interface, independent audit
+- Fabrication tools and follow-ups (2026-11-12, branch agent5/fab; web/tests/piecut_ui.js): (1) Headers tab, "Pie-cut
+  bend (lobster back)": tube OD, wall, CLR, bend angle, pieces (or the angle a full piece turns), how the bend ends
+  (square: a half piece at each end, the usual lobster back; or every piece the same, butting square-cut tube, with the
+  OD (1/cos a - 1) ellipse step stated), kerf. Out: cut angle (half the turn per weld), inside / centre-line / outside
+  length of each piece (2 (R -+ r) tan a; equal pieces 2 (R cos a -+ r) tan a), radii at a piece's middle and at a
+  weld, centre-line length against the mandrel arc, weld length (exact ellipse perimeter 4 a E(sin^2 a) as its
+  arc-length integral), cut marks on the centre line and lines A and B for alternating cuts from one stick with kerf
+  (k / cos a along the tube) and the stock length, a wrap template (height (OD/2) tan a cos theta, derived on the page),
+  drawings of the bend and one piece; pressure loss against a mandrel bend only for 90 deg ending square with 1-5 welds
+  (Hooper 2-K as python-fluids Hooper2K tabulates it; nothing else verified, said on the page). Geometry worked by hand
+  in the test (3 in OD, 4.5 in CLR, 90 deg in 5 pieces: 11.25 deg, 30.314 / 45.471 / 60.628 mm, weld 241.740 mm,
+  stock 188.360 mm with 1/16 in kerf). (2) Templates at true scale (tplDxf / tplSvg, shared): cope and pie cut get
+  quarter / flank marks and 100 mm and 4 in scale bars (DXF layer MARKS, the CUT outline unchanged and first) and an
+  SVG in mm (strips over 160 mm split into butted pieces), saved through saveTextFile (Fusion / desktop saveText, the
+  artifact's save capability, or a download); Mufflers tab "Print 1:1 (SVG)" beside each cope DXF. (3) Header setting
+  1/16 · 1/32 · 1/64 for inch fractions (inMm; mm to 0.5 at 1/16, 0.1 finer; localStorage exhaust-inch-den; default
+  1/16). (4a) the Intake method note's "0.2 velocity heads per bend" now states Crane TP-410's bend K as the code uses
+  it. (4b) Intake tab, advanced: turbine inlet pressure as a multiple of boost (i-tipk, default 2, Bell's 2-2.5); the
+  turbine table adds a typed multiple, a range table (ts-wgk: 2, 2.25, 2.5 and yours) shows the gate share, flow and
+  Cd A, and the page says the gate size is an upper-side estimate under its assumptions (area falls as the multiple
+  rises: 1244 / 1218 / 1186 mm^2 on the test build). (4c) Fusion "Test this intake (CFD)": Mouth stands flange
+  (default, unchanged) / free / auto sent as mount, the thin-wall warning shared with the Intake CFD panel
+  (cfdThinWallNote). (5a) et_host AppPaths::without_engine_env(); the router cancel tests use it, so they pass with
+  EXHAUST_TUNER_OPENWAM set, and the runner no longer unsets it for cargo test. (5b) layouts/ls3-180 bundle test
+  repaired (the merge solids stubbed like the tubes, merge.plan still run and checked) and back in the runner. (5c)
+  catDp: the outlet cone's uncited 0.05 is now Rennels' conical contraction with its friction (python-fluids
+  contraction_conical); physaudit_ui cat cone loss 399.80 -> 468.15 Pa (outlet K 0.1835 by hand). Not run here:
+  Fusion (mount choice live), a printed template on tube.
 - Charge piping from a scan (2026-11-11, branch agent4/scanroute; offline only, no Fusion here): Intake tab, Fusion
   section, "Charge piping from your scan". Legs filter -> compressor inlet, compressor outlet -> intercooler inlet,
   intercooler outlet -> throttle body (any subset; a start and an end marker each, selected in leg order; each leg its
