@@ -10917,7 +10917,8 @@ function renderSound(){
     rowT('Gaps between pulses',r.po.gaps.map(g=>Math.round(g)).join(' · ')+'°',r.po.even?'even':'uneven')+
     rowT('Engine firing frequency',r.f.idle.toFixed(0)+' · '+r.f.cruise.toFixed(0)+' · '+r.f.red.toFixed(0)+' Hz','idle · cruise · redline')+
     '<div class="tblwrap" style="margin-top:10px"><table><thead><tr><th>Tone</th><th>Strength</th><th>Idle Hz</th><th>Cruise Hz</th><th>Redline Hz</th></tr></thead><tbody>'+r.po.top.map(toneRow).join('')+'</tbody></table></div>'+
-    '<p class="cap">Tones are multiples of '+(rot?'eccentric shaft speed; each rotor sends one pulse per shaft turn':'crank speed; a four-stroke V8 fires at 4×')+'. Even pulse spacing puts the energy into the firing tone and its multiples. Uneven spacing, like one cross-plane V8 bank, a 45° V-twin or a crossplane four, spreads it into lower and in-between tones as well. Strength comes from the pulse spacing with a simple roll-off for higher tones; real pulse shapes shift the balance.</p>');
+    '<p class="cap">Tones are multiples of '+(rot?'eccentric shaft speed; each rotor sends one pulse per shaft turn':(()=>{ const nC=(e.order&&e.order.length)||0, fo=nC*360/cycDeg, fs=Number.isInteger(fo)?String(fo):fo.toFixed(1);
+      return 'crank speed; '+(nC>0&&cycDeg===720?'a four-stroke fires each cylinder once every two crank turns, so this '+nC+'-cylinder fires at '+fs+'×':nC>0?'each cylinder fires once every '+cycDeg+'° of crank, so this '+nC+'-cylinder fires at '+fs+'×':'the firing tone is the number of cylinders times firings per crank turn'); })())+'. Even pulse spacing puts the energy into the firing tone and its multiples. Uneven spacing, like one cross-plane V8 bank, a 45° V-twin or a crossplane four, spreads it into lower and in-between tones as well. Strength comes from the pulse spacing with a simple roll-off for higher tones; real pulse shapes shift the balance.</p>');
 
   /* acoustic resonances and drone */
   const ok=v=>v<=p.red*1.2?Math.round(v)+' RPM':'above redline';
@@ -20867,29 +20868,115 @@ function tsSizeSection(ind,p,r){
    soak time for a rise dT at the full heat load Q is M cw dT ÷ Q, plain energy balance. */
 const TSO={turbo:'',ictype:'a2a',ic:'',pm:'',pTi:'',pTo:'',pcf:'',pTc:'',ua1:'',wf:'',cool:'water',wTi:'',wdT:10,wV:'',ua2:'',fa:'',wLh:'',wLc:''};
 const COOLANT={water:{name:'water',cp:4183,rho:992},eg50:{name:'50% ethylene glycol (by mass)',cp:3534,rho:1067}};
+// Every row: figures as the maker prints them, on the page in src (read on the date in seen). null = not published there.
+// Precision Turbo & Engine's own site is precisionturbo.com (precisionturbo.net, tried first, is not theirs or not reachable).
+// Precision gives the compressor inducer and "turbine wheel" size only; which turbine diameter that is, it does not say (tWheel).
+// BorgWarner prints "Comp. Wheel Inducer Dia.", "Comp. Wheel Outer Dia." and "Turbine Wheel Outer Dia." (cExdLab, tOD).
+const PTE='https://www.precisionturbo.com/', GMR='https://www.garrettmotion.com/racing-and-performance/performance-catalog/turbo/';
+const BWCAT='https://www.turbozentrum.de/mediafiles/pdf/BorgWarner/bwts_performanceturbosgeneral_1880_2103.pdf';
+const BWEFR='https://borgwarner.com/aftermarket/boosting-technologies/performance-turbochargers/efr-series-turbochargers';
+const BWAW='https://borgwarner.com/aftermarket/boosting-technologies/performance-turbochargers/airwerks-series-turbochargers';
+const GTXB=' Garrett adds that its horsepower numbers “are calculated based strictly on choke flow of the compressor map”.';
 const TURBO_LIB=[
-  {maker:'Precision Turbo & Engine',model:'GEN2 PT5862 CEA® (Gen 2 5862, ball bearing)',pn:'PT5862-Gen2 (dealer SKU); assembled with e.g. 20704207119 (T3 inlet, V-band outlet, 0.82 A/R)',
-   bearing:'ball bearing (“Gen 2 Turbos are Ball Bearing CHRA only”); dual ceramic ball bearing, air-cooled CHRA (second source)',
-   hp:700,hpLo:null,hpBasis:'“rated to support up to 700 horsepower” (no basis given)',flow:null,
-   cInd:58,cExd:76.2,tInd:71,tExd:61.9,inlet:{d_in:4.0,kind:'4.0 in hose coupler'},outlet:{d_in:2.5,kind:'2.5 in hose coupler'},
-   housings:'T3 inlet 0.63, 0.64, 0.82 or 1.05 A/R (4-bolt, 5-bolt or V-band outlet, some stainless); T3 V-band in and out 0.64 or 0.82; T4 inlet 0.58 or 0.68, T4 divided 0.84; Buick 3-bolt 0.63',
+  {maker:'Precision Turbo & Engine',model:'GEN2 PT5558 CEA®',pn:'Gen 2 PT5558',bearing:null,hp:650,hpLo:null,hpBasis:'“rated to support up to 650 horsepower” (no basis given)',flow:null,
+   cInd:55,cExd:null,tInd:null,tExd:null,tWheel:'“58mm CEA® turbine wheel” (which diameter is not stated)',tWheelMm:58,inlet:null,outlet:null,
+   housings:'T3 4-bolt, T3 SS V-band in/out, T4 open 4-bolt or T3 V-band; A/R 0.48, 0.58, 0.63, 0.64 or 0.82; outlet V-band, 4-bolt or 5-bolt; Jet-Fighter or S cover',wg:null,map:'not read',
+   src:PTE+'p372173-turbochargers-street-race-gen-2-gen-2-pt5558',srcName:'Precision Turbo & Engine',seen:'2026-11-12'},
+  {maker:'Precision Turbo & Engine',model:'GEN2 PT5862 CEA® (Gen 2 5862, ball bearing)',pn:'Gen 2 PT5862 (maker); e.g. 20730207239 (T4 divided 4-bolt, Jet-Fighter cover)',
+   bearing:'not stated by the maker; the dealer: “Gen 2 Turbos are Ball Bearing CHRA only”',
+   hp:700,hpLo:null,hpBasis:'“rated to support up to 700 horsepower”, “hp rating: 700 HP” (no basis given)',flow:null,
+   cInd:58,cExd:76.2,tInd:71,tExd:61.9,tWheel:'“a 62mm CEA® turbine wheel” (a 66.0 mm, 2.60 in, option)',tWheelMm:62,inlet:{d_in:4.0,kind:'4.0 in hose coupler'},outlet:{d_in:2.5,kind:'2.5 in hose coupler'},
+   housings:'T4 divided 0.84 A/R with 3⅝ in (92.1 mm) V-band discharge; T4 tangential 0.58 or 0.68 with 3⅝ in (92.1 mm) V-band; T3 0.63 or 0.82 with 3 in (76.2 mm) V-band; T3 0.63 or 0.82 with 4-bolt (2.5 in, 63.5 mm) discharge; T3 0.63 with 5-bolt (with or without wastegate hole); V-band in/out 0.64 or 0.82',
    wg:null,map:'a data-sheet image only (not read)',
-   src:'https://www.full-race.com/precision-turbo-58mm-gen-2-pte-5862-cea-turbo',srcName:'Full-Race (Precision dealer), quoting the maker',
-   src2:'https://www.maperformance.com/collections/choose-your-weapon/products/precision-turbo-5862-billet-gen2-cea-bb-turbocharger-700whp-5862-bb-gen2',
-   note:'Precision’s own site could not be fetched this session; the figures are the dealer’s listing of the maker’s product. The second dealer lists a “58mm inducer compressor wheel with “S” Ported Cover” and a “62mm CEA turbine wheel”.',seen:'2026-11-12'},
+   src:PTE+'p372175-turbochargers-street-race-gen-2-gen-2-pt5862-s-20730207239',srcName:'Precision Turbo & Engine',
+   src2:'https://www.full-race.com/precision-turbo-58mm-gen-2-pte-5862-cea-turbo',src2Name:'Full-Race (dealer)',
+   note:'The maker gives the 700 hp rating, the 58.0 mm compressor inducer, the 62 mm turbine wheel and the housings. The compressor exducer (76.2 mm), turbine inducer and exducer (71 and 61.9 mm), the bearing and the 4.0 in / 2.5 in hose couplers are from the dealer’s listing only; the maker’s 5862 pages do not state them.',seen:'2026-11-12'},
+  {maker:'Precision Turbo & Engine',model:'GEN2 PT6062 CEA®',pn:'Gen 2 PT6062, e.g. 20904207099 (T3 4-bolt, S cover)',bearing:'“Ball Bearing ONLY”; air-cooled, dual ceramic ball-bearing CHRA',
+   hp:750,hpLo:null,hpBasis:'“hp rating: 750 HP” (no basis given)',flow:null,cInd:60,cExd:null,tInd:null,tExd:null,tWheel:'“62mm turbine wheel” (which diameter is not stated)',tWheelMm:62,
+   inlet:{d_in:4.0,kind:'“Ported S” cover 4.0 in inlet'},outlet:{d_in:2.5,kind:'2.5 in outlet'},
+   housings:'T3 0.63 or 0.82 A/R with 4-bolt (2.5 in, 63.5 mm) or 3 in (76.2 mm) OD V-band discharge; T3 0.63 with 5-bolt; T4 divided 0.84 and T4 tangential 0.58 or 0.68 with 3⅝ in (92.1 mm) OD V-band; V-band in/out 0.64 or 0.82; Mitsubishi 0.63; Buick 0.63; K26 0.82',wg:null,map:'not read',
+   src:PTE+'p372176-turbochargers-street-race-gen-2-gen-2-pt6062-s-20904207099',srcName:'Precision Turbo & Engine',seen:'2026-11-12'},
+  {maker:'Precision Turbo & Engine',model:'GEN2 PT6266 CEA®',pn:'Gen 2 PT6266, e.g. 21104210149',bearing:'“Ball Bearing ONLY”; dual ceramic ball-bearing CHRA',
+   hp:800,hpLo:null,hpBasis:'“HP Rating: 800” (no basis given)',flow:null,cInd:62,cExd:null,tInd:null,tExd:null,tWheel:'“66mm, 76 trim turbine wheel” (which diameter is not stated)',tWheelMm:66,
+   inlet:{d_in:4.0,kind:'“Ported S” cover 4.0 in inlet'},outlet:{d_in:2.5,kind:'2.5 in outlet'},
+   housings:'T3 4-bolt, T3 SS V-band in/out, T4 open 4-bolt, T4 divided 4-bolt or T3 V-band; A/R 0.58, 0.63, 0.64, 0.68, 0.70, 0.81, 0.82, 0.84, 0.96, 1.00, 1.05, 1.15 or 1.32; outlet V-band, 4-bolt or 5-bolt',wg:null,map:'not read',
+   src:PTE+'p372178-turbochargers-street-race-gen-2-gen-2-pt6266-s-21104210149',srcName:'Precision Turbo & Engine',seen:'2026-11-12'},
+  {maker:'Precision Turbo & Engine',model:'GEN2 PT6466 CEA®',pn:'GEN2 PT6466, e.g. 21304210259 (T4 divided 4-bolt, S cover)',bearing:'available with an air-cooled, dual ceramic ball-bearing CHRA',
+   hp:900,hpLo:null,hpBasis:'“hp rating: 900 HP” (no basis given)',flow:null,cInd:64,cExd:null,tInd:null,tExd:null,tWheel:'“66mm, 76 trim turbine wheel” (which diameter is not stated)',tWheelMm:66,
+   inlet:{d_in:4.0,kind:'“Ported S” cover 4.0 in inlet'},outlet:{d_in:2.5,kind:'2.5 in outlet'},
+   housings:'T3 0.63 or 0.82 A/R with 4-bolt (2.5 in, 63.5 mm) discharge; T3 0.63 with 5-bolt; T4 0.58, 0.68, 0.81 or 0.96 and T4 divided 0.84, 1.0, 1.15 or 1.32 with 3⅝ in (92.1 mm) OD V-band discharge; Buick 0.63 or 0.85; K26 0.82',wg:null,map:'not read',
+   src:PTE+'p372179-turbochargers-street-race-gen-2-gen-2-pt6466-s-21304210259',srcName:'Precision Turbo & Engine',seen:'2026-11-12'},
+  {maker:'Garrett',model:'G25-550',pn:'877895-5001S (0.49 A/R), -5003S (0.72), -5004S (0.92); supercore 858161-5002S',bearing:null,hp:550,hpLo:300,hpBasis:'“Horsepower: 300 - 550”, displacement 1.4L - 3.0L',flow:null,
+   cInd:48,cExd:60,tInd:54,tExd:49,inlet:null,outlet:null,housings:'0.49 A/R T25 inlet / V-band outlet, 0.72 and 0.92 A/R V-band in and out',wg:null,map:'compressor map image',
+   src:GMR+'g-series-g25-550/',srcName:'Garrett',seen:'2026-11-12'},
+  {maker:'Garrett',model:'GTX2867R GEN II',pn:'supercore 849894-5002S; turbine kits 827690-0001 to -0004',bearing:'8mm dual ceramic ball bearing cartridge',hp:550,hpLo:275,hpBasis:'“275 - 550” hp, displacement 1.4L - 2.5L',flow:null,
+   cInd:50,cExd:67,tInd:54,tExd:47,inlet:null,outlet:null,housings:'0.57 and 0.72 A/R V-band in and out; 0.64 and 0.86 A/R T25 inlet, 5-bolt outlet',wg:null,map:'compressor map image',
+   src:GMR+'gtx2867r-gen-ii/',srcName:'Garrett',seen:'2026-11-12'},
   {maker:'Garrett',model:'G25-660',pn:'877895-5002S (0.49 A/R), -5005S (0.72), -5006S (0.92); supercore 858161-5003S',bearing:null,hp:660,hpLo:350,hpBasis:'“Horsepower: 350 - 660”, displacement 1.4L - 3.0L',flow:null,
    cInd:54,cExd:67,tInd:54,tExd:49,inlet:null,outlet:null,housings:'0.49 A/R T25 inlet / V-band outlet, 0.72 and 0.92 A/R V-band in and out',wg:'internal, or free float (external) turbine kits',map:'compressor map image in kg/s',
-   src:'https://www.garrettmotion.com/racing-and-performance/performance-catalog/turbo/g-series-g25-660/',srcName:'Garrett',seen:'2026-11-12'},
+   src:GMR+'g-series-g25-660/',srcName:'Garrett',seen:'2026-11-12'},
+  {maker:'Garrett',model:'GTX3076R GEN II',pn:'supercore 851154-5001S; turbine kits 740902-0007 to -0009, -0034 to -0036, 771300-0004 to -0006',bearing:'8mm dual ceramic ball bearing cartridge',hp:750,hpLo:400,hpBasis:'“Horsepower: 400 - 750”, displacement 1.8L - 3.0L.'+GTXB,flow:null,
+   cInd:58,cExd:76,tInd:60,tExd:55,inlet:null,outlet:null,housings:'T3 inlet / V-band outlet 0.63, 0.82 or 1.06 A/R; V-band in and out 0.61, 0.83 or 1.01; T3 inlet / 5-bolt outlet 0.63, 0.82 or 1.06',wg:null,map:'compressor map image',
+   src:GMR+'gtx3076r-gen-ii/',srcName:'Garrett',seen:'2026-11-12'},
   {maker:'Garrett',model:'G30-770',pn:'880704-5005S (0.83 A/R), 880704-5006S (1.01 A/R); supercore 880693-5002S',bearing:'8 mm dual ceramic ball bearing',hp:770,hpLo:475,hpBasis:'“Horsepower: 475 - 770”, displacement 2.0L - 3.5L',flow:null,
    cInd:58,cExd:71,tInd:60,tExd:55,inlet:null,outlet:null,housings:'3 in (76.2 mm) V-band inlet, 3.5 in (90.16 mm) V-band outlet on the 0.83 and 1.01 A/R assemblies; kits 0.61 to 1.21 A/R, T3, T4 or V-band',wg:'internal on the assemblies; free float or internal kits',map:'compressor map image in kg/s',
-   src:'https://www.garrettmotion.com/racing-and-performance/performance-catalog/turbo/g-series-g30-770',srcName:'Garrett',seen:'2026-11-12'},
+   src:GMR+'g-series-g30-770',srcName:'Garrett',seen:'2026-11-12'},
+  {maker:'Garrett',model:'GTX3582R GEN II',pn:'supercore 851154-5004S; turbine kits 740902-0010 to -0012, -0016 to -0018, -0031 to -0033',bearing:'8mm dual ceramic ball bearing cartridge',hp:900,hpLo:450,hpBasis:'“Horsepower: 450 - 900”, displacement 2.0L - 4.5L.'+GTXB,flow:null,
+   cInd:66,cExd:82,tInd:68,tExd:62,inlet:null,outlet:null,housings:'T3 inlet / V-band outlet 0.63, 0.82 or 1.06 A/R; T4 inlet / V-band outlet 0.63, 0.82 or 1.06; V-band in and out 0.61, 0.83 or 1.01 (free float)',wg:'free float kits',map:'compressor map image',
+   src:GMR+'gtx3582r-gen-ii/',srcName:'Garrett',seen:'2026-11-12'},
   {maker:'Garrett',model:'G35-900',pn:'880707-5002S (0.83 A/R), 880707-5003S (1.01 A/R); supercore 880695-5001S',bearing:null,hp:900,hpLo:550,hpBasis:'“Horsepower: 550 - 900”, which Garrett says is based on compressor map choke flow; displacement 2.0L - 5.5L (2.0L – 3.5L in the page title)',flow:null,
    cInd:62,cExd:76,tInd:68,tExd:62,inlet:null,outlet:null,housings:'V-band 0.61 to 1.21 A/R, T3 0.83 / 1.01, T4 divided 1.06',wg:'internal on the assemblies (0.5 bar actuator); free float kits',map:'compressor map image',
-   src:'https://www.garrettmotion.com/racing-and-performance/performance-catalog/turbo/g-series-G35-900',srcName:'Garrett',seen:'2026-11-12'}];
-// Garrett's core table: Length Hot Flow × Height No Flow × Width Cold Flow, in and mm as Garrett prints them; "Supported Horsepower"
-// "for normal operating conditions" (garrettmotion.com intercoolers page and its heat-transfer article). No flow, drop,
-// temperatures, end tanks or water ports are published there, so every row is route B.
+   src:GMR+'g-series-G35-900',srcName:'Garrett',seen:'2026-11-12'},
+  {maker:'Garrett',model:'G35-1050',pn:'880707-5005S (0.83 A/R), 880707-5006S (1.01 A/R); supercore 880695-5002S',bearing:null,hp:1050,hpLo:700,hpBasis:'“Horsepower: 700 - 1050”, displacement 2.0L - 5.5L',flow:null,
+   cInd:68,cExd:84,tInd:68,tExd:62,inlet:null,outlet:null,housings:'V-band in and out 0.61, 0.83, 1.01 or 1.21 A/R (free float), 0.83 and 1.01 (internal); T3 inlet 0.83 or 1.01; T4 divided inlet 1.06',wg:'internal on the assemblies (0.5 bar actuator); free float kits',map:'compressor map image',
+   note:'Garrett prints the turbine exducer as “62mmm”; read as 62 mm.',src:GMR+'g-series-g35-1050/',srcName:'Garrett',seen:'2026-11-12'},
+  {maker:'Garrett',model:'G40-1150 (71 mm, 2.80 in, inducer)',pn:'supercore 860777-5002S; turbine kits 757707-0027 to -0030, -0032 to -0035',bearing:'dual ceramic ball bearing with steel cages',hp:1150,hpLo:500,hpBasis:'“Horsepower: 500 - 1150”, displacement 2.0L - 6.0L',flow:null,
+   cInd:71,cExd:88,tInd:77,tExd:70,inlet:null,outlet:null,housings:'V-band in and out 0.85, 0.95, 1.06 or 1.19 A/R; T4 divided inlet / V-band outlet 0.85, 0.95, 1.06 or 1.19 (all free float)',wg:'free float (external)',map:'compressor map image',
+   note:'The page says the turbine wheel “flows up to 43 lbs/min”; that is turbine flow, not compressor flow, so it is not used as the compressor’s maximum.',src:GMR+'g-series-g40-1150-71mm',srcName:'Garrett',seen:'2026-11-12'},
+  {maker:'Garrett',model:'G42-1200',pn:'turbine kits 757707-0011 to -0016; 860778-5004S (labelled “Full-Size Comp Housing” on the page)',bearing:'10mm ceramic dual ball bearing cartridge',hp:1200,hpLo:475,hpBasis:'“Horsepower: 475 - 1200”, displacement 2.0L - 7.0L',flow:null,
+   cInd:73,cExd:91,tInd:82,tExd:75,inlet:null,outlet:null,housings:'V-band in and out 1.01, 1.15 or 1.28 A/R; T4 divided inlet / V-band outlet 1.01, 1.15 or 1.28 (free float)',wg:'free float (external)',map:'compressor map image',
+   src:GMR+'g-series-G42-1200',srcName:'Garrett',seen:'2026-11-12'},
+  {maker:'BorgWarner',model:'EFR 6758',pn:'6758-A 179388, -F 11589880034, -F(v) 11589880035, -G 11589880037',bearing:null,hp:500,hpLo:250,hpBasis:'“250 - 500 HP Turbo” (no basis given)',flow:null,
+   cInd:54,cExd:67,cExdLab:'wheel outer dia.',tInd:null,tExd:null,tOD:58,inlet:null,outlet:null,
+   housings:'-A 0.64 A/R T25 single scroll; -F 0.85 T25 single; -F(v) 0.85 V-band single; -G 0.80 T4 twin scroll (all wastegated); I-type housing 0.85 V-band, no wastegate',wg:'wastegated on the -A, -F, -F(v) and -G assemblies',map:'compressor map image',
+   src:BWCAT,srcName:'BorgWarner “Performance Turbochargers Catalog” (undated; copy hosted by the dealer Turbozentrum)',src2:BWEFR,src2Name:'BorgWarner EFR page',seen:'2026-11-12'},
+  {maker:'BorgWarner',model:'EFR 7163',pn:'7163-F 11639880005, -F(v) 11639880006, -G 11639880002',bearing:null,hp:550,hpLo:300,hpBasis:'“300 - 550 HP Turbo” (no basis given)',flow:null,
+   cInd:57,cExd:71,cExdLab:'wheel outer dia.',tInd:null,tExd:null,tOD:63,inlet:null,outlet:null,
+   housings:'-F 0.85 A/R T25 single scroll; -F(v) 0.85 V-band single; -G 0.80 T4 twin scroll (all wastegated); I-type housing 0.85 V-band, no wastegate',wg:'wastegated on the -F, -F(v) and -G assemblies',map:'compressor map image',
+   src:BWCAT,srcName:'BorgWarner “Performance Turbochargers Catalog” (undated; copy hosted by the dealer Turbozentrum)',src2:BWEFR,src2Name:'BorgWarner EFR page',seen:'2026-11-12'},
+  {maker:'BorgWarner',model:'EFR 8374',pn:'8374-B 179258, -C 179357, -D 179393',bearing:null,hp:750,hpLo:475,hpBasis:'“475 - 750 HP Turbo” (no basis given)',flow:null,
+   cInd:62,cExd:83,cExdLab:'wheel outer dia.',tInd:null,tExd:null,tOD:74,inlet:null,outlet:null,
+   housings:'-B 0.83 A/R T3 single scroll (wastegated); -C 0.92 T4 twin scroll (wastegated); -D 1.05 T4 twin scroll, no wastegate; H-type housing 1.45 T4 twin scroll, no wastegate',wg:'wastegated on -B and -C; none on -D',map:'compressor map image',
+   src:BWCAT,srcName:'BorgWarner “Performance Turbochargers Catalog” (undated; copy hosted by the dealer Turbozentrum)',src2:BWEFR,src2Name:'BorgWarner EFR page',seen:'2026-11-12'},
+  {maker:'BorgWarner',model:'EFR 9180',pn:'9180-B 179358, -C 12809880000, -D 179394',bearing:null,hp:1000,hpLo:600,hpBasis:'“600 - 1000 HP Turbo” (no basis given)',flow:null,
+   cInd:68,cExd:91,cExdLab:'wheel outer dia.',tInd:null,tExd:null,tOD:80,inlet:null,outlet:null,
+   housings:'-B 0.83 A/R T3 single scroll (wastegated); -C 0.92 T4 twin scroll (wastegated); -D 1.05 T4 twin scroll, no wastegate; H-type housing 1.45 T4 twin scroll, no wastegate',wg:'wastegated on -B and -C; none on -D',map:'compressor map image',
+   src:BWCAT,srcName:'BorgWarner “Performance Turbochargers Catalog” (undated; copy hosted by the dealer Turbozentrum)',src2:BWEFR,src2Name:'BorgWarner EFR page',seen:'2026-11-12'},
+  {maker:'BorgWarner',model:'AirWerks S200SX-R 58mm (2.28 in) Super-Core',pn:'Super-Core 12707105086; service kit 318383',bearing:null,hp:775,hpLo:300,hpBasis:'“Single Turbo Power Range” 300 to 775 HP (twin turbo 600 to 1,550 HP); no basis given',flow:null,
+   cInd:58,cExd:76,cExdLab:'wheel O.D.',tInd:null,tExd:61.43,tOD:69.56,inlet:null,outlet:null,housings:'not on the page (a Super-Core, sold without a turbine housing)',wg:null,map:'not read',
+   src:BWAW,srcName:'BorgWarner AirWerks page',seen:'2026-11-12'},
+  {maker:'BorgWarner',model:'AirWerks S300SX-R 64mm (2.52 in) Super-Core',pn:'Super-Core 13767105022; service kit 13007110005 (“360° thrust bearing”)',bearing:'360° thrust bearing (service kit)',hp:950,hpLo:400,hpBasis:'“Single Turbo Power Range” 400 to 950 HP (twin turbo 800 to 1,900 HP); no basis given',flow:null,
+   cInd:64,cExd:84,cExdLab:'wheel O.D.',tInd:null,tExd:67.56,tOD:76.2,inlet:null,outlet:null,housings:'not on the page (a Super-Core, sold without a turbine housing)',wg:null,map:'not read',
+   src:BWAW,srcName:'BorgWarner AirWerks page',seen:'2026-11-12'},
+  {maker:'BorgWarner',model:'AirWerks S300SX-R 68mm (2.68 in) Super-Core',pn:'Super-Core 13767105020 (13807105053 has the larger 79.76 mm, 3.14 in, turbine, exducer 73.37 mm, 2.89 in, same power range); service kit 13007110005',bearing:'360° thrust bearing (service kit)',hp:1100,hpLo:500,hpBasis:'“Single Turbo Power Range” 500 to 1100 HP (twin turbo 1,000 to 2,200 HP); no basis given',flow:null,
+   cInd:68,cExd:88,cExdLab:'wheel O.D.',tInd:null,tExd:67.56,tOD:76.2,inlet:null,outlet:null,housings:'not on the page (a Super-Core, sold without a turbine housing)',wg:null,map:'not read',
+   src:BWAW,srcName:'BorgWarner AirWerks page',seen:'2026-11-12'}];
+// Intercooler cores. Garrett's core table: Length Hot Flow × Height No Flow × Width Cold Flow, in and mm as Garrett prints them,
+// "Supported Horsepower" "for normal operating conditions". Mishimoto: Core Length × Core Height × Core Thickness, inches only
+// (mm here are exact conversions). CSF: Length × Height × Width, inches only; its air-to-air cores are not marked as such, they
+// are the ones not marked Air-to-Water. EJ Bowman (water-cooled charge air coolers, marine and land): the brochure's "Typical
+// performance" table, "based on an air inlet temperature of 180ºC at 1.75 bar g and cooling water at 30ºC": charge air flow
+// kg/min, air pressure drop kPa, air outlet temp ºC, heat rejection kW, water flow l/min, water pressure drop kPa, typical engine
+// power kW. Its energy balance checks: EC120 2.5 kg/min × cp 1004.7 J/kg K × (180 − 53.1) K = 5.31 kW against the printed 5.3 kW.
 const IC_SRC='https://www.garrettmotion.com/racing-and-performance/performance-catalog/intercoolers';
+const MISH='https://www.mishimoto.com/', CSFU='https://csfrace.com/product/intercooler-cores/';
+const BOWU='https://lancingmarine.com/Uploaded/1/Documents/ProductData/Bowman/Charge-Air-Cooler-Brochure-G21.pdf';
+const icInMm=(a,b,c)=>[[a,+(a*25.4).toFixed(1)],[b,+(b*25.4).toFixed(1)],[c,+(c*25.4).toFixed(1)]];
+const bowman=(pn,kw,m,dp,tho,q,wl,wdp,port)=>({maker:'EJ Bowman',pn,type:'w2a',hp:null,kw,L:null,H:null,W:null,model:'water-cooled charge air cooler (marine and land versions)',
+  dimNote:'overall dimensions A to L are in the brochure’s drawing, not read here',water:port+' BSP water connections (a thread size, not a bore)',
+  dp:{kPa:dp,kgmin:m},point:{m_kgmin:m,thi:180,tho,cool_lpm:wl,tci:30,Q_kW:q,wdp_kPa:wdp,p_barg:1.75,coolant:'water'},
+  hpBasis:'“Typical Engine Power (kW)” in the maker’s typical-performance table',src:BOWU,srcName:'EJ Bowman (Birmingham) Ltd, Charge Air Cooler brochure (G21), hosted by the dealer Lancing Marine',
+  note:'The maker’s typical performance, “based on an air inlet temperature of 180ºC at 1.75 bar g and cooling water at 30ºC”; the land version has the same figures.'});
 const IC_LIB=[
   {maker:'Garrett',pn:'703518-6016',type:'a2a',hp:410,L:[18.0,457],H:[8.0,203],W:[3.0,76]},
   {maker:'Garrett',pn:'703520-6009',type:'a2a',hp:500,L:[24.0,610],H:[6.4,163],W:[3.5,89]},
@@ -20900,7 +20987,36 @@ const IC_LIB=[
   {maker:'Garrett',pn:'717874-6008',type:'w2a',hp:750,L:[3.8,97],H:[3.7,95],W:[11.7,297]},
   {maker:'Garrett',pn:'873213-6002',type:'w2a',hp:980,L:[7.2,183],H:[3.6,91],W:[9.8,249]}
 ].map(c=>Object.assign({model:(c.type==='a2a'?'air-to-air':'air-to-liquid')+' core',inD:null,outD:null,flow:null,dp:null,point:null,water:null,coolFlow:null,
-  hpBasis:'Garrett’s “Supported Horsepower”, “for normal operating conditions”',src:IC_SRC,seen:'2026-11-12'},c));
+  hpBasis:'Garrett’s “Supported Horsepower”, “for normal operating conditions”',src:IC_SRC,srcName:'Garrett',seen:'2026-11-12'},c)).concat([
+  {maker:'Mishimoto',pn:'MMINT-UM',model:'universal intercooler M-Line, air-to-air',type:'a2a',hp:800,hpBasis:'“Maximum Recommended Horsepower” 800 (no basis given); the same page also says “Rated to 600 whp”',
+   L:null,H:null,W:null,dims:icInMm(23.5,11.75,3),inD:3,outD:3,note:'Core length × height × thickness as Mishimoto labels them; maximum recommended boost 32 psi (221 kPa).',src:MISH+'mishimoto-universal-intercooler-large.html'},
+  {maker:'Mishimoto',pn:'MMINT-UR',model:'universal front-mount intercooler R-Line, air-to-air',type:'a2a',hp:1000,hpBasis:'“Maximum Recommended Horsepower” 1000 (no basis given)',
+   L:null,H:null,W:null,dims:icInMm(24,12,4),inD:3,outD:3,note:'Core length × height × thickness as Mishimoto labels them; maximum recommended boost 32 psi (221 kPa).',src:MISH+'mishimoto-universal-front-mount-intercooler-r-line.html'},
+  {maker:'Mishimoto',pn:'MMUIC-W3',model:'universal air-to-water race intercooler core',type:'w2a',hp:1000,hpBasis:'“Rated for 1000 hp” (no basis given)',L:null,H:null,W:null,
+   dimNote:'the page’s title gives 12.00 × 4.92 × 4.92 in (304.8 × 125.0 × 125.0 mm) and its spec table 26 × 12 × 4.92 in (660.4 × 304.8 × 125.0 mm); they conflict, so neither is used',
+   note:'Water port size not stated; maximum recommended boost 100 psi (689 kPa).',src:MISH+'12-49-49-universal-air-to-water-intercooler-core.html'},
+  {maker:'Mishimoto',pn:'MMUIC-W4',model:'universal air-to-water race intercooler core',type:'w2a',hp:1500,hpBasis:'“Rated for 1500 hp” (no basis given)',L:null,H:null,W:null,
+   dimNote:'the page’s title gives 12.00 × 5.90 × 5.90 in (304.8 × 149.9 × 149.9 mm) and its spec table 25 × 11.8 × 5.9 in (635.0 × 299.7 × 149.9 mm); they conflict, so neither is used',
+   note:'Water port size not stated; maximum recommended boost 100 psi (689 kPa).',src:MISH+'12-59-59-universal-air-to-water-intercooler-core.html'},
+  {maker:'CSF',pn:'8056',type:'a2a',hp:700,dims:icInMm(20,12,3)},
+  {maker:'CSF',pn:'8047',type:'a2a',hp:850,dims:icInMm(22,12,3.5)},
+  {maker:'CSF',pn:'8053',type:'a2a',hp:800,dims:icInMm(24,6,3.5),model:'bar and plate core, vertical flow'},
+  {maker:'CSF',pn:'8045',type:'a2a',hp:1000,dims:icInMm(25,12,3.5)},
+  {maker:'CSF',pn:'8046',type:'a2a',hp:1200,dims:icInMm(25,12,4.5)},
+  {maker:'CSF',pn:'8134',type:'w2a',hp:800,dims:icInMm(8.5,4.5,6),model:'air-to-water bar and plate core'},
+  {maker:'CSF',pn:'8113',type:'w2a',hp:1000,dims:icInMm(8.5,6,6),model:'air-to-water bar and plate core'},
+  {maker:'CSF',pn:'8084',type:'w2a',hp:1000,dims:icInMm(12,5,5),model:'air-to-water bar and plate core'}
+].map(c=>c.maker!=='CSF'?c:Object.assign({model:'bar and plate core',L:null,H:null,W:null,hpBasis:'CSF’s “HP Rating” (no basis given)',
+  note:'Length × height × width as CSF lists them, which one is the charge-flow direction is not stated; “Pressure Tested at 120psi” (827 kPa).',src:CSFU,srcName:'CSF'},c)).concat([
+  bowman('EC120-4073-3',50,2.5,2.1,53.1,5.3,30,4.0,'¾ in'),
+  bowman('FC100-4074-2',90,4.3,3.0,56.7,9.1,50,6.3,'1 in'),
+  bowman('FG100-4075-2',120,9.8,5.3,56.8,20.8,80,9.9,'1¼ in'),
+  bowman('GL140-4076-2',175,15.4,7.3,56.4,32.9,140,10.4,'1½ in'),
+  bowman('GK190-4877-3',280,20.3,5.3,43.2,46.8,180,7.1,'2 in'),
+  bowman('JK190-4078-3',365,30.1,7.4,41.5,70.3,270,7.8,'2½ in')
+])).map(c=>Object.assign({model:'core',inD:null,outD:null,flow:null,dp:null,point:null,water:null,coolFlow:null,dims:null,dimNote:null,note:null,kw:null,srcName:c.maker,seen:'2026-11-12'},c));
+// a core's rating as horsepower for the comparison: its hp, or the maker's typical engine power in kW converted (1 hp = 0.7457 kW)
+const icHpOf=c=>c.hp!=null?c.hp:c.kw!=null?c.kw/0.7457:NaN;
 // the capacity of one exchanger from a known point (route A), and its prediction at new flows with UA held
 function icFromPoint(o){
   // o: Ch, Cc W/K; thi, tho, tci °C at the known point
@@ -20911,6 +21027,18 @@ function icPredict(o){
   // o: UA W/K, Ch, Cc W/K, thi, tci °C
   const Cmin=Math.min(o.Ch,o.Cc), Cr=Cmin/Math.max(o.Ch,o.Cc), ntu=o.UA/Cmin, eps=epsXflow(ntu,Cr), Q=eps*Cmin*(o.thi-o.tci);
   return {Cmin,Cr,ntu,eps,Q,tho:o.thi-Q/o.Ch,tco:o.tci+Q/o.Cc};
+}
+/* UA against charge flow (2026-11-12). Colburn j = St Pr^(2/3), St = h ÷ (G cp), G = m ÷ A_free, Re = G Dh ÷ mu. For offset strip
+   fins in the laminar range Samanta, Tavva and Ranganayakulu, "Colburn 'j' factor analysis for offset strip fins in compact heat
+   exchangers" (engrXiv preprint 5664, version 2, 2025-11-03), Eq. (6): j = 0.4988 Re^-0.5236 (t/l)^0.3860 (s/b)^-0.2837 (t/s)^-0.4424,
+   300 <= Re <= 1500. At fixed geometry and gas properties h = j G cp Pr^(-2/3) is proportional to G^(1 - 0.5236) = m^0.4764.
+   The split of the resistance 1/UA between the charge side, the wall and the other side is unknown, so the page gives the two
+   bounds for a change in charge flow alone: all of the resistance on the charge side, UA' = UA (m'/m)^0.4764, or none of it, UA held.
+   Fin efficiency is taken as unchanged; the Reynolds number cannot be checked without the core's fin geometry. */
+const UA_EXP=1-0.5236;
+function icScaleUA(o){
+  // o: UA W/K at the point, mh0 the point's charge flow, mh this build's (same units)
+  const r=o.mh/o.mh0; return {held:o.UA,chargeSide:o.UA*Math.pow(r,UA_EXP),ratio:r};
 }
 // the coolant loop: charge cooler (UA1, charge Ch, coolant Cw) and front exchanger (UA2, air Ca, coolant Cw), steady state
 function w2aLoop(o){
@@ -20941,21 +21069,24 @@ function tsOptionsSection(ind,p){
   const per=hp>0?hp/nt:NaN, wa=per*afr*bsfc/60;
   if(!(hp>0)) h+='<div class="note warn" id="tso-nohp">Enter the power target (Engine, horsepower) to compare the turbos with this build.</div>';
   else h+=rowT('This build, each turbo',Math.round(per)+' hp ('+Math.round(per*0.7457)+' kW)',fl(wa/LBMIN)+' by Garrett’s HP × A/F '+afr+' × BSFC '+bsfc+' ÷ 60; the tab’s own airflow '+fl(R.m));
-  const verdict=t=>{ if(!(per>0)) return ['','–'];
-    if(t.hp<per) return ['below','rating is below this build’s target'];
-    if(t.hpLo!=null?per<t.hpLo:t.hp>2*per) return ['large','far larger than needed (slower spool is likely)'];
-    return ['covers','rating covers this build']; };
-  h+='<div class="tblwrap"><table id="tso-turbos"><thead><tr><th>Turbo</th><th>Maker’s rating</th><th>Compressor inducer / exducer</th><th>Turbine inducer / exducer</th><th>Cover inlet / outlet</th><th>Max flow</th><th>Against this build</th></tr></thead><tbody>'+
+  // the maker's own lower figure where it publishes a range; otherwise this page's rule of thumb (target under half the top figure)
+  const verdict=t=>{ if(!(per>0)) return ['','–',''];
+    if(t.hp<per) return ['below','rating is below this build’s target','maker'];
+    if(t.hpLo!=null) return per<t.hpLo?['large','under the maker’s lower figure ('+t.hpLo+' hp): far larger than needed, slower spool is likely','maker']:['covers','inside the maker’s range','maker'];
+    return t.hp>2*per?['large','far larger than needed by this page’s rule of thumb (under half the rating; the maker gives no lower figure)','rule']:['covers','rating covers this build','rule']; };
+  const turbCell=t=>t.tInd!=null?mmIn(t.tInd)+' / '+mmIn(t.tExd):t.tOD!=null?'wheel outer dia. '+mmIn(t.tOD)+(t.tExd!=null?' / exducer '+mmIn(t.tExd):''):t.tWheel?esc(t.tWheel)+(t.tWheelMm?', '+mmIn(t.tWheelMm):''):'not published';
+  const flowCell=t=>!t.flow?'not published':fl(t.flow)+(per>0?'<br><span class="cap">this build '+(wa/LBMIN/t.flow*100).toFixed(0)+'% of it</span>':'');
+  h+='<div class="tblwrap"><table id="tso-turbos"><thead><tr><th>Turbo</th><th>Maker’s rating</th><th>Compressor inducer / exducer</th><th>Turbine wheel</th><th>Cover inlet / outlet</th><th>Max compressor flow</th><th>Against this build</th></tr></thead><tbody>'+
     TURBO_LIB.map((t,i)=>{ const v=verdict(t);
-      return '<tr data-v="'+v[0]+'"'+(TSO.turbo===String(i)?' style="background:var(--accent-soft)"':'')+'><td>'+esc(t.maker+' '+t.model)+'<br><span class="cap">'+esc(t.pn)+'</span></td><td>'+(t.hpLo!=null?t.hpLo+' to ':'up to ')+t.hp+' hp ('+(t.hpLo!=null?Math.round(t.hpLo*0.7457)+' to ':'')+Math.round(t.hp*0.7457)+' kW)</td><td>'+
-        mmIn(t.cInd)+' / '+mmIn(t.cExd)+'</td><td>'+mmIn(t.tInd)+' / '+mmIn(t.tExd)+'</td><td>'+(t.inlet?esc(t.inlet.kind)+' ('+(t.inlet.d_in*25.4).toFixed(1)+' mm) / '+esc(t.outlet.kind)+' ('+(t.outlet.d_in*25.4).toFixed(1)+' mm)':'not published')+'</td><td>'+(t.flow?fl(t.flow):'not published')+'</td><td>'+v[1]+'</td></tr>'; }).join('')+'</tbody></table></div>';
-  h+='<p class="cap">“Far larger” means the target is under the maker’s own lower hp figure, or, where it gives only a top figure, under half of it (this page’s threshold, not the maker’s). Spool is not computed.</p>';
+      return '<tr data-v="'+v[0]+'" data-basis="'+v[2]+'"'+(TSO.turbo===String(i)?' style="background:var(--accent-soft)"':'')+'><td>'+esc(t.maker+' '+t.model)+'<br><span class="cap">'+esc(t.pn)+'</span></td><td>'+(t.hpLo!=null?t.hpLo+' to ':'up to ')+t.hp+' hp ('+(t.hpLo!=null?Math.round(t.hpLo*0.7457)+' to ':'')+Math.round(t.hp*0.7457)+' kW)</td><td>'+
+        mmIn(t.cInd)+' / '+(t.cExd!=null?mmIn(t.cExd)+(t.cExdLab?' ('+t.cExdLab+')':''):'not published')+'</td><td>'+turbCell(t)+'</td><td>'+(t.inlet?esc(t.inlet.kind)+' ('+(t.inlet.d_in*25.4).toFixed(1)+' mm) / '+esc(t.outlet.kind)+' ('+(t.outlet.d_in*25.4).toFixed(1)+' mm)':'not published')+'</td><td>'+flowCell(t)+'</td><td>'+v[1]+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  h+='<p class="cap" id="tso-flag-cap">“Far larger”: where the maker publishes a range (Garrett, BorgWarner), the target is under the maker’s own lower figure; what that lower figure assumes, neither maker says. Where the maker gives only a top figure (Precision), it is this page’s rule of thumb, the target under half of the rating, not a sourced threshold. Spool is not computed. No maker here prints a maximum compressor flow in its text (Garrett says its horsepower figures are “calculated based strictly on choke flow of the compressor map” but does not print the flow), and the maps are images that are not read, so there is no flow comparison yet.</p>';
   h+='<label class="f span2"><span class="lab">Use a turbo’s compressor cover sizes</span><span class="inp">'+sel('turbo',[['','None']].concat(TURBO_LIB.map((t,i)=>[String(i),t.maker+' '+t.model])))+'</span></label>';
   const T=TURBO_LIB[+TSO.turbo];
   if(TSO.turbo!==''&&T){
     h+='<div class="note" id="tso-turbo-note"><b>'+esc(T.maker+' '+T.model)+'</b>: '+esc(T.hpBasis)+'. Bearing: '+(T.bearing?esc(T.bearing):'not stated')+'. Turbine housings: '+esc(T.housings)+'. Wastegate: '+(T.wg?esc(T.wg):'not stated')+'. Map: '+esc(T.map)+'. '+(T.note?esc(T.note)+' ':'')+
       (T.inlet?'Compressor inlet and outlet set to the '+esc(T.inlet.kind)+' and '+esc(T.outlet.kind)+' sizes; those are the cover’s outside (hose) sizes, its bore is smaller, so enter the measured bore if you have it.':'The maker’s page gives no cover sizes, so the compressor inlet and outlet inputs are unchanged.')+
-      ' Source: '+link(T.src,T.srcName)+(T.src2?', '+link(T.src2,'second source'):'')+', read '+T.seen+'.</div>';
+      ' Source: '+link(T.src,T.srcName)+(T.src2?', '+link(T.src2,T.src2Name||'second source'):'')+', read '+T.seen+'.'+(T.tWheel&&T.tInd!=null?' Turbine wheel as the maker words it: '+esc(T.tWheel)+'.':'')+'</div>';
   }
   let out=sec('Turbo options',h);
   // ---- intercoolers ----
@@ -20963,15 +21094,25 @@ function tsOptionsSection(ind,p){
   let g='<label class="f span2"><span class="lab">Intercooler type</span><span class="inp">'+sel('ictype',[['a2a','Air-to-air'],['w2a','Water-to-air (air-to-liquid charge cooler)']])+'</span></label>';
   g+=rowT('Heat to remove at full power, this build',kw(Qreq),'charge '+fl(mc)+' from '+tD(R.t2)+' to '+tD(R.t3)+' (the effectiveness typed above)');
   const list=IC_LIB.map((c,i)=>[c,i]).filter(([c])=>c.type===TSO.ictype);
-  g+='<div class="tblwrap"><table id="tso-ics"><thead><tr><th>Core</th><th>Length (hot flow) × height × width (cold flow)</th><th>Maker’s rating</th><th>Flow, drop, tanks</th><th>Against this build</th></tr></thead><tbody>'+
-    list.map(([c,i])=>{ const v=!(icHp>0)?'–':c.hp<icHp?'rating is below this build’s target':c.hp>2*icHp?'far larger than needed':'rating covers this build';
-      const d=x=>imp?x[0].toFixed(1)+' in':x[1]+' mm';
-      return '<tr data-i="'+i+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+esc(c.model)+'</span></td><td>'+d(c.L)+' × '+d(c.H)+' × '+d(c.W)+'<br><span class="cap">'+(imp?c.L[1]+' × '+c.H[1]+' × '+c.W[1]+' mm':c.L[0].toFixed(1)+' × '+c.H[0].toFixed(1)+' × '+c.W[0].toFixed(1)+' in')+'</span></td><td>'+c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)</td><td>'+(c.flow||c.dp||c.inD?'':'not published')+'</td><td>'+v+'</td></tr>'; }).join('')+'</tbody></table></div>';
-  g+='<p class="cap">Ratings: '+link(IC_SRC,'Garrett intercooler cores')+', “Supported Horsepower”, “for normal operating conditions”, read 2026-11-12; a maker’s hp rating is its own claim under its own assumptions. “Far larger” is over twice the target, this page’s threshold. Treadstone, Bell and PWR were searched for and no maker page with core figures was found; Vibrant and Mishimoto have not been checked yet, so none of the five is listed.</p>';
+  const inD=x=>imp?x+' in ('+(x*25.4).toFixed(1)+' mm)':(x*25.4).toFixed(1)+' mm ('+x+' in)';
+  g+='<div class="tblwrap"><table id="tso-ics"><thead><tr><th>Core</th><th>Core size as the maker labels it</th><th>Maker’s rating</th><th>Flow, drop, tanks, ports</th><th>Against this build</th></tr></thead><tbody>'+
+    list.map(([c,i])=>{ const ch=icHpOf(c), v=!(icHp>0)||!(ch>0)?'–':ch<icHp?'rating is below this build’s target':ch>2*icHp?'far larger than needed (this page’s rule of thumb)':'rating covers this build';
+      const D=c.L?[c.L,c.H,c.W]:c.dims, d=x=>imp?x[0].toFixed(1)+' in':x[1]+' mm';
+      const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
+      const rate=c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
+      const P=c.point, fx=[];
+      if(c.inD) fx.push('end tanks '+inD(c.inD)+' in / '+inD(c.outD)+' out');
+      if(P) fx.push('maker’s point: '+fl(P.m_kgmin/60)+' charge, '+tD(P.thi)+' in, '+tD(P.tho)+' out, '+kw(P.Q_kW*1000)+' rejected, water '+lmin(P.cool_lpm)+' at '+tD(P.tci));
+      if(c.dp) fx.push('air drop '+(imp?(c.dp.kPa/6.894757).toFixed(2)+' psi ('+c.dp.kPa+' kPa)':c.dp.kPa+' kPa ('+(c.dp.kPa/6.894757).toFixed(2)+' psi)')+' at that flow'+(P?', water drop '+(imp?(P.wdp_kPa/6.894757).toFixed(2)+' psi ('+P.wdp_kPa+' kPa)':P.wdp_kPa+' kPa ('+(P.wdp_kPa/6.894757).toFixed(2)+' psi)'):''));
+      if(c.water) fx.push(esc(c.water));
+      return '<tr data-i="'+i+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+esc(c.model)+'</span></td><td>'+dims+'</td><td>'+rate+'</td><td>'+(fx.length?fx.join('; '):'not published')+'</td><td>'+v+'</td></tr>'; }).join('')+'</tbody></table></div>';
+  g+='<p class="cap" id="tso-ic-cap">Sources, read 2026-11-12, makers’ own pages: '+link(IC_SRC,'Garrett intercooler cores')+' (“Supported Horsepower”, “for normal operating conditions”), '+link(MISH,'Mishimoto')+' (MMINT-UM, MMINT-UR, MMUIC-W3, MMUIC-W4 product pages), '+link(CSFU,'CSF bar and plate cores')+' and the '+link(BOWU,'EJ Bowman charge air cooler brochure')+' (a copy on a dealer’s site). Inches-only makers are converted to mm here. A maker’s hp rating is its own claim under its own assumptions; “far larger” is over twice the target, this page’s rule of thumb. Only Bowman publishes thermal performance (charge outlet temperature and heat rejection at a stated charge flow, water flow and inlet temperatures); picking a Bowman cooler fills the cooling-capacity inputs below from it. Searched and not listed: Vibrant Performance (only dealer listings and a dealer-hosted sheet with no named publisher and unlabelled columns), Treadstone, Bell Intercoolers, PWR, Wagner Tuning, Frozenboost and Spearco/Turbonetics (only dealer listings found), Laminova, AFCO and Chargecooler (no maker data sheet found); Garrett’s intercooler technology article gives only one car’s intake temperatures, no core data.</p>';
   g+='<label class="f span2"><span class="lab">Pick a core</span><span class="inp">'+sel('ic',[['','None']].concat(list.map(([c,i])=>[String(i),c.maker+' '+c.pn+', '+c.hp+' hp'])))+'</span></label>';
   const C=IC_LIB[+TSO.ic];
   if(TSO.ic!==''&&C&&C.type===TSO.ictype){
-    g+='<div class="note warn" id="tso-routeb"><b>'+esc(C.maker+' '+C.pn)+'</b> is rated '+C.hp+' hp only. A horsepower rating gives no cooling capacity: it cannot be turned into kW of heat removed. '+(C.point?'':'The maker publishes no flow, temperatures or pressure drop for it, so nothing was filled in; enter a known performance point below (your own measurement, or a data sheet) to work out what it removes.')+'</div>';
+    if(C.point){ const P=C.point;
+      g+='<div class="note" id="tso-routea-fill"><b>'+esc(C.maker+' '+C.pn)+'</b>: the inputs below were filled from the maker’s typical-performance point, '+fl(P.m_kgmin/60)+' of charge air at '+tD(P.thi)+' and '+P.p_barg+' bar g ('+(P.p_barg*14.50377).toFixed(1)+' psi g) leaving at '+tD(P.tho)+', '+kw(P.Q_kW*1000)+' rejected, with '+lmin(P.cool_lpm)+' of cooling water in at '+tD(P.tci)+'. '+esc(C.note||'')+' The page uses its water properties at 40 °C for the coolant. Source: '+link(C.src,C.srcName)+', read '+C.seen+'.</div>'; }
+    else g+='<div class="note warn" id="tso-routeb"><b>'+esc(C.maker+' '+C.pn)+'</b> is rated '+(C.hp!=null?C.hp+' hp':C.kw+' kW')+' only. A horsepower rating gives no cooling capacity: it cannot be turned into kW of heat removed. The maker publishes no flow, temperatures or pressure drop for it, so nothing was filled in; enter a known performance point below (your own measurement, or a data sheet) to work out what it removes. '+esc(C.hpBasis)+'.'+(C.note?' '+esc(C.note):'')+' Source: '+link(C.src,C.srcName)+', read '+C.seen+'.</div>';
   }
   // route A: a known point
   g+='<p class="sub" style="margin-top:14px">Cooling capacity from a known performance point</p><div class="grid2">'+
@@ -20994,7 +21135,10 @@ function tsOptionsSection(ind,p){
   if(UA>0&&Cc>0){ const P=icPredict({UA,Ch,Cc,thi,tci}), ideal=(thi+273.15)/(tci+273.15)-1, got=(thi+273.15)/(P.tho+273.15)-1;
     g+=rowT('This core at this build, UA held','removes '+kw(P.Q)+' of the '+kw(Qreq)+' needed','charge leaves at '+tD(P.tho)+' (from '+tD(thi)+'), effectiveness '+(P.eps*100).toFixed(1)+'%, NTU '+P.ntu.toFixed(3)+', Cr '+P.Cr.toFixed(3)+(w2a?'; coolant leaves at '+tD(P.tco):'')+
       '; density gain '+(got*100).toFixed(1)+'%, '+(got/ideal*100).toFixed(0)+'% of what a perfect cooler (charge out at '+tD(tci)+') would give');
-    g+='<p class="cap" id="tso-const-ua">UA is held at the known point’s value. Heat-transfer coefficients rise with flow, so above the point’s flow this understates the capacity and below it overstates it; no published flow-scaling relation for these surfaces was used. Single-pass cross-flow, both streams unmixed (Incropera)'+(w2a?', with the coolant as the cold stream; liquid passes differ between cores, so treat it as an approximation':'')+'.</p>'; }
+    if(pt&&Number.isFinite(pt.ntu)){ const S=icScaleUA({UA,mh0:F('pm')/LBMIN,mh:mc}), P2=icPredict({UA:S.chargeSide,Ch,Cc,thi,tci}), lo=Math.min(P.tho,P2.tho), hi=Math.max(P.tho,P2.tho);
+      g+=rowT('With UA scaled for the charge flow','charge leaves at '+tD(lo)+' to '+tD(hi),'charge flow '+(S.ratio).toFixed(3)+' × the point’s; UA from '+uaD(UA)+' (none of the resistance on the charge side) to '+uaD(S.chargeSide)+' (all of it there, h ∝ ṁ<sup>0.4764</sup>); removes '+kw(Math.min(P.Q,P2.Q))+' to '+kw(Math.max(P.Q,P2.Q)));
+      g+='<p class="cap" id="tso-scaled-cap">The range: how the core’s resistance splits between the charge side, the wall and the '+(w2a?'coolant':'outside-air')+' side is not known, so the charge-side film coefficient is scaled with charge flow for the two bounding cases. Exponent from the Colburn factor for offset strip fins, j ∝ Re<sup>−0.5236</sup> for 300 ≤ Re ≤ 1500 (Samanta, Tavva and Ranganayakulu, '+link('https://engrxiv.org/preprint/view/5664','engrXiv preprint, 2025')+', Eq. 6), so h ∝ G<sup>0.4764</sup> at fixed geometry. It holds only if the core has offset strip fins on the charge side and runs in that Reynolds range, which needs the fin geometry to check; a change in '+(w2a?'coolant':'outside-air')+' flow from the point’s is not scaled.</p>'; }
+    g+='<p class="cap" id="tso-const-ua">The row above holds UA at the known point’s value. Heat-transfer coefficients rise with flow, so above the point’s flow it understates the capacity and below it overstates it. Single-pass cross-flow, both streams unmixed (Incropera)'+(w2a?', with the coolant as the cold stream; liquid passes differ between cores (Bowman’s coolers are tube-stack units), so treat it as an approximation':'')+'.</p>'; }
   else if(UA>0) g+='<p class="cap">Enter '+(w2a?'the coolant flow':'the outside air through the core (intercooler inputs above)')+' to predict this build.</p>';
   if(w2a){
     const cw=cool.cp, dTw=F('wdT')>0?F('wdT'):NaN;
@@ -21016,9 +21160,11 @@ function tsOptionsSection(ind,p){
 }
 document.addEventListener('change',e=>{ const el=e.target.closest('.tsox'); if(!el) return; const k=el.dataset.k; TSO[k]=el.value;
   if(k==='ictype') TSO.ic='';
+  if(k==='ic'){ const C=IC_LIB[+el.value]; if(el.value!==''&&C&&C.point){ const P=C.point;
+    Object.assign(TSO,{pm:String(+(P.m_kgmin/0.45359237).toPrecision(10)),pTi:String(P.thi),pTo:String(P.tho),pcf:String(P.cool_lpm),pTc:String(P.tci),ua1:'',cool:P.coolant||'water'}); } }
   if(k==='turbo'){ const T=TURBO_LIB[+el.value]; if(el.value!==''&&T&&T.inlet){ setBase('i-cid',T.inlet.d_in*25.4); setBase('i-cod',T.outlet.d_in*25.4); } }
   renderActive(); });
-window.__tso={TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop};
+window.__tso={TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop,icScaleUA,icHpOf,UA_EXP};
 /* ----- Wastegate and blow-off valve: where they go on this build, and their size (2026-11-11, phase 3) -----
    Flow through a valve: isentropic flow through a restriction, m = Cd A p0 sqrt(2 g / ((g - 1) R T0) (r^(2/g) - r^((g+1)/g))),
    r = p / p0 held at the critical (2 / (g + 1))^(g / (g - 1)) once choked (Heywood, Internal Combustion Engine
