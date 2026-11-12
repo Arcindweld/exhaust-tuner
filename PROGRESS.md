@@ -7,3 +7,17 @@ cope 14533; cutList 12669/cutListHtml 12710/cutBuyHtml 12722; fxRender LRA 12785
 mufCutPlan 14491/mufCutDxf 14511; X-pipe sheet 14090; quickSheet/coneFlat 17559/17565; calcBaffles 8565; jigBlock 12364; collectorNets 9115
 ## Add-in: router.lra_schedule, templates.tee_cope, merge.*, jig.plan, hangers.plan
 ## Next: verify page-side rotation (cutList p.rot source), hgDxf, flangedHoles, calcBaffles, quickSheet cone inputs (ID or OD?), jigBlock, pie cuts
+## Verdicts so far (resumed agent)
+- cope (page): inside-edge line matches set-on-branch practice; UI test 3 cases worst 0.000 mm. OK after prior fix. Added to COPE_HOW: square/on-centre only, 25 mm margin lost at longest side (QUESTIONABLE -> stated).
+- tee_cope (add-in) depth: 4 cases marched, OK.
+- bend table round trip (router.lra_schedule): 3 paths 0.00000 mm; sign pinned; OK.
+- cut list (page): arcs (CLR, CLR+-OD/2)xA, kerf; inches 1/16 (<=0.8 mm off) mm 0.5: QUESTIONABLE (stated).
+- X-pipe: miter a/2, window, opening sampled OK; build-step lengths moved clen (0.1 in/1 mm) -> bothL (0.01 in/0.1 mm). 
+- merge (add-in): plate holes, outlet area, cone/spike/sleeve flats: 4 cases OK.
+- jig.plan: 2 paths OK.
+- coneFlat (page): 3 cases OK. Two-stroke quick sheet pointed to a non-existent '2-Stroke tab layout' -> added blanks to build list (QUESTIONABLE -> fixed).
+- muffler cut (page): round + oval (W=206.23, area preserved 18241.5 mm2, wrap 529.75 = 2(W-H)+pi(H+cw)) OK by probe.
+- hangers (page): across foot arc r = OD/2 at the axis; along edge at sqrt(Ro^2-(t/2)^2): OK (probe, 4 parts).
+- flange presets: in-note inch->mm conversions all consistent (read).
+- pie cuts/lobster: no calculator on page or add-in (parts catalogue category only). perforation layout: none (porosity input only).
+## Next: add tests for 2-stroke blanks + X sheet units + oval wrap + hanger foot; run test suite; write doc + STATUS.

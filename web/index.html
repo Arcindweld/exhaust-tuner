@@ -14090,12 +14090,12 @@ function drawPlan(svg,strokes,dimS){
 // X-pipe build sheet: every part in flow order with its angle and length, and what changing the angle does to all of them
 function xBuildSheet(r,p){
   const g=r.g, a=+p.ang.toFixed(1), m=+g.miter.toFixed(1);
-  const steps=[['Inlet straight, each pipe','0°',clen(r.stub)+' shown; any length to suit the car'],
+  const steps=[['Inlet straight, each pipe','0°',bothL(r.stub)+' shown; any length to suit the car'],
     ['First bend, toward the centre',a+'°','or one miter cut '+m+'° on each tube end'],
-    ['Converging leg, along the pipe',a+'° to the centreline',clen(g.leg)+' of tube ('+clen(g.lc)+' along the car)']];
-  if(g.lm>0) steps.push(['Second bend, into the merge',a+'°','straightens the pipe along the centreline'],['Merged section','0°',clen(g.lm)+' long at '+cdim(r.dm)+' equivalent ID'],
-    ['Third bend, out of the merge',a+'°','the other side of the centreline'],['Diverging leg, along the pipe',a+'° to the centreline',clen(g.leg)+' of tube']);
-  else steps.push(['Crossing','straight through','the same tube runs on from the converging leg; cut out '+clen(g.window)+' along each pipe where they overlap'],
+    ['Converging leg, along the pipe',a+'° to the centreline',bothL(g.leg)+' of tube ('+bothL(g.lc)+' along the car)']];
+  if(g.lm>0) steps.push(['Second bend, into the merge',a+'°','straightens the pipe along the centreline'],['Merged section','0°',bothL(g.lm)+' long at '+cdim(r.dm)+' equivalent ID'],
+    ['Third bend, out of the merge',a+'°','the other side of the centreline'],['Diverging leg, along the pipe',a+'° to the centreline',bothL(g.leg)+' of tube']);
+  else steps.push(['Crossing','straight through','the same tube runs on from the converging leg; cut out '+bothL(g.window)+' along each pipe where they overlap'],
     ['Diverging leg','same tube','to the opposite side']);
   steps.push(['Last bend, back to parallel',a+'°','or one miter cut '+m+'° on each tube end'],['Outlet straight, each pipe','0°','on the opposite side from where it started']);
   let h='<p class="cap" style="margin-top:0">In flow order, for each of the two pipes. Build both as mirror images: the same angles and the same leg lengths, so the two banks’ pulses reach the merge on the same footing. Lengths are along the centrelines with sharp corners; mandrel bends with a radius shorten the straight pieces between them.</p>'+
@@ -14543,7 +14543,7 @@ function copeTemplate(d,D,extra,w){
   return {text:out.join('\r\n')+'\r\n',rise:zmax,width:Math.PI*d,H};
 }
 window.__cope=copeTemplate;
-const COPE_HOW='Print it 1:1 (the strip is the width shown: check it with a rule) and wrap it round the outside of the branch, its straight edge on the square-cut end and its two ends meeting in line with the main pipe; cut away what the paper covers, square to the tube wall. The line is worked from the branch’s inside edge, which then touches the main pipe all round, the outside edge opening a small V for the weld.';
+const COPE_HOW='Print it 1:1 (the strip is the width shown: check it with a rule) and wrap it round the outside of the branch, its straight edge on the square-cut end and its two ends meeting in line with the main pipe; cut away what the paper covers, square to the tube wall. Even the longest side loses the strip’s 25 mm (0.98 in) margin, so cut the blank that much over length. It is for a branch square to the main pipe and on its centreline. The line is worked from the branch’s inside edge, which then touches the main pipe all round, the outside edge opening a small V for the weld.';
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-cope]'); if(!b) return; const d=+b.dataset.d, D=+b.dataset.cope, say=t=>{ const m=$(b.dataset.msg); if(m) m.textContent=t; };
   const c=copeTemplate(d,D,null,+b.dataset.wall||0); if(!c){ say('The branch has to be no larger than the main pipe.'); return; }
   saveTextFile('cope_'+d.toFixed(1).replace('.','p')+'_on_'+D.toFixed(1).replace('.','p')+'_mm.dxf',c.text,'application/dxf',say); });
@@ -17583,8 +17583,11 @@ function quickSheet(p,r){
     const t=r.two;
     t.segs.forEach(s=>add(s.name,s.d0===s.d1?idod(s.d0):cone(s.d0,s.d1),s.len,s.name==='Header'?'From the exhaust port face.':''));
     add('Silencer','slips over the '+cdim(t.ds)+' stinger',NaN,'A packed two-stroke silencer; none in the parts list fit a stinger, so match its size.');
+    // each cone's flat blank, laid out on the mid-wall of the sheet assumed here (the cut sheet the step below points to)
+    t.segs.forEach(s=>{ const fl=s.d0!==s.d1?coneFlat(Math.min(s.d0,s.d1),Math.max(s.d0,s.d1),s.len,W):null;
+      if(fl) buy.push([s.name+' blank',cone(s.d0,s.d1)+' × '+clen(s.len),r.nPipes+'','from '+bothL(W)+' sheet: arcs of '+bothL(fl.R0)+' and '+bothL(fl.R1)+' radius over '+fl.sweep.toFixed(1)+'° (mid-wall, butt seam, no allowance)']); });
     steps.push('Check the port timing and header size on the 2-Stroke tab first: every length here follows from them.',
-      'Roll each cone from flat sheet (the 2-Stroke tab’s layout), tack the cones and belly on a straight jig, then the header to the flange.',
+      'Roll each cone from flat sheet (the blanks in the build list), tack the cones and belly on a straight jig, then the header to the flange.',
       'Weld the stinger last and fit the silencer.');
     return {rows,buy,steps,alts,notes,sides:r.nPipes,x};
   }
