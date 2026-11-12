@@ -14,4 +14,5 @@
       + coordinator 2: Garrett A/R article https://www.garrettmotion.com/news/newsroom/article/turbo-tech-how-to-turbo-and-the-difference-an-a-r-makes-for-optimizing-your-turbo-system/
         quote definition (replace second-hand lecture-deck cite), GTX3076R 0.83 vs 1.01 worked example (one engine, no formula),
         housing A/R a visible field (options choice, summary rows, drawing, saved with project), check GTX3076R/G25-660 A/R lists.
-- [ ] NEXT: write docs/BOOST_AUDIT_2026-11-12.md + STATUS, commit; then A/R feature
+- [x] audit doc + STATUS written
+- [ ] A/R feature (next)
