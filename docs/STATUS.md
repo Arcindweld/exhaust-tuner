@@ -162,6 +162,35 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   The browser page and the Windows program cannot read a mesh: the tab says scan routing runs in the add-in.
   Tests: test_chargeroute.py, test_chargeroute_fusion_fake.py, web/tests/chargeroute_ui.js; NOT RUN live:
   fusion-addin/tests/fusion_live_chargeroute.py (for the owner's PC).
+- Turbo inlet, charge pipe, turbo, intercooler and valve design (2026-11-11; Intake tab, boosted; web/tests/turbosize_ui.js):
+  the request "add turbo intake and charge piping design and sizing", plus the owner's later additions (turbo and
+  intercooler sizing; wastegate and blow-off valve location per design). New sections: "Inlet and charge pipes: design
+  and sizing" (route filter -> inlet tube -> compressor -> hot pipe -> intercooler -> cold pipe -> throttle per turbo,
+  every section at its own density and temperature, the throttle-to-compressor march iterated on the outlet temperature;
+  the compressor's real ratio (throttle + losses after) / (atmosphere - inlet loss) and its outlet temperature with and
+  without the inlet loss; size changes as Rennels cones at the least-loss angle against sudden steps (Borda-Carnot /
+  Rennels sharp contraction); size tables over 1.75-5 in OD tube with Garrett speed, actual speed, Mach, loss, volume,
+  fill, a recommended size (smallest <= 300 ft/s by Garrett's method and <= Mach 0.4, inlet tube >= compressor inlet) and
+  "Use these sizes"; a dimensioned schematic in inches and mm), "Turbo and intercooler sizing" (demand at peak power and
+  the full-boost RPM, corrected flow to 85 °F / 13.95 psia per ATP, Garrett's HP x A/F x BSFC / 60 and required MAP,
+  compressor power, turbine power balance swept over turbine efficiency 55-75% since no typical value was sourced,
+  turbine flow parameter, wastegate share at Bell's 2 and 2.5 x boost), "Intercooler sizing" (heat to remove, density
+  gain, cross-flow both-unmixed NTU and UA when the outside-air flow is typed, core drop scaled with flow squared from
+  a typed rating) and "Where to put them on this build" (blow-off valve side and distance from the throttle or the
+  compressor outlet, kept on the final straight and behind a blow-through MAF; recirculation window on the inlet tube;
+  wastegate take-off window on the collector for a 45° branch, valve size from the effective area by isentropic
+  orifice flow; drawn on the schematic). New inputs: i-cpd2 i-cid i-cod i-ici i-ico i-cpr i-cpah i-cpac i-cpstep i-cpy
+  i-lorpm i-afr i-bsfc i-tit i-teff i-icam i-icrdp i-icrf i-mafpos i-bovside i-bovd i-cpst i-wgtype i-mani i-wgcl
+  (all inside the tab's form, so projects save them). calcCharge takes optional cold ID, bend radius, angle lists and a
+  twin merge; with them blank its results are unchanged (charge_ui, physaudit_ui pass). Sources verified online this
+  session: Garrett Turbo System Optimization and How to Size Charge Air Tubing, Garrett Turbo Tech 103 and "How to select
+  a turbo, part 2", ATP Turbo definitions, Garrett VNT gasoline paper (950 °C), python-fluids fittings (Rennels),
+  python-ht effectiveness_from_NTU, Turbosmart GenV wastegate instructions, Marelli et al. SAE 2019-01-0324 (abstract
+  page text). Not re-checked online: Heywood appendix C (orifice flow), Bell's page numbers (already cited in the page).
+  Left out, no source found: filter loss, a Y-junction loss, a wastegate or blow-off valve discharge coefficient (the page
+  gives Cd x A), a typical turbine efficiency, surge/choke margins, inducer/exducer sizing, a turbo model table, a
+  charge-air core UA, air-to-water cores, a dump-tube re-entry distance; "gate after the last merge / one per scroll" is
+  labelled common practice on the page.
 - Fabrication audit (2026-11-11; docs/FAB_AUDIT_2026-11-11.md): every cut, bend, print and template output recomputed
   from geometry (marched cylinders, a centreline rebuilt from the bend table, sampled solids). Fixed: F1 the page's cope
   template is worked from the branch's inside edge (a square-to-wall cut from the outside line left the inside edge
