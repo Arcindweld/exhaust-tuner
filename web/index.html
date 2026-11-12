@@ -21556,14 +21556,16 @@ function icRecommend(o){
     const r=icRateOf(c), x={c,key,r,fails:[],flags:[]};
     if(c.curve){ const T=o.therm(c);
       if(T){ const Pr=cfxPredict(c,{m:o.mc,Cc:T.Cc,thi:o.thi,tci:T.tci}), M=cfxModel(c);
-        x.th={UA:Pr.x.UA,tho:Pr.x.tho,Q:Pr.x.Q,capM:Pr.x.Q/o.Qreq,eps:(o.thi-Pr.x.tho)/(o.thi-o.tamb),why:T.why,curve:Pr};
+        x.th={UA:Pr.x.UA,tho:Pr.x.tho,Q:Pr.x.Q,capM:Pr.x.Q/o.Qreq,eps:(o.thi-Pr.x.tho)/(o.thi-o.tamb),why:T.why,curve:Pr,epsCore:Pr.x.eps,tci:T.tci,inRange:Pr.inRange};
         if(!Pr.inRange) x.flags.push('charge flow '+o.mc.toFixed(3)+' kg/s outside the maker’s plotted '+M.mLo.toFixed(2)+'-'+M.mHi.toFixed(2)+' kg/s: UA extended by the power law fitted to its curve');
         if(Pr.farCool) x.flags.push('coolant capacity rate '+Pr.cwRatio.toFixed(2)+' × the maker’s test flow: UA is held at the maker’s coolant flow'); }
       else x.flags.push('curve not predicted: enter the coolant flow'); }
     else if(c.point){ const P=c.point, T=o.therm(c);
       if(T){ const cool=COOLANT[P.coolant||'water']||COOLANT.water, Cc0=P.cool_lbmin!=null?P.cool_lbmin/LBMIN*CP_AIRT:P.cool_lpm/60/1000*cool.rho*cool.cp;
         const A=icFromPoint({Ch:P.m_kgmin/60*CP_AIRT,Cc:Cc0,thi:P.thi,tho:P.tho,tci:P.tci});
-        if(Number.isFinite(A.UA)){ const Pr=icPredict({UA:A.UA,Ch:o.Ch,Cc:T.Cc,thi:o.thi,tci:T.tci}); x.th={UA:A.UA,tho:Pr.tho,Q:Pr.Q,capM:Pr.Q/o.Qreq,eps:(o.thi-Pr.tho)/(o.thi-o.tamb),why:T.why}; } }
+        if(Number.isFinite(A.UA)){ const Pr=icPredict({UA:A.UA,Ch:o.Ch,Cc:T.Cc,thi:o.thi,tci:T.tci}), mr=o.mc/(P.m_kgmin/60);
+          x.th={UA:A.UA,tho:Pr.tho,Q:Pr.Q,capM:Pr.Q/o.Qreq,eps:(o.thi-Pr.tho)/(o.thi-o.tamb),why:T.why,epsCore:Pr.eps,tci:T.tci,inRange:Math.abs(mr-1)<=IC_PT_RANGE+1e-12,mRatio:mr};
+          if(!x.th.inRange) x.flags.push('charge flow '+mr.toFixed(2)+' × its one thermal point’s: UA held from that point, an extrapolation'); } }
       else x.flags.push('thermal point not predicted: '+(o.a2a?'enter the outside air through the core':'enter the coolant flow')); }
     // (a) rating
     if(r>0){ x.ratio=r/o.hpCore; if(r<o.m*o.hpCore-1e-9) x.fails.push(['a','rating '+Math.round(r)+' hp below '+(o.m!==1?o.m+' × ':'')+'the '+Math.round(o.hpCore)+' hp target per core']); }
@@ -21592,22 +21594,47 @@ function icRecommend(o){
         if(!fits) x.fails.push(['s',Fd.basis.split(' ')[0]+' size '+L+' × '+H+' × '+T+' in ('+(L*25.4).toFixed(0)+' × '+(H*25.4).toFixed(0)+' × '+(T*25.4).toFixed(0)+' mm) does not fit your space']); } }
     x.dpS=c.curve?cfxDp(c,o.mc,o.P2,o.thi).dp:c.dp?c.dp.kPa*1000*Math.pow(o.mc/(c.dp.kgmin/60),2):Infinity;
     x.vol=icVolIn3(c); x.pubN=icPubN(c);
+    // evidence group (reviewer, 2026-11-12): 0 thermal data that meets the target inside its known flow range, 1 meets it only
+    // by extrapolation, 2 rating only (a row whose thermal data fails is ruled out by (d) above)
+    x.evG=x.th?(x.th.inRange?0:1):2;
+    // just short: thermal data, every failure is the thermal check, and it reaches at least 95% of margin × the heat needed;
+    // then the target it does reach (the typed effectiveness scales the heat needed linearly) and, water-to-air, the coolant
+    // temperature that would make it pass (at fixed flows the effectiveness does not depend on temperatures, so the heat is
+    // proportional to charge in − coolant in: tci' = thi − (thi − tci) × margin ÷ capM)
+    if(x.th&&x.fails.length&&x.fails.every(f=>f[0]==='d')&&x.th.capM>=0.95*o.m-1e-12){
+      x.justShort={reach:o.ice*x.th.capM,target:o.ice,needT:o.ice*x.th.capM/o.m,tci:o.a2a?null:o.thi-(o.thi-x.th.tci)*o.m/x.th.capM}; }
     return x; });
-  const ok=rows.filter(x=>!x.fails.length), cmp=(o.a2a?(lim?[['face',x=>x.face?-x.face.a:Infinity]]:[['bell',x=>x.bellG]]):[]).concat([['rating',x=>x.ratio],['pressure drop',x=>x.dpS],['core volume',x=>Number.isFinite(x.vol)?x.vol:Infinity],['tank match',x=>x.exact?0:1],['published data',x=>-x.pubN]]);
+  // order: Bell (air-to-air; or the largest face with a size limit), then the evidence group; within groups 0 and 1 the
+  // just-big-enough core (smallest capacity margin that meets the target), lower drop at this flow and density, smaller volume,
+  // lighter, then the rating; within group 2 (rating only) the old keys: rating, drop, volume; then tank match, published data
+  const G01=x=>x.evG<2, cmp=(o.a2a?(lim?[['face',x=>x.face?-x.face.a:Infinity]]:[['bell',x=>x.bellG]]):[]).concat([['evidence',x=>x.evG],
+    ['capacity margin',x=>G01(x)?x.th.capM:0],['rating',x=>G01(x)?0:x.ratio],['pressure drop',x=>x.dpS],['core volume',x=>Number.isFinite(x.vol)?x.vol:Infinity],
+    ['weight',x=>x.c.mass?x.c.mass[0]:Infinity],['rating ',x=>G01(x)?x.ratio:0],['tank match',x=>x.exact?0:1],['published data',x=>-x.pubN]]);
+  const ok=rows.filter(x=>!x.fails.length);
   ok.forEach((x,i)=>x.ord=i);
   ok.sort((a,b)=>{ for(const [,f] of cmp){ const fa=f(a), fb=f(b); if(Math.abs(fa-fb)>1e-9*Math.max(1,Math.abs(fa))&&!(fa===fb)) return fa<fb?-1:1; } return a.ord-b.ord; });
   // why each ranks below the one before: the first key that differs
   const sq=v=>v.toFixed(1)+' in² ('+(v*6.4516).toFixed(0)+' cm²)';
+  const evTxt=icEvTxt;
   const bellTxt=x=>!o.a2a?'':x.bellG===0?'; its charge face meets Bell’s '+sq(needM)+(x.face.assumed?' only on this page’s assumption about the charge-flow direction ('+x.face.why+')':''):
     x.bellG===1?'; its charge face cannot be checked against Bell’s '+sq(needM)+' (size not published)':'; its charge face, '+sq(x.face.a)+', is '+sq(x.short)+' short of Bell’s '+sq(needM);
-  ok.forEach((x,i)=>{ if(!i){
-      x.why=(o.a2a&&lim?'the largest charge face that fits your space among the cores that cover the target'+(o.m!==1?' × '+o.m:'')+' (with a size limit the page follows Garrett’s advice: the largest core that fits)':
-        o.a2a&&x.bellG>0?'no listed core meets Bell’s face area for this power; this is the closest by rating':o.a2a?'smallest rating that covers the target'+(o.m!==1?' × '+o.m:'')+' and meets Bell’s face area':'smallest rating that covers the target'+(o.m!==1?' × '+o.m:''))+bellTxt(x); return; }
+  ok.forEach((x,i)=>{ if(!i){ const mt=o.m!==1?' × '+o.m:'';
+      const ev=x.evG===0?'its thermal data, evaluated at this build’s flow, meets the target'+mt+' inside the data’s flow range: the just-big-enough such core (smallest capacity margin)':
+        x.evG===1?'no core meets the target on thermal data inside its flow range; this one meets it only by extrapolating its data to this flow (flagged): the just-big-enough such core':null;
+      const ro=ev||!rows.some(y=>y.th)?'':'; no listed core with thermal data meets the target'+mt+' at this flow';
+      x.why=(o.a2a&&lim?'the largest charge face that fits your space among the cores that cover the target'+mt+' (with a size limit the page follows Garrett’s advice: the largest core that fits)'+(ev?'; '+ev:ro):
+        o.a2a&&x.bellG>0?'no listed core meets Bell’s face area for this power; this is the closest '+(ev?'on the evidence; '+ev:'by rating'+ro):
+        o.a2a?(ev?'meets Bell’s face area; '+ev:'smallest rating that covers the target'+mt+' and meets Bell’s face area'+ro):
+        (ev||'smallest rating that covers the target'+mt+ro))+bellTxt(x); return; }
     const y=ok[i-1], k=cmp.find(([,f])=>{ const a=f(x), b=f(y); return !(a===b)&&Math.abs(a-b)>1e-9*Math.max(1,Math.abs(a)); });
-    x.why=(!k?'level with the one above on every rule; list order':k[0]==='bell'?(x.bellG===1?'charge face unknown, so it cannot be checked against Bell, behind those that meet it':'fails Bell’s face area, so it ranks behind those that meet it or cannot be checked'):
-      k[0]==='face'?'a smaller charge face than the one above':k[0]==='rating'?'a larger rating than the one above':(o.a2a?(lim?'same face; ':'same Bell result; '):'')+'same rating as the one above; '+(k[0]==='pressure drop'?'higher or unpublished pressure drop':k[0]==='core volume'?'larger core volume':k[0]==='tank match'?'tanks not an exact match to the pipes':'less published data'))+bellTxt(x); });
-  return {ok,out:rows.filter(x=>x.fails.length),pick:ok[0]||null,needM,lim};
+    x.why=(!k?'level with the one above on every rule; list order':k[0]==='evidence'?(x.evG===1?'meets the target only by extrapolating its thermal data to this flow, so it ranks behind those that meet it inside their data':'rating only, so it ranks behind the cores whose thermal data meets the target'):
+      k[0]==='rating '?'same capacity margin, drop, volume and weight as the one above; a larger rating':k[0]==='capacity margin'?'a larger capacity margin than the one above (more core than the target needs)':k[0]==='weight'?'same evidence; heavier':k[0]==='bell'?(x.bellG===1?'charge face unknown, so it cannot be checked against Bell, behind those that meet it':'fails Bell’s face area, so it ranks behind those that meet it or cannot be checked'):
+      k[0]==='face'?'a smaller charge face than the one above':k[0]==='rating'?'a larger rating than the one above':(o.a2a?(lim?'same face; ':'same Bell result; '):'')+(G01(x)?'same capacity margin as the one above; ':'same rating as the one above; ')+(k[0]==='pressure drop'?'higher or unpublished pressure drop':k[0]==='core volume'?'larger core volume':k[0]==='tank match'?'tanks not an exact match to the pipes':'less published data'))+bellTxt(x); });
+  const out=rows.filter(x=>x.fails.length);
+  return {ok,out,short:out.filter(x=>x.justShort).sort((a,b)=>b.th.capM-a.th.capM),pick:ok[0]||null,needM,lim};
 }
+const icEvTxt=x=>x.c.own?'rating only: no thermal point measured for your core, so the page cannot check it against your target':'rating only: the maker publishes no thermal data for this core, so the page cannot check it against your target';
+const IC_PT_RANGE=0.10;   // a single thermal point counts as "inside its known flow range" within ±10% of its charge flow (this page's threshold)
 // the user's own core (the owner: "Let the user add their own core"), kept in TSO and saved with the project
 function icOwn(){ const n=TSO.oName.trim(); if(!n) return null; const f=k=>TSO[k]===''||TSO[k]==null?NaN:+TSO[k], mmi=k=>f(k)>0?[+(f(k)/25.4).toFixed(3),+f(k).toFixed(1)]:null;
   const D=[mmi('oL'),mmi('oH'),mmi('oW')], pt=f('oPm')>0&&f('oCf')>0&&[f('oTi'),f('oTo'),f('oTc')].every(Number.isFinite);
@@ -21719,13 +21746,14 @@ function icRecSection(o){
     const list=IC_LIB.map((c,i)=>[c,String(i)]).filter(([c])=>c.type===t).concat(OWN&&OWN.type===t?[[OWN,'own']]:[]);
     const therm=c=>t==='a2a'?(am>0?{Cc:am/LBMIN*CP_AIRT,tci:tamb,why:'outside air '+fl(am/LBMIN)+' at '+tD(tamb)}:null):
       (F('wf')>0?{Cc:cwOf(F('wf')),tci:wTi,why:'coolant '+lmin(F('wf'))+' in at '+tD(wTi)}:c.curve?{Cc:c.rated.kgs*(COOLANT[c.rated.coolant]||COOLANT.water).cp,tci:wTi,why:'the maker’s test coolant flow, '+lmin(c.rated.lpm)+' ('+c.rated.kgs+' kg/s) of EGW 25/75 (no coolant flow entered), in at '+tD(wTi)}:c.point&&c.point.cool_lpm>0?{Cc:cwOf(c.point.cool_lpm),tci:wTi,why:'the point’s own coolant flow, '+lmin(c.point.cool_lpm)+' (no coolant flow entered), in at '+tD(wTi)}:null);
-    out[t]=icRecommend({list,hpCore:icHp,m,Qreq,Ch,thi,tamb,mc,mh:R.merged?R.mc:R.m,rec,w,step:!!route.q.step,P2:R.P2,Pt:R.Pt,t3:R.t3,lim,a2a:t==='a2a',therm}); });
+    out[t]=icRecommend({list,hpCore:icHp,m,Qreq,Ch,thi,tamb,ice:Math.min(1,Math.max(0,(val('i-ice')||0)/100)),mc,mh:R.merged?R.mc:R.m,rec,w,step:!!route.q.step,P2:R.P2,Pt:R.Pt,t3:R.t3,lim,a2a:t==='a2a',therm}); });
   TG.icrec=Object.assign({m,types},out);
   const bellNeed=6*icHp/100, faceNeed=bellNeed/0.45, faceNeedM=faceNeed*m;
   const line=(x,k)=>{ const c=x.c, bits=[];
     bits.push(icRateOf(c)>0?'rated '+hpD(icRateOf(c))+', '+(icRateOf(c)/icHp).toFixed(2)+' × the target per core':'no rating; by its thermal point');
     if(x.tin!=null) bits.push('tanks '+mmIn(x.tin)+' in / '+mmIn(x.tout)+' out'+(x.exact?', an exact match to the pipes':', not smaller than the pipes'));
     x.flags.forEach(f=>bits.push(f));
+    if(x.evG===2) bits.push(icEvTxt(x));
     if(x.face) bits.push('charge face '+a2D(x.face.a)+' ('+esc(x.face.why)+')'+(x.bell?' meets':' is under')+' Bell’s '+a2D(faceNeedM)+(x.bell?'':', '+a2D(faceNeedM-x.face.a)+' short'));
     else if(x.bellG===1) bits.push('charge face not known: cannot check it against Bell’s '+a2D(faceNeedM));
     if(x.fitBasis) bits.push('fits your space ('+esc(x.fitBasis)+')');
@@ -21742,8 +21770,12 @@ function icRecSection(o){
         (applied?' <b>In use on this build.</b>':'')+(c.src?' Source: '+link(c.src,c.srcName)+', read '+c.seen+'.':'')+'</div>';
       if(little) g+='<div class="note warn" id="tso-icrec-little-'+t+'">Little published data for this core — check it in hand. <span class="cap">The maker’s page gives '+P.pubN+' of the 6 items in “What the maker publishes”. What to look at (common workshop practice, not sourced claims): fin density and whether the fins are straight and undamaged; internal turbulators in the charge passages (bar-and-plate); the weld quality on the tanks; a smooth tank inlet with no step at the core face; a leak test at '+pD(Math.max(0,R.P2-P_ATM))+' (this build’s boost at the compressor outlet) plus a margin you choose; then on the car measure the pressure drop across the core (enter it under Core drop from the maker’s rating and its flow, i-icrdp / i-icrf, and the page scales it) and the charge temperatures in and out (enter them under Cooling capacity from a known performance point, which turns them into a measured effectiveness).</span></div>';
       g+='<div class="actions"><button type="button" class="btn primary" data-icuse="'+P.key+'"'+(applied?' disabled':'')+'>'+(applied?'In use':'Use this intercooler')+'</button></div>';
+      g+='<p class="cap" id="tso-icrec-group-'+t+'">Ordered on the evidence (this page’s rule'+(t==='a2a'?', inside each Bell group':'')+'): first the cores whose thermal data (a maker’s curve or point, or your measured point), evaluated at this build’s flow, meets the target inside the data’s flow range (a single point: within ±'+Math.round(IC_PT_RANGE*100)+'% of its charge flow); then those that meet it only by extrapolating their data; then cores with a rating only, which the page cannot check against your target. Within the first two: the smallest capacity margin that still meets the target (the just-big-enough core), then the lower air drop at this flow and density, the smaller volume, the lighter core, the rating; within rating-only cores the smallest rating, then drop and volume. A core whose thermal data falls short is ruled out with its shortfall; within 5% of the heat needed it is listed as just short.</p>';
       g+='<ol class="list" id="tso-icrec-top-'+t+'">'+Rr.ok.slice(0,3).map((x,k)=>'<li data-key="'+x.key+'">'+line(x,k?k:null).replace(/^([^—]*)—/,k?'$1—':'$1(the pick) —')+'</li>').join('')+'</ol>'; }
     else g+='<div class="note warn" id="tso-icrec-none-'+t+'">No listed '+name[t]+' core meets these rules for this build. The specification below is what a core must meet; '+(m>1?'a lower margin, ':'')+(nt>1&&!R.merged?'':'')+'two cores, or a core from outside this list measured against it.</div>';
+    if(Rr.short.length) g+='<div class="note warn" id="tso-icrec-short-'+t+'"><b>Just short</b> (within 5% of the heat needed'+(m!==1?' × '+m:'')+')<ul class="list">'+Rr.short.map(x=>{ const J=x.justShort;
+      return '<li data-key="'+x.key+'">'+esc(x.c.maker+' '+x.c.pn)+': just short: reaches '+(J.reach*100).toFixed(1)+'% against your '+(J.target*100).toFixed(0)+'% target'+(m!==1?' × '+m:'')+'; lowering the target to '+(J.needT*100).toFixed(1)+'%'+(J.tci!=null?' or the coolant temperature into the core to '+tD(J.tci)+' (from '+tD(x.th.tci)+')':'')+' would make it pass. Predicted charge out '+tD(x.th.tho)+', removes '+(x.th.capM*100).toFixed(1)+'% of the heat needed'+(x.th.inRange?'':' (extrapolated from its data)')+(Number.isFinite(x.dpS)?', air drop '+pD(x.dpS):'')+'.</li>'; }).join('')+
+      '</ul><span class="cap">The effectiveness target is yours (default 75%): this shows what the core actually delivers at this build. A coolant temperature is the temperature into the charge cooler, which the front exchanger and the outside air set.</span></div>';
     g+='<details id="tso-icrec-out-'+t+'"><summary>Not recommended here ('+Rr.out.length+')</summary><ul class="list">'+Rr.out.map(x=>'<li data-key="'+x.key+'">'+esc(x.c.maker+' '+x.c.pn)+': '+x.fails.map(f=>esc(f[1])+(f[2]?' (a sudden step there loses '+pD(f[2].dpStep)+')':'')).join('; ')+'</li>').join('')+'</ul></details></div>'; });
   if(types.length>1){ const A=out.a2a.pick, W=out.w2a.pick, dTw=F('wdT')>0?F('wdT'):10, perL=0.001*cool.rho*cool.cp*dTw/Qreq;
     const front=c=>{ const D=icDimsIn(c); if(!D) return null; const s=D.slice().sort((a,b)=>b-a); return c.maker==='Garrett'?D[0]*D[1]:s[0]*s[1]; };
@@ -21753,7 +21785,7 @@ function icRecSection(o){
       '<li>Short pulls: with no front exchanger working, each litre (0.26 US gal) of '+cool.name+' in the loop takes '+perL.toFixed(1)+' s at full power to rise '+dT(dTw)+' (energy balance at '+kw(Qreq)+'); a loop of a few litres covers a drag pull, not a road course.</li>'+
       '<li>'+(A?'Air-to-air pick: '+esc(A.c.maker+' '+A.c.pn):'no air-to-air pick')+'; '+(W?'water-to-air pick: '+esc(W.c.maker+' '+W.c.pn):'no water-to-air pick')+'.</li></ul>'+
       '<span class="cap">The figures are this page’s own; the trade (no pump, coolant or soak for air-to-air; short pipes and a small core for water-to-air) is common practice, not a sourced rule.</span></div>'; }
-  g+='<p class="cap" id="tso-icrec-rule">The rule (this page’s, stated so it can be checked): (a) the maker’s rating covers the target per core × your margin ('+hpD(icHp)+(nt>1?(R.merged?', both turbos into one core: the whole engine':', each turbo with its own core'):'')+' × '+m+'), the lower figure where a maker states two; (b) end-tank necks not smaller than the recommended charge pipes'+(rec&&rec.odh>0&&rec.odc>0?' ('+mmIn(rec.odh)+' hot, '+mmIn(rec.odc)+' cold, outside)':'')+', a smaller neck being a contraction whose sudden-step loss is shown, unknown tanks flagged, not rejected; (c) Bell’s flow area as a cross-check of the charge face, air-to-air only; (d) where a thermal point is known, the predicted heat removed at this build’s flow at least the margin × the heat needed. Of those passing, for air-to-air with no size limit: first the cores whose charge face meets Bell’s face for the target × the margin ('+a2D(faceNeedM)+', 6 in² per 100 hp ÷ 0.45 = 13.33 in² per 100 hp), then those whose face is not known, then those that fail it; with a size limit entered, of the cores that fit, the largest charge face first; within that, and for water-to-air (Bell’s face rule is for air-to-air; the size limit applies to both), the smallest rating, then the lowest published pressure drop at this flow, then the smaller core volume (less charge to fill), then an exact tank match, then more published data. Margin 1 means none: makers do not state the test conditions behind their ratings (Garrett: “normal or typical operating conditions”). Garrett itself advises choosing the largest core that fits the packaging: enter your space above and the page does that; without it the page picks the smallest rating that covers the target and meets Bell’s face.</p>';
+  g+='<p class="cap" id="tso-icrec-rule">The rule (this page’s, stated so it can be checked): (a) the maker’s rating covers the target per core × your margin ('+hpD(icHp)+(nt>1?(R.merged?', both turbos into one core: the whole engine':', each turbo with its own core'):'')+' × '+m+'), the lower figure where a maker states two; (b) end-tank necks not smaller than the recommended charge pipes'+(rec&&rec.odh>0&&rec.odc>0?' ('+mmIn(rec.odh)+' hot, '+mmIn(rec.odc)+' cold, outside)':'')+', a smaller neck being a contraction whose sudden-step loss is shown, unknown tanks flagged, not rejected; (c) Bell’s flow area as a cross-check of the charge face, air-to-air only; (d) where a thermal point is known, the predicted heat removed at this build’s flow at least the margin × the heat needed. Of those passing, the evidence comes first within each of the groups below (thermal data meeting the target inside its flow range, then by extrapolation, then rating only: see the note under the pick). For air-to-air with no size limit: first the cores whose charge face meets Bell’s face for the target × the margin ('+a2D(faceNeedM)+', 6 in² per 100 hp ÷ 0.45 = 13.33 in² per 100 hp), then those whose face is not known, then those that fail it; with a size limit entered, of the cores that fit, the largest charge face first; within that, and for water-to-air (Bell’s face rule is for air-to-air; the size limit applies to both), the smallest rating, then the lowest published pressure drop at this flow, then the smaller core volume (less charge to fill), then an exact tank match, then more published data. Margin 1 means none: makers do not state the test conditions behind their ratings (Garrett: “normal or typical operating conditions”). Garrett itself advises choosing the largest core that fits the packaging: enter your space above and the page does that; without it the page picks the smallest rating that covers the target and meets Bell’s face.</p>';
   if(TG.G&&TG.G.wa>0&&Math.abs(R.m*LBMIN/TG.G.wa-1)>0.1) g+='<p class="cap" id="tso-icrec-flow">The ratings are compared with your power target, but the heat, the charge flow and the pipe sizes come from the tab’s airflow at the boost entered: '+fl(R.m)+' per compressor, where Garrett’s method gives '+fl(TG.G.wa/LBMIN)+' for '+hpD(val('i-hp'))+' (manifold pressure '+(TG.G.map).toFixed(1)+' psia, '+(TG.G.map*6.894757).toFixed(0)+' kPa). Raise the boost toward that to size the core and pipes for the target.</p>';
   g+=icSpecBlock();
   // the user's own core
