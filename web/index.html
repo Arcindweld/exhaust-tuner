@@ -19947,6 +19947,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-tsu
   if(TS_REC.dc>0) put('i-cpd2',Math.abs(TS_REC.dc-TS_REC.dh)<0.01?NaN:TS_REC.dc);
   if(TS_REC.nt>1&&Math.round(val('i-n'))!==TS_REC.nt) put('i-n',TS_REC.nt);
   renderActive(); });
+if(typeof window!=='undefined') window.__turbo={calcCharge,chargeSide,tsStep,calcTurboRoute,compOut};
 // the route as a dimensioned schematic, top to bottom; inline SVG on the page's theme tokens
 function tsSvg(R,q,p,F){
   const W=360, cx=58, wMax=64, dMax=Math.max(p.dt,q.dh,R.dc,q.dci||0,q.dco||0,q.dici||0,q.dico||0,q.dtb||0), k=wMax/dMax, half=d=>d*k/2;
