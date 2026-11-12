@@ -98,5 +98,53 @@ const { chromium } = require('playwright');
   chk(circ.filter(v => Math.abs(v - (152.4 - 0.3)) < 0.01).length === mc.pl.plates.length && circ.filter(v => Math.abs(v - (mc.pl.od + 0.5)) < 0.01).length >= 2,
     'end plates 0.3 mm under the inside diameter, holes the pipe OD + 0.5 mm (' + (mc.pl.od + 0.5).toFixed(2) + ' mm)');
 
+  // packing into stock bends, worked by hand: kerf 1.6 mm on a 2.62 in CLR is 1.378 deg of arc; 90 + 47.25 + 30 deg
+  // fit one 180 deg U-bend (90, then 47.25 + kerf, then 30 + kerf: 9.99 deg left) but take two 90s (47.25 + kerf + 30 + kerf = 79.98)
+  const pk = await pg.evaluate(() => { const C = window.__cut, clr = 2.62 * 25.4, rows = [{ L: 100, R: null, A: 90, CLR: clr }, { L: 37.3, R: 33.33, A: 47.25, CLR: clr }, { L: 0, R: -121.46, A: 30, CLR: clr }, { L: 80, R: null, A: null, CLR: null }];
+    const st = a => [{ supplier: 'T', od: 1.75, clr: 2.62, angle: a, mat: '304 stainless', pn: 'U' + a }];
+    const u = C.cutList(rows, 1.75, '304', { stock: st(180) }), n = C.cutList(rows, 1.75, '304', { stock: st(90) });
+    return { u: u.buy.map(x => [x.count, x.bins.map(q => q.left)]), n: n.buy.map(x => [x.count, x.bins.map(q => q.left)]) }; });
+  const kd = 1.6 / (2.62 * 25.4) * 180 / Math.PI;
+  chk(pk.u[0][0] === 1 && Math.abs(pk.u[0][1][0] - (180 - 167.25 - 2 * kd)) < 1e-6 && pk.n[0][0] === 2 && Math.abs(pk.n[0][1][1] - (90 - 77.25 - kd)) < 1e-6,
+    'stock packing: one U-bend (' + pk.u[0][1][0].toFixed(2) + ' deg left) or two 90s (' + pk.n[0][1].map(v => v.toFixed(2)).join(', ') + ' deg left), kerf ' + kd.toFixed(3) + ' deg between pieces of one arc');
+
+  // ---------------------------------------------------------------- 6. oval chamber: the same inside area, the wrap at mid-wall
+  const ov = await pg.evaluate(() => { document.getElementById('m-case').value = 'oval'; const pl = window.__mufCut.plan({ dpipe: 60.198, dch: 152.4, lch: 355.6 });
+    document.getElementById('m-case').value = 'round'; return { W: pl.W, H: pl.H, cw: pl.cw, wrap: pl.wrap, plates: pl.plates.map(q => [q.w, q.h]) }; });
+  const ovA = (ov.W - ov.H) * ov.H + Math.PI * ov.H * ov.H / 4, ovP = 2 * (ov.W - ov.H) + Math.PI * (ov.H + ov.cw);
+  chk(Math.abs(ovA - Math.PI / 4 * 152.4 ** 2) < 0.5 && Math.abs(ov.wrap.w - ovP) < 0.01 && ov.plates.every(q => Math.abs(q[0] - (ov.W - 0.3)) < 1e-9 && Math.abs(q[1] - (ov.H - 0.3)) < 1e-9),
+    'flat-oval case ' + ov.W.toFixed(1) + ' x ' + ov.H.toFixed(1) + ' mm inside holds the 6 in round area (' + ovA.toFixed(0) + ' mm^2); wrap ' + ov.wrap.w.toFixed(2) + ' mm = 2 (W - H) + pi (H + wall); plates 0.3 mm under');
+
+  // ---------------------------------------------------------------- 7. X-pipe build sheet lengths to 0.01 in / 0.1 mm
+  await pg.evaluate(() => location.hash = 'crossover'); await pg.selectOption('#x-type', 'x'); await pg.waitForTimeout(200);
+  const xs = await pg.evaluate(() => { const sec = [...document.querySelectorAll('#panel-cross .sec')].find(x => /X-pipe build sheet/.test(x.innerText)); return sec ? sec.innerText : ''; });
+  const xm = xs.match(/([\d.]+) in \(([\d.]+) mm\) of tube \(([\d.]+) in \(([\d.]+) mm\) along the car\)/);
+  chk(!!xm && /^\d+\.\d\d$/.test(xm[1]) && /^\d+\.\d$/.test(xm[2]) && Math.abs(xm[1] * 25.4 - xm[2]) < 0.2 && Math.abs(xm[3] * 25.4 - xm[4]) < 0.2,
+    'X-pipe build sheet gives the leg to 0.01 in and 0.1 mm: ' + (xm ? xm[0] : 'not found'));
+
+  // ---------------------------------------------------------------- 8. two-stroke build sheet: a flat blank for every cone
+  await pg.goto('file://' + process.cwd() + '/index.html#quick'); await pg.waitForTimeout(300);
+  await pg.selectOption('#q-eng', 't1'); await pg.dispatchEvent('#q-eng', 'change'); await pg.waitForTimeout(300);
+  const ts = await pg.evaluate(() => { const p = window.__quick.quickParams(), r = window.__quick.calcQuick(p), sh = window.__quick.quickSheet(p, r);
+    return { segs: r.two.segs, buy: sh.buy, steps: sh.steps, W: 1.651 }; });   // the sheet's 0.065 in wall
+  const tcones = ts.segs.filter(s => s.d0 !== s.d1);
+  chk(tcones.length >= 2 && tcones.every(s => { const row = ts.buy.find(b => b[0] === s.name + ' blank'); if (!row) return false;
+      const m = row[3].match(/arcs of ([\d.]+) in \(([\d.]+) mm\) and ([\d.]+) in \(([\d.]+) mm\) radius over ([\d.]+)°/); if (!m) return false;
+      const ra = (Math.min(s.d0, s.d1) + ts.W) / 2, rb = (Math.max(s.d0, s.d1) + ts.W) / 2, sl = Math.hypot(s.len, rb - ra), R0 = +m[2], R1 = +m[4], sw = +m[5] * Math.PI / 180;
+      return /from 0\.065 in \(1\.65 mm\) sheet/.test(row[3]) && Math.abs(R1 * sw - 2 * Math.PI * rb) < 0.5 && Math.abs(R0 * sw - 2 * Math.PI * ra) < 0.5 && Math.abs(R1 - R0 - sl) < 0.25 && Math.abs(+m[1] * 25.4 - R0) < 0.15; })
+    && !ts.steps.some(t => /2-Stroke tab’s layout/.test(t)),
+    'two-stroke sheet: ' + tcones.map(s => s.name).join(' and ') + ' each get a blank whose arcs close round both rims at mid-wall (' + tcones.map(s => (ts.buy.find(b => b[0] === s.name + ' blank') || [, , , '?'])[3].replace(/ \(mid-wall.*/, '')).join('; ') + ')');
+
+  // ---------------------------------------------------------------- 9. hanger tabs: coped foot and fin edge on the tube
+  await pg.goto('file://' + process.cwd() + '/index.html#hangers'); await pg.waitForTimeout(300);
+  const hg = await pg.evaluate(() => { const H = window.__hang, o = H.hgRead(), res = [];
+    for (const [orient, od] of [['across', 50.8], ['across', 76.2], ['along', 50.8], ['along', 25.4]]) {
+      const q = H.hgParts(Object.assign({}, o, { orient, od, part: 'tab' }))[0];
+      res.push({ orient, od, t: q.t, foot: q.outline.filter(s => s.t === 'A' && Math.hypot(s.c[0], s.c[1]) < 1e-9).map(s => s.r),
+        low: Math.min(...q.outline.flatMap(s => s.t === 'L' ? [s.a[1], s.b[1]] : [])) }); }
+    return res; });
+  chk(hg.every(h => h.orient === 'across' ? h.foot.length === 1 && Math.abs(h.foot[0] - h.od / 2) < 1e-9 : Math.abs(h.low - Math.sqrt((h.od / 2) ** 2 - (h.t / 2) ** 2)) < 1e-9),
+    'hanger tabs: across the tube the foot is an arc of the tube radius on its axis; along it the weld edge sits where both faces meet the tube, sqrt(R^2 - (t/2)^2) (' + hg.map(h => h.orient + ' ' + h.od + ' mm').join(', ') + ')');
+
   await b.close(); console.log(out.join('\n')); console.log(fails ? 'fabaudit_ui: ' + fails + ' FAIL' : 'fabaudit_ui: all pass'); process.exit(fails ? 1 : 0);
 })();

@@ -103,6 +103,14 @@ for name, Q, R in PATHS:
     wt = max(math.degrees(math.acos(max(-1.0, min(1.0, dot(a[1], b[1]))))) for a, b in zip(got, want))
     ok(len(got) == len(want) and wp < 0.0025 and wt < 0.01,
        '%s: rebuilt from the table, every bend end and the tube end within %.5f mm and %.5f deg' % (name, 10 * wp, wt))
+    # and against the input polyline alone: after bend i the tube runs along Q[i+1] -> Q[i+2], on that line
+    lt, lp = 0.0, 0.0
+    for i, (pt, tg) in enumerate(got[:-1]):
+        seg = unit(sub(Q[i + 2], Q[i + 1]))
+        lt = max(lt, math.degrees(math.acos(max(-1.0, min(1.0, dot(tg, seg))))))
+        off = sub(pt, Q[i + 1])
+        lp = max(lp, math.sqrt(max(0.0, dot(off, off) - dot(off, seg) ** 2)))
+    ok(lt < 0.01 and lp < 0.0025, '%s: each rebuilt straight lies on its leg of the input polyline (%.5f deg, %.5f mm)' % (name, lt, 10 * lp))
     # the same table with every rotation's sign flipped misses (a planar path cannot tell, the 3-D ones must)
     flip = [dict(r, R=(-r['R'] if r['R'] is not None else None)) for r in rows]
     gf = rebuild(flip, Q[0], d0, b0)
