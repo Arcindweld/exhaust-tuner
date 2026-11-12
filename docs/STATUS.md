@@ -1452,3 +1452,36 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   in-cylinder heat by phase are the candidates left). No model change for it.
 - Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum part 3 (C1-C10); tests wavegas_ui.js 11, wave_wasm.js (two jobs),
   cam_ui.js (plenum share, head curve).
+
+## 2026-11-12: a recommended intercooler and turbo for the build (Intake tab)
+
+- The owner's "Can you recommend a specific intercooler in these design circumstances as well?" and "From reputable brands
+  ideally". Intercooler options now pick one core per type (one of each, with what decides, while the type is "Not decided",
+  the new default) by rules stated on the page (icRecommend): (a) the maker's rating, the lower where two are stated
+  (Mishimoto MMINT-UM 800 / "Rated to 600 whp": 600), at least a margin input (default 1 = none) × the target per core
+  (twins into one core: the whole engine); (b) end-tank necks not smaller than the recommended charge pipe OD (smaller:
+  rejected with the sudden-step loss tsStep gives; unknown or core-only: flagged); (c) Bell's 6 in² per 100 hp / 45% open
+  face as a flag, air-to-air only, charge face per maker (Garrett labels the hot flow; Mishimoto tanks on the length ends;
+  CSF assumed along the length, the height for its vertical-flow rows); (d) a row with a thermal point (EJ Bowman, or the
+  user's own measured core) predicted at this build's flow (UA held) must remove at least the margin × the heat needed.
+  Order: smallest rating, then published drop at this flow, core volume, exact tank match, more published data (the
+  owner's tie rule), list order. Top three with the reason each ranks there, the rest collapsible with what ruled each
+  out, and a specification block always shown (heat in kW and BTU/min, rating, NTU/UA for the target, Bell area and face,
+  tank necks, Bell's 2 psi drop budget). "Use this intercooler" and picking from the list do the same: type, core, necks
+  less twice the pipe wall into the intercooler inlet/outlet, the maker's drop and flow into i-icrdp / i-icrf, a thermal
+  point into the cooling-capacity inputs. Checklist step 6 and the build sheet (part number, size, source link) show it.
+- Turbo options: the same kind of pick (turboRecommend): not flagged in the table, rating at least a margin × the target
+  per turbo; smallest rating, then smaller compressor inducer, then a maker with a lower figure; "Use this turbo"; the
+  page says it is a rating match, not a compressor-map match.
+- Catalogue (makers' own pages, read 2026-11-12): Garrett's full core table (31 air-to-air, 4 air-to-liquid; was 8),
+  Mishimoto MMINT-UZ (no hp rating; 22 psi), MMINT-UG (700 hp), MMINT-US (800 hp), CSF 8040, 8048, 8054, 8055, 8063, 8067,
+  8068, 8173, 8174, 8085, 8086. Each row has "What the maker publishes" (construction, end tanks, drop, thermal point,
+  pressure test or rated boost, warranty; null where the page does not say) - not a quality rating; a pick with fewer than
+  3 of 6 gets "Little published data for this core — check it in hand" with a workshop checklist labelled as common
+  practice. Not verified (dealer or marketplace pages only, searched again): Treadstone, Vibrant, PWR, Wagner, Bell.
+- The user's own core (name, size, necks, rating, measured drop and point), recommended alongside the list; TSO is now
+  saved with projects (PROJ_UI.tso).
+- Note: the heat and pipe sizes come from the tab's airflow at the boost entered, not the power target; the page says so
+  when Garrett's method differs by more than 10%. Garrett advises the largest core that fits the packaging; this page picks
+  the smallest that covers the target (the margin leans toward Garrett's advice), said on the page.
+- Tests: web/tests/icrec_ui.js (new); turbolib_ui.js row counts updated (type starts undecided; 50 + 17 rows).
