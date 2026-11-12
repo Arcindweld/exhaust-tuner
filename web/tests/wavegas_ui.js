@@ -350,7 +350,7 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
   { const segs = W0.plenumOf({ plenum: { V_m3: 1, inlet: [{ L: 0.6, d0: 0.1016, d1: 0.1016 }], filter: { dp: 2500, m: 0.35 } } }).inlet, res = [];
     for (const pd of [P0 - 3300, P0 - 1500]) { const s = line(segs, pd), P = s.L[s.L.length - 1], i = 30, g = P.g[i], c = Math.sqrt(g * P.p[i] / P.r[i]), M = P.u[i] / c;
       const p0 = P.p[i] * Math.pow(1 + 0.5 * (g - 1) * M * M, g / (g - 1)); res.push({ m: s.m, loss: P0 - p0, want: 2500 * (s.m / 0.35) ** 2 }); }
-    ok(segs.length === 2 && segs[0].d0 < 0.1016 && res.every(r => r.loss / r.want - 1 > 0 && r.loss / r.want - 1 < 0.12), 'air filter (sized incompressibly; the step's Mach 0.3-0.35 adds 4-10 %) (2.5 kPa at 0.35 kg/s: a 50 mm step to ' + (segs[0].d0 * 1000).toFixed(1) + ' mm before the 101.6 mm tube): steady total-pressure loss ' +
+    ok(segs.length === 2 && segs[0].d0 < 0.1016 && res.every(r => r.loss / r.want - 1 > 0 && r.loss / r.want - 1 < 0.12), 'air filter (sized incompressibly; the step\'s Mach 0.3-0.35 adds 4-10 %) (2.5 kPa at 0.35 kg/s: a 50 mm step to ' + (segs[0].d0 * 1000).toFixed(1) + ' mm before the 101.6 mm tube): steady total-pressure loss ' +
       res.map(r => (r.loss / 1000).toFixed(3) + ' kPa at ' + r.m.toFixed(3) + ' kg/s (dp (m / m_ref)^2 = ' + (r.want / 1000).toFixed(3) + ')').join(', ')); }
   // (e) an engine cycle with the plenum, its stepped inlet, throttle and filter and measured valve tables: mass and total
   // energy (pipes, cylinder, plenum) conserved to rounding

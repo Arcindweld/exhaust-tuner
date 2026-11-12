@@ -1252,7 +1252,11 @@ heat per kg of charge (compare.comb_eff). Each experiment changes one thing.
   28 in H2O gives 312.0 cfm (source 312); the throttle by hand and in steady flow (0.3587 kg/s both); the filter's loss in
   steady flow (C2); plenum mass and total energy over a cycle to 1e-14.
 - `wave_wasm.js`: JS and Rust/WebAssembly bit for bit on every job, the two new ones included.
-- Suite: see STATUS.md (2026-11-12 part 3).
+- Suite (`python3 tools/run_all_tests.py -j 2`, 2026-11-12 part 3): 148 tests, 145 passed, 2 skipped and 4 partial skips,
+  all expected, 1 failed: wavegas_ui, a quote in one of its new messages (a syntax error in the test file, no check reached);
+  fixed and rerun alone: 121 checks, all pass. wave_wasm_built (every speed, JS against Rust) and cam_ui, sim_ui, multi_ui,
+  sound_ui, dyno_ui, mdwam_ui, jpipe_ui, test_header_uel passed in the run; build_wave_wasm left the page's embedded
+  WebAssembly byte-identical.
 
 ### C9 Summary rows (section 6, as of 2026-11-12, part 3)
 
