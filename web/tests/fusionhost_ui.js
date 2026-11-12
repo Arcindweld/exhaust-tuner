@@ -1,14 +1,15 @@
 // The Fusion panel runs OpenWAM itself: the page talks to the add-in's hostrun.py (here through a stand-in for
-// Fusion's bridge, fusion-addin/tests/hostrun_bridge.py, with the real OpenWAM build; "skipped" without it), so
+// Fusion's bridge, fusion-addin/tests/hostrun_bridge.py, with the real OpenWAM build; skipped, and counted as a skip, without it), so
 // "Run in OpenWAM on this PC" shows in the panel, the results land in the tables and the Sound tab with no files saved
 // or loaded, the file pickers fold away, the desktop program’s menu stays hidden, and with a 2-Stroke and a 4-Stroke
 // run going at once each Stop ends only its own run (hostCancel with its id).   node tests/fusionhost_ui.js
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path');
 const { spawn } = require('child_process');
-const EXE = process.env.EXHAUST_TUNER_OPENWAM || path.resolve(__dirname, '../../ext/OpenWAM/build/bin/release/OpenWAM');
+const { skip, openwam } = require('./skip.js');
+const EXE = openwam();
 (async () => {
-  if (!fs.existsSync(EXE)) { console.log('fusionhost_ui: skipped (no OpenWAM build at ' + EXE + ')'); process.exit(0); }
+  if (!fs.existsSync(EXE)) skip('fusionhost_ui: no OpenWAM build at ' + EXE + ' (EXHAUST_TUNER_OPENWAM)');
   const py = spawn('python3', [path.resolve(__dirname, '../../fusion-addin/tests/hostrun_bridge.py')], { env: Object.assign({}, process.env, { EXHAUST_TUNER_OPENWAM: EXE, HOME: fs.mkdtempSync('/tmp/fh_') }) });
   let seq = 0, buf = ''; const wait = {}; let pg = null; const events = [], cancels = [], calls = [], dones = [];
   py.stdout.on('data', d => { buf += d; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i); buf = buf.slice(i + 1); let m; try { m = JSON.parse(line); } catch (e) { continue; }

@@ -1,11 +1,12 @@
 // 2-Stroke tab, "From the engine", Run it in OpenWAM: the page writes the two-stroke case (wam2t_export.js), a stand-in
-// host runs the real OpenWAM on it (ext/OpenWAM; "skipped" without it), and the page reads the results back: the
+// host runs the real OpenWAM on it (EXHAUST_TUNER_OPENWAM or ext/OpenWAM; without it that part is skipped, and counted as a skip), and the page reads the results back: the
 // chamber against a straight pipe on the 125 cc MX engine of openwam/tests/test_2t.py.
 //   node tests/two_wam_ui.js            (from web/)
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
-const EXE = process.env.EXHAUST_TUNER_OPENWAM || path.resolve(__dirname, '../../ext/OpenWAM/build/bin/release/OpenWAM');
+const { skipPart, openwam } = require('./skip.js');
+const EXE = openwam();
 
 function runOne(dir, name) {
   return new Promise(res => {
@@ -75,7 +76,7 @@ function runOne(dir, name) {
   ok(fs2.model.model === '1d_stop' && Math.abs(fs2.model.lift_stop - 0.0075) < 1e-12 && /model 2 = 1-D mass-spring-damper with a lift stop/.test(fs2.wam) && /reed 1-D with a 7\.5 mm lift stop/.test(fs2.wam),
     'the moving reed with a 7.5 mm lift stop goes into the .wam as TLamina model 2');
   await pg.evaluate(() => { const s = [...document.querySelectorAll('#two-details select')].find(x => [...x.options].some(o => o.value === '1d_stop')); s.value = '1d'; s.dispatchEvent(new Event('change', { bubbles: true })); }); await pg.waitForTimeout(300);
-  if (!have) { console.log('skipped'); await b.close(); process.exit(0); }
+  if (!have) { skipPart('the OpenWAM runs: no OpenWAM build at ' + EXE + ' (EXHAUST_TUNER_OPENWAM)'); await b.close(); process.exit(fails.length ? 1 : 0); }
   await pg.click('button[data-tw="run"]');
   const t0 = Date.now();
   await pg.waitForFunction(() => window.__twResults && window.__twResults.length, null, { timeout: 1500000 });

@@ -1,0 +1,48 @@
+# The skips tools/run_all_tests.py allows, one per line:   name  kind  condition  reason
+#   kind       skip (the whole test did not run: "TEST SKIPPED: <why>", or the runner did not start it) or
+#              part (it ran, but a part of it did not: "SKIP: <why>", or ignored cargo tests)
+#   condition  when the skip is allowed: always, no-cargo, no-wasm32, no-host, no-et-core, no-openwam, no-openfoam,
+#              no-numpy, no-playwright, python<3.12 (the runner works out which hold on the machine)
+# A skip not listed here for the conditions that hold fails the run; a listed one that did not happen is reported.
+# Keep the reasons true: say what is missing and how to get it.
+
+# data that comes from OpenWAM runs that are git-ignored (**/runs/*/), so never in a checkout
+wamlevel_ui      skip  always       the F-100 p900 OpenWAM run is git-ignored (validation/f100-302/model: python3 f100.py run ho_venom_plenum_x400_p900_5800)
+dualexit_ui      skip  always       the F-100 OpenWAM run is git-ignored (validation/f100-302/model: python3 f100.py run ho_venom_plenum_x400_p900_5800)
+rec_ui           part  always       the OpenWAM comparison needs validation/outback-2004/model/runs/hold_1980 (git-ignored OpenWAM output)
+uel_ui           part  always       the INS order reader needs web/tests/uel_runs (git-ignored: node uel_gen.js, then OpenWAM)
+
+# OpenFOAM is never run by the runner here or in CI (minutes per case; cfd-validation.yml runs the solver suites)
+desktop_ui       part  no-openfoam  the page's OpenFOAM runs need EXHAUST_TUNER_OPENFOAM
+
+# OpenWAM (EXHAUST_TUNER_OPENWAM, or ext/OpenWAM's build in the checkout); CI builds it, so these hold off CI only
+desktop_ui       skip  no-openwam   needs an OpenWAM build and the host program
+fusionhost_ui    skip  no-openwam   needs an OpenWAM build
+mdwam_ui         part  no-openwam   the OpenWAM runs need an OpenWAM build
+two_wam_ui       part  no-openwam   the OpenWAM runs need an OpenWAM build
+opt_ui           part  no-openwam   the as-designed case is not run without an OpenWAM build
+intakemouth_ui   part  no-openwam   the OpenWAM run needs an OpenWAM build
+cargo_test_rust_real_openwam  skip  no-openwam  the real-solver test needs an OpenWAM build
+
+# the Rust builds (cargo, the wasm32 target)
+build_host       skip  no-cargo     cargo is not installed
+build_et_core    skip  no-cargo     cargo is not installed
+build_wave_wasm  skip  no-cargo     cargo is not installed
+build_wave_wasm  skip  no-wasm32    rustup target add wasm32-unknown-unknown
+cargo_test_rust  skip  no-cargo     cargo is not installed
+cargo_test_et_core  skip  no-cargo  cargo is not installed
+cargo_test_et_wave  skip  no-cargo  cargo is not installed
+cargo_test_rust_real_openwam  skip  no-cargo  cargo is not installed
+desktop_ui       skip  no-host      needs exhaust-tuner-host (cargo build --release --manifest-path rust/Cargo.toml)
+update_ui        skip  no-host      needs exhaust-tuner-host (cargo build --release --manifest-path rust/Cargo.toml)
+gen_rs_vs_py     skip  no-host      needs exhaust-tuner-host (cargo build --release --manifest-path rust/Cargo.toml)
+report_rs_vs_py  skip  no-host      needs exhaust-tuner-host (cargo build --release --manifest-path rust/Cargo.toml)
+test_native      skip  no-et-core   needs the router core (cargo build --release --manifest-path rust/et_core/Cargo.toml)
+
+# Python: the generator parity needs 3.12's compensated sum(); the sound tools need numpy
+gen_rs_vs_py     skip  python<3.12  Python before 3.12 adds sums without compensation
+report_rs_vs_py  skip  python<3.12  Python before 3.12 adds sums without compensation
+sound_test_realism  skip  no-numpy  numpy (and scipy) not installed
+sound_test_sweep    skip  no-numpy  numpy not installed
+wave_wasm_built  skip  no-cargo     cargo is not installed
+wave_wasm_built  skip  no-wasm32    rustup target add wasm32-unknown-unknown

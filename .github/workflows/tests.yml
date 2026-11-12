@@ -1,0 +1,223 @@
+name: Tests (Linux)
+
+# The whole test suite on Linux through tools/run_all_tests.py (README.md, "Running the tests"): the Rust programs
+# built once, the Rust tests, and the page, add-in and parity tests split across shards balanced on
+# tools/test_timings.json; one table of every result at the end (job summary and the results-all artifact).
+# Independent of the Windows build (windows.yml): it neither waits for nor blocks a release.
+on:
+  push:
+    branches: [ "main", "windows-app" ]
+    paths-ignore: [ "**/*.md", "docs/**", "cad/**" ]
+  pull_request:
+    paths-ignore: [ "**/*.md", "docs/**", "cad/**" ]
+  workflow_dispatch:
+
+# a newer push to the same branch (or pull request) cancels a run still going
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # the OpenWAM the tests run: CMT-UPV's source at the commit windows.yml builds, with openwam/patches (keep the two
+  # in step)
+  OPENWAM_COMMIT: 25f46f2491e18e26362a428ea6dc151a195c65f0
+  OPENWAM_EXE: ${{ github.workspace }}/engines-linux/openwam/OpenWAM
+  PLAYWRIGHT_VERSION: 1.63.0
+  CARGO_TERM_COLOR: never
+
+jobs:
+  # exhaust-tuner-host, the router core and the wave model as WebAssembly, and OpenWAM for Linux: built once, handed to
+  # the other jobs as the "built" artifact
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Rust build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            rust/target
+            rust/et_core/target
+            rust/et_wave/target
+          key: rust-tests-build-${{ hashFiles('rust/Cargo.lock', 'rust/*/Cargo.toml', 'rust/*/Cargo.lock') }}-v1
+          restore-keys: rust-tests-build-
+      # only when that commit and those patches are not in the cache yet (a build takes a couple of minutes)
+      - name: OpenWAM from the cache
+        id: wam
+        uses: actions/cache@v4
+        with:
+          path: engines-linux/openwam
+          key: openwam-linux-x64-${{ env.OPENWAM_COMMIT }}-${{ hashFiles('openwam/patches/*.patch') }}-v1
+      - uses: actions/checkout@v4
+        if: steps.wam.outputs.cache-hit != 'true'
+        with:
+          repository: CMT-UPV/OpenWAM
+          ref: ${{ env.OPENWAM_COMMIT }}
+          path: openwam-src
+      - name: Build OpenWAM (cache miss)
+        if: steps.wam.outputs.cache-hit != 'true'
+        run: |
+          for p in openwam/patches/*.patch; do echo "applying $p"; git -C openwam-src apply --ignore-whitespace --verbose "$GITHUB_WORKSPACE/$p"; done
+          grep -q FLevMax openwam-src/Source/Connections/TLamina.cpp
+          cmake -S openwam-src -B wam-build -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          cmake --build wam-build -j 4
+          exe=$(find wam-build -type f -name OpenWAM -perm -u+x | head -1)
+          echo "built: $exe"
+          mkdir -p engines-linux/openwam
+          cp "$exe" engines-linux/openwam/OpenWAM
+          rm -rf openwam-src wam-build
+      - name: OpenWAM is there
+        run: |
+          test -x "$OPENWAM_EXE"
+          echo "OpenWAM $OPENWAM_COMMIT: ${{ steps.wam.outputs.cache-hit == 'true' && 'from the cache' || 'built' }}"
+      - name: Build the Rust programs
+        run: |
+          rustup target add wasm32-unknown-unknown
+          python3 tools/run_all_tests.py --suite build --out test-results/build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: built
+          path: |
+            rust/target/release/exhaust-tuner-host
+            rust/et_core/target/release/libet_core.so
+            rust/et_wave/target/wasm32-unknown-unknown/release/et_wave.wasm
+            engines-linux/openwam/OpenWAM
+          if-no-files-found: error
+          retention-days: 3
+
+  # cargo test for every crate (with the solver stand-ins), the real-OpenWAM test, and the wave model built from this
+  # commit against the page's JavaScript
+  rust:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Rust build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            rust/target
+            rust/et_core/target
+            rust/et_wave/target
+          key: rust-tests-test-${{ hashFiles('rust/Cargo.lock', 'rust/*/Cargo.toml', 'rust/*/Cargo.lock') }}-v1
+          restore-keys: |
+            rust-tests-test-
+            rust-tests-build-
+      - uses: actions/download-artifact@v4
+        with:
+          name: built
+      - name: Rust tests
+        env:
+          EXHAUST_TUNER_OPENWAM: ${{ env.OPENWAM_EXE }}
+        run: |
+          chmod +x rust/target/release/exhaust-tuner-host "$OPENWAM_EXE"
+          rustup target add wasm32-unknown-unknown
+          python3 tools/run_all_tests.py --suite build,rust --out test-results/rust
+      - name: Results in the job summary
+        if: ${{ !cancelled() }}
+        run: cat test-results/rust/results.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: results-rust
+          path: test-results/rust
+          retention-days: 14
+
+  # the page tests (Playwright + Chromium), the add-in's tests and the parity checks, one at a time in each shard;
+  # the shards are balanced on tools/test_timings.json (python3 tools/run_all_tests.py --shard I/N --list)
+  tests:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [ 1, 2, 3 ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Python packages (the sound tools)
+        run: python3 -m pip install --quiet numpy scipy
+      - uses: actions/download-artifact@v4
+        with:
+          name: built
+      - name: Test browser from the cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ env.PLAYWRIGHT_VERSION }}-chromium-linux
+      - name: Playwright and Chromium
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@$PLAYWRIGHT_VERSION
+          npx playwright install --with-deps chromium
+      - name: Tests (shard ${{ matrix.shard }} of 3)
+        env:
+          EXHAUST_TUNER_OPENWAM: ${{ env.OPENWAM_EXE }}
+        run: |
+          chmod +x rust/target/release/exhaust-tuner-host "$OPENWAM_EXE"
+          python3 tools/run_all_tests.py --suite web,fusion,parity --no-build --shard ${{ matrix.shard }}/3 --out test-results/shard-${{ matrix.shard }}
+      - name: Results in the job summary
+        if: ${{ !cancelled() }}
+        run: cat test-results/shard-${{ matrix.shard }}/results.md >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: results-shard-${{ matrix.shard }}
+          path: test-results/shard-${{ matrix.shard }}
+          retention-days: 14
+
+  # one table of every result (the job summary and the results-all artifact); fails when any part failed
+  report:
+    needs: [ build, rust, tests ]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: results-*
+          path: results
+      - name: All results
+        run: |
+          parts=$(ls -d results/*/ 2>/dev/null || true)
+          if [ -z "$parts" ]; then echo "no results: the build job failed (see its log)" | tee -a "$GITHUB_STEP_SUMMARY"; exit 1; fi
+          rc=0; python3 tools/run_all_tests.py --merge $parts --out results-all || rc=$?
+          cat results-all/results.md >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ needs.rust.result }}" != success ] || [ "${{ needs.tests.result }}" != success ]; then rc=1; fi
+          exit $rc
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: results-all
+          path: results-all
+          retention-days: 30

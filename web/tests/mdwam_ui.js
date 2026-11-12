@@ -1,11 +1,12 @@
 // Mufflers tab, Muffler designer, "Check the chambers in OpenWAM": the designer's chambers go into the 4-Stroke tab's
-// OpenWAM line, a stand-in host runs the real OpenWAM (ext/OpenWAM; "skipped" without it), and the page scores each
+// OpenWAM line, a stand-in host runs the real OpenWAM (EXHAUST_TUNER_OPENWAM or ext/OpenWAM; without it that part is skipped, and counted as a skip), and the page scores each
 // design against the line with no muffler from the outflow's half orders at 1 m.
 //   node tests/mdwam_ui.js            (from web/)
 const { chromium } = require('playwright');
 const fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
-const EXE = process.env.EXHAUST_TUNER_OPENWAM || path.resolve(__dirname, '../../ext/OpenWAM/build/bin/release/OpenWAM');
+const { skipPart, openwam } = require('./skip.js');
+const EXE = openwam();
 
 // the desktop host's ins_tail (rust/et_host/src/openwam.rs): the header and the last 4 cycles of an INS.DAT
 function insTail(t, keep = 4) {
@@ -75,7 +76,7 @@ function runOne(dir, name) {
   const dd = await pg.evaluate(() => { const R = window.__md.MD.res, cyl = window.__mdw.cyl(), d = window.__mdw.mdwRpmsDefault({ cyl }, R.fs[0], R.fs[8]); return { cyl, d, x: d.map(r => r * cyl / 2 / 60 / R.fs[0]) }; });
   const dflt = dd.x;
   ok(Math.abs(dflt[0] - 1) < 0.05, 'the default speeds put the firing order (' + dd.cyl + ' cylinders) at the band\'s low end (' + dflt.map(x => x.toFixed(2)).join(', ') + ' of f0)');
-  if (!have) { console.log('skipped'); await b.close(); return; }
+  if (!have) { skipPart('the OpenWAM runs: no OpenWAM build at ' + EXE + ' (EXHAUST_TUNER_OPENWAM)'); await b.close(); process.exit(fails.length ? 1 : 0); }
   // two speeds to keep it short: the band's ends
   const rp = process.env.MDW_RPMS || [dd.d[0], dd.d[dd.d.length - 1]].join(' ');
   await pg.fill('#mdw-rpms', rp); await pg.dispatchEvent('#mdw-rpms', 'change'); await pg.waitForTimeout(200);

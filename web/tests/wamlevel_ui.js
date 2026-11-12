@@ -1,10 +1,11 @@
 // Absolute roadside level and Davies' quiet target from an OpenWAM INS file on the 4-Stroke tab; the per-order level at 1 m
 // against sound/wam_sound.py on the same run.
 const { chromium } = require('playwright');
+const { skip } = require('./skip.js');
 const fs = require('fs'), path = require('path'), { execFileSync } = require('child_process');
 (async () => {
   const run = path.resolve('../validation/f100-302/model/runs/ho_venom_plenum_x400_p900_5800'), insF = path.join(run, 'ho_venom_plenum_x400_p900_5800INS.DAT');
-  if (!fs.existsSync(insF)) { console.log('skipped'); console.log('SKIP: the F-100 p900 run is not here'); process.exit(0); }
+  if (!fs.existsSync(insF)) skip('the F-100 p900 run is not here (validation/f100-302/model: python3 f100.py run ho_venom_plenum_x400_p900_5800, needs OpenWAM)');
   const fails = []; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   const all = fs.readFileSync(insF, 'utf8').split(/\r?\n/).filter(l => l.trim() !== ''), hd = all[0].split('\t'), ai = hd.findIndex(h => /^Angle/i.test(h));
   let st = [], prev = null; for (let i = 1; i < all.length; i++) { const a = parseFloat(all[i].split('\t', ai + 1)[ai]); if (prev !== null && a < prev - 180) st.push(i); prev = a; }

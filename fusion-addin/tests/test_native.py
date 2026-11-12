@@ -10,7 +10,7 @@ on against an all-Python run: the same corners to the last bit. Then timings, an
 core fails part way (the work carries on in Python with the same answers). --quick (for CI, about half a minute)
 routes two of the header's four primaries and leaves out the slowest timing.
 
-Prints "skipped" when the Rust core is not built (cargo build --release in rust/et_core, or
+Prints "TEST SKIPPED: <why>" when the Rust core is not built (cargo build --release in rust/et_core, or
 EXHAUST_TUNER_NATIVE_DIR pointing at the library), unless --require is given (or REQUIRE_NATIVE=1): then a core
 that is missing or does not load fails the run, so a build that should have it cannot pass without it."""
 import math
@@ -34,7 +34,7 @@ if RT.NV is None:
     if '--require' in sys.argv or os.environ.get('REQUIRE_NATIVE') == '1':
         print('FAIL the Rust core is required here and did not load')
         sys.exit(1)
-    print('skipped')
+    print('TEST SKIPPED: the Rust core is not built (cargo build --release in rust/et_core)')   # tools/run_all_tests.py
     sys.exit(0)
 print(RT.NATIVE_NOTE + ': ' + RT.NV.WHY)
 

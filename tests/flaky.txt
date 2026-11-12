@@ -1,0 +1,7 @@
+# Tests that tools/run_all_tests.py runs a second time when they fail, one per line: name, then the reason it is here
+# (what makes it flaky, and what would fix it). A test that fails and then passes is reported as FLAKY, not hidden.
+# Keep this list short: a timing-sensitive test is better fixed by waiting on the condition it needs.
+#
+# (empty) autocfd_ui was the reason for this file: it failed under CPU load on "a newer design stops the running test
+# first" because the "Stopping the test of the earlier design" status lasts only until the stand-in's cancel rejects
+# (150 ms) and the test polled for it every 200 ms; it now waits on conditions (2026-11-11, docs/STATUS.md).
