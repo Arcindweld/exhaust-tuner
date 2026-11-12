@@ -21370,8 +21370,9 @@ const icHpOf=c=>c.hp!=null?c.hp:c.kw!=null?c.kw/0.7457:NaN;
        unknown (a core sold without tanks, or not published): not rejected, flagged;
    (c) Bell's flow-area rule (6 in² per 100 hp, 45% of the charge face open) as a cross-check of the charge face, air-to-air
        only; the charge face per maker: Garrett labels the length as the hot flow (face = height × width), Mishimoto's
-       overall length exceeds its core length (tanks on the length ends: face = height × thickness), CSF does not say (the
-       longest dimension taken as the charge-flow length: an assumption);
+       overall length exceeds its core length (tanks on the length ends: face = height × thickness), CSF does not say (its
+       length, the longest dimension on every row, taken as the charge-flow length, or the height on its rows listed as
+       vertical flow: assumptions);
    (d) a row with a thermal point (EJ Bowman's brochure, or the user's own measured point) is predicted at this build's flow
        (UA held, icPredict) and must remove the heat the target effectiveness needs times the margin.
    Order: the smallest rating that passes (rating ÷ target per core; a row without a rating by its capacity margin), then
@@ -21387,7 +21388,8 @@ function icFace(c){
   if(c.own) return {a:D[1]*D[2],why:'height × width (your length is the charge-flow length)'};
   if(c.maker==='Garrett') return {a:D[1]*D[2],why:'height (no flow) × width (cold flow): Garrett labels the length as the hot, charge, flow'};
   if(c.maker==='Mishimoto') return {a:D[1]*D[2],why:'core height × thickness: Mishimoto’s overall length is longer than its core length, so the tanks sit on the length ends'};
-  const s=D.slice().sort((a,b)=>b-a); return {a:s[1]*s[2],why:'the two shorter dimensions: '+c.maker+' does not say which way the charge flows, so the longest is taken as the charge-flow length (this page’s assumption)'};
+  if(/vertical flow/.test(c.model)) return {a:D[0]*D[2],why:'length × width: '+c.maker+' lists the core as vertical flow, so the charge is taken to run along the height'};
+  return {a:D[1]*D[2],why:'height × width: '+c.maker+' does not say which way the charge flows, so its first dimension, the length (the longest on every row), is taken as the charge-flow length (this page’s assumption)'};
 }
 const icVolIn3=c=>{ const D=icDimsIn(c); return D?D[0]*D[1]*D[2]:NaN; };
 const icPubList=c=>{ const P=c.pub||{}; return [['construction',P.cons],['end tanks',P.tanks&&!/^core only/.test(P.tanks)?P.tanks:null],['pressure drop',c.dp?'published at a stated flow':null],
@@ -21542,6 +21544,7 @@ function icRecSection(o){
       '<li>'+(A?'Air-to-air pick: '+esc(A.c.maker+' '+A.c.pn):'no air-to-air pick')+'; '+(W?'water-to-air pick: '+esc(W.c.maker+' '+W.c.pn):'no water-to-air pick')+'.</li></ul>'+
       '<span class="cap">The figures are this page’s own; the trade (no pump, coolant or soak for air-to-air; short pipes and a small core for water-to-air) is common practice, not a sourced rule.</span></div>'; }
   g+='<p class="cap" id="tso-icrec-rule">The rule (this page’s, stated so it can be checked): (a) the maker’s rating covers the target per core × your margin ('+hpD(icHp)+(nt>1?(R.merged?', both turbos into one core: the whole engine':', each turbo with its own core'):'')+' × '+m+'), the lower figure where a maker states two; (b) end-tank necks not smaller than the recommended charge pipes'+(rec&&rec.odh>0&&rec.odc>0?' ('+mmIn(rec.odh)+' hot, '+mmIn(rec.odc)+' cold, outside)':'')+', a smaller neck being a contraction whose sudden-step loss is shown, unknown tanks flagged, not rejected; (c) Bell’s flow area as a cross-check of the charge face, air-to-air only; (d) where a thermal point is known, the predicted heat removed at this build’s flow at least the margin × the heat needed. Of those passing, the smallest rating first, then the lowest published pressure drop at this flow, then the smaller core volume (less charge to fill), then an exact tank match, then more published data. Margin 1 means none: makers do not state the test conditions behind their ratings (Garrett: “normal or typical operating conditions”). Garrett itself advises choosing the largest core that fits the packaging; this page picks the smallest that covers the target, as it picks pipe sizes; raise the margin to lean toward Garrett’s advice.</p>';
+  if(TG.G&&TG.G.wa>0&&Math.abs(R.m*LBMIN/TG.G.wa-1)>0.1) g+='<p class="cap" id="tso-icrec-flow">The ratings are compared with your power target, but the heat, the charge flow and the pipe sizes come from the tab’s airflow at the boost entered: '+fl(R.m)+' per compressor, where Garrett’s method gives '+fl(TG.G.wa/LBMIN)+' for '+hpD(val('i-hp'))+' (manifold pressure '+(TG.G.map).toFixed(1)+' psia, '+(TG.G.map*6.894757).toFixed(0)+' kPa). Raise the boost toward that to size the core and pipes for the target.</p>';
   g+=icSpecBlock();
   // the user's own core
   g+='<details id="tso-own"'+(OWN?' open':'')+'><summary>Your own core (recommended alongside the list; saved with the project)</summary><div class="grid2">'+
@@ -21563,7 +21566,7 @@ function icRecSection(o){
         const Cc=am/LBMIN*CP_AIRT, Cmin=Math.min(Ch,Cc), Cr=Cmin/Math.max(Ch,Cc), e=Qreq/(Cmin*(thi-tamb)), n=ntuFor(e,Cr);
         return rowT('NTU and UA, air-to-air',Number.isFinite(n)?'NTU '+n.toFixed(2)+', UA '+uaD(n*Cmin):'not reachable','effectiveness '+(e*100).toFixed(1)+'% on the smaller stream, Cr '+Cr.toFixed(3)+', outside air '+fl(am/LBMIN)+' at '+tD(tamb)+'; cross-flow, both unmixed (exact series)'); }
       const dTw=F('wdT')>0?F('wdT'):10, Cw=F('wf')>0?cwOf(F('wf')):Qreq/dTw, Cmin=Math.min(Ch,Cw), Cr=Cmin/Math.max(Ch,Cw), e=Qreq/(Cmin*(thi-wTi)), n=ntuFor(e,Cr);
-      return rowT('NTU and UA, water-to-air',Number.isFinite(n)?'NTU '+n.toFixed(2)+', UA '+uaD(n*Cmin):'not reachable','coolant '+(F('wf')>0?lmin(F('wf')):lmin(Qreq/dTw/cool.rho*1000*60)+' (the flow for a '+dT(dTw)+' rise)')+' in at '+tD(wTi)+', effectiveness '+(e*100).toFixed(1)+'% on the smaller stream, Cr '+Cr.toFixed(4)+'; cross-flow, both unmixed (exact series), coolant as the cold stream'); };
+      return rowT('NTU and UA, water-to-air',Number.isFinite(n)?'NTU '+n.toFixed(2)+', UA '+uaD(n*Cmin):'not reachable','coolant '+(F('wf')>0?lmin(F('wf')):lmin(Qreq/(cool.cp*dTw)/cool.rho*1000*60)+' (the flow for a '+dT(dTw)+' rise)')+' in at '+tD(wTi)+', effectiveness '+(e*100).toFixed(1)+'% on the smaller stream, Cr '+Cr.toFixed(4)+'; cross-flow, both unmixed (exact series), coolant as the cold stream'); };
     (TSO.ictype?[TSO.ictype]:['a2a','w2a']).forEach(t=>rows.push(nt2(t)));
     if(icHp>0) rows.push(rowT('Flow area (Bell)',a2D(bellNeed)+' internal','6 in² per 100 hp of the '+hpD(icHp)+' per core; with 45% of the charge face open, a charge face of '+a2D(faceNeed)+' (air-to-air)'));
     rows.push(rowT('Tank necks at least',rec&&rec.odh>0&&rec.odc>0?mmIn(rec.odh)+' in, '+mmIn(rec.odc)+' out':'see the pipe sizes','the recommended hot and cold charge pipes’ outside diameter'));
@@ -21889,7 +21892,7 @@ function arSection(T,R,p,route){
   b+='<p class="cap" id="tso-ar-cap">A/R is the housing’s inlet cross-section area divided by the radius from the turbo centreline to the centroid of that area (Garrett, catalogue p. 7). A smaller A/R sends the gas into the wheel faster and more tangentially: more turbine power low down and quicker boost, but less flow capacity and more back pressure at high RPM; a larger A/R the reverse (Garrett). For a vaneless volute, conservation of mass and of angular momentum give tan α = 2π b ÷ (A/R) at the rotor inlet, α from the radial direction and b the rotor’s inlet width (incompressible; derived on the page), which is why a smaller A/R turns the flow more tangential. The volute A/r sets the rotor inlet angle and the swallowing capacity for one wheel (Lee, Barrans, Jupp and Nickson, Aerospace 2017), but how capacity scales with A/R was not found in a source, so housings are only put in order. One engine’s result (Garrett’s A/R article): a GTX3076R GEN II on a 1.9 L Honda made 600 whp and 400 lb-ft on a “divided v-band .83 A/R” housing with full spool at 5,250 RPM; on 1.01 A/R it gained 50 whp and 75 lb-ft and full spool moved to almost 6,000 RPM. That is one engine, not a rule; Garrett’s G25-660 test of 0.72 against 0.92 “did not make as significant of a difference”. (Garrett’s GTX3076R GEN II product page lists its V-band 0.83 and 1.01 housings as undivided; the article calls the car’s 0.83 divided.)</p>';
   return h+b;
 }
-window.__tso={icRecommend,turboRecommend,icRateOf,icFace,icPubN,icOwn,icRow,icApply,TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop,icScaleUA,icHpOf,UA_EXP,arDemand,arFlowVerdict,arPlan,arDivMsg,thLabel};
+window.__tso={rec:()=>TS_REC,TG:()=>TG,icRecommend,turboRecommend,icRateOf,icFace,icPubN,icOwn,icRow,icApply,TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop,icScaleUA,icHpOf,UA_EXP,arDemand,arFlowVerdict,arPlan,arDivMsg,thLabel};
 /* ----- Wastegate and blow-off valve: where they go on this build, and their size (2026-11-11, phase 3) -----
    Flow through a valve: isentropic flow through a restriction, m = Cd A p0 sqrt(2 g / ((g - 1) R T0) (r^(2/g) - r^((g+1)/g))),
    r = p / p0 held at the critical (2 / (g + 1))^(g / (g - 1)) once choked (Heywood, Internal Combustion Engine
