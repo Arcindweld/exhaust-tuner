@@ -40,21 +40,25 @@
 //   800 hp: below: 5558, 5862, 6062, G25-550, GTX2867R, G25-660, GTX3076R, G30-770, EFR 6758, 7163, 8374, S200SX-R (775).
 // Bowman EC120 point (cp 1004.675): Ch = 2.5/60 x cp = 41.86146 W/K, Cw = 30/60/1000 x 992 x 4183 = 2074.768 W/K, Cr 0.02017645;
 //   Q = 41.86146 x (180 - 53.1) = 5312.219 W (the brochure: 5.3 kW); eps = 5312.219 / (41.86146 x 150) = 0.846;
-//   NTU by bisection of the cross-flow relation = 1.902140, UA = 79.62634 W/K.
-//   Prediction at 3.5 kg/min charge, 30 L/min water, 180 °C in, 30 °C water: UA held -> NTU 1.358671, eps 0.7367335, charge out 69.48998 °C.
-//   UA scaled, all resistance on the charge side: 79.62634 x 1.4^0.4764 = 93.46998 W/K -> eps 0.7904729, charge out 61.42907 °C.
+//   NTU by bisection of the cross-flow relation (exact series since the boost audit) = 1.906803, UA = 79.82157 W/K.
+//   Prediction at 3.5 kg/min charge, 30 L/min water, 180 °C in, 30 °C water: UA held -> charge out 69.42463 °C.
+//   UA scaled, all resistance on the charge side: 79.82157 x 1.4^0.4764 = 93.69915 W/K -> charge out 61.41224 °C.
+//   (Values with the exact cross-flow series, tools/validation/boost/ic_cases.py; before the boost audit the page used the
+//   closed-form approximation: NTU 1.902140, UA 79.62634, 69.48998 °C, 93.46998 W/K, 61.42907 °C.)
 //   (independent script, not the page's code)
 // Route A round trip (cp = 1.4 x 287.05 / 0.4 = 1004.675 J/kg K; lb/min = kg/s x 132.277):
 //   UA 800 W/K, charge 30 lb/min (Ch 227.8565 W/K), air 45 lb/min (Cc 341.7847), Cr 0.666667, NTU 800 / 227.8565 = 3.51097,
-//   eps = 1 - exp((1/Cr) NTU^0.22 (exp(-Cr NTU^0.78) - 1)) = 0.8064903; charge 150 -> 49.18871 °C with air in at 25 °C, Q 22970.50 W.
-//   Inverted back: UA 800. Prediction at 40 lb/min charge, 60 lb/min air, 160 °C in, 30 °C air, UA held: eps 0.7550899,
-//   Q 29822.36 W, charge out 61.83832 °C.
+//   eps by the exact series = 0.8004036; charge 150 -> 49.94955 °C with air in at 25 °C, Q 22797.14 W (the closed form gave
+//   0.8064903, 49.18871 °C, 22970.50 W).
+//   Inverted back: UA 800. Prediction at 40 lb/min charge, 60 lb/min air, 160 °C in, 30 °C air, UA held: eps 0.7481024,
+//   Q 29546.39 W, charge out 62.74669 °C (closed form: 0.7550899, 29822.36, 61.83832).
 // Water-to-air loop: UA1 900, UA2 1200 W/K, charge 30 lb/min at 150 °C, water 20 L/min at 992 kg/m³ and 4183 J/kg K
-//   (Cw 1383.179 W/K), front air 60 lb/min at 25 °C: e1 = eps1 Cmin1 = 217.9505 W/K, e2 = 387.0592 W/K;
-//   Q = 125 / (1/217.9505 + 1/387.0592 - 1/1383.179) = 19383.42 W; a fixed-point iteration of the two exchangers
-//   (independent script) gives the same 19383.42 W, coolant 61.0650 °C into the charge cooler, 75.0787 °C out, charge out 64.9314 °C.
-//   Transient, 8 L of water (7.936 kg): b = e1 + e2 - e1 e2 / Cw = 543.98 W/K, tau = 7.936 x 4183 / 543.98 = 61.02 s,
-//   90% after tau ln 10 = 140.5 s (a numerical integration at 0.01 s steps gives 140.5 s).
+//   (Cw 1383.179 W/K), front air 60 lb/min at 25 °C: e1 = eps1 Cmin1 = 216.7138 W/K, e2 = 383.1701 W/K (exact series);
+//   Q = 125 / (1/216.7138 + 1/383.1701 - 1/1383.179) = 19227.18 W; a fixed-point iteration of the two exchangers
+//   (ic_cases.py) gives the same, coolant 61.2785 °C into the charge cooler, 75.1792 °C out, charge out 65.6172 °C.
+//   Transient, 8 L of water (7.936 kg): b = e1 + e2 - e1 e2 / Cw = 539.85 W/K, tau = 7.936 x 4183 / 539.85 = 61.49 s,
+//   90% after tau ln 10 = 141.59 s (a numerical integration at 0.01 s steps gives 141.58 s). Closed-form values before the
+//   boost audit: 19383.42 W, 61.0650 / 75.0787 / 64.9314 °C, 140.5 s.
 //   Soak, no front exchanger: 8 L x 0.992 x 4183 x 10 K / 20000 W = 16.60 s. Coolant flow for 20 kW at 10 K: 20000 / (4183 x 10)
 //   = 0.478126 kg/s = 28.919 L/min (7.64 gpm).
 const { chromium } = require('playwright');
@@ -83,12 +87,12 @@ const { chromium } = require('playwright');
     const P1 = T.icPredict({ UA: A.UA, Ch: 40 / LB * cp, Cc: 60 / LB * cp, thi: 160, tci: 30 });
     const L = T.w2aLoop({ UA1: 900, UA2: 1200, Ch, Cw: 20 / 60 / 1000 * 992 * 4183, Ca: 60 / LB * cp, th: 150, ta: 25 });
     return { tho0: P0.tho, Q0: P0.Q, UA: A.UA, eps1: P1.eps, Q1: P1.Q, tho1: P1.tho, L }; });
-  near(f.tho0, 49.18871, 1e-6, 'route A point: charge out at UA 800'); near(f.Q0, 22970.50, 1e-6, 'route A point: heat');
+  near(f.tho0, 49.949553, 1e-6, 'route A point: charge out at UA 800'); near(f.Q0, 22797.140, 1e-6, 'route A point: heat');
   near(f.UA, 800, 1e-6, 'route A round trip: UA recovered');
-  near(f.eps1, 0.7550899, 1e-6, 'prediction at new flows: effectiveness'); near(f.Q1, 29822.36, 1e-6, 'prediction: heat'); near(f.tho1, 61.83832, 1e-6, 'prediction: charge out');
-  near(f.L.Q, 19383.42, 1e-6, 'w2a loop heat against the iterative solve'); near(f.L.tw1, 61.0650, 1e-5, 'loop: coolant into the charge cooler'); near(f.L.tw2, 75.0787, 1e-5, 'loop: coolant out');
-  near(f.L.tho, 64.9314, 1e-5, 'loop: charge out'); near(f.L.twSteady, 61.0650, 1e-5, 'transient steady state = loop solution');
-  near(7.936 * 4183 / f.L.b * Math.LN10, 140.5, 2e-3, 'warm-up to 90%: tau ln 10 against the numerical integration');
+  near(f.eps1, 0.7481024, 1e-6, 'prediction at new flows: effectiveness'); near(f.Q1, 29546.392, 1e-6, 'prediction: heat'); near(f.tho1, 62.746693, 1e-6, 'prediction: charge out');
+  near(f.L.Q, 19227.176, 1e-6, 'w2a loop heat against the iterative solve'); near(f.L.tw1, 61.27851, 1e-5, 'loop: coolant into the charge cooler'); near(f.L.tw2, 75.17922, 1e-5, 'loop: coolant out');
+  near(f.L.tho, 65.61716, 1e-5, 'loop: charge out'); near(f.L.twSteady, 61.27851, 1e-5, 'transient steady state = loop solution');
+  near(7.936 * 4183 / f.L.b * Math.LN10, 141.58, 2e-3, 'warm-up to 90%: tau ln 10 against the numerical integration');
   // the UI: a K24A2, turbo, 15 psi
   const set = (id, v) => pg.evaluate(([id, v]) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event(e.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   const setx = (k, v) => pg.evaluate(([k, v]) => { const e = document.querySelector('.tsox[data-k="' + k + '"]'); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]);
@@ -155,9 +159,9 @@ const { chromium } = require('playwright');
     const A = T.icFromPoint({ Ch: P.m_kgmin / 60 * cp, Cc: Cw, thi: P.thi, tho: P.tho, tci: P.tci }), Ch2 = 3.5 / 60 * cp;
     const H = T.icPredict({ UA: A.UA, Ch: Ch2, Cc: Cw, thi: 180, tci: 30 }), S = T.icScaleUA({ UA: A.UA, mh0: 2.5, mh: 3.5 }), K = T.icPredict({ UA: S.chargeSide, Ch: Ch2, Cc: Cw, thi: 180, tci: 30 });
     return { Q: A.Q, ntu: A.ntu, UA: A.UA, thoH: H.tho, UAs: S.chargeSide, thoS: K.tho, exp: T.UA_EXP }; });
-  near(h2.Q, 5312.219, 1e-6, 'EC120 point heat'); near(h2.ntu, 1.902140, 1e-5, 'EC120 point NTU'); near(h2.UA, 79.62634, 1e-5, 'EC120 UA');
-  near(h2.thoH, 69.48998, 1e-6, 'EC120 at 3.5 kg/min, UA held: charge out'); near(h2.exp, 0.4764, 1e-12, 'UA exponent 1 - 0.5236');
-  near(h2.UAs, 93.46998, 1e-6, 'scaled UA, all resistance on the charge side'); near(h2.thoS, 61.42907, 1e-6, 'scaled-UA bound: charge out');
+  near(h2.Q, 5312.219, 1e-6, 'EC120 point heat'); near(h2.ntu, 1.906803, 1e-5, 'EC120 point NTU'); near(h2.UA, 79.82157, 1e-5, 'EC120 UA');
+  near(h2.thoH, 69.424633, 1e-6, 'EC120 at 3.5 kg/min, UA held: charge out'); near(h2.exp, 0.4764, 1e-12, 'UA exponent 1 - 0.5236');
+  near(h2.UAs, 93.699149, 1e-6, 'scaled UA, all resistance on the charge side'); near(h2.thoS, 61.412244, 1e-6, 'scaled-UA bound: charge out');
   ok(!/\bNaN\b|undefined|Infinity/.test(g), 'intercooler section renders cleanly');
   await pg.setViewportSize({ width: 400, height: 900 }); await pg.waitForTimeout(400);
   const w = await pg.evaluate(() => [document.documentElement.scrollWidth, document.documentElement.clientWidth]);

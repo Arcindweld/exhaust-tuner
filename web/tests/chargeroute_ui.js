@@ -50,7 +50,13 @@ const fs = require('fs');
   ok(stockWant.length > 0 && JSON.stringify(stockGot) === JSON.stringify(stockWant) && q.legs[0].stock.every(s => s.angles.length && s.note),
      'stocked radii for ' + od.toFixed(3) + ' in aluminium tube from the parts list, with their angles and suppliers: ' + stockGot.join(', ') + ' mm');
   const atm = 101325, fl = q.legs.map(L => L.flow);
-  ok(Math.abs(fl[0].p_Pa - (atm + tab.boost * 1000)) < 1e-6 && fl[0].T_C > fl[1].T_C && fl[0].m_kg_s > 0 && fl[0].m_kg_s === fl[1].m_kg_s && fl[0].rho_amb > 1,
+  // boost audit 2026-11-12 (B21): the legs take the Intake tab's converged route (hot side at its downstream pressure, the
+  // compressor's real outlet temperature), no longer the throttle pressure: the default route's hot pipe is evaluated at
+  // 167040.7 Pa and 101.570 C (turbosize_ui.js derivation; tools/validation/boost/route.py reproduces P2 170984.534 Pa).
+  const rt = await pg.evaluate(() => { const R = window.__tsLast ? window.__tsLast() : null; return R ? { pHot: R.pHot, t2: R.t2, pCold: R.pCold, t3: R.t3 } : null; });
+  ok(rt && Math.abs(fl[0].p_Pa - rt.pHot) < 1e-6 && Math.abs(fl[0].T_C - rt.t2) < 1e-9 && Math.abs(fl[1].p_Pa - rt.pCold) < 1e-6 && Math.abs(fl[0].T_C - 101.570) < 1e-3 && Math.abs(fl[0].p_Pa - 167040.7) < 0.5,
+     'legs use the route section\'s air: hot ' + (rt && rt.pHot.toFixed(1)) + ' Pa, ' + (rt && rt.t2.toFixed(3)) + ' C');
+  ok(fl[0].p_Pa > atm + tab.boost * 1000 && fl[0].T_C > fl[1].T_C && fl[0].m_kg_s > 0 && fl[0].m_kg_s === fl[1].m_kg_s && fl[0].rho_amb > 1,
      'design flow from the tab: ' + fl[0].m_kg_s.toFixed(4) + ' kg/s, ' + fl[0].T_C.toFixed(1) + ' C at ' + Math.round(fl[0].p_Pa) + ' Pa hot, ' + fl[1].T_C.toFixed(1) + ' C cold');
   ok(q.hot_gap_mm === 50.8 && q.coupler_mm === 76.2 && q.joints === 'weld' && q.min_straight_mm === 0, 'defaults sent: hot 50.8 mm, coupler 76.2 mm, welded, no minimum straight');
 
