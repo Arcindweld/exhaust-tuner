@@ -21,3 +21,7 @@ Scope: engine data tables + small hooks only. Not touching: wave solver / rust/e
   Hybrid Racing water pump: 2013-17 Accord K24W1; Skunk2 header page slug 09-14 TSX k24z3
 - valves 35/30 STD: Ferrea set RSP (K20A2,K20A3,K20Z1,K20Z3,K24A2); K24Z7 exhaust 31 STD (Supertech RSP); HPA: 06-08 TSX +1mm intake (conflict)
 - studs M10x1.25 x5 (SpeedFactory RSP: K20A2,A3,Z1,Z3,K24A2,A4,A8); flange port 1.771 in (Stainless Headers 6181B, K20-K24 heads)
+- DONE: K presets (MOTORS_NEW kd), header inline fixes, muffler null fix, Turbo options + Intercooler options/capacity block (tsOptionsSection)
+- Turbo sources: Precision 5862 Gen2 via Full-Race + MAPerformance (precisionturbo.net not fetchable); Garrett G25-660/G30-770/G35-900 maker pages
+- IC: Garrett cores page only (hp + dims; no flow/drop/temps) -> route B; route A/loop are user-input; coolant cp/rho Engineering ToolBox 40C
+- TODO: tests k24_ui.js + tsoptions, wave-model K24 check, STATUS.md, suite run
