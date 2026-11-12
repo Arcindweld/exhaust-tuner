@@ -20128,7 +20128,7 @@ function tsPlaceSection(ind,p,r){
     lt:p.lt,dt:p.dt,t2:R.t2,t3:R.t3,tin:p.tin,Pt:R.Pt,P2:R.P2,P1:R.P1,mc:R.mc,m:R.m,wg:wgIn,wgtype:$('i-wgtype').value,mani:$('i-mani').value,colL:val('i-wgcl')>0?val('i-wgcl'):152.4});
   TS_PLACE=P;
   const B=P.bov, rows=[], V='verified: ', CP='common practice, no maker source found';
-  const row=(what,where,src,id)=>rows.push('<tr'+(id?' data-place="'+id+'"':'')+'><td>'+what+'</td><td>'+where+'</td><td>'+src+'</td></tr>');
+  const row=(what,where,src,id)=>rows.push('<tr'+(id?' data-place="'+id+'"':'')+'><td style="white-space:normal;min-width:7em">'+what+'</td><td style="white-space:normal;min-width:13em">'+where+'</td><td style="white-space:normal;min-width:13em">'+src+'</td></tr>');
   row('Blow-off valve',(B.side==='cold'?'cold side, centre '+clen(B.x)+' before the throttle face':'hot side, centre '+clen(B.x)+' after the compressor outlet')+(B.fits?', on the straight':'; <b>does not fit on the '+clen(B.straight)+' straight there</b>')+
     (B.side==='cold'&&!B.cstGiven?' (the final straight is taken as the cold side less its bends’ arcs, '+clen(B.straight)+'; enter the real one)':''),
     B.side==='cold'?V+'Turbosmart, GFB: as close to the throttle as possible, after the intercooler, never on a bend (a direction: the distance is the coupler’s 1½ in plus half the valve'+(B.blow?', behind the MAF':'')+')':V+'Garrett: close to the turbo outlet if the valve takes the heat; it sees '+tD(B.tValve)+' here, and no maker’s temperature rating for a blow-off valve was found','bov');
