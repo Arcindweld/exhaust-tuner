@@ -1524,13 +1524,17 @@ def _route(scene, spec, tubes, owner, log):
     def repair(W):
         """Drop corners that sit too close together for both bends to fit."""
         W = list(W)
+        # seed_min_straight (default min_straight): the straight a seed corner must leave. chargeroute passes 0, so only
+        # corners whose bends overlap are dropped and the fit, which weighs min_straight, lengthens the straights; on a
+        # lattice path with a long minimum straight, dropping every short one can leave no corners at all.
+        ms = s.get('seed_min_straight', s['min_straight'])
         for _ in range(len(W) + 1):
             Q = _chain(s, x_from(W))
             geo = chain_geometry(Q, rb)
             av = geo['avail']
             bad = None
             for i in range(1, len(av) - 1):
-                if av[i] < s['min_straight'] - 1e-6:
+                if av[i] < ms - 1e-6:
                     bad = i
                     break
             if bad is None:
