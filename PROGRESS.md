@@ -3,5 +3,5 @@
 - [x] tests/turbosize_ui.js (phase 1, all pass)
 - [ ] method/sources li; STATUS.md
 - [x] phase 2: turbo sizing (garrettMatch, corrFlow, turbineBalance sweep), intercooler (Q, NTU, scaled drop); tests pass
-- [ ] phase 3: wastegate + BOV placement per design, drawing, tests
+- [x] phase 3: tsPlacement, orificeArea, placement table, drawing marks, tests pass
 - [ ] method li, STATUS.md, full suite

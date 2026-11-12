@@ -58,6 +58,20 @@
 //   Intercooler heat 0.4331842 x 1004.675 x (101.5698 - 44.1425) = 24992.93 W (1421.3 BTU/min). With 60 lb/min
 //   (0.4535924 kg/s) of outside air: Cr = 435.215 / 455.716 = 0.955008, eps on Cmin 0.75, cross-flow unmixed NTU 4.45237,
 //   UA 1937.71 W/K. Core drop rated 1.5 psi at 40 lb/min scaled to 57.30046 lb/min: 10342.1 x 1.432512^2 = 21222.99 Pa.
+// Phase 3, valve placement and size (hand3.py). Flow through a restriction (Heywood app. C):
+//   m = A p0 sqrt(2g/((g-1) R T0) (r^(2/g) - r^((g+1)/g))), r = max(p/p0, (2/(g+1))^(g/(g-1))).
+//   Blow-off valve, defaults (cold side, recirculating): m 0.4331842 kg/s from Pt 156483 Pa, 317.292 K to P1 100109.57 Pa:
+//   r 0.639747 (> critical 0.528282, not choked) -> Cd A = 1255.089 mm² (39.98 mm at Cd 1); 25, 32, 38 mm short, 50 mm passes.
+//   Wastegate at eta 0.75: share 0.6289536 of 0.4692829 kg/s = 0.2951572 kg/s, p3 211641 Pa, 1223.15 K, gamma 1.279849,
+//   R 286.629, to 101325 Pa: choked (r = critical 0.549396) -> Cd A = 1244.373 mm²; 38 mm (1134.1 mm²) short, 40 mm
+//   (1256.6 mm²) passes. At eta 0.55: 0.2318387 kg/s -> 977.425 mm², 38 mm passes.
+//   45° branch of 40 mm along the collector: 40 / sin 45° = 56.569 mm, so on a 152.4 mm collector its centre sits 28.284
+//   to 124.116 mm from the flange; on a 50 mm collector it does not fit.
+//   Blow-off valve position: cold side, the coupler's 38.1 mm + half the valve from the throttle face; final straight
+//   (blank) = 914.4 - 2 x pi/2 x 1.5 x 60.198 = 630.724 mm. Blow-through MAF: 254 + 76.2 = 330.2 mm (+ half the valve);
+//   with a 300 mm straight it no longer fits, so the page moves it to the hot side, 38.1 mm after the compressor outlet.
+//   A 60 mm valve: cold 38.1 + 30 = 68.1 mm; the return window becomes 68.1 to 254 - 76.2 - 30 = 147.8 mm.
+//   Cold side 500 mm with 6 bends (3 a side): straight 500 - 3 x pi/2 x 90.297 = 74.485 mm; a 60 mm valve needs 98.1 mm -> hot side.
 const { chromium } = require('playwright');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
@@ -197,6 +211,35 @@ const { chromium } = require('playwright');
   await setv('i-teff', '68'); await pg.waitForTimeout(300);
   ok(await pg.$eval('#ts-turb', e => /68% \(yours\)/.test(e.innerText)), 'a typed turbine efficiency is added and marked');
   for (const id of ['i-hp', 'i-icam', 'i-icrdp', 'i-icrf', 'i-teff']) await setv(id, '');
+  // phase 3: where the valves go on this build
+  const pl = await pg.evaluate(() => { const T = window.__turbo, g = 1.279849224790532, Re = 286.6291525445435;
+    return { bov: T.orificeArea(0.43318420652130163, 156483, 44.14245524787535 + 273.15, 100109.56592394777, 1.4, 287.05), wg: T.orificeArea(0.29515717246448986, 211641, 1223.15, 101325, g, Re), wg55: T.orificeArea(0.23183872957954924, 211641, 1223.15, 101325, g, Re) }; });
+  near(pl.bov.A * 1e6, 1255.089, 1e-5, 'blow-off valve effective area, mm²'); ok(!pl.bov.choked, 'blow-off valve flow not choked (r 0.6397)');
+  near(pl.wg.A * 1e6, 1244.373, 1e-5, 'wastegate effective area at eta 0.75, mm²'); ok(pl.wg.choked, 'wastegate flow choked'); near(pl.wg55.A * 1e6, 977.425, 1e-5, 'wastegate area at eta 0.55, mm²');
+  const place = async () => { await pg.waitForTimeout(250); return pg.evaluate(() => { const r = id => { const e = document.querySelector('#ts-place tr[data-place="' + id + '"]'); return e ? e.innerText : ''; }; return { bov: r('bov'), vent: r('vent'), ret: r('ret'), wg: r('wg'), wgsize: r('wgsize'), wgint: r('wgint'), maf: r('maf'), svg: document.getElementById('ts-svg').textContent }; }); };
+  let P = await place();
+  ok(/cold side, centre 1\.5 in \(38 mm\) before the throttle face, on the straight/.test(P.bov) && /24\.8 in \(631 mm\)/.test(P.bov), 'BOV: cold side 38 mm before the throttle, straight 631 mm');
+  ok(/recirculates/.test(P.vent) && /1\.5 in \(38 mm\) and 7\.0 in \(178 mm\) from the compressor inlet/.test(P.ret), 'MAF draw-through: recirculate, return 38 to 178 mm from the compressor');
+  ok(/40 mm valve/.test(P.wgsize) && /1244 mm²/.test(P.wgsize) && /collector after the last merge/.test(P.wg) && /1\.1 in \(28 mm\) and 4\.9 in \(124 mm\)/.test(P.wg), 'wastegate: 40 mm on the collector, 28 to 124 mm from the flange');
+  ok(/blow-off valve, before throttle:1\.5 in \(38 mm\)/.test(P.svg) && /return port, from the compressor:1\.5 in \(38 mm\) to 7\.0 in \(178 mm\)/.test(P.svg) && /wastegate 40 mm at 45°/.test(P.svg), 'drawing marks the valve, the return port and the gate in in and mm');
+  await setv('i-bovd', String(60 / 25.4)); P = await place();
+  ok(/centre 2\.7 in \(68 mm\) before/.test(P.bov) && /2\.7 in \(68 mm\) and 5\.8 in \(148 mm\)/.test(P.ret), 'a 60 mm valve: 68 mm from the throttle, return window 68 to 148 mm');
+  await setv('i-mafpos', 'blow'); await setv('i-bovd', ''); P = await place();
+  ok(/cold side, centre 13\.0 in \(330 mm\) before the throttle/.test(P.bov) && /may vent: it sits ahead of the MAF/.test(P.vent) && !P.ret && /10\.0 in \(254 mm\)/.test(P.maf), 'MAF blow-through: valve 330 mm before the throttle, upstream of the MAF, may vent');
+  await setv('i-cpst', String(300 / 25.4)); P = await place();
+  ok(/hot side, centre 1\.5 in \(38 mm\) after the compressor outlet/.test(P.bov) && /Garrett/.test(P.bov) && /blow-off valve, from compressor:1\.5 in \(38 mm\)/.test(P.svg), 'blow-through with a 300 mm final straight: moved to the hot side, 38 mm after the compressor');
+  await setv('i-cpst', ''); await setv('i-mafpos', 'draw'); await setv('i-maf', 'sd'); P = await place();
+  ok(/may vent: the engine meters by manifold pressure/.test(P.vent) && /Garrett/.test(P.vent) && !P.ret && /cold side, centre 1\.5 in/.test(P.bov), 'speed density: vent allowed, no return port');
+  await setv('i-maf', 'card'); await setv('i-cpc', String(500 / 25.4)); await setv('i-cpb', '6'); await setv('i-bovd', String(60 / 25.4)); P = await place();
+  ok(/hot side, centre 2\.7 in \(68 mm\) after the compressor outlet/.test(P.bov), 'short cold side with 3 bends (74.5 mm straight): a 60 mm valve goes to the hot side');
+  await setv('i-cpc', '36'); await setv('i-cpb', '4'); await setv('i-bovd', '');
+  await setv('i-mani', 'div'); P = await place(); ok(/one gate per scroll/.test(P.wg) && /common practice/.test(P.wg), 'twin-scroll: one gate per scroll, labelled common practice');
+  await setv('i-mani', 'tube'); await setv('i-wgcl', String(50 / 25.4)); P = await place(); ok(/too short/.test(P.wg), 'a 50 mm collector is too short for a 45° 40 mm branch');
+  await setv('i-wgcl', '6'); await setv('i-teff', '55'); P = await place(); ok(/38 mm valve/.test(P.wgsize) && /977 mm²/.test(P.wgsize), 'turbine efficiency 55%: a 38 mm gate passes (977 mm²)');
+  await setv('i-teff', ''); await setv('i-wgtype', 'int'); P = await place(); ok(/1244 mm²/.test(P.wgint) && /boost creep/.test(P.wgint) && !P.wg, 'internal gate: area and the boost-creep note');
+  await setv('i-wgtype', 'ext');
+  await setv('i-ind', 'centri'); await pg.waitForTimeout(300); P = await place(); ok(!P.wg && !P.wgint && /cold side/.test(P.bov), 'centrifugal blower: blow-off valve only, no wastegate');
+  await setv('i-ind', 'turbo');
   t = await pg.$eval('#i-details', e => e.innerText);
   ok(!/\bNaN\b|\bundefined\b/.test(t), 'no NaN or undefined on the tab');
   ok(!errs.length, 'no page errors ' + errs.join('; '));
