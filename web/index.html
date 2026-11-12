@@ -1417,6 +1417,18 @@ ul.list li+li,ol.list li+li{margin-top:6px}
             <span class="inp"><input id="i-xb" type="number" step="1" inputmode="numeric" data-kind="num" data-dp="0"></span></label>
           <label class="f adv"><span class="lab">Exhaust pipes after the downpipe, blank for one</span>
             <span class="inp"><input id="i-xn" type="number" step="1" inputmode="numeric" data-kind="num" data-dp="0"></span></label>
+          <label class="f adv"><span class="lab">Gas cooling along the exhaust</span>
+            <span class="inp"><select id="i-xcool"><option value="on" selected>Cooled along the pipe (heat loss through the wall)</option><option value="off">Not cooled (turbine-outlet temperature to the tip)</option></select></span></label>
+          <label class="f adv"><span class="lab">Air around the exhaust</span>
+            <span class="inp"><input id="i-xta" type="number" step="any" inputmode="decimal" data-kind="temp" data-base="30"><em data-u="temp">°F</em></span></label>
+          <label class="f adv"><span class="lab">Air speed across the pipe</span>
+            <span class="inp"><select id="i-xv"><option value="0" selected>None: a dyno pull or parked</option><option value="13.4112">30 mph (48 km/h)</option><option value="26.8224">60 mph (97 km/h)</option><option value="44.704">100 mph (161 km/h)</option></select></span></label>
+          <label class="f adv"><span class="lab">Exhaust pipe outside</span>
+            <span class="inp"><select id="i-xfin"><option value="ox" selected>Bare, oxidised (run in)</option><option value="tint">Bare, lightly heat-tinted</option><option value="new">Bare, new or polished</option><option value="ceramic">Silver ceramic coating</option><option value="black">Black high-temperature coating</option><option value="wrap1">Wrapped, one layer</option><option value="wrap2">Wrapped, two layers</option></select></span></label>
+          <label class="f adv"><span class="lab">Heat transfer, pulsing exhaust</span>
+            <span class="inp"><select id="i-xcaf"><option value="1" selected>Steady-flow formula (the least cooling)</option><option value="w">Wendland’s measured factors: 3.0 downpipe, 1.6 after it</option></select></span></label>
+          <label class="f adv"><span class="lab">Where the pipe size changes between parts</span>
+            <span class="inp"><select id="i-xstep"><option value="step" selected>Abrupt steps</option><option value="cone">Cones</option></select></span></label>
           <span class="hint" style="grid-column:1/-1">The pipe after the downpipe is the Sound tab’s pipe (set its Induction to a turbo, so it starts at the turbine); the converters and muffler are the ones on the Cats and Mufflers tabs. The result is under Exhaust after the turbine.</span>
         </div>
         </div>
@@ -7190,8 +7202,12 @@ function calcQW(p){          // p: f, db, dpipe mm, tres °C
 // end 0.4 H, with n = smaller area / larger area; a plug or three-duct cross-flow element (eq. 8.7) 2 to 2.5 H when the
 // perforate's open area is more than the pipe's, plus 2 {(1 - n)^2 + (1 - n)/2} H otherwise, n = open area / pipe area.
 // M is the pipe's mean-flow Mach number, p0 the pressure (Pa).
-function mufBackPressure(M,p0,items){
-  const H=1.4*p0*M*M/2, out={H,total:0,rows:[]};
+// (Munjal's H is the gas's own gamma p0 M^2 / 2; the 1.4 here is air's: right when M is typed for an air-like gas, about 7%
+// high for hot exhaust at gamma 1.30. The Mufflers tab keeps it (its Mach is typed); the turbo exhaust sum passes the
+// dynamic head 1/2 rho v^2 itself through mufBackPressureH.)
+function mufBackPressure(M,p0,items){ return mufBackPressureH(1.4*p0*M*M/2,items); }
+function mufBackPressureH(H,items){
+  const out={H,total:0,rows:[]};
   for(const it of items){
     let k;
     if(it.kind==='expansion') k=(1-it.n)**2; else if(it.kind==='contraction') k=(1-it.n)/2;
@@ -7208,6 +7224,35 @@ function mufBackPressure(M,p0,items){
   return out;
 }
 window.__mufBP=mufBackPressure;   // test hook
+/* The muffler's back-pressure elements, one function for the Mufflers tab's rows and the turbo exhaust sum (2026-11-12;
+   before, the turbo side kept a hand copy, xMuffler, that could drift). q: the Mufflers tab's inputs (mufInputs):
+   d pipe bore, dch chamber, rev (flow-reversal layout), plugL perforate length, por open %, nbaf baffles, bh hole, pw sheet,
+   lch chamber length, tmain. kind: 'chamber' | 'plug' | 'baffle'. Returns {d,what,how,items,holes,nHole} or {err}. */
+function mufInputs(){ const bore=boreOf('m-dp-shape');
+  return {d:bore.err?NaN:bore.Deq,dch:val('m-dch'),rev:$('m-chlay').value==='reverse',plugL:val('m-plugl'),por:val('m-por'),nbaf:val('m-nbaf'),bh:val('m-bh'),pw:val('m-pw'),lch:val('m-lch'),tmain:val('m-tmain')}; }
+function mufElems(kind,q){
+  const d=q.d, dch=q.dch; if(!(d>0)) return {err:'the Mufflers tab’s pipe size'};
+  if(kind==='chamber'){ if(!(dch>d)) return {err:'the Mufflers tab’s chamber (wider than its pipe)'};
+    if(q.rev) return {d,what:'flow-reversal chamber, '+cdim(dch)+' across',how:'1 H in and 0.5 H out (Munjal 1987, Table 3.1)',holes:[],nHole:1,
+      items:[{kind:'reversal_expansion',what:'pipe into the chamber, flow turned round'},{kind:'reversal_contraction',what:'chamber back into the pipe'}]};
+    const n=(d/dch)**2; return {d,n,what:'straight-through chamber, '+cdim(dch)+' across',how:'(1 − n)² H in and (1 − n) H ÷ 2 out, n '+n.toFixed(3)+' (Munjal 1987, eq. 8.4)',holes:[],nHole:1,
+      items:[{kind:'expansion',n,what:'pipe into the chamber'},{kind:'contraction',n,what:'chamber into the pipe'}]}; }
+  if(kind==='plug'){ const L=q.plugL, por=q.por; if(!(L>0&&por>0)) return {err:'the Mufflers tab’s plug muffler (its perforated length and open area)'};
+    const n=4*(por/100)*L/d; return {d,n,what:'plug muffler, '+clen(L)+' of perforate',how:'measured cross-flow losses out through the holes and back in, open area '+n.toFixed(2)+' × the pipe’s (Munjal, Vijayasree and Chaitanya 2013)',holes:[],nHole:1,
+      items:[{kind:'plug13',n,what:'through the holes, round the plug and back'}]}; }
+  if(kind==='baffle'){ if(!(q.nbaf>=1)||!(dch>d)) return {err:'the Mufflers tab’s baffled chamber (baffles, and a chamber wider than its pipe)'};
+    const dh=q.bh>0?q.bh:d, bf=calcBaffles({dpipe:d,dsh:dch,lch:q.lch,n:q.nbaf,dh,t:q.pw>0?q.pw:1.5,tC:q.tmain});
+    if(!bf||bf.err) return {err:'the Mufflers tab’s baffled chamber'+(bf&&bf.err?' ('+bf.err+')':'')};
+    const nh=Math.min(1,(dh/dch)**2), nc=(d/dch)**2, items=[{kind:'expansion',n:nc,what:'pipe into the first chamber'}], holes=[];
+    for(let i=1;i<bf.N;i++) holes.push({kind:'contraction',n:nh,what:'into baffle hole '+i},{kind:'expansion',n:nh,what:'out of baffle hole '+i});
+    items.push({kind:'contraction',n:nc,what:'last chamber into the pipe'});
+    return {d,dh,N:bf.N,what:bf.N+' chambers between baffles, '+cdim(dch)+' across',how:'the chamber’s expansion and contraction plus each baffle hole at the hole’s own speed (Munjal 1987, eq. 8.4)',items,holes,nHole:(d/dh)**2}; }
+  return null;
+}
+// the loss of those elements: H the pipe's dynamic head, Hh the holes' (blank: H x nHole², the hole's speed nHole x the pipe's)
+function mufElemLoss(E,H,Hh){ const a=mufBackPressureH(H,E.items), hh=E.holes&&E.holes.length?mufBackPressureH(Hh!=null?Hh:H*E.nHole*E.nHole,E.holes):null;
+  return {H,Hh:hh?hh.H:0,pipe:a.total,holes:hh?hh.total:0,total:a.total+(hh?hh.total:0),rows:a.rows.concat(hh?hh.rows:[])}; }
+let MUF_BP={};   // what the Mufflers tab last showed (tests)
 function calcChamber(p){     // p: dpipe, dch, lch mm, tmain °C; lin, lout mm (optional): inlet and outlet tubes run on into the chamber
   if(!fin(p.dpipe,p.dch,p.lch,p.tmain)||p.dpipe<=0||p.dch<=p.dpipe||p.lch<=0) return {err:'The chamber must be wider than the pipe, with a positive length.'};
   const c=sosExh(p.tmain), m=(p.dch/p.dpipe)**2, L=p.lch/1000;
@@ -14473,7 +14518,9 @@ window.__hang={HG,HANG,hgRead,hgParts,hgDxf,hgPayload,hgStrength,HG_GROM,HG_MAT,
 /* ===== Tube skin temperature and heat clearance (docs/research/header_skin_temperature.md) =====
    Along the tube, per unit length: gas to wall by Gnielinski (Petukhov friction factor) times an enhancement for
    pulsating exhaust flow (CAF: 2.5 fitted on a gasoline car by Konstantinidis, Koltsakis and Stamatelos 1997; 2.3
-   for manifolds, 3.0 takedown pipes, 1.6 tailpipes per Daniel), on the time-averaged mass flow; through the wall, a
+   for manifolds, 3.0 takedown pipes, 1.6 tailpipes measured by D. W. Wendland, SAE 931085, 1993, averaged over Re 4000-20000,
+   as cited by Balasubramanian 2018, core.ac.uk/download/215523088.pdf, and Spyrounakos and Mavropoulos 2025, which calls him
+   "Daniel", his first name; the page said Daniel until 2026-11-12), on the time-averaged mass flow; through the wall, a
    ceramic coat and wrap layers by conduction; off the outside by Churchill-Chu natural convection, Churchill-Bernstein
    cross flow when air moves (combined as the cube root of the sum of cubes) and grey radiation to surroundings at the
    ambient temperature. The gas cools by what leaves (m cp dT). Air properties stand in for exhaust gas. Nearby
@@ -14498,7 +14545,7 @@ function outerH(Ts,Ta,D,v){   // W/m2 K, convection off a horizontal cylinder of
   return Math.cbrt(Nn*Nn*Nn+Nf*Nf*Nf)*k/D;
 }
 function calcSkin(p){
-  // p: mdot kg/s per tube, Tg °C at the start, di and wall mm, mat, fin, Ta °C, v m/s, L mm, caf, wrapK W/m K
+  // p: mdot kg/s per tube, Tg °C at the start, di and wall mm, mat, fin, Ta °C, v m/s, L mm, caf, wrapK W/m K, cpGas (optional)
   if(!(p.mdot>0&&p.di>0&&p.wall>0&&p.L>0&&Number.isFinite(p.Tg)&&Number.isFinite(p.Ta)&&p.Tg>p.Ta)) return {err:'Needs the tube size, the length, the flow and a gas temperature above the air around it.'};
   const M=SKIN_MAT[p.mat]||SKIN_MAT['304'], F=SKIN_FIN[p.fin]||SKIN_FIN.ox, caf=p.caf>0?p.caf:2.5, wk=p.wrapK>0?p.wrapK:0.08;
   const ri=p.di/2000, rw=ri+p.wall/1000, rc=rw+(F.coat?F.coat.t/1000:0), ro=rc+(F.wrap?F.wrap*1.6e-3:0), Do=2*ro, Ta=p.Ta+273.15;
@@ -14515,7 +14562,7 @@ function calcSkin(p){
     for(let it=0;it<60;it++){ Ts=(lo+hiT)/2; const qin=(Tg-Ts)/Rin, qout=Math.PI*Do*(outerH(Ts,Ta,Do,p.v||0)*(Ts-Ta)+F.eps*SIG*(Ts**4-Ta**4)); if(qout>qin) hiT=Ts; else lo=Ts; }
     const q=(Tg-Ts)/Rin, Tsteel=Tg-q*(Ri+Rw/2), Tin=Tg-q*Ri;
     out.push({x:i*dx*1000,Tg:Tg-273.15,Tsteel:Tsteel-273.15,Tsurf:Ts-273.15,Tin:Tin-273.15,q,Re,hi});
-    if(i<n) Tg-=q*dx/(p.mdot*cp);
+    if(i<n) Tg-=q*dx/(p.mdot*(p.cpGas?p.cpGas(Tg):cp));   // cpGas (K -> J/kg K): the burned gas's cp for the gas's own energy (the turbo exhaust sum); the film keeps air's properties
   }
   const Q=out.slice(0,-1).reduce((a,r)=>a+r.q*dx,0);
   return {pts:out,Q,Do:Do*1000,eps:F.eps,fin:F,mat:M,caf,lowRe,wrap:!!F.wrap};
@@ -14556,7 +14603,7 @@ function heatSection(r,p,e){
     '<label class="f"><span class="lab">Tube</span>'+sel('mat',Object.keys(SKIN_MAT).map(k=>[k,SKIN_MAT[k].name]))+'</label>'+
     '<label class="f"><span class="lab">Finish</span>'+sel('fin',Object.keys(SKIN_FIN).map(k=>[k,SKIN_FIN[k].name]))+'</label>'+
     num('Ta','Air around the header','°C')+num('v','Air speed past it (0: parked, dyno)','m/s')+num('Lf','Length of hot tube a nearby part faces, mm','mm')+
-    '<label class="f"><span class="lab">Flow enhancement for pulsing gas (CAF)</span>'+sel('caf',[['2.5','2.5, whole exhaust (Konstantinidis 1997)'],['2.3','2.3, manifold or primaries (Daniel)'],['3','3.0, takedown pipe (Daniel)'],['1.6','1.6, tailpipe (Daniel)']])+'</label></div>';
+    '<label class="f"><span class="lab">Flow enhancement for pulsing gas (CAF)</span>'+sel('caf',[['2.5','2.5, whole exhaust (Konstantinidis 1997)'],['2.3','2.3, manifold or primaries (Wendland 1993)'],['3','3.0, takedown pipe (Wendland 1993)'],['1.6','1.6, tailpipe (Wendland 1993)']])+'</label></div>';
   if(sk.err) return sec('Skin temperature and clearance',h+'<div class="note">'+esc(sk.err)+'</div>');
   const P=sk.pts, at=f=>P[Math.round(f*(P.length-1))], C=v=>Math.round(v)+' °C ('+Math.round(v*9/5+32)+' °F)';
   const top=P.reduce((a,x)=>x.Tsurf>a.Tsurf?x:a,P[0]);
@@ -15735,7 +15782,7 @@ function renderMuf(){
     rowT('Passes at',Math.round(ch.fZero)+' Hz','and every multiple, where that length is a half wave'+(ch.fPocketIn?'; the ring behind the tube mouths adds a quarter-wave pocket at '+Math.round(ch.fPocketIn)+' Hz':''))+
     rowT('Curve holds up to about',hzs(Math.min(ch.fCut,ch.c/(4*p.dpipe/1000))),'the chamber’s first cross mode, and while the two mouths sit close together next to the wavelength (plane waves see one junction)')+
     (()=>{ const M=val('m-mach'); if(!(M>0)) return rowT('Back pressure','set the mean flow above','Munjal’s measured junction losses need the pipe’s Mach number');
-      const bp=mufBackPressure(M,101325,[{kind:'reversal_expansion',what:'pipe into the chamber, flow turned round'},{kind:'reversal_contraction',what:'chamber back into the pipe'}]);
+      const E=mufElems('chamber',mufInputs()); if(E.err) return rowT('Back pressure','–',esc(E.err)); const bp=mufElemLoss(E,1.4*101325*M*M/2); MUF_BP.chamber=bp.total;
       const show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
       return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'1 H in and 0.5 H out of a flow-reversal chamber, dynamic head H = '+show(bp.H)+' (Munjal 1987, Table 3.1): about 1.5 × a straight-through chamber of the same size'); })()+
     '<p class="cap">Inlet and outlet side by side in one end plate, the far wall closed: the layout of most chambered street mufflers. Munjal’s reversal-expansion and reversal-contraction elements (<i>Acoustics of Ducts and Mufflers</i>, 1987, 3.7, Fig. 2.13c–d) placed back to back; with no mean flow each is a plain junction with the chamber hung on it as a closed branch, so the chamber works like a J-pipe of the chamber’s area: a hard cut at its quarter-wave note and no cut at its half wave. Louder low notes get through than a straight-through chamber of the same volume passes, but the box is half the length for the same first cut.</p>');
@@ -15757,7 +15804,7 @@ function renderMuf(){
       return rowT('Chamber volume',(V/1000).toFixed(2)+' L',(+k.toFixed(1))+' × the engine’s '+Math.round(cc).toLocaleString('en-US')+' cc. Production cars now carry about 12 × displacement across all their mufflers, up from about 5 × (<a href="https://doi.org/10.1016/j.apacoust.2012.06.007" target="_blank" rel="noopener">Yasuda et al. 2013</a>). Munjal’s rule: about 20 dB(A) of insertion loss takes 3.5 × (low-output engines) to 12.5 × (high-output), and each further dB(A) about 0.38 × more (Acoustics of Ducts and Mufflers, 1987, 8.4)')+
         (single&&k<12?'<div class="note">That is under the 12 to 25 times the swept volume that a 2023 design study of a KTM 390 single’s muffler cites as typical. A small can attenuates less at the firing tone; check the loudness on the Sound tab or go bigger if it fits (<a href="https://doi.org/10.3390/metrology3030015" target="_blank" rel="noopener">Saadabadi et al. 2023</a>).</div>':''); })()+
     (()=>{ const M=val('m-mach'); if(!(M>0)) return rowT('Back pressure','set the mean flow above','Munjal’s measured junction losses need the pipe’s Mach number');
-      const n=(p.dpipe/p.dch)**2, bp=mufBackPressure(M,101325,[{kind:'expansion',n,what:'pipe into the chamber'},{kind:'contraction',n,what:'chamber into the pipe'}]);
+      const E=mufElems('chamber',mufInputs()); if(E.err) return rowT('Back pressure','–',esc(E.err)); const n=E.n, bp=mufElemLoss(E,1.4*101325*M*M/2); MUF_BP.chamber=bp.total;
       const show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
       return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'(1 − n)² H in and (1 − n) H ÷ 2 out, n = '+n.toFixed(2)+', dynamic head H = '+show(bp.H)+' (Munjal 1987, eq. 8.4); a flow-reversal chamber costs 1.5 H, a plug or cross-flow element 2 to 4 H, the tailpipe’s free jet 0.4 H'); })()+
     (ch.short?'<div class="note warn">This chamber is shorter than 1.5 times its diameter, the minimum Potente recommends (Acoustics 2005). Short chambers fall short of the curve, because the sound has not settled into plane waves before it leaves.</div>':'')+
@@ -15791,7 +15838,7 @@ function renderMuf(){
       // n is the open area of the perforate (one side of the plug: porosity x pi d x its length) over the pipe's area, the
       // area the gas jets through (physics audit 2026-11-11: the chamber ratio (d/D)^2 was passed here, and the 1987 rule
       // of 2 to 2.5 H read a third of what the 2013 measurements give at an open area of 0.66)
-      const n=4*(val('m-por')/100)*val('m-plugl')/p.dpipe, bp=mufBackPressure(M,101325,[{kind:'plug13',n,what:'through the holes, round the plug and back'}]);
+      const E=mufElems('plug',mufInputs()); if(E.err) return rowT('Back pressure','–',esc(E.err)); const n=E.n, bp=mufElemLoss(E,1.4*101325*M*M/2); MUF_BP.plug=bp.total;
       const show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
       return rowT('Back pressure at Mach '+M.toFixed(2),show(bp.total),'about '+bp.rows[0].k.toFixed(1)+' dynamic heads with the holes’ open area '+n.toFixed(2)+' × the pipe’s, H = '+show(bp.H)+' (measured cross-flow losses, Munjal, Vijayasree and Chaitanya 2013: out through the holes and back in; a plain chamber costs under 1 H)'+(n<0.31||n>1.66?'; <b>the measurements cover open areas of 0.31 to 1.66 × the pipe’s: this is the value at the nearer end of that range</b>':'')+(bp.total>0.1*101325?'; <b>over 10% of the pressure: lengthen the perforate or open it up</b>':'')); })()+
     '<p class="cap">The inlet pipe is plugged at the end of its holes and the shell is closed behind each perforate, so all the gas and all the sound go out through the inlet holes into the annulus and back in through the outlet holes: Munjal’s cross-flow expansion and cross-flow contraction elements under one shell (<i>Acoustics of Ducts and Mufflers</i>, 1987, 3.8.1, Fig. 3.10b–c), carried by the same coupled plane-wave equations as the packed can with his boundary conditions (eqs. 3.120 and 3.122, end pockets closed up) and Sullivan’s cross-flow perforate impedance (eq. 3.153). The packing density above fills the annulus if it is set. Cross-flow elements cut more, and more evenly, than a chamber of the same size, and the flow through the holes adds damping that smooths the curve; the price is back pressure.</p>');
@@ -15802,11 +15849,10 @@ function renderMuf(){
     rowT('Attenuation per baffle',[1.5,2,3,4].map(k=>Math.round(bf.per(k*bf.f0))+' dB at '+Math.round(k*bf.f0)+' Hz').join(', '),'8.69 acosh(½ (f ÷ f₀)² − 1) dB for each inner hole and chamber; the curve is the whole chain of '+bf.N+' chambers and '+bf.holes+' hole'+(bf.holes>1?'s':'')+' between the pipes, capped at '+TLCAP+' dB'):'')+
     rowT('Curve holds up to about',hzs(bf.fCut),'the shell’s first cross mode'+(bf.lumped||!bf.holes?'':'; and each chamber is not short next to the wavelength at f₀ ('+clen(bf.l)+' against '+clen(bf.c/bf.f0*1000)+'), so the chambers’ own length resonances, which this filter leaves out, sit inside the band'))+
     (()=>{ const M=val('m-mach'); if(!(M>0)) return '';
-      const n=(p.dpipe/((val('m-bh')>0?val('m-bh'):p.dpipe)))**2, nh=Math.min(1,((val('m-bh')>0?val('m-bh'):p.dpipe)/p.dch)**2), nc=(p.dpipe/p.dch)**2;
-      const items=[{kind:'expansion',n:nc,what:'pipe into the first chamber'}], holes=[]; for(let i=1;i<bf.N;i++) holes.push({kind:'contraction',n:nh,what:'into baffle hole '+i},{kind:'expansion',n:nh,what:'out of baffle hole '+i}); items.push({kind:'contraction',n:nc,what:'last chamber into the pipe'});
+      const E=mufElems('baffle',mufInputs()); if(E.err) return ''; const n=E.nHole;
       // Munjal 1987, eq. 8.4: each loss is in dynamic heads of the flow in the narrow section, here the hole, whose Mach number is
       // the pipe's × pipe area ÷ hole area (n); physics audit 2026-11-11: the holes were charged the pipe's head
-      const bp=mufBackPressure(M,101325,items), bh=mufBackPressure(M*n,101325,holes), tot=bp.total+bh.total, show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
+      const L2=mufElemLoss(E,1.4*101325*M*M/2), tot=L2.total; MUF_BP.baffle=tot; const show=v=>U==='imp'?(v/6894.757).toFixed(2)+' psi':(v/1000).toFixed(1)+' kPa';
       // Crane TP-410 (ch. 1, compressible flow): incompressible losses hold within about 10% of the inlet pressure
       return rowT('Back pressure at Mach '+M.toFixed(2),show(tot),'each baffle hole is a contraction and an expansion at the hole’s own speed, Mach '+(M*n).toFixed(2)+' (Munjal 1987, eq. 8.4), on top of the chamber’s own'+(tot>0.1*101325?'; <b>over 10% of the pressure, past where Crane TP-410 lets these incompressible losses stand: read it as a lower bound and open the holes up</b>':'')); })()+
     '<p class="cap">Morse and Ingard’s chain filter (<i>Theoretical Acoustics</i>, 9.1, eqs. 9.1.31–35): a row of equal chambers joined by holes is a ladder of air masses (the holes) and springs (the chambers), a chamber at each end next to the pipes, so the same baffles as the back-pressure row (Kinsler and Frey’s low-pass: a chamber between two pipes is a spring with the pipes on both sides). Below f₀ = (c ÷ π) √(S₀ ÷ (D₀ S l)) it passes nearly everything, above the cut-off 2 f₀ true wave motion through the chain is impossible and each baffle with its chamber adds 8.69 acosh(½ (f ÷ f₀)² − 1) dB. It is the closed form behind the baffle rules quoted under Muffler types (a smaller or farther-apart hole lowers f₀; more chambers steepen the roll-off). Lossless and long-wave only: real baffles leak round the edges and the holes make flow noise, so take the dB per baffle as an upper bound, and read the plain-chamber curve for the chambers’ own length resonances.</p>');
@@ -21744,27 +21790,8 @@ function tsFmt(){ const imp=U==='imp';
     fl:kgs=>imp?(kgs*LBMIN).toFixed(1)+' lb/min ('+kgs.toFixed(3)+' kg/s)':kgs.toFixed(3)+' kg/s ('+(kgs*LBMIN).toFixed(1)+' lb/min)',
     kw:W=>imp?(W/1000*56.869).toFixed(0)+' BTU/min ('+(W/1000).toFixed(1)+' kW)':(W/1000).toFixed(1)+' kW ('+(W/1000*56.869).toFixed(0)+' BTU/min)',
     hp:h=>imp?Math.round(h)+' hp ('+Math.round(h*0.7457)+' kW)':Math.round(h*0.7457)+' kW ('+Math.round(h)+' hp)'}; }
-// the muffler as the Mufflers tab charges it (renderMuf's back-pressure rows; keep the two in step)
-function xMuffler(kind){
-  const bore=boreOf('m-dp-shape'); if(bore.err||!(bore.Deq>0)) return {err:'the Mufflers tab’s pipe size'};
-  const d=bore.Deq, dch=val('m-dch');
-  if(kind==='chamber'){ if(!(dch>d)) return {err:'the Mufflers tab’s chamber (wider than its pipe)'};
-    if($('m-chlay').value==='reverse') return {d,what:'flow-reversal chamber, '+cdim(dch)+' across',how:'1 H in and 0.5 H out (Munjal 1987, Table 3.1)',
-      items:[{kind:'reversal_expansion',what:'pipe into the chamber, flow turned round'},{kind:'reversal_contraction',what:'chamber back into the pipe'}]};
-    const n=(d/dch)**2; return {d,what:'straight-through chamber, '+cdim(dch)+' across',how:'(1 − n)² H in and (1 − n) H ÷ 2 out, n '+n.toFixed(3)+' (Munjal 1987, eq. 8.4)',
-      items:[{kind:'expansion',n,what:'pipe into the chamber'},{kind:'contraction',n,what:'chamber into the pipe'}]}; }
-  if(kind==='plug'){ const L=val('m-plugl'), por=val('m-por'); if(!(L>0&&por>0)) return {err:'the Mufflers tab’s plug muffler (its perforated length and open area)'};
-    const n=4*(por/100)*L/d; return {d,what:'plug muffler, '+clen(L)+' of perforate',how:'measured cross-flow losses out through the holes and back in, open area '+n.toFixed(2)+' × the pipe’s (Munjal, Vijayasree and Chaitanya 2013)',
-      items:[{kind:'plug13',n,what:'through the holes, round the plug and back'}]}; }
-  if(kind==='baffle'){ if(!(val('m-nbaf')>=1)||!(dch>d)) return {err:'the Mufflers tab’s baffled chamber (baffles, and a chamber wider than its pipe)'};
-    const dh=val('m-bh')>0?val('m-bh'):d, bf=calcBaffles({dpipe:d,dsh:dch,lch:val('m-lch'),n:val('m-nbaf'),dh,t:val('m-pw')>0?val('m-pw'):1.5,tC:val('m-tmain')});
-    if(!bf||bf.err) return {err:'the Mufflers tab’s baffled chamber'+(bf&&bf.err?' ('+bf.err+')':'')};
-    const nh=Math.min(1,(dh/dch)**2), nc=(d/dch)**2, items=[{kind:'expansion',n:nc,what:'pipe into the first chamber'}], holes=[];
-    for(let i=1;i<bf.N;i++) holes.push({kind:'contraction',n:nh,what:'into baffle hole '+i},{kind:'expansion',n:nh,what:'out of baffle hole '+i});
-    items.push({kind:'contraction',n:nc,what:'last chamber into the pipe'});
-    return {d,what:bf.N+' chambers between baffles, '+cdim(dch)+' across',how:'the chamber’s expansion and contraction plus each baffle hole at the hole’s own speed (Munjal 1987, eq. 8.4)',items,holes,nHole:(d/dh)**2}; }
-  return null;
-}
+// the muffler as the Mufflers tab charges it: the same function as that tab's back-pressure rows (mufElems)
+function xMuffler(kind){ return mufElems(kind,mufInputs()); }
 // the converters as the Cats tab describes them
 function xCats(){
   const type=$('c-type').value; if(type==='none') return {none:true};
@@ -21814,57 +21841,288 @@ function xGather(p,R){
   const cat=$('i-xcat').value==='cat'?xCats():null; if(cat&&cat.err) miss.push(cat.err); if(cat&&cat.none) notes.push('the Cats tab is set to no converter, so none is counted');
   const mk=$('i-xmuf').value, muf=mk!=='none'?xMuffler(mk):null; if(muf&&muf.err) miss.push(muf.err);
   const tail=xTail(L>0?L:0); if(tail.err) miss.push(tail.err);
-  return {nt,afr,tit,tb,me:tb.me,t4:tb.t4,w,H,hp,hpT,rule,recOD,recWhy,outOD,dOut,outWhy,d,dWhy,L,n90,xb:Math.max(0,val('i-xb')||0),xn:Math.max(1,Math.round(val('i-xn')||1)),
+  const cool=$('i-xcool').value==='off'?null:{Ta:Number.isFinite(val('i-xta'))?val('i-xta'):30,v:+$('i-xv').value||0,fin:$('i-xfin').value,caf:$('i-xcaf').value==='w'?'w':1,wall:w};
+  return {nt,afr,tit,tb,me:tb.me,t4:tb.t4,w,H,hp,hpT,rule,recOD,recWhy,outOD,dOut,outWhy,d,dWhy,L,n90,xb:Math.max(0,val('i-xb')||0),xn:Math.max(1,Math.round(val('i-xn')||1)),cool,stepCone:$('i-xstep').value==='cone',
     cat:cat&&!cat.err&&!cat.none?cat:null,muf:muf&&!muf.err?muf:null,tail:tail.err?null:tail,miss,notes,ok:d>0&&L>0};
 }
-// the sum itself, from the tip back to the turbine outlet
+// the sum itself, from the tip back to the turbine outlet: the first method (2026-11-12, part 1), kept as the reference the
+// new march (exhMarch, below) is compared with, part by part. Two options for that comparison only (both off: unchanged):
+// o.H2 the dynamic head as 1/2 rho v^2 (Munjal's H = gamma p M^2 / 2 with the exhaust's own gamma) where mufBackPressure's
+// 1.4 p M^2 / 2 took M = v / c of the exhaust (1.4 / gamma, about 8% high at 900 °C); o.Tp {cone, dp, cat, muf, tail: [],
+// tip} each part's own gas temperature, °C (the cooled march's), in place of T4 everywhere.
 function exhAfterTurbine(o){
   // o: me kg/s per turbo, nt, xn pipes after the downpipes, t4 °C, dOut mm (0 / null: no cone), d, L mm, n90 (downpipe),
   //    xb bends after it, cat {g,count,series} | null, muf {d,items,holes,nHole} | null, tail {secs [{d,L}], dExit} | null
-  const T=o.t4, mAll=o.me*o.nt, mP=mAll/Math.max(1,o.xn||1), c=sosExh(T), rows=[]; let P=P_ATM;
-  const vOf=(m,d)=>m/(rhoGas(T,P)*Math.PI*(d/2000)**2);
-  if(o.tail){ const v=vOf(mP,o.tail.dExit), M=v/c, b=mufBackPressure(M,P,[{kind:'tail',what:'free jet at the tip'}]);
-    rows.push({k:'tip',d:o.tail.dExit,v,M,dp:b.total,H:b.H,p:P}); P+=b.total;
+  const Tp=o.Tp||{}, tOf=(k,i)=>{ const t=k==='tail'?(Tp.tail||[])[i]:Tp[k]; return Number.isFinite(t)?t:o.t4; };
+  const mAll=o.me*o.nt, mP=mAll/Math.max(1,o.xn||1), rows=[]; let P=P_ATM;
+  const vOf=(m,d,T)=>m/(rhoGas(T,P)*Math.PI*(d/2000)**2);
+  const head=(M,v,T,items)=>o.H2?mufBackPressureH(rhoGas(T,P)*v*v/2,items):mufBackPressure(M,P,items);
+  if(o.tail){ const T=tOf('tip'), c=sosExh(T), v=vOf(mP,o.tail.dExit,T), M=v/c, b=head(M,v,T,[{kind:'tail',what:'free jet at the tip'}]);
+    rows.push({k:'tip',d:o.tail.dExit,v,M,dp:b.total,H:b.H,p:P,T}); P+=b.total;
     const s=o.tail.secs, iB=s.length?s.reduce((j,x,i)=>x.L>s[j].L?i:j,0):-1;
-    for(let i=s.length-1;i>=0;i--){ const nb=i===iB?(o.xb||0):0, S=chargeSide({m:mP,d:s[i].d,L:s[i].L,tC:T,pAbs:P,angs:[],n90:nb,rb:0});
-      rows.push({k:'tail',d:s[i].d,L:s[i].L,n90:nb,v:S.v,M:S.v/c,f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB,p:P}); P+=S.dp+S.dpB; } }
-  if(o.muf){ const v=vOf(mP,o.muf.d), M=v/c, a=mufBackPressure(M,P,o.muf.items), hb=o.muf.holes&&o.muf.holes.length?mufBackPressure(M*o.muf.nHole,P,o.muf.holes).total:0;
-    rows.push({k:'muf',d:o.muf.d,v,M,H:a.H,dp:a.total+hb,parts:a.rows,p:P}); P+=a.total+hb; }
-  if(o.cat){ const Q=mAll/o.cat.count/rhoGas(T,P), C=catDp(Q,Object.assign({},o.cat.g,{tC:T,p:P})), dp=C.dp*o.cat.series;
-    rows.push({k:'cat',v:C.vp,M:C.vp/c,dp,C,p:P}); P+=dp; }
-  const pDp=P, S=chargeSide({m:o.me,d:o.d,L:o.L,tC:T,pAbs:P,angs:[],n90:o.n90||0,rb:0});
-  rows.push({k:'dp',d:o.d,L:o.L,n90:o.n90||0,v:S.v,M:S.v/c,f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB,p:P}); P+=S.dp+S.dpB;
-  const cone=o.dOut>0?tsStep({dUp:o.dOut,dDn:o.d,m:o.me,tC:T,pAbs:P,step:false}):null;
-  if(cone){ rows.push({k:'cone',d:o.dOut,v:cone.v,M:cone.v/c,dp:cone.dp,cone,p:P}); P+=cone.dp; }
+    for(let i=s.length-1;i>=0;i--){ const T=tOf('tail',i), nb=i===iB?(o.xb||0):0, S=chargeSide({m:mP,d:s[i].d,L:s[i].L,tC:T,pAbs:P,angs:[],n90:nb,rb:0});
+      rows.push({k:'tail',d:s[i].d,L:s[i].L,n90:nb,v:S.v,M:S.v/sosExh(T),f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB,p:P,T}); P+=S.dp+S.dpB; } }
+  if(o.muf){ const T=tOf('muf'), v=vOf(mP,o.muf.d,T), M=v/sosExh(T), a=head(M,v,T,o.muf.items), hb=o.muf.holes&&o.muf.holes.length?head(M*o.muf.nHole,v*o.muf.nHole,T,o.muf.holes).total:0;
+    rows.push({k:'muf',d:o.muf.d,v,M,H:a.H,dp:a.total+hb,parts:a.rows,p:P,T}); P+=a.total+hb; }
+  if(o.cat){ const T=tOf('cat'), Q=mAll/o.cat.count/rhoGas(T,P), C=catDp(Q,Object.assign({},o.cat.g,{tC:T,p:P})), dp=C.dp*o.cat.series;
+    rows.push({k:'cat',v:C.vp,M:C.vp/sosExh(T),dp,C,p:P,T}); P+=dp; }
+  const T=tOf('dp'), pDp=P, S=chargeSide({m:o.me,d:o.d,L:o.L,tC:T,pAbs:P,angs:[],n90:o.n90||0,rb:0});
+  rows.push({k:'dp',d:o.d,L:o.L,n90:o.n90||0,v:S.v,M:S.v/sosExh(T),f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB,p:P,T}); P+=S.dp+S.dpB;
+  const Tc=tOf('cone'), cone=o.dOut>0?tsStep({dUp:o.dOut,dDn:o.d,m:o.me,tC:Tc,pAbs:P,step:false}):null;
+  if(cone){ rows.push({k:'cone',d:o.dOut,v:cone.v,M:cone.v/sosExh(Tc),dp:cone.dp,cone,p:P,T:Tc}); P+=cone.dp; }
   rows.forEach(x=>{ x.flag=x.M>0.3||x.dp>0.1*x.p; });
-  return {rows:rows.reverse(),p4:P,bp:P-P_ATM,pDp,cone,rho4:rhoGas(T,P),c};
+  return {rows:rows.reverse(),p4:P,bp:P-P_ATM,pDp,cone,rho4:rhoGas(o.t4,P),c:sosExh(o.t4)};
+}
+/* ----- Exhaust after the turbine, part 2 (2026-11-12): the gas cooling along the pipe, compressible flow, the steps between
+   sizes, one muffler model. exhMarch replaces exhAfterTurbine's sum on the page; exhAfterTurbine stays as the reference.
+   1. Cooling (the forward pass, turbine outlet to tip). Each pipe run is the Headers tab's tube-skin model, calcSkin, with
+      the run's own flow, bore, wall and length: per unit length the gas loses q = (T - Ts) / R_in, R_in = 1 / (h_i pi D)
+      + the wall's, coating's and wrap's conduction, and the outside surface Ts sheds the same q by convection (Churchill-Chu
+      natural, Churchill-Bernstein across a cross-flow at the air speed, combined as the cube root of the sum of cubes) and
+      grey radiation eps sigma (Ts^4 - Ta^4) to the air's temperature; the gas: m cp dT = -q dx, the steady 1-D energy
+      balance. h_i: Gnielinski with Petukhov's f, Nu = (f/8)(Re - 1000) Pr / (1 + 12.7 sqrt(f/8)(Pr^(2/3) - 1)), valid
+      3000 < Re < 5e6 (Gnielinski 1976; the form and range as python-ht's turbulent_Gnielinski documents it,
+      ht.readthedocs.io), times a convective augmentation factor (CAF). Exhaust pulsation raises the heat transfer above
+      the steady formula: D. W. Wendland (SAE 931085, 1993) measured CAF about 2.3 in the manifold, 3.0 in the takedown
+      pipe, 1.6 in the tailpipe, averaged over Re 4,000-20,000 (as given by Balasubramanian, PhD thesis, Windsor 2018,
+      core.ac.uk/download/215523088.pdf, and Spyrounakos and Mavropoulos, Computation 13 (2025) 223); Alkidas et al.
+      (2004, same thesis) found much lower factors. At full power the Reynolds number here is 10 to 50 times Wendland's
+      range, so the default is CAF 1, the steady formula: the least cooling, so the computed temperature is an upper bound
+      and the losses read on the high side; Wendland's factors are offered as the other end. Wall conduction is in calcSkin
+      (k 20 W/m K stainless: R_wall / R_gas about 1% for a 1.65 mm wall, negligible as expected for thin tube). Emissivity
+      by finish (SKIN_FIN, the research note's table: oxidised stainless 0.85, NASA TM Wade 1959 0.87-0.91 for oxidised
+      347 at 315-1095 °C, ntrs.nasa.gov/citations/19980228304). Aluminised steel: Cleveland-Cliffs' data sheet says only
+      that it reflects "up to 80%" of radiant heat below 427 °C, nothing at exhaust temperatures, so it has no entry (bare
+      new/polished 0.30 and oxidised 0.85 bracket it). Double-wall pipe: no correlation read this session, not offered.
+      The gas's cp is the burned-gas table's (xCp, the GRI-Mech 3.0 polynomials sosExh uses) in the energy balance; the film
+      (Re, Pr, k) keeps air's properties as calcSkin does. The driving temperature is the stagnation temperature T0 (the
+      recovery temperature is T + r v^2 / 2 cp with r about Pr^(1/3) = 0.89, so this is high by 0.11 v^2 / 2 cp, under 7 K at
+      Mach 0.6, against several hundred K of driving difference). Because Re = 4 m / (pi D mu) does not depend on pressure,
+      the temperature pass needs no pressures and runs first. The converter, muffler, cones and steps are taken as
+      adiabatic (a converter's reactions can even heat the gas, as the Cats tab says); they sit at the downpipe's outlet
+      temperature, on the hot side, because the pipe after the downpipe is the Sound tab's whole length.
+   2. Pressures (the backward pass, from the tip to the turbine outlet), all at the local temperature, density and Mach,
+      gas: R and gamma(T) of the burned gas (EXH_GAS, exhGamma), gamma held within each short step.
+      - Pipe friction and heat loss together: the generalised 1-D flow's influence coefficients (Shapiro, The Dynamics and
+        Thermodynamics of Compressible Fluid Flow, 1953, ch. 8; the dimensional form in J. M. Powers, Univ. of Notre Dame
+        AME 30332 notes, sec. 4.1.4, eqs. 4.108-4.110, academicweb.nd.edu/~powers/ame.30332/notes.pdf). Constant area,
+        Darcy f (Powers eq. 4.462, f = 8 tau_w / rho u^2), F = f dx / D:
+          continuity dV/V = -drho/rho; momentum dp + rho V dV + F rho V^2 / 2 = 0; energy cp dT0 = dT cp + V dV;
+          state dp/p = drho/rho + dT/T; with psi = 1 + (gamma - 1) M^2 / 2 and rho V^2 = gamma p M^2 these give
+          dV/V = [psi dT0/T0 + gamma M^2 F / 2] / (1 - M^2)        (Shapiro's coefficients for dT0/T0 and 4 f_F dx / D)
+          dp/p = -gamma M^2 dV/V - gamma M^2 F / 2.
+        Marched upstream with RK4 in steps of at most 10 mm, M at each point from the mass flow at that static pressure and
+        T0 (m^2 R T0 / (p^2 A^2 gamma) = M^2 psi, a quadratic in M^2), f from Haaland on drawn tube at the local Re. With
+        dT0 = 0 this is Fanno flow (Powers eq. 4.492, f Lstar / D = (1 - M^2)/(gamma M^2) + (gamma + 1)/(2 gamma)
+        ln[(gamma + 1) M^2 / (2 + (gamma - 1) M^2)]); with F = 0, Rayleigh flow; at low Mach dp = -F rho V^2 / 2, the
+        Darcy loss the first method used. Bends: Crane TP-410's K (bendK at 1.5 D) as a loss of stagnation pressure K x
+        1/2 rho V^2 at the run's middle, the arcs taken off the straight friction length as before (the friction factor
+        scaled by the straight share over the whole run, so the cooling runs over all of it).
+      - Minor losses (bends, the muffler's elements, converters, cones, contractions, the tip's free jet) are losses of
+        stagnation pressure, dp0 = K x 1/2 rho V^2 at the reference section's own state, with p0 = p psi^(gamma/(gamma-1))
+        between static and stagnation pressure (NASA Glenn, "Isentropic Flow"); the upstream state is found from its
+        stagnation pressure and T0 by the mass-flow function m sqrt(R T0) / (A p0 sqrt(gamma)) = M psi^(-(gamma+1)/(2(gamma-1)))
+        on the subsonic branch; a target above its value at M = 1 means that section cannot pass the flow (choked).
+        Muffler: the Mufflers tab's own elements (mufElems), K from Munjal (1987, eq. 8.4, Table 3.1) or Munjal, Vijayasree
+        and Chaitanya (2013), on the pipe's head at the muffler's inlet, baffle holes on the hole's own compressible head.
+        Converters: catDp at the converter's inlet density and temperature, counted as a stagnation loss.
+      - A sudden enlargement: the compressible Borda-Carnot momentum balance on the fluid between the step (the jet's
+        static pressure p1 acting over the whole large section) and the mixed flow downstream:
+          p1 A2 + m V1 = p2 A2 + m V2,  m = p1 A1 V1 / (R T1),  T1 = T0 - V1^2 / (2 cp)  (T0 held),
+        solved for V1 on the subsonic side (bisection); incompressible, it gives dp0 = (1 - A1/A2)^2 1/2 rho V1^2. No
+        subsonic root: the small pipe chokes at its exit.
+      - Contractions (abrupt: Rennels' sharp contraction; cones: Rennels' cone with friction at its least-loss angle, as
+        tsStep) on the small section's head; widening cones (Rennels' conical diffuser) on the small (upstream) section's
+        head. The turbine-outlet cone is the same widening cone as before.
+      - The tip: the exit's static pressure is the outside air's while the jet is subsonic, plus Munjal's measured free-jet
+        element 0.4 x 1/2 rho V^2 (kept from the first method): p_e = P_atm + 0.4 q(p_e). If the gas would leave at Mach 1
+        or more at the outside pressure, the tip is choked.
+      Choking anywhere (Mach 0.995 reached in a pipe, no subsonic state for a part) stops the march: no back pressure is
+      given, only where it chokes and the stagnation pressure that section would need at Mach 1 as a lower bound
+      (p0* = m sqrt(R T0) / (A sqrt(gamma)) ((gamma + 1)/2)^((gamma + 1)/(2 (gamma - 1)))).
+   3. Steps between parts of different bore (downpipe -> converter pipe -> muffler pipe -> each Sound-tab section -> tip),
+      abrupt or cones as the input says, as above. Where the twin downpipes meet one pipe (or one pipe splits) there is no
+      step: the Y is not counted. Crane's converging tee/wye (python-fluids K_branch_converging_Crane, K_run_converging_Crane)
+      is a straight run with one angled branch; a twin-downpipe Y has both legs angled, and no symmetric-wye coefficient
+      was read this session (Idelchik's diagrams not in hand), so it stays out and the page says so.
+   4. The back pressure given is the static pressure at the turbine outlet (the housing's bore), less the outside air's:
+      the pressure a tap there reads and the outlet pressure of a total-to-static turbine efficiency. The total pressure
+      there is shown too (the two differ by the outlet's dynamic head). The first method added each part's K x head to the
+      static pressure, so across a size change it left out the static pressure change of the speed change itself (a
+      widening cone recovers static pressure: the gas slows); the steps change below counts it. */
+const XF_MCH=0.995, XF_DX=10;   // the Mach number taken as choked inside a pipe; the longest RK4 step, mm
+const xCp=T=>{ const g=exhGamma(T); return g*EXH_GAS.R/(g-1); };   // J/kg K at T (K), burned gas
+// the state at a static pressure: M from m^2 R T0 / (p^2 A^2 gamma) = M^2 + (gamma - 1) M^4 / 2, gamma at the static T
+function xSt(m,A,p,T0){ const R=EXH_GAS.R; let g=exhGamma(T0), X=0, T=T0;
+  for(let i=0;i<6;i++){ const K2=m*m*R*T0/(p*p*A*A*g); X=(Math.sqrt(1+2*(g-1)*K2)-1)/(g-1); T=T0/(1+(g-1)/2*X); g=exhGamma(T); }
+  const M=Math.sqrt(X), rho=p/(R*T), v=m/(rho*A), psi=1+(g-1)/2*X;
+  return {p,T0,T,g,M,rho,v,q:rho*v*v/2,p0:p*Math.pow(psi,g/(g-1)),A,m};
+}
+// the state at a stagnation pressure, subsonic branch; null when the section cannot pass m at p0 (choked)
+function xSt0(m,A,p0,T0){ const R=EXH_GAS.R, tgt=m*Math.sqrt(R*T0)/(A*p0);
+  const F=M=>{ let g=exhGamma(T0); for(let i=0;i<3;i++) g=exhGamma(T0/(1+(g-1)/2*M*M)); return Math.sqrt(g)*M*Math.pow(1+(g-1)/2*M*M,-(g+1)/(2*(g-1))); };
+  if(F(1)<tgt) return null;
+  let lo=0, hi=1; for(let i=0;i<60;i++){ const mid=(lo+hi)/2; if(F(mid)<tgt) lo=mid; else hi=mid; }
+  const M=(lo+hi)/2; let g=exhGamma(T0); for(let i=0;i<4;i++) g=exhGamma(T0/(1+(g-1)/2*M*M));
+  return xSt(m,A,p0/Math.pow(1+(g-1)/2*M*M,g/(g-1)),T0);
+}
+const xStar=(m,A,T0)=>{ const T=2*T0/(exhGamma(T0)+1), g=exhGamma(T); return m*Math.sqrt(EXH_GAS.R*T0)/(A*Math.sqrt(g))*Math.pow((g+1)/2,(g+1)/(2*(g-1))); };
+// a part of one area losing stagnation pressure: dp0 = loss(su), su its upstream state (fixed point)
+function xLumpBack(m,A,sd,loss){ let p0=sd.p0, su=xSt0(m,A,p0,sd.T0);
+  for(let i=0;i<60&&su;i++){ const nx=sd.p0+loss(su); if(Math.abs(nx-p0)<1e-7*nx){ p0=nx; break; } p0=nx; su=xSt0(m,A,p0,sd.T0); }
+  return su?xSt0(m,A,p0,sd.T0):null; }
+// sudden enlargement A1 -> A2, compressible Borda-Carnot, from the downstream state s2
+function xExpandBack(m,A1,A2,s2){ const R=EXH_GAS.R, T0=s2.T0, cp=xCp(s2.T), Phi=s2.p*A2+m*s2.v;
+  const G=V=>{ const T1=T0-V*V/(2*cp), p1=(Phi-m*V)/A2; return T1>0&&p1>0?p1*A1*V/(R*T1)-m:-m; };
+  const g=exhGamma(2*T0/(exhGamma(T0)+1)), Vs=Math.sqrt(2*g/(g+1)*R*T0);
+  let a=s2.v, b=null; const n=400; for(let i=1;i<=n;i++){ const V=s2.v+(Vs-s2.v)*i/n; if(G(V)>=0){ b=V; break; } a=V; }
+  if(b==null) return null;
+  for(let i=0;i<80;i++){ const mid=(a+b)/2; if(G(mid)>=0) b=mid; else a=mid; }
+  const V=(a+b)/2, s=xSt(m,A1,(Phi-m*V)/A2,T0); return s.M<1?s:null; }
+// one pipe run, marched upstream from its downstream state; prof: [{x mm, T0 K}] from the cooling pass (null: T0 held)
+function xPipeBack(o,sd){ const A=Math.PI*(o.d/2000)**2, D=o.d/1000, L=o.L, prof=o.prof;
+  const T0at=x=>{ if(!prof) return sd.T0; if(x<=prof[0].x) return prof[0].T0; for(let i=1;i<prof.length;i++) if(x<=prof[i].x){ const a=prof[i-1], b=prof[i]; return a.T0+(b.T0-a.T0)*(x-a.x)/(b.x-a.x); } return prof[prof.length-1].T0; };
+  const dT0=x=>{ if(!prof) return 0; for(let i=1;i<prof.length;i++) if(x<=prof[i].x||i===prof.length-1){ const a=prof[i-1], b=prof[i]; return (b.T0-a.T0)/((b.x-a.x)/1000); } return 0; };   // K per metre
+  const fAt=T=>o.fixF>0?o.fixF:fSmooth(4*o.m/(Math.PI*D*visc(T-273.15)),D);
+  const rd=1.5, arc=Math.PI/2*rd*o.d, Ls=Math.max(0,L-(o.n90||0)*arc), kf=L>0?Ls/L:0;
+  let bad=null;
+  const der=(x,p)=>{ const T0=T0at(x), s=xSt(o.m,A,p,T0); if(!(s.M<XF_MCH)){ bad=bad||{x,M:s.M}; return NaN; }
+    const g=s.g, M2=s.M*s.M, psi=1+(g-1)/2*M2, F=kf*fAt(s.T)/D, y=(psi*dT0(x)/T0+g*M2*F/2)/(1-M2); return p*(-g*M2*y-g*M2*F/2); };
+  const n=Math.max(20,Math.ceil(L/XF_DX)), hm=L/n, h=hm/1000; let p=sd.p, x=L, sMid=null, kb=0;   // x in mm, h in m
+  if(!(sd.M<XF_MCH)) return {choke:{x:L,M:sd.M,A,T0:sd.T0}};
+  for(let i=0;i<n;i++){
+    if(o.n90>0&&i===Math.floor(n/2)){ const s=xSt(o.m,A,p,T0at(x)); kb=o.n90*bendK(90,rd,fAt(s.T)); const su=xLumpBack(o.m,A,s,u=>kb*u.q); if(!su) return {choke:{x,A,T0:s.T0,M:1}}; sMid={dn:s,up:su}; p=su.p; }
+    const k1=der(x,p), k2=der(x-hm/2,p-h/2*k1), k3=der(x-hm/2,p-h/2*k2), k4=der(x-hm,p-h*k3);   // dp/dx in Pa/m; marching upstream
+    if(bad||![k1,k2,k3,k4].every(Number.isFinite)) return {choke:{x:bad?bad.x:x,M:bad?bad.M:1,A,T0:T0at(x)}};
+    p=p-h*(k1+2*k2+2*k3+k4)/6; x=Math.max(0,x-hm); }
+  const su=xSt(o.m,A,p,T0at(0)); if(!(su.M<XF_MCH)) return {choke:{x:0,M:su.M,A,T0:su.T0}};
+  return {su,kb,dpB:sMid?sMid.up.p0-sMid.dn.p0:0,f:fAt(su.T)}; }
+// the cooling pass along one pipe run: the Headers tab's calcSkin; null when there is nothing to lose
+function xCool(c,m,d,L,T0){ if(!c||!(L>0)) return null;
+  const sk=calcSkin({mdot:m,Tg:T0-273.15,di:d,wall:c.wall,mat:'304',fin:c.fin,Ta:c.Ta,v:c.v,L,caf:c.caf,cpGas:xCp});
+  return sk.err?null:{prof:sk.pts.map(x=>({x:x.x,T0:x.Tg+273.15})),Q:sk.Q,lowRe:sk.lowRe,eps:sk.eps}; }
+/* The march. o: exhAfterTurbine's o, plus cool {Ta °C, v m/s, fin, caf: 1 | 'w', wall mm} (null: no cooling), stepCone.
+   fl: {cool, comp, steps} (all true on the page; the comparison switches them off one by one; comp false runs the first
+   method's formulas at the cooled temperatures, through exhAfterTurbine). Returns rows turbine outlet -> tip with each
+   part's state in and out, the back pressure (static at the turbine outlet, gauge), the total pressure there, or choke. */
+function exhMarch(o,fl){
+  fl=Object.assign({cool:true,comp:true,steps:true},fl||{});
+  const mAll=o.me*o.nt, xn=Math.max(1,o.xn||1), mP=mAll/xn, area=d=>Math.PI*(d/2000)**2;
+  const joined=o.nt===xn;   // no Y (or split) between the downpipes and the pipes after them
+  // the parts, turbine outlet to tip
+  const F=[]; let dPrev=null, firstAfter=true;
+  const join=(d,m)=>{ if(dPrev>0&&d>0&&Math.abs(dPrev-d)>=0.05){ const atY=firstAfter&&!joined; F.push({k:'step',d1:dPrev,d2:d,m,y:atY,cone:!!o.stepCone}); } dPrev=d; };
+  if(o.dOut>0&&Math.abs(o.dOut-o.d)>=0.05) F.push({k:'cone',d1:o.dOut,d2:o.d,m:o.me});
+  F.push({k:'dp',d:o.d,L:o.L,n90:o.n90||0,m:o.me}); dPrev=o.d;
+  const catOwn=o.cat&&o.cat.count===xn;   // one converter in each pipe: its pipe carries the pipe's flow
+  if(o.cat){ if(catOwn) join(o.cat.pipeD,mP); else dPrev=null; firstAfter=false; F.push({k:'cat',d:o.cat.pipeD,m:mAll/o.cat.count,cat:o.cat}); if(!catOwn) dPrev=null; else dPrev=o.cat.pipeD; }
+  if(o.muf){ join(o.muf.d,mP); firstAfter=false; F.push({k:'muf',d:o.muf.d,m:mP,muf:o.muf}); }
+  if(o.tail){ const s=o.tail.secs, iB=s.length?s.reduce((j,x,i)=>x.L>s[j].L?i:j,0):-1;
+    s.forEach((x,i)=>{ join(x.d,mP); firstAfter=false; F.push({k:'tail',i,d:x.d,L:x.L,n90:i===iB?(o.xb||0):0,m:mP}); });
+    join(o.tail.dExit,mP); F.push({k:'tip',d:o.tail.dExit,m:mP}); }
+  // 1. temperatures, forward
+  const caf=k=>o.cool&&o.cool.caf==='w'?(k==='dp'?3.0:1.6):1;
+  let T0=o.t4+273.15, Qlost=0, lowRe=false;
+  F.forEach(x=>{ x.T0in=T0;
+    if((x.k==='dp'||x.k==='tail')&&fl.cool&&o.cool){ const c=xCool(Object.assign({},o.cool,{caf:caf(x.k)}),x.m,x.d,x.L,T0); if(c){ x.prof=c.prof; T0=c.prof[c.prof.length-1].T0; Qlost+=c.Q*(x.k==='dp'?o.nt:xn); lowRe=lowRe||c.lowRe; x.Q=c.Q; } }
+    x.T0out=T0; });
+  const Tmean=x=>x.prof?x.prof.reduce((a,q,i,P)=>i?a+(q.T0+P[i-1].T0)/2*(q.x-P[i-1].x):a,0)/x.L-273.15:x.T0in-273.15;
+  const Tp={tail:[]}; F.forEach(x=>{ if(x.k==='tail') Tp.tail[x.i]=Tmean(x); else if(x.k!=='step') Tp[x.k]=x.k==='dp'?Tmean(x):x.T0in-273.15; });
+  if(!fl.comp){ const X=exhAfterTurbine(Object.assign({},o,{H2:true,Tp})); return {old:X,bp:X.bp,F,Tp}; }
+  // 2. pressures, backward
+  const rows=[]; let s=null, choke=null;
+  const fail=(x,A,T0,M,why)=>{ choke={k:x.k,i:x.i,d:x.d||x.d1,A,T0,M,why,need:xStar(x.m||mP,A,T0)}; };
+  const last=F[F.length-1];
+  if(last.k==='tip'){ const A=area(last.d), s0=xSt(last.m,A,P_ATM,last.T0in);
+    if(!(s0.M<1)) fail(last,A,last.T0in,s0.M,'leaves the tip at Mach '+s0.M.toFixed(2)+' at the outside air’s pressure');
+    else { let p=P_ATM, se=s0; for(let i=0;i<60;i++){ const nx=P_ATM+0.4*se.q; if(Math.abs(nx-p)<1e-7) break; p=nx; se=xSt(last.m,A,p,last.T0in); }
+      if(!(se.M<1)) fail(last,A,last.T0in,se.M,'the tip'); else { rows.push({k:'tip',d:last.d,sIn:se,sOut:s0,dp:se.p-P_ATM,dp0:se.p0-s0.p0,how:'free jet'}); s=se; } } }
+  else s=xSt(last.m,area(last.d||last.d2),P_ATM,last.T0out);
+  for(let j=F.length-1;j>=0&&!choke;j--){ const x=F[j]; if(x.k==='tip') continue;
+    if(!s) break; const sd=s;
+    if(x.k==='tail'||x.k==='dp'){ const A=area(x.d), s2=xSt(x.m,A,sd.p,x.T0out);   // across an uncounted joint: the same static pressure
+      const r=xPipeBack({m:x.m,d:x.d,L:x.L,n90:x.n90,prof:x.prof},s2);
+      if(r.choke){ fail(x,A,r.choke.T0,r.choke.M,'Mach 1 in the pipe'); break; }
+      rows.push({k:x.k,i:x.i,d:x.d,L:x.L,n90:x.n90,sIn:r.su,sOut:s2,dp:r.su.p-s2.p,dp0:r.su.p0-s2.p0,dpB:r.dpB,f:r.f,Q:x.Q}); s=r.su; }
+    else if(x.k==='muf'){ const A=area(x.d), s2=xSt(x.m,A,sd.p,x.T0out), E=x.muf, Ah=E.holes&&E.holes.length?A/E.nHole:0; let hole=null, bad=false;
+      const su=xLumpBack(x.m,A,s2,u=>{ let Hh; if(Ah){ hole=xSt0(x.m,Ah,u.p0,u.T0); if(!hole){ bad=true; return 0; } Hh=hole.q; } return mufElemLoss(E,u.q,Hh).total; });
+      if(!su||bad){ fail(x,bad?Ah:A,x.T0in,1,bad?'a baffle hole':'the muffler'); break; }
+      const L2=mufElemLoss(E,su.q,hole?hole.q:undefined);
+      rows.push({k:'muf',d:x.d,sIn:su,sOut:s2,dp:su.p-s2.p,dp0:su.p0-s2.p0,H:su.q,parts:L2.rows,hole}); s=su; }
+    else if(x.k==='cat'){ const A=area(x.d), s2=xSt(x.m,A,sd.p,x.T0out), g=x.cat.g; let C=null;
+      const su=xLumpBack(x.m,A,s2,u=>{ C=catDp(x.m/u.rho,Object.assign({},g,{tC:u.T-273.15,p:u.p})); return C.dp*x.cat.series; });
+      if(!su){ fail(x,A,x.T0in,1,'the converter'); break; }
+      C=catDp(x.m/su.rho,Object.assign({},g,{tC:su.T-273.15,p:su.p}));
+      rows.push({k:'cat',d:x.d,sIn:su,sOut:s2,dp:su.p-s2.p,dp0:su.p0-s2.p0,C,vCh:C.v}); s=su; }
+    else if(x.k==='step'||x.k==='cone'){
+      const A1=area(x.d1), A2=area(x.d2), s2=xSt(x.m,A2,sd.p,x.T0out), exp=x.d2>x.d1, cone=x.k==='cone'?!o.coneStep:x.cone;   // coneStep: the turbine-outlet cone as if its flow separated (a sudden widening)
+      if(x.k==='step'&&(!fl.steps||x.y)){ s=xSt(x.m,A1,sd.p,x.T0out); if(x.y) rows.push({k:'step',d1:x.d1,d2:x.d2,y:true,sIn:s,sOut:s2,dp:0,dp0:0}); continue; }
+      const t=tsStep({dUp:x.d1,dDn:x.d2,m:x.m,tC:s2.T-273.15,pAbs:s2.p,step:!cone});
+      if(x.k==='cone'&&!fl.steps){ const su=xSt(x.m,A1,s2.p+t.Kcone*xSt(x.m,A1,s2.p,s2.T0).q,s2.T0);   // the first method's: K x the small end's head on the static pressure
+        rows.push({k:'cone',d1:x.d1,d2:x.d2,t,sIn:su,sOut:s2,dp:su.p-s2.p,dp0:su.p0-s2.p0}); s=su; continue; }
+      let su;
+      if(exp&&!cone) su=xExpandBack(x.m,A1,A2,s2);
+      else if(exp) su=xLumpBack(x.m,A1,{p0:s2.p0,T0:s2.T0},u=>t.Kcone*u.q);   // widening cone, small (upstream) end's head
+      else su=xSt0(x.m,A1,s2.p0+t.K*s2.q,s2.T0);                                  // narrowing, small (downstream) end's head
+      if(!su){ fail(x,exp?A1:A2,x.T0in,1,exp?'the smaller pipe’s exit':'the step'); break; }
+      rows.push({k:x.k,d1:x.d1,d2:x.d2,t,exp,cone,K:exp&&!cone?(1-x.d1*x.d1/(x.d2*x.d2))**2:cone?t.Kcone:t.K,sIn:su,sOut:s2,dp:su.p-s2.p,dp0:su.p0-s2.p0}); s=su; } }
+  rows.reverse();
+  rows.forEach(x=>{ x.v=x.sIn.v; x.M=x.sIn.M; x.Mout=x.sOut.M; if(x.k==='cone'){ x.cone=x.t; x.d=x.d1; } });   // the drawing's and the sheet's fields
+  if(choke) return {choke,F,rows,Qlost,lowRe,Tp};
+  const s4=rows[0].sIn;
+  return {rows,F,s4,p4:s4.p,bp:s4.p-P_ATM,p04:s4.p0,bp0:s4.p0-P_ATM,Qlost,lowRe,Tp,T0tip:last.T0out};
+}
+// what each change moved, for this build: the first method, then the dynamic head with the exhaust's own gamma, then the
+// cooling, then the compressible relations, then the steps (and the static pressure across each size change)
+function exhSteps(o){
+  const v0=exhAfterTurbine(o).bp, v1=exhAfterTurbine(Object.assign({},o,{H2:true})).bp;
+  const v2=exhMarch(o,{comp:false}).bp, m3=exhMarch(o,{steps:false}), m4=exhMarch(o);
+  return {v0,v1,v2,v3:m3.choke?null:m3.bp,v4:m4.choke?null:m4.bp,m3,m4};
 }
 let TS_X=null, TS_P=null;
-const xTotal=G=>exhAfterTurbine({me:G.me,nt:G.nt,xn:G.xn,t4:G.t4,dOut:G.dOut,d:G.d,L:G.L,n90:G.n90,xb:G.xb,cat:G.cat,muf:G.muf,tail:G.tail});
+const xOpts=(G,d)=>({me:G.me,nt:G.nt,xn:G.xn,t4:G.t4,dOut:G.dOut,d:d>0?d:G.d,L:G.L,n90:G.n90,xb:G.xb,cat:G.cat,muf:G.muf,tail:G.tail,cool:G.cool,stepCone:G.stepCone});
+// the march for the page (X), what each change moved (S), and the turbine-outlet cone taken as fully separated (Xsep)
+const xTotal=G=>{ const o=xOpts(G), S=exhSteps(o), X=S.m4; X.S=S; X.sep=X.choke||!(o.dOut>0&&Math.abs(o.dOut-o.d)>=0.05)?null:exhMarch(Object.assign({},o,{coneStep:true})); X.cone=X.rows.find(x=>x.k==='cone')||null; return X; };
 function tsExhSection(ind,p){
   TS_X=null; TS_P=p; const L=TS_LAST; if(ind!=='turbo'||!L||!L.R) return '';
   const R=L.R, F=tsFmt(), G=xGather(p,R), nt=R.nt;
-  const head='<p class="cap" style="margin-top:0">From the turbine outlet to the tip, at peak power: the downpipe this section sizes, then the converters, muffler and pipe the other tabs describe. The sum is the back pressure after the turbine; the button puts it in the turbine balance above (Back pressure after the turbine, which stays editable: clear it for none).</p>';
+  const head='<p class="cap" style="margin-top:0">From the turbine outlet to the tip, at peak power: the downpipe this section sizes, then the converters, muffler and pipe the other tabs describe. The gas cools along the pipe and is followed part by part with the compressible-flow relations; the result is the static pressure at the turbine outlet, the back pressure the turbine works against. The button puts it in the turbine balance above (Back pressure after the turbine, which stays editable: clear it for none).</p>';
   if(!G.ok) return sec('Exhaust after the turbine',head+'<div class="note warn" id="tsx-miss"><b>Not enough to work it out:</b> '+G.miss.map(esc).join('; ')+'.</div>');
-  const X=xTotal(G); TS_X={G,X};
-  G.diffD=new Set([G.d,G.cat&&G.cat.pipeD,G.muf&&G.muf.d].concat(G.tail?G.tail.secs.map(x=>x.d):[]).filter(v=>v>0).map(v=>Math.round(v*2)/2)).size>1;
-  const tobp=val('i-tobp'), used=tobp>0&&Math.abs(tobp*1000-X.bp)<=0.5;
-  const each=nt>1?' each':'', nameOf={cone:'Turbine outlet → downpipe',dp:'Downpipe'+each,cat:'Converters',muf:'Muffler',tail:'Pipe after the downpipe',tip:'Leaving the tip'};
+  const X=xTotal(G), S=X.S; TS_X={G,X};
+  const tobp=val('i-tobp'), used=!X.choke&&tobp>0&&Math.abs(tobp*1000-X.bp)<=0.5;
+  const each=nt>1?' each':'', nameOf={cone:'Turbine outlet → downpipe',dp:'Downpipe'+each,cat:'Converters',muf:'Muffler',tail:'Pipe after the downpipe',tip:'Leaving the tip',step:'Size change'};
+  const rho=r=>r.toFixed(3)+' kg/m³ ('+(r*0.062428).toFixed(4)+' lb/ft³)';
+  const gas=x=>F.tD(x.sIn.T-273.15)+' → '+F.tD(x.sOut.T-273.15)+'<br><span class="hint">'+rho(x.sIn.rho)+' → '+rho(x.sOut.rho)+'</span>';
   const row=x=>{ let size='', how='';
-    if(x.k==='cone'){ const t=x.cone; size=cdim(t.d)+' → '+cdim(t.D)+', '+(t.exp?'widening':'narrowing')+' cone '+t.alpha.toFixed(1)+'° included, '+clen(t.len)+' long'; how='Rennels and Hudson, conical '+(t.exp?'diffuser':'contraction')+' with its wall friction, K '+t.Kcone.toFixed(3)+' at the least-loss angle (a sudden step would be K '+t.Kstep.toFixed(3)+', '+F.pD(t.dpStep)+')'; }
-    else if(x.k==='dp'||x.k==='tail'){ size='ID '+cdim(x.d)+', '+clen(x.L)+' long, '+(x.n90>0?(+x.n90.toFixed(1))+' × 90° bends':'no bends'); how='Darcy friction, f '+x.f.toFixed(4)+' (Haaland, drawn tube), '+F.pD(x.dpF)+(x.dpB>0?', bends '+F.pD(x.dpB)+' (Crane TP-410 at 1.5 D)':''); }
-    else if(x.k==='cat'){ size=esc(G.cat.what); how='catDp (Shah and London channels, faces, Rennels cones) at this flow, as the Cats tab works it'; }
-    else if(x.k==='muf'){ size=esc(G.muf.what)+', pipe '+cdim(x.d); how=esc(G.muf.how)+', H '+F.pD(x.H); }
-    else if(x.k==='tip'){ size='ID '+cdim(x.d); how='free jet, 0.4 H (Munjal 1987, 8.3), H '+F.pD(x.H); }
-    return '<tr data-x="'+x.k+'"'+(x.flag?' data-flag="1"':'')+'><td>'+(x.flag?'<span class="st-warn" aria-label="outside the simple formulas">⚠</span> ':'')+nameOf[x.k]+'</td><td>'+size+'</td><td>'+F.sD(x.v)+', Mach '+x.M.toFixed(2)+'</td><td>'+F.pD(x.dp)+'</td><td style="white-space:normal;min-width:12em">'+how+'</td></tr>'; };
-  let h=head+rowT('Back pressure after the turbine at peak power',F.pD(X.bp),'the sum of the parts below, at the gas after the turbine; '+(used?'<b>in use</b> in the turbine balance above':tobp>0?'the turbine balance above uses the typed '+F.pD(tobp*1000):'not in the turbine balance yet'))+
-    '<div class="actions"><button type="button" class="btn primary" data-tsx="use">Use my exhaust’s back pressure</button></div><p class="cap" id="tsx-msg"></p>'+
+    if(x.k==='cone'){ const t=x.t; size=cdim(t.d)+' → '+cdim(t.D)+', '+(t.exp?'widening':'narrowing')+' cone '+t.alpha.toFixed(1)+'° included, '+clen(t.len)+' long'; how='Rennels and Hudson’s conical '+(t.exp?'diffuser':'contraction')+' with its wall friction, K '+t.Kcone.toFixed(3)+' at the least-loss angle, a loss of total pressure '+F.pD(x.dp0)+'; the static pressure '+(x.dp<0?'rises':'falls')+' '+F.pD(Math.abs(x.dp))+' through it as the gas '+(x.dp<0?'slows':'speeds up'); }
+    else if(x.k==='step'){ size=cdim(x.d1)+' → '+cdim(x.d2)+(x.y?'':', '+(x.cone?'cone':'abrupt')); how=x.y?'where the pipes meet (or split): the Y is not counted (no coefficient for a symmetric Y was read)':(x.exp&&!x.cone?'sudden widening, compressible Borda-Carnot momentum balance':x.cone?'Rennels’ cone at its least-loss angle, K '+x.K.toFixed(3):'Rennels’ sharp contraction, K '+x.K.toFixed(3))+'; total-pressure loss '+F.pD(x.dp0); }
+    else if(x.k==='dp'||x.k==='tail'){ size='ID '+cdim(x.d)+', '+clen(x.L)+' long, '+(x.n90>0?(+x.n90.toFixed(1))+' × 90° bends':'no bends'); how='friction with the heat loss, 1-D compressible (f '+x.f.toFixed(4)+', Haaland, drawn tube)'+(x.dpB>0?'; bends '+F.pD(x.dpB)+' of total pressure (Crane TP-410 at 1.5 D)':'')+(x.Q>0?'; sheds '+F.kw(x.Q):''); }
+    else if(x.k==='cat'){ size=esc(G.cat.what); how='catDp (Shah and London channels, faces, Rennels cones) at the gas’s own density, as the Cats tab works it'; }
+    else if(x.k==='muf'){ size=esc(G.muf.what)+', pipe '+cdim(x.d); how=esc(G.muf.how)+', H '+F.pD(x.H)+(x.hole?', holes at Mach '+x.hole.M.toFixed(2):'')+'; the Mufflers tab’s own elements'; }
+    else if(x.k==='tip'){ size='ID '+cdim(x.d); how='free jet, 0.4 H (Munjal 1987, 8.3), the exit at the outside pressure'; }
+    return '<tr data-x="'+x.k+'"><td>'+nameOf[x.k]+'</td><td>'+size+'</td><td>'+gas(x)+'</td><td>'+F.sD(x.sIn.v)+' → '+F.sD(x.sOut.v)+'<br><span class="hint">Mach '+x.sIn.M.toFixed(2)+' → '+x.sOut.M.toFixed(2)+'</span></td><td>'+F.pD(x.dp)+'</td><td style="white-space:normal;min-width:12em">'+how+'</td></tr>'; };
+  const chokeTxt=c=>{ const nm=c.k==='tail'?'the pipe after the downpipe':c.k==='dp'?'the downpipe':c.k==='tip'?'the tip':c.k==='muf'?'the muffler':c.k==='cat'?'the converters':c.k==='cone'?'the turbine outlet':'a size change';
+    return 'This exhaust chokes at '+nm+(c.d>0?' ('+cdim(c.d)+')':'')+': '+esc(c.why)+'. The flow cannot pass at a subsonic back pressure: the pipe or part is too small for '+F.fl(G.me)+(nt>1?' a turbo':'')+'. To pass it there the gas would need at least '+F.pD(c.need-P_ATM)+' of total pressure at that section (Mach 1), and more upstream; no back pressure is given.'; };
+  let h=head;
+  if(X.choke) h+='<div class="note bad" id="tsx-choke"><b>'+chokeTxt(X.choke)+'</b></div>';
+  else h+=rowT('Back pressure after the turbine at peak power',F.pD(X.bp),'static pressure at the turbine outlet over the outside air’s; '+(used?'<b>in use</b> in the turbine balance above':tobp>0?'the turbine balance above uses the typed '+F.pD(tobp*1000):'not in the turbine balance yet'))+
+    rowT('Total pressure there',F.pD(X.bp0),'static plus the outlet’s dynamic head (gas at Mach '+X.rows[0].sIn.M.toFixed(2)+'); a turbine map’s pressure ratio is inlet total to outlet static (MotoIQ, Turbo Tech: Compressor and Turbine Map Details), so the static figure goes in the balance')+
+    (X.sep&&!X.sep.choke?rowT('If the flow separates in the cone',F.pD(X.sep.bp),'the cone taken as a sudden widening (Borda-Carnot): the cone’s pressure recovery is the least sure part of this sum, right after a turbine (see the cone below)'):'');
+  h+='<div class="actions"><button type="button" class="btn primary" data-tsx="use"'+(X.choke?' disabled':'')+'>Use my exhaust’s back pressure</button></div><p class="cap" id="tsx-msg"></p>'+
     rowT('Gas after the turbine',F.tD(G.t4),'turbine inlet '+F.tD(G.tit)+' less the compressor’s work taken out of the whole exhaust, '+F.kw(G.tb.Wc)+each+': T₄ = T₃ − W ÷ (ṁ cp), cp '+G.tb.cpe.toFixed(0)+' J/kg K at T₃, the wastegate’s share mixed back in')+
-    rowT('Exhaust through each downpipe',F.fl(G.me),(nt>1?'per turbo; '+F.fl(G.me*nt)+' in all, '+(G.xn>1?G.xn+' pipes after the downpipes':'one pipe after the downpipes (the Y where they meet is not modelled)'):'air + fuel at A/F '+G.afr)+', density '+X.rho4.toFixed(3)+' kg/m³ at the turbine outlet');
-  h+='<div class="tblwrap"><table id="tsx-bp"><thead><tr><th>Part</th><th>Size</th><th>Gas speed</th><th>Loss</th><th>How</th></tr></thead><tbody>'+X.rows.map(row).join('')+
-    '<tr data-x="total"><td><b>Total</b></td><td></td><td></td><td><b>'+F.pD(X.bp)+'</b></td><td style="white-space:normal">each part at the pressure at its downstream end, from the tip back</td></tr></tbody></table></div>';
-  if(X.rows.some(x=>x.flag)) h+='<p class="cap" id="tsx-flag">⚠ Past the simple formulas’ range: the gas runs faster than Mach 0.3 (where, as the Cats tab says, the simple loss formulas start to read low) or the part loses more than a tenth of the pressure at it (Crane TP-410 holds these incompressible losses within about 10% only below that). Read those losses as lower bounds; a larger pipe brings them down.</p>';
-  if(G.diffD) G.notes.push('the steps between pipe sizes of different parts (downpipe, converter pipe, muffler pipe, tailpipe) are not counted');
+    rowT('Gas at the tip',G.cool?F.tD(X.F[X.F.length-1].T0out-273.15):F.tD(G.t4),G.cool?'cooled along '+clen(X.F.filter(x=>x.L>0).reduce((a,x)=>a+x.L,0))+' of pipe, '+F.kw(X.Qlost)+' through the walls in all ('+($('i-xcaf').value==='w'?'Wendland’s measured pulsing-flow factors':'the steady-flow formula, the least cooling: the real gas is cooler')+', air '+F.tD(G.cool.Ta)+', '+(G.cool.v>0?F.sD(G.cool.v)+' across the pipe':'still air')+')'+(X.lowRe?'; Reynolds number under 10,000 somewhere: rough':''):'not cooled (set Gas cooling along the exhaust)')+
+    rowT('Exhaust through each downpipe',F.fl(G.me),(nt>1?'per turbo; '+F.fl(G.me*nt)+' in all, '+(G.xn>1?G.xn+' pipes after the downpipes':'one pipe after the downpipes (the Y where they meet is not counted)'):'air + fuel at A/F '+G.afr));
+  h+='<div class="tblwrap"><table id="tsx-bp"><thead><tr><th>Part</th><th>Size</th><th>Gas in → out</th><th>Speed in → out</th><th>Static pressure rise</th><th>How</th></tr></thead><tbody>'+X.rows.map(row).join('')+
+    (X.choke?'':'<tr data-x="total"><td><b>Total</b></td><td></td><td></td><td></td><td><b>'+F.pD(X.bp)+'</b></td><td style="white-space:normal">static pressure at the turbine outlet over the outside air’s: the rises add up, part by part from the tip back</td></tr>')+'</tbody></table></div>';
+  // what each change moved
+  const dl=(a,b)=>a==null||b==null?'chokes':(b-a>=0?'+':'−')+F.pD(Math.abs(b-a));
+  h+='<p class="sub" style="margin-top:14px">What each change moved, on this build</p><div class="tblwrap"><table id="tsx-steps"><thead><tr><th>Method</th><th>Back pressure</th><th>Change</th><th>What changed</th></tr></thead><tbody>'+
+    [['old','First method (2026-11-12, part 1)',S.v0,null,'each part at T₄ and the pressure at its downstream end, K × head added to the static pressure, no steps'],
+     ['head','+ dynamic head with the exhaust’s own gamma',S.v1,S.v0,'½ ρ v² for the muffler and tip (it took 1.4 p M² ÷ 2 with the exhaust’s Mach number: 1.4 ÷ gamma too much)'],
+     ['cool','+ cooling along the pipe',S.v2,S.v1,G.cool?'each part at its own gas temperature, the same formulas':'cooling is switched off'],
+     ['comp','+ compressible flow',S.v3,S.v2,'Fanno-Rayleigh friction and heat loss in steps, losses of total pressure on the local head, the burned gas’s R'],
+     ['steps','+ size changes',S.v4,S.v3,'the steps between parts and the static pressure across each size change (the turbine-outlet cone’s recovery)']].map(r=>
+      '<tr data-st="'+r[0]+'"><td>'+r[1]+'</td><td>'+(r[2]==null?'chokes':F.pD(r[2]))+'</td><td>'+(r[3]==null&&r[0]==='old'?'':dl(r[3],r[2]))+'</td><td style="white-space:normal">'+r[4]+'</td></tr>').join('')+'</tbody></table></div>';
   if(G.miss.length||G.notes.length) h+='<div class="note warn" id="tsx-miss"><b>Not counted:</b> '+G.miss.concat(G.notes).map(esc).join('; ')+'.</div>';
   // the downpipe size
   const w=G.w, rec=G.recOD, sub='<p class="sub" style="margin-top:14px">Downpipe size</p>';
@@ -21873,26 +22131,27 @@ function tsExhSection(ind,p){
     G.hpT>0?'this build '+Math.round(G.hpT)+' hp'+(nt>1?' a turbo':'')+'; COBB Tuning: “2.5″ may flow enough for 300-350 horsepower”, “3″ is usually capable of flowing 500-600 horsepower”, “anything over 3″ is a case of diminishing returns”; the lower end of each range, the size taken as tube OD (COBB does not say OD or ID, crank or wheel)'+(G.recWhy==='outlet'?'; the turbine outlet is larger, so the pipe starts at its size (no narrowing right after the turbine, this page’s choice)':''):'the rule is by power');
   s+=rowT('Downpipe used here',cdim(G.d+2*w)+' OD, '+cdim(G.d)+' ID, '+cdim(w)+' wall',G.dWhy==='typed'?'typed under Downpipe inside diameter':G.dWhy==='recommended'?'the recommended size; type another under Downpipe inside diameter':'the turbine outlet’s own size: no rule size for this power');
   const tbl=DP_OD.map(od=>{ const dd=od*25.4-2*w; if(!(dd>0)) return '';
-    const S=chargeSide({m:G.me,d:dd,L:G.L,tC:G.t4,pAbs:X.pDp,angs:[],n90:G.n90,rb:0}), P1=X.pDp+S.dp+S.dpB, t=G.dOut>0?tsStep({dUp:G.dOut,dDn:dd,m:G.me,tC:G.t4,pAbs:P1,step:false}):null;
-    const own=S.dp+S.dpB+(t?t.dp:0), mine=Math.abs(dd-G.d)<0.05, isRec=rec&&Math.abs(od*25.4-rec)<0.05;
-    return '<tr data-od="'+od.toFixed(2)+'"'+(isRec?' data-rec="1" style="background:var(--accent-soft)"':'')+'><td>'+cdim(od*25.4)+(isRec?' <b>recommended</b>':'')+(mine?' (used)':'')+'</td><td>'+cdim(dd)+'</td><td>'+F.sD(S.v)+', Mach '+(S.v/X.c).toFixed(2)+'</td><td>'+F.pD(own)+'</td><td>'+F.pD(X.bp-X.rows.filter(x=>x.k==='dp'||x.k==='cone').reduce((a,x)=>a+x.dp,0)+own)+'</td></tr>'; }).join('');
-  s+='<div class="tblwrap"><table id="tsx-dp"><thead><tr><th>Tube OD</th><th>Inside</th><th>Gas speed</th><th>Downpipe and cone</th><th>Back pressure with it</th></tr></thead><tbody>'+tbl+'</tbody></table></div>'+
-    '<p class="cap">Each size over the downpipe’s '+clen(G.L)+' and '+(+G.n90.toFixed(1))+' bends at the gas after the turbine, with the cone from the turbine outlet at its best angle; the rest of the exhaust as above. No source gives a gas speed or Mach limit for a downpipe, so the speed is shown, not judged.</p>';
+    const Xo=exhMarch(xOpts(G,dd)), mine=Math.abs(dd-G.d)<0.05, isRec=rec&&Math.abs(od*25.4-rec)<0.05, rD=Xo.rows.find(x=>x.k==='dp');
+    const own=Xo.choke?null:Xo.rows.filter(x=>x.k==='dp'||x.k==='cone').reduce((a,x)=>a+x.dp,0);
+    return '<tr data-od="'+od.toFixed(2)+'"'+(isRec?' data-rec="1" style="background:var(--accent-soft)"':'')+'><td>'+cdim(od*25.4)+(isRec?' <b>recommended</b>':'')+(mine?' (used)':'')+'</td><td>'+cdim(dd)+'</td><td>'+(rD?F.sD(rD.sIn.v)+', Mach '+rD.sIn.M.toFixed(2):'–')+'</td><td>'+(Xo.choke?'chokes':F.pD(own))+'</td><td>'+(Xo.choke?'chokes':F.pD(Xo.bp))+'</td></tr>'; }).join('');
+  s+='<div class="tblwrap"><table id="tsx-dp"><thead><tr><th>Tube OD</th><th>Inside</th><th>Gas speed at the downpipe’s start</th><th>Downpipe and cone (static)</th><th>Back pressure with it</th></tr></thead><tbody>'+tbl+'</tbody></table></div>'+
+    '<p class="cap">Each size over the downpipe’s '+clen(G.L)+' and '+(+G.n90.toFixed(1))+' bends, the whole march redone with it (cooling, compressible flow, the cone from the turbine outlet at its best angle and the steps to the parts after it). A wider downpipe behind the same outlet means a bigger cone, whose static-pressure recovery the 1-D figure takes in full. No source gives a gas speed or Mach limit for a downpipe, so the speed is shown, not judged.</p>';
   // the cone
-  if(X.cone){ const t=X.cone;
-    s+=rowT('Cone from the turbine outlet',cdim(t.d)+' → '+cdim(t.D)+', '+t.alpha.toFixed(1)+'° included, '+clen(t.len)+' long','the angle where Rennels and Hudson’s loss, change of area plus wall friction, is least (2° to 60°); loses '+F.pD(t.dp)+', a sudden step '+F.pD(t.dpStep))+
-      '<p class="cap" id="tsx-cone-cap">Right after a turbine the gas still swirls and its speed is uneven across the outlet, so a cone there separates sooner than the straight, even flow this figure assumes: the real loss is higher, by an amount no source in hand gives. Keep the cone at least as gentle as shown. COBB Tuning describes the bellmouth outlet, room for the turbine’s and an internal gate’s gas to join, without dimensions.</p>'; }
+  if(X.cone){ const t=X.cone.t;
+    s+=rowT('Cone from the turbine outlet',cdim(t.d)+' → '+cdim(t.D)+', '+t.alpha.toFixed(1)+'° included, '+clen(t.len)+' long','the angle where Rennels and Hudson’s loss, change of area plus wall friction, is least (2° to 60°); loses '+F.pD(X.cone.dp0)+' of total pressure (a sudden step would lose '+F.pD(t.dpStep)+' at the first method’s head) and the static pressure '+(X.cone.dp<0?'rises '+F.pD(-X.cone.dp):'falls '+F.pD(X.cone.dp))+' from the outlet to the downpipe')+
+      '<p class="cap" id="tsx-cone-cap">Right after a turbine the gas still swirls and its speed is uneven across the outlet, so a cone there separates sooner than the straight, even flow this figure assumes: the real loss is higher and its pressure recovery lower, by an amount no source in hand gives; the row above with the cone taken as a sudden widening is the other end. Keep the cone at least as gentle as shown. COBB Tuning describes the bellmouth outlet, room for the turbine’s and an internal gate’s gas to join, without dimensions.</p>'; }
   else if(G.dOut>0) s+='<p class="cap">The downpipe is the turbine outlet’s size: no cone.</p>';
   // the wastegate's gas
   const PL=TS_PLACE&&TS_PLACE.wg;
   s+=rowT('Wastegate gas',PL&&PL.type==='ext'?'external gate: dump tube to the air, or back into the downpipe':'internal gate: it dumps into the housing’s outlet','the sum takes all of the exhaust through the downpipe; COBB describes keeping the gate’s gas “separate until farther back in the system” (divorced), with no distance; no source read gives a re-entry angle or distance, so the drawing shows it as a branch only');
   const xs=xSvg(G,X,F); TS_X.svg=xs;
-  s+=xs+'<p class="cap">Exhaust side, collector to tip: not to scale along the route; pipe widths are to scale with each other. Each part shows its size, the gas speed and its loss at peak power.</p>';
-  s+='<p class="cap">Sources: COBB Tuning, <a href="'+COBB_DP_URL+'" target="_blank" rel="noopener">Different Types of Downpipes Explained</a> (size by power, bellmouth and divorced layouts); Munjal, <i>Acoustics of Ducts and Mufflers</i> (1987), 8.3 (muffler and tip losses, through the Mufflers tab’s model); Shah and London through the Cats tab’s catDp; Rennels and Hudson, <i>Pipe Flow</i> (2012), as coded in <a href="https://fluids.readthedocs.io/fluids.fittings.html" target="_blank" rel="noopener">python-fluids</a>; Crane TP-410 bends. Garrett’s Turbo System Optimization, Turbo Tech 103 and catalogue and BorgWarner’s EFR installation guidelines were read for a downpipe size and give none. The gas is not cooled along the pipe here, and the gate’s flow is all taken through the downpipe: both put the figure on the high side.</p>';
+  s+=xs+'<p class="cap">Exhaust side, collector to tip: not to scale along the route; pipe widths are to scale with each other. Each part shows its size, the gas speed and its static-pressure rise at peak power.</p>';
+  s+='<p class="cap">Sources: COBB Tuning, <a href="'+COBB_DP_URL+'" target="_blank" rel="noopener">Different Types of Downpipes Explained</a> (size by power, bellmouth and divorced layouts); Munjal, <i>Acoustics of Ducts and Mufflers</i> (1987), 8.3 (muffler and tip losses, through the Mufflers tab’s model); Shah and London through the Cats tab’s catDp; Rennels and Hudson, <i>Pipe Flow</i> (2012), as coded in <a href="https://fluids.readthedocs.io/fluids.fittings.html" target="_blank" rel="noopener">python-fluids</a>; Crane TP-410 bends; compressible flow with friction and heat loss: Shapiro (1953) ch. 8 and J. M. Powers, <a href="https://academicweb.nd.edu/~powers/ame.30332/notes.pdf" target="_blank" rel="noopener">AME 30332 notes</a>, 4.1.4 and 4.5 (Fanno); the heat loss: the Headers tab’s tube-skin model (Gnielinski, Churchill-Chu, Churchill-Bernstein, radiation) with D. W. Wendland’s pulsing-flow factors (SAE 931085, as reported in <a href="https://core.ac.uk/download/215523088.pdf" target="_blank" rel="noopener">Balasubramanian 2018</a>). Not counted: the Y where twin downpipes meet, any heat from the converter’s reactions, the wastegate’s gas leaving through an external dump (all of the exhaust is taken through the downpipe: high side).</p>';
   return sec('Exhaust after the turbine',h+s);
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-tsx]'); if(!b) return;
   const msg=$('tsx-msg'); if(!TS_X){ if(msg) msg.textContent='Fill in the downpipe first.'; return; }
+  if(TS_X.X.choke){ if(msg) msg.textContent='This exhaust chokes: there is no back pressure to use.'; return; }
   setBase('i-tobp',TS_X.X.bp/1000); renderActive(); });
 // the exhaust side as a dimensioned schematic, collector to tip, in the route drawing's style (tsSvg)
 function xSvg(G,X,F){
@@ -21902,7 +22161,7 @@ function xSvg(G,X,F){
   const ar=val('i-tar')>0?(+val('i-tar')).toFixed(2)+' A/R':'A/R not chosen';
   items.push({k:'turb',h:60,t:'Turbine'+(G.nt>1?', each':'')+', '+ar,l:[G.H?G.H.flange+' inlet, '+G.H.outlet+' outlet':'no housing picked','gas out '+F.tD(G.t4),(PL&&PL.type==='int'?'internal wastegate':'')]});
   X.rows.forEach(x=>{
-    if(x.k==='cone') items.push({k:'cone',d0:x.cone.d,d1:x.cone.D,h:58,t:'Cone to the downpipe',l:[cdim(x.cone.d)+' → '+cdim(x.cone.D),clen(x.cone.len)+' long, '+x.cone.alpha.toFixed(1)+'°','loss '+F.pD(x.dp)]});
+    if(x.k==='cone') items.push({k:'cone',d0:x.cone.d,d1:x.cone.D,h:58,t:'Cone to the downpipe',l:[cdim(x.cone.d)+' → '+cdim(x.cone.D),clen(x.cone.len)+' long, '+x.cone.alpha.toFixed(1)+'°','loss '+F.pD(x.dp0)+' total, static '+(x.dp<0?'up ':'down ')+F.pD(Math.abs(x.dp))]});
     else if(x.k==='dp') items.push({k:'pipe',d:x.d,h:PL&&PL.type==='ext'?112:84,dump:PL&&PL.type==='ext',t:'Downpipe'+(G.nt>1?', each':''),l:['ID '+cdim(x.d)+', OD '+cdim(x.d+2*G.w),clen(x.L)+' long, '+(x.n90>0?(+x.n90.toFixed(1))+' × 90° bends':'no bends'),F.sD(x.v)+', Mach '+x.M.toFixed(2),'loss '+F.pD(x.dp)].concat(PL&&PL.type==='ext'?['gate dump re-entry: a branch,','no sourced distance']:[])});
     else if(x.k==='cat') items.push({k:'box',h:58,t:'Converters (Cats tab)',l:[G.cat.what,'loss '+F.pD(x.dp)]});
     else if(x.k==='muf') items.push({k:'box',h:58,t:'Muffler (Mufflers tab)',l:[G.muf.what,'loss '+F.pD(x.dp)]});
@@ -21927,11 +22186,12 @@ function xSvg(G,X,F){
     s+='<text x="128" y="'+(y0+12)+'" style="font-size:11.5px;font-weight:600;fill:var(--ink)">'+esc(it.t)+'</text>';
     it.l.filter(Boolean).forEach((t,i)=>{ s+=txt(128,y0+26+i*13,t,/^loss|: loss/.test(t)?'accent':'muted'); });
     y+=it.h; });
-  s+='<text x="128" y="'+(y+14)+'" style="font-size:11.5px;font-weight:600;fill:var(--ink)">'+esc('Back pressure '+F.pD(X.bp))+'</text>';
+  s+='<text x="128" y="'+(y+14)+'" style="font-size:11.5px;font-weight:600;fill:var(--ink)">'+esc(X.choke?'Chokes: no back pressure':'Back pressure '+F.pD(X.bp))+'</text>';
   s+='<defs><marker id="ts-xar" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L6 3 L0 6 Z" style="fill:var(--ink)"/></marker></defs></svg>';
   return s;
 }
-if(typeof window!=='undefined') window.__tsx={exhAfterTurbine,xGather:()=>TS_LAST&&TS_LAST.R?xGather(TS_P,TS_LAST.R):null,last:()=>TS_X,dpRule,DP_RULE,xMuffler,xCats,xTail};
+if(typeof window!=='undefined') window.__tsx={exhAfterTurbine,xGather:()=>TS_LAST&&TS_LAST.R?xGather(TS_P,TS_LAST.R):null,last:()=>TS_X,dpRule,DP_RULE,xMuffler,xCats,xTail,
+  exhMarch,exhSteps,xSt,xSt0,xStar,xExpandBack,xPipeBack,xLumpBack,xCool,xCp,mufElems,mufElemLoss,mufInputs,mufBP:()=>MUF_BP,calcSkin,exhGamma,EXH_GAS,tsStep,XF_MCH};
 /* ----- Turbo build, step by step (2026-11-12, the owner's "usable without learning a bunch of stuff") -----
    A checklist at the top of the Intake tab when the induction is a turbo or a centrifugal supercharger: the steps in the
    order a builder decides them, each with one plain line read from what the sections below already worked out (TG, TS_LAST,
@@ -21966,12 +22226,13 @@ function tgSteps(ind,p){
     const bl=B?'blow-off valve on the '+B.side+' side, centre '+clen(B.x)+(B.side==='cold'?' before the throttle':' after the compressor')+(B.pick?', '+cdim(B.pick)+' or larger':''):'';
     const wl=!turbo||!W?'':W.type==='ext'?(W.mw>0?'; wastegate '+(W.pick?cdim(W.pick)+', 45°, centre '+clen(Math.max(0,W.lo))+' to '+clen(W.hi)+' from the turbine flange':'over '+cdim(60)):'; no gate flow at peak on these assumptions'):'; internal wastegate';
     add('valves',turbo?'Wastegate and blow-off valve':'Blow-off valve',probs.length?'warn':B?'ok':'todo',(bl||'not placed')+wl+(probs.length?'; '+probs.join('; '):''),'where-to-put-them-on-this-build'); }
-  if(turbo){ const X=TS_X, G2=X&&X.G, tobp=val('i-tobp'), used=X&&tobp>0&&Math.abs(tobp*1000-X.X.bp)<=0.5;
+  if(turbo){ const X=TS_X, G2=X&&X.G, tobp=val('i-tobp'), used=X&&!X.X.choke&&tobp>0&&Math.abs(tobp*1000-X.X.bp)<=0.5;
     if(!X){ add('exh','Exhaust side: downpipe and back pressure','todo','not enough to work it out yet (see Exhaust after the turbine)','exhaust-after-the-turbine'); }
     else { const probs=[];
       if(G2.dWhy==='typed'&&G2.dOut>0&&G2.d<G2.dOut-0.05) probs.push('the downpipe is narrower than the turbine outlet');
       if(G2.dWhy==='typed'&&G2.recOD&&G2.d+2*G2.w<G2.recOD-0.05) probs.push('smaller than the size rule’s '+cdim(G2.recOD));
-      add('exh','Exhaust side: downpipe and back pressure',probs.length?'warn':G2.miss.length||!used?'todo':'ok','downpipe '+cdim(G2.d+2*G2.w)+' OD, back pressure '+F.pD(X.X.bp)+' at peak'+(G2.miss.length?' ('+G2.miss.length+' part'+(G2.miss.length>1?'s':'')+' not counted)':'')+(X.X.rows.some(x=>x.flag)?' (some parts past the simple formulas’ range: a lower bound)':'')+'; '+(used?'used in the turbine balance':'not in the turbine balance yet (Use my exhaust’s back pressure)')+(probs.length?'; '+probs.join('; '):''),'exhaust-after-the-turbine'); } }
+      if(X.X.choke) probs.push('the exhaust chokes ('+(X.X.choke.k==='tip'?'at the tip':X.X.choke.k==='tail'?'in the pipe after the downpipe':X.X.choke.k==='dp'?'in the downpipe':'at the '+X.X.choke.k)+'): a pipe or part is too small for this flow');
+      add('exh','Exhaust side: downpipe and back pressure',probs.length?'warn':G2.miss.length||!used?'todo':'ok','downpipe '+cdim(G2.d+2*G2.w)+' OD, '+(X.X.choke?'no back pressure (chokes)':'back pressure '+F.pD(X.X.bp)+' at peak, static at the turbine outlet, the gas cooled along the pipe'+(G2.cool?'':' (cooling off)')+', compressible flow')+(G2.miss.length?' ('+G2.miss.length+' part'+(G2.miss.length>1?'s':'')+' not counted)':'')+'; '+(used?'used in the turbine balance':X.X.choke?'nothing to put in the turbine balance':'not in the turbine balance yet (Use my exhaust’s back pressure)')+(probs.length?'; '+probs.join('; '):''),'exhaust-after-the-turbine'); } }
   add('scan','Route it from a scan','info','Fusion add-in, Charge piping from your scan: it routes the charge pipes around the scanned engine bay with these sizes'+(FUSION?'; Fusion is connected':'; it needs Fusion with the add-in (this page cannot read a scan)'),$('cr-block')?'#cr-block':'');
   add('sheet','Build sheet','info','the route drawing, every part and size, the key numbers and the assumptions, in inches and mm, as one file to save and print','');
   return S;
@@ -22018,12 +22279,14 @@ function tsSheet(){
     else P('Wastegate','internal, effective area '+(W.Aeff*1e6).toFixed(0)+' mm² ('+(W.Aeff*1550.0031).toFixed(2)+' in²)','in the turbine housing'); }
   const X=TS_X;
   if(turbo&&X){ const G=X.G;
-    X.X.rows.forEach(x=>{ if(x.k==='cone') P('Cone, turbine outlet → downpipe',cdim(x.cone.d)+' → '+cdim(x.cone.D)+', '+x.cone.alpha.toFixed(1)+'° included, '+clen(x.cone.len)+' long','loss '+F.pD(x.dp));
-      else if(x.k==='dp') P('Downpipe'+each,'OD '+cdim(x.d+2*G.w)+', ID '+cdim(x.d)+', wall '+cdim(G.w)+', '+clen(x.L)+' long, '+bends(null,x.n90),'loss '+F.pD(x.dp));
-      else if(x.k==='cat') P('Converters (Cats tab)',G.cat.what,'loss '+F.pD(x.dp));
-      else if(x.k==='muf') P('Muffler (Mufflers tab)',G.muf.what+', pipe '+cdim(x.d),'loss '+F.pD(x.dp));
-      else if(x.k==='tail') P('Pipe after the downpipe (Sound tab)','ID '+cdim(x.d)+', '+clen(x.L)+' long, '+bends(null,x.n90),'loss '+F.pD(x.dp));
-      else if(x.k==='tip') P('Tip','ID '+cdim(x.d),'leaving it: loss '+F.pD(x.dp)); }); }
+    const st=x=>F.tD(x.sIn.T-273.15)+', Mach '+x.sIn.M.toFixed(2)+'; static rise '+F.pD(x.dp);
+    X.X.rows.forEach(x=>{ if(x.k==='cone') P('Cone, turbine outlet → downpipe',cdim(x.cone.d)+' → '+cdim(x.cone.D)+', '+x.cone.alpha.toFixed(1)+'° included, '+clen(x.cone.len)+' long','total-pressure loss '+F.pD(x.dp0)+'; '+st(x));
+      else if(x.k==='step') P('Size change',cdim(x.d1)+' → '+cdim(x.d2)+(x.y?', where the pipes meet (not counted)':x.cone?', cone':', abrupt'),x.y?'not counted':'total-pressure loss '+F.pD(x.dp0)+'; '+st(x));
+      else if(x.k==='dp') P('Downpipe'+each,'OD '+cdim(x.d+2*G.w)+', ID '+cdim(x.d)+', wall '+cdim(G.w)+', '+clen(x.L)+' long, '+bends(null,x.n90),st(x));
+      else if(x.k==='cat') P('Converters (Cats tab)',G.cat.what,st(x));
+      else if(x.k==='muf') P('Muffler (Mufflers tab)',G.muf.what+', pipe '+cdim(x.d),st(x));
+      else if(x.k==='tail') P('Pipe after the downpipe (Sound tab)','ID '+cdim(x.d)+', '+clen(x.L)+' long, '+bends(null,x.n90),st(x));
+      else if(x.k==='tip') P('Tip','ID '+cdim(x.d),'leaving it: '+st(x)); }); }
   // key numbers
   N('Air through each compressor',F.fl(R.m)); N('Corrected flow (85 °F, 13.95 psia; ATP)',F.fl(corrFlow(R.m,p.tin,R.P1)));
   if(TG.G) N('Garrett’s method for '+Math.round(val('i-hp'))+' hp',F.fl(TG.G.wa/LBMIN)+' per compressor, pressure ratio '+TG.G.pr.toFixed(2));
@@ -22031,7 +22294,9 @@ function tsSheet(){
   N('Air leaving the compressor / the intercooler',F.tD(R.t2)+' / '+F.tD(R.t3)); N('Loss, filter to throttle',F.pD(R.total));
   if(turbo){ const tit=Number.isFinite(val('i-tit'))?val('i-tit'):950;
     N('Turbine inlet temperature',F.tD(tit)+(Number.isFinite(val('i-tit'))?'':' (Garrett’s gasoline design figure, an upper value)'));
-    if(X){ N('Exhaust through each turbine',F.fl(X.G.me)); N('Gas after the turbine',F.tD(X.G.t4)); N('Back pressure after the turbine, worked out',F.pD(X.X.bp)); }
+    if(X){ N('Exhaust through each turbine',F.fl(X.G.me)); N('Gas after the turbine',F.tD(X.G.t4));
+      if(X.G.cool) N('Gas at the tip',F.tD(X.X.F[X.X.F.length-1].T0out-273.15));
+      N('Back pressure after the turbine, worked out',X.X.choke?'chokes: none':F.pD(X.X.bp)+' static at the turbine outlet ('+F.pD(X.X.bp0)+' total)'); }
     N('Back pressure in the turbine balance',val('i-tobp')>0?F.pD(val('i-tobp')*1000):'none entered');
     N('Pressure before the turbine',(tsTipMeasured()?'measured ':'')+(+tsTipK().toFixed(2))+' × boost, '+F.pD(tsTipK()*(p.boost||0)*1000)+' gauge');
     if(W&&W.mw>0) N('Wastegate flow at peak',F.fl(W.mw)); }
@@ -22049,8 +22314,8 @@ function tsSheet(){
     if(X){ const G=X.G;
       A(G.rule?'Downpipe size: COBB Tuning’s '+G.rule[0]+' in for up to '+G.rule[1]+' hp (the lower end of its range), taken as tube OD; COBB does not say OD or ID, crank or wheel.':G.hpT>0?'Downpipe size: no source size above 500 hp a downpipe; chosen by the back-pressure table.':'Downpipe size: no power target, so no size rule applied.');
       if(G.outWhy&&G.outWhy!=='typed') A('Turbine outlet bore: the housing’s listed outlet taken as the outside of the tube that meets it, less the wall.');
-      A('Back pressure after the turbine: the gas is not cooled along the pipe and all of the exhaust is taken through the downpipe, so the figure is on the high side.');
-      if(X.X.cone) A('The cone after the turbine: the swirl and uneven flow leaving a turbine are not captured by the 1-D loss, so the real loss is higher.');
+      A('Back pressure after the turbine: '+(X.G.cool?'the gas is cooled along the pipe by the steady-flow heat transfer'+($('i-xcaf').value==='w'?' times Wendland’s pulsing-flow factors':' (the least cooling: the real gas is cooler)'):'the gas is not cooled along the pipe')+', the flow followed with the compressible 1-D relations; all of the exhaust is taken through the downpipe and the Y where twin downpipes meet is not counted.');
+      if(X.X.cone) A('The cone after the turbine: the swirl and uneven flow leaving a turbine are not captured by the 1-D loss, so the real loss is higher and its pressure recovery lower (the sheet’s figure takes the cone’s 1-D recovery in full).');
       G.miss.forEach(m=>A('Not counted in the back pressure: '+m+'.')); }
     else A('The exhaust after the turbine is not worked out: see Exhaust after the turbine.'); }
   A('Blow-off valve sized to pass the compressor’s full flow (this page’s assumption; no maker sizing method found).');

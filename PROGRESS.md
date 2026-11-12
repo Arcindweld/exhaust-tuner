@@ -8,9 +8,9 @@ Decisions:
 - Y merge: not sourced for symmetric Y (python-fluids Crane tees = run+branch) -> left out.
 - No NA whole-exhaust back-pressure sum exists on the page -> nothing to apply; report.
 Steps:
-- [ ] D shared muffler fn
-- [ ] A/B/C march
-- [ ] E output/checklist/sheet
+- [x] D shared muffler fn (mufElems, mufElemLoss; Mufflers tab rows + xMuffler)
+- [x] A/B/C march (exhMarch, exhSteps); case A: old 39.30 -> 7.72 kPa static at outlet (cone recovery -28.7); total 52.39; separated cone 16.30
+- [x] E output/checklist/sheet (first pass)
 - [ ] tests xflow_ui.js, turboguide updates
 - [ ] python check tools/validation/boost/xflow.py
 - [ ] docs, test runs

@@ -75,7 +75,7 @@ CAF = Nu_measured / Nu_fully-developed.
 | Value | Where | Source |
 |---|---|---|
 | **2.5** (used with Gnielinski; best fit to NEDC data on a 2 L gasoline car) | whole exhaust line | [Konstantinidis 1997](https://www.academia.edu/21379858/Transient_heat_transfer_modelling_in_automotive_exhaust_systems) |
-| **2.3 manifold, 3.0 takedown pipe, 1.6 tailpipe** (Daniel; steady operation) | per component | cited in [MDPI Computation 13(9):223](https://www.mdpi.com/2079-3197/13/9/223) |
+| **2.3 manifold, 3.0 takedown pipe, 1.6 tailpipe** (D. W. Wendland, SAE 931085, 1993, averaged over Re 4000-20000; "Daniel" in the MDPI paper is his first name, see [Balasubramanian 2018](https://core.ac.uk/download/215523088.pdf); corrected 2026-11-12) | per component | cited in [MDPI Computation 13(9):223](https://www.mdpi.com/2079-3197/13/9/223) |
 | ~1.5 (heat transfer "about 50 % greater than steady flow correlations") | exhaust port (Malchow et al., SAE 790309) | [CSU heat-transfer notes](https://www.engr.colostate.edu/~allan/heat_trans/page9/page9.html) |
 | 1.5–2.0 (unsteady intake flow: "50 to 100 %" over Dittus–Boelter) | intake | [Rahman 2011](https://core.ac.uk/download/268871449.pdf) |
 | 20–30 | 100 mm downstream of the valve (single-cylinder diesel, entrance region) | [MDPI Computation 2025](https://www.mdpi.com/2079-3197/13/9/223) |
