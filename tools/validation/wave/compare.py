@@ -23,7 +23,10 @@ Tags switch one thing in both codes for the mechanism experiments:
   eta085    0.85 of the fuel's heat released in both codes instead of 0.72 (phi x 0.85 < 1, so OpenWAM's burn is not
             cut short by the air running out), the wave model's default gas (a 2026-11-12 experiment on the old eta; since
             part 2 the wave model's gas ignores eta, so this tag now runs as base)
-  fuelvap   the wave model with fuel vapour in its fresh charge (spec.e.fuel 'vapour', 2026-11-12 part 2), OpenWAM as base
+  chem      2026-11-12 part 2: the heat release from the chemistry with part 1's fresh charge of air alone (spec.e.fuel
+            'air'), OpenWAM as base (its combustion efficiency releasing the same heat)
+  fuelvap   the wave model with fuel vapour in its fresh charge (spec.e.fuel 'vapour'; adopted as the default in part 2,
+            so this tag now runs as base)
   before    the wave model of the page before this validation's fixes (page=...), OpenWAM as base (reuses its runs)
   endp      a candidate page (page=...) against the base OpenWAM runs, before it replaces the page
 Results: tools/validation/wave/results/<tag>.json (metrics per configuration and speed, and the traces).
@@ -136,6 +139,7 @@ TAGS = {
     "motored": ({}, None, None, None, {"eta": 0.0, "etaC": 0.0}),
     "motoredconst": ({}, None, None, "const", {"eta": 0.0}),
     "eta085": ({}, None, None, None, {"eta": 0.85}),
+    "chem": ({}, None, None, None, {"fuel": "air"}),
     "fuelvap": ({}, None, None, None, {"fuel": "vapour"}),
     "before": ({}, None, None, None),
     "endp": ({}, None, None, None),

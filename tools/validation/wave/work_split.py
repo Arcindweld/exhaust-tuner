@@ -45,6 +45,15 @@ def split(e, p):
     return g / vd, q / vd
 
 
+def comp_exp(e, p):
+    """The compression exponent between 60 and 20 degrees before firing TDC (660 and 700 deg), ln(p2/p1) / ln(V1/V2)."""
+    n = len(p)
+    i1, i2 = round(660.0 / 720.0 * n) % n, round(700.0 / 720.0 * n) % n
+    v1, _ = vol(e, 660.0)
+    v2, _ = vol(e, 700.0)
+    return math.log(p[i2] / p[i1]) / math.log(v1 / v2)
+
+
 def main(argv):
     o = {"tag": "base", "configs": ""}
     for a in argv[1:]:
@@ -64,17 +73,19 @@ def main(argv):
             print("| %s | %d | %.2f / %.2f | %.3f | %+.2f / %+.2f | %.2f / %.2f | %.3f | %.3f / %.3f | %.1f / %.1f |" % (
                 cfg, r["rpm"], gw / 1e5, go / 1e5, gw / go, qw / 1e5, qo / 1e5, (gw + qw) / 1e5, (go + qo) / 1e5, (gw + qw) / (go + qo),
                 (gw + qw) / r["wave"]["nmep"], (go + qo) / r["wam"]["nmep"], max(r["wave"]["pCyl"]) / 1e5, max(r["wam"]["pCyl"]) / 1e5))
-            t = tot.setdefault(cfg, [0, 0, 0, 0, 0])
+            t = tot.setdefault(cfg, [0, 0, 0, 0, 0, 0, 0])
+            t[5] += comp_exp(e, r["wave"]["pCyl"])
+            t[6] += comp_exp(e, r["wam"]["pCyl"])
             t[0] += gw / go
             t[1] += (qw - qo) / (go + qo)
             t[2] += (gw + qw) / (go + qo)
             t[3] += max(r["wave"]["pCyl"]) / max(r["wam"]["pCyl"])
             t[4] += 1
-    print("\n| configuration | gross ratio (mean) | pumping difference / OpenWAM net (mean) | net ratio (mean) | peak pressure ratio (mean) |")
-    print("|---|---|---|---|---|")
+    print("\n| configuration | gross ratio (mean) | pumping difference / OpenWAM net (mean) | net ratio (mean) | peak pressure ratio (mean) | compression exponent 60 -> 20 deg BTDC, wave / OpenWAM (mean) |")
+    print("|---|---|---|---|---|---|")
     for cfg, t in tot.items():
         n = t[4]
-        print("| %s | %.3f | %+.3f | %.3f | %.3f |" % (cfg, t[0] / n, t[1] / n, t[2] / n, t[3] / n))
+        print("| %s | %.3f | %+.3f | %.3f | %.3f | %.3f / %.3f |" % (cfg, t[0] / n, t[1] / n, t[2] / n, t[3] / n, t[5] / n, t[6] / n))
 
 
 if __name__ == "__main__":

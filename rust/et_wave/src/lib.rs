@@ -88,7 +88,7 @@ const SPEC: [(f64, [f64; 5], [f64; 5], f64); 8] = [
     (18.01528, [4.19864056, -2.0364341e-3, 6.52040211e-6, -5.48797062e-9, 1.77197817e-12], [3.03399249, 2.17691804e-3, -1.64072518e-7, -9.7041987e-11, 1.68200992e-14], -3.02937267e4),
     (28.0101, [3.57953347, -6.1035368e-4, 1.01681433e-6, 9.07005884e-10, -9.04424499e-13], [2.71518561, 2.06252743e-3, -9.98825771e-7, 2.30053008e-10, -2.03647716e-14], -1.4344086e4),
     (2.01588, [2.34433112, 7.98052075e-3, -1.9478151e-5, 2.01572094e-8, -7.37611761e-12], [3.3372792, -4.94024731e-5, 4.99456778e-7, -1.79566394e-10, 2.00255376e-14], -917.935173),
-    // gasoline vapour (e.fuel "vapour"): CH1.87 as 0.62608 isooctane + 0.37392 toluene, NASA-9 (TP-2002-211556) refitted
+    // gasoline vapour (the default fresh charge of the cylinder and the exhaust; e.fuel "air" leaves it out): CH1.87 as 0.62608 isooctane + 0.37392 toluene, NASA-9 (TP-2002-211556) refitted
     (105.9685, [4.3574789305e-4, 6.287087399e-2, 1.8481188654e-5, -6.6235936767e-8, 3.0931702108e-11], [1.5070164686e-4, 7.4623329793e-2, -3.7243234038e-5, 9.0809952109e-9, -8.6559143434e-13], 0.0),
 ];
 const AIR_N2: f64 = 3.7279; // per mole of O2
@@ -414,7 +414,7 @@ struct Engine {
     chambers: Vec<[f64; 4]>, // x, V, A, Le
     k: K,
     gas: Option<Gas>, // None: e.gas "const", gamma 1.35 and R 287
-    gas_in: Option<Gas>, // the intake pipes' gas: air even with e.fuel "vapour" (port_fuel adds the fuel at the valve)
+    gas_in: Option<Gas>, // the intake pipes' gas: air (port_fuel adds the fuel at the valve)
 }
 
 const fn rad(d: f64) -> f64 {
@@ -579,7 +579,7 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         per_cyl,
         chambers,
         k: consts(),
-        gas: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), e["fuel"].as_str() == Some("vapour"))) },
+        gas: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), e["fuel"].as_str() != Some("air"))) },
         gas_in: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), false)) },
     })
 }
@@ -1358,7 +1358,7 @@ fn valve_flow(k: &K, cda: f64, cy: &Cyl, p: &Pipe, i: usize) -> Flow {
     Flow { m: -orifice(k, cda, cy.p, cy.t, pp, cy.gm, cy.rg), h: hc, x: cy.x, uj: jet_speed(k, cy.p, cy.t, pp, cy.gm, cy.cp) }
 }
 
-/// The port injector (e.fuel "vapour"), as the page's portFuel: f is the intake valve's flow as the pipe sees it; returns
+/// The port injector (the default; not with e.fuel "air"), as the page's portFuel: f is the intake valve's flow as the pipe sees it; returns
 /// the flow as the cylinder sees it, and replaces f by the pipe's side when the flow is outward.
 fn port_fuel(f: &mut Flow, cy: &Cyl, g: &Gas, gi: &Gas) -> Flow {
     let ia = 1.0 / g.afr;

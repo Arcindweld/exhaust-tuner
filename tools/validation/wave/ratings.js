@@ -6,7 +6,8 @@
 // 150 mm port + 610 mm primary at 44.5 mm (1-3/4 in ID, 1-7/8 in tube), a 130 mm cone from 89 mm (four primaries' area)
 // to a 76 mm (3 in) collector 300 mm long. Torque = the bank's mean IMEP x the engine's displacement / 4 pi.
 //   node ratings.js [engines=ls3,ls7,lt1] [tag=name] [rpms=3000:6600:200] [k=v ...]   k: e.* overrides (JSON values),
-//        intakeL=m  primL=m  coll=m  (one change at a time for the sensitivity runs)
+//        intakeL=m  primL=m  coll=m  pIn=Pa (the intake mouth's pressure: an intake loss)  tail=m (a 63.5 mm tail pipe after
+//        the 76 mm collector)  (one change at a time for the sensitivity runs)
 // Per speed it records net IMEP (the model's own), gross IMEP (p dV from BDC before firing to BDC after: 540-720 and
 // 0-180 deg of each cylinder's frame), the pumping loop (gross - net), the heat released and the in-cylinder wall heat
 // (Woschni) per cycle, the fuel's chemical energy (trapped air / AFR x 44 MJ/kg), and, when the page has it, the brake
@@ -41,7 +42,7 @@ function specOf(c) {
   const dI = Math.sqrt(0.6) * dIn, pl = +(args.primL || 0.61), cl = +(args.coll || 0.3);
   return { e, intake: { segs: [{ L: +(args.intakeL || 0.3), d0: dI, d1: dI }], Tw: 320 },
     exhaust: { segs: [{ L: 0.15, d0: 0.0445, d1: 0.0445, primary: true }, { L: pl, d0: 0.0445, d1: 0.0445, primary: true }], Tw: 700, chambers: [] },
-    opt: { phases: [0, 180, 450, 630], collector: { segs: [{ L: 0.13, d0: 0.089, d1: 0.0762 }, { L: cl, d0: 0.0762, d1: 0.0762 }], Tw: 650 } } };
+    opt: { phases: [0, 180, 450, 630], collector: { segs: [{ L: 0.13, d0: 0.089, d1: 0.0762 }, { L: cl, d0: 0.0762, d1: 0.0762 }].concat(args.tail ? [{ L: +args.tail, d0: 0.0635, d1: 0.0635 }] : []), Tw: 650 } } };
 }
 const out = { page: PAGE, args, rpms, engines: {} };
 for (const k of engines) {
@@ -58,8 +59,9 @@ for (const k of engines) {
       ctx.cyls.forEach((cy, j) => { const a = acc[j]; const tk = cy.th; if (tk >= 540 || tk < 180) a.g += cy._pdV; a.Q += cy._Q; a.qw += cy._qw;
         if (cy._lastDone !== cy.done && cy.done) { cy._lastDone = cy.done; cyc.push({ j, g: a.g, Q: a.Q, qw: a.qw, fuel: cy.done.ve * (WS.PATM / (287.1 * WS.TATM)) * eng.Vd / spec.e.afr * 44e6, imep: cy.done.imep }); a.g = 0; a.Q = 0; a.qw = 0; } });
     };
-    let r = WS.runSpeed(eng, { rpm, cycles: i === 0 ? 8 : 3, dx: 0.0125, state, hook });
-    for (let x = 0; x < 5; x++) { const h = r.history, n = h.length; if (n >= 2 && Math.abs(h[n - 1].ve - h[n - 2].ve) < 0.004 * h[n - 1].ve) break; r = WS.runSpeed(eng, { rpm, cycles: 2, dx: 0.0125, state: r.state, hook }); }
+    const pIn = args.pIn ? +args.pIn : undefined;
+    let r = WS.runSpeed(eng, { rpm, cycles: i === 0 ? 8 : 3, dx: 0.0125, state, hook, pIn });
+    for (let x = 0; x < 5; x++) { const h = r.history, n = h.length; if (n >= 2 && Math.abs(h[n - 1].ve - h[n - 2].ve) < 0.004 * h[n - 1].ve) break; r = WS.runSpeed(eng, { rpm, cycles: 2, dx: 0.0125, state: r.state, hook, pIn }); }
     state = r.state;
     const last = cyc.slice(-N), mean = f => last.reduce((s, q) => s + q[f], 0) / last.length;
     const gross = mean('g') / eng.Vd, Q = mean('Q'), qw = mean('qw'), fuel = mean('fuel');
