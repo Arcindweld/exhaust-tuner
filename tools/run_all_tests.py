@@ -31,6 +31,7 @@ Options:
   --no-skip-allowed a,b these tests must not skip at all, whatever the expected-skips file says
   --list                print the plan and stop
   --write-timings       write this run's seconds into tools/test_timings.json (for --shard)
+  --merge DIR...        no tests: one table (results.txt/.json/.md in --out) from several runs' results (CI shards)
 
 Results: PASS; FAIL (non-zero exit, a FAIL line, or for page tests one of the markers web/tests/run_all_tests.sh
 always used: PAGEERROR, "Error:", " BAD ", "overflow <n>", "panel looks empty"; or past the time limit); SKIP (the test
@@ -150,8 +151,9 @@ def read_list(path, what):
 
 class T:
     """One entry of the plan."""
-    def __init__(self, name, suite, cmd, cwd, env=None, needs=(), runner_skip=None, note='', require_if=None):
+    def __init__(self, name, suite, cmd, cwd, env=None, needs=(), runner_skip=None, note='', require_if=None, unset=()):
         self.name, self.suite, self.cmd, self.cwd, self.env = name, suite, cmd, cwd, env or {}
+        self.unset = tuple(unset)          # variables taken out of its environment
         self.require_if = require_if       # 'core': add --require when the core is built by the time it runs
         self.needs = set(needs)            # builds it needs: host, core, wasm
         self.runner_skip = runner_skip     # (condition, reason) when a tool it cannot start without is missing
@@ -214,9 +216,18 @@ def plan(tools, quick):
                  '--manifest-path', 'rust/et_wave/Cargo.toml'], ROOT,
                  runner_skip=nocargo or (None if tools['wasm32'] else ('no-wasm32', 'the wasm32-unknown-unknown target is not installed (rustup target add wasm32-unknown-unknown)'))))
     # rust: cargo test for every crate, then the wave model built from this checkout against the page's JavaScript
+    # rust/'s tests use shell-script stand-ins for the solvers, and EXHAUST_TUNER_OPENWAM / _OPENFOAM would replace
+    # those (rust/et_host/src/paths.rs reads them first: the router cancel tests then fail), so they run without them;
+    # the tests named *real_solver* run once more with the real OpenWAM
+    solvers = ('EXHAUST_TUNER_OPENWAM', 'EXHAUST_TUNER_OPENFOAM')
     for crate, man in crates():
         out.append(T('cargo_test_' + crate, 'rust', ['cargo', 'test', '--release', '--manifest-path', man, '--', '--show-output'],
-                     ROOT, runner_skip=nocargo))
+                     ROOT, runner_skip=nocargo, unset=solvers))
+        if crate == 'rust':
+            out.append(T('cargo_test_rust_real_openwam', 'rust', ['cargo', 'test', '--release', '--manifest-path', man, 'real_solver',
+                         '--', '--show-output'], ROOT, unset=solvers[1:],
+                         runner_skip=nocargo or (None if tools['openwam'] else ('no-openwam', 'no OpenWAM build (EXHAUST_TUNER_OPENWAM)')),
+                         note='the tests named real_solver, with EXHAUST_TUNER_OPENWAM'))
     out.append(T('wave_wasm_built', 'rust', [node, 'wave_wasm.js'], rel('web', 'tests'), dict(q, WAVE_WASM=WASM), needs={'wasm'},
                  note='the wave model built from rust/et_wave against the page\'s JavaScript'))
     # web: every web/tests/*.js; the arguments a test takes are read from its source
@@ -297,6 +308,8 @@ def core_built():
 
 def run_one(t, timeout, logdir, env0):
     env = dict(env0)
+    for k in t.unset:
+        env.pop(k, None)
     env.update(t.env)
     cmd = t.cmd + (['--require'] if t.require_if == 'core' and core_built() else [])
     t0 = time.time()
@@ -353,6 +366,85 @@ def judge(t, r):
     return ('PASS+SKIP' if parts else 'PASS'), '', parts
 
 
+def summarize(rows, unexpected, stale, seconds):
+    count = lambda s: sum(r['status'] == s for r in rows)
+    summary = {'tests': len(rows), 'pass': count('PASS') + count('PASS+SKIP'), 'flaky': count('FLAKY'), 'fail': count('FAIL'),
+               'skip': count('SKIP'), 'partial_skips': sum(len(r['partial_skips']) for r in rows),
+               'unexpected_skips': unexpected, 'expected_skip_not_seen': stale, 'excluded': EXCLUDED, 'seconds': seconds}
+    summary['result'] = 'ok' if summary['fail'] == 0 and not unexpected else 'FAILED'
+    return summary
+
+
+def note_of(r):
+    note = r['reason']
+    if r['partial_skips']:
+        note = (note + '; ' if note else '') + 'skipped part: ' + ' | '.join(r['partial_skips'])
+    if r.get('unexpected_skip'):
+        note = 'UNEXPECTED SKIP: ' + note
+    elif r.get('expected_skip') and (r['status'] == 'SKIP' or r['partial_skips']):
+        note += '  [expected: %s]' % r['expected_skip']
+    return note
+
+
+def render(rows, summary, skips_file):
+    """The results table as text and as Markdown (for a CI job summary)."""
+    width = max([len(r['name']) for r in rows] + [4])
+    lines = ['%-*s  %-7s %-10s %8s  %s' % (width, 'test', 'suite', 'result', 'seconds', 'note'),
+             '-' * (width + 2) + ' ' + '-' * 7 + ' ' + '-' * 10 + ' ' + '-' * 8 + '  ' + '-' * 40]
+    md = ['| test | suite | result | seconds | note |', '|---|---|---|---:|---|']
+    for r in rows:
+        st = r['status'] + ('!' if r.get('unexpected_skip') else '')
+        note = note_of(r)
+        lines.append('%-*s  %-7s %-10s %8.1f  %s' % (width, r['name'], r['suite'], st, r['seconds'], note))
+        md.append('| %s | %s | %s | %.1f | %s |' % (r['name'], r['suite'], ('**%s**' % st) if st not in ('PASS', 'PASS+SKIP') else st,
+                                                    r['seconds'], note.replace('|', '/')))
+    tail = ['%d tests: %d passed, %d flaky (passed on retry), %d failed, %d skipped, %d partial skips; %d unexpected skips; %.0f s'
+            % (summary['tests'], summary['pass'], summary['flaky'], summary['fail'], summary['skip'], summary['partial_skips'],
+               len(summary['unexpected_skips']), summary['seconds'])]
+    if summary['unexpected_skips']:
+        tail.append('unexpected skips (not in %s for this machine, or named in --no-skip-allowed): %s'
+                    % (skips_file, ', '.join(summary['unexpected_skips'])))
+    for n, why in sorted(summary.get('excluded', {}).items()):
+        tail.append('not run (tools/run_all_tests.py EXCLUDED): %s: %s' % (n, why))
+    if summary['expected_skip_not_seen']:
+        tail.append('expected to skip here but ran: %s (the expected-skips entry may be out of date)'
+                    % ', '.join(summary['expected_skip_not_seen']))
+    tail.append('result: ' + summary['result'])
+    text = '\n'.join(lines + [''] + tail) + '\n'
+    md = '\n'.join(['### Test results: %s' % summary['result'], ''] + ['- ' + t for t in tail[:-1]] + [''] + md) + '\n'
+    return text, md
+
+
+def merge(dirs, out):
+    """One table from several runs' results.json (the CI shards); exit 1 when any of them failed."""
+    rows, unexpected, stale, secs, seen = [], [], [], 0.0, set()
+    for d in dirs:
+        f = os.path.join(d, 'results.json') if os.path.isdir(d) else d
+        try:
+            j = json.load(open(f, encoding='utf-8'))
+        except (OSError, ValueError) as e:
+            print('merge: %s: %s' % (f, e))
+            rows.append({'name': 'results of ' + os.path.basename(d.rstrip('/')), 'suite': '-', 'status': 'FAIL',
+                         'reason': 'no results (%s)' % e, 'partial_skips': [], 'seconds': 0.0})
+            continue
+        for r in j['tests']:
+            if r['name'] in seen and r['suite'] == 'build':
+                continue           # each shard builds what it needs: list a build once
+            seen.add(r['name'])
+            rows.append(r)
+        unexpected += j['summary']['unexpected_skips']
+        stale += j['summary']['expected_skip_not_seen']
+        secs = max(secs, j['summary']['seconds'])
+    summary = summarize(rows, unexpected, stale, secs)
+    text, md = render(rows, summary, 'tests/expected_skips.txt')
+    os.makedirs(out, exist_ok=True)
+    open(os.path.join(out, 'results.txt'), 'w', encoding='utf-8').write(text)
+    open(os.path.join(out, 'results.md'), 'w', encoding='utf-8').write(md)
+    json.dump({'summary': summary, 'merged_from': dirs, 'tests': rows}, open(os.path.join(out, 'results.json'), 'w', encoding='utf-8'), indent=1)
+    print(text, end='')
+    return 0 if summary['result'] == 'ok' else 1
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0], formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('-j', type=int, default=1)
@@ -368,7 +460,10 @@ def main():
     ap.add_argument('--no-skip-allowed', default='')
     ap.add_argument('--list', action='store_true')
     ap.add_argument('--write-timings', action='store_true')
+    ap.add_argument('--merge', nargs='+', metavar='DIR', help='combine these runs\' results.json into one table in --out')
     a = ap.parse_args()
+    if a.merge:
+        return merge(a.merge, a.out)
     if a.j < 1:
         ap.error('-j wants 1 or more')
     suites = [s for s in a.suite.split(',') if s] or list(SUITES)
@@ -409,13 +504,13 @@ def main():
             sys.exit('%s is named in the expected-skips, flaky or --no-skip-allowed list but is not a test here' % n)
     if a.list:
         for t in builds + rest:
-            print('%-26s %-7s (cd %s && %s%s)%s' % (t.name, t.suite, os.path.relpath(t.cwd, ROOT) or '.',
+            print('%-30s %-7s (cd %s && %s%s)%s' % (t.name, t.suite, os.path.relpath(t.cwd, ROOT) or '.',
                   ''.join('%s=%s ' % kv for kv in sorted(t.env.items())), show(t),
                   ('   [not started: %s]' % t.runner_skip[1]) if t.runner_skip else ''))
         for f, why in sorted(NOT_TESTS.items()):
-            print('%-26s %-7s not a test: %s' % (f, 'web', why))
+            print('%-30s %-7s not a test: %s' % (f, 'web', why))
         for n, why in sorted(EXCLUDED.items()):
-            print('%-26s %-7s NOT RUN: %s' % (n, '', why))
+            print('%-30s %-7s NOT RUN: %s' % (n, '', why))
         if shard_load is not None:
             print('shard %s: %d tests, about %.0f s by tools/test_timings.json' % (a.shard, len(rest), shard_load))
         return 0
@@ -482,45 +577,16 @@ def main():
             stale.append(r['name'])
     order = [t.name for t in builds + rest]
     rows = [results[n] for n in order]
-    count = lambda s: sum(r['status'] == s for r in rows)
-    summary = {'tests': len(rows), 'pass': count('PASS') + count('PASS+SKIP'), 'flaky': count('FLAKY'), 'fail': count('FAIL'),
-               'skip': count('SKIP'), 'partial_skips': sum(len(r['partial_skips']) for r in rows),
-               'unexpected_skips': unexpected, 'expected_skip_not_seen': stale, 'excluded': EXCLUDED,
-               'seconds': round(time.time() - t_start, 1)}
-    ok = summary['fail'] == 0 and not unexpected
-    summary['result'] = 'ok' if ok else 'FAILED'
-    # the table
-    lines = ['%-*s  %-7s %-10s %8s  %s' % (width, 'test', 'suite', 'result', 'seconds', 'note'),
-             '-' * (width + 2) + ' ' + '-' * 7 + ' ' + '-' * 10 + ' ' + '-' * 8 + '  ' + '-' * 40]
-    for r in rows:
-        st = r['status'] + ('!' if r.get('unexpected_skip') else '')
-        note = r['reason']
-        if r['partial_skips']:
-            note = (note + '; ' if note else '') + 'skipped part: ' + ' | '.join(r['partial_skips'])
-        if r.get('unexpected_skip'):
-            note = 'UNEXPECTED SKIP: ' + note
-        elif r.get('expected_skip') and (r['status'] == 'SKIP' or r['partial_skips']):
-            note += '  [expected: %s]' % r['expected_skip']
-        lines.append('%-*s  %-7s %-10s %8.1f  %s' % (width, r['name'], r['suite'], st, r['seconds'], note))
-    lines.append('')
-    lines.append('%d tests: %d passed, %d flaky (passed on retry), %d failed, %d skipped, %d partial skips; %d unexpected skips; %.0f s'
-                 % (summary['tests'], summary['pass'], summary['flaky'], summary['fail'], summary['skip'], summary['partial_skips'],
-                    len(unexpected), summary['seconds']))
-    if unexpected:
-        lines.append('unexpected skips (not in %s for this machine, or named in --no-skip-allowed): %s'
-                     % (os.path.relpath(a.expected_skips, ROOT), ', '.join(unexpected)))
-    for n, why in sorted(EXCLUDED.items()):
-        lines.append('not run (tools/run_all_tests.py EXCLUDED): %s: %s' % (n, why))
-    if stale:
-        lines.append('expected to skip here but ran: %s (the expected-skips entry may be out of date)' % ', '.join(stale))
-    lines.append('result: ' + summary['result'])
-    text = '\n'.join(lines) + '\n'
+    summary = summarize(rows, unexpected, stale, round(time.time() - t_start, 1))
+    text, md = render(rows, summary, os.path.relpath(a.expected_skips, ROOT))
     open(os.path.join(a.out, 'results.txt'), 'w', encoding='utf-8').write(text)
+    open(os.path.join(a.out, 'results.md'), 'w', encoding='utf-8').write(md)
     json.dump({'summary': summary, 'tools': tools, 'conditions': sorted(cond),
                'options': {'j': a.j, 'quick': a.quick, 'timeout': a.timeout, 'suites': suites, 'only': a.only, 'shard': a.shard},
                'platform': platform.platform(), 'tests': rows}, open(os.path.join(a.out, 'results.json'), 'w', encoding='utf-8'), indent=1)
     print()
     print(text, end='')
+    ok = summary['result'] == 'ok'
     if a.write_timings:
         p = os.path.join(ROOT, 'tools', 'test_timings.json')
         try:
