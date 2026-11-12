@@ -143,6 +143,16 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
 
 ## 2026-11-01: new interface, independent audit
+- Fabrication audit (2026-11-11; docs/FAB_AUDIT_2026-11-11.md): every cut, bend, print and template output recomputed
+  from geometry (marched cylinders, a centreline rebuilt from the bend table, sampled solids). Fixed: F1 the page's cope
+  template is worked from the branch's inside edge (a square-to-wall cut from the outside line left the inside edge
+  9 mm into the main pipe on two 2 in tubes); F2 jig.py cradle and saddle tops now stop at the lowest centreline point
+  under the block's whole footprint (on slopes the downhill end stood up to 6 mm above it, so a 1 in tube at 55 deg
+  would not lift out); F3 the two-stroke build sheet gets a flat blank per cone (it pointed at a layout that does not
+  exist). Statements added: cope wrap, scale, seam, margin and square-branch scope; cut-list rounding, 0.1 deg clocking,
+  feed-direction right-hand rule; X-pipe build lengths to 0.01 in / 0.1 mm. Bend table round trip, tee cope depth,
+  merge plates and flat patterns, X-pipe mitres, muffler wraps (round and oval), cone blanks and hanger tabs all OK.
+  Open: Q6-Q11 in the doc; a printed template and a steep jig to try in the shop; jig, merge and hanger solids in Fusion.
 - Physics audit follow-up (2026-11-11; docs/PHYSICS_AUDIT_2026-11-11.md, "Follow-up"): the conductor's decisions on
   the questionable items. Q1: exhaust acoustics use burned-gas c (sosExh: stoichiometric CH1.87 products, NASA/GRI-Mech
   polynomials, R 286.6, gamma 1.37-1.30), 1-4 % below the old air c; intake, ambient, Blair and the Jennings default stay

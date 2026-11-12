@@ -121,6 +121,24 @@ def _stations(t, o):
     return out
 
 
+def _top_under(t, s, up, d, half, chord):
+    """The lowest centreline height under a block centred on station s and running half either way along the level
+    direction d: the saddle stops there, so the tube lifts out. On a slope the block reaches further along the tube than
+    its own length (1 / cos of the slope), so the arc sampled is widened to cover the block's whole footprint."""
+    p, tan = t.at(s)
+    lev = math.sqrt(max(0.0, 1.0 - _dot(tan, up) ** 2))
+    span = 1.25 * half / max(lev, 0.2)
+    pts = t.points(s - span, s + span, min(chord, half / 4.0))
+    al = [_dot(_v(q, p, -1.0), d) for q in pts]
+    hs = [_dot(p, up)] + [_dot(q, up) for q, a in zip(pts, al) if abs(a) <= half + 1e-9]
+    for i in range(len(pts) - 1):              # where the centreline crosses the block's ends, between two samples
+        for e in (-half, half):
+            if (al[i] - e) * (al[i + 1] - e) < 0.0:
+                f = (e - al[i]) / (al[i + 1] - al[i])
+                hs.append(_dot(pts[i], up) + f * (_dot(pts[i + 1], up) - _dot(pts[i], up)))
+    return min(hs)
+
+
 def _cradle(t, s, o, up, base, chains):
     """One cradle at arc length s, or None where the tube runs too steeply for a flat cradle."""
     p, tan = t.at(s)
@@ -129,7 +147,7 @@ def _cradle(t, s, o, up, base, chains):
     d = _unit(_v(tan, up, -_dot(tan, up)))
     w = _unit(_cross(up, d))
     half = o['block_len'] / 2.0
-    top = min(_dot(q, up) for q in t.points(s - half, s + half, o['block_len'] / 8.0))
+    top = _top_under(t, s, up, d, half, o['block_len'] / 8.0)
     H = top - base
     W = t.od + 2.0 * o['side']
     hp = _v(p, up, -_dot(p, up))                    # p dropped onto the plane through the origin
@@ -547,7 +565,7 @@ def plan_fab(tubes, up=(0.0, 0.0, 1.0), opts=None):
                     pt, tan = t.at(s)
                     d = _unit(_v(tan, up, -_dot(tan, up)))
                     w = _unit(_cross(up, d))
-                    top = min(_dot(q, up) for q in t.points(s - step / 2.0, s + step / 2.0, step / 4.0))
+                    top = _top_under(t, s, up, d, step * 1.04 / 2.0, step / 4.0)
                     H = top - base
                     hmax = max(hmax, H)
                     hp = _v(pt, up, -_dot(pt, up))
