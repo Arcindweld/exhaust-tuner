@@ -3,9 +3,9 @@
 
 Each block states its source; none is a port of web/index.html. Prints JSON; the page values to compare with are read
 through Playwright by page_values.js in this folder, and both are tabulated in docs/BOOST_AUDIT_2026-11-12.md.
-Usage: PYTHONPATH=<python-ht checkout>:<python-fluids checkout> python3 thermo.py [path/to/gri30.yaml]
+Usage: PYTHONPATH=<python-ht checkout>:<python-fluids checkout> python3 thermo.py path/to/cantera/data/gri30.yaml
 """
-import json, math, sys
+import json, math, os, sys
 
 out = {}
 PATM, R_AIR, G = 101325.0, 287.05, 1.4
@@ -100,7 +100,7 @@ X = dict(CO2=1.0, H2O=0.935, N2=1.4675 * 3.7279, AR=1.4675 * 0.04459)
 nt = sum(X.values())
 Mmix = sum(X[k] * M[k] for k in X) / nt / 1000
 Rex = Ru / Mmix
-gri = sys.argv[1] if len(sys.argv) > 1 else '/home/claude/calebbell/cantera/data/gri30.yaml'
+gri = sys.argv[1] if len(sys.argv) > 1 else os.environ.get('GRI30_YAML', 'gri30.yaml')   # Cantera's data/gri30.yaml
 try:
     S = nasa(gri)
 
