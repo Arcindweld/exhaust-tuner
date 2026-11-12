@@ -144,7 +144,7 @@ def wam_one(name, spec, rpm, over, cycles=30):
     ang, vol, pc = col("Angle(deg)"), col("Volume_Cyl_1(m^3)"), col("Pressure_Cyl_1(bar)")
     # cylinder 1's firing TDC: the smallest volume within a quarter cycle of the cycle's pressure peak. Until 2026-11-12
     # this took the highest pressure among the samples within 1e-6 of the smallest volume; when the output grid missed the
-    # firing TDC by a fraction of a degree only the gas-exchange TDC qualified, and 22 of the 48 runs were compared 360
+    # firing TDC by a fraction of a degree only the gas-exchange TDC qualified, and 23 of the 48 runs were compared 360
     # degrees out of phase (docs/WAVE_VALIDATION_2026-11-11.md, addendum 2026-11-12)
     kpk = max(range(len(pc)), key=lambda k: pc[k])
     near = [k for k in range(len(vol)) if min(abs(ang[k] - ang[kpk]) % 720.0, 720.0 - abs(ang[k] - ang[kpk]) % 720.0) <= 90.0]

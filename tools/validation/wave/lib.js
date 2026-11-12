@@ -2,7 +2,8 @@
 // optional, read-only instrumentation for the validation scripts in this folder:
 //   load({fanning})          the model; fanning overrides the constant Fanning friction factor (0 = no friction and
 //                            no wall heat transfer, which the model ties to friction by Reynolds' analogy)
-//   load({gamma})            the ratio of specific heats (default the model's 1.35), for the like-for-like gamma experiment
+//   load({gamma})            the constant gas's ratio of specific heats (default 1.35; it matters only with spec.e.gas
+//                            'const', since 2026-11-12 the model's default gas has its own gamma(T, x)), for the gamma experiments
 //   load({hook: true})       runSpeed calls opts.hook(ctx) after every time step with the step's state (pipes, cylinders,
 //                            the step's dt and the cylinder's heat release, wall heat and p dV), for the conservation
 //                            and trace scripts. The replacements only expose values; they do not change any arithmetic.

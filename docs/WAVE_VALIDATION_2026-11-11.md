@@ -582,7 +582,7 @@ R: air 287.10, burned at AFR 12.8 294.40, stoichiometric 286.63 J/kg K.
   each design in `wavegas_ui.js`) and Rust (`wave_wasm.js`, against `web/tests/fixtures/wave_const_ref.json`, written from
   commit 017cdbf). The OpenWAM matrix with `tag=const` reproduces section 4's wave numbers exactly.
 - `web/tests/wavegas_ui.js` (new): 42 species values against JANAF's tables, hand-listed in the test (cp within 0.5 %,
-  H - H(298) within 0.3 %, H2O above 1000 K 2 % / 1 %); the mixtures (gamma within 0.0015, cp 0.5 %, u(T) - u(300 K)
+  H - H(298) within 0.3 % (2 % at 300 K, where it is a few tens of J/mol), H2O above 1000 K 2 % / 1 %); the mixtures (gamma within 0.0015, cp 0.5 %, u(T) - u(300 K)
   0.4 %); atom balances and the water-gas ratio; the temperature solve (inverse to 3e-16); a closed adiabatic cylinder
   through a whole cycle against its isentrope found independently in the test (entropy integral by Simpson, bisection):
   -0.42 % largest temperature error at the page's step, -0.21 % at half the step, first order, the same as the
@@ -605,3 +605,119 @@ pressure (pa <= p (1 + 2 gamma / (gamma + 1) (M^2 - 1))); the shock then stands 
 inviscid steady solution. Test (`wavegas_ui.js` 5): a uniform Mach 1.6, 50 kPa stream into 101.3 kPa leaves unchanged
 (pressure spread 0, outflow = inflow); on the page of commit 017cdbf the same case runs away (end cell at 1 Pa).
 None of the 112 constant-gamma reference speeds passes through the new branch (they are unchanged to the last digit).
+
+### A5 A defect in the comparison itself: OpenWAM's traces were 360 degrees out of phase in 23 of 48 runs
+
+`compare.py` found OpenWAM's firing TDC as the highest pressure among the INS samples within 1e-6 of the smallest
+volume. INS is written every 0.5 deg; when that grid missed the firing TDC by a fraction of a degree (the volume there
+is 2.6e-4 above its minimum at 0.5 deg), only the gas-exchange TDC qualified, and the OpenWAM traces (port pressure,
+cylinder pressure, outlet flow) were compared 360 deg out of phase. Found while splitting the work (A6): OpenWAM's
+cylinder-pressure peak sat at 374-376 deg instead of 14-16 deg in 23 of the 48 base runs. Now the firing TDC is the
+smallest volume within 90 deg of the cycle's pressure peak. VE, NMEP and the order levels (magnitudes) were not
+affected; the port-pressure correlation, its amplitude ratio's phase partner `returnShiftDeg`, and the traces were.
+
+| configuration | median port-pressure correlation, section 4.2 -> same runs aligned (constant gas) | runs that were shifted |
+|---|---|---|
+| single_L400 | 0.85 -> 0.86 | 1 |
+| single_L800 | 0.35 -> 0.96 | 5 |
+| single_L1200 | 0.89 -> 0.93 | 3 |
+| single_muffler | 0.61 -> 0.76 | 3 |
+| i4_41 | 0.57 -> 0.62 | 2 |
+| v8_2x41 | 0.09 -> 0.46 | 4 |
+| v8_line | 0.25 -> 0.55 | 3 |
+| v8_line_X | 0.29 -> 0.52 | 2 |
+
+So section 4.3's "port-pressure phase, single cylinder: explained by the wall laws" does not stand: aligned, the single
+cylinder's traces already agree (median correlation 0.86-0.96 with the wall laws on; with both off, `nofricconst`, 0.99).
+The i4 4-1 (0.62 aligned; 0.73 with the wall laws off) and the V8s (0.46-0.55) remain only partly correlated; that is
+still open, and no longer to be read as a 180-degree phase error.
+
+### A6 Engine level against OpenWAM, before and after (`gas_report.py`, the corrected alignment for both)
+
+Before = `tag=const` (the constant gas; its wave and OpenWAM numbers are those of section 4.2 to the last digit),
+after = `tag=base` (the new default gas); the same OpenWAM runs. Means over each configuration's six speeds.
+
+| configuration | NMEP ratio wave / OpenWAM | indicated eff. of heat released, wave (OpenWAM) | VE mean ratio | VE corr | mean port gas T, wave - OpenWAM (K) | exhaust-valve outflow T, wave (K) | port p corr (median) | firing orders: median abs diff (dB), within 3 dB |
+|---|---|---|---|---|---|---|---|---|
+| single_L400 | 1.271 -> 1.110 | 0.479 -> 0.421 (0.396) | 1.051 -> 1.045 | 0.988 -> 0.994 | +34 -> +102 | 1130 -> 1207 | 0.86 -> 0.86 | 1.4, 21/24 -> 1.3, 22/24 |
+| single_L800 | 1.255 -> 1.091 | 0.472 -> 0.414 (0.390) | 1.036 -> 1.028 | 0.987 -> 0.972 | +55 -> +120 | 1141 -> 1215 | 0.96 -> 0.96 | 1.2, 22/24 -> 0.9, 22/24 |
+| single_L1200 | 1.264 -> 1.105 | 0.472 -> 0.414 (0.389) | 1.043 -> 1.039 | 0.985 -> 0.992 | +41 -> +107 | 1144 -> 1219 | 0.93 -> 0.92 | 1.3, 21/24 -> 1.1, 20/24 |
+| single_muffler | 1.237 -> 1.072 | 0.471 -> 0.413 (0.390) | 1.025 -> 1.014 | 0.984 -> 0.990 | +38 -> +108 | 1136 -> 1211 | 0.76 -> 0.70 | 1.3, 22/24 -> 1.5, 20/24 |
+| i4_41 | 1.275 -> 1.115 | 0.481 -> 0.425 (0.398) | 1.054 -> 1.044 | 0.995 -> 0.982 | +68 -> +135 | 1115 -> 1191 | 0.62 -> 0.57 | 3.7, 8/18 -> 4.7, 7/18 |
+| v8_2x41 | 1.220 -> 1.063 | 0.479 -> 0.425 (0.405) | 1.031 -> 1.013 | 0.986 -> 0.982 | +78 -> +150 | 1094 -> 1172 | 0.46 -> 0.46 | 3.5, 9/18 -> 3.6, 9/18 |
+| v8_line | 1.248 -> 1.088 | 0.477 -> 0.423 (0.402) | 1.051 -> 1.033 | 0.929 -> 0.921 | +10 -> +78 | 1099 -> 1176 | 0.55 -> 0.51 | 6.9, 4/18 -> 4.4, 6/18 |
+| v8_line_X | 1.244 -> 1.082 | 0.478 -> 0.424 (0.403) | 1.049 -> 1.029 | 0.956 -> 0.948 | +41 -> +113 | 1096 -> 1174 | 0.52 -> 0.46 | 7.3, 6/18 -> 5.1, 8/18 |
+
+(Single cylinder orders 0.5-2; i4 2, 4, 8; V8 4, 8, 16.) Read: the net-IMEP surplus falls from 22-28 % to 6-12 %
+(the wave model's own NMEP falls by 11-16 %, mean 13 %); VE moves by -3 to +2 % (mean -1.2 %), slightly towards
+OpenWAM on every configuration; the VE curve shapes and peak speeds are unchanged (all 8 peaks still agree). The
+exhaust gets hotter: the burned gas's lower gamma cools less in the expansion, so the exhaust-valve outflow is 74-78 K
+hotter and the mean port gas now 78-150 K above OpenWAM's (before 10-80 K). Part of that is the wall laws: with pipe
+friction and wall heat off in both codes (`nofric`, single_L800 / i4_41) the port difference is +59 / +66 K (before
+-8 / -3 K). The tailpipe firing orders change by about a dB, mixed in sign: no systematic effect.
+
+### A7 The remaining 6-12 %: what was tested (one change at a time)
+
+`work_split.py` splits each code's indicated work, from the cylinder-pressure traces with the same 2-degree trapezoid
+(its net agrees with each code's own NMEP within 1 % except at the motored points), into the gross loop
+(compression and expansion strokes) and the pumping loop:
+
+| experiment (single_L800 / i4_41) | NMEP ratio | gross ratio | pumping difference / OpenWAM net | peak pressure ratio | compression exponent 60 -> 20 deg BTDC, wave / OpenWAM |
+|---|---|---|---|---|---|
+| const (before) | 1.255 / 1.275 | 1.226 / 1.256 | +0.004 / +0.010 | 1.252 / 1.275 | 1.342 / 1.284 |
+| base (after) | 1.091 / 1.115 | 1.078 / 1.105 | -0.000 / +0.008 | 1.117 / 1.131 | 1.358 / 1.286 |
+| `nofric` (no pipe friction or wall heat, both codes) | 1.052 / 1.063 | 1.047 / 1.054 | +0.002 / +0.007 | 1.087 / 1.094 | |
+| `eta085` (85 % of the fuel heat released in both, not 72 %) | 1.079 / 1.110 | 1.074 / 1.106 | -0.000 / +0.006 | 1.110 / 1.134 | |
+| `motored` (no heat released in either) | | | | 1.069 / 1.080 | 1.358 / 1.282 |
+| `motoredconst` | | | | 1.010 / 1.016 | 1.343 / 1.284 |
+
+Demonstrated:
+- The rest of the gap is in the gross loop: the pumping loops agree to within 1 % of the net work in every
+  configuration (before and after).
+- About a third to half of it goes with the pipe wall laws: with friction and wall heat off in both codes the NMEP
+  ratio falls from 1.091 / 1.115 to 1.052 / 1.063 (and VE agrees to -0.6 % / -0.1 %). The model's Reynolds-analogy wall
+  heat is the known difference (section 3 e, recommendation 2); it is not changed here.
+- Not the representation of the 72 %: releasing 85 % of the fuel's heat in both codes leaves the ratio where it was
+  (1.079 / 1.110).
+
+Seen but not demonstrated as a cause: OpenWAM's compression is markedly softer. Its compression exponent between 60 and
+20 deg BTDC is 1.28-1.29 (fired and motored) against the wave model's 1.36 (1.34 with the constant gas), with the same
+geometry and Woschni law, and the wave model loses more heat to the walls (section 4.3), so it is not the wall heat.
+OpenWAM's own cylinder output gives R = p V / (m T) = 272 J/kg K during compression and 283 after the burn (a constant
+283 J/kg K for its burned gas, against the wave model's 294.4 at AFR 12.8): its unburned charge carries the fuel vapour
+(M about 30.6, with a far higher cp than air), which the wave model leaves out. With no heat released the peak pressure
+is 7-8 % above OpenWAM's with the new gas (1-2 % with the constant 1.35, which happened to sit closer to a fuel-laden
+charge). Adding fuel vapour (a sourced cp for gasoline vapour) to the fresh charge is the next one-change experiment; it
+was not made here, so its share of the 6-12 % is not known.
+
+### A8 What this changes on the page
+
+- Full-throttle torque from the wave simulation: 11-16 % lower (the 48 runs above); VE -3 to +2 %. The page's eta 0.72
+  ("calibration that brings full-throttle torque into the range of real engines") was set with the old gas and was not
+  retuned (it is a calibration input, and no dyno curve is in hand here); the method text says so and points to the
+  dyno fit. The tests that run the simulation check ranges and relations, not torque values; see the commit for any
+  pinned value changed.
+- Sound: the orders change by about a dB, both ways; the exhaust gas in the pipes is hotter and so faster.
+- `sosExh` and everything acoustic that uses it: unchanged (same species table, same numbers).
+- Cost: about twice the computing time.
+
+### A9 Summary rows (section 6, as of 2026-11-12)
+
+| Difference | Status | Evidence |
+|---|---|---|
+| Net IMEP 22-28 % above OpenWAM | 16 points of it removed by the gas properties; 6-12 % left, all in the gross loop, a third to half of it the pipe wall laws; OpenWAM's softer compression (fuel vapour in its charge) seen, not yet tested | A6, A7 |
+| Port-pressure phase, single cylinder | was a comparison artefact (OpenWAM traces 360 deg out of phase in 23 of 48 runs); aligned, median correlation 0.86-0.96 | A5 |
+| i4 4-1 and V8 port-pressure correlation | 0.46-0.62 aligned; open | A5 |
+| Supersonic exit below the outside pressure emptied the end cell (D4) | defect, fixed | A4 |
+| Exhaust gas temperature | now 78-150 K above OpenWAM at the port (hotter burned gas; OpenWAM's stronger pipe wall heat) | A6 |
+
+### A10 How to rerun (additions)
+
+```
+node tools/validation/wave/constref.js          # constant-gamma mode against fixtures/wave_const_ref.json, ~50 s
+node web/tests/wavegas_ui.js                    # the gas: JANAF, isentrope, D4, balances, constant-gamma reference, ~40 s
+python3 tools/validation/wave/compare.py tag=const       # and tag=base; configs=single_L800,i4_41 tag=nofric /
+                                                         # nofricconst / motored / motoredconst / eta085
+python3 tools/validation/wave/gas_report.py              # A6 (before=const after=base)
+python3 tools/validation/wave/work_split.py tag=base     # A7
+```
