@@ -14557,6 +14557,7 @@ function calcSkin(p){
     if(Re<1e4) lowRe=true;
     const f=Math.pow(0.79*Math.log(Re)-1.64,-2), Nu=Math.max(3.66,(f/8)*(Re-1000)*Pr/(1+12.7*Math.sqrt(f/8)*(Math.pow(Pr,2/3)-1)));
     const hi=caf*Nu*k/(2*ri), Ri=1/(hi*2*Math.PI*ri), Rin=Ri+Rw+Rc+Rr;
+    if(p.U>0){ const qU=p.U*2*Math.PI*ri*(Tg-Ta); out.push({x:i*dx*1000,Tg:Tg-273.15,Tsteel:NaN,Tsurf:NaN,Tin:NaN,q:qU,Re,hi}); if(i<n) Tg-=qU*dx/(p.mdot*(p.cpGas?p.cpGas(Tg):cp)); continue; }   // tests only: a fixed overall coefficient U (W/m2 K on the bore), the closed-form check
     // outer surface temperature: what reaches it through the layers leaves it by convection and radiation
     let lo=Ta, hiT=Tg;
     for(let it=0;it<60;it++){ Ts=(lo+hiT)/2; const qin=(Tg-Ts)/Rin, qout=Math.PI*Do*(outerH(Ts,Ta,Do,p.v||0)*(Ts-Ta)+F.eps*SIG*(Ts**4-Ta**4)); if(qout>qin) hiT=Ts; else lo=Ts; }
@@ -21951,22 +21952,24 @@ function exhAfterTurbine(o){
       static pressure, so across a size change it left out the static pressure change of the speed change itself (a
       widening cone recovers static pressure: the gas slows); the steps change below counts it. */
 const XF_MCH=0.995, XF_DX=10;   // the Mach number taken as choked inside a pipe; the longest RK4 step, mm
-const xCp=T=>{ const g=exhGamma(T); return g*EXH_GAS.R/(g-1); };   // J/kg K at T (K), burned gas
+const XF_GAS={g:null};           // tests only: a constant gamma for the closed-form checks (null: the burned gas's gamma(T))
+const xGam=T=>XF_GAS.g||exhGamma(T);
+const xCp=T=>{ const g=xGam(T); return g*EXH_GAS.R/(g-1); };   // J/kg K at T (K), burned gas
 // the state at a static pressure: M from m^2 R T0 / (p^2 A^2 gamma) = M^2 + (gamma - 1) M^4 / 2, gamma at the static T
-function xSt(m,A,p,T0){ const R=EXH_GAS.R; let g=exhGamma(T0), X=0, T=T0;
-  for(let i=0;i<6;i++){ const K2=m*m*R*T0/(p*p*A*A*g); X=(Math.sqrt(1+2*(g-1)*K2)-1)/(g-1); T=T0/(1+(g-1)/2*X); g=exhGamma(T); }
+function xSt(m,A,p,T0){ const R=EXH_GAS.R; let g=xGam(T0), X=0, T=T0;
+  for(let i=0;i<6;i++){ const K2=m*m*R*T0/(p*p*A*A*g); X=(Math.sqrt(1+2*(g-1)*K2)-1)/(g-1); T=T0/(1+(g-1)/2*X); g=xGam(T); }
   const M=Math.sqrt(X), rho=p/(R*T), v=m/(rho*A), psi=1+(g-1)/2*X;
   return {p,T0,T,g,M,rho,v,q:rho*v*v/2,p0:p*Math.pow(psi,g/(g-1)),A,m};
 }
 // the state at a stagnation pressure, subsonic branch; null when the section cannot pass m at p0 (choked)
 function xSt0(m,A,p0,T0){ const R=EXH_GAS.R, tgt=m*Math.sqrt(R*T0)/(A*p0);
-  const F=M=>{ let g=exhGamma(T0); for(let i=0;i<3;i++) g=exhGamma(T0/(1+(g-1)/2*M*M)); return Math.sqrt(g)*M*Math.pow(1+(g-1)/2*M*M,-(g+1)/(2*(g-1))); };
+  const F=M=>{ let g=xGam(T0); for(let i=0;i<3;i++) g=xGam(T0/(1+(g-1)/2*M*M)); return Math.sqrt(g)*M*Math.pow(1+(g-1)/2*M*M,-(g+1)/(2*(g-1))); };
   if(F(1)<tgt) return null;
   let lo=0, hi=1; for(let i=0;i<60;i++){ const mid=(lo+hi)/2; if(F(mid)<tgt) lo=mid; else hi=mid; }
-  const M=(lo+hi)/2; let g=exhGamma(T0); for(let i=0;i<4;i++) g=exhGamma(T0/(1+(g-1)/2*M*M));
+  const M=(lo+hi)/2; let g=xGam(T0); for(let i=0;i<4;i++) g=xGam(T0/(1+(g-1)/2*M*M));
   return xSt(m,A,p0/Math.pow(1+(g-1)/2*M*M,g/(g-1)),T0);
 }
-const xStar=(m,A,T0)=>{ const T=2*T0/(exhGamma(T0)+1), g=exhGamma(T); return m*Math.sqrt(EXH_GAS.R*T0)/(A*Math.sqrt(g))*Math.pow((g+1)/2,(g+1)/(2*(g-1))); };
+const xStar=(m,A,T0)=>{ const T=2*T0/(xGam(T0)+1), g=xGam(T); return m*Math.sqrt(EXH_GAS.R*T0)/(A*Math.sqrt(g))*Math.pow((g+1)/2,(g+1)/(2*(g-1))); };
 // a part of one area losing stagnation pressure: dp0 = loss(su), su its upstream state (fixed point)
 function xLumpBack(m,A,sd,loss){ let p0=sd.p0, su=xSt0(m,A,p0,sd.T0);
   for(let i=0;i<60&&su;i++){ const nx=sd.p0+loss(su); if(Math.abs(nx-p0)<1e-7*nx){ p0=nx; break; } p0=nx; su=xSt0(m,A,p0,sd.T0); }
@@ -21974,7 +21977,7 @@ function xLumpBack(m,A,sd,loss){ let p0=sd.p0, su=xSt0(m,A,p0,sd.T0);
 // sudden enlargement A1 -> A2, compressible Borda-Carnot, from the downstream state s2
 function xExpandBack(m,A1,A2,s2){ const R=EXH_GAS.R, T0=s2.T0, cp=xCp(s2.T), Phi=s2.p*A2+m*s2.v;
   const G=V=>{ const T1=T0-V*V/(2*cp), p1=(Phi-m*V)/A2; return T1>0&&p1>0?p1*A1*V/(R*T1)-m:-m; };
-  const g=exhGamma(2*T0/(exhGamma(T0)+1)), Vs=Math.sqrt(2*g/(g+1)*R*T0);
+  const g=xGam(2*T0/(xGam(T0)+1)), Vs=Math.sqrt(2*g/(g+1)*R*T0);
   let a=s2.v, b=null; const n=400; for(let i=1;i<=n;i++){ const V=s2.v+(Vs-s2.v)*i/n; if(G(V)>=0){ b=V; break; } a=V; }
   if(b==null) return null;
   for(let i=0;i<80;i++){ const mid=(a+b)/2; if(G(mid)>=0) b=mid; else a=mid; }
@@ -22112,7 +22115,7 @@ function tsExhSection(ind,p){
     rowT('Gas after the turbine',F.tD(G.t4),'turbine inlet '+F.tD(G.tit)+' less the compressor’s work taken out of the whole exhaust, '+F.kw(G.tb.Wc)+each+': T₄ = T₃ − W ÷ (ṁ cp), cp '+G.tb.cpe.toFixed(0)+' J/kg K at T₃, the wastegate’s share mixed back in')+
     rowT('Gas at the tip',G.cool?F.tD(X.F[X.F.length-1].T0out-273.15):F.tD(G.t4),G.cool?'cooled along '+clen(X.F.filter(x=>x.L>0).reduce((a,x)=>a+x.L,0))+' of pipe, '+F.kw(X.Qlost)+' through the walls in all ('+($('i-xcaf').value==='w'?'Wendland’s measured pulsing-flow factors':'the steady-flow formula, the least cooling: the real gas is cooler')+', air '+F.tD(G.cool.Ta)+', '+(G.cool.v>0?F.sD(G.cool.v)+' across the pipe':'still air')+')'+(X.lowRe?'; Reynolds number under 10,000 somewhere: rough':''):'not cooled (set Gas cooling along the exhaust)')+
     rowT('Exhaust through each downpipe',F.fl(G.me),(nt>1?'per turbo; '+F.fl(G.me*nt)+' in all, '+(G.xn>1?G.xn+' pipes after the downpipes':'one pipe after the downpipes (the Y where they meet is not counted)'):'air + fuel at A/F '+G.afr));
-  h+='<div class="tblwrap"><table id="tsx-bp"><thead><tr><th>Part</th><th>Size</th><th>Gas in → out</th><th>Speed in → out</th><th>Static pressure rise</th><th>How</th></tr></thead><tbody>'+X.rows.map(row).join('')+
+  h+='<div class="tblwrap"><table id="tsx-bp"><thead><tr><th>Part</th><th>Size</th><th>Gas in → out (static)</th><th>Speed in → out</th><th>Static pressure rise</th><th>How</th></tr></thead><tbody>'+X.rows.map(row).join('')+
     (X.choke?'':'<tr data-x="total"><td><b>Total</b></td><td></td><td></td><td></td><td><b>'+F.pD(X.bp)+'</b></td><td style="white-space:normal">static pressure at the turbine outlet over the outside air’s: the rises add up, part by part from the tip back</td></tr>')+'</tbody></table></div>';
   // what each change moved
   const dl=(a,b)=>a==null||b==null?'chokes':(b-a>=0?'+':'−')+F.pD(Math.abs(b-a));
@@ -22191,7 +22194,7 @@ function xSvg(G,X,F){
   return s;
 }
 if(typeof window!=='undefined') window.__tsx={exhAfterTurbine,xGather:()=>TS_LAST&&TS_LAST.R?xGather(TS_P,TS_LAST.R):null,last:()=>TS_X,dpRule,DP_RULE,xMuffler,xCats,xTail,
-  exhMarch,exhSteps,xSt,xSt0,xStar,xExpandBack,xPipeBack,xLumpBack,xCool,xCp,mufElems,mufElemLoss,mufInputs,mufBP:()=>MUF_BP,calcSkin,exhGamma,EXH_GAS,tsStep,XF_MCH};
+  XF_GAS,exhMarch,exhSteps,xSt,xSt0,xStar,xExpandBack,xPipeBack,xLumpBack,xCool,xCp,mufElems,mufElemLoss,mufInputs,mufBP:()=>MUF_BP,calcSkin,exhGamma,EXH_GAS,tsStep,XF_MCH};
 /* ----- Turbo build, step by step (2026-11-12, the owner's "usable without learning a bunch of stuff") -----
    A checklist at the top of the Intake tab when the induction is a turbo or a centrifugal supercharger: the steps in the
    order a builder decides them, each with one plain line read from what the sections below already worked out (TG, TS_LAST,
