@@ -38,6 +38,14 @@ function wStep(id, rpm, first, o) {
   return r;
 }
 const jobs = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_jobs.json'), 'utf8'));
+// diameter steps on both lines (docs/WAVE_VALIDATION_2026-11-11.md: the two-pipe junction's contraction and expansion
+// laws and their fallback), which the page's captured jobs do not have: a stepped intake runner and a single cylinder's
+// pipe through a 127 mm chamber
+{ const e = jobs[0].job.variants[0].spec.e;
+  jobs.push({ name: 'diameter steps', job: { dx: 0.01, rpms: [3000, 5000, 7000, 9000], variants: [{ label: 'chamber and stepped runner', spec: { e,
+    intake: { segs: [{ L: 0.15, d0: 0.06, d1: 0.06 }, { L: 0.15, d0: 0.045, d1: 0.045 }], Tw: 320 },
+    exhaust: { segs: [{ L: 0.5, d0: 0.0445, d1: 0.0445 }, { L: 0.3, d0: 0.127, d1: 0.127 }, { L: 0.6, d0: 0.0445, d1: 0.0445 }], Tw: 700, chambers: [] },
+    opt: { phases: [0] } } }] } }); }
 let tJs = 0, tW = 0;
 for (const { name, job } of jobs) {
   const rpms = process.env.QUICK === '1' ? job.rpms.slice(0, 3) : job.rpms;

@@ -1,0 +1,1652 @@
+{
+ "page": "web/index.html",
+ "results": {
+  "a": {
+   "exact": {
+    "p": 30526.399146449337,
+    "u": 299.33459765879417,
+    "rhoL": 0.41521994473954055,
+    "rhoR": 0.2751159549388369,
+    "shock": 548.5874150731347
+   },
+   "grids": [
+    {
+     "n": 100,
+     "L1rho": 0.006112012555974222,
+     "L1p": 494.27119321824375,
+     "L1u": 3.2509185459086054,
+     "pStar": 30459.95731165904,
+     "uStar": 299.5524461653455,
+     "rhoStarL": 0.413648799044919,
+     "rhoStarR": 0.2744638568002799,
+     "shockSpeed": 550.4179701570725,
+     "contactSpeed": 294.4381684112291
+    },
+    {
+     "n": 200,
+     "L1rho": 0.003486942015334522,
+     "L1p": 259.8204388000546,
+     "L1u": 2.0651682334662387,
+     "pStar": 30512.497873889497,
+     "uStar": 299.3739485968663,
+     "rhoStarL": 0.41486101781469786,
+     "rhoStarR": 0.27504248961349553,
+     "shockSpeed": 549.283447005711,
+     "contactSpeed": 296.86496118291694,
+     "orderRho": 0.8096851335095474
+    },
+    {
+     "n": 400,
+     "L1rho": 0.0018787350132331137,
+     "L1p": 122.06933724910466,
+     "L1u": 0.8100078334965289,
+     "pStar": 30525.241516046808,
+     "uStar": 299.35013479631544,
+     "rhoStarL": 0.4151543934276871,
+     "rhoStarR": 0.27511066649214555,
+     "shockSpeed": 549.0613698832537,
+     "contactSpeed": 298.0104551926006,
+     "orderRho": 0.8922007778771688
+    },
+    {
+     "n": 800,
+     "L1rho": 0.0010648985401225139,
+     "L1p": 63.07429848241933,
+     "L1u": 0.4085333720369591,
+     "pStar": 30526.060292893573,
+     "uStar": 299.33918136689545,
+     "rhoStarL": 0.41520350811465656,
+     "rhoStarR": 0.27511356201976844,
+     "shockSpeed": 548.8710991874115,
+     "contactSpeed": 298.6416223304643,
+     "orderRho": 0.8190456137666057
+    },
+    {
+     "n": 1600,
+     "L1rho": 0.0006064665663129709,
+     "L1p": 30.746378299645155,
+     "L1u": 0.2277846125248332,
+     "pStar": 30526.271870356253,
+     "uStar": 299.3357846294241,
+     "rhoStarL": 0.4152155096093068,
+     "rhoStarR": 0.2751153152185493,
+     "shockSpeed": 548.657398578171,
+     "contactSpeed": 299.00387013878697,
+     "orderRho": 0.812215963156323
+    }
+   ]
+  },
+  "b": {
+   "cc": [
+    {
+     "n": 1,
+     "f0": 169.93985516940987,
+     "fm": 169.93839283566643,
+     "c": 339.87971033881973,
+     "lambda": 2,
+     "cellsPerLambda": 200,
+     "dBperWavelength": 0.005231240553896001,
+     "a0": 101.325,
+     "aEnd": 100.14197513159318
+    },
+    {
+     "n": 2,
+     "f0": 339.87971033881973,
+     "fm": 339.8684638501013,
+     "c": 339.87971033881973,
+     "lambda": 1,
+     "cellsPerLambda": 100,
+     "dBperWavelength": 0.013867150857684028,
+     "a0": 101.325,
+     "aEnd": 98.2191429779836
+    },
+    {
+     "n": 4,
+     "f0": 679.7594206776395,
+     "fm": 679.677452724839,
+     "c": 339.87971033881973,
+     "lambda": 0.5,
+     "cellsPerLambda": 50,
+     "dBperWavelength": 0.042531618765988044,
+     "a0": 101.325,
+     "aEnd": 92.09759388995825
+    },
+    {
+     "n": 8,
+     "f0": 1359.518841355279,
+     "fm": 1359.0089344023202,
+     "c": 339.87971033881973,
+     "lambda": 0.25,
+     "cellsPerLambda": 25,
+     "dBperWavelength": 0.1490044072511951,
+     "a0": 101.325,
+     "aEnd": 72.51658024584742
+    },
+    {
+     "n": 16,
+     "f0": 2719.037682710558,
+     "fm": 2717.594566426841,
+     "c": 339.87971033881973,
+     "lambda": 0.125,
+     "cellsPerLambda": 12.5,
+     "dBperWavelength": 0.5763824254608071,
+     "a0": 101.325,
+     "aEnd": 27.78073601242023
+    }
+   ],
+   "oc": [
+    {
+     "n": 1,
+     "f0": 84.96992758470493,
+     "fm": 84.96973409340819,
+     "c": 339.87971033881973,
+     "lambda": 4,
+     "cellsPerLambda": 400,
+     "dBperWavelength": 0.0073821454564651215,
+     "a0": 101.325,
+     "aEnd": 99.65957266190601
+    },
+    {
+     "n": 2,
+     "f0": 254.90978275411481,
+     "fm": 254.9049418514896,
+     "c": 339.87971033881973,
+     "lambda": 1.3333333333333333,
+     "cellsPerLambda": 133.33333333333331,
+     "dBperWavelength": 0.01068556722871769,
+     "a0": 101.325,
+     "aEnd": 98.92320632073768
+    },
+    {
+     "n": 3,
+     "f0": 424.84963792352465,
+     "fm": 424.8281201456152,
+     "c": 339.87971033881973,
+     "lambda": 0.8,
+     "cellsPerLambda": 80,
+     "dBperWavelength": 0.020445027118335204,
+     "a0": 101.325,
+     "aEnd": 96.77935223885679
+    },
+    {
+     "n": 5,
+     "f0": 764.7293482623444,
+     "fm": 764.6160362826205,
+     "c": 339.87971033881973,
+     "lambda": 0.4444444444444444,
+     "cellsPerLambda": 44.44444444444444,
+     "dBperWavelength": 0.05248083263413358,
+     "a0": 101.325,
+     "aEnd": 90.06328853987449
+    },
+    {
+     "n": 9,
+     "f0": 1444.4887689399839,
+     "fm": 1443.907755975158,
+     "c": 339.87971033881973,
+     "lambda": 0.23529411764705882,
+     "cellsPerLambda": 23.52941176470588,
+     "dBperWavelength": 0.1675925803981454,
+     "a0": 101.325,
+     "aEnd": 69.55267642290437
+    }
+   ],
+   "cc700": [
+    {
+     "n": 1,
+     "f0": 260.3915321203822,
+     "fm": 260.389291449271,
+     "c": 520.7830642407644,
+     "lambda": 2,
+     "cellsPerLambda": 200,
+     "dBperWavelength": 0.005231240553720245,
+     "a0": 101.325,
+     "aEnd": 100.1419751316327
+    },
+    {
+     "n": 2,
+     "f0": 520.7830642407644,
+     "fm": 520.765831729737,
+     "c": 520.7830642407644,
+     "lambda": 1,
+     "cellsPerLambda": 100,
+     "dBperWavelength": 0.013867150857853247,
+     "a0": 101.325,
+     "aEnd": 98.21914297794629
+    },
+    {
+     "n": 4,
+     "f0": 1041.5661284815287,
+     "fm": 1041.4405325123298,
+     "c": 520.7830642407644,
+     "lambda": 0.5,
+     "cellsPerLambda": 50,
+     "dBperWavelength": 0.04253161876602985,
+     "a0": 101.325,
+     "aEnd": 92.09759388994961
+    },
+    {
+     "n": 8,
+     "f0": 2083.1322569630574,
+     "fm": 2082.350948466659,
+     "c": 520.7830642407644,
+     "lambda": 0.25,
+     "cellsPerLambda": 25,
+     "dBperWavelength": 0.14900440725129355,
+     "a0": 101.325,
+     "aEnd": 72.51658024583139
+    },
+    {
+     "n": 16,
+     "f0": 4166.264513926115,
+     "fm": 4164.053288903216,
+     "c": 520.7830642407644,
+     "lambda": 0.125,
+     "cellsPerLambda": 12.5,
+     "dBperWavelength": 0.5763824254606158,
+     "a0": 101.325,
+     "aEnd": 27.780736012432158
+    }
+   ],
+   "cc5": [
+    {
+     "n": 4,
+     "f0": 679.7594206776395,
+     "fm": 679.7356661615164,
+     "c": 339.87971033881973,
+     "lambda": 0.5,
+     "cellsPerLambda": 100,
+     "dBperWavelength": 0.010523542477956524,
+     "a0": 101.325,
+     "aEnd": 98.9591960716007
+    },
+    {
+     "n": 8,
+     "f0": 1359.518841355279,
+     "fm": 1359.3458979558798,
+     "c": 339.87971033881973,
+     "lambda": 0.25,
+     "cellsPerLambda": 50,
+     "dBperWavelength": 0.035902248988036366,
+     "a0": 101.325,
+     "aEnd": 93.47853976986212
+    },
+    {
+     "n": 16,
+     "f0": 2719.037682710558,
+     "fm": 2717.9557951722045,
+     "c": 339.87971033881973,
+     "lambda": 0.125,
+     "cellsPerLambda": 25,
+     "dBperWavelength": 0.13623656676663826,
+     "a0": 101.325,
+     "aEnd": 74.62527762327683
+    }
+   ]
+  },
+  "bClosed": [
+   {
+    "kind": "wallEnd",
+    "n": 1,
+    "dx": 0.01,
+    "ampRatio": 0.9755524170262623,
+    "dS": 3.604699871928574e-12
+   },
+   {
+    "kind": "wallEnd",
+    "n": 1,
+    "dx": 0.005,
+    "ampRatio": 0.9927825421826465,
+    "dS": 9.143658052934711e-13
+   },
+   {
+    "kind": "wallEnd",
+    "n": 4,
+    "dx": 0.01,
+    "ampRatio": 0.8216293482151806,
+    "dS": 2.539027842141106e-11
+   },
+   {
+    "kind": "wallEnd",
+    "n": 4,
+    "dx": 0.005,
+    "ampRatio": 0.9517742660420392,
+    "dS": 7.1931939571445724e-12
+   },
+   {
+    "kind": "closed valve",
+    "n": 1,
+    "dx": 0.01,
+    "ampRatio": 0.9755524170262623,
+    "dS": 3.604699871928574e-12
+   },
+   {
+    "kind": "closed valve",
+    "n": 1,
+    "dx": 0.005,
+    "ampRatio": 0.9927825421826465,
+    "dS": 9.143658052934711e-13
+   },
+   {
+    "kind": "closed valve",
+    "n": 4,
+    "dx": 0.01,
+    "ampRatio": 0.8216293482151806,
+    "dS": 2.539027842141106e-11
+   },
+   {
+    "kind": "closed valve",
+    "n": 4,
+    "dx": 0.005,
+    "ampRatio": 0.9517742660420392,
+    "dS": 7.1931939571445724e-12
+   }
+  ],
+  "c": {
+   "cone": {
+    "m": 0.22270312203874537,
+    "mSpread": 0.0008433705026825192,
+    "inflowFlip": 0,
+    "inflowFaceLast": [
+     0.22265017984821947,
+     0.22265017984821947
+    ],
+    "T0exit": 299.9999999999998,
+    "mIsen": 0.2237976395877913,
+    "p0min": 114858.10987942992,
+    "p0max": 115183.19497602095,
+    "Mexit": 0.43448378513807795,
+    "MexitIsen": 0.43665307259720015
+   },
+   "expansion": {
+    "m": 0.19241665388486293,
+    "M1": 0.3912855851706326,
+    "M2": 0.09533355465180268,
+    "p1": 97528.63130532649,
+    "p2": 101325.0000000386,
+    "dp0": 6051.98489140594,
+    "q1": 10079.142843878224,
+    "q2": 621.6013636131728,
+    "bordaCarnot": 6051.9848914053,
+    "equalPressureLoss": 9457.541480265052,
+    "ds": 16.550773272765127,
+    "contractionK05": null,
+    "mIsentropic": 0.6277599184762739
+   },
+   "contraction": {
+    "m": 0.15693997962832432,
+    "M1": 0.0732390383823882,
+    "M2": 0.30870960368629435,
+    "p1": 107609.85736082373,
+    "p2": 101325.00000877817,
+    "dp0": -6.216578185558319e-8,
+    "q1": 389.6198685154563,
+    "q2": 6518.094696472903,
+    "bordaCarnot": 0,
+    "equalPressureLoss": -6128.474827957447,
+    "ds": -1.3642420526593924e-12,
+    "contractionK05": 2444.285511177339,
+    "mIsentropic": 0.15693997961906847
+   },
+   "fedIn": {
+    "pFace": 101325.0000019596,
+    "pCell": 101325.00000195963,
+    "u": 33.75212784244217,
+    "rhoCU": 13553.636666461069
+   }
+  },
+  "d": {
+   "+100 Pa, 298 K": {
+    "peakRatio": -0.8279378967366998,
+    "inc": 83.25408477208111,
+    "ref": -68.92921184093575,
+    "fr": [
+     {
+      "f": 100,
+      "mag": 0.9976278766269564,
+      "delta": -0.00007957781165726944,
+      "deltaOverR": -0.003183112466290778
+     },
+     {
+      "f": 250,
+      "mag": 0.9893390125481405,
+      "delta": -0.00007020217551975248,
+      "deltaOverR": -0.0028080870207900987
+     },
+     {
+      "f": 500,
+      "mag": 0.9604077205694291,
+      "delta": -0.0000365964661407931,
+      "deltaOverR": -0.0014638586456317238
+     },
+     {
+      "f": 1000,
+      "mag": 0.8537563295940516,
+      "delta": 0.00009568752548599067,
+      "deltaOverR": 0.0038275010194396266
+     }
+    ]
+   },
+   "-100 Pa, 298 K": {
+    "peakRatio": -0.8283759982570542,
+    "inc": -83.2679996965453,
+    "ref": 68.9772123714938,
+    "fr": [
+     {
+      "f": 100,
+      "mag": 0.9983854609061339,
+      "delta": 0.0000010799344400758527,
+      "deltaOverR": 0.00004319737760303411
+     },
+     {
+      "f": 250,
+      "mag": 0.9900702111236329,
+      "delta": 0.000008879802897027301,
+      "deltaOverR": 0.00035519211588109205
+     },
+     {
+      "f": 500,
+      "mag": 0.9610493888909507,
+      "delta": 0.00003607031756084102,
+      "deltaOverR": 0.0014428127024336407
+     },
+     {
+      "f": 1000,
+      "mag": 0.8541203584248646,
+      "delta": 0.00013730752073467845,
+      "deltaOverR": 0.005492300829387137
+     }
+    ]
+   },
+   "+100 Pa, 700 K": {
+    "peakRatio": -0.8279378967350779,
+    "inc": 83.25408477222663,
+    "ref": -68.9292118409212,
+    "fr": [
+     {
+      "f": 100,
+      "mag": 0.9985414370874788,
+      "delta": -0.00008059412870268698,
+      "deltaOverR": -0.0032237651481074794
+     },
+     {
+      "f": 250,
+      "mag": 0.9949929134404965,
+      "delta": -0.00007662286628416815,
+      "deltaOverR": -0.003064914651366726
+     },
+     {
+      "f": 500,
+      "mag": 0.9824594435041346,
+      "delta": -0.00006230493894854342,
+      "deltaOverR": -0.0024921975579417365
+     },
+     {
+      "f": 1000,
+      "mag": 0.9341595986157946,
+      "delta": -0.000005222298295476563,
+      "deltaOverR": -0.0002088919318190625
+     }
+    ]
+   },
+   "+10 kPa, 298 K": {
+    "peakRatio": -0.6850730257809264,
+    "inc": 7932.842117750246,
+    "ref": -5434.5761526495335,
+    "fr": [
+     {
+      "f": 100,
+      "mag": 0.9395639629934978,
+      "delta": -0.0027087490440265887,
+      "deltaOverR": -0.10834996176106354
+     },
+     {
+      "f": 250,
+      "mag": 0.9266112958294991,
+      "delta": -0.0025977593414868187,
+      "deltaOverR": -0.10391037365947274
+     },
+     {
+      "f": 500,
+      "mag": 0.8815790444976334,
+      "delta": -0.0021454310375162836,
+      "deltaOverR": -0.08581724150065134
+     },
+     {
+      "f": 1000,
+      "mag": 0.7151512497376802,
+      "delta": -0.0000012767028444605387,
+      "deltaOverR": -0.000051068113778421546
+     }
+    ]
+   },
+   "-10 kPa, 298 K": {
+    "peakRatio": -0.7338758257694881,
+    "inc": -7600.568322300256,
+    "ref": 5577.873353845513,
+    "fr": [
+     {
+      "f": 100,
+      "mag": 0.9881418919810283,
+      "delta": 0.005215115716674279,
+      "deltaOverR": 0.20860462866697116
+     },
+     {
+      "f": 250,
+      "mag": 0.9710962699881017,
+      "delta": 0.005179569435262757,
+      "deltaOverR": 0.20718277741051025
+     },
+     {
+      "f": 500,
+      "mag": 0.9121988765539142,
+      "delta": 0.004976176333877952,
+      "deltaOverR": 0.19904705335511808
+     },
+     {
+      "f": 1000,
+      "mag": 0.7039647871399213,
+      "delta": 0.003933062676419181,
+      "deltaOverR": 0.15732250705676723
+     }
+    ]
+   },
+   "grid": [
+    {
+     "dx": 0.01,
+     "R500": 0.9604077205694291,
+     "R1000": 0.8537563295940516
+    },
+    {
+     "dx": 0.005,
+     "R500": 0.9875074368357964,
+     "R1000": 0.9541683817398278
+    },
+    {
+     "dx": 0.0025,
+     "R500": 0.9962092617544425,
+     "R1000": 0.988308460955531
+    }
+   ],
+   "choked": {
+    "m": 0.8686416978892415,
+    "mTh": 0.8686989641436127,
+    "Mexit": 1.0125061865496088,
+    "pExit": 158759.86000835686,
+    "pCrit": 161055.36551746711
+   }
+  },
+  "e": {
+   "friction": {
+    "u": 44.96804834436521,
+    "Re": 116969.25899562551,
+    "fricGrad": 604.8857703775184,
+    "model": 604.908322436066,
+    "darcyMeasured": 0.019999254364414867,
+    "darcyModel": 0.02,
+    "blasius": 0.01708713095891577,
+    "colebrook": 0.019928163655848728
+   },
+   "heat": {
+    "u": 68.24398834662007,
+    "Re": 56200.80529986294,
+    "St": 0.0024826371895997706,
+    "StModel": 0.0025,
+    "dittusBoelter": 0.003283423964882799,
+    "depcikAssanis": 0.00635737164597148
+   }
+  }
+ },
+ "table": [
+  {
+   "test": "a Sod (400 cells)",
+   "quantity": "p* plateau",
+   "measured": 30525.241516046808,
+   "reference": 30526.399146449337,
+   "err": -0.000037922271702457584,
+   "pass": true,
+   "unit": "Pa",
+   "note": ""
+  },
+  {
+   "test": "a Sod (400 cells)",
+   "quantity": "u* plateau",
+   "measured": 299.35013479631544,
+   "reference": 299.33459765879417,
+   "err": 0.00005190558539774458,
+   "pass": true,
+   "unit": "m/s",
+   "note": ""
+  },
+  {
+   "test": "a Sod (400 cells)",
+   "quantity": "rho* left of contact",
+   "measured": 0.4151543934276871,
+   "reference": 0.41521994473954055,
+   "err": -0.00015787129853443835,
+   "pass": true,
+   "unit": "kg/m3",
+   "note": ""
+  },
+  {
+   "test": "a Sod (400 cells)",
+   "quantity": "rho* right of contact",
+   "measured": 0.27511066649214555,
+   "reference": 0.2751159549388369,
+   "err": -0.00001922260994466307,
+   "pass": true,
+   "unit": "kg/m3",
+   "note": ""
+  },
+  {
+   "test": "a Sod (400 cells)",
+   "quantity": "shock speed",
+   "measured": 549.0613698832537,
+   "reference": 548.5874150731347,
+   "err": 0.0008639549451856352,
+   "pass": true,
+   "unit": "m/s",
+   "note": ""
+  },
+  {
+   "test": "a Sod (400 cells)",
+   "quantity": "contact speed",
+   "measured": 298.0104551926006,
+   "reference": 299.33459765879417,
+   "err": -0.0044236198439811785,
+   "pass": true,
+   "unit": "m/s",
+   "note": ""
+  },
+  {
+   "test": "a Sod (400 cells)",
+   "quantity": "L1 density error / (rhoL - rhoR)",
+   "measured": 0.0021471257294092727,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "",
+   "note": "page claims within 0.4 %"
+  },
+  {
+   "test": "a Sod",
+   "quantity": "L1(rho) order 100->200",
+   "measured": 0.8096851335095474,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "expected about 1 (discontinuities limit any scheme)"
+  },
+  {
+   "test": "a Sod",
+   "quantity": "L1(rho) order 200->400",
+   "measured": 0.8922007778771688,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "expected about 1 (discontinuities limit any scheme)"
+  },
+  {
+   "test": "a Sod",
+   "quantity": "L1(rho) order 400->800",
+   "measured": 0.8190456137666057,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "expected about 1 (discontinuities limit any scheme)"
+  },
+  {
+   "test": "a Sod",
+   "quantity": "L1(rho) order 800->1600",
+   "measured": 0.812215963156323,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "expected about 1 (discontinuities limit any scheme)"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 1 frequency",
+   "measured": 169.93839283566643,
+   "reference": 169.93985516940987,
+   "err": -0.000008605007589156711,
+   "pass": true,
+   "unit": "Hz",
+   "note": "200.0 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 2 frequency",
+   "measured": 339.8684638501013,
+   "reference": 339.87971033881973,
+   "err": -0.00003308961487349733,
+   "pass": true,
+   "unit": "Hz",
+   "note": "100.0 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 4 frequency",
+   "measured": 679.677452724839,
+   "reference": 679.7594206776395,
+   "err": -0.00012058376876744175,
+   "pass": true,
+   "unit": "Hz",
+   "note": "50.0 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 8 frequency",
+   "measured": 1359.0089344023202,
+   "reference": 1359.518841355279,
+   "err": -0.00037506427821953214,
+   "pass": true,
+   "unit": "Hz",
+   "note": "25.0 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 16 frequency",
+   "measured": 2717.594566426841,
+   "reference": 2719.037682710558,
+   "err": -0.0005307452312607064,
+   "pass": null,
+   "unit": "Hz",
+   "note": "12.5 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m, 5 mm",
+   "quantity": "mode 4 frequency",
+   "measured": 679.7356661615164,
+   "reference": 679.7594206776395,
+   "err": -0.00003494547541449643,
+   "pass": true,
+   "unit": "Hz",
+   "note": "100.0 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m, 5 mm",
+   "quantity": "mode 8 frequency",
+   "measured": 1359.3458979558798,
+   "reference": 1359.518841355279,
+   "err": -0.00012720927002877674,
+   "pass": true,
+   "unit": "Hz",
+   "note": "50.0 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m, 5 mm",
+   "quantity": "mode 16 frequency",
+   "measured": 2717.9557951722045,
+   "reference": 2719.037682710558,
+   "err": -0.00039789354345206115,
+   "pass": true,
+   "unit": "Hz",
+   "note": "25.0 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m",
+   "quantity": "mode 4 frequency error order 10->5 mm",
+   "measured": 1.7868581466546563,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "second-order scheme: about 2, or both errors under 0.1 % (errors 0.012 % and 0.003 %)"
+  },
+  {
+   "test": "b closed-closed 1 m",
+   "quantity": "mode 4 dissipation order 10->5 mm",
+   "measured": 2.014915333108283,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "second-order scheme: about 2 (0.0425 and 0.0105 dB/wavelength)"
+  },
+  {
+   "test": "b closed-closed 1 m",
+   "quantity": "mode 8 frequency error order 10->5 mm",
+   "measured": 1.5599340578123606,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "second-order scheme: about 2, or both errors under 0.1 % (errors 0.038 % and 0.013 %)"
+  },
+  {
+   "test": "b closed-closed 1 m",
+   "quantity": "mode 8 dissipation order 10->5 mm",
+   "measured": 2.0532088780726827,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "second-order scheme: about 2 (0.1490 and 0.0359 dB/wavelength)"
+  },
+  {
+   "test": "b closed-closed 1 m",
+   "quantity": "mode 16 frequency error order 10->5 mm",
+   "measured": 0.41563701472673403,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "second-order scheme: about 2, or both errors under 0.1 % (errors 0.053 % and 0.040 %)"
+  },
+  {
+   "test": "b closed-closed 1 m",
+   "quantity": "mode 16 dissipation order 10->5 mm",
+   "measured": 2.0809123629009787,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "second-order scheme: about 2 (0.5764 and 0.1362 dB/wavelength)"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 1 frequency",
+   "measured": 84.96973409340819,
+   "reference": 84.96992758470493,
+   "err": -0.000002277173845399732,
+   "pass": true,
+   "unit": "Hz",
+   "note": "vs (2n-1) c/4L, no end correction"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 2 frequency",
+   "measured": 254.9049418514896,
+   "reference": 254.90978275411481,
+   "err": -0.00001899065062510392,
+   "pass": true,
+   "unit": "Hz",
+   "note": "vs (2n-1) c/4L, no end correction"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 3 frequency",
+   "measured": 424.8281201456152,
+   "reference": 424.84963792352465,
+   "err": -0.00005064798457790729,
+   "pass": true,
+   "unit": "Hz",
+   "note": "vs (2n-1) c/4L, no end correction"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 5 frequency",
+   "measured": 764.6160362826205,
+   "reference": 764.7293482623444,
+   "err": -0.0001481726574001329,
+   "pass": true,
+   "unit": "Hz",
+   "note": "vs (2n-1) c/4L, no end correction"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 9 frequency",
+   "measured": 1443.907755975158,
+   "reference": 1444.4887689399839,
+   "err": -0.00040222740205334137,
+   "pass": true,
+   "unit": "Hz",
+   "note": "vs (2n-1) c/4L, no end correction"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 1 decay",
+   "measured": 0.005231240553896001,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "200.0 cells/wavelength, 170 Hz at 298 K, 260 Hz at 700 K"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 2 decay",
+   "measured": 0.013867150857684028,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "100.0 cells/wavelength, 340 Hz at 298 K, 521 Hz at 700 K"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 4 decay",
+   "measured": 0.042531618765988044,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "50.0 cells/wavelength, 680 Hz at 298 K, 1042 Hz at 700 K"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 8 decay",
+   "measured": 0.1490044072511951,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "25.0 cells/wavelength, 1360 Hz at 298 K, 2083 Hz at 700 K"
+  },
+  {
+   "test": "b closed-closed 1 m, 10 mm",
+   "quantity": "mode 16 decay",
+   "measured": 0.5763824254608071,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "12.5 cells/wavelength, 2719 Hz at 298 K, 4166 Hz at 700 K"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 1 decay",
+   "measured": 0.0073821454564651215,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "includes the open end"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 2 decay",
+   "measured": 0.01068556722871769,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "includes the open end"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 3 decay",
+   "measured": 0.020445027118335204,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "includes the open end"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 5 decay",
+   "measured": 0.05248083263413358,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "includes the open end"
+  },
+  {
+   "test": "b open-closed 1 m, 10 mm",
+   "quantity": "mode 9 decay",
+   "measured": 0.1675925803981454,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "includes the open end"
+  },
+  {
+   "test": "b closed-closed 1 m, 5 mm",
+   "quantity": "mode 4 decay",
+   "measured": 0.010523542477956524,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "100.0 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m, 5 mm",
+   "quantity": "mode 8 decay",
+   "measured": 0.035902248988036366,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "50.0 cells/wavelength"
+  },
+  {
+   "test": "b closed-closed 1 m, 5 mm",
+   "quantity": "mode 16 decay",
+   "measured": 0.13623656676663826,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "dB/wavelength",
+   "note": "25.0 cells/wavelength"
+  },
+  {
+   "test": "b closed ends (wallEnd), mode 1, 10 mm",
+   "quantity": "amplitude after 40 periods / initial",
+   "measured": 0.9755524170262623,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "inviscid: may not grow"
+  },
+  {
+   "test": "b closed ends (wallEnd), mode 1, 10 mm",
+   "quantity": "entropy change / cv, sum of m ln(p/rho^gamma)",
+   "measured": 3.604699871928574e-12,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "kg",
+   "note": "second law: may not fall"
+  },
+  {
+   "test": "b closed ends (wallEnd), mode 1, 5 mm",
+   "quantity": "amplitude after 40 periods / initial",
+   "measured": 0.9927825421826465,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "inviscid: may not grow"
+  },
+  {
+   "test": "b closed ends (wallEnd), mode 1, 5 mm",
+   "quantity": "entropy change / cv, sum of m ln(p/rho^gamma)",
+   "measured": 9.143658052934711e-13,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "kg",
+   "note": "second law: may not fall"
+  },
+  {
+   "test": "b closed ends (wallEnd), mode 4, 10 mm",
+   "quantity": "amplitude after 40 periods / initial",
+   "measured": 0.8216293482151806,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "inviscid: may not grow"
+  },
+  {
+   "test": "b closed ends (wallEnd), mode 4, 10 mm",
+   "quantity": "entropy change / cv, sum of m ln(p/rho^gamma)",
+   "measured": 2.539027842141106e-11,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "kg",
+   "note": "second law: may not fall"
+  },
+  {
+   "test": "b closed ends (wallEnd), mode 4, 5 mm",
+   "quantity": "amplitude after 40 periods / initial",
+   "measured": 0.9517742660420392,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "inviscid: may not grow"
+  },
+  {
+   "test": "b closed ends (wallEnd), mode 4, 5 mm",
+   "quantity": "entropy change / cv, sum of m ln(p/rho^gamma)",
+   "measured": 7.1931939571445724e-12,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "kg",
+   "note": "second law: may not fall"
+  },
+  {
+   "test": "b closed ends (closed valve), mode 1, 10 mm",
+   "quantity": "amplitude after 40 periods / initial",
+   "measured": 0.9755524170262623,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "inviscid: may not grow"
+  },
+  {
+   "test": "b closed ends (closed valve), mode 1, 10 mm",
+   "quantity": "entropy change / cv, sum of m ln(p/rho^gamma)",
+   "measured": 3.604699871928574e-12,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "kg",
+   "note": "second law: may not fall"
+  },
+  {
+   "test": "b closed ends (closed valve), mode 1, 5 mm",
+   "quantity": "amplitude after 40 periods / initial",
+   "measured": 0.9927825421826465,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "inviscid: may not grow"
+  },
+  {
+   "test": "b closed ends (closed valve), mode 1, 5 mm",
+   "quantity": "entropy change / cv, sum of m ln(p/rho^gamma)",
+   "measured": 9.143658052934711e-13,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "kg",
+   "note": "second law: may not fall"
+  },
+  {
+   "test": "b closed ends (closed valve), mode 4, 10 mm",
+   "quantity": "amplitude after 40 periods / initial",
+   "measured": 0.8216293482151806,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "inviscid: may not grow"
+  },
+  {
+   "test": "b closed ends (closed valve), mode 4, 10 mm",
+   "quantity": "entropy change / cv, sum of m ln(p/rho^gamma)",
+   "measured": 2.539027842141106e-11,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "kg",
+   "note": "second law: may not fall"
+  },
+  {
+   "test": "b closed ends (closed valve), mode 4, 5 mm",
+   "quantity": "amplitude after 40 periods / initial",
+   "measured": 0.9517742660420392,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "inviscid: may not grow"
+  },
+  {
+   "test": "b closed ends (closed valve), mode 4, 5 mm",
+   "quantity": "entropy change / cv, sum of m ln(p/rho^gamma)",
+   "measured": 7.1931939571445724e-12,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "kg",
+   "note": "second law: may not fall"
+  },
+  {
+   "test": "c smooth cone 60->40 mm",
+   "quantity": "mass flow vs isentropic",
+   "measured": 0.22270312203874537,
+   "reference": 0.2237976395877913,
+   "err": -0.004890657252068915,
+   "pass": true,
+   "unit": "kg/s",
+   "note": ""
+  },
+  {
+   "test": "c smooth cone 60->40 mm",
+   "quantity": "mass flow spread over the interior faces",
+   "measured": 0.0008433705026825192,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "",
+   "note": "steady: should be ~0"
+  },
+  {
+   "test": "c smooth cone 60->40 mm",
+   "quantity": "inflow end face flux change from one step to the next",
+   "measured": 0,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "of the mass flow",
+   "note": "steady: should be ~0 (last two: 0.2227, 0.2227 kg/s)"
+  },
+  {
+   "test": "c smooth cone 60->40 mm",
+   "quantity": "exit stagnation temperature",
+   "measured": 299.9999999999998,
+   "reference": 300,
+   "err": -7.579122514774402e-16,
+   "pass": true,
+   "unit": "K",
+   "note": "adiabatic, inviscid: = reservoir"
+  },
+  {
+   "test": "c smooth cone 60->40 mm",
+   "quantity": "stagnation pressure min/max along the pipe",
+   "measured": 0.0028268269268785723,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "of p0",
+   "note": "inviscid: should be ~0"
+  },
+  {
+   "test": "c sudden expansion 4:1",
+   "quantity": "stagnation-pressure loss vs compressible Borda-Carnot",
+   "measured": 6051.98489140594,
+   "reference": 6051.9848914053,
+   "err": 1.0579740061106867e-13,
+   "pass": true,
+   "unit": "Pa",
+   "note": "one static pressure on both sides would give 9457.5 Pa; inlet Mach 0.39"
+  },
+  {
+   "test": "c sudden expansion 4:1",
+   "quantity": "entropy change across the step",
+   "measured": 16.550773272765127,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "J/kg/K",
+   "note": "second law: must be >= 0"
+  },
+  {
+   "test": "c sudden expansion 4:1",
+   "quantity": "static pressure step p2 - p1",
+   "measured": 3796.368694712117,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "Pa",
+   "note": "Borda-Carnot recovery would be 3779.7 Pa"
+  },
+  {
+   "test": "c sudden contraction 4:1",
+   "quantity": "stagnation-pressure loss",
+   "measured": -6.216578185558319e-8,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "Pa",
+   "note": "may not be negative; isentropic ideal 0, a sharp-edged entry measures about K = 0.5 (1 - A2/A1) = 2444 Pa on the downstream head; one static pressure on both sides would give -6128.5 Pa"
+  },
+  {
+   "test": "c sudden contraction 4:1",
+   "quantity": "mass flow vs the isentropic (lossless) upper limit",
+   "measured": 0.15693997962832432,
+   "reference": 0.15693997961906847,
+   "err": 5.897698032100726e-11,
+   "pass": true,
+   "unit": "kg/s",
+   "note": "no loss model may pass more than this; downstream Mach 0.31"
+  },
+  {
+   "test": "c sudden contraction 4:1",
+   "quantity": "entropy change across the step",
+   "measured": -1.3642420526593924e-12,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "J/kg/K",
+   "note": "second law: must be >= 0"
+  },
+  {
+   "test": "c sudden contraction 4:1",
+   "quantity": "static pressure step p2 - p1",
+   "measured": -6284.857352045568,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "Pa",
+   "note": "Borda-Carnot recovery would be - Pa"
+  },
+  {
+   "test": "c steady inflow through a valve end",
+   "quantity": "face pressure - end cell pressure",
+   "measured": -2.9103830456733704e-11,
+   "reference": null,
+   "err": null,
+   "pass": true,
+   "unit": "Pa",
+   "note": "steady: about 0 (rho c u here 13554 Pa, u 33.8 m/s)"
+  },
+  {
+   "test": "d open end, +100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "reflection, peak ratio (Gaussian pulse, sigma 40 mm)",
+   "measured": -0.8279378967366998,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "",
+   "note": "page Method text: about -0.96"
+  },
+  {
+   "test": "d open end, +100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 100 Hz",
+   "measured": 0.9976278766269564,
+   "reference": 1,
+   "err": -0.0023721233730435998,
+   "pass": true,
+   "unit": "",
+   "note": "effective end position -0.08 mm past the pipe end (-0.003 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 250 Hz",
+   "measured": 0.9893390125481405,
+   "reference": 1,
+   "err": -0.010660987451859505,
+   "pass": true,
+   "unit": "",
+   "note": "effective end position -0.07 mm past the pipe end (-0.003 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 500 Hz",
+   "measured": 0.9604077205694291,
+   "reference": 1,
+   "err": -0.039592279430570865,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position -0.04 mm past the pipe end (-0.001 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 1000 Hz",
+   "measured": 0.8537563295940516,
+   "reference": 1,
+   "err": -0.14624367040594843,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position 0.10 mm past the pipe end (0.004 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, -100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "reflection, peak ratio (Gaussian pulse, sigma 40 mm)",
+   "measured": -0.8283759982570542,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "",
+   "note": "page Method text: about -0.96"
+  },
+  {
+   "test": "d open end, -100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 100 Hz",
+   "measured": 0.9983854609061339,
+   "reference": 1,
+   "err": -0.0016145390938661075,
+   "pass": true,
+   "unit": "",
+   "note": "effective end position 0.00 mm past the pipe end (0.000 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, -100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 250 Hz",
+   "measured": 0.9900702111236329,
+   "reference": 1,
+   "err": -0.009929788876367085,
+   "pass": true,
+   "unit": "",
+   "note": "effective end position 0.01 mm past the pipe end (0.000 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, -100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 500 Hz",
+   "measured": 0.9610493888909507,
+   "reference": 1,
+   "err": -0.03895061110904929,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position 0.04 mm past the pipe end (0.001 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, -100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 1000 Hz",
+   "measured": 0.8541203584248646,
+   "reference": 1,
+   "err": -0.14587964157513544,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position 0.14 mm past the pipe end (0.005 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +100 Pa, 700 K, 50 mm, 10 mm cells",
+   "quantity": "reflection, peak ratio (Gaussian pulse, sigma 40 mm)",
+   "measured": -0.8279378967350779,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "",
+   "note": "page Method text: about -0.96"
+  },
+  {
+   "test": "d open end, +100 Pa, 700 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 100 Hz",
+   "measured": 0.9985414370874788,
+   "reference": 1,
+   "err": -0.0014585629125212218,
+   "pass": true,
+   "unit": "",
+   "note": "effective end position -0.08 mm past the pipe end (-0.003 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +100 Pa, 700 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 250 Hz",
+   "measured": 0.9949929134404965,
+   "reference": 1,
+   "err": -0.0050070865595035485,
+   "pass": true,
+   "unit": "",
+   "note": "effective end position -0.08 mm past the pipe end (-0.003 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +100 Pa, 700 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 500 Hz",
+   "measured": 0.9824594435041346,
+   "reference": 1,
+   "err": -0.01754055649586539,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position -0.06 mm past the pipe end (-0.002 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +100 Pa, 700 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 1000 Hz",
+   "measured": 0.9341595986157946,
+   "reference": 1,
+   "err": -0.06584040138420544,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position -0.01 mm past the pipe end (-0.000 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "reflection, peak ratio (Gaussian pulse, sigma 40 mm)",
+   "measured": -0.6850730257809264,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "",
+   "note": "page Method text: about -0.96"
+  },
+  {
+   "test": "d open end, +10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 100 Hz",
+   "measured": 0.9395639629934978,
+   "reference": 1,
+   "err": -0.06043603700650224,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position -2.71 mm past the pipe end (-0.108 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 250 Hz",
+   "measured": 0.9266112958294991,
+   "reference": 1,
+   "err": -0.07338870417050092,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position -2.60 mm past the pipe end (-0.104 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 500 Hz",
+   "measured": 0.8815790444976334,
+   "reference": 1,
+   "err": -0.11842095550236664,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position -2.15 mm past the pipe end (-0.086 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 1000 Hz",
+   "measured": 0.7151512497376802,
+   "reference": 1,
+   "err": -0.2848487502623198,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position -0.00 mm past the pipe end (-0.000 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, -10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "reflection, peak ratio (Gaussian pulse, sigma 40 mm)",
+   "measured": -0.7338758257694881,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "",
+   "note": "page Method text: about -0.96"
+  },
+  {
+   "test": "d open end, -10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 100 Hz",
+   "measured": 0.9881418919810283,
+   "reference": 1,
+   "err": -0.011858108018971691,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position 5.22 mm past the pipe end (0.209 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, -10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 250 Hz",
+   "measured": 0.9710962699881017,
+   "reference": 1,
+   "err": -0.028903730011898277,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position 5.18 mm past the pipe end (0.207 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, -10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 500 Hz",
+   "measured": 0.9121988765539142,
+   "reference": 1,
+   "err": -0.08780112344608582,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position 4.98 mm past the pipe end (0.199 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, -10 kPa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 1000 Hz",
+   "measured": 0.7039647871399213,
+   "reference": 1,
+   "err": -0.2960352128600787,
+   "pass": null,
+   "unit": "",
+   "note": "effective end position 3.93 mm past the pipe end (0.157 r; radiation end correction, unflanged: 0.6133 r = 15.3 mm)"
+  },
+  {
+   "test": "d open end, +100 Pa, 298 K, 50 mm, 10 mm cells",
+   "quantity": "|R| at 1000 Hz",
+   "measured": 0.8537563295940516,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "",
+   "note": "|R| at 500 Hz 0.9604; the loss falls with the cell size, so it is the travel, not the end"
+  },
+  {
+   "test": "d open end, +100 Pa, 298 K, 50 mm, 5 mm cells",
+   "quantity": "|R| at 1000 Hz",
+   "measured": 0.9541683817398278,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "",
+   "note": "|R| at 500 Hz 0.9875; the loss falls with the cell size, so it is the travel, not the end"
+  },
+  {
+   "test": "d open end, +100 Pa, 298 K, 50 mm, 2.5 mm cells",
+   "quantity": "|R| at 1000 Hz",
+   "measured": 0.988308460955531,
+   "reference": null,
+   "err": null,
+   "pass": null,
+   "unit": "",
+   "note": "|R| at 500 Hz 0.9962; the loss falls with the cell size, so it is the travel, not the end"
+  },
+  {
+   "test": "d choked outflow 3 bar",
+   "quantity": "mass flow vs isentropic choked A p0 psi*/sqrt(R T0)",
+   "measured": 0.8686416978892415,
+   "reference": 0.8686989641436127,
+   "err": -0.00006592186330928308,
+   "pass": true,
+   "unit": "kg/s",
+   "note": ""
+  },
+  {
+   "test": "d choked outflow 3 bar",
+   "quantity": "exit Mach number",
+   "measured": 1.0125061865496088,
+   "reference": 1,
+   "err": 0.012506186549608778,
+   "pass": true,
+   "unit": "",
+   "note": ""
+  },
+  {
+   "test": "d choked outflow 3 bar",
+   "quantity": "exit static pressure vs critical",
+   "measured": 158759.86000835686,
+   "reference": 161055.36551746711,
+   "err": -0.014252896832929778,
+   "pass": true,
+   "unit": "Pa",
+   "note": ""
+  },
+  {
+   "test": "e friction 40 mm, 45 m/s, Re 1.17e+5",
+   "quantity": "Darcy factor from the pressure gradient",
+   "measured": 0.019999254364414867,
+   "reference": 0.02,
+   "err": -0.00003728177925665238,
+   "pass": true,
+   "unit": "",
+   "note": "the model states Fanning 0.005 (Darcy 0.02); Blasius 0.0171, Colebrook (0.02 mm, OpenWAM default roughness) 0.0199"
+  },
+  {
+   "test": "e heat transfer 700 K gas, 400 K wall, Re 5.62e+4",
+   "quantity": "Stanton number",
+   "measured": 0.0024826371895997706,
+   "reference": 0.0025,
+   "err": -0.006945124160091798,
+   "pass": true,
+   "unit": "",
+   "note": "model: Reynolds analogy St = f/2 = 0.0025; Dittus-Boelter (cooling) 0.00328, Depcik-Assanis (OpenWAM intake) 0.00636"
+  }
+ ]
+}

@@ -153,6 +153,19 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   feed-direction right-hand rule; X-pipe build lengths to 0.01 in / 0.1 mm. Bend table round trip, tee cope depth,
   merge plates and flat patterns, X-pipe mitres, muffler wraps (round and oval), cone blanks and hanger tabs all OK.
   Open: Q6-Q11 in the doc; a printed template and a steep jig to try in the shop; jig, merge and hanger solids in Fusion.
+- Wave model cross-validation (2026-11-11; docs/WAVE_VALIDATION_2026-11-11.md, tools/validation/wave/): known answers
+  (Sod within 0.09 %, closed/open pipe modes within 0.05 %, second-order dissipation, isentropic cone flow -0.5 %, choked
+  flow -0.007 %, Borda-Carnot exact, friction and Reynolds-analogy heat as stated; 105 rows) and OpenWAM on 8
+  configurations x 6 speeds (single cylinder 0.4/0.8/1.2 m and with a chamber, i4 4-1, V8 per-bank 4-1, with lines, with
+  an X; no 2-stroke: the wave model has none). Three boundary defects fixed (JS + Rust, WebAssembly rebuilt,
+  wave_wasm.js bit-identical, web/tests/wavekat_ui.js guards them): the open end (a -100 Pa dip came back 8 times
+  larger, steady inflow flipped every step), diameter steps (a contraction gained 83 kPa of stagnation pressure; now
+  isentropic contraction / Borda-Carnot expansion as OpenWAM), closed ends and valve ends (a closed pipe's standing wave
+  grew 8 % in 40 periods; now the characteristic end pressure). Engine VE moved by -4.1 % to +3.4 %. Against OpenWAM:
+  VE peak speed the same on all 8, VE correlation 0.93-1.00, VE 2.5-5.4 % higher (explained: pipe friction and
+  wall-heat laws; with both off 1.002), net IMEP 22-28 % higher (about half from constant gamma 1.35; rest open),
+  single-cylinder tail orders within 1.2-1.4 dB median; V8-with-line firing orders about 7 dB median (open). Default
+  cells converged for VE to 0.3 % (1.6 % at one point); not changed. All wave/sound page tests pass.
 - Physics audit follow-up (2026-11-11; docs/PHYSICS_AUDIT_2026-11-11.md, "Follow-up"): the conductor's decisions on
   the questionable items. Q1: exhaust acoustics use burned-gas c (sosExh: stoichiometric CH1.87 products, NASA/GRI-Mech
   polynomials, R 286.6, gamma 1.37-1.30), 1-4 % below the old air c; intake, ambient, Blair and the Jennings default stay

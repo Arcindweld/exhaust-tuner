@@ -70,6 +70,8 @@ const PATM: f64 = 101325.0;
 const TATM: f64 = 298.15;
 const LHV: f64 = 44e6;
 const FANNING: f64 = 0.005;
+const K2: f64 = 2.0 / G1;
+const EXC: f64 = G1 / (2.0 * GAM);
 
 /// JavaScript's Math.min of two numbers.
 fn jmin(a: f64, b: f64) -> f64 {
@@ -418,6 +420,7 @@ struct Pipe {
     right: Bnd,
     start: f64,
     jp: f64,
+    jq: f64,
 }
 
 fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, x0: f64) -> Result<Pipe, String> {
@@ -477,6 +480,7 @@ fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, 
         right: Bnd::Noop,
         start: 0.0,
         jp: 0.0,
+        jq: 0.0,
     })
 }
 
@@ -544,22 +548,35 @@ fn hllc(rl: f64, ul: f64, pl: f64, xl: f64, rr: f64, ur: f64, pr: f64, xr: f64) 
         ]
     }
 }
-/// Ghost state for an open end; dir = +1 if the end faces +x.
+/// The state at an open end (Benson's characteristic method, the page's openState, 2026-11-11); dir = +1 if the end
+/// faces +x. Outflow leaves at the outside pressure with the end cell's entropy (sonic at most; a supersonic exit above
+/// the outside pressure keeps the cell's state); inflow comes in from still air at pa and ta isentropically, at most sonic.
 #[allow(clippy::too_many_arguments)]
-fn open_ghost(r: f64, u: f64, p: f64, x: f64, dir: f64, pa: f64, ta: f64, xa: f64) -> [f64; 4] {
+fn open_state(r: f64, u: f64, p: f64, x: f64, dir: f64, pa: f64, ta: f64, xa: f64) -> [f64; 4] {
     let un = u * dir;
-    if un >= 0.0 {
-        if un >= (GAM * p / r).sqrt() && p >= pa {
-            return [r, u, p, x];
-        }
-        return [r * powf(pa / p, 1.0 / GAM), u, pa, x];
+    let c = (GAM * p / r).sqrt();
+    if un >= c && p >= pa {
+        return [r, u, p, x];
     }
-    // inflow chokes at the critical pressure ratio (as the page's openGhost, 2026-11-06)
-    let prc = powf(2.0 / (GAM + 1.0), GAM / G1);
-    let pg = jmax(prc * pa, jmin(p, pa));
-    let tg = ta * powf(pg / pa, G1 / GAM);
-    let v = jmax(0.0, 2.0 * CP * (ta - tg)).sqrt();
-    [pg / (RG * tg), -dir * v, pg, xa]
+    let j = un + K2 * c;
+    let cpa = c * powf(pa / p, EXC);
+    let mut ub = j - K2 * cpa;
+    if ub >= 0.0 {
+        let mut cb = cpa;
+        if ub > cb {
+            cb = j / (1.0 + K2);
+            ub = cb;
+        }
+        let pb = p * powf(cb / c, 1.0 / EXC);
+        return [GAM * pb / (cb * cb), dir * ub, pb, x];
+    }
+    let c0 = (GAM * RG * ta).sqrt();
+    let a = 1.0 + K2 * cpa * cpa / (c0 * c0);
+    let vs = c0 * (2.0 / (GAM + 1.0)).sqrt();
+    let v = jmin(vs, (-j + jmax(0.0, j * j - a * (j * j - K2 * K2 * cpa * cpa)).sqrt()) / a);
+    let s2 = jmax(0.0, 1.0 - v * v / (K2 * c0 * c0));
+    let pb = pa * powf(s2, 0.5 / EXC);
+    [pb / (RG * ta * s2), -dir * v, pb, xa]
 }
 
 #[derive(Clone, Copy, Default)]
@@ -650,22 +667,28 @@ fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow]) {
 }
 /// The end flux of a pipe end set by its boundary (`which`: -1 the left end, +1 the right; the boundary's own side
 /// is the one it was made with, as in the JavaScript, where P.left and P.right are separate closures).
+/// The pressure on an end face that carries the speed vn (+ out of the pipe) where the cell's gas arrives at un: the
+/// wave from the pipe meets the end, its Riemann invariant kept, isentropically (the page's endP, 2026-11-11). A closed
+/// valve (vn = 0) feels p + rho c un for a small wave, as a reflecting end must; the end cell's own pressure, used before,
+/// let a closed pipe's standing wave grow. At a valve, gas coming in sets vn between 0 and the end cell's own speed.
+fn end_p(p: f64, r: f64, un: f64, vn: f64) -> f64 {
+    let c = (GAM * p / r).sqrt();
+    let cb = jmax(0.05 * c, c + 0.5 * G1 * (un - vn));
+    p * powf(cb / c, 2.0 * GAM / G1)
+}
+
 fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow]) {
     match b {
         Bnd::Noop => {}
         Bnd::Open(side) => {
             let (i, j) = if side > 0.0 { (p.n - 1, p.n) } else { (0, 0) };
-            let g = open_ghost(p.r[i], p.u[i], p.p[i], p.x[i], side, PATM, TATM, 1.0);
-            let f = if side > 0.0 {
-                hllc(p.r[i], p.u[i], p.p[i], p.x[i], g[0], g[1], g[2], g[3])
-            } else {
-                hllc(g[0], g[1], g[2], g[3], p.r[i], p.u[i], p.p[i], p.x[i])
-            };
+            let g = open_state(p.r[i], p.u[i], p.p[i], p.x[i], side, PATM, TATM, 1.0);
             let af = p.af[j];
-            p.f1[j] = f[0] * af;
-            p.f2[j] = f[1] * af;
-            p.f3[j] = f[2] * af;
-            p.f4[j] = f[3] * af;
+            let m = g[0] * g[1] * af;
+            p.f1[j] = m;
+            p.f2[j] = m * g[1] + g[2] * af;
+            p.f3[j] = m * (GAM / G1 * g[2] / g[0] + 0.5 * g[1] * g[1]);
+            p.f4[j] = m * g[3];
         }
         Bnd::Fed(side, src) => {
             let (i, j) = if side > 0.0 { (p.n - 1, p.n) } else { (0, 0) };
@@ -677,7 +700,10 @@ fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow]) 
             let entering = if side > 0.0 { f.m < 0.0 } else { f.m > 0.0 };
             let uf = if entering { -side * f.uj } else { f.m / (p.r[i] * af) };
             p.f1[j] = f.m;
-            p.f2[j] = f.m * uf + p.p[i] * af;
+            let un = side * p.u[i];
+            let vm = side * f.m / (p.r[i] * af);
+            let vn = if vm >= 0.0 { vm } else { jmax(vm, jmin(0.0, un)) };
+            p.f2[j] = f.m * uf + end_p(p.p[i], p.r[i], un, vn) * af;
             p.f3[j] = f.m * f.h;
             p.f4[j] = f.m * f.x;
         }
@@ -696,7 +722,9 @@ fn two_mut(v: &mut [Pipe], a: usize, b: usize) -> (&mut Pipe, &mut Pipe) {
 }
 
 /// Junction between two pipes of different area (characteristic method, isentropic on each side): a's right end
-/// meets b's left end.
+/// meets b's left end. As the page's junction (2026-11-11): into the smaller pipe the flow contracts isentropically
+/// (stagnation pressure kept), into the larger it expands with Borda-Carnot's momentum balance; the one-pressure
+/// solution is the fallback if the solve fails or an end would be sonic.
 fn junction(pipes: &mut [Pipe], ia: usize, ib: usize) {
     let (a, b) = two_mut(pipes, ia, ib);
     let i = a.n - 1;
@@ -709,63 +737,127 @@ fn junction(pipes: &mut [Pipe], ia: usize, ib: usize) {
     let ig = 1.0 / GAM;
     let jl = ul + k2 * cl;
     let jr = ur - k2 * cr;
-    let g = |ps: f64| {
-        let sl = ps / pl;
-        let sr = ps / pr;
-        let c1 = cl * powf(sl, ex);
-        let c2 = cr * powf(sr, ex);
-        a1 * rl * powf(sl, ig) * (jl - k2 * c1) - a2 * rr * powf(sr, ig) * (jr + k2 * c2)
+    // each side's end state (c, r, u) at its own pressure
+    let s1 = |p1: f64| {
+        let s = p1 / pl;
+        let c1 = cl * powf(s, ex);
+        (c1, rl * powf(s, ig), jl - k2 * c1)
     };
-    let mut ps = if a.jp > 0.0 { a.jp } else { 0.5 * (pl + pr) };
+    let s2 = |p2: f64| {
+        let s = p2 / pr;
+        let c2 = cr * powf(s, ex);
+        (c2, rr * powf(s, ig), jr + k2 * c2)
+    };
+    let pt = |p: f64, r: f64, u: f64| p * powf(1.0 + 0.5 * G1 * r * u * u / (GAM * p), GAM / G1);
+    let f = |p1: f64, p2: f64| -> [f64; 2] {
+        let (_c1, r1, u1) = s1(p1);
+        let (_c2, r2, u2) = s2(p2);
+        let m = a1 * r1 * u1;
+        let up = m >= 0.0;
+        let contr = if up { a2 < a1 } else { a1 < a2 };
+        let law = if contr {
+            pt(p1, r1, u1) - pt(p2, r2, u2)
+        } else {
+            r2 * u2 * u2 * a2 + p2 * a2 - r1 * u1 * u1 * a1 - p1 * a1 - (if up { p1 } else { p2 }) * (a2 - a1)
+        };
+        [m - a2 * r2 * u2, law]
+    };
+    let mut p1 = if a.jp > 0.0 { a.jp } else { 0.5 * (pl + pr) };
+    let mut p2 = if a.jq > 0.0 { a.jq } else { p1 };
     let mut ok = false;
-    for _ in 0..8 {
-        let gv = g(ps);
-        let h = ps * 1e-6;
-        let d = (g(ps + h) - gv) / h;
-        if !(d < 0.0) {
+    for _ in 0..12 {
+        let r0 = f(p1, p2);
+        let h1 = p1 * 1e-7;
+        let h2 = p2 * 1e-7;
+        let rx = f(p1 + h1, p2);
+        let ry = f(p1, p2 + h2);
+        let j11 = (rx[0] - r0[0]) / h1;
+        let j21 = (rx[1] - r0[1]) / h1;
+        let j12 = (ry[0] - r0[0]) / h2;
+        let j22 = (ry[1] - r0[1]) / h2;
+        let det = j11 * j22 - j12 * j21;
+        if !(det.abs() > 0.0) {
             break;
         }
-        let nx = ps - gv / d;
-        if !(nx > 0.0) {
+        let d1 = (r0[0] * j22 - r0[1] * j12) / det;
+        let d2 = (r0[1] * j11 - r0[0] * j21) / det;
+        let n1 = p1 - d1;
+        let n2 = p2 - d2;
+        if !(n1 > 0.0 && n2 > 0.0) {
             break;
         }
-        if (nx - ps).abs() < 1e-7 * ps {
-            ps = nx;
+        let done = d1.abs() < 1e-9 * p1 && d2.abs() < 1e-9 * p2;
+        p1 = n1;
+        p2 = n2;
+        if done {
             ok = true;
             break;
         }
-        ps = nx;
     }
-    if !ok || !(g(ps).abs() <= 1e-6 * (a1 * rl * cl).abs()) {
-        let mut lo = jmin(pl, pr) * 0.2;
-        let mut hi = jmax(pl, pr) * 5.0;
-        for _ in 0..60 {
-            let m = 0.5 * (lo + hi);
-            if g(m) > 0.0 {
-                lo = m;
-            } else {
-                hi = m;
+    if ok {
+        let (c1, _r1, u1) = s1(p1);
+        let (c2, _r2, u2) = s2(p2);
+        ok = u1.abs() < c1 && u2.abs() < c2;
+    }
+    if !ok {
+        let g = |ps: f64| {
+            let sl = ps / pl;
+            let sr = ps / pr;
+            let c1 = cl * powf(sl, ex);
+            let c2 = cr * powf(sr, ex);
+            a1 * rl * powf(sl, ig) * (jl - k2 * c1) - a2 * rr * powf(sr, ig) * (jr + k2 * c2)
+        };
+        let mut ps = if a.jp > 0.0 { a.jp } else { 0.5 * (pl + pr) };
+        let mut okc = false;
+        for _ in 0..8 {
+            let gv = g(ps);
+            let h = ps * 1e-6;
+            let d = (g(ps + h) - gv) / h;
+            if !(d < 0.0) {
+                break;
             }
+            let nx = ps - gv / d;
+            if !(nx > 0.0) {
+                break;
+            }
+            if (nx - ps).abs() < 1e-7 * ps {
+                ps = nx;
+                okc = true;
+                break;
+            }
+            ps = nx;
         }
-        ps = 0.5 * (lo + hi);
+        if !okc || !(g(ps).abs() <= 1e-6 * (a1 * rl * cl).abs()) {
+            let mut lo = jmin(pl, pr) * 0.2;
+            let mut hi = jmax(pl, pr) * 5.0;
+            for _ in 0..60 {
+                let m = 0.5 * (lo + hi);
+                if g(m) > 0.0 {
+                    lo = m;
+                } else {
+                    hi = m;
+                }
+            }
+            ps = 0.5 * (lo + hi);
+        }
+        p1 = ps;
+        p2 = ps;
     }
-    a.jp = ps;
-    let c1 = cl * powf(ps / pl, ex);
-    let u1 = jl - k2 * c1;
-    let r1 = rl * powf(ps / pl, ig);
-    let c2 = cr * powf(ps / pr, ex);
-    let u2 = jr + k2 * c2;
+    a.jp = p1;
+    a.jq = p2;
+    let (c1, r1, u1) = s1(p1);
+    let (c2, _r2, u2) = s2(p2);
     let m = a1 * r1 * u1;
     let up = m >= 0.0;
     let h0 = if up { c1 * c1 / G1 + 0.5 * u1 * u1 } else { c2 * c2 / G1 + 0.5 * u2 * u2 };
     let xx = if up { a.x[i] } else { b.x[0] };
     let an = a.n;
     a.f1[an] = m;
-    a.f2[an] = m * u1 + ps * a1;
+    a.f2[an] = m * u1 + p1 * a1;
     a.f3[an] = m * h0;
     a.f4[an] = m * xx;
     b.f1[0] = m;
-    b.f2[0] = m * u2 + ps * a2;
+    b.f2[0] = m * u2 + p2 * a2;
     b.f3[0] = m * h0;
     b.f4[0] = m * xx;
 }
