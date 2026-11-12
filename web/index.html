@@ -15158,7 +15158,7 @@ function pieCutSvg(P){
   const xr=cx+F.o/2*k2+6, xl=cx-F.o/2*k2-6;
   g+='<text x="'+xr.toFixed(1)+'" y="'+(cy+4).toFixed(1)+'" style="font-size:10px;fill:var(--muted)">centre line</text><text x="'+xr.toFixed(1)+'" y="'+(cy+16).toFixed(1)+'" style="font-size:10px;fill:var(--muted)">'+esc(pcS(F.c))+'</text>';
   g+='<text x="'+xr.toFixed(1)+'" y="'+(cy-r*k2+6).toFixed(1)+'" style="font-size:10px;fill:var(--muted)">cut '+P.alpha.toFixed(2)+'°</text>';
-  g+='<text x="'+xl.toFixed(1)+'" y="'+(cy+4).toFixed(1)+'" text-anchor="end" style="font-size:10px;fill:var(--muted)">OD '+esc((P.od/MM).toFixed(2))+' in</text><text x="'+xl.toFixed(1)+'" y="'+(cy+16).toFixed(1)+'" text-anchor="end" style="font-size:10px;fill:var(--muted)">'+esc(P.od.toFixed(1))+' mm</text>';
+  g+='<text x="'+xl.toFixed(1)+'" y="'+(cy+4).toFixed(1)+'" text-anchor="end" style="font-size:10px;fill:var(--muted)">OD</text><text x="'+xl.toFixed(1)+'" y="'+(cy+16).toFixed(1)+'" text-anchor="end" style="font-size:10px;fill:var(--muted)">'+esc(pcS(P.od))+'</text>';
   g+='<defs><marker id="pc-ar2" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L6 3 L0 6 Z" style="fill:var(--ink)"/></marker></defs></svg>';
   return s+g;
 }

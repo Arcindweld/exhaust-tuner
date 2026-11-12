@@ -29,7 +29,6 @@ const { chromium } = require('playwright');
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   const near = (a, w, tol, m) => ok(Number.isFinite(a) && Math.abs(a - w) <= tol, m + ': page ' + (+(+a).toFixed(6)) + ', by hand ' + w);
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
-  await ctx.addInitScript(() => { window.__sent = []; if (window.__fusionStub) return; });
   const pg = await ctx.newPage(); const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + process.cwd() + '/index.html#headers'); await pg.waitForTimeout(900);
   const P = await pg.evaluate(() => window.__pie.pieCut({ od: 76.2, wall: 1.651, clr: 114.3, ang: 90, n: 5, kerf: 1.5875, ends: 'square' }));
