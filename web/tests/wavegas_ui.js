@@ -126,6 +126,21 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
   ok(!s.bad && s.dp < 1e-9 && Math.abs(s.out) < 1e-9, name + ': a Mach 1.6 stream at 50 kPa (a normal shock would hold ' + (s.shock / 1000).toFixed(0) + ' kPa) leaves into 101.3 kPa unchanged: pressure spread ' +
     s.dp.toExponential(1) + ', outflow / inflow - 1 = ' + s.out.toExponential(1) + (s.bad ? ' (ran away)' : '')); }
 
+// ---------- 5b. steady inflow through an open end with the gas: the stream's stagnation temperature is the outside air's
+{ const T0 = 300, p0 = 1.15e5, A = x => Math.PI * (0.06 - 0.02 * x / 1.0) ** 2 / 4, G = G128;
+  const P = W0.makePipe({ L: 1, dx: 0.01, area: A, T0, Tw: T0, x0: 1, gas: G });
+  let t = 0; const pin = () => W0.PATM + (p0 - W0.PATM) * Math.min(1, t / 0.05);
+  P.left = W0.openEnd(-1, pin, T0, 1); P.right = W0.openEnd(+1, W0.PATM, T0, 1);
+  while (t < 0.6) { W0.prim(P); const dt = 0.8 * P.dx / W0.maxSpeed(P); W0.stepPipe(P, dt); t += dt; }
+  W0.prim(P);
+  // the stagnation temperature carried by each face's energy flux (f3 / f1 = h + u^2/2), and the cells' own
+  let dF = 0, dC = 0;
+  for (let j = 0; j <= P.n; j++) dF = Math.max(dF, Math.abs(GS.T(G, P.f3[j] / P.f1[j], 1, 300, true) - T0));
+  for (let i = 0; i < P.n; i++) dC = Math.max(dC, Math.abs(GS.T(G, GS.at(G, P.T[i], P.x[i]).h + 0.5 * P.u[i] * P.u[i], P.x[i], 300, true) - T0));
+  const m0 = P.f1[0], mN = P.f1[P.n];
+  ok(dF < 1e-3 && dC < 0.5 && Math.abs(mN / m0 - 1) < 2e-3 && m0 > 0.1, 'the gas, steady inflow from 1.15 bar, 300 K through a 60 -> 40 mm cone: stagnation temperature of every face flux within ' +
+    dF.toExponential(2) + ' K of the outside air, of the cells within ' + dC.toFixed(3) + ' K; mass flow ' + m0.toFixed(4) + ' kg/s in, ' + mN.toFixed(4) + ' out'); }
+
 // ---------- 6. one engine cycle's mass and energy balance with the gas (the engine of wavekat_ui.js)
 { const eng = W.makeEngine(ENG, { segs: [{ L: 0.3, d0: 0.0368, d1: 0.0368 }], Tw: 320 }, { segs: [{ L: 0.4, d0: 0.0445, d1: 0.0445 }, { L: 0.2, d0: 0.09, d1: 0.09 }, { L: 0.2, d0: 0.0445, d1: 0.0445 }], Tw: 700 }, { phases: [0] });
   const G = eng.gas, st = W.freshState(eng, 0.01), FAN = 0.005;

@@ -17,6 +17,8 @@ Tags switch one thing in both codes for the mechanism experiments:
   gamma14   OpenWAM with constant gamma (its gamma_model 0), wave at constant gamma 1.35
   gamma14b  OpenWAM with constant gamma (gamma_model 0) and the wave model at constant gamma 1.4: the gas properties alike
   gamma130w OpenWAM as base, the wave model at constant gamma 1.30 (the sensitivity of its work to the gas's gamma)
+  motored   no heat released in either code (spec.e.eta 0: OpenWAM's combustion efficiency 0), the wave model's default gas
+  motoredconst  the same with the wave model's constant gas
   before    the wave model of the page before this validation's fixes (page=...), OpenWAM as base (reuses its runs)
   endp      a candidate page (page=...) against the base OpenWAM runs, before it replaces the page
 Results: tools/validation/wave/results/<tag>.json (metrics per configuration and speed, and the traces).
@@ -109,6 +111,8 @@ TAGS = {
     "gamma14": ({"gamma_model": 0}, None, None, "const"),
     "gamma14b": ({"gamma_model": 0}, None, 1.4, "const"),
     "gamma130w": ({}, None, 1.30, "const"),
+    "motored": ({}, None, None, None, {"eta": 0.0}),
+    "motoredconst": ({}, None, None, "const", {"eta": 0.0}),
     "before": ({}, None, None, None),
     "endp": ({}, None, None, None),
 }
@@ -310,7 +314,8 @@ def main(argv):
     for a in argv[1:]:
         k, v = a.split("=", 1)
         opts[k] = v
-    over, fan, gam, gas = TAGS[opts["tag"]]
+    over, fan, gam, gas = TAGS[opts["tag"]][:4]
+    eover = TAGS[opts["tag"]][4] if len(TAGS[opts["tag"]]) > 4 else {}
     page = opts["page"] or None
     os.makedirs(RES, exist_ok=True)
     outp = os.path.join(RES, opts["tag"] + ".json")
@@ -321,6 +326,7 @@ def main(argv):
     for cfg in opts["configs"].split(","):
         build, rpms, dx = CONFIGS[cfg]
         spec = build()
+        spec["e"].update(eover)
         print("== %s (%s)" % (cfg, opts["tag"]), flush=True)
         wam = [wam_one(cfg, spec, rpm, over) for rpm in rpms]
         wave = wave_runs(cfg + "_" + opts["tag"], spec, rpms, dx, fan, page, int(opts["cycles"]), gam, gas)

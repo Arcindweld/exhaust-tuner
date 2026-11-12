@@ -876,8 +876,18 @@ fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow]) 
             let m = g[0] * g[1] * af;
             p.f1[j] = m;
             p.f2[j] = m * g[1] + g[2] * af;
-            let h = match &p.gas { Some(gs) => gas_h(gs, g[2] / (g[0] * gas_r(gs, g[3])), g[3]), None => GAM / G1 * g[2] / g[0] };
-            p.f3[j] = m * (h + 0.5 * g[1] * g[1]);
+            // gas coming in carries the still outside air's own enthalpy h(Ta, xa) exactly (the page's openEnd)
+            let h0 = match &p.gas {
+                Some(gs) => {
+                    if side * g[1] < 0.0 {
+                        gas_h(gs, TATM, 1.0)
+                    } else {
+                        gas_h(gs, g[2] / (g[0] * gas_r(gs, g[3])), g[3]) + 0.5 * g[1] * g[1]
+                    }
+                }
+                None => GAM / G1 * g[2] / g[0] + 0.5 * g[1] * g[1],
+            };
+            p.f3[j] = m * h0;
             p.f4[j] = m * g[3];
         }
         Bnd::Fed(side, src) => {
