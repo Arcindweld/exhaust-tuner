@@ -21406,7 +21406,7 @@ function tsWgRange(w){
   const ks=[...new Set([2,2.25,2.5,w.k].map(k=>+k.toFixed(4)))].sort((a,b)=>a-b);
   const T3=w.tit+273.15, g=exhGamma(T3);
   return ks.map(k=>{ const p3=P_ATM+k*w.bst, t=turbineBalance({ma:w.ma,afr:w.afr,t1:w.t1,t2:w.t2,tit:w.tit,p3,p4:w.p4,eta:w.eta}), mw=t.wg*t.me, A=mw>0?orificeArea(mw,p3,T3,w.p4,g,EXH_GAS.R):{A:0,choked:false};
-    return {k,p3,share:t.wg,mw,A:A.A,choked:A.choked,dEff:Math.sqrt(4*A.A/Math.PI)*1000,pick:TS_WG_MM.find(d=>Math.PI/4*(d/1000)**2>=A.A)||null,yours:Math.abs(k-w.k)<1e-9}; });
+    return {k,p3,share:t.wg,mw,A:A.A,choked:A.choked,dEff:Math.sqrt(4*A.A/Math.PI)*1000,pick:TS_WG_MM.find(d=>Math.PI/4*(d/1000)**2>=A.A)||null,yours:Math.abs(k-+w.k.toFixed(4))<1e-9}; });
 }
 function tsWgRangeHtml(w,aD,pD){
   if(!w||!(w.bst>0)) return '';

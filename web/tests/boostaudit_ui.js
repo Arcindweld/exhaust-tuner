@@ -84,6 +84,10 @@ const { chromium } = require('playwright');
   await pg.waitForTimeout(400);
   t = await sec('intercooler-options-and-cooling-capacity');
   ok(/With UA scaled for the charge flow/.test(t) && /posted as a preprint, not a journal paper/.test(t) && /Eq\. 7/.test(t), 'UA bounds: the preprint status and its turbulent fit are said');
+  // B30: a turbine inlet multiple with more than four decimals stopped the page (the range table could not find its own row)
+  await setv('i-tipk', '2.123456'); await pg.waitForTimeout(500);
+  ok(/2\.12 × boost, [^\n]*\(yours\)/.test(await sec('where-to-put-them-on-this-build')), 'B30 an unrounded multiple, 2.123456: the range table marks it as yours');
+  await setv('i-tipk', ''); await pg.waitForTimeout(300);
   ok(errs.length === 0, 'no page errors' + (errs.length ? ': ' + errs.join(' | ') : ''));
   await b.close();
   console.log(fails.length ? fails.length + ' FAILED' : 'boostaudit_ui: all pass'); process.exit(fails.length ? 1 : 0);
