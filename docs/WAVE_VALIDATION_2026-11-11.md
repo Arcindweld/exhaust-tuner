@@ -505,3 +505,220 @@ python3 tools/validation/wave/compare.py configs=single_L800,i4_41 tag=nofric   
 python3 tools/validation/wave/gridconv.py               # ~3 min
 python3 tools/validation/wave/report.py tag=base vs=before
 ```
+
+## Addendum 2026-11-12: temperature- and composition-dependent gas properties
+
+The constant gamma 1.35 and R 287 of every gas in the model (section 1, first row; section 4.3 "about half of the
+net-IMEP gap") is replaced by thermally perfect gases whose properties follow the temperature and the composition. The
+old gas stays available as `spec.e.gas = 'const'`, bit for bit; the building blocks used on their own (`makePipe` without
+`spec.gas`, as `kat.js` uses them) also stay at it, so the 66 known-answer criteria of section 3 are untouched.
+
+### A1 The property model and its sources
+
+- Species: N2, O2, Ar, CO2, H2O, CO, H2, each with the NASA 7-coefficient polynomial of GRI-Mech 3.0 (cp/R = a1 + a2 T
+  + ... + a5 T^4, 200 (N2, Ar 300) to 1000 K and 1000 to 3500 K (N2, Ar 5000 K)). Verified digit for digit against
+  Cantera's `data/gri30.yaml` (https://raw.githubusercontent.com/Cantera/cantera/main/data/gri30.yaml, fetched
+  2026-11-12); the CO2, H2O, N2 and Ar rows are the ones the page's `sosExh` already used (physics audit 2026-11-11),
+  so the page keeps one table: `sosExh` now reads it from the wave model (its numbers unchanged to the last digit;
+  `physaudit_ui.js` passes unchanged). Outside 200-3500 K cp is held at the end value (h linear), so the energy
+  equation stays monotonic in T.
+- Checked against the NIST-JANAF tables (https://janaf.nist.gov/tables/N-023.txt, O-029, Ar-001, C-095, H-064, C-093,
+  H-050, fetched 2026-11-12), 200-3500 K: cp within 0.12 % for CO2, CO, Ar and H2O up to 1000 K, 0.26 % for N2, 0.33 %
+  for H2, 0.45 % for O2; H2O above 1000 K is 1.1 % / 1.9 % above JANAF at 2000 / 3000 K. That last one is not a fit
+  error: NASA TM-4513's polynomial (McBride, Gordon and Reno 1993; Caltech SDToolbox `nasa7.dat` and Cantera
+  `nasa_gas.yaml`, both fetched and identical) shows the same 1.0 % / 2.0 %, its water being Gurvich's 1989 analysis.
+  TM-4513 was the alternative considered: its N2 below 1000 K is closer to JANAF (0.05 % against 0.26 %), but adopting
+  it would move `sosExh` by up to 0.03 % and with it pinned acoustic and turbo numbers unrelated to this work; kept as
+  a possible follow-up. In the mixtures the difference to JANAF is at most 0.001 in gamma.
+- Fresh charge: dry air, O2 + 3.7279 N2 + 0.04459 Ar (the split of Heywood's 3.773 by NOAA's dry air, as `sosExh`).
+  Fuel vapour is not modelled (the model counts the fresh charge as air, as before).
+- Burned gas: frozen products of CH1.87 at the engine's air-fuel ratio (stoichiometric 14.596 with these atomic weights:
+  C 12.0107, H 1.00794): lean CO2, H2O, O2, N2, Ar; rich CO2, CO, H2O, H2, N2, Ar with the water-gas ratio
+  [CO][H2O]/([CO2][H2]) = 3.5 (Heywood, ICE Fundamentals ch. 4; MIT 2.61 lecture 4 says "3.5 to 3.7", the equilibrium
+  at about 1740 K; JANAF's log Kf give 3.41 at 1700 K and 3.80 at 1800 K). No dissociation.
+- Mixing by mass with the fresh-charge fraction x the model already carries in every pipe cell, cylinder and side
+  volume: R(x) = Rb + x (Ra - Rb); cp(T, x) and the sensible enthalpy h(T, x) (integral of cp from 298.15 K, continuous
+  at 1000 K by construction) mix the same way; e = h - R T. The burn's heat is added as before (fresh charge / AFR x
+  LHV x eta), so no formation enthalpies are needed; converting fresh charge to burned gas at fixed T changes e by the
+  sensible difference only, which is the right accounting with the heat added as LHV.
+
+Spot values (model / the same mixture of JANAF's cp; `web/tests/wavegas_ui.js`):
+
+| T (K) | air gamma | burned, AFR 12.8 (lambda 0.877) gamma | burned, stoichiometric gamma |
+|---|---|---|---|
+| 300 | 1.4007 / 1.4000 | 1.3758 / 1.3752 | 1.3721 / 1.3715 |
+| 500 | 1.3860 / 1.3867 | 1.3530 / 1.3536 | 1.3472 / 1.3478 |
+| 1000 | 1.3355 / 1.3363 | 1.3001 / 1.3007 | 1.2938 / 1.2944 |
+| 1500 | 1.3110 / 1.3108 | 1.2731 / 1.2731 | 1.2674 / 1.2674 |
+| 2000 | 1.2979 / 1.2982 | 1.2589 / 1.2596 | 1.2537 / 1.2543 |
+| 2500 | 1.2901 / 1.2905 | 1.2511 / 1.2521 | 1.2461 / 1.2471 |
+
+R: air 287.10, burned at AFR 12.8 294.40, stoichiometric 286.63 J/kg K.
+
+### A2 How it enters the equations
+
+- Cylinder (single zone): U = m e(T, x); each step U_new = m e(T, x) - p dV + the enthalpy through the valves + the burn
+  - the wall heat, then x_new from the composition balance, then T_new by Newton on m_new e(T, x_new) = U_new
+  (converged to 1e-9 relative); p = m R(x) T / V; the valve orifice and jet use the cylinder gas's gamma and cp at the
+  step's start. tEx is the temperature of the mass-averaged exhaust enthalpy at its mass-averaged x.
+- Pipes (per cell, not per pipe): the conserved variables are unchanged (rho A, rho u A, rho E A, rho x A); the cell's T
+  comes from e = E/rho - u^2/2 by Newton on e(T, x), then p = rho R(x) T and the frozen gamma = cp / (cp - R). The
+  MUSCL-Hancock predictor uses the cell's gamma (dp/dt + u dp/dx + rho c^2 du/dx = 0 holds for any equation of state
+  with frozen composition); the HLLC flux takes each face state's own e(T, x) and gamma (its formula does not depend on
+  the equation of state, Toro ch. 10). The Reynolds-analogy wall heat uses the cell's cp.
+- Boundaries and junctions (open ends, valve ends, walls, two-pipe steps, n-pipe nodes): the closed-form
+  characteristic solutions use the end cell's gamma, frozen over the half-cell isentropic step they solve, each side
+  of a junction its own; every enthalpy that crosses is h(T, x) of the crossing state (inflow at an open end: the still
+  outside air's h(Ta), exactly). Mass and energy remain conserved to rounding.
+- Side volumes (chambers, branches): m e(T, x), T by Newton.
+- Cost: the JavaScript takes about twice as long (the page's captured jobs: 93 s with the gas, 47 s with the constant
+  gas, on an otherwise lightly loaded machine); the Rust/WebAssembly copy's slowdown was not measured separately.
+
+### A3 Verification
+
+- `tools/validation/wave/kat.js`: all 66 criteria pass; `results/kat.json` is byte-identical to the one before.
+- Constant-gamma mode: the page's captured worker jobs plus the diameter-step job (112 speeds) give the results of the
+  page before the change to the last digit: JavaScript (`tools/validation/wave/constref.js`, and the first three speeds of
+  each design in `wavegas_ui.js`) and Rust (`wave_wasm.js`, against `web/tests/fixtures/wave_const_ref.json`, written from
+  commit 017cdbf). The OpenWAM matrix with `tag=const` reproduces section 4's wave numbers exactly.
+- `web/tests/wavegas_ui.js` (new): 42 species values against JANAF's tables, hand-listed in the test (cp within 0.5 %,
+  H - H(298) within 0.3 % (2 % at 300 K, where it is a few tens of J/mol), H2O above 1000 K 2 % / 1 %); the mixtures (gamma within 0.0015, cp 0.5 %, u(T) - u(300 K)
+  0.4 %); atom balances and the water-gas ratio; the temperature solve (inverse to 3e-16); a closed adiabatic cylinder
+  through a whole cycle against its isentrope found independently in the test (entropy integral by Simpson, bisection):
+  -0.42 % largest temperature error at the page's step, -0.21 % at half the step, first order, the same as the
+  constant gas against T V^(gamma-1) = const (-0.36 % / -0.18 %): the error is the cylinder's explicit p dV, not the
+  properties; steady inflow through an open end with the gas: every face flux carries the outside air's stagnation
+  temperature to 3e-13 K; an engine cycle's mass and energy balances with the gas (3e-15, 7e-15).
+- `tools/validation/wave/engine.js` balances with the gas on the OpenWAM matrix: mass and energy residuals 1e-15-1e-14.
+- JS-Rust: `wave_wasm.js` bit-identical with the gas on all captured jobs, and the Rust constant-gamma mode against the
+  reference.
+
+### A4 A defect found on the way (D4): supersonic exit below the outside pressure
+
+Running a warm-started sweep with the new gas, the single cylinder with a megaphone (fixture "single with a chamber")
+went to NaN at 9000 rpm: its cone's exit was supersonic (Mach about 2) at 20-25 kPa. `openState` kept the cell's state
+for a supersonic exit only when the exit was above the outside pressure; below it the subsonic solution returned the
+sonic state on the cell's characteristic, which passes more mass than any supersonic state on it, and the end cell
+emptied. The constant-gamma runs reached Mach 1.9 inside that cone too but not in the end cell. Fix (JS `openState`,
+Rust `open_state`): a supersonic exit keeps the cell's state whenever a normal shock at the exit could hold the outside
+pressure (pa <= p (1 + 2 gamma / (gamma + 1) (M^2 - 1))); the shock then stands at or outside the exit, as in the
+inviscid steady solution. Test (`wavegas_ui.js` 5): a uniform Mach 1.6, 50 kPa stream into 101.3 kPa leaves unchanged
+(pressure spread 0, outflow = inflow); on the page of commit 017cdbf the same case runs away (end cell at 1 Pa).
+None of the 112 constant-gamma reference speeds passes through the new branch (they are unchanged to the last digit).
+
+### A5 A defect in the comparison itself: OpenWAM's traces were 360 degrees out of phase in 23 of 48 runs
+
+`compare.py` found OpenWAM's firing TDC as the highest pressure among the INS samples within 1e-6 of the smallest
+volume. INS is written every 0.5 deg; when that grid missed the firing TDC by a fraction of a degree (the volume there
+is 2.6e-4 above its minimum at 0.5 deg), only the gas-exchange TDC qualified, and the OpenWAM traces (port pressure,
+cylinder pressure, outlet flow) were compared 360 deg out of phase. Found while splitting the work (A6): OpenWAM's
+cylinder-pressure peak sat at 374-376 deg instead of 14-16 deg in 23 of the 48 base runs. Now the firing TDC is the
+smallest volume within 90 deg of the cycle's pressure peak. VE, NMEP and the order levels (magnitudes) were not
+affected; the port-pressure correlation, its amplitude ratio's phase partner `returnShiftDeg`, and the traces were.
+
+| configuration | median port-pressure correlation, section 4.2 -> same runs aligned (constant gas) | runs that were shifted |
+|---|---|---|
+| single_L400 | 0.85 -> 0.86 | 1 |
+| single_L800 | 0.35 -> 0.96 | 5 |
+| single_L1200 | 0.89 -> 0.93 | 3 |
+| single_muffler | 0.61 -> 0.76 | 3 |
+| i4_41 | 0.57 -> 0.62 | 2 |
+| v8_2x41 | 0.09 -> 0.46 | 4 |
+| v8_line | 0.25 -> 0.55 | 3 |
+| v8_line_X | 0.29 -> 0.52 | 2 |
+
+So section 4.3's "port-pressure phase, single cylinder: explained by the wall laws" does not stand: aligned, the single
+cylinder's traces already agree (median correlation 0.86-0.96 with the wall laws on; with both off, `nofricconst`, 0.99).
+The i4 4-1 (0.62 aligned; 0.73 with the wall laws off) and the V8s (0.46-0.55) remain only partly correlated; that is
+still open, and no longer to be read as a 180-degree phase error.
+
+### A6 Engine level against OpenWAM, before and after (`gas_report.py`, the corrected alignment for both)
+
+Before = `tag=const` (the constant gas; its wave and OpenWAM numbers are those of section 4.2 to the last digit),
+after = `tag=base` (the new default gas); the same OpenWAM runs. Means over each configuration's six speeds.
+
+| configuration | NMEP ratio wave / OpenWAM | indicated eff. of heat released, wave (OpenWAM) | VE mean ratio | VE corr | mean port gas T, wave - OpenWAM (K) | exhaust-valve outflow T, wave (K) | port p corr (median) | firing orders: median abs diff (dB), within 3 dB |
+|---|---|---|---|---|---|---|---|---|
+| single_L400 | 1.271 -> 1.110 | 0.479 -> 0.421 (0.396) | 1.051 -> 1.045 | 0.988 -> 0.994 | +34 -> +102 | 1130 -> 1207 | 0.86 -> 0.86 | 1.4, 21/24 -> 1.3, 22/24 |
+| single_L800 | 1.255 -> 1.091 | 0.472 -> 0.414 (0.390) | 1.036 -> 1.028 | 0.987 -> 0.972 | +55 -> +120 | 1141 -> 1215 | 0.96 -> 0.96 | 1.2, 22/24 -> 0.9, 22/24 |
+| single_L1200 | 1.264 -> 1.105 | 0.472 -> 0.414 (0.389) | 1.043 -> 1.039 | 0.985 -> 0.992 | +41 -> +107 | 1144 -> 1219 | 0.93 -> 0.92 | 1.3, 21/24 -> 1.1, 20/24 |
+| single_muffler | 1.237 -> 1.072 | 0.471 -> 0.413 (0.390) | 1.025 -> 1.014 | 0.984 -> 0.990 | +38 -> +108 | 1136 -> 1211 | 0.76 -> 0.70 | 1.3, 22/24 -> 1.5, 20/24 |
+| i4_41 | 1.275 -> 1.115 | 0.481 -> 0.425 (0.398) | 1.054 -> 1.044 | 0.995 -> 0.982 | +68 -> +135 | 1115 -> 1191 | 0.62 -> 0.57 | 3.7, 8/18 -> 4.7, 7/18 |
+| v8_2x41 | 1.220 -> 1.063 | 0.479 -> 0.425 (0.405) | 1.031 -> 1.013 | 0.986 -> 0.982 | +78 -> +150 | 1094 -> 1172 | 0.46 -> 0.46 | 3.5, 9/18 -> 3.6, 9/18 |
+| v8_line | 1.248 -> 1.088 | 0.477 -> 0.423 (0.402) | 1.051 -> 1.033 | 0.929 -> 0.921 | +10 -> +78 | 1099 -> 1176 | 0.55 -> 0.51 | 6.9, 4/18 -> 4.4, 6/18 |
+| v8_line_X | 1.244 -> 1.082 | 0.478 -> 0.424 (0.403) | 1.049 -> 1.029 | 0.956 -> 0.948 | +41 -> +113 | 1096 -> 1174 | 0.52 -> 0.46 | 7.3, 6/18 -> 5.1, 8/18 |
+
+(Single cylinder orders 0.5-2; i4 2, 4, 8; V8 4, 8, 16.) Read: the net-IMEP surplus falls from 22-28 % to 6-12 %
+(the wave model's own NMEP falls by 11-16 %, mean 13 %); VE moves by -3 to +2 % (mean -1.2 %), slightly towards
+OpenWAM on every configuration; the VE curve shapes and peak speeds are unchanged (all 8 peaks still agree). The
+exhaust gets hotter: the burned gas's lower gamma cools less in the expansion, so the exhaust-valve outflow is 74-78 K
+hotter and the mean port gas now 78-150 K above OpenWAM's (before 10-80 K). Part of that is the wall laws: with pipe
+friction and wall heat off in both codes (`nofric`, single_L800 / i4_41) the port difference is +59 / +66 K (before
+-8 / -3 K). The tailpipe firing orders change by about a dB, mixed in sign: no systematic effect.
+
+### A7 The remaining 6-12 %: what was tested (one change at a time)
+
+`work_split.py` splits each code's indicated work, from the cylinder-pressure traces with the same 2-degree trapezoid
+(its net agrees with each code's own NMEP within 1 % except at the motored points), into the gross loop
+(compression and expansion strokes) and the pumping loop:
+
+| experiment (single_L800 / i4_41) | NMEP ratio | gross ratio | pumping difference / OpenWAM net | peak pressure ratio | compression exponent 60 -> 20 deg BTDC, wave / OpenWAM |
+|---|---|---|---|---|---|
+| const (before) | 1.255 / 1.275 | 1.226 / 1.256 | +0.004 / +0.010 | 1.252 / 1.275 | 1.342 / 1.284 |
+| base (after) | 1.091 / 1.115 | 1.078 / 1.105 | -0.000 / +0.008 | 1.117 / 1.131 | 1.358 / 1.286 |
+| `nofric` (no pipe friction or wall heat, both codes) | 1.052 / 1.063 | 1.047 / 1.054 | +0.002 / +0.007 | 1.087 / 1.094 | |
+| `eta085` (85 % of the fuel heat released in both, not 72 %) | 1.079 / 1.110 | 1.074 / 1.106 | -0.000 / +0.006 | 1.110 / 1.134 | |
+| `motored` (no heat released in either) | | | | 1.069 / 1.080 | 1.358 / 1.282 |
+| `motoredconst` | | | | 1.010 / 1.016 | 1.343 / 1.284 |
+
+Demonstrated:
+- The rest of the gap is in the gross loop: the pumping loops agree to within 1 % of the net work in every
+  configuration (before and after).
+- About a third to half of it goes with the pipe wall laws: with friction and wall heat off in both codes the NMEP
+  ratio falls from 1.091 / 1.115 to 1.052 / 1.063 (and VE agrees to -0.6 % / -0.1 %). The model's Reynolds-analogy wall
+  heat is the known difference (section 3 e, recommendation 2); it is not changed here.
+- Not the representation of the 72 %: releasing 85 % of the fuel's heat in both codes leaves the ratio where it was
+  (1.079 / 1.110).
+
+Seen but not demonstrated as a cause: OpenWAM's compression is markedly softer. Its compression exponent between 60 and
+20 deg BTDC is 1.28-1.29 (fired and motored) against the wave model's 1.36 (1.34 with the constant gas), with the same
+geometry and Woschni law, and the wave model loses more heat to the walls (section 4.3), so it is not the wall heat.
+OpenWAM's own cylinder output gives R = p V / (m T) = 272 J/kg K during compression and 283 after the burn (a constant
+283 J/kg K for its burned gas, against the wave model's 294.4 at AFR 12.8): its unburned charge carries the fuel vapour
+(M about 30.6, with a far higher cp than air), which the wave model leaves out. With no heat released the peak pressure
+is 7-8 % above OpenWAM's with the new gas (1-2 % with the constant 1.35, which happened to sit closer to a fuel-laden
+charge). Adding fuel vapour (a sourced cp for gasoline vapour) to the fresh charge is the next one-change experiment; it
+was not made here, so its share of the 6-12 % is not known.
+
+### A8 What this changes on the page
+
+- Full-throttle torque from the wave simulation: 11-16 % lower (the 48 runs above); VE -3 to +2 %. The page's eta 0.72
+  ("calibration that brings full-throttle torque into the range of real engines") was set with the old gas and was not
+  retuned (it is a calibration input, and no dyno curve is in hand here); the method text says so and points to the
+  dyno fit. The page tests that run the simulation check ranges and relations, not torque values: all of them (sim_ui,
+  sound_ui, uel_sim_ui, multi_ui, extremes_ui, fuzz_ui, dyno_ui, wsnd*_ui) pass unchanged, and no pinned value was
+  changed.
+- Sound: the orders change by about a dB, both ways; the exhaust gas in the pipes is hotter and so faster.
+- `sosExh` and everything acoustic that uses it: unchanged (same species table, same numbers).
+- Cost: about twice the computing time.
+
+### A9 Summary rows (section 6, as of 2026-11-12)
+
+| Difference | Status | Evidence |
+|---|---|---|
+| Net IMEP 22-28 % above OpenWAM | 16 points of it removed by the gas properties; 6-12 % left, all in the gross loop, a third to half of it the pipe wall laws; OpenWAM's softer compression (fuel vapour in its charge) seen, not yet tested | A6, A7 |
+| Port-pressure phase, single cylinder | was a comparison artefact (OpenWAM traces 360 deg out of phase in 23 of 48 runs); aligned, median correlation 0.86-0.96 | A5 |
+| i4 4-1 and V8 port-pressure correlation | 0.46-0.62 aligned; open | A5 |
+| Supersonic exit below the outside pressure emptied the end cell (D4) | defect, fixed | A4 |
+| Exhaust gas temperature | now 78-150 K above OpenWAM at the port (hotter burned gas; OpenWAM's stronger pipe wall heat) | A6 |
+
+### A10 How to rerun (additions)
+
+```
+node tools/validation/wave/constref.js          # constant-gamma mode against fixtures/wave_const_ref.json, ~50 s
+node web/tests/wavegas_ui.js                    # the gas: JANAF, isentrope, D4, balances, constant-gamma reference, ~40 s
+python3 tools/validation/wave/compare.py tag=const       # and tag=base; configs=single_L800,i4_41 tag=nofric /
+                                                         # nofricconst / motored / motoredconst / eta085
+python3 tools/validation/wave/gas_report.py              # A6 (before=const after=base)
+python3 tools/validation/wave/work_split.py tag=base     # A7
+```

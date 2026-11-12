@@ -70,8 +70,151 @@ const PATM: f64 = 101325.0;
 const TATM: f64 = 298.15;
 const LHV: f64 = 44e6;
 const FANNING: f64 = 0.005;
-const K2: f64 = 2.0 / G1;
-const EXC: f64 = G1 / (2.0 * GAM);
+
+// ------------------------------------------------------------------------------------------- gas properties (2026-11-12)
+// The page's "gas properties" block, line for line: air (x = 1) and its burned gas (x = 0) at the engine's air-fuel ratio,
+// thermally perfect, mixed by mass with the fresh-charge fraction x; each species' cp/R from the NASA 7-coefficient
+// polynomials of GRI-Mech 3.0 (Cantera's data/gri30.yaml); spec.e.gas = "const" keeps gamma 1.35, R 287.
+const RU: f64 = 8.314462618;
+const TREF: f64 = 298.15;
+const TMAX: f64 = 3500.0;
+/// GRI-Mech 3.0: M g/mol, cp/R a1..a5 below 1000 K, a1..a5 above; order N2, O2, Ar, CO2, H2O, CO, H2.
+#[allow(clippy::excessive_precision)]
+const SPEC: [(f64, [f64; 5], [f64; 5]); 7] = [
+    (28.0134, [3.298677, 1.4082404e-3, -3.963222e-6, 5.641515e-9, -2.444854e-12], [2.92664, 1.4879768e-3, -5.68476e-7, 1.0097038e-10, -6.753351e-15]),
+    (31.9988, [3.78245636, -2.99673416e-3, 9.84730201e-6, -9.68129509e-9, 3.24372837e-12], [3.28253784, 1.48308754e-3, -7.57966669e-7, 2.09470555e-10, -2.16717794e-14]),
+    (39.948, [2.5, 0.0, 0.0, 0.0, 0.0], [2.5, 0.0, 0.0, 0.0, 0.0]),
+    (44.0095, [2.35677352, 8.98459677e-3, -7.12356269e-6, 2.45919022e-9, -1.43699548e-13], [3.85746029, 4.41437026e-3, -2.21481404e-6, 5.23490188e-10, -4.72084164e-14]),
+    (18.01528, [4.19864056, -2.0364341e-3, 6.52040211e-6, -5.48797062e-9, 1.77197817e-12], [3.03399249, 2.17691804e-3, -1.64072518e-7, -9.7041987e-11, 1.68200992e-14]),
+    (28.0101, [3.57953347, -6.1035368e-4, 1.01681433e-6, 9.07005884e-10, -9.04424499e-13], [2.71518561, 2.06252743e-3, -9.98825771e-7, 2.30053008e-10, -2.03647716e-14]),
+    (2.01588, [2.34433112, 7.98052075e-3, -1.9478151e-5, 2.01572094e-8, -7.37611761e-12], [3.3372792, -4.94024731e-5, 4.99456778e-7, -1.79566394e-10, 2.00255376e-14]),
+];
+const AIR_N2: f64 = 3.7279; // per mole of O2
+const AIR_AR: f64 = 0.04459;
+const FUEL_Y: f64 = 1.87;
+const K_WGS: f64 = 3.5;
+fn afr_st() -> f64 {
+    (1.0 + FUEL_Y / 4.0) * (AIR_N2 * SPEC[0].0 + SPEC[1].0 + AIR_AR * SPEC[2].0) / (12.0107 + FUEL_Y * 1.00794)
+}
+/// Moles of each species per C atom in the products at relative air-fuel ratio lam (held to 0.5-4).
+fn burned_moles(lam: f64) -> [f64; 7] {
+    let lam = jmin(4.0, jmax(0.5, lam));
+    let y = FUEL_Y;
+    let o = 1.0 + y / 4.0;
+    let n2 = lam * o * AIR_N2;
+    let ar = lam * o * AIR_AR;
+    if lam >= 1.0 {
+        return [n2, (lam - 1.0) * o, ar, 1.0, y / 2.0, 0.0, 0.0];
+    }
+    let s = 2.0 * lam * o - 1.0;
+    let qa = K_WGS - 1.0;
+    let qb = K_WGS * (y / 2.0 - s) + 1.0 + s;
+    let a = (-qb + (qb * qb + 4.0 * qa * s).sqrt()) / (2.0 * qa);
+    [n2, 0.0, ar, a, s - a, 1.0 - a, y / 2.0 - s + a]
+}
+/// Per-kg polynomials of a mixture of moles n: cp a0..a4, h b1..b5 and its constant, below and above 1000 K; and R.
+fn gas_poly(n: &[f64; 7]) -> (f64, [f64; 11], [f64; 11]) {
+    let mut m = 0.0;
+    let mut nn = 0.0;
+    for k in 0..7 {
+        m += n[k] * SPEC[k].0;
+        nn += n[k];
+    }
+    let s = RU * 1000.0 / m;
+    let mk = |hi: bool| {
+        let mut c = [0.0; 5];
+        for j in 0..5 {
+            let mut t = 0.0;
+            for k in 0..7 {
+                t += n[k] * if hi { SPEC[k].2[j] } else { SPEC[k].1[j] };
+            }
+            c[j] = s * t;
+        }
+        [c[0], c[1], c[2], c[3], c[4], c[0], c[1] / 2.0, c[2] / 3.0, c[3] / 4.0, c[4] / 5.0, 0.0]
+    };
+    let mut lo = mk(false);
+    let mut hi = mk(true);
+    let h = |c: &[f64; 11], t: f64| t * (c[5] + t * (c[6] + t * (c[7] + t * (c[8] + t * c[9]))));
+    lo[10] = -h(&lo, TREF);
+    hi[10] = h(&lo, 1000.0) + lo[10] - h(&hi, 1000.0);
+    (s * nn, lo, hi)
+}
+#[derive(Clone, Copy)]
+struct Gas {
+    ra: f64,
+    rb: f64,
+    rd: f64,
+    blo: [f64; 11],
+    bhi: [f64; 11],
+    dlo: [f64; 11],
+    dhi: [f64; 11],
+}
+fn make_gas(afr: f64) -> Gas {
+    let (ra, alo, ahi) = gas_poly(&[AIR_N2, 1.0, AIR_AR, 0.0, 0.0, 0.0, 0.0]);
+    let (rb, blo, bhi) = gas_poly(&burned_moles(afr / afr_st()));
+    let d = |a: &[f64; 11], b: &[f64; 11]| {
+        let mut o = [0.0; 11];
+        for j in 0..11 {
+            o[j] = a[j] - b[j];
+        }
+        o
+    };
+    Gas { ra, rb, rd: ra - rb, blo, bhi, dlo: d(&alo, &blo), dhi: d(&ahi, &bhi) }
+}
+/// cp, h, R at (T, x); cp held at its end value outside 200-3500 K (h linear there).
+fn gas_at(g: &Gas, t: f64, x: f64) -> (f64, f64, f64) {
+    let tc = if t > TMAX {
+        TMAX
+    } else if t < 200.0 {
+        200.0
+    } else {
+        t
+    };
+    let (b, d) = if tc > 1000.0 { (&g.bhi, &g.dhi) } else { (&g.blo, &g.dlo) };
+    let c0 = b[0] + x * d[0];
+    let c1 = b[1] + x * d[1];
+    let c2 = b[2] + x * d[2];
+    let c3 = b[3] + x * d[3];
+    let c4 = b[4] + x * d[4];
+    let h1 = b[5] + x * d[5];
+    let h2 = b[6] + x * d[6];
+    let h3 = b[7] + x * d[7];
+    let h4 = b[8] + x * d[8];
+    let h5 = b[9] + x * d[9];
+    let h0 = b[10] + x * d[10];
+    let cp = c0 + tc * (c1 + tc * (c2 + tc * (c3 + tc * c4)));
+    let h = tc * (h1 + tc * (h2 + tc * (h3 + tc * (h4 + tc * h5)))) + h0 + cp * (t - tc);
+    (cp, h, g.rb + x * g.rd)
+}
+fn gas_r(g: &Gas, x: f64) -> f64 {
+    g.rb + x * g.rd
+}
+fn gas_h(g: &Gas, t: f64, x: f64) -> f64 {
+    gas_at(g, t, x).1
+}
+fn gas_e(g: &Gas, t: f64, x: f64) -> f64 {
+    let (_cp, h, r) = gas_at(g, t, x);
+    h - r * t
+}
+/// The temperature whose internal energy (by_h: enthalpy) is v, Newton from t; also cp, R of the last iterate.
+fn gas_t(g: &Gas, v: f64, x: f64, t: f64, by_h: bool) -> (f64, f64, f64) {
+    let mut t = t;
+    let (mut cp, mut r) = (0.0, 0.0);
+    for _ in 0..30 {
+        let (c, h, rr) = gas_at(g, t, x);
+        cp = c;
+        r = rr;
+        let dt = if by_h { (h - v) / c } else { (h - rr * t - v) / (c - rr) };
+        t -= dt;
+        if t < 100.0 {
+            t = 100.0;
+        }
+        if !(dt.abs() > 1e-9 * t) {
+            break;
+        }
+    }
+    (t, cp, r)
+}
 
 /// JavaScript's Math.min of two numbers.
 fn jmin(a: f64, b: f64) -> f64 {
@@ -213,6 +356,7 @@ struct Engine {
     per_cyl: Option<Vec<Option<Vec<Seg>>>>,
     chambers: Vec<[f64; 4]>, // x, V, A, Le
     k: K,
+    gas: Option<Gas>, // None: e.gas "const", gamma 1.35 and R 287
 }
 
 const fn rad(d: f64) -> f64 {
@@ -376,6 +520,7 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         per_cyl,
         chambers,
         k: consts(),
+        gas: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]))) },
     })
 }
 
@@ -421,9 +566,16 @@ struct Pipe {
     start: f64,
     jp: f64,
     jq: f64,
+    // the engine's gas (None: gamma 1.35, R 287) and each cell's gamma, cp, R and temperature
+    gas: Option<Gas>,
+    g: Vec<f64>,
+    cp: Vec<f64>,
+    rm: Vec<f64>,
+    t: Vec<f64>,
 }
 
-fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, x0: f64) -> Result<Pipe, String> {
+#[allow(clippy::too_many_arguments)]
+fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, x0: f64, gas: Option<Gas>) -> Result<Pipe, String> {
     let nf = jmax(6.0, jround(l / dx_want));
     if !(nf.is_finite() && nf >= 1.0 && nf < 1e7) {
         return Err("a pipe in the spec has no usable length".into());
@@ -443,12 +595,13 @@ fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, 
         af[j] = 0.5 * (a[j - 1] + a[j]);
     }
     let t0 = if t0 != 0.0 && !t0.is_nan() { t0 } else { TATM };
-    let rho0 = PATM / (RG * t0);
+    let rho0 = PATM / ((match &gas { Some(g) => gas_r(g, x0), None => RG }) * t0);
+    let e0 = match &gas { Some(g) => gas_e(g, t0, x0), None => 0.0 };
     let (mut q1, mut q2, mut q3, mut q4) = (vec![0.0; n], vec![0.0; n], vec![0.0; n], vec![0.0; n]);
     for i in 0..n {
         q1[i] = rho0 * a[i];
         q2[i] = 0.0;
-        q3[i] = PATM / G1 * a[i];
+        q3[i] = if gas.is_some() { rho0 * e0 * a[i] } else { PATM / G1 * a[i] };
         q4[i] = rho0 * x0 * a[i];
     }
     let z = || vec![0.0; n];
@@ -481,6 +634,11 @@ fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, 
         start: 0.0,
         jp: 0.0,
         jq: 0.0,
+        gas,
+        g: vec![GAM; n],
+        cp: vec![CP; n],
+        rm: vec![RG; n],
+        t: vec![t0; n],
     })
 }
 
@@ -494,6 +652,23 @@ fn minmod(a: f64, b: f64) -> f64 {
     }
 }
 fn prim(p: &mut Pipe) {
+    if let Some(g) = p.gas {
+        for i in 0..p.n {
+            let rr = p.q1[i] / p.a[i];
+            let uu = p.q2[i] / p.q1[i];
+            let xx = jmin(1.0, jmax(0.0, p.q4[i] / p.q1[i]));
+            let (t, cp, r) = gas_t(&g, p.q3[i] / p.q1[i] - 0.5 * uu * uu, xx, p.t[i], false);
+            p.r[i] = rr;
+            p.u[i] = uu;
+            p.x[i] = xx;
+            p.t[i] = t;
+            p.rm[i] = r;
+            p.cp[i] = cp;
+            p.g[i] = cp / (cp - r);
+            p.p[i] = jmax(1.0, rr * r * t);
+        }
+        return;
+    }
     for i in 0..p.n {
         let rr = p.q1[i] / p.a[i];
         let uu = p.q2[i] / p.q1[i];
@@ -507,7 +682,7 @@ fn prim(p: &mut Pipe) {
 fn max_speed(p: &Pipe) -> f64 {
     let mut s = 0.0;
     for i in 0..p.n {
-        let v = p.u[i].abs() + (GAM * p.p[i] / p.r[i]).sqrt();
+        let v = p.u[i].abs() + (p.g[i] * p.p[i] / p.r[i]).sqrt();
         if v > s {
             s = v;
         }
@@ -516,11 +691,21 @@ fn max_speed(p: &Pipe) -> f64 {
 }
 /// HLLC flux per unit area (Toro).
 #[allow(clippy::too_many_arguments)]
-fn hllc(rl: f64, ul: f64, pl: f64, xl: f64, rr: f64, ur: f64, pr: f64, xr: f64) -> [f64; 4] {
-    let cl = (GAM * pl / rl).sqrt();
-    let cr = (GAM * pr / rr).sqrt();
-    let el = pl / G1 + 0.5 * rl * ul * ul;
-    let er = pr / G1 + 0.5 * rr * ur * ur;
+fn hllc(rl: f64, ul: f64, pl: f64, xl: f64, rr: f64, ur: f64, pr: f64, xr: f64, gas: &Option<Gas>) -> [f64; 4] {
+    let (cl, cr, el, er);
+    if let Some(g) = gas {
+        let (cp, h, r) = gas_at(g, pl / (rl * gas_r(g, xl)), xl);
+        cl = (cp / (cp - r) * pl / rl).sqrt();
+        el = rl * (h - pl / rl) + 0.5 * rl * ul * ul;
+        let (cp, h, r) = gas_at(g, pr / (rr * gas_r(g, xr)), xr);
+        cr = (cp / (cp - r) * pr / rr).sqrt();
+        er = rr * (h - pr / rr) + 0.5 * rr * ur * ur;
+    } else {
+        cl = (GAM * pl / rl).sqrt();
+        cr = (GAM * pr / rr).sqrt();
+        el = pl / G1 + 0.5 * rl * ul * ul;
+        er = pr / G1 + 0.5 * rr * ur * ur;
+    }
     let sl = jmin(ul - cl, ur - cr);
     let sr = jmax(ul + cl, ur + cr);
     if sl >= 0.0 {
@@ -552,31 +737,34 @@ fn hllc(rl: f64, ul: f64, pl: f64, xl: f64, rr: f64, ur: f64, pr: f64, xr: f64) 
 /// faces +x. Outflow leaves at the outside pressure with the end cell's entropy (sonic at most; a supersonic exit above
 /// the outside pressure keeps the cell's state); inflow comes in from still air at pa and ta isentropically, at most sonic.
 #[allow(clippy::too_many_arguments)]
-fn open_state(r: f64, u: f64, p: f64, x: f64, dir: f64, pa: f64, ta: f64, xa: f64) -> [f64; 4] {
+fn open_state(r: f64, u: f64, p: f64, x: f64, dir: f64, pa: f64, ta: f64, xa: f64, gm: f64, ra: f64) -> [f64; 4] {
+    let k2 = 2.0 / (gm - 1.0);
+    let exc = (gm - 1.0) / (2.0 * gm);
     let un = u * dir;
-    let c = (GAM * p / r).sqrt();
-    if un >= c && p >= pa {
+    let c = (gm * p / r).sqrt();
+    // supersonic exit: the cell's state, when a normal shock at the exit could hold the outside pressure (2026-11-12)
+    if un >= c && (p >= pa || pa <= p * (1.0 + 2.0 * gm / (gm + 1.0) * (un * un / (c * c) - 1.0))) {
         return [r, u, p, x];
     }
-    let j = un + K2 * c;
-    let cpa = c * powf(pa / p, EXC);
-    let mut ub = j - K2 * cpa;
+    let j = un + k2 * c;
+    let cpa = c * powf(pa / p, exc);
+    let mut ub = j - k2 * cpa;
     if ub >= 0.0 {
         let mut cb = cpa;
         if ub > cb {
-            cb = j / (1.0 + K2);
+            cb = j / (1.0 + k2);
             ub = cb;
         }
-        let pb = p * powf(cb / c, 1.0 / EXC);
-        return [GAM * pb / (cb * cb), dir * ub, pb, x];
+        let pb = p * powf(cb / c, 1.0 / exc);
+        return [gm * pb / (cb * cb), dir * ub, pb, x];
     }
-    let c0 = (GAM * RG * ta).sqrt();
-    let a = 1.0 + K2 * cpa * cpa / (c0 * c0);
-    let vs = c0 * (2.0 / (GAM + 1.0)).sqrt();
-    let v = jmin(vs, (-j + jmax(0.0, j * j - a * (j * j - K2 * K2 * cpa * cpa)).sqrt()) / a);
-    let s2 = jmax(0.0, 1.0 - v * v / (K2 * c0 * c0));
-    let pb = pa * powf(s2, 0.5 / EXC);
-    [pb / (RG * ta * s2), -dir * v, pb, xa]
+    let c0 = (gm * ra * ta).sqrt();
+    let a = 1.0 + k2 * cpa * cpa / (c0 * c0);
+    let vs = c0 * (2.0 / (gm + 1.0)).sqrt();
+    let v = jmin(vs, (-j + jmax(0.0, j * j - a * (j * j - k2 * k2 * cpa * cpa)).sqrt()) / a);
+    let s2 = jmax(0.0, 1.0 - v * v / (k2 * c0 * c0));
+    let pb = pa * powf(s2, 0.5 / exc);
+    [pb / (ra * ta * s2), -dir * v, pb, xa]
 }
 
 #[derive(Clone, Copy, Default)]
@@ -613,7 +801,7 @@ fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow]) {
         let mut xa = x[a] + 0.5 * dxs[a];
         ra -= h * (u[a] * dr[a] + r[a] * du[a]);
         ua -= h * (u[a] * du[a] + dp[a] / r[a]);
-        pa -= h * (GAM * pp[a] * du[a] + u[a] * dp[a]);
+        pa -= h * (p.g[a] * pp[a] * du[a] + u[a] * dp[a]);
         xa -= h * u[a] * dxs[a];
         let mut rb = r[b] - 0.5 * dr[b];
         let mut ub = u[b] - 0.5 * du[b];
@@ -621,7 +809,7 @@ fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow]) {
         let mut xb = x[b] - 0.5 * dxs[b];
         rb -= h * (u[b] * dr[b] + r[b] * du[b]);
         ub -= h * (u[b] * du[b] + dp[b] / r[b]);
-        pb -= h * (GAM * pp[b] * du[b] + u[b] * dp[b]);
+        pb -= h * (p.g[b] * pp[b] * du[b] + u[b] * dp[b]);
         xb -= h * u[b] * dxs[b];
         if !(ra > 0.0 && pa > 0.0) {
             ra = r[a];
@@ -635,7 +823,7 @@ fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow]) {
             pb = pp[b];
             xb = x[b];
         }
-        let f = hllc(ra, ua, pa, xa, rb, ub, pb, xb);
+        let f = hllc(ra, ua, pa, xa, rb, ub, pb, xb, &p.gas);
         let af = p.af[j];
         p.f1[j] = f[0] * af;
         p.f2[j] = f[1] * af;
@@ -649,11 +837,11 @@ fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow]) {
     for i in 0..n {
         let ui = p.u[i];
         let ri = p.r[i];
-        let ti = p.p[i] / (RG * ri);
+        let ti = p.p[i] / (p.rm[i] * ri);
         let fr = 2.0 * FANNING * ri * ui.abs() * p.a[i] / p.d[i];
         p.q1[i] -= k * (p.f1[i + 1] - p.f1[i]);
         p.q2[i] += -k * (p.f2[i + 1] - p.f2[i]) + dt * (p.p[i] * (p.af[i + 1] - p.af[i]) / p.dx - fr * ui);
-        p.q3[i] += -k * (p.f3[i + 1] - p.f3[i]) + dt * fr * CP * (p.tw - ti);
+        p.q3[i] += -k * (p.f3[i + 1] - p.f3[i]) + dt * fr * p.cp[i] * (p.tw - ti);
         p.q4[i] -= k * (p.f4[i + 1] - p.f4[i]);
         if p.q1[i] < 1e-6 * p.a[i] {
             p.q1[i] = 1e-6 * p.a[i];
@@ -671,10 +859,10 @@ fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow]) {
 /// wave from the pipe meets the end, its Riemann invariant kept, isentropically (the page's endP, 2026-11-11). A closed
 /// valve (vn = 0) feels p + rho c un for a small wave, as a reflecting end must; the end cell's own pressure, used before,
 /// let a closed pipe's standing wave grow. At a valve, gas coming in sets vn between 0 and the end cell's own speed.
-fn end_p(p: f64, r: f64, un: f64, vn: f64) -> f64 {
-    let c = (GAM * p / r).sqrt();
-    let cb = jmax(0.05 * c, c + 0.5 * G1 * (un - vn));
-    p * powf(cb / c, 2.0 * GAM / G1)
+fn end_p(p: f64, r: f64, un: f64, vn: f64, gm: f64) -> f64 {
+    let c = (gm * p / r).sqrt();
+    let cb = jmax(0.05 * c, c + 0.5 * (gm - 1.0) * (un - vn));
+    p * powf(cb / c, 2.0 * gm / (gm - 1.0))
 }
 
 fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow]) {
@@ -682,12 +870,24 @@ fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow]) 
         Bnd::Noop => {}
         Bnd::Open(side) => {
             let (i, j) = if side > 0.0 { (p.n - 1, p.n) } else { (0, 0) };
-            let g = open_state(p.r[i], p.u[i], p.p[i], p.x[i], side, PATM, TATM, 1.0);
+            let ra = match &p.gas { Some(gs) => gas_r(gs, 1.0), None => RG };
+            let g = open_state(p.r[i], p.u[i], p.p[i], p.x[i], side, PATM, TATM, 1.0, p.g[i], ra);
             let af = p.af[j];
             let m = g[0] * g[1] * af;
             p.f1[j] = m;
             p.f2[j] = m * g[1] + g[2] * af;
-            p.f3[j] = m * (GAM / G1 * g[2] / g[0] + 0.5 * g[1] * g[1]);
+            // gas coming in carries the still outside air's own enthalpy h(Ta, xa) exactly (the page's openEnd)
+            let h0 = match &p.gas {
+                Some(gs) => {
+                    if side * g[1] < 0.0 {
+                        gas_h(gs, TATM, 1.0)
+                    } else {
+                        gas_h(gs, g[2] / (g[0] * gas_r(gs, g[3])), g[3]) + 0.5 * g[1] * g[1]
+                    }
+                }
+                None => GAM / G1 * g[2] / g[0] + 0.5 * g[1] * g[1],
+            };
+            p.f3[j] = m * h0;
             p.f4[j] = m * g[3];
         }
         Bnd::Fed(side, src) => {
@@ -703,7 +903,7 @@ fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow]) 
             let un = side * p.u[i];
             let vm = side * f.m / (p.r[i] * af);
             let vn = if vm >= 0.0 { vm } else { jmax(vm, jmin(0.0, un)) };
-            p.f2[j] = f.m * uf + end_p(p.p[i], p.r[i], un, vn) * af;
+            p.f2[j] = f.m * uf + end_p(p.p[i], p.r[i], un, vn, p.g[i]) * af;
             p.f3[j] = f.m * f.h;
             p.f4[j] = f.m * f.x;
         }
@@ -730,13 +930,17 @@ fn junction(pipes: &mut [Pipe], ia: usize, ib: usize) {
     let i = a.n - 1;
     let (a1, a2) = (a.af[a.n], b.af[0]);
     let (rl, ul, pl, rr, ur, pr) = (a.r[i], a.u[i], a.p[i], b.r[0], b.u[0], b.p[0]);
-    let cl = (GAM * pl / rl).sqrt();
-    let cr = (GAM * pr / rr).sqrt();
-    let k2 = 2.0 / G1;
-    let ex = G1 / (2.0 * GAM);
-    let ig = 1.0 / GAM;
+    let (gl, gr) = (a.g[i], b.g[0]); // each side's gamma, frozen
+    let cl = (gl * pl / rl).sqrt();
+    let cr = (gr * pr / rr).sqrt();
+    let k2 = 2.0 / (gl - 1.0);
+    let ex = (gl - 1.0) / (2.0 * gl);
+    let ig = 1.0 / gl;
+    let k2r = 2.0 / (gr - 1.0);
+    let exr = (gr - 1.0) / (2.0 * gr);
+    let igr = 1.0 / gr;
     let jl = ul + k2 * cl;
-    let jr = ur - k2 * cr;
+    let jr = ur - k2r * cr;
     // each side's end state (c, r, u) at its own pressure
     let s1 = |p1: f64| {
         let s = p1 / pl;
@@ -745,10 +949,10 @@ fn junction(pipes: &mut [Pipe], ia: usize, ib: usize) {
     };
     let s2 = |p2: f64| {
         let s = p2 / pr;
-        let c2 = cr * powf(s, ex);
-        (c2, rr * powf(s, ig), jr + k2 * c2)
+        let c2 = cr * powf(s, exr);
+        (c2, rr * powf(s, igr), jr + k2r * c2)
     };
-    let pt = |p: f64, r: f64, u: f64| p * powf(1.0 + 0.5 * G1 * r * u * u / (GAM * p), GAM / G1);
+    let pt = |p: f64, r: f64, u: f64, gm: f64| p * powf(1.0 + 0.5 * (gm - 1.0) * r * u * u / (gm * p), gm / (gm - 1.0));
     let f = |p1: f64, p2: f64| -> [f64; 2] {
         let (_c1, r1, u1) = s1(p1);
         let (_c2, r2, u2) = s2(p2);
@@ -756,7 +960,7 @@ fn junction(pipes: &mut [Pipe], ia: usize, ib: usize) {
         let up = m >= 0.0;
         let contr = if up { a2 < a1 } else { a1 < a2 };
         let law = if contr {
-            pt(p1, r1, u1) - pt(p2, r2, u2)
+            pt(p1, r1, u1, gl) - pt(p2, r2, u2, gr)
         } else {
             r2 * u2 * u2 * a2 + p2 * a2 - r1 * u1 * u1 * a1 - p1 * a1 - (if up { p1 } else { p2 }) * (a2 - a1)
         };
@@ -804,8 +1008,8 @@ fn junction(pipes: &mut [Pipe], ia: usize, ib: usize) {
             let sl = ps / pl;
             let sr = ps / pr;
             let c1 = cl * powf(sl, ex);
-            let c2 = cr * powf(sr, ex);
-            a1 * rl * powf(sl, ig) * (jl - k2 * c1) - a2 * rr * powf(sr, ig) * (jr + k2 * c2)
+            let c2 = cr * powf(sr, exr);
+            a1 * rl * powf(sl, ig) * (jl - k2 * c1) - a2 * rr * powf(sr, igr) * (jr + k2r * c2)
         };
         let mut ps = if a.jp > 0.0 { a.jp } else { 0.5 * (pl + pr) };
         let mut okc = false;
@@ -846,11 +1050,26 @@ fn junction(pipes: &mut [Pipe], ia: usize, ib: usize) {
     a.jp = p1;
     a.jq = p2;
     let (c1, r1, u1) = s1(p1);
-    let (c2, _r2, u2) = s2(p2);
+    let (c2, r2, u2) = s2(p2);
     let m = a1 * r1 * u1;
     let up = m >= 0.0;
-    let h0 = if up { c1 * c1 / G1 + 0.5 * u1 * u1 } else { c2 * c2 / G1 + 0.5 * u2 * u2 };
     let xx = if up { a.x[i] } else { b.x[0] };
+    let h0 = match &a.gas {
+        Some(g) => {
+            if up {
+                gas_h(g, p1 / (r1 * a.rm[i]), xx) + 0.5 * u1 * u1
+            } else {
+                gas_h(g, p2 / (r2 * b.rm[0]), xx) + 0.5 * u2 * u2
+            }
+        }
+        None => {
+            if up {
+                c1 * c1 / G1 + 0.5 * u1 * u1
+            } else {
+                c2 * c2 / G1 + 0.5 * u2 * u2
+            }
+        }
+    };
     let an = a.n;
     a.f1[an] = m;
     a.f2[an] = m * u1 + p1 * a1;
@@ -877,6 +1096,10 @@ struct End {
     us: f64,
     rs: f64,
     m: f64,
+    k2: f64,
+    ex: f64,
+    ig: f64,
+    rg: f64,
 }
 struct Junc {
     p: f64,
@@ -888,26 +1111,29 @@ fn junc(ends: &[(usize, f64)]) -> Junc {
 
 /// Junction of several pipe ends, characteristic method: one pressure, flows that sum to zero, inflows mixed.
 fn junction_n(jn: &mut Junc, pipes: &mut [Pipe]) {
-    let k2 = 2.0 / G1;
-    let ex = G1 / (2.0 * GAM);
-    let ig = 1.0 / GAM;
     let n = jn.ends.len();
+    let gas = pipes[jn.ends[0].pipe].gas;
     for e in jn.ends.iter_mut() {
         let p = &pipes[e.pipe];
         let i = if e.side > 0.0 { p.n - 1 } else { 0 };
+        let gm = p.g[i]; // each end's gamma, frozen
+        e.k2 = 2.0 / (gm - 1.0);
+        e.ex = (gm - 1.0) / (2.0 * gm);
+        e.ig = 1.0 / gm;
+        e.rg = p.rm[i];
         e.r = p.r[i];
         e.u = p.u[i];
         e.p = p.p[i];
-        e.c = (GAM * e.p / e.r).sqrt();
+        e.c = (gm * e.p / e.r).sqrt();
         e.a = if e.side > 0.0 { p.af[p.n] } else { p.af[0] };
-        e.j = if e.side > 0.0 { e.u + k2 * e.c } else { e.u - k2 * e.c };
+        e.j = if e.side > 0.0 { e.u + e.k2 * e.c } else { e.u - e.k2 * e.c };
         e.x = p.x[i];
     }
     let inflow = |e: &mut End, ps: f64| {
         let s = ps / e.p;
-        let c = e.c * powf(s, ex);
-        let r = e.r * powf(s, ig);
-        let u = if e.side > 0.0 { e.j - k2 * c } else { e.j + k2 * c };
+        let c = e.c * powf(s, e.ex);
+        let r = e.r * powf(s, e.ig);
+        let u = if e.side > 0.0 { e.j - e.k2 * c } else { e.j + e.k2 * c };
         e.cs = c;
         e.us = u;
         e.rs = r;
@@ -969,11 +1195,15 @@ fn junction_n(jn: &mut Junc, pipes: &mut [Pipe]) {
     }
     jn.p = ps;
     g(&mut jn.ends, ps);
+    let h0of = |e: &End| match &gas {
+        Some(gs) => gas_h(gs, ps / (e.rs * e.rg), e.x) + 0.5 * e.us * e.us,
+        None => e.cs * e.cs / G1 + 0.5 * e.us * e.us,
+    };
     let (mut m_in, mut h_in, mut x_in) = (0.0, 0.0, 0.0);
     for e in jn.ends.iter_mut() {
         e.m = e.side * e.rs * e.us * e.a;
         if e.m > 0.0 {
-            let h0 = e.cs * e.cs / G1 + 0.5 * e.us * e.us;
+            let h0 = h0of(e);
             m_in += e.m;
             h_in += e.m * h0;
             x_in += e.m * e.x;
@@ -984,7 +1214,7 @@ fn junction_n(jn: &mut Junc, pipes: &mut [Pipe]) {
     for e in &jn.ends {
         let p = &mut pipes[e.pipe];
         let j = if e.side > 0.0 { p.n } else { 0 };
-        let h0 = if e.m > 0.0 { e.cs * e.cs / G1 + 0.5 * e.us * e.us } else { h_mix };
+        let h0 = if e.m > 0.0 { h0of(e) } else { h_mix };
         let xx = if e.m > 0.0 { e.x } else { x_mix };
         let f = e.side * e.m;
         p.f1[j] = f;
@@ -994,21 +1224,30 @@ fn junction_n(jn: &mut Junc, pipes: &mut [Pipe]) {
     }
 }
 
-fn orifice(k: &K, cda: f64, p0: f64, t0: f64, pd: f64) -> f64 {
+/// gm, r: the source gas's gamma (frozen through the orifice) and R; with the constant gas the precomputed constants.
+#[allow(clippy::too_many_arguments)]
+fn orifice(k: &K, cda: f64, p0: f64, t0: f64, pd: f64, gm: f64, r: f64) -> f64 {
     if !(cda > 0.0) || p0 <= pd {
         return 0.0;
     }
     let pr = pd / p0;
-    let rho0 = p0 / (RG * t0);
-    let psi = if pr <= k.prc {
-        k.psic
+    let rho0 = p0 / (r * t0);
+    let cg = gm == GAM;
+    let prc = if cg { k.prc } else { powf(2.0 / (gm + 1.0), gm / (gm - 1.0)) };
+    let psi = if pr <= prc {
+        if cg {
+            k.psic
+        } else {
+            gm.sqrt() * powf(2.0 / (gm + 1.0), (gm + 1.0) / (2.0 * (gm - 1.0)))
+        }
     } else {
-        (2.0 * GAM / G1 * (powf(pr, 2.0 / GAM) - powf(pr, (GAM + 1.0) / GAM))).sqrt()
+        (2.0 * gm / (gm - 1.0) * (powf(pr, 2.0 / gm) - powf(pr, (gm + 1.0) / gm))).sqrt()
     };
     cda * (p0 * rho0).sqrt() * psi
 }
-fn jet_speed(k: &K, p0: f64, t0: f64, pd: f64) -> f64 {
-    (2.0 * CP * t0 * (1.0 - powf(jmax(pd / p0, k.prc), G1 / GAM))).sqrt()
+fn jet_speed(k: &K, p0: f64, t0: f64, pd: f64, gm: f64, cp: f64) -> f64 {
+    let prc = if gm == GAM { k.prc } else { powf(2.0 / (gm + 1.0), gm / (gm - 1.0)) };
+    (2.0 * cp * t0 * (1.0 - powf(jmax(pd / p0, prc), (gm - 1.0) / gm))).sqrt()
 }
 
 struct Cyl {
@@ -1032,6 +1271,10 @@ struct Cyl {
     ex_h: f64,
     ov_p: f64,
     ov_n: f64,
+    ex_x: f64,
+    rg: f64, // the gas's R, cp and gamma at this step's start
+    cp: f64,
+    gm: f64,
     done: Option<[f64; 7]>, // ve, imep, pmax, resid, pEvo, tEx, overlapPort
     started: bool,
     last_tk: Option<f64>,
@@ -1039,17 +1282,19 @@ struct Cyl {
 
 /// Flow between the cylinder and a pipe end cell; m positive from the pipe into the cylinder.
 fn valve_flow(k: &K, cda: f64, cy: &Cyl, p: &Pipe, i: usize) -> Flow {
+    let hc = match &p.gas { Some(g) => gas_h(g, cy.t, cy.x), None => CP * cy.t };
     if !(cda > 0.0) {
-        return Flow { m: 0.0, h: CP * cy.t, x: cy.x, uj: 0.0 };
+        return Flow { m: 0.0, h: hc, x: cy.x, uj: 0.0 };
     }
-    let (r, u, pp) = (p.r[i], p.u[i], p.p[i]);
-    let t = pp / (RG * r);
-    let t0 = t + 0.5 * u * u / CP;
-    let p0 = pp * powf(t0 / t, GAM / G1);
+    let (r, u, pp, gm) = (p.r[i], p.u[i], p.p[i], p.g[i]);
+    let t = pp / (p.rm[i] * r);
+    let t0 = t + 0.5 * u * u / p.cp[i];
+    let p0 = pp * powf(t0 / t, gm / (gm - 1.0));
     if p0 > cy.p {
-        return Flow { m: orifice(k, cda, p0, t0, cy.p), h: CP * t0, x: p.x[i], uj: 0.0 };
+        let h = match &p.gas { Some(g) => gas_h(g, t, p.x[i]) + 0.5 * u * u, None => CP * t0 };
+        return Flow { m: orifice(k, cda, p0, t0, cy.p, gm, p.rm[i]), h, x: p.x[i], uj: 0.0 };
     }
-    Flow { m: -orifice(k, cda, cy.p, cy.t, pp), h: CP * cy.t, x: cy.x, uj: jet_speed(k, cy.p, cy.t, pp) }
+    Flow { m: -orifice(k, cda, cy.p, cy.t, pp, cy.gm, cy.rg), h: hc, x: cy.x, uj: jet_speed(k, cy.p, cy.t, pp, cy.gm, cy.cp) }
 }
 
 struct Chamber {
@@ -1084,7 +1329,8 @@ struct State {
 }
 
 /// Split a run of segments into pipes wherever the diameter jumps; cones stay inside a pipe.
-fn build_line(pipes: &mut Vec<Pipe>, segs: &[Seg], tw: &Value, dx: f64, t0: f64, x0: f64) -> Result<Vec<usize>, String> {
+#[allow(clippy::too_many_arguments)]
+fn build_line(pipes: &mut Vec<Pipe>, segs: &[Seg], tw: &Value, dx: f64, t0: f64, x0: f64, gas: Option<Gas>) -> Result<Vec<usize>, String> {
     struct Run {
         parts: Vec<Seg>,
         l: f64,
@@ -1122,7 +1368,7 @@ fn build_line(pipes: &mut Vec<Pipe>, segs: &[Seg], tw: &Value, dx: f64, t0: f64,
             }
             0.0
         };
-        let mut p = make_pipe(rn.l, jmin(dx, rn.l / 6.0), &area, tw, t0, x0)?;
+        let mut p = make_pipe(rn.l, jmin(dx, rn.l / 6.0), &area, tw, t0, x0, gas)?;
         p.start = x0pos;
         x0pos += rn.l;
         pipes.push(p);
@@ -1131,7 +1377,7 @@ fn build_line(pipes: &mut Vec<Pipe>, segs: &[Seg], tw: &Value, dx: f64, t0: f64,
     Ok(out)
 }
 
-fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>], dx: f64) -> Result<Vec<Net>, String> {
+fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>], dx: f64, gas: Option<Gas>) -> Result<Vec<Net>, String> {
     let mut used = std::collections::HashSet::new();
     let mut nets = Vec::new();
     for (ci, col) in cols.iter().enumerate() {
@@ -1172,7 +1418,7 @@ fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>],
                     None => stg.segs.clone().ok_or("a collector stage needs its segs")?,
                 };
                 let tw = if truthy(&stg.tw) { stg.tw.clone() } else { col.tw.clone() };
-                let ln = build_line(pipes, &segs, &tw, dx, 700.0, 0.0)?;
+                let ln = build_line(pipes, &segs, &tw, dx, 700.0, 0.0, gas)?;
                 if ln.is_empty() {
                     return Err("a collector stage has no pipe".into());
                 }
@@ -1196,7 +1442,7 @@ fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>],
         if feed.len() < 2 {
             return Err(format!("collector {}: the last junction needs at least two inlets", ci + 1));
         }
-        let main = build_line(pipes, &col.segs, &col.tw, dx, 700.0, 0.0)?;
+        let main = build_line(pipes, &col.segs, &col.tw, dx, 700.0, 0.0, gas)?;
         if main.is_empty() {
             return Err(format!("collector {} has no pipe after its last junction", ci + 1));
         }
@@ -1221,6 +1467,8 @@ fn fmt_num(x: f64) -> String {
 
 fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
     let n = eng.phases.len();
+    let gas = eng.gas;
+    let r0 = match &gas { Some(g) => gas_r(g, 0.0), None => RG };
     let mut pipes = Vec::new();
     let (mut ins, mut prims, mut chambers, mut cyls) = (Vec::new(), Vec::new(), Vec::new(), Vec::new());
     if let Some(per) = &eng.per_cyl {
@@ -1229,12 +1477,12 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
         }
     }
     for k in 0..n {
-        let li = build_line(&mut pipes, &eng.intake.segs, &eng.intake.tw, dx, TATM, 1.0)?;
+        let li = build_line(&mut pipes, &eng.intake.segs, &eng.intake.tw, dx, TATM, 1.0, gas)?;
         let segs = match eng.per_cyl.as_ref().and_then(|p| p[k].as_ref()) {
             Some(s) => s,
             None => &eng.exhaust.segs,
         };
-        let ex = build_line(&mut pipes, segs, &eng.exhaust.tw, dx, 700.0, 0.0)?;
+        let ex = build_line(&mut pipes, segs, &eng.exhaust.tw, dx, 700.0, 0.0, gas)?;
         if li.is_empty() || ex.is_empty() {
             return Err("the intake and the exhaust each need at least one pipe".into());
         }
@@ -1261,7 +1509,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
                 v: cv,
                 cda: 0.75 * ca,
                 le: cle,
-                m: PATM * cv / (RG * 700.0),
+                m: PATM * cv / (r0 * 700.0),
                 t: 700.0,
                 x: 0.0,
                 mdot: 0.0,
@@ -1271,7 +1519,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
         let th = ((eng.ivc - eng.phases[k]) % 720.0 + 720.0) % 720.0;
         let t = 330.0;
         let x = 0.95;
-        let m = PATM * eng.vol(th) / (RG * t);
+        let m = PATM * eng.vol(th) / ((match &gas { Some(g) => gas_r(g, x), None => RG }) * t);
         let fresh = m * x;
         cyls.push(Cyl {
             m,
@@ -1294,6 +1542,10 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
             ex_h: 0.0,
             ov_p: 0.0,
             ov_n: 0.0,
+            ex_x: 0.0,
+            rg: RG,
+            cp: CP,
+            gm: GAM,
             done: None,
             started: false,
             last_tk: None,
@@ -1304,7 +1556,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
     let coll = if eng.collectors.is_some() {
         None
     } else if let Some(c) = &eng.collector {
-        let l = build_line(&mut pipes, &c.segs, &c.tw, dx, 700.0, 0.0)?;
+        let l = build_line(&mut pipes, &c.segs, &c.tw, dx, 700.0, 0.0, gas)?;
         if l.is_empty() {
             return Err("the collector needs at least one pipe".into());
         }
@@ -1313,7 +1565,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
         None
     };
     let nets = match &eng.collectors {
-        Some(cols) => Some(collector_nets(cols, &mut pipes, &prims, dx)?),
+        Some(cols) => Some(collector_nets(cols, &mut pipes, &prims, dx, gas)?),
         None => None,
     };
     Ok(State { pipes, ins, prims, coll, nets, chambers, cyls, jn: Junc { p: 0.0, ends: Vec::new() }, th: eng.ivc })
@@ -1340,6 +1592,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
     }
     let st = state.as_mut().unwrap();
     let k = &eng.k;
+    let gas = eng.gas;
     let mut all: Vec<usize> = Vec::new();
     for l in &st.ins {
         all.extend(l);
@@ -1361,8 +1614,10 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
         st.pipes[p].left = Bnd::Noop;
         st.pipes[p].right = Bnd::Noop;
     }
-    let mut v_in = vec![Flow { m: 0.0, h: CP * TATM, x: 1.0, uj: 0.0 }; nc];
-    let mut v_ex = vec![Flow { m: 0.0, h: CP * 700.0, x: 0.0, uj: 0.0 }; nc];
+    let hi0 = match &gas { Some(g) => gas_h(g, TATM, 1.0), None => CP * TATM };
+    let he0 = match &gas { Some(g) => gas_h(g, 700.0, 0.0), None => CP * 700.0 };
+    let mut v_in = vec![Flow { m: 0.0, h: hi0, x: 1.0, uj: 0.0 }; nc];
+    let mut v_ex = vec![Flow { m: 0.0, h: he0, x: 0.0, uj: 0.0 }; nc];
     let mut ex_flow = vec![Flow::default(); nc];
     for kk in 0..nc {
         let ip = *st.ins[kk].last().unwrap();
@@ -1396,7 +1651,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
             st.pipes[*ch.last().unwrap()].right = Bnd::Open(1.0);
         }
     }
-    let rho_ref = PATM / (RG * TATM);
+    let rho_ref = PATM / ((match &gas { Some(g) => g.ra, None => RG }) * TATM);
     let mut out = Vec::new();
     let cycles = if cycles != 0.0 && !cycles.is_nan() { cycles } else { 6.0 };
     let mut c = 0.0;
@@ -1424,12 +1679,25 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 let ep = &st.pipes[st.prims[kk][0]];
                 let cy = &mut st.cyls[kk];
                 cy.th = tk;
-                cy.p = cy.m * RG * cy.t / eng.vol(tk);
+                match &gas {
+                    Some(g) => {
+                        let (cp, _h, r) = gas_at(g, cy.t, cy.x);
+                        cy.rg = r;
+                        cy.cp = cp;
+                        cy.gm = cp / (cp - r);
+                    }
+                    None => {
+                        cy.rg = RG;
+                        cy.cp = CP;
+                        cy.gm = GAM;
+                    }
+                }
+                cy.p = cy.m * cy.rg * cy.t / eng.vol(tk);
                 v_in[kk] = valve_flow(k, eng.cda_in(tk), cy, ip, ip.n - 1);
                 v_ex[kk] = valve_flow(k, eng.cda_ex(tk), cy, ep, 0);
                 sj = jmax(
-                    jmax(sj, v_in[kk].uj + (GAM * ip.p[ip.n - 1] / ip.r[ip.n - 1]).sqrt()),
-                    v_ex[kk].uj + (GAM * ep.p[0] / ep.r[0]).sqrt(),
+                    jmax(sj, v_in[kk].uj + (ip.g[ip.n - 1] * ip.p[ip.n - 1] / ip.r[ip.n - 1]).sqrt()),
+                    v_ex[kk].uj + (ep.g[0] * ep.p[0] / ep.r[0]).sqrt(),
                 );
             }
             let mut dt = 0.8 * dmin / jmax(smax, sj);
@@ -1467,18 +1735,33 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 let p = &mut st.pipes[st.prims[ch.cyl][ch.pipe]];
                 let i = ch.cell;
                 let (r, pp) = (p.r[i], p.p[i]);
-                let t = pp / (RG * r);
-                ch.p = ch.m * RG * ch.t / ch.v;
+                let t = pp / (p.rm[i] * r);
+                ch.p = ch.m * (match &gas { Some(g) => gas_r(g, ch.x), None => RG }) * ch.t / ch.v;
                 let rho_n = if pp > ch.p { r } else { ch.m / ch.v };
                 ch.mdot += dt * (ch.cda * (pp - ch.p) / ch.le - ch.mdot * ch.mdot.abs() / (2.0 * rho_n * ch.cda * ch.le));
                 let md = ch.mdot;
-                let hh = if md > 0.0 { CP * t + 0.5 * p.u[i] * p.u[i] } else { CP * ch.t };
+                let hh = match &gas {
+                    Some(g) => {
+                        if md > 0.0 {
+                            gas_h(g, t, p.x[i]) + 0.5 * p.u[i] * p.u[i]
+                        } else {
+                            gas_h(g, ch.t, ch.x)
+                        }
+                    }
+                    None => {
+                        if md > 0.0 {
+                            CP * t + 0.5 * p.u[i] * p.u[i]
+                        } else {
+                            CP * ch.t
+                        }
+                    }
+                };
                 let xin = if md > 0.0 { p.x[i] } else { ch.x };
-                let u = ch.m * CV * ch.t + dt * md * hh;
+                let u = (match &gas { Some(g) => ch.m * gas_e(g, ch.t, ch.x), None => ch.m * CV * ch.t }) + dt * md * hh;
                 let m2 = jmax(1e-9, ch.m + dt * md);
                 ch.x = jmin(1.0, jmax(0.0, (ch.m * ch.x + dt * md * xin) / m2));
                 ch.m = m2;
-                ch.t = jmax(200.0, u / (m2 * CV));
+                ch.t = jmax(200.0, match &gas { Some(g) => gas_t(g, u / m2, ch.x, ch.t, false).0, None => u / (m2 * CV) });
                 p.q1[i] -= dt * md / p.dx;
                 p.q3[i] -= dt * md * hh / p.dx;
                 p.q4[i] -= dt * md * xin / p.dx;
@@ -1514,13 +1797,20 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                             cy.pmax,
                             1.0 - cy.x,
                             cy.p_evo,
-                            if cy.ex_m > 0.0 { cy.ex_h / (cy.ex_m * CP) } else { 0.0 },
+                            if cy.ex_m > 0.0 {
+                                match &gas {
+                                    Some(g) => gas_t(g, cy.ex_h / cy.ex_m, cy.ex_x / cy.ex_m, 800.0, true).0,
+                                    None => cy.ex_h / (cy.ex_m * CP),
+                                }
+                            } else {
+                                0.0
+                            },
                             if cy.ov_n != 0.0 { cy.ov_p / cy.ov_n } else { PATM },
                         ]);
                     }
                     cy.fresh = cy.m * cy.x;
                     cy.burn_q = cy.fresh / eng.afr * LHV * eng.eta;
-                    cy.ivc_p = cy.m * RG * cy.t / eng.vol(tk);
+                    cy.ivc_p = cy.m * (match &gas { Some(g) => gas_r(g, cy.x), None => RG }) * cy.t / eng.vol(tk);
                     cy.ivc_t = cy.t;
                     cy.ivc_v = eng.vol(tk);
                     cy.work = 0.0;
@@ -1530,6 +1820,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                     cy.burnt = false;
                     cy.ex_m = 0.0;
                     cy.ex_h = 0.0;
+                    cy.ex_x = 0.0;
                     cy.ov_p = 0.0;
                     cy.ov_n = 0.0;
                     cy.started = true;
@@ -1566,11 +1857,18 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                     let aw = 2.0 * eng.ap + 4.0 * (v - eng.vc) / eng.bore + 4.0 * eng.vc / eng.bore;
                     qw = hc * aw * (cy.t - eng.twall) * dt;
                 }
-                let u = cy.m * CV * cy.t - cy.p * dv + m_i * v_in[kk].h + m_e * v_ex[kk].h + cy.burn_q * dxb - qw;
+                let u0 = match &gas { Some(g) => cy.m * gas_e(g, cy.t, cy.x), None => cy.m * CV * cy.t };
+                let u = u0 - cy.p * dv + m_i * v_in[kk].h + m_e * v_ex[kk].h + cy.burn_q * dxb - qw;
                 let mf = cy.m * cy.x + m_i * v_in[kk].x + m_e * v_ex[kk].x - cy.fresh * dxb;
-                cy.m = jmax(1e-7, cy.m + m_i + m_e);
-                cy.t = jmax(200.0, u / (cy.m * CV));
-                cy.x = jmin(1.0, jmax(0.0, mf / cy.m));
+                if let Some(g) = &gas {
+                    cy.m = jmax(1e-7, cy.m + m_i + m_e);
+                    cy.x = jmin(1.0, jmax(0.0, mf / cy.m));
+                    cy.t = jmax(200.0, gas_t(g, u / cy.m, cy.x, cy.t, false).0);
+                } else {
+                    cy.m = jmax(1e-7, cy.m + m_i + m_e);
+                    cy.t = jmax(200.0, u / (cy.m * CV));
+                    cy.x = jmin(1.0, jmax(0.0, mf / cy.m));
+                }
                 cy.work += cy.p * dv;
                 if cy.p > cy.pmax {
                     cy.pmax = cy.p;
@@ -1581,6 +1879,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 if m_e < 0.0 {
                     cy.ex_m -= m_e;
                     cy.ex_h -= m_e * v_ex[kk].h;
+                    cy.ex_x -= m_e * v_ex[kk].x;
                 }
                 if tk > 345.0 && tk < 375.0 {
                     cy.ov_p += ep0;

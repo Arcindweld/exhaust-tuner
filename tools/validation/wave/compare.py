@@ -10,12 +10,17 @@ temperature, pipe wall temperatures and initial gas temperatures. Run settings t
 open_end_corr 0 (the wave model has no radiation end correction), 10 mm cells, TVD scheme, 30 cycles; the wave model
 runs each speed from a cold start for `cycles` cycles at the page's grid (10 mm, 12.5 mm with a collector).
 Tags switch one thing in both codes for the mechanism experiments:
-  base      as above
+  base      as above; the wave model with its default gas (temperature- and composition-dependent, 2026-11-12)
+  const     the wave model with its constant-gamma gas (spec.e.gas 'const', gamma 1.35, R 287: base before 2026-11-12)
   nofric    no pipe friction and no pipe wall heat transfer in either code
   endcorr   OpenWAM with its 0.6133 r open-end correction (the writer's default), wave unchanged
-  gamma14   OpenWAM with constant gamma (its gamma_model 0), wave unchanged (1.35)
-  gamma14b  OpenWAM with constant gamma (gamma_model 0) and the wave model at gamma 1.4: the gas properties alike
-  gamma130w OpenWAM as base, the wave model at gamma 1.30 (the sensitivity of its work to the gas's gamma)
+  gamma14   OpenWAM with constant gamma (its gamma_model 0), wave at constant gamma 1.35
+  gamma14b  OpenWAM with constant gamma (gamma_model 0) and the wave model at constant gamma 1.4: the gas properties alike
+  gamma130w OpenWAM as base, the wave model at constant gamma 1.30 (the sensitivity of its work to the gas's gamma)
+  motored   no heat released in either code (spec.e.eta 0: OpenWAM's combustion efficiency 0), the wave model's default gas
+  motoredconst  the same with the wave model's constant gas
+  eta085    0.85 of the fuel's heat released in both codes instead of 0.72 (phi x 0.85 < 1, so OpenWAM's burn is not
+            cut short by the air running out), the wave model's default gas
   before    the wave model of the page before this validation's fixes (page=...), OpenWAM as base (reuses its runs)
   endp      a candidate page (page=...) against the base OpenWAM runs, before it replaces the page
 Results: tools/validation/wave/results/<tag>.json (metrics per configuration and speed, and the traces).
@@ -98,15 +103,21 @@ CONFIGS = {
     "v8_line": (lambda: v8_line(False), [2000, 2900, 3800, 4700, 5600, 6500], 0.0125),
     "v8_line_X": (lambda: v8_line(True), [2000, 2900, 3800, 4700, 5600, 6500], 0.0125),
 }
+# tag: (OpenWAM overrides, wave Fanning factor, wave constant gamma, wave gas: None = the page's default, 'const')
 TAGS = {
-    "base": ({}, None, None),
-    "nofric": ({"pipe_fric_mult": 0.0, "pipe_htc_mult": 0.0}, 0.0, None),
-    "endcorr": ({"open_end_corr": 1}, None, None),
-    "gamma14": ({"gamma_model": 0}, None, None),
-    "gamma14b": ({"gamma_model": 0}, None, 1.4),
-    "gamma130w": ({}, None, 1.30),
-    "before": ({}, None, None),
-    "endp": ({}, None, None),
+    "base": ({}, None, None, None),
+    "const": ({}, None, None, "const"),
+    "nofric": ({"pipe_fric_mult": 0.0, "pipe_htc_mult": 0.0}, 0.0, None, None),
+    "nofricconst": ({"pipe_fric_mult": 0.0, "pipe_htc_mult": 0.0}, 0.0, None, "const"),
+    "endcorr": ({"open_end_corr": 1}, None, None, None),
+    "gamma14": ({"gamma_model": 0}, None, None, "const"),
+    "gamma14b": ({"gamma_model": 0}, None, 1.4, "const"),
+    "gamma130w": ({}, None, 1.30, "const"),
+    "motored": ({}, None, None, None, {"eta": 0.0}),
+    "motoredconst": ({}, None, None, "const", {"eta": 0.0}),
+    "eta085": ({}, None, None, None, {"eta": 0.85}),
+    "before": ({}, None, None, None),
+    "endp": ({}, None, None, None),
 }
 
 
@@ -131,10 +142,13 @@ def wam_one(name, spec, rpm, over, cycles=30):
     prim = next(i for i, p in enumerate(pipes) if p["role"] in ("cylinder 1 exhaust primary", "cylinder 1 exhaust primary part 1"))
     after = next((i for i, p in enumerate(pipes) if p["role"].startswith("collector")), None)
     ang, vol, pc = col("Angle(deg)"), col("Volume_Cyl_1(m^3)"), col("Pressure_Cyl_1(bar)")
-    # cylinder 1's firing TDC: the smallest volume with the highest pressure
-    k0 = min(range(len(vol)), key=lambda k: (round(vol[k] / min(vol), 6), -pc[k]))
-    cands = [k for k in range(len(vol)) if vol[k] <= min(vol) * 1.000001]
-    k0 = max(cands, key=lambda k: pc[k])
+    # cylinder 1's firing TDC: the smallest volume within a quarter cycle of the cycle's pressure peak. Until 2026-11-12
+    # this took the highest pressure among the samples within 1e-6 of the smallest volume; when the output grid missed the
+    # firing TDC by a fraction of a degree only the gas-exchange TDC qualified, and 23 of the 48 runs were compared 360
+    # degrees out of phase (docs/WAVE_VALIDATION_2026-11-11.md, addendum 2026-11-12)
+    kpk = max(range(len(pc)), key=lambda k: pc[k])
+    near = [k for k in range(len(vol)) if min(abs(ang[k] - ang[kpk]) % 720.0, 720.0 - abs(ang[k] - ang[kpk]) % 720.0) <= 90.0]
+    k0 = min(near, key=lambda k: vol[k])
     th = [((a - ang[k0]) % 720.0) for a in ang]
     port = [k for k in head if k.startswith("P_duct_%d_at_" % (prim + 1))][0]
     runner = next(i for i, p in enumerate(pipes) if p["role"] == "cylinder 1 intake runner")
@@ -162,7 +176,7 @@ def wam_one(name, spec, rpm, over, cycles=30):
 
 
 # ---------------------------------------------------------------- wave side
-def wave_runs(name, spec, rpms, dx, fanning, page, cycles, gamma=None):
+def wave_runs(name, spec, rpms, dx, fanning, page, cycles, gamma=None, gas=None):
     os.makedirs(os.path.join(SCRATCH, "wave"), exist_ok=True)
     jf = os.path.join(SCRATCH, "wave", name + "_job.json")
     of = os.path.join(SCRATCH, "wave", name + "_%s_out.json" % (os.path.basename(page or "page")))
@@ -171,6 +185,8 @@ def wave_runs(name, spec, rpms, dx, fanning, page, cycles, gamma=None):
         job["fanning"] = fanning
     if gamma is not None:
         job["gamma"] = gamma
+    if gas is not None:
+        job["gas"] = gas
     with open(jf, "w") as f:
         json.dump(job, f)
     env = dict(os.environ)
@@ -265,7 +281,10 @@ def metrics(cfg, spec, wave, wam):
                  "Qcomb": run.get("Qcomb"), "Qwall": run.get("Qwall"),
                  "pPortMean": sum(pp) / len(pp), "pPortMax": max(pp), "pPortMin": min(pp),
                  "returnDeg": rt, "returnP": rp, "orders": order_levels(mo, wv["rpm"], orders), "pPort": pp, "mOut": mo,
-                 "pCyl": resample(th, tr["pCyl"])}
+                 "pCyl": resample(th, tr["pCyl"]),
+                 # crank-angle mean gas temperature at the exhaust port (OpenWAM 10 mm from the valve, wave the first cell)
+                 "tPortMean": sum(resample(th, tr["tPort"])) / 1440 if tr.get("tPort") else None,
+                 "tEx": run.get("tEx")}
             if tr.get("pAfter"):
                 d["pAfterMean"] = sum(resample(th, tr["pAfter"])) / 1440
             r[side] = d
@@ -298,7 +317,8 @@ def main(argv):
     for a in argv[1:]:
         k, v = a.split("=", 1)
         opts[k] = v
-    over, fan, gam = TAGS[opts["tag"]]
+    over, fan, gam, gas = TAGS[opts["tag"]][:4]
+    eover = TAGS[opts["tag"]][4] if len(TAGS[opts["tag"]]) > 4 else {}
     page = opts["page"] or None
     os.makedirs(RES, exist_ok=True)
     outp = os.path.join(RES, opts["tag"] + ".json")
@@ -309,9 +329,10 @@ def main(argv):
     for cfg in opts["configs"].split(","):
         build, rpms, dx = CONFIGS[cfg]
         spec = build()
+        spec["e"].update(eover)
         print("== %s (%s)" % (cfg, opts["tag"]), flush=True)
         wam = [wam_one(cfg, spec, rpm, over) for rpm in rpms]
-        wave = wave_runs(cfg + "_" + opts["tag"], spec, rpms, dx, fan, page, int(opts["cycles"]), gam)
+        wave = wave_runs(cfg + "_" + opts["tag"], spec, rpms, dx, fan, page, int(opts["cycles"]), gam, gas)
         m = metrics(cfg, spec, wave, wam)
         for r in m["rows"]:
             print("%6d rpm  VE wave %.4f wam %.4f | NMEP wave %.2f wam %.2f bar | port mean %.1f / %.1f kPa corr %.3f amp %.2f "

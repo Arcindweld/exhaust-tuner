@@ -1301,3 +1301,21 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   unflanged ends) vs 0.85 d flanged; hot-gas sound speed uses air (gamma 1.4) in the empirical formulas while the wave
   simulation uses 1.35 (~2 %); desktop/Fusion load the
   page without a doctype (quirks mode; renders the same, but the artifact host is standards mode).
+
+## 2026-11-12: wave model gas properties (temperature and composition), comparison fix
+
+- The 1-D wave model (wsFactory in web/index.html and rust/et_wave, WebAssembly rebuilt) no longer uses one gas of
+  gamma 1.35, R 287: air and its burned products at the engine's AFR (rich: water-gas ratio 3.5), mixed by the
+  fresh-charge tracer per pipe cell, cylinder and side volume, thermally perfect with GRI-Mech 3.0's NASA polynomials
+  (the table sosExh already used, now shared; sosExh unchanged to the last digit), checked against NIST-JANAF.
+  spec.e.gas = 'const' keeps the old model bit for bit (fixtures/wave_const_ref.json; JS and Rust).
+- Against OpenWAM (8 configurations x 6 speeds): net IMEP 22-28 % -> 6-12 % above; the wave model's own torque falls
+  11-16 %; VE -3 to +2 %; exhaust port gas 78-150 K above OpenWAM's. The page's eta 0.72 calibration was set with the
+  old gas and is not retuned (method text says so).
+- Fixed on the way: a supersonic exit below the outside pressure emptied the end cell (NaN at 9000 rpm on a megaphone);
+  compare.py aligned OpenWAM's traces to the gas-exchange TDC in 23 of 48 runs, so the "port-pressure phase"
+  difference of 2026-11-11 was largely an artefact (aligned, single cylinder median correlation 0.86-0.96).
+- Left open: the remaining 6-12 % sits in the gross loop; a third to half goes with the pipe wall laws (nofric);
+  OpenWAM's compression is softer (exponent 1.28 vs 1.36; its charge carries fuel vapour) - not yet tested. Cost of the
+  gas: about twice the computing time. Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum 2026-11-12; tests
+  web/tests/wavegas_ui.js, wave_wasm.js (constant-gamma check added), wavekat_ui.js (anchor).

@@ -67,6 +67,19 @@ for (const { name, job } of jobs) {
       ' (VE ' + js.map(r => r.ve.toFixed(3)).slice(0, 4).join(' ') + ' ...)');
   }
 }
+// the constant-gamma mode (spec.e.gas 'const', gamma 1.35 and R 287, the model before 2026-11-12) in Rust against the
+// JavaScript's results of that model, kept in fixtures/wave_const_ref.json (tools/validation/wave/constref.js), bit for bit
+{ const ref = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_const_ref.json'), 'utf8'));
+  const specs = {}; for (const { name, job } of jobs) for (const v of job.variants) specs[name + '|' + v.label] = { spec: v.spec, dx: job.dx };
+  for (const r of ref) {
+    const j = specs[r.name + '|' + r.label], rpms = process.env.QUICK === '1' ? r.rpms.slice(0, 3) : r.rpms;
+    const o = { dx: j.dx, cycles: 3, firstCycles: 8, maxExtra: 5 }, spec = Object.assign({}, j.spec, { e: Object.assign({}, j.spec.e, { gas: 'const' }) });
+    const id = wNew(spec), ws = rpms.map((rpm, i) => wStep(id, rpm, i === 0, o)); X.wave_drop(id);
+    let bad = '';
+    rpms.forEach((rpm, i) => { for (const k of KEYS) if (!bad && !Object.is(r.res[i][k], ws[i][k])) bad = rpm + ' rpm ' + k + ': reference ' + r.res[i][k] + ', Rust ' + ws[i][k];
+      r.res[i].perCyl.forEach((c, q) => { if (!bad && !(Object.is(c[0], ws[i].perCyl[q].ve) && Object.is(c[1], ws[i].perCyl[q].imep))) bad = rpm + ' rpm cylinder ' + (q + 1); }); });
+    ok(!bad, 'constant gamma: ' + r.name + ', ' + r.label + ': ' + rpms.length + ' speeds the same as the reference to the last digit' + (bad ? ' (' + bad + ')' : ''));
+  } }
 // a refused spec comes back as an error, not a crash
 let msg = ''; try { wNew({ e: {}, intake: { segs: [] }, exhaust: { segs: [] }, opt: {} }); X.wave_step(1e6, 3000, 1, 0.01, 3, 8, 5, NaN); } catch (e) { msg = String(e.message); }
 ok(/no usable length|at least one pipe|segs/.test(msg) || msg === '', 'a spec with no pipes is refused with a reason: ' + (msg || '(made, no pipes yet)'));
