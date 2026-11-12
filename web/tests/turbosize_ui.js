@@ -56,8 +56,9 @@
 //   ER = (1 - 0.0591372)^(-gamma/(gamma-1)) = 1.321519; at p3 = 101325 + 2 x 55158: turbine share 0.397550,
 //   wastegate 0.602450; flow parameter 0.4692829 x 0.397550 x sqrt(1223.15) / 2.12641 bar = 3.082948. At eta 0.55: ER 1.430263, wastegate 0.494028.
 //   Intercooler heat 0.4331842 x 1004.675 x (101.5698 - 44.1425) = 24992.93 W (1421.3 BTU/min). With 60 lb/min
-//   (0.4535924 kg/s) of outside air: Cr = 435.215 / 455.716 = 0.955008, eps on Cmin 0.75, cross-flow unmixed NTU 4.45237,
-//   UA 1937.71 W/K. Core drop rated 1.5 psi at 40 lb/min scaled to 57.30046 lb/min: 10342.1 x 1.432512^2 = 21222.99 Pa.
+//   (0.4535924 kg/s) of outside air: Cr = 435.215 / 455.716 = 0.955008, eps on Cmin 0.75, cross-flow unmixed NTU 4.446118,
+//   UA 1934.99 W/K (boost audit 2026-11-12: the exact series, tools/validation/boost/ic_cases.py; the closed-form
+//   approximation the page used before gave NTU 4.45237, UA 1937.71). Core drop rated 1.5 psi at 40 lb/min scaled to 57.30046 lb/min: 10342.1 x 1.432512^2 = 21222.99 Pa.
 // Phase 3, valve placement and size (hand3.py). Flow through a restriction (Heywood app. C):
 //   m = A p0 sqrt(2g/((g-1) R T0) (r^(2/g) - r^((g+1)/g))), r = max(p/p0, (2/(g+1))^(g/(g-1))).
 //   Blow-off valve, defaults (cold side, recirculating): m 0.4331842 kg/s from Pt 156483 Pa, 317.292 K to P1 100109.57 Pa:
@@ -195,19 +196,19 @@ const { chromium } = require('playwright');
     const a = T.garrettMatch({ hp: 400, afr: 12, bsfc: 0.55, tmF: 130, ve: 0.92, rpm: 7200, ci: 122, loss: 2, dep: 1 }), c = T.garrettMatch({ hp: 400, afr: 12, bsfc: 0.55, tmF: 130, ve: 0.85, rpm: 6000, ci: 302, loss: 2, dep: 1 });
     const tb7 = T.turbineBalance({ ma: 0.43318420652130163, afr: 12, t1: 30, t2: 101.56982099150139, tit: 950, p3: 101325 + 2 * 55158, p4: 101325, eta: 0.70 });
     const tb5 = T.turbineBalance({ ma: 0.43318420652130163, afr: 12, t1: 30, t2: 101.56982099150139, tit: 950, p3: 101325 + 2 * 55158, p4: 101325, eta: 0.55 });
-    return { a, c, cor: T.corrFlow(0.43318420652130163, 30, 100109.56592394777), tb7, tb5, ntu: T.ntuFor(0.75, 0.9550077011244735), eps: T.epsXflow(4.452373040571574, 0.9550077011244735) }; });
+    return { a, c, cor: T.corrFlow(0.43318420652130163, 30, 100109.56592394777), tb7, tb5, ntu: T.ntuFor(0.75, 0.9550077011244735), eps: T.epsXflow(4.446118391212853, 0.9550077011244735) }; });
   near(g.a.wa, 44, 1e-12, 'Garrett: 400 hp, A/F 12, BSFC 0.55 -> 44 lb/min'); near(g.a.map, 41.0925, 1e-5, 'Garrett 2.0 L MAP psia (published 41.1)');
   near(g.a.pr, 3.14544, 1e-5, 'Garrett 2.0 L PR (published 3.14)'); near(g.c.map, 21.56086, 1e-5, 'Garrett 5.0 L MAP psia (published 21.6)'); near(g.c.pr, 1.71977, 1e-5, 'Garrett 5.0 L PR (published 1.72)');
   near(g.cor, 0.416570, 1e-5, 'corrected flow, kg/s'); near(g.tb7.g, 1.279849, 1e-6, 'exhaust gamma at 950 °C'); near(g.tb7.cpe, 1310.856, 1e-6, 'exhaust cp');
   near(g.tb7.Wc, 31147.85, 1e-6, 'compressor power, W'); near(g.tb7.ER, 1.321519, 1e-6, 'turbine expansion ratio at eta 0.70'); near(g.tb7.wg, 0.602450, 1e-5, 'wastegate share at 2 x boost, eta 0.70');
   near(g.tb7.Ft, 3.082948, 1e-5, 'turbine flow parameter'); near(g.tb5.ER, 1.430263, 1e-6, 'expansion ratio at eta 0.55'); near(g.tb5.wg, 0.494028, 1e-5, 'wastegate share at eta 0.55');
-  near(g.ntu, 4.452373, 1e-6, 'NTU for eps 0.75 at Cr 0.955 (cross-flow unmixed)'); near(g.eps, 0.75, 1e-9, 'and back');
+  near(g.ntu, 4.446118, 1e-6, 'NTU for eps 0.75 at Cr 0.955 (cross-flow unmixed, exact series)'); near(g.eps, 0.75, 1e-9, 'and back');
   await setv('i-hp', '450'); await setv('i-icam', '60'); await setv('i-icrdp', '1.5'); await setv('i-icrf', '40'); await pg.waitForTimeout(400);
   t = await pg.$eval('#i-details .sec[data-sec="turbo-and-intercooler-sizing"]', e => e.innerText);
   ok(/5,600\s+57\.3 lb\/min \(0\.433 kg\/s\)\s+55\.1 lb\/min \(0\.417 kg\/s\)\s+1\.708/.test(t) && /3,500\s+35\.8 lb\/min/.test(t), 'demand line: two points with corrected flow and PR');
   ok(/41\.8 hp \(31\.1 kW\)/.test(t) && /70%\s+1\.32\s+4\.73 psi/.test(t) && /60%\s+65%\s+3\.083/.test(t), 'compressor power and turbine sweep rows on the page');
   const icx = await pg.$eval('#i-details .sec[data-sec="intercooler-sizing"]', e => e.innerText);
-  ok(/1421 BTU\/min \(25\.0 kW\)/.test(icx) && /0\.955/.test(icx) && /4\.45/.test(icx) && /1938 W\/K/.test(icx) && /3\.08 psi \(21\.22 kPa\)/.test(icx), 'intercooler: heat, Cr, NTU, UA, scaled core drop');
+  ok(/1421 BTU\/min \(25\.0 kW\)/.test(icx) && /0\.955/.test(icx) && /4\.45/.test(icx) && /1935 W\/K/.test(icx) && /3\.08 psi \(21\.22 kPa\)/.test(icx), 'intercooler: heat, Cr, NTU, UA, scaled core drop');
   await setv('i-teff', '68'); await pg.waitForTimeout(300);
   ok(await pg.$eval('#ts-turb', e => /68% \(yours\)/.test(e.innerText)), 'a typed turbine efficiency is added and marked');
   for (const id of ['i-hp', 'i-icam', 'i-icrdp', 'i-icrf', 'i-teff']) await setv(id, '');

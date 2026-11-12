@@ -194,4 +194,5 @@ def loop(UA1, UA2, Ch, Cw, Ca, th, ta, Mcw, dt=0.01, tend=2000):
 Cw = 20 / 60 / 1000 * 992 * 4183
 out['w2a_loop'] = loop(600.0, 1500.0, Ch, Cw, 1.0 * CP_AIR, 101.56982099150139, 25.0, 6 / 1000 * 992 * 4183)
 out['w2a_loop']['inputs'] = 'UA1 600, UA2 1500 W/K, water 20 L/min (rho 992, cp 4183), front air 1 kg/s, 6 L'
-print(json.dumps(out, indent=1))
+if __name__ == '__main__':
+    print(json.dumps(out, indent=1))
