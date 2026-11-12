@@ -21823,18 +21823,19 @@ function exhAfterTurbine(o){
   const T=o.t4, mAll=o.me*o.nt, mP=mAll/Math.max(1,o.xn||1), c=sosExh(T), rows=[]; let P=P_ATM;
   const vOf=(m,d)=>m/(rhoGas(T,P)*Math.PI*(d/2000)**2);
   if(o.tail){ const v=vOf(mP,o.tail.dExit), M=v/c, b=mufBackPressure(M,P,[{kind:'tail',what:'free jet at the tip'}]);
-    rows.push({k:'tip',d:o.tail.dExit,v,M,dp:b.total,H:b.H}); P+=b.total;
+    rows.push({k:'tip',d:o.tail.dExit,v,M,dp:b.total,H:b.H,p:P}); P+=b.total;
     const s=o.tail.secs, iB=s.length?s.reduce((j,x,i)=>x.L>s[j].L?i:j,0):-1;
     for(let i=s.length-1;i>=0;i--){ const nb=i===iB?(o.xb||0):0, S=chargeSide({m:mP,d:s[i].d,L:s[i].L,tC:T,pAbs:P,angs:[],n90:nb,rb:0});
-      rows.push({k:'tail',d:s[i].d,L:s[i].L,n90:nb,v:S.v,M:S.v/c,f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB}); P+=S.dp+S.dpB; } }
+      rows.push({k:'tail',d:s[i].d,L:s[i].L,n90:nb,v:S.v,M:S.v/c,f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB,p:P}); P+=S.dp+S.dpB; } }
   if(o.muf){ const v=vOf(mP,o.muf.d), M=v/c, a=mufBackPressure(M,P,o.muf.items), hb=o.muf.holes&&o.muf.holes.length?mufBackPressure(M*o.muf.nHole,P,o.muf.holes).total:0;
-    rows.push({k:'muf',d:o.muf.d,v,M,H:a.H,dp:a.total+hb,parts:a.rows}); P+=a.total+hb; }
+    rows.push({k:'muf',d:o.muf.d,v,M,H:a.H,dp:a.total+hb,parts:a.rows,p:P}); P+=a.total+hb; }
   if(o.cat){ const Q=mAll/o.cat.count/rhoGas(T,P), C=catDp(Q,Object.assign({},o.cat.g,{tC:T,p:P})), dp=C.dp*o.cat.series;
-    rows.push({k:'cat',v:C.vp,M:C.vp/c,dp,C}); P+=dp; }
+    rows.push({k:'cat',v:C.vp,M:C.vp/c,dp,C,p:P}); P+=dp; }
   const pDp=P, S=chargeSide({m:o.me,d:o.d,L:o.L,tC:T,pAbs:P,angs:[],n90:o.n90||0,rb:0});
-  rows.push({k:'dp',d:o.d,L:o.L,n90:o.n90||0,v:S.v,M:S.v/c,f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB}); P+=S.dp+S.dpB;
+  rows.push({k:'dp',d:o.d,L:o.L,n90:o.n90||0,v:S.v,M:S.v/c,f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB,p:P}); P+=S.dp+S.dpB;
   const cone=o.dOut>0?tsStep({dUp:o.dOut,dDn:o.d,m:o.me,tC:T,pAbs:P,step:false}):null;
-  if(cone){ rows.push({k:'cone',d:o.dOut,v:cone.v,M:cone.v/c,dp:cone.dp,cone}); P+=cone.dp; }
+  if(cone){ rows.push({k:'cone',d:o.dOut,v:cone.v,M:cone.v/c,dp:cone.dp,cone,p:P}); P+=cone.dp; }
+  rows.forEach(x=>{ x.flag=x.M>0.3||x.dp>0.1*x.p; });
   return {rows:rows.reverse(),p4:P,bp:P-P_ATM,pDp,cone,rho4:rhoGas(T,P),c};
 }
 let TS_X=null, TS_P=null;
@@ -21845,6 +21846,7 @@ function tsExhSection(ind,p){
   const head='<p class="cap" style="margin-top:0">From the turbine outlet to the tip, at peak power: the downpipe this section sizes, then the converters, muffler and pipe the other tabs describe. The sum is the back pressure after the turbine; the button puts it in the turbine balance above (Back pressure after the turbine, which stays editable: clear it for none).</p>';
   if(!G.ok) return sec('Exhaust after the turbine',head+'<div class="note warn" id="tsx-miss"><b>Not enough to work it out:</b> '+G.miss.map(esc).join('; ')+'.</div>');
   const X=xTotal(G); TS_X={G,X};
+  G.diffD=new Set([G.d,G.cat&&G.cat.pipeD,G.muf&&G.muf.d].concat(G.tail?G.tail.secs.map(x=>x.d):[]).filter(v=>v>0).map(v=>Math.round(v*2)/2)).size>1;
   const tobp=val('i-tobp'), used=tobp>0&&Math.abs(tobp*1000-X.bp)<=0.5;
   const each=nt>1?' each':'', nameOf={cone:'Turbine outlet → downpipe',dp:'Downpipe'+each,cat:'Converters',muf:'Muffler',tail:'Pipe after the downpipe',tip:'Leaving the tip'};
   const row=x=>{ let size='', how='';
@@ -21853,13 +21855,15 @@ function tsExhSection(ind,p){
     else if(x.k==='cat'){ size=esc(G.cat.what); how='catDp (Shah and London channels, faces, Rennels cones) at this flow, as the Cats tab works it'; }
     else if(x.k==='muf'){ size=esc(G.muf.what)+', pipe '+cdim(x.d); how=esc(G.muf.how)+', H '+F.pD(x.H); }
     else if(x.k==='tip'){ size='ID '+cdim(x.d); how='free jet, 0.4 H (Munjal 1987, 8.3), H '+F.pD(x.H); }
-    return '<tr data-x="'+x.k+'"><td>'+nameOf[x.k]+'</td><td>'+size+'</td><td>'+F.sD(x.v)+', Mach '+x.M.toFixed(2)+'</td><td>'+F.pD(x.dp)+'</td><td style="white-space:normal;min-width:12em">'+how+'</td></tr>'; };
+    return '<tr data-x="'+x.k+'"'+(x.flag?' data-flag="1"':'')+'><td>'+(x.flag?'<span class="st-warn" aria-label="outside the simple formulas">⚠</span> ':'')+nameOf[x.k]+'</td><td>'+size+'</td><td>'+F.sD(x.v)+', Mach '+x.M.toFixed(2)+'</td><td>'+F.pD(x.dp)+'</td><td style="white-space:normal;min-width:12em">'+how+'</td></tr>'; };
   let h=head+rowT('Back pressure after the turbine at peak power',F.pD(X.bp),'the sum of the parts below, at the gas after the turbine; '+(used?'<b>in use</b> in the turbine balance above':tobp>0?'the turbine balance above uses the typed '+F.pD(tobp*1000):'not in the turbine balance yet'))+
     '<div class="actions"><button type="button" class="btn primary" data-tsx="use">Use my exhaust’s back pressure</button></div><p class="cap" id="tsx-msg"></p>'+
     rowT('Gas after the turbine',F.tD(G.t4),'turbine inlet '+F.tD(G.tit)+' less the compressor’s work taken out of the whole exhaust, '+F.kw(G.tb.Wc)+each+': T₄ = T₃ − W ÷ (ṁ cp), cp '+G.tb.cpe.toFixed(0)+' J/kg K at T₃, the wastegate’s share mixed back in')+
     rowT('Exhaust through each downpipe',F.fl(G.me),(nt>1?'per turbo; '+F.fl(G.me*nt)+' in all, '+(G.xn>1?G.xn+' pipes after the downpipes':'one pipe after the downpipes (the Y where they meet is not modelled)'):'air + fuel at A/F '+G.afr)+', density '+X.rho4.toFixed(3)+' kg/m³ at the turbine outlet');
   h+='<div class="tblwrap"><table id="tsx-bp"><thead><tr><th>Part</th><th>Size</th><th>Gas speed</th><th>Loss</th><th>How</th></tr></thead><tbody>'+X.rows.map(row).join('')+
     '<tr data-x="total"><td><b>Total</b></td><td></td><td></td><td><b>'+F.pD(X.bp)+'</b></td><td style="white-space:normal">each part at the pressure at its downstream end, from the tip back</td></tr></tbody></table></div>';
+  if(X.rows.some(x=>x.flag)) h+='<p class="cap" id="tsx-flag">⚠ Past the simple formulas’ range: the gas runs faster than Mach 0.3 (where, as the Cats tab says, the simple loss formulas start to read low) or the part loses more than a tenth of the pressure at it (Crane TP-410 holds these incompressible losses within about 10% only below that). Read those losses as lower bounds; a larger pipe brings them down.</p>';
+  if(G.diffD) G.notes.push('the steps between pipe sizes of different parts (downpipe, converter pipe, muffler pipe, tailpipe) are not counted');
   if(G.miss.length||G.notes.length) h+='<div class="note warn" id="tsx-miss"><b>Not counted:</b> '+G.miss.concat(G.notes).map(esc).join('; ')+'.</div>';
   // the downpipe size
   const w=G.w, rec=G.recOD, sub='<p class="sub" style="margin-top:14px">Downpipe size</p>';
@@ -21895,7 +21899,7 @@ function xSvg(G,X,F){
   const mani=$('i-mani').value, colL=val('i-wgcl')>0?val('i-wgcl'):152.4;
   items.push({k:'coll',h:PL&&PL.type==='ext'&&PL.pick?86:58,t:'Collector to the turbine flange',l:[clen(colL)+' long, '+(mani==='div'?'divided (twin-scroll)':mani==='log'?'log manifold':'tubular')].concat(PL&&PL.type==='ext'?(PL.pick?['wastegate '+cdim(PL.pick)+' at 45°,','centre '+clen(Math.max(0,PL.lo))+' to '+clen(PL.hi),'from the turbine flange']:['wastegate over '+cdim(60)+' or two']):[])});
   const ar=val('i-tar')>0?(+val('i-tar')).toFixed(2)+' A/R':'A/R not chosen';
-  items.push({k:'turb',h:60,t:'Turbine'+(G.nt>1?', each':'')+', '+ar,l:[G.H?G.H.flange+' in, '+G.H.outlet+' out':'no housing picked','gas out '+F.tD(G.t4),(PL&&PL.type==='int'?'internal wastegate':'')]});
+  items.push({k:'turb',h:60,t:'Turbine'+(G.nt>1?', each':'')+', '+ar,l:[G.H?G.H.flange+' inlet, '+G.H.outlet+' outlet':'no housing picked','gas out '+F.tD(G.t4),(PL&&PL.type==='int'?'internal wastegate':'')]});
   X.rows.forEach(x=>{
     if(x.k==='cone') items.push({k:'cone',d0:x.cone.d,d1:x.cone.D,h:58,t:'Cone to the downpipe',l:[cdim(x.cone.d)+' → '+cdim(x.cone.D),clen(x.cone.len)+' long, '+x.cone.alpha.toFixed(1)+'°','loss '+F.pD(x.dp)]});
     else if(x.k==='dp') items.push({k:'pipe',d:x.d,h:PL&&PL.type==='ext'?112:84,dump:PL&&PL.type==='ext',t:'Downpipe'+(G.nt>1?', each':''),l:['ID '+cdim(x.d)+', OD '+cdim(x.d+2*G.w),clen(x.L)+' long, '+(x.n90>0?(+x.n90.toFixed(1))+' × 90° bends':'no bends'),F.sD(x.v)+', Mach '+x.M.toFixed(2),'loss '+F.pD(x.dp)].concat(PL&&PL.type==='ext'?['gate dump re-entry: a branch,','no sourced distance']:[])});
@@ -21946,7 +21950,7 @@ function tgSteps(ind,p){
     add('turbo','Pick a turbo',!T||!T.t?'todo':T.v&&T.v[0]==='below'?'warn':'ok',T&&T.t?T.t.maker+' '+T.t.model+(T.v&&T.v[1]!=='–'?': '+T.v[1]:''):'not chosen yet','turbo-options');
     const A=TG.ar, ar=val('i-tar'), lab=$('i-thsg')&&$('i-thsg').value, probs=[];
     if(A){ if(A.div) probs.push(A.div); if(A.bellBad) probs.push('measured pressure before the turbine: '+A.bell); if(A.limit) probs.push('the housing is at its published flow limit'); }
-    add('ar','Turbine housing A/R',probs.length?'warn':ar>0?'ok':'todo',(ar>0?(+ar).toFixed(2)+' A/R'+(lab?', '+lab.replace(/^.*?: /,''):''):'not chosen yet')+(probs.length?'; '+probs.join('; '):''),'turbo-options'); }
+    add('ar','Turbine housing A/R',probs.length?'warn':ar>0?'ok':'todo',(ar>0?(+ar).toFixed(2)+' A/R'+(lab?', '+lab.replace(/^.*?: [0-9.]+ A\/R, /,''):''):'not chosen yet')+(probs.length?'; '+probs.join('; '):''),'turbo-options'); }
   else add('turbo','Pick a supercharger','info','the turbo list is for turbochargers; size a centrifugal supercharger from its maker’s map with the airflow above','turbo-and-intercooler-sizing');
   { const r=TS_REC, same=(a,b)=>a>0&&b>0&&Math.abs(a-b)<0.05, cur='inlet '+cdim(p.dt)+', hot side '+cdim(q.dh)+', cold side '+cdim(R.dc);
     const match=r&&same(p.dt,r.dt)&&same(q.dh,r.dh)&&same(R.dc,r.dc), bad=TG.route&&TG.route.bad.length;
@@ -21966,7 +21970,7 @@ function tgSteps(ind,p){
     else { const probs=[];
       if(G2.dWhy==='typed'&&G2.dOut>0&&G2.d<G2.dOut-0.05) probs.push('the downpipe is narrower than the turbine outlet');
       if(G2.dWhy==='typed'&&G2.recOD&&G2.d+2*G2.w<G2.recOD-0.05) probs.push('smaller than the size rule’s '+cdim(G2.recOD));
-      add('exh','Exhaust side: downpipe and back pressure',probs.length?'warn':G2.miss.length||!used?'todo':'ok','downpipe '+cdim(G2.d+2*G2.w)+' OD, back pressure '+F.pD(X.X.bp)+' at peak'+(G2.miss.length?' ('+G2.miss.length+' part'+(G2.miss.length>1?'s':'')+' not counted)':'')+'; '+(used?'used in the turbine balance':'not in the turbine balance yet (Use my exhaust’s back pressure)')+(probs.length?'; '+probs.join('; '):''),'exhaust-after-the-turbine'); } }
+      add('exh','Exhaust side: downpipe and back pressure',probs.length?'warn':G2.miss.length||!used?'todo':'ok','downpipe '+cdim(G2.d+2*G2.w)+' OD, back pressure '+F.pD(X.X.bp)+' at peak'+(G2.miss.length?' ('+G2.miss.length+' part'+(G2.miss.length>1?'s':'')+' not counted)':'')+(X.X.rows.some(x=>x.flag)?' (some parts past the simple formulas’ range: a lower bound)':'')+'; '+(used?'used in the turbine balance':'not in the turbine balance yet (Use my exhaust’s back pressure)')+(probs.length?'; '+probs.join('; '):''),'exhaust-after-the-turbine'); } }
   add('scan','Route it from a scan','info','Fusion add-in, Charge piping from your scan: it routes the charge pipes around the scanned engine bay with these sizes'+(FUSION?'; Fusion is connected':'; it needs Fusion with the add-in (this page cannot read a scan)'),$('cr-block')?'#cr-block':'');
   add('sheet','Build sheet','info','the route drawing, every part and size, the key numbers and the assumptions, in inches and mm, as one file to save and print','');
   return S;
