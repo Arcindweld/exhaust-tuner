@@ -170,9 +170,6 @@ OTHER = (('cfd/*_vs_py.py', 'root'), ('cfd/*_vs_py.js', 'root'), ('cfd/test_*.py
 # files the patterns find that are not run, each with the reason (shown by --list and in every results table, so an
 # exclusion is never silent); remove the line once the reason is gone
 EXCLUDED = {
-    'layouts_test_bundle_mode': 'stale: its Fusion stub (layouts/ls3-180/fake/adsk) has no TemporaryBRepManager, which '
-                                'cadtools._merge_body has used since the merge collectors became one welded body; it '
-                                'fails with AttributeError before checking anything. Extend the stub, then remove this line',
 }
 # and these, which are checks with their own command line
 CHECKS = (('gen_rust_templates_check', ['cfd/gen_rust_templates.py', '--check']),

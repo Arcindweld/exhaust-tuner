@@ -24,6 +24,9 @@ CT._status = lambda s: None
 CT._new_component = lambda title: 'comp'
 CT._build_route = lambda comp, r, nm, od, wall, pb: {'param': True, 'n': len(r['elems'])}
 CT._revolve_cone = lambda *a: None
+# the collectors: merge.plan runs as in Fusion (plate holes, cone, spike, notes); only the solid is not built. The stub
+# has no sketches or TemporaryBRepManager, so _merge_param is replaced as _build_route is (2026-11-12)
+CT._merge_param = lambda comp, p, name: None
 CT._cm = lambda data, key, default=None: (float(data[key]) / 10.0 if data.get(key) else default)
 ports = {}
 for i in range(4):
@@ -62,5 +65,9 @@ for it in items:
     if nb != len(rp['bends']): fails.append('P%s bends' % m.group(1))
     if abs(gap - rp['scene_gap_in']) > 0.02: fails.append('P%s scan gap' % m.group(1))
     if (it['ok'] is True) != (rp['scene_gap_in'] >= 0.5 - 0.005): fails.append('P%s ok flag' % m.group(1))
+# both collectors planned as welded merges (merge.plan: a plate with one hole per tube), not the plain-cone fallback
+cols = [b for b in built if isinstance(b, dict) and 'merge' in b]
+print('collectors planned:', [(b['name'], len((b['merge'].get('plate') or {}).get('holes') or [])) for b in cols])
+if len(cols) != 2 or any(len((b['merge'].get('plate') or {}).get('holes') or []) != 4 for b in cols): fails.append('collector merge plans')
 print('FAILS', fails)
 sys.exit(1 if fails else 0)
