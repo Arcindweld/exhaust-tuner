@@ -171,6 +171,19 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catDp: the outlet cone's uncited 0.05 is now Rennels' conical contraction with its friction (python-fluids
   contraction_conical); physaudit_ui cat cone loss 399.80 -> 468.15 Pa (outlet K 0.1835 by hand). Not run here:
   Fusion (mount choice live), a printed template on tube.
+- Honda K-series, turbo options, intercooler options (2026-11-12, branch agent5/k24; web/tests/k24_ui.js, turbolib_ui.js):
+  engine-only presets K20A2, K20Z3, K24A2, K24A4, K24A8, K24Z3, K24Z7, K24W1 with Honda's published bore/stroke, compression,
+  ratings and redlines (hondanews/acuranews spec sheets), plus a `kd` block per engine (valve heads, exhaust side and
+  manifold, VTEC, head studs, flange port, each with its own URL; K24W exhausts at the FRONT, cast into the head, per Honda
+  R&D Technical Review 025-2). Stock cam events, throttle bores and stock pipe sizes: no source found, left null, so no
+  CAM_LIB row for a K (the wave model then runs on the tab's default cam; K24A2 indicated 257 hp @ 6,800 against Honda's
+  200 hp brake, not tuned). Headers: inline engines no longer get the V-engine "ports face" input/section, per-bank +
+  Tri-Y on an inline is the 4-2-1 (was an error), split-pair wording for 1-4 / 2-3. Mufflers: "null in" fixed on part rows.
+  Intake tab: Turbo options (Precision GEN2 PT5862 CEA via dealer listings, precisionturbo.net not reachable; Garrett
+  G25-660, G30-770, G35-900 from Garrett) compared on hp rating only; picking one fills the compressor inlet/outlet with the
+  published cover sizes. Intercooler options (Garrett air/air and air/liquid cores: hp and size only, so no capacity from
+  the rating), cooling capacity from a known point (eps-NTU inversion, UA held constant, caveat on the page), water-to-air
+  coolant flow, front-exchanger UA requirement, soak time, coupled loop closed form and its lumped warm-up.
 - Charge piping from a scan (2026-11-11, branch agent4/scanroute; offline only, no Fusion here): Intake tab, Fusion
   section, "Charge piping from your scan". Legs filter -> compressor inlet, compressor outlet -> intercooler inlet,
   intercooler outlet -> throttle body (any subset; a start and an end marker each, selected in leg order; each leg its
