@@ -11,6 +11,6 @@ Steps:
 - [x] D shared muffler fn (mufElems, mufElemLoss; Mufflers tab rows + xMuffler)
 - [x] A/B/C march (exhMarch, exhSteps); case A: old 39.30 -> 7.72 kPa static at outlet (cone recovery -28.7); total 52.39; separated cone 16.30
 - [x] E output/checklist/sheet (first pass)
-- [ ] tests xflow_ui.js, turboguide updates
-- [ ] python check tools/validation/boost/xflow.py
+- [x] tests xflow_ui.js (all pass); [ ] turboguide updates
+- [x] python check xflow.py: case1 7700.128 vs page 7716.365 (0.21%), case2 120749.896 vs 120752.065
 - [ ] docs, test runs
