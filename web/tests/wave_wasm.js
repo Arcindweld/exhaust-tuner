@@ -54,7 +54,16 @@ const jobs = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_j
   // injector), on the four-cylinder collector
   const s1 = jobs[1].job.variants[0].spec;
   jobs.push({ name: 'air alone', job: { dx: jobs[1].job.dx, rpms: [3000, 5000, 7000], variants: [{ label: 'spec.e.fuel air, four on one collector', spec: Object.assign({}, s1,
-    { e: Object.assign({}, s1.e, { fuel: 'air' }) }) }] } }); }
+    { e: Object.assign({}, s1.e, { fuel: 'air' }) }) }] } });
+  // 2026-11-12 part 3: measured valve flow tables (e.flowIn / e.flowEx) and the intake plenum with its throttle orifice,
+  // a stepped inlet tube and the air filter orifice, on the four-cylinder collector; the plenum with neither orifice (open
+  // inlet mouth, inlet ending open on the plenum) with the constant gas
+  const tab = (d, k) => ({ lift: [0.0013, 0.0025, 0.005, 0.0076, 0.0102, 0.0127], cdA: [0.7, 0.7, 0.75, 0.72, 0.66, 0.6].map((c, i) => c * k * Math.PI * d * [0.0013, 0.0025, 0.005, 0.0076, 0.0102, 0.0127][i]) });
+  const pl = { V_m3: 0.002, inlet: [{ L: 0.4, d0: 0.08, d1: 0.08 }, { L: 0.05, d0: 0.06, d1: 0.06 }], throttle: { d: 0.06, cd: 0.83 }, filter: { dp: 1500, m: 0.15 } };
+  jobs.push({ name: 'plenum and bench flow', job: { dx: jobs[1].job.dx, rpms: [3000, 5000, 7000], variants: [{ label: 'flow tables, plenum, throttle, filter, four on one collector', spec: Object.assign({}, s1,
+    { e: Object.assign({}, s1.e, { flowIn: tab(s1.e.dIn, 1), flowEx: tab(s1.e.dEx, 0.9) }), intake: Object.assign({}, s1.intake, { plenum: pl }) }) }] } });
+  jobs.push({ name: 'plenum, constant gas', job: { dx: jobs[1].job.dx, rpms: [3000, 6000], variants: [{ label: 'open inlet, no throttle orifice, spec.e.gas const', spec: Object.assign({}, s1,
+    { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, { plenum: { V_m3: 0.003, inlet: [{ L: 0.5, d0: 0.07, d1: 0.07 }] } }) }) }] } }); }
 let tJs = 0, tW = 0;
 for (const { name, job } of jobs) {
   const rpms = process.env.QUICK === '1' ? job.rpms.slice(0, 3) : job.rpms;

@@ -415,6 +415,91 @@ struct Engine {
     k: K,
     gas: Option<Gas>, // None: e.gas "const", gamma 1.35 and R 287
     gas_in: Option<Gas>, // the intake pipes' gas: air (port_fuel adds the fuel at the valve)
+    flow_in: Option<FlowTab>, // e.flowIn / e.flowEx: measured effective area per valve against lift (2026-11-12, part 3)
+    flow_ex: Option<FlowTab>,
+    plenum: Option<PlenSpec>, // intake.plenum (the page's plenumOf)
+}
+/// A measured valve flow table (the page's flowTab): lifts rising above 0 (m), effective areas per valve (m2).
+#[derive(Clone)]
+struct FlowTab {
+    lift: Vec<f64>,
+    cda: Vec<f64>,
+}
+fn flow_tab(t: &FlowTab, l: f64) -> f64 {
+    let n = t.lift.len();
+    if l >= t.lift[n - 1] {
+        return t.cda[n - 1];
+    }
+    let (mut l0, mut a0) = (0.0, 0.0);
+    for i in 0..n {
+        if l <= t.lift[i] {
+            return a0 + (t.cda[i] - a0) * (l - l0) / (t.lift[i] - l0);
+        }
+        l0 = t.lift[i];
+        a0 = t.cda[i];
+    }
+    t.cda[n - 1]
+}
+fn flow_tab_of(v: &Value) -> Result<Option<FlowTab>, String> {
+    if !truthy(v) {
+        return Ok(None);
+    }
+    let err = || "a valve flow table needs rising lifts above 0 and as many areas".to_string();
+    let (l, a) = (v["lift"].as_array().ok_or_else(err)?, v["cdA"].as_array().ok_or_else(err)?);
+    let lift: Vec<f64> = l.iter().map(num).collect();
+    let cda: Vec<f64> = a.iter().map(num).collect();
+    if lift.is_empty() || lift.len() != cda.len() {
+        return Err(err());
+    }
+    for i in 0..lift.len() {
+        let prev = if i > 0 { lift[i - 1] } else { 0.0 };
+        if !(lift[i] > prev) || !(cda[i] >= 0.0) {
+            return Err(err());
+        }
+    }
+    Ok(Some(FlowTab { lift, cda }))
+}
+/// intake.plenum: volume, the inlet line's segments, the throttle's Cd A (0: none) and the filter's (dp Pa, m kg/s).
+struct PlenSpec {
+    v: f64,
+    inlet: Vec<Seg>,
+    cda_th: f64,
+    filter: Option<(f64, f64)>,
+}
+fn plenum_of(intake: &Value) -> Result<Option<PlenSpec>, String> {
+    let q = &intake["plenum"];
+    if !truthy(q) {
+        return Ok(None);
+    }
+    if truthy(&intake["reservoir"]) {
+        return Err("intake.plenum and intake.reservoir are alternatives: give one".into());
+    }
+    let v = num(&q["V_m3"]);
+    if !(v > 0.0) {
+        return Err("intake.plenum.V_m3 must be positive".into());
+    }
+    let inlet = match q["inlet"].as_array() {
+        Some(a) if !a.is_empty() => segs_of(&q["inlet"])?,
+        _ => return Err("intake.plenum.inlet needs at least one pipe segment (air filter to plenum)".into()),
+    };
+    let (t, f) = (&q["throttle"], &q["filter"]);
+    let mut cda_th = 0.0;
+    if truthy(t) {
+        let (d, cd) = (num(&t["d"]), num(&t["cd"]));
+        if !(d > 0.0 && cd > 0.0) {
+            return Err("intake.plenum.throttle needs its bore d and its cd".into());
+        }
+        cda_th = cd * PI * d * d / 4.0;
+    }
+    let mut filter = None;
+    if truthy(f) {
+        let (dp, m) = (num(&f["dp"]), num(&f["m"]));
+        if !(dp >= 0.0 && m > 0.0) {
+            return Err("intake.plenum.filter needs its loss dp (Pa) and the flow m (kg/s) it is quoted at".into());
+        }
+        filter = Some((dp, m));
+    }
+    Ok(Some(PlenSpec { v, inlet, cda_th, filter }))
 }
 
 const fn rad(d: f64) -> f64 {
@@ -434,19 +519,23 @@ impl Engine {
         let (cr, rod) = (self.crank, self.rod);
         self.ap * cr * (s + cr * s * c / (rod * rod - cr * cr * s * s).sqrt())
     }
-    fn area(&self, th: f64, open: f64, dur: f64, lift: f64, d: f64, nv: f64) -> f64 {
+    #[allow(clippy::too_many_arguments)]
+    fn area(&self, th: f64, open: f64, dur: f64, lift: f64, d: f64, nv: f64, t: &Option<FlowTab>) -> f64 {
         let l = lift_at(th, open, dur, lift);
         if l > 0.0 {
-            nv * self.cd * jmin(PI * d * l, 0.85 * PI / 4.0 * d * d)
+            match t {
+                Some(t) => nv * flow_tab(t, l),
+                None => nv * self.cd * jmin(PI * d * l, 0.85 * PI / 4.0 * d * d),
+            }
         } else {
             0.0
         }
     }
     fn cda_in(&self, th: f64) -> f64 {
-        self.area(th, self.ivo, self.ivdur, self.lift_in, self.d_in, self.n_in)
+        self.area(th, self.ivo, self.ivdur, self.lift_in, self.d_in, self.n_in, &self.flow_in)
     }
     fn cda_ex(&self, th: f64) -> f64 {
-        self.area(th, self.evo, self.evdur, self.lift_ex, self.d_ex, self.n_ex)
+        self.area(th, self.evo, self.evdur, self.lift_ex, self.d_ex, self.n_ex, &self.flow_ex)
     }
 }
 
@@ -581,6 +670,9 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         k: consts(),
         gas: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), e["fuel"].as_str() != Some("air"))) },
         gas_in: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), false)) },
+        flow_in: flow_tab_of(&e["flowIn"])?,
+        flow_ex: flow_tab_of(&e["flowEx"])?,
+        plenum: plenum_of(intake)?,
     })
 }
 
@@ -590,12 +682,24 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
 enum Src {
     In(usize),
     Ex(usize),
+    Th, // the throttle's flow into the plenum
+    Fl, // the air filter's flow into the inlet
+}
+/// What the plenum's ends and orifices need from the plenum at the step's start.
+#[derive(Clone, Copy, Default)]
+struct Aux {
+    p: f64,
+    t: f64,
+    x: f64,
+    th: Flow,
+    fl: Flow,
 }
 #[derive(Clone, Copy)]
 enum Bnd {
     Noop,
     Open(f64),
     Fed(f64, Src),
+    Plen(f64), // an end on the intake plenum (the page's plenEnd)
 }
 
 struct Pipe {
@@ -847,7 +951,7 @@ struct Flow {
 }
 
 /// One MUSCL-Hancock step; the boundaries fill the end fluxes.
-fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow]) {
+fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow], aux: &Aux) {
     let n = p.n;
     for i in 0..n {
         if i == 0 || i == n - 1 {
@@ -902,8 +1006,8 @@ fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow]) {
         p.f4[j] = f[3] * af;
     }
     let (left, right) = (p.left, p.right);
-    boundary(p, left, -1.0, v_in, ex_flow);
-    boundary(p, right, 1.0, v_in, ex_flow);
+    boundary(p, left, -1.0, v_in, ex_flow, aux);
+    boundary(p, right, 1.0, v_in, ex_flow, aux);
     let k = dt / p.dx;
     for i in 0..n {
         let ui = p.u[i];
@@ -936,9 +1040,30 @@ fn end_p(p: f64, r: f64, un: f64, vn: f64, gm: f64) -> f64 {
     p * powf(cb / c, 2.0 * gm / (gm - 1.0))
 }
 
-fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow]) {
+fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow], aux: &Aux) {
     match b {
         Bnd::Noop => {}
+        Bnd::Plen(side) => {
+            let (i, j) = if side > 0.0 { (p.n - 1, p.n) } else { (0, 0) };
+            let ra = match &p.gas { Some(gs) => gas_r(gs, aux.x), None => RG };
+            let g = open_state(p.r[i], p.u[i], p.p[i], p.x[i], side, aux.p, aux.t, aux.x, p.g[i], ra);
+            let af = p.af[j];
+            let m = g[0] * g[1] * af;
+            p.f1[j] = m;
+            p.f2[j] = m * g[1] + g[2] * af;
+            let h0 = match &p.gas {
+                Some(gs) => {
+                    if side * g[1] < 0.0 {
+                        gas_h(gs, aux.t, aux.x)
+                    } else {
+                        gas_h(gs, g[2] / (g[0] * gas_r(gs, g[3])), g[3]) + 0.5 * g[1] * g[1]
+                    }
+                }
+                None => GAM / G1 * g[2] / g[0] + 0.5 * g[1] * g[1],
+            };
+            p.f3[j] = m * h0;
+            p.f4[j] = m * g[3];
+        }
         Bnd::Open(side) => {
             let (i, j) = if side > 0.0 { (p.n - 1, p.n) } else { (0, 0) };
             let ra = match &p.gas { Some(gs) => gas_r(gs, 1.0), None => RG };
@@ -966,6 +1091,8 @@ fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow]) 
             let f = match src {
                 Src::In(k) => v_in[k],
                 Src::Ex(k) => ex_flow[k],
+                Src::Th => aux.th,
+                Src::Fl => aux.fl,
             };
             let af = p.af[j];
             let entering = if side > 0.0 { f.m < 0.0 } else { f.m > 0.0 };
@@ -1354,6 +1481,18 @@ struct Cyl {
 
 /// Flow between the cylinder and a pipe end cell; m positive from the pipe into the cylinder.
 fn valve_flow(k: &K, cda: f64, cy: &Cyl, p: &Pipe, i: usize) -> Flow {
+    valve_flow_s(k, cda, &Side { p: cy.p, t: cy.t, x: cy.x, gm: cy.gm, rg: cy.rg, cp: cy.cp }, p, i)
+}
+/// The far side of an orifice: a cylinder, the plenum or the outside air.
+struct Side {
+    p: f64,
+    t: f64,
+    x: f64,
+    gm: f64,
+    rg: f64,
+    cp: f64,
+}
+fn valve_flow_s(k: &K, cda: f64, cy: &Side, p: &Pipe, i: usize) -> Flow {
     let hc = match &p.gas { Some(g) => gas_h(g, cy.t, cy.x), None => CP * cy.t };
     if !(cda > 0.0) {
         return Flow { m: 0.0, h: hc, x: cy.x, uj: 0.0 };
@@ -1415,6 +1554,21 @@ struct State {
     cyls: Vec<Cyl>,
     jn: Junc,
     th: f64,
+    plen: Option<Plen>,
+}
+/// The intake plenum (the page's st.plen): one well-mixed volume of the intake's gas.
+struct Plen {
+    v: f64,
+    m: f64,
+    t: f64,
+    x: f64,
+    p: f64,
+    r: f64,
+    cp: f64,
+    g: f64,
+    inlet: Vec<usize>,
+    cda_th: f64,
+    cda_f: f64,
 }
 
 /// Split a run of segments into pipes wherever the diameter jumps; cones stay inside a pipe.
@@ -1658,7 +1812,38 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
         Some(cols) => Some(collector_nets(cols, &mut pipes, &prims, dx, gas)?),
         None => None,
     };
-    Ok(State { pipes, ins, prims, coll, nets, chambers, cyls, jn: Junc { p: 0.0, ends: Vec::new() }, th: eng.ivc })
+    // the intake plenum: its inlet line from the air filter, of the intake's gas; filled with still outside air
+    let plen = match &eng.plenum {
+        Some(q) => {
+            let gi = eng.gas_in;
+            let ra = match &gi { Some(g) => gas_r(g, 1.0), None => RG };
+            let inlet = build_line(&mut pipes, &q.inlet, &eng.intake.tw, dx, TATM, 1.0, gi)?;
+            if inlet.is_empty() {
+                return Err("intake.plenum.inlet has no pipe".into());
+            }
+            let mut cda_f = 0.0;
+            if let Some((dp, m)) = q.filter {
+                let rho = PATM / (ra * TATM);
+                let a = pipes[inlet[0]].af[0];
+                cda_f = m / (2.0 * rho * dp + m * m / (a * a)).sqrt();
+            }
+            Some(Plen {
+                v: q.v,
+                m: PATM * q.v / (ra * TATM),
+                t: TATM,
+                x: 1.0,
+                p: PATM,
+                r: ra,
+                cp: if gi.is_some() { 0.0 } else { CP },
+                g: if gi.is_some() { 0.0 } else { GAM },
+                inlet,
+                cda_th: q.cda_th,
+                cda_f,
+            })
+        }
+        None => None,
+    };
+    Ok(State { pipes, ins, prims, coll, nets, chambers, cyls, jn: Junc { p: 0.0, ends: Vec::new() }, th: eng.ivc, plen })
 }
 
 fn local_th(th: f64, ph: f64) -> f64 {
@@ -1700,6 +1885,9 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
             }
         }
     }
+    if let Some(pl) = &st.plen {
+        all.extend(&pl.inlet);
+    }
     for &p in &all {
         st.pipes[p].left = Bnd::Noop;
         st.pipes[p].right = Bnd::Noop;
@@ -1718,6 +1906,24 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
         st.pipes[st.ins[kk][0]].left = Bnd::Open(-1.0);
         st.pipes[ip].right = Bnd::Fed(1.0, Src::In(kk));
         st.pipes[ep].left = Bnd::Fed(-1.0, Src::Ex(kk));
+        if st.plen.is_some() {
+            st.pipes[st.ins[kk][0]].left = Bnd::Plen(-1.0);
+        }
+    }
+    // the plenum's inlet: the air filter (an orifice from the outside air) or an open mouth; the throttle or an open end
+    let (atm_cp, atm_g) = match &gas_in {
+        Some(g) => {
+            let (cp, _h, r) = gas_at(g, TATM, 1.0);
+            (cp, cp / (cp - r))
+        }
+        None => (CP, GAM),
+    };
+    let atm = Side { p: PATM, t: TATM, x: 1.0, gm: atm_g, rg: match &gas_in { Some(g) => gas_r(g, 1.0), None => RG }, cp: atm_cp };
+    let mut aux = Aux { fl: Flow { m: 0.0, h: 0.0, x: 1.0, uj: 0.0 }, ..Aux::default() };
+    if let Some(pl) = &st.plen {
+        let (i0, i1) = (pl.inlet[0], *pl.inlet.last().unwrap());
+        st.pipes[i0].left = if pl.cda_f > 0.0 { Bnd::Fed(-1.0, Src::Fl) } else { Bnd::Open(-1.0) };
+        st.pipes[i1].right = if pl.cda_th > 0.0 { Bnd::Fed(1.0, Src::Th) } else { Bnd::Plen(1.0) };
     }
     if let Some(nets) = &st.nets {
         let mut on = std::collections::HashSet::new();
@@ -1795,6 +2001,29 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                     v_ex[kk].uj + (ep.g[0] * ep.p[0] / ep.r[0]).sqrt(),
                 );
             }
+            if let Some(pl) = st.plen.as_mut() {
+                // the plenum's state at the step's start; the throttle's and the filter's flows
+                if let Some(g) = &gas_in {
+                    let (cp, _h, r) = gas_at(g, pl.t, pl.x);
+                    pl.r = r;
+                    pl.cp = cp;
+                    pl.g = cp / (cp - r);
+                }
+                pl.p = pl.m * pl.r * pl.t / pl.v;
+                aux.p = pl.p;
+                aux.t = pl.t;
+                aux.x = pl.x;
+                let (i0, i1) = (&st.pipes[pl.inlet[0]], &st.pipes[*pl.inlet.last().unwrap()]);
+                if pl.cda_th > 0.0 {
+                    aux.th = valve_flow_s(k, pl.cda_th, &Side { p: pl.p, t: pl.t, x: pl.x, gm: pl.g, rg: pl.r, cp: pl.cp }, i1, i1.n - 1);
+                    sj = jmax(sj, aux.th.uj + (i1.g[i1.n - 1] * i1.p[i1.n - 1] / i1.r[i1.n - 1]).sqrt());
+                }
+                if pl.cda_f > 0.0 {
+                    let v = valve_flow_s(k, pl.cda_f, &atm, i0, 0);
+                    aux.fl = Flow { m: -v.m, h: v.h, x: v.x, uj: v.uj };
+                    sj = jmax(sj, aux.fl.uj + (i0.g[0] * i0.p[0] / i0.r[0]).sqrt());
+                }
+            }
             let mut dt = 0.8 * dmin / jmax(smax, sj);
             let dth = jmin(dt * w, 0.5);
             dt = dth / w;
@@ -1806,6 +2035,11 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 for q in 1..st.prims[kk].len() {
                     let (a, b) = (st.prims[kk][q - 1], st.prims[kk][q]);
                     junction(&mut st.pipes, a, b);
+                }
+            }
+            if let Some(pl) = &st.plen {
+                for q in 1..pl.inlet.len() {
+                    junction(&mut st.pipes, pl.inlet[q - 1], pl.inlet[q]);
                 }
             }
             if let Some(coll) = &st.coll {
@@ -1873,7 +2107,27 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 f.uj = v.uj;
             }
             for &pi in &all {
-                step_pipe(&mut st.pipes[pi], dt, &v_in, &ex_flow);
+                step_pipe(&mut st.pipes[pi], dt, &v_in, &ex_flow, &aux);
+            }
+            if let Some(pl) = st.plen.as_mut() {
+                // the plenum takes what its ports' end fluxes moved: mass, energy, fresh charge
+                let (mut dm, mut du, mut dx_) = (0.0, 0.0, 0.0);
+                for kk in 0..nc {
+                    let p = &st.pipes[st.ins[kk][0]];
+                    dm -= p.f1[0];
+                    du -= p.f3[0];
+                    dx_ -= p.f4[0];
+                }
+                let i1 = &st.pipes[*pl.inlet.last().unwrap()];
+                let j = i1.n;
+                dm += i1.f1[j];
+                du += i1.f3[j];
+                dx_ += i1.f4[j];
+                let u = (match &gas_in { Some(g) => pl.m * gas_e(g, pl.t, pl.x), None => pl.m * CV * pl.t }) + dt * du;
+                let m2 = jmax(1e-9, pl.m + dt * dm);
+                pl.x = jmin(1.0, jmax(0.0, (pl.m * pl.x + dt * dx_) / m2));
+                pl.m = m2;
+                pl.t = jmax(200.0, match &gas_in { Some(g) => gas_t(g, u / m2, pl.x, pl.t, false).0, None => u / (m2 * CV) });
             }
             for kk in 0..nc {
                 let ep0 = st.pipes[st.prims[kk][0]].p[0];
