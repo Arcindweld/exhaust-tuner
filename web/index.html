@@ -12035,8 +12035,8 @@ const GUIDE={
   headers:[
     ['Runner length','Longer favors low-RPM torque, shorter favors high-RPM power. Keep every runner the same length.'],
     ['Primary size','Smaller tubes help low-speed torque; larger ones suit high RPM and big cams.'],
-    ['180° grouping','Pairs cylinders so each collector gets a pulse every 180° on a V8, but the tubes have to cross between the banks.'],
-    ['Tri-Y (4-2-1)','Joins pairs of cylinders whose pulses are far apart, then joins the pairs.'],
+    ['180° grouping','On a cross-plane V8, pairs cylinders so each collector gets a pulse every 180°, but the tubes have to cross between the banks. An inline-four at 1-3-4-2 already fires evenly every 180°.'],
+    ['Tri-Y (4-2-1)','Joins pairs of cylinders whose pulses are far apart, then joins the pairs; on a 1-3-4-2 four that is 1 with 4 and 2 with 3, 360° apart.'],
     ['Stepped primaries','Each step adds a reflection that helps at a different engine speed, for torque across a wider band.'],
     ['Collector merge','Burns Stainless typically uses 15°; about 7° to 18° works. Stainless Headers: 13° naturally aspirated, 20° turbo. SPD: 12 to 15° for the most gain, 20 to 25° to save an inch or more. Steeper merges package shorter.']],
   muf:[
@@ -14268,14 +14268,18 @@ function renderHeaders(){
   $('h-groups-wrap').hidden=$('h-grp').value!=='custom';
   const e=engineFrom('h'), order=e.order, banks=e.banks&&e.banks.length?e.banks:[order.slice()];
   $('h-eng-hint').innerHTML=engineHint(e);
-  $('h-ports-wrap').hidden=banks.length<2;
+  // an inline engine (and a VR6: one head) lists its split pairs as banks, but it has no V for the ports to face
+  const inlineHd=!e.custom&&/^(Inline|VR6|Parallel)/.test(e.name||'');
+  $('h-ports-wrap').hidden=banks.length<2||inlineHd;
   $('h-uel-wrap').hidden=!uelOn||e.cyc==='r';
   if(e.cyc==='r') return renderHeadersRotary(e);
   const groups=$('h-groups').value.split('|').map(g=>parseList(g)).filter(g=>g.length);
   const p={order,banks,gaps:e.gaps,cycle:720,groups,mode:$('h-grp').value,merge,prof,rpm:val('h-rpm'),evo:val('h-evo'),dp:val('h-dp'),cr:val('h-cr'),cs:val('h-cs'),
     first:val('h-first'),yr:val('h-yr'),inc:val('h-inc'),cone:val('h-cone'),port:val('h-port'),wall:val('h-wall'),
     ypairs:merge==='triy'?$('h-pairs').value.split('|').map(g=>parseList(g)).filter(g=>g.length):[]};
-  const hotV=banks.length>1&&$('h-ports').value==='in';
+  // on an inline engine the per-bank choice with a two-stage merge is the plain 4-2-1 (6-2-1): every cylinder into one
+  if(inlineHd&&merge==='triy'&&p.mode==='bank') p.mode='all';
+  const hotV=banks.length>1&&!inlineHd&&$('h-ports').value==='in';
   const r=calcLayout(p), key=$('h-key'), det=$('h-details');
   if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';det.innerHTML='';clearSvg($('h-pulse'));clearSvg($('h-svg'));$('h-cap').textContent='';S.headers={};$('h-uel-wrap').hidden=true;HDR_LAST={err:r.err};return;}
   if(uelOn) uelTable(r,p);
@@ -14297,7 +14301,8 @@ function renderHeaders(){
     szH.err?'':'The sizing rule asks for about <b>'+cdim(szH.id)+'</b> inside for this engine. You have '+cdim(p.dp)+' entered.',
     'You get <b>'+r.nColl+' collector'+(r.nColl>1?'s':'')+'</b> ('+r.groups.map(g=>r.triy&&g.cyls.length===8?'an 8-4-1':g.cyls.length+'-into-1').join(' and ')+'), each about <b>'+cdim(r.dc)+'</b> inside.',
     ga<0?'Every collector gets evenly spaced pulses, which helps each pulse pull the next cylinder clear.':
-      'Collector '+lab(ga)+' gets uneven pulses (the closest are '+Math.round(r.minGap)+'° apart). '+(p.mode!=='alt'&&order.length%2===0?'A 180° layout (alternate cylinders in firing order) evens them out, but its tubes have to cross between the banks.':''),
+      'Collector '+lab(ga)+' gets uneven pulses (the closest are '+Math.round(r.minGap)+'° apart). '+(p.mode!=='alt'&&order.length%2===0?'A 180° layout (alternate cylinders in firing order) evens them out'+(inlineHd?'.':', but its tubes have to cross between the banks.'):''),
+    inlineHd&&p.mode==='bank'&&banks.length>1&&!r.triy?'On an inline engine “per bank” is the split layout: cylinders '+banks.map(b=>b.join(' and ')).join(', ')+' each into their own collector (a '+order.length+'-2 split, or the first stage of a '+order.length+'-2-1). For one '+order.length+'-1 collector pick all into one; for the full '+order.length+'-2-1 pick the two-stage merge.':'',
     r.triy?(r.Ng===6?'6-2-1: join each group of three first, ':r.Ng===8?'8-4-1: join each pair first, ':'Tri-Y: join each pair first, ')+clen(r.segs[0].len)+' from '+(r.port>0?'the flange':'the valve')+', then run the '+cdim(r.dsec)+' secondaries to the collector.':'',
     r.steps.length?'Steps: '+r.steps.map(q=>'grow to '+cdim(q.d)+' at '+clen(q.x)+' from the valve').join(', then ')+'.':'',
     fit.items.length?(fit.worst==='ok'?'<b>It fits the space you entered.</b>':'<b>It does not all fit the space you entered.</b> The closest you can get is listed under Fit to your space.'):'',
@@ -14385,7 +14390,7 @@ function renderHeaders(){
     html+=sec('Fit to your space',fit.items.map(it=>'<div class="note '+(it.k==='ok'?'ok':it.k)+'">'+t(it)+'</div>').join(''));
   }
   if(V8_ORDERS.indexOf(engFam(e.key))>=0||(e.custom&&order.length===8&&!e.gaps)) html+=firingOrderSection(e);
-  if(banks.length>1) html+=sec('Ports facing '+(hotV?'into the V':'outward'),hotV?
+  if(banks.length>1&&!inlineHd) html+=sec('Ports facing '+(hotV?'into the V':'outward'),hotV?
     '<ul class="list"><li>Hot-V layouts put the exhaust in the valley, which shortens the path to turbos and puts every runner start next to each other, so equal-length 180° or 8-into-1 headers fit without crossing over the engine.</li>'+
     '<li>One builder put Gen 5 LT heads on an LS block with the stock LS cam; the LT’s reversed valve order turns the intake ports into exhaust ports, and the goal was an 8-into-1 with 25 to 30 in primaries and later turbos.</li>'+
     '<li>Watch for: intake valves doing exhaust duty run hot, the rocker ratio and lift change with the heads, both intake manifolds have to be made, and the valley holds heat next to wiring and fuel lines.</li></ul>':
@@ -15296,7 +15301,7 @@ function renderMuf(){
   const inch=v=>inchTxt(v);   // handles a range given as an array, a numeric string or null
   const card=({q,unknown})=>'<div class="pcard"><div class="ph"><b>'+esc(q.brand+' '+q.model)+'</b><span>'+esc(q.pn)+'</span></div>'+
     '<div class="pm">'+TYPE_NAME[q.type]+(q.loud?' · <b class="st-'+(Math.abs(q.loud-fp.loud)===0?'ok':'warn')+'">'+LOUD[q.loud]+'</b> <span class="tag">'+(q.basis==='maker'?'maker’s words':(q.basis==='line'?'product line':'estimated from type'))+'</span>':'')+'</div>'+
-    '<div class="pd">'+inch(q.inD)+' '+q.inPos+' in → '+inch(q.outD)+' '+q.outPos+' out · '+q.shape+' '+(q.w!=null?inch(q.w)+' × '+inch(q.h):'size not published')+(q.body!=null?' × '+inch(q.body)+' body':'')+(q.oal!=null?' · '+inch(q.oal)+' overall':'')+' · '+esc(q.mat)+'</div>'+
+    '<div class="pd">'+inch(q.inD)+' '+(q.inPos||'')+' in → '+inch(q.outD)+' '+(q.outPos||'')+' out · '+(q.shape||'')+' '+(q.w!=null?inch(q.w)+' × '+inch(q.h):'size not published')+(q.body!=null?' × '+inch(q.body)+' body':'')+(q.oal!=null?' · '+inch(q.oal)+' overall':'')+' · '+esc(q.mat)+'</div>'+
     '<div class="pd">'+esc(q.says)+'</div>'+(q.offroad?'<div class="pd st-warn">Race or off-road use: the maker does not intend it for the street.</div>':'')+(unknown?'<div class="pd st-warn">Some dimensions are not published, so check the fit before you order.</div>':'')+
     '<a href="'+q.src+'" target="_blank" rel="noopener">Specs at '+esc(q.srcName)+'</a></div>';
   html+=sec('Mufflers and resonators that fit',found.length?
@@ -16170,6 +16175,26 @@ const VS_NEW={
   hn_si22:'https://hondanews.com/en-US/honda-automobiles/releases/2022-civic-si-specifications-features',
   hn_acc22:'https://hondanews.com/en-US/honda-automobiles/releases/2022-accord-specifications-features',
   hk:'https://en.wikipedia.org/wiki/Honda_K_engine',
+  // Honda K24 / K20 sources read 2026-11-12 for the K-series presets (MOTORS_NEW, field kd)
+  hn_tsx04:'https://hondanews.com/en-US/releases/release-6a2f3de869ef0af45df662004c34c653-2004-acura-tsx-specifications',
+  hn_tsx04i:'https://hondanews.com/en-US/releases/release-a5f8332c8f3611c3080cca004c34c61b-2004-acura-tsx-introduction',
+  hn_acc05:'https://hondanews.com/en-US/releases/release-0a2dd3473dddece266be83004c34c361-2005-honda-accord-sedan-specifications',
+  hn_acc06:'https://hondanews.ca/en-CA/hci-automobiles/releases/release-ca54ead83e3667d0b2045585b00023d9-2006-accord-sedan-specifications',
+  hn_tsx09:'https://acuranews.com/en-US/releases/release-298ef25d75ac84938aca39004c34bd5b-2009-acura-tsx-specifications',
+  hn_si12p:'https://hondanews.com/en-US/releases/2012-honda-civic-powertrains?l=es-ES',
+  hn_si13:'https://hondanews.com/en-US/honda-automobiles/releases/release-c93c7e8146714964a03663394bcf5e40-2013-honda-civic-si-specifications',
+  hn_acc14:'https://hondanews.com/en-US/releases/release-95eca0bb681b47f0a7e6c85311c0f401-2014-honda-accord-specifications-and-features',
+  hrd_k24w:'https://global.honda/en/technical-review/PDF/025-2/025-2_17e.pdf',
+  wards_k24w:'https://www.wardsauto.com/news/archive-wards-honda-2-4l-dohc-i-4/782035/',
+  sk2_codes:'https://nipponpower.com/products/skunk2-alpha-series-36mm-30mm-standard-compression-valve-set-honda-k-series-310-05-1555',
+  hr_k24w1:'https://www.hybrid-racing.com/products/honda-13-17-accord-k24-water-pump-19200-5a2-a01',
+  sk2_tsx09:'https://www.hybrid-racing.com/products/skunk2-alpha-series-header-09-14-acura-tsx-k24z3',
+  ferrea_std:'https://www.realstreetperformance.com/ferrea-6000-series-std-size-valves-kit-acura-honda-k20-k24.html',
+  st_std:'https://www.a4h-tech.com/en/supertech-black-nitrided-standard-compression-valves-k-serie-engines',
+  st_z7ex:'https://www.realstreetperformance.com/supertech-s2000-00-09-f20c-f22c-civic-si-12-15-k24z7-31mm-std-dish-exhaust-valves-set.html',
+  sf_studs:'https://www.realstreetperformance.com/speedfactory-titanium-exhaust-manifold-raw-stud-kit-m10-acura-honda-k20-k24-sf-02-063.html',
+  sh_flange:'https://www.stainlessheaders.com/honda-k-series-steel-header-flange-6181b',
+  hpa_k24:'https://www.hpacademy.com/technical-articles/everything-you-need-to-know-about-the-honda-k24/',
   hb:'https://en.wikipedia.org/wiki/Honda_B_engine',
   hf20c:'https://en.wikipedia.org/wiki/Honda_F20C_engine',
   hc:'https://en.wikipedia.org/wiki/Honda_C_engine',
@@ -16805,11 +16830,36 @@ const MOTORS_NEW=[
  {code:'Hurricane 3.0 SO',maker:'Stellantis',family:'Stellantis Hurricane I6',name:'3.0 Hurricane twin-turbo I6, standard output (Ram 1500, Wagoneer, Charger R/T)',eng:'i6',cc:2993,valves:4,hp:420,hpRpm:5200,tq:469,tqRpm:3900,red:null,ind:'turbo',g:'swap',years:'2022–',src:VS.hurricane},
  {code:'Hurricane 3.0 HO',maker:'Stellantis',family:'Stellantis Hurricane I6',name:'3.0 Hurricane twin-turbo I6, high output (Ram 1500, Grand Wagoneer, Charger Scat Pack)',eng:'i6',cc:2993,valves:4,hp:540,hpRpm:5700,tq:521,tqRpm:3500,red:null,ind:'turbo',g:'swap',years:'2022–',src:VS.hurricane,note:'Wagoneer tune 510 hp @ 5,700.'},
  {code:'2.4 Turbo (SRT-4)',maker:'Dodge',family:'Chrysler 2.4 DOHC (EDZ turbo)',name:'2.4 turbo I4 (Neon SRT-4)',eng:'i4',cc:2429,valves:4,hp:230,hpRpm:5300,tq:250,tqRpm:2400,red:null,ind:'turbo',g:'swap',years:'2004–2005',est:['hpRpm'],src:VS.srt4,note:'Torque flat from 2,400 to 4,400 RPM; power peak RPM estimated.'},
- {code:'K20A2',maker:'Honda',family:'Honda K-series',name:'K20A2 2.0 i-VTEC (RSX Type-S, Euro Civic Type R)',eng:'i4',cc:1998,cr:11.0,valves:4,hp:200,hpRpm:7400,tq:142,tqRpm:6000,red:7900,ind:'na',g:'swap',years:'2002–2004',src:VS.hk},
+ // Honda K-series. Every figure is from the page in its src (the engine code from kd.codeSrc where Honda's sheet gives none),
+ // read 2026-11-12. kd: valve head diameters (mm, one valve), exhaust side and manifold, VTEC, the head's exhaust studs and flange
+ // port, each with its own source; null = no source found (stock cam events, throttle bore and pipe size are not published by Honda).
+ {code:'K20A2',maker:'Honda',family:'Honda K-series',name:'K20A2 2.0 i-VTEC (RSX Type-S, Euro Civic Type R)',eng:'i4',cc:1998,cr:11.0,valves:4,hp:200,hpRpm:7400,tq:142,tqRpm:6000,red:7900,ind:'na',g:'swap',years:'2002–2004',src:VS.hk,
+   kd:{codeSrc:VS.sk2_codes,vIn:35,vEx:30,vSrc:VS.ferrea_std,vSrc2:VS.st_std,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
  {code:'K20A (JDM)',maker:'Honda',family:'Honda K-series',name:'K20A 2.0 i-VTEC (JDM Integra Type R DC5, Civic Type R FD2)',eng:'i4',cc:1998,cr:11.5,valves:4,hp:217,hpRpm:8000,tq:152,tqRpm:7000,red:8400,ind:'na',g:'swap',years:'2001–2011',src:VS.hk,note:'FD2 Civic Type R tune: 221 hp @ 8,000 / 159 lb-ft @ 6,100, 11.7:1.'},
- {code:'K20Z3',maker:'Honda',family:'Honda K-series',name:'K20Z3 2.0 i-VTEC (2006–11 Civic Si)',eng:'i4',cc:1998,cr:11.0,valves:4,hp:197,hpRpm:7800,tq:139,tqRpm:6200,red:8000,ind:'na',g:'swap',years:'2006–2011',src:VS.hk},
- {code:'K24A2',maker:'Honda',family:'Honda K-series',name:'K24A2 2.4 i-VTEC (2004–08 Acura TSX)',eng:'i4',cc:2354,cr:10.5,valves:4,hp:200,hpRpm:6800,tq:166,tqRpm:4500,red:7100,ind:'na',g:'swap',years:'2004–2008',src:VS.hk,note:'The go-to K-swap long block.'},
- {code:'K24Z7',maker:'Honda',family:'Honda K-series',name:'K24Z7 2.4 i-VTEC (2012–15 Civic Si)',eng:'i4',cc:2354,bore:87,stroke:99,cr:11.0,valves:4,hp:201,hpRpm:7000,tq:170,tqRpm:4400,red:7000,ind:'na',g:'swap',years:'2012–2015',src:VS.hk,note:'2014–15: 205 hp / 174 lb-ft.'},
+ {code:'K20Z3',maker:'Honda',family:'Honda K-series',name:'K20Z3 2.0 i-VTEC (2006–11 Civic Si)',eng:'i4',cc:1998,cr:11.0,valves:4,hp:197,hpRpm:7800,tq:139,tqRpm:6200,red:8000,ind:'na',g:'swap',years:'2006–2011',src:VS.hk,
+   kd:{codeSrc:VS.sk2_codes,vIn:35,vEx:30,vSrc:VS.ferrea_std,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
+ {code:'K24A2',maker:'Honda',family:'Honda K-series',name:'K24A2 2.4 i-VTEC (2004–08 Acura TSX)',eng:'i4',cc:2354,bore:87,stroke:99,cr:10.5,valves:4,hp:200,hpRpm:6800,tq:166,tqRpm:4500,red:7100,ind:'na',g:'swap',years:'2004–2008',src:VS.hn_tsx04,
+   note:'Honda’s 2004 TSX rating. The go-to K-swap long block. HP Academy says the 2006–08 engine got a longer-duration intake cam, 1 mm larger intake valves and a bigger throttle body; Honda’s sheets fetched here give no figures for those.',
+   kd:{codeSrc:VS.sk2_codes,vIn:35,vEx:30,vSrc:VS.ferrea_std,vSrc2:VS.st_std,vNote:'2004–05 size; HP Academy: 2006–08 intake 1 mm larger',vNoteSrc:VS.hpa_k24,
+     exSide:'rear',exMani:'separate stainless-steel manifold',exSrc:VS.hn_tsx04i,vtec:'high-lift, long-duration lobes on intake and exhaust above 6,000 RPM',vtecSrc:VS.hn_tsx04i,
+     studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
+ {code:'K24A4',maker:'Honda',family:'Honda K-series',name:'K24A4 2.4 i-VTEC (2003–05 Accord, 2003–06 Element)',eng:'i4',cc:2354,bore:87,stroke:99,cr:9.7,valves:4,hp:160,hpRpm:5500,tq:161,tqRpm:4500,red:null,ind:'na',g:'swap',years:'2003–2006',src:VS.hn_acc05,
+   note:'Honda’s 2005 Accord sedan rating.',
+   kd:{codeSrc:VS.sk2_codes,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
+ {code:'K24A8',maker:'Honda',family:'Honda K-series',name:'K24A8 2.4 i-VTEC (2006–07 Accord)',eng:'i4',cc:2354,cr:9.7,valves:4,hp:166,hpRpm:5500,tq:160,tqRpm:4000,red:null,ind:'na',g:'swap',years:'2006–2007',src:VS.hn_acc06,
+   note:'Honda Canada’s 2006 Accord sedan sheet; it gives neither bore and stroke nor redline.',
+   kd:{codeSrc:VS.sk2_codes,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
+ {code:'K24Z3',maker:'Honda',family:'Honda K-series',name:'K24Z3 2.4 i-VTEC (2009–14 Acura TSX)',eng:'i4',cc:2354,bore:87,stroke:99,cr:11.0,valves:4,hp:201,hpRpm:7000,tq:172,tqRpm:4400,red:7100,ind:'na',g:'swap',years:'2009–2014',src:VS.hn_tsx09,
+   note:'Acura’s 2009 TSX rating, 6-speed manual; the 5-speed automatic is rated 170 lb-ft @ 4,300.',
+   kd:{codeSrc:VS.sk2_tsx09,seen:'2026-11-12'}},
+ {code:'K24Z7',maker:'Honda',family:'Honda K-series',name:'K24Z7 2.4 i-VTEC (2012–15 Civic Si)',eng:'i4',cc:2354,bore:87,stroke:99,cr:11.0,valves:4,hp:201,hpRpm:7000,tq:170,tqRpm:4400,red:7000,ind:'na',g:'swap',years:'2012–2015',src:VS.hn_si13,
+   note:'Honda’s 2013 Civic Si rating; 2014–15: 205 hp / 174 lb-ft. Honda’s 2012 powertrain release says the manifold is cast into the head; its 2013 sheet lists a “Stainless Steel Exhaust Manifold” (conflict kept).',
+   kd:{codeSrc:VS.sk2_codes,vIn:null,vEx:31,vSrc:VS.st_z7ex,exSide:'rear',exMani:'cast into the cylinder head (2012 release)',exSrc:VS.hn_si12p,
+     vtec:'intake valves only, high-lift long-duration lobes above 5,000 RPM',vtecSrc:VS.hn_si12p,seen:'2026-11-12'}},
+ {code:'K24W1',maker:'Honda',family:'Honda K-series (Earth Dreams)',name:'K24W1 2.4 direct-injection i-VTEC (2013–17 Accord)',eng:'i4',cc:2356,bore:87,stroke:99.1,cr:11.1,valves:4,hp:185,hpRpm:6400,tq:181,tqRpm:3900,red:6800,ind:'na',g:'swap',years:'2013–2017',src:VS.hn_acc14,
+   note:'Honda’s 2014 Accord rating; the Sport, with its freer exhaust, 189 hp @ 6,400 / 182 lb-ft @ 3,900. Direct injection.',
+   kd:{codeSrc:VS.hr_k24w1,vIn:36,vEx:30,vSrc:VS.hrd_k24w,exSide:'front',exMani:'cast into the cylinder head',exSrc:VS.hrd_k24w,
+     vtec:'intake only, high-lift long-duration lobe above 4,800 RPM',vtecSrc:VS.wards_k24w,seen:'2026-11-12'}},
  {code:'K20C1',maker:'Honda',family:'Honda K-series (turbo)',name:'K20C1 2.0 turbo (Civic Type R FK8/FL5, Integra Type S)',eng:'i4',cc:1996,bore:86,stroke:85.9,cr:9.8,valves:4,hp:315,hpRpm:6500,tq:310,tqRpm:2600,red:7000,ind:'turbo',g:'swap',years:'2017–',src:VS.hn_ctr23,note:'FK8: 306 hp @ 6,500 / 295 lb-ft @ 2,500–4,500. Honda sells it as a crate engine through HPD.'},
  {code:'K20C4',maker:'Honda',family:'Honda K-series (turbo)',name:'K20C4 2.0 turbo (2018–22 Accord 2.0T)',eng:'i4',cc:1996,bore:86,stroke:85.9,cr:9.8,valves:4,hp:252,hpRpm:6500,tq:273,tqRpm:1500,red:6800,ind:'turbo',g:'swap',years:'2018–2022',src:VS.hn_acc22},
  {code:'B16A2',maker:'Honda',family:'Honda B-series',name:'B16A2 1.6 VTEC (1999–2000 Civic Si EM1, del Sol VTEC)',eng:'i4',cc:1595,valves:4,hp:160,hpRpm:7600,tq:111,tqRpm:7000,red:null,ind:'na',g:'swap',years:'1996–2000',src:VS.hb},
@@ -17863,12 +17913,26 @@ function applyVehicle(v){
   if(v.stroke) setBase('f-stroke',v.stroke); else blank('f-stroke');
   if(v.cr) setBase('f-cratio',v.cr);
   if(v.valves) $('f-valves').value=String(v.valves);
+  // valve head sizes, where an engine preset's kd block has a sourced figure (mm); otherwise blank, so the simulation scales them
+  { const kd=v.kd||{}; if(kd.vIn) setBase('f-vdi',kd.vIn); else blank('f-vdi'); if(kd.vEx) setBase('f-vde',kd.vEx); else blank('f-vde'); }
   $('i-eng').value=v.eng; setBase('i-disp',v.cc); setBase('i-rpm',v.hpRpm); setBase('i-idle',idle); setBase('i-cruise',cruise); setBase('i-red',red);
   if(v.hp) setBase('i-hp',v.hp);
   $('q-eng').value=v.eng; setBase('q-disp',v.cc); setBase('q-rpm',v.hpRpm); setBase('q-hp',v.hp); setBase('q-tq',v.tqRpm); setBase('q-cruise',cruise);
   $('q-ind').value=v.ind==='na'?'na':/^turbo/.test(v.ind)?'turbo':'sc'; $('q-pipes').value='auto';
   $('v-note').innerHTML=vehNote(v,red,idle,cruise);
   renderActive();
+}
+// the extra engine facts an engine preset carries (kd), each with its own source; fields with no source are said to be missing
+function kdNote(kd,link){
+  const L=(u,t)=>u?' ('+link(u,t||'source')+')':'', mm=x=>(+x).toFixed(0)+' mm ('+(x/25.4).toFixed(3)+' in)', out=[];
+  if(kd.codeSrc) out.push('Engine code and fitment'+L(kd.codeSrc)+'.');
+  if(kd.vIn||kd.vEx) out.push('Valve heads, one valve: intake '+(kd.vIn?mm(kd.vIn):'not found')+', exhaust '+(kd.vEx?mm(kd.vEx):'not found')+L(kd.vSrc)+(kd.vSrc2?L(kd.vSrc2,'second source'):'')+(kd.vNote?'; '+esc(kd.vNote)+L(kd.vNoteSrc):'')+'; filled in on the 4-Stroke tab.');
+  if(kd.exSide) out.push('Exhaust on the '+kd.exSide+' of the engine'+(kd.exSide==='rear'?' (toward the firewall in a transverse car)':' (toward the radiator in a transverse car)')+', '+esc(kd.exMani)+L(kd.exSrc)+'.');
+  if(kd.vtec) out.push('VTEC: '+esc(kd.vtec)+L(kd.vtecSrc)+'.');
+  if(kd.studs) out.push('Manifold to head: '+esc(kd.studs)+' studs'+L(kd.studSrc)+'.');
+  if(kd.portIn) out.push('Header flange port '+kd.portIn.toFixed(3)+' in ('+(kd.portIn*25.4).toFixed(1)+' mm) on an aftermarket K20/K24 flange'+L(kd.portSrc)+'.');
+  out.push('Not published in the sources found: stock cam timing and lift, throttle bore, stock pipe size; enter your own if you have a cam card. Sources read '+esc(kd.seen||'')+'.');
+  return out.join(' ');
 }
 function vehNote(v,red,idle,cruise){
   const f=x=>Math.round(x).toLocaleString('en-US'), est=k=>v.est&&v.est.indexOf(k)>=0?' (estimated)':'';
@@ -17883,6 +17947,7 @@ function vehNote(v,red,idle,cruise){
   if(v.note) notes.push(esc(v.note));
   if(v.gross) notes.push('Gross ratings were taken without accessories or the full exhaust, so they read higher than a modern net rating.');
   if(v.fo) notes.push(esc(FO_NOTE[v.fo]));
+  if(v.kd) notes.push(kdNote(v.kd,link));
   if(notes.length) lines.push(notes.join(' '));
   const cyc=ENGLIB[v.eng].cyc, tabs=cyc==='4'?'4-Stroke, Sound, Headers, Cats and Boom tubes':cyc==='r'?'Sound, Headers, Cats and Boom tubes':'2-Stroke (peak RPM), Sound, Cats and Boom tubes';
   lines.push('Filled in on '+tabs+': engine and firing order, '+(rot?'rotors':'cylinders')+', displacement and RPMs'+(v.bore?', plus the engine for the 4-Stroke tab’s wave simulation':'')+'. Idle '+f(idle)+' and cruise '+f(cruise)+' RPM are typical values, not factory data.'+
