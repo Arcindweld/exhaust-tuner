@@ -241,6 +241,30 @@ const { chromium } = require('playwright');
   await setv('i-ind', 'centri'); await pg.waitForTimeout(300); P = await place(); ok(!P.wg && !P.wgint && /cold side/.test(P.bov), 'centrifugal blower: blow-off valve only, no wastegate');
   await setv('i-ind', 'turbo');
   t = await pg.$eval('#i-details', e => e.innerText);
+  // 2026-11-12: turbine inlet pressure as a multiple of boost (i-tipk, default 2 = the figures above). By hand, eta 0.75,
+  // from the 2 x case: the turbine's need Wc / (me cp T3 eta) = 0.3710464 x (1 - (101325 / 211641)^0.218658) = 0.0551947
+  // ((g - 1) / g = 0.279849 / 1.279849). At k: p3 = 101325 + k 55158; share = 1 - 0.0551947 / (1 - (101325 / p3)^0.218658);
+  // gate flow = share x 0.4692829; choked (p4 / p3 under 0.549396 at every k here), so Cd A = flow / flux(p3) with the
+  // flux as above, proportional to p3:
+  //   k 2    p3 211641   avail 0.148754  share 0.628954  0.2951572 kg/s  1244.373 mm²  (39.80 mm at Cd 1)
+  //   k 2.25 p3 225430.5 avail 0.160422  share 0.655941  0.3078219 kg/s  1218.383 mm²  (39.39 mm)
+  //   k 2.5  p3 239220   avail 0.171251  share 0.677697  0.3180318 kg/s  1186.234 mm²  (38.86 mm)
+  //   k 3    p3 266799   avail 0.190790  share 0.710704  0.3335212 kg/s  1115.415 mm²  (37.69 mm)
+  // so the share rises with k and the area falls: the largest area in Bell's 2 to 2.5 is at 2 x.
+  const wgk = async () => { await pg.waitForTimeout(300); return pg.evaluate(() => ({ rows: [...document.querySelectorAll('#ts-wgk tbody tr')].map(r => [+r.dataset.k, r.dataset.rec === '1', r.innerText]),
+    cap: (document.getElementById('ts-wgk-cap') || {}).innerText || '', size: (document.querySelector('#ts-place tr[data-place="wgsize"]') || {}).innerText || '',
+    flow: [...document.querySelectorAll('#i-details .r')].map(x => x.innerText).find(x => /Wastegate flow at peak power/.test(x)) || '', turb: document.getElementById('ts-turb').innerText.split('\n')[0] })); };
+  let W = await wgk();
+  ok(await pg.$eval('#i-tipk', e => e._b === 2), 'turbine inlet pressure input defaults to 2 x boost');
+  ok(W.rows.map(r => r[0]).join() === '2,2.25,2.5' && W.rows[0][1] && /1244 mm²/.test(W.rows[0][2]) && /63%/.test(W.rows[0][2]) && /1218 mm²/.test(W.rows[1][2]) && /66%/.test(W.rows[1][2]) && /1186 mm²/.test(W.rows[2][2]) && /68%/.test(W.rows[2][2]),
+    'range table at 2, 2.25, 2.5 x boost: share 63 / 66 / 68 %, area 1244 / 1218 / 1186 mm² (yours: 2): ' + W.rows.map(r => r[2].replace(/\s+/g, ' ')).join(' | ').slice(0, 200));
+  ok(/upper-side estimate/.test(W.cap) && /largest area in that range is at 2 × boost/.test(W.cap) && /inlet at 2 × boost \(Bell’s lower figure\)/.test(W.flow), 'the page says the gate size is an upper-side estimate under the 2 x assumption, largest at 2 x');
+  await setv('i-tipk', '2.5'); W = await wgk();
+  ok(/1186 mm²/.test(W.size) && W.rows.find(r => r[0] === 2.5)[1] && /Bell’s upper figure/.test(W.flow), 'at 2.5 x: the gate needs 1186 mm², the 2.5 row marked yours');
+  await setv('i-tipk', '3'); W = await wgk();
+  ok(W.rows.map(r => r[0]).join() === '2,2.25,2.5,3' && /1115 mm²/.test(W.rows[3][2]) && /71%/.test(W.rows[3][2]) && /at 3\.00 × boost \(yours\)/.test(W.turb) && /yours; Bell gives about 2 to 2\.5/.test(W.flow),
+    'a typed 3 x: its own row (71 %, 1115 mm²) and its own column in the turbine table');
+  await setv('i-tipk', '2');
   ok(!/\bNaN\b|\bundefined\b/.test(t), 'no NaN or undefined on the tab');
   ok(!errs.length, 'no page errors ' + errs.join('; '));
   await pg.close();
