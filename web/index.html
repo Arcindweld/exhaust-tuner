@@ -20604,9 +20604,9 @@ function chargeSide(o){
   const A=Math.PI*(o.d/2000)**2, rho=o.pAbs/(R_AIR*(o.tC+273.15)), v=o.m/(rho*A), qd=rho*v*v/2, Re=rho*v*(o.d/1000)/visc(o.tC), f=fSmooth(Re,o.d/1000);
   const list=(o.angs||[]).filter(a=>a>0), rmm=o.rb>0?o.rb:1.5*o.d, rd=o.rb>0?o.rb/o.d:1.5;
   if(!list.length){ const arc=Math.PI/2*rd*o.d, Ls=Math.max(0,o.L-o.n90*arc), kb=bendK(90,rd,f);
-    return {rho,v,dp:f*(Ls/o.d)*qd,qd,f,Re,Ls,kb,dpB:o.n90*kb*qd,ks:[],rd,A,mach:v/sos(o.tC)}; }
+    return {rho,v,dp:f*(Ls/o.d)*qd,qd,f,Re,Ls,kb,dpB:o.n90*kb*qd,ks:[],rd,A,mach:v/sos(o.tC),arcs:o.n90*arc,short:o.n90*arc>o.L+1e-6}; }
   const ks=list.map(a=>bendK(a,rd,f)), arcs=list.reduce((s,a)=>s+a*Math.PI/180*rmm,0), Ls=Math.max(0,o.L-arcs);
-  return {rho,v,dp:f*(Ls/o.d)*qd,qd,f,Re,Ls,kb:ks[0],dpB:ks.reduce((s,k)=>s+k,0)*qd,ks,rd,A,mach:v/sos(o.tC)};
+  return {rho,v,dp:f*(Ls/o.d)*qd,qd,f,Re,Ls,kb:ks[0],dpB:ks.reduce((s,k)=>s+k,0)*qd,ks,rd,A,mach:v/sos(o.tC),arcs,short:arcs>o.L+1e-6};
 }
 /* ----- Turbo inlet tract and charge-pipe route: design and sizing (2026-11-11) -----
    Filter -> inlet tube -> compressor -> hot pipe -> intercooler -> cold pipe -> throttle, per turbo. Every loss is the
@@ -20721,6 +20721,8 @@ function turboSection(ind,p,r){
   if(vf(R.vGh)>300) warn.push('the hot side is above Garrett’s 300 ft/s ('+sD(R.vGh)+' by its method)');
   if(vf(R.vGc)>300) warn.push('the cold side is above Garrett’s 300 ft/s ('+sD(R.vGc)+' by its method)');
   if(R.hot.mach>TS_MACH||R.cold.mach>TS_MACH) bad.push('air in the charge pipes passes Bell’s Mach 0.4');
+  // boost audit 2026-11-12 (B23): bends whose arcs are longer than the run were taken silently, the straight friction as zero
+  [['hot',R.hot,q.Lh],['cold',R.cold,q.Lc]].forEach(([n,S,L])=>{ if(S.short) bad.push('the '+n+' side’s bends take '+clen(S.arcs)+' of centre line but the side is '+clen(L)+' long: check its length, bend count or radius (its straight friction is counted as zero)'); });
   if(vf(R.vGh)<200||vf(R.vGc)<200) warn.push('a charge pipe is below Garrett’s 200 ft/s: bigger than needed, more volume to fill, slower boost response');
   if(q.step&&(R.trs.length||R.trIn)){ const save=(R.trIn?R.trIn.dpStep-R.trIn.dpCone:0)+R.trs.reduce((s,x)=>s+x[1].dpStep-x[1].dpCone,0); if(save>0) warn.push('the step couplers cost '+pD(save)+' more than cones would'); }
   const verdict=bad.length?'<div class="note bad" id="ts-verdict"><b>Needs a change:</b> '+bad.concat(warn).join('; ')+'.</div>':
@@ -20803,13 +20805,12 @@ const corrFlow=(kgs,tC,pPa)=>kgs*Math.sqrt((tC*1.8+32+460)/545)/(pPa/6894.757/13
    1.7% high at eps 0.75 and 5.1% high at eps 0.77 (Cr 1) (tools/validation/boost/thermo.py). Now the exact series (Mason
    1954; Kays and London; python-ht effectiveness_from_NTU 'crossflow' codes the same sum):
    eps = 1/(Cr NTU) sum_{n>=0} [1 - e^-NTU sum_{m<=n} NTU^m/m!] [1 - e^-(Cr NTU) sum_{m<=n} (Cr NTU)^m/m!],
-   each bracket a Poisson tail, summed until both tails vanish. Above NTU 500 (e^-NTU underflows) the closed form is
-   used, which is 1 to rounding there. */
-const epsXflowApprox=(ntu,cr)=>1-Math.exp(1/cr*Math.pow(ntu,0.22)*(Math.exp(-cr*Math.pow(ntu,0.78))-1));
-const epsXflow=(ntu,cr)=>{ if(!(ntu>0)) return 0; if(cr<=0) return 1-Math.exp(-ntu); if(ntu>500) return epsXflowApprox(ntu,cr);
-  const a=ntu, b=cr*ntu, N=Math.ceil(a+12*Math.sqrt(a)+40); let pa=Math.exp(-a), pb=Math.exp(-b), ca=pa, cb=pb, s=0;
-  for(let n=0;n<=N;n++){ if(n>0){ pa*=a/n; pb*=b/n; ca+=pa; cb+=pb; } const t=(1-ca)*(1-cb); s+=t; if(n>a&&t<1e-17) break; }
-  return s/b; };
+   each bracket a Poisson tail, summed until both tails vanish; the Poisson terms are formed in logarithms so that
+   e^-NTU does not underflow at large NTU. */
+const epsXflow=(ntu,cr)=>{ if(!(ntu>0)) return 0; if(cr<=0) return 1-Math.exp(-ntu);
+  const a=ntu, b=cr*ntu, la=Math.log(a), lb=Math.log(b), N=Math.ceil(a+12*Math.sqrt(a)+40); let lf=0, ca=0, cb=0, s=0;
+  for(let n=0;n<=N;n++){ if(n>0) lf+=Math.log(n); ca+=Math.exp(n*la-a-lf); cb+=Math.exp(n*lb-b-lf); const t=(1-Math.min(1,ca))*(1-Math.min(1,cb)); s+=t; if(n>a&&t<1e-17) break; }
+  return Math.min(1,s/b); };
 function ntuFor(eps,cr){ if(!(eps>0&&eps<1)) return NaN; let lo=0,hi=1; while(epsXflow(hi,cr)<eps&&hi<1e3) hi*=2; if(epsXflow(hi,cr)<eps) return NaN;
   for(let i=0;i<100;i++){ const mid=(lo+hi)/2; if(epsXflow(mid,cr)<eps) lo=mid; else hi=mid; } return (lo+hi)/2; }
 function turbineBalance(o){
@@ -21240,7 +21241,7 @@ function tsWgRangeHtml(w,aD,pD){
    Cd, and never if pi D^2/4 < Cd A. Boost audit 2026-11-12 (finding B15): the page compared Cd A with the full seat area
    alone and said "passes", which overstates what a valve at part lift passes. */
 const tsValveLift=(dmm,A)=>Math.PI/4*(dmm/1000)**2<A?null:A/(Math.PI*dmm/1000)*1000;   // mm of lift at Cd 1, null = short even fully open
-const tsValveTxt=(dmm,A)=>{ const L=tsValveLift(dmm,A); return cdim(dmm)+(L==null?' is short even fully open':' needs at least '+clen(L)+' of lift'); };
+const tsValveTxt=(dmm,A)=>{ const L=tsValveLift(dmm,A); return cdim(dmm)+(L==null?' is short even fully open':' needs at least '+cdim(L)+' of lift'); };
 const TS_VALVE_CAP='A valve passes air through its curtain, π × diameter × lift, until the lift reaches a quarter of the diameter, where the curtain equals the seat area (Kirkpatrick, Colorado State University, <a href="https://www.engr.colostate.edu/~allan/fluids/page4/page4.html" target="_blank" rel="noopener">Intake Flow</a>: A = π D L); so the lifts above are at Cd 1, and a real valve needs more by 1 ÷ Cd (Kirkpatrick gives about 0.6 for an engine intake valve; no figure for a wastegate or blow-off valve was found). Check the valve maker’s lift against them.';
 const TS_COUPLER=38.1;   // 1.5 in of tube inside a coupler: the Charge pipes section's Samco clamp position with a 3/4 in T-bolt band
 function orificeArea(m,p0,T0K,p,g,Rg){
@@ -21308,7 +21309,7 @@ function tsPlaceSection(ind,p,r){
         (W.pick?'; centre between '+clen(Math.max(0,W.lo))+' and '+clen(W.hi)+' from the turbine flange on the '+clen(W.colL)+' collector'+(W.fits?'':' — <b>too short</b> for a 45° branch of '+cdim(W.pick)+' ('+clen(W.foot)+' along the collector)'):''),CP+' (no instructions read state it)','wg');
       row('Take-off angle','45° to the flow toward the turbine, smooth transition; not 90°',V+'Garrett (90° loses up to 50% of flow capacity); Turbosmart (90° poor, can add to over-boost)','wgang');
       if(!(W.mw>0)) row('Branch and valve','no gate flow at peak power on these assumptions','at '+(+wgIn.k.toFixed(2))+' × boost the turbine needs all of the exhaust and more, so the turbine inlet pressure must be higher than assumed; raise Turbine inlet pressure or measure it, then size the gate','wgsize');
-      else row('Branch and valve',W.pick?cdim(W.pick)+' valve and branch bore, at '+clen(tsValveLift(W.pick,W.Aeff))+' of lift or more':'larger than '+cdim(60)+', or two gates',
+      else row('Branch and valve',W.pick?cdim(W.pick)+' valve and branch bore, at '+cdim(tsValveLift(W.pick,W.Aeff))+' of lift or more':'larger than '+cdim(60)+', or two gates',
         'effective area '+aD(W.Aeff)+' (Cd·A) for '+(W.mw*LBMIN).toFixed(1)+' lb/min ('+W.mw.toFixed(3)+' kg/s) of exhaust; the bore is the smallest whose seat area holds it, and the lift is at Cd 1; no published Cd for a wastegate valve, so allow for it','wgsize');
       row('Dump tube','to the atmosphere or back into the downpipe after the turbine','no published re-entry angle or distance was found, so none is given');
       row('Boost signal and heat','from the compressor outlet, not the manifold; diaphragm housing at least '+clen(100)+' from any heat source',V+'Garrett, Turbosmart GenV','wgref'); }

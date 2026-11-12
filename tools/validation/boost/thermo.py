@@ -196,3 +196,23 @@ out['w2a_loop'] = loop(600.0, 1500.0, Ch, Cw, 1.0 * CP_AIR, 101.56982099150139, 
 out['w2a_loop']['inputs'] = 'UA1 600, UA2 1500 W/K, water 20 L/min (rho 992, cp 4183), front air 1 kg/s, 6 L'
 if __name__ == '__main__':
     print(json.dumps(out, indent=1))
+
+
+# ---- 7. Back pressure after the turbine (finding B13): p4 = atmosphere + 2 psi (13789.514 Pa), eta 0.75, p3 = 2 x boost --
+def bp_case():
+    T3 = 950 + 273.15
+    S = nasa(gri)
+    cpr = sum(X[k] / nt * (lambda a: a[0] + T3 * (a[1] + T3 * (a[2] + T3 * (a[3] + T3 * a[4]))))(S[k][1]) for k in X)
+    g, cp = cpr / (cpr - 1), cpr * Rex
+    k = (g - 1) / g
+    Wc = ma * CP_AIR * (101.56982099150139 - 30)
+    me = ma * (1 + 1 / 12)
+    p3, p4 = PATM + 2 * 55158, PATM + 2 * 6894.757
+    share = Wc / (0.75 * me * cp * T3 * (1 - (p4 / p3) ** k))
+    mw = (1 - share) * me
+    A, ch = area(mw, p3, T3, p4, g, Rex)
+    return dict(p4=p4, turbine_share=share, wg_share=1 - share, mw=mw, A_mm2=A * 1e6, choked=ch, lift_40mm=A / (math.pi * 0.040) * 1000)
+
+
+if __name__ == '__main__':
+    print(json.dumps({'back_pressure_2psi': bp_case()}, indent=1))
