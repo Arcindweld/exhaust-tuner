@@ -265,25 +265,51 @@ def walk(elems, s):
     return elems[-1][2]
 
 
+def under_top(cl, c, d, w, L, W, top):
+    """How far a block's top stands above the lowest centreline point inside its footprint (L along d, W across)."""
+    under = [q[2] for q in cl if abs((q[0] - c[0]) * d[0] + (q[1] - c[1]) * d[1]) <= L / 2.0
+             and abs((q[0] - c[0]) * w[0] + (q[1] - c[1]) * w[1]) <= W / 2.0]
+    return top - min(under) if under else -1e9
+
+
+SL = math.radians(55.0)
 JIGS = [('level S with a 20 deg climb', [(0, 0, 0), (25, 0, 0), (40, 12, 5), (70, 12, 5)], 4.0, 4.445),
-        ('steep run (passes over 60 deg) and a drop', [(0, 0, 10), (20, 0, 10), (24, 2, 30), (40, 20, 2)], 3.0, 5.08)]
+        ('steep run (passes over 60 deg) and a drop', [(0, 0, 10), (20, 0, 10), (24, 2, 30), (40, 20, 2)], 3.0, 5.08),
+        ('1 in tube up a straight 55 deg slope', [(0, 0, 10), (30, 0, 10), (30 + 30 * math.cos(SL), 0, 10 + 30 * math.sin(SL)),
+                                                  (90 + 30 * math.cos(SL), 0, 10 + 30 * math.sin(SL))], 4.0, 2.54)]
 for name, Q, R, od in JIGS:
     g = RT.chain_geometry(Q, R)
+    ss = [k * 0.005 for k in range(int(sum(RT.elem_len(e) for e in g['elems']) / 0.005) + 1)]
+    cl = [walk(g['elems'], s) for s in ss]
     pl = JG.plan([{'name': 'T', 'elems': g['elems'], 'od': od}])
     o = pl['opts']
-    worst_top, worst_wrap, worst_st = 0.0, -1.0, 0.0
+    worst_top, worst_wrap, worst_st = -1e9, -1.0, 0.0
     for c in pl['cradles']:
-        half = o['block_len'] / 2
-        hs = [walk(g['elems'], c['s'] - half + o['block_len'] * k / 200.0)[2] for k in range(201)]
         p = walk(g['elems'], c['s'])
-        worst_top = max(worst_top, abs(c['top'] - min(hs)))
+        worst_top = max(worst_top, under_top(cl, c['centre'], c['d'], c['w'], c['length'], c['width'], c['top']))
         worst_wrap = max(worst_wrap, c['top'] - p[2])           # <= 0: the block's top is at or below the centreline here
         worst_st = max(worst_st, math.hypot(c['centre'][0] - p[0], c['centre'][1] - p[1]))
     ok(pl['cradles'] and all(abs(c['r'] - (od / 2 + o['clearance'])) < 1e-12 for c in pl['cradles']),
        '%s: %d cradles, every saddle radius the tube OD / 2 + %.2f mm clearance' % (name, len(pl['cradles']), 10 * o['clearance']))
-    ok(worst_top < 0.003 and worst_wrap <= 1e-9 and worst_st < 1e-6,
-       '%s: block tops at the lowest centreline point over the block (within %.3f mm), never above the centreline at the station '
-       '(no saddle past half the tube), stations on the centreline (%.1e mm)' % (name, 10 * worst_top, 10 * worst_st))
+    ok(worst_top < 0.005 and worst_wrap <= 1e-9 and worst_st < 1e-6,
+       '%s: no cradle block stands above the lowest centreline point inside its footprint (worst %+.3f mm; on a slope the block '
+       'reaches further along the tube than its length), so no saddle wraps past half the tube; stations on the centreline (%.1e mm)'
+       % (name, 10 * worst_top, 10 * worst_st))
+    # the continuous-saddle style (jig.plan_fab, built from the page's options): the same, block by block
+    pf = JG.plan_fab([{'name': 'T', 'elems': g['elems'], 'od': od}], (0.0, 0.0, 1.0), {'style': 'saddle', 'clearance': 0.025})
+    over, rs, nb = -1e9, set(), 0
+    for part in pf['parts']:
+        if part.get('kind') != 'saddle':
+            continue
+        for bx in part['add']:
+            if bx['H'] < 1.0 + 1e-6:                          # the feet
+                continue
+            nb += 1
+            over = max(over, under_top(cl, bx['c'], bx['d'], bx['w'], bx['L'], bx['W'], bx['c'][2] + bx['H'] / 2.0))
+        rs |= {round(c['r'], 9) for c in part['cut'] if c['k'] == 'cyl'}
+    ok(nb > 0 and rs == {round(od / 2 + 0.025, 9)} and over < 0.005,
+       '%s, continuous saddles: %d blocks, cut radius OD/2 + 0.25 mm, none above the lowest centreline point in its footprint '
+       '(worst %+.3f mm)' % (name, nb, 10 * over))
     if pl['skipped']:
         ok(all('deg from level' in k['why'] or 'under it' in k['why'] for k in pl['skipped']), '%s: places left out say why: %s' % (
             name, '; '.join(k['why'] for k in pl['skipped'])))

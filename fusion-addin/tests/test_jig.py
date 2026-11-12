@@ -63,8 +63,9 @@ if bend:
     ok(sag < 1e-6, 'the bend saddle is cut along the arc itself (points on the 2.62 in radius)')
 ok(len(cb) >= 1 and all(c['top'] <= RT.vdot(c['centre'], (0, 0, 1)) + c['height'] / 2 + 1e-9 for c in cb), 'tube B: cradles on its 20 deg run')
 ok(all(c['top'] < 8.0 + 30.0 * math.sin(math.radians(20)) for c in cb) and
-   all(abs(c['top'] - (8.0 + (c['s'] - 1.0) * math.sin(math.radians(20)))) < 1e-6 for c in cb if c['s'] < 29.0),
-   'rising tube: saddle top at the lowest centreline point over the block (downhill end)')
+   all(abs(c['top'] - (8.0 + (c['s'] - 1.0 / math.cos(math.radians(20))) * math.sin(math.radians(20)))) < 1e-6 for c in cb if c['s'] < 29.0),
+   'rising tube: saddle top at the lowest centreline point under the block (its downhill end, 1 cm level from the station, '
+   'so 1 / cos 20 deg along the tube)')
 ok(any(k['tube'] == 'Primary 2' and k['s'] > 30.0 for k in p['skipped']) and any('from level' in n for n in p['notes']),
    'the 75 deg rise gets no cradle, and the note says where')
 # a tube C crossing under tube A at x = 15, through the block there (it would cut it in pieces: seen live in Fusion,
