@@ -154,6 +154,7 @@ class T:
     def __init__(self, name, suite, cmd, cwd, env=None, needs=(), runner_skip=None, note='', require_if=None, unset=()):
         self.name, self.suite, self.cmd, self.cwd, self.env = name, suite, cmd, cwd, env or {}
         self.unset = tuple(unset)          # variables taken out of its environment
+        self.must_run_some = False         # cargo test with a name filter: fail when the filter matched nothing
         self.require_if = require_if       # 'core': add --require when the core is built by the time it runs
         self.needs = set(needs)            # builds it needs: host, core, wasm
         self.runner_skip = runner_skip     # (condition, reason) when a tool it cannot start without is missing
@@ -221,13 +222,14 @@ def plan(tools, quick):
     # the tests named *real_solver* run once more with the real OpenWAM
     solvers = ('EXHAUST_TUNER_OPENWAM', 'EXHAUST_TUNER_OPENFOAM')
     for crate, man in crates():
-        out.append(T('cargo_test_' + crate, 'rust', ['cargo', 'test', '--release', '--manifest-path', man, '--', '--show-output'],
-                     ROOT, runner_skip=nocargo, unset=solvers))
+        out.append(T('cargo_test_' + crate, 'rust', ['cargo', 'test', '--release', '--manifest-path', man, '--', '--show-output']
+                     + (['--skip', 'real_solver'] if crate == 'rust' else []), ROOT, runner_skip=nocargo, unset=solvers))
         if crate == 'rust':
             out.append(T('cargo_test_rust_real_openwam', 'rust', ['cargo', 'test', '--release', '--manifest-path', man, 'real_solver',
                          '--', '--show-output'], ROOT, unset=solvers[1:],
                          runner_skip=nocargo or (None if tools['openwam'] else ('no-openwam', 'no OpenWAM build (EXHAUST_TUNER_OPENWAM)')),
                          note='the tests named real_solver, with EXHAUST_TUNER_OPENWAM'))
+            out[-1].must_run_some = True
     out.append(T('wave_wasm_built', 'rust', [node, 'wave_wasm.js'], rel('web', 'tests'), dict(q, WAVE_WASM=WASM), needs={'wasm'}, runner_skip=nowasm,
                  note='the wave model built from rust/et_wave against the page\'s JavaScript'))
     # web: every web/tests/*.js; the arguments a test takes are read from its source
@@ -350,6 +352,8 @@ def judge(t, r):
         if lines:
             why += ('; ' if why else '') + lines[0].strip()[:160]
         return 'FAIL', why, []
+    if t.must_run_some and not re.search(r'test result: ok\. [1-9]', out):
+        return 'FAIL', 'its name filter matched no test (renamed?)', []
     m = WHOLE_SKIP.search(out)
     if m:
         return 'SKIP', m.group(1).strip(), []
