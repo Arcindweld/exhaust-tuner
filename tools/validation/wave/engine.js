@@ -4,7 +4,8 @@
 // collector cell after the merge, each open end's mass flow), and per-cycle mass and energy balances of the whole system
 // (in through the intake mouths, out of the tail ends, stored in pipes, cylinders and side volumes, released by the burn,
 // lost to the walls, done as work), so conservation is measured, not assumed.
-//   node engine.js job.json out.json      job: {spec, rpms, dx (m), cycles, [fanning], [gamma]}
+//   node engine.js job.json out.json      job: {spec, rpms, dx (m), cycles, [fanning], [gamma], [gas]}
+// gas: 'const' runs the constant gamma 1.35, R 287 model (spec.e.gas), else the page's default (the NASA gas, 2026-11-12).
 'use strict';
 const fs = require('fs');
 const { load } = require('./lib');
@@ -13,8 +14,10 @@ const FAN = job.fanning != null ? job.fanning : 0.005;
 const WS = load({ hook: true, fanning: job.fanning, gamma: job.gamma });
 const { GAM, RG, CV, CP, PATM, TATM } = WS;
 const spec = job.spec, dx = job.dx || 0.01, nCyc = job.cycles || 12;
-const eng = WS.makeEngine(spec.e, spec.intake, spec.exhaust, spec.opt);
-const rhoRef = PATM / (RG * TATM), N = eng.phases.length;
+const e = job.gas ? Object.assign({}, spec.e, { gas: job.gas }) : spec.e;
+const eng = WS.makeEngine(e, spec.intake, spec.exhaust, spec.opt), G = eng.gas;
+const eOf = (T, x) => G ? WS.gas.at(G, T, x).e : CV * T;   // internal energy per kg on the model's own datum
+const rhoRef = PATM / ((G ? G.Ra : RG) * TATM), N = eng.phases.length;
 
 function pipesOf(st) {
   return [].concat(...st.ins, ...st.prims, st.coll || [], ...(st.xl || []), ...(st.nets || []).map(n => [].concat(...n.lines)));
@@ -22,11 +25,11 @@ function pipesOf(st) {
 function stored(st) {
   let M = 0, E = 0;
   for (const P of pipesOf(st)) for (let i = 0; i < P.n; i++) { M += P.q1[i] * P.dx; E += P.q3[i] * P.dx; }
-  for (const c of st.cyls) { M += c.m; E += c.m * CV * c.T; }
-  for (const h of st.chambers) { M += h.m; E += h.m * CV * h.T; }
+  for (const c of st.cyls) { M += c.m; E += c.m * eOf(c.T, c.x); }
+  for (const h of st.chambers) { M += h.m; E += h.m * eOf(h.T, h.x); }
   return { M, E };
 }
-const out = { spec: job.spec, dx, cycles: nCyc, fanning: FAN, page: require('./lib').PAGE, runs: [] };
+const out = { spec: job.spec, dx, cycles: nCyc, fanning: FAN, gas: G ? 'nasa' : 'const', page: require('./lib').PAGE, runs: [] };
 for (const rpm of job.rpms) {
   const t0 = Date.now();
   const st = WS.freshState(eng, dx);
@@ -45,7 +48,7 @@ for (const rpm of job.rpms) {
     // pipe wall heat, from the same pre-step state the step used
     for (const P of ctx.all) for (let i = 0; i < P.n; i++) {
       const fr = 2 * FAN * P.r[i] * Math.abs(P.u[i]) * P.A[i] / P.D[i];
-      B.qPipe += dt * fr * CP * (P.Tw - P.p[i] / (RG * P.r[i])) * P.dx;
+      B.qPipe += dt * fr * P.cp[i] * (P.Tw - P.p[i] / (P.Rm[i] * P.r[i])) * P.dx;
     }
     const now = stored(ctx.st); B.dM += now.M - prev.M; B.dE += now.E - prev.E; prev = now;
     if (c === nCyc - 1) {
@@ -53,7 +56,7 @@ for (const rpm of job.rpms) {
       const cy = ctx.cyls[0], ep = ctx.prims[0][0], w = Math.min(1, Math.max(0, (0.01 - 0.5 * ep.dx) / ep.dx));
       tr.th.push(cy.th); tr.t.push(ctx.th); tr.pCyl.push(cy.p);
       tr.pPort.push(ep.p[0] + (ep.p[1] - ep.p[0]) * w);
-      tr.tPort.push(ep.p[0] / (RG * ep.r[0]));
+      tr.tPort.push(ep.p[0] / (ep.Rm[0] * ep.r[0]));
       const ip = ctx.ins[0][ctx.ins[0].length - 1], wi = Math.min(1, Math.max(0, (0.01 - 0.5 * ip.dx) / ip.dx));   // 10 mm before the intake valve
       tr.pIn.push(ip.p[ip.n - 1] + (ip.p[ip.n - 2] - ip.p[ip.n - 1]) * wi);
       tr.mIv.push(cy._mI / dt);
