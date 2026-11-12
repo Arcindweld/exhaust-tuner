@@ -15,4 +15,10 @@ Status
 - [x] sources fetched/verified (TM-4513 via Caltech nasa7.dat + Cantera nasa_gas.yaml; JANAF tables; MIT 2.61 lec4 K 3.5-3.7)
 - [x] JS gas model + const mode bit-identical (constref.js PASS, kat.json identical)
 - [x] found+fixed: supersonic sub-ambient open end ran away (9000 rpm warm start, variable gas); const fixtures unaffected
-- [ ] engine.js balances, sosExh unify, tests, Rust, WASM, OpenWAM, docs
+- [x] engine.js balances; species table = GRI-Mech 3.0 shared with sosExh (sosExh bit-identical; TM-4513 considered, see notes)
+- [x] Rust + WASM rebuilt, wave_wasm parity incl. const-mode vs fixture PASS
+- [x] web/tests/wavegas_ui.js (property KATs vs JANAF, closed-cylinder isentrope, supersonic exit, balances, const ref) PASS
+- [x] FOUND: compare.py aligned OpenWAM traces to the wrong TDC in 22/48 runs (port corr artefact) -> fixed TDC detection
+- [ ] OpenWAM rerun: base, const, nofric, nofricconst (background), then gas_report.py, work_split.py
+- [ ] page method text, docs addendum, STATUS, full test suite, pinned values
+Notes: TM-4513 better for N2 below 1000 K (0.05% vs 0.26%) but would move sosExh by up to 0.03% (physaudit, turbosize pins); kept GRI for one consistent table
