@@ -1452,3 +1452,25 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   in-cylinder heat by phase are the candidates left). No model change for it.
 - Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum part 3 (C1-C10); tests wavegas_ui.js 11, wave_wasm.js (two jobs),
   cam_ui.js (plenum share, head curve).
+## 2026-11-12, part 3: exhaust after the turbine with cooling, compressible flow, size steps, one muffler model
+
+- Intake tab, Exhaust after the turbine: the back pressure is now `exhMarch`: the gas cooled along each pipe run by the
+  Headers tab's tube-skin model (`calcSkin`: Gnielinski x CAF, Churchill-Chu / Churchill-Bernstein, radiation; new option
+  `cpGas`, the burned gas's cp in the energy balance), then marched from the tip back with the compressible 1-D relations
+  (Shapiro's influence coefficients with friction and heat loss, RK4; minor losses as total-pressure losses on the local
+  head; compressible Borda-Carnot for widenings; tip at the outside pressure plus Munjal's 0.4 H), steps between parts of
+  different bore (abrupt or cones), choking reported in words with no number. The figure is the static pressure at the
+  turbine outlet (a turbine map's outlet pressure), the total pressure beside it, and the cone taken as fully separated as
+  the other end. New inputs: cooling on/off, air temperature, air speed, outside finish, CAF (steady by default, Wendland's
+  measured factors), steps abrupt/cones. A table shows what each change moved against the first method.
+- Case A (turboguide_ui, 450 hp PT5862): first method 39.30 kPa (5.70 psi) -> 7.72 kPa (1.12 psi) static at the turbine
+  outlet (total 52.39 kPa / 7.60 psi; cone separated 16.30 kPa); of the 31.6 kPa: the head as ½ rho v² -2.22, cooling -0.66,
+  compressible -0.05, the turbine-outlet cone's static-pressure recovery and steps -28.66. Independent check
+  tools/validation/boost/xflow.py: 7700.13 Pa (0.21%), and 120749.90 against 120752.07 Pa on a second case.
+- Fixed on the way: the muffler and tip head took 1.4 p M²/2 with the exhaust's Mach number (8% high at 900 °C) in the turbo
+  sum; Wendland's CAF values were credited to "Daniel" (his first name). The muffler elements are one function for the
+  Mufflers tab and the turbo sum (`mufElems`, `mufElemLoss`; the hand copy `xMuffler` now calls it).
+- Open: the twin-downpipe Y (no symmetric-wye coefficient read), the Mufflers tab's own 1.4 head for its typed Mach (7% high
+  for hot exhaust; moves physics-audit pins), the Headers tab's air cp, CAF at full-power Re, the cone's real recovery
+  behind a turbine, double-wall pipe, aluminised emissivity. No NA whole-exhaust back-pressure sum exists to apply this to.
+  Details: docs/BOOST_AUDIT_2026-11-12.md, "Exhaust after the turbine, part 2"; tests web/tests/xflow_ui.js, turboguide_ui.js.

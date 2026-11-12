@@ -261,3 +261,123 @@ Tests: web/tests/turboar_ui.js.
 - A rich-mixture burned-gas composition for the turbine properties (B8).
 - Turbine flow per housing: makers print it only on map images (not digitised); the A/R verdict path for published
   flows is exercised on the one text figure (G40-1150, basis unstated) and on synthetic rows in turboar_ui.js.
+
+## Exhaust after the turbine, part 2 (2026-11-12): cooling, compressible flow, size steps, one muffler model
+
+The first exhaust sum (`exhAfterTurbine`, merged earlier today) was knowingly rough: gas held at the turbine-outlet
+temperature to the tip, incompressible K x head losses at Mach 0.3-0.8 (flagged, still summed), no steps between pipe
+sizes, and a hand copy of the Mufflers tab's muffler. It is replaced on the page by `exhMarch` and kept as the reference
+("First method" row). Sources were read this session; each model's equations are in the page's comment above `exhMarch`.
+
+**X1. Cooling along the pipe. NEW (reuses the Headers tab's model).** The page already had a tube-skin heat model,
+`calcSkin` (Headers tab, docs/research/header_skin_temperature.md): Gnielinski with Petukhov's f inside, times a
+pulsating-flow factor (CAF), wall / coating / wrap conduction, Churchill-Chu natural plus Churchill-Bernstein forced
+convection outside (cube-root combination) and grey radiation, emissivity by finish (oxidised 0.85; NASA TM, Wade 1959,
+0.87-0.91 for oxidised 347). The march runs it on each pipe run (m cp dT = -q dx), with one addition: `cpGas` puts the
+burned gas's cp(T) (GRI-Mech 3.0 polynomials, the table `sosExh` uses) in the energy balance; the Headers tab is unchanged
+(it keeps air's cp; at 800 °C the burned gas's is 1279 against air's 1156 J/kg K, so that tab's gas cools about 10% too fast:
+open, not changed). CAF: D. W. Wendland, SAE 931085 (1993), about 2.3 manifold, 3.0 takedown pipe, 1.6 tailpipe, averaged
+over Re 4,000-20,000, as given in S. A. Balasubramanian, PhD thesis, Windsor 2018 (core.ac.uk/download/215523088.pdf) and
+Spyrounakos and Mavropoulos, Computation 13 (2025) 223. **FIXED:** the page attributed these to "Daniel" (Wendland's first
+name, as the MDPI paper prints it); now Wendland 1993 on the Headers tab and in the research note. Alkidas et al. (2004, in
+the same thesis) found much lower factors, and full-power Re here is 10-50 x Wendland's range, so the default is CAF 1 (the
+steady formula: the least cooling, an upper bound on temperature); Wendland's factors are the other option. Konstantinidis
+et al. 1997 (the Headers tab's 2.5) could not be opened this session and is not offered here. Inputs (Intake tab, Exhaust
+after the turbine): cooling on/off, air temperature (30 °C), air speed across the pipe (0 / 30 / 60 / 100 mph: the air under a
+car moves slower than the car, not sourced), outside finish (SKIN_FIN), CAF. Aluminised steel: Cleveland-Cliffs' data sheet
+says only "reflecting up to 80%" of radiant heat below 427 °C; no emissivity at exhaust temperatures was found, so no entry.
+Double-wall pipe: no correlation read this session, not offered. Converter, muffler, cones and steps are adiabatic (a
+converter's reactions can heat the gas); the pipe after the downpipe is the Sound tab's whole length, so the converter and
+muffler sit at the downpipe's outlet temperature (high side). The driving temperature is T0 (high by 0.11 v²/2cp, under
+7 K at Mach 0.6).
+Check: calcSkin with a test-only fixed U against the exponential T(L) = Ta + (T0 - Ta) exp(-U pi D L / m cp) (0.2 kg/s,
+60 mm, 3 m, U 50, cp 1200: 714.4262 °C; page within 2.3e-5 of T - Ta, its 10 mm explicit steps), and with cp(T) against an
+RK4 integration; the full model against xflow.py's solve_ivp/brentq solution: tip T0 1127.4880 K vs 1127.4973 K (case 1),
+1146.8726 vs 1146.8740 K (case 2).
+
+**X2. Compressible flow. NEW.** Pipes: the generalised 1-D influence coefficients (Shapiro 1953 ch. 8; the dimensional form
+in J. M. Powers, Notre Dame AME 30332 notes, 4.1.4, eqs. 4.108-4.110; Darcy f, eq. 4.462), constant area, friction and heat
+loss together: dV/V = [psi dT0/T0 + gamma M² F/2]/(1 - M²), dp/p = -gamma M² dV/V - gamma M² F/2, F = f dx/D, RK4 upstream
+in steps of at most 10 mm, M from the mass flow at the local static pressure and T0, gamma of the burned gas at the local
+static T, Haaland f at the local Re. Minor losses (bends, muffler elements, converters, cones, contractions, tip) are
+stagnation-pressure losses K x ½ rho v² at the section's own state with p0 = p psi^(gamma/(gamma-1)) (NASA Glenn, Isentropic
+Flow) and the subsonic mass-flow function. Sudden enlargement: compressible Borda-Carnot (p1 A2 + m V1 = p2 A2 + m V2, T0
+held). Tip: exit static = outside pressure while subsonic, plus Munjal's measured free-jet element 0.4 x ½ rho v² (kept).
+Choking (Mach 0.995 in a pipe, no subsonic state for a part, or Mach >= 1 leaving the tip at the outside pressure) stops the
+march: "This exhaust chokes at X ... the pipe or part is too small", with the stagnation pressure that section would need at
+Mach 1 as a lower bound, no back pressure, the Use button off, checklist step 8 warns. The march is compressible everywhere
+(no switch at a Mach limit): below Mach 0.1 it agrees with the first method's formulas within 0.12% (downpipe with two bends:
+-0.115%; downpipe, chamber, tail pipe and tip at Mach 0.041: -0.124% against the first method with the head as ½ rho v²).
+Checks (xflow_ui.js): Powers' Fanno relation reproduces the published gamma 1.4 table (f L*/D 14.533 / 5.2993 / 1.0691 /
+0.07229 at M 0.2 / 0.3 / 0.5 / 0.8; p/p* 3.6191 / 2.1381 / 1.2893); the page's pipe march from M 0.8 back over L = D (F(0.3) -
+F(0.8)) / f finds M 0.3 to 1e-6 and p1/p2 = 2.807045 (closed form 2.807045), 0.5 -> 0.8: 1.658364 and p01/p02 1.290508 (both
+to 1e-9); a 0.997 exit is reported choked; the enlargement against the forward closed form (M 0.6, area ratio 0.5: p1
+recovered to 1e-7) and Borda-Carnot at Mach 0.04 (0.12%); a state no subsonic upstream flow can feed returns choked.
+**FIXED on the way:** the first method took the muffler's and tip's head as mufBackPressure's 1.4 p M²/2 with the exhaust's
+Mach number (v / c of the burned gas): 1.4 / gamma too much, about 8% at 900 °C. The march uses ½ rho v². The Mufflers tab
+still uses 1.4 p M²/2 with its typed Mach number, about 7% high for hot exhaust (gamma 1.30): OPEN (changing it moves the
+physics-audit pins 15.6 / 4.5 / 23.6 kPa; owner's call).
+
+**X3. Steps and merges. NEW / UNSOURCED left out.** Consecutive parts of different bore (downpipe -> converter pipe ->
+muffler pipe -> each Sound-tab section -> tip) get a step, abrupt (default) or cones (input): enlargement by X2's
+Borda-Carnot, contraction by Rennels' sharp contraction (python-fluids `contraction_sharp`; K by hand in xflow_ui:
+72.9 -> 60.2 mm K 0.1952269), cones by `tsStep`'s least-loss Rennels cone; the turbine-outlet cone as before. The
+twin-downpipe Y is not counted: Crane's converging tee/wye (python-fluids `K_branch_converging_Crane`,
+`K_run_converging_Crane`) is a straight run with one angled branch and its flow split; a Y with both legs angled is not that
+fitting, and Idelchik's symmetric-wye diagrams were not read. The step at the Y shows as "not counted"; a converter count
+other than the pipe count is joined without a step (listed under Not counted).
+
+**X4. The back pressure's basis. CHANGED.** The page now gives the static pressure at the turbine outlet (the housing's
+bore) over the outside air's, and the total pressure there: a turbine map's pressure ratio is "total pressure at the turbine
+inlet and static pressure at the turbine outlet" (MotoIQ, Turbo Tech: Compressor and Turbine Map Details). The first method
+added K x head to the static pressure everywhere, so across a size change it left out the static change of the speed
+change itself; for the turbine-outlet cone (60.2 -> 72.9 mm at Mach 0.74 -> 0.42 on case A) the 1-D diffuser recovers
+27.9 kPa of static pressure. That recovery is the least sure number in the sum (swirl and uneven flow after a turbine; no
+source in hand), so the page also gives the figure with the cone taken as fully separated (a sudden widening, Borda-Carnot).
+
+**X5. One muffler model. FIXED (refactor).** `mufElems(kind, inputs)` builds the elements (Munjal 1987 eq. 8.4 and
+Table 3.1; Munjal, Vijayasree and Chaitanya 2013 for the plug; baffle holes on the hole's head) and `mufElemLoss(E, H, Hh)`
+prices them; the Mufflers tab's four back-pressure rows and the turbo sum's `xMuffler` both call them. Equality checked on
+four cases (straight chamber Mach 0.15: 1810.164 Pa; reverse 0.12: 1532.034; plug 100 mm at 10%, 0.15: 15563.710; three
+baffles with 50 mm holes, 0.10: 4507.786), each also by hand; physaudit_ui and perfflow_ui pins unchanged.
+
+**X6. Case A (turboguide_ui: 450 hp, PT5862 0.63 A/R 4-bolt, 609.6 mm downpipe, 152.4 mm chamber on 72.898 mm, 2500 mm of
+76.2 mm OD pipe, still 30 °C air, oxidised, CAF 1), before and after.**
+
+| Part | First method | Gas in -> out (static) | Mach in -> out | Static rise now | Total-pressure loss now |
+|---|---|---|---|---|---|
+| Cone 60.2 -> 72.9 mm, 8.0° | 746.87 | 816 -> 875 °C | 0.74 -> 0.42 | -27938.1 | 884.5 |
+| Downpipe 609.6 mm | 2065.41 | 875 -> 862 °C | 0.42 -> 0.42 | 2175.2 | 2082.7 |
+| Chamber muffler | 19294.96 | 862 -> 853 °C | 0.42 -> 0.48 | 17434.9 | 14956.9 |
+| Pipe after, 1890.4 mm | 7985.72 | 853 -> 814 °C | 0.48 -> 0.51 | 8789.7 | 7860.9 |
+| Tip | 9208.70 | 814 -> 808 °C | 0.51 -> 0.54 | 7254.7 | 5785.7 |
+| **Back pressure** | **39301.66 (5.70 psi)** | | | **7716.37 (1.12 psi)** static | total 52389.50 (7.60 psi) |
+
+Pa. Gas T0 902.77 °C at the turbine, 854.34 °C at the tip, 29.5 kW through the walls; cone fully separated: 16.30 kPa
+(2.36 psi). What each change moved: first method 39301.66 -> head as ½ rho v² 37083.22 (-2218.4) -> cooling 36427.60 (-655.6)
+-> compressible 36377.42 (-50.2) -> size changes and the static pressure across them 7716.37 Pa (-28661.1). The
+independent xflow.py (solve_ivp on the primitive equations with cp(T), brentq states, its own Rennels and Munjal code,
+NASA-7 data from Cantera's gri30.yaml): 7700.128 Pa (page -0.21%), total 52380.103 (+0.02%), parts within 0.12%. Case 2
+(one bend, the plug muffler 100 mm at 10%, an 88.9 mm OD pipe after it (abrupt widening), one layer of wrap, 60 mph,
+Wendland's factors): page 120752.065 Pa, xflow.py 120749.896 (-1.8e-5); the first method gave 284956.66 Pa (the plug
+muffler at K 12.9 heads, incompressible) and the compressible march 137548 Pa before the steps. Neither tail differs more
+than 0.12%: the residual is the page holding gamma over each 10 mm step (with gamma fixed both solvers agree to 1e-6).
+
+**Pins changed (each old -> new, why).** turboguide_ui: the filled Back pressure after the turbine and the turbine
+caption's figure 39301.66 Pa (5.70 psi) -> 7716.37 Pa (1.12 psi), X1-X4; the hand case now checks the first method
+(`exhAfterTurbine`, unchanged to the last digit) and its "First method" row; "parts past Mach 0.3 are flagged" -> the first
+method's 39.30 kPa shown as the comparison's start (the march works those parts compressibly); the converter-by-hand check
+reads the first method's converter row (same formula as before); the build sheet's assumption "not cooled along the pipe"
+-> "cooled along the pipe by the steady-flow heat transfer ... compressible 1-D relations", key numbers add the static /
+total basis and the gas at the tip. No other test's pins moved.
+
+**Not sourced / left open.** The Y merge (X3); the converter's exotherm; double-wall pipe; an aluminised-steel emissivity;
+a pulsating-flow factor at full-power Reynolds numbers (default CAF 1, an upper bound on temperature); the turbine-outlet
+cone's real recovery behind a turbine (both ends shown); the lumped elements' compressible split when a part loses more than
+about a tenth of its pressure (the K are low-Mach measurements, taken on the inlet's head: case 2's plug muffler loses 48% of
+its inlet total pressure, so its figure is indicative; such parts carry a warning mark and caption on the page); the Mufflers tab's 1.4 head (X2); the Headers tab's air cp (X1);
+burned-gas transport properties (air's mu, k in the film, as before). There is no naturally aspirated whole-exhaust
+back-pressure sum on the page (the Cats tab works its converter at its own typed gas temperature, the Mufflers tab at a
+typed Mach number), so nothing there changed; `exhMarch` takes any exhaust and could serve one.
+Tests: web/tests/xflow_ui.js (new), turboguide_ui.js (pins above); tools/validation/boost/xflow.py and xflow_page.js. Web suite
+(run_all_tests.py --suite web --no-build -j 2): 108 tests, 103 passed, 0 failed, 5 skipped (expected), 7 partial skips, 0 unexpected.
