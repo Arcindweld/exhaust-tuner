@@ -4440,10 +4440,39 @@ def _cfd_inside(body, counter):
     return inside
 
 
+def _cfd_mouth_free(tube, mouth_p, mouth_t, r_in, r_out):
+    """mount 'auto': True when nothing solid is against the mouth face: no other visible solid body contains any of 12
+    points 1 mm in front of the mouth on its rim's mid radius (mm, world)."""
+    u = TC.perp(mouth_t)
+    v = TC._cross(mouth_t, u)
+    rm = 0.5 * (r_in + r_out)
+    pts = [TC._add(TC._sub(mouth_p, mouth_t), TC._add(TC._mul(u, rm * math.cos(2 * math.pi * k / 12)), TC._mul(v, rm * math.sin(2 * math.pi * k / 12))))
+           for k in range(12)]
+    root = _design().rootComponent
+    bodies = [root.bRepBodies.item(i) for i in range(root.bRepBodies.count)]
+    for j in range(root.allOccurrences.count):
+        occ = root.allOccurrences.item(j)
+        bodies += [occ.bRepBodies.item(i) for i in range(occ.bRepBodies.count)]
+    try:
+        tok = tube.entityToken
+    except Exception:
+        tok = None
+    for b in bodies:
+        try:
+            if (tok is not None and b.entityToken == tok) or not b.isSolid or not b.isVisible:
+                continue
+            if any(_ps_inside(b, p) for p in pts):
+                return False
+        except Exception:
+            continue
+    return True
+
+
 def act_cfd_tube(data):
     """The selected intake tube as the CFD generator's parametric geometry (tubecfd.design_geometry) and the Intake
-    tab's inputs for it. data: {mouth: 'auto' | 'other'}: auto = the end whose end face was clicked, or the end nearer
-    where the tube was clicked; other = the opposite end."""
+    tab's inputs for it. data: {mouth: 'auto' | 'other', mount: 'flange' (default) | 'free' | 'auto'}: mouth auto = the
+    end whose end face was clicked, or the end nearer where the tube was clicked; other = the opposite end. mount: the
+    mouth flush in a plenum wall, standing free in open air, or free when no other body is against the mouth face."""
     sels = _ui.activeSelections
     items = [sels.item(i) for i in range(sels.count)]
     ents = [it.entity for it in items]
@@ -4518,7 +4547,14 @@ def act_cfd_tube(data):
         if g.surfaceType == adsk.core.SurfaceTypes.TorusSurfaceType:
             tori.append((tuple(10.0 * c for c in _t(g.origin)), _t(g.axis), 10.0 * g.majorRadius, 10.0 * g.minorRadius))
     lip = TC.mouth_lip(tori, mouth_p, mouth_t, r_in)
-    geometry, info = TC.design_geometry(segs, 2.0 * r_in, r_out - r_in, lip, profile=TC.profile_from(probe, at_end))
+    mount = str(data.get('mount') or 'flange')
+    if mount not in ('flange', 'free', 'auto'):
+        raise ValueError('mount must be flange, free or auto, not %r' % mount)
+    mount_how = mount
+    if mount == 'auto':
+        mount = 'free' if _cfd_mouth_free(body, mouth_p, mouth_t, r_in, r_out) else 'flange'
+        mount_how = 'auto: ' + ('nothing is against the mouth face' if mount == 'free' else 'a body is against the mouth face')
+    geometry, info = TC.design_geometry(segs, 2.0 * r_in, r_out - r_in, lip, profile=TC.profile_from(probe, at_end), mount=mount)
     name = body.name
     msg = TC.describe(info, name) + ' Air enters at %s, at (%s) mm.' % (how, ', '.join('%.1f' % c for c in mouth_p))
     bends = [{'clr_mm': round(b['clr_mm'], 2), 'angle_deg': round(b['angle_deg'], 2), 'start_mm': round(b['start_mm'], 1),
@@ -4528,7 +4564,8 @@ def act_cfd_tube(data):
                                              'length_mm': round(L, 2), 'lip_mm': info['lip_mm'], 'mouth_mm': [round(c, 2) for c in mouth_p],
                                              'mouth_how': how, 'path_beyond_mm': [round(max(0.0, s0), 1), round(max(0.0, L_path - s1), 1)],
                                              'body_beyond_path_mm': [round(max(0.0, -s0), 1), round(max(0.0, s1 - L_path), 1)],
-                                             'mouth': info['mouth'], 'cone': info['cone'], 'notes': info['notes'],
+                                             'mouth': info['mouth'], 'cone': info['cone'], 'cones': info['cones'], 'notes': info['notes'],
+                                             'mount': info['mount'], 'mount_how': mount_how, 'protrusion_mm': info['protrusion_mm'],
                                              'probes': probes[0], 'read_s': round(time.time() - t_read, 2)}}
 
 

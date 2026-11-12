@@ -12,7 +12,9 @@ It cannot show what Fusion itself returns (tests/fusion_live_intakecfd.py does t
   - the bore probed from the centreline: the owner's tube with a 60 mm cone to a 105 mm throttle bore joined on past its
     Pipe path (diameter_change, the tract end half a tube bore past the throttle face, the tab's throttle bore), the same
     with a 3.5 mm lip fillet, beads / hose barbs / a filter cuff on the outside (no change), a bellmouth ahead of the path,
-  - refused, in a sentence: a taper into a bend, an oval bore, two diameter changes, a mesh body, nothing selected, two
+  - two diameter changes (a reducer mid-run and the cone to the throttle) as the generator's diameter_change list,
+  - the mount: flange by default, free on request, auto (free unless another body is against the mouth face),
+  - a taper into a bend read as a cone on the bend; refused, in a sentence: an oval bore, an unknown mount, a mesh body, nothing selected, two
     bodies, no path, curves that do not run in the tube.
    python3 tests/test_intakecfd_fusion_fake.py"""
 import math
@@ -415,6 +417,51 @@ ib = ((rbe.get('tube') or {}).get('geometry') or {}).get('inlet') or {}
 ok(rbe.get('ok') and ib.get('type') == 'ellipse' and ib.get('exit_diameter_mm') == 92.61 and abs(ib['length_mm'] - 40.0) < 0.5 and abs(ib['entry_diameter_mm'] - 138.91) < 0.5 and rbe['tube']['fill']['mouth'] == 'ellipse'
    and 'elliptical bellmouth' in rbe.get('msg', ''), 'an elliptical bellmouth (40 mm, 138.9 mm entry) joined on ahead of the path: %s; the tab gets "Elliptical bellmouth" (%s)' % (ib, rbe.get('msg')))
 
+# a reducer mid-run (92.61 -> 80 mm over 30 mm from 200 mm) and the cone at the end (80 -> 105 mm over 60 mm past the
+# Pipe path): two diameter changes, each from the bore before it (the generator's diameter_change list)
+two = lambda s: 40.0 + 12.5 * min(1.0, (s - L_own) / 60.0) if s > L_own else (40.0 if s > 230 else (R_IN - (R_IN - 40.0) * (s - 200) / 30.0 if s > 200 else R_IN))
+b2c = TubeBody(segs_c, R_IN, R_OUT, path_ents=sketch_curves(segs), bore=two, outer=lambda s: two(s) + 4.76)
+select(Sel(Face(b2c, b2c.faces[1].geometry), outside_point(b2c, segs, 50.0)))
+r2c = run()
+t2c = r2c.get('tube') or {}
+dl = (t2c.get('geometry') or {}).get('diameter_change')
+ok(r2c.get('ok') and isinstance(dl, list) and len(dl) == 2 and dl[0]['to_diameter_mm'] == 80.0 and abs(dl[0]['start_mm'] - 200.0) < 0.1
+   and abs(dl[0]['cone_half_angle_deg'] - math.degrees(math.atan(6.305 / 30.0))) < 0.05 and dl[1]['to_diameter_mm'] == 105.0
+   and abs(dl[1]['start_mm'] - L_own) < 0.1 and abs(dl[1]['cone_half_angle_deg'] - math.degrees(math.atan(12.5 / 60.0))) < 0.05
+   and set(t2c['geometry']['planes_mm']) == {'reducer_in', 'reducer_out', 'tube_end', 'throttle_face'}
+   and t2c['fill']['tb_mm'] == 105.0 and t2c['fill']['reducer']['to_mm'] == 80.0 and len(t2c['cones']) == 2,
+   'a reducer mid-run and the cone at the end: two diameter changes %s, planes %s, the tab gets the 105 mm throttle bore and the 80 mm reducer'
+   % (dl, sorted((t2c.get('geometry') or {}).get('planes_mm', {}))))
+
+# ---------------------------------------------------------------- 6b. the mount: flange (default), free, auto
+select(Sel(Face(body, body.faces[1].geometry), outside_point(body, segs, 20.0)))
+rf = run({'mount': 'free'})
+tf_ = rf.get('tube') or {}
+ok(rf.get('ok') and tf_['geometry']['mount'] == {'type': 'free'} and tf_['mount'] == 'free' and abs(tf_['protrusion_mm'] - 92.61) < 0.01
+   and 'free-standing' in rf['msg'] and {k: v for k, v in tf_['geometry'].items() if k != 'mount'} == {k: v for k, v in r['tube']['geometry'].items() if k != 'mount'},
+   'mount free: the same tube with mount {type: free}, standing %.2f mm proud (to bend 1 at 100 mm)' % tf_.get('protrusion_mm', 0))
+ok(r['tube']['geometry']['mount'] == {'type': 'flange'} and r['tube']['mount'] == 'flange', 'no mount asked: flange-mounted, as before')
+m0, t0_ = segs_tc(segs)[0]['a'], segs_tc(segs)[0]['t0']
+
+
+class Plate(object):
+    """A plenum wall or airbox 5 mm thick against the mouth face (all of it within 300 mm of the axis)."""
+    objectType, isSolid, isVisible, entityToken = 'adsk::fusion::BRepBody', True, True, 'plate'
+
+    def pointContainment(self, pt):
+        p = (pt.x * 10, pt.y * 10, pt.z * 10)
+        a = dot(sub(p, m0), t0_)
+        return INSIDE if -5.0 < a < 0.0 and TC._len(sub(sub(p, m0), mul(t0_, a))) < 300.0 else OUTSIDE
+
+
+body.isVisible = True
+for others, want_m in (([body], 'free'), ([body, Plate()], 'flange')):
+    CT._design = lambda o=others: types.SimpleNamespace(rootComponent=types.SimpleNamespace(bRepBodies=Coll(o), allOccurrences=Coll([])))
+    select(Sel(Face(body, body.faces[1].geometry), outside_point(body, segs, 20.0)))
+    ra = run({'mount': 'auto'})
+    ok(ra.get('ok') and ra['tube']['mount'] == want_m and ra['tube']['geometry']['mount'] == {'type': want_m} and 'auto' in ra['tube']['mount_how'],
+       'mount auto, %s: %s (%s)' % ('a plate against the mouth face' if len(others) > 1 else 'nothing but the tube', want_m, ra.get('tube', {}).get('mount_how')))
+
 if os.environ.get('ET_WRITE_FIXTURES') == '1':
     # the page test's add-in answers (web/tests/fxcfd_ui.js): the plain tube and the cone-ended one, as read here
     fx = os.path.join(os.path.dirname(os.path.dirname(HERE)), 'web', 'tests', 'fixtures')
@@ -432,14 +479,15 @@ def refused(want, what, data=None):
 
 bt = TubeBody(segs, R_IN, R_OUT, path_ents=sketch_curves(segs), taper=(450.0, 0.02))
 select(Sel(Face(bt, bt.faces[1].geometry), outside_point(bt, segs, 20.0)))
-refused('inside bend 2', 'a bore that tapers from 450 mm on (into bend 2)')
+rt = run()
+dct = ((rt.get('tube') or {}).get('geometry') or {}).get('diameter_change') or {}
+ok(rt.get('ok') and abs(dct.get('start_mm', 0) - 450.0) < 0.5 and 'a cone from 92.61' in rt.get('msg', ''),
+   'a bore that tapers from 450 mm on, into bend 2: read as a cone that runs into the bend (the generator meshes it): %s' % dct)
 bo = TubeBody(segs, R_IN, R_OUT, path_ents=sketch_curves(segs), oval=1.06)
 select(Sel(Face(bo, bo.faces[1].geometry), outside_point(bo, segs, 20.0)))
 refused('The bore is not round', 'a bore squashed 6% oval past the middle')
-two = lambda s: R_IN + (52.5 - R_IN) * min(1.0, max(0.0, (s - L_own) / 60.0)) if s > L_own else (40.0 if s > 230 else (R_IN - (R_IN - 40.0) * (s - 200) / 30.0 if s > 200 else R_IN))
-b2c = TubeBody(segs_c, R_IN, R_OUT, path_ents=sketch_curves(segs), bore=two, outer=lambda s: two(s) + 4.76)
-select(Sel(Face(b2c, b2c.faces[1].geometry), outside_point(b2c, segs, 50.0)))
-refused('changes size 2 times', 'a reducer mid-run and the cone at the end (two diameter changes)')
+select(Sel(Face(body, body.faces[1].geometry), outside_point(body, segs, 20.0)))
+refused('mount must be', 'mount neither flange, free nor auto', {'mount': 'sideways'})
 mesh = types.SimpleNamespace(objectType='adsk::fusion::MeshBody', entityToken='m')
 select(Sel(mesh))
 refused('mesh body', 'a mesh body (a scan)')

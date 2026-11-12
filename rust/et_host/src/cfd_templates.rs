@@ -569,14 +569,14 @@ geometry
             extension_wall  { name extension_wall; }
             outlet          { name outlet; }
             plenum_wall     { name plenum_wall; }
-        }
+%(geo_rg)s        }
     }
     tract_closed.stl
     {
         type    triSurfaceMesh;
         name    tractClosed;
     }
-    mouthRegion
+%(geo_x)s    mouthRegion
     {
         type    searchableSphere;
         centre  (0 0 0);
@@ -609,7 +609,7 @@ castellatedMeshControls
                 extension_wall  { level (%(l)d %(l)d); patchInfo { type wall; inGroups (wall); } }
                 outlet          { level (%(l)d %(l)d); patchInfo { type patch; } }
                 plenum_wall     { level (%(lm)d %(lm)d); patchInfo { type wall; inGroups (wall); } }
-            }
+%(rs_x)s            }
         }
     }
     resolveFeatureAngle 30;
@@ -625,7 +625,7 @@ castellatedMeshControls
             mode    inside;
             levels  ((1e15 %(l)d));
         }
-    }
+%(rr_x)s    }
     locationInMesh %(loc)s;
     allowFreeStandingZoneFaces true;
 }
@@ -904,6 +904,26 @@ pub const M3_PROV4: &str = r#"locationInMesh is inside the plenum (atmosphere si
 pub const M3_PROV5: &str = r#"slipFeatureAngle 100: the tract-wall layers stop at the mouth instead of sliding along the plenum floor; at 30 their end faces became floor (wall) faces, a ledge one layer stack deep inside the mouth that read a sharp flush entrance as K 1.0 instead of 0.5"#;
 pub const MQ_PROV: &str = r#"standard snappyHexMesh quality limits"#;
 pub const M3_NOTE: &str = r#"3-D snappyHexMesh, roughly %d cells (estimate)"#;
+pub const M3_FREE_GEO_RG: &str = r#"            inlet_wall      { name inlet_wall; }
+"#;
+pub const M3_FREE_GEO_X: &str = r#"    inlet_wall.stl
+    {
+        type    triSurfaceMesh;
+        name    lipShell;
+    }
+"#;
+pub const M3_FREE_RS_X: &str = r#"                inlet_wall      { level (%d %d); patchInfo { type wall; inGroups (wall); } }
+"#;
+pub const M3_FREE_RR_X: &str = r#"        lipShell
+        {
+            mode    distance;
+            levels  ((%s %d));
+        }
+"#;
+pub const M3_FREE_PROV1: &str = r#"free mount: the tube stands %.2f mm proud of the plenum wall (plane x = %.2f mm); its outside, radius %.2f mm, and the lip's outer face are patch inlet_wall"#;
+pub const M3_FREE_PROV2: &str = r#"lip and protruding wall: level %d (cell %.3f mm, %.1f across the thinnest wall, %.3f mm) within %.3f mm of the outside (lipShell, distance)"#;
+pub const M3_FREE_BPROV: &str = r#"free mount: the plenum reaches past the mouth to the plenum wall at x = %.2f mm"#;
+pub const M3_FREE_ERR: &str = r#"free mount: the tube wall is %.2f mm thick at its thinnest, too thin for the 3-D mesh at level '%s' (it needs %.2f mm cells, %g across); use mesh level fine, a thicker wall or mount type flange"#;
 pub const MX_BPROV1: &str = r#"background box: the part's bounding box plus 0.75 D (D = outlet dia. %.2f mm); base cell %.2f mm = D/%g"#;
 pub const MX_BPROV2: &str = r#"the box is discarded by snappyHexMesh except the part's interior (locationInMesh inside the outlet extension)"#;
 pub const MX_BPROV3: &str = r#"inlets %s extruded upstream by %.1f D each; outlet extruded by %.1f D"#;

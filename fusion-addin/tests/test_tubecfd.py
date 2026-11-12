@@ -542,10 +542,85 @@ def refused_read(want, what, *a, **k):
         ok(want in str(e) and 'mm (' in str(e), what + ': "' + str(e) + '"')
 
 
-two = lambda s: (R0 + (52.5 - R0) * min(1.0, (s - L_own) / 60.0)) if s > L_own else (40.0 if s > 330 else (R0 - (R0 - 40.0) * (s - 300) / 30.0 if s > 300 else R0))
-refused_read('changes size 2 times', '(f) a reducer mid-run and a cone at the end (two diameter changes)', body_a, two, lambda s: two(s) + W0, path_a)
+# (g) a reducer mid-run AND the cone to the throttle: the generator's diameter_change list, each cone from the bore
+# before it; the 3-D case generated, its bore round trip through intake_cfd.tube_radius
+two = lambda s: (40.0 + 12.5 * min(1.0, (s - L_own) / 60.0)) if s > L_own else (40.0 if s > 330 else (R0 - (R0 - 40.0) * (s - 300) / 30.0 if s > 300 else R0))
+g2, i2, s2, _p, _n = read(body_a, two, lambda s: two(s) + W0, path_a)
+dl = g2.get('diameter_change')
+ok(isinstance(dl, list) and len(dl) == 2 and dl[0]['to_diameter_mm'] == 80.0 and abs(dl[0]['start_mm'] - 300.0) < 0.1
+   and dl[1]['to_diameter_mm'] == 105.0 and abs(dl[1]['start_mm'] - L_own) < 0.1
+   and list(g2['planes_mm']) == ['reducer_in', 'reducer_out', 'tube_end', 'throttle_face'] and abs(g2['tube_length_mm'] - (L_own + 60 + 46.305)) < 0.06,
+   '(g) a reducer mid-run (92.61 -> 80 mm at 300 mm) and the cone at the end (80 -> 105 mm): diameter_change %s, planes %s' % (dl, g2.get('planes_mm')))
+wr, at = radius_trip(g2, two, L_own + 60.0)
+f2 = TC.tab_fill(i2)
+txt2 = TC.describe(i2, 'CAI')
+ok(wr < 0.02 and f2['tb_mm'] == 105.0 and f2['reducer']['to_mm'] == 80.0 and txt2.count(' bore, ') >= 3 and 'a reducer from 92.61' in txt2 and 'a cone from 80.00' in txt2,
+   '(g) bore round trip within %.4f mm (worst at %.1f mm); the tab gets the 105 mm throttle bore and the reducer; said: %s' % (wr, at, txt2[-420:]))
+good, last = generate(g2, 'reducer_and_cone', True)
+ok(good and {'reducer_in', 'reducer_out', 'tube_end', 'throttle_face', 'tract_end'} <= set(last), '(g) the generator writes the 3-D case with planes %s' % last)
+def three(s):
+    if s <= 300:
+        return R0
+    if s <= 330:
+        return R0 - (R0 - 40.0) * (s - 300) / 30.0
+    if s <= 780:
+        return 40.0
+    if s <= 800:
+        return 40.0 - 4.0 * (s - 780) / 20.0
+    return 36.0 if s <= L_own else 36.0 + 16.5 * min(1.0, (s - L_own) / 60.0)
+
+
+g3, i3, _s, _p, _n = read(body_a, three, lambda s: three(s) + W0, path_a)
+ok(isinstance(g3.get('diameter_change'), list) and len(g3['diameter_change']) == 3 and g3['diameter_change'][1]['to_diameter_mm'] == 72.0
+   and 'reducer1_in' in g3['planes_mm'] and 'reducer2_out' in g3['planes_mm'],
+   '(g) three changes: %s, planes %s' % ([c['to_diameter_mm'] for c in g3.get('diameter_change', [])], sorted(g3.get('planes_mm', {}))))
+# a 2-D (straight) tube with two changes: the generator's axisymmetric case
+two_c = lambda s: R0 - 8.0 * min(1.0, max(0.0, (s - 150) / 40.0)) + 6.0 * min(1.0, max(0.0, (s - 300) / 30.0))
+g2d, i2d, _s, _p, _n = read(body_c, two_c, lambda s: R0 + 12.0, path_c)
+good, last = generate(g2d, 'two_changes_2d', False)
+wr, at = radius_trip(g2d, two_c, 440.0)
+ok(isinstance(g2d.get('diameter_change'), list) and len(g2d['diameter_change']) == 2 and good and wr < 0.02,
+   '(g) a straight tube with a reducer and a cone after it: %s; the 2-D case generated; bore round trip %.4f mm' % (g2d.get('diameter_change'), wr))
+
+# (h) the mount: flange by default; free on request (the generator's free mount), refused when the tube has no straight
+# behind the mouth for it
+gfree, ifree, _s = TC.tube_design(owner_tube()[0].curves, 92.61, 4.76, mount='free')
+ok(gfree['mount'] == {'type': 'free'} and ifree['mount'] == 'free' and abs(ifree['protrusion_mm'] - 92.61) < 1e-6 and 'free-standing' in TC.describe(ifree)
+   and geo['mount'] == {'type': 'flange'},
+   '(h) mount free: the owner\'s tube standing %.2f mm proud (to bend 1 at 100 mm); flange by default' % ifree['protrusion_mm'])
+good, last = generate(gfree, 'owner_free', True)
+ok(good, '(h) the generator writes it as a free-standing 3-D case (%s)' % last)
+nearb = Builder((0, 0, 0), (1, 0, 0))
+nearb.line(10.0)
+nearb.arc(100, 90, (0, 1, 0))
+nearb.line(200.0)
+refused(lambda: TC.tube_design(nearb.curves, 92.61, 4.76, mount='free'), 'A free-standing mouth needs', 'a free mouth with a bend 10 mm behind it')
+
+# (i) a measured mouth profile: a flare no fitted model is within 0.15 mm of (a quadratic horn leaving the mouth at
+# 53 degrees) goes to the generator as its own points (inlet 'profile'), the bore round trip within the probe's reach
+quad = lambda s: R0 + 20.0 * (1 - s / 30.0) ** 2 if s < 30 else R0
+gq, iq, _s, _p, _n = read(body_c, quad, lambda s: R0 + 24.0, path_c)
+pq = gq['inlet'].get('points_mm') or []
+wr, at = radius_trip(gq, quad, 440.0)
+good, last = generate(gq, 'quad_profile', False)
+ok(gq['inlet']['type'] == 'profile' and pq[0][0] == 0.0 and pq[-1][1] == 92.61 / 2 and all(b[0] > a[0] and b[1] <= a[1] for a, b in zip(pq, pq[1:]))
+   and wr < 0.1 and good and 'measured profile' in ' '.join(iq['notes']) and TC.tab_fill(iq)['mouth'] == 'ellipse',
+   '(i) a quadratic horn: inlet profile of %d points (%.2f to %.2f mm), bore round trip %.4f mm (worst at %.1f mm); the 2-D case generated; %s'
+   % (len(pq), pq[0][1] if pq else 0, pq[-1][1] if pq else 0, wr, at, ' '.join(iq['notes'])))
+g3q = dict(gq, bend=[{'clr_mm': 150.0, 'angle_deg': 45.0, 'start_mm': 100.0, 'plane_deg': 0.0}])
+good, last = generate(g3q, 'quad_profile_3d', True)
+ok(good, '(i) and in 3-D with a bend (%s)' % last)
 inb = lambda s: R0 + 0.02 * max(0.0, s - 620)
-refused_read('inside bend 2', '(f) a cone inside a bend', body_o, inb, lambda s: inb(s) + W0)
+# a cone inside a bend: the generator meshes it (cfd/NOTES.md 4 (k), CONE_ON_BEND), so it is read, not refused
+gb, ib, _s, _p, _n = read(body_o, inb, lambda s: inb(s) + W0)
+cb = gb.get('diameter_change') or {}
+b2 = gb['bend'][1]
+e2 = b2['start_mm'] + b2['clr_mm'] * math.radians(b2['angle_deg'])
+wr, at = radius_trip(gb, inb, e2)
+good, last = generate(gb, 'cone_in_bend', True)
+ok(TC.CONE_ON_BEND and isinstance(cb, dict) and b2['start_mm'] < cb.get('start_mm', 0) < e2 and wr < 0.05 and good,
+   '(f) a cone inside a bend (from 620 mm, in bend 2): diameter_change %s, bore round trip %.4f mm (worst at %.1f mm); the 3-D case generated (%s)'
+   % (cb, wr, at, last))
 ring = lambda s: R0 - (2.0 if 300 < s < 306 else 0.0)
 refused_read('narrows to', '(f) an inside ring (a bore that narrows and opens again)', body_o, ring, plain_out)
 restr = lambda s: R0 - 3.0 if s < 4 else R0

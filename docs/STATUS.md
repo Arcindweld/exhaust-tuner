@@ -234,6 +234,29 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   separately; the test itself still to be fixed); layouts/ls3-180/fake/test_bundle_mode.py is stale (its Fusion stub
   has no TemporaryBRepManager), listed as not run in the runner until the stub is extended. web/tests/run_all_tests.sh
   now runs the runner's web suite. README "Running the tests".
+- CFD generator gaps closed (2026-11-11; generator 1.1.0, unchanged version: existing designs write byte-identical
+  cases; cfd/NOTES.md §2, 4 (i)-(k), 5; add-in 4.21.0). (A) `mount: free` in 3-D: the tube's outside and lip face are
+  a wall patch (inlet_wall) back to a plenum wall at x = protrusion, the protruding wall refined to 2.5 cells across
+  its thinnest point; no mouth ledge (0 plenum/inlet_wall faces inside the bore in every case), `cache { grad(U); }`
+  kept. Validated on the 50 mm straight tube (Re 1e5, medium, K from 10-22 D as entrance3d.py, handbook basis
+  K_total + alpha - 1): t/D 0.02 sharp 3-D 0.639, 2-D 0.629, Idelchik (diag. 3-1 via python-fluids, l/D 0.5) 0.72;
+  t/D 0.05 0.482 / 0.443 / 0.50; r/D 0.04 lip standing free 0.280 / 0.289 (with at least 2 cells across a rounded lip's radius, now a
+  generator rule: at 1.3 cells it read 0.423). (B)
+  `diameter_change` as an ordered list (each cone from the previous bore; one dict = one-item list, same bytes);
+  K at each plane on its own bore, listed as plane_bore_mm when there are several. (C) a cone may overlap a bend in
+  3-D: 92.6 -> 105 mm over a 60 deg bend on 127 mm clr meshes checkMesh OK (139,692 cells, non-orth 64.5, layers 94 %,
+  wall area -0.13 %); not solved. (D) `inlet: {type: profile, points_mm}` (2-D and 3-D): the 80 mm ellipse given as 21 measured points reads K 0.0042 against the ellipse's 0.0040 (2-D, medium; tract-end loss +0.06 %). (E) the Fusion
+  reader sends several cones as the list, a cone into a bend, a measured profile when no fitted mouth is within
+  0.15 mm (or 5 % of the flare), and takes mount flange (default) / free / auto. (F) the Intake tab's CFD panel: a 3-D
+  case keeps the panel's mount (free cut back to the first bend, or flange when the bend is too close, with a note).
+  The owner's CAI (92.61 mm, 880.62 mm, 4.76 mm wall, bends 29.5 deg at 100 mm and 84.1 deg at 572.08 mm, 127 mm clr,
+  0.3694 kg/s, 25 C, simpleFoam, medium; tract-end total-pressure loss): flange plain 1,062.8 Pa (4.267 inH2O; the
+  reference 1,063), free plain 1,208.0 Pa (4.850 inH2O), free with the 3.5 mm lip 683.2 Pa (2.743 inH2O; flange lip
+  679), flange plain + 60 mm cone 92.61 -> 105 mm 1,079.9 Pa (4.335 inH2O) at the tract end, 1,053.0 Pa at the tube
+  end. Parity: gen_rs_vs_py all passed (new designs: free mounts, cone lists, cones on bends, profiles, refusals),
+  cfd_js_vs_py 254 files identical; the WIP's generated cfd/tests/cad_tract_mm.stl is untracked and git-ignored.
+  Not done: the ESI build was not run; the cone-on-bend case was meshed only; a free-standing mouth with a bend inside
+  the protrusion is refused (the outside is modelled straight).
 - Physics audit follow-up (2026-11-11; docs/PHYSICS_AUDIT_2026-11-11.md, "Follow-up"): the conductor's decisions on
   the questionable items. Q1: exhaust acoustics use burned-gas c (sosExh: stoichiometric CH1.87 products, NASA/GRI-Mech
   polynomials, R 286.6, gamma 1.37-1.30), 1-4 % below the old air c; intake, ambient, Blair and the Jennings default stay

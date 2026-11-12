@@ -1,4 +1,15 @@
-EXHAUST TUNER (Fusion add-in), version 4.20.0
+EXHAUST TUNER (Fusion add-in), version 4.21.0
+
+4.21.0 (November 11, 2026)
+  "Test this intake (CFD)" takes more real intakes as they are: a bore that changes size more than once (a reducer
+  mid-run and the cone to the throttle bore, or any number of cones one after the other) goes to the CFD case as the
+  generator's list of diameter changes, each from the bore before it, with measuring planes at each reducer's ends
+  and at the throttle cone; a mouth flare that none of the fitted shapes (lip, elliptical bellmouth, straight flare)
+  matches within 0.15 mm (0.006 in), or 5 % of the flare's height, is sent as its measured profile (the probed
+  points); and the mouth can be tested standing in open air (data mount: 'free') as well as flush in a plenum wall
+  ('flange', the default; 'auto' picks free when no other body is against the mouth face). A cone that runs into a
+  bend (the throttle cone starting in the last bend, say) is now read and run as it is instead of refused.
+  See TEST AN INTAKE TUBE IN CFD below.
 
 4.20.0 (November 11, 2026)
   Round parts come out round. A printed reducer came out "not perfectly round" in its taper: Fusion's 'high' mesh
@@ -422,9 +433,11 @@ bore is then probed all along from the centreline (rays out to the first solid, 
 outside), with the centreline run on straight past both ends so a cone, cuff or bellmouth joined on past the Pipe path
 is found too. The mouth is matched to the case's mouths: square cut, a rounded lip (the fillet's own radius when it is
 a torus face), an elliptical bellmouth (length and entry diameter fitted) or a straight flare with a rounded lip; a
-flare that fits none of them closely is modelled as the nearest and the panel says by how much it differs. After the
-mouth the case takes one bore and at most one diameter change, a straight cone on a straight: the cone to the
-throttle bore at the end, or a reducer mid-run. An S-shaped reducer is modelled as the straight cone of the same
+flare that fits one of them only roughly is modelled as the nearest and the panel says by how much it differs; a flare
+none of them matches within 0.15 mm (0.006 in), or 5 % of its height, is sent as the probed points themselves (the
+case's measured-profile mouth) and the panel says so. After the mouth the case takes one bore and then any number of
+diameter changes one after the other, each a straight cone from the bore before it: a reducer mid-run, the cone to
+the throttle bore at the end, or both. An S-shaped reducer is modelled as the straight cone of the same
 length and end diameters (the panel gives the largest difference); a sudden step up is modelled as a 60 degree cone;
 a step of under 0.5 mm (0.02 in) is let go (said so). With the cone to the throttle bore the case's tract end is half
 a tube bore past the throttle face, in the throttle bore, where the Intake tab's own CFD case measures, and the
@@ -432,7 +445,9 @@ results also give the loss at the end of the constant tube (tube_end) and at the
 reducer gets planes at both its ends. The
 mouth is the end nearer where you clicked; "Air goes in at: the other end" turns it round. The airflow is the Intake
 tab's (engine, RPM, VE, the same cycle-mean flow its own CFD case uses), with the tube from Fusion in place of the
-tab's. The case is a steady-flow OpenFOAM case of the tube alone with its mouth flush in a flat wall (a straight tube
+tab's. The case is a steady-flow OpenFOAM case of the tube alone with its mouth flush in a flat wall (or, with mount
+'free', standing in open air, the tube's outside a wall back to a plenum wall that must come before the first bend or
+cone) (a straight tube
 in 2-D, a bent one in 3-D, medium mesh), written by the same generator as the tab's CFD case and run on this PC by the
 Exhaust Tuner program (its exhaust-tuner-host, the bundled OpenFOAM; the add-in bundles no solver). The panel shows
 the meshing and solving steps, the iteration count and a Stop button; a bent tube takes minutes on one core. The
@@ -442,9 +457,11 @@ same tube, the airflow used, the cell count and the run time; "Open the case fol
 result at once from Documents\Exhaust Tuner\cfd-cache.
 It takes round tubes whose centreline is straights and circular arcs, end to end and tangent, read as above. It says
 why, in a sentence, when the tube is not that: a spline or a mitre in the centreline, an oval or flattened bore, a
-bore that changes size twice (a reducer and a throttle cone), a cone inside a bend, a bore that narrows and opens
+bore that narrows and opens
 again (an inside bead or ring), a step down steeper than 60 degrees, a mouth narrower than the tube or of a shape none
-of the case's mouths comes near, a bend tighter than 0.6 times the bore, a bend right at the mouth, a mesh body,
+of the case's mouths comes near (and that is no measured profile either: one that leaves the mouth plane at under 45
+degrees), a bend tighter than 0.6 times the bore, a bend right at the mouth, a free-standing mouth (mount free) with
+a bend or cone too close behind it, a mesh body,
 nothing or two bodies selected, no centreline. If the Exhaust Tuner program (or its OpenFOAM) is not installed it says so, and still shows
 the tube it read and the 1-D estimate.
 Use this tube in the Intake tab: the same reading fills the tab's tube length, inside diameter, bend angles (from the

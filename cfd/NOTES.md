@@ -73,7 +73,9 @@ developed pipe friction within 2 % of Colebrook; flush entrance K against r/D, o
 (K_total + α − 1): sharp 0.392 (Crane / Idelchik 0.50; 2-D 0.396 as total pressure), r/D 0.02 0.308 (0.28 / 0.37),
 0.04 0.262 (0.24 / 0.26), 0.06 0.184 (0.15 / 0.20), 0.10 0.141 (0.09 / 0.12), 0.15 0.114 (0.04 / 0.07). The
 exhaust-component bend reads K 0.44839 on the conda-forge build with the cache, ESI's package 0.44838 on the same
-mesh (0.47634 without it).
+mesh (0.47634 without it). Free-standing (re-entrant) mouth, 0.5 D proud, same basis (§4 (i)): t/D 0.02 3-D 0.639,
+2-D 0.629, Idelchik 0.72; t/D 0.05 0.482 / 0.443 / 0.50; r/D 0.04 lip 0.280 / 0.289. A measured mouth profile reads
+the ellipse it was taken from to ΔK 0.0003 (§4 (j)); a cone over a bend meshes checkMesh-clean (§4 (k)).
 
 
 ## 1. What a generated case contains
@@ -103,10 +105,11 @@ writes `results.txt` and `results.json`.
 | `inlet.type = radius` (`lip_radius_mm` = Rc) | Semi-toroidal ("half-ball") lip, as in Blair's RAD bellmouth. Entry diameter = D + 2 Rc. |
 | `inlet.type = ellipse` (`length_mm` L, `entry_diameter_mm` Di, `exit_diameter_mm` De, `corner_radius_mm` Rc) | Quarter-ellipse flare with centre (L, Di/2) and semi-axes L and (Di−De)/2: radial at the lip, axial at the exit. This is Blair & Cahoon's ELL definition, and it matches their Fig. 7 within the pixel accuracy of the figure. Rc rounds the rim. Rc = 0 gives a square rim `rim_thickness_mm` thick (default 1.5 mm). |
 | `inlet.type = taper` (`entry_diameter_mm`, `wall_half_angle_deg`, `lip_radius_mm`) | Straight cone from Di down to D, with a rolled lip of the given radius. |
-| `mount.type = free` (+`protrusion_mm`) | The inlet stands in open air, as a stack in an airbox or in free air. The domain gets a spherical-dome atmosphere of radius max(15 D, 8 × outer lip diameter), and a wall plane (airbox floor) `protrusion_mm` behind the mouth. |
-| `mount.type = flange` | The inlet is flush with a plane wall (a hole in a plenum or airbox floor). The atmosphere is a box of the same size. |
-| `diameter_change` (`to_diameter_mm`, `cone_half_angle_deg`, `start_mm`) | Straight cone between two tube diameters. Outlet and planes use the final diameter. |
-| `bend` (`clr_mm`, `angle_deg`, `start_mm`, optional `plane_deg`, or a list of bends) | Switches the case to 3-D. A bend breaks axisymmetry, so the generator triangulates the tract itself (lip profile revolved, tube swept along the centre-line) and meshes it with snappyHexMesh. |
+| `inlet.type = profile` (`points_mm` [[x, r], ...], `rim_thickness_mm`, default 1.5) | A measured mouth (since 2026-11-11): the flow-side wall as points in mm, x from the mouth plane (the first point at x = 0) rising into the tube, r falling (or level) to the bore (the last point at r = D/2 exactly, within 0.001 mm), the first radius above the bore and the first segment at 45° or more to the axis (a rim that leaves the mouth plane steeply, as a rounded lip or a bellmouth does; a counterbore is refused). The wall is the polyline through the points (2-D: a block edge through every point; 3-D: revolved). The rim is square, `rim_thickness_mm` thick, as the ellipse's without a corner radius. The 2-D mouth block corner sits where the wall turns to 45° from the axis, where the ellipse's does. Validation: §4 (j). |
+| `mount.type = free` (+`protrusion_mm`) | The inlet stands in open air, as a stack in an airbox or in free air. The domain gets a spherical-dome atmosphere of radius max(15 D, 8 × outer lip diameter), and a wall plane (airbox floor) `protrusion_mm` behind the mouth. In 3-D (since 2026-11-11, when the design names the mount): the tube's outside, a straight cylinder at the lip's outer radius (plain: D/2 + wall; radius: D/2 + 2 Rc; ellipse: Di/2 + Rc, or + `rim_thickness_mm` for a square rim; taper: the lip's centre radius + its lip radius; profile: the first r + `rim_thickness_mm`), and the lip's outer face are patch `inlet_wall` (a wall), from the mouth back to the plenum wall, the plane x = `protrusion_mm`, which is `plenum_wall`. Default protrusion max(inlet piece, D), cut back to the first bend or diameter change; at least the lip's outer front point + 0.15 D; refused when the protrusion reaches the first bend or cone, or the tube comes back through that plane. The protruding wall is refined (`lipShell`, distance) to cells of at most 1/2.5 of the thinnest wall between bore and outside and, for a rounded lip (radius, taper, ellipse with a corner radius), at most 1/2 of the lip radius (§4 (i)), within that thickness + 2 cells of the outside (up to 4 levels above the tract's level; a thinner wall or smaller lip is refused: use `fine`, a thicker wall or flange). §4 (i). |
+| `mount.type = flange` | The inlet is flush with a plane wall (a hole in a plenum or airbox floor). The atmosphere is a box of the same size. A 3-D design that names no mount is flange-mounted, as before 2026-11-11 (generator_summary.json's `note` says so); 2-D defaults to free. |
+| `diameter_change` (`to_diameter_mm`, `cone_half_angle_deg`, `start_mm`), or an ordered list of them | Straight cone between two tube diameters. A list (since 2026-11-11) is a reducer mid-run, a cone to the throttle bore, or any number one after the other: each starts from the bore the one before it left (grow or shrink), at or after the end of the one before it, and ends before the tract end; the first starts after the inlet piece. One dict and a one-item list write the same case (only the echoed `design_input.json` differs). Outlet extension and outlet use the final bore. Every plane's K and Cd are referred to the bulk velocity in the bore at that plane (2-D: its geometric area; 3-D: the sampled area of the cut, the local bore); with more than one change `generator_summary.json` lists `plane_bore_mm`. In 3-D a cone may overlap a bend (§4 (k)): its rings follow the bend's frames with the radius at that path length. |
+| `bend` (`clr_mm`, `angle_deg`, `start_mm`, optional `plane_deg`, or a list of bends) | Switches the case to 3-D. A bend breaks axisymmetry, so the generator triangulates the tract itself (lip profile revolved, tube swept along the centre-line) and meshes it with snappyHexMesh. `force_3d: true` makes a straight tract 3-D too (validation). |
 | `maf_plane_mm`, `planes_mm` | Named measurement planes. In 2-D they are also block faces, so the plane is exact. |
 | `outlet_extension_D` (default 4) | A straight pipe added after the tract end, so the outlet condition cannot influence the measured tract. |
 | `stl` (+`stl_units`, `planes`) | 3-D from CAD. The STL needs solids (or separate files) named `inlet` (the open mouth face) and `outlet`; everything else is wall. The part is moved so the mouth centre is at the origin and the inflow direction is +x. A plenum (atmosphere box with a floor in the mouth plane) is added ahead of the mouth, and the outlet face is extruded by `outlet_extension_D`. |
@@ -768,6 +771,116 @@ CFD's sharp entry is low and its bend-behind-the-mouth high, and the two cancel.
 CFD's own ±15 % class (§4) cover this; the tab's lip gain (0.256) is between the CFD's straight-tube 0.153 and
 full-tube 0.302.
 
+### (i) A free-standing mouth in 3-D (2026-11-11)
+
+Until now a 3-D parametric case meshed every mouth flange-mounted. `mount: free` now gives the 3-D case the 2-D free
+mount's arrangement (§2): the tube stands `protrusion_mm` proud of the plenum wall (the plane x = P), its outside
+and the lip's outer face are a wall patch `inlet_wall` in the plenum, and the protruding wall is refined (`lipShell`)
+so the solid wall between the bore and the outside is never bridged. A 3-D design that names no mount stays
+flange-mounted (byte-identical to before).
+
+**Validation** (`validation/freemount3d.py`, results `freemount3d_results.json`, each case's `results.json` and
+`meshcheck.json` in `runs/f3_*`, `runs/f2_*`): straight tube D 50 mm, L 25 D + 3 D extension, Re 1.0 × 10⁵,
+simpleFoam, medium mesh, conda-forge build, one core; the tube stands 25 mm (0.5 D) proud; K extrapolated back to the
+mouth from the planes at 10, 13, 16, 19, 22 D exactly as `entrance3d.py` (§4 (g)); the 2-D free-mount cases are the
+same designs without `force_3d`. Basis as §4 (g): the CFD's K_total, and K_total + (α₂₂ − 1) for the handbooks'
+static-pressure basis. Idelchik: *Handbook of Hydraulic Resistance*, diagram 3-1 (a sharp-edged tube standing at
+distance b from the wall, wall thickness δ), as transcribed in python-fluids (`fluids.fittings.entrance_distance`,
+method `'Idelchik'`): the table (11 × 11, rows δ/D 0, 0.004 … 0.05, ∞; columns b/D 0, 0.002 … 0.5, ∞) and its
+bilinear interpolation were read from the library's published source (fluids.readthedocs.io, `_modules/fluids/fittings`;
+the package is not installed here) and checked against the function's two docstring examples (D 0.1 m, t 0.5 mm:
+0.925; with l 20 mm: 0.8475), which `freemount3d.py` reproduces exactly. The thin-wall limit (δ → 0, b ≥ 0.5 D) is
+1.0, Borda's mouthpiece; from δ/D 0.05 on it is the flush 0.5. Rennels is the same function's default formula,
+1.12 − 22 t/d + 216 (t/d)² + 80 (t/d)³ (for a tube at least D/2 proud).
+
+| mouth (free, 0.5 D proud) | 3-D K_total | 3-D K_total + (α₂₂ − 1) | 2-D K_total | 2-D K_total + (α₂₂ − 1) | Idelchik (diag. 3-1) | Rennels | flush 3-D, §4 (g) |
+|---|---|---|---|---|---|---|---|
+| sharp, wall 1.0 mm (t/D 0.02) | 0.594 | **0.639** | 0.571 | **0.629** | 0.72 | 0.767 | 0.392 (plain cut, 3 mm wall) |
+| sharp, wall 2.5 mm (t/D 0.05) | 0.433 | **0.482** | 0.379 | **0.443** | 0.50 | 0.570 | 0.392 |
+| rolled lip r/D 0.04 (2 mm), standing free | 0.224 | **0.280** | 0.220 | **0.289** | — (flush: 0.26; Crane 0.24) | — | 0.262 |
+
+α at 10 / 22 D: 3-D 1.078–1.082 / 1.045–1.052, 2-D 1.088–1.095 / 1.058–1.070. Developed f from the total-pressure
+slope over 10–22 D: 3-D 0.0191 / 0.0187 / 0.0179, 2-D 0.0186 / 0.0180 / 0.0172 (Colebrook 0.0180). Every run
+converged by the report's criteria: 3-D at 900 / 900 / 950 iterations (2,766 s, 1,349 s, 1,428 s on one shared core;
+498,236 / 295,622 / 323,287 cells by checkMesh, the lip refined to level 6 / 5 / 5 = 0.39 / 0.78 / 0.78 mm cells,
+2.6 / 3.2 / 5.1 across the thinnest wall, 2.6 across the 2 mm lip radius), 2-D at 3,590 / 3,450 / 3,130 iterations (2,062 / 2,043 / 1,398 s; 29,441 / 29,611 /
+28,000 cells, wall-resolved, y+ on the tube 0.58 / 0.58 / 0.84 average). y+ on `tract_wall` (3-D, whole patch average): 25.1 / 39.0 / 39.3.
+
+Plenum-patch faces with centres inside the bore (the ledge count of §4 (c3), on `plenum_wall` and `inlet_wall`,
+upstream of the plenum wall + 1 mm): 0 and 0 in every 3-D case here and in the owner's two free cases below.
+`cache { grad(U); }` is in every 3-D `fvSolution`. The snapped `inlet_wall` area against the drawn surface (the faceted STL): −0.35 % (t/D 0.02), −0.62 % (t/D 0.05),
+−0.38 % (r/D 0.04), −0.38 % and −0.09 % (the owner's plain and lip); checkMesh OK in all five.
+
+**Lip resolution.** As first written, the free mount refined the protruding wall only by its thickness (2.5 cells
+across): the 2 mm lip's 4 mm half-torus got level 4, 1.56 mm cells, 1.3 across the lip radius, and read K_total
+0.372 (0.423 on the handbook basis; `runs/f3_r004_level4`, 208,347 cells, 900 iterations, 920 s), 0.13 above the
+2-D sector. The same case with `inlet_wall` and `lipShell` set to level 5 by hand (0.78 mm, 2.6 across the radius;
+`runs/f3_r004_l5`, 359,666 cells, 900 iterations, 1,513 s) read 0.225 / 0.281. So the generator now also asks for at
+least 2 cells across a rounded lip's radius (`LIP_CELLS_3D`; radius lips, a taper's lip, an ellipse's corner
+radius): the table's r/D 0.04 row is that default (level 5, 0.224 / 0.280), and 3-D and 2-D agree within 0.01
+there as for the thin wall. The owner's 3.5 mm lip below was meshed at level 5 before the rule (1.447 mm, 2.4 across
+its radius) and the rule leaves it there, so its case is the same mesh. A plain cut, a profile mouth and an
+ellipse's square rim keep the thickness rule alone (their edges are machined-edge radii, meant as sharp).
+
+**Reading.** On the handbooks' basis the free-standing mouths in 3-D and in the 2-D sector agree within 0.010
+(t/D 0.02), 0.039 (t/D 0.05) and 0.009 (r/D 0.04 lip). Against Idelchik's re-entrant table both lie below it: by
+0.08–0.09 at t/D 0.02 and by 0.02–0.06 at t/D 0.05, the same direction as the flush sharp edge of §4 (g) (0.11 under),
+where the k-ω SST vena contracta recovers with less loss than the handbook square edge. The re-entrant penalty over
+the flush mouth is reproduced: at t/D 0.02 the 3-D CFD gives 0.639 − 0.392 = 0.247 over its own flush sharp edge,
+Idelchik 0.72 − 0.50 = 0.22. At t/D 0.05 Idelchik and Rennels have no penalty left (0.50 and 0.57, their flush
+values); the CFD keeps +0.09 (3-D) and +0.05 (2-D against the 2-D flush 0.396, total pressure, 20–40 D: not quite
+like for like). For the rounded lip there is no re-entrant handbook figure; standing free costs it 0.02 over the flush
+3-D 0.262 (2-D: 0.289 against 0.239 static − 1 in §4 (c)).
+
+**The owner's CAI, free-standing** (bore 92.61 mm, 880.62 mm, wall 4.76 mm, the two bends of §4 (h) at 127 mm
+centre-line radius, 0.3694 kg/s, 25 °C, simpleFoam forced, medium mesh; total-pressure loss at the tract end, q
+1,270 Pa). The free mount's default protrusion is one bore (92.61 mm), which ends before bend 1 at 100 mm:
+
+| case | tract-end loss | K | cells (checkMesh) | iterations / wall time |
+|---|---|---|---|---|
+| (1) flange-mounted, plain cut (the §4 (h) reference, 1,063 Pa) | 1,062.8 Pa (4.267 inH2O) | 0.837 | 131,120 | 900 / 500 s |
+| (2) free-standing, plain cut (4.76 mm wall) | 1,208.0 Pa (4.850 inH2O) | 0.951 | 352,344 | 900 / 1,488 s |
+| (3) free-standing, 3.5 mm rolled lip | 683.2 Pa (2.743 inH2O) | 0.538 | 388,717 | 970 / 1,803 s |
+| (4) flange-mounted, plain cut, 60 mm cone 92.61 → 105 mm from 880.62 mm | 1,079.9 Pa (4.335 inH2O) at the tract end (1,000 mm, in the 105 mm bore); 1,053.0 Pa (4.227 inH2O) at the tube end (880.62 mm); 1,068.9 Pa (4.291 inH2O) at the throttle face (940.62 mm) | 1.405 / 0.828 / 1.352, each on its own bore | 148,649 | 900 / 540 s |
+
+Case (1) repeats §4 (h) to the pascal. Standing free costs the plain cut 145 Pa (+13.7 %, +0.114 in K), the size
+of the straight tube's re-entrant penalty at t/D 0.05 (+0.09, table above). The flange-mounted 3.5 mm lip of §4 (h)
+read 679 Pa; free-standing it reads 683 Pa (+0.6 %), as the straight tube's r/D 0.04 lip costs only 0.02 in K more
+standing free than flush. The lip saves 525 Pa standing free against 384 Pa flush-mounted: a sharp re-entrant mouth
+is the one that loses by standing free. Case (4): the cone's K is referred to the bore at each plane (§2): at the tract end
+q is that of the 105 mm bore, 0.61 of the tube's.
+
+### (j) A measured mouth profile against the ellipse it was taken from (2026-11-11)
+
+Is the profile inlet (§2) the same mouth as the shape it was measured from? The 25 mm × 80 mm elliptical bellmouth of
+Blair & Cahoon's kind (`ellipse`, L 25 mm, Di 80 mm, De 50 mm, square 1.5 mm rim) against the same flare given as 21
+points a CAD reader would send (`profile`; x 0, 0.05, 0.15, 0.3, 0.6, 1, 1.6, 2.4 … 23.8, 25 mm, r from the ellipse,
+rounded to 0.0001 mm; the ellipse itself is written with 73 points, so the two walls and the mouth block corners
+differ): 2-D, flange, straight 50 mm tube, L 25 D, Re 1.0 × 10⁵, simpleFoam, medium, K from 10–22 D as (i)
+(`freemount3d.py`, `runs/p2_ell`, `runs/p2_prof`):
+
+| mouth | K_total | K_total + (α₂₂ − 1) | tract-end loss | f (10–22 D) | cells / iterations / wall time |
+|---|---|---|---|---|---|
+| ellipse | 0.0040 | 0.0866 | 221.52 Pa | 0.01525 | 33,581 / 3,120 / 2,876 s |
+| the same flare as 21 measured points | 0.0042 | 0.0869 | 221.65 Pa | 0.01525 | 33,581 / 3,130 / 2,113 s |
+
+ΔK 0.0003 (+0.06 % in the tract-end loss), well inside the sharp entrance's medium-to-fine mesh change of §4 (c)
+(0.004). The 3-D profile path revolves the same points (Rust and Python byte-identical, `gen_rs_vs_py.py`); it was
+not solved here. A first attempt fed the ellipse's own 73 generator points back: that mesh differed from the
+ellipse's only in the 12th digit of one block corner, so it was not run as a test.
+
+### (k) A cone over a bend in 3-D (2026-11-11)
+
+Test (mesh only): bore 92.6 mm, plain cut 4.76 mm wall, flange, a 60° bend on 127 mm centre-line radius from 200 mm
+and a cone 92.6 → 105 mm over exactly the bend's arc (133.0 mm, 2.669° a side), medium mesh. `checkMesh`: mesh OK,
+139,692 cells, max non-orthogonality 64.5, max skewness 1.54; layers on `tract_wall` 94.3 % (3.73 of 4); the
+snapped `tract_wall` area 0.18726 m² against the drawn surface's 0.18751 m² (−0.13 %); 0 plenum faces inside the
+bore. So the generator now takes a cone that overlaps a bend (Python and Rust, `gen_rs_vs_py.py` designs "cone on a
+bend" and "reducer, then a cone half on a bend, free mount"): the rings of the swept tube follow the bend's frames
+with the radius `tube_radius` gives at that path length, and the cone's two ends are rings of their own (only when a
+cone overlaps a bend, so every other design writes the same bytes as before). This case was not solved: its loss
+against a cone on a straight was not measured.
+
 ## 5. Limitations
 
 - **The flow is steady RANS.** An engine intake is pulsating. Wave action
@@ -799,9 +912,17 @@ full-tube 0.302.
   "fine" 3-D run was no check at all. The conda-forge Linux build gave 3-D
   losses about 6 % above ESI's build on the same mesh until every 3-D case cached grad(U) (§4 (d), (f)), and our
   Windows build has only been compared with Linux on the 2-D cases.
-- **3-D mounting.** Parametric 3-D cases (with a bend) are meshed
-  flange-mounted (mouth flush with the plenum floor). A "free"-standing stack
-  is only modelled in 2-D.
+- **3-D mounting.** Since 2026-11-11 a parametric 3-D case honours `mount: free` (§4 (i)); a 3-D design that names
+  no mount is still flange-mounted. The free-standing tube's outside is a straight cylinder from the lip to the
+  plenum wall, so the protrusion must end before the first bend or diameter change (a tube that leaves its mouth in a
+  bend has to be run flange-mounted), and the outside is a smooth wall (no hose clamps, beads or filter cuff). The
+  protruding wall is meshed to 2.5 cells across its thinnest point: a thin wall makes the case large (the owner's
+  92.61 mm tube with a 1.65 mm wall: about 2.8 million cells estimated at medium, against 0.23 million with its 4.76 mm
+  wall and 0.06 million flange-mounted), and a wall too thin for four refinement levels above the wall level is refused. STL cases
+  are always flange-mounted.
+- **Cones and measured mouths.** A cone is straight between its two bores; an S-shaped or stepped change is the
+  Fusion reader's job to approximate (fusion-addin/tubecfd.py says by how much). A measured mouth (`profile`) is the
+  polyline through its points, square-rimmed; its first segment must leave the mouth plane at 45° or more.
 - **STL mouth outline.** The mouth outline in an STL must be planar and
   star-shaped about its centre (round, oval and rounded-rectangle mouths are
   fine), and the tract must not pass upstream of its own mouth plane.

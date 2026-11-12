@@ -42,6 +42,16 @@ const fs = require('fs');
   await pg.evaluate(() => { window.__cfd.ui.bpos = '100, 572'; window.__cfd.ui.cone = false; }); d = await geo(); bl = [].concat(d.g.bend || []);
   ok(bl.length === 2 && bl[0].start_mm === 100 && bl[0].angle_deg === 30 && bl[1].start_mm === 572 && bl[1].angle_deg === 84, 'the panel’s bend starts place them: 30° at 100 mm, 84° at 572 mm');
   fs.writeFileSync('tests/out/cai_cad_layout_design.json', JSON.stringify(d.design, null, 1));
+  // the mouth in open air (the CAI default) is kept in the 3-D case now that the generator meshes a free-standing mouth:
+  // no 'meshed as flange-mounted'; a protrusion past the first bend is cut back to it, with a note
+  ok(d.g.mount.type === 'free' && !d.notes.some(n => /flush in a wall|flange/.test(n)), 'a 3-D CAI keeps its open-air mouth: mount ' + JSON.stringify(d.g.mount));
+  await pg.evaluate(() => { window.__cfd.ui.protr = '150'; }); d = await geo();
+  ok(d.g.mount.type === 'free' && d.g.mount.protrusion_mm === 100 && d.notes.some(n => /before the first bend/.test(n)), 'a 150 mm protrusion with the first bend at 100 mm is cut back to 100 mm, with a note: ' + JSON.stringify(d.g.mount));
+  await pg.evaluate(() => { window.__cfd.ui.protr = ''; window.__cfd.ui.bpos = '10, 572'; }); d = await geo();
+  ok(d.g.mount.type === 'flange' && d.notes.some(n => /too close for a free-standing mouth/.test(n)), 'a bend 10 mm behind the mouth leaves no straight for a free-standing mouth: flush in a wall, with a note');
+  await pg.evaluate(() => { window.__cfd.ui.bpos = '100, 572'; window.__cfd.ui.mount = 'flange'; }); d = await geo();
+  ok(d.g.mount.type === 'flange', 'flush in a wall when the panel says so');
+  await pg.evaluate(() => { window.__cfd.ui.mount = ''; });
   await pg.evaluate(() => { window.__cfd.ui.bpos = '100, 150'; }); d = await geo(); bl = [].concat(d.g.bend || []);
   ok(bl.length === 2 && bl[1].start_mm !== 150 && d.notes.some(n => /spread evenly instead/.test(n)), 'overlapping starts (the 30° bend runs to 166 mm) fall back to even spacing, with a note');
   const lab = await pg.$eval('#panel-intake', e => e.textContent);

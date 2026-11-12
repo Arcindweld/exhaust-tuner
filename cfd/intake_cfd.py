@@ -169,6 +169,12 @@ MESH_LEVELS = {
 # and the Windows builds gave a different answer on the same wedge mesh. On the cyclic sector the pipe comes out right
 # (1.008x laminar, 1.015x turbulent). cfd/NOTES.md section 4 (e).
 SECTOR_HALF_ANGLE_DEG = 2.5
+# 3-D free mount: background cells across the thinnest wall of the protruding tube (bore to outside), so that
+# snappyHexMesh keeps the solid wall between the flow inside and outside (cfd/NOTES.md 4 (i))
+WALL_CELLS_3D = 2.5
+# ... and at least this many across a rounded lip's radius (radius, ellipse with corner_radius_mm, taper): a 2 mm lip on
+# the 50 mm tube standing free read K 0.42 with 1.3 cells across its radius and 0.28 with 2.6 (2-D 0.29; NOTES 4 (i))
+LIP_CELLS_3D = 2.0
 RAMP_ITER = 300          # outlet condition ramp for a smooth start-up
 
 
@@ -512,8 +518,8 @@ def normalise(design, base_dir="."):
         g["D"], g["L"] = D, Lt
         inl = dict(_get(g_in, "inlet", {"type": "plain"}))
         t = str(_get(inl, "type", "plain")).lower()
-        if t not in ("plain", "radius", "ellipse", "taper"):
-            raise DesignError("inlet type must be plain, radius, ellipse or taper")
+        if t not in ("plain", "radius", "ellipse", "taper", "profile"):
+            raise DesignError("inlet type must be plain, radius, ellipse, taper or profile")
         gi = {"type": t}
         if t == "plain":
             gi["t"] = float(_get(inl, "wall_thickness_mm", max(1.5, 0.06 * D / mm))) * mm
@@ -541,21 +547,30 @@ def normalise(design, base_dir="."):
                 raise DesignError("taper wall_half_angle_deg must be 1..60")
             if gi["rl"] < 0.2e-3:
                 raise DesignError("taper lip_radius_mm must be >= 0.2 mm")
+        elif t == "profile":
+            gi["pts"] = profile_points(_get(inl, "points_mm", None), D)
+            gi["t"] = float(_get(inl, "rim_thickness_mm", 1.5)) * mm
         g["inlet"] = gi
         mount = dict(_get(g_in, "mount", {"type": "free"}))
         g["mount"] = str(_get(mount, "type", "free")).lower()
         if g["mount"] not in ("free", "flange"):
             raise DesignError("mount type must be free or flange")
         g["protrusion"] = float(mount["protrusion_mm"]) * mm if "protrusion_mm" in mount else None
+        # 3-D: a design that names no mount keeps the flange mount it always had there (free is the 2-D default)
+        g["mount_given"] = bool(g_in.get("mount"))
+        # diameter_change: one dict, or an ordered list of them (a reducer mid-run and a cone to the throttle, ...);
+        # each cone starts from the bore the one before it left (cone_spans)
         dc = g_in.get("diameter_change")
-        if dc:
-            g["dc"] = dict(D2=float(dc["to_diameter_mm"]) * mm,
-                           beta=math.radians(float(_get(dc, "cone_half_angle_deg", 7.0))),
-                           x0=float(dc["start_mm"]) * mm)
-            if not (0 < g["dc"]["beta"] <= math.radians(60)):
+        g["dcs"] = []
+        for c in (dc if isinstance(dc, list) else ([dc] if dc else [])):
+            e = dict(D2=float(c["to_diameter_mm"]) * mm, beta=math.radians(float(_get(c, "cone_half_angle_deg", 7.0))),
+                     x0=float(c["start_mm"]) * mm)
+            if not (0 < e["beta"] <= math.radians(60)):
                 raise DesignError("cone_half_angle_deg must be in (0, 60]")
-        else:
-            g["dc"] = None
+            if e["D2"] <= 0:
+                raise DesignError("diameter_change to_diameter_mm must be > 0")
+            g["dcs"].append(e)
+        g["dc"] = g["dcs"][0] if g["dcs"] else None
         bd = g_in.get("bend")
         if bd:
             bl = bd if isinstance(bd, list) else [bd]
@@ -593,6 +608,42 @@ def normalise(design, base_dir="."):
     d["turbulence_in"] = design.get("turbulence") or {}
     d["write_interval"] = int(_get(sv, "write_interval", 0))
     return d
+
+
+def profile_points(pts, D):
+    """A measured mouth profile, inlet type 'profile': points_mm [[x, r], ...] (mm) from the mouth plane (x = 0) into
+    the tube, x rising, r falling (or level) to the bore D/2, the first segment at 45 degrees or more to the axis (a
+    rim that leaves the mouth plane steeply, as a rounded lip or a bellmouth's does). -> [(x, r)] in m, the last r the
+    bore exactly."""
+    mm = 1e-3
+    if not isinstance(pts, list) or len(pts) < 3:
+        raise DesignError("profile inlet needs points_mm: [[x, r], ...] in mm, at least 3 points")
+    try:
+        P = [(float(p[0]) * mm, float(p[1]) * mm) for p in pts]
+    except (TypeError, ValueError, IndexError):
+        raise DesignError("profile points_mm must be [x, r] pairs of numbers (mm)")
+    R = D / 2.0
+    if abs(P[0][0]) > 1e-9:
+        raise DesignError("profile points_mm must start at x = 0 (the mouth plane), not %.3f mm" % (P[0][0] / mm))
+    for i in range(len(P) - 1):
+        if P[i + 1][0] <= P[i][0]:
+            raise DesignError("profile points_mm: x must rise from point to point (point %d at %.3f mm, point %d at %.3f mm)"
+                              % (i + 1, P[i][0] / mm, i + 2, P[i + 1][0] / mm))
+        if P[i + 1][1] > P[i][1] + 1e-12:
+            raise DesignError("profile points_mm: r must fall (or stay) toward the bore (point %d at r %.3f mm, point %d at "
+                              "%.3f mm)" % (i + 1, P[i][1] / mm, i + 2, P[i + 1][1] / mm))
+    if abs(P[-1][1] - R) > 1e-6:
+        raise DesignError("profile points_mm must end at the tube bore, r = %.3f mm (it ends at %.3f mm)"
+                          % (R / mm, P[-1][1] / mm))
+    if P[0][1] <= R + 1e-6:
+        raise DesignError("profile points_mm must flare: the first radius (%.3f mm) must exceed the bore (%.3f mm)"
+                          % (P[0][1] / mm, R / mm))
+    a0 = math.degrees(math.atan2(P[0][1] - P[1][1], P[1][0] - P[0][0]))
+    if a0 < 45.0:
+        raise DesignError("profile points_mm: the first segment is at %.1f degrees to the axis; the mouth must leave its "
+                          "plane at 45 degrees or more (a rounded rim)" % a0)
+    P[-1] = (P[-1][0], R)
+    return P
 
 
 def _safe_name(s):
@@ -701,6 +752,23 @@ def inlet_profile(g):
         return InletProfile(inner, n1, cap, cr + tw, False, False, cr,
                             "elliptical bellmouth L=%.1f Di=%.1f De=%.1f, sharp rim %.1f mm thick" %
                             (gi["L"] * 1e3, gi["Di"] * 1e3, gi["De"] * 1e3, tw * 1e3))
+    if t == "profile":
+        # measured points as given; the mouth block vertex M where the wall turns to 45 degrees from the axis (where
+        # an ellipse's is, intake_cfd's ellipse: the parameter angle atan(b / a)); the rim square, rim_thickness_mm
+        # thick, as the ellipse's without a corner radius
+        inner = list(gi["pts"])
+        iM = len(inner) - 2
+        for i in range(1, len(inner) - 1):
+            if inner[i][1] - inner[i + 1][1] < inner[i + 1][0] - inner[i][0]:
+                iM = i
+                break
+        cr, tw = inner[0][1], gi["t"]
+        face_top = cr + tw - re_
+        cap = [(0.0, cr + (face_top - cr) * i / 16) for i in range(17)] + \
+            _arc_pts(re_, face_top, re_, math.pi, 0.5 * math.pi, 12)[1:]
+        return InletProfile(inner, iM, cap, cr + tw, False, False, cr,
+                            "measured mouth profile, %d points, entry dia %.2f mm over %.2f mm" %
+                            (len(inner), 2 * cr * 1e3, inner[-1][0] * 1e3))
     # taper
     al, rl, ri = gi["alpha"], gi["rl"], gi["Di"] / 2.0
     cx, cr = rl, ri + rl * math.cos(al)
@@ -723,33 +791,48 @@ def inlet_profile(g):
                         (math.degrees(al), rl * 1e3, gi["Di"] * 1e3))
 
 
-def tube_radius(g, x):
-    """Inner radius of the tract downstream of the inlet piece at axial x."""
+def cone_spans(g):
+    """The diameter changes in order as [(x0, Lc, R_from, R_to)]: a straight cone of length Lc = |R_to - R_from| /
+    tan(half-angle) from x0, each starting from the bore the one before it left (the first from D/2)."""
+    out = []
     R = g["D"] / 2.0
-    dc = g.get("dc")
-    if not dc:
-        return R
-    R2 = dc["D2"] / 2.0
-    Lc = abs(R2 - R) / math.tan(dc["beta"])
-    if x <= dc["x0"]:
-        return R
-    if x >= dc["x0"] + Lc:
-        return R2
-    return R + (R2 - R) * (x - dc["x0"]) / Lc
+    for dc in g.get("dcs") or []:
+        R2 = dc["D2"] / 2.0
+        out.append((dc["x0"], abs(R2 - R) / math.tan(dc["beta"]), R, R2))
+        R = R2
+    return out
+
+
+def tube_radius(g, x):
+    """Inner radius of the tract downstream of the inlet piece at axial x (piecewise: constant bores joined by the
+    straight cones of cone_spans)."""
+    R = g["D"] / 2.0
+    for (x0, Lc, R1, R2) in cone_spans(g):
+        if x <= x0:
+            return R
+        if x >= x0 + Lc:
+            R = R2
+            continue
+        return R + (R2 - R) * (x - x0) / Lc
+    return R
 
 
 def tract_stations(g, prof):
     """Axial break points of the tube: inlet end, cone ends, planes, end, outlet."""
     xs = {prof.length: "inlet_end"}
-    if g.get("dc"):
-        R, R2 = g["D"] / 2.0, g["dc"]["D2"] / 2.0
-        Lc = abs(R2 - R) / math.tan(g["dc"]["beta"])
-        x0 = g["dc"]["x0"]
-        if x0 < prof.length - 1e-9 or x0 + Lc > g["L"] + 1e-9:
+    spans = cone_spans(g)
+    prev = prof.length
+    for i, (x0, Lc, R1, R2) in enumerate(spans):
+        if i == 0 and (x0 < prof.length - 1e-9 or x0 + Lc > g["L"] + 1e-9):
             raise DesignError("diameter change must start after the inlet piece (x >= %.1f mm) "
                               "and end before the tract end" % (prof.length * 1e3))
-        xs[x0] = "cone_start"
-        xs[x0 + Lc] = "cone_end"
+        if i > 0 and (x0 < prev - 1e-9 or x0 + Lc > g["L"] + 1e-9):
+            raise DesignError("diameter change %d must start where change %d ends or after it (x >= %.1f mm) and end "
+                              "before the tract end" % (i + 1, i, prev * 1e3))
+        tag = "cone" if len(spans) == 1 else "cone%d" % (i + 1)
+        xs[x0] = tag + "_start"
+        xs[x0 + Lc] = tag + "_end"
+        prev = x0 + Lc
     xs[g["L"]] = "tract_end"
     Dout = 2 * tube_radius(g, g["L"])
     xo = g["L"] + g["ext_D"] * Dout
@@ -790,9 +873,10 @@ def derive(d):
     else:
         prof = g["profile"]
         Dref = g["D"]
-        Rmin = min(g["D"] / 2.0, tube_radius(g, g["L"]))
+        Rmin = min([g["D"] / 2.0] + [tube_radius(g, min(x0 + Lc, g["L"])) for (x0, Lc, R1, R2) in cone_spans(g)]
+                   + [tube_radius(g, g["L"])])
         Amin = math.pi * Rmin ** 2
-        peak_factor = {"plain": 1.6, "taper": 1.2, "radius": 1.1, "ellipse": 1.05}[g["inlet"]["type"]]
+        peak_factor = {"plain": 1.6, "taper": 1.2, "radius": 1.1, "ellipse": 1.05, "profile": 1.05}[g["inlet"]["type"]]
         if g["bends"]:
             peak_factor *= 1.15
     der["D_ref"], der["A_min"], der["peak_factor"] = Dref, Amin, peak_factor
@@ -1520,14 +1604,15 @@ def build_param_3d_surface(g, prof, nphi=64):
         s_cur = b["s0"] + b["clr"] * b["angle"]
     if s_cur > g["L"] + 1e-9:
         raise DesignError("bend ends beyond the tract end (tube_length_mm)")
-    if g.get("dc"):
-        dc = g["dc"]
-        R, R2 = g["D"] / 2, dc["D2"] / 2
-        Lc = abs(R2 - R) / math.tan(dc["beta"])
-        for b in bends:
-            e = b["s0"] + b["clr"] * b["angle"]
-            if not (dc["x0"] + Lc <= b["s0"] or dc["x0"] >= e):
-                raise DesignError("diameter change may not overlap a bend")
+    spans = cone_spans(g)
+    for i, (x0, Lc, R1, R2) in enumerate(spans):
+        if i > 0 and (x0 < spans[i - 1][0] + spans[i - 1][1] - 1e-9 or x0 + Lc > g["L"] + 1e-9):
+            raise DesignError("diameter change %d must start where change %d ends or after it (x >= %.1f mm) and end "
+                              "before the tract end" % (i + 1, i, (spans[i - 1][0] + spans[i - 1][1]) * 1e3))
+    # a cone may overlap a bend (cfd/NOTES.md 4 (k)): its rings follow the bend's frames, the radius from tube_radius
+    # at the path length s; its two ends are stations of their own so the kinks of the wall lie on rings
+    cone_on_bend = [(x0, x0 + Lc) for (x0, Lc, R1, R2) in spans
+                    if any(not (x0 + Lc <= b["s0"] or x0 >= b["s0"] + b["clr"] * b["angle"]) for b in bends)]
     Dout = 2 * tube_radius(g, g["L"])
     S_end = g["L"]
     S_out = g["L"] + g["ext_D"] * Dout
@@ -1556,6 +1641,9 @@ def build_param_3d_surface(g, prof, nphi=64):
         n = max(8, int(math.ceil(b["angle"] / math.radians(5))))
         for i in range(n + 1):
             ss.add(b["s0"] + b["clr"] * b["angle"] * i / n)
+    for (c0, c1) in cone_on_bend:
+        ss.add(c0)
+        ss.add(c1)
     ss.add(S_end)
     ss.add(S_out)
     svals = sorted(x for x in ss if x <= S_out + 1e-12)
@@ -1582,12 +1670,65 @@ def build_param_3d_surface(g, prof, nphi=64):
     outlet = [(a, c, b) if v_dot(tri_area_vec((a, b, c)), to) < 0 else (a, b, c) for (a, b, c) in outlet]
     mouth_ring = rings[0][1]
     mouth = [((0.0, 0.0, 0.0), mouth_ring[j], mouth_ring[(j + 1) % nphi]) for j in range(nphi)]
-    return dict(wall=wall, ext=ext, outlet=outlet, mouth=mouth, mouth_loop=mouth_ring, path=path,
-                S_end=S_end, S_out=S_out)
+    out = dict(wall=wall, ext=ext, outlet=outlet, mouth=mouth, mouth_loop=mouth_ring, path=path,
+               S_end=S_end, S_out=S_out)
+    if g["mount"] == "free":
+        out["free"] = free_mount_surface(g, prof, path, nphi, bends, rad, rings)
+    return out
 
 
-def floor_surface(loop, Rfloor, nseg=None):
-    """Annulus in the plane x=0 between the (star-shaped) mouth loop and a
+def free_mount_surface(g, prof, path, nphi, bends, rad, rings):
+    """The outside of a free-standing tube in 3-D, as the 2-D free mount draws it: the lip's outer face (the profile's
+    cap, front point F -> O) and the outer wall at r_out from O back to the plenum wall at x = P, the protrusion
+    (default max(inlet-piece length, D), at least O + max(0.1 D, 0.3 R)). The tube's outside is a straight cylinder,
+    so P must not reach the first bend or diameter change. -> dict(tris (patch inlet_wall), loop (the outer ring at
+    x = P, the inner edge of the plenum wall), P, gap (the thinnest wall between bore and outside, mm-scale; sets the
+    lip refinement), r_out)."""
+    D = g["D"]
+    R = D / 2.0
+    O = prof.cap_free[-1]
+    limit, what = g["L"], "the tract end"
+    for b in bends:
+        if b["s0"] < limit:
+            limit, what = b["s0"], "the first bend"
+    for (x0, Lc, R1, R2) in cone_spans(g):
+        if x0 < limit:
+            limit, what = x0, "the first diameter change"
+    Pmin = O[0] + max(0.1 * D, 0.3 * R)
+    P = g["protrusion"] if g["protrusion"] is not None else min(max(prof.length, D), limit)
+    P = max(P, Pmin)
+    if P > limit + 1e-9:
+        raise DesignError("free mount: the tube stands %.1f mm proud of the plenum wall, but %s is at %.1f mm; the "
+                          "outside of the tube is modelled straight up to that wall, so the protrusion must end before "
+                          "it (at least %.1f mm is needed for this lip), or use mount type flange"
+                          % (P * 1e3, what, limit * 1e3, Pmin * 1e3))
+    for (s, ring, _, _) in rings:
+        if s > P + 1e-9 and min(q[0] for q in ring) <= P + 1e-9:
+            raise DesignError("free mount: the tube comes back through the plenum-wall plane x = %.1f mm (at %.1f mm "
+                              "along it); use mount type flange" % (P * 1e3, s * 1e3))
+    n = max(2, int(math.ceil((P - O[0]) / (D / 10.0))))
+    prof_o = list(prof.cap_free) + [(O[0] + (P - O[0]) * i / n, prof.r_out) for i in range(1, n + 1)]
+    gap = min(r - rad(x) for (x, r) in prof_o if x >= O[0] - 1e-12)
+    rr = []
+    for (x, r) in prof_o:
+        p, t, n1, n2 = path.frame(x)
+        rr.append([v_add(p, v_add(v_mul(n1, r * math.cos(2 * math.pi * j / nphi)),
+                                  v_mul(n2, r * math.sin(2 * math.pi * j / nphi)))) for j in range(nphi)])
+    tris = []
+    for k in range(len(rr) - 1):
+        A, B = rr[k], rr[k + 1]
+        for j in range(nphi):
+            j1 = (j + 1) % nphi
+            tris.append((A[j], A[j1], B[j1]))
+            tris.append((A[j], B[j1], B[j]))
+    gi = g["inlet"]
+    rlip = {"radius": gi.get("rc"), "taper": gi.get("rl"),
+            "ellipse": gi.get("rc") if gi.get("rc", 0.0) > 0 else None}.get(gi["type"])
+    return dict(tris=tris, loop=rr[-1], P=P, gap=gap, r_out=prof.r_out, rlip=rlip)
+
+
+def floor_surface(loop, Rfloor, nseg=None, x0=0.0):
+    """Annulus in the plane x=x0 (0: the mouth plane) between the (star-shaped) mouth loop and a
     circle of radius Rfloor.  Normals point +x (into the tract side)."""
     cy = sum(p[1] for p in loop) / len(loop)
     cz = sum(p[2] for p in loop) / len(loop)
@@ -1600,7 +1741,7 @@ def floor_surface(loop, Rfloor, nseg=None):
         raise DesignError("inlet mouth outline is not star-shaped about its centre; the plenum "
                           "floor cannot be generated automatically")
     inner = [loop[i] for i in order]
-    outer = [(0.0, cy + Rfloor * math.cos(ang[i]), cz + Rfloor * math.sin(ang[i])) for i in order]
+    outer = [(x0, cy + Rfloor * math.cos(ang[i]), cz + Rfloor * math.sin(ang[i])) for i in order]
     tris = []
     n = len(inner)
     for j in range(n):
@@ -1838,7 +1979,10 @@ def prepare_param3d_geometry(g):
     g["tract_end"] = (pe, te, math.pi * Rend ** 2)
     g["Dref"] = g["D"]
     g["D_mouth"] = 2 * prof.front_r
-    allp = [p for k in ("wall", "ext", "outlet") for t in g["tris"][k] for p in t]
+    g["free3d"] = surf.get("free")
+    if g["free3d"]:
+        g["tris"]["inlet_wall"] = g["free3d"]["tris"]
+    allp = [p for k in ("wall", "ext", "outlet", "inlet_wall") if k in g["tris"] for t in g["tris"][k] for p in t]
     g["bbox"] = ([min(p[i] for p in allp) for i in range(3)], [max(p[i] for p in allp) for i in range(3)])
     pl = {}
     for nm, s in g["planes"].items():
@@ -3036,8 +3180,9 @@ def generate_case(design, out_dir, base_dir=None):
     elif g["kind"] == "stl":
         prepare_stl_geometry(g)
     elif g["kind"] == "3d":
-        if g["mount"] == "free":
-            # 3-D cases use the flange (plenum floor) arrangement; see NOTES
+        if g["mount"] == "free" and not g["mount_given"]:
+            # no mount given: 3-D parametric cases keep the flange (plenum floor) arrangement; mount type free makes
+            # the tube stand proud of the plenum wall (NOTES 2, 4 (i))
             g["mount_note"] = "3-D parametric cases are meshed as flange-mounted (inlet flush with a plenum wall)"
             g["mount"] = "flange"
         prepare_param3d_geometry(g)
@@ -3070,9 +3215,9 @@ def generate_case(design, out_dir, base_dir=None):
             "mount: %s%s" % (g["mount"], ", protrusion into the atmosphere %.2f mm (back wall at x = %.2f mm)" %
                              (minfo["protrusion"] * 1e3, minfo["protrusion"] * 1e3) if minfo["free"] else
                              " (inlet flush with a plane wall)"),
-            "diameter change: %s" % ("to %.2f mm, cone half-angle %.1f deg, from x = %.1f mm" %
-                                     (g["dc"]["D2"] * 1e3, math.degrees(g["dc"]["beta"]), g["dc"]["x0"] * 1e3)
-                                     if g.get("dc") else "none"),
+            "diameter change: %s" % ("; ".join("to %.2f mm, cone half-angle %.1f deg, from x = %.1f mm" %
+                                               (c["D2"] * 1e3, math.degrees(c["beta"]), c["x0"] * 1e3) for c in g["dcs"])
+                                     if g["dcs"] else "none"),
             "atmosphere region radius %.1f mm (= max(15 D, 8 x outer lip dia.)), total-pressure boundary" % (minfo["Rff"] * 1e3),
             "outlet extension %.1f D after the tract end so the outlet BC cannot affect the tract" % g["ext_D"],
             "2-D axisymmetric %.0f deg sector (no bend) -> blockMesh, %d cells; the sector's two sides are a rotational"
@@ -3148,6 +3293,8 @@ def generate_case(design, out_dir, base_dir=None):
         cells, mesh_note, prov_mesh = write_3d_mesh(cw, d, der, g, lv)
         patches = {"atmosphere": "atmosphere", "outlet": "outlet", "tract_wall": "wall",
                    "extension_wall": "wall", "plenum_wall": "wall"}
+        if g.get("free3d"):
+            patches["inlet_wall"] = "wall"
         pe, te, Ae = g["tract_end"]
         rad_e = math.sqrt(Ae / math.pi)
         allpl = [("tract_end", pe, te, Ae)]
@@ -3254,6 +3401,13 @@ def generate_case(design, out_dir, base_dir=None):
             summary[k] = float("%.12g" % v)
     if g.get("mount_note"):
         summary["note"] = g["mount_note"]
+    if len(g.get("dcs") or []) > 1:
+        # several bores along the tract: K and Cd at each plane are referred to the bulk velocity in the bore at that
+        # plane (its own area; intake_report.py), listed here (mm)
+        summary["plane_bore_mm"] = {p["name"]: float("%.12g" % (2e3 * tube_radius(g, min(
+            g["L"] if p["name"] == "tract_end" else (p["x_m"] if "x_m" in p else g["planes"][p["name"]]), g["L"]))))
+            for p in planes_info}
+        summary["plane_K_reference"] = "each plane's K and Cd use the bulk velocity in the bore at that plane"
     if exhaust:
         summary.update(kind="exhaust", inlets=[i["name"] for i in g["inlets"]], split=g["split"], T_gas_K=d["T_gas"],
                        inlet_diameters_mm={i["name"]: i["D"] * 1e3 for i in g["inlets"]}, exit_diameter_mm=g["Dref"] * 1e3)
@@ -3282,16 +3436,59 @@ def write_3d_mesh(cw, d, der, g, lv):
     for i in range(3):
         hi[i] = lo[i] + nx[i] * h0
     Rfloor = 1.6 * math.sqrt(max(lo[1] ** 2, hi[1] ** 2) + max(lo[2] ** 2, hi[2] ** 2))
-    floor = floor_surface(loop, Rfloor)
+    free = g.get("free3d")
+    # free mount: the plenum wall is the plane x = P behind the mouth, its inner edge the tube's outer wall
+    floor = floor_surface(free["loop"], Rfloor, x0=free["P"]) if free else floor_surface(loop, Rfloor)
     tri_dir = os.path.join(cw.root, "constant", "triSurface")
     os.makedirs(tri_dir, exist_ok=True)
     write_stl_ascii(os.path.join(tri_dir, "domain.stl"),
                     [("tract_wall", tris["wall"]), ("extension_wall", tris["ext"]),
-                     ("outlet", tris["outlet"]), ("plenum_wall", floor)])
+                     ("outlet", tris["outlet"]), ("plenum_wall", floor)] +
+                    ([("inlet_wall", tris["inlet_wall"])] if free else []))
     write_stl_ascii(os.path.join(tri_dir, "tract_closed.stl"),
                     [("closed", tris["wall"] + tris["ext"] + tris["outlet"] + tris["mouth"])])
     cw.files += ["constant/triSurface/domain.stl", "constant/triSurface/tract_closed.stl"]
     hcell = h0 / 2 ** level
+    fx = dict(geo_rg="", geo_x="", rs_x="", rr_x="")
+    free_prov = []
+    if free:
+        # the protruding wall and its lip: cells of at most gap / WALL_CELLS_3D across the thinnest wall between the
+        # bore and the outside, within gap + 2 cells of the outside, so the solid wall is resolved and not bridged
+        # and at least LIP_CELLS_3D across a rounded lip's radius
+        hmax = free["gap"] / WALL_CELLS_3D
+        if free["rlip"]:
+            hmax = min(hmax, free["rlip"] / LIP_CELLS_3D)
+        klip = level + 1
+        while h0 / 2 ** klip > hmax and klip < level + 4:
+            klip += 1
+        hlip = h0 / 2 ** klip
+        if hlip > free["gap"] / WALL_CELLS_3D * (1 + 1e-9):
+            raise DesignError("free mount: the tube wall is %.2f mm thick at its thinnest, too thin for the 3-D mesh at "
+                              "level '%s' (it needs %.2f mm cells, %g across); use mesh level fine, a thicker wall or "
+                              "mount type flange" % (free["gap"] * 1e3, d["mesh_level"], free["gap"] / WALL_CELLS_3D * 1e3,
+                                                     WALL_CELLS_3D))
+        if hlip > hmax * (1 + 1e-9):
+            raise DesignError("free mount: the lip radius %.2f mm is too small for the 3-D mesh at level '%s' (it needs "
+                              "%.3f mm cells, %g across it); use mesh level fine, a larger lip or mount type flange"
+                              % (free["rlip"] * 1e3, d["mesh_level"], hmax * 1e3, LIP_CELLS_3D))
+        band = free["gap"] + 2.0 * hlip
+        write_stl_ascii(os.path.join(tri_dir, "inlet_wall.stl"), [("inlet_wall", tris["inlet_wall"])])
+        cw.files += ["constant/triSurface/inlet_wall.stl"]
+        fx = dict(geo_rg="            inlet_wall      { name inlet_wall; }\n",
+                  geo_x="    inlet_wall.stl\n    {\n        type    triSurfaceMesh;\n        name    lipShell;\n    }\n",
+                  rs_x="                inlet_wall      { level (%d %d); patchInfo { type wall; inGroups (wall); } }\n"
+                  % (klip, klip),
+                  rr_x="        lipShell\n        {\n            mode    distance;\n            levels  ((%s %d));\n"
+                  "        }\n" % (_fmt(band), klip))
+        free_prov = ["free mount: the tube stands %.2f mm proud of the plenum wall (plane x = %.2f mm); its outside, "
+                     "radius %.2f mm, and the lip's outer face are patch inlet_wall" % (free["P"] * 1e3, free["P"] * 1e3,
+                                                                                         free["r_out"] * 1e3),
+                     "lip and protruding wall: level %d (cell %.3f mm, %.1f across the thinnest wall, %.3f mm) within "
+                     "%.3f mm of the outside (lipShell, distance)" % (klip, hlip * 1e3, free["gap"] / hlip,
+                                                                      free["gap"] * 1e3, band * 1e3)]
+        if free["rlip"] and free["rlip"] / LIP_CELLS_3D < free["gap"] / WALL_CELLS_3D:
+            free_prov.append("  set by the rounded lip: %.1f cells across its %.2f mm radius (at least %g)"
+                             % (free["rlip"] / hlip, free["rlip"] * 1e3, LIP_CELLS_3D))
     # wall-function layers: first layer from y+ target, total ~0.6 of the wall cell
     t1 = der["h_wall_wf"]
     er = 1.2
@@ -3346,6 +3543,8 @@ boundary
             "  plus the tract bounding box; base cell %.2f mm = D/%g (D = %.2f mm)" % (h0 * 1e3, lv["bg3d"], Dref * 1e3),
             "only the plenum part (upstream of the plenum floor plane x=0) stays in the mesh;",
             "its outer faces form the 'atmosphere' total-pressure boundary"]
+    if free:
+        prov.append("free mount: the plenum reaches past the mouth to the plenum wall at x = %.2f mm" % (free["P"] * 1e3))
     cw.foam("system/blockMeshDict", "dictionary", "blockMeshDict", bm, prov)
     sfe = """domain.stl
 {
@@ -3380,14 +3579,14 @@ geometry
             extension_wall  { name extension_wall; }
             outlet          { name outlet; }
             plenum_wall     { name plenum_wall; }
-        }
+%(geo_rg)s        }
     }
     tract_closed.stl
     {
         type    triSurfaceMesh;
         name    tractClosed;
     }
-    mouthRegion
+%(geo_x)s    mouthRegion
     {
         type    searchableSphere;
         centre  (0 0 0);
@@ -3420,7 +3619,7 @@ castellatedMeshControls
                 extension_wall  { level (%(l)d %(l)d); patchInfo { type wall; inGroups (wall); } }
                 outlet          { level (%(l)d %(l)d); patchInfo { type patch; } }
                 plenum_wall     { level (%(lm)d %(lm)d); patchInfo { type wall; inGroups (wall); } }
-            }
+%(rs_x)s            }
         }
     }
     resolveFeatureAngle 30;
@@ -3436,7 +3635,7 @@ castellatedMeshControls
             mode    inside;
             levels  ((1e15 %(l)d));
         }
-    }
+%(rr_x)s    }
     locationInMesh %(loc)s;
     allowFreeStandingZoneFaces true;
 }
@@ -3487,7 +3686,7 @@ meshQualityControls
 
 mergeTolerance 1e-6;
 """ % dict(rmouth=_fmt(1.0 * Dm), lf=level + 1, l=level, l1=level + 1, lm=max(level - 1, 0),
-                loc=_vec(loc), nl=nl, er=er, t1=_fmt(t1), tmin=_fmt(0.3 * t1))
+                loc=_vec(loc), nl=nl, er=er, t1=_fmt(t1), tmin=_fmt(0.3 * t1), **fx)
     cw.foam("system/snappyHexMeshDict", "dictionary", "snappyHexMeshDict", shm, [
         "tract walls refined to level %d-%d (cell %.3f mm = D/%d), whole tract interior level %d," %
         (level, level + 1, hcell * 1e3, int(round(Dref / hcell)), level),
@@ -3498,10 +3697,13 @@ mergeTolerance 1e-6;
         "locationInMesh is inside the plenum (atmosphere side of the floor)",
         "slipFeatureAngle 100: the tract-wall layers stop at the mouth instead of sliding along the plenum floor; at 30"
         " their end faces became floor (wall) faces, a ledge one layer stack deep inside the mouth that read a sharp"
-        " flush entrance as K 1.0 instead of 0.5"])
+        " flush entrance as K 1.0 instead of 0.5"] + free_prov)
     cw.foam("system/meshQualityDict", "dictionary", "meshQualityDict",
             '#includeEtc "caseDicts/mesh/generation/meshQualityDict.cfg"\n', ["standard snappyHexMesh quality limits"])
     est = int(nx[0] * nx[1] * nx[2] * 0.3 + math.pi * (Dref / 2) ** 2 * (bb1[0] - bb0[0] + 2 * Dref) / hcell ** 3 * 1.5)
+    if free:
+        # the refined shell round the protruding wall (both sides) and the lip face
+        est += int(2 * math.pi * free["r_out"] * (free["P"] + free["r_out"] - Dref / 2) * (band + 6 * hlip) / hlip ** 3)
     note = "3-D snappyHexMesh, roughly %d cells (estimate)" % est
     return est, note, prov
 

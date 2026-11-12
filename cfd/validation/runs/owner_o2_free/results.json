@@ -1,0 +1,85 @@
+{
+  "case": "owner_free",
+  "solver": "simpleFoam",
+  "notes": [],
+  "kind": "intake",
+  "generator": "1.1.0",
+  "numerics": {
+    "algorithm": "SIMPLE",
+    "relaxation": "p 0.3 / U, k, omega 0.7",
+    "p_solver": "GAMG",
+    "mesh": "3-D snappyHexMesh"
+  },
+  "flow_scale": 1.0,
+  "iterations": 900.0,
+  "mdot_outlet_kg_s": 0.3694000002864282,
+  "mdot_atmosphere_kg_s": 0.3694000335541429,
+  "mass_imbalance_rel": 9.005878361761049e-08,
+  "convergence": {
+    "window_iterations": 300,
+    "mdot_atmosphere_rel_change": 2.887008716531755e-07,
+    "p_tract_end_rel_change_of_dp": 4.483614937616402e-05
+  },
+  "sample_time": "903",
+  "planes": {
+    "tract_end": {
+      "area_m2": 0.006722685334883652,
+      "mdot_kg_s": 0.36954691014008206,
+      "p_static_avg_Pa": 98795.84203131527,
+      "T_static_avg_K": 298.1500000000003,
+      "p0_massavg_Pa": 100117.00390022449,
+      "T0_massavg_K": 298.15000000000026,
+      "U_normal_avg_m_s": 46.43122513321363,
+      "uniformity_index": 0.9755630559863983,
+      "secondary_flow_angle_deg": 6.998474470000977,
+      "swirl_angle_net_deg": 2.3116230213444826,
+      "swirl_angle_abs_deg": 5.355156088347263,
+      "swirl_number": 0.0403164250441436,
+      "n_faces": 1071,
+      "PR_p0_over_ps": 1.0255998422269943,
+      "dp_static_Pa": 2529.1579686847253,
+      "dp_total_Pa": 1207.9960997755115,
+      "U_bulk_m_s": 46.3206444818067,
+      "q_dyn_Pa": 1270.0939266627176,
+      "K_total_loss": 0.9511076892947803,
+      "Cd_flowbench": 0.708646981807622,
+      "area_geometric_m2": 0.0067360553915123324,
+      "Cd_vena_contracta_Blair": 0.5159447697550337,
+      "mdot_plane_vs_outlet": 1.0003976985748237,
+      "Mach_bulk": 0.13381165448831375
+    }
+  },
+  "reference_plane": "tract_end",
+  "summary": {
+    "mdot_kg_s": 0.3694000002864282,
+    "PR": 1.0255998422269943,
+    "dp_static_Pa": 2529.1579686847253,
+    "dp_total_Pa": 1207.9960997755115,
+    "K": 0.9511076892947803,
+    "Cd": 0.708646981807622,
+    "Cd_vena_contracta_Blair": 0.5159447697550337
+  },
+  "yPlus": {
+    "tract_wall": {
+      "min": 2.7895138121,
+      "max": 215.59141927,
+      "avg": 36.655550745
+    },
+    "extension_wall": {
+      "min": 14.443460611,
+      "max": 440.37197112,
+      "avg": 64.672167889
+    },
+    "plenum_wall": {
+      "min": 0.05769572331,
+      "max": 24.547425849,
+      "avg": 9.3250429089
+    },
+    "inlet_wall": {
+      "min": 0.05769572331,
+      "max": 176.24634219,
+      "avg": 19.173313424
+    }
+  },
+  "converged": true
+}

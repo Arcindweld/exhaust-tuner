@@ -1,0 +1,265 @@
+{
+  "setup": "straight tube D 50 mm, L 25 D + 3 D, Re 1e5, simpleFoam, medium, mount free with 25 mm (0.5 D) protrusion; K extrapolated from 10-22 D (entrance3d.analyse)",
+  "idelchik_docstring_check": [
+    0.9249999999999999,
+    0.8474999999999999
+  ],
+  "free": {
+    "t/D 0.02, sharp": {
+      "t_over_D": 0.02,
+      "r_over_D": null,
+      "l_over_D": 0.5,
+      "3d": {
+        "K_total": 0.5935724046457705,
+        "K_static_minus_1": 0.6962871675593216,
+        "K_total_plus_alpha22_minus_1": 0.6390203423777479,
+        "f_total_slope": 0.019128436914790565,
+        "f_static_slope": 0.016301151004336392,
+        "alpha_10D": 1.0805381829103515,
+        "alpha_22D": 1.0454479377319774,
+        "q_Pa": 576.5979038288356,
+        "converged": true,
+        "iterations": 900.0,
+        "wall_time_s": null,
+        "cells": null,
+        "cells_estimate": null,
+        "solver": "simpleFoam",
+        "yplus_tract_wall": {
+          "min": 2.7385803247,
+          "max": 50.527123672,
+          "avg": 25.148645501
+        }
+      },
+      "2d": {
+        "K_total": 0.5708776541856828,
+        "K_static_minus_1": 0.6904040663761255,
+        "K_total_plus_alpha22_minus_1": 0.6292274789099686,
+        "f_total_slope": 0.018613628394123807,
+        "f_static_slope": 0.015606210161418249,
+        "alpha_10D": 1.0953107929754458,
+        "alpha_22D": 1.0583498247242857,
+        "q_Pa": 570.2199483134565,
+        "converged": true,
+        "iterations": 3590.0,
+        "wall_time_s": null,
+        "cells": null,
+        "cells_estimate": null,
+        "solver": "simpleFoam",
+        "yplus_tract_wall": {
+          "min": 0.13132376943,
+          "max": 0.94049208587,
+          "avg": 0.58466107694
+        }
+      },
+      "idelchik_reentrant": 0.72,
+      "rennels_reentrant": 0.7670400000000002
+    },
+    "t/D 0.05, sharp": {
+      "t_over_D": 0.05,
+      "r_over_D": null,
+      "l_over_D": 0.5,
+      "3d": {
+        "K_total": 0.43283341886950794,
+        "K_static_minus_1": 0.5324709949595143,
+        "K_total_plus_alpha22_minus_1": 0.48171312648448317,
+        "f_total_slope": 0.018680582763420803,
+        "f_static_slope": 0.01623974174917677,
+        "alpha_10D": 1.0784892455791382,
+        "alpha_22D": 1.0488797076149752,
+        "q_Pa": 576.5979038288356,
+        "converged": true,
+        "iterations": 900.0,
+        "wall_time_s": null,
+        "cells": null,
+        "cells_estimate": null,
+        "solver": "simpleFoam",
+        "yplus_tract_wall": {
+          "min": 4.4238381963,
+          "max": 93.78896317,
+          "avg": 39.036315541
+        }
+      },
+      "2d": {
+        "K_total": 0.37920638409546403,
+        "K_static_minus_1": 0.4977767808884792,
+        "K_total_plus_alpha22_minus_1": 0.4431110650667376,
+        "f_total_slope": 0.017979285987384973,
+        "f_static_slope": 0.015397394523519802,
+        "alpha_10D": 1.0949187164204324,
+        "alpha_22D": 1.0639046809712736,
+        "q_Pa": 570.2199483134565,
+        "converged": true,
+        "iterations": 3450.0,
+        "wall_time_s": null,
+        "cells": null,
+        "cells_estimate": null,
+        "solver": "simpleFoam",
+        "yplus_tract_wall": {
+          "min": 0.072179336744,
+          "max": 0.93933778247,
+          "avg": 0.58133990681
+        }
+      },
+      "idelchik_reentrant": 0.5,
+      "rennels_reentrant": 0.57
+    },
+    "r/D 0.04 lip, free-standing": {
+      "t_over_D": null,
+      "r_over_D": 0.04,
+      "l_over_D": 0.5,
+      "3d": {
+        "K_total": 0.2237983729150272,
+        "K_static_minus_1": 0.30786921064649997,
+        "K_total_plus_alpha22_minus_1": 0.2799360196496703,
+        "f_total_slope": 0.017885349543414017,
+        "f_static_slope": 0.016612531275597895,
+        "alpha_10D": 1.0715592776887737,
+        "alpha_22D": 1.056137646734643,
+        "q_Pa": 576.5442853308548,
+        "converged": true,
+        "iterations": 950.0,
+        "wall_time_s": null,
+        "cells": null,
+        "cells_estimate": null,
+        "solver": "simpleFoam",
+        "yplus_tract_wall": {
+          "min": 2.461262067,
+          "max": 82.531734289,
+          "avg": 39.302243405
+        }
+      },
+      "2d": {
+        "K_total": 0.21971661911187726,
+        "K_static_minus_1": 0.3235292301561692,
+        "K_total_plus_alpha22_minus_1": 0.2894349169299968,
+        "f_total_slope": 0.017229836339488953,
+        "f_static_slope": 0.01569310044709406,
+        "alpha_10D": 1.0881706484173024,
+        "alpha_22D": 1.0697182978181194,
+        "q_Pa": 570.2199483134565,
+        "converged": true,
+        "iterations": 3130.0,
+        "wall_time_s": null,
+        "cells": null,
+        "cells_estimate": null,
+        "solver": "simpleFoam",
+        "yplus_tract_wall": {
+          "min": 0.22523994389,
+          "max": 0.95238527273,
+          "avg": 0.8413876539
+        }
+      },
+      "crane_flush": 0.24,
+      "idelchik_flush": 0.26
+    }
+  },
+  "profile": {
+    "p2_ell": {
+      "K_total": 0.00398680417530556,
+      "K_static_minus_1": 0.061509457169069304,
+      "K_total_plus_alpha22_minus_1": 0.08659671129519153,
+      "f_total_slope": 0.015252491414583796,
+      "f_static_slope": 0.016478821921402723,
+      "alpha_10D": 1.0677618649465608,
+      "alpha_22D": 1.082609907119886,
+      "q_Pa": 570.2199483134565,
+      "converged": true,
+      "iterations": 3120.0,
+      "wall_time_s": null,
+      "cells": null,
+      "cells_estimate": null,
+      "solver": "simpleFoam",
+      "yplus_tract_wall": {
+        "min": 0.53046286307,
+        "max": 0.99469873224,
+        "avg": 0.89305166861
+      }
+    },
+    "p2_prof": {
+      "K_total": 0.0042394786481510585,
+      "K_static_minus_1": 0.06184170672825329,
+      "K_total_plus_alpha22_minus_1": 0.08686862458279587,
+      "f_total_slope": 0.015251361663529224,
+      "f_static_slope": 0.01647476986868675,
+      "alpha_10D": 1.0678166505524922,
+      "alpha_22D": 1.0826291459346449,
+      "q_Pa": 570.2199483134565,
+      "converged": true,
+      "iterations": 3130.0,
+      "wall_time_s": null,
+      "cells": null,
+      "cells_estimate": null,
+      "solver": "simpleFoam",
+      "yplus_tract_wall": {
+        "min": 0.53093540172,
+        "max": 0.98932546361,
+        "avg": 0.89250082361
+      }
+    }
+  },
+  "lip_resolution": {
+    "f3_r004_level4": {
+      "K_total": 0.371832939767142,
+      "K_static_minus_1": 0.47638707122800406,
+      "K_total_plus_alpha22_minus_1": 0.42342979520720636,
+      "f_total_slope": 0.01852990678896431,
+      "f_static_slope": 0.01602043832200881,
+      "alpha_10D": 1.0818894304794755,
+      "alpha_22D": 1.0515968554400643,
+      "q_Pa": 576.5442853308543,
+      "converged": true,
+      "iterations": 900.0,
+      "wall_time_s": null,
+      "cells": null,
+      "cells_estimate": null,
+      "solver": "simpleFoam",
+      "yplus_tract_wall": {
+        "min": 2.6979957227,
+        "max": 134.48047248,
+        "avg": 43.669426444
+      }
+    },
+    "f3_r004_l5": {
+      "K_total": 0.2253258479328462,
+      "K_static_minus_1": 0.3089242143092279,
+      "K_total_plus_alpha22_minus_1": 0.281043356476844,
+      "f_total_slope": 0.01788562305295869,
+      "f_static_slope": 0.016625325003235325,
+      "alpha_10D": 1.0707535851035117,
+      "alpha_22D": 1.0557175085439978,
+      "q_Pa": 576.5442853308548,
+      "converged": true,
+      "iterations": 900.0,
+      "wall_time_s": null,
+      "cells": null,
+      "cells_estimate": null,
+      "solver": "simpleFoam",
+      "yplus_tract_wall": {
+        "min": 1.2179075176,
+        "max": 81.681634345,
+        "avg": 38.867096949
+      }
+    },
+    "f3_r004": {
+      "K_total": 0.2237983729150272,
+      "K_static_minus_1": 0.30786921064649997,
+      "K_total_plus_alpha22_minus_1": 0.2799360196496703,
+      "f_total_slope": 0.017885349543414017,
+      "f_static_slope": 0.016612531275597895,
+      "alpha_10D": 1.0715592776887737,
+      "alpha_22D": 1.056137646734643,
+      "q_Pa": 576.5442853308548,
+      "converged": true,
+      "iterations": 950.0,
+      "wall_time_s": null,
+      "cells": null,
+      "cells_estimate": null,
+      "solver": "simpleFoam",
+      "yplus_tract_wall": {
+        "min": 2.461262067,
+        "max": 82.531734289,
+        "avg": 39.302243405
+      }
+    }
+  }
+}

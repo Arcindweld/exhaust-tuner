@@ -335,6 +335,24 @@
     if (!out || !/^[A-Za-z]/.test(out)) out = "p_" + out;
     return out;
   }
+  function profile_points(pts, D) {  // a measured mouth profile (intake_cfd.py profile_points)
+    const mm = 1e-3;
+    if (!Array.isArray(pts) || pts.length < 3) throw new DesignError("profile inlet needs points_mm: [[x, r], ...] in mm, at least 3 points");
+    const P = pts.map(p => [Number(p[0]) * mm, Number(p[1]) * mm]);
+    if (P.some(p => !Number.isFinite(p[0]) || !Number.isFinite(p[1]))) throw new DesignError("profile points_mm must be [x, r] pairs of numbers (mm)");
+    const R = D / 2.0;
+    if (Math.abs(P[0][0]) > 1e-9) throw new DesignError(pf("profile points_mm must start at x = 0 (the mouth plane), not %.3f mm", P[0][0] / mm));
+    for (let i = 0; i < P.length - 1; i++) {
+      if (P[i + 1][0] <= P[i][0]) throw new DesignError(pf("profile points_mm: x must rise from point to point (point %d at %.3f mm, point %d at %.3f mm)", i + 1, P[i][0] / mm, i + 2, P[i + 1][0] / mm));
+      if (P[i + 1][1] > P[i][1] + 1e-12) throw new DesignError(pf("profile points_mm: r must fall (or stay) toward the bore (point %d at r %.3f mm, point %d at %.3f mm)", i + 1, P[i][1] / mm, i + 2, P[i + 1][1] / mm));
+    }
+    if (Math.abs(P[P.length - 1][1] - R) > 1e-6) throw new DesignError(pf("profile points_mm must end at the tube bore, r = %.3f mm (it ends at %.3f mm)", R / mm, P[P.length - 1][1] / mm));
+    if (P[0][1] <= R + 1e-6) throw new DesignError(pf("profile points_mm must flare: the first radius (%.3f mm) must exceed the bore (%.3f mm)", P[0][1] / mm, R / mm));
+    const a0 = degrees(Math.atan2(P[0][1] - P[1][1], P[1][0] - P[0][0]));
+    if (a0 < 45.0) throw new DesignError(pf("profile points_mm: the first segment is at %.1f degrees to the axis; the mouth must leave its plane at 45 degrees or more (a rounded rim)", a0));
+    P[P.length - 1] = [P[P.length - 1][0], R];
+    return P;
+  }
   function normalise(design) {
     if (!design || typeof design !== 'object') throw new DesignError("design must be a dict");
     const d = { name: String(_get(design, "name", "intake")).trim() || "intake" };
@@ -356,7 +374,7 @@
       g.D = D; g.L = Lt;
       const inl = Object.assign({}, _get(g_in, "inlet", { type: "plain" }));
       const t = String(_get(inl, "type", "plain")).toLowerCase();
-      if (!["plain", "radius", "ellipse", "taper"].includes(t)) throw new DesignError("inlet type must be plain, radius, ellipse or taper");
+      if (!["plain", "radius", "ellipse", "taper", "profile"].includes(t)) throw new DesignError("inlet type must be plain, radius, ellipse, taper or profile");
       const gi = { type: t };
       if (t === "plain") gi.t = Number(_get(inl, "wall_thickness_mm", pymax(1.5, 0.06 * D / mm))) * mm;
       else if (t === "radius") { gi.rc = Number(_get(inl, "lip_radius_mm", 0.15 * D / mm)) * mm; if (gi.rc <= 0) throw new DesignError("radius inlet needs lip_radius_mm > 0"); }
@@ -370,17 +388,25 @@
         if (gi.Di <= D) throw new DesignError("taper entry_diameter_mm must exceed tube_diameter_mm");
         if (!(radians(1) <= gi.alpha && gi.alpha <= radians(60))) throw new DesignError("taper wall_half_angle_deg must be 1..60");
         if (gi.rl < 0.2e-3) throw new DesignError("taper lip_radius_mm must be >= 0.2 mm");
+      } else if (t === "profile") {
+        gi.pts = profile_points(_get(inl, "points_mm", null), D);
+        gi.t = Number(_get(inl, "rim_thickness_mm", 1.5)) * mm;
       }
       g.inlet = gi;
       const mount = Object.assign({}, _get(g_in, "mount", { type: "free" }));
       g.mount = String(_get(mount, "type", "free")).toLowerCase();
       if (!["free", "flange"].includes(g.mount)) throw new DesignError("mount type must be free or flange");
       g.protrusion = ("protrusion_mm" in mount) ? Number(mount.protrusion_mm) * mm : null;
+      // one dict, or an ordered list of them; each cone starts from the bore the one before it left (cone_spans)
       const dc = g_in.diameter_change;
-      if (dc) {
-        g.dc = { D2: Number(dc.to_diameter_mm) * mm, beta: radians(Number(_get(dc, "cone_half_angle_deg", 7.0))), x0: Number(dc.start_mm) * mm };
-        if (!(0 < g.dc.beta && g.dc.beta <= radians(60))) throw new DesignError("cone_half_angle_deg must be in (0, 60]");
-      } else g.dc = null;
+      g.dcs = [];
+      for (const c of (Array.isArray(dc) ? dc : (dc ? [dc] : []))) {
+        const e = { D2: Number(c.to_diameter_mm) * mm, beta: radians(Number(_get(c, "cone_half_angle_deg", 7.0))), x0: Number(c.start_mm) * mm };
+        if (!(0 < e.beta && e.beta <= radians(60))) throw new DesignError("cone_half_angle_deg must be in (0, 60]");
+        if (e.D2 <= 0) throw new DesignError("diameter_change to_diameter_mm must be > 0");
+        g.dcs.push(e);
+      }
+      g.dc = g.dcs.length ? g.dcs[0] : null;
       const bd = g_in.bend;
       g.bends = bd ? (Array.isArray(bd) ? bd : [bd]).map(b => ({ clr: Number(b.clr_mm) * mm, angle: radians(Number(b.angle_deg)), s0: Number(b.start_mm) * mm, plane: radians(Number(_get(b, "plane_deg", 0.0))) })) : [];
       const planes = {};
@@ -454,6 +480,14 @@
       const cap = range(17).map(i => [0.0, cr + (face_top - cr) * i / 16]).concat(_arc_pts(re_, face_top, re_, Math.PI, 0.5 * Math.PI, 12).slice(1));
       return profile(inner, n1, cap, cr + tw, cr, pf("elliptical bellmouth L=%.1f Di=%.1f De=%.1f, sharp rim %.1f mm thick", gi.L * 1e3, gi.Di * 1e3, gi.De * 1e3, tw * 1e3));
     }
+    if (t === "profile") {
+      const inner = gi.pts.slice();
+      let iM = inner.length - 2;
+      for (let i = 1; i < inner.length - 1; i++) if (inner[i][1] - inner[i + 1][1] < inner[i + 1][0] - inner[i][0]) { iM = i; break; }
+      const cr = inner[0][1], tw = gi.t, face_top = cr + tw - re_;
+      const cap = range(17).map(i => [0.0, cr + (face_top - cr) * i / 16]).concat(_arc_pts(re_, face_top, re_, Math.PI, 0.5 * Math.PI, 12).slice(1));
+      return profile(inner, iM, cap, cr + tw, cr, pf("measured mouth profile, %d points, entry dia %.2f mm over %.2f mm", inner.length, 2 * cr * 1e3, inner[inner.length - 1][0] * 1e3));
+    }
     // taper
     const al = gi.alpha, rl = gi.rl, ri = gi.Di / 2.0, cx = rl, cr = ri + rl * Math.cos(al);
     const S = [cx - rl * Math.sin(al), ri], T = [S[0] + (ri - R) / Math.tan(al), R], a_end = 1.5 * Math.PI - al;
@@ -465,21 +499,31 @@
     const cap = _arc_pts(cx, cr, rl, Math.PI, 0.5 * Math.PI, 24);
     return profile(arc.concat(cone), iM, cap, cr + rl, cr, pf("tapered inlet, %.1f deg half-angle, lip radius %.2f mm, entry dia %.1f mm", degrees(al), rl * 1e3, gi.Di * 1e3));
   }
+  function cone_spans(g) {           // [[x0, Lc, R_from, R_to]] in order, each from the bore the one before it left
+    const out = []; let R = g.D / 2.0;
+    for (const dc of g.dcs || []) { const R2 = dc.D2 / 2.0; out.push([dc.x0, Math.abs(R2 - R) / Math.tan(dc.beta), R, R2]); R = R2; }
+    return out;
+  }
   function tube_radius(g, x) {
-    const R = g.D / 2.0, dc = g.dc;
-    if (!dc) return R;
-    const R2 = dc.D2 / 2.0, Lc = Math.abs(R2 - R) / Math.tan(dc.beta);
-    if (x <= dc.x0) return R;
-    if (x >= dc.x0 + Lc) return R2;
-    return R + (R2 - R) * (x - dc.x0) / Lc;
+    let R = g.D / 2.0;
+    for (const [x0, Lc, , R2] of cone_spans(g)) {
+      if (x <= x0) return R;
+      if (x >= x0 + Lc) { R = R2; continue; }
+      return R + (R2 - R) * (x - x0) / Lc;
+    }
+    return R;
   }
   function tract_stations(g, prof) {
     const xs = new Map(); xs.set(prof.length, "inlet_end");
-    if (g.dc) {
-      const R = g.D / 2.0, R2 = g.dc.D2 / 2.0, Lc = Math.abs(R2 - R) / Math.tan(g.dc.beta), x0 = g.dc.x0;
-      if (x0 < prof.length - 1e-9 || x0 + Lc > g.L + 1e-9) throw new DesignError(pf("diameter change must start after the inlet piece (x >= %.1f mm) and end before the tract end", prof.length * 1e3));
-      xs.set(x0, "cone_start"); xs.set(x0 + Lc, "cone_end");
-    }
+    const spans = cone_spans(g);
+    let prev = prof.length;
+    spans.forEach(([x0, Lc], i) => {
+      if (i === 0 && (x0 < prof.length - 1e-9 || x0 + Lc > g.L + 1e-9)) throw new DesignError(pf("diameter change must start after the inlet piece (x >= %.1f mm) and end before the tract end", prof.length * 1e3));
+      if (i > 0 && (x0 < prev - 1e-9 || x0 + Lc > g.L + 1e-9)) throw new DesignError(pf("diameter change %d must start where change %d ends or after it (x >= %.1f mm) and end before the tract end", i + 1, i, prev * 1e3));
+      const tag = spans.length === 1 ? "cone" : "cone" + (i + 1);
+      xs.set(x0, tag + "_start"); xs.set(x0 + Lc, tag + "_end");
+      prev = x0 + Lc;
+    });
     xs.set(g.L, "tract_end");
     const Dout = 2 * tube_radius(g, g.L), xo = g.L + g.ext_D * Dout;
     xs.set(xo, "outlet");
@@ -499,8 +543,8 @@
   function derive(d) {
     const p0 = d.p_amb, T0 = d.T_amb, rho0 = p0 / (R_AIR * T0), mu0 = mu_air(T0), g = d.geometry, op = d.op_in;
     const der = { p_amb: p0, T_amb: T0, rho_amb: rho0, mu_amb: mu0, nu_amb: mu0 / rho0, a_amb: Math.sqrt(GAMMA * R_AIR * T0), R_air: R_AIR, cp: CP_AIR, gamma: GAMMA };
-    const Dref = g.D, Rmin = pymin(g.D / 2.0, tube_radius(g, g.L)), Amin = Math.PI * Math.pow(Rmin, 2);
-    let peak_factor = { plain: 1.6, taper: 1.2, radius: 1.1, ellipse: 1.05 }[g.inlet.type];
+    const Dref = g.D, Rmin = pymin(g.D / 2.0, ...cone_spans(g).map(([x0, Lc]) => tube_radius(g, pymin(x0 + Lc, g.L))), tube_radius(g, g.L)), Amin = Math.PI * Math.pow(Rmin, 2);
+    let peak_factor = { plain: 1.6, taper: 1.2, radius: 1.1, ellipse: 1.05, profile: 1.05 }[g.inlet.type];
     if (g.bends.length) peak_factor *= 1.15;
     der.D_ref = Dref; der.A_min = Amin; der.peak_factor = peak_factor; der.D_Re = Math.sqrt(4.0 * Amin / Math.PI);   // Re at the smallest section, its own diameter (intake_cfd.py)
     let mode, mdot, src;
@@ -958,7 +1002,7 @@
       "geometry: " + prof.label,
       pf("tube D = %.3f mm, tract length (mouth plane -> tract end) = %.2f mm", g.D * 1e3, g.L * 1e3),
       "mount: " + g.mount + (minfo.free ? pf(", protrusion into the atmosphere %.2f mm (back wall at x = %.2f mm)", minfo.protrusion * 1e3, minfo.protrusion * 1e3) : " (inlet flush with a plane wall)"),
-      "diameter change: " + (g.dc ? pf("to %.2f mm, cone half-angle %.1f deg, from x = %.1f mm", g.dc.D2 * 1e3, degrees(g.dc.beta), g.dc.x0 * 1e3) : "none"),
+      "diameter change: " + (g.dcs.length ? g.dcs.map(c => pf("to %.2f mm, cone half-angle %.1f deg, from x = %.1f mm", c.D2 * 1e3, degrees(c.beta), c.x0 * 1e3)).join("; ") : "none"),
       pf("atmosphere region radius %.1f mm (= max(15 D, 8 x outer lip dia.)), total-pressure boundary", minfo.Rff * 1e3),
       pf("outlet extension %.1f D after the tract end so the outlet BC cannot affect the tract", g.ext_D),
       pf("2-D axisymmetric %.0f deg sector (no bend) -> blockMesh, %d cells; the sector's two sides are a rotational", minfo.sector_deg, minfo.ncells),
@@ -1010,6 +1054,11 @@
       operating_point: der.op_source, mode: der.mode, mdot_kg_s: der.mdot === undefined ? null : r12(der.mdot), pressure_ratio: der.PR === undefined ? null : r12(der.PR),
       M_bulk: r12(der.M_bulk), M_peak_est: r12(der.M_peak), U_bulk: r12(der.U_bulk), Re: r12(der.Re), f_colebrook: r12(der.f_colebrook), k_in: r12(der.k_in), omega_in: r12(der.omega_in),
       planes: planes_info.map(p => p.name), files: cw.files.slice().sort() };
+    if (g.dcs.length > 1) {   // several bores: each plane's K and Cd are referred to the bore at that plane (intake_cfd.py)
+      summary.plane_bore_mm = {};
+      for (const p of planes_info) summary.plane_bore_mm[p.name] = r12(2e3 * tube_radius(g, pymin(p.name === "tract_end" ? g.L : p.x_m, g.L)));
+      summary.plane_K_reference = "each plane's K and Cd use the bulk velocity in the bore at that plane";
+    }
     cw.raw("design_input.json", opts.design_text ? pyjsonRoundtrip(opts.design_text) : pyjson(design));
     cw.raw("generator_summary.json", pyjson(summary));
     const plain = Object.assign({}, summary, { cells, mdot_kg_s: summary.mdot_kg_s, M_bulk: der.M_bulk, U_bulk: der.U_bulk, Re: der.Re, M_peak_est: der.M_peak, is3d: false });

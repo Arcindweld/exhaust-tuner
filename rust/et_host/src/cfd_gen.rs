@@ -32,6 +32,8 @@ const PR_T: f64 = 0.85;
 const MACH_COMPRESSIBLE: f64 = 0.20;
 const MACH_TRANSONIC: f64 = 0.60;
 const RAMP_ITER: i64 = 300;
+const WALL_CELLS_3D: f64 = 2.5;
+const LIP_CELLS_3D: f64 = 2.0;
 
 fn derr(m: String) -> String {
     format!("DESIGN ERROR: {}", m)
@@ -194,6 +196,7 @@ enum Inlet {
     Radius { rc: f64 },
     Ellipse { l: f64, di: f64, de: f64, rc: f64, t: f64 },
     Taper { di: f64, alpha: f64, rl: f64 },
+    Profile { pts: Vec<(f64, f64)>, t: f64 },
 }
 #[derive(Clone)]
 struct Dc {
@@ -207,6 +210,16 @@ struct Bend {
     angle: f64,
     s0: f64,
     plane: f64,
+}
+/// The outside of a free-standing tube (free_mount_surface): its triangles (patch inlet_wall), the outer ring at the
+/// plenum wall x = p, the thinnest wall between bore and outside, the outer radius.
+struct Free3d {
+    tris: Vec<Tri>,
+    lp: Vec<V3>,
+    p: f64,
+    gap: f64,
+    r_out: f64,
+    rlip: Option<f64>,
 }
 struct InletExh {
     name: String,
@@ -230,16 +243,21 @@ struct Geo {
     planes3d: Vec<(String, (V3, V3))>,
     ext_d: f64,
     mount: String,
+    mount_given: bool,
+    protrusion: Option<f64>,
     // parametric
     d: f64,
     l: f64,
     inlet: Option<Inlet>,
-    dc: Option<Dc>,
+    dcs: Vec<Dc>,
     bends: Vec<Bend>,
     planes: Vec<(String, f64)>,
     // filled in by the geometry preparation
     profile_inner: Vec<(f64, f64)>,
     profile_front_r: f64,
+    profile_cap: Vec<(f64, f64)>,
+    profile_r_out: f64,
+    free3d: Option<Free3d>,
     tris: HashMap<&'static str, Vec<Tri>>,
     inlet_caps: Vec<(String, Vec<Tri>)>,
     mouth_loop: Vec<V3>,
@@ -274,6 +292,50 @@ struct Design {
     max_iter: i64,
     turbulence_in: Py,
     write_interval: i64,
+}
+
+/// A measured mouth profile (intake_cfd.profile_points): points_mm [[x, r], ...] from the mouth plane into the tube.
+fn profile_points(pts: Option<&Py>, d: f64) -> R<Vec<(f64, f64)>> {
+    let mm = 1e-3;
+    let list = match pts {
+        Some(Py::List(a)) if a.len() >= 3 => a,
+        _ => bail!("profile inlet needs points_mm: [[x, r], ...] in mm, at least 3 points"),
+    };
+    let mut p: Vec<(f64, f64)> = Vec::new();
+    for q in list {
+        match q {
+            Py::List(xy) if xy.len() >= 2 => match (fl(&xy[0]), fl(&xy[1])) {
+                (Ok(x), Ok(r)) => p.push((x * mm, r * mm)),
+                _ => bail!("profile points_mm must be [x, r] pairs of numbers (mm)"),
+            },
+            _ => bail!("profile points_mm must be [x, r] pairs of numbers (mm)"),
+        }
+    }
+    let r = d / 2.0;
+    if p[0].0.abs() > 1e-9 {
+        bail!("profile points_mm must start at x = 0 (the mouth plane), not {} mm", pct("%.3f", &[A::F(p[0].0 / mm)]));
+    }
+    for i in 0..p.len() - 1 {
+        if p[i + 1].0 <= p[i].0 {
+            bail!("{}", pct("profile points_mm: x must rise from point to point (point %d at %.3f mm, point %d at %.3f mm)", &[A::I(i as i64 + 1), A::F(p[i].0 / mm), A::I(i as i64 + 2), A::F(p[i + 1].0 / mm)]));
+        }
+        if p[i + 1].1 > p[i].1 + 1e-12 {
+            bail!("{}", pct("profile points_mm: r must fall (or stay) toward the bore (point %d at r %.3f mm, point %d at %.3f mm)", &[A::I(i as i64 + 1), A::F(p[i].1 / mm), A::I(i as i64 + 2), A::F(p[i + 1].1 / mm)]));
+        }
+    }
+    let n = p.len();
+    if (p[n - 1].1 - r).abs() > 1e-6 {
+        bail!("{}", pct("profile points_mm must end at the tube bore, r = %.3f mm (it ends at %.3f mm)", &[A::F(r / mm), A::F(p[n - 1].1 / mm)]));
+    }
+    if p[0].1 <= r + 1e-6 {
+        bail!("{}", pct("profile points_mm must flare: the first radius (%.3f mm) must exceed the bore (%.3f mm)", &[A::F(p[0].1 / mm), A::F(r / mm)]));
+    }
+    let a0 = (p[0].1 - p[1].1).atan2(p[1].0 - p[0].0) * (180.0 / PI);
+    if a0 < 45.0 {
+        bail!("{}", pct("profile points_mm: the first segment is at %.1f degrees to the axis; the mouth must leave its plane at 45 degrees or more (a rounded rim)", &[A::F(a0)]));
+    }
+    p[n - 1] = (p[n - 1].0, r);
+    Ok(p)
 }
 
 fn normalise(design: &Py, base_dir: &Path) -> R<Design> {
@@ -419,19 +481,31 @@ fn normalise(design: &Py, base_dir: &Path) -> R<Design> {
                 }
                 Inlet::Taper { di, alpha, rl }
             }
-            _ => bail!("inlet type must be plain, radius, ellipse or taper"),
+            "profile" => Inlet::Profile { pts: profile_points(raw(&inl, "points_mm"), d)?, t: fget(&inl, "rim_thickness_mm", 1.5)? * mm },
+            _ => bail!("inlet type must be plain, radius, ellipse, taper or profile"),
         });
         let mount = get(&g_in, "mount").cloned().unwrap_or_else(|| Py::Dict(Dict(vec![("type".into(), Py::Str("free".into()))])));
         g.mount = sget(&mount, "type", "free").to_lowercase();
         if g.mount != "free" && g.mount != "flange" {
             bail!("mount type must be free or flange");
         }
-        if let Some(dc) = raw(&g_in, "diameter_change").filter(|v| v.truthy()) {
+        g.protrusion = if has(&mount, "protrusion_mm") { Some(fl(raw(&mount, "protrusion_mm").unwrap())? * mm) } else { None };
+        g.mount_given = raw(&g_in, "mount").is_some_and(|v| v.truthy());
+        // one dict, or an ordered list of them; each cone starts from the bore the one before it left (cone_spans)
+        let dcl: Vec<Py> = match raw(&g_in, "diameter_change") {
+            Some(Py::List(a)) => a.clone(),
+            Some(v) if v.truthy() => vec![v.clone()],
+            _ => Vec::new(),
+        };
+        for dc in &dcl {
             let dcv = Dc { d2: fkey(dc, "to_diameter_mm")? * mm, beta: radians(fget(dc, "cone_half_angle_deg", 7.0)?), x0: fkey(dc, "start_mm")? * mm };
             if !(0.0 < dcv.beta && dcv.beta <= radians(60.0)) {
                 bail!("cone_half_angle_deg must be in (0, 60]");
             }
-            g.dc = Some(dcv);
+            if dcv.d2 <= 0.0 {
+                bail!("diameter_change to_diameter_mm must be > 0");
+            }
+            g.dcs.push(dcv);
         }
         if let Some(bd) = raw(&g_in, "bend").filter(|v| v.truthy()) {
             let bl: Vec<Py> = match bd {
@@ -632,18 +706,30 @@ struct Der {
     numerics: Option<Dict>,
 }
 
+/// The diameter changes in order: (x0, length, radius from, radius to), each from the bore the one before it left.
+fn cone_spans(g: &Geo) -> Vec<(f64, f64, f64, f64)> {
+    let mut out = Vec::new();
+    let mut r = g.d / 2.0;
+    for dc in &g.dcs {
+        let r2 = dc.d2 / 2.0;
+        out.push((dc.x0, (r2 - r).abs() / dc.beta.tan(), r, r2));
+        r = r2;
+    }
+    out
+}
 fn tube_radius(g: &Geo, x: f64) -> f64 {
-    let r = g.d / 2.0;
-    let Some(dc) = &g.dc else { return r };
-    let r2 = dc.d2 / 2.0;
-    let lc = (r2 - r).abs() / dc.beta.tan();
-    if x <= dc.x0 {
-        return r;
+    let mut r = g.d / 2.0;
+    for (x0, lc, _r1, r2) in cone_spans(g) {
+        if x <= x0 {
+            return r;
+        }
+        if x >= x0 + lc {
+            r = r2;
+            continue;
+        }
+        return r + (r2 - r) * (x - x0) / lc;
     }
-    if x >= dc.x0 + lc {
-        return r2;
-    }
-    r + (r2 - r) * (x - dc.x0) / lc
+    r
 }
 
 fn derive(d: &Design) -> R<Der> {
@@ -656,13 +742,17 @@ fn derive(d: &Design) -> R<Der> {
     let (_dref, amin, peak_factor) = if g.kind == "stl" {
         (g.dref, g.amin, 1.3)
     } else {
-        let rmin = pmin(g.d / 2.0, tube_radius(g, g.l));
+        let mut rs = vec![g.d / 2.0];
+        rs.extend(cone_spans(g).iter().map(|c| tube_radius(g, pmin(c.0 + c.1, g.l))));
+        rs.push(tube_radius(g, g.l));
+        let rmin = seq_min(rs);
         let amin = PI * rmin.powf(2.0);
         let mut pf = match g.inlet.as_ref().unwrap() {
             Inlet::Plain { .. } => 1.6,
             Inlet::Taper { .. } => 1.2,
             Inlet::Radius { .. } => 1.1,
             Inlet::Ellipse { .. } => 1.05,
+            Inlet::Profile { .. } => 1.05,
         };
         if !g.bends.is_empty() {
             pf *= 1.15;
@@ -804,8 +894,9 @@ fn arc_pts(cx: f64, cr: f64, rad: f64, a0: f64, a1: f64, n: usize) -> Vec<(f64, 
 fn edge_radius(g: &Geo) -> f64 {
     pmin(1e-3 * g.d, 0.05e-3)
 }
-/// The flow-side surface of the inlet piece (x, r) from the front to the tube start, and the mouth radius.
-fn inlet_profile(g: &Geo) -> (Vec<(f64, f64)>, f64) {
+/// The flow-side surface of the inlet piece (x, r) from the front to the tube start, the mouth radius, the lip's
+/// outer face (the cap, front point F -> O, for a free-standing tube) and the outer radius behind it.
+fn inlet_profile(g: &Geo) -> (Vec<(f64, f64)>, f64, Vec<(f64, f64)>, f64) {
     let r = g.d / 2.0;
     let re_ = edge_radius(g);
     match g.inlet.as_ref().unwrap() {
@@ -819,10 +910,17 @@ fn inlet_profile(g: &Geo) -> (Vec<(f64, f64)>, f64) {
             let b = arc_pts(cx, cr, rc, 1.25 * PI, 1.5 * PI, 24);
             let mut inner = a;
             inner.extend_from_slice(&b[1..]);
-            let front = if matches!(g.inlet, Some(Inlet::Radius { .. })) { r + rc } else { r };
-            (inner, front)
+            if let Some(Inlet::Plain { t: tw }) = g.inlet {
+                let face_top = r + tw - re_;
+                let mut cap: Vec<(f64, f64)> = (0..21).map(|i| (0.0, r + re_ + (face_top - r - re_) * i as f64 / 20.0)).collect();
+                cap.extend_from_slice(&arc_pts(re_, face_top, re_, PI, 0.5 * PI, 12)[1..]);
+                (inner, r, cap, r + tw)
+            } else {
+                let cap = arc_pts(cx, cr, rc, PI, 0.5 * PI, 36);
+                (inner, r + rc, cap, r + 2.0 * rc)
+            }
         }
-        Inlet::Ellipse { l, di, de, .. } => {
+        Inlet::Ellipse { l, di, de, rc, t } => {
             let (a, b) = (*l, (di - de) / 2.0);
             let (cx, cr) = (*l, di / 2.0);
             let tm = b.atan2(a);
@@ -830,7 +928,14 @@ fn inlet_profile(g: &Geo) -> (Vec<(f64, f64)>, f64) {
             let (n1, n2) = (24usize, 48usize);
             let mut inner: Vec<(f64, f64)> = (0..=n1).map(|i| p(tm * i as f64 / n1 as f64)).collect();
             inner.extend((1..=n2).map(|i| p(tm + (0.5 * PI - tm) * i as f64 / n2 as f64)));
-            (inner, cr)
+            if *rc > 0.0 {
+                let cap = arc_pts(*rc, cr, *rc, PI, 0.5 * PI, 24);
+                return (inner, cr, cap, cr + rc);
+            }
+            let face_top = cr + t - re_;
+            let mut cap: Vec<(f64, f64)> = (0..17).map(|i| (0.0, cr + (face_top - cr) * i as f64 / 16.0)).collect();
+            cap.extend_from_slice(&arc_pts(re_, face_top, re_, PI, 0.5 * PI, 12)[1..]);
+            (inner, cr, cap, cr + t)
         }
         Inlet::Taper { di, alpha, rl } => {
             let (al, rl, ri) = (*alpha, *rl, di / 2.0);
@@ -848,7 +953,17 @@ fn inlet_profile(g: &Geo) -> (Vec<(f64, f64)>, f64) {
             };
             let ncone = 40usize;
             arc.extend((1..=ncone).map(|i| (s.0 + (t.0 - s.0) * i as f64 / ncone as f64, s.1 + (t.1 - s.1) * i as f64 / ncone as f64)));
-            (arc, cr)
+            let cap = arc_pts(cx, cr, rl, PI, 0.5 * PI, 24);
+            (arc, cr, cap, cr + rl)
+        }
+        Inlet::Profile { pts, t } => {
+            // the points as given; the rim square, rim_thickness_mm thick (intake_cfd.inlet_profile)
+            let inner = pts.clone();
+            let cr = inner[0].1;
+            let face_top = cr + t - re_;
+            let mut cap: Vec<(f64, f64)> = (0..17).map(|i| (0.0, cr + (face_top - cr) * i as f64 / 16.0)).collect();
+            cap.extend_from_slice(&arc_pts(re_, face_top, re_, PI, 0.5 * PI, 12)[1..]);
+            (inner, cr, cap, cr + t)
         }
     }
 }
@@ -916,6 +1031,7 @@ struct Surf {
     mouth_loop: Vec<V3>,
     path: Path3D,
     s_end: f64,
+    free: Option<Free3d>,
 }
 
 fn build_param_3d_surface(g: &Geo, inner: &[(f64, f64)], nphi: usize) -> R<Surf> {
@@ -935,16 +1051,23 @@ fn build_param_3d_surface(g: &Geo, inner: &[(f64, f64)], nphi: usize) -> R<Surf>
     if s_cur > g.l + 1e-9 {
         bail!("bend ends beyond the tract end (tube_length_mm)");
     }
-    if let Some(dc) = &g.dc {
-        let (r, r2) = (g.d / 2.0, dc.d2 / 2.0);
-        let lc = (r2 - r).abs() / dc.beta.tan();
-        for b in &bends {
-            let e = b.s0 + b.clr * b.angle;
-            if !(dc.x0 + lc <= b.s0 || dc.x0 >= e) {
-                bail!("diameter change may not overlap a bend");
-            }
+    let spans = cone_spans(g);
+    for (i, &(x0, lc, _, _)) in spans.iter().enumerate() {
+        if i > 0 && (x0 < spans[i - 1].0 + spans[i - 1].1 - 1e-9 || x0 + lc > g.l + 1e-9) {
+            bail!(
+                "diameter change {} must start where change {} ends or after it (x >= {} mm) and end before the tract end",
+                i + 1,
+                i,
+                pct("%.1f", &[A::F((spans[i - 1].0 + spans[i - 1].1) * 1e3)])
+            );
         }
     }
+    // a cone may overlap a bend (cfd/NOTES.md 4 (k)): its two ends are stations of their own
+    let cone_on_bend: Vec<(f64, f64)> = spans
+        .iter()
+        .filter(|&&(x0, lc, _, _)| bends.iter().any(|b| !(x0 + lc <= b.s0 || x0 >= b.s0 + b.clr * b.angle)))
+        .map(|&(x0, lc, _, _)| (x0, x0 + lc))
+        .collect();
     let dout = 2.0 * tube_radius(g, g.l);
     let s_end = g.l;
     let s_out = g.l + g.ext_d * dout;
@@ -976,6 +1099,10 @@ fn build_param_3d_surface(g: &Geo, inner: &[(f64, f64)], nphi: usize) -> R<Surf>
         for i in 0..=n {
             ss.push(b.s0 + b.clr * b.angle * i as f64 / n as f64);
         }
+    }
+    for &(c0, c1) in &cone_on_bend {
+        ss.push(c0);
+        ss.push(c1);
     }
     ss.push(s_end);
     ss.push(s_out);
@@ -1018,7 +1145,88 @@ fn build_param_3d_surface(g: &Geo, inner: &[(f64, f64)], nphi: usize) -> R<Surf>
         .collect();
     let mouth_ring = rings[0].1.clone();
     let mouth: Vec<Tri> = (0..nphi).map(|j| [[0.0, 0.0, 0.0], mouth_ring[j], mouth_ring[(j + 1) % nphi]]).collect();
-    Ok(Surf { wall, ext, outlet, mouth, mouth_loop: mouth_ring, path, s_end })
+    let free = if g.mount == "free" { Some(free_mount_surface(g, &path, nphi, &bends, &rad, &rings, lin)?) } else { None };
+    Ok(Surf { wall, ext, outlet, mouth, mouth_loop: mouth_ring, path, s_end, free })
+}
+
+/// The outside of a free-standing tube, as the 2-D free mount draws it (intake_cfd.free_mount_surface): the lip's
+/// outer face and the outer wall back to the plenum wall at x = p, the protrusion.
+fn free_mount_surface(g: &Geo, path: &Path3D, nphi: usize, bends: &[Bend], rad: &dyn Fn(f64) -> f64, rings: &[(f64, Vec<V3>, V3, V3)], lin: f64) -> R<Free3d> {
+    let d = g.d;
+    let r = d / 2.0;
+    let o = *g.profile_cap.last().unwrap();
+    let (mut limit, mut what) = (g.l, "the tract end");
+    for b in bends {
+        if b.s0 < limit {
+            limit = b.s0;
+            what = "the first bend";
+        }
+    }
+    for c in cone_spans(g) {
+        if c.0 < limit {
+            limit = c.0;
+            what = "the first diameter change";
+        }
+    }
+    let p_min = o.0 + pmax(0.1 * d, 0.3 * r);
+    let mut p = match g.protrusion {
+        Some(v) => v,
+        None => pmin(pmax(lin, d), limit),
+    };
+    p = pmax(p, p_min);
+    if p > limit + 1e-9 {
+        bail!(
+            "free mount: the tube stands {} mm proud of the plenum wall, but {} is at {} mm; the outside of the tube is modelled straight up to that wall, so the protrusion must end before it (at least {} mm is needed for this lip), or use mount type flange",
+            pct("%.1f", &[A::F(p * 1e3)]),
+            what,
+            pct("%.1f", &[A::F(limit * 1e3)]),
+            pct("%.1f", &[A::F(p_min * 1e3)])
+        );
+    }
+    for (s, ring, _, _) in rings {
+        if *s > p + 1e-9 && seq_min(ring.iter().map(|q| q[0])) <= p + 1e-9 {
+            bail!(
+                "free mount: the tube comes back through the plenum-wall plane x = {} mm (at {} mm along it); use mount type flange",
+                pct("%.1f", &[A::F(p * 1e3)]),
+                pct("%.1f", &[A::F(s * 1e3)])
+            );
+        }
+    }
+    let n = 2.max(((p - o.0) / (d / 10.0)).ceil() as i64);
+    let mut prof_o = g.profile_cap.clone();
+    for i in 1..=n {
+        prof_o.push((o.0 + (p - o.0) * i as f64 / n as f64, g.profile_r_out));
+    }
+    let gap = seq_min(prof_o.iter().filter(|q| q.0 >= o.0 - 1e-12).map(|q| q.1 - rad(q.0)));
+    let rr: Vec<Vec<V3>> = prof_o
+        .iter()
+        .map(|&(x, rq)| {
+            let (pp, _t, n1, n2) = path.frame(x);
+            (0..nphi)
+                .map(|j| {
+                    let a = 2.0 * PI * j as f64 / nphi as f64;
+                    v_add(pp, v_add(v_mul(n1, rq * a.cos()), v_mul(n2, rq * a.sin())))
+                })
+                .collect()
+        })
+        .collect();
+    let mut tris = Vec::new();
+    for k in 0..rr.len() - 1 {
+        let (a, b) = (&rr[k], &rr[k + 1]);
+        for j in 0..nphi {
+            let j1 = (j + 1) % nphi;
+            tris.push([a[j], a[j1], b[j1]]);
+            tris.push([a[j], b[j1], b[j]]);
+        }
+    }
+    // a rounded lip's radius (intake_cfd.free_mount_surface): radius, ellipse with a corner radius, taper
+    let rlip = match g.inlet.as_ref().unwrap() {
+        Inlet::Radius { rc } => Some(*rc),
+        Inlet::Taper { rl, .. } => Some(*rl),
+        Inlet::Ellipse { rc, .. } if *rc > 0.0 => Some(*rc),
+        _ => None,
+    };
+    Ok(Free3d { tris, lp: rr.last().unwrap().clone(), p, gap, r_out: g.profile_r_out, rlip })
 }
 
 fn prepare_param3d_geometry(g: &mut Geo) -> R<Path3D> {
@@ -1030,7 +1238,8 @@ fn prepare_param3d_geometry(g: &mut Geo) -> R<Path3D> {
     g.tract_end = (pe, te, PI * rend.powf(2.0));
     g.dref = g.d;
     g.d_mouth = 2.0 * g.profile_front_r;
-    g.bbox = bbox(&[&surf.wall, &surf.ext, &surf.outlet]);
+    let free_tris: Vec<Tri> = surf.free.as_ref().map(|f| f.tris.clone()).unwrap_or_default();
+    g.bbox = bbox(&[&surf.wall, &surf.ext, &surf.outlet, &free_tris]);
     g.planes_local = g.planes.iter().map(|(nm, s)| {
         let (p, t, _, _) = path.frame(*s);
         (nm.clone(), (p, t))
@@ -1040,6 +1249,10 @@ fn prepare_param3d_geometry(g: &mut Geo) -> R<Path3D> {
     g.tris.insert("outlet", surf.outlet);
     g.tris.insert("mouth", surf.mouth);
     g.mouth_loop = surf.mouth_loop;
+    if surf.free.is_some() {
+        g.tris.insert("inlet_wall", free_tris);
+    }
+    g.free3d = surf.free;
     Ok(path)
 }
 
@@ -1241,6 +1454,10 @@ fn boundary_loop(tris: &[Tri], tol: f64) -> R<Vec<V3>> {
 }
 
 fn floor_surface(lp: &[V3], rfloor: f64) -> R<Vec<Tri>> {
+    floor_surface_at(lp, rfloor, 0.0)
+}
+/// floor_surface in the plane x = x0 (a free-standing tube's plenum wall).
+fn floor_surface_at(lp: &[V3], rfloor: f64, x0: f64) -> R<Vec<Tri>> {
     let n = lp.len() as f64;
     let cy = psum(lp.iter().map(|p| p[1])) / n;
     let cz = psum(lp.iter().map(|p| p[2])) / n;
@@ -1257,7 +1474,7 @@ fn floor_surface(lp: &[V3], rfloor: f64) -> R<Vec<Tri>> {
         bail!("inlet mouth outline is not star-shaped about its centre; the plenum floor cannot be generated automatically");
     }
     let inner: Vec<V3> = order.iter().map(|&i| lp[i]).collect();
-    let outer: Vec<V3> = order.iter().map(|&i| [0.0, cy + rfloor * ang[i].cos(), cz + rfloor * ang[i].sin()]).collect();
+    let outer: Vec<V3> = order.iter().map(|&i| [x0, cy + rfloor * ang[i].cos(), cz + rfloor * ang[i].sin()]).collect();
     let mut tris = Vec::new();
     for j in 0..m {
         let j1 = (j + 1) % m;
@@ -1970,17 +2187,67 @@ fn write_3d_mesh(cw: &mut CaseWriter, d: &Design, der: &Der, lv: &Lv) -> R<(i64,
         hi[i] = lo[i] + nx[i] as f64 * h0;
     }
     let rfloor = 1.6 * (pmax(lo[1].powf(2.0), hi[1].powf(2.0)) + pmax(lo[2].powf(2.0), hi[2].powf(2.0))).sqrt();
-    let floor = floor_surface(&g.mouth_loop, rfloor)?;
+    let free = g.free3d.as_ref();
+    // free mount: the plenum wall is the plane x = p behind the mouth, its inner edge the tube's outer wall
+    let floor = match free {
+        Some(f) => floor_surface_at(&f.lp, rfloor, f.p)?,
+        None => floor_surface(&g.mouth_loop, rfloor)?,
+    };
     let t = |k: &str| tris.get(k).map(|v| v.as_slice()).unwrap_or(&[]);
-    cw.write(
-        "constant/triSurface/domain.stl",
-        &stl_ascii(&[("tract_wall", t("wall")), ("extension_wall", t("ext")), ("outlet", t("outlet")), ("plenum_wall", &floor)]),
-    )?;
+    let mut regs: Vec<(&str, &[Tri])> = vec![("tract_wall", t("wall")), ("extension_wall", t("ext")), ("outlet", t("outlet")), ("plenum_wall", &floor)];
+    if free.is_some() {
+        regs.push(("inlet_wall", t("inlet_wall")));
+    }
+    cw.write("constant/triSurface/domain.stl", &stl_ascii(&regs))?;
     let closed: Vec<Tri> = [t("wall"), t("ext"), t("outlet"), t("mouth")].concat();
     cw.write("constant/triSurface/tract_closed.stl", &stl_ascii(&[("closed", &closed)]))?;
     cw.files.push("constant/triSurface/domain.stl".into());
     cw.files.push("constant/triSurface/tract_closed.stl".into());
     let hcell = h0 / 2f64.powf(level as f64);
+    let (mut geo_rg, mut geo_x, mut rs_x, mut rr_x) = (String::new(), String::new(), String::new(), String::new());
+    let mut free_prov: Vec<String> = Vec::new();
+    let (mut hlip, mut band) = (0.0, 0.0);
+    if let Some(f) = free {
+        // the protruding wall and its lip: cells of at most gap / WALL_CELLS_3D across the thinnest wall
+        // and at least LIP_CELLS_3D across a rounded lip's radius
+        let mut hmax = f.gap / WALL_CELLS_3D;
+        if let Some(rl) = f.rlip {
+            hmax = pmin(hmax, rl / LIP_CELLS_3D);
+        }
+        let mut klip = level + 1;
+        while h0 / 2f64.powf(klip as f64) > hmax && klip < level + 4 {
+            klip += 1;
+        }
+        hlip = h0 / 2f64.powf(klip as f64);
+        if hlip > f.gap / WALL_CELLS_3D * (1.0 + 1e-9) {
+            bail!("{}", pct(T::M3_FREE_ERR, &[A::F(f.gap * 1e3), A::S(d.mesh_level.clone()), A::F(f.gap / WALL_CELLS_3D * 1e3), A::F(WALL_CELLS_3D)]));
+        }
+        if hlip > hmax * (1.0 + 1e-9) {
+            bail!(
+                "{}",
+                pct(
+                    "free mount: the lip radius %.2f mm is too small for the 3-D mesh at level '%s' (it needs %.3f mm cells, %g across it); use mesh level fine, a larger lip or mount type flange",
+                    &[A::F(f.rlip.unwrap_or(0.0) * 1e3), A::S(d.mesh_level.clone()), A::F(hmax * 1e3), A::F(LIP_CELLS_3D)]
+                )
+            );
+        }
+        band = f.gap + 2.0 * hlip;
+        cw.write("constant/triSurface/inlet_wall.stl", &stl_ascii(&[("inlet_wall", t("inlet_wall"))]))?;
+        cw.files.push("constant/triSurface/inlet_wall.stl".into());
+        geo_rg = T::M3_FREE_GEO_RG.to_string();
+        geo_x = T::M3_FREE_GEO_X.to_string();
+        rs_x = pct(T::M3_FREE_RS_X, &[A::I(klip), A::I(klip)]);
+        rr_x = pct(T::M3_FREE_RR_X, &[A::S(fmt9(band)), A::I(klip)]);
+        free_prov = vec![
+            pct(T::M3_FREE_PROV1, &[A::F(f.p * 1e3), A::F(f.p * 1e3), A::F(f.r_out * 1e3)]),
+            pct(T::M3_FREE_PROV2, &[A::I(klip), A::F(hlip * 1e3), A::F(f.gap / hlip), A::F(f.gap * 1e3), A::F(band * 1e3)]),
+        ];
+        if let Some(rl) = f.rlip {
+            if rl / LIP_CELLS_3D < f.gap / WALL_CELLS_3D {
+                free_prov.push(pct("  set by the rounded lip: %.1f cells across its %.2f mm radius (at least %g)", &[A::F(rl / hlip), A::F(rl * 1e3), A::F(LIP_CELLS_3D)]));
+            }
+        }
+    }
     let (nl, t1, er, yplus_est) = layers(der, hcell);
     let loc = [-0.5 * xp + 0.0123 * h0, 0.4 * b + 0.0371 * h0, 0.3 * b + 0.0217 * h0];
     let mut a = box_vertices(&lo, &hi);
@@ -1992,6 +2259,10 @@ fn write_3d_mesh(cw: &mut CaseWriter, d: &Design, der: &Der, lv: &Lv) -> R<(i64,
         T::M3_BPROV3.to_string(),
         T::M3_BPROV4.to_string(),
     ];
+    let mut prov = prov;
+    if let Some(f) = free {
+        prov.push(pct(T::M3_FREE_BPROV, &[A::F(f.p * 1e3)]));
+    }
     cw.foam("system/blockMeshDict", "dictionary", "blockMeshDict", &bm, &prov, None)?;
     cw.foam("system/surfaceFeatureExtractDict", "dictionary", "surfaceFeatureExtractDict", T::M3_SFE, &[T::M3_SFE_PROV.to_string()], None)?;
     let shm = pct_named(
@@ -2007,6 +2278,10 @@ fn write_3d_mesh(cw: &mut CaseWriter, d: &Design, der: &Der, lv: &Lv) -> R<(i64,
             ("er", A::F(er)),
             ("t1", A::S(fmt9(t1))),
             ("tmin", A::S(fmt9(0.3 * t1))),
+            ("geo_rg", A::S(geo_rg)),
+            ("geo_x", A::S(geo_x)),
+            ("rs_x", A::S(rs_x)),
+            ("rr_x", A::S(rr_x)),
         ],
     );
     cw.foam(
@@ -2020,11 +2295,17 @@ fn write_3d_mesh(cw: &mut CaseWriter, d: &Design, der: &Der, lv: &Lv) -> R<(i64,
             pct(T::M3_PROV3, &[A::I(nl), A::F(t1 * 1e3), A::F(er), A::F(yplus_est), A::F(der.u_bulk)]),
             T::M3_PROV4.to_string(),
             T::M3_PROV5.to_string(),
-        ],
+        ]
+        .into_iter()
+        .chain(free_prov)
+        .collect::<Vec<String>>(),
         None,
     )?;
     cw.foam("system/meshQualityDict", "dictionary", "meshQualityDict", T::MQ_INCLUDE, &[T::MQ_PROV.to_string()], None)?;
-    let est = ((nx[0] * nx[1] * nx[2]) as f64 * 0.3 + PI * (dref / 2.0).powf(2.0) * (bb1[0] - bb0[0] + 2.0 * dref) / hcell.powf(3.0) * 1.5) as i64;
+    let mut est = ((nx[0] * nx[1] * nx[2]) as f64 * 0.3 + PI * (dref / 2.0).powf(2.0) * (bb1[0] - bb0[0] + 2.0 * dref) / hcell.powf(3.0) * 1.5) as i64;
+    if let Some(f) = free {
+        est += (2.0 * PI * f.r_out * (f.p + f.r_out - dref / 2.0) * (band + 6.0 * hlip) / hlip.powf(3.0)) as i64;
+    }
     let note = pct(T::M3_NOTE, &[A::I(est)]);
     Ok((est, note, prov))
 }
@@ -2136,9 +2417,11 @@ pub fn generate_case(design_text: &str, out_dir: &Path, base_dir: &Path) -> R<Py
         return Err(derr("a straight (2-D axisymmetric) tract: the page writes these cases itself; only 3-D designs are generated here".into()));
     }
     if d.g.kind == "3d" {
-        let (inner, front) = inlet_profile(&d.g);
+        let (inner, front, cap, r_out) = inlet_profile(&d.g);
         d.g.profile_inner = inner;
         d.g.profile_front_r = front;
+        d.g.profile_cap = cap;
+        d.g.profile_r_out = r_out;
     }
     let exhaust = d.mode_kind == "exhaust";
     if d.g.kind == "stl" && exhaust {
@@ -2146,7 +2429,7 @@ pub fn generate_case(design_text: &str, out_dir: &Path, base_dir: &Path) -> R<Py
     } else if d.g.kind == "stl" {
         prepare_stl_geometry(&mut d.g)?;
     } else {
-        if d.g.mount == "free" {
+        if d.g.mount == "free" && !d.g.mount_given {
             d.g.mount_note = Some(T::GC_MOUNT_NOTE.to_string());
             d.g.mount = "flange".into();
         }
@@ -2185,10 +2468,14 @@ pub fn generate_case(design_text: &str, out_dir: &Path, base_dir: &Path) -> R<Py
         let (c, note, _prov) = write_3d_mesh(&mut cw, &d, &der, &lv)?;
         cells = c;
         mesh_note = note;
-        patches = [("atmosphere", "atmosphere"), ("outlet", "outlet"), ("tract_wall", "wall"), ("extension_wall", "wall"), ("plenum_wall", "wall")]
+        let mut p: Vec<(String, String)> = [("atmosphere", "atmosphere"), ("outlet", "outlet"), ("tract_wall", "wall"), ("extension_wall", "wall"), ("plenum_wall", "wall")]
             .iter()
             .map(|(a, b)| (a.to_string(), b.to_string()))
             .collect();
+        if d.g.free3d.is_some() {
+            p.push(("inlet_wall".into(), "wall".into()));
+        }
+        patches = p;
         let (pe, te, ae) = d.g.tract_end;
         let rad_e = (ae / PI).sqrt();
         let mut allpl: Vec<(String, V3, V3, Option<f64>)> = vec![("tract_end".into(), pe, te, Some(ae))];
@@ -2319,6 +2606,18 @@ pub fn generate_case(design_text: &str, out_dir: &Path, base_dir: &Path) -> R<Py
     s.set("files", Py::List(files.into_iter().map(Py::Str).collect()));
     if let Some(n) = &d.g.mount_note {
         s.set("note", Py::Str(n.clone()));
+    }
+    if d.g.dcs.len() > 1 {
+        // several bores: each plane's K and Cd are referred to the bore at that plane (intake_cfd.py)
+        let pb: Vec<(String, Py)> = planes_info
+            .iter()
+            .map(|p| {
+                let x = if p.name == "tract_end" { d.g.l } else { d.g.planes.iter().find(|(n, _)| *n == p.name).map(|(_, x)| *x).unwrap_or(d.g.l) };
+                (p.name.clone(), Py::Float(round12(2e3 * tube_radius(&d.g, pmin(x, d.g.l)))))
+            })
+            .collect();
+        s.set("plane_bore_mm", Py::Dict(Dict(pb)));
+        s.set("plane_K_reference", Py::Str("each plane's K and Cd use the bulk velocity in the bore at that plane".into()));
     }
     if exhaust {
         s.set("kind", Py::Str("exhaust".into()));
