@@ -28,8 +28,8 @@ def peaks(rows, vtot, f):
 
 
 def main(tags):
-    print("| engine | rating | tag | indicated torque | indicated power | brake torque | brake power | brake (net - tfmep) torque / power |")
-    print("|---|---|---|---|---|---|---|---|")
+    print("| engine | rating | tag | indicated torque | indicated power | brake torque | brake power | brake (net - tfmep) torque / power | VE peak @ rpm; at the rated torque speed | gross IMEP at the rated torque speed (bar) |")
+    print("|---|---|---|---|---|---|---|---|---|---|")
     for tag in tags:
         d = json.load(open(os.path.join(HERE, "results", "ratings_%s.json" % tag)))
         for k, E in d["engines"].items():
@@ -41,10 +41,12 @@ def main(tags):
             tb, tbr, pb, pbr = peaks(E["rows"], vtot, lambda r: g(r) - tfmep(r["rpm"]))
             tn, tnr, pn, pnr = peaks(E["rows"], vtot, lambda r: r["imep"] - tfmep(r["rpm"]))
             e = lambda v, ref: "%+.0f %%" % (100 * (v / ref - 1))
-            print("| %s%s | %d lb-ft @ %d, %d hp @ %d | %s | %.0f @ %d (%s) | %.0f @ %d (%s) | %.0f @ %d (%s) | %.0f @ %d (%s) | %.0f (%s) / %.0f (%s) |" % (
+            vp = max(E["rows"], key=lambda r: r["ve"])
+            at = min(E["rows"], key=lambda r: abs(r["rpm"] - R["tqRpm"]))
+            print("| %s%s | %d lb-ft @ %d, %d hp @ %d | %s | %.0f @ %d (%s) | %.0f @ %d (%s) | %.0f @ %d (%s) | %.0f @ %d (%s) | %.0f (%s) / %.0f (%s) | %.3f @ %d; %.3f | %.2f |" % (
                 k.upper(), " (cam assumed)" if E.get("assumed") else "", R["lbft"], R["tqRpm"], R["hp"], R["hpRpm"], tag,
                 ti, tir, e(ti, R["lbft"]), pi, pir, e(pi, R["hp"]), tb, tbr, e(tb, R["lbft"]), pb, pbr, e(pb, R["hp"]),
-                tn, e(tn, R["lbft"]), pn, e(pn, R["hp"])))
+                tn, e(tn, R["lbft"]), pn, e(pn, R["hp"]), vp["ve"], vp["rpm"], at["ve"], g(at) / 1e5))
 
 
 if __name__ == "__main__":
