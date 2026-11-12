@@ -8916,6 +8916,94 @@ const PRC=Math.pow(2/(GAM+1),GAM/G1);                          // critical press
 const PSIC=Math.sqrt(GAM)*Math.pow(2/(GAM+1),(GAM+1)/(2*G1));    // choked flow function
 const FANNING=0.005;
 
+/* ---------- gas properties (2026-11-12) ----------
+   Until 2026-11-12 every gas here was one ideal gas of gamma 1.35 and R 287 (cylinder, exhaust and intake alike); the
+   cross-check against OpenWAM put about half of the model's 22-28 % surplus of net IMEP on that (docs/WAVE_VALIDATION_2026-11-11.md
+   4.3). Now (the default; spec.e.gas = 'const' keeps the old gas, bit for bit, and the building blocks used on their
+   own, makePipe without spec.gas, stay at it): two thermally perfect ideal gases mixed by the fresh-charge fraction x that the
+   model already carries everywhere (pipes, cylinders, side volumes):
+   - fresh charge: dry air, mole fractions N2 0.78084, O2 0.20946, Ar 0.00934 (NOAA; CO2 left out) (fuel vapour is not
+     modelled: the model counts the fresh charge's mass as air, as before);
+   - burned gas: the products of CH1.87 (gasoline, as sosExh) with that air at the engine's air-fuel ratio, frozen (no
+     dissociation): lean CO2, H2O, O2, N2, Ar; rich CO2, CO, H2O, H2, N2, Ar with the water-gas equilibrium
+     [CO][H2O]/([CO2][H2]) = 3.5 (Heywood, Internal Combustion Engine Fundamentals, sec. 4.2; MIT 2.61 lecture 4 "3.5 to
+     3.7", the equilibrium at about 1740 K; NIST-JANAF's log Kf give 3.41 at 1700 K, 3.80 at 1800 K);
+   - each species' cp/R: the NASA 7-coefficient polynomials of NASA TM-4513 (McBride, Gordon and Reno, 1993), 200-1000 K
+     and 1000-6000 K, as in the NASA7 file of Caltech's Shock and Detonation Toolbox (SDToolbox/data/NASA7/nasa7.dat) and
+     Cantera's data/nasa_gas.yaml (the two agree digit for digit for these seven species), molar masses from the same file.
+     Against NIST-JANAF (janaf.nist.gov tables) 200-3500 K: cp within 0.42 % for N2, O2, Ar, CO2, CO, H2; H2O within 0.07 % to
+     1,000 K and 1.0 % / 2.0 % above JANAF at 2,000 / 3,000 K (TM-4513's water is Gurvich's 1989 data, JANAF's an older
+     analysis; with H2O at 12 % of the burned moles that is 0.3 % of the burned gas's cp at 2,000 K).
+   Mass-weighted mixing: R(x) = Rb + x (Ra - Rb); cp(T, x), and the sensible enthalpy h(T, x) = integral of cp from
+   298.15 K (continuous at 1,000 K by construction), are polynomials whose coefficients mix the same way. Internal energy
+   e = h - R T on that datum; the heat released by the burn is added as before (fresh charge / AFR x LHV x eta), so the
+   formation enthalpies are not needed. gamma(T, x) = cp / (cp - R), the frozen ratio, sets the sound speed.
+   Spot values: air gamma 1.400 at 300 K, 1.336 at 1,000 K; products at AFR 12.8 (lambda 0.877) 1.300 at 1,000 K,
+   1.259 at 2,000 K, 1.251 at 2,500 K (tests/wavegas_ui.js checks them against JANAF's tables).
+   Where it enters: the pipe cells' temperature from their energy (Newton on e(T, x)), pressure p = rho R(x) T, sound speed
+   and the MUSCL-Hancock predictor with the cell's gamma, the HLLC flux with each face state's own e(T, x) and gamma (the
+   HLLC flux itself does not depend on the equation of state, Toro ch. 10), the cylinder's and side volumes' energy
+   m e(T, x), every enthalpy that crosses a valve, a junction or an end as h(T, x); the closed-form characteristic
+   solutions at ends, junctions and valves (and the orifice law) take the end cell's (or the cylinder's) gamma frozen over
+   the half-cell isentropic step they solve, with energy carried exactly as h(T, x). */
+const RU=8.314462618, TREF=298.15;
+const SPEC=[ // NASA TM-4513: M g/mol, then cp/R a1..a5 below 1000 K, a1..a5 above (to 6000 K)
+  [28.01348,[3.53100528,-1.23660987e-4,-5.02999437e-7,2.43530612e-9,-1.40881235e-12],[2.95257626,1.39690057e-3,-4.92631691e-7,7.86010367e-11,-4.60755321e-15]],   // N2  TPIS78
+  [31.9988,[3.78245636,-2.99673415e-3,9.847302e-6,-9.68129508e-9,3.24372836e-12],[3.66096083,6.56365523e-4,-1.41149485e-7,2.05797658e-11,-1.29913248e-15]],          // O2  TPIS89
+  [39.948,[2.5,0,0,0,0],[2.5,0,0,0,0]],                                                                                                                           // Ar  L 6/88
+  [44.0098,[2.35677352,8.98459677e-3,-7.12356269e-6,2.45919022e-9,-1.43699548e-13],[4.63659493,2.74131991e-3,-9.95828531e-7,1.60373011e-10,-9.16103468e-15]],      // CO2 L 7/88
+  [18.01528,[4.19864056,-2.0364341e-3,6.52040211e-6,-5.48797062e-9,1.77197817e-12],[2.67703787,2.97318329e-3,-7.7376969e-7,9.44336689e-11,-4.26900959e-15]],       // H2O L 8/89
+  [28.0104,[3.57953347,-6.1035368e-4,1.01681433e-6,9.07005884e-10,-9.04424499e-13],[3.04848583,1.35172818e-3,-4.85794075e-7,7.88536486e-11,-4.69807489e-15]],      // CO  TPIS79
+  [2.01588,[2.34433112,7.98052075e-3,-1.9478151e-5,2.01572094e-8,-7.37611761e-12],[2.93286579,8.26607967e-4,-1.46402335e-7,1.54100359e-11,-6.88804432e-16]]];     // H2  TPIS78
+const AIR_N2=0.78084, AIR_O2=0.20946, AIR_AR=0.00934, FUEL_Y=1.87, K_WGS=3.5;
+// air per mole of O2 (g) and fuel per C atom (g, C 12.011, H 1.008): the stoichiometric air-fuel ratio, 14.596
+const AFR_ST=(1+FUEL_Y/4)*(AIR_N2/AIR_O2*SPEC[0][0]+SPEC[1][0]+AIR_AR/AIR_O2*SPEC[2][0])/(12.011+FUEL_Y*1.008);
+// moles of each species (SPEC order) in the products per C atom at relative air-fuel ratio lam (held to 0.5-4)
+function burnedMoles(lam){
+  lam=Math.min(4,Math.max(0.5,lam));
+  const y=FUEL_Y, o=1+y/4, n2=lam*o*(AIR_N2/AIR_O2), ar=lam*o*(AIR_AR/AIR_O2);
+  if(lam>=1) return [n2,(lam-1)*o,ar,1,y/2,0,0];
+  // rich: C, H and O balances with K = n_CO n_H2O / (n_CO2 n_H2): (K - 1) a^2 + (K (y/2 - S) + 1 + S) a - S = 0, a = n_CO2
+  const S=2*lam*o-1, qa=K_WGS-1, qb=K_WGS*(y/2-S)+1+S, a=(-qb+Math.sqrt(qb*qb+4*qa*S))/(2*qa);
+  return [n2,0,ar,a,S-a,1-a,y/2-S+a];
+}
+// per-kg polynomials of a mixture of moles n: [cp a0..a4 (J/kg/K), h b1..b5 and its constant (J/kg)] below and above 1000 K, and R
+function gasPoly(n){
+  let m=0, N=0; for(let k=0;k<7;k++){ m+=n[k]*SPEC[k][0]; N+=n[k]; }
+  const s=RU*1000/m, mk=r=>{ const c=[0,0,0,0,0]; for(let j=0;j<5;j++){ let t=0; for(let k=0;k<7;k++) t+=n[k]*SPEC[k][r][j]; c[j]=s*t; }
+    return [c[0],c[1],c[2],c[3],c[4],c[0],c[1]/2,c[2]/3,c[3]/4,c[4]/5,0]; };
+  const lo=mk(1), hi=mk(2), H=(c,T)=>T*(c[5]+T*(c[6]+T*(c[7]+T*(c[8]+T*c[9]))));
+  lo[10]=-H(lo,TREF); hi[10]=H(lo,1000)+lo[10]-H(hi,1000);
+  return {R:s*N,lo,hi};
+}
+// the engine's gas: air (x = 1) and its burned gas (x = 0) at the engine's air-fuel ratio, as base + x times difference
+function makeGas(afr){
+  const A=gasPoly([AIR_N2,AIR_O2,AIR_AR,0,0,0,0]), B=gasPoly(burnedMoles(afr/AFR_ST)), d=(a,b)=>a.map((v,j)=>v-b[j]);
+  return {Ra:A.R,Rb:B.R,Rd:A.R-B.R,blo:B.lo,bhi:B.hi,dlo:d(A.lo,B.lo),dhi:d(A.hi,B.hi),lam:afr/AFR_ST};
+}
+// cp, h and R at (T, x) into GV. Outside the polynomials' 200-6000 K, cp is held at the end value (h linear), so e(T) stays
+// monotonic for the Newton solve below even in a nearly empty cell
+const GV={cp:0,h:0,R:0};
+function gasAt(G,T,x){
+  const Tc=T>6000?6000:T<200?200:T, b=Tc>1000?G.bhi:G.blo, d=Tc>1000?G.dhi:G.dlo;
+  const c0=b[0]+x*d[0], c1=b[1]+x*d[1], c2=b[2]+x*d[2], c3=b[3]+x*d[3], c4=b[4]+x*d[4];
+  const h1=b[5]+x*d[5], h2=b[6]+x*d[6], h3=b[7]+x*d[7], h4=b[8]+x*d[8], h5=b[9]+x*d[9], h0=b[10]+x*d[10];
+  GV.cp=c0+Tc*(c1+Tc*(c2+Tc*(c3+Tc*c4))); GV.h=Tc*(h1+Tc*(h2+Tc*(h3+Tc*(h4+Tc*h5))))+h0+GV.cp*(T-Tc); GV.R=G.Rb+x*G.Rd;
+}
+const gasH=(G,T,x)=>{ gasAt(G,T,x); return GV.h; };
+const gasE=(G,T,x)=>{ gasAt(G,T,x); return GV.h-GV.R*T; };
+const gasR=(G,x)=>G.Rb+x*G.Rd;
+// the temperature whose internal energy (byH: enthalpy) is v, Newton from T; GV holds cp, h, R of the last iterate
+function gasT(G,v,x,T,byH){
+  for(let it=0;it<30;it++){
+    gasAt(G,T,x);
+    const dT=byH?(GV.h-v)/GV.cp:(GV.h-GV.R*T-v)/(GV.cp-GV.R);
+    T-=dT; if(T<100) T=100;
+    if(!(Math.abs(dT)>1e-9*T)) break;
+  }
+  return T;
+}
+
 // ---------- pipes ----------
 // spec: {L m, dx m, area(x) m² at distance x from the pipe's start, Tw K wall temperature, T0 K, x0 fresh fraction}
 function makePipe(spec){
@@ -8924,9 +9012,12 @@ function makePipe(spec){
   for(let i=0;i<n;i++){ A[i]=spec.area((i+0.5)*dx); D[i]=Math.sqrt(4*A[i]/Math.PI); }
   Af[0]=A[0]; Af[n]=A[n-1]; for(let j=1;j<n;j++) Af[j]=0.5*(A[j-1]+A[j]);
   const q1=new Float64Array(n), q2=new Float64Array(n), q3=new Float64Array(n), q4=new Float64Array(n);
-  const T0=spec.T0||TATM, rho0=PATM/(RG*T0), x0=spec.x0==null?1:spec.x0;
-  for(let i=0;i<n;i++){ q1[i]=rho0*A[i]; q2[i]=0; q3[i]=PATM/G1*A[i]; q4[i]=rho0*x0*A[i]; }
-  return {n,dx,A,Af,D,q1,q2,q3,q4,Tw:spec.Tw||TATM,
+  const T0=spec.T0||TATM, x0=spec.x0==null?1:spec.x0, G=spec.gas||null, rho0=PATM/((G?gasR(G,x0):RG)*T0);
+  // each cell's gamma, cp, R and temperature (constants for the constant gas; prim() keeps them for the engine's gas)
+  const g=new Float64Array(n).fill(GAM), cp=new Float64Array(n).fill(CP), Rm=new Float64Array(n).fill(RG), Tc=new Float64Array(n).fill(T0);
+  const e0=G?gasE(G,T0,x0):0;
+  for(let i=0;i<n;i++){ q1[i]=rho0*A[i]; q2[i]=0; q3[i]=G?rho0*e0*A[i]:PATM/G1*A[i]; q4[i]=rho0*x0*A[i]; }
+  return {n,dx,A,Af,D,q1,q2,q3,q4,Tw:spec.Tw||TATM,G,g,cp,Rm,T:Tc,
     r:new Float64Array(n),u:new Float64Array(n),p:new Float64Array(n),x:new Float64Array(n),
     dr:new Float64Array(n),du:new Float64Array(n),dp:new Float64Array(n),dxs:new Float64Array(n),
     f1:new Float64Array(n+1),f2:new Float64Array(n+1),f3:new Float64Array(n+1),f4:new Float64Array(n+1),
@@ -8934,22 +9025,34 @@ function makePipe(spec){
 }
 const minmod=(a,b)=>a*b<=0?0:(Math.abs(a)<Math.abs(b)?a:b);
 function prim(P){
-  const {n,A,q1,q2,q3,q4,r,u,p,x}=P;
+  const {n,A,q1,q2,q3,q4,r,u,p,x,G}=P;
+  if(G){ const {g,cp,Rm,T}=P;
+    for(let i=0;i<n;i++){
+      const rr=q1[i]/A[i], uu=q2[i]/q1[i], xx=Math.min(1,Math.max(0,q4[i]/q1[i]));
+      const t=gasT(G,q3[i]/q1[i]-0.5*uu*uu,xx,T[i],false);
+      r[i]=rr; u[i]=uu; x[i]=xx; T[i]=t; Rm[i]=GV.R; cp[i]=GV.cp; g[i]=GV.cp/(GV.cp-GV.R); p[i]=Math.max(1,rr*GV.R*t);
+    }
+    return;
+  }
   for(let i=0;i<n;i++){
     const rr=q1[i]/A[i], uu=q2[i]/q1[i], E=q3[i]/A[i];
     r[i]=rr; u[i]=uu; p[i]=Math.max(1,G1*(E-0.5*rr*uu*uu)); x[i]=Math.min(1,Math.max(0,q4[i]/q1[i]));
   }
 }
 function maxSpeed(P){
-  let s=0; const {n,r,u,p}=P;
-  for(let i=0;i<n;i++){ const v=Math.abs(u[i])+Math.sqrt(GAM*p[i]/r[i]); if(v>s) s=v; }
+  let s=0; const {n,r,u,p,g}=P;
+  for(let i=0;i<n;i++){ const v=Math.abs(u[i])+Math.sqrt(g[i]*p[i]/r[i]); if(v>s) s=v; }
   return s;
 }
 // HLLC flux per unit area (Toro), written into HF
 const HF=new Float64Array(4);
-function hllc(rL,uL,pL,xL,rR,uR,pR,xR){
-  const cL=Math.sqrt(GAM*pL/rL), cR=Math.sqrt(GAM*pR/rR);
-  const EL=pL/G1+0.5*rL*uL*uL, ER=pR/G1+0.5*rR*uR*uR;
+// G: the engine's gas (each face state's energy and gamma from its own T = p / (rho R(x)) and x), or null: gamma 1.35
+function hllc(rL,uL,pL,xL,rR,uR,pR,xR,G){
+  let cL, cR, EL, ER;
+  if(G){
+    gasAt(G,pL/(rL*gasR(G,xL)),xL); cL=Math.sqrt(GV.cp/(GV.cp-GV.R)*pL/rL); EL=rL*(GV.h-pL/rL)+0.5*rL*uL*uL;
+    gasAt(G,pR/(rR*gasR(G,xR)),xR); cR=Math.sqrt(GV.cp/(GV.cp-GV.R)*pR/rR); ER=rR*(GV.h-pR/rR)+0.5*rR*uR*uR;
+  } else { cL=Math.sqrt(GAM*pL/rL); cR=Math.sqrt(GAM*pR/rR); EL=pL/G1+0.5*rL*uL*uL; ER=pR/G1+0.5*rR*uR*uR; }
   const SL=Math.min(uL-cL,uR-cR), SR=Math.max(uL+cL,uR+cR);
   if(SL>=0){ HF[0]=rL*uL; HF[1]=rL*uL*uL+pL; HF[2]=uL*(EL+pL); HF[3]=rL*uL*xL; return; }
   if(SR<=0){ HF[0]=rR*uR; HF[1]=rR*uR*uR+pR; HF[2]=uR*(ER+pR); HF[3]=rR*uR*xR; return; }
@@ -8971,26 +9074,33 @@ function hllc(rL,uL,pL,xL,rR,uR,pR,xR){
 // at the critical pressure). Solved in closed form. Until 2026-11-11 the end was a ghost cell at the cell's pressure
 // whose inflow speed came from Bernoulli, sqrt(2 dp / rho): a 100 Pa dip came back eight times larger, and steady
 // inflow flipped between two states every step (docs/WAVE_VALIDATION_2026-11-11.md)
-const GS={r:0,u:0,p:0,x:0}, K2=2/G1, EXC=G1/(2*GAM);
-function openState(r,u,p,x,dir,pa,Ta,xa){
-  const un=u*dir, c=Math.sqrt(GAM*p/r);
-  if(un>=c&&p>=pa){ GS.r=r; GS.u=u; GS.p=p; GS.x=x; return GS; }   // supersonic exit above the outside pressure
+// gm: the end cell's gamma (the engine's gas: frozen over the step; else 1.35), Ra: R of the outside gas
+const GS={r:0,u:0,p:0,x:0};
+function openState(r,u,p,x,dir,pa,Ta,xa,gm,Ra){
+  const K2=2/(gm-1), EXC=(gm-1)/(2*gm);
+  const un=u*dir, c=Math.sqrt(gm*p/r);
+  // supersonic exit: every characteristic leaves, so the end state is the cell's, when the outside pressure is at most what a
+  // normal shock at the exit could hold (pa <= p (1 + 2 gamma / (gamma + 1) (M^2 - 1))); the shock then stands at or outside
+  // the exit. Until 2026-11-12 only an exit above the outside pressure was taken so; below it the subsonic solution below
+  // gave the sonic state on the cell's characteristic, which passes more mass than any supersonic state on it, and emptied
+  // the end cell: an over-expanded exit (a megaphone's cone at 9000 rpm) ran away to NaN (docs/WAVE_VALIDATION_2026-11-11.md, addendum)
+  if(un>=c&&(p>=pa||pa<=p*(1+2*gm/(gm+1)*(un*un/(c*c)-1)))){ GS.r=r; GS.u=u; GS.p=p; GS.x=x; return GS; }
   const J=un+K2*c, cpa=c*Math.pow(pa/p,EXC);                        // cpa: sound speed of the cell's gas brought to pa
   let ub=J-K2*cpa;
   if(ub>=0){                                                           // outflow
     let cb=cpa;
     if(ub>cb){ cb=J/(1+K2); ub=cb; }                                    // choked: sonic at the end
-    const pb=p*Math.pow(cb/c,1/EXC); GS.p=pb; GS.r=GAM*pb/(cb*cb); GS.u=dir*ub; GS.x=x; return GS;
+    const pb=p*Math.pow(cb/c,1/EXC); GS.p=pb; GS.r=gm*pb/(cb*cb); GS.u=dir*ub; GS.x=x; return GS;
   }
   // inflow at speed v: the outside air's energy gives T = Ta s^2, p = pa s^(1/EXC) with s = sqrt(1 - v^2/(K2 c0^2)); the
   // pipe's wave gives J + v = K2 cpa s. Squared: a v^2 + 2 J v + J^2 - (K2 cpa)^2 = 0
-  const c0=Math.sqrt(GAM*RG*Ta), a=1+K2*cpa*cpa/(c0*c0), vs=c0*Math.sqrt(2/(GAM+1));
+  const c0=Math.sqrt(gm*Ra*Ta), a=1+K2*cpa*cpa/(c0*c0), vs=c0*Math.sqrt(2/(gm+1));
   const v=Math.min(vs,(-J+Math.sqrt(Math.max(0,J*J-a*(J*J-K2*K2*cpa*cpa))))/a), s2=Math.max(0,1-v*v/(K2*c0*c0));
-  const pb=pa*Math.pow(s2,0.5/EXC); GS.p=pb; GS.r=pb/(RG*Ta*s2); GS.u=-dir*v; GS.x=xa; return GS;
+  const pb=pa*Math.pow(s2,0.5/EXC); GS.p=pb; GS.r=pb/(Ra*Ta*s2); GS.u=-dir*v; GS.x=xa; return GS;
 }
 // one MUSCL-Hancock step; the boundary functions P.left and P.right fill the end fluxes
 function stepPipe(P,dt){
-  const {n,dx,A,Af,D,q1,q2,q3,q4,r,u,p,x,dr,du,dp,dxs,f1,f2,f3,f4}=P;
+  const {n,dx,A,Af,D,q1,q2,q3,q4,r,u,p,x,dr,du,dp,dxs,f1,f2,f3,f4,g,cp,Rm,G}=P;
   for(let i=0;i<n;i++){
     if(i===0||i===n-1){ dr[i]=du[i]=dp[i]=dxs[i]=0; continue; }
     dr[i]=minmod(r[i]-r[i-1],r[i+1]-r[i]); du[i]=minmod(u[i]-u[i-1],u[i+1]-u[i]);
@@ -9000,22 +9110,22 @@ function stepPipe(P,dt){
   for(let j=1;j<n;j++){
     const a=j-1, b=j;
     let ra=r[a]+0.5*dr[a], ua=u[a]+0.5*du[a], pa=p[a]+0.5*dp[a], xa=x[a]+0.5*dxs[a];
-    ra-=h*(u[a]*dr[a]+r[a]*du[a]); ua-=h*(u[a]*du[a]+dp[a]/r[a]); pa-=h*(GAM*p[a]*du[a]+u[a]*dp[a]); xa-=h*u[a]*dxs[a];
+    ra-=h*(u[a]*dr[a]+r[a]*du[a]); ua-=h*(u[a]*du[a]+dp[a]/r[a]); pa-=h*(g[a]*p[a]*du[a]+u[a]*dp[a]); xa-=h*u[a]*dxs[a];
     let rb=r[b]-0.5*dr[b], ub=u[b]-0.5*du[b], pb=p[b]-0.5*dp[b], xb=x[b]-0.5*dxs[b];
-    rb-=h*(u[b]*dr[b]+r[b]*du[b]); ub-=h*(u[b]*du[b]+dp[b]/r[b]); pb-=h*(GAM*p[b]*du[b]+u[b]*dp[b]); xb-=h*u[b]*dxs[b];
+    rb-=h*(u[b]*dr[b]+r[b]*du[b]); ub-=h*(u[b]*du[b]+dp[b]/r[b]); pb-=h*(g[b]*p[b]*du[b]+u[b]*dp[b]); xb-=h*u[b]*dxs[b];
     if(!(ra>0&&pa>0)){ ra=r[a]; ua=u[a]; pa=p[a]; xa=x[a]; }
     if(!(rb>0&&pb>0)){ rb=r[b]; ub=u[b]; pb=p[b]; xb=x[b]; }
-    hllc(ra,ua,pa,xa,rb,ub,pb,xb);
+    hllc(ra,ua,pa,xa,rb,ub,pb,xb,G);
     const af=Af[j]; f1[j]=HF[0]*af; f2[j]=HF[1]*af; f3[j]=HF[2]*af; f4[j]=HF[3]*af;
   }
   P.left(P); P.right(P);
   const k=dt/dx;
   for(let i=0;i<n;i++){
-    const ui=u[i], ri=r[i], Ti=p[i]/(RG*ri);
-    const fr=2*FANNING*ri*Math.abs(ui)*A[i]/D[i];          // wall friction and heat transfer, per unit length
+    const ui=u[i], ri=r[i], Ti=p[i]/(Rm[i]*ri);
+    const fr=2*FANNING*ri*Math.abs(ui)*A[i]/D[i];          // wall friction and heat transfer (cp at the cell's state), per unit length
     q1[i]-=k*(f1[i+1]-f1[i]);
     q2[i]+=-k*(f2[i+1]-f2[i])+dt*(p[i]*(Af[i+1]-Af[i])/dx-fr*ui);
-    q3[i]+=-k*(f3[i+1]-f3[i])+dt*fr*CP*(P.Tw-Ti);
+    q3[i]+=-k*(f3[i+1]-f3[i])+dt*fr*cp[i]*(P.Tw-Ti);
     q4[i]-=k*(f4[i+1]-f4[i]);
     if(q1[i]<1e-6*A[i]) q1[i]=1e-6*A[i];
     if(q4[i]<0) q4[i]=0; else if(q4[i]>q1[i]) q4[i]=q1[i];
@@ -9024,9 +9134,9 @@ function stepPipe(P,dt){
 function openEnd(side,pa,Ta,xa){
   return P=>{
     const i=side>0?P.n-1:0, j=side>0?P.n:0;
-    const g=openState(P.r[i],P.u[i],P.p[i],P.x[i],side,typeof pa==='function'?pa():pa,Ta,xa);
+    const G=P.G, g=openState(P.r[i],P.u[i],P.p[i],P.x[i],side,typeof pa==='function'?pa():pa,Ta,xa,P.g[i],G?gasR(G,xa):RG);
     const af=P.Af[j], m=g.r*g.u*af;                     // the flux of the end state itself
-    P.f1[j]=m; P.f2[j]=m*g.u+g.p*af; P.f3[j]=m*(GAM/G1*g.p/g.r+0.5*g.u*g.u); P.f4[j]=m*g.x;
+    P.f1[j]=m; P.f2[j]=m*g.u+g.p*af; P.f3[j]=m*((G?gasH(G,g.p/(g.r*gasR(G,g.x)),g.x):GAM/G1*g.p/g.r)+0.5*g.u*g.u); P.f4[j]=m*g.x;
   };
 }
 // the pressure on an end face that carries the speed vn (+ out of the pipe) where the cell's gas arrives at un: the wave
@@ -9036,9 +9146,9 @@ function openEnd(side,pa,Ta,xa){
 // At a valve, gas coming in (vn < 0) is the cylinder's jet, of another entropy: its face speed from the end cell's density
 // can pass the sound speed (a throttled runner's backflow then ran away to NaN), so it is held between 0 and the end
 // cell's own speed; a steady stream in then meets its own pressure, as a steady stream must
-function endP(p,r,un,vn){ const c=Math.sqrt(GAM*p/r), cb=Math.max(0.05*c,c+0.5*G1*(un-vn)); return p*Math.pow(cb/c,2*GAM/G1); }
+function endP(p,r,un,vn,gm){ const c=Math.sqrt(gm*p/r), cb=Math.max(0.05*c,c+0.5*(gm-1)*(un-vn)); return p*Math.pow(cb/c,2*gm/(gm-1)); }
 function wallEnd(side){
-  return P=>{ const i=side>0?P.n-1:0, j=side>0?P.n:0; P.f1[j]=0; P.f2[j]=endP(P.p[i],P.r[i],side*P.u[i],0)*P.Af[j]; P.f3[j]=0; P.f4[j]=0; };
+  return P=>{ const i=side>0?P.n-1:0, j=side>0?P.n:0; P.f1[j]=0; P.f2[j]=endP(P.p[i],P.r[i],side*P.u[i],0,P.g[i])*P.Af[j]; P.f3[j]=0; P.f4[j]=0; };
 }
 // a pipe end fed through an orifice: v() returns {m (kg/s, + in the +x direction), h (stagnation enthalpy of the source), x,
 // uj (speed of the jet when gas enters the pipe)}. Gas entering the pipe brings the jet's momentum; gas leaving carries the cell's.
@@ -9048,7 +9158,7 @@ function fedEnd(side,v){
     const entering=side>0?f.m<0:f.m>0;
     const uf=entering?-side*f.uj:f.m/(P.r[i]*af);
     const un=side*P.u[i], vm=side*f.m/(P.r[i]*af), vn=vm>=0?vm:Math.max(vm,Math.min(0,un));
-    P.f1[j]=f.m; P.f2[j]=f.m*uf+endP(P.p[i],P.r[i],un,vn)*af; P.f3[j]=f.m*f.h; P.f4[j]=f.m*f.x;
+    P.f1[j]=f.m; P.f2[j]=f.m*uf+endP(P.p[i],P.r[i],un,vn,P.g[i])*af; P.f3[j]=f.m*f.h; P.f4[j]=f.m*f.x;
   };
 }
 
@@ -9062,16 +9172,16 @@ function fedEnd(side,v){
 // the dynamic heads and a contraction gained it, against the second law (docs/WAVE_VALIDATION_2026-11-11.md); that
 // constant-pressure solution is still the fallback if the solve fails or an end would be sonic.
 function junction(a,b){
-  const i=a.n-1, A1=a.Af[a.n], A2=b.Af[0];
-  const rL=a.r[i], uL=a.u[i], pL=a.p[i], rR=b.r[0], uR=b.u[0], pR=b.p[0];
-  const cL=Math.sqrt(GAM*pL/rL), cR=Math.sqrt(GAM*pR/rR), k2=2/G1, ex=G1/(2*GAM), ig=1/GAM;
-  const JL=uL+k2*cL, JR=uR-k2*cR;
+  const i=a.n-1, A1=a.Af[a.n], A2=b.Af[0], G=a.G;
+  const rL=a.r[i], uL=a.u[i], pL=a.p[i], rR=b.r[0], uR=b.u[0], pR=b.p[0], gL=a.g[i], gR=b.g[0];   // each side's gamma, frozen
+  const cL=Math.sqrt(gL*pL/rL), cR=Math.sqrt(gR*pR/rR), k2=2/(gL-1), ex=(gL-1)/(2*gL), ig=1/gL, k2R=2/(gR-1), exR=(gR-1)/(2*gR), igR=1/gR;
+  const JL=uL+k2*cL, JR=uR-k2R*cR;
   let c1=0, r1=0, u1=0, c2=0, r2=0, u2=0;
   const s1=p1=>{ const s=p1/pL; c1=cL*Math.pow(s,ex); r1=rL*Math.pow(s,ig); u1=JL-k2*c1; };
-  const s2=p2=>{ const s=p2/pR; c2=cR*Math.pow(s,ex); r2=rR*Math.pow(s,ig); u2=JR+k2*c2; };
-  const pt=(p,r,u)=>p*Math.pow(1+0.5*G1*r*u*u/(GAM*p),GAM/G1);
+  const s2=p2=>{ const s=p2/pR; c2=cR*Math.pow(s,exR); r2=rR*Math.pow(s,igR); u2=JR+k2R*c2; };
+  const pt=(p,r,u,gm)=>p*Math.pow(1+0.5*(gm-1)*r*u*u/(gm*p),gm/(gm-1));
   const F=(p1,p2,o)=>{ s1(p1); s2(p2); const m=A1*r1*u1, up=m>=0; o[0]=m-A2*r2*u2;
-    o[1]=(up?A2<A1:A1<A2)?pt(p1,r1,u1)-pt(p2,r2,u2):r2*u2*u2*A2+p2*A2-r1*u1*u1*A1-p1*A1-(up?p1:p2)*(A2-A1); };
+    o[1]=(up?A2<A1:A1<A2)?pt(p1,r1,u1,gL)-pt(p2,r2,u2,gR):r2*u2*u2*A2+p2*A2-r1*u1*u1*A1-p1*A1-(up?p1:p2)*(A2-A1); };
   const R0=JR0, R1=JR1, R2=JR2;
   let p1=a.jp>0?a.jp:0.5*(pL+pR), p2=a.jq>0?a.jq:p1, ok=false;
   for(let it=0;it<12;it++){
@@ -9086,8 +9196,8 @@ function junction(a,b){
   if(ok){ s1(p1); s2(p2); ok=Math.abs(u1)<c1&&Math.abs(u2)<c2; }
   if(!ok){
     // one static pressure on both sides: the mass flow mismatch falls with it; Newton, bisection as a fallback
-    const g=ps=>{ const sL=ps/pL, sR=ps/pR, c1=cL*Math.pow(sL,ex), c2=cR*Math.pow(sR,ex);
-      return A1*rL*Math.pow(sL,ig)*(JL-k2*c1)-A2*rR*Math.pow(sR,ig)*(JR+k2*c2); };
+    const g=ps=>{ const sL=ps/pL, sR=ps/pR, c1=cL*Math.pow(sL,ex), c2=cR*Math.pow(sR,exR);
+      return A1*rL*Math.pow(sL,ig)*(JL-k2*c1)-A2*rR*Math.pow(sR,igR)*(JR+k2R*c2); };
     let ps=a.jp>0?a.jp:0.5*(pL+pR), okc=false;
     for(let it=0;it<8;it++){
       const gv=g(ps), h=ps*1e-6, d=(g(ps+h)-gv)/h;
@@ -9106,29 +9216,34 @@ function junction(a,b){
   }
   a.jp=p1; a.jq=p2;
   const m=A1*r1*u1;                                  // kg/s, + toward b
-  const up=m>=0, h0=up?c1*c1/G1+0.5*u1*u1:c2*c2/G1+0.5*u2*u2, xx=up?a.x[i]:b.x[0];
+  const up=m>=0, xx=up?a.x[i]:b.x[0];
+  const h0=G?(up?gasH(G,p1/(r1*a.Rm[i]),xx)+0.5*u1*u1:gasH(G,p2/(r2*b.Rm[0]),xx)+0.5*u2*u2):up?c1*c1/G1+0.5*u1*u1:c2*c2/G1+0.5*u2*u2;
   a.f1[a.n]=m; a.f2[a.n]=m*u1+p1*A1; a.f3[a.n]=m*h0; a.f4[a.n]=m*xx;
   b.f1[0]=m; b.f2[0]=m*u2+p2*A2; b.f3[0]=m*h0; b.f4[0]=m*xx;
 }
 const JR0=[0,0], JR1=[0,0], JR2=[0,0];
 
 // ---------- orifice flow ----------
-function orifice(CdA,p0,T0,pd){
+// gm, R: the source gas's gamma (frozen through the orifice) and R; with the constant gas the precomputed PRC and PSIC
+function orifice(CdA,p0,T0,pd,gm,R){
   if(!(CdA>0)||p0<=pd) return 0;
-  const pr=pd/p0, rho0=p0/(RG*T0);
-  const psi=pr<=PRC?PSIC:Math.sqrt(2*GAM/G1*(Math.pow(pr,2/GAM)-Math.pow(pr,(GAM+1)/GAM)));
+  const pr=pd/p0, rho0=p0/(R*T0), cg=gm===GAM;
+  const prc=cg?PRC:Math.pow(2/(gm+1),gm/(gm-1));
+  const psi=pr<=prc?(cg?PSIC:Math.sqrt(gm)*Math.pow(2/(gm+1),(gm+1)/(2*(gm-1)))):Math.sqrt(2*gm/(gm-1)*(Math.pow(pr,2/gm)-Math.pow(pr,(gm+1)/gm)));
   return CdA*Math.sqrt(p0*rho0)*psi;
 }
 // speed of a jet expanding from stagnation p0, T0 to pd, capped at sonic
-const jetSpeed=(p0,T0,pd)=>Math.sqrt(2*CP*T0*(1-Math.pow(Math.max(pd/p0,PRC),G1/GAM)));
+const jetSpeed=(p0,T0,pd,gm,cp)=>Math.sqrt(2*cp*T0*(1-Math.pow(Math.max(pd/p0,gm===GAM?PRC:Math.pow(2/(gm+1),gm/(gm-1))),(gm-1)/gm)));
 // flow between the cylinder and a pipe end cell; returns m positive from the pipe into the cylinder,
-// and uj, the speed of the jet entering the pipe when the cylinder blows into it
+// and uj, the speed of the jet entering the pipe when the cylinder blows into it. h: the stagnation enthalpy that crosses
+// (the engine's gas: h(T, x) + u^2/2 of the pipe cell, h(T, x) of the cylinder; cy.g, cy.R, cy.cp: the cylinder gas's)
 function valveFlow(CdA,cyl,P,i){
-  if(!(CdA>0)) return {m:0,h:CP*cyl.T,x:cyl.x,uj:0};
-  const r=P.r[i], u=P.u[i], p=P.p[i], T=p/(RG*r);
-  const T0=T+0.5*u*u/CP, p0=p*Math.pow(T0/T,GAM/G1);
-  if(p0>cyl.p) return {m:orifice(CdA,p0,T0,cyl.p),h:CP*T0,x:P.x[i],uj:0};
-  return {m:-orifice(CdA,cyl.p,cyl.T,p),h:CP*cyl.T,x:cyl.x,uj:jetSpeed(cyl.p,cyl.T,p)};
+  const G=P.G;
+  if(!(CdA>0)) return {m:0,h:G?gasH(G,cyl.T,cyl.x):CP*cyl.T,x:cyl.x,uj:0};
+  const r=P.r[i], u=P.u[i], p=P.p[i], gm=P.g[i], T=p/(P.Rm[i]*r);
+  const T0=T+0.5*u*u/P.cp[i], p0=p*Math.pow(T0/T,gm/(gm-1));
+  if(p0>cyl.p) return {m:orifice(CdA,p0,T0,cyl.p,gm,P.Rm[i]),h:G?gasH(G,T,P.x[i])+0.5*u*u:CP*T0,x:P.x[i],uj:0};
+  return {m:-orifice(CdA,cyl.p,cyl.T,p,cyl.g,cyl.R),h:G?gasH(G,cyl.T,cyl.x):CP*cyl.T,x:cyl.x,uj:jetSpeed(cyl.p,cyl.T,p,cyl.g,cyl.cp)};
 }
 
 // ---------- engine ----------
@@ -9160,12 +9275,14 @@ const wiebe=(a,dur)=>a<=0?0:a>=dur?1:1-Math.exp(-5*Math.pow(a/dur,3));
 // junction of several pipe ends, characteristic method: one pressure, flows that sum to zero, inflows mixed.
 // ends: [{P, side}] with side +1 when the junction sits at the pipe's right end, -1 at its left end.
 function junctionN(J){
-  const ends=J.ends, n=ends.length, k2=2/G1, ex=G1/(2*GAM), ig=1/GAM;
-  for(let k=0;k<n;k++){ const E=ends[k], P=E.P, i=E.side>0?P.n-1:0;
-    E.r=P.r[i]; E.u=P.u[i]; E.p=P.p[i]; E.c=Math.sqrt(GAM*E.p/E.r); E.A=E.side>0?P.Af[P.n]:P.Af[0];
-    E.J=E.side>0?E.u+k2*E.c:E.u-k2*E.c; E.x=P.x[i]; }
+  const ends=J.ends, n=ends.length, G=ends[0].P.G;
+  for(let k=0;k<n;k++){ const E=ends[k], P=E.P, i=E.side>0?P.n-1:0, gm=P.g[i];   // each end's gamma, frozen
+    E.k2=2/(gm-1); E.ex=(gm-1)/(2*gm); E.ig=1/gm; E.R=P.Rm[i];
+    E.r=P.r[i]; E.u=P.u[i]; E.p=P.p[i]; E.c=Math.sqrt(gm*E.p/E.r); E.A=E.side>0?P.Af[P.n]:P.Af[0];
+    E.J=E.side>0?E.u+E.k2*E.c:E.u-E.k2*E.c; E.x=P.x[i]; }
   // mass flow into the junction from each end, at junction pressure ps
-  const inflow=(E,ps)=>{ const s=ps/E.p, c=E.c*Math.pow(s,ex), r=E.r*Math.pow(s,ig), u=E.side>0?E.J-k2*c:E.J+k2*c; E.cs=c; E.us=u; E.rs=r; return E.side*r*u*E.A; };
+  const inflow=(E,ps)=>{ const s=ps/E.p, c=E.c*Math.pow(s,E.ex), r=E.r*Math.pow(s,E.ig), u=E.side>0?E.J-E.k2*c:E.J+E.k2*c; E.cs=c; E.us=u; E.rs=r; return E.side*r*u*E.A; };
+  const h0of=E=>G?gasH(G,ps/(E.rs*E.R),E.x)+0.5*E.us*E.us:E.cs*E.cs/G1+0.5*E.us*E.us;
   const g=ps=>{ let t=0; for(let k=0;k<n;k++) t+=inflow(ends[k],ps); return t; };
   let ps=J.p>0?J.p:ends.reduce((a,E)=>a+E.p,0)/n, ok=false;
   for(let it=0;it<10;it++){
@@ -9179,10 +9296,10 @@ function junctionN(J){
     for(let it=0;it<60;it++){ const m=0.5*(lo+hi); if(g(m)>0) lo=m; else hi=m; } ps=0.5*(lo+hi); }
   J.p=ps; g(ps);
   let mIn=0, hIn=0, xIn=0;
-  for(const E of ends){ E.m=E.side*E.rs*E.us*E.A; if(E.m>0){ const h0=E.cs*E.cs/G1+0.5*E.us*E.us; mIn+=E.m; hIn+=E.m*h0; xIn+=E.m*E.x; } }
+  for(const E of ends){ E.m=E.side*E.rs*E.us*E.A; if(E.m>0){ const h0=h0of(E); mIn+=E.m; hIn+=E.m*h0; xIn+=E.m*E.x; } }
   const hMix=mIn>0?hIn/mIn:0, xMix=mIn>0?xIn/mIn:0;
   for(const E of ends){
-    const P=E.P, j=E.side>0?P.n:0, h0=E.m>0?E.cs*E.cs/G1+0.5*E.us*E.us:hMix, xx=E.m>0?E.x:xMix;
+    const P=E.P, j=E.side>0?P.n:0, h0=E.m>0?h0of(E):hMix, xx=E.m>0?E.x:xMix;
     const f=E.side*E.m;                        // flux in +x at that end
     P.f1[j]=f; P.f2[j]=f*E.us+ps*E.A; P.f3[j]=f*h0; P.f4[j]=f*xx;
   }
@@ -9209,12 +9326,14 @@ function makeEngine(e,intake,exhaust,opt){
   const ivc=(ivo+ivdur)%720, ign=(720-e.burn.start)%720;
   const area=(th,open,dur,lift,d,nv)=>{ const l=liftAt(th,open,dur,lift); return l>0?nv*e.cd*Math.min(Math.PI*d*l,0.85*Math.PI/4*d*d):0; };
   const o=opt||{}, phases=o.phases&&o.phases.length?o.phases.slice():[0];
-  return {e,Ap,Vd,Vc,vol,dvol,evo,evdur,ivo,ivdur,ivc,ign,phases,collector:phases.length>1||o.collector?o.collector:null,
+  // the gas (see "gas properties" above): e.gas 'const' keeps the constant gamma 1.35, R 287 of the model before 2026-11-12
+  const gas=e.gas==='const'?null:makeGas(e.afr);
+  return {e,Ap,Vd,Vc,vol,dvol,evo,evdur,ivo,ivdur,ivc,ign,phases,gas,collector:phases.length>1||o.collector?o.collector:null,
     collectors:o.collectors&&o.collectors.length?o.collectors:null,crossover:o.crossover||null,
     CdAin:th=>area(th,ivo,ivdur,e.liftIn,e.dIn,e.nIn),CdAex:th=>area(th,evo,evdur,e.liftEx,e.dEx,e.nEx),intake,exhaust};
 }
 // split a run of segments into pipes wherever the diameter jumps; cones stay inside a pipe
-function buildLine(line,dx,T0,x0){
+function buildLine(line,dx,T0,x0,G){
   const runs=[]; let cur=null;
   line.segs.forEach(sg=>{
     if(!(sg.L>1e-6)) return;
@@ -9224,7 +9343,7 @@ function buildLine(line,dx,T0,x0){
   let x0pos=0;
   return runs.map(rn=>{
     const area=x=>{ let a=0; for(const sg of rn.parts){ if(x<=a+sg.L||sg===rn.parts[rn.parts.length-1]){ const f=Math.min(1,Math.max(0,(x-a)/sg.L)), d=sg.d0+(sg.d1-sg.d0)*f; return Math.PI*d*d/4; } a+=sg.L; } return 0; };
-    const P=makePipe({L:rn.L,dx:Math.min(dx,rn.L/6),area,Tw:line.Tw||TATM,T0,x0});
+    const P=makePipe({L:rn.L,dx:Math.min(dx,rn.L/6),area,Tw:line.Tw||TATM,T0,x0,gas:G});
     P.start=x0pos; x0pos+=rn.L; return P;
   });
 }
@@ -9240,15 +9359,15 @@ function splitSegs(segs,pos){ const a=[], b=[]; let x=0;
 // can: the inlet and outlet meet at its end plate and the chamber runs back to the closed end). The line runs on from
 // each node, its x carried on so side branches find their places. off (m): where this line starts on its collector's
 // coordinate. {head, tail, juncs, lines, blines, walls}
-function lineWithPieces(segs,pieces,dx,Tw,off){
+function lineWithPieces(segs,pieces,dx,Tw,off,G){
   off=off||0; const ps=(pieces||[]).filter(q=>q.x>0).sort((a,b)=>a.x-b.x), juncs=[], lines=[], main=[], walls=[];
   let rest=segs, at=0, prev=null;
-  const part=(sg,x0)=>{ const L=buildLine({segs:sg,Tw},dx,700,0); L.forEach(P=>{ P.start+=off+x0; }); return L; };
+  const part=(sg,x0)=>{ const L=buildLine({segs:sg,Tw},dx,700,0,G); L.forEach(P=>{ P.start+=off+x0; }); return L; };
   ps.forEach(q=>{ const [a,b]=splitSegs(rest,q.x-at), A=part(a,at); if(prev) prev(A); lines.push(A); main.push(A);
-    if(q.paths){ const Ps=q.paths.map(pth=>buildLine({segs:pth,Tw},dx,700,0)); lines.push(...Ps);
+    if(q.paths){ const Ps=q.paths.map(pth=>buildLine({segs:pth,Tw},dx,700,0,G)); lines.push(...Ps);
       juncs.push({p:0,ends:[{P:A[A.length-1],side:+1}].concat(Ps.map(L=>({P:L[0],side:-1})))});
       const J={p:0,ends:Ps.map(L=>({P:L[L.length-1],side:+1}))}; juncs.push(J); prev=B=>{ J.ends.push({P:B[0],side:-1}); }; }
-    else { const S=buildLine({segs:q.stub,Tw},dx,700,0); lines.push(S); walls.push({P:S[S.length-1],side:+1});
+    else { const S=buildLine({segs:q.stub,Tw},dx,700,0,G); lines.push(S); walls.push({P:S[S.length-1],side:+1});
       const J={p:0,ends:[{P:A[A.length-1],side:+1},{P:S[0],side:-1}]}; juncs.push(J); prev=B=>{ J.ends.push({P:B[0],side:-1}); }; }
     rest=b; at=q.x; });
   const T=part(rest,at); if(prev) prev(T); lines.push(T); main.push(T);
@@ -9259,7 +9378,7 @@ const piecesOf=c=>c?(c.pieces||[]).concat(c.parallel?[c.parallel]:[]):[];
 // into it and the one that leaves it; the collector's own line ends open. xo (opt.crossover, two collectors):
 // {type 'h' | 'x', pos [m along each collector's line], tube {L, d} for an H}: each line is cut there; an H joins the two
 // with a balance tube at a three-way node on each, an X meets both at one four-way node and leaves on both sides
-function collectorNets(cols,prims,dx,xo){
+function collectorNets(cols,prims,dx,xo,G){
   const used=new Set();
   const nets=cols.map((col,ci)=>{
     const cyls=col.cyls.map(c=>Math.trunc(c)), juncs=[], lines=[];
@@ -9272,7 +9391,7 @@ function collectorNets(cols,prims,dx,xo){
       if(stg.segs_by_group&&stg.segs_by_group.length!==stg.groups.length) throw new Error('collector '+(ci+1)+' stage '+(si+1)+': segs_by_group needs one entry per group');
       prev=stg.groups.map((grp,gi)=>{
         if(grp.length<2) throw new Error('a junction needs at least two inlets');
-        const ln=buildLine({segs:(stg.segs_by_group&&stg.segs_by_group[gi])||stg.segs,Tw:stg.Tw||col.Tw},dx,700,0);
+        const ln=buildLine({segs:(stg.segs_by_group&&stg.segs_by_group[gi])||stg.segs,Tw:stg.Tw||col.Tw},dx,700,0,G);
         juncs.push({p:0,ends:grp.map(g=>{ const L=si===0?prims[Math.trunc(g)]:prev[Math.trunc(g)]; return {P:L[L.length-1],side:+1}; }).concat([{P:ln[0],side:-1}])});
         lines.push(ln); return ln;
       });
@@ -9280,16 +9399,16 @@ function collectorNets(cols,prims,dx,xo){
     const feed=prev||cyls.map(c=>prims[c]);
     if(feed.length<2) throw new Error('collector '+(ci+1)+': the last junction needs at least two inlets');
     if(xo&&cols.length===2){ const pos=xo.pos[ci], [sa,sb]=splitSegs(col.segs,pos);
-      const mA=buildLine({segs:sa,Tw:col.Tw},dx,700,0), R=lineWithPieces(sb,piecesOf(col).filter(q=>q.x>pos).map(q=>Object.assign({},q,{x:q.x-pos})),dx,col.Tw,pos);
+      const mA=buildLine({segs:sa,Tw:col.Tw},dx,700,0,G), R=lineWithPieces(sb,piecesOf(col).filter(q=>q.x>pos).map(q=>Object.assign({},q,{x:q.x-pos})),dx,col.Tw,pos,G);
       juncs.push({p:0,ends:feed.map(L=>({P:L[L.length-1],side:+1})).concat([{P:mA[0],side:-1}])});
       juncs.push(...R.juncs); lines.push(mA,...R.lines); return {cyls,juncs,lines,main:R.tail,mainA:mA,mainB0:R.head,blines:mA.concat(R.blines),walls:R.walls}; }
-    const R=lineWithPieces(col.segs,piecesOf(col),dx,col.Tw,0);
+    const R=lineWithPieces(col.segs,piecesOf(col),dx,col.Tw,0,G);
     juncs.push({p:0,ends:feed.map(L=>({P:L[L.length-1],side:+1})).concat([{P:R.head[0],side:-1}])});
     juncs.push(...R.juncs); lines.push(...R.lines);
     return {cyls,juncs,lines,main:R.tail,blines:R.blines,walls:R.walls};
   });
   if(xo&&nets.length===2){ const [n0,n1]=nets, A0=n0.mainA, A1=n1.mainA, B0=n0.mainB0, B1=n1.mainB0;
-    if(xo.type==='h'){ const t=buildLine({segs:[{L:xo.tube.L,d0:xo.tube.d,d1:xo.tube.d}],Tw:650},dx,700,0);
+    if(xo.type==='h'){ const t=buildLine({segs:[{L:xo.tube.L,d0:xo.tube.d,d1:xo.tube.d}],Tw:650},dx,700,0,G);
       n0.juncs.push({p:0,ends:[{P:A0[A0.length-1],side:+1},{P:B0[0],side:-1},{P:t[0],side:-1}]});
       n1.juncs.push({p:0,ends:[{P:A1[A1.length-1],side:+1},{P:B1[0],side:-1},{P:t[t.length-1],side:+1}]});
       n0.lines.push(t); }
@@ -9297,24 +9416,24 @@ function collectorNets(cols,prims,dx,xo){
   return nets;
 }
 function freshState(eng,dx){
-  const N=eng.phases.length, cyls=[], ins=[], prims=[], chambers=[], per=eng.exhaust.per_cyl;
+  const N=eng.phases.length, cyls=[], ins=[], prims=[], chambers=[], per=eng.exhaust.per_cyl, G=eng.gas||null, R0=G?gasR(G,0):RG;
   if(per&&per.length!==N) throw new Error('exhaust.per_cyl must list one primary per cylinder ('+N+'), got '+per.length);
   for(let k=0;k<N;k++){
-    ins.push(buildLine(eng.intake,dx,TATM,1));
-    const ex=buildLine(per&&per[k]?Object.assign({},eng.exhaust,{segs:per[k]}):eng.exhaust,dx,700,0); prims.push(ex);
+    ins.push(buildLine(eng.intake,dx,TATM,1,G));
+    const ex=buildLine(per&&per[k]?Object.assign({},eng.exhaust,{segs:per[k]}):eng.exhaust,dx,700,0,G); prims.push(ex);
     (eng.exhaust.chambers||[]).forEach(c=>{
       let q=ex.findIndex(P=>c.x>=P.start&&c.x<P.start+P.n*P.dx); if(q<0) q=ex.length-1;
       const P=ex[q], cell=Math.min(P.n-1,Math.max(0,Math.floor((c.x-P.start)/P.dx)));
-      chambers.push({cyl:k,pipe:q,cell,V:c.V,CdA:0.75*c.A,Le:c.Le,m:PATM*c.V/(RG*700),T:700,x:0,mdot:0});
+      chambers.push({cyl:k,pipe:q,cell,V:c.V,CdA:0.75*c.A,Le:c.Le,m:PATM*c.V/(R0*700),T:700,x:0,mdot:0});
     });
     const th=((eng.ivc-eng.phases[k])%720+720)%720;
-    const cy={m:0,T:330,x:0.95,p:PATM}; cy.m=PATM*eng.vol(th)/(RG*cy.T);
+    const cy={m:0,T:330,x:0.95,p:PATM}; cy.m=PATM*eng.vol(th)/((G?gasR(G,cy.x):RG)*cy.T);
     cy.fresh=cy.m*cy.x; cy.burnQ=cy.fresh/eng.e.afr*LHV*eng.e.eta; cy.ivcP=PATM; cy.ivcT=330; cy.ivcV=eng.vol(eng.ivc);
     cy.work=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.pEvo=0; cy.exM=0; cy.exH=0; cy.ovP=0; cy.ovN=0; cy.done=null; cy.started=false;
     cyls.push(cy);
   }
-  const C1R=!eng.collectors&&eng.collector?lineWithPieces(eng.collector.segs,piecesOf(eng.collector),dx,eng.collector.Tw,0):null;
-  const coll=C1R?C1R.head:null, nets=eng.collectors?collectorNets(eng.collectors,prims,dx,eng.crossover):null;
+  const C1R=!eng.collectors&&eng.collector?lineWithPieces(eng.collector.segs,piecesOf(eng.collector),dx,eng.collector.Tw,0,G):null;
+  const coll=C1R?C1R.head:null, nets=eng.collectors?collectorNets(eng.collectors,prims,dx,eng.crossover,G):null;
   // a parallel section on the single collector's line: its paths and the rest of the line (xl) with their nodes (xj)
   const xj=C1R&&C1R.juncs.length?C1R.juncs:null, xl=xj?C1R.lines.slice(1):null, ctail=C1R?C1R.tail:null;
   // side branches on the collector's line (a resonator, a J-pipe, an extended tube's pocket as a tuned volume, a slice of
@@ -9322,7 +9441,7 @@ function freshState(eng,dx){
   // resistance, Pa s / m3 times density)}], the same lumped neck as above
   const onLine=(line,brs)=>(brs||[]).forEach(c=>{ let q=line.findIndex(P=>c.x>=P.start&&c.x<P.start+P.n*P.dx); if(q<0) q=line.length-1;
     const P=line[q], cell=Math.min(P.n-1,Math.max(0,Math.floor((c.x-P.start)/P.dx)));
-    chambers.push({P,cell,V:c.V,CdA:c.CdA,Le:c.Le,Rp:c.Rp||0,m:PATM*c.V/(RG*600),T:600,x:0,mdot:0}); });
+    chambers.push({P,cell,V:c.V,CdA:c.CdA,Le:c.Le,Rp:c.Rp||0,m:PATM*c.V/(R0*600),T:600,x:0,mdot:0}); });
   if(coll) onLine(C1R.blines,eng.collector.branches);
   if(nets) nets.forEach((n,i)=>{ const c=eng.collectors[i]; if(c&&c.branches&&n.main) onLine(n.blines||n.main,c.branches); });
   const walls=(C1R?C1R.walls:[]).concat(...(nets||[]).map(n=>n.walls||[]));
@@ -9334,7 +9453,7 @@ const localTh=(th,ph)=>((th-ph)%720+720)%720;
 /* Simulate engine cycles at one speed, starting and ending where cylinder 1's intake valve closes.
    opts: {rpm, cycles, dx, state (to warm-start from the previous speed)}. Results average the cylinders on the collector. */
 function runSpeed(eng,opts){
-  const e=eng.e, w=opts.rpm*6, dx=opts.dx||0.01, N=eng.phases.length;
+  const e=eng.e, w=opts.rpm*6, dx=opts.dx||0.01, N=eng.phases.length, G=eng.gas||null;
   const st=opts.state||freshState(eng,dx), {ins,prims,coll,nets,chambers,cyls}=st, cEnd=st.ctail||coll;
   // the intake mouth's pressure (opts.pIn, behind a part-open throttle; else the atmosphere). Run on from a state left at
   // another pressure, it moves there over the first cycle, as a throttle does, not in one step: a sudden step sends a
@@ -9347,7 +9466,7 @@ function runSpeed(eng,opts){
   (st.walls||[]).forEach(w=>{ if(w.side>0) w.P.right=wallEnd(+1); else w.P.left=wallEnd(-1); });   // dead-end stubs (a reverse-flow can's chamber)
   const vIn=[], vEx=[], exFlow=[];
   for(let k=0;k<N;k++){
-    vIn.push({m:0,h:CP*TATM,x:1,uj:0}); vEx.push({m:0,h:CP*700,x:0,uj:0}); exFlow.push({m:0,h:0,x:0,uj:0});
+    vIn.push({m:0,h:G?gasH(G,TATM,1):CP*TATM,x:1,uj:0}); vEx.push({m:0,h:G?gasH(G,700,0):CP*700,x:0,uj:0}); exFlow.push({m:0,h:0,x:0,uj:0});
     const ip=ins[k][ins[k].length-1], ep=prims[k][0];
     ins[k][0].left=openEnd(-1,mouthP,TATM,1);   // opts.pIn: the manifold pressure behind a part-open throttle (Pa)
     ip.right=fedEnd(+1,()=>vIn[k]);
@@ -9365,7 +9484,7 @@ function runSpeed(eng,opts){
   // speed, temperature, density), what OpenWAM's outlet columns hold, for the sound reading without a file
   const outs=nets?nets.map(n=>n.main[n.main.length-1]).concat(prims.filter((ch,k)=>!nets.some(n=>n.cyls.indexOf(k)>=0)).map(ch=>ch[ch.length-1])):coll?[cEnd[cEnd.length-1]]:prims.map(ch=>ch[ch.length-1]);
   const nCyc=opts.cycles||6, recN=Math.min(nCyc,Math.max(2,opts.recordCycles||2)), rec=opts.record?{angle:[],time:[],outs:outs.map(()=>({mdot:[],u:[],T:[],rho:[]}))}:null; let tRec=0;
-  const rhoRef=PATM/(RG*TATM), out=[];
+  const rhoRef=PATM/((G?G.Ra:RG)*TATM), out=[];   // VE: against dry air at 298.15 K and 1 atm
   let th0=0;
   for(let c=0;c<nCyc;c++){
     const end=st.th+720; if(rec&&c===nCyc-recN) th0=st.th;
@@ -9376,10 +9495,12 @@ function runSpeed(eng,opts){
       let sj=0;
       for(let k=0;k<N;k++){
         const cy=cyls[k], tk=localTh(th,eng.phases[k]), ip=ins[k][ins[k].length-1], ep=prims[k][0];
-        cy.th=tk; cy.p=cy.m*RG*cy.T/eng.vol(tk);
+        cy.th=tk;
+        if(G){ gasAt(G,cy.T,cy.x); cy.R=GV.R; cy.cp=GV.cp; cy.g=GV.cp/(GV.cp-GV.R); } else { cy.R=RG; cy.cp=CP; cy.g=GAM; }
+        cy.p=cy.m*cy.R*cy.T/eng.vol(tk);
         vIn[k]=valveFlow(eng.CdAin(tk),cy,ip,ip.n-1);
         vEx[k]=valveFlow(eng.CdAex(tk),cy,ep,0);            // m > 0 means header gas flowing back into the cylinder
-        sj=Math.max(sj,vIn[k].uj+Math.sqrt(GAM*ip.p[ip.n-1]/ip.r[ip.n-1]),vEx[k].uj+Math.sqrt(GAM*ep.p[0]/ep.r[0]));
+        sj=Math.max(sj,vIn[k].uj+Math.sqrt(ip.g[ip.n-1]*ip.p[ip.n-1]/ip.r[ip.n-1]),vEx[k].uj+Math.sqrt(ep.g[0]*ep.p[0]/ep.r[0]));
       }
       let dt=0.8*dmin/Math.max(smax,sj);
       const dth=Math.min(dt*w,0.5); dt=dth/w;
@@ -9387,15 +9508,15 @@ function runSpeed(eng,opts){
       if(coll){ junctionN(st.jn); for(let q=1;q<coll.length;q++) junction(coll[q-1],coll[q]); if(st.xj){ for(const J of st.xj) junctionN(J); for(const L of st.xl) for(let q=1;q<L.length;q++) junction(L[q-1],L[q]); } }
       if(nets) for(const n of nets){ for(const J of n.juncs) junctionN(J); for(const L of n.lines) for(let q=1;q<L.length;q++) junction(L[q-1],L[q]); }
       for(const ch of chambers){
-        const P=ch.P||prims[ch.cyl][ch.pipe], i=ch.cell, r=P.r[i], p=P.p[i], T=p/(RG*r);
-        ch.p=ch.m*RG*ch.T/ch.V;
+        const P=ch.P||prims[ch.cyl][ch.pipe], i=ch.cell, r=P.r[i], p=P.p[i], T=p/(P.Rm[i]*r);
+        ch.p=ch.m*(G?gasR(G,ch.x):RG)*ch.T/ch.V;
         const rhoN=p>ch.p?r:ch.m/ch.V;
         // a packed branch also loses Rp mdot / rho across its packing (Darcy: R x depth x face velocity), taken implicitly
         // so a dense packing stays stable at any step
         ch.mdot=(ch.mdot+dt*(ch.CdA*(p-ch.p)/ch.Le-ch.mdot*Math.abs(ch.mdot)/(2*rhoN*ch.CdA*ch.Le)))/(1+(ch.Rp?dt*ch.CdA*ch.Rp/(rhoN*ch.Le):0));
-        const md=ch.mdot, hh=md>0?CP*T+0.5*P.u[i]*P.u[i]:CP*ch.T, xin=md>0?P.x[i]:ch.x;
-        const U=ch.m*CV*ch.T+dt*md*hh, m2=Math.max(1e-9,ch.m+dt*md);
-        ch.x=Math.min(1,Math.max(0,(ch.m*ch.x+dt*md*xin)/m2)); ch.m=m2; ch.T=Math.max(200,U/(m2*CV));
+        const md=ch.mdot, hh=md>0?(G?gasH(G,T,P.x[i]):CP*T)+0.5*P.u[i]*P.u[i]:G?gasH(G,ch.T,ch.x):CP*ch.T, xin=md>0?P.x[i]:ch.x;
+        const U=(G?ch.m*gasE(G,ch.T,ch.x):ch.m*CV*ch.T)+dt*md*hh, m2=Math.max(1e-9,ch.m+dt*md);
+        ch.x=Math.min(1,Math.max(0,(ch.m*ch.x+dt*md*xin)/m2)); ch.m=m2; ch.T=Math.max(200,G?gasT(G,U/m2,ch.x,ch.T,false):U/(m2*CV));
         P.q1[i]-=dt*md/P.dx; P.q3[i]-=dt*md*hh/P.dx; P.q4[i]-=dt*md*xin/P.dx;
         if(md>0) P.q2[i]-=dt*md*P.u[i]/P.dx;
       }
@@ -9406,11 +9527,12 @@ function runSpeed(eng,opts){
         const prevT=cy.lastTk, crossed=prevT!=null&&((prevT<eng.ivc&&tk>=eng.ivc)||(prevT>tk&&(tk>=eng.ivc||prevT<eng.ivc)));
         cy.lastTk=tk;
         if(crossed||!cy.started){
+          // tEx: the temperature of the mass-averaged enthalpy that left through the exhaust valve (the engine's gas: at its mean x)
           if(cy.started&&crossed) cy.done={ve:cy.m*cy.x/(rhoRef*eng.Vd),imep:cy.work/eng.Vd,pmax:cy.pmax,resid:1-cy.x,pEvo:cy.pEvo,
-            tEx:cy.exM>0?cy.exH/(cy.exM*CP):0,overlapPort:cy.ovN?cy.ovP/cy.ovN:PATM};
+            tEx:cy.exM>0?(G?gasT(G,cy.exH/cy.exM,cy.exX/cy.exM,800,true):cy.exH/(cy.exM*CP)):0,overlapPort:cy.ovN?cy.ovP/cy.ovN:PATM};
           cy.fresh=cy.m*cy.x; cy.burnQ=e.dead&&e.dead.indexOf(k)>=0?0:cy.fresh/e.afr*LHV*e.eta;   // e.dead: cylinder indices that do not fire (a misfire, a dead coil bank)
-          cy.ivcP=cy.m*RG*cy.T/eng.vol(tk); cy.ivcT=cy.T; cy.ivcV=eng.vol(tk);
-          cy.work=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.exM=0; cy.exH=0; cy.ovP=0; cy.ovN=0; cy.started=true;
+          cy.ivcP=cy.m*(G?gasR(G,cy.x):RG)*cy.T/eng.vol(tk); cy.ivcT=cy.T; cy.ivcV=eng.vol(tk);
+          cy.work=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.exM=0; cy.exH=0; cy.exX=0; cy.ovP=0; cy.ovN=0; cy.started=true;
         }
         const a=((tk-eng.ign)%720+720)%720;
         let xb=cy.xb;
@@ -9428,16 +9550,19 @@ function runSpeed(eng,opts){
           const Aw=2*eng.Ap+4*(V-eng.Vc)/e.bore+4*eng.Vc/e.bore;
           qw=hc*Aw*(cy.T-(e.Twall||450))*dt;
         }
-        const U=cy.m*CV*cy.T-cy.p*dV+mI*vIn[k].h+mE*vEx[k].h+cy.burnQ*dxb-qw;
+        // energy: m e(T, x) (the engine's gas; else m cv T) - p dV + the enthalpy through the valves + the burn - the wall heat;
+        // the new temperature from the new energy at the new composition
+        const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+mI*vIn[k].h+mE*vEx[k].h+cy.burnQ*dxb-qw;
         const mf=cy.m*cy.x+mI*vIn[k].x+mE*vEx[k].x-cy.fresh*dxb;
-        cy.m=Math.max(1e-7,cy.m+mI+mE); cy.T=Math.max(200,U/(cy.m*CV)); cy.x=Math.min(1,Math.max(0,mf/cy.m));
+        if(G){ cy.m=Math.max(1e-7,cy.m+mI+mE); cy.x=Math.min(1,Math.max(0,mf/cy.m)); cy.T=Math.max(200,gasT(G,U/cy.m,cy.x,cy.T,false)); }
+        else { cy.m=Math.max(1e-7,cy.m+mI+mE); cy.T=Math.max(200,U/(cy.m*CV)); cy.x=Math.min(1,Math.max(0,mf/cy.m)); }
         cy.work+=cy.p*dV; if(cy.p>cy.pmax) cy.pmax=cy.p;
         if(Math.abs(tk-eng.evo)<dth) cy.pEvo=cy.p;
-        if(mE<0){ cy.exM-=mE; cy.exH-=mE*vEx[k].h; }
+        if(mE<0){ cy.exM-=mE; cy.exH-=mE*vEx[k].h; cy.exX-=mE*vEx[k].x; }
         if(tk>345&&tk<375){ cy.ovP+=ep.p[0]; cy.ovN++; }
       }
       if(rec&&c>=nCyc-recN){ rec.angle.push((st.th-th0)%720); rec.time.push(tRec); tRec+=dt;
-        outs.forEach((P,j)=>{ prim(P); const i=P.n-1, R=rec.outs[j], md=P.f1[P.n]; R.mdot.push(md); R.u.push(P.u[i]); R.T.push(P.p[i]/(RG*P.r[i])); R.rho.push(P.r[i]); }); }   // the open end's face flux (kg/s, out positive), as its boundary set it this step
+        outs.forEach((P,j)=>{ prim(P); const i=P.n-1, R=rec.outs[j], md=P.f1[P.n]; R.mdot.push(md); R.u.push(P.u[i]); R.T.push(P.p[i]/(P.Rm[i]*P.r[i])); R.rho.push(P.r[i]); }); }   // the open end's face flux (kg/s, out positive), as its boundary set it this step
       st.th+=dth;
     }
     // average the cylinders' last finished cycles
@@ -9464,7 +9589,9 @@ function sweep(eng,rpms,opts,onStep){
   });
   return res;
 }
-return {GAM,RG,CV,CP,PATM,TATM,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets};
+return {GAM,RG,CV,CP,PATM,TATM,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
+  gas:{RU,TREF,SPEC,AFR_ST,K_WGS,burnedMoles,gasPoly,makeGas,at:(G,T,x)=>{ gasAt(G,T,x); return {cp:GV.cp,h:GV.h,R:GV.R,e:GV.h-GV.R*T,gamma:GV.cp/(GV.cp-GV.R)}; },
+    T:(G,v,x,T,byH)=>gasT(G,v,x,T||800,!!byH)}};
 }
 const WS=wsFactory();
 

@@ -29,7 +29,7 @@ function load(o) {
   if (o.gamma != null) src = swap(src, 'const GAM=1.35,', 'const GAM=' + Number(o.gamma) + ',');
   if (o.fanning != null) src = swap(src, 'const FANNING=0.005;', 'const FANNING=' + Number(o.fanning) + ';');
   if (o.hook) {
-    src = swap(src, 'const U=cy.m*CV*cy.T-cy.p*dV+', 'cy._dV=dV; cy._pdV=cy.p*dV; cy._qw=qw; cy._Q=cy.burnQ*dxb; cy._mI=mI; cy._mE=mE; cy._hI=vIn[k].h; cy._hE=vEx[k].h;\n        const U=cy.m*CV*cy.T-cy.p*dV+');
+    src = swap(src, 'const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+', 'cy._dV=dV; cy._pdV=cy.p*dV; cy._qw=qw; cy._Q=cy.burnQ*dxb; cy._mI=mI; cy._mE=mE; cy._hI=vIn[k].h; cy._hE=vEx[k].h;\n        const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+');
     src = swap(src, '      st.th+=dth;\n', '      if(opts.hook) opts.hook({st,all,dt,dth,cyls,ins,prims,chambers,outs,eng,th:st.th});\n      st.th+=dth;\n');
   }
   return new Function(src + '\nreturn wsFactory();')();
