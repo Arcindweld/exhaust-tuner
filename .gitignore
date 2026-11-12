@@ -48,3 +48,4 @@ openwam/runs2t/
 # console captures of validation runs
 validation/*/model/*.out
 validation/*/model/*.wav
+test-results/

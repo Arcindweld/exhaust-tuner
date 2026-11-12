@@ -3,17 +3,19 @@
 
     python3 tools/run_all_tests.py [options]
 
-What it runs (--list shows the plan with each command):
+What it runs (--list shows the plan with each command). Tests are found by globbing, so a new test file is run
+without editing this script:
   build    the Rust programs the tests need, when cargo is here: exhaust-tuner-host (rust/), the router core
            (rust/et_core) and the wave model as WebAssembly (rust/et_wave, when the wasm32 target is installed)
-  rust     cargo test --release for rust/ (et_host, et_app), rust/et_core and rust/et_wave; the wave model built
-           from this checkout's source against the page's JavaScript (wave_wasm_built)
+  rust     cargo test --release for rust/'s workspace and every other crate under rust/ (et_core, et_wave, ...); the
+           wave model built from this checkout's source against the page's JavaScript (wave_wasm_built)
   web      every page test web/tests/*.js (Playwright + Chromium), from web/; the ones that read the page path from
            their command line (process.argv[2] in their source: b4_ui, b5_ui, print_ui, ...) get index.html
-  fusion   every fusion-addin/tests/test_*.py, from fusion-addin/tests
-  parity   the CFD case generator (Rust against intake_cfd.py, gen_rs_vs_py; JavaScript against it, cfd_js_vs_py),
-           the CFD report (report_rs_vs_py), the generator's Rust templates (gen_rust_templates --check), the
-           OpenWAM writers (openwam/test_py_js*.js, tools/sync_wam_export.py) and the sound tools (sound/test_*.py)
+  fusion   every fusion-addin/tests/test_*.py, from fusion-addin/tests; test_native with the built core
+           (EXHAUST_TUNER_NATIVE_DIR, and --require once it is built), test_router once more on the core
+  parity   the files matching OTHER below (cfd/*_vs_py.{py,js}, cfd/test_*, cfd/tests/test_*, openwam/test_*.js,
+           sound/test_*.py, layouts/*/test_*.py, ...; one that runs exhaust-tuner-host gets its path), and the
+           checks in CHECKS (cfd/gen_rust_templates.py --check, tools/sync_wam_export.py)
 
 Options:
   -j N                  run N tests at a time (default 1)
@@ -32,14 +34,17 @@ Options:
 
 Results: PASS; FAIL (non-zero exit, a FAIL line, or for page tests one of the markers web/tests/run_all_tests.sh
 always used: PAGEERROR, "Error:", " BAD ", "overflow <n>", "panel looks empty"; or past the time limit); SKIP (the test
-printed "TEST SKIPPED: <why>", or a legacy line "skipped", or the runner did not start it because a tool is missing);
-PASS+SKIP (it passed, but printed "SKIP: <why>" for a part that did not run, or cargo reported ignored tests or a
-"...; skipped" line). Every skip, whole or partial, must be listed in the expected-skips file for the conditions that
-hold here, or the run fails (UNEXPECTED SKIP); an entry whose skip did not happen is reported, not failed.
-A test in the flaky file that fails is run once more; one that then passes is FLAKY (counted as a pass, reported).
+printed "TEST SKIPPED: <why>" -- web/tests/skip.js skip() -- or a legacy line "skipped", or the runner did not start
+it because a tool is missing); PASS+SKIP (it passed, but printed "SKIP: <why>" -- skipPart() -- for a part that did
+not run, or cargo reported ignored tests or a "...; skipped" line). Every skip, whole or partial, must be listed in the
+expected-skips file (lines "name kind condition reason": kind skip or part, condition one of CONDITIONS, true here)
+or the run fails (UNEXPECTED SKIP); an entry whose skip did not happen is reported, not failed.
+A test in the flaky file ("name reason") that fails is run once more; one that then passes is FLAKY (counted as a
+pass, reported).
 Exit code: 0 when nothing failed and every skip was expected, 1 otherwise, 2 on a usage error."""
 import argparse
 import concurrent.futures as cf
+import glob
 import json
 import os
 import platform
@@ -65,8 +70,9 @@ LEGACY_SKIP = re.compile(r'^\s*(?:\S+: )?skipped\s*$', re.M)
 PART_SKIP = re.compile(r'^\s*SKIP: (.*)$', re.M)
 CARGO_SKIP = re.compile(r'^(.*\S); skipped\s*$', re.M)
 CARGO_IGNORED = re.compile(r'test result: \w+\. \d+ passed; \d+ failed; (\d+) ignored')
-CONDITIONS = ('always', 'no-cargo', 'no-wasm32', 'no-host', 'no-et-core', 'no-openwam', 'no-numpy', 'no-playwright',
-              'python<3.12')
+CONDITIONS = ('always', 'no-cargo', 'no-wasm32', 'no-host', 'no-et-core', 'no-openwam', 'no-openfoam', 'no-numpy',
+              'no-playwright', 'python<3.12')
+KINDS = ('skip', 'part')     # the whole test, or a part of it (a "SKIP: " line, an ignored cargo test)
 HOST = os.path.join(ROOT, 'rust', 'target', 'release', 'exhaust-tuner-host')
 CORE_DIR = os.path.join(ROOT, 'rust', 'et_core', 'target', 'release')
 WASM = os.path.join(ROOT, 'rust', 'et_wave', 'target', 'wasm32-unknown-unknown', 'release', 'et_wave.wasm')
@@ -105,10 +111,12 @@ def conditions(tools):
         c.add('no-wasm32')
     if not os.path.isfile(HOST):
         c.add('no-host')
-    if not any(os.path.isfile(os.path.join(CORE_DIR, n)) for n in ('libet_core.so', 'libet_core.dylib', 'et_core.dll')):
+    if not core_built():
         c.add('no-et-core')
     if not tools['openwam']:
         c.add('no-openwam')
+    if not tools['openfoam']:
+        c.add('no-openfoam')
     if not tools['numpy']:
         c.add('no-numpy')
     if not tools['playwright']:
@@ -119,7 +127,7 @@ def conditions(tools):
 
 
 def read_list(path, what):
-    """name -> (condition, reason) from an expected-skips file, or name -> reason from the flaky file."""
+    """name -> [(kind, condition, reason)] from an expected-skips file, or name -> reason from the flaky file."""
     out = {}
     if not os.path.isfile(path):
         return out
@@ -127,11 +135,12 @@ def read_list(path, what):
         line = line.split('#', 1)[0].strip() if line.lstrip().startswith('#') else line.strip()
         if not line:
             continue
-        parts = line.split(None, 2 if what == 'skips' else 1)
+        parts = line.split(None, 3 if what == 'skips' else 1)
         if what == 'skips':
-            if len(parts) < 3 or parts[1] not in CONDITIONS:
-                sys.exit('%s:%d: want "name condition reason" with a condition from %s' % (path, n, ', '.join(CONDITIONS)))
-            out.setdefault(parts[0], []).append((parts[1], parts[2]))
+            if len(parts) < 4 or parts[1] not in KINDS or parts[2] not in CONDITIONS:
+                sys.exit('%s:%d: want "name kind condition reason", kind one of %s, condition one of %s'
+                         % (path, n, ', '.join(KINDS), ', '.join(CONDITIONS)))
+            out.setdefault(parts[0], []).append((parts[1], parts[2], parts[3]))
         else:
             if len(parts) < 2:
                 sys.exit('%s:%d: want "name reason" (a flaky test needs its reason written down)' % (path, n))
@@ -141,11 +150,51 @@ def read_list(path, what):
 
 class T:
     """One entry of the plan."""
-    def __init__(self, name, suite, cmd, cwd, env=None, needs=(), runner_skip=None, note=''):
+    def __init__(self, name, suite, cmd, cwd, env=None, needs=(), runner_skip=None, note='', require_if=None):
         self.name, self.suite, self.cmd, self.cwd, self.env = name, suite, cmd, cwd, env or {}
+        self.require_if = require_if       # 'core': add --require when the core is built by the time it runs
         self.needs = set(needs)            # builds it needs: host, core, wasm
         self.runner_skip = runner_skip     # (condition, reason) when a tool it cannot start without is missing
         self.note = note
+
+
+# the tests outside web/tests and fusion-addin/tests, found by these patterns (a new file that matches is run without
+# editing this list); (pattern, folder to run it from: 'root' for the checkout, 'dir' for the file's own folder)
+OTHER = (('cfd/*_vs_py.py', 'root'), ('cfd/*_vs_py.js', 'root'), ('cfd/test_*.py', 'root'), ('cfd/test_*.js', 'root'),
+         ('cfd/tests/test_*.py', 'root'), ('cfd/tests/test_*.js', 'root'), ('openwam/test_*.js', 'dir'),
+         ('sound/test_*.py', 'dir'), ('layouts/*/test_*.py', 'dir'), ('layouts/*/fake/test_*.py', 'dir'),
+         ('tools/test_*.py', 'root'))
+# files the patterns find that are not run, each with the reason (shown by --list and in every results table, so an
+# exclusion is never silent); remove the line once the reason is gone
+EXCLUDED = {
+    'layouts_test_bundle_mode': 'stale: its Fusion stub (layouts/ls3-180/fake/adsk) has no TemporaryBRepManager, which '
+                                'cadtools._merge_body has used since the merge collectors became one welded body; it '
+                                'fails with AttributeError before checking anything. Extend the stub, then remove this line',
+}
+# and these, which are checks with their own command line
+CHECKS = (('gen_rust_templates_check', ['cfd/gen_rust_templates.py', '--check']),
+          ('sync_wam_export', ['tools/sync_wam_export.py']))
+
+
+def other_name(rel):
+    """cfd/gen_rs_vs_py.py -> gen_rs_vs_py; sound/test_sweep.py -> sound_test_sweep (test_* names are not unique)."""
+    stem = os.path.splitext(os.path.basename(rel))[0]
+    return rel.split('/')[0] + '_' + stem if stem.startswith('test_') else stem
+
+
+def crates():
+    """(name, manifest) for rust/Cargo.toml's workspace and every crate under rust/ that is not one of its members."""
+    out, members = [], set()
+    top = os.path.join(ROOT, 'rust', 'Cargo.toml')
+    if os.path.isfile(top):
+        out.append(('rust', 'rust/Cargo.toml'))
+        m = re.search(r'^members\s*=\s*\[([^\]]*)\]', open(top, encoding='utf-8').read(), re.M)
+        members = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
+    for man in sorted(glob.glob(os.path.join(ROOT, 'rust', '*', 'Cargo.toml'))):
+        d = os.path.basename(os.path.dirname(man))
+        if d not in members:
+            out.append((d, os.path.relpath(man, ROOT)))
+    return out
 
 
 def plan(tools, quick):
@@ -153,6 +202,9 @@ def plan(tools, quick):
     rel = lambda *p: os.path.join(ROOT, *p)
     out = []
     nocargo = ('no-cargo', 'cargo is not installed') if not tools['cargo'] else None
+    nopw = None if tools['playwright'] else ('no-playwright', 'Playwright is not installed for node (npm i playwright; npx playwright install chromium)')
+    nonp = None if tools['numpy'] else ('no-numpy', 'numpy is not installed for ' + py)
+    q = {'QUICK': '1'} if quick else {}
     # builds
     out.append(T('build_host', 'build', ['cargo', 'build', '--release', '--manifest-path', 'rust/Cargo.toml', '--bin',
                  'exhaust-tuner-host'], ROOT, runner_skip=nocargo))
@@ -161,42 +213,57 @@ def plan(tools, quick):
     out.append(T('build_wave_wasm', 'build', ['cargo', 'build', '--release', '--target', 'wasm32-unknown-unknown',
                  '--manifest-path', 'rust/et_wave/Cargo.toml'], ROOT,
                  runner_skip=nocargo or (None if tools['wasm32'] else ('no-wasm32', 'the wasm32-unknown-unknown target is not installed (rustup target add wasm32-unknown-unknown)'))))
-    # rust
-    for crate, man in (('rust', 'rust/Cargo.toml'), ('et_core', 'rust/et_core/Cargo.toml'), ('et_wave', 'rust/et_wave/Cargo.toml')):
+    # rust: cargo test for every crate, then the wave model built from this checkout against the page's JavaScript
+    for crate, man in crates():
         out.append(T('cargo_test_' + crate, 'rust', ['cargo', 'test', '--release', '--manifest-path', man, '--', '--show-output'],
                      ROOT, runner_skip=nocargo))
-    q = {'QUICK': '1'} if quick else {}
     out.append(T('wave_wasm_built', 'rust', [node, 'wave_wasm.js'], rel('web', 'tests'), dict(q, WAVE_WASM=WASM), needs={'wasm'},
                  note='the wave model built from rust/et_wave against the page\'s JavaScript'))
-    # web
-    nopw = None if tools['playwright'] else ('no-playwright', 'Playwright is not installed for node (npm i playwright; npx playwright install chromium)')
+    # web: every web/tests/*.js; the arguments a test takes are read from its source
     for f in sorted(os.listdir(rel('web', 'tests'))):
         if not f.endswith('.js') or f in NOT_TESTS:
             continue
         src = open(rel('web', 'tests', f), encoding='utf-8').read()
-        args = ['index.html'] if 'process.argv[2]' in src else []
+        args = ['index.html'] if 'process.argv[2]' in src else []     # the page path (b4_ui, b5_ui, print_ui, ...)
         env = dict(q) if 'process.env.QUICK' in src else {}
         needs = {'host'} if 'exhaust-tuner-host' in src else set()
         out.append(T(f[:-3], 'web', [node, 'tests/' + f] + args, rel('web'), env, needs,
                      runner_skip=nopw if "require('playwright')" in src else None,
                      note=' '.join(args) and 'argument: ' + ' '.join(args)))
-    # fusion
+    # fusion: every fusion-addin/tests/test_*.py; test_native compares the Rust core with the Python, so it gets the
+    # built core (and --require once it is built, so a core that does not load fails); the router once more on the core
+    core_env = {'EXHAUST_TUNER_NATIVE_DIR': CORE_DIR}
     for f in sorted(os.listdir(rel('fusion-addin', 'tests'))):
         if f.startswith('test_') and f.endswith('.py'):
-            args = ['--quick'] if quick and f == 'test_native.py' else []
-            out.append(T(f[:-3], 'fusion', [py, f] + args, rel('fusion-addin', 'tests'), needs={'core'} if f == 'test_native.py' else (),
-                         note=' '.join(args)))
-    # parity and the other checks
-    out.append(T('gen_rs_vs_py', 'parity', [py, 'cfd/gen_rs_vs_py.py', HOST], ROOT, needs={'host'}))
-    out.append(T('report_rs_vs_py', 'parity', [py, 'cfd/report_rs_vs_py.py', HOST], ROOT, needs={'host'}))
-    out.append(T('gen_rust_templates_check', 'parity', [py, 'cfd/gen_rust_templates.py', '--check'], ROOT))
-    out.append(T('cfd_js_vs_py', 'parity', [node, 'cfd/cfd_js_vs_py.js'], ROOT))
-    out.append(T('sync_wam_export', 'parity', [py, 'tools/sync_wam_export.py'], ROOT))
-    out.append(T('test_py_js', 'parity', [node, 'test_py_js.js'], rel('openwam')))
-    out.append(T('test_py_js_2t', 'parity', [node, 'test_py_js_2t.js'], rel('openwam')))
-    nonp = None if tools['numpy'] else ('no-numpy', 'numpy is not installed for ' + py)
-    for f in ('test_realism.py', 'test_sweep.py'):
-        out.append(T('sound_' + f[5:-3], 'parity', [py, f], rel('sound'), runner_skip=nonp))
+            nat = f == 'test_native.py'
+            args = ['--quick'] if quick and nat else []
+            out.append(T(f[:-3], 'fusion', [py, f] + args, rel('fusion-addin', 'tests'), core_env if nat else {},
+                         needs={'core'} if nat else (), require_if='core' if nat else None, note=' '.join(args)))
+    if os.path.isfile(rel('fusion-addin', 'tests', 'test_router.py')):
+        out.append(T('test_router_native', 'fusion', [py, 'test_router.py'], rel('fusion-addin', 'tests'), core_env,
+                     needs={'core'}, note='the router\'s tests on the Rust core'))
+    # parity and the other checks: found by pattern; one that runs the host program gets its path
+    for pat, where in OTHER:
+        for f in sorted(glob.glob(rel(*pat.split('/')))):
+            r = os.path.relpath(f, ROOT).replace(os.sep, '/')
+            src = open(f, encoding='utf-8', errors='replace').read()
+            js = f.endswith('.js')
+            cwd = ROOT if where == 'root' else os.path.dirname(f)
+            cmd = [node if js else py, r if where == 'root' else os.path.basename(f)]
+            needs = set()
+            if 'exhaust-tuner-host' in src:
+                cmd.append(HOST)
+                needs.add('host')
+            rs = None
+            if js and "require('playwright')" in src:
+                rs = nopw
+            if not js and re.search(r'^\s*import numpy', src, re.M):
+                rs = nonp
+            out.append(T(other_name(r), 'parity', cmd, cwd, needs=needs, runner_skip=rs))
+    for name, args in CHECKS:
+        if os.path.isfile(rel(*args[0].split('/'))):
+            out.append(T(name, 'parity', [py] + args, ROOT))
+    out = [t for t in out if t.name not in EXCLUDED]
     names = [t.name for t in out]
     dup = {n for n in names if names.count(n) > 1}
     if dup:
@@ -224,12 +291,17 @@ def show(t):
     return ' '.join(os.path.relpath(x, t.cwd) if os.path.isabs(x) and x.startswith(ROOT) else x for x in c)
 
 
+def core_built():
+    return any(os.path.isfile(os.path.join(CORE_DIR, n)) for n in ('libet_core.so', 'libet_core.dylib', 'et_core.dll'))
+
+
 def run_one(t, timeout, logdir, env0):
     env = dict(env0)
     env.update(t.env)
+    cmd = t.cmd + (['--require'] if t.require_if == 'core' and core_built() else [])
     t0 = time.time()
     try:
-        p = subprocess.Popen(t.cmd, cwd=t.cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        p = subprocess.Popen(cmd, cwd=t.cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                              stdin=subprocess.DEVNULL, start_new_session=True)
     except OSError as e:
         return {'rc': None, 'out': 'could not start: %s' % e, 'seconds': 0.0, 'timed_out': False}
@@ -247,7 +319,7 @@ def run_one(t, timeout, logdir, env0):
     secs = time.time() - t0
     with open(os.path.join(logdir, t.name + '.log'), 'a', encoding='utf-8') as fh:
         fh.write('$ (cd %s && %s%s)\n' % (os.path.relpath(t.cwd, ROOT), ' '.join('%s=%s' % kv for kv in sorted(t.env.items())) + (' ' if t.env else ''),
-                                         show(t)))
+                                         ' '.join([show(t)] + cmd[len(t.cmd):])))
         fh.write(out)
         fh.write('\n[exit %s after %.1f s%s]\n' % (p.returncode, secs, ', timed out' if timed else ''))
     return {'rc': p.returncode, 'out': out, 'seconds': secs, 'timed_out': timed}
@@ -342,6 +414,8 @@ def main():
                   ('   [not started: %s]' % t.runner_skip[1]) if t.runner_skip else ''))
         for f, why in sorted(NOT_TESTS.items()):
             print('%-26s %-7s not a test: %s' % (f, 'web', why))
+        for n, why in sorted(EXCLUDED.items()):
+            print('%-26s %-7s NOT RUN: %s' % (n, '', why))
         if shard_load is not None:
             print('shard %s: %d tests, about %.0f s by tools/test_timings.json' % (a.shard, len(rest), shard_load))
         return 0
@@ -396,20 +470,22 @@ def main():
     cond = conditions(tools)
     unexpected, stale = [], []
     for r in results.values():
-        had = r['status'] == 'SKIP' or bool(r['partial_skips'])
-        exp = [(c, why) for c, why in skips_exp.get(r['name'], []) if c in cond]
-        r['expected_skip'] = exp[0][1] if exp else ''
+        kind = 'skip' if r['status'] == 'SKIP' else ('part' if r['partial_skips'] else '')
+        had = bool(kind)
+        exp = [why for k, c, why in skips_exp.get(r['name'], []) if c in cond and k == kind]
+        expany = [why for k, c, why in skips_exp.get(r['name'], []) if c in cond]
+        r['expected_skip'] = exp[0] if exp else ''
         if had and (not exp or r['name'] in strict):
             r['unexpected_skip'] = True
             unexpected.append(r['name'])
-        elif exp and not had and r['status'] in ('PASS', 'FLAKY'):
+        elif expany and not had and r['status'] in ('PASS', 'FLAKY'):
             stale.append(r['name'])
     order = [t.name for t in builds + rest]
     rows = [results[n] for n in order]
     count = lambda s: sum(r['status'] == s for r in rows)
     summary = {'tests': len(rows), 'pass': count('PASS') + count('PASS+SKIP'), 'flaky': count('FLAKY'), 'fail': count('FAIL'),
                'skip': count('SKIP'), 'partial_skips': sum(len(r['partial_skips']) for r in rows),
-               'unexpected_skips': unexpected, 'expected_skip_not_seen': stale,
+               'unexpected_skips': unexpected, 'expected_skip_not_seen': stale, 'excluded': EXCLUDED,
                'seconds': round(time.time() - t_start, 1)}
     ok = summary['fail'] == 0 and not unexpected
     summary['result'] = 'ok' if ok else 'FAILED'
@@ -433,6 +509,8 @@ def main():
     if unexpected:
         lines.append('unexpected skips (not in %s for this machine, or named in --no-skip-allowed): %s'
                      % (os.path.relpath(a.expected_skips, ROOT), ', '.join(unexpected)))
+    for n, why in sorted(EXCLUDED.items()):
+        lines.append('not run (tools/run_all_tests.py EXCLUDED): %s: %s' % (n, why))
     if stale:
         lines.append('expected to skip here but ran: %s (the expected-skips entry may be out of date)' % ', '.join(stale))
     lines.append('result: ' + summary['result'])

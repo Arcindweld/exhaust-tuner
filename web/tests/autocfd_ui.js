@@ -99,10 +99,11 @@ const STUB = () => {
   await pg.evaluate(() => { window.__stub.delay = 120000; });   // long enough that it can only end by being stopped
   s = await until(x => !x.running, 4000, 'the debounced run to end');
   await set('i-lt', '33.5'); s = await until(x => x.calls >= 3 && x.running, 6000, 'the slow run');
-  await wait(1000); await set('i-lt', '34'); await wait(600); await set('i-lt', '34.2');
   // the stub holds the stopped run's rejection, so the "Stopping" status stays until it is read (under load a poll
-  // could otherwise land after the old run had ended and the new one had started)
+  // could otherwise land after the old run had ended and the new one had started); set before the edits, so the stop
+  // cannot come first however slow the machine
   await pg.evaluate(() => { window.__stub.holdCancel = true; });
+  await wait(1000); await set('i-lt', '34'); await wait(600); await set('i-lt', '34.2');
   s = await until(x => x.cancels >= 1 && /Stopping the test of the earlier design/.test(x.status), 12000, 'the stop');
   ok(s.cancels === 1 && /Stopping the test of the earlier design/.test(s.status), 'a newer design stops the running test first: ' + s.status);
   ok(s.calls === 3, 'and starts nothing until the old run has stopped (calls ' + s.calls + ')');

@@ -8,7 +8,7 @@
 // page's intake CFD case to convergence (minutes); DESKTOP_CFD=0 skips that run (the Windows build does when nothing
 // on its path changed since the last release, and its install step runs a short OpenFOAM case on every build).
 const { chromium } = require('playwright');
-const { skip } = require('./skip.js');
+const { skip, skipPart } = require('./skip.js');
 const { spawn, execFileSync } = require('child_process');
 const fs = require('fs'), path = require('path'), os = require('os'), { pathToFileURL } = require('url');
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -158,7 +158,7 @@ const CLI = process.env.HOST_CLI || path.join(ROOT, 'rust', 'target', 'release',
       ok(!row.err && Number.isFinite(row.K), 'exhaust results in the page: K ' + row.K + ', ' + (row.mdot * 1000).toFixed(1) + ' g/s');
       ok(/iterations in \d+ s/.test(x.msg), 'message: ' + x.msg.slice(0, 160));
     }
-  } else console.log('  (EXHAUST_TUNER_OPENFOAM not set: OpenFOAM part not exercised)');
+  } else skipPart('the page\'s OpenFOAM runs: EXHAUST_TUNER_OPENFOAM not set');
   ok(errs.length === 0, 'no page errors ' + errs.join(' | '));
   host.stdin.end(); await b.close();
   console.log(fails.length ? 'FAILS ' + fails.length : 'all passed'); process.exit(fails.length ? 1 : 0);
