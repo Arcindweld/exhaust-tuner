@@ -41,6 +41,7 @@ try:
     from . import printsplit as PS
     from . import tubecfd as TC
     from . import roundcheck as RND
+    from . import chargeroute as CRT
 except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path)
     import router as RT
     import templates as TPL
@@ -51,6 +52,7 @@ except ImportError:          # loaded as a top-level module (the add-in's folder
     import printsplit as PS
     import tubecfd as TC
     import roundcheck as RND
+    import chargeroute as CRT
 
 PALETTE_ID = 'exhaustTunerPalette'
 PANEL_CMD_ID = 'exhaustTunerPanelCmd'
@@ -101,6 +103,7 @@ _handlers = None
 _build_pipe = None
 _build_centerlines = None
 _keepouts = []          # [(entityToken, name, body)]
+_hot_tokens = set()     # keep-outs marked hot (exhaust manifold, turbine): the charge-pipe route keeps farther off
 
 TOL = 1e-4              # cm
 
@@ -2342,6 +2345,197 @@ def act_route(data):
 
 
 # --------------------------------------------------------------------------
+# Charge pipes and turbo intake from a scan (chargeroute.py): recommend, then build the one chosen
+# --------------------------------------------------------------------------
+_LAST_CHARGE = {}       # the last recommendation: the plan with its elements, for chargeRouteBuild
+
+
+def act_set_hot(data):
+    """Mark the selected bodies as hot keep-outs (added to the keep-outs when they are not in them yet), or with
+    data['clear'] unmark them all."""
+    if data.get('clear'):
+        _hot_tokens.clear()
+        return {'ok': True, 'msg': 'No keep-outs are marked hot now.', 'hot': []}
+    bodies = _bodies_of(_selected())
+    if not bodies:
+        raise ValueError('Select the exhaust manifold, turbine housing or a body drawn round them, then press Mark hot.')
+    have = set(k[0] for k in _keepouts)
+    for b in bodies:
+        if _token(b) not in have:
+            _keepouts.append((_token(b), _bname(b), b))
+        _hot_tokens.add(_token(b))
+    _mesh_cache.clear()
+    names = [k[1] for k in _keepouts if k[0] in _hot_tokens]
+    return {'ok': True, 'hot': names, 'msg': '%d hot keep-out%s: %s. The charge pipes keep the hot clearance from '
+            'these and the ordinary one from the rest.' % (len(names), '' if len(names) == 1 else 's', ', '.join(names))}
+
+
+def _scenes_split(lo, hi, pad, notes):
+    """The keep-outs as two router Scenes: the ordinary ones and the ones marked hot (None when there are none)."""
+    if not _keepouts:
+        raise ValueError('Set the keep-outs first: select the scan (mesh body) and any solids the pipes must clear, '
+                         'then press Set keep-outs from selection.')
+    cold, hot = RT.Scene(cell=1.0, sample_len=0.3), RT.Scene(cell=1.0, sample_len=0.3)
+    nc = nh = 0
+    for tok, name, b in _keepouts:
+        kb = _resolve(tok, b)
+        if kb is None:
+            notes.append('Keep-out %s is no longer in the design and was skipped.' % name)
+            continue
+        coords, idx, tol, note = _keepout_mesh(kb)
+        if note:
+            notes.append(note)
+        if tok in _hot_tokens:
+            hot.add_mesh(coords, idx, tol, name)
+            nh += 1
+        else:
+            cold.add_mesh(coords, idx, tol, name)
+            nc += 1
+    if nc:
+        cold.build(lo, hi, pad)
+    if nh:
+        hot.build(lo, hi, pad)
+    return (cold if nc else None), (hot if nh else None)
+
+
+def _charge_markers(legs):
+    """Two markers per leg, in the page's leg order (start, end, start, end, ...), each start pointed toward its end
+    and each end pointed onward (away from its start)."""
+    mk = _markers()
+    need = 2 * len(legs)
+    if len(mk) != need:
+        order = '; '.join('%d and %d: %s (start, then end)' % (2 * i + 1, 2 * i + 2, L.get('name') or L['kind'])
+                          for i, L in enumerate(legs))
+        if len(mk) < need:
+            i = len(mk) // 2
+            what = 'the %s marker of %s' % ('end' if len(mk) % 2 else 'start', legs[i].get('name') or legs[i]['kind'])
+            each = 'for the leg ticked' if len(legs) == 1 else 'for each of the %d legs ticked' % len(legs)
+            raise ValueError('%d marker%s selected; %d are needed, a start and an end %s. Missing: %s. Select them in '
+                             'this order: %s. Draw each from the pipe centre the way the air flows (a circular edge '
+                             'works too).' % (len(mk), ' is' if len(mk) == 1 else 's are', need, each, what, order))
+        raise ValueError('%d markers are selected, but only %d are used (a start and an end for each of the %d leg%s '
+                         'ticked). Tick the legs you want or select fewer markers, in this order: %s.' % (
+                             len(mk), need, len(legs), '' if len(legs) == 1 else 's', order))
+    pairs = []
+    for i in range(len(legs)):
+        a, b = mk[2 * i], mk[2 * i + 1]
+        if _norm(_sub(a['p'], b['p'])) < 0.5:
+            raise ValueError('%s: its start and end markers are at the same place. Select the start marker, then the '
+                             'end marker, of each leg.' % (legs[i].get('name') or legs[i]['kind']))
+        _sign(a, b['p'])
+        if not b['signed'] and _dot(b['d'], _sub(b['p'], a['p'])) < 0:
+            b['d'] = _neg(b['d'])
+        pairs.append((a, b))
+    return pairs
+
+
+def act_charge_route(data):
+    """Recommend charge piping (and the turbo intake) through the scan: data['legs'] in order, each with kind (inlet,
+    hot, cold), name, id_mm, wall_mm, gap_mm, stock [{clr_mm, angles}] and flow {m_kg_s, T_C, p_Pa, rho_amb}; and
+    hot_gap_mm, coupler_mm, joints ('weld' or 'coupler'), min_straight_mm, gap_tt_mm, time_s, max_radii. Nothing is
+    built: the answer lists each leg's routes, ranked; chargeRouteBuild builds the ones chosen."""
+    t0 = time.time()
+    legs_in = data.get('legs') or []
+    if not legs_in:
+        raise ValueError('Tick at least one leg (compressor to intercooler, intercooler to throttle, or filter to compressor).')
+    legs = []
+    for L in legs_in:
+        idm, wm = float(L.get('id_mm') or 0), float(L.get('wall_mm') or 0)
+        nm = L.get('name') or CRT.LEG_NAME.get(L.get('kind'), 'Leg')
+        if not (idm > 0 and wm > 0):
+            raise ValueError('%s: fill in the tube inside diameter and wall.' % nm)
+        if not (float(L.get('gap_mm') or 0) > 0):
+            raise ValueError('%s: fill in the clearance to the scan.' % nm)
+        legs.append({'kind': L.get('kind') or 'hot', 'name': nm, 'od': (idm + 2 * wm) / 10.0, 'wall': wm / 10.0,
+                     'gap': float(L['gap_mm']) / 10.0, 'stock': L.get('stock') or [], 'flow': L.get('flow')})
+    pairs = _charge_markers(legs)
+    for L, (a, b) in zip(legs, pairs):
+        L.update({'start': a['p'], 'start_dir': a['d'], 'end': b['p'], 'end_dir': b['d']})
+    pts = [m['p'] for ab in pairs for m in ab]
+    lo = tuple(min(p[k] for p in pts) for k in range(3))
+    hi = tuple(max(p[k] for p in pts) for k in range(3))
+    pad = 0.5 * max(_norm(_sub(hi, lo)), 1.0) + 15.0
+    notes = []
+    _status('Reading the scan…')
+    cold, hot = _scenes_split(lo, hi, pad, notes)
+    coupler = float(data.get('coupler_mm') or 76.2)
+    joints = data.get('joints') or 'weld'
+    ms = coupler if joints == 'coupler' else float(data.get('min_straight_mm') or 0.0)
+    opts = {'hot_gap': (float(data['hot_gap_mm']) / 10.0) if data.get('hot_gap_mm') else None, 'lead': coupler / 20.0,
+            'min_straight': ms / 10.0, 'gap_tt': float(data.get('gap_tt_mm') or 3.175) / 10.0,
+            'time_s': float(data.get('time_s') or 30.0), 'max_radii': int(data.get('max_radii') or 3),
+            'coupler_mm': coupler, 'joints': joints, 'roomy': data.get('roomy', True)}
+    res = CRT.plan(cold, hot, legs, opts, log=_status)
+    _LAST_CHARGE.clear()
+    _LAST_CHARGE.update({'plan': res, 'legs': legs, 'opts': opts})
+    _status('Done.')
+    msg = ' '.join(L['msg'] for L in res['legs'])
+    msg += ' %.0f s, %s.' % (time.time() - t0, RT.NATIVE_NOTE)
+    if hot is None and opts['hot_gap']:
+        notes.append('No keep-out is marked hot, so the hot clearance was not used.')
+    if notes:
+        msg += ' ' + ' '.join(notes)
+    pub = CRT.public(res)
+    return {'ok': True, 'route_ok': res['ok'], 'msg': msg, 'plan': pub, 'hot': hot is not None,
+            'scan': {'triangles': sum(s.ntri for s in (cold, hot) if s is not None)}}
+
+
+def act_charge_build(data):
+    """Build the chosen route of each leg from the last recommendation: data['choice'] = [candidate id per leg, in
+    the plan's leg order; None skips a leg]. Checks the chosen pipes against each other (the recommendation kept
+    each leg clear of the legs before it on their lowest-loss routes only)."""
+    if not _LAST_CHARGE.get('plan'):
+        raise ValueError('Press Recommend piping first; the build uses its routes.')
+    plan, legs, opts = _LAST_CHARGE['plan'], _LAST_CHARGE['legs'], _LAST_CHARGE['opts']
+    choice = data.get('choice') or []
+    title = str(data.get('title') or 'Charge pipes')
+    picked = []
+    for i, L in enumerate(plan['legs']):
+        cid = choice[i] if i < len(choice) else (L['candidates'][L['best']]['id'] if L['best'] is not None else None)
+        if cid is None:
+            continue
+        c = next((c for c in L['candidates'] if c['id'] == cid), None)
+        if c is None or not c.get('_elems'):
+            raise ValueError('%s: that route is not in the last recommendation. Press Recommend piping again.' % L['name'])
+        if not c['ok']:
+            raise ValueError('%s: the route chosen does not clear the scan (%s). Choose one that does.' % (L['name'], c['note']))
+        picked.append((legs[i], L, c))
+    if not picked:
+        raise ValueError('No leg has a route to build. Change what the messages say and press Recommend piping again.')
+    notes = []
+    for a in range(len(picked)):
+        for b in range(a + 1, len(picked)):
+            la, _La, ca = picked[a]
+            lb, _Lb, cb = picked[b]
+            ts = RT.TubeSet(cell=2.0)
+            ts.add_polyline(RT.path_points(ca['_elems'], 0.5), la['od'] / 2.0, 'a')
+            d = min(ts.dist(p, 50.0) for p in RT.path_points(cb['_elems'], 0.5)) - lb['od'] / 2.0
+            if d < opts['gap_tt'] - 1e-6:
+                notes.append('%s and %s come within %.1f mm of each other (%.1f mm asked); choose another route for one '
+                             'of them.' % (la['name'], lb['name'], max(0.0, d) * 10.0, opts['gap_tt'] * 10.0))
+    comp = _new_component(title)
+    items, built = [], []
+    for leg, L, c in picked:
+        b = _build_route(comp, {'elems': c['_elems'], 'msg': c['note']}, L['name'], leg['od'], leg['wall'],
+                         _pname(title + '_' + leg['kind']))
+        built.append(b)
+        it = _route_item(L['name'], {'length': c['length_mm'] / 10.0, 'ok': c['ok'], 'lra': None, 'msg': c['note'],
+                                     'min_gap': (c['min_gap_mm'] / 10.0) if c.get('min_gap_mm') is not None else None},
+                         leg['gap'], leg['od'])
+        it['lra'] = [{'L': r['L_mm'] / 10.0, 'R': r['R_deg'], 'A': r['A_deg'], 'CLR': (r['CLR_mm'] / 10.0) if r['CLR_mm'] else None}
+                     for r in c['lra']]
+        it['charge'] = {k: v for k, v in c.items() if not k.startswith('_')}
+        items.append(it)
+    msg = 'Built %d charge pipe%s: %s.' % (len(picked), '' if len(picked) == 1 else 's',
+                                           '; '.join('%s on the %s' % (L['name'], c['label']) for _l, L, c in picked))
+    if notes:
+        msg += ' ' + ' '.join(notes)
+    if not all(b.get('param') for b in built):
+        msg += ' Some tubes could not be made as editable sketches and features, so they were added as fixed bodies.'
+    return {'ok': True, 'msg': msg, 'items': items, 'route_ok': not notes}
+
+
+# --------------------------------------------------------------------------
 # Drone fixes: the tee on the main pipe, the J-pipe's cap and the Helmholtz can
 # --------------------------------------------------------------------------
 # A branch (a J-pipe or a Helmholtz neck) starts at a marker on the main pipe's outside, on the branch
@@ -4336,7 +4530,7 @@ def act_cfd_tube(data):
 
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveBase64': act_save_base64, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl, 'printSplit': act_print_split, 'cfdTube': act_cfd_tube,
+           'route': act_route, 'chargeRoute': act_charge_route, 'chargeRouteBuild': act_charge_build, 'setHotKeepouts': act_set_hot, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveBase64': act_save_base64, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl, 'printSplit': act_print_split, 'cfdTube': act_cfd_tube,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult'),
            # the page's solver runs on this PC (hostrun.py): OpenWAM without leaving Fusion
            'hostInfo': HR.host_info, 'hostCall': HR.host_call, 'hostChunk': HR.host_chunk, 'hostCancel': HR.host_cancel,

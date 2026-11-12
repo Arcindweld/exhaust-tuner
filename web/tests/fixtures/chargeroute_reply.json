@@ -1,0 +1,1466 @@
+{
+ "request": {
+  "legs": [
+   {
+    "kind": "hot",
+    "name": "Compressor outlet to intercooler inlet",
+    "id_mm": 50.8,
+    "wall_mm": 1.651,
+    "gap_mm": 12.7,
+    "stock": [
+     {
+      "clr_mm": 50.8,
+      "angles": [
+       45,
+       90,
+       180
+      ]
+     },
+     {
+      "clr_mm": 76.2,
+      "angles": [
+       45,
+       90
+      ]
+     },
+     {
+      "clr_mm": 101.6,
+      "angles": [
+       90
+      ]
+     }
+    ],
+    "flow": {
+     "m_kg_s": 0.25,
+     "T_C": 120.0,
+     "p_Pa": 202650.0,
+     "rho_amb": 1.184
+    }
+   },
+   {
+    "kind": "cold",
+    "name": "Intercooler outlet to throttle body",
+    "id_mm": 50.8,
+    "wall_mm": 1.651,
+    "gap_mm": 12.7,
+    "stock": [
+     {
+      "clr_mm": 50.8,
+      "angles": [
+       45,
+       90,
+       180
+      ]
+     },
+     {
+      "clr_mm": 76.2,
+      "angles": [
+       45,
+       90
+      ]
+     },
+     {
+      "clr_mm": 101.6,
+      "angles": [
+       90
+      ]
+     }
+    ],
+    "flow": {
+     "m_kg_s": 0.25,
+     "T_C": 45.0,
+     "p_Pa": 195755.0,
+     "rho_amb": 1.184
+    }
+   }
+  ],
+  "hot_gap_mm": 50.8,
+  "coupler_mm": 76.2,
+  "joints": "weld",
+  "min_straight_mm": 25.4,
+  "gap_tt_mm": 3.175,
+  "time_s": 20,
+  "max_radii": 2
+ },
+ "reply": {
+  "ok": true,
+  "route_ok": true,
+  "msg": "Compressor outlet to intercooler inlet: 3 routes fit; the lowest loss is 101.6 mm (2.00 D) bend radius. Intercooler outlet to throttle body: 3 routes fit; the lowest loss is 101.6 mm (2.00 D) bend radius. 47 s, Python router (no libet_core.so next to the add-in).",
+  "plan": {
+   "ok": true,
+   "legs": [
+    {
+     "kind": "hot",
+     "name": "Compressor outlet to intercooler inlet",
+     "candidates": [
+      {
+       "id": 1,
+       "label": "101.6 mm (2.00 D) bend radius",
+       "clr_mm": 101.6,
+       "clr_d": 2.0,
+       "stock_angles": [
+        90.0
+       ],
+       "max_bend_deg": 90.0,
+       "gap_mm": 12.7,
+       "stock_note": "",
+       "ok": true,
+       "note": "Clear of the scan and the other tubes.",
+       "tag": "",
+       "slack_mm": 0.10960225528013456,
+       "length_mm": 677.3310430759466,
+       "n_bends": 4,
+       "bends": [
+        {
+         "angle_deg": 35.30817759641958,
+         "clr_mm": 101.6
+        },
+        {
+         "angle_deg": 36.884960806708435,
+         "clr_mm": 101.6
+        },
+        {
+         "angle_deg": 38.39997271493987,
+         "clr_mm": 101.6
+        },
+        {
+         "angle_deg": 36.43244537807457,
+         "clr_mm": 101.6
+        }
+       ],
+       "turn_deg": 147.02555649614246,
+       "dp_Pa": 2133.543954730047,
+       "dp_friction_Pa": 513.9095443034272,
+       "dp_bends_Pa": 1619.6344104266198,
+       "k_bends": [
+        0.09233377391625433,
+        0.09588609932614076,
+        0.09923088941452524,
+        0.09487394241904865
+       ],
+       "f": 0.014792052919396193,
+       "Re": 277622.1620071523,
+       "v_m_s": 68.68974843809902,
+       "q_Pa": 4236.279761478647,
+       "rho": 1.7956875718947913,
+       "straight_mm": 416.6173104597889,
+       "volume_L": 1.372834821405966,
+       "fill_s": 0.00335898399407374,
+       "min_gap_mm": 13.469333026262946,
+       "min_gap_at_mm": [
+        274.5,
+        6.5,
+        130.1
+       ],
+       "hot_gap_mm": 62.949,
+       "hot_gap_at_mm": [
+        0.5,
+        0.0,
+        0.0
+       ],
+       "cut": [
+        {
+         "kind": "straight",
+         "L_mm": 38.19945649369857
+        },
+        {
+         "kind": "bend",
+         "A_deg": 35.30817759641958,
+         "CLR_mm": 101.6,
+         "rot_deg": null,
+         "L_mm": 62.6103855167402,
+         "from_deg": 90.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 161.31260661626249
+        },
+        {
+         "kind": "bend",
+         "A_deg": 36.884960806708435,
+         "CLR_mm": 101.6,
+         "rot_deg": -163.2735550025646,
+         "L_mm": 65.40642347148639,
+         "from_deg": 90.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 25.648089180585426
+        },
+        {
+         "kind": "bend",
+         "A_deg": 38.39997271493987,
+         "CLR_mm": 101.6,
+         "rot_deg": -33.51084813201027,
+         "L_mm": 68.09292518565137,
+         "from_deg": 90.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 153.25717231327704
+        },
+        {
+         "kind": "bend",
+         "A_deg": 36.43244537807457,
+         "CLR_mm": 101.6,
+         "rot_deg": -163.90064637402511,
+         "L_mm": 64.60399844227977,
+         "from_deg": 90.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 38.19998585596524
+        }
+       ],
+       "couplers": [
+        {
+         "s_mm": 0.0,
+         "at": "start",
+         "p_mm": [
+          0.0,
+          0.0,
+          0.0
+         ]
+        },
+        {
+         "s_mm": 181.46614531857006,
+         "at": "optional joint",
+         "note": "longest straight between bends",
+         "p_mm": [
+          162.74,
+          1.5,
+          65.29
+         ]
+        },
+        {
+         "s_mm": 677.3310430759466,
+         "at": "end",
+         "p_mm": [
+          600.0,
+          0.0,
+          0.0
+         ]
+        }
+       ],
+       "lra": [
+        {
+         "L_mm": 38.19945649369857,
+         "R_deg": null,
+         "A_deg": 35.30817759641958,
+         "CLR_mm": 101.6
+        },
+        {
+         "L_mm": 161.31260661626249,
+         "R_deg": -163.2735550025646,
+         "A_deg": 36.884960806708435,
+         "CLR_mm": 101.6
+        },
+        {
+         "L_mm": 25.648089180585426,
+         "R_deg": -33.51084813201027,
+         "A_deg": 38.39997271493987,
+         "CLR_mm": 101.6
+        },
+        {
+         "L_mm": 153.25717231327704,
+         "R_deg": -163.90064637402511,
+         "A_deg": 36.43244537807457,
+         "CLR_mm": 101.6
+        },
+        {
+         "L_mm": 38.19998585596524,
+         "R_deg": null,
+         "A_deg": null,
+         "CLR_mm": null
+        }
+       ],
+       "flags": [],
+       "rank": 1
+      },
+      {
+       "id": 0,
+       "label": "76.2 mm (1.50 D) bend radius",
+       "clr_mm": 76.2,
+       "clr_d": 1.5,
+       "stock_angles": [
+        45.0,
+        90.0
+       ],
+       "max_bend_deg": 90.0,
+       "gap_mm": 12.7,
+       "stock_note": "",
+       "ok": true,
+       "note": "Clear of the scan and the other tubes.",
+       "tag": "",
+       "slack_mm": 0.10696768352903785,
+       "length_mm": 677.0731357610346,
+       "n_bends": 4,
+       "bends": [
+        {
+         "angle_deg": 33.43099347165856,
+         "clr_mm": 76.2
+        },
+        {
+         "angle_deg": 35.3624582723794,
+         "clr_mm": 76.2
+        },
+        {
+         "angle_deg": 39.23881897226032,
+         "clr_mm": 76.20000000000002
+        },
+        {
+         "angle_deg": 35.070906423016446,
+         "clr_mm": 76.19999999999999
+        }
+       ],
+       "turn_deg": 143.1031771393147,
+       "dp_Pa": 2445.481320316091,
+       "dp_friction_Pa": 600.4256416522239,
+       "dp_bends_Pa": 1845.055678663867,
+       "k_bends": [
+        0.10268268133101373,
+        0.1078667802801314,
+        0.11789536698652557,
+        0.10709195899632472
+       ],
+       "f": 0.014792052919396193,
+       "Re": 277622.1620071523,
+       "v_m_s": 68.68974843809902,
+       "q_Pa": 4236.279761478647,
+       "rho": 1.7956875718947913,
+       "straight_mm": 486.75436899173053,
+       "volume_L": 1.3723120871444465,
+       "fill_s": 0.0033577049938690396,
+       "min_gap_mm": 13.601827545326959,
+       "min_gap_at_mm": [
+        277.2,
+        5.7,
+        130.6
+       ],
+       "hot_gap_mm": 62.949,
+       "hot_gap_at_mm": [
+        0.5,
+        0.0,
+        0.0
+       ],
+       "cut": [
+        {
+         "kind": "straight",
+         "L_mm": 38.18964916926366
+        },
+        {
+         "kind": "bend",
+         "A_deg": 33.43099347165856,
+         "CLR_mm": 76.2,
+         "rot_deg": null,
+         "L_mm": 44.46124521193967,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 190.11636505735308
+        },
+        {
+         "kind": "bend",
+         "A_deg": 35.3624582723794,
+         "CLR_mm": 76.2,
+         "rot_deg": -157.05207120411418,
+         "L_mm": 47.02997922805203,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 40.41145328822993
+        },
+        {
+         "kind": "bend",
+         "A_deg": 39.23881897226032,
+         "CLR_mm": 76.20000000000002,
+         "rot_deg": -44.46466508925204,
+         "L_mm": 52.18530982728897,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 179.83701611148345
+        },
+        {
+         "kind": "bend",
+         "A_deg": 35.070906423016446,
+         "CLR_mm": 76.19999999999999,
+         "rot_deg": -159.4369120026213,
+         "L_mm": 46.64223250202336,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 38.199885365400476
+        }
+       ],
+       "couplers": [
+        {
+         "s_mm": 0.0,
+         "at": "start",
+         "p_mm": [
+          0.0,
+          0.0,
+          0.0
+         ]
+        },
+        {
+         "s_mm": 177.70907690987985,
+         "at": "optional joint",
+         "note": "longest straight between bends",
+         "p_mm": [
+          159.5,
+          0.74,
+          64.97
+         ]
+        },
+        {
+         "s_mm": 677.0731357610346,
+         "at": "end",
+         "p_mm": [
+          600.0,
+          0.0,
+          0.0
+         ]
+        }
+       ],
+       "lra": [
+        {
+         "L_mm": 38.18964916926366,
+         "R_deg": null,
+         "A_deg": 33.43099347165856,
+         "CLR_mm": 76.2
+        },
+        {
+         "L_mm": 190.11636505735308,
+         "R_deg": -157.05207120411418,
+         "A_deg": 35.3624582723794,
+         "CLR_mm": 76.2
+        },
+        {
+         "L_mm": 40.41145328822993,
+         "R_deg": -44.46466508925204,
+         "A_deg": 39.23881897226032,
+         "CLR_mm": 76.20000000000002
+        },
+        {
+         "L_mm": 179.83701611148345,
+         "R_deg": -159.4369120026213,
+         "A_deg": 35.070906423016446,
+         "CLR_mm": 76.19999999999999
+        },
+        {
+         "L_mm": 38.199885365400476,
+         "R_deg": null,
+         "A_deg": null,
+         "CLR_mm": null
+        }
+       ],
+       "flags": [],
+       "rank": 2
+      },
+      {
+       "id": 2,
+       "label": "76.2 mm (1.50 D) bend radius, twice the clearance",
+       "clr_mm": 76.2,
+       "clr_d": 1.5,
+       "stock_angles": [
+        45.0,
+        90.0
+       ],
+       "max_bend_deg": 90.0,
+       "gap_mm": 25.4,
+       "stock_note": "",
+       "ok": true,
+       "note": "Clear of the scan and the other tubes.",
+       "tag": "twice the clearance",
+       "slack_mm": 0.1117545571105838,
+       "length_mm": 688.861164985088,
+       "n_bends": 4,
+       "bends": [
+        {
+         "angle_deg": 36.916760837539485,
+         "clr_mm": 76.2
+        },
+        {
+         "angle_deg": 35.76306371484523,
+         "clr_mm": 76.20000000000002
+        },
+        {
+         "angle_deg": 37.045624581715174,
+         "clr_mm": 76.2
+        },
+        {
+         "angle_deg": 35.68908673689938,
+         "clr_mm": 76.2
+        }
+       ],
+       "turn_deg": 145.41453587099926,
+       "dp_Pa": 2483.1566211322524,
+       "dp_friction_Pa": 611.174686017999,
+       "dp_bends_Pa": 1871.9819351142535,
+       "k_bends": [
+        0.11194983725942834,
+        0.10892686027071581,
+        0.11228469706663491,
+        0.10873150212278271
+       ],
+       "f": 0.014792052919396193,
+       "Re": 277622.1620071523,
+       "v_m_s": 68.68974843809902,
+       "q_Pa": 4236.279761478647,
+       "rho": 1.7956875718947913,
+       "straight_mm": 495.4684277270126,
+       "volume_L": 1.3962044174310375,
+       "fill_s": 0.0034161635598686925,
+       "min_gap_mm": 26.307695782993193,
+       "min_gap_at_mm": [
+        344.9,
+        4.5,
+        137.2
+       ],
+       "hot_gap_mm": 62.949,
+       "hot_gap_at_mm": [
+        0.5,
+        0.0,
+        0.0
+       ],
+       "cut": [
+        {
+         "kind": "straight",
+         "L_mm": 38.198949286802126
+        },
+        {
+         "kind": "bend",
+         "A_deg": 36.916760837539485,
+         "CLR_mm": 76.2,
+         "rot_deg": null,
+         "L_mm": 49.097109764920894,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 191.1729639208296
+        },
+        {
+         "kind": "bend",
+         "A_deg": 35.76306371484523,
+         "CLR_mm": 76.20000000000002,
+         "rot_deg": -175.7262921449625,
+         "L_mm": 47.56276078675177,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 26.745088701133636
+        },
+        {
+         "kind": "bend",
+         "A_deg": 37.045624581715174,
+         "CLR_mm": 76.2,
+         "rot_deg": -8.052539198833006,
+         "L_mm": 49.26849092754118,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 201.1604039218811
+        },
+        {
+         "kind": "bend",
+         "A_deg": 35.68908673689938,
+         "CLR_mm": 76.2,
+         "rot_deg": -175.9020857358296,
+         "L_mm": 47.46437577886149,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 38.19102189636618
+        }
+       ],
+       "couplers": [
+        {
+         "s_mm": 0.0,
+         "at": "start",
+         "p_mm": [
+          0.0,
+          0.0,
+          0.0
+         ]
+        },
+        {
+         "s_mm": 502.6255653489198,
+         "at": "optional joint",
+         "note": "longest straight between bends",
+         "p_mm": [
+          435.66,
+          2.42,
+          72.95
+         ]
+        },
+        {
+         "s_mm": 688.861164985088,
+         "at": "end",
+         "p_mm": [
+          600.0,
+          0.0,
+          0.0
+         ]
+        }
+       ],
+       "lra": [
+        {
+         "L_mm": 38.198949286802126,
+         "R_deg": null,
+         "A_deg": 36.916760837539485,
+         "CLR_mm": 76.2
+        },
+        {
+         "L_mm": 191.1729639208296,
+         "R_deg": -175.7262921449625,
+         "A_deg": 35.76306371484523,
+         "CLR_mm": 76.20000000000002
+        },
+        {
+         "L_mm": 26.745088701133636,
+         "R_deg": -8.052539198833006,
+         "A_deg": 37.045624581715174,
+         "CLR_mm": 76.2
+        },
+        {
+         "L_mm": 201.1604039218811,
+         "R_deg": -175.9020857358296,
+         "A_deg": 35.68908673689938,
+         "CLR_mm": 76.2
+        },
+        {
+         "L_mm": 38.19102189636618,
+         "R_deg": null,
+         "A_deg": null,
+         "CLR_mm": null
+        }
+       ],
+       "flags": [],
+       "rank": 3
+      }
+     ],
+     "best": 0,
+     "ok": true,
+     "msg": "Compressor outlet to intercooler inlet: 3 routes fit; the lowest loss is 101.6 mm (2.00 D) bend radius."
+    },
+    {
+     "kind": "cold",
+     "name": "Intercooler outlet to throttle body",
+     "candidates": [
+      {
+       "id": 1,
+       "label": "101.6 mm (2.00 D) bend radius",
+       "clr_mm": 101.6,
+       "clr_d": 2.0,
+       "stock_angles": [
+        90.0
+       ],
+       "max_bend_deg": 90.0,
+       "gap_mm": 12.7,
+       "stock_note": "",
+       "ok": true,
+       "note": "Clear of the scan and the other tubes.",
+       "tag": "",
+       "slack_mm": 19.135044424176503,
+       "length_mm": 560.768595921585,
+       "n_bends": 2,
+       "bends": [
+        {
+         "angle_deg": 12.492256162600981,
+         "clr_mm": 101.59999999999998
+        },
+        {
+         "angle_deg": 12.492256162600981,
+         "clr_mm": 101.59999999999998
+        }
+       ],
+       "turn_deg": 24.984512325201962,
+       "dp_Pa": 758.2702590120361,
+       "dp_friction_Pa": 519.517309685057,
+       "dp_bends_Pa": 238.75294932697918,
+       "k_bends": [
+        0.03363773342966106,
+        0.03363773342966106
+       ],
+       "f": 0.014398958150310842,
+       "Re": 324565.65364309965,
+       "v_m_s": 57.54390334701465,
+       "q_Pa": 3548.8858044824706,
+       "rho": 2.143499491910522,
+       "straight_mm": 516.4646965102693,
+       "volume_L": 1.1365825663858786,
+       "fill_s": 0.004362201579846431,
+       "min_gap_mm": null,
+       "min_gap_at_mm": null,
+       "hot_gap_mm": null,
+       "hot_gap_at_mm": null,
+       "cut": [
+        {
+         "kind": "straight",
+         "L_mm": 38.20017060620975
+        },
+        {
+         "kind": "bend",
+         "A_deg": 12.492256162600981,
+         "CLR_mm": 101.59999999999998,
+         "rot_deg": null,
+         "L_mm": 22.151949705657824,
+         "from_deg": 90.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 440.06435529784136
+        },
+        {
+         "kind": "bend",
+         "A_deg": 12.492256162600981,
+         "CLR_mm": 101.59999999999998,
+         "rot_deg": 180.0,
+         "L_mm": 22.151949705657824,
+         "from_deg": 90.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 38.20017060621821
+        }
+       ],
+       "couplers": [
+        {
+         "s_mm": 0.0,
+         "at": "start",
+         "p_mm": [
+          600.0,
+          400.0,
+          0.0
+         ]
+        },
+        {
+         "s_mm": 280.3842979607882,
+         "at": "optional joint",
+         "note": "longest straight between bends",
+         "p_mm": [
+          325.0,
+          400.0,
+          50.0
+         ]
+        },
+        {
+         "s_mm": 560.768595921585,
+         "at": "end",
+         "p_mm": [
+          50.0,
+          400.0,
+          100.0
+         ]
+        }
+       ],
+       "lra": [
+        {
+         "L_mm": 38.20017060620975,
+         "R_deg": null,
+         "A_deg": 12.492256162600981,
+         "CLR_mm": 101.59999999999998
+        },
+        {
+         "L_mm": 440.06435529784136,
+         "R_deg": 180.0,
+         "A_deg": 12.492256162600981,
+         "CLR_mm": 101.59999999999998
+        },
+        {
+         "L_mm": 38.20017060621821,
+         "R_deg": null,
+         "A_deg": null,
+         "CLR_mm": null
+        }
+       ],
+       "flags": [],
+       "rank": 1
+      },
+      {
+       "id": 2,
+       "label": "76.2 mm (1.50 D) bend radius, twice the clearance",
+       "clr_mm": 76.2,
+       "clr_d": 1.5,
+       "stock_angles": [
+        45.0,
+        90.0
+       ],
+       "max_bend_deg": 90.0,
+       "gap_mm": 25.4,
+       "stock_note": "",
+       "ok": true,
+       "note": "Clear of the scan and the other tubes.",
+       "tag": "twice the clearance",
+       "slack_mm": 19.13504442417651,
+       "length_mm": 560.6826309725543,
+       "n_bends": 2,
+       "bends": [
+        {
+         "angle_deg": 12.33952706877005,
+         "clr_mm": 76.2
+        },
+        {
+         "angle_deg": 12.33952706877005,
+         "clr_mm": 76.2
+        }
+       ],
+       "turn_deg": 24.6790541375401,
+       "dp_Pa": 806.1737106327653,
+       "dp_friction_Pa": 530.9809195378534,
+       "dp_bends_Pa": 275.1927910949119,
+       "k_bends": [
+        0.038771716850867076,
+        0.038771716850867076
+       ],
+       "f": 0.014398958150310842,
+       "Re": 324565.65364309965,
+       "v_m_s": 57.54390334701465,
+       "q_Pa": 3548.8858044824706,
+       "rho": 2.143499491910522,
+       "straight_mm": 527.8609477480304,
+       "volume_L": 1.1364083300554222,
+       "fill_s": 0.00436153286116425,
+       "min_gap_mm": 122.949,
+       "min_gap_at_mm": [
+        319.1,
+        400.0,
+        51.3
+       ],
+       "hot_gap_mm": null,
+       "hot_gap_at_mm": null,
+       "cut": [
+        {
+         "kind": "straight",
+         "L_mm": 38.199691252030064
+        },
+        {
+         "kind": "bend",
+         "A_deg": 12.33952706877005,
+         "CLR_mm": 76.2,
+         "rot_deg": null,
+         "L_mm": 16.41084161226196,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 451.4615652439707
+        },
+        {
+         "kind": "bend",
+         "A_deg": 12.33952706877005,
+         "CLR_mm": 76.2,
+         "rot_deg": 180.0,
+         "L_mm": 16.41084161226196,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 38.1996912520296
+        }
+       ],
+       "couplers": [
+        {
+         "s_mm": 0.0,
+         "at": "start",
+         "p_mm": [
+          600.0,
+          400.0,
+          0.0
+         ]
+        },
+        {
+         "s_mm": 280.3413154862774,
+         "at": "optional joint",
+         "note": "longest straight between bends",
+         "p_mm": [
+          325.0,
+          400.0,
+          50.0
+         ]
+        },
+        {
+         "s_mm": 560.6826309725543,
+         "at": "end",
+         "p_mm": [
+          50.0,
+          400.0,
+          100.0
+         ]
+        }
+       ],
+       "lra": [
+        {
+         "L_mm": 38.199691252030064,
+         "R_deg": null,
+         "A_deg": 12.33952706877005,
+         "CLR_mm": 76.2
+        },
+        {
+         "L_mm": 451.4615652439707,
+         "R_deg": 180.0,
+         "A_deg": 12.33952706877005,
+         "CLR_mm": 76.2
+        },
+        {
+         "L_mm": 38.1996912520296,
+         "R_deg": null,
+         "A_deg": null,
+         "CLR_mm": null
+        }
+       ],
+       "flags": [],
+       "rank": 2
+      },
+      {
+       "id": 0,
+       "label": "76.2 mm (1.50 D) bend radius",
+       "clr_mm": 76.2,
+       "clr_d": 1.5,
+       "stock_angles": [
+        45.0,
+        90.0
+       ],
+       "max_bend_deg": 90.0,
+       "gap_mm": 12.7,
+       "stock_note": "",
+       "ok": true,
+       "note": "Clear of the scan and the other tubes.",
+       "tag": "",
+       "slack_mm": 19.135044424176503,
+       "length_mm": 560.6826309725543,
+       "n_bends": 2,
+       "bends": [
+        {
+         "angle_deg": 12.33952706877005,
+         "clr_mm": 76.2
+        },
+        {
+         "angle_deg": 12.33952706877005,
+         "clr_mm": 76.2
+        }
+       ],
+       "turn_deg": 24.6790541375401,
+       "dp_Pa": 806.1737106327653,
+       "dp_friction_Pa": 530.9809195378534,
+       "dp_bends_Pa": 275.1927910949119,
+       "k_bends": [
+        0.038771716850867076,
+        0.038771716850867076
+       ],
+       "f": 0.014398958150310842,
+       "Re": 324565.65364309965,
+       "v_m_s": 57.54390334701465,
+       "q_Pa": 3548.8858044824706,
+       "rho": 2.143499491910522,
+       "straight_mm": 527.8609477480304,
+       "volume_L": 1.1364083300554222,
+       "fill_s": 0.00436153286116425,
+       "min_gap_mm": null,
+       "min_gap_at_mm": null,
+       "hot_gap_mm": null,
+       "hot_gap_at_mm": null,
+       "cut": [
+        {
+         "kind": "straight",
+         "L_mm": 38.199691252030064
+        },
+        {
+         "kind": "bend",
+         "A_deg": 12.33952706877005,
+         "CLR_mm": 76.2,
+         "rot_deg": null,
+         "L_mm": 16.41084161226196,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 451.4615652439707
+        },
+        {
+         "kind": "bend",
+         "A_deg": 12.33952706877005,
+         "CLR_mm": 76.2,
+         "rot_deg": 180.0,
+         "L_mm": 16.41084161226196,
+         "from_deg": 45.0
+        },
+        {
+         "kind": "straight",
+         "L_mm": 38.1996912520296
+        }
+       ],
+       "couplers": [
+        {
+         "s_mm": 0.0,
+         "at": "start",
+         "p_mm": [
+          600.0,
+          400.0,
+          0.0
+         ]
+        },
+        {
+         "s_mm": 280.3413154862774,
+         "at": "optional joint",
+         "note": "longest straight between bends",
+         "p_mm": [
+          325.0,
+          400.0,
+          50.0
+         ]
+        },
+        {
+         "s_mm": 560.6826309725543,
+         "at": "end",
+         "p_mm": [
+          50.0,
+          400.0,
+          100.0
+         ]
+        }
+       ],
+       "lra": [
+        {
+         "L_mm": 38.199691252030064,
+         "R_deg": null,
+         "A_deg": 12.33952706877005,
+         "CLR_mm": 76.2
+        },
+        {
+         "L_mm": 451.4615652439707,
+         "R_deg": 180.0,
+         "A_deg": 12.33952706877005,
+         "CLR_mm": 76.2
+        },
+        {
+         "L_mm": 38.1996912520296,
+         "R_deg": null,
+         "A_deg": null,
+         "CLR_mm": null
+        }
+       ],
+       "flags": [],
+       "rank": 3
+      }
+     ],
+     "best": 0,
+     "ok": true,
+     "msg": "Intercooler outlet to throttle body: 3 routes fit; the lowest loss is 101.6 mm (2.00 D) bend radius."
+    }
+   ]
+  },
+  "hot": true,
+  "scan": {
+   "triangles": 60
+  }
+ },
+ "build_choice": [
+  0,
+  1
+ ],
+ "build": {
+  "ok": true,
+  "msg": "Built 2 charge pipes: Compressor outlet to intercooler inlet on the 76.2 mm (1.50 D) bend radius; Intercooler outlet to throttle body on the 101.6 mm (2.00 D) bend radius.",
+  "items": [
+   {
+    "kind": "path",
+    "name": "Compressor outlet to intercooler inlet",
+    "length": 67.70731357610346,
+    "ok": true,
+    "lra": [
+     {
+      "L": 3.818964916926366,
+      "R": null,
+      "A": 33.43099347165856,
+      "CLR": 7.62
+     },
+     {
+      "L": 19.011636505735307,
+      "R": -157.05207120411418,
+      "A": 35.3624582723794,
+      "CLR": 7.62
+     },
+     {
+      "L": 4.041145328822993,
+      "R": -44.46466508925204,
+      "A": 39.23881897226032,
+      "CLR": 7.620000000000002
+     },
+     {
+      "L": 17.983701611148344,
+      "R": -159.4369120026213,
+      "A": 35.070906423016446,
+      "CLR": 7.619999999999999
+     },
+     {
+      "L": 3.8199885365400474,
+      "R": null,
+      "A": null,
+      "CLR": null
+     }
+    ],
+    "note": "Clear of the scan and the other tubes.",
+    "min_gap": 1.3601827545326959,
+    "od": [
+     5.4102
+    ],
+    "charge": {
+     "id": 0,
+     "label": "76.2 mm (1.50 D) bend radius",
+     "clr_mm": 76.2,
+     "clr_d": 1.5,
+     "stock_angles": [
+      45.0,
+      90.0
+     ],
+     "max_bend_deg": 90.0,
+     "gap_mm": 12.7,
+     "stock_note": "",
+     "ok": true,
+     "note": "Clear of the scan and the other tubes.",
+     "tag": "",
+     "slack_mm": 0.10696768352903785,
+     "length_mm": 677.0731357610346,
+     "n_bends": 4,
+     "bends": [
+      {
+       "angle_deg": 33.43099347165856,
+       "clr_mm": 76.2
+      },
+      {
+       "angle_deg": 35.3624582723794,
+       "clr_mm": 76.2
+      },
+      {
+       "angle_deg": 39.23881897226032,
+       "clr_mm": 76.20000000000002
+      },
+      {
+       "angle_deg": 35.070906423016446,
+       "clr_mm": 76.19999999999999
+      }
+     ],
+     "turn_deg": 143.1031771393147,
+     "dp_Pa": 2445.481320316091,
+     "dp_friction_Pa": 600.4256416522239,
+     "dp_bends_Pa": 1845.055678663867,
+     "k_bends": [
+      0.10268268133101373,
+      0.1078667802801314,
+      0.11789536698652557,
+      0.10709195899632472
+     ],
+     "f": 0.014792052919396193,
+     "Re": 277622.1620071523,
+     "v_m_s": 68.68974843809902,
+     "q_Pa": 4236.279761478647,
+     "rho": 1.7956875718947913,
+     "straight_mm": 486.75436899173053,
+     "volume_L": 1.3723120871444465,
+     "fill_s": 0.0033577049938690396,
+     "min_gap_mm": 13.601827545326959,
+     "min_gap_at_mm": [
+      277.2,
+      5.7,
+      130.6
+     ],
+     "hot_gap_mm": 62.949,
+     "hot_gap_at_mm": [
+      0.5,
+      0.0,
+      0.0
+     ],
+     "cut": [
+      {
+       "kind": "straight",
+       "L_mm": 38.18964916926366
+      },
+      {
+       "kind": "bend",
+       "A_deg": 33.43099347165856,
+       "CLR_mm": 76.2,
+       "rot_deg": null,
+       "L_mm": 44.46124521193967,
+       "from_deg": 45.0
+      },
+      {
+       "kind": "straight",
+       "L_mm": 190.11636505735308
+      },
+      {
+       "kind": "bend",
+       "A_deg": 35.3624582723794,
+       "CLR_mm": 76.2,
+       "rot_deg": -157.05207120411418,
+       "L_mm": 47.02997922805203,
+       "from_deg": 45.0
+      },
+      {
+       "kind": "straight",
+       "L_mm": 40.41145328822993
+      },
+      {
+       "kind": "bend",
+       "A_deg": 39.23881897226032,
+       "CLR_mm": 76.20000000000002,
+       "rot_deg": -44.46466508925204,
+       "L_mm": 52.18530982728897,
+       "from_deg": 45.0
+      },
+      {
+       "kind": "straight",
+       "L_mm": 179.83701611148345
+      },
+      {
+       "kind": "bend",
+       "A_deg": 35.070906423016446,
+       "CLR_mm": 76.19999999999999,
+       "rot_deg": -159.4369120026213,
+       "L_mm": 46.64223250202336,
+       "from_deg": 45.0
+      },
+      {
+       "kind": "straight",
+       "L_mm": 38.199885365400476
+      }
+     ],
+     "couplers": [
+      {
+       "s_mm": 0.0,
+       "at": "start",
+       "p_mm": [
+        0.0,
+        0.0,
+        0.0
+       ]
+      },
+      {
+       "s_mm": 177.70907690987985,
+       "at": "optional joint",
+       "note": "longest straight between bends",
+       "p_mm": [
+        159.5,
+        0.74,
+        64.97
+       ]
+      },
+      {
+       "s_mm": 677.0731357610346,
+       "at": "end",
+       "p_mm": [
+        600.0,
+        0.0,
+        0.0
+       ]
+      }
+     ],
+     "lra": [
+      {
+       "L_mm": 38.18964916926366,
+       "R_deg": null,
+       "A_deg": 33.43099347165856,
+       "CLR_mm": 76.2
+      },
+      {
+       "L_mm": 190.11636505735308,
+       "R_deg": -157.05207120411418,
+       "A_deg": 35.3624582723794,
+       "CLR_mm": 76.2
+      },
+      {
+       "L_mm": 40.41145328822993,
+       "R_deg": -44.46466508925204,
+       "A_deg": 39.23881897226032,
+       "CLR_mm": 76.20000000000002
+      },
+      {
+       "L_mm": 179.83701611148345,
+       "R_deg": -159.4369120026213,
+       "A_deg": 35.070906423016446,
+       "CLR_mm": 76.19999999999999
+      },
+      {
+       "L_mm": 38.199885365400476,
+       "R_deg": null,
+       "A_deg": null,
+       "CLR_mm": null
+      }
+     ],
+     "flags": [],
+     "rank": 2
+    }
+   },
+   {
+    "kind": "path",
+    "name": "Intercooler outlet to throttle body",
+    "length": 56.0768595921585,
+    "ok": true,
+    "lra": [
+     {
+      "L": 3.8200170606209753,
+      "R": null,
+      "A": 12.492256162600981,
+      "CLR": 10.159999999999998
+     },
+     {
+      "L": 44.006435529784135,
+      "R": 180.0,
+      "A": 12.492256162600981,
+      "CLR": 10.159999999999998
+     },
+     {
+      "L": 3.820017060621821,
+      "R": null,
+      "A": null,
+      "CLR": null
+     }
+    ],
+    "note": "Clear of the scan and the other tubes.",
+    "od": [
+     5.4102
+    ],
+    "charge": {
+     "id": 1,
+     "label": "101.6 mm (2.00 D) bend radius",
+     "clr_mm": 101.6,
+     "clr_d": 2.0,
+     "stock_angles": [
+      90.0
+     ],
+     "max_bend_deg": 90.0,
+     "gap_mm": 12.7,
+     "stock_note": "",
+     "ok": true,
+     "note": "Clear of the scan and the other tubes.",
+     "tag": "",
+     "slack_mm": 19.135044424176503,
+     "length_mm": 560.768595921585,
+     "n_bends": 2,
+     "bends": [
+      {
+       "angle_deg": 12.492256162600981,
+       "clr_mm": 101.59999999999998
+      },
+      {
+       "angle_deg": 12.492256162600981,
+       "clr_mm": 101.59999999999998
+      }
+     ],
+     "turn_deg": 24.984512325201962,
+     "dp_Pa": 758.2702590120361,
+     "dp_friction_Pa": 519.517309685057,
+     "dp_bends_Pa": 238.75294932697918,
+     "k_bends": [
+      0.03363773342966106,
+      0.03363773342966106
+     ],
+     "f": 0.014398958150310842,
+     "Re": 324565.65364309965,
+     "v_m_s": 57.54390334701465,
+     "q_Pa": 3548.8858044824706,
+     "rho": 2.143499491910522,
+     "straight_mm": 516.4646965102693,
+     "volume_L": 1.1365825663858786,
+     "fill_s": 0.004362201579846431,
+     "min_gap_mm": null,
+     "min_gap_at_mm": null,
+     "hot_gap_mm": null,
+     "hot_gap_at_mm": null,
+     "cut": [
+      {
+       "kind": "straight",
+       "L_mm": 38.20017060620975
+      },
+      {
+       "kind": "bend",
+       "A_deg": 12.492256162600981,
+       "CLR_mm": 101.59999999999998,
+       "rot_deg": null,
+       "L_mm": 22.151949705657824,
+       "from_deg": 90.0
+      },
+      {
+       "kind": "straight",
+       "L_mm": 440.06435529784136
+      },
+      {
+       "kind": "bend",
+       "A_deg": 12.492256162600981,
+       "CLR_mm": 101.59999999999998,
+       "rot_deg": 180.0,
+       "L_mm": 22.151949705657824,
+       "from_deg": 90.0
+      },
+      {
+       "kind": "straight",
+       "L_mm": 38.20017060621821
+      }
+     ],
+     "couplers": [
+      {
+       "s_mm": 0.0,
+       "at": "start",
+       "p_mm": [
+        600.0,
+        400.0,
+        0.0
+       ]
+      },
+      {
+       "s_mm": 280.3842979607882,
+       "at": "optional joint",
+       "note": "longest straight between bends",
+       "p_mm": [
+        325.0,
+        400.0,
+        50.0
+       ]
+      },
+      {
+       "s_mm": 560.768595921585,
+       "at": "end",
+       "p_mm": [
+        50.0,
+        400.0,
+        100.0
+       ]
+      }
+     ],
+     "lra": [
+      {
+       "L_mm": 38.20017060620975,
+       "R_deg": null,
+       "A_deg": 12.492256162600981,
+       "CLR_mm": 101.59999999999998
+      },
+      {
+       "L_mm": 440.06435529784136,
+       "R_deg": 180.0,
+       "A_deg": 12.492256162600981,
+       "CLR_mm": 101.59999999999998
+      },
+      {
+       "L_mm": 38.20017060621821,
+       "R_deg": null,
+       "A_deg": null,
+       "CLR_mm": null
+      }
+     ],
+     "flags": [],
+     "rank": 1
+    }
+   }
+  ],
+  "route_ok": true
+ }
+}
