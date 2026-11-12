@@ -800,11 +800,22 @@ fn hllc(rl: f64, ul: f64, pl: f64, xl: f64, rr: f64, ur: f64, pr: f64, xr: f64, 
 fn open_state(r: f64, u: f64, p: f64, x: f64, dir: f64, pa: f64, ta: f64, xa: f64, gm: f64, ra: f64) -> [f64; 4] {
     let k2 = 2.0 / (gm - 1.0);
     let exc = (gm - 1.0) / (2.0 * gm);
-    let un = u * dir;
-    let c = (gm * p / r).sqrt();
+    let mut un = u * dir;
+    let mut c = (gm * p / r).sqrt();
+    let (mut r, mut p) = (r, p);
     // supersonic exit: the cell's state, when a normal shock at the exit could hold the outside pressure (2026-11-12)
     if un >= c && (p >= pa || pa <= p * (1.0 + 2.0 * gm / (gm + 1.0) * (un * un / (c * c) - 1.0))) {
         return [r, u, p, x];
+    }
+    // a supersonic exit not even a normal shock at the exit brings up to the outside pressure (part 2, D5): the state
+    // behind a normal shock (frozen gamma), then the subsonic exit from there
+    if un >= c {
+        let m2 = un * un / (c * c);
+        let q = (gm + 1.0) * m2 / ((gm - 1.0) * m2 + 2.0);
+        p = p * (1.0 + 2.0 * gm / (gm + 1.0) * (m2 - 1.0));
+        r = r * q;
+        un = un / q;
+        c = (gm * p / r).sqrt();
     }
     let j = un + k2 * c;
     let cpa = c * powf(pa / p, exc);

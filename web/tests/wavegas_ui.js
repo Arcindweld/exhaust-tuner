@@ -115,24 +115,40 @@ for (const gas of [undefined, 'const']) {
 }
 
 // ---------- 5. supersonic exit below the outside pressure
-function superExit(G) {
-  const A = Math.PI * 0.04 ** 2 / 4, T = 600, p = 50000, x = 0, R = G ? GS.at(G, T, x).R : W.RG, g = G ? GS.at(G, T, x).gamma : W.GAM;
+function superExit(G, p, tEnd) {
+  p = p || 50000; tEnd = tEnd || 0.01;
+  const A = Math.PI * 0.04 ** 2 / 4, T = 600, x = 0, R = G ? GS.at(G, T, x).R : W.RG, g = G ? GS.at(G, T, x).gamma : W.GAM;
   const r = p / (R * T), c = Math.sqrt(g * p / r), u = 1.6 * c, E = G ? r * GS.at(G, T, x).e + 0.5 * r * u * u : p / (g - 1) + 0.5 * r * u * u;
   const P = W0.makePipe({ L: 0.5, dx: 0.01, area: () => A, T0: T, Tw: T, x0: x, gas: G || undefined });
   for (let i = 0; i < P.n; i++) { P.q1[i] = r * A; P.q2[i] = r * u * A; P.q3[i] = E * A; P.q4[i] = r * x * A; }
   P.left = Q => { Q.f1[0] = r * u * A; Q.f2[0] = (r * u * u + p) * A; Q.f3[0] = u * (E + p) * A; Q.f4[0] = r * u * x * A; };   // the stream enters supersonic: all its state given
   P.right = W0.openEnd(+1, W0.PATM, 298.15, 1);
   let t = 0, bad = false;
-  while (t < 0.01) { W0.prim(P); const s = W0.maxSpeed(P); if (!(s < 1e5)) { bad = true; break; } const dt = 0.8 * P.dx / s; W0.stepPipe(P, dt); t += dt; }
+  while (t < tEnd) { W0.prim(P); const s = W0.maxSpeed(P); if (!(s < 1e5)) { bad = true; break; } const dt = 0.8 * P.dx / s; W0.stepPipe(P, dt); t += dt; }
   W0.prim(P);
-  let dp = 0; for (let i = 0; i < P.n; i++) dp = Math.max(dp, Math.abs(P.p[i] / p - 1));
+  let dp = 0, pmin = Infinity, pmax = 0; for (let i = 0; i < P.n; i++) { dp = Math.max(dp, Math.abs(P.p[i] / p - 1)); pmin = Math.min(pmin, P.p[i]); pmax = Math.max(pmax, P.p[i]); }
   const shock = p * (1 + 2 * g / (g + 1) * (1.6 * 1.6 - 1));
-  return { bad, dp, out: P.f1[P.n] / (r * u * A) - 1, shock };
+  return { bad, dp, out: P.f1[P.n] / (r * u * A) - 1, shock, pmin, pmax, pEnd: P.p[P.n - 1], uEnd: P.u[P.n - 1] };
 }
 for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]]) {
   const s = superExit(G);
   ok(!s.bad && s.dp < 1e-9 && Math.abs(s.out) < 1e-9, name + ': a Mach 1.6 stream at 50 kPa (a normal shock would hold ' + (s.shock / 1000).toFixed(0) + ' kPa) leaves into 101.3 kPa unchanged: pressure spread ' +
     s.dp.toExponential(1) + ', outflow / inflow - 1 = ' + s.out.toExponential(1) + (s.bad ? ' (ran away)' : '')); }
+
+// D5 (part 2): a supersonic exit that not even a normal shock at the exit brings to the outside pressure. Found on the
+// page's captured job "single with a chamber" (a 127 mm megaphone cone open at its end) at 7850 rpm once the heat release
+// was the chemistry's: the end took the sonic state on the supersonic cell's characteristic, passed more mass than the
+// cell held, emptied it (1 Pa, -4e8 m/s) and the time step collapsed to 1e-11 s (the run never ended). Run here as the
+// page sweeps it, with a guard on the time step; on the page before the fix the guard trips at 7850 rpm.
+{ const job = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_jobs.json'), 'utf8'))[0].job, v = job.variants[0];
+  const eng = W.makeEngine(v.spec.e, v.spec.intake, v.spec.exhaust, v.spec.opt);
+  let state = null, err = '', last = null, dtMin = Infinity;
+  const hook = c => { if (c.dt < dtMin) dtMin = c.dt; if (!(c.dt > 1e-9)) throw new Error('time step ' + c.dt.toExponential(2) + ' s'); };
+  for (const [i, rpm] of job.rpms.slice(0, 8).entries()) {
+    try { let r = W.runSpeed(eng, { rpm, cycles: i === 0 ? 8 : 3, dx: job.dx, state, hook });
+      for (let k = 0; k < 5; k++) { const h = r.history, n = h.length; if (n >= 2 && Math.abs(h[n - 1].ve - h[n - 2].ve) < 0.004 * h[n - 1].ve) break; r = W.runSpeed(eng, { rpm, cycles: 2, dx: job.dx, state: r.state, hook }); }
+      state = r.state; last = r; } catch (e) { err = rpm + ' rpm: ' + e.message; break; } }
+  ok(!err && last && Number.isFinite(last.ve), 'D5: "single with a chamber" swept to ' + job.rpms[7] + ' rpm with the engine\'s gas: ' + (err || 'smallest time step ' + dtMin.toExponential(2) + ' s, VE ' + last.ve.toFixed(4) + ' at the last speed')); }
 
 // ---------- 5b. steady inflow through an open end with the gas: the stream's stagnation temperature is the outside air's
 { const T0 = 300, p0 = 1.15e5, A = x => Math.PI * (0.06 - 0.02 * x / 1.0) ** 2 / 4, G = G128;

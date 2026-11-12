@@ -1319,3 +1319,25 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   OpenWAM's compression is softer (exponent 1.28 vs 1.36; its charge carries fuel vapour) - not yet tested. Cost of the
   gas: about twice the computing time. Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum 2026-11-12; tests
   web/tests/wavegas_ui.js, wave_wasm.js (constant-gamma check added), wavekat_ui.js (anchor).
+
+## 2026-11-12, part 2: wave model heat release from chemistry, fuel vapour, friction, real-engine check
+
+- The cylinder's "72 % of the fuel heat" (eta 0.72, tuned under gamma 1.35) is gone: the burn releases the heat of
+  reaction from enthalpies of formation (GRI-Mech 3.0 a6, checked against NIST-JANAF) to the model's own frozen
+  products at the engine's AFR, the fuel CH1.87's formation enthalpy set by its 44.0 MJ/kg LHV (AFR 12.8: 0.839 of the
+  LHV, CO and H2 left over), times ETA_C 0.975 (MIT 2.61 lecture 6: SI combustion efficiency 97-98 %). Sensible energy
+  datum, chemical energy carried by the fresh fraction; total energy conserved to 1e-14 over engine cycles.
+- Fuel vapour in the charge, adopted (part 1's next experiment): isooctane/toluene at H/C 1.87 from NASA CEA's
+  thermo data, added at the intake valve as a port injector (intake pipes stay air). It explains OpenWAM's softer
+  compression (exponent 1.36 -> 1.30, OpenWAM 1.29) and moves peak pressure and exhaust temperatures to OpenWAM's; the
+  net-IMEP surplus over OpenWAM is now 10-14 % (gross loop; open). spec.e.fuel 'air' keeps the air-only charge;
+  spec.e.gas 'const' the pre-part-1 model, bit for bit.
+- Brake torque and power on the 4-Stroke tab (first design; chart dotted line, table, peaks): gross IMEP (new model
+  output, JS and Rust/WASM) less Heywood's SI tfmep 0.97 + 0.15 N/1000 + 0.05 (N/1000)^2 bar, which includes pumping,
+  so it is taken off the gross, not the net loop. Woschni checked term by term against the published form (unchanged).
+- Real ratings (tools/validation/wave/ratings.js, LS3 with GM's cam, LS7/LT1 cams assumed, long-tube header, the page's
+  open 300 mm runners): brake torque +8 to +20 %, brake power +8 to +19 % (with the tuned 0.72 it was -10 to 0 %); the
+  model is most sensitive to valve Cd and intake runner/losses (VE 1.13 at the LS3's peak). Not tuned. Dissociation
+  (not modelled) overstates expansion work by ~1 % at AFR 12.8 (dissociation.py). Sound: firing orders +0.9 dB median.
+- Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum 2026-11-12 part 2; tests wavegas_ui.js 8-10, wave_wasm.js (gross
+  IMEP, lean/etaC and air-only jobs).
