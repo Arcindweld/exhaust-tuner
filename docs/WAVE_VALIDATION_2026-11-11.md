@@ -944,6 +944,24 @@ runs cooler, so the burned gas's gamma is higher and less heat reaches the walls
 therefore sits elsewhere in the gross loop (the expansion and the pipe wall laws) and stays open. Its share of the
 ratings' error: +3.5 % (B5, chem -> after).
 
+### B6b A defect found on the way (D5): a supersonic exit beyond a normal shock's reach
+
+With the chemistry's heat (stronger blowdown), the page's captured job "single with a chamber" (a single cylinder whose
+pipe ends in a 127 mm megaphone cone, open) never finished its sweep: at 7850 rpm the cone's exit ran at Mach 1.97 and
+24 kPa, and once a normal shock at the exit could no longer hold the outside pressure (pa > p (1 + 2 gamma / (gamma + 1)
+(M^2 - 1)), the D4 limit), `openState` applied its subsonic solution to the supersonic state itself: the sonic state on
+the cell's characteristic, which passes more mass than the cell brings (the end flux jumped 17 % in one step). The end
+cell emptied in ten steps (1 Pa, -4.4e8 m/s) and the time step fell to 1.8e-11 s, so the run never ended (this is what
+held up `wave_wasm.js` and part of the first suite run). Fix (JS `openState`, Rust `open_state`): in that case the end
+takes the state behind a normal shock (Rankine-Hugoniot with the cell's frozen gamma: subsonic, the same mass flux) and
+solves the subsonic exit from there, so the shock moves into the pipe, as in the inviscid steady solution of an
+over-expanded nozzle. Test (`wavegas_ui.js` 5, D5): that job swept to 8600 rpm with a guard on the time step; on the page
+before the fix the guard trips (at 7150 rpm from that sweep's cold start), after it the smallest step is 4.5e-6 s. A
+uniform Mach 1.6-2.0 stream at 20-30 kPa does not show the defect (it recovers either way), so it is not the test.
+Unaffected: the constant-gamma reference (112 speeds, bit for bit), kat.js (66 of 66), and the runs of B5-B7 that were
+rerun after the fix (the ratings, tag after; the OpenWAM cross-check, tag fuelvap) gave the same numbers to the last
+digit (the branch is not reached there); the chem and sensitivity runs were made before it and not rerun.
+
 ### B7 Engine level against OpenWAM (the cross-check), part 1 -> now
 
 single_L800 / i4_41 (the OpenWAM runs rerun with the new heat release): NMEP ratio 1.091 / 1.115 (part 1, both codes at
@@ -962,7 +980,7 @@ not rerun (about 45 minutes of OpenWAM); `results/base.json` is part 1's, `chem.
   stronger blowdown (NMEP +15 %); the large moves (-4.7 dB, -6.9 dB) are weak orders at interference minima (single
   5000 rpm 2nd order, i4 2500 rpm 8th), whose level depends on phase. The port gas temperature, and so the sound speed,
   ends within 8-12 K of part 1's, so no order moved for a sound-speed reason.
-- `web/tests/wavegas_ui.js`: 8 (formation enthalpies against JANAF hand-listed; the fuel's from the LHV by hand; the heat
+- `web/tests/wavegas_ui.js`: 5 (D5, B6b), 8 (formation enthalpies against JANAF hand-listed; the fuel's from the LHV by hand; the heat
   per kg of mixture at AFR 14.6 and 12.8 by hand, products by bisection; total energy, sensible + chemical, over an engine
   cycle: residual / heat released -7.9e-15), 9 (tfmep by hand at 3000, 4600, 6000, 7500 rpm; the gross loop against p dV
   integrated in the test, cycle by cycle), 10 (the vapour's cp against NASA's fits; the mixture's R; an engine cycle with
@@ -971,7 +989,9 @@ not rerun (about 45 minutes of OpenWAM); `results/base.json` is part 1's, `chem.
 - `web/tests/wave_wasm.js`: the gross IMEP is compared too (the WebAssembly's output gains it: ve, imep, pmax, resid,
   pEvo, tEx, overlapPort, gimep, then each cylinder's ve, imep; the page's reader follows); two jobs added (a lean AFR
   15.5 with etaC 0.9: the lean branch and the override; spec.e.fuel 'air'); nothing removed or loosened.
-- Pinned values changed: none. The page tests check ranges and relations, not torque values; the captured jobs are
+- Pinned values changed: one count. `web/tests/multi_ui.js` "four lines drawn" counted every polyline on the wave
+  chart; the chart now adds a fifth, the first design's brake torque (class `brake`), so the test counts the design lines
+  (still 4) and the brake line (1) separately. No numeric value was re-pinned: the page tests check ranges and relations, not torque values; the captured jobs are
   compared JS against Rust, which both changed; the constant-gamma reference (`fixtures/wave_const_ref.json`) is
   unchanged and still met bit for bit (JS `constref.js`, 112 speeds; Rust in `wave_wasm.js`); `kat.js` 66 of 66, its
   results file byte-identical.
@@ -987,6 +1007,7 @@ not rerun (about 45 minutes of OpenWAM); `results/base.json` is part 1's, `chem.
 | Against real ratings (LS3, LS7, LT1) | brake torque +8 to +20 %, power +8 to +19 %; torque peak 200-400 rpm late, power peak 100-700 rpm early; most sensitive to the valve Cd and the intake | B5 |
 | OpenWAM's softer compression | the fuel vapour (exponent 1.30 against 1.29); adopted | B6 |
 | Net IMEP above OpenWAM | 10-14 %, in the gross loop; open | B6, B7, A7 |
+| Supersonic exit beyond a normal shock's reach emptied the end cell (D5) | defect, fixed | B6b |
 
 ### B10 How to rerun (additions)
 
@@ -1002,3 +1023,8 @@ python3 tools/validation/wave/gas_report.py before=chem after=fuelvap
 curl -sSLO https://raw.githubusercontent.com/Cantera/cantera/main/data/gri30.yaml
 python3 tools/validation/wave/dissociation.py gri30.yaml
 ```
+
+Test run (2026-11-12, part 2, `python3 tools/run_all_tests.py -j 2`, with cargo_test_rust (the et_host/et_app workspace,
+untouched here) left out): 146 tests, 143 passed, 2 skipped and 4 partial skips, all expected, 1 failed: multi_ui, the
+polyline count above. It passes after that change, and sim_ui and uel_sim_ui were rerun on the final page. In that run
+wave_wasm and wave_wasm_built (full, every speed) passed bit for bit; mdwam_ui and jpipe_ui did not time out.

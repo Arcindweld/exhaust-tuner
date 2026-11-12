@@ -38,7 +38,8 @@ const { chromium } = require('playwright');
   console.log(t.split('\n').filter(l => /more at|less at|no gain|Cylinder to cylinder|Average/.test(l)).join('\n'));
   ok(/Cylinder to cylinder/.test(t), 'cylinder-to-cylinder note shown');
   ok(/Fed every 180°, as a 180° header does:/.test(t), 'evenly fed variant compared for a cross-plane bank');
-  ok((await pg.$$eval('#sim-svg polyline', ps => ps.length)) === 4, 'four lines drawn');
+  ok((await pg.$$eval('#sim-svg polyline:not(.brake)', ps => ps.length)) === 4, 'four lines drawn');
+  ok((await pg.$$eval('#sim-svg polyline.brake', ps => ps.length)) === 1, 'and the first design\'s brake torque, dotted (2026-11-12 part 2)');
   ok(!bad.test(t), 'no NaN or undefined in the results');
   // even firing
   await pg.fill('#f-gaps', ''); await pg.waitForTimeout(80); t = await secTxt();

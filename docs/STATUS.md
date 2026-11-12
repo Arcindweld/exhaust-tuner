@@ -1339,5 +1339,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   open 300 mm runners): brake torque +8 to +20 %, brake power +8 to +19 % (with the tuned 0.72 it was -10 to 0 %); the
   model is most sensitive to valve Cd and intake runner/losses (VE 1.13 at the LS3's peak). Not tuned. Dissociation
   (not modelled) overstates expansion work by ~1 % at AFR 12.8 (dissociation.py). Sound: firing orders +0.9 dB median.
+- Fixed on the way (D5): a supersonic exit that a normal shock at the exit could not bring up to the outside pressure
+  emptied the end cell (a megaphone at 7850 rpm never finished); the end now takes the post-shock state.
 - Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum 2026-11-12 part 2; tests wavegas_ui.js 8-10, wave_wasm.js (gross
   IMEP, lean/etaC and air-only jobs).

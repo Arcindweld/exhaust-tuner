@@ -19019,7 +19019,7 @@ function drawSim(svg,rpms,outs){
     mk('polyline',{points:o.tq.map((t,i)=>X(rpms[i]).toFixed(1)+','+Y(t*conv).toFixed(1)).join(' '),'class':'ord',style:'stroke:var('+SIM_COL[k%SIM_COL.length]+');stroke-width:'+(k===0?2.6:1.8)+';'+(k>0?'stroke-dasharray:'+SIM_DASH[k%SIM_DASH.length]:'')},svg);
   });
   // the first design's brake torque (gross indicated less the friction law), thin and dotted under its indicated line
-  if(outs[0]&&outs[0].tqb) mk('polyline',{points:outs[0].tqb.map((t,i)=>X(rpms[i]).toFixed(1)+','+Y(t*conv).toFixed(1)).join(' '),'class':'ord',style:'stroke:var(--muted);stroke-width:1.6;stroke-dasharray:2 3'},svg);
+  if(outs[0]&&outs[0].tqb) mk('polyline',{points:outs[0].tqb.map((t,i)=>X(rpms[i]).toFixed(1)+','+Y(t*conv).toFixed(1)).join(' '),'class':'ord brake',style:'stroke:var(--muted);stroke-width:1.6;stroke-dasharray:2 3'},svg);
   const ty=mk('text',{x:4,y:10},svg); ty.textContent=U==='imp'?'lb-ft':'N·m'; const tx=mk('text',{x:W-mr,y:H-4,'class':'tr'},svg); tx.textContent='RPM';
 }
 const simAvg=o=>o.tq.reduce((a,t)=>a+t,0)/o.tq.length;   // the speeds are evenly spaced, so the mean is the area under the curve ÷ range

@@ -44,7 +44,7 @@ function specOf(c) {
     exhaust: { segs: [{ L: 0.15, d0: 0.0445, d1: 0.0445, primary: true }, { L: pl, d0: 0.0445, d1: 0.0445, primary: true }], Tw: 700, chambers: [] },
     opt: { phases: [0, 180, 450, 630], collector: { segs: [{ L: 0.13, d0: 0.089, d1: 0.0762 }, { L: cl, d0: 0.0762, d1: 0.0762 }].concat(args.tail ? [{ L: +args.tail, d0: 0.0635, d1: 0.0635 }] : []), Tw: 650 } } };
 }
-const out = { page: PAGE, args, rpms, engines: {} };
+const out = { page: path.relative(path.resolve(__dirname, '..', '..', '..'), PAGE), args, rpms, engines: {} };   // relative: no local paths in the results
 for (const k of engines) {
   const c = lib.find(x => x.k === k); if (!c) throw new Error('no CAM_LIB entry ' + k);
   const spec = specOf(c), eng = WS.makeEngine(spec.e, spec.intake, spec.exhaust, spec.opt), N = eng.phases.length;
