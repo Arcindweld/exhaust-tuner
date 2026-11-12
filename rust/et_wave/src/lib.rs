@@ -80,7 +80,7 @@ const TREF: f64 = 298.15;
 const TMAX: f64 = 3500.0;
 /// GRI-Mech 3.0: M g/mol, cp/R a1..a5 below 1000 K, a1..a5 above, a6 below 1000 K; order N2, O2, Ar, CO2, H2O, CO, H2.
 #[allow(clippy::excessive_precision)]
-const SPEC: [(f64, [f64; 5], [f64; 5], f64); 7] = [
+const SPEC: [(f64, [f64; 5], [f64; 5], f64); 8] = [
     (28.0134, [3.298677, 1.4082404e-3, -3.963222e-6, 5.641515e-9, -2.444854e-12], [2.92664, 1.4879768e-3, -5.68476e-7, 1.0097038e-10, -6.753351e-15], -1020.8999),
     (31.9988, [3.78245636, -2.99673416e-3, 9.84730201e-6, -9.68129509e-9, 3.24372837e-12], [3.28253784, 1.48308754e-3, -7.57966669e-7, 2.09470555e-10, -2.16717794e-14], -1063.94356),
     (39.948, [2.5, 0.0, 0.0, 0.0, 0.0], [2.5, 0.0, 0.0, 0.0, 0.0], -745.375),
@@ -88,35 +88,39 @@ const SPEC: [(f64, [f64; 5], [f64; 5], f64); 7] = [
     (18.01528, [4.19864056, -2.0364341e-3, 6.52040211e-6, -5.48797062e-9, 1.77197817e-12], [3.03399249, 2.17691804e-3, -1.64072518e-7, -9.7041987e-11, 1.68200992e-14], -3.02937267e4),
     (28.0101, [3.57953347, -6.1035368e-4, 1.01681433e-6, 9.07005884e-10, -9.04424499e-13], [2.71518561, 2.06252743e-3, -9.98825771e-7, 2.30053008e-10, -2.03647716e-14], -1.4344086e4),
     (2.01588, [2.34433112, 7.98052075e-3, -1.9478151e-5, 2.01572094e-8, -7.37611761e-12], [3.3372792, -4.94024731e-5, 4.99456778e-7, -1.79566394e-10, 2.00255376e-14], -917.935173),
+    // gasoline vapour (e.fuel "vapour"): CH1.87 as 0.62608 isooctane + 0.37392 toluene, NASA-9 (TP-2002-211556) refitted
+    (105.9685, [4.3574789305e-4, 6.287087399e-2, 1.8481188654e-5, -6.6235936767e-8, 3.0931702108e-11], [1.5070164686e-4, 7.4623329793e-2, -3.7243234038e-5, 9.0809952109e-9, -8.6559143434e-13], 0.0),
 ];
 const AIR_N2: f64 = 3.7279; // per mole of O2
 const AIR_AR: f64 = 0.04459;
 const FUEL_Y: f64 = 1.87;
 const K_WGS: f64 = 3.5;
+const C_FV: f64 = 7.62608; // carbon atoms per molecule of the vapour (SPEC[7])
 fn afr_st() -> f64 {
     (1.0 + FUEL_Y / 4.0) * (AIR_N2 * SPEC[0].0 + SPEC[1].0 + AIR_AR * SPEC[2].0) / (12.0107 + FUEL_Y * 1.00794)
 }
 /// Moles of each species per C atom in the products at relative air-fuel ratio lam (held to 0.5-4).
-fn burned_moles(lam: f64) -> [f64; 7] {
+fn burned_moles(lam: f64) -> [f64; 8] {
     let lam = jmin(4.0, jmax(0.5, lam));
     let y = FUEL_Y;
     let o = 1.0 + y / 4.0;
     let n2 = lam * o * AIR_N2;
     let ar = lam * o * AIR_AR;
     if lam >= 1.0 {
-        return [n2, (lam - 1.0) * o, ar, 1.0, y / 2.0, 0.0, 0.0];
+        return [n2, (lam - 1.0) * o, ar, 1.0, y / 2.0, 0.0, 0.0, 0.0];
     }
     let s = 2.0 * lam * o - 1.0;
     let qa = K_WGS - 1.0;
     let qb = K_WGS * (y / 2.0 - s) + 1.0 + s;
     let a = (-qb + (qb * qb + 4.0 * qa * s).sqrt()) / (2.0 * qa);
-    [n2, 0.0, ar, a, s - a, 1.0 - a, y / 2.0 - s + a]
+    [n2, 0.0, ar, a, s - a, 1.0 - a, y / 2.0 - s + a, 0.0]
 }
 /// Per-kg polynomials of a mixture of moles n: cp a0..a4, h b1..b5 and its constant, below and above 1000 K; and R.
-fn gas_poly(n: &[f64; 7]) -> (f64, [f64; 11], [f64; 11]) {
+fn gas_poly(n: &[f64]) -> (f64, [f64; 11], [f64; 11]) {
+    let kn = n.len(); // 7 species, or 8 with the fuel vapour
     let mut m = 0.0;
     let mut nn = 0.0;
-    for k in 0..7 {
+    for k in 0..kn {
         m += n[k] * SPEC[k].0;
         nn += n[k];
     }
@@ -125,7 +129,7 @@ fn gas_poly(n: &[f64; 7]) -> (f64, [f64; 11], [f64; 11]) {
         let mut c = [0.0; 5];
         for j in 0..5 {
             let mut t = 0.0;
-            for k in 0..7 {
+            for k in 0..kn {
                 t += n[k] * if hi { SPEC[k].2[j] } else { SPEC[k].1[j] };
             }
             c[j] = s * t;
@@ -142,7 +146,12 @@ fn gas_poly(n: &[f64; 7]) -> (f64, [f64; 11], [f64; 11]) {
 #[derive(Clone, Copy)]
 struct Gas {
     qx: f64, // the fresh charge's chemical energy, J per kg (heat_release)
-    ra: f64,
+    fa: f64, // the fresh charge's air fraction by mass
+    rair: f64,
+    vap: bool,
+    afr: f64,
+    #[allow(dead_code)]
+    ra: f64, // the fresh charge's R (the page's G.Ra); R(x) is rb + x rd
     rb: f64,
     rd: f64,
     blo: [f64; 11],
@@ -150,9 +159,17 @@ struct Gas {
     dlo: [f64; 11],
     dhi: [f64; 11],
 }
-fn make_gas(afr: f64) -> Gas {
-    let (ra, alo, ahi) = gas_poly(&[AIR_N2, 1.0, AIR_AR, 0.0, 0.0, 0.0, 0.0]);
-    let (rb, blo, bhi) = gas_poly(&burned_moles(afr / afr_st()));
+fn make_gas(afr: f64, vap: bool) -> Gas {
+    let lam = afr / afr_st();
+    let o = 1.0 + FUEL_Y / 4.0;
+    let rair = gas_poly(&[AIR_N2, 1.0, AIR_AR, 0.0, 0.0, 0.0, 0.0]).0;
+    let hr = heat_release(lam);
+    let (ra, alo, ahi) = if vap {
+        gas_poly(&[lam * o * AIR_N2, lam * o, lam * o * AIR_AR, 0.0, 0.0, 0.0, 0.0, 1.0 / C_FV])
+    } else {
+        gas_poly(&[AIR_N2, 1.0, AIR_AR, 0.0, 0.0, 0.0, 0.0])
+    };
+    let (rb, blo, bhi) = gas_poly(&burned_moles(lam));
     let d = |a: &[f64; 11], b: &[f64; 11]| {
         let mut o = [0.0; 11];
         for j in 0..11 {
@@ -160,7 +177,7 @@ fn make_gas(afr: f64) -> Gas {
         }
         o
     };
-    Gas { qx: heat_release(afr / afr_st()).1, ra, rb, rd: ra - rb, blo, bhi, dlo: d(&alo, &blo), dhi: d(&ahi, &bhi) }
+    Gas { qx: if vap { hr.2 } else { hr.1 }, fa: if vap { hr.2 / hr.1 } else { 1.0 }, rair, vap, afr, ra, rb, rd: ra - rb, blo, bhi, dlo: d(&alo, &blo), dhi: d(&ahi, &bhi) }
 }
 // ------------------------------------------------------------------------------------------- heat release (2026-11-12, part 2)
 // The page's "heat release" block, line for line: the heat of reaction from enthalpies of formation (the GRI-Mech 3.0
@@ -180,8 +197,8 @@ fn hform(k: usize) -> f64 {
 fn hf_fuel() -> f64 {
     hform(3) + FUEL_Y / 2.0 * hform(4) + LHV_F * m_fuel() / 1000.0
 }
-/// Heat of reaction at relative air-fuel ratio lam (held to 0.5-4): J per mol of fuel, J per kg of air.
-fn heat_release(lam: f64) -> (f64, f64) {
+/// Heat of reaction at relative air-fuel ratio lam (held to 0.5-4): J per mol of fuel, J per kg of air, of mixture.
+fn heat_release(lam: f64) -> (f64, f64, f64) {
     let lam = jmin(4.0, jmax(0.5, lam));
     let o = 1.0 + FUEL_Y / 4.0;
     let n = burned_moles(lam);
@@ -191,7 +208,7 @@ fn heat_release(lam: f64) -> (f64, f64) {
     }
     let q = hf_fuel() + lam * o * (AIR_N2 * hform(0) + hform(1) + AIR_AR * hform(2)) - hp;
     let m_air = lam * o * (AIR_N2 * SPEC[0].0 + SPEC[1].0 + AIR_AR * SPEC[2].0) / 1000.0;
-    (q, q / m_air)
+    (q, q / m_air, q / (m_air + m_fuel() / 1000.0))
 }
 /// The burn's heat per cycle: the gas's chemistry x the combustion efficiency, or (the constant gas) fresh / AFR x LHV x eta.
 fn burn_heat(eng: &Engine, fresh: f64) -> f64 {
@@ -397,6 +414,7 @@ struct Engine {
     chambers: Vec<[f64; 4]>, // x, V, A, Le
     k: K,
     gas: Option<Gas>, // None: e.gas "const", gamma 1.35 and R 287
+    gas_in: Option<Gas>, // the intake pipes' gas: air even with e.fuel "vapour" (port_fuel adds the fuel at the valve)
 }
 
 const fn rad(d: f64) -> f64 {
@@ -561,7 +579,8 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         per_cyl,
         chambers,
         k: consts(),
-        gas: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]))) },
+        gas: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), e["fuel"].as_str() == Some("vapour"))) },
+        gas_in: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), false)) },
     })
 }
 
@@ -1339,6 +1358,23 @@ fn valve_flow(k: &K, cda: f64, cy: &Cyl, p: &Pipe, i: usize) -> Flow {
     Flow { m: -orifice(k, cda, cy.p, cy.t, pp, cy.gm, cy.rg), h: hc, x: cy.x, uj: jet_speed(k, cy.p, cy.t, pp, cy.gm, cy.cp) }
 }
 
+/// The port injector (e.fuel "vapour"), as the page's portFuel: f is the intake valve's flow as the pipe sees it; returns
+/// the flow as the cylinder sees it, and replaces f by the pipe's side when the flow is outward.
+fn port_fuel(f: &mut Flow, cy: &Cyl, g: &Gas, gi: &Gas) -> Flow {
+    let ia = 1.0 / g.afr;
+    if f.m >= 0.0 {
+        let mc = f.m * (1.0 + f.x * ia);
+        return if mc > 0.0 { Flow { m: mc, h: f.m * f.h / mc, x: f.m * f.x * (1.0 + ia) / mc, uj: 0.0 } } else { Flow { m: 0.0, h: f.h, x: f.x, uj: 0.0 } };
+    }
+    let ff = ia / (1.0 + ia);
+    let keep = 1.0 - cy.x * ff;
+    let xp = cy.x * (1.0 - ff) / keep;
+    let m = f.m;
+    let uj = f.uj;
+    *f = Flow { m: m * keep, h: gas_h(gi, cy.t, xp), x: xp, uj };
+    Flow { m, h: gas_h(g, cy.t, cy.x), x: cy.x, uj }
+}
+
 struct Chamber {
     cyl: usize,
     pipe: usize,
@@ -1519,7 +1555,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
         }
     }
     for k in 0..n {
-        let li = build_line(&mut pipes, &eng.intake.segs, &eng.intake.tw, dx, TATM, 1.0, gas)?;
+        let li = build_line(&mut pipes, &eng.intake.segs, &eng.intake.tw, dx, TATM, 1.0, eng.gas_in)?;
         let segs = match eng.per_cyl.as_ref().and_then(|p| p[k].as_ref()) {
             Some(s) => s,
             None => &eng.exhaust.segs,
@@ -1657,9 +1693,12 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
         st.pipes[p].left = Bnd::Noop;
         st.pipes[p].right = Bnd::Noop;
     }
-    let hi0 = match &gas { Some(g) => gas_h(g, TATM, 1.0), None => CP * TATM };
+    let gas_in = eng.gas_in;
+    let vap = matches!(&gas, Some(g) if g.vap);
+    let hi0 = match &gas_in { Some(g) => gas_h(g, TATM, 1.0), None => CP * TATM };
     let he0 = match &gas { Some(g) => gas_h(g, 700.0, 0.0), None => CP * 700.0 };
     let mut v_in = vec![Flow { m: 0.0, h: hi0, x: 1.0, uj: 0.0 }; nc];
+    let mut v_in_c = v_in.clone(); // the intake valve's flow as the cylinder sees it (port_fuel; else v_in)
     let mut v_ex = vec![Flow { m: 0.0, h: he0, x: 0.0, uj: 0.0 }; nc];
     let mut ex_flow = vec![Flow::default(); nc];
     for kk in 0..nc {
@@ -1694,7 +1733,8 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
             st.pipes[*ch.last().unwrap()].right = Bnd::Open(1.0);
         }
     }
-    let rho_ref = PATM / ((match &gas { Some(g) => g.ra, None => RG }) * TATM);
+    let rho_ref = PATM / ((match &gas { Some(g) => g.rair, None => RG }) * TATM);
+    let fa = match &gas { Some(g) => g.fa, None => 1.0 };
     let mut out = Vec::new();
     let cycles = if cycles != 0.0 && !cycles.is_nan() { cycles } else { 6.0 };
     let mut c = 0.0;
@@ -1737,6 +1777,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 }
                 cy.p = cy.m * cy.rg * cy.t / eng.vol(tk);
                 v_in[kk] = valve_flow(k, eng.cda_in(tk), cy, ip, ip.n - 1);
+                v_in_c[kk] = if vap { port_fuel(&mut v_in[kk], cy, gas.as_ref().unwrap(), gas_in.as_ref().unwrap()) } else { v_in[kk] };
                 v_ex[kk] = valve_flow(k, eng.cda_ex(tk), cy, ep, 0);
                 sj = jmax(
                     jmax(sj, v_in[kk].uj + (ip.g[ip.n - 1] * ip.p[ip.n - 1] / ip.r[ip.n - 1]).sqrt()),
@@ -1835,7 +1876,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 if crossed || !cy.started {
                     if cy.started && crossed {
                         cy.done = Some([
-                            cy.m * cy.x / (rho_ref * eng.vd),
+                            cy.m * cy.x * fa / (rho_ref * eng.vd),
                             cy.work / eng.vd,
                             cy.pmax,
                             1.0 - cy.x,
@@ -1885,7 +1926,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 cy.xb = xb;
                 let v = eng.vol(tk);
                 let dv = eng.dvol(tk) * rad(dth);
-                let m_i = v_in[kk].m * dt;
+                let m_i = v_in_c[kk].m * dt;
                 let m_e = v_ex[kk].m * dt;
                 let mut qw = 0.0;
                 if eng.woschni {
@@ -1903,8 +1944,8 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                     qw = hc * aw * (cy.t - eng.twall) * dt;
                 }
                 let u0 = match &gas { Some(g) => cy.m * gas_e(g, cy.t, cy.x), None => cy.m * CV * cy.t };
-                let u = u0 - cy.p * dv + m_i * v_in[kk].h + m_e * v_ex[kk].h + cy.burn_q * dxb - qw;
-                let mf = cy.m * cy.x + m_i * v_in[kk].x + m_e * v_ex[kk].x - cy.fresh * dxb;
+                let u = u0 - cy.p * dv + m_i * v_in_c[kk].h + m_e * v_ex[kk].h + cy.burn_q * dxb - qw;
+                let mf = cy.m * cy.x + m_i * v_in_c[kk].x + m_e * v_ex[kk].x - cy.fresh * dxb;
                 if let Some(g) = &gas {
                     cy.m = jmax(1e-7, cy.m + m_i + m_e);
                     cy.x = jmin(1.0, jmax(0.0, mf / cy.m));

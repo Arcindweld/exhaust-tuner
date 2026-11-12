@@ -49,7 +49,11 @@ const jobs = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_j
     opt: { phases: [0] } } }] } });
   // the heat release's lean branch (no CO or H2 in the products) and an explicit combustion efficiency (spec.e.etaC)
   jobs.push({ name: 'lean, etaC', job: { dx: 0.01, rpms: [4000, 6000, 8000], variants: [{ label: 'AFR 15.5, etaC 0.9', spec: Object.assign({}, jobs[0].job.variants[0].spec,
-    { e: Object.assign({}, e, { afr: 15.5, etaC: 0.9 }) }) }] } }); }
+    { e: Object.assign({}, e, { afr: 15.5, etaC: 0.9 }) }) }] } });
+  // the port injector (spec.e.fuel 'vapour': fuel vapour joins the air at the intake valve), on the four-cylinder collector
+  const s1 = jobs[1].job.variants[0].spec;
+  jobs.push({ name: 'fuel vapour', job: { dx: jobs[1].job.dx, rpms: [3000, 5000, 7000], variants: [{ label: 'port fuel, four on one collector', spec: Object.assign({}, s1,
+    { e: Object.assign({}, s1.e, { fuel: 'vapour' }) }) }] } }); }
 let tJs = 0, tW = 0;
 for (const { name, job } of jobs) {
   const rpms = process.env.QUICK === '1' ? job.rpms.slice(0, 3) : job.rpms;
