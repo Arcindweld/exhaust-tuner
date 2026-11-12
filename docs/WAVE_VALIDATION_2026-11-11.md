@@ -505,3 +505,103 @@ python3 tools/validation/wave/compare.py configs=single_L800,i4_41 tag=nofric   
 python3 tools/validation/wave/gridconv.py               # ~3 min
 python3 tools/validation/wave/report.py tag=base vs=before
 ```
+
+## Addendum 2026-11-12: temperature- and composition-dependent gas properties
+
+The constant gamma 1.35 and R 287 of every gas in the model (section 1, first row; section 4.3 "about half of the
+net-IMEP gap") is replaced by thermally perfect gases whose properties follow the temperature and the composition. The
+old gas stays available as `spec.e.gas = 'const'`, bit for bit; the building blocks used on their own (`makePipe` without
+`spec.gas`, as `kat.js` uses them) also stay at it, so the 66 known-answer criteria of section 3 are untouched.
+
+### A1 The property model and its sources
+
+- Species: N2, O2, Ar, CO2, H2O, CO, H2, each with the NASA 7-coefficient polynomial of GRI-Mech 3.0 (cp/R = a1 + a2 T
+  + ... + a5 T^4, 200 (N2, Ar 300) to 1000 K and 1000 to 3500 K (N2, Ar 5000 K)). Verified digit for digit against
+  Cantera's `data/gri30.yaml` (https://raw.githubusercontent.com/Cantera/cantera/main/data/gri30.yaml, fetched
+  2026-11-12); the CO2, H2O, N2 and Ar rows are the ones the page's `sosExh` already used (physics audit 2026-11-11),
+  so the page keeps one table: `sosExh` now reads it from the wave model (its numbers unchanged to the last digit;
+  `physaudit_ui.js` passes unchanged). Outside 200-3500 K cp is held at the end value (h linear), so the energy
+  equation stays monotonic in T.
+- Checked against the NIST-JANAF tables (https://janaf.nist.gov/tables/N-023.txt, O-029, Ar-001, C-095, H-064, C-093,
+  H-050, fetched 2026-11-12), 200-3500 K: cp within 0.12 % for CO2, CO, Ar and H2O up to 1000 K, 0.26 % for N2, 0.33 %
+  for H2, 0.45 % for O2; H2O above 1000 K is 1.1 % / 1.9 % above JANAF at 2000 / 3000 K. That last one is not a fit
+  error: NASA TM-4513's polynomial (McBride, Gordon and Reno 1993; Caltech SDToolbox `nasa7.dat` and Cantera
+  `nasa_gas.yaml`, both fetched and identical) shows the same 1.0 % / 2.0 %, its water being Gurvich's 1989 analysis.
+  TM-4513 was the alternative considered: its N2 below 1000 K is closer to JANAF (0.05 % against 0.26 %), but adopting
+  it would move `sosExh` by up to 0.03 % and with it pinned acoustic and turbo numbers unrelated to this work; kept as
+  a possible follow-up. In the mixtures the difference to JANAF is at most 0.001 in gamma.
+- Fresh charge: dry air, O2 + 3.7279 N2 + 0.04459 Ar (the split of Heywood's 3.773 by NOAA's dry air, as `sosExh`).
+  Fuel vapour is not modelled (the model counts the fresh charge as air, as before).
+- Burned gas: frozen products of CH1.87 at the engine's air-fuel ratio (stoichiometric 14.596 with these atomic weights:
+  C 12.0107, H 1.00794): lean CO2, H2O, O2, N2, Ar; rich CO2, CO, H2O, H2, N2, Ar with the water-gas ratio
+  [CO][H2O]/([CO2][H2]) = 3.5 (Heywood, ICE Fundamentals ch. 4; MIT 2.61 lecture 4 says "3.5 to 3.7", the equilibrium
+  at about 1740 K; JANAF's log Kf give 3.41 at 1700 K and 3.80 at 1800 K). No dissociation.
+- Mixing by mass with the fresh-charge fraction x the model already carries in every pipe cell, cylinder and side
+  volume: R(x) = Rb + x (Ra - Rb); cp(T, x) and the sensible enthalpy h(T, x) (integral of cp from 298.15 K, continuous
+  at 1000 K by construction) mix the same way; e = h - R T. The burn's heat is added as before (fresh charge / AFR x
+  LHV x eta), so no formation enthalpies are needed; converting fresh charge to burned gas at fixed T changes e by the
+  sensible difference only, which is the right accounting with the heat added as LHV.
+
+Spot values (model / the same mixture of JANAF's cp; `web/tests/wavegas_ui.js`):
+
+| T (K) | air gamma | burned, AFR 12.8 (lambda 0.877) gamma | burned, stoichiometric gamma |
+|---|---|---|---|
+| 300 | 1.4007 / 1.4000 | 1.3758 / 1.3752 | 1.3721 / 1.3715 |
+| 500 | 1.3860 / 1.3867 | 1.3530 / 1.3536 | 1.3472 / 1.3478 |
+| 1000 | 1.3355 / 1.3363 | 1.3001 / 1.3007 | 1.2938 / 1.2944 |
+| 1500 | 1.3110 / 1.3108 | 1.2731 / 1.2731 | 1.2674 / 1.2674 |
+| 2000 | 1.2979 / 1.2982 | 1.2589 / 1.2596 | 1.2537 / 1.2543 |
+| 2500 | 1.2901 / 1.2905 | 1.2511 / 1.2521 | 1.2461 / 1.2471 |
+
+R: air 287.10, burned at AFR 12.8 294.40, stoichiometric 286.63 J/kg K.
+
+### A2 How it enters the equations
+
+- Cylinder (single zone): U = m e(T, x); each step U_new = m e(T, x) - p dV + the enthalpy through the valves + the burn
+  - the wall heat, then x_new from the composition balance, then T_new by Newton on m_new e(T, x_new) = U_new
+  (converged to 1e-9 relative); p = m R(x) T / V; the valve orifice and jet use the cylinder gas's gamma and cp at the
+  step's start. tEx is the temperature of the mass-averaged exhaust enthalpy at its mass-averaged x.
+- Pipes (per cell, not per pipe): the conserved variables are unchanged (rho A, rho u A, rho E A, rho x A); the cell's T
+  comes from e = E/rho - u^2/2 by Newton on e(T, x), then p = rho R(x) T and the frozen gamma = cp / (cp - R). The
+  MUSCL-Hancock predictor uses the cell's gamma (dp/dt + u dp/dx + rho c^2 du/dx = 0 holds for any equation of state
+  with frozen composition); the HLLC flux takes each face state's own e(T, x) and gamma (its formula does not depend on
+  the equation of state, Toro ch. 10). The Reynolds-analogy wall heat uses the cell's cp.
+- Boundaries and junctions (open ends, valve ends, walls, two-pipe steps, n-pipe nodes): the closed-form
+  characteristic solutions use the end cell's gamma, frozen over the half-cell isentropic step they solve, each side
+  of a junction its own; every enthalpy that crosses is h(T, x) of the crossing state (inflow at an open end: the still
+  outside air's h(Ta), exactly). Mass and energy remain conserved to rounding.
+- Side volumes (chambers, branches): m e(T, x), T by Newton.
+- Cost: the JavaScript takes about twice as long (wave_wasm.js: 93 s against 47 s for the page's captured jobs), the
+  Rust/WebAssembly copy likewise more.
+
+### A3 Verification
+
+- `tools/validation/wave/kat.js`: all 66 criteria pass; `results/kat.json` is byte-identical to the one before.
+- Constant-gamma mode: the page's captured worker jobs plus the diameter-step job (112 speeds) give the results of the
+  page before the change to the last digit: JavaScript (`tools/validation/wave/constref.js`, and the first three speeds of
+  each design in `wavegas_ui.js`) and Rust (`wave_wasm.js`, against `web/tests/fixtures/wave_const_ref.json`, written from
+  commit 017cdbf). The OpenWAM matrix with `tag=const` reproduces section 4's wave numbers exactly.
+- `web/tests/wavegas_ui.js` (new): 42 species values against JANAF's tables, hand-listed in the test (cp within 0.5 %,
+  H - H(298) within 0.3 %, H2O above 1000 K 2 % / 1 %); the mixtures (gamma within 0.0015, cp 0.5 %, u(T) - u(300 K)
+  0.4 %); atom balances and the water-gas ratio; the temperature solve (inverse to 3e-16); a closed adiabatic cylinder
+  through a whole cycle against its isentrope found independently in the test (entropy integral by Simpson, bisection):
+  -0.42 % largest temperature error at the page's step, -0.21 % at half the step, first order, the same as the
+  constant gas against T V^(gamma-1) = const (-0.36 % / -0.18 %): the error is the cylinder's explicit p dV, not the
+  properties; steady inflow through an open end with the gas: every face flux carries the outside air's stagnation
+  temperature to 3e-13 K; an engine cycle's mass and energy balances with the gas (3e-15, 7e-15).
+- `tools/validation/wave/engine.js` balances with the gas on the OpenWAM matrix: mass and energy residuals 1e-15-1e-14.
+- JS-Rust: `wave_wasm.js` bit-identical with the gas on all captured jobs, and the Rust constant-gamma mode against the
+  reference.
+
+### A4 A defect found on the way (D4): supersonic exit below the outside pressure
+
+Running a warm-started sweep with the new gas, the single cylinder with a megaphone (fixture "single with a chamber")
+went to NaN at 9000 rpm: its cone's exit was supersonic (Mach about 2) at 20-25 kPa. `openState` kept the cell's state
+for a supersonic exit only when the exit was above the outside pressure; below it the subsonic solution returned the
+sonic state on the cell's characteristic, which passes more mass than any supersonic state on it, and the end cell
+emptied. The constant-gamma runs reached Mach 1.9 inside that cone too but not in the end cell. Fix (JS `openState`,
+Rust `open_state`): a supersonic exit keeps the cell's state whenever a normal shock at the exit could hold the outside
+pressure (pa <= p (1 + 2 gamma / (gamma + 1) (M^2 - 1))); the shock then stands at or outside the exit, as in the
+inviscid steady solution. Test (`wavegas_ui.js` 5): a uniform Mach 1.6, 50 kPa stream into 101.3 kPa leaves unchanged
+(pressure spread 0, outflow = inflow); on the page of commit 017cdbf the same case runs away (end cell at 1 Pa).
+None of the 112 constant-gamma reference speeds passes through the new branch (they are unchanged to the last digit).
