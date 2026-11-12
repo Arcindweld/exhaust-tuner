@@ -143,6 +143,31 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
 
 ## 2026-11-01: new interface, independent audit
+- Turbo and intercooler catalogue (2026-11-12, branch agent6/catalogue; web/tests/turbolib_ui.js, sound_ui.js): every figure
+  read this session on the page in each row's src, makers' own pages only (a maker's document on a dealer's site is labelled
+  so). Turbos 4 -> 22 rows, 500 to 1200 hp top ratings: Precision is at precisionturbo.com (the .net address was the dead
+  end); its PT5862 page confirms 700 hp, the 58.0 mm inducer and "a 62mm CEA® turbine wheel", but not the exducer, turbine
+  inducer/exducer, bearing or couplers, which stay on the dealer listing and are labelled as the dealer's; added PT5558,
+  PT6062, PT6266, PT6466 (maker: hp, inducer, turbine wheel, "Ported S" cover 4.0 in / 2.5 in, housings). Garrett G25-550,
+  GTX2867R/GTX3076R/GTX3582R GEN II, G35-1050, G40-1150, G42-1200 (hp ranges, wheels, housing kits; Garrett publishes no
+  cover inlet/outlet sizes, so those stay null). BorgWarner EFR 6758/7163/8374/9180 (BorgWarner's undated catalogue, copy on
+  Turbozentrum: hp range, inducer, wheel OD, turbine OD, housings) and AirWerks S200SX-R 58, S300SX-R 64/68 (borgwarner.com).
+  Not added: S300SX-E (only a family range, 320 - 1000 HP), Xona and Turbonetics (dealer pages only). No maker prints a
+  maximum compressor flow in text, so the flow column says so; its comparison is tested on a synthetic row. "Far larger":
+  the maker's lower figure where one exists (Garrett, BorgWarner), else this page's rule of thumb (under half the rating,
+  Precision), now said per row (data-basis) and in the caption. Intercoolers 8 -> 26: Mishimoto MMINT-UM/UR, MMUIC-W3/W4
+  (the W3/W4 pages contradict themselves on size, so no size is used), CSF 8 cores (hp and size only), and EJ Bowman's
+  water-cooled charge air coolers EC120 to JK190 from its brochure (G21, copy on Lancing Marine): the one maker found
+  that publishes thermal performance (charge flow, outlet temperature, heat rejection, air and water drop, water flow, at
+  180 °C, 1.75 bar g, water 30 °C; energy balance checks to 2-3%). Picking a Bowman cooler fills route A. Vibrant,
+  Treadstone, Bell, PWR, Wagner, Frozenboost, Spearco/Turbonetics, Laminova, AFCO, Chargecooler: no maker page or data
+  sheet found (caption lists them). UA against flow: Samanta, Tavva and Ranganayakulu (engrXiv preprint 5664 v2, 2025),
+  Eq. 6, offset strip fins, j ∝ Re^-0.5236 for 300 <= Re <= 1500, so h ∝ m^0.4764; the page shows the charge-outlet range
+  between UA held and all resistance on the charge side (bounds, not a fit; Re not checkable without fin geometry; a
+  change in the other stream is not scaled). Kays & London, Incropera and Shah & Sekulic were not obtained as text;
+  Manglik & Bergles (1995) was found only quoted with a garbled exponent (Chemical Engineering Transactions 71, 2018), not used.
+  K-series cams: Kelford (179-A spec card), Drag Cartel and Skunk2 pages give their own cams, none the stock profile, so
+  still no K row in CAM_LIB. Sound tab: the general sentence now uses the selected engine (a V8 4x, a four 2x).
 - Fabrication tools and follow-ups (2026-11-12, branch agent5/fab; web/tests/piecut_ui.js): (1) Headers tab, "Pie-cut
   bend (lobster back)": tube OD, wall, CLR, bend angle, pieces (or the angle a full piece turns), how the bend ends
   (square: a half piece at each end, the usual lobster back; or every piece the same, butting square-cut tube, with the
