@@ -152,6 +152,21 @@ const { chromium } = require('playwright');
     ok(/Assumptions and unsourced items/.test(sh.all) && /COBB Tuning/.test(sh.all) && /not cooled along the pipe/.test(sh.all) && /filter’s own loss/.test(sh.all), 'assumptions that apply: downpipe rule, exhaust gas, filter');
     ok(/Pressure ratio|pressure ratio/.test(sh.all) && /Back pressure after the turbine, worked out/.test(sh.all), 'key numbers: pressure ratio, back pressure');
   }
+  // the converter row by hand (Cats tab at High-flow 200 cpsi, 2 mil, its default substrate, pipe and cones): catDp's documented
+  // formulas, Shah and London's apparent f Re for a square channel, the faces 0.5 (1 - OFA) + (1 - OFA)², and the cones as
+  // Rennels' conical diffuser and contraction with their friction on the pipe's head, each at T4 and the converter's own
+  // downstream pressure, the whole exhaust split over the converters side by side
+  const Cc = await pg.evaluate(() => { const X = window.__tsx.last(), r = X.X.rows.find(x => x.k === 'cat'); return r && { g: X.G.cat.g, count: X.G.cat.count, series: X.G.cat.series, p: r.p, dp: r.dp, t4: X.G.t4, me: X.G.me }; });
+  if (Cc) { const T = Cc.t4 + 273.15, g = Cc.g, rho = Cc.p / (287.05 * T), mu = 1.716e-5 * Math.pow(T / 273.15, 1.5) * (273.15 + 110.4) / (T + 110.4), Q = Cc.me / Cc.count / rho;
+    const v = Q / (g.Asub * g.ofa), Re = rho * v * g.w / mu, xp = g.len / (g.w * Re), fRe = 3.44 / Math.sqrt(xp) + (14.227 + 1.43 / (4 * xp) - 3.44 / Math.sqrt(xp)) / (1 + 0.00029 / (xp * xp)), qch = rho * v * v / 2;
+    const vp = Q / g.Apipe, qp = rho * vp * vp / 2, dP = Math.sqrt(4 * g.Apipe / Math.PI), dS = Math.sqrt(4 * g.Asub / Math.PI), bC = Math.min(1, dP / dS), aC = g.cone > 0 ? 2 * Math.atan((dS - dP) / 2 / g.cone) * 180 / Math.PI : 180;
+    const fP = (Re2 => Re2 < 2300 ? 64 / Re2 : 1 / Math.pow(-1.8 * Math.log10(Math.pow(4.5e-5 / dP / 3.7, 1.11) + 6.9 / Re2), 2))(rho * vp * dP / mu);
+    const e = (1 - bC * bC) ** 2, b4 = bC ** 4, kD = aC <= 20 ? 8.30 * Math.pow(Math.tan(aC * Math.PI / 360), 1.75) * e : aC <= 60 ? (1.366 * Math.sqrt(Math.sin(2 * Math.PI * (aC - 15) / 180)) - 0.170 - (bC < 0.5 ? 3.28 * (0.0625 - b4) * Math.sqrt((aC - 20) / 40) : 0)) * e : (bC < 0.5 ? 1.205 - 3.28 * (0.0625 - b4) - 12.8 * b4 * bC * bC * Math.sqrt((aC - 60) / 120) : 1.205 - 0.20 * Math.sqrt((aC - 60) / 120)) * e;
+    const fr = aC > 0 && aC <= 60 ? fP * (1 - b4) / (8 * Math.sin(aC * Math.PI / 360)) : 0, lam = 1 + 0.622 * Math.pow(Math.min(aC, 180) / 180, 0.8) * (1 - 0.215 * bC * bC - 0.785 * bC ** 5);
+    const kC = 0.0696 * Math.sin(Math.min(aC, 180) * Math.PI / 360) * (1 - bC ** 5) * lam * lam + (lam - 1) ** 2 + (aC < 180 ? fP * (1 - b4) / (8 * Math.sin(aC * Math.PI / 360)) : 0);
+    const dp = (4 * (fRe / Re) * (g.len / g.w) * qch + (0.5 * (1 - g.ofa) + (1 - g.ofa) ** 2) * qch + (kD + fr + kC) * qp) * Cc.series;
+    near(Cc.dp, dp, 1e-9, 'converters (2 side by side, 200 cpsi) by hand at T4 and their own pressure, Pa (cone ' + aC.toFixed(1) + '° included)'); }
+  else ok(false, 'converter row present with the Cats tab on');
   // drawing of the exhaust side
   const xs = await pg.$eval('#ts-xsvg', e => e.textContent).catch(() => '');
   ok(/Collector to the turbine flange/.test(xs) && /Turbine, 0\.63 A\/R/.test(xs) && /Downpipe/.test(xs) && /gate dump re-entry: a branch/.test(xs) && /Back pressure/.test(xs), 'exhaust drawing: collector, turbine with A/R, downpipe, gate branch, total');

@@ -143,6 +143,42 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catalogue number. cad/parts/kn_round_tapered.py needs flange ID, flange length, base OD, top OD, length.
 
 ## 2026-11-01: new interface, independent audit
+- Turbo exhaust side, step-by-step checklist, turbo build sheet (2026-11-12, branch agent7/guide; web/tests/turboguide_ui.js):
+  (1) Intake tab, turbocharged, new section "Exhaust after the turbine": the back pressure at the turbine outlet at peak power
+  as the sum of the page's existing losses for the parts the other tabs describe, at the gas after the turbine, each at the
+  pressure at its downstream end from the tip back: Munjal's free jet 0.4 H at the tip, the Sound tab's pipe (when its
+  Induction is a turbo, less the downpipe) and the downpipe by chargeSide (Darcy on drawn tube + Crane bends), the Mufflers
+  tab's chamber / plug / baffled chamber with that tab's mufBackPressure items, the Cats tab's converters by catDp (new
+  optional g.p for the density; blank = atmosphere as before), the cone from the turbine outlet by tsStep (Rennels diffuser
+  at its least-loss angle, length shown; the turbine's swirl is not captured, said on the page). Gas: the whole exhaust per
+  turbo at T4 = T3 - Wc / (me cp) (turbineBalance now returns t4: the wastegate's share mixed back in, cp at T3). No cooling
+  along the pipe and all of the exhaust through the downpipe, both on the high side, said; parts past Mach 0.3 or a tenth
+  of the local pressure flagged (the Cats tab's 30% and Crane's 10%). What a tab does not give in a usable form is named
+  ("Not counted: ..."), not guessed. "Use my exhaust's back pressure" sets i-tobp (still editable). Worked example in the
+  test header: 39301.66 Pa (5.70 psi) on the case there, every part re-derived by hand, converters too.
+  (2) Downpipe block: start = the picked housing's listed outlet (taken as the mating tube's OD, less the wall: labelled) or
+  a typed bore (i-tod); size by COBB Tuning's blog (cobbtuning.com/different-types-of-downpipes-explained, read this
+  session): 2.5 in for 300-350 hp, 3 in for 500-600 hp; the lower end per downpipe, taken as tube OD (COBB does not say OD
+  or crank/wheel), never narrower than the turbine outlet (this page's choice); above 500 hp no source size, the table of
+  sizes with gas speed, Mach, downpipe + cone loss and the total is shown instead. Garrett's Turbo System Optimization,
+  Turbo Tech 103, its 2021 catalogue (read in full) and BorgWarner's EFR installation guidelines give no downpipe rule.
+  Wastegate dump: no re-entry distance (COBB's divorced layout has none either), drawn as a branch only. New inputs (in the
+  form, saved with projects): i-dpd, i-dpl, i-dpb, i-dpw, i-tod, i-xcat, i-xmuf, i-xb, i-xn.
+  (3) Drawing #ts-xsvg under the exhaust section, same style as the intake schematic: collector with the gate take-off
+  window, turbine with A/R and housing, cone, downpipe with the gate branch, converters, muffler, pipe, tip, total; dual units.
+  (4) "Turbo build, step by step" at the top of the Intake tab (turbo or centrifugal; shown in Simple mode): engine and
+  power, airflow (Garrett), turbo, housing A/R, pipe sizes, intercooler, valves, exhaust side, scan routing (Fusion), build
+  sheet; each line read from what the sections stored while drawing (TG, TS_REC, TS_PLACE, TS_X), with a mark for a problem
+  the section reports (rating below target, Mach over Bell's 0.4 / a route "Needs a change", divided/undivided mismatch,
+  measured pressure outside Bell's range, a housing at its published flow limit, valve or branch that does not fit, a
+  typed downpipe narrower than the outlet or the rule). Horsepower is no longer an Advanced-only input.
+  (5) "Save the turbo build sheet": one XHTML file (well-formed, parsed as XML in the test) through saveTextFile, for letter
+  and A4: both route drawings (theme colours fixed for paper), every chosen part and size (OD / ID / wall / length / bends,
+  cones with lengths, intercooler, valves with positions, downpipe, converters, muffler, pipe, tip), the key numbers and the
+  assumptions and unsourced items that apply, in inches and mm, psi and kPa, °F and °C, lb/min and kg/s.
+  Tests: turboguide_ui (new); turbosize_ui, turbolib_ui, turboar_ui, boostaudit_ui, charge_ui, k24_ui, sweep_ui (intake) pass
+  unchanged. Not done: the gas cooling along the exhaust (the Sound tab's profile starts at its own temperature, not T4),
+  the steps between the parts' different pipe sizes (said on the page when they differ), a split exhaust on the Sound tab.
 - Boost audit (2026-11-12, branch agent6/audit2; docs/BOOST_AUDIT_2026-11-12.md, tools/validation/boost/, web/tests/boostaudit_ui.js):
   an independent review of the 2026-11-11/12 boosted-intake, pie-cut, cat-cone, scan-routing and K-series work, every
   function recomputed in Python from its source (python-fluids, python-ht and Cantera's gri30.yaml read from source; maker
