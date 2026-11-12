@@ -682,15 +682,19 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <label class="f span2"><span class="lab">Runners breathe from</span>
           <span class="inp"><select id="f-intk"><option value="open" selected>Open air (individual runners, or a big airbox)</option><option value="plenum">A plenum fed through a throttle body</option></select></span></label>
         <div class="grid2 span2" id="f-intk-wrap" hidden>
-          <label class="f"><span class="lab">Plenum volume</span>
-            <span class="inp"><input id="f-plv" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base="6"><em>L</em></span></label>
+          <label class="f"><span class="lab">Plenum volume, whole engine</span>
+            <span class="inp"><input id="f-plv" type="number" step="any" inputmode="decimal" data-kind="disp" data-base="6000"><em data-u="disp">cu in</em></span></label>
           <label class="f"><span class="lab">Throttle body bore</span>
             <span class="inp"><input id="f-tbd" type="number" step="any" inputmode="decimal" data-kind="len" data-base="90"><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">Throttle flow coefficient, wide open</span>
+            <span class="inp"><input id="f-tcd" type="number" step="0.01" inputmode="decimal" data-kind="num" data-dp="3" data-base="0.83"></span></label>
+          <label class="f"><span class="lab">Air filter pressure loss at full power, 0 for none</span>
+            <span class="inp"><input id="f-fdp" type="number" step="any" inputmode="decimal" data-kind="press" data-base="0"><em data-u="press">psi</em></span></label>
           <label class="f"><span class="lab">Inlet tube, air filter to throttle body: length</span>
             <span class="inp"><input id="f-itl" type="number" step="any" inputmode="decimal" data-kind="len" data-base="600"><em data-u="len">in</em></span></label>
           <label class="f"><span class="lab">Inlet tube inside diameter</span>
             <span class="inp"><input id="f-itd" type="number" step="any" inputmode="decimal" data-kind="len" data-base="101.6"><em data-u="len">in</em></span></label>
-          <span class="hint" style="grid-column:1/-1">Used by the OpenWAM case: every runner starts at the plenum, the plenum fills through the throttle body (a step to its bore, 50 mm long) from the inlet tube, open to the air at the filter. The quick wave simulation below keeps open runners.</span>
+          <span class="hint" style="grid-column:1/-1">Every runner starts at the plenum, and the plenum fills through the throttle body from the inlet tube, which opens to the air at the filter; the wave simulation below and the OpenWAM case both use it. Defaults: 90 mm is GM’s LS3 and LS7 throttle body; 0.83 is a stock GM 87 mm throttle body’s measured flow at wide open (916 cfm at 20 in of water) over its bore area, and covers the blade and shaft; the 6 L, 24 in and 4 in tube are placeholders, so enter your own (the Intake tab uses half the displacement for a plenum it does not know). Makers rarely publish a filter’s loss, so it starts at 0: enter the drop across your filter and box at the engine’s airflow at the top speed simulated; it scales with the airflow squared. With fewer cylinders simulated than the engine has, they get their share of the volume, the throttle and the tube.</span>
         </div>
         <label class="f span2"><span class="lab">Exhaust port exit shape, at the flange</span>
           <span class="inp"><select id="f-pshape"><option value="same" selected>Same as the primary</option><option value="round">Round</option><option value="ellipse">Oval (ellipse)</option><option value="stadium">Racetrack: straight sides, round ends</option><option value="rrect">Rectangle with corner radius</option><option value="eqd">Odd shape: enter its equivalent diameter</option></select></span></label>
@@ -732,6 +736,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="f-lin" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
         <label class="f"><span class="lab">Exhaust valve lift</span>
           <span class="inp"><input id="f-lex" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+        <label class="f"><span class="lab">Valve flow</span>
+          <span class="inp"><select id="f-vflow"><option value="auto" selected>The head’s flow-bench curve when the engine is from the list above, else 0.70</option><option value="const">One flow coefficient for every lift (0.70, or as entered)</option></select></span></label>
         <label class="f"><span class="lab">Valve flow coefficient, blank for 0.70</span>
           <span class="inp"><input id="f-vcd" type="number" step="0.01" inputmode="decimal" data-kind="num" data-dp="3" data-base=""></span></label>
         <label class="f"><span class="lab">Combustion efficiency (OpenWAM), blank to follow the mixture</span>
@@ -9866,14 +9872,26 @@ function simSpec(p){
     cam:{ivo:Number.isFinite(p.ivo)?p.ivo:evc,ivc:Number.isFinite(p.ivc)?p.ivc:p.evo,evo:p.evo,evc},burn:{start:18,dur:55},afr:12.8,eta:0.72};   // eta: read only by the constant gas (spec.e.gas 'const'); the default gas's heat is the chemistry's (wsFactory "heat release")
   if(p.camAt==='050') e.cam.checkLift_mm=CAM_CHECK_050;
   if(p.vcd>0) e.cd=p.vcd;               // valve flow coefficient (the dyno fit sets it; both simulations use it)
+  // the head's measured flow (simFlowOf): each valve's effective area against lift from its flow-bench cfm (wsFactory
+  // benchCdA, flowTab), for the wave simulation; a flow coefficient entered (or fitted) takes over, and the OpenWAM case
+  // keeps the coefficient's law
+  else if(p.flow&&p.flow.lift&&p.vflow!=='const'){ const tab=k=>({lift:p.flow.lift.map(l=>l*0.0254),cdA:p.flow[k].map(q=>WS.benchCdA(q,p.flow.dp))});
+    e.flowIn=tab('in'); e.flowEx=tab('ex'); }
   // measured lift profiles (OpenWAM only, make_wam v9): from the OpenWAM section's import
   try{ const P=WAM_UI.prof; if(P&&(P.in||P.ex)){ e.camProfile={}; if(P.in) e.camProfile.in={deg:P.in.deg.slice(),mm:P.in.mm.slice()}; if(P.ex) e.camProfile.ex={deg:P.ex.deg.slice(),mm:P.ex.mm.slice()}; } }catch(err){}
   if(p.ceff>0) e.combEff=p.ceff;        // OpenWAM's combustion efficiency (the dyno fit sets it; blank: from the AFR)   // the events are at 0.050 in: the sin² lift is stretched to pass it there
   const dI=Math.sqrt(0.6*nIn)*dIn;
   const intake={segs:[{L:(p.intakeL>0?p.intakeL:300)/1000,d0:dI,d1:dI}],Tw:320};
-  // OpenWAM only: the runners start at a plenum fed through a throttle body (the wave model keeps them open to the air)
-  if(p.intk==='plenum'&&p.plv>0&&p.tbd>0&&p.itl>0&&p.itd>0)
-    intake.plenum={V_m3:p.plv/1000,inlet:[{L:p.itl/1000,d0:p.itd/1000,d1:p.itd/1000},{L:0.05,d0:p.tbd/1000,d1:p.tbd/1000}]};
+  // the runners start at a plenum fed through a throttle body (both simulations; until 2026-11-12 part 3 the wave model kept
+  // them open to the air). The cylinders simulated (n of the engine's cyl) get their share of the plenum's volume and of
+  // the throttle's and the inlet tube's areas, and the filter's reference airflow is theirs at VE 1 at the top speed swept.
+  // OpenWAM writes the throttle body as a 50 mm step to its bore; the wave model adds its wide-open flow coefficient as an
+  // orifice into the plenum (wsFactory plenumOf) and the filter's loss as an orifice at the mouth
+  if(p.intk==='plenum'&&p.plv>0&&p.tbd>0&&p.itl>0&&p.itd>0){
+    const share=Math.min(1,(p.n>1?Math.round(p.n):1)/Math.max(1,p.cyl)), k=Math.sqrt(share), tb=p.tbd/1000*k, it=p.itd/1000*k;
+    intake.plenum={V_m3:p.plv/1e6*share,inlet:[{L:p.itl/1000,d0:it,d1:it},{L:0.05,d0:tb,d1:tb}],throttle:{d:tb,cd:p.tcd>0?p.tcd:0.83}};
+    if(p.fdp>0){ const rs=simRpms(p.tune>0?p.tune:6000), top=rs[rs.length-1]; intake.plenum.filter={dp:p.fdp*1000,m:1.1839*p.cc*1e-6*share*top/120}; }
+  }
   const dPort=(p.portD>0?p.portD:p.dp)/1000;
   let segs=[]; if(p.port>0) segs.push({L:p.port/1000,d0:dPort,d1:dPort,primary:true});
   p.segs.forEach((s,i)=>segs.push({L:s.len/1000,d0:s.d0/1000,d1:s.d1/1000,primary:i===0}));
@@ -18965,12 +18983,20 @@ document.addEventListener('click',e=>{
 const SIM={key:'',status:'idle',msg:'',res:null,rpms:null,inp:null,workers:[],run:0,prog:{},par:1,ncyl:1};
 window.__sim={WS,simSpec,simVariants,simRpms,inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
 const SIM_COL=['--t4','--t2','--t3','--t1','--t5'], SIM_DASH=['','6 4','2 3','9 3','4 2 1 2'];
+// the head's measured flow (CAM_LIB flow) when the engine came from the library and its valves are still the library's
+function simFlowOf(){
+  const el=$('f-vflow'); if(el&&el.value==='const') return null;
+  const c=CAM_LIB.find(x=>x.k===($('f-camlib')||{}).value); if(!c||!c.flow) return null;
+  const near=(a,b)=>Number.isFinite(a)&&Math.abs(a-b*25.4)<0.05;
+  return near(val('f-vdi'),c.valves[0])&&near(val('f-vde'),c.valves[1])?Object.assign({k:c.k,name:c.name,srcName:CAM_SRC[c.flow.src][0]},c.flow):null;
+}
 function simInputs(r,p,ch){
   return {cc:val('f-disp'),cyl:Math.max(1,Math.round(val('f-cyl'))),segs:r.segs.map(s=>({len:s.len,d0:s.d0,d1:s.d1})),port:r.port,dp:p.dp,evo:p.evo,
     bore:val('f-bore'),stroke:val('f-stroke'),cr:val('f-cratio'),valves:+$('f-valves').value,intakeL:val('f-intl'),tune:p.rpm,
-    intk:$('f-intk')?$('f-intk').value:'open',plv:val('f-plv'),tbd:val('f-tbd'),itl:val('f-itl'),itd:val('f-itd'),
+    intk:$('f-intk')?$('f-intk').value:'open',plv:val('f-plv'),tbd:val('f-tbd'),itl:val('f-itl'),itd:val('f-itd'),tcd:val('f-tcd'),fdp:val('f-fdp'),
+    flow:simFlowOf(),
     portD:(()=>{ const r=portEqD($('f-pshape').value,val('f-pw'),val('f-ph'),val('f-pr')); return r&&r.d>0?r.d:null; })(),
-    camAt:$('f-camat')?$('f-camat').value:'seat',
+    camAt:$('f-camat')?$('f-camat').value:'seat',vflow:$('f-vflow')?$('f-vflow').value:'auto',
     vdi:val('f-vdi'),vde:val('f-vde'),lin:val('f-lin'),lex:val('f-lex'),vcd:val('f-vcd'),ceff:val('f-ceff'),
     ivo:Number.isFinite(val('f-ivo'))?val('f-ivo'):null,ivc:Number.isFinite(val('f-ivc'))?val('f-ivc'):null,evc:Number.isFinite(val('f-evc'))?val('f-evc'):null,
     n:r.one?1:p.n,gaps:r.one||!$('f-gaps').value.trim()?null:parseNums($('f-gaps').value),

@@ -15,3 +15,7 @@
 - Heywood 7.21 throttle area via Carlsson 2007 LiU thesis (therangerstation pdf): WOT limit = bore - shaft strip
 - Intake tab: no filter loss model ("not modelled, no published loss curve") -> input
 - page already has f-intk/f-plv/f-tbd/f-itl/f-itd for OpenWAM; simSpec intake.plenum {V_m3, inlet segs + 50mm tb step}
+## 12:0x status
+- DONE: JS+Rust flowTab/benchCdA/plenum (parity QUICK passes incl. 2 new jobs), CAM_LIB flow (ls3 hr11, lt1 el1), ratings.js options, page inputs (f-plv disp kind cc, f-tcd, f-fdp, f-vflow), simSpec wiring w/ share, cam_ui updated, wavegas_ui sec 11 written (NOT RUN YET), cyl_trace.js + cyl_expts.py written (NOT RUN)
+- ratings: c_open == after; c_bench (benchfam) LS3 495/520; c_whole == one bank; c_plen LS3 481/491 LS7 545/539 LT1 480/471; c_final running
+- TODO: sensitivities (runs2.sh), cyl_expts (OpenWAM single_L800,i4_41), tests, method text, docs C, STATUS
