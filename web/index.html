@@ -22326,7 +22326,11 @@ function icRecommend(o){
     ['weight',x=>x.c.mass?x.c.mass[0]:Infinity],['rating ',x=>G01(x)?x.ratio:0],['tank match',x=>x.exact?0:1],['published data',x=>-x.pubN]]);
   const ok=rows.filter(x=>!x.fails.length);
   ok.forEach((x,i)=>x.ord=i);
-  ok.sort((a,b)=>{ for(const [,f] of cmp){ const fa=f(a), fb=f(b); if(Math.abs(fa-fb)>1e-9*Math.max(1,Math.abs(fa))&&!(fa===fb)) return fa<fb?-1:1; } return a.ord-b.ord; });
+  // audit 3 (R1): "same" must hold both ways with an unknown value (Infinity): the old test |a - b| > 1e-9 max(1, |a|) is false
+  // for a = Infinity, b finite, so a core with no published drop tied with one that publishes it when it came first and lost
+  // when it came second (the pick depended on the list order) and the reason named the wrong key
+  const same=(fa,fb)=>fa===fb||(Number.isFinite(fa)&&Number.isFinite(fb)&&Math.abs(fa-fb)<=1e-9*Math.max(1,Math.abs(fa),Math.abs(fb)));
+  ok.sort((a,b)=>{ for(const [,f] of cmp){ const fa=f(a), fb=f(b); if(!same(fa,fb)) return fa<fb?-1:1; } return a.ord-b.ord; });
   // why each ranks below the one before: the first key that differs
   const sq=v=>v.toFixed(1)+' in² ('+(v*6.4516).toFixed(0)+' cm²)';
   const evTxt=icEvTxt;
@@ -22340,7 +22344,7 @@ function icRecommend(o){
         o.a2a&&x.bellG>0?'no listed core meets Bell’s face area for this power; this is the closest '+(ev?'on the evidence; '+ev:'by rating'+ro):
         o.a2a?(ev?'meets Bell’s face area; '+ev:'smallest rating that covers the target'+mt+' and meets Bell’s face area'+ro):
         (ev||'smallest rating that covers the target'+mt+ro))+bellTxt(x); return; }
-    const y=ok[i-1], k=cmp.find(([,f])=>{ const a=f(x), b=f(y); return !(a===b)&&Math.abs(a-b)>1e-9*Math.max(1,Math.abs(a)); });
+    const y=ok[i-1], k=cmp.find(([,f])=>!same(f(x),f(y)));
     x.why=(!k?'level with the one above on every rule; list order':k[0]==='evidence'?(x.evG===1?'meets the target only by extrapolating its thermal data to this flow, so it ranks behind those that meet it inside their data':'rating only, so it ranks behind the cores whose thermal data meets the target'):
       k[0]==='rating '?'same capacity margin, drop, volume and weight as the one above; a larger rating':k[0]==='capacity margin'?'a larger capacity margin than the one above (more core than the target needs)':k[0]==='weight'?'same evidence; heavier':k[0]==='bell'?(x.bellG===1?'charge face unknown, so it cannot be checked against Bell, behind those that meet it':'fails Bell’s face area, so it ranks behind those that meet it or cannot be checked'):
       k[0]==='face'?'a smaller charge face than the one above':k[0]==='rating'?'a larger rating than the one above':(o.a2a?(lim?'same face; ':'same Bell result; '):'')+(G01(x)?'same capacity margin as the one above; ':'same rating as the one above; ')+(k[0]==='pressure drop'?'higher or unpublished pressure drop':k[0]==='core volume'?'larger core volume':k[0]==='tank match'?'tanks not an exact match to the pipes':'less published data'))+bellTxt(x); });
