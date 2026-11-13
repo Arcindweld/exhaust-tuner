@@ -170,6 +170,10 @@ EXTRA_DEFAULTS = {
     # end, the unflanged open-end correction of Levine and Schwinger (1948; Morse and Ingard, Theoretical Acoustics,
     # 9.1, fig. 9.2; the page's END_CORR), as the plane-wave models have it; 0 writes the bare lengths (pre-v14 files).
     "open_end_corr": 1,
+    # 2026-11-12 part 4: 1 = also write the cylinders' Woschni coefficient (14), mass fractions (28), gamma (29) and the
+    # wall heat rates to head, liner and piston (30-32) in INS.DAT, for the closed-cycle comparison
+    # (tools/validation/wave/cyl_phase.py); 0 = off (the file unchanged)
+    "cyl_ins_extra": 0,
 }
 
 OPEN_END_CORR = 0.6133   # v14: open-end correction x the end radius (Levine and Schwinger), as the page's END_CORR
@@ -729,11 +733,12 @@ def write_model(m):
 
     w.section("INSTANTANEOUS RESULTS  TOutputResults::ReadInstantaneousResults")
     w.v(ncyl, O + ":540 cylinders")
-    cyl_ins = [0, 1, 4, 5, 10, 11, 13, 25]
+    cyl_ins = [0, 1, 4, 5, 10, 11, 13, 25] + ([14, 28, 29, 30, 31, 32] if int(p["cyl_ins_extra"]) == 1 else [])
     for c in range(ncyl):
         w.v(c + 1, O + ":542 cylinder %d" % (c + 1))
         w.v(len(cyl_ins), "TCilindro.cpp:1342 number of variables")
-        w.row(cyl_ins, "TCilindro.cpp:1344 0 p 1 T 4 exhaust flow 5 intake flow 10 mass 11 volume 13 burned fraction 25 torque")
+        w.row(cyl_ins, "TCilindro.cpp:1344 0 p 1 T 4 exhaust flow 5 intake flow 10 mass 11 volume 13 burned fraction 25 torque" +
+              (" 14 Woschni h 28 mass fractions 29 gamma 30 31 32 heat to head, liner, piston" if len(cyl_ins) > 8 else ""))
     w.v(len(plenums), O + ":554 plenums")
     for j in range(len(plenums)):
         w.v(j + 1, O + ":556 plenum %d" % (j + 1))

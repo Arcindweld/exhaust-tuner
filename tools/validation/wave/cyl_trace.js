@@ -1,7 +1,8 @@
 // Cylinder 1 of the page's wave model, step by step over the last cycle of a run, for the like-for-like experiments
 // against OpenWAM (docs/WAVE_VALIDATION_2026-11-11.md, part 3, C6; cyl_expts.py drives it):
 //   node cyl_trace.js job.json out.json     job: {spec, rpm, dx, cycles, [starts: [{p, T, m, x, label}]]}
-// Writes the trace (crank angle in the cylinder's frame, p, T, m, x, burned fraction, the valves' effective areas), the
+// Writes the trace (crank angle in the cylinder's frame, p, T, m, x, burned fraction, the valves' effective areas; per step
+// the heat released, the wall heat with Woschni's coefficient hc, area Aw and velocity wv, p dV, and gamma, cp, R after it), the
 // state at intake closing, the closed-cycle work (p dV from IVC to EVO), and, for each state in job.starts, the same
 // closed cycle run again from that state by a copy of runSpeed's cylinder step (valves shut: the burn, Woschni's wall heat
 // and p dV only, with the run's own time steps). The copy is checked against the run itself: from the run's own IVC state it
@@ -15,7 +16,7 @@ const spec = job.spec, eng = WS.makeEngine(spec.e, spec.intake, spec.exhaust, sp
 const gas = WS.gas, eOf = (T, x) => gas.at(G, T, x).e, Rof = x => gas.at(G, 300, x).R;
 const nCyc = job.cycles || 12, dx = job.dx || 0.01, rpm = job.rpm;
 const st = WS.freshState(eng, dx);
-let thStart = null; const tr = { th: [], dth: [], dt: [], p: [], T: [], m: [], x: [], xb: [], cdaIn: [], cdaEx: [], qw: [], Q: [], pdV: [] };
+let thStart = null; const tr = { th: [], dth: [], dt: [], p: [], T: [], m: [], x: [], xb: [], cdaIn: [], cdaEx: [], qw: [], Q: [], pdV: [], hc: [], Aw: [], wv: [], gam: [], cp: [], R: [] };
 let ivc = null;
 const hook = c => {
   if (thStart === null) thStart = c.th;
@@ -25,6 +26,8 @@ const hook = c => {
   // the step just taken: cy.th is its start angle; cy.* now hold the state after it
   tr.th.push(cy.th); tr.dth.push(c.dth); tr.dt.push(c.dt); tr.p.push(cy.p); tr.T.push(cy.T); tr.m.push(cy.m); tr.x.push(cy.x); tr.xb.push(cy.xb);
   tr.cdaIn.push(eng.CdAin(cy.th)); tr.cdaEx.push(eng.CdAex(cy.th)); tr.qw.push(cy._qw); tr.Q.push(cy._Q); tr.pdV.push(cy._pdV);
+  tr.hc.push(cy._hc); tr.Aw.push(cy._Aw); tr.wv.push(cy._wv);
+  { const g = gas.at(G, cy.T, cy.x); tr.cp.push(g.cp); tr.R.push(g.R); tr.gam.push(g.cp / (g.cp - g.R)); }   // at the state after the step
   if (!ivc && cy.started && cy.fresh != null && Math.abs(cy.th - eng.ivc) < c.dth + 1e-9 && cy.th >= eng.ivc)
     ivc = { p: cy.ivcP, T: cy.ivcT, V: cy.ivcV, m: cy.m, x: cy.fresh / cy.m, fresh: cy.fresh, burnQ: cy.burnQ, k: tr.th.length - 1 };
 };
