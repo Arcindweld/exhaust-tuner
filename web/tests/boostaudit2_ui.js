@@ -120,6 +120,18 @@ const { chromium } = require('playwright');
   ok(O.n === 1, 'O2 one 100218 at 130 L/min'); near(O.Q, 67588.571, 1e-7, 'O2 its heat at 110 / 70 °C, W'); near(O.dp, 86200, 1e-9, 'O2 its oil drop, Pa');
   near(O.e0, 0.674149, 1e-5, 'O3 effectiveness at the maker’s 50 L/min, oil the smaller capacity rate'); near(O.e4, 0.373531, 1e-5, 'O3 at 150 L/min');
 
+  // R2: a space limit that rules out every core says so; R3: twin turbos into one core are rated against the whole engine
+  const setx = async (k, v) => { await pg.evaluate(([k, v]) => { const e = document.querySelector('.tsox[data-k="' + k + '"]'); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]); await pg.waitForTimeout(300); };
+  await setv('i-hp', '450');
+  for (const [k, v] of [['lmL', '100'], ['lmH', '100'], ['lmT', '30']]) await setx(k, v);
+  const none = await txt('#tso-icrec-none-a2a'), nA2a = await pg.evaluate(() => window.__tso.IC_LIB.filter(c => c.type === 'a2a').length);
+  ok(new RegExp('Your space rules out ' + nA2a + ' of the ' + nA2a + ' \\(\\d+ on size alone').test(none) && /more space/.test(none), 'R2 a 100 x 100 x 30 mm space rules out every air-to-air core, and the note says so: ' + none.slice(0, 160));
+  for (const k of ['lmL', 'lmH', 'lmT']) await setx(k, '');
+  await setv('i-nt', '2'); await pg.evaluate(() => { const s = document.getElementById('i-cpy'); s.value = 'ic'; s.dispatchEvent(new Event('change', { bubbles: true })); }); await pg.waitForTimeout(400);
+  const tw = await pg.evaluate(() => { const r = window.__tso.TG().icrec.a2a.pick, L = window.__tsLast(); return { merged: L.merged, ratio: r.ratio, r: r.r, mc: L.mc, m: L.m }; });
+  ok(tw.merged && Math.abs(tw.ratio - tw.r / 450) < 1e-12 && Math.abs(tw.mc - 2 * tw.m) < 1e-12, 'R3 twins into one core: the pick is rated against the whole 450 hp (' + tw.r + ' hp, ' + tw.ratio.toFixed(3) + ' ×) and the core carries both turbos’ air');
+  await setv('i-nt', '1');
+
   // X7: two new exhaust cases (xflow_page2.js's settings) against xflow.py
   await pg.click('#u-met'); await pg.waitForTimeout(300); await setv('i-hp', '450');
   const ti = await pg.evaluate(() => window.__tso.TURBO_LIB.findIndex(t => t.model.startsWith('GEN2 PT5862')));
