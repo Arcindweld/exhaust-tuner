@@ -21982,8 +21982,9 @@ function cmapSvg(D,href,k,forSheet){
   const poly=(pts,col,dash)=>pts.length?'<polyline points="'+pts.map(q=>f(q[0])+','+f(q[1])).join(' ')+'" style="fill:none;stroke:'+col+';stroke-width:2.5'+(dash?';stroke-dasharray:'+dash:'')+'" '+sw+'/>'+pts.map(q=>'<circle cx="'+f(q[0])+'" cy="'+f(q[1])+'" r="'+f(3*k)+'" style="fill:'+col+'"/>').join(''):'';
   const byY=a=>a.slice().sort((p,q)=>q[1]-p[1]);
   s+=poly(byY(C.surge),'#c0262d','6 3')+poly(byY(C.choke),'#7b3fa0','6 3');
-  if(C.surge.length) s+=txt(C.surge[0][0]+5*k,C.surge[0][1]-5*k,'surge (marked)','fill:#c0262d');
-  if(C.choke.length) s+=txt(C.choke[0][0]+5*k,C.choke[0][1]-5*k,'choke (marked)','fill:#7b3fa0');
+  const lab=(q,t,col)=>{ const r=q[0]>W*0.7; return txt(q[0]+(r?-5:5)*k,q[1]-5*k,t,'fill:'+col+(r?';text-anchor:end':'')); };
+  if(C.surge.length) s+=lab(C.surge[0],'surge (marked)','#c0262d');
+  if(C.choke.length) s+=lab(C.choke[0],'choke (marked)','#7b3fa0');
   C.isl.forEach(q=>{ s+='<circle cx="'+f(q[0])+'" cy="'+f(q[1])+'" r="'+f(4*k)+'" style="fill:none;stroke:#1d7a46;stroke-width:2" '+sw+'/>'+(q[2]!=null&&q[2]!==''&&Number.isFinite(+q[2])?txt(q[0]+6*k,q[1]+4*k,(+q[2])+'%','fill:#1d7a46'):''); });
   // the demand
   if(cal&&D.ref){ const line=(pts,col,dash,tag)=>{ const q=pts.map(o=>[cal.gx(o.x),cal.gy(o.PR),o]); if(!q.length) return '';
@@ -22021,7 +22022,7 @@ function tsMapSection(ind,p,r){
       '<div class="note warn" id="cm-refneed">Type the reference temperature and pressure your map states for its corrected flow (often in the map’s corner or caption). They are needed: the same engine plots at a different flow on maps with different references. '+(C.maker==='bw'?'No BorgWarner reference was found in a source this page could read; take it from the map. ':'')+'Garrett’s, as this page cites them, are 545 °R and 13.95 psia.</div>')+
     '<p class="cap">Vertical axis: pressure ratio, total-to-total (total pressure at the compressor outlet ÷ total pressure at its inlet, both absolute), as makers plot it. The page plots its compressor ratio P₂ ÷ P₁ from the route solver, at the compressor’s own inlet and outlet. Both axes are taken as linear (compressor maps nearly always are); a map with a log scale cannot be calibrated here. The image must be square to the screen: a skewed photo of a page will misplace the points.</p>';
   // calibration
-  const cc=C.cal, diag=C.calMode==='diag', tool=(t,lab)=>'<button type="button" class="btn'+(C.tool===t?' primary':'')+'" data-cmtool="'+t+'" aria-pressed="'+(C.tool===t)+'" style="padding:2px 10px;min-height:0">'+lab+'</button>';
+  const cc=C.cal, diag=C.calMode==='diag', tool=(t,lab)=>'<button type="button" class="btn'+(t&&C.tool===t?' primary':'')+'" data-cmtool="'+t+'"'+(t?' aria-pressed="'+(C.tool===t)+'"':'')+' style="padding:2px 10px;min-height:0">'+lab+'</button>';
   h+='<p class="sub" style="margin-top:12px">Calibrate</p><div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">How</span><span class="inp"><select class="cmx" data-k="calMode"><option value="axes"'+(diag?'':' selected')+'>Two points on each axis (four clicks)</option><option value="diag"'+(diag?' selected':'')+'>Two grid intersections far apart, diagonally (two clicks)</option></select></span></label></div>';
   const calRows=diag?[['A','xa','ya','Intersection A'],['B','xb','yb','Intersection B']]:[['xa','xa',null,'Flow axis, point 1'],['xb','xb',null,'Flow axis, point 2'],['ya',null,'ya','Pressure ratio axis, point 1'],['yb',null,'yb','Pressure ratio axis, point 2']];
   h+='<div class="tblwrap"><table id="cm-cal"><thead><tr><th>Point</th><th>Click it</th><th>Image pixel (x, y from the top left)</th><th>Value</th></tr></thead><tbody>'+calRows.map(([t,kx,ky,lab])=>'<tr data-cal="'+t+'"><td>'+lab+'</td><td>'+tool('cal-'+t,C.tool==='cal-'+t?'Click on the map…':'Click')+'</td><td>'+

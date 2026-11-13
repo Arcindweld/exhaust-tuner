@@ -1768,3 +1768,43 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Suites (web, fusion, -j 2): 140 tests, 134 passed, 0 flaky, 0 failed, 6 skipped (expected), 7 partial skips, 0
   unexpected.
 - Open: an aluminium fillet-weld allowable, Bell's item-page weights, a choked-exit back pressure; test_native unrun here.
+
+## 2026-11-13: Your compressor map (the build's demand on the user's own map image)
+
+- The gap: the page carries no maker's compressor map (the rule: no makers' map images or digitised map data in the
+  repository), so a turbo pick stopped at horsepower ratings. New block "Your compressor map" in the Intake tab's turbo
+  sizing (`tsMapSection`, after `tsSizeSection`; centrifugal superchargers get it too): the user loads the map image from
+  their own computer (file input or drop; PNG, JPEG, WebP, SVG; a PDF is refused with "take a screenshot"). It is read with
+  FileReader and drawn as an SVG `<image>` from a blob URL; nothing is fetched or uploaded and the page says so.
+- Calibration by the user: x axis unit (corrected lb/min, kg/s, m³/s or cfm), the map's reference temperature and pressure
+  (required; "Garrett" fills 545 °R and 13.95 psia as the page already cites them; BorgWarner's own article on its maps gives
+  no reference, so nothing is filled for it), y = pressure ratio total-to-total. Two clicked points per axis, or two grid
+  intersections, with typed values; each axis linear (value = v_a + (px − px_a)(v_b − v_a)/(px_b − px_a)); pixel positions
+  can be typed instead (keyboard path). Points are kept in the image's natural pixels, so clicks map the same at any
+  displayed size or device pixel ratio. The calibrated grid is drawn dashed over the image to check it lines up.
+- Overlay, existing sums only: calcTurboRoute at the full-boost RPM (`i-lorpm`), each 1000 RPM between, peak power and the
+  redline (`i-red`), same VE and boost, per compressor, the compressor's own PR (inlet depression and charge-side losses
+  in); corrected flow `corrFlowRef` = m √(T1/Tref) ÷ (P1/Pref) at the map's reference (absolute temperature; corrFlow's
+  °F + 460 form is 0.03% apart at Garrett's reference, said on the page); a volume axis is Wc ÷ ρref. Garrett's point for
+  the power target (TG.G); an optional case B at another boost. Optional surge and choke lines and efficiency labels
+  clicked or typed as pixel pairs: surge margin at the full-boost point (demand − surge)/surge and choke margin at peak
+  (choke − demand)/choke, both at the point's own PR, linear along the marked line; a typed island efficiency gives
+  compOut at that point's plotted PR beside the tab's efficiency. Part throttle and the boost threshold: not modelled, said.
+- Checklist "Pick a turbo" adds "demand plotted on your map: surge margin X %, choke margin Y %"; the build sheet gets the
+  numbers, and the image with the line only when the user ticks the box (default off; the line says the image may be the
+  maker's copyright). The T04B book map stays, now with a note that it is an example only.
+- Stored: the calibration, marked points, typed values and case B go with the project (PROJ_UI `cmap`); the image does not.
+  A small image (data URL up to 1.5 million characters) is also kept in this browser's localStorage (try/catch, "Forget it"
+  button) so loading the project in the same browser brings it back; otherwise the project draws the line on blank
+  calibrated axes and asks for the image again. A project saved before this block clears the map on load.
+- Worked example (K24A2 preset, single turbo, 450 hp, 26 psi at the throttle, the tab's other defaults, Garrett's
+  reference): peak 6800 RPM 0.38711 kg/s (51.21 lb/min) actual, P1 100339.93 Pa, PR 2.9060 -> 0.37129 kg/s (49.11 lb/min)
+  corrected; 3500 RPM 25.10 lb/min at PR 2.8574; redline 7100 51.32 lb/min at 2.9118; Garrett's 450 hp 49.5 lb/min actual,
+  47.48 lb/min corrected at PR 3.1221.
+- Tests: web/tests/compmap_ui.js (new, 91 checks; a canvas-drawn grid as the map, written to a temporary PNG and loaded
+  through the file input): clicks at 1280 and 400 px and at device pixel ratio 2, the mapping by hand, the demand against
+  turbosize_ui's hand values, reference change, cfm axis, Garrett's point, margins on a typed surge and choke line,
+  typed efficiency, the sheet (well-formed with the image ticked), the project round trip without the image, storage that
+  throws, 400 px with no page scroll.
+- Open: log axes are not supported (none seen on compressor maps); a rotated or skewed image is not corrected; the
+  redline point uses the peak-power VE.
