@@ -123,7 +123,7 @@ const { chromium } = require('playwright');
   ok(/2\.28 in \(58\.0 mm\)/.test(tt) && /101\.6 mm/.test(tt) && /522 kW/.test(tt), 'turbo table in inches and mm, hp and kW');
   // intercoolers: type filter, route B (the type now starts undecided, 2026-11-12: every row listed; pick air-to-air first)
   let ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.length);
-  ok(ics === 67, 'type not decided: every core listed, 50 air-to-air and 17 water-to-air (' + ics + ')');
+  ok(ics === 70, 'type not decided: every core listed, 50 air-to-air and 20 water-to-air (' + ics + ')');
   await setx('ictype', 'a2a'); await pg.waitForTimeout(400);
   ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.map(r => r.cells[0].innerText.split('\n')[0]));
   ok(ics.length === 50 && ics.filter(x => /^Garrett /.test(x)).length === 31 && ics.filter(x => /^Mishimoto /.test(x)).length === 5 && ics.filter(x => /^CSF /.test(x)).length === 14 && ics.indexOf('Mishimoto MMINT-UR') >= 0 && ics.indexOf('CSF 8045') >= 0, 'air-to-air list: 31 Garrett (the maker’s full table, 2026-11-12), 5 Mishimoto, 14 CSF (' + ics.length + ')');
@@ -137,7 +137,7 @@ const { chromium } = require('playwright');
   ok(/gives no cooling capacity/.test(rb) && /nothing was filled in/.test(rb), 'route B: hp-only core says no capacity can be computed');
   await setx('ictype', 'w2a'); await pg.waitForTimeout(400);
   ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.map(r => r.cells[0].innerText.split('\n')[0]));
-  ok(ics.length === 17 && ics.indexOf('Garrett 717874-6008') >= 0 && ics.indexOf('Garrett 734408-6005') >= 0 && ics.filter(x => /^EJ Bowman/.test(x)).length === 6, 'water-to-air list: 4 Garrett, 2 Mishimoto, 5 CSF, 6 Bowman (' + ics.join(', ') + ')');
+  ok(ics.length === 20 && ics.indexOf('Garrett 717874-6008') >= 0 && ics.indexOf('Garrett 734408-6005') >= 0 && ics.filter(x => /^EJ Bowman/.test(x)).length === 6 && ics.filter(x => /^Conflux Technology/.test(x)).length === 3, 'water-to-air list: 4 Garrett, 2 Mishimoto, 5 CSF, 6 Bowman, 3 Conflux (' + ics.join(', ') + ')');
   const t2 = await pg.$eval('#tso-ics', e => e.innerText);
   ok(/conflict/.test(t2) && /typical engine power 50 kW \(67 hp\)/.test(t2) && /BSP size ¾ /.test(t2), 'w2a table: Mishimoto’s conflicting sizes said, Bowman kW rating, water ports');
   // route A on the page, water-to-air, with the loop

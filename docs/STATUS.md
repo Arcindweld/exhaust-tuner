@@ -1518,3 +1518,52 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Tests: web/tests/icrec_ui.js (new); turbolib_ui.js row counts updated (type starts undecided; 50 + 17 rows) and the
   Bowman water ports now read "BSP size ¾" (a thread designation; the sweep found "1 in" with no mm once the water-to-air
   rows are listed by default).
+
+## 2026-11-12: Conflux barrel intercoolers with the maker's performance curves (Intake tab)
+
+- Source: Conflux Technology, "Barrel Intercoolers" brochure, version 1.0 (2026), supplied by the owner; maker site
+  confluxtechnology.com. Copyrighted ("may not be reproduced, in whole or in part"): only facts and figures with attribution
+  are in the page; the PDF and its images are not in the repository. The first maker data on the page that gives
+  effectiveness and air pressure drop against charge flow for automotive charge coolers.
+- Three water-to-air rows (additively manufactured AlSi10Mg, hose barbs): 100011 4.5 in / 114 mm, "Optimised for engines up
+  to 400kW", 140 × 133 × 155 mm, 1.5/1.8 kg dry/wet, air 114.3 mm, coolant 19 mm (¾ in); 100012 5.0 in / 127 mm, 300-600 kW,
+  160 × 150 × 190 mm, 2.2/2.6 kg, air 127 mm, coolant 25.4 mm (1 in); 100013 6.0 in / 152 mm, 500-900 kW, 177 × 171 × 225 mm,
+  3.4/4.0 kg, air 152.4 mm, coolant 25.4 mm. Test conditions: air in 120 / 200 / 250 °C at 250 / 350 / 500 kPa(a), EGW 25/75 in
+  at 30 °C, 20 / 35 / 50 L/min (0.34 / 0.60 / 0.86 kg/s). "What the maker publishes": 6 of 6, plus CFD and calorimetric
+  testing, burst/pressure and fatigue testing statements, ISO 9001, lead times (1-3 weeks production-ready, no NRE; 2-6
+  weeks configured), warranty terms on request. Rating = the top kW figure in hp (crank or wheel not stated); a target
+  under a lower figure is flagged.
+- Curves: vector paths in the PDF, read with pdfplumber against each chart's own gridlines. Each curve is two cubic Bezier
+  segments through three nodes at round flows and near-whole values (taken as the maker's points; flow axes re-anchored on
+  the end nodes, offsets up to 0.003 kg/s). Tabulated at five flows to 0.1 (path reading about ±0.05 units; points between
+  nodes are the plotting program's smoothing). The two drop curves of a part agree within 0.04 kPa; effectiveness against
+  (T_in − T_out)/(T_in − T_c) from the outlet chart within 0.78 points (largest at the 100011 end node).
+- Model (comment above cfxModel): UA at each tabulated point by inverting the exact cross-flow series (counter-flow beside
+  it: UA 7-14% lower, predictions within 0.1 °C at the maker's coolant flow; the bracket is shown); UA(m) is the maker's
+  flow dependence (replaces the preprint bounds for these rows), linear inside the range, a power law fitted to the five
+  points outside it, flagged (UA ∝ m^0.508 / 0.525 / 0.527 cross-flow). Coolant-side dependence not published: UA held
+  at the maker's coolant flow, flagged beyond a factor 1.25. Drop: dp ∝ 1/rho at equal mass flow (inlet density at the
+  compressor outlet), dp ∝ m^n outside the range, n = 1.763 / 1.819 / 1.846.
+- Fed into: the recommendation (thermal check from the curve, drop at this flow scaled to density), the table (dual units),
+  a chart per barrel with the build's point, the cooling-capacity block (curve at this flow, prediction, bracket, scaled
+  drop, density gain), icApply (barb less twice the wall into i-ici / i-ico, so the size-change table shows the widening;
+  the scaled drop into i-icdp and the rated-drop inputs, iterated with the route; the maker's coolant and flow when none is
+  entered; UA from the curve feeds the loop), checklist step 6 and the build sheet. New coolant EGW 25/75 (taken by mass:
+  cp 3917 J/kg K, 1029.5 kg/m³ at 40 °C, interpolated from the Engineering ToolBox page the page already cites).
+- Open / future: the owner also supplied Conflux's liquid-to-liquid Oil Cooler brochure (part 100220, Ø66.3 × 203 mm,
+  0.31 kg, AlSi10Mg, curves of heat transfer and oil pressure drop against oil flow). The page has no oil-cooling section,
+  so nothing was added; a possible future feature.
+- Tests: web/tests/conflux_ui.js (new); icrec_ui.js (water-to-air orders now include Conflux 100011 / 100012 where the rules
+  put them) and turbolib_ui.js (70 rows, 20 water-to-air) updated.
+- Review change (same day): the intercooler order rewards evidence. Among rows passing the rating and tank checks (inside
+  each Bell group for air-to-air): (0) thermal data (a maker's curve or point, or the user's measured point) evaluated at
+  this build's flow that meets the target × margin inside the data's flow range (a single point: within ±10% of its
+  charge flow, IC_PT_RANGE); (1) meets it only by extrapolation (flagged); (2) rating only, with the line "rating only:
+  the maker publishes no thermal data for this core, so the page cannot check it against your target". Groups 0 and 1:
+  smallest capacity margin that meets the target, then drop at this flow and density, volume, weight, rating; group 2 the
+  old keys. The rule is stated next to the pick. A core whose thermal data misses by under 5% of the heat needed is listed
+  as "just short" with the target it does reach and, water-to-air, the coolant temperature into the core that would make it
+  pass (tci' = t2 − (t2 − tci) × margin ÷ capacity margin; effectiveness is independent of temperatures at fixed flows).
+  K24 + PTE 5862, water-to-air: 450 hp (29.541 psi, 0.4208 kg/s) Conflux 100012, EJ Bowman JK190, Conflux 100013; 100011
+  just short (72.0% against 75%, passes with coolant at about 18 °C); 600 hp (46.945 psi, 0.5863 kg/s) Conflux 100012,
+  100013, then the rating-only Garrett 717874-6008. icrec_ui.js and conflux_ui.js expectations recomputed by hand.

@@ -47,16 +47,25 @@
 //   largest face first: 848054-6037 and CSF 8053 tie at 84 -> rating -> 848054-6037, CSF 8053, then CSF 8047 (42). Mishimoto US
 //   (overall 31 in) does not fit. Limit 610 x 305 x 77 mm (thickness 3.031 in): 3 in cores only: CSF 8056 (36, 700) and 8067
 //   (36, 850) tie -> 8056, 8067, then 487085-6002 (33.6).
-// Water-to-air, size limit 305 x 150 x 305 mm (12.01 x 5.91 x 12.01 in), 450 hp: fits and covers: Garrett 717874-6009 (500),
-//   717874-6008 (750), CSF 8134 (800, 8.5 x 4.5 x 6), ... -> order unchanged (rating): 717874-6009, 717874-6008, CSF 8134; Bowman out
-//   (size not published).
-// Build 2, 450 hp, water-to-air, margin 1: >= 450: Bowman JK190-4078-3 489.47 hp (ratio 1.0877), Garrett 717874-6009 500,
-//   717874-6008 750. JK190 thermal gate, its point 30.1 kg/min, 180 -> 41.5 °C, 270 L/min water at 30 °C (water 992 kg/m³,
-//   4183 J/kg K): Ch0 = 30.1/60 x 1004.675 = 504.0120 W/K, Cw0 = 270/60/1000 x 992 x 4183 = 18672.91 W/K, Q0 = Ch0 x 138.5,
-//   eps0 = 138.5/150 = 0.92333, NTU0 from the exact series (computed below, independent of the page), UA = NTU0 x Ch0; at this build
-//   (charge mc from the route, 134.4 °C in, no coolant flow entered so the point's 270 L/min, coolant in at the outside 25 °C) the
-//   predicted heat over the heat needed must be >= 1 (computed below and compared with the page's "removes N%").
-//   Out: the five smaller Bowman coolers. Margin 1.2 (540 hp): JK190 out; 717874-6008 (750), CSF 8134 (800), 873213-6002 (980).
+// Water-to-air order (reviewer, 2026-11-12): on the evidence. Rows passing the rating and tank checks are grouped: 0 thermal data
+//   (a maker's curve or point) evaluated at this build's flow that meets the target inside the data's flow range (a single point:
+//   within +-10% of its charge flow); 1 meets it only by extrapolation; 2 rating only. Groups 0 and 1 by the smallest capacity
+//   margin (heat removed / heat needed), then drop at this flow, volume, weight, rating; group 2 by rating, drop, volume.
+//   This build (15 psi): charge mc = 0.28247 kg/s (from the route), t2 = 134.33 °C, coolant in at the outside 25 °C (no coolant
+//   temperature entered), maker's coolant flows (none entered), target 75% -> heat needed 0.75 x mc x cp x (t2 - 25), so the
+//   capacity margin of a core with effectiveness e on Cmin = Ch is e / 0.75 (the coolant is always the larger stream here).
+//   Conflux 100011 (0.20-0.40 kg/s plotted: inside): UA by linear interpolation of the UA inverted (here, exact series) at 0.25 and
+//   0.30 kg/s; Ch = 0.28247 x 1004.675 = 283.79 W/K, Cc = 0.34 x 3917 = 1331.78 W/K -> e about 0.801, margin about 1.068 -> group 0.
+//   Conflux 100012 (0.40-0.60) and 100013 (0.60-0.80): outside, UA by the power law fitted (here) to the five UA values -> margins
+//   about 1.225 and 1.306, group 1. Bowman JK190: 0.28247 / (30.1/60) = 0.563 x its point's flow, UA held -> margin about 1.319,
+//   group 1. The rest (Garrett 717874-6009 500 hp, 717874-6008 750, CSF 8134 800, ...) rating only, group 2.
+//   Computed below and compared with the page: 450 hp: Conflux 100011, 100012, 100013 (then JK190, then the rating-only rows).
+//   Size limit 305 x 150 x 305 mm (12.01 x 5.91 x 12.01 in), 450 hp: 100011 (140 x 133 x 155 mm) and 100012 (160 x 150 x 190) fit,
+//   100013 (177 x 171: neither 177 nor 171 within 150) does not; Bowman out (size not published) -> 100011, 100012, then the
+//   rating-only Garrett 717874-6009 (500).
+// JK190 thermal gate, its point 30.1 kg/min, 180 -> 41.5 °C, 270 L/min water at 30 °C (water 992 kg/m³,
+//   Out: the five smaller Bowman coolers. Margin 1.2 (540 hp, margin 1.2 on the heat too): JK190 (489.5) and Conflux 100011 (536.4) out
+//   on rating; 100012 (1.225 >= 1.2) and 100013 (1.306), both group 1, then the rating-only Garrett 717874-6008 (750).
 // Build 3, 800 hp, air-to-air, margin 1: rated exactly 800: Garrett 703520-6011 (24 x 10.5 x 3.5 = 882.0 cu in), 848054-6020
 //   (26.3 x 7.8 x 4.3 = 882.102), CSF 8053 (24 x 6 x 3.5 = 504), CSF 8068 (27 x 6 x 3 = 486), Mishimoto MMINT-US (23 x 12 x 3 = 828,
 //   3 in necks >= the 2.5 in pipes); MMINT-UM out (600 whp is its lower figure). No pressure drop is published for any of them,
@@ -140,14 +149,14 @@ const { chromium } = require('playwright');
   t = await top('a2a'); ok(t.join() === 'CSF 8056,CSF 8067,Garrett 487085-6002', 'size limit 610 x 305 x 77 mm: ' + t.join(', '));
   await setx('ictype', 'w2a');
   for (const [k, v] of [['lmL', '305'], ['lmH', '150'], ['lmT', '305']]) await setx(k, v);
-  t = await top('w2a'); ok(t.join() === 'Garrett 717874-6009,Garrett 717874-6008,CSF 8134', 'water-to-air, size limit 305 x 150 x 305 mm: order unchanged: ' + t.join(', '));
+  t = await top('w2a'); ok(t.join() === 'Conflux Technology 100011,Conflux Technology 100012,Garrett 717874-6009', 'water-to-air, size limit 305 x 150 x 305 mm: thermal data first, 100013 does not fit: ' + t.join(', '));
   ok(/EJ Bowman JK190-4078-3: size not published: cannot be checked against your space/.test(await pg.$eval('#tso-icrec-out-w2a', e => e.textContent)), 'water-to-air: a core with no published size is out under a limit');
   for (const k of ['lmL', 'lmH', 'lmT']) await setx(k, '');
   await setx('ictype', 'a2a');
 
   // build 2
   await hp(450); await setx('ictype', 'w2a');
-  t = await top('w2a'); ok(t.join() === 'EJ Bowman JK190-4078-3,Garrett 717874-6009,Garrett 717874-6008', 'build 2, 450 hp water-to-air: ' + t.join(', '));
+  t = await top('w2a'); ok(t.join() === 'Conflux Technology 100011,Conflux Technology 100012,Conflux Technology 100013', 'build 2, 450 hp water-to-air, on the evidence: ' + t.join(', '));
   ok(await outN('w2a') === 5, 'build 2: the five smaller Bowman coolers not recommended');
   // the JK190 thermal gate, by hand (exact cross-flow series written here, not the page's)
   const R = await pg.evaluate(() => window.__tsLast());
@@ -156,26 +165,43 @@ const { chromium } = require('playwright');
   const ntuOf = (e, cr) => { let lo = 0, hi = 50; for (let i = 0; i < 200; i++) { const mid = (lo + hi) / 2; if (eps(mid, cr) < e) lo = mid; else hi = mid; } return (lo + hi) / 2; };
   const Ch0 = 30.1 / 60 * cp, Cw0 = 270 / 60 / 1000 * 992 * 4183, e0 = 138.5 / 150, UA = ntuOf(e0, Ch0 / Cw0) * Ch0;
   const Ch = R.mc * cp, tamb = 25, Qneed = 0.75 * Ch * (R.t2 - tamb), Qp = eps(UA / Ch, Ch / Cw0) * Ch * (R.t2 - tamb), capM = Qp / Qneed;
-  const w2 = await pg.$eval('#tso-icrec-w2a', e => e.innerText);
-  const pct = +(w2.match(/removes ([0-9]+)% of the heat needed/) || [])[1];
-  ok(capM >= 1 && Math.abs(pct - Math.round(capM * 100)) <= 1, 'JK190 thermal gate: hand capacity margin ' + capM.toFixed(4) + ' (UA ' + UA.toFixed(1) + ' W/K), page ' + pct + '%');
+  const W2 = await pg.evaluate(() => window.__tso.TG().icrec.w2a.ok.map(x => ({ pn: x.c.pn, evG: x.evG, capM: x.th ? x.th.capM : null })));
+  const jk = W2.find(x => x.pn === 'JK190-4078-3');
+  ok(capM >= 1 && jk && Math.abs(jk.capM - capM) < 1e-6 && jk.evG === 1, 'JK190 thermal gate: hand capacity margin ' + capM.toFixed(4) + ' (UA ' + UA.toFixed(1) + ' W/K), page ' + (jk && jk.capM.toFixed(4)) + ', group 1 (0.563 x its point’s flow)');
+  { // the Conflux margins by hand: UA from the curve (inverted here), linear inside the plotted range, a power law fitted here outside it
+    const CF = await pg.evaluate(() => window.__tso.IC_LIB.filter(c => c.curve).map(c => ({ pn: c.pn, K: c.curve, kgs: c.rated.kgs })));
+    const capOf = c => { const Cc = c.kgs * 3917, U = c.K.m.map((m, i) => ntuOf(c.K.eff[i] / 100, m * cp / Cc) * m * cp), m = R.mc, n = 4;
+      let ua; if (m >= c.K.m[0] && m <= c.K.m[n]) { for (let i = 0; i < n; i++) if (m <= c.K.m[i + 1]) { ua = U[i] + (U[i + 1] - U[i]) * (m - c.K.m[i]) / (c.K.m[i + 1] - c.K.m[i]); break; } }
+      else { const lx = c.K.m.map(Math.log), ly = U.map(Math.log), mx = lx.reduce((a, b) => a + b) / 5, my = ly.reduce((a, b) => a + b) / 5, bb = lx.reduce((q, x, i) => q + (x - mx) * (ly[i] - my), 0) / lx.reduce((q, x) => q + (x - mx) ** 2, 0); ua = Math.exp(my - bb * mx) * Math.pow(m, bb); }
+      const Ch = m * cp; return eps(ua / Ch, Ch / Cc) / 0.75; };
+    const hand = CF.map(c => [c.pn, capOf(c)]), pg2 = hand.map(([pn]) => W2.find(x => x.pn === pn));
+    ok(hand.every(([pn, v], i) => pg2[i] && Math.abs(pg2[i].capM - v) < 1e-6) && pg2[0].evG === 0 && pg2[1].evG === 1 && pg2[2].evG === 1 && hand[0][1] < hand[1][1] && hand[1][1] < hand[2][1] && hand[2][1] < capM,
+      'Conflux capacity margins by hand ' + hand.map(([pn, v]) => pn + ' ' + v.toFixed(4)).join(', ') + ' (100011 inside its range, group 0; the others extrapolated, group 1, ordered by margin, ahead of JK190 ' + capM.toFixed(4) + ')'); }
+  ok(W2.filter(x => x.evG === 2).map(x => x.pn).slice(0, 2).join() === '717874-6009,717874-6008', 'rating-only rows after the thermal ones, by rating: ' + W2.filter(x => x.evG === 2).map(x => x.pn).slice(0, 3).join(', '));
   await setx('icm', '1.2');
-  t = await top('w2a'); ok(t.join() === 'Garrett 717874-6008,CSF 8134,Garrett 873213-6002', 'build 2, margin 1.2 (540 hp): ' + t.join(', '));
+  t = await top('w2a'); ok(t.join() === 'Conflux Technology 100012,Conflux Technology 100013,Garrett 717874-6008', 'build 2, margin 1.2 (540 hp): ' + t.join(', '));
+  ok(/Garrett 717874-6008: rating only, so it ranks behind the cores whose thermal data meets the target[^\n]*rating only: the maker publishes no thermal data for this core, so the page cannot check it against your target/.test(await pg.$eval('#tso-icrec-top-w2a', e => e.innerText)), 'the rating-only row says why it ranks there');
   await setx('icm', '1');
-  // Use this intercooler: JK190
-  await pg.click('#tso-icrec-w2a ~ .actions button[data-icuse], [data-icrec="w2a"] button[data-icuse]'); await pg.waitForTimeout(500);
-  const ts = await TSO(), iJK = await pg.evaluate(() => window.__tso.IC_LIB.findIndex(c => c.pn === 'JK190-4078-3'));
-  const ins = await pg.evaluate(() => [document.getElementById('i-icrdp')._b, document.getElementById('i-icrf')._b]);
-  ok(ts.ic === String(iJK) && ts.ictype === 'w2a' && ts.pm === String(+(30.1 / 0.45359237).toPrecision(10)) && ts.pTi === '180' && ts.pTo === '41.5' && ts.pcf === '270' && ts.pTc === '30', 'Use this intercooler: JK190 picked and its thermal point filled (30.1 kg/min = ' + ts.pm + ' lb/min, 180 -> 41.5 °C, 270 L/min at 30 °C)');
-  ok(Math.abs(ins[0] - 7.4) < 1e-9 && Math.abs(ins[1] - 30.1 / 0.45359237) < 1e-9, 'Use this intercooler: the maker’s air drop 7.4 kPa at 66.36 lb/min into the rated-drop inputs');
+  // Use this intercooler: the pick, Conflux 100011
+  await pg.click('[data-icrec="w2a"] button[data-icuse]'); await pg.waitForTimeout(500);
+  const i11 = await pg.evaluate(() => window.__tso.IC_LIB.findIndex(c => c.pn === '100011'));
+  let ts = await TSO();
+  ok(ts.ic === String(i11) && ts.ictype === 'w2a' && ts.wf === '20' && ts.cool === 'egw25', 'Use this intercooler: Conflux 100011 picked, the maker’s 20 L/min of EGW 25/75 filled');
   ok(/In use on this build/.test(await pg.$eval('#tso-icrec-w2a', e => e.innerText)), 'the recommendation says it is in use');
   const step = await pg.$eval('#tg-steps li[data-step="ic"]', e => e.innerText);
-  ok(/recommended EJ Bowman JK190-4078-3 \(in use\)/.test(step), 'checklist step 6 shows the recommendation and that it is applied: ' + step.replace(/\n/g, ' '));
+  ok(/recommended Conflux Technology 100011 \(in use\)/.test(step), 'checklist step 6 shows the recommendation and that it is applied: ' + step.replace(/\n/g, ' '));
   await pg.click('button[data-tsheet]'); await pg.waitForTimeout(600);
   const sh = await pg.evaluate(() => { const f = window.__tgSheet; if (!f) return null; const d = new DOMParser().parseFromString(f.text, 'application/xml');
     return [...d.getElementsByTagName('tr')].map(tr => [...tr.getElementsByTagName('td')].map(td => td.textContent)).filter(r => r.length); });
   const icRow = sh && sh.find(r => r[0] === 'Intercooler core');
-  ok(icRow && /EJ Bowman JK190-4078-3/.test(icRow[1]) && /lancingmarine\.com/.test(icRow[2]) && /the page’s recommendation/.test(icRow[2]), 'build sheet: the chosen core, its source link, and that it is the recommendation: ' + (icRow || []).join(' | '));
+  ok(icRow && /Conflux Technology 100011/.test(icRow[1]) && /confluxtechnology\.com/.test(icRow[2]) && /the page’s recommendation/.test(icRow[2]), 'build sheet: the chosen core, its source link, and that it is the recommendation: ' + (icRow || []).join(' | '));
+  // picking JK190 from the list: its point and drop filled (the same path as Use this intercooler)
+  const iJK = await pg.evaluate(() => window.__tso.IC_LIB.findIndex(c => c.pn === 'JK190-4078-3'));
+  await setx('ic', String(iJK)); await pg.waitForTimeout(300); ts = await TSO();
+  const ins = await pg.evaluate(() => [document.getElementById('i-icrdp')._b, document.getElementById('i-icrf')._b]);
+  ok(ts.ic === String(iJK) && ts.ictype === 'w2a' && ts.pm === String(+(30.1 / 0.45359237).toPrecision(10)) && ts.pTi === '180' && ts.pTo === '41.5' && ts.pcf === '270' && ts.pTc === '30', 'JK190 picked: its thermal point filled (30.1 kg/min = ' + ts.pm + ' lb/min, 180 -> 41.5 °C, 270 L/min at 30 °C)');
+  ok(Math.abs(ins[0] - 7.4) < 1e-9 && Math.abs(ins[1] - 30.1 / 0.45359237) < 1e-9, 'JK190 picked: the maker’s air drop 7.4 kPa at 66.36 lb/min into the rated-drop inputs');
+  await setx('ic', ''); await setx('wf', ''); await setx('cool', 'water');
 
   // no core: 1500 hp air-to-air, the specification by hand
   await setx('ictype', 'a2a'); await set('i-icam', '120'); await hp(1500);
