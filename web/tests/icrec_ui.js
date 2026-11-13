@@ -31,11 +31,16 @@
 //   Mishimoto UG (700) 11.75 x 2.76 = 32.43, US (800) 12 x 3 = 36, UR (1000) 12 x 4 = 48; CSF 8056 (700) 12 x 3 = 36, 8053 (800, vertical)
 //   24 x 3.5 = 84, 8068 (800, vertical) 27 x 3 = 81, 8063 (850) 12 x 4 = 48, 8054 (1100, vertical) 27 x 4.5 = 121.5, 8040 (1300) 12 x 6 = 72,
 //   8055 (1400, vertical) 27 x 6 = 162.
-// Build 1, 350 hp, air-to-air, margin 1: Bell face 46.67 in². Rated >= 350 and passing Bell: 703521-6003 (55.35), 848054-6013 (47.30),
-//   then the 750s 848054-6037 (84; volume 8 x 24 x 3.5 = 672 cu in) ahead of 858893-6001 (88.4; 9 x 22.1 x 4 = 795.6) on volume.
-//   Out: 848054-6012 (300), 703518-6015 (310), MMINT-UZ (no rating) = 3. Margin 1.2 (420 hp, Bell face 56 in²): 848054-6037,
-//   858893-6001, then CSF 8068 (800, 81 in², on the vertical-flow assumption); out 5 (adds 375 and 410).
-//   Own core 380 hp, 600 x 300 x 102 mm (23.62 x 11.81 x 4.016 in): face 11.81 x 4.016 = 47.43 >= 46.67 -> second.
+// Bell Intercoolers cores (catalogue and item pages, 2026-11-12; Bell rates CFM at 1 psi loss and 10 psig; hp = CFM / 1.5, Corky Bell's
+//   1.5 cfm per hp, the page's conversion; charge face A x B, Bell's diagrams): A350097240 455 CFM -> 303.3 hp, 3.5 x 9.7 = 33.95 in²;
+//   A350130240 609 -> 406.0, 45.5; A350143240 670 -> 446.7, 50.05; A350169240 792 -> 528.0, 59.15; A300227240 912 -> 608.0, 3 x 22.7 = 68.1;
+//   A350240240 1125 -> 750.0, 84; A350280240 1312 -> 874.7, 98. Each publishes a drop (1 psi at its rated CFM), so it wins a rating tie.
+// Build 1, 350 hp, air-to-air, margin 1: Bell face 46.67 in². Rated >= 350 and passing Bell, by rating: 703521-6003 (375, 55.35),
+//   Bell A350143240 (446.7, 50.05), 848054-6013 (450, 47.30). (Bell A350130240, 406, face 45.5: fails Bell's face, a later group.)
+//   Out: 848054-6012 (300), 703518-6015 (310), MMINT-UZ (no rating), Bell A350097240 (303.3) = 4. Margin 1.2 (420 hp, Bell face 56 in²):
+//   Bell A350169240 (528, 59.15), A300227240 (608, 68.1), A350240240 (750, 84: ties Garrett 848054-6037 at 750 and 84 in², ahead on its
+//   published drop); out 7 (adds 375, 410 and Bell A350130240 at 406).
+//   Own core 380 hp, 600 x 300 x 102 mm (23.62 x 11.81 x 4.016 in): face 11.81 x 4.016 = 47.43 >= 46.67 -> second, ahead of Bell 446.7.
 // Build 3, 800 hp, air-to-air, margin 1: Bell face 106.67 in². Passing: CSF 8054 (1100, 121.5), CSF 8055 (1400, 162), both only on the
 //   vertical-flow assumption; then the failing group by rating and volume: CSF 8068 (800, 486 cu in; 81 in², 25.67 in² short).
 //   MMINT-UM out (600 whp is its lower figure).
@@ -93,6 +98,13 @@ const { chromium } = require('playwright');
   const rec = await pg.evaluate(() => window.__tso.rec());
   ok(Math.abs(rec.odh - 63.5) < 1e-6 && Math.abs(rec.odc - 63.5) < 1e-6, 'build: recommended charge pipes 63.5 mm (2.5 in) OD hot and cold (' + rec.odh + ', ' + rec.odc + ')');
 
+  // Bell rows: figures and sources as read 2026-11-12
+  const bellR = await pg.evaluate(() => window.__tso.IC_LIB.filter(c => c.maker === 'Bell Intercoolers').map(c => ({ pn: c.pn, abc: c.bellABC, cfm: c.cfm, hp: c.hp, lb: c.lb, price: c.price, src: c.src, dp: c.dp, face: window.__tso.icFace(c).a, pub: window.__tso.icPubN(c) })));
+  const bellW = { A350097240: [[3.5, 9.7, 24], 455, 34, 'USD 496.00', '30005642'], A350130240: [[3.5, 13, 24], 609, 43, 'USD 626.00', '30005647'], A350143240: [[3.5, 14.3, 24], 670, 47, 'USD 678.00', '30005649'],
+    A350169240: [[3.5, 16.9, 24], 792, 54, 'USD 780.00', '30005653'], A300227240: [[3, 22.7, 24], 912, 62, 'USD 990.00', '30005302'], A350240240: [[3.5, 24, 24], 1125, 73, 'USD 1060.00', '30005664'], A350280240: [[3.5, 28, 24], 1312, 84, 'USD 1218.00', '30005670'] };
+  ok(bellR.length === 7 && bellR.every(r => { const w = bellW[r.pn]; return w && r.abc.join() === w[0].join() && r.cfm === w[1] && r.lb === w[2] && r.price === w[3] && r.src === 'https://bellintercoolers.com/i-' + w[4] + '-bar-and-plate-cores-air-cooled-peak-efficiency.html' &&
+    Math.abs(r.hp - +(w[1] / 1.5).toFixed(1)) < 1e-9 && Math.abs(r.face - w[0][0] * w[0][1]) < 1e-9 && Math.abs(r.dp.kPa - 6.894757) < 1e-9 && Math.abs(r.dp.kgmin - +(w[1] * 0.028316846592 * 101325 / (287.05 * 298.15)).toFixed(4)) < 1e-9; }),
+    'Bell rows: A x B x C, CFM, weight, price and item page as read; hp = CFM / 1.5; face A x B; 1 psi at the rated CFM (standard air, 1.1839 kg/m³)');
   // type not decided: one of each, and what decides
   await hp(350);
   ok(await pg.$('#tso-icrec-a2a') && await pg.$('#tso-icrec-w2a') && await pg.$('#tso-icrec-decide'), 'type not decided: an air-to-air and a water-to-air recommendation, and what decides between them');
@@ -101,19 +113,19 @@ const { chromium } = require('playwright');
 
   // build 1
   await setx('ictype', 'a2a');
-  let t = await top('a2a'); ok(t.join() === 'Garrett 703521-6003,Garrett 848054-6013,Garrett 848054-6037', 'build 1, 350 hp air-to-air, Bell first: ' + t.join(', '));
-  ok(await outN('a2a') === 3, 'build 1: three not recommended (300, 310, no rating)');
+  let t = await top('a2a'); ok(t.join() === 'Garrett 703521-6003,Bell Intercoolers A350143240,Garrett 848054-6013', 'build 1, 350 hp air-to-air, Bell first: ' + t.join(', '));
+  ok(await outN('a2a') === 4, 'build 1: four not recommended (300, 310, no rating, Bell A350097240 at 303 hp)');
   const n1 = await pg.$eval('#tso-icrec-a2a', e => e.innerText);
   ok(/1\.07 × the target per core/.test(n1) && /core only: weld end tanks/.test(n1) && /Bell’s 47 in² \(301 cm²\)/.test(n1), 'build 1 pick: ratio 375/350 = 1.07, tank flag for a core sold without tanks, Bell face 6 x 350/100/0.45 = 46.7 in² (301.1 cm²)');
   ok(await pg.$('#tso-icrec-little-a2a') && /common workshop practice, not sourced claims/.test(await pg.$eval('#tso-icrec-little-a2a', e => e.innerText)), 'Garrett publishes 1 of 6 items: “little published data — check it in hand” with the workshop checklist, labelled');
   await setx('icm', '1.2');
-  t = await top('a2a'); ok(t.join() === 'Garrett 848054-6037,Garrett 858893-6001,CSF 8068', 'build 1, margin 1.2 (Bell face 56 in²): ' + t.join(', '));
-  ok(await outN('a2a') === 5, 'build 1, margin 1.2: five not recommended');
+  t = await top('a2a'); ok(t.join() === 'Bell Intercoolers A350169240,Bell Intercoolers A300227240,Bell Intercoolers A350240240', 'build 1, margin 1.2 (Bell face 56 in²): ' + t.join(', '));
+  ok(await outN('a2a') === 7, 'build 1, margin 1.2: seven not recommended');
   await setx('icm', '1');
 
   // own core, recommended alongside the list: 380 hp, 63.5 mm necks -> second; 2 in necks -> out with the step loss
   for (const [k, v] of [['oName', 'Shop core A'], ['oL', '600'], ['oH', '300'], ['oW', '102'], ['oIn', '63.5'], ['oOut', '63.5'], ['oHp', '380']]) await setx(k, v);
-  t = await top('a2a'); ok(t.join() === 'Garrett 703521-6003,Your core Shop core A,Garrett 848054-6013', 'own core (380 hp, face 47.43 in²) ranks between 375 and 450: ' + t.join(', '));
+  t = await top('a2a'); ok(t.join() === 'Garrett 703521-6003,Your core Shop core A,Bell Intercoolers A350143240', 'own core (380 hp, face 47.43 in²) ranks between 375 and 446.7: ' + t.join(', '));
   await setx('oIn', '50.8');
   const o2 = await pg.$eval('#tso-icrec-out-a2a', e => e.textContent);
   ok(/Shop core A: inlet neck 50\.8 mm under the 63\.5 mm hot pipe \(a sudden step there loses [0-9.]+ (psi|kPa)/.test(o2), 'own core with 2 in necks: rejected, with the step loss shown');

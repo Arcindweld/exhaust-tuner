@@ -21307,9 +21307,33 @@ const TURBO_LIB=[
 // kg/min, air pressure drop kPa, air outlet temp ºC, heat rejection kW, water flow l/min, water pressure drop kPa, typical engine
 // power kW. Its energy balance checks: EC120 2.5 kg/min × cp 1004.7 J/kg K × (180 − 53.1) K = 5.31 kW against the printed 5.3 kW.
 const IC_SRC='https://www.garrettmotion.com/racing-and-performance/performance-catalog/intercoolers';
-const MISH='https://www.mishimoto.com/', CSFU='https://csfrace.com/product/intercooler-cores/';
+const MISH='https://www.mishimoto.com/', CSFU='https://csfrace.com/product/intercooler-cores/', CSFT='https://csfrace.com/pages/intercooler-core-size-table';
 const BOWU='https://lancingmarine.com/Uploaded/1/Documents/ProductData/Bowman/Charge-Air-Cooler-Brochure-G21.pdf';
 const icInMm=(a,b,c)=>[[a,+(a*25.4).toFixed(1)],[b,+(b*25.4).toFixed(1)],[c,+(c*25.4).toFixed(1)]];
+/* Bell Intercoolers (2026-11-12, pages the owner sent): air-cooled bar-and-plate cores from the maker's "Core Catalog Air Cooled"
+   (BELLC) and each core's item page (A, B, C, CFM, weight, price checked on the item page). Bell's "Core Dimension Guide"
+   (BELLG): "A (core thickness), B (core height) and C (core length)"; its air/air diagrams (horizontal and vertical flow) show
+   the charge air entering the A × B end and running along C, the ambient air through the B × C face; its liquid/air diagram
+   shows the charge entering the B × C face. Rating: "air flow, shown in cubic feet per minute (CFM, based on 1 psig pressure
+   loss across the intercooler core and a charge-air pressure of 10 psig)". Bell gives no horsepower; for the rating
+   comparison this page converts the CFM at 1.5 cfm per hp (Corky Bell, Maximum Boost, the rule the tab already uses; not
+   Bell Intercoolers' figure). The 1 psi at the rated CFM goes into the rated-drop inputs: Bell does not say whether that CFM
+   is standard or at the 10 psig charge pressure; taken as standard air (1.1839 kg/m³: 101.325 kPa, 25 °C), which gives the
+   higher drop at a given mass flow (read as actual cfm at 10 psig, the mass flow is 24.696/14.696 = 1.68 × higher and the
+   drop at a given mass flow 1.68² = 2.82 × lower). FAQ (BELLF): one-year warranty against workmanship failures; "Pressures up
+   to 15 psig are usually safe for all designs"; pressure loss "ought to be kept to less than 1.0 to 1.5 psi". The
+   liquid-cooled catalogue lists sizes and prices with no flow rating, so none of those cores is listed.
+   Ordered here as [C, B, A] = length (the charge-flow length), height, thickness, so the charge face is B × A. */
+const BELLC='https://bellintercoolers.com/p-37298-core-catalog-air-cooled.html', BELLG='https://bellintercoolers.com/p-37060-core-dimension-guide.html', BELLF='https://bellintercoolers.com/faq.html';
+const BELL_RHO=101325/(287.05*298.15);
+const bell=(pn,A,B,C,cfm,lb,usd,item)=>({maker:'Bell Intercoolers',pn,type:'a2a',hp:+(cfm/1.5).toFixed(1),cfm,model:'bar-and-plate core, air cooled (“Peak Efficiency”)',
+  dims:icInMm(C,B,A),bellABC:[A,B,C],mass:[+(lb*0.45359237).toFixed(2),null],lb,price:'USD '+usd,
+  dp:{kPa:6.894757,kgmin:+(cfm*0.028316846592*BELL_RHO).toFixed(4)},
+  hpBasis:'Bell’s rating: '+cfm+' CFM “based on 1 psig pressure loss across the intercooler core and a charge-air pressure of 10 psig”; no horsepower from Bell; '+(cfm/1.5).toFixed(0)+' hp here = CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp (Maximum Boost), this page’s conversion',
+  note:'Bell’s A × B × C = '+A+' × '+B+' × '+C+' in (thickness × height × length; “A (core thickness), B (core height) and C (core length)”), '+lb+' lb ('+(lb*0.45359237).toFixed(1)+' kg), USD '+usd+' (item page). The rated 1 psi drop is taken at standard air (Bell does not say standard or actual cfm; read as actual at 10 psig the drop at a given mass flow would be 2.82 × lower).',
+  src:'https://bellintercoolers.com/i-'+item+'-bar-and-plate-cores-air-cooled-peak-efficiency.html',srcName:'Bell Intercoolers (item page; catalogue and core dimension guide)',seen:'2026-11-12',
+  pub:{cons:'vacuum brazed aluminium bar and plate (“Built with the most advanced vacuum brazed aluminum alloy”)',tanks:'core only, no end tanks (a core; Bell sells tanks separately)',ptest:null,
+    boost:'FAQ: “Pressures up to 15 psig are usually safe for all designs” (103 kPa)',warranty:'one year against workmanship failures (FAQ)'}});
 const bowman=(pn,kw,m,dp,tho,q,wl,wdp,port)=>({maker:'EJ Bowman',pn,type:'w2a',hp:null,kw,L:null,H:null,W:null,model:'water-cooled charge air cooler (marine and land versions)',
   dimNote:'overall dimensions A to L are in the brochure’s drawing, not read here',water:'water connections BSP size '+port.replace(' in','')+' (the brochure’s thread designation in inches, not a bore)',
   dp:{kPa:dp,kgmin:m},point:{m_kgmin:m,thi:180,tho,cool_lpm:wl,tci:30,Q_kW:q,wdp_kPa:wdp,p_barg:1.75,coolant:'water'},
@@ -21434,7 +21458,7 @@ const IC_LIB=[
   {maker:'CSF',pn:'8085',type:'w2a',hp:1500,dims:icInMm(12,6,6),model:'air-to-water bar and plate core'},
   {maker:'CSF',pn:'8086',type:'w2a',hp:2000,dims:icInMm(12,12,6),model:'air-to-water bar and plate core'}
 ].map(c=>c.maker!=='CSF'?c:Object.assign({model:'bar and plate core',L:null,H:null,W:null,hpBasis:'CSF’s “HP Rating” (no basis given)',
-  note:'Length × height × width as CSF lists them, which one is the charge-flow direction is not stated; “Pressure Tested at 120psi” (827 kPa).',src:CSFU,srcName:'CSF',
+  note:'Length × height × width as CSF lists them (its intercooler core size table, '+CSFT+', gives the same sizes and marks 8053, 8054, 8055 and 8068 “Vertical Flow”); which dimension the charge flows along is not stated for the others; “Pressure Tested at 120psi” (827 kPa).',src:CSFU,srcName:'CSF',
   pub:{cons:'bar and plate, vacuum brazed (“Batch Brazed in CSF’s State-of-the-Art Digital Vacuum Brazing Oven”)',tanks:'core only, no end tanks (cast-tank assemblies to order, minimum 50)',ptest:'“Pressure Tested at 120psi” (827 kPa), each core',boost:null,warranty:null}},c)).concat([
   bowman('EC120-4073-3',50,2.5,2.1,53.1,5.3,30,4.0,'¾ in'),
   bowman('FC100-4074-2',90,4.3,3.0,56.7,9.1,50,6.3,'1 in'),
@@ -21442,6 +21466,14 @@ const IC_LIB=[
   bowman('GL140-4076-2',175,15.4,7.3,56.4,32.9,140,10.4,'1½ in'),
   bowman('GK190-4877-3',280,20.3,5.3,43.2,46.8,180,7.1,'2 in'),
   bowman('JK190-4078-3',365,30.1,7.4,41.5,70.3,270,7.8,'2½ in'),
+  // Bell air-cooled cores, a spread for 300-900 hp builds by CFM ÷ 1.5 (A, B, C in; CFM; lb; USD; item page id)
+  bell('A350097240',3.5,9.7,24,455,34.0,'496.00','30005642'),
+  bell('A350130240',3.5,13,24,609,43.0,'626.00','30005647'),
+  bell('A350143240',3.5,14.3,24,670,47.0,'678.00','30005649'),
+  bell('A350169240',3.5,16.9,24,792,54.0,'780.00','30005653'),
+  bell('A300227240',3,22.7,24,912,62.0,'990.00','30005302'),
+  bell('A350240240',3.5,24,24,1125,73.0,'1060.00','30005664'),
+  bell('A350280240',3.5,28,24,1312,84.0,'1218.00','30005670'),
   // m kg/s, eff %, tout °C, dp kPa: read from the maker's charts (see the comment above conflux); rated: the boundary conditions
   // printed under the charts (air in °C, air inlet pressure kPa absolute, EGW 25/75 in at 30 °C, coolant L/min and kg/s)
   conflux({pn:'100011',size:'4.5 in / 114 mm',kw:400,kwLo:null,over:[140,133,155],mass:[1.5,1.8],air:114.3,coolMm:19,coolIn:'¾',page:'PDF page 4 (printed 3)',
@@ -21533,7 +21565,8 @@ const icDimsIn=c=>c.L?[c.L[0],c.H[0],c.W[0]]:c.dims?c.dims.map(x=>x[0]):null;
 function icFace(c){
   const D=icDimsIn(c); if(!D) return null;
   if(c.own) return {a:D[1]*D[2],why:'height × width (your length is the charge-flow length)'};
-  if(c.maker==='Garrett') return {a:D[1]*D[2],why:'height (no flow) × width (cold flow): Garrett labels the length as the hot, charge, flow'};
+  if(c.maker==='Garrett') return {a:D[1]*D[2],why:'height (no flow) × width (cold flow): Garrett labels the length as the hot, charge, flow (its core table; also its “Air-to-Air / Air-to-Liquid Intercooler Cores” sell sheet, 2023, supplied by the owner: “Length/Hot Flow”, “Height/No Flow”, “Width/Cold Flow”)'};
+  if(c.maker==='Bell Intercoolers') return {a:c.bellABC[0]*c.bellABC[1],why:'A × B (thickness × height): Bell’s core dimension guide shows the charge air entering the A × B end and running along C, in both horizontal and vertical flow'};
   if(c.maker==='Mishimoto') return {a:D[1]*D[2],why:'core height × thickness: Mishimoto’s overall length is longer than its core length, so the tanks sit on the length ends'};
   if(/vertical flow/.test(c.model)) return {a:D[0]*D[2],assumed:true,why:'length × width: '+c.maker+' lists the core as vertical flow, so the charge is taken to run along the height (this page’s assumption)'};
   return {a:D[1]*D[2],assumed:true,why:'height × width: '+c.maker+' does not say which way the charge flows, so its first dimension, the length (the longest on every row), is taken as the charge-flow length (this page’s assumption)'};
@@ -21883,8 +21916,8 @@ function tsOptionsSection(ind,p){
   g+='<div class="tblwrap"><table id="tso-ics"><thead><tr><th>Core</th><th>Core size as the maker labels it</th><th>Maker’s rating</th><th>Flow, drop, tanks, ports</th><th>What the maker publishes</th><th>Against this build</th></tr></thead><tbody>'+
     list.map(([c,i])=>{ const v=icV(c);
       const D=c.L?[c.L,c.H,c.W]:c.dims, d=x=>imp?x[0].toFixed(1)+' in':x[1]+' mm';
-      const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+(c.dimOverall?'; overall, as the maker publishes it':'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
-      const rate=c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
+      const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+(c.bellABC?'; length (C, the charge flow) × height (B) × thickness (A), Bell’s C × B × A':'')+(c.dimOverall?'; overall, as the maker publishes it':'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
+      const rate=c.cfm?c.cfm+' CFM at 1 psi (6.9 kPa) loss and 10 psig (69 kPa) charge pressure; '+Math.round(c.hp)+' hp ('+Math.round(c.hp*0.7457)+' kW) by 1.5 cfm per hp (this page’s conversion)':c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
       const P=c.point, fx=[];
       if(c.inD&&!c.barb) fx.push('end tanks '+inD(c.inD)+' in / '+inD(c.outD)+' out');
       if(P) fx.push((c.own?'your point: ':'maker’s point: ')+fl(P.m_kgmin/60)+' charge, '+tD(P.thi)+' in, '+tD(P.tho)+' out, '+(P.Q_kW!=null?kw(P.Q_kW*1000)+' rejected, ':'')+(P.cool_lpm!=null?'water '+lmin(P.cool_lpm):'outside air '+fl(P.cool_lbmin/LBMIN))+' at '+tD(P.tci));
@@ -21896,7 +21929,7 @@ function tsOptionsSection(ind,p){
       else if(c.water) fx.push(esc(c.water));
       const pubC=c.own?'your own entry':icPubList(c).map(([k,x])=>x?'<b>'+k+'</b>: '+esc(x):k+': not published').join('; ')+(c.pub&&c.pub.tests?'; <b>testing</b>: '+esc(c.pub.tests)+'; <b>quality</b>: '+esc(c.pub.quality)+'; <b>lead time</b>: '+esc(c.pub.lead):'');
       return '<tr data-i="'+i+'" data-pub="'+(c.own?'':icPubN(c))+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+(TSO.ictype?'':(c.type==='w2a'?'water-to-air; ':'air-to-air; '))+esc(c.model)+'</span></td><td>'+dims+'</td><td>'+rate+'</td><td>'+(fx.length?fx.join('; '):'not published')+'</td><td class="cap">'+pubC+'</td><td>'+v+'</td></tr>'; }).join('')+'</tbody></table></div>';
-  g+='<p class="cap" id="tso-ic-cap">Sources, read 2026-11-12, makers’ own pages: '+link(IC_SRC,'Garrett intercooler cores')+' (“Supported Horsepower”, “for normal operating conditions”), '+link(MISH,'Mishimoto')+' (MMINT-UZ, MMINT-UG, MMINT-US, MMINT-UM, MMINT-UR, MMUIC-W3, MMUIC-W4 product pages), '+link(CSFU,'CSF bar and plate cores')+', the '+link(BOWU,'EJ Bowman charge air cooler brochure')+' (a copy on a dealer’s site) and the Conflux Technology “Barrel Intercoolers” brochure, version 1.0 (2026), supplied by the owner ('+link(CFX_SRC,'confluxtechnology.com')+'). Inches-only makers are converted to mm here. “What the maker publishes” lists only what the maker’s own page states (construction, end tanks, pressure drop, a thermal test point, a pressure test or rated boost, warranty); “not published” means that page does not say. It is not a quality rating: this page has no data to rate build quality. A maker’s hp rating is its own claim under its own assumptions; “far larger” is over twice the target, this page’s rule of thumb. Bowman publishes one thermal point per cooler (charge outlet temperature and heat rejection at a stated charge flow, water flow and inlet temperatures); Conflux publishes curves of effectiveness, charge outlet temperature and air pressure drop against charge flow at stated test conditions (read here from its charts). Picking either fills the cooling-capacity inputs below from it. Searched and not listed (again on 2026-11-12): Vibrant Performance (only dealer listings and a dealer-hosted sheet with no named publisher and unlabelled columns), Treadstone (dealer listings and a marketplace store only), Bell Intercoolers, PWR, Wagner Tuning, Frozenboost and Spearco/Turbonetics (only dealer listings found), Laminova, AFCO and Chargecooler (no maker data sheet found); Garrett’s intercooler technology article gives only one car’s intake temperatures, no core data.</p>';
+  g+='<p class="cap" id="tso-ic-cap">Sources, read 2026-11-12, makers’ own pages: '+link(IC_SRC,'Garrett intercooler cores')+' (“Supported Horsepower”, “for normal operating conditions”), '+link(MISH,'Mishimoto')+' (MMINT-UZ, MMINT-UG, MMINT-US, MMINT-UM, MMINT-UR, MMUIC-W3, MMUIC-W4 product pages), '+link(CSFU,'CSF bar and plate cores')+' (flow orientation from its '+link(CSFT,'core size table')+'), '+link(BELLC,'Bell Intercoolers’ air-cooled core catalogue')+' with each core’s item page, its '+link(BELLG,'core dimension guide')+' and '+link(BELLF,'FAQ')+' (Bell rates a core in CFM at 1 psi loss and 10 psig charge pressure, with no horsepower: the hp here is CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp, this page’s conversion; its liquid-cooled catalogue gives no flow rating, so those cores are not listed), the '+link(BOWU,'EJ Bowman charge air cooler brochure')+' (a copy on a dealer’s site) and the Conflux Technology “Barrel Intercoolers” brochure, version 1.0 (2026), supplied by the owner ('+link(CFX_SRC,'confluxtechnology.com')+'). Inches-only makers are converted to mm here. “What the maker publishes” lists only what the maker’s own page states (construction, end tanks, pressure drop, a thermal test point, a pressure test or rated boost, warranty); “not published” means that page does not say. It is not a quality rating: this page has no data to rate build quality. A maker’s hp rating is its own claim under its own assumptions; “far larger” is over twice the target, this page’s rule of thumb. Bowman publishes one thermal point per cooler (charge outlet temperature and heat rejection at a stated charge flow, water flow and inlet temperatures); Conflux publishes curves of effectiveness, charge outlet temperature and air pressure drop against charge flow at stated test conditions (read here from its charts). Picking either fills the cooling-capacity inputs below from it. Searched and not listed (again on 2026-11-12): Vibrant Performance (only dealer listings and a dealer-hosted sheet with no named publisher and unlabelled columns), Treadstone (dealer listings and a marketplace store only), PWR, Wagner Tuning, Frozenboost and Spearco/Turbonetics (only dealer listings found), Laminova, AFCO and Chargecooler (no maker data sheet found); Garrett’s intercooler technology article gives only one car’s intake temperatures, no core data.</p>';
   // the makers' curves (Conflux), each with this build's point
   const cfxRows=list.filter(([c])=>c.curve);
   if(cfxRows.length){ const opIn={m:mc,cool:TSO.cool,wf:F('wf'),thi:R.t2,tci:Number.isFinite(F('wTi'))?F('wTi'):p.tamb,pAbs:R.P2}; TG.cfxOps={};

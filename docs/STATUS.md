@@ -1567,3 +1567,25 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   K24 + PTE 5862, water-to-air: 450 hp (29.541 psi, 0.4208 kg/s) Conflux 100012, EJ Bowman JK190, Conflux 100013; 100011
   just short (72.0% against 75%, passes with coolant at about 18 °C); 600 hp (46.945 psi, 0.5863 kg/s) Conflux 100012,
   100013, then the rating-only Garrett 717874-6008. icrec_ui.js and conflux_ui.js expectations recomputed by hand.
+
+## 2026-11-12: Bell Intercoolers cores; CSF and Garrett orientation sources (Intake tab)
+
+- Bell Intercoolers' own pages (read 2026-11-12): the core dimension guide (p-37060: "A (core thickness), B (core height) and
+  C (core length)"; its air/air diagrams, horizontal and vertical flow, show the charge entering the A × B end and running
+  along C; the liquid/air diagram shows the charge entering the B × C face), the air-cooled core catalogue (p-37298: CFM
+  "based on 1 psig pressure loss across the intercooler core and a charge-air pressure of 10 psig") and each core's item
+  page (A, B, C, CFM, weight, price), and the FAQ (one-year warranty; "Pressures up to 15 psig are usually safe for all
+  designs"; loss "less than 1.0 to 1.5 psi").
+- Seven air-cooled cores for 300-900 hp builds (3.5 or 3 in thick, 24 in charge length): A350097240 455 CFM, A350130240 609,
+  A350143240 670, A350169240 792, A300227240 912, A350240240 1125, A350280240 1312. Bell gives no horsepower: the rating
+  comparison uses CFM ÷ 1.5 (Corky Bell's 1.5 cfm per hp from Maximum Boost, the rule the tab already uses; said in each
+  row). The 1 psi at the rated CFM fills the rated-drop inputs, taken at standard air (1.1839 kg/m³); Bell does not say
+  standard or actual cfm (read as actual at 10 psig, the drop at a given mass flow would be 2.82 × lower). Charge face
+  A × B. The liquid-cooled catalogue lists no flow rating, so no liquid core is listed. Bell leaves the "not listed" caption.
+- CSF's flow orientation now cites its intercooler core size table (csfrace.com/pages/intercooler-core-size-table, checked
+  by the coordinator against the rows: sizes match; 8053/8054/8055/8068 "Vertical Flow"); the charge-flow dimension of the
+  other CSF cores stays an assumption. Garrett's charge-face definition also cites its "Air-to-Air / Air-to-Liquid
+  Intercooler Cores" sell sheet (2023, supplied by the owner; not committed): "Length/Hot Flow", "Height/No Flow",
+  "Width/Cold Flow".
+- Tests: icrec_ui.js (Bell rows' figures and URLs; build 1 orders with the Bell rows, face and rating arithmetic in the
+  comments), turbolib_ui.js (77 rows: 57 air-to-air with 7 Bell).
