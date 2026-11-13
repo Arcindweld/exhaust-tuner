@@ -1,5 +1,5 @@
 {
- "note": "written by web/tests/turbosim_ui.js with CAPTURE=1: the page's plan for the K24A2 + PT5862 build and its run",
+ "note": "written by web/tests/turbosim_ui.js with CAPTURE=1: the plan the page's run used for the K24A2 + PT5862 build, and the run",
  "plan": {
   "ind": "turbo",
   "turbo": true,
