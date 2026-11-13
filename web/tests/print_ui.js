@@ -8,6 +8,8 @@ const path = require('path');
   const badText = t => /\bNaN\b|\bundefined\b|\[object|null in/.test(t);
   for (const vp of [{ width: 1280, height: 900, n: 'desk' }, { width: 390, height: 844, n: 'phone' }]) {
   const pg = await b.newPage({ viewport: vp }); const errs=[]; pg.on('pageerror', e => errs.push(e.message));
+  // pg.$eval / pg.$$eval read in one call after the page has stopped re-rendering (tests/settle.js; audit F1)
+  require('./settle').reads(pg);
   await pg.goto('file://' + path.resolve(PAGE));
   await pg.evaluate(() => { window.__sent = []; window.adsk = { fusionSendData: (a, d) => { window.__sent.push([a, d]); return Promise.resolve(JSON.stringify({ ok: true, msg: 'stub', route_ok: true, items: [] })); } }; });
   await pg.waitForTimeout(600);

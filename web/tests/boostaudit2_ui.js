@@ -42,7 +42,15 @@ const { chromium } = require('playwright');
   [36.4247, 33.6228, 28.0190].forEach((x, i) => near(M.v[i], x, 1e-6, 'M1 asymmetric three mounts, vertical load: mount ' + (i + 1) + ' (statics), N'));
   near(M.s[0], 838.726645, 1e-8, 'M1 25 g sideways, mass 80 mm up: mount 1 side force (rigid body on equal springs), N');
   near(M.s[1], 355.8413, 1e-8, 'M1 the same: mount 1 vertical, N');
-  near(M.fw, 134.3146, 1e-6, 'M3 strap root von Mises, forward 25 g, MPa'); near(M.sd, 42.6303, 1e-6, 'M3 side 25 g with a 20 mm offset (torsion), MPa');
+  near(M.fw, 134.3146, 1e-6, 'M3 strap root von Mises, forward 25 g, MPa'); near(M.sd, 44.697311, 1e-6, 'M3 side 25 g with a 20 mm offset (torsion), MPa');
+  // M3 torsion (2026-11-13): Saint-Venant's series for each rectangle in place of the thin-wall b t³/3. Hand (tools/validation/
+  // boost/mounts.py, its own series and Roark's closed forms, Young and Budynas 7th ed. ch. 10 p. 401 as quoted by amesweb.info):
+  // strap 54 × 4.7498 mm, side case: tau 24.879544 MPa (series), 24.892393 (Roark), 23.639413 (thin wall, the page before);
+  // von Mises 44.697311 (series; Roark 44.718768, 0.05% apart; was 42.6303). Coefficients J = beta b t³, tau = T/(alpha b t²):
+  // b/t 1: beta 0.14058, alpha 0.20817; 2: 0.22868, 0.24588; 10: 0.31233, 0.31233 (series); Roark 0.14083 0.20785,
+  // 0.22888 0.24547, 0.31233 0.31208
+  { const tc = await pg.evaluate(() => [1, 2, 10].map(r => { const T = window.__mounts.mtRectTor(r, 1); return [T.J / r, T.J / (T.k * r)]; }));
+    [[0.14058, 0.20817], [0.22868, 0.24588], [0.31233, 0.31233]].forEach(([be, al], i) => { near(tc[i][0], be, 5e-5, 'M3 torsion beta at b/t ' + [1, 2, 10][i]); near(tc[i][1], al, 5e-5, 'M3 torsion alpha at b/t ' + [1, 2, 10][i]); }); }
   near(M.bc.T, 21228, 1e-9, 'M5 M8 8.8 proof load, N'); near(M.bc.V, 15763.70, 1e-6, 'M5 M8 8.8 shear on the minor area, N');
   near(M.wg, 106.4523, 1e-6, 'M6 fillet welds on both faces of the strap, line method, N/mm');
   const set = (id, v) => pg.evaluate(([id, v]) => window.__mounts.set(id, v), [id, v]);

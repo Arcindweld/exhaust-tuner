@@ -66,6 +66,8 @@ const { chromium } = require('playwright');
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const near = (a, w, tol, m) => ok(Number.isFinite(a) && Math.abs(a - w) <= tol * Math.abs(w), m + ': page ' + (Number.isFinite(a) ? +a.toPrecision(7) : a) + ', hand ' + w);
   const pg = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs = []; pg.on('pageerror', e => errs.push(e.message));
+  // pg.$eval / pg.$$eval read in one call after the page has stopped re-rendering (tests/settle.js; audit F1)
+  require('./settle').reads(pg);
   await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900);
   const TL = await pg.evaluate(() => window.__tso.TURBO_LIB);
   const row = re => TL.find(t => re.test(t.maker + ' ' + t.model)), i5862 = TL.findIndex(t => /5862/.test(t.model));

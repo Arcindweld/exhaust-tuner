@@ -153,6 +153,23 @@ const path = require('path');
   ok(!r.err && /100012/.test(r.part.name) && near(r.part.m, 2.6, 1e-9) && near(r.part.liq, 0.4, 1e-9) && r.shares.every(s => near(s, 12.7486, 1e-4)) && near(-r.cases.find(c => c.name === 'vertical down').F[0][1], 331.465, 1e-4),
     'D: Conflux 100012, 2.6 kg wet (0.4 kg coolant), 12.75 N standing and 331.5 N design on each of two brackets');
   ok(near(r.part.L, 160) && near(r.part.H, 150) && near(r.part.W, 190), 'D: the maker’s overall size 160 x 150 x 190 mm');
+  // the weight's source is said (2026-11-13): Conflux's brochure page
+  const allN = r => (r.notes || []).concat((r.part && r.part.notes) || []).map(n => n.t).join(' | ');
+  ok(/Weight from the maker, in place of the 7\.00 kg \(15\.4 lb\) typed: 2\.20 kg \(4\.85 lb\) dry, 2\.60 kg \(5\.73 lb\) wet\. Source: Conflux Technology, “Barrel Intercoolers” brochure[^|]*PDF page 5 \(printed 4\)/.test(allN(r)), 'D: the note gives the maker’s dry and wet weights in place of the typed 7 kg, and where they are from');
+  // a Bell core (one published weight, in lb, no wet weight): A350097240, 34.0 lb x 0.45359237 = 15.4221 kg, stored to 0.01 kg
+  // = 15.42 kg; no liquid (fluid none); standing 15.42 x 9.80665 / 2 = 75.6093 N on each of the two brackets. Before
+  // 2026-11-13 the missing wet weight threw (mtKg(null)) and the designer showed nothing
+  await p.evaluate(() => { const T = window.__tso, i = T.IC_LIB.findIndex(c => c.pn === 'A350097240'); T.TSO.ic = String(i); T.TSO.ictype = 'a2a'; });
+  await sel('mt-fluid', 'none'); await set('mt-mass', 7); await p.waitForTimeout(200); r = await R();
+  ok(!r.err && /A350097240/.test(r.part.name) && near(r.part.m, 15.42, 1e-9) && !(r.part.liq > 0) && r.shares.every(s => near(s, 75.6093, 1e-5)),
+    'D: Bell A350097240 picked: its published 34.0 lb (15.42 kg), 75.61 N standing on each of two brackets (' + (r.part && r.part.m) + ' kg)');
+  ok(/Weight from the maker, in place of the 7\.00 kg \(15\.4 lb\) typed: 34\.0 lb \(15\.42 kg\) as published, no filled weight published\. Source: Bell Intercoolers/.test(allN(r)), 'D: Bell: the note says the weight is Bell’s, in lb as published, and that no filled weight is published');
+  // a Garrett core: no weight published, the typed 7 kg stays and the note says so
+  await p.evaluate(() => { const T = window.__tso, i = T.IC_LIB.findIndex(c => c.maker === 'Garrett' && !c.mass); T.TSO.ic = String(i); T.TSO.ictype = window.__tso.IC_LIB[i].type; });
+  await p.waitForTimeout(50); await set('mt-mass', 7); await p.waitForTimeout(200); r = await R();
+  ok(!r.err && /^Garrett/.test(r.part.name) && near(r.part.m, 7, 1e-9) && /No weight is published for this core \(Garrett[^)]*\): the 7\.00 kg \(15\.4 lb\) typed is used \(weigh the core\)/.test(allN(r)), 'D: a Garrett core: no published weight, the typed 7 kg is used and the note says so');
+  await p.evaluate(() => { const T = window.__tso, i = T.IC_LIB.findIndex(c => c.pn === '100012'); T.TSO.ic = String(i); T.TSO.ictype = 'w2a'; });
+  await set('mt-mass', 7); await p.waitForTimeout(200); r = await R();
   ok(r.notes.some(n => /one line/.test(n.t)) || true, 'D: two mounts: the turn about their line is reported when the load has one');
   // printed brackets: too hot at the 150 deg C typed, allowed at 50 deg C with the notes' safety factor of 3
   await sel('mt-mat', 'print'); await p.waitForTimeout(150);

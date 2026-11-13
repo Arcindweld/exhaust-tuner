@@ -42,6 +42,7 @@ wasm32-unknown-unknown`) for the Rust parts; what is missing is skipped and says
 python3 tools/run_all_tests.py                 # everything, one test at a time (30-45 min); -j 2 runs two at a time
 python3 tools/run_all_tests.py --list          # the plan: every test, its folder and command line
 python3 tools/run_all_tests.py --only 'wam|cfd' --no-build      # some of them, with the programs as built
+python3 tools/run_all_tests.py --skip-slow     # a quick local run: leaves out test_header_uel and test_native (minutes each)
 EXHAUST_TUNER_OPENWAM=/path/to/OpenWAM python3 tools/run_all_tests.py   # with the OpenWAM tests too
 ```
 
@@ -59,6 +60,12 @@ when nothing failed and every skip was expected.
   no-openfoam ...`); any other skip fails the run, so a test that stops running is noticed.
 - `tests/flaky.txt` lists the tests run a second time after a failure, each with its reason (empty: a timing-sensitive
   test is fixed by waiting on its condition instead).
+- `--skip-slow` leaves out the tests in `SLOW` in `tools/run_all_tests.py` (test_header_uel, 230-420 s here, and
+  test_native: the router runs to its node and iteration limits with no clock limit, so they are deterministic but long);
+  the table's footer names them as not run. It is for quick local runs only: CI and a plain run include them.
+- Page tests that read the page right after changing an input use `web/tests/settle.js`: `reads(page)` makes
+  `page.$eval` / `$$eval` one call that first waits until the page has stopped re-rendering (`window.__renderCount`,
+  bumped by every render), so a read never lands on a node a re-render has just replaced.
 - `.github/workflows/tests.yml` runs it on every push and pull request, in shards balanced on `tools/test_timings.json`
   (refresh with `--write-timings`), with the table in the job summary.
 
