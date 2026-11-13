@@ -59,7 +59,6 @@ L2 = two['lengths']
 print('divided:', two['msg'], ['%.3f' % x for x in L2])
 ok(two['ok'] and len(L2) == 4 and max(abs(x - TGT) for x in L2) <= 0.05 + 1e-9, 'divided: four runners at 76.2 cm, two scrolls')
 bends = [a for j in two['jobs'] for r in j['res']['primaries'] for a in (r.get('bend_angles') or [])]
-ok(two['ok'] and len(L2) == 4 and max(abs(x - 38.0) for x in L2) <= 0.05 + 1e-9, 'divided: four runners at 38 cm, two scrolls')
 ok(bends and max(bends) <= 90.5, 'weld elbows: no bend over 90 deg (the router\'s 0.5 deg tolerance) (largest %.1f)' % (max(bends) if bends else -1))
 ok(two['jobs'][0]['spec']['tubes'] is two['jobs'][1]['spec']['tubes'], 'both scrolls share one TubeSet, so their runners keep clear of each other')
 # tube to tube between the scrolls, brute force away from the ends

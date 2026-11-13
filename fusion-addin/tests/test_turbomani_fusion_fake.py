@@ -32,7 +32,7 @@ def main():
     CT._app = types.SimpleNamespace(activeProduct=None)
     fx = os.path.join(HERE, '..', '..', 'web', 'tests', 'fixtures', 'turbomani_payload.json')
     page = json.load(open(fx))
-    need = ['mode', 'od_mm', 'wall_mm', 'clr_mm', 'target_mm', 'gap_mm', 'merge_len_mm', 'collector_len_mm', 'collector_out_mm', 'gate', 'scrolls', 'max_bend_deg']
+    need = ['mode', 'ports', 'od_mm', 'wall_mm', 'clr_mm', 'target_mm', 'gap_mm', 'merge_len_mm', 'collector_len_mm', 'collector_out_mm', 'gate', 'scrolls', 'max_bend_deg']
     ok(page.get('mode') == 'turbomani' and all(k in page for k in need), 'the page’s payload carries what act_route reads: ' + ', '.join(k for k in need if k not in page))
     ok(abs(page['od_mm'] - 47.625) < 1e-9 and abs(page['clr_mm'] - 47.625) < 1e-9 and abs(page['target_mm'] - 193.86835) < 1e-4, 'the K24 case: 1.875 in tube, the tightest stocked 1 7/8 in radius, 193.87 mm runners')
     head = F.Mesh('Head scan', *T.box_mesh((-6, -10, -15), (0, 50, 15), 12))
@@ -46,7 +46,7 @@ def main():
     data = dict(page, od_mm=41.28, wall_mm=1.651, clr_mm=1.5 * 41.28, target_mm=762.0, gap_mm=12.7, time_s=1e9)
     F.select(ports[:2] + [flange])
     r = F.call('route', data)
-    ok(not r.get('ok') and 'Turbo manifold' in (r.get('msg') or ''), 'two ports and a flange for a four-port manifold: ' + (r.get('msg') or '')[:160])
+    ok(not r.get('ok') and 'select the 4 port markers' in (r.get('msg') or '') and '3 are selected' in (r.get('msg') or ''), 'two ports and a flange for a four-port manifold: ' + (r.get('msg') or '')[:160])
     del F.BUILT[:]
     del MERGES[:]
     F.select(ports + [flange])

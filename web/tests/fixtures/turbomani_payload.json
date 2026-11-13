@@ -1,6 +1,7 @@
 {
  "mode": "turbomani",
  "title": "Turbo manifold",
+ "ports": 4,
  "od_mm": 47.625,
  "wall_mm": 1.651,
  "clr_mm": 47.625,

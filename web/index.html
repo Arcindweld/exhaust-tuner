@@ -24194,7 +24194,7 @@ function mfdCutHtml(X,o){
 // Fusion: the header router with the turbo manifold's settings (fusion-addin/turbomani.py; act_route mode 'turbomani')
 function mfdFxPayload(X,o){
   const C=X.c, W=TS_PLACE&&TS_PLACE.wg, M0=X.LY.mf[0], idx=c=>M0.cyls.indexOf(c);
-  return {mode:'turbomani',title:'Turbo manifold',od_mm:C.od,wall_mm:C.wall,clr_mm:X.R,target_mm:X.L>0?X.L:null,gap_mm:CR_UI.hot_gap,gap_tt_mm:3.175,
+  return {mode:'turbomani',title:'Turbo manifold',ports:M0.cyls.length,od_mm:C.od,wall_mm:C.wall,clr_mm:X.R,target_mm:X.L>0?X.L:null,gap_mm:CR_UI.hot_gap,gap_tt_mm:3.175,
     max_bend_deg:C.kind==='pipe'?90:180,elbows:C.kind==='pipe',merge_len_mm:mfdMergeLen(C.id*Math.sqrt(X.scr[0].length),X.dcol),collector_len_mm:o.colL,
     collector_out_mm:X.dcol+2*C.wall,scrolls:o.mani==='div'&&X.scr.length>1?X.scr.map(g=>g.map(idx)):null,
     gate:W&&W.type==='ext'&&W.pick?{bore_mm:W.pick,lo_mm:Math.max(0,W.lo),hi_mm:W.hi}:null,time_s:40};

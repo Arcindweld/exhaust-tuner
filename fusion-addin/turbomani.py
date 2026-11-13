@@ -45,6 +45,11 @@ def groups(data, nports):
 
 def check_markers(data, nmarkers):
     n_fl = len(data.get('scrolls') or [0])
+    n_port = int(data.get('ports') or 0)
+    if n_port and nmarkers != n_port + n_fl:
+        raise ValueError('Turbo manifold: select the %d port markers in cylinder order, then %s at the turbine inlet flange '
+                         '(drawn from the centre into the turbine) last: %d markers in all, %d are selected.' % (
+                             n_port, 'one marker for each of the %d scrolls' % n_fl if n_fl > 1 else 'one marker', n_port + n_fl, nmarkers))
     if nmarkers < n_fl + 2:
         raise ValueError('Turbo manifold: select a marker at each exhaust port (in cylinder order), then %s at the turbine '
                          'inlet flange, drawn from the centre into the turbine.' % ('one marker for each scroll' if n_fl > 1 else 'one marker'))

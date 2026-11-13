@@ -22,7 +22,7 @@ import adsk.fusion
 
 _DONE = []
 HEAD = ((-6, -10, -15), (0, 40, 15))
-PAYLOAD = {'mode': 'turbomani', 'title': 'Turbo manifold', 'od_mm': 47.625, 'wall_mm': 1.651, 'clr_mm': 71.4375, 'target_mm': 380.0,
+PAYLOAD = {'mode': 'turbomani', 'title': 'Turbo manifold', 'ports': 4, 'od_mm': 47.625, 'wall_mm': 1.651, 'clr_mm': 71.4375, 'target_mm': 380.0,
            'gap_mm': 12.7, 'gap_tt_mm': 3.175, 'max_bend_deg': 180, 'elbows': False, 'merge_len_mm': 85.6, 'collector_len_mm': 152.4,
            'collector_out_mm': 61.76, 'scrolls': None, 'gate': {'bore_mm': 38.0, 'lo_mm': 27.0, 'hi_mm': 126.0}, 'time_s': 60}
 
