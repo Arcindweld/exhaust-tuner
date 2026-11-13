@@ -19,4 +19,5 @@ Status:
 - [x] NA checks: kat 66 identical json, wave_wasm QUICK all pass, wavegas 121 pass, wavekat pass
 - [x] closure driver turboSimLib in page (JS==Rust, scratch t2.js)
 - [x] waveturbo_ui (16 pass), wave_wasm turbo jobs pass, wasm embedded (rebuilt after tail-bin change!), turbosim_ui 21 pass, K24 page run captured results/turbo_k24_page.json
-- [ ] turbo_k24.js (reproduce + sensitivities), docs part 5 E, STATUS, full suite, delete PROGRESS
+- [x] turbo_k24.js, docs part 5, STATUS
+- [ ] full suite (web,fusion,parity --no-build -j 2; rust et_wave only: host build needs 1.2 GB disk), delete PROGRESS
