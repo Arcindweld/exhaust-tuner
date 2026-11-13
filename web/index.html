@@ -23985,12 +23985,12 @@ function mfdCalc(o){
   const C=c||rec.cd; out.c=C; const R=o.clr>0?o.clr:C.clrs[0]; out.R=R; out.rd=R/C.id;
   // Humphries: the valve's geometric area at full lift (curtain pi D L, the seat pi D²/4 once L >= D/4)
   if(o.vEx>0&&o.lift>0){ out.valveA=Math.min(Math.PI*o.vEx*o.lift,Math.PI*o.vEx*o.vEx/4); }
-  // log: Allard's 2 to 2.5 x one port's area
-  if(o.mani==='log'){ out.log={lo:Math.sqrt(4*2*Ap/Math.PI),hi:Math.sqrt(4*2.5*Ap/Math.PI)}; out.log.pick=o.cands.filter(cd=>A(cd.id)>=2*Ap-1e-9&&A(cd.id)<=2.5*Ap+1e-9);
+  // log: Allard's 2 to 2.5 x one port's area (bores in mm, Ap in m²)
+  if(o.mani==='log'){ out.log={lo:1000*Math.sqrt(4*2*Ap/Math.PI),hi:1000*Math.sqrt(4*2.5*Ap/Math.PI)}; out.log.pick=o.cands.filter(cd=>A(cd.id)>=2*Ap-1e-9&&A(cd.id)<=2.5*Ap+1e-9);
     const dl=out.log.pick.length?out.log.pick[0].id:out.log.lo, s=xSt(o.me,A(dl),o.p3,T0); out.log.d=dl; out.log.v=s.v; out.log.M=s.M; }
   // lengths: ports along the head, the merge in the middle of the manifold's ports plus the offset
   out.len=null;
-  if(o.sp>0&&!M.cross){ const bank=M.bank>=0&&LY.two?LY.banks[M.bank].slice().sort((a,b)=>a-b):M.cyls, xs=M.cyls.map(cy=>bank.indexOf(cy)*o.sp);
+  if(o.sp>0&&!M.cross&&o.mani!=='log'){ const bank=M.bank>=0&&LY.two?LY.banks[M.bank].slice().sort((a,b)=>a-b):M.cyls, xs=M.cyls.map(cy=>bank.indexOf(cy)*o.sp);
     const xc=(Math.min(...xs)+Math.max(...xs))/2+(o.off||0), per=M.cyls.map((cy,i)=>({cy,y:xs[i]-xc,S:mfdSmin(xs[i]-xc,R)}));
     const far=per.reduce((a,b)=>b.S.L>a.S.L?b:a,per[0]); per.forEach(q=>{ q.extra=far.S.L-q.S.L; });
     out.len={per,Leq:far.S.L,Z:far.S.Z,th:far.S.th,far,xc,span:Math.max(...xs)-Math.min(...xs),stockL:C.clrs.map(r=>({R:r,L:Math.max(...M.cyls.map((cy,i)=>mfdSmin(xs[i]-xc,r).L))}))}; }
@@ -24023,7 +24023,7 @@ function mfdCalc(o){
     out.march=run(mc,mr); out.march.m=mc;
     if(out.k){ const kk=run(mc*out.k,mr*out.k); out.marchK={dp:kk.dp,dp0:kk.dp0,choke:kk.choke}; } }
   // volume between the valves and the turbine, one manifold
-  if(L>0){ const n=nPer, r1=dcol/2, r2=C.id*Math.sqrt(scr[0].length)/2, lm=mfdMergeLen(2*r1,2*r2);
+  if(L>0&&o.mani!=='log'){ const n=nPer, r1=dcol/2, r2=C.id*Math.sqrt(scr[0].length)/2, lm=mfdMergeLen(2*r1,2*r2);
     const Vr=n*A(C.id)*L/1000, Vm=nS*Math.PI*lm*(r1*r1+r1*r2+r2*r2)/3/1e9, Vc=nS*A(dcol)*o.colL/1000;
     out.vol={Vr,Vm,Vc,V:Vr+Vm+Vc,mergeL:lm,cyl:o.disp/1e6/LY.N,eng:o.disp/1e6}; }
   // heat: the steel along a runner (calcSkin), both CAFs; growth for 304, 321 and the chosen material
@@ -24073,7 +24073,7 @@ function mfdSection(ind,p){
   const gD=mm=>imp?(mm/MM).toFixed(3)+' in ('+mm.toFixed(2)+' mm)':mm.toFixed(2)+' mm ('+(mm/MM).toFixed(3)+' in)', wD=gD;
   const volD=m3=>imp?(m3*61023.74).toFixed(0)+' cu in ('+(m3*1000).toFixed(2)+' L)':(m3*1000).toFixed(2)+' L ('+(m3*61023.74).toFixed(0)+' cu in)';
   const L_=(u,t)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>';
-  const head='<p class="cap" style="margin-top:0">From the head flange to the turbine inlet flange, with the wastegate take-off: layout and pairing from the firing order, the runner size against the sources, lengths, the collector and flange, the pressure lost, the volume, the heat growth and the support. The gas is the turbine balance’s: '+F.tD(o.tit)+' and '+(tsTipMeasured()?'your measured ':'')+(+o.k.toFixed(2))+' × boost ('+F.pD(o.p3-P_ATM)+' gauge) at the turbine flange, '+F.fl(o.me)+' of exhaust'+(o.nt>1?' per turbo':'')+'.</p>';
+  const head='<p class="cap" style="margin-top:0">From the head flange to the turbine inlet flange, with the wastegate take-off: layout and pairing from the firing order, the runner size against the sources, lengths, the collector and flange, the pressure lost, the volume, the heat growth and the support. The gas is the turbine balance’s: '+F.tD(o.tit)+' and '+(tsTipMeasured()?'your measured ':'')+(+o.k.toFixed(2))+' × boost ('+F.pD(o.p3-P_ATM)+' gauge) at the turbine flange, '+F.fl(o.me)+' of exhaust'+(o.nt>1?' per turbo':'')+'. The housing’s A/R changes nothing here unless the pressure before the turbine is measured: without it the page takes that pressure as a multiple of boost.</p>';
   if(!(o.port>0)) return sec(title,head+'<div class="note warn" id="mfd-miss"><b>Enter the exhaust port bore at the head flange</b> (Turbo manifold inputs, above): the runner size is matched to it. An engine preset with a published flange port fills it.</div>');
   const X=mfdCalc(o); if(X.err) return sec(title,head+'<div class="note warn">'+esc(X.err)+'</div>');
   MFD_LAST=X; const C=X.c, M0=X.LY.mf[0], each=o.nt>1?' each':'';
@@ -24110,6 +24110,7 @@ function mfdSection(ind,p){
     h+=rowT('Shortest equal length the bend radius allows',clen(Ln.Leq),'every runner this long, head flange to the merge, on '+rTxt+'; the farthest port (cylinder '+Ln.far.cy+', '+clen(Math.abs(Ln.far.y))+' from the merge) sets it: '+(Ln.th>=89.99?'two 90° bends and '+clen(Ln.far.S.s)+' straight between':'two '+Ln.th.toFixed(1)+'° bends')+'; the merge sits '+clen(Ln.Z)+' out from the head flange')+
       '<div class="tblwrap"><table id="mfd-len"><thead><tr><th>Cylinder</th><th>Offset from the merge</th><th>Its own shortest</th><th>Add to equal the longest</th></tr></thead><tbody>'+Ln.per.map(q=>'<tr><td>'+q.cy+'</td><td>'+clen(Math.abs(q.y))+'</td><td>'+clen(q.S.L)+'</td><td>'+clen(q.extra)+'</td></tr>').join('')+'</tbody></table></div>'+
       '<p class="cap">This page’s planar geometry, not a maker’s rule: each runner leaves square to the head and arrives parallel to the collector, two arcs of the bend radius and a straight between; Garrett asks for equal lengths and for bends of the largest radius “to maintain pulse energy”, and for the least volume “for better boost response”, which pull opposite ways: '+Ln.stockL.map(s=>inMm(s.R)+' radius: '+clen(s.L)).join(', ')+'. The nearer runners take the difference in routing (wider or out of the plane); the Fusion router does it to the target length. '+(X.Lgiven?'Your runner length, '+clen(o.L)+', is used below'+(o.L<Ln.Leq-0.5?' <b>and is shorter than the farthest runner can be</b>':'')+'.':'')+'</p>'; }
+  else if(o.mani==='log') h+='<p class="cap">A log’s stubs: Allard has them “as short as possible and of equal length” (AutoSpeed’s review); '+(X.L>0?'the stub length used for the heat growth is '+clen(X.L)+'.':'enter a stub length for the heat growth.')+' The S layout, the loss and the volume are for tubular and divided manifolds.</p>';
   else h+='<p class="cap">'+(M0.cross?'The runners cross between the banks: lengths are not laid out. ':'Enter the port spacing along the head (Turbo manifold inputs) for the shortest equal length; ')+(X.L>0?'the runner length used below is '+clen(X.L)+'.':'<b>enter a runner length</b> for the loss, volume and heat growth.')+' The bends are taken as '+X.turn+'° in all (two '+(X.turn/2)+'° bends, an S from the port to the merge: this page’s assumption without a layout).</p>';
   // 4. collector and flange
   h+='<p class="sub" style="margin-top:12px">Collector and turbine flange</p>';

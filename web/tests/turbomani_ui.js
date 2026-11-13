@@ -129,6 +129,11 @@ const path = require('path');
   ok(/Manifold loss, port to turbine flange/.test(txt) && /Not added to the turbine balance/.test(txt), 'the loss is shown and said not to be added to the turbine balance');
   ok(/turbozentrum’s T3 manifold flange: port 61 × 44 mm/.test(txt) && await pg.evaluate(() => /port 61 × 44 mm/.test(window.__mfd.presets().find(f => f.name.startsWith('T3 (turbozentrum)')).note)), 'the T3 port as the flange preset’s source gives it');
   ok(/Wastegate take-off/.test(txt) && await pg.$('#mfd-svg') !== null, 'the wastegate row from the placement and the drawing');
+  // the Fusion payload (act_route mode 'turbomani'): the runner, the bend radius, the equal length, the merge and collector, the gate
+  { const pay = await pg.evaluate(() => window.__mfd.payload());
+    ok(pay && pay.mode === 'turbomani' && Math.abs(pay.od_mm - 47.625) < 1e-9 && Math.abs(pay.clr_mm - 47.625) < 1e-9 && Math.abs(pay.target_mm - 193.86835) < 1e-4 && pay.scrolls === null &&
+      Math.abs(pay.merge_len_mm - 85.601426) < 1e-4 && Math.abs(pay.collector_len_mm - 152.4) < 1e-9 && pay.gate && pay.gate.bore_mm > 0, 'Fusion payload: 1.875 in tube, 1 7/8 in radius, 193.87 mm, 20° merge 85.60 mm, collector 152.4 mm, the gate window');
+    if (process.env.ET_WRITE_FIXTURES) { require('fs').writeFileSync(path.join(process.cwd(), 'tests', 'fixtures', 'turbomani_payload.json'), JSON.stringify(pay, null, 1) + '\n'); console.log('wrote tests/fixtures/turbomani_payload.json'); } }
   // support, the Mounts part
   await setv('i-mkg', '10'); txt = await secTxt();
   { const S = await pg.evaluate(() => window.__mfd.last().sup); near(S.W, 98.0665, 1e-9, '10 kg standing on the head flange, N'); ok(/Precision: “If it is necessary to support the weight/.test(txt), 'Precision’s support quote'); }
@@ -151,6 +156,11 @@ const path = require('path');
   { const D = await pg.evaluate(() => { const X = window.__mfd.last(); return { why: X.dcolWhy, d: X.dcol, flags: X.flags.map(f => f.t) }; });
     ok(D.why === 'headers' && Math.abs(D.d - 44.323 * Math.sqrt(1.6)) < 1e-6 && /No maker read gives the two port openings/.test(txt) && !D.flags.includes('div'), 'T4 divided: no port data, the Headers starting assumption, labelled; housing and manifold agree');
     await setv('i-mani', 'tube'); const f2 = await pg.evaluate(() => window.__mfd.last().flags.map(f => f.t)); ok(f2.includes('div') && /The picked housing is divided/.test(await secTxt()), 'a divided housing on an undivided manifold is flagged'); await setv('i-mani', 'div'); }
+  // log: Allard's 2 to 2.5 x one port's area -> 44.9834 x sqrt 2 = 63.616 mm to 44.9834 x sqrt 2.5 = 71.125 mm
+  await setv('i-mani', 'log'); txt = await secTxt();
+  { const G2 = await pg.evaluate(() => window.__mfd.last().log); near(G2.lo, 1.771 * 25.4 * Math.SQRT2, 1e-9, 'log bore, Allard’s lower end, mm'); near(G2.hi, 1.771 * 25.4 * Math.sqrt(2.5), 1e-9, '… upper end, mm');
+    ok(/Log bore \(Allard/.test(txt) && /as short as possible and of equal length/.test(txt) && !/Pressure lost in the manifold/.test(txt), 'log: the bore range and Allard’s stubs, no S layout or loss march'); }
+  await setv('i-mani', 'div');
   // 400 px: no horizontal scroll
   await pg.setViewportSize({ width: 400, height: 900 }); await pg.waitForTimeout(400);
   { const w = await pg.evaluate(() => ({ doc: document.documentElement.scrollWidth, body: document.body.scrollWidth })); ok(w.doc <= 400 && w.body <= 400, '400 px: no horizontal scroll (' + w.doc + ', ' + w.body + ')'); }

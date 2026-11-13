@@ -1731,3 +1731,49 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Suites (web, fusion, -j 2): 140 tests, 134 passed, 0 failed, 6 skipped (expected), 7 partial skips, 0 unexpected.
 - Open: Bowman's drop at the build's density (1.34 x at the default build), an aluminium weld allowable, a choked-exit
   back pressure, Bell item-page weights, Setrab's fan-pack rows; test_native's edit is unrun here (no Rust core).
+
+## 2026-11-13: turbo manifold designer (Intake tab, boosted; Fusion header router mode)
+
+- The gap: the turbo manifold (head flange to turbine inlet flange, with the wastegate take-off) was only a type selector.
+  New section "Turbo manifold" between "Where to put them" and "Exhaust after the turbine" (manifold -> turbine -> downpipe),
+  inputs "Turbo manifold" (port bore, filled by an engine preset's flange port; port spacing; turbine offset; runner length;
+  collector bore; material; outside finish; turbo mass; exhaust valve open period and lift), checklist step "Turbo manifold"
+  (between the valves and the exhaust side), build-sheet rows, numbers, an assumption line and the plan drawing, a Mounts
+  designer part "The turbo (Intake tab)" (its mass from the new input). Code: mfdCalc and friends above tgSteps.
+- Sourced (read 2026-11-13): Garrett Turbo Tech 102 "Advanced" PDF, section 3 (bend radius, equal length, no rapid area
+  changes, narrow merge angle, least volume for response, tuned lengths for power; tubular manifolds crack from thermal
+  expansion and vibration; divided pairing, 1+4 / 2+3 on 1-3-4-2); BorgWarner's twin-scroll tech tip (2021-04-12);
+  MacInnes (runner area about the port's), Allard (log 2 to 2.5 x one port's area, 3.0 mm minimum wall, the manifold to
+  take the turbo's weight, 1000 C), Humphries (runner area not much above the valve's geometric area at full lift), Bell
+  (small runners, thick walls; F1 multi-tube) as quoted by AutoSpeed's "Turbo Manifold Design" review (books not read);
+  Cleveland-Cliffs 304/304L and 321 data sheets (mean expansion from 32 F; 304 scaling 899 C continuous, 816 C
+  intermittent), Atlas Steels 321 (900 / 925 C), Rolled Alloys 347 (to 1500 F; expansion only to 212 F) and 625 (70 F to
+  1600 F; oxidation to 1800 F); Ace Stainless Supply's ASTM A403 / B16.9 elbow sheet (LR / SR centre to face, 10S / 40S
+  walls and IDs, weights); Precision's installation recommendations (support from the turbine inlet flange or the centre
+  housing) and SINCO's turbo bracing guide (rod end that pivots with heat growth; flex sections); the T3 port (61 x 44 mm,
+  turbozentrum) and the T4 divided pattern (Ace) from the Flange presets; Stainless Headers' 20 deg turbo merges (Parts tab).
+- This page's physics (labelled): runner gas speed and Mach at the turbine balance's inlet state (T3, k x boost or the
+  measured p3, burned-gas R and gamma), cycle mean and, with a typed open period, x 720/period; the loss by the Exhaust
+  after the turbine march's pieces run upstream from the turbine flange (collector, a 20 deg merge cone, runner straight,
+  Crane bends at the stocked radius, the port step), adiabatic, the merge's mixing not counted; the planar S that gives the
+  shortest equal length for the bend radius; the volume against the displacement; calcSkin steel temperature (CAF 1 and
+  Wendland's 2.3, the hotter used); growth from the sheets' mean coefficients ("at least" past a table). The loss is NOT
+  added to the turbine balance (its p3 is at the turbine; the port is p3 plus the loss). Fatigue: not calculable, said.
+- Not found / left out: a speed or Mach limit for turbo runners, a numbered merge-angle rule, the T4 divided and V-band
+  port openings (the collector then takes the Headers tab's 0.8 assumption, labelled), slip-joint or bellows sizing, a
+  mild-steel scaling limit, turbo masses (an input). The housing A/R does not change the manifold numbers unless p3 is
+  measured (the assumed p3 is a multiple of boost).
+- K24A2 + PT5862 (worked example, port spacing 93 mm typed as an example, not a sourced K24 figure): 1.875 x 0.065 in
+  runners (ID 44.32 mm, -2.9% of the 45.0 mm port's area), 193.9 mm each on the stocked 1 7/8 in radius, 51 m/s Mach 0.076
+  (450 hp) and 48 m/s Mach 0.072 (600 hp) cycle mean; T3: collector 58.46 mm, loss 2.10 kPa (450) / 2.62 kPa (600) total;
+  T4 divided: 1+4 / 2+3, 1.61 / 1.98 kPa. Steel 803 / 827 C mean (Wendland's factor); 304 at least 2.83 / 2.92 mm, 321
+  3.05 / at least 3.15 mm per runner; at 600 hp the steel at the port passes 304's 816 C intermittent limit (flagged).
+- Fusion: fusion-addin/turbomani.py, act_route mode 'turbomani' (port markers in cylinder order, then the turbine flange
+  marker, or one per scroll): the header router with the page's tube, radius, equal length, hot clearance, a collector
+  marker on the flange axis (merge plus collector length back) and, for weld elbows, 90 deg bends; scrolls share one
+  TubeSet. The wastegate branch is not routed (the router has no branch off a collector; what it would need is in the
+  module's docstring). The page's "Route the manifold in Fusion" sends it.
+- Tests: web/tests/turbomani_ui.js (new; loss against tools/validation/boost/turbomani.py, new), turboguide_ui.js (the step
+  list); fusion-addin/tests/test_turbomani.py and test_turbomani_fusion_fake.py (new; payload fixture
+  web/tests/fixtures/turbomani_payload.json from turbomani_ui.js with ET_WRITE_FIXTURES=1); fusion_live_turbomani.py for
+  the owner's machine, NOT RUN.

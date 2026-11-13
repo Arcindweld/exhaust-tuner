@@ -5,9 +5,9 @@ flange at x = 40 cm, 8.56 + 15.24 = 23.80 cm back -> x = 16.20 cm); the scrolls 
 flange marker with one shared TubeSet (owner ids 0-3 and 100-103 apart); weld elbows hold every bend to 90 deg; the runner
 lengths at the page's target within the router's 0.05 cm; a clear error for a scroll list that does not match the markers;
 the wastegate window reported, not routed.
-Scene: a head face (a box) with four ports 9.3 cm apart pointing +x, as test_header.py; 1.875 in (4.7625 cm) tube, bend
-radius 1.5 x OD, the hot clearance 1.27 cm (the scene has no hot body), target 38 cm (a length the scene allows; the
-page's shortest equal length is a planar minimum to a point, the router's collector ring needs its lead-ins)."""
+Scene: test_header.py's (a head face and a frame rail, four ports 10 cm apart pointing +x), 1.625 in (4.128 cm) tube, bend
+radius 1.5 x OD, the clearance 1.27 cm (the scene has no hot body), target 76.2 cm; the routing itself is test_header's,
+this checks the turbo glue around it. time_budget 1e9: no wall-clock limit, deterministic (as test_header_uel)."""
 import os
 import sys
 import math
@@ -33,29 +33,36 @@ try:
 except ValueError as e:
     ok('cylinder order' in str(e), 'a scroll list that misses a port is refused: ' + str(e)[:80])
 
-# 2. through the real router: undivided, one flange marker; divided, two
-head = T.box_mesh((-6, -10, -15), (0, 40, 15), 12)
-sc = RT.Scene(cell=1.0); sc.add_mesh(*head); sc.build((-10, -30, -40), (90, 60, 40), 10)
-ports = [((0.0, 0.0 + 9.3 * i, 0.0), (1.0, 0.0, 0.0)) for i in range(4)]
-rspec = {'od': 4.7625, 'clr': 1.5 * 4.7625, 'gap': 1.27, 'gap_tt': 0.32, 'target': 38.0, 'lead_start': 2.54, 'lead_end': 2.54,
+# 2. through the real router: the scene of test_header.py (a head face, a frame rail, ports 10 cm apart pointing +x, the
+# merge at (35, 19, -45) going -z), the turbine flange marker 23.80 cm further on; undivided, then divided with the two
+# scrolls' flange markers side by side along x (scroll 1+4 nearer the head, 2+3 further out, so no runner crosses)
+head = T.box_mesh((-6, -10, -15), (0, 50, 15), 12)
+rail = T.box_mesh((15, -20, -30), (22, 60, -24), 12)
+sc = RT.Scene(cell=1.0); sc.add_mesh(*head); sc.add_mesh(*rail); sc.build((-10, -30, -100), (80, 70, 20), 10)
+ports = [((0.0, 4.0 + 10.0 * i, 0.0), (1.0, 0.0, 0.0)) for i in range(4)]
+od = 4.128
+rspec = {'od': od, 'clr': 1.5 * od, 'gap': 1.27, 'gap_tt': 0.32, 'target': 76.2, 'lead_start': 2.54, 'lead_end': 2.54,
          'min_straight': 0.0, 'max_bend_deg': 180.0, 'tol': 0.05, 'time_budget': 1e9}
-one = TMN.route(sc, ports, [((50.0, 13.95, 0.0), (1.0, 0.0, 0.0))], {'merge_len_mm': 85.6, 'collector_len_mm': 152.4, 'collector_out_mm': 61.76,
-                                                                   'gate': data['gate']}, rspec)
+TGT = 76.2
+one = TMN.route(sc, ports, [((35.0, 19.0, -45.0 - 23.80), (0.0, 0.0, -1.0))], {'merge_len_mm': 85.6, 'collector_len_mm': 152.4, 'collector_out_mm': 61.76,
+                                                                         'gate': data['gate']}, rspec)
 L1 = one['lengths']
 print('undivided:', one['msg'], ['%.3f' % x for x in L1])
-ok(one['ok'] and len(L1) == 4 and max(abs(x - 38.0) for x in L1) <= 0.05 + 1e-9, 'undivided: four runners at 38 cm within 0.05 cm')
-ok(abs(one['jobs'][0]['collector_marker'][0][0] - (50.0 - 23.80)) < 1e-9 and one['jobs'][0]['res'].get('collector') is not None, 'its collector built from the merge plane 23.80 cm before the flange')
+ok(one['ok'] and len(L1) == 4 and max(abs(x - TGT) for x in L1) <= 0.05 + 1e-9, 'undivided: four runners at 76.2 cm within 0.05 cm')
+ok(max(abs(a - b) for a, b in zip(one['jobs'][0]['collector_marker'][0], (35.0, 19.0, -45.0))) < 1e-9 and one['jobs'][0]['res'].get('collector') is not None,
+   'its collector built from the merge plane 23.80 cm before the flange marker')
 ok(any('not routed' in n and '38.0 mm' in n and '45 deg' in n for n in one['notes']), 'the wastegate window is reported, not routed')
-two = TMN.route(sc, ports, [((50.0, 13.95, 5.0), (1.0, 0.0, 0.0)), ((50.0, 13.95, -5.0), (1.0, 0.0, 0.0))], dict(data), dict(rspec, clr=1.5 * 4.7625))
+two = TMN.route(sc, ports, [((31.0, 19.0, -45.0 - 23.80), (0.0, 0.0, -1.0)), ((41.0, 19.0, -45.0 - 23.80), (0.0, 0.0, -1.0))], dict(data), dict(rspec))
 L2 = two['lengths']
 print('divided:', two['msg'], ['%.3f' % x for x in L2])
+ok(two['ok'] and len(L2) == 4 and max(abs(x - TGT) for x in L2) <= 0.05 + 1e-9, 'divided: four runners at 76.2 cm, two scrolls')
 bends = [a for j in two['jobs'] for r in j['res']['primaries'] for a in (r.get('bend_angles') or [])]
 ok(two['ok'] and len(L2) == 4 and max(abs(x - 38.0) for x in L2) <= 0.05 + 1e-9, 'divided: four runners at 38 cm, two scrolls')
 ok(bends and max(bends) <= 90.5, 'weld elbows: no bend over 90 deg (the router\'s 0.5 deg tolerance) (largest %.1f)' % (max(bends) if bends else -1))
 ok(two['jobs'][0]['spec']['tubes'] is two['jobs'][1]['spec']['tubes'], 'both scrolls share one TubeSet, so their runners keep clear of each other')
 # tube to tube between the scrolls, brute force away from the ends
-polys = [RT.path_points(r['elems'], 0.2) for j in two['jobs'] for r in j['res']['primaries']]
-worst = min(RT.vdist(a, b) for a in polys[0][len(polys[0]) // 4: 3 * len(polys[0]) // 4] for b in polys[2] + polys[3])
-ok(worst >= 4.7625 + 0.32 - 0.01, 'scroll 1 runner 1 keeps the tube gap from scroll 2: centres %.3f cm apart (need %.3f)' % (worst, 4.7625 + 0.32))
+polys = [RT.path_points(r['elems'], 0.2) for j in two['jobs'] for r in j['res']['primaries'] if r and r.get('elems')]
+worst = min(RT.vdist(a, b) for a in polys[0][len(polys[0]) // 4: 3 * len(polys[0]) // 4] for b in polys[2] + polys[3]) if len(polys) == 4 else 0
+ok(worst >= od + 0.32 - 0.01, 'scroll 1 runner 1 keeps the tube gap from scroll 2: centres %.3f cm apart (need %.3f)' % (worst, od + 0.32))
 print('FAILS', fails)
 sys.exit(1 if fails else 0)
