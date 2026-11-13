@@ -14,4 +14,6 @@ Sources found: SAE 2017-24-0019 accepted (Imperial spiral) restriction analogy, 
  288501307 (Galindo ECM 85 2014) rotor quasi-steady; OpenWAM TTurbinaSimple.cpp
 Status:
 - [x] read docs/code
-- [ ] JS model
+- [x] JS model (turbine, source, pOut)
+- [x] Rust port, bit parity on 4 scratch turbo jobs (scratchpad par.js)
+- [ ] NA checks: kat, wave_wasm QUICK, wavegas; closure driver; known answers; page UI; docs

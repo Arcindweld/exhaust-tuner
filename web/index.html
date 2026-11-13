@@ -9330,6 +9330,39 @@ function gasT(G,v,x,T,byH){
   }
   return T;
 }
+/* ---------- the isentrope of the thermally perfect gas (2026-11-13, for the turbine below) ----------
+   ds = cp(T) dT / T - R dp / p = 0 at fixed composition, so an isentropic change from T1 to T2 has
+   p2 / p1 = exp(integral from T1 to T2 of cp / (R T) dT); with cp = c0 + c1 T + ... + c4 T^4 on each polynomial's range
+   that is (T2 / T1)^(c0 / R) exp((c1 (T2 - T1) + c2 (T2^2 - T1^2) / 2 + c3 (T2^3 - T1^3) / 3 + c4 (T2^4 - T1^4) / 4) / R),
+   the ranges 200-1000 K and 1000-3500 K multiplied, cp held at its 200 K and 3500 K values outside them (as gasAt). Written
+   with pow and exp only: the Rust copy imports JavaScript's pow, sin, cos and exp and no logarithm. */
+function isenPiece(G,lo,a,b,x){
+  const B=lo?G.blo:G.bhi, D=lo?G.dlo:G.dhi, R=G.Rb+x*G.Rd;
+  const c0=B[0]+x*D[0], c1=B[1]+x*D[1], c2=B[2]+x*D[2], c3=B[3]+x*D[3], c4=B[4]+x*D[4];
+  return Math.pow(b/a,c0/R)*Math.exp((c1*(b-a)+c2*(b*b-a*a)/2+c3*(b*b*b-a*a*a)/3+c4*(b*b*b*b-a*a*a*a)/4)/R);
+}
+function isenRatio(G,T1,T2,x){
+  const lo=T1<T2?T1:T2, hi=T1<T2?T2:T1, R=G.Rb+x*G.Rd;
+  let r=1;
+  if(lo<200){ gasAt(G,200,x); r*=Math.pow((hi<200?hi:200)/lo,GV.cp/R); }
+  { const a=lo>200?lo:200, b=hi<1000?hi:1000; if(b>a) r*=isenPiece(G,true,a,b,x); }
+  { const a=lo>1000?lo:1000, b=hi<TMAX?hi:TMAX; if(b>a) r*=isenPiece(G,false,a,b,x); }
+  if(hi>TMAX){ gasAt(G,TMAX,x); r*=Math.pow(hi/(lo>TMAX?lo:TMAX),GV.cp/R); }
+  return T2>=T1?r:1/r;
+}
+// the temperature an isentropic change from (T1, p1) reaches at p2 (composition x): Newton on p(T) / p1 = isenRatio, from
+// the frozen-gamma estimate T1 (p2 / p1)^((gm - 1) / gm)
+function isenT(G,T1,p1,p2,x,gm){
+  const want=p2/p1, R=G.Rb+x*G.Rd;
+  let T=T1*Math.pow(want,(gm-1)/gm);
+  for(let it=0;it<30;it++){
+    const q=isenRatio(G,T1,T,x); gasAt(G,T,x);
+    const dT=(q-want)/(q*GV.cp/(R*T));
+    T-=dT; if(T<100) T=100;
+    if(!(Math.abs(dT)>1e-10*T)) break;
+  }
+  return T;
+}
 
 // ---------- pipes ----------
 // spec: {L m, dx m, area(x) m² at distance x from the pipe's start, Tw K wall temperature, T0 K, x0 fresh fraction}
@@ -9339,11 +9372,12 @@ function makePipe(spec){
   for(let i=0;i<n;i++){ A[i]=spec.area((i+0.5)*dx); D[i]=Math.sqrt(4*A[i]/Math.PI); }
   Af[0]=A[0]; Af[n]=A[n-1]; for(let j=1;j<n;j++) Af[j]=0.5*(A[j-1]+A[j]);
   const q1=new Float64Array(n), q2=new Float64Array(n), q3=new Float64Array(n), q4=new Float64Array(n);
-  const T0=spec.T0||TATM, x0=spec.x0==null?1:spec.x0, G=spec.gas||null, rho0=PATM/((G?gasR(G,x0):RG)*T0);
+  // spec.p0: the fill pressure (2026-11-13, the boosted intake; absent: the atmosphere, as before)
+  const T0=spec.T0||TATM, x0=spec.x0==null?1:spec.x0, G=spec.gas||null, P0=spec.p0>0?spec.p0:PATM, rho0=P0/((G?gasR(G,x0):RG)*T0);
   // each cell's gamma, cp, R and temperature (constants for the constant gas; prim() keeps them for the engine's gas)
   const g=new Float64Array(n).fill(GAM), cp=new Float64Array(n).fill(CP), Rm=new Float64Array(n).fill(RG), Tc=new Float64Array(n).fill(T0);
   const e0=G?gasE(G,T0,x0):0;
-  for(let i=0;i<n;i++){ q1[i]=rho0*A[i]; q2[i]=0; q3[i]=G?rho0*e0*A[i]:PATM/G1*A[i]; q4[i]=rho0*x0*A[i]; }
+  for(let i=0;i<n;i++){ q1[i]=rho0*A[i]; q2[i]=0; q3[i]=G?rho0*e0*A[i]:P0/G1*A[i]; q4[i]=rho0*x0*A[i]; }
   return {n,dx,A,Af,D,q1,q2,q3,q4,Tw:spec.Tw||TATM,G,g,cp,Rm,T:Tc,
     r:new Float64Array(n),u:new Float64Array(n),p:new Float64Array(n),x:new Float64Array(n),
     dr:new Float64Array(n),du:new Float64Array(n),dp:new Float64Array(n),dxs:new Float64Array(n),
@@ -9700,7 +9734,8 @@ function makeEngine(e,intake,exhaust,opt){
   const gas=e.gas==='const'?null:makeGas(e.afr,e.fuel!=='air'), gasIn=gas&&gas.vap?makeGas(e.afr,false):gas;
   return {e,Ap,Vd,Vc,vol,dvol,evo,evdur,ivo,ivdur,ivc,ign,phases,gas,gasIn,collector:phases.length>1||o.collector?o.collector:null,
     collectors:o.collectors&&o.collectors.length?o.collectors:null,crossover:o.crossover||null,
-    CdAin:th=>area(th,ivo,ivdur,e.liftIn,e.dIn,e.nIn,tIn),CdAex:th=>area(th,evo,evdur,e.liftEx,e.dEx,e.nEx,tEx),intake,exhaust,plenum:plenumOf(intake)};
+    CdAin:th=>area(th,ivo,ivdur,e.liftIn,e.dIn,e.nIn,tIn),CdAex:th=>area(th,evo,evdur,e.liftEx,e.dEx,e.nEx,tEx),intake,exhaust,plenum:plenumOf(intake),
+    src:sourceOf(intake),pOut:exhaust&&exhaust.pOut>0?+exhaust.pOut:null,turbine:turbineOf(exhaust)};
 }
 /* ---------- intake plenum, throttle and air filter (2026-11-12, part 3) ----------
    intake.plenum (the OpenWAM writer's form, which this model now also runs): {V_m3, inlet: [segs] from the air filter to
@@ -9744,8 +9779,101 @@ function plenEnd(side,PL){
     P.f1[j]=m; P.f2[j]=m*g.u+g.p*af; P.f3[j]=m*h0; P.f4[j]=m*g.x;
   };
 }
+/* ---------- boosted intake and the turbine (2026-11-13): a turbocharged engine ----------
+   intake.source = {p (Pa), T (K)}: the charge the runners (or the plenum's inlet) breathe from, in place of the still
+   outside air: for a turbocharged or supercharged engine the air after the compressor and the intercooler, at the
+   throttle's inlet (the Intake tab's route solution: throttle-inlet pressure, intercooler outlet temperature). The mouths
+   are open ends on that state (openState with its p and T, gas from it coming in isentropically, as from the air before);
+   the pipes, the plenum and the cylinders are filled at it. The compressor itself is a boundary only: a steady state at
+   each speed, no map, no surge, no turbo speed or inertia. Absent: the atmosphere, bit for bit as before.
+   exhaust.pOut (Pa): the static pressure the open tail ends discharge into (absent: the atmosphere).
+   exhaust.turbine = {CdA (m2, the turbine's effective nozzle area, all entries together), eta (0-1, total-to-static),
+   wgCdA (m2, the wastegate's effective area, 0 = shut), wgTo ('down': the gate's flow joins the downpipe; 'atm': an
+   external gate dumping to the atmosphere), down: {segs, Tw} the downpipe from the turbine outlet, pOut (Pa) the static
+   pressure at the downpipe's end (the cats and mufflers as a steady back pressure; default the atmosphere)}.
+   Every end that would otherwise be open to the air (the collector's end; with two collectors, a divided housing, one
+   end each) becomes a turbine entry, sharing the effective area (and the gate's) equally: two equivalent nozzles in
+   parallel with their own inlet states, one wheel (their work is summed). Not modelled between the entries: any
+   interaction at the wheel (partial admission, cross-flow between the scrolls at the rotor), so each entry is a nozzle
+   to the same outlet pressure.
+   The equivalent nozzle (the quasi-steady turbine of 1-D engine codes): the turbine passes the flow an isentropic nozzle
+   of one effective area would pass from the turbine-inlet stagnation state to the turbine-outlet static pressure,
+   m = Cd A sqrt(p0 rho0) psi(p4 / p0) (the orifice law the valves use; choked below the critical ratio), the area constant
+   (Watson and Janota, and Benson, used one constant effective area for all conditions, as SAE 2017-24-0019 sums them up;
+   Payri et al. 2012 let it vary with speed and pressure ratio, which needs a map). The end state is Benson's partly open
+   end: on the wave arriving from the pipe (its Riemann invariant and entropy, as openState), at the face pressure where
+   the pipe's mass flux equals the nozzle's (bisection: the first falls and the second rises with the face pressure; the
+   pipe end chokes if the nozzle could take more than its sonic flux). Gas flowing back (the outlet above the pipe's
+   stalled pressure) comes in from the downpipe's first cell through the turbine's nozzle with no work (a reversed
+   turbine's work is not modelled; an atmospheric gate takes no reverse flow). Work: eta x the isentropic total-to-static
+   enthalpy drop of the turbine's share, from the face's static state and speed to the outlet pressure along the gas's own
+   isentrope (isenT above, variable cp), W = eta m_t (h0 - h(T_is)); the gas leaving for the downpipe carries
+   m h0 - W, so its stagnation temperature follows; the gate's share keeps h0. The downpipe's first cell takes that flow
+   through a fed end (fedEnd); its static pressure at the step's start is the turbine's outlet pressure. */
+function sourceOf(intake){
+  const q=intake&&intake.source; if(!q) return null;
+  if(!(q.p>0&&q.T>0)) throw new Error('intake.source needs its pressure p (Pa) and temperature T (K)');
+  return {p:+q.p,T:+q.T};
+}
+function turbineOf(exhaust){
+  const t=exhaust&&exhaust.turbine; if(!t) return null;
+  if(!(t.CdA>0)) throw new Error('exhaust.turbine needs its effective area CdA (m2)');
+  if(!(t.eta>0&&t.eta<=1)) throw new Error('exhaust.turbine.eta must be between 0 and 1');
+  if(!(t.down&&t.down.segs&&t.down.segs.length)) throw new Error('exhaust.turbine.down needs the downpipe segments');
+  if(t.wgCdA!=null&&!(t.wgCdA>=0)) throw new Error('exhaust.turbine.wgCdA must be 0 or more');
+  return {CdA:+t.CdA,eta:+t.eta,wgCdA:t.wgCdA>0?+t.wgCdA:0,wgAtm:t.wgTo==='atm',pOut:t.pOut>0?+t.pOut:PATM,down:{segs:t.down.segs,Tw:t.down.Tw||600}};
+}
+// the change of the turbine's areas between runs (the closure iterates them)
+function setTurbine(eng,CdA,wgCdA){ if(!eng.turbine) throw new Error('this engine has no turbine'); if(CdA>0) eng.turbine.CdA=CdA; if(wgCdA>=0) eng.turbine.wgCdA=wgCdA; }
+// one turbine entry: the right end of pipe P; At, Ag its turbine and gate areas, pT, pG their outlet pressures, D the
+// downpipe's first pipe (its cell 0: the gas pushed back). Fills P's end flux and TF.
+const TF={m:0,mt:0,mg:0,h0:0,p0:0,pb:0,x:0,W:0,dhis:0,md:0,Ed:0,Xd:0,rev:0};
+function turbineFace(P,At,Ag,pT,pG,eta,D,gDown){
+  const i=P.n-1, j=P.n, G=P.G, r=P.r[i], u=P.u[i], p=P.p[i], gm=P.g[i], R=P.Rm[i], cp=P.cp[i], x=P.x[i], af=P.Af[j];
+  const K2=2/(gm-1), EXC=(gm-1)/(2*gm), ig=1/gm, c=Math.sqrt(gm*p/r), J=u+K2*c;
+  let cb=0, ub=0, rb=0, Tb=0, T0=0, p0=0;
+  const at=pb=>{ const s=pb/p; cb=c*Math.pow(s,EXC); ub=J-K2*cb; rb=r*Math.pow(s,ig); Tb=pb/(rb*R); T0=Tb+0.5*ub*ub/cp; p0=pb*Math.pow(T0/Tb,gm/(gm-1)); };
+  const noz=()=>orifice(At,p0,T0,pT,gm,R)+orifice(Ag,p0,T0,pG,gm,R);
+  const pS=J>0?p*Math.pow(J/(K2*c),1/EXC):0;
+  let pb=0, m=0, mt=0, mg=0, h0=0, W=0, dhis=0, rev=0;
+  if(pS>pT||(Ag>0&&pS>pG)){
+    const pC=p*Math.pow(J/((1+K2)*c),1/EXC);
+    at(pC);
+    if(af*rb*ub-noz()<=0) pb=pC;                     // the nozzle takes more than the pipe's sonic flux: the end chokes
+    else { let lo=pC, hi=pS;
+      for(let it=0;it<200;it++){ const mid=0.5*(lo+hi); at(mid); if(af*rb*ub-noz()>0) lo=mid; else hi=mid; if(hi-lo<=1e-12*hi) break; }
+      pb=0.5*(lo+hi); }
+    at(pb); m=af*rb*ub;
+    const nt=orifice(At,p0,T0,pT,gm,R), ng=orifice(Ag,p0,T0,pG,gm,R), tot=nt+ng;
+    mt=tot>0?m*(nt/tot):m; mg=m-mt;
+    h0=(G?gasH(G,Tb,x):CP*Tb)+0.5*ub*ub;
+    if(mt>0&&p0>pT){ const Ti=G?isenT(G,Tb,pb,pT,x,gm):Tb*Math.pow(pT/pb,G1/GAM); dhis=h0-(G?gasH(G,Ti,x):CP*Ti); if(dhis<0) dhis=0; W=eta*mt*dhis; }
+  } else {
+    // flow back from the downpipe through the turbine's nozzle (its first cell's stagnation state), no work
+    const di=0, rd=D.r[di], ud=D.u[di], pd=D.p[di], gd=D.g[di], Rd=D.Rm[di], Td=pd/(Rd*rd), Tdo=Td+0.5*ud*ud/D.cp[di], pdo=pd*Math.pow(Tdo/Td,gd/(gd-1));
+    const Ar=At+(gDown?Ag:0);
+    let lo=pS>0?pS:1e-3*pT, hi=pdo>lo?pdo:lo;
+    for(let it=0;it<200;it++){ const mid=0.5*(lo+hi); at(mid); if(af*rb*ub+orifice(Ar,pdo,Tdo,mid,gd,Rd)>0) lo=mid; else hi=mid; if(hi-lo<=1e-12*hi) break; }
+    pb=0.5*(lo+hi); at(pb); m=af*rb*ub; mt=m; rev=1;
+    h0=(G?gasH(G,Td,D.x[di]):CP*Td)+0.5*ud*ud;
+  }
+  P.f1[j]=m; P.f2[j]=m*ub+pb*af; P.f3[j]=m*h0; P.f4[j]=m*(rev?D.x[0]:x);
+  TF.m=m; TF.mt=mt; TF.mg=mg; TF.h0=h0; TF.p0=p0; TF.pb=pb; TF.x=rev?D.x[0]:x; TF.W=W; TF.dhis=dhis; TF.rev=rev;
+  const md=rev?m:(gDown?m:mt); TF.md=md; TF.Ed=md*h0-W; TF.Xd=md*TF.x;
+}
+// per-cycle sums of the turbine, the intake's air and the tail's flow (720 one-degree bins in cylinder 1's crank angle)
+function turbAcc(nE){ return {t:0,W:0,Wis:0,mt:0,mg:0,mAir:0,H3:0,M3:0,X3:0,H4:0,M4:0,X4:0,p3:0,p3pk:0,p3s:0,p4:0,rev:0,Eatm:0,Matm:0,
+  bt:new Float64Array(720),bp:[...Array(nE)].map(()=>new Float64Array(720)),bm:new Float64Array(720),nE}; }
+function accZero(a){ for(const k of ['t','W','Wis','mt','mg','mAir','H3','M3','X3','H4','M4','X4','p3','p3pk','p3s','p4','rev','Eatm','Matm']) a[k]=0;
+  a.bt.fill(0); a.bm.fill(0); a.bp.forEach(v=>v.fill(0)); }
+function turbSum(a,G){
+  const t=a.t, bin=(s)=>{ const o=new Array(720); for(let q=0;q<720;q++) o[q]=a.bt[q]>0?s[q]/a.bt[q]:NaN; return o; };
+  const T3=a.M3>0?(G?gasT(G,a.H3/a.M3,a.X3/a.M3,900,true):a.H3/(a.M3*CP)):NaN, T4=a.M4>0?(G?gasT(G,a.H4/a.M4,a.X4/a.M4,800,true):a.H4/(a.M4*CP)):NaN;
+  return {t,W:a.W/t,Wis:a.Wis/t,mt:a.mt/t,mg:a.mg/t,mAir:a.mAir/t,p3:a.p3/(t*a.nE),p3pk:a.p3pk,p3s:a.p3s/(t*a.nE),p4:a.p4/(t*a.nE),T3,T4,rev:a.rev,
+    mAtm:a.Matm/t,eAtm:a.Eatm/t,nE:a.nE,p3bins:a.bp.map(bin),mdBins:bin(a.bm)};
+}
 // split a run of segments into pipes wherever the diameter jumps; cones stay inside a pipe
-function buildLine(line,dx,T0,x0,G){
+function buildLine(line,dx,T0,x0,G,p0){
   const runs=[]; let cur=null;
   line.segs.forEach(sg=>{
     if(!(sg.L>1e-6)) return;
@@ -9755,7 +9883,7 @@ function buildLine(line,dx,T0,x0,G){
   let x0pos=0;
   return runs.map(rn=>{
     const area=x=>{ let a=0; for(const sg of rn.parts){ if(x<=a+sg.L||sg===rn.parts[rn.parts.length-1]){ const f=Math.min(1,Math.max(0,(x-a)/sg.L)), d=sg.d0+(sg.d1-sg.d0)*f; return Math.PI*d*d/4; } a+=sg.L; } return 0; };
-    const P=makePipe({L:rn.L,dx:Math.min(dx,rn.L/6),area,Tw:line.Tw||TATM,T0,x0,gas:G});
+    const P=makePipe({L:rn.L,dx:Math.min(dx,rn.L/6),area,Tw:line.Tw||TATM,T0,x0,gas:G,p0});
     P.start=x0pos; x0pos+=rn.L; return P;
   });
 }
@@ -9831,7 +9959,7 @@ function freshState(eng,dx){
   const N=eng.phases.length, cyls=[], ins=[], prims=[], chambers=[], per=eng.exhaust.per_cyl, G=eng.gas||null, R0=G?gasR(G,0):RG;
   if(per&&per.length!==N) throw new Error('exhaust.per_cyl must list one primary per cylinder ('+N+'), got '+per.length);
   for(let k=0;k<N;k++){
-    ins.push(buildLine(eng.intake,dx,TATM,1,eng.gasIn||null));
+    ins.push(eng.src?buildLine(eng.intake,dx,eng.src.T,1,eng.gasIn||null,eng.src.p):buildLine(eng.intake,dx,TATM,1,eng.gasIn||null));   // eng.src: filled with the boosted charge
     const ex=buildLine(per&&per[k]?Object.assign({},eng.exhaust,{segs:per[k]}):eng.exhaust,dx,700,0,G); prims.push(ex);
     (eng.exhaust.chambers||[]).forEach(c=>{
       let q=ex.findIndex(P=>c.x>=P.start&&c.x<P.start+P.n*P.dx); if(q<0) q=ex.length-1;
@@ -9839,8 +9967,8 @@ function freshState(eng,dx){
       chambers.push({cyl:k,pipe:q,cell,V:c.V,CdA:0.75*c.A,Le:c.Le,m:PATM*c.V/(R0*700),T:700,x:0,mdot:0});
     });
     const th=((eng.ivc-eng.phases[k])%720+720)%720;
-    const cy={m:0,T:330,x:0.95,p:PATM}; cy.m=PATM*eng.vol(th)/((G?gasR(G,cy.x):RG)*cy.T);
-    cy.fresh=cy.m*cy.x; cy.burnQ=burnHeat(eng,cy.fresh); cy.ivcP=PATM; cy.ivcT=330; cy.ivcV=eng.vol(eng.ivc);
+    const pc0=eng.src?eng.src.p:PATM, cy={m:0,T:330,x:0.95,p:pc0}; cy.m=pc0*eng.vol(th)/((G?gasR(G,cy.x):RG)*cy.T);
+    cy.fresh=cy.m*cy.x; cy.burnQ=burnHeat(eng,cy.fresh); cy.ivcP=pc0; cy.ivcT=330; cy.ivcV=eng.vol(eng.ivc);
     cy.work=0; cy.workG=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.pEvo=0; cy.exM=0; cy.exH=0; cy.ovP=0; cy.ovN=0; cy.done=null; cy.started=false;
     cyls.push(cy);
   }
@@ -9860,11 +9988,15 @@ function freshState(eng,dx){
   // the intake plenum (plenumOf): its inlet line from the air filter, of the intake's gas; filled with still outside air
   let plen=null;
   if(eng.plenum){
-    const q=eng.plenum, GI=eng.gasIn||null, Ra=GI?gasR(GI,1):RG, inlet=buildLine({segs:q.inlet,Tw:eng.intake.Tw},dx,TATM,1,GI);
+    const q=eng.plenum, GI=eng.gasIn||null, Ra=GI?gasR(GI,1):RG, Pq=eng.src?eng.src.p:PATM, Tq=eng.src?eng.src.T:TATM;
+    const inlet=eng.src?buildLine({segs:q.inlet,Tw:eng.intake.Tw},dx,Tq,1,GI,Pq):buildLine({segs:q.inlet,Tw:eng.intake.Tw},dx,TATM,1,GI);
     if(!inlet.length) throw new Error('intake.plenum.inlet has no pipe');
-    plen={V:q.V,m:PATM*q.V/(Ra*TATM),T:TATM,x:1,p:PATM,R:Ra,inlet};
+    plen={V:q.V,m:Pq*q.V/(Ra*Tq),T:Tq,x:1,p:Pq,R:Ra,inlet};
   }
-  return {ins,prims,coll,nets,chambers,cyls,jn:{p:0,ends:null},th:eng.ivc,xj,xl,ctail,walls,plen};      // th: cylinder 1's crank angle, carried on from run to run
+  // the turbine's downpipe (exhaust.turbine.down), burned gas at 700 K
+  const turb=eng.turbine?{down:buildLine({segs:eng.turbine.down.segs,Tw:eng.turbine.down.Tw},dx,700,0,G),fd:{m:0,h:G?gasH(G,700,0):CP*700,x:0,uj:0},acc:null}:null;
+  if(turb&&!turb.down.length) throw new Error('exhaust.turbine.down has no pipe');
+  return {ins,prims,coll,nets,chambers,cyls,jn:{p:0,ends:null},th:eng.ivc,xj,xl,ctail,walls,plen,turb};      // th: cylinder 1's crank angle, carried on from run to run
 }
 const NOOP=()=>{};
 /* the port injector (the default; not with spec.e.fuel 'air'): vIn[k] is the intake valve's flow as the pipe sees it (air and burned gas of
@@ -9891,35 +10023,43 @@ function runSpeed(eng,opts){
   // the intake mouth's pressure (opts.pIn, behind a part-open throttle; else the atmosphere). Run on from a state left at
   // another pressure, it moves there over the first cycle, as a throttle does, not in one step: a sudden step sends a
   // strong compression up a runner into a shut valve, sharper than the scheme holds
-  const pNew=opts.pIn>0?opts.pIn:PATM, pOld=st.pMouth>0?st.pMouth:pNew, thM=st.th||0;
+  const pNew=opts.pIn>0?opts.pIn:eng.src?eng.src.p:PATM, pOld=st.pMouth>0?st.pMouth:pNew, thM=st.th||0, TaM=eng.src?eng.src.T:TATM;   // eng.src: the boosted charge (intake.source)
   const mouthP=pOld===pNew?pNew:()=>{ const f=Math.min(1,Math.max(0,((st.th||0)-thM)/720)); return pOld+(pNew-pOld)*f; };
   st.pMouth=pNew;
   const PL=st.plen||null;
-  const all=[].concat(...ins,...prims,coll||[],...(st.xl||[]).map(L=>L),...(nets||[]).map(n=>[].concat(...n.lines)),PL?PL.inlet:[]);
+  const TB=st.turb||null, TS=eng.turbine;
+  const all=[].concat(...ins,...prims,coll||[],...(st.xl||[]).map(L=>L),...(nets||[]).map(n=>[].concat(...n.lines)),PL?PL.inlet:[],TB?TB.down:[]);
   all.forEach(P=>{ P.left=NOOP; P.right=NOOP; });
   (st.walls||[]).forEach(w=>{ if(w.side>0) w.P.right=wallEnd(+1); else w.P.left=wallEnd(-1); });   // dead-end stubs (a reverse-flow can's chamber)
   const vIn=[], vEx=[], exFlow=[], vInC=[];   // vInC: the intake valve's flow as the cylinder sees it (portFuel; else vIn)
   for(let k=0;k<N;k++){
     vIn.push({m:0,h:GI?gasH(GI,TATM,1):CP*TATM,x:1,uj:0}); vInC.push(vIn[k]); vEx.push({m:0,h:G?gasH(G,700,0):CP*700,x:0,uj:0}); exFlow.push({m:0,h:0,x:0,uj:0});
     const ip=ins[k][ins[k].length-1], ep=prims[k][0];
-    ins[k][0].left=openEnd(-1,mouthP,TATM,1);   // opts.pIn: the manifold pressure behind a part-open throttle (Pa)
+    ins[k][0].left=openEnd(-1,mouthP,TaM,1);   // opts.pIn: the manifold pressure behind a part-open throttle (Pa)
     ip.right=fedEnd(+1,()=>vIn[k]);
     ep.left=fedEnd(-1,()=>{ const f=exFlow[k], v=vEx[k]; f.m=-v.m; f.h=v.h; f.x=v.x; f.uj=v.uj; return f; });
     if(PL) ins[k][0].left=plenEnd(-1,PL);         // the runner's mouth on the plenum
   }
   // the plenum's inlet (filter and throttle steps inside it): open to the air at its mouth, open on the plenum at its end
-  if(PL){ PL.inlet[0].left=openEnd(-1,mouthP,TATM,1); PL.inlet[PL.inlet.length-1].right=plenEnd(+1,PL); }
+  if(PL){ PL.inlet[0].left=openEnd(-1,mouthP,TaM,1); PL.inlet[PL.inlet.length-1].right=plenEnd(+1,PL); }
+  const pTail=eng.pOut>0?eng.pOut:PATM;   // exhaust.pOut: the pressure the open tail ends discharge into
   if(nets){
     const on=new Set();
-    nets.forEach(n=>{ n.cyls.forEach(c=>on.add(c)); n.main[n.main.length-1].right=openEnd(+1,PATM,TATM,1); });
-    prims.forEach((ch,k)=>{ if(!on.has(k)) ch[ch.length-1].right=openEnd(+1,PATM,TATM,1); });
+    nets.forEach(n=>{ n.cyls.forEach(c=>on.add(c)); n.main[n.main.length-1].right=openEnd(+1,pTail,TATM,1); });
+    prims.forEach((ch,k)=>{ if(!on.has(k)) ch[ch.length-1].right=openEnd(+1,pTail,TATM,1); });
   } else if(coll){
     st.jn.ends=prims.map(ch=>({P:ch[ch.length-1],side:+1})).concat([{P:coll[0],side:-1}]);
-    cEnd[cEnd.length-1].right=openEnd(+1,PATM,TATM,1);
-  } else prims.forEach(ch=>{ ch[ch.length-1].right=openEnd(+1,PATM,TATM,1); });
+    cEnd[cEnd.length-1].right=openEnd(+1,pTail,TATM,1);
+  } else prims.forEach(ch=>{ ch[ch.length-1].right=openEnd(+1,pTail,TATM,1); });
   // opts.record: the open ends' last cell over the last opts.recordCycles cycles (2 unless set) (crank angle of the firing frame; mass flow out, gas
   // speed, temperature, density), what OpenWAM's outlet columns hold, for the sound reading without a file
-  const outs=nets?nets.map(n=>n.main[n.main.length-1]).concat(prims.filter((ch,k)=>!nets.some(n=>n.cyls.indexOf(k)>=0)).map(ch=>ch[ch.length-1])):coll?[cEnd[cEnd.length-1]]:prims.map(ch=>ch[ch.length-1]);
+  let outs=nets?nets.map(n=>n.main[n.main.length-1]).concat(prims.filter((ch,k)=>!nets.some(n=>n.cyls.indexOf(k)>=0)).map(ch=>ch[ch.length-1])):coll?[cEnd[cEnd.length-1]]:prims.map(ch=>ch[ch.length-1]);
+  // the turbine (exhaust.turbine): every open tail end above becomes one of its entries, and the downpipe's end the tail
+  const ents=TB?outs:null;
+  if(TB){ ents.forEach(P=>{ P.right=NOOP; }); const D=TB.down;
+    D[0].left=fedEnd(-1,()=>TB.fd); D[D.length-1].right=openEnd(+1,TS.pOut,TATM,1); outs=[D[D.length-1]];
+    if(!TB.acc||TB.acc.nE!==ents.length) TB.acc=turbAcc(ents.length); }
+  const AC=TB?TB.acc:eng.src?(st.acc=st.acc||turbAcc(0)):null;   // per-cycle sums (the boosted intake's air; the turbine's)
   const nCyc=opts.cycles||6, recN=Math.min(nCyc,Math.max(2,opts.recordCycles||2)), rec=opts.record?{angle:[],time:[],outs:outs.map(()=>({mdot:[],u:[],T:[],rho:[]}))}:null; let tRec=0;
   const rhoRef=PATM/((G?G.Rair:RG)*TATM), out=[];   // VE: trapped air against dry air at 298.15 K and 1 atm
   let th0=0;
@@ -9962,6 +10102,23 @@ function runSpeed(eng,opts){
         ch.x=Math.min(1,Math.max(0,(ch.m*ch.x+dt*md*xin)/m2)); ch.m=m2; ch.T=Math.max(200,G?gasT(G,U/m2,ch.x,ch.T,false):U/(m2*CV));
         P.q1[i]-=dt*md/P.dx; P.q3[i]-=dt*md*hh/P.dx; P.q4[i]-=dt*md*xin/P.dx;
         if(md>0) P.q2[i]-=dt*md*P.u[i]/P.dx;
+      }
+      if(TB){
+        const D=TB.down, D0=D[0], nE=ents.length, At=TS.CdA/nE, Ag=TS.wgCdA/nE, pT=D0.p[0], pG=TS.wgAtm?PATM:pT, b=Math.floor(st.th%720);
+        for(let q=1;q<D.length;q++) junction(D[q-1],D[q]);
+        let fm=0, fE=0, fX=0;
+        for(let q=0;q<nE;q++){
+          turbineFace(ents[q],At,Ag,pT,pG,TS.eta,D0,!TS.wgAtm);
+          fm+=TF.md; fE+=TF.Ed; fX+=TF.Xd;
+          AC.W+=TF.W*dt; AC.Wis+=TF.mt*TF.dhis*dt; AC.mt+=TF.mt*dt; AC.mg+=TF.mg*dt; AC.p3+=TF.p0*dt; AC.p3s+=TF.pb*dt; AC.p4+=pT*dt; AC.rev+=TF.rev;
+          if(TF.p0>AC.p3pk) AC.p3pk=TF.p0; AC.bp[q][b]+=TF.p0*dt;
+          if(TF.m>0){ AC.H3+=TF.m*TF.h0*dt; AC.M3+=TF.m*dt; AC.X3+=TF.m*TF.x*dt; }
+          if(TF.m>0&&TS.wgAtm&&TF.mg>0){ AC.Matm+=TF.mg*dt; AC.Eatm+=TF.mg*(TF.h0+TF.x*(G?G.qx:0))*dt; }
+        }
+        const F=TB.fd; F.m=fm;
+        if(fm>0){ F.h=fE/fm; F.x=fX/fm; F.uj=fm/(D0.r[0]*D0.Af[0]); AC.H4+=fE*dt; AC.M4+=fm*dt; AC.X4+=fX*dt; }
+        else if(fm<0){ F.h=fE/fm; F.x=fX/fm; F.uj=0; }
+        else { F.h=G?gasH(G,D0.p[0]/(D0.Rm[0]*D0.r[0]),D0.x[0]):CP*D0.p[0]/(RG*D0.r[0]); F.x=D0.x[0]; F.uj=0; }
       }
       for(const P of all) stepPipe(P,dt);
       if(PL){
@@ -10012,6 +10169,10 @@ function runSpeed(eng,opts){
         if(mE<0){ cy.exM-=mE; cy.exH-=mE*vEx[k].h; cy.exX-=mE*vEx[k].x; }
         if(tk>345&&tk<375){ cy.ovP+=ep.p[0]; cy.ovN++; }
       }
+      if(AC){ const b=Math.floor(st.th%720);
+        AC.t+=dt; AC.bt[b]+=dt;
+        if(TB){ const Pt=outs[0]; AC.bm[b]+=Pt.f1[Pt.n]*dt; }
+        if(PL) AC.mAir+=PL.inlet[0].f1[0]*dt; else for(let k=0;k<N;k++) AC.mAir+=ins[k][0].f1[0]*dt; }
       if(rec&&c>=nCyc-recN){ rec.angle.push((st.th-th0)%720); rec.time.push(tRec); tRec+=dt;
         outs.forEach((P,j)=>{ prim(P); const i=P.n-1, R=rec.outs[j], md=P.f1[P.n]; R.mdot.push(md); R.u.push(P.u[i]); R.T.push(P.p[i]/(P.Rm[i]*P.r[i])); R.rho.push(P.r[i]); }); }   // the open end's face flux (kg/s, out positive), as its boundary set it this step
       st.th+=dth;
@@ -10021,6 +10182,7 @@ function runSpeed(eng,opts){
     if(d.length){ const av=f=>d.reduce((a,x)=>a+x[f],0)/d.length;
       out.push({ve:av('ve'),imep:av('imep'),gimep:av('gimep'),pmax:Math.max(...d.map(x=>x.pmax)),resid:av('resid'),pEvo:av('pEvo'),tEx:av('tEx'),overlapPort:av('overlapPort'),
         perCyl:d.map(x=>({ve:x.ve,imep:x.imep}))}); }
+    if(AC){ if(d.length) out[out.length-1].turb=turbSum(AC,G); accZero(AC); }
   }
   if(!out.length) out.push({ve:NaN,imep:NaN,gimep:NaN,pmax:NaN,resid:NaN,pEvo:NaN,tEx:NaN,overlapPort:NaN,perCyl:[]});
   return Object.assign({rpm:opts.rpm,history:out,state:st,rec},out[out.length-1]);
@@ -10040,7 +10202,7 @@ function sweep(eng,rpms,opts,onStep){
   });
   return res;
 }
-return {GAM,RG,CV,CP,PATM,TATM,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
+return {GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
   tfmep,friction:{name:'Heywood (1988) total motored fmep of SI engines, 0.97 + 0.15 (N/1000) + 0.05 (N/1000)^2 bar, taken off the gross indicated work',basis:'gross'},
   gas:{RU,TREF,SPEC,AFR_ST,K_WGS,LHV_F,ETA_C,HFORM,HF_FUEL,heatRelease,burnedMoles,gasPoly,makeGas,at:(G,T,x)=>{ gasAt(G,T,x); return {cp:GV.cp,h:GV.h,R:GV.R,e:GV.h-GV.R*T,gamma:GV.cp/(GV.cp-GV.R)}; },
     T:(G,v,x,T,byH)=>gasT(G,v,x,T||800,!!byH)}};
