@@ -1901,3 +1901,5 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - OpenWAM's turbine not cross-checked (needs a turbo shaft and a speed- or map-based efficiency the writer does not write).
 - Tests: web/tests/waveturbo_ui.js (new), web/tests/turbosim_ui.js (new), web/tests/wave_wasm.js (four turbo jobs added).
   Script tools/validation/wave/turbo_k24.js. No pinned value changed.
+- Suite (-j 2, --no-build, rust/web/fusion/parity without cargo_test_rust: disk): 162 tests, 153 passed, 0 failed, 9
+  skipped, 7 partial skips, 0 unexpected, 1944 s.

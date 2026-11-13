@@ -1729,6 +1729,11 @@ louder at high speed; at every speed it flows 2.5-2.7 times the air.
   CAPTURE=1 writes the K24 plan), `web/tests/wave_wasm.js` (four jobs added and the turbine summary compared; nothing
   removed or loosened). Scripts: `tools/validation/wave/turbo_k24.js`.
 - Pinned values changed: none.
+- Suite (`python3 tools/run_all_tests.py -j 2 --no-build --suite rust,web,fusion,parity`, 2026-11-13, part 5; cargo_test_rust
+  (the et_host/et_app workspace, untouched here) left out because its build needs about 1.2 GB of a 1.6 GB free disk):
+  162 tests, 153 passed, 0 flaky, 0 failed, 9 skipped and 7 partial skips, all expected, 1944 s. wave_wasm and
+  wave_wasm_built (every speed, the turbo jobs included), cargo_test_et_wave, waveturbo_ui, turbosim_ui, wavegas_ui,
+  wavekat_ui, the boost and turbo page tests passed.
 - Run time: the K24 build's run on the page (8 speeds with the closure, then 8 without boost and 8 with the boost and no
   turbine; WebAssembly in a worker) about 20 s on this machine; the JavaScript back end (the page's fallback) takes 1.2-1.4 times as long (scratch timing and wave_wasm.js).
 
