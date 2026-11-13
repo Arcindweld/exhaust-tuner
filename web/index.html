@@ -1381,6 +1381,10 @@ ul.list li+li,ol.list li+li{margin-top:6px}
             <span class="inp"><input id="i-thsg" type="text" readonly placeholder="none picked"></span></label>
           <label class="f adv"><span class="lab">Measured pressure before the turbine at full boost, blank if not measured</span>
             <span class="inp"><input id="i-p3m" type="number" step="any" inputmode="decimal" data-kind="press" data-min="0"><em data-u="press">psi</em></span></label>
+          <label class="f adv"><span class="lab">Turbine effective area for the wave simulation, blank for the one it finds</span>
+            <span class="inp"><input id="i-tsa" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-min="0"><em>mm²</em></span></label>
+          <label class="f adv"><span class="lab">Wastegate effective area for the wave simulation, blank for the one it finds</span>
+            <span class="inp"><input id="i-tsw" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-min="0"><em>mm²</em></span></label>
           <label class="f adv"><span class="lab">Outside air through the intercooler core, blank to skip</span>
             <span class="inp"><input id="i-icam" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1"><em>lb/min</em></span></label>
           <label class="f adv"><span class="lab">Core drop from the maker’s rating, blank to skip</span>
@@ -10172,7 +10176,7 @@ function runSpeed(eng,opts){
       }
       if(AC){ const b=Math.floor(st.th%720);
         AC.t+=dt; AC.bt[b]+=dt;
-        if(TB){ const Pt=outs[0]; AC.bm[b]+=Pt.f1[Pt.n]*dt; }
+        for(const Pt of outs) AC.bm[b]+=Pt.f1[Pt.n]*dt;   // the tail's flow (the downpipe's end; else every open tail end)
         if(PL) AC.mAir+=PL.inlet[0].f1[0]*dt; else for(let k=0;k<N;k++) AC.mAir+=ins[k][0].f1[0]*dt; }
       if(rec&&c>=nCyc-recN){ rec.angle.push((st.th-th0)%720); rec.time.push(tRec); tRec+=dt;
         outs.forEach((P,j)=>{ prim(P); const i=P.n-1, R=rec.outs[j], md=P.f1[P.n]; R.mdot.push(md); R.u.push(P.u[i]); R.T.push(P.p[i]/(P.Rm[i]*P.r[i])); R.rho.push(P.r[i]); }); }   // the open end's face flux (kg/s, out positive), as its boundary set it this step
@@ -11026,6 +11030,7 @@ function renderFour(){
   esAfterRender();
   if(ch&&!ch.err) drawTL($('f-ch-tl'),[{fn:ch.tl,col:'--t3'}],ch.type==='bulge'?ch.fPeak:ch.f0,ch.type==='bulge'?null:[ch.lo,ch.hi]);
   if(SIM.res&&$('sim-svg')) drawSim($('sim-svg'),SIM.rpms,SIM.res);
+  if(TSIM_LAST&&($('tsim-svg')||$('tsim-p3'))) drawTsim();
   S.four.summary=['4-STROKE HEADER AND MEGAPHONE','Tuning '+Math.round(p.rpm)+' RPM, valve opens '+p.evo+'° BBDC, '+p.n+' into 1',
     (r.port>0?'Primary tube length (flange to collector): '+plain(r.tube,'l')+', tuned '+plain(r.lp,'l')+' less '+plain(r.port,'l')+' port':'Primary length: '+plain(r.lp,'l')),'Primary ID: '+plain(p.dp,'d'),'Collector merge cone: '+plain(r.lmerge,'l'),'Collector ID: '+plain(r.dc,'d'),'Collector straight: '+plain(r.lstr,'l'),
     'Megaphone ('+where+') starts '+plain(r.mStart,'l')+' from the valve','Megaphone inlet ID: '+plain(r.dc,'d'),'Megaphone exit ID: '+plain(r.dex,'d'),'Megaphone length: '+plain(r.lm,'l')+' at '+p.ang+'° included']
@@ -20102,6 +20107,228 @@ function simWorkerSrc(){
     '  out.push({k:v.k,key:v.key,label:v.label,tq:res.map(function(r){return r.imep*Vd/(4*Math.PI)*job.cyl;}),tqg:res.map(function(r){return r.gimep*Vd/(4*Math.PI)*job.cyl;}),vdt:Vd*job.cyl,ve:res.map(function(r){return r.ve;}),ov:res.map(function(r){return r.overlapPort;}),pc:res.map(function(r){return r.perCyl.map(function(x){return x.imep;});})});});\n'+
     ' self.postMessage({type:"done",out:out});};';
 }
+/* ----- Simulate with the turbo (2026-11-13): the wave simulation under boost -----
+   When the Intake tab's induction is a turbocharger or a centrifugal supercharger, the 4-Stroke tab's wave simulation can
+   run the engine under boost (wsFactory: intake.source, exhaust.turbine; docs/WAVE_VALIDATION_2026-11-11.md, part 5):
+   - the charge: the Intake tab's route solution, throttle-inlet pressure (boost plus the atmosphere) and intercooler outlet
+     temperature; the runners (and the 4-Stroke tab's plenum and throttle, when chosen) breathe from it. The air filter's loss
+     is upstream of the compressor (in the route's inlet loss), so the plenum's filter is left out;
+   - the engine: the 4-Stroke tab's (bore, stroke, valves, cam, flow, plenum), with the Intake tab's air-fuel ratio, all the
+     cylinders of one turbo's manifold, at the Intake tab's firing gaps;
+   - the exhaust: the Intake tab's turbo manifold (each cylinder's port from the 4-Stroke tab, then the runner at its bore and
+     length, the merge cone, the collector; two collectors and two turbine entries with a divided manifold on a divided
+     housing), the turbine, the downpipe (Exhaust after the turbine: its size and length) to the back pressure after the
+     turbine; without the manifold section filled, the 4-Stroke tab's primaries and collector stand in;
+   - the turbine: efficiency the Intake tab's (75 % when blank, as its valve placement), its effective area found by the
+     closure (turboSimLib) or typed, the wastegate likewise, external gates dumping to the air.
+   The same engine and pipes with no turbo (the atmosphere at the intake, the collector running on into the downpipe, the
+   same back pressure at its end) run beside it for the sound after the turbine and for the torque without boost. */
+const TSIM={status:'idle',key:'',msg:'',res:null,run:0,worker:null,inp:null};
+const tsimSig2=(Pt,Tc,eta,p4,afr)=>JSON.stringify([Pt,Tc,eta,p4,afr].map(v=>+(+v).toPrecision(9)));
+let TSIM_LAST=null;   // the last finished run, for the manifold section and the checklist (when its inputs still match)
+function tsimPlan(q){
+  const ind=$('i-ind')?$('i-ind').value:'na'; if(ind!=='turbo'&&ind!=='centri') return null;
+  if(!TS_LAST&&typeof renderIntake==='function'){ try{ renderIntake(); }catch(e){} }
+  const L=TS_LAST, p=TS_P;
+  if(!L||!L.R||L.R.err||!p) return {ind,err:'Fill in the Intake tab’s boost and its inlet and charge pipes first: the run takes its charge (pressure and temperature after the intercooler) from that route.'};
+  if(!(p.boost>0)) return {ind,err:'Enter the boost on the Intake tab.'};
+  const err0=simCheck(q); if(err0) return {ind,err:err0};
+  const R=L.R, src=[], afr=val('i-afr')>0?val('i-afr'):12, turbo=ind==='turbo';
+  // the cylinders of one manifold, in firing order, and their gaps (the Intake tab's engine), else the 4-Stroke tab's collector
+  if(turbo&&!MFD_LAST&&typeof renderIntake==='function'){ try{ renderIntake(); }catch(e){} }
+  const X=turbo?MFD_LAST:null, M=X&&X.LY?X.LY.mf[0]:null;
+  let n, phases, gaps;
+  if(M&&M.seq&&M.gaps&&M.seq.length>1){ n=M.seq.length; gaps=M.gaps.slice(); phases=simPhases(n,gaps); src.push(['Cylinders on the turbo’s manifold',n+' ('+M.seq.join('-')+'), fired '+gaps.map(g=>Math.round(g)+'°').join(' / '),'Intake tab, engine and Turbo manifold']); }
+  else { n=q.n>1?Math.round(q.n):1; phases=simPhases(n,q.gaps); src.push(['Cylinders simulated',n+(n>1?' on one collector':''),'4-Stroke tab (no turbo manifold on the Intake tab)']); }
+  if(n>q.cyl) return {ind,err:'The 4-Stroke tab’s engine has '+q.cyl+' cylinders, fewer than the '+n+' on the turbo manifold. Make the two tabs’ engines match.'};
+  const base=simSpec(Object.assign({},q,{n,fdp:0,gaps:n>1?gaps||q.gaps:null}));
+  const e=Object.assign({},base.e,{afr}), intake=Object.assign({},base.intake), Pt=R.Pt, Tc=R.t3+273.15;
+  if(intake.plenum){ intake.plenum=Object.assign({},intake.plenum); delete intake.plenum.filter; }
+  src.push(['Charge at the throttle',tsFmt().pD(Pt-P_ATM)+' boost ('+tsFmt().pD(Pt)+' absolute), '+tsFmt().tD(R.t3),'Intake tab, the route: boost at the throttle, intercooler outlet temperature'+(R.merged||R.nt===1?'':' (one turbo’s)')]);
+  src.push(['Air-fuel ratio',afr+':1','Intake tab ('+(val('i-afr')>0?'typed':'blank: 12, the tab’s default')+')']);
+  const portSeg=base.exhaust.segs.filter(sg=>sg.primary&&base.exhaust.segs.indexOf(sg)===0&&q.port>0);
+  // the manifold
+  let per=null, colSegs=null, scrolls=null, man='';
+  const C=X&&!X.err?X.c:null, Lr=X&&X.L>0?X.L:NaN, dcol=X&&X.dcol>0?X.dcol:NaN, colL=X&&X.o?X.o.colL:NaN;
+  const Ts=X&&X.heat&&Number.isFinite(X.heat.Ts)?X.heat.Ts+273.15:900;
+  if(turbo&&C&&Lr>0&&dcol>0&&colL>0){
+    per=portSeg.concat([{L:Lr/1000,d0:C.id/1000,d1:C.id/1000,primary:true}]);
+    const H=tsHsg(), div=X.o.mani==='div'&&M.scrolls&&M.scrolls.length===2&&!!(H&&H.divided);
+    scrolls=div?M.scrolls.map(s=>s.map(c=>M.seq.indexOf(c))):null;
+    const nS=div?scrolls[0].length:n, d1=C.id*Math.sqrt(nS), lm=mfdMergeLen(dcol,d1);
+    colSegs=[{L:Math.max(0.001,lm/1000),d0:d1/1000,d1:dcol/1000},{L:colL/1000,d0:dcol/1000,d1:dcol/1000}];
+    man=n+' runners of '+cdim(C.id)+' bore, '+clen(Lr)+' long'+(portSeg.length?' after the 4-Stroke tab’s '+clen(q.port)+' port':'')+', a '+MFD_MERGE+'° merge cone from '+cdim(d1)+' to the '+cdim(dcol)+' collector, '+clen(colL)+' to the flange'+(div?'; divided: two collectors ('+M.scrolls.map(s=>s.join('-')).join(' and ')+') into the two entries of a divided housing':X.o.mani==='div'?'; the manifold is divided but the housing picked is not, so both scrolls meet in one collector before the turbine':'');
+    src.push(['Turbo manifold',man,'Intake tab, Turbo manifold'+(X.Lgiven?' (runner length typed)':' (the shortest equal length)')]);
+    src.push(['Manifold wall temperature',tsFmt().tD(Ts-273.15),X.heat?'Turbo manifold: the steel temperature it works out':'assumed 900 K (no steel temperature on the Intake tab)']);
+  } else {
+    per=base.exhaust.segs.slice(); colSegs=base.opt.collector?base.opt.collector.segs.slice():[];
+    src.push(['Exhaust manifold','the 4-Stroke tab’s primaries'+(colSegs.length?' and collector':''),turbo?'fill the Turbo manifold section on the Intake tab (exhaust port bore) to use its runners':'4-Stroke tab']);
+  }
+  // after the turbine
+  const xg=turbo?xGather(p,R):null, dpd=xg&&xg.d>0?xg.d:76.2-2*1.651, dpl=xg&&xg.L>0?xg.L:609.6, p4=tsP4();
+  const down={segs:[{L:dpl/1000,d0:dpd/1000,d1:dpd/1000}],Tw:700};
+  if(turbo) src.push(['Downpipe',cdim(dpd)+' inside, '+clen(dpl),xg&&xg.d>0?'Intake tab, Exhaust after the turbine':'not on the Intake tab: 3 in tube, 24 in (assumed)']);
+  src.push(['Back pressure at the '+(turbo?'downpipe’s end':'tail'),tsFmt().pD(p4-P_ATM)+' above the atmosphere',val('i-tobp')>0?'Intake tab, Back pressure after the turbine':'none entered (the atmosphere): the cats and mufflers are not counted']);
+  const etaG=val('i-teff')>0&&val('i-teff')<100, eta=etaG?val('i-teff')/100:0.75;
+  const Aty=val('i-tsa')>0?val('i-tsa')*1e-6:null, Agy=$('i-tsw')&&String($('i-tsw').value).trim()!==''&&val('i-tsw')>=0?val('i-tsw')*1e-6:null;
+  const H=tsHsg(), wgAtm=($('i-wgtype')?$('i-wgtype').value:'ext')==='ext';
+  if(turbo){ src.push(['Turbine efficiency',(eta*100).toFixed(0)+'% total-to-static',etaG?'Intake tab, typed':'blank on the Intake tab: 75%, the top of its sweep (no source gives a typical value)']);
+    src.push(['Turbine housing',H?(H.ar+' A/R'+(H.divided?', divided':'')+(H.flange?', '+H.flange:'')):'none picked','the A/R enters only through the effective area the closure finds; no source turns an A/R into a flow area']);
+    src.push(['Wastegate',wgAtm?'external, dumping to the air':'internal, into the downpipe','Intake tab, Wastegate']); }
+  const nPer=n, cyl=q.cyl, share=nPer/cyl;
+  const lo=val('i-lorpm')>0?val('i-lorpm'):3500, hi=Math.max(lo+1000,val('i-red')>0?val('i-red'):p.rpm||6500), rpms=[];
+  for(let i=0;i<8;i++) rpms.push(Math.round((lo+(hi-lo)*i/7)/50)*50);
+  src.push(['Speeds',rpms[0].toLocaleString('en-US')+' to '+rpms[7].toLocaleString('en-US')+' RPM in 8 steps','Intake tab: the full-boost RPM to the redline']);
+  // the turbine's first guess: the algebra's area at the page's assumed pressure before the turbine (k x boost)
+  // the exhaust of the cylinders simulated: one turbo's (R.m is the air per compressor) times their share of its cylinders
+  const k=tsTipK(), p3a=P_ATM+k*p.boost*1000, me=R.m*(1+1/afr)*n/(cyl/Math.max(1,R.nt));
+  const g3=exhGamma(Tc+600), R3=EXH_GAS.R, T3a=(Number.isFinite(val('i-tit'))?val('i-tit'):950)+273.15, pr=p4/p3a, prc=Math.pow(2/(g3+1),g3/(g3-1));
+  const psi=pr<=prc?Math.sqrt(g3)*Math.pow(2/(g3+1),(g3+1)/(2*(g3-1))):Math.sqrt(2*g3/(g3-1)*(Math.pow(pr,2/g3)-Math.pow(pr,(g3+1)/g3)));
+  const A0=me*Math.sqrt(R3*T3a)/(p3a*psi);
+  const opt={phases};
+  if(scrolls) opt.collectors=scrolls.map(c=>({cyls:c,segs:colSegs,Tw:Ts}));
+  else if(n>1&&colSegs.length) opt.collector={segs:colSegs,Tw:Ts};
+  const exhaust={segs:per,Tw:Ts};
+  if(turbo) exhaust.turbine={CdA:Aty||A0,eta,wgCdA:Agy!=null?Agy:0,wgTo:wgAtm?'atm':'down',down,pOut:p4};
+  else exhaust.pOut=p4;
+  const spec={e,intake:Object.assign({},intake,{source:{p:Pt,T:Tc}}),exhaust,opt};
+  // the same engine and pipes with no turbo: ambient intake, the collector running on into the downpipe, the same end pressure
+  const naOpt={phases}, naColl=(n>1?colSegs:[]).concat(turbo?down.segs:[]);
+  let naEx={segs:per.concat(n>1?[]:(turbo?down.segs:[])),Tw:Ts,pOut:p4};
+  if(n>1) naOpt.collector={segs:naColl,Tw:Ts};
+  // a source at the atmosphere gives the plain run to the last digit (waveturbo_ui.js 1) and the tail's flow per degree
+  const na={e,intake:Object.assign({},intake,{source:{p:P_ATM,T:298.15}}),exhaust:naEx,opt:naOpt};
+  const t1=p.tin, t2=R.t2, wcPer=CP_AIRT*(t2-t1);
+  const keyObj={spec,rpms,na,wcPer,At:Aty,Ag:Agy,cyl};
+  return {ind,turbo,spec,na,rpms,src,A0,Aty,Agy,eta,wgAtm,p4,Pt,Tc,R,p,afr,k,share,cyl,nSim:n,wcPer,t1,t2,me,key:JSON.stringify(keyObj),dx:n>1?0.0125:0.01,
+    mfdSig:X?tsimMfdSig(X):'',sig2:tsimSig2(Pt,Tc,eta,p4,afr)};
+}
+// the worker: the wave model, the WebAssembly when it loads, the closure; posts each speed as it finishes
+function tsimWorkerSrc(){
+  return 'const WS=('+wsFactory.toString()+')();\n'+
+    'var X=null; try{ var s=atob('+JSON.stringify(WAVE_WASM_B64)+'), b=new Uint8Array(s.length); for(var i=0;i<s.length;i++) b[i]=s.charCodeAt(i); X=new WebAssembly.Instance(new WebAssembly.Module(b),{m:{pow:Math.pow,sin:Math.sin,cos:Math.cos,exp:Math.exp}}).exports; }catch(e){ X=null; }\n'+
+    'const TL=('+turboSimLib.toString()+')(WS,X);\n'+
+    'self.onmessage=function(ev){ var j=ev.data; try{ self.postMessage({type:"start",rust:!!TL.rustBackend}); var out=tsimRun(TL,j,function(m){ self.postMessage(m); }); self.postMessage({type:"done",out:out}); }catch(e){ self.postMessage({type:"error",msg:String(e&&e.message||e)}); } };\n'+
+    'const tsimRun='+tsimRun.toString()+';';
+}
+// one run: the turbo (the closure, or the supercharged sweep), then the same pipes without boost
+function tsimRun(TL,j,post){
+  const mkB=s=>TL.rustBackend?TL.rustBackend(s,j.dx):TL.jsBackend(s,j.dx);
+  const out={rows:[],na:[]}; let B=mkB(j.spec); out.Vd=B.Vd;
+  try{
+    if(j.turbo) out.rows=TL.closure(B,{rpms:j.rpms,wc:m=>m*j.wcPer,A0:j.A0,At:j.At,Ag:j.Ag,onStep:(i,r)=>post({type:'progress',i,n:2*j.rpms.length})});
+    else out.rows=TL.sweep(B,j.rpms,{},(i,r)=>post({type:'progress',i,n:2*j.rpms.length})).map(r=>({rpm:r.rpm,res:Object.assign(r,{Wc:r.turb?r.turb.mAir*j.wcPer:NaN})}));
+  } finally { B.drop(); }
+  B=mkB(j.na);
+  try{ out.na=TL.sweep(B,j.rpms,{},(i,r)=>post({type:'progress',i:j.rpms.length+i,n:2*j.rpms.length})); } finally { B.drop(); }
+  // keep what the page shows: the bins of the speed of peak power and every speed's tail flow for the orders
+  out.rows.forEach(r=>{ if(r.res.turb){ r.res.turb.p3bins=r.res.turb.p3bins; } });
+  return out;
+}
+function tsimStart(){
+  const q=SIM.inp, P=q?tsimPlan(q):null; if(!P||P.err) return;
+  const id=++TSIM.run; TSIM.status='running'; TSIM.msg='Starting'; TSIM.pendingKey=P.key; TSIM.plan=P;
+  if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; }
+  const job={spec:P.spec,na:P.na,rpms:P.rpms,dx:P.dx,turbo:P.turbo,A0:P.A0,At:P.Aty,Ag:P.Agy,wcPer:P.wcPer};
+  const done=out=>{ if(id!==TSIM.run) return; TSIM.status='done'; TSIM.res=out; TSIM.key=P.key; TSIM.resPlan=P; TSIM.msg=''; TSIM_LAST={key:P.key,plan:P,out,sum:tsimSummary(P,out)};
+    if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; } renderActive(); };
+  const prog=(i,n)=>{ if(id!==TSIM.run) return; TSIM.msg='Running speed '+(i<P.rpms.length?(i+1)+' of '+P.rpms.length+' with the turbo'+(P.turbo?' (finding the turbine’s area and the gate)':''):(i-P.rpms.length+1)+' of '+P.rpms.length+' without it')+' ('+Math.round(100*(i+1)/n)+'%)'; const el=$('tsim-status'); if(el) el.textContent=TSIM.msg; };
+  const local=()=>{ setTimeout(()=>{ if(id!==TSIM.run) return; try{ const TL=turboSimLib(WS,null); done(tsimRun(TL,job,m=>{ if(m.type==='progress') prog(m.i,m.n); })); }catch(e){ TSIM.status='error'; TSIM.msg=String(e.message||e); renderActive(); } },0); };
+  let w=null; try{ w=new Worker(URL.createObjectURL(new Blob([tsimWorkerSrc()],{type:'text/javascript'}))); }catch(e){ w=null; }
+  if(w){ TSIM.worker=w; let heard=false;
+    w.onmessage=ev=>{ heard=true; const d=ev.data; if(d.type==='progress') prog(d.i,d.n); else if(d.type==='done') done(d.out); else if(d.type==='error'){ TSIM.status='error'; TSIM.msg=d.msg; renderActive(); } };
+    w.onerror=ev=>{ if(ev&&ev.preventDefault) ev.preventDefault(); if(!heard){ try{ w.terminate(); }catch(e){} TSIM.worker=null; local(); } };
+    w.postMessage(job); setTimeout(()=>{ if(!heard&&id===TSIM.run&&TSIM.worker===w){ try{ w.terminate(); }catch(e){} TSIM.worker=null; local(); } },6000); }
+  else local();
+  renderActive();
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-tsim]'); if(!b) return; if(b.dataset.tsim==='run') tsimStart(); });
+// sound at 1 m from a tail's mass flow over one cycle (720 one-degree bins): the monopole p = (1 / 4 pi r) d mdot / dt the
+// Sound tab uses, its harmonic k of the cycle (engine order k / 2) as a level re 20 uPa
+function tsimOrder(md,rpm,k){ const N=md.length; let re=0, im=0; for(let j=0;j<N;j++){ const a=2*Math.PI*k*j/N; re+=md[j]*Math.cos(a); im-=md[j]*Math.sin(a); }
+  const amp=2*Math.hypot(re,im)/N, w=2*Math.PI*k/(120/rpm), p=w*amp/(4*Math.PI)/Math.SQRT2; return 20*Math.log10(p/2e-5); }
+// the run in numbers, per speed: torque, power, pressures, temperatures, the closure, the orders
+function tsimSummary(P,out){
+  const Vd=out.Vd, cyl=P.cyl, tq=imep=>imep*Vd*cyl/(4*Math.PI), n=P.nSim, ord=[1,2,3,4].map(m=>m*n).filter(k=>k<=60);
+  const rows=out.rows.map((w,i)=>{ const r=w.res, t=r.turb||{}, na=out.na[i], f=WS.tfmep(w.rpm), g=x=>(x-P_ATM)/(P.Pt-P_ATM);
+    const o={rpm:w.rpm,ve:r.ve,veC:r.ve*(P_ATM/(R_AIR*298.15))/(P.Pt/(R_AIR*P.Tc)),tqI:tq(r.imep),tqG:tq(r.gimep),tqB:tq(r.imep-f),tqBg:tq(r.gimep-f),pmep:r.gimep-r.imep,resid:r.resid,
+      p3:t.p3,p3pk:t.p3pk,p3k:g(t.p3),p3pkk:g(t.p3pk),p4:t.p4,T3:t.T3,T4:t.T4,W:t.W,Wc:r.Wc,mAir:t.mAir,share:t.mt+t.mg>0?t.mg/(t.mt+t.mg):0,At:w.At,Ag:w.Ag,short:!!w.short,ok:w.ok!==false,it:w.it,
+      naTq:na?tq(na.imep):NaN,naTqB:na?tq(na.gimep-f):NaN,bins:t.p3bins,md:t.mdBins,naMd:na&&na.turb?na.turb.mdBins:null};
+    // the algebra at the run's own turbine-inlet state (the steady limit), and at the tab's assumed pressure and temperature
+    if(P.turbo&&Number.isFinite(t.p3)){ const tb=turbineBalance({ma:t.mAir,afr:P.afr,t1:P.t1,t2:P.t2,tit:t.T3-273.15,p3:t.p3,p4:t.p4,eta:P.eta});
+      o.wgAlg=tb.wg; const tbA=turbineBalance({ma:t.mAir,afr:P.afr,t1:P.t1,t2:P.t2,tit:Number.isFinite(val('i-tit'))?val('i-tit'):950,p3:P_ATM+P.k*(P.Pt-P_ATM),p4:P.p4,eta:P.eta}); o.wgPage=tbA.wg; o.T4alg=tbA.t4; }
+    return o; });
+  // the tail's orders: after the turbine (the downpipe's end) and the same pipes without the turbo (the same place)
+  rows.forEach(o=>{ if(o.md) o.ord=ord.map(k=>({k,L:tsimOrder(o.md,o.rpm,k)})); if(o.naMd) o.naOrd=ord.map(k=>({k,L:tsimOrder(o.naMd,o.rpm,k)})); });
+  const pk=a=>a.reduce((b,o,i)=>Number.isFinite(o)&&o>a[b]?i:b,0), pw=rows.map(o=>o.tqB*o.rpm*Math.PI/30/745.7);
+  const ip=pk(pw);
+  return {rows,ip,hp:pw[ip],rpmHp:rows[ip]?rows[ip].rpm:NaN,p3k:rows[ip]?rows[ip].p3k:NaN,ord};
+}
+// the manifold section's line from the run, when the run used this manifold (same runners, collector, boost)
+const tsimMfdSig=X=>X&&X.c&&X.o?JSON.stringify([X.c.id,X.L,X.dcol,X.o.colL,X.o.mani,X.o.bst,X.o.e&&X.o.e.order]):'';
+function tsimMfdTxt(X,short){
+  const T=TSIM_LAST; if(!T||!X||T.plan.mfdSig!==tsimMfdSig(X)) return '';
+  const S=T.sum, o=S.rows[S.ip]; if(!o||!o.bins) return '';
+  const b=[].concat(...o.bins).filter(Number.isFinite), lo=Math.min(...b), F=tsFmt();
+  const t='at '+o.rpm.toLocaleString('en-US')+' RPM (peak power) the turbine-inlet total pressure peaks at '+F.pD(o.p3pk)+' absolute, '+o.p3pkk.toFixed(2)+' × boost (gauge), mean '+F.pD(o.p3)+', '+o.p3k.toFixed(2)+' × boost; it swings '+F.pD(o.p3pk-lo)+' over the cycle';
+  return short?t:': from the wave simulation (4-Stroke tab, Simulate with the turbo), '+t+'. That is at the turbine flange; at the port the blowdown is stronger';
+}
+function tsimSection(q){
+  const P=tsimPlan(q); if(!P) return '';
+  const F=tsFmt(), imp=U==='imp', tqD=t=>imp?(t*0.737562).toFixed(0)+' lb-ft ('+t.toFixed(0)+' N·m)':t.toFixed(0)+' N·m ('+(t*0.737562).toFixed(0)+' lb-ft)';
+  const kwH=(t,r)=>t*r*Math.PI/30/745.7, title='Wave simulation with the '+(P.ind==='turbo'?'turbo':'supercharger');
+  let h='<p class="cap" style="margin-top:0">The same one-dimensional gas-dynamics model under boost: the runners breathe the charge after the compressor and the intercooler'+(P.ind==='turbo'?', the exhaust drives the turbine through the turbo manifold, and the gas leaves through the downpipe':'')+'. It runs the speeds from the full-boost RPM to the redline'+(P.ind==='turbo'?', at each finding the turbine’s area (first speed, wastegate shut) and then the wastegate’s opening that make the turbine’s cycle-averaged power equal the compressor’s':'')+', and the same engine and pipes without boost beside it. It takes a minute or two.</p>';
+  if(P.err) return sec(title,h+'<div class="note warn" id="tsim-miss">'+esc(P.err)+'</div>');
+  h+='<div class="tblwrap"><table id="tsim-src"><thead><tr><th>What the run takes</th><th>Value</th><th>From</th></tr></thead><tbody>'+P.src.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>').join('')+'</tbody></table></div>';
+  if(P.ind==='turbo') h+='<p class="cap">The turbine’s and the wastegate’s effective areas (discharge coefficient times the geometric area) can be typed on the Intake tab under the turbine inputs (mm²; 1 in² = 645.16 mm²); blank, the run finds them. No maker publishes a turbine’s flow as an area and no source turns a housing’s A/R into one.</p>';
+  if(TSIM.status==='error') h+='<div class="note warn">The run stopped: '+esc(TSIM.msg)+'</div>';
+  if(TSIM.status==='running') h+='<p class="cap" id="tsim-status" style="font-weight:600">'+esc(TSIM.msg||'Running')+'</p>';
+  h+='<div class="actions" style="margin-top:10px"><button type="button" class="btn primary" data-tsim="run"'+(TSIM.status==='running'?' disabled':'')+'>'+(TSIM.status==='running'?'Running…':'Simulate with the '+(P.ind==='turbo'?'turbo':'supercharger'))+'</button></div>';
+  const T=TSIM_LAST;
+  if(T){ const S=T.sum, rows=S.rows, stale=T.key!==P.key, turbo=T.plan.turbo;
+    if(stale) h+='<div class="note">The inputs changed since this run (here or on the Intake tab), so these results are for the earlier build. Run it again to update them.</div>';
+    h+='<figure class="card" style="margin:12px 0 0"><svg class="camp" id="tsim-svg" role="img" aria-label="Simulated torque under boost and without boost against RPM"></svg><div class="legend"><span><i class="sw" style="--c:var(--t4)"></i>Under boost, brake (pumping counted)</span><span><i class="sw" style="--c:var(--t4);border-top-style:dashed"></i>Under boost, indicated</span><span><i class="sw" style="--c:var(--muted);border-top-style:dotted"></i>The same engine and pipes without boost, brake</span></div></figure>';
+    const thr=imp?['RPM','Brake torque','Brake power','Indicated','Boost','Before the turbine, mean (× boost)','Peak (× boost)','Pumping','Residual','Gas before / after the turbine','Turbine / compressor power','Wastegate share: run / algebra at the run’s p₃, T₃ / at '+(+T.plan.k.toFixed(2))+' × boost']:null;
+    h+='<div class="tblwrap" style="margin-top:12px"><table id="tsim-tbl"><thead><tr><th>RPM</th><th>Brake torque</th><th>Brake power</th><th>Indicated torque</th>'+(turbo?'<th>Turbine inlet, mean</th><th>Peak</th>':'')+'<th>Pumping mep</th><th>Residual</th>'+(turbo?'<th>Gas before / after the turbine</th><th>Turbine ÷ compressor power</th><th>Wastegate share: run / algebra at the run’s p₃ and T₃ / at '+(+T.plan.k.toFixed(2))+' × boost</th>':'<th>Compressor drive</th>')+'</tr></thead><tbody>'+
+      rows.map(o=>'<tr'+(o.short?' style="background:var(--warn-soft,#fff3e0)"':'')+'><td>'+o.rpm.toLocaleString('en-US')+'</td><td>'+tqD(o.tqB)+'</td><td>'+F.hp(kwH(o.tqB,o.rpm))+'</td><td>'+tqD(o.tqI)+'</td>'+
+        (turbo?'<td>'+F.pD(o.p3)+', '+o.p3k.toFixed(2)+' ×</td><td>'+F.pD(o.p3pk)+', '+o.p3pkk.toFixed(2)+' ×</td>':'')+'<td>'+(o.pmep>=0?'−':'+')+F.pD(Math.abs(o.pmep))+'</td><td>'+(100*o.resid).toFixed(1)+'%</td>'+
+        (turbo?'<td>'+F.tD(o.T3-273.15)+' / '+F.tD(o.T4-273.15)+'</td><td>'+(o.W/o.Wc).toFixed(3)+(o.short?' (short: boost not held)':'')+'</td><td>'+(100*o.share).toFixed(1)+'% / '+(100*o.wgAlg).toFixed(1)+'% / '+(100*o.wgPage).toFixed(1)+'%</td>':'<td>'+F.kw(o.Wc*T.plan.cyl/T.plan.nSim)+'</td>')+'</tr>').join('')+'</tbody></table></div>';
+    const o=rows[S.ip], kU=T.plan.k;
+    h+='<dl class="rows">'+rowT('Peak power under boost',F.hp(S.hp)+' at '+(o?o.rpm.toLocaleString('en-US'):'–')+' RPM','brake: the net indicated work (pumping loop included) less Heywood’s friction; '+F.hp(kwH(o.tqBg,o.rpm))+' if the friction is taken off the gross loop instead, as the plain wave simulation does (Heywood’s motored friction holds a wide-open pumping loop of its own, so the first counts pumping twice and the second ignores the turbo’s back pressure: the truth is between)');
+    if(turbo&&o){ h+=rowT('Pressure before the turbine',o.p3k.toFixed(2)+' × boost (mean), '+o.p3pkk.toFixed(2)+' × at the blowdown peak','gauge multiples at '+o.rpm.toLocaleString('en-US')+' RPM, an output of the run; the Intake tab assumes '+(+kU.toFixed(2))+' × (Bell’s range 2 to 2.5 ×, as the tab cites it). Across the speeds the mean is '+Math.min(...rows.map(r=>r.p3k)).toFixed(2)+' to '+Math.max(...rows.map(r=>r.p3k)).toFixed(2)+' ×');
+      h+=rowT('Turbine effective area',(rows[0].At*1e6).toFixed(0)+' mm² ('+(rows[0].At/645.16e-6).toFixed(2)+' in²)',T.plan.Aty?'typed':'found at '+rows[0].rpm.toLocaleString('en-US')+' RPM with the wastegate shut; held at every faster speed');
+      h+=rowT('Wastegate at peak power',(o.Ag*1e6).toFixed(0)+' mm² effective, '+(100*o.share).toFixed(1)+'% of the exhaust','the algebra (turbineBalance) at the run’s own turbine-inlet pressure and temperature gives '+(100*o.wgAlg).toFixed(1)+'%; at the tab’s assumed '+(+kU.toFixed(2))+' × boost and its turbine-inlet temperature, '+(100*o.wgPage).toFixed(1)+'%');
+      const om=o.ord||[]; if(om.length) h+=rowT('Tail sound after the turbine',om.map(x=>'order '+(x.k/2)+': '+x.L.toFixed(1)+' dB').join(', '),'at 1 m from the downpipe’s end as a monopole (the Sound tab’s law), before the cats and mufflers, at '+o.rpm.toLocaleString('en-US')+' RPM'+(o.naOrd?'; the same pipes without the turbo: '+o.naOrd.map((x,i)=>'order '+(x.k/2)+' '+(om[i].L-x.L>=0?'+':'')+(om[i].L-x.L).toFixed(1)+' dB').join(', '):'')+'. The model’s result, not validated against a measurement');
+      if(rows.some(r=>r.short)) h+='<div class="note warn">At '+rows.filter(r=>r.short).map(r=>r.rpm.toLocaleString('en-US')).join(', ')+' RPM the turbine, with the gate shut, makes less power than the compressor needs: this turbine could not hold the boost there. The run still holds it (a steady model), so read those speeds as optimistic.</div>'; }
+    h+='<figure class="card" style="margin:12px 0 0"><svg class="camp" id="tsim-p3" role="img" aria-label="Pressure before the turbine over one engine cycle at the speed of peak power"></svg><p class="cap">'+(turbo?'Turbine-inlet total pressure over one cycle at '+(o?o.rpm.toLocaleString('en-US'):'')+' RPM (cylinder 1’s crank angle, firing at 0°), with the boost (dashed) and the mean before the turbine (dotted): where the line is above the boost the pistons push against it in the exhaust stroke.':'')+'</p></figure>';
+  }
+  h+='<p class="cap"><b>How it works and its limits.</b> The charge is the Intake tab’s route solution, steady at each speed: the compressor is a boundary, not a map, so surge, compressor and turbo speed, inertia and spool-up are not modelled (full-load steady points only). The turbine is the quasi-steady equivalent nozzle of 1-D engine codes: the flow an isentropic nozzle of one effective area passes from the turbine-inlet total state to the turbine-outlet pressure (NASA Glenn’s compressible flow equations), the area constant as Watson and Janota and Benson used it (SAE 2017-24-0019 sums up the approaches; Payri et al. 2012 vary it with speed and pressure ratio, which needs a map), the work its efficiency times the isentropic total-to-static enthalpy drop along the gas’s own isentrope, the gas after it carrying the rest; a divided housing is two nozzles in parallel on one wheel (as Galindo, Serrano et al. 2021 model a double-entry turbine), with no interaction between the scrolls at the wheel. The effective area is found by the model itself from the Intake tab’s own power balance, so the pressure before the turbine is an output, and the efficiency and the housing’s A/R enter only through it. The wastegate is an orifice in parallel, to the downpipe (internal) or the air (external). <b>Not modelled:</b> knock, enrichment for cooling and ignition retard under boost: the power figures assume the engine can run the modelled burn (the 4-Stroke tab’s 18° BTDC, 55°, at the Intake tab’s air-fuel ratio) at this boost; the turbine’s own map and efficiency changing with speed; heat lost in the turbine housing; a turbine flowing backwards does no work. Compared against: closed-form nozzle flow and the isentrope by hand, the tab’s turbine balance in steady flow, conservation of mass and energy (web/tests/waveturbo_ui.js); no turbocharged engine with published cam data was found to test the whole run against a rating (docs/WAVE_VALIDATION_2026-11-11.md, part 5).</p>';
+  return sec(title,h);
+}
+// the torque against RPM under boost and without, and the pressure before the turbine over a cycle
+function drawTsim(){
+  const T=TSIM_LAST; if(!T) return; const rows=T.sum.rows, conv=U==='imp'?0.737562:1;
+  const svg=$('tsim-svg'); if(svg){ clearSvg(svg); const W=widthOf(svg), H=240, ml=46, mr=14, mt=14, mb=30; svg.setAttribute('viewBox','0 0 '+W+' '+H); svg.setAttribute('height',H);
+    const ser=[rows.map(o=>o.tqB*conv),rows.map(o=>o.tqI*conv),rows.map(o=>o.naTqB*conv)], all=[].concat(...ser).filter(Number.isFinite);
+    let y0=Math.min(...all), y1=Math.max(...all); const pad=(y1-y0)*0.08||1; y0-=pad; y1+=pad; const ys=niceStep(y1-y0,[5,10,20,25,50,100,200]); y0=Math.floor(y0/ys)*ys; y1=Math.ceil(y1/ys)*ys;
+    const x0=rows[0].rpm, x1=rows[rows.length-1].rpm, X=v=>ml+(v-x0)/(x1-x0)*(W-ml-mr), Y=v=>H-mb-(v-y0)/(y1-y0)*(H-mt-mb);
+    for(let v=y0;v<=y1+1e-9;v+=ys){ mk('line',{x1:ml,x2:W-mr,y1:Y(v),y2:Y(v),'class':'grid'},svg); const t=mk('text',{x:ml-6,y:Y(v)+3.5,'class':'tr'},svg); t.textContent=+v.toFixed(0); }
+    rows.forEach(o=>{ const t=mk('text',{x:X(o.rpm),y:H-mb+16,style:'text-anchor:middle'},svg); t.textContent=o.rpm; });
+    const st=['stroke:var(--t4);stroke-width:2.6','stroke:var(--t4);stroke-width:1.6;stroke-dasharray:6 4','stroke:var(--muted);stroke-width:1.6;stroke-dasharray:2 3'];
+    ser.forEach((s,k)=>mk('polyline',{points:s.map((v,i)=>X(rows[i].rpm).toFixed(1)+','+Y(v).toFixed(1)).join(' '),'class':'ord',style:st[k]},svg));
+    const ty=mk('text',{x:4,y:10},svg); ty.textContent=U==='imp'?'lb-ft':'N·m'; }
+  const sv2=$('tsim-p3'), o=rows[T.sum.ip]; if(sv2&&o&&o.bins&&o.bins.length){ clearSvg(sv2); const W=widthOf(sv2), H=200, ml=50, mr=14, mt=12, mb=28, cu=U==='imp'?1/6894.757:1/1000, Pt=T.plan.Pt;
+    sv2.setAttribute('viewBox','0 0 '+W+' '+H); sv2.setAttribute('height',H);
+    const vals=[].concat(...o.bins,[Pt,o.p3]).filter(Number.isFinite).map(v=>(v-P_ATM)*cu); let y0=Math.min(0,...vals), y1=Math.max(...vals)*1.05; const ys=niceStep(y1-y0,[1,2,5,10,20,25,50,100]); y0=Math.floor(y0/ys)*ys; y1=Math.ceil(y1/ys)*ys;
+    const X=a=>ml+a/720*(W-ml-mr), Y=v=>H-mb-(v-y0)/(y1-y0)*(H-mt-mb);
+    for(let v=y0;v<=y1+1e-9;v+=ys){ mk('line',{x1:ml,x2:W-mr,y1:Y(v),y2:Y(v),'class':'grid'},sv2); const t=mk('text',{x:ml-6,y:Y(v)+3.5,'class':'tr'},sv2); t.textContent=+v.toFixed(0); }
+    for(let a=0;a<=720;a+=180){ const t=mk('text',{x:X(a),y:H-mb+16,style:'text-anchor:middle'},sv2); t.textContent=a+'°'; }
+    o.bins.forEach((b,k)=>mk('polyline',{points:b.map((v,i)=>X(i+0.5).toFixed(1)+','+Y((v-P_ATM)*cu).toFixed(1)).join(' '),'class':'ord',style:'stroke:var('+(k?'--t2':'--t4')+');stroke-width:1.8'},sv2));
+    mk('line',{x1:ml,x2:W-mr,y1:Y((Pt-P_ATM)*cu),y2:Y((Pt-P_ATM)*cu),style:'stroke:var(--t3);stroke-dasharray:6 4;stroke-width:1.4'},sv2);
+    mk('line',{x1:ml,x2:W-mr,y1:Y((o.p3-P_ATM)*cu),y2:Y((o.p3-P_ATM)*cu),style:'stroke:var(--muted);stroke-dasharray:2 3;stroke-width:1.4'},sv2);
+    const ty=mk('text',{x:4,y:10},sv2); ty.textContent=U==='imp'?'psi gauge':'kPa gauge'; }
+}
+if(typeof window!=='undefined') window.__tsim={plan:()=>SIM.inp?tsimPlan(SIM.inp):null,last:()=>TSIM_LAST,state:()=>TSIM,lib:()=>turboSimLib,run:tsimRun,summary:tsimSummary};
 function simStop(){ (SIM.workers||[]).forEach(w=>{ try{ w.terminate(); }catch(e){} }); SIM.workers=[]; }
 function simDone(id,key,rpms,out){
   if(id!==SIM.run) return;
@@ -20262,7 +20489,7 @@ function simSection(q){
   if(e) h+='<p class="cap">Assumed for this run: bore '+cdim(e.bore*1000)+', stroke '+cdim(e.stroke*1000)+', '+(e.nIn*2)+' valves ('+cdim(e.dIn*1000)+' intake, '+cdim(e.dEx*1000)+' exhaust), cam '+
     e.cam.ivo+'-'+e.cam.ivc+' intake and '+e.cam.evo+'-'+e.cam.evc+' exhaust as on a cam card, compression '+(+e.cr.toFixed(1))+':1, an intake runner '+clen(sp.intake.segs[0].L*1000)+' long at '+cdim(sp.intake.segs[0].d0*1000)+'. '+
     (hdr?'Primaries '+cdim(plan.H.p.dp)+' and collectors as on the Headers tab. Not modeled: mufflers, converters or crossovers past the open ends. ':nc>1?'Not modeled: the engine’s other collectors, and mufflers, converters or crossovers past the open end. ':'Not modeled: mufflers, converters or crossovers past the open end. ')+'The Expert inputs under Wave simulation set the engine.</p>';
-  return sec('Wave simulation',h)+esSection(q,sp)+wamSection(q,sp)+(sp&&!simCheck(q)?dynoSection(q,sp)+optSection(q,sp):'');
+  return sec('Wave simulation',h)+tsimSection(q)+esSection(q,sp)+wamSection(q,sp)+(sp&&!simCheck(q)?dynoSection(q,sp)+optSection(q,sp):'');
 }
 
 /* ----- Engine Simulator export (rough listening preview) ----- */
@@ -24678,7 +24905,7 @@ function mfdSection(ind,p){
   h+='<ul class="list"><li><b>Recommended: '+esc(X.rec.cd.label)+'</b>, the stocked size whose inside area is nearest the port’s ('+((X.rec.ratio-1)*100).toFixed(1)+'%): MacInnes recommends small runners of about the ports’ internal area, as '+L_(MFD_AS,'AutoSpeed’s review')+' sums up his book (its own words, not a quote from MacInnes; the book was not read). '+(X.recPipe&&X.recPipe!==X.rec?'Nearest pipe for weld elbows: '+esc(X.recPipe.cd.label)+' ('+((X.recPipe.ratio-1)*100).toFixed(1)+'%). ':'')+(X.recTube&&X.recTube!==X.rec?'Nearest mandrel tube: '+esc(X.recTube.cd.label)+' ('+((X.recTube.ratio-1)*100).toFixed(1)+'%). ':'')+'</li>'+
     '<li>Humphries: the runner’s area “not significantly greater than the geometric valve area at full lift” (same review). '+(X.valveA?'Your exhaust valve, '+cdim(o.vEx)+' at '+cdim(o.lift)+' lift: '+aD(X.valveA)+' (curtain π D L, the seat once the lift passes D/4); the '+esc(C.label)+' bore is '+aD(Math.PI*C.id*C.id/4)+' ('+((Math.PI*C.id*C.id/4/X.valveA-1)*100).toFixed(0)+'% of it).':'Enter the exhaust valve lift (Turbo manifold inputs) and the exhaust valve size (4-Stroke tab) to compare.')+' The two rules give different sizes when the port is larger than the valve’s curtain; the page shows both and recommends by the port, the one it can always check.</li>'+
     '<li>Bell: relatively small runners with thick walls, again AutoSpeed’s summary of his book, not his words (same review). Garrett: “Avoid rapid area changes”, so a bore matched to the port avoids a step at the flange, and keep the volume small for boost response.</li>'+
-    '<li>Speeds at the turbine-inlet state, '+F.tD(o.tit)+' and the pressure before the turbine, both as totals (this page’s physics; no source gives a speed limit for a turbo runner). Each runner carries one cylinder’s exhaust, '+F.fl(X.mr)+' averaged over the cycle, but only while its valve is open: '+(X.k?'by continuity alone (the mass per cycle over the time it has to leave) the mean flow while open is '+(+CYCLE)+' ÷ '+(+X.dur.toFixed(1))+'° = '+X.k.toFixed(3)+' × the cycle mean, '+F.fl(X.mr*X.k)+' ('+mfdDurTxt(X,o)+'), the first speed column':'enter the exhaust valve’s open period (or the 4-Stroke tab’s valve events) for the speed while it is open')+'. The blowdown at the start of the opening is faster still: its peak needs a wave model, which this section does not have, so no peak is given. The gas at the port is hotter than at the turbine, so faster there too.</li></ul>';
+    '<li>Speeds at the turbine-inlet state, '+F.tD(o.tit)+' and the pressure before the turbine, both as totals (this page’s physics; no source gives a speed limit for a turbo runner). Each runner carries one cylinder’s exhaust, '+F.fl(X.mr)+' averaged over the cycle, but only while its valve is open: '+(X.k?'by continuity alone (the mass per cycle over the time it has to leave) the mean flow while open is '+(+CYCLE)+' ÷ '+(+X.dur.toFixed(1))+'° = '+X.k.toFixed(3)+' × the cycle mean, '+F.fl(X.mr*X.k)+' ('+mfdDurTxt(X,o)+'), the first speed column':'enter the exhaust valve’s open period (or the 4-Stroke tab’s valve events) for the speed while it is open')+'. The blowdown at the start of the opening is faster still'+(tsimMfdTxt(X)||': its peak needs a wave model, which this section does not have, so no peak is given here (the 4-Stroke tab’s Simulate with the turbo gives it)')+'. The gas at the port is hotter than at the turbine, so faster there too.</li></ul>';
   if(o.mani==='log'&&X.log) h+=rowT('Log bore (Allard: 2 to 2.5 × one port’s area)',cdim(X.log.lo)+' to '+cdim(X.log.hi),(X.log.pick.length?'stocked in range: '+X.log.pick.map(c=>esc(c.label)).join(', '):'no stocked size falls in the range')+'; at the turbine end the whole exhaust: '+F.sD(X.log.v)+', Mach '+X.log.M.toFixed(3)+' in '+cdim(X.log.d)+'. The log’s branch losses are not worked out: no junction coefficient was read.');
   // 3. lengths
   h+='<p class="sub" style="margin-top:12px">Runner lengths</p>';
@@ -24863,6 +25090,9 @@ function tgSteps(ind,p){
       if(G2.dWhy==='typed'&&G2.recOD&&G2.d+2*G2.w<G2.recOD-0.05) probs.push('smaller than the size rule’s '+cdim(G2.recOD));
       if(X.X.choke) probs.push('the exhaust chokes ('+(X.X.choke.k==='tip'?'at the tip':X.X.choke.k==='tail'?'in the pipe after the downpipe':X.X.choke.k==='dp'?'in the downpipe':'at the '+X.X.choke.k)+'): a pipe or part is too small for this flow');
       add('exh','Exhaust side: downpipe and back pressure',probs.length?'warn':G2.miss.length||!used?'todo':'ok','downpipe '+cdim(G2.d+2*G2.w)+' OD, '+(X.X.choke?'no back pressure (chokes)':'back pressure '+F.pD(X.X.bp)+' at peak, static at the turbine outlet, the gas cooled along the pipe'+(G2.cool?'':' (cooling off)')+', compressible flow')+(G2.miss.length?' ('+G2.miss.length+' part'+(G2.miss.length>1?'s':'')+' not counted)':'')+'; '+(used?'used in the turbine balance':X.X.choke?'nothing to put in the turbine balance':'not in the turbine balance yet (Use my exhaust’s back pressure)')+(probs.length?'; '+probs.join('; '):''),'exhaust-after-the-turbine'); } }
+  // the wave simulation under boost (4-Stroke tab), when a run exists
+  if(TSIM_LAST){ const T=TSIM_LAST, S=T.sum, o=S.rows[S.ip], F2=tsFmt(), now=TS_LAST&&TS_LAST.R?tsimSig2(TS_LAST.R.Pt,TS_LAST.R.t3+273.15,val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75,tsP4(),val('i-afr')>0?val('i-afr'):12):'';
+    if(o) add('sim','Simulated under boost',now===T.plan.sig2?'ok':'info',F2.hp(S.hp)+' at '+o.rpm.toLocaleString('en-US')+' RPM (brake, pumping counted)'+(T.plan.turbo&&Number.isFinite(o.p3k)?'; turbine-inlet pressure '+o.p3k.toFixed(2)+' × boost (mean), '+o.p3pkk.toFixed(2)+' × at the blowdown peak; wastegate '+(100*o.share).toFixed(0)+'% of the exhaust':'')+(now===T.plan.sig2?'':'; the boost inputs changed since the run: run it again on the 4-Stroke tab'),''); }
   add('scan','Route it from a scan','info','Fusion add-in, Charge piping from your scan: it routes the charge pipes around the scanned engine bay with these sizes'+(FUSION?'; Fusion is connected':'; it needs Fusion with the add-in (this page cannot read a scan)'),$('cr-block')?'#cr-block':'');
   add('sheet','Build sheet','info','the route drawing, every part and size, the key numbers and the assumptions, in inches and mm, as one file to save and print','');
   return S;
@@ -24933,7 +25163,7 @@ function tsSheet(){
     if(MF.vol) N('Volume, valves to the turbine'+each,(MF.vol.V*1000).toFixed(2)+' L ('+(MF.vol.V*61023.74).toFixed(0)+' cu in), '+(MF.vol.V/MF.vol.cyl).toFixed(2)+' × one cylinder');
     if(MF.heat&&!MF.heat.none) N('Heat growth ('+mt.name+')',(MF.heat.atLeast?'at least ':'')+(MF.heat.eps*1e3).toFixed(2)+' per thousand; the turbine flange moves '+(MF.heat.move/MM).toFixed(3)+' in ('+MF.heat.move.toFixed(2)+' mm) from the head');
     if(MF.sup) N('Turbo weight on the head flange',MF.sup.W.toFixed(0)+' N ('+(MF.sup.W/4.44822).toFixed(1)+' lbf), '+MF.sup.Mo.toFixed(1)+' N·m ('+(MF.sup.Mo/1.35582).toFixed(1)+' lb·ft) standing');
-    assume.push('Turbo manifold: runner speeds and the loss while a valve is open are means over the open period (continuity: the cycle-mean flow × the cycle ÷ the open period'+(MF.k?', '+mfdDurTxt(MF,MF.o):'')+'), the collector at its rms flow from square-wave pulses; the blowdown peak is higher and is not computable without a wave model; the loss is a 1-D march from the turbine-inlet total pressure (the merge’s mixing not counted) and is not added to the turbine balance; runner lengths from a planar S geometry to one merge point (the runners really arrive side by side around the collector, and the nearer ones need room to take up the difference, so a routed manifold can need more); the runner size rule is MacInnes’ as AutoSpeed sums it up (the books were not read); fatigue life is not calculable here.'); }
+    assume.push('Turbo manifold: runner speeds and the loss while a valve is open are means over the open period (continuity: the cycle-mean flow × the cycle ÷ the open period'+(MF.k?', '+mfdDurTxt(MF,MF.o):'')+'), the collector at its rms flow from square-wave pulses; the blowdown peak is higher'+(tsimMfdTxt(MF,true)?' (the wave simulation: '+tsimMfdTxt(MF,true)+')':' and is not computable without a wave model (the 4-Stroke tab’s Simulate with the turbo gives it)')+'; the loss is a 1-D march from the turbine-inlet total pressure (the merge’s mixing not counted) and is not added to the turbine balance; runner lengths from a planar S geometry to one merge point (the runners really arrive side by side around the collector, and the nearer ones need room to take up the difference, so a routed manifold can need more); the runner size rule is MacInnes’ as AutoSpeed sums it up (the books were not read); fatigue life is not calculable here.'); }
   const X=TS_X;
   if(turbo&&X){ const G=X.G;
     const st=x=>F.tD(x.sIn.T-273.15)+', Mach '+x.sIn.M.toFixed(2)+'; static rise '+F.pD(x.dp);

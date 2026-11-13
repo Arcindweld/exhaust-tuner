@@ -2308,7 +2308,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
     }
     // the turbine: every open tail end above becomes one of its entries (the page's outs), the downpipe's end the tail
     let mut ents: Vec<usize> = Vec::new();
-    if let Some(tb) = &st.turb {
+    {
         if let Some(nets) = &st.nets {
             for n in nets {
                 ents.push(*n.main.last().unwrap());
@@ -2325,6 +2325,10 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 ents.push(*ch.last().unwrap());
             }
         }
+    }
+    // the tail ends (the page's outs): the open tail ends, or with a turbine the downpipe's end
+    let outs: Vec<usize> = match &st.turb { Some(tb) => vec![*tb.down.last().unwrap()], None => ents.clone() };
+    if let Some(tb) = &st.turb {
         for &e in &ents {
             st.pipes[e].right = Bnd::Noop;
         }
@@ -2337,7 +2341,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
     } else if eng.src.is_some() && st.acc.is_none() {
         st.acc = Some(turb_acc(0));
     }
-    let tail_pipe = st.turb.as_ref().map(|tb| *tb.down.last().unwrap());
+
     let rho_ref = PATM / ((match &gas { Some(g) => g.rair, None => RG }) * TATM);
     let fa = match &gas { Some(g) => g.fa, None => 1.0 };
     let mut out = Vec::new();
@@ -2683,7 +2687,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 let b = (st.th % 720.0).floor() as usize;
                 ac.t += dt;
                 ac.bt[b] += dt;
-                if let Some(tp) = tail_pipe {
+                for &tp in &outs {
                     let pt = &st.pipes[tp];
                     ac.bm[b] += pt.f1[pt.n] * dt;
                 }
