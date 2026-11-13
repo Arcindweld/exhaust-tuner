@@ -1808,3 +1808,5 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   throws, 400 px with no page scroll.
 - Open: log axes are not supported (none seen on compressor maps); a rotated or skewed image is not corrected; the
   redline point uses the peak-power VE.
+- Suite (web, --no-build -j 2 --skip-slow): 114 tests, 109 passed, 0 flaky, 0 failed, 5 skipped (expected), 7 partial
+  skips, 0 unexpected.
