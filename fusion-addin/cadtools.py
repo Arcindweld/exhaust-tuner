@@ -23,6 +23,11 @@ Actions
                leg: routed on each stocked bend radius, ranked by estimated loss (chargeroute.py). Builds nothing.
   chargeRouteBuild  Build the routes chosen from the last recommendation.
   setHotKeepouts    Mark the selected keep-outs hot (a larger clearance for the charge pipes), or clear the marks.
+  mountPlace   A stand-in box or cylinder for a part (the page's catalogue size) at a picked point (mounts.py).
+  mountPick    Read the part and each mount's pair of picks (a point on the part, a point on the chassis or scan):
+               reach, offset and direction of each bracket, for the page's Mounts designer.
+  mountBuild   Build the page's brackets in place from the last mountPick, checked for clearance to the keep-outs
+               (hot ones at the hot clearance) and for straight-line tool access along each bolt.
 
 Lengths sent back are centimeters (Fusion's internal unit). The page converts them.
 """
@@ -46,6 +51,7 @@ try:
     from . import tubecfd as TC
     from . import roundcheck as RND
     from . import chargeroute as CRT
+    from . import mounts as MNT
 except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path)
     import router as RT
     import templates as TPL
@@ -57,6 +63,7 @@ except ImportError:          # loaded as a top-level module (the add-in's folder
     import tubecfd as TC
     import roundcheck as RND
     import chargeroute as CRT
+    import mounts as MNT
 
 PALETTE_ID = 'exhaustTunerPalette'
 PANEL_CMD_ID = 'exhaustTunerPanelCmd'
@@ -3701,6 +3708,215 @@ def act_hang(data):
             'bodies': made}
 
 
+
+# --------------------------------------------------------------------------
+# Mounts (the Hangers tab's Mounts designer): mountPlace, mountPick, mountBuild; the geometry is mounts.py
+# --------------------------------------------------------------------------
+_LAST_MOUNT = {}
+
+
+def _page_axes():
+    """The page's axes in the model: X across, Y up, Z fore-aft, right-handed (Z up: page Z is the model's -Y)."""
+    if _z_up():
+        return (1.0, 0.0, 0.0), (0.0, 0.0, 1.0), (0.0, -1.0, 0.0)
+    return (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)
+
+
+def _to_page(v):
+    X, Y, Z = _page_axes()
+    return (_dot(v, X), _dot(v, Y), _dot(v, Z))
+
+
+def _from_page(v):
+    X, Y, Z = _page_axes()
+    return tuple(v[0] * X[k] + v[1] * Y[k] + v[2] * Z[k] for k in range(3))
+
+
+_PAGE_DIR = {'dn': (0, -1, 0), 'up': (0, 1, 0), 'fw': (0, 0, 1), 'bk': (0, 0, -1), 'lt': (-1, 0, 0), 'rt': (1, 0, 0)}
+
+
+def _dir_label(v):
+    """The page's direction label nearest a page-frame vector."""
+    return max(_PAGE_DIR, key=lambda k: _dot(_PAGE_DIR[k], v))
+
+
+def _sel_items():
+    sels = _ui.activeSelections
+    return [(sels.item(i).entity, getattr(sels.item(i), 'point', None)) for i in range(sels.count)]
+
+
+def _mount_point(ent, pt, chassis):
+    """A pick as (point cm, normal or None): a sketch point or vertex, a circular edge (its centre: a boss), a face
+    where it was clicked (its normal there), or the scan where it was clicked (the normal of the triangles round it)."""
+    k = _kind(ent)
+    p = _t(pt) if pt is not None else None
+    nrm = None
+    if k == 'SketchPoint':
+        p = _t(ent.worldGeometry)
+    elif k == 'BRepVertex':
+        p = _t(ent.geometry)
+    elif k == 'BRepEdge':
+        g = ent.geometry
+        if getattr(g, 'center', None) is None:
+            raise ValueError('Pick a round edge (a boss or a hole), a point, or a face where the bracket goes.')
+        p = _t(g.center)
+        if hasattr(g, 'normal'):
+            nrm = _t(g.normal)
+    elif k == 'BRepFace':
+        if p is None:
+            p = _t(ent.pointOnFace)
+        okn, vec = ent.evaluator.getNormalAtPoint(_P3(p))
+        if okn:
+            nrm = _t(vec)
+    elif k == 'MeshBody':
+        if p is None:
+            raise ValueError('Click the scan where the bracket lands (a click, not a box selection, so the point is known).')
+        coords, idx, _tol, _note = _keepout_mesh(ent)
+        nrm = MNT.normal_near(coords, idx, p, 1.0)
+    else:
+        raise ValueError('Pick points, round edges, faces or the scan (a %s was picked).' % k)
+    if chassis and nrm is None:
+        raise ValueError('Pick the chassis on a face or on the scan, so the bracket knows which way it sits (a point alone has no direction).')
+    return p, nrm
+
+
+def _part_box(ent):
+    bodies = _bodies_of([ent])
+    if not bodies:
+        raise ValueError('Select the part first (its body, or the stand-in from Place a stand-in), then the pairs of points.')
+    lo, hi = [1e9] * 3, [-1e9] * 3
+    for b in bodies:
+        bb = b.boundingBox
+        for i, q in enumerate((bb.minPoint.x, bb.minPoint.y, bb.minPoint.z)):
+            lo[i] = min(lo[i], q)
+        for i, q in enumerate((bb.maxPoint.x, bb.maxPoint.y, bb.maxPoint.z)):
+            hi[i] = max(hi[i], q)
+    return bodies, tuple(lo), tuple(hi)
+
+
+def act_mount_place(data):
+    """A stand-in for the part: a box L x H x W (page across, up, fore-aft) or a cylinder L long and H across, its
+    axis across, centred on the picked point (or the origin)."""
+    L, H, W = (float(data.get(k) or 0) / 10.0 for k in ('L_mm', 'H_mm', 'W_mm'))
+    shape = data.get('shape') or 'box'
+    if not (L > 0 and H > 0 and (W > 0 or shape == 'cyl')):
+        raise ValueError('Fill in the part’s size on the page first.')
+    picks = _sel_items()
+    c = (0.0, 0.0, 0.0)
+    if picks:
+        c, _n = _mount_point(picks[0][0], picks[0][1], False)
+    X, Y, Z = _page_axes()
+    tbm = adsk.fusion.TemporaryBRepManager.get()
+    if shape == 'cyl':
+        body = tbm.createCylinderOrCone(_P3(HGR._v(c, X, -L / 2)), H / 2, _P3(HGR._v(c, X, L / 2)), H / 2)
+    else:
+        obb = adsk.core.OrientedBoundingBox3D.create(_P3(c), adsk.core.Vector3D.create(*X), adsk.core.Vector3D.create(*Z), L, W, H)
+        body = tbm.createBox(obb)
+    name = str(data.get('name') or 'Part stand-in')
+    comp = _new_component(name)
+    made = _add_bodies(comp, [(body, name)])
+    return {'ok': True, 'msg': 'Placed %s, %s, centred %s. Move it into place, then pick its mounts.' % (
+        made[0].name if made else name, ('%.1f x %.1f mm cylinder' % (10 * L, 10 * H)) if shape == 'cyl' else '%.1f x %.1f x %.1f mm box' % (10 * L, 10 * H, 10 * W),
+        'on the point picked' if picks else 'at the origin')}
+
+
+def act_mount_pick(data):
+    """The part (first in the selection) and each mount's pair of picks after it (a point on the part, then a point on
+    the chassis or scan). Returns each mount's position from the part's centre, the reach, offset and direction of its
+    bracket, all in the page's frame and mm."""
+    picks = _sel_items()
+    if len(picks) < 5 or (len(picks) - 1) % 2:
+        raise ValueError('Select the part, then for each mount a point on the part and a point on the chassis, in pairs '
+                         '(%d picked: the part and %s). At least two mounts.' % (len(picks), 'no pairs' if len(picks) < 2 else '%d point%s' % (len(picks) - 1, '' if len(picks) == 2 else 's')))
+    bodies, lo, hi = _part_box(picks[0][0])
+    centre = tuple((lo[k] + hi[k]) / 2.0 for k in range(3))
+    size = _to_page(_sub(hi, lo))
+    pairs, mounts = [], []
+    for i in range(1, len(picks), 2):
+        P, _nP = _mount_point(picks[i][0], picks[i][1], False)
+        C, n = _mount_point(picks[i + 1][0], picks[i + 1][1], True)
+        ax = MNT.bracket_axes(P, C, n)
+        if ax['h'] < 0.5:
+            raise ValueError('Mount %d: the part’s point is %.1f mm off the chassis face; a bracket needs some reach (pick the pair again).' % (len(pairs) + 1, 10 * ax['h']))
+        pairs.append((P, C, ax['n']))
+        pa = MNT.public_axes(ax)
+        mounts.append({'p_mm': [round(10.0 * x, 2) for x in _to_page(_sub(P, centre))], 'h_mm': pa['h_mm'], 's_mm': pa['s_mm'],
+                       'dir': _dir_label(_to_page((-ax['n'][0], -ax['n'][1], -ax['n'][2]))), 'n': [round(x, 6) for x in _to_page(ax['n'])],
+                       'u': [round(x, 6) for x in _to_page(ax['u'])], 'u_fixed': ax['u_fixed']})
+    toks = set(_token(b) for b in bodies)
+    _LAST_MOUNT.clear()
+    _LAST_MOUNT.update({'pairs': pairs, 'lo': lo, 'hi': hi, 'centre': centre, 'part_keepout': any(k[0] in toks for k in _keepouts)})
+    msg = 'Read %d mount%s on %s: %s.' % (len(mounts), '' if len(mounts) == 1 else 's', _bname(bodies[0]),
+                                          '; '.join('%d: reach %.1f mm (%.3f in)%s' % (j + 1, m['h_mm'], m['h_mm'] / 25.4, (', offset %.1f mm' % m['s_mm']) if m['s_mm'] > 0.05 else '')
+                                                    for j, m in enumerate(mounts)))
+    return {'ok': True, 'part': {'L_mm': round(10 * abs(size[0]), 2), 'H_mm': round(10 * abs(size[1]), 2), 'W_mm': round(10 * abs(size[2]), 2)},
+            'mounts': mounts, 'msg': msg}
+
+
+def act_mount_build(data):
+    """Build the page's brackets (data['brackets'], in mount order, mm) on the last mountPick's pairs, each turned the
+    way that clears the keep-outs and leaves tool access, and report both checks."""
+    if not _LAST_MOUNT.get('pairs'):
+        raise ValueError('Press Read the mounts first; the build uses its picks.')
+    brs = data.get('brackets') or []
+    pairs = _LAST_MOUNT['pairs']
+    if len(brs) != len(pairs):
+        raise ValueError('The page has %d mounts and the last read %d: press Read the mounts again.' % (len(brs), len(pairs)))
+    notes = []
+    lo, hi, centre = _LAST_MOUNT['lo'], _LAST_MOUNT['hi'], _LAST_MOUNT['centre']
+    pts = [q for P, C, _n in pairs for q in (P, C)] + [lo, hi]
+    blo = tuple(min(q[k] for q in pts) for k in range(3))
+    bhi = tuple(max(q[k] for q in pts) for k in range(3))
+    cold = hot = None
+    if _keepouts:
+        cold, hot = _scenes_split(blo, bhi, 20.0, notes)
+    else:
+        notes.append('No keep-outs are set, so clearance was not checked: set the scan as a keep-out first.')
+    part_pts = None if _LAST_MOUNT.get('part_keepout') else MNT.box_points(lo, hi, 0.5)
+    opts = {'gap_cm': float(data.get('gap_mm') or 12.7) / 10.0, 'hot_gap_cm': float(data.get('hot_gap_mm') or 50.8) / 10.0,
+            'socket_r_cm': float(data.get('socket_r_mm') or 12.7) / 10.0, 'tool_cm': float(data.get('tool_mm') or 150.0) / 10.0}
+    plans = []
+    for k, ((P, C, n), D) in enumerate(zip(pairs, brs)):
+        ax = MNT.bracket_axes(P, C, n, u_pref=_from_page(D['u']) if D.get('u') else None)
+        if abs(10.0 * ax['h'] - float(D['h'])) > 0.5:
+            raise ValueError('Mount %d: the page has a %.1f mm reach and the picks %.1f mm: press Read the mounts again.' % (k + 1, float(D['h']), 10.0 * ax['h']))
+        o = dict(opts, plate_side=1 if _dot(_sub(centre, P), ax['f']) < 0 else -1)
+        D = dict(D, s=10.0 * ax['s'])
+        pls, rep = MNT.check(ax, D, cold, hot, o, part_pts)
+        rep['name'] = D.get('name') or 'Mount %d' % (k + 1)
+        plans.append((ax, D, pls, rep))
+    comp = _new_component(str(data.get('title') or 'Mounts'))
+    made = []
+    try:
+        tbm = adsk.fusion.TemporaryBRepManager.get()
+        for ax, D, pls, rep in plans:
+            for pl in pls:
+                made.append(_hang_plate(comp, pl).name)
+            if D['type'] == 'stay':
+                st = MNT.stay(ax, D)
+                tube = tbm.createCylinderOrCone(_P3(st['a']), st['r'], _P3(st['b']), st['r'])
+                bore = tbm.createCylinderOrCone(_P3(st['a']), st['r_in'], _P3(st['b']), st['r_in'])
+                tbm.booleanOperation(tube, bore, adsk.fusion.BooleanTypes.DifferenceBooleanType)
+                made += [b.name for b in _add_bodies(comp, [(tube, st['name'])])]
+    except Exception:
+        _drop_component(comp)
+        raise
+    try:
+        for i in range(comp.sketches.count):
+            comp.sketches.item(i).isVisible = False
+        for i in range(comp.constructionPlanes.count):
+            comp.constructionPlanes.item(i).isLightBulbOn = False
+    except Exception:
+        pass
+    reps = [p[3] for p in plans]
+    all_ok = all(r['clear'] and all(a['clear'] for a in r['access']) for r in reps) and not notes
+    bad = ['%s: %s' % (r['name'], ', '.join(([] if r['clear'] else ['inside the clearance']) + ['%s bolt blocked at %.0f mm' % (a['bolt'], a['blocked_mm'] or 0)
+                                                                   for a in r['access'] if not a['clear']])) for r in reps if not (r['clear'] and all(a['clear'] for a in r['access']))]
+    msg = 'Built %d bracket%s (%d bodies).%s%s' % (len(reps), '' if len(reps) == 1 else 's', len(made), (' Check: ' + '; '.join(bad) + '.') if bad else ' Each clears the keep-outs and has a straight line to its bolts.',
+                                                   (' ' + ' '.join(notes)) if notes else '')
+    return {'ok': True, 'msg': msg, 'brackets': reps, 'bodies': made, 'all_ok': all_ok}
+
+
 def act_chamber(data):
     """An inline expansion chamber with extended inlet and outlet tubes, from one marker on the pipe's axis: a sketch
     line drawn along the pipe's centreline where the chamber's near end plate goes, pointing the way the gas flows.
@@ -4571,7 +4787,7 @@ def act_cfd_tube(data):
 
 ACTIONS = {'measure': act_measure, 'setKeepouts': act_set_keepouts, 'clearance': act_clearance,
            'pipe': act_pipe, 'build': act_build, 'centerlines': act_centerlines, 'boom': act_boom,
-           'route': act_route, 'chargeRoute': act_charge_route, 'chargeRouteBuild': act_charge_build, 'setHotKeepouts': act_set_hot, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveBase64': act_save_base64, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl, 'printSplit': act_print_split, 'cfdTube': act_cfd_tube,
+           'route': act_route, 'chargeRoute': act_charge_route, 'chargeRouteBuild': act_charge_build, 'setHotKeepouts': act_set_hot, 'jig': act_jig, 'hang': act_hang, 'hangPick': act_hang_pick, 'mountPlace': act_mount_place, 'mountPick': act_mount_pick, 'mountBuild': act_mount_build, 'helmholtz': act_helmholtz, 'chamber': act_chamber, 'revchamber': act_revchamber, 'saveText': act_save_text, 'saveBase64': act_save_base64, 'saveFiles': act_save_files, 'exportCfdStl': act_export_cfd_stl, 'printSplit': act_print_split, 'cfdTube': act_cfd_tube,
            'pageReady': _note('pageReady'), 'probeResult': _note('probeResult'),
            # the page's solver runs on this PC (hostrun.py): OpenWAM without leaving Fusion
            'hostInfo': HR.host_info, 'hostCall': HR.host_call, 'hostChunk': HR.host_chunk, 'hostCancel': HR.host_cancel,

@@ -1656,3 +1656,51 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   uses Conflux 100218's test temperatures, said), viscosity correction of the drop (the maker's curve as published, with
   its oil and viscosity stated), oil port threads on the turbos.
 - Tests: web/tests/oilcool_ui.js (new).
+## 2026-11-12: Mounts designer: brackets for the intercooler and the other bolt-on parts (Hangers tab, Fusion)
+
+- The owner's "Be able to figure out mounting solutions if possible as well". A Mounts designer under the Hangers tab's
+  hanger designer (its own block, "Mounts designer"; the hanger code is untouched except one call in renderHang): the
+  part (typed: air-to-air core, barrel charge cooler, front heat exchanger, oil cooler, catch can, valve support; or the
+  intercooler picked on the Intake tab, with the maker's size and, where published, its dry and wet weights: Conflux
+  100012 2.2 / 2.6 kg), the liquid it holds (litres × the page's COOLANT densities, or the oil's typed density), 2 to 6
+  mounts by position from the part's centre, each bracket's direction, reach and offset; loads, isolators, heat growth,
+  brackets sized by calculation, a dimensioned side view of each bracket and a front view of the part with its mounts,
+  a cut list, DXF (mm; CUT via the Hangers tab's hgDxf, BEND lines, MARKS names and 100 mm / 4 in bars) and a 1:1 SVG
+  (both units, scale bars); rows on the turbo build sheet (tsSheet is wrapped from the new block, its code not edited;
+  mountsSheetRows() is the hook).
+- Sources read 2026-11-12 (and what could not be): FIA Appendix J Art. 253-7.2.2 / 7.3.6 (extinguisher mountings
+  "withstand a deceleration of 25 g": the default design acceleration, each way, as a reference class); Bosch Motorsport's
+  vibration-profile sheet ("Shock: 50gn 6mSec ISO 16750-3", the 50 g preset: a 6 ms test pulse); ISO 16750-3 and SAE J1455
+  previews give no levels (paywalled), so the g-load is an input; 14 CFR 25.303 (1.5 on limit load: the safety-factor
+  default, held against yield); Garrett (cores "typically soft-mounted" on rubber isolation grommets for vibration and
+  thermal expansion: soft is the default); University of Iowa 58:153 lecture 9 (isolation above r = sqrt 2); AMC
+  Mecanocaucho Type A bobbins (RS datasheet: maximum static load and its deflection, compression and shear, 16 sizes;
+  column letters read from the drawing); AmesWeb after ASM (3003 aluminium 23.2 µm/m °C); Fastenal metric and inch
+  property tables (8.8 / 10.9, Grade 5 / 8, stress areas); Portland Bolt (shear ~60% of minimum tensile, minor area);
+  AWS D1.1 study guide (0.30 FEXX on the throat, E70 145 MPa); AlcoTec filler chart (typical fillet shear, 4043 11.5 /
+  5356 17.0 ksi longitudinal); Protolabs 6061-T6 (68.3 GPa). Not verified: Eurocode 9 / Aluminum Design Manual fatigue
+  categories (so static + g-load only, said on the page), SendCutSend's bend radii and K-factors (its calculator is
+  script-only: inside radius and K-factor are inputs, defaults t and 0.42 as assumptions), a filler figure for 308L
+  (304 brackets' welds use the base metal's shear yield), tensile strengths for bearing (bearing not checked, said).
+- Method (comment above MT_G): six load cases (each axis each way, gravity added); shares on equal mounts about their
+  centroid, F/n + (J+ M) x s (a line of mounts reports the turn the brackets must clamp); bounce sqrt(n k / m) / 2 pi,
+  T = 1/|1 - r²| shown and the page's rubber damping (0.07) used for pass/fail; root section of rectangles (strap, a
+  gusseted T, a U channel), |N|/A + |Mu| c/I + |Mf| c/I at the worst corner with shear and torsion in von Mises, the
+  thinnest SendCutSend stock that passes; net section re-checked at each lightening hole; tear-out as the Hangers tab;
+  foot bolts by the foot tipping about its nearer edge (no prying); welds by the line method; a stay as a pinned
+  two-force member (yield or Euler) that flags any sideways load ("triangulate"); printed brackets by the Intake tab's
+  rules (printWall, safety factor at least 3, the filament's suggested maximum temperature). Heat growth α L ΔT from the
+  fixed mount; with soft mounts the rubber's rated shear deflection must take it, hard mounts get slots.
+- Worked examples (mounts_ui.js comments): a 24 × 12 × 3.5 in core, 7.0 kg (example weight), four mounts, 25 g: 17.16 N
+  standing, 446.2 N design each; 28.33 Hz idle (4 cyl, 850 RPM), 20% passed -> bounce ≤ 11.57 Hz, ≤ 9.24 N/mm per mount:
+  no AMC bobbin is that soft, so the page gives the spec to buy to; 3/16 in mild-steel strap 54 mm wide at 63.5 mm reach:
+  134.3 MPa, SF 1.85. A 40 kg heat exchanger on four: AMC 120002 (12.8% passed, damped). The Conflux 100012 on two
+  brackets: 12.75 N standing, 331.5 N design each.
+- Fusion: mounts.py (pure Python: the bracket frame from a part point and a chassis point with the face's or scan's
+  normal, the upright's tangent outline, the flat pattern, plates placed through hangers.plan, clearance to ordinary and
+  hot keep-outs with the foot and boss left out, a straight-line socket-access check along each bolt axis, the foot
+  turned the way that keeps access); cadtools mountPlace (a stand-in box or cylinder), mountPick (part, then pairs),
+  mountBuild (plates by _hang_plate, the stay as a tube; refuses a reach that disagrees with the picks).
+- Tests: web/tests/mounts_ui.js (new, 41 checks), fusion-addin/tests/test_mounts.py (geometry by hand; the page's flat patterns from
+  fixtures/mounts_payload.json), test_mounts_fusion_fake.py (writes fixtures/mounts_reply.json with ET_WRITE_FIXTURES=1);
+  fusion-addin/tests/fusion_live_mounts.py for the owner's machine, NOT RUN here.
