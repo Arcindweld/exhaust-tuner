@@ -1874,5 +1874,6 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - K24A2 + PT5862, boost matched to Garrett's airflow: 450 hp 148.1 m/s Mach 0.222 while open, loss 8.99 kPa (cycle mean
   52.4 m/s, 2.00 kPa); 600 hp 139.7 m/s Mach 0.209, 10.76 kPa (49.5 m/s, 2.39 kPa).
 - Pins changed: turbomani_ui (p3 total), compmap_ui (85 °F reference), the turbomani payload fixture (clearance).
+- Suites (web, fusion, -j 2, no build): 145 tests, 139 passed, 0 flaky, 0 failed, 6 skipped (expected), 7 partial skips.
 - Open: mild steel's expansion with temperature, a cited K-series port spacing, routing to a merge ring with room for the
   nearer runners, the image's share of browser storage, a measured p3 read as static.

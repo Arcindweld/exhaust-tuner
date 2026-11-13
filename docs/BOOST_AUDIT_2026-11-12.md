@@ -808,3 +808,6 @@ gap_mm 50.8 -> 12.7 (P7).
 Open after Part 3: a wave-model blowdown peak for the manifold; mild steel's expansion with temperature; a cited K-series
 port spacing; a router that can route to a merge ring with room for the nearer runners' extra length; the shared storage
 quota (P12); a measured p3 read as static (P2).
+
+Suites after Part 3 (run_all_tests.py --suite web,fusion --no-build -j 2): 145 tests, 139 passed, 0 flaky, 0 failed,
+6 skipped (expected), 7 partial skips, 0 unexpected skips.
