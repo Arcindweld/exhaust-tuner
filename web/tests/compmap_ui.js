@@ -12,12 +12,15 @@
 //   inlet air T1 = 30 °C = 303.15 K.
 // Corrected flow at a reference (ATP Turbo's definition, the one corrFlow cites, reference left to the map):
 //   Wc = m sqrt(T1 / Tref) / (P1 / Pref).
-//   Garrett's reference as the page cites it: 545 °R = 302.77778 K, 13.95 psia = 13.95 x 6894.757 = 96181.860 Pa:
-//   Wc = 0.4331842 x sqrt(303.15 / 302.77778) / (100109.566 / 96181.860) = 0.4164444 kg/s = 55.08616 lb/min
-//   (corrFlow's own form, °F + 460, gives 0.4165703: 0.03% apart, as the page says).
-//   On the image: x = 80 + 55.08616 x 8.5 = 548.232 px, y = 540 - 0.7079740 x 160 = 426.724 px.
+//   Garrett's reference by ATP Turbo's definition, sqrt((T + 460) / 545) with T in °F: 85 °F, in absolute temperature
+//   85 + 459.67 = 544.67 °R = 302.59444 K (boost audit part 3, 2026-11-13: the "Garrett" fill was 545 °R = 302.77778 K,
+//   which is 85.33 °F and put the map 0.03% off ATP's own form), 13.95 psia = 13.95 x 6894.757 = 96181.860 Pa:
+//   Wc = 0.4331842 x sqrt(303.15 / 302.59444) / (100109.566 / 96181.860) = 0.4165705 kg/s = 55.10285 lb/min
+//   (ATP's literal form, °F + 460 over 545, gives 0.4165703: 5.5e-7 apart, the 459.67 / 460 rounding only; the old
+//   545 °R fill gave 0.4164444 / 55.08616 lb/min).
+//   On the image: x = 80 + 55.10285 x 8.5 = 548.374 px, y = 540 - 0.7079740 x 160 = 426.724 px.
 //   Another reference, 298 K and 100 kPa: Wc' = 0.4331842 x sqrt(303.15 / 298) / (100109.566 / 100000) = 0.4364331 kg/s
-//   = 57.73022 lb/min; Wc' / Wc = sqrt(302.77778 / 298) x 100000 / 96181.860 = 1.0479986. As cfm at that reference:
+//   = 57.73022 lb/min; Wc' / Wc = sqrt(302.59444 / 298) x 100000 / 96181.860 = 1.0476812. As cfm at that reference:
 //   rho_ref = 100000 / (287.05 x 298) = 1.1690314 kg/m³, 0.4364331 / 1.1690314 x 2118.880 = 791.039 cfm.
 // The full-boost point (3500 RPM, the tab's default): m = 5.7355e-3 m³ x 3500 / 120 x 0.90 x 1.544367 x 1.164398 kg/m³
 //   = 0.2707401 kg/s (the throttle's PR (101325 + 55158) / 101325 = 1.544367, inlet density 101325 / (287.05 x 303.15));
@@ -79,7 +82,7 @@ const { reads, settle } = require('./settle');
   // Garrett's reference by the maker select
   await chg('select.cmx[data-k="maker"]', 'garrett');
   let rf = await pg.evaluate(() => window.__cmap.ref());
-  near(rf && rf.T, 545 / 1.8, 1e-9, 'Garrett reference temperature 545 °R in K'); near(rf && rf.P, 13.95 * 6894.757, 1e-6, 'Garrett reference 13.95 psia in Pa');
+  near(rf && rf.T, (85 + 459.67) / 1.8, 1e-9, 'Garrett reference temperature 85 °F (ATP Turbo) in K'); near(rf && rf.P, 13.95 * 6894.757, 1e-6, 'Garrett reference 13.95 psia in Pa');
 
   // calibrate by clicking: the client position -> image pixel at this size
   // a real click lands on a whole screen pixel (Chrome's clientX / clientY are integers), so the test clicks the screen
@@ -113,37 +116,38 @@ const { reads, settle } = require('./settle');
   near(pk && pk.m, 0.4331842, 2e-7, 'peak point air per compressor (turbosize_ui hand value)');
   near(pk && pk.P1, 100109.566, 2e-3, 'peak point compressor inlet pressure P1');
   near(pk && pk.PR, 1.7079740, 2e-7, 'peak point compressor pressure ratio, inlet and charge-side losses in');
-  near(pk && pk.Wc, 0.4164444, 3e-7, 'peak corrected flow at 545 °R / 13.95 psia: m √(T1/Tref) ÷ (P1/Pref)');
-  near(pk && pk.x, 55.08616, 3e-5, 'peak point on the lb/min axis');
+  near(pk && pk.Wc, 0.4165705, 3e-7, 'peak corrected flow at 85 °F / 13.95 psia: m √(T1/Tref) ÷ (P1/Pref)');
+  near(pk && pk.x, 55.10285, 3e-5, 'peak point on the lb/min axis');
+  near(pk && pk.Wc, await pg.evaluate(() => window.__turbo.corrFlow(0.43318420652130163, 30, 100109.56592394777)), 2e-7, 'the same as the sizing table’s corrFlow (one definition, absolute temperature)');
   near(lo && lo.m, 0.2707401, 2e-7, 'full-boost point air: swept volume × RPM/120 × VE × throttle PR × inlet density');
-  near(lo && lo.Wc, lo ? lo.m * Math.sqrt(303.15 / (545 / 1.8)) / (lo.P1 / (13.95 * 6894.757)) : NaN, 1e-12, 'full-boost corrected flow by the definition at its own P1');
+  near(lo && lo.Wc, lo ? lo.m * Math.sqrt(303.15 / ((85 + 459.67) / 1.8)) / (lo.P1 / (13.95 * 6894.757)) : NaN, 1e-12, 'full-boost corrected flow by the definition at its own P1');
   ok(lo && lo.PR > 1.544367 && lo.PR < pk.PR, 'full-boost PR above the throttle ratio 1.544367 (losses in) and below peak’s (smaller flow, smaller losses): ' + (lo && lo.PR.toFixed(5)));
   ok(rd && rd.rpm === 6500 && rd.m > pk.m, 'redline point at the same VE and boost, more flow');
   const circ = () => pg.evaluate(() => { const c = document.querySelector('#cm-svg circle[data-cmpt="A5600"]'); return c ? [+c.getAttribute('cx'), +c.getAttribute('cy')] : null; });
   let c0 = await circ();
-  near(c0 && c0[0], 548.232, 0.006, 'peak point drawn at image x 80 + 55.08616 × 8.5'); near(c0 && c0[1], 426.724, 0.006, 'peak point drawn at image y 540 − 0.707974 × 160');
+  near(c0 && c0[0], 548.374, 0.006, 'peak point drawn at image x 80 + 55.10285 × 8.5'); near(c0 && c0[1], 426.724, 0.006, 'peak point drawn at image y 540 − 0.707974 × 160');
   t = await secText();
   ok(/5,600 RPM \(peak power\)/.test(t) && /3,500 RPM \(full boost\)/.test(t) && /6,500 RPM \(redline\)/.test(t), 'points labelled with RPM in the table');
   ok(/lb\/min \(0\.\d{4} kg\/s\)/.test(t), 'flows in lb/min and kg/s');
   ok(/Not modelled:/.test(t) && /part throttle and the boost threshold/.test(t), 'says the part-throttle and boost-threshold region is not modelled');
-  ok(/Conversion at peak power/.test(t) && /0\.41644 kg\/s/.test(t), 'shows the conversion with numbers');
+  ok(/Conversion at peak power/.test(t) && /0\.41657 kg\/s/.test(t), 'shows the conversion with numbers');
   ok(await pg.evaluate(() => /5,600/.test([...document.querySelectorAll('#cm-svg text')].map(x => x.textContent).join(' '))), 'points labelled with RPM on the drawing');
 
   // another reference moves the points as computed by hand
   await chg('input.cmx[data-k="refT"]', '298'); await chg('select.cmx[data-k="refTu"]', 'K'); await chg('input.cmx[data-k="refP"]', '100'); await chg('select.cmx[data-k="refPu"]', 'kPa');
   d = await C(); const pk2 = d && d.A.find(o => o.rpm === 5600);
-  near(pk2 && pk2.Wc, 0.4364331, 3e-7, 'peak corrected flow at 298 K / 100 kPa'); near(pk2 && pk2.Wc / pk.Wc, 1.0479986, 1e-6, 'ratio to Garrett’s reference √(302.778/298) × 100/96.18186');
+  near(pk2 && pk2.Wc, 0.4364331, 3e-7, 'peak corrected flow at 298 K / 100 kPa'); near(pk2 && pk2.Wc / pk.Wc, 1.0476812, 1e-6, 'ratio to Garrett’s reference √(302.594/298) × 100/96.18186');
   let c1 = await circ(); near(c1 && c1[0], 80 + 57.73022 * 8.5, 0.006, 'the point moves to x 80 + 57.73022 × 8.5'); near(c1 && c1[1], 426.724, 0.006, 'and keeps its pressure ratio');
   await chg('select.cmx[data-k="xu"]', 'cfm');
   d = await C(); near(d && d.A.find(o => o.rpm === 5600).x, 791.039, 0.002, 'cfm axis: corrected volume at the reference density, Wc ÷ ρref × 2118.88');
   await chg('select.cmx[data-k="xu"]', 'lbmin'); await chg('select.cmx[data-k="maker"]', 'garrett');
-  d = await C(); near(d && d.A.find(o => o.rpm === 5600).Wc, 0.4164444, 3e-7, 'back to Garrett’s reference');
+  d = await C(); near(d && d.A.find(o => o.rpm === 5600).Wc, 0.4165705, 3e-7, 'back to Garrett’s reference');
 
   // Garrett's point for 450 hp
   await setv('i-hp', '450');
   d = await C(); const G = d && d.G;
   near(G && G.m, 0.3742137, 2e-7, 'Garrett 450 hp: 450 × 12 × 0.55 ÷ 60 = 49.5 lb/min');
-  near(G && G.Wc, G ? 0.3742137 * Math.sqrt(303.15 / (545 / 1.8)) / (pk.P1 / (13.95 * 6894.757)) : NaN, 1e-7, 'Garrett’s point corrected at the peak point’s P1');
+  near(G && G.Wc, G ? 0.3742137 * Math.sqrt(303.15 / ((85 + 459.67) / 1.8)) / (pk.P1 / (13.95 * 6894.757)) : NaN, 1e-7, 'Garrett’s point corrected at the peak point’s P1');
   ok(await pg.evaluate(() => !!document.querySelector('#cm-svg path[data-cmpt="G"]')), 'Garrett’s point drawn');
 
   // surge and choke lines typed as pixel pairs (the keyboard path), margins by hand
@@ -203,7 +207,7 @@ const { reads, settle } = require('./settle');
   // persistence: the project keeps calibration, points and typed values, not the image
   const snap = await pg.evaluate(() => window.__proj.snapshot('map test'));
   const js = JSON.stringify(snap);
-  ok(snap.ui && snap.ui.cmap && snap.ui.cmap.cal.xb.p === '760' && snap.ui.cmap.surge.length === 3 && snap.ui.cmap.eta.A5600 === '76' && snap.ui.cmap.refT === '545', 'project snapshot holds the calibration, points and typed values');
+  ok(snap.ui && snap.ui.cmap && snap.ui.cmap.cal.xb.p === '760' && snap.ui.cmap.surge.length === 3 && snap.ui.cmap.eta.A5600 === '76' && snap.ui.cmap.refT === '85' && snap.ui.cmap.refTu === 'F', 'project snapshot holds the calibration, points and typed values');
   ok(!/data:image/.test(js) && !/blob:/.test(js) && js.length < 400000, 'and no image (' + js.length + ' characters)');
   const before = await C(); const cx0 = await circ();
   // a fresh browser profile: no stored image
