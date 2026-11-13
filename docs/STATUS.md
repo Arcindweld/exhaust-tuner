@@ -1567,3 +1567,77 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   K24 + PTE 5862, water-to-air: 450 hp (29.541 psi, 0.4208 kg/s) Conflux 100012, EJ Bowman JK190, Conflux 100013; 100011
   just short (72.0% against 75%, passes with coolant at about 18 °C); 600 hp (46.945 psi, 0.5863 kg/s) Conflux 100012,
   100013, then the rating-only Garrett 717874-6008. icrec_ui.js and conflux_ui.js expectations recomputed by hand.
+
+## 2026-11-12: Bell Intercoolers cores; CSF and Garrett orientation sources (Intake tab)
+
+- Bell Intercoolers' own pages (read 2026-11-12): the core dimension guide (p-37060: "A (core thickness), B (core height) and
+  C (core length)"; its air/air diagrams, horizontal and vertical flow, show the charge entering the A × B end and running
+  along C; the liquid/air diagram shows the charge entering the B × C face), the air-cooled core catalogue (p-37298: CFM
+  "based on 1 psig pressure loss across the intercooler core and a charge-air pressure of 10 psig") and each core's item
+  page (A, B, C, CFM, weight, price), and the FAQ (one-year warranty; "Pressures up to 15 psig are usually safe for all
+  designs"; loss "less than 1.0 to 1.5 psi").
+- Seven air-cooled cores for 300-900 hp builds (3.5 or 3 in thick, 24 in charge length): A350097240 455 CFM, A350130240 609,
+  A350143240 670, A350169240 792, A300227240 912, A350240240 1125, A350280240 1312. Bell gives no horsepower: the rating
+  comparison uses CFM ÷ 1.5 (Corky Bell's 1.5 cfm per hp from Maximum Boost, the rule the tab already uses; said in each
+  row). The 1 psi at the rated CFM fills the rated-drop inputs, taken at standard air (1.1839 kg/m³); Bell does not say
+  standard or actual cfm (read as actual at 10 psig, the drop at a given mass flow would be 2.82 × lower). Charge face
+  A × B. The liquid-cooled catalogue lists no flow rating, so no liquid core is listed. Bell leaves the "not listed" caption.
+- CSF's flow orientation now cites its intercooler core size table (csfrace.com/pages/intercooler-core-size-table, checked
+  by the coordinator against the rows: sizes match; 8053/8054/8055/8068 "Vertical Flow"); the charge-flow dimension of the
+  other CSF cores stays an assumption. Garrett's charge-face definition also cites its "Air-to-Air / Air-to-Liquid
+  Intercooler Cores" sell sheet (2023, supplied by the owner; not committed): "Length/Hot Flow", "Height/No Flow",
+  "Width/Cold Flow".
+- Tests: icrec_ui.js (Bell rows' figures and URLs; build 1 orders with the Bell rows, face and rating arithmetic in the
+  comments), turbolib_ui.js (77 rows: 57 air-to-air with 7 Bell).
+
+## 2026-11-12: intercooler end tanks and mounting (Garrett's article)
+
+- Source: Garrett, "Intercooler Sizing And End Tank Design With Rob Dahm" (newsroom, June 2, 2020), read 2026-11-12. Quoted:
+  "In general, use the largest core that will fit within the packaging constraints of the application" (now cited next to
+  the pick and the size-limit input); "Proper manifold shape is critical in minimizing pressure drop and providing uniform
+  flow distribution"; over-the-top tanks "can starve the top tubes"; side entry "ideal for both pressure drop and flow
+  distribution" but space usually rules it out; ducting "should never be smaller than the radius of the compressor outlet"
+  (its GTX5533R Gen II example compares areas, 8.30 against 7.07 in²); air-to-air cores soft-mounted on rubber isolation
+  grommets. It gives no numbers for tank volume, taper or pressure drop, so none are given.
+- New block "End tanks and mounting" under the intercooler recommendation and a build-sheet row under a core sold as a core.
+  New check in the charge-pipe verdict (not there before): the hot pipe not smaller than the compressor outlet, like with
+  like (a picked turbo's outlet in TURBO_LIB is a hose-coupler size, so the pipe's outside diameter is compared; an outlet
+  you enter is taken as a bore and compared with the inside diameter), areas in in² and cm². The page's cone and step losses
+  for the tank inlet are stated to be 1-D estimates that do not capture distribution across the core.
+- Tests: icrec_ui.js (the block with the citation, the check firing for a compressor outlet 10 mm over the pipe).
+
+## 2026-11-12: oil cooling and turbo oil lines (Intake tab, boosted builds)
+
+- The owner: "Keep in mind the oil coolers for turbo applications." New section "Oil cooling and turbo oil lines" after
+  the intercooler sections, a checklist step, build-sheet rows and labels on the route drawing.
+- What is sourced (read 2026-11-12):
+  - Oil heat load: Setrab, "Application and performance suggestions" (2010, a copy on the dealer Pegasus Auto Racing's site):
+    the engine-oil coolers Setrab suggests for the target power, wet-sump figures (5 gpm, 20/50 oil, 130 °F ITD, 60 mph air)
+    as the range, dry-sump as the top; maker guidance for choosing a cooler, not a measured heat load. 450 hp: 42,000 to
+    53,100 BTU/hr (12.3 to 15.6 kW; 3.7 to 4.6% of brake power); 600 hp ("600+" rows): 40,000 to 69,000 BTU/hr (11.7 to
+    20.2 kW). Sized against the upper figure.
+  - Oil properties: Engineering ToolBox, engine oil density and specific heat (new oil, 340-400 K); dT = Q ÷ (V̇ ρ cp).
+  - Conflux Technology, "Oil Coolers" brochure, version 1.0 (2026), supplied by the owner (not committed): 100220 (EDU
+    cooling; Ø66.3 × 203 mm, 0.31 kg, JIC -08, Ø19.05 mm coolant; Mobil EV Cool Drive 85 °C in, EGW 25/75 50 °C, 20 L/min),
+    100219 (transmission; Ø83.6 × 218 mm, 0.58 kg, JIC -08, Ø38.10 mm; 75W-90 120 °C, coolant 80 °C, 120 L/min), 100218
+    (engine; Ø126.6 × 315 mm, 1.6 kg, JIC -12, Ø38.10 mm; 0W-40 120 °C, coolant 85 °C, 120 L/min). The 100220 and 100219
+    drawings label the oil ports "JIC-10 PER SAE J514" with a 3/4"-16 thread, which is the -08 thread: the spec table's -08
+    is used and the conflict shown. Heat and oil-drop curves read from the vector paths (axis fits within 0.05 units, end
+    nodes within 0.07 L/min of round flows), tabulated to 0.1. Consistency: effectiveness at the maker's conditions with
+    engine-oil properties as a stand-in, 63-23% (100220), 82-49% (100219), 67-37% (100218), all below 1.
+  - Turbo lines: Precision Turbo & Engine installation recommendations (single ball bearing -4AN / 1/4 in feed, restrictor
+    optional, use a supplied restrictor fitting; journal: no restrictor; drain minimum -10AN / 5/8 in, gravity, above the
+    pan's oil level; coolant through the housing if it has ports; feed from the filtered side, no sandwich plate) and
+    Garrett (ball bearing -3/-4AN, 0.040 in restrictor, 40-45 psi at maximum engine speed after the restrictor; journal
+    -4AN; drain -10AN typically, ±15° of gravity, not below the oil level; hook up the water lines, 20° for thermosiphon).
+    Garrett's are the general reference for a maker whose rules were not read (BorgWarner), said on the page.
+  - AN dash sizes: Titan Fittings' thread chart (JIC 37°, SAE J514).
+- Energy balance (this page's): the heat translation Q = Q_curve × (T_oil,in − T_c,in) ÷ (maker's difference) at the
+  maker's flows; units in parallel with the flow split equally; the oil heat added to the charge cooler's loop,
+  Q = (Th − Ta − k Q_oil) ÷ (1/e₁ + k), k = 1/e₂ − 1/Cw (oil cooler taken between the charge cooler and the front exchanger).
+- Not sourced, so not on the page: a fraction of fuel energy to the oil (Heywood's chapter not available; a 1944 MIT thesis
+  and open papers could not be fetched), turbo bearing friction or heat soak into the oil (the papers found were behind
+  bot checks), piston-cooling jets or BMEP effects, an oil pump flow rule (an input), oil temperature limits (inputs; blank
+  uses Conflux 100218's test temperatures, said), viscosity correction of the drop (the maker's curve as published, with
+  its oil and viscosity stated), oil port threads on the turbos.
+- Tests: web/tests/oilcool_ui.js (new).

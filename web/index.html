@@ -21021,6 +21021,13 @@ function turboSection(ind,p,r){
   // verdict: plain language, worst first
   const bad=[], warn=[];
   if(q.dci>0&&p.dt<q.dci-0.05) bad.push('the inlet tube ('+cdim(p.dt)+') is smaller than the compressor inlet ('+cdim(q.dci)+'): the air speeds up in the tube and then has to slow down at the compressor, which loses '+pD(R.trIn?R.trIn.dp:0)+'. Use a tube at least '+cdim(q.dci)+' inside');
+  // Garrett (GRT_ET, "Intercooler Sizing And End Tank Design With Rob Dahm", 2020): ducting "should never be smaller than the
+  // radius of the compressor outlet" (its example compares areas: a 3.25 in outlet, 8.30 in², against 3 in ducting, 7.07 in²)
+  // like with like: a picked turbo's outlet from TURBO_LIB is a hose-coupler size (the hose fits over the pipe), so the pipe's
+  // outside diameter is compared with it; an outlet you enter yourself is taken as a bore and compared with the pipe's inside
+  const TT=TSO.turbo!==''?TURBO_LIB[+TSO.turbo]:null, coupler=!!(TT&&TT.outlet&&Math.abs(TT.outlet.d_in*25.4-q.dco)<0.05);
+  const dhCmp=coupler?q.dh+2*(q.w>0?q.w:1.651):q.dh, dcoBad=q.dco>0&&q.dh>0&&dhCmp<q.dco-0.05;
+  if(dcoBad) warn.push('the hot pipe ('+cdim(dhCmp)+(coupler?' outside, against the turbo’s hose-coupler outlet':' inside')+') is smaller than the compressor outlet ('+cdim(q.dco)+'): Garrett says ducting “should never be smaller than” the compressor outlet ('+(Math.PI*(dhCmp/25.4)**2/4).toFixed(2)+' against '+(Math.PI*(q.dco/25.4)**2/4).toFixed(2)+' in², '+(Math.PI*dhCmp**2/4/100).toFixed(1)+' against '+(Math.PI*q.dco**2/4/100).toFixed(1)+' cm²)');
   if(vf(R.vInlet)>300) warn.push('the inlet tube runs at '+sD(R.vInlet)+', above Garrett’s 300 ft/s');
   if(vf(R.vGh)>300) warn.push('the hot side is above Garrett’s 300 ft/s ('+sD(R.vGh)+' by its method)');
   if(vf(R.vGc)>300) warn.push('the cold side is above Garrett’s 300 ft/s ('+sD(R.vGc)+' by its method)');
@@ -21029,7 +21036,7 @@ function turboSection(ind,p,r){
   [['hot',R.hot,q.Lh],['cold',R.cold,q.Lc]].forEach(([n,S,L])=>{ if(S.short) bad.push('the '+n+' side’s bends take '+clen(S.arcs)+' of centre line but the side is '+clen(L)+' long: check its length, bend count or radius (its straight friction is counted as zero)'); });
   if(vf(R.vGh)<200||vf(R.vGc)<200) warn.push('a charge pipe is below Garrett’s 200 ft/s: bigger than needed, more volume to fill, slower boost response');
   if(q.step&&(R.trs.length||R.trIn)){ const save=(R.trIn?R.trIn.dpStep-R.trIn.dpCone:0)+R.trs.reduce((s,x)=>s+x[1].dpStep-x[1].dpCone,0); if(save>0) warn.push('the step couplers cost '+pD(save)+' more than cones would'); }
-  TG.route={bad:bad.slice(),warn:warn.slice()};
+  TG.route={bad:bad.slice(),warn:warn.slice(),dco:{bad:dcoBad,dh:dhCmp,dco:q.dco,coupler}};
   const verdict=bad.length?'<div class="note bad" id="ts-verdict"><b>Needs a change:</b> '+bad.concat(warn).join('; ')+'.</div>':
     warn.length?'<div class="note warn" id="ts-verdict"><b>Works, with notes:</b> '+warn.join('; ')+'.</div>':
     '<div class="note" id="ts-verdict"><b>Sized well by the rules below.</b> From filter to throttle the air loses '+pD(R.total)+', so the compressor has to make a pressure ratio of '+R.PRc.toFixed(3)+' instead of '+R.PRthr.toFixed(3)+', and its air leaves '+dtD(R.t2-R.t2thr)+' hotter than with no losses at all.</div>';
@@ -21199,7 +21206,8 @@ function tsSizeSection(ind,p,r){
    M cw dTw/dt = e1 (Th − Tw) − e2 (Tw + e1 (Th − Tw)/Cw − Ta) = a − b Tw, b = e1 + e2 − e1 e2/Cw, a = e1 Th + e2 Ta − e1 e2 Th/Cw;
    Tw → a/b with time constant tau = M cw ÷ b; 90% of the way after tau ln 10. With no front exchanger (ice-box use) the
    soak time for a rise dT at the full heat load Q is M cw dT ÷ Q, plain energy balance. */
-const TSO={turbo:'',hs:'',ictype:'',icm:'1',tm:'1',lmL:'',lmH:'',lmT:'',oName:'',oType:'a2a',oL:'',oH:'',oW:'',oIn:'',oOut:'',oHp:'',oDp:'',oDpF:'',oPm:'',oTi:'',oTo:'',oCf:'',oTc:'',ic:'',pm:'',pTi:'',pTo:'',pcf:'',pTc:'',ua1:'',wf:'',cool:'water',wTi:'',wdT:10,wV:'',ua2:'',fa:'',wLh:'',wLc:''};
+const TSO={turbo:'',hs:'',ictype:'',icm:'1',tm:'1',lmL:'',lmH:'',lmT:'',oName:'',oType:'a2a',oL:'',oH:'',oW:'',oIn:'',oOut:'',oHp:'',oDp:'',oDpF:'',oPm:'',oTi:'',oTo:'',oCf:'',oTc:'',ic:'',pm:'',pTi:'',pTo:'',pcf:'',pTc:'',ua1:'',wf:'',cool:'water',wTi:'',wdT:10,wV:'',ua2:'',fa:'',wLh:'',wLc:'',
+  olF:'',olTi:'',olTc:'',olType:'l2l',olRow:'',olLoop:'engine',olP:'',olN:''};
 // EGW 25/75 (Conflux's test coolant): the brochure does not say by mass or by volume; taken as 25% ethylene glycol by mass
 // and interpolated half way between the same Engineering ToolBox page's 20% and 30% rows at 40 °C (read 2026-11-12):
 // cp (0.95175 + 0.91951)/2 = 0.93563 Btu/lb °F = 3917 J/kg K; density (1022 + 1037)/2 = 1029.5 kg/m³. The maker's own
@@ -21307,9 +21315,43 @@ const TURBO_LIB=[
 // kg/min, air pressure drop kPa, air outlet temp ºC, heat rejection kW, water flow l/min, water pressure drop kPa, typical engine
 // power kW. Its energy balance checks: EC120 2.5 kg/min × cp 1004.7 J/kg K × (180 − 53.1) K = 5.31 kW against the printed 5.3 kW.
 const IC_SRC='https://www.garrettmotion.com/racing-and-performance/performance-catalog/intercoolers';
-const MISH='https://www.mishimoto.com/', CSFU='https://csfrace.com/product/intercooler-cores/';
+const MISH='https://www.mishimoto.com/', CSFU='https://csfrace.com/product/intercooler-cores/', CSFT='https://csfrace.com/pages/intercooler-core-size-table';
 const BOWU='https://lancingmarine.com/Uploaded/1/Documents/ProductData/Bowman/Charge-Air-Cooler-Brochure-G21.pdf';
 const icInMm=(a,b,c)=>[[a,+(a*25.4).toFixed(1)],[b,+(b*25.4).toFixed(1)],[c,+(c*25.4).toFixed(1)]];
+/* Bell Intercoolers (2026-11-12, pages the owner sent): air-cooled bar-and-plate cores from the maker's "Core Catalog Air Cooled"
+   (BELLC) and each core's item page (A, B, C, CFM, weight, price checked on the item page). Bell's "Core Dimension Guide"
+   (BELLG): "A (core thickness), B (core height) and C (core length)"; its air/air diagrams (horizontal and vertical flow) show
+   the charge air entering the A × B end and running along C, the ambient air through the B × C face; its liquid/air diagram
+   shows the charge entering the B × C face. Rating: "air flow, shown in cubic feet per minute (CFM, based on 1 psig pressure
+   loss across the intercooler core and a charge-air pressure of 10 psig)". Bell gives no horsepower; for the rating
+   comparison this page converts the CFM at 1.5 cfm per hp (Corky Bell, Maximum Boost, the rule the tab already uses; not
+   Bell Intercoolers' figure). The 1 psi at the rated CFM goes into the rated-drop inputs: Bell does not say whether that CFM
+   is standard or at the 10 psig charge pressure; taken as standard air (1.1839 kg/m³: 101.325 kPa, 25 °C), which gives the
+   higher drop at a given mass flow (read as actual cfm at 10 psig, the mass flow is 24.696/14.696 = 1.68 × higher and the
+   drop at a given mass flow 1.68² = 2.82 × lower). FAQ (BELLF): one-year warranty against workmanship failures; "Pressures up
+   to 15 psig are usually safe for all designs"; pressure loss "ought to be kept to less than 1.0 to 1.5 psi". The
+   liquid-cooled catalogue lists sizes and prices with no flow rating, so none of those cores is listed.
+   Ordered here as [C, B, A] = length (the charge-flow length), height, thickness, so the charge face is B × A. */
+const GRT_ET='https://www.garrettmotion.com/news/newsroom/article/intercooler-sizing-and-end-tank-design-with-rob-dahm/';
+// "End tanks and mounting": Garrett's "Intercooler Sizing And End Tank Design With Rob Dahm" (newsroom, June 2, 2020), read
+// 2026-11-12; it gives no numbers for tank volume, taper or pressure drop, so none are given here
+const IC_ET=[
+  'Core size: “In general, use the largest core that will fit within the packaging constraints of the application.”',
+  'End tanks: “Proper manifold shape is critical in minimizing pressure drop and providing uniform flow distribution.”',
+  'Over-the-top end tanks: “The over-the-top design can starve the top tubes.”',
+  'Side entry: “ideal for both pressure drop and flow distribution”, though vehicle space usually rules it out.',
+  'Ducting: “should never be smaller than the radius of the compressor outlet” (Garrett’s example compares areas: a GTX5533R Gen II’s 3.25 in outlet, 8.30 in² (53.5 cm²), against 3 in ducting, 7.07 in² (45.6 cm²), a restriction).',
+  'Mounting: air-to-air charge air coolers are typically soft-mounted on rubber isolation grommets, against vibration failure and to allow thermal expansion.'];
+const BELLC='https://bellintercoolers.com/p-37298-core-catalog-air-cooled.html', BELLG='https://bellintercoolers.com/p-37060-core-dimension-guide.html', BELLF='https://bellintercoolers.com/faq.html';
+const BELL_RHO=101325/(287.05*298.15);
+const bell=(pn,A,B,C,cfm,lb,usd,item)=>({maker:'Bell Intercoolers',pn,type:'a2a',hp:+(cfm/1.5).toFixed(1),cfm,model:'bar-and-plate core, air cooled (“Peak Efficiency”)',
+  dims:icInMm(C,B,A),bellABC:[A,B,C],mass:[+(lb*0.45359237).toFixed(2),null],lb,price:'USD '+usd,
+  dp:{kPa:6.894757,kgmin:+(cfm*0.028316846592*BELL_RHO).toFixed(4)},
+  hpBasis:'Bell’s rating: '+cfm+' CFM “based on 1 psig pressure loss across the intercooler core and a charge-air pressure of 10 psig”; no horsepower from Bell; '+(cfm/1.5).toFixed(0)+' hp here = CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp (Maximum Boost), this page’s conversion',
+  note:'Bell’s A × B × C = '+A+' × '+B+' × '+C+' in (thickness × height × length; “A (core thickness), B (core height) and C (core length)”), '+lb+' lb ('+(lb*0.45359237).toFixed(1)+' kg), USD '+usd+' (item page). The rated 1 psi drop is taken at standard air (Bell does not say standard or actual cfm; read as actual at 10 psig the drop at a given mass flow would be 2.82 × lower).',
+  src:'https://bellintercoolers.com/i-'+item+'-bar-and-plate-cores-air-cooled-peak-efficiency.html',srcName:'Bell Intercoolers (item page; catalogue and core dimension guide)',seen:'2026-11-12',
+  pub:{cons:'vacuum brazed aluminium bar and plate (“Built with the most advanced vacuum brazed aluminum alloy”)',tanks:'core only, no end tanks (a core; Bell sells tanks separately)',ptest:null,
+    boost:'FAQ: “Pressures up to 15 psig are usually safe for all designs” (103 kPa)',warranty:'one year against workmanship failures (FAQ)'}});
 const bowman=(pn,kw,m,dp,tho,q,wl,wdp,port)=>({maker:'EJ Bowman',pn,type:'w2a',hp:null,kw,L:null,H:null,W:null,model:'water-cooled charge air cooler (marine and land versions)',
   dimNote:'overall dimensions A to L are in the brochure’s drawing, not read here',water:'water connections BSP size '+port.replace(' in','')+' (the brochure’s thread designation in inches, not a bore)',
   dp:{kPa:dp,kgmin:m},point:{m_kgmin:m,thi:180,tho,cool_lpm:wl,tci:30,Q_kW:q,wdp_kPa:wdp,p_barg:1.75,coolant:'water'},
@@ -21434,7 +21476,7 @@ const IC_LIB=[
   {maker:'CSF',pn:'8085',type:'w2a',hp:1500,dims:icInMm(12,6,6),model:'air-to-water bar and plate core'},
   {maker:'CSF',pn:'8086',type:'w2a',hp:2000,dims:icInMm(12,12,6),model:'air-to-water bar and plate core'}
 ].map(c=>c.maker!=='CSF'?c:Object.assign({model:'bar and plate core',L:null,H:null,W:null,hpBasis:'CSF’s “HP Rating” (no basis given)',
-  note:'Length × height × width as CSF lists them, which one is the charge-flow direction is not stated; “Pressure Tested at 120psi” (827 kPa).',src:CSFU,srcName:'CSF',
+  note:'Length × height × width as CSF lists them (its intercooler core size table, '+CSFT+', gives the same sizes and marks 8053, 8054, 8055 and 8068 “Vertical Flow”); which dimension the charge flows along is not stated for the others; “Pressure Tested at 120psi” (827 kPa).',src:CSFU,srcName:'CSF',
   pub:{cons:'bar and plate, vacuum brazed (“Batch Brazed in CSF’s State-of-the-Art Digital Vacuum Brazing Oven”)',tanks:'core only, no end tanks (cast-tank assemblies to order, minimum 50)',ptest:'“Pressure Tested at 120psi” (827 kPa), each core',boost:null,warranty:null}},c)).concat([
   bowman('EC120-4073-3',50,2.5,2.1,53.1,5.3,30,4.0,'¾ in'),
   bowman('FC100-4074-2',90,4.3,3.0,56.7,9.1,50,6.3,'1 in'),
@@ -21442,6 +21484,14 @@ const IC_LIB=[
   bowman('GL140-4076-2',175,15.4,7.3,56.4,32.9,140,10.4,'1½ in'),
   bowman('GK190-4877-3',280,20.3,5.3,43.2,46.8,180,7.1,'2 in'),
   bowman('JK190-4078-3',365,30.1,7.4,41.5,70.3,270,7.8,'2½ in'),
+  // Bell air-cooled cores, a spread for 300-900 hp builds by CFM ÷ 1.5 (A, B, C in; CFM; lb; USD; item page id)
+  bell('A350097240',3.5,9.7,24,455,34.0,'496.00','30005642'),
+  bell('A350130240',3.5,13,24,609,43.0,'626.00','30005647'),
+  bell('A350143240',3.5,14.3,24,670,47.0,'678.00','30005649'),
+  bell('A350169240',3.5,16.9,24,792,54.0,'780.00','30005653'),
+  bell('A300227240',3,22.7,24,912,62.0,'990.00','30005302'),
+  bell('A350240240',3.5,24,24,1125,73.0,'1060.00','30005664'),
+  bell('A350280240',3.5,28,24,1312,84.0,'1218.00','30005670'),
   // m kg/s, eff %, tout °C, dp kPa: read from the maker's charts (see the comment above conflux); rated: the boundary conditions
   // printed under the charts (air in °C, air inlet pressure kPa absolute, EGW 25/75 in at 30 °C, coolant L/min and kg/s)
   conflux({pn:'100011',size:'4.5 in / 114 mm',kw:400,kwLo:null,over:[140,133,155],mass:[1.5,1.8],air:114.3,coolMm:19,coolIn:'¾',page:'PDF page 4 (printed 3)',
@@ -21533,7 +21583,8 @@ const icDimsIn=c=>c.L?[c.L[0],c.H[0],c.W[0]]:c.dims?c.dims.map(x=>x[0]):null;
 function icFace(c){
   const D=icDimsIn(c); if(!D) return null;
   if(c.own) return {a:D[1]*D[2],why:'height × width (your length is the charge-flow length)'};
-  if(c.maker==='Garrett') return {a:D[1]*D[2],why:'height (no flow) × width (cold flow): Garrett labels the length as the hot, charge, flow'};
+  if(c.maker==='Garrett') return {a:D[1]*D[2],why:'height (no flow) × width (cold flow): Garrett labels the length as the hot, charge, flow (its core table; also its “Air-to-Air / Air-to-Liquid Intercooler Cores” sell sheet, 2023, supplied by the owner: “Length/Hot Flow”, “Height/No Flow”, “Width/Cold Flow”)'};
+  if(c.maker==='Bell Intercoolers') return {a:c.bellABC[0]*c.bellABC[1],why:'A × B (thickness × height): Bell’s core dimension guide shows the charge air entering the A × B end and running along C, in both horizontal and vertical flow'};
   if(c.maker==='Mishimoto') return {a:D[1]*D[2],why:'core height × thickness: Mishimoto’s overall length is longer than its core length, so the tanks sit on the length ends'};
   if(/vertical flow/.test(c.model)) return {a:D[0]*D[2],assumed:true,why:'length × width: '+c.maker+' lists the core as vertical flow, so the charge is taken to run along the height (this page’s assumption)'};
   return {a:D[1]*D[2],assumed:true,why:'height × width: '+c.maker+' does not say which way the charge flows, so its first dimension, the length (the longest on every row), is taken as the charge-flow length (this page’s assumption)'};
@@ -21680,10 +21731,13 @@ function icScaleUA(o){
 }
 // the coolant loop: charge cooler (UA1, charge Ch, coolant Cw) and front exchanger (UA2, air Ca, coolant Cw), steady state
 function w2aLoop(o){
-  // o: UA1, UA2, Ch, Cw, Ca W/K; th charge in, ta ambient °C
-  const c1=Math.min(o.Ch,o.Cw), c2=Math.min(o.Ca,o.Cw);
-  const e1=epsXflow(o.UA1/c1,c1/Math.max(o.Ch,o.Cw))*c1, e2=epsXflow(o.UA2/c2,c2/Math.max(o.Ca,o.Cw))*c2;
-  const Q=(o.th-o.ta)/(1/e1+1/e2-1/o.Cw), tw1=o.th-Q/e1, tw2=tw1+Q/o.Cw;
+  // o: UA1, UA2, Ch, Cw, Ca W/K; th charge in, ta ambient °C; Qx W optional, other heat into the same loop after the charge
+  // cooler and before the front exchanger (an oil cooler on this loop, 2026-11-12): front exchanger Q + Qx = e2 (Tw2 − Ta),
+  // Tw2 = Tw1 + (Q + Qx)/Cw, charge cooler Q = e1 (Th − Tw1); so Tw1 = Ta + k (Q + Qx), k = 1/e2 − 1/Cw, and
+  // Q = (Th − Ta − k Qx) ÷ (1/e1 + k); with Qx = 0 this is the closed form in the comment above TSO
+  const c1=Math.min(o.Ch,o.Cw), c2=Math.min(o.Ca,o.Cw), Qx=o.Qx||0;
+  const e1=epsXflow(o.UA1/c1,c1/Math.max(o.Ch,o.Cw))*c1, e2=epsXflow(o.UA2/c2,c2/Math.max(o.Ca,o.Cw))*c2, kk=1/e2-1/o.Cw;
+  const Q=(o.th-o.ta-kk*Qx)/(1/e1+kk), tw1=o.th-Q/e1, tw2=tw1+(Q+Qx)/o.Cw;
   const b=e1+e2-e1*e2/o.Cw, a=e1*o.th+e2*o.ta-e1*e2*o.th/o.Cw;
   return {e1,e2,Q,tw1,tw2,tho:o.th-Q/o.Ch,b,a,twSteady:a/b};
 }
@@ -21736,7 +21790,7 @@ function icRecSection(o){
   let g='<p class="sub" style="margin-top:14px">Recommended intercooler for this build</p>';
   const limMm=['lmL','lmH','lmT'].map(k=>F(k)>0?F(k):NaN), lim=limMm.every(v=>v>0)?limMm.map(v=>v/25.4):null;
   g+='<div class="grid2">'+num('icm','Rating margin over the target per core (1 = none)','×')+'</div>'+
-    '<p class="cap" style="margin:6px 0 0">Largest core that fits (optional, Garrett’s advice “choose the largest core that fits”; blank = no limit): length × height × thickness of your space</p><div class="grid2">'+
+    '<p class="cap" style="margin:6px 0 0">Largest core that fits (optional, Garrett’s advice “use the largest core that will fit within the packaging constraints of the application”, '+link(GRT_ET,'Garrett, 2020')+'; blank = no limit): length × height × thickness of your space</p><div class="grid2">'+
     num('lmL','Space: length','mm')+num('lmH','Space: height','mm')+num('lmT','Space: thickness (front to back)','mm')+'</div>'+
     (lim?'<p class="cap" id="tso-lim-echo">Your space: '+lim.map(v=>v.toFixed(2)).join(' × ')+' in ('+limMm.map(v=>v.toFixed(0)).join(' × ')+' mm). With a limit entered the rule switches: of the cores that cover the rating and fit, the <b>largest charge face</b> comes first (Garrett’s advice), not the smallest rating. Checked against the maker’s overall size where it publishes one (Mishimoto, with its tanks), else the core as published (Garrett and CSF sell cores without tanks: allow for your tanks’ length); length and height may swap (the core stood on end), thickness may not.</p>':
       (['lmL','lmH','lmT'].some(k=>TSO[k]!=='')?'<p class="cap" id="tso-lim-echo">Enter all three sizes to apply the limit.</p>':''));
@@ -21766,7 +21820,7 @@ function icRecSection(o){
   types.forEach(t=>{ const Rr=out[t], P=Rr.pick;
     g+='<div data-icrec="'+t+'">'+(types.length>1?'<p class="cap" style="margin:8px 0 2px"><b>'+(t==='a2a'?'Air-to-air':'Water-to-air')+'</b></p>':'');
     if(P){ const c=P.c, applied=TSO.ic===P.key&&TSO.ictype===c.type, little=!c.own&&P.pubN<IC_LITTLE;
-      g+='<div class="note" id="tso-icrec-'+t+'"><b>'+esc(c.maker+' '+c.pn)+'</b> <span class="cap">'+esc(c.model)+', '+coreDim(c)+'</span><br>'+line(P,null)+'. Why: '+esc(P.why)+'. '+esc(c.hpBasis)+'.'+(t==='a2a'?' Garrett’s advice: choose the largest core that fits the packaging'+(lim?' (applied: your space is entered).':' (enter your space above to apply it).'):'')+
+      g+='<div class="note" id="tso-icrec-'+t+'"><b>'+esc(c.maker+' '+c.pn)+'</b> <span class="cap">'+esc(c.model)+', '+coreDim(c)+'</span><br>'+line(P,null)+'. Why: '+esc(P.why)+'. '+esc(c.hpBasis)+'.'+(t==='a2a'?' Garrett’s advice: “use the largest core that will fit within the packaging constraints” ('+link(GRT_ET,'Garrett, 2020')+')'+(lim?' (applied: your space is entered).':' (enter your space above to apply it).'):'')+
         (applied?' <b>In use on this build.</b>':'')+(c.src?' Source: '+link(c.src,c.srcName)+', read '+c.seen+'.':'')+'</div>';
       if(little) g+='<div class="note warn" id="tso-icrec-little-'+t+'">Little published data for this core — check it in hand. <span class="cap">The maker’s page gives '+P.pubN+' of the 6 items in “What the maker publishes”. What to look at (common workshop practice, not sourced claims): fin density and whether the fins are straight and undamaged; internal turbulators in the charge passages (bar-and-plate); the weld quality on the tanks; a smooth tank inlet with no step at the core face; a leak test at '+pD(Math.max(0,R.P2-P_ATM))+' (this build’s boost at the compressor outlet) plus a margin you choose; then on the car measure the pressure drop across the core (enter it under Core drop from the maker’s rating and its flow, i-icrdp / i-icrf, and the page scales it) and the charge temperatures in and out (enter them under Cooling capacity from a known performance point, which turns them into a measured effectiveness).</span></div>';
       g+='<div class="actions"><button type="button" class="btn primary" data-icuse="'+P.key+'"'+(applied?' disabled':'')+'>'+(applied?'In use':'Use this intercooler')+'</button></div>';
@@ -21785,6 +21839,11 @@ function icRecSection(o){
       '<li>Short pulls: with no front exchanger working, each litre (0.26 US gal) of '+cool.name+' in the loop takes '+perL.toFixed(1)+' s at full power to rise '+dT(dTw)+' (energy balance at '+kw(Qreq)+'); a loop of a few litres covers a drag pull, not a road course.</li>'+
       '<li>'+(A?'Air-to-air pick: '+esc(A.c.maker+' '+A.c.pn):'no air-to-air pick')+'; '+(W?'water-to-air pick: '+esc(W.c.maker+' '+W.c.pn):'no water-to-air pick')+'.</li></ul>'+
       '<span class="cap">The figures are this page’s own; the trade (no pump, coolant or soak for air-to-air; short pipes and a small core for water-to-air) is common practice, not a sourced rule.</span></div>'; }
+  { const D=TG.route&&TG.route.dco, cp=D&&D.dco>0&&D.dh>0;
+    g+='<div class="note" id="tso-ic-tanks"><b>End tanks and mounting</b> <span class="cap">(most of the cores above are sold without tanks: you make them)</span><ul class="list">'+IC_ET.map(x=>'<li>'+esc(x)+'</li>').join('')+
+      '<li>On this build: '+(cp?(D.bad?'<b>the hot pipe, '+mmIn(D.dh)+(D.coupler?' outside':' inside')+', is smaller than the compressor outlet, '+mmIn(D.dco)+'</b> (see the charge-pipe verdict)':'the hot pipe, '+mmIn(D.dh)+(D.coupler?' outside (the turbo’s outlet is a hose-coupler size)':' inside')+', is not smaller than the compressor outlet, '+mmIn(D.dco)):'enter the compressor outlet size to check the ducting against it')+
+      '; a tank neck smaller than the charge pipe is ruled out above with its step loss.</li><li>The page’s cone and step losses for the tank inlet (size-change table) are one-dimensional estimates of the diffuser; they do not capture how evenly the air spreads across the core.</li></ul>'+
+      '<span class="cap">Source: '+link(GRT_ET,'Garrett, “Intercooler Sizing And End Tank Design With Rob Dahm”')+' (2020), read 2026-11-12. It gives no figures for tank volume, taper or pressure drop, so none are given here.</span></div>'; }
   g+='<p class="cap" id="tso-icrec-rule">The rule (this page’s, stated so it can be checked): (a) the maker’s rating covers the target per core × your margin ('+hpD(icHp)+(nt>1?(R.merged?', both turbos into one core: the whole engine':', each turbo with its own core'):'')+' × '+m+'), the lower figure where a maker states two; (b) end-tank necks not smaller than the recommended charge pipes'+(rec&&rec.odh>0&&rec.odc>0?' ('+mmIn(rec.odh)+' hot, '+mmIn(rec.odc)+' cold, outside)':'')+', a smaller neck being a contraction whose sudden-step loss is shown, unknown tanks flagged, not rejected; (c) Bell’s flow area as a cross-check of the charge face, air-to-air only; (d) where a thermal point is known, the predicted heat removed at this build’s flow at least the margin × the heat needed. Of those passing, the evidence comes first within each of the groups below (thermal data meeting the target inside its flow range, then by extrapolation, then rating only: see the note under the pick). For air-to-air with no size limit: first the cores whose charge face meets Bell’s face for the target × the margin ('+a2D(faceNeedM)+', 6 in² per 100 hp ÷ 0.45 = 13.33 in² per 100 hp), then those whose face is not known, then those that fail it; with a size limit entered, of the cores that fit, the largest charge face first; within that, and for water-to-air (Bell’s face rule is for air-to-air; the size limit applies to both), the smallest rating, then the lowest published pressure drop at this flow, then the smaller core volume (less charge to fill), then an exact tank match, then more published data. Margin 1 means none: makers do not state the test conditions behind their ratings (Garrett: “normal or typical operating conditions”). Garrett itself advises choosing the largest core that fits the packaging: enter your space above and the page does that; without it the page picks the smallest rating that covers the target and meets Bell’s face.</p>';
   if(TG.G&&TG.G.wa>0&&Math.abs(R.m*LBMIN/TG.G.wa-1)>0.1) g+='<p class="cap" id="tso-icrec-flow">The ratings are compared with your power target, but the heat, the charge flow and the pipe sizes come from the tab’s airflow at the boost entered: '+fl(R.m)+' per compressor, where Garrett’s method gives '+fl(TG.G.wa/LBMIN)+' for '+hpD(val('i-hp'))+' (manifold pressure '+(TG.G.map).toFixed(1)+' psia, '+(TG.G.map*6.894757).toFixed(0)+' kPa). Raise the boost toward that to size the core and pipes for the target.</p>';
   g+=icSpecBlock();
@@ -21883,8 +21942,8 @@ function tsOptionsSection(ind,p){
   g+='<div class="tblwrap"><table id="tso-ics"><thead><tr><th>Core</th><th>Core size as the maker labels it</th><th>Maker’s rating</th><th>Flow, drop, tanks, ports</th><th>What the maker publishes</th><th>Against this build</th></tr></thead><tbody>'+
     list.map(([c,i])=>{ const v=icV(c);
       const D=c.L?[c.L,c.H,c.W]:c.dims, d=x=>imp?x[0].toFixed(1)+' in':x[1]+' mm';
-      const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+(c.dimOverall?'; overall, as the maker publishes it':'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
-      const rate=c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
+      const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+(c.bellABC?'; length (C, the charge flow) × height (B) × thickness (A), Bell’s C × B × A':'')+(c.dimOverall?'; overall, as the maker publishes it':'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
+      const rate=c.cfm?c.cfm+' CFM at 1 psi (6.9 kPa) loss and 10 psig (69 kPa) charge pressure; '+Math.round(c.hp)+' hp ('+Math.round(c.hp*0.7457)+' kW) by 1.5 cfm per hp (this page’s conversion)':c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
       const P=c.point, fx=[];
       if(c.inD&&!c.barb) fx.push('end tanks '+inD(c.inD)+' in / '+inD(c.outD)+' out');
       if(P) fx.push((c.own?'your point: ':'maker’s point: ')+fl(P.m_kgmin/60)+' charge, '+tD(P.thi)+' in, '+tD(P.tho)+' out, '+(P.Q_kW!=null?kw(P.Q_kW*1000)+' rejected, ':'')+(P.cool_lpm!=null?'water '+lmin(P.cool_lpm):'outside air '+fl(P.cool_lbmin/LBMIN))+' at '+tD(P.tci));
@@ -21896,7 +21955,7 @@ function tsOptionsSection(ind,p){
       else if(c.water) fx.push(esc(c.water));
       const pubC=c.own?'your own entry':icPubList(c).map(([k,x])=>x?'<b>'+k+'</b>: '+esc(x):k+': not published').join('; ')+(c.pub&&c.pub.tests?'; <b>testing</b>: '+esc(c.pub.tests)+'; <b>quality</b>: '+esc(c.pub.quality)+'; <b>lead time</b>: '+esc(c.pub.lead):'');
       return '<tr data-i="'+i+'" data-pub="'+(c.own?'':icPubN(c))+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+(TSO.ictype?'':(c.type==='w2a'?'water-to-air; ':'air-to-air; '))+esc(c.model)+'</span></td><td>'+dims+'</td><td>'+rate+'</td><td>'+(fx.length?fx.join('; '):'not published')+'</td><td class="cap">'+pubC+'</td><td>'+v+'</td></tr>'; }).join('')+'</tbody></table></div>';
-  g+='<p class="cap" id="tso-ic-cap">Sources, read 2026-11-12, makers’ own pages: '+link(IC_SRC,'Garrett intercooler cores')+' (“Supported Horsepower”, “for normal operating conditions”), '+link(MISH,'Mishimoto')+' (MMINT-UZ, MMINT-UG, MMINT-US, MMINT-UM, MMINT-UR, MMUIC-W3, MMUIC-W4 product pages), '+link(CSFU,'CSF bar and plate cores')+', the '+link(BOWU,'EJ Bowman charge air cooler brochure')+' (a copy on a dealer’s site) and the Conflux Technology “Barrel Intercoolers” brochure, version 1.0 (2026), supplied by the owner ('+link(CFX_SRC,'confluxtechnology.com')+'). Inches-only makers are converted to mm here. “What the maker publishes” lists only what the maker’s own page states (construction, end tanks, pressure drop, a thermal test point, a pressure test or rated boost, warranty); “not published” means that page does not say. It is not a quality rating: this page has no data to rate build quality. A maker’s hp rating is its own claim under its own assumptions; “far larger” is over twice the target, this page’s rule of thumb. Bowman publishes one thermal point per cooler (charge outlet temperature and heat rejection at a stated charge flow, water flow and inlet temperatures); Conflux publishes curves of effectiveness, charge outlet temperature and air pressure drop against charge flow at stated test conditions (read here from its charts). Picking either fills the cooling-capacity inputs below from it. Searched and not listed (again on 2026-11-12): Vibrant Performance (only dealer listings and a dealer-hosted sheet with no named publisher and unlabelled columns), Treadstone (dealer listings and a marketplace store only), Bell Intercoolers, PWR, Wagner Tuning, Frozenboost and Spearco/Turbonetics (only dealer listings found), Laminova, AFCO and Chargecooler (no maker data sheet found); Garrett’s intercooler technology article gives only one car’s intake temperatures, no core data.</p>';
+  g+='<p class="cap" id="tso-ic-cap">Sources, read 2026-11-12, makers’ own pages: '+link(IC_SRC,'Garrett intercooler cores')+' (“Supported Horsepower”, “for normal operating conditions”), '+link(MISH,'Mishimoto')+' (MMINT-UZ, MMINT-UG, MMINT-US, MMINT-UM, MMINT-UR, MMUIC-W3, MMUIC-W4 product pages), '+link(CSFU,'CSF bar and plate cores')+' (flow orientation from its '+link(CSFT,'core size table')+'), '+link(BELLC,'Bell Intercoolers’ air-cooled core catalogue')+' with each core’s item page, its '+link(BELLG,'core dimension guide')+' and '+link(BELLF,'FAQ')+' (Bell rates a core in CFM at 1 psi loss and 10 psig charge pressure, with no horsepower: the hp here is CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp, this page’s conversion; its liquid-cooled catalogue gives no flow rating, so those cores are not listed), the '+link(BOWU,'EJ Bowman charge air cooler brochure')+' (a copy on a dealer’s site) and the Conflux Technology “Barrel Intercoolers” brochure, version 1.0 (2026), supplied by the owner ('+link(CFX_SRC,'confluxtechnology.com')+'). Inches-only makers are converted to mm here. “What the maker publishes” lists only what the maker’s own page states (construction, end tanks, pressure drop, a thermal test point, a pressure test or rated boost, warranty); “not published” means that page does not say. It is not a quality rating: this page has no data to rate build quality. A maker’s hp rating is its own claim under its own assumptions; “far larger” is over twice the target, this page’s rule of thumb. Bowman publishes one thermal point per cooler (charge outlet temperature and heat rejection at a stated charge flow, water flow and inlet temperatures); Conflux publishes curves of effectiveness, charge outlet temperature and air pressure drop against charge flow at stated test conditions (read here from its charts). Picking either fills the cooling-capacity inputs below from it. Searched and not listed (again on 2026-11-12): Vibrant Performance (only dealer listings and a dealer-hosted sheet with no named publisher and unlabelled columns), Treadstone (dealer listings and a marketplace store only), PWR, Wagner Tuning, Frozenboost and Spearco/Turbonetics (only dealer listings found), Laminova, AFCO and Chargecooler (no maker data sheet found); Garrett’s intercooler technology article gives only one car’s intake temperatures, no core data.</p>';
   // the makers' curves (Conflux), each with this build's point
   const cfxRows=list.filter(([c])=>c.curve);
   if(cfxRows.length){ const opIn={m:mc,cool:TSO.cool,wf:F('wf'),thi:R.t2,tci:Number.isFinite(F('wTi'))?F('wTi'):p.tamb,pAbs:R.P2}; TG.cfxOps={};
@@ -21971,6 +22030,7 @@ function tsOptionsSection(ind,p){
       if(F('wV')>0){ const M=F('wV')/1000*cool.rho, t=M*cw*dTw/Qreq;
         g+=rowT('Soak time, no front exchanger',t.toFixed(1)+' s at full power','energy balance: '+lit(F('wV'))+' of '+cool.name+' × cp × '+dT(dTw)+' ÷ '+kw(Qreq)); } }
     if(UA>0&&F('ua2')>0&&F('wf')>0&&F('fa')>0){ const Cw=cwOf(F('wf')), L=w2aLoop({UA1:UA,UA2:F('ua2'),Ch,Cw,Ca:F('fa')/LBMIN*CP_AIRT,th:thi,ta:p.tamb});
+      TG.loop={UA1:UA,UA2:F('ua2'),Ch,Cw,Ca:F('fa')/LBMIN*CP_AIRT,th:thi,ta:p.tamb,L};
       g+=rowT('Whole loop, steady state','removes '+kw(L.Q)+', charge leaves at '+tD(L.tho),'coolant settles at '+tD(L.tw1)+' into the charge cooler and '+tD(L.tw2)+' out; Q = (Th − Ta) ÷ (1/e₁ + 1/e₂ − 1/Cw)');
       if(F('wV')>0){ const M=F('wV')/1000*cool.rho, tau=M*cool.cp/L.b;
         g+=rowT('Coolant warm-up to that steady state','90% of the way in '+(tau*Math.LN10).toFixed(0)+' s','lumped energy balance, well-mixed coolant starting at '+tD(p.tamb)+'; time constant '+tau.toFixed(0)+' s'); } }
@@ -21979,6 +22039,212 @@ function tsOptionsSection(ind,p){
   }
   return out+sec('Intercooler options and cooling capacity',g);
 }
+/* ----- Oil cooling and turbo oil lines (2026-11-12, the owner: "Keep in mind the oil coolers for turbo applications") -----
+   What is sourced, and how:
+   - Heat load: Setrab's "Application and performance suggestions" (Setrab Oil Coolers, US, 2010; a copy hosted by the dealer
+     Pegasus Auto Racing, SETRAB_APP) lists, per cooler, a "Typical Application" engine horsepower range and the heat it
+     rejects: low figure "typical wet sump high performance application" (oil 5 gpm, 20/50 engine oil, 130 °F ITD, 60 mph air),
+     high figure dry sump (8 gpm, 140 °F ITD, 80 mph). This page takes the coolers Setrab suggests for this engine's power (its
+     range contains the target; "600+" taken as 600 and up) and gives the spread of their wet-sump figures as Setrab's
+     suggested oil heat rejection: maker guidance, not a measured heat load. No citable fraction of fuel energy to the oil was
+     read this session (Heywood's energy-balance chapter was not available; an MIT 1944 thesis on heat to oil and two
+     open-access papers could not be fetched); turbocharger bearing friction and heat soak into the oil: not quantified by any
+     source read (the Serrano / Deligant papers found were behind bot checks); piston-cooling jets and BMEP: nothing sourced.
+   - Oil properties: Engineering ToolBox, "Engine Oil - Density and Specific Heat vs. Temperatures" (new engine oil, 340 to
+     400 K: 860, 848, 836, 824 kg/m³; 2.08, 2.16, 2.25, 2.34 kJ/kg K), linear between rows, clamped and flagged outside.
+     Oil temperature drop across the cooler: dT = Q ÷ (V̇ ρ cp).
+   - Conflux oil coolers: Conflux Technology, "Oil Coolers" brochure, version 1.0 (2026), supplied by the owner; figures with
+     attribution only. Curves (heat transfer and oil pressure drop against oil flow) read from the PDF's vector paths with
+     pdfplumber against the charts' gridlines (axis fits within 0.05 units); each heat and drop curve is one or two cubic
+     segments whose end nodes sit within 0.07 L/min of the round flows, re-anchored there; tabulated to 0.1 (about ±0.1 kW,
+     ±0.1 kPa). Translation to this build: at the maker's flows and oil, the effectiveness is fixed, so the heat scales with
+     the inlet temperature difference: Q = Q_curve(f) × (T_oil,in − T_coolant,in) ÷ (T_oil,r − T_coolant,r). The oil is not
+     this engine's (100220: Mobil EV Cool Drive, its drop at 85 °C, 8 cSt; 100219: 75W-90, 100 °C, 15 cSt; 100218: 0W-40,
+     100 °C, 14 cSt): viscosity changes both heat transfer and drop, and no relation for that was read, so the drop is the
+     maker's curve as published and the heat is flagged. The coolant flow is the maker's (no coolant-side correction). Inside
+     the plotted flow range only; no extrapolation. Units in parallel: the flow split equally, n the smallest number whose
+     n × Q(F/n) reaches the heat load; each unit's drop is the curve at F/n.
+     Consistency check (effectiveness ≤ 1 at the maker's conditions, with the ToolBox engine-oil properties as a stand-in for
+     the maker's oil): 100220 63% at 8 L/min to 23% at 40; 100219 82% to 49%; 100218 67% to 37% (shown on the page).
+   - Turbo oil and water lines: Precision Turbo & Engine, "Turbocharger Installation Recommendations" (PTE_INST) and Garrett,
+     "Turbo oil restrictors & oil supply" (GRT_OIL) and "Turbo System Optimization" (GRT_SYS), quoted per bearing type.
+   - AN (JIC 37°, SAE J514) dash sizes: Titan Fittings' international thread chart (TITAN_TC): dash, nominal size (in), thread. */
+const CFXO_NAME='Conflux Technology, “Oil Coolers” brochure, version 1.0 (2026), supplied by the owner; maker site confluxtechnology.com';
+const SETRAB_APP='https://www.pegasusautoracing.com/pdfs/SetrabApplicationSuggestions.pdf';
+const ETB_OIL='https://www.engineeringtoolbox.com/engine-oil-density-specific-heat-vs-temperature-d_2227.html';
+const PTE_INST='https://www.precisionturbo.com/turbocharger-installation-recommendations';
+const GRT_OIL='https://www.garrettmotion.com/knowledge-center-category/racing-and-performance/turbo-oil-restrictors-oil-supply';
+const GRT_SYS='https://www.garrettmotion.com/racing-and-performance/choosing-a-turbocharger/turbo-system-optimization/';
+const TITAN_TC='https://www.titanfittings.com/thread-charts/international-thread-chart';
+const BTUH_W=0.29307107;   // 1 BTU/hr in W
+// AN / JIC dash sizes (Titan Fittings): dash, nominal size in (the dash number in sixteenths), thread
+const AN_SIZES={3:['3/16','3/8-24'],4:['1/4','7/16-20'],6:['3/8','9/16-18'],8:['1/2','3/4-16'],10:['5/8','7/8-14'],12:['3/4','1 1/16-12'],16:['1','1 5/16-12']};
+const anTxt=(d,imp)=>{ const A=AN_SIZES[d], inch=d/16, mm=inch*25.4; return '-'+d+' AN ('+(imp?inch.toFixed(3)+' in ('+mm.toFixed(2)+' mm)':mm.toFixed(2)+' mm ('+inch.toFixed(3)+' in)')+' nominal, '+(A?A[1]+' thread':'thread not in the chart')+')'; };
+// Engineering ToolBox, new engine oil: T K, rho kg/m³, cp J/kg K
+const OIL_PROPS=[[340,860,2080],[360,848,2160],[380,836,2250],[400,824,2340]];
+function oilProps(tC){ const T=tC+273.15, P=OIL_PROPS, n=P.length, cl=T<P[0][0]||T>P[n-1][0], Tc=Math.min(P[n-1][0],Math.max(P[0][0],T));
+  for(let i=0;i<n-1;i++) if(Tc<=P[i+1][0]){ const f=(Tc-P[i][0])/(P[i+1][0]-P[i][0]); return {rho:P[i][1]+f*(P[i+1][1]-P[i][1]),cp:P[i][2]+f*(P[i+1][2]-P[i][2]),clamped:cl}; }
+  return {rho:P[n-1][1],cp:P[n-1][2],clamped:cl}; }
+// Setrab's suggestions: [part, application, hp low, hp high (Infinity for "600+"), ΔP psi wet, ΔP psi dry (null for "na"), BTU/hr wet (low), BTU/hr dry (high)]
+const SETRAB_EOC=[
+  ['50-119-7612','diff/gearbox/small street vehicle Engine Oil Cooler (EOC)',100,150,2.2,2.6,13000,17500],['50-125-7612','small high performance vehicle EOC',160,190,2.1,2.4,17000,22000],
+  ['50-144-7612','high performance vehicle EOC',175,275,1.0,1.3,26000,35000],['50-150-7612','high performance vehicle EOC',250,350,0.9,1.2,29000,40000],
+  ['50-160-7612','high performance vehicle EOC',325,425,0.6,1.1,33000,45000],['50-172-7612','high performance vehicle EOC',600,Infinity,0.8,1.0,40000,60000],
+  ['50-610-7612','differential/gearbox/power steering/compact street vehicle EOC',90,130,4.8,null,15000,20000],['50-613-7612','differential/gearbox/power steering/small street vehicle EOC',170,200,4.0,4.5,19000,26000],
+  ['50-616-7612','differential/gearbox/power steering/mid-size street vehicle EOC',190,220,3.6,3.8,23000,32000],['50-619-7612','differential/gearbox/small high performance vehicle EOC',220,310,2.5,3.3,27000,37000],
+  ['50-625-7612','differential/gearbox/high performance vehicle EOC',325,425,2.0,2.5,33100,46000],['50-634-7612','high performance vehicle EOC',400,475,1.7,2.2,43000,59000],
+  ['50-640-7612','high performance vehicle EOC',450,550,1.6,2.1,45000,67000],['50-650-7612','high performance vehicle EOC',600,Infinity,1.1,1.8,56000,78000],
+  ['50-660-7612','high performance vehicle EOC',600,Infinity,1.0,1.7,63000,90000],['50-910-7612','differential/gearbox/power steering/small street vehicle EOC',170,200,6.1,null,19000,27000],
+  ['50-915-7612','differential/gearbox/small high performance vehicle EOC',220,310,4.5,5.2,27000,39000],['50-920-7612','differential/gearbox/high performance vehicle EOC',300,400,3.0,4.2,35000,50000],
+  ['50-925-7612','high performance vehicle EOC',400,475,2.6,3.8,42000,60000],['50-934-7612','high performance vehicle EOC',450,550,2.3,3.3,53100,72100],
+  ['50-948-7612','high performance vehicle EOC',600,Infinity,1.8,3.1,69000,96000],['172M22I D','high performance vehicle EOC',600,Infinity,0.9,1.1,44000,65000],
+  ['640M22I D','high performance vehicle EOC',600,Infinity,1.8,2.2,49000,71500],['COM500-15','high performance vehicle EOC',600,Infinity,2.6,4.2,51000,75000],
+  ['FP119M22I','differential/gearbox/small high performance EOC (fanpack)',100,150,2.3,2.7,16000,19000],['FP634M22I','differential/gearbox/high performance EOC (fanpack)',400,475,1.7,2.2,43000,59000],
+  ['FP920M22I','differential/gearbox/high performance EOC (fanpack)',300,400,3.9,4.1,36000,47000],['FP948M22I','differential/gearbox/high performance EOC (fanpack)',600,Infinity,1.8,3.1,65000,89000]];
+function setrabLoad(hp){ const rows=SETRAB_EOC.filter(r=>hp>=r[2]-1e-9&&hp<=r[3]+1e-9);
+  if(!rows.length) return {rows,lo:NaN,hi:NaN};
+  return {rows,lo:Math.min(...rows.map(r=>r[6]))*BTUH_W,hi:Math.max(...rows.map(r=>r[6]))*BTUH_W,dryHi:Math.max(...rows.map(r=>r[7]))*BTUH_W}; }
+// Conflux oil coolers (brochure pages 4, 5, 6): f L/min, Q kW, dp kPa, read from the charts
+const OIL_LIB=[
+  {maker:'Conflux Technology',pn:'100220',kind:'l2l',use:'“Commonly used for: Electric Drive Unit cooling and other compact-packaging applications.”',dia:66.3,len:203,kg:0.31,jic:8,
+   connNote:'the spec table gives JIC -08; the drawing labels the oil ports “JIC-10 PER SAE J514” with a 3/4"-16 thread, which is the -08 thread in the fitting chart (-10 is 7/8-14): -08 is used here, check the part',
+   coolConn:'Ø19.05 mm (3/4 in) beaded hose connection',curve:{f:[8,10,15,20,25,30,35,40],Q:[5.4,6.0,7.0,7.8,8.4,8.8,9.2,9.6],dp:[5.2,7.8,14.8,22.7,31.6,41.6,52.5,64.3]},
+   rated:{oil:'Mobil EV Cool Drive',toi:85,tci:50,lpm:20,kgs:0.34,dpT:85,nu:8},page:'PDF page 4 (printed 3)'},
+  {maker:'Conflux Technology',pn:'100219',kind:'l2l',use:'“Commonly used for: Transmission cooling and similar mid-range applications.”',dia:83.6,len:218,kg:0.58,jic:8,
+   connNote:'the spec table gives JIC -08; the drawing labels the oil ports “JIC-10 PER SAE J514” with a 3/4"-16 thread, the -08 thread in the fitting chart: -08 is used here, check the part',
+   coolConn:'Ø38.10 mm (1.5 in) beaded hose connection',curve:{f:[5,10,15,20,25,30,35],Q:[5.2,11.1,14.7,17.2,19.1,20.6,22.0],dp:[5.7,12.4,20.1,28.6,37.9,48.2,59.4]},
+   rated:{oil:'75W-90',toi:120,tci:80,lpm:120,kgs:2,dpT:100,nu:15},page:'PDF page 5 (printed 4)'},
+  {maker:'Conflux Technology',pn:'100218',kind:'l2l',use:'“Commonly used for: Engine cooling and other high-capacity applications.”',dia:126.6,len:315,kg:1.6,jic:12,
+   connNote:'the spec table and the drawing agree: JIC-12 per SAE J514, 1-1/16"-12 thread',
+   coolConn:'Ø38.10 mm (1.5 in) beaded hose connection',curve:{f:[50,75,100,125,150],Q:[37.6,46.7,53.3,58.3,62.5],dp:[23.4,40.8,60.1,81.5,105.0]},
+   rated:{oil:'0W-40',toi:120,tci:85,lpm:120,kgs:2,dpT:100,nu:14},page:'PDF page 6 (printed 5)'}
+].map(c=>Object.assign({src:CFX_SRC,srcName:CFXO_NAME,seen:'2026-11-12',material:'AlSi10Mg',note:'Curves read from the maker’s charts; the maker calls them “indicative performance data under representative boundary conditions”.',
+  pub:'ISO 9001 manufacture, CFD and calorimetric testing, warranty terms on request (page 7); lead time typically 1-3 weeks production-ready, 2-6 weeks configured (page 3)'},c));
+// one unit at a flow f (L/min) and this build's oil and coolant temperatures; NaN outside the plotted range
+function oilUnit(c,f,toi,tci){ const K=c.curve, R=c.rated, inR=f>=K.f[0]-1e-9&&f<=K.f[K.f.length-1]+1e-9;
+  const Qc=inR?cfxLerp(K.f,K.Q,f)*1000:NaN, k=(toi-tci)/(R.toi-R.tci);
+  return {f,inR,Qcurve:Qc,Q:Qc*k,k,dp:inR?cfxLerp(K.f,K.dp,f)*1000:NaN}; }
+// units in parallel for a heat load Qn W at total oil flow F L/min
+function oilSize(c,F,Qn,toi,tci,nMax){ const out=[]; for(let n=1;n<=(nMax||8);n++){ const U=oilUnit(c,F/n,toi,tci); out.push(Object.assign({n,Qtot:U.Q*n},U)); }
+  const ok=out.find(x=>x.inR&&x.Qtot>=Qn-1e-9)||null; return {ok,all:out}; }
+// effectiveness at the maker's conditions (consistency check), engine-oil properties as a stand-in for the maker's oil
+function oilEps(c,i){ const K=c.curve, R=c.rated, P=oilProps(R.toi), Co=K.f[i]/60000*P.rho*P.cp, Cc=R.kgs*COOLANT.egw25.cp, Cmin=Math.min(Co,Cc); return K.Q[i]*1000/(Cmin*(R.toi-R.tci)); }
+// turbo oil and water lines, by maker, as the maker states them
+const TURBO_OIL={
+  'Precision Turbo & Engine':{src:PTE_INST,srcName:'Precision Turbo & Engine, Turbocharger Installation Recommendations',
+    ball:{feed:4,feedTxt:'“All single ball bearing turbocharger applications should utilize -4AN or 1/4 inch inside diameter oil feed line”',restr:'ball bearing: “may be restricted but may not always be necessary”; if the turbo comes with a restrictor fitting, “it is suggested that this fitting be utilized”'},
+    journal:{feed:4,feedTxt:'journal bearing: -4AN (1/4 in inside diameter) up to HP42 frames, -6AN (3/8 in) HP47 and up',restr:'journal bearing: “It is not recommended that any journal bearing turbocharger utilizes an oil feed line restrictor” (only if it still leaks: start at .090 in, no smaller than .065 in)'},
+    drain:10,drainTxt:'“The oil return line size needs to be a minimum of a -10AN or 5/8 of an inch inside diameter or larger”; the turbo “mounted as high as possible so the oil will gravity return to the engine”; “the oil return line fitting must be installed above the oil level in the oil pan”; sharp turns and tight-radius fittings kept to a minimum',
+    water:'“If a turbocharger has locations on the bearing housing for coolant lines coolant must be run through the turbocharger” (no line size given)',
+    feedFrom:'feed from the filtered side, close to the oil filter outlet; a quality paper-element filter; not from an oil-filter sandwich plate',pressure:null},
+  'Garrett':{src:GRT_OIL,srcName:'Garrett, Turbo oil restrictors & oil supply; Turbo System Optimization',
+    ball:{feed:4,feedTxt:'“Recommended oil feed is -3AN or -4AN line or hose/tubing with a similar ID”',restr:'ball bearing: “An oil restrictor is recommended”; “a restrictor with a 0.040” orifice will normally suffice” (1.02 mm); check the pressure after it'},
+    journal:{feed:4,feedTxt:'“The recommended oil feed for journal bearing turbochargers is -4AN or hose/tubing with an ID of approximately 0.25”” (6.35 mm)',restr:'journal bearing: a restrictor “is generally not needed except for oil-pressure-induced leakage”'},
+    drain:10,drainTxt:'“a -10AN is typically sufficient” (larger is better, never smaller than the housing’s drain hole); the outlet within ±15° of the direction of gravity, the shaft within ±15° of level; no draining into the pan below the oil level; no undulations or long runs parallel to the ground (Turbo System Optimization)',
+    water:'“if your turbo has an allowance for water cooling, hook up the water lines”: it prevents oil coking from heat soak after shut-down; no undulations in the water lines (thermal siphon); the centre housing turned to 20° (Turbo System Optimization)',
+    feedFrom:null,pressure:'ball bearing: “Oil pressure of 40 – 45 psi at maximum engine speed is recommended”, measured entering the turbo after the restrictor'}};
+// the guidance for a turbo row: its maker's where read, else Garrett's as the general reference; bearing from the row's text
+function turboOilFor(t){ const G=TURBO_OIL[t&&t.maker]||TURBO_OIL.Garrett, own=!!(t&&TURBO_OIL[t.maker]), b=t&&t.bearing?(/ball/i.test(t.bearing)?'ball':/journal/i.test(t.bearing)?'journal':null):null;
+  return {G,own,bearing:b,bearingWhy:t?(t.bearing?'the row says: '+t.bearing:'the maker’s page does not state the bearing'):'no turbo picked'}; }
+function oilSection(ind,p){
+  if(ind!=='turbo'&&ind!=='centri') return '';
+  const route=TS_LAST; if(!route||!route.R) return '';
+  const R=route.R, imp=U==='imp', hp=val('i-hp'), F=k=>TSO[k]===''||TSO[k]==null?NaN:+TSO[k];
+  const kw=W=>imp?(W/1000*56.869).toFixed(0)+' BTU/min ('+(W/1000).toFixed(1)+' kW)':(W/1000).toFixed(1)+' kW ('+(W/1000*56.869).toFixed(0)+' BTU/min)';
+  const tD=c=>imp?Math.round(c*1.8+32)+' °F ('+Math.round(c)+' °C)':Math.round(c)+' °C ('+Math.round(c*1.8+32)+' °F)';
+  const dT=k=>imp?(k*1.8).toFixed(1)+' °F ('+k.toFixed(1)+' °C)':k.toFixed(1)+' °C ('+(k*1.8).toFixed(1)+' °F)';
+  const lmin=x=>imp?(x/3.785411784).toFixed(1)+' gpm ('+x.toFixed(1)+' L/min)':x.toFixed(1)+' L/min ('+(x/3.785411784).toFixed(1)+' gpm)';
+  const pD=x=>imp?(x/6894.757).toFixed(2)+' psi ('+(x/1000).toFixed(1)+' kPa)':(x/1000).toFixed(1)+' kPa ('+(x/6894.757).toFixed(2)+' psi)';
+  const mmIn=mm=>imp?(mm/25.4).toFixed(2)+' in ('+mm.toFixed(1)+' mm)':mm.toFixed(1)+' mm ('+(mm/25.4).toFixed(2)+' in)';
+  const kgLb=kg=>imp?(kg/0.45359237).toFixed(2)+' lb ('+kg+' kg)':kg+' kg ('+(kg/0.45359237).toFixed(2)+' lb)';
+  const link=(u,t)=>'<a href="'+u+'" target="_blank" rel="noopener">'+esc(t)+'</a>';
+  const num=(k,lab,unit)=>'<label class="f"><span class="lab">'+lab+'</span><span class="inp"><input class="tsox" data-k="'+k+'" type="number" step="any" inputmode="decimal" value="'+esc(String(TSO[k]))+'"><em>'+unit+'</em></span></label>';
+  const sel=(k,opts)=>'<select class="tsox" data-k="'+k+'">'+opts.map(([v,t])=>'<option value="'+esc(v)+'"'+(String(TSO[k])===v?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select>';
+  const O={}; TG.oil=O;
+  let g='<p class="cap" style="margin-top:0">A boosted engine’s oil carries heat from the bearings, the pistons and the turbo’s centre housing. This section gives the oil heat load by the only rule read from a maker, sizes an oil cooler against it and lists the turbo maker’s oil and water line rules.</p>';
+  // 1. heat load
+  const SL=hp>0?setrabLoad(hp):null; O.load=SL; O.hp=hp;
+  g+='<p class="sub">Oil heat load</p>';
+  if(!(hp>0)) g+='<div class="note warn" id="oil-nohp">Enter the power target (Horsepower) for the oil heat load.</div>';
+  else if(!SL.rows.length) g+='<div class="note warn" id="oil-noload">Setrab’s suggestions start at 90 hp: none for '+Math.round(hp)+' hp.</div>';
+  else { const bp=hp*745.7;
+    g+=rowT('Setrab’s suggested oil heat rejection for '+Math.round(hp)+' hp ('+Math.round(hp*0.7457)+' kW)',kw(SL.lo)+' to '+kw(SL.hi),'the wet-sump figures of the '+SL.rows.length+' engine-oil coolers Setrab suggests for this power ('+SL.rows.map(r=>r[0]).join(', ')+'), '+(SL.lo/bp*100).toFixed(1)+' to '+(SL.hi/bp*100).toFixed(1)+'% of the brake power; their dry-sump figures reach '+kw(SL.dryHi)+'. Setrab’s test: oil 5 gpm (18.9 L/min), 20/50 engine oil, 130 °F (72 °C) ITD, 60 mph (97 km/h) air (dry sump 8 gpm, 140 °F ITD, 80 mph). Maker guidance for choosing a cooler, not a measured heat load');
+    g+='<p class="cap" id="oil-load-cap">Sized below against the upper figure, '+kw(SL.hi)+'. Not sourced, so not added: a fraction of fuel energy to the oil (Heywood’s energy balance was not available here), the turbocharger’s bearing friction and heat soak into the oil (no source read gives a figure), and the extra heat from piston-cooling jets or higher BMEP. Source: '+link(SETRAB_APP,'Setrab, Application and performance suggestions (2010; a copy on a dealer’s site)')+', read 2026-11-12.</p>'; }
+  const Qn=SL&&SL.rows.length?SL.hi:NaN; O.Qn=Qn;
+  // 2. inputs
+  const toi=Number.isFinite(F('olTi'))?F('olTi'):120, tci=Number.isFinite(F('olTc'))?F('olTc'):85, Fo=F('olF');
+  O.toi=toi; O.tci=tci; O.F=Fo;
+  g+='<div class="grid2">'+num('olF','Oil flow through the cooler','L/min')+num('olTi','Oil into the cooler','°C')+num('olTc','Coolant into the cooler','°C')+num('olP','Engine oil pressure at maximum engine speed (optional)','kPa')+
+    '<label class="f"><span class="lab">Cooler type</span><span class="inp">'+sel('olType',[['l2l','Oil-to-water (liquid-to-liquid)'],['air','Oil-to-air']])+'</span></label>'+
+    '<label class="f"><span class="lab">Oil-to-water cooler on</span><span class="inp">'+sel('olLoop',[['engine','the engine coolant loop'],['ic','the charge cooler’s loop (water-to-air intercooler)']])+'</span></label></div>'+
+    '<p class="cap" id="oil-in-cap">No sourced rule for oil pump flow against RPM was found: enter the engine maker’s figure or a measured flow. Oil and coolant temperatures: blank uses '+tD(120)+' and '+tD(85)+', the test conditions of Conflux’s engine oil cooler (100218), not sourced limits; use your oil maker’s or engine maker’s figures.</p>';
+  if(Fo>0&&Qn>0){ const P=oilProps(toi), V=Fo/60000, d=Qn/(V*P.rho*P.cp); O.dT=d;
+    g+=rowT('Oil temperature drop across the cooler',dT(d),kw(Qn)+' ÷ ('+lmin(Fo)+' × '+P.rho.toFixed(0)+' kg/m³ × '+(P.cp/1000).toFixed(3)+' kJ/kg K): Q = ṁ cp ΔT with new engine oil at '+tD(toi)+(P.clamped?' (outside the table’s 67-127 °C: its end row is used)':'')+' ('+link(ETB_OIL,'Engineering ToolBox')+'); oil out at '+tD(toi-d)); }
+  // 3. coolers
+  const oilType=TSO.olType==='air'?'air':'l2l';
+  if(oilType==='l2l'){
+    const rows=OIL_LIB.map((c,i)=>{ const S=Fo>0&&Qn>0?oilSize(c,Fo,Qn,toi,tci):null; return {c,i,S}; }); O.rows=rows;
+    g+='<p class="sub" style="margin-top:12px">Oil-to-water coolers</p><div class="tblwrap"><table id="oil-tab"><thead><tr><th>Cooler</th><th>Size, weight, ports</th><th>Maker’s curve and test conditions</th><th>At this build</th></tr></thead><tbody>'+
+      rows.map(({c,i,S})=>{ const K=c.curve, Rr=c.rated, n=K.f.length-1, eps=K.f.map((_,j)=>oilEps(c,j));
+        let at='enter the oil flow'+(Qn>0?'':' and the power target');
+        if(S){ const U=S.ok; at=U?(U.n+' in parallel: '+lmin(U.f)+' each, '+kw(U.Q)+' each, '+kw(U.Qtot)+' together against '+kw(Qn)+'; oil drop '+pD(U.dp)+' (the maker’s curve)'):
+          (Fo<K.f[0]?'the flow, '+lmin(Fo)+', is below its plotted '+lmin(K.f[0])+': no prediction':'not reached within 8 units inside its plotted range ('+lmin(K.f[0])+' to '+lmin(K.f[n])+' per unit)'); }
+        return '<tr data-oil="'+c.pn+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+esc(c.use)+'</span></td><td>Ø'+mmIn(c.dia)+' × '+mmIn(c.len)+', '+kgLb(c.kg)+' dry; oil '+anTxt(c.jic,imp)+'; coolant '+esc(c.coolConn)+'; '+esc(c.material)+'<br><span class="cap">'+esc(c.connNote)+'</span></td><td>'+
+          lmin(K.f[0])+' to '+lmin(K.f[n])+': heat '+kw(K.Q[0]*1000)+' to '+kw(K.Q[n]*1000)+', oil drop '+pD(K.dp[0]*1000)+' to '+pD(K.dp[n]*1000)+'; oil ('+esc(Rr.oil)+') entering at '+tD(Rr.toi)+', coolant (EGW 25/75) entering at '+tD(Rr.tci)+', '+lmin(Rr.lpm)+' ('+Rr.kgs+' kg/s); drop at '+tD(Rr.dpT)+', '+Rr.nu+' cSt<br><span class="cap">effectiveness at the maker’s conditions (engine-oil properties as a stand-in) '+(eps[0]*100).toFixed(0)+'% to '+(eps[n]*100).toFixed(0)+'%</span></td><td>'+at+'</td></tr>'; }).join('')+'</tbody></table></div>';
+    g+='<p class="cap" id="oil-tab-cap">Lines are the maker’s curves read from its charts (about ±0.1 kW and ±0.1 kPa), “indicative performance data under representative boundary conditions”. At this build the heat is the curve × ('+tD(toi)+' − '+tD(tci)+') ÷ (the maker’s oil-in − coolant-in), the effectiveness held at the maker’s flows; the oils differ from engine oil and the coolant flow is the maker’s, so treat it as approximate. The drop is as the maker measured it with its oil and viscosity; no relation to correct it was read. Source: '+link(CFX_SRC,CFXO_NAME)+', pages 4 to 6; '+esc(OIL_LIB[0].pub)+'.</p>';
+    g+='<label class="f span2"><span class="lab">Pick an oil cooler</span><span class="inp">'+sel('olRow',[['','None']].concat(OIL_LIB.map((c,i)=>[String(i),c.maker+' '+c.pn])))+'</span></label>';
+    const C=TSO.olRow!==''?OIL_LIB[+TSO.olRow]:null; O.c=C;
+    if(C){ const Rr=C.rated, S=Fo>0&&Qn>0?oilSize(C,Fo,Qn,toi,tci):null, U=S&&S.ok; O.pick=U||null;
+      const op=Fo>0?oilUnit(C,U?U.f:Fo,toi,tci):null;
+      g+='<div class="note" id="oil-pick"><b>'+esc(C.maker+' '+C.pn)+'</b>: '+(U?U.n+' unit'+(U.n>1?'s':'')+' in parallel remove '+kw(U.Qtot)+' of the '+kw(Qn)+' load at '+lmin(Fo)+' of oil in at '+tD(toi)+' and coolant in at '+tD(tci)+'; each unit’s oil drop '+pD(U.dp)+'.':S?'does not reach the '+kw(Qn)+' load inside its plotted flows at '+lmin(Fo)+'.':'enter the oil flow and the power target to size it.')+
+        ' The maker measured it with '+esc(Rr.oil)+' (drop at '+tD(Rr.dpT)+', '+Rr.nu+' cSt), coolant EGW 25/75 at '+lmin(Rr.lpm)+'. '+esc(C.note)+' Source: '+link(C.src,C.srcName)+', '+esc(C.page)+', read '+C.seen+'.</div>';
+      if(U&&F('olP')>0){ const pt=F('olP')*1000-U.dp, need=40*6894.757; O.pTurbo=pt;
+        g+=rowT('Oil pressure after the cooler',pD(pt),'your '+pD(F('olP')*1000)+' less the cooler’s '+pD(U.dp)+' (if the turbo is fed after the cooler); Garrett recommends 40-45 psi ('+pD(need)+' to '+pD(45*6894.757)+') at maximum engine speed into a ball-bearing turbo, after its restrictor: '+(pt>=need?'met':'<b>below it</b>')); }
+      if(op&&op.inR) g+='<figure class="card" style="margin:8px 0 0;padding:8px">'+oilChart(C,op,'oil-svg')+'</figure>'; }
+    // 4. where the heat goes
+    if(Qn>0){ if(TSO.olLoop==='ic'){ const L=TG.loop;
+        if(L){ const A=w2aLoop(Object.assign({},L,{Qx:Qn})); O.loop={without:L.L,with:A};
+          g+=rowT('On the charge cooler’s loop',kw(Qn)+' more into the loop','charge out '+tD(L.th-A.Q/L.Ch)+' against '+tD(L.th-L.L.Q/L.Ch)+' without the oil; coolant into the charge cooler '+tD(A.tw1)+' against '+tD(L.L.tw1)+'; the front exchanger rejects '+kw(A.Q+Qn)+'. The oil cooler taken after the charge cooler, before the front exchanger (Q = (Th − Ta − k Qoil) ÷ (1/e₁ + k), k = 1/e₂ − 1/Cw); the oil cooler’s own coolant-in temperature is then about '+tD(A.tw1+A.Q/L.Cw)+': enter that above'); }
+        else g+='<div class="note warn" id="oil-loop-need">To couple the oil heat into the charge cooler’s loop, complete the water-to-air loop inputs under Intercooler options (core UA or a picked core with data, coolant flow, front exchanger UA and its air flow).</div>'; }
+      else g+=rowT('On the engine coolant loop',kw(Qn)+' more for the radiator','an oil-to-water cooler moves the oil’s heat into the engine coolant; the radiator rejects it with the rest'); } }
+  else { const rows=SL&&SL.rows.length?SL.rows:[]; O.rows=rows;
+    g+='<p class="sub" style="margin-top:12px">Oil-to-air coolers Setrab suggests for this power</p>'+(rows.length?'<div class="tblwrap"><table id="oil-air-tab"><thead><tr><th>Setrab part</th><th>Application</th><th>Power range</th><th>Heat, wet / dry sump</th><th>Oil drop, wet / dry</th></tr></thead><tbody>'+
+      rows.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+r[2]+(r[3]===Infinity?'+':' to '+r[3])+' hp</td><td>'+kw(r[6]*BTUH_W)+' / '+kw(r[7]*BTUH_W)+'</td><td>'+pD(r[4]*6894.757)+' / '+(r[5]!=null?pD(r[5]*6894.757):'not given')+'</td></tr>').join('')+'</tbody></table></div>':'<p class="cap">Enter the power target.</p>')+
+      '<p class="cap">Setrab’s figures at its test conditions (wet sump: 5 gpm, 20/50 oil, 130 °F ITD, 60 mph air; dry sump: 8 gpm, 140 °F ITD, 80 mph); no sizes on that sheet. Source: '+link(SETRAB_APP,'Setrab, Application and performance suggestions')+'.</p>'; }
+  // 5. turbo oil and water lines
+  const T=TG.turbo&&TG.turbo.t, TO=turboOilFor(T), Gd=TO.G; O.lines=TO;
+  const bt=TO.bearing, bl=bt?Gd[bt]:null;
+  g+='<p class="sub" style="margin-top:12px">Turbo oil and water lines'+(T?': '+esc(T.maker+' '+T.model):'')+'</p>';
+  g+=rowT('Oil feed',bl?anTxt(bl.feed,imp):anTxt(Gd.ball.feed,imp)+' (ball) / '+anTxt(Gd.journal.feed,imp)+' (journal)',bl?esc(bl.feedTxt):esc(Gd.ball.feedTxt)+'; '+esc(Gd.journal.feedTxt))+
+    rowT('Restrictor',bt?(bt==='ball'?'see the rule':'not recommended'):'by bearing type',bl?esc(bl.restr):esc(Gd.ball.restr)+'; '+esc(Gd.journal.restr))+
+    rowT('Oil drain',anTxt(Gd.drain,imp)+' minimum',esc(Gd.drainTxt))+rowT('Water lines','if the centre housing has coolant ports',esc(Gd.water))+
+    (Gd.feedFrom?rowT('Feed from','the filtered side',esc(Gd.feedFrom)):'')+(Gd.pressure||TURBO_OIL.Garrett.pressure?rowT('Oil pressure',bt==='journal'?'no figure given':pD(40*6894.757)+' to '+pD(45*6894.757)+' at maximum engine speed',esc(TURBO_OIL.Garrett.pressure)+' (Garrett, ball bearing)'):'');
+  g+='<p class="cap" id="oil-lines-cap">'+(T?(TO.own?'The turbo’s maker’s own rules':'No oil-line rules from '+esc(T.maker)+' were read: Garrett’s, as the general reference')+'; bearing: '+esc(TO.bearingWhy)+(bt?' ('+bt+' bearing rules shown)':' (both shown)')+'.':'No turbo picked: Garrett’s rules, both bearing types.')+
+    ' AN sizes: dash number in sixteenths of an inch, thread from '+link(TITAN_TC,'Titan Fittings’ thread chart')+' (JIC 37°, SAE J514). Oil port threads on the turbo itself are not on the makers’ pages read. Sources: '+link(PTE_INST,'Precision Turbo & Engine, installation recommendations')+', '+link(GRT_OIL,'Garrett, oil restrictors and oil supply')+', '+link(GRT_SYS,'Garrett, turbo system optimization')+', read 2026-11-12.</p>';
+  return sec('Oil cooling and turbo oil lines',g);
+}
+// the turbo's oil lines as two labels for the route drawing (the same rules as the section, by the picked turbo)
+function turboOilLabels(){ const T=TSO.turbo!==''?TURBO_LIB[+TSO.turbo]:null, TO=turboOilFor(T), G=TO.G, b=TO.bearing;
+  return ['oil feed -'+(b?G[b].feed:G.ball.feed)+' AN'+(b?'':' (ball; journal -'+G.journal.feed+')')+', drain -'+G.drain+' AN min., gravity']; }
+// a maker's oil-cooler curve: heat (left, kW with BTU/min) and oil drop (right, kPa with psi) against oil flow (L/min with gpm),
+// the build's per-unit point: heat at this build's temperatures (dot) and the curve scaled to them (dashed), the drop (dot)
+function oilChart(c,op,id){
+  const K=c.curve, W=360, H=216, ml=58, mr=58, mt=26, mb=42, n=K.f.length-1, k=op.k;
+  const x0=0, st=K.f[n]>60?25:K.f[n]>20?10:5, x1=Math.ceil(K.f[n]/st)*st+st;
+  const qTop=Math.ceil(Math.max(K.Q[n],K.Q[n]*k)/5)*5||5, dTop=Math.ceil(K.dp[n]/20)*20||20, qs=qTop>40?20:qTop>15?5:2;
+  const X=f=>ml+(f-x0)/(x1-x0)*(W-ml-mr), YL=q=>H-mb-q/qTop*(H-mt-mb), YR=d=>H-mb-d/dTop*(H-mt-mb), fx=v=>v.toFixed(1);
+  let g='<svg class="camp" id="'+id+'" viewBox="0 0 '+W+' '+H+'" style="max-width:420px" role="img" aria-label="'+esc(c.maker+' '+c.pn)+': heat transfer and oil pressure drop against oil flow, with this build’s point">';
+  for(let q=0;q<=qTop+1e-9;q+=qs) g+='<line class="grid" x1="'+ml+'" x2="'+(W-mr)+'" y1="'+fx(YL(q))+'" y2="'+fx(YL(q))+'"/><text class="tr" x="'+(ml-4)+'" y="'+fx(YL(q)+3.5)+'">'+q+' ('+Math.round(q*56.869)+')</text>';
+  for(let d=0;d<=dTop+1e-9;d+=dTop/4) g+='<text x="'+(W-mr+4)+'" y="'+fx(YR(d)+3.5)+'">'+Math.round(d)+' ('+(d/6.894757).toFixed(1)+')</text>';
+  for(let f=0;f<=x1+1e-9;f+=st) g+='<text x="'+fx(X(f))+'" y="'+(H-mb+14)+'" style="text-anchor:middle">'+f+'</text><text x="'+fx(X(f))+'" y="'+(H-mb+26)+'" style="text-anchor:middle;font-size:10px">'+(f/3.785411784).toFixed(1)+'</text>';
+  g+='<line class="axis" x1="'+ml+'" x2="'+(W-mr)+'" y1="'+(H-mb)+'" y2="'+(H-mb)+'"/>';
+  const poly=(pts,col,dash)=>'<polyline class="ord" points="'+pts.map(q=>fx(q[0])+','+fx(q[1])).join(' ')+'" style="stroke:var('+col+');stroke-width:2'+(dash?';stroke-dasharray:4 3':'')+'"/>';
+  g+=poly(K.f.map((f,i)=>[X(f),YL(K.Q[i])]),'--t2')+poly(K.f.map((f,i)=>[X(f),YR(K.dp[i])]),'--t3')+poly(K.f.map((f,i)=>[X(f),YL(K.Q[i]*k)]),'--t2',1);
+  const xm=X(op.f), right=xm>W*0.55;
+  g+='<line class="mark0" x1="'+fx(xm)+'" x2="'+fx(xm)+'" y1="'+mt+'" y2="'+(H-mb)+'"/><circle class="dot" data-op="q" cx="'+fx(xm)+'" cy="'+fx(YL(op.Q/1000))+'" r="3.6"/><circle class="dot" data-op="dp" cx="'+fx(xm)+'" cy="'+fx(YR(op.dp/1000))+'" r="3.6"/>'+
+    '<text class="halo" x="'+fx(xm+(right?-4:4))+'" y="'+(mt-4)+'" style="fill:var(--ink);font-weight:500'+(right?';text-anchor:end':'')+'">this build, per unit: '+(op.Q/1000).toFixed(1)+' kW, '+(op.dp/1000).toFixed(1)+' kPa</text>';
+  g+='<text x="4" y="12">Heat kW (BTU/min)</text><text class="tr" x="'+W+'" y="12">Oil drop kPa (psi)</text><text class="tr" x="'+(W-mr)+'" y="'+(H-2)+'">oil flow L/min (gpm)</text></svg>';
+  return g; }
 // picking a core from the list and "Use this intercooler" do the same (2026-11-12): the type, the core, its tank necks as the
 // intercooler inlet / outlet (the neck less twice the charge-pipe wall, an estimated bore), the maker's air drop and its flow
 // where published, and a known thermal point into the cooling-capacity inputs
@@ -22176,7 +22442,7 @@ function arSection(T,R,p,route){
   b+='<p class="cap" id="tso-ar-cap">A/R is the housing’s inlet cross-section area divided by the radius from the turbo centreline to the centroid of that area (Garrett, catalogue p. 7). A smaller A/R sends the gas into the wheel faster and more tangentially: more turbine power low down and quicker boost, but less flow capacity and more back pressure at high RPM; a larger A/R the reverse (Garrett). For a vaneless volute, conservation of mass and of angular momentum give tan α = 2π b ÷ (A/R) at the rotor inlet, α from the radial direction and b the rotor’s inlet width (incompressible; derived on the page), which is why a smaller A/R turns the flow more tangential. The volute A/r sets the rotor inlet angle and the swallowing capacity for one wheel (Lee, Barrans, Jupp and Nickson, Aerospace 2017), but how capacity scales with A/R was not found in a source, so housings are only put in order. One engine’s result (Garrett’s A/R article): a GTX3076R GEN II on a 1.9 L Honda made 600 whp and 400 lb-ft on a “divided v-band .83 A/R” housing with full spool at 5,250 RPM; on 1.01 A/R it gained 50 whp and 75 lb-ft and full spool moved to almost 6,000 RPM. That is one engine, not a rule; Garrett’s G25-660 test of 0.72 against 0.92 “did not make as significant of a difference”. (Garrett’s GTX3076R GEN II product page lists its V-band 0.83 and 1.01 housings as undivided; the article calls the car’s 0.83 divided.)</p>';
   return h+b;
 }
-window.__tso={rec:()=>TS_REC,TG:()=>TG,cfxModel,cfxUA,cfxDp,cfxPredict,cfxEff,cfxLerp,cfxFitPow,cfxOp,epsCounter,ntuCounter,epsXflow,ntuFor,icRecommend,turboRecommend,icRateOf,icFace,icPubN,icOwn,icRow,icApply,TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop,icScaleUA,icHpOf,UA_EXP,arDemand,arFlowVerdict,arPlan,arDivMsg,thLabel};
+window.__tso={rec:()=>TS_REC,TG:()=>TG,OIL_LIB,SETRAB_EOC,setrabLoad,oilProps,oilUnit,oilSize,oilEps,TURBO_OIL,turboOilFor,anTxt,AN_SIZES,cfxModel,cfxUA,cfxDp,cfxPredict,cfxEff,cfxLerp,cfxFitPow,cfxOp,epsCounter,ntuCounter,epsXflow,ntuFor,icRecommend,turboRecommend,icRateOf,icFace,icPubN,icOwn,icRow,icApply,TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop,icScaleUA,icHpOf,UA_EXP,arDemand,arFlowVerdict,arPlan,arDivMsg,thLabel};
 /* ----- Wastegate and blow-off valve: where they go on this build, and their size (2026-11-11, phase 3) -----
    Flow through a valve: isentropic flow through a restriction, m = Cd A p0 sqrt(2 g / ((g - 1) R T0) (r^(2/g) - r^((g+1)/g))),
    r = p / p0 held at the critical (2 / (g + 1))^(g / (g - 1)) once choked (Heywood, Internal Combustion Engine
@@ -22329,7 +22595,7 @@ function tsSvg(R,q,p,F){
   if(items[1].l.length>4) items[1].h=112;
   const cone=(t,a,b,name)=>{ if(t) items.push({k:'cone',d0:a,d1:b,h:58,t:name,l:[cdim(a)+' → '+cdim(b),(t.step?'step':'cone '+clen(t.len)),'loss '+F.pD(t.dp)]}); };
   cone(R.trIn,p.dt,q.dci,'Into the compressor');
-  items.push({k:'comp',h:62,t:'Compressor'+each,l:['pressure ratio '+R.PRc.toFixed(3),'out '+F.tD(R.t2),q.dci>0||q.dco>0?(q.dci>0?'inlet '+cdim(q.dci):'')+(q.dci>0&&q.dco>0?', ':'')+(q.dco>0?'outlet '+cdim(q.dco):''):'']});
+  items.push({k:'comp',h:TG.ind==='turbo'?76:62,t:'Compressor'+each,l:['pressure ratio '+R.PRc.toFixed(3),'out '+F.tD(R.t2),q.dci>0||q.dco>0?(q.dci>0?'inlet '+cdim(q.dci):'')+(q.dci>0&&q.dco>0?', ':'')+(q.dco>0?'outlet '+cdim(q.dco):''):''].concat(TG.ind==='turbo'?turboOilLabels():[])});
   const PL=TS_PLACE;
   const arL=val('i-tar')>0?'housing '+(+val('i-tar')).toFixed(2)+' A/R':'housing A/R not chosen';
   if(PL&&PL.wg) items.push({k:'turb',t:'Turbine side'+each+', '+arL,h:PL.wg.type==='ext'&&PL.wg.pick?86:72,l:PL.wg.type==='ext'?['wastegate '+(PL.wg.pick?cdim(PL.wg.pick):'over '+cdim(60))+', 45°, on the',PL.wg.mani==='div'?'merge of each scroll':PL.wg.mani==='log'?'turbine end of the log':'collector after the last merge',PL.wg.pick?'centre from the turbine flange:':'',PL.wg.pick?clen(Math.max(0,PL.wg.lo))+' to '+clen(PL.wg.hi):'']:['internal wastegate','needs '+(PL.wg.Aeff*1e6).toFixed(0)+' mm² effective']});
@@ -22862,6 +23128,11 @@ function tgSteps(ind,p){
     const rl=!IR||!(ice>0)?'':'; '+IR.types.map(t=>{ const P=IR[t].pick, nm=t==='a2a'?'air-to-air':'water-to-air';
       return P?'recommended '+(IR.types.length>1?nm+' ':'')+P.c.maker+' '+P.c.pn+(I&&I.c===P.c?' (in use)':' (not applied: Use this intercooler)'):'no listed '+nm+' core fits (see the specification)'; }).join('; ');
     add('ic','Intercooler',bad||nb?'warn':I&&I.c?'ok':ice>0?'todo':'info',(ice>0?(I&&I.type==='w2a'?'water-to-air':I&&I.type==='a2a'?'air-to-air':'type not decided')+', '+Math.round(ice)+'% effectiveness, '+(I?F.kw(I.Qreq)+' to remove':'')+'; '+(I&&I.c?I.c.maker+' '+I.c.pn+(I.v&&I.v!=='–'?': '+I.v:''):'no core picked yet'):'none (effectiveness 0)')+rl+(nb?'; no core reaches the target with the outside air entered':''),'intercooler-options-and-cooling-capacity'); }
+  if(turbo&&TG.oil){ const O=TG.oil, L=O.lines, b=L&&L.bearing, G=L&&L.G, probs=[];
+    if(O.c&&O.F>0&&O.Qn>0&&!O.pick) probs.push(O.c.maker+' '+O.c.pn+' does not reach the load at this oil flow');
+    if(O.pTurbo!=null&&O.pTurbo<40*6894.757) probs.push('oil pressure after the cooler under Garrett’s 40 psi');
+    add('oil','Oil cooling and turbo oil lines',probs.length?'warn':O.c&&O.pick?'ok':'todo',(O.Qn>0?'oil heat '+F.kw(O.load.lo)+' to '+F.kw(O.load.hi)+' (Setrab’s suggestion for this power)':'enter the power target for the oil heat')+'; '+
+      (O.c?O.c.maker+' '+O.c.pn+(O.pick?' × '+O.pick.n+', '+F.kw(O.pick.Qtot):''):'no oil cooler picked')+'; feed -'+(b?G[b].feed:G.ball.feed)+' AN, drain -'+G.drain+' AN minimum'+(probs.length?'; '+probs.join('; '):''),'oil-cooling-and-turbo-oil-lines'); }
   { const P=TS_PLACE, B=P&&P.bov, W=P&&P.wg, probs=[];
     if(B&&!B.fits) probs.push('the blow-off valve does not fit on its straight');
     if(B&&!B.pick) probs.push('no listed blow-off valve size passes the full flow');
@@ -22917,9 +23188,15 @@ function tsSheet(){
   const I=TG.ic, ice=val('i-ice')||0;
   if(ice>0&&I&&I.c){ const c=I.c, D=c.L?[c.L,c.H,c.W]:c.dims;
     P('Intercooler core',c.maker+' '+c.pn+', '+(c.type==='w2a'?'water-to-air':'air-to-air')+(D?(c.dimOverall?', overall ':', core ')+D.map(x=>(+x[0]).toFixed(2)).join(' × ')+' in ('+D.map(x=>x[1]).join(' × ')+' mm)':', size not published')+(c.inD?(c.barb?', air connectors (hose barbs) ':', necks ')+cdim(c.inD*25.4)+' in / '+cdim(c.outD*25.4)+' out':'')+(c.coolMm?', coolant connectors '+c.coolMm+' mm ('+c.coolIn+' in) hose barb':'')+(c.curve&&TG.cfx&&TG.cfx.c===c?', from the maker’s curves at this build: charge out '+Math.round(TG.cfx.op.P.x.tho)+' °C ('+Math.round(TG.cfx.op.P.x.tho*1.8+32)+' °F), '+(TG.cfx.op.P.x.Q/1000).toFixed(1)+' kW into the coolant, air drop '+F.pD(TG.cfx.op.D.dp):''),
-      (c.own?'your own core':'source '+c.src+' (read '+c.seen+')')+(TG.icrec&&TG.icrec[c.type]&&TG.icrec[c.type].pick?(TG.icrec[c.type].pick.c===c?'; the page’s recommendation':'; the page recommends '+TG.icrec[c.type].pick.c.maker+' '+TG.icrec[c.type].pick.c.pn):'')); }
+      (c.own?'your own core':'source '+c.src+' (read '+c.seen+')')+(TG.icrec&&TG.icrec[c.type]&&TG.icrec[c.type].pick?(TG.icrec[c.type].pick.c===c?'; the page’s recommendation':'; the page recommends '+TG.icrec[c.type].pick.c.maker+' '+TG.icrec[c.type].pick.c.pn):'')); if(!c.curve) P('Intercooler end tanks and mounting',IC_ET.join(' '),'Garrett, “Intercooler Sizing And End Tank Design With Rob Dahm” (2020), '+GRT_ET+(TG.route&&TG.route.dco&&TG.route.dco.bad?'; on this build the hot pipe is smaller than the compressor outlet':'')); }
   else if(ice>0&&TG.icrec) TG.icrec.types.forEach(t=>{ const R2=TG.icrec[t].pick; if(R2) P('Intercooler core, recommended ('+(t==='w2a'?'water-to-air':'air-to-air')+', not applied)',R2.c.maker+' '+R2.c.pn,R2.c.src?'source '+R2.c.src:''); });
   P('Intercooler',ice>0?(I&&I.type==='w2a'?'water-to-air':I&&I.type==='a2a'?'air-to-air':'type not decided')+(I&&I.c?', '+I.c.maker+' '+I.c.pn:', core not picked')+', '+Math.round(ice)+'% effectiveness':'none',ice>0?'core drop '+F.pD((val('i-icdp')||0)*1000)+(q.dici>0?', inlet '+cdim(q.dici):'')+(q.dico>0?', outlet '+cdim(q.dico):''):'');
+  if(turbo&&TG.oil){ const O=TG.oil, L=O.lines, b=L.bearing, G=L.G;
+    if(O.Qn>0) P('Oil heat load',F.kw(O.load.lo)+' to '+F.kw(O.load.hi),'Setrab’s suggested oil heat rejection for '+Math.round(O.hp)+' hp (wet sump; maker guidance), '+SETRAB_APP);
+    if(O.c) P('Oil cooler',O.c.maker+' '+O.c.pn+(O.pick?' × '+O.pick.n+' in parallel, '+F.kw(O.pick.Qtot)+', oil drop '+F.pD(O.pick.dp)+' each':'')+', Ø'+cdim(O.c.dia)+' × '+cdim(O.c.len)+', oil '+anTxt(O.c.jic,false),'oil in '+Math.round(O.toi)+' °C ('+Math.round(O.toi*1.8+32)+' °F), coolant in '+Math.round(O.tci)+' °C ('+Math.round(O.tci*1.8+32)+' °F); '+O.c.srcName+', '+O.c.page);
+    P('Turbo oil feed',b?anTxt(G[b].feed,false):anTxt(G.ball.feed,false)+' ball / '+anTxt(G.journal.feed,false)+' journal',(b?G[b].restr:G.ball.restr+'; '+G.journal.restr)+'; '+G.src);
+    P('Turbo oil drain',anTxt(G.drain,false)+' minimum',G.drainTxt+'; '+G.src);
+    P('Turbo water lines','if the centre housing has coolant ports',G.water); }
   const PL=TS_PLACE, B=PL&&PL.bov, W=PL&&PL.wg;
   if(B) P('Blow-off valve',(B.pick?cdim(B.pick)+' or larger':'larger than '+cdim(50))+', effective area '+(B.Aeff*1e6).toFixed(0)+' mm² ('+(B.Aeff*1550.0031).toFixed(2)+' in²)',(B.side==='cold'?'cold side, centre '+clen(B.x)+' before the throttle face':'hot side, centre '+clen(B.x)+' after the compressor outlet')+(B.vent==='recirc'?', recirculated to the inlet tube':', vented'));
   if(turbo&&W){ if(W.type==='ext') P('Wastegate',W.mw>0?(W.pick?cdim(W.pick)+' valve and branch at 45°':'over '+cdim(60)+', or two gates')+', effective area '+(W.Aeff*1e6).toFixed(0)+' mm² ('+(W.Aeff*1550.0031).toFixed(2)+' in²)':'no gate flow at peak on these assumptions',
@@ -23064,7 +23341,7 @@ function fiSection0(ind,p,r){
         '<p class="cap">From <a href="https://www.garrettmotion.com/racing-and-performance/choosing-a-turbocharger/turbo-system-optimization/" target="_blank" rel="noopener">Garrett’s Turbo System Optimization</a> and <a href="https://www.garrettmotion.com/knowledge-center-category/racing-and-performance/how-to-size-charge-air-tubing/" target="_blank" rel="noopener">How to Size Charge Air Tubing</a>. Pressure loss is Darcy friction (smooth drawn aluminium or stainless tube, 0.0015 mm) at the actual boosted density plus Crane TP-410’s bend K (via the Intake tab’s bendK); the fill time is the extra air the pipes hold at boost divided by the full-power airflow, so real spool-up is longer.</p>');
     }
   }
-  if(ind==='turbo'||ind==='centri') cp+=turboSection(ind,p,r)+tsSizeSection(ind,p,r)+tsOptionsSection(ind,p)+TS_PLACE_HTML+tsExhSection(ind,p);
+  if(ind==='turbo'||ind==='centri') cp+=turboSection(ind,p,r)+tsSizeSection(ind,p,r)+tsOptionsSection(ind,p)+oilSection(ind,p)+TS_PLACE_HTML+tsExhSection(ind,p);
   return cp+sec('Boosted intake',h+'<ul class="list">'+list.join('')+'</ul><p class="cap">Sources: <a href="https://compressortech2.com/news/what-is-the-ideal-inlet-piping-length-for-centrifugal-compressors/8022678.article" target="_blank" rel="noopener">CompressorTech², on ASME PTC inlet piping</a>; <a href="https://www.enginelabs.com/?p=167650" target="_blank" rel="noopener">EngineLabs on the ProCharger bellmouth</a>; <a href="https://www.procharger.com/?p=9829" target="_blank" rel="noopener">ProCharger on blow-off valves</a>. Compressor outlet temperature is the ideal-gas compression formula with the efficiency you enter.</p>');
 }
 /* ----- making it by 3D printing ----- */
