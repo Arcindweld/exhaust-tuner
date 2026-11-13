@@ -12554,6 +12554,7 @@ function b5BoostSections(ind,p,r){
   if(cp&&sc){
     const verdict=q=>q.offMap?'off this map':q.inSurge?'left of the surge line: surge':(q.margin<0.15?'close to the surge line ('+(q.margin*100).toFixed(0)+'% to the right)':(q.margin*100).toFixed(0)+'% right of the surge line')+(q.island?', in the '+q.island+'% island':'')+(q.choke?', past choke':'');
     h+=sec('Compressor surge check, on one map',
+      '<div class="note" id="b5-example">An example only: one 1983 map from a book, to show the method. For your turbo, load its maker’s map under Your compressor map above and the page draws this build on it.</div>'+
       rowT('Engine demand, the tab’s airflow',Math.round(r.cfm)+' cfm at PR '+r.pr.toFixed(2),(sc.surgeCfm>0?'the TO4B V-1 surge line sits at about '+Math.round(sc.surgeCfm)+' cfm at this ratio; ':'')+verdict(sc))+
       rowT('Corrected for the charge temperature',Math.round(cfm2)+' cfm','the engine breathes '+tempStr(t3)+' air after the compressor'+(ice>0?' and intercooler':'')+' while the tab’s figure assumes '+tempStr(p.tin)+', so the volume drawn through the compressor inlet is × '+corr.toFixed(2)+'; '+verdict(sc2))+
       (sc2.inSurge||sc.inSurge?'<div class="note warn">Vizard’s answer to a demand point left of the surge line was not more boost: lengthen the cam or raise the airflow (his engine went from 400 to 490 cfm with a longer, higher-lift cam and from 255 to 306 bhp at the same boost), or pick a smaller trim, the TO4 E-1 rather than the V-1.</div>':'')+
@@ -21903,6 +21904,270 @@ function tsSizeSection(ind,p,r){
     ic+='<p class="cap">A maker’s data sheet must give the core’s heat rejection or UA at a charge and outside-air flow, and its pressure drop at a flow; no published UA for bar-and-plate or tube-and-fin charge coolers was found, so none is assumed. Bell’s flow-area rule and core drop check are under Charge pipes. Air-to-water cores are sized under Intercooler options (EJ Bowman’s published point, Conflux’s published curves). The tanks’ inlet and outlet sizes are the intercooler diameters above, whose steps are in the size-change table.</p>'; }
   return sec('Turbo and intercooler sizing',h)+(ic?sec('Intercooler sizing',ic):'');
 }
+/* ----- Your compressor map (2026-11-13): the build's demand drawn on the user's own map image -----
+   The page holds no maker's map (the project's rule: no digitised maps or makers' map images in the repository). The user
+   loads the image of the map for the turbo they are looking at from their own computer (PNG, JPEG, WebP or SVG; a PDF page
+   is not read: screenshot it); it is read with the browser's FileReader, drawn here and never sent anywhere or added to the
+   project's files. The user calibrates the axes by clicking two known points on each (or two grid intersections) and
+   typing their values; each axis is taken as linear and the image as square to the screen (not rotated or skewed):
+     value = v_a + (pixel - pixel_a) (v_b - v_a) / (pixel_b - pixel_a), x from the horizontal pixel, y from the vertical.
+   Points are kept in the image's own pixels (its natural size), so a click maps the same at any displayed size and device
+   pixel ratio: image pixel = (client position - box edge) / box size x natural size.
+   The overlay uses the page's own sums only (no new physics):
+   - each point is calcTurboRoute at that RPM (the tab's airflow: swept volume x VE x the throttle's pressure ratio at inlet
+     density, with the same VE and boost at every RPM; the tab has one VE), per compressor; its pressure ratio is the
+     compressor's own, PRc = P2 / P1, with the inlet depression and the charge-side losses in, as the route solver works it;
+   - corrected flow at the map's stated reference: Wc = m sqrt(T1 / Tref) / (P1 / Pref), T1 the compressor inlet air (the
+     tab's inlet air temperature), P1 the compressor inlet pressure (atmosphere less the inlet loss), the ATP Turbo
+     definition corrFlow cites with the reference left to the map (corrFlow is the same with 545 °R and 13.95 psia; it adds
+     460 to °F where this uses absolute temperature, 459.67: 0.03% apart at 30 °C);
+   - a volume-flow axis (m³/s or cfm) is taken as corrected volume flow, Wc / rho_ref, rho_ref = Pref / (R Tref), which is
+     the inlet volume flow x sqrt(Tref / T1);
+   - Garrett's point for the power target: garrettMatch (the sizing section's TG.G), corrected the same way at P1;
+   - outlet temperature at an efficiency the user reads off the map's islands: compOut(T1, PRc, eta) at the plotted ratio.
+   Margins, from lines the user marks by clicking (optional), at the same pressure ratio, flow interpolated linearly along
+   the marked line in pressure ratio: surge margin = (W_demand - W_surge) / W_surge, choke margin = (W_choke - W_demand) /
+   W_choke. Not modelled: the part-throttle region and the boost threshold below the full-boost RPM. */
+const CMAP={label:'',xu:'lbmin',maker:'',refT:'',refTu:'R',refP:'',refPu:'psia',calMode:'axes',
+  cal:{xa:{p:'',v:''},xb:{p:'',v:''},ya:{p:'',v:''},yb:{p:'',v:''}},imgW:0,imgH:0,imgName:'',imgSig:'',
+  surge:[],choke:[],isl:[],eta:{},caseB:'',embed:false,tool:''};
+const CMAP_DEF=JSON.stringify(CMAP);
+let CMAP_IMG=null, CMAP_MSG='', CMAP_LAST=null;
+const CM_IMG_KEY='exhaust-compmap-img-v1', CM_IMG_MAX=1500000;   // a data URL up to 1.5 million characters (about a 1.1 MB file) is kept in this browser
+const CM_XU={lbmin:{n:'lb/min',t:'corrected mass flow, lb/min'},kgs:{n:'kg/s',t:'corrected mass flow, kg/s'},m3s:{n:'m³/s',t:'corrected volume flow, m³/s'},cfm:{n:'cfm',t:'corrected volume flow, cfm (ft³/min)'}};
+const CM_CFM=2118.880003;   // cfm per m³/s: 60 / 0.3048³
+const CM_TU={R:['°R',x=>x/1.8],F:['°F',x=>(x+459.67)/1.8],C:['°C',x=>x+273.15],K:['K',x=>x]};
+const CM_PU={psia:['psia',x=>x*6894.757],kPa:['kPa',x=>x*1000],bar:['bar',x=>x*1e5],inHg:['in Hg',x=>x*3386.389]};
+// a maker whose reference this page can cite: Garrett's 545 °R and 13.95 psia as the page cites them (ATP Turbo, "General
+// definitions", for Garrett maps). BorgWarner's own article on its maps (borgwarner.com, "Understanding compressor maps",
+// 2022, read 2026-11-13) gives no reference conditions, so none is filled for it: type the map's own.
+const CM_MAKERS={'':['Choose, or type the map’s own reference',null],garrett:['Garrett (545 °R, 13.95 psia as this page cites them)',{refT:'545',refTu:'R',refP:'13.95',refPu:'psia'}],
+  bw:['BorgWarner (no reference found in a source to hand: type the map’s own)',null],other:['Another maker (type the map’s own reference)',null]};
+const cmNum=s=>{ const t=String(s==null?'':s).trim().replace(',', '.'); if(t==='') return NaN; const v=Number(t); return Number.isFinite(v)?v:NaN; };
+const escA=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function corrFlowRef(kgs,T1K,P1Pa,TrefK,PrefPa){ return kgs*Math.sqrt(T1K/TrefK)/(P1Pa/PrefPa); }
+function cmapRef(C){ C=C||CMAP; const t=cmNum(C.refT), pr=cmNum(C.refP), tu=CM_TU[C.refTu], pu=CM_PU[C.refPu];
+  const T=tu&&Number.isFinite(t)?tu[1](t):NaN, P=pu&&Number.isFinite(pr)?pu[1](pr):NaN;
+  return T>0&&P>0?{T,P,rho:P/(R_AIR*T)}:null; }
+// corrected kg/s -> the map's unit, and back
+function cmToX(Wc,ref,u){ u=u||CMAP.xu; return u==='lbmin'?Wc*LBMIN:u==='kgs'?Wc:u==='m3s'?Wc/ref.rho:Wc/ref.rho*CM_CFM; }
+function cmFromX(x,ref,u){ u=u||CMAP.xu; return u==='lbmin'?x/LBMIN:u==='kgs'?x:u==='m3s'?x*ref.rho:x/CM_CFM*ref.rho; }
+// the calibration: linear per axis from two points; null with what is missing
+function cmapCal(C){ C=C||CMAP; const c=C.cal, n=k=>({p:cmNum(c[k].p),v:cmNum(c[k].v)}), xa=n('xa'), xb=n('xb'), ya=n('ya'), yb=n('yb'), miss=[];
+  const okx=[xa,xb].every(q=>Number.isFinite(q.p)&&Number.isFinite(q.v))&&xa.p!==xb.p&&xa.v!==xb.v, oky=[ya,yb].every(q=>Number.isFinite(q.p)&&Number.isFinite(q.v))&&ya.p!==yb.p&&ya.v!==yb.v;
+  if(!okx) miss.push('two different points on the flow axis with their values'); if(!oky) miss.push('two different points on the pressure-ratio axis with their values');
+  if(miss.length) return {miss};
+  const sx=(xb.v-xa.v)/(xb.p-xa.p), sy=(yb.v-ya.v)/(yb.p-ya.p);
+  return {xa,xb,ya,yb,sx,sy,fx:px=>xa.v+(px-xa.p)*sx,fy:py=>ya.v+(py-ya.p)*sy,gx:v=>xa.p+(v-xa.v)/sx,gy:v=>ya.p+(v-ya.v)/sy}; }
+const cmParsePts=(txt,n)=>String(txt||'').split(/\n|;/).map(l=>l.trim().split(/[ ,\t]+/).filter(Boolean).map(cmNum)).filter(a=>a.length>=n&&a.slice(0,n).every(Number.isFinite)).map(a=>a.slice(0,n));
+// flow on a marked line at a pressure ratio: linear in pressure ratio between the marked points, null outside them
+function cmLineAt(pts,pr){ const s=pts.slice().sort((a,b)=>a[1]-b[1]); if(s.length<2||!(pr>=s[0][1]&&pr<=s[s.length-1][1])) return null;
+  for(let i=1;i<s.length;i++) if(pr<=s[i][1]){ const a=s[i-1], b=s[i]; return b[1]===a[1]?Math.min(a[0],b[0]):a[0]+(pr-a[1])/(b[1]-a[1])*(b[0]-a[0]); } return null; }
+// the demand: line A (the build), line B (another boost, optional), Garrett's point; every point per compressor
+function cmapCompute(p){
+  const L=TS_LAST; if(!L||!L.R||L.R.err) return {err:'Fill in the inlet and charge pipes above first: the demand line needs the route’s pressure ratio.'};
+  const R=L.R, nt=R.nt, eff=p.eff>0&&p.eff<=1?p.eff:0.7, T1=p.tin+273.15, ref=cmapRef(), cal=cmapCal();
+  const lo=val('i-lorpm')>0&&val('i-lorpm')<p.rpm?val('i-lorpm'):null, red=val('i-red')>p.rpm?val('i-red'):null;
+  const rpmsOf=()=>{ const a=[]; if(lo){ a.push(lo); for(let k=Math.floor(lo/1000)+1;k*1000<p.rpm;k++) a.push(k*1000); } a.push(p.rpm); if(red) a.push(red); return a; };
+  const route=(rpm,boostKPa)=>{ const same=rpm===p.rpm&&boostKPa==null; if(same) return R;
+    const pp=Object.assign({},p,{rpm},boostKPa!=null?{boost:boostKPa}:{}), r=calcIntake(pp); if(r.err) return null;
+    const X=calcTurboRoute(Object.assign({},L.q,{Q:r.Q,inlet:L.inletAtP(pp)(p.dt),inletAt:null},boostKPa!=null?{boost:boostKPa*1000}:{})); return X.err?null:X; };
+  const pt=(key,rpm,X)=>{ const o={key,rpm,m:X.m,P1:X.P1,PR:X.PRc,t2:X.t2};
+    if(ref){ o.Wc=corrFlowRef(X.m,T1,X.P1,ref.T,ref.P); o.x=cmToX(o.Wc,ref); }
+    const e=cmNum(CMAP.eta[key]); if(e>0&&e<100){ o.etaU=e/100; o.t2U=compOut(p.tin,o.PR,o.etaU); }
+    return o; };
+  const lineA=rpmsOf().map(rpm=>{ const X=route(rpm,null); return X?pt('A'+Math.round(rpm),rpm,X):null; }).filter(Boolean);
+  const bB=cmNum(CMAP.caseB), lineB=bB>0?rpmsOf().map(rpm=>{ const X=route(rpm,bB); return X?pt('B'+Math.round(rpm),rpm,X):null; }).filter(Boolean):[];
+  let G=null; if(TG.G&&val('i-hp')>0){ G={key:'G',rpm:p.rpm,m:TG.G.wa/LBMIN,P1:R.P1,PR:TG.G.pr,hp:val('i-hp'),t2:compOut(p.tin,TG.G.pr,eff)};
+    if(ref){ G.Wc=corrFlowRef(G.m,T1,R.P1,ref.T,ref.P); G.x=cmToX(G.Wc,ref); }
+    const e=cmNum(CMAP.eta.G); if(e>0&&e<100){ G.etaU=e/100; G.t2U=compOut(p.tin,G.PR,G.etaU); } }
+  // marked lines and margins, in the map's unit (a margin is a ratio of flows, the same in any of the four units)
+  const toV=a=>cal&&!cal.miss?a.map(q=>[cal.fx(q[0]),cal.fy(q[1])]):[];
+  const surgeV=toV(CMAP.surge), chokeV=toV(CMAP.choke);
+  const marg=o=>{ if(o.x==null) return; const s=surgeV.length>=2?cmLineAt(surgeV,o.PR):null, c=chokeV.length>=2?cmLineAt(chokeV,o.PR):null;
+    o.surgeX=s; o.chokeX=c; o.sm=s>0?(o.x-s)/s:null; o.cm=c>0?(c-o.x)/c:null; };
+  lineA.concat(lineB,G?[G]:[]).forEach(marg);
+  const low=lineA[0]||null, peak=lineA.find(o=>o.rpm===p.rpm)||null;
+  return {R,nt,eff,T1,ref,cal,lineA,lineB,bB,G,surgeV,chokeV,low,peak,lo,red,
+    sm:low&&low.sm!=null?low.sm:null,cm:peak&&peak.cm!=null?peak.cm:null};
+}
+// the drawing: the user's image (or a blank frame of its size), the calibrated grid, the marked lines and the demand
+function cmapSvg(D,href,k,forSheet){
+  const C=CMAP, W=C.imgW, H=C.imgH; if(!(W>0&&H>0)) return '';
+  const cal=D&&D.cal&&!D.cal.miss?D.cal:null, f=v=>(+v).toFixed(2), fs=12*k, sw='vector-effect="non-scaling-stroke"';
+  const txt=(x,y,t,st)=>'<text x="'+f(x)+'" y="'+f(y)+'" style="font:'+f(fs)+'px Arial,Helvetica,sans-serif;paint-order:stroke;stroke:#fff;stroke-width:'+f(3*k)+'px;stroke-linejoin:round;fill:#111;'+(st||'')+'">'+esc(t)+'</text>';
+  let s='<svg'+(forSheet?'':' id="cm-svg" tabindex="-1"')+' viewBox="0 0 '+W+' '+H+'" width="100%" style="width:100%;height:auto;aspect-ratio:'+W+'/'+H+';display:block;'+(forSheet?'':'cursor:'+(C.tool?'crosshair':'default')+';touch-action:manipulation;')+'" role="img" aria-label="'+escA((C.label?C.label+': ':'')+'your compressor map'+(href?'':' (image not loaded: blank calibrated axes)')+' with this build’s demand line')+'">';
+  s+=href?'<image href="'+escA(href)+'" x="0" y="0" width="'+W+'" height="'+H+'" preserveAspectRatio="none"/>':'<rect x="0" y="0" width="'+W+'" height="'+H+'" style="fill:#f4f6f8;stroke:#9aa5ad" '+sw+'/>';
+  if(cal){ const nice=(a,b)=>{ const lo=Math.min(a,b), hi=Math.max(a,b), r=hi-lo; if(!(r>0)) return []; const st0=Math.pow(10,Math.floor(Math.log10(r/6))), st=[1,2,2.5,5,10].map(m=>m*st0).find(x=>r/x<=8)||st0*10, out=[];
+      for(let v=Math.ceil(lo/st)*st;v<=hi+1e-9*r;v+=st) out.push(+v.toPrecision(10)); return out; };
+    const xs=nice(cal.fx(0),cal.fx(W)), ys=nice(cal.fy(0),cal.fy(H)), gs='stroke:#2a7fd4;stroke-width:1;stroke-opacity:'+(href?0.55:0.35)+';stroke-dasharray:4 3';
+    s+='<g class="cm-grid">'+xs.map(v=>'<line x1="'+f(cal.gx(v))+'" x2="'+f(cal.gx(v))+'" y1="0" y2="'+H+'" style="'+gs+'" '+sw+'/>').join('')+ys.map(v=>'<line y1="'+f(cal.gy(v))+'" y2="'+f(cal.gy(v))+'" x1="0" x2="'+W+'" style="'+gs+'" '+sw+'/>').join('')+'</g>';
+    if(!href||forSheet){ s+=xs.map(v=>txt(cal.gx(v)+2*k,H-4*k,String(v),'fill:#235')).join('')+ys.map(v=>txt(2*k,cal.gy(v)-2*k,String(v),'fill:#235')).join(''); } }
+  // the calibration points: a cross at each clicked pixel
+  const cr=(x,y,col)=>'<path d="M'+f(x-6*k)+' '+f(y)+'H'+f(x+6*k)+'M'+f(x)+' '+f(y-6*k)+'V'+f(y+6*k)+'" style="stroke:'+col+';stroke-width:2;fill:none" '+sw+'/>';
+  const cc=C.cal, P=(q)=>cmNum(q.p);
+  if(C.calMode==='diag'){ [['xa','ya'],['xb','yb']].forEach(([a,b])=>{ if(Number.isFinite(P(cc[a]))&&Number.isFinite(P(cc[b]))) s+=cr(P(cc[a]),P(cc[b]),'#d4382a'); }); }
+  else { ['xa','xb'].forEach(a=>{ if(Number.isFinite(P(cc[a]))) s+='<line x1="'+f(P(cc[a]))+'" x2="'+f(P(cc[a]))+'" y1="'+f(H-14*k)+'" y2="'+f(H)+'" style="stroke:#d4382a;stroke-width:2.5" '+sw+'/>'; });
+    ['ya','yb'].forEach(a=>{ if(Number.isFinite(P(cc[a]))) s+='<line y1="'+f(P(cc[a]))+'" y2="'+f(P(cc[a]))+'" x1="0" x2="'+f(14*k)+'" style="stroke:#d4382a;stroke-width:2.5" '+sw+'/>'; }); }
+  const poly=(pts,col,dash)=>pts.length?'<polyline points="'+pts.map(q=>f(q[0])+','+f(q[1])).join(' ')+'" style="fill:none;stroke:'+col+';stroke-width:2.5'+(dash?';stroke-dasharray:'+dash:'')+'" '+sw+'/>'+pts.map(q=>'<circle cx="'+f(q[0])+'" cy="'+f(q[1])+'" r="'+f(3*k)+'" style="fill:'+col+'"/>').join(''):'';
+  const byY=a=>a.slice().sort((p,q)=>q[1]-p[1]);
+  s+=poly(byY(C.surge),'#c0262d','6 3')+poly(byY(C.choke),'#7b3fa0','6 3');
+  const lab=(q,t,col)=>{ const r=q[0]>W*0.7; return txt(q[0]+(r?-5:5)*k,q[1]-5*k,t,'fill:'+col+(r?';text-anchor:end':'')); };
+  if(C.surge.length) s+=lab(C.surge[0],'surge (marked)','#c0262d');
+  if(C.choke.length) s+=lab(C.choke[0],'choke (marked)','#7b3fa0');
+  C.isl.forEach(q=>{ s+='<circle cx="'+f(q[0])+'" cy="'+f(q[1])+'" r="'+f(4*k)+'" style="fill:none;stroke:#1d7a46;stroke-width:2" '+sw+'/>'+(q[2]!=null&&q[2]!==''&&Number.isFinite(+q[2])?txt(q[0]+6*k,q[1]+4*k,(+q[2])+'%','fill:#1d7a46'):''); });
+  // the demand
+  if(cal&&D.ref){ const line=(pts,col,dash,tag)=>{ const q=pts.map(o=>[cal.gx(o.x),cal.gy(o.PR),o]); if(!q.length) return '';
+      return '<polyline points="'+q.map(a=>f(a[0])+','+f(a[1])).join(' ')+'" style="fill:none;stroke:'+col+';stroke-width:3'+(dash?';stroke-dasharray:'+dash:'')+'" '+sw+'/>'+
+        q.map(a=>'<circle cx="'+f(a[0])+'" cy="'+f(a[1])+'" r="'+f(5*k)+'" style="fill:'+col+';stroke:#fff;stroke-width:1.5" '+sw+' data-cmpt="'+a[2].key+'"/>'+txt(a[0]+7*k,a[1]-7*k,(tag?tag+' ':'')+Math.round(a[2].rpm).toLocaleString('en-US'),'fill:'+col+';font-weight:bold')).join(''); };
+    s+=line(D.lineA,'#b35a00','','')+line(D.lineB,'#1f4fbf','7 4','B');
+    if(D.G){ const x=cal.gx(D.G.x), y=cal.gy(D.G.PR); s+='<path d="M'+f(x)+' '+f(y-7*k)+'L'+f(x+7*k)+' '+f(y)+'L'+f(x)+' '+f(y+7*k)+'L'+f(x-7*k)+' '+f(y)+'Z" style="fill:#0b7a75;stroke:#fff;stroke-width:1.5" '+sw+' data-cmpt="G"/>'+txt(x+9*k,y+12*k,'Garrett '+Math.round(D.G.hp)+' hp','fill:#0b7a75;font-weight:bold'); } }
+  if(!href) s+=txt(8*k,18*k,'Map image not loaded: the calibrated axes only','fill:#52606a');
+  return s+'</svg>';
+}
+function tsMapSection(ind,p,r){
+  const C=CMAP, imp=U==='imp', D=cmapCompute(p); CMAP_LAST=D; TG.cmap=null;
+  const fl=kgs=>imp?(kgs*LBMIN).toFixed(2)+' lb/min ('+kgs.toFixed(4)+' kg/s)':kgs.toFixed(4)+' kg/s ('+(kgs*LBMIN).toFixed(2)+' lb/min)';
+  const pD=x=>imp?(x/6894.757).toFixed(3)+' psia ('+(x/1000).toFixed(2)+' kPa)':(x/1000).toFixed(2)+' kPa ('+(x/6894.757).toFixed(3)+' psia)';
+  const tD=c=>imp?(c*1.8+32).toFixed(1)+' °F ('+c.toFixed(1)+' °C)':c.toFixed(1)+' °C ('+(c*1.8+32).toFixed(1)+' °F)';
+  const xU=CM_XU[C.xu]||CM_XU.lbmin, xD=x=>Number.isFinite(x)?(+x.toPrecision(5))+' '+xU.n:'–';
+  const pct=x=>x==null?'–':(x*100).toFixed(1)+'%';
+  const opt=(o,cur)=>Object.keys(o).map(k=>'<option value="'+k+'"'+(k===cur?' selected':'')+'>'+esc(Array.isArray(o[k])?o[k][0]:o[k].t||o[k])+'</option>').join('');
+  const inp=(k,v,lab,w,extra)=>'<input class="cmx" data-k="'+k+'" type="text" inputmode="decimal" value="'+escA(v)+'" aria-label="'+escA(lab)+'" style="width:'+(w||7)+'em;max-width:100%"'+(extra||'')+'>';
+  let h='<p class="cap" style="margin-top:0"><b>1.</b> Load the map image &nbsp; <b>2.</b> Click two points on each axis and type their values &nbsp; <b>3.</b> Read your engine’s line.</p>'+
+    '<p class="cap">The image stays on this computer: the browser reads it from your file, it is drawn here and is not uploaded, not added to the project file and not part of this page’s code. Makers publish their maps as images; this page does not carry any, so it draws the build on yours. '+
+    'PNG, JPEG, WebP or SVG. A map inside a PDF is not read here: open the PDF, take a screenshot of the map, and load the screenshot.</p>';
+  h+='<div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">Which turbo and compressor this map is for (your note)</span><span class="inp">'+inp('label',C.label,'Which turbo and compressor this map is for',20,' placeholder="e.g. the maker, model and trim"')+'</span></label>'+
+    '<div class="f span2" id="cm-drop" style="border:1px dashed var(--line);border-radius:8px;padding:10px"><label><span class="lab">Map image (or drop it here)</span><span class="inp"><input type="file" id="cm-file" accept="image/png,image/jpeg,image/webp,image/svg+xml,.png,.jpg,.jpeg,.webp,.svg"></span></label>'+
+    '<p class="cap" id="cm-imgline" style="margin:4px 0 0">'+(CMAP_IMG?'Loaded: '+esc(CMAP_IMG.name)+', '+CMAP_IMG.w+' × '+CMAP_IMG.h+' px'+(CMAP_IMG.stored?'; also kept in this browser (it is small), so loading a saved project brings it back here. <button type="button" class="btn" data-cmact="forget" style="padding:1px 8px;min-height:0;font-size:12px">Forget it</button>':'; too large to keep in this browser, so after a reload it is asked for again.'):C.imgW>0?'<b>The map image is not loaded</b> (images are not saved with projects): the line is drawn on the calibrated axes alone. Load '+esc(C.imgName||'the same image')+' again to see the map under it.':'No image loaded yet.')+'</p>'+
+    (CMAP_MSG?'<div class="note warn" id="cm-msg" style="margin-top:6px">'+esc(CMAP_MSG)+'</div>':'')+'</div></div>';
+  // axes
+  const ref=D.ref||cmapRef();
+  h+='<p class="sub" style="margin-top:12px">The map’s axes</p><div class="grid2" style="max-width:640px">'+
+    '<label class="f"><span class="lab">Flow axis (horizontal)</span><span class="inp"><select class="cmx" data-k="xu">'+opt(CM_XU,C.xu)+'</select></span></label>'+
+    '<label class="f"><span class="lab">Maker, for the reference conditions</span><span class="inp"><select class="cmx" data-k="maker">'+opt(CM_MAKERS,C.maker)+'</select></span></label>'+
+    '<label class="f"><span class="lab">Reference temperature the map states</span><span class="inp">'+inp('refT',C.refT,'Reference temperature',6)+'<select class="cmx" data-k="refTu" aria-label="Reference temperature unit">'+Object.keys(CM_TU).map(k=>'<option value="'+k+'"'+(k===C.refTu?' selected':'')+'>'+CM_TU[k][0]+'</option>').join('')+'</select></span></label>'+
+    '<label class="f"><span class="lab">Reference pressure the map states (absolute)</span><span class="inp">'+inp('refP',C.refP,'Reference pressure',6)+'<select class="cmx" data-k="refPu" aria-label="Reference pressure unit">'+Object.keys(CM_PU).map(k=>'<option value="'+k+'"'+(k===C.refPu?' selected':'')+'>'+CM_PU[k][0]+'</option>').join('')+'</select></span></label></div>'+
+    (ref?'<p class="cap" id="cm-refline">Reference '+ref.T.toFixed(2)+' K ('+(ref.T*1.8).toFixed(2)+' °R, '+(ref.T-273.15).toFixed(2)+' °C, '+(ref.T*1.8-459.67).toFixed(2)+' °F), '+(ref.P/1000).toFixed(3)+' kPa ('+(ref.P/6894.757).toFixed(3)+' psia); reference density '+ref.rho.toFixed(4)+' kg/m³ ('+(ref.rho*0.062428).toFixed(5)+' lb/ft³) for a volume axis.</p>':
+      '<div class="note warn" id="cm-refneed">Type the reference temperature and pressure your map states for its corrected flow (often in the map’s corner or caption). They are needed: the same engine plots at a different flow on maps with different references. '+(C.maker==='bw'?'No BorgWarner reference was found in a source this page could read; take it from the map. ':'')+'Garrett’s, as this page cites them, are 545 °R and 13.95 psia.</div>')+
+    '<p class="cap">Vertical axis: pressure ratio, total-to-total (total pressure at the compressor outlet ÷ total pressure at its inlet, both absolute), as makers plot it. The page plots its compressor ratio P₂ ÷ P₁ from the route solver, at the compressor’s own inlet and outlet. Both axes are taken as linear (compressor maps nearly always are); a map with a log scale cannot be calibrated here. The image must be square to the screen: a skewed photo of a page will misplace the points.</p>';
+  // calibration
+  const cc=C.cal, diag=C.calMode==='diag', tool=(t,lab)=>'<button type="button" class="btn'+(t&&C.tool===t?' primary':'')+'" data-cmtool="'+t+'"'+(t?' aria-pressed="'+(C.tool===t)+'"':'')+' style="padding:2px 10px;min-height:0">'+lab+'</button>';
+  h+='<p class="sub" style="margin-top:12px">Calibrate</p><div class="grid2" style="max-width:640px"><label class="f span2"><span class="lab">How</span><span class="inp"><select class="cmx" data-k="calMode"><option value="axes"'+(diag?'':' selected')+'>Two points on each axis (four clicks)</option><option value="diag"'+(diag?' selected':'')+'>Two grid intersections far apart, diagonally (two clicks)</option></select></span></label></div>';
+  const calRows=diag?[['A','xa','ya','Intersection A'],['B','xb','yb','Intersection B']]:[['xa','xa',null,'Flow axis, point 1'],['xb','xb',null,'Flow axis, point 2'],['ya',null,'ya','Pressure ratio axis, point 1'],['yb',null,'yb','Pressure ratio axis, point 2']];
+  h+='<div class="tblwrap"><table id="cm-cal"><thead><tr><th>Point</th><th>Click it</th><th>Image pixel (x, y from the top left)</th><th>Value</th></tr></thead><tbody>'+calRows.map(([t,kx,ky,lab])=>'<tr data-cal="'+t+'"><td>'+lab+'</td><td>'+tool('cal-'+t,C.tool==='cal-'+t?'Click on the map…':'Click')+'</td><td>'+
+      (kx?inp('cal.'+kx+'.p',cc[kx].p,lab+' x pixel',5):'')+(kx&&ky?' , ':'')+(ky?inp('cal.'+ky+'.p',cc[ky].p,lab+' y pixel',5):'')+'</td><td>'+
+      (kx?inp('cal.'+kx+'.v',cc[kx].v,lab+' flow value, '+xU.n,5)+' '+xU.n:'')+(kx&&ky?'<br>':'')+(ky?inp('cal.'+ky+'.v',cc[ky].v,lab+' pressure ratio value',5)+' PR':'')+'</td></tr>').join('')+'</tbody></table></div>'+
+    '<div class="actions">'+tool('','Stop clicking')+'<button type="button" class="btn" data-cmact="recal">Clear the calibration</button></div>';
+  const cal=D.cal||cmapCal();
+  h+=cal.miss?'<p class="cap" id="cm-calstate">Still needed: '+cal.miss.join('; ')+'. Pick “Click” on a row, then click that point on the map; or type its pixel position (the image’s own pixels, '+(C.imgW||'its width')+' × '+(C.imgH||'its height')+'). Then type the value printed there.</p>':
+    '<p class="cap" id="cm-calstate"><b>Calibrated.</b> Flow = '+(+cal.xa.v.toPrecision(6))+' + (x − '+(+cal.xa.p.toFixed(2))+') × '+(+cal.sx.toPrecision(6))+' '+xU.n+' per pixel; pressure ratio = '+(+cal.ya.v.toPrecision(6))+' + (y − '+(+cal.ya.p.toFixed(2))+') × '+(+cal.sy.toPrecision(6))+' per pixel. The dashed blue grid is drawn from this calibration: it should lie on the map’s own grid lines; if it does not, click the points again.</p>';
+  // the figure
+  const kk=C.imgW>0?C.imgW/Math.max(280,Math.min(C.imgW,((($('i-details')||{}).clientWidth)||640)-40)):1;
+  h+=C.imgW>0?'<figure class="card" style="margin:10px 0 0;padding:6px;max-width:100%;overflow:hidden">'+cmapSvg(D.err?null:D,CMAP_IMG?CMAP_IMG.url:null,kk,false)+'</figure>'+
+    '<p class="cap">'+(C.tool?'<b>Clicking adds: '+esc({'cal-xa':'flow axis point 1','cal-xb':'flow axis point 2','cal-ya':'pressure ratio axis point 1','cal-yb':'pressure ratio axis point 2','cal-A':'intersection A','cal-B':'intersection B',surge:'a point on the surge line',choke:'a point on the choke (maximum flow) line',isl:'an efficiency label'}[C.tool]||C.tool)+'.</b> ':'')+
+    'Orange: this build at the tab’s boost, labelled with RPM'+(D.lineB&&D.lineB.length?'; blue dashed: case B':'')+(D.G?'; green diamond: Garrett’s method for the power target':'')+'; red and purple dashed: the surge and choke lines you marked; green circles: efficiency labels you marked.</p>':'';
+  // marked lines
+  const ptsTxt=a=>a.map(q=>q.map(v=>+(+v).toFixed(2)).join(', ')).join('\n');
+  h+='<details class="cm-lines" style="margin-top:10px"'+(C.surge.length||C.choke.length||C.isl.length||/^(surge|choke|isl)$/.test(C.tool)?' open':'')+'><summary>Optional: mark the surge and choke lines and the efficiency islands, for margins</summary>'+
+    '<p class="cap">Click a few points along each line, from low to high pressure ratio; or type pixel pairs, one point a line (“x, y”). Margins come from these only.</p>'+
+    '<div class="grid2" style="max-width:640px">'+
+    '<div class="f"><span class="lab">Surge line</span><div class="actions" style="margin:2px 0">'+tool('surge',C.tool==='surge'?'Clicking surge points…':'Click points')+'<button type="button" class="btn" data-cmact="clear-surge" style="padding:2px 10px;min-height:0">Clear</button></div><textarea class="cmx" data-k="surge" rows="3" aria-label="Surge line points, image pixels, x, y one a line">'+esc(ptsTxt(C.surge))+'</textarea></div>'+
+    '<div class="f"><span class="lab">Choke (maximum flow) line</span><div class="actions" style="margin:2px 0">'+tool('choke',C.tool==='choke'?'Clicking choke points…':'Click points')+'<button type="button" class="btn" data-cmact="clear-choke" style="padding:2px 10px;min-height:0">Clear</button></div><textarea class="cmx" data-k="choke" rows="3" aria-label="Choke line points, image pixels, x, y one a line">'+esc(ptsTxt(C.choke))+'</textarea></div>'+
+    '<div class="f span2"><span class="lab">Efficiency labels (notes on the drawing only: x, y, and the island’s % as printed)</span><div class="actions" style="margin:2px 0">'+tool('isl',C.tool==='isl'?'Clicking labels…':'Click labels')+'<button type="button" class="btn" data-cmact="clear-isl" style="padding:2px 10px;min-height:0">Clear</button></div><textarea class="cmx" data-k="isl" rows="2" aria-label="Efficiency labels, image pixels and percent, x, y, % one a line">'+esc(C.isl.map(q=>[+(+q[0]).toFixed(2),+(+q[1]).toFixed(2)].concat(q[2]!==''&&q[2]!=null?[q[2]]:[]).join(', ')).join('\n'))+'</textarea></div></div></details>';
+  // case B
+  h+='<div class="grid2" style="max-width:640px;margin-top:8px"><label class="f"><span class="lab">Case B: another boost at the throttle, to compare (blank: none)</span><span class="inp">'+inp('caseB',C.caseB===''?'':imp?(+(cmNum(C.caseB)/6.894757).toFixed(3)):C.caseB,'Case B boost',6)+'<em>'+(imp?'psi':'kPa')+'</em></span></label></div>';
+  if(D.err){ return sec('Your compressor map',h+'<div class="note warn">'+esc(D.err)+'</div>'); }
+  // the table
+  const rows=[].concat(D.lineA.map(o=>['',o]),D.lineB.map(o=>['B',o]),D.G?[['G',D.G]]:[]);
+  const etaIn=o=>'<input class="cmx" data-k="eta.'+o.key+'" type="text" inputmode="decimal" value="'+escA(C.eta[o.key]||'')+'" aria-label="Island efficiency read at '+(o.key==='G'?'Garrett’s point':Math.round(o.rpm)+' RPM')+', percent" style="width:4em" placeholder="%">';
+  h+='<p class="sub" style="margin-top:12px">Your engine on this map'+(D.nt>1?' (each compressor, '+D.nt+' turbos)':'')+'</p><div class="tblwrap"><table id="cm-pts"><thead><tr><th>Point</th><th>Air per compressor (actual)</th><th>Compressor inlet</th><th>Corrected flow, map’s reference</th><th>On the map</th><th>Pressure ratio (compressor)</th><th>Surge margin</th><th>Choke margin</th><th>Outlet at '+Math.round(D.eff*100)+'%</th><th>Island % you read</th><th>Outlet at your %</th></tr></thead><tbody>'+
+    rows.map(([t,o])=>'<tr data-pt="'+o.key+'"><td>'+(t==='G'?'Garrett, '+Math.round(o.hp)+' hp at '+Math.round(o.rpm).toLocaleString('en-US')+' RPM':(t?'B ':'')+Math.round(o.rpm).toLocaleString('en-US')+' RPM'+(o.rpm===p.rpm?' (peak power)':D.lo&&o.rpm===D.lo?' (full boost)':D.red&&o.rpm===D.red?' (redline)':''))+'</td><td>'+fl(o.m)+'</td><td>'+pD(o.P1)+'</td><td>'+(o.Wc!=null?fl(o.Wc):'needs the reference')+'</td><td>'+(o.x!=null?xD(o.x):'–')+'</td><td>'+o.PR.toFixed(4)+'</td><td>'+pct(o.sm)+'</td><td>'+pct(o.cm)+'</td><td>'+tD(o.t2)+'</td><td>'+etaIn(o)+'</td><td>'+(o.t2U!=null?tD(o.t2U)+', '+(o.t2U-o.t2>=0?'+':'−')+Math.abs(o.t2U-o.t2).toFixed(1)+' °C ('+(o.t2U-o.t2>=0?'+':'−')+Math.abs((o.t2U-o.t2)*1.8).toFixed(1)+' °F)':'–')+'</td></tr>').join('')+'</tbody></table></div>';
+  const pk=D.peak, rf=D.ref;
+  if(pk&&rf) h+='<p class="cap" id="cm-conv">Conversion at peak power: W<sub>c</sub> = m √(T₁ ÷ T<sub>ref</sub>) ÷ (P₁ ÷ P<sub>ref</sub>) = '+pk.m.toFixed(5)+' kg/s × √('+D.T1.toFixed(2)+' ÷ '+rf.T.toFixed(3)+' K) ÷ ('+(pk.P1/1000).toFixed(3)+' ÷ '+(rf.P/1000).toFixed(3)+' kPa) = '+pk.Wc.toFixed(5)+' kg/s ('+(pk.Wc*LBMIN).toFixed(3)+' lb/min)'+
+    (C.xu==='m3s'||C.xu==='cfm'?'; as volume at the reference density '+rf.rho.toFixed(4)+' kg/m³: '+(pk.Wc/rf.rho).toFixed(5)+' m³/s ('+(pk.Wc/rf.rho*CM_CFM).toFixed(1)+' cfm)':'')+'. T₁ is the inlet air temperature entered on this tab, P₁ the compressor inlet pressure (atmosphere less the inlet tube’s loss). The ATP Turbo definition the sizing table above uses (corrFlow, 545 °R and 13.95 psia) adds 460 to °F; this uses absolute temperature, so at Garrett’s reference the two agree within about 0.03%.</p>';
+  // margins
+  if(D.sm!=null||D.cm!=null||C.surge.length||C.choke.length){
+    h+=rowT('Surge margin at '+(D.low?Math.round(D.low.rpm).toLocaleString('en-US')+' RPM':'the low point'),D.sm!=null?pct(D.sm):'–',D.sm!=null?'(demand flow − surge flow at the same pressure ratio) ÷ surge flow: '+xD(D.low.x)+' against '+xD(D.low.surgeX)+' at PR '+D.low.PR.toFixed(3)+(D.sm<0?'; <b>left of the surge line you marked: the compressor would surge here</b>':''):C.surge.length<2?'mark at least two surge points':'the low point’s pressure ratio is outside the surge points you marked: mark the line further')+
+      rowT('Choke margin at peak power',D.cm!=null?pct(D.cm):'–',D.cm!=null?'(choke flow at the same pressure ratio − demand flow) ÷ choke flow: '+xD(D.peak.x)+' against '+xD(D.peak.chokeX)+' at PR '+D.peak.PR.toFixed(3)+(D.cm<0?'; <b>past the choke line you marked</b>':''):C.choke.length<2?'mark at least two choke points':'the peak point’s pressure ratio is outside the choke points you marked: mark the line further');
+    h+='<p class="cap">Both margins are this page’s definitions, at the demand point’s own pressure ratio, the marked line’s flow taken linearly between the points you clicked; no published minimum margin was found, so none is set. Garrett marks choke where the map’s efficiency falls below 58%.</p>'; }
+  h+='<ul class="list"><li><b>What the line is:</b> full throttle, full boost, from the RPM where full boost arrives ('+(D.lo?Math.round(D.lo).toLocaleString('en-US'):'not set: enter it above')+') to peak power'+(D.red?' and on to the redline':'')+', at the tab’s boost and one VE at every speed (the tab has one), per compressor, with the inlet depression and the charge-pipe and intercooler losses in its pressure ratio, worked out by the route solver above. Past peak power the real VE usually falls, so the redline point is the most flow it could take.</li>'+
+    '<li><b>Not modelled:</b> part throttle and the boost threshold below the full-boost RPM, where the boost is still building; the line says nothing about that region.</li>'+
+    '<li><b>Your efficiency:</b> type the island you read at a point and the outlet temperature at that point is worked out with it, compOut at the plotted pressure ratio; the charge-pipe losses and the rest of the page keep the efficiency entered above ('+Math.round(D.eff*100)+'%).</li></ul>';
+  h+='<div class="grid2" style="max-width:640px"><label class="f span2" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" class="cmx" data-k="embed"'+(C.embed?' checked':'')+' id="cm-embed"><span>Put the map image with the line in my saved build sheet (off by default; the image may be the maker’s copyright: it goes into your own file only)</span></label></div>';
+  TG.cmap={label:C.label,sm:D.sm,cm:D.cm,plotted:!!(D.cal&&!D.cal.miss&&D.ref&&D.lineA.length),low:D.low,peak:D.peak,ref:D.ref,xu:C.xu,G:D.G,lineB:D.lineB,bB:D.bB,img:!!CMAP_IMG};
+  return sec('Your compressor map',h);
+}
+// image in and out
+function cmapBlobUrl(data){ try{ const i=data.indexOf(','), meta=data.slice(5,i), mime=meta.split(';')[0]||'application/octet-stream';
+    if(!/;base64/.test(meta)) return data; const s=atob(data.slice(i+1)), u=new Uint8Array(s.length); for(let k=0;k<s.length;k++) u[k]=s.charCodeAt(k);
+    return URL.createObjectURL(new Blob([u],{type:mime})); }catch(e){ return data; } }
+function cmapStoreImg(I){ try{ if(I.data.length<=CM_IMG_MAX){ localStorage.setItem(CM_IMG_KEY,JSON.stringify({sig:I.sig,name:I.name,size:I.size,w:I.w,h:I.h,data:I.data})); return true; } localStorage.removeItem(CM_IMG_KEY); }catch(e){} return false; }
+function cmapStoredImg(){ try{ const o=JSON.parse(localStorage.getItem(CM_IMG_KEY)||'null'); return o&&o.sig&&typeof o.data==='string'?o:null; }catch(e){ return null; } }
+const cmapHasAny=()=>{ const c=CMAP.cal; return ['xa','xb','ya','yb'].some(k=>c[k].p!==''||c[k].v!=='')||CMAP.surge.length||CMAP.choke.length||CMAP.isl.length; };
+function cmapClearMarks(){ ['xa','xb','ya','yb'].forEach(k=>{ CMAP.cal[k]={p:'',v:''}; }); CMAP.surge=[]; CMAP.choke=[]; CMAP.isl=[]; }
+function cmapSetImg(I,stored){
+  I.sig=I.name+'|'+I.size+'|'+I.w+'x'+I.h; CMAP_MSG='';
+  if(CMAP_IMG&&CMAP_IMG.url&&/^blob:/.test(CMAP_IMG.url)) try{ URL.revokeObjectURL(CMAP_IMG.url); }catch(e){}
+  I.url=cmapBlobUrl(I.data);
+  if(CMAP.imgW>0&&(CMAP.imgW!==I.w||CMAP.imgH!==I.h)&&cmapHasAny()){ cmapClearMarks(); CMAP_MSG='This image is a different size from the map you calibrated, so the calibration and the marked lines were cleared.'; }
+  else if(CMAP.imgSig&&CMAP.imgSig!==I.sig&&cmapHasAny()) CMAP_MSG='This is not the file you calibrated (same size, different name or length): the calibration is kept; check that the dashed grid lies on the map’s lines.';
+  CMAP.imgW=I.w; CMAP.imgH=I.h; CMAP.imgName=I.name; CMAP.imgSig=I.sig;
+  I.stored=stored?true:cmapStoreImg(I); CMAP_IMG=I; renderActive(); }
+function cmapLoadFile(f){
+  if(!f) return;
+  if(/pdf/i.test(f.type)||/\.pdf$/i.test(f.name)){ CMAP_MSG='A PDF is not read here. Open the PDF, take a screenshot of the map, and load the screenshot (PNG).'; renderActive(); return; }
+  if(!(/^image\/(png|jpeg|webp|svg\+xml)$/.test(f.type)||/\.(png|jpe?g|webp|svg)$/i.test(f.name))){ CMAP_MSG=f.name+' is not a PNG, JPEG, WebP or SVG image.'; renderActive(); return; }
+  const rd=new FileReader();
+  rd.onerror=()=>{ CMAP_MSG='Could not read '+f.name+'.'; renderActive(); };
+  rd.onload=()=>{ const data=String(rd.result), im=new Image();
+    im.onload=()=>{ let w=im.naturalWidth, h=im.naturalHeight; if(!(w>0&&h>0)){ w=1200; h=900; }
+      cmapSetImg({data,w,h,name:f.name,size:f.size}); if(!(im.naturalWidth>0)){ CMAP_MSG='This SVG states no size; it is drawn in a 1200 × 900 frame.'; renderActive(); } };
+    im.onerror=()=>{ CMAP_MSG=f.name+' could not be read as an image.'; renderActive(); };
+    im.src=data; };
+  rd.readAsDataURL(f); }
+// a loaded project: keep the image only if it is the project's map; bring a stored copy back if it is
+function cmapAfterLoad(v){ CMAP.tool=''; CMAP_MSG='';
+  // a project saved before this block, or without a map: the defaults; the typed efficiencies exactly as saved (not merged)
+  if(!v) Object.assign(CMAP,JSON.parse(CMAP_DEF)); else CMAP.eta=Object.assign({},v.eta||{});
+  if(CMAP_IMG&&CMAP_IMG.sig===CMAP.imgSig) return;
+  if(CMAP_IMG&&CMAP_IMG.url&&/^blob:/.test(CMAP_IMG.url)) try{ URL.revokeObjectURL(CMAP_IMG.url); }catch(e){}
+  CMAP_IMG=null; const S=CMAP.imgSig?cmapStoredImg():null;
+  if(S&&S.sig===CMAP.imgSig){ CMAP_IMG={data:S.data,w:S.w,h:S.h,name:S.name,size:S.size,sig:S.sig,url:cmapBlobUrl(S.data),stored:true}; } }
+function cmapSetPath(k,v){ const a=k.split('.'); if(a[0]==='cal'){ CMAP.cal[a[1]][a[2]]=v; return; } if(a[0]==='eta'){ if(v==='') delete CMAP.eta[a[1]]; else CMAP.eta[a[1]]=v; return; } CMAP[k]=v; }
+document.addEventListener('change',e=>{ const el=e.target.closest('.cmx'); if(!el) return; const k=el.dataset.k;
+  if(k==='embed') CMAP.embed=el.checked;
+  else if(k==='surge'||k==='choke') CMAP[k]=cmParsePts(el.value,2);
+  else if(k==='isl') CMAP.isl=String(el.value||'').split(/\n|;/).map(l=>l.trim().split(/[ ,\t]+/).filter(Boolean)).filter(a=>a.length>=2&&Number.isFinite(cmNum(a[0]))&&Number.isFinite(cmNum(a[1]))).map(a=>[cmNum(a[0]),cmNum(a[1]),a[2]!=null&&Number.isFinite(cmNum(a[2].replace('%','')))?String(cmNum(a[2].replace('%',''))):'']);
+  else if(k==='caseB'){ const v=cmNum(el.value); CMAP.caseB=v>0?String(U==='imp'?v*6.894757:v):''; }
+  else if(k==='maker'){ CMAP.maker=el.value; const M=CM_MAKERS[el.value]; if(M&&M[1]) Object.assign(CMAP,M[1]); }
+  else cmapSetPath(k,el.value.trim());
+  renderActive(); });
+document.addEventListener('change',e=>{ if(e.target&&e.target.id==='cm-file'){ const f=e.target.files&&e.target.files[0]; cmapLoadFile(f); } });
+document.addEventListener('dragover',e=>{ if(e.target.closest&&e.target.closest('#cm-drop')) e.preventDefault(); });
+document.addEventListener('drop',e=>{ const z=e.target.closest&&e.target.closest('#cm-drop'); if(!z) return; e.preventDefault(); const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; cmapLoadFile(f); });
+document.addEventListener('click',e=>{ const b=e.target.closest('[data-cmtool],[data-cmact]'); if(!b) return;
+  if(b.dataset.cmtool!=null){ const t=b.dataset.cmtool; CMAP.tool=CMAP.tool===t?'':t; renderActive(); return; }
+  const a=b.dataset.cmact;
+  if(a==='recal'){ ['xa','xb','ya','yb'].forEach(k=>{ CMAP.cal[k]={p:'',v:''}; }); CMAP.tool=CMAP.calMode==='diag'?'cal-A':'cal-xa'; }
+  else if(a==='clear-surge') CMAP.surge=[]; else if(a==='clear-choke') CMAP.choke=[]; else if(a==='clear-isl') CMAP.isl=[];
+  else if(a==='forget'){ try{ localStorage.removeItem(CM_IMG_KEY); }catch(err){} if(CMAP_IMG) CMAP_IMG.stored=false; }
+  renderActive(); });
+// a click on the map: client position -> the image's own pixels, whatever size it is drawn at
+function cmapPx(svg,clientX,clientY){ const r=svg.getBoundingClientRect(); if(!(r.width>0&&r.height>0)) return null;
+  return [+((clientX-r.left)/r.width*CMAP.imgW).toFixed(2),+((clientY-r.top)/r.height*CMAP.imgH).toFixed(2)]; }
+document.addEventListener('click',e=>{ const svg=e.target.closest&&e.target.closest('#cm-svg'); if(!svg||!CMAP.tool) return;
+  const q=cmapPx(svg,e.clientX,e.clientY); if(!q) return; const t=CMAP.tool, c=CMAP.cal;
+  const next={'cal-xa':'cal-xb','cal-xb':'cal-ya','cal-ya':'cal-yb','cal-yb':'','cal-A':'cal-B','cal-B':''};
+  if(t==='cal-xa'||t==='cal-xb') c[t.slice(4)].p=String(q[0]);
+  else if(t==='cal-ya'||t==='cal-yb') c[t.slice(4)].p=String(q[1]);
+  else if(t==='cal-A'){ c.xa.p=String(q[0]); c.ya.p=String(q[1]); }
+  else if(t==='cal-B'){ c.xb.p=String(q[0]); c.yb.p=String(q[1]); }
+  else if(t==='surge'||t==='choke') CMAP[t]=CMAP[t].concat([q]);
+  else if(t==='isl') CMAP.isl=CMAP.isl.concat([[q[0],q[1],'']]);
+  if(t in next) CMAP.tool=next[t];
+  renderActive(); });
+if(typeof window!=='undefined') window.__cmap={state:CMAP,compute:()=>CMAP_LAST,cal:()=>cmapCal(),ref:()=>cmapRef(),corrFlowRef,cmToX,cmFromX,cmLineAt,img:()=>CMAP_IMG,px:cmapPx,svg:(href,k)=>cmapSvg(CMAP_LAST,href,k||1,true),KEY:CM_IMG_KEY};
 /* ----- Turbo and intercooler options (2026-11-12): a self-contained block after the sizing section -----
    TURBO_LIB and IC_LIB hold only figures read on the pages in src (date in seen); null = not published there.
    Turbos: the build's demand per turbo (the tab's power target ÷ turbos, Garrett's Wa = HP × A/F × BSFC ÷ 60) beside the
@@ -24252,6 +24517,10 @@ if(typeof window!=='undefined') window.__mfd={calc:mfdCalc,layout:mfdLayout,smin
    order a builder decides them, each with one plain line read from what the sections below already worked out (TG, TS_LAST,
    TS_REC, TS_PLACE, TS_X, TSO and the inputs; nothing is computed again here) and a mark where that section reports a
    problem. Go scrolls to the section. No new physics. */
+// the checklist's words for Your compressor map (TG.cmap, filled as that section draws)
+function cmapStepLine(){ const M=TG.cmap; if(!M||!M.plotted) return '';
+  const pc=x=>(x*100).toFixed(1)+' %';
+  return '; demand plotted on your map'+(M.label?' ('+M.label+')':'')+(M.sm!=null||M.cm!=null?': '+(M.sm!=null?'surge margin '+pc(M.sm):'surge line not marked')+', '+(M.cm!=null?'choke margin '+pc(M.cm):'choke line not marked'):': mark its surge and choke lines for the margins'); }
 function tgSteps(ind,p){
   const L=TS_LAST, R=L&&L.R, q=L&&L.q, F=tsFmt(), turbo=ind==='turbo', S=[];
   const add=(id,title,state,line,go)=>S.push({id,title,state,line,go});
@@ -24265,11 +24534,11 @@ function tgSteps(ind,p){
   if(turbo){ const T=TG.turbo;
     const TR=TG.turbRec, tp=TR&&TR.pick, tIn=tp&&T&&T.t===tp.t;
     add('turbo','Pick a turbo',!T||!T.t?'todo':T.v&&T.v[0]==='below'?'warn':'ok',(T&&T.t?T.t.maker+' '+T.t.model+(T.v&&T.v[1]!=='–'?': '+T.v[1]:''):'not chosen yet')+
-      (tp?'; recommended '+tp.t.maker+' '+tp.t.model+' ('+tp.t.hp+' hp rating'+(TR.m!==1?', margin '+TR.m:'')+(tIn?', in use)':', not applied: Use this turbo)'):TR?'; no listed turbo fits the rule':''),'turbo-options');
+      (tp?'; recommended '+tp.t.maker+' '+tp.t.model+' ('+tp.t.hp+' hp rating'+(TR.m!==1?', margin '+TR.m:'')+(tIn?', in use)':', not applied: Use this turbo)'):TR?'; no listed turbo fits the rule':'')+cmapStepLine(),'turbo-options');
     const A=TG.ar, ar=val('i-tar'), lab=$('i-thsg')&&$('i-thsg').value, probs=[];
     if(A){ if(A.div) probs.push(A.div); if(A.bellBad) probs.push('measured pressure before the turbine: '+A.bell); if(A.limit) probs.push('the housing is at its published flow limit'); }
     add('ar','Turbine housing A/R',probs.length?'warn':ar>0?'ok':'todo',(ar>0?(+ar).toFixed(2)+' A/R'+(lab?', '+lab.replace(/^.*?: [0-9.]+ A\/R, /,''):''):'not chosen yet')+(probs.length?'; '+probs.join('; '):''),'turbo-options'); }
-  else add('turbo','Pick a supercharger','info','the turbo list is for turbochargers; size a centrifugal supercharger from its maker’s map with the airflow above','turbo-and-intercooler-sizing');
+  else add('turbo','Pick a supercharger','info','the turbo list is for turbochargers; size a centrifugal supercharger from its maker’s map with the airflow above'+cmapStepLine(),'turbo-and-intercooler-sizing');
   { const r=TS_REC, same=(a,b)=>a>0&&b>0&&Math.abs(a-b)<0.05, cur='inlet '+cdim(p.dt)+', hot side '+cdim(q.dh)+', cold side '+cdim(R.dc);
     const match=r&&same(p.dt,r.dt)&&same(q.dh,r.dh)&&same(R.dc,r.dc), bad=TG.route&&TG.route.bad.length;
     add('pipes','Inlet and charge pipe sizes',bad?'warn':match?'ok':'todo',cur+(match?': the recommended sizes':r&&r.dt&&r.dh&&r.dc?'; recommended inlet '+cdim(r.dt)+', hot '+cdim(r.dh)+', cold '+cdim(r.dc)+' (Use these sizes)':'')+(bad?'; '+TG.route.bad[0]:''),'inlet-and-charge-pipes-design-and-sizing'); }
@@ -24388,6 +24657,13 @@ function tsSheet(){
   N('Air through each compressor',F.fl(R.m)); N('Corrected flow (85 °F, 13.95 psia; ATP)',F.fl(corrFlow(R.m,p.tin,R.P1)));
   if(TG.G) N('Garrett’s method for '+Math.round(val('i-hp'))+' hp',F.fl(TG.G.wa/LBMIN)+' per compressor, pressure ratio '+TG.G.pr.toFixed(2));
   N('Compressor pressure ratio',R.PRc.toFixed(3)); N('Boost at the throttle / at the compressor',F.pD(R.Pt-P_ATM)+' / '+F.pD(R.P2-P_ATM));
+  // Your compressor map: the numbers (the image only when the owner of the file ticks it in)
+  const CM=TG.cmap; let mapSvg='';
+  if(CM&&CM.plotted){ const rf=CM.ref, D=CMAP_LAST;
+    N('Your compressor map'+(CM.label?', '+CM.label:''),'axis '+CM_XU[CM.xu].t+', reference '+rf.T.toFixed(2)+' K ('+(rf.T*1.8).toFixed(2)+' °R) and '+(rf.P/1000).toFixed(3)+' kPa ('+(rf.P/6894.757).toFixed(3)+' psia); calibrated by hand on the image');
+    D.lineA.concat(D.lineB,D.G?[D.G]:[]).forEach(o=>N('On your map: '+(o.key==='G'?'Garrett’s method, '+Math.round(o.hp)+' hp':(o.key[0]==='B'?'case B, ':'')+Math.round(o.rpm).toLocaleString('en-US')+' RPM'),F.fl(o.Wc)+' corrected ('+(+o.x.toPrecision(5))+' '+CM_XU[CM.xu].n+'), pressure ratio '+o.PR.toFixed(3)+(o.sm!=null?', surge margin '+(o.sm*100).toFixed(1)+'%':'')+(o.cm!=null?', choke margin '+(o.cm*100).toFixed(1)+'%':'')+(o.t2U!=null?', outlet '+F.tD(o.t2U)+' at your '+(o.etaU*100).toFixed(1)+'%':'')));
+    N('Surge margin at full boost / choke margin at peak',(CM.sm!=null?(CM.sm*100).toFixed(1)+'%':'surge line not marked')+' / '+(CM.cm!=null?(CM.cm*100).toFixed(1)+'%':'choke line not marked')+' (surge: (demand − surge flow) ÷ surge flow; choke: (choke flow − demand) ÷ choke flow; at the same pressure ratio)');
+    if(CMAP.embed&&CMAP_IMG) mapSvg=cmapSvg(D,CMAP_IMG.data,CMAP.imgW/700,true); }
   N('Air leaving the compressor / the intercooler',F.tD(R.t2)+' / '+F.tD(R.t3)); N('Loss, filter to throttle',F.pD(R.total));
   if(turbo){ const tit=Number.isFinite(val('i-tit'))?val('i-tit'):950;
     N('Turbine inlet temperature',F.tD(tit)+(Number.isFinite(val('i-tit'))?'':' (Garrett’s gasoline design figure, an upper value)'));
@@ -24416,9 +24692,10 @@ function tsSheet(){
       G.miss.forEach(m=>A('Not counted in the back pressure: '+m+'.')); }
     else A('The exhaust after the turbine is not worked out: see Exhaust after the turbine.'); }
   A('Blow-off valve sized to pass the compressor’s full flow (this page’s assumption; no maker sizing method found).');
+  if(CM&&CM.plotted) A('Your compressor map: the axes are calibrated from points clicked on the image and taken as linear; the demand line is full throttle at full boost with one VE at every RPM; part throttle and the boost threshold are not modelled.');
   const eng=$('i-eng'), en=eng&&eng.selectedOptions&&eng.selectedOptions[0]?eng.selectedOptions[0].textContent:'';
   return {title:'Turbo build sheet',sub:en+(p.disp>0?', '+Math.round(p.disp).toLocaleString('en-US')+' cc ('+(p.disp/16.387064).toFixed(0)+' cu in)':'')+(val('i-hp')>0?', target '+F.hp(val('i-hp')):'')+', boost '+F.pD((p.boost||0)*1000)+' at '+Math.round(p.rpm).toLocaleString('en-US')+' RPM',
-    parts,nums,assume,svg:[TG.svg||'',X&&X.svg?X.svg:'',MF&&MF.svg?MF.svg:'']};
+    parts,nums,assume,svg:[TG.svg||'',X&&X.svg?X.svg:'',MF&&MF.svg?MF.svg:''],mapSvg};
 }
 function tsSheetDoc(sh){
   const x=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -24430,6 +24707,7 @@ function tsSheetDoc(sh){
     '<h1>'+x(sh.title)+'</h1><p class="cap">'+x(sh.sub)+'. Saved '+x(new Date().toISOString().slice(0,10))+' from Exhaust Tuner. Lengths in inches and mm; letter or A4, print at 100%.</p>\n'+
     '<h2>Route</h2><div class="draw"><div>'+fix(sh.svg[0])+'<p class="cap">Intake side, filter to throttle (not to scale along the route; widths to scale with each other).</p></div>'+(sh.svg[1]?'<div>'+fix(sh.svg[1])+'<p class="cap">Exhaust side, collector to tip.</p></div>':'')+(sh.svg[2]?'<div>'+fix(sh.svg[2])+'<p class="cap">Turbo manifold, plan (not to scale).</p></div>':'')+'</div>\n'+
     '<h2>Parts and sizes</h2>'+tbl(['Part','Size','Where, notes'],sh.parts)+'\n<h2>Key numbers at peak power</h2>'+tbl(['What','Value'],sh.nums)+
+    (sh.mapSvg?'\n<h2>Your compressor map</h2><div class="draw"><div>'+fix(sh.mapSvg)+'<p class="cap">Your own map image with this build’s demand line, put in this file at your choice; the image may be the maker’s copyright.</p></div></div>':'')+
     '\n<h2>Assumptions and unsourced items on this build</h2><ol>'+sh.assume.map(a=>'<li>'+x(a)+'</li>').join('')+'</ol>\n</body></html>\n';
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-tsheet]'); if(!b) return;
@@ -24513,7 +24791,7 @@ function fiSection0(ind,p,r){
         '<p class="cap">From <a href="https://www.garrettmotion.com/racing-and-performance/choosing-a-turbocharger/turbo-system-optimization/" target="_blank" rel="noopener">Garrett’s Turbo System Optimization</a> and <a href="https://www.garrettmotion.com/knowledge-center-category/racing-and-performance/how-to-size-charge-air-tubing/" target="_blank" rel="noopener">How to Size Charge Air Tubing</a>. Pressure loss is Darcy friction (smooth drawn aluminium or stainless tube, 0.0015 mm) at the actual boosted density plus Crane TP-410’s bend K (via the Intake tab’s bendK); the fill time is the extra air the pipes hold at boost divided by the full-power airflow, so real spool-up is longer.</p>');
     }
   }
-  if(ind==='turbo'||ind==='centri') cp+=turboSection(ind,p,r)+tsSizeSection(ind,p,r)+tsOptionsSection(ind,p)+oilSection(ind,p)+TS_PLACE_HTML+mfdSection(ind,p)+tsExhSection(ind,p);
+  if(ind==='turbo'||ind==='centri') cp+=turboSection(ind,p,r)+tsSizeSection(ind,p,r)+tsMapSection(ind,p,r)+tsOptionsSection(ind,p)+oilSection(ind,p)+TS_PLACE_HTML+mfdSection(ind,p)+tsExhSection(ind,p);
   return cp+sec('Boosted intake',h+'<ul class="list">'+list.join('')+'</ul><p class="cap">Sources: <a href="https://compressortech2.com/news/what-is-the-ideal-inlet-piping-length-for-centrifugal-compressors/8022678.article" target="_blank" rel="noopener">CompressorTech², on ASME PTC inlet piping</a>; <a href="https://www.enginelabs.com/?p=167650" target="_blank" rel="noopener">EngineLabs on the ProCharger bellmouth</a>; <a href="https://www.procharger.com/?p=9829" target="_blank" rel="noopener">ProCharger on blow-off valves</a>. Compressor outlet temperature is the ideal-gas compression formula with the efficiency you enter.</p>');
 }
 /* ----- making it by 3D printing ----- */
@@ -25157,7 +25435,8 @@ const PROJ_VEH=['v-mode','v-class','v-make','v-pick'];
 const projUiCopy=(o,skip)=>{ const r={}; for(const k in o){ if(skip.includes(k)) continue; const v=o[k]; if(typeof v==='function') continue; r[k]=v; } return JSON.parse(JSON.stringify(r)); };
 const PROJ_UI={   // the per-section settings kept with a project: [object, keys left out]
   wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
-  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open','fx']]};
+  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open','fx']],
+  cmap:[CMAP,['tool']]};   // Your compressor map: calibration, marked points and typed values; never the image (cmapAfterLoad)
 function projLoadAll(){ try{ const a=JSON.parse(localStorage.getItem(PROJ_KEY)||'[]'); return Array.isArray(a)?a.filter(p=>p&&p.data&&p.name):[]; }catch(e){ return []; } }
 function projStoreAll(a){ try{ localStorage.setItem(PROJ_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 function projSnapshot(name){
@@ -25197,6 +25476,7 @@ function projApply(d){
   if(d.tw) twLoad(d.tw);
   if(d.jig) Object.keys(JIG_UI).forEach(k=>{ if(d.jig[k]!==undefined&&k!=='open') JIG_UI[k]=d.jig[k]; });
   if(Array.isArray(d.build)){ BUILD.items=JSON.parse(JSON.stringify(d.build)); saveBuild(); }
+  cmapAfterLoad(ui.cmap);
   renderActive();
 }
 // what a saved field reads as, in the units now chosen
