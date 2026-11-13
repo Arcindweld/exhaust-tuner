@@ -1856,3 +1856,23 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   redline point uses the peak-power VE.
 - Suite (web, --no-build -j 2 --skip-slow): 114 tests, 109 passed, 0 flaky, 0 failed, 5 skipped (expected), 7 partial
   skips, 0 unexpected.
+
+## 2026-11-13: boost audit, part 3 (turbo manifold and Your compressor map)
+
+- Independent review of 5448b2d; findings P1-P15 in docs/BOOST_AUDIT_2026-11-12.md, "Part 3". New scripts
+  tools/validation/boost/turbomani_open.py and skin.py; new test web/tests/boostaudit3_ui.js (56 of its checks fail on the
+  merged page).
+- Turbo manifold: runner speed, Mach and loss now default to the open period (continuity: C / D x the cycle mean, D typed
+  or the 4-Stroke tab's 180 + EVO + EVC), the cycle mean beside them; the loss averaged as the square of the flow, the
+  collector at its rms square-wave flow, the merge from the flowing runners' bore; the blowdown peak said not computable
+  without a wave model. p3 taken as the total pressure at the turbine flange (as the turbine balance takes it). MacInnes
+  and Bell given as AutoSpeed's summaries, not quotations. Short-radius B16.9 elbow weights. Fusion: the Fabrication tab's
+  clearance instead of the 2 in hot clearance (the runners could not keep it from the head), the router's collector shape
+  and the planar length's limits said on the page and in the reply.
+- Corrected flow: corrFlow and the map's "Garrett" fill both at ATP Turbo's 85 °F (544.67 °R) and 13.95 psia in absolute
+  temperature (was 460 / 545 against 545 °R, 0.03% apart).
+- K24A2 + PT5862, boost matched to Garrett's airflow: 450 hp 148.1 m/s Mach 0.222 while open, loss 8.99 kPa (cycle mean
+  52.4 m/s, 2.00 kPa); 600 hp 139.7 m/s Mach 0.209, 10.76 kPa (49.5 m/s, 2.39 kPa).
+- Pins changed: turbomani_ui (p3 total), compmap_ui (85 °F reference), the turbomani payload fixture (clearance).
+- Open: mild steel's expansion with temperature, a cited K-series port spacing, routing to a merge ring with room for the
+  nearer runners, the image's share of browser storage, a measured p3 read as static.

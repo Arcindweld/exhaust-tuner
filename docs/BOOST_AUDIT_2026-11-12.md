@@ -647,3 +647,164 @@ Still open: a choked-exit back pressure (X10); an aluminium fillet-weld allowabl
 
 Suites after the follow-ups (run_all_tests.py --suite web,fusion --no-build -j 2): 140 tests, 134 passed, 0 flaky,
 0 failed, 6 skipped (expected), 7 partial skips, 0 unexpected skips.
+
+## Part 3 (2026-11-13): turbo manifold designer and "Your compressor map"
+
+Scope: the two features merged on 2026-11-13 (5448b2d): the Intake tab's turbo manifold (`mfdCalc`, `mfdSection`,
+`mfdLayout`, `mfdSmin`, `mfdStrain`, `mfdCands`, `MFD_ELS`, `MFD_MAT`, the loss march pieces, the steel temperature by
+`calcSkin`, the checklist step, the build-sheet rows, the Mounts "turbo" part, fusion-addin/turbomani.py and act_route
+mode 'turbomani'), the compressor map overlay (`tsMapSection`, `cmapCal`, `corrFlowRef`, `cmapPx`, margins, typed
+efficiency, persistence), and the two together (the merge kept both sides of three conflicts). Not audited: the wave
+solver. Method as in Parts 1 and 2: sources read for this audit, new independent scripts
+(tools/validation/boost/`turbomani_open.py`: states at a stagnation pressure, Fanno integrated in p0, the pulse overlap by
+triple intersections of arcs; `skin.py`: the skin model's relations with its own integrator), the page driven through its
+hooks (`window.__mfd`, `__cmap`, `__tg`, `__tsx`, `__turbo`, `__proj`). Every fix has a check in
+web/tests/boostaudit3_ui.js (81 checks); run against the merged page, 56 of them fail and 25 pass; all 81 pass now.
+
+**P1. Runner speed, Mach and loss shown at the steady cycle mean. FIXED.** Per-runner flow was the exhaust per turbo ÷
+the cylinders, a cycle mean; the open-period figure appeared only when an open period was typed (blank by default). A
+runner flows only while its valve is open, so by continuity alone its mean flow over the open period D is C ÷ D times
+the cycle mean (C = 720), whatever the pulse shape. The page now always shows that figure first, with D typed or, by
+default, from the 4-Stroke tab's valve events, 180 + EVO + EVC (a blank EVC estimated as that tab estimates it, EVO − 40,
+at least 10), the source and whether the events are seat to seat or at 0.050 in named. The blowdown peak is said to need
+a wave model this section does not have; no peak is given.
+Loss averaging (stated on the page): a loss K ρv²/2 averages as K⟨ρv²⟩/2, not K ρ⟨v⟩²/2. A runner at k times its mean flow
+for D of the cycle loses k² × the steady figure while open and k × it averaged over the whole cycle. The collector carries
+the runners open at once: square waves from the pulse spacing give its rms count over an open period (`mfdOverlap`,
+exact over the pieces between breakpoints; I4 at 180° spacing and 260°: mean 420/260 = 1.6153846, rms √(740/260) =
+1.6870548; I6 at 250°: 2.12 and √4.6; the script's triple-intersection method agrees to 1e-12, also on an uneven
+270/180/90/180 bank). A flow that peaks inside the period has a larger mean square for the same mass (Cauchy-Schwarz), so
+the open-period loss is the least loss for that mass. The merge on the open-period basis is taken from the bore of the
+runners flowing at once (rms count): from all n runners' bore the page's equal-static junction dumped the runner's dynamic
+head into a section the other runners are not filling (11.1 of 20.0 kPa at 450 hp below), a mixing loss the section says
+it does not count. Checklist, build sheet, drawing and assumption line now give the open-period loss with the cycle mean
+beside it.
+K24A2 + Precision GEN2 PT5862 (0.63 A/R T3), tubular, 93 mm spacing (typed example, see P9), the tab's boost set so its
+air per compressor equals Garrett's Wa = HP × 12 × 0.55 ÷ 60 (page, burned-gas γ(T); the independent script, at the page's
+γ held constant, agrees to 1e-6 on speed and Mach, 1e-4 on the loss):
+450 hp (169.918 kPa boost): runner 148.1 m/s, Mach 0.2219 while open (52.4 m/s, Mach 0.0782 cycle mean); manifold loss
+8.99 kPa (1.30 psi) while open against 2.00 kPa (0.29 psi) at the cycle mean, 4.5 ×. 600 hp (260.332 kPa): 139.7 m/s,
+Mach 0.2092 (49.5 m/s, 0.0739); 10.76 kPa (1.56 psi) against 2.39 kPa (0.35 psi). turbomani_ui's build (203.677 kPa):
+before 50.87 m/s, Mach 0.0760 and 2.10 kPa (cycle mean, p3 static); now 144.3 m/s, Mach 0.2161 and 9.65 kPa while open
+(51.05 m/s, 0.0762, 2.15 kPa at the cycle mean). Most of the open-period loss is the runner bends (8.1 of 9.0 kPa at
+450 hp): K × the runner's head at k² the steady head.
+
+**P2. p3 static in the manifold, total in the turbine balance. FIXED.** `turbineBalance` takes p3 with T3 as the inlet
+totals (total-to-static expansion, X8); the manifold march started from p3 as the static pressure at the flange. At the
+58.46 mm flange bore the cycle-mean dynamic head is about 8 kPa, four times the loss then shown. The march and the runner
+states now start from p3 as a total pressure (`xSt0`); the port pressure is given as total (p3 + loss) and static.
+turbomani_ui's pins changed for this reason: runner Mach 0.0759661 -> 0.0762489, speed 50.8656 -> 51.0548 m/s (hand
+bisection now on the stagnation mass-flow function), loss against turbomani.py (now with `p3_total`) 2103.54 -> 2145.47 Pa.
+A measured p3 (`tsTipMeasured`) is taken the same way; a manifold tap reads static, so a measured value is about one
+dynamic head low as a total: noted, not changed (the turbine balance's convention is Part 1's).
+
+**P3. MacInnes and Bell "quoted". FIXED wording.** AutoSpeed's review (re-read) has MacInnes "suggests that turbo exhaust
+manifolds should use small diameter runners with about the same internal area as the ports" and Bell "recommends the use
+of relatively small diameter runners with large wall thicknesses": the review's own words, not in quotation marks. The page
+had both in quotation marks as the authors' words (three places, and "as quoted by AutoSpeed" on the build sheet). Now "as
+AutoSpeed's review sums up his book (its own words, not a quote)". Allard ("not more than 2.5 times, and not less that
+double", "3.0mm minimum is recommended", "take the weight", "1000 degrees C") and Humphries ("not significantly greater
+than the geometric valve area at full lift") are quotations in the review: CORRECT.
+
+**P4. Material tables. CORRECT; LIMITATION on mild steel.** Re-read: Cleveland-Cliffs 304/304L (mean coefficient from
+32 °F: 9.4 / 9.9 / 10.2 / 10.4 × 10⁻⁶ in/in °F to 212 / 600 / 1000 / 1200 °F; "continuously without appreciable scaling
+... about 1650 °F (899 °C). For intermittent cyclic exposure ... about 1500 °F (816 °C)"); Cleveland-Cliffs 321 (9.2 / 9.5
+/ 10.3 / 10.7 / 11.2 to 212 / 600 / 1000 / 1200 / 1500 °F; the sheet prints 1500 °F as "871 °C", a conversion slip: 1500 °F
+is 815.6 °C, which the page uses); Atlas Steels 321 ("intermittent service to 900 °C and in continuous service to
+925 °C"); Rolled Alloys 625 ("70 °F to indicated temperature": 7.3 ... 8.8 at 400 ... 1600 °F; "Oxidation resistant to
+1800 °F", one figure); Rolled Alloys 347 (9.2 at 212 °F only, "Useful to 1500 °F", oxidation "similar to that of 304").
+Conversion µm/m K = in/in °F × 1.8; reference per sheet right (0 °C for the Cleveland-Cliffs sheets, 21.1 °C for Rolled
+Alloys); the growth formula L (ā(T)(T − Tref) − ā(Ta)(Ta − Tref)) reproduces turbomani_ui's hand values. "At least" past
+the last point is right: every table's mean coefficient rises with temperature. The flag compares the port steel with the
+intermittent limit, the lower of the two for 304 (816 °C) and the one for a cycling manifold. Mild steel's single
+nsxprime coefficient (13.0 µm/m K) was not re-read and carries no "at least" although mild steel's mean coefficient rises
+with temperature (no sheet read here): open. The skin model uses stainless k = 20 W/m K for every material (small effect
+on the steel temperature).
+
+**P5. corrFlow (°F + 460 over 545) and corrFlowRef (absolute, "Garrett" filled as 545 °R). FIXED.** The source the page
+cites, ATP Turbo's "General definitions" (re-read), writes √([Air Temp + 460] / 545) and Baro / 13.95: its reference is
+85 °F. Garrett's own pages read (Turbo Tech 103, the Expert PDF, the Boost Adviser page) state no reference number. The
+map's "Garrett" fill was 545 °R, which is 85.33 °F in absolute terms, so the two functions differed by 0.03%. Both now use
+absolute temperature at 85 °F = 544.67 °R = 302.594 K (`ATP_TREF`), corrFlow = corrFlowRef at it; the exact form is within
+5.5e-7 of ATP's literal one at 30 °C (B7's pin 0.416570 holds). compmap_ui's pins changed for this reason: Wc 0.4164444
+-> 0.4165705 kg/s, 55.08616 -> 55.10285 lb/min, x 548.232 -> 548.374 px, ratio to the 298 K / 100 kPa reference 1.0479986
+-> 1.0476812, the saved refT '545' -> '85' °F.
+
+**P6. Weld elbows. CORRECT dimensions; FIXED short-radius weight.** Second sources: Wermac's B16.9 tables, long radius
+48 / 57 / 76 / 95 mm and short radius 32 / 38 / 51 / 64 mm centre to end for NPS 1¼ / 1½ / 2 / 2½ (1.5 × and 1.0 × NPS in
+inches), Wikipedia's NPS table (B36.10 / B36.19 walls: 0.109 in 10 and 0.140 / 0.145 / 0.154 / 0.203 in 40 at these
+sizes), so every OD, wall and ID in `MFD_ELS` matches. The cut list gave the long-radius elbow's weight for every pipe
+runner, but the pipe's default radius is the tightest, the short-radius elbow's. Ace's short-radius tables (re-read):
+10S 0.38 / 0.49 / 0.81 / 1.36 lb, 40S 0.45 / 0.63 / 1.13 / 2.25 lb, now used for short-radius elbows (NPS 1½ 10S: 0.69 ->
+0.49 lb).
+
+**P7. Fusion mode. FIXED clearance; FIXED statement of the collector shape; LIMITATION on the planar length.**
+turbomani.py against `route_header`'s contract: ports and a collector marker, spec od / clr / target / gap / gap_tt /
+collector_len / collector_out_d; the glue places the collector marker on the flange axis, merge + collector back, shares
+one TubeSet between scrolls, max_bend_deg 90 for elbows: CORRECT. Equal length is enforced (test_turbomani: four runners at
+76.2 cm within the router's 0.05 cm); the clearance to the scan is now asserted too (nearest 5.099 cm against 1.27). The
+page sent the charge-pipe route's 50.8 mm hot clearance as the clearance to the whole scan, head included. A scratch run of
+the pure-Python router on the page's own K24 geometry (a head face, four ports 93 mm apart, 1.875 in tube on 1 7/8 in,
+target 193.87 mm, merge 95.25 mm out): with 50.8 mm the outer runners find no way through; with 12.7 mm they route. The
+payload now carries the Fabrication tab's auto-route clearance (12.7 mm default), as every header route does, and the page
+says to check what must stay further from the hot manifold. (test_turbomani_fusion_fake.py already overrode the gap to
+12.7 mm.) The router's collector tapers over its whole length where the page models a 20° cone and a straight collector:
+it was only in the module docstring; now on the page and in the reply's notes. In the same scratch run, even at 12.7 mm the
+inner runners stopped at 10.77 cm of 19.39 cm (tube gap): the planar shortest equal length assumes the runners meet at one
+point, and the nearer runners' 95 mm of extra length does not fit in a 95 mm reach. The page now calls the figure the
+planar lower bound and says a routed manifold may need the turbine further out or a longer length.
+
+**P8. The S geometry. CORRECT; LIMITATION (single merge point, now said).** Derived for this audit: two arcs of radius R
+turning θ each way and a straight s between give lateral y = 2R(1 − cos θ) + s sin θ and length L = 2Rθ + s. With s ≥ 0
+fixed by y, dL/dθ = −(y − 2R + 2R cos θ) cos θ / sin²θ ≤ 0 for θ ≤ 90°, so L falls until s = 0 (y < 2R: θ = acos(1 −
+y/2R), L = 2Rθ) or θ = 90° (y ≥ 2R: L = πR + y − 2R), and rises past 90°: the page's `mfdSmin`. The reach Z = 2R sin θ
+grows with y, so the farthest runner has the largest reach and every nearer runner reaches its plane with straight to
+spare: "the farthest runner sets the length" holds. Hand checks: I4 at 93 mm and R 47.625 (turbomani_ui), I6 at 100 mm and
+R 50: 307.0796 mm, cylinder 3 104.7198 mm with reach 86.60 < 100 mm (boostaudit3_ui).
+
+**P9. K24 port spacing. Not found; stays an input.** No reputable source giving the K-series bore spacing (Honda service
+data or a builder quoting it) was reached: EngineLabs' B-vs-K article gives none, Honda's technical review PDF was not
+fetchable, a forum thread could not be read. The preset does not fill the spacing; the worked example's 93 mm is typed and
+labelled an example, as before; 94 mm, often repeated, is not verified here.
+
+**P10. Map clicks. CORRECT.** `cmapPx` = (client − box edge) ÷ box size × natural size, with the SVG's aspect ratio held
+by CSS (`aspect-ratio`, preserveAspectRatio none on the image): at a third size (viewport 731 px, device pixel ratio 1.5,
+this test's own 640 × 480 grid) a click is recorded to 0.006 image px of the hand value and within one screen pixel of the
+target. A calibration typed top point first (y 60 = 3.4, y 420 = 1.0) maps the same (negative slope): CORRECT.
+
+**P11. Map axes, margins, efficiency. CORRECT.** Volume axes: Wc ÷ ρref, ρref = Pref ÷ (R Tref) (1.107324 kg/m³ at the
+Garrett reference, 287.05 J/kg K), cfm 60 ÷ 0.3048³; margins as the page defines them, at the point's own pressure ratio,
+linear along the marked line; no published minimum (said). The redline point's VE is flagged on the page ("Past peak power
+the real VE usually falls, so the redline point is the most flow it could take"). Typed efficiency: compOut at the plotted
+ratio (compmap_ui's hand pins).
+
+**P12. Images, storage, copyright. CORRECT.** A project snapshot with both features holds no `data:` or `blob:` URL
+(checked); the tests write their PNGs to a temporary directory and remove it, and no map image is in the repository (git
+ls-files). localStorage reads and writes are in try/catch and a throwing storage still loads the image (compmap_ui). The
+opt-in sheet line and the sheet's caption both say the image may be the maker's copyright. Not verified: a 1.5-million
+character stored image shares the origin's storage with saved projects; whether a later project save then fails was not
+tested.
+
+**P13. Both features together. CORRECT.** K24 build with the manifold, a calibrated map with surge and choke lines and the
+image ticked into the sheet, a 10 kg turbo on the Mounts designer: sections in the order sizing, your map, placement,
+manifold, exhaust after the turbine; checklist steps engine, air, turbo, ar, pipes, ic, oil, valves, mani, exh, scan,
+sheet, with the map margins on "Pick a turbo" and the open-period loss on "Turbo manifold"; the sheet well-formed XHTML with
+the manifold drawing, the map image, the Mounts rows for the turbo and the oil rows; a fresh profile loads the project to
+the same runner length, loss and margins, without the image.
+
+**P14. Steel temperature. CORRECT.** skin.py against `calcSkin` as the manifold calls it (cycle-mean flow per runner, gas
+from T3, 1.875 × 0.065 in tube, oxidised, still air at 30 °C): 450 hp CAF 1 702.83 / 705.86 °C mean / max, CAF 2.3 794.23 /
+799.44 °C; 600 hp 730.62 / 733.29 and 815.68 / 820.08 °C; page equal to 0.01 °C. Wendland's factor is defined on the
+time-averaged flow, so the cycle mean is the right input there. At 600 hp the port steel (820 °C) passes 304's 816 °C
+intermittent limit and the page flags it. The gas at the port is hotter than T3: stated, so these are low.
+
+**P15. The loss and the turbine balance. CORRECT.** `MFD_LAST` is read only by the manifold section, the checklist, the
+sheet and the Fusion payload: the manifold loss is not in the turbine balance, and the page says the ports see p3 plus it.
+The merge's mixing is not counted, and said (P1 keeps that true on the open-period basis).
+
+Changed pins, each for the reason given: turbomani_ui (P2), compmap_ui (P5), web/tests/fixtures/turbomani_payload.json
+gap_mm 50.8 -> 12.7 (P7).
+
+Open after Part 3: a wave-model blowdown peak for the manifold; mild steel's expansion with temperature; a cited K-series
+port spacing; a router that can route to a merge ring with room for the nearer runners' extra length; the shared storage
+quota (P12); a measured p3 read as static (P2).
