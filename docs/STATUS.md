@@ -1605,3 +1605,39 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   you enter is taken as a bore and compared with the inside diameter), areas in in² and cm². The page's cone and step losses
   for the tank inlet are stated to be 1-D estimates that do not capture distribution across the core.
 - Tests: icrec_ui.js (the block with the citation, the check firing for a compressor outlet 10 mm over the pipe).
+
+## 2026-11-12: oil cooling and turbo oil lines (Intake tab, boosted builds)
+
+- The owner: "Keep in mind the oil coolers for turbo applications." New section "Oil cooling and turbo oil lines" after
+  the intercooler sections, a checklist step, build-sheet rows and labels on the route drawing.
+- What is sourced (read 2026-11-12):
+  - Oil heat load: Setrab, "Application and performance suggestions" (2010, a copy on the dealer Pegasus Auto Racing's site):
+    the engine-oil coolers Setrab suggests for the target power, wet-sump figures (5 gpm, 20/50 oil, 130 °F ITD, 60 mph air)
+    as the range, dry-sump as the top; maker guidance for choosing a cooler, not a measured heat load. 450 hp: 42,000 to
+    53,100 BTU/hr (12.3 to 15.6 kW; 3.7 to 4.6% of brake power); 600 hp ("600+" rows): 40,000 to 69,000 BTU/hr (11.7 to
+    20.2 kW). Sized against the upper figure.
+  - Oil properties: Engineering ToolBox, engine oil density and specific heat (new oil, 340-400 K); dT = Q ÷ (V̇ ρ cp).
+  - Conflux Technology, "Oil Coolers" brochure, version 1.0 (2026), supplied by the owner (not committed): 100220 (EDU
+    cooling; Ø66.3 × 203 mm, 0.31 kg, JIC -08, Ø19.05 mm coolant; Mobil EV Cool Drive 85 °C in, EGW 25/75 50 °C, 20 L/min),
+    100219 (transmission; Ø83.6 × 218 mm, 0.58 kg, JIC -08, Ø38.10 mm; 75W-90 120 °C, coolant 80 °C, 120 L/min), 100218
+    (engine; Ø126.6 × 315 mm, 1.6 kg, JIC -12, Ø38.10 mm; 0W-40 120 °C, coolant 85 °C, 120 L/min). The 100220 and 100219
+    drawings label the oil ports "JIC-10 PER SAE J514" with a 3/4"-16 thread, which is the -08 thread: the spec table's -08
+    is used and the conflict shown. Heat and oil-drop curves read from the vector paths (axis fits within 0.05 units, end
+    nodes within 0.07 L/min of round flows), tabulated to 0.1. Consistency: effectiveness at the maker's conditions with
+    engine-oil properties as a stand-in, 63-23% (100220), 82-49% (100219), 67-37% (100218), all below 1.
+  - Turbo lines: Precision Turbo & Engine installation recommendations (single ball bearing -4AN / 1/4 in feed, restrictor
+    optional, use a supplied restrictor fitting; journal: no restrictor; drain minimum -10AN / 5/8 in, gravity, above the
+    pan's oil level; coolant through the housing if it has ports; feed from the filtered side, no sandwich plate) and
+    Garrett (ball bearing -3/-4AN, 0.040 in restrictor, 40-45 psi at maximum engine speed after the restrictor; journal
+    -4AN; drain -10AN typically, ±15° of gravity, not below the oil level; hook up the water lines, 20° for thermosiphon).
+    Garrett's are the general reference for a maker whose rules were not read (BorgWarner), said on the page.
+  - AN dash sizes: Titan Fittings' thread chart (JIC 37°, SAE J514).
+- Energy balance (this page's): the heat translation Q = Q_curve × (T_oil,in − T_c,in) ÷ (maker's difference) at the
+  maker's flows; units in parallel with the flow split equally; the oil heat added to the charge cooler's loop,
+  Q = (Th − Ta − k Q_oil) ÷ (1/e₁ + k), k = 1/e₂ − 1/Cw (oil cooler taken between the charge cooler and the front exchanger).
+- Not sourced, so not on the page: a fraction of fuel energy to the oil (Heywood's chapter not available; a 1944 MIT thesis
+  and open papers could not be fetched), turbo bearing friction or heat soak into the oil (the papers found were behind
+  bot checks), piston-cooling jets or BMEP effects, an oil pump flow rule (an input), oil temperature limits (inputs; blank
+  uses Conflux 100218's test temperatures, said), viscosity correction of the drop (the maker's curve as published, with
+  its oil and viscosity stated), oil port threads on the turbos.
+- Tests: web/tests/oilcool_ui.js (new).
