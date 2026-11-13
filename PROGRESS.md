@@ -16,4 +16,6 @@ Status:
 - [x] read docs/code
 - [x] JS model (turbine, source, pOut)
 - [x] Rust port, bit parity on 4 scratch turbo jobs (scratchpad par.js)
-- [ ] NA checks: kat, wave_wasm QUICK, wavegas; closure driver; known answers; page UI; docs
+- [x] NA checks: kat 66 identical json, wave_wasm QUICK all pass, wavegas 121 pass, wavekat pass
+- [x] closure driver turboSimLib in page (JS==Rust, scratch t2.js)
+- [ ] known-answer test web/tests/waveturbo_ui.js; wave_wasm turbo jobs; embed wasm; spec builder + page UI; K24 capture + prediction; docs
