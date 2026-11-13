@@ -34,8 +34,10 @@ except ValueError as e:
     ok('cylinder order' in str(e), 'a scroll list that misses a port is refused: ' + str(e)[:80])
 
 # 2. through the real router: the scene of test_header.py (a head face, a frame rail, ports 10 cm apart pointing +x, the
-# merge at (35, 19, -45) going -z), the turbine flange marker 23.80 cm further on; undivided, then divided with the two
-# scrolls' flange markers side by side along x (scroll 1+4 nearer the head, 2+3 further out, so no runner crosses)
+# merge at (35, 19, -45) going -z), the turbine flange marker 23.80 cm further on; undivided, then two scrolls, each with its
+# own flange marker. The glue does not care which ports a scroll takes (the page's pairing is tested in turbomani_ui.js), so
+# the scrolls here are ports 1+2 and 3+4 beside their own markers: a 1+4 / 2+3 split makes the runners cross, which this
+# box scene makes the router search for many minutes on a loaded 2-core machine (seen: over 20 min)
 head = T.box_mesh((-6, -10, -15), (0, 50, 15), 12)
 rail = T.box_mesh((15, -20, -30), (22, 60, -24), 12)
 sc = RT.Scene(cell=1.0); sc.add_mesh(*head); sc.add_mesh(*rail); sc.build((-10, -30, -100), (80, 70, 20), 10)
@@ -52,7 +54,7 @@ ok(one['ok'] and len(L1) == 4 and max(abs(x - TGT) for x in L1) <= 0.05 + 1e-9, 
 ok(max(abs(a - b) for a, b in zip(one['jobs'][0]['collector_marker'][0], (35.0, 19.0, -45.0))) < 1e-9 and one['jobs'][0]['res'].get('collector') is not None,
    'its collector built from the merge plane 23.80 cm before the flange marker')
 ok(any('not routed' in n and '38.0 mm' in n and '45 deg' in n for n in one['notes']), 'the wastegate window is reported, not routed')
-two = TMN.route(sc, ports, [((31.0, 19.0, -45.0 - 23.80), (0.0, 0.0, -1.0)), ((41.0, 19.0, -45.0 - 23.80), (0.0, 0.0, -1.0))], dict(data), dict(rspec))
+two = TMN.route(sc, ports, [((35.0, 9.0, -45.0 - 23.80), (0.0, 0.0, -1.0)), ((35.0, 29.0, -45.0 - 23.80), (0.0, 0.0, -1.0))], dict(data, scrolls=[[0, 1], [2, 3]]), dict(rspec))
 L2 = two['lengths']
 print('divided:', two['msg'], ['%.3f' % x for x in L2])
 ok(two['ok'] and len(L2) == 4 and max(abs(x - TGT) for x in L2) <= 0.05 + 1e-9, 'divided: four runners at 76.2 cm, two scrolls')
@@ -62,7 +64,7 @@ ok(bends and max(bends) <= 90.5, 'weld elbows: no bend over 90 deg (the router\'
 ok(two['jobs'][0]['spec']['tubes'] is two['jobs'][1]['spec']['tubes'], 'both scrolls share one TubeSet, so their runners keep clear of each other')
 # tube to tube between the scrolls, brute force away from the ends
 polys = [RT.path_points(r['elems'], 0.2) for j in two['jobs'] for r in j['res']['primaries'] if r and r.get('elems')]
-worst = min(RT.vdist(a, b) for a in polys[0][len(polys[0]) // 4: 3 * len(polys[0]) // 4] for b in polys[2] + polys[3]) if len(polys) == 4 else 0
-ok(worst >= od + 0.32 - 0.01, 'scroll 1 runner 1 keeps the tube gap from scroll 2: centres %.3f cm apart (need %.3f)' % (worst, od + 0.32))
+worst = min(RT.vdist(a, b) for a in polys[1][len(polys[1]) // 4: 3 * len(polys[1]) // 4] for b in polys[2] + polys[3]) if len(polys) == 4 else 0
+ok(worst >= od + 0.32 - 0.01, 'scroll 1 runner 2 keeps the tube gap from scroll 2: centres %.3f cm apart (need %.3f)' % (worst, od + 0.32))
 print('FAILS', fails)
 sys.exit(1 if fails else 0)
