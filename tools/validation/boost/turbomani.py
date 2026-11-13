@@ -3,7 +3,7 @@
 turbine flange back to the exhaust port. Written from the relations, not ported from web/index.html.
 
 Usage: echo '<case json>' | python3 tools/validation/boost/turbomani.py      (web/tests/turbomani_ui.js runs it)
-Input (one case, SI units, mm for sizes): m_col, m_run kg/s; p3 Pa (static at the turbine flange); T0 K; gamma, R (held
+Input (one case, SI units, mm for sizes): m_col, m_run kg/s; p3 Pa (static at the turbine flange, or total with p3_total); T0 K; gamma, R (held
 constant: the test sets the page's gamma to the same constant); d_col, L_col, d_eq (the runners' combined bore), d_run,
 L_straight, d_port mm; K_merge, K_bends, K_port (the loss coefficients; see below); rough m.
 Output: the static and total pressure at the port, the runner's Mach number at the port end and at the merge, the loss.
@@ -111,7 +111,9 @@ def area(d_mm):
 def run(c):
     gas = Gas(c['gamma'], c['R'])
     T0, rough = c['T0'], c.get('rough', 1.5e-6)
-    s3 = gas.from_p(c['m_col'], area(c['d_col']), c['p3'], T0)           # the collector at the turbine flange (same bore)
+    # the collector at the turbine flange (same bore); p3 a total pressure when p3_total (the page since the boost audit's
+    # part 3, 2026-11-13, as its turbine balance takes p3), a static one otherwise (the page before)
+    s3 = (gas.from_p0 if c.get('p3_total') else gas.from_p)(c['m_col'], area(c['d_col']), c['p3'], T0)
     sc = fanno_back(gas, c['m_col'], c['d_col'], c['L_col'], s3, rough)   # collector, upstream end
     # merge: the runners' combined bore narrowing into the collector, K on the collector's (downstream, small) head
     sm = gas.from_p0(c['m_col'], area(c['d_eq']), sc['p0'] + c['K_merge'] * sc['q'], T0)

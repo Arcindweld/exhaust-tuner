@@ -108,13 +108,15 @@ const path = require('path');
     const X2 = M.calc(o), r = X2.rows.find(x => x.cd.key === 't1.875'), pr = X2.march.parts, res = { g, R: T.EXH_GAS.R, v: r.v, Mach: r.M, march: { dp: X2.march.dp, dp0: X2.march.dp0, sPort: X2.march.sPort.p, M3: X2.march.s3.M },
       parts: pr.map(x => ({ k: x.k, K: x.K, L: x.L, d: x.d, d1: x.d1, d2: x.d2 })), m_col: X2.march.m, m_run: X2.mr, p3: o.p3, T0: o.tit + 273.15, port: o.port, dcol: X2.dcol, id: X2.c.id };
     T.XF_GAS.g = null; return res; });
+  // p3 is the turbine-inlet TOTAL pressure (as turbineBalance takes it; boost audit part 3, 2026-11-13: it was taken as the
+  // static pressure here, 0.37% faster): m sqrt(R T0) / (A p0) = sqrt(g) M psi^(-(g + 1) / (2 (g - 1))), by bisection
   { const g = G.g, R = G.R, T0 = G.T0, A = Math.PI * (44.323 / 2000) ** 2, m = G.m_run, p = G.p3; let lo = 0, hi = 1;
-    for (let i = 0; i < 200; i++) { const M = (lo + hi) / 2, f = p * A * M * Math.sqrt(g * (1 + (g - 1) / 2 * M * M) / (R * T0)) - m; if (f < 0) lo = M; else hi = M; }
+    for (let i = 0; i < 200; i++) { const M = (lo + hi) / 2, f = A * p * Math.sqrt(g) * M * Math.pow(1 + (g - 1) / 2 * M * M, -(g + 1) / (2 * (g - 1))) / Math.sqrt(R * T0) - m; if (f < 0) lo = M; else hi = M; }
     const Mh = (lo + hi) / 2, vh = Mh * Math.sqrt(g * R * T0 / (1 + (g - 1) / 2 * Mh * Mh));
-    near(G.Mach, Mh, 1e-6, 'runner Mach number at the turbine flange’s state, cycle mean'); near(G.v, vh, 1e-6, 'runner gas speed, m/s'); }
+    near(G.Mach, Mh, 1e-6, 'runner Mach number at the turbine flange’s state, cycle mean'); near(G.v, vh, 1e-6, 'runner gas speed, m/s, cycle mean'); }
   // the loss against the independent script
   { const K = k => (G.parts.find(x => x.k === k) || {}).K || 0, Ls = (G.parts.find(x => x.k === 'run') || {}).L || 0;
-    const c = { m_col: G.m_col, m_run: G.m_run, p3: G.p3, T0: G.T0, gamma: G.g, R: G.R, d_col: G.dcol, L_col: 152.4, d_eq: G.id * 2, d_run: G.id, L_straight: Ls, d_port: G.port, K_merge: K('merge'), K_bends: K('bends'), K_port: K('port'), rough: 1.5e-6 };
+    const c = { p3_total: true, m_col: G.m_col, m_run: G.m_run, p3: G.p3, T0: G.T0, gamma: G.g, R: G.R, d_col: G.dcol, L_col: 152.4, d_eq: G.id * 2, d_run: G.id, L_straight: Ls, d_port: G.port, K_merge: K('merge'), K_bends: K('bends'), K_port: K('port'), rough: 1.5e-6 };
     let py = null; try { py = JSON.parse(execFileSync('python3', [path.join(process.cwd(), '..', 'tools', 'validation', 'boost', 'turbomani.py')], { input: JSON.stringify(c) }).toString()); } catch (e) { console.log('python: ' + e.message); }
     ok(!!py, 'tools/validation/boost/turbomani.py ran');
     if (py) { near(G.march.dp0, py.dp0, 2e-3, 'manifold loss (total pressure), page against turbomani.py, Pa'); near(G.march.dp, py.dp, 2e-3, 'static pressure rise from the turbine flange to the port, Pa');
