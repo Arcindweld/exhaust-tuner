@@ -381,3 +381,208 @@ back-pressure sum on the page (the Cats tab works its converter at its own typed
 typed Mach number), so nothing there changed; `exhMarch` takes any exhaust and could serve one.
 Tests: web/tests/xflow_ui.js (new), turboguide_ui.js (pins above); tools/validation/boost/xflow.py and xflow_page.js. Web suite
 (run_all_tests.py --suite web --no-build -j 2): 108 tests, 103 passed, 0 failed, 5 skipped (expected), 7 partial skips, 0 unexpected.
+
+## Part 2: independent audit of the rest of 2026-11-12 (intercooler and turbo picks, oil cooling, exhaust march, Mounts, build sheet)
+
+Scope: `icRecommend`, `turboRecommend`, `icApply` and the `IC_LIB` rows (Garrett, Mishimoto, CSF, EJ Bowman, Bell, Conflux
+with `cfxModel` / `cfxUA` / `cfxDp` / `cfxPredict`); the oil section (`setrabLoad`, `oilProps`, `oilUnit`, `oilSize`,
+`oilEps`, `w2aLoop` with an oil load, `TURBO_OIL`, `AN_SIZES`); the exhaust march (`exhMarch`, `exhSteps`, `xTotal`) against
+new cases; the Mounts designer (`mtShares`, `mtIsolators`, `mtSecStress`, `mtWeldGroup`, `mtBoltCap`, `mtStayChecks`,
+`mtGrowth`, `mtFlat`, the sheet rows) and fusion-addin/mounts.py; the checklist and build sheet; three flaky tests. Not
+audited: the wave solver. Method as in Part 1: equations from sources read for this audit (listed per finding),
+recomputed in new scripts (tools/validation/boost/`mounts.py`, `conflux.py`, `conflux_curves.py`; `xflow.py` rerun on new
+cases from the new `xflow_page2.js`), compared with the page through its hooks (`window.__mounts`, `__tso`, `__tsx`, `__tg`).
+Every fix has a check in web/tests/boostaudit2_ui.js; run against the merged page (1917a1a) 14 of its checks fail, all pass
+now. python-ht is not installable here (no index access): the cross-flow series was instead checked against a direct 2-D
+solution of the both-unmixed exchanger (600 × 600 cells; 3e-7).
+
+### Mounts designer
+
+**M1. Load sharing, `mtShares` (F/n + (J+ M) × s). CORRECT, for the stated assumption.** Independent: the rigid body on n
+equal isotropic springs solved as its own 6 × 6 stiffness system at an arbitrary origin (no centroid, no pseudo-inverse).
+Asymmetric three mounts at (−200, 0, −100), (300, 0, −100), (−100, 0, 250) mm under 10 kg at the centre: statics (three
+equations, three unknowns) 36.4247 / 33.6228 / 28.0190 N, springs the same, page the same to 1e-9. 25 g sideways with the
+mass 80 mm above the mounts (statically indeterminate): mount 1 (838.726645, 355.8413, −36.867105) N both ways; ΣF and ΣM
+balance the load. Four asymmetric mounts, 26 g down + 25 g forward: identical to 1e-9. Equal stiffness in every direction
+is the page's assumption and is said in the load caption; real brackets are stiffer one way than another, so the shares
+are a model, not statics, beyond three mounts or with sideways load.
+
+**M2. Isolation target, `mtIsolators`. FIXED.** Transmissibility T = √(1 + (2ζr)²) ÷ √((1 − r²)² + (2ζr)²) (base
+excitation; Iowa 58:153 lecture 9): CORRECT. But the bounce limit was inverted from the undamped T = 1 ÷ (r² − 1)
+(r = √(1 + 1/T)) while each bobbin is then checked with the damped T (ζ 0.07): a mount bought to the page's "at most"
+stiffness passed 21.09% against the 20% asked. Now the damped root above √2 (quadratic in r²; brentq in mounts.py: r =
+2.507488). 7 kg on four at 28.333 Hz: 11.567 → 11.29949 Hz, 9.2436 → 8.820948 N/mm, sag 1.857 → 1.9456 mm; 40 kg:
+52.821 → 50.405 N/mm (mounts_ui pins changed for this reason). The AMC pick in case B is unchanged.
+
+**M3. Bracket root, `mtSecStress`. CORRECT; LIMITATION on torsion.** 3/16 in × 54 mm strap, 63.5 mm reach, 25 g forward
+on 7 kg ÷ 4: σ 134.2443, τ 2.5091, von Mises 134.3146 MPa (page identical); side 25 g with a 20 mm offset: 42.6303 MPa.
+Peak normal and peak shear are added at one corner (safe side, said on the page). Torsion uses J = Σ b t³/3, the
+thin-wall limit; at b/t ≈ 11 the exact factor is about 0.31 instead of 1/3 (Roark's table), so torsional shear reads about
+7% low: small next to the bending here, not changed.
+
+**M4. Stay in compression, `mtStayChecks`. FIXED.** The page took min(Euler, yield), which overstates intermediate
+columns. Johnson's parabola σcr = Sy − (Sy/2π)² (L/k)² ÷ E below (L/k)cr = √(2π²E/Sy) (Wikipedia "Johnson's parabolic
+formula", raw text; MechaniCalc "Column Buckling": transition where Euler gives Sy/2). 3/4 × 0.065 in A36 stay, 300 mm:
+L/k 48.55 < 127.74, 20764.06 N (was 22380.66 N at yield, 7.8% high); the row names the formula and the slenderness. The
+test comment's I (3518.7 mm⁴) was an arithmetic slip: 3445.66 mm⁴ (Euler 77461 N, not 79100).
+
+**M5. Bolts, `mtBoltCap`. CORRECT.** ISO 898-1 stress area from d2 = d − 0.649519 P, d3 = d − 1.226869 P: M8 36.6085 mm²
+(Fastenal 36.6); proof 580 × 36.6 = 21228 N, shear 0.6 × 800 × π d3²/4 = 15763.70 N (Portland Bolt's 60%). Foot bolts: tipping
+about the nearer edge with the farthest bolt's share M d_far ÷ (d_near² + d_far²), the pair taking the turn as a couple:
+the standard bolt-group relations; prying not counted (said).
+
+**M6. Welds, `mtWeldGroup`. CORRECT method; FIXED wording for aluminium.** Line method (Blodgett), strap welded on both
+faces, forward case: 106.4523 N/mm (page identical); throat 0.707 × leg; steel 0.30 FEXX = 145 MPa for E70 (AWS D1.1
+allowable). AlcoTec's 11.5 / 17.0 ksi are its "Typical Shear Strength – Fillet Welds" (re-read): breaking strengths, so the
+aluminium weld rows put the page's safety factor on failure while the steel row is on an allowable and the brackets on
+yield. The row now says so. LIMITATION, open: no Aluminum Design Manual allowable was verified.
+
+**M7. Flat pattern. CORRECT.** BA = (π/2)(R + K t), flat foot = Lf − R, upright h − (R + t), hole Lf − a from the end:
+mount 1 (t = R = 4.7498 mm, K 0.42) bend line 32.797 mm; the add-in's `flat_pattern` gives the same (test_mounts.py).
+
+**M8. Net section at a lightening hole. FIXED wording.** Nominal net-section stress without Kt is the usual basis for
+static yield of a ductile metal; the page did not say so. The row now states it and that the edge stress (about 2–3 ×)
+matters for fatigue, which is not checked.
+
+**M9. Heat growth, `mtGrowth`. CORRECT.** α L ΔT from the fixed mount (23.2 µm/m °C, the part taken as aluminium, said), the
+others slide along the line from it; growth only when hotter than bolt-up, shrink only when colder; slots = hole + both
+growths + 2 mm.
+
+**M10. Basis texts. CORRECT.** FIA Appendix J 253-7.2.2 / 7.3.6, re-read: "must be able to withstand a deceleration of
+25 g" (extinguisher mountings), on the page as a reference class, not a rule for coolers. 14 CFR 25.303 re-read: 1.5 on
+limit loads unless a condition is stated in ultimate terms; the page holds 1.5 × load against yield, stricter than
+25.303 + 25.305 (limit load without permanent set, ultimate without failure), as it says. Fatigue: stated as not checked
+on every bracket and on the sheet.
+
+**S1. Mount rows on the turbo build sheet. FIXED.** Opening the Hangers tab once put the designer's untouched example
+(a 7 kg core on four 25 g mounts, "safety factor 1.63") on the turbo build sheet, and changing the intercooler on the
+Intake tab afterwards left the sheet with the brackets of the earlier core. The rows now appear only when the designer has
+been set up (an input off its default, or mounts read from Fusion) and are worked out again from its inputs when the sheet
+is made.
+
+### Oil cooling
+
+**O1. Oil properties. FIXED.** Engineering ToolBox, re-read: 340–400 K rows as on the page, but the table runs 260–400 K
+and the page clamped below 67 °C calling that "the table's" range. All eight rows now: at 50 °C 870.11 kg/m³,
+2004.18 J/kg K (was 860 / 2080, clamped).
+
+**O2. Setrab. CORRECT.** The 24 engine-oil-cooler rows re-read (power range, wet/dry drop, wet and dry BTU/hr) all match;
+the four FP fan-pack rows were not in the text read and are not re-verified. Test conditions match. The page calls the
+figures maker guidance, not a measured load, and sizes against the upper wet-sump figure (its choice, stated).
+
+**O3. Conflux oil coolers. CORRECT.** Nodes re-read from oil.pdf with this audit's own extraction (axes fitted to the
+charts' gridlines, conflux_curves.py): 100220 heat 5.427 / 9.594 kW at 8.0 / 40.0 L/min (table 5.4 / 9.6), drop 5.254 /
+64.340 kPa (5.2 / 64.3); 100219 5.150 / 21.995 (5.2 / 22.0), 5.711 / 59.391 (5.7 / 59.4); 100218 37.632 / 62.456 (37.6 /
+62.5), 23.360 / 105.012 (23.4 / 105.0). Test conditions and ports as printed (85/50 °C, 20 L/min, 0.34 kg/s; 120/80 °C and
+120/85 °C, 120 L/min, 2 kg/s; JIC −08, −08, −12). The −08 / "JIC-10" note is right: 3/4-16 is the −08 thread (Titan).
+
+**O4. Effectiveness and units in parallel. CORRECT; wording FIXED.** At fixed flows ε = f(NTU, Cr), so Q scales with the
+inlet difference. Cmin is the oil at every tabulated flow (100218: 1593.5 W/K at 50 L/min against 7834 W/K coolant):
+ε 0.674149 / 0.373531, page identical. n units at F/n each, page identical (130 L/min, 110 / 70 °C: one unit, 67588.57 W,
+86.2 kPa). Each unit is at the maker's coolant flow, so n units need n times it: now said.
+
+**O5. Oil heat into the charge cooler's loop. CORRECT.** A fixed-point solve of the closed loop with the oil cooler after
+the charge cooler equals (Th − Ta − k Qoil) ÷ (1/e₁ + k), k = 1/e₂ − 1/Cw, and the oil cooler's coolant-in tw1 + Q/Cw.
+
+**O6. Turbo oil-line quotes. CORRECT** (Precision's installation page and Garrett's two pages re-read). Precision's page is
+script-built; two reads differ on one word of the drain sentence, so its exact wording is not certified. Garrett's
+system page also mentions a 35° drain-rotation limit in its leak section beside the ±15° rule the page quotes.
+
+### Intercoolers, turbos and the catalogue
+
+**C1. Conflux barrel curves. CORRECT.** barrel.pdf re-read: effectiveness 100011 73.0 / 79.0 / 86.0 % at 0.40 / 0.30 /
+0.20 kg/s, 100012 80.0 / 84.0 / 87.0 at 0.60 / 0.50 / 0.40, 100013 88.0 / 90.0 / 92.0 at 0.80 / 0.70 / 0.60; outlet 100011 55.07 /
+49.08 / 43.10 °C; drop 100011 17.14 / 10.16 / 5.18, 100013 16.99 / 12.99 / 9.99 kPa: within the offsets the page's comment
+gives. Internal check ε against (Tin − Tout)/(Tin − Tc): 100013 at 0.60 kg/s 91.8% against 92.0%. The brochures and
+their images are not in the repository (git ls-files).
+
+**C2. UA inversion. CORRECT.** Both-unmixed series against the 2-D solution: 0.807012 at NTU 2, Cr 0.214. 100012 at
+0.40 kg/s with the page's cp 1004.675 J/kg K: UA cross 992.0958, counter 910.9411 W/K; the five points and two predictions
+per part (e.g. 0.46 kg/s, 180 → 45 °C: 53150.13 W, 64.994 °C) equal the page to 1e-7. Counter-flow UA is 8–12% below
+cross-flow; at the maker's coolant flow both predict within 0.01 °C, at 0.8 × it 0.6 °C apart (the bracket shown).
+
+**C3. Drop at the build's density. CORRECT.** dp ∝ 1/ρ at equal mass flow, ρ from the maker's stated inlet pressure and
+temperature against the compressor outlet's: 100012 at 0.50 kg/s, 350 kPa(a) / 200 °C → 170984.5 Pa / 101.57 °C:
+× 1.621134 = 25.938 kPa (pressure alone would give × 2.047). LIMITATION (stated on the page): single-point drops (Garrett,
+Mishimoto, Bell, Bowman) are scaled by flow² at the rating's density. For EJ Bowman, whose 1.75 bar g / 180 °C basis is
+stated, the default build’s density would make the drop 1.34 × the page’s (ρ ratio (276.3 kPa ÷ 453.15 K) ÷ (171.0 kPa ÷ 374.7 K)); open.
+
+**C4. Capacity margin and "just short". CORRECT.** capM = Q ÷ Q_needed against the margin; at fixed flows Q ∝ (thi − tci),
+so the passing coolant-in is thi − (thi − tci) × margin ÷ capM.
+
+**R1. Order with an unknown value. FIXED.** "Same" was |a − b| ≤ 1e-9 max(1, |a|): with a = Infinity (no published drop,
+volume, weight or face) it held against any finite b but not the other way, so the comparator was inconsistent: two cores
+of equal rating, one publishing a drop and one publishing more of everything else, ranked by list order, and the reason
+named the wrong key ("less published data" or "higher or unpublished pressure drop" on the core that publishes it). Now
+equality holds both ways (boostaudit2_ui: the drop-publishing core first in both orders). No catalogue order pinned in
+icrec_ui / conflux_ui changed.
+
+**R2. A size limit that excludes everything. FIXED wording.** The note now says how many cores the space rules out and how
+many fail on size alone (100 × 100 × 30 mm: 57 of 57, 48 on size alone) and suggests more space.
+
+**R3. Twins into one core. CORRECT.** Rated against the whole engine (450 hp: Bell A300227240, 608 hp, 1.351 ×) with both
+turbos' air (0.43318 = 2 × 0.21659 kg/s). Ties fall to list order and say so. `turboRecommend` sorts on finite keys only.
+
+**B1. Bell. CORRECT figures; FIXED wording.** Catalogue re-read: A350097240 455 CFM USD 496, A350130240 609 / 626,
+A350143240 670 / 678, A350169240 792 / 780, A300227240 912 / 990, A350240240 1125 / 1060, A350280240 1312 / 1218; the basis
+"based on 1 psig pressure loss across the intercooler core and a charge-air pressure of 10 psig", standard or actual not
+said, no temperature. A, B, C follow the part numbers; weights are on item pages that could not be fetched here. Both
+readings: as standard cfm (the page) A350097240 is 303 hp by 1.5 cfm per hp and 1 psi at 0.2541 kg/s; as actual cfm at
+10 psig the mass is 1.68 ×, 510 hp, and the drop at a given mass flow 2.82 × lower. The page said only the drop half;
+the rating line now gives both (the standard reading is the lower rating and the higher drop).
+
+**K1. Catalogue spot check. All match.** Garrett, its core table re-read: 848054-6012, 893513-6001, 848054-6037 (vertical),
+701596-6001, 858893-6003 and the air-to-liquid 734408-6005: horsepower and all three dimensions in both units. Mishimoto
+MMINT-UG (17.5 × 11.75 × 2.76 core, 24.5 × 13.1 × 3 overall, 3 in, 700 hp, 32 psi, cast tanks) and MMINT-UZ (20.5 × 6.25 ×
+2.5, 28 × 7.5 × 2.5, 2.5 in, no hp, 22 psi). CSF's size table: 8056, 8063, 8174, 8054 (vertical flow), 8085, 8040. EJ
+Bowman EC120-4073-3, FC100-4074-2, GK190-4877-3, JK190-4078-3 (power, flow, drop, outlet, heat, water flow and drop, BSP
+size; basis 180 °C, 1.75 bar g, 30 °C water). Bell seven rows (B1). Oil coolers: the three Conflux rows (O3).
+
+### Exhaust after the turbine
+
+**X7. Two new cases against xflow.py. CORRECT.** xflow_page2.js builds them: (1) near choking, the Sound tab's pipe 57.15 mm
+OD (2.25 in) with the chamber on 53.848 mm, tip leaving at Mach 0.956: page 141090.102 Pa, xflow.py 141021.777 (+0.048%);
+2.0 in OD chokes at the tip and the page says so; (2) two downpipe bends, plug muffler 150 mm at 20%, 63.5 mm OD pipe after
+it (a contraction), painted black, 100 mph, Wendland's factors: 83262.376 against 83212.416 Pa (+0.060%). Parts within
+0.07% except the pipe after the downpipe, 0.23% and 0.33% (the page holds gamma over each 10 mm step; the residual grows
+with Mach). xflow.py had no step between the downpipe and the muffler's pipe (the merge's cases had equal bores): added.
+
+**X8. Static and total at the turbine outlet. CORRECT.** Both buttons write the static figure (cone recovered, or the
+separated-cone march) to i-tobp; `turbineBalance` takes it as p4 with p3 as a total pressure: total-to-static, the map's
+definition.
+
+**X9. Cooling. CORRECT inside its range.** Gnielinski's 3000 ≤ Re ≤ 5 × 10⁶: full-power Re here 7 × 10⁴ to 2.3 × 10⁵;
+air's Pr 0.7. The driving temperature is T0 (a turbulent recovery factor near 0.89 would take 0.11 v²/2cp off), as the
+page says.
+
+**X10. A choked tip. LIMITATION.** When the tip would leave supersonic at the outside pressure the page gives no back
+pressure ("too small") and a lower bound. A real pipe then chokes at its exit with the exit above the outside pressure and
+does have a back pressure; the page's answer is to resize, which is the useful one, and it says so.
+
+### Checklist and build sheet
+
+**S2. CORRECT by construction.** `tgSteps` and `tsSheet` read the computing sections' own objects (TS_LAST, TG, TS_X,
+TS_PLACE, the oil and intercooler picks; nothing worked out again), and the checklist is drawn after every section in the
+same render. The mount rows were the exception (S1).
+
+### Flaky tests
+
+**F1. turbosize_ui "page: 1.775 with the small inlet tube". Cause found, FIXED.** Playwright's `$eval` queries the element
+and reads it in a second round trip; the page's ResizeObserver re-renders #i-details on the next animation frame
+(requestAnimationFrame(renderActive)), so the read can land on the replaced, detached node, whose innerText has no layout
+line breaks: the number was right and the `\s*\n` in the pattern missed. Reproduced every time with a scratch sequence
+(read, set the compressor inlet, read at once). The test now reads with one evaluate (query and read together).
+Other tests use the same `$eval` pattern on #i-details; not changed here.
+
+**F2. test_header_uel, test_native. Cause confirmed, FIXED.** `router._route` stops on `time.time()`: 40 s a tube by
+default, the wide searches at 15% of it. With a 6 s budget (a machine about 7 × busier) test_header_uel fails (P2 0.02 cm
+short of the tube gap, P4 2.92 cm short of its length). The tests now pass `time_budget` 1e9, no clock limit (the core's
+`deadline_in` takes > 1e7 s as none): the searches run to their node and iteration limits. The router itself is unchanged.
+Cost: test_header_uel 57 s → 220 s here. test_native needs the Rust core, which is not built here: it skips, so its change
+(400 s → 1e9 s in every route it compares) is unrun. Nothing added to tests/flaky.txt.
+
+### Open after Part 2
+
+- Bowman's drop at the build's density (C3); an Aluminum Design Manual allowable for aluminium fillet welds (M6); exact
+  torsion constants for short rectangles (M3); a choked-exit back pressure (X10); Bell's item-page weights and Setrab's
+  four fan-pack rows (not re-read); test_native's change is unrun here.
