@@ -1877,3 +1877,29 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Suites (web, fusion, -j 2, no build): 145 tests, 139 passed, 0 flaky, 0 failed, 6 skipped (expected), 7 partial skips.
 - Open: mild steel's expansion with temperature, a cited K-series port spacing, routing to a merge ring with room for the
   nearer runners, the image's share of browser storage, a measured p3 read as static.
+
+## 2026-11-13: the wave simulation under boost (turbo, supercharger)
+
+- Wave model (JS `wsFactory`, Rust `rust/et_wave`, bit parity; WebAssembly rebuilt): `intake.source` (the charge after the
+  compressor and intercooler as the runners' upstream state), `exhaust.pOut` (tail back pressure), `exhaust.turbine` (the
+  quasi-steady equivalent nozzle on Benson's partly open end, work = eta x the isentropic total-to-static drop on the gas's
+  own isentrope, the gas after it into a downpipe; wastegate in parallel, internal or external; two entries for a divided
+  housing). Every NA result unchanged to the last digit (kat 66/66 with kat.json byte-identical, constref 112 speeds,
+  wavegas, wave_wasm). Details: docs/WAVE_VALIDATION_2026-11-11.md, part 5 (E1-E11).
+- Closure (`turboSimLib`): the turbine's effective area at the full-boost RPM with the gate shut, then the gate's area at
+  each faster speed, from the Intake tab's power balance (cycle-averaged turbine power = compressor power); the
+  turbine-inlet pressure is an output.
+- 4-Stroke tab: "Wave simulation with the turbo" / "with the supercharger" when the Intake tab's induction is turbo or
+  centrifugal: what it takes and from where, torque and power under boost and without, pressure before the turbine (mean,
+  peak, x boost) and its trace, pumping, residual, EGT before and after, the gate against the algebra, tail orders after the
+  turbine against the same boost without it. Feeds the Turbo manifold section's blowdown peak and a checklist line.
+  Intake inputs: turbine and gate effective areas (blank = found).
+- K24A2 + PT5862 at the audit's 450 hp boost (169.9 kPa): the model predicts 571 hp at 6600 rpm (brake, pumping counted),
+  turbine inlet 0.4-0.8 x boost mean, gate 0-35 % against the algebra's 58 % at the page's assumed 2 x boost: a prediction
+  (stand-in cam, no rated turbo engine with cam data to test the whole run).
+- Not modelled: knock, enrichment, retard; compressor map, surge, turbo speed, transients; turbine map; housing heat loss.
+- OpenWAM's turbine not cross-checked (needs a turbo shaft and a speed- or map-based efficiency the writer does not write).
+- Tests: web/tests/waveturbo_ui.js (new), web/tests/turbosim_ui.js (new), web/tests/wave_wasm.js (four turbo jobs added).
+  Script tools/validation/wave/turbo_k24.js. No pinned value changed.
+- Suite (-j 2, --no-build, rust/web/fusion/parity without cargo_test_rust: disk): 162 tests, 153 passed, 0 failed, 9
+  skipped, 7 partial skips, 0 unexpected, 1944 s.

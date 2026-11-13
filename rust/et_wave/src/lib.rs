@@ -272,6 +272,72 @@ fn gas_t(g: &Gas, v: f64, x: f64, t: f64, by_h: bool) -> (f64, f64, f64) {
     (t, cp, r)
 }
 
+/// One polynomial range's factor of the isentropic pressure ratio (the page's isenPiece): (b/a)^(c0/R) exp((c1 (b-a)
+/// + c2 (b^2-a^2)/2 + c3 (b^3-a^3)/3 + c4 (b^4-a^4)/4) / R).
+fn isen_piece(g: &Gas, lo: bool, a: f64, b: f64, x: f64) -> f64 {
+    let (bb, dd) = if lo { (&g.blo, &g.dlo) } else { (&g.bhi, &g.dhi) };
+    let r = g.rb + x * g.rd;
+    let c0 = bb[0] + x * dd[0];
+    let c1 = bb[1] + x * dd[1];
+    let c2 = bb[2] + x * dd[2];
+    let c3 = bb[3] + x * dd[3];
+    let c4 = bb[4] + x * dd[4];
+    powf(b / a, c0 / r) * expf((c1 * (b - a) + c2 * (b * b - a * a) / 2.0 + c3 * (b * b * b - a * a * a) / 3.0 + c4 * (b * b * b * b - a * a * a * a) / 4.0) / r)
+}
+/// p2 / p1 of an isentropic change from T1 to T2 at composition x (the page's isenRatio; pow and exp only).
+fn isen_ratio(g: &Gas, t1: f64, t2: f64, x: f64) -> f64 {
+    let lo = if t1 < t2 { t1 } else { t2 };
+    let hi = if t1 < t2 { t2 } else { t1 };
+    let r = g.rb + x * g.rd;
+    let mut q = 1.0;
+    if lo < 200.0 {
+        let cp = gas_at(g, 200.0, x).0;
+        q *= powf((if hi < 200.0 { hi } else { 200.0 }) / lo, cp / r);
+    }
+    {
+        let a = if lo > 200.0 { lo } else { 200.0 };
+        let b = if hi < 1000.0 { hi } else { 1000.0 };
+        if b > a {
+            q *= isen_piece(g, true, a, b, x);
+        }
+    }
+    {
+        let a = if lo > 1000.0 { lo } else { 1000.0 };
+        let b = if hi < TMAX { hi } else { TMAX };
+        if b > a {
+            q *= isen_piece(g, false, a, b, x);
+        }
+    }
+    if hi > TMAX {
+        let cp = gas_at(g, TMAX, x).0;
+        q *= powf(hi / (if lo > TMAX { lo } else { TMAX }), cp / r);
+    }
+    if t2 >= t1 {
+        q
+    } else {
+        1.0 / q
+    }
+}
+/// The temperature an isentropic change from (T1, p1) reaches at p2 (the page's isenT): Newton from the frozen-gamma estimate.
+fn isen_t(g: &Gas, t1: f64, p1: f64, p2: f64, x: f64, gm: f64) -> f64 {
+    let want = p2 / p1;
+    let r = g.rb + x * g.rd;
+    let mut t = t1 * powf(want, (gm - 1.0) / gm);
+    for _ in 0..30 {
+        let q = isen_ratio(g, t1, t, x);
+        let cp = gas_at(g, t, x).0;
+        let dt = (q - want) / (q * cp / (r * t));
+        t -= dt;
+        if t < 100.0 {
+            t = 100.0;
+        }
+        if !(dt.abs() > 1e-10 * t) {
+            break;
+        }
+    }
+    t
+}
+
 /// JavaScript's Math.min of two numbers.
 fn jmin(a: f64, b: f64) -> f64 {
     if a.is_nan() || b.is_nan() {
@@ -418,6 +484,63 @@ struct Engine {
     flow_in: Option<FlowTab>, // e.flowIn / e.flowEx: measured effective area per valve against lift (2026-11-12, part 3)
     flow_ex: Option<FlowTab>,
     plenum: Option<PlenSpec>, // intake.plenum (the page's plenumOf)
+    src: Option<(f64, f64)>,  // intake.source: the boosted charge's p (Pa) and T (K) (the page's sourceOf)
+    pout: Option<f64>,        // exhaust.pOut: the open tail ends' outside pressure
+    turbine: Option<TurbSpec>, // exhaust.turbine (the page's turbineOf)
+}
+/// exhaust.turbine: the equivalent nozzle's effective area (all entries), total-to-static efficiency, the wastegate's
+/// effective area and where it discharges, the downpipe's end pressure and the downpipe.
+struct TurbSpec {
+    cda: f64,
+    eta: f64,
+    wg_cda: f64,
+    wg_atm: bool,
+    pout: f64,
+    down: Line,
+}
+fn source_of(intake: &Value) -> Result<Option<(f64, f64)>, String> {
+    let q = &intake["source"];
+    if !truthy(q) {
+        return Ok(None);
+    }
+    let (p, t) = (num(&q["p"]), num(&q["T"]));
+    if !(p > 0.0 && t > 0.0) {
+        return Err("intake.source needs its pressure p (Pa) and temperature T (K)".into());
+    }
+    Ok(Some((p, t)))
+}
+fn turbine_of(exhaust: &Value) -> Result<Option<TurbSpec>, String> {
+    let t = &exhaust["turbine"];
+    if !truthy(t) {
+        return Ok(None);
+    }
+    let cda = num(&t["CdA"]);
+    if !(cda > 0.0) {
+        return Err("exhaust.turbine needs its effective area CdA (m2)".into());
+    }
+    let eta = num(&t["eta"]);
+    if !(eta > 0.0 && eta <= 1.0) {
+        return Err("exhaust.turbine.eta must be between 0 and 1".into());
+    }
+    let d = &t["down"];
+    let segs = match d["segs"].as_array() {
+        Some(a) if truthy(d) && !a.is_empty() => segs_of(&d["segs"])?,
+        _ => return Err("exhaust.turbine.down needs the downpipe segments".into()),
+    };
+    let wg = &t["wgCdA"];
+    if !wg.is_null() && !(num(wg) >= 0.0) {
+        return Err("exhaust.turbine.wgCdA must be 0 or more".into());
+    }
+    let wgv = num(wg);
+    let po = num(&t["pOut"]);
+    Ok(Some(TurbSpec {
+        cda,
+        eta,
+        wg_cda: if wgv > 0.0 { wgv } else { 0.0 },
+        wg_atm: t["wgTo"].as_str() == Some("atm"),
+        pout: if po > 0.0 { po } else { PATM },
+        down: Line { segs, tw: if truthy(&d["Tw"]) { d["Tw"].clone() } else { Value::from(600.0) } },
+    }))
 }
 /// A measured valve flow table (the page's flowTab): lifts rising above 0 (m), effective areas per valve (m2).
 #[derive(Clone)]
@@ -684,6 +807,9 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         flow_in: flow_tab_of(&e["flowIn"])?,
         flow_ex: flow_tab_of(&e["flowEx"])?,
         plenum: plenum_of(intake)?,
+        src: source_of(intake)?,
+        pout: { let v = num(&exhaust["pOut"]); if v > 0.0 { Some(v) } else { None } },
+        turbine: turbine_of(exhaust)?,
     })
 }
 
@@ -693,6 +819,7 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
 enum Src {
     In(usize),
     Ex(usize),
+    Turb, // the turbine's flow into the downpipe (aux.fd)
 }
 /// What the plenum's ends need from the plenum at the step's start.
 #[derive(Clone, Copy, Default)]
@@ -700,6 +827,7 @@ struct Aux {
     p: f64,
     t: f64,
     x: f64,
+    fd: Flow, // the turbine's flow into the downpipe this step
 }
 #[derive(Clone, Copy)]
 enum Bnd {
@@ -707,6 +835,7 @@ enum Bnd {
     Open(f64),
     Fed(f64, Src),
     Plen(f64), // an end on the intake plenum (the page's plenEnd)
+    OpenAt(f64, f64, f64), // an open end on outside gas at pa, Ta (the boosted charge, a back pressure): side, pa, Ta
 }
 
 struct Pipe {
@@ -746,7 +875,7 @@ struct Pipe {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, x0: f64, gas: Option<Gas>) -> Result<Pipe, String> {
+fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, x0: f64, gas: Option<Gas>, p0: f64) -> Result<Pipe, String> {
     let nf = jmax(6.0, jround(l / dx_want));
     if !(nf.is_finite() && nf >= 1.0 && nf < 1e7) {
         return Err("a pipe in the spec has no usable length".into());
@@ -766,13 +895,15 @@ fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, 
         af[j] = 0.5 * (a[j - 1] + a[j]);
     }
     let t0 = if t0 != 0.0 && !t0.is_nan() { t0 } else { TATM };
-    let rho0 = PATM / ((match &gas { Some(g) => gas_r(g, x0), None => RG }) * t0);
+    // p0: the fill pressure (the boosted intake, 2026-11-13); 0: the atmosphere, as before
+    let pf = if p0 > 0.0 { p0 } else { PATM };
+    let rho0 = pf / ((match &gas { Some(g) => gas_r(g, x0), None => RG }) * t0);
     let e0 = match &gas { Some(g) => gas_e(g, t0, x0), None => 0.0 };
     let (mut q1, mut q2, mut q3, mut q4) = (vec![0.0; n], vec![0.0; n], vec![0.0; n], vec![0.0; n]);
     for i in 0..n {
         q1[i] = rho0 * a[i];
         q2[i] = 0.0;
-        q3[i] = if gas.is_some() { rho0 * e0 * a[i] } else { PATM / G1 * a[i] };
+        q3[i] = if gas.is_some() { rho0 * e0 * a[i] } else { pf / G1 * a[i] };
         q4[i] = rho0 * x0 * a[i];
     }
     let z = || vec![0.0; n];
@@ -1071,33 +1202,14 @@ fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow], 
             p.f3[j] = m * h0;
             p.f4[j] = m * g[3];
         }
-        Bnd::Open(side) => {
-            let (i, j) = if side > 0.0 { (p.n - 1, p.n) } else { (0, 0) };
-            let ra = match &p.gas { Some(gs) => gas_r(gs, 1.0), None => RG };
-            let g = open_state(p.r[i], p.u[i], p.p[i], p.x[i], side, PATM, TATM, 1.0, p.g[i], ra);
-            let af = p.af[j];
-            let m = g[0] * g[1] * af;
-            p.f1[j] = m;
-            p.f2[j] = m * g[1] + g[2] * af;
-            // gas coming in carries the still outside air's own enthalpy h(Ta, xa) exactly (the page's openEnd)
-            let h0 = match &p.gas {
-                Some(gs) => {
-                    if side * g[1] < 0.0 {
-                        gas_h(gs, TATM, 1.0)
-                    } else {
-                        gas_h(gs, g[2] / (g[0] * gas_r(gs, g[3])), g[3]) + 0.5 * g[1] * g[1]
-                    }
-                }
-                None => GAM / G1 * g[2] / g[0] + 0.5 * g[1] * g[1],
-            };
-            p.f3[j] = m * h0;
-            p.f4[j] = m * g[3];
-        }
+        Bnd::Open(side) => open_end(p, side, PATM, TATM),
+        Bnd::OpenAt(side, pa, ta) => open_end(p, side, pa, ta),
         Bnd::Fed(side, src) => {
             let (i, j) = if side > 0.0 { (p.n - 1, p.n) } else { (0, 0) };
             let f = match src {
                 Src::In(k) => v_in[k],
                 Src::Ex(k) => ex_flow[k],
+                Src::Turb => aux.fd,
             };
             let af = p.af[j];
             let entering = if side > 0.0 { f.m < 0.0 } else { f.m > 0.0 };
@@ -1111,6 +1223,170 @@ fn boundary(p: &mut Pipe, b: Bnd, _which: f64, v_in: &[Flow], ex_flow: &[Flow], 
             p.f4[j] = f.m * f.x;
         }
     }
+}
+/// An open end on still outside gas at pa, ta (fresh charge, x = 1): the page's openEnd.
+fn open_end(p: &mut Pipe, side: f64, pa: f64, ta: f64) {
+    let (i, j) = if side > 0.0 { (p.n - 1, p.n) } else { (0, 0) };
+    let ra = match &p.gas { Some(gs) => gas_r(gs, 1.0), None => RG };
+    let g = open_state(p.r[i], p.u[i], p.p[i], p.x[i], side, pa, ta, 1.0, p.g[i], ra);
+    let af = p.af[j];
+    let m = g[0] * g[1] * af;
+    p.f1[j] = m;
+    p.f2[j] = m * g[1] + g[2] * af;
+    // gas coming in carries the still outside air's own enthalpy h(Ta, xa) exactly (the page's openEnd)
+    let h0 = match &p.gas {
+        Some(gs) => {
+            if side * g[1] < 0.0 {
+                gas_h(gs, ta, 1.0)
+            } else {
+                gas_h(gs, g[2] / (g[0] * gas_r(gs, g[3])), g[3]) + 0.5 * g[1] * g[1]
+            }
+        }
+        None => GAM / G1 * g[2] / g[0] + 0.5 * g[1] * g[1],
+    };
+    p.f3[j] = m * h0;
+    p.f4[j] = m * g[3];
+}
+
+/// The turbine face's results (the page's TF).
+#[derive(Clone, Copy, Default)]
+struct Tf {
+    m: f64,
+    mt: f64,
+    mg: f64,
+    h0: f64,
+    p0: f64,
+    pb: f64,
+    x: f64,
+    w: f64,
+    dhis: f64,
+    md: f64,
+    ed: f64,
+    xd: f64,
+    rev: f64,
+}
+/// The downpipe's first cell (the gas a reversed turbine flow brings back).
+#[derive(Clone, Copy)]
+struct Cell0 {
+    r: f64,
+    u: f64,
+    p: f64,
+    g: f64,
+    rm: f64,
+    cp: f64,
+    x: f64,
+}
+/// One turbine entry at the right end of pipe p (the page's turbineFace): the equivalent nozzle (and the gate in
+/// parallel) on Benson's partly open end, the work from the isentrope.
+#[allow(clippy::too_many_arguments)]
+fn turbine_face(k: &K, p: &mut Pipe, at_: f64, ag: f64, pt: f64, pg: f64, eta: f64, d: &Cell0, g_down: bool) -> Tf {
+    let i = p.n - 1;
+    let j = p.n;
+    let (r, u, pp, gm, rr, cp, x, af) = (p.r[i], p.u[i], p.p[i], p.g[i], p.rm[i], p.cp[i], p.x[i], p.af[j]);
+    let k2 = 2.0 / (gm - 1.0);
+    let exc = (gm - 1.0) / (2.0 * gm);
+    let ig = 1.0 / gm;
+    let c = (gm * pp / r).sqrt();
+    let jj = u + k2 * c;
+    // the end state on the arriving characteristic at face pressure pb: cb, ub, rb, Tb, T0, p0
+    let at = |pb: f64| {
+        let s = pb / pp;
+        let cb = c * powf(s, exc);
+        let ub = jj - k2 * cb;
+        let rb = r * powf(s, ig);
+        let tb = pb / (rb * rr);
+        let t0 = tb + 0.5 * ub * ub / cp;
+        let p0 = pb * powf(t0 / tb, gm / (gm - 1.0));
+        (ub, rb, tb, t0, p0)
+    };
+    let noz = |p0: f64, t0: f64| orifice(k, at_, p0, t0, pt, gm, rr) + orifice(k, ag, p0, t0, pg, gm, rr);
+    let ps = if jj > 0.0 { pp * powf(jj / (k2 * c), 1.0 / exc) } else { 0.0 };
+    let gas = p.gas;
+    let (m, mt, h0, pb, ub, rb, p0);
+    let (mut mg, mut w, mut dhis, mut rev) = (0.0, 0.0, 0.0, 0.0);
+    if ps > pt || (ag > 0.0 && ps > pg) {
+        let pc = pp * powf(jj / ((1.0 + k2) * c), 1.0 / exc);
+        let pbv;
+        let (u1, r1, _, t01, p01) = at(pc);
+        if u >= c {
+            pbv = pp;
+        } else if af * r1 * u1 - noz(p01, t01) <= 0.0 {
+            pbv = pc;
+        } else {
+            let (mut lo, mut hi) = (pc, ps);
+            for _ in 0..200 {
+                let mid = 0.5 * (lo + hi);
+                let (u2, r2, _, t02, p02) = at(mid);
+                if af * r2 * u2 - noz(p02, t02) > 0.0 {
+                    lo = mid;
+                } else {
+                    hi = mid;
+                }
+                if hi - lo <= 1e-12 * hi {
+                    break;
+                }
+            }
+            pbv = 0.5 * (lo + hi);
+        }
+        pb = pbv;
+        let st = at(pb);
+        ub = st.0;
+        rb = st.1;
+        let tb = st.2;
+        let t0 = st.3;
+        p0 = st.4;
+        m = af * rb * ub;
+        let nt = orifice(k, at_, p0, t0, pt, gm, rr);
+        let ng = orifice(k, ag, p0, t0, pg, gm, rr);
+        let tot = nt + ng;
+        mt = if tot > 0.0 { m * (nt / tot) } else { m };
+        mg = m - mt;
+        h0 = (match &gas { Some(g) => gas_h(g, tb, x), None => CP * tb }) + 0.5 * ub * ub;
+        if mt > 0.0 && p0 > pt {
+            let ti = match &gas { Some(g) => isen_t(g, tb, pb, pt, x, gm), None => tb * powf(pt / pb, G1 / GAM) };
+            dhis = h0 - match &gas { Some(g) => gas_h(g, ti, x), None => CP * ti };
+            if dhis < 0.0 {
+                dhis = 0.0;
+            }
+            w = eta * mt * dhis;
+        }
+    } else {
+        // flow back from the downpipe through the turbine's nozzle, no work
+        let td = d.p / (d.rm * d.r);
+        let tdo = td + 0.5 * d.u * d.u / d.cp;
+        let pdo = d.p * powf(tdo / td, d.g / (d.g - 1.0));
+        let ar = at_ + if g_down { ag } else { 0.0 };
+        let mut lo = if ps > 0.0 { ps } else { 1e-3 * pt };
+        let mut hi = if pdo > lo { pdo } else { lo };
+        for _ in 0..200 {
+            let mid = 0.5 * (lo + hi);
+            let (u2, r2, _, _, _) = at(mid);
+            if af * r2 * u2 + orifice(k, ar, pdo, tdo, mid, d.g, d.rm) > 0.0 {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+            if hi - lo <= 1e-12 * hi {
+                break;
+            }
+        }
+        pb = 0.5 * (lo + hi);
+        let st = at(pb);
+        ub = st.0;
+        rb = st.1;
+        p0 = st.4;
+        m = af * rb * ub;
+        mt = m;
+        rev = 1.0;
+        h0 = (match &gas { Some(g) => gas_h(g, td, d.x), None => CP * td }) + 0.5 * d.u * d.u;
+    }
+    let xo = if rev != 0.0 { d.x } else { x };
+    p.f1[j] = m;
+    p.f2[j] = m * ub + pb * af;
+    p.f3[j] = m * h0;
+    p.f4[j] = m * xo;
+    let md = if rev != 0.0 { m } else if g_down { m } else { mt };
+    Tf { m, mt, mg, h0, p0, pb, x: xo, w, dhis, md, ed: md * h0 - w, xd: md * xo, rev }
 }
 
 fn two_mut(v: &mut [Pipe], a: usize, b: usize) -> (&mut Pipe, &mut Pipe) {
@@ -1548,6 +1824,98 @@ struct State {
     jn: Junc,
     th: f64,
     plen: Option<Plen>,
+    turb: Option<Turb>,
+    acc: Option<Acc>, // per-cycle sums (the boosted intake's air; the turbine's)
+}
+/// The turbine's downpipe and the flow it is fed this step (the page's st.turb).
+struct Turb {
+    down: Vec<usize>,
+    fd: Flow,
+}
+/// Per-cycle sums (the page's turbAcc): 720 one-degree bins in cylinder 1's crank angle.
+struct Acc {
+    t: f64,
+    w: f64,
+    wis: f64,
+    mt: f64,
+    mg: f64,
+    m_air: f64,
+    h3: f64,
+    m3: f64,
+    x3: f64,
+    h4: f64,
+    m4: f64,
+    x4: f64,
+    p3: f64,
+    p3pk: f64,
+    p3s: f64,
+    p4: f64,
+    rev: f64,
+    e_atm: f64,
+    m_atm: f64,
+    bt: Vec<f64>,
+    bp: Vec<Vec<f64>>,
+    bm: Vec<f64>,
+    ne: usize,
+}
+fn turb_acc(ne: usize) -> Acc {
+    Acc {
+        t: 0.0,
+        w: 0.0,
+        wis: 0.0,
+        mt: 0.0,
+        mg: 0.0,
+        m_air: 0.0,
+        h3: 0.0,
+        m3: 0.0,
+        x3: 0.0,
+        h4: 0.0,
+        m4: 0.0,
+        x4: 0.0,
+        p3: 0.0,
+        p3pk: 0.0,
+        p3s: 0.0,
+        p4: 0.0,
+        rev: 0.0,
+        e_atm: 0.0,
+        m_atm: 0.0,
+        bt: vec![0.0; 720],
+        bp: vec![vec![0.0; 720]; ne],
+        bm: vec![0.0; 720],
+        ne,
+    }
+}
+/// The cycle's summary (the page's turbSum), flat: t, W, Wis, mt, mg, mAir, p3, p3pk, p3s, p4, T3, T4, rev, mAtm, eAtm, nE,
+/// then each entry's 720 bins of turbine-inlet total pressure and 720 bins of the tail's mass flow (NaN where a bin is empty).
+fn turb_sum(a: &Acc, gas: &Option<Gas>) -> Vec<f64> {
+    let t = a.t;
+    let ne = a.ne as f64;
+    let t3 = if a.m3 > 0.0 {
+        match gas { Some(g) => gas_t(g, a.h3 / a.m3, a.x3 / a.m3, 900.0, true).0, None => a.h3 / (a.m3 * CP) }
+    } else {
+        f64::NAN
+    };
+    let t4 = if a.m4 > 0.0 {
+        match gas { Some(g) => gas_t(g, a.h4 / a.m4, a.x4 / a.m4, 800.0, true).0, None => a.h4 / (a.m4 * CP) }
+    } else {
+        f64::NAN
+    };
+    let mut o = vec![a.w / t, a.wis / t, a.mt / t, a.mg / t, a.m_air / t, a.p3 / (t * ne), a.p3pk, a.p3s / (t * ne), a.p4 / (t * ne), t3, t4, a.rev, a.m_atm / t, a.e_atm / t, ne];
+    o.insert(0, t);
+    let bin = |s: &Vec<f64>, o: &mut Vec<f64>| {
+        for q in 0..720 {
+            o.push(if a.bt[q] > 0.0 { s[q] / a.bt[q] } else { f64::NAN });
+        }
+    };
+    for b in &a.bp {
+        bin(b, &mut o);
+    }
+    bin(&a.bm, &mut o);
+    o
+}
+fn acc_zero(a: &mut Acc) {
+    let ne = a.ne;
+    *a = turb_acc(ne);
 }
 /// The intake plenum (the page's st.plen): one well-mixed volume of the intake's gas.
 struct Plen {
@@ -1562,7 +1930,7 @@ struct Plen {
 
 /// Split a run of segments into pipes wherever the diameter jumps; cones stay inside a pipe.
 #[allow(clippy::too_many_arguments)]
-fn build_line(pipes: &mut Vec<Pipe>, segs: &[Seg], tw: &Value, dx: f64, t0: f64, x0: f64, gas: Option<Gas>) -> Result<Vec<usize>, String> {
+fn build_line(pipes: &mut Vec<Pipe>, segs: &[Seg], tw: &Value, dx: f64, t0: f64, x0: f64, gas: Option<Gas>, p0: f64) -> Result<Vec<usize>, String> {
     struct Run {
         parts: Vec<Seg>,
         l: f64,
@@ -1600,7 +1968,7 @@ fn build_line(pipes: &mut Vec<Pipe>, segs: &[Seg], tw: &Value, dx: f64, t0: f64,
             }
             0.0
         };
-        let mut p = make_pipe(rn.l, jmin(dx, rn.l / 6.0), &area, tw, t0, x0, gas)?;
+        let mut p = make_pipe(rn.l, jmin(dx, rn.l / 6.0), &area, tw, t0, x0, gas, p0)?;
         p.start = x0pos;
         x0pos += rn.l;
         pipes.push(p);
@@ -1650,7 +2018,7 @@ fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>],
                     None => stg.segs.clone().ok_or("a collector stage needs its segs")?,
                 };
                 let tw = if truthy(&stg.tw) { stg.tw.clone() } else { col.tw.clone() };
-                let ln = build_line(pipes, &segs, &tw, dx, 700.0, 0.0, gas)?;
+                let ln = build_line(pipes, &segs, &tw, dx, 700.0, 0.0, gas, 0.0)?;
                 if ln.is_empty() {
                     return Err("a collector stage has no pipe".into());
                 }
@@ -1674,7 +2042,7 @@ fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>],
         if feed.len() < 2 {
             return Err(format!("collector {}: the last junction needs at least two inlets", ci + 1));
         }
-        let main = build_line(pipes, &col.segs, &col.tw, dx, 700.0, 0.0, gas)?;
+        let main = build_line(pipes, &col.segs, &col.tw, dx, 700.0, 0.0, gas, 0.0)?;
         if main.is_empty() {
             return Err(format!("collector {} has no pipe after its last junction", ci + 1));
         }
@@ -1709,12 +2077,15 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
         }
     }
     for k in 0..n {
-        let li = build_line(&mut pipes, &eng.intake.segs, &eng.intake.tw, dx, TATM, 1.0, eng.gas_in)?;
+        let li = match eng.src {
+            Some((sp, stt)) => build_line(&mut pipes, &eng.intake.segs, &eng.intake.tw, dx, stt, 1.0, eng.gas_in, sp)?,
+            None => build_line(&mut pipes, &eng.intake.segs, &eng.intake.tw, dx, TATM, 1.0, eng.gas_in, 0.0)?,
+        };
         let segs = match eng.per_cyl.as_ref().and_then(|p| p[k].as_ref()) {
             Some(s) => s,
             None => &eng.exhaust.segs,
         };
-        let ex = build_line(&mut pipes, segs, &eng.exhaust.tw, dx, 700.0, 0.0, gas)?;
+        let ex = build_line(&mut pipes, segs, &eng.exhaust.tw, dx, 700.0, 0.0, gas, 0.0)?;
         if li.is_empty() || ex.is_empty() {
             return Err("the intake and the exhaust each need at least one pipe".into());
         }
@@ -1751,17 +2122,18 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
         let th = ((eng.ivc - eng.phases[k]) % 720.0 + 720.0) % 720.0;
         let t = 330.0;
         let x = 0.95;
-        let m = PATM * eng.vol(th) / ((match &gas { Some(g) => gas_r(g, x), None => RG }) * t);
+        let pc0 = match eng.src { Some((sp, _)) => sp, None => PATM };
+        let m = pc0 * eng.vol(th) / ((match &gas { Some(g) => gas_r(g, x), None => RG }) * t);
         let fresh = m * x;
         cyls.push(Cyl {
             m,
             t,
             x,
-            p: PATM,
+            p: pc0,
             th: 0.0,
             fresh,
             burn_q: burn_heat(eng, fresh),
-            ivc_p: PATM,
+            ivc_p: pc0,
             ivc_t: 330.0,
             ivc_v: eng.vol(eng.ivc),
             work: 0.0,
@@ -1789,7 +2161,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
     let coll = if eng.collectors.is_some() {
         None
     } else if let Some(c) = &eng.collector {
-        let l = build_line(&mut pipes, &c.segs, &c.tw, dx, 700.0, 0.0, gas)?;
+        let l = build_line(&mut pipes, &c.segs, &c.tw, dx, 700.0, 0.0, gas, 0.0)?;
         if l.is_empty() {
             return Err("the collector needs at least one pipe".into());
         }
@@ -1806,15 +2178,30 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
         Some(q) => {
             let gi = eng.gas_in;
             let ra = match &gi { Some(g) => gas_r(g, 1.0), None => RG };
-            let inlet = build_line(&mut pipes, &q.inlet, &eng.intake.tw, dx, TATM, 1.0, gi)?;
+            let (pq, tq) = match eng.src { Some((sp, stt)) => (sp, stt), None => (PATM, TATM) };
+            let inlet = match eng.src {
+                Some(_) => build_line(&mut pipes, &q.inlet, &eng.intake.tw, dx, tq, 1.0, gi, pq)?,
+                None => build_line(&mut pipes, &q.inlet, &eng.intake.tw, dx, TATM, 1.0, gi, 0.0)?,
+            };
             if inlet.is_empty() {
                 return Err("intake.plenum.inlet has no pipe".into());
             }
-            Some(Plen { v: q.v, m: PATM * q.v / (ra * TATM), t: TATM, x: 1.0, p: PATM, r: ra, inlet })
+            Some(Plen { v: q.v, m: pq * q.v / (ra * tq), t: tq, x: 1.0, p: pq, r: ra, inlet })
         }
         None => None,
     };
-    Ok(State { pipes, ins, prims, coll, nets, chambers, cyls, jn: Junc { p: 0.0, ends: Vec::new() }, th: eng.ivc, plen })
+    // the turbine's downpipe (exhaust.turbine.down), burned gas at 700 K
+    let turb = match &eng.turbine {
+        Some(t) => {
+            let down = build_line(&mut pipes, &t.down.segs, &t.down.tw, dx, 700.0, 0.0, gas, 0.0)?;
+            if down.is_empty() {
+                return Err("exhaust.turbine.down has no pipe".into());
+            }
+            Some(Turb { down, fd: Flow { m: 0.0, h: match &gas { Some(g) => gas_h(g, 700.0, 0.0), None => CP * 700.0 }, x: 0.0, uj: 0.0 } })
+        }
+        None => None,
+    };
+    Ok(State { pipes, ins, prims, coll, nets, chambers, cyls, jn: Junc { p: 0.0, ends: Vec::new() }, th: eng.ivc, plen, turb, acc: None })
 }
 
 fn local_th(th: f64, ph: f64) -> f64 {
@@ -1826,6 +2213,7 @@ fn local_th(th: f64, ph: f64) -> f64 {
 pub struct Res {
     pub v: [f64; 8], // ve, imep, pmax, resid, pEvo, tEx, overlapPort, gross imep
     pub per_cyl: Vec<[f64; 2]>,
+    pub turb: Option<Vec<f64>>, // the cycle's turbine and boosted-intake summary (turb_sum), when the engine has either
 }
 
 /// Simulate engine cycles at one speed, from where cylinder 1's intake valve closes. Returns each cycle's result.
@@ -1859,6 +2247,9 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
     if let Some(pl) = &st.plen {
         all.extend(&pl.inlet);
     }
+    if let Some(tb) = &st.turb {
+        all.extend(&tb.down);
+    }
     for &p in &all {
         st.pipes[p].left = Bnd::Noop;
         st.pipes[p].right = Bnd::Noop;
@@ -1874,7 +2265,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
     for kk in 0..nc {
         let ip = *st.ins[kk].last().unwrap();
         let ep = st.prims[kk][0];
-        st.pipes[st.ins[kk][0]].left = Bnd::Open(-1.0);
+        st.pipes[st.ins[kk][0]].left = match eng.src { Some((sp, stt)) => Bnd::OpenAt(-1.0, sp, stt), None => Bnd::Open(-1.0) };
         st.pipes[ip].right = Bnd::Fed(1.0, Src::In(kk));
         st.pipes[ep].left = Bnd::Fed(-1.0, Src::Ex(kk));
         if st.plen.is_some() {
@@ -1885,20 +2276,22 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
     let mut aux = Aux::default();
     if let Some(pl) = &st.plen {
         let (i0, i1) = (pl.inlet[0], *pl.inlet.last().unwrap());
-        st.pipes[i0].left = Bnd::Open(-1.0);
+        st.pipes[i0].left = match eng.src { Some((sp, stt)) => Bnd::OpenAt(-1.0, sp, stt), None => Bnd::Open(-1.0) };
         st.pipes[i1].right = Bnd::Plen(1.0);
     }
+    // exhaust.pOut: the pressure the open tail ends discharge into
+    let tail = match eng.pout { Some(po) => Bnd::OpenAt(1.0, po, TATM), None => Bnd::Open(1.0) };
     if let Some(nets) = &st.nets {
         let mut on = std::collections::HashSet::new();
         for n in nets {
             for &c in &n.cyls {
                 on.insert(c);
             }
-            st.pipes[*n.main.last().unwrap()].right = Bnd::Open(1.0);
+            st.pipes[*n.main.last().unwrap()].right = tail;
         }
         for (kk, ch) in st.prims.iter().enumerate() {
             if !on.contains(&kk) {
-                st.pipes[*ch.last().unwrap()].right = Bnd::Open(1.0);
+                st.pipes[*ch.last().unwrap()].right = tail;
             }
         }
     } else if let Some(coll) = &st.coll {
@@ -1907,12 +2300,48 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
         let p = st.jn.p;
         st.jn = junc(&ends);
         st.jn.p = p;
-        st.pipes[*coll.last().unwrap()].right = Bnd::Open(1.0);
+        st.pipes[*coll.last().unwrap()].right = tail;
     } else {
         for ch in &st.prims {
-            st.pipes[*ch.last().unwrap()].right = Bnd::Open(1.0);
+            st.pipes[*ch.last().unwrap()].right = tail;
         }
     }
+    // the turbine: every open tail end above becomes one of its entries (the page's outs), the downpipe's end the tail
+    let mut ents: Vec<usize> = Vec::new();
+    {
+        if let Some(nets) = &st.nets {
+            for n in nets {
+                ents.push(*n.main.last().unwrap());
+            }
+            for (kk, ch) in st.prims.iter().enumerate() {
+                if !nets.iter().any(|n| n.cyls.contains(&kk)) {
+                    ents.push(*ch.last().unwrap());
+                }
+            }
+        } else if let Some(coll) = &st.coll {
+            ents.push(*coll.last().unwrap());
+        } else {
+            for ch in &st.prims {
+                ents.push(*ch.last().unwrap());
+            }
+        }
+    }
+    // the tail ends (the page's outs): the open tail ends, or with a turbine the downpipe's end
+    let outs: Vec<usize> = match &st.turb { Some(tb) => vec![*tb.down.last().unwrap()], None => ents.clone() };
+    if let Some(tb) = &st.turb {
+        for &e in &ents {
+            st.pipes[e].right = Bnd::Noop;
+        }
+        let (d0, dl) = (tb.down[0], *tb.down.last().unwrap());
+        st.pipes[d0].left = Bnd::Fed(-1.0, Src::Turb);
+        st.pipes[dl].right = Bnd::OpenAt(1.0, eng.turbine.as_ref().unwrap().pout, TATM);
+        if st.acc.as_ref().map(|a| a.ne) != Some(ents.len()) {
+            st.acc = Some(turb_acc(ents.len()));
+        }
+    } else if eng.src.is_some() && st.acc.is_none() {
+        st.acc = Some(turb_acc(0));
+    }
+
     let rho_ref = PATM / ((match &gas { Some(g) => g.rair, None => RG }) * TATM);
     let fa = match &gas { Some(g) => g.fa, None => 1.0 };
     let mut out = Vec::new();
@@ -2056,6 +2485,70 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 f.x = v.x;
                 f.uj = v.uj;
             }
+            if let (Some(tb), Some(ts)) = (st.turb.as_mut(), &eng.turbine) {
+                let ac = st.acc.as_mut().unwrap();
+                let d = &tb.down;
+                let d0 = d[0];
+                let ne = ents.len();
+                let at_ = ts.cda / ne as f64;
+                let ag = ts.wg_cda / ne as f64;
+                let pt = st.pipes[d0].p[0];
+                let pg = if ts.wg_atm { PATM } else { pt };
+                let b = (st.th % 720.0).floor() as usize;
+                for q in 1..d.len() {
+                    junction(&mut st.pipes, d[q - 1], d[q]);
+                }
+                let dp = &st.pipes[d0];
+                let c0 = Cell0 { r: dp.r[0], u: dp.u[0], p: dp.p[0], g: dp.g[0], rm: dp.rm[0], cp: dp.cp[0], x: dp.x[0] };
+                let (mut fm, mut fe, mut fx) = (0.0, 0.0, 0.0);
+                for (q, &e) in ents.iter().enumerate() {
+                    let tf = turbine_face(k, &mut st.pipes[e], at_, ag, pt, pg, ts.eta, &c0, !ts.wg_atm);
+                    fm += tf.md;
+                    fe += tf.ed;
+                    fx += tf.xd;
+                    ac.w += tf.w * dt;
+                    ac.wis += tf.mt * tf.dhis * dt;
+                    ac.mt += tf.mt * dt;
+                    ac.mg += tf.mg * dt;
+                    ac.p3 += tf.p0 * dt;
+                    ac.p3s += tf.pb * dt;
+                    ac.p4 += pt * dt;
+                    ac.rev += tf.rev;
+                    if tf.p0 > ac.p3pk {
+                        ac.p3pk = tf.p0;
+                    }
+                    ac.bp[q][b] += tf.p0 * dt;
+                    if tf.m > 0.0 {
+                        ac.h3 += tf.m * tf.h0 * dt;
+                        ac.m3 += tf.m * dt;
+                        ac.x3 += tf.m * tf.x * dt;
+                    }
+                    if tf.m > 0.0 && ts.wg_atm && tf.mg > 0.0 {
+                        ac.m_atm += tf.mg * dt;
+                        ac.e_atm += tf.mg * (tf.h0 + tf.x * match &gas { Some(g) => g.qx, None => 0.0 }) * dt;
+                    }
+                }
+                let f = &mut tb.fd;
+                f.m = fm;
+                let dp = &st.pipes[d0];
+                if fm > 0.0 {
+                    f.h = fe / fm;
+                    f.x = fx / fm;
+                    f.uj = fm / (dp.r[0] * dp.af[0]);
+                    ac.h4 += fe * dt;
+                    ac.m4 += fm * dt;
+                    ac.x4 += fx * dt;
+                } else if fm < 0.0 {
+                    f.h = fe / fm;
+                    f.x = fx / fm;
+                    f.uj = 0.0;
+                } else {
+                    f.h = match &gas { Some(g) => gas_h(g, dp.p[0] / (dp.rm[0] * dp.r[0]), dp.x[0]), None => CP * dp.p[0] / (RG * dp.r[0]) };
+                    f.x = dp.x[0];
+                    f.uj = 0.0;
+                }
+                aux.fd = *f;
+            }
             for &pi in &all {
                 step_pipe(&mut st.pipes[pi], dt, &v_in, &ex_flow, &aux);
             }
@@ -2190,6 +2683,22 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                     cy.ov_n += 1.0;
                 }
             }
+            if let Some(ac) = st.acc.as_mut() {
+                let b = (st.th % 720.0).floor() as usize;
+                ac.t += dt;
+                ac.bt[b] += dt;
+                for &tp in &outs {
+                    let pt = &st.pipes[tp];
+                    ac.bm[b] += pt.f1[pt.n] * dt;
+                }
+                if let Some(pl) = &st.plen {
+                    ac.m_air += st.pipes[pl.inlet[0]].f1[0] * dt;
+                } else {
+                    for kk in 0..nc {
+                        ac.m_air += st.pipes[st.ins[kk][0]].f1[0] * dt;
+                    }
+                }
+            }
             st.th += dth;
         }
         let d: Vec<[f64; 8]> = st.cyls.iter().filter_map(|cy| cy.done).collect();
@@ -2205,12 +2714,18 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
             for x in &d {
                 pmax = jmax(pmax, x[2]);
             }
-            out.push(Res { v: [av(0), av(1), pmax, av(3), av(4), av(5), av(6), av(7)], per_cyl: d.iter().map(|x| [x[0], x[1]]).collect() });
+            out.push(Res { v: [av(0), av(1), pmax, av(3), av(4), av(5), av(6), av(7)], per_cyl: d.iter().map(|x| [x[0], x[1]]).collect(), turb: None });
+        }
+        if let Some(ac) = st.acc.as_mut() {
+            if !d.is_empty() {
+                out.last_mut().unwrap().turb = Some(turb_sum(ac, &gas));
+            }
+            acc_zero(ac);
         }
         c += 1.0;
     }
     if out.is_empty() {
-        out.push(Res { v: [f64::NAN; 8], per_cyl: Vec::new() });
+        out.push(Res { v: [f64::NAN; 8], per_cyl: Vec::new(), turb: None });
     }
     Ok(out)
 }
@@ -2252,6 +2767,18 @@ impl Sim {
     pub fn vd(&self) -> f64 {
         self.eng.vd
     }
+    /// The turbine's effective area and the gate's, changed between runs (the page's setTurbine): a value is taken when
+    /// the area is above 0 (the gate's: 0 or more); the state is kept.
+    pub fn set_turb(&mut self, cda: f64, wg: f64) -> Result<(), String> {
+        let t = self.eng.turbine.as_mut().ok_or("this engine has no turbine")?;
+        if cda > 0.0 {
+            t.cda = cda;
+        }
+        if wg >= 0.0 {
+            t.wg_cda = wg;
+        }
+        Ok(())
+    }
 }
 
 // ------------------------------------------------------------------------------------------- C interface
@@ -2261,6 +2788,7 @@ thread_local! {
     static SIMS: RefCell<Vec<Option<Sim>>> = const { RefCell::new(Vec::new()) };
     static OUT: RefCell<Vec<f64>> = const { RefCell::new(Vec::new()) };
     static ERR: RefCell<Vec<u8>> = const { RefCell::new(Vec::new()) };
+    static TOUT: RefCell<Vec<f64>> = const { RefCell::new(Vec::new()) };
 }
 fn set_err(m: &str) {
     ERR.with(|e| *e.borrow_mut() = m.as_bytes().to_vec());
@@ -2316,6 +2844,13 @@ pub extern "C" fn wave_step(id: u32, rpm: f64, first: u32, dx: f64, cycles: f64,
         };
         match sim.step(rpm, first != 0, dx, cycles, first_cycles, max_extra, tol) {
             Ok(r) => OUT.with(|o| {
+                TOUT.with(|t| {
+                    let mut t = t.borrow_mut();
+                    t.clear();
+                    if let Some(v) = &r.turb {
+                        t.extend_from_slice(v);
+                    }
+                });
                 let mut o = o.borrow_mut();
                 o.clear();
                 o.extend_from_slice(&r.v);
@@ -2324,6 +2859,33 @@ pub extern "C" fn wave_step(id: u32, rpm: f64, first: u32, dx: f64, cycles: f64,
                 }
                 o.len() as u32
             }),
+            Err(e) => {
+                set_err(&e);
+                0
+            }
+        }
+    })
+}
+/// The last wave_step's turbine and boosted-intake summary (turb_sum's order); wave_turbo_len doubles, 0 without either.
+#[no_mangle]
+pub extern "C" fn wave_turbo_out() -> *const f64 {
+    TOUT.with(|o| o.borrow().as_ptr())
+}
+#[no_mangle]
+pub extern "C" fn wave_turbo_len() -> usize {
+    TOUT.with(|o| o.borrow().len())
+}
+/// The turbine's effective area and the gate's for the next steps (m2; see Sim::set_turb). 1, or 0 and wave_error.
+#[no_mangle]
+pub extern "C" fn wave_turbo_set(id: u32, cda: f64, wg: f64) -> u32 {
+    SIMS.with(|v| {
+        let mut v = v.borrow_mut();
+        let Some(Some(sim)) = v.get_mut((id as usize).wrapping_sub(1)) else {
+            set_err("no such model");
+            return 0;
+        };
+        match sim.set_turb(cda, wg) {
+            Ok(()) => 1,
             Err(e) => {
                 set_err(&e);
                 0

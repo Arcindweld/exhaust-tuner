@@ -36,9 +36,13 @@ function wStep(id, rpm, first, o) {
   const v = new Float64Array(X.memory.buffer, X.wave_out(), n), r = { rpm };
   KEYS.forEach((k, i) => { r[k] = v[i]; });
   r.perCyl = []; for (let i = KEYS.length; i + 1 < n; i += 2) r.perCyl.push({ ve: v[i], imep: v[i + 1] });
+  // the turbine's and the boosted intake's summary (2026-11-13; empty for an engine with neither)
+  r.turbo = X.wave_turbo_len ? Array.from(new Float64Array(X.memory.buffer, X.wave_turbo_out(), X.wave_turbo_len())) : [];
   return r;
 }
 const jobs = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_jobs.json'), 'utf8'));
+// the JavaScript's turbine summary in the WebAssembly's flat order (turb_sum)
+const tflat = t => t ? [t.t, t.W, t.Wis, t.mt, t.mg, t.mAir, t.p3, t.p3pk, t.p3s, t.p4, t.T3, t.T4, t.rev, t.mAtm, t.eAtm, t.nE].concat(...t.p3bins, t.mdBins) : [];
 // diameter steps on both lines (docs/WAVE_VALIDATION_2026-11-11.md: the two-pipe junction's contraction and expansion
 // laws and their fallback), which the page's captured jobs do not have: a stepped intake runner and a single cylinder's
 // pipe through a 127 mm chamber
@@ -63,7 +67,22 @@ const jobs = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_j
   jobs.push({ name: 'plenum and bench flow', job: { dx: jobs[1].job.dx, rpms: [3000, 5000, 7000], variants: [{ label: 'flow tables, plenum, throttle, filter, four on one collector', spec: Object.assign({}, s1,
     { e: Object.assign({}, s1.e, { flowIn: tab(s1.e.dIn, 1), flowEx: tab(s1.e.dEx, 0.9) }), intake: Object.assign({}, s1.intake, { plenum: pl }) }) }] } });
   jobs.push({ name: 'plenum, constant gas', job: { dx: jobs[1].job.dx, rpms: [3000, 6000], variants: [{ label: 'open inlet, no throttle step, spec.e.gas const', spec: Object.assign({}, s1,
-    { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, { plenum: { V_m3: 0.003, inlet: [{ L: 0.5, d0: 0.07, d1: 0.07 }] } }) }) }] } }); }
+    { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, { plenum: { V_m3: 0.003, inlet: [{ L: 0.5, d0: 0.07, d1: 0.07 }] } }) }) }] } });
+  // 2026-11-13: the turbocharged engine (intake.source, exhaust.turbine, exhaust.pOut), the four-cylinder collector: the
+  // turbine with its gate into the downpipe (areas changed between speeds, as the closure does), a divided housing with an
+  // external gate, the boosted charge alone with a tail back pressure, the plenum under boost with the constant gas
+  const down = { segs: [{ L: 0.3, d0: 0.0762, d1: 0.0762 }, { L: 0.3, d0: 0.07, d1: 0.07 }], Tw: 700 }, col = s1.opt.collector;
+  const tur = (o) => Object.assign({ CdA: 1.1e-3, eta: 0.7, wgCdA: 2e-4, down, pOut: 112000 }, o);
+  jobs.push({ name: 'turbo', job: { dx: jobs[1].job.dx, rpms: [3000, 4500, 6000, 7500], areas: [[1.1e-3, 0], [1.1e-3, 2e-4], [-1, 4e-4], [9e-4, 3e-4]], variants: [{ label: 'turbine and gate into the downpipe, 190 kPa / 320 K charge', spec: Object.assign({}, s1,
+    { intake: Object.assign({}, s1.intake, { source: { p: 190000, T: 320 } }), exhaust: Object.assign({}, s1.exhaust, { turbine: tur({}) }) }) }] } });
+  jobs.push({ name: 'turbo, divided', job: { dx: jobs[1].job.dx, rpms: [3500, 6000, 8000], variants: [{ label: 'two entries (1-4, 2-3), gate to the air', spec: Object.assign({}, s1,
+    { intake: Object.assign({}, s1.intake, { source: { p: 210000, T: 330 } }), exhaust: Object.assign({}, s1.exhaust, { turbine: tur({ wgTo: 'atm', wgCdA: 3e-4 }) }),
+      opt: { phases: s1.opt.phases, collectors: [{ cyls: [0, 3], segs: col.segs.slice(0, 2), Tw: 650 }, { cyls: [1, 2], segs: col.segs.slice(0, 2), Tw: 650 }] } }) }] } });
+  jobs.push({ name: 'boost only', job: { dx: jobs[1].job.dx, rpms: [3000, 6000], variants: [{ label: 'supercharged charge 160 kPa / 340 K, tail at 108 kPa', spec: Object.assign({}, s1,
+    { intake: Object.assign({}, s1.intake, { source: { p: 160000, T: 340 } }), exhaust: Object.assign({}, s1.exhaust, { pOut: 108000 }) }) }] } });
+  jobs.push({ name: 'turbo, plenum, constant gas', job: { dx: jobs[1].job.dx, rpms: [4000, 7000], variants: [{ label: 'plenum and throttle under boost, spec.e.gas const', spec: Object.assign({}, s1,
+    { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, { source: { p: 180000, T: 315 }, plenum: { V_m3: 0.002, inlet: [{ L: 0.4, d0: 0.07, d1: 0.07 }, { L: 0.05, d0: 0.06, d1: 0.06 }], throttle: { d: 0.06, cd: 0.83 } } }),
+      exhaust: Object.assign({}, s1.exhaust, { turbine: tur({ CdA: 1.2e-3 }) }) }) }] } }); }
 let tJs = 0, tW = 0;
 for (const { name, job } of jobs) {
   const rpms = process.env.QUICK === '1' ? job.rpms.slice(0, 3) : job.rpms;
@@ -71,18 +90,26 @@ for (const { name, job } of jobs) {
   for (const v of job.variants) {
     let t = Date.now();
     const eng = WS.makeEngine(v.spec.e, v.spec.intake, v.spec.exhaust, v.spec.opt);
-    const js = WS.sweep(eng, rpms, o);
+    // job.areas: the turbine's and the gate's areas set before each speed (WS.setTurbine, wave_turbo_set)
+    const js = job.areas ? (() => { const out = []; let state = null; rpms.forEach((rpm, i) => { WS.setTurbine(eng, job.areas[i][0], job.areas[i][1]);
+      let r = WS.runSpeed(eng, { rpm, cycles: i === 0 ? o.firstCycles : o.cycles, dx: o.dx, state }), k = 0;
+      while (k < o.maxExtra) { const h = r.history, n = h.length; if (n >= 2 && Math.abs(h[n - 1].ve - h[n - 2].ve) < 0.004 * h[n - 1].ve) break; r = WS.runSpeed(eng, { rpm, cycles: 2, dx: o.dx, state: r.state }); k++; }
+      state = r.state; out.push(r); }); return out; })() : WS.sweep(eng, rpms, o);
     tJs += Date.now() - t; t = Date.now();
-    const id = wNew(v.spec), ws = rpms.map((rpm, i) => wStep(id, rpm, i === 0, o)); X.wave_drop(id);
+    const id = wNew(v.spec), ws = rpms.map((rpm, i) => { if (job.areas && !X.wave_turbo_set(id, job.areas[i][0], job.areas[i][1])) throw new Error('wave_turbo_set'); return wStep(id, rpm, i === 0, o); }); X.wave_drop(id);
     tW += Date.now() - t;
     let bad = '';
     rpms.forEach((rpm, i) => {
       for (const k of KEYS) if (!Object.is(js[i][k], ws[i][k]) && !bad) bad = rpm + ' rpm ' + k + ': JS ' + js[i][k] + ', Rust ' + ws[i][k];
       if (!bad && js[i].perCyl.length !== ws[i].perCyl.length) bad = rpm + ' rpm: ' + js[i].perCyl.length + ' cylinders vs ' + ws[i].perCyl.length;
       js[i].perCyl.forEach((c, q) => { if (!bad && !(Object.is(c.ve, ws[i].perCyl[q].ve) && Object.is(c.imep, ws[i].perCyl[q].imep))) bad = rpm + ' rpm cylinder ' + (q + 1) + ': JS ' + c.imep + ', Rust ' + ws[i].perCyl[q].imep; });
+      // the turbine and boosted-intake summary, every double (bins included)
+      const tj = tflat(js[i].turb), tr = ws[i].turbo;
+      if (!bad && tj.length !== tr.length) bad = rpm + ' rpm: turbine summary of ' + tj.length + ' values vs ' + tr.length;
+      tj.forEach((x, q) => { if (!bad && !Object.is(x, tr[q])) bad = rpm + ' rpm turbine summary value ' + q + ': JS ' + x + ', Rust ' + tr[q]; });
     });
     ok(!bad, name + ', ' + v.label + ': ' + rpms.length + ' speeds the same to the last digit' + (bad ? ' (' + bad + ')' : '') +
-      ' (VE ' + js.map(r => r.ve.toFixed(3)).slice(0, 4).join(' ') + ' ...)');
+      ' (VE ' + js.map(r => r.ve.toFixed(3)).slice(0, 4).join(' ') + ' ...' + (js[0].turb ? '; turbine summaries ' + tflat(js[0].turb).length + ' values each, turbine ' + js.map(r => (r.turb.W / 1000).toFixed(1)).join(' ') + ' kW' : '') + ')');
   }
 }
 // the constant-gamma mode (spec.e.gas 'const', gamma 1.35 and R 287, the model before 2026-11-12) in Rust against the
