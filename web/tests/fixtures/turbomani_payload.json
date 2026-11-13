@@ -1,0 +1,23 @@
+{
+ "mode": "turbomani",
+ "title": "Turbo manifold",
+ "ports": 4,
+ "od_mm": 47.625,
+ "wall_mm": 1.651,
+ "clr_mm": 47.625,
+ "target_mm": 193.8683501272139,
+ "gap_mm": 50.8,
+ "gap_tt_mm": 3.175,
+ "max_bend_deg": 180,
+ "elbows": false,
+ "merge_len_mm": 85.60142618052787,
+ "collector_len_mm": 152.4,
+ "collector_out_mm": 61.76031795449795,
+ "scrolls": null,
+ "gate": {
+  "bore_mm": 38,
+  "lo_mm": 26.87005768508881,
+  "hi_mm": 125.5299423149112
+ },
+ "time_s": 40
+}

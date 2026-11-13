@@ -1,4 +1,10 @@
-EXHAUST TUNER (Fusion add-in), version 4.22.0
+EXHAUST TUNER (Fusion add-in), version 4.23.0
+
+4.23.0 (November 13, 2026)
+  Turbo manifold: "Route the manifold in Fusion" routes equal-length runners from the port markers (in cylinder
+  order) to one turbine-flange marker, or one per scroll for a divided housing, with the page's tube, bend radius
+  and hot clearance. The wastegate branch is not routed. Not run in live Fusion yet:
+  tests/fusion_live_turbomani.py is the check to run first.
 
 4.22.0 (November 12, 2026)
   Charge piping from a scan: mark the scan as a keep-out (and hot bodies), select a marker at each pipe end, and
