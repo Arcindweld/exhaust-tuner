@@ -1589,3 +1589,19 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   "Width/Cold Flow".
 - Tests: icrec_ui.js (Bell rows' figures and URLs; build 1 orders with the Bell rows, face and rating arithmetic in the
   comments), turbolib_ui.js (77 rows: 57 air-to-air with 7 Bell).
+
+## 2026-11-12: intercooler end tanks and mounting (Garrett's article)
+
+- Source: Garrett, "Intercooler Sizing And End Tank Design With Rob Dahm" (newsroom, June 2, 2020), read 2026-11-12. Quoted:
+  "In general, use the largest core that will fit within the packaging constraints of the application" (now cited next to
+  the pick and the size-limit input); "Proper manifold shape is critical in minimizing pressure drop and providing uniform
+  flow distribution"; over-the-top tanks "can starve the top tubes"; side entry "ideal for both pressure drop and flow
+  distribution" but space usually rules it out; ducting "should never be smaller than the radius of the compressor outlet"
+  (its GTX5533R Gen II example compares areas, 8.30 against 7.07 in²); air-to-air cores soft-mounted on rubber isolation
+  grommets. It gives no numbers for tank volume, taper or pressure drop, so none are given.
+- New block "End tanks and mounting" under the intercooler recommendation and a build-sheet row under a core sold as a core.
+  New check in the charge-pipe verdict (not there before): the hot pipe not smaller than the compressor outlet, like with
+  like (a picked turbo's outlet in TURBO_LIB is a hose-coupler size, so the pipe's outside diameter is compared; an outlet
+  you enter is taken as a bore and compared with the inside diameter), areas in in² and cm². The page's cone and step losses
+  for the tank inlet are stated to be 1-D estimates that do not capture distribution across the core.
+- Tests: icrec_ui.js (the block with the citation, the check firing for a compressor outlet 10 mm over the pipe).

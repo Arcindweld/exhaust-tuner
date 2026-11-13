@@ -123,6 +123,19 @@ const { chromium } = require('playwright');
   ok(await outN('a2a') === 7, 'build 1, margin 1.2: seven not recommended');
   await setx('icm', '1');
 
+  // End tanks and mounting (Garrett, "Intercooler Sizing And End Tank Design With Rob Dahm", 2020): the block with its citation, and
+  // the ducting check: a compressor outlet larger than the hot pipe (here 80 mm against the pipe's inside diameter) fires it
+  let et = await pg.$eval('#tso-ic-tanks', e => e.innerText);
+  const etH = await pg.$eval('#tso-ic-tanks', e => e.innerHTML);
+  ok(/use the largest core that will fit within the packaging constraints/.test(et) && /starve the top tubes/.test(et) && /rubber isolation grommets/.test(et) && /8\.30 in² \(53\.5 cm²\)/.test(et) && /one-dimensional estimates/.test(et) &&
+    etH.indexOf('garrettmotion.com/news/newsroom/article/intercooler-sizing-and-end-tank-design-with-rob-dahm') >= 0, 'End tanks and mounting: Garrett’s points with the article linked, the 1-D caveat, dual units');
+  const cod0 = await pg.evaluate(() => document.getElementById('i-cod')._b), dh0 = await pg.evaluate(() => window.__tso.TG().route.dco.dh);
+  await pg.evaluate(x => { const e = document.getElementById('i-cod'), u = e.parentNode.querySelector('em').textContent.trim(); e.value = String(u === 'in' ? x / 25.4 : x); e.dispatchEvent(new Event('input', { bubbles: true })); }, dh0 + 10); await pg.waitForTimeout(500);
+  et = await pg.$eval('#tso-ic-tanks', e => e.innerText);
+  const verdict = await pg.evaluate(() => window.__tso.TG().route.warn.join(' | '));
+  ok(/is smaller than the compressor outlet/.test(et) && /the hot pipe \([0-9.]+ (mm|in) \(?[0-9.]* ?(in|mm)?\)? ?inside\) is smaller than the compressor outlet[^|]*should never be smaller than[^|]*in², [0-9.]+ against [0-9.]+ cm²/.test(verdict), 'a compressor outlet ' + (dh0 + 10).toFixed(1) + ' mm over the ' + dh0.toFixed(1) + ' mm hot pipe: the ducting check fires (verdict and block): ' + verdict);
+  await pg.evaluate(x => { const e = document.getElementById('i-cod'), u = e.parentNode.querySelector('em').textContent.trim(); e.value = x == null || !Number.isFinite(x) ? '' : String(u === 'in' ? x / 25.4 : x); e.dispatchEvent(new Event('input', { bubbles: true })); }, cod0); await pg.waitForTimeout(400);
+  ok(!(await pg.evaluate(() => window.__tso.TG().route.dco.bad)), 'back to the compressor outlet as it was: no ducting warning');
   // own core, recommended alongside the list: 380 hp, 63.5 mm necks -> second; 2 in necks -> out with the step loss
   for (const [k, v] of [['oName', 'Shop core A'], ['oL', '600'], ['oH', '300'], ['oW', '102'], ['oIn', '63.5'], ['oOut', '63.5'], ['oHp', '380']]) await setx(k, v);
   t = await top('a2a'); ok(t.join() === 'Garrett 703521-6003,Your core Shop core A,Bell Intercoolers A350143240', 'own core (380 hp, face 47.43 in²) ranks between 375 and 446.7: ' + t.join(', '));
