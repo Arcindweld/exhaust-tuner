@@ -14,9 +14,9 @@ Plan: web tmCalc/tmSection after "Where to put them", before "Exhaust after the 
 build-sheet rows; Mounts part 'turbo' (tiny); Fusion turbomani.py glue + tests; validation script; STATUS entry.
 
 Status:
-- [ ] web code
-- [ ] tests web/tests/turbomani_ui.js
-- [ ] tools/validation/boost/turbomani.py
+- [x] web code (mfdCalc etc. before tgSteps)
+- [x] tests web/tests/turbomani_ui.js (all pass); turboguide step list edited
+- [x] tools/validation/boost/turbomani.py
 - [ ] fusion glue + tests + live script (not run)
 - [ ] existing tests green; run_all_tests once
 - [ ] STATUS entry; remove this file

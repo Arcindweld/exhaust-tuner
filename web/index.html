@@ -23925,7 +23925,7 @@ function mfdCands(){
     const e=by.get(k)||{od,walls:new Set(),clrs:new Set()}; if(s.wall>0) e.walls.add(s.wall); e.clrs.add(Math.round(s.clr*16)/16); by.set(k,e); });
   [...by.values()].sort((a,b)=>a.od-b.od).forEach(e=>{ const w=e.walls.has(0.065)?0.065:[...e.walls].sort((a,b)=>b-a)[0]; if(!(w>0)) return;
     out.push({key:'t'+e.od.toFixed(3),kind:'tube',od:e.od*MM,wall:w*MM,id:(e.od-2*w)*MM,clrs:[...e.clrs].sort((a,b)=>a-b).map(c=>c*MM),
-      label:e.od+' in × '+w+' in stainless tube'}); });
+      label:e.od+' in ('+(e.od*MM).toFixed(1)+' mm) × '+w+' in ('+(w*MM).toFixed(2)+' mm) stainless tube'}); });
   MFD_ELS.forEach(E=>['10','40'].forEach(s=>out.push({key:'p'+E.nps+'-'+s,kind:'pipe',nps:E.nps,sch:s+'S',od:E.od*MM,wall:E['w'+s]*MM,id:E['id'+s]*MM,
     clrs:[E.sr*MM,E.lr*MM],lr:E.lr*MM,sr:E.sr*MM,lb:s==='10'?E.lb10:E.lb40,label:'NPS '+E.nps+' schedule '+s+'S pipe'})));
   return out;
@@ -23944,7 +23944,7 @@ function mfdLayout(e,nt,mani){
   mf.forEach(m=>{ const A=analyzeGroup(ord,m.cyls,ang,CYCLE); m.seq=A.cyls; m.gaps=A.gaps; m.even=A.even;
     m.bank=two?banks.findIndex(b=>m.cyls.every(c=>b.includes(c))):0; m.cross=two&&m.bank<0;
     if(mani==='div'){ m.scrolls=[0,1].map(k=>A.cyls.filter((c,i)=>i%2===k).sort((x,y)=>x-y)).filter(s=>s.length);
-      m.sg=m.scrolls.map(s=>{ const B=analyzeGroup(ord,s,ang,CYCLE); return {cyls:B.cyls,gaps:B.gaps,even:B.even,cross:two&&!banks.some(b=>s.every(c=>b.includes(c)))}; }); } });
+      m.sg=m.scrolls.map(s=>{ const B=analyzeGroup(ord,s,ang,CYCLE); return {cyls:s,seq:B.cyls,gaps:B.gaps,even:B.even,cross:two&&!banks.some(b=>s.every(c=>b.includes(c)))}; }); } });
   return {mf,N,banks,two};
 }
 // the shortest planar S from a port offset y from the merge, bend radius R (mm): {L, Z, th deg, s}
@@ -24047,7 +24047,7 @@ const MFD_UI={run:'',clr:'',open:''};
 function mfdFlange(H){
   if(!H) return null; const f=String(H.flange||''), P=n=>FLANGE_PRESETS.find(x=>x.name.indexOf(n)===0)||null;
   if(/^T3/.test(f)){ const a=P('T3 (turbozentrum)'), b=P('T3 (Ace)'); return {name:'T3',area:61*44,rect:[61,44],div:false,src:a&&a.src,src2:b&&b.src,
-    txt:'turbozentrum’s T3 manifold flange: port 61 × 44 mm (2.40 × 1.73 in), studs 86 × 46 mm (M8); Ace’s T3 pattern 3.375 × 1.750 in (85.7 × 44.4 mm), M10 × 1.5. The port’s area is taken as the 61 × 44 mm rectangle, an upper bound (the opening has rounded ends)'}; }
+    txt:'turbozentrum’s T3 manifold flange: port 61 × 44 mm (2.40 × 1.73 in), studs 86 × 46 mm (M8); Ace’s T3 pattern 3.375 × 1.750 in (85.7 × 44.4 mm), M10 × 1.5. The port’s area is taken as that rectangle, an upper bound (the opening has rounded ends)'}; }
   if(/^T4 divided/.test(f)){ const a=P('T4 divided (Ace)'); return {name:'T4 divided',area:null,div:true,src:a&&a.src,
     txt:'Ace’s T4 divided flange: studs 3.250 × 2.750 in (82.5 × 69.8 mm), M10 × 1.5. No maker read gives the two port openings, so the page does not size the collectors from them: Stainless Headers sells its dual-inlet T4 flange for dual 2.25 or 2.50 in tube or dual 1.5 or 2 in schedule 10 or 40 pipe, Ace a transition to dual 2.250 in'}; }
   if(/^T4/.test(f)){ const a=P('T4 single (turbozentrum)'); return {name:'T4',area:null,div:false,src:a&&a.src,txt:'turbozentrum’s T4 single flange: studs 83 × 70 mm (M8); the port opening is not given, so the collector is not sized from it'}; }
@@ -24134,7 +24134,7 @@ function mfdSection(ind,p){
       Hh.ms.map(g=>{ const m=MFD_MAT[g.mat], over=m.lim&&Hh.Tmax>m.lim.int; return '<tr data-mat="'+g.mat+'"'+(g.mat===o.mat?' style="background:var(--accent-soft)"':'')+'><td>'+esc(m.name)+(g.mat===o.mat?' (yours)':'')+'</td><td>'+(g.none?'not given (no coefficient at this temperature)':(g.atLeast?'at least ':'')+gD(g.dL))+'</td><td>'+(g.none?'–':(g.atLeast?'at least ':'')+gD(g.dCol))+'</td><td>'+esc(m.limTxt)+(over?' <b class="st-warn">exceeded at the port</b>':'')+' '+L_(m.src,m.srcName)+(m.src2?', '+L_(m.src2,m.src2Name):'')+'</td></tr>'; }).join('')+'</tbody></table></div>';
     const items=[];
     if(!Hh.none){ if(X.len) items.push('A one-piece head flange '+clen(X.len.span)+' between the outer ports, at the runner steel’s temperature, grows '+(Hh.atLeast?'at least ':'')+gD(Hh.span)+' along the head (an upper bound: the flange bolted to the head runs cooler). The head does not grow the same, so a one-piece flange is held: split flanges per port or slotted stud holes take it (this page’s reading of the numbers).');
-      items.push('The turbine flange moves '+(Hh.atLeast?'at least ':'')+gD(Hh.move)+' away from the head flange as the manifold heats (strain '+(Hh.eps*1e3).toFixed(2)+' mm/m over the '+clen(Hh.reach)+' out to the turbine, taken as one straight line). A brace from the turbo to the block must let it move: SINCO’s rod end “can pivot when the manifold moves under heat expansion” ('+L_(MFD_SINCO,'Turbo Bracing Guide')+'); a downpipe held at both ends needs a flex section (SINCO).');
+      items.push('The turbine flange moves '+(Hh.atLeast?'at least ':'')+gD(Hh.move)+' away from the head flange as the manifold heats (strain '+(Hh.eps*1e3).toFixed(2)+' per thousand over the '+clen(Hh.reach)+' out to the turbine, taken as one straight line). A brace from the turbo to the block must let it move: SINCO’s rod end “can pivot when the manifold moves under heat expansion” ('+L_(MFD_SINCO,'Turbo Bracing Guide')+'); a downpipe held at both ends needs a flex section (SINCO).');
       items.push('Evenly heated equal-length runners grow alike and stay unstressed; runners at different temperatures or lengths, a log fed hotter at one end, or a slip-free collector between two fixed flanges are where the growth turns into stress. Slip joints or bellows let a runner or collector grow freely; no source read gives a size rule for them, so none is given.'); }
     else items.push('The '+esc(MT.name)+' sheet has no expansion coefficient at this temperature, so no growth is given; 304 and 321 are shown for comparison.');
     items.push('Wall: '+esc(C.label)+', '+wD(C.wall)+'. Allard: “3.0mm minimum is recommended”; Bell: “large wall thicknesses”; Garrett: tubular manifolds’ “thinner wall sections” make them “susceptible to cracking due to thermal expansion/contraction and vibration” (sources above). Schedule 10S pipe is 2.77 mm (0.109 in) at NPS 1½ and 2, schedule 40S 3.68 and 3.91 mm (0.145, 0.154 in) ('+L_(MFD_ELSRC,'Ace Stainless Supply, B16.9')+').');
@@ -24191,7 +24191,7 @@ function mfdCutHtml(X,o){
     per.map(q=>'<tr><td>'+q.cy+'</td><td>'+(q.S.th>0?'2 × '+q.S.th.toFixed(1)+'°':'none')+'</td><td>'+(q.S.th>0?inMm(arc(q.S.th))+' / '+inMm((X.R+od/2)*q.S.th*Math.PI/180)+' / '+inMm(Math.max(0,(X.R-od/2)*q.S.th*Math.PI/180)):'')+'</td><td>'+inMm(q.S.s)+', then '+inMm(q.extra)+'</td></tr>').join('')+'</tbody></table></div><p class="cap">Elbows from '+L_mfd(MFD_ELSRC,'Ace Stainless Supply’s B16.9 sheet')+' ('+C.lb+' lb each at 90°); a 90° elbow cut to an angle keeps the same radius. Mark the arcs along the outside and inside as the cut list above does for mandrel bends.</p></details>';
 }
 const L_mfd=(u,t)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>';
-if(typeof window!=='undefined') window.__mfd={calc:mfdCalc,layout:mfdLayout,smin:mfdSmin,strain:mfdStrain,cands:mfdCands,inputs:mfdInputs,flange:mfdFlange,last:()=>MFD_LAST,ELS:MFD_ELS,MAT:MFD_MAT,UI:MFD_UI,stock:()=>bendStock(),eng:()=>engineFrom('i')};
+if(typeof window!=='undefined') window.__mfd={calc:mfdCalc,layout:mfdLayout,smin:mfdSmin,strain:mfdStrain,cands:mfdCands,inputs:mfdInputs,flange:mfdFlange,last:()=>MFD_LAST,ELS:MFD_ELS,MAT:MFD_MAT,UI:MFD_UI,stock:()=>bendStock(),eng:()=>engineFrom('i'),presets:()=>FLANGE_PRESETS};
 /* ----- Turbo build, step by step (2026-11-12, the owner's "usable without learning a bunch of stuff") -----
    A checklist at the top of the Intake tab when the induction is a turbo or a centrifugal supercharger: the steps in the
    order a builder decides them, each with one plain line read from what the sections below already worked out (TG, TS_LAST,
@@ -24316,9 +24316,9 @@ function tsSheet(){
     if(MF.march&&!MF.march.choke){ N('Manifold loss, port to turbine flange',F.pD(MF.march.dp0)+' of total pressure at the cycle-mean flow'); N('Pressure at the exhaust port',F.pD(MF.march.sPort.p-P_ATM)+' gauge static: the turbine flange’s '+F.pD(MF.o.p3-P_ATM)+' plus '+F.pD(MF.march.dp)+' (the loss and the speed change)'); }
     const r0=MF.rows.find(r=>r.cd===MF.c); if(r0) N('Runner gas speed, cycle mean at the turbine-inlet state',F.sD(r0.v)+', Mach '+r0.M.toFixed(3));
     if(MF.vol) N('Volume, valves to the turbine'+each,(MF.vol.V*1000).toFixed(2)+' L ('+(MF.vol.V*61023.74).toFixed(0)+' cu in), '+(MF.vol.V/MF.vol.cyl).toFixed(2)+' × one cylinder');
-    if(MF.heat&&!MF.heat.none) N('Heat growth ('+mt.name+')',(MF.heat.atLeast?'at least ':'')+(MF.heat.eps*1e3).toFixed(2)+' mm/m; the turbine flange moves '+(MF.heat.move/MM).toFixed(3)+' in ('+MF.heat.move.toFixed(2)+' mm) from the head');
+    if(MF.heat&&!MF.heat.none) N('Heat growth ('+mt.name+')',(MF.heat.atLeast?'at least ':'')+(MF.heat.eps*1e3).toFixed(2)+' per thousand; the turbine flange moves '+(MF.heat.move/MM).toFixed(3)+' in ('+MF.heat.move.toFixed(2)+' mm) from the head');
     if(MF.sup) N('Turbo weight on the head flange',MF.sup.W.toFixed(0)+' N ('+(MF.sup.W/4.44822).toFixed(1)+' lbf), '+MF.sup.Mo.toFixed(1)+' N·m ('+(MF.sup.Mo/1.35582).toFixed(1)+' lb·ft) standing');
-    A('Turbo manifold: runner speeds at the cycle-mean flow at the turbine-inlet state; the manifold loss is a steady 1-D march (the merge’s mixing not counted) and is not added to the turbine balance; runner lengths from a planar S geometry; the runner size rule is MacInnes’ as quoted by AutoSpeed (the books were not read); fatigue life is not calculable here.'); }
+    assume.push('Turbo manifold: runner speeds at the cycle-mean flow at the turbine-inlet state; the manifold loss is a steady 1-D march (the merge’s mixing not counted) and is not added to the turbine balance; runner lengths from a planar S geometry; the runner size rule is MacInnes’ as quoted by AutoSpeed (the books were not read); fatigue life is not calculable here.'); }
   const X=TS_X;
   if(turbo&&X){ const G=X.G;
     const st=x=>F.tD(x.sIn.T-273.15)+', Mach '+x.sIn.M.toFixed(2)+'; static rise '+F.pD(x.dp);

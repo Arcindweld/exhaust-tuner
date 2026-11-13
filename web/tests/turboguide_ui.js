@@ -43,7 +43,7 @@ const { chromium } = require('playwright');
   // simple mode (the page's default): the checklist is there and readable
   ok(await pg.evaluate(() => document.body.classList.contains('simple') && !!document.getElementById('tg') && !!document.getElementById('tg').offsetParent), 'simple mode shows the checklist');
   let s = await steps();
-  ok(Object.keys(s).join(',') === 'engine,air,turbo,ar,pipes,ic,oil,valves,exh,scan,sheet', 'eleven steps in the builder’s order (oil cooling and turbo oil lines after the intercooler): ' + Object.keys(s).join(', '));
+  ok(Object.keys(s).join(',') === 'engine,air,turbo,ar,pipes,ic,oil,valves,mani,exh,scan,sheet', 'twelve steps in the builder’s order (oil cooling and turbo oil lines after the intercooler, the turbo manifold before the exhaust side): ' + Object.keys(s).join(', '));
   ok(s.engine.state === 'todo' && /target power not entered/.test(s.engine.text), 'no power target: step 1 open and says so');
   ok(s.air.state === 'todo' && /per compressor at pressure ratio/.test(s.air.text), 'no power target: step 2 gives the tab’s airflow');
   await setv('i-hp', '450');
