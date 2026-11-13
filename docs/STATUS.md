@@ -1777,3 +1777,4 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   list); fusion-addin/tests/test_turbomani.py and test_turbomani_fusion_fake.py (new; payload fixture
   web/tests/fixtures/turbomani_payload.json from turbomani_ui.js with ET_WRITE_FIXTURES=1); fusion_live_turbomani.py for
   the owner's machine, NOT RUN.
+- Suites (web, fusion, -j 2, no build): 143 tests, 137 passed, 0 failed, 6 skipped (expected), 7 partial skips, 0 unexpected.
