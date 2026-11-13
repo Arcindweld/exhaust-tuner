@@ -1,4 +1,12 @@
-EXHAUST TUNER (Fusion add-in), version 4.21.0
+EXHAUST TUNER (Fusion add-in), version 4.22.0
+
+4.22.0 (November 12, 2026)
+  Charge piping from a scan: mark the scan as a keep-out (and hot bodies), select a marker at each pipe end, and
+  "Recommend piping" ranks routes built from stocked bend radii by estimated pressure loss; "Build the chosen pipes"
+  builds them with a cut list. Mounts: place a part (or a stand-in box or cylinder), pick pairs of points on the part
+  and the chassis, and "Build" makes the brackets the page's Mounts designer sized, with clearance and socket-access
+  checks. "Test this intake (CFD)" has a mouth choice: flange, free-standing or auto. Neither new tool has been run
+  in live Fusion yet: tests/fusion_live_chargeroute.py and tests/fusion_live_mounts.py are the checks to run first.
 
 4.21.0 (November 11, 2026)
   "Test this intake (CFD)" takes more real intakes as they are: a bore that changes size more than once (a reducer
