@@ -1492,3 +1492,271 @@ python3 tools/validation/wave/cyl_phase.py thermo.inp rpms=3000,5000,7000 tag=d 
 python3 tools/validation/wave/closed_cycle.py thermo.inp afr tools/validation/wave/results/cyl_d.json   # dissociation at 14.6, ~1 min
 python3 tools/validation/wave/closed_cycle.py thermo.inp b2              # B2 again with this solver, ~7 min
 ```
+
+## Addendum 2026-11-13, part 5: the turbocharged engine (boosted intake, turbine, wastegate)
+
+Until now the wave model ran naturally aspirated engines only: every runner mouth (or the plenum's inlet) was an open end
+on still air at 101325 Pa and 298.15 K (`openEnd(-1, mouthP, TATM, 1)`; `opts.pIn` lowered the mouth's pressure for a part
+throttle, in the JavaScript only), and every tail end discharged to the same atmosphere. Nothing on the page could put a
+turbocharged engine through it: the Intake tab's boosted sections (`calcTurboRoute`, `turbineBalance`, `mfdCalc`) are
+steady-flow algebra, and the turbo manifold section said its blowdown peak "needs a wave model". This part adds the
+boosted charge, the turbine and the wastegate to the model (JS `wsFactory` and Rust `rust/et_wave` in bit parity), a
+closure that finds the turbine's effective area from the Intake tab's own power balance, and "Simulate with the turbo" on
+the 4-Stroke tab. Nothing was tuned to a rating or to OpenWAM. Every naturally aspirated result is unchanged to the last
+digit (E5).
+
+### E1 The boundary elements and their sources
+
+- **Boosted charge** (`intake.source = {p, T}`, `sourceOf`): the runner mouths (or the plenum's inlet) are open ends on the
+  charge after the compressor and the intercooler instead of the air: the same `openState` (Benson's characteristic open
+  end; gas coming in isentropically from the still source at p, T, at most sonic) with the source's p and T, and the
+  intake pipes, the plenum and the cylinders filled at it (`makePipe` takes a fill pressure, absent = 101325 Pa). The page
+  takes p = the route's throttle-inlet pressure (`R.Pt`, boost + atmosphere) and T = its intercooler outlet temperature
+  (`R.t3`); the gas properties are already those of air at T. The compressor is a boundary only: steady boost at each
+  speed, no map, no surge, no compressor or turbo speed, no inertia (steady full-load points only).
+- **Tail back pressure** (`exhaust.pOut`): the open tail ends discharge into that static pressure (used for the runs
+  without a turbine that the page compares with).
+- **Turbine** (`exhaust.turbine = {CdA, eta, wgCdA, wgTo, down, pOut}`, `turbineFace`): every tail end that would be open
+  becomes a turbine entry (one for a single collector; two for a divided manifold on a divided housing), the entries
+  sharing the effective area equally. The quasi-steady equivalent nozzle of 1-D engine codes: the turbine passes what an
+  isentropic nozzle of one effective area passes from the turbine-inlet stagnation state to the turbine-outlet static
+  pressure, m = A_eff sqrt(p0 rho0) psi(p4 / p0), psi = sqrt(2 g / (g - 1) ((p4/p0)^(2/g) - (p4/p0)^((g+1)/g))), choked
+  below (2 / (g + 1))^(g / (g - 1)) at sqrt(g) (2 / (g + 1))^((g + 1) / (2 (g - 1))) (the orifice law the valves already use;
+  NASA Glenn, Beginner's Guide, "Mass flow choking", grc.nasa.gov/WWW/K-12/BGP/mflchk.html, fetched 2026-11-13:
+  mdot = (A pt / sqrt(Tt)) sqrt(g / R) M (1 + 0.5 (g - 1) M^2)^(-(g + 1) / (2 (g - 1))), at M = 1 choked). The area is
+  constant: "Watson and Janota [Turbocharging the Internal Combustion Engine, 1982] and Benson [1982] used a constant Aeff
+  for all conditions" and "Payri et al [Energy Convers. Manag. 55 (2012) 149-163] allowed for changes in Aeff with Nred and
+  PR" (SAE 2017-24-0019, accepted version, spiral.imperial.ac.uk/bitstream/10044/1/53778, fetched 2026-11-13, which also
+  writes the restriction's flow as the isentropic orifice equation, its Eq. 3). Watson and Janota's and Heywood's books
+  (ch. 6, compressible flow through a restriction) were not fetched; the equation used is the NASA one above.
+  Where it enters the scheme: Benson's partly open end, like the junctions, before the pipes are stepped. The pipe's
+  arriving wave fixes the end state as a function of the face pressure pb (its Riemann invariant J = u + 2c / (g - 1) and its
+  entropy, frozen gamma: c_b = c (pb / p)^((g - 1) / 2g), u_b = J - 2 c_b / (g - 1), rho_b = rho (pb / p)^(1 / g)); the face
+  stagnation state T0 = T_b + u_b^2 / 2cp, p0 = pb (T0 / T_b)^(g / (g - 1)) (as `valveFlow`); the root of
+  rho_b u_b A_face = m_nozzle(p0, T0, p4) + m_gate(p0, T0, p_gate) by bisection on [the pipe end's sonic pressure, its
+  stalled pressure] (the first falls and the second rises with pb). If the nozzle could take more than the pipe's sonic
+  flux the end chokes; a supersonic stream arriving keeps its state. The face flux is that end state's (mass, momentum
+  m u_b + pb A, energy m (h(T_b, x) + u_b^2 / 2), fresh fraction).
+  Work: W = eta m_t (h0 - h(T_is, x)), h0 = h(T_b, x) + u_b^2 / 2, T_is on the gas's own isentrope from (T_b, pb) to p4
+  (`isenT`: ds = cp(T) dT / T - R dp / p = 0, p2 / p1 = (T2 / T1)^(c0 / R) exp((c1 dT + c2 d(T^2) / 2 + c3 d(T^3) / 3 +
+  c4 d(T^4) / 4) / R) on each polynomial range, written with pow and exp because the Rust imports no logarithm); eta is the
+  total-to-static efficiency (the Intake tab's input, 75 % when blank, the top of its sweep; no source for a typical value).
+  The downpipe's first cell takes m h0 - W through a fed end (`fedEnd`), so the gas after the turbine has the stagnation
+  temperature the work leaves; its static pressure at the step's start is p4. Gas flowing back (p4 above the pipe's stalled
+  pressure) comes in from the downpipe's first cell through the same nozzle with no work.
+  Divided housing: two nozzles in parallel with their own inlet states on one wheel (their work summed), as "two separate
+  parallel equivalent nozzles" for a double-entry turbine (Galindo, Serrano, De La Morena, Samala, Guilain, Batard, Frontiers
+  in Mechanical Engineering 6 (2021), doi 10.3389/fmech.2020.601368, fetched 2026-11-13). Ignored: any interaction of the
+  two entries at the wheel (partial admission, flow between the scrolls at the rotor); both see the same outlet pressure.
+- **Wastegate**: an orifice of area wgCdA in parallel with the turbine on the same face solve, to the turbine outlet
+  (internal: its flow joins the downpipe with h0) or to the atmosphere (external: it leaves the model, counted as an
+  outflow); no work. Its share of the exhaust is reported per cycle.
+- **Implementation reference, OpenWAM** (`ext/OpenWAM/Source/ODModels/TTurbinaSimple.cpp`, `CalculaCondicionTurbina`
+  142-385; `Connections/TEstatorTurbina.cpp`, `TRotorTurbina.cpp`): OpenWAM's turbine is a 0-D volume between two
+  nozzle-type connections (stator, rotor) whose effective areas are fixed or come from a map, the work taken out of the
+  volume's energy (`FTrabajoFluido`, line 368). Followed: the isentropic total-to-static enthalpy drop from the inlet's
+  stagnation state (its T0 = T + v^2 / 2cp, p0 = p (T0 / T)^(g / (g - 1)), lines 236-237) to the outlet pressure times an
+  efficiency. Different here: one nozzle and no volume (the single equivalent nozzle, not the two-nozzle stator/rotor form);
+  the isentrope with variable cp exactly, where OpenWAM uses gamma at the inlet temperature and cp at a mean (line 284);
+  the efficiency a constant input, where OpenWAM computes it from the blade-speed ratio (Watson's polynomial, a fitted
+  polynomial or a map, lines 312-348), which needs the turbo's speed and a shaft with a compressor.
+
+### E2 The closure: the effective area from the power balance
+
+No maker publishes a turbine's flow as an effective area (the boost audit found one text figure, Garrett G40-1150's
+"43 LBS/MIN", with no reference state), and no source turns a housing's A/R into a flow area (audit, "Turbine housing
+A/R"), so the model finds the area itself (`turboSimLib.closure`, page JS, used with either back end): cycle-averaged
+turbine power = compressor power, the balance of `turbineBalance` (whose efficiency holds the mechanical losses), with the
+compressor power m_air cp (T2 - T1) from the air the engine drew from the charge in that cycle and the route's T2 and T1
+(the route's pressure ratio held). At the first speed (the Intake tab's full-boost RPM) the gate is shut and the turbine's
+area is found; at every faster speed that area is kept and the gate's is found (a secant in ln(area) or area inside its
+bracket, to 0.5 % of the power; 3-5 runs of 2+ cycles per speed). A speed where the shut gate leaves the turbine short is
+marked (the boost could not be held there; this steady model still holds it). A typed area replaces the search.
+So the turbine-inlet pressure is an output of the simulation, and the efficiency and the housing's A/R enter only through
+the effective area; with the page's 2 x boost (and Bell's 2-2.5 x, as the Intake tab cites it) it is compared in E7.
+
+### E3 Known answers (`web/tests/waveturbo_ui.js`, 16 checks, about 40 s)
+
+| check | model | reference | difference |
+|---|---|---|---|
+| source at 101325 Pa / 298.15 K and tail at 101325 Pa against no source, four-cylinder engine, 2 speeds x 8 outputs | | the plain run | 0 of 16 differ (bit for bit) |
+| choked nozzle, 5 cm2, reservoir 300 kPa / 1100 K, burned gas (p4/p0 0.338) | 0.177633 kg/s | NASA Glenn choked flow at the end cell's frozen gamma 1.2873: 0.177633 | -0.0001 % (+0.006 % with gamma at T0) |
+| unchoked nozzle, 150 kPa into 120 kPa (p4/p0 0.800) | 0.074104 kg/s | NASA Glenn's flow at the throat Mach number | -0.0000 % |
+| nozzle 40 cm2 on a 60 -> 50 mm cone (end 19.6 cm2) | 0.70089 kg/s, the pipe end sonic | the cone end's choked flow 0.70197 | -0.15 % (the face area is the last cell's) |
+| work, constant gas: W / (eta m), 250 kPa / 1150 K to 110 kPa | 244069.21 J/kg | cp T0 (1 - (p4/p0)^((g-1)/g)) by hand: 244069.21 | -0.0000 % |
+| gas after the turbine, constant gas | 991.26 K | T0 - eta dh / cp: 991.26 K | 0.00 K |
+| work, the engine's gas, cp(T) | 247218.70 J/kg | the isentrope from the entropy integral (Simpson in ln T, bisection) found in the test: 247218.71 | -0.0000 % (frozen gamma at T0 would give 243380.55, -1.6 %) |
+| gas after the turbine, the engine's gas | 1011.01 K | h(T04) = h(T0) - eta dh: 1011.01 K | 0.00 K |
+| steady-flow limit: turbine 4 cm2 + gate 3 cm2 to one outlet, 220 kPa, 950 °C, 110 kPa; turbineBalance (the page's own source) at the rig's p3, T3 with Wc set to the rig's W | gate share 0.4286 | the algebra's 0.4290 | 0.04 points |
+| the same: the rig's turbine power against m_t cp T3 eta (1 - (p4/p3)^k) | 15.5583 kW | 15.5691 kW | -0.07 % (its constant cp at T3, its stoichiometric gas) |
+| engine cycle with source, turbine and internal gate, 5000 rpm | mass residual -6.4e-16, total energy residual / heat released -4.0e-15 | 0 | turbine work 685.5 J per cycle as the sink |
+| the same, external gate | 3.1e-15, -2.8e-14 | 0 | |
+| the source's inflow enthalpy | h(T_source) to 3.6e-12 J/kg of 21949 | exactly | rounding |
+| isentrope helper | isenT inverts isenRatio to 6.7e-16; above 3500 K (cp held) the ratio is (T2/T1)^(cp/R) to 0 | | |
+
+### E4 JS / Rust / WebAssembly parity
+
+`web/tests/wave_wasm.js` gains four jobs, compared as before (every output double) and now also the turbine and intake
+summary (`wave_turbo_out`: 16 scalars, 720 one-degree bins of turbine-inlet total pressure per entry, 720 of the tail's mass
+flow): the four-cylinder collector with turbine and internal gate, the areas changed before each speed (`wave_turbo_set`,
+as the closure does); a divided turbine (two entries) with an external gate; the boosted charge alone with a tail back
+pressure; the plenum and throttle under boost with the constant gas. All identical to the last digit (QUICK and full).
+The page's run in Chromium against the same plan in Node: within 0.023 % (E7): the WebAssembly imports the host's Math.pow
+and Math.exp, which need not round alike in two JavaScript engines, and the closure's secant then lands anywhere inside its
+0.5 % tolerance. Within one engine JS and Rust agree to the last digit.
+
+### E5 The naturally aspirated model is unchanged
+
+`kat.js` 66 of 66 criteria, `results/kat.json` byte-identical; `constref.js` 112 constant-gamma speeds identical to the
+reference; `wavegas_ui.js` 121 checks, `wavekat_ui.js`, and `wave_wasm.js` on every existing job (default gas and constant
+gamma) bit for bit. The new paths run only when `intake.source`, `exhaust.pOut` or `exhaust.turbine` is given; a source at
+the atmosphere reproduces the plain run to the last digit (E3, first row). No pinned value was changed.
+
+### E6 OpenWAM cross-check: not made
+
+OpenWAM's turbine cannot be driven from the existing writer with modest effort: its turbine is a 0-D volume with stator
+and rotor connections (`TEstatorTurbina`, `TRotorTurbina`), its efficiency comes only from the blade-speed ratio (Watson's
+polynomial or a fitted one, both needing the turbo's speed and wheel diameter), an external controller, or a map
+(`TTurbina::LeeTurbina`); a constant efficiency is not an option, so a like-for-like case needs a turbocharger shaft with a
+compressor (a map file) or a fixed speed chosen to give the efficiency, and the writer (`openwam/make_wam.py`) writes none
+of these blocks (it counts zero turbines and axes). Skipped; the known answers of E3 stand instead.
+
+### E7 Real engines: none buildable from sourced data; the K24A2 + Precision GEN2 PT5862 as a prediction
+
+No turbocharged production engine in the page's library has cam data (`CAM_LIB` holds GM V8s only; the turbo presets, e.g.
+Buick 3.8, 2JZ-GTE, B58, 4G63T, M178, carry ratings, bore, stroke and compression but no cam events). The library's only
+boosted engine with a cam card, the LS9 (Lingenfelter's copy of GM 12638427), is supercharged by a positive-displacement
+blower: it could test the boosted charge only, with its charge temperature and its blower's drive power unpublished; not
+done. So the whole run is not tested against a rating.
+
+The owner's build as a **prediction** (`tools/validation/wave/turbo_k24.js`, from the page's own plan captured by
+`CAPTURE=1 node web/tests/turbosim_ui.js`, `results/turbo_k24_page.json`, `results/turbo_k24.json`). Every input and its basis:
+- engine: the 4-Stroke tab with the K24A2 preset: 87 x 99 mm, CR 10.5 (Honda's sheet, audit B28), 2 x 35 / 2 x 30 mm valves
+  and lifts 9.1 / 8.4 mm (the tab's estimates from the bore), rod 1.7 x stroke (assumed), valve Cd 0.7 (the model's law), cam
+  IVO 20 / IVC 60 / EVO 60 / EVC 20 deg seat to seat: **the tab's stand-in, not the K24's stock events (not sourced)**; one
+  300 mm runner per cylinder from the charge, no plenum; burn 18 deg BTDC over 55 deg, AFR 12 (the Intake tab's), ETA_C 0.975;
+- charge: boost 169.918 kPa (24.64 psi; the audit's 450 hp case: the tab's airflow per compressor set to Garrett's
+  Wa = HP x 12 x 0.55 / 60), throttle-inlet 271.243 kPa absolute, intercooler outlet 63.4 °C (the route at the tab's 75 %
+  intercooler, 70 % compressor efficiency);
+- manifold: the Turbo manifold section, tubular, ports 93 mm apart (the audit's typed example; not a cited K-series
+  spacing): four runners 44.32 mm x 193.9 mm (the shortest equal length), a 20 deg merge cone to the 58.46 mm collector
+  (the T3 flange port's equivalent bore), 152.4 mm to the flange; wall 794 °C (the section's steel temperature);
+- turbine: Precision GEN2 PT5862, 0.63 A/R T3 housing (picked; the A/R enters only through the area found), efficiency 75 %
+  (blank on the tab), external wastegate to the air, downpipe 72.9 mm x 610 mm (Exhaust after the turbine), no back pressure
+  after it (none entered: cats and mufflers not counted); speeds 3500 (the tab's full-boost RPM) to 7100 rpm;
+- brake = net IMEP (the turbo's pumping loop included) - Heywood's tfmep (B4); "gross basis" = gross IMEP - tfmep (as the
+  plain wave simulation reads brake); Heywood's motored friction holds an NA wide-open pumping loop, so the first counts
+  pumping twice and the second ignores the turbo's back pressure.
+
+| RPM | brake torque N m (lb-ft) | brake hp | gross basis hp | same pipes, no boost, brake hp | p3 mean kPa abs (x boost, gauge) | p3 peak (x boost) | p3 / p2 | pumping mep kPa | residual | VE on the charge | T3 / T4 °C | gate share: run / algebra at the run's p3, T3 / page at 2 x boost | turbine / gate area mm2 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 3500 | 626 (462) | 308 | 301 | 99 | 170.3 (0.41) | 240.1 (0.82) | 0.628 | -70.0 | 2.3 % | 1.013 | 940 / 836 | 0.0 / 0.0 / 58.3 % | 1185 / 0 |
+| 4000 | 651 (480) | 366 | 362 | 121 | 182.0 (0.48) | 253.2 (0.89) | 0.671 | -32.7 | 2.2 % | 1.066 | 955 / 839 | 9.6 / 0.3 / 58.3 % | 1185 / 125 |
+| 4550 | 678 (500) | 433 | 436 | 151 | 195.7 (0.56) | 271.8 (1.00) | 0.722 | 19.5 | 2.1 % | 1.129 | 970 / 842 | 18.4 / 11.9 / 58.3 % | 1185 / 267 |
+| 5050 | 686 (506) | 486 | 496 | 177 | 206.9 (0.62) | 282.6 (1.07) | 0.763 | 70.3 | 2.1 % | 1.161 | 983 / 847 | 24.0 / 18.9 / 58.3 % | 1185 / 375 |
+| 5550 | 687 (507) | 535 | 553 | 191 | 218.6 (0.69) | 290.3 (1.11) | 0.806 | 117.9 | 2.2 % | 1.183 | 994 / 849 | 28.3 / 24.6 / 58.3 % | 1185 / 469 |
+| 6050 | 670 (494) | 569 | 598 | 198 | 228.5 (0.75) | 292.8 (1.13) | 0.842 | 179.5 | 2.2 % | 1.184 | 1006 / 855 | 31.6 / 28.8 / 58.3 % | 1185 / 548 |
+| 6600 | 616 (455) | **571** | 608 | 195 | 232.2 (0.77) | 285.7 (1.09) | 0.856 | 212.2 | 2.4 % | 1.122 | 1013 / 859 | 33.0 / 30.6 / 58.3 % | 1185 / 583 |
+| 7100 | 571 (421) | 569 | 617 | 186 | 234.5 (0.78) | 279.5 (1.05) | 0.864 | 256.0 | 2.8 % | 1.075 | 1022 / 864 | 34.6 / 32.3 / 58.3 % | 1185 / 627 |
+
+(Pumping mep: gross minus net IMEP, positive a loss. T4: the turbine's own flow (the external gate's leaves at T3); the
+Intake tab's mixed t4 at its assumed 950 °C TIT is 845 °C. Turbine / compressor power 0.996-1.001 at every speed.)
+
+Read, as the model's prediction and no more:
+- Peak brake power 571 hp at 6600 rpm (608 hp on the gross basis), torque 687 N m (507 lb-ft) at 5550 rpm, at the boost the
+  page sizes for 450 hp: the model's air at 6600 rpm is 0.408 kg/s (53.9 lb/min) where Garrett's method takes 49.5 lb/min
+  for 450 hp, and its fuel per hp is 0.47 lb/hp h where that method assumes 0.55. On the three NA V8 ratings the model reads
+  brake torque +4 to +16 % high (C4); the same pipes without boost give 198 hp at 6050 rpm and 250 N m (184 lb-ft) at
+  5050 rpm here, against the K24A2's 200 hp @ 6800 and 166 lb-ft @ 4500 (with the stand-in cam, not a validation).
+- The turbine-inlet pressure is far below the page's assumed 2 x boost and Bell's 2-2.5 x: its mean is 0.41-0.78 x boost
+  gauge (p3 / p2 0.63-0.86 absolute), its blowdown peak 0.82-1.13 x; with eta 0.65 the mean at peak power is 0.96 x (below).
+  So the pumping loop is a gain at 3500-4000 rpm (p3 under p2 through the exhaust stroke) and a loss above, rising to 2.6 bar
+  at 7100 rpm, where the valves (lifts 9.1 / 8.4 mm, the tab's estimate) restrict the boosted flow. The model's exhaust is
+  known to run hot (A6: 78-150 K above OpenWAM at the port; here T3 940-1022 °C), which raises the turbine's energy per kg
+  and so lowers the p3 it needs.
+- The gate's share: 0-35 % in the run, 0-32 % from the algebra at the run's own mean p3 and T3 (the 2-3 points between are
+  the pulsating flow: in the steady limit they agree to 0.04 points, E3), and 58 % from the algebra at the page's assumed
+  2 x boost and 950 °C. The page's assumption overstates the gate's share for this build.
+- The full-boost RPM's effective area, 1185 mm2 (1.84 in2), is the model's result for a 75 % turbine at 1022-940 °C; it is
+  not the 0.63 A/R housing's measured flow (none is published).
+
+One change at a time (`turbo_k24.js`):
+
+| case | peak brake hp @ rpm | peak torque N m @ rpm | p3 mean x boost at peak hp | gate share at peak hp | T3 / T4 °C at peak hp |
+|---|---|---|---|---|---|
+| as the page runs it | 571 @ 6600 | 687 @ 5550 | 0.77 | 33.0 % | 1013 / 859 |
+| turbine efficiency 0.65 | 565 @ 6600 | 680 @ 5050 | 0.96 | 33.1 % | 1013 / 858 |
+| turbine efficiency 0.70 | 569 @ 6600 | 684 @ 5550 | 0.85 | 33.0 % | 1013 / 858 |
+| internal gate (into the downpipe) | 571 @ 6600 | 686 @ 5550 | 0.78 | 32.5 % | 1013 / 910 |
+| 2 psi back pressure after the turbine | 565 @ 6600 | 680 @ 5550 | 0.95 | 33.8 % | 1013 / 856 |
+| AFR 11.5 | 566 @ 6600 | 681 @ 5550 | 0.78 | 33.1 % | 987 / 832 |
+
+The power hardly depends on the turbine efficiency (the closure moves p3 instead: a less efficient turbine needs a higher
+inlet pressure for the same work), so p3 is the number the efficiency input sets.
+
+Sound after the turbine (the model's result; not validated): the firing orders at 1 m from the downpipe's end (monopole of
+its mass flow, as the Sound tab), before cats and mufflers, against (a) the same pipes at the same boost with no turbine
+(the collector running on into the downpipe: the turbine's own effect at the same flow) and (b) the engine without boost:
+
+| rpm | order 2: level, (a), (b) dB | order 4 | order 6 | order 8 |
+|---|---|---|---|---|
+| 3500 | 110.1, -12.6, -11.3 | 112.4, -11.7, -9.4 | 92.9, -32.3, -22.8 | 98.5, -27.2, -14.7 |
+| 4550 | 113.3, -6.8, -6.8 | 110.2, -8.8, -13.2 | 102.0, -12.1, -19.5 | 102.3, -7.0, -17.4 |
+| 5550 | 116.2, -1.2, -1.0 | 109.1, -6.3, -6.4 | 104.3, -6.4, -10.7 | 105.7, +4.7, -10.6 |
+| 6600 | 117.9, +1.8, +4.2 | 109.3, -5.9, +3.5 | 107.2, -2.7, +12.9 | 98.7, -5.7, +1.1 |
+| 7100 | 117.9, +2.4, +5.6 | 107.4, -7.7, +3.8 | 107.5, -0.7, +14.1 | 102.9, +1.0, +19.7 |
+
+With the gate shut (3500 rpm) the turbine takes 12 dB off the firing order and 27-32 dB off orders 6 and 8 against the same
+flow without it; as the gate opens the attenuation falls (an external gate takes a third of the flow out of the downpipe,
+whose own sound, the gate's dump, is not counted). With an internal gate the firing order at 6600 rpm is within 0.1 dB of
+no turbine (`turbo_k24.json`, `gatedown`). Against the engine without boost (b) the turbo is quieter at low speed and
+louder at high speed; at every speed it flows 2.5-2.7 times the air.
+
+### E8 What changed on the page; tests; pinned values; run time
+
+- Model: `wsFactory` (`sourceOf`, `turbineOf`, `setTurbine`, `isenRatio`, `isenT`, `turbineFace`, per-cycle sums `turbAcc` /
+  `turbSum`; `makePipe` fill pressure) and `rust/et_wave` line for line (`Bnd::OpenAt`, `Src::Turb`, `turbine_face`,
+  `turb_sum`; exports `wave_turbo_set`, `wave_turbo_out`, `wave_turbo_len`); the WebAssembly rebuilt and embedded.
+- Page: `turboSimLib` (back ends and closure), "Wave simulation with the turbo" (or "with the supercharger") on the 4-Stroke
+  tab when the Intake tab's induction is turbo or centrifugal: what the run takes and from where (11 rows), the button, the
+  torque chart (under boost brake and indicated, without boost brake), a table per speed in both unit systems, peak power,
+  the pressure before the turbine against the assumed multiple, the area, the gate against the algebra, the tail orders,
+  the pressure before the turbine over a cycle, the method and its limits; two Intake inputs (turbine and gate effective
+  areas, blank = found); the Turbo manifold section gives the blowdown peak "from the wave simulation" when a run with its
+  manifold exists (and its old sentence otherwise); "Turbo build, step by step" gains "Simulated under boost" when a run
+  exists, marked out of date when the boost inputs change.
+- Tests: `web/tests/waveturbo_ui.js` (new, Node, 16 checks), `web/tests/turbosim_ui.js` (new, Playwright, 20 checks;
+  CAPTURE=1 writes the K24 plan), `web/tests/wave_wasm.js` (four jobs added and the turbine summary compared; nothing
+  removed or loosened). Scripts: `tools/validation/wave/turbo_k24.js`.
+- Pinned values changed: none.
+- Run time: the K24 build's run on the page (8 speeds with the closure, then 8 without boost and 8 with the boost and no
+  turbine; WebAssembly in a worker) about 20 s on this machine; the JavaScript back end (the page's fallback) takes 1.2-1.4 times as long (scratch timing and wave_wasm.js).
+
+### E9 Not modelled
+
+Knock, mixture enrichment for cooling and ignition retard under boost: the power figures assume the engine can run the
+modelled burn (18 deg BTDC, 55 deg, the Intake tab's AFR) at this boost. The compressor's map, surge, the turbo's speed and
+inertia, spool-up and transients (steady full-load points). The turbine's map: its effective area and efficiency are
+constant over the cycle and across speeds (Payri et al. vary both), and the two-nozzle stator/rotor form is not used. Heat
+lost in the turbine housing. Work of a turbine flowing backwards. Interaction of a divided housing's entries at the wheel.
+The external gate's own discharge noise.
+
+### E10 Summary rows (section 6, as of 2026-11-13, part 5)
+
+| Difference | Status | Evidence |
+|---|---|---|
+| Naturally aspirated only | boosted charge, turbine (equivalent nozzle, exact isentrope), wastegate, divided entries added; NA unchanged bit for bit | E1, E5 |
+| Turbine flow area unknown | found by the model from the Intake tab's power balance; p3 an output | E2 |
+| Known answers | nozzle flow to 1e-6, work and outlet temperature to 1e-6, the algebra's steady limit to 0.04 points of gate share, mass and energy to 1e-14 | E3 |
+| OpenWAM's turbine | not compared: needs a shaft, a compressor map or speed, and blocks the writer lacks | E6 |
+| A rated turbocharged engine | none buildable from sourced data; the K24 build is a prediction | E7 |
+| Pressure before the turbine | the K24 run gives 0.4-0.8 x boost mean (1.0-1.1 x peak) at 75 % against the page's assumed 2 x | E7 |
+
+### E11 How to rerun (additions)
+
+```
+node web/tests/waveturbo_ui.js                         # known answers of the new elements, ~40 s
+QUICK=1 node web/tests/wave_wasm.js                    # JS / Rust / WebAssembly incl. the turbo jobs (from web/)
+cd web && CAPTURE=1 node tests/turbosim_ui.js          # the page's run of the K24 build, writes results/turbo_k24_page.json
+node tools/validation/wave/turbo_k24.js                # reproduce it in Node and the one-change runs, ~3 min
+```
