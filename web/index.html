@@ -14777,7 +14777,9 @@ window.__hang={HG,HANG,hgRead,hgParts,hgDxf,hgPayload,hgStrength,HG_GROM,HG_MAT,
      fn = sqrt(n k / m) / 2 pi. Transmissibility undamped T = 1 / |1 - r^2|, r = f / fn (standard single-degree-of-
      freedom result; isolation needs r > sqrt 2, University of Iowa 58:153 lecture 9); with the page's rubber damping
      ratio 0.07 (the HANGERS table) the damped T is higher above sqrt 2 and is the one checked. Target T -> fn at most
-     f / sqrt(1 + 1/T), k per mount at most m (2 pi fn)^2 / n. Isolators: AMC Mecanocaucho Type A bobbins, the maker's
+     f / r_T, r_T the root above sqrt 2 of the damped T(r) = T: with x = r^2, T^2 x^2 - (2 T^2 + 4 z^2 (1 - T^2)) x + T^2 - 1
+     = 0 (audit 3, M2: the undamped inversion r = sqrt(1 + 1/T) gave a stiffness whose damped T missed the target, 21.1%
+     against 20%); z = 0 gives sqrt(1 + 1/T). k per mount at most m (2 pi fn)^2 / n. Isolators: AMC Mecanocaucho Type A bobbins, the maker's
      maximum static load and deflection in compression and shear (RS datasheet 0900766b81586730; columns A diameter,
      B height read from the drawing); stiffness taken as load ÷ deflection (secant). AMC: dynamic stiffness is higher than
      static, so the real bounce frequency is higher than this.
@@ -14900,7 +14902,7 @@ function mtMat(o,welded,T){
     return {print:1,m,fy:pw.strength*pw.tf,rho:m.dens,name:m.name+', printed',src:'across layers × wet fraction × temperature factor at '+tempStr(Number.isFinite(T)?T:23)+' (the Intake tab’s printed-part rules)',tmax:m.tmax,hdt:m.hdt18}; }
   const key=o.mat==='al6061'&&welded?'al6061w':o.mat, M=HG_MAT[key];
   const ws=o.mat==='a36'?{s:145,src:'AWS D1.1 allowable 0.30 × FEXX, E70: 145 MPa (21 ksi)'}:o.mat==='ss304'?{s:0.577*205,src:'no filler figure verified: 304’s shear yield, 0.577 × 205 MPa, on the throat'}:
-    {s:o.filler==='5356'?117.2:79.3,src:'AlcoTec typical longitudinal fillet shear, '+(o.filler==='5356'?'5356 17.0 ksi (117.2 MPa)':'4043 11.5 ksi (79.3 MPa)'),haz:/6061/.test(o.mat)?0.577*103:null};
+    {s:o.filler==='5356'?117.2:79.3,src:'AlcoTec typical longitudinal fillet shear, '+(o.filler==='5356'?'5356 17.0 ksi (117.2 MPa)':'4043 11.5 ksi (79.3 MPa)')+': a typical breaking strength, not an allowable like the steel weld’s 0.30 × FEXX or a yield like the brackets’, so this row’s safety factor is on failure',haz:/6061/.test(o.mat)?0.577*103:null};
   const E=o.mat==='ss304'?193000:o.mat==='a36'?205000:MT_E_AL;
   return {fy:M.fy,rho:M.rho,name:M.name,src:M.src,key,weld:ws,E,stock:(HG_STOCK[key]||HG_STOCK[o.mat]||[]).map(x=>x*25.4)};
 }
@@ -14957,7 +14959,7 @@ function mtBracketChecks(o,mt,br,type,t,cases){
   if(worst.chw){ const w=o.weld>0?o.weld:t, cap=mt.weld.s*0.707*w, capH=mt.weld.haz?mt.weld.haz*w:Infinity;
     add('Fillet welds, channel to its foot plate, '+bothL(w)+' leg',worst.chw.v,Math.min(cap,capH),'line method, both faces of the web and flanges; '+mt.weld.src+' (force per mm)'+nm(worst.chw.c),'N/mm'); }
   if(worst.above) add('Strap just above the gusset',worst.above.v,fy,bothL(hg)+' up, the strap alone'+nm(worst.above.c),'MPa');
-  light.forEach((L,k)=>add('Net section at lightening hole '+(k+1),worst['light'+k].v,fy,'Ø'+bothL(L.d)+' at '+bothL(L.y)+' up: width '+bothL(b-L.d)+' left'+nm(worst['light'+k].c),'MPa'));
+  light.forEach((L,k)=>add('Net section at lightening hole '+(k+1),worst['light'+k].v,fy,'Ø'+bothL(L.d)+' at '+bothL(L.y)+' up: width '+bothL(b-L.d)+' left; nominal net-section stress, no stress concentration factor (the usual basis for static yield of a ductile metal; the hole’s edge stress, about 2–3 × this, matters for fatigue, which is not checked)'+nm(worst['light'+k].c),'MPa'));
   const e=rb-hole/2;
   add('Tearing out past the part’s hole',worst.tear.v,0.577*fy*2*e*t,bothL(e)+' of metal past the Ø'+bothL(hole)+' hole, two shear planes (0.577 × yield)'+nm(worst.tear.c),'N');
   add('Part bolt, '+bc.B.n+' '+bc.G[2]+', tension',worst.pT.v,bc.T,'proof '+Math.round(bc.G[0])+' MPa × '+bc.B.As.toFixed(1)+' mm² stress area'+nm(worst.pT.c),'N');
@@ -14976,9 +14978,13 @@ function mtBracketChecks(o,mt,br,type,t,cases){
 function mtStayChecks(o,mt,br,cases){
   const SF=o.sf, D=o.stod, w=o.stw, di=D-2*w, A=Math.PI*(D*D-di*di)/4, I=Math.PI*(Math.pow(D,4)-Math.pow(di,4))/64, r=MV.add(MV.mul(br.n,br.h),MV.mul(br.u,br.s)), L=MV.len(r), e=MV.unit(r);
   let Nt=0,Nc=0,Vx=0,Fmax=0,ct=null,cc=null; cases.forEach(c=>{ const N=MV.dot(c.F,e), V=MV.len(MV.sub(c.F,MV.mul(e,N))); if(N>Nt){ Nt=N; ct=c; } if(-N>Nc){ Nc=-N; cc=c; } Vx=Math.max(Vx,V); Fmax=Math.max(Fmax,MV.len(c.F)); });
-  const Pcr=Math.PI*Math.PI*mt.E*I/(L*L), bc=mtBoltCap(o), rows=[], add=(what,load,cap,how,unit)=>rows.push({what,load,cap,sf:cap/Math.max(load,1e-9),how,unit:unit||'N',ok:cap>=SF*load-1e-9});
+  // Euler for a slender stay, Johnson's parabola below the transition slenderness sqrt(2 pi^2 E / fy) (audit 3, M4: the
+  // page took the lesser of Euler and yield, which overstates an intermediate column: 3/4 x 0.065 in steel at 300 mm,
+  // L/k 48.6 against 127.7, Johnson 20764 N, the old figure 22381 N at yield)
+  const kr=Math.sqrt(I/A), sl=L/kr, slc=Math.sqrt(2*Math.PI*Math.PI*mt.E/mt.fy), johnson=sl<slc;
+  const Pcr=johnson?A*(mt.fy-Math.pow(mt.fy/(2*Math.PI),2)*sl*sl/mt.E):Math.PI*Math.PI*mt.E*I/(L*L), bc=mtBoltCap(o), rows=[], add=(what,load,cap,how,unit)=>rows.push({what,load,cap,sf:cap/Math.max(load,1e-9),how,unit:unit||'N',ok:cap>=SF*load-1e-9});
   add('Stay in tension',Nt,mt.fy*A,bothL(D)+' × '+bothL(w)+' tube, '+A.toFixed(1)+' mm²'+(ct?' ('+ct.name+')':''));
-  add('Stay in compression (Euler, pinned ends; a short stay at yield)',Nc,Math.min(Pcr,mt.fy*A),bothL(L)+' between rod-end centres, E '+Math.round(mt.E/1000)+' GPa'+(cc?' ('+cc.name+')':''));
+  add('Stay in compression ('+(johnson?'Johnson’s parabola':'Euler')+', pinned ends)',Nc,Pcr,bothL(L)+' between rod-end centres, slenderness L/k '+sl.toFixed(1)+(johnson?' below':' above')+' the '+slc.toFixed(1)+' where Euler takes over, E '+Math.round(mt.E/1000)+' GPa'+(cc?' ('+cc.name+')':''));
   add('Rod-end thread, '+bc.B.n+' '+bc.G[2],Math.max(Nt,Nc),bc.T,'proof load');
   const wl=o.weld>0?o.weld:w; add('Weld round each threaded bung',Math.max(Nt,Nc)/(Math.PI*D),mt.weld?Math.min(mt.weld.s*0.707*wl,mt.weld.haz?mt.weld.haz*wl:Infinity):mt.fy*0.577*0.707*wl,'Ø'+bothL(D)+' round, '+bothL(wl)+' leg (force per mm)','N/mm');
   return {rows,ok:rows.every(x=>x.ok),minSF:Math.min(...rows.map(x=>x.sf)),SF,L,A,cut:L-2*o.stre,across:Vx,acrossShare:Vx/Math.max(Fmax,1e-9)};
@@ -15026,7 +15032,8 @@ function mtIdle(o){
 const mtTr=(r,z)=>z>0?transmiss(r,z):1/Math.abs(1-r*r);
 function mtIsolators(o,mass,shares){
   const idle=mtIdle(o), n=shares.length, W=Math.max(...shares), T=Math.min(0.9,Math.max(0.01,o.T>0?o.T:0.2)), z=HANGERS.soft.z;
-  const fnMax=idle.f/Math.sqrt(1+1/T), kMax=mass*Math.pow(2*Math.PI*fnMax,2)/n/1000;
+  const T2=T*T, bq=2*T2+4*z*z*(1-T2), rT=Math.sqrt((bq+Math.sqrt(bq*bq-4*T2*(T2-1)))/(2*T2));   // damped T(r) = T, the root above sqrt 2
+  const fnMax=idle.f/rT, kMax=mass*Math.pow(2*Math.PI*fnMax,2)/n/1000;
   const rows=MT_AMC.map(q=>{ const P=o.iso==='s'?q.Ps:q.Pc, d=o.iso==='s'?q.ds:q.dc, k=P/d, fn=Math.sqrt(n*k*1000/mass)/(2*Math.PI), r=idle.f/fn;
     return Object.assign({},q,{P,d,k,fn,T0:1/Math.abs(1-r*r),Tz:mtTr(r,z),loadOk:W<=P,isoOk:r>Math.SQRT2&&mtTr(r,z)<=T}); });
   const ok=rows.filter(q=>q.loadOk&&q.isoOk).sort((a,b)=>b.k-a.k);
