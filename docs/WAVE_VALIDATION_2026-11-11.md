@@ -1449,6 +1449,15 @@ VE and residual; that part is not explained here).
   cross-check ratios (B7, C6), the sound orders and the run time are those of part 3, unchanged; they were not rerun
   (`git diff` of the model's code is empty). kat.js, constant-gamma mode, wavegas_ui and JS/Rust/WASM parity: in the suite
   run below.
+- Rerun to confirm: `kat.js` 66 of 66 (`results/kat.json` byte-identical); `constref.js` 112 constant-gamma speeds identical;
+  `ratings.js engines=ls3 intake=plenum flow=benchfam` reproduces part 3's `c_final` LS3 entry exactly (479 lb-ft @ 5000,
+  499 hp @ 5800 brake).
+- Suite (`python3 tools/run_all_tests.py -j 2`, 2026-11-12 part 4, the machine shared with two other agents, load 6-7 on 2
+  cores): 153 tests, 149 passed, 2 skipped and 4 partial skips (all expected), 2 failed: `test_header_uel` (P3 short of
+  its gap by 0.85 cm) and `test_native` (a route differing between its two directions), both Fusion tube-routing tests in
+  `fusion-addin/tests` that use none of the files changed here (fusion-addin and rust are untouched); both also failed
+  when rerun alone under that load. wavegas_ui, wavekat_ui, wave_wasm and wave_wasm_built (JS / Rust / WebAssembly bit for
+  bit), cam_ui, sim_ui, multi_ui, sound_ui, dyno_ui, mdwam_ui, jpipe_ui and openwam test_py_js (150 of 150) passed.
 - No pinned value was changed.
 
 ### D8 The stock intake runner length (searched again)
