@@ -1731,3 +1731,36 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Suites (web, fusion, -j 2): 140 tests, 134 passed, 0 failed, 6 skipped (expected), 7 partial skips, 0 unexpected.
 - Open: Bowman's drop at the build's density (1.34 x at the default build), an aluminium weld allowable, a choked-exit
   back pressure, Bell item-page weights, Setrab's fan-pack rows; test_native's edit is unrun here (no Rust core).
+
+## 2026-11-13: tidy after boost audit part 2 (test reads, Bowman drop, torsion, Mounts weights, slow tests)
+
+- Page reads in tests (audit F1): `web/tests/settle.js` (new helper, listed in run_all_tests.py NOT_TESTS): `reads(page)`
+  turns `page.$eval` / `$$eval` into one `page.evaluate` that waits until `window.__renderCount` (new, bumped at the end
+  of `renderActive`, read by nothing on the page) is unchanged over two whole frames, then queries and reads in the same
+  task. Used by boostaudit_ui, chargeroute_ui, conflux_ui, icrec_ui, oilcool_ui, print_ui, turboar_ui, turboguide_ui,
+  turbolib_ui, xflow_ui (the tests that read generated nodes with innerText / offsetHeight after an input change);
+  turbosize_ui already reads in one call. A scratch reproduction (set the inlet tube and the compressor inlet, read the
+  inlet section at once, 30 times): plain `$eval` misread 29/30 (27/30 with a CPU-load loop), one evaluate 0, the settled
+  read 0. Every tab's `.wrap` HTML is identical with and without the counter (13 tabs, a turbo build, a 420 px resize).
+  Each changed test 5 times under a CPU-load loop: 0 failures before and 0 after (the old fixed waits were long enough
+  here; the fix removes the race rather than a failure seen in these runs).
+- EJ Bowman: the air drop is scaled by (flow ratio)² and by the inlet-density ratio from the brochure's stated basis
+  (180 °C at 1.75 bar g = 276.325 kPa absolute), through the same helper as the Conflux curves (`icRhoRef`, `icDpAt`);
+  the recommendation's drop key and its text use it, and picking a Bowman row applies the drop at the build's flow and
+  density as a Conflux pick does. Default turbo build (0.4332 kg/s, 171.0 kPa, 101.6 °C): JK190 5517.6 -> 7373.5 Pa,
+  GK190 8688.2 -> 11610.7 Pa (× 1.3364); no recommendation order changed in the builds checked. Garrett, Mishimoto and
+  Bell single-point drops stay at the rating's density (no inlet temperature published), said in the reason text.
+- Mounts: bracket torsion by Saint-Venant's series per rectangle (Timoshenko and Goodier, ch. 10) in place of the
+  thin-wall b t³/3; checked against the usual alpha / beta table and Roark's closed forms (0.2%). Side case of the audit
+  (3/16 in × 54 mm strap, 20 mm offset): von Mises 42.6303 -> 44.6973 MPa. Aluminium fillet-weld allowable: none found
+  in an open source quoting the Aluminum Design Manual or AWS D1.2 (ESAB states the ADM's weld safety factor of 1.95 for
+  buildings but no filler strength); unchanged, the audit's wording kept.
+- Mounts with "the intercooler picked on the Intake tab": the maker's weight replaces the typed one and the note names its
+  source; with none published the typed weight is kept and the note says so. Fixed: a Bell core (one weight, no wet
+  figure) made the designer fail (mtKg(null)). Oil coolers are not on that path (the Mounts "Oil cooler" part is typed).
+- Bell: the catalogue page re-read (all seven rows' CFM and price match; it prints no weights); the item pages could not
+  be fetched here, so the weights on the rows (from the item pages read 2026-11-12) are not re-verified. Setrab's four
+  FP fan-pack rows re-read from the PDF: all match.
+- `tools/run_all_tests.py --skip-slow` (local only, not in CI) leaves out test_header_uel and test_native and names them
+  in the footer; README "Running the tests".
+- Tests: icrec_ui (Bowman pins), boostaudit2_ui (torsion pins), mounts_ui (weights and sources), the ten tests above.

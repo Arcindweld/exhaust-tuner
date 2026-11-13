@@ -589,3 +589,58 @@ Cost: test_header_uel 57 s → 220 s here. test_native needs the Rust core, whic
 
 Suites after Part 2 (run_all_tests.py --suite web,fusion --no-build -j 2): 140 tests, 134 passed, 0 flaky, 0 failed,
 6 skipped (expected), 7 partial skips, 0 unexpected skips.
+
+## Part 2 follow-ups (2026-11-13)
+
+**F1, the rest of the page tests. FIXED.** The tests that read generated nodes of the active tab (innerText, offsetHeight,
+getClientRects) with `$eval` / `$$eval` after an input change: boostaudit_ui, chargeroute_ui, conflux_ui, icrec_ui,
+oilcool_ui, print_ui, turboar_ui, turboguide_ui, turbolib_ui, xflow_ui (turbosize_ui was fixed in Part 2). They now call
+`require('./settle').reads(pg)`: `$eval` / `$$eval` become one `page.evaluate` that waits on a condition (the new
+`window.__renderCount`, bumped at the end of `renderActive`, unchanged over two frames, each frame an animation frame and
+a task after it, so a render the ResizeObserver asks for is seen) and then queries and reads in the same task. Reads of
+static containers (#i-details itself) and of values were never racy; the Fusion-reply and CFD-run tests read async
+results they already wait for and are not changed. Evidence: the scratch sequence of F1 (inlet tube 3.5 -> 2.5 in with a
+3 in compressor inlet, read the inlet section at once), 30 times: plain `$eval` 29 misreads (27 with a CPU-load loop),
+one evaluate 0, settled 0. Counter: the `.wrap` HTML of all 13 tabs, a turbo build and a 420 px resize is identical with
+and without it. Each changed test 5 times with a CPU-load loop: before 0 of 50 runs failed, after 0 of 50 (the old fixed
+waits sufficed on this machine at this load; the change removes the race, it did not fix a failure seen here).
+
+**C3, EJ Bowman's drop. FIXED.** The brochure's basis (180 °C at 1.75 bar g; 101.325 + 175 = 276.325 kPa absolute, a
+standard atmosphere taken for the gauge) is on each Bowman row's drop; `icDpAt` scales it by (flow ratio)² × `icRhoRef`
+(the Conflux helper, cfxDp now uses it too). The recommendation's drop key (`dpS`) and its text use it, and a Bowman pick
+fills the core drop and the rated-drop inputs at the build's flow and density by the Conflux fixed point. JK190 by hand
+at 0.5 kg/s, 171.0 kPa, 101.57 °C: 7400 × (0.5 ÷ 0.5016667)² = 7350.912 Pa, × (276325 ÷ 453.15) ÷ (171000 ÷ 374.72) =
+× 1.3362538 -> 9822.685 Pa (page equal). Default turbo build: JK190 5517.6 -> 7373.5 Pa, GK190 8688.2 -> 11610.7 Pa;
+the water-to-air order is unchanged there (the capacity margin decides before the drop).
+
+**M3, torsion. FIXED.** Each rectangle by Saint-Venant's series (Timoshenko and Goodier, Theory of Elasticity, ch. 10, as
+written out in N. Abbasi's notes on 12000.org): J = t³ b/3 (1 − 192/π⁵ (t/b) Σ tanh(nπb/2t)/n⁵), τmax = T t k / J,
+k = 1 − 8/π² Σ 1/(n² cosh(nπb/2t)); an open group takes τmax = T max(t k) / Σ J. Independent check
+(tools/validation/boost/mounts.py, its own series and Roark's closed forms, Young and Budynas 7th ed. ch. 10 p. 401 as
+quoted by amesweb.info): beta / alpha 0.14058 / 0.20817 at b/t 1, 0.22868 / 0.24588 at 2, 0.31233 / 0.31233 at 10 (the
+usual table), Roark within 0.2%. Side case of M3: τ 23.6394 -> 24.8795 MPa, von Mises 42.6303 -> 44.6973 MPa (Roark
+44.7188). The thin-wall form was 5.5% low at this strap's b/t 11.4 and 37.5% low for a square.
+
+**M6, aluminium weld allowable. Not found; unchanged.** Read: AlcoTec's selection chart (the same "Typical Shear
+Strength - Fillet Welds" table), The Fabricator (Armao, 2019: 4043 "minimum ... 11 ksi", 5356 "18 ksi", no basis), ESAB
+("The Aluminum Design Manual specifies a safety factor on welds of 1.95 for building type structures", no filler
+strength), STRUCTURE magazine on the 2020 ADM (filler tensile Ftuw / Ftyw only). No open source quoting the ADM's or
+AWS D1.2's fillet shear strength was found; the rows keep the Part 2 wording.
+
+**B1, Bell weights. Not re-verified.** The catalogue (p-37298) re-read in full: the seven rows' CFM and prices match;
+the catalogue prints no weights. The item pages are outside this session's fetch allowlist; the rows keep the weights
+read from them on 2026-11-12 (34.0 to 84.0 lb).
+
+**Mounts and the catalogue. FIXED.** "The intercooler picked on the Intake tab" used a maker's dry / wet pair but a Bell
+row (one weight, no wet) made it fail (`mtKg(null)`). Now the published weight replaces the typed one with its source
+(Conflux: brochure and page; Bell: in lb as published, no filled weight), and a core with none keeps the typed weight
+and says none is published (mounts_ui D: Bell A350097240 15.42 kg, 75.6093 N standing on each of two brackets).
+
+**O2, Setrab's fan-pack rows. CORRECT.** FP119M22I, FP634M22I, FP920M22I, FP948M22I re-read from the PDF: power range,
+wet / dry drop and wet / dry BTU/hr all as on the page; FP920M22I-2P has no engine-oil figures and is rightly not listed.
+
+**Run time.** `run_all_tests.py --skip-slow` leaves out test_header_uel and test_native for quick local runs (named in the
+table's footer); CI does not use it.
+
+Still open: a choked-exit back pressure (X10); an aluminium fillet-weld allowable (M6); Bell's item-page weights
+(B1); test_native's change is unrun here (no Rust core).

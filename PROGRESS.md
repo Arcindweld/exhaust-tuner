@@ -12,3 +12,4 @@ Status:
 - job5: mtPart fixed (Bell mass[1] null -> mtKg(null) threw); notes with source; mounts_ui D checks added (untested)
 - job6: Setrab FP 4 rows verified against the PDF; comment added
 - TODO: run icrec, conflux, turbolib, boostaudit, boostaudit2, mounts, oilcool tests; README skip-slow; STATUS/audit docs; final suite
+- docs written; stab2 (icrec mounts boostaudit2 x5 under load) 0 fails; next: full suite
