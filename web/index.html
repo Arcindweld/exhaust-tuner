@@ -15281,7 +15281,7 @@ document.addEventListener('click',e=>{
     fsay('','Building in Fusion…');
     fusionCall('mountBuild',pay).then(res=>{ MT_UI.fxBuild=res&&res.ok?res.brackets:null; MT_UI.fx=[res&&res.ok?(res.all_ok?'ok':'warn'):'bad',(res&&res.msg)||'No answer from Fusion.']; renderActive(); }); }
 });
-window.__mounts={mtRead,mtCalc,mtShares,mtIsolators,mtBoltCap,mtSec,mtSecStress,mtWeldGroup,mtFlat,mtParts,mtDxf,mtSvg,mtPayload,mountsSheetRows,MT_AMC,MT_BOLT,MT_UI,last:()=>MT_UI.last,
+window.__mounts={sheetWrapped:()=>/mountsSheetRows/.test(String(tsSheet)),mtRead,mtCalc,mtShares,mtIsolators,mtBoltCap,mtSec,mtSecStress,mtWeldGroup,mtFlat,mtParts,mtDxf,mtSvg,mtPayload,mountsSheetRows,MT_AMC,MT_BOLT,MT_UI,last:()=>MT_UI.last,
   set:(id,v)=>{ const el=$(id); el._b=v; showInput(el); el.dispatchEvent(new Event('input',{bubbles:true})); }};
 
 /* ===== Tube skin temperature and heat clearance (docs/research/header_skin_temperature.md) =====
