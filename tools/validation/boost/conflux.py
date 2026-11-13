@@ -15,7 +15,7 @@ import math
 import numpy as np
 from scipy.optimize import brentq
 
-CP_AIR = 1004.7          # J/kg K, the constant the page uses (stated on the page)
+CP_AIR = 1.4 * 287.05 / 0.4   # 1004.675 J/kg K: ideal air at gamma 1.4, the constant the page states (its comment rounds it to 1004.7)
 EGW25_CP = 3917.0        # J/kg K at 40 C, EGW 25/75 by mass (Engineering ToolBox page the page cites, interpolated)
 
 
