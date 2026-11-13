@@ -9,3 +9,6 @@ Findings so far (to fix / write up):
 - A7 collector taper vs cone+collector mismatch only in docstring, not on page
 - materials OK (304,321,625,347 re-read; 321 sheet's 871 C misprint for 1500 F); B16.9 OK (wermac LR/SR, wikipedia NPS)
 - K24 bore spacing: no citable source found -> stays input
+- DONE page fixes A1-A7 + corrFlow; tests: boostaudit3_ui (all pass), turbomani_ui, compmap_ui updated
+- K24 open-period: 450hp@169.918kPa: 148.1 m/s M0.2219 open (52.4/0.0782 mean), loss 8.99 kPa open (2.00 mean); 600hp@260.332: 139.7/0.2092 (49.5/0.0739), 10.76 (2.39)
+- TODO: run turbomani_ui, compmap_ui, turboguide, turbosize; fusion test clearance check + note; skin check py; fails-before check on 5448b2d; doc Part 3; STATUS; full suite

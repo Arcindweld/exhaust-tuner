@@ -54,6 +54,12 @@ ok(one['ok'] and len(L1) == 4 and max(abs(x - TGT) for x in L1) <= 0.05 + 1e-9, 
 ok(max(abs(a - b) for a, b in zip(one['jobs'][0]['collector_marker'][0], (35.0, 19.0, -45.0))) < 1e-9 and one['jobs'][0]['res'].get('collector') is not None,
    'its collector built from the merge plane 23.80 cm before the flange marker')
 ok(any('not routed' in n and '38.0 mm' in n and '45 deg' in n for n in one['notes']), 'the wastegate window is reported, not routed')
+ok(any('tapers' in n and '20 deg merge cone' in n for n in one['notes']), 'the reply says the router\'s collector shape differs from the page\'s cone + collector')
+# the clearance is enforced (boost audit part 3): every runner's reported nearest approach to the scene is at least the gap
+# asked (None: nothing within the router's search radius), and the router itself reports each runner ok
+gaps = [r.get('min_gap') for j in one['jobs'] for r in j['res']['primaries']]
+ok(all(r and r.get('ok') for j in one['jobs'] for r in j['res']['primaries']) and all(g is None or g >= rspec['gap'] - 1e-6 for g in gaps),
+   'undivided: every runner keeps the %.2f cm clearance to the scan (nearest %s)' % (rspec['gap'], ', '.join('-' if g is None else '%.3f' % g for g in gaps)))
 two = TMN.route(sc, ports, [((35.0, 9.0, -45.0 - 23.80), (0.0, 0.0, -1.0)), ((35.0, 29.0, -45.0 - 23.80), (0.0, 0.0, -1.0))], dict(data, scrolls=[[0, 1], [2, 3]]), dict(rspec))
 L2 = two['lengths']
 print('divided:', two['msg'], ['%.3f' % x for x in L2])

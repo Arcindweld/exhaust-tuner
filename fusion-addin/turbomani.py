@@ -2,7 +2,9 @@
 
 The page's Turbo manifold section (Intake tab) sends the runner tube (OD, wall), the bend radius it was laid out with (a
 stocked mandrel bend or a B16.9 weld elbow's centre-line radius), the equal length it worked out, the collector (the 20 deg
-merge cone's length plus the collector length, and the collector's outside diameter), the hot clearance to the scan, the
+merge cone's length plus the collector length, and the collector's outside diameter), the clearance to the scan (the
+Fabrication tab's auto-route clearance since the boost audit's part 3, 2026-11-13: it was the charge pipes' 2 in hot
+clearance, which a runner cannot keep from the head it starts at), the
 scrolls (which port markers feed which turbine-flange marker: one group for an undivided manifold, two for a divided one)
 and the wastegate's take-off window. This module turns that into route_header calls, one per scroll, sharing one TubeSet so
 the runners of the two scrolls keep clear of each other (the way the 180-degree template shares it), each into a collector
@@ -10,7 +12,7 @@ marker placed on the turbine flange marker's axis, the merge and collector lengt
 
 What the existing router does and does not do here (it is not changed):
  - it routes each runner from its port marker to a slot on the collector's ring at the merge plane, to the target length,
-   with the bend radius given, the clearance to the scan (here the hot clearance) and between tubes;
+   with the bend radius given, the clearance to the scan and between tubes;
  - its collector body tapers from the ring's envelope to the outlet diameter over the whole length given, where the page
    models a 20 deg cone then a straight collector: the length and the end diameter agree, the shape between does not;
  - weld elbows: max_bend_deg 90 keeps every bend within one elbow, but the router does not snap bends to whole elbows;
@@ -96,6 +98,8 @@ def route(scene, ports, flanges, data, rspec, log=None):
                      'on the collector, its centre %.0f to %.0f mm (%.2f to %.2f in) from the turbine flange, as the page placed it.' % (
                          gate['bore_mm'], gate['bore_mm'] / 25.4, gate.get('lo_mm', 0), gate.get('hi_mm', 0),
                          gate.get('lo_mm', 0) / 25.4, gate.get('hi_mm', 0) / 25.4))
+    notes.append('The collector here tapers from the runners\' ring to the outlet bore over its whole length; the page works out its loss '
+                 'for a 20 deg merge cone then a straight collector of the same total length and end bore.')
     if len(G) > 1:
         notes.append('Divided: each scroll\'s runners go to their own flange marker; the two collectors are routed apart and '
                      'meet only at the flange.')

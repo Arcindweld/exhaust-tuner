@@ -37,8 +37,9 @@ const fs = require('fs'), os = require('os'), path = require('path');
 const { reads, settle } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
-  const near = (a, want, tol, m) => ok(Number.isFinite(a) && Math.abs(a - want) <= tol * Math.max(1e-12, Math.abs(want)), m + ': page ' + (Number.isFinite(a) ? +a.toPrecision(8) : a) + ', independent ' + (+want.toPrecision(8)) + (Number.isFinite(a) ? ', difference ' + (+((a / want - 1) * 100).toPrecision(3)) + '%' : ''));
-  const py = (script, c) => JSON.parse(execFileSync('python3', [path.join(process.cwd(), '..', 'tools', 'validation', 'boost', script)], { input: JSON.stringify(c) }).toString());
+  const near = (a, want, tol, m) => { want = Number(want); a = Number(a); if (!Number.isFinite(want)) return ok(false, m + ': no independent value (page ' + a + ')'); return near0(a, want, tol, m); };
+  const near0 = (a, want, tol, m) => ok(Number.isFinite(a) && Math.abs(a - want) <= tol * Math.max(1e-12, Math.abs(want)), m + ': page ' + (Number.isFinite(a) ? +a.toPrecision(8) : a) + ', independent ' + (+want.toPrecision(8)) + (Number.isFinite(a) ? ', difference ' + (+((a / want - 1) * 100).toPrecision(3)) + '%' : ''));
+  const py = (script, c) => { try { return JSON.parse(execFileSync('python3', [path.join(process.cwd(), '..', 'tools', 'validation', 'boost', script)], { input: JSON.stringify(c), stdio: ['pipe', 'pipe', 'ignore'] }).toString()); } catch (e) { return {}; } };   // {} when the case cannot run (the merged page lacks a hook)
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ba3-')), png = path.join(tmp, 'grid.png');
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   const pg = reads(await ctx.newPage()); const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
@@ -65,7 +66,7 @@ const { reads, settle } = require('./settle');
   await open(pg);
 
   // ---- P1: the overlap of square-wave pulses (pure)
-  const OV = await pg.evaluate(() => { const f = window.__mfd.overlap; return { a: f([180, 180, 180, 180], 260, 720), b: f([120, 120, 120, 120, 120, 120], 250, 720), c: f([180, 180, 180, 180], 170, 720), d: f([270, 180, 90, 180], 240, 720) }; });
+  const OV = await pg.evaluate(() => { const f = window.__mfd.overlap || (() => ({ mean: NaN, rms: NaN })); return { a: f([180, 180, 180, 180], 260, 720), b: f([120, 120, 120, 120, 120, 120], 250, 720), c: f([180, 180, 180, 180], 170, 720), d: f([270, 180, 90, 180], 240, 720) }; });
   near(OV.a.mean, 420 / 260, 1e-12, 'I4, 260°: runners open at once over an open period, mean'); near(OV.a.rms, Math.sqrt(740 / 260), 1e-12, 'I4, 260°: rms');
   near(OV.b.mean, 2.12, 1e-12, 'I6, 250°: mean'); near(OV.b.rms, Math.sqrt(4.6), 1e-12, 'I6, 250°: rms');
   ok(Math.abs(OV.c.mean - 1) < 1e-12 && Math.abs(OV.c.rms - 1) < 1e-12, 'I4, 170°: never two open at once');
@@ -74,7 +75,17 @@ const { reads, settle } = require('./settle');
 
   // ---- the K24A2 + Precision GEN2 PT5862 build (turbomani_ui's), at its boost
   await k24();
-  let X = await pg.evaluate(() => { const X = window.__mfd.last(); return { k: X.k, dur: X.dur, why: X.durWhy, ov: X.ov, p3: X.o.p3, s3p0: X.march.s3.p0, s3p: X.march.s3.p, K: !!X.marchK }; });
+  // P8, the S geometry by hand on an I6 (ports 100 mm apart, R 50 mm, merge in the middle): the outer ports sit 250 mm off,
+  //   250 >= 2R: two 90° bends and 150 mm between, L = pi 50 + 150 = 307.0796 mm, Z = 2R = 100 mm; cylinder 3 is 50 mm off,
+  //   < 2R: theta = acos(1 - 50/100) = 60°, L = 2R theta = 104.7198 mm, Z = 2R sin 60° = 86.6025 mm < 100, so it reaches the
+  //   farthest runner's merge plane with straight to spare and the farthest runner sets the equal length
+  { const I = await pg.evaluate(() => { const M = window.__mfd, o = Object.assign({}, M.last().o, { e: { name: 'Inline-6', key: 'i6', order: [1, 5, 3, 6, 2, 4], banks: [[1, 2, 3], [4, 5, 6]] }, nt: 1, mani: 'tube', sp: 100, off: 0, clr: 50, cand: null, L: NaN });
+      const X = M.calc(o); return { Leq: X.len.Leq, Z: X.len.Z, far: X.len.far.cy, per: X.len.per.map(q => [q.cy, q.y, q.S.L, q.S.Z, q.extra]) }; });
+    near(I.Leq, Math.PI * 50 + 150, 1e-12, 'P8: I6, 100 mm apart, R 50 mm: shortest equal length π R + (y − 2R), mm'); near(I.Z, 100, 1e-12, 'P8: … merge 2R out');
+    const c3 = I.per.find(q => q[0] === 3);
+    near(c3[2], 100 * Math.PI / 3, 1e-12, 'P8: cylinder 3, 50 mm off: 2R acos(1 − y/2R), mm'); near(c3[3], 100 * Math.sin(Math.PI / 3), 1e-12, 'P8: … its own reach 2R sin θ, under the merge plane');
+    ok((I.far === 1 || I.far === 6) && I.per.every(q => q[3] <= I.Z + 1e-9 && q[4] >= -1e-9), 'P8: the farthest runner (1 or 6) sets the length; every other one reaches the plane within it'); }
+  let X = await pg.evaluate(() => { const X = window.__mfd.last(); return { k: X.k, dur: X.dur, why: X.durWhy, ov: X.ov || {}, p3: X.o.p3, s3p0: X.march.s3.p0, s3p: X.march.s3.p, K: !!X.marchK }; });
   near(X.dur, 260, 1e-12, 'P1: open period from the 4-Stroke tab’s events, 180 + 60 + max(10, 60 − 40), deg'); ok(X.why === 'cam', 'P1: … said to come from the 4-Stroke tab');
   near(X.k, 720 / 260, 1e-12, 'P1: open-period factor 720 / 260'); near(X.ov.rms, Math.sqrt(740 / 260), 1e-12, 'P1: collector rms count, I4 at 260°');
   near(X.s3p0, X.p3, 1e-12, 'P2: the march starts from p3 as the total pressure at the turbine flange'); ok(X.s3p < X.p3, 'P2: … the static pressure there is lower');
@@ -102,12 +113,12 @@ const { reads, settle } = require('./settle');
     for (let i = 0; i < 8 && Math.abs(f1) > 1e-9; i++) { const b2 = b1 - f1 * (b1 - b0) / (f1 - f0); b0 = b1; f0 = f1; b1 = b2; f1 = await ma(b1) - want; }
     near(want + f1, want, 1e-7, hp + ' hp: the tab’s air per compressor matched to Garrett’s ' + (want * 60 / 0.45359237).toFixed(2) + ' lb/min at ' + b1.toFixed(3) + ' kPa boost');
     const G = await pg.evaluate(() => { const T = window.__tsx, M = window.__mfd, o = M.last().o, g = T.exhGamma(o.tit + 273.15); T.XF_GAS.g = g;
-      const X = M.calc(o), r = X.rows.find(x => x.cd === X.c), Kof = mr => { const P = k => (mr.parts.find(x => x.k === k) || {}); return { K_merge: P('merge').K || 0, K_bends: P('bends').K || 0, K_port: P('port').K || 0, L_straight: P('run').L || 0 }; };
-      const res = { g, R: T.EXH_GAS.R, T0: o.tit + 273.15, p3: o.p3, mr: X.mr, n: X.nPer, id: X.c.id, port: o.port, dcol: X.dcol, colL: o.colL, gaps: X.LY.mf[0].gaps, dur: X.dur, k: X.k, rms: X.ov.rms,
-        v: r.v, M: r.M, vk: r.vk, Mk: r.Mk, dp0: X.march.dp0, dp0K: X.marchK.dp0, pPortK: X.marchK.sPort.p, Km: Kof(X.march), Kk: Kof(X.marchK), boost: o.bst };
+      const X = M.calc(o), r = X.rows.find(x => x.cd === X.c), Kof = mr => { if (!mr || !mr.parts) return {}; const P = k => (mr.parts.find(x => x.k === k) || {}); return { K_merge: P('merge').K || 0, K_bends: P('bends').K || 0, K_port: P('port').K || 0, L_straight: P('run').L || 0 }; };
+      const res = { g, R: T.EXH_GAS.R, T0: o.tit + 273.15, p3: o.p3, mr: X.mr, n: X.nPer, id: X.c.id, port: o.port, dcol: X.dcol, colL: o.colL, gaps: X.LY.mf[0].gaps, dur: X.dur, k: X.k, rms: X.ov ? X.ov.rms : NaN,
+        v: r.v, M: r.M, vk: r.vk, Mk: r.Mk, dp0: X.march.dp0, dp0K: X.marchK ? X.marchK.dp0 : NaN, pPortK: X.marchK && X.marchK.sPort ? X.marchK.sPort.p : NaN, Km: Kof(X.march), Kk: Kof(X.marchK), boost: o.bst };
       T.XF_GAS.g = null; return res; });
     // the page's own numbers (burned-gas gamma(T)) for the report
-    const P0 = await pg.evaluate(() => { const X = window.__mfd.last(), r = X.rows.find(x => x.cd === X.c); return { v: r.v, M: r.M, vk: r.vk, Mk: r.Mk, dp0: X.march.dp0, dp0K: X.marchK.dp0 }; });
+    const P0 = await pg.evaluate(() => { const X = window.__mfd.last(), r = X.rows.find(x => x.cd === X.c); return { v: r.v, M: r.M, vk: r.vk, Mk: r.Mk, dp0: X.march.dp0, dp0K: X.marchK ? X.marchK.dp0 : NaN }; });
     const c = { gamma: G.g, R: G.R, T0: G.T0, p3: G.p3, m_run: G.mr, n: G.n, d_run: G.id, d_port: G.port, d_col: G.dcol, L_col: G.colL, d_eq: G.id * Math.sqrt(G.n), gaps: G.gaps, dur: G.dur,
       K_merge: G.Km.K_merge, K_bends: G.Km.K_bends, K_port: G.Km.K_port, L_straight: G.Km.L_straight, K_open: { K_merge: G.Kk.K_merge, K_bends: G.Kk.K_bends, K_port: G.Kk.K_port, L_straight: G.Kk.L_straight, d_eq: G.id * Math.sqrt(Math.min(G.n, G.rms)) } };   // open period: the merge from the bore of the runners flowing at once
     const q = py('turbomani_open.py', c);
@@ -117,8 +128,16 @@ const { reads, settle } = require('./settle');
     near(G.dp0, q.dp0_mean, 2e-3, hp + ' hp: manifold loss at the cycle-mean flow, Pa'); near(G.dp0K, q.dp0_open, 2e-3, hp + ' hp: manifold loss while a valve is open, Pa');
     near(G.pPortK, q.p_port_open, 1e-4, hp + ' hp: port static pressure while open, Pa');
     ok(G.dp0K > 3 * G.dp0, hp + ' hp: the open-period loss is ' + (G.dp0K / G.dp0).toFixed(2) + ' × the cycle-mean figure the page gave before');
-    cases[hp] = { boost: b1, page: P0, ind: q };
-    console.log('  ' + hp + ' hp at ' + b1.toFixed(3) + ' kPa boost, page (burned-gas gamma): runner ' + P0.vk.toFixed(1) + ' m/s Mach ' + P0.Mk.toFixed(4) + ' while open (' + P0.v.toFixed(1) + ' m/s Mach ' + P0.M.toFixed(4) + ' cycle mean); loss ' + (P0.dp0K / 1000).toFixed(3) + ' kPa while open (' + (P0.dp0 / 1000).toFixed(3) + ' kPa cycle mean)'); }
+    // the runner steel (calcSkin, both CAFs) against tools/validation/boost/skin.py
+    const H = await pg.evaluate(() => { const X = window.__mfd.last(), o = X.o, h = X.heat, mean = S => S.pts.reduce((a, q) => a + q.Tsteel, 0) / S.pts.length, mx = S => Math.max(...S.pts.map(q => q.Tsteel));
+      return { mdot: X.mr, Tg: o.tit, di: X.c.id, wall: X.c.wall, L: X.L, Ta: o.cool.Ta, v: o.cool.v, fin: o.cool.fin, cp: window.__tsx.xCp ? window.__tsx.xCp(o.tit + 273.15 - 10) : null, a: [mean(h.a), mx(h.a)], b: [mean(h.b), mx(h.b)], Ts: h.Ts }; });
+    if (H.cp && H.fin === 'ox') { for (const [caf, pv] of [[1, H.a], [2.3, H.b]]) { const sk = py('skin.py', { mdot: H.mdot, Tg: H.Tg, di: H.di, wall: H.wall, L: H.L, caf, Ta: H.Ta, v: H.v, eps: 0.85, cp: H.cp });
+        ok(Math.abs(pv[0] - sk.mean) < 0.2 && Math.abs(pv[1] - sk.max) < 0.2, hp + ' hp: runner steel, CAF ' + caf + ': page mean ' + pv[0].toFixed(2) + ' / max ' + pv[1].toFixed(2) + ' °C, skin.py ' + sk.mean.toFixed(2) + ' / ' + sk.max.toFixed(2) + ' °C'); }
+      ok(Math.abs(H.Ts - Math.max(H.a[0], H.b[0])) < 1e-9, hp + ' hp: the growth uses the hotter of the two means'); }
+    else ok(false, hp + ' hp: skin inputs (xCp hook, oxidised finish) not as expected: ' + JSON.stringify({ cp: H.cp, fin: H.fin }));
+    cases[hp] = { boost: b1, page: P0, ind: q, steel: H.b };
+    const fx = (x, d) => Number.isFinite(x) ? x.toFixed(d) : String(x);
+    console.log('  ' + hp + ' hp at ' + b1.toFixed(3) + ' kPa boost, page (burned-gas gamma): runner ' + fx(P0.vk, 1) + ' m/s Mach ' + fx(P0.Mk, 4) + ' while open (' + fx(P0.v, 1) + ' m/s Mach ' + fx(P0.M, 4) + ' cycle mean); loss ' + fx(P0.dp0K / 1000, 3) + ' kPa while open (' + fx(P0.dp0 / 1000, 3) + ' kPa cycle mean)'); }
   await setv('i-boost', '203.677'); await setv('i-hp', '450');
 
   // ---- P2 on the page: the port pressure row
@@ -200,12 +219,12 @@ const { reads, settle } = require('./settle');
   ok(D.xml && D.mfd && D.map && D.copy, 'both: the build sheet is well-formed XHTML with the manifold drawing, the map image (ticked) and its copyright line');
   ok(D.parts.includes('Runners') && D.parts.includes('Turbo manifold') && D.parts.some(p => /^Mount 1 bracket \(Turbo \(Intake tab\)\)/.test(p)) && D.parts.includes('Turbo oil feed') && D.parts.includes('Turbo oil drain'), 'both: the sheet has the manifold, mounts (the turbo) and oil rows: ' + D.parts.filter(p => /Runner|manifold|Mount|oil/i.test(p)).join('; '));
   ok(D.nums.some(n => /^On your map: /.test(n)) && D.nums.some(n => /^Manifold loss, port to turbine flange, while a valve is open/.test(n)) && D.svg.filter(v => v > 0).length === 3, 'both: map numbers and manifold numbers together, three route drawings');
-  const before = await pg2.evaluate(() => { const X = window.__mfd.last(), M = window.__cmap.compute(); return { L: X.L, dK: X.marchK.dp0, sm: M.sm, cm: M.cm, x: M.peak.x }; });
+  const before = await pg2.evaluate(() => { const X = window.__mfd.last(), M = window.__cmap.compute(); return { L: X.L, dK: X.marchK ? X.marchK.dp0 : NaN, sm: M.sm, cm: M.cm, x: M.peak && M.peak.x }; });
   const snap = await pg2.evaluate(() => window.__proj.snapshot('both')), js = JSON.stringify(snap);
   ok(snap.ui.mfd && snap.ui.cmap && snap.ui.cmap.surge.length === 2 && snap.vals['i-msp'] && !/data:image/.test(js) && !/blob:/.test(js), 'both: the project holds the manifold and map settings and no image data (' + js.length + ' characters)');
   const ctx4 = await b.newContext({ viewport: { width: 1280, height: 900 } }); const p4 = reads(await ctx4.newPage()); const e4 = []; p4.on('pageerror', e => e4.push(e.message));
   await open(p4); await p4.evaluate(s => window.__proj.apply(s), snap); await settle(p4);
-  const after = await p4.evaluate(() => { const X = window.__mfd.last(), M = window.__cmap.compute(); return X && M && !M.err ? { L: X.L, dK: X.marchK.dp0, sm: M.sm, cm: M.cm, x: M.peak.x, img: window.__cmap.img() } : null; });
+  const after = await p4.evaluate(() => { const X = window.__mfd.last(), M = window.__cmap.compute(); return X && M && !M.err ? { L: X.L, dK: X.marchK ? X.marchK.dp0 : NaN, sm: M.sm, cm: M.cm, x: M.peak && M.peak.x, img: window.__cmap.img() } : null; });
   ok(after && Math.abs(after.L - before.L) < 1e-9 && Math.abs(after.dK - before.dK) < 1e-6 && Math.abs(after.sm - before.sm) < 1e-12 && Math.abs(after.cm - before.cm) < 1e-12 && Math.abs(after.x - before.x) < 1e-12 && after.img === null,
     'both: a fresh profile loads the project to the same manifold length and loss and the same margins, without the image');
   ok(!e2.length && !e4.length && !errs.length, 'no page errors' + ([...errs, ...e2, ...e4].length ? ': ' + [...errs, ...e2, ...e4].slice(0, 3).join(' | ') : ''));
