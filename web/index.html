@@ -14790,7 +14790,7 @@ window.__hang={HG,HANG,hgRead,hgParts,hgDxf,hgPayload,hgStrength,HG_GROM,HG_MAT,
    Brackets. Each bracket is a cantilever from the chassis face out to the mount: at its root the load gives an axial
      force, two shears and three moments (r x F, r = reach along n + offset along u). Normal stress at the worst corner
      of the section = |N|/A + |M_u| c_f / I_u + |M_f| c_u / I_f (the three added: an upper bound), shear 1.5 V / A plus
-     torsion T t / (sum b t^3 / 3) (thin open section), von Mises sqrt(sigma^2 + 3 tau^2) against yield (HG_MAT; a welded
+     torsion T max(t k) / sum J (each rectangle's J and k by Saint-Venant's series, mtRectTor), von Mises sqrt(sigma^2 + 3 tau^2) against yield (HG_MAT; a welded
      6061 part at the welded 103 MPa). Sections: a strap (b × t), a gusseted strap (a T at the root; above the gusset the
      strap alone), a U channel (web b, flanges hf). Thickness: the thinnest SendCutSend stock (HG_STOCK) that passes.
      Tear-out past a hole: 0.577 fy × 2 × metal beyond the hole × t (the Hangers tab's method). Bearing (AISC
@@ -14860,8 +14860,13 @@ function mtPart(o){
       const D=C.L?[C.L[1],C.H[1],C.W[1]]:C.dims?C.dims.map(x=>x[1]):null;
       if(D){ out.L=D[0]; out.H=D[1]; out.W=D[2]; out.notes.push({k:'info',t:(C.dimOverall||C.over?'Overall':'Core')+' size from the maker: '+D.map(bothL).join(' × ')+(C.dimOverall||C.over?'':'; the end tanks add to the length: enter the mounts’ real positions')+'.'}); }
       if(C.over&&!C.dimOverall){ out.L=C.over[0]*25.4; out.H=C.over[1]*25.4; out.W=C.over[2]*25.4; }
-      if(C.mass){ out.dry=C.mass[0]; out.liq=C.mass[1]-C.mass[0]; out.notes.push({k:'info',t:'Weight from the maker: '+mtKg(C.mass[0])+' dry, '+mtKg(C.mass[1])+' wet.'}); }
-      else out.notes.push({k:'info',t:'The maker publishes no weight for this core: the weight typed is used (weigh it).'});
+      // the maker's published weight replaces the typed one, and the note says where it is from (2026-11-13: Bell publishes
+      // one weight, in lb, with no wet figure: mass [kg, null]; before, that null made the wet weight fail)
+      const typed=Number.isFinite(o.mass)&&o.mass>0?'the '+mtKg(o.mass)+' typed':'the weight typed', from=(C.srcName||C.maker)+(C.page?', '+C.page:'');
+      if(C.mass&&C.mass[0]>0){ const dry=C.mass[0], wet=C.mass[1]>0?C.mass[1]:null; out.dry=dry; out.liq=wet!=null?wet-dry:0; out.wFrom=from;
+        out.notes.push({k:'info',t:'Weight from the maker, in place of '+typed+': '+(C.lb>0?C.lb.toFixed(1)+' lb ('+dry.toFixed(2)+' kg) as published':mtKg(dry)+' dry')+
+          (wet!=null?', '+mtKg(wet)+' wet':', no filled weight published'+(o.fluid!=='none'&&o.vol>0?' (the liquid volume entered is added)':''))+'. Source: '+from+'.'}); }
+      else out.notes.push({k:'info',t:'No weight is published for this core ('+from+'): '+typed+' is used (weigh the core).'});
       if(C.type==='w2a'&&C.barb) out.shape='box'; } }
   else out.name={a2a:'Air-to-air intercooler',w2a:'Water-to-air barrel charge cooler',hx:'Front heat exchanger',oil:'Oil cooler',can:'Catch can or tank',bov:'Valve support'}[o.part]||'Part';
   if(!(out.liq>0)&&o.fluid!=='none'&&o.vol>0){ let rho=null; try{ rho=o.fluid==='oil'?o.orho:COOLANT[o.fluid].rho/1000; }catch(e){}
@@ -14906,15 +14911,25 @@ function mtMat(o,welded,T){
   const E=o.mat==='ss304'?193000:o.mat==='a36'?205000:MT_E_AL;
   return {fy:M.fy,rho:M.rho,name:M.name,src:M.src,key,weld:ws,E,stock:(HG_STOCK[key]||HG_STOCK[o.mat]||[]).map(x=>x*25.4)};
 }
-// a section of rectangles (u from -b/2.., f across): [{u0,u1,f0,f1}]
+// a solid rectangle hi × lo (hi >= lo) in torsion, Saint-Venant's series (Timoshenko and Goodier, Theory of Elasticity,
+// ch. 10, as written out in N. Abbasi's notes, 12000.org): J = lo³ hi/3 (1 − 192/π⁵ (lo/hi) Σ tanh(nπ hi/2lo)/n⁵) and
+// τmax = T lo k / J, k = 1 − 8/π² Σ 1/(n² cosh(nπ hi/2lo)), n = 1, 3, 5, … (at the middle of the long side). Since 2026-11-13
+// in place of the thin-wall hi lo³/3 and k = 1 (τ 5.5% low for a 3/16 in × 54 mm strap, α 0.3149 against 1/3, 37.5% low for a square). J = β hi lo³,
+// τ = T/(α hi lo²): β 0.1406 / 0.2287 / 0.2633 / 0.3123 and α 0.2082 / 0.2459 / 0.2672 / 0.3123 at 1 / 2 / 3 / 10, the
+// usual table; Roark's closed forms (Young and Budynas, 7th ed., ch. 10) agree to 0.2% (tools/validation/boost/mounts.py)
+function mtRectTor(hi,lo){ let s1=0,s2=0; const q=Math.PI*hi/(2*lo);
+  for(let n=1;n<400;n+=2){ s1+=Math.tanh(n*q)/Math.pow(n,5); if(n*q<700) s2+=1/(n*n*Math.cosh(n*q)); }
+  return {J:lo*lo*lo*hi/3*(1-192/Math.pow(Math.PI,5)*(lo/hi)*s1),k:1-8/(Math.PI*Math.PI)*s2}; }
+// a section of rectangles (u from -b/2.., f across): [{u0,u1,f0,f1}]. Torsion of the group as an open section: J = Σ J_i,
+// each rectangle takes T J_i/J, so τmax = T max(lo_i k_i)/J (tk)
 function mtSec(rs){ let A=0,Au=0,Af=0; rs.forEach(r=>{ const a=(r.u1-r.u0)*(r.f1-r.f0); A+=a; Au+=a*(r.u0+r.u1)/2; Af+=a*(r.f0+r.f1)/2; });
-  const cu=Au/A, cf=Af/A; let Iu=0,If=0,J=0;
-  rs.forEach(r=>{ const w=r.u1-r.u0, h=r.f1-r.f0, mu=(r.u0+r.u1)/2-cu, mf=(r.f0+r.f1)/2-cf; Iu+=w*h*h*h/12+w*h*mf*mf; If+=h*w*w*w/12+w*h*mu*mu; const lo=Math.min(w,h), hi=Math.max(w,h); J+=hi*lo*lo*lo/3; });
+  const cu=Au/A, cf=Af/A; let Iu=0,If=0,J=0,tk=0;
+  rs.forEach(r=>{ const w=r.u1-r.u0, h=r.f1-r.f0, mu=(r.u0+r.u1)/2-cu, mf=(r.f0+r.f1)/2-cf; Iu+=w*h*h*h/12+w*h*mf*mf; If+=h*w*w*w/12+w*h*mu*mu; const lo=Math.min(w,h), hi=Math.max(w,h), T=mtRectTor(hi,lo); J+=T.J; tk=Math.max(tk,lo*T.k); });
   const pts=rs.flatMap(r=>[[r.u0,r.f0],[r.u1,r.f0],[r.u0,r.f1],[r.u1,r.f1]]).map(q=>[q[0]-cu,q[1]-cf]), tmax=Math.max(...rs.map(r=>Math.min(r.u1-r.u0,r.f1-r.f0)));
-  return {A,Iu,If,J,cu,cf,pts,tmax}; }
+  return {A,Iu,If,J,cu,cf,pts,tmax,tk}; }
 function mtSecStress(S,N,Mu,Mf,Mn,V){
   let sig=0; S.pts.forEach(q=>{ sig=Math.max(sig,Math.abs(N)/S.A+Math.abs(Mu*q[1])/S.Iu+Math.abs(Mf*q[0])/S.If); });
-  const tau=1.5*Math.abs(V)/S.A+Math.abs(Mn)*S.tmax/S.J; return {sig,tau,vm:Math.sqrt(sig*sig+3*tau*tau)}; }
+  const tau=1.5*Math.abs(V)/S.A+Math.abs(Mn)*S.tk/S.J; return {sig,tau,vm:Math.sqrt(sig*sig+3*tau*tau)}; }
 // weld lines on both faces of each rectangle's long side: unit force (N/mm) at the worst end -> stress on the throat
 function mtWeldGroup(rs,N,Mu,Mf,Mn,V){
   const L=[]; rs.forEach(r=>{ const w=r.u1-r.u0, h=r.f1-r.f0; if(w>=h){ L.push({a:[r.u0,r.f0],b:[r.u1,r.f0]},{a:[r.u0,r.f1],b:[r.u1,r.f1]}); } else { L.push({a:[r.u0,r.f0],b:[r.u0,r.f1]},{a:[r.u1,r.f0],b:[r.u1,r.f1]}); } });
@@ -15300,7 +15315,7 @@ document.addEventListener('click',e=>{
     fsay('','Building in Fusion…');
     fusionCall('mountBuild',pay).then(res=>{ MT_UI.fxBuild=res&&res.ok?res.brackets:null; MT_UI.fx=[res&&res.ok?(res.all_ok?'ok':'warn'):'bad',(res&&res.msg)||'No answer from Fusion.']; renderActive(); }); }
 });
-window.__mounts={sheetWrapped:()=>/mountsSheetRows/.test(String(tsSheet)),mtRead,mtCalc,mtShares,mtIsolators,mtBoltCap,mtSec,mtSecStress,mtWeldGroup,mtFlat,mtParts,mtDxf,mtSvg,mtPayload,mountsSheetRows,MT_AMC,MT_BOLT,MT_UI,last:()=>MT_UI.last,
+window.__mounts={sheetWrapped:()=>/mountsSheetRows/.test(String(tsSheet)),mtRead,mtCalc,mtShares,mtIsolators,mtBoltCap,mtSec,mtRectTor,mtSecStress,mtWeldGroup,mtFlat,mtParts,mtDxf,mtSvg,mtPayload,mountsSheetRows,MT_AMC,MT_BOLT,MT_UI,last:()=>MT_UI.last,
   set:(id,v)=>{ const el=$(id); el._b=v; showInput(el); el.dispatchEvent(new Event('input',{bubbles:true})); }};
 
 /* ===== Tube skin temperature and heat clearance (docs/research/header_skin_temperature.md) =====
@@ -22028,7 +22043,8 @@ const bell=(pn,A,B,C,cfm,lb,usd,item)=>({maker:'Bell Intercoolers',pn,type:'a2a'
     boost:'FAQ: “Pressures up to 15 psig are usually safe for all designs” (103 kPa)',warranty:'one year against workmanship failures (FAQ)'}});
 const bowman=(pn,kw,m,dp,tho,q,wl,wdp,port)=>({maker:'EJ Bowman',pn,type:'w2a',hp:null,kw,L:null,H:null,W:null,model:'water-cooled charge air cooler (marine and land versions)',
   dimNote:'overall dimensions A to L are in the brochure’s drawing, not read here',water:'water connections BSP size '+port.replace(' in','')+' (the brochure’s thread designation in inches, not a bore)',
-  dp:{kPa:dp,kgmin:m},point:{m_kgmin:m,thi:180,tho,cool_lpm:wl,tci:30,Q_kW:q,wdp_kPa:wdp,p_barg:1.75,coolant:'water'},
+  // the drop's inlet state: 180 °C at 1.75 bar g = 101.325 + 175 = 276.325 kPa absolute (standard atmosphere taken for the gauge)
+  dp:{kPa:dp,kgmin:m,p_kPa:276.325,tC:180},point:{m_kgmin:m,thi:180,tho,cool_lpm:wl,tci:30,Q_kW:q,wdp_kPa:wdp,p_barg:1.75,coolant:'water'},
   hpBasis:'“Typical Engine Power (kW)” in the maker’s typical-performance table',src:BOWU,srcName:'EJ Bowman (Birmingham) Ltd, Charge Air Cooler brochure (G21), hosted by the dealer Lancing Marine',
   note:'The maker’s typical performance, “based on an air inlet temperature of 180ºC at 1.75 bar g and cooling water at 30ºC”; the land version has the same figures.',
   pub:{cons:'shell and tube (“Based on Bowman’s renowned ‘shell and tube’ design”)',tanks:null,ptest:null,
@@ -22221,10 +22237,21 @@ const cfxEff=(c,m)=>cfxLerp(c.curve.m,c.curve.eff,m)/100;
 // UA at a charge flow, both arrangements; outside the range from the fits (inRange false)
 function cfxUA(c,m){ const M=cfxModel(c), inR=m>=M.mLo-1e-12&&m<=M.mHi+1e-12;
   return inR?{x:cfxLerp(c.curve.m,M.pts.map(p=>p.UAx),m),c:cfxLerp(c.curve.m,M.pts.map(p=>p.UAc),m),inRange:true}:{x:M.fx.a*Math.pow(m,M.fx.b),c:M.fc.a*Math.pow(m,M.fc.b),inRange:false}; }
+// the maker's inlet density over this build's, at the same gas constant: (p_r ÷ T_r) ÷ (p_b ÷ T_b), pressures absolute Pa,
+// temperatures °C; a drop at equal mass flow scales by it (dp ∝ 1/rho, (c) above). Used by the Conflux curves and by every
+// single-point row whose rating states its inlet pressure and temperature (EJ Bowman: 180 °C at 1.75 bar g)
+const icRhoRef=(pRef,tRef,pAbs,tC)=>(pRef/(tRef+273.15))/(pAbs/(tC+273.15));
 // (c) the maker's drop at a mass flow scaled to this build's inlet density; pAbs Pa, tC °C
 function cfxDp(c,m,pAbs,tC){ const M=cfxModel(c), inR=m>=M.mLo-1e-12&&m<=M.mHi+1e-12, Rr=c.rated;
-  const dpC=inR?cfxLerp(c.curve.m,c.curve.dp,m):M.fd.a*Math.pow(m,M.fd.b), ratio=(Rr.p_kPa*1000/(Rr.thi+273.15))/(pAbs/(tC+273.15));
+  const dpC=inR?cfxLerp(c.curve.m,c.curve.dp,m):M.fd.a*Math.pow(m,M.fd.b), ratio=icRhoRef(Rr.p_kPa*1000,Rr.thi,pAbs,tC);
   return {dpCurve:dpC*1000,dp:dpC*1000*ratio,rhoRatio:1/ratio,inRange:inR}; }
+// any row's air drop at this build: the curve (cfxDp), or the single published point × (flow ratio)², and × the density
+// ratio when the rating states its inlet state (c.dp.p_kPa absolute, c.dp.tC: EJ Bowman); otherwise at the rating's density
+// (Garrett, Mishimoto, Bell: no inlet temperature stated). m kg/s, pAbs Pa, tC °C; dp Pa, null without a published drop
+function icDpAt(c,m,pAbs,tC){ if(c.curve) return Object.assign(cfxDp(c,m,pAbs,tC),{dens:true});
+  if(!c.dp) return null; const dpF=c.dp.kPa*1000*Math.pow(m/(c.dp.kgmin/60),2), dens=c.dp.p_kPa>0&&Number.isFinite(c.dp.tC)&&pAbs>0&&Number.isFinite(tC);
+  const ratio=dens?icRhoRef(c.dp.p_kPa*1000,c.dp.tC,pAbs,tC):1;
+  return {dpFlow:dpF,dp:dpF*ratio,rhoRatio:1/ratio,dens}; }
 // (b) prediction at this build: m kg/s, Cc W/K (coolant), thi, tci °C
 function cfxPredict(c,o){ const M=cfxModel(c), U=cfxUA(c,o.m), Ch=o.m*CP_AIRT, Cmin=Math.min(Ch,o.Cc), Cr=Cmin/Math.max(Ch,o.Cc);
   const one=(UA,f)=>{ const ntu=UA/Cmin, eps=f(ntu,Cr), Q=eps*Cmin*(o.thi-o.tci); return {UA,ntu,eps,Q,tho:o.thi-Q/Ch,tco:o.tci+Q/o.Cc}; };
@@ -22247,7 +22274,8 @@ function cfxPredict(c,o){ const M=cfxModel(c), U=cfxUA(c,o.m), Ch=o.m*CP_AIRT, C
    (d) a row with a thermal point (EJ Bowman's brochure, or the user's own measured point) is predicted at this build's flow
        (UA held, icPredict) and must remove the heat the target effectiveness needs times the margin.
    Order: the smallest rating that passes (rating ÷ target per core; a row without a rating by its capacity margin), then
-   the lowest published pressure drop scaled to this flow by (flow ratio)², then the smaller core volume (less charge to
+   the lowest published pressure drop scaled to this flow by (flow ratio)² (and to this build's density where the rating
+   states its inlet state: the Conflux curves, EJ Bowman; icDpAt), then the smaller core volume (less charge to
    fill), then an exact tank match to the pipes, then the row with more published data (the owner's tie rule), then the
    list order. Turbos: the same flags as the table (the maker's lower figure where published, else this page's half-rating
    rule) and the smallest maker rating at least the margin × the target per turbo; ties to the smaller compressor inducer,
@@ -22317,7 +22345,7 @@ function icRecommend(o){
       if(!Fd) x.fails.push(['s','size not published: cannot be checked against your space']);
       else { const [L,H,T]=Fd.D, e=1e-9, fits=T<=lim[2]+e&&((L<=lim[0]+e&&H<=lim[1]+e)||(L<=lim[1]+e&&H<=lim[0]+e)); x.fitBasis=Fd.basis;
         if(!fits) x.fails.push(['s',Fd.basis.split(' ')[0]+' size '+L+' × '+H+' × '+T+' in ('+(L*25.4).toFixed(0)+' × '+(H*25.4).toFixed(0)+' × '+(T*25.4).toFixed(0)+' mm) does not fit your space']); } }
-    x.dpS=c.curve?cfxDp(c,o.mc,o.P2,o.thi).dp:c.dp?c.dp.kPa*1000*Math.pow(o.mc/(c.dp.kgmin/60),2):Infinity;
+    { const D=icDpAt(c,o.mc,o.P2,o.thi); x.dpS=D?D.dp:Infinity; x.dpDens=!!(D&&D.dens); }
     x.vol=icVolIn3(c); x.pubN=icPubN(c);
     // evidence group (reviewer, 2026-11-12): 0 thermal data that meets the target inside its known flow range, 1 meets it only
     // by extrapolation, 2 rating only (a row whose thermal data fails is ruled out by (d) above)
@@ -22491,7 +22519,7 @@ function icRecSection(o){
     if(x.fitBasis) bits.push('fits your space ('+esc(x.fitBasis)+')');
     if(x.th&&x.th.curve) bits.push('predicted from the maker’s curves: charge out '+tD(x.th.tho)+(Math.abs(x.th.curve.thoHi-x.th.curve.thoLo)>=0.05?' ('+tD(x.th.curve.thoLo)+' to '+tD(x.th.curve.thoHi)+' counter-flow to cross-flow)':'')+', '+(x.th.curve.x.eps*100).toFixed(1)+'% effectiveness on the coolant, '+(x.th.eps*100).toFixed(0)+'% on outside air, removes '+(x.th.capM*100).toFixed(0)+'% of the heat needed ('+esc(x.th.why)+', UA '+uaD(x.th.UA)+' from the curve at this flow)');
     else if(x.th) bits.push('predicted charge out '+tD(x.th.tho)+', '+(x.th.eps*100).toFixed(0)+'% effectiveness on outside air, removes '+(x.th.capM*100).toFixed(0)+'% of the heat needed ('+esc(x.th.why)+', UA '+uaD(x.th.UA)+' held)');
-    if(Number.isFinite(x.dpS)) bits.push(x.c.curve?'maker’s air drop at this flow, scaled to this build’s density '+pD(x.dpS):'maker’s air drop scaled to this flow '+pD(x.dpS));
+    if(Number.isFinite(x.dpS)) bits.push(x.c.curve?'maker’s air drop at this flow, scaled to this build’s density '+pD(x.dpS):x.dpDens?'maker’s air drop scaled to this flow and to this build’s density (the maker’s '+x.c.dp.tC+' °C, '+((x.c.dp.p_kPa-101.325)/100).toFixed(2)+' bar g) '+pD(x.dpS):'maker’s air drop scaled to this flow (at the rating’s density: no inlet temperature published) '+pD(x.dpS));
     if(Number.isFinite(x.vol)) bits.push('core volume '+v3D(x.vol));
     return esc(c.maker+' '+c.pn)+(k!=null?': '+esc(x.why):'')+' — '+bits.join('; '); };
   const name={a2a:'air-to-air',w2a:'water-to-air'};
@@ -22768,6 +22796,8 @@ function oilProps(tC){ const T=tC+273.15, P=OIL_PROPS, n=P.length, cl=T<P[0][0]|
   for(let i=0;i<n-1;i++) if(Tc<=P[i+1][0]){ const f=(Tc-P[i][0])/(P[i+1][0]-P[i][0]); return {rho:P[i][1]+f*(P[i+1][1]-P[i][1]),cp:P[i][2]+f*(P[i+1][2]-P[i][2]),clamped:cl}; }
   return {rho:P[n-1][1],cp:P[n-1][2],clamped:cl}; }
 // Setrab's suggestions: [part, application, hp low, hp high (Infinity for "600+"), ΔP psi wet, ΔP psi dry (null for "na"), BTU/hr wet (low), BTU/hr dry (high)]
+// The four FP fan-pack rows (FP119M22I, FP634M22I, FP920M22I, FP948M22I) re-read 2026-11-13 (audit part 2 could not): as
+// printed; FP920M22I-2P has no engine-oil figures (“n/a”, a differential/gearbox unit) and is not listed
 const SETRAB_EOC=[
   ['50-119-7612','diff/gearbox/small street vehicle Engine Oil Cooler (EOC)',100,150,2.2,2.6,13000,17500],['50-125-7612','small high performance vehicle EOC',160,190,2.1,2.4,17000,22000],
   ['50-144-7612','high performance vehicle EOC',175,275,1.0,1.3,26000,35000],['50-150-7612','high performance vehicle EOC',250,350,0.9,1.2,29000,40000],
@@ -22934,14 +22964,16 @@ function icApply(key){ const C=icRow(key); TSO.ic=C?String(key):''; if(!C) retur
   TSO.ictype=C.type; const w=val('i-cpw')>0?val('i-cpw'):1.651;
   if(C.inD>0&&C.outD>0){ setBase('i-ici',C.inD*25.4-2*w); setBase('i-ico',C.outD*25.4-2*w); }
   if(C.dp){ setBase('i-icrdp',C.dp.kPa); setBase('i-icrf',C.dp.kgmin/0.45359237); }
-  // a row with the maker's curves: the drop at this build's charge flow, scaled to its density, into the core drop the route
-  // solver uses (i-icdp), and the rated-drop inputs set to the same point (drop and flow) so the scaled-drop row agrees with it;
-  // the maker's test coolant (EGW 25/75 at its rated flow) where no coolant flow is entered; no single point (the curve is used)
-  if(C.curve){ const R=TS_LAST&&TS_LAST.R;
+  // a row with the maker's curves, or a single point whose inlet state is stated (EJ Bowman, since 2026-11-13): the drop at
+  // this build's charge flow, scaled to its density (icDpAt), into the core drop the route solver uses (i-icdp), and the
+  // rated-drop inputs set to the same point (drop and flow) so the scaled-drop row agrees with it. Curves: the maker's test
+  // coolant (EGW 25/75 at its rated flow) where no coolant flow is entered; no single point (the curve is used)
+  if(C.curve||(C.dp&&C.dp.p_kPa>0)){ const R=TS_LAST&&TS_LAST.R;
     // the drop raises the compressor outlet pressure, which changes the density: a few fixed-point passes through the route
-    if(R&&R.mc>0){ let X=R, D=cfxDp(C,X.mc,X.P2,X.t2);
-      for(let k=0;k<6&&TS_LAST.q;k++){ const Y=calcTurboRoute(Object.assign({},TS_LAST.q,{dpIC:D.dp,dici:val('i-ici'),dico:val('i-ico'),inletAt:null})); if(!Y||Y.err) break; const D2=cfxDp(C,Y.mc,Y.P2,Y.t2); X=Y; const done=Math.abs(D2.dp-D.dp)<0.5; D=D2; if(done) break; }
-      setBase('i-icdp',D.dp/1000); setBase('i-icrdp',D.dp/1000); setBase('i-icrf',X.mc*LBMIN); }
+    if(R&&R.mc>0){ let X=R, D=icDpAt(C,X.mc,X.P2,X.t2);
+      for(let k=0;k<6&&TS_LAST.q;k++){ const Y=calcTurboRoute(Object.assign({},TS_LAST.q,{dpIC:D.dp,dici:val('i-ici'),dico:val('i-ico'),inletAt:null})); if(!Y||Y.err) break; const D2=icDpAt(C,Y.mc,Y.P2,Y.t2); X=Y; const done=Math.abs(D2.dp-D.dp)<0.5; D=D2; if(done) break; }
+      setBase('i-icdp',D.dp/1000); setBase('i-icrdp',D.dp/1000); setBase('i-icrf',X.mc*LBMIN); } }
+  if(C.curve){
     Object.assign(TSO,{pm:'',pTi:'',pTo:'',pcf:'',pTc:'',ua1:''});
     if(TSO.wf===''||!(+TSO.wf>0)) Object.assign(TSO,{wf:String(C.rated.lpm),cool:C.rated.coolant}); }
   if(C.point){ const P=C.point;
@@ -23124,7 +23156,7 @@ function arSection(T,R,p,route){
   b+='<p class="cap" id="tso-ar-cap">A/R is the housing’s inlet cross-section area divided by the radius from the turbo centreline to the centroid of that area (Garrett, catalogue p. 7). A smaller A/R sends the gas into the wheel faster and more tangentially: more turbine power low down and quicker boost, but less flow capacity and more back pressure at high RPM; a larger A/R the reverse (Garrett). For a vaneless volute, conservation of mass and of angular momentum give tan α = 2π b ÷ (A/R) at the rotor inlet, α from the radial direction and b the rotor’s inlet width (incompressible; derived on the page), which is why a smaller A/R turns the flow more tangential. The volute A/r sets the rotor inlet angle and the swallowing capacity for one wheel (Lee, Barrans, Jupp and Nickson, Aerospace 2017), but how capacity scales with A/R was not found in a source, so housings are only put in order. One engine’s result (Garrett’s A/R article): a GTX3076R GEN II on a 1.9 L Honda made 600 whp and 400 lb-ft on a “divided v-band .83 A/R” housing with full spool at 5,250 RPM; on 1.01 A/R it gained 50 whp and 75 lb-ft and full spool moved to almost 6,000 RPM. That is one engine, not a rule; Garrett’s G25-660 test of 0.72 against 0.92 “did not make as significant of a difference”. (Garrett’s GTX3076R GEN II product page lists its V-band 0.83 and 1.01 housings as undivided; the article calls the car’s 0.83 divided.)</p>';
   return h+b;
 }
-window.__tso={rec:()=>TS_REC,TG:()=>TG,OIL_LIB,SETRAB_EOC,setrabLoad,oilProps,oilUnit,oilSize,oilEps,TURBO_OIL,turboOilFor,anTxt,AN_SIZES,cfxModel,cfxUA,cfxDp,cfxPredict,cfxEff,cfxLerp,cfxFitPow,cfxOp,epsCounter,ntuCounter,epsXflow,ntuFor,icRecommend,turboRecommend,icRateOf,icFace,icPubN,icOwn,icRow,icApply,TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop,icScaleUA,icHpOf,UA_EXP,arDemand,arFlowVerdict,arPlan,arDivMsg,thLabel};
+window.__tso={rec:()=>TS_REC,TG:()=>TG,OIL_LIB,SETRAB_EOC,setrabLoad,oilProps,oilUnit,oilSize,oilEps,TURBO_OIL,turboOilFor,anTxt,AN_SIZES,cfxModel,cfxUA,cfxDp,icDpAt,icRhoRef,cfxPredict,cfxEff,cfxLerp,cfxFitPow,cfxOp,epsCounter,ntuCounter,epsXflow,ntuFor,icRecommend,turboRecommend,icRateOf,icFace,icPubN,icOwn,icRow,icApply,TURBO_LIB,IC_LIB,TSO,COOLANT,icFromPoint,icPredict,w2aLoop,icScaleUA,icHpOf,UA_EXP,arDemand,arFlowVerdict,arPlan,arDivMsg,thLabel};
 /* ----- Wastegate and blow-off valve: where they go on this build, and their size (2026-11-11, phase 3) -----
    Flow through a valve: isentropic flow through a restriction, m = Cd A p0 sqrt(2 g / ((g - 1) R T0) (r^(2/g) - r^((g+1)/g))),
    r = p / p0 held at the critical (2 / (g + 1))^(g / (g - 1)) once choked (Heywood, Internal Combustion Engine

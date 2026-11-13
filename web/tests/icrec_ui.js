@@ -194,6 +194,20 @@ const { chromium } = require('playwright');
   const Ch = R.mc * cp, tamb = 25, Qneed = 0.75 * Ch * (R.t2 - tamb), Qp = eps(UA / Ch, Ch / Cw0) * Ch * (R.t2 - tamb), capM = Qp / Qneed;
   const W2 = await pg.evaluate(() => window.__tso.TG().icrec.w2a.ok.map(x => ({ pn: x.c.pn, evG: x.evG, capM: x.th ? x.th.capM : null })));
   const jk = W2.find(x => x.pn === 'JK190-4078-3');
+  { // EJ Bowman's drop at this build's density (2026-11-13; audit part 2, C3): the brochure's drop is "based on an air inlet
+    // temperature of 180ºC at 1.75 bar g", so it is scaled by (flow ratio)² and by the inlet-density ratio (p_r ÷ T_r) ÷ (p_b ÷
+    // T_b), p_r = 101.325 + 175 = 276.325 kPa absolute, T_r = 453.15 K, as the Conflux curves are. By hand, JK190 (7.4 kPa at
+    // 30.1 kg/min = 0.5016667 kg/s) at 0.5 kg/s, 171.0 kPa absolute, 101.57 °C: 7400 × (0.5 ÷ 0.5016667)² = 7350.912 Pa;
+    // × (276325 ÷ 453.15) ÷ (171000 ÷ 374.72) = × 1.3362538 → 9822.685 Pa (flow² alone, the page before: 7350.912 Pa).
+    // A Garrett row (no inlet state published) stays at flow² alone (density ratio 1).
+    const d = await pg.evaluate(() => { const T = window.__tso, jk = T.IC_LIB.find(c => c.pn === 'JK190-4078-3'), g = T.IC_LIB.find(c => c.maker === 'Garrett' && c.dp && !c.curve);
+      return { jk: T.icDpAt(jk, 0.5, 171000, 101.57), g: g ? T.icDpAt(g, 0.3, 171000, 101.57) : null, gHand: g ? g.dp.kPa * 1000 * Math.pow(0.3 / (g.dp.kgmin / 60), 2) : null }; });
+    near(d.jk.dpFlow, 7350.912242, 1e-9, 'JK190 drop at 0.5 kg/s, flow² only'); near(d.jk.dp, 9822.684510, 1e-9, 'JK190 drop at 0.5 kg/s and 171.0 kPa, 101.57 °C (× 1.3362538)');
+    ok(!d.g || (d.g.rhoRatio === 1 && !d.g.dens && Math.abs(d.g.dp - d.gHand) < 1e-9), 'a Garrett single-point drop: no inlet state published, flow² only');
+    // the recommendation's drop key uses it: this build's mass flow and compressor outlet state
+    const hand = 7400 * Math.pow(R.mc / (30.1 / 60), 2) * (276325 / 453.15) / (R.P2 / (R.t2 + 273.15));
+    const dpS = await pg.evaluate(() => { const x = window.__tso.TG().icrec.w2a.ok.find(x => x.c.pn === 'JK190-4078-3'); return x ? x.dpS : NaN; });
+    near(dpS, hand, 1e-9, 'JK190 in the recommendation: drop at this build’s flow and density (' + R.mc.toFixed(4) + ' kg/s, ' + (R.P2 / 1000).toFixed(1) + ' kPa, ' + R.t2.toFixed(1) + ' °C)'); }
   ok(capM >= 1 && jk && Math.abs(jk.capM - capM) < 1e-6 && jk.evG === 1, 'JK190 thermal gate: hand capacity margin ' + capM.toFixed(4) + ' (UA ' + UA.toFixed(1) + ' W/K), page ' + (jk && jk.capM.toFixed(4)) + ', group 1 (0.563 x its point’s flow)');
   { // the Conflux margins by hand: UA from the curve (inverted here), linear inside the plotted range, a power law fitted here outside it
     const CF = await pg.evaluate(() => window.__tso.IC_LIB.filter(c => c.curve).map(c => ({ pn: c.pn, K: c.curve, kgs: c.rated.kgs })));
@@ -227,7 +241,13 @@ const { chromium } = require('playwright');
   await setx('ic', String(iJK)); await pg.waitForTimeout(300); ts = await TSO();
   const ins = await pg.evaluate(() => [document.getElementById('i-icrdp')._b, document.getElementById('i-icrf')._b]);
   ok(ts.ic === String(iJK) && ts.ictype === 'w2a' && ts.pm === String(+(30.1 / 0.45359237).toPrecision(10)) && ts.pTi === '180' && ts.pTo === '41.5' && ts.pcf === '270' && ts.pTc === '30', 'JK190 picked: its thermal point filled (30.1 kg/min = ' + ts.pm + ' lb/min, 180 -> 41.5 °C, 270 L/min at 30 °C)');
-  ok(Math.abs(ins[0] - 7.4) < 1e-9 && Math.abs(ins[1] - 30.1 / 0.45359237) < 1e-9, 'JK190 picked: the maker’s air drop 7.4 kPa at 66.36 lb/min into the rated-drop inputs');
+  // since 2026-11-13 a Bowman row is applied as a Conflux row is: the drop at this build's flow and density (fixed point
+  // through the route, which the drop changes) into the core drop and the rated-drop inputs (was: the maker's 7.4 kPa at
+  // 66.36 lb/min, at the rating's density); checked against the arithmetic above on the route the page then shows
+  { const Rj = await pg.evaluate(() => window.__tsLast()), icdp = await pg.evaluate(() => document.getElementById('i-icdp')._b);
+    const hj = 7400 * Math.pow(Rj.mc / (30.1 / 60), 2) * (276325 / 453.15) / (Rj.P2 / (Rj.t2 + 273.15));
+    ok(Math.abs(ins[0] * 1000 - hj) < 1 && Math.abs(icdp - ins[0]) < 1e-9 && Math.abs(ins[1] - Rj.mc * 60 / 0.45359237) < 0.01 * ins[1],
+      'JK190 picked: the drop at this build’s flow and density, ' + (ins[0]).toFixed(3) + ' kPa at ' + ins[1].toFixed(2) + ' lb/min, into the core drop and the rated-drop inputs (hand ' + (hj / 1000).toFixed(3) + ' kPa on the route shown)'); }
   await setx('ic', ''); await setx('wf', ''); await setx('cool', 'water');
 
   // no core: 1500 hp air-to-air, the specification by hand

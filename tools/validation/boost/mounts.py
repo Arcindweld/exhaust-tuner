@@ -60,11 +60,32 @@ def transmiss(r, z):
     return math.sqrt(1 + (2 * z * r) ** 2) / math.sqrt((1 - r * r) ** 2 + (2 * z * r) ** 2)
 
 
-def rect_root(b, t, N, Mb_strong, Mb_weak, T, V):
-    """Strap b (wide) x t at its root: Mb_weak bends through the thickness, Mb_strong across the width."""
+def torsion_series(b, t, nmax=2001):
+    """Solid rectangle b (wide) x t in torsion, Saint-Venant's series (Timoshenko and Goodier, Theory of Elasticity, ch. 10,
+    as written out in N. Abbasi's notes, 12000.org, torsion_PDE): J = t^3 b/3 (1 - 192/pi^5 (t/b) sum tanh(n pi b/2t)/n^5),
+    tau_max = T t k / J with k = 1 - 8/pi^2 sum 1/(n^2 cosh(n pi b/2t)), n = 1, 3, 5, ..."""
+    s1 = sum(math.tanh(n * math.pi * b / (2 * t)) / n ** 5 for n in range(1, nmax, 2))
+    s2 = sum(1 / (n * n * math.cosh(min(700.0, n * math.pi * b / (2 * t)))) for n in range(1, nmax, 2))
+    J = t ** 3 * b / 3 * (1 - 192 / math.pi ** 5 * (t / b) * s1)
+    return J, t * (1 - 8 / math.pi ** 2 * s2) / J      # J, tau per unit torque
+
+
+def torsion_roark(b, t):
+    """Roark's closed forms (Young and Budynas, Roark's Formulas for Stress and Strain, 7th ed., ch. 10, p. 401, as quoted
+    by amesweb.info, Torsion-Rectangular-Sections-Calculator): sides 2a >= 2b; K = a b^3 (16/3 - 3.36 (b/a)(1 - b^4/12a^4)),
+    tau_max = 3T/(8 a b^2) (1 + 0.6095 (b/a) + 0.8865 (b/a)^2 - 1.8023 (b/a)^3 + 0.9100 (b/a)^4)."""
+    a, c = max(b, t) / 2, min(b, t) / 2; r = c / a
+    K = a * c ** 3 * (16 / 3 - 3.36 * r * (1 - r ** 4 / 12))
+    return K, 3 / (8 * a * c * c) * (1 + 0.6095 * r + 0.8865 * r ** 2 - 1.8023 * r ** 3 + 0.9100 * r ** 4)
+
+
+def rect_root(b, t, N, Mb_strong, Mb_weak, T, V, torsion='series'):
+    """Strap b (wide) x t at its root: Mb_weak bends through the thickness, Mb_strong across the width. Torsion by the
+    exact series (since 2026-11-13; 'roark' for Roark's closed form, 'thin' for the thin-wall b t^3/3 the page used)."""
     A = b * t; Iw = b * t ** 3 / 12; Is = t * b ** 3 / 12
     sig = abs(N) / A + abs(Mb_weak) * (t / 2) / Iw + abs(Mb_strong) * (b / 2) / Is
-    tau = 1.5 * abs(V) / A + abs(T) * t / (b * t ** 3 / 3)
+    per = {'series': lambda: torsion_series(b, t)[1], 'roark': lambda: torsion_roark(b, t)[1], 'thin': lambda: t / (b * t ** 3 / 3)}[torsion]()
+    tau = 1.5 * abs(V) / A + abs(T) * per
     return sig, tau, math.sqrt(sig * sig + 3 * tau * tau)
 
 
@@ -136,8 +157,13 @@ def main():
     print('  sigma %.4f tau %.4f vm %.4f SF %.4f' % (sig, tau, vm, 248 / vm))
     # second set: side 25 g on the same mount with a 20 mm offset along the width: torsion about the upright
     Fs1 = 25 * 7 * G / 4
-    sig, tau, vm = rect_root(54, 4.7498, Fd, 63.5 * Fs1, 0, 20 * Fs1, Fs1)
-    print('  side 25 g, offset 20 mm along the width: sigma %.4f tau %.4f vm %.4f' % (sig, tau, vm))
+    for how in ('series', 'roark', 'thin'):
+        sig, tau, vm = rect_root(54, 4.7498, Fd, 63.5 * Fs1, 0, 20 * Fs1, Fs1, how)
+        print('  side 25 g, offset 20 mm along the width, torsion %-6s: sigma %.4f tau %.6f vm %.6f' % (how, sig, tau, vm))
+    print('  torsion coefficients, J = beta b t^3, tau = T/(alpha b t^2): b/t, beta and alpha by the series, then Roark')
+    for r in (1, 1.5, 2, 3, 4, 6, 10, 54 / 4.7498):
+        J, q = torsion_series(r, 1.0); K, q2 = torsion_roark(r, 1.0)
+        print('    %7.4f  %.5f %.5f   %.5f %.5f' % (r, J / r, 1 / (q * r), K / r, 1 / (q2 * r)))
 
     print('M4 stay column')
     for (D, w, L, E, Sy) in ((19.05, 1.651, 300.0, 205000.0, 248.0), (19.05, 1.651, 1000.0, 205000.0, 248.0), (25.4, 1.651, 400.0, 68300.0, 103.0)):
