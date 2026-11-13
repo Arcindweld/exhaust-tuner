@@ -5,10 +5,9 @@ O2-O5). Written from the sources, not from the page.
 
   python3 tools/validation/boost/conflux.py
 
-Cross-flow, both fluids unmixed: solved here as the 2-D field it is (each fluid flows straight through, temperatures
-varying across the other's direction): dTh/dx = -(NTU / 1) (Th - Tc) along the hot (air) passes, dTc/dy = NTU Cr (Th - Tc)
-... on a grid, with the Cmin fluid's mean outlet giving eps (Kays and London's definition). Not the series formula: a
-check of it. Counter-flow: eps = (1 - e) / (1 - Cr e), e = exp(-NTU (1 - Cr)) (any text). UA = NTU Cmin from the
+Cross-flow, both fluids unmixed: solved here as the 2-D field it is (each fluid flows straight through, its temperature
+varying across the other's direction), on a grid, with the Cmin fluid's mean outlet giving eps (Kays and London's
+definition). Not the series formula: a check of it. Counter-flow: eps = (1 - e) / (1 - Cr e), e = exp(-NTU (1 - Cr)) (any text). UA = NTU Cmin from the
 tabulated effectiveness (brentq). Pressure drop at equal mass flow: dp = K m^2 / (2 rho A^2) -> dp ∝ 1/rho, rho = p / (R T).
 """
 import math
@@ -20,32 +19,22 @@ EGW25_CP = 3917.0        # J/kg K at 40 C, EGW 25/75 by mass (Engineering ToolBo
 
 
 def eps_cross_grid(ntu, cr, n=600):
-    """Both unmixed: hot (Cmin, air) flows along x in n strips, cold along y in n strips. Non-dimensional: each cell has
-    NTU/(n*n) of the conductance; the hot strip's capacity is Cmin/n, the cold's Cmax/n. Marched with the cell-exact
-    exponential pairing (cell by cell, both temperatures updated from the cell's own exchange)."""
-    Th = np.ones(n)          # hot temperatures entering each row (one per y strip), 1 = hot inlet
-    Tc = np.zeros(n)         # cold temperatures entering each column, 0 = cold inlet
-    a = ntu / n              # hot strip: dTh over one cell = a/n... per cell: NTU_cell (hot) = ntu / n ... see below
-    # per cell: conductance U dA = ntu Cmin / n^2; hot strip capacity Cmin / n -> NTU_h,cell = ntu / n;
-    # cold strip capacity Cmax / n = Cmin / (cr n) -> NTU_c,cell = ntu cr / n
-    nh, nc = ntu / n, ntu * cr / n
-    for j in range(n):       # columns along x (cold strips), the hot rows march through them
-        # within column j each row i exchanges with the column's local cold temperature; cold flows along y (rows)
-        tc = 0.0             # cold enters column j at the y = 0 edge
+    """Both unmixed, solved on an n x n grid of cells: the hot fluid (Cmin, the charge air) in n rows, each of capacity
+    Cmin/n, crossing n columns of the cold fluid, each of capacity Cmax/n. A cell's conductance is NTU Cmin / n^2, so its
+    hot-side NTU is NTU/n, and the cold rise is Cr times the hot drop. Each cell is solved on the mean of its inlet
+    differences (second order in the cell size). eps = the hot rows' mean drop (the hot side is Cmin)."""
+    Th = np.ones(n)          # hot temperature entering the next column, one per row; 1 = hot inlet, 0 = cold inlet
+    nh = ntu / n
+    for _j in range(n):      # the columns in the hot flow's direction
+        tc = 0.0             # the cold fluid enters each column at its first row
         th_new = np.empty(n)
-        for i in range(n):
-            # one cell: two streams crossing, small NTU: exact for a cell with both temperatures taken as the cell's
-            # inlet mean (second-order): solve the linear 2x2 for the cell's mean difference
-            d0 = Th[i] - tc
-            # q (per Cmin) = nh * d_mean, d_mean = d0 - q/2 (1 + cr)... in hot units: dh = nh d, dc = nc d * (1/cr)?
-            # hot drop dh = nh * dm ; cold rise dc (in temperature) = (Cmin/Cmax) * n * q / n ... = cr * dh ... per strip
-            # capacities: hot cell sees Cmin/n, cold cell sees Cmax/n: dc = dh * (Cmin/n) / (Cmax/n) = cr * dh
-            dm = d0 / (1 + 0.5 * nh * (1 + cr))
+        for i in range(n):   # down the column, in the cold flow's direction
+            dm = (Th[i] - tc) / (1 + 0.5 * nh * (1 + cr))   # the cell's mean difference
             dh = nh * dm
             th_new[i] = Th[i] - dh
-            tc = tc + cr * dh
+            tc += cr * dh
         Th = th_new
-    return 1 - Th.mean()     # hot is Cmin: eps = mean hot temperature drop over the inlet difference
+    return 1 - Th.mean()
 
 
 def eps_counter(ntu, cr):
