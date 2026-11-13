@@ -15033,7 +15033,7 @@ function mtIsolators(o,mass,shares){
   return {idle,T,fnMax,kMax,W,rows,pick:ok[0]||null,z,defl:mass*MT_G/(n*kMax)};
 }
 function mtGrowth(o,P,temps,fixIdx,iso){
-  const hot=temps.hot, dTh=Number.isFinite(hot)&&Number.isFinite(o.tinst)?hot-o.tinst:null, dTc=Number.isFinite(o.tcold)&&Number.isFinite(o.tinst)?o.tinst-o.tcold:null;
+  const hot=temps.hot, dTh=Number.isFinite(hot)&&Number.isFinite(o.tinst)?Math.max(0,hot-o.tinst):null, dTc=Number.isFinite(o.tcold)&&Number.isFinite(o.tinst)?Math.max(0,o.tinst-o.tcold):null;   // a part never hotter (colder) than at bolt-up does not grow (shrink)
   const F=P[fixIdx];
   return P.map((p,i)=>{ const d=MV.len(MV.sub(p,F)); const gh=dTh!=null?MT_ALPHA_AL*d*dTh:null, gc=dTc!=null?MT_ALPHA_AL*d*dTc:null;
     let rub=null; if(iso&&iso.pick&&gh!=null){ const q=iso.pick, ks=q.Ps/q.ds; rub={F:ks*Math.max(gh,gc||0),ok:Math.max(gh,gc||0)<=q.ds&&ks*Math.max(gh,gc||0)<=q.Ps}; }
@@ -15131,7 +15131,7 @@ function mtSvg(parts,title){
 
 /* ---- the drawings on the page: each bracket from the side with its dimensions, and the part with its mounts */
 function mtSideSvg(o,d,k){
-  const B=d.best, br=B.br, W=320, pad=16, t=B.t, h=br.h, Lf=br.Lf, sc=Math.min(150/Math.max(h,1),110/Math.max(Lf+t,1),3);
+  const B=d.best, br=Object.assign({b:o.stod,Lf:0,a:0},d.best.br), W=320, pad=16, t=B.t, h=br.h, Lf=br.Lf, sc=Math.min(150/Math.max(h,1),110/Math.max(Lf+t,1),3);
   const X=v=>pad+40+v*sc, Y=v=>pad+10+(h+br.b/2-v)*sc, H=Math.round((h+br.b/2)*sc+pad*2+30);
   let s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:420px;display:block" role="img" aria-label="Mount '+(k+1)+' bracket from the side">';
   const ln=(x1,y1,x2,y2,st)=>'<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" style="'+(st||'stroke:var(--ink);stroke-width:1')+'"/>';
@@ -15235,7 +15235,7 @@ function mtRender(){
   MT_UI.parts=parts;
   h+=sec('Drawings and cut files',mtAsmSvg(r)+'<p class="cap">From the front: filled circle, the fixed mount; bars, the way each bracket runs. Dimensions in inches and millimetres.</p>'+
     (parts.length?'<div class="tblwrap"><table><thead><tr><th>Cut list</th><th>Flat size</th><th>Holes</th><th>Then</th></tr></thead><tbody>'+parts.map(q=>{ const s=HG.sample(q.outline,0.5), w=Math.max(...s.map(a=>a[0]))-Math.min(...s.map(a=>a[0])), l=Math.max(...s.map(a=>a[1]))-Math.min(...s.map(a=>a[1]));
-      return '<tr><td>'+esc(q.name)+'<br><small>'+esc(mt.name)+', '+bothL(q.D.t)+'</small></td><td>'+bothL(w)+' × '+bothL(l)+'</td><td>'+q.holes.map(x=>'Ø'+bothL(2*x.r)).join(', ')+'</td><td>'+esc(q.note)+(q.fp?'; bend line '+bothL(q.fp.bend.centre)+' from the foot’s end':'')+'</td></tr>'; }).join('')+'</tbody></table></div>'+
+      return '<tr><td>'+esc(q.name)+'<br><small>'+esc(mt.name)+', '+bothL(q.D.t)+'</small></td><td>'+bothL(w)+' × '+bothL(l)+'</td><td>'+(q.holes.length?q.holes.map(x=>'Ø'+bothL(2*x.r)).join(', '):'none')+'</td><td>'+esc(q.note)+(q.fp?'; bend line '+bothL(q.fp.bend.centre)+' from the foot’s end':'')+'</td></tr>'; }).join('')+'</tbody></table></div>'+
       (mt.print?'<p class="cap">A printed bracket: build it in Fusion and export the body; print it with the load along the layers.</p>':'<div class="actions"><button type="button" class="btn" data-mt="dxf">Save the DXF</button><button type="button" class="btn" data-mt="svg">Save the 1:1 SVG</button></div><p class="cap" id="mt-msg"></p>'+
       '<p class="cap">The DXF is in millimetres: outlines and holes on CUT (the Hangers tab’s writer), bend lines on BEND, names and a 100 mm and a 4 in scale bar on MARKS. Flat lengths: the foot less the setback (R + t), the bend allowance (π ÷ 2)(R + K t), the upright from the bend to the hole h − (R + t). The inside radius (0: the thickness) and the K-factor (0.42) are assumptions: use your brake’s or your cutter’s figures (SendCutSend sets them per material and thickness in its bending calculator). The foot bolt sits '+bothL(r.designs[0].best.br.a||0)+' from the upright: the socket radius plus 1 mm, or the hole’s edge one thickness past the bend (this page’s rule).</p>'):'')+
       r.designs.filter(d=>d.best.type==='stay').map((d,k)=>'<p class="cap">Stay: cut the tube '+bothL(d.best.checks.cut)+' ('+bothL(d.best.checks.L)+' between rod-end centres less '+bothL(o.stre)+' each end); rod ends rated (radial static) at least '+d.best.checks.SF.toFixed(1)+' × '+mtN(Math.max(...d.best.checks.rows.slice(0,2).map(x=>x.load)))+' (no rod-end catalogue is embedded).</p>').join(''));
