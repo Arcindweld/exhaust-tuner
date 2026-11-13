@@ -190,7 +190,7 @@ def main(argv):
                 print("  %-48s W %8.2f J (%.4f of that code's own) Qw %7.2f%s" % (k, r["W"], r["W"] / ref, r["Qw"], extra))
             for r in R.values():
                 r.pop("trace", None)
-            rows.append({"rpm": rpm, "wave": {"phases": wacc, "W": Wwave, "ivc": wv["ivc"], "Qw": tot(wacc, "Qw")},
+            rows.append({"rpm": rpm, "angles": {"ivc": ivc, "evo": evo, "ign": ign}, "wave": {"phases": wacc, "W": Wwave, "ivc": wv["ivc"], "Qw": tot(wacc, "Qw")},
                          "wam": {"phases": oacc, "W": Wwam, "ivc": {"p": pw, "T": Tw_, "m": mw, "Yb": Yb, "Ya": Ya, "mfuel": mfuel},
                                  "Qcomb": wm["Qcomb"], "Qw": tot(oacc, "Qw"), "nmep": wm["nmep"]},
                          "indep": {k: {kk: vv for kk, vv in r.items() if kk not in ("U0", "Uend")} for k, r in R.items()}})

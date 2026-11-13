@@ -1452,6 +1452,21 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   in-cylinder heat by phase are the candidates left). No model change for it.
 - Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum part 3 (C1-C10); tests wavegas_ui.js 11, wave_wasm.js (two jobs),
   cam_ui.js (plenum share, head curve).
+## 2026-11-12, part 4: the cylinder's closed cycle against OpenWAM and an independent calculation
+
+- Both codes instrumented (OpenWAM's own INS outputs via make_wam `cyl_ins_extra`; cyl_trace.js per-step columns),
+  single_L800 at 3000 / 5000 / 7000 rpm, split by phase (cyl_phase.py, results/cyl_d.json): the wave model's extra p dV is
+  in the burn and expansion, while it loses 20-48 % more heat to the walls than OpenWAM.
+- closed_cycle.py (new): first-principles closed cycle with NASA-9 data (CEA thermo.inp), absolute enthalpies, frozen or
+  equilibrium products (RP-1311 Newton), Woschni forms, RK4; options copying OpenWAM's gas model and the wave model's
+  explicit step. It reproduces the wave model within 0.06 % and OpenWAM within 0.15 % from their own IVC states.
+- Verdict: the 11-13 % closed-cycle surplus is OpenWAM's simple species model (energy equation without the composition
+  term 3.5 %; rich products as burnt + air + unburned fuel 4.7-4.9 %; burn stopping at 99.33 % of its heat 0.7 %; fuel and
+  fits 0.4 %), less its lighter Woschni (0.9-2.5 %), plus 2.8-4.7 % from the larger trapped charge (still open). Not
+  physics the model lacks: no model change. Dissociation (not modelled, OpenWAM neither): -0.3 to -0.4 % of the work at AFR
+  12.8, -1.8 % at 14.6. Woschni's T exponent (-0.55 used, -0.53 in Woschni's units): about 1 %.
+- Stock LS3/LS7/LT1 runner length: searched again, not found; 300 mm stays an assumption.
+- Page: only the method text (the OpenWAM gap measured). Details: docs/WAVE_VALIDATION_2026-11-11.md, addendum part 4 (D1-D10).
 ## 2026-11-12, part 3: exhaust after the turbine with cooling, compressible flow, size steps, one muffler model
 
 - Intake tab, Exhaust after the turbine: the back pressure is now `exhMarch`: the gas cooled along each pipe run by the

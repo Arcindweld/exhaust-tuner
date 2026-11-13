@@ -1277,3 +1277,209 @@ node tools/validation/wave/ratings.js engines=ls3 tag=cs_rl350 intake=plenum flo
 python3 tools/validation/wave/ratings_report.py after c_bench c_plen c_final
 python3 tools/validation/wave/cyl_expts.py configs=single_L800,i4_41 tag=c6          # OpenWAM, ~5 min
 ```
+
+## Addendum 2026-11-12, part 4: the closed cycle against OpenWAM and against an independent calculation
+
+Part 3 (C6) left the wave model's cylinder doing 6-10 % more work than OpenWAM's from intake closing (IVC) to exhaust
+opening (EVO), even from OpenWAM's own IVC pressure, temperature and heat, with the valves, the burn law, the heat per kg and
+the trapped mass ruled out. Here both cylinders are instrumented, an independent closed-cycle calculation is written from
+first principles, and each code's choices are priced one at a time against it. Engine: part 1's single_L800 (single cylinder,
+95 x 63.4 mm, rod 107.8 mm, CR 13, AFR 12.8, Wiebe 18 deg BTDC / 55 deg, a 5, m 2, wall 450 K) at 3000, 5000 and 7000 rpm.
+Result: the wave model's closed cycle is what first principles give for its assumptions (within 0.06 %); OpenWAM's lower work
+comes from simplifications in its gas model that are not better physics. No change was made to the model.
+
+### D1 Instrumentation
+
+- OpenWAM: its own instantaneous outputs, no rebuild. The writer (`openwam/make_wam.py`) gained the run option
+  `cyl_ins_extra` (default 0: files unchanged; `test_py_js.js` 150 of 150 unchanged): 1 adds the cylinder's Woschni
+  coefficient (output 14), its mass fractions of burnt gas, fuel and air (28), gamma (29) and the wall heat rates to head,
+  liner and piston (30-32, W) to INS.DAT (`TCilindro.cpp` 1342-1448, 1882-1928), every 0.5 deg.
+- Wave model: `lib.js` (hook mode, read-only) also exposes the step's Woschni coefficient, area and velocity; `cyl_trace.js`
+  records per step p dV, heat released, wall heat with hc, area and velocity, and gamma, cp, R.
+- `cyl_phase.py` runs both and splits the closed cycle into compression (IVC 584 deg to ignition 702 deg), burn (the
+  Wiebe's 55 deg) and expansion (to EVO 132 deg); `results/cyl_d.json`.
+
+### D2 Phase by phase (each code from its own run; J per cycle)
+
+| rpm | phase | p dV wave / OpenWAM | wall heat wave / OpenWAM |
+|---|---|---|---|
+| 3000 | compression | -183.4 / -184.3 | 1.6 / 2.7 |
+| | burn | 316.0 / 291.8 | 104.3 / 67.2 |
+| | expansion | 542.3 / 500.9 | 80.3 / 56.3 |
+| | closed cycle | **674.9 / 608.4 (1.109)** | 186.2 / 126.2 |
+| 5000 | compression | -211.8 / -221.6 | 1.8 / 3.4 |
+| | burn | 370.8 / 347.8 | 87.2 / 63.3 |
+| | expansion | 653.1 / 590.8 | 77.0 / 59.2 |
+| | closed cycle | **812.2 / 716.9 (1.133)** | 166.0 / 125.9 |
+| 7000 | compression | -192.6 / -201.6 | 2.0 / 3.3 |
+| | burn | 325.0 / 295.7 | 64.7 / 50.5 |
+| | expansion | 576.9 / 539.1 | 61.2 / 51.8 |
+| | closed cycle | **709.3 / 633.2 (1.120)** | 127.9 / 105.6 |
+
+The extra p dV is in the burn and the expansion; the compression agrees within 0.5-4.5 % (OpenWAM's slightly higher
+compression work is its fuel entering after IVC, D4). The wave model loses 20-48 % MORE heat to the walls than OpenWAM in
+the closed cycle, so the wall heat cannot explain its higher work; it pulls the other way (D4).
+Heat released: wave 1586.5 / 1872.6 / 1623.1 J, OpenWAM 1534.6 / 1795.7 / 1586.6 J (its Qcomb) at the three speeds: per kg of
+charge the same (C6, item 3), the totals differ with the trapped charge.
+
+### D3 The independent calculation (`tools/validation/wave/closed_cycle.py`)
+
+Shares no code and no property data with either code:
+- properties: NASA's 9-coefficient polynomials (McBride, Zehe and Gordon 2002, NASA TP-2002-211556; NASA CEA
+  `data/thermo.inp`, https://raw.githubusercontent.com/nasa/cea/main/data/thermo.inp, fetched 2026-11-12), not the GRI-Mech
+  3.0 fits of the model, for N2, O2, Ar, CO2, H2O, CO, H2, OH, H, O, NO, N, and the fuel vapour as 0.62608 isooctane + 0.37392
+  toluene from their own NASA fits (not the model's refit); absolute enthalpies, the fuel's formation enthalpy from its
+  44.0 MJ/kg LHV with NASA's CO2 and H2O (as B1 defines the fuel);
+- products frozen (the model's rule: complete when lean, water-gas ratio 3.5 when rich) or in chemical equilibrium over the
+  12 species at the zone's temperature and the cylinder's pressure, by the element-potential Newton method of Gordon and
+  McBride (NASA RP-1311, 1994, eqs. 2.24-2.26, with its damping); the unburned part frozen;
+- energy dU = -p dV - dQw with U = sum n_i (h_i(T) - R T) absolute, so the heat of combustion follows from the composition;
+  the combustion inefficiency (frozen chemistry minus the heat the case releases) leaves with the burned fraction; RK4 in
+  crank angle at 0.1 deg (0.25 deg with equilibrium; 0.5 against 0.1 deg changes the work by 1e-5), steps ending on the
+  burn's start and end; energy balance to 1e-15 of the heat;
+- Woschni in a chosen form (D5), the motored pressure from a motored run of the same charge (the published definition) or
+  the codes' polytropic stand-ins;
+- options that copy each code's choices: `gas='openwam'` (OpenWAM's simple species model, `Globales.h` 1609-1660: its cv
+  polynomials for air, burnt gas and gasoline, R 287 / 285.4 / 72.42, and its energy equation `TCilindro4T.cpp` 911-913,
+  dlnT = (gamma-1)(-dV/V + dm/m) + dQ/(m cv T), with the fuel injected from IVC + 2 deg over (720 - IniComb - IVC) / 2 deg,
+  lines 180-181, burnt gas formed as stoichiometric products of the fuel burned Q / LHV, line 641); `woschni='openwam'`;
+  `euler_wave`: the wave model's own explicit step on the wave run's time steps.
+Self-checks (`python3 closed_cycle.py thermo.inp gri30.yaml`, all pass): stoichiometric AFR 14.5964 (model 14.596); the heat
+per kg of mixture 2.8205 / 2.6747 MJ/kg at AFR 14.6 / 12.8 (B1 by hand: 2.8205 / 2.6746); cp against NIST-JANAF
+(janaf.nist.gov tables C-095, H-064, N-023, fetched 2026-11-12) for CO2 at 1000 and 3000 K, H2O at 1000 K, N2 at 1500 and
+3000 K within 0.12 % (H2O at 2000 K 1.1 % above JANAF: NASA's water, as A1 found); the equilibrium constants of
+CO2 = CO + 1/2 O2 and H2O = OH + 1/2 H2 hold to 1.4e-14 in ln K (AFR 12.8 / 14.6, 2000-3000 K, 20-120 bar); run on GRI data
+the solver agrees with `dissociation.py` within 1.8 % on every mole fraction above 1e-3 where dissociation.py's own
+optimiser converged. Found on the way: dissociation.py's SLSQP minimum stops short at 2000 K (H2 or H set to zero; its
+ln K residuals 340-1000) and is 0.0066 off in ln K elsewhere. B2's table is not affected: rerun with this solver
+(`closed_cycle.py thermo.inp b2`) the expansion work frozen / equilibrium is +3.46 / +3.45 % at AFR 14.6 and +1.02 / +1.03 %
+at 12.8 (B2: +3.6 and +1.0 %); its peak pressures are 12 % higher than B2's, which counted the fuel as one mole per C atom
+(B2's comparison of frozen against equilibrium is unchanged by that).
+
+Verification against each code (the work from IVC to EVO):
+
+| from the wave model's IVC state and heat | 3000 | 5000 | 7000 rpm |
+|---|---|---|---|
+| independent, frozen products, the model's Woschni (pm 1.32) / wave run | 0.9997 | 1.0001 | 0.9996 |
+| the same with the true motored pressure | 0.9994 | 0.9999 | 0.9994 |
+| the wave model's explicit step on its own time steps (NASA data) / RK4 | 1.0002 | 0.9998 | 1.0003 |
+| from OpenWAM's IVC state and heat: the OpenWAM copy / OpenWAM run | 1.0013 | 1.0000 | 1.0015 |
+
+So the independent calculation reproduces both codes from their own states, the wave model to 0.06 % and OpenWAM to 0.15 %,
+and the wave model's explicit p dV costs nothing measurable (part 1's -0.42 % temperature error over a whole adiabatic cycle
+cancels between compression and expansion in the work).
+
+### D4 Where OpenWAM's lower work comes from (from OpenWAM's own IVC state and heat; ratios to OpenWAM's closed-cycle work)
+
+One change at a time, cumulative, from the OpenWAM copy towards the model's physics:
+
+| step | 3000 | 5000 | 7000 rpm | step's share |
+|---|---|---|---|---|
+| OpenWAM copy (its gas, its Woschni, fuel injected after IVC) | 1.0013 | 1.0000 | 1.0015 | |
+| + the fuel premixed in the charge at IVC (as the model) | 1.0036 | 1.0021 | 1.0033 | +0.2 % |
+| + the composition term of the energy equation | 1.0375 | 1.0371 | 1.0390 | +3.4-3.6 % |
+| + the Wiebe's last 0.67 % of the heat | 1.0445 | 1.0441 | 1.0460 | +0.7 % |
+| + NASA-9 properties for the same composition | 1.0463 | 1.0462 | 1.0479 | +0.2 % |
+| + rich products CO and H2 (the model's frozen products) | 1.0960 | 1.0970 | 1.0995 | +4.7-4.9 % |
+| + the model's Woschni (Heywood form, combustion term to EVO, pm 1.32) | 1.0681 | 1.0822 | 1.0898 | -0.9 to -2.5 % |
+| (instead: + equilibrium products) | 1.0652 | 1.0785 | 1.0854 | -0.3 to -0.4 % |
+| the wave model from its own IVC state | 1.1094 | 1.1329 | 1.1201 | IVC state: +2.8 to +4.7 % |
+
+Each item, judged against independent physics, not against the other code:
+1. Composition term (+3.5 %). OpenWAM integrates m cv dT = dQ - p dV - dQw with cv switched to the new composition; the
+   internal energy of a mixture is m sum Y_i u_i(T), so converting dm of air and fuel into burnt gas at T also changes U by
+   dm (u_burnt(T) - u_unburned(T)), which its equation leaves out. With its own cv polynomials (sensible from 298.15 K, the
+   LHV's datum) that difference is negative (its gasoline cv is 3-5 times air's), so the omission discards about 3.5 % of
+   the work's worth of energy. This is an energy-conservation error in OpenWAM, not physics the model lacks.
+2. Rich products (+4.7-4.9 %). OpenWAM's simple species model burns Q / LHV of fuel to stoichiometric products and keeps the
+   rest of the fuel (18 % of it at AFR 12.8 with its combustion efficiency 0.818) as gasoline vapour and the rest of the air
+   as air, to EVO, at 2000-2800 K. A rich flame leaves CO and H2 (Heywood ch. 4; the water-gas ratio, which equilibrium
+   confirms, D5): unburned fuel and oxygen do not coexist at those temperatures. The model's products (R 294.4 against 285.4,
+   more moles per kg) are the physical ones. OpenWAM's simplification.
+3. The Wiebe's tail (+0.7 %): OpenWAM's burn stops at 1 - exp(-5) = 0.9933 of the heat it was given (its HRL ends at
+   0.992-0.993); the wave model releases the rest at the end of the duration. A convention (the wave model releases the heat
+   it is given); with it, `compare.comb_eff` makes OpenWAM release 0.67 % less than the wave model.
+4. Fuel injection (+0.2 %): OpenWAM injects the port fuel during compression with the mixture's enthalpy cp T (the mass term
+   of its energy equation); the model premixes it at the valve. Small either way.
+5. Property fits (+0.2 %): OpenWAM's cv polynomials against NASA's for the same composition: equivalent.
+6. Wall heat (-0.9 to -2.5 %, the other way): OpenWAM's Woschni (`TCilindro4T.cpp` 549-577) has 1.2e-2 p(Pa)^0.8 T^-0.53,
+   a combustion term C2 = 0.001 ("antes 3.24e-3 (ahora 0.001)", line 549) only between the start and the end of the burn,
+   pm with exponent 1.36 and R 287; the model has the published form (D5). OpenWAM's is lighter: 20-48 % less closed-cycle
+   wall heat. Its change of the published C2 is OpenWAM's own choice; not adopted.
+So the model has nothing to take from OpenWAM here: of the 11-13 % closed-cycle surplus, 6.8-9.0 points are OpenWAM's
+simplifications net of its lighter wall heat, and 2.8-4.7 points the larger charge the wave model traps at IVC (C6 item 4:
+VE and residual; that part is not explained here).
+
+### D5 What first principles say about the model's own assumptions
+
+- Dissociation (single zone, the products in equilibrium at the mean temperature and the cylinder's pressure, the same
+  burn and wall heat; `cyl_phase.py`, `closed_cycle.py thermo.inp afr results/cyl_d.json`): -0.29 / -0.30 / -0.41 % of
+  the closed-cycle work at AFR 12.8 (3000 / 5000 / 7000 rpm); without wall heat -0.47 / -0.49 / -0.53 %; at AFR 14.6
+  (5000 rpm state) -1.81 % (-2.57 % adiabatic). A two-zone burn (hotter burned gas) would dissociate more; B2's adiabatic
+  constant-volume burn (+1.0 / +3.5 %) is the upper bound. OpenWAM has no dissociation either, so it explains none of the
+  difference. Not added: 0.3-0.4 % at the AFR of every validation and rating run here; at stoichiometric about 2 %, which
+  is named on the page as left out (a fast equilibrium for the page is a possible follow-up; this script's solver is the
+  verified reference for it).
+- Woschni's constants: the model uses 3.26 B^-0.2 p(kPa)^0.8 T^-0.55 w^0.8 (Heywood's form; reproduced with T^-0.55 and
+  attributed to SAE 670931 in the FAMU-FSU propulsion notes "Convective Heat Transfer",
+  https://web1.eng.famu.fsu.edu/~shih/propulsion/lecture%20notes/Convective%20Heat%20Transfer.pdf, fetched 2026-11-12).
+  Woschni's own units, 110 kcal/(m2 h K) with p in at (kp/cm2), convert to 3.264 with p in kPa, the same constant, but his
+  exponent of T is -0.53: so given by NASA CR (NTRS 19880003963, https://ntrs.nasa.gov/api/citations/19880003963/downloads/19880003963.pdf,
+  fetched: "110 ... p^0.8 T^-0.53", OCR-damaged) and used with 3.26 and T^-0.53 by libICEpost
+  (https://libice-post.readthedocs.io/en/stable/autoapi/libICEpost/src/engineModel/HeatTransferModel/Woschni/index.html,
+  fetched; C2 3.24e-3 combustion/expansion, motored exponent 1.32). SAE 670931 itself could not be fetched. The factor T^0.02
+  is 14-17 % on h at 800-2500 K: with T^-0.53 the closed-cycle wall heat is 15 % higher and the work 0.8-1.3 % lower
+  (`woschni67` rows). Both forms are published; the model's stays (an uncertainty of about 1 % of the work, stated on the
+  page). OpenWAM's 1.2e-2 p(Pa)^0.8 is 120 in bar units against Woschni's 129.8 (3.26 kPa): 8 % lower.
+- The motored pressure: the polytropic pm with exponent 1.32 against a true motored run of the same charge changes the work
+  by 0.02-0.03 %.
+- Integration: D3.
+
+### D6 What was changed
+
+- Model (`wsFactory`, `rust/et_wave`, WebAssembly): nothing. The page's simulation is byte-identical to part 3's; the only
+  change in `web/index.html` is the method text of the wave simulation (the OpenWAM gap, measured: "not a surplus of this
+  model's cylinder", with the split above).
+- Tools: `closed_cycle.py` and `cyl_phase.py` (new), `cyl_trace.js` (more columns), `lib.js` (exposes hc, area, velocity),
+  `openwam/make_wam.py` (`cyl_ins_extra`, default off).
+
+### D7 Re-validation
+
+- Since the model did not change, the ratings table (C4: brake torque +4 to +16 %, power +6 to +16 %), the OpenWAM
+  cross-check ratios (B7, C6), the sound orders and the run time are those of part 3, unchanged; they were not rerun
+  (`git diff` of the model's code is empty). kat.js, constant-gamma mode, wavegas_ui and JS/Rust/WASM parity: in the suite
+  run below.
+- No pinned value was changed.
+
+### D8 The stock intake runner length (searched again)
+
+Not found. Searched: GM / SAE papers on the Gen IV and Gen V small-block intake (none with a dimension found), LSX Magazine's
+LS3 intake dyno test (https://www.lsxmag.com/tech-stories/dyno-testing-four-popular-ls3-bolt-on-intake-manifolds/: no
+length, only "designed for the stock 92 mm unit"), its LS/LT intake design feature (https://www.lsxmag.com/?p=25093: no stock
+lengths; the LT6's 5.5 L plenums only), EngineLabs' FAST LSXR test (https://www.enginelabs.com/?p=196083: the FAST runners
+8 / 6.25 / 3.5 in, not stock), and LS1Tech threads (https://ls1tech.com/forums/generation-iv-internal-engine/426226-intake-runner-length.html:
+the LS7 manifold's runners "measured ... rather crudely ... 7.25", manifold only, no head port; an LS1 "~16 in" complete
+runner given as a belief; https://ls1tech.com/forums/advanced-engineering-tech/1347488-looking-factory-intake-runner-specs.html:
+no measurement). None is a sourced valve-to-plenum length for the LS3, LS7 or LT1, so the 300 mm stays an assumption, with
+part 3's sensitivity (250 mm -6 %, 450 mm +9 % on LS3 brake torque).
+
+### D9 Summary rows (section 6, as of 2026-11-12, part 4)
+
+| Difference | Status | Evidence |
+|---|---|---|
+| Closed-cycle work above OpenWAM, 11-13 % (single_L800) | explained: OpenWAM's energy equation omits the composition term (3.5 %), its rich products are burnt + air + unburned fuel (4.7-4.9 %), its burn stops at 99.33 % of the heat (0.7 %), fuel and property details (0.4 %); its lighter Woschni the other way (0.9-2.5 %); the rest, 2.8-4.7 %, the larger trapped charge (open) | D4 |
+| The model's closed cycle | reproduced by an independent first-principles calculation within 0.06 %; explicit step error under 0.03 % | D3 |
+| Dissociation | not modelled: -0.3 to -0.4 % of the work at AFR 12.8, -1.8 % at 14.6 (single zone) | D5 |
+| Woschni's T exponent | -0.55 (Heywood's form, the model) against -0.53 (Woschni's units): about 1 % of the work; both published | D5 |
+| Stock runner length | not found; 300 mm assumed | D8 |
+
+### D10 How to rerun (additions)
+
+```
+curl -sSL -o thermo.inp https://raw.githubusercontent.com/nasa/cea/main/data/thermo.inp
+curl -sSLO https://raw.githubusercontent.com/Cantera/cantera/main/data/gri30.yaml
+python3 tools/validation/wave/closed_cycle.py thermo.inp gri30.yaml      # self-checks and the equilibrium cross-check, ~2 s
+python3 tools/validation/wave/cyl_phase.py thermo.inp rpms=3000,5000,7000 tag=d   # OpenWAM + wave + independent, ~6 min
+python3 tools/validation/wave/closed_cycle.py thermo.inp afr tools/validation/wave/results/cyl_d.json   # dissociation at 14.6, ~1 min
+python3 tools/validation/wave/closed_cycle.py thermo.inp b2              # B2 again with this solver, ~7 min
+```

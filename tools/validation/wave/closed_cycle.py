@@ -786,7 +786,33 @@ def b2(path):
                   % (afr, Tu, pu / 1e5, f_[0], e_[0], f_[1] / 1e5, e_[1] / 1e5, f_[2] / 1e6, e_[2] / 1e6, 100 * (f_[2] / e_[2] - 1), f_[3], e_[3]))
 
 
+def afr_check(path, res):
+    """dissociation at another AFR: single_L800's 5000 rpm wave IVC state (results/cyl_d.json; geometry of compare.py's
+    single cylinder) at AFR 12.8 and 14.6, the heat ETA_C 0.975 x the frozen chemistry, Heywood's Woschni with pm 1.32,
+    frozen against equilibrium products, and adiabatic"""
+    import json
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import compare
+    th = Thermo(path)
+    r = next(x for x in json.load(open(res))["single_L800"] if x["rpm"] == 5000)
+    e = compare.CONFIGS["single_L800"][0]()["e"]
+    iv = r["wave"]["ivc"]
+    for afr in (12.8, 14.6):
+        ch = Charge(th, afr)
+        case = dict(bore=e["bore"], stroke=e["stroke"], rod=e["rod"], cr=e["cr"], rpm=5000, ivc=r["ivcDeg"] if "ivcDeg" in r else 0, evo=0,
+                    ign=0, dur=e["burn"]["dur"], afr=afr, Twall=e.get("Twall") or 450.0, thermo=th, m=iv["m"], T=iv["T"], x=iv["x"], _charge=ch)
+        case.update(r["angles"])
+        case["Q"] = 0.975 * ch.qchem * iv["m"] * iv["x"]
+        for wo in ("heywood", "none"):
+            f = run(case, "frozen", wo, 1.32, dth=0.25)
+            q = run(case, "equil", wo, 1.32, dth=0.25)
+            print("AFR %g, Woschni %s: W frozen %.2f J, equilibrium %.2f J (%+.2f %%)" % (afr, wo, f["W"], q["W"], 100 * (q["W"] / f["W"] - 1)))
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 3 and sys.argv[2] == "afr":
+        afr_check(sys.argv[1], sys.argv[3])
+        sys.exit(0)
     if len(sys.argv) > 2 and sys.argv[2] == "b2":
         b2(sys.argv[1])
         sys.exit(0)
