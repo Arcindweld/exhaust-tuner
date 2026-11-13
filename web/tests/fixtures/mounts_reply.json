@@ -1,0 +1,128 @@
+{
+ "pick": {
+  "ok": true,
+  "part": {
+   "L_mm": 600.0,
+   "H_mm": 300.0,
+   "W_mm": 100.0
+  },
+  "mounts": [
+   {
+    "p_mm": [
+     -280.0,
+     -130.0,
+     50.0
+    ],
+    "h_mm": 120.0,
+    "s_mm": 0.0,
+    "dir": "dn",
+    "n": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "u": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "u_fixed": false
+   },
+   {
+    "p_mm": [
+     280.0,
+     -130.0,
+     50.0
+    ],
+    "h_mm": 120.0,
+    "s_mm": 0.0,
+    "dir": "dn",
+    "n": [
+     0.0,
+     1.0,
+     0.0
+    ],
+    "u": [
+     1.0,
+     0.0,
+     0.0
+    ],
+    "u_fixed": false
+   }
+  ],
+  "msg": "Read 2 mounts on Core stand-in: 1: reach 120.0 mm (4.724 in); 2: reach 120.0 mm (4.724 in)."
+ },
+ "build": {
+  "ok": true,
+  "msg": "Built 2 brackets (4 bodies). Check: Mount 2: inside the clearance.",
+  "brackets": [
+   {
+    "foot_side": -1,
+    "plate_side": -1,
+    "gap_mm": 19.999999999999996,
+    "hot_gap_mm": 253.2,
+    "clear": true,
+    "access": [
+     {
+      "bolt": "foot",
+      "x_mm": -13.5,
+      "clear": true,
+      "blocked_mm": null
+     },
+     {
+      "bolt": "foot",
+      "x_mm": 13.5,
+      "clear": true,
+      "blocked_mm": null
+     },
+     {
+      "bolt": "part",
+      "clear": true,
+      "blocked_mm": null,
+      "side": "-f"
+     }
+    ],
+    "h_mm": 120.0,
+    "s_mm": 0.0,
+    "name": "Mount 1"
+   },
+   {
+    "foot_side": -1,
+    "plate_side": -1,
+    "gap_mm": 19.999999999999996,
+    "hot_gap_mm": 33.00000000000001,
+    "clear": false,
+    "access": [
+     {
+      "bolt": "foot",
+      "x_mm": -13.5,
+      "clear": true,
+      "blocked_mm": null
+     },
+     {
+      "bolt": "foot",
+      "x_mm": 13.5,
+      "clear": true,
+      "blocked_mm": null
+     },
+     {
+      "bolt": "part",
+      "clear": true,
+      "blocked_mm": null,
+      "side": "-f"
+     }
+    ],
+    "h_mm": 120.0,
+    "s_mm": 0.0,
+    "name": "Mount 2"
+   }
+  ],
+  "bodies": [
+   "Mount 1 upright",
+   "Mount 1 foot",
+   "Mount 2 upright",
+   "Mount 2 foot"
+  ],
+  "all_ok": false
+ }
+}

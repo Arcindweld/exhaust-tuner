@@ -263,7 +263,8 @@ def stay(ax, D):
 
 
 def plate_points(pl, step_cm=0.4):
-    """Points spread over a plate's two faces (cm): its outline loop's polygon filled on a grid, both faces."""
+    """Points spread over a plate's two faces (cm): its outline loop's polygon (arcs by their three points) filled on a
+    grid, and the outline itself, both faces."""
     o, px, py = pl['plane3']
     ex, ey = _unit(_sub(px, o)), _unit(_sub(py, o))
     nz = _unit(_cross(ex, ey))
@@ -274,6 +275,15 @@ def plate_points(pl, step_cm=0.4):
             poly.append((_dot(d, ex), _dot(d, ey)))
     xs, ys = [p[0] for p in poly], [p[1] for p in poly]
     out = []
+    # the outline itself, so an edge is never further than the grid from the points
+    for k in range(len(poly)):
+        a, b = poly[k], poly[(k + 1) % len(poly)]
+        m = max(1, int(math.hypot(b[0] - a[0], b[1] - a[1]) / step_cm) + 1)
+        for j in range(m):
+            q = (a[0] + (b[0] - a[0]) * j / m, a[1] + (b[1] - a[1]) * j / m)
+            base = _v(_v(o, ex, q[0]), ey, q[1])
+            out.append(_v(base, nz, pl['t'] / 2.0))
+            out.append(_v(base, nz, -pl['t'] / 2.0))
     y = min(ys) + step_cm / 2.0
     while y < max(ys):
         x = min(xs) + step_cm / 2.0
