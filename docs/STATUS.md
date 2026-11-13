@@ -1613,6 +1613,6 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   hot keep-outs with the foot and boss left out, a straight-line socket-access check along each bolt axis, the foot
   turned the way that keeps access); cadtools mountPlace (a stand-in box or cylinder), mountPick (part, then pairs),
   mountBuild (plates by _hang_plate, the stay as a tube; refuses a reach that disagrees with the picks).
-- Tests: web/tests/mounts_ui.js (new), fusion-addin/tests/test_mounts.py (geometry by hand; the page's flat patterns from
+- Tests: web/tests/mounts_ui.js (new, 41 checks), fusion-addin/tests/test_mounts.py (geometry by hand; the page's flat patterns from
   fixtures/mounts_payload.json), test_mounts_fusion_fake.py (writes fixtures/mounts_reply.json with ET_WRITE_FIXTURES=1);
   fusion-addin/tests/fusion_live_mounts.py for the owner's machine, NOT RUN here.
