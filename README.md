@@ -60,7 +60,7 @@ when nothing failed and every skip was expected.
   no-openfoam ...`); any other skip fails the run, so a test that stops running is noticed.
 - `tests/flaky.txt` lists the tests run a second time after a failure, each with its reason (empty: a timing-sensitive
   test is fixed by waiting on its condition instead).
-- `--skip-slow` leaves out the tests in `SLOW` in `tools/run_all_tests.py` (test_header_uel, about 230 s, and
+- `--skip-slow` leaves out the tests in `SLOW` in `tools/run_all_tests.py` (test_header_uel, 230-420 s here, and
   test_native: the router runs to its node and iteration limits with no clock limit, so they are deterministic but long);
   the table's footer names them as not run. It is for quick local runs only: CI and a plain run include them.
 - Page tests that read the page right after changing an input use `web/tests/settle.js`: `reads(page)` makes

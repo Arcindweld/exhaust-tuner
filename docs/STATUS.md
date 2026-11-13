@@ -1764,3 +1764,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - `tools/run_all_tests.py --skip-slow` (local only, not in CI) leaves out test_header_uel and test_native and names them
   in the footer; README "Running the tests".
 - Tests: icrec_ui (Bowman pins), boostaudit2_ui (torsion pins), mounts_ui (weights and sources), the ten tests above.
+  icrec_ui, mounts_ui and boostaudit2_ui also 5 times each under a CPU-load loop: 0 failures.
+- Suites (web, fusion, -j 2): 140 tests, 134 passed, 0 flaky, 0 failed, 6 skipped (expected), 7 partial skips, 0
+  unexpected.
+- Open: an aluminium fillet-weld allowable, Bell's item-page weights, a choked-exit back pressure; test_native unrun here.

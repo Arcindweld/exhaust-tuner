@@ -176,7 +176,7 @@ EXCLUDED = {
 }
 # tests --skip-slow leaves out, each with the reason (a quick local run only; CI and a plain run have them)
 SLOW = {
-    'test_header_uel': 'about 230 s: the router searches run to their node and iteration limits (time_budget 1e9, deterministic)',
+    'test_header_uel': '230-420 s here: the router searches run to their node and iteration limits (time_budget 1e9, deterministic)',
     'test_native': 'minutes: the Rust core against the Python on every route, also without a clock limit',
 }
 # and these, which are checks with their own command line

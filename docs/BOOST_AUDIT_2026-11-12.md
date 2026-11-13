@@ -644,3 +644,6 @@ table's footer); CI does not use it.
 
 Still open: a choked-exit back pressure (X10); an aluminium fillet-weld allowable (M6); Bell's item-page weights
 (B1); test_native's change is unrun here (no Rust core).
+
+Suites after the follow-ups (run_all_tests.py --suite web,fusion --no-build -j 2): 140 tests, 134 passed, 0 flaky,
+0 failed, 6 skipped (expected), 7 partial skips, 0 unexpected skips.
