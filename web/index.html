@@ -1402,6 +1402,32 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <label class="f adv" id="i-wgcl-wrap"><span class="lab">Collector, last merge to the turbine flange</span>
             <span class="inp"><input id="i-wgcl" type="number" step="any" inputmode="decimal" data-kind="len" data-base="152.4"><em data-u="len">in</em></span></label>
         </div>
+        <div id="i-mf-wrap" hidden>
+        <div class="grp forced">Turbo manifold</div>
+        <div class="grid2">
+          <label class="f"><span class="lab">Exhaust port bore at the head flange</span>
+            <span class="inp"><input id="i-mport" type="number" step="any" inputmode="decimal" data-kind="len"><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">Port spacing along the head, centre to centre, blank to skip the length layout</span>
+            <span class="inp"><input id="i-msp" type="number" step="any" inputmode="decimal" data-kind="len"><em data-u="len">in</em></span></label>
+          <label class="f adv"><span class="lab">Turbine flange offset from the middle of the ports</span>
+            <span class="inp"><input id="i-moff" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">Runner length, head flange to the merge, blank for the shortest equal length</span>
+            <span class="inp"><input id="i-mlen" type="number" step="any" inputmode="decimal" data-kind="len"><em data-u="len">in</em></span></label>
+          <label class="f adv"><span class="lab">Collector bore, blank to match the turbine inlet port</span>
+            <span class="inp"><input id="i-mcol" type="number" step="any" inputmode="decimal" data-kind="len"><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">Manifold material</span>
+            <span class="inp"><select id="i-mmat"><option value="304" selected>304 stainless</option><option value="321">321 stainless</option><option value="347">347 stainless</option><option value="625">Inconel 625</option><option value="mild">Mild steel</option></select></span></label>
+          <label class="f adv"><span class="lab">Manifold outside</span>
+            <span class="inp"><select id="i-mfin"><option value="ox" selected>Bare, oxidised (run in)</option><option value="tint">Bare, lightly heat-tinted</option><option value="new">Bare, new or polished</option><option value="ceramic">Silver ceramic coating</option><option value="black">Black high-temperature coating</option><option value="wrap1">Wrapped, one layer</option><option value="wrap2">Wrapped, two layers</option></select></span></label>
+          <label class="f adv"><span class="lab">Turbo mass (1 kg is 2.205 lb), blank to skip</span>
+            <span class="inp"><input id="i-mkg" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1"><em>kg</em></span></label>
+          <label class="f adv"><span class="lab">Exhaust valve open period, blank to skip</span>
+            <span class="inp"><input id="i-mdur" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0"><em>°</em></span></label>
+          <label class="f adv"><span class="lab">Exhaust valve lift, blank to skip</span>
+            <span class="inp"><input id="i-mlift" type="number" step="any" inputmode="decimal" data-kind="len"><em data-u="len">in</em></span></label>
+          <span class="hint" style="grid-column:1/-1">The port bore is the opening of the head flange (an engine preset with a published flange port fills it). The firing order is the engine above; the turbine flange is the housing picked under Turbo options. The result is under Turbo manifold.</span>
+        </div>
+        </div>
         <div id="i-dp-wrap" hidden>
         <div class="grp forced">Exhaust after the turbine</div>
         <div class="grid2">
@@ -2130,7 +2156,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <div class="grp" style="margin-top:8px">The part</div>
         <div class="grid2">
           <label class="f span2"><span class="lab">Part</span>
-            <span class="inp"><select id="mt-part"><option value="a2a" selected>Air-to-air intercooler core</option><option value="build">The intercooler picked on the Intake tab</option><option value="w2a">Water-to-air barrel charge cooler</option><option value="hx">Front heat exchanger (water-to-air system)</option><option value="oil">Oil cooler</option><option value="can">Catch can or tank</option><option value="bov">Blow-off valve or wastegate support</option></select></span></label>
+            <span class="inp"><select id="mt-part"><option value="a2a" selected>Air-to-air intercooler core</option><option value="build">The intercooler picked on the Intake tab</option><option value="w2a">Water-to-air barrel charge cooler</option><option value="hx">Front heat exchanger (water-to-air system)</option><option value="oil">Oil cooler</option><option value="can">Catch can or tank</option><option value="bov">Blow-off valve or wastegate support</option><option value="turbo">The turbo (mass from the Intake tab’s Turbo manifold inputs)</option></select></span></label>
           <label class="f"><span class="lab">Shape</span>
             <span class="inp"><select id="mt-shape"><option value="box" selected>Box (core, cooler)</option><option value="cyl">Cylinder (barrel, can)</option></select></span></label>
           <label class="f" id="mt-L-w"><span class="lab" id="mt-L-lab">Length, side to side</span>
@@ -14863,6 +14889,9 @@ function mtPart(o){
       if(C.mass){ out.dry=C.mass[0]; out.liq=C.mass[1]-C.mass[0]; out.notes.push({k:'info',t:'Weight from the maker: '+mtKg(C.mass[0])+' dry, '+mtKg(C.mass[1])+' wet.'}); }
       else out.notes.push({k:'info',t:'The maker publishes no weight for this core: the weight typed is used (weigh it).'});
       if(C.type==='w2a'&&C.barb) out.shape='box'; } }
+  else if(o.part==='turbo'){ const kg=val('i-mkg'); out.name='Turbo (Intake tab)';   // 2026-11-13: the turbo manifold section's mass input; the makers' pages give no mass
+    if(kg>0){ out.dry=kg; out.notes.push({k:'info',t:'Mass from the Intake tab’s Turbo manifold inputs: '+mtKg(kg)+'. Precision: support it from the turbine housing inlet flange or the center housing.'}); }
+    else out.notes.push({k:'warn',t:'No turbo mass on the Intake tab (Turbo manifold inputs): the weight typed here is used.'}); }
   else out.name={a2a:'Air-to-air intercooler',w2a:'Water-to-air barrel charge cooler',hx:'Front heat exchanger',oil:'Oil cooler',can:'Catch can or tank',bov:'Valve support'}[o.part]||'Part';
   if(!(out.liq>0)&&o.fluid!=='none'&&o.vol>0){ let rho=null; try{ rho=o.fluid==='oil'?o.orho:COOLANT[o.fluid].rho/1000; }catch(e){}
     if(rho>0) out.liq=o.vol*rho; }
@@ -19331,7 +19360,8 @@ function applyVehicle(v){
   if(v.cr) setBase('f-cratio',v.cr);
   if(v.valves) $('f-valves').value=String(v.valves);
   // valve head sizes, where an engine preset's kd block has a sourced figure (mm); otherwise blank, so the simulation scales them
-  { const kd=v.kd||{}; if(kd.vIn) setBase('f-vdi',kd.vIn); else blank('f-vdi'); if(kd.vEx) setBase('f-vde',kd.vEx); else blank('f-vde'); }
+  { const kd=v.kd||{}; if(kd.vIn) setBase('f-vdi',kd.vIn); else blank('f-vdi'); if(kd.vEx) setBase('f-vde',kd.vEx); else blank('f-vde');
+    if(kd.portIn) setBase('i-mport',kd.portIn*25.4); else blank('i-mport'); }   // the head flange's port for the turbo manifold (2026-11-13)
   $('i-eng').value=v.eng; setBase('i-disp',v.cc); setBase('i-rpm',v.hpRpm); setBase('i-idle',idle); setBase('i-cruise',cruise); setBase('i-red',red);
   if(v.hp) setBase('i-hp',v.hp);
   $('q-eng').value=v.eng; setBase('q-disp',v.cc); setBase('q-rpm',v.hpRpm); setBase('q-hp',v.hp); setBase('q-tq',v.tqRpm); setBase('q-cruise',cruise);
@@ -23780,6 +23810,388 @@ function xSvg(G,X,F){
 }
 if(typeof window!=='undefined') window.__tsx={exhAfterTurbine,xGather:()=>TS_LAST&&TS_LAST.R?xGather(TS_P,TS_LAST.R):null,last:()=>TS_X,dpRule,DP_RULE,xMuffler,xCats,xTail,
   XF_GAS,exhMarch,exhSteps,xSt,xSt0,xStar,xExpandBack,xPipeBack,xLumpBack,xCool,xCp,mufElems,mufElemLoss,mufInputs,mufBP:()=>MUF_BP,calcSkin,exhGamma,EXH_GAS,tsStep,XF_MCH};
+/* ===== Turbo manifold (2026-11-13): head flange to the turbine inlet flange, with the wastegate take-off =====
+   A section of the Intake tab's boosted flow, after "Where to put them" (the wastegate placement) and before "Exhaust after
+   the turbine", so the build reads manifold -> turbine -> downpipe. What is sourced (read 2026-11-13) and what is this page's:
+   RULES FROM SOURCES
+   - Garrett, Turbo Tech 102 "Advanced" (garrettmotion.com/wp-content/uploads/2019/10/GAM_Turbo-Systems-102_Advanced.pdf),
+     section 3, "General design tips for best overall performance": maximize the bend radius "to maintain pulse energy";
+     "Make the exhaust primaries equal length to balance exhaust reversion across all cylinders"; "Avoid rapid area changes
+     to maintain pulse energy to the turbine"; at the collector "introduce flow from all runners at a narrow angle to minimize
+     "turning" of the flow"; "For better boost response, minimize the exhaust volume between the exhaust ports and the
+     turbine inlet"; "For best power, tuned primary lengths can be used". Tubular manifolds, "Because of the welded joints,
+     thinner wall sections, and reduced stiffness, ... are often susceptible to cracking due to thermal expansion/contraction
+     and vibration"; "tubular manifolds can offer a substantial performance advantage over a log-type manifold". Divided
+     manifolds "DIVIDE or separate the cylinders whose cycles interfere with one another"; for 1-3-4-2 "#1 and #4 are
+     complementary; as are cylinders #2 and #3".
+   - BorgWarner, "Tech Tip: Twin Scroll Turbo Housing" (2021-04-12): "the manifold and turbine housing are divided into two
+     flow paths", the firing order alternating the flow between them. (The divided-housing quote from BorgWarner's
+     catalogue is already in the housing comment above.)
+   - Runner and log size, as quoted in AutoSpeed's review "Turbo Manifold Design" (autospeed.com.au/cms/a_113033/article; no
+     byline or date on the page; the books themselves were not read): MacInnes, Turbochargers: "small diameter runners with
+     about the same internal area as the ports"; Allard, Turbocharging and Supercharging: a log "not more than 2.5 times, and
+     not less that double, the area of one exhaust port", "3.0mm minimum is recommended" for the wall, "sufficient strength
+     to take the weight of the turbocharger system", "remain rigid without distortion or fracture even when working up to
+     1000 degrees C"; Humphries, Automotive Supercharging and Turbocharging Systems: cross-sectional area "not significantly
+     greater than the geometric valve area at full lift"; Bell, Maximum Boost: "relatively small diameter runners with large
+     wall thicknesses", "designed to minimise thermal loads on each section of the manifold". The sources conflict on
+     support: Allard has the manifold take the turbo's weight; Precision (below) and SINCO support the turbo elsewhere.
+   - Merge angle: Garrett says "a narrow angle" with no number; Stainless Headers sells 20 deg merges for turbo (its catalogue
+     on the Parts tab, as the Headers method notes). No source gives a turbo manifold's merge angle as a rule.
+   - Materials (data sheets, mean coefficient of expansion from 32 F / 0 C, taken in their US units, which each sheet says
+     are the ones established: "The metric equivalents may be approximate"): Cleveland-Cliffs 304/304L (2021): 9.4, 9.9, 10.2,
+     10.4 x 10^-6 /F to 212, 600, 1000, 1200 F; "exposed continuously without appreciable scaling is about 1650 F (899 C). For
+     intermittent cyclic exposure, is about 1500 F (816 C)". Cleveland-Cliffs 321 (2021): 9.2, 9.5, 10.3, 10.7, 11.2 to 212,
+     600, 1000, 1200, 1500 F; its limits from Atlas Steels' 321 sheet (2021): "intermittent service to 900 C and in continuous
+     service to 925 C". Rolled Alloys 347 (2021): 9.2 x 10^-6 /F from 70 to 212 F only, "Useful to 1500 F", oxidation "similar
+     to that of 304". Rolled Alloys 625 (2016): 7.3, 7.4, 7.6, 7.8, 8.2, 8.5, 8.8 x 10^-6 /F from 70 F to 400 ... 1600 F,
+     "Oxidation resistant to 1800 F". Mild steel: the single 7.228 x 10^-6 /F the Fabrication tab already uses (nsxprime
+     table); no scaling limit read. Above a table's last temperature the growth is given as "at least" (the coefficient rises
+     with temperature in every table read), never extrapolated.
+   - Weld elbows: Ace Stainless Supply's ASTM A403 / ASME B16.9 submittal sheets (acestainless.com, read 2026-11-13): long
+     radius 90 deg centre to face 1 7/8, 2 1/4, 3, 3 3/4 in for NPS 1 1/4, 1 1/2, 2, 2 1/2 (1.5 x NPS), short radius 1 1/4,
+     1 1/2, 2, 2 1/2 (1.0 x NPS); OD 1.660, 1.900, 2.375, 2.875 in; 10S wall 0.109, 0.109, 0.109, 0.120 (ID 1.442, 1.682,
+     2.157, 2.635); 40S wall 0.140, 0.145, 0.154, 0.203 (ID 1.380, 1.610, 2.067, 2.469); LR 90 weights 0.50, 0.69, 1.13,
+     1.88 lb (10S), 0.56, 0.88, 1.56, 3.00 lb (40S).
+   - Support: Precision Turbo & Engine, installation recommendations: "If it is necessary to support the weight of the
+     turbocharger it is best to do so by supporting it from the turbine housing inlet flange or the center housing." SINCO
+     (a manifold maker), "Turbo Bracing Guide": brace a low-mount turbo to the block, "a rod-end ... allows the
+     manifold/turbo to be supported but also can pivot when the manifold moves under heat expansion"; exhaust flexes take
+     weight off; top-mount runners "help support and take the weight". Garrett's installation guide parts 1 and 2 say nothing
+     on support (read).
+   THIS PAGE'S PHYSICS (labelled on the page; no sizing rule was found for these quantities)
+   - Gas in the runners at the turbine-inlet state the turbine balance uses: T3 (i-tit) and p3 (k x boost or the measured
+     pressure), burned-gas R and gamma(T) (EXH_GAS, exhGamma). Flow per runner = the exhaust per turbo / the cylinders on it,
+     averaged over the cycle; while its valve is open it is about 720 / (open period) times that (a typed period only).
+     M from xSt (the march's state at a static pressure). The port gas is hotter than T3, so speeds there are higher.
+   - Loss: the Exhaust-after-the-turbine march pieces, upstream from the turbine flange (static p3 there): the flange
+     transition (collector bore to the port's equivalent bore, a cone at Rennels' least-loss angle, tsStep), the collector
+     pipe (xPipeBack: Shapiro's influence coefficients with Haaland friction), the merge as an area change from the runners'
+     combined bore to the collector (cone; the junction's mixing and turning are not counted: no coefficient read), each
+     runner's straight (xPipeBack) and its bends (Crane / Idelchik bendK at the stocked radius, on the runner's head, a
+     stagnation loss via xLumpBack), and the step from the port into the runner (abrupt: Borda-Carnot or Rennels' sharp
+     contraction). Adiabatic (T0 = T3 throughout). The loss is the static (and total) pressure at the port less that at the
+     turbine flange. It is NOT added to the turbine balance: p3 there is the turbine-inlet pressure (a multiple of boost or
+     measured) and the manifold sits upstream of it, so the port pressure is p3 plus this loss.
+   - Lengths: a planar S from the port (leaving square to the head) to the merge (arriving parallel to the collector): two
+     arcs of the bend radius R turning theta each way and a straight between; lateral y = 2R(1 - cos th) + s sin th, out from
+     the head Z = 2R sin th + s cos th, length 2R th + s. The farthest runner (y = its offset from the merge) sets the shortest
+     equal length: y >= 2R: th = 90, L = pi R + (y - 2R), Z = 2R; y < 2R: th = acos(1 - y/2R), L = 2R th, Z = 2R sin th. Every
+     runner is made that long (Garrett's equal length); the nearer ones take the difference in routing.
+   - Volume: runners pi d^2/4 L each, the merge as a cone frustum over its least-loss length, the collector; against the
+     displacement.
+   - Heat: calcSkin per runner (CAF 1, the steady formula, and 2.3, Wendland's manifold factor, both shown; the hotter steel
+     is used), the gas from T3 at the port. Growth = L (abar(T)(T - Tref) - abar(Ta)(Ta - Tref)), abar the data sheet's mean
+     coefficient from Tref, linear between its points. A body heated evenly with one end free grows without stress; stress
+     comes from what holds it: the cooler head under a one-piece flange, a brace from the turbo to the block, a downpipe
+     held at both ends, runners at different temperatures. Fatigue life is not calculable here and the page says so. */
+const MFD_ELS=[   // inches; Ace Stainless Supply ASTM A403 / ASME B16.9 submittal (see above)
+  {nps:'1¼',od:1.660,w10:0.109,id10:1.442,w40:0.140,id40:1.380,lr:1.875,sr:1.25,lb10:0.50,lb40:0.56},
+  {nps:'1½',od:1.900,w10:0.109,id10:1.682,w40:0.145,id40:1.610,lr:2.25,sr:1.5,lb10:0.69,lb40:0.88},
+  {nps:'2',od:2.375,w10:0.109,id10:2.157,w40:0.154,id40:2.067,lr:3.0,sr:2.0,lb10:1.13,lb40:1.56},
+  {nps:'2½',od:2.875,w10:0.120,id10:2.635,w40:0.203,id40:2.469,lr:3.75,sr:2.5,lb10:1.88,lb40:3.00}];
+const MFD_ELSRC='https://www.acestainless.com/images/pdf/Submittal/Fittings/Buttweld/Stainless/astm-a403-b16-9-elbow-dimensions.pdf';
+const MFD_CLF304='https://d1io3yog0oux5.cloudfront.net/_7ce3a04c09e74bf31ff5f89fc888db25/clevelandcliffs/db/1190/10510/file/CLF_ProductData_304-304LSS_052021.pdf';
+const MFD_CLF321='https://d1io3yog0oux5.cloudfront.net/_7ce3a04c09e74bf31ff5f89fc888db25/clevelandcliffs/db/1190/10535/file/CLF_ProductData_Stainless-321_052021.pdf';
+const MFD_TT102='https://www.garrettmotion.com/wp-content/uploads/2019/10/GAM_Turbo-Systems-102_Advanced.pdf';
+const MFD_AS='https://autospeed.com.au/cms/a_113033/article';
+const MFD_BWTT='https://borgwarner.com/aftermarket/news/2021/04/12/tech-tip-twin-scroll-turbo-housing';
+const MFD_PTE='https://www.precisionturbo.com/turbocharger-installation-recommendations';
+const MFD_SINCO='https://www.sincocustoms.com/site_files/15142/upload_files/TurboBracingGuide.pdf?dl=1';
+// mean coefficient of expansion, from tref (°C) to t (°C), µm/m K = the sheet's in/in °F x 1.8; lim: scaling / service limits, °C
+const MFD_MAT={
+  '304':{name:'304 stainless',tref:0,a:[[100,9.4],[315.6,9.9],[537.8,10.2],[648.9,10.4]],lim:{int:816,cont:899},
+    limTxt:'continuous without appreciable scaling to about 899 °C (1650 °F), intermittent cyclic about 816 °C (1500 °F)',src:MFD_CLF304,srcName:'Cleveland-Cliffs 304/304L'},
+  '321':{name:'321 stainless',tref:0,a:[[100,9.2],[315.6,9.5],[537.8,10.3],[648.9,10.7],[815.6,11.2]],lim:{int:900,cont:925},
+    limTxt:'intermittent service to 900 °C (1652 °F), continuous to 925 °C (1697 °F) (Atlas Steels)',src:MFD_CLF321,srcName:'Cleveland-Cliffs 321',
+    src2:'https://atlassteels.com.au/stainless-steel-321-321h-grade-data-sheet-27-04-21',src2Name:'Atlas Steels 321'},
+  '347':{name:'347 stainless',tref:21.1,a:[[100,9.2]],lim:{int:816,cont:816},limTxt:'“Useful to 1500 °F” (816 °C), oxidation “similar to that of 304”; the sheet gives the expansion coefficient only to 212 °F (100 °C)',
+    src:'https://www.rolledalloys.ca/wp-content/uploads/347_stainless-steel-data-sheet-rolled-alloys.pdf',srcName:'Rolled Alloys 347'},
+  '625':{name:'Inconel 625',tref:21.1,a:[[204.4,7.3],[315.6,7.4],[426.7,7.6],[537.8,7.8],[648.9,8.2],[760,8.5],[871.1,8.8]],lim:{int:982,cont:982},
+    limTxt:'“Oxidation resistant to 1800 °F” (982 °C)',src:'https://www.rolledalloys.com/wp-content/uploads/2022/07/625_DS_nickel-data-sheet-rolled-alloys.pdf',srcName:'Rolled Alloys 625'},
+  mild:{name:'mild steel',tref:20,a:[[1e9,7.228]],lim:null,limTxt:'no scaling limit was read for mild steel, so the page gives none',
+    src:'http://www.nsxprime.com/FAQ/Miscellaneous/exhausttheory.htm',srcName:'nsxprime Exhaust Theory table (as the Fabrication tab)'}};
+// strain from ta to t (°C): {eps, atLeast: past the table's last point (the last coefficient used, an understatement), none}
+function mfdStrain(mat,t,ta){ const M=MFD_MAT[mat]; if(!M) return {eps:NaN,none:true};
+  const aAt=T=>{ const A=M.a; if(T<=A[0][0]) return {a:A[0][1],over:false}; for(let i=1;i<A.length;i++) if(T<=A[i][0]) return {a:A[i-1][1]+(A[i][1]-A[i-1][1])*(T-A[i-1][0])/(A[i][0]-A[i-1][0]),over:false}; return {a:A[A.length-1][1],over:true}; };
+  const hi=aAt(t), lo=aAt(ta), k=1.8e-6;
+  if(mat==='347'&&t>100) return {eps:NaN,none:true};
+  return {eps:k*(hi.a*(t-M.tref)-lo.a*(ta-M.tref)),atLeast:hi.over&&mat!=='mild',none:false}; }
+// stocked runner sizes: stainless mandrel tubing in the bend list (OD to 1/8 in, the 0.065 in wall where stocked, with its
+// stocked centre-line radii), and schedule 10S and 40S pipe with B16.9 weld elbows
+function mfdCands(){
+  const out=[], by=new Map(); let st=[]; try{ st=bendStock(); }catch(e){}
+  st.filter(s=>/304|321|stainless/i.test(String(s.mat||''))&&!/print|cast/i.test(String(s.mat||''))&&s.od>=1.25&&s.od<=3.01).forEach(s=>{ const od=Math.round(s.od*8)/8, k=od.toFixed(3);
+    const e=by.get(k)||{od,walls:new Set(),clrs:new Set()}; if(s.wall>0) e.walls.add(s.wall); e.clrs.add(Math.round(s.clr*16)/16); by.set(k,e); });
+  [...by.values()].sort((a,b)=>a.od-b.od).forEach(e=>{ const w=e.walls.has(0.065)?0.065:[...e.walls].sort((a,b)=>b-a)[0]; if(!(w>0)) return;
+    out.push({key:'t'+e.od.toFixed(3),kind:'tube',od:e.od*MM,wall:w*MM,id:(e.od-2*w)*MM,clrs:[...e.clrs].sort((a,b)=>a-b).map(c=>c*MM),
+      label:e.od+' in × '+w+' in stainless tube'}); });
+  MFD_ELS.forEach(E=>['10','40'].forEach(s=>out.push({key:'p'+E.nps+'-'+s,kind:'pipe',nps:E.nps,sch:s+'S',od:E.od*MM,wall:E['w'+s]*MM,id:E['id'+s]*MM,
+    clrs:[E.sr*MM,E.lr*MM],lr:E.lr*MM,sr:E.sr*MM,lb:s==='10'?E.lb10:E.lb40,label:'NPS '+E.nps+' schedule '+s+'S pipe'})));
+  return out;
+}
+// the manifolds and scrolls from the firing order (the Headers tab's analyzeGroup for the pulse spacing)
+function mfdLayout(e,nt,mani){
+  const ord=e.order||[], N=ord.length; if(N<2) return {err:'no firing order'};
+  let ang=null; if(e.gaps&&e.gaps.length===N){ const ea=engAngles({cyc:'4',order:ord,gaps:e.gaps}); if(!ea.err) ang=ea.ang; }
+  // physical banks: an inline engine is one row of ports (the library's i4 / i6 "banks" are header groups, not banks)
+  const inline=/inline|straight/i.test(e.name||'')||/^i\d/.test(e.key||'');
+  const banks=inline?[ord.slice().sort((a,b)=>a-b)]:(e.banks||[]).filter(b=>b&&b.length), two=banks.length===2;
+  let mf;
+  if(nt>1&&banks.length===nt) mf=banks.map(b=>({cyls:b.slice().sort((x,y)=>x-y),how:'bank'}));
+  else if(nt>1) mf=[...Array(nt)].map((_,k)=>({cyls:ord.filter((c,i)=>i%nt===k).sort((x,y)=>x-y),how:'alt'}));
+  else mf=[{cyls:ord.slice().sort((x,y)=>x-y),how:'all'}];
+  mf.forEach(m=>{ const A=analyzeGroup(ord,m.cyls,ang,CYCLE); m.seq=A.cyls; m.gaps=A.gaps; m.even=A.even;
+    m.bank=two?banks.findIndex(b=>m.cyls.every(c=>b.includes(c))):0; m.cross=two&&m.bank<0;
+    if(mani==='div'){ m.scrolls=[0,1].map(k=>A.cyls.filter((c,i)=>i%2===k).sort((x,y)=>x-y)).filter(s=>s.length);
+      m.sg=m.scrolls.map(s=>{ const B=analyzeGroup(ord,s,ang,CYCLE); return {cyls:B.cyls,gaps:B.gaps,even:B.even,cross:two&&!banks.some(b=>s.every(c=>b.includes(c)))}; }); } });
+  return {mf,N,banks,two};
+}
+// the shortest planar S from a port offset y from the merge, bend radius R (mm): {L, Z, th deg, s}
+const mfdSmin=(y,R)=>{ y=Math.abs(y); if(y<1e-9) return {L:0,Z:0,th:0,s:0}; if(y>=2*R) return {L:Math.PI*R+(y-2*R),Z:2*R,th:90,s:y-2*R};
+  const th=Math.acos(1-y/(2*R)); return {L:2*R*th,Z:2*R*Math.sin(th),th:th*180/Math.PI,s:0}; };
+// the merge: the runners' combined bore into the collector as a cone of MFD_MERGE included angle (Stainless Headers' turbo
+// merge; Garrett asks only for "a narrow angle"), Rennels' contraction with its friction term on the small (collector) head;
+// a merge into a larger collector widens instead (Rennels' diffuser at the same angle, on the runners' head)
+const MFD_MERGE=20;
+const mfdMergeLen=(d1,d2)=>Math.abs(d1-d2)/2/Math.tan(MFD_MERGE*Math.PI/360);
+function mfdMergeBack(m,d1,d2,s2){ if(Math.abs(d1-d2)<0.05) return {s:xSt(m,Math.PI*(d1/2000)**2,s2.p,s2.T0),dp0:0,K:0,len:0};
+  const A1=Math.PI*(d1/2000)**2, d=Math.min(d1,d2), D=Math.max(d1,d2), beta=d/D, f=fSmooth(4*m/(Math.PI*d/1000*visc(s2.T-273.15)),d/1000);
+  let su, K;
+  if(d2<d1){ K=rennelsContractionK(MFD_MERGE,beta)+rennelsConeFric(MFD_MERGE,beta,f); su=xSt0(m,A1,s2.p0+K*s2.q,s2.T0); }
+  else { K=rennelsDiffuserK(MFD_MERGE,beta)+rennelsConeFric(MFD_MERGE,beta,f); su=xLumpBack(m,A1,{p0:s2.p0,T0:s2.T0},u=>K*u.q); }
+  return su?{s:su,dp0:su.p0-s2.p0,K,len:mfdMergeLen(d1,d2)}:null; }
+// the march pieces for an area change, upstream bore d1 -> downstream d2 (mm), from the downstream state (exhMarch's rules)
+function mfdStepBack(m,d1,d2,s2,cone){ const A1=Math.PI*(d1/2000)**2, A2=Math.PI*(d2/2000)**2;
+  if(Math.abs(d1-d2)<0.05) return {s:xSt(m,A1,s2.p,s2.T0),dp0:0,K:0,none:true};
+  const exp=d2>d1, t=tsStep({dUp:d1,dDn:d2,m,tC:s2.T-273.15,pAbs:s2.p,step:!cone});
+  let su; if(exp&&!cone) su=xExpandBack(m,A1,A2,s2); else if(exp) su=xLumpBack(m,A1,{p0:s2.p0,T0:s2.T0},u=>t.Kcone*u.q); else su=xSt0(m,A1,s2.p0+t.K*s2.q,s2.T0);
+  return su?{s:su,dp0:su.p0-s2.p0,K:exp&&!cone?(1-d1*d1/(d2*d2))**2:cone?t.Kcone:t.K,t,exp,cone}:null; }
+/* The calculation. o: {e (engine), nt, mani, port mm, sp mm (NaN: no layout), off mm, cand, clr mm, L mm (NaN: the equal
+   length), turn deg (bend total when the layout is not known), colL mm, dcol mm (NaN: matched to the flange port), portA mm²
+   (the turbine inlet port's area, null unknown), me kg/s per turbo, p3 Pa, tit °C, tamb °C, disp cc, dur deg, cool {Ta,v,fin},
+   mat, kg, vEx mm, lift mm} */
+function mfdCalc(o){
+  const LY=mfdLayout(o.e,o.nt,o.mani); if(LY.err) return {err:LY.err};
+  const T0=o.tit+273.15, c=o.cand, A=d=>Math.PI*(d/2000)**2, out={LY,o,flags:[]};
+  const M=LY.mf[0], nPer=M.cyls.length, mr=o.me/nPer, Ap=A(o.port);
+  out.mr=mr; out.nPer=nPer; out.k=o.dur>0?720/o.dur:null;
+  // runner state at p3, T3 (cycle mean, and over the open period)
+  const st=(cd,m)=>xSt(m,A(cd.id),o.p3,T0);
+  out.rows=o.cands.map(cd=>{ const s=st(cd,mr), sk=out.k?st(cd,mr*out.k):null; return {cd,ratio:A(cd.id)/Ap,v:s.v,M:s.M,vk:sk&&sk.v,Mk:sk&&sk.M}; });
+  const rec=out.rows.slice().sort((a,b)=>Math.abs(a.ratio-1)-Math.abs(b.ratio-1)||b.cd.id-a.cd.id)[0];
+  out.rec=rec; out.recTube=out.rows.filter(r=>r.cd.kind==='tube').sort((a,b)=>Math.abs(a.ratio-1)-Math.abs(b.ratio-1))[0]||null;
+  out.recPipe=out.rows.filter(r=>r.cd.kind==='pipe').sort((a,b)=>Math.abs(a.ratio-1)-Math.abs(b.ratio-1))[0]||null;
+  const C=c||rec.cd; out.c=C; const R=o.clr>0?o.clr:C.clrs[0]; out.R=R; out.rd=R/C.id;
+  // Humphries: the valve's geometric area at full lift (curtain pi D L, the seat pi D²/4 once L >= D/4)
+  if(o.vEx>0&&o.lift>0){ out.valveA=Math.min(Math.PI*o.vEx*o.lift,Math.PI*o.vEx*o.vEx/4); }
+  // log: Allard's 2 to 2.5 x one port's area
+  if(o.mani==='log'){ out.log={lo:Math.sqrt(4*2*Ap/Math.PI),hi:Math.sqrt(4*2.5*Ap/Math.PI)}; out.log.pick=o.cands.filter(cd=>A(cd.id)>=2*Ap-1e-9&&A(cd.id)<=2.5*Ap+1e-9);
+    const dl=out.log.pick.length?out.log.pick[0].id:out.log.lo, s=xSt(o.me,A(dl),o.p3,T0); out.log.d=dl; out.log.v=s.v; out.log.M=s.M; }
+  // lengths: ports along the head, the merge in the middle of the manifold's ports plus the offset
+  out.len=null;
+  if(o.sp>0&&!M.cross){ const bank=M.bank>=0&&LY.two?LY.banks[M.bank].slice().sort((a,b)=>a-b):M.cyls, xs=M.cyls.map(cy=>bank.indexOf(cy)*o.sp);
+    const xc=(Math.min(...xs)+Math.max(...xs))/2+(o.off||0), per=M.cyls.map((cy,i)=>({cy,y:xs[i]-xc,S:mfdSmin(xs[i]-xc,R)}));
+    const far=per.reduce((a,b)=>b.S.L>a.S.L?b:a,per[0]); per.forEach(q=>{ q.extra=far.S.L-q.S.L; });
+    out.len={per,Leq:far.S.L,Z:far.S.Z,th:far.S.th,far,xc,span:Math.max(...xs)-Math.min(...xs),stockL:C.clrs.map(r=>({R:r,L:Math.max(...M.cyls.map((cy,i)=>mfdSmin(xs[i]-xc,r).L))}))}; }
+  const L=o.L>0?o.L:out.len?out.len.Leq:NaN; out.L=L; out.Lgiven=o.L>0;
+  if(o.L>0&&out.len&&o.L<out.len.Leq-0.5) out.flags.push({k:'warn',t:'short'});
+  // turning in each runner: the farthest runner's S (2 theta), else the typed total (an assumption of the page)
+  const turn=out.len?2*out.len.th:(o.turn>=0?o.turn:180); out.turn=turn; out.bends=out.len?[out.len.th,out.len.th].filter(a=>a>0):turn>0?[turn/2,turn/2]:[];
+  // collector: per manifold, or per scroll for a divided one
+  const scr=o.mani==='div'&&M.scrolls?M.scrolls:[M.cyls], nS=scr.length;
+  out.scr=scr;
+  const portA=o.portA>0?o.portA:null;   // only undivided flanges have a published port on the page
+  const dcol=o.dcol>0?o.dcol:portA?Math.sqrt(4*portA/Math.PI):C.id*Math.sqrt(scr[0].length*0.8);
+  out.dcol=dcol; out.dcolWhy=o.dcol>0?'typed':portA?'port':'headers';
+  out.portDeq=portA?Math.sqrt(4*portA/Math.PI):null;
+  // the march, upstream from the turbine flange, one scroll (they are alike)
+  out.march=null;
+  if(o.mani!=='log'&&L>0){ const n=scr[0].length, mc=mr*n;
+    const run=(m,mrun)=>{ const parts=[]; let s=xSt(m,A(out.portDeq||dcol),o.p3,T0); const s3=s; let x;
+      if(out.portDeq&&Math.abs(dcol-out.portDeq)>=0.05){ x=mfdStepBack(m,dcol,out.portDeq,s,true); if(!x) return {choke:'flange'}; parts.push({k:'flange',d1:dcol,d2:out.portDeq,dp:x.s.p-s.p,dp0:x.dp0,K:x.K,sIn:x.s,sOut:s}); s=x.s; }
+      else s=xSt(m,A(dcol),o.p3,T0);
+      const r1=xPipeBack({m,d:dcol,L:o.colL,n90:0,prof:null},s); if(r1.choke) return {choke:'collector'}; parts.push({k:'col',d:dcol,L:o.colL,dp:r1.su.p-s.p,dp0:r1.su.p0-s.p0,sIn:r1.su,sOut:s,f:r1.f}); s=r1.su;
+      const deq=C.id*Math.sqrt(n); x=mfdMergeBack(m,deq,dcol,s); if(!x) return {choke:'merge'}; parts.push({k:'merge',d1:deq,d2:dcol,dp:x.s.p-s.p,dp0:x.dp0,K:x.K,len:x.len,sIn:x.s,sOut:s}); s=x.s;
+      let sr=xSt(mrun,A(C.id),s.p,T0); const arcs=out.bends.reduce((a,t)=>a+t*Math.PI/180*R,0), Ls=Math.max(0,L-arcs);
+      const r2=Ls>0?xPipeBack({m:mrun,d:C.id,L:Ls,n90:0,prof:null},sr):{su:sr,f:fSmooth(4*mrun/(Math.PI*C.id/1000*visc(sr.T-273.15)),C.id/1000)}; if(r2.choke) return {choke:'runner'};
+      parts.push({k:'run',d:C.id,L:Ls,dp:r2.su.p-sr.p,dp0:r2.su.p0-sr.p0,sIn:r2.su,sOut:sr,f:r2.f}); sr=r2.su;
+      const Kb=out.bends.reduce((a,t)=>a+bendK(t,R/C.id,r2.f),0), sb=Kb>0?xLumpBack(mrun,A(C.id),sr,u=>Kb*u.q):sr; if(!sb) return {choke:'bends'};
+      parts.push({k:'bends',d:C.id,K:Kb,dp:sb.p-sr.p,dp0:sb.p0-sr.p0,sIn:sb,sOut:sr}); sr=sb;
+      x=mfdStepBack(mrun,o.port,C.id,sr,false); if(!x) return {choke:'port'}; parts.push({k:'port',d1:o.port,d2:C.id,dp:x.s.p-sr.p,dp0:x.dp0,K:x.K,exp:x.exp,none:x.none,sIn:x.s,sOut:sr});
+      return {sPort:x.s,s3,dp:x.s.p-s3.p,dp0:x.s.p0-s3.p0,parts}; };
+    out.march=run(mc,mr); out.march.m=mc;
+    if(out.k){ const kk=run(mc*out.k,mr*out.k); out.marchK={dp:kk.dp,dp0:kk.dp0,choke:kk.choke}; } }
+  // volume between the valves and the turbine, one manifold
+  if(L>0){ const n=nPer, r1=dcol/2, r2=C.id*Math.sqrt(scr[0].length)/2, lm=mfdMergeLen(2*r1,2*r2);
+    const Vr=n*A(C.id)*L/1000, Vm=nS*Math.PI*lm*(r1*r1+r1*r2+r2*r2)/3/1e9, Vc=nS*A(dcol)*o.colL/1000;
+    out.vol={Vr,Vm,Vc,V:Vr+Vm+Vc,mergeL:lm,cyl:o.disp/1e6/LY.N,eng:o.disp/1e6}; }
+  // heat: the steel along a runner (calcSkin), both CAFs; growth for 304, 321 and the chosen material
+  out.heat=null;
+  if(L>0){ const sk=caf=>calcSkin({mdot:mr,Tg:o.tit,di:C.id,wall:C.wall,mat:'304',fin:o.cool.fin,Ta:o.cool.Ta,v:o.cool.v,L,caf,cpGas:xCp});
+    const a=sk(1), b=sk(2.3); if(!a.err&&!b.err){ const mean=S=>S.pts.reduce((s,q)=>s+q.Tsteel,0)/S.pts.length, mx=S=>Math.max(...S.pts.map(q=>q.Tsteel));
+      const Ts=Math.max(mean(a),mean(b)), Tmax=Math.max(mx(a),mx(b)), Tsurf=Math.max(...b.pts.map(q=>q.Tsurf),...a.pts.map(q=>q.Tsurf));
+      const g=mat=>{ const S=mfdStrain(mat,Ts,o.tamb); return Object.assign({mat,dL:S.eps*L,dCol:S.eps*o.colL},S); };
+      const mats=[...new Set(['304','321',o.mat])].filter(k=>MFD_MAT[k]);
+      out.heat={a,b,Ts,Tmax,Tsurf,ms:mats.map(g),wrap:!!(a.fin&&a.fin.wrap)};
+      const S=mfdStrain(o.mat,Ts,o.tamb); out.heat.eps=S.eps; out.heat.atLeast=S.atLeast; out.heat.none=S.none;
+      if(out.len) out.heat.span=S.eps*out.len.span;
+      out.heat.reach=(out.len?out.len.Z:L)+mfdMergeLen(dcol,C.id*Math.sqrt(scr[0].length))+o.colL; out.heat.move=S.eps*out.heat.reach;
+      const lim=MFD_MAT[o.mat]&&MFD_MAT[o.mat].lim; if(lim&&Tmax>lim.int) out.flags.push({k:'warn',t:'hot'}); } }
+  // the turbo's weight on the head flange
+  if(o.kg>0){ const arm=((out.len?out.len.Z:L>0?L:0)+mfdMergeLen(dcol,C.id*Math.sqrt(scr[0].length))+o.colL)/1000; out.sup={W:o.kg*9.80665,arm,Mo:o.kg*9.80665*arm}; }
+  return out;
+}
+let MFD_LAST=null;
+const MFD_UI={run:'',clr:'',open:''};
+function mfdFlange(H){
+  if(!H) return null; const f=String(H.flange||''), P=n=>FLANGE_PRESETS.find(x=>x.name.indexOf(n)===0)||null;
+  if(/^T3/.test(f)){ const a=P('T3 (turbozentrum)'), b=P('T3 (Ace)'); return {name:'T3',area:61*44,rect:[61,44],div:false,src:a&&a.src,src2:b&&b.src,
+    txt:'turbozentrum’s T3 manifold flange: port 61 × 44 mm (2.40 × 1.73 in), studs 86 × 46 mm (M8); Ace’s T3 pattern 3.375 × 1.750 in (85.7 × 44.4 mm), M10 × 1.5. The port’s area is taken as the 61 × 44 mm rectangle, an upper bound (the opening has rounded ends)'}; }
+  if(/^T4 divided/.test(f)){ const a=P('T4 divided (Ace)'); return {name:'T4 divided',area:null,div:true,src:a&&a.src,
+    txt:'Ace’s T4 divided flange: studs 3.250 × 2.750 in (82.5 × 69.8 mm), M10 × 1.5. No maker read gives the two port openings, so the page does not size the collectors from them: Stainless Headers sells its dual-inlet T4 flange for dual 2.25 or 2.50 in tube or dual 1.5 or 2 in schedule 10 or 40 pipe, Ace a transition to dual 2.250 in'}; }
+  if(/^T4/.test(f)){ const a=P('T4 single (turbozentrum)'); return {name:'T4',area:null,div:false,src:a&&a.src,txt:'turbozentrum’s T4 single flange: studs 83 × 70 mm (M8); the port opening is not given, so the collector is not sized from it'}; }
+  if(/V-band/.test(f)) return {name:'V-band',area:null,div:false,txt:'the maker does not say which V-band this housing’s inlet takes (Garrett’s GT30/GT35 inlet flange has a 2.125 in, 54 mm, bore by Ace’s drawing, an example only), so the collector is not sized from it'};
+  return {name:f,area:null,div:!!H.divided,txt:'no port data for this flange on the page'};
+}
+function mfdInputs(p){
+  const L=TS_LAST; if(!L||!L.R) return null;
+  const R=L.R, afr=val('i-afr')>0?val('i-afr'):12, tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, bst=(p.boost||0)*1000, k=tsTipK();
+  const e=engineFrom('i'); if(e.custom&&!(e.order&&e.order.length)){ const n=Math.round(val('i-cyl')); e.order=[...Array(Math.max(0,n)).keys()].map(i=>i+1); }
+  const cands=mfdCands(), run=MFD_UI.run?cands.find(c=>c.key===MFD_UI.run)||null:null, H=tsHsg(), FL=mfdFlange(H);
+  const fin=$('i-mfin')?$('i-mfin').value:'ox';
+  return {e,nt:R.nt,mani:$('i-mani').value,port:val('i-mport'),sp:val('i-msp'),off:val('i-moff')||0,cands,cand:run,clr:+MFD_UI.clr||0,L:val('i-mlen'),turn:180,
+    colL:val('i-wgcl')>0?val('i-wgcl'):152.4,dcol:val('i-mcol'),portA:FL&&FL.area,FL,H,me:R.m*(1+1/afr),ma:R.m,afr,p3:P_ATM+k*bst,k,tit,tamb:p.tamb,disp:p.disp,
+    dur:val('i-mdur'),cool:{Ta:Number.isFinite(val('i-xta'))?val('i-xta'):30,v:+($('i-xv')?$('i-xv').value:0)||0,fin},mat:$('i-mmat')?$('i-mmat').value:'304',kg:val('i-mkg'),
+    vEx:val('f-vde'),lift:val('i-mlift'),bst};
+}
+function mfdSection(ind,p){
+  MFD_LAST=null; if(ind!=='turbo') return '';
+  const o=mfdInputs(p); if(!o) return '';
+  const F=tsFmt(), imp=U==='imp', title='Turbo manifold';
+  const aD=mm2=>imp?(mm2/645.16).toFixed(2)+' in² ('+mm2.toFixed(0)+' mm²)':mm2.toFixed(0)+' mm² ('+(mm2/645.16).toFixed(2)+' in²)';
+  const gD=mm=>imp?(mm/MM).toFixed(3)+' in ('+mm.toFixed(2)+' mm)':mm.toFixed(2)+' mm ('+(mm/MM).toFixed(3)+' in)', wD=gD;
+  const volD=m3=>imp?(m3*61023.74).toFixed(0)+' cu in ('+(m3*1000).toFixed(2)+' L)':(m3*1000).toFixed(2)+' L ('+(m3*61023.74).toFixed(0)+' cu in)';
+  const L_=(u,t)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>';
+  const head='<p class="cap" style="margin-top:0">From the head flange to the turbine inlet flange, with the wastegate take-off: layout and pairing from the firing order, the runner size against the sources, lengths, the collector and flange, the pressure lost, the volume, the heat growth and the support. The gas is the turbine balance’s: '+F.tD(o.tit)+' and '+(tsTipMeasured()?'your measured ':'')+(+o.k.toFixed(2))+' × boost ('+F.pD(o.p3-P_ATM)+' gauge) at the turbine flange, '+F.fl(o.me)+' of exhaust'+(o.nt>1?' per turbo':'')+'.</p>';
+  if(!(o.port>0)) return sec(title,head+'<div class="note warn" id="mfd-miss"><b>Enter the exhaust port bore at the head flange</b> (Turbo manifold inputs, above): the runner size is matched to it. An engine preset with a published flange port fills it.</div>');
+  const X=mfdCalc(o); if(X.err) return sec(title,head+'<div class="note warn">'+esc(X.err)+'</div>');
+  MFD_LAST=X; const C=X.c, M0=X.LY.mf[0], each=o.nt>1?' each':'';
+  let h=head;
+  // 1. layout and pairing
+  const gtxt=g=>g.map(x=>Math.round(x)+'°').join(' / ');
+  h+='<p class="sub">Layout and pairing</p><div class="tblwrap"><table id="mfd-pair"><thead><tr><th>Manifold</th><th>Cylinders</th><th>'+(o.mani==='div'?'Scrolls (pulse spacing)':'Pulse spacing at the turbine')+'</th></tr></thead><tbody>'+
+    X.LY.mf.map((m,i)=>'<tr><td>'+(X.LY.mf.length>1?'Turbo '+(i+1)+(m.how==='bank'?', bank '+(m.bank+1):''):'One turbo')+'</td><td>'+m.cyls.join(', ')+'</td><td>'+(o.mani==='div'&&m.sg?m.sg.map(s=>s.cyls.join('+')+' ('+gtxt(s.gaps)+(s.even?', even':', uneven')+(s.cross?', both banks':'')+')').join('; '):m.seq.join('-')+' ('+gtxt(m.gaps)+(m.even?', even':', uneven')+')')+'</td></tr>').join('')+'</tbody></table></div>';
+  const pairCap=[];
+  if(o.mani==='div') pairCap.push('Divided (twin-scroll): the scrolls take alternate firings, so the cylinders whose cycles overlap feed different scrolls (Garrett, '+L_(MFD_TT102,'Turbo Tech 102')+': on 1-3-4-2, “#1 and #4 are complementary; as are cylinders #2 and #3”; BorgWarner, '+L_(MFD_BWTT,'Tech Tip: Twin Scroll Turbo Housing')+').');
+  if(o.mani==='div'&&M0.sg&&M0.sg.some(s=>s.cross)) pairCap.push('<b>Each scroll takes cylinders from both banks</b>: the runners cross over between the banks; their lengths are not laid out here.');
+  if(o.mani==='log') pairCap.push('Log: every runner feeds one pipe along the head; Garrett: “tubular manifolds can offer a substantial performance advantage over a log-type manifold”.');
+  if(o.mani==='tube') pairCap.push('Tubular, all runners into one collector: Garrett asks for equal-length primaries “to balance exhaust reversion across all cylinders”.');
+  const hd=o.H&&o.H.divided===true, X0=o.FL;
+  if(o.mani==='div'&&o.H&&o.H.divided===false){ X.flags.push({k:'warn',t:'div'}); pairCap.push('<b>The picked housing is undivided</b>: the scrolls join at the flange and the separation is lost (follows from BorgWarner’s description). Pick a divided housing, or build the manifold undivided.'); }
+  if(o.mani!=='div'&&hd){ X.flags.push({k:'warn',t:'div'}); pairCap.push('<b>The picked housing is divided</b>: a divided housing needs a divided manifold (BorgWarner). Set Turbo manifold to Divided.'); }
+  h+='<p class="cap">'+pairCap.join(' ')+'</p>';
+  // 2. runner size
+  const Ap=Math.PI*o.port*o.port/4;
+  h+='<p class="sub" style="margin-top:12px">Runner size</p>'+rowT('Exhaust port at the head flange',cdim(o.port)+', '+aD(Ap),'the bore the runner is matched to')+
+    '<div class="tblwrap"><table id="mfd-run"><thead><tr><th>Tube or pipe</th><th>OD, wall, ID</th><th>Area against the port</th><th>Gas speed, Mach (cycle mean)</th>'+(X.k?'<th>While the valve is open</th>':'')+'</tr></thead><tbody>'+
+    X.rows.filter(r=>r.cd===C||r===X.rec||(r.ratio>=0.6&&r.ratio<=1.6)).map(r=>{ const isC=r.cd===C, isR=r===X.rec; return '<tr data-key="'+esc(r.cd.key)+'"'+(isC?' data-rec="1" style="background:var(--accent-soft)"':'')+'><td>'+esc(r.cd.label)+(isR?' <b>(recommended)</b>':'')+(isC&&!isR?' (yours)':'')+'</td><td>'+cdim(r.cd.od)+', '+wD(r.cd.wall)+', '+cdim(r.cd.id)+'</td><td>'+((r.ratio-1)*100>=0?'+':'')+((r.ratio-1)*100).toFixed(1)+'%</td><td>'+F.sD(r.v)+', '+r.M.toFixed(3)+'</td>'+(X.k?'<td>'+F.sD(r.vk)+', '+r.Mk.toFixed(3)+'</td>':'')+'</tr>'; }).join('')+'</tbody></table></div>';
+  h+='<label class="f" style="max-width:520px"><span class="lab">Runner tube or pipe</span><span class="inp"><select class="mfdx" data-k="run"><option value="">The recommended size</option>'+X.rows.map(r=>'<option value="'+esc(r.cd.key)+'"'+(MFD_UI.run===r.cd.key?' selected':'')+'>'+esc(r.cd.label)+'</option>').join('')+'</select></span></label>';
+  h+='<ul class="list"><li><b>Recommended: '+esc(X.rec.cd.label)+'</b>, the stocked size whose inside area is nearest the port’s ('+((X.rec.ratio-1)*100).toFixed(1)+'%): MacInnes, “small diameter runners with about the same internal area as the ports” (as quoted in '+L_(MFD_AS,'AutoSpeed’s review')+'). '+(X.recPipe&&X.recPipe!==X.rec?'Nearest pipe for weld elbows: '+esc(X.recPipe.cd.label)+' ('+((X.recPipe.ratio-1)*100).toFixed(1)+'%). ':'')+(X.recTube&&X.recTube!==X.rec?'Nearest mandrel tube: '+esc(X.recTube.cd.label)+' ('+((X.recTube.ratio-1)*100).toFixed(1)+'%). ':'')+'</li>'+
+    '<li>Humphries: the runner’s area “not significantly greater than the geometric valve area at full lift” (same review). '+(X.valveA?'Your exhaust valve, '+cdim(o.vEx)+' at '+cdim(o.lift)+' lift: '+aD(X.valveA)+' (curtain π D L, the seat once the lift passes D/4); the '+esc(C.label)+' bore is '+aD(Math.PI*C.id*C.id/4)+' ('+((Math.PI*C.id*C.id/4/X.valveA-1)*100).toFixed(0)+'% of it).':'Enter the exhaust valve lift (Turbo manifold inputs) and the exhaust valve size (4-Stroke tab) to compare.')+' The two rules give different sizes when the port is larger than the valve’s curtain; the page shows both and recommends by the port, the one it can always check.</li>'+
+    '<li>Bell: “relatively small diameter runners with large wall thicknesses” (same review). Garrett: “Avoid rapid area changes”, so a bore matched to the port avoids a step at the flange, and keep the volume small for boost response.</li>'+
+    '<li>Speeds are the cycle mean at the turbine flange’s pressure and temperature (this page’s physics; no source gives a speed limit for a turbo runner). Each runner carries one cylinder, '+F.fl(X.mr)+', only while its valve is open, so the flow then is higher'+(X.k?' (× '+X.k.toFixed(2)+' for your '+Math.round(o.dur)+'° open period, the right-hand column)':'; enter the exhaust valve’s open period for that figure')+', and higher still in the blowdown at the start of the stroke; the gas at the port is hotter than at the turbine, so faster there too.</li></ul>';
+  if(o.mani==='log'&&X.log) h+=rowT('Log bore (Allard: 2 to 2.5 × one port’s area)',cdim(X.log.lo)+' to '+cdim(X.log.hi),(X.log.pick.length?'stocked in range: '+X.log.pick.map(c=>esc(c.label)).join(', '):'no stocked size falls in the range')+'; at the turbine end the whole exhaust: '+F.sD(X.log.v)+', Mach '+X.log.M.toFixed(3)+' in '+cdim(X.log.d)+'. The log’s branch losses are not worked out: no junction coefficient was read.');
+  // 3. lengths
+  h+='<p class="sub" style="margin-top:12px">Runner lengths</p>';
+  const rTxt=C.kind==='pipe'?cdim(X.R)+' centre-line radius ('+(Math.abs(X.R-C.lr)<0.5?'long-radius':'short-radius')+' B16.9 elbow)':cdim(X.R)+' centre-line radius (stocked mandrel bend)';
+  h+='<label class="f" style="max-width:520px"><span class="lab">Bend radius</span><span class="inp"><select class="mfdx" data-k="clr"><option value="">The tightest stocked: '+esc(inMm(C.clrs[0]))+'</option>'+C.clrs.slice(1).map(r=>'<option value="'+r.toFixed(3)+'"'+(Math.abs((+MFD_UI.clr||0)-r)<0.01?' selected':'')+'>'+esc(inMm(r))+(C.kind==='pipe'&&Math.abs(r-C.lr)<0.5?' long-radius elbow':C.kind==='pipe'?' short-radius elbow':'')+'</option>').join('')+'</select></span></label>';
+  if(X.len){ const Ln=X.len;
+    h+=rowT('Shortest equal length the bend radius allows',clen(Ln.Leq),'every runner this long, head flange to the merge, on '+rTxt+'; the farthest port (cylinder '+Ln.far.cy+', '+clen(Math.abs(Ln.far.y))+' from the merge) sets it: '+(Ln.th>=89.99?'two 90° bends and '+clen(Ln.far.S.s)+' straight between':'two '+Ln.th.toFixed(1)+'° bends')+'; the merge sits '+clen(Ln.Z)+' out from the head flange')+
+      '<div class="tblwrap"><table id="mfd-len"><thead><tr><th>Cylinder</th><th>Offset from the merge</th><th>Its own shortest</th><th>Add to equal the longest</th></tr></thead><tbody>'+Ln.per.map(q=>'<tr><td>'+q.cy+'</td><td>'+clen(Math.abs(q.y))+'</td><td>'+clen(q.S.L)+'</td><td>'+clen(q.extra)+'</td></tr>').join('')+'</tbody></table></div>'+
+      '<p class="cap">This page’s planar geometry, not a maker’s rule: each runner leaves square to the head and arrives parallel to the collector, two arcs of the bend radius and a straight between; Garrett asks for equal lengths and for bends of the largest radius “to maintain pulse energy”, and for the least volume “for better boost response”, which pull opposite ways: '+Ln.stockL.map(s=>inMm(s.R)+' radius: '+clen(s.L)).join(', ')+'. The nearer runners take the difference in routing (wider or out of the plane); the Fusion router does it to the target length. '+(X.Lgiven?'Your runner length, '+clen(o.L)+', is used below'+(o.L<Ln.Leq-0.5?' <b>and is shorter than the farthest runner can be</b>':'')+'.':'')+'</p>'; }
+  else h+='<p class="cap">'+(M0.cross?'The runners cross between the banks: lengths are not laid out. ':'Enter the port spacing along the head (Turbo manifold inputs) for the shortest equal length; ')+(X.L>0?'the runner length used below is '+clen(X.L)+'.':'<b>enter a runner length</b> for the loss, volume and heat growth.')+' The bends are taken as '+X.turn+'° in all (two '+(X.turn/2)+'° bends, an S from the port to the merge: this page’s assumption without a layout).</p>';
+  // 4. collector and flange
+  h+='<p class="sub" style="margin-top:12px">Collector and turbine flange</p>';
+  const flTxt=o.H?esc(o.H.flange)+' inlet ('+esc(X0?X0.txt:'')+')'+(X0&&X0.src?' '+L_(X0.src,'flange source'):''):'no turbine housing picked (Turbo options): the collector bore is not matched to a flange';
+  h+=rowT('Turbine inlet flange',o.H?esc(o.H.flange):'not picked',flTxt)+
+    rowT('Collector bore'+(o.mani==='div'?', each scroll':''),cdim(X.dcol),X.dcolWhy==='typed'?'as typed':X.dcolWhy==='port'?'the round bore of the port’s area ('+aD(X0.area)+'), so the flow does not step at the flange (Garrett: “Avoid rapid area changes”)':'not matched to a flange: the runner bore × √(runners × 0.8), the Headers tab’s starting assumption (not a turbo source); enter the bore your flange takes')+
+    rowT('Merge',(X.scr[0].length)+' runners of '+cdim(C.id)+' ('+aD(X.scr[0].length*Math.PI*C.id*C.id/4)+' together) into '+cdim(X.dcol)+' ('+aD(Math.PI*X.dcol*X.dcol/4)+')','a narrow angle (Garrett, no number); Stainless Headers sells 20° merges for turbo, so the page takes a 20° included cone, '+clen(mfdMergeLen(X.scr[0].length**0.5*C.id,X.dcol))+' long, for its loss, volume and reach')+
+    rowT('Collector length, last merge to the turbine flange',clen(o.colL),'Collector, last merge to the turbine flange (an input above; the wastegate take-off sits on it)');
+  // 5. pressure loss
+  if(X.march&&!X.march.choke){ const Mr=X.march, nm={flange:'Collector → turbine flange',col:'Collector',merge:'Merge',run:'Runner straight',bends:'Runner bends',port:'Port → runner'};
+    h+='<p class="sub" style="margin-top:12px">Pressure lost in the manifold</p>'+rowT('Manifold loss, port to turbine flange',F.pD(Mr.dp0)+' of total pressure','at the cycle-mean flow'+(X.marchK&&!X.marchK.choke?'; '+F.pD(X.marchK.dp0)+' at the flow while a valve is open':X.marchK&&X.marchK.choke?'; at the flow while a valve is open the manifold chokes':''))+
+      rowT('Pressure at the exhaust port',F.pD(Mr.sPort.p-P_ATM)+' gauge, static','the turbine flange’s '+F.pD(o.p3-P_ATM)+' static plus '+F.pD(Mr.dp)+': the loss and the gas speeding up from the runners into the collector (static pressure turned into speed, not lost)')+
+      '<div class="tblwrap"><table id="mfd-dp"><thead><tr><th>Part, port to turbine</th><th>Size</th><th>Mach in → out</th><th>Total-pressure loss</th></tr></thead><tbody>'+Mr.parts.slice().reverse().map(x=>'<tr><td>'+nm[x.k]+(x.k==='run'||x.k==='bends'||x.k==='port'?' (each)':'')+'</td><td>'+(x.d1?cdim(x.d1)+' → '+cdim(x.d2):cdim(x.d)+(x.L?', '+clen(x.L):''))+(x.K?', K '+x.K.toFixed(3):'')+'</td><td>'+x.sIn.M.toFixed(3)+' → '+x.sOut.M.toFixed(3)+'</td><td>'+F.pD(x.dp0)+'</td></tr>').join('')+'</tbody></table></div>'+
+      '<p class="cap">This page’s physics, the Exhaust after the turbine march’s pieces run upstream from the turbine flange at its static pressure, no heat loss: '+X.bends.map(a=>a.toFixed(1)+'°').join(' + ')+' of bends per runner by Crane and Idelchik at '+X.rd.toFixed(2)+' D, the merge’s mixing and turning not counted (no junction coefficient read), the steady flow at the cycle mean (pulsing flow loses more). <b>Not added to the turbine balance</b>: its turbine-inlet pressure is '+(tsTipMeasured()?'your measured one':'the assumed '+(+o.k.toFixed(2))+' × boost')+' at the turbine, downstream of the manifold, so the ports see that plus this loss.</p>'; }
+  else if(X.march&&X.march.choke) h+='<div class="note warn">The manifold chokes ('+esc(X.march.choke)+') at this flow: no loss is given. Use a larger runner or collector.</div>';
+  // 6. volume
+  if(X.vol){ const V=X.vol; h+=rowT('Volume, valves to the turbine'+each,volD(V.V),'runners '+volD(V.Vr)+', merge '+volD(V.Vm)+', collector '+volD(V.Vc)+'; '+(V.V/V.cyl).toFixed(2)+' × one cylinder’s displacement, '+(V.V/V.eng).toFixed(2)+' × the engine’s. Garrett: “minimize the exhaust volume between the exhaust ports and the turbine inlet” for boost response; no source gives a target ratio.'); }
+  // 7. heat
+  if(X.heat){ const Hh=X.heat, MT=MFD_MAT[o.mat];
+    h+='<p class="sub" style="margin-top:12px">Heat and growth</p>'+rowT('Runner steel temperature',F.tD(Hh.Ts)+' mean, '+F.tD(Hh.Tmax)+' at the port',(Hh.wrap?'wrap outside ':'outside surface ')+'up to '+F.tD(Hh.Tsurf)+'; the Headers tab’s skin model (calcSkin) per runner, gas from '+F.tD(o.tit)+' at the port, '+esc((SKIN_FIN[o.cool.fin]||{}).name||'')+', air '+F.tD(o.cool.Ta)+(o.cool.v>0?' at '+F.sD(o.cool.v):', still')+'; the hotter of the steady formula and Wendland’s 2.3 for manifolds: '+F.tD((Hh.a.pts.reduce((s,q)=>s+q.Tsteel,0)/Hh.a.pts.length))+' and '+F.tD((Hh.b.pts.reduce((s,q)=>s+q.Tsteel,0)/Hh.b.pts.length))+(Hh.wrap?'. Wrap keeps the outside cooler but runs the steel hotter, which shortens the life of thin stainless':''));
+    h+='<div class="tblwrap"><table id="mfd-grow"><thead><tr><th>Material</th><th>Growth of each runner, '+clen(X.L)+'</th><th>Collector, '+clen(o.colL)+'</th><th>Service limit</th></tr></thead><tbody>'+
+      Hh.ms.map(g=>{ const m=MFD_MAT[g.mat], over=m.lim&&Hh.Tmax>m.lim.int; return '<tr data-mat="'+g.mat+'"'+(g.mat===o.mat?' style="background:var(--accent-soft)"':'')+'><td>'+esc(m.name)+(g.mat===o.mat?' (yours)':'')+'</td><td>'+(g.none?'not given (no coefficient at this temperature)':(g.atLeast?'at least ':'')+gD(g.dL))+'</td><td>'+(g.none?'–':(g.atLeast?'at least ':'')+gD(g.dCol))+'</td><td>'+esc(m.limTxt)+(over?' <b class="st-warn">exceeded at the port</b>':'')+' '+L_(m.src,m.srcName)+(m.src2?', '+L_(m.src2,m.src2Name):'')+'</td></tr>'; }).join('')+'</tbody></table></div>';
+    const items=[];
+    if(!Hh.none){ if(X.len) items.push('A one-piece head flange '+clen(X.len.span)+' between the outer ports, at the runner steel’s temperature, grows '+(Hh.atLeast?'at least ':'')+gD(Hh.span)+' along the head (an upper bound: the flange bolted to the head runs cooler). The head does not grow the same, so a one-piece flange is held: split flanges per port or slotted stud holes take it (this page’s reading of the numbers).');
+      items.push('The turbine flange moves '+(Hh.atLeast?'at least ':'')+gD(Hh.move)+' away from the head flange as the manifold heats (strain '+(Hh.eps*1e3).toFixed(2)+' mm/m over the '+clen(Hh.reach)+' out to the turbine, taken as one straight line). A brace from the turbo to the block must let it move: SINCO’s rod end “can pivot when the manifold moves under heat expansion” ('+L_(MFD_SINCO,'Turbo Bracing Guide')+'); a downpipe held at both ends needs a flex section (SINCO).');
+      items.push('Evenly heated equal-length runners grow alike and stay unstressed; runners at different temperatures or lengths, a log fed hotter at one end, or a slip-free collector between two fixed flanges are where the growth turns into stress. Slip joints or bellows let a runner or collector grow freely; no source read gives a size rule for them, so none is given.'); }
+    else items.push('The '+esc(MT.name)+' sheet has no expansion coefficient at this temperature, so no growth is given; 304 and 321 are shown for comparison.');
+    items.push('Wall: '+esc(C.label)+', '+wD(C.wall)+'. Allard: “3.0mm minimum is recommended”; Bell: “large wall thicknesses”; Garrett: tubular manifolds’ “thinner wall sections” make them “susceptible to cracking due to thermal expansion/contraction and vibration” (sources above). Schedule 10S pipe is 2.77 mm (0.109 in) at NPS 1½ and 2, schedule 40S 3.68 and 3.91 mm (0.145, 0.154 in) ('+L_(MFD_ELSRC,'Ace Stainless Supply, B16.9')+').');
+    items.push('<b>Fatigue is not calculable here</b>: the life of a hot welded manifold depends on the temperature cycles, the weld details, vibration and how it is held, none of which this page can model. These numbers size the growth, not the life.');
+    h+='<ul class="list">'+items.map(t=>'<li>'+t+'</li>').join('')+'</ul>'; }
+  // 8. support
+  h+='<p class="sub" style="margin-top:12px">Supporting the turbo</p>'+(X.sup?rowT('The turbo’s weight on the head flange',(imp?(X.sup.W/4.44822).toFixed(1)+' lbf ('+X.sup.W.toFixed(0)+' N)':X.sup.W.toFixed(0)+' N ('+(X.sup.W/4.44822).toFixed(1)+' lbf)')+', '+(imp?(X.sup.Mo/1.35582).toFixed(1)+' lb·ft ('+X.sup.Mo.toFixed(1)+' N·m)':X.sup.Mo.toFixed(1)+' N·m ('+(X.sup.Mo/1.35582).toFixed(1)+' lb·ft)'),
+    o.kg+' kg ('+(o.kg*2.20462).toFixed(1)+' lb) at '+clen(X.sup.arm*1000)+' from the head flange, standing (1 g); bumps and the engine’s shake multiply it. Pick “The turbo (Intake tab)” in the Mounts designer (Hangers tab) for a bracket by the same rules as the other parts'):'<p class="cap">Enter the turbo’s mass (Turbo manifold inputs): the makers’ pages read give none.</p>')+
+    '<p class="cap">Precision: “If it is necessary to support the weight of the turbocharger it is best to do so by supporting it from the turbine housing inlet flange or the center housing” ('+L_(MFD_PTE,'installation recommendations')+'). SINCO braces low-mount turbos to the block with a rod end that lets the manifold grow. Allard instead has the manifold “take the weight of the turbocharger system” (AutoSpeed’s review): the sources differ; a brace that allows the heat growth above satisfies both.</p>';
+  // 9. wastegate (the placement above; nothing worked out again)
+  const W=TS_PLACE&&TS_PLACE.wg;
+  if(W&&W.type==='ext') h+=rowT('Wastegate take-off',W.mw>0&&W.pick?cdim(W.pick)+' branch at 45°, centre '+clen(Math.max(0,W.lo))+' to '+clen(W.hi)+' from the turbine flange':'see Where to put them',(o.mani==='div'?'one gate per scroll, each on its scroll’s collector and taking its scroll’s share of the gate flow (half each when the scrolls are alike; the gate area is in proportion to its flow at one upstream state), or one divided-inlet gate; ':'')+'from Where to put them on this build (drawn below)');
+  // 10. drawing and cut list
+  h+=(X.svg=mfdSvg(X,o,F));
+  h+='<p class="cap">Schematic plan, not to scale; dimensions in both units. One manifold'+(o.nt>1?' of '+o.nt:'')+'.</p>';
+  h+=mfdCutHtml(X,o);
+  h+='<details style="margin-top:10px"><summary><b>Sources and what is this page’s</b></summary><p class="cap">Sourced: Garrett '+L_(MFD_TT102,'Turbo Tech 102')+' (design tips, divided pairing, cracking of tubular manifolds); BorgWarner '+L_(MFD_BWTT,'twin-scroll tech tip')+'; MacInnes, Allard, Humphries and Bell as quoted by '+L_(MFD_AS,'AutoSpeed')+' (the books were not read); '+['304','321','347','625'].map(k=>L_(MFD_MAT[k].src,MFD_MAT[k].srcName)).join(', ')+'; '+L_(MFD_ELSRC,'Ace Stainless Supply')+' (B16.9 elbows, 10S and 40S); '+L_(MFD_PTE,'Precision')+' and '+L_(MFD_SINCO,'SINCO')+' (support). This page’s physics: the gas speed and Mach, the loss march, the volume, the planar lengths, the skin temperature and the growth. Not found: a speed or Mach limit for turbo runners, a merge angle rule with a number, the T4 divided and V-band port openings, a slip-joint or bellows sizing rule, a mild-steel scaling limit, the turbo’s mass.</p></details>';
+  return sec(title,h);
+}
+document.addEventListener('change',e=>{ const el=e.target.closest('.mfdx'); if(!el) return; MFD_UI[el.dataset.k]=el.value; if(el.dataset.k==='run') MFD_UI.clr=''; renderActive(); });
+// the plan view: ports along the top, runners to the merge, the collector to the turbine flange, the wastegate branch
+function mfdSvg(X,o,F){
+  const W=360, Ln=X.len, M0=X.LY.mf[0], n=M0.cyls.length, sp=o.sp>0?o.sp:60, span=(n-1)*sp, R=X.R, Z=Ln?Ln.Z:Math.max(2*R,120);
+  const pad=40, sx=(W-2*pad)/Math.max(span+2*Math.abs(o.off||0),4*R,1), k=Math.min(sx,0.9), x0=W/2-((Ln?Ln.xc:span/2))*k, yH=46, yM=yH+Math.max(60,Z*k), colL=o.colL, yT=yM+Math.max(50,colL*k)+20, H=yT+96;
+  const t=(x,y,s,st,anc)=>'<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'"'+(anc?' text-anchor="'+anc+'"':'')+' style="font-size:10.5px;fill:var(--'+(st||'ink')+')">'+esc(s)+'</text>';
+  let s='<svg id="mfd-svg" viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:520px;display:block;margin:8px auto 0;font-family:var(--f-ui)" role="img" aria-label="Turbo manifold plan with runner, collector and wastegate dimensions">';
+  s+='<line x1="10" y1="'+yH+'" x2="'+(W-10)+'" y2="'+yH+'" style="stroke:var(--muted);stroke-width:3"/>'+t(10,yH-28,'Head flange; ports '+(o.sp>0?clen(o.sp)+' apart':'(spacing not entered)'),'muted');
+  const cols=o.mani==='div'&&X.scr.length>1?['t2','t4']:['accent','accent'];
+  M0.cyls.forEach((cy,i)=>{ const xp=x0+i*sp*k, sc=X.scr.findIndex(g=>g.includes(cy)), col=cols[Math.max(0,sc)], xe=W/2+(o.mani==='div'?(sc===0?-6:6):0);
+    s+='<path d="M'+xp.toFixed(1)+' '+yH+' C'+xp.toFixed(1)+' '+((yH+yM)/2).toFixed(1)+' '+xe.toFixed(1)+' '+((yH+yM)/2).toFixed(1)+' '+xe.toFixed(1)+' '+yM.toFixed(1)+'" style="fill:none;stroke:var(--'+col+');stroke-width:4"/>'+t(xp,yH-6,String(cy),'ink','middle'); });
+  s+='<rect x="'+(W/2-14)+'" y="'+yM+'" width="28" height="'+(yT-yM)+'" style="fill:var(--well);stroke:var(--ink);stroke-width:1"/>';
+  s+='<rect x="'+(W/2-34)+'" y="'+yT+'" width="68" height="8" style="fill:var(--ink)"/>'+t(W/2,yT+22,'Turbine flange: '+(o.H?o.H.flange:'not picked'),'ink','middle');
+  const Wg=TS_PLACE&&TS_PLACE.wg;
+  if(Wg&&Wg.type==='ext'&&Wg.pick){ const yc=yT-Math.max(0,(Wg.lo+Wg.hi)/2)*k; s+='<line x1="'+(W/2+14)+'" y1="'+yc.toFixed(1)+'" x2="'+(W/2+48)+'" y2="'+(yc-34).toFixed(1)+'" style="stroke:var(--t3);stroke-width:5"/>'+t(W/2+52,yc-36,'Wastegate '+cdim(Wg.pick)+' at 45°','ink')+t(W/2+52,yc-24,'centre '+clen(Math.max(0,Wg.lo))+' to '+clen(Wg.hi),'muted')+t(W/2+52,yc-12,'from the turbine flange','muted'); }
+  const ly=[['Runners: '+X.c.label,'muted'],['OD '+cdim(X.c.od)+', ID '+cdim(X.c.id),'ink'],[(X.L>0?clen(X.L)+' each':'length not set')+', bends on '+cdim(X.R)+' CLR','ink']];
+  ly.forEach((q,i)=>{ s+=t(10,yM+14+i*13,q[0],q[1]); });
+  if(Ln) s+='<line x1="'+(W-16)+'" y1="'+yH+'" x2="'+(W-16)+'" y2="'+yM+'" style="stroke:var(--muted);stroke-width:1" marker-start="url(#mfd-ar)" marker-end="url(#mfd-ar)"/>'+t(W-20,(yH+yM)/2,clen(Ln.Z),'muted','end')+t(W-20,(yH+yM)/2+12,'to the merge','muted','end');
+  s+='<line x1="'+(W/2-24)+'" y1="'+yM+'" x2="'+(W/2-24)+'" y2="'+yT+'" style="stroke:var(--muted);stroke-width:1" marker-start="url(#mfd-ar)" marker-end="url(#mfd-ar)"/>'+t(W/2-28,(yM+yT)/2,'collector '+clen(colL),'ink','end')+t(W/2-28,(yM+yT)/2+12,'bore '+cdim(X.dcol)+(o.mani==='div'?' each':''),'muted','end');
+  if(X.march&&!X.march.choke) s+=t(W/2,yT+38,'loss '+F.pD(X.march.dp0)+'; turbine '+F.pD(o.p3-P_ATM)+' gauge','muted','middle');
+  if(X.heat&&!X.heat.none) s+=t(W/2,yT+52,'hot: turbine flange moves '+(X.heat.atLeast?'≥ ':'')+(U==='imp'?(X.heat.move/MM).toFixed(3)+' in ('+X.heat.move.toFixed(2)+' mm)':X.heat.move.toFixed(2)+' mm ('+(X.heat.move/MM).toFixed(3)+' in)'),'muted','middle');
+  return s+'<defs><marker id="mfd-ar" viewBox="0 0 6 6" refX="3" refY="3" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L6 3 L0 6 Z" style="fill:var(--muted)"/></marker></defs></svg>';
+}
+// the cut list: mandrel tube through the Fabrication cut list (stock bends of this OD and radius), pipe from B16.9 elbows
+function mfdCutHtml(X,o){
+  if(!X.len||!(X.L>0)) return '';
+  const C=X.c, per=X.len.per;
+  if(C.kind==='tube'){ const lists=per.map(q=>{ const S=q.S, rows=S.th>0?[{L:0,R:null,A:S.th,CLR:X.R},{L:S.s,R:180,A:S.th,CLR:X.R},{L:q.extra,R:null,A:null,CLR:null}]:[{L:X.L,R:null,A:null,CLR:null}];
+      return {q,c:cutList(rows,+(C.od/MM).toFixed(3),$('i-mmat')&&$('i-mmat').value==='321'?'321':'304',{wall_in:C.wall/MM})}; });
+    MFD_LAST.cut=lists;
+    return '<details style="margin-top:10px"><summary><b>Cut list</b>: each runner’s shortest S, then the straight it needs to reach the equal length (route it in)</summary>'+lists.map(L=>cutListHtml(L.c,'Cylinder '+L.q.cy)).join('')+cutBuyHtml(lists.map(L=>L.c))+'</details>'; }
+  const els=per.reduce((a,q)=>a+(q.S.th>0?2:0),0), arc=th=>X.R*th*Math.PI/180, od=C.od;
+  MFD_LAST.cut={els};
+  return '<details style="margin-top:10px"><summary><b>Cut list</b>: '+els+' B16.9 90° elbows ('+(Math.abs(X.R-C.lr)<0.5?'long':'short')+' radius, '+esc(C.label)+')</summary><div class="tblwrap"><table id="mfd-cut"><thead><tr><th>Cylinder</th><th>Each elbow cut to</th><th>Arc on the centre line / outside / inside</th><th>Straight between, then to add</th></tr></thead><tbody>'+
+    per.map(q=>'<tr><td>'+q.cy+'</td><td>'+(q.S.th>0?'2 × '+q.S.th.toFixed(1)+'°':'none')+'</td><td>'+(q.S.th>0?inMm(arc(q.S.th))+' / '+inMm((X.R+od/2)*q.S.th*Math.PI/180)+' / '+inMm(Math.max(0,(X.R-od/2)*q.S.th*Math.PI/180)):'')+'</td><td>'+inMm(q.S.s)+', then '+inMm(q.extra)+'</td></tr>').join('')+'</tbody></table></div><p class="cap">Elbows from '+L_mfd(MFD_ELSRC,'Ace Stainless Supply’s B16.9 sheet')+' ('+C.lb+' lb each at 90°); a 90° elbow cut to an angle keeps the same radius. Mark the arcs along the outside and inside as the cut list above does for mandrel bends.</p></details>';
+}
+const L_mfd=(u,t)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>';
+if(typeof window!=='undefined') window.__mfd={calc:mfdCalc,layout:mfdLayout,smin:mfdSmin,strain:mfdStrain,cands:mfdCands,inputs:mfdInputs,flange:mfdFlange,last:()=>MFD_LAST,ELS:MFD_ELS,MAT:MFD_MAT,UI:MFD_UI,stock:()=>bendStock(),eng:()=>engineFrom('i')};
 /* ----- Turbo build, step by step (2026-11-12, the owner's "usable without learning a bunch of stuff") -----
    A checklist at the top of the Intake tab when the induction is a turbo or a centrifugal supercharger: the steps in the
    order a builder decides them, each with one plain line read from what the sections below already worked out (TG, TS_LAST,
@@ -23823,6 +24235,15 @@ function tgSteps(ind,p){
     const bl=B?'blow-off valve on the '+B.side+' side, centre '+clen(B.x)+(B.side==='cold'?' before the throttle':' after the compressor')+(B.pick?', '+cdim(B.pick)+' or larger':''):'';
     const wl=!turbo||!W?'':W.type==='ext'?(W.mw>0?'; wastegate '+(W.pick?cdim(W.pick)+', 45°, centre '+clen(Math.max(0,W.lo))+' to '+clen(W.hi)+' from the turbine flange':'over '+cdim(60)):'; no gate flow at peak on these assumptions'):'; internal wastegate';
     add('valves',turbo?'Wastegate and blow-off valve':'Blow-off valve',probs.length?'warn':B?'ok':'todo',(bl||'not placed')+wl+(probs.length?'; '+probs.join('; '):''),'where-to-put-them-on-this-build'); }
+  if(turbo){ const X=MFD_LAST, probs=[], lay={tube:'tubular',log:'log',div:'divided (twin-scroll)'};
+    if(!X) add('mani','Turbo manifold','todo',val('i-mport')>0?'not enough to work it out yet (see Turbo manifold)':'enter the exhaust port bore at the head flange (Turbo manifold inputs)','turbo-manifold');
+    else { if(X.flags.some(f=>f.t==='div')) probs.push('the manifold and the turbine housing do not match (divided / undivided)');
+      if(X.flags.some(f=>f.t==='hot')) probs.push('the runner steel at the port is over '+MFD_MAT[X.o.mat].name+'’s intermittent limit');
+      if(X.flags.some(f=>f.t==='short')) probs.push('the runner length is shorter than the farthest runner can be');
+      if(X.march&&X.march.choke) probs.push('the manifold chokes');
+      const M0=X.LY.mf[0];
+      add('mani','Turbo manifold',probs.length?'warn':X.L>0?'ok':'todo',(lay[X.o.mani]||X.o.mani)+(X.o.mani==='div'&&M0.sg?', scrolls '+M0.sg.map(g=>g.cyls.join('+')).join(' / '):'')+', runners '+X.c.label+(X.L>0?', '+clen(X.L)+' each':', length not set')+', collector '+cdim(X.dcol)+
+        (X.march&&!X.march.choke?', manifold loss '+F.pD(X.march.dp0):'')+(probs.length?'; '+probs.join('; '):''),'turbo-manifold'); } }
   if(turbo){ const X=TS_X, G2=X&&X.G, tobp=val('i-tobp'), used=X&&!X.X.choke&&tobp>0&&Math.abs(tobp*1000-X.X.bp)<=0.5;
     if(!X){ add('exh','Exhaust side: downpipe and back pressure','todo','not enough to work it out yet (see Exhaust after the turbine)','exhaust-after-the-turbine'); }
     else { const probs=[];
@@ -23884,6 +24305,20 @@ function tsSheet(){
   if(turbo&&W){ if(W.type==='ext') P('Wastegate',W.mw>0?(W.pick?cdim(W.pick)+' valve and branch at 45°':'over '+cdim(60)+', or two gates')+', effective area '+(W.Aeff*1e6).toFixed(0)+' mm² ('+(W.Aeff*1550.0031).toFixed(2)+' in²)':'no gate flow at peak on these assumptions',
       W.pick?'centre '+clen(Math.max(0,W.lo))+' to '+clen(W.hi)+' from the turbine flange on the '+clen(W.colL)+' collector':'');
     else P('Wastegate','internal, effective area '+(W.Aeff*1e6).toFixed(0)+' mm² ('+(W.Aeff*1550.0031).toFixed(2)+' in²)','in the turbine housing'); }
+  const MF=turbo?MFD_LAST:null;
+  if(MF){ const lay={tube:'tubular, all runners into one collector',log:'log',div:'divided (twin-scroll)'}[MF.o.mani]||MF.o.mani, M0=MF.LY.mf[0], mt=MFD_MAT[MF.o.mat];
+    P('Turbo manifold'+each,lay+'; '+(MF.o.mani==='div'&&M0.sg?'scrolls '+M0.sg.map(g=>g.cyls.join('+')).join(' / '):'cylinders '+M0.cyls.join(', ')),'pairing from the firing order (Garrett, Turbo Tech 102; BorgWarner)');
+    P('Runners'+each,MF.c.label+', OD '+cdim(MF.c.od)+', ID '+cdim(MF.c.id)+', wall '+cdim(MF.c.wall)+(MF.L>0?', '+clen(MF.L)+' each':'')+', bends on '+cdim(MF.R)+' CLR','port '+cdim(MF.o.port)+'; '+(MF.c===MF.rec.cd?'nearest the port’s area (MacInnes, as quoted by AutoSpeed)':'your choice'));
+    if(MF.len) P('Runner layout','merge '+clen(MF.len.Z)+' out from the head flange; the farthest runner (cylinder '+MF.len.far.cy+') sets the length','this page’s planar geometry; add to the nearer runners: '+MF.len.per.map(q=>q.cy+' +'+clen(q.extra)).join(', '));
+    P('Collector'+(MF.o.mani==='div'?' (each scroll)':''),'bore '+cdim(MF.dcol)+', '+clen(MF.o.colL)+' to the turbine flange',MF.dcolWhy==='port'?'matched to the turbine inlet port’s area':MF.dcolWhy==='typed'?'as typed':'the Headers tab’s starting assumption, not a turbo source');
+    P('Turbine inlet flange',MF.o.H?MF.o.H.flange:'not picked',MF.o.FL?MF.o.FL.txt:'');
+    P('Manifold material',mt.name+(MF.heat?', runner steel '+F.tD(MF.heat.Ts)+' mean, '+F.tD(MF.heat.Tmax)+' at the port':''),mt.limTxt+'; '+mt.src);
+    if(MF.march&&!MF.march.choke){ N('Manifold loss, port to turbine flange',F.pD(MF.march.dp0)+' of total pressure at the cycle-mean flow'); N('Pressure at the exhaust port',F.pD(MF.march.sPort.p-P_ATM)+' gauge static: the turbine flange’s '+F.pD(MF.o.p3-P_ATM)+' plus '+F.pD(MF.march.dp)+' (the loss and the speed change)'); }
+    const r0=MF.rows.find(r=>r.cd===MF.c); if(r0) N('Runner gas speed, cycle mean at the turbine-inlet state',F.sD(r0.v)+', Mach '+r0.M.toFixed(3));
+    if(MF.vol) N('Volume, valves to the turbine'+each,(MF.vol.V*1000).toFixed(2)+' L ('+(MF.vol.V*61023.74).toFixed(0)+' cu in), '+(MF.vol.V/MF.vol.cyl).toFixed(2)+' × one cylinder');
+    if(MF.heat&&!MF.heat.none) N('Heat growth ('+mt.name+')',(MF.heat.atLeast?'at least ':'')+(MF.heat.eps*1e3).toFixed(2)+' mm/m; the turbine flange moves '+(MF.heat.move/MM).toFixed(3)+' in ('+MF.heat.move.toFixed(2)+' mm) from the head');
+    if(MF.sup) N('Turbo weight on the head flange',MF.sup.W.toFixed(0)+' N ('+(MF.sup.W/4.44822).toFixed(1)+' lbf), '+MF.sup.Mo.toFixed(1)+' N·m ('+(MF.sup.Mo/1.35582).toFixed(1)+' lb·ft) standing');
+    A('Turbo manifold: runner speeds at the cycle-mean flow at the turbine-inlet state; the manifold loss is a steady 1-D march (the merge’s mixing not counted) and is not added to the turbine balance; runner lengths from a planar S geometry; the runner size rule is MacInnes’ as quoted by AutoSpeed (the books were not read); fatigue life is not calculable here.'); }
   const X=TS_X;
   if(turbo&&X){ const G=X.G;
     const st=x=>F.tD(x.sIn.T-273.15)+', Mach '+x.sIn.M.toFixed(2)+'; static rise '+F.pD(x.dp);
@@ -23928,7 +24363,7 @@ function tsSheet(){
   A('Blow-off valve sized to pass the compressor’s full flow (this page’s assumption; no maker sizing method found).');
   const eng=$('i-eng'), en=eng&&eng.selectedOptions&&eng.selectedOptions[0]?eng.selectedOptions[0].textContent:'';
   return {title:'Turbo build sheet',sub:en+(p.disp>0?', '+Math.round(p.disp).toLocaleString('en-US')+' cc ('+(p.disp/16.387064).toFixed(0)+' cu in)':'')+(val('i-hp')>0?', target '+F.hp(val('i-hp')):'')+', boost '+F.pD((p.boost||0)*1000)+' at '+Math.round(p.rpm).toLocaleString('en-US')+' RPM',
-    parts,nums,assume,svg:[TG.svg||'',X&&X.svg?X.svg:'']};
+    parts,nums,assume,svg:[TG.svg||'',X&&X.svg?X.svg:'',MF&&MF.svg?MF.svg:'']};
 }
 function tsSheetDoc(sh){
   const x=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -23938,7 +24373,7 @@ function tsSheetDoc(sh){
     '<style>@page{size:auto;margin:12mm}body{font:10pt/1.35 Arial,Helvetica,sans-serif;color:#111;background:#fff;max-width:186mm;margin:0 auto;padding:6mm 0}h1{font-size:15pt;margin:0 0 1mm}h2{font-size:11.5pt;margin:5mm 0 2mm;border-bottom:0.3mm solid #999;break-after:avoid}'+
     'table{border-collapse:collapse;width:100%}td,th{border:0.2mm solid #bbb;padding:1mm 1.5mm;vertical-align:top;text-align:left}th{background:#eee}tr{break-inside:avoid}.draw{display:flex;gap:4mm;break-inside:avoid}.draw div{flex:1;min-width:0}svg{width:100%;height:auto}.cap{color:#444;font-size:8.5pt}ol{margin:0;padding-left:5mm}</style></head><body>\n'+
     '<h1>'+x(sh.title)+'</h1><p class="cap">'+x(sh.sub)+'. Saved '+x(new Date().toISOString().slice(0,10))+' from Exhaust Tuner. Lengths in inches and mm; letter or A4, print at 100%.</p>\n'+
-    '<h2>Route</h2><div class="draw"><div>'+fix(sh.svg[0])+'<p class="cap">Intake side, filter to throttle (not to scale along the route; widths to scale with each other).</p></div>'+(sh.svg[1]?'<div>'+fix(sh.svg[1])+'<p class="cap">Exhaust side, collector to tip.</p></div>':'')+'</div>\n'+
+    '<h2>Route</h2><div class="draw"><div>'+fix(sh.svg[0])+'<p class="cap">Intake side, filter to throttle (not to scale along the route; widths to scale with each other).</p></div>'+(sh.svg[1]?'<div>'+fix(sh.svg[1])+'<p class="cap">Exhaust side, collector to tip.</p></div>':'')+(sh.svg[2]?'<div>'+fix(sh.svg[2])+'<p class="cap">Turbo manifold, plan (not to scale).</p></div>':'')+'</div>\n'+
     '<h2>Parts and sizes</h2>'+tbl(['Part','Size','Where, notes'],sh.parts)+'\n<h2>Key numbers at peak power</h2>'+tbl(['What','Value'],sh.nums)+
     '\n<h2>Assumptions and unsourced items on this build</h2><ol>'+sh.assume.map(a=>'<li>'+x(a)+'</li>').join('')+'</ol>\n</body></html>\n';
 }
@@ -24023,7 +24458,7 @@ function fiSection0(ind,p,r){
         '<p class="cap">From <a href="https://www.garrettmotion.com/racing-and-performance/choosing-a-turbocharger/turbo-system-optimization/" target="_blank" rel="noopener">Garrett’s Turbo System Optimization</a> and <a href="https://www.garrettmotion.com/knowledge-center-category/racing-and-performance/how-to-size-charge-air-tubing/" target="_blank" rel="noopener">How to Size Charge Air Tubing</a>. Pressure loss is Darcy friction (smooth drawn aluminium or stainless tube, 0.0015 mm) at the actual boosted density plus Crane TP-410’s bend K (via the Intake tab’s bendK); the fill time is the extra air the pipes hold at boost divided by the full-power airflow, so real spool-up is longer.</p>');
     }
   }
-  if(ind==='turbo'||ind==='centri') cp+=turboSection(ind,p,r)+tsSizeSection(ind,p,r)+tsOptionsSection(ind,p)+oilSection(ind,p)+TS_PLACE_HTML+tsExhSection(ind,p);
+  if(ind==='turbo'||ind==='centri') cp+=turboSection(ind,p,r)+tsSizeSection(ind,p,r)+tsOptionsSection(ind,p)+oilSection(ind,p)+TS_PLACE_HTML+mfdSection(ind,p)+tsExhSection(ind,p);
   return cp+sec('Boosted intake',h+'<ul class="list">'+list.join('')+'</ul><p class="cap">Sources: <a href="https://compressortech2.com/news/what-is-the-ideal-inlet-piping-length-for-centrifugal-compressors/8022678.article" target="_blank" rel="noopener">CompressorTech², on ASME PTC inlet piping</a>; <a href="https://www.enginelabs.com/?p=167650" target="_blank" rel="noopener">EngineLabs on the ProCharger bellmouth</a>; <a href="https://www.procharger.com/?p=9829" target="_blank" rel="noopener">ProCharger on blow-off valves</a>. Compressor outlet temperature is the ideal-gas compression formula with the efficiency you enter.</p>');
 }
 /* ----- making it by 3D printing ----- */
@@ -24334,7 +24769,7 @@ function whyIntake(){
 }
 function renderIntake(){
   const type=$('i-type').value, itb=type==='itb', box=type==='box', filt=$('i-filt').value, ind=$('i-ind').value;
-  $('i-boost-wrap').hidden=$('i-eff-wrap').hidden=ind==='na'; $('i-cp-wrap').hidden=!(ind==='turbo'||ind==='centri'); ['i-wg-wrap','i-mani-wrap','i-wgcl-wrap','i-dp-wrap'].forEach(id=>{ const w=$(id); if(w) w.hidden=ind!=='turbo'; });
+  $('i-boost-wrap').hidden=$('i-eff-wrap').hidden=ind==='na'; $('i-cp-wrap').hidden=!(ind==='turbo'||ind==='centri'); ['i-wg-wrap','i-mani-wrap','i-wgcl-wrap','i-mf-wrap','i-dp-wrap'].forEach(id=>{ const w=$(id); if(w) w.hidden=ind!=='turbo'; });
   $('i-box-wrap').hidden=!box; $('i-fab-wrap').hidden=!/^(fdm|sls|metal)$/.test($('i-fab').value); if(!$('i-fab-wrap').hidden) printFill($('i-fab').value);
   const toComp=ind==='turbo'||ind==='centri';
   $('i-lt-lab').textContent=itb?'Stack and runner, valve to the open end':box?(toComp?'Tube, airbox to compressor':'Tube, airbox to throttle'):(toComp?'Tube length, filter to compressor':'Tube length, filter to throttle');
@@ -24665,7 +25100,7 @@ const PROJ_VEH=['v-mode','v-class','v-make','v-pick'];
 const projUiCopy=(o,skip)=>{ const r={}; for(const k in o){ if(skip.includes(k)) continue; const v=o[k]; if(typeof v==='function') continue; r[k]=v; } return JSON.parse(JSON.stringify(r)); };
 const PROJ_UI={   // the per-section settings kept with a project: [object, keys left out]
   wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
-  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]]};
+  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open']]};
 function projLoadAll(){ try{ const a=JSON.parse(localStorage.getItem(PROJ_KEY)||'[]'); return Array.isArray(a)?a.filter(p=>p&&p.data&&p.name):[]; }catch(e){ return []; } }
 function projStoreAll(a){ try{ localStorage.setItem(PROJ_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 function projSnapshot(name){
