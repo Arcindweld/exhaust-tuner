@@ -2122,6 +2122,128 @@ ul.list li+li,ol.list li+li{margin-top:6px}
       </div>
     </form>
     <div class="area-details"><div id="hg-details"></div></div>
+    <!-- ============ MOUNTS designer (brackets for the intercooler and other bolt-on parts; JS block "Mounts designer") ============ -->
+    <div class="card mt-card" id="mt-card" style="grid-column:1/-1;min-width:0">
+      <h2 class="sub" style="font-size:15px;color:var(--ink);margin:0 0 6px">Mounts: brackets for the intercooler, coolers and other bolt-on parts</h2>
+      <p class="cap" style="margin-top:0">Pick the part, say where its mounts are and how far each bracket reaches to the chassis, and the page sizes the brackets by calculation (load per mount, isolators, plate thickness, bolts, welds, heat growth) and draws them in inches and millimetres, ready to cut, bend and weld, or to build in Fusion against your scan.</p>
+      <form class="mt-form" id="mt-form" onsubmit="return false" autocomplete="off">
+        <div class="grp" style="margin-top:8px">The part</div>
+        <div class="grid2">
+          <label class="f span2"><span class="lab">Part</span>
+            <span class="inp"><select id="mt-part"><option value="a2a" selected>Air-to-air intercooler core</option><option value="build">The intercooler picked on the Intake tab</option><option value="w2a">Water-to-air barrel charge cooler</option><option value="hx">Front heat exchanger (water-to-air system)</option><option value="oil">Oil cooler</option><option value="can">Catch can or tank</option><option value="bov">Blow-off valve or wastegate support</option></select></span></label>
+          <label class="f"><span class="lab">Shape</span>
+            <span class="inp"><select id="mt-shape"><option value="box" selected>Box (core, cooler)</option><option value="cyl">Cylinder (barrel, can)</option></select></span></label>
+          <label class="f" id="mt-L-w"><span class="lab" id="mt-L-lab">Length, side to side</span>
+            <span class="inp"><input id="mt-L" type="number" step="any" inputmode="decimal" data-kind="len" data-base="609.6"><em data-u="len">in</em></span></label>
+          <label class="f" id="mt-H-w"><span class="lab" id="mt-H-lab">Height</span>
+            <span class="inp"><input id="mt-H" type="number" step="any" inputmode="decimal" data-kind="len" data-base="304.8"><em data-u="len">in</em></span></label>
+          <label class="f" id="mt-W-w"><span class="lab">Depth, front to back</span>
+            <span class="inp"><input id="mt-W" type="number" step="any" inputmode="decimal" data-kind="len" data-base="88.9"><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">Weight, empty (weigh yours: the default is an example)</span>
+            <span class="inp"><input id="mt-mass" type="number" step="any" inputmode="decimal" data-kind="mass" data-base="7"><em data-u="mass">lb</em></span></label>
+          <label class="f"><span class="lab">Liquid inside</span>
+            <span class="inp"><select id="mt-fluid"><option value="none" selected>None (air)</option><option value="water">Water</option><option value="eg50">50% ethylene glycol</option><option value="egw25">EGW 25/75</option><option value="oil">Engine oil</option></select></span></label>
+          <label class="f" id="mt-vol-w"><span class="lab">Liquid it holds, litres</span>
+            <span class="inp"><input id="mt-vol" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="2" data-base="0"><em>L</em></span></label>
+          <label class="f" id="mt-orho-w"><span class="lab">Oil density, kg per litre (your oil’s data sheet)</span>
+            <span class="inp"><input id="mt-orho" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="3" data-base="0.85"><em>kg/L</em></span></label>
+        </div>
+        <div class="grp">Mounts</div>
+        <div class="grid2">
+          <label class="f"><span class="lab">How many</span>
+            <span class="inp"><select id="mt-n"><option value="2">2</option><option value="3">3</option><option value="4" selected>4</option><option value="6">6</option></select></span></label>
+          <label class="f"><span class="lab">Fixed mount (the others slide or flex)</span>
+            <span class="inp"><select id="mt-fix"><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option></select></span></label>
+        </div>
+        <p class="cap">Positions from the part’s centre (taken as its centre of mass): across (+ right), up, and fore-aft (+ forward). Each bracket runs from the mount to the chassis the way you pick; reach is mount to chassis face, and offset moves the chassis point sideways along the bend line.</p>
+        <div id="mt-rows">
+          <!-- one row per mount, 1 to 6 -->
+          <div class="mt-row grid2" data-i="1"><div class="sub span2" style="margin:10px 0 0">Mount 1</div><label class="f"><span class="lab">Across</span><span class="inp"><input id="mt-x1" type="number" step="any" inputmode="decimal" data-kind="len" data-base="-330"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Up</span><span class="inp"><input id="mt-y1" type="number" step="any" inputmode="decimal" data-kind="len" data-base="-152.4"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Fore-aft</span><span class="inp"><input id="mt-z1" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Bracket runs</span><span class="inp"><select id="mt-d1"><option value="dn" selected>Down</option><option value="up">Up</option><option value="fw">Forward</option><option value="bk">Back</option><option value="lt">Left</option><option value="rt">Right</option></select></span></label><label class="f"><span class="lab">Reach</span><span class="inp"><input id="mt-h1" type="number" step="any" inputmode="decimal" data-kind="len" data-base="63.5"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Offset</span><span class="inp"><input id="mt-s1" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label></div>
+          <div class="mt-row grid2" data-i="2"><div class="sub span2" style="margin:10px 0 0">Mount 2</div><label class="f"><span class="lab">Across</span><span class="inp"><input id="mt-x2" type="number" step="any" inputmode="decimal" data-kind="len" data-base="330"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Up</span><span class="inp"><input id="mt-y2" type="number" step="any" inputmode="decimal" data-kind="len" data-base="-152.4"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Fore-aft</span><span class="inp"><input id="mt-z2" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Bracket runs</span><span class="inp"><select id="mt-d2"><option value="dn" selected>Down</option><option value="up">Up</option><option value="fw">Forward</option><option value="bk">Back</option><option value="lt">Left</option><option value="rt">Right</option></select></span></label><label class="f"><span class="lab">Reach</span><span class="inp"><input id="mt-h2" type="number" step="any" inputmode="decimal" data-kind="len" data-base="63.5"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Offset</span><span class="inp"><input id="mt-s2" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label></div>
+          <div class="mt-row grid2" data-i="3"><div class="sub span2" style="margin:10px 0 0">Mount 3</div><label class="f"><span class="lab">Across</span><span class="inp"><input id="mt-x3" type="number" step="any" inputmode="decimal" data-kind="len" data-base="-330"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Up</span><span class="inp"><input id="mt-y3" type="number" step="any" inputmode="decimal" data-kind="len" data-base="152.4"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Fore-aft</span><span class="inp"><input id="mt-z3" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Bracket runs</span><span class="inp"><select id="mt-d3"><option value="dn">Down</option><option value="up">Up</option><option value="fw">Forward</option><option value="bk" selected>Back</option><option value="lt">Left</option><option value="rt">Right</option></select></span></label><label class="f"><span class="lab">Reach</span><span class="inp"><input id="mt-h3" type="number" step="any" inputmode="decimal" data-kind="len" data-base="63.5"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Offset</span><span class="inp"><input id="mt-s3" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label></div>
+          <div class="mt-row grid2" data-i="4"><div class="sub span2" style="margin:10px 0 0">Mount 4</div><label class="f"><span class="lab">Across</span><span class="inp"><input id="mt-x4" type="number" step="any" inputmode="decimal" data-kind="len" data-base="330"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Up</span><span class="inp"><input id="mt-y4" type="number" step="any" inputmode="decimal" data-kind="len" data-base="152.4"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Fore-aft</span><span class="inp"><input id="mt-z4" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Bracket runs</span><span class="inp"><select id="mt-d4"><option value="dn">Down</option><option value="up">Up</option><option value="fw">Forward</option><option value="bk" selected>Back</option><option value="lt">Left</option><option value="rt">Right</option></select></span></label><label class="f"><span class="lab">Reach</span><span class="inp"><input id="mt-h4" type="number" step="any" inputmode="decimal" data-kind="len" data-base="63.5"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Offset</span><span class="inp"><input id="mt-s4" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label></div>
+          <div class="mt-row grid2" data-i="5"><div class="sub span2" style="margin:10px 0 0">Mount 5</div><label class="f"><span class="lab">Across</span><span class="inp"><input id="mt-x5" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Up</span><span class="inp"><input id="mt-y5" type="number" step="any" inputmode="decimal" data-kind="len" data-base="-152.4"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Fore-aft</span><span class="inp"><input id="mt-z5" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Bracket runs</span><span class="inp"><select id="mt-d5"><option value="dn" selected>Down</option><option value="up">Up</option><option value="fw">Forward</option><option value="bk">Back</option><option value="lt">Left</option><option value="rt">Right</option></select></span></label><label class="f"><span class="lab">Reach</span><span class="inp"><input id="mt-h5" type="number" step="any" inputmode="decimal" data-kind="len" data-base="63.5"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Offset</span><span class="inp"><input id="mt-s5" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label></div>
+          <div class="mt-row grid2" data-i="6"><div class="sub span2" style="margin:10px 0 0">Mount 6</div><label class="f"><span class="lab">Across</span><span class="inp"><input id="mt-x6" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Up</span><span class="inp"><input id="mt-y6" type="number" step="any" inputmode="decimal" data-kind="len" data-base="152.4"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Fore-aft</span><span class="inp"><input id="mt-z6" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Bracket runs</span><span class="inp"><select id="mt-d6"><option value="dn">Down</option><option value="up">Up</option><option value="fw">Forward</option><option value="bk" selected>Back</option><option value="lt">Left</option><option value="rt">Right</option></select></span></label><label class="f"><span class="lab">Reach</span><span class="inp"><input id="mt-h6" type="number" step="any" inputmode="decimal" data-kind="len" data-base="63.5"><em data-u="len">in</em></span></label><label class="f"><span class="lab">Offset</span><span class="inp"><input id="mt-s6" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label></div>
+        </div>
+        <div class="grp">Loads</div>
+        <div class="grid2">
+          <label class="f span2"><span class="lab">Design acceleration</span>
+            <span class="inp"><select id="mt-gpre"><option value="fia" selected>25 g each way (FIA’s figure for mounted parts)</option><option value="iso">50 g each way (ISO 16750-3 shock test level)</option><option value="own">My own figures</option></select></span></label>
+          <label class="f"><span class="lab">Side to side, g</span>
+            <span class="inp"><input id="mt-gx" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base="25"><em>g</em></span></label>
+          <label class="f"><span class="lab">Up and down, g (gravity added)</span>
+            <span class="inp"><input id="mt-gy" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base="25"><em>g</em></span></label>
+          <label class="f"><span class="lab">Fore-aft, g</span>
+            <span class="inp"><input id="mt-gz" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base="25"><em>g</em></span></label>
+          <label class="f"><span class="lab">Safety factor on yield</span>
+            <span class="inp"><input id="mt-sf" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="2" data-base="1.5"><em>×</em></span></label>
+        </div>
+        <div class="grp">Isolation</div>
+        <div class="grid2">
+          <label class="f span2"><span class="lab">Mounting</span>
+            <span class="inp"><select id="mt-soft"><option value="soft" selected>Soft: rubber isolators (Garrett’s advice for cores)</option><option value="hard">Hard: bolted solid, slotted for growth</option></select></span></label>
+          <label class="f"><span class="lab">The weight loads the rubber in</span>
+            <span class="inp"><select id="mt-iso"><option value="c" selected>Compression (along its bolt)</option><option value="s">Shear (across it)</option></select></span></label>
+          <label class="f"><span class="lab">Shake passed at idle, at most</span>
+            <span class="inp"><input id="mt-T" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="20"><em>%</em></span></label>
+          <label class="f"><span class="lab">Idle speed (blank: the Sound tab’s)</span>
+            <span class="inp"><input id="mt-rpm" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>RPM</em></span></label>
+          <label class="f"><span class="lab">Cylinders (blank: the Sound tab’s)</span>
+            <span class="inp"><input id="mt-cyl" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""></span></label>
+        </div>
+        <div class="grp">Heat</div>
+        <div class="grid2">
+          <label class="f"><span class="lab">Hottest the part runs (blank: the Intake tab’s compressor outlet)</span>
+            <span class="inp"><input id="mt-thot" type="number" step="any" inputmode="decimal" data-kind="temp" data-base=""><em data-u="temp">°F</em></span></label>
+          <label class="f"><span class="lab">Coldest it sits (your climate)</span>
+            <span class="inp"><input id="mt-tcold" type="number" step="any" inputmode="decimal" data-kind="temp" data-base="-20"><em data-u="temp">°F</em></span></label>
+          <label class="f"><span class="lab">Temperature when you bolt it up</span>
+            <span class="inp"><input id="mt-tinst" type="number" step="any" inputmode="decimal" data-kind="temp" data-base="20"><em data-u="temp">°F</em></span></label>
+        </div>
+        <div class="grp">Brackets</div>
+        <div class="grid2">
+          <label class="f span2"><span class="lab">Bracket</span>
+            <span class="inp"><select id="mt-type"><option value="auto" selected>The lightest that passes</option><option value="strap">Bent strap (L bracket)</option><option value="gusset">Bent strap with a welded gusset</option><option value="channel">Boxed: U channel welded to a foot plate</option><option value="stay">Tube stay with rod ends (long reach)</option></select></span></label>
+          <label class="f span2"><span class="lab">Material</span>
+            <span class="inp"><select id="mt-mat"><option value="a36" selected>Mild steel, A36</option><option value="ss304">304 stainless</option><option value="al5052">5052-H32 aluminium</option><option value="al6061">6061-T6 aluminium (welded parts at the welded strength)</option><option value="print">3D printed (light parts away from heat)</option></select></span></label>
+          <label class="f span2" id="mt-fil-w"><span class="lab">Filament</span>
+            <span class="inp"><select id="mt-fil"><option value="paht" selected>Bambu PAHT-CF</option></select></span></label>
+          <label class="f"><span class="lab">Width, 0 to suit the bolts</span>
+            <span class="inp"><input id="mt-b" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">Bolts</span>
+            <span class="inp"><select id="mt-bolt"><option value="m6">M6</option><option value="m8" selected>M8</option><option value="m10">M10</option><option value="u14">1/4-20</option><option value="u516">5/16-18</option><option value="u38">3/8-16</option></select></span></label>
+          <label class="f"><span class="lab">Bolt grade</span>
+            <span class="inp"><select id="mt-cls"><option value="88" selected>8.8 (metric) or Grade 5 (inch)</option><option value="109">10.9 (metric) or Grade 8 (inch)</option></select></span></label>
+          <label class="f"><span class="lab">Bolts in each foot</span>
+            <span class="inp"><select id="mt-nb"><option value="1">1</option><option value="2" selected>2</option></select></span></label>
+          <label class="f"><span class="lab">Bracket to the chassis by</span>
+            <span class="inp"><select id="mt-att"><option value="bolt" selected>Bolting its foot</option><option value="weld">Welding its foot on</option></select></span></label>
+          <label class="f"><span class="lab">Bracket to the part by</span>
+            <span class="inp"><select id="mt-patt"><option value="bolt" selected>A bolt (or the isolator) through its hole</option><option value="weld">A tab welded to the tank, bolted to the bracket</option></select></span></label>
+          <label class="f"><span class="lab">Fillet weld leg, 0 for the thickness</span>
+            <span class="inp"><input id="mt-weld" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+          <label class="f" id="mt-filler-w"><span class="lab">Aluminium filler</span>
+            <span class="inp"><select id="mt-filler"><option value="4043" selected>4043</option><option value="5356">5356</option></select></span></label>
+          <label class="f"><span class="lab">Inside bend radius, 0 for the thickness</span>
+            <span class="inp"><input id="mt-R" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">K-factor (your bender’s)</span>
+            <span class="inp"><input id="mt-K" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="2" data-base="0.42"></span></label>
+          <label class="f"><span class="lab">Lightening holes</span>
+            <span class="inp"><select id="mt-light"><option value="none" selected>None</option><option value="round">Round holes up the bracket</option></select></span></label>
+          <label class="f"><span class="lab">Socket or wrench radius at the bolts</span>
+            <span class="inp"><input id="mt-sock" type="number" step="any" inputmode="decimal" data-kind="len" data-base="12.7"><em data-u="len">in</em></span></label>
+          <label class="f" id="mt-stod-w"><span class="lab">Stay tube outside diameter</span>
+            <span class="inp"><input id="mt-stod" type="number" step="any" inputmode="decimal" data-kind="len" data-base="19.05"><em data-u="len">in</em></span></label>
+          <label class="f" id="mt-stw-w"><span class="lab">Stay tube wall</span>
+            <span class="inp"><input id="mt-stw" type="number" step="any" inputmode="decimal" data-kind="len" data-base="1.651"><em data-u="len">in</em></span></label>
+          <label class="f" id="mt-stre-w"><span class="lab">Rod-end centre to the tube end</span>
+            <span class="inp"><input id="mt-stre" type="number" step="any" inputmode="decimal" data-kind="len" data-base="38.1"><em data-u="len">in</em></span></label>
+          <label class="f span2"><span class="lab">Add the mounts to the turbo build sheet</span>
+            <span class="inp"><select id="mt-sheet"><option value="1" selected>Yes</option><option value="0">No</option></select></span></label>
+        </div>
+      </form>
+      <div id="mt-out" style="margin-top:14px"></div>
+    </div>
   </section>
 
   <!-- ============ OPTIONS GUIDE ============ -->
@@ -14435,6 +14557,7 @@ function drawHang(svg,o,parts){
 
 /* ---- the tab */
 function renderHang(){
+  mtRender();   // the Mounts designer below the hanger (its own block, after this tab's code)
   const o=hgRead(); hgFields(o);
   const key=$('hg-key'), det=$('hg-details'), svg=$('hg-svg');
   const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; det.innerHTML=hgFusion(); clearSvg(svg); $('hg-cap').textContent=''; HG_UI.last=null; };
@@ -14628,6 +14751,538 @@ document.addEventListener('click',e=>{
 });
 window.__hang={HG,HANG,hgRead,hgParts,hgDxf,hgPayload,hgStrength,HG_GROM,HG_MAT,hgIsoTemp,hgFin,last:()=>HG_UI.last,val:id=>val(id),snap:()=>projSnapshot('t'),
   set:(id,mm)=>{ const el=$(id); el._b=mm; showInput(el); el.dispatchEvent(new Event('input',{bubbles:true})); }};
+
+/* ===== Mounts designer (Hangers tab): brackets for the intercooler, barrel and oil coolers, heat exchanger, catch can and
+   valve supports. Kept apart from the hanger designer above; reads the Intake tab's chosen intercooler (icRow(TSO.ic)),
+   its compressor outlet temperature (TS_LAST) and coolant table (COOLANT), the Sound tab's idle (soundParams), the
+   Hangers tab's materials (HG_MAT, HG_STOCK, HG_ISO, HGs DXF writer hgDxf), the Intake tab's printed-part rules
+   (PRINT_MATS, printWall) and the pipe tab's moduli (MATS); writes none of them. Fusion: mounts.py, actions mountPlace,
+   mountPick, mountBuild.
+
+   Method, each step with its source (read 2026-11-12):
+   Loads. Mass = the part empty + the liquid it holds (litres × density: COOLANT, or the oil's figure typed). Design
+     accelerations are inputs. The default, 25 g each way, is the FIA's figure for mounted equipment: Appendix J
+     Art. 253-7.2.2 and 7.3.6, an extinguisher's securing system and mountings "must be able to withstand a
+     deceleration of 25 g" (fia.com 253_2024.pdf); used here as a reference class, not a rule for coolers. The other
+     preset, 50 g, is the ISO 16750-3 mechanical shock as Bosch Motorsport lists it ("50gn 6mSec", 10 shocks each way):
+     a 6 ms test pulse, so treating it as a steady load is conservative. ISO 16750-3 and SAE J1455 themselves are
+     paywalled; their open previews give no levels. Six load cases: each axis each way, gravity always added.
+   Load per mount. The part is a rigid body on equal, equally stiff mounts (an assumption). About the mounts' centroid
+     the shares decouple: F_i = F/n + (J+ M) x s_i, with s_i the mount from the centroid, J = sum(|s|^2 I - s s^T) and M
+     the moment of the load about the centroid; J+ is the pseudo-inverse, so mounts on one line (a barrel on two
+     brackets) leave the turn about that line to the brackets' own stiffness, and that moment is shown.
+   Safety factor. Default 1.5: 14 CFR 25.303 puts 1.5 on the limit load (an aircraft rule, used as a reference); here it
+     is held against yield, which is stricter than 25.303's use on the ultimate load.
+   Isolation. Firing frequency at idle f = cylinders × RPM / 120 (four-stroke). Bounce frequency of the part on n mounts
+     fn = sqrt(n k / m) / 2 pi. Transmissibility undamped T = 1 / |1 - r^2|, r = f / fn (standard single-degree-of-
+     freedom result; isolation needs r > sqrt 2, University of Iowa 58:153 lecture 9); with the page's rubber damping
+     ratio 0.07 (the HANGERS table) the damped T is higher above sqrt 2 and is the one checked. Target T -> fn at most
+     f / sqrt(1 + 1/T), k per mount at most m (2 pi fn)^2 / n. Isolators: AMC Mecanocaucho Type A bobbins, the maker's
+     maximum static load and deflection in compression and shear (RS datasheet 0900766b81586730; columns A diameter,
+     B height read from the drawing); stiffness taken as load ÷ deflection (secant). AMC: dynamic stiffness is higher than
+     static, so the real bounce frequency is higher than this.
+   Heat growth. Aluminium 23.2 µm/m per °C (3003; AmesWeb, from ASM Metals Handbook Desk Edition 1998) × distance from
+     the fixed mount × temperature change from the bolt-up temperature. Garrett: air-to-air cores "typically
+     soft-mounted ... rubber isolation grommets", which damp vibration and allow for thermal expansion (Garrett, Rob Dahm
+     article), so soft is the default.
+   Brackets. Each bracket is a cantilever from the chassis face out to the mount: at its root the load gives an axial
+     force, two shears and three moments (r x F, r = reach along n + offset along u). Normal stress at the worst corner
+     of the section = |N|/A + |M_u| c_f / I_u + |M_f| c_u / I_f (the three added: an upper bound), shear 1.5 V / A plus
+     torsion T t / (sum b t^3 / 3) (thin open section), von Mises sqrt(sigma^2 + 3 tau^2) against yield (HG_MAT; a welded
+     6061 part at the welded 103 MPa). Sections: a strap (b × t), a gusseted strap (a T at the root; above the gusset the
+     strap alone), a U channel (web b, flanges hf). Thickness: the thinnest SendCutSend stock (HG_STOCK) that passes.
+     Tear-out past a hole: 0.577 fy × 2 × metal beyond the hole × t (the Hangers tab's method). Bearing (AISC
+     2.4 d t Fu) is not checked: the page has no tensile strengths for these sheets.
+   Bolts. Tension against the proof load (proof stress × tensile-stress area), shear against 60% of the minimum tensile
+     strength (Portland Bolt) on the thread's minor area, d3 = d - 1.226869 P (the minor diameter in ISO 898-1's
+     stress-area formula, which gives Fastenal's 36.6 mm² for M8). Fastenal: 8.8 proof 580 / UTS 800 MPa, 10.9 830 /
+     1040 (M5-M16); SAE J429 Grade 5 85 / 120 ksi, Grade 8 120 / 150 ksi; stress areas M6 20.1, M8 36.6, M10 58.0 mm²,
+     1/4-20 0.0318, 5/16-18 0.0525, 3/8-16 0.0775 in². Foot bolts: the foot tips about its nearer edge (lever the
+     shorter of heel and toe to the bolt), prying not counted.
+   Welds. Weld treated as a line (the line method of Blodgett, Design of Welded Structures, 1966): force per length from
+     N, V and the moments on the weld group, then ÷ throat 0.707 × leg. Strength: steel AWS D1.1's allowable 0.30 × FEXX
+     = 145 MPa for E70 (its own margin, with the safety factor on top: conservative); aluminium AlcoTec's typical
+     longitudinal fillet shear, 4043 11.5 ksi (79.3 MPa), 5356 17.0 ksi (117.2 MPa) (typical, not minimum, figures),
+     and the heat-affected 6061 at 0.577 × 103 MPa on the leg; 304 stainless: no filler figure verified, so the base
+     metal's shear yield 0.577 × 205 MPa on the throat (conservative: 308L deposit is stronger than annealed 304).
+   Fatigue: not checked. Only static strength under the design g-loads; no verified allowable for welded aluminium
+     (Aluminum Design Manual or Eurocode 9 detail categories) is embedded.
+   Printed brackets reuse the Intake tab's printed-part rules: across-layer strength × wet fraction × the temperature
+     factor (printWall), the notes' safety factor of 3 at least, and the filament's suggested maximum temperature.
+*/
+const MT_G=9.80665, MT_ALPHA_AL=23.2e-6, MT_E_AL=68300;   // MPa; 6061-T6, Protolabs data sheet
+const MT_SRC={garrett:'https://www.garrettmotion.com/news/newsroom/article/intercooler-sizing-and-end-tank-design-with-rob-dahm/',
+  fia:'https://www.fia.com/sites/default/files/253_2024.pdf',bosch:'https://www.bosch-motorsport.com/content/downloads/raceparts/Resources/pdf/Vibration%20Profile%20Shock_344016651_Vibration_Profiles.pdf',
+  cfr:'https://www.law.cornell.edu/cfr/text/14/25.303',iowa:'https://user.engineering.uiowa.edu/~sxiao/class/058-153/lecture-9.pdf',
+  amc:'https://docs.rs-online.com/7588/0900766b81586730.pdf',ames:'https://amesweb.info/Materials/Thermal_Expansion_Coefficient_of_Aluminum.aspx',
+  fastm:'https://crafter.fastenal.com/static-assets/pdfs/Mechanical_Properties_of_Metric_Fasteners.pdf',fasti:'https://crafter.fastenal.com/static-assets/pdfs/Mechanical_Properties_of_Inch_Fasteners.pdf',
+  pbolt:'https://www.portlandbolt.com/technical/faqs/bolt-shear-strength-considerations',alcotec:'https://www.homemadetools.net/forum/attachments/useful-charts-calculators-working-metals-other-materials-alc-10030c_alcotec_alloy_selection_brochure_tabloid.pdf-25810d1538029837',
+  aws:'https://open-exam-prep.com/study-guides/aws-cwi-endorsement-d1-1/design-connections-clause4/statically-loaded-details',e6061:'https://www.protolabs.com/media/h54d0gnp/2026-026-cnc-material-data-sheet_aluminum-6061-t651_t6.pdf'};
+// AMC Mecanocaucho Type A bobbins (RS datasheet): diameter, height (mm), thread, compression max load daN and the
+// deflection at it (mm), shear the same
+const MT_AMC=[['120001',12.5,10,'M5',12,2,1.5,1.5],['120002',15.5,15,'M5',10,3,1.5,2],['120011',16,10,'M5',20,1.5,2.5,1.5],['120021',20,8.5,'M6',40,1.5,5,1],
+  ['120022',20,15,'M6',35,4,5,2.5],['120023',20,20,'M6',30,5,5,3.5],['120031',25.5,15,'M8',60,3.5,8,2.5],['120034',25.5,25,'M8',50,6,8,4.5],['120041',30,15,'M8',90,3,11,2.5],
+  ['120043',30,22,'M8',80,5,11,4],['120051',40,20,'M10',160,5,20,3],['120052',40,28,'M10',150,6,20,5.5],['120061',50,25,'M10',300,6,25,4.5],['120063',50,45,'M10',190,11,25,9],
+  ['120071',60,25,'M10',400,6,30,4.5],['120082',70,50,'M10',350,11,35,11]].map(r=>({ref:r[0],D:r[1],H:r[2],thr:r[3],Pc:r[4]*10,dc:r[5],Ps:r[6]*10,ds:r[7]}));
+// bolts: nominal d and pitch (mm), tensile-stress area (mm²), proof and minimum tensile (MPa) by grade
+const MT_BOLT={m6:{n:'M6',d:6,p:1,As:20.1,m:1},m8:{n:'M8',d:8,p:1.25,As:36.6,m:1},m10:{n:'M10',d:10,p:1.5,As:58.0,m:1},
+  u14:{n:'1/4-20',d:6.35,p:25.4/20,As:0.0318*645.16},u516:{n:'5/16-18',d:7.9375,p:25.4/18,As:0.0525*645.16},u38:{n:'3/8-16',d:9.525,p:25.4/16,As:0.0775*645.16}};
+const MT_GRADE={88:{m:[580,800,'8.8'],u:[85*6.894757,120*6.894757,'Grade 5']},109:{m:[830,1040,'10.9'],u:[120*6.894757,150*6.894757,'Grade 8']}};
+const MT_DIR={dn:[0,-1,0],up:[0,1,0],fw:[0,0,1],bk:[0,0,-1],lt:[-1,0,0],rt:[1,0,0]};
+const MT_DIRN={dn:'down',up:'up',fw:'forward',bk:'back',lt:'left',rt:'right'};
+const MT_UI={last:null,pick:null,fx:null,fxBuild:null};
+const MV={add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]],sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],mul:(a,k)=>[a[0]*k,a[1]*k,a[2]*k],dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+  cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],len:a=>Math.hypot(a[0],a[1],a[2]),unit:a=>{ const n=Math.hypot(a[0],a[1],a[2]); return [a[0]/n,a[1]/n,a[2]/n]; }};
+const mtN=N=>Math.round(N)+' N ('+Math.round(N/4.44822)+' lbf)';
+const mtMPa=s=>(s<10?s.toFixed(1):Math.round(s))+' MPa ('+(s/6.894757).toFixed(1)+' ksi)';
+const mtKg=kg=>kg.toFixed(kg<10?2:1)+' kg ('+(kg*2.20462).toFixed(kg*2.2<10?2:1)+' lb)';
+const mtWhere=p=>[[0,'left','right'],[1,'down','up'],[2,'back','forward']].map(([i,a,b])=>Math.abs(p[i])<0.005?null:bothL(Math.abs(p[i]))+' '+(p[i]<0?a:b)).filter(Boolean).join(', ')||'at the centre';
+const mtStiff=k=>Math.round(k)+' N/mm ('+Math.round(k*5.71015)+' lb/in)';
+
+function mtRead(){
+  const v=id=>val(id), s=id=>$(id).value, n=+s('mt-n'), mounts=[];
+  for(let i=1;i<=n;i++) mounts.push({i,p:[v('mt-x'+i),v('mt-y'+i),v('mt-z'+i)],dir:s('mt-d'+i),h:v('mt-h'+i),s:v('mt-s'+i)||0});
+  return {part:s('mt-part'),shape:s('mt-shape'),L:v('mt-L'),H:v('mt-H'),W:v('mt-W'),mass:v('mt-mass'),fluid:s('mt-fluid'),vol:v('mt-vol')||0,orho:v('mt-orho'),
+    n,fix:Math.min(n,+s('mt-fix')),mounts,gpre:s('mt-gpre'),g:[v('mt-gx'),v('mt-gy'),v('mt-gz')],sf:v('mt-sf'),soft:s('mt-soft')==='soft',iso:s('mt-iso'),T:v('mt-T')/100,
+    rpm:v('mt-rpm'),cyl:v('mt-cyl'),thot:v('mt-thot'),tcold:v('mt-tcold'),tinst:v('mt-tinst'),type:s('mt-type'),mat:s('mt-mat'),fil:s('mt-fil'),b:v('mt-b')||0,
+    bolt:s('mt-bolt'),cls:s('mt-cls'),nb:+s('mt-nb'),att:s('mt-att'),patt:s('mt-patt'),weld:v('mt-weld')||0,filler:s('mt-filler'),R:v('mt-R')||0,K:v('mt-K'),
+    light:s('mt-light'),sock:v('mt-sock'),stod:v('mt-stod'),stw:v('mt-stw'),stre:v('mt-stre'),sheet:s('mt-sheet')==='1'};
+}
+// the part: typed, or the intercooler picked on the Intake tab (its published size and, where the maker gives them, its
+// dry and wet weights)
+function mtPart(o){
+  const out={name:'',shape:o.shape,L:o.L,H:o.H,W:o.W,dry:o.mass,liq:0,notes:[],src:''};
+  if(o.part==='build'){ let C=null; try{ C=icRow(TSO.ic); }catch(e){}
+    if(!C){ out.notes.push({k:'warn',t:'No intercooler is picked on the Intake tab (Turbo options): the size and weight typed here are used.'}); out.name='Intercooler (typed)'; }
+    else { out.name=C.maker+' '+C.pn; out.src=C.src||'';
+      const D=C.L?[C.L[1],C.H[1],C.W[1]]:C.dims?C.dims.map(x=>x[1]):null;
+      if(D){ out.L=D[0]; out.H=D[1]; out.W=D[2]; out.notes.push({k:'info',t:(C.dimOverall||C.over?'Overall':'Core')+' size from the maker: '+D.map(bothL).join(' × ')+(C.dimOverall||C.over?'':'; the end tanks add to the length: enter the mounts’ real positions')+'.'}); }
+      if(C.over&&!C.dimOverall){ out.L=C.over[0]*25.4; out.H=C.over[1]*25.4; out.W=C.over[2]*25.4; }
+      if(C.mass){ out.dry=C.mass[0]; out.liq=C.mass[1]-C.mass[0]; out.notes.push({k:'info',t:'Weight from the maker: '+mtKg(C.mass[0])+' dry, '+mtKg(C.mass[1])+' wet.'}); }
+      else out.notes.push({k:'info',t:'The maker publishes no weight for this core: the weight typed is used (weigh it).'});
+      if(C.type==='w2a'&&C.barb) out.shape='box'; } }
+  else out.name={a2a:'Air-to-air intercooler',w2a:'Water-to-air barrel charge cooler',hx:'Front heat exchanger',oil:'Oil cooler',can:'Catch can or tank',bov:'Valve support'}[o.part]||'Part';
+  if(!(out.liq>0)&&o.fluid!=='none'&&o.vol>0){ let rho=null; try{ rho=o.fluid==='oil'?o.orho:COOLANT[o.fluid].rho/1000; }catch(e){}
+    if(rho>0) out.liq=o.vol*rho; }
+  out.m=(out.dry||0)+out.liq;
+  return out;
+}
+// the temperatures the page knows: the compressor outlet (the hottest a core's metal can run), the coolant, the air
+function mtTemps(o){
+  let t2=null, why='';
+  if(Number.isFinite(o.thot)) return {hot:o.thot,why:'as entered'};
+  try{ if(TS_LAST&&TS_LAST.R&&!TS_LAST.R.err&&Number.isFinite(TS_LAST.R.t2)&&/a2a|w2a|build/.test(o.part)){ t2=TS_LAST.R.t2; why='the Intake tab’s compressor outlet temperature (an upper bound for the core’s metal)'; } }catch(e){}
+  return t2==null?{hot:null,why:'enter the hottest the part runs'}:{hot:t2,why};
+}
+// load shares on equal, equally stiff mounts (see the comment above): about the centroid, F/n + (J+ M) x s
+function mtJacobi(A){ const a=A.map(r=>r.slice()), V=[[1,0,0],[0,1,0],[0,0,1]];
+  for(let sw=0;sw<50;sw++){ let off=0; for(let p=0;p<3;p++) for(let q=p+1;q<3;q++) off+=a[p][q]*a[p][q]; if(off<1e-24) break;
+    for(let p=0;p<3;p++) for(let q=p+1;q<3;q++){ if(Math.abs(a[p][q])<1e-30) continue;
+      const th=(a[q][q]-a[p][p])/(2*a[p][q]), t=Math.sign(th||1)/(Math.abs(th)+Math.sqrt(th*th+1)), c=1/Math.sqrt(t*t+1), s=t*c;
+      for(let k=0;k<3;k++){ const akp=a[k][p], akq=a[k][q]; a[k][p]=c*akp-s*akq; a[k][q]=s*akp+c*akq; }
+      for(let k=0;k<3;k++){ const apk=a[p][k], aqk=a[q][k]; a[p][k]=c*apk-s*aqk; a[q][k]=s*apk+c*aqk; }
+      for(let k=0;k<3;k++){ const vkp=V[k][p], vkq=V[k][q]; V[k][p]=c*vkp-s*vkq; V[k][q]=s*vkp+c*vkq; } } }
+  return {w:[a[0][0],a[1][1],a[2][2]],V}; }
+function mtShares(P,F,com){
+  const n=P.length, c=MV.mul(P.reduce((a,p)=>MV.add(a,p),[0,0,0]),1/n), S=P.map(p=>MV.sub(p,c)), M=MV.cross(MV.sub(com||[0,0,0],c),F);
+  const J=[[0,0,0],[0,0,0],[0,0,0]]; S.forEach(s=>{ const s2=MV.dot(s,s); for(let a=0;a<3;a++) for(let b=0;b<3;b++) J[a][b]+=(a===b?s2:0)-s[a]*s[b]; });
+  const E=mtJacobi(J), wmax=Math.max(...E.w), th=[0,0,0]; let free=[0,0,0];
+  for(let k=0;k<3;k++){ const v=[E.V[0][k],E.V[1][k],E.V[2][k]], m=MV.dot(v,M);
+    if(E.w[k]>1e-9*Math.max(wmax,1e-12)) for(let a=0;a<3;a++) th[a]+=v[a]*m/E.w[k]; else free=MV.add(free,MV.mul(v,m)); }
+  return {F:S.map(s=>MV.add(MV.mul(F,1/n),MV.cross(th,s))),free,centroid:c};
+}
+const mtCases=g=>{ const out=[]; [['side',0],['vertical',1],['fore-aft',2]].forEach(([nm,k])=>[1,-1].forEach(sg=>{ const a=[0,-1,0]; a[k]+=sg*g[k];
+  out.push({name:nm+' '+(k===0?(sg>0?'right':'left'):k===1?(sg>0?'up':'down'):(sg>0?'forward':'back')),a}); })); return out; };
+// material for a bracket: yield (MPa; printed: across-layer × wet × temperature factor), density, weld strength
+function mtMat(o,welded,T){
+  if(o.mat==='print'){ let m=null; try{ m=PRINT_MATS.find(x=>x.id===o.fil&&x.proc==='fdm')||PRINT_MATS.find(x=>x.proc==='fdm'); }catch(e){} if(!m) return null;
+    const pw=printWall(m,{T:Number.isFinite(T)?T:23,sf:1,p:0,D:1,b:0});
+    return {print:1,m,fy:pw.strength*pw.tf,rho:m.dens,name:m.name+', printed',src:'across layers × wet fraction × temperature factor at '+tempStr(Number.isFinite(T)?T:23)+' (the Intake tab’s printed-part rules)',tmax:m.tmax,hdt:m.hdt18}; }
+  const key=o.mat==='al6061'&&welded?'al6061w':o.mat, M=HG_MAT[key];
+  const ws=o.mat==='a36'?{s:145,src:'AWS D1.1 allowable 0.30 × FEXX, E70: 145 MPa (21 ksi)'}:o.mat==='ss304'?{s:0.577*205,src:'no filler figure verified: 304’s shear yield, 0.577 × 205 MPa, on the throat'}:
+    {s:o.filler==='5356'?117.2:79.3,src:'AlcoTec typical longitudinal fillet shear, '+(o.filler==='5356'?'5356 17.0 ksi (117.2 MPa)':'4043 11.5 ksi (79.3 MPa)'),haz:/6061/.test(o.mat)?0.577*103:null};
+  const E=o.mat==='ss304'?193000:o.mat==='a36'?205000:MT_E_AL;
+  return {fy:M.fy,rho:M.rho,name:M.name,src:M.src,key,weld:ws,E,stock:(HG_STOCK[key]||HG_STOCK[o.mat]||[]).map(x=>x*25.4)};
+}
+// a section of rectangles (u from -b/2.., f across): [{u0,u1,f0,f1}]
+function mtSec(rs){ let A=0,Au=0,Af=0; rs.forEach(r=>{ const a=(r.u1-r.u0)*(r.f1-r.f0); A+=a; Au+=a*(r.u0+r.u1)/2; Af+=a*(r.f0+r.f1)/2; });
+  const cu=Au/A, cf=Af/A; let Iu=0,If=0,J=0;
+  rs.forEach(r=>{ const w=r.u1-r.u0, h=r.f1-r.f0, mu=(r.u0+r.u1)/2-cu, mf=(r.f0+r.f1)/2-cf; Iu+=w*h*h*h/12+w*h*mf*mf; If+=h*w*w*w/12+w*h*mu*mu; const lo=Math.min(w,h), hi=Math.max(w,h); J+=hi*lo*lo*lo/3; });
+  const pts=rs.flatMap(r=>[[r.u0,r.f0],[r.u1,r.f0],[r.u0,r.f1],[r.u1,r.f1]]).map(q=>[q[0]-cu,q[1]-cf]), tmax=Math.max(...rs.map(r=>Math.min(r.u1-r.u0,r.f1-r.f0)));
+  return {A,Iu,If,J,cu,cf,pts,tmax}; }
+function mtSecStress(S,N,Mu,Mf,Mn,V){
+  let sig=0; S.pts.forEach(q=>{ sig=Math.max(sig,Math.abs(N)/S.A+Math.abs(Mu*q[1])/S.Iu+Math.abs(Mf*q[0])/S.If); });
+  const tau=1.5*Math.abs(V)/S.A+Math.abs(Mn)*S.tmax/S.J; return {sig,tau,vm:Math.sqrt(sig*sig+3*tau*tau)}; }
+// weld lines on both faces of each rectangle's long side: unit force (N/mm) at the worst end -> stress on the throat
+function mtWeldGroup(rs,N,Mu,Mf,Mn,V){
+  const L=[]; rs.forEach(r=>{ const w=r.u1-r.u0, h=r.f1-r.f0; if(w>=h){ L.push({a:[r.u0,r.f0],b:[r.u1,r.f0]},{a:[r.u0,r.f1],b:[r.u1,r.f1]}); } else { L.push({a:[r.u0,r.f0],b:[r.u0,r.f1]},{a:[r.u1,r.f0],b:[r.u1,r.f1]}); } });
+  let Lw=0,cu=0,cf=0; L.forEach(l=>{ const len=Math.hypot(l.b[0]-l.a[0],l.b[1]-l.a[1]); l.len=len; Lw+=len; cu+=len*(l.a[0]+l.b[0])/2; cf+=len*(l.a[1]+l.b[1])/2; }); cu/=Lw; cf/=Lw;
+  let Ju=0,Jf=0; L.forEach(l=>{ const u0=l.a[0]-cu,u1=l.b[0]-cu,f0=l.a[1]-cf,f1=l.b[1]-cf;
+    if(Math.abs(f1-f0)<1e-12){ Ju+=l.len*f0*f0; Jf+=(Math.pow(Math.max(u0,u1),3)-Math.pow(Math.min(u0,u1),3))/3; } else { Jf+=l.len*u0*u0; Ju+=(Math.pow(Math.max(f0,f1),3)-Math.pow(Math.min(f0,f1),3))/3; } });
+  let fr=0; L.forEach(l=>[l.a,l.b].forEach(p=>{ const u=p[0]-cu, f=p[1]-cf, fn=Math.abs(N)/Lw+Math.abs(Mu*f)/Ju+Math.abs(Mf*u)/Jf, fs=Math.abs(V)/Lw+Math.abs(Mn)*Math.hypot(u,f)/(Ju+Jf); fr=Math.max(fr,Math.hypot(fn,fs)); }));
+  return {fr,Lw}; }
+// the bolt's capacities: tension at the proof load, shear at 60% of the minimum tensile on the minor area
+function mtBoltCap(o){ const B=MT_BOLT[o.bolt], G=MT_GRADE[o.cls][B.m?'m':'u'], d3=B.d-1.226869*B.p, Am=Math.PI*d3*d3/4;
+  return {B,G,T:G[0]*B.As,V:0.6*G[1]*Am,Am,d3,hole:B.d+1}; }
+// one bracket of one type at one thickness, under every load case: the checks
+function mtBracketChecks(o,mt,br,type,t,cases){
+  const SF=mt.print?Math.max(o.sf,3):o.sf, fy=mt.fy, bc=mtBoltCap(o), hole=bc.hole, rb=br.b/2, R=o.R>0?o.R:t;
+  const b=br.b, n=br.n, u=br.u, f=MV.cross(n,u), h=br.h, s=br.s, rows=[];
+  const add=(what,load,cap,how,unit)=>rows.push({what,load,cap,sf:cap/Math.max(load,1e-9),how,unit,ok:cap>=SF*load-1e-9});
+  const worst={};
+  const keep=(k,val,c)=>{ if(!worst[k]||val>worst[k].v) worst[k]={v:val,c}; };
+  const hf=br.hf, hg=br.hg;
+  const strapR=[{u0:-b/2,u1:b/2,f0:-t/2,f1:t/2}], gusR=strapR.concat([{u0:-t/2,u1:t/2,f0:t/2,f1:t/2+hg}]), chR=strapR.concat([{u0:-b/2,u1:-b/2+t,f0:t/2,f1:t/2+hf},{u0:b/2-t,u1:b/2,f0:t/2,f1:t/2+hf}]);
+  const rootR=type==='gusset'?gusR:type==='channel'?chR:strapR, root=mtSec(rootR), strap=mtSec(strapR);
+  const light=br.light||[];
+  cases.forEach(c=>{ const F=c.F, r=MV.add(MV.mul(n,h),MV.mul(u,s)), M=MV.cross(r,F), N=MV.dot(F,n), Vu=MV.dot(F,u), Vf=MV.dot(F,f), V=Math.hypot(Vu,Vf);
+    const st=mtSecStress(root,N,MV.dot(M,u),MV.dot(M,f),MV.dot(M,n),V); keep('root',st.vm,c);
+    if(type==='gusset'&&hg<h-rb){ const r2=MV.add(MV.mul(n,h-hg),MV.mul(u,s*(1-hg/h))), M2=MV.cross(r2,F), s2=mtSecStress(strap,N,MV.dot(M2,u),MV.dot(M2,f),MV.dot(M2,n),V); keep('above',s2.vm,c); }
+    light.forEach((L,k)=>{ const y=L.y, rs=[{u0:-b/2,u1:-L.d/2,f0:-t/2,f1:t/2},{u0:L.d/2,u1:b/2,f0:-t/2,f1:t/2}].concat(type==='channel'?chR.slice(1):[]);
+      const r3=MV.add(MV.mul(n,h-y),MV.mul(u,s*(1-y/h))), M3=MV.cross(r3,F), s3=mtSecStress(mtSec(rs),N,MV.dot(M3,u),MV.dot(M3,f),MV.dot(M3,n),V); keep('light'+k,s3.vm,c); });
+    // tear-out at the part's hole: the load in the bracket's plane toward its end
+    keep('tear',Math.hypot(N,Vu),c);
+    // the part's bolt: along f through the hole
+    keep('pT',Math.abs(Vf),c); keep('pV',Math.hypot(N,Vu),c);
+    // the foot's bolts (bolted foot): the foot tips about its nearer edge; two bolts share the shear and the turn
+    if(o.att==='bolt'){ const Mu=Math.abs(MV.dot(M,u)), Mf=Math.abs(MV.dot(M,f)), Mn=Math.abs(MV.dot(M,n)), nb=br.nb, a=br.a, Lf=br.Lf;
+      const lev=Math.min(a+t,Lf-a), dn=b/2-br.sb/2, dfar=b/2+br.sb/2, Tf=nb===1?Mf/(b/2):Mf*dfar/(dn*dn+dfar*dfar);
+      keep('fT',Math.max(0,N)/nb+Mu/(lev*nb)+Tf,c); keep('fV',V/nb+(nb>1?Mn/br.sb:0),c);
+      keep('fTear',V/nb,c); }
+    else { const W=mtWeldGroup(rootR,N,MV.dot(M,u),MV.dot(M,f),MV.dot(M,n),V); keep('weld',W.fr,c); }
+    if(type==='channel'&&o.att==='bolt'&&!mt.print){ const W=mtWeldGroup(chR,N,MV.dot(M,u),MV.dot(M,f),MV.dot(M,n),V); keep('chw',W.fr,c); }
+    if(o.patt==='weld'){ const ht=rb+t, Mt=Math.abs(Vf)*ht, Mt2=Math.abs(Vu)*ht, W=mtWeldGroup(strapR,N,Mt,Mt2,0,V); keep('tab',W.fr,c); keep('tabSec',mtSecStress(strap,N,Mt,Mt2,0,V).vm,c); } });
+  const nm=c=>c?' ('+c.name+')':'';
+  add('Bracket at its root'+(type==='gusset'?', strap and gusset':type==='channel'?', U section':''),worst.root.v,fy,'von Mises stress at the worst corner, '+bothL(b)+' × '+bothL(t)+nm(worst.root.c),'MPa');
+  if(worst.chw){ const w=o.weld>0?o.weld:t, cap=mt.weld.s*0.707*w, capH=mt.weld.haz?mt.weld.haz*w:Infinity;
+    add('Fillet welds, channel to its foot plate, '+bothL(w)+' leg',worst.chw.v,Math.min(cap,capH),'line method, both faces of the web and flanges; '+mt.weld.src+' (force per mm)'+nm(worst.chw.c),'N/mm'); }
+  if(worst.above) add('Strap just above the gusset',worst.above.v,fy,bothL(hg)+' up, the strap alone'+nm(worst.above.c),'MPa');
+  light.forEach((L,k)=>add('Net section at lightening hole '+(k+1),worst['light'+k].v,fy,'Ø'+bothL(L.d)+' at '+bothL(L.y)+' up: width '+bothL(b-L.d)+' left'+nm(worst['light'+k].c),'MPa'));
+  const e=rb-hole/2;
+  add('Tearing out past the part’s hole',worst.tear.v,0.577*fy*2*e*t,bothL(e)+' of metal past the Ø'+bothL(hole)+' hole, two shear planes (0.577 × yield)'+nm(worst.tear.c),'N');
+  add('Part bolt, '+bc.B.n+' '+bc.G[2]+', tension',worst.pT.v,bc.T,'proof '+Math.round(bc.G[0])+' MPa × '+bc.B.As.toFixed(1)+' mm² stress area'+nm(worst.pT.c),'N');
+  add('Part bolt, shear',worst.pV.v,bc.V,'0.6 × '+Math.round(bc.G[1])+' MPa × '+bc.Am.toFixed(1)+' mm² minor area'+nm(worst.pV.c),'N');
+  if(o.att==='bolt'){ add('Foot bolts, tension (the foot tipping)',worst.fT.v,bc.T,br.nb+' bolt'+(br.nb>1?'s '+bothL(br.sb)+' apart':'')+', '+bothL(br.a)+' from the upright; prying not counted'+nm(worst.fT.c),'N');
+    add('Foot bolts, shear',worst.fV.v,bc.V,'shared'+(br.nb>1?', with the turn about the bracket taken by the pair':'')+nm(worst.fV.c),'N');
+    add('Tearing out past a foot hole',worst.fTear.v,0.577*fy*2*(br.Lf-br.a-hole/2)*t,bothL(br.Lf-br.a-hole/2)+' of metal past the hole'+nm(worst.fTear.c),'N'); }
+  else if(!mt.print){ const w=o.weld>0?o.weld:t, cap=mt.weld.s*0.707*w, capH=mt.weld.haz?mt.weld.haz*w:Infinity;
+    add('Fillet welds at the foot, '+bothL(w)+' leg',worst.weld.v,Math.min(cap,capH),'line method on both faces of each plate; '+mt.weld.src+(capH<cap?'; the heat-affected 6061 governs':'')+' (force per mm against strength × throat)'+nm(worst.weld.c),'N/mm'); }
+  if(o.patt==='weld'&&!mt.print){ const w=o.weld>0?o.weld:t, cap=mt.weld.s*0.707*w, capH=mt.weld.haz?mt.weld.haz*w:Infinity;
+    add('Tab welded to the tank: its welds',worst.tab.v,Math.min(cap,capH),'a '+bothL(b)+' × '+bothL(t)+' tab, hole '+bothL(rb+t)+' off the tank, welded both faces ('+bothL(2*b)+' of weld)'+nm(worst.tab.c),'N/mm');
+    add('Tab welded to the tank: the tab',worst.tabSec.v,fy,'bending at the weld'+nm(worst.tabSec.c),'MPa'); }
+  return {rows,ok:rows.every(r=>r.ok),minSF:Math.min(...rows.map(r=>r.sf)),SF,R,hole};
+}
+// a stay: two-force member between rod ends (pinned): push and pull only
+function mtStayChecks(o,mt,br,cases){
+  const SF=o.sf, D=o.stod, w=o.stw, di=D-2*w, A=Math.PI*(D*D-di*di)/4, I=Math.PI*(Math.pow(D,4)-Math.pow(di,4))/64, r=MV.add(MV.mul(br.n,br.h),MV.mul(br.u,br.s)), L=MV.len(r), e=MV.unit(r);
+  let Nt=0,Nc=0,Vx=0,Fmax=0,ct=null,cc=null; cases.forEach(c=>{ const N=MV.dot(c.F,e), V=MV.len(MV.sub(c.F,MV.mul(e,N))); if(N>Nt){ Nt=N; ct=c; } if(-N>Nc){ Nc=-N; cc=c; } Vx=Math.max(Vx,V); Fmax=Math.max(Fmax,MV.len(c.F)); });
+  const Pcr=Math.PI*Math.PI*mt.E*I/(L*L), bc=mtBoltCap(o), rows=[], add=(what,load,cap,how,unit)=>rows.push({what,load,cap,sf:cap/Math.max(load,1e-9),how,unit:unit||'N',ok:cap>=SF*load-1e-9});
+  add('Stay in tension',Nt,mt.fy*A,bothL(D)+' × '+bothL(w)+' tube, '+A.toFixed(1)+' mm²'+(ct?' ('+ct.name+')':''));
+  add('Stay in compression (Euler, pinned ends; a short stay at yield)',Nc,Math.min(Pcr,mt.fy*A),bothL(L)+' between rod-end centres, E '+Math.round(mt.E/1000)+' GPa'+(cc?' ('+cc.name+')':''));
+  add('Rod-end thread, '+bc.B.n+' '+bc.G[2],Math.max(Nt,Nc),bc.T,'proof load');
+  const wl=o.weld>0?o.weld:w; add('Weld round each threaded bung',Math.max(Nt,Nc)/(Math.PI*D),mt.weld?Math.min(mt.weld.s*0.707*wl,mt.weld.haz?mt.weld.haz*wl:Infinity):mt.fy*0.577*0.707*wl,'Ø'+bothL(D)+' round, '+bothL(wl)+' leg (force per mm)','N/mm');
+  return {rows,ok:rows.every(x=>x.ok),minSF:Math.min(...rows.map(x=>x.sf)),SF,L,A,cut:L-2*o.stre,across:Vx,acrossShare:Vx/Math.max(Fmax,1e-9)};
+}
+// the bracket's frame and the parts of its shape that do not depend on the thickness
+function mtFrame(o,m,k){
+  const pk=MT_UI.pick&&MT_UI.pick.mounts&&MT_UI.pick.mounts[k];
+  let n=MV.mul(MT_DIR[m.dir],-1), uc=null, fixed=false;
+  if(pk&&pk.dir===m.dir&&pk.n){ n=pk.n; if(pk.u_fixed){ uc=[pk.u]; fixed=true; } }
+  if(!uc){ const ax=[[1,0,0],[0,1,0],[0,0,1]].map(a=>MV.sub(a,MV.mul(n,MV.dot(a,n)))).filter(a=>MV.len(a)>0.5).map(MV.unit); uc=[ax[0],MV.cross(n,ax[0])]; }
+  return {n,uc,fixed};
+}
+function mtLightHoles(o,b,t,h,rb,R){ if(o.light!=='round') return [];
+  const d=Math.round(0.5*b*2)/2, y0=R+2*t+d/2, y1=h-rb-t-d/2, out=[]; if(y1<y0) return out;
+  const pitch=d+Math.max(t,0.25*d); for(let y=y0;y<=y1+1e-9;y+=pitch) out.push({y:+y.toFixed(3),d}); return out; }
+function mtDesign(o,mt,m,k,cases,stock){
+  const fr=mtFrame(o,m,k), bc=mtBoltCap(o), hole=bc.hole, sock=o.sock>0?o.sock:12.7;
+  const types=o.type==='auto'?(mt.print?['strap']:['strap','gusset','channel']):[o.type==='stay'&&mt.print?'strap':o.type];
+  if(o.type==='auto'&&!mt.print&&m.h>200) types.push('stay');      // this page's rule: offer a stay past 200 mm (7.9 in) of reach
+  const options=[];
+  for(const type of types) for(const u of fr.uc){
+    if(type==='stay'){ const br={n:fr.n,u,h:m.h,s:m.s}, C=mtStayChecks(o,mt,br,cases.map(c=>({name:c.name,F:c.F[k]})));
+      const mass=C.A*C.L*mt.rho/1000; options.push({type,t:o.stw,b:o.stod,u,checks:C,ok:C.ok&&C.acrossShare<0.05,mass,br}); break; }
+    let pick=null;
+    for(const t of stock){
+      const R=o.R>0?o.R:t, b=o.b>0?o.b:Math.max(20,o.nb===2?6*hole:3*hole), rb=b/2;
+      const a=Math.max(sock+1,R+t+hole/2+t), Lf=a+1.5*hole, sb=o.nb===2?3*hole:0;
+      const hf=Math.max(12.7,4*t), hg=Math.min(0.5*m.h,40);
+      if(!(m.h-(R+t)>rb+1)) continue;
+      const br={n:fr.n,u,h:m.h,s:m.s,b,nb:o.nb,sb,a,Lf,hf,hg,light:type==='channel'?[]:mtLightHoles(o,b,t,m.h,rb,R)};
+      const C=mtBracketChecks(o,mt,br,type,t,cases.map(c=>({name:c.name,F:c.F[k]})));
+      const area=b*(Lf+t+m.h)+(type==='gusset'?hg*hg/2:0)+(type==='channel'?2*hf*m.h+b*(Lf+t):0)-br.light.reduce((s2,L)=>s2+Math.PI*L.d*L.d/4,0);
+      pick={type,t,b,u,R,checks:C,ok:C.ok,mass:area*t*mt.rho/1000,br};
+      if(C.ok) break; }
+    if(pick) options.push(pick); }
+  if(!options.length) return {err:'Mount '+m.i+': the reach ('+bothL(m.h)+') is too short for a bracket with this bolt; make it longer or the bolt smaller.'};
+  const pass=options.filter(x=>x.ok).sort((a,b)=>a.mass-b.mass), best=pass[0]||options.slice().sort((a,b)=>b.checks.minSF-a.checks.minSF)[0];
+  return {best,options,fr};
+}
+function mtIdle(o){
+  if(o.rpm>0&&o.cyl>0) return {f:o.cyl*o.rpm/120,src:Math.round(o.cyl)+' cylinders at '+Math.round(o.rpm)+' RPM, entered here'};
+  try{ const sp=soundParams(); if(!sp.err&&sp.p&&sp.p.idle>0){ const kk=(sp.p.cyc==='4'?0.5:1)*sp.p.cyl; const rpm=o.rpm>0?o.rpm:sp.p.idle, cyl=o.cyl>0?o.cyl:sp.p.cyl; return {f:(sp.p.cyc==='4'?0.5:1)*cyl*rpm/60,src:'the Sound tab’s engine firing at '+Math.round(rpm)+' RPM idle'}; } }catch(e){}
+  return {f:25,src:'the 22–28 Hz idle band in the exhaust-hanger study the Hangers tab uses (MEIC-14): set the engine on the Sound tab'};
+}
+const mtTr=(r,z)=>z>0?transmiss(r,z):1/Math.abs(1-r*r);
+function mtIsolators(o,mass,shares){
+  const idle=mtIdle(o), n=shares.length, W=Math.max(...shares), T=Math.min(0.9,Math.max(0.01,o.T>0?o.T:0.2)), z=HANGERS.soft.z;
+  const fnMax=idle.f/Math.sqrt(1+1/T), kMax=mass*Math.pow(2*Math.PI*fnMax,2)/n/1000;
+  const rows=MT_AMC.map(q=>{ const P=o.iso==='s'?q.Ps:q.Pc, d=o.iso==='s'?q.ds:q.dc, k=P/d, fn=Math.sqrt(n*k*1000/mass)/(2*Math.PI), r=idle.f/fn;
+    return Object.assign({},q,{P,d,k,fn,T0:1/Math.abs(1-r*r),Tz:mtTr(r,z),loadOk:W<=P,isoOk:r>Math.SQRT2&&mtTr(r,z)<=T}); });
+  const ok=rows.filter(q=>q.loadOk&&q.isoOk).sort((a,b)=>b.k-a.k);
+  return {idle,T,fnMax,kMax,W,rows,pick:ok[0]||null,z,defl:mass*MT_G/(n*kMax)};
+}
+function mtGrowth(o,P,temps,fixIdx,iso){
+  const hot=temps.hot, dTh=Number.isFinite(hot)&&Number.isFinite(o.tinst)?hot-o.tinst:null, dTc=Number.isFinite(o.tcold)&&Number.isFinite(o.tinst)?o.tinst-o.tcold:null;
+  const F=P[fixIdx];
+  return P.map((p,i)=>{ const d=MV.len(MV.sub(p,F)); const gh=dTh!=null?MT_ALPHA_AL*d*dTh:null, gc=dTc!=null?MT_ALPHA_AL*d*dTc:null;
+    let rub=null; if(iso&&iso.pick&&gh!=null){ const q=iso.pick, ks=q.Ps/q.ds; rub={F:ks*Math.max(gh,gc||0),ok:Math.max(gh,gc||0)<=q.ds&&ks*Math.max(gh,gc||0)<=q.Ps}; }
+    return {i:i+1,d,gh,gc,fixed:i===fixIdx,rub,dir:d>0?MV.unit(MV.sub(p,F)):null}; });
+}
+function mtCalc(o){
+  const part=mtPart(o), notes=part.notes.slice();
+  if(!(part.m>0)) return {err:'Enter the part’s weight.'};
+  if(!(o.n>=2)) return {err:'At least two mounts.'};
+  for(const m of o.mounts){ if(!m.p.every(Number.isFinite)) return {err:'Fill in mount '+m.i+'’s position.'}; if(!(m.h>0)) return {err:'Fill in mount '+m.i+'’s reach to the chassis.'}; }
+  if(!(o.sf>=1)) return {err:'The safety factor has to be 1 or more.'};
+  if(!o.g.every(x=>Number.isFinite(x)&&x>=0)) return {err:'Fill in the three design accelerations (0 or more).'};
+  const P=o.mounts.map(m=>m.p), W=part.m*MT_G;
+  const st=mtShares(P,[0,-W,0]);
+  const cases=mtCases(o.g).map(c=>{ const F=MV.mul(c.a,W), S=mtShares(P,F); return {name:c.name,F:S.F,free:S.free}; });
+  const freeMax=Math.max(MV.len(st.free),...cases.map(c=>MV.len(c.free)));
+  if(freeMax>1e-6) notes.push({k:'warn',t:'The mounts lie on one line: the turn about that line ('+Math.round(freeMax/1000)+' N·m at most) is not shared by them and has to be taken by the brackets clamping the part.'});
+  const shares=st.F.map(F=>Math.max(0,-F[1]));
+  const temps=mtTemps(o);
+  const mt=mtMat(o,o.att==='weld'||o.patt==='weld',temps.hot);
+  if(!mt) return {err:'No printed material list (the Intake tab’s printing section) is loaded.'};
+  if(mt.print&&Number.isFinite(temps.hot)&&temps.hot>mt.tmax) notes.push({k:'bad',t:'Too hot to print: the part runs to '+tempStr(temps.hot)+' and '+mt.m.name+'’s suggested maximum is '+tempStr(mt.tmax)+' (the Intake tab’s printed-part rules). Use metal.'});
+  if(o.mat==='al5052'&&(o.att==='weld'||o.patt==='weld')) notes.push({k:'warn',t:'5052 is checked at its H32 yield (159 MPa); welding softens it next to the weld and no welded figure is embedded here, so leave more margin or bolt it.'});
+  const stock=mt.print?[3,4,5,6,8,10,12,15,20]:mt.stock;   // printed: from the FDM floor of 3 mm (printWall)
+  const iso=o.soft?mtIsolators(o,part.m,shares):null;
+  const grow=mtGrowth(o,P,temps,o.fix-1,iso);
+  const designs=o.mounts.map((m,k)=>mtDesign(o,mt,m,k,cases,stock));
+  const bad=designs.find(d=>d.err); if(bad) return {err:bad.err};
+  if(!o.soft) grow.forEach(g=>{ if(!g.fixed&&g.gh!=null){ const bc=mtBoltCap(o); g.slot=bc.hole+(g.gh||0)+(g.gc||0)+2; } });
+  return {o,part,notes,W,shares,cases,temps,mt,iso,grow,designs,P};
+}
+
+/* ---- flat patterns (the same construction as mounts.flat_pattern; mounts_ui.js and test_mounts.py compare them) */
+function mtTangent(B,Q,r,side){ const dx=Q[0]-B[0], dy=Q[1]-B[1], D=Math.hypot(dx,dy); if(D<=r+1e-9) throw new Error('The reach is too short for this width.');
+  const a=side*Math.asin(r/D), L=Math.sqrt(D*D-r*r), ux=dx/D, uy=dy/D, c=Math.cos(a), s=Math.sin(a); return [B[0]+L*(c*ux-s*uy),B[1]+L*(s*ux+c*uy)]; }
+function mtTab(b,y0,s,yq,rb){ const B1=[-b/2,y0], B2=[b/2,y0], Q=[s,yq], T2=mtTangent(B2,Q,rb,-1), T1=mtTangent(B1,Q,rb,1);
+  return [{t:'L',a:B1,b:B2},{t:'L',a:B2,b:T2},{t:'A',c:Q,r:rb,a0:Math.atan2(T2[1]-Q[1],T2[0]-Q[0]),a1:Math.atan2(T1[1]-Q[1],T1[0]-Q[0]),ccw:true},{t:'L',a:T1,b:B1}]; }
+function mtFlat(D){
+  const t=D.t,b=D.b,R=D.R,K=D.K,F=D.foot,rb=D.boss||b/2,y1=F.L-R,BA=Math.PI/2*(R+K*t),y2=y1+BA,hu=D.h-(R+t);
+  if(!(y1>0)||!(hu>rb)) throw new Error('The bracket is too short for its bend.');
+  const yq=y2+hu, up=mtTab(b,y2,D.s||0,yq,rb);
+  const outline=[{t:'L',a:[-b/2,0],b:[b/2,0]},{t:'L',a:[b/2,0],b:[b/2,y2]},up[1],up[2],up[3],{t:'L',a:[-b/2,y2],b:[-b/2,0]}];
+  const xs=+F.nb===1?[0]:[-F.sb/2,F.sb/2], holes=xs.map(x=>({t:'C',c:[x,y1-(F.a-R)],r:F.hole/2,what:'foot bolt'}));
+  holes.push({t:'C',c:[D.s||0,yq],r:D.hole/2,what:'part bolt'});
+  (D.light||[]).forEach(L=>holes.push({t:'C',c:[(D.s||0)*L.y/D.h,y2+L.y-(R+t)],r:L.d/2,what:'lightening hole'}));
+  return {outline,holes,bend:{start:y1,centre:y1+BA/2,end:y2,BA},length:yq+rb,width:b};
+}
+// every flat part for one bracket design (mm), with its bend lines
+function mtParts(o,d,k){
+  const B=d.best, br=B.br, nm='Mount '+(k+1); if(B.type==='stay') return [];
+  const bc=mtBoltCap(o), D={name:nm,type:B.type,t:B.t,b:br.b,hole:bc.hole,bolt:bc.B.d,R:B.R,K:o.K,h:br.h,s:br.s,foot:{nb:br.nb,sb:br.sb,hole:bc.hole,bolt:bc.B.d,a:br.a,L:br.Lf},light:br.light,hf:br.hf,hg:br.hg};
+  const out=[];
+  if(B.type==='channel'){ const t=B.t, R=B.R, W=br.b, hf=br.hf, Lc=br.h-t+W/2, BA=Math.PI/2*(R+o.K*t), fl=hf-(R+t), w0=W-2*(R+t), tot=2*fl+2*BA+w0, x0=-tot/2;   // a U: web and two flanges, bent up along its length
+    out.push({name:nm+' U channel',outline:[{t:'L',a:[x0,0],b:[-x0,0]},{t:'L',a:[-x0,0],b:[-x0,Lc]},{t:'L',a:[-x0,Lc],b:[x0,Lc]},{t:'L',a:[x0,Lc],b:[x0,0]}],
+      holes:[{t:'C',c:[0,br.h-t],r:bc.hole/2}],bends:[{x:x0+fl+BA/2},{x:-x0-fl-BA/2}],D,note:'U channel: web '+bothL(W)+', flanges '+bothL(hf)+', '+bothL(Lc)+' long; bend both flanges up 90° on the lines'});
+    const Lp=br.Lf+t+hf;
+    out.push({name:nm+' foot plate',outline:[{t:'L',a:[-W/2,0],b:[W/2,0]},{t:'L',a:[W/2,0],b:[W/2,Lp]},{t:'L',a:[W/2,Lp],b:[-W/2,Lp]},{t:'L',a:[-W/2,Lp],b:[-W/2,0]}],
+      holes:(br.nb===1?[0]:[-br.sb/2,br.sb/2]).map(x=>({t:'C',c:[x,hf+t+br.a],r:bc.hole/2})),bends:[],D,note:'foot plate: weld the channel on all round'}); return out; }
+  const fp=mtFlat(D);
+  out.push({name:nm+' bracket',outline:fp.outline,holes:fp.holes,bends:[{y:fp.bend.centre,start:fp.bend.start,end:fp.bend.end}],D,fp,note:'bend 90° on the line, '+bothL(B.R)+' inside radius'});
+  if(B.type==='gusset'){ const hg=br.hg, c=B.R+B.t; out.push({name:nm+' gusset',outline:[[c,0],[hg,0],[0,hg],[0,c]].map((p,i,a)=>({t:'L',a:p,b:a[(i+1)%4]})),holes:[],bends:[],D,note:'gusset, weld both sides'}); }
+  if(o.patt==='weld'){ const b=br.b, t=B.t, rb=b/2, ht=rb+t; out.push({name:nm+' tank tab',outline:[{t:'L',a:[-b/2,0],b:[b/2,0]}].concat(mtTab(b,0,0,ht,rb).slice(1)),holes:[{t:'C',c:[0,ht],r:bc.hole/2}],bends:[],D,note:'weld to the tank on both faces'}); }
+  return out;
+}
+// DXF: the Hangers tab's writer (outlines and holes on CUT), then the bend lines on BEND, labels and 100 mm / 4 in bars on MARKS
+function mtDxf(parts){
+  let txt=hgDxf(parts); const add=[], f=v=>(Math.abs(v)<1e-9?0:v).toFixed(4);
+  let x=0, ymax=0;
+  for(const p of parts){ const pts=HG.sample(p.outline,1), minX=Math.min(...pts.map(q=>q[0])), maxX=Math.max(...pts.map(q=>q[0])), dx=x-minX; ymax=Math.max(ymax,...pts.map(q=>q[1]));
+    (p.bends||[]).forEach(bd=>{ if(bd.y!=null) add.push('0','LINE','8','BEND','10',f(minX+dx),'20',f(bd.y),'30','0','11',f(maxX+dx),'21',f(bd.y),'31','0');
+      else add.push('0','LINE','8','BEND','10',f(bd.x+dx),'20','0','30','0','11',f(bd.x+dx),'21',f(Math.max(...pts.map(q=>q[1]))),'31','0'); });
+    add.push('0','TEXT','8','MARKS','10',f(minX+dx),'20',f(-8),'30','0','40','3','1',p.name);
+    x+=maxX-minX+15; }
+  const bar=(y,len,step,lab)=>{ add.push('0','LINE','8','MARKS','10','0','20',f(y),'30','0','11',f(len),'21',f(y),'31','0'); for(let i=0;i*step<=len+1e-9;i++) add.push('0','LINE','8','MARKS','10',f(i*step),'20',f(y),'30','0','11',f(i*step),'21',f(y+(i%2?2:4)),'31','0'); add.push('0','TEXT','8','MARKS','10',f(len+3),'20',f(y),'30','0','40','3','1',lab); };
+  bar(-20,100,10,'100 mm scale check'); bar(-34,101.6,12.7,'4 in scale check');
+  return txt.replace(/0\r\nENDSEC\r\n0\r\nEOF\r\n$/,add.join('\r\n')+'\r\n0\r\nENDSEC\r\n0\r\nEOF\r\n');
+}
+// SVG at 1:1 (mm), each part with its bend lines dashed, its overall size in both units and the 100 mm / 4 in bars
+function mtSvg(parts,title){
+  const m=12, gap=16, xe=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'), f=v=>(+v.toFixed(3)).toString();
+  const boxes=parts.map(p=>{ const q=HG.sample(p.outline,0.5); return {x0:Math.min(...q.map(a=>a[0])),x1:Math.max(...q.map(a=>a[0])),y0:Math.min(...q.map(a=>a[1])),y1:Math.max(...q.map(a=>a[1]))}; });
+  const W=Math.max(150,boxes.reduce((s,b)=>s+b.x1-b.x0+gap,0)+2*m), Hh=Math.max(...boxes.map(b=>b.y1-b.y0))+40, H=Hh+70;
+  let s='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="'+f(W)+'mm" height="'+f(H)+'mm" viewBox="0 0 '+f(W)+' '+f(H)+'" font-family="Arial, Helvetica, sans-serif">\n<rect width="100%" height="100%" fill="#fff"/>\n';
+  s+='<text x="'+m+'" y="8" font-size="3.6" font-weight="bold">'+xe(title)+'</text>\n<text x="'+m+'" y="13" font-size="2.8">Print at 100 % (Actual size, not Fit to page), then check both scale bars with a rule before you cut. Dashed: bend lines.</text>\n';
+  let x=m; parts.forEach((p,i)=>{ const B=boxes[i], T=q=>[x+q[0]-B.x0,22+B.y1-q[1]]; T.k=1;
+    s+='<path d="'+hgPath(p.outline,T)+' '+p.holes.map(h=>hgHolePath(h,T)).join(' ')+'" fill="none" stroke="#000" stroke-width="0.3"/>\n';
+    (p.bends||[]).forEach(bd=>{ if(bd.y!=null){ const a=T([B.x0,bd.y]), c=T([B.x1,bd.y]); s+='<line x1="'+f(a[0])+'" y1="'+f(a[1])+'" x2="'+f(c[0])+'" y2="'+f(c[1])+'" stroke="#000" stroke-width="0.25" stroke-dasharray="2 1.5"/>\n'; }
+      else { const a=T([bd.x,B.y0]), c=T([bd.x,B.y1]); s+='<line x1="'+f(a[0])+'" y1="'+f(a[1])+'" x2="'+f(c[0])+'" y2="'+f(c[1])+'" stroke="#000" stroke-width="0.25" stroke-dasharray="2 1.5"/>\n'; } });
+    const yb=22+B.y1-B.y0+6; s+='<text x="'+f(x)+'" y="'+f(yb)+'" font-size="2.6">'+xe(p.name)+'</text>\n<text x="'+f(x)+'" y="'+f(yb+3.6)+'" font-size="2.4">'+xe(bothL(B.x1-B.x0)+' × '+bothL(B.y1-B.y0))+'</text>\n';
+    x+=B.x1-B.x0+gap; });
+  const by=Hh+30, bar=(y,len,step,lab)=>{ let t='<line x1="'+m+'" y1="'+f(y)+'" x2="'+f(m+len)+'" y2="'+f(y)+'" stroke="#000" stroke-width="0.3"/>';
+    for(let i=0;i*step<=len+1e-9;i++) t+='<line x1="'+f(m+i*step)+'" y1="'+f(y)+'" x2="'+f(m+i*step)+'" y2="'+f(y+(i%2?2:4))+'" stroke="#000" stroke-width="0.3"/>'; return t+'<text x="'+f(m+len+3)+'" y="'+f(y+3)+'" font-size="3">'+lab+'</text>\n'; };
+  return s+bar(by,100,10,'100 mm')+bar(by+14,101.6,12.7,'4 in')+'</svg>\n';
+}
+
+/* ---- the drawings on the page: each bracket from the side with its dimensions, and the part with its mounts */
+function mtSideSvg(o,d,k){
+  const B=d.best, br=B.br, W=320, pad=16, t=B.t, h=br.h, Lf=br.Lf, sc=Math.min(150/Math.max(h,1),110/Math.max(Lf+t,1),3);
+  const X=v=>pad+40+v*sc, Y=v=>pad+10+(h+br.b/2-v)*sc, H=Math.round((h+br.b/2)*sc+pad*2+30);
+  let s='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:420px;display:block" role="img" aria-label="Mount '+(k+1)+' bracket from the side">';
+  const ln=(x1,y1,x2,y2,st)=>'<line x1="'+x1.toFixed(1)+'" y1="'+y1.toFixed(1)+'" x2="'+x2.toFixed(1)+'" y2="'+y2.toFixed(1)+'" style="'+(st||'stroke:var(--ink);stroke-width:1')+'"/>';
+  const tx=(x,y,str,anc)=>'<text x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" style="font-size:10.5px;fill:var(--ink)'+(anc?';text-anchor:'+anc:'')+'">'+esc(str)+'</text>';
+  s+=ln(X(-10),Y(0),X(Lf+t+30),Y(0),'stroke:var(--muted);stroke-dasharray:5 3')+tx(X(Lf+t+30),Y(0)+12,'chassis','end');
+  if(B.type==='stay'){ s+=ln(X(0),Y(0),X(0),Y(h),'stroke:var(--t2);stroke-width:'+Math.max(2,o.stod*sc)); }
+  else { s+='<path d="M'+X(-t).toFixed(1)+' '+Y(0).toFixed(1)+' H'+X(Lf).toFixed(1)+' V'+Y(t).toFixed(1)+' H'+X(0).toFixed(1)+' V'+Y(h+br.b/2).toFixed(1)+' H'+X(-t).toFixed(1)+' Z" style="fill:var(--t2);fill-opacity:.8;stroke:var(--ink);stroke-width:1"/>';
+    if(B.type==='gusset') s+='<path d="M'+X(0).toFixed(1)+' '+Y(t+br.hg).toFixed(1)+' L'+X(br.hg).toFixed(1)+' '+Y(t).toFixed(1)+' L'+X(0).toFixed(1)+' '+Y(t).toFixed(1)+' Z" style="fill:var(--t4);fill-opacity:.6;stroke:var(--ink);stroke-width:.8"/>';
+    if(B.type==='channel') s+='<path d="M'+X(0).toFixed(1)+' '+Y(t).toFixed(1)+' H'+X(br.hf).toFixed(1)+' V'+Y(h-br.b/2).toFixed(1)+' H'+X(0).toFixed(1)+' Z" style="fill:var(--t4);fill-opacity:.45;stroke:var(--ink);stroke-width:.8"/>';
+    s+='<circle cx="'+X(-t/2).toFixed(1)+'" cy="'+Y(h).toFixed(1)+'" r="3" style="fill:none;stroke:var(--ink)"/>';
+    s+=ln(X(br.a),Y(0)+4,X(br.a),Y(t)-6,'stroke:var(--ink);stroke-dasharray:3 2'); }
+  // dimensions
+  s+=ln(X(-t)-22,Y(0),X(-t)-22,Y(h))+ln(X(-t)-26,Y(h),X(-t)-18,Y(h))+ln(X(-t)-26,Y(0),X(-t)-18,Y(0));
+  s+=tx(X(Lf/2+10),Y(h*0.55),'reach '+bothL(h));
+  if(B.type!=='stay'){ s+=tx(X(Lf/2+10),Y(h*0.55)+14,'thickness '+bothL(t)); s+=tx(X(Lf/2+10),Y(h*0.55)+28,'foot '+bothL(Lf+t)+', bolt '+bothL(br.a)+' out'); }
+  else s+=tx(X(10),Y(h*0.55)+14,'tube '+bothL(o.stod)+' × '+bothL(o.stw));
+  return s+'</svg>';
+}
+function mtAsmSvg(r){
+  const o=r.o, p=r.part, W=360, pad=24, L=p.L||100, H=p.H||100;
+  const xs=r.P.map(q=>q[0]).concat([-L/2,L/2]), ys=r.P.map(q=>q[1]).concat([-H/2,H/2]), x0=Math.min(...xs)-70, x1=Math.max(...xs)+70, y0=Math.min(...ys)-70, y1=Math.max(...ys)+70;
+  const sc=Math.min((W-2*pad)/(x1-x0),260/(y1-y0)), Hs=Math.round((y1-y0)*sc+2*pad+16), X=v=>pad+(v-x0)*sc, Y=v=>pad+(y1-v)*sc;
+  let s='<svg viewBox="0 0 '+W+' '+Hs+'" width="100%" style="max-width:560px;display:block" role="img" aria-label="The part from the front with its mounts">';
+  s+='<rect x="'+X(-L/2).toFixed(1)+'" y="'+Y(H/2).toFixed(1)+'" width="'+(L*sc).toFixed(1)+'" height="'+(H*sc).toFixed(1)+'" '+(p.shape==='cyl'?'rx="'+(H*sc/2).toFixed(1)+'" ':'')+'style="fill:var(--well);stroke:var(--muted);stroke-width:1"/>';
+  r.P.forEach((q,i)=>{ const m=o.mounts[i], d=MT_DIR[m.dir], fx=r.grow[i].fixed, cx=X(q[0]), cy=Y(q[1]), ex=cx+d[0]*30, ey=cy-d[1]*30;
+    s+='<line x1="'+cx.toFixed(1)+'" y1="'+cy.toFixed(1)+'" x2="'+ex.toFixed(1)+'" y2="'+ey.toFixed(1)+'" style="stroke:var(--t2);stroke-width:3"/>';
+    s+='<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="5" style="fill:'+(fx?'var(--ink)':'var(--panel)')+';stroke:var(--ink);stroke-width:1.2"/>';
+    s+='<text x="'+(cx+8).toFixed(1)+'" y="'+(cy-7).toFixed(1)+'" style="font-size:10.5px;fill:var(--ink)">'+(i+1)+(fx?' fixed':'')+'</text>'; });
+  s+='<text x="'+X(-L/2).toFixed(1)+'" y="'+(Y(-H/2)+16).toFixed(1)+'" style="font-size:10.5px;fill:var(--ink)">'+esc(bothL(L)+' × '+bothL(H))+' from the front</text>';
+  return s+'</svg>';
+}
+/* ---- the rows for the turbo build sheet: tsSheet() takes these when the designer has a result */
+function mountsSheetRows(){
+  const r=MT_UI.last; if(!r||r.err||!r.o.sheet) return [];
+  const rows=[], bc=mtBoltCap(r.o);
+  r.designs.forEach((d,k)=>{ const B=d.best;
+    rows.push(['Mount '+(k+1)+' bracket ('+r.part.name+')',B.type==='stay'?'tube stay '+bothL(r.o.stod)+' × '+bothL(r.o.stw)+', '+bothL(B.checks.L)+' between rod-end centres, tube cut '+bothL(B.checks.cut):
+      ({strap:'bent strap',gusset:'bent strap with gusset',channel:'U channel on a foot plate'}[B.type])+', '+r.mt.name+' '+bothL(B.t)+' × '+bothL(B.br.b)+' wide, reach '+bothL(B.br.h),
+      'safety factor '+B.checks.minSF.toFixed(2)+' (asked '+B.checks.SF.toFixed(2)+')'+(B.ok?'':' — DOES NOT PASS')+'; '+bc.B.n+' '+bc.G[2]+' bolts'+(r.grow[k].fixed?'; fixed mount':r.o.soft?'':'; slotted '+bothL(r.grow[k].slot||0))]); });
+  if(r.iso) rows.push(['Isolators',r.iso.pick?'AMC Mecanocaucho Type A '+r.iso.pick.ref+' ('+bothL(r.iso.pick.D)+' × '+bothL(r.iso.pick.H)+', '+r.iso.pick.thr+')':'none listed fits: buy to '+mtStiff(r.iso.kMax)+' or softer per mount, '+mtN(r.iso.W)+' static',
+    'bounce at most '+r.iso.fnMax.toFixed(1)+' Hz for '+Math.round(r.iso.T*100)+'% at '+r.iso.idle.f.toFixed(1)+' Hz idle firing']);
+  return rows;
+}
+// the turbo build sheet (tsSheet, Intake tab) is wrapped here so its code is not edited: its rows plus these
+if(typeof tsSheet==='function'){ const tsSheet0=tsSheet; tsSheet=function(){ const sh=tsSheet0.apply(this,arguments); try{ if(sh){ const rows=mountsSheetRows(); if(rows.length){ sh.parts.push(...rows); sh.assume.push('Mounts: design accelerations '+MT_UI.last.o.g.join(' / ')+' g (side / vertical / fore-aft), static strength only, no fatigue check; the parts on equal mounts (see the Hangers tab’s Mounts designer).'); } } }catch(e){} return sh; }; }
+
+/* ---- the designer on the page */
+function mtFields(o){
+  const show=(id,on)=>{ const el=$(id); if(el) el.hidden=!on; };
+  document.querySelectorAll('#mt-rows .mt-row').forEach(r=>r.hidden=+r.dataset.i>o.n);
+  [...$('mt-fix').options].forEach(op=>op.hidden=+op.value>o.n);
+  show('mt-vol-w',o.fluid!=='none'); show('mt-orho-w',o.fluid==='oil'); show('mt-W-w',o.shape==='box');
+  $('mt-L-lab').textContent=o.shape==='cyl'?'Length along its axis':'Length, side to side'; $('mt-H-lab').textContent=o.shape==='cyl'?'Diameter':'Height';
+  show('mt-fil-w',o.mat==='print'); show('mt-filler-w',/^al/.test(o.mat)); ['mt-stod-w','mt-stw-w','mt-stre-w'].forEach(id=>show(id,o.type==='stay'||o.type==='auto'));
+  if(o.mat==='print'){ const sel=$('mt-fil'); try{ if(sel.dataset.filled!=='1'){ const cur=sel.value; sel.innerHTML=PRINT_MATS.filter(m=>m.proc==='fdm').map(m=>'<option value="'+m.id+'">'+esc(m.name)+'</option>').join(''); if([...sel.options].some(q=>q.value===cur)) sel.value=cur; sel.dataset.filled='1'; } }catch(e){} }
+}
+document.addEventListener('change',e=>{ if(e.target&&e.target.id==='mt-gpre'){ const g=e.target.value==='fia'?25:e.target.value==='iso'?50:null; if(g!=null) ['mt-gx','mt-gy','mt-gz'].forEach(id=>{ const el=$(id); el._b=g; showInput(el); }); }
+  const m=e.target&&/^mt-d(\d)$/.exec(e.target.id); if(m&&MT_UI.pick&&MT_UI.pick.mounts) MT_UI.pick.mounts[+m[1]-1]=null; },true);
+function mtChk(rows){ const fm=(x,v)=>x.unit==='MPa'?mtMPa(v):x.unit==='N/mm'?v.toFixed(1)+' N/mm ('+(v*5.71015).toFixed(0)+' lbf/in)':mtN(v);
+  return '<div class="tblwrap"><table><thead><tr><th>Check</th><th>Load</th><th>Holds</th><th>Safety factor</th></tr></thead><tbody>'+rows.map(x=>'<tr><td>'+esc(x.what)+'<br><small>'+esc(x.how)+'</small></td><td>'+fm(x,x.load)+'</td><td>'+fm(x,x.cap)+'</td><td class="'+(x.ok?'st-ok':'st-bad')+'">'+x.sf.toFixed(2)+(x.ok?'':' — too low')+'</td></tr>').join('')+'</tbody></table></div>'; }
+function mtRender(){
+  const out=$('mt-out'); if(!out) return;
+  const o=mtRead(); mtFields(o);
+  let r; try{ r=mtCalc(o); }catch(e){ r={err:e.message}; }
+  MT_UI.last=r;
+  if(r.err){ out.innerHTML='<div class="note bad">'+esc(r.err)+'</div>'+mtFusion(); return; }
+  const p=r.part, mt=r.mt, iso=r.iso, worstD=Math.max(...r.designs.map((d,k)=>Math.max(...r.cases.map(c=>MV.len(c.F[k])))));
+  const gmax=Math.max(...r.grow.map(g=>Math.max(g.gh||0,g.gc||0)));
+  let h='<div class="figs">'+figT('Part, as it runs',(U==='imp'?(p.m*2.20462).toFixed(1):p.m.toFixed(2)),U==='imp'?'lb':'kg',p.liq>0?'with '+mtKg(p.liq)+' of liquid':mtKg(p.m))+
+    figT('Heaviest mount, standing',Math.round(U==='imp'?Math.max(...r.shares)/4.44822:Math.max(...r.shares)),U==='imp'?'lbf':'N',mtN(Math.max(...r.shares)))+
+    figT('Design load, worst mount',Math.round(U==='imp'?worstD/4.44822:worstD),U==='imp'?'lbf':'N',mtN(worstD))+
+    (iso?figT('Isolator',iso.pick?iso.pick.ref:'buy to spec','',iso.pick?'AMC Type A '+bothL(iso.pick.D)+' × '+bothL(iso.pick.H):'at most '+mtStiff(iso.kMax)+' each'):'')+
+    figT('Heat growth, farthest mount',gmax>0?(U==='imp'?(gmax/25.4).toFixed(3):gmax.toFixed(2)):'—',gmax>0?(U==='imp'?'in':'mm'):'',gmax>0?bothL(gmax):'enter the temperatures')+'</div>';
+  h+=r.notes.map(n=>'<div class="note '+(n.k==='info'?'':n.k)+'" style="margin-top:8px">'+esc(n.t)+'</div>').join('');
+  // loads
+  h+=sec('Load on each mount','<div class="tblwrap"><table><thead><tr><th>Mount</th><th>Where</th><th>Standing</th><th>Design, worst case</th></tr></thead><tbody>'+
+    r.o.mounts.map((m,k)=>{ let wc=null,wv=-1; r.cases.forEach(c=>{ const v=MV.len(c.F[k]); if(v>wv){ wv=v; wc=c; } });
+      return '<tr><td>'+(k+1)+(r.grow[k].fixed?' (fixed)':'')+'</td><td>'+mtWhere(m.p)+'</td><td>'+mtN(r.shares[k])+'</td><td>'+mtN(wv)+'<br><small>'+esc(wc.name)+'</small></td></tr>'; }).join('')+'</tbody></table></div>'+
+    '<p class="cap">'+mtKg(p.m)+' at '+r.o.g.map(x=>x.toFixed(1)).join(' / ')+' g (side / up-down / fore-aft), gravity added, shared by '+r.o.n+' equal mounts as a rigid part on equal springs (an assumption: real mounts and brackets differ in stiffness). The 25 g default is the FIA’s figure for mounted equipment (<a href="'+MT_SRC.fia+'" target="_blank" rel="noopener">Appendix J Art. 253-7.2.2 and 7.3.6</a>: an extinguisher’s mountings “must be able to withstand a deceleration of 25 g”), a reference class, not a rule for coolers; 50 g is the ISO 16750-3 shock test as <a href="'+MT_SRC.bosch+'" target="_blank" rel="noopener">Bosch Motorsport</a> lists it (50 gn, 6 ms, a short test pulse: as a steady load it is conservative). ISO 16750-3 and SAE J1455 are paywalled and their previews give no levels, so the figure is yours to choose. The safety factor default 1.5 is the factor <a href="'+MT_SRC.cfr+'" target="_blank" rel="noopener">14 CFR 25.303</a> puts on aircraft limit loads, used here against yield (stricter than its use on ultimate).</p>');
+  // isolators
+  if(iso){ const ip=iso.pick;
+    h+=sec('Isolators','<div class="figs">'+figT('Idle firing',iso.idle.f.toFixed(1),'Hz',esc(iso.idle.src))+figT('Bounce at most',iso.fnMax.toFixed(1),'Hz','for '+Math.round(iso.T*100)+'% passed')+figT('Stiffness per mount, at most',Math.round(U==='imp'?iso.kMax*5.71015:iso.kMax),U==='imp'?'lb/in':'N/mm',mtStiff(iso.kMax))+figT('Sag at that stiffness','',bothL(iso.defl),'standing')+'</div>'+
+      (ip?'<div class="note ok" style="margin-top:8px"><b>AMC Mecanocaucho Type A '+ip.ref+'</b>, '+bothL(ip.D)+' × '+bothL(ip.H)+', '+ip.thr+': rated '+mtN(ip.P)+' at '+bothL(ip.d)+' '+(r.o.iso==='s'?'in shear':'in compression')+' ('+mtStiff(ip.k)+'); here '+mtN(iso.W)+' on the heaviest mount, bounce '+ip.fn.toFixed(1)+' Hz, '+Math.round(ip.Tz*100)+'% of the shake passed ('+Math.round(ip.T0*100)+'% undamped).</div>':
+        '<div class="note warn" style="margin-top:8px">No listed bobbin both carries '+mtN(iso.W)+' and isolates this well. Buy to this: at most '+mtStiff(iso.kMax)+' per mount '+(r.o.iso==='s'?'in shear':'in compression')+', rated for '+mtN(iso.W)+' static or more. No other catalogue is embedded.</div>')+
+      '<div class="tblwrap"><table><thead><tr><th>AMC Type A</th><th>Size</th><th>Rated</th><th>Stiffness</th><th>Bounce</th><th>Shake passed</th></tr></thead><tbody>'+
+      iso.rows.filter(q=>q.loadOk||q.P>=0.5*iso.W).map(q=>'<tr'+(ip&&q.ref===ip.ref?' class="cur"':'')+'><td>'+q.ref+'</td><td>'+bothL(q.D)+' × '+bothL(q.H)+', '+q.thr+'</td><td class="'+(q.loadOk?'':'st-bad')+'">'+mtN(q.P)+(q.loadOk?'':' — too small')+'</td><td>'+mtStiff(q.k)+'</td><td>'+q.fn.toFixed(1)+' Hz</td><td class="'+(q.isoOk?'st-ok':'st-bad')+'">'+Math.round(q.Tz*100)+'%</td></tr>').join('')+'</tbody></table></div>'+
+      '<p class="cap">Garrett: air-to-air cores are “typically soft-mounted” on rubber isolation grommets, which damp vibration and allow for thermal expansion (<a href="'+MT_SRC.garrett+'" target="_blank" rel="noopener">Garrett</a>). Bounce frequency √(n k ÷ m) ÷ 2π with k the maker’s maximum load ÷ its deflection (<a href="'+MT_SRC.amc+'" target="_blank" rel="noopener">AMC Mecanocaucho Type A, RS datasheet</a>; diameter and height read from its drawing columns); shake passed 1 ÷ |1 − r²| undamped, r = idle firing ÷ bounce, isolation only above r = √2 (<a href="'+MT_SRC.iowa+'" target="_blank" rel="noopener">University of Iowa, lecture 9</a>); the table checks it with the 0.07 damping ratio the page uses for rubber, which passes a little more. AMC says dynamic stiffness is higher than static, so the real bounce is higher than shown: leave margin. Their ratings are static: the design g-load is not a rubber rating, so put a through-bolt with a large washer as a captive stop (common practice; no maker figure). The datasheet does not name the rubber; natural rubber is rated to about '+tempStr(70)+' (the Hangers tab’s isolator table): keep the bobbins off the hot-side tank'+(Number.isFinite(r.temps.hot)?' (here up to '+tempStr(r.temps.hot)+')':'')+', or use silicone.</p>'); }
+  // heat growth
+  h+=sec('Heat growth','<div class="tblwrap"><table><thead><tr><th>Mount</th><th>From the fixed mount</th><th>Grows hot</th><th>Shrinks cold</th><th>Takes it by</th></tr></thead><tbody>'+
+    r.grow.map(g=>'<tr><td>'+g.i+'</td><td>'+bothL(g.d)+'</td><td>'+(g.gh!=null?bothL(g.gh):'—')+'</td><td>'+(g.gc!=null?bothL(g.gc):'—')+'</td><td>'+(g.fixed?'fixed':r.o.soft?(g.rub?(g.rub.ok?'the rubber in shear ('+mtN(g.rub.F)+')':'<span class="st-bad">more than the rubber’s rated shear: slot it</span>'):'the rubber in shear'):(g.slot?'a slot '+bothL(g.slot)+' long along the line from the fixed mount':'a slot'))+'</td></tr>').join('')+'</tbody></table></div>'+
+    '<p class="cap">Aluminium grows 23.2 µm per metre per °C (3003, <a href="'+MT_SRC.ames+'" target="_blank" rel="noopener">AmesWeb, from ASM’s Metals Handbook</a>) × the distance from the fixed mount × the change from '+tempStr(r.o.tinst)+' at bolt-up: hot '+(Number.isFinite(r.temps.hot)?tempStr(r.temps.hot)+' ('+esc(r.temps.why)+')':'not known: '+esc(r.temps.why))+', cold '+(Number.isFinite(r.o.tcold)?tempStr(r.o.tcold):'not entered')+' (the default cold figure is an assumption: use your climate’s). The chassis is taken to stay at the bolt-up temperature. One mount fixed, the rest free to move along the line from it'+(r.o.soft?'':': slots are the bolt hole plus the growth both ways plus 2 mm (0.08 in)')+'.</p>');
+  // brackets
+  r.designs.forEach((d,k)=>{ const B=d.best, C=B.checks, typeN={strap:'Bent strap (L bracket)',gusset:'Bent strap with a gusset',channel:'U channel on a foot plate',stay:'Tube stay with rod ends'}[B.type];
+    const optT='<div class="tblwrap"><table><thead><tr><th>Option</th><th>Thickness</th><th>Lowest safety factor</th><th>Weight</th></tr></thead><tbody>'+d.options.map(x=>'<tr'+(x===B?' class="cur"':'')+'><td>'+({strap:'strap',gusset:'gusset',channel:'U channel',stay:'stay'}[x.type])+(x.type!=='stay'&&d.options.filter(y=>y.type===x.type).length>1?', faces '+(Math.abs(x.u[0])>0.7?'side to side':Math.abs(x.u[1])>0.7?'up':'fore-aft'):'')+'</td><td>'+bothL(x.t)+'</td><td class="'+(x.ok?'st-ok':'st-bad')+'">'+x.checks.minSF.toFixed(2)+'</td><td>'+(x.mass*1000).toFixed(0)+' g ('+(x.mass*35.274).toFixed(1)+' oz)</td></tr>').join('')+'</tbody></table></div>';
+    h+=sec('Mount '+(k+1)+': '+typeN,'<div class="figs">'+figT('Thickness',U==='imp'?(B.t/25.4).toFixed(3):B.t.toFixed(2),U==='imp'?'in':'mm',bothL(B.t)+(B.type!=='stay'&&!mt.print?' stock':''))+figT('Width','',bothL(B.br.b||B.b),'')+figT('Reach','',bothL(B.br.h),B.br.s?'offset '+bothL(B.br.s):'')+figT('Lowest safety factor',C.minSF.toFixed(2),'×','asked '+C.SF.toFixed(2),C.ok?'st-ok':'st-bad')+'</div>'+
+      (B.ok?'':'<div class="note bad" style="margin-top:8px">No thickness of '+esc(mt.name)+' passes every check for this bracket: try the boxed or gusseted bracket, a wider one, two foot bolts, a larger bolt or a shorter reach.'+(B.type==='stay'&&C.acrossShare>=0.05?' A stay only pushes and pulls: '+Math.round(C.acrossShare*100)+'% of the load goes across it, so another bracket must take that (triangulate it).':'')+'</div>')+
+      mtSideSvg(o,d,k)+mtChk(C.rows)+(d.options.length>1?'<p class="sub" style="margin-top:10px">What else was tried</p>'+optT:'')+
+      '<p class="cap">'+esc(mt.name)+': '+(mt.print?esc(mt.src)+'; safety factor at least 3 (the Intake tab’s printed-part rule: prototype-grade, no fatigue data)':'yield '+mt.fy+' MPa ('+esc(mt.src)+')')+'. Fatigue is not checked: static strength under the design g-load only (no verified allowable for welded aluminium is embedded). Torsion and shear are added to the bending at the same corner, which errs safe.</p>'); });
+  // drawings and files
+  const parts=r.designs.flatMap((d,k)=>mtParts(o,d,k));
+  MT_UI.parts=parts;
+  h+=sec('Drawings and cut files',mtAsmSvg(r)+'<p class="cap">From the front: filled circle, the fixed mount; bars, the way each bracket runs. Dimensions in inches and millimetres.</p>'+
+    (parts.length?'<div class="tblwrap"><table><thead><tr><th>Cut list</th><th>Flat size</th><th>Holes</th><th>Then</th></tr></thead><tbody>'+parts.map(q=>{ const s=HG.sample(q.outline,0.5), w=Math.max(...s.map(a=>a[0]))-Math.min(...s.map(a=>a[0])), l=Math.max(...s.map(a=>a[1]))-Math.min(...s.map(a=>a[1]));
+      return '<tr><td>'+esc(q.name)+'<br><small>'+esc(mt.name)+', '+bothL(q.D.t)+'</small></td><td>'+bothL(w)+' × '+bothL(l)+'</td><td>'+q.holes.map(x=>'Ø'+bothL(2*x.r)).join(', ')+'</td><td>'+esc(q.note)+(q.fp?'; bend line '+bothL(q.fp.bend.centre)+' from the foot’s end':'')+'</td></tr>'; }).join('')+'</tbody></table></div>'+
+      (mt.print?'<p class="cap">A printed bracket: build it in Fusion and export the body; print it with the load along the layers.</p>':'<div class="actions"><button type="button" class="btn" data-mt="dxf">Save the DXF</button><button type="button" class="btn" data-mt="svg">Save the 1:1 SVG</button></div><p class="cap" id="mt-msg"></p>'+
+      '<p class="cap">The DXF is in millimetres: outlines and holes on CUT (the Hangers tab’s writer), bend lines on BEND, names and a 100 mm and a 4 in scale bar on MARKS. Flat lengths: the foot less the setback (R + t), the bend allowance (π ÷ 2)(R + K t), the upright from the bend to the hole h − (R + t). The inside radius (0: the thickness) and the K-factor (0.42) are assumptions: use your brake’s or your cutter’s figures (SendCutSend sets them per material and thickness in its bending calculator). The foot bolt sits '+bothL(r.designs[0].best.br.a||0)+' from the upright: the socket radius plus 1 mm, or the hole’s edge one thickness past the bend (this page’s rule).</p>'):'')+
+      r.designs.filter(d=>d.best.type==='stay').map((d,k)=>'<p class="cap">Stay: cut the tube '+bothL(d.best.checks.cut)+' ('+bothL(d.best.checks.L)+' between rod-end centres less '+bothL(o.stre)+' each end); rod ends rated (radial static) at least '+d.best.checks.SF.toFixed(1)+' × '+mtN(Math.max(...d.best.checks.rows.slice(0,2).map(x=>x.load)))+' (no rod-end catalogue is embedded).</p>').join(''));
+  h+=sec('Sources and what is assumed','<p class="cap">Bolts: <a href="'+MT_SRC.fastm+'" target="_blank" rel="noopener">Fastenal metric</a> (8.8: proof 580, tensile 800 MPa; 10.9: 830, 1040) and <a href="'+MT_SRC.fasti+'" target="_blank" rel="noopener">inch</a> (Grade 5: 85, 120 ksi; Grade 8: 120, 150 ksi) and their stress areas; shear at 60% of the minimum tensile strength on the minor area (<a href="'+MT_SRC.pbolt+'" target="_blank" rel="noopener">Portland Bolt</a>). Welds: <a href="'+MT_SRC.aws+'" target="_blank" rel="noopener">AWS D1.1</a> 0.30 × FEXX on the throat (0.707 × leg) for steel; <a href="'+MT_SRC.alcotec+'" target="_blank" rel="noopener">AlcoTec</a> typical fillet shear for aluminium fillers; the weld taken as a line (Blodgett’s method). Aluminium stiffness 68.3 GPa (<a href="'+MT_SRC.e6061+'" target="_blank" rel="noopener">6061-T6, Protolabs</a>), steels the pipe tab’s table. Assumptions: the part’s centre of mass at its centre; equal mount stiffness; the chassis rigid; bends at the inside radius and K-factor entered; no prying, no bearing check, no fatigue.</p>');
+  h+=mtFusion();
+  out.innerHTML=h;
+}
+function mtFusion(){
+  if(!FUSION) return '';
+  return '<div class="fx"><h3>Fusion</h3><ol class="cap" style="padding-left:20px;margin-top:0"><li>No model of the part? Click a point where its centre goes and press <b>Place a stand-in</b>: a box or cylinder the size above. Move it into place.</li>'+
+    '<li>Set the scan (and any solids) as keep-outs on this tab’s other tools; mark the turbo and exhaust hot on the Intake tab’s charge-piping block, so the brackets keep the hot clearance ('+bothL((typeof CR_UI!=='undefined'&&CR_UI.hot_gap)||50.8)+') from them.</li>'+
+    '<li>Select the part (its body), then for each mount a point on the part and a point on the chassis or scan, in pairs, and press <b>Read the mounts</b>: the reach, offset and direction of each come back here.</li>'+
+    '<li>Press <b>Build the brackets</b>: each is built in place, checked for clearance and for a straight line of access along each bolt (a socket of the radius above, not a wrench swing).</li></ol>'+
+    '<div class="actions"><button type="button" class="btn" data-mt="place">Place a stand-in</button><button type="button" class="btn" data-mt="pick">Read the mounts</button><button type="button" class="btn" data-mt="build">Build the brackets</button></div><div class="out" id="fx-out-mt">'+(MT_UI.fx?'<div class="note '+MT_UI.fx[0]+'">'+esc(MT_UI.fx[1])+'</div>':'')+
+    (MT_UI.fxBuild?'<div class="tblwrap"><table><thead><tr><th>Bracket</th><th>Reach, offset</th><th>Clearance</th><th>Tool access</th></tr></thead><tbody>'+MT_UI.fxBuild.map(b=>'<tr><td>'+esc(b.name)+'</td><td>'+bothL(b.h_mm)+', '+bothL(b.s_mm)+'</td><td class="'+(b.clear?'st-ok':'st-bad')+'">'+(b.gap_mm!=null?bothL(b.gap_mm):'—')+(b.hot_gap_mm!=null?' (hot '+bothL(b.hot_gap_mm)+')':'')+'</td><td>'+b.access.map(a=>(a.bolt==='foot'?'foot':'part')+': '+(a.clear?'clear':'blocked at '+bothL(a.blocked_mm||0))).join('; ')+'</td></tr>').join('')+'</tbody></table></div>':'')+'</div></div>';
+}
+function mtPayload(){
+  const r=MT_UI.last; if(!r||r.err) return null;
+  const o=r.o, bc=mtBoltCap(o);
+  return {part:{name:r.part.name,shape:r.part.shape,L:r.part.L,H:r.part.H,W:r.part.W},gap_mm:(typeof FX!=='undefined'&&FX.gap)||12.7,hot_gap_mm:(typeof CR_UI!=='undefined'&&CR_UI.hot_gap)||50.8,
+    socket_r_mm:o.sock,tool_mm:150,brackets:r.designs.map((d,k)=>{ const B=d.best, br=B.br;
+      return {name:'Mount '+(k+1),type:B.type,t:B.t,b:br.b||o.stod,hole:bc.hole,bolt:bc.B.d,R:B.R||B.t,K:o.K,h:br.h,s:br.s,u:B.u,n:br.n,foot:{nb:br.nb||1,sb:br.sb||0,hole:bc.hole,bolt:bc.B.d,a:br.a||0,L:br.Lf||0},
+        light:br.light||[],hf:br.hf||0,hg:br.hg||0,stay:{od:o.stod,wall:o.stw,re:o.stre},flat:B.type==='stay'||B.type==='channel'?null:mtFlat({t:B.t,b:br.b,R:B.R,K:o.K,h:br.h,s:br.s,hole:bc.hole,foot:{nb:br.nb,sb:br.sb,hole:bc.hole,a:br.a,L:br.Lf},light:br.light})}; })};
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-mt]'); if(!b) return;
+  const act=b.dataset.mt, msg=$('mt-msg'), say=(t,bad)=>{ if(msg){ msg.textContent=t; msg.className='cap'+(bad?' st-bad':''); } };
+  const r=MT_UI.last; if(!r||r.err) return;
+  const name='mounts_'+(r.part.name||'part').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  if(act==='dxf'){ const text=mtDxf(MT_UI.parts); window.__mtFile={name:name+'.dxf',text}; saveTextFile(name+'.dxf',text,'application/dxf',say); return; }
+  if(act==='svg'){ const text=mtSvg(MT_UI.parts,'Mounts: '+r.part.name+', flat patterns at 1:1'); window.__mtFile={name:name+'_1to1.svg',text}; saveTextFile(name+'_1to1.svg',text,'image/svg+xml',say); return; }
+  const fsay=(cls,t)=>{ MT_UI.fx=[cls,t]; const o2=$('fx-out-mt'); if(o2) o2.innerHTML='<div class="note '+cls+'">'+esc(t)+'</div>'; };
+  if(act==='place'){ fsay('','Placing the stand-in…'); fusionCall('mountPlace',{shape:r.part.shape,L_mm:r.part.L,H_mm:r.part.H,W_mm:r.part.W,name:r.part.name+' stand-in'}).then(res=>fsay(res&&res.ok?'ok':'bad',(res&&res.msg)||'No answer from Fusion.')); return; }
+  if(act==='pick'){ fsay('','Reading the selection…');
+    fusionCall('mountPick',{}).then(res=>{ if(!res||!res.ok){ fsay('bad',(res&&res.msg)||'No answer from Fusion.'); return; }
+      const put=(id,mm)=>{ const el=$(id); if(el&&Number.isFinite(mm)){ el._b=mm; showInput(el); } };
+      const ms=res.mounts||[], nOpt=[2,3,4,6].find(x=>x>=ms.length)||6; $('mt-n').value=String(nOpt);
+      if(res.part){ put('mt-L',res.part.L_mm); put('mt-H',res.part.H_mm); put('mt-W',res.part.W_mm); }
+      ms.forEach((m,i)=>{ put('mt-x'+(i+1),m.p_mm[0]); put('mt-y'+(i+1),m.p_mm[1]); put('mt-z'+(i+1),m.p_mm[2]); put('mt-h'+(i+1),m.h_mm); put('mt-s'+(i+1),m.s_mm); $('mt-d'+(i+1)).value=m.dir; });
+      MT_UI.pick={mounts:ms.map(m=>({dir:m.dir,n:m.n,u:m.u,u_fixed:m.u_fixed}))}; MT_UI.fx=['ok',res.msg]; renderActive(); });
+    return; }
+  if(act==='build'){ const pay=mtPayload(); if(!pay){ fsay('bad','Fix the inputs first.'); return; }
+    fsay('','Building in Fusion…');
+    fusionCall('mountBuild',pay).then(res=>{ MT_UI.fxBuild=res&&res.ok?res.brackets:null; MT_UI.fx=[res&&res.ok?(res.all_ok?'ok':'warn'):'bad',(res&&res.msg)||'No answer from Fusion.']; renderActive(); }); }
+});
+window.__mounts={mtRead,mtCalc,mtShares,mtIsolators,mtBoltCap,mtSec,mtSecStress,mtWeldGroup,mtFlat,mtParts,mtDxf,mtSvg,mtPayload,mountsSheetRows,MT_AMC,MT_BOLT,MT_UI,last:()=>MT_UI.last,
+  set:(id,v)=>{ const el=$(id); el._b=v; showInput(el); el.dispatchEvent(new Event('input',{bubbles:true})); }};
 
 /* ===== Tube skin temperature and heat clearance (docs/research/header_skin_temperature.md) =====
    Along the tube, per unit length: gas to wall by Gnielinski (Petukhov friction factor) times an enhancement for
