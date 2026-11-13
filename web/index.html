@@ -22010,7 +22010,7 @@ const BELL_RHO=101325/(287.05*298.15);
 const bell=(pn,A,B,C,cfm,lb,usd,item)=>({maker:'Bell Intercoolers',pn,type:'a2a',hp:+(cfm/1.5).toFixed(1),cfm,model:'bar-and-plate core, air cooled (“Peak Efficiency”)',
   dims:icInMm(C,B,A),bellABC:[A,B,C],mass:[+(lb*0.45359237).toFixed(2),null],lb,price:'USD '+usd,
   dp:{kPa:6.894757,kgmin:+(cfm*0.028316846592*BELL_RHO).toFixed(4)},
-  hpBasis:'Bell’s rating: '+cfm+' CFM “based on 1 psig pressure loss across the intercooler core and a charge-air pressure of 10 psig”; no horsepower from Bell; '+(cfm/1.5).toFixed(0)+' hp here = CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp (Maximum Boost), this page’s conversion',
+  hpBasis:'Bell’s rating: '+cfm+' CFM “based on 1 psig pressure loss across the intercooler core and a charge-air pressure of 10 psig”; no horsepower from Bell; '+(cfm/1.5).toFixed(0)+' hp here = CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp (Maximum Boost), this page’s conversion, which reads the CFM as air at outside density (standard cfm); Bell does not say standard or actual: read as actual cfm at its 10 psig the core moves 24.696 ÷ 14.696 = 1.68 × the mass, '+(cfm/1.5*24.696/14.696).toFixed(0)+' hp by the same rule, and its 1 psi drop at a given mass flow is 1.68² = 2.82 × lower; the page uses the standard reading, the lower rating and the higher drop',
   note:'Bell’s A × B × C = '+A+' × '+B+' × '+C+' in (thickness × height × length; “A (core thickness), B (core height) and C (core length)”), '+lb+' lb ('+(lb*0.45359237).toFixed(1)+' kg), USD '+usd+' (item page). The rated 1 psi drop is taken at standard air (Bell does not say standard or actual cfm; read as actual at 10 psig the drop at a given mass flow would be 2.82 × lower).',
   src:'https://bellintercoolers.com/i-'+item+'-bar-and-plate-cores-air-cooled-peak-efficiency.html',srcName:'Bell Intercoolers (item page; catalogue and core dimension guide)',seen:'2026-11-12',
   pub:{cons:'vacuum brazed aluminium bar and plate (“Built with the most advanced vacuum brazed aluminum alloy”)',tanks:'core only, no end tanks (a core; Bell sells tanks separately)',ptest:null,
@@ -22610,7 +22610,7 @@ function tsOptionsSection(ind,p){
     list.map(([c,i])=>{ const v=icV(c);
       const D=c.L?[c.L,c.H,c.W]:c.dims, d=x=>imp?x[0].toFixed(1)+' in':x[1]+' mm';
       const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+(c.bellABC?'; length (C, the charge flow) × height (B) × thickness (A), Bell’s C × B × A':'')+(c.dimOverall?'; overall, as the maker publishes it':'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
-      const rate=c.cfm?c.cfm+' CFM at 1 psi (6.9 kPa) loss and 10 psig (69 kPa) charge pressure; '+Math.round(c.hp)+' hp ('+Math.round(c.hp*0.7457)+' kW) by 1.5 cfm per hp (this page’s conversion)':c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
+      const rate=c.cfm?c.cfm+' CFM at 1 psi (6.9 kPa) loss and 10 psig (69 kPa) charge pressure; '+Math.round(c.hp)+' hp ('+Math.round(c.hp*0.7457)+' kW) by 1.5 cfm per hp (this page’s conversion, reading the CFM as standard cfm: Bell does not say; as actual cfm at 10 psig it would be '+Math.round(c.hp*24.696/14.696)+' hp and the drop at a given mass flow 2.82 × lower)':c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
       const P=c.point, fx=[];
       if(c.inD&&!c.barb) fx.push('end tanks '+inD(c.inD)+' in / '+inD(c.outD)+' out');
       if(P) fx.push((c.own?'your point: ':'maker’s point: ')+fl(P.m_kgmin/60)+' charge, '+tD(P.thi)+' in, '+tD(P.tho)+' out, '+(P.Q_kW!=null?kw(P.Q_kW*1000)+' rejected, ':'')+(P.cool_lpm!=null?'water '+lmin(P.cool_lpm):'outside air '+fl(P.cool_lbmin/LBMIN))+' at '+tD(P.tci));
@@ -22717,8 +22717,10 @@ function tsOptionsSection(ind,p){
      read this session (Heywood's energy-balance chapter was not available; an MIT 1944 thesis on heat to oil and two
      open-access papers could not be fetched); turbocharger bearing friction and heat soak into the oil: not quantified by any
      source read (the Serrano / Deligant papers found were behind bot checks); piston-cooling jets and BMEP: nothing sourced.
-   - Oil properties: Engineering ToolBox, "Engine Oil - Density and Specific Heat vs. Temperatures" (new engine oil, 340 to
-     400 K: 860, 848, 836, 824 kg/m³; 2.08, 2.16, 2.25, 2.34 kJ/kg K), linear between rows, clamped and flagged outside.
+   - Oil properties: Engineering ToolBox, "Engine Oil - Density and Specific Heat vs. Temperatures" (new engine oil, its whole
+     table, 260 to 400 K: 908, 896, 884, 872, 860, 848, 836, 824 kg/m³; 1.76, 1.83, 1.91, 1.99, 2.08, 2.16, 2.25, 2.34 kJ/kg K;
+     audit 3, O1: only the 340-400 K rows were here, and the caption called 67-127 °C "the table's" range), linear between
+     rows, clamped and flagged outside.
      Oil temperature drop across the cooler: dT = Q ÷ (V̇ ρ cp).
    - Conflux oil coolers: Conflux Technology, "Oil Coolers" brochure, version 1.0 (2026), supplied by the owner; figures with
      attribution only. Curves (heat transfer and oil pressure drop against oil flow) read from the PDF's vector paths with
@@ -22730,7 +22732,8 @@ function tsOptionsSection(ind,p){
      100 °C, 14 cSt): viscosity changes both heat transfer and drop, and no relation for that was read, so the drop is the
      maker's curve as published and the heat is flagged. The coolant flow is the maker's (no coolant-side correction). Inside
      the plotted flow range only; no extrapolation. Units in parallel: the flow split equally, n the smallest number whose
-     n × Q(F/n) reaches the heat load; each unit's drop is the curve at F/n.
+     n × Q(F/n) reaches the heat load; each unit's drop is the curve at F/n; each unit at the maker's coolant flow, so n
+     units take n times it (said on the page, audit 3, O2).
      Consistency check (effectiveness ≤ 1 at the maker's conditions, with the ToolBox engine-oil properties as a stand-in for
      the maker's oil): 100220 63% at 8 L/min to 23% at 40; 100219 82% to 49%; 100218 67% to 37% (shown on the page).
    - Turbo oil and water lines: Precision Turbo & Engine, "Turbocharger Installation Recommendations" (PTE_INST) and Garrett,
@@ -22748,7 +22751,7 @@ const BTUH_W=0.29307107;   // 1 BTU/hr in W
 const AN_SIZES={3:['3/16','3/8-24'],4:['1/4','7/16-20'],6:['3/8','9/16-18'],8:['1/2','3/4-16'],10:['5/8','7/8-14'],12:['3/4','1 1/16-12'],16:['1','1 5/16-12']};
 const anTxt=(d,imp)=>{ const A=AN_SIZES[d], inch=d/16, mm=inch*25.4; return '-'+d+' AN ('+(imp?inch.toFixed(3)+' in ('+mm.toFixed(2)+' mm)':mm.toFixed(2)+' mm ('+inch.toFixed(3)+' in)')+' nominal, '+(A?A[1]+' thread':'thread not in the chart')+')'; };
 // Engineering ToolBox, new engine oil: T K, rho kg/m³, cp J/kg K
-const OIL_PROPS=[[340,860,2080],[360,848,2160],[380,836,2250],[400,824,2340]];
+const OIL_PROPS=[[260,908,1760],[280,896,1830],[300,884,1910],[320,872,1990],[340,860,2080],[360,848,2160],[380,836,2250],[400,824,2340]];
 function oilProps(tC){ const T=tC+273.15, P=OIL_PROPS, n=P.length, cl=T<P[0][0]||T>P[n-1][0], Tc=Math.min(P[n-1][0],Math.max(P[0][0],T));
   for(let i=0;i<n-1;i++) if(Tc<=P[i+1][0]){ const f=(Tc-P[i][0])/(P[i+1][0]-P[i][0]); return {rho:P[i][1]+f*(P[i+1][1]-P[i][1]),cp:P[i][2]+f*(P[i+1][2]-P[i][2]),clamped:cl}; }
   return {rho:P[n-1][1],cp:P[n-1][2],clamped:cl}; }
@@ -22846,7 +22849,7 @@ function oilSection(ind,p){
     '<label class="f"><span class="lab">Oil-to-water cooler on</span><span class="inp">'+sel('olLoop',[['engine','the engine coolant loop'],['ic','the charge cooler’s loop (water-to-air intercooler)']])+'</span></label></div>'+
     '<p class="cap" id="oil-in-cap">No sourced rule for oil pump flow against RPM was found: enter the engine maker’s figure or a measured flow. Oil and coolant temperatures: blank uses '+tD(120)+' and '+tD(85)+', the test conditions of Conflux’s engine oil cooler (100218), not sourced limits; use your oil maker’s or engine maker’s figures.</p>';
   if(Fo>0&&Qn>0){ const P=oilProps(toi), V=Fo/60000, d=Qn/(V*P.rho*P.cp); O.dT=d;
-    g+=rowT('Oil temperature drop across the cooler',dT(d),kw(Qn)+' ÷ ('+lmin(Fo)+' × '+P.rho.toFixed(0)+' kg/m³ × '+(P.cp/1000).toFixed(3)+' kJ/kg K): Q = ṁ cp ΔT with new engine oil at '+tD(toi)+(P.clamped?' (outside the table’s 67-127 °C: its end row is used)':'')+' ('+link(ETB_OIL,'Engineering ToolBox')+'); oil out at '+tD(toi-d)); }
+    g+=rowT('Oil temperature drop across the cooler',dT(d),kw(Qn)+' ÷ ('+lmin(Fo)+' × '+P.rho.toFixed(0)+' kg/m³ × '+(P.cp/1000).toFixed(3)+' kJ/kg K): Q = ṁ cp ΔT with new engine oil at '+tD(toi)+(P.clamped?' (outside the table’s −13 to 127 °C: its end row is used)':'')+' ('+link(ETB_OIL,'Engineering ToolBox')+'); oil out at '+tD(toi-d)); }
   // 3. coolers
   const oilType=TSO.olType==='air'?'air':'l2l';
   if(oilType==='l2l'){
@@ -22858,7 +22861,7 @@ function oilSection(ind,p){
           (Fo<K.f[0]?'the flow, '+lmin(Fo)+', is below its plotted '+lmin(K.f[0])+': no prediction':'not reached within 8 units inside its plotted range ('+lmin(K.f[0])+' to '+lmin(K.f[n])+' per unit)'); }
         return '<tr data-oil="'+c.pn+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+esc(c.use)+'</span></td><td>Ø'+mmIn(c.dia)+' × '+mmIn(c.len)+', '+kgLb(c.kg)+' dry; oil '+anTxt(c.jic,imp)+'; coolant '+esc(c.coolConn)+'; '+esc(c.material)+'<br><span class="cap">'+esc(c.connNote)+'</span></td><td>'+
           lmin(K.f[0])+' to '+lmin(K.f[n])+': heat '+kw(K.Q[0]*1000)+' to '+kw(K.Q[n]*1000)+', oil drop '+pD(K.dp[0]*1000)+' to '+pD(K.dp[n]*1000)+'; oil ('+esc(Rr.oil)+') entering at '+tD(Rr.toi)+', coolant (EGW 25/75) entering at '+tD(Rr.tci)+', '+lmin(Rr.lpm)+' ('+Rr.kgs+' kg/s); drop at '+tD(Rr.dpT)+', '+Rr.nu+' cSt<br><span class="cap">effectiveness at the maker’s conditions (engine-oil properties as a stand-in) '+(eps[0]*100).toFixed(0)+'% to '+(eps[n]*100).toFixed(0)+'%</span></td><td>'+at+'</td></tr>'; }).join('')+'</tbody></table></div>';
-    g+='<p class="cap" id="oil-tab-cap">Lines are the maker’s curves read from its charts (about ±0.1 kW and ±0.1 kPa), “indicative performance data under representative boundary conditions”. At this build the heat is the curve × ('+tD(toi)+' − '+tD(tci)+') ÷ (the maker’s oil-in − coolant-in), the effectiveness held at the maker’s flows; the oils differ from engine oil and the coolant flow is the maker’s, so treat it as approximate. The drop is as the maker measured it with its oil and viscosity; no relation to correct it was read. Source: '+link(CFX_SRC,CFXO_NAME)+', pages 4 to 6; '+esc(OIL_LIB[0].pub)+'.</p>';
+    g+='<p class="cap" id="oil-tab-cap">Lines are the maker’s curves read from its charts (about ±0.1 kW and ±0.1 kPa), “indicative performance data under representative boundary conditions”. At this build the heat is the curve × ('+tD(toi)+' − '+tD(tci)+') ÷ (the maker’s oil-in − coolant-in), the effectiveness held at the maker’s flows; units in parallel share the oil flow equally and each needs the maker’s coolant flow, so n units take n times it; the oils differ from engine oil and the coolant flow is the maker’s, so treat it as approximate. The drop is as the maker measured it with its oil and viscosity; no relation to correct it was read. Source: '+link(CFX_SRC,CFXO_NAME)+', pages 4 to 6; '+esc(OIL_LIB[0].pub)+'.</p>';
     g+='<label class="f span2"><span class="lab">Pick an oil cooler</span><span class="inp">'+sel('olRow',[['','None']].concat(OIL_LIB.map((c,i)=>[String(i),c.maker+' '+c.pn])))+'</span></label>';
     const C=TSO.olRow!==''?OIL_LIB[+TSO.olRow]:null; O.c=C;
     if(C){ const Rr=C.rated, S=Fo>0&&Qn>0?oilSize(C,Fo,Qn,toi,tci):null, U=S&&S.ok; O.pick=U||null;
