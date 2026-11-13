@@ -15172,8 +15172,19 @@ function mtAsmSvg(r){
   return s+'</svg>';
 }
 /* ---- the rows for the turbo build sheet: tsSheet() takes these when the designer has a result */
+// audit 3 (S1): the rows go on the sheet only when the designer has been set up (an input moved off its default, or mounts
+// read from Fusion), and they are worked out again from its inputs when the sheet is made. Before, opening the Hangers tab
+// once put the designer's untouched example (a 7 kg core on four mounts) on the turbo build sheet, and a later intercooler
+// pick on the Intake tab left the sheet with the brackets of the earlier one.
+function mtUsed(){ if(MT_UI.pick) return true; const card=$('mt-card'); if(!card) return false;
+  return [...card.querySelectorAll('input[id^="mt-"],select[id^="mt-"]')].some(el=>{
+    if(el.tagName==='SELECT'){ const d=[...el.options].find(q=>q.defaultSelected)||el.options[0]; return !!d&&el.value!==d.value; }
+    if(el.dataset.kind){ const bs=el.dataset.base, def=bs===undefined||bs===''?null:+bs, cur=Number.isFinite(el._b)?el._b:null;
+      return def===null?cur!==null:cur===null||Math.abs(cur-def)>1e-9*Math.max(1,Math.abs(def)); }
+    return el.value!==el.defaultValue; }); }
 function mountsSheetRows(){
-  const r=MT_UI.last; if(!r||r.err||!r.o.sheet) return [];
+  if(!mtUsed()) return [];
+  let r=null; try{ r=mtCalc(mtRead()); }catch(e){ r=null; } if(!r||r.err||!r.o.sheet) return [];
   const rows=[], bc=mtBoltCap(r.o);
   r.designs.forEach((d,k)=>{ const B=d.best;
     rows.push(['Mount '+(k+1)+' bracket ('+r.part.name+')',B.type==='stay'?'tube stay '+bothL(r.o.stod)+' × '+bothL(r.o.stw)+', '+bothL(B.checks.L)+' between rod-end centres, tube cut '+bothL(B.checks.cut):
@@ -15184,7 +15195,7 @@ function mountsSheetRows(){
   return rows;
 }
 // the turbo build sheet (tsSheet, Intake tab) is wrapped here so its code is not edited: its rows plus these
-if(typeof tsSheet==='function'){ const tsSheet0=tsSheet; tsSheet=function(){ const sh=tsSheet0.apply(this,arguments); try{ if(sh){ const rows=mountsSheetRows(); if(rows.length){ sh.parts.push(...rows); sh.assume.push('Mounts: design accelerations '+MT_UI.last.o.g.join(' / ')+' g (side / vertical / fore-aft), static strength only, no fatigue check; the parts on equal mounts (see the Hangers tab’s Mounts designer).'); } } }catch(e){} return sh; }; }
+if(typeof tsSheet==='function'){ const tsSheet0=tsSheet; tsSheet=function(){ const sh=tsSheet0.apply(this,arguments); try{ if(sh){ const rows=mountsSheetRows(); if(rows.length){ sh.parts.push(...rows); sh.assume.push('Mounts: design accelerations '+mtRead().g.join(' / ')+' g (side / vertical / fore-aft), static strength only, no fatigue check; the parts on equal mounts (see the Hangers tab’s Mounts designer).'); } } }catch(e){} return sh; }; }
 
 /* ---- the designer on the page */
 function mtFields(o){

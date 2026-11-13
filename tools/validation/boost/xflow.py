@@ -212,6 +212,19 @@ def main(page_json, yaml_path):
         res['tip'] = se.p - PATM
         su = pipe_back(gas, mP, sec['d'], sec['L'], o['xb'], T0x_t, se); res['tail'] = su.p - se.p; s = su
         mf = o['muf']
+
+        def step(s, d_up, d_dn, T0s, m):
+            """An abrupt change of bore, from d_up to d_dn, given the downstream state's static pressure: enlargement by
+            the compressible Borda-Carnot momentum balance, contraction by Rennels' sharp contraction on the small end's head."""
+            A1, A2 = A(d_up), A(d_dn); s2 = state_p(gas, m, A2, s.p, T0s)
+            if d_dn > d_up:
+                a = A1 / A2; g = s2.g; psi = lambda M: 1 + (g - 1) / 2 * M * M
+                rhs = (1 + g * s2.M ** 2) / (s2.M * math.sqrt(psi(s2.M)))
+                M1 = brentq(lambda M: (1 + g * M * M * a) / (M * a * math.sqrt(psi(M))) - rhs, s2.M, 0.999999)
+                p1 = s2.p * s2.M * math.sqrt(psi(s2.M)) / (M1 * a * math.sqrt(psi(M1)))
+                return state_p(gas, m, A1, p1, T0s)
+            bb = d_dn / d_up; lam = 1 + 0.622 * (1 - 0.215 * bb * bb - 0.785 * bb ** 5); K = 0.0696 * (1 - bb ** 5) * lam * lam + (lam - 1) ** 2
+            return state_p0(gas, m, A1, s2.p0 + K * s2.q, T0s)
         if abs(sec['d'] - mf['d']) >= 0.05:   # the step from the muffler pipe to the tail
             A1, A2 = A(mf['d']), A(sec['d']); s2 = state_p(gas, mP, A2, s.p, T_muf)
             if sec['d'] > mf['d']:
@@ -232,6 +245,9 @@ def main(page_json, yaml_path):
         else:
             n = min(1.66, max(0.31, 4 * (mf['por'] / 100) * mf['plugL'] / mf['d'])); Kt = 3.136 * n ** -1.391 + 2.208 * n ** -1.5818
         su = lump(gas, mP, Am, s2, lambda u: Kt * u.q); res['muf'] = su.p - s2.p; s = su
+        # audit 3: the step from the downpipe to the muffler's pipe when they differ (the merge's two cases had none)
+        if abs(o['d'] - mf['d']) >= 0.05:
+            s1 = step(s, o['d'], mf['d'], T_muf, me); res['step0'] = s1.p - s.p; s = s1
         # the downpipe (one turbo, all in one pipe here)
         sd = state_p(gas, me, A(o['d']), s.p, T0x_dp(o['L'] / 1000))
         su = pipe_back(gas, me, o['d'], o['L'], o['n90'], T0x_dp, sd); res['dp'] = su.p - sd.p; s = su
@@ -244,7 +260,14 @@ def main(page_json, yaml_path):
         bp = su.p - PATM
         print('\n%s: back pressure %.3f Pa here, %.3f Pa on the page (%.2e); total %.3f / %.3f Pa; tip T0 %.4f / %.4f K; cone %.1f deg'
               % (name, bp, pg['bp'], bp / pg['bp'] - 1, su.p0 - PATM, pg['bp0'], T_tip, pg['T0tip'], K[1]))
+        seen = set()
         for r in pg['rows']:
+            k = r['k']
+            if k == 'step' and 'step0' in res and 'step0' not in seen and pg['rows'].index(r) < [q['k'] for q in pg['rows']].index('muf'):
+                k = 'step0'
+            seen.add(k)
+            if k in res:
+                r = dict(r, k=k)
             if r['k'] in res:
                 print('  %-5s here %12.3f  page %12.3f  (%.2e)' % (r['k'], res[r['k']], r['dp'], (res[r['k']] - r['dp']) / max(abs(r['dp']), 1)))
 
