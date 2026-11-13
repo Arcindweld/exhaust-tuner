@@ -24043,7 +24043,7 @@ function mfdCalc(o){
   return out;
 }
 let MFD_LAST=null;
-const MFD_UI={run:'',clr:'',open:''};
+const MFD_UI={run:'',clr:'',open:'',fx:null};
 function mfdFlange(H){
   if(!H) return null; const f=String(H.flange||''), P=n=>FLANGE_PRESETS.find(x=>x.name.indexOf(n)===0)||null;
   if(/^T3/.test(f)){ const a=P('T3 (turbozentrum)'), b=P('T3 (Ace)'); return {name:'T3',area:61*44,rect:[61,44],div:false,src:a&&a.src,src2:b&&b.src,
@@ -24150,7 +24150,7 @@ function mfdSection(ind,p){
   // 10. drawing and cut list
   h+=(X.svg=mfdSvg(X,o,F));
   h+='<p class="cap">Schematic plan, not to scale; dimensions in both units. One manifold'+(o.nt>1?' of '+o.nt:'')+'.</p>';
-  h+=mfdCutHtml(X,o);
+  h+=mfdCutHtml(X,o)+mfdFxHtml(X,o);
   h+='<details style="margin-top:10px"><summary><b>Sources and what is this page’s</b></summary><p class="cap">Sourced: Garrett '+L_(MFD_TT102,'Turbo Tech 102')+' (design tips, divided pairing, cracking of tubular manifolds); BorgWarner '+L_(MFD_BWTT,'twin-scroll tech tip')+'; MacInnes, Allard, Humphries and Bell as quoted by '+L_(MFD_AS,'AutoSpeed')+' (the books were not read); '+['304','321','347','625'].map(k=>L_(MFD_MAT[k].src,MFD_MAT[k].srcName)).join(', ')+'; '+L_(MFD_ELSRC,'Ace Stainless Supply')+' (B16.9 elbows, 10S and 40S); '+L_(MFD_PTE,'Precision')+' and '+L_(MFD_SINCO,'SINCO')+' (support). This page’s physics: the gas speed and Mach, the loss march, the volume, the planar lengths, the skin temperature and the growth. Not found: a speed or Mach limit for turbo runners, a merge angle rule with a number, the T4 divided and V-band port openings, a slip-joint or bellows sizing rule, a mild-steel scaling limit, the turbo’s mass.</p></details>';
   return sec(title,h);
 }
@@ -24190,8 +24190,30 @@ function mfdCutHtml(X,o){
   return '<details style="margin-top:10px"><summary><b>Cut list</b>: '+els+' B16.9 90° elbows ('+(Math.abs(X.R-C.lr)<0.5?'long':'short')+' radius, '+esc(C.label)+')</summary><div class="tblwrap"><table id="mfd-cut"><thead><tr><th>Cylinder</th><th>Each elbow cut to</th><th>Arc on the centre line / outside / inside</th><th>Straight between, then to add</th></tr></thead><tbody>'+
     per.map(q=>'<tr><td>'+q.cy+'</td><td>'+(q.S.th>0?'2 × '+q.S.th.toFixed(1)+'°':'none')+'</td><td>'+(q.S.th>0?inMm(arc(q.S.th))+' / '+inMm((X.R+od/2)*q.S.th*Math.PI/180)+' / '+inMm(Math.max(0,(X.R-od/2)*q.S.th*Math.PI/180)):'')+'</td><td>'+inMm(q.S.s)+', then '+inMm(q.extra)+'</td></tr>').join('')+'</tbody></table></div><p class="cap">Elbows from '+L_mfd(MFD_ELSRC,'Ace Stainless Supply’s B16.9 sheet')+' ('+C.lb+' lb each at 90°); a 90° elbow cut to an angle keeps the same radius. Mark the arcs along the outside and inside as the cut list above does for mandrel bends.</p></details>';
 }
+// Fusion: the header router with the turbo manifold's settings (fusion-addin/turbomani.py; act_route mode 'turbomani')
+function mfdFxPayload(X,o){
+  const C=X.c, W=TS_PLACE&&TS_PLACE.wg, M0=X.LY.mf[0], idx=c=>M0.cyls.indexOf(c);
+  return {mode:'turbomani',title:'Turbo manifold',od_mm:C.od,wall_mm:C.wall,clr_mm:X.R,target_mm:X.L>0?X.L:null,gap_mm:CR_UI.hot_gap,gap_tt_mm:3.175,
+    max_bend_deg:C.kind==='pipe'?90:180,elbows:C.kind==='pipe',merge_len_mm:mfdMergeLen(C.id*Math.sqrt(X.scr[0].length),X.dcol),collector_len_mm:o.colL,
+    collector_out_mm:X.dcol+2*C.wall,scrolls:o.mani==='div'&&X.scr.length>1?X.scr.map(g=>g.map(idx)):null,
+    gate:W&&W.type==='ext'&&W.pick?{bore_mm:W.pick,lo_mm:Math.max(0,W.lo),hi_mm:W.hi}:null,time_s:40};
+}
+function mfdFxHtml(X,o){
+  if(o.mani==='log'||!(X.L>0)) return '';
+  const M0=X.LY.mf[0], fx=MFD_UI.fx;
+  return '<details style="margin-top:10px"'+(fx?' open':'')+'><summary><b>Route it from a scan in Fusion</b></summary><ol class="list">'+
+    '<li>Set the scan as keep-outs (Charge piping from your scan, or the Fabrication tab’s auto-route); the runners keep the hot clearance, '+clen(CR_UI.hot_gap)+', from it.</li>'+
+    '<li>Draw a marker line at each exhaust port, from its centre outward, and select them in cylinder order: '+M0.cyls.join(', ')+'.</li>'+
+    '<li>Draw '+(o.mani==='div'&&X.scr.length>1?'a marker at each scroll of the turbine flange, from its centre into the turbine, and select them last in scroll order ('+X.scr.map(g=>g.join('+')).join(', then ')+')':'a marker at the turbine inlet flange, from its centre into the turbine, and select it last')+'.</li>'+
+    '<li>Route: the header router takes each runner to '+clen(X.L)+' on '+cdim(X.R)+' bends'+(X.c.kind==='pipe'?' (at most 90° each, one elbow)':'')+' into a collector '+clen(mfdMergeLen(X.c.id*Math.sqrt(X.scr[0].length),X.dcol)+o.colL)+' long before the flange marker. The wastegate branch is not routed (the router has no branch off a collector): place it from the window above.</li></ol>'+
+    '<div class="actions"><button type="button" class="btn" data-mfdfx="1">Route the manifold in Fusion</button></div>'+
+    (fx?'<div class="note '+(fx.ok?(fx.route_ok===false?'warn':'ok'):'bad')+'">'+esc(fx.msg||'No answer from Fusion.')+'</div>'+(fx.items&&fx.items.length?'<div class="tblwrap"><table><thead><tr><th>Part</th><th>Length</th><th>OK</th></tr></thead><tbody>'+fx.items.map(it=>'<tr><td>'+esc(it.name||'')+'</td><td>'+(it.length>0?clen(it.length*10):'')+'</td><td>'+(it.ok===false?'<span class="st-bad">no</span>':'yes')+'</td></tr>').join('')+'</tbody></table></div>':''):'')+'</details>';
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-mfdfx]'); if(!b||!MFD_LAST) return;
+  MFD_UI.fx={ok:true,msg:'Routing in Fusion…'}; const pay=mfdFxPayload(MFD_LAST,MFD_LAST.o); window.__mfdPay=pay;
+  fusionCall('route',pay).then(res=>{ MFD_UI.fx=res||{ok:false,msg:'No answer from Fusion.'}; renderActive(); }); });
 const L_mfd=(u,t)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>';
-if(typeof window!=='undefined') window.__mfd={calc:mfdCalc,layout:mfdLayout,smin:mfdSmin,strain:mfdStrain,cands:mfdCands,inputs:mfdInputs,flange:mfdFlange,last:()=>MFD_LAST,ELS:MFD_ELS,MAT:MFD_MAT,UI:MFD_UI,stock:()=>bendStock(),eng:()=>engineFrom('i'),presets:()=>FLANGE_PRESETS};
+if(typeof window!=='undefined') window.__mfd={calc:mfdCalc,layout:mfdLayout,smin:mfdSmin,strain:mfdStrain,cands:mfdCands,inputs:mfdInputs,flange:mfdFlange,last:()=>MFD_LAST,ELS:MFD_ELS,MAT:MFD_MAT,UI:MFD_UI,stock:()=>bendStock(),eng:()=>engineFrom('i'),presets:()=>FLANGE_PRESETS,payload:()=>MFD_LAST?mfdFxPayload(MFD_LAST,MFD_LAST.o):null};
 /* ----- Turbo build, step by step (2026-11-12, the owner's "usable without learning a bunch of stuff") -----
    A checklist at the top of the Intake tab when the induction is a turbo or a centrifugal supercharger: the steps in the
    order a builder decides them, each with one plain line read from what the sections below already worked out (TG, TS_LAST,
@@ -25100,7 +25122,7 @@ const PROJ_VEH=['v-mode','v-class','v-make','v-pick'];
 const projUiCopy=(o,skip)=>{ const r={}; for(const k in o){ if(skip.includes(k)) continue; const v=o[k]; if(typeof v==='function') continue; r[k]=v; } return JSON.parse(JSON.stringify(r)); };
 const PROJ_UI={   // the per-section settings kept with a project: [object, keys left out]
   wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
-  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open']]};
+  es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open','fx']]};
 function projLoadAll(){ try{ const a=JSON.parse(localStorage.getItem(PROJ_KEY)||'[]'); return Array.isArray(a)?a.filter(p=>p&&p.data&&p.name):[]; }catch(e){ return []; } }
 function projStoreAll(a){ try{ localStorage.setItem(PROJ_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 function projSnapshot(name){

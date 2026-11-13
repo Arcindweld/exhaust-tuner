@@ -52,6 +52,7 @@ try:
     from . import roundcheck as RND
     from . import chargeroute as CRT
     from . import mounts as MNT
+    from . import turbomani as TMN
 except ImportError:          # loaded as a top-level module (the add-in's folder is on sys.path)
     import router as RT
     import templates as TPL
@@ -64,6 +65,7 @@ except ImportError:          # loaded as a top-level module (the add-in's folder
     import roundcheck as RND
     import chargeroute as CRT
     import mounts as MNT
+    import turbomani as TMN
 
 PALETTE_ID = 'exhaustTunerPalette'
 PANEL_CMD_ID = 'exhaustTunerPanelCmd'
@@ -2128,7 +2130,9 @@ def _route_bundle180(data, sp, mk, scene, log, notes, title):
 
 def act_route(data):
     """Auto-route through the keep-outs (a scan). mode: 'single' (select a start and an end marker),
-    'header' (select each port marker, then the collector marker last), 'bundle180' (eight port markers in
+    'header' (select each port marker, then the collector marker last), 'turbomani' (the port markers in cylinder
+    order, then the turbine inlet flange marker, or one per scroll: turbomani.py, the header router with the page's turbo
+    manifold settings), 'bundle180' (eight port markers in
     cylinder order, then both collector markers: the 180-degree template) or 'parts' (start and end,
     with the page's parts in line)."""
     t0 = __import__('time').time()
@@ -2149,15 +2153,16 @@ def act_route(data):
                              'the %d Y merges (in the order the page lists the pairs), then the collector marker last: '
                              '%d markers in all, %d are selected. Draw each from the centre the way the gas flows.' % (
                                  nport, len(grp), nport + len(grp) + 1, len(mk)))
+    nfl = TMN.check_markers(data, len(mk)) if mode == 'turbomani' else 1   # the turbine flange markers come last
     if mode == 'header' and len(mk) < 2:
         raise ValueError('Select a marker line at each port, then the collector marker last. Draw each from '
                          'the centre the way the gas flows: out of the port, and into the collector.')
     ends = mk[-1]
     if mode != 'bundle180':
-        for m in mk[:-1]:
+        for m in mk[:-nfl]:
             _sign(m, ends['p'])
         if not ends['signed']:
-            c = tuple(sum(m['p'][k] for m in mk[:-1]) / (len(mk) - 1) for k in range(3))
+            c = tuple(sum(m['p'][k] for m in mk[:-nfl]) / (len(mk) - nfl) for k in range(3))
             if _dot(ends['d'], _sub(ends['p'], c)) < 0:
                 ends['d'] = _neg(ends['d'])
     reach = (sp['target'] or 0) / 2.0 + 10.0
@@ -2211,6 +2216,22 @@ def act_route(data):
         elif len(lens) > 1:
             msg += '; lengths within %.2f mm of each other' % (10 * (max(lens) - min(lens)))
         msg += '.' if res['ok'] else '. Some primaries need attention (see below).'
+    elif mode == 'turbomani':
+        res = TMN.route(scene, [(m['p'], m['d']) for m in mk[:-nfl]], [(m['p'], m['d']) for m in mk[-nfl:]], data, rspec, log=log)
+        comp = _new_component(title)
+        for j in res['jobs']:
+            for i, r in zip(j['ports'], j['res']['primaries']):
+                nm = 'Runner %d' % (i + 1)
+                if r and r.get('elems'):
+                    built.append(_build_route(comp, r, nm, od, wall, title + '_runner'))
+                items.append(_route_item(nm, r or {}, sp['gap'], od, data))
+            col = j['res'].get('collector')
+            if col:
+                built.append(_merge_collector(comp, col, j['res']['slots'], od, wall, j['name'], notes, j['spec'].get('lead_end')))
+                if col.get('min_gap') is not None and col['min_gap'] < sp['gap']:
+                    notes.append('%s comes within %.2f cm of the scan.' % (j['name'], col['min_gap']))
+        notes.extend(res['notes'])
+        msg = res['msg']
     elif mode == 'triy':
         grp = [[int(i) for i in g] for g in data['groups']]
         nport = sum(len(g) for g in grp)
