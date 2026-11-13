@@ -1308,7 +1308,9 @@ fn turbine_face(k: &K, p: &mut Pipe, at_: f64, ag: f64, pt: f64, pg: f64, eta: f
         let pc = pp * powf(jj / ((1.0 + k2) * c), 1.0 / exc);
         let pbv;
         let (u1, r1, _, t01, p01) = at(pc);
-        if af * r1 * u1 - noz(p01, t01) <= 0.0 {
+        if u >= c {
+            pbv = pp;
+        } else if af * r1 * u1 - noz(p01, t01) <= 0.0 {
             pbv = pc;
         } else {
             let (mut lo, mut hi) = (pc, ps);
