@@ -30,6 +30,8 @@ Options:
   --flaky F             default tests/flaky.txt
   --no-skip-allowed a,b these tests must not skip at all, whatever the expected-skips file says
   --list                print the plan and stop
+  --skip-slow           leave out the tests in SLOW below (minutes each) for a quick local run; they are named in
+                        the table's footer as not run. CI does not use it: a full run has them
   --write-timings       write this run's seconds into tools/test_timings.json (for --shard)
   --merge DIR...        no tests: one table (results.txt/.json/.md in --out) from several runs' results (CI shards)
 
@@ -62,6 +64,7 @@ SUITES = ('build', 'rust', 'web', 'fusion', 'parity')
 # files in web/tests that are not tests
 NOT_TESTS = {
     'skip.js': 'the shared skip helper the tests require',
+    'settle.js': 'the shared helper for race-free page reads ($eval after the page stops re-rendering)',
     'capture_wave_jobs.js': 'writes fixtures/wave_jobs.json for wave_wasm.js (a generator, run by hand)',
 }
 WEB_BAD = re.compile(r'^FAIL|FAILS|FAILED|PAGEERROR|Error:| BAD |overflow [0-9]|panel looks empty', re.M)
@@ -170,6 +173,11 @@ OTHER = (('cfd/*_vs_py.py', 'root'), ('cfd/*_vs_py.js', 'root'), ('cfd/test_*.py
 # files the patterns find that are not run, each with the reason (shown by --list and in every results table, so an
 # exclusion is never silent); remove the line once the reason is gone
 EXCLUDED = {
+}
+# tests --skip-slow leaves out, each with the reason (a quick local run only; CI and a plain run have them)
+SLOW = {
+    'test_header_uel': 'about 230 s: the router searches run to their node and iteration limits (time_budget 1e9, deterministic)',
+    'test_native': 'minutes: the Rust core against the Python on every route, also without a clock limit',
 }
 # and these, which are checks with their own command line
 CHECKS = (('gen_rust_templates_check', ['cfd/gen_rust_templates.py', '--check']),
@@ -371,7 +379,8 @@ def summarize(rows, unexpected, stale, seconds):
     count = lambda s: sum(r['status'] == s for r in rows)
     summary = {'tests': len(rows), 'pass': count('PASS') + count('PASS+SKIP'), 'flaky': count('FLAKY'), 'fail': count('FAIL'),
                'skip': count('SKIP'), 'partial_skips': sum(len(r['partial_skips']) for r in rows),
-               'unexpected_skips': unexpected, 'expected_skip_not_seen': stale, 'excluded': EXCLUDED, 'seconds': seconds}
+               'unexpected_skips': unexpected, 'expected_skip_not_seen': stale, 'excluded': EXCLUDED, 'seconds': seconds,
+               'skipped_slow': {}}
     summary['result'] = 'ok' if summary['fail'] == 0 and not unexpected else 'FAILED'
     return summary
 
@@ -407,6 +416,8 @@ def render(rows, summary, skips_file):
                     % (skips_file, ', '.join(summary['unexpected_skips'])))
     for n, why in sorted(summary.get('excluded', {}).items()):
         tail.append('not run (tools/run_all_tests.py EXCLUDED): %s: %s' % (n, why))
+    for n, why in sorted(summary.get('skipped_slow', {}).items()):
+        tail.append('not run (--skip-slow): %s: %s' % (n, why))
     if summary['expected_skip_not_seen']:
         tail.append('expected to skip here but ran: %s (the expected-skips entry may be out of date)'
                     % ', '.join(summary['expected_skip_not_seen']))
@@ -460,6 +471,7 @@ def main():
     ap.add_argument('--flaky', default=os.path.join(ROOT, 'tests', 'flaky.txt'))
     ap.add_argument('--no-skip-allowed', default='')
     ap.add_argument('--list', action='store_true')
+    ap.add_argument('--skip-slow', action='store_true')
     ap.add_argument('--write-timings', action='store_true')
     ap.add_argument('--merge', nargs='+', metavar='DIR', help='combine these runs\' results.json into one table in --out')
     a = ap.parse_args()
@@ -477,6 +489,10 @@ def main():
         rx = re.compile(a.only)
         tests = [t for t in tests if rx.search(t.name)]
     tests = [t for t in tests if t.suite in suites]
+    slow_left = {}
+    if a.skip_slow:
+        slow_left = {t.name: SLOW[t.name] for t in tests if t.name in SLOW}
+        tests = [t for t in tests if t.name not in SLOW]
     # builds that the selected tests need come along, whatever --suite/--only say; --no-build drops them all
     need = set().union(*[t.needs for t in tests]) if tests else set()
     want_build = {'host': 'build_host', 'core': 'build_et_core', 'wasm': 'build_wave_wasm'}
@@ -512,6 +528,8 @@ def main():
             print('%-30s %-7s not a test: %s' % (f, 'web', why))
         for n, why in sorted(EXCLUDED.items()):
             print('%-30s %-7s NOT RUN: %s' % (n, '', why))
+        for n, why in sorted(slow_left.items()):
+            print('%-30s %-7s NOT RUN (--skip-slow): %s' % (n, '', why))
         if shard_load is not None:
             print('shard %s: %d tests, about %.0f s by tools/test_timings.json' % (a.shard, len(rest), shard_load))
         return 0
@@ -579,6 +597,7 @@ def main():
     order = [t.name for t in builds + rest]
     rows = [results[n] for n in order]
     summary = summarize(rows, unexpected, stale, round(time.time() - t_start, 1))
+    summary['skipped_slow'] = slow_left
     text, md = render(rows, summary, os.path.relpath(a.expected_skips, ROOT))
     open(os.path.join(a.out, 'results.txt'), 'w', encoding='utf-8').write(text)
     open(os.path.join(a.out, 'results.md'), 'w', encoding='utf-8').write(md)

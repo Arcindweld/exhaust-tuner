@@ -12,6 +12,8 @@ const fs = require('fs');
   const FX = JSON.parse(fs.readFileSync(__dirname + '/fixtures/chargeroute_reply.json', 'utf8'));
   const PAR = JSON.parse(fs.readFileSync(__dirname + '/fixtures/chargeroute_parity.json', 'utf8'));
   const pg = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs = []; pg.on('pageerror', e => errs.push(e.message));
+  // pg.$eval / pg.$$eval read in one call after the page has stopped re-rendering (tests/settle.js; audit F1)
+  require('./settle').reads(pg);
   await pg.goto('file://' + process.cwd() + '/index.html');
   await pg.evaluate(() => { location.hash = 'intake'; }); await pg.waitForTimeout(400);
   // ---- in a browser: where it runs

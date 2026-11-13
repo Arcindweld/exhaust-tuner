@@ -24543,7 +24543,9 @@ function renderIntake(){
 /* ===== tabs, events, copy ===== */
 const TABS={'quick':{panel:'panel-quick',tab:'tab-quick',render:renderQuick},'four-stroke':{panel:'panel-four',tab:'tab-four',render:renderFour},'two-stroke':{panel:'panel-two',tab:'tab-two',render:renderTwo},'sound':{panel:'panel-sound',tab:'tab-sound',render:renderSound},'headers':{panel:'panel-headers',tab:'tab-headers',render:renderHeaders},'crossover':{panel:'panel-cross',tab:'tab-cross',render:renderCross},'mufflers':{panel:'panel-muf',tab:'tab-muf',render:renderMuf},'cats':{panel:'panel-cat',tab:'tab-cat',render:renderCat},'boom-tubes':{panel:'panel-boom',tab:'tab-boom',render:renderBoom},'hangers':{panel:'panel-hang',tab:'tab-hang',render:renderHang},'intake':{panel:'panel-intake',tab:'tab-intake',render:renderIntake},'parts':{panel:'panel-parts',tab:'tab-parts',render:renderParts},'options':{panel:'panel-opt',tab:'tab-opt',render:renderOpt}};
 let cur='quick';
-function renderActive(){ syncShapes(); TABS[cur].render(); if(cur==='headers') renderPieCut(); }
+// window.__renderCount: renders finished so far, for the tests only (web/tests/settle.js waits until it stops moving
+// before it reads the page); nothing on the page reads it
+function renderActive(){ syncShapes(); TABS[cur].render(); if(cur==='headers') renderPieCut(); window.__renderCount=(window.__renderCount||0)+1; }
 function showTab(){
   const h=location.hash.replace('#','');
   cur=TABS[h]?h:'quick';
