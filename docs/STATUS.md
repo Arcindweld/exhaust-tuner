@@ -1728,5 +1728,6 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Flaky tests: turbosize_ui read a node the page had just replaced (a $eval is two round trips; the ResizeObserver
   re-renders on the next frame): reads are one evaluate now. test_header_uel and test_native depended on the router's
   wall-clock budget: they pass time_budget 1e9 (no clock limit) and are deterministic; the router is unchanged.
+- Suites (web, fusion, -j 2): 140 tests, 134 passed, 0 failed, 6 skipped (expected), 7 partial skips, 0 unexpected.
 - Open: Bowman's drop at the build's density (1.34 x at the default build), an aluminium weld allowable, a choked-exit
   back pressure, Bell item-page weights, Setrab's fan-pack rows; test_native's edit is unrun here (no Rust core).

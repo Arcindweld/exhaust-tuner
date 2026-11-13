@@ -586,3 +586,6 @@ Cost: test_header_uel 57 s → 220 s here. test_native needs the Rust core, whic
 - Bowman's drop at the build's density (C3); an Aluminum Design Manual allowable for aluminium fillet welds (M6); exact
   torsion constants for short rectangles (M3); a choked-exit back pressure (X10); Bell's item-page weights and Setrab's
   four fan-pack rows (not re-read); test_native's change is unrun here.
+
+Suites after Part 2 (run_all_tests.py --suite web,fusion --no-build -j 2): 140 tests, 134 passed, 0 flaky, 0 failed,
+6 skipped (expected), 7 partial skips, 0 unexpected skips.
