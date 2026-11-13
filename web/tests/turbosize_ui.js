@@ -80,7 +80,12 @@ const { chromium } = require('playwright');
   const pg = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs = []; pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900);
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
-  const secText = () => pg.$eval('#i-details .sec[data-sec="inlet-and-charge-pipes-design-and-sizing"]', e => e.innerText).catch(() => '');
+  // One evaluate per read: pg.$eval queries the element and then reads it in a second round trip, and the page's
+  // ResizeObserver re-renders #i-details on the next animation frame (requestAnimationFrame(renderActive)), so on a busy
+  // machine the read could land on the replaced, detached node, whose innerText has no line breaks (the "1.775 with the
+  // small inlet tube" check then missed its "\n" while the number was right). Querying and reading in one call is atomic.
+  const q = (sel, fn) => pg.evaluate(([s, f]) => { const e = document.querySelector(s); if (!e) throw new Error('no element ' + s); return (0, eval)('(' + f + ')')(e); }, [sel, fn.toString()]);
+  const secText = () => q('#i-details .sec[data-sec="inlet-and-charge-pipes-design-and-sizing"]', e => e.innerText).catch(() => '');
   await pg.evaluate(() => { document.body.classList.add('expert'); document.body.classList.remove('simple'); });
   await setv('i-ind', 'turbo'); await pg.waitForTimeout(400);
 
@@ -142,22 +147,22 @@ const { chromium } = require('playwright');
   ok(/Compressor pressure ratio\s*\n\s*1\.708/.test(t), 'page: pressure ratio 1.708');
   ok(/Total loss, filter to throttle\s*\n\s*2\.28 psi \(15\.72 kPa\)/.test(t), 'page: total 2.28 psi (15.72 kPa)');
   ok(/Air leaving the compressor\s*\n\s*215 °F \(102 °C\)/.test(t) && /212 °F \(100 °C\) without the inlet loss/.test(t), 'page: outlet temperature with and without the inlet loss');
-  const cp = await pg.$eval('#i-details .sec[data-sec="charge-pipes"]', e => e.innerText);
+  const cp = await q('#i-details .sec[data-sec="charge-pipes"]', e => e.innerText);
   ok(/Pressure lost, compressor to throttle\s*\n\s*2\.11 psi/.test(cp), 'existing Charge pipes section still 2.11 psi (14,533.6 Pa)');
   const rec = await pg.evaluate(() => ['ts-tbl-in', 'ts-tbl-hot', 'ts-tbl-cold'].map(id => { const r = document.querySelector('#' + id + ' tr[data-rec]'); return r ? r.dataset.od : null; }));
   ok(rec.join() === '3.00,3.00,3.00', 'size tables recommend 3.00 in for inlet, hot and cold (' + rec.join() + ')');
-  const tblTxt = await pg.$eval('#ts-tbl-hot', e => e.innerText);
+  const tblTxt = await q('#ts-tbl-hot', e => e.innerText);
   ok(/2\.87 in \(72\.9 mm\)/.test(tblTxt) && /292 ft\/s \(89 m\/s\)/.test(tblTxt) && /0\.26 psi \(1\.76 kPa\)/.test(tblTxt), 'hot table row: ID, speed and loss in both units');
-  const svgTxt = await pg.$eval('#ts-svg', e => e.textContent);
+  const svgTxt = await q('#ts-svg', e => e.textContent);
   ok(/ID 3\.50 in \(88\.9 mm\)/.test(svgTxt) && /24\.0 in \(610 mm\) long/.test(svgTxt) && /ID 2\.37 in \(60\.2 mm\)/.test(svgTxt) && /cone 5\.2 in \(131 mm\)/.test(svgTxt), 'schematic: every diameter and length in inches and mm');
   ok(/pressure ratio 1\.708/.test(svgTxt) && /Total 2\.28 psi/.test(svgTxt), 'schematic: pressure ratio and total');
   // metric display gives both units too
   await pg.click('#u-met'); await pg.waitForTimeout(300); t = await secText();
-  ok(/15\.72 kPa \(2\.28 psi\)/.test(t) && /88\.9 mm \(3\.50 in\)/.test(await pg.$eval('#ts-svg', e => e.textContent)), 'metric: dual units kept');
+  ok(/15\.72 kPa \(2\.28 psi\)/.test(t) && /88\.9 mm \(3\.50 in\)/.test(await q('#ts-svg', e => e.textContent)), 'metric: dual units kept');
   await pg.click('#u-imp'); await pg.waitForTimeout(300);
   // transitions on the page
   await setv('i-cid', '3'); await setv('i-cod', '2'); await setv('i-ici', '2.5'); await setv('i-ico', '2.5'); await pg.waitForTimeout(300);
-  const steps = await pg.$eval('#ts-steps', e => e.innerText);
+  const steps = await q('#ts-steps', e => e.innerText);
   ok(/13\.0° included/.test(steps) && /8\.0° included/.test(steps) && /K 0\.152/.test(steps) && /K 0\.083/.test(steps), 'size-change table: cones and sudden steps');
   t = await secText(); ok(/Compressor pressure ratio\s*\n\s*1\.712/.test(t) && /2\.34 psi \(16\.10 kPa\)/.test(t), 'page: transitions in the total and the ratio (1.712, 16.10 kPa)');
   await setv('i-cpstep', 'step'); await pg.waitForTimeout(300); t = await secText();
@@ -170,7 +175,7 @@ const { chromium } = require('playwright');
   await setv('i-dt', '3.5'); await setv('i-cid', '');
   // separate cold side on the page
   await setv('i-cpd2', '2.87'); await pg.waitForTimeout(300); t = await secText();
-  ok(/Compressor pressure ratio\s*\n\s*1\.687/.test(t) && /ID 2\.87 in \(72\.9 mm\)/.test(await pg.$eval('#ts-svg', e => e.textContent)), 'page: separate cold side (1.687)');
+  ok(/Compressor pressure ratio\s*\n\s*1\.687/.test(t) && /ID 2\.87 in \(72\.9 mm\)/.test(await q('#ts-svg', e => e.textContent)), 'page: separate cold side (1.687)');
   await setv('i-cpd2', '');
   // Use these sizes
   await pg.click('button[data-tsuse]'); await pg.waitForTimeout(400);
@@ -204,13 +209,13 @@ const { chromium } = require('playwright');
   near(g.tb7.Ft, 3.082948, 1e-5, 'turbine flow parameter'); near(g.tb5.ER, 1.430263, 1e-6, 'expansion ratio at eta 0.55'); near(g.tb5.wg, 0.494028, 1e-5, 'wastegate share at eta 0.55');
   near(g.ntu, 4.446118, 1e-6, 'NTU for eps 0.75 at Cr 0.955 (cross-flow unmixed, exact series)'); near(g.eps, 0.75, 1e-9, 'and back');
   await setv('i-hp', '450'); await setv('i-icam', '60'); await setv('i-icrdp', '1.5'); await setv('i-icrf', '40'); await pg.waitForTimeout(400);
-  t = await pg.$eval('#i-details .sec[data-sec="turbo-and-intercooler-sizing"]', e => e.innerText);
+  t = await q('#i-details .sec[data-sec="turbo-and-intercooler-sizing"]', e => e.innerText);
   ok(/5,600\s+57\.3 lb\/min \(0\.433 kg\/s\)\s+55\.1 lb\/min \(0\.417 kg\/s\)\s+1\.708/.test(t) && /3,500\s+35\.8 lb\/min/.test(t), 'demand line: two points with corrected flow and PR');
   ok(/41\.8 hp \(31\.1 kW\)/.test(t) && /70%\s+1\.32\s+4\.73 psi/.test(t) && /60%\s+65%\s+3\.083/.test(t), 'compressor power and turbine sweep rows on the page');
-  const icx = await pg.$eval('#i-details .sec[data-sec="intercooler-sizing"]', e => e.innerText);
+  const icx = await q('#i-details .sec[data-sec="intercooler-sizing"]', e => e.innerText);
   ok(/1421 BTU\/min \(25\.0 kW\)/.test(icx) && /0\.955/.test(icx) && /4\.45/.test(icx) && /1935 W\/K/.test(icx) && /3\.08 psi \(21\.22 kPa\)/.test(icx), 'intercooler: heat, Cr, NTU, UA, scaled core drop');
   await setv('i-teff', '68'); await pg.waitForTimeout(300);
-  ok(await pg.$eval('#ts-turb', e => /68% \(yours\)/.test(e.innerText)), 'a typed turbine efficiency is added and marked');
+  ok(await q('#ts-turb', e => /68% \(yours\)/.test(e.innerText)), 'a typed turbine efficiency is added and marked');
   for (const id of ['i-hp', 'i-icam', 'i-icrdp', 'i-icrf', 'i-teff']) await setv(id, '');
   // phase 3: where the valves go on this build
   const pl = await pg.evaluate(() => { const T = window.__turbo, g = 1.279849224790532, Re = 286.6291525445435;
@@ -241,7 +246,7 @@ const { chromium } = require('playwright');
   await setv('i-wgtype', 'ext');
   await setv('i-ind', 'centri'); await pg.waitForTimeout(300); P = await place(); ok(!P.wg && !P.wgint && /cold side/.test(P.bov), 'centrifugal blower: blow-off valve only, no wastegate');
   await setv('i-ind', 'turbo');
-  t = await pg.$eval('#i-details', e => e.innerText);
+  t = await q('#i-details', e => e.innerText);
   // 2026-11-12: turbine inlet pressure as a multiple of boost (i-tipk, default 2 = the figures above). By hand, eta 0.75,
   // from the 2 x case: the turbine's need Wc / (me cp T3 eta) = 0.3710464 x (1 - (101325 / 211641)^0.218658) = 0.0551947
   // ((g - 1) / g = 0.279849 / 1.279849). At k: p3 = 101325 + k 55158; share = 1 - 0.0551947 / (1 - (101325 / p3)^0.218658);
@@ -256,7 +261,7 @@ const { chromium } = require('playwright');
     cap: (document.getElementById('ts-wgk-cap') || {}).innerText || '', size: (document.querySelector('#ts-place tr[data-place="wgsize"]') || {}).innerText || '',
     flow: [...document.querySelectorAll('#i-details .r')].map(x => x.innerText).find(x => /Wastegate flow at peak power/.test(x)) || '', turb: document.getElementById('ts-turb').innerText.split('\n')[0] })); };
   let W = await wgk();
-  ok(await pg.$eval('#i-tipk', e => e._b === 2), 'turbine inlet pressure input defaults to 2 x boost');
+  ok(await q('#i-tipk', e => e._b === 2), 'turbine inlet pressure input defaults to 2 x boost');
   ok(W.rows.map(r => r[0]).join() === '2,2.25,2.5' && W.rows[0][1] && /1244 mm²/.test(W.rows[0][2]) && /63%/.test(W.rows[0][2]) && /1218 mm²/.test(W.rows[1][2]) && /66%/.test(W.rows[1][2]) && /1186 mm²/.test(W.rows[2][2]) && /68%/.test(W.rows[2][2]),
     'range table at 2, 2.25, 2.5 x boost: share 63 / 66 / 68 %, area 1244 / 1218 / 1186 mm² (yours: 2): ' + W.rows.map(r => r[2].replace(/\s+/g, ' ')).join(' | ').slice(0, 200));
   ok(/upper-side estimate/.test(W.cap) && /largest area in that range is at 2 × boost/.test(W.cap) && /inlet at 2 × boost \(Bell’s lower figure\)/.test(W.flow), 'the page says the gate size is an upper-side estimate under the 2 x assumption, largest at 2 x');

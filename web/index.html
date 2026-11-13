@@ -14777,7 +14777,9 @@ window.__hang={HG,HANG,hgRead,hgParts,hgDxf,hgPayload,hgStrength,HG_GROM,HG_MAT,
      fn = sqrt(n k / m) / 2 pi. Transmissibility undamped T = 1 / |1 - r^2|, r = f / fn (standard single-degree-of-
      freedom result; isolation needs r > sqrt 2, University of Iowa 58:153 lecture 9); with the page's rubber damping
      ratio 0.07 (the HANGERS table) the damped T is higher above sqrt 2 and is the one checked. Target T -> fn at most
-     f / sqrt(1 + 1/T), k per mount at most m (2 pi fn)^2 / n. Isolators: AMC Mecanocaucho Type A bobbins, the maker's
+     f / r_T, r_T the root above sqrt 2 of the damped T(r) = T: with x = r^2, T^2 x^2 - (2 T^2 + 4 z^2 (1 - T^2)) x + T^2 - 1
+     = 0 (audit 3, M2: the undamped inversion r = sqrt(1 + 1/T) gave a stiffness whose damped T missed the target, 21.1%
+     against 20%); z = 0 gives sqrt(1 + 1/T). k per mount at most m (2 pi fn)^2 / n. Isolators: AMC Mecanocaucho Type A bobbins, the maker's
      maximum static load and deflection in compression and shear (RS datasheet 0900766b81586730; columns A diameter,
      B height read from the drawing); stiffness taken as load ÷ deflection (secant). AMC: dynamic stiffness is higher than
      static, so the real bounce frequency is higher than this.
@@ -14900,7 +14902,7 @@ function mtMat(o,welded,T){
     return {print:1,m,fy:pw.strength*pw.tf,rho:m.dens,name:m.name+', printed',src:'across layers × wet fraction × temperature factor at '+tempStr(Number.isFinite(T)?T:23)+' (the Intake tab’s printed-part rules)',tmax:m.tmax,hdt:m.hdt18}; }
   const key=o.mat==='al6061'&&welded?'al6061w':o.mat, M=HG_MAT[key];
   const ws=o.mat==='a36'?{s:145,src:'AWS D1.1 allowable 0.30 × FEXX, E70: 145 MPa (21 ksi)'}:o.mat==='ss304'?{s:0.577*205,src:'no filler figure verified: 304’s shear yield, 0.577 × 205 MPa, on the throat'}:
-    {s:o.filler==='5356'?117.2:79.3,src:'AlcoTec typical longitudinal fillet shear, '+(o.filler==='5356'?'5356 17.0 ksi (117.2 MPa)':'4043 11.5 ksi (79.3 MPa)'),haz:/6061/.test(o.mat)?0.577*103:null};
+    {s:o.filler==='5356'?117.2:79.3,src:'AlcoTec typical longitudinal fillet shear, '+(o.filler==='5356'?'5356 17.0 ksi (117.2 MPa)':'4043 11.5 ksi (79.3 MPa)')+': a typical breaking strength, not an allowable like the steel weld’s 0.30 × FEXX or a yield like the brackets’, so this row’s safety factor is on failure',haz:/6061/.test(o.mat)?0.577*103:null};
   const E=o.mat==='ss304'?193000:o.mat==='a36'?205000:MT_E_AL;
   return {fy:M.fy,rho:M.rho,name:M.name,src:M.src,key,weld:ws,E,stock:(HG_STOCK[key]||HG_STOCK[o.mat]||[]).map(x=>x*25.4)};
 }
@@ -14957,7 +14959,7 @@ function mtBracketChecks(o,mt,br,type,t,cases){
   if(worst.chw){ const w=o.weld>0?o.weld:t, cap=mt.weld.s*0.707*w, capH=mt.weld.haz?mt.weld.haz*w:Infinity;
     add('Fillet welds, channel to its foot plate, '+bothL(w)+' leg',worst.chw.v,Math.min(cap,capH),'line method, both faces of the web and flanges; '+mt.weld.src+' (force per mm)'+nm(worst.chw.c),'N/mm'); }
   if(worst.above) add('Strap just above the gusset',worst.above.v,fy,bothL(hg)+' up, the strap alone'+nm(worst.above.c),'MPa');
-  light.forEach((L,k)=>add('Net section at lightening hole '+(k+1),worst['light'+k].v,fy,'Ø'+bothL(L.d)+' at '+bothL(L.y)+' up: width '+bothL(b-L.d)+' left'+nm(worst['light'+k].c),'MPa'));
+  light.forEach((L,k)=>add('Net section at lightening hole '+(k+1),worst['light'+k].v,fy,'Ø'+bothL(L.d)+' at '+bothL(L.y)+' up: width '+bothL(b-L.d)+' left; nominal net-section stress, no stress concentration factor (the usual basis for static yield of a ductile metal; the hole’s edge stress, about 2–3 × this, matters for fatigue, which is not checked)'+nm(worst['light'+k].c),'MPa'));
   const e=rb-hole/2;
   add('Tearing out past the part’s hole',worst.tear.v,0.577*fy*2*e*t,bothL(e)+' of metal past the Ø'+bothL(hole)+' hole, two shear planes (0.577 × yield)'+nm(worst.tear.c),'N');
   add('Part bolt, '+bc.B.n+' '+bc.G[2]+', tension',worst.pT.v,bc.T,'proof '+Math.round(bc.G[0])+' MPa × '+bc.B.As.toFixed(1)+' mm² stress area'+nm(worst.pT.c),'N');
@@ -14976,9 +14978,13 @@ function mtBracketChecks(o,mt,br,type,t,cases){
 function mtStayChecks(o,mt,br,cases){
   const SF=o.sf, D=o.stod, w=o.stw, di=D-2*w, A=Math.PI*(D*D-di*di)/4, I=Math.PI*(Math.pow(D,4)-Math.pow(di,4))/64, r=MV.add(MV.mul(br.n,br.h),MV.mul(br.u,br.s)), L=MV.len(r), e=MV.unit(r);
   let Nt=0,Nc=0,Vx=0,Fmax=0,ct=null,cc=null; cases.forEach(c=>{ const N=MV.dot(c.F,e), V=MV.len(MV.sub(c.F,MV.mul(e,N))); if(N>Nt){ Nt=N; ct=c; } if(-N>Nc){ Nc=-N; cc=c; } Vx=Math.max(Vx,V); Fmax=Math.max(Fmax,MV.len(c.F)); });
-  const Pcr=Math.PI*Math.PI*mt.E*I/(L*L), bc=mtBoltCap(o), rows=[], add=(what,load,cap,how,unit)=>rows.push({what,load,cap,sf:cap/Math.max(load,1e-9),how,unit:unit||'N',ok:cap>=SF*load-1e-9});
+  // Euler for a slender stay, Johnson's parabola below the transition slenderness sqrt(2 pi^2 E / fy) (audit 3, M4: the
+  // page took the lesser of Euler and yield, which overstates an intermediate column: 3/4 x 0.065 in steel at 300 mm,
+  // L/k 48.6 against 127.7, Johnson 20764 N, the old figure 22381 N at yield)
+  const kr=Math.sqrt(I/A), sl=L/kr, slc=Math.sqrt(2*Math.PI*Math.PI*mt.E/mt.fy), johnson=sl<slc;
+  const Pcr=johnson?A*(mt.fy-Math.pow(mt.fy/(2*Math.PI),2)*sl*sl/mt.E):Math.PI*Math.PI*mt.E*I/(L*L), bc=mtBoltCap(o), rows=[], add=(what,load,cap,how,unit)=>rows.push({what,load,cap,sf:cap/Math.max(load,1e-9),how,unit:unit||'N',ok:cap>=SF*load-1e-9});
   add('Stay in tension',Nt,mt.fy*A,bothL(D)+' × '+bothL(w)+' tube, '+A.toFixed(1)+' mm²'+(ct?' ('+ct.name+')':''));
-  add('Stay in compression (Euler, pinned ends; a short stay at yield)',Nc,Math.min(Pcr,mt.fy*A),bothL(L)+' between rod-end centres, E '+Math.round(mt.E/1000)+' GPa'+(cc?' ('+cc.name+')':''));
+  add('Stay in compression ('+(johnson?'Johnson’s parabola':'Euler')+', pinned ends)',Nc,Pcr,bothL(L)+' between rod-end centres, slenderness L/k '+sl.toFixed(1)+(johnson?' below':' above')+' the '+slc.toFixed(1)+' where Euler takes over, E '+Math.round(mt.E/1000)+' GPa'+(cc?' ('+cc.name+')':''));
   add('Rod-end thread, '+bc.B.n+' '+bc.G[2],Math.max(Nt,Nc),bc.T,'proof load');
   const wl=o.weld>0?o.weld:w; add('Weld round each threaded bung',Math.max(Nt,Nc)/(Math.PI*D),mt.weld?Math.min(mt.weld.s*0.707*wl,mt.weld.haz?mt.weld.haz*wl:Infinity):mt.fy*0.577*0.707*wl,'Ø'+bothL(D)+' round, '+bothL(wl)+' leg (force per mm)','N/mm');
   return {rows,ok:rows.every(x=>x.ok),minSF:Math.min(...rows.map(x=>x.sf)),SF,L,A,cut:L-2*o.stre,across:Vx,acrossShare:Vx/Math.max(Fmax,1e-9)};
@@ -15026,7 +15032,8 @@ function mtIdle(o){
 const mtTr=(r,z)=>z>0?transmiss(r,z):1/Math.abs(1-r*r);
 function mtIsolators(o,mass,shares){
   const idle=mtIdle(o), n=shares.length, W=Math.max(...shares), T=Math.min(0.9,Math.max(0.01,o.T>0?o.T:0.2)), z=HANGERS.soft.z;
-  const fnMax=idle.f/Math.sqrt(1+1/T), kMax=mass*Math.pow(2*Math.PI*fnMax,2)/n/1000;
+  const T2=T*T, bq=2*T2+4*z*z*(1-T2), rT=Math.sqrt((bq+Math.sqrt(bq*bq-4*T2*(T2-1)))/(2*T2));   // damped T(r) = T, the root above sqrt 2
+  const fnMax=idle.f/rT, kMax=mass*Math.pow(2*Math.PI*fnMax,2)/n/1000;
   const rows=MT_AMC.map(q=>{ const P=o.iso==='s'?q.Ps:q.Pc, d=o.iso==='s'?q.ds:q.dc, k=P/d, fn=Math.sqrt(n*k*1000/mass)/(2*Math.PI), r=idle.f/fn;
     return Object.assign({},q,{P,d,k,fn,T0:1/Math.abs(1-r*r),Tz:mtTr(r,z),loadOk:W<=P,isoOk:r>Math.SQRT2&&mtTr(r,z)<=T}); });
   const ok=rows.filter(q=>q.loadOk&&q.isoOk).sort((a,b)=>b.k-a.k);
@@ -15165,8 +15172,19 @@ function mtAsmSvg(r){
   return s+'</svg>';
 }
 /* ---- the rows for the turbo build sheet: tsSheet() takes these when the designer has a result */
+// audit 3 (S1): the rows go on the sheet only when the designer has been set up (an input moved off its default, or mounts
+// read from Fusion), and they are worked out again from its inputs when the sheet is made. Before, opening the Hangers tab
+// once put the designer's untouched example (a 7 kg core on four mounts) on the turbo build sheet, and a later intercooler
+// pick on the Intake tab left the sheet with the brackets of the earlier one.
+function mtUsed(){ if(MT_UI.pick) return true; const card=$('mt-card'); if(!card) return false;
+  return [...card.querySelectorAll('input[id^="mt-"],select[id^="mt-"]')].some(el=>{
+    if(el.tagName==='SELECT'){ const d=[...el.options].find(q=>q.defaultSelected)||el.options[0]; return !!d&&el.value!==d.value; }
+    if(el.dataset.kind){ const bs=el.dataset.base, def=bs===undefined||bs===''?null:+bs, cur=Number.isFinite(el._b)?el._b:null;
+      return def===null?cur!==null:cur===null||Math.abs(cur-def)>1e-9*Math.max(1,Math.abs(def)); }
+    return el.value!==el.defaultValue; }); }
 function mountsSheetRows(){
-  const r=MT_UI.last; if(!r||r.err||!r.o.sheet) return [];
+  if(!mtUsed()) return [];
+  let r=null; try{ r=mtCalc(mtRead()); }catch(e){ r=null; } if(!r||r.err||!r.o.sheet) return [];
   const rows=[], bc=mtBoltCap(r.o);
   r.designs.forEach((d,k)=>{ const B=d.best;
     rows.push(['Mount '+(k+1)+' bracket ('+r.part.name+')',B.type==='stay'?'tube stay '+bothL(r.o.stod)+' × '+bothL(r.o.stw)+', '+bothL(B.checks.L)+' between rod-end centres, tube cut '+bothL(B.checks.cut):
@@ -15177,7 +15195,7 @@ function mountsSheetRows(){
   return rows;
 }
 // the turbo build sheet (tsSheet, Intake tab) is wrapped here so its code is not edited: its rows plus these
-if(typeof tsSheet==='function'){ const tsSheet0=tsSheet; tsSheet=function(){ const sh=tsSheet0.apply(this,arguments); try{ if(sh){ const rows=mountsSheetRows(); if(rows.length){ sh.parts.push(...rows); sh.assume.push('Mounts: design accelerations '+MT_UI.last.o.g.join(' / ')+' g (side / vertical / fore-aft), static strength only, no fatigue check; the parts on equal mounts (see the Hangers tab’s Mounts designer).'); } } }catch(e){} return sh; }; }
+if(typeof tsSheet==='function'){ const tsSheet0=tsSheet; tsSheet=function(){ const sh=tsSheet0.apply(this,arguments); try{ if(sh){ const rows=mountsSheetRows(); if(rows.length){ sh.parts.push(...rows); sh.assume.push('Mounts: design accelerations '+mtRead().g.join(' / ')+' g (side / vertical / fore-aft), static strength only, no fatigue check; the parts on equal mounts (see the Hangers tab’s Mounts designer).'); } } }catch(e){} return sh; }; }
 
 /* ---- the designer on the page */
 function mtFields(o){
@@ -22003,7 +22021,7 @@ const BELL_RHO=101325/(287.05*298.15);
 const bell=(pn,A,B,C,cfm,lb,usd,item)=>({maker:'Bell Intercoolers',pn,type:'a2a',hp:+(cfm/1.5).toFixed(1),cfm,model:'bar-and-plate core, air cooled (“Peak Efficiency”)',
   dims:icInMm(C,B,A),bellABC:[A,B,C],mass:[+(lb*0.45359237).toFixed(2),null],lb,price:'USD '+usd,
   dp:{kPa:6.894757,kgmin:+(cfm*0.028316846592*BELL_RHO).toFixed(4)},
-  hpBasis:'Bell’s rating: '+cfm+' CFM “based on 1 psig pressure loss across the intercooler core and a charge-air pressure of 10 psig”; no horsepower from Bell; '+(cfm/1.5).toFixed(0)+' hp here = CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp (Maximum Boost), this page’s conversion',
+  hpBasis:'Bell’s rating: '+cfm+' CFM “based on 1 psig pressure loss across the intercooler core and a charge-air pressure of 10 psig”; no horsepower from Bell; '+(cfm/1.5).toFixed(0)+' hp here = CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp (Maximum Boost), this page’s conversion, which reads the CFM as air at outside density (standard cfm); Bell does not say standard or actual: read as actual cfm at its 10 psig the core moves 24.696 ÷ 14.696 = 1.68 × the mass, '+(cfm/1.5*24.696/14.696).toFixed(0)+' hp by the same rule, and its 1 psi drop at a given mass flow is 1.68² = 2.82 × lower; the page uses the standard reading, the lower rating and the higher drop',
   note:'Bell’s A × B × C = '+A+' × '+B+' × '+C+' in (thickness × height × length; “A (core thickness), B (core height) and C (core length)”), '+lb+' lb ('+(lb*0.45359237).toFixed(1)+' kg), USD '+usd+' (item page). The rated 1 psi drop is taken at standard air (Bell does not say standard or actual cfm; read as actual at 10 psig the drop at a given mass flow would be 2.82 × lower).',
   src:'https://bellintercoolers.com/i-'+item+'-bar-and-plate-cores-air-cooled-peak-efficiency.html',srcName:'Bell Intercoolers (item page; catalogue and core dimension guide)',seen:'2026-11-12',
   pub:{cons:'vacuum brazed aluminium bar and plate (“Built with the most advanced vacuum brazed aluminum alloy”)',tanks:'core only, no end tanks (a core; Bell sells tanks separately)',ptest:null,
@@ -22319,7 +22337,11 @@ function icRecommend(o){
     ['weight',x=>x.c.mass?x.c.mass[0]:Infinity],['rating ',x=>G01(x)?x.ratio:0],['tank match',x=>x.exact?0:1],['published data',x=>-x.pubN]]);
   const ok=rows.filter(x=>!x.fails.length);
   ok.forEach((x,i)=>x.ord=i);
-  ok.sort((a,b)=>{ for(const [,f] of cmp){ const fa=f(a), fb=f(b); if(Math.abs(fa-fb)>1e-9*Math.max(1,Math.abs(fa))&&!(fa===fb)) return fa<fb?-1:1; } return a.ord-b.ord; });
+  // audit 3 (R1): "same" must hold both ways with an unknown value (Infinity): the old test |a - b| > 1e-9 max(1, |a|) is false
+  // for a = Infinity, b finite, so a core with no published drop tied with one that publishes it when it came first and lost
+  // when it came second (the pick depended on the list order) and the reason named the wrong key
+  const same=(fa,fb)=>fa===fb||(Number.isFinite(fa)&&Number.isFinite(fb)&&Math.abs(fa-fb)<=1e-9*Math.max(1,Math.abs(fa),Math.abs(fb)));
+  ok.sort((a,b)=>{ for(const [,f] of cmp){ const fa=f(a), fb=f(b); if(!same(fa,fb)) return fa<fb?-1:1; } return a.ord-b.ord; });
   // why each ranks below the one before: the first key that differs
   const sq=v=>v.toFixed(1)+' in² ('+(v*6.4516).toFixed(0)+' cm²)';
   const evTxt=icEvTxt;
@@ -22333,7 +22355,7 @@ function icRecommend(o){
         o.a2a&&x.bellG>0?'no listed core meets Bell’s face area for this power; this is the closest '+(ev?'on the evidence; '+ev:'by rating'+ro):
         o.a2a?(ev?'meets Bell’s face area; '+ev:'smallest rating that covers the target'+mt+' and meets Bell’s face area'+ro):
         (ev||'smallest rating that covers the target'+mt+ro))+bellTxt(x); return; }
-    const y=ok[i-1], k=cmp.find(([,f])=>{ const a=f(x), b=f(y); return !(a===b)&&Math.abs(a-b)>1e-9*Math.max(1,Math.abs(a)); });
+    const y=ok[i-1], k=cmp.find(([,f])=>!same(f(x),f(y)));
     x.why=(!k?'level with the one above on every rule; list order':k[0]==='evidence'?(x.evG===1?'meets the target only by extrapolating its thermal data to this flow, so it ranks behind those that meet it inside their data':'rating only, so it ranks behind the cores whose thermal data meets the target'):
       k[0]==='rating '?'same capacity margin, drop, volume and weight as the one above; a larger rating':k[0]==='capacity margin'?'a larger capacity margin than the one above (more core than the target needs)':k[0]==='weight'?'same evidence; heavier':k[0]==='bell'?(x.bellG===1?'charge face unknown, so it cannot be checked against Bell, behind those that meet it':'fails Bell’s face area, so it ranks behind those that meet it or cannot be checked'):
       k[0]==='face'?'a smaller charge face than the one above':k[0]==='rating'?'a larger rating than the one above':(o.a2a?(lim?'same face; ':'same Bell result; '):'')+(G01(x)?'same capacity margin as the one above; ':'same rating as the one above; ')+(k[0]==='pressure drop'?'higher or unpublished pressure drop':k[0]==='core volume'?'larger core volume':k[0]==='tank match'?'tanks not an exact match to the pipes':'less published data'))+bellTxt(x); });
@@ -22482,7 +22504,8 @@ function icRecSection(o){
       g+='<div class="actions"><button type="button" class="btn primary" data-icuse="'+P.key+'"'+(applied?' disabled':'')+'>'+(applied?'In use':'Use this intercooler')+'</button></div>';
       g+='<p class="cap" id="tso-icrec-group-'+t+'">Ordered on the evidence (this page’s rule'+(t==='a2a'?', inside each Bell group':'')+'): first the cores whose thermal data (a maker’s curve or point, or your measured point), evaluated at this build’s flow, meets the target inside the data’s flow range (a single point: within ±'+Math.round(IC_PT_RANGE*100)+'% of its charge flow); then those that meet it only by extrapolating their data; then cores with a rating only, which the page cannot check against your target. Within the first two: the smallest capacity margin that still meets the target (the just-big-enough core), then the lower air drop at this flow and density, the smaller volume, the lighter core, the rating; within rating-only cores the smallest rating, then drop and volume. A core whose thermal data falls short is ruled out with its shortfall; within 5% of the heat needed it is listed as just short.</p>';
       g+='<ol class="list" id="tso-icrec-top-'+t+'">'+Rr.ok.slice(0,3).map((x,k)=>'<li data-key="'+x.key+'">'+line(x,k?k:null).replace(/^([^—]*)—/,k?'$1—':'$1(the pick) —')+'</li>').join('')+'</ol>'; }
-    else g+='<div class="note warn" id="tso-icrec-none-'+t+'">No listed '+name[t]+' core meets these rules for this build. The specification below is what a core must meet; '+(m>1?'a lower margin, ':'')+(nt>1&&!R.merged?'':'')+'two cores, or a core from outside this list measured against it.</div>';
+    else { const sOut=lim?Rr.out.filter(x=>x.fails.some(f=>f[0]==='s')).length:0, sOnly=lim?Rr.out.filter(x=>x.fails.every(f=>f[0]==='s')).length:0;   // audit 3 (R2): say when the space limit is what rules them out
+      g+='<div class="note warn" id="tso-icrec-none-'+t+'">No listed '+name[t]+' core meets these rules for this build.'+(sOut?' Your space rules out '+sOut+' of the '+Rr.out.length+(sOnly?' ('+sOnly+' on size alone: they pass every other rule)':'')+'.':'')+' The specification below is what a core must meet; '+(sOnly?'more space, ':'')+(m>1?'a lower margin, ':'')+'two cores, or a core from outside this list measured against it.</div>'; }
     if(Rr.short.length) g+='<div class="note warn" id="tso-icrec-short-'+t+'"><b>Just short</b> (within 5% of the heat needed'+(m!==1?' × '+m:'')+')<ul class="list">'+Rr.short.map(x=>{ const J=x.justShort;
       return '<li data-key="'+x.key+'">'+esc(x.c.maker+' '+x.c.pn)+': just short: reaches '+(J.reach*100).toFixed(1)+'% against your '+(J.target*100).toFixed(0)+'% target'+(m!==1?' × '+m:'')+'; lowering the target to '+(J.needT*100).toFixed(1)+'%'+(J.tci!=null?' or the coolant temperature into the core to '+tD(J.tci)+' (from '+tD(x.th.tci)+')':'')+' would make it pass. Predicted charge out '+tD(x.th.tho)+', removes '+(x.th.capM*100).toFixed(1)+'% of the heat needed'+(x.th.inRange?'':' (extrapolated from its data)')+(Number.isFinite(x.dpS)?', air drop '+pD(x.dpS):'')+'.</li>'; }).join('')+
       '</ul><span class="cap">The effectiveness target is yours (default 75%): this shows what the core actually delivers at this build. A coolant temperature is the temperature into the charge cooler, which the front exchanger and the outside air set.</span></div>';
@@ -22599,7 +22622,7 @@ function tsOptionsSection(ind,p){
     list.map(([c,i])=>{ const v=icV(c);
       const D=c.L?[c.L,c.H,c.W]:c.dims, d=x=>imp?x[0].toFixed(1)+' in':x[1]+' mm';
       const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+(c.bellABC?'; length (C, the charge flow) × height (B) × thickness (A), Bell’s C × B × A':'')+(c.dimOverall?'; overall, as the maker publishes it':'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
-      const rate=c.cfm?c.cfm+' CFM at 1 psi (6.9 kPa) loss and 10 psig (69 kPa) charge pressure; '+Math.round(c.hp)+' hp ('+Math.round(c.hp*0.7457)+' kW) by 1.5 cfm per hp (this page’s conversion)':c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
+      const rate=c.cfm?c.cfm+' CFM at 1 psi (6.9 kPa) loss and 10 psig (69 kPa) charge pressure; '+Math.round(c.hp)+' hp ('+Math.round(c.hp*0.7457)+' kW) by 1.5 cfm per hp (this page’s conversion, reading the CFM as standard cfm: Bell does not say; as actual cfm at 10 psig it would be '+Math.round(c.hp*24.696/14.696)+' hp and the drop at a given mass flow 2.82 × lower)':c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
       const P=c.point, fx=[];
       if(c.inD&&!c.barb) fx.push('end tanks '+inD(c.inD)+' in / '+inD(c.outD)+' out');
       if(P) fx.push((c.own?'your point: ':'maker’s point: ')+fl(P.m_kgmin/60)+' charge, '+tD(P.thi)+' in, '+tD(P.tho)+' out, '+(P.Q_kW!=null?kw(P.Q_kW*1000)+' rejected, ':'')+(P.cool_lpm!=null?'water '+lmin(P.cool_lpm):'outside air '+fl(P.cool_lbmin/LBMIN))+' at '+tD(P.tci));
@@ -22706,8 +22729,10 @@ function tsOptionsSection(ind,p){
      read this session (Heywood's energy-balance chapter was not available; an MIT 1944 thesis on heat to oil and two
      open-access papers could not be fetched); turbocharger bearing friction and heat soak into the oil: not quantified by any
      source read (the Serrano / Deligant papers found were behind bot checks); piston-cooling jets and BMEP: nothing sourced.
-   - Oil properties: Engineering ToolBox, "Engine Oil - Density and Specific Heat vs. Temperatures" (new engine oil, 340 to
-     400 K: 860, 848, 836, 824 kg/m³; 2.08, 2.16, 2.25, 2.34 kJ/kg K), linear between rows, clamped and flagged outside.
+   - Oil properties: Engineering ToolBox, "Engine Oil - Density and Specific Heat vs. Temperatures" (new engine oil, its whole
+     table, 260 to 400 K: 908, 896, 884, 872, 860, 848, 836, 824 kg/m³; 1.76, 1.83, 1.91, 1.99, 2.08, 2.16, 2.25, 2.34 kJ/kg K;
+     audit 3, O1: only the 340-400 K rows were here, and the caption called 67-127 °C "the table's" range), linear between
+     rows, clamped and flagged outside.
      Oil temperature drop across the cooler: dT = Q ÷ (V̇ ρ cp).
    - Conflux oil coolers: Conflux Technology, "Oil Coolers" brochure, version 1.0 (2026), supplied by the owner; figures with
      attribution only. Curves (heat transfer and oil pressure drop against oil flow) read from the PDF's vector paths with
@@ -22719,7 +22744,8 @@ function tsOptionsSection(ind,p){
      100 °C, 14 cSt): viscosity changes both heat transfer and drop, and no relation for that was read, so the drop is the
      maker's curve as published and the heat is flagged. The coolant flow is the maker's (no coolant-side correction). Inside
      the plotted flow range only; no extrapolation. Units in parallel: the flow split equally, n the smallest number whose
-     n × Q(F/n) reaches the heat load; each unit's drop is the curve at F/n.
+     n × Q(F/n) reaches the heat load; each unit's drop is the curve at F/n; each unit at the maker's coolant flow, so n
+     units take n times it (said on the page, audit 3, O2).
      Consistency check (effectiveness ≤ 1 at the maker's conditions, with the ToolBox engine-oil properties as a stand-in for
      the maker's oil): 100220 63% at 8 L/min to 23% at 40; 100219 82% to 49%; 100218 67% to 37% (shown on the page).
    - Turbo oil and water lines: Precision Turbo & Engine, "Turbocharger Installation Recommendations" (PTE_INST) and Garrett,
@@ -22737,7 +22763,7 @@ const BTUH_W=0.29307107;   // 1 BTU/hr in W
 const AN_SIZES={3:['3/16','3/8-24'],4:['1/4','7/16-20'],6:['3/8','9/16-18'],8:['1/2','3/4-16'],10:['5/8','7/8-14'],12:['3/4','1 1/16-12'],16:['1','1 5/16-12']};
 const anTxt=(d,imp)=>{ const A=AN_SIZES[d], inch=d/16, mm=inch*25.4; return '-'+d+' AN ('+(imp?inch.toFixed(3)+' in ('+mm.toFixed(2)+' mm)':mm.toFixed(2)+' mm ('+inch.toFixed(3)+' in)')+' nominal, '+(A?A[1]+' thread':'thread not in the chart')+')'; };
 // Engineering ToolBox, new engine oil: T K, rho kg/m³, cp J/kg K
-const OIL_PROPS=[[340,860,2080],[360,848,2160],[380,836,2250],[400,824,2340]];
+const OIL_PROPS=[[260,908,1760],[280,896,1830],[300,884,1910],[320,872,1990],[340,860,2080],[360,848,2160],[380,836,2250],[400,824,2340]];
 function oilProps(tC){ const T=tC+273.15, P=OIL_PROPS, n=P.length, cl=T<P[0][0]||T>P[n-1][0], Tc=Math.min(P[n-1][0],Math.max(P[0][0],T));
   for(let i=0;i<n-1;i++) if(Tc<=P[i+1][0]){ const f=(Tc-P[i][0])/(P[i+1][0]-P[i][0]); return {rho:P[i][1]+f*(P[i+1][1]-P[i][1]),cp:P[i][2]+f*(P[i+1][2]-P[i][2]),clamped:cl}; }
   return {rho:P[n-1][1],cp:P[n-1][2],clamped:cl}; }
@@ -22835,7 +22861,7 @@ function oilSection(ind,p){
     '<label class="f"><span class="lab">Oil-to-water cooler on</span><span class="inp">'+sel('olLoop',[['engine','the engine coolant loop'],['ic','the charge cooler’s loop (water-to-air intercooler)']])+'</span></label></div>'+
     '<p class="cap" id="oil-in-cap">No sourced rule for oil pump flow against RPM was found: enter the engine maker’s figure or a measured flow. Oil and coolant temperatures: blank uses '+tD(120)+' and '+tD(85)+', the test conditions of Conflux’s engine oil cooler (100218), not sourced limits; use your oil maker’s or engine maker’s figures.</p>';
   if(Fo>0&&Qn>0){ const P=oilProps(toi), V=Fo/60000, d=Qn/(V*P.rho*P.cp); O.dT=d;
-    g+=rowT('Oil temperature drop across the cooler',dT(d),kw(Qn)+' ÷ ('+lmin(Fo)+' × '+P.rho.toFixed(0)+' kg/m³ × '+(P.cp/1000).toFixed(3)+' kJ/kg K): Q = ṁ cp ΔT with new engine oil at '+tD(toi)+(P.clamped?' (outside the table’s 67-127 °C: its end row is used)':'')+' ('+link(ETB_OIL,'Engineering ToolBox')+'); oil out at '+tD(toi-d)); }
+    g+=rowT('Oil temperature drop across the cooler',dT(d),kw(Qn)+' ÷ ('+lmin(Fo)+' × '+P.rho.toFixed(0)+' kg/m³ × '+(P.cp/1000).toFixed(3)+' kJ/kg K): Q = ṁ cp ΔT with new engine oil at '+tD(toi)+(P.clamped?' (outside the table’s −13 to 127 °C: its end row is used)':'')+' ('+link(ETB_OIL,'Engineering ToolBox')+'); oil out at '+tD(toi-d)); }
   // 3. coolers
   const oilType=TSO.olType==='air'?'air':'l2l';
   if(oilType==='l2l'){
@@ -22847,7 +22873,7 @@ function oilSection(ind,p){
           (Fo<K.f[0]?'the flow, '+lmin(Fo)+', is below its plotted '+lmin(K.f[0])+': no prediction':'not reached within 8 units inside its plotted range ('+lmin(K.f[0])+' to '+lmin(K.f[n])+' per unit)'); }
         return '<tr data-oil="'+c.pn+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+esc(c.use)+'</span></td><td>Ø'+mmIn(c.dia)+' × '+mmIn(c.len)+', '+kgLb(c.kg)+' dry; oil '+anTxt(c.jic,imp)+'; coolant '+esc(c.coolConn)+'; '+esc(c.material)+'<br><span class="cap">'+esc(c.connNote)+'</span></td><td>'+
           lmin(K.f[0])+' to '+lmin(K.f[n])+': heat '+kw(K.Q[0]*1000)+' to '+kw(K.Q[n]*1000)+', oil drop '+pD(K.dp[0]*1000)+' to '+pD(K.dp[n]*1000)+'; oil ('+esc(Rr.oil)+') entering at '+tD(Rr.toi)+', coolant (EGW 25/75) entering at '+tD(Rr.tci)+', '+lmin(Rr.lpm)+' ('+Rr.kgs+' kg/s); drop at '+tD(Rr.dpT)+', '+Rr.nu+' cSt<br><span class="cap">effectiveness at the maker’s conditions (engine-oil properties as a stand-in) '+(eps[0]*100).toFixed(0)+'% to '+(eps[n]*100).toFixed(0)+'%</span></td><td>'+at+'</td></tr>'; }).join('')+'</tbody></table></div>';
-    g+='<p class="cap" id="oil-tab-cap">Lines are the maker’s curves read from its charts (about ±0.1 kW and ±0.1 kPa), “indicative performance data under representative boundary conditions”. At this build the heat is the curve × ('+tD(toi)+' − '+tD(tci)+') ÷ (the maker’s oil-in − coolant-in), the effectiveness held at the maker’s flows; the oils differ from engine oil and the coolant flow is the maker’s, so treat it as approximate. The drop is as the maker measured it with its oil and viscosity; no relation to correct it was read. Source: '+link(CFX_SRC,CFXO_NAME)+', pages 4 to 6; '+esc(OIL_LIB[0].pub)+'.</p>';
+    g+='<p class="cap" id="oil-tab-cap">Lines are the maker’s curves read from its charts (about ±0.1 kW and ±0.1 kPa), “indicative performance data under representative boundary conditions”. At this build the heat is the curve × ('+tD(toi)+' − '+tD(tci)+') ÷ (the maker’s oil-in − coolant-in), the effectiveness held at the maker’s flows; units in parallel share the oil flow equally and each needs the maker’s coolant flow, so n units take n times it; the oils differ from engine oil and the coolant flow is the maker’s, so treat it as approximate. The drop is as the maker measured it with its oil and viscosity; no relation to correct it was read. Source: '+link(CFX_SRC,CFXO_NAME)+', pages 4 to 6; '+esc(OIL_LIB[0].pub)+'.</p>';
     g+='<label class="f span2"><span class="lab">Pick an oil cooler</span><span class="inp">'+sel('olRow',[['','None']].concat(OIL_LIB.map((c,i)=>[String(i),c.maker+' '+c.pn])))+'</span></label>';
     const C=TSO.olRow!==''?OIL_LIB[+TSO.olRow]:null; O.c=C;
     if(C){ const Rr=C.rated, S=Fo>0&&Qn>0?oilSize(C,Fo,Qn,toi,tci):null, U=S&&S.ok; O.pick=U||null;

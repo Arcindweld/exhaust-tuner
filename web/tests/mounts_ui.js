@@ -39,15 +39,17 @@ const path = require('path');
   ok(near(-down.F[0][1], 446.2029, 1e-5), 'A: 25 g down plus gravity: 26 x 17.1616 = 446.20 N on mount 1 (' + (-down.F[0][1]).toFixed(3) + ')');
   // forward 25 g at the centre of the mounts: no turn, each takes 25 x 68.6466 / 4 = 429.04 N fore-aft and 17.16 N down
   ok(near(fwd.F[0][2], 429.0410, 1e-5) && near(-fwd.F[0][1], 17.16165, 1e-5), 'A: forward 25 g: 429.04 N fore-aft and 17.16 N down at each mount');
-  // isolation: f = 4 x 850 / 120 = 28.333 Hz; 20% passed -> fn <= 28.333 / sqrt(1 + 1/0.2) = 28.333 / 2.4495 = 11.567 Hz;
-  // k <= m (2 pi fn)^2 / n = 7 x (72.677)^2 / 4 = 9243.6 N/m = 9.244 N/mm per mount; standing sag 68.6466 / (4 x 9244) = 1.857 mm
-  ok(near(r.iso.idle.f, 28.3333, 1e-5) && near(r.iso.fnMax, 11.5670, 1e-4) && near(r.iso.kMax, 9.2436, 1e-3) && near(r.iso.defl, 1.8566, 1e-3),
-    'A: idle firing 28.33 Hz, bounce at most 11.57 Hz, 9.24 N/mm per mount at most, 1.86 mm sag: ' + [r.iso.idle.f, r.iso.fnMax, r.iso.kMax, r.iso.defl].map(x => x.toFixed(4)).join(', '));
+  // isolation: f = 4 x 850 / 120 = 28.333 Hz; 20% passed with the 0.07 damping the page checks against (audit 3, M2: was
+  // the undamped r = sqrt(1 + 1/0.2) = 2.4495, fn 11.567 Hz, 9.244 N/mm, whose damped T is 21.1%): the damped
+  // T(r) = 0.2 at r = 2.507488 (tools/validation/boost/mounts.py, brentq) -> fn <= 11.29949 Hz;
+  // k <= m (2 pi fn)^2 / n = 7 x (70.9969)^2 / 4 = 8820.9 N/m = 8.821 N/mm per mount; standing sag 68.6466 / (4 x 8820.9) = 1.9456 mm
+  ok(near(r.iso.idle.f, 28.3333, 1e-5) && near(r.iso.fnMax, 11.29949, 1e-5) && near(r.iso.kMax, 8.820948, 1e-5) && near(r.iso.defl, 1.945555, 1e-5),
+    'A: idle firing 28.33 Hz, bounce at most 11.30 Hz, 8.82 N/mm per mount at most, 1.95 mm sag: ' + [r.iso.idle.f, r.iso.fnMax, r.iso.kMax, r.iso.defl].map(x => x.toFixed(4)).join(', '));
   // the softest AMC bobbin, 120002: 100 N at 3 mm = 33.3 N/mm; fn = sqrt(4 x 33333 / 7) / 2 pi = 21.97 Hz; r = 1.29 < sqrt 2: it amplifies, none fits
   const q2 = r.iso.rows.find(q => q.ref === '120002');
   ok(r.iso.pick === null && near(q2.k, 33.333, 1e-4) && near(q2.fn, 21.966, 1e-3) && !q2.isoOk, 'A: no AMC bobbin is soft enough for 7 kg on four (120002: 33.3 N/mm, bounce 21.97 Hz): buy to spec');
   const txtA = await p.evaluate(() => document.getElementById('mt-out').innerText);
-  ok(/Buy to this: at most 9 N\/mm \(53 lb\/in\)/.test(txtA) && /No other catalogue is embedded/.test(txtA), 'A: the page says what stiffness to buy to');
+  ok(/Buy to this: at most 9 N\/mm \(50 lb\/in\)/.test(txtA) && /No other catalogue is embedded/.test(txtA), 'A: the page says what stiffness to buy to');
   // heat growth: 23.2e-6 x 660 mm x (150 - 20) = 1.9906 mm at mount 2; cold 23.2e-6 x 660 x 40 = 0.6125 mm;
   // mount 4: sqrt(660^2 + 304.8^2) = 727.00 mm -> 2.1926 mm
   ok(near(r.grow[1].gh, 1.99056, 1e-4) && near(r.grow[1].gc, 0.612480, 1e-4) && near(r.grow[3].gh, 2.19264, 1e-4) && r.grow[0].fixed, 'A: heat growth 1.991 mm hot / 0.612 mm cold at mount 2, 2.193 mm at mount 4, mount 1 fixed');
@@ -121,11 +123,11 @@ const path = require('path');
     'mtShares: 75 N / 25 N by the lever rule; 3000 N mm about the line of two mounts left to the brackets');
 
   // ---- B. a 40 kg heat exchanger on four soft mounts in compression: standing 40 x 9.80665 / 4 = 98.07 N; k <= 40 x
-  // (2 pi 11.567)^2 / 4 = 52.82 N/mm; AMC 120002: 100 N rated (>= 98.07), 33.3 N/mm; fn = sqrt(4 x 33333 / 40) / 2 pi =
+  // (2 pi 11.29949)^2 / 4 = 50.405 N/mm (audit 3, M2; was 52.82 from the undamped inversion); AMC 120002: 100 N rated (>= 98.07), 33.3 N/mm; fn = sqrt(4 x 33333 / 40) / 2 pi =
   // 9.189 Hz; r = 28.333 / 9.189 = 3.0834; undamped 1 / (9.507 - 1) = 11.75%; with damping 0.07: sqrt(1 + 0.1864) /
   // sqrt(8.507^2 + 0.1864) = 12.79% <= 20%: picked (the stiffest that passes; 120001 / 120023 at 60 N/mm are too stiff)
   await sel('mt-part', 'hx'); await set('mt-mass', 40); await p.waitForTimeout(150); r = await R();
-  ok(r.iso.pick && r.iso.pick.ref === '120002' && near(r.iso.pick.fn, 9.1888, 1e-3) && near(r.iso.pick.T0, 0.11755, 1e-3) && near(r.iso.pick.Tz, 0.12788, 2e-3) && near(r.iso.kMax, 52.821, 1e-3),
+  ok(r.iso.pick && r.iso.pick.ref === '120002' && near(r.iso.pick.fn, 9.1888, 1e-3) && near(r.iso.pick.T0, 0.11755, 1e-3) && near(r.iso.pick.Tz, 0.12788, 2e-3) && near(r.iso.kMax, 50.405415, 1e-5),
     'B: 40 kg on four: AMC 120002 picked, bounce ' + r.iso.pick.fn.toFixed(3) + ' Hz, ' + (100 * r.iso.pick.T0).toFixed(2) + '% undamped / ' + (100 * r.iso.pick.Tz).toFixed(2) + '% damped passed');
   // in shear the same bobbin is rated 15 N: too small for 98 N
   await sel('mt-iso', 's'); await p.waitForTimeout(150); r = await R();
@@ -133,11 +135,13 @@ const path = require('path');
   await sel('mt-iso', 'c'); await sel('mt-part', 'a2a'); await set('mt-mass', 7);
 
   // ---- C. a stay on mount 1, 300 mm reach down: 3/4 x 0.065 in (19.05 x 1.651 mm) mild steel tube. A = pi (19.05^2 -
-  // 15.748^2) / 4 = 90.25 mm²; I = pi (19.05^4 - 15.748^4) / 64 = 3518.7 mm^4; Euler pinned 300 mm: pi^2 x 205000 x
-  // 3518.7 / 300^2 = 79100 N; yield 248 x 90.25 = 22382 N governs; cut 300 - 2 x 38.1 = 223.8 mm
+  // 15.748^2) / 4 = 90.2446 mm²; I = pi (19.05^4 - 15.748^4) / 64 = 3445.66 mm^4 (this comment had 3518.7, an arithmetic
+  // slip); k = sqrt(I / A) = 6.1791 mm, L/k = 48.55 below Johnson's transition sqrt(2 pi^2 x 205000 / 248) = 127.74, so
+  // Johnson's parabola: 90.2446 x (248 - (248 / 2 pi)^2 x 48.55^2 / 205000) = 20764.06 N (tools/validation/boost/mounts.py;
+  // audit 3, M4: the page took min(Euler 77461 N, yield 22381 N) = yield, 7.8% high); cut 300 - 2 x 38.1 = 223.8 mm
   await set('mt-h1', 300); await sel('mt-type', 'stay'); await p.waitForTimeout(150); r = await R();
   const st = r.designs[0].best.checks, comp = st.rows.find(x => /compression/.test(x.what));
-  ok(near(st.A, 90.252, 1e-4) && near(comp.cap, 248 * 90.252, 1e-4) && near(st.cut, 223.8, 1e-9) && st.L === 300, 'C: stay 90.25 mm², compression capacity ' + comp.cap.toFixed(0) + ' N (yield, Euler 79100 N), tube cut 223.8 mm');
+  ok(near(st.A, 90.252, 1e-4) && near(comp.cap, 20764.06, 1e-6) && /Johnson’s parabola/.test(comp.what) && near(st.cut, 223.8, 1e-9) && st.L === 300, 'C: stay 90.25 mm², compression capacity ' + comp.cap.toFixed(0) + ' N (Johnson; Euler 77461 N, yield 22381 N), tube cut 223.8 mm');
   ok(st.acrossShare > 0.9 && !r.designs[0].best.ok && /triangulate/.test(await p.evaluate(() => document.getElementById('mt-out').innerText)), 'C: a stay under a sideways load is flagged: push and pull only, triangulate it');
   await sel('mt-type', 'strap'); await set('mt-h1', 63.5);
 

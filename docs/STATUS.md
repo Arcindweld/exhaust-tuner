@@ -1704,3 +1704,30 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Tests: web/tests/mounts_ui.js (new, 41 checks), fusion-addin/tests/test_mounts.py (geometry by hand; the page's flat patterns from
   fixtures/mounts_payload.json), test_mounts_fusion_fake.py (writes fixtures/mounts_reply.json with ET_WRITE_FIXTURES=1);
   fusion-addin/tests/fusion_live_mounts.py for the owner's machine, NOT RUN here.
+
+## 2026-11-12: boost audit, part 2 (independent review of the day's merges)
+
+- Details: docs/BOOST_AUDIT_2026-11-12.md, "Part 2"; scripts tools/validation/boost/mounts.py, conflux.py,
+  conflux_curves.py (needs the owner's brochures, not in the repository), xflow_page2.js (two new cases for xflow.py, which
+  now also models a step from the downpipe to the muffler's pipe); tests web/tests/boostaudit2_ui.js (new; 14 of its
+  checks fail on the merged page), mounts_ui.js and turbosize_ui.js edited.
+- Fixed: Mounts isolator stiffness limit from the damped transmissibility the page checks with (7 kg on four: 9.24 ->
+  8.82 N/mm); stays in compression by Johnson's parabola below the Euler transition (3/4 x 0.065 in steel at 300 mm:
+  22381 -> 20764 N); the net-section row says Kt is not applied, the aluminium weld rows that AlcoTec's figures are
+  typical breaking strengths; the turbo build sheet gets mount rows only when the designer is set up, worked out afresh
+  (before, opening the Hangers tab put its 7 kg example on the sheet, and a later intercooler pick left the old
+  brackets); the intercooler order's "same" test with an unknown (Infinity) value (the pick and its reason depended on
+  the list order); a size limit that rules out every core says so; Bell's rating line gives both cfm readings (303 hp
+  standard, 510 hp actual at 10 psig, drop 2.82 x lower); engine-oil properties use the source's whole table (260-400 K);
+  units in parallel need the maker's coolant flow each.
+- Checked correct: load sharing (asymmetric three-mount statics), section stresses, bolts, welds, flat patterns, heat
+  growth, the FIA 25 g and 14 CFR 25.303 texts; Conflux curves re-read (barrel and oil), UA inversion, density scaling of
+  the drop, capacity margin; Setrab's 24 rows; the oil effectiveness and loop coupling; 25 catalogue rows across Garrett,
+  Mishimoto, CSF, EJ Bowman and Bell; the exhaust march on a near-choking case (+0.05%) and a plug-muffler case (+0.06%);
+  the static back pressure into a total-to-static turbine balance.
+- Flaky tests: turbosize_ui read a node the page had just replaced (a $eval is two round trips; the ResizeObserver
+  re-renders on the next frame): reads are one evaluate now. test_header_uel and test_native depended on the router's
+  wall-clock budget: they pass time_budget 1e9 (no clock limit) and are deterministic; the router is unchanged.
+- Suites (web, fusion, -j 2): 140 tests, 134 passed, 0 failed, 6 skipped (expected), 7 partial skips, 0 unexpected.
+- Open: Bowman's drop at the build's density (1.34 x at the default build), an aluminium weld allowable, a choked-exit
+  back pressure, Bell item-page weights, Setrab's fan-pack rows; test_native's edit is unrun here (no Rust core).

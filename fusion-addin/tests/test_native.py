@@ -27,6 +27,10 @@ if not os.environ.get('EXHAUST_TUNER_NATIVE_DIR'):
     if os.path.isdir(built):
         os.environ['EXHAUST_TUNER_NATIVE_DIR'] = os.path.abspath(built)
 import router as RT        # noqa: E402
+# No wall-clock limit for the routes compared here: the router stops its searches on time.time() (the wide searches at
+# 15% of the budget), so with a 400 s budget a loaded machine could stop the Python search where the Rust core did not
+# and the two answers differed. 1e9 s is never reached in Python and is "no limit" to the core (deadline_in: > 1e7 s).
+NO_CLOCK = 1e9
 import test_router as TR   # noqa: E402
 
 if RT.NV is None:
@@ -289,14 +293,14 @@ def full_routes(quick):
                 for m in meshes:
                     sc.add_mesh(*m)
                 sc.build(*build)
-            out.append(RT.route(sc, dict(spec, time_budget=400.0)))
+            out.append(RT.route(sc, dict(spec, time_budget=NO_CLOCK)))
         same_route(label, out[0], out[1])
     # four primaries into a collector over a block: each keeps clear of the ones before it (the tube set's fields)
     blk2 = TR.box_mesh((10, -6, -30), (30, 6, -12), 6)
     ports = [((0, -9, 0), (0, 0, -1)), ((0, -3, 0), (0, 0, -1)), ((0, 3, 0), (0, 0, -1)), ((0, 9, 0), (0, 0, -1))]
     if quick:
         ports = ports[1:3]      # two primaries still check the second keeping clear of the first
-    hs = {'od': 4.128, 'clr': 6.2, 'gap': 1.0, 'target': 70.0, 'time_budget': 400.0}
+    hs = {'od': 4.128, 'clr': 6.2, 'gap': 1.0, 'target': 70.0, 'time_budget': NO_CLOCK}
     res = []
     for native in (False, None):
         sc = RT.Scene(cell=1.0, native=native)
@@ -378,7 +382,7 @@ def timings(quick):
                 sc.add_mesh(*m)
             t0 = time.time()
             sc.build(lo, hi, pad)
-            r = RT.route(sc, dict(spec, time_budget=400.0))
+            r = RT.route(sc, dict(spec, time_budget=NO_CLOCK))
             row.append((time.time() - t0, r))
         rows.append(row)
     print('route timings (scene build + route, time budget large so neither is cut short):')
@@ -427,7 +431,7 @@ def fallback():
     RT.NV, RT.NATIVE_NOTE = NV, note
     # a route whose Rust search fails part way: laid out again all in Python, the same route
     spec = {'start': (0, 0, 0), 'start_dir': (1, 0, 0), 'end': (55, 0, 0), 'end_dir': (1, 0, 0), 'od': 4.445,
-            'clr': 6.67, 'gap': 1.27, 'time_budget': 400.0}
+            'clr': 6.67, 'gap': 1.27, 'time_budget': NO_CLOCK}
     py, nv = both([blk], (-10, -40, -40), (70, 40, 40), 8, cell=1.0)
     rp = RT.route(py, spec)
     search = NV.Route.search

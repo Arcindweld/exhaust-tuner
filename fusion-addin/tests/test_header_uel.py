@@ -10,7 +10,13 @@ ports = [((0.0, 4.0 + 10.0 * i, 0.0), (1.0, 0.0, 0.0)) for i in range(4)]
 col = ((35.0, 19.0, -45.0), (0.0, 0.0, -1.0))
 od = 4.128
 targets = [70.0, 76.2, 88.0, 95.0]
-spec = {'od': od, 'clr': 1.5 * od, 'gap': 1.27, 'gap_tt': 0.32, 'target': None, 'targets': targets, 'collector_len': 12.0, 'collector_out_d': 7.62}
+# time_budget: the router stops its searches on the wall clock (40 s a tube by default; the wide searches get 15% of it),
+# so on a loaded machine it stopped earlier and found other routes (seen: P2 0.02 cm short of the gap, P4 2.9 cm short of
+# its target with a 6 s budget). 1e9 s is no clock limit here (the Rust core takes > 1e7 s as none): the searches run to
+# their node and iteration limits, so the answer is the same on a busy machine as on an idle one. The router's default
+# for real use is unchanged.
+spec = {'od': od, 'clr': 1.5 * od, 'gap': 1.27, 'gap_tt': 0.32, 'target': None, 'targets': targets, 'collector_len': 12.0, 'collector_out_d': 7.62,
+        'time_budget': 1e9}
 t0 = time.time()
 res = RT.route_header(sc, ports, col, spec, log=None)
 print('ok', res['ok'], '%.1fs' % (time.time() - t0))
