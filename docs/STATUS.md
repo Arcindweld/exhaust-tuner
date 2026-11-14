@@ -2058,3 +2058,29 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   pins changed listed in the addendum. Suite (web,parity, -j 2, --skip-slow), final code: 134 tests, 127 passed, 0 failed,
   7 skipped, 7 partial skips, 0 unexpected, 1504 s (the run before it: sweep_ui failed on two empty table cells the default
   turbo build now reaches; fixed, rerun alone: passes).
+
+## 2026-11-14: how much boost for my power (Garrett's relation taken apart; three methods; the preset trap)
+
+- Garrett's relation factor by factor for the K24A2 + PT5862 at 450 hp: A/F 12 and BSFC 0.55 are Garrett's own worked
+  figures; the VE was the Intake tab's 90 % field, below Garrett's "95%-99% for modern 4-valve heads": the one sourced
+  defect. The relation now takes A/F × BSFC from the fuel (pump gasoline 12 × 0.55 = 6.6, race gasoline 12 × 0.50 = 6.0,
+  E85 8.0 × 0.75 = 6.0 lb of air per hp-hour) and the VE from the head (97 % 4-valve, 91.5 % 2-valve, or typed); the power
+  target is the crank's (Garrett's flywheel) with a crank / wheels selector (drivetrain loss 12.5 %, Motor1's 10-15 %
+  front-wheel drive). "Garrett's conservative figures as typed" keeps the page before; projects saved earlier load with it.
+- The range holds three methods: Garrett's spreads, the figure, and the wave simulation's implied boost when a run exists
+  for the point (its power ÷ 1.04 to 1.16; its power is proportional to the absolute manifold pressure within 0.2 % over
+  15-29.5 psi). The glance card's Power row shows the three and runs the simulation at the point in one click.
+- K24 + PT5862, 450 hp at the crank: 29.52 → 25.91 psi (likely 18.64 to 30.54; 17.72 to 30.54 with the simulation run,
+  which says 586 hp at 25.91 psi, about 505-564 after its bias); PR 3.112 → 2.866; compressor out 385 → 360 °F; intercooler
+  heat 48.2 → 44.3 kW; part sizes unchanged. 350 / 450 / 550 hp: (a) Garrett's text figures 15.97 / 24.73 / 33.49 psi,
+  (b) the page 15.84 / 25.91 / 36.38 (race or E85 12.72 / 21.74 / 31.10), (c) the simulation 10.6-13.5 / 17.7-21.5 /
+  25.0-29.6 psi. Reported builds (IPG, DSport, Full-Race, Garrett) make 11-58 % more power at their boost than the relation
+  gives: used only as the outside check, nothing tuned to them.
+- Preset trap: a vehicle preset's stock power left in the power field is no longer a boosted target; the build is worked
+  at the boost field's 8 psi with the power worked out and an inline box asks for the target (with the relation's power at
+  5 and 20 psi as orientation).
+- Details, sources, tables and pins: docs/BOOST_AUDIT_2026-11-12.md, addendum "How much boost for my power"
+  (2026-11-14). Tests: web/tests/boostpower_ui.js (new); tools/validation/wave/boost_power.js (the simulation at three
+  boosts). Pins changed: operatingpoint_ui (boost 29.xx → 25.xx psi, range VE low end, the qd factor), easyflow_ui (power
+  row wording, p3 59.04 → 51.82 psi).
+- Suite (web,parity, -j 2, --skip-slow), final code: SUITE_COUNTS
