@@ -65,8 +65,32 @@ normal (2).
 | — | Page width at 400 px | All | No change needed: no sideways page scroll before or after; every boosted table scrolls inside its own box; the glance card fits |
 | — | Console errors | All | None before or after |
 
-## Not done
+## Not done (at the audit)
 
 - No power estimate without the wave simulation: the glance card says so and points to it. Turning Garrett's relation
   round (power from the airflow) would be a new calculation, so it was not added.
 - The defaults of C6 and C7 stay as they were (they change results); the page now shows the disagreement instead.
+
+## Follow-up, 2026-11-14: one operating point (C1 to C8 resolved or remaining)
+
+The boosted build is now one operating point: the builder says what is fixed (Engine group, "What you know for this
+boosted build"), and every boosted section, the build sheet, the glance card, the step list and the wave simulation's
+plan use the one airflow, pressure ratio and temperatures that follow. Details, sources and every changed number:
+docs/BOOST_AUDIT_2026-11-12.md, addendum "One operating point (2026-11-14)". Test: web/tests/operatingpoint_ui.js.
+
+| # | Status | What changed |
+|---|---|---|
+| C1 | Resolved | Boosted intake, the surge check on one map, Stone's density ratio and Charge pipes show the compressor's pressure ratio with the inlet and charge-pipe losses (the route's), the one every other section uses; the no-loss ratio is gone from the rows (Stone's formula stays in its caption as a formula). |
+| C2 | Resolved | One compressor-out temperature: the route's, in Boosted intake, Stone, Charge pipes, Inlet and charge pipes and the sheet. |
+| C3 | Resolved | One intercooler-out temperature: Charge pipes now works at the route's compressor-out temperature and each side's own pressure. |
+| C4 | Resolved | "My power target" (the default): the boost is worked out by Garrett's relation (its VE, A/F, BSFC, RPM and the route's intercooler-outlet air, iterated) and shown with a range from Garrett's stated BSFC, VE and manifold-air spreads. "My boost": the power is worked out by the same relation inverted. "Both, typed" keeps the earlier behaviour and its mismatch warning, for experts and for projects saved earlier. |
+| C5 | Resolved | (At the audit) the simulation text; now it also says whether the boost was typed or worked out from the target. |
+| C6 | Partly | The wastegate, the hardware p3 sizes, is sized for the safe side: the largest gate any p3 from 0.8 to 2.5 × boost needs (a measured p3 when typed). The turbine balance's table, the A/R ordering and the manifold's gas-speed rows still take Bell's 2 × (they size no part: the runners follow the port's area and the wall temperature comes from the mass flow, not p3). The steady figure and the simulation's still differ; a measurement settles it. |
+| C7 | Resolved | Blank "Back pressure after the turbine" now means the Exhaust after the turbine section's own figure (iterated with the turbine balance: it converges in the second pass), in the balance, the wastegate and the simulation (at the downpipe's end there, since the run has its own downpipe); typed overrides, 0 or "None" removes it. |
+| C8 | Resolved | (At the audit) tube precision; the runner row no longer prints the tube's OD and wall twice. |
+
+Also found and fixed on the glance card: the inlet tube was recommended at 4.87 in (123.7 mm) inside, a 5 in tube, in
+front of the PT5862's 4.0 in hose-coupler inlet, because the tube's inside diameter was compared with the coupler size.
+A picked turbo's inlet is now compared like the outlet always was, tube outside diameter against the coupler: the 4 in
+tube (3.87 in, 98.3 mm inside) matches the compressor (Garrett: avoid area changes) unless its speed passes Garrett's
+300 ft/s or Bell's Mach 0.4; the size table still gives every size's loss to compare.

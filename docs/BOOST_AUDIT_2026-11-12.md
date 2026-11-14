@@ -875,3 +875,98 @@ worked numbers and every table: docs/WAVE_VALIDATION_2026-11-11.md, part 10 (J1-
   mm2: the smallest listed valve whose seat holds it stays 38 mm. The Intake tab's gate sizing at its assumed 2 x boost is
   unchanged.
 - Tests: web/tests/turbineeff_ui.js (new), web/tests/wave_wasm.js (two jobs). No pinned value changed.
+
+## Addendum (2026-11-14): one operating point for the boosted build (usability audit C1 to C8)
+
+Asked for: the usability audit (docs/USABILITY_AUDIT_2026-11-14.md) found a boosted build was not one operating point: the
+power target and the boost were typed independently, so the pipes, the intercooler's heat and the valves were sized for
+the typed boost's airflow (28.6 lb/min, 0.216 kg/s on the K24 + PT5862) while the turbo and intercooler ratings were
+checked against the target's (49.5 lb/min, 0.374 kg/s, which Garrett's method put at about 26 psi); the wastegate was
+sized at an assumed 2 × boost before the turbine; the worked-out back pressure after the turbine was not used; and some
+rows showed a no-loss pressure ratio and temperatures beside the with-loss ones.
+
+### What the page does now
+
+- **What you know for this boosted build** (Engine group, i-opm; turbo and centrifugal builds, four-strokes):
+  - *My power target* (the default): the boost is worked out. Garrett, Turbo Tech 103: Wa = HP × A/F × BSFC ÷ 60 lb/min;
+    MAP = Wa × 639.6 × (460 + Tm) ÷ (VE × N/2 × Vd) psia (garrettMatch, unchanged), Tm the manifold air = the route's
+    intercooler outlet, which itself depends on the boost and the airflow: iterated (opSolve) until the boost moves less
+    than 1e-9 kPa (14 passes on the K24). The boost field is hidden and the result shown under the selector, with the
+    assumptions (A/F, BSFC, VE, RPM, the manifold air the route finds) and a range.
+  - *My boost*: the power is worked out by the same relation inverted, Wa = MAP × VE × N/2 × Vd ÷ (639.6 × (460 + Tm)),
+    HP = Wa × 60 ÷ (A/F × BSFC). Typing the boost the first mode found gives back the target (450.0000 hp, test).
+  - *Both, typed* (expert): as before, the sizes follow the boost's airflow and the ratings the target, with the mismatch
+    warning. Two-strokes and rotaries stay here (Garrett's N/2 is a four-stroke's).
+  The one airflow reaches every section through calcIntake: its flow at the boost (swept volume × VE × pressure ratio at
+  the inlet's density) is multiplied by qd, the factor that makes its mass Garrett's Wa. qd is the charge-temperature
+  ratio the tab's own relation leaves out (VE taken on the manifold's air, not the inlet's; 0.9612 at 8 psi on the K24),
+  with R 639.6 ÷ 12 = 53.30 against the page's 53.35 ft·lbf/(lb·°R). At the full-boost RPM the peak's factor is used. With
+  qd = 1 (both typed, naturally aspirated, Roots) nothing moves. This is the one formula change of this work, and it is
+  the one the request names.
+- **The range on the worked-out number**: the same relation at Garrett's stated spreads (Turbo Tech 103: BSFC "0.50 to
+  0.60" for turbocharged gasoline engines; VE "95%-99% for modern 4-valve heads", "88% - 95% for 2-valve designs", by the
+  4-Stroke tab's valve count; manifold air "100 - 130 degrees F" intercooled, "175-300" without), each widened to hold the
+  build's own figure, the pipe losses held. K24 at 450 hp: 29.52 psi (203.55 kPa), likely 18.64 to 33.54 psi (128.51 to
+  231.26 kPa), mostly from BSFC and VE; the A/F (12) is held.
+- **Back pressure after the turbine (C7)**: blank now means the Exhaust after the turbine section's figure (i-tobpsrc
+  "worked out", the default; "None" is the earlier behaviour). The march needs the exhaust flow and its temperature after
+  the turbine, which the turbine balance at p4 gives; me and t4 do not depend on p4 (t4 = T3 − Wc ÷ (me cp)), so the
+  iteration p4 = atmosphere + back pressure(p4) ends in its second pass with the first's figure to the last digit
+  (31622.225311 Pa both passes, test). A typed figure (0 allowed) overrides it. The turbine balance, the wastegate (it
+  discharges at p4) and the build sheet use it; the wave simulation, which runs its own downpipe from the turbine, ends
+  at the march's static pressure at the downpipe's end (6.14 psi on the K24 at 450 hp, against 4.59 psi static at the
+  narrower turbine outlet: the cone recovers static pressure), so the downpipe is not counted twice.
+- **Wastegate size (C6)**: the gate is sized for the safe side across the plausible pressure before the turbine, 0.8 to
+  2.5 × boost (the page's own wave simulation's means, 0.66 to 0.84 × on the K24, to Bell's 2.5 ×), on a 0.01 × grid:
+  the largest effective area any p3 there needs (i-wgbasis "range", the default; a measured p3 sizes it at that one; "the
+  one pressure" is the earlier behaviour). The reasoning: for one gate flow a higher p3 needs less area (orificeArea's
+  flux rises with p0; 0.15 kg/s: falls monotonically from 0.8 to 2.5 ×, test), but a higher p3 also gives the turbine
+  more work per kg, so its share falls and more goes round the gate (8 % at 0.8 × to 55 % at 2.5 × on the K24, test).
+  The two pull opposite ways, so neither end is the safe side by itself: the area peaks inside the range (1.59 × on the
+  K24: 366 mm² against 353 at 2 ×, 112 at 0.8 ×, 325 at 2.5 ×). A gate too small is what gives boost creep, hence the
+  largest. A p3 at or below p4 is out of the range (no turbine can drive the compressor there; the table says so). The
+  manifold's rows were checked: the runner size follows the port's area and the wall temperature calcSkin's mass flow,
+  neither p3; only its gas speeds and the port pressure use p3 (still Bell's 2 ×, stated).
+- **One displayed set (C1 to C3)**: Boosted intake, the surge check on one map, Stone's density ratio and Charge pipes use
+  the route's compressor pressure ratio (with the inlet and charge-pipe losses) and its temperatures; Charge pipes works
+  each side at the route's own pressure; its "boost at the compressor" row is the route's.
+- **Inlet tube**: a picked turbo's compressor inlet (TURBO_LIB, the PT5862's "4.0 in hose coupler") is compared with the
+  tube's outside diameter, as its outlet already was; the recommended inlet tube then matches the compressor (4 in OD,
+  3.87 in, 98.3 mm inside) unless that is over Garrett's 300 ft/s or Bell's Mach 0.4 (Garrett: avoid area changes). It
+  was 5 in OD (4.87 in, 123.7 mm inside), the tube's inside compared with the coupler size.
+- **Runner row**: a tube's label already gives OD and wall; they are no longer printed again.
+
+### The K24A2 + PT5862 default journey, before and after (Simple, 450 hp, 0.63 A/R T3 4-bolt, Use these sizes, Use this intercooler, tubular manifold)
+
+| | Before (8 psi typed, sizes for its airflow) | After (450 hp, the boost worked out) | Why |
+|---|---|---|---|
+| Boost at the throttle | 8.00 psi (55.16 kPa), typed | 29.52 psi (203.55 kPa), likely 18.64 to 33.54 psi | worked out from the target; Garrett's own figure was 26.30 psi at the 8 psi build's 109 °F manifold air, the point's own 154 °F (68 °C) raises it |
+| Air per compressor | 28.6 lb/min (0.216 kg/s) | 49.5 lb/min (0.374 kg/s) | the target's, everywhere |
+| Compressor pressure ratio | 1.648 (Garrett row 2.89) | 3.112 (Garrett row 3.11) | one point |
+| Compressor out / intercooler out | 206 / 109 °F (96 / 43 °C) | 385 / 154 °F (196 / 68 °C) | the higher ratio |
+| Inlet tube | 5 in OD, ID 4.87 in (123.7 mm) | 4 in OD, ID 3.87 in (98.3 mm) | the coupler fix (it was 5 in at both flows) |
+| Hot and cold pipes | 2.25 in OD, ID 2.12 in (53.8 mm) | 3 in OD, ID 2.87 in (72.9 mm) | Garrett's 300 ft/s at 49.5 lb/min |
+| Intercooler | Bell A300227240 air-to-air, 75 %; 11.6 kW (661 BTU/min) to remove | the same core; 48.2 kW (2,741 BTU/min) | the core is picked on the target's rating both times; the heat is now the target's flow × cp × (T2 − T3) |
+| Blow-off valve | 1.26 in (32 mm) or larger, 627 mm² (0.97 in²) | the same valve, 561 mm² (0.87 in²) | more flow at a higher throttle pressure: the flux rises faster than the flow |
+| Wastegate | 1.50 in (38 mm), 646 mm² (1.00 in²) at 2 × 8 psi | the same valve, 366 mm² (0.57 in²) at 1.59 × 29.52 psi | the safe side across 0.8 to 2.5 ×, at the point's boost and back pressure |
+| Downpipe | 3 in OD, ID 2.87 in (72.9 mm) | the same | COBB's size by power: the same 450 hp |
+| Manifold runners, collector | 1.875 × 0.065 in, 7.6 in (194 mm); collector 2.30 in (58.5 mm) | the same | port area and geometry, not flow |
+| Oil feed / drain | -4 AN / -10 AN | the same | by bearing type; the oil heat by power (450 hp both) |
+| Back pressure in the turbine balance | none | 4.59 psi (31.62 kPa), worked out | C7 (it was 1.87 psi, 12.90 kPa, worked out and not used, at the 8 psi flow) |
+| Pressure before the turbine in the balance | 2 × boost, 16.00 psi (110.32 kPa) | 2 × boost, 59.04 psi (407.10 kPa) | the boost |
+
+"My boost" at the old 8 psi, for comparison: 249.5 hp worked out (likely 220 to 306 hp), 27.45 lb/min (0.208 kg/s), pressure
+ratio 1.625; the air is 3.9 % less than the tab's own relation gave (qd 0.9612, the charge heating).
+
+### Projects saved earlier
+
+A project carries every input, but not the three new settings; on load (projApply) a project without "i-opm" is given
+"Both, typed", "None" and "the one pressure", the earlier behaviour, so it opens with the results it had: the test loads
+the K24 project saved by the build before this (web/tests/fixtures/op_legacy_k24.json, 450 hp and 8 psi) and finds the
+route (air, pressure ratio, temperatures, pressures), Garrett's figures, the exhaust march, the manifold and every number
+of every build-sheet row and glance-card size as before, in order (the runner row now prints the tube once). Not frozen:
+the inlet-tube recommendation (the coupler fix: the size table now marks 4 in, so the pipe step reads "recommended inlet
+3.87 in"), the wastegate table's extra rows (it lists 0.8 to 2.5 ×; the gate is still sized at 2 ×) and some wording.
+The builder changes the setting to move to the new point. Vehicle presets carry the stock power: with "My power target" a
+preset that is switched to a turbo without a target typed is worked at the stock figure, and the result line says to
+check it when the target needs little or no boost.

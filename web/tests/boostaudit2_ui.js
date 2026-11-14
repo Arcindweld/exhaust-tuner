@@ -94,7 +94,7 @@ const { chromium } = require('playwright');
   await pg2.close();
 
   // ---------------------------------------------------------------- Intake tab
-  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900);
+  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg);   // the boost typed, as these pins were worked (2026-11-14)
   await pg.evaluate(() => { document.body.classList.add('expert'); document.body.classList.remove('simple'); });
   await setv('i-ind', 'turbo'); await pg.waitForTimeout(300);
 
