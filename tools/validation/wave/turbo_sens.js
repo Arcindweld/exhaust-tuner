@@ -49,11 +49,16 @@ if (!ONLY || ONLY === 'tol') {
 }
 if ((!ONLY || ONLY === 'calib') && TL.calibrate) {
   // the calibration: a measured mean pre-turbine pressure of 2 x boost (gauge, Bell's lower figure) at the full-boost RPM
-  const target = PATM + 2 * (P.Pt - PATM), B = TL.rustBackend(P.spec, P.dx);
-  try { const c = TL.calibrate(B, { rpm: P.rpms[0], p3: target, wc: mm => mm * P.wcPer, A0: P.A0, eta: P.eta });
-    res.calib = { target_kPa: target / 1000, At_mm2: c.At * 1e6, eta: c.eta, p3_kPa: c.res.turb.p3 / 1000, it: c.it, ok: c.ok };
-    console.log('calibration to a measured mean p3 of 2 x boost at ' + P.rpms[0] + ' rpm: area ' + (c.At * 1e6).toFixed(0) + ' mm2, p3 ' + (c.res.turb.p3 / 1000).toFixed(1) + ' kPa (target ' + (target / 1000).toFixed(1) + '), the efficiency that balances ' + c.eta.toFixed(3));
-  } finally { B.drop(); }
+  res.calib = [];
+  for (const K of [1.0, 1.5, 2.0]) {
+  const target = PATM + K * (P.Pt - PATM), mk = sp => TL.rustBackend(sp, P.dx);
+  const c = TL.calibrate(mk, P.spec, { rpm: P.rpms[0], p3: target, wc: mm => mm * P.wcPer, A0: P.A0, eta: P.eta });
+  try { const t = c.res.turb;
+    // the check: at the area and efficiency found, the static mean p3 is the target and the turbine's power the compressor's
+    res.calib.push({ K, target_kPa: target / 1000, At_mm2: c.At * 1e6, eta: c.eta, p3s_kPa: t.p3s / 1000, p3_kPa: t.p3 / 1000, W_over_Wc: t.W / c.res.Wc, it: c.it, ok: c.ok, over: c.over });
+    console.log('calibration to a measured mean static p3 of ' + K + ' x boost (' + (target / 1000).toFixed(1) + ' kPa abs) at ' + P.rpms[0] + ' rpm: area ' + (c.At * 1e6).toFixed(0) + ' mm2, static p3 ' + (t.p3s / 1000).toFixed(1) + ' kPa, total ' + (t.p3 / 1000).toFixed(1) + ', the efficiency that balances ' + c.eta.toFixed(3) + ', W/Wc ' + (t.W / c.res.Wc).toFixed(4) + ', ' + c.it + ' runs, ok ' + c.ok + (c.over ? ' (over 1)' : ''));
+  } finally { c.B.drop(); }
+}
 }
 fs.writeFileSync(path.join(__dirname, 'results', 'turbo_sens' + (ONLY ? '_' + ONLY : '') + '.json'), JSON.stringify(res, null, 1));
 if (res.grid.length) {
