@@ -2083,4 +2083,5 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   (2026-11-14). Tests: web/tests/boostpower_ui.js (new); tools/validation/wave/boost_power.js (the simulation at three
   boosts). Pins changed: operatingpoint_ui (boost 29.xx → 25.xx psi, range VE low end, the qd factor), easyflow_ui (power
   row wording, p3 59.04 → 51.82 psi).
-- Suite (web,parity, -j 2, --skip-slow), final code: SUITE_COUNTS
+- Suite (web,parity, -j 2, --skip-slow), final code: 135 tests, 128 passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips,
+  0 unexpected skips, 1499 s.
