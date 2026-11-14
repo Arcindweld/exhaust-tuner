@@ -82,7 +82,17 @@ const tflat = t => t ? [t.t, t.W, t.Wis, t.mt, t.mg, t.mAir, t.p3, t.p3pk, t.p3s
     { intake: Object.assign({}, s1.intake, { source: { p: 160000, T: 340 } }), exhaust: Object.assign({}, s1.exhaust, { pOut: 108000 }) }) }] } });
   jobs.push({ name: 'turbo, plenum, constant gas', job: { dx: jobs[1].job.dx, rpms: [4000, 7000], variants: [{ label: 'plenum and throttle under boost, spec.e.gas const', spec: Object.assign({}, s1,
     { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, { source: { p: 180000, T: 315 }, plenum: { V_m3: 0.002, inlet: [{ L: 0.4, d0: 0.07, d1: 0.07 }, { L: 0.05, d0: 0.06, d1: 0.06 }], throttle: { d: 0.06, cd: 0.83 } } }),
-      exhaust: Object.assign({}, s1.exhaust, { turbine: tur({ CdA: 1.2e-3 }) }) }) }] } }); }
+      exhaust: Object.assign({}, s1.exhaust, { turbine: tur({ CdA: 1.2e-3 }) }) }) }] } });
+  // 2026-11-13 part 7: the head's exhaust port (segments marked port: true; the port law, e.portHeat): a 110 mm port of
+  // 40 mm ahead of the four-cylinder collector's primaries (its own pipe), the default law; the single cylinder with a port
+  // at the primary's own bore (inside one pipe), Meisner and Sorenson's law at a 480 K wall; the constant gas with the port
+  const sp = s1.exhaust.segs, s0 = jobs[0].job.variants[0].spec, sp0 = s0.exhaust.segs;
+  jobs.push({ name: 'exhaust port', job: { dx: jobs[1].job.dx, rpms: [3000, 5000, 7000], variants: [
+    { label: '110 mm port of 40 mm, four on one collector, Caton-Heywood', spec: Object.assign({}, s1, { exhaust: Object.assign({}, s1.exhaust, { segs: [{ L: 0.11, d0: 0.04, d1: 0.04, port: true }].concat(sp) }) }) },
+    { label: 'the same, constant gas', spec: Object.assign({}, s1, { e: Object.assign({}, s1.e, { gas: 'const' }), exhaust: Object.assign({}, s1.exhaust, { segs: [{ L: 0.11, d0: 0.04, d1: 0.04, port: true }].concat(sp) }) }) }] } });
+  jobs.push({ name: 'exhaust port, single', job: { dx: jobs[0].job.dx, rpms: [4000, 7000, 9000], variants: [
+    { label: '120 mm port at the primary bore, Meisner-Sorenson, 480 K wall', spec: Object.assign({}, s0, { e: Object.assign({}, s0.e, { portHeat: 'meisner', portTw: 480 }),
+      exhaust: Object.assign({}, s0.exhaust, { segs: [Object.assign({}, sp0[0], { L: 0.12, d1: sp0[0].d0, port: true })].concat(sp0) }) }) }] } }); }
 let tJs = 0, tW = 0;
 for (const { name, job } of jobs) {
   const rpms = process.env.QUICK === '1' ? job.rpms.slice(0, 3) : job.rpms;
