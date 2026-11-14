@@ -131,7 +131,7 @@ let chromium = null; try { ({ chromium } = require('playwright')); } catch (e) {
     await pg.click('#tab-four'); await settle(pg);
     let pl = await pg.evaluate(() => { const p = window.__tsim.plan(); return { bsr: p.spec.exhaust.turbine.bsr || null, N: p.shaft && p.shaft.N, src: p.src.map(r => r.join(' | ')) }; });
     ok(pl.bsr && Math.abs(pl.bsr.U - 498.22) < 0.5 && pl.bsr.xo === 0.7 && pl.src.some(s => /^Turbine efficiency through each pulse \| from the blade speed ratio/.test(s) && /Pakle and Jiang/.test(s) && /76\.2 mm compressor exducer, 71 mm turbine inducer/.test(s)),
-      '6 the plan: tip speed ' + (pl.bsr ? pl.bsr.U.toFixed(1) : '-') + ' m/s (hand about 487.4; the page\'s own route), shaft ' + Math.round(pl.N || 0) + ' rpm, the row and its sources');
+      '6 the plan: tip speed ' + (pl.bsr ? pl.bsr.U.toFixed(1) : '-') + ' m/s (hand 498.22 from the captured plan; here the page\'s own route), shaft ' + Math.round(pl.N || 0) + ' rpm, the row and its sources');
     await pg.click('#tab-intake'); await settle(pg); await setv('i-teffm', 'const'); await pg.click('#tab-four'); await settle(pg);
     const pc = await pg.evaluate(() => { const p = window.__tsim.plan(); return { has: 'bsr' in p.spec.exhaust.turbine, src: p.src.map(r => r.join(' | ')) }; });
     ok(!pc.has && pc.src.some(s => /^Turbine efficiency through each pulse \| constant through the pulse/.test(s)), '6 "Constant through the pulse": the spec carries no bsr (the legacy engine path)');
@@ -142,10 +142,15 @@ let chromium = null; try { ({ chromium } = require('playwright')); } catch (e) {
     await setv('i-tfc', ''); await pg.click('#tab-four'); await settle(pg);
     await pg.click('button[data-tsim="run"]');
     let st = 'running'; for (let i = 0; i < 900 && st === 'running'; i++) { await pg.waitForTimeout(1000); st = await pg.evaluate(() => window.__tsim.state().status); }
-    const S = await pg.evaluate(() => { const T = window.__tsim.last(); return T && { rows: T.sum.rows.map(r => ({ rpm: r.rpm, e: r.etaEff, x: r.bsrE })) }; });
+    const S = await pg.evaluate(() => { const T = window.__tsim.last(); return T && { hp: T.sum.hp, rpmHp: T.sum.rpmHp, p3k: T.sum.rows[T.sum.ip].p3k, p3sk: T.sum.rows[T.sum.ip].p3sk, share: T.sum.rows[T.sum.ip].share, At: T.sum.rows[0].At, Agmax: Math.max(...T.sum.rows.map(r => r.Ag)), rows: T.sum.rows.map(r => ({ rpm: r.rpm, e: r.etaEff, x: r.bsrE })) }; });
     const t4 = await pg.$eval('#four-details', e => e.textContent);
-    ok(st === 'done' && S && S.rows.every(r => r.e > 0.5 && r.e < 0.75 && r.x > 0.3 && r.x < 1.2) && /Turbine efficiency through the pulses/.test(t4) && /m\/s/.test(t4) && /ft\/s/.test(t4),
-      '6 the run: cycle efficiency ' + (S ? S.rows.map(r => (100 * r.e).toFixed(1)).join(' ') : '-') + ' %, energy-weighted ratio ' + (S ? S.rows.map(r => r.x.toFixed(2)).join(' ') : '-') + ', the row in both units');
+    ok(st === 'done' && S && S.rows.every(r => r.e > 0.5 && r.e < 0.75 && r.x > 0.3 && r.x < 1.2) && /Turbine efficiency through the pulses/.test(t4) && /the smallest listed valve whose seat holds it/.test(t4) && /m\/s/.test(t4) && /ft\/s/.test(t4),
+      '6 the run: cycle efficiency ' + (S ? S.rows.map(r => (100 * r.e).toFixed(1)).join(' ') : '-') + ' %, energy-weighted ratio ' + (S ? S.rows.map(r => r.x.toFixed(2)).join(' ') : '-') + ', the row in both units; area ' + (S ? (S.At * 1e6).toFixed(1) : '-') + ' mm2, peak ' + (S ? S.hp.toFixed(1) + ' hp @ ' + S.rpmHp : '-') + ', p3 ' + (S ? S.p3k.toFixed(3) + ' total / ' + S.p3sk.toFixed(3) + ' static x boost, gate ' + (100 * S.share).toFixed(1) + ' %, largest gate area ' + (S.Agmax * 1e6).toFixed(0) + ' mm2' : ''));
+    await pg.click('#tab-intake'); await settle(pg);
+    const sheet = await pg.evaluate(() => { try { return JSON.stringify(window.__tg.sheet()); } catch (e) { return 'error ' + e.message; } });
+    const step = await pg.$eval('#tg-steps li[data-step="sim"]', e => e.textContent).catch(() => '');
+    ok(/Turbine efficiency model/.test(sheet) && /from the blade speed ratio at each moment/.test(sheet) && /Turbine efficiency through the pulses \(wave simulation\)/.test(sheet) && /smallest listed valve/.test(sheet) && /turbine efficiency through the pulses/.test(step) && /wastegate: the most the run opens it/.test(step),
+      '6 the build sheet and the step-by-step row carry the efficiency model, the run\'s efficiency and the gate valve: ' + step.replace(/\s+/g, ' ').trim().slice(0, 220));
     ok(errs.length === 0, '6 no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
     await b.close();
   }
