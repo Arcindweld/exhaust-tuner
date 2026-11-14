@@ -1903,3 +1903,26 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   Script tools/validation/wave/turbo_k24.js. No pinned value changed.
 - Suite (-j 2, --no-build, rust/web/fusion/parity without cargo_test_rust: disk): 162 tests, 153 passed, 0 failed, 9
   skipped, 7 partial skips, 0 unexpected, 1944 s.
+
+## 2026-11-13: independent audit of the wave simulation under boost (validation part 6)
+
+- Re-derived independently (tools/validation/wave/turbo_audit.py from turbo_audit.js's rigs; turbo_sens.js): the turbine's
+  face solve, nozzle, work and gas after it to 1e-12 (frozen gamma within 0.19 % of an exact variable-cp nozzle); steady
+  closed forms to 1e-6; pulsating-rig convergence first order at peaks, 0.15 % at the engine's cells; mass and energy on the
+  audit's own divided-turbine case to 1e-15; JS / Rust identical on the audit's own jobs; a small pulse through the turbine
+  passes within 1.3 % and reflects within 6 % of the linearised compact nozzle. Solver, Rust, WebAssembly unchanged.
+- The key judgement: the closure's turbine area is the largest that gives full boost at the typed full-boost RPM with the
+  gate shut at the typed efficiency (75 % default: unsourced; no on-engine value could be read). K24A2 + PT5862: over full
+  boost 3000-5000 rpm and eta 0.55-0.75 the area spans 734-1789 mm2 and the mean pressure before the turbine at 6600 rpm
+  0.56-1.40 x boost, the power only 541-574 hp. Logged street builds run 1.6-1.9 x (factory about 2 x): the run's p3 is a
+  lower bound. The page now says so, shows two sensitivity closures beside the result (10 points less efficient, full boost
+  1000 RPM later), gives the static and total p3, explains the comparison with the Intake tab's 2 x boost, and calibrates
+  the turbine to a measured pre-turbine pressure (Intake tab, i-p3m: `turboSimLib.calibrate`, area and balancing efficiency).
+- Brake under boost fixed: net IMEP - (Heywood's tfmep - the same pipes' NA pumping mep) (equal to the plain simulation's
+  gross - tfmep without boost); K24 571 hp @ 6600 -> 589 hp @ 7100. The gap to the Intake tab's 450 hp target is explained
+  on the page (Garrett's 49.5 lb/min and 0.55 lb/hp h against the run's 55.6 and 0.47; no knock, enrichment or retard; the
+  model 4-16 % high on NA ratings).
+- Tests: web/tests/turboaudit_ui.js (new, 16 checks, 5 fail on the merge commit), turbosim_ui.js (4 checks added).
+  Details: docs/WAVE_VALIDATION_2026-11-11.md, part 6 (F1-F13).
+- Suite (--suite web,parity --no-build -j 2 --skip-slow): 130 tests, 123 passed, 0 failed, 7 skipped, 7 partial skips,
+  0 unexpected, 1315 s.

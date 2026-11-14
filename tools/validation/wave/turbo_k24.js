@@ -36,10 +36,12 @@ function summary(out, eta, p4, afr, Pt) {
     const tb = TBF.turbineBalance({ ma: t.mAir, afr, t1: P.t1, t2: P.t2, tit: t.T3 - 273.15, p3: t.p3, p4: t.p4, eta });
     const tbA = TBF.turbineBalance({ ma: t.mAir, afr, t1: P.t1, t2: P.t2, tit: 950, p3: PATM + 2 * (Pt - PATM), p4, eta });
     const lo = Math.min(...[].concat(...t.p3bins));
+    // brake as the page reads it since part 6 (F6): net IMEP - (tfmep - the pumping mep of the same pipes without boost)
+    const pmNA = na.gimep - na.imep;
     return { rpm: w.rpm, At_mm2: w.At * 1e6, Ag_mm2: w.Ag * 1e6, it: w.it, short: w.short, closure: t.W / r.Wc,
-      tqB_Nm: tq(r.imep - f), tqBgross_Nm: tq(r.gimep - f), tqI_Nm: tq(r.imep), hpB: hp(tq(r.imep - f), w.rpm), hpBgross: hp(tq(r.gimep - f), w.rpm),
+      tqB_Nm: tq(r.imep - f + pmNA), tqBnet_Nm: tq(r.imep - f), tqBgross_Nm: tq(r.gimep - f), tqI_Nm: tq(r.imep), hpB: hp(tq(r.imep - f + pmNA), w.rpm), hpBnet: hp(tq(r.imep - f), w.rpm), hpBgross: hp(tq(r.gimep - f), w.rpm), pmepNA_kPa: pmNA / 1000,
       ve_amb: r.ve, ve_charge: r.ve * (PATM / 298.15) / (Pt / P.Tc), resid: r.resid, pmep_kPa: (r.gimep - r.imep) / 1000,
-      p3_Pa: t.p3, p3_kPa: t.p3 / 1000, p3pk_kPa: t.p3pk / 1000, p3min_kPa: lo / 1000, p3k: g(t.p3), p3pkk: g(t.p3pk), p3_over_p2: t.p3 / Pt, p4_kPa: t.p4 / 1000,
+      p3_Pa: t.p3, p3_kPa: t.p3 / 1000, p3sk: g(t.p3s), p3pk_kPa: t.p3pk / 1000, p3min_kPa: lo / 1000, p3k: g(t.p3), p3pkk: g(t.p3pk), p3_over_p2: t.p3 / Pt, p4_kPa: t.p4 / 1000,
       T3_C: t.T3 - 273.15, T4_C: t.T4 - 273.15, W_kW: t.W / 1000, Wc_kW: r.Wc / 1000, mAir: t.mAir, share: t.mg / (t.mt + t.mg), wgAlg: tb.wg, wgPage: tbA.wg, T4alg_page_C: tbA.t4,
       naTqB_Nm: na ? tq(na.gimep - f) : NaN, naHpB: na ? hp(tq(na.gimep - f), w.rpm) : NaN, scTqB_Nm: sc ? tq(sc.imep - f) : NaN,
       ord: [2, 4, 6, 8].map(o => ({ order: o, turbo: order(t.mdBins, w.rpm, 2 * o), noTurbine: sc ? order(sc.turb.mdBins, w.rpm, 2 * o) : NaN, na: order(na.turb.mdBins, w.rpm, 2 * o) })) }; });
