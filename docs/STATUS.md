@@ -1947,4 +1947,4 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - The rating surplus is airflow, not exhaust energy: brake efficiency 28.5 % of LHV at rated power is ordinary; the ratings
   imply VE 0.91-0.97 at that efficiency, the model has 1.05-1.08; 10 kPa back pressure -0.6 %; accessories, air cleaner and
   stock exhaust (part of SAE J1349 net) not modelled. No open LS3 VE/BSFC figure found; no citable WOT EGT measurement read.
-- Tests: wavegas_ui.js 12 (new), wave_wasm.js (three port jobs). No pinned value changed. Details: docs/WAVE_VALIDATION_2026-11-11.md, part 7 (G1-G10).
+- Tests: wavegas_ui.js 12 (new), wave_wasm.js (three port jobs). No pinned value changed. Suite (web,parity, -j 2, --skip-slow): 130 tests, 123 passed, 0 failed, 7 skipped, 7 partial skips, 0 unexpected, 1299 s. Details: docs/WAVE_VALIDATION_2026-11-11.md, part 7 (G1-G10).

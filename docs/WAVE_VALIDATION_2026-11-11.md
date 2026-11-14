@@ -2308,7 +2308,13 @@ with the realistic intake, against the 0.91-0.97 the ratings imply at the model'
   `tools/validation/wave/energy_balance.js` (new), `turbo_port.js` (new), `ratings.js` (the port marked; `back=`; importable),
   `compare.py` (tags `port`, `g_base`), `engine.js` (instrumented pipe heat; 100 mm temperature trace), `lib.js` (pipe heat,
   fuel and reverted-fuel enthalpy instrumentation, read-only).
-- Pinned values changed: none (see the suite below).
+- Pinned values changed: none. No existing check was edited or loosened; wavegas_ui, wavekat_ui, waveturbo_ui, turboaudit_ui
+  and turbosim_ui pass unchanged (the K24 plan has no port, so its numbers do not move).
+- Suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, 2026-11-13, part 7): 130 tests, 123
+  passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips (all expected: no host build, no OpenWAM build in the worktree, F-100
+  runs absent), 0 unexpected, 1299 s (wave_wasm 321 s, wavegas_ui 44 s, turboaudit_ui 81 s, turbosim_ui 40 s).
+  `cargo test -p et_wave --release` (in rust/et_wave): builds, 0 tests in the crate (its parity is wave_wasm.js). A fresh
+  `tools/build_wave_wasm.sh` leaves the embedded WebAssembly byte-identical.
 
 ### G9 Summary rows (section 6, as of 2026-11-13, part 7)
 
