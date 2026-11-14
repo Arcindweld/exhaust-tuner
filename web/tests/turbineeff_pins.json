@@ -1,0 +1,30 @@
+{
+ "legacy800": [
+  [
+   2500,
+   1,
+   0.00003382478660341365,
+   169157.62509061978,
+   20264.931430307537,
+   0.005947995786117563
+  ],
+  [
+   3500,
+   1,
+   0.00018281094730558998,
+   195261.53686809403,
+   29025.659496335153,
+   0.03896055620826014
+  ],
+  [
+   6600,
+   1,
+   0.0006625099390528485,
+   277331.6190526053,
+   60221.81774060104,
+   0.19753259009247387
+  ]
+ ],
+ "legacy800fb": 2500,
+ "note": "Pinned 2026-11-13 from the page at git 9301028 (before part 10): turboSimLib.predict on results/turbo_k24_page.json, 800 mm2, rpms 2500/3500/6600; each row [rpm, s, gate area m2, p3 Pa, W, gate flow kg/s]. turbineeff_ui.js 4 checks the page without exhaust.turbine.bsr gives these to the last digit."
+}
