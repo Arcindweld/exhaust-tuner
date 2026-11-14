@@ -679,6 +679,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><select id="f-valves"><option value="2" selected>2</option><option value="4">4</option></select></span></label>
         <label class="f span2"><span class="lab">Intake runner, valve to the airbox or plenum</span>
           <span class="inp"><input id="f-intl" type="number" step="any" inputmode="decimal" data-kind="len" data-base="300"><em data-u="len">in</em></span></label>
+        <label class="f span2"><span class="lab">Of that, the intake port in the head, valve to manifold flange</span>
+          <span class="inp"><input id="f-pin" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
         <label class="f span2"><span class="lab">Runners breathe from</span>
           <span class="inp"><select id="f-intk"><option value="open" selected>Open air (individual runners, or a big airbox)</option><option value="plenum">A plenum fed through a throttle body</option></select></span></label>
         <div class="grid2 span2" id="f-intk-wrap" hidden>
@@ -10336,7 +10338,9 @@ function simSpec(p){
   try{ const P=WAM_UI.prof; if(P&&(P.in||P.ex)){ e.camProfile={}; if(P.in) e.camProfile.in={deg:P.in.deg.slice(),mm:P.in.mm.slice()}; if(P.ex) e.camProfile.ex={deg:P.ex.deg.slice(),mm:P.ex.mm.slice()}; } }catch(err){}
   if(p.ceff>0) e.combEff=p.ceff;        // OpenWAM's combustion efficiency (the dyno fit sets it; blank: from the AFR)   // the events are at 0.050 in: the sin² lift is stretched to pass it there
   const dI=Math.sqrt(0.6*nIn)*dIn;
-  const intake={segs:[{L:(p.intakeL>0?p.intakeL:300)/1000,d0:dI,d1:dI}],Tw:320};
+  const iL=(p.intakeL>0?p.intakeL:300)/1000, pIn=p.portIn>0&&p.portIn<(p.intakeL>0?p.intakeL:300)?p.portIn/1000:0;
+  // the head's intake port (part 8): the runner's last part before the valve, marked port: true (wsFactory's intake-port law)
+  const intake={segs:pIn>0?[{L:iL-pIn,d0:dI,d1:dI},{L:pIn,d0:dI,d1:dI,port:true}]:[{L:iL,d0:dI,d1:dI}],Tw:320};
   // the runners start at a plenum fed through a throttle body (both simulations; until 2026-11-12 part 3 the wave model kept
   // them open to the air). The cylinders simulated (n of the engine's cyl) get their share of the plenum's volume and of
   // the throttle's and the inlet tube's areas, and the filter's reference airflow is theirs at VE 1 at the top speed swept.
@@ -20033,7 +20037,7 @@ function simFlowOf(){
 }
 function simInputs(r,p,ch){
   return {cc:val('f-disp'),cyl:Math.max(1,Math.round(val('f-cyl'))),segs:r.segs.map(s=>({len:s.len,d0:s.d0,d1:s.d1})),port:r.port,dp:p.dp,evo:p.evo,
-    bore:val('f-bore'),stroke:val('f-stroke'),cr:val('f-cratio'),valves:+$('f-valves').value,intakeL:val('f-intl'),tune:p.rpm,
+    bore:val('f-bore'),stroke:val('f-stroke'),cr:val('f-cratio'),valves:+$('f-valves').value,intakeL:val('f-intl'),portIn:val('f-pin'),tune:p.rpm,
     intk:$('f-intk')?$('f-intk').value:'open',plv:val('f-plv'),tbd:val('f-tbd'),itl:val('f-itl'),itd:val('f-itd'),tcd:val('f-tcd'),fdp:val('f-fdp'),
     flow:simFlowOf(),
     portD:(()=>{ const r=portEqD($('f-pshape').value,val('f-pw'),val('f-ph'),val('f-pr')); return r&&r.d>0?r.d:null; })(),
@@ -20048,6 +20052,7 @@ function simCheck(q){
   if(!(q.cr>=6&&q.cr<=16)) return 'Enter a compression ratio between 6 and 16.';
   if(q.bore>0&&q.stroke>0){ const per=q.cc/q.cyl, v=Math.PI/4*q.bore*q.bore*q.stroke/1000; if(Math.abs(v-per)/per>0.1) return 'The bore and stroke give '+Math.round(v)+' cc per cylinder, but the displacement is '+Math.round(per)+' cc. Fix one, or leave bore or stroke blank.'; }
   if(!(q.intakeL>=50)) return 'Enter an intake runner length of at least 2 in (50 mm).';
+  if(q.portIn>0&&!(q.portIn<q.intakeL)) return 'The intake port is part of the runner: make it shorter than the runner, or leave it blank.';
   const nCam=[q.ivo,q.ivc,q.evc].filter(x=>x!==null&&x!==undefined).length;
   if(nCam&&nCam<3) return 'Enter all three cam events (intake opens, intake closes, exhaust closes), or leave all three blank to estimate them.';
   if(q.intk==='plenum'&&!(q.plv>0&&q.tbd>0&&q.itl>0&&q.itd>0)) return 'With a plenum, fill in its volume, the throttle body bore and the inlet tube length and diameter.';

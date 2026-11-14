@@ -45,6 +45,16 @@ const { chromium } = require('playwright');
   const fl = await pg.evaluate(() => window.__sim.simSpec(window.__sim.inp()).intake.plenum.filter);
   ok(fl && fl.dp > 1300 && fl.dp < 1450 && fl.m > 0, 'a filter loss entered (0.2 psi) reaches the wave spec in Pa with its reference airflow: ' + JSON.stringify(fl));
   await setv('f-fdp', '0');
+  // 2026-11-13 part 8: the head's intake port, the runner's last part before the valve, marked for the intake-port law
+  await setv('f-pin', '4'); await pg.waitForTimeout(150);
+  const pin = await pg.evaluate(() => { const q = window.__sim.inp(); return { segs: window.__sim.simSpec(q).intake.segs, L: q.intakeL }; });
+  ok(pin.segs.length === 2 && pin.segs[1].port === true && !pin.segs[0].port && Math.abs(pin.segs[1].L - 0.1016) < 1e-9 && Math.abs(pin.segs[0].L + pin.segs[1].L - pin.L / 1000) < 1e-9 && pin.segs[0].d0 === pin.segs[1].d0,
+    'an intake port typed (4 in) is the runner\'s last 101.6 mm, marked port: true, the runner\'s length and bore kept (' + JSON.stringify(pin.segs) + ')');
+  await setv('f-pin', '20'); await pg.waitForTimeout(150);
+  const pinErr = await pg.evaluate(() => window.__sim.simCheck(window.__sim.inp()));
+  ok(/intake port is part of the runner/.test(pinErr || ''), 'an intake port longer than the runner refused: ' + pinErr);
+  await setv('f-pin', ''); await pg.waitForTimeout(150);
+  ok(await pg.evaluate(() => window.__sim.simSpec(window.__sim.inp()).intake.segs.length === 1), 'no intake port typed: one runner segment, as before');
   await setv('f-plv', ''); await pg.waitForTimeout(150);
   const perr = await pg.evaluate(() => window.__sim.simCheck(window.__sim.inp()));
   ok(/With a plenum, fill in its volume/.test(perr || ''), 'a plenum without a volume refused: ' + perr);

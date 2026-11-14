@@ -6,4 +6,5 @@
   LS7 1.8 rocker + shorty manifolds (corvetteactioncenter LS7 p15); 0.050 at tappet (performancetrends); AutoSpeed EF Falcon 8.7 psi
   ; FCH form + Oberg-Eriksson refit (fs.isy.liu.se SAE_06_POLE)
 - done: intake port law JS+Rust+WASM (wavegas 13 pass, wave_wasm QUICK parity pass incl. 3 intake-port jobs); ratings.js amb=j1349 exdp= portIn= acckw=
-- next: page input f-pin + simSpec; ratings before/after; K24; kat; constref; docs part 8
+- done: page input f-pin (cam_ui pass); ratings h_legacy == g_final bit for bit; h_port LS3 473/494; h_asrated (port+J1349) LS3 459/479 LS7 522/528 LT1 460/461
+- next: LS3 sensitivities running; then q2.sh (ve_decomp h_base/h_final 3 engines, short/long runner, law07, final_all, turbo_portin); kat, constref, suite; docs part 8 (draft scratch h_static.md)
