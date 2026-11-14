@@ -115,7 +115,7 @@ let chromium = null; try { ({ chromium } = require('playwright')); } catch (e) {
     const b = await chromium.launch(); const { reads, settle } = require('./settle');
     const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
     const pg = reads(await ctx.newPage()); const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-    await pg.goto('file://' + path.join(__dirname, '..', 'index.html') + '#intake'); await pg.waitForTimeout(900); await pg.click('#u-met'); await settle(pg);
+    await pg.goto('file://' + path.join(__dirname, '..', 'index.html') + '#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg); await pg.click('#u-met'); await settle(pg);
     await pg.evaluate(() => { document.body.classList.add('expert'); document.body.classList.remove('simple'); });
     const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]).then(() => settle(pg));
     const chg = (sel, v) => pg.evaluate(([s, v]) => { const el = document.querySelector(s); if (!el) throw new Error('no ' + s); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [sel, v]).then(() => settle(pg));

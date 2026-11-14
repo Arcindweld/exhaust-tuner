@@ -14,7 +14,7 @@ const fs = require('fs');
   const pg = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs = []; pg.on('pageerror', e => errs.push(e.message));
   // pg.$eval / pg.$$eval read in one call after the page has stopped re-rendering (tests/settle.js; audit F1)
   require('./settle').reads(pg);
-  await pg.goto('file://' + process.cwd() + '/index.html');
+  await pg.goto('file://' + process.cwd() + '/index.html'); await require('./settle').typedPoint(pg);   // the boost typed, as these pins were worked (2026-11-14)
   await pg.evaluate(() => { location.hash = 'intake'; }); await pg.waitForTimeout(400);
   // ---- in a browser: where it runs
   const note = await pg.$eval('#fx-intake', e => e.innerText).catch(() => '');

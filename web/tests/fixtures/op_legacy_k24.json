@@ -1,0 +1,2418 @@
+{
+"note": "K24A2 + PT5862 journey (easyflow_ui) saved by the build before the one operating point (git 09c578c): 450 hp and 8 psi both typed. Pins: that build's results, read from its build sheet and route.",
+"snap": {
+"exhaustTunerProject": 1,
+"name": "K24 legacy",
+"saved": "2026-11-14T17:41:12.767Z",
+"units": "imp",
+"mode": "simple",
+"tab": "intake",
+"vals": {
+"v-mode": {
+"v": "eng"
+},
+"v-class": {
+"v": "car"
+},
+"v-make": {
+"v": ""
+},
+"v-pick": {
+"v": "73"
+},
+"q-eng": {
+"v": "i4"
+},
+"q-disp": {
+"b": 2354
+},
+"q-rpm": {
+"b": 6800
+},
+"q-hp": {
+"b": 200
+},
+"q-tq": {
+"b": 4500
+},
+"q-cruise": {
+"b": 2000
+},
+"q-sys": {
+"b": null
+},
+"q-ind": {
+"v": "na"
+},
+"q-loud": {
+"v": "3"
+},
+"q-tone": {
+"v": "deep"
+},
+"q-band": {
+"v": "mid"
+},
+"q-use": {
+"v": "street"
+},
+"q-pipes": {
+"v": "auto"
+},
+"f-n": {
+"v": "4"
+},
+"f-rpm": {
+"b": 6800
+},
+"f-evo": {
+"b": 60
+},
+"f-egt": {
+"b": 704.444
+},
+"f-disp": {
+"b": 2354
+},
+"f-cyl": {
+"b": 4
+},
+"f-trq": {
+"b": 4500
+},
+"f-wall": {
+"b": 1.651
+},
+"f-port": {
+"b": 0
+},
+"f-dp": {
+"b": 44.45
+},
+"f-cr": {
+"b": 0.8
+},
+"f-cs": {
+"b": 1.5
+},
+"f-place": {
+"v": "collector"
+},
+"f-tail": {
+"b": 1016
+},
+"f-ang": {
+"b": 8
+},
+"f-er": {
+"b": 2
+},
+"f-ch": {
+"v": "none"
+},
+"f-chx": {
+"b": 152.4
+},
+"f-chd": {
+"b": 38.1
+},
+"f-chl": {
+"b": 177.8
+},
+"f-chn": {
+"b": 1
+},
+"f-chh": {
+"b": 8
+},
+"f-chf": {
+"b": null
+},
+"f-cht": {
+"b": null
+},
+"f-bore": {
+"b": 87
+},
+"f-stroke": {
+"b": 99
+},
+"f-cratio": {
+"b": 10.5
+},
+"f-valves": {
+"v": "4"
+},
+"f-intl": {
+"b": 300
+},
+"f-pin": {
+"b": 0
+},
+"f-intk": {
+"v": "open"
+},
+"f-plv": {
+"b": 6000
+},
+"f-tbd": {
+"b": 90
+},
+"f-tcd": {
+"b": 0.83
+},
+"f-fdp": {
+"b": 0
+},
+"f-itl": {
+"b": 600
+},
+"f-itd": {
+"b": 101.6
+},
+"f-pshape": {
+"v": "same"
+},
+"f-pw": {
+"b": null
+},
+"f-ph": {
+"b": null
+},
+"f-pr": {
+"b": null
+},
+"f-ivo": {
+"b": null
+},
+"f-ivc": {
+"b": null
+},
+"f-evc": {
+"b": null
+},
+"f-camlib": {
+"v": ""
+},
+"f-cdi": {
+"b": null
+},
+"f-cde": {
+"b": null
+},
+"f-clsa": {
+"b": null
+},
+"f-cadv": {
+"b": null
+},
+"f-vdi": {
+"b": 35
+},
+"f-vde": {
+"b": 30
+},
+"f-lin": {
+"b": null
+},
+"f-lex": {
+"b": null
+},
+"f-vflow": {
+"v": "auto"
+},
+"f-vcd": {
+"b": null
+},
+"f-ceff": {
+"b": null
+},
+"f-camat": {
+"v": "seat"
+},
+"f-gaps": {
+"v": ""
+},
+"t-rpm": {
+"b": 8000
+},
+"t-ed": {
+"b": 190
+},
+"t-shape": {
+"v": "jen"
+},
+"t-bore": {
+"b": null
+},
+"t-stroke": {
+"b": null
+},
+"t-cyl": {
+"b": 1
+},
+"t-hp": {
+"b": null
+},
+"t-td": {
+"b": null
+},
+"t-stg": {
+"v": "3"
+},
+"t-pshape": {
+"v": "round"
+},
+"t-pw": {
+"b": null
+},
+"t-ph": {
+"b": null
+},
+"t-pr": {
+"b": null
+},
+"t-bias": {
+"v": "0"
+},
+"t-dual": {
+"v": "0"
+},
+"t-rpm2": {
+"b": null
+},
+"t-open": {
+"b": 50
+},
+"t-tgas": {
+"b": null
+},
+"t-type": {
+"v": "mx"
+},
+"t-egt": {
+"b": 396.111
+},
+"t-dh": {
+"b": 41.275
+},
+"t-port": {
+"b": 0
+},
+"t-br": {
+"b": 2.6
+},
+"t-da": {
+"b": 8
+},
+"t-bl": {
+"b": 0.5
+},
+"t-ba": {
+"b": 20
+},
+"t-sr": {
+"b": 0.61
+},
+"t-rp": {
+"b": 50
+},
+"s-eng": {
+"v": "i4"
+},
+"s-cyc": {
+"v": "4"
+},
+"s-cyl": {
+"b": 4
+},
+"s-order": {
+"v": ""
+},
+"s-gaps": {
+"v": ""
+},
+"s-bank": {
+"v": ""
+},
+"s-idle": {
+"b": 700
+},
+"s-cruise": {
+"b": 2000
+},
+"s-red": {
+"b": 7100
+},
+"s-feed": {
+"v": "all"
+},
+"s-feedlist": {
+"v": "1,2,3"
+},
+"s-ind": {
+"v": "na"
+},
+"s-zf": {
+"b": 6
+},
+"s-zs": {
+"b": 6
+},
+"s-nt": {
+"b": 120000
+},
+"s-lobes": {
+"b": 4
+},
+"s-rratio": {
+"b": 2
+},
+"s-mlobes": {
+"b": 4
+},
+"s-sratio": {
+"b": 2.5
+},
+"s-belt": {
+"b": 2.2
+},
+"s-step": {
+"b": 4.77
+},
+"s-blades": {
+"b": 12
+},
+"s-lay": {
+"v": "one"
+},
+"s-len": {
+"b": 2590.8
+},
+"s-egt": {
+"b": 343.333
+},
+"s-ttip": {
+"b": null
+},
+"s-nsec": {
+"v": "5"
+},
+"s-p1": {
+"v": "main"
+},
+"s-k1": {
+"v": "pipe"
+},
+"s-L1": {
+"b": 762
+},
+"s-sh1": {
+"v": "round"
+},
+"s-W1": {
+"b": 41.148
+},
+"s-H1": {
+"b": 50.8
+},
+"s-T1": {
+"b": null
+},
+"s-p2": {
+"v": "main"
+},
+"s-k2": {
+"v": "pipe"
+},
+"s-L2": {
+"b": 304.8
+},
+"s-sh2": {
+"v": "round"
+},
+"s-W2": {
+"b": 72.898
+},
+"s-H2": {
+"b": 50.8
+},
+"s-T2": {
+"b": null
+},
+"s-p3": {
+"v": "main"
+},
+"s-k3": {
+"v": "pipe"
+},
+"s-L3": {
+"b": 762
+},
+"s-sh3": {
+"v": "round"
+},
+"s-W3": {
+"b": 60.198
+},
+"s-H3": {
+"b": 50.8
+},
+"s-T3": {
+"b": null
+},
+"s-p4": {
+"v": "main"
+},
+"s-k4": {
+"v": "box"
+},
+"s-L4": {
+"b": 355.6
+},
+"s-sh4": {
+"v": "flat"
+},
+"s-W4": {
+"b": 243.84
+},
+"s-H4": {
+"b": 97.79
+},
+"s-T4": {
+"b": null
+},
+"s-p5": {
+"v": "main"
+},
+"s-k5": {
+"v": "pipe"
+},
+"s-L5": {
+"b": 406.4
+},
+"s-sh5": {
+"v": "round"
+},
+"s-W5": {
+"b": 60.198
+},
+"s-H5": {
+"b": 50.8
+},
+"s-T5": {
+"b": null
+},
+"s-p6": {
+"v": "main"
+},
+"s-k6": {
+"v": "pipe"
+},
+"s-L6": {
+"b": 304.8
+},
+"s-sh6": {
+"v": "round"
+},
+"s-W6": {
+"b": 60.198
+},
+"s-H6": {
+"b": 50.8
+},
+"s-T6": {
+"b": null
+},
+"s-p7": {
+"v": "main"
+},
+"s-k7": {
+"v": "pipe"
+},
+"s-L7": {
+"b": 304.8
+},
+"s-sh7": {
+"v": "round"
+},
+"s-W7": {
+"b": 60.198
+},
+"s-H7": {
+"b": 50.8
+},
+"s-T7": {
+"b": null
+},
+"s-p8": {
+"v": "main"
+},
+"s-k8": {
+"v": "pipe"
+},
+"s-L8": {
+"b": 304.8
+},
+"s-sh8": {
+"v": "round"
+},
+"s-W8": {
+"b": 60.198
+},
+"s-H8": {
+"b": 50.8
+},
+"s-T8": {
+"b": null
+},
+"s-p9": {
+"v": "main"
+},
+"s-k9": {
+"v": "pipe"
+},
+"s-L9": {
+"b": 304.8
+},
+"s-sh9": {
+"v": "round"
+},
+"s-W9": {
+"b": 60.198
+},
+"s-H9": {
+"b": 50.8
+},
+"s-T9": {
+"b": null
+},
+"s-p10": {
+"v": "main"
+},
+"s-k10": {
+"v": "pipe"
+},
+"s-L10": {
+"b": 304.8
+},
+"s-sh10": {
+"v": "round"
+},
+"s-W10": {
+"b": 60.198
+},
+"s-H10": {
+"b": 50.8
+},
+"s-T10": {
+"b": null
+},
+"s-mat": {
+"v": "ss304"
+},
+"s-shape": {
+"v": "round"
+},
+"s-od": {
+"b": 63.5
+},
+"s-oh": {
+"b": 57.15
+},
+"s-wall": {
+"b": 1.651
+},
+"s-span": {
+"b": 914.4
+},
+"s-twall": {
+"b": 204.444
+},
+"s-sup": {
+"v": "pin"
+},
+"s-hang": {
+"v": "soft"
+},
+"s-nh": {
+"b": 4
+},
+"s-mass": {
+"b": 18
+},
+"s-kh": {
+"b": 0
+},
+"s-pw": {
+"b": 203.2
+},
+"s-pl": {
+"b": 355.6
+},
+"s-pt": {
+"b": 1.2192
+},
+"s-flex": {
+"v": "none"
+},
+"s-disp": {
+"b": 2354
+},
+"s-fd": {
+"b": 60.198
+},
+"s-fg": {
+"b": 3.175
+},
+"s-ft": {
+"b": 537.778
+},
+"s-hf": {
+"b": 120
+},
+"s-hd": {
+"b": 38.1
+},
+"s-hl": {
+"b": 50.8
+},
+"i-eng": {
+"v": "i4"
+},
+"i-cyl": {
+"b": 4
+},
+"i-disp": {
+"b": 2354
+},
+"i-rpm": {
+"b": 6800
+},
+"i-idle": {
+"b": 700
+},
+"i-cruise": {
+"b": 2000
+},
+"i-red": {
+"b": 7100
+},
+"i-ve": {
+"b": 90
+},
+"i-ind": {
+"v": "turbo"
+},
+"i-boost": {
+"b": 55.158
+},
+"i-eff": {
+"b": 70
+},
+"i-hp": {
+"b": 450
+},
+"i-type": {
+"v": "cai"
+},
+"i-lt": {
+"b": 609.6
+},
+"i-dt": {
+"b": 123.698
+},
+"i-n": {
+"b": 1
+},
+"i-bends": {
+"b": 2
+},
+"i-bendang": {
+"v": ""
+},
+"i-bendr": {
+"b": null
+},
+"i-tb": {
+"b": 76.2
+},
+"i-mouth": {
+"v": "radius"
+},
+"i-lipr": {
+"b": null
+},
+"i-finish": {
+"v": "smooth"
+},
+"i-boxv": {
+"b": 8000
+},
+"i-snd": {
+"b": 76.2
+},
+"i-snl": {
+"b": 250
+},
+"i-plen": {
+"b": null
+},
+"i-fab": {
+"v": "weld-al"
+},
+"i-pmat": {
+"v": ""
+},
+"i-ploc": {
+"v": "auto"
+},
+"i-pspan": {
+"b": 100
+},
+"i-pd": {
+"b": null
+},
+"i-ptemp": {
+"b": null
+},
+"i-psf": {
+"b": 3
+},
+"i-nt": {
+"b": 1
+},
+"i-cpd": {
+"b": 53.848
+},
+"i-cpw": {
+"b": 1.651
+},
+"i-cph": {
+"b": 914.4
+},
+"i-cpc": {
+"b": 914.4
+},
+"i-cpb": {
+"b": 4
+},
+"i-ice": {
+"b": 75
+},
+"i-icdp": {
+"b": 6.895
+},
+"i-cpd2": {
+"b": null
+},
+"i-cid": {
+"b": 101.6
+},
+"i-cod": {
+"b": 63.5
+},
+"i-lorpm": {
+"b": 3500
+},
+"i-afr": {
+"b": 12
+},
+"i-tar": {
+"b": 0.63
+},
+"i-mafpos": {
+"v": "draw"
+},
+"i-bovside": {
+"v": "auto"
+},
+"i-wgtype": {
+"v": "ext"
+},
+"i-mani": {
+"v": "tube"
+},
+"i-ici": {
+"b": null
+},
+"i-ico": {
+"b": null
+},
+"i-cpr": {
+"b": null
+},
+"i-cpah": {
+"v": ""
+},
+"i-cpac": {
+"v": ""
+},
+"i-cpstep": {
+"v": "cone"
+},
+"i-cpy": {
+"v": "tb"
+},
+"i-bsfc": {
+"b": 0.55
+},
+"i-tit": {
+"b": 950
+},
+"i-teff": {
+"b": null
+},
+"i-tipk": {
+"b": 2
+},
+"i-tobp": {
+"b": null
+},
+"i-thsg": {
+"v": "Precision Turbo & Engine GEN2 PT5862 CEA® (Gen 2 5862, ball bearing): 0.63 A/R, T3 inlet, 4-bolt outlet"
+},
+"i-p3m": {
+"b": null
+},
+"i-tsa": {
+"b": null
+},
+"i-tsw": {
+"b": null
+},
+"i-tfc": {
+"b": null
+},
+"i-tfcu": {
+"v": "lb59"
+},
+"i-tfer": {
+"b": null
+},
+"i-teffm": {
+"v": "bsr"
+},
+"i-tmu": {
+"b": null
+},
+"i-tfric": {
+"b": null
+},
+"i-icam": {
+"b": null
+},
+"i-icrdp": {
+"b": 6.894757
+},
+"i-icrf": {
+"b": 67.40589573850194
+},
+"i-bovd": {
+"b": null
+},
+"i-cpst": {
+"b": null
+},
+"i-wgcl": {
+"b": 152.4
+},
+"i-mport": {
+"b": 44.983399999999996
+},
+"i-msp": {
+"b": 92.98939999999999
+},
+"i-mlen": {
+"b": null
+},
+"i-mmat": {
+"v": "304"
+},
+"i-moff": {
+"b": 0
+},
+"i-mcol": {
+"b": null
+},
+"i-mfin": {
+"v": "ox"
+},
+"i-mkg": {
+"b": null
+},
+"i-mdur": {
+"b": null
+},
+"i-mlift": {
+"b": null
+},
+"i-dpd": {
+"b": null
+},
+"i-dpl": {
+"b": 609.6
+},
+"i-dpb": {
+"b": 1
+},
+"i-tod": {
+"b": null
+},
+"i-xcat": {
+"v": "cat"
+},
+"i-xmuf": {
+"v": "chamber"
+},
+"i-dpw": {
+"b": 1.651
+},
+"i-xb": {
+"b": null
+},
+"i-xn": {
+"b": null
+},
+"i-xcool": {
+"v": "on"
+},
+"i-xta": {
+"b": 30
+},
+"i-xv": {
+"v": "0"
+},
+"i-xfin": {
+"v": "ox"
+},
+"i-xcaf": {
+"v": "1"
+},
+"i-xstep": {
+"v": "step"
+},
+"i-filt": {
+"v": "cone"
+},
+"i-fd": {
+"b": 165.1
+},
+"i-ft": {
+"b": 127
+},
+"i-fh": {
+"b": 203.2
+},
+"i-maf": {
+"v": "card"
+},
+"i-tamb": {
+"b": 25
+},
+"i-tin": {
+"b": 30
+},
+"i-port": {
+"b": 0
+},
+"i-dur": {
+"b": 270
+},
+"i-tune": {
+"b": null
+},
+"i-rd": {
+"b": null
+},
+"i-rd2": {
+"b": null
+},
+"i-rl": {
+"b": null
+},
+"i-cr": {
+"b": 10
+},
+"h-eng": {
+"v": "i4"
+},
+"h-order": {
+"v": "1-8-4-3-6-5-7-2"
+},
+"h-gaps": {
+"v": ""
+},
+"h-bank": {
+"v": ""
+},
+"h-rpm": {
+"b": 6800
+},
+"h-evo": {
+"b": 60
+},
+"h-cde": {
+"b": null
+},
+"h-clsa": {
+"b": null
+},
+"h-cadv": {
+"b": null
+},
+"h-grp": {
+"v": "bank"
+},
+"h-groups": {
+"v": "1,2,3 | 4,5,6"
+},
+"h-ports": {
+"v": "out"
+},
+"h-merge": {
+"v": "direct"
+},
+"h-prof": {
+"v": "const"
+},
+"h-lenmode": {
+"v": "equal"
+},
+"h-disp": {
+"b": 2354
+},
+"h-trq": {
+"b": 4500
+},
+"h-wall": {
+"b": 1.651
+},
+"h-port": {
+"b": 0
+},
+"h-dp": {
+"b": 44.45
+},
+"h-cr": {
+"b": 0.8
+},
+"h-cs": {
+"b": 1.5
+},
+"h-first": {
+"b": 368.3
+},
+"h-yr": {
+"b": 0.8
+},
+"h-pairs": {
+"v": ""
+},
+"h-inc": {
+"b": 3.175
+},
+"h-cone": {
+"b": 0
+},
+"h-maxrun": {
+"b": 0
+},
+"h-maxcol": {
+"b": 0
+},
+"h-maxcod": {
+"b": 0
+},
+"pc-od": {
+"b": 76.2
+},
+"pc-wall": {
+"b": 1.651
+},
+"pc-clr": {
+"b": 114.3
+},
+"pc-ang": {
+"b": 90
+},
+"pc-ends": {
+"v": "square"
+},
+"pc-n": {
+"b": 5
+},
+"pc-seg": {
+"b": null
+},
+"pc-kerf": {
+"b": 1.6
+},
+"x-type": {
+"v": "h"
+},
+"x-shape": {
+"v": "round"
+},
+"x-d": {
+"b": 63.5
+},
+"x-dh": {
+"b": 50.8
+},
+"x-s": {
+"b": 152.4
+},
+"x-pos": {
+"b": 330.2
+},
+"x-ratio": {
+"b": 0.8
+},
+"x-ang": {
+"b": 20
+},
+"x-mrg": {
+"b": 1
+},
+"x-sout": {
+"b": 101.6
+},
+"x-jang": {
+"b": 30
+},
+"x-yr": {
+"b": 0.8
+},
+"x-yang": {
+"b": 15
+},
+"m-f": {
+"b": 144
+},
+"m-dp-shape": {
+"v": "round"
+},
+"m-dp": {
+"b": 60.198
+},
+"m-dph": {
+"b": 50.8
+},
+"m-lay": {
+"v": "one"
+},
+"m-len": {
+"b": 2590.8
+},
+"m-tmain": {
+"b": 343.333
+},
+"m-tres": {
+"b": 43.333
+},
+"m-dn": {
+"b": 50.8
+},
+"m-ln": {
+"b": 76.2
+},
+"m-nin": {
+"b": 0
+},
+"m-cw": {
+"b": 1.519
+},
+"m-spl": {
+"b": 150
+},
+"m-edge": {
+"v": "2.8"
+},
+"m-db": {
+"b": 60.198
+},
+"m-bw": {
+"b": 1.651
+},
+"m-jc": {
+"b": 3.175
+},
+"m-dch": {
+"b": 152.4
+},
+"m-lch": {
+"b": 355.6
+},
+"m-chlay": {
+"v": "through"
+},
+"m-lin": {
+"b": 0
+},
+"m-lout": {
+"b": 0
+},
+"m-case": {
+"v": "round"
+},
+"m-caseh": {
+"b": 101.6
+},
+"m-pack": {
+"b": 100
+},
+"m-por": {
+"b": 10
+},
+"m-ph": {
+"b": 3
+},
+"m-pw": {
+"b": 1
+},
+"m-mach": {
+"b": 0
+},
+"m-nbaf": {
+"b": 0
+},
+"m-bh": {
+"b": 0
+},
+"m-plugl": {
+"b": 0
+},
+"m-nsb": {
+"b": 3
+},
+"m-tlmode": {
+"v": "tl"
+},
+"m-tail": {
+"b": 670
+},
+"m-lret": {
+"b": 60
+},
+"m-kind": {
+"v": "muffler"
+},
+"m-size": {
+"v": "3"
+},
+"m-loud": {
+"v": "3"
+},
+"m-maxl": {
+"b": 0
+},
+"m-maxw": {
+"b": 0
+},
+"m-maxh": {
+"b": 0
+},
+"m-street": {
+"v": "0"
+},
+"c-cyc": {
+"v": "4"
+},
+"c-cyl": {
+"b": 4
+},
+"c-disp": {
+"b": 2354
+},
+"c-rpm": {
+"b": 6800
+},
+"c-cruise": {
+"b": 2000
+},
+"c-ve": {
+"b": 90
+},
+"c-boost": {
+"b": 0
+},
+"c-afr": {
+"b": 12.5
+},
+"c-tgas": {
+"b": 648.889
+},
+"c-type": {
+"v": "hf200"
+},
+"c-cpsi": {
+"b": 200
+},
+"c-mil": {
+"b": 2
+},
+"c-count": {
+"v": "2"
+},
+"c-series": {
+"v": "1"
+},
+"c-sshape": {
+"v": "round"
+},
+"c-sd": {
+"b": 101.6
+},
+"c-sh": {
+"b": 76.2
+},
+"c-slen": {
+"b": 152.4
+},
+"c-cone": {
+"b": 50.8
+},
+"c-pshape": {
+"v": "round"
+},
+"c-pd": {
+"b": 60.198
+},
+"c-ph": {
+"b": 50.8
+},
+"b-cyc": {
+"v": "4"
+},
+"b-cyl": {
+"b": 4
+},
+"b-disp": {
+"b": 2354
+},
+"b-rpm": {
+"b": 6800
+},
+"b-red": {
+"b": 7100
+},
+"b-ve": {
+"b": 95
+},
+"b-boost": {
+"b": 0
+},
+"b-afr": {
+"b": 12.5
+},
+"b-tgas": {
+"b": 537.778
+},
+"b-count": {
+"v": "2"
+},
+"b-nin": {
+"v": "1"
+},
+"b-ishape": {
+"v": "round"
+},
+"b-id": {
+"b": 76.2
+},
+"b-ih": {
+"b": 50.8
+},
+"b-h": {
+"b": 38.1
+},
+"b-w": {
+"b": 0
+},
+"b-len": {
+"b": 762
+},
+"b-tr": {
+"b": 152.4
+},
+"b-wo": {
+"b": 304.8
+},
+"b-ho": {
+"b": 0
+},
+"b-fl": {
+"b": 304.8
+},
+"b-mat": {
+"v": "ss304"
+},
+"b-finish": {
+"v": "steel"
+},
+"b-t": {
+"b": 1.2446
+},
+"b-rib": {
+"b": 0
+},
+"b-twall": {
+"b": 400
+},
+"b-mg": {
+"b": 1.25
+},
+"hg-part": {
+"v": "tab"
+},
+"hg-for": {
+"v": "exh"
+},
+"hg-style": {
+"v": "sculpted"
+},
+"hg-od": {
+"b": 76.2
+},
+"hg-reach": {
+"b": 63.5
+},
+"hg-orient": {
+"v": "across"
+},
+"hg-nh": {
+"b": 1
+},
+"hg-pitch": {
+"b": 31.75
+},
+"hg-foot": {
+"b": 0
+},
+"hg-light": {
+"v": "1"
+},
+"hg-dies": {
+"v": "mcm"
+},
+"hg-blen": {
+"b": 50.8
+},
+"hg-bmount": {
+"v": "bolt"
+},
+"hg-bn": {
+"v": "2"
+},
+"hg-bs": {
+"b": 0
+},
+"hg-bmh": {
+"b": 10.5
+},
+"hg-bslot": {
+"b": 0
+},
+"hg-gap": {
+"b": 0
+},
+"hg-grom": {
+"v": "mc132"
+},
+"hg-strap": {
+"v": "epman"
+},
+"hg-hole": {
+"b": 17.4625
+},
+"hg-bolt": {
+"b": 9.525
+},
+"hg-rod": {
+"b": 9.525
+},
+"hg-bend": {
+"b": 0
+},
+"hg-ang": {
+"b": 90
+},
+"hg-shape": {
+"v": "z"
+},
+"hg-weld": {
+"b": 50.8
+},
+"hg-pin": {
+"b": 63.5
+},
+"hg-ipos": {
+"b": 0
+},
+"hg-wall": {
+"b": 6
+},
+"hg-width": {
+"b": 15
+},
+"hg-liner": {
+"b": 1.5
+},
+"hg-cbolt": {
+"v": "6"
+},
+"hg-rmh": {
+"b": 8.5
+},
+"hg-mat": {
+"v": "ss304"
+},
+"hg-t": {
+"b": 3.175
+},
+"hg-w": {
+"b": 4.5
+},
+"hg-tp": {
+"b": 315.556
+},
+"hg-ta": {
+"b": 37.778
+},
+"hg-fin": {
+"v": "ox"
+},
+"mt-part": {
+"v": "a2a"
+},
+"mt-shape": {
+"v": "box"
+},
+"mt-L": {
+"b": 609.6
+},
+"mt-H": {
+"b": 304.8
+},
+"mt-W": {
+"b": 88.9
+},
+"mt-mass": {
+"b": 7
+},
+"mt-fluid": {
+"v": "none"
+},
+"mt-vol": {
+"b": 0
+},
+"mt-orho": {
+"b": 0.85
+},
+"mt-n": {
+"v": "4"
+},
+"mt-fix": {
+"v": "1"
+},
+"mt-x1": {
+"b": -330
+},
+"mt-y1": {
+"b": -152.4
+},
+"mt-z1": {
+"b": 0
+},
+"mt-d1": {
+"v": "dn"
+},
+"mt-h1": {
+"b": 63.5
+},
+"mt-s1": {
+"b": 0
+},
+"mt-x2": {
+"b": 330
+},
+"mt-y2": {
+"b": -152.4
+},
+"mt-z2": {
+"b": 0
+},
+"mt-d2": {
+"v": "dn"
+},
+"mt-h2": {
+"b": 63.5
+},
+"mt-s2": {
+"b": 0
+},
+"mt-x3": {
+"b": -330
+},
+"mt-y3": {
+"b": 152.4
+},
+"mt-z3": {
+"b": 0
+},
+"mt-d3": {
+"v": "bk"
+},
+"mt-h3": {
+"b": 63.5
+},
+"mt-s3": {
+"b": 0
+},
+"mt-x4": {
+"b": 330
+},
+"mt-y4": {
+"b": 152.4
+},
+"mt-z4": {
+"b": 0
+},
+"mt-d4": {
+"v": "bk"
+},
+"mt-h4": {
+"b": 63.5
+},
+"mt-s4": {
+"b": 0
+},
+"mt-x5": {
+"b": 0
+},
+"mt-y5": {
+"b": -152.4
+},
+"mt-z5": {
+"b": 0
+},
+"mt-d5": {
+"v": "dn"
+},
+"mt-h5": {
+"b": 63.5
+},
+"mt-s5": {
+"b": 0
+},
+"mt-x6": {
+"b": 0
+},
+"mt-y6": {
+"b": 152.4
+},
+"mt-z6": {
+"b": 0
+},
+"mt-d6": {
+"v": "bk"
+},
+"mt-h6": {
+"b": 63.5
+},
+"mt-s6": {
+"b": 0
+},
+"mt-gpre": {
+"v": "fia"
+},
+"mt-gx": {
+"b": 25
+},
+"mt-gy": {
+"b": 25
+},
+"mt-gz": {
+"b": 25
+},
+"mt-sf": {
+"b": 1.5
+},
+"mt-soft": {
+"v": "soft"
+},
+"mt-iso": {
+"v": "c"
+},
+"mt-T": {
+"b": 20
+},
+"mt-rpm": {
+"b": null
+},
+"mt-cyl": {
+"b": null
+},
+"mt-thot": {
+"b": null
+},
+"mt-tcold": {
+"b": -20
+},
+"mt-tinst": {
+"b": 20
+},
+"mt-type": {
+"v": "auto"
+},
+"mt-mat": {
+"v": "a36"
+},
+"mt-fil": {
+"v": "paht"
+},
+"mt-b": {
+"b": 0
+},
+"mt-bolt": {
+"v": "m8"
+},
+"mt-cls": {
+"v": "88"
+},
+"mt-nb": {
+"v": "2"
+},
+"mt-att": {
+"v": "bolt"
+},
+"mt-patt": {
+"v": "bolt"
+},
+"mt-weld": {
+"b": 0
+},
+"mt-filler": {
+"v": "4043"
+},
+"mt-R": {
+"b": 0
+},
+"mt-K": {
+"b": 0.42
+},
+"mt-light": {
+"v": "none"
+},
+"mt-sock": {
+"b": 12.7
+},
+"mt-stod": {
+"b": 19.05
+},
+"mt-stw": {
+"b": 1.651
+},
+"mt-stre": {
+"b": 38.1
+},
+"mt-sheet": {
+"v": "1"
+}
+},
+"ui": {
+"wam": {
+"rpms": "",
+"cycles": 25,
+"name": "",
+"results": [],
+"src": "",
+"insMouth": false,
+"line": {
+"on": false,
+"L": 2500,
+"d": 76.2,
+"muf": 0,
+"mufKind": "volume",
+"tail": 500,
+"fix": "none",
+"x": 600,
+"qL": 600,
+"qd": 50.8,
+"hV": 2,
+"hL": 80,
+"hd": 38,
+"par": "none",
+"px": 1500,
+"xo": "none"
+},
+"loss": {
+"K": 0,
+"Ky": 0,
+"src": ""
+},
+"prof": {
+"in": null,
+"ex": null,
+"angle": "crank",
+"lift": "valve",
+"rr": 1.7,
+"err": ""
+}
+},
+"dyno": {
+"pts": "",
+"src": "engine",
+"loss": 15,
+"fit": null,
+"check": null
+},
+"opt": {
+"rpms": "",
+"res": null
+},
+"cfd": {
+"mount": "",
+"lip": "",
+"protr": "",
+"clr": "",
+"bpos": "",
+"maf": "",
+"mesh": "medium",
+"ff": 1,
+"pr": "",
+"name": "",
+"cone": true,
+"results": []
+},
+"exh": {
+"part": "collector",
+"share": "",
+"T": "",
+"ve": 90,
+"afr": 12.5,
+"boost": 0,
+"mesh": "medium",
+"name": "",
+"split": "",
+"results": []
+},
+"es": {
+"eng": "",
+"redline": null,
+"idle": 800,
+"sysL": null,
+"ir": "",
+"target": "ce",
+"rpms": "1500, 3000, 4500"
+},
+"goals": {
+"goals": []
+},
+"heat": {
+"Tg": "",
+"load": 100,
+"fin": "ox",
+"mat": "304",
+"Ta": 40,
+"v": 0,
+"ve": 95,
+"afr": 12.5,
+"caf": 2.5,
+"Lf": 300
+},
+"tso": {
+"turbo": "1",
+"hs": "0",
+"ictype": "a2a",
+"icm": "1",
+"tm": "1",
+"lmL": "",
+"lmH": "",
+"lmT": "",
+"oName": "",
+"oType": "a2a",
+"oL": "",
+"oH": "",
+"oW": "",
+"oIn": "",
+"oOut": "",
+"oHp": "",
+"oDp": "",
+"oDpF": "",
+"oPm": "",
+"oTi": "",
+"oTo": "",
+"oCf": "",
+"oTc": "",
+"ic": "71",
+"pm": "",
+"pTi": "",
+"pTo": "",
+"pcf": "",
+"pTc": "",
+"ua1": "",
+"wf": "",
+"cool": "water",
+"wTi": "",
+"wdT": 10,
+"wV": "",
+"ua2": "",
+"fa": "",
+"wLh": "",
+"wLc": "",
+"olF": "",
+"olTi": "",
+"olTc": "",
+"olType": "l2l",
+"olRow": "",
+"olLoop": "engine",
+"olP": "",
+"olN": ""
+},
+"mfd": {
+"run": "",
+"clr": ""
+},
+"cmap": {
+"label": "",
+"xu": "lbmin",
+"maker": "",
+"refT": "",
+"refTu": "R",
+"refP": "",
+"refPu": "psia",
+"calMode": "axes",
+"cal": {
+"xa": {
+"p": "",
+"v": ""
+},
+"xb": {
+"p": "",
+"v": ""
+},
+"ya": {
+"p": "",
+"v": ""
+},
+"yb": {
+"p": "",
+"v": ""
+}
+},
+"imgW": 0,
+"imgH": 0,
+"imgName": "",
+"imgSig": "",
+"surge": [],
+"choke": [],
+"isl": [],
+"eta": {},
+"caseB": "",
+"embed": false
+}
+},
+"huel": {
+"c": {},
+"g": {},
+"n": 0
+},
+"tw": {
+"v": {},
+"rpms": "",
+"cycles": 30,
+"cell": 8,
+"straight": true,
+"intake": "reed",
+"reedModel": "1d",
+"port": "rect",
+"cool": "water"
+},
+"jig": {
+"style": "cradles",
+"layout": "model",
+"mount": "free",
+"table": "s16",
+"pitch": 50,
+"hole": 16.5,
+"gx": 0,
+"gy": 0,
+"gang": 0,
+"free_holes": true,
+"flange": "none",
+"fsize": 0,
+"fthick": 10,
+"fn": 0,
+"fpcd": 0,
+"fhole": 0,
+"fang": 0,
+"gap": 20,
+"bed": 256,
+"clear": 0.25,
+"spacing": 150,
+"gussets": "auto",
+"tfeet": "tabs",
+"fpreset": "custom",
+"fshape": "square",
+"fw": 0,
+"fh": 0,
+"fholes": "",
+"seat": "none",
+"seatd": 0,
+"seatdep": 0,
+"spigd": 0,
+"spigl": 0
+},
+"build": []
+},
+"R": {
+"m": 0.215888085,
+"mc": 0.215888085,
+"PRc": 1.64819177,
+"t2": 96.4587656,
+"t3": 42.8646914,
+"Pt": 156483,
+"P2": 166848.5,
+"P1": 101231.242,
+"total": 10459.258,
+"dpInlet": 93.75796,
+"dpAfter": 10365.5001
+},
+"G": {
+"wa": 49.5,
+"map": 40.9938376,
+"boost": 26.2978882,
+"pr": 2.89444289
+},
+"bp": {
+"bp": 12895.6877,
+"choke": false,
+"d": 72.898,
+"me": 0.233878759,
+"t4": 902.982374
+},
+"mfd": {
+"label": "1.875 in (47.6 mm) × 0.065 in (1.65 mm) stainless tube",
+"id": 44.323,
+"L": 193.85245,
+"dcol": 58.458318,
+"p3": 211641
+},
+"glance": {
+"power": "target 450 hp (336 kW); boost 8.00 psi (55.16 kPa) at the throttle || Garrett’s method: 450 hp (336 kW) needs about 26.30 psi (181.32 kPa) boost (pressure ratio 2.89) and 49.5 lb/min (0.374 kg/s) of air; your boost gives 28.6 lb/min (0.216 kg/s). The two do not match: the pipe, intercooler and valve sizes here are for your boost’s airflow, while the turbo and intercooler ratings are checked against the target. Change Boost (or the target) until they agree. No power estimate yet: the wave simulation with the turbo (4-Stroke tab) gives one.",
+"turbo": "Precision Turbo & Engine GEN2 PT5862 CEA® (Gen 2 5862, ball bearing) || ",
+"hsg": "0.63 A/R, T3 inlet, 4-bolt outlet 2.50 in (63.5 mm) || ",
+"comp": "4.00 in (101.6 mm) / 2.50 in (63.5 mm) || ",
+"co": "2.12 in (53.8 mm) → 2.50 in (63.5 mm), 13.5° included cone, 1.6 in (41 mm) long || loss 0.01 psi (0.04 kPa)",
+"inlet": "ID 4.87 in (123.7 mm), 24.0 in (610 mm) long, 2 × 90° bends || ",
+"hot": "OD 2.25 in (57.15 mm), ID 2.12 in (53.8 mm), wall 0.065 in (1.65 mm), 36.0 in (914 mm) long, 2 × 90° bends || ",
+"ic": "Bell Intercoolers A300227240, air-to-air, core 24.00 × 22.70 × 3.00 in (609.6 × 576.6 × 76.2 mm) || air-to-air, Bell Intercoolers A300227240, 75% effectiveness",
+"cold": "OD 2.25 in (57.15 mm), ID 2.12 in (53.8 mm), wall 0.065 in (1.65 mm), 36.0 in (914 mm) long, 2 × 90° bends || ",
+"tb": "2.12 in (53.8 mm) → 3.00 in (76.2 mm), 6.5° included cone, 7.7 in (197 mm) long || loss 0.01 psi (0.10 kPa)",
+"bov": "1.26 in (32.0 mm) or larger, effective area 627 mm² (0.97 in²) || cold side, centre 1.5 in (38 mm) before the throttle face, recirculated to the inlet tube",
+"wg": "1.50 in (38.0 mm) valve and branch at 45°, effective area 646 mm² (1.00 in²) || centre 1.1 in (27 mm) to 4.9 in (126 mm) from the turbine flange on the 6.0 in (152 mm) collector",
+"run": "1.875 in (47.6 mm) × 0.065 in (1.65 mm) stainless tube, OD 1.875 in (47.63 mm), ID 1.75 in (44.3 mm), wall 0.065 in (1.65 mm), 7.6 in (194 mm) each, bends on 1.88 in (47.6 mm) CLR || ",
+"col": "bore 2.30 in (58.5 mm), 6.0 in (152 mm) to the turbine flange || ",
+"dp": "OD 3 in (76.2 mm), ID 2.87 in (72.9 mm), wall 0.065 in (1.65 mm), 24.0 in (610 mm) long, 1 × 90° bends || ",
+"oil": "-4 AN (6.35 mm (0.250 in) nominal, 7/16-20 thread) / -10 AN (15.88 mm (0.625 in) nominal, 7/8-14 thread) minimum || ",
+"p3": "2 × boost, 16.00 psi (110.32 kPa) gauge || an assumption until measured (What to measure, under the steps); the wastegate size and the turbine balance use it.",
+"mounts": "not designed yet || the Mounts designer on the Hangers tab sizes the intercooler, oil cooler and turbo brackets"
+},
+"parts": [
+[
+"Turbo",
+"Precision Turbo & Engine GEN2 PT5862 CEA® (Gen 2 5862, ball bearing)",
+"Gen 2 PT5862 (maker); e.g. 20730207239 (T4 divided 4-bolt, Jet-Fighter cover); source https://www.precisionturbo.com/p372175-turbochargers-street-race-gen-2-gen-2-pt5862-s-20730207239 (read 2026-11-12)"
+],
+[
+"Turbine housing",
+"0.63 A/R, T3 inlet, 4-bolt outlet 2.50 in (63.5 mm)",
+""
+],
+[
+"Turbine size (flow capacity)",
+"unknown",
+"no flow published in text for this housing; type it off the maker’s turbine flow chart into “Turbine flow off the maker’s turbine flow chart for your housing” (Intake tab, Charge pipes and intercooler, advanced inputs)"
+],
+[
+"Compressor inlet / outlet",
+"4.00 in (101.6 mm) / 2.50 in (63.5 mm)",
+"the cover’s sizes"
+],
+[
+"Inlet tube",
+"ID 4.87 in (123.7 mm), 24.0 in (610 mm) long, 2 × 90° bends",
+"filter to compressor"
+],
+[
+"Hot side pipe",
+"OD 2.25 in (57.15 mm), ID 2.12 in (53.8 mm), wall 0.065 in (1.65 mm), 36.0 in (914 mm) long, 2 × 90° bends",
+"compressor to intercooler"
+],
+[
+"Cold side pipe",
+"OD 2.25 in (57.15 mm), ID 2.12 in (53.8 mm), wall 0.065 in (1.65 mm), 36.0 in (914 mm) long, 2 × 90° bends",
+"intercooler to throttle, bore 3.00 in (76.2 mm)"
+],
+[
+"Cone, inlet tube → compressor",
+"4.00 in (101.6 mm) → 4.87 in (123.7 mm), 14.0° included cone, 3.5 in (90 mm) long",
+"loss 0.00 psi (0.01 kPa)"
+],
+[
+"Cone, compressor outlet → hot pipe",
+"2.12 in (53.8 mm) → 2.50 in (63.5 mm), 13.5° included cone, 1.6 in (41 mm) long",
+"loss 0.01 psi (0.04 kPa)"
+],
+[
+"Cone, cold pipe → throttle",
+"2.12 in (53.8 mm) → 3.00 in (76.2 mm), 6.5° included cone, 7.7 in (197 mm) long",
+"loss 0.01 psi (0.10 kPa)"
+],
+[
+"Intercooler core",
+"Bell Intercoolers A300227240, air-to-air, core 24.00 × 22.70 × 3.00 in (609.6 × 576.6 × 76.2 mm)",
+"source https://bellintercoolers.com/i-30005302-bar-and-plate-cores-air-cooled-peak-efficiency.html (read 2026-11-12); the page’s recommendation"
+],
+[
+"Intercooler end tanks and mounting",
+"Core size: “In general, use the largest core that will fit within the packaging constraints of the application.” End tanks: “Proper manifold shape is critical in minimizing pressure drop and providing uniform flow distribution.” Over-the-top end tanks: “The over-the-top design can starve the top tubes.” Side entry: “ideal for both pressure drop and flow distribution”, though vehicle space usually rules it out. Ducting: “should never be smaller than the radius of the compressor outlet” (Garrett’s example compares areas: a GTX5533R Gen II’s 3.25 in (82.6 mm) outlet, 8.30 in² (53.5 cm²), against 3 in (76.2 mm) ducting, 7.07 in² (45.6 cm²), a restriction). Mounting: air-to-air charge air coolers are typically soft-mounted on rubber isolation grommets, against vibration failure and to allow thermal expansion.",
+"Garrett, “Intercooler Sizing And End Tank Design With Rob Dahm” (2020), https://www.garrettmotion.com/news/newsroom/article/intercooler-sizing-and-end-tank-design-with-rob-dahm/; on this build the hot pipe is smaller than the compressor outlet"
+],
+[
+"Intercooler",
+"air-to-air, Bell Intercoolers A300227240, 75% effectiveness",
+"core drop 1.00 psi (6.89 kPa)"
+],
+[
+"Oil heat load",
+"700 BTU/min (12.3 kW) to 885 BTU/min (15.6 kW)",
+"Setrab’s suggested oil heat rejection for 450 hp (wet sump; maker guidance), https://www.pegasusautoracing.com/pdfs/SetrabApplicationSuggestions.pdf"
+],
+[
+"Turbo oil feed",
+"-4 AN (6.35 mm (0.250 in) nominal, 7/16-20 thread)",
+"ball bearing: “may be restricted but may not always be necessary”; if the turbo comes with a restrictor fitting, “it is suggested that this fitting be utilized”; https://www.precisionturbo.com/turbocharger-installation-recommendations"
+],
+[
+"Turbo oil drain",
+"-10 AN (15.88 mm (0.625 in) nominal, 7/8-14 thread) minimum",
+"“The oil return line size needs to be a minimum of a -10AN or 5/8 of an inch inside diameter or larger”; the turbo “mounted as high as possible so the oil will gravity return to the engine”; “the oil return line fitting must be installed above the oil level in the oil pan”; sharp turns and tight-radius fittings kept to a minimum; https://www.precisionturbo.com/turbocharger-installation-recommendations"
+],
+[
+"Turbo water lines",
+"if the centre housing has coolant ports",
+"“If a turbocharger has locations on the bearing housing for coolant lines coolant must be run through the turbocharger” (no line size given)"
+],
+[
+"Blow-off valve",
+"1.26 in (32.0 mm) or larger, effective area 627 mm² (0.97 in²)",
+"cold side, centre 1.5 in (38 mm) before the throttle face, recirculated to the inlet tube"
+],
+[
+"Wastegate",
+"1.50 in (38.0 mm) valve and branch at 45°, effective area 646 mm² (1.00 in²)",
+"centre 1.1 in (27 mm) to 4.9 in (126 mm) from the turbine flange on the 6.0 in (152 mm) collector"
+],
+[
+"Turbo manifold",
+"tubular, all runners into one collector; cylinders 1, 2, 3, 4",
+"pairing from the firing order (Garrett, Turbo Tech 102; BorgWarner)"
+],
+[
+"Runners",
+"1.875 in (47.6 mm) × 0.065 in (1.65 mm) stainless tube, OD 1.875 in (47.63 mm), ID 1.75 in (44.3 mm), wall 0.065 in (1.65 mm), 7.6 in (194 mm) each, bends on 1.88 in (47.6 mm) CLR",
+"port 1.77 in (45.0 mm); nearest the port’s area (MacInnes, as AutoSpeed sums up his book)"
+],
+[
+"Runner layout",
+"merge 3.8 in (95 mm) out from the head flange; the farthest runner (cylinder 1) sets the length",
+"this page’s planar geometry; add to the nearer runners: 1 +0.0 in (0 mm), 2 +3.8 in (95 mm), 3 +3.8 in (95 mm), 4 +0.0 in (0 mm)"
+],
+[
+"Collector",
+"bore 2.30 in (58.5 mm), 6.0 in (152 mm) to the turbine flange",
+"matched to the turbine inlet port’s area"
+],
+[
+"Turbine inlet flange",
+"T3",
+"turbozentrum’s T3 manifold flange: port 61 × 44 mm (2.40 × 1.73 in), studs 86 × 46 mm (M8); Ace’s T3 pattern 3.375 × 1.750 in (85.7 × 44.4 mm), M10 × 1.5. The port’s area is taken as that rectangle, an upper bound (the opening has rounded ends)"
+],
+[
+"Manifold material",
+"304 stainless, runner steel 1378 °F (748 °C) mean, 1391 °F (755 °C) at the port",
+"continuous without appreciable scaling to about 899 °C (1650 °F), intermittent cyclic about 816 °C (1500 °F); https://d1io3yog0oux5.cloudfront.net/_7ce3a04c09e74bf31ff5f89fc888db25/clevelandcliffs/db/1190/10510/file/CLF_ProductData_304-304LSS_052021.pdf"
+],
+[
+"Cone, turbine outlet → downpipe",
+"2.37 in (60.2 mm) → 2.87 in (72.9 mm), 8.5° included, 3.4 in (85 mm) long",
+"total-pressure loss 0.04 psi (0.24 kPa); 1618 °F (881 °C), Mach 0.37; static rise -0.79 psi (-5.42 kPa)"
+],
+[
+"Downpipe",
+"OD 3 in (76.2 mm), ID 2.87 in (72.9 mm), wall 0.065 in (1.65 mm), 24.0 in (610 mm) long, 1 × 90° bends",
+"1640 °F (894 °C), Mach 0.24; static rise 0.22 psi (1.52 kPa)"
+],
+[
+"Converters (Cats tab)",
+"2 side by side, 200 cpsi, 6.0 in (152 mm) long",
+"1614 °F (879 °C), Mach 0.18; static rise 0.66 psi (4.56 kPa)"
+],
+[
+"Muffler (Mufflers tab)",
+"straight-through chamber, 6.00 in (152.4 mm) across, pipe 2.37 in (60.2 mm)",
+"1584 °F (862 °C), Mach 0.36; static rise 1.77 psi (12.22 kPa)"
+]
+],
+"nums": [
+[
+"Manifold loss, port to turbine flange, while a valve is open",
+"1.01 psi (6.93 kPa) of total pressure (open period 260°; 0.22 psi (1.55 kPa) at the cycle-mean flow, for comparison)"
+],
+[
+"Pressure at the exhaust port while its valve is open",
+"17.01 psi (117.25 kPa) gauge total (15.74 psi (108.52 kPa) static): the turbine-inlet total pressure 16.00 psi (110.32 kPa) plus the loss"
+],
+[
+"Runner gas speed at the turbine-inlet state",
+"591 ft/s (180 m/s), Mach 0.270 while its valve is open (× 2.769); 207 ft/s (63 m/s), Mach 0.094 averaged over the cycle"
+],
+[
+"Volume, valves to the turbine",
+"1.97 L (120 cu in), 3.35 × one cylinder"
+],
+[
+"Heat growth (304 stainless)",
+"at least 13.58 per thousand; the turbine flange moves 0.178 in (4.52 mm) from the head"
+],
+[
+"Air through each compressor",
+"28.6 lb/min (0.216 kg/s)"
+],
+[
+"Corrected flow (85 °F (29.4 °C), 13.95 psia (96.18 kPa); ATP)",
+"27.2 lb/min (0.205 kg/s)"
+],
+[
+"Garrett’s method for 450 hp",
+"49.5 lb/min (0.374 kg/s) per compressor, pressure ratio 2.89"
+],
+[
+"Compressor pressure ratio",
+"1.648"
+],
+[
+"Boost at the throttle / at the compressor",
+"8.00 psi (55.16 kPa) / 9.50 psi (65.52 kPa)"
+],
+[
+"Air leaving the compressor / the intercooler",
+"206 °F (96 °C) / 109 °F (43 °C)"
+],
+[
+"Loss, filter to throttle",
+"1.52 psi (10.46 kPa)"
+],
+[
+"Turbine inlet temperature",
+"1742 °F (950 °C)"
+],
+[
+"Exhaust through each turbine",
+"30.9 lb/min (0.234 kg/s)"
+],
+[
+"Gas after the turbine",
+"1657 °F (903 °C)"
+],
+[
+"Gas at the tip",
+"1623 °F (884 °C)"
+],
+[
+"Back pressure after the turbine, worked out",
+"1.87 psi (12.90 kPa) static at the turbine outlet (3.34 psi (23.01 kPa) total)"
+],
+[
+"Back pressure in the turbine balance",
+"none entered"
+],
+[
+"Pressure before the turbine",
+"2 × boost, 16.00 psi (110.32 kPa) gauge"
+],
+[
+"Wastegate flow at peak",
+"20.3 lb/min (0.153 kg/s)"
+],
+[
+"Turbine efficiency model",
+"from the blade speed ratio at each moment (parabola, peak at 0.7); shaft about 89,583 RPM at full boost, turbine tip 1093 ft/s (333 m/s), compressor work coefficient 0.523"
+]
+],
+"steps": [
+[
+"engine",
+"ok",
+"Inline-4 · 1-3-4-2, 2,354 cc (144 cu in), peak power at 6,800 RPM, boost 8.00 psi (55.16 kPa), target 450 hp (336 kW)"
+],
+[
+"air",
+"ok",
+"needs 49.5 lb/min (0.374 kg/s) per compressor at pressure ratio 2.89 (Garrett’s method); the tab’s airflow and boost give 28.6 lb/min (0.216 kg/s) at 1.65"
+],
+[
+"turbo",
+"ok",
+"Precision Turbo & Engine GEN2 PT5862 CEA® (Gen 2 5862, ball bearing): rating covers this build; recommended BorgWarner EFR 6758 (500 hp rating, not applied: Use this turbo)"
+],
+[
+"ar",
+"ok",
+"0.63 A/R, T3 inlet, 4-bolt outlet; turbine flow not published for this housing: type it off the maker’s turbine flow chart to size the turbine from it (the simulation otherwise finds it from your full-boost RPM)"
+],
+[
+"pipes",
+"ok",
+"inlet 4.87 in (123.7 mm), hot side 2.12 in (53.8 mm), cold side 2.12 in (53.8 mm): the recommended sizes"
+],
+[
+"ic",
+"ok",
+"air-to-air, 75% effectiveness, 661 BTU/min (11.6 kW) to remove; Bell Intercoolers A300227240: rating covers this build; recommended Bell Intercoolers A300227240 (in use)"
+],
+[
+"oil",
+"todo",
+"oil heat 700 BTU/min (12.3 kW) to 885 BTU/min (15.6 kW) (Setrab’s suggestion for this power); no oil cooler picked; feed -4 AN, drain -10 AN minimum"
+],
+[
+"valves",
+"ok",
+"blow-off valve on the cold side, centre 1.5 in (38 mm) before the throttle, 1.26 in (32.0 mm) or larger; wastegate 1.50 in (38.0 mm), 45°, centre 1.1 in (27 mm) to 4.9 in (126 mm) from the turbine flange"
+],
+[
+"mani",
+"ok",
+"tubular, runners 1.875 in (47.6 mm) × 0.065 in (1.65 mm) stainless tube, 7.6 in (194 mm) each, collector 2.30 in (58.5 mm), manifold loss 1.01 psi (6.93 kPa) while a valve is open (0.22 psi (1.55 kPa) at the cycle-mean flow)"
+],
+[
+"exh",
+"todo",
+"downpipe 3.00 in (76.2 mm) OD, back pressure 1.87 psi (12.90 kPa) at peak, static at the turbine outlet, the gas cooled along the pipe, compressible flow (1 part not counted); not in the turbine balance yet (Use my exhaust’s back pressure)"
+],
+[
+"scan",
+"info",
+"Fusion add-in, Charge piping from your scan: it routes the charge pipes around the scanned engine bay with these sizes; it needs Fusion with the add-in (this page cannot read a scan)"
+],
+[
+"sheet",
+"info",
+"the route drawing, every part and size, the key numbers and the assumptions, in inches and mm, as one file to save and print"
+]
+]
+}

@@ -50,7 +50,7 @@ const { reads, settle } = require('./settle');
     g.strokeStyle = '#000'; g.lineWidth = 2; g.strokeRect(80, 60, 680, 480); g.fillText('test grid, lb/min against pressure ratio (not a real compressor)', 120, 40);
     return c.toDataURL('image/png'); });
   fs.writeFileSync(png, Buffer.from(dataUrl.split(',')[1], 'base64')); fs.writeFileSync(pdf, '%PDF-1.4\n%test\n');
-  const open = async P => { await P.goto('file://' + process.cwd() + '/index.html#intake'); await P.waitForTimeout(900);
+  const open = async P => { await P.goto('file://' + process.cwd() + '/index.html#intake'); await P.waitForTimeout(900); await require('./settle').typedPoint(P);
     await P.evaluate(() => { document.body.classList.add('expert'); document.body.classList.remove('simple'); const el = document.getElementById('i-ind'); el.value = 'turbo'; el.dispatchEvent(new Event('change', { bubbles: true })); });
     await settle(P); };
   await open(pg);

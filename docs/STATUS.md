@@ -2035,3 +2035,26 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   turbine-flow-parameter cell, now lb/min·√°R/psi first in inches (the pinned 3.083 kg√K/(s·bar) unchanged). Suite (web,parity,
   -j 2, --skip-slow): 133 tests, 125 passed, 1 failed (turbosize_ui, that regex; fixed and rerun alone: passes), 7 skipped,
   7 partial skips, 0 unexpected, 1643 s.
+
+## 2026-11-14: one operating point for the boosted build (usability audit C1 to C8)
+
+- Intake tab, Engine group: "What you know for this boosted build" (i-opm): my power target (default; the boost worked out
+  by Garrett's relation, iterated with the route's intercooler-outlet air, with a range from Garrett's BSFC, VE and
+  manifold-air spreads), my boost (the power worked out, the same relation inverted), or both typed (expert, the earlier
+  behaviour with the mismatch warning). One airflow everywhere through calcIntake's qd factor (opSolve, OP, tsHp, tsBoost).
+- Back pressure after the turbine: blank = the Exhaust after the turbine figure (i-tobpsrc auto; tsBpAuto iterates, ends
+  in the second pass), in the balance, the gate and the simulation (at the downpipe's end there). Wastegate sized at the
+  largest area across 0.8 to 2.5 × boost before the turbine (i-wgbasis; measured p3 when typed). Boosted intake, Stone,
+  the surge check and Charge pipes show the route's with-loss ratio and temperatures. Inlet tube vs a picked turbo's
+  hose-coupler inlet compared by OD (4 in on the PT5862, was 5 in). Runner row prints the tube once.
+- Projects saved earlier load with both typed / none / one p3: the same results (operatingpoint_ui against
+  web/tests/fixtures/op_legacy_k24.json).
+- K24 + PT5862 at 450 hp: 29.52 psi worked out (likely 18.64 to 33.54), 49.5 lb/min, PR 3.112; pipes 2.25 -> 3 in OD,
+  inlet 5 -> 4 in OD, intercooler heat 11.6 -> 48.2 kW (same core), BOV and wastegate valves unchanged in size (561 and
+  366 mm² effective), downpipe, manifold and oil lines unchanged; back pressure 4.59 psi in the balance.
+  Details and every changed pin: docs/BOOST_AUDIT_2026-11-12.md addendum (2026-11-14); C1-C8 status:
+  docs/USABILITY_AUDIT_2026-11-14.md.
+- Tests: web/tests/operatingpoint_ui.js (new, 55 checks); settle.js typedPoint keeps 14 section tests at the typed boost;
+  pins changed listed in the addendum. Suite (web,parity, -j 2, --skip-slow), final code: 134 tests, 127 passed, 0 failed,
+  7 skipped, 7 partial skips, 0 unexpected, 1504 s (the run before it: sweep_ui failed on two empty table cells the default
+  turbo build now reaches; fixed, rerun alone: passes).

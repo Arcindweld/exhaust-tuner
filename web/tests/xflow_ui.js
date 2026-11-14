@@ -28,7 +28,7 @@ const { chromium } = require('playwright');
   // pg.$eval / pg.$$eval read in one call after the page has stopped re-rendering (tests/settle.js; audit F1)
   require('./settle').reads(pg);
   pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await pg.waitForTimeout(900);
+  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg);
   const setv = async (id, v) => { await pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]); await pg.waitForTimeout(150); };
 
   // ---- Fanno: the formula against the published table, then the page's pipe march against both
@@ -120,7 +120,7 @@ const { chromium } = require('playwright');
   const ti = await pg.evaluate(() => window.__tso.TURBO_LIB.findIndex(t => t.model.startsWith('GEN2 PT5862')));
   await tso('turbo', String(ti));
   const hs4 = await pg.evaluate(ti => window.__tso.TURBO_LIB[ti].hs.findIndex(h => h.ar === 0.63 && h.outlet === '4-bolt'), ti);
-  await tso('hs', String(hs4)); await pg.click('button[data-tsuse]'); await pg.waitForTimeout(300);
+  await tso('hs', String(hs4)); await pg.click('button[data-tsuse]'); await pg.waitForTimeout(300); await pg.evaluate(() => { const e = document.getElementById('i-dt'), mm = e.parentElement.querySelector('em').textContent.trim() === 'mm'; e.value = mm ? '123.698' : String(123.698 / 25.4); e.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(400);   /* the 5 in inlet tube Use these sizes gave before the coupler fix (2026-11-14), so the hand sums below hold */
   await setv('s-ind', 'turbo1'); await setv('m-dp', '72.898'); await setv('s-od', '76.2'); await setv('s-len', '2500'); await setv('i-xcat', 'none'); await setv('i-dpb', '0'); await setv('i-xmuf', 'chamber');
   await pg.waitForTimeout(300);
   const A = await pg.evaluate(() => { const X = window.__tsx.last(); return X && { bp: X.X.bp, bp0: X.X.bp0, S: [X.X.S.v0, X.X.S.v1, X.X.S.v2, X.X.S.v3, X.X.S.v4], T0tip: X.X.T0tip, sep: X.X.sep && X.X.sep.bp,

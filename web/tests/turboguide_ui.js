@@ -34,7 +34,7 @@ const { chromium } = require('playwright');
   // pg.$eval / pg.$$eval read in one call after the page has stopped re-rendering (tests/settle.js; audit F1)
   require('./settle').reads(pg);
   pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900);
+  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg);
   const setv = async (id, v) => { await pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]); await pg.waitForTimeout(120); };
   const tso = async (k, v) => { await pg.evaluate(([k, v]) => { const el = document.querySelector('select.tsox[data-k="' + k + '"]'); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]); await pg.waitForTimeout(150); };
   const steps = () => pg.evaluate(() => Object.fromEntries([...document.querySelectorAll('#tg-steps > li')].map(li => [li.dataset.step, { state: li.dataset.state, text: li.innerText }])));
@@ -66,6 +66,8 @@ const { chromium } = require('playwright');
   ok((s.pipes.state === 'todo' || s.pipes.state === 'warn') && /Use these sizes/.test(s.pipes.text), 'sizes not the recommended ones yet: step 5 open (' + s.pipes.state + ': ' + s.pipes.text.split('\n').pop() + ')');
   await pg.click('button[data-tsuse]'); await pg.waitForTimeout(300); s = await steps();
   ok(s.pipes.state === 'ok' && /the recommended sizes/.test(s.pipes.text), 'after Use these sizes: step 5 done');
+  // the 5 in inlet tube Use these sizes gave before the coupler fix (2026-11-14; now 4 in, matching the compressor), so the hand sums below hold
+  await pg.evaluate(() => { const e = document.getElementById('i-dt'), mm = e.parentElement.querySelector('em').textContent.trim() === 'mm'; e.value = mm ? '123.698' : String(123.698 / 25.4); e.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(400); s = await steps();
   ok(s.valves.state === 'ok' && /blow-off valve on the cold side/.test(s.valves.text) && /wastegate/.test(s.valves.text), 'step 7: valve positions from the placement section');
   const ex0 = await pg.evaluate(() => { const x = window.__tsx.last(); return x && x.G.miss; });
   ok(s.exh.state === 'todo' && ex0 && ex0.some(m => /Sound tab’s Induction is not a turbo/.test(m)), 'step 8 open; the exhaust section names what is missing (the Sound tab’s pipe starts at the valve)');
@@ -185,7 +187,7 @@ const { chromium } = require('playwright');
 
   // phone width
   const ph = await b.newPage({ viewport: { width: 400, height: 800 } }); ph.on('pageerror', e => errs.push(e.message));
-  await ph.goto('file://' + process.cwd() + '/index.html#intake'); await ph.waitForTimeout(900);
+  await ph.goto('file://' + process.cwd() + '/index.html#intake'); await ph.waitForTimeout(900); await require('./settle').typedPoint(ph);
   await ph.evaluate(() => { const set = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); };
     set('i-ind', 'turbo'); set('i-hp', '450'); set('s-ind', 'turbo1'); }); await ph.waitForTimeout(600);
   ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1 && !!document.getElementById('tg') && !!document.getElementById('ts-xsvg') && !!document.getElementById('tsx-bp')),

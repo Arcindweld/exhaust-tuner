@@ -93,10 +93,13 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   ok(Object.entries({ hot: 'Hot side pipe', cold: 'Cold side pipe', dp: 'Downpipe', bov: 'Blow-off valve', wg: 'Wastegate', col: 'Collector' }).every(([k, n]) => S.parts[n] && S.parts[n].startsWith(G[k].v)), 'every size in the card is the build sheet’s row, word for word');
   // the power row: the target against the boost, Garrett's boost read from the sizing section
   const sizing = await pg.$eval('#i-details .sec[data-sec="turbo-and-intercooler-sizing"]', e => e.innerText);
-  const gb = (G.power.n.match(/needs about ([\d.]+) psi/) || [])[1], mp = (sizing.match(/manifold pressure needed ([\d.]+) psia/) || [])[1];
-  ok(gb && mp && Math.abs(+gb + 14.696 - +mp) < 0.06 && /do not match/.test(G.power.n), 'power row: 450 hp needs about ' + gb + ' psi boost (the sizing section’s ' + mp + ' psia manifold pressure, less the atmosphere) and says the 8 psi typed does not match');
+  // (2026-11-14, one operating point: the default is the power target, the boost worked out from it; was "450 hp needs about
+  // 26.30 psi ... the 8 psi typed does not match")
+  const gb = (G.power.v.match(/boost ([\d.]+) psi \([\d.]+ kPa\) at the throttle, worked out/) || [])[1], mp = (sizing.match(/manifold pressure needed ([\d.]+) psia/) || [])[1];
+  ok(gb && mp && Math.abs(+gb + 14.696 - +mp) < 0.06 && !/do not match/.test(G.power.n) && /One operating point: 49\.5 lb\/min/.test(G.power.n), 'power row: the 450 hp target’s boost worked out, ' + gb + ' psi (the sizing section’s ' + mp + ' psia manifold pressure, less the atmosphere), one airflow, no mismatch');
   ok(/No power estimate yet/.test(G.power.n), 'no simulation run: the card says where the power estimate comes from');
-  ok(/2 × boost, 16\.00 psi \(110\.32 kPa\) gauge/.test(G.p3.v) && /an assumption until measured/.test(G.p3.n), 'pressure before the turbine: the steady sections’ assumption, said to be one: ' + G.p3.v);
+  // (2026-11-14: 2 × the worked-out 29.52 psi; was 2 × the typed 8 psi, 16.00 psi (110.32 kPa); the gate is sized across 0.8 to 2.5 ×)
+  ok(/2 × boost, 59\.04 psi \(407\.10 kPa\) gauge/.test(G.p3.v) && /an assumption until measured/.test(G.p3.n) && /wastegate is sized for the largest gate anywhere from 0\.8 to 2\.5 × boost/.test(G.p3.n), 'pressure before the turbine: the steady sections’ assumption, said to be one, and the gate’s own basis: ' + G.p3.v);
   ok(G.mounts.v === 'not designed yet' && G.mounts.go === '#mt-card', 'brackets: not designed yet, Go leads to the Mounts designer');
 
   // ---- both unit systems in every result cell of the boosted sections, the card and the sheet
@@ -150,7 +153,7 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   ok(A.every(a => a.vis === a.n), 'Expert mode shows every advanced input');
   await pg.click('#m-simple'); await settle(pg);
   // timing: a field edit re-renders the tab synchronously
-  const times = []; for (const v of ['8.5', '8', '8.5', '8']) times.push(await setv(pg, 'i-boost', v));
+  const times = []; for (const v of ['455', '450', '455', '450']) times.push(await setv(pg, 'i-hp', v));   // the target (the boost is worked out from it)
   times.push(tm); const tmax = Math.max(...times);
   console.log('field edit times (ms): ' + times.map(t => t.toFixed(0)).join(', '));
   ok(tmax < 1500, 'a field edit renders in ' + tmax.toFixed(0) + ' ms at most (the audit’s target is 300 ms on a quiet machine)');
