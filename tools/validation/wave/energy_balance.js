@@ -126,7 +126,8 @@ function one(cs, rpm, state) {
   return { row, state: r.state };
 }
 
-const out = { page: path.relative(path.resolve(__dirname, '..', '..', '..'), process.env.PAGE || path.join(__dirname, '..', '..', '..', 'web', 'index.html')), args, cases: [] };
+const pageRel = path.relative(path.resolve(__dirname, '..', '..', '..'), process.env.PAGE || path.join(__dirname, '..', '..', '..', 'web', 'index.html'));
+const out = { page: pageRel.startsWith('..') ? 'a copy outside the repository: ' + path.basename(pageRel) : pageRel, args, cases: [] };   // no local paths in the results
 const t0 = Date.now();
 for (const cs of cases()) {
   const rows = []; let state = null;
