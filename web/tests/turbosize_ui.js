@@ -148,7 +148,10 @@ const { chromium } = require('playwright');
   ok(/Total loss, filter to throttle\s*\n\s*2\.28 psi \(15\.72 kPa\)/.test(t), 'page: total 2.28 psi (15.72 kPa)');
   ok(/Air leaving the compressor\s*\n\s*215 °F \(102 °C\)/.test(t) && /212 °F \(100 °C\) without the inlet loss/.test(t), 'page: outlet temperature with and without the inlet loss');
   const cp = await q('#i-details .sec[data-sec="charge-pipes"]', e => e.innerText);
-  ok(/Pressure lost, compressor to throttle\s*\n\s*2\.11 psi/.test(cp), 'existing Charge pipes section still 2.11 psi (14,533.6 Pa)');
+  // 2026-11-14 (C2, C3): the section now works at the route's air (t2 101.570 °C, hot at 167040.7 Pa, cold at 156656.0 Pa):
+  // hot 1073.91 + 2869.91, cold 950.26 + 2539.48, + 6895 = 14328.56 Pa, 2.08 psi (was 2.11 psi, 14,533.6 Pa, at the
+  // throttle-PR t2 87.258 °C with both sides at the throttle pressure; calcCharge itself is unchanged, pinned above)
+  ok(/Pressure lost, compressor to throttle\s*\n\s*2\.08 psi/.test(cp), 'Charge pipes section at the route’s air: 2.08 psi (14,328.6 Pa; was 2.11 psi at the no-loss air)');
   const rec = await pg.evaluate(() => ['ts-tbl-in', 'ts-tbl-hot', 'ts-tbl-cold'].map(id => { const r = document.querySelector('#' + id + ' tr[data-rec]'); return r ? r.dataset.od : null; }));
   ok(rec.join() === '3.00,3.00,3.00', 'size tables recommend 3.00 in for inlet, hot and cold (' + rec.join() + ')');
   const tblTxt = await q('#ts-tbl-hot', e => e.innerText);
@@ -262,13 +265,16 @@ const { chromium } = require('playwright');
     flow: [...document.querySelectorAll('#i-details .r')].map(x => x.innerText).find(x => /Wastegate flow at peak power/.test(x)) || '', turb: document.getElementById('ts-turb').innerText.split('\n')[0] })); };
   let W = await wgk();
   ok(await q('#i-tipk', e => e._b === 2), 'turbine inlet pressure input defaults to 2 x boost');
-  ok(W.rows.map(r => r[0]).join() === '2,2.25,2.5' && W.rows[0][1] && /1244 mm²/.test(W.rows[0][2]) && /63%/.test(W.rows[0][2]) && /1218 mm²/.test(W.rows[1][2]) && /66%/.test(W.rows[1][2]) && /1186 mm²/.test(W.rows[2][2]) && /68%/.test(W.rows[2][2]),
-    'range table at 2, 2.25, 2.5 x boost: share 63 / 66 / 68 %, area 1244 / 1218 / 1186 mm² (yours: 2): ' + W.rows.map(r => r[2].replace(/\s+/g, ' ')).join(' | ').slice(0, 200));
-  ok(/upper-side estimate/.test(W.cap) && /largest area in that range is at 2 × boost/.test(W.cap) && /inlet at 2 × boost \(Bell’s lower figure\)/.test(W.flow), 'the page says the gate size is an upper-side estimate under the 2 x assumption, largest at 2 x');
+  // (2026-11-14: the table lists 0.8 to 2.5 x boost, 0.8, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, and the typed multiple; this test
+  // keeps the earlier sizing basis, the one multiple (settle.js typedPoint), so the gate is sized at 2 x and its row marked)
+  const Wk = k => W.rows.find(r => r[0] === k) || [k, false, ''];
+  ok(W.rows.map(r => r[0]).join() === '0.8,1,1.25,1.5,1.75,2,2.25,2.5' && Wk(2)[1] && /1244 mm²/.test(Wk(2)[2]) && /63%/.test(Wk(2)[2]) && /1218 mm²/.test(Wk(2.25)[2]) && /66%/.test(Wk(2.25)[2]) && /1186 mm²/.test(Wk(2.5)[2]) && /68%/.test(Wk(2.5)[2]),
+    'range table at 2, 2.25, 2.5 x boost: share 63 / 66 / 68 %, area 1244 / 1218 / 1186 mm² (yours: 2): ' + [2, 2.25, 2.5].map(k => Wk(k)[2].replace(/\s+/g, ' ')).join(' | ').slice(0, 200));
+  ok(/one pressure before the turbine, 2 × the boost/.test(W.cap) && /inlet at 2 × boost \(Bell’s lower figure\)/.test(W.flow), 'the page says the gate is sized at the one 2 x figure, as chosen, and shows the rest of the range');
   await setv('i-tipk', '2.5'); W = await wgk();
   ok(/1186 mm²/.test(W.size) && W.rows.find(r => r[0] === 2.5)[1] && /Bell’s upper figure/.test(W.flow), 'at 2.5 x: the gate needs 1186 mm², the 2.5 row marked yours');
   await setv('i-tipk', '3'); W = await wgk();
-  ok(W.rows.map(r => r[0]).join() === '2,2.25,2.5,3' && /1115 mm²/.test(W.rows[3][2]) && /71%/.test(W.rows[3][2]) && /at 3\.00 × boost \(yours\)/.test(W.turb) && /yours; Bell gives about 2 to 2\.5/.test(W.flow),
+  ok(W.rows.map(r => r[0]).join() === '0.8,1,1.25,1.5,1.75,2,2.25,2.5,3' && /1115 mm²/.test(W.rows[8][2]) && /71%/.test(W.rows[8][2]) && /at 3\.00 × boost \(yours\)/.test(W.turb) && /yours; Bell gives about 2 to 2\.5/.test(W.flow),
     'a typed 3 x: its own row (71 %, 1115 mm²) and its own column in the turbine table');
   await setv('i-tipk', '2');
   ok(!/\bNaN\b|\bundefined\b/.test(t), 'no NaN or undefined on the tab');

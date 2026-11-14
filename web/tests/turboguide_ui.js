@@ -66,6 +66,8 @@ const { chromium } = require('playwright');
   ok((s.pipes.state === 'todo' || s.pipes.state === 'warn') && /Use these sizes/.test(s.pipes.text), 'sizes not the recommended ones yet: step 5 open (' + s.pipes.state + ': ' + s.pipes.text.split('\n').pop() + ')');
   await pg.click('button[data-tsuse]'); await pg.waitForTimeout(300); s = await steps();
   ok(s.pipes.state === 'ok' && /the recommended sizes/.test(s.pipes.text), 'after Use these sizes: step 5 done');
+  // the 5 in inlet tube Use these sizes gave before the coupler fix (2026-11-14; now 4 in, matching the compressor), so the hand sums below hold
+  await pg.evaluate(() => { const e = document.getElementById('i-dt'), mm = e.parentElement.querySelector('em').textContent.trim() === 'mm'; e.value = mm ? '123.698' : String(123.698 / 25.4); e.dispatchEvent(new Event('input', { bubbles: true })); }); await pg.waitForTimeout(400); s = await steps();
   ok(s.valves.state === 'ok' && /blow-off valve on the cold side/.test(s.valves.text) && /wastegate/.test(s.valves.text), 'step 7: valve positions from the placement section');
   const ex0 = await pg.evaluate(() => { const x = window.__tsx.last(); return x && x.G.miss; });
   ok(s.exh.state === 'todo' && ex0 && ex0.some(m => /Sound tab’s Induction is not a turbo/.test(m)), 'step 8 open; the exhaust section names what is missing (the Sound tab’s pipe starts at the valve)');

@@ -12,7 +12,8 @@
 //  B15 curtain area pi D L (Kirkpatrick, Colorado State, "Intake Flow"): the default gate's 1244.373 mm² through a 40 mm
 //      valve needs L = 1244.373 / (pi x 40) = 9.902 mm at Cd 1; 38 mm seat 1134.1 mm² < 1244.4: short even fully open.
 //      Blow-off valve 1255.089 mm² on a 50 mm valve: 7.990 mm.
-//  B19 Charge pipes in both units: 429 ft/s = 131 m/s (Garrett method, defaults); 2.11 psi = 14.5 kPa.
+//  B19 Charge pipes in both units: 429 ft/s = 131 m/s (Garrett method, defaults); 2.08 psi = 14.3 kPa (2026-11-14: at the route's
+//      air, turbosize_ui's 14328.56 Pa; was 2.11 psi = 14.5 kPa at the no-loss air).
 //  B23 a 200 mm hot side with 2 x 90 deg bends at 1.5 x 60.198 mm: arcs 2 x pi/2 x 90.297 = 283.7 mm > 200 mm.
 //  Zero gate flow: k 0.5, eta 0.55: the turbine needs share x = 0.0591372 x (0.70/0.55) / (1 - (101325/128904)^k) > 1.
 const { chromium } = require('playwright');
@@ -61,9 +62,11 @@ const { chromium } = require('playwright');
 
   // B19: Charge pipes in both units; consistency notes
   t = await sec('charge-pipes');
-  ok(/429 ft\/s \(131 m\/s\)/.test(t) && /2\.11 psi \(14\.5 kPa\)/.test(t) && /°F \(\d+ °C\)/.test(t) && /cu in\)/.test(t), 'B19 Charge pipes: speeds, pressures, temperatures and volume in both units');
-  ok(/no pipe losses, so its temperatures are lower/.test(t), 'B19 Charge pipes says it works at the throttle ratio, without losses');
-  t = await sec('boosted-intake'); ok(/no pipe losses \(Inlet and charge pipes above gives the compressor’s real ratio/.test(t), 'Boosted intake points to the real ratio');
+  ok(/429 ft\/s \(131 m\/s\)/.test(t) && /2\.08 psi \(14\.3 kPa\)/.test(t) && /°F \(\d+ °C\)/.test(t) && /cu in\)/.test(t), 'B19 Charge pipes: speeds, pressures, temperatures and volume in both units');
+  // (2026-11-14, C1 to C3: Charge pipes and Boosted intake now work at the route's ratio and air, with the losses; were
+  // "no pipe losses, so its temperatures are lower" and "no pipe losses (Inlet and charge pipes above gives the compressor's real ratio")
+  ok(/at the compressor’s ratio with every loss, as Inlet and charge pipes below/.test(t), 'B19 Charge pipes works at the route’s ratio and air, with the losses');
+  t = await sec('boosted-intake'); ok(/Compressor pressure ratio\s*\n?\s*1\.\d{3}/.test(t) && /with the inlet and charge-pipe losses/.test(t) && !/no pipe losses/.test(t), 'Boosted intake shows the compressor’s ratio with the losses, the one every section uses');
   // the same pressure ratio in the route summary, the demand table and the drawing
   const r1 = await sec('inlet-and-charge-pipes-design-and-sizing'), r2 = await sec('turbo-and-intercooler-sizing');
   const svg = await pg.$eval('#i-details .sec[data-sec="inlet-and-charge-pipes-design-and-sizing"] svg', e => e.textContent).catch(() => '');
