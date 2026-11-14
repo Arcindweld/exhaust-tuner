@@ -1283,6 +1283,19 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <label class="f span2" id="i-opm-wrap" hidden><span class="lab">What you know for this boosted build</span>
           <span class="inp"><select id="i-opm"><option value="hp" selected>My power target: the boost is worked out</option><option value="boost">My boost: the power is worked out</option><option value="both">Both, typed (expert: the sizes follow the boost, the ratings the target)</option></select></span></label>
         <p class="cap" id="i-opm-out" style="grid-column:1/-1;margin:0" hidden></p>
+        <div class="note warn" id="i-hpstock" style="grid-column:1/-1;margin:0" hidden><p id="i-hpstock-txt" style="margin:0 0 6px"></p>
+          <label class="f"><span class="lab">The power you are building for</span>
+          <span class="inp"><input id="i-hptgt" type="number" step="any" inputmode="decimal" min="0" placeholder="type your target"><em>hp</em></span></label></div>
+        <label class="f" id="i-fuel-wrap" hidden><span class="lab">Fuel at full boost</span>
+          <span class="inp"><select id="i-fuel"><option value="pump" selected>Pump gasoline (91 to 93 octane)</option><option value="race">Race gasoline</option><option value="e85">E85</option></select></span></label>
+        <label class="f" id="i-hpat-wrap" hidden><span class="lab">Power target measured at</span>
+          <span class="inp"><select id="i-hpat"><option value="crank" selected>The crank (engine, flywheel)</option><option value="wheel">The wheels (chassis dyno)</option></select></span></label>
+        <label class="f" id="i-dtl-wrap" hidden><span class="lab">Drivetrain loss, crank to wheels</span>
+          <span class="inp"><input id="i-dtl" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base="12.5" data-min="0" data-max="40"><em>%</em></span></label>
+        <label class="f adv" id="i-opfig-wrap" hidden><span class="lab">Figures for the boost and power relation</span>
+          <span class="inp"><select id="i-opfig"><option value="src" selected>For the fuel and the head (sourced, below)</option><option value="typed">Garrett’s conservative figures as typed: the A/F, BSFC and VE fields</option></select></span></label>
+        <label class="f adv" id="i-opve-wrap" hidden><span class="lab">VE under boost for the relation, blank: Garrett’s figure for the head</span>
+          <span class="inp"><input id="i-opve" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-min="50" data-max="150"><em>%</em></span></label>
         <label class="f" id="i-boost-wrap"><span class="lab" id="i-boost-lab">Boost</span>
           <span class="inp"><input id="i-boost" type="number" step="any" inputmode="decimal" data-kind="press" data-base="55.158"><em data-u="press">psi</em></span></label>
         <label class="f adv" id="i-eff-wrap"><span class="lab">Compressor efficiency</span>
@@ -19684,6 +19697,8 @@ function applyVehicle(v){
     if(kd.portIn) setBase('i-mport',kd.portIn*25.4); else blank('i-mport'); }   // the head flange's port for the turbo manifold (2026-11-13)
   $('i-eng').value=v.eng; setBase('i-disp',v.cc); setBase('i-rpm',v.hpRpm); setBase('i-idle',idle); setBase('i-cruise',cruise); setBase('i-red',red);
   if(v.hp) setBase('i-hp',v.hp);
+  // the stock rating the preset put in the power field (the preset trap, opModeOf); cleared when the builder types there
+  HP_PRESET=v.hp?+$('i-hp')._b:null; HP_PRESET_NAME=v.code||v.name||''; HP_PRESET_NA=v.ind==='na';
   $('q-eng').value=v.eng; setBase('q-disp',v.cc); setBase('q-rpm',v.hpRpm); setBase('q-hp',v.hp); setBase('q-tq',v.tqRpm); setBase('q-cruise',cruise);
   $('q-ind').value=v.ind==='na'?'na':/^turbo/.test(v.ind)?'turbo':'sc'; $('q-pipes').value='auto';
   $('v-note').innerHTML=vehNote(v,red,idle,cruise);
@@ -20545,6 +20560,10 @@ function tsimStart(){
   renderActive();
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-tsim]'); if(!b) return; if(b.dataset.tsim==='run') tsimStart(); });
+// the glance card's one click (2026-11-14): the run at the Intake tab's point; the 4-Stroke tab's inputs are needed for the
+// engine, so without them the page opens that tab first and starts there
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-glsim]'); if(!b) return;
+  if(SIM.inp){ tsimStart(); return; } location.hash='four'; setTimeout(()=>{ if(SIM.inp) tsimStart(); },120); });
 // sound at 1 m from a tail's mass flow over one cycle (720 one-degree bins): the monopole p = (1 / 4 pi r) d mdot / dt the
 // Sound tab uses, its harmonic k of the cycle (engine order k / 2) as a level re 20 uPa
 function tsimOrder(md,rpm,k){ const N=md.length; let re=0, im=0; for(let j=0;j<N;j++){ const a=2*Math.PI*k*j/N; re+=md[j]*Math.cos(a); im-=md[j]*Math.sin(a); }
@@ -20622,8 +20641,8 @@ function tsimSection(q){
         (turbo?'<td>'+F.tD(o.T3-273.15)+' / '+F.tD(o.T4-273.15)+'</td><td>'+(o.W/o.Wc).toFixed(3)+(o.short?' (short: boost not held)':'')+'</td><td>'+(100*o.share).toFixed(1)+'% / '+(100*o.wgAlg).toFixed(1)+'% / '+(100*o.wgPage).toFixed(1)+'%</td>':'<td>'+F.kw(o.Wc*T.plan.cyl/T.plan.nSim)+'</td>')+'</tr>').join('')+'</tbody></table></div>';
     const o=rows[S.ip], kU=T.plan.k;
     h+='<dl class="rows">'+rowT('Peak power under boost',F.hp(S.hp)+' at '+(o?o.rpm.toLocaleString('en-US'):'–')+' RPM','brake = the net indicated work (the turbo’s pumping loop included) less Heywood’s motored friction with its own wide-open pumping loop taken out (that loop estimated by the same engine and pipes without boost, run beside this; on an engine without boost this is exactly the plain wave simulation’s brake). One-sided readings: '+F.hp(kwH(o.tqBn,o.rpm))+' if the whole of Heywood’s friction is taken off the net work (an NA pumping loop counted twice), '+F.hp(kwH(o.tqBg,o.rpm))+' if it is taken off the gross loop (the turbo’s own pumping ignored)');
-    if(o&&tsHp()>0&&Number.isFinite(S.bsfc)){ const tgt=tsHp(), bs=val('i-bsfc')>0?val('i-bsfc'):0.55, wa=tgt*T.plan.afr*bs/60;
-      h+=rowT('Against the Intake tab’s '+Math.round(tgt)+' hp',F.hp(S.hp)+' simulated at the Intake tab’s boost, '+F.pD(T.plan.spec.intake.source.p-P_ATM)+' at the throttle ('+(OP&&OP.mode==='hp'?'the boost the Intake tab works out from the target':OP&&OP.mode==='boost'?'the boost typed there; the target is the power worked out from it':'the boost typed there, not one worked out from the target')+')','for the target, Garrett’s method gives the air it needs, air = hp × AFR '+T.plan.afr+' × BSFC '+bs+' ÷ 60 = '+wa.toFixed(1)+' lb/min ('+(wa*0.45359237/60).toFixed(3)+' kg/s); at '+o.rpm.toLocaleString('en-US')+' RPM this run’s engine draws '+(S.air/0.45359237*60).toFixed(1)+' lb/min ('+S.air.toFixed(3)+' kg/s, VE '+o.veC.toFixed(2)+' on the charge) and burns it at '+S.bsfc.toFixed(2)+' lb/hp·h. The gap is the model’s: its burn (the 4-Stroke tab’s timing and duration, held at this boost) is not limited by knock, needs no enrichment beyond the AFR typed and no ignition retard; Garrett’s 0.5-0.6 lb/hp·h is what boosted gasoline engines burn with those; and on the three rated engines the model was checked against without boost it reads brake torque 4 to 16 % high (docs/WAVE_VALIDATION_2026-11-11.md, part 3). Plan on the tab’s target; read the simulation’s figure as the ceiling of an engine that could hold this burn.'); }
+    if(o&&tsHp()>0&&Number.isFinite(S.bsfc)){ const tgt=tsHp(), FG=opFig(TS_P||{ve:0.9}), bs=FG.bsfc, wa=tgt*FG.afr*bs/60;
+      h+=rowT('Against the Intake tab’s '+Math.round(tgt)+' hp',F.hp(S.hp)+' simulated at the Intake tab’s boost, '+F.pD(T.plan.spec.intake.source.p-P_ATM)+' at the throttle ('+(OP&&OP.mode==='hp'?'the boost the Intake tab works out from the target':OP&&OP.mode==='boost'?'the boost typed there; the target is the power worked out from it':'the boost typed there, not one worked out from the target')+')','for the target, Garrett’s method gives the air it needs, air = hp × AFR '+FG.afr+' × BSFC '+bs+' ÷ 60 = '+wa.toFixed(1)+' lb/min ('+(wa*0.45359237/60).toFixed(3)+' kg/s); at '+o.rpm.toLocaleString('en-US')+' RPM this run’s engine draws '+(S.air/0.45359237*60).toFixed(1)+' lb/min ('+S.air.toFixed(3)+' kg/s, VE '+o.veC.toFixed(2)+' on the charge) and burns it at '+S.bsfc.toFixed(2)+' lb/hp·h. The gap is the model’s: its burn (the 4-Stroke tab’s timing and duration, held at this boost) is not limited by knock, needs no enrichment beyond the AFR typed and no ignition retard; Garrett’s 0.5-0.6 lb/hp·h is what boosted gasoline engines burn with those; and on the three rated engines the model was checked against without boost it reads brake torque 4 to 16 % high (docs/WAVE_VALIDATION_2026-11-11.md, part 3). Plan on the tab’s target; read the simulation’s figure as the ceiling of an engine that could hold this burn.'); }
     if(turbo&&o){ const lo=rows[0].rpm, eP=Math.round(100*S.etaRun);
       h+=rowT('Pressure before the turbine',o.p3k.toFixed(2)+' × boost (mean, total), '+o.p3pkk.toFixed(2)+' × at the blowdown peak','gauge multiples at '+o.rpm.toLocaleString('en-US')+' RPM; the static mean (what a pressure tap reads) is '+o.p3sk.toFixed(2)+' ×; across the speeds the mean is '+Math.min(...rows.map(r=>r.p3k)).toFixed(2)+' to '+Math.max(...rows.map(r=>r.p3k)).toFixed(2)+' ×. '+(S.calib?'Calibrated to your measurement (below), so this follows from it.':pm?'This is the model’s prediction for the turbine of the housing you picked ('+(rows[0].At*1e6).toFixed(0)+' mm²) at '+eP+'% efficiency: a smaller turbine (smaller A/R) runs a higher pressure before it and reaches full boost sooner, a larger one the reverse. The model’s exhaust runs hot (validation part 2), which lowers the pressure the turbine needs; a measured pressure removes that too.':'This is not a prediction of the turbo you picked: it follows from the turbine’s area the run had to find (full boost at '+lo.toLocaleString('en-US')+' RPM, the full-boost RPM you typed, with the gate shut), the '+eP+'% efficiency and the model’s turbine-inlet temperature (which runs hot, part 2 of the validation; the exhaust port’s heat loss is not the reason: a 100 mm head port with the published port correlation cools it by about 20 K and moves this pressure by only a few hundredths, part 7). A less efficient turbine or full boost later needs a smaller or larger area and moves it (next line).')+' The Intake tab assumes '+(+kU.toFixed(2))+' × (Bell’s range 2 to 2.5 ×, as the tab cites it) in its algebra: that is an assumption, this is the same power balance worked through the pulsating flow with the inputs above. Logged pre-turbine pressures of street turbo builds run about 1.6 to 1.9 × boost (a 1.5 L at 21.5 psi: 41 psi; a 1.5 L at 36 psi: 58-68 psi; HP Academy and PRL logs), factory engines about 2 × (HP Academy), below 1 × only on very large race turbines: a figure here well below those says the efficiency or the exhaust temperature is optimistic for your build. Trust a measured pressure over both (enter it on the Intake tab: the run then calibrates the turbine to it); use the tab’s multiple for the A/R and gate choices it is written for; use this run for the pulse’s shape and its trend with speed');
       if(pm){ const fb=S.fullBoost;
@@ -22542,17 +22561,78 @@ let TG={};
    held at the design point's. */
 let OP={mode:'na'};
 const OP_SRC='Garrett, Turbo Tech 103 (garrettmotion.com, “Turbo Tech 103: Expert”)';
+// the preset trap (2026-11-14): a vehicle preset fills the power field with its stock (usually naturally aspirated)
+// rating; with "My power target" a build switched to a turbo would be worked at that figure. HP_PRESET holds the figure
+// the preset put there until the builder types into the field (or a project loads); while it is still there, the
+// boosted build is worked at the boost field's figure (8 psi by default) with the power worked out, and the page asks for
+// the target inline (i-hpstock). OP_STOCK is that state for the solver and the text.
+let HP_PRESET=null, OP_STOCK=null;
 function opModeOf(ind,cyc){
+  OP_STOCK=null;
   if(!(ind==='turbo'||ind==='centri')) return 'na';
   const m=$('i-opm')?$('i-opm').value:'both'; if(cyc!=='4'||m==='both') return 'both';
-  if(m==='hp') return val('i-hp')>0?'hp':'boost';
+  if(m==='hp'){ const h=val('i-hp');
+    if(h>0&&HP_PRESET!==null&&Math.abs(h-HP_PRESET)<1e-9){ OP_STOCK={hp:h,name:HP_PRESET_NAME,na:HP_PRESET_NA}; return 'boost'; }
+    return h>0?'hp':'boost'; }
   return 'boost'; }
+let HP_PRESET_NAME='', HP_PRESET_NA=false;
+// typing in the power field ends the preset's hold; the inline target box (i-hpstock) commits on change (Enter or leaving
+// the box), so the box does not vanish under the first digit typed
+if(typeof document!=='undefined'){
+  document.addEventListener('input',e=>{ if(e.target&&e.target.id==='i-hp') HP_PRESET=null; },true);
+  document.addEventListener('change',e=>{ const t=e.target; if(!t||t.id!=='i-hptgt') return; const v=parseFloat(t.value); if(!(v>0)) return;
+    const h=$('i-hp'); HP_PRESET=null; h.value=String(v); t.value=''; h.dispatchEvent(new Event('input',{bubbles:true})); },true); }
+/* ----- The figures for Garrett's relation (2026-11-14, boost for power; docs/BOOST_AUDIT_2026-11-12.md, addendum "How
+   much boost for my power") -----
+   What sets the air per horsepower is the product A/F x BSFC (Wa = HP x A/F x BSFC / 60), not either alone. "For the fuel
+   and the head" (i-opfig "src", the default):
+   - pump gasoline: A/F 12 and BSFC 0.55 lb/hp h, Garrett's own worked figures, the middle of its "0.50 to 0.60 and higher"
+     for turbocharged gasoline engines: 6.6 lb of air per hp-hour, 0.110 lb/min per hp; the range 0.50 to 0.60;
+   - race gasoline: BSFC 0.50, Garrett's low end ("Race fuels and aggressive tuning are required to reach the low end"),
+     A/F 12: 6.0 lb/hp h, 0.100 lb/min per hp; the range 0.50 to 0.55 (its low end to the pump figure);
+   - E85: the same 6.0 lb of air per hp-hour as race gasoline, at A/F 8.0 (lambda 0.82, the pump figure's 12 / 14.7, on
+     E85's stoichiometric 9.8: 0.858 x 9.0 + 0.142 x 14.6 by mass, Heywood's 9.0 for ethanol and 14.6 for gasoline), so
+     BSFC 0.75. Why the same air as race gasoline: a kilogram of air releases nearly the same heat with either fuel
+     (Heywood's lower heating values over their stoichiometric ratios, 44.0 / 14.6 = 3.01 and 26.9 / 9.0 = 2.99 MJ per kg
+     of air), so the fuel changes the air per hp only through the efficiency the tune can reach, which knock limits, and
+     Garrett's E85 article compares E85 to a 105-octane fuel; no figure was found that credits it beyond race gasoline;
+   - VE: Garrett's "95%-99% for modern 4-valve heads" (0.97, its middle) or "88% - 95% for 2-valve designs" (0.915) by the
+     4-Stroke tab's valve count, unless typed under "VE under boost for the relation"; the engine's VE field (90 % by
+     default, below Garrett's 4-valve range) stays the naturally aspirated sizing's.
+   "Garrett's conservative figures as typed" (i-opfig "typed") is the page before this change: the A/F, BSFC and VE fields;
+   projects saved before it load with it. The power target is the flywheel's (Garrett: "HP = Horsepower Target
+   (flywheel)"); a target typed at the wheels is divided by (1 - drivetrain loss) first, 12.5 % by default (Motor1, "What
+   Is Drivetrain Loss?": about 10-15 % front-wheel drive, 15-20 % rear, 20-25 % all-wheel; it also says the loss is closer
+   to a fixed amount than a percentage). */
+const OP_FUEL={
+  pump:{name:'pump gasoline',afr:12,bsfc:0.55,band:[0.50,0.60],why:'Garrett’s own worked figures, the middle of its “0.50 to 0.60 and higher” for turbocharged gasoline engines'},
+  race:{name:'race gasoline',afr:12,bsfc:0.50,band:[0.50,0.55],why:'Garrett’s low end: “Race fuels and aggressive tuning are required to reach the low end”'},
+  e85:{name:'E85',afr:8,bsfc:0.75,band:[0.75,0.825],why:'the same air per hp as race gasoline (a kilogram of air releases nearly the same heat with either fuel, Heywood: 3.01 and 2.99 MJ; Garrett compares E85 to a 105-octane fuel), at A/F 8.0 (λ 0.82 of E85’s 9.8)'}};
+function opFig(p){
+  const nv=$('f-valves')?+$('f-valves').value:NaN, afrT=val('i-afr')>0?val('i-afr'):12, bsT=val('i-bsfc')>0?val('i-bsfc'):0.55;
+  if(!$('i-opfig')||$('i-opfig').value!=='src') return {fig:'typed',afr:afrT,bsfc:bsT,ve:p.ve,veSrc:'field',bsBand:[Math.min(bsT,0.50),Math.max(bsT,0.60)],nv,fuel:null};
+  const k=$('i-fuel')&&OP_FUEL[$('i-fuel').value]?$('i-fuel').value:'pump', f=OP_FUEL[k], veT=val('i-opve'), veG=nv>=4?0.97:nv>0&&nv<=2?0.915:NaN;
+  return {fig:'src',fuel:k,f,afr:f.afr,bsfc:f.bsfc,ve:veT>0?veT/100:Number.isFinite(veG)?veG:p.ve,veSrc:veT>0?'typed':Number.isFinite(veG)?'garrett':'field',bsBand:f.band.slice(),nv};
+}
+// the power target at the crank (Garrett's flywheel), from the figure typed at the crank or at the wheels
+const opLoss=()=>{ const l=val('i-dtl'); return Number.isFinite(l)&&l>=0&&l<60?l/100:0.125; };
+const opAtWheel=()=>!!($('i-hpat')&&$('i-hpat').value==='wheel');
+const opCrank=hp=>opAtWheel()?hp/(1-opLoss()):hp;
+// the wave simulation's run is for this point (the same check as the step list's: charge pressure and temperature,
+// turbine efficiency, back pressure, A/F, efficiency model)
+function opSimCur(R){
+  if(typeof TSIM_LAST==='undefined'||!TSIM_LAST||!TSIM_LAST.sum||!(TSIM_LAST.sum.hp>0)||!R) return null;
+  const now=tsimSig2(R.Pt,R.t3+273.15,val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75,tsimP4(),val('i-afr')>0?val('i-afr'):12,tsimEmSig());
+  return now===TSIM_LAST.plan.sig2?TSIM_LAST:null; }
+// the bias the page states for the simulation's power (docs/WAVE_VALIDATION_2026-11-11.md, parts 3 and 8: brake torque
+// 4 to 16 % above three published ratings without boost): its figure divided by 1.04 to 1.16
+const OP_SIMK=[1.04,1.16];
 function opSolve(p,ind){
-  const mode=opModeOf(ind,p.cyc), chosen=$('i-opm')?$('i-opm').value:'both', typed=val('i-boost')||0, hpT=val('i-hp');
-  const afr=val('i-afr')>0?val('i-afr'):12, bsfc=val('i-bsfc')>0?val('i-bsfc'):0.55, nt=Math.max(1,Math.round(val('i-nt'))||1);
-  const ci=p.disp/16.387064, patm=P_ATM/6894.757, O={mode,chosen,typed,hpT,afr,bsfc,nt,ve:p.ve,rpm:p.rpm,qd:1,boost:ind==='na'?0:typed,cyc:p.cyc};
+  const mode=opModeOf(ind,p.cyc), chosen=$('i-opm')?$('i-opm').value:'both', typed=val('i-boost')||0, hpTyped=val('i-hp'), hpT=opCrank(hpTyped);
+  const FG=opFig(p), afr=FG.afr, bsfc=FG.bsfc, ve=FG.ve, nt=Math.max(1,Math.round(val('i-nt'))||1);
+  const ci=p.disp/16.387064, patm=P_ATM/6894.757, O={mode,chosen,typed,hpT,hpTyped,wheel:opAtWheel(),loss:opLoss(),afr,bsfc,fg:FG,nt,ve,rpm:p.rpm,qd:1,boost:ind==='na'?0:typed,cyc:p.cyc,stock:OP_STOCK};
   if(mode==='na'||mode==='both') return O;
-  if(!(p.disp>0&&p.rpm>0&&p.ve>0)) return Object.assign(O,{err:'engine'});
+  if(!(p.disp>0&&p.rpm>0&&ve>0)) return Object.assign(O,{err:'engine'});
   const mapOf=(wa,tmF,ve)=>wa*639.6*(460+tmF)/(ve*p.rpm/2*ci), waOf=(map,tmF,ve)=>map*ve*p.rpm/2*ci/(639.6*(460+tmF));
   let b=mode==='hp'?(typed>0?typed:55.158):typed, qd=1, R=null, tmF=NaN, wa=NaN, map=NaN, it=0, low=false;
   for(;it<60;it++){
@@ -22560,41 +22640,63 @@ function opSolve(p,ind){
     R=calcTurboRoute(tsRouteQ(pp,r,false).q); if(R.err) return Object.assign(O,{err:R.err});
     tmF=R.t3*1.8+32;
     let bN;
-    if(mode==='hp'){ wa=hpT*afr*bsfc/60; map=mapOf(wa,tmF,p.ve); bN=(map-patm)*6.894757;
-      if(bN<0){ low=true; bN=0; map=patm; wa=waOf(map,tmF,p.ve); } else low=false; }
-    else { bN=typed; map=patm+typed/6.894757; wa=waOf(map,tmF,p.ve); }
+    if(mode==='hp'){ wa=hpT*afr*bsfc/60; map=mapOf(wa,tmF,ve); bN=(map-patm)*6.894757;
+      if(bN<0){ low=true; bN=0; map=patm; wa=waOf(map,tmF,ve); } else low=false; }
+    else { bN=typed; map=patm+typed/6.894757; wa=waOf(map,tmF,ve); }
     const r0=calcIntake(Object.assign({},p,{boost:bN,qd:1})), qN=(wa/LBMIN)/(r0.Q*rhoGas(p.tin));
     const done=Math.abs(bN-b)<1e-9&&Math.abs(qN-qd)<1e-12; b=bN; qd=qN; if(done) break; }
   const hp=mode==='hp'&&!low?hpT:wa*60/(afr*bsfc);
-  // the spread on the worked-out number, Garrett's ranges each widened to hold the build's own figure
-  const nv=$('f-valves')?+$('f-valves').value:NaN, veBand=nv>=4?[0.95,0.99]:nv>0&&nv<=2?[0.88,0.95]:[0.88,0.99];
+  // the spread on the worked-out number, Garrett's ranges each widened to hold the build's own figure; a target at the
+  // wheels also spreads by the drivetrain loss, 2.5 points either side of the figure used
+  const nv=FG.nv, veBand=nv>=4?[0.95,0.99]:nv>0&&nv<=2?[0.88,0.95]:[0.88,0.99];
   const ice=(val('i-ice')||0)>0, tmBand=ice?[100,130]:[175,300];
-  const veL=Math.min(p.ve,veBand[0]), veH=Math.max(p.ve,veBand[1]), bsL=Math.min(bsfc,0.50), bsH=Math.max(bsfc,0.60), tmL=Math.min(tmF,tmBand[0]), tmH=Math.max(tmF,tmBand[1]);
+  const veL=Math.min(ve,veBand[0]), veH=Math.max(ve,veBand[1]), bsL=Math.min(bsfc,FG.bsBand[0]), bsH=Math.max(bsfc,FG.bsBand[1]), tmL=Math.min(tmF,tmBand[0]), tmH=Math.max(tmF,tmBand[1]);
+  const L=O.loss, hpLo=O.wheel?hpTyped/(1-Math.max(0,L-0.025)):hpT, hpHi=O.wheel?hpTyped/(1-Math.min(0.59,L+0.025)):hpT;
   let range;
-  if(mode==='hp'){ const wL=hpT*afr*bsL/60, wH=hpT*afr*bsH/60;
+  if(mode==='hp'){ const wL=hpLo*afr*bsL/60, wH=hpHi*afr*bsH/60;
     range={lo:Math.max(0,(mapOf(wL,tmL,veH)-patm)*6.894757),hi:(mapOf(wH,tmH,veL)-patm)*6.894757,waLo:wL,waHi:wH}; }
   else range={lo:waOf(map,tmH,veL)*60/(afr*bsH),hi:waOf(map,tmL,veH)*60/(afr*bsL)};
-  Object.assign(range,{veL,veH,bsL,bsH,tmL,tmH,veBand,tmBand,nv,ice});
-  return Object.assign(O,{boost:b,qd,wa,map,tmF,hp,iters:it+1,low,range,R}); }
+  Object.assign(range,{veL,veH,bsL,bsH,tmL,tmH,veBand,tmBand,nv,ice,gLo:range.lo,gHi:range.hi});
+  // the third method: the wave simulation run at this very point, its power read 4 to 16 % high (OP_SIMK). Its power
+  // follows the absolute manifold pressure (the K24 + PT5862 runs at 15, 22 and 29.5 psi: within 1 %), so the boost it
+  // implies for the target is the run's absolute pressure x target x k / its power, less the atmosphere
+  const T=opSimCur(R); let sim=null;
+  if(T&&!low){ const hs=T.sum.hp, Pt=T.plan.Pt;
+    sim=mode==='hp'?{hp:hs,rpm:T.sum.rpmHp,lo:Math.max(0,(Pt*hpT*OP_SIMK[0]/hs-P_ATM)/1000),hi:Math.max(0,(Pt*hpT*OP_SIMK[1]/hs-P_ATM)/1000)}
+      :{hp:hs,rpm:T.sum.rpmHp,lo:hs/OP_SIMK[1],hi:hs/OP_SIMK[0]};
+    range.lo=Math.min(range.lo,sim.lo); range.hi=Math.max(range.hi,sim.hi); }
+  range.sim=sim;
+  if(O.stock){ const h=bb=>waOf(patm+bb/6.894757,tmF,ve)*60/(afr*bsfc); O.sug={b0:34474,b1:137895,lo:h(34.474),hi:h(137.895)}; }
+  return Object.assign(O,{boost:b,qd,wa,map,tmF,hp,hpWheel:hp*(1-L),iters:it+1,low,range,R}); }
 // the inputs as the operating point has them: which of boost and power is typed, the other shown as a result
 function opText(O){
-  const F=tsFmt(), R=O.range, pct=x=>Math.round(x*100)+'%', tF=f=>Math.round(f)+' °F ('+Math.round((f-32)/1.8)+' °C)', tFm=f=>U==='imp'?tF(f):Math.round((f-32)/1.8)+' °C ('+Math.round(f)+' °F)';
+  const F=tsFmt(), R=O.range, pct=x=>(Math.round(x*1000)/10)+'%', tF=f=>Math.round(f)+' °F ('+Math.round((f-32)/1.8)+' °C)', tFm=f=>U==='imp'?tF(f):Math.round((f-32)/1.8)+' °C ('+Math.round(f)+' °F)';
   if(O.mode==='na') return '';
   if(O.mode==='both') return O.cyc!=='4'&&O.chosen!=='both'?'Two-strokes and rotaries: Garrett’s relation is written for four-strokes, so the boost and the power target are both typed; the sizes follow the boost.':'Both typed: the pipe, intercooler and valve sizes follow the boost’s airflow; the turbo and intercooler ratings are checked against the power target. The glance card says when the two disagree.';
   if(O.err) return 'The boost cannot be worked out yet ('+(O.err==='engine'?'fill in the engine':esc(O.err))+'): the boost typed is used.';
-  const why=' Spread from Garrett’s stated ranges ('+OP_SRC+'): BSFC '+R.bsL.toFixed(2)+' to '+R.bsH.toFixed(2)+' lb/hp·h, VE '+pct(R.veL)+' to '+pct(R.veH)+' ('+(R.nv>=4?'95 to 99% for modern 4-valve heads':R.nv>0&&R.nv<=2?'88 to 95% for 2-valve heads':'88 to 99%, 2- and 4-valve heads')+', widened to your '+pct(O.ve)+'), manifold air '+tFm(R.tmL)+' to '+tFm(R.tmH)+' ('+(R.ice?'100 to 130 °F (38 to 54 °C) intercooled':'175 to 300 °F (79 to 149 °C) without an intercooler')+', widened to this build’s '+tFm(O.tmF)+'). Worked at A/F '+O.afr+', BSFC '+O.bsfc+', VE '+pct(O.ve)+', '+Math.round(O.rpm).toLocaleString('en-US')+' RPM, manifold air '+tFm(O.tmF)+' (the intercooler outlet the route finds).';
-  if(O.mode==='hp') return (O.low?'<b>The target needs no boost at this VE</b> (Garrett’s manifold pressure is below the atmosphere): check it is the power you are building for, not the stock figure. The build is worked at no boost, ':'<b>Boost worked out: '+F.pD(O.boost*1000)+'</b> at the throttle for '+F.hp(O.hpT)+', ')+(!O.low&&O.boost<3*6.894757?'<b>little boost</b>: check the target is the power you are building for (a vehicle preset fills in the stock figure); ':'')+'airflow '+F.fl(O.wa/LBMIN)+(O.nt>1?' in all':'')+'; every section below uses this one point.'+(O.low?'':' Likely range '+F.pD(R.lo*1000)+' to '+F.pD(R.hi*1000)+'.')+why;
-  return (O.chosen==='hp'?'No power target typed, so the boost typed is used and the power worked out. ':'')+'<b>Power worked out: '+F.hp(O.hp)+'</b> at '+F.pD(O.boost*1000)+' boost, airflow '+F.fl(O.wa/LBMIN)+(O.nt>1?' in all':'')+'; every section below uses this one point. Likely range '+F.hp(R.lo)+' to '+F.hp(R.hi)+'.'+why; }
+  const G=O.fg, air=O.afr*O.bsfc, crankW=h=>F.hp(h)+(O.wheel?' at the crank ('+F.hp(h*(1-O.loss))+' at the wheels, '+pct(O.loss)+' drivetrain loss)':' at the crank');
+  const figs=G.fig==='src'?'For '+G.f.name+': A/F '+O.afr+' × BSFC '+O.bsfc+' lb/hp·h = '+air.toFixed(2)+' lb of air per hp-hour, '+(air/60).toFixed(4)+' lb/min ('+(air/60*0.45359237*1000/60).toFixed(3)+' g/s) per hp ('+G.f.why+'); VE '+pct(O.ve)+' ('+(G.veSrc==='typed'?'typed under VE under boost for the relation':G.veSrc==='garrett'?(G.nv>=4?'Garrett’s “95%-99% for modern 4-valve heads”, its middle':'Garrett’s “88% - 95% for 2-valve designs”, its middle')+'; the VE field’s '+pct(val('i-ve')/100||0.9)+' stays the naturally aspirated sizing’s':'the VE field: no valve count on the 4-Stroke tab')+')':'Garrett’s conservative figures as typed: A/F '+O.afr+' × BSFC '+O.bsfc+' = '+air.toFixed(2)+' lb of air per hp-hour, VE '+pct(O.ve)+' (the VE field)';
+  const why=' '+figs+'; '+Math.round(O.rpm).toLocaleString('en-US')+' RPM (Peak power RPM), manifold air '+tFm(O.tmF)+' (the intercooler outlet the route finds). The range: Garrett’s stated spreads ('+OP_SRC+'), BSFC '+R.bsL.toFixed(2)+' to '+R.bsH.toFixed(3).replace(/0$/,'')+' lb/hp·h, VE '+pct(R.veL)+' to '+pct(R.veH)+' ('+(R.nv>=4?'95 to 99% for modern 4-valve heads':R.nv>0&&R.nv<=2?'88 to 95% for 2-valve heads':'88 to 99%, 2- and 4-valve heads')+', widened to hold '+pct(O.ve)+'), manifold air '+tFm(R.tmL)+' to '+tFm(R.tmH)+' ('+(R.ice?'100 to 130 °F (38 to 54 °C) intercooled':'175 to 300 °F (79 to 149 °C) without an intercooler')+', widened to this build’s)'+(O.wheel?', the drivetrain loss 2.5 points either side':'')+(R.sim?'; and the wave simulation run at this point (4-Stroke tab), '+F.hp(R.sim.hp)+' at '+Math.round(R.sim.rpm).toLocaleString('en-US')+' RPM, read 4 to 16 % high: '+(O.mode==='hp'?F.pD(R.sim.lo*1000)+' to '+F.pD(R.sim.hi*1000)+' for the target':F.hp(R.sim.lo)+' to '+F.hp(R.sim.hi))+' (Garrett’s spreads alone: '+(O.mode==='hp'?F.pD(R.gLo*1000)+' to '+F.pD(R.gHi*1000):F.hp(R.gLo)+' to '+F.hp(R.gHi))+')':'; the wave simulation (4-Stroke tab, or Run the simulation on the glance card) adds a third check')+'.';
+  if(O.mode==='hp') return (O.low?'<b>The target needs no boost at this VE</b> (Garrett’s manifold pressure is below the atmosphere): check it is the power you are building for, not the stock figure. The build is worked at no boost, ':'<b>Boost worked out: '+F.pD(O.boost*1000)+'</b> at the throttle for '+crankW(O.hpT)+', ')+(!O.low&&O.boost<3*6.894757?'<b>little boost</b>: check the target is the power you are building for; ':'')+'airflow '+F.fl(O.wa/LBMIN)+(O.nt>1?' in all':'')+'; every section below uses this one point.'+(O.low?'':' Likely range '+F.pD(R.lo*1000)+' to '+F.pD(R.hi*1000)+'.')+why;
+  return (O.stock?'<b>Power target not typed yet</b> (the field holds '+esc(O.stock.name||'the preset')+'’s stock '+F.hp(O.stock.hp)+'): until you type the power you are building for (box below), the build is worked at the boost field’s figure and the power worked out from it. ':O.chosen==='hp'?'No power target typed, so the boost typed is used and the power worked out. ':'')+'<b>Power worked out: '+crankW(O.hp)+'</b> at '+F.pD(O.boost*1000)+' boost, airflow '+F.fl(O.wa/LBMIN)+(O.nt>1?' in all':'')+'; every section below uses this one point. Likely range '+F.hp(R.lo)+' to '+F.hp(R.hi)+' at the crank.'+why; }
 function opUi(ind){
   const boosted=ind==='turbo'||ind==='centri', w=$('i-opm-wrap'), o=$('i-opm-out'); if(!w) return;
   w.hidden=!boosted; o.hidden=!boosted; o.innerHTML=boosted?opText(OP):'';
-  const chosen=$('i-opm').value, bw=$('i-boost-wrap'), hw=$('i-hp-wrap');
+  const chosen=$('i-opm').value, bw=$('i-boost-wrap'), hw=$('i-hp-wrap'), rel=boosted&&OP.mode!=='na'&&OP.cyc==='4', src=$('i-opfig')&&$('i-opfig').value==='src';
   if(boosted&&OP.mode==='hp') bw.hidden=true;
   if(hw) hw.hidden=boosted&&chosen==='boost'&&OP.mode==='boost';
-  const hl=$('i-hp-lab'); if(hl) hl.textContent=boosted?'Power target (horsepower)':'Horsepower, blank to skip';
+  const sh=(id,on)=>{ const e=$(id); if(e) e.hidden=!on; };
+  sh('i-fuel-wrap',rel&&src); sh('i-opfig-wrap',rel); sh('i-opve-wrap',rel&&src); sh('i-hpat-wrap',boosted); sh('i-dtl-wrap',boosted&&opAtWheel());
+  // the preset trap: ask for the target inline (no dialog: the host ignores alert, confirm and prompt)
+  const st=$('i-hpstock'), stock=boosted&&OP.stock&&OP.mode==='boost';
+  if(st){ st.hidden=!stock; if(stock){ const F=tsFmt(), S=OP.sug;
+    $('i-hpstock-txt').innerHTML='<b>What power are you building for?</b> The power field still holds the '+esc(OP.stock.name||'preset')+'’s stock '+F.hp(OP.stock.hp)+', a rating '+(OP.stock.na?'without boost':'as it left the factory')+'. Until you type a target here (or in the power field), the build is worked at the boost field’s '+F.pD(OP.boost*1000)+' and the power worked out from it'+(S?': '+F.hp(OP.hp)+'. For orientation, the same relation and figures give this engine about '+F.hp(S.lo)+' at '+F.pD(S.b0)+' and '+F.hp(S.hi)+' at '+F.pD(S.b1)+' of boost (at the crank, at this build’s manifold air), a statement of the relation, not a recommendation':'')+'.'; } }
+  const hl=$('i-hp-lab'); if(hl) hl.textContent=boosted?'Power target (horsepower'+(opAtWheel()?', at the wheels':', at the crank')+')':'Horsepower, blank to skip';
   const bl=$('i-boost-lab'); if(bl) bl.textContent=boosted&&OP.mode==='both'?'Boost (typed: the sizes follow it)':'Boost'; }
+// the design point's power at the crank: the target typed (a figure at the wheels divided by 1 - the drivetrain loss), or
+// the one worked out from the boost
+const tsHp=()=>{ if(OP&&OP.mode==='boost'&&OP.hp>0) return OP.hp; const h=val('i-hp'); return OP&&OP.mode!=='na'&&h>0?opCrank(h):h; };
 // the design point's power: the target typed, or the one worked out from the boost
-const tsHp=()=>OP&&OP.mode==='boost'&&OP.hp>0?OP.hp:val('i-hp');
 // the route's inputs from the tab (turboSection's, shared with the operating-point solver opSolve): one turbo's inlet tube
 // from calcIntake at its own diameter, the charge-pipe fields; table=false leaves out the size table's inlet rows (each a
 // calcIntake), which the solver does not read
@@ -22870,8 +22972,8 @@ function tsSizeSection(ind,p,r){
   h+='<div class="tblwrap"><table id="ts-demand"><thead><tr><th>RPM</th><th>Air per compressor</th><th>Corrected flow</th><th>Pressure ratio</th><th>Outlet</th></tr></thead><tbody>'+
     pts.map(x=>'<tr><td>'+Math.round(x.rpm).toLocaleString('en-US')+'</td><td>'+fl(x.m)+'</td><td>'+fl(x.cor)+'</td><td>'+x.PR.toFixed(3)+'</td><td>'+tD(x.t2)+'</td></tr>').join('')+'</tbody></table></div>'+
     '<p class="cap">The demand line to draw on a compressor map'+(RL?', from '+Math.round(lo).toLocaleString('en-US')+' RPM (same VE and boost; enter the RPM where full boost arrives) to peak power':'')+'. Pressure ratio includes the inlet and charge-side losses worked out above. Corrected flow = actual × √((T₁ + 460) ÷ 545) ÷ (P₁ ÷ 13.95), T₁ °F, P₁ psia at the compressor inlet (ATP Turbo’s definition: 85 °F and 13.95 psia; worked here in absolute temperature, T₁ + 459.67 against 85 + 459.67 °R); a map that states other reference conditions needs the same formula with its own. Garrett marks choke where the map’s efficiency drops below 58%: keep both points left of that line and right of the surge line. No published margin to either line was found, so none is given; the TO4B check below is one example map.</p>';
-  if(tsHp()>0){ const G=garrettMatch({hp:tsHp()/nt,afr,bsfc,tmF:route.R.t3*1.8+32,ve:p.ve,rpm:p.rpm,ci:p.disp/16.387064/nt,loss:R.dpAfter/6894.757,dep:R.dpInlet/6894.757,patm:P_ATM/6894.757});
-    TG.G=G; h+=rowT('Garrett’s method for '+Math.round(tsHp())+' hp',fl(G.wa/LBMIN)+' per compressor','HP × A/F '+afr+' × BSFC '+bsfc+' ÷ 60; manifold pressure needed '+(imp?G.map.toFixed(1)+' psia ('+(G.map*6.894757).toFixed(0)+' kPa)':(G.map*6.894757).toFixed(0)+' kPa ('+G.map.toFixed(1)+' psia)')+' at '+tD(route.R.t3)+' manifold air, pressure ratio '+G.pr.toFixed(2)+' with the losses above; the tab’s boost gives '+R.PRc.toFixed(2)); }
+  if(tsHp()>0){ const FG=opFig(p), G=garrettMatch({hp:tsHp()/nt,afr:FG.afr,bsfc:FG.bsfc,tmF:route.R.t3*1.8+32,ve:FG.ve,rpm:p.rpm,ci:p.disp/16.387064/nt,loss:R.dpAfter/6894.757,dep:R.dpInlet/6894.757,patm:P_ATM/6894.757});
+    TG.G=G; h+=rowT('Garrett’s method for '+Math.round(tsHp())+' hp'+(OP&&OP.wheel?' at the crank':''),fl(G.wa/LBMIN)+' per compressor','HP × A/F '+FG.afr+' × BSFC '+FG.bsfc+' ÷ 60'+(FG.fig==='src'?' ('+FG.f.name+'), VE '+(Math.round(FG.ve*1000)/10)+'%':'')+'; manifold pressure needed '+(imp?G.map.toFixed(1)+' psia ('+(G.map*6.894757).toFixed(0)+' kPa)':(G.map*6.894757).toFixed(0)+' kPa ('+G.map.toFixed(1)+' psia)')+' at '+tD(route.R.t3)+' manifold air, pressure ratio '+G.pr.toFixed(2)+' with the losses above; the tab’s boost gives '+R.PRc.toFixed(2)); }
   h+=rowT('Compressor power',pw(R.m*CP_AIRT*(R.t2-p.tin))+(nt>1?' each':''),'m × cp × (T₂ − T₁), cp '+CP_AIRT.toFixed(0)+' J/kg K');
   // turbine
   const tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, p4=tsP4(), bst=(p.boost||0)*1000, etaIn=val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:null;
@@ -23886,7 +23988,7 @@ function icRecSection(o){
 }
 function tsOptionsSection(ind,p){
   const route=TS_LAST; if(!route||!route.R) return '';
-  const R=route.R, imp=U==='imp', nt=Math.max(1,Math.round(val('i-nt'))||1), afr=val('i-afr')>0?val('i-afr'):12, bsfc=val('i-bsfc')>0?val('i-bsfc'):0.55, hp=tsHp();
+  const R=route.R, imp=U==='imp', nt=Math.max(1,Math.round(val('i-nt'))||1), FG=opFig(TS_P||{ve:0.9}), afr=FG.afr, bsfc=FG.bsfc, hp=tsHp();
   // a project saved with a picked housing: its label is in i-thsg; pick the turbo and housing back (2026-11-12)
   if(TSO.turbo===''&&$('i-thsg')&&$('i-thsg').value){ const L=$('i-thsg').value; TURBO_LIB.some((t,ti)=>t.hs.some((x,hi)=>{ if(thLabel(t,x)!==L) return false; TSO.turbo=String(ti); TSO.hs=String(hi); return true; })); }
   const fl=kgs=>imp?(kgs*LBMIN).toFixed(1)+' lb/min ('+kgs.toFixed(3)+' kg/s)':kgs.toFixed(3)+' kg/s ('+(kgs*LBMIN).toFixed(1)+' lb/min)';
@@ -25918,18 +26020,23 @@ function tgGlance(ind,p){
   // power: the target against the boost (Garrett's method, from the sizing section), and the simulation's figure
   // one operating point (opSolve): what was typed and what was worked out, the airflow every size here is for
   const O=OP||{mode:'both'}, rg=O.range, one=O.mode==='hp'||O.mode==='boost';
-  let pw=O.mode==='hp'?'target '+F.hp(hp)+' (typed); boost '+F.pD((p.boost||0)*1000)+' at the throttle, worked out'+(rg&&!O.low?' (likely '+F.pD(rg.lo*1000)+' to '+F.pD(rg.hi*1000)+')':''):
-    O.mode==='boost'?'boost '+F.pD((p.boost||0)*1000)+' at the throttle (typed); '+F.hp(hp)+' worked out'+(rg?' (likely '+F.hp(rg.lo)+' to '+F.hp(rg.hi)+')':''):
+  const at=O.wheel?' at the crank ('+F.hp((O.mode==='boost'?O.hp:O.hpT)*(1-O.loss))+' at the wheels)':' at the crank';
+  let pw=O.mode==='hp'?'target '+F.hp(hp)+at+' (typed); boost '+F.pD((p.boost||0)*1000)+' at the throttle, worked out'+(rg&&!O.low?' (likely '+F.pD(rg.lo*1000)+' to '+F.pD(rg.hi*1000)+')':''):
+    O.mode==='boost'?'boost '+F.pD((p.boost||0)*1000)+' at the throttle ('+(O.stock?'the boost field, until a target is typed':'typed')+'); '+F.hp(hp)+at+' worked out'+(rg?' (likely '+F.hp(rg.lo)+' to '+F.hp(rg.hi)+')':''):
     (hp>0?'target '+F.hp(hp):'no target entered (Horsepower)')+'; boost '+F.pD((p.boost||0)*1000)+' at the throttle (both typed)';
-  let pn='';
-  if(one) pn='One operating point: '+F.fl(R.m)+' of air'+(turbo&&R.nt>1?' per turbo':'')+' at pressure ratio '+R.PRc.toFixed(2)+', by Garrett’s method (Wa = hp × A/F × BSFC ÷ 60, manifold pressure from VE, RPM and the intercooler outlet air); every pipe, the intercooler, the valves, the turbine balance, the downpipe and the oil load below are for it.'+(O.low?' The target needs no boost at this VE: check it.':'');
+  let pn='', ph='';
+  if(one) pn='One operating point: '+F.fl(R.m)+' of air'+(turbo&&R.nt>1?' per turbo':'')+' at pressure ratio '+R.PRc.toFixed(2)+', by Garrett’s relation ('+(O.fg&&O.fg.fig==='src'?O.fg.f.name+', A/F '+O.afr+' × BSFC '+O.bsfc+', VE '+(Math.round(O.ve*1000)/10)+'%':'Garrett’s figures as typed, A/F '+O.afr+' × BSFC '+O.bsfc+', VE '+(Math.round(O.ve*1000)/10)+'%')+'); every pipe, the intercooler, the valves, the turbine balance, the downpipe and the oil load below are for it.'+(O.low?' The target needs no boost at this VE: check it.':'');
   else if(G&&hp>0){ const off=Math.abs(R.m*LBMIN/G.wa-1)>0.1;
     pn='Garrett’s method: '+F.hp(hp)+' needs about '+F.pD(G.boost*6894.757)+' boost (pressure ratio '+G.pr.toFixed(2)+') and '+F.fl(G.wa/LBMIN)+' of air'+(turbo&&R.nt>1?' per turbo':'')+'; your boost gives '+F.fl(R.m)+(off?'. The two do not match: the pipe, intercooler and valve sizes here are for your boost’s airflow, while the turbo and intercooler ratings are checked against the target. Change Boost (or the target) until they agree, or set What you know to one of them.':', close to the target.'); }
   const sim=TG.steps&&TG.steps.find(s=>s.id==='sim'), T=typeof TSIM_LAST!=='undefined'?TSIM_LAST:null;
+  // the third method (2026-11-14, boost for power): the wave simulation at this very boost, with the bias the page states
+  const running=typeof TSIM!=='undefined'&&TSIM.status==='running', canSim=turbo||ind==='centri';
   if(T&&T.sum&&T.sum.rows[T.sum.ip]){ const S=T.sum, o=S.rows[S.ip], kh=t=>t*o.rpm*Math.PI/30/745.7, cur=sim&&sim.state==='ok';
-    pn+=(pn?' ':'')+'Wave simulation'+(cur?'':' (inputs changed since the run: run it again)')+': '+F.hp(S.hp)+' at '+o.rpm.toLocaleString('en-US')+' RPM (its friction readings give '+F.hp(Math.min(kh(o.tqBn),kh(o.tqBg)))+' to '+F.hp(Math.max(kh(o.tqBn),kh(o.tqBg)))+'); without boost the model read brake torque 4 to 16% high on three rated engines, so plan on the lower end.'; }
-  else pn+=(pn?' ':'')+'No power estimate yet: the wave simulation with the turbo (4-Stroke tab) gives one.';
-  rows.push({k:'power',label:'Power',v:pw,note:pn,go:'turbo-and-intercooler-sizing'});
+    pn+=(pn?' ':'')+(cur?'The simulation says '+F.hp(S.hp)+' at this boost, at '+o.rpm.toLocaleString('en-US')+' RPM (it reads about 4 to 16 % high: about '+F.hp(S.hp/OP_SIMK[1])+' to '+F.hp(S.hp/OP_SIMK[0])+'; its friction readings give '+F.hp(Math.min(kh(o.tqBn),kh(o.tqBg)))+' to '+F.hp(Math.max(kh(o.tqBn),kh(o.tqBg)))+')'+(one&&rg&&rg.sim?(O.mode==='hp'?'; for the target it implies '+F.pD(rg.sim.lo*1000)+' to '+F.pD(rg.sim.hi*1000)+' of boost, against Garrett’s '+F.pD((p.boost||0)*1000):'; against Garrett’s '+F.hp(hp))+', and the range above holds both':'')+'.':'Wave simulation (inputs changed since the run: run it again): '+F.hp(S.hp)+' at '+o.rpm.toLocaleString('en-US')+' RPM at the earlier inputs; it reads about 4 to 16 % high.');
+    if(!cur&&canSim) ph='<button type="button" class="btn" data-glsim="1" style="padding:1px 8px;min-height:0;font-size:12px;margin-top:4px"'+(running?' disabled':'')+'>'+(running?'Running the simulation…':'Run the simulation at this boost')+'</button>'; }
+  else { pn+=(pn?' ':'')+'No simulation at this boost yet: the wave simulation with the '+(turbo?'turbo':'supercharger')+' (4-Stroke tab, about half a minute) gives a third figure, read about 4 to 16 % high.';
+    if(canSim) ph='<button type="button" class="btn" data-glsim="1" style="padding:1px 8px;min-height:0;font-size:12px;margin-top:4px"'+(running?' disabled':'')+'>'+(running?'Running the simulation…':'Run the simulation at this boost')+'</button>'; }
+  rows.push({k:'power',label:'Power',v:pw,note:pn,html:ph,go:'turbo-and-intercooler-sizing'});
   if(turbo){ add('turbo','Turbo',part(/^Turbo( \(|$)/),'','turbo-options'); add('hsg','Turbine housing',part(/^Turbine housing$/),'','turbo-options'); }
   add('comp','Compressor inlet / outlet',part(/^Compressor inlet/),'','inlet-and-charge-pipes-design-and-sizing');
   add('co','Compressor outlet to hot pipe',part(/^Cone, compressor outlet/),true,'inlet-and-charge-pipes-design-and-sizing');
@@ -25955,7 +26062,7 @@ function tgGlance(ind,p){
   return '<div class="glance" id="tg-glance"><h3>Your '+(turbo?'turbo':'supercharger')+' build at a glance</h3><p class="cap" style="margin-top:0">The parts and sizes to cut and order, in inches and mm, read from the sections below and the build sheet. Go takes you to the section that works each one out.</p>'+
     (warn.length?'<div class="note warn" id="tg-glance-warn">'+warn.length+' step'+(warn.length>1?'s report':' reports')+' a problem: '+warn.map(s=>esc(s.title)).join(', ')+' (see Turbo build, step by step).</div>':'')+
     (!one&&G&&hp>0&&Math.abs(R.m*LBMIN/G.wa-1)>0.1?'<div class="note warn" id="tg-glance-boost">Your boost and your power target do not match (see Power below): the sizes are for the boost typed.</div>':'')+
-    '<table><tbody>'+rows.map(r=>'<tr data-gl="'+r.k+'"><td>'+esc(r.label)+'</td><td><span class="gl-v">'+esc(r.v)+'</span>'+(r.note?'<span class="gl-n">'+esc(r.note)+'</span>':'')+'</td><td class="gl-go">'+(r.go?'<button type="button" class="btn tg-go" data-tgo="'+esc(r.go)+'" style="padding:1px 8px;min-height:0;font-size:12px">Go</button>':'')+'</td></tr>').join('')+'</tbody></table></div>';
+    '<table><tbody>'+rows.map(r=>'<tr data-gl="'+r.k+'"><td>'+esc(r.label)+'</td><td><span class="gl-v">'+esc(r.v)+'</span>'+(r.note?'<span class="gl-n">'+esc(r.note)+'</span>':'')+(r.html||'')+'</td><td class="gl-go">'+(r.go?'<button type="button" class="btn tg-go" data-tgo="'+esc(r.go)+'" style="padding:1px 8px;min-height:0;font-size:12px">Go</button>':'')+'</td></tr>').join('')+'</tbody></table></div>';
 }
 function fiSection(ind,p,r){ return fiSection0(ind,p,r)+b5BoostSections(ind,p,r); }
 function fiSection0(ind,p,r){
@@ -26376,7 +26483,7 @@ function renderIntake(){
   const r=calcIntake(p); if(r.err) return fail(r.err);
   const imp=U==='imp', spd=ms=>imp?Math.round(ms/0.3048)+' ft/s':Math.round(ms)+' m/s', spdAlt=ms=>imp?Math.round(ms)+' m/s':Math.round(ms/0.3048)+' ft/s';
   const pa=x=>imp?(x/249.09).toFixed(1)+' inH₂O':Math.round(x)+' Pa', paAlt=x=>imp?Math.round(x)+' Pa':(x/249.09).toFixed(1)+' inH₂O';
-  const pct=x=>(x>=0?'+':'')+x.toFixed(1)+'%', hp=OP.mode==='boost'?OP.hp:val('i-hp');
+  const pct=x=>(x>=0?'+':'')+x.toFixed(1)+'%', hp=tsHp();
   const loss=100*(r.ratio-1);
   key.innerHTML='<div class="figs">'+figT('Airflow at peak power',Math.round(r.cfm),'cfm',Math.round(r.Q*1000)+' L/s',r.v>r.vmax?'st-warn':'')+
     figT('Air speed in the tube',imp?Math.round(r.v/0.3048):Math.round(r.v),imp?'ft/s':'m/s','most 180 ft/s',r.v>r.vmax?'st-warn':'st-ok')+
@@ -26725,7 +26832,7 @@ document.addEventListener('click',e=>{
    storage ('exhaust-projects-v1'); a file export is the copy that travels. */
 const PROJ_KEY='exhaust-projects-v1';
 const PROJ_STATIC=[...document.querySelectorAll('form input[id], form select[id], form textarea[id], #v-mode, #v-class, #v-make, #v-pick')]
-  .filter(el=>!/^(file|password|hidden|button|submit)$/.test(el.type));
+  .filter(el=>!/^(file|password|hidden|button|submit)$/.test(el.type)&&el.id!=='i-hptgt');
 const PROJ_VEH=['v-mode','v-class','v-make','v-pick'];
 const projUiCopy=(o,skip)=>{ const r={}; for(const k in o){ if(skip.includes(k)) continue; const v=o[k]; if(typeof v==='function') continue; r[k]=v; } return JSON.parse(JSON.stringify(r)); };
 const PROJ_UI={   // the per-section settings kept with a project: [object, keys left out]
@@ -26752,6 +26859,9 @@ function projApply(d){
   // of its three settings: it loads as it was worked out then (boost and power both typed, no back pressure unless typed,
   // the wastegate at the one pressure before the turbine), so its results do not move until the builder changes them
   if(!('i-opm' in d.vals)) d=Object.assign({},d,{vals:Object.assign({},d.vals,{'i-opm':{v:'both'},'i-tobpsrc':{v:'none'},'i-wgbasis':{v:'single'}}),legacyOp:true});
+  // and one saved before the figures for the relation (2026-11-14, boost for power) loads with Garrett's figures as typed
+  // (the A/F, BSFC and VE fields) and the target at the crank, as it was worked out then
+  if(!('i-opfig' in d.vals)) d=Object.assign({},d,{vals:Object.assign({},d.vals,{'i-opfig':{v:'typed'},'i-hpat':{v:'crank'}}),legacyFig:true});
   if(d.units==='imp'||d.units==='met') setUnits(d.units);
   if(d.mode==='simple'||d.mode==='expert') setMode(d.mode,false);
   const fire=(el,t)=>el.dispatchEvent(new Event(t,{bubbles:true}));
@@ -26776,6 +26886,7 @@ function projApply(d){
   if(d.jig) Object.keys(JIG_UI).forEach(k=>{ if(d.jig[k]!==undefined&&k!=='open') JIG_UI[k]=d.jig[k]; });
   if(Array.isArray(d.build)){ BUILD.items=JSON.parse(JSON.stringify(d.build)); saveBuild(); }
   cmapAfterLoad(ui.cmap);
+  HP_PRESET=null;   // a loaded project's power field is the builder's, not a preset's
   renderActive();
 }
 // what a saved field reads as, in the units now chosen
