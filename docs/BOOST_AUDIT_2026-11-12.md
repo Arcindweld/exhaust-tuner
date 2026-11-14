@@ -846,3 +846,32 @@ housing you picked") and in the wave simulation (predict mode); the step-by-step
 ("Turbine size (flow capacity)", "Pressure before the turbine ... from the turbine's size") say which. Tests:
 web/tests/turbine_ui.js. The housing verdict of the A/R section (actual mass flow against the maker's figure, labelled
 indicative) is unchanged.
+
+## Addendum (2026-11-13, part 10): the turbine's efficiency through the pulse, bearing loss, housing heat, compressor off its island
+
+Asked for: test, with published physics only, why the model's turbine gives too much work at low engine speed (part 9:
+a turbine small enough for the logged 1.5-2 x boost before it reaches full boost below 2000 rpm). Details, sources,
+worked numbers and every table: docs/WAVE_VALIDATION_2026-11-11.md, part 10 (J1-J10).
+
+- What the page assumed before: a constant turbine efficiency at every moment and speed; no shaft speed; no bearing loss
+  beyond the efficiency; no heat loss in the volute (the manifold's walls do lose heat in the wave run; the steady sizing
+  takes the typed TIT); one compressor efficiency at every speed.
+- Built: the efficiency from the blade speed ratio x = U / C0 at each step of the wave model (JS and Rust in parity,
+  WebAssembly rebuilt), on the parabola eta / eta_max = 2 r - r^2, r = x / 0.7 (NASA SP-290 eq. 2-88; optimum 0.7 for
+  radial turbines: Luddecke et al. 2012, Morrison et al. 2016) or OpenWAM's Watson polynomial; the tip speed from the
+  compressor's work, dh0 = mu U2^2, mu 0.523 from Pakle and Jiang's published design point (PR 2.5 at 427 m/s, polytropic
+  92 %), and the picked turbo's wheels (PT5862: 76.2 / 71 mm, dealer); the same form in turbineBalance and
+  turbineAreaBalance. Default on where the wheels are published; "Constant through the pulse" keeps the old result to the
+  last digit. Bearing friction is an input (none by default: no number for a speed was readable). Housing heat and
+  compressor efficiency off its island: experiments only.
+- Effect on the K24 + PT5862 (600 / 1000 mm2): full boost +90-270 rpm, p3 at peak +0-5 % from the curve; +30-140 rpm
+  from 1 kW of friction; 0-90 rpm from a 0.2 m volute; +150-400 rpm and +10-13 % p3 from 62 % compressor efficiency; all
+  together +360-710 rpm, +14-16 % p3. The logged 1.5-2 x still needs about 450-500 mm2, which still reaches full boost
+  at or below 2000 rpm; a 4000-4500 rpm full boost needs 1340-1560 mm2 and gives 0.45-0.54 x boost static at peak
+  power. The gap partly closes, a little; the compressor's surge line, transient spool, the turbine's flow against
+  expansion ratio and the hot exhaust remain (not modelled).
+- The page's K24 default (area found for full boost at 3500 rpm): 1185 -> 1091 mm2; 589 -> 588.5 hp @ 7100 after
+  pumping; p3 at peak 0.78 -> 0.84 x boost (0.69 static); gate share 34.6 -> 37.2 %; the most the gate opens 627 -> 647
+  mm2: the smallest listed valve whose seat holds it stays 38 mm. The Intake tab's gate sizing at its assumed 2 x boost is
+  unchanged.
+- Tests: web/tests/turbineeff_ui.js (new), web/tests/wave_wasm.js (two jobs). No pinned value changed.
