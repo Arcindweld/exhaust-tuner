@@ -22,6 +22,9 @@
 //                 (inlet tube, filter to throttle; default the page's 600 and 101.6: ASSUMPTIONS), fdp=Pa (air filter loss at
 //                 the flow fm=kg/s; default 0 = no filter, an open mouth; fm default: the engine's air at VE 1 at the rated
 //                 power speed)
+// 2026-11-13 part 8 (H sections): portIn=m|ls3cc (the head's intake port: the runner's last part, marked port: true;
+//   ls3cc = 182.5 mm, the LS3's published 260 cc at the runner's bore), and the labelled "as rated" inputs amb=j1349 (SAE
+//   J1349's 99 kPa of dry air at 25 C), exdp=Pa (a tail restriction ~ flow squared), acckw=kW (accessories off the brake)
 // Per speed it records net IMEP (the model's own), gross IMEP (p dV from BDC before firing to BDC after: 540-720 and
 // 0-180 deg of each cylinder's frame), the pumping loop (gross - net), the heat released and the in-cylinder wall heat
 // (Woschni) per cycle, the fuel's chemical energy (trapped air / AFR x 44 MJ/kg), and, when the page has it, the brake
@@ -73,7 +76,12 @@ function specOf(c) {
   for (const k of Object.keys(args)) if (k.startsWith('e.')) { const ks = k.slice(2).split('.'); let o = e; for (let i = 0; i < ks.length - 1; i++) o = o[ks[i]]; o[ks[ks.length - 1]] = JSON.parse(args[k]); }
   const dI = Math.sqrt(0.6) * dIn, pl = +(args.primL || 0.61), cl = +(args.coll || 0.3);
   const csegs = [{ L: 0.13, d0: 0.089, d1: 0.0762 }, { L: cl, d0: 0.0762, d1: 0.0762 }].concat(args.tail ? [{ L: +args.tail, d0: 0.0635, d1: 0.0635 }] : []);
-  const spec = { e, intake: { segs: [{ L: +(args.intakeL || 0.3), d0: dI, d1: dI }], Tw: 320 },
+  // portIn=m (part 8): the runner's last portIn before the valve is the head's intake port (port: true: the page's intake-port
+  // law, e.portInHeat; '"off"' gives the runs before). portIn=ls3cc: the length of the stock LS3 port's published 260 cc at the
+  // runner's bore (182 mm; GM 12629063 "260cc Intake Runner"), for every engine here (an ASSUMPTION for the LS7 and LT1)
+  const iL = +(args.intakeL || 0.3), pIn = args.portIn === 'ls3cc' ? 260e-6 / (Math.PI / 4 * 0.6 * (2.165 * IN) ** 2) : +(args.portIn || 0);
+  if (pIn > 0 && !(pIn < iL)) throw new Error('portIn must be shorter than the runner');
+  const spec = { e, intake: { segs: pIn > 0 ? [{ L: iL - pIn, d0: dI, d1: dI }, { L: pIn, d0: dI, d1: dI, port: true }] : [{ L: iL, d0: dI, d1: dI }], Tw: 320 },
     exhaust: { segs: [{ L: 0.15, d0: 0.0445, d1: 0.0445, primary: true, port: true }, { L: pl, d0: 0.0445, d1: 0.0445, primary: true }], Tw: 700, chambers: [] },
     opt: { phases: [0, 180, 450, 630], collector: { segs: csegs, Tw: 650 } } };
   if (args.whole === '1' || args.intake === 'plenum') {
@@ -84,6 +92,22 @@ function specOf(c) {
   }
   // back=Pa (part 7): the tail ends discharge into the atmosphere + back (a stand-in for the stock exhaust's catalysts and mufflers)
   if (+args.back > 0) spec.exhaust.pOut = 101325 + +args.back;
+  // part 8, the "as rated" inputs (each labelled, none on by default):
+  // amb=j1349: SAE J1349's reference atmosphere, to which net ratings are corrected: 99 kPa of dry air at 25 C (as stated by
+  //   two dyno-correction sources, docs part 8 H2; the standard's own text could not be read): the runners (or the plenum's
+  //   inlet) breathe dry air at 99 kPa and 298.15 K (intake.source), the tail ends discharge at 100 kPa (dry air + the 1 kPa
+  //   of water vapour J1349's 100 kPa total implies). VE stays referred to 101.325 kPa.
+  if (args.amb === 'j1349') { spec.intake.source = { p: 99000, T: 298.15 }; spec.exhaust.pOut = 100000 + (+args.back > 0 ? +args.back : 0); }
+  else if (args.amb) throw new Error('amb= j1349');
+  // exdp=Pa: a tail restriction (a stand-in for catalysts and mufflers) losing exdp at the rated-power flow and scaling with the
+  //   flow squared: each collector ends in a 50 mm exit of reduced area, sigma = 1 / sqrt(1 + exdp / q), q the collector's
+  //   dynamic head at the engine's air at VE 1 at the rated power speed x (1 + 1/AFR), half per collector, at 900 K and 1 atm
+  //   (rho 0.381 kg/m3; incompressible sizing). No sourced figure for any of these engines' stock exhaust: an input.
+  if (+args.exdp > 0) {
+    if (!spec.opt.collectors) throw new Error('exdp= needs the whole engine (whole=1 or intake=plenum)');
+    const Vt = Math.PI / 4 * B * B * S * c.cyl, Rr = RATED[c.k], m = 1.1839 * Vt * Rr.hpRpm / 120 * (1 + 1 / e.afr) / 2, d = 0.0762, A = Math.PI * d * d / 4, q = m * m / (2 * 0.381 * A * A), sg = 1 / Math.sqrt(1 + +args.exdp / q);
+    for (const col of spec.opt.collectors) col.segs = col.segs.concat([{ L: 0.05, d0: d * Math.sqrt(sg), d1: d * Math.sqrt(sg) }]);
+  }
   if (args.intake === 'plenum') {
     const Vtot = Math.PI / 4 * B * B * S * c.cyl, tbd = (+args.tbd || STOCK_TB[c.k]) / 1000, itd = (+args.itd || 101.6) / 1000;
     const R = RATED[c.k], fm = +args.fm || (R ? 1.1839 * Vtot * R.hpRpm / 120 : 0);   // dry air at 298.15 K, 1 atm, VE 1
@@ -117,7 +141,8 @@ for (const k of engines) {
     const gross = mean('g') / eng.Vd, Q = mean('Q'), qw = mean('qw'), fuel = mean('fuel');
     // brake: the page's friction law (WS.tfmep, off the gross loop; the model's own gross IMEP when it reports one)
     const tq = r.imep * Vtot / (4 * Math.PI), fm = WS.tfmep ? { fmep: WS.tfmep(rpm) } : null, g = r.gimep != null ? r.gimep : gross;
-    const brk = fm ? (g - fm.fmep) * Vtot / (4 * Math.PI) : null;
+    // acckw=kW (part 8): accessories' power taken off the brake (an input; none sourced for these engines)
+    const brk = fm ? (g - fm.fmep) * Vtot / (4 * Math.PI) - (+args.acckw > 0 ? +args.acckw * 1000 / (rpm * Math.PI / 30) : 0) : null;
     rows.push({ rpm, ve: r.ve, imep: r.imep, gross, gimep: r.gimep, pump: gross - r.imep, Q, qw, fuel, qwFrac: qw / fuel, qFrac: Q / fuel, tEx: r.tEx, pmax: r.pmax,
       tq, kw: tq * rpm * Math.PI / 30 / 1000, fmep: fm ? fm.fmep : null, tqB: brk, kwB: brk == null ? null : brk * rpm * Math.PI / 30 / 1000 });
     process.stderr.write(k + ' ' + rpm + ': VE ' + r.ve.toFixed(3) + ' NMEP ' + (r.imep / 1e5).toFixed(2) + ' bar, gross ' + (gross / 1e5).toFixed(2) + ', wall heat ' + (100 * qw / fuel).toFixed(1) + ' % of fuel (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)\n');

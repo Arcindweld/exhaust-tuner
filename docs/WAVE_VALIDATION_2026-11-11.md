@@ -2337,3 +2337,329 @@ python3 tools/validation/wave/compare.py configs=single_L800,i4_41 tag=g_base   
 python3 tools/validation/wave/gas_report.py before=g_base after=port
 node web/tests/wavegas_ui.js                                                # 12: the port law
 ```
+
+## Addendum 2026-11-13, part 8: why the model breathes too well (its volumetric efficiency taken apart)
+
+Question. Part 7 (G7) put the 4-16 % brake-torque surplus against the GM V8 ratings on the airflow: the model's VE is
+1.05-1.08 for the LS3 with the realistic intake, where the ratings at the model's own brake efficiency imply 0.91-0.97.
+Here the VE is taken apart exactly, each named candidate (ram and waves, valve flow, charge heating, fuel vapour, residual,
+intake and exhaust losses, cam events) is priced by one change at a time, the published data that could be read are
+listed, and the pieces that are real and missing with a published basis are added. Nothing was tuned to the ratings.
+Result in short: the model's VE above 1 is the 300 mm runner's ram (an assumed length); two missing pieces with a
+published basis were added or made explicit: heat from the head's intake port into the charge (a model change, active where a
+port is marked) and the rating's reference air (J1349's 99 kPa of dry air: a comparison input). With both the surplus is
+LS3 +8 % torque / +11 % power, LS7 +11 / +5 %, LT1 0 / +1 %; the rest is within what the unpublished stock air cleaner,
+exhaust and runner length can do, which are left as labelled inputs.
+
+### H1 The VE taken apart (`tools/validation/wave/ve_decomp.js`, `results/ve_h_*.json`)
+
+The model's VE (trapped fresh air at IVC against dry air at 101.325 kPa and 298.15 K filling the displacement) is exactly
+VE = (V_ivc / Vd) (p_ivc / p_ref) (T_ref / T_ivc) (R_air / R_mix) x f_air of the cylinder's state at IVC. Because the
+intake closes 60-70 deg after BDC (seat), V_ivc is 0.84-0.90 Vd and the charge is already compressed there, so the table
+gives the same charge taken isentropically (its frozen gamma at IVC) to the BDC volume Vd + Vc: p* and T* are the pressure
+and temperature it would have there; the product (Vb / Vd) (p* / p_ref) (T_ref / T*) (R_air / R_mix) x f_air is still the
+VE exactly (checked: "prod" equals the model's VE to the printed digit in every run). p* is the ram and wave pressure net
+of every loss; T* the charge's temperature, raised from the 298 K air by the runner's walls, the residual, the walls during
+induction and the filling itself (gas pushed into a cylinder that is still filling is compressed by what follows; its
+stagnation temperature at the valve is the inflow T0 column). R_air / R_mix and f_air are the fuel vapour (2.3 % net),
+x the residual's dilution. Over the last settled cycle of ratings.js's realistic case (part 7's c_final), whole engines:
+
+| engine, rpm | VE | Vb / Vd | p* / p_ref | T_ref / T* (T*, K) | R_air / R_mix | x (residual %) | f_air | inflow T0 at the valve (K) | wall heat into the charge while the intake is open (K) | air pushed back into the runner (% of trapped) | plenum mean (kPa) | brake torque (lb-ft) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| LS3 3000 | 0.8745 | 1.1031 | 0.9629 | 0.8750 (340.7) | 1.0524 | 0.9638 (3.6) | 0.9275 | 309.0 | 8.6 | 14.3 | 100.91 | 392.3 |
+| LS3 4600 | 1.0512 | 1.1031 | 1.2270 | 0.8179 (364.5) | 1.0532 | 0.9721 (2.8) | 0.9275 | 305.8 | 5.7 | 4.5 | 99.87 | 462.7 |
+| LS3 5800 | 1.0792 | 1.1031 | 1.2971 | 0.7932 (375.9) | 1.0533 | 0.9733 (2.7) | 0.9275 | 303.3 | 4.7 | 0.3 | 98.91 | 452.0 |
+| LS7 3000 | 0.8697 | 1.1000 | 0.9734 | 0.8670 (343.9) | 1.0521 | 0.9599 (4.0) | 0.9275 | 311.7 | 7.9 | 14.7 | 100.79 | 443.1 |
+| LS7 4600 | 1.0630 | 1.1000 | 1.2433 | 0.8162 (365.3) | 1.0534 | 0.9746 (2.5) | 0.9275 | 305.1 | 6.2 | 3.6 | 99.40 | 534.3 |
+| LS7 5800 | 1.0490 | 1.1000 | 1.2642 | 0.7933 (375.8) | 1.0533 | 0.9733 (2.7) | 0.9275 | 303.2 | 4.9 | 0.2 | 98.36 | 497.1 |
+| LT1 3000 | 0.8994 | 1.0952 | 0.9948 | 0.8755 (340.6) | 1.0526 | 0.9658 (3.4) | 0.9275 | 307.7 | 8.3 | 10.7 | 100.82 | 413.3 |
+| LT1 4600 | 1.0507 | 1.0952 | 1.2590 | 0.8082 (368.9) | 1.0526 | 0.9656 (3.4) | 0.9275 | 307.4 | 4.2 | 3.0 | 99.67 | 472.2 |
+| LT1 5800 | 1.0247 | 1.0952 | 1.2626 | 0.7868 (378.9) | 1.0525 | 0.9647 (3.5) | 0.9275 | 305.3 | 3.1 | 0.3 | 98.85 | 432.4 |
+
+Read: at the speeds that set the ratings the charge is held at 1.23-1.30 atm (p* at 4600 and 5800 rpm) and 365-379 K
+(T*), so VE 1.02-1.08. Of its 66-81 K of heating, the air arriving at the valve brings 5-9 K (runner walls at 320 K; at
+3000 rpm 10-14 K with the hot gas pushed back), the walls while the intake is open 3-6 K; the rest (about 50-70 K) is the
+2.5-4.0 % residual's heat and the filling, not separated here.
+The runner's ram is the lever: one change, the runner 300 -> 100 mm (`h_short`): LS3 VE 0.866 / 0.868 /
+0.911 (p* 0.945 / 0.966 / 1.042), torque -1 / -21 / -20 %; 300 -> 450 mm (`h_long`): 0.911 / 1.123 / 0.999. The runner's
+length is not published (D8: 300 mm assumed). The 0.7 law in place of the measured head flow (`h_law07`): VE 0.870 / 1.059 / 1.065
+(-0.6 / +0.7 / -1.4 %).
+
+The same after part 8, "as rated" (the intake port law on the stock port, H5, and J1349's air, H2; VE still referred to
+101.325 kPa, so J1349's 99 kPa alone takes 2.3 % off it):
+
+| engine, rpm | VE | Vb / Vd | p* / p_ref | T_ref / T* (T*, K) | R_air / R_mix | x (residual %) | f_air | inflow T0 at the valve (K) | wall heat into the charge while the intake is open (K) | air pushed back into the runner (% of trapped) | plenum mean (kPa) | brake torque (lb-ft) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| LS3 3000 | 0.8450 | 1.1031 | 0.9400 | 0.8669 (343.9) | 1.0524 | 0.9630 (3.7) | 0.9275 | 313.0 | 8.0 | 14.4 | 98.60 | 376.3 |
+| LS3 4600 | 1.0165 | 1.1031 | 1.1970 | 0.8112 (367.5) | 1.0531 | 0.9715 (2.8) | 0.9275 | 309.6 | 5.3 | 4.6 | 97.60 | 443.7 |
+| LS3 5800 | 1.0462 | 1.1031 | 1.2687 | 0.7865 (379.1) | 1.0532 | 0.9729 (2.7) | 0.9275 | 307.1 | 4.3 | 0.4 | 96.68 | 433.9 |
+| LS7 3000 | 0.8416 | 1.1000 | 0.9501 | 0.8601 (346.6) | 1.0521 | 0.9593 (4.1) | 0.9275 | 315.3 | 7.4 | 14.8 | 98.49 | 425.8 |
+| LS7 4600 | 1.0286 | 1.1000 | 1.2131 | 0.8099 (368.2) | 1.0533 | 0.9742 (2.6) | 0.9275 | 308.7 | 5.8 | 3.6 | 97.15 | 512.9 |
+| LS7 5800 | 1.0181 | 1.1000 | 1.2373 | 0.7869 (378.9) | 1.0532 | 0.9730 (2.7) | 0.9275 | 306.8 | 4.5 | 0.2 | 96.14 | 477.7 |
+| LT1 3000 | 0.8685 | 1.0952 | 0.9710 | 0.8667 (344.0) | 1.0526 | 0.9651 (3.5) | 0.9275 | 312.0 | 7.8 | 10.8 | 98.52 | 396.3 |
+| LT1 4600 | 1.0155 | 1.0952 | 1.2286 | 0.8011 (372.2) | 1.0525 | 0.9649 (3.5) | 0.9275 | 311.5 | 3.7 | 3.1 | 97.42 | 452.6 |
+| LT1 5800 | 0.9948 | 1.0952 | 1.2363 | 0.7803 (382.1) | 1.0525 | 0.9644 (3.6) | 0.9275 | 309.2 | 2.8 | 0.3 | 96.61 | 415.6 |
+
+### H2 Published data: what could be read (2026-11-13)
+
+Volumetric efficiency or airflow of these engines:
+- No measured VE, airflow or BSFC of a stock LS3, LS7 or LT1 could be read in an open source. GM's Gen V combustion-system
+  paper (SAE 2013-01-1732, https://saemobilus.sae.org/papers/development-combustion-system-general-motors-fifth-generation-small-block-engine-family-2013-01-1732)
+  has a qualitative abstract only (airflow testing and CFD named, no values); Hib Halverson's GM-sourced LS7 series
+  (https://corvetteactioncenter.com/specs/c6/corvette-ls7-engine/ls7-engine15.html, page 15 of 26) gives the 90 mm throttle,
+  the 1.8:1 rocker, "shorty header" stainless exhaust manifolds (four primaries meeting at the outlet flange) and "low
+  back-pressure", but no airflow, VE or back-pressure figure (other pages of the 26 were not read). A Corvette owner's
+  "0.47 lb/hp h" at WOT on a forum (corvetteforum.com thread 4989772, method and speed not stated) was not used. Typical VE
+  of 2-valve pushrod V8s with a citable number was not found; MIT 2.61 lecture 8 (spring 2017,
+  https://mitocw.ups.edu.ec/courses/mechanical-engineering/2-61-internal-combustion-engines-spring-2017/lecture-notes/MIT2_61S17_lec8.pdf)
+  lists the mechanisms only (slide 6: "Loss in [VE] because intake charge is heated up by the hot walls", "prominent at low
+  speed"; slide 3: for fuel evaporation "in practice, most heat from the wall unless direct injection is used").
+  So the comparison stays with G7's inference: at the model's own brake efficiency the ratings imply VE 0.91-0.97.
+The rating's atmosphere:
+- SAE J1349 net ratings are corrected to a reference atmosphere of 99 kPa of dry air at 25 C: "the newer SAE J1349
+  standard of 77 F (25 C) day with 0% humidity and a barometric pressure of 29.234 in-Hg (99 KPa)" (Mike Chaney's Tech
+  Corner, DDI software, https://ddisoftware.com/tech/tt-dyno/the-ambient-correction-factors), and "990mBar and 25 degrees
+  Celsius as the nominal conditions", pressure "dry" (https://bikeboy.org/dynocorrectionfactors.html). Both are secondary;
+  the standard itself (saemobilus J1349) could not be read. The model's atmosphere is 101.325 kPa dry air at 298.15 K:
+  2.35 % denser in dry air than the rating's.
+Residual gas:
+- The Fox, Cheng and Heywood model (SAE 931025) as written in Oberg and Eriksson's comparison of residual-gas models
+  (https://www.fs.isy.liu.se/Publications/Articles/SAE_06_POLE.pdf, their eq. 3, "model A"):
+  x_r = C1 (p_em/p_im)^((gamma+1)/(2 gamma)) (OF/N) sqrt(p_em - p_im) + C2 (1/(lambda r_c)) (p_im/p_em)^(1/gamma), with their
+  refit C1 = 0.4205, C2 = 0.5869 for their engine (Fox et al.'s own constants could not be read). At wide-open throttle with
+  p_em about p_im the second term dominates: 0.5869 / (0.877 x 10.7) = 6.3 % for the LS3 at AFR 12.8. The model has 2.5-4.0 %
+  (H1) with its open long-tube headers, which scavenge. A correlation fitted on another engine, so only a pointer.
+Intake port heat transfer:
+- Published time-averaged correlations Nu = C Re^m (Pr^n) for the intake system, as tabulated by Rahman, Hamada and Kadirgama,
+  "Heat transfer of intake port for hydrogen fueled port injection engine: a steady state approach", Int. J. Physical
+  Sciences 6(16), 2011, Table 1 (https://core.ac.uk/download/268871449.pdf): Dittus-Boelter 0.023 Re^0.8 Pr^0.4; Bauer et al.
+  1998 straight manifold 0.062 Re^0.73, curved manifold 0.140 Re^0.66; Depcik and Assanis 2002 0.0694 Re^0.75 ("valid for
+  1500 < Re < 40000"); Shayler et al. 1996 0.135 Re^0.713. Depcik and Assanis's own paper (SAE 2002-01-0372, "A universal
+  heat transfer correlation for intake and exhaust flows in a spark-ignition internal combustion engine") gives in its
+  abstract a correlation coefficient of 0.845 with all intake data; its equations could not be read there. At the LS3's
+  runner (42.6 mm, 0.045 kg/s, about 310 K: Re 7.1 x 10^4) they give Nu 302 (Depcik), 388 (Shayler), 223 (Bauer curved), 152 (Dittus-Boelter),
+  against 0.0025 Re Pr = 125 for the model's Reynolds' analogy at the same mean flow.
+- Intake-port or intake-valve wall temperatures at full load: not found as numbers (SAE 971729's abstract: the intake valve's
+  temperature rises with load, speed and coolant temperature, "coolant temperature was the single most important correlating
+  variable"; Riggs et al. 1991, a GM 2.0 L engine: differences only). The coolant's 360 K of Heywood's Fig. 12-1 (MIT 2.61
+  lecture 18, slide 11, as part 7) is taken for the port wall: an ASSUMPTION, sensitivity 340 and 400 K.
+- The LS3's intake port volume: "260cc Intake Runner" (GM Performance 12629063, LS3 head, as listed by VPW,
+  https://www.vpw.com.au/gm-performance-cylinder-head-ls3-aluminum-assemble): at the model's runner bore (sqrt(0.6) x the
+  2.165 in valve, 1425 mm2) that is 182.5 mm of the 300 mm runner. Used for all three engines (an ASSUMPTION for the LS7, LT1).
+Stock exhaust back pressure:
+- No figure for these engines (above). Measured on other production cars by AutoSpeed (Julian Edgar, "Frank's Exhaust,
+  Part 1", https://autospeed.com.au/cms/a_108185/article): a Ford Falcon EF six with its standard exhaust "measured maximum
+  was 8.7 psi" (60 kPa) at the oxygen-sensor position accelerating at full throttle to the redline; 5.9-9.3 psi on three
+  other standard systems (one after the catalyst). Gauge readings (a mean), not a V8, not stated at rated power: they show
+  the size only, so the stock exhaust stays an input (exdp=).
+Cam events:
+- "The new way of measuring Duration is .050 of lift on the Tappet" (Performance Trends,
+  https://performancetrends.com/Definitions/Camshaft-Duration.htm); a community-college cam glossary
+  (https://www.austincc.edu/wkibbe/camterminology.pdf) says the valve. GM's LS3 card (204 / 211 deg at 0.050 in) does not say
+  which; the LS rocker is 1.7:1 (the LS7's 1.8:1, Halverson above). The model forces its sin² lift through 0.050 in of
+  VALVE lift at the card's angles (camSeat); at the tappet it would be 0.085 in at the valve.
+
+### H3 The valve flow conversion and the valve events, checked against the standard treatment
+
+- Flow-bench conversion (`benchCdA`, part 3 C1): m = Cd A p0 / sqrt(R T0) (p/p0)^(1/gamma) {2 gamma / (gamma - 1)
+  [1 - (p/p0)^((gamma-1)/gamma)]}^(1/2), the compressible orifice equation of Heywood ch. 6 for poppet valves (the form
+  in the FAMU-FSU "Valve Flows" notes, part 3 C1), algebraically the same as the model's psi, and the same law the valves
+  then obey (`orifice`), choked below the critical ratio. Because the bench gives Cd A directly, the reference area (curtain
+  or seat) drops out, and the pressure-ratio dependence is the law's; the only free choice is the bench's reference state
+  (60 F, 1 atm, as part 3 stated; at 68 F the areas would be 0.8 % smaller). The flow is isentropic up to the measured
+  effective area, as in the standard treatment. Verdict: correct; not changed. Its size here: H1 (`h_law07`), under 1.4 %
+  of VE.
+- Valve events: the LS3's are GM's card (IVO -19, IVC 43, EVO 38, EVC -7 deg at 0.050 in: 204 / 211 deg); the LS7 and LT1 cams
+  are assumed straight up (B5). The lift is sin² over a seat-to-seat duration stretched so that it passes the check lift
+  at the card's angles (`camSeat`, 0.050 in = 1.27 mm at the VALVE). If the card's 0.050 in is tappet lift (H2), the real
+  valve is at 0.085 in at those angles (1.7:1): one change, the check lift 2.159 mm (`h_chk`; `ratings_h_s_chk`): VE
+  -5.8 / -2.0 / +2.0 % at 3000 / 4600 / 5800 rpm, LS3 as rated 453 lb-ft @ 5000 (+7 %), 497 hp @ 6200 (+16 %): the curve
+  moves up the speed range and the power surplus grows. So the convention does not explain the surplus either way. Not
+  changed: which convention GM's card uses could not be verified, and a sin² is not the real lobe (no measured LS3 lift
+  profile was found; the page imports one for OpenWAM when the user has it, `e.camProfile`).
+
+### H4 One change at a time (LS3, part 7's c_final, `ve_decomp.js`; results/ve_<tag>.json; brake = gross - Heywood tfmep)
+
+| one change from part 7 (LS3, c_final) | VE 3000 / 4600 / 5800 rpm | VE change (%) | brake torque (lb-ft) | torque change (%) | residual (%) | inflow T0 at the valve (K) |
+|---|---|---|---|---|---|---|
+| none (part 7) | 0.8745 / 1.0512 / 1.0792 | | 392.3 / 462.7 / 452.0 | | 3.6 / 2.8 / 2.7 | 309.0 / 305.8 / 303.3 |
+| the rating's air: J1349, 99 kPa dry air at 25 C (tails at 100 kPa) | 0.8536 / 1.0264 / 1.0539 | -2.4 / -2.4 / -2.3 | 381.1 / 449.3 / 438.3 | -2.8 / -2.9 / -3.0 | 3.7 / 2.8 / 2.7 | 309.1 / 305.9 / 303.3 |
+| intake port law, Depcik-Assanis, the stock port's 182.5 mm, 360 K wall (adopted, H5) | 0.8657 / 1.0411 / 1.0714 | -1.0 / -1.0 / -0.7 | 387.3 / 457.0 / 447.5 | -1.3 / -1.2 / -1.0 | 3.7 / 2.8 / 2.7 | 312.9 / 309.5 / 307.0 |
+|   the same, Shayler et al. | 0.8626 / 1.0372 / 1.0680 | -1.4 / -1.3 / -1.0 | 385.6 / 454.8 / 445.6 | -1.7 / -1.7 / -1.4 | 3.7 / 2.8 / 2.7 | 314.3 / 310.8 / 308.4 |
+|   the same, Bauer et al. curved | 0.8678 / 1.0447 / 1.0748 | -0.8 / -0.6 / -0.4 | 388.5 / 459.0 / 449.5 | -1.0 / -0.8 / -0.6 | 3.6 / 2.8 / 2.7 | 312.0 / 308.3 / 305.6 |
+|   the same, wall 340 K | 0.8704 / 1.0469 / 1.0758 | -0.5 / -0.4 / -0.3 | 390.0 / 460.3 / 450.0 | -0.6 / -0.5 / -0.4 | 3.6 / 2.8 / 2.7 | 310.7 / 307.5 / 305.1 |
+|   the same, wall 400 K | 0.8563 / 1.0297 / 1.0627 | -2.1 / -2.0 / -1.5 | 382.0 / 450.6 / 442.5 | -2.6 / -2.6 / -2.1 | 3.7 / 2.8 / 2.7 | 317.4 / 313.4 / 310.8 |
+| (pipe law) the runner's last 120 mm at 370 K, Reynolds' analogy | 0.8612 / 1.0312 / 1.0637 | -1.5 / -1.9 / -1.4 | 384.8 / 451.5 / 443.2 | -1.9 / -2.4 / -2.0 | 3.7 / 2.8 / 2.7 | 314.7 / 311.5 / 309.0 |
+| (pipe law) every intake pipe at 360 K instead of 320 K | 0.8581 / 1.0268 / 1.0611 | -1.9 / -2.3 / -1.7 | 383.1 / 449.1 / 441.7 | -2.3 / -3.0 / -2.3 | 3.7 / 2.9 / 2.7 | 315.8 / 312.7 / 310.2 |
+| cylinder wall 450 -> 500 K | 0.8612 / 1.0416 / 1.0741 | -1.5 / -0.9 / -0.5 | 385.8 / 458.2 / 449.9 | -1.6 / -1.0 / -0.5 | 3.7 / 2.8 / 2.6 | 310.0 / 306.1 / 303.3 |
+| no in-cylinder wall heat (Woschni off) | 0.8795 / 1.0646 / 1.0808 | +0.6 / +1.3 / +0.2 | 429.4 / 502.6 / 482.6 | +9.5 / +8.6 / +6.8 | 3.1 / 2.2 / 2.2 | 310.3 / 305.4 / 303.5 |
+| no fuel vapour in the charge (part 1's air charge) | 0.8723 / 1.0511 / 1.0782 | -0.3 / -0.0 / -0.1 | 376.7 / 444.9 / 432.9 | -4.0 / -3.9 / -4.2 | 3.9 / 2.8 / 2.7 | 310.7 / 306.4 / 303.5 |
+| fuel vapour premixed in the intake (displacement's upper bound) | 0.8731 / 1.0740 / 1.0426 | -0.2 / +2.2 / -3.4 | 391.3 / 474.6 / 432.3 | -0.2 / +2.6 / -4.4 | 3.6 / 2.7 / 2.7 | 308.8 / 305.1 / 302.9 |
+| air filter 2.5 kPa at the rated flow | 0.8690 / 1.0325 / 1.0437 | -0.6 / -1.8 / -3.3 | 389.3 / 452.6 / 432.8 | -0.8 / -2.2 / -4.2 | 3.6 / 2.8 / 2.7 | 309.1 / 306.0 / 303.5 |
+| 10 kPa static back pressure at the tails (part 7) | 0.8657 / 1.0452 / 1.0732 | -1.0 / -0.6 / -0.6 | 387.6 / 459.5 / 448.8 | -1.2 / -0.7 / -0.7 | 4.0 / 3.1 / 2.9 | 310.2 / 306.3 / 303.5 |
+| tail restriction 30 kPa at the rated flow (~ flow squared) | 0.8912 / 1.0200 / 1.0533 | +1.9 / -3.0 / -2.4 | 401.0 / 445.9 / 438.1 | +2.2 / -3.6 / -3.1 | 2.9 / 4.2 / 3.6 | 307.4 / 310.0 / 304.9 |
+| tail restriction 50 kPa at the rated flow | 0.8883 / 1.0073 / 1.0293 | +1.6 / -4.2 / -4.6 | 399.5 / 439.0 / 425.1 | +1.9 / -5.1 / -5.9 | 3.0 / 4.7 / 4.5 | 307.6 / 312.7 / 307.6 |
+| 0.050 in check lift read at the tappet (0.085 in at the valve) | 0.8235 / 1.0299 / 1.1008 | -5.8 / -2.0 / +2.0 | 363.1 / 449.3 / 461.9 | -7.4 / -2.9 / +2.2 | 4.9 / 2.6 / 2.1 | 317.3 / 307.7 / 304.0 |
+| runner 300 -> 100 mm | 0.8658 / 0.8676 / 0.9108 | -1.0 / -17.5 / -15.6 | 388.0 / 365.5 / 362.2 | -1.1 / -21.0 / -19.9 | 3.7 / 3.4 / 3.1 | 305.5 / 305.1 / 304.2 |
+| runner 300 -> 450 mm | 0.9113 / 1.1228 / 0.9992 | +4.2 / +6.8 / -7.4 | 411.2 / 500.7 / 409.1 | +4.8 / +8.2 / -9.5 | 3.5 / 2.6 / 2.9 | 311.8 / 305.7 / 304.7 |
+| 0.7 law in place of the measured head flow | 0.8696 / 1.0587 / 1.0646 | -0.6 / +0.7 / -1.4 | 389.8 / 466.8 / 444.3 | -0.6 / +0.9 / -1.7 | 3.7 / 2.8 / 3.4 | 309.2 / 305.8 / 304.2 |
+
+Read, against the published basis of each:
+- Fuel vapour: in the model the vapour joins at the valve, on top of the air the orifice passed, so it hardly displaces air
+  (VE -0.0 to -0.3 % against an air charge); its effect on torque (-4 %) is the closed cycle (part 2, B6). Fully evaporated
+  in the runner (premixed, the upper bound of displacement for a port injector) it changes the runner's sound speed and so
+  the tuning (+2.2 / -3.4 %), not a clean displacement. MIT's lecture 8 (H2): with port injection most of the evaporation
+  heat comes from the walls; neither bound is clearly the real one, so the model's choice (part 2) stays.
+- In-cylinder wall heat during induction: Woschni's gas-exchange term as published (part 7, G3); off, VE +0.2 to +1.3 %.
+  The charge-heating loss in the cylinder is already in the model and small.
+- Intake heating upstream of the cylinder: with the runner's pipe law (Reynolds' analogy at 320 K) the air reached the
+  valve 5-14 K above ambient. Published intake-port correlations give 1.8-3.1 times the pipe law's heat transfer at the same
+  mean flow (H2), and the port is coolant-backed: missing physics with a published basis: added (H5): -0.7 to -1.0 % VE,
+  -1.0 to -1.3 % torque (Shayler's law -1.4 to -1.7 %; wall 340 / 400 K -0.4 / -2.6 %).
+- Residual: 2.5-4.0 % in the model (open long-tube headers) against 6.3 % from the Fox-Cheng-Heywood form at p_e = p_i (H2;
+  a correlation fitted on another engine). A stock exhaust (shorty manifolds, catalysts, mufflers) raises p_e: the tail
+  restriction raises the residual to 4.2-4.7 % at 4600 rpm, and VE -2.4 to -4.6 % at 4600-5800 (at 3000 rpm +2 %: the
+  restriction moves the wave timing). The size of the stock restriction is not published for these engines (H2): left as
+  an input (`exdp=`), not a default. The page's brake (gross - tfmep) does not see the extra pumping; its net bracket
+  ("net - tfmep", ratings_report) does, twice over: the truth lies between (H6).
+- Intake losses upstream: the plenum's mean pressure is 0.4-3.0 kPa below the outside air at full load with the 90 mm
+  throttle and the open filter mouth (H1 table). An air cleaner, duct and MAF of 2.5 kPa at the rated flow (part 3's size;
+  not published for these engines) take -0.6 / -1.8 / -3.3 % of VE: an input (`fdp=`, as part 3), not a default.
+- The rating's air: J1349 corrects to 99 kPa of dry air (H2); the model breathed 101.325 kPa: -2.3 to -2.4 % of VE,
+  -2.8 to -3.0 % of brake torque (friction does not shrink with the air). This is the definition of the rating, not
+  physics of the engine: it becomes a labelled comparison input (`amb=j1349`), and the as-rated tables use it.
+
+### H5 What was changed
+
+1. The head's intake port (model; JS `wsFactory`, Rust `et_wave` line for line, WebAssembly rebuilt and embedded):
+   - Intake segments marked `port: true` at the valve end of a runner are the head's intake port (`markPortIn`: the cells
+     whose centres lie beyond the runner's length less the port's; Rust: the same loop). Those cells gain
+     q = h (Tw - T) per unit wall area in `stepPipe` (`dt hp pi D (Twp - T)` in place of Reynolds' analogy; friction
+     unchanged; the exhaust port's term, now over the cells npa..np-1: npa = 0 for an exhaust port, so its arithmetic is
+     unchanged).
+   - h = Nu k / D, Nu = 0.0694 Re^0.75 (Depcik and Assanis 2002, intake, the default; `e.portInHeat` 'shayler' 0.135
+     Re^0.713, 'bauer' 0.140 Re^0.66; constants as tabulated by Rahman et al. 2011, H2; OpenWAM's intake pipes also use
+     Depcik-Assanis, part 1 section 3 e). Re = 4 m / (pi D mu) with m the cylinder's mean net intake-valve inflow over the
+     last cycle (runner side, air) x rpm / 120 (`cy.inN`), mu and k by Sutherland's law (part 7's constants) at that
+     inflow's mass-averaged stagnation temperature (`cy.inM`, `cy.inH`, `cy.inX`); h held for the next cycle, 0 on the first.
+     The correlation is time-averaged (like the exhaust port's), so it also acts on air standing in the port while the
+     valve is shut. Depcik and Assanis's stated range ends at Re 4 x 10^4; the V8 runners reach 6-7 x 10^4 at full load:
+     extrapolated (stated on the page).
+   - Tw = `e.portInTw`, else 360 K (the coolant of Heywood's Fig. 12-1; ASSUMPTION, H2).
+   - Legacy: `e.portInHeat` false or 'off', or no intake segment marked, gives the model before part 8 bit for bit (H7).
+2. The page: "Of that, the intake port in the head, valve to manifold flange" on the 4-Stroke tab under the runner length
+   (blank by default: nothing changes); a typed length becomes the runner's last segment, marked (`simSpec`); longer than
+   the runner is refused (`simCheck`). The turbo plan takes the 4-Stroke tab's intake, so it inherits the mark. The
+   method text states the law, its source, its size and its limits, and this part's findings in plain words.
+3. The comparison (`ratings.js`, labelled inputs; none on by default): `portIn=m|ls3cc` (the runner's last part marked as
+   port; ls3cc = 182.5 mm from the LS3's published 260 cc), `amb=j1349` (intake.source 99 kPa / 298.15 K, tails 100 kPa),
+   `exdp=Pa` (a tail exit restriction losing exdp at the rated flow, ~ flow squared), `acckw=kW` (accessory power off the
+   brake; not used in the tables: no sourced figure). `ve_decomp.js` (new) and `turbo_portin.js` (new); `lib.js` exposes
+   the intake valve's runner-side flow to hooks and can apply experiment-only patches (`WS_PATCHES`, used for the premixed
+   fuel run only; the page is never modified).
+
+### H6 Before and after
+
+(a) GM ratings, whole engines, 19 speeds (`ratings_report.py h_legacy h_port h_asrated`; h_legacy is the page after part 8
+with no intake port marked, identical to part 7's `g_final` in every row, VE, IMEP, gross IMEP, tEx, pmax and brake):
+
+| engine | rating | part 7 (= h_legacy) | + intake port law on the stock port (h_port) | + J1349's air: as rated (h_asrated) | VE at the rated torque speed: part 7 -> as rated (referred to 101.325 kPa) |
+|---|---|---|---|---|---|
+| LS3 | 425 lb-ft @ 4600, 430 hp @ 5900 | 478 @ 5000 (+13 %), 499 hp @ 5800 (+16 %) | 473 @ 5000 (+11 %), 494 @ 5800 (+15 %) | **459 @ 5000 (+8 %), 479 @ 5800 (+11 %)** | 1.051 -> 1.017 |
+| LS7 (cam assumed) | 470 @ 4800, 505 @ 6300 | 543 @ 5000 (+16 %), 549 @ 5800 (+9 %) | 537 (+14 %), 544 (+8 %) | **522 @ 5000 (+11 %), 528 @ 5800 (+5 %)** | 1.085 -> 1.050 |
+| LT1 (cam assumed) | 460 @ 4600, 455 @ 6000 | 479 @ 4800 (+4 %), 480 @ 5600 (+5 %) | 473 (+3 %), 475 (+4 %) | **460 @ 4800 (-0 %), 461 @ 5600 (+1 %)** | 1.051 -> 1.015 |
+
+The VE curves are in results/ratings_h_*.json (rows[].ve); peak VE LS3 1.095 -> 1.060, LS7 1.092 -> 1.058, LT1 1.076 ->
+1.041 (all at 5000 rpm). The torque peaks stay 200-400 rpm late (the runner, H1).
+
+LS3 as rated, one more change at a time (`ratings_h_s_*.json`; inputs of unpublished size, not defaults):
+
+| one change on h_asrated | brake torque | brake power | net bracket (net - tfmep) | VE at 4600 |
+|---|---|---|---|---|
+| none | 459 @ 5000 (+8 %) | 479 @ 5800 (+11 %) | 434 / 439 | 1.017 |
+| tail restriction 30 kPa at rated flow | 443 @ 5000 (+4 %) | 465 @ 6000 (+8 %) | 415 / 419 | 0.987 |
+| tail restriction 50 kPa | 436 @ 5000 (+2 %) | 452 @ 5800 (+5 %) | 402 / 401 | 0.976 |
+| air filter 2.5 kPa at rated flow | 446 @ 5000 (+5 %) | 459 @ 5800 (+7 %) | 421 / 420 | 0.999 |
+| check lift at the tappet (H3) | 453 @ 5000 (+7 %) | 497 @ 6200 (+16 %) | 434 / 460 | 0.997 |
+| filter 2.5 kPa + tail 30 kPa | 431 @ 5000 (+1 %) | 446 @ 5800 (+4 %) | 403 / 402 | 0.972 |
+
+(b) The turbo case, K24A2 + PT5862 (`turbo_portin.js`, results/turbo_portin.json, the page's WebAssembly): the page's plan
+has no intake port marked, so its results are those of part 7 to the last digit (closure area 1185.32 mm2, mean p3 0.406
+/ 0.770 x boost at 3500 / 6600 rpm, T3 940 / 1013 C, turbine work 29.2 / 60.9 kW, calibration efficiency 0.421 / 0.340 /
+0.296 at 1.0 / 1.5 / 2.0 x boost: the same numbers as results/turbo_port.json's first case). With an ASSUMED 100 mm intake
+port (Depcik-Assanis): VE 2.402 -> 2.394 / 2.660 -> 2.653 (-0.3 %), air 195.3 -> 194.7 / 407.7 -> 406.7 g/s (the simulated
+cylinders), NMEP 35.54 -> 35.43 / 37.02 -> 36.93 bar, closure area 1185 -> 1182 mm2, calibration efficiencies 0.421 /
+0.340 / 0.296 -> 0.422 / 0.340 / 0.296. The intercooled charge (337 K) is close to the 360 K wall, so the port does little.
+
+(c) Run time: ratings.js whole engines, three engines x 19 speeds: 214 s (no port), 214 s (port), 217 s (as rated);
+part 7 214 s for the same job (71-73 s per engine). Unchanged.
+
+### H7 Verification
+
+- Legacy: ratings.js without `portIn` (h_legacy) equals part 7's g_final in every printed and stored field; every job of the
+  page captured in web/tests/fixtures/wave_jobs.json, run on the page before part 8 (commit 18fe321) and after, identical in every result (VE, IMEP, gross IMEP, tEx, pmax, pEvo) at their first three speeds, all 9 variants;
+  wavegas_ui.js 13 d: the port marked with `e.portInHeat` 'off' = no port, to the last digit.
+- `kat.js` 66 of 66, results/kat.json byte-identical; `constref.js` 112 constant-gamma speeds identical.
+- `web/tests/wavegas_ui.js` 13 (new, 7 checks): the three correlations' constants and the 360 K default; h by hand (0.045
+  kg/s, 310 K, 42.6 mm: Re 71015, Nu 301.9, h 191.5 W/m2 K); an unknown law refused; the port cells (18..29 of 30 for a
+  120 mm port at the runner's bore, the whole last pipe at its own bore); after a 6000 rpm run, the port's h equals the law
+  evaluated in the test at the last cycle's measured net inflow (31.45 g/s) and mass-averaged stagnation temperature
+  (303.3 K) to 1e-9; one cycle's mass and total-energy residuals 7.7e-16 and 1.6e-14 of the heat released with the port's
+  2.80 J into the charge as a source (the pipe law would put 0.75 J into the same cells); the legacy switch.
+- `web/tests/wave_wasm.js`: three intake-port jobs added (100 mm at the runner's bore on the plenum with the exhaust port,
+  the default law; the same with open runners and the constant gas; a single cylinder's 90 mm port of its own bore,
+  Shayler at 380 K): JS and Rust/WebAssembly identical to the last digit; nothing removed or loosened.
+- `web/tests/cam_ui.js`: three checks added (a typed intake port reaches the spec marked, a port longer than the runner is
+  refused, none typed gives one segment as before).
+- OpenWAM cross-check configurations (part 1's matrix): their specs mark no intake port, so the wave side is unchanged
+  (covered by the identity above); OpenWAM itself was not run (no build here; nothing on its side changed).
+- Conservation: wavegas_ui.js 13 c above; energy_balance.js and the suite's wavegas_ui 6, 11, 12 unchanged.
+- Suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, 2026-11-13, part 8): 130 tests, 123
+  passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips (all expected: no host build, no OpenWAM build in the worktree, F-100
+  runs absent), 0 unexpected, 1330 s (wave_wasm 354 s, wavegas_ui 48 s, cam_ui 7 s). `cargo test --release` in rust/et_wave
+  builds (0 tests in the crate; its parity is wave_wasm.js). A fresh `tools/build_wave_wasm.sh` leaves the embedded
+  WebAssembly byte-identical.
+
+### H8 What remains unexplained, and what was not done
+
+- As rated, LS3 +8 % torque / +11 % power and LS7 +11 / +5 % (its cam assumed) remain. Inside what the unpublished stock
+  pieces can do (a 2.5 kPa air cleaner and a 30 kPa exhaust restriction: +1 / +4 %), but those sizes are guesses, so this
+  part does not claim the gap is closed. The LT1 sits on its rating (0 / +1 %), with an assumed cam and its direct
+  injection (in-cylinder evaporation cools the charge; not modelled) and phaser not modelled.
+- The largest single lever is still the runner length (H1: 100 mm -21 %, 450 mm +7 % at 4600 rpm), not published for these
+  engines (part 4 D8). With the stock port's 182.5 mm inside the 300 mm assumed, the manifold's runner would be 117.5 mm,
+  against the 7.25 in (184 mm) a forum member measured "rather crudely" on an LS7 manifold (part 4 D8): if the real runner is
+  longer than 300 mm, the torque peak moves toward the rating's 4600 rpm and peak torque rises (part 3: 350 mm +2.5 %,
+  450 mm +9 %), which would widen the torque surplus, not close it; not changed (unknown).
+- The residual (2.5-4.0 %) is below the 6.3 % the Fox-Cheng-Heywood form gives at p_e = p_i; most of the difference goes
+  with the open long-tube headers (H4); a stock "shorty" manifold exhaust was not modelled (its geometry is not published).
+- The friction law (Heywood's 1980s four-cylinder fit, B4) and the accessories of a net rating were not changed: no
+  sourced figure for these engines.
+- Charge heating by the hot intake valve's back face is not separated from the port's wall (one wall temperature); the
+  heating of the manifold runner (outside the head) stays on the pipe law at 320 K.
+- The 0.050 in convention of GM's card and the real lobe shape (H3) are open.
+
+### H9 Summary rows (section 6, as of 2026-11-13, part 8)
+
+| Difference | Status | Evidence |
+|---|---|---|
+| VE above the ratings' 0.91-0.97 | taken apart: the 300 mm runner's ram holds the charge at 1.23-1.30 atm at 4600-5800 rpm, heated to 365-379 K; valve flow, fuel vapour and in-cylinder wall heat each under 1.5 % | H1, H4 |
+| Intake port heating | was the runner's pipe law (1.8-3.1 x below published intake-port correlations); added: Depcik-Assanis toward a 360 K wall where a port is marked; LS3 stock port -1.0 to -1.3 % torque | H2, H5 |
+| The rating's air | J1349's 99 kPa dry air against the model's 101.325 kPa: -2.8 to -3.0 % of brake torque; a comparison input | H2, H4 |
+| Against real ratings, as rated | LS3 +8 / +11 %, LS7 +11 / +5 %, LT1 0 / +1 % (part 7: +13 / +16, +16 / +9, +4 / +5 %) | H6 |
+| Stock air cleaner, exhaust, accessories | not published; inputs (fdp=, exdp=, acckw=); 2.5 kPa + 30 kPa would leave LS3 +1 / +4 % | H4, H6 |
+| Flow-bench conversion | the standard compressible orifice law; correct | H3 |
+| Cam check lift (valve or tappet) | open; at the tappet the LS3's curve moves up the range, the surplus does not fall | H3 |
+
+### H10 How to rerun (additions)
+
+```
+node tools/validation/wave/ve_decomp.js tag=h_base engines=ls3,ls7,lt1      # the factor table, ~1.5 min
+node tools/validation/wave/ve_decomp.js tag=h_final engines=ls3,ls7,lt1 portIn=ls3cc amb=j1349
+node tools/validation/wave/ve_decomp.js tag=h_pin portIn=ls3cc              # and amb=, fdp=, exdp=, back=, inTw=, chk=tappet, fuel=air, intakeL=, flow=
+WS_PATCHES=tools/validation/wave/results/patch_premix.json node tools/validation/wave/ve_decomp.js tag=h_premix fuel=premix
+node tools/validation/wave/ratings.js tag=h_asrated intake=plenum flow=benchfam portIn=ls3cc amb=j1349   # ~3.6 min
+python3 tools/validation/wave/ratings_report.py h_legacy h_port h_asrated
+node tools/validation/wave/turbo_portin.js                                   # ~2 min
+node web/tests/wavegas_ui.js                                                 # 13: the intake port law
+```

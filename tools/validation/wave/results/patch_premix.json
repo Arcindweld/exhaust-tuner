@@ -1,0 +1,1 @@
+[["gasIn=gas&&gas.vap?makeGas(e.afr,false):gas;", "gasIn=gas&&gas.vap&&e.fuel!=='premix'?makeGas(e.afr,false):gas;"], ["VAP=!!(G&&G.vap);", "VAP=!!(G&&G.vap)&&e.fuel!=='premix';"]]

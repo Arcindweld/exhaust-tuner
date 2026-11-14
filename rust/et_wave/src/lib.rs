@@ -417,7 +417,7 @@ struct Seg {
     l: f64,
     d0: f64,
     d1: f64,
-    port: bool, // the head's exhaust port (part 7): a leading segment of a primary marked port: true
+    port: bool, // the head's exhaust port (part 7): a leading segment of a primary marked port: true; intake (part 8): a trailing segment of a runner
 }
 fn segs_of(v: &Value) -> Result<Vec<Seg>, String> {
     let a = v.as_array().ok_or("a line needs its segs")?;
@@ -489,6 +489,7 @@ struct Engine {
     pout: Option<f64>,        // exhaust.pOut: the open tail ends' outside pressure
     turbine: Option<TurbSpec>, // exhaust.turbine (the page's turbineOf)
     port: Option<(f64, f64, f64)>, // the head's exhaust-port law (the page's portLaw, part 7): C, n of Nu = C Re^n, wall temperature
+    port_in: Option<(f64, f64, f64)>, // the head's intake-port law (the page's portInLaw, part 8): C, n, wall temperature
 }
 /// exhaust.turbine: the equivalent nozzle's effective area (all entries), total-to-static efficiency, the wastegate's
 /// effective area and where it discharges, the downpipe's end pressure and the downpipe.
@@ -813,6 +814,7 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         pout: { let v = num(&exhaust["pOut"]); if v > 0.0 { Some(v) } else { None } },
         turbine: turbine_of(exhaust)?,
         port: port_law(e, or(&e["Twall"], 450.0))?,
+        port_in: port_in_law(e)?,
     })
 }
 
@@ -840,6 +842,30 @@ fn port_law(e: &Value, twall: f64) -> Result<Option<(f64, f64, f64)>, String> {
     };
     let pt = num(&e["portTw"]);
     Ok(Some((c, n, if pt > 0.0 { pt } else { twall })))
+}
+/* The head's intake port (2026-11-13, part 8; the page's portInLaw, markPortIn): cells of a runner's trailing port
+   segments gain h (Tw - T) per unit wall area, h from a published time-averaged intake correlation Nu = C Re^n (default
+   Depcik and Assanis 0.0694 Re^0.75; Shayler et al. 0.135 Re^0.713, Bauer et al. curved manifold 0.140 Re^0.66), Re from
+   the last cycle's mean net intake-valve inflow (the runner's side), mu and k of air by Sutherland's law at its
+   mass-averaged stagnation temperature; Tw e.portInTw, else 360 K. e.portInHeat false or "off": none. Sources in the
+   page's comment. */
+fn port_in_law(e: &Value) -> Result<Option<(f64, f64, f64)>, String> {
+    let w = &e["portInHeat"];
+    let name = match w {
+        Value::Bool(false) => return Ok(None),
+        Value::Null | Value::Bool(true) => "depcik",
+        Value::String(s) if s == "off" => return Ok(None),
+        Value::String(s) => s.as_str(),
+        _ => "",
+    };
+    let (c, n) = match name {
+        "depcik" => (0.0694, 0.75),
+        "shayler" => (0.135, 0.713),
+        "bauer" => (0.140, 0.66),
+        _ => return Err("e.portInHeat must be depcik, shayler, bauer or off".into()),
+    };
+    let pt = num(&e["portInTw"]);
+    Ok(Some((c, n, if pt > 0.0 { pt } else { 360.0 })))
 }
 fn mu_air(t: f64) -> f64 {
     1.716e-5 * powf(t / 273.0, 1.5) * (273.0 + 111.0) / (t + 111.0)
@@ -914,7 +940,8 @@ struct Pipe {
     cp: Vec<f64>,
     rm: Vec<f64>,
     t: Vec<f64>,
-    np: usize, // the head's exhaust port: its leading cells (part 7), their h (W/m2 K) and wall temperature
+    np: usize, // the head's port cells npa..np-1: an exhaust port's leading cells (part 7), an intake port's trailing ones (part 8); their h (W/m2 K) and wall temperature
+    npa: usize,
     hp: f64,
     twp: f64,
 }
@@ -987,6 +1014,7 @@ fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, 
         rm: vec![RG; n],
         t: vec![t0; n],
         np: 0,
+        npa: 0,
         hp: 0.0,
         twp: 0.0,
     })
@@ -1202,8 +1230,8 @@ fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow], aux: &Aux) 
         let fr = 2.0 * FANNING * ri * ui.abs() * p.a[i] / p.d[i];
         p.q1[i] -= k * (p.f1[i + 1] - p.f1[i]);
         p.q2[i] += -k * (p.f2[i + 1] - p.f2[i]) + dt * (p.p[i] * (p.af[i + 1] - p.af[i]) / p.dx - fr * ui);
-        // the head's port cells (part 7): the port's h on the wall pi D at its wall temperature; else Reynolds' analogy
-        p.q3[i] += -k * (p.f3[i + 1] - p.f3[i]) + if i < p.np { dt * p.hp * PI * p.d[i] * (p.twp - ti) } else { dt * fr * p.cp[i] * (p.tw - ti) };
+        // the head's port cells (npa..np-1; parts 7 and 8): the port's h on the wall pi D at its wall temperature; else Reynolds' analogy
+        p.q3[i] += -k * (p.f3[i + 1] - p.f3[i]) + if i >= p.npa && i < p.np { dt * p.hp * PI * p.d[i] * (p.twp - ti) } else { dt * fr * p.cp[i] * (p.tw - ti) };
         p.q4[i] -= k * (p.f4[i + 1] - p.f4[i]);
         if p.q1[i] < 1e-6 * p.a[i] {
             p.q1[i] = 1e-6 * p.a[i];
@@ -1799,6 +1827,10 @@ struct Cyl {
     ex_m: f64,
     ex_h: f64,
     ex_n: f64, // net outflow through the exhaust valve this cycle (the port's mean flow, part 7)
+    in_n: f64, // net inflow through the intake valve this cycle, the runner's side, and the inflow's mass, enthalpy, fresh mass (the intake port, part 8)
+    in_m: f64,
+    in_h: f64,
+    in_x: f64,
     ov_p: f64,
     ov_n: f64,
     ex_x: f64,
@@ -2131,6 +2163,38 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
             Some((sp, stt)) => build_line(&mut pipes, &eng.intake.segs, &eng.intake.tw, dx, stt, 1.0, eng.gas_in, sp)?,
             None => build_line(&mut pipes, &eng.intake.segs, &eng.intake.tw, dx, TATM, 1.0, eng.gas_in, 0.0)?,
         };
+        if let Some(pl) = eng.port_in {
+            // the head's intake port cells (the page's markPortIn): the runner's trailing port segments
+            let (mut end, mut tot) = (0.0, 0.0);
+            for s in eng.intake.segs.iter() {
+                if s.l > 1e-6 {
+                    tot += s.l;
+                }
+            }
+            for s in eng.intake.segs.iter().rev() {
+                if !s.port {
+                    break;
+                }
+                if s.l > 1e-6 {
+                    end += s.l;
+                }
+            }
+            if end > 0.0 {
+                let from = tot - end;
+                for &pi in &li {
+                    let p = &mut pipes[pi];
+                    let mut a = 0;
+                    while a < p.n && p.start + (a as f64 + 0.5) * p.dx < from {
+                        a += 1;
+                    }
+                    if a < p.n {
+                        p.npa = a;
+                        p.np = p.n;
+                        p.twp = pl.2;
+                    }
+                }
+            }
+        }
         let segs = match eng.per_cyl.as_ref().and_then(|p| p[k].as_ref()) {
             Some(s) => s,
             None => &eng.exhaust.segs,
@@ -2218,6 +2282,10 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
             p_evo: 0.0,
             ex_m: 0.0,
             ex_n: 0.0,
+            in_n: 0.0,
+            in_m: 0.0,
+            in_h: 0.0,
+            in_x: 0.0,
             ex_h: 0.0,
             ov_p: 0.0,
             ov_n: 0.0,
@@ -2647,6 +2715,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 pl.t = jmax(200.0, match &gas_in { Some(g) => gas_t(g, u / m2, pl.x, pl.t, false).0, None => u / (m2 * CV) });
             }
             let mut port_upd: Vec<(usize, (f64, f64, f64), f64, f64)> = Vec::new();
+            let mut port_in_upd: Vec<(usize, (f64, f64, f64), f64, f64)> = Vec::new();
             for kk in 0..nc {
                 let ep0 = st.pipes[st.prims[kk][0]].p[0];
                 let cy = &mut st.cyls[kk];
@@ -2690,7 +2759,25 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                             port_upd.push((kk, pl, cy.ex_n * rpm / 120.0, tm));
                         }
                     }
+                    // the head's intake port (part 8): its h for the next cycle from this cycle's mean net inflow at its mass-averaged temperature
+                    if let Some(pl) = eng.port_in {
+                        if cy.started && crossed {
+                            let tm = if cy.in_m > 0.0 {
+                                match &gas_in {
+                                    Some(g) => gas_t(g, cy.in_h / cy.in_m, cy.in_x / cy.in_m, 300.0, true).0,
+                                    None => cy.in_h / (cy.in_m * CP),
+                                }
+                            } else {
+                                0.0
+                            };
+                            port_in_upd.push((kk, pl, cy.in_n * rpm / 120.0, tm));
+                        }
+                    }
                     cy.ex_n = 0.0;
+                    cy.in_n = 0.0;
+                    cy.in_m = 0.0;
+                    cy.in_h = 0.0;
+                    cy.in_x = 0.0;
                     cy.fresh = cy.m * cy.x;
                     cy.burn_q = burn_heat(eng, cy.fresh);
                     cy.ivc_p = cy.m * (match &gas { Some(g) => gas_r(g, cy.x), None => RG }) * cy.t / eng.vol(tk);
@@ -2769,12 +2856,31 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                     cy.ex_x -= m_e * v_ex[kk].x;
                 }
                 cy.ex_n -= m_e;
+                {
+                    // the intake port's mean flow (part 8): the runner's side of the valve
+                    let mp = v_in[kk].m * dt;
+                    cy.in_n += mp;
+                    if mp > 0.0 {
+                        cy.in_m += mp;
+                        cy.in_h += mp * v_in[kk].h;
+                        cy.in_x += mp * v_in[kk].x;
+                    }
+                }
                 if tk > 345.0 && tk < 375.0 {
                     cy.ov_p += ep0;
                     cy.ov_n += 1.0;
                 }
             }
             // the ports' h for the next cycle (the page sets it inside the cylinder loop; no pipe is stepped in between)
+            for (kk, pl, mm, tm) in port_in_upd {
+                for q in 0..st.ins[kk].len() {
+                    let pi = st.ins[kk][q];
+                    if st.pipes[pi].np > 0 {
+                        let d0 = st.pipes[pi].d[st.pipes[pi].npa];
+                        st.pipes[pi].hp = port_h(pl, mm, tm, d0);
+                    }
+                }
+            }
             for (kk, pl, mm, tm) in port_upd {
                 for q in 0..st.prims[kk].len() {
                     let pi = st.prims[kk][q];
