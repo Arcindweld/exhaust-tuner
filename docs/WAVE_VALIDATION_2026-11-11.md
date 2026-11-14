@@ -2663,3 +2663,158 @@ python3 tools/validation/wave/ratings_report.py h_legacy h_port h_asrated
 node tools/validation/wave/turbo_portin.js                                   # ~2 min
 node web/tests/wavegas_ui.js                                                 # 13: the intake port law
 ```
+
+## Addendum 2026-11-13, part 9: the turbine's size from the housing picked (published flow, predict mode)
+
+Question (part 6, F4; parts 7-8 ruled out the exhaust's energy as the main cause): the closure sizes the turbine as the
+largest nozzle that makes full boost at the typed full-boost RPM with the gate shut, and at the default (K24A2 + PT5862,
+75 %, 3500 rpm) the time-mean pressure before it at peak power is 0.77 x boost (total; 0.62 x static) against logged street
+figures of 1.5-2 x. Does sizing the turbine from the actual wheel and housing remove the gap? Method: read what the makers
+publish about turbine flow; convert it to the model's equivalent nozzle; add a mode that holds that area and PREDICTS the
+boost threshold, the gate's share and p3; run the owner's build and a generic four through it. The wave engine (wsFactory,
+et_wave, the WebAssembly) is not changed: parity holds by construction; everything is in the driver around it.
+
+### I1 Published turbine flow (read 2026-11-13; numbers stated in text only, no map image read or digitised)
+
+| source | what it gives |
+|---|---|
+| Garrett, G40 launch article (garrettmotion.com/knowledge-center-category/racing-and-performance/garrett-performance-product-launch-g-series-g40-900-g40-1150) | "G40 1.19 A/R has a max flow of 43 lbs/min"; "the GTX4088R 1.19 A/R peaks at 37lbs"; "16% increase in peak turbine flow"; "Max turbine wheel efficiency of the G40 turbine wheel is 76% compared to the GTX4088R at 66%"; wheel 77 / 70 mm, 84 trim. No reference state or expansion ratio. |
+| Garrett G25-660, G30-770, G35-900, G-Series II G30-825 product pages (garrettmotion.com/racing-and-performance/performance-catalog/turbo/...) | turbine flow map and "exhaust flow chart" as images only; text: "flows 15-20% more than GTX" (G25, G35) / "5% more" (G30) "and has peak efficiency of 74%"; wheels 54/49, 60/55, 68/62 mm. |
+| Garrett Turbo Tech 103 (garrettmotion.com/wp-content/uploads/2018/06/Turbo-Tech-103.pdf and 2019/10/GAM_Turbo-Tech-103_Expert-1.pdf); G-Series II installer guide (2025/03) | compressor only; no turbine flow. |
+| MotoIQ, "Turbo Tech: Compressor and Turbine Map Details" p. 3 (Turbo by Garrett) | "Corrected turbine mass flow is a function of actual mass flow divided by turbine pressure ratio" (no units); "the exhaust manifold pressure is one bar higher than the intake manifold pressure" (a street sizing rule). |
+| MotoIQ, GTX Gen2 calculation p. 2; Nerd-O-Scope G-series p. 2 | "we assumed 70% as 72% is the maximum stated on the map" (GTX3071R); "stated peak efficiency of 69%" (GT/GTX28), "74%" (G25). |
+| BorgWarner performance catalogue (turbozentrum.de copy, the page's BWCAT), Match-Bot example p. 17 | a matching tool's output, engine unnamed: "Turbine Corrected Flow @ 59F lb/min 9.2 15.2 18.4 19 20.2 20.5", "Exhaust Manifold Pressure psi 3.2 6.6 10.9 14.4 17.7 21.4", "Engine Delta Pressure (dP) psi 2 3 4 3 -1 -4", "Wastegate Flow Area @ CF=0.8 in2 0.03 ... 1.11": the label fixes BorgWarner's reference temperature (59 F), not Garrett's. |
+| Precision Turbo, PT5862 page (precisionturbo.com/p372175-...) | "a 62mm CEA turbine wheel" and an A/R list; no turbine flow in text; the data-sheet map is an image. |
+| BorgWarner EFR 7064 data sheets (turbozentrum.de, shop.strato.de copies) | no turbine flow in text. |
+| Not read (blocked or not on the allowlist, not worked around): riunet.upv.es (Payri et al.), MotoIQ GTX Gen2 p. 3, Watson and Janota, Heywood ch. 6. | |
+
+So: one library housing is PUBLISHED (Garrett G40-1150 1.19 A/R T4, 43 lb/min, basis unstated), none SCALED (no published
+pair of A/Rs on one wheel; the page does not assume capacity in proportion to A/R), the other housings of the 22 turbos
+UNKNOWN (table I6). For the K24 + PT5862: **no citable turbine flow figure exists for its turbine or any of its housings.**
+
+### I2 The conversion (page `turbAreaFromFlow`, `nozPsi`)
+
+A map's corrected flow Wc = m sqrt(T03 / Tref) / (p03 / pref) gives the flow parameter m sqrt(T03) / p03 = Wc sqrt(Tref) / pref.
+The equivalent nozzle (NASA Glenn, "Mass flow choking") passes m = A p03 psi(p4/p03) / sqrt(R T03), so
+
+    A = Wc sqrt(Tref) / pref x sqrt(R) / psi(1/ER),   psi_choked = sqrt(g) (2/(g+1))^((g+1)/(2(g-1)))
+
+at g 1.3, R 287 J/kg K (the page's flow-parameter convention). Worked: 43 lb/min = 0.3250745 kg/s; x sqrt(288.15) = 16.97498,
+/ 101325 Pa = 5.44598e-5 kg sqrt(K)/(s Pa) (5.446 kg sqrt(K)/(s bar)); psi_choked = 1.140175 x 0.585234 = 0.667262;
+A = 5.44598e-5 x 16.94107 / 0.667262 = 1.38267e-3 m2 = **1382.7 mm2 (2.143 in2)**. Sensitivities (`turbine_cap.js conv`): at
+ATP's 85 F / 13.95 psia 1492.7 mm2 (+8 %); at g 1.35 1364.5 mm2 (-1.3 %). GTX4088R 1.19 A/R, 37 lb/min: 1189.7 mm2.
+Caveat stated on the page: one nozzle is choked by an expansion ratio of 1.83 (g 1.3) and passes 99.6 % of its peak at 1.7,
+while a radial turbine's corrected flow keeps rising to much higher ratios; an area from the PEAK therefore overstates the
+flow at the 1.5-2.5 a street engine runs. The input takes the expansion ratio the value was read at; read it there.
+
+### I3 What was built
+
+- `turboSimLib.predict` (page JS, either back end): the area held; at each speed the gate shut at full boost first; if the
+  turbine makes more than the compressor needs, the gate's area that balances (the closure's search, now the shared
+  `secant`, the same steps as before); if less, the boost it can hold: the charge a fraction s of the way to full boost at
+  which the shut-gate turbine drives the compressor (secant in s in [0, 1], a fresh engine at each try). The charge below
+  full boost (`tsimRun` boostAt): the compressor's ratio scaled with the charge pressure (losses in proportion to density),
+  its efficiency from the route's own outlet temperature (compOut's law; 0.700 for the K24 route), the intercooler's
+  effectiveness the route's (0.75) - approximations, stated on the page. Full-boost RPM: the zero of ln(W/Wc) with the gate
+  shut at full boost, linear between speeds. Speeds: 1500 rpm below the typed full-boost RPM (not below 2000) to the redline.
+- `turboSimLib.calibrateA`: a measured static p3 at the full-boost RPM with the area known: the gate's area that gives it,
+  then the efficiency that balances (eta Wc / W); if the shut gate already leaves the face below the measurement, the page
+  says the measured turbine flows less than this one and falls back to part 6's calibration (area found).
+- Steady path (`turbineAreaBalance`): the same nozzle law and turbineBalance's work law; p3 from W(p3) = Wc by bisection,
+  the gate share 1 - m_t/m_e, or short when all of the exhaust is not enough. Shown at peak and at the full-boost RPM under
+  "Turbine size from the housing you picked"; at its p3, turbineBalance returns the same share (to 1e-9, turbine_ui 3).
+- Inputs (Intake tab, advanced): "Turbine flow off the maker's turbine flow chart" (value; unit: lb/min corrected at 59 F /
+  14.696 psia, kg/s at 15 C / 101.325 kPa, lb/min at 85 F / 13.95 psia, kg/s sqrt(K)/kPa, lb/min sqrt(R)/psia; the expansion
+  ratio it was read at, blank = peak, choked). Precedence: typed area > typed flow > published housing flow > found.
+- Turbo options' housing table: a "Turbine flow capacity" column (PUBLISHED with its area, or UNKNOWN with what to do).
+
+### I4 The owner's build: K24A2 + PT5862 0.63 T3 (`turbine_cap.js k24`, part 5's plan, 75 % unless stated; brake here on
+the net - tfmep basis of part 5 for comparison; the page's brake is part 6's)
+
+| turbine area mm2 | eta | full boost (steady) rpm | boost at 3500 kPa | p3 at 3500 x boost | p3 at 6600: total / static / peak x boost | gate share at 6600 | hp at 6600 |
+|---|---|---|---|---|---|---|---|
+| 1185.4 (part 5's closure) | 0.75 | 3499 | 169.9 | 0.41 | 0.770 / 0.620 / 1.085 | 33.0 % | 571 |
+| 1383 (G40-1150 1.19's published peak, comparison only) | 0.75 | 3947 | 98.5 | 0.35 | 0.685 / 0.520 / 0.998 | 26.8 % | 573 |
+| 1000 | 0.75 | 2963 | 169.9 | 0.46 | 0.876 / 0.741 / 1.186 | 38.8 % | 568 |
+| 800 | 0.75 | 2305 | 169.9 | 0.55 | 1.036 / 0.919 / 1.325 | 45.3 % | 561 |
+| 600 | 0.75 | <= 2000 | 169.9 | 0.70 | 1.285 / 1.189 / 1.594 | 52.0 % | 547 |
+| 450 | 0.75 | <= 2000 | 169.9 | 0.88 | 1.596 / 1.517 / 1.961 | 57.4 % | 529 |
+| 800 | 0.65 | 2747 | 169.9 | 0.62 | 1.159 / 1.053 / 1.433 | 40.8 % | 554 |
+| 600 | 0.65 | 2175 | 169.9 | 0.78 | 1.434 / 1.347 / 1.781 | 47.8 % | 538 |
+
+Read:
+- The predict mode reproduces the closure exactly where they should agree (1185.4 mm2 -> full boost 3499 rpm, 0.770 x,
+  33.0 %: part 5's 0.770, 33.0 %). Monotonic as physics requires: a larger turbine (larger A/R) reaches full boost later
+  and runs a lower p3 and a smaller gate share at peak.
+- **The K24 + PT5862 is unchanged on the page** (before = after: 1185 mm2 found, 0.77 x total, 589 hp page brake), because
+  no flow is published for any of its housings: the page now says so plainly in the sizing section, in "what the run takes"
+  and in the housing table, and offers the chart reading as the way to use the actual housing.
+- The comparison is telling but not the PT5862's data: the area the closure needs for full boost at 3500 rpm (1185 mm2)
+  equals the PUBLISHED peak capacity of Garrett's GTX4088R 1.19 A/R (1190 mm2), a 77-mm-class turbine for far more power
+  than a 62 mm wheel on a 0.63 housing. A 0.63 A/R 62 mm turbine is very probably smaller. In this model a smaller turbine
+  does raise p3 toward the logs: 1.5 x boost (static, the tap's reading) at peak power needs about 450 mm2 at 75 % or roughly
+  500-550 mm2 at 65 % (between the 600 mm2 run and an extrapolation) - but such a turbine reaches full boost below 2000 rpm here, which is not what K24s with turbines of this
+  size do (no cited spool figure for this pairing; Garrett's GTX3076R on a 1.9 L Honda reached "full spool" at 5,250 rpm on
+  a dyno, as on the page). So sizing the turbine by its housing does not, in this model, give both the logged p3 and a
+  realistic spool: the turbine still gets more work per kg of exhaust than a real one (a quasi-steady nozzle using every
+  pulse at full efficiency, no housing heat loss, the model's hot exhaust of part 2, a peak-flow area at low expansion
+  ratio). The size hypothesis is necessary but not sufficient; the remaining gap is the turbine's on-engine work.
+- What removes the guess for the owner: (a) a pre-turbine pressure log at one RPM (a tap at the flange; already supported:
+  with an area known the run finds the gate and the efficiency, without one the area and the efficiency); (b) the value
+  read off Precision's turbine flow chart for the 0.63 T3 housing, at the expansion ratio the engine runs; (c) the RPM at
+  which full boost arrives on a pull, which the existing mode already uses: physically sound as a quasi-steady point only
+  for a slow sweep; a pull reaches full boost later than steady by the spool-up time, more in lower gears, so the area found
+  from a pull's RPM is an upper bound and p3 a lower bound (said on the page). A gear input was not added: a gear does not
+  enter a steady model, and no source read gives the turbo's inertia to turn a sweep rate into a lag.
+
+### I5 Validation: generic four, the two published Garrett turbines (`turbine_cap.js generic`, steady, 6500 rpm, VE 0.95,
+50 C charge, compressor 70 %, 10 kPa loss, AFR 12, 950 C, no back pressure)
+
+| turbine (published peak) | area mm2 | 2.0 L, 1.0 bar | 2.0 L, 1.5 bar | 2.4 L, 1.0 bar | 2.4 L, 1.5 bar |
+|---|---|---|---|---|---|
+| G40-1150 1.19 A/R (43 lb/min) | 1382.7 | p3 0.49-0.54 x, gate 3-8 % | 0.49-0.55 x, 5-11 % | 0.56-0.63 x, 13-18 % | 0.57-0.65 x, 15-20 % |
+| GTX4088R 1.19 A/R (37 lb/min) | 1189.7 | 0.55-0.62 x, 11-16 % | 0.56-0.63 x, 14-18 % | 0.64-0.72 x, 21-25 % | 0.65-0.74 x, 22-27 % |
+
+(range over turbine x mechanical efficiency 0.76-0.66, Garrett's stated peaks.) These are large race turbines on a small
+engine and the prediction is below 1 x boost, which is what HP Academy describes for very large turbines (part 6) and the
+opposite of the 1.5-2 x street logs, which come from much smaller turbines. No published engine was found with both the
+turbine's flow and a measured p3 (or boost threshold), so this is the only validation available, and it is qualitative:
+the model's direction is right, its absolute level cannot be checked against a measurement.
+
+### I6 The library's turbine capacity
+
+| turbo | housings | status |
+|---|---|---|
+| Precision PT5558, PT5862, PT6062, PT6266, PT6466 | all listed | UNKNOWN (no turbine flow in text; data-sheet maps are images) |
+| Garrett G25-550, GTX2867R GEN II, G25-660, GTX3076R GEN II, G30-770, GTX3582R GEN II, G35-900, G35-1050, G42-1200 | all | UNKNOWN (flow charts are images; text gives only "15-20 % / 5 % more than GTX") |
+| Garrett G40-1150 | 1.19 A/R T4 divided | PUBLISHED: 43 lb/min peak, basis unstated -> 1383 mm2 at 59 F / 14.696 psia, choked |
+| Garrett G40-1150 | 0.85, 0.95, 1.06 (T4), all V-band | UNKNOWN (no published pair to scale from) |
+| BorgWarner EFR 6758, 7163, 8374, 9180 | all | UNKNOWN (catalogue and data sheets: no turbine flow in text) |
+| BorgWarner AirWerks S200SX-R, S300SX-R 64 / 68 | none listed (super-cores) | no housing |
+
+### I7 Tests, pinned values, verification
+
+- `web/tests/turbine_ui.js` (new; Node + Playwright, 23 checks, about 3 minutes): the conversion by hand (5.4460 kg
+  sqrt(K)/(s bar), 1382.7 mm2; ATP basis 1492.7; five units agree to 1e-12); the nozzle function against NASA's Mach form
+  (choked and unchoked, 1e-12); the steady balance against turbineBalance (1e-9) and the short case; the predict mode on
+  the K24 plan: part 5's 6600 rpm row reproduced (0.7701 / 32.97 %), 800 against 1383 mm2 (full boost 2500 (first) / 4067
+  rpm, p3 1.036 / 0.685 x, gate 45.3 / 26.9 %), the steady balance at the run's own flow and T3 within 1.6 % of the run's
+  p3 gauge and 1.4-1.8 points of its gate share; the page: capacity column, fallback wording and the pull caveat, 20 lb/min
+  typed -> 643.10 mm2 by hand, the steady table in kPa and psi, the step-by-step and build-sheet rows, a predict-mode run.
+- Pinned values changed: none. turbosim_ui, turboaudit_ui, waveturbo_ui, turboar_ui, turbolib_ui, turbosize_ui,
+  boostaudit_ui/2/3, turboguide_ui, sheet_ui, k24_ui, turbomani_ui pass unchanged (the K24 default has no housing flow, so
+  it takes the old path; the closure's secant was moved out of the closure with the same steps).
+- Solver, Rust, WebAssembly: not changed.
+
+### I8 Not done, unknown
+
+The PT5862's turbine flow (not published); turbine maps beyond one nozzle (a flow that keeps rising with expansion
+ratio, Payri et al.'s variable area); the turbine's on-engine efficiency under pulsing flow (no number in any source
+read); turbo inertia and transient spool; any measured engine with turbine flow and p3 together.
+
+### I9 How to rerun
+
+```
+node tools/validation/wave/turbine_cap.js          # ONLY=conv|k24|generic; k24 about 6 min
+node web/tests/turbine_ui.js                       # from web/, about 3 min
+```

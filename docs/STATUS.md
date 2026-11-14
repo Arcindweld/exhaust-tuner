@@ -1974,3 +1974,22 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   kat.js 66/66 (kat.json byte-identical), constref 112 identical, the page's captured jobs identical before/after.
   Suite (web,parity, -j 2, --skip-slow): 130 tests, 123 passed, 0 failed, 7 skipped, 7 partial skips, 0 unexpected, 1330 s.
   Details: docs/WAVE_VALIDATION_2026-11-11.md, part 8 (H1-H10).
+
+## 2026-11-13, part 9: the turbine's size from the housing picked (published flow, predict mode)
+
+- Research (text figures only, no map images): Garrett's G40 article gives the only absolute turbine flows found, "G40 1.19
+  A/R has a max flow of 43 lbs/min", "GTX4088R 1.19 A/R peaks at 37lbs" (no reference state); its other G-series pages put
+  turbine flow in images only; peak turbine efficiencies in text 66-76 %. BorgWarner labels its Match-Bot turbine flow "@
+  59F". Precision publishes no turbine flow for the PT5862. Library: 1 housing PUBLISHED (G40-1150 1.19 T4), 0 SCALED, the
+  rest UNKNOWN (housing table column "Turbine flow capacity").
+- Conversion (turbAreaFromFlow): A = Wc sqrt(Tref)/pref x sqrt(R)/psi(1/ER), g 1.3, R 287: 43 lb/min at 59 F / 14.696
+  psia, choked -> 1382.7 mm2 (2.14 in2). Intake inputs: turbine flow off the maker's chart (unit/reference, expansion ratio).
+- Predict mode (turboSimLib.predict, calibrateA; tsimRun boostAt): the area held, the run finds the boost per speed, the
+  full-boost RPM, the gate and p3; a measured p3 calibrates the gate and efficiency on top. Steady path turbineAreaBalance
+  (table "Turbine size from the housing you picked"); guide and build-sheet rows. Fallback (no flow) unchanged, with the
+  pull-vs-steady caveat. Engine, Rust, WebAssembly unchanged.
+- K24 + PT5862: unchanged (no published flow); the closure's 1185 mm2 equals the GTX4088R 1.19's published peak (1190 mm2).
+  In the model, 1.5 x boost (static) at peak power needs ~450 mm2 at 75 %, which then spools below 2000 rpm: the size alone
+  does not close the gap to the logs; the turbine's on-engine work does (part 9, I4).
+- Tests: web/tests/turbine_ui.js (new, 23 checks). No pinned value changed. Details: docs/WAVE_VALIDATION_2026-11-11.md
+  part 9; docs/BOOST_AUDIT_2026-11-12.md addendum; tools/validation/wave/turbine_cap.js.
