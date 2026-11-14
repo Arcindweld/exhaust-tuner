@@ -1387,6 +1387,12 @@ ul.list li+li,ol.list li+li{margin-top:6px}
             <span class="inp"><input id="i-tsa" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-min="0"><em>mm²</em></span></label>
           <label class="f adv"><span class="lab">Wastegate effective area for the wave simulation, blank for the one it finds</span>
             <span class="inp"><input id="i-tsw" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-min="0"><em>mm²</em></span></label>
+          <label class="f adv"><span class="lab">Turbine flow off the maker’s turbine flow chart for your housing, blank if you have none</span>
+            <span class="inp"><input id="i-tfc" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="2" data-min="0"><em>as below</em></span></label>
+          <label class="f adv"><span class="lab">… read as</span>
+            <span class="inp"><select id="i-tfcu"><option value="lb59" selected>lb/min corrected, 59 °F and 14.696 psia</option><option value="kg15">kg/s corrected, 15 °C and 101.325 kPa</option><option value="lb85">lb/min corrected, 85 °F and 13.95 psia</option><option value="fpSI">flow parameter, kg/s·√K/kPa</option><option value="fpUS">flow parameter, lb/min·√°R/psia</option></select></span></label>
+          <label class="f adv"><span class="lab">… at an expansion ratio of (turbine in ÷ out), blank for the chart’s peak</span>
+            <span class="inp"><input id="i-tfer" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="2" data-min="1"><em>: 1</em></span></label>
           <label class="f adv"><span class="lab">Outside air through the intercooler core, blank to skip</span>
             <span class="inp"><input id="i-icam" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1"><em>lb/min</em></span></label>
           <label class="f adv"><span class="lab">Core drop from the maker’s rating, blank to skip</span>
@@ -20110,21 +20116,23 @@ function turboSimLib(WS,X){
   }
   // o: {rpms, wc(mAir) -> W compressor power for that air, A0 (m2, the first guess), At, Ag (typed, or null), tol, maxIt,
   //     cyc, firstCyc, extra, onStep(i, row)}
+  // f(x) = ln(W / Wc) falls as x (an area, or ln(area)) grows. Secant from a known point (xk, rk) and a first guess x0,
+  // inside the bracket [lo, hi] (f > 0 at lo, f < 0 at hi), halving it when the secant leaves it; log: x is ln(area).
+  // b0: an optional starting bracket [lo, hi] (the predict mode's boost fraction lives in [0, 1])
+  const secant=(xk,rk,x0,evalf,log,tol,maxIt,b0)=>{ let lo=b0?b0[0]:-Infinity, hi=b0?b0[1]:Infinity, xp=xk, fp=rk.f, it=0, x=x0, r=null;
+    if(fp>0) lo=Math.max(lo,xp); else hi=Math.min(hi,xp);
+    for(;;){
+      if(!(x>lo&&x<hi)) x=Number.isFinite(lo)&&Number.isFinite(hi)?0.5*(lo+hi):Number.isFinite(lo)?(log?lo+0.5:2*lo+1e-6):(log?hi-0.5:0.5*hi);
+      r=evalf(x); it++;
+      if(Math.abs(r.f)<=tol||it>=maxIt) break;
+      if(r.f>0) lo=Math.max(lo,x); else hi=Math.min(hi,x);
+      const xn=r.f!==fp?x-r.f*(x-xp)/(r.f-fp):NaN; xp=x; fp=r.f; x=xn; }
+    return {x,r,it}; };
   function closure(B,o){
     const tol=o.tol||0.005, maxIt=o.maxIt||12, cyc=o.cyc||2, firstCyc=o.firstCyc||8, extra=o.extra==null?4:o.extra, rows=[];
     let At=o.At>0?o.At:o.A0, Ag=o.Ag>=0&&o.Ag!=null?o.Ag:0, first=true;
     const run=(rpm,a,g)=>{ B.set(a,g); const r=B.step(rpm,first,cyc,firstCyc,extra); first=false; r.Wc=o.wc(r.turb.mAir); r.f=Math.log(r.turb.W/r.Wc); return r; };
-    // f(x) = ln(W / Wc) falls as the area x grows. Secant from a known point (xk, rk) and a first guess x0, inside the
-    // bracket [lo, hi] (f > 0 at lo, f < 0 at hi), halving it when the secant leaves it; log: x is ln(area)
-    const solve=(xk,rk,x0,evalf,log)=>{ let lo=-Infinity, hi=Infinity, xp=xk, fp=rk.f, it=0, x=x0, r=null;
-      if(fp>0) lo=xp; else hi=xp;
-      for(;;){
-        if(!(x>lo&&x<hi)) x=Number.isFinite(lo)&&Number.isFinite(hi)?0.5*(lo+hi):Number.isFinite(lo)?(log?lo+0.5:2*lo+1e-6):(log?hi-0.5:0.5*hi);
-        r=evalf(x); it++;
-        if(Math.abs(r.f)<=tol||it>=maxIt) break;
-        if(r.f>0) lo=Math.max(lo,x); else hi=Math.min(hi,x);
-        const xn=r.f!==fp?x-r.f*(x-xp)/(r.f-fp):NaN; xp=x; fp=r.f; x=xn; }
-      return {x,r,it}; };
+    const solve=(xk,rk,x0,evalf,log)=>secant(xk,rk,x0,evalf,log,tol,maxIt);
     o.rpms.forEach((rpm,i)=>{
       let r, it=0, short=false;
       if(i===0&&!(o.At>0)){
@@ -20173,7 +20181,63 @@ function turboSimLib(WS,X){
     }
     return {At:A,eta,res:r,it,ok,over,B,spec:withEta(eta)};
   }
-  return {parse,flat,jsBackend,rustBackend:X?rustBackend:null,closure,sweep,calibrate,WS};
+  /* the prediction from a known turbine (2026-11-13, docs/WAVE_VALIDATION_2026-11-11.md part 9): the turbine's effective
+     area is the housing's (from the maker's turbine flow converted to an area, or typed), so nothing is found from the
+     full-boost RPM. At each speed, the gate shut at full boost first:
+     - the turbine makes more than the compressor needs (W > Wc): full boost, and the gate's area that balances the two
+       (the closure's gate search, carried from speed to speed);
+     - it makes less: below full boost there. The boost it can hold is found: the charge pressure a fraction s of the way
+       from the atmosphere to full boost at which the gate-shut turbine just drives the compressor, o.boostAt(s) giving the
+       spec with that charge and the compressor's power for it (a secant in s inside [0, 1]; each try starts a fresh
+       engine at that charge, as a steady point).
+     The full-boost RPM is where ln(W / Wc) with the gate shut at full boost (f1, every speed has it) crosses zero, by
+     straight-line interpolation between the speeds either side. mk(spec) makes a back end. */
+  function predict(mk,spec,o){
+    const tol=o.tol||0.005, tolS=o.tolS||0.01, maxIt=o.maxIt||12, cyc=o.cyc||2, firstCyc=o.firstCyc||8, extra=o.extra==null?4:o.extra, At=o.At, rows=[];
+    let B=mk(spec), first=true, Ag=0;
+    const runOn=(Bx,rpm,a,g,fst,wc)=>{ Bx.set(a,g); const r=Bx.step(rpm,fst,cyc,firstCyc,extra); r.Wc=wc(r.turb.mAir); r.f=Math.log(r.turb.W/r.Wc); return r; };
+    try{
+      o.rpms.forEach((rpm,i)=>{
+        let r=runOn(B,rpm,At,0,first,o.wc), it=1, s=1, Agi=0; first=false; const f1=r.f;
+        if(f1>tol){ const g0=Ag>0?Ag:Math.max(1e-7,At*(Math.exp(f1)-1));
+          const s1=secant(0,r,g0,x=>runOn(B,rpm,At,x,false,o.wc),false,tol,maxIt); Ag=s1.x; Agi=Ag; r=s1.r; it+=s1.it; }
+        else if(f1<-tol){
+          // f(s) = ln(W / Wc) at a charge s of the way to full boost, gate shut: f(1) = f1 < 0, and f grows without bound as s
+          // falls (the compressor's power goes to zero, the turbine's does not)
+          const tryS=x=>{ const b=o.boostAt(x), Bx=mk(b.spec); try{ return runOn(Bx,rpm,At,0,true,b.wc); } finally{ Bx.drop(); } };
+          const s1=secant(1,r,Math.max(0.1,Math.min(0.95,1+f1/1.2)),tryS,false,tolS,8,[0,1]); s=s1.x; r=s1.r; it+=s1.it; }
+        const row={rpm,At,Ag:Agi,it,short:false,below:s<1,s,f1,ok:Math.abs(r.f)<=(s<1?tolS:tol),res:r};
+        rows.push(row); if(o.onStep) o.onStep(i,row);
+      });
+    } finally{ B.drop(); }
+    let fb=null;
+    for(let i=0;i<rows.length;i++){ if(rows[i].f1>=0){ fb=i===0?{rpm:rows[0].rpm,at:'first'}:{rpm:rows[i-1].rpm+(rows[i].rpm-rows[i-1].rpm)*(0-rows[i-1].f1)/(rows[i].f1-rows[i-1].f1),at:'between'}; break; } }
+    return {rows,fullBoost:fb};
+  }
+  /* the calibration with the turbine's area known (part 9): at o.rpm the gate's area that gives the measured time-mean
+     static pressure at the turbine's face (the gate is usually part open where a street engine is logged), then the
+     efficiency that balances the compressor (eta W_c / W_t, as calibrate), repeated until the efficiency settles. If even
+     the shut gate leaves the face below the measurement, this turbine passes more than the measurement allows (it is
+     larger than the logged one, or the model's exhaust is off): big, and the caller falls back to calibrate (area found). */
+  function calibrateA(mk,spec,o){
+    const tol=o.tol||0.005, maxIt=o.maxIt||10, cyc=o.cyc||2, firstCyc=o.firstCyc||8, extra=o.extra==null?4:o.extra;
+    const withEta=e=>Object.assign({},spec,{exhaust:Object.assign({},spec.exhaust,{turbine:Object.assign({},spec.exhaust.turbine,{eta:e})})});
+    let eta=o.eta, Ag=0, B=mk(withEta(eta)), first=true, r=null, it=0, ok=false, over=false, big=false;
+    const run=g=>{ B.set(o.At,g); const q=B.step(o.rpm,first,cyc,firstCyc,extra); first=false; it++; q.Wc=o.wc(q.turb.mAir); q.f=Math.log(q.turb.p3s/o.p3); return q; };
+    for(let k=0;k<6;k++){
+      const q0=run(0);
+      if(q0.f<-tol){ big=true; r=q0; Ag=0; break; }
+      const s=Math.abs(q0.f)<=tol?{x:0,r:q0}:secant(0,q0,Ag>0?Ag:Math.max(1e-7,o.At*(Math.exp(q0.f)-1)),run,false,tol,maxIt);
+      Ag=s.x; r=s.r;
+      const e2=eta*r.Wc/r.turb.W;
+      if(!(e2>0)||e2>1){ over=true; if(eta>=1) break; eta=1; B.drop(); B=mk(withEta(eta)); first=true; continue; }
+      if(Math.abs(e2/eta-1)<=tol){ ok=Math.abs(r.f)<=tol; break; }
+      eta=e2; B.drop(); B=mk(withEta(eta)); first=true;
+    }
+    B.drop();
+    return {At:o.At,Ag,eta,res:r,it,ok,over,big,spec:withEta(eta)};
+  }
+  return {parse,flat,jsBackend,rustBackend:X?rustBackend:null,closure,sweep,calibrate,predict,calibrateA,secant,WS};
 }
 // the worker's Rust path: one design at a time, the same steps as WS.sweep; null when this browser cannot run it
 function simWaveRust(B64){
@@ -20270,15 +20334,22 @@ function tsimPlan(q){
   if(turbo) src.push(['Downpipe',cdim(dpd)+' inside, '+clen(dpl),xg&&xg.d>0?'Intake tab, Exhaust after the turbine':'not on the Intake tab: 3 in tube, 24 in (assumed)']);
   src.push(['Back pressure at the '+(turbo?'downpipe’s end':'tail'),tsFmt().pD(p4-P_ATM)+' above the atmosphere',val('i-tobp')>0?'Intake tab, Back pressure after the turbine':'none entered (the atmosphere): the cats and mufflers are not counted']);
   const etaG=val('i-teff')>0&&val('i-teff')<100, eta=etaG?val('i-teff')/100:0.75;
+  const cap=turbo?tsTurbCap():{status:'unknown'}, Acap=cap.A>0?cap.A:null;
   const Aty=val('i-tsa')>0?val('i-tsa')*1e-6:null, Agy=$('i-tsw')&&String($('i-tsw').value).trim()!==''&&val('i-tsw')>=0?val('i-tsw')*1e-6:null;
   const H=tsHsg(), wgAtm=($('i-wgtype')?$('i-wgtype').value:'ext')==='ext';
   if(turbo){ src.push(['Turbine efficiency',(eta*100).toFixed(0)+'% total-to-static, turbine × mechanical (cycle-averaged, under the pulsating exhaust)',(etaG?'Intake tab, typed':'blank on the Intake tab: 75%, the top of its sweep; no source read gives a typical on-engine value, and the found area and the pressure before the turbine move with it (see the sensitivity line with the results)')]);
-    src.push(['Turbine housing',H?(H.ar+' A/R'+(H.divided?', divided':'')+(H.flange?', '+H.flange:'')):'none picked','the A/R enters only through the effective area the closure finds; no source turns an A/R into a flow area']);
+    src.push(['Turbine housing',H?(H.ar+' A/R'+(H.divided?', divided':'')+(H.flange?', '+H.flange:'')):'none picked',Acap&&!Aty?'its flow sets the turbine’s size (next row)':'the A/R enters only through the effective area the closure finds; no source turns an A/R into a flow area']);
+    if(Acap&&!Aty) src.push(['Turbine size from the housing',(Acap*1e6).toFixed(0)+' mm² effective area ('+(Acap/645.16e-6).toFixed(2)+' in²)',cap.status==='typed'?'your '+cap.v+' '+cap.unit+(cap.er?' at an expansion ratio of '+cap.er:' at the chart’s peak (taken as choked)')+', converted to a nozzle area (A = flow parameter × √R ÷ ψ, γ 1.3)':'the maker’s published '+cap.v+' '+cap.unit+', converted to a nozzle area (indicative: no reference stated)']);
+    else if(!Aty) src.push(['Turbine size','found by the run: the area that just makes full boost at the full-boost RPM with the gate shut',cap.status==='unknown'?(H?'no flow is published for this housing in text; type the value off the maker’s turbine flow chart on the Intake tab to use the turbine you picked':'no housing picked'):'']);
     src.push(['Wastegate',wgAtm?'external, dumping to the air':'internal, into the downpipe','Intake tab, Wastegate']); }
   const nPer=n, cyl=q.cyl, share=nPer/cyl;
-  const lo=val('i-lorpm')>0?val('i-lorpm'):3500, hi=Math.max(lo+1000,val('i-red')>0?val('i-red'):p.rpm||6500), rpms=[];
-  for(let i=0;i<8;i++) rpms.push(Math.round((lo+(hi-lo)*i/7)/50)*50);
-  src.push(['Speeds',rpms[0].toLocaleString('en-US')+' to '+rpms[7].toLocaleString('en-US')+' RPM in 8 steps','Intake tab: the full-boost RPM to the redline']);
+  const lo=val('i-lorpm')>0?val('i-lorpm'):3500, hi=Math.max(lo+1000,val('i-red')>0?val('i-red'):p.rpm||6500), rpms=[], rpmsFb=[];
+  for(let i=0;i<8;i++) rpmsFb.push(Math.round((lo+(hi-lo)*i/7)/50)*50);
+  // with the turbine known from its housing the run predicts where full boost arrives, so it starts 1500 RPM below the
+  // typed full-boost RPM (not below 2000)
+  const predict=turbo&&Acap>0&&!Aty, lo2=predict?Math.max(2000,lo-1500):lo;
+  for(let i=0;i<8;i++) rpms.push(Math.round((lo2+(hi-lo2)*i/7)/50)*50);
+  src.push(['Speeds',rpms[0].toLocaleString('en-US')+' to '+rpms[7].toLocaleString('en-US')+' RPM in 8 steps',predict?'Intake tab: 1,500 RPM below the full-boost RPM you typed to the redline (the run finds where full boost arrives)':'Intake tab: the full-boost RPM to the redline']);
   // the turbine's first guess: the algebra's area at the page's assumed pressure before the turbine (k x boost)
   // the exhaust of the cylinders simulated: one turbo's (R.m is the air per compressor) times their share of its cylinders
   const k=tsTipK(), p3a=P_ATM+k*p.boost*1000, me=R.m*(1+1/afr)*n/(cyl/Math.max(1,R.nt));
@@ -20304,9 +20375,13 @@ function tsimPlan(q){
   const t1=p.tin, t2=R.t2, wcPer=CP_AIRT*(t2-t1);
   // a measured pressure before the turbine (gauge, Intake tab): the run calibrates the turbine to it (turboSimLib.calibrate)
   const p3m=turbo&&!Aty&&val('i-p3m')>0?P_ATM+val('i-p3m')*1000:null;
-  if(p3m) src.push(['Measured pressure before the turbine',tsFmt().pD(p3m-P_ATM)+' gauge, read as the time-mean static pressure at '+rpms[0].toLocaleString('en-US')+' RPM with the wastegate shut','Intake tab: the run finds the turbine’s area that gives it and the efficiency that then balances the compressor (a calibration to your measurement; the efficiency above is only the start)']);
-  const keyObj={spec,rpms,na,wcPer,At:Aty,Ag:Agy,cyl,p3m};
-  return {ind,turbo,spec,na,sc,rpms,src,A0,Aty,Agy,eta,p3m,wgAtm,p4,Pt,Tc,R,p,afr,k,share,cyl,nSim:n,wcPer,t1,t2,me,key:JSON.stringify(keyObj),dx:n>1?0.0125:0.01,
+  if(p3m) src.push(['Measured pressure before the turbine',tsFmt().pD(p3m-P_ATM)+' gauge, read as the time-mean static pressure at '+lo.toLocaleString('en-US')+' RPM'+(predict?'':' with the wastegate shut'),predict?'Intake tab: with the turbine’s area from the housing, the run finds the wastegate opening that gives it there and the efficiency that then balances the compressor (a calibration to your measurement; the efficiency above is only the start)':'Intake tab: the run finds the turbine’s area that gives it and the efficiency that then balances the compressor (a calibration to your measurement; the efficiency above is only the start)']);
+  // the compressor below full boost (predict mode): the route's pressure ratio, its efficiency from the route's own outlet
+  // temperature (compOut's law), the intercooler's effectiveness from the route's temperatures
+  const kc=0.4/1.4, etaC=(t1+273.15)*(Math.pow(R.PRc,kc)-1)/(t2-t1), epsIC=t2>p.tamb?(t2-R.t3)/(t2-p.tamb):0;
+  const comp=predict?{Patm:P_ATM,Pt,PRc:R.PRc,t1,etaC,eps:epsIC,tamb:p.tamb,cp:CP_AIRT}:null;
+  const keyObj={spec,rpms,na,wcPer,At:Aty,Ag:Agy,cyl,p3m,Acap:predict?Acap:null};
+  return {ind,turbo,spec,na,sc,rpms,rpmsFb,src,A0,Aty,Agy,eta,p3m,p3rpm:lo,lo,wgAtm,p4,Pt,Tc,R,p,afr,k,share,cyl,nSim:n,wcPer,t1,t2,me,cap,Acap:predict?Acap:null,predict,comp,key:JSON.stringify(keyObj),dx:n>1?0.0125:0.01,
     mfdSig:X?tsimMfdSig(X):'',sig2:tsimSig2(Pt,Tc,eta,p4,afr)};
 }
 // the worker: the wave model, the WebAssembly when it loads, the closure; posts each speed as it finishes
@@ -20323,7 +20398,30 @@ function tsimRun(TL,j,post){
   const nR=j.rpms.length, nT=(j.sc?3:2)*nR, wc=m=>m*j.wcPer, eta0=j.turbo&&j.spec.exhaust.turbine?j.spec.exhaust.turbine.eta:NaN;
   const withEta=(s,e)=>Object.assign({},s,{exhaust:Object.assign({},s.exhaust,{turbine:Object.assign({},s.exhaust.turbine,{eta:e})})});
   const out={rows:[],na:[]}; let B=null;
-  try{
+  // the turbine known from its housing (part 9): the charge at a fraction s of the full boost, for the speeds the turbine
+  // cannot hold it at: the compressor's pressure ratio scaled with the charge pressure (the charge-side losses taken as
+  // in proportion to the charge density, the air speeds unchanged), its efficiency the route's (from the route's own
+  // outlet temperature), the intercooler's effectiveness the route's
+  const boostAt=(sp,s)=>{ const C=j.comp, Pt=C.Patm+s*(C.Pt-C.Patm), PR=C.PRc*Pt/C.Pt, t2=(C.t1+273.15)*(1+(Math.pow(PR,0.4/1.4)-1)/C.etaC)-273.15, t3=t2-C.eps*(t2-C.tamb);
+    return {spec:Object.assign({},sp,{intake:Object.assign({},sp.intake,{source:{p:Pt,T:t3+273.15}})}),wc:m=>m*C.cp*(t2-C.t1),Pt,t2,t3}; };
+  if(j.turbo&&j.Acap>0&&!(j.At>0)&&j.comp){
+    let sp=j.spec;
+    if(j.p3m>0){ post({type:'progress',i:0,n:nT,label:'Calibrating the turbine’s efficiency to the measured pressure before it at '+j.p3rpm+' RPM'});
+      const C=TL.calibrateA(mkB,sp,{rpm:j.p3rpm,p3:j.p3m,wc,At:j.Acap,eta:eta0});
+      out.calib={At:j.Acap,Ag:C.Ag,eta:C.eta,ok:C.ok,over:C.over,big:C.big,it:C.it,p3s:C.res.turb.p3s,p3:C.res.turb.p3,target:j.p3m,rpm:j.p3rpm,mode:'area'};
+      if(!C.big) sp=C.spec; else { out.areaBig={At:j.Acap,p3s:C.res.turb.p3s,target:j.p3m,rpm:j.p3rpm}; delete out.calib; } }
+    if(!out.areaBig){
+      const Pr=TL.predict(mkB,sp,{rpms:j.rpms,At:j.Acap,wc,boostAt:s=>boostAt(sp,s),onStep:(i,r)=>post({type:'progress',i,n:nT,label:'Speed '+(i+1)+' of '+nR+' with the turbine of your housing'})});
+      out.mode='predict'; out.fullBoost=Pr.fullBoost; out.rows=Pr.rows.map(r=>Object.assign(r,{Pt:r.s<1?boostAt(sp,r.s).Pt:j.comp.Pt}));
+      B=mkB(sp); out.Vd=B.Vd; B.drop(); B=null;
+      // how much rests on the efficiency with this turbine: the speed of peak power again, 10 points less efficient
+      if(j.sens!==false&&eta0>0){ const f=TL.WS.tfmep, bp=r=>(r.res.imep-f(r.rpm))*r.rpm, pk=out.rows.reduce((b,r,i)=>!r.below&&bp(r)>bp(out.rows[b])?i:b,out.rows.length-1), rp=out.rows[pk].rpm, e1=Math.max(0.3,Math.round((eta0-0.1)*100)/100);
+        post({type:'progress',i:nT-1,n:nT,label:'Sensitivity: turbine efficiency '+Math.round(100*e1)+'%'});
+        const Ps=TL.predict(mkB,withEta(sp,e1),{rpms:[rp],At:j.Acap,wc,boostAt:s=>boostAt(withEta(sp,e1),s)});
+        out.sens=[{eta:e1,lo:null,rpm:rp,rows:Ps.rows.map(r=>Object.assign(r,{Pt:r.s<1?boostAt(sp,r.s).Pt:j.comp.Pt})),predict:true}]; }
+    } }
+  if(out.areaBig&&j.rpmsFb) j=Object.assign({},j,{rpms:j.rpmsFb});
+  if(out.mode!=='predict') try{
     // a measured pressure before the turbine (Intake tab), no typed area: the calibration (turboSimLib.calibrate) gives
     // the area and the efficiency at the full-boost RPM; the closure then holds both and finds the gate above it
     if(j.turbo&&j.p3m>0&&!(j.At>0)){ post({type:'progress',i:0,n:nT,label:'Calibrating the turbine to the measured pressure before it at '+j.rpms[0]+' RPM'});
@@ -20336,7 +20434,7 @@ function tsimRun(TL,j,post){
   } finally { if(B) B.drop(); }
   // how much the found area rests on the two typed numbers (part 6, F4): the same closure at the speed of peak power
   // with the turbine 10 points less efficient, and with full boost 1000 RPM later (the area found again each time)
-  if(j.turbo&&!(j.At>0)&&!out.calib&&j.sens!==false&&out.rows.length&&eta0>0){
+  if(j.turbo&&!(j.At>0)&&!out.calib&&out.mode!=='predict'&&j.sens!==false&&out.rows.length&&eta0>0){
     const f=TL.WS.tfmep, bp=r=>(r.res.imep-f(r.rpm))*r.rpm, pk=out.rows.reduce((b,r,i)=>bp(r)>bp(out.rows[b])?i:b,0), rp=out.rows[pk].rpm, lo=j.rpms[0];
     const cases=[{eta:Math.max(0.3,Math.round((eta0-0.1)*100)/100),lo}].concat(lo+1000<=rp-200?[{eta:eta0,lo:lo+1000}]:[]);
     out.sens=cases.map((c,k)=>{ post({type:'progress',i:nT-1,n:nT,label:'Sensitivity '+(k+1)+' of '+cases.length+': '+(c.eta!==eta0?'turbine efficiency '+Math.round(100*c.eta)+'%':'full boost at '+c.lo+' RPM')});
@@ -20353,7 +20451,7 @@ function tsimStart(){
   const q=SIM.inp, P=q?tsimPlan(q):null; if(!P||P.err) return;
   const id=++TSIM.run; TSIM.status='running'; TSIM.msg='Starting'; TSIM.pendingKey=P.key; TSIM.plan=P;
   if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; }
-  const job={spec:P.spec,na:P.na,sc:P.sc,rpms:P.rpms,dx:P.dx,turbo:P.turbo,A0:P.A0,At:P.Aty,Ag:P.Agy,wcPer:P.wcPer,eta:P.eta,p3m:P.p3m};
+  const job={spec:P.spec,na:P.na,sc:P.sc,rpms:P.rpms,rpmsFb:P.rpmsFb,dx:P.dx,turbo:P.turbo,A0:P.A0,At:P.Aty,Ag:P.Agy,wcPer:P.wcPer,eta:P.eta,p3m:P.p3m,p3rpm:P.p3rpm,Acap:P.Acap,comp:P.comp};
   const done=out=>{ if(id!==TSIM.run) return; TSIM.status='done'; TSIM.res=out; TSIM.key=P.key; TSIM.resPlan=P; TSIM.msg=''; TSIM_LAST={key:P.key,plan:P,out,sum:tsimSummary(P,out)};
     if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; } renderActive(); };
   const prog=(i,n,label)=>{ if(id!==TSIM.run) return; TSIM.msg=label?label+' ('+Math.round(100*(i+1)/n)+'%)':'Running speed '+(i<P.rpms.length?(i+1)+' of '+P.rpms.length+' with the '+(P.turbo?'turbo (finding the turbine’s area and the gate)':'supercharger'):i<2*P.rpms.length?(i-P.rpms.length+1)+' of '+P.rpms.length+' without boost':(i-2*P.rpms.length+1)+' of '+P.rpms.length+' with the boost and no turbine')+' ('+Math.round(100*(i+1)/n)+'%)'; const el=$('tsim-status'); if(el) el.textContent=TSIM.msg; };
@@ -20374,7 +20472,8 @@ function tsimOrder(md,rpm,k){ const N=md.length; let re=0, im=0; for(let j=0;j<N
 // the run in numbers, per speed: torque, power, pressures, temperatures, the closure, the orders
 function tsimSummary(P,out){
   const Vd=out.Vd, cyl=P.cyl, tq=imep=>imep*Vd*cyl/(4*Math.PI), n=P.nSim, ord=[1,2,3,4].map(m=>m*n).filter(k=>k<=60), etaRun=out.calib?out.calib.eta:P.eta;
-  const rows=out.rows.map((w,i)=>{ const r=w.res, t=r.turb||{}, na=out.na[i], sc=out.sc?out.sc[i]:null, f=WS.tfmep(w.rpm), g=x=>(x-P_ATM)/(P.Pt-P_ATM);
+  // predict mode (part 9): a speed below full boost has its own charge pressure (w.Pt); the multiples are of that boost
+  const rows=out.rows.map((w,i)=>{ const r=w.res, t=r.turb||{}, na=out.na[i], sc=out.sc?out.sc[i]:null, f=WS.tfmep(w.rpm), Ptw=w.Pt>0?w.Pt:P.Pt, g=x=>(x-P_ATM)/(Ptw-P_ATM);
     // brake (part 6, F6): Heywood's tfmep was measured motored at wide-open throttle, so it holds a naturally aspirated
     // pumping loop; the plain wave simulation therefore takes it off the GROSS loop. Under boost the engine's own pumping
     // loop differs, so the brake here is the NET indicated work less (tfmep less the pumping loop of the same engine and
@@ -20382,12 +20481,12 @@ function tsimSummary(P,out){
     // simulation's brake. The two one-sided readings are kept: net - tfmep (counts an NA pumping loop twice) and
     // gross - tfmep (ignores the turbo's own pumping loop)
     const pmNA=na&&Number.isFinite(na.gimep-na.imep)?na.gimep-na.imep:0;
-    const o={rpm:w.rpm,ve:r.ve,veC:r.ve*(P_ATM/(R_AIR*298.15))/(P.Pt/(R_AIR*P.Tc)),tqI:tq(r.imep),tqG:tq(r.gimep),tqB:tq(r.imep-f+pmNA),tqBn:tq(r.imep-f),tqBg:tq(r.gimep-f),pmep:r.gimep-r.imep,pmepNA:pmNA,resid:r.resid,
+    const o={rpm:w.rpm,Pt:Ptw,below:!!w.below,s:w.s,f1:w.f1,ve:r.ve,veC:r.ve*(P_ATM/(R_AIR*298.15))/(Ptw/(R_AIR*P.Tc)),tqI:tq(r.imep),tqG:tq(r.gimep),tqB:tq(r.imep-f+pmNA),tqBn:tq(r.imep-f),tqBg:tq(r.gimep-f),pmep:r.gimep-r.imep,pmepNA:pmNA,resid:r.resid,
       p3:t.p3,p3pk:t.p3pk,p3k:g(t.p3),p3pkk:g(t.p3pk),p3s:t.p3s,p3sk:g(t.p3s),p4:t.p4,T3:t.T3,T4:t.T4,W:t.W,Wc:r.Wc,mAir:t.mAir,share:t.mt+t.mg>0?t.mg/(t.mt+t.mg):0,At:w.At,Ag:w.Ag,short:!!w.short,ok:w.ok!==false,it:w.it,
       naTq:na?tq(na.imep):NaN,naTqB:na?tq(na.gimep-f):NaN,bins:t.p3bins,md:t.mdBins,naMd:na&&na.turb?na.turb.mdBins:null,
       scMd:sc&&sc.turb?sc.turb.mdBins:null,scTqB:sc?tq(sc.imep-f):NaN,scP:sc?sc.turb.p4:NaN};
     // the algebra at the run's own turbine-inlet state (the steady limit), and at the tab's assumed pressure and temperature
-    if(P.turbo&&Number.isFinite(t.p3)){ const tb=turbineBalance({ma:t.mAir,afr:P.afr,t1:P.t1,t2:P.t2,tit:t.T3-273.15,p3:t.p3,p4:t.p4,eta:etaRun});
+    if(P.turbo&&Number.isFinite(t.p3)&&!w.below){ const tb=turbineBalance({ma:t.mAir,afr:P.afr,t1:P.t1,t2:P.t2,tit:t.T3-273.15,p3:t.p3,p4:t.p4,eta:etaRun});
       o.wgAlg=tb.wg; const tbA=turbineBalance({ma:t.mAir,afr:P.afr,t1:P.t1,t2:P.t2,tit:Number.isFinite(val('i-tit'))?val('i-tit'):950,p3:P_ATM+P.k*(P.Pt-P_ATM),p4:P.p4,eta:etaRun}); o.wgPage=tbA.wg; o.T4alg=tbA.t4; }
     return o; });
   // the tail's orders: after the turbine (the downpipe's end) and the same pipes without the turbo (the same place)
@@ -20398,10 +20497,10 @@ function tsimSummary(P,out){
   // Intake tab's Garrett-method target (part 6, F7)
   const oP=rows[ip], air=oP&&Number.isFinite(oP.mAir)?oP.mAir*cyl/n:NaN, bsfc=air/P.afr*3600/0.45359237/pw[ip];
   // the sensitivity closures (tsimRun): the same summary at their speed of peak power
-  const sens=(out.sens||[]).map(c=>{ const w=c.rows[c.rows.length-1], r=w.res, t=r.turb||{}, k=out.na.findIndex(x=>x.rpm===w.rpm), na=k>=0?out.na[k]:null, f=WS.tfmep(w.rpm), gg=x=>(x-P_ATM)/(P.Pt-P_ATM);
+  const sens=(out.sens||[]).map(c=>{ const w=c.rows[c.rows.length-1], r=w.res, t=r.turb||{}, k=out.na.findIndex(x=>x.rpm===w.rpm), na=k>=0?out.na[k]:null, f=WS.tfmep(w.rpm), gg=x=>(x-P_ATM)/((w.Pt>0?w.Pt:P.Pt)-P_ATM);
     const pm=na?na.gimep-na.imep:0, tb=tq(r.imep-f+pm);
-    return {eta:c.eta,lo:c.lo,rpm:w.rpm,At:c.rows[0].At,p3k:gg(t.p3),p3pkk:gg(t.p3pk),share:t.mt+t.mg>0?t.mg/(t.mt+t.mg):0,hp:tb*w.rpm*Math.PI/30/745.7,pmep:r.gimep-r.imep,short:c.rows.some(x=>x.short),p3k0:gg(c.rows[0].res.turb.p3)}; });
-  return {rows,ip,hp:pw[ip],rpmHp:rows[ip]?rows[ip].rpm:NaN,p3k:rows[ip]?rows[ip].p3k:NaN,ord,air,bsfc,sens,calib:out.calib||null,etaRun};
+    return {eta:c.eta,lo:c.lo,rpm:w.rpm,At:c.rows[0].At,p3k:gg(t.p3),p3pkk:gg(t.p3pk),share:t.mt+t.mg>0?t.mg/(t.mt+t.mg):0,hp:tb*w.rpm*Math.PI/30/745.7,pmep:r.gimep-r.imep,short:c.rows.some(x=>x.short),p3k0:gg(c.rows[0].res.turb.p3),predict:!!c.predict,below:!!w.below}; });
+  return {rows,ip,hp:pw[ip],rpmHp:rows[ip]?rows[ip].rpm:NaN,p3k:rows[ip]?rows[ip].p3k:NaN,ord,air,bsfc,sens,calib:out.calib||null,etaRun,mode:out.mode||'found',fullBoost:out.fullBoost||null,areaBig:out.areaBig||null};
 }
 // the manifold section's line from the run, when the run used this manifold (same runners, collector, boost)
 const tsimMfdSig=X=>X&&X.c&&X.o?JSON.stringify([X.c.id,X.L,X.dcol,X.o.colL,X.o.mani,X.o.bst,X.o.e&&X.o.e.order]):'';
@@ -20416,10 +20515,10 @@ function tsimSection(q){
   const P=tsimPlan(q); if(!P) return '';
   const F=tsFmt(), imp=U==='imp', tqD=t=>imp?(t*0.737562).toFixed(0)+' lb-ft ('+t.toFixed(0)+' N·m)':t.toFixed(0)+' N·m ('+(t*0.737562).toFixed(0)+' lb-ft)';
   const kwH=(t,r)=>t*r*Math.PI/30/745.7, title='Wave simulation with the '+(P.ind==='turbo'?'turbo':'supercharger');
-  let h='<p class="cap" style="margin-top:0">The same one-dimensional gas-dynamics model under boost: the runners breathe the charge after the compressor and the intercooler'+(P.ind==='turbo'?', the exhaust drives the turbine through the turbo manifold, and the gas leaves through the downpipe':'')+'. It runs the speeds from the full-boost RPM to the redline'+(P.ind==='turbo'?', at each finding the turbine’s area (first speed, wastegate shut) and then the wastegate’s opening that make the turbine’s cycle-averaged power equal the compressor’s':'')+', and the same engine and pipes without boost beside it. It takes a minute or two.</p>';
+  let h='<p class="cap" style="margin-top:0">The same one-dimensional gas-dynamics model under boost: the runners breathe the charge after the compressor and the intercooler'+(P.ind==='turbo'?', the exhaust drives the turbine through the turbo manifold, and the gas leaves through the downpipe':'')+'. '+(P.predict?'With the turbine’s size taken from the housing you picked, it runs the speeds from 1,500 RPM below your full-boost RPM to the redline and works out at each how much boost this turbine can make and, once it makes full boost, how far the wastegate opens: the turbine’s cycle-averaged power equal to the compressor’s':'It runs the speeds from the full-boost RPM to the redline'+(P.ind==='turbo'?', at each finding the turbine’s area (first speed, wastegate shut) and then the wastegate’s opening that make the turbine’s cycle-averaged power equal the compressor’s':''))+', and the same engine and pipes without boost beside it. It takes a minute or two.</p>';
   if(P.err) return sec(title,h+'<div class="note warn" id="tsim-miss">'+esc(P.err)+'</div>');
   h+='<div class="tblwrap"><table id="tsim-src"><thead><tr><th>What the run takes</th><th>Value</th><th>From</th></tr></thead><tbody>'+P.src.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>').join('')+'</tbody></table></div>';
-  if(P.ind==='turbo') h+='<p class="cap">The turbine’s and the wastegate’s effective areas (discharge coefficient times the geometric area) can be typed on the Intake tab under the turbine inputs (mm²; 1 in² = 645.16 mm²); blank, the run finds them. No maker publishes a turbine’s flow as an area and no source turns a housing’s A/R into one.</p>';
+  if(P.ind==='turbo') h+='<p class="cap" id="tsim-size">'+(P.predict?'<b>Turbine size from the housing you picked.</b> The turbine is sized by its flow, converted to the area of a nozzle that passes the same flow (flow parameter × √R ÷ ψ, NASA Glenn’s nozzle law), so the run predicts where full boost arrives, how much goes round the wastegate and the pressure before the turbine instead of assuming them. ':'<b>Turbine size: found from your full-boost RPM.</b> '+(P.cap&&P.cap.H?'No turbine flow is published in text for the housing picked ('+esc((+P.cap.H.ar).toFixed(2))+' A/R): the maker’s turbine flow chart is an image the page does not read. Type the chart’s value under “Turbine flow off the maker’s turbine flow chart” on the Intake tab to size the turbine from your housing instead. ':'Pick a turbo and housing on the Intake tab, or type its turbine flow, to size the turbine from it. ')+'Until then the run finds the largest turbine that still makes full boost at the full-boost RPM you typed, with the gate shut. If that RPM is from a pull on the road or the dyno, a pull reaches full boost later than a steady point (the turbo needs time to spin up), more so in the lower gears, so the area found is the most this turbine can be and the pressure before it the least. ')+'The turbine’s and the wastegate’s effective areas (discharge coefficient times the geometric area) can also be typed on the Intake tab (mm²; 1 in² = 645.16 mm²).</p>';
   if(TSIM.status==='error') h+='<div class="note warn">The run stopped: '+esc(TSIM.msg)+'</div>';
   if(TSIM.status==='running') h+='<p class="cap" id="tsim-status" style="font-weight:600">'+esc(TSIM.msg||'Running')+'</p>';
   h+='<div class="actions" style="margin-top:10px"><button type="button" class="btn primary" data-tsim="run"'+(TSIM.status==='running'?' disabled':'')+'>'+(TSIM.status==='running'?'Running…':'Simulate with the '+(P.ind==='turbo'?'turbo':'supercharger'))+'</button></div>';
@@ -20428,8 +20527,9 @@ function tsimSection(q){
     if(stale) h+='<div class="note">The inputs changed since this run (here or on the Intake tab), so these results are for the earlier build. Run it again to update them.</div>';
     h+='<figure class="card" style="margin:12px 0 0"><svg class="camp" id="tsim-svg" role="img" aria-label="Simulated torque under boost and without boost against RPM"></svg><div class="legend"><span><i class="sw" style="--c:var(--t4)"></i>Under boost, brake (pumping counted)</span><span><i class="sw" style="--c:var(--t4);border-top-style:dashed"></i>Under boost, indicated</span><span><i class="sw" style="--c:var(--muted);border-top-style:dotted"></i>The same engine and pipes without boost, brake</span></div></figure>';
     const thr=imp?['RPM','Brake torque','Brake power','Indicated','Boost','Before the turbine, mean (× boost)','Peak (× boost)','Pumping','Residual','Gas before / after the turbine','Turbine / compressor power','Wastegate share: run / algebra at the run’s p₃, T₃ / at '+(+T.plan.k.toFixed(2))+' × boost']:null;
-    h+='<div class="tblwrap" style="margin-top:12px"><table id="tsim-tbl"><thead><tr><th>RPM</th><th>Brake torque</th><th>Brake power</th><th>Indicated torque</th>'+(turbo?'<th>Turbine inlet, mean</th><th>Peak</th>':'')+'<th>Pumping mep</th><th>Residual</th>'+(turbo?'<th>Gas before / after the turbine</th><th>Turbine ÷ compressor power</th><th>Wastegate share: run / algebra at the run’s p₃ and T₃ / at '+(+T.plan.k.toFixed(2))+' × boost</th>':'<th>Compressor drive</th>')+'</tr></thead><tbody>'+
-      rows.map(o=>'<tr'+(o.short?' style="background:var(--warn-soft,#fff3e0)"':'')+'><td>'+o.rpm.toLocaleString('en-US')+'</td><td>'+tqD(o.tqB)+'</td><td>'+F.hp(kwH(o.tqB,o.rpm))+'</td><td>'+tqD(o.tqI)+'</td>'+
+    const pm=S.mode==='predict';
+    h+='<div class="tblwrap" style="margin-top:12px"><table id="tsim-tbl"><thead><tr><th>RPM</th>'+(pm?'<th>Boost this turbine makes</th>':'')+'<th>Brake torque</th><th>Brake power</th><th>Indicated torque</th>'+(turbo?'<th>Turbine inlet, mean</th><th>Peak</th>':'')+'<th>Pumping mep</th><th>Residual</th>'+(turbo?'<th>Gas before / after the turbine</th><th>Turbine ÷ compressor power</th><th>Wastegate share: run / algebra at the run’s p₃ and T₃ / at '+(+T.plan.k.toFixed(2))+' × boost</th>':'<th>Compressor drive</th>')+'</tr></thead><tbody>'+
+      rows.map(o=>'<tr'+(o.short||o.below?' style="background:var(--warn-soft,#fff3e0)"':'')+'><td>'+o.rpm.toLocaleString('en-US')+'</td>'+(pm?'<td>'+F.pD(o.Pt-P_ATM)+(o.below?' (below full boost)':' (full)')+'</td>':'')+'<td>'+tqD(o.tqB)+'</td><td>'+F.hp(kwH(o.tqB,o.rpm))+'</td><td>'+tqD(o.tqI)+'</td>'+
         (turbo?'<td>'+F.pD(o.p3)+', '+o.p3k.toFixed(2)+' ×</td><td>'+F.pD(o.p3pk)+', '+o.p3pkk.toFixed(2)+' ×</td>':'')+'<td>'+(o.pmep>=0?'−':'+')+F.pD(Math.abs(o.pmep))+'</td><td>'+(100*o.resid).toFixed(1)+'%</td>'+
         (turbo?'<td>'+F.tD(o.T3-273.15)+' / '+F.tD(o.T4-273.15)+'</td><td>'+(o.W/o.Wc).toFixed(3)+(o.short?' (short: boost not held)':'')+'</td><td>'+(100*o.share).toFixed(1)+'% / '+(100*o.wgAlg).toFixed(1)+'% / '+(100*o.wgPage).toFixed(1)+'%</td>':'<td>'+F.kw(o.Wc*T.plan.cyl/T.plan.nSim)+'</td>')+'</tr>').join('')+'</tbody></table></div>';
     const o=rows[S.ip], kU=T.plan.k;
@@ -20437,16 +20537,20 @@ function tsimSection(q){
     if(o&&val('i-hp')>0&&Number.isFinite(S.bsfc)){ const tgt=val('i-hp'), bs=val('i-bsfc')>0?val('i-bsfc'):0.55, wa=tgt*T.plan.afr*bs/60;
       h+=rowT('Against the Intake tab’s '+Math.round(tgt)+' hp',F.hp(S.hp)+' simulated at the boost the tab works out for '+Math.round(tgt)+' hp','the tab sizes the boost by Garrett’s method, air = hp × AFR '+T.plan.afr+' × BSFC '+bs+' ÷ 60 = '+wa.toFixed(1)+' lb/min ('+(wa*0.45359237/60).toFixed(3)+' kg/s); at '+o.rpm.toLocaleString('en-US')+' RPM this run’s engine draws '+(S.air/0.45359237*60).toFixed(1)+' lb/min ('+S.air.toFixed(3)+' kg/s, VE '+o.veC.toFixed(2)+' on the charge) and burns it at '+S.bsfc.toFixed(2)+' lb/hp·h. The gap is the model’s: its burn (the 4-Stroke tab’s timing and duration, held at this boost) is not limited by knock, needs no enrichment beyond the AFR typed and no ignition retard; Garrett’s 0.5-0.6 lb/hp·h is what boosted gasoline engines burn with those; and on the three rated engines the model was checked against without boost it reads brake torque 4 to 16 % high (docs/WAVE_VALIDATION_2026-11-11.md, part 3). Plan on the tab’s target; read the simulation’s figure as the ceiling of an engine that could hold this burn.'); }
     if(turbo&&o){ const lo=rows[0].rpm, eP=Math.round(100*S.etaRun);
-      h+=rowT('Pressure before the turbine',o.p3k.toFixed(2)+' × boost (mean, total), '+o.p3pkk.toFixed(2)+' × at the blowdown peak','gauge multiples at '+o.rpm.toLocaleString('en-US')+' RPM; the static mean (what a pressure tap reads) is '+o.p3sk.toFixed(2)+' ×; across the speeds the mean is '+Math.min(...rows.map(r=>r.p3k)).toFixed(2)+' to '+Math.max(...rows.map(r=>r.p3k)).toFixed(2)+' ×. '+(S.calib?'Calibrated to your measurement (below), so this follows from it.':'This is not a prediction of the turbo you picked: it follows from the turbine’s area the run had to find (full boost at '+lo.toLocaleString('en-US')+' RPM, the full-boost RPM you typed, with the gate shut), the '+eP+'% efficiency and the model’s turbine-inlet temperature (which runs hot, part 2 of the validation; the exhaust port’s heat loss is not the reason: a 100 mm head port with the published port correlation cools it by about 20 K and moves this pressure by only a few hundredths, part 7). A less efficient turbine or full boost later needs a smaller or larger area and moves it (next line).')+' The Intake tab assumes '+(+kU.toFixed(2))+' × (Bell’s range 2 to 2.5 ×, as the tab cites it) in its algebra: that is an assumption, this is the same power balance worked through the pulsating flow with the inputs above. Logged pre-turbine pressures of street turbo builds run about 1.6 to 1.9 × boost (a 1.5 L at 21.5 psi: 41 psi; a 1.5 L at 36 psi: 58-68 psi; HP Academy and PRL logs), factory engines about 2 × (HP Academy), below 1 × only on very large race turbines: a figure here well below those says the efficiency or the exhaust temperature is optimistic for your build. Trust a measured pressure over both (enter it on the Intake tab: the run then calibrates the turbine to it); use the tab’s multiple for the A/R and gate choices it is written for; use this run for the pulse’s shape and its trend with speed');
-      h+=rowT('Turbine effective area',(rows[0].At*1e6).toFixed(0)+' mm² ('+(rows[0].At/645.16e-6).toFixed(2)+' in²)',T.plan.Aty?'typed':S.calib?'calibrated: the area that gives your measured '+F.pD(S.calib.target-P_ATM)+' (static, time-mean) at '+rows[0].rpm.toLocaleString('en-US')+' RPM with the gate shut (the run gives '+F.pD(S.calib.p3s-P_ATM)+')':'what the turbine would have to be to give full boost at '+rows[0].rpm.toLocaleString('en-US')+' RPM (your full-boost RPM) with the gate shut at '+Math.round(100*S.etaRun)+'% efficiency, held at every faster speed: the largest turbine that still makes full boost there (a turbine that reaches it earlier is smaller and runs a higher pressure before it); not the housing’s measured flow (no maker publishes one). As a choked flow parameter, A √(γ/R) (2/(γ+1))^((γ+1)/(2(γ−1))) at γ 1.3: '+(rows[0].At*Math.sqrt(1.3/287)*Math.pow(2/2.3,2.3/0.6)*1e5).toFixed(2)+' kg/s·√K/bar, for comparison with a turbine map that gives one');
+      h+=rowT('Pressure before the turbine',o.p3k.toFixed(2)+' × boost (mean, total), '+o.p3pkk.toFixed(2)+' × at the blowdown peak','gauge multiples at '+o.rpm.toLocaleString('en-US')+' RPM; the static mean (what a pressure tap reads) is '+o.p3sk.toFixed(2)+' ×; across the speeds the mean is '+Math.min(...rows.map(r=>r.p3k)).toFixed(2)+' to '+Math.max(...rows.map(r=>r.p3k)).toFixed(2)+' ×. '+(S.calib?'Calibrated to your measurement (below), so this follows from it.':pm?'This is the model’s prediction for the turbine of the housing you picked ('+(rows[0].At*1e6).toFixed(0)+' mm²) at '+eP+'% efficiency: a smaller turbine (smaller A/R) runs a higher pressure before it and reaches full boost sooner, a larger one the reverse. The model’s exhaust runs hot (validation part 2), which lowers the pressure the turbine needs; a measured pressure removes that too.':'This is not a prediction of the turbo you picked: it follows from the turbine’s area the run had to find (full boost at '+lo.toLocaleString('en-US')+' RPM, the full-boost RPM you typed, with the gate shut), the '+eP+'% efficiency and the model’s turbine-inlet temperature (which runs hot, part 2 of the validation; the exhaust port’s heat loss is not the reason: a 100 mm head port with the published port correlation cools it by about 20 K and moves this pressure by only a few hundredths, part 7). A less efficient turbine or full boost later needs a smaller or larger area and moves it (next line).')+' The Intake tab assumes '+(+kU.toFixed(2))+' × (Bell’s range 2 to 2.5 ×, as the tab cites it) in its algebra: that is an assumption, this is the same power balance worked through the pulsating flow with the inputs above. Logged pre-turbine pressures of street turbo builds run about 1.6 to 1.9 × boost (a 1.5 L at 21.5 psi: 41 psi; a 1.5 L at 36 psi: 58-68 psi; HP Academy and PRL logs), factory engines about 2 × (HP Academy), below 1 × only on very large race turbines: a figure here well below those says the efficiency or the exhaust temperature is optimistic for your build. Trust a measured pressure over both (enter it on the Intake tab: the run then calibrates the turbine to it); use the tab’s multiple for the A/R and gate choices it is written for; use this run for the pulse’s shape and its trend with speed');
+      if(pm){ const fb=S.fullBoost;
+        h+=rowT('Where full boost arrives',fb?(fb.at==='first'?'at or below '+fb.rpm.toLocaleString('en-US')+' RPM (the lowest speed run)':'about '+(Math.round(fb.rpm/50)*50).toLocaleString('en-US')+' RPM'):'not by the redline','predicted for this turbine as a steady point (the engine held at each speed): the RPM where the turbine, with the gate shut, makes just the compressor’s power at full boost (straight-line between the speeds run). On a pull full boost comes later than this, by the time the turbo needs to spin up (more in the lower gears). You typed '+T.plan.lo.toLocaleString('en-US')+' RPM; below full boost the table gives the boost this turbine can make'); }
+      h+=rowT('Turbine effective area',(rows[0].At*1e6).toFixed(0)+' mm² ('+(rows[0].At/645.16e-6).toFixed(2)+' in²)',T.plan.Aty?'typed':pm?'from the housing’s turbine flow: '+(T.plan.cap.status==='typed'?'your '+T.plan.cap.v+' '+esc(T.plan.cap.unit)+(T.plan.cap.er?' at an expansion ratio of '+T.plan.cap.er:' at the chart’s peak'):'the maker’s '+T.plan.cap.v+' '+esc(T.plan.cap.unit))+', flow parameter '+(T.plan.cap.mfp*1e5).toFixed(3)+' kg/s·√K/bar, ÷ the nozzle function ψ '+T.plan.cap.psi.toFixed(4)+' at γ 1.3 and × √287. A turbine nears its peak flow more gradually than one nozzle, so an area from the peak overstates the flow at the expansion ratios a street engine runs (1.5 to 2.5): read the chart there if you can':S.calib?'calibrated: the area that gives your measured '+F.pD(S.calib.target-P_ATM)+' (static, time-mean) at '+rows[0].rpm.toLocaleString('en-US')+' RPM with the gate shut (the run gives '+F.pD(S.calib.p3s-P_ATM)+')':'what the turbine would have to be to give full boost at '+rows[0].rpm.toLocaleString('en-US')+' RPM (your full-boost RPM) with the gate shut at '+Math.round(100*S.etaRun)+'% efficiency, held at every faster speed: the largest turbine that still makes full boost there (a turbine that reaches it earlier is smaller and runs a higher pressure before it); not the housing’s measured flow (no maker publishes one). As a choked flow parameter, A √(γ/R) (2/(γ+1))^((γ+1)/(2(γ−1))) at γ 1.3: '+(rows[0].At*Math.sqrt(1.3/287)*Math.pow(2/2.3,2.3/0.6)*1e5).toFixed(2)+' kg/s·√K/bar, for comparison with a turbine map that gives one');
+      if(S.areaBig) h+='<div class="note warn" id="tsim-big">With the turbine of your housing ('+(S.areaBig.At*1e6).toFixed(0)+' mm²) and the gate shut, the pressure before it at '+S.areaBig.rpm.toLocaleString('en-US')+' RPM would be '+F.pD(S.areaBig.p3s-P_ATM)+', below your measured '+F.pD(S.areaBig.target-P_ATM)+': the turbine that was measured flows less than this one (a smaller housing, or the chart was read high), or the model’s exhaust is off. The run used your measurement instead and found the area from it.</div>';
       if(S.calib) h+=rowT('Turbine efficiency that balances',(100*S.calib.eta).toFixed(1)+'% (turbine × mechanical, cycle-averaged)',(S.calib.over?'your measured pressure would need more than 100 %: held at 100 %, the turbine short of the compressor. Either the measurement is low or the model’s exhaust carries too little energy; check where it was measured (a tap at the flange, static) and at which RPM. ':'')+'the efficiency at which the turbine of that area drives the compressor at '+rows[0].rpm.toLocaleString('en-US')+' RPM in this model: a calibration to your measurement (it also absorbs the model’s errors in exhaust temperature and the turbine’s heat loss), used at every speed');
-      if(S.sens&&S.sens.length) h+=rowT('How much rests on the typed numbers',S.sens.map(c=>(c.eta!==T.plan.eta?'at '+Math.round(100*c.eta)+'% efficiency':'full boost at '+c.lo.toLocaleString('en-US')+' RPM')+': area '+(c.At*1e6).toFixed(0)+' mm², before the turbine '+c.p3k.toFixed(2)+' × boost mean ('+c.p3pkk.toFixed(2)+' × peak), gate '+(100*c.share).toFixed(0)+'%, '+F.hp(c.hp)+(c.short?' (turbine short at a speed)':'')).join('; '),'the same closure at '+(S.sens[0].rpm).toLocaleString('en-US')+' RPM with one input changed (against '+o.p3k.toFixed(2)+' ×, gate '+(100*o.share).toFixed(0)+'%, '+F.hp(S.hp)+' above): the power barely moves, the pressure before the turbine does. No source read gives a turbine’s cycle-averaged efficiency on an engine: rig and engine studies find it departs from the steady map by several points either way (Westin and Ångström, SAE 2005-01-3812: lower in the energetic part of the pulse; SwRI 2018: better than steady-map simulations predicted)');
+      if(S.sens&&S.sens.length&&pm) h+=rowT('How much rests on the efficiency',S.sens.map(c=>'at '+Math.round(100*c.eta)+'%: before the turbine '+c.p3k.toFixed(2)+' × boost mean ('+c.p3pkk.toFixed(2)+' × peak), gate '+(100*c.share).toFixed(0)+'%, '+F.hp(c.hp)+(c.below?' (below full boost there)':'')).join('; '),'the same turbine at '+(S.sens[0].rpm).toLocaleString('en-US')+' RPM, 10 points less efficient (against '+o.p3k.toFixed(2)+' ×, gate '+(100*o.share).toFixed(0)+'%, '+F.hp(S.hp)+' above): with the turbine’s size known, a less efficient turbine needs more pressure before it. Garrett’s pages give peak turbine efficiencies of 66 to 76 % (GTX4088R 66 %, GT/GTX28 69 %, G25, G30 and G35 74 %, G40 76 %); on the engine, under pulsing flow and away from the peak, the cycle average is lower; no source read gives a number');
+      else if(S.sens&&S.sens.length) h+=rowT('How much rests on the typed numbers',S.sens.map(c=>(c.eta!==T.plan.eta?'at '+Math.round(100*c.eta)+'% efficiency':'full boost at '+c.lo.toLocaleString('en-US')+' RPM')+': area '+(c.At*1e6).toFixed(0)+' mm², before the turbine '+c.p3k.toFixed(2)+' × boost mean ('+c.p3pkk.toFixed(2)+' × peak), gate '+(100*c.share).toFixed(0)+'%, '+F.hp(c.hp)+(c.short?' (turbine short at a speed)':'')).join('; '),'the same closure at '+(S.sens[0].rpm).toLocaleString('en-US')+' RPM with one input changed (against '+o.p3k.toFixed(2)+' ×, gate '+(100*o.share).toFixed(0)+'%, '+F.hp(S.hp)+' above): the power barely moves, the pressure before the turbine does. No source read gives a turbine’s cycle-averaged efficiency on an engine: rig and engine studies find it departs from the steady map by several points either way (Westin and Ångström, SAE 2005-01-3812: lower in the energetic part of the pulse; SwRI 2018: better than steady-map simulations predicted)');
       h+=rowT('Wastegate at peak power',(o.Ag*1e6).toFixed(0)+' mm² effective, '+(100*o.share).toFixed(1)+'% of the exhaust','the algebra (turbineBalance) at the run’s own turbine-inlet pressure and temperature gives '+(100*o.wgAlg).toFixed(1)+'%; at the tab’s assumed '+(+kU.toFixed(2))+' × boost and its turbine-inlet temperature, '+(100*o.wgPage).toFixed(1)+'%');
       const om=o.ord||[]; if(om.length) h+=rowT('Tail sound after the turbine',om.map(x=>'order '+(x.k/2)+': '+x.L.toFixed(1)+' dB').join(', '),'at 1 m from the downpipe’s end as a monopole (the Sound tab’s law), before the cats and mufflers, at '+o.rpm.toLocaleString('en-US')+' RPM. Against the same pipes with the same boost and no turbine (the turbine’s own effect at the same flow): '+(o.scOrd?o.scOrd.map((x,i)=>'order '+(x.k/2)+' '+(om[i].L-x.L>=0?'+':'')+(om[i].L-x.L).toFixed(1)+' dB').join(', '):'–')+'; against the engine without boost (more flow as well as the turbine): '+(o.naOrd?o.naOrd.map((x,i)=>'order '+(x.k/2)+' '+(om[i].L-x.L>=0?'+':'')+(om[i].L-x.L).toFixed(1)+' dB').join(', '):'–')+'. The model’s result, not validated against a measurement: the turbine is a compact quasi-steady nozzle with no volume (a real housing’s volute and wheel add volume and do not respond quasi-steadily at higher orders), so read the difference as the nozzle’s effect on the firing pulses; a small-pulse check of the element against the linearised nozzle agrees to 1-2 % in what it passes and 6 % in what it reflects (validation part 6)');
       if(rows.some(r=>r.short)) h+='<div class="note warn">At '+rows.filter(r=>r.short).map(r=>r.rpm.toLocaleString('en-US')).join(', ')+' RPM the turbine, with the gate shut, makes less power than the compressor needs: this turbine could not hold the boost there. The run still holds it (a steady model), so read those speeds as optimistic.</div>'; }
     h+='<figure class="card" style="margin:12px 0 0"><svg class="camp" id="tsim-p3" role="img" aria-label="Pressure before the turbine over one engine cycle at the speed of peak power"></svg><p class="cap">'+(turbo?'Turbine-inlet total pressure over one cycle at '+(o?o.rpm.toLocaleString('en-US'):'')+' RPM (cylinder 1’s crank angle, firing at 0°), with the boost (dashed) and the mean before the turbine (dotted): where the line is above the boost the pistons push against it in the exhaust stroke.':'')+'</p></figure>';
   }
-  h+='<p class="cap"><b>How it works and its limits.</b> The charge is the Intake tab’s route solution, steady at each speed: the compressor is a boundary, not a map, so surge, compressor and turbo speed, inertia and spool-up are not modelled (full-load steady points only). The turbine is the quasi-steady equivalent nozzle of 1-D engine codes: the flow an isentropic nozzle of one effective area passes from the turbine-inlet total state to the turbine-outlet pressure (NASA Glenn’s compressible flow equations), the area constant as Watson and Janota and Benson used it (SAE 2017-24-0019 sums up the approaches; Payri et al. 2012 vary it with speed and pressure ratio, which needs a map), the work its efficiency times the isentropic total-to-static enthalpy drop along the gas’s own isentrope, the gas after it carrying the rest; a divided housing is two nozzles in parallel on one wheel (as Galindo, Serrano et al. 2021 model a double-entry turbine), with no interaction between the scrolls at the wheel. The effective area is found by the model itself from the Intake tab’s own power balance, so the pressure before the turbine is an output, and the efficiency and the housing’s A/R enter only through it. The wastegate is an orifice in parallel, to the downpipe (internal) or the air (external). <b>Not modelled:</b> knock, enrichment for cooling and ignition retard under boost: the power figures assume the engine can run the modelled burn (the 4-Stroke tab’s 18° BTDC, 55°, at the Intake tab’s air-fuel ratio) at this boost; the turbine’s own map and efficiency changing with speed; heat lost in the turbine housing; a turbine flowing backwards does no work. Compared against: closed-form nozzle flow and the isentrope by hand, the tab’s turbine balance in steady flow, conservation of mass and energy (web/tests/waveturbo_ui.js); no turbocharged engine with published cam data was found to test the whole run against a rating (docs/WAVE_VALIDATION_2026-11-11.md, part 5).</p>';
+  h+='<p class="cap"><b>How it works and its limits.</b> The charge is the Intake tab’s route solution, steady at each speed: the compressor is a boundary, not a map, so surge, compressor and turbo speed, inertia and spool-up are not modelled (full-load steady points only). The turbine is the quasi-steady equivalent nozzle of 1-D engine codes: the flow an isentropic nozzle of one effective area passes from the turbine-inlet total state to the turbine-outlet pressure (NASA Glenn’s compressible flow equations), the area constant as Watson and Janota and Benson used it (SAE 2017-24-0019 sums up the approaches; Payri et al. 2012 vary it with speed and pressure ratio, which needs a map), the work its efficiency times the isentropic total-to-static enthalpy drop along the gas’s own isentrope, the gas after it carrying the rest; a divided housing is two nozzles in parallel on one wheel (as Galindo, Serrano et al. 2021 model a double-entry turbine), with no interaction between the scrolls at the wheel. The effective area is either the housing’s (its turbine flow converted to a nozzle area: the run then predicts where full boost arrives, the wastegate’s share and the pressure before the turbine) or, when no flow is known for the housing, found by the model itself from the Intake tab’s own power balance at the full-boost RPM; either way the pressure before the turbine is an output. Below full boost the charge is the route’s with the compressor’s pressure ratio scaled to the boost the turbine can make, the charge-side losses and the intercooler’s effectiveness held in proportion (an approximation). The wastegate is an orifice in parallel, to the downpipe (internal) or the air (external). <b>Not modelled:</b> knock, enrichment for cooling and ignition retard under boost: the power figures assume the engine can run the modelled burn (the 4-Stroke tab’s 18° BTDC, 55°, at the Intake tab’s air-fuel ratio) at this boost; the turbine’s own map and efficiency changing with speed; heat lost in the turbine housing; a turbine flowing backwards does no work. Compared against: closed-form nozzle flow and the isentrope by hand, the tab’s turbine balance in steady flow, conservation of mass and energy (web/tests/waveturbo_ui.js); no turbocharged engine with published cam data was found to test the whole run against a rating (docs/WAVE_VALIDATION_2026-11-11.md, part 5).</p>';
   return sec(title,h);
 }
 // the torque against RPM under boost and without, and the pressure before the turbine over a cycle
@@ -22473,6 +22577,59 @@ function turbineBalance(o){
   // kept), so me cpe (T3 - T4) = Wc with the same constant cp at T3 as above; independent of the share, p4 and eta
   return {g,cpe,me,Wc,ER,p3need:ER*o.p4,x,wg:Math.max(0,1-x),Ft:(me*Math.min(1,x))*Math.sqrt(T3)/(o.p3/1e5),t4:o.tit-Wc/(me*cpe)};
 }
+/* ----- The turbine's size from the housing picked (2026-11-13, docs/WAVE_VALIDATION_2026-11-11.md part 9) -----
+   A turbine map's flow is a corrected flow, Wc = m sqrt(T03 / Tref) / (p03 / pref), plotted against the expansion ratio
+   p03 / p4 (BorgWarner's catalogue labels its "Turbine Corrected Flow @ 59F", lb/min; Garrett's G-series turbine charts are
+   images, and its text figures, e.g. "G40 1.19 A/R has a max flow of 43 lbs/min", state no reference). The quasi-steady
+   equivalent nozzle the wave model uses passes m = A p03 psi(p4 / p03) / sqrt(R T03) (NASA Glenn, "Mass flow choking";
+   psi = sqrt(2 g / (g - 1) (r^(2/g) - r^((g+1)/g))), at most sqrt(g) (2 / (g + 1))^((g + 1) / (2 (g - 1))) once choked), so
+   the flow parameter m sqrt(T03) / p03 = Wc sqrt(Tref) / pref = A psi / sqrt(R), and
+       A = Wc sqrt(Tref) / pref x sqrt(R) / psi(1 / ER),
+   at g 1.3 and R 287 J/kg K (the page's flow-parameter convention; g 1.35 would give 1.4 % less area). Worked: 43 lb/min
+   = 0.325076 kg/s at 288.15 K and 101325 Pa, choked (psi 0.66717): 0.325076 x 16.9750 / 101325 = 5.4461e-5 kg sqrt(K)/(s Pa)
+   (5.446 kg sqrt(K)/(s bar)), x 16.9411 / 0.66717 = 1.3829e-3 m2 = 1383 mm2 (2.14 in2). Read at the expansion ratio the
+   engine runs (1.5 to 2.5) where the chart allows: a real turbine approaches its peak flow more gradually than one nozzle,
+   so an area from the peak overstates the flow at a low expansion ratio. */
+const TCAP_G=1.3, TCAP_R=287;
+const nozPsi=(pr,g)=>{ const prc=Math.pow(2/(g+1),g/(g-1)); return pr<=prc?Math.sqrt(g)*Math.pow(2/(g+1),(g+1)/(2*(g-1))):Math.sqrt(2*g/(g-1)*(Math.pow(pr,2/g)-Math.pow(pr,(g+1)/g))); };
+const TCAP_UNITS={lb59:{n:'lb/min corrected to 59 °F (15 °C) and 14.696 psia (101.325 kPa)',kgs:v=>v/LBMIN,T:288.15,p:101325},
+  kg15:{n:'kg/s corrected to 15 °C (59 °F) and 101.325 kPa (14.696 psia)',kgs:v=>v,T:288.15,p:101325},
+  lb85:{n:'lb/min corrected to 85 °F and 13.95 psia (ATP Turbo’s reference)',kgs:v=>v/LBMIN,T:(85+459.67)/1.8,p:13.95*6894.757},   // = ATP_TREF, ATP_PREF (written out: the block is also read alone by tests)
+  fpSI:{n:'flow parameter, kg/s·√K/kPa',mfp:v=>v/1000},
+  fpUS:{n:'flow parameter, lb/min·√°R/psia',mfp:v=>v/LBMIN*Math.sqrt(1/1.8)/6894.757}};
+function turbAreaFromFlow(o){
+  // o: Wc (kg/s, corrected to Tref K and pref Pa) or mfp (kg sqrt(K)/(s Pa)); er the expansion ratio p03 / p4 it was read at (blank: choked)
+  const g=o.g||TCAP_G, Rg=o.R||TCAP_R, mfp=o.mfp>0?o.mfp:o.Wc*Math.sqrt(o.Tref)/o.pref, pr=o.er>1?1/o.er:0, psi=nozPsi(pr,g);
+  return {mfp,psi,A:mfp*Math.sqrt(Rg)/psi,choked:pr<=Math.pow(2/(g+1),g/(g-1))};
+}
+// the turbine's capacity for this build: the flow typed off the maker's chart, else the picked housing's published figure
+// (taken as corrected to 59 °F / 14.696 psia at the chart's peak, since the maker states no reference), else unknown
+function tsTurbCap(){
+  const v=val('i-tfc');
+  if(v>0){ const u=TCAP_UNITS[$('i-tfcu')?$('i-tfcu').value:'lb59']||TCAP_UNITS.lb59, er=val('i-tfer')>1?val('i-tfer'):null;
+    const a=turbAreaFromFlow(u.mfp?{mfp:u.mfp(v),er}:{Wc:u.kgs(v),Tref:u.T,pref:u.p,er});
+    return Object.assign(a,{status:'typed',v,unit:u.n,er,src:'typed off the maker’s turbine flow chart'}); }
+  const H=typeof tsHsg==='function'?tsHsg():null;
+  if(H&&H.flow&&H.flow.unit==='lb/min'){ const a=turbAreaFromFlow({Wc:H.flow.v/LBMIN,Tref:288.15,pref:101325,er:null});
+    return Object.assign(a,{status:'published',v:H.flow.v,unit:'lb/min, peak (reference not stated: taken as 59 °F, 14.696 psia)',er:null,src:H.flow.src||'the maker',quote:H.flow.quote,H}); }
+  return {status:'unknown',H};
+}
+// the steady balance with the turbine's area known: the pressure before the turbine at which a nozzle of area A passes the
+// flow whose work drives the compressor (the same work law and constant cp at T3 as turbineBalance, so at the p3 this
+// returns, turbineBalance gives the same share); if that flow is more than all of the exhaust, the gate is shut and the
+// turbine is short: the boost cannot be held (ratio = the power it makes with all of the exhaust / the compressor's)
+function turbineAreaBalance(o){
+  // o: ma, afr, t1, t2, tit, p4, eta as turbineBalance; A m2 (effective)
+  const T3=o.tit+273.15, g=exhGamma(T3), R=EXH_GAS.R, cpe=g*R/(g-1), k=(g-1)/g, me=o.ma*(1+1/o.afr), Wc=o.ma*CP_AIRT*(o.t2-o.t1);
+  const mt=p3=>o.A*p3*nozPsi(o.p4/p3,g)/Math.sqrt(R*T3), Wt=p3=>o.eta*mt(p3)*cpe*T3*(1-Math.pow(o.p4/p3,k));
+  const root=(f,lo,hi)=>{ for(let i=0;i<200;i++){ const m=0.5*(lo+hi); if(f(m)>0) hi=m; else lo=m; } return 0.5*(lo+hi); };
+  let hi=o.p4*2; while(Wt(hi)<Wc&&hi<o.p4*1e3) hi*=2;
+  const p3=root(p=>Wt(p)-Wc,o.p4,hi), m=mt(p3);
+  if(m<=me) return {p3,mt:m,me,x:m/me,wg:1-m/me,short:false,ratio:1,Wc,ER:p3/o.p4,g,cpe};
+  let h2=o.p4*2; while(mt(h2)<me) h2*=2;
+  const pa=root(p=>mt(p)-me,o.p4,h2);
+  return {p3:pa,mt:me,me,x:1,wg:0,short:true,ratio:Wt(pa)/Wc,Wc,ER:pa/o.p4,g,cpe};
+}
 function tsSizeSection(ind,p,r){
   const imp=U==='imp', nt=Math.max(1,Math.round(val('i-nt'))||1), eff=p.eff>0&&p.eff<=1?p.eff:0.7, afr=val('i-afr')>0?val('i-afr'):12, bsfc=val('i-bsfc')>0?val('i-bsfc'):0.55;
   const fl=kgs=>imp?(kgs*LBMIN).toFixed(1)+' lb/min ('+kgs.toFixed(3)+' kg/s)':kgs.toFixed(3)+' kg/s ('+(kgs*LBMIN).toFixed(1)+' lb/min)';
@@ -22505,6 +22662,16 @@ function tsSizeSection(ind,p,r){
   h+='<div class="tblwrap"><table id="ts-turb"><thead><tr><th>Turbine efficiency (map)</th><th>Expansion ratio, all exhaust through the turbine</th><th>Turbine inlet pressure that needs</th><th>Wastegate share at 2 × boost</th><th>at 2.5 × boost</th>'+(kX!=null?'<th>at '+kX.toFixed(2)+' × boost (yours)</th>':'')+'<th>Turbine flow parameter at '+(+kU.toFixed(2))+' × boost</th></tr></thead><tbody>'+
     tb.map(x=>'<tr'+(etaIn&&Math.abs(x.eta-etaIn)<1e-9?' data-rec="1" style="background:var(--accent-soft)"':'')+'><td>'+(x.eta*100).toFixed(0)+'%'+(etaIn&&Math.abs(x.eta-etaIn)<1e-9?' (yours)':'')+'</td><td>'+(Number.isFinite(x.a.ER)?x.a.ER.toFixed(2):'not reachable')+'</td><td>'+(Number.isFinite(x.a.p3need)?pD(x.a.p3need-P_ATM)+' gauge'+(bst>0?', '+((x.a.p3need-P_ATM)/bst).toFixed(2)+' × boost':''):'–')+'</td><td>'+(x.a.x<=1?(x.a.wg*100).toFixed(0)+'%':'none: needs more')+'</td><td>'+(x.b.x<=1?(x.b.wg*100).toFixed(0)+'%':'none: needs more')+'</td>'+(kX!=null?'<td>'+(x.u.x<=1?(x.u.wg*100).toFixed(0)+'%':'none: needs more')+'</td>':'')+'<td>'+x.u.Ft.toFixed(3)+' kg√K/(s·bar)</td></tr>').join('')+'</tbody></table></div>'+
     '<p class="cap">Power balance: compressor power = turbine efficiency × exhaust flow × cp × T₃ × (1 − (p₄/p₃)^((γ−1)/γ)), p₄ at the turbine outlet: atmosphere'+(p4>P_ATM?' plus your '+pD(p4-P_ATM)+' back pressure after the turbine':' (no back pressure after the turbine entered: add the downpipe, cats and mufflers under Back pressure after the turbine)')+'. Read the efficiency off the turbine map (makers usually quote it with the bearing losses in, Marelli et al., SAE 2019-01-0324); no source in hand gives a typical value, so the table sweeps it'+(etaIn?'':'; enter yours under Turbine efficiency')+'. Bell puts the turbine inlet at 2 to 2.5 × boost; where the turbine needs less, the rest is the wastegate’s share of the exhaust at peak power. At lower boost or higher RPM with the same gate setting the share grows. The turbine flow parameter, flow × √T₃ ÷ p₃, is what turbine maps plot; A/R choice beyond Bell’s pressure check is left to the map.</p>';
+  // the turbine's size from the housing (part 9): with its effective area known the same balance gives the pressure before
+  // the turbine and the gate's share instead of assuming a multiple of boost (turbineAreaBalance), at peak and at the
+  // full-boost RPM typed; the wave simulation on the 4-Stroke tab predicts the same in the pulsing flow
+  { const cap=tsTurbCap(), A=val('i-tsa')>0?val('i-tsa')*1e-6:cap.A>0?cap.A:null, etaA=etaIn||0.75;
+    if(A&&bst>0){ const at=(X,rpm)=>{ const b=turbineAreaBalance({ma:X.m,afr,t1:p.tin,t2:X.t2,tit,p4,eta:etaA,A}); return Object.assign(b,{rpm}); };
+      const pts=[at(R,p.rpm)].concat(RL?[at(RL,lo)]:[]); TG.tcap={A,status:val('i-tsa')>0?'typed area':cap.status,pts};
+      h+='<p class="sub" id="ts-tcap-h">Turbine size from the housing you picked</p><div class="tblwrap"><table id="ts-tcap"><thead><tr><th>RPM</th><th>Pressure before the turbine</th><th>× boost</th><th>Through the wastegate</th><th>Turbine ÷ compressor power</th></tr></thead><tbody>'+
+        pts.map(x=>'<tr'+(x.short?' style="background:var(--warn-soft,#fff3e0)"':'')+'><td>'+Math.round(x.rpm).toLocaleString('en-US')+'</td><td>'+pD(x.p3-P_ATM)+' gauge</td><td>'+((x.p3-P_ATM)/bst).toFixed(2)+'</td><td>'+(x.short?'none: gate shut':(x.wg*100).toFixed(0)+'%')+'</td><td>'+(x.short?x.ratio.toFixed(2)+' (short: full boost not reached here)':'1.00')+'</td></tr>').join('')+'</tbody></table></div>'+
+        '<p class="cap" id="ts-tcap-cap">Effective area '+(A*1e6).toFixed(0)+' mm² ('+(A/645.16e-6).toFixed(2)+' in²), '+(val('i-tsa')>0?'typed':cap.status==='typed'?'from the turbine flow you typed ('+cap.v+' '+cap.unit+(cap.er?' at an expansion ratio of '+cap.er:' at the chart’s peak')+')':'from the maker’s published '+cap.v+' '+cap.unit)+', at '+Math.round(etaA*100)+'% efficiency'+(etaIn?'':' (blank: 75%)')+'. With the turbine’s size known, the pressure before it is the one at which a nozzle of that area passes the exhaust whose work drives the compressor (the balance above), the rest of the exhaust going round the gate; if all of the exhaust is not enough the gate is shut and full boost is not reached at that RPM. Steady flow, the same law as the wave simulation’s turbine: the simulation adds the pulses.</p>'; }
+    else if(bst>0) h+='<p class="cap" id="ts-tcap-cap">Turbine size: '+(cap.H?'no turbine flow is published in text for the housing picked, so the pressure before the turbine above is the assumed multiple of boost. Type the value off the maker’s turbine flow chart (Turbine flow off the maker’s turbine flow chart) to work it out from the housing instead.':'pick a turbo and housing under Turbo options, or type its turbine flow, to work out the pressure before the turbine from the housing instead of assuming it.')+'</p>'; }
   // intercooler
   const ice=Math.min(1,Math.max(0,(val('i-ice')||0)/100));
   let ic='';
@@ -23977,7 +24144,8 @@ const TURBO_HS={
     TH(1.01,'V-band','V-band',{wg:GFF,pn:'740902-0104'}),TH(1.21,'V-band','V-band',{wg:GFF,pn:'740902-0105'})],
   'G40-1150 (71 mm, 2.80 in, inducer)':[TH(0.85,'V-band','V-band',{wg:GFF,pn:'757707-0027'}),TH(0.95,'V-band','V-band',{wg:GFF,pn:'757707-0028'}),TH(1.06,'V-band','V-band',{wg:GFF,pn:'757707-0029'}),TH(1.19,'V-band','V-band',{wg:GFF,pn:'757707-0030'}),
     TH(0.85,'T4 divided','V-band',{wg:GFF,divided:true,pn:'757707-0032'}),TH(0.95,'T4 divided','V-band',{wg:GFF,divided:true,pn:'757707-0033'}),TH(1.06,'T4 divided','V-band',{wg:GFF,divided:true,pn:'757707-0034'}),
-    TH(1.19,'T4 divided','V-band',{wg:GFF,divided:true,pn:'757707-0035',flow:{v:43,unit:'lb/min',basis:'unstated',quote:'“The largest 1.19 A/R T4 turbine housing flows 43 LBS/MIN of air”'}})],
+    TH(1.19,'T4 divided','V-band',{wg:GFF,divided:true,pn:'757707-0035',flow:{v:43,unit:'lb/min',basis:'unstated',quote:'“The largest 1.19 A/R T4 turbine housing flows 43 LBS/MIN of air”; Garrett’s G40 launch article: “G40 1.19 A/R has a max flow of 43 lbs/min” (a peak figure)',
+      src:'https://www.garrettmotion.com/knowledge-center-category/racing-and-performance/garrett-performance-product-launch-g-series-g40-900-g40-1150'}})],
   'G42-1200':[TH(1.01,'V-band','V-band',{wg:GFF,pn:'757707-0011'}),TH(1.15,'V-band','V-band',{wg:GFF,pn:'757707-0012'}),TH(1.28,'V-band','V-band',{wg:GFF,pn:'757707-0013'}),
     TH(1.01,'T4 divided','V-band',{wg:GFF,divided:true,pn:'757707-0014'}),TH(1.15,'T4 divided','V-band',{wg:GFF,divided:true,pn:'757707-0015'}),TH(1.28,'T4 divided','V-band',{wg:GFF,divided:true,pn:'757707-0016'})],
   'EFR 6758':[TH(0.64,'T25','not stated',{wg:'wastegated',pn:'-A, housing 11581009006'}),TH(0.85,'T25','not stated',{wg:'wastegated',pn:'-F, housing 11581008000'}),TH(0.85,'V-band','not stated',{wg:'wastegated',pn:'-F(v), housing 11581008001'}),
@@ -23997,6 +24165,16 @@ function arDemand(o){
   // o: ma, t2, t1, afr, tit, p3, p4, eta
   const t=turbineBalance(o), T3=o.tit+273.15, need=Math.min(1,t.x)*t.me;
   return {me:t.me,need,x:t.x,wg:t.wg,ER:t.ER,ERav:o.p3/o.p4,FPall:t.me*Math.sqrt(T3)/(o.p3/1e5),FPneed:need*Math.sqrt(T3)/(o.p3/1e5)};
+}
+// the turbine flow capacity of a housing (part 9): PUBLISHED when the maker prints a flow figure in text (converted to an
+// effective area as turbAreaFromFlow, at 59 °F / 14.696 psia and choked since no reference is stated); no published pair of
+// A/Rs on one wheel was found to scale from, so no housing is SCALED; the rest UNKNOWN (their charts are images the page
+// does not read: type the chart's value under Turbine flow off the maker's chart)
+const turbCapStatus=h=>h&&h.flow&&h.flow.unit==='lb/min'?'PUBLISHED':'UNKNOWN';
+function turbCapTxt(h){
+  if(turbCapStatus(h)!=='PUBLISHED') return 'unknown: no flow printed in text (type the value off the maker’s turbine flow chart under Turbine flow)';
+  const a=turbAreaFromFlow({Wc:h.flow.v/LBMIN,Tref:288.15,pref:101325,er:null});
+  return 'published: '+h.flow.v+' lb/min peak ('+(h.flow.v/LBMIN).toFixed(3)+' kg/s), reference not stated; as an effective area '+(a.A*1e6).toFixed(0)+' mm² ('+(a.A/645.16e-6).toFixed(2)+' in²) if corrected to 59 °F and 14.696 psia at choking';
 }
 // a housing with a published flow: the verdict at peak power (and at the full-boost RPM when given)
 function arFlowVerdict(h,pk,lo){
@@ -24046,8 +24224,8 @@ function arSection(T,R,p,route){
     else v=x.ar===plan.lo&&plan.lo!==plan.hi?'smallest A/R listed: the response end':x.ar===plan.hi&&plan.lo!==plan.hi?'largest A/R listed: the top-end end':plan.lo===plan.hi?'the only A/R listed':'between';
     const dm=arDivMsg(x,mani); if(dm) v+='; <span class="hint">'+dm+'</span>';
     if(plan.step&&plan.step.i===i) v='<b>the next step '+(plan.dir==='up'?'up':'down')+' for your measured pressure</b>; '+v;
-    return '<tr data-hs="'+i+'"'+(cur===x?' data-rec="1" style="background:var(--accent-soft)"':'')+'><td>'+(+x.ar).toFixed(2)+'</td><td>'+esc(x.flange)+(x.divided===true&&!/divided|twin/i.test(x.flange)?', divided':x.divided==null?', divided not stated':'')+'</td><td>'+esc(x.outlet)+(x.outletIn?' '+inMm(x.outletIn)+(x.outlet==='4-bolt'?' discharge':' OD'):'')+'</td><td>'+(x.wg?esc(x.wg):'not stated')+'</td><td>'+(x.pn?esc(x.pn):'–')+'</td><td style="white-space:normal;min-width:16em">'+v+'</td></tr>'; }).join('');
-  h+='<div class="tblwrap"><table id="tso-hs"><thead><tr><th>A/R</th><th>Inlet flange</th><th>Outlet</th><th>Gate</th><th>Part number</th><th>Against this build</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    return '<tr data-hs="'+i+'"'+(cur===x?' data-rec="1" style="background:var(--accent-soft)"':'')+'><td>'+(+x.ar).toFixed(2)+'</td><td>'+esc(x.flange)+(x.divided===true&&!/divided|twin/i.test(x.flange)?', divided':x.divided==null?', divided not stated':'')+'</td><td>'+esc(x.outlet)+(x.outletIn?' '+inMm(x.outletIn)+(x.outlet==='4-bolt'?' discharge':' OD'):'')+'</td><td>'+(x.wg?esc(x.wg):'not stated')+'</td><td>'+(x.pn?esc(x.pn):'–')+'</td><td style="white-space:normal;min-width:16em">'+v+'</td><td style="white-space:normal;min-width:12em" data-cap="'+turbCapStatus(x)+'">'+turbCapTxt(x)+'</td></tr>'; }).join('');
+  h+='<div class="tblwrap"><table id="tso-hs"><thead><tr><th>A/R</th><th>Inlet flange</th><th>Outlet</th><th>Gate</th><th>Part number</th><th>Against this build</th><th>Turbine flow capacity</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   h+='<label class="f span2"><span class="lab">Use this turbine housing</span><span class="inp"><select class="tsox" data-k="hs"><option value="">None</option>'+order.map(({x,i})=>'<option value="'+i+'"'+(TSO.hs===String(i)?' selected':'')+'>'+esc((+x.ar).toFixed(2)+' A/R, '+x.flange+', '+x.outlet+(x.divided&&!/divided|twin/i.test(x.flange)?', divided':'')+(x.wg?', '+x.wg:''))+'</option>').join('')+'</select></span></label>';
   // this build's numbers, tied to the ordering
   let b='';
@@ -25196,7 +25374,10 @@ function tgSteps(ind,p){
       (tp?'; recommended '+tp.t.maker+' '+tp.t.model+' ('+tp.t.hp+' hp rating'+(TR.m!==1?', margin '+TR.m:'')+(tIn?', in use)':', not applied: Use this turbo)'):TR?'; no listed turbo fits the rule':'')+cmapStepLine(),'turbo-options');
     const A=TG.ar, ar=val('i-tar'), lab=$('i-thsg')&&$('i-thsg').value, probs=[];
     if(A){ if(A.div) probs.push(A.div); if(A.bellBad) probs.push('measured pressure before the turbine: '+A.bell); if(A.limit) probs.push('the housing is at its published flow limit'); }
-    add('ar','Turbine housing A/R',probs.length?'warn':ar>0?'ok':'todo',(ar>0?(+ar).toFixed(2)+' A/R'+(lab?', '+lab.replace(/^.*?: [0-9.]+ A\/R, /,''):''):'not chosen yet')+(probs.length?'; '+probs.join('; '):''),'turbo-options'); }
+    // the turbine's size (part 9): from the housing's flow when known, else found from the full-boost RPM
+    const TC=TG.tcap, cs=tsTurbCap(), tk=TC&&TC.pts&&TC.pts[0]?TC.pts[0]:null;
+    const sz=TC?'; turbine size from '+(TC.status==='typed'?'the flow you typed off its chart':TC.status==='published'?'the maker’s published flow':'the area you typed')+': '+(TC.A*1e6).toFixed(0)+' mm² effective'+(tk?', pressure before it '+((tk.p3-P_ATM)/((p.boost||0)*1000)).toFixed(2)+' × boost at peak, '+(tk.short?'gate shut, full boost not held':(tk.wg*100).toFixed(0)+'% through the wastegate'):''):ar>0?'; turbine flow '+(cs.H?'not published for this housing: type it off the maker’s turbine flow chart to size the turbine from it (the simulation otherwise finds it from your full-boost RPM)':'unknown'):'';
+    add('ar','Turbine housing A/R',probs.length?'warn':ar>0?'ok':'todo',(ar>0?(+ar).toFixed(2)+' A/R'+(lab?', '+lab.replace(/^.*?: [0-9.]+ A\/R, /,''):''):'not chosen yet')+(probs.length?'; '+probs.join('; '):'')+sz,'turbo-options'); }
   else add('turbo','Pick a supercharger','info','the turbo list is for turbochargers; size a centrifugal supercharger from its maker’s map with the airflow above'+cmapStepLine(),'turbo-and-intercooler-sizing');
   { const r=TS_REC, same=(a,b)=>a>0&&b>0&&Math.abs(a-b)<0.05, cur='inlet '+cdim(p.dt)+', hot side '+cdim(q.dh)+', cold side '+cdim(R.dc);
     const match=r&&same(p.dt,r.dt)&&same(q.dh,r.dh)&&same(R.dc,r.dc), bad=TG.route&&TG.route.bad.length;
@@ -25236,7 +25417,7 @@ function tgSteps(ind,p){
       add('exh','Exhaust side: downpipe and back pressure',probs.length?'warn':G2.miss.length||!used?'todo':'ok','downpipe '+cdim(G2.d+2*G2.w)+' OD, '+(X.X.choke?'no back pressure (chokes)':'back pressure '+F.pD(X.X.bp)+' at peak, static at the turbine outlet, the gas cooled along the pipe'+(G2.cool?'':' (cooling off)')+', compressible flow')+(G2.miss.length?' ('+G2.miss.length+' part'+(G2.miss.length>1?'s':'')+' not counted)':'')+'; '+(used?'used in the turbine balance':X.X.choke?'nothing to put in the turbine balance':'not in the turbine balance yet (Use my exhaust’s back pressure)')+(probs.length?'; '+probs.join('; '):''),'exhaust-after-the-turbine'); } }
   // the wave simulation under boost (4-Stroke tab), when a run exists
   if(TSIM_LAST){ const T=TSIM_LAST, S=T.sum, o=S.rows[S.ip], F2=tsFmt(), now=TS_LAST&&TS_LAST.R?tsimSig2(TS_LAST.R.Pt,TS_LAST.R.t3+273.15,val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75,tsP4(),val('i-afr')>0?val('i-afr'):12):'';
-    if(o) add('sim','Simulated under boost',now===T.plan.sig2?'ok':'info',F2.hp(S.hp)+' at '+o.rpm.toLocaleString('en-US')+' RPM (brake, pumping counted)'+(T.plan.turbo&&Number.isFinite(o.p3k)?'; turbine-inlet pressure '+o.p3k.toFixed(2)+' × boost (mean), '+o.p3pkk.toFixed(2)+' × at the blowdown peak; wastegate '+(100*o.share).toFixed(0)+'% of the exhaust':'')+(now===T.plan.sig2?'':'; the boost inputs changed since the run: run it again on the 4-Stroke tab'),''); }
+    if(o) add('sim','Simulated under boost',now===T.plan.sig2?'ok':'info',F2.hp(S.hp)+' at '+o.rpm.toLocaleString('en-US')+' RPM (brake, pumping counted)'+(T.plan.turbo&&Number.isFinite(o.p3k)?'; turbine-inlet pressure '+o.p3k.toFixed(2)+' × boost (mean), '+o.p3pkk.toFixed(2)+' × at the blowdown peak; wastegate '+(100*o.share).toFixed(0)+'% of the exhaust'+(S.mode==='predict'?'; turbine sized from the housing ('+(o.At*1e6).toFixed(0)+' mm²), full boost predicted '+(S.fullBoost?(S.fullBoost.at==='first'?'at or below '+S.fullBoost.rpm.toLocaleString('en-US'):'about '+(Math.round(S.fullBoost.rpm/50)*50).toLocaleString('en-US'))+' RPM':'not by the redline'):'; turbine size found from the full-boost RPM typed (no housing flow)'):'')+(now===T.plan.sig2?'':'; the boost inputs changed since the run: run it again on the 4-Stroke tab'),''); }
   add('scan','Route it from a scan','info','Fusion add-in, Charge piping from your scan: it routes the charge pipes around the scanned engine bay with these sizes'+(FUSION?'; Fusion is connected':'; it needs Fusion with the add-in (this page cannot read a scan)'),$('cr-block')?'#cr-block':'');
   add('sheet','Build sheet','info','the route drawing, every part and size, the key numbers and the assumptions, in inches and mm, as one file to save and print','');
   return S;
@@ -25266,7 +25447,8 @@ function tsSheet(){
   const bends=(list,n)=>list&&list.length?list.map(a=>Math.round(a)+'°').join(' + ')+' bends':n>0?(+n.toFixed(1))+' × 90° bends':'no bends';
   const T=TG.turbo&&TG.turbo.t, H=tsHsg();
   if(turbo){ P('Turbo'+each,T?T.maker+' '+T.model:'not chosen',T?T.pn+'; source '+T.src+' (read '+T.seen+')':'');
-    P('Turbine housing',val('i-tar')>0?(+val('i-tar')).toFixed(2)+' A/R'+(H?', '+H.flange+' inlet, '+H.outlet+' outlet'+(H.outletIn?' '+cdim(H.outletIn*25.4):''):''):'not chosen',H&&H.pn?H.pn:''); }
+    P('Turbine housing',val('i-tar')>0?(+val('i-tar')).toFixed(2)+' A/R'+(H?', '+H.flange+' inlet, '+H.outlet+' outlet'+(H.outletIn?' '+cdim(H.outletIn*25.4):''):''):'not chosen',H&&H.pn?H.pn:'');
+    { const cs=tsTurbCap(); P('Turbine size (flow capacity)',cs.A>0?(cs.A*1e6).toFixed(0)+' mm² ('+(cs.A/645.16e-6).toFixed(2)+' in²) effective':'unknown',cs.status==='typed'?'from '+cs.v+' '+cs.unit+' typed off the maker’s chart':cs.status==='published'?'the maker’s '+cs.v+' lb/min, reference not stated':'no flow published in text for this housing; type it off the maker’s turbine flow chart'); } }
   P('Compressor inlet / outlet',(q.dci>0?cdim(q.dci):'not entered')+' / '+(q.dco>0?cdim(q.dco):'not entered'),'the cover’s sizes');
   P('Inlet tube'+each,'ID '+cdim(p.dt)+', '+clen(p.lt)+' long, '+bends(p.bendAng,p.bends),'filter to compressor');
   P('Hot side pipe'+each,'OD '+cdim(q.dh+2*w)+', ID '+cdim(q.dh)+', wall '+cdim(w)+', '+clen(q.Lh)+' long, '+bends(q.angH,q.bends/2),'compressor to intercooler');
@@ -25336,7 +25518,7 @@ function tsSheet(){
       if(X.G.cool) N('Gas at the tip',F.tD(X.X.F[X.X.F.length-1].T0out-273.15));
       N('Back pressure after the turbine, worked out',X.X.choke?'chokes: none':F.pD(X.X.bp)+' static at the turbine outlet ('+F.pD(X.X.bp0)+' total)'); }
     N('Back pressure in the turbine balance',val('i-tobp')>0?F.pD(val('i-tobp')*1000):'none entered');
-    N('Pressure before the turbine',(tsTipMeasured()?'measured ':'')+(+tsTipK().toFixed(2))+' × boost, '+F.pD(tsTipK()*(p.boost||0)*1000)+' gauge');
+    N('Pressure before the turbine',(tsTipMeasured()?'measured ':'')+(+tsTipK().toFixed(2))+' × boost, '+F.pD(tsTipK()*(p.boost||0)*1000)+' gauge'+(TG.tcap&&TG.tcap.pts&&TG.tcap.pts[0]?'; from the turbine’s size: '+((TG.tcap.pts[0].p3-P_ATM)/((p.boost||0)*1000)).toFixed(2)+' × boost at peak, '+F.pD(TG.tcap.pts[0].p3-P_ATM)+' gauge, '+(TG.tcap.pts[0].short?'gate shut':(TG.tcap.pts[0].wg*100).toFixed(0)+'% through the wastegate'):''));
     if(W&&W.mw>0) N('Wastegate flow at peak',F.fl(W.mw)); }
   // the assumptions and unsourced items that apply
   const A=t=>assume.push(t);

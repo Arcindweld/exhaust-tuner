@@ -811,3 +811,38 @@ quota (P12); a measured p3 read as static (P2).
 
 Suites after Part 3 (run_all_tests.py --suite web,fusion --no-build -j 2): 145 tests, 139 passed, 0 flaky, 0 failed,
 6 skipped (expected), 7 partial skips, 0 unexpected skips.
+
+## Addendum (2026-11-13): the turbine's size from the housing picked
+
+Asked for: size the turbine from the actual wheel and housing A/R instead of finding it from the typed full-boost RPM
+(the wave simulation's closure, validation part 6, F4), with published turbine flow where it exists. Details, the
+validation and the K24 + PT5862 numbers: docs/WAVE_VALIDATION_2026-11-11.md, part 9.
+
+What the makers print in text (read 2026-11-13):
+- Garrett, G40 launch article (garrettmotion.com/knowledge-center-category/racing-and-performance/garrett-performance-
+  product-launch-g-series-g40-900-g40-1150): "G40 1.19 A/R has a max flow of 43 lbs/min", "the GTX4088R 1.19 A/R peaks at
+  37lbs", "a 16% increase in peak turbine flow"; "Max turbine wheel efficiency of the G40 turbine wheel is 76% compared to
+  the GTX4088R at 66%"; wheel 77 mm inducer, 70 mm exducer, 84 trim. No reference temperature, pressure or expansion ratio.
+- Garrett G25-660, G30-770, G35-900 and G-Series II G30-825 product pages: the turbine flow map and "exhaust flow chart" are
+  images only (not read, not digitised); text: the wheel "flows 15-20% more than GTX" (G25, G35) or "5% more" (G30) "and
+  has peak efficiency of 74%". Turbo Tech 103 (both PDFs) and the 2025 G-Series II installer guide: compressor only.
+- MotoIQ with Garrett: "Note the stated peak efficiency of 69%" (GT/GTX28), "peak efficiency of 74%!" (G25); for a
+  GTX3071R "we assumed 70% as 72% is the maximum stated on the map"; "exhaust manifold pressure is one bar higher than the
+  intake manifold pressure" as a street sizing rule.
+- BorgWarner's performance catalogue, Match-Bot example (p. 17): a matching tool's output, not a measurement, engine not
+  named: "Turbine Corrected Flow @ 59F lb/min 9.2 15.2 18.4 19 20.2 20.5", "Exhaust Manifold Pressure psi 3.2 6.6 10.9 14.4
+  17.7 21.4", "Engine Delta Pressure (dP) psi 2 3 4 3 -1 -4", "Compressor Pressure Ratio 1.36 ... 2.23", "Wastegate Flow
+  Area @ CF=0.8 in2 0.03 ... 1.11": exhaust manifold pressure 1.2 x the intake's (gauge) at the last two points, the gate open.
+  EFR data sheets (7064, 8374): no turbine flow in text.
+- Precision Turbo, PT5862 page: "a 62mm CEA turbine wheel", A/R list; no turbine flow anywhere.
+
+So every library housing but one is UNKNOWN; the G40-1150 1.19 A/R T4 is PUBLISHED (basis unstated); no published pair of
+A/Rs on one wheel was found, so none is SCALED (the page does not assume capacity in proportion to A/R; Lee et al. 2017
+found 4.3 % between volutes of one A/r). On the page: Turbo options' housing table gains "Turbine flow capacity" per row;
+the Intake tab takes the turbine flow read off the maker's chart (value, its unit and reference, the expansion ratio it was
+read at), converts it to an effective nozzle area (turbAreaFromFlow) and uses it in the steady balance (turbineAreaBalance:
+the pressure before the turbine and the gate's share at peak and at the full-boost RPM, new table "Turbine size from the
+housing you picked") and in the wave simulation (predict mode); the step-by-step guide's housing row and the build sheet
+("Turbine size (flow capacity)", "Pressure before the turbine ... from the turbine's size") say which. Tests:
+web/tests/turbine_ui.js. The housing verdict of the A/R section (actual mass flow against the maker's figure, labelled
+indicative) is unchanged.
