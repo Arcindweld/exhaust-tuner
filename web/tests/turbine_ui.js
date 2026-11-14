@@ -134,7 +134,7 @@ let chromium = null; try { ({ chromium } = require('playwright')); } catch (e) {
       '5 20 lb/min typed: ' + (tc ? (tc.A * 1e6).toFixed(2) : '-') + ' mm2 (hand 643.10), the steady table at ' + rows.length + ' speeds in kPa and psi: ' + rows.join(' / '));
     const step = await pg.$eval('#tg-steps li[data-step="ar"]', e => e.textContent).catch(() => '');
     ok(/turbine size from the flow you typed off its chart: 643 mm² effective/.test(step) && /× boost at peak/.test(step), '5 step by step, the housing row: ' + step.replace(/\s+/g, ' ').trim().slice(0, 160));
-    const sheet = await pg.evaluate(() => { try { return JSON.stringify(tsSheet()); } catch (e) { return 'error ' + e.message; } });
+    const sheet = await pg.evaluate(() => { try { return JSON.stringify(window.__tg.sheet()); } catch (e) { return "error " + e.message; } });
     ok(/Turbine size \(flow capacity\)/.test(sheet) && /643 mm²/.test(sheet) && /from the turbine’s size: [0-9.]+ × boost at peak/.test(sheet), '5 the build sheet: the turbine\'s size and the pressure before it from that size');
     await pg.click('#tab-four'); await settle(pg);
     pl = await pg.evaluate(() => { const p = window.__tsim.plan(); return { predict: p.predict, Acap: p.Acap, rpms: p.rpms, src: p.src.map(r => r.join(' | ')) }; });
