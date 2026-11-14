@@ -1,0 +1,26 @@
+{
+ "conv": [
+  {
+   "turbine": "Garrett G40-1150, 1.19 A/R T4 (77 / 70 mm wheel)",
+   "lb_min": 43,
+   "kg_s": 0.32507453183333335,
+   "mfp_std_kg_sqrtK_s_bar": 5.445975024359409,
+   "psi_choked": 0.667262351240862,
+   "A_std_mm2": 1382.7,
+   "A_atp_mm2": 1492.7,
+   "A_g135_mm2": 1364.5,
+   "A_std_if_read_at_ER2_mm2": 1382.7
+  },
+  {
+   "turbine": "Garrett GTX4088R, 1.19 A/R (Garrett: \"peaks at 37lbs\")",
+   "lb_min": 37,
+   "kg_s": 0.27971529483333335,
+   "mfp_std_kg_sqrtK_s_bar": 4.686071532588329,
+   "psi_choked": 0.667262351240862,
+   "A_std_mm2": 1189.7,
+   "A_atp_mm2": 1284.4,
+   "A_g135_mm2": 1174.1,
+   "A_std_if_read_at_ER2_mm2": 1189.7
+  }
+ ]
+}

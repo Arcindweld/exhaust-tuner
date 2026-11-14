@@ -25374,7 +25374,10 @@ function tgSteps(ind,p){
       (tp?'; recommended '+tp.t.maker+' '+tp.t.model+' ('+tp.t.hp+' hp rating'+(TR.m!==1?', margin '+TR.m:'')+(tIn?', in use)':', not applied: Use this turbo)'):TR?'; no listed turbo fits the rule':'')+cmapStepLine(),'turbo-options');
     const A=TG.ar, ar=val('i-tar'), lab=$('i-thsg')&&$('i-thsg').value, probs=[];
     if(A){ if(A.div) probs.push(A.div); if(A.bellBad) probs.push('measured pressure before the turbine: '+A.bell); if(A.limit) probs.push('the housing is at its published flow limit'); }
-    add('ar','Turbine housing A/R',probs.length?'warn':ar>0?'ok':'todo',(ar>0?(+ar).toFixed(2)+' A/R'+(lab?', '+lab.replace(/^.*?: [0-9.]+ A\/R, /,''):''):'not chosen yet')+(probs.length?'; '+probs.join('; '):''),'turbo-options'); }
+    // the turbine's size (part 9): from the housing's flow when known, else found from the full-boost RPM
+    const TC=TG.tcap, cs=tsTurbCap(), tk=TC&&TC.pts&&TC.pts[0]?TC.pts[0]:null;
+    const sz=TC?'; turbine size from '+(TC.status==='typed'?'the flow you typed off its chart':TC.status==='published'?'the maker’s published flow':'the area you typed')+': '+(TC.A*1e6).toFixed(0)+' mm² effective'+(tk?', pressure before it '+((tk.p3-P_ATM)/((p.boost||0)*1000)).toFixed(2)+' × boost at peak, '+(tk.short?'gate shut, full boost not held':(tk.wg*100).toFixed(0)+'% through the wastegate'):''):ar>0?'; turbine flow '+(cs.H?'not published for this housing: type it off the maker’s turbine flow chart to size the turbine from it (the simulation otherwise finds it from your full-boost RPM)':'unknown'):'';
+    add('ar','Turbine housing A/R',probs.length?'warn':ar>0?'ok':'todo',(ar>0?(+ar).toFixed(2)+' A/R'+(lab?', '+lab.replace(/^.*?: [0-9.]+ A\/R, /,''):''):'not chosen yet')+(probs.length?'; '+probs.join('; '):'')+sz,'turbo-options'); }
   else add('turbo','Pick a supercharger','info','the turbo list is for turbochargers; size a centrifugal supercharger from its maker’s map with the airflow above'+cmapStepLine(),'turbo-and-intercooler-sizing');
   { const r=TS_REC, same=(a,b)=>a>0&&b>0&&Math.abs(a-b)<0.05, cur='inlet '+cdim(p.dt)+', hot side '+cdim(q.dh)+', cold side '+cdim(R.dc);
     const match=r&&same(p.dt,r.dt)&&same(q.dh,r.dh)&&same(R.dc,r.dc), bad=TG.route&&TG.route.bad.length;
@@ -25414,7 +25417,7 @@ function tgSteps(ind,p){
       add('exh','Exhaust side: downpipe and back pressure',probs.length?'warn':G2.miss.length||!used?'todo':'ok','downpipe '+cdim(G2.d+2*G2.w)+' OD, '+(X.X.choke?'no back pressure (chokes)':'back pressure '+F.pD(X.X.bp)+' at peak, static at the turbine outlet, the gas cooled along the pipe'+(G2.cool?'':' (cooling off)')+', compressible flow')+(G2.miss.length?' ('+G2.miss.length+' part'+(G2.miss.length>1?'s':'')+' not counted)':'')+'; '+(used?'used in the turbine balance':X.X.choke?'nothing to put in the turbine balance':'not in the turbine balance yet (Use my exhaust’s back pressure)')+(probs.length?'; '+probs.join('; '):''),'exhaust-after-the-turbine'); } }
   // the wave simulation under boost (4-Stroke tab), when a run exists
   if(TSIM_LAST){ const T=TSIM_LAST, S=T.sum, o=S.rows[S.ip], F2=tsFmt(), now=TS_LAST&&TS_LAST.R?tsimSig2(TS_LAST.R.Pt,TS_LAST.R.t3+273.15,val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75,tsP4(),val('i-afr')>0?val('i-afr'):12):'';
-    if(o) add('sim','Simulated under boost',now===T.plan.sig2?'ok':'info',F2.hp(S.hp)+' at '+o.rpm.toLocaleString('en-US')+' RPM (brake, pumping counted)'+(T.plan.turbo&&Number.isFinite(o.p3k)?'; turbine-inlet pressure '+o.p3k.toFixed(2)+' × boost (mean), '+o.p3pkk.toFixed(2)+' × at the blowdown peak; wastegate '+(100*o.share).toFixed(0)+'% of the exhaust':'')+(now===T.plan.sig2?'':'; the boost inputs changed since the run: run it again on the 4-Stroke tab'),''); }
+    if(o) add('sim','Simulated under boost',now===T.plan.sig2?'ok':'info',F2.hp(S.hp)+' at '+o.rpm.toLocaleString('en-US')+' RPM (brake, pumping counted)'+(T.plan.turbo&&Number.isFinite(o.p3k)?'; turbine-inlet pressure '+o.p3k.toFixed(2)+' × boost (mean), '+o.p3pkk.toFixed(2)+' × at the blowdown peak; wastegate '+(100*o.share).toFixed(0)+'% of the exhaust'+(S.mode==='predict'?'; turbine sized from the housing ('+(o.At*1e6).toFixed(0)+' mm²), full boost predicted '+(S.fullBoost?(S.fullBoost.at==='first'?'at or below '+S.fullBoost.rpm.toLocaleString('en-US'):'about '+(Math.round(S.fullBoost.rpm/50)*50).toLocaleString('en-US'))+' RPM':'not by the redline'):'; turbine size found from the full-boost RPM typed (no housing flow)'):'')+(now===T.plan.sig2?'':'; the boost inputs changed since the run: run it again on the 4-Stroke tab'),''); }
   add('scan','Route it from a scan','info','Fusion add-in, Charge piping from your scan: it routes the charge pipes around the scanned engine bay with these sizes'+(FUSION?'; Fusion is connected':'; it needs Fusion with the add-in (this page cannot read a scan)'),$('cr-block')?'#cr-block':'');
   add('sheet','Build sheet','info','the route drawing, every part and size, the key numbers and the assumptions, in inches and mm, as one file to save and print','');
   return S;
@@ -25444,7 +25447,8 @@ function tsSheet(){
   const bends=(list,n)=>list&&list.length?list.map(a=>Math.round(a)+'°').join(' + ')+' bends':n>0?(+n.toFixed(1))+' × 90° bends':'no bends';
   const T=TG.turbo&&TG.turbo.t, H=tsHsg();
   if(turbo){ P('Turbo'+each,T?T.maker+' '+T.model:'not chosen',T?T.pn+'; source '+T.src+' (read '+T.seen+')':'');
-    P('Turbine housing',val('i-tar')>0?(+val('i-tar')).toFixed(2)+' A/R'+(H?', '+H.flange+' inlet, '+H.outlet+' outlet'+(H.outletIn?' '+cdim(H.outletIn*25.4):''):''):'not chosen',H&&H.pn?H.pn:''); }
+    P('Turbine housing',val('i-tar')>0?(+val('i-tar')).toFixed(2)+' A/R'+(H?', '+H.flange+' inlet, '+H.outlet+' outlet'+(H.outletIn?' '+cdim(H.outletIn*25.4):''):''):'not chosen',H&&H.pn?H.pn:'');
+    { const cs=tsTurbCap(); P('Turbine size (flow capacity)',cs.A>0?(cs.A*1e6).toFixed(0)+' mm² ('+(cs.A/645.16e-6).toFixed(2)+' in²) effective':'unknown',cs.status==='typed'?'from '+cs.v+' '+cs.unit+' typed off the maker’s chart':cs.status==='published'?'the maker’s '+cs.v+' lb/min, reference not stated':'no flow published in text for this housing; type it off the maker’s turbine flow chart'); } }
   P('Compressor inlet / outlet',(q.dci>0?cdim(q.dci):'not entered')+' / '+(q.dco>0?cdim(q.dco):'not entered'),'the cover’s sizes');
   P('Inlet tube'+each,'ID '+cdim(p.dt)+', '+clen(p.lt)+' long, '+bends(p.bendAng,p.bends),'filter to compressor');
   P('Hot side pipe'+each,'OD '+cdim(q.dh+2*w)+', ID '+cdim(q.dh)+', wall '+cdim(w)+', '+clen(q.Lh)+' long, '+bends(q.angH,q.bends/2),'compressor to intercooler');
@@ -25514,7 +25518,7 @@ function tsSheet(){
       if(X.G.cool) N('Gas at the tip',F.tD(X.X.F[X.X.F.length-1].T0out-273.15));
       N('Back pressure after the turbine, worked out',X.X.choke?'chokes: none':F.pD(X.X.bp)+' static at the turbine outlet ('+F.pD(X.X.bp0)+' total)'); }
     N('Back pressure in the turbine balance',val('i-tobp')>0?F.pD(val('i-tobp')*1000):'none entered');
-    N('Pressure before the turbine',(tsTipMeasured()?'measured ':'')+(+tsTipK().toFixed(2))+' × boost, '+F.pD(tsTipK()*(p.boost||0)*1000)+' gauge');
+    N('Pressure before the turbine',(tsTipMeasured()?'measured ':'')+(+tsTipK().toFixed(2))+' × boost, '+F.pD(tsTipK()*(p.boost||0)*1000)+' gauge'+(TG.tcap&&TG.tcap.pts&&TG.tcap.pts[0]?'; from the turbine’s size: '+((TG.tcap.pts[0].p3-P_ATM)/((p.boost||0)*1000)).toFixed(2)+' × boost at peak, '+F.pD(TG.tcap.pts[0].p3-P_ATM)+' gauge, '+(TG.tcap.pts[0].short?'gate shut':(TG.tcap.pts[0].wg*100).toFixed(0)+'% through the wastegate'):''));
     if(W&&W.mw>0) N('Wastegate flow at peak',F.fl(W.mw)); }
   // the assumptions and unsourced items that apply
   const A=t=>assume.push(t);
