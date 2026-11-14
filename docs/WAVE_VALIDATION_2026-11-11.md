@@ -2820,3 +2820,243 @@ read); turbo inertia and transient spool; any measured engine with turbine flow 
 node tools/validation/wave/turbine_cap.js          # ONLY=conv|k24|generic; k24 about 6 min
 node web/tests/turbine_ui.js                       # from web/, about 3 min
 ```
+
+## Addendum 2026-11-13, part 10: the turbine's efficiency through the pulse (blade speed ratio), bearing loss, housing heat, compressor off its island
+
+Question (part 9, I4): with a constant 75 % turbine efficiency the model says that a turbine small enough to give the
+logged 1.5-2 x boost before the turbine (about 450 mm2 on the K24) reaches full boost below 2000 rpm, which no real
+62 mm-class turbo does, and the area that gives a realistic spool (1185 mm2) equals the published capacity of a much
+larger turbine. Five candidate reasons were tested with published forms and constants only, nothing tuned to a log:
+A the efficiency is not constant but follows the blade speed ratio U/C0; B it must be applied to the instantaneous
+expansion of each pulse, not to the cycle mean; C bearing friction; D heat lost in the turbine housing before the rotor;
+E the compressor's efficiency at low flow and high pressure ratio.
+
+### J1 Sources read (2026-11-13; text only, no map image read or digitised)
+
+| source | what it gave |
+|---|---|
+| NASA SP-290, Glassman (ed.), "Turbine Design and Application" (1994), ntrs.nasa.gov/api/citations/19950015924/downloads/19950015924.pdf | ch. 2, p. 48, eq. 2-71: jet (spouting) speed "corresponding to the ideal expansion from inlet total to exit static conditions", V_j^2 = 2 g J dh_id; eq. 2-70/2-72 nu = U / V_j; pp. 49-51, eq. 2-88: for an ideal impulse stage eta = 4 nu sin(a1) - 4 nu^2, a parabola with its optimum at nu = sin(a1) / 2 (so eta / eta_max = 2 r - r^2, r = nu / nu_opt); p. 52: blade-jet speed ratio "a very good correlating parameter" for real turbines. ch. 10 (radial inflow), p. 302: the variation with blade-jet speed ratio "is very similar to that for an axial-flow turbine", the decrease from the peak "slightly more rapid". (The radial optimum's figure 10-11 is not legible in the text; no 0.7 is printed in the parts read.) |
+| Luddecke, Filsinger, Ehrhard (IHI), "On Mixed Flow Turbines for Automotive Turbocharger Applications", Int. J. Rotating Machinery 2012, 589720 (abstract via doaj.org/article/3eff1c8cd6514b36b9ea8495b7ae1fb6; the full text's host was not on the allowlist and was not worked around) | "radial turbines provide peak efficiency at speed ratios of 0.7"; at high pressure ratio and low speed "the blade speed ratio will be low" |
+| Morrison, Spence, Kim, Filsinger, Leonard, International Turbocharging Seminar 2016 (core.ac.uk/download/74406752.pdf) | the velocity ratio "represents the relationship between blade tip velocity and flow isentropic sprouting velocity"; for radial turbines "peak efficiency is typically achieved at the relatively high velocity ratio of 0.7" |
+| OpenWAM (CMT-Motores Termicos, open source), Source/ODModels/TTurbinaSimple.cpp lines 312-348 (local copy) | the standard quasi-steady treatment in a 1-D engine code: at every time step the blade speed ratio from the inlet's stagnation state, BSR = N pi D / sqrt(2 (h0 - h_is)); "nmWatson": eta = 0.004022 + 1.55766 x - 0.511626 x^2 - 0.121795 x^3 - 0.445804 x^4 for 0 < x < 1.19, else 0, times an adjustment factor (FAjustRendTurb); "nmPolinomio": a cubic through 0 with its peak at a given optimum and zero at a given maximum ratio |
+| Pakle and Jiang, "Design of a high-performance centrifugal compressor with new surge margin improvement technique for high speed turbomachinery", Propulsion and Power Research 2018 (research.birmingham.ac.uk/files/54164459/...pdf) | a turbocharger compressor "targeted for turbochargers applicable to 1.6 - 2 liter diesel engines": "a tip speed of 427 m/s having 44 mm exducer diameter", "polytropic efficiency 92% and total pressure ratio 2.5 has been taken as design point attributes", "2.5 total pressure ratio and 18 lb/min mass flow rate at 185 kRPM"; CFD "peak efficiency around 87% at 110 kRPM"; "stage efficiency can be about 81%" with the volute; its eq. 2 the backswept work input I_B = sigma (1 - lambda C_m2 cot(beta2) / U2) |
+| Deligant, Podevin, Clenci, "Mechanical Power Losses of Turbocharger at Low Speeds", Univ. Pitesti Scientific Bulletin, Automotive series XVI no. 20 (www.automotive.upit.ro/index_files/2010/2010_B_5_.pdf) | "mechanical efficiency is considered as a constant (0.8 to 0.9)" in common practice; at low speed "much lower"; at the crossing of air power and loss "mechanical efficiency is equal to 0.5"; "At lower speed more power is given to overcome friction than to compress air"; semi-floating journal bearings; the loss values are in figures only (not read) |
+| MotoIQ, "Turbo Tech: Turbo Bearings" p. 3 (Turbo by Garrett), motoiq.com/turbo-tech-turbo-bearings/3 | "the thrust bearing alone can eat up over 1000 watts of power" (no speed); a ball-bearing turbo "spools up in 75% of the time of the journal bearing turbo" (a transient, not a steady loss) |
+| Deligant, Podevin, Descombes, Energy 39 (2012) 388-394 (abstract only, ideas.repec.org) | friction measured on a torquemeter bench; no number in the abstract |
+| Garrett Turbo Tech 103 (garrettmotion.com/wp-content/uploads/2018/06/Turbo-Tech-103.pdf) | compressor efficiency falls from the islands "until the surge and choke limits are reached"; choke "where the efficiency drops below 58%"; no speed-line numbers in text |
+| Not readable or not found: Watson and Janota's book, GT-Power / Ricardo documentation (not open), HAL copy of Deligant et al. (bot check), the Hindawi full text (not on the allowlist), Precision's maps (images); no published shaft speed, work coefficient, bearing loss or turbine map for the PT5862; no reputable tuner page stating a full-boost RPM for a 62 mm-class turbo on a K24 (the forum and kit pages searched give boost and power but no RPM). | |
+
+### J2 What the closure assumed for A-E before this part
+
+| | before | where |
+|---|---|---|
+| A efficiency vs blade speed ratio | constant: the Intake tab's efficiency (75 % blank) at every moment and every speed; no shaft speed anywhere | `turbineFace` W = eta m_t dh_is; `turbineBalance`, `turbineAreaBalance` |
+| B pulse | the work was already integrated step by step (W = sum eta m_t dh_is dt per cycle, an energy integral of the instantaneous flow), so a constant efficiency gave the same as an energy-weighted mean; the steady path uses the cycle-mean state | `turbAcc`, `turbSum` |
+| C bearing loss | none beyond what the efficiency holds ("turbine x mechanical", part 6 F3) | closure `wc` |
+| D housing heat | the turbine face is the last cell of the collector, after the runners' and collector's wall heat transfer at the Turbo manifold section's steel temperature (the K24: 794 C); the volute itself loses nothing. The steady sizing uses the typed TIT (950 C blank, Garrett's design figure), and the manifold skin model takes that TIT as its gas temperature: it gives the wall, not an outlet temperature | `tsimPlan` (Ts), `mfdCalc` |
+| E compressor | one efficiency (the route's, 70 % for the K24) at every speed, at full boost and below it (`boostAt` holds the route's efficiency), i.e. the full-boost point at low RPM, near surge, is as efficient as peak power | `tsimPlan` comp, `tsimRun` boostAt |
+
+### J3 What was built
+
+- Engine (JS `wsFactory` and Rust `et_wave`, bit parity; WebAssembly rebuilt): `exhaust.turbine.bsr = {U, xo, form}`. At
+  each step with forward turbine flow: x = U / sqrt(2 dh_is) (dh_is the same total-to-static isentropic drop as the work),
+  eta_step = eta x f(x), f the parabola r (2 - r) with r = x / xo, held at 0 where negative, or Watson's polynomial / its
+  peak 0.6951808461322609 (at x 0.71205), 0 outside 0 < x < 1.19 as OpenWAM. W = eta_step m_t dh_is; the gas after the
+  turbine takes the rest (unchanged law). New output, appended to the turbine summary: the energy-weighted blade speed
+  ratio xE = sum x m_t dh_is dt / sum m_t dh_is dt. Without `bsr` the expressions are the old ones: legacy bit for bit
+  (turbineeff_ui 4 against values pinned from git 9301028; wave_wasm every existing job identical).
+- Shaft speed (page `turboShaft`): Euler's work on the impeller, dh0 = mu U2^2, dh0 = cp (T2 - T1) of the route (the
+  compressor's actual work), U2 = sqrt(dh0 / mu), N = U2 / (pi D_c2); the turbine's tip U = U2 D_t / D_c2 (one shaft).
+  mu = 0.5227 from Pakle and Jiang's design point (PR 2.5 at 427 m/s, polytropic 92 %, inlet taken at 288.15 K: assumed):
+  1004.675 x 288.15 x (2.5^(0.2857143 / 0.92) - 1) / 427^2. Wheel sizes from TURBO_LIB (PT5862: 76.2 mm compressor
+  exducer, 71 mm turbine inducer, the dealer's listing). mu is held constant over flow (the Imperial group's SAE
+  2017-24-0023: the loading coefficient at a given flow coefficient "is a weak function of speed"; its change with flow is
+  not modelled). Below full boost (`boostAt`) U follows that charge's compressor work.
+- Closure and predict mode: unchanged algorithms; the spec carries `bsr` (U at full boost; U(s) below it). The steady
+  path in the same form: `turbineBalance` / `turbineAreaBalance` with `o.bsr` take the efficiency at the steady expansion
+  ratio's x (constant cp at T3 as their work law); `turbineBalanceBsr` finds the all-exhaust expansion ratio by bisection
+  (the work per kg grows with C0 for both forms). The Intake tab's "Turbine size from the housing you picked" table gains
+  the ratio and efficiency column (`tsBsrSteady`).
+- C as an option: "Bearing friction at the full-boost shaft speed" (W, blank none), added to the compressor's power, in
+  proportion to N^2 below full boost (hydrodynamic shear: the Petroff form, torque in proportion to speed; with mu
+  constant N^2 is in proportion to dh0). No default: no source read gives a number for this turbo at a speed.
+- D, E: experiments only (J4); no page option (no sourced constants); the page says both are not modelled and points the
+  owner to the surge line on "Your compressor map".
+- Inputs (Intake tab, advanced): "Turbine efficiency through each exhaust pulse" (from the blade speed ratio, parabola:
+  default; Watson; constant: the page before), "Compressor work coefficient" (blank 0.523), "Bearing friction". Default ON
+  where the picked turbo publishes both wheel sizes; otherwise the constant efficiency, and the plan's row says why.
+
+### J4 Worked numbers (`turbine_eff.js hand`; `turbineeff_ui.js` 1-2)
+
+- Work coefficient: (2/7) / 0.92 = 0.3105590; 2.5^0.3105590 = 1.3291802; dh0 = 1004.675 x 288.15 x 0.3291802 = 95296 J/kg;
+  mu = 95296 / 427^2 = **0.52266**.
+- K24 + PT5862 at full boost (the page's plan: PR 2.810, T2 178.74 C, T1 30 C, dh0 = 149434.8 J/kg): U2 = sqrt(149434.8 /
+  0.52266) = 534.71 m/s; N = 534.71 / (pi x 0.0762) x 60 = **134 017 rpm**; turbine tip U = 534.71 x 71 / 76.2 =
+  **498.2 m/s** (1635 ft/s). (No maker's speed for this turbo was found to check it against.)
+- A steady expansion at T3 1286 K (the page's exhaust gas: gamma 1.2766, cp 1322.8 J/kg K):
+
+| expansion ratio | dh_is kJ/kg | C0 m/s | x = U / C0 | parabola f | Watson f |
+|---|---|---|---|---|---|
+| 1.3 | 94.02 | 433.6 | 1.149 | 0.589 | 0.226 |
+| 1.6 | 164.74 | 574.0 | 0.868 | 0.942 | 0.918 |
+| 2.0 | 237.26 | 688.9 | 0.723 | 0.999 | 1.000 |
+| 2.3 | 280.94 | 749.6 | 0.665 | 0.998 | 0.993 |
+| 2.8 | 340.21 | 824.9 | 0.604 | 0.981 | 0.967 |
+| 3.5 | 404.45 | 899.4 | 0.554 | 0.957 | 0.931 |
+
+  So at this shaft speed the turbine is near its optimum for the mean expansion of a street build (2-2.5) and loses most
+  in the low-pressure tail of each pulse (ratio 1.3: x 1.15, 59 % of peak on the parabola, 23 % on Watson's), not at the
+  pulse peak: the hypothesis "the shaft is slow against the pulse" is the wrong way round for this build, because the
+  compressor sets the shaft speed and it needs full boost's work at every speed.
+- Parabola: x 0.35 / 0.7 / 1.05 / 1.4 / 1.75 -> 0.75 / 1 / 0.75 / 0 / 0. Watson: 0.5 -> 0.611858375 / 0.6951808 = 0.88014;
+  1.0 -> 0.482457 / 0.6951808 = 0.69400.
+- The engine's moments (turbineeff_ui 3): with the parabola and no step clipped, W = eta [(2 / xo) xE Wis - U^2 / (2 xo^2)
+  m_t] because dh_is x = U sqrt(dh_is / 2) and dh_is x^2 = U^2 / 2; the run gives 9.0140 kW both ways (U 420, xo 5).
+- Bearing friction scaling: half way to full boost on the K24 the compressor's work is 60.2 % of full boost's, so 1000 W
+  at full boost becomes 602 W; the tip 386.5 m/s against 498.2.
+
+### J5 Controlled experiments (`turbine_eff.js`; the page's plan of the K24A2 + PT5862 0.63 T3, results/turbo_k24_page.json;
+predict mode, speeds 2000-7100; brake on part 5's net - tfmep basis, so these compare with part 9's I4; one change at a time)
+
+The illustrative values for the options without a sourced constant: C 1000 W at the full-boost shaft speed (MotoIQ /
+Garrett: the thrust bearing alone "over 1000 watts", no speed); D a 0.2 m extension of the collector at its own diameter
+and the manifold's wall temperature (794 C) standing for the volute's wetted path (about half the circumference of a
+120 mm scroll; an assumption); E 62 % compressor efficiency instead of the route's 70 %, applied at every speed (so its
+effect on the full-boost RPM, where the compressor is at low flow, is what it says; its effect at peak power overstates
+an efficiency that falls only near surge).
+
+| case | 600 mm2: full boost rpm | 600: p3 at 6600 static x boost | 1000 mm2: full boost rpm | 1000: p3 at 6600 static x boost |
+|---|---|---|---|---|
+| constant 75 % (before; legacy) | <= 2000 | 1.189 | 2963 | 0.741 |
+| A parabola (default; mu 0.523) | 2086 | 1.233 | 3232 | 0.749 |
+| A Watson | 2136 | 1.263 | 3330 | 0.756 |
+| A parabola, mu 0.45 / 0.65 | 2115 / 2068 | 1.210 / 1.283 | 3289 / 3197 | 0.744 / 0.771 |
+| C alone (1 kW) | 2034 | 1.207 | 3099 | 0.754 |
+| A + C | 2169 | 1.253 | 3311 | 0.763 |
+| D alone (0.2 m volute) | <= 2000 | 1.184 | 3056 | 0.738 |
+| A + D | 2120 | 1.226 | 3263 | 0.746 |
+| E alone (62 %) | 2149 | 1.315 | 3371 | 0.836 |
+| A + E | 2286 | 1.348 | 3565 | 0.840 |
+| A + C + D + E | 2362 | 1.358 | 3611 | 0.848 |
+
+B, the pulse's own share (`turbine_eff.js pulse`; gate shut, full boost held, the same run read two ways: the work
+integrated step by step with eta(x(t)), against eta at the cycle's mass-mean spouting velocity sqrt(2 Wis / m_t)):
+
+| area | rpm | x mass-mean | x energy-weighted | eta step by step | eta at the mean | ratio |
+|---|---|---|---|---|---|---|
+| 600 mm2, parabola | 2500 / 3500 / 5000 / 6600 | 0.699 / 0.593 / 0.493 / 0.464 | 0.686 / 0.591 / 0.492 / 0.464 | 0.722 / 0.728 / 0.684 / 0.665 | 0.750 / 0.732 / 0.684 / 0.665 | 0.963 / 0.994 / 1.000 / 1.000 |
+| 1000 mm2, parabola | same | 0.847 / 0.751 / 0.584 / 0.532 | 0.794 / 0.734 / 0.583 / 0.532 | 0.670 / 0.709 / 0.725 / 0.707 | 0.717 / 0.746 / 0.730 / 0.707 | 0.934 / 0.950 / 0.994 / 1.000 |
+| 1000 mm2, Watson | same | 0.846 / 0.751 / 0.585 / 0.532 | 0.794 / 0.733 / 0.583 / 0.532 | 0.635 / 0.678 / 0.711 / 0.684 | 0.705 / 0.747 / 0.716 / 0.684 | 0.901 / 0.908 / 0.993 / 0.999 |
+
+Read:
+- A is real but small here: the cycle efficiency falls to 69-73 % at the full-boost RPM and 70-75 % at peak power (peak
+  75 %), full boost moves 90-270 rpm later (parabola; 140-390 Watson) and p3 at peak power rises 0-5 %. The work
+  coefficient's spread (0.45-0.65) moves full boost by 50-90 rpm: the result does not hinge on it.
+- B: the model already integrated the turbine's work step by step (so with a constant efficiency it was exact for that
+  assumption); the instantaneous efficiency matters only at low engine speed with a larger turbine, where the pulses are
+  distinct: 3-10 % less work than the cycle-mean ratio would give, nothing above 5000 rpm (four cylinders on one
+  collector, nearly steady flow at the turbine). So averaging would have hidden up to a third of A's effect at 2500-3500
+  rpm, and none at peak power.
+- C: 1 kW is 3-4 % of the compressor's power at full boost low down (about 28 kW at 3500 rpm); 30-140 rpm.
+- D: a volute's extra wall changes little: the gas is already near the wall temperature's pull in the collector; the
+  extra volume damps the pulses slightly (p3 lower, not higher); 0-90 rpm.
+- E is the largest single lever: 8 points of compressor efficiency at low flow move full boost 150-400 rpm and p3 at
+  peak 10-13 % (the latter overstated, see above). It is also the one with a hard limit the model lacks: near surge a
+  real compressor cannot hold the pressure at all.
+- All four together: full boost 360-710 rpm later at 600-1185 mm2, p3 at peak +14-16 %.
+
+Generic four (`turbine_eff.js generic`, steady, part 9's case, G40-1150 wheels 88 / 77 mm, eta_max 0.76): the steady
+expansion at peak power puts x at 0.66-0.75, so the efficiency is 75.5-76 % against 76 %, p3 and the gate's share
+unchanged to 0.004 x boost and 0.2 points. The steady path agrees in form with the wave closure and confirms that the
+curve matters through the pulses and at low speed, not at peak power in steady flow.
+
+### J6 Part 9's question again: a 62 mm-class turbine on the K24, with the curve
+
+No Precision turbine data exists in text (part 9, I1), so the area is a range. Predict mode, parabola (the page's
+default), K24 + PT5862 plan; brake on the net - tfmep basis:
+
+| turbine area mm2 | full boost rpm (before / now) | p3 at 6600 total / static x boost (static gauge) | gate at 6600 | hp at 6600 | cycle efficiency at 6600 | largest gate area mm2 |
+|---|---|---|---|---|---|---|
+| 450 | <= 2000 / <= 2000 | 1.672 / 1.598 (271.5 kPa, 39.4 psi) (before 1.596 / 1.518) | 55.7 % (57.4) | 523.8 (528.5) | 70.5 % | 581 @ 7100 (623) |
+| 600 | <= 2000 / 2086 | 1.327 / 1.233 (209.6 kPa, 30.4 psi) (1.285 / 1.189) | 50.9 % (52.1) | 544.8 (547.1) | 72.0 % | 642 (674) |
+| 800 | 2305 / 2576 | 1.054 / 0.939 (159.5 kPa, 23.1 psi) (1.036 / 0.919) | 44.6 % (45.3) | 559.8 (560.6) | 73.4 % | 674 (693) |
+| 1000 | 2963 / 3232 | 0.883 / 0.749 (127.3 kPa, 18.5 psi) (0.876 / 0.741) | 38.5 % (38.8) | 567.2 (567.5) | 74.3 % | 659 (672) |
+| 1185 | 3499 / 3695 | 0.773 / 0.623 (105.9 kPa, 15.4 psi) (0.771 / 0.620) | 32.8 % (32.9) | 570.9 (570.9) | 74.7 % | 622 (624) |
+
+With everything (A + C + D + E at the illustrative values): 450 mm2 <= 2000 rpm, 1.748 static x; 600: 2362, 1.358;
+800: 3016, 1.045; 1000: 3611, 0.848; 1185: 4058, 0.718.
+
+The closure (the area found for full boost at a typed RPM, `turbine_eff.js closure`):
+
+| full boost at | area: constant / parabola / Watson mm2 | p3 at 6600 static x boost: constant / parabola / Watson |
+|---|---|---|
+| 3500 rpm | 1185 / 1091 / 1053 | 0.620 / 0.681 / 0.713 |
+| 4000 rpm | 1415 / 1339 / 1310 | 0.506 / 0.541 / 0.557 |
+| 4500 rpm | 1622 / 1557 / 1534 | 0.427 / 0.448 / 0.459 |
+
+Against the references:
+- (a) the logged 1.5-2 x boost before the turbine (part 6, static, street builds): reached only by 450-500 mm2, which
+  still makes full boost at or below 2000 rpm with or without the curve.
+- (b) Garrett's street rule (MotoIQ, part 9): exhaust manifold about one bar above the intake: at 170 kPa boost, p3 about
+  270 kPa gauge, 1.59 x boost: the same 450 mm2 class.
+- (c) a full-boost speed of about 4000-4500 rpm for this class (the brief's figure; no reputable tuner source stating an
+  RPM for a 62 mm-class turbo on a K24 was found this session; part 9's Garrett GTX3076R on a 1.9 L Honda: "full spool"
+  at 5,250 rpm on a dyno): needs 1340-1560 mm2 with the curve, giving p3 0.45-0.54 x boost static at peak power, a third
+  of the logs.
+
+**The gap partly closes, and only a little.** The efficiency through the pulse is the right physics and is now in, but
+it moves full boost 100-300 rpm and p3 by up to 5 %; with generous bearing loss, a volute and a poorer compressor at low
+flow it reaches 360-710 rpm and 15 %, against the 2000+ rpm and 2-3 x in p3 the logs ask for. The remaining causes must
+lie elsewhere; the candidates, none tested here for want of sources: (1) the compressor's surge line (a 58 mm wheel at
+PR 2.8 below 3000 rpm is very likely left of it: the boost the model "holds" there is not available, whatever the
+turbine); (2) transient spool on a pull (turbo inertia, part 9); (3) the turbine's flow capacity against expansion ratio
+and speed (one equivalent nozzle chokes at 1.83, a radial turbine's flow keeps rising; Payri et al.'s variable area),
+which would make a turbine whose peak area is small pass less at low expansion; (4) the model's hot exhaust (part 2, A6).
+
+### J7 The K24 guidance, before / after (the page's default: no housing flow, so the closure finds the area for full boost at
+the typed 3500 rpm; turbineeff_ui 6, the page's own run, page brake as part 6 F6)
+
+- Turbine effective area 1185 -> **1091 mm2** (1.69 in2): a less efficient turbine low down needs a smaller one for the
+  same full-boost RPM.
+- Peak brake power 589 hp @ 7100 rpm -> **588.5 hp @ 7100** (after pumping loss; 439 kW).
+- Pressure before the turbine at peak power 0.78 -> **0.84 x boost** mean total (**0.69 x** static), 1.10 x at the
+  blowdown peak.
+- Wastegate share at peak power 34.6 % -> **37.2 %**; the most the gate opens 627 -> **647 mm2** (1.00 in2), 28.7 mm
+  (1.13 in) at Cd 1: the smallest listed valve whose seat holds it is still **38 mm** (TS_WG_MM; the Intake tab's own
+  gate sizing at its assumed 2 x boost is unchanged: it does not use the curve). A real valve needs more lift by 1 / Cd.
+- Cycle efficiency through the pulses 68.9 % at 3500 rpm rising to 74.5 % at 6600-7100 rpm (peak 75 %); energy-weighted
+  ratio 0.76 -> 0.65.
+- A/R advice: unchanged in direction (a smaller A/R still reaches full boost sooner and runs a higher p3); the page adds
+  that the curve moves full boost only about 100-300 rpm.
+
+### J8 Tests, pinned values
+
+- `web/tests/turbineeff_ui.js` (new; Node + Playwright, 23 checks, about 5 minutes): the work coefficient and the K24's
+  shaft and tip speed by hand; the blade speed ratio of a worked expansion; the parabola and Watson values; the engine's
+  moments identity (1e-9); JS / Rust parity with the curve; the legacy switch: predict mode at 800 mm2 without `bsr`
+  equal to the last digit to values pinned from git 9301028 (`turbineeff_pins.json`); the steady balance with the curve
+  against turbineBalance at that efficiency; friction monotonic and scaled with N^2; full boost later with the curve and
+  later with a larger turbine; the page (input, plan rows, steady column, a run, the build sheet and the step row).
+- `web/tests/wave_wasm.js`: two jobs added (the parabola with areas changed between speeds; Watson on a divided housing
+  with the gate to the air); the turbine summary's new last value compared; every existing job identical.
+- Pinned values changed: none (see the suite line below; the existing turbo tests check the captured plan, which has no
+  `bsr`, or qualitative behaviour of the page's run).
+- Engine: JS and Rust changed in parity, WebAssembly rebuilt; every naturally aspirated and constant-efficiency job bit for
+  bit (wave_wasm, turbineeff_ui 4).
+
+### J9 Not done, unknown
+
+The PT5862's turbine map, its shaft speed at any point and its compressor's work coefficient, blade count and backsweep
+(the 0.523 is one published wheel's design point); turbo bearing loss for this turbo at a speed (no readable number);
+the volute's heat loss (no source with a number); compressor efficiency off the island and the surge line (makers' maps
+are images; the owner can mark them on "Your compressor map"); a radial turbine's efficiency at x above about 1.2 (the
+parabola holds 0 there, Watson's is 0 above 1.19; neither lets the rotor absorb work, which a real one can); the shaft
+speed's swing over a cycle; on-engine efficiency measurements under pulsing flow.
+
+### J10 How to rerun
+
+```
+node tools/validation/wave/turbine_eff.js          # ONLY=hand|k24|closure|pulse|generic; all about 35 min
+node web/tests/turbineeff_ui.js                    # from web/, about 5 min
+QUICK=1 node web/tests/wave_wasm.js                # parity incl. the two blade-speed-ratio jobs
+```

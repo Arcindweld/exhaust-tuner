@@ -1994,3 +1994,21 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Tests: web/tests/turbine_ui.js (new, 23 checks). No pinned value changed. Suite (web,parity, -j 2, --skip-slow): 131
   tests, 124 passed, 0 failed, 7 skipped, 7 partial skips, 0 unexpected, 1431 s. Details: docs/WAVE_VALIDATION_2026-11-11.md
   part 9; docs/BOOST_AUDIT_2026-11-12.md addendum; tools/validation/wave/turbine_cap.js.
+
+## 2026-11-13, part 10: the turbine's efficiency through the pulse (blade speed ratio); bearing loss, volute heat, compressor off its island
+
+- Engine (JS wsFactory + Rust et_wave, bit parity, WebAssembly rebuilt): `exhaust.turbine.bsr {U, xo, form}`: the
+  efficiency at each step from x = U / sqrt(2 dh_is): parabola 2r - r^2, r = x / 0.7 (NASA SP-290 eq. 2-88; 0.7: Luddecke
+  et al. 2012, Morrison et al. 2016) or Watson's polynomial (OpenWAM TTurbinaSimple.cpp). New last value of the turbine
+  summary: the energy-weighted ratio xE. Without bsr: bit for bit as before.
+- Page: `turboShaft` (dh0 = mu U2^2, TURBO_MU 0.523 from Pakle and Jiang 2018's design point; U = U2 Dt / Dc from
+  TURBO_LIB), `bsrEff`, `turbineBalanceBsr`, `turbineAreaBalance` with bsr/fric, `tsBsrSteady`; tsimPlan sets bsr when
+  the picked turbo has both wheel sizes; boostAt slows the shaft below full boost; friction option scaled with N^2.
+  Intake inputs i-teffm (blade speed ratio parabola / Watson / constant), i-tmu, i-tfric. Results row "Turbine efficiency
+  through the pulses", gate valve from the run (tsimGateTxt), step-by-step and build-sheet rows, A/R note, method text.
+- K24 + PT5862 (page default): area 1185 -> 1091 mm2, 589 -> 588.5 hp @ 7100, p3 0.78 -> 0.84 x boost, gate 34.6 -> 37.2 %,
+  gate valve still 38 mm. Predict mode 450-1185 mm2: full boost +90-270 rpm, p3 +0-5 %; with friction, volute and a
+  poorer compressor low down +360-710 rpm, +14-16 %. Gap to the logs (1.5-2 x with a 4000-4500 rpm spool): partly closed,
+  a little.
+- Tests: web/tests/turbineeff_ui.js (new, 23 checks, pins in turbineeff_pins.json from git 9301028), wave_wasm.js (+2 jobs).
+  No pinned value changed. Details: docs/WAVE_VALIDATION_2026-11-11.md part 10; tools/validation/wave/turbine_eff.js.
