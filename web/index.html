@@ -20247,14 +20247,14 @@ function tsimWorkerSrc(){
 // one run: the turbo (the closure, or the supercharged sweep), then the same pipes without boost
 function tsimRun(TL,j,post){
   const mkB=s=>TL.rustBackend?TL.rustBackend(s,j.dx):TL.jsBackend(s,j.dx);
-  const nR=j.rpms.length, nT=(j.sc?3:2)*nR, wc=m=>m*j.wcPer;
+  const nR=j.rpms.length, nT=(j.sc?3:2)*nR, wc=m=>m*j.wcPer, eta0=j.turbo&&j.spec.exhaust.turbine?j.spec.exhaust.turbine.eta:NaN;
   const withEta=(s,e)=>Object.assign({},s,{exhaust:Object.assign({},s.exhaust,{turbine:Object.assign({},s.exhaust.turbine,{eta:e})})});
   const out={rows:[],na:[]}; let B=null;
   try{
     // a measured pressure before the turbine (Intake tab), no typed area: the calibration (turboSimLib.calibrate) gives
     // the area and the efficiency at the full-boost RPM; the closure then holds both and finds the gate above it
     if(j.turbo&&j.p3m>0&&!(j.At>0)){ post({type:'progress',i:0,n:nT,label:'Calibrating the turbine to the measured pressure before it at '+j.rpms[0]+' RPM'});
-      const C=TL.calibrate(mkB,j.spec,{rpm:j.rpms[0],p3:j.p3m,wc,A0:j.A0,eta:j.eta}); B=C.B;
+      const C=TL.calibrate(mkB,j.spec,{rpm:j.rpms[0],p3:j.p3m,wc,A0:j.A0,eta:eta0}); B=C.B;
       out.calib={At:C.At,eta:C.eta,ok:C.ok,over:C.over,it:C.it,p3s:C.res.turb.p3s,p3:C.res.turb.p3,target:j.p3m}; }
     else B=mkB(j.spec);
     out.Vd=B.Vd;
@@ -20263,10 +20263,10 @@ function tsimRun(TL,j,post){
   } finally { if(B) B.drop(); }
   // how much the found area rests on the two typed numbers (part 6, F4): the same closure at the speed of peak power
   // with the turbine 10 points less efficient, and with full boost 1000 RPM later (the area found again each time)
-  if(j.turbo&&!(j.At>0)&&!out.calib&&j.sens!==false&&out.rows.length){
+  if(j.turbo&&!(j.At>0)&&!out.calib&&j.sens!==false&&out.rows.length&&eta0>0){
     const f=TL.WS.tfmep, bp=r=>(r.res.imep-f(r.rpm))*r.rpm, pk=out.rows.reduce((b,r,i)=>bp(r)>bp(out.rows[b])?i:b,0), rp=out.rows[pk].rpm, lo=j.rpms[0];
-    const cases=[{eta:Math.max(0.3,Math.round((j.eta-0.1)*100)/100),lo}].concat(lo+1000<=rp-200?[{eta:j.eta,lo:lo+1000}]:[]);
-    out.sens=cases.map((c,k)=>{ post({type:'progress',i:nT-1,n:nT,label:'Sensitivity '+(k+1)+' of '+cases.length+': '+(c.eta!==j.eta?'turbine efficiency '+Math.round(100*c.eta)+'%':'full boost at '+c.lo+' RPM')});
+    const cases=[{eta:Math.max(0.3,Math.round((eta0-0.1)*100)/100),lo}].concat(lo+1000<=rp-200?[{eta:eta0,lo:lo+1000}]:[]);
+    out.sens=cases.map((c,k)=>{ post({type:'progress',i:nT-1,n:nT,label:'Sensitivity '+(k+1)+' of '+cases.length+': '+(c.eta!==eta0?'turbine efficiency '+Math.round(100*c.eta)+'%':'full boost at '+c.lo+' RPM')});
       const Bs=mkB(withEta(j.spec,c.eta)); try{ return {eta:c.eta,lo:c.lo,rpm:rp,rows:TL.closure(Bs,{rpms:[c.lo,rp],wc,A0:out.rows[0].At})}; } finally { Bs.drop(); } });
   }
   B=mkB(j.na);

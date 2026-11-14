@@ -63,6 +63,12 @@ const { reads, settle } = require('./settle');
   const drawn = await pg.evaluate(() => ({ a: document.querySelectorAll('#tsim-svg polyline').length, b: document.querySelectorAll('#tsim-p3 polyline').length, rows: document.querySelectorAll('#tsim-tbl tbody tr').length }));
   ok(drawn.a === 3 && drawn.b >= 1 && drawn.rows === 8 && /Peak power under boost/.test(t4) && /× boost/.test(t4) && /Not modelled/.test(t4) && /knock/.test(t4), 'results drawn: torque chart (3 lines), the pressure before the turbine over a cycle, the table (8 speeds), the lines and the limits (knock, enrichment, retard not modelled)');
   ok(/lb-ft/.test(t4) && /N·m/.test(t4) && /psi/.test(t4) && /kPa/.test(t4) && /°F/.test(t4) && /°C/.test(t4), 'both unit systems in the results');
+  // audit part 6 (F4, F6, F7): the area presented as what the turbine would have to be, the sensitivity beside it, the
+  // comparison with the tab's assumed multiple explained, the brake's definition exact, the gap to the tab's target explained
+  ok(/would have to be to give full boost at/.test(t4) && /How much rests on the typed numbers/.test(t4) && /at 65% efficiency/.test(t4) && /full boost at 4,500 RPM/.test(t4) && S && S.sum.sens && S.sum.sens.length === 2,
+    'the turbine\'s area reads as what it would have to be at the typed full-boost RPM and efficiency, with the sensitivity (' + (S && S.sum.sens ? S.sum.sens.map(c => 'eta ' + c.eta + ' / ' + c.lo + ' rpm: ' + c.p3k.toFixed(2) + ' x, ' + c.hp.toFixed(0) + ' hp').join('; ') : 'none') + ')');
+  ok(/static mean \(what a pressure tap reads\)/.test(t4) && /Logged pre-turbine pressures/.test(t4) && /Trust a measured pressure/.test(t4) && !/the truth is between/.test(t4), 'the pressure before the turbine: total and static, set against logged figures and the tab\'s assumption, which to trust for what');
+  ok(/Heywood’s motored friction with its own wide-open pumping loop taken out/.test(t4) && /Against the Intake tab’s 450 hp/.test(t4) && /lb\/hp·h/.test(t4) && /knock/.test(t4) && /4 to 16 %/.test(t4), 'brake defined exactly; the gap to the 450 hp target explained (Garrett\'s airflow and BSFC against the run\'s, knock and enrichment, the NA ratings)');
   // fed back to the Intake tab
   let ti2 = await intakeText();
   ok(/from the wave simulation/.test(ti2), 'the Turbo manifold section gives the blowdown peak "from the wave simulation"');
@@ -77,6 +83,11 @@ const { reads, settle } = require('./settle');
   await pg.click('#tab-intake'); await settle(pg); await setv('i-tsa', '1100'); await setv('i-tsw', '0');
   const P2 = await pg.evaluate(() => { const p = window.__tsim.plan(); return { At: p.Aty, Ag: p.Agy, CdA: p.spec.exhaust.turbine.CdA, wg: p.spec.exhaust.turbine.wgCdA }; });
   ok(Math.abs(P2.At - 1.1e-3) < 1e-15 && P2.Ag === 0 && P2.CdA === P2.At && P2.wg === 0, 'typed turbine area 1100 mm2 and gate 0 reach the run');
+  // a measured pressure before the turbine (gauge) asks the run for the calibration (turboSimLib.calibrate) when no area is typed
+  await setv('i-tsa', ''); await setv('i-tsw', ''); await setv('i-p3m', '300');
+  const P2m = await pg.evaluate(() => { const p = window.__tsim.plan(); return { p3m: p.p3m, src: p.src.map(r => r.join(' | ')) }; });
+  ok(Math.abs(P2m.p3m - (101325 + 300e3)) < 1e-6 && P2m.src.some(r => /Measured pressure before the turbine/.test(r) && /calibration/.test(r)), 'a measured 300 kPa before the turbine reaches the run as the calibration target (' + (P2m.p3m / 1000).toFixed(3) + ' kPa absolute)');
+  await setv('i-p3m', '');
   await setv('i-tsa', ''); await setv('i-tsw', ''); await setv('i-ind', 'centri');
   const P3 = await pg.evaluate(() => { const p = window.__tsim.plan(); return { t: !!p.spec.exhaust.turbine, pOut: p.spec.exhaust.pOut, src: p.spec.intake.source }; });
   t4 = await fourText();

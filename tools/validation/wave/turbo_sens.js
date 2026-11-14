@@ -60,6 +60,22 @@ if ((!ONLY || ONLY === 'calib') && TL.calibrate) {
   } finally { c.B.drop(); }
 }
 }
+if (!ONLY || ONLY === 'page') {
+  // the page's run as it now is (tsimRun: the closure, the sensitivity closures, the runs without boost), the brake on the
+  // page's definitions: new = net - (tfmep - the NA run's pumping mep), old = net - tfmep, gross = gross - tfmep
+  const tsimRun = new Function(cut('function tsimRun(TL,j,post){', 'function tsimStart(){') + '\nreturn tsimRun;')();
+  const job = { spec: P.spec, na: P.na, sc: P.sc, rpms: P.rpms, dx: P.dx, turbo: true, A0: P.A0, At: null, Ag: null, wcPer: P.wcPer, eta: P.eta, p3m: null };
+  const o = tsimRun(TL, job, () => {}); VD = o.Vd;
+  const rows = o.rows.map((w, i) => { const r = w.res, na = o.na[i], f = WS.tfmep(w.rpm), pm = na.gimep - na.imep;
+    return { rpm: w.rpm, hpNew: hp(tq(r.imep - f + pm), w.rpm), hpOld: hp(tq(r.imep - f), w.rpm), hpGross: hp(tq(r.gimep - f), w.rpm), pmepNA_kPa: pm / 1000, pmep_kPa: (r.gimep - r.imep) / 1000, p3k: gx(r.turb.p3), p3sk: gx(r.turb.p3s), mAir: r.turb.mAir }; });
+  const pk = rows.reduce((b, x, i) => x.hpNew > rows[b].hpNew ? i : b, 0), air = rows[pk].mAir;
+  res.page = { rows, pk: rows[pk], bsfc: air / P.afr * 3600 / 0.45359237 / rows[pk].hpNew, air_lbmin: air / 0.45359237 * 60,
+    sens: (o.sens || []).map(c => { const w = c.rows[c.rows.length - 1], k = o.na.findIndex(x => x.rpm === w.rpm), na = o.na[k], f = WS.tfmep(w.rpm);
+      return { eta: c.eta, lo: c.lo, rpm: w.rpm, At_mm2: c.rows[0].At * 1e6, p3k: gx(w.res.turb.p3), p3pkk: gx(w.res.turb.p3pk), share: w.res.turb.mg / (w.res.turb.mt + w.res.turb.mg), hp: hp(tq(w.res.imep - f + na.gimep - na.imep), w.rpm) }; }) };
+  console.log('page run: peak brake ' + rows[pk].hpNew.toFixed(1) + ' hp @ ' + rows[pk].rpm + ' (before: net - tfmep ' + Math.max(...rows.map(x => x.hpOld)).toFixed(1) + ', gross ' + Math.max(...rows.map(x => x.hpGross)).toFixed(1) + '); BSFC ' + res.page.bsfc.toFixed(3) + ', air ' + res.page.air_lbmin.toFixed(1) + ' lb/min');
+  for (const x of rows) console.log('  ' + x.rpm + ': new ' + x.hpNew.toFixed(1) + ', net-tfmep ' + x.hpOld.toFixed(1) + ', gross ' + x.hpGross.toFixed(1) + ' hp; pmep ' + x.pmep_kPa.toFixed(1) + ', NA pmep ' + x.pmepNA_kPa.toFixed(1) + ' kPa; p3 ' + x.p3k.toFixed(2) + ' x total, ' + x.p3sk.toFixed(2) + ' x static');
+  for (const c of res.page.sens) console.log('  sensitivity eta ' + c.eta + ', full boost ' + c.lo + ': area ' + c.At_mm2.toFixed(0) + ' mm2, at ' + c.rpm + ' p3 ' + c.p3k.toFixed(2) + ' x (peak ' + c.p3pkk.toFixed(2) + '), gate ' + (100 * c.share).toFixed(1) + ' %, ' + c.hp.toFixed(1) + ' hp');
+}
 fs.writeFileSync(path.join(__dirname, 'results', 'turbo_sens' + (ONLY ? '_' + ONLY : '') + '.json'), JSON.stringify(res, null, 1));
 if (res.grid.length) {
   const f = (x, d) => Number.isFinite(x) ? x.toFixed(d) : '-';
