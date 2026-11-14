@@ -28,7 +28,7 @@
 'use strict';
 const fs = require('fs'), path = require('path');
 const { load, PAGE } = require('./lib');
-const args = Object.fromEntries(process.argv.slice(2).map(a => { const i = a.indexOf('='); return [a.slice(0, i), a.slice(i + 1)]; }));
+let args = Object.fromEntries(process.argv.slice(2).map(a => { const i = a.indexOf('='); return [a.slice(0, i), a.slice(i + 1)]; }));
 const WS = load({ hook: true });
 const html = fs.readFileSync(PAGE, 'utf8');
 const lib = (() => {
@@ -90,6 +90,7 @@ function specOf(c) {
   }
   return spec;
 }
+function main() {
 const out = { page: path.relative(path.resolve(__dirname, '..', '..', '..'), PAGE), args, rpms, engines: {} };   // relative: no local paths in the results
 for (const k of engines) {
   const c = lib.find(x => x.k === k); if (!c) throw new Error('no CAM_LIB entry ' + k);
@@ -133,3 +134,7 @@ for (const k of engines) {
 const f = path.join(__dirname, 'results', 'ratings_' + (args.tag || 'run') + '.json');
 fs.writeFileSync(f, JSON.stringify(out));
 process.stderr.write('wrote ' + f + '\n');
+}
+// energy_balance.js (part 7) builds the same engines: specOf with its own arguments
+if (require.main === module) main();
+else module.exports = { specOf: (c, a) => { const keep = args; args = a; try { return specOf(c); } finally { args = keep; } }, lib, RATED, WS };
