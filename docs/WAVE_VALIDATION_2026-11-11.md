@@ -1981,8 +1981,9 @@ as the ceiling of an engine that could hold this burn. (`turbosim_ui.js` checks 
 
 JS against Rust (WebAssembly) through the closure over two speeds, every result and turbine double compared: a divided
 turbine on two collectors with an internal gate (engine gas, AFR 12.3), 0 of 2930 differ; the constant gas with the gate to
-the air, 0 of 1490. The solver, `et_wave` and the embedded WebAssembly are not changed by this part, so the naturally
-aspirated results (kat.js 66/66, constref) cannot move; the suite reran them (F10). Conservation: F1.
+the air, 0 of 1490. The solver, `et_wave` and the embedded WebAssembly are not changed by this part (`git diff 3380685` touches neither `wsFactory` nor
+`WAVE_WASM_B64`), so the naturally aspirated results cannot move: kat.js rerun, 66 of 66 criteria, `results/kat.json`
+byte-identical; wave_wasm (every job, the turbo jobs included) passed in the suite (F10); constref not rerun. Conservation: F1.
 
 ### F9 Sound after the turbine: the coupling CORRECT, the attenuation numbers LIMITATION (caveat strengthened)
 
@@ -2019,6 +2020,9 @@ the difference is the nozzle's effect on the firing pulses, with this check's ag
 - Scripts and results: `tools/validation/wave/turbo_audit.js`, `turbo_audit.py`, `turbo_sens.js`; `results/turbo_audit*.json`,
   `turbo_sens_*.json`, `turbo_k24_page.json` and `turbo_k24.json` recaptured (`CAPTURE=1 node web/tests/turbosim_ui.js`).
 - Pinned values changed: none in the solver's tests; E7's brake column is superseded by F6 (589 hp @ 7100 rpm).
+- Suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, 2026-11-13, part 6): 130 tests,
+  123 passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips, 0 unexpected, 1315 s (turboaudit_ui 84 s, turbosim_ui 41 s,
+  waveturbo_ui, wave_wasm, wavekat_ui passed). `cargo test -p et_wave` not run (the solver is unchanged).
 
 ### F11 Not verified
 
