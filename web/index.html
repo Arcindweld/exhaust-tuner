@@ -25567,6 +25567,7 @@ function tgChecklist(ind,p){
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-tgo]'); if(!b) return;
   const g=b.dataset.tgo, el=g[0]==='#'?$(g.slice(1)):document.querySelector('#i-details .sec[data-sec="'+g+'"]'); if(!el) return;
   if(el.tagName==='DETAILS') el.open=true;
+  const pan=el.closest('section.panel'); if(pan&&pan.hidden&&panelTab(pan)){ location.hash=panelTab(pan); setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),80); return; }
   el.scrollIntoView({behavior:'smooth',block:'start'}); if(el.tagName==='INPUT') el.focus({preventScroll:true}); });
 /* ----- Turbo build sheet: one self-contained file to save and print (2026-11-12) -----
    The Quick tab's build sheet's way (parts in flow order with sizes and where they go, then the numbers and notes), as an
@@ -25729,7 +25730,7 @@ function tsMeasure(turbo){
 // where an input is, in words: its label, tab, group and whether it sits under advanced inputs
 function fieldWhere(id){ const el=$(id); if(!el) return ''; const l=el.closest('label'), pan=el.closest('section.panel'), w=el.closest('[id$="-wrap"]')||el.closest('form');
   let g=''; if(w){ const gg=w.querySelector('.grp'); if(gg) g=gg.textContent; }
-  const tab=pan?(($('tab-'+pan.id.slice(6))||{}).textContent||'').trim():'';
+  const tb=pan&&document.querySelector('[role=tab][aria-controls="'+pan.id+'"]'), tab=tb?tb.textContent.trim():'';
   return '“'+(l?advName(l):id)+'” ('+[tab&&tab+' tab',g,el.closest('.advbox')?'advanced inputs':''].filter(Boolean).join(', ')+')'; }
 // the two lists under the checklist keep their open or shut state across re-renders
 const TG_OPEN={'tg-measure':false,'tg-words':false};
@@ -25790,7 +25791,12 @@ function tgGlance(ind,p){
     add('run','Manifold runners',part(/^Runners/),'','turbo-manifold'); add('col','Manifold collector',part(/^Collector/),'','turbo-manifold');
     add('dp','Downpipe',part(/^Downpipe/),'','exhaust-after-the-turbine');
     const fe=part(/^Turbo oil feed$/), dr=part(/^Turbo oil drain$/);
-    if(fe&&dr) rows.push({k:'oil',label:'Turbo oil feed / drain',v:fe[1]+' / '+dr[1],note:'',go:'oil-cooling-and-turbo-oil-lines'}); }
+    if(fe&&dr) rows.push({k:'oil',label:'Turbo oil feed / drain',v:fe[1]+' / '+dr[1],note:'',go:'oil-cooling-and-turbo-oil-lines'});
+    // the pressure before the turbine: what the steady sections assume (the sheet's key number) against the simulation's
+    const p3=sh.nums.find(n=>/^Pressure before the turbine/.test(n[0])), so=sim&&T&&T.sum?T.sum.rows[T.sum.ip]:null;
+    if(p3) rows.push({k:'p3',label:'Pressure before the turbine (p3)',v:p3[1],note:(tsTipMeasured()?'measured by you; ':'an assumption until measured (What to measure, under the steps); ')+'the wastegate size and the turbine balance use it.'+(so&&Number.isFinite(so.p3k)?' The wave simulation found '+so.p3k.toFixed(2)+' × boost (mean; '+so.p3pkk.toFixed(2)+' × at the blowdown peak) at '+so.rpm.toLocaleString('en-US')+' RPM'+(T.sum.mode==='predict'?' with the turbine of the housing picked':' with a turbine sized from the full-boost RPM typed')+': the two differ, and a measurement settles it.':''),go:'turbo-and-intercooler-sizing'});
+    const mr=sh.parts.filter(r=>/^Mount \d|^Isolators$/.test(r[0]));
+    rows.push({k:'mounts',label:'Brackets (mounts)',v:mr.length?mr.map(r=>r[0]+': '+r[1]).join('; '):'not designed yet',note:mr.length?'':'the Mounts designer on the Hangers tab sizes the intercooler, oil cooler and turbo brackets',go:'#mt-card'}); }
   const warn=(TG.steps||[]).filter(s=>s.state==='warn');
   return '<div class="glance" id="tg-glance"><h3>Your '+(turbo?'turbo':'supercharger')+' build at a glance</h3><p class="cap" style="margin-top:0">The parts and sizes to cut and order, in inches and mm, read from the sections below and the build sheet. Go takes you to the section that works each one out.</p>'+
     (warn.length?'<div class="note warn" id="tg-glance-warn">'+warn.length+' step'+(warn.length>1?'s report':' reports')+' a problem: '+warn.map(s=>esc(s.title)).join(', ')+' (see Turbo build, step by step).</div>':'')+
@@ -26474,8 +26480,10 @@ function advOpen(box,open){ if(!box) return; box.classList.toggle('open',open); 
   const st=advOpenGet(); st[box.dataset.advbox]=open?1:0; try{ localStorage.setItem('exhaust-adv-open',JSON.stringify(st)); }catch(e){} }
 document.addEventListener('click',e=>{ const b=e.target.closest('.advbox > .advhd'); if(!b) return; const box=b.parentElement; advOpen(box,!box.classList.contains('open')); });
 // a link to an input anywhere on the page ("type it in …"): opens its tab and its advanced box, scrolls to it and focuses it
+// the tab name (location.hash) that shows a panel
+const panelTab=pan=>{ const t=document.querySelector('[role=tab][aria-controls="'+pan.id+'"]'); return t?t.dataset.tab:''; };
 function goField(id){ const el=$(id); if(!el) return false; const pan=el.closest('section.panel');
-  if(pan&&pan.hidden&&pan.id.startsWith('panel-')) location.hash=pan.id.slice(6);
+  if(pan&&pan.hidden&&panelTab(pan)) location.hash=panelTab(pan);
   const box=el.closest('.advbox'); if(box&&!box.classList.contains('open')) advOpen(box,true);
   setTimeout(()=>{ const l=el.closest('label')||el; l.scrollIntoView({behavior:'smooth',block:'center'}); el.focus({preventScroll:true}); },60); return true; }
 document.addEventListener('click',e=>{ const a=e.target.closest('[data-field]'); if(!a) return; e.preventDefault(); goField(a.dataset.field); });

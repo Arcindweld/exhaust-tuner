@@ -69,7 +69,7 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   const order = await pg.$$eval('#i-details .sec', s => s.map(x => x.dataset.sec));
   ok(order[0] === 'turbo-build-step-by-step' && order.indexOf('exhaust-after-the-turbine') < order.indexOf('airflow-and-tube-size'), 'the turbo sections come straight after the step-by-step list, before the inlet tube’s (' + order.slice(0, 4).join(', ') + ' …)');
   const G = await glance(pg);
-  const want = ['power', 'turbo', 'hsg', 'comp', 'co', 'inlet', 'hot', 'ic', 'cold', 'tb', 'bov', 'wg', 'run', 'col', 'dp', 'oil'];
+  const want = ['power', 'turbo', 'hsg', 'comp', 'co', 'inlet', 'hot', 'ic', 'cold', 'tb', 'bov', 'wg', 'run', 'col', 'dp', 'oil', 'p3', 'mounts'];
   ok(want.every(k => G[k]), 'glance rows: ' + Object.keys(G).join(', ') + (want.filter(k => !G[k]).length ? ' (missing ' + want.filter(k => !G[k]).join(', ') + ')' : ''));
   ok(Object.keys(G).filter(k => k !== 'power').every(k => G[k].go), 'every size row has a Go button to its section');
   // the glance card against the sections' own results (single source: the card reads the build sheet's rows)
@@ -96,6 +96,8 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   const gb = (G.power.n.match(/needs about ([\d.]+) psi/) || [])[1], mp = (sizing.match(/manifold pressure needed ([\d.]+) psia/) || [])[1];
   ok(gb && mp && Math.abs(+gb + 14.696 - +mp) < 0.06 && /do not match/.test(G.power.n), 'power row: 450 hp needs about ' + gb + ' psi boost (the sizing section’s ' + mp + ' psia manifold pressure, less the atmosphere) and says the 8 psi typed does not match');
   ok(/No power estimate yet/.test(G.power.n), 'no simulation run: the card says where the power estimate comes from');
+  ok(/2 × boost, 16\.00 psi \(110\.32 kPa\) gauge/.test(G.p3.v) && /an assumption until measured/.test(G.p3.n), 'pressure before the turbine: the steady sections’ assumption, said to be one: ' + G.p3.v);
+  ok(G.mounts.v === 'not designed yet' && G.mounts.go === '#mt-card', 'brackets: not designed yet, Go leads to the Mounts designer');
 
   // ---- both unit systems in every result cell of the boosted sections, the card and the sheet
   for (const u of ['imp', 'met']) {
@@ -153,9 +155,23 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   console.log('field edit times (ms): ' + times.map(t => t.toFixed(0)).join(', '));
   ok(tmax < 1500, 'a field edit renders in ' + tmax.toFixed(0) + ' ms at most (the audit’s target is 300 ms on a quiet machine)');
 
-  // ---- project save and load: the same card
+  // the project snapshot is taken before the simulation (a run's result is not kept in a project)
   const card = await pg.evaluate(() => document.getElementById('tg-glance').innerText);
   const snap = await pg.evaluate(() => window.__proj.snapshot('K24 turbo'));
+  // ---- the wave simulation with the turbo (4-Stroke tab): the card's power row then reads it
+  await pg.click('#tg-glance tr[data-gl="mounts"] button[data-tgo]'); await pg.waitForTimeout(600);
+  const mt = await pg.evaluate(() => ({ h: location.hash, vis: !!document.getElementById('mt-card').offsetParent }));
+  ok(mt.h === '#hangers' && mt.vis, 'the brackets row’s Go opens the Hangers tab at the Mounts designer (' + JSON.stringify(mt) + ')');
+  await pg.click('#tab-four'); await settle(pg);
+  await pg.click('button[data-tsim="run"]');
+  let st = 'running'; for (let i = 0; i < 600 && st === 'running'; i++) { await pg.waitForTimeout(1000); st = await pg.evaluate(() => window.__tsim.state().status); }
+  await pg.click('#tab-intake'); await settle(pg);
+  const sim = await pg.evaluate(() => { const T = window.__tsim.last(), S = T.sum, o = S.rows[S.ip], kh = t => t * o.rpm * Math.PI / 30 / 745.7; return { hp: S.hp, lo: Math.min(kh(o.tqBn), kh(o.tqBg)), hi: Math.max(kh(o.tqBn), kh(o.tqBg)), p3k: o.p3k }; });
+  const G2 = await glance(pg);
+  ok(st === 'done' && G2.power.n.includes('Wave simulation: ' + Math.round(sim.hp) + ' hp') && G2.power.n.includes(Math.round(sim.lo) + ' hp') && G2.power.n.includes(Math.round(sim.hi) + ' hp') && /4 to 16% high/.test(G2.power.n),
+    'after the run the power row gives the simulation’s ' + Math.round(sim.hp) + ' hp with its own friction range ' + Math.round(sim.lo) + ' to ' + Math.round(sim.hi) + ' hp and the stated error (4 to 16% high)');
+  ok(G2.p3.n.includes(sim.p3k.toFixed(2) + ' × boost') && /the two differ/.test(G2.p3.n), 'the pressure-before-the-turbine row sets the simulation’s ' + sim.p3k.toFixed(2) + ' × boost beside the 2 × assumed');
+  // ---- project save and load: the same card
   await ctx.close();
   ({ pg, ctx } = await open(1440));
   await pg.evaluate(d => window.__proj.apply(d), snap); await settle(pg); await pg.waitForTimeout(300); await settle(pg);
