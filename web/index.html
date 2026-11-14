@@ -24656,6 +24656,9 @@ function tsPlaceSection(ind,p,r){
 let TS_PLACE=null;
 if(typeof window!=='undefined') window.__turbo={calcCharge,chargeSide,tsStep,calcTurboRoute,compOut,garrettMatch,corrFlow,epsXflow,ntuFor,turbineBalance,orificeArea,tsPlacement};
 if(typeof window!=='undefined') window.__tsLast=()=>TS_LAST&&TS_LAST.R?TS_LAST.R:null;
+// the operating point, the valve placement and the worked-out back pressure, for the tests (operatingpoint_ui.js)
+if(typeof window!=='undefined') window.__op={OP:()=>OP,place:()=>TS_PLACE,bpa:()=>BPA.v,bpUse:()=>tsBpUse(),p4:()=>tsP4(),simP4:()=>tsimP4(),hp:()=>tsHp(),boost:()=>tsBoost(),
+  wgAt:tsWgAt,wgSweep:tsWgSweep,KS:TS_WG_KS,orificeArea,rec:()=>TS_REC,q:()=>TS_LAST?TS_LAST.q:null};
 // the route as a dimensioned schematic, top to bottom; inline SVG on the page's theme tokens
 function tsSvg(R,q,p,F){
   const W=360, cx=58, wMax=64, dMax=Math.max(p.dt,q.dh,R.dc,q.dci||0,q.dco||0,q.dici||0,q.dico||0,q.dtb||0), k=wMax/dMax, half=d=>d*k/2;
