@@ -1991,5 +1991,6 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - K24 + PT5862: unchanged (no published flow); the closure's 1185 mm2 equals the GTX4088R 1.19's published peak (1190 mm2).
   In the model, 1.5 x boost (static) at peak power needs ~450 mm2 at 75 %, which then spools below 2000 rpm: the size alone
   does not close the gap to the logs; the turbine's on-engine work does (part 9, I4).
-- Tests: web/tests/turbine_ui.js (new, 23 checks). No pinned value changed. Details: docs/WAVE_VALIDATION_2026-11-11.md
+- Tests: web/tests/turbine_ui.js (new, 23 checks). No pinned value changed. Suite (web,parity, -j 2, --skip-slow): 131
+  tests, 124 passed, 0 failed, 7 skipped, 7 partial skips, 0 unexpected, 1431 s. Details: docs/WAVE_VALIDATION_2026-11-11.md
   part 9; docs/BOOST_AUDIT_2026-11-12.md addendum; tools/validation/wave/turbine_cap.js.

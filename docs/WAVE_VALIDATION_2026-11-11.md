@@ -2805,6 +2805,8 @@ the model's direction is right, its absolute level cannot be checked against a m
   boostaudit_ui/2/3, turboguide_ui, sheet_ui, k24_ui, turbomani_ui pass unchanged (the K24 default has no housing flow, so
   it takes the old path; the closure's secant was moved out of the closure with the same steps).
 - Solver, Rust, WebAssembly: not changed.
+- Suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, 2026-11-13, part 9): 131 tests,
+  124 passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips (all expected), 0 unexpected, 1431 s.
 
 ### I8 Not done, unknown
 
