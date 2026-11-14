@@ -2049,3 +2049,291 @@ node tools/validation/wave/turbo_audit.js && python3 tools/validation/wave/turbo
 node tools/validation/wave/turbo_sens.js            # F3, F4, F6 (ONLY=grid|tol|calib|page for one part), ~5 min
 node web/tests/turboaudit_ui.js                     # the audit's checks, ~80 s
 ```
+
+## Addendum 2026-11-13, part 7: the whole-engine energy balance, and heat loss in the exhaust port
+
+Question. Parts 2-6 left three signs that the model's exhaust might carry too much energy: brake torque 4-16 % above three
+GM V8 ratings (C4) with the closed cycle verified from first principles (D3); the exhaust-port gas 78-150 K hotter than
+OpenWAM's (A6); and, in the turbo audit, a turbine that would need a turbine x mechanical efficiency of only 0.30-0.42 to
+reproduce logged pre-turbine pressures (F4). Hypothesis tested here (not assumed): the model loses too little heat in the
+exhaust port and during the gas exchange, so its exhaust enthalpy is too high and its coolant share too low. Method: the
+whole-engine energy balance measured from the model, compared with the published balance; then the model's heat transfer
+term by term against published laws; one piece changed (the head's exhaust port), with published constants and nothing
+fitted; then every check rerun. Nothing was tuned to the ratings, to OpenWAM or to the turbo figures.
+
+### G1 The energy balance, measured (`tools/validation/wave/energy_balance.js`, `results/energy_*.json`)
+
+Over one whole engine cycle after the run has settled (ratings.js's settling, then two more cycles), as fractions of the
+fuel's chemical energy (fuel inducted by the port injector x LHV 44 MJ/kg): brake (gross IMEP - Heywood's tfmep, the page's
+brake), friction (net work - brake: tfmep less the model's own pumping loop, so the rows add up), the cylinder's wall heat by
+phase, the wall heat in the port (the first `portL` of each primary from the valve), in the header and collector, in the
+intake pipes (negative: into the charge), the sensible + kinetic enthalpy leaving the port and leaving the tail (datum
+298.15 K, where the air and the fuel enter, so the intake brings none), and the chemical energy not released (fuel x LHV -
+the heat released: the rich products' CO and H2, the 2.5 % of ETA_C, fresh charge short-circuited). Pipe heat is what each
+cell's step actually added (read-only instrumentation in `lib.js`, the same expression evaluated again). The sensible-energy
+balance closes to 3e-16 ... 1.4e-14 of the heat released at every point (including the storage change and the sensible
+enthalpy of fuel pushed back into the intake, which the port injector takes out of the model: B6); the columns add to 100.0 %.
+
+Engines: LS3 as ratings.js's realistic case (c_final: whole engine, plenum, throttle, measured head flow, long-tube 4-1 with
+its 150 mm port at 44.5 mm, 700 K header wall, 650 K collector) at 3000, 4600 (rated torque) and 5800 rpm (near rated
+power); K24A2 as the turbo plan's "same pipes, no boost" run (`results/turbo_k24_page.json` plan.na: the Turbo manifold from
+the head flange at its 794 C wall, the 4-Stroke tab's stand-in cam, AFR 12) at 3500, 5550 and 7100 rpm; its plan has no
+port, so a 100 mm port at the runner's bore was added for the port rows (an ASSUMPTION: the K24's port length is not
+sourced). Percent of the fuel's chemical energy:
+
+| engine, rpm | case | brake | friction (tfmep - own pumping) | cylinder wall: closed / EVO-TDC / TDC-IVC | port wall (valve open / shut) | header + collector wall | intake pipes | exhaust enthalpy leaving the port | ... leaving the tail | chemical energy left (rich CO, H2; ETA_C) | coolant-type sum (cylinder + port) | T port exit mass-avg / time-avg (K) | T tail mass-avg (K) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| LS3 3000 | before (page before part 7) | 30.5 | 4.9 | 8.2 / 3.1 / -0.3 | 0.8 | 5.2 | -0.1 | 34.7 | 29.5 | 18.2 | 11.8 | 1217 / 1018 | 1090 |
+| LS3 3000 | after (Caton-Heywood) | 30.5 | 4.9 | 8.2 / 3.1 / -0.3 | 2.4 (1.2 / 1.3) | 4.8 | -0.1 | 33.1 | 28.3 | 18.2 | 13.4 | 1179 / 949 | 1062 |
+| LS3 3000 | Hires-Pochmara (upper bound) | 30.5 | 4.9 | 8.2 / 3.1 / -0.3 | 7.2 (4.9 / 2.4) | 3.5 | -0.1 | 28.3 | 24.8 | 18.2 | 18.1 | 1062 / 784 | 975 |
+| LS3 4600 | before | 29.9 | 5.0 | 6.5 / 3.2 / -0.2 | 0.9 | 5.3 | -0.1 | 36.6 | 31.3 | 18.2 | 10.3 | 1264 / 1048 | 1136 |
+| LS3 4600 | after (Caton-Heywood) | 29.9 | 5.0 | 6.5 / 3.2 / -0.2 | 2.1 (1.0 / 1.1) | 5.1 | -0.1 | 35.4 | 30.4 | 18.2 | 11.6 | 1235 / 984 | 1112 |
+| LS3 4600 | Hires-Pochmara | 29.9 | 5.1 | 6.5 / 3.2 / -0.2 | 7.0 (4.7 / 2.3) | 3.8 | -0.1 | 30.5 | 26.6 | 18.2 | 16.5 | 1115 / 825 | 1020 |
+| LS3 5800 | before | 28.5 | 5.7 | 5.8 / 3.4 / -0.2 | 0.9 | 5.4 | -0.1 | 37.9 | 32.4 | 18.2 | 9.9 | 1293 / 1083 | 1163 |
+| LS3 5800 | after (Caton-Heywood) | 28.5 | 5.7 | 5.8 / 3.4 / -0.2 | 2.1 (1.0 / 1.1) | 5.2 | -0.1 | 36.7 | 31.5 | 18.2 | 11.1 | 1266 / 1022 | 1141 |
+| LS3 5800 | Hires-Pochmara | 28.5 | 5.7 | 5.8 / 3.4 / -0.2 | 7.3 (4.7 / 2.6) | 4.0 | -0.1 | 31.5 | 27.5 | 18.2 | 16.3 | 1140 / 876 | 1041 |
+| K24 3500 | page plan, no port (before) | 27.7 | 5.1 | 7.4 / 3.2 / -0.3 | - | -0.8 | -0.1 | 31.7 (at the valve) | 32.6 | 25.2 | 10.3 | 1187 / 986 (at the valve) | 1209 |
+| K24 3500 | 100 mm port, law off | 27.8 | 5.0 | 7.3 / 3.2 / -0.3 | 0.1 | -0.2 | -0.1 | 31.7 | 32.0 | 25.2 | 10.4 | 1187 / 1026 | 1193 |
+| K24 3500 | 100 mm port, Caton-Heywood | 27.8 | 5.0 | 7.3 / 3.2 / -0.3 | 1.5 (0.7 / 0.8) | -0.5 | -0.1 | 30.3 | 30.8 | 25.2 | 11.8 | 1151 / 958 | 1164 |
+| K24 3500 | 100 mm port, Hires-Pochmara | 27.9 | 5.0 | 7.3 / 3.2 / -0.3 | 4.8 (3.0 / 1.8) | -1.1 | -0.1 | 27.1 | 28.2 | 25.1 | 15.0 | 1067 / 854 | 1096 |
+| K24 5550 | page plan, no port (before) | 26.8 | 5.4 | 5.8 / 3.3 / -0.2 | - | 0.9 | -0.1 | 33.8 (at the valve) | 33.0 | 25.2 | 8.9 | 1241 / 1029 (at the valve) | 1218 |
+| K24 5550 | 100 mm port, law off | 26.9 | 5.4 | 5.8 / 3.2 / -0.2 | 0.1 | 0.9 | -0.1 | 33.8 | 32.9 | 25.2 | 8.9 | 1240 / 1027 | 1216 |
+| K24 5550 | 100 mm port, Caton-Heywood | 26.9 | 5.4 | 5.8 / 3.2 / -0.2 | 1.2 (0.6 / 0.7) | 0.7 | -0.1 | 32.7 | 32.0 | 25.2 | 10.0 | 1211 / 967 | 1192 |
+| K24 5550 | 100 mm port, Hires-Pochmara | 26.9 | 5.4 | 5.8 / 3.2 / -0.2 | 4.3 (2.8 / 1.5) | 0.2 | -0.1 | 29.5 | 29.4 | 25.2 | 13.1 | 1131 / 861 | 1125 |
+| K24 7100 | page plan, no port (before) | 23.2 | 8.1 | 5.4 / 3.6 / -0.2 | - | 1.1 | -0.1 | 34.8 (at the valve) | 33.9 | 25.1 | 8.8 | 1267 / 1072 (at the valve) | 1240 |
+| K24 7100 | 100 mm port, law off | 23.2 | 8.0 | 5.4 / 3.6 / -0.2 | 0.1 | 1.1 | -0.1 | 34.8 | 33.8 | 25.2 | 8.9 | 1264 / 1068 | 1237 |
+| K24 7100 | 100 mm port, Caton-Heywood | 23.2 | 8.0 | 5.4 / 3.6 / -0.2 | 1.3 (0.6 / 0.7) | 0.9 | -0.1 | 33.6 | 32.9 | 25.2 | 10.0 | 1234 / 1014 | 1212 |
+| K24 7100 | 100 mm port, Hires-Pochmara | 23.2 | 8.0 | 5.4 / 3.6 / -0.2 | 4.7 (2.9 / 1.8) | 0.3 | -0.1 | 30.2 | 30.0 | 25.2 | 13.4 | 1147 / 924 | 1139 |
+
+(The K24's manifold wall at 794 C is hotter than much of its gas, so its "header" heat is near zero or negative: the wall
+heats the gas. LS3 "before": the same 150 mm of pipe under the header's Reynolds' analogy at 700 K, counted as port by
+position. Malchow et al. and Meisner-Sorenson in place of Caton-Heywood on the LS3: port 1.9-2.0 % and 2.4-2.6 %, port-exit
+temperature 1189-1270 K and 1174-1256 K; `results/energy_after_malchow.json`, `_meisner.json`.)
+
+### G2 The published balance (sources read 2026-11-13)
+
+- Heywood, Internal Combustion Engine Fundamentals, Table 12.1, "Energy balance for automotive engines at maximum power",
+  percent of the fuel's heating value, as reproduced on slide 7 of MIT 2.61 (spring 2017) lecture 18, "Engine heat
+  transfer" (https://ocw.mit.edu/courses/2-61-internal-combustion-engines-spring-2017/df96f507776900c0dde50a4b50f422ce_MIT2_61S17_lec18.pdf,
+  fetched): SI engine brake power 25-28, coolant 17-26, miscellaneous 3-10, incomplete combustion 2-5, exhaust sensible
+  enthalpy 34-45 (sources there: Khovakh, Sitkei, Burke et al.); the slide adds "Update for modern engines: SI engine in the
+  low 30's" for the brake share. The table's air-fuel ratio and where the exhaust enthalpy was taken are not stated there.
+- The same lecture, slide 8: Gruden, Kuper and Porsche's heat balance of a 2 L SI engine at 2000 rpm against BMEP (figure
+  only; not read off here).
+- How the port shares the gas-side heat in a published engine thermal model: PROMETS (Shayler et al.), as used in T. J.
+  Morgan's PhD thesis (University of Nottingham, 2003, "The modelling of internal combustion engine thermal systems and
+  behaviour", https://repository.nottingham.ac.uk/bitstreams/e84e6a01-0a2d-4692-b4fb-001a1aadbd6a/download, fetched): 50.8 %
+  of the gas-side heat to the cylinder and 49.2 % to the exhaust port (Table 5.3b; its port term "includes heat transfer to
+  the exhaust manifold", section 3.8), for that engine with constants fitted to measured heat rejection.
+
+Comparison. Like for like with Heywood's table is limited by the mixture: the model runs these engines at AFR 12.8 / 12
+(lambda 0.88 / 0.82), whose frozen products keep 16 % / 20 % of the fuel's energy as CO and H2 (B1), so its "chemical
+energy left" (18.2 / 25.2 %) is far above Heywood's 2-5 %, and every other share is smaller by that much. On the fuel basis
+the model's brake (28.5-30.5 % LS3, 23-28 % K24) sits at or just above 25-28 % ("low 30s" modern); its exhaust enthalpy at the
+port (33-38 %) inside 34-45 %; its coolant-type sum (cylinder + port, 9-13 %, plus some of the 5-8 % friction) below 17-26 %.
+On the basis of the heat actually released (dividing by 81.8 % / 74.8 %), the LS3 at 5800 rpm reads brake 34.8 %,
+cylinder + port 13.5 % (before: 12.1 %), port-exit exhaust 44.9 % (before: 46.3 %); Heywood's shares of the 95-98 % his
+engines released are brake 26-29, coolant 17-27, exhaust 35-47 %. So: the coolant-type loss is low in both readings, the
+exhaust enthalpy is at the top of the published range on the released basis and inside it on the fuel basis, and the
+brake share is high only on the released basis. Neither reading is decisive for "the exhaust carries too much energy".
+
+### G3 What the model does, term by term, against the published laws
+
+| term | model (before part 7) | published | verdict |
+|---|---|---|---|
+| cylinder, closed cycle | Woschni, 2.28 Sp + the combustion term to EVO, 3.26 B^-0.2 p^0.8 T^-0.55 w^0.8, 450 K wall | Woschni (SAE 670931) as B3 and D5 | as published (B3, D5); 5.4-8.2 % of fuel here |
+| cylinder, gas exchange (EVO-IVC) | Woschni's gas-exchange constant C1 = 6.18 with the mean piston speed whenever a valve is open, C2 = 0 | the same (Woschni's gas-exchange period, B3) | applied as published: 3.1-3.6 % of fuel from EVO to TDC, -0.2 to -0.3 % from TDC to IVC (the wall heats the cool charge) |
+| exhaust port | none: the first 150 mm of the LS3's header (the page: the 4-Stroke tab's port length, if typed) as pipe, Reynolds' analogy St = f/2 = 0.0025 at the header's 700 K wall (zero heat transfer when the gas stands still) | measured time-averaged port correlations Nu = C Re^n (Morgan 2003, Table 2.1): Hires and Pochmara 0.258 Re^0.8 (SAE 760767), Malchow, Sorenson and Buckius 0.0483 Re^0.783 (SAE 790309; also in A. Kirkpatrick's Colorado State notes, https://www.engr.colostate.edu/~allan/heat_trans/page9/page9.html, equation image: 0.048 Re^0.78, "the characteristic length ... is the exhaust port diameter"), Meisner and Sorenson 0.0774 Re^0.769 (SAE 860242), Caton and Heywood 0.35 Re^0.6 (Int. J. Heat Mass Transfer 24 (1981) 581-595); Malchow et al. found steady pipe-flow correlations under-predict the port by up to 50 % (Morgan; Kirkpatrick: pulsing flow "about 50% greater than given by steady flow correlations"); wall: the coolant-cooled head | MIS-SET: 0.8-0.9 % of fuel where the published correlations give 1.9-2.6 % (7 % the near-valve Hires-Pochmara); changed (G4) |
+| header, collector, other pipes | Reynolds' analogy St = 0.0025 at the line's wall temperature (header 700 K, collector 650 K; the Turbo manifold section's 794 C) | Dittus-Boelter St about 0.0033 (kat.js e), pulsating exhaust flow above steady correlations (above) | below the published steady and pulsating values (known since part 1, recommendation 2); NOT changed here: no published exhaust-pipe correlation with constants was read in this part, and the wall temperatures are inputs |
+
+Fetched but not usable here: Caton and Heywood's paper itself (not openly readable: its definition of Re and of the gas
+temperature in Nu, and its four-period instantaneous correlation, are unknown here; MIT's summary report, Heywood, Keck and
+Rife 1980, https://core.ac.uk/download/4398386.pdf, says only that "a simple correlation based on the gas velocity at the valve
+seat" and "a four time period heat transfer correlation ... for low and high valve lift" were found); Shayler et al. SAE
+971851 (abstract only: a correlation with separate cylinder and port terms, two constants calibrated to measured heat
+rejection); the PROMETS port equation in Morgan's thesis (its equations are images that did not survive extraction). Morgan
+reports Meisner and Sorenson's comment that Hires-Pochmara and Caton-Heywood were developed for the curved part of the port
+near the valve and over-predict a whole port's average; at the LS3's Re of 2-4 x 10^4 Caton-Heywood and Malchow agree
+within 10 %.
+
+### G4 What was changed: the head's exhaust port (JS `wsFactory` and Rust `et_wave`, bit parity; WebAssembly rebuilt)
+
+- A pipe segment marked `port: true` at the start of a primary is the head's port (`markPort`: the cells whose centres lie
+  within the leading port segments; one pipe or several). The 4-Stroke tab's "Exhaust port length, valve to flange" makes
+  that segment (`simSpec`, as before, now marked); the turbo plan inherits it (`tsimPlan` takes the 4-Stroke tab's port);
+  `ratings.js` marks its 150 mm.
+- Its cells lose q = h (T - Tw) per unit wall area (`stepPipe`: `dt h pi D (Tw - T)` in place of Reynolds' analogy; friction
+  unchanged), with h = Nu k / D, Nu = 0.35 Re^0.6 (Caton-Heywood, default; `e.portHeat` 'malchow', 'meisner', 'hires'
+  select the others with their published constants). The correlations are time-averaged, so Re = 4 m / (pi D mu) takes
+  the port's mean flow over the last cycle: the net exhaust-valve outflow from one IVC to the next x rpm / 120 (`cy.exN`),
+  and the gas properties at that cycle's mass-averaged outflow temperature (the existing `tEx`); h is held for the next
+  cycle; 0 before the first cycle is known. mu and k: Sutherland's law for air (1.716e-5 Pa s, S 111 K; 0.0241 W/m K,
+  S 194 K, both at 273 K: COMSOL CFD Module, High Mach Number Flow, tables 5-2 and 5-3,
+  https://doc.comsol.com/6.3/doc/com.comsol.help.cfd/cfd_ug_fluidflow_high_mach.08.43.html, fetched; burned gas taken as
+  air: an approximation). D: the port cell's bore.
+- Tw: `e.portTw`, else the cylinder's wall temperature `e.Twall` (450 K). Sources for its size: PROMETS's exhaust-port
+  element at 137-144 C fully warm (at 1000 rpm / 120 N m and 3000 rpm / 5 N m; Morgan Table 5.4c), Heywood's Fig. 12-1 on
+  MIT lecture 18 slide 11 (combustion-chamber wall about 480 K on the gas side over 360 K coolant). Full-load port metal
+  temperatures were not found.
+- Legacy: `e.portHeat` false or 'off', or no segment marked, gives the model before part 7 bit for bit (G6).
+- What "held over the cycle" means (stated on the page): the time-averaged h also acts on gas standing in the port while the
+  valve is shut. About half of the port's heat goes then (LS3 1.0-1.3 of 2.1-2.4 %, K24 0.7-0.8 of 1.2-1.5 %: the columns
+  of G1); the time-averaged port temperature falls far more than the mass-averaged one (LS3 5800 rpm: -61 K against
+  -27 K). Whether Caton-Heywood's Nu was formed with the time- or the mass-averaged gas temperature is not known here; with
+  the mass-averaged one the same correlation would remove more heat. Caton (SAE 820050, abstract,
+  https://saemobilus.sae.org/papers/comparisons-thermocouple-time-averaged-mass-averaged-exhaust-gas-temperatures-a-spark-ignited-engine-820050):
+  the energy from time-averaged exhaust temperatures is "about 10% lower" than from mass-averaged ones, and a 0.76 mm
+  thermocouple reads "about 20 K lower" than the time average.
+
+### G5 Before and after, the measures this part is about
+
+(a) Energy balance (G1): the port's share 0.8-0.9 % -> 2.1-2.4 % of fuel (LS3), 0 -> 1.2-1.5 % (K24 with the assumed 100 mm
+port); the exhaust enthalpy leaving the port 34.7-37.9 -> 33.1-36.7 % (LS3); the coolant-type sum 9.9-11.8 -> 11.1-13.4 %
+(LS3), still below Heywood's 17-26 %. Brake unchanged to 0.1 % of fuel.
+
+(b) GM ratings (ratings.js, intake=plenum flow=benchfam, the c_final case; `results/ratings_g_legacy.json` with
+`e.portHeat="off"` reproduces part 3's c_final to the printed digit; `ratings_g_final.json`):
+
+| engine | rating | brake torque before -> after | brake power before -> after | VE at 4600 / 5800 rpm after | exhaust-valve outflow T at 5800, before -> after |
+|---|---|---|---|---|---|
+| LS3 | 425 lb-ft @ 4600, 430 hp @ 5900 | 478.6 @ 5000 -> 478.3 @ 5000 (+13 %) | 499.1 @ 5800 -> 499.2 @ 5800 (+16 %) | 1.051 / 1.079 | 1314 -> 1315 K |
+| LS7 (cam assumed) | 470 @ 4800, 505 @ 6300 | 543.2 -> 543.2 @ 5000 (+16 %) | 549.3 -> 549.0 @ 5800 (+9 %) | 1.063 / 1.049 | 1304 -> 1305 K |
+| LT1 (cam assumed) | 460 @ 4600, 455 @ 6000 | 479.5 -> 479.3 @ 4800 (+4 %) | 480.2 -> 479.9 @ 5600 (+5.5 %) | 1.051 / 1.025 | 1293 -> 1293 K |
+
+The port's heat is taken after the valve, so the cylinder's work does not change: the rating surplus is not explained by it.
+
+(c) Exhaust temperature against OpenWAM (`compare.py configs=single_L800,i4_41`: tag `g_base` = the page as it now is, no
+port; tag `port` = the same with the first 100 mm of each primary marked as port, an ASSUMED port, these engines having none;
+OpenWAM unchanged, no port; `gas_report.py before=g_base after=port`):
+
+| configuration | crank-angle mean gas T at 10 mm from the valve, wave - OpenWAM | wave at 100 mm (mean) | exhaust-valve outflow T, wave | NMEP ratio | VE corr | firing orders: median abs diff to OpenWAM |
+|---|---|---|---|---|---|---|
+| single_L800 | +113 -> +18 K | 1036 -> 988 K | 1254 -> 1255 K | 1.105 -> 1.103 | 0.983 -> 0.985 | 1.6 -> 1.5 dB |
+| i4_41 | +137 -> +40 K | 1020 -> 956 K | 1230 -> 1229 K | 1.138 -> 1.136 | 0.979 -> 0.984 | 3.6 -> 3.6 dB |
+
+Read with G4: most of the change at 10 mm is the gas standing in the port while the valve is shut (a crank-angle mean is a
+time mean); the outflow at the valve is unchanged, so the gas leaving the cylinder is as hot as before (78-150 K above
+OpenWAM's in part 1, A6). No measured full-load exhaust temperature with its station and averaging stated could be read in
+this session (open sources found gave only qualitative statements or forum readings); the comparison with a published EGT
+is therefore not made. Caton's 20 K thermocouple offset and the 10 % time/mass-average energy gap (G4) are what a measured
+"EGT" would have to be corrected by before such a comparison.
+
+(d) The turbo case, K24A2 + PT5862 (`tools/validation/wave/turbo_port.js`, `results/turbo_port.json`; the page's closure and
+calibration with the WebAssembly; the plan has no port, so a 100 mm port at the runner's bore is assumed):
+
+| case | closure: turbine area mm2 | T3 at 3500 / 6600 rpm (C) | p3 mean x boost at 6600 (static) | efficiency that balances the compressor with a measured static mean p3 of 1.0 / 1.5 / 2.0 x boost at 3500 rpm |
+|---|---|---|---|---|
+| the page's plan (no port) | 1185 | 940 / 1013 | 0.77 (0.62) | 0.421 / 0.340 / 0.296 (part 6: 0.42 / 0.34 / 0.30) |
+| 100 mm port, law off | 1158 | 940 / 1010 | 0.78 (0.63) | 0.423 / 0.342 / 0.297 |
+| 100 mm port, Caton-Heywood | 1132 | 920 / 992 | 0.80 (0.65) | 0.432 / 0.351 / 0.305 |
+| 100 mm port, Hires-Pochmara (upper bound) | 1053 | 862 / 918 | 0.87 (0.74) | 0.463 / 0.380 / 0.336 |
+
+The port moves the efficiency the calibration needs at 1.5 x boost from 0.340 to 0.351 (0.380 with the largest published
+correlation): a real turbine (well above 0.5) is still far away, so the turbine's implausible calibration is not mainly the
+port. What is left for it is named in part 6 (quasi-steady turbine using every pulse at full efficiency, no heat loss in the
+turbine housing, the model's hot outflow at the valve) and the charge the model traps (G7).
+
+Sound: the tailpipe firing orders with the port law against without, on the same OpenWAM matrix runs (wave side): single
+cylinder (orders 0.5-2) median +0.39 dB, median absolute 0.43, range -1.0 to +1.3 dB; i4 (orders 2, 4, 8) median -0.08,
+median absolute 0.47, range -1.3 to +4.6 dB (the +4.6 dB: order 8 at 2500 rpm, a weak order). The cooler port gas is slower
+by about 2-3 % over its length, too short to move a resonance noticeably.
+
+Run time: unchanged within the timing noise (ratings.js, whole engines, 19 speeds: LS3 71 -> 73 s, LS7 72 -> 72 s, LT1 72 ->
+72 s; energy_balance.js 32 s either way).
+
+### G6 Verification
+
+- `kat.js`: 66 of 66, `results/kat.json` byte-identical. `constref.js`: 112 constant-gamma speeds identical.
+- `ratings.js ... e.portHeat="off"` reproduces part 3's c_final (LS3 479 / 499, LS7 543 / 549, LT1 479 / 480 to the digit).
+- `web/tests/wavegas_ui.js` 12 (new): the four correlations' constants; Sutherland's law by hand at 273-2000 K; h by hand
+  (0.04 kg/s, 1150 K, 40 mm: Re 28182, Nu 163.7, h 296.3 W/m2 K); unknown law refused; the port cells for a port at the
+  primary's bore (12 of 62 within 120 mm) and at its own bore (its whole pipe, none after); after a 6000 rpm run, the port's
+  h equals the law evaluated in the test at the last cycle's measured net outflow and mass-averaged temperature (to 1e-9);
+  one cycle's mass and total energy residuals -2.7e-15 and 2.7e-15 of the heat released with the port's 38.7 J as a sink
+  (Reynolds' analogy at 700 K would take 13.9 J from the same cells); `e.portHeat` 'off' with the port marked equals the
+  run without a port to the last digit.
+- `web/tests/wave_wasm.js`: three port jobs added (a 110 mm port of 40 mm ahead of the four-cylinder collector's primaries,
+  default law and constant gas; a single cylinder's 120 mm port at the primary's bore with Meisner-Sorenson at a 480 K wall):
+  JS and Rust/WebAssembly identical to the last digit; nothing removed or loosened.
+- `energy_balance.js`: sensible-energy residual 3e-16 to 1.4e-14 of the heat released at all 21 points (G1).
+- `engine.js` now reads the pipe heat the step added (instrumented) instead of recomputing Reynolds' analogy, so its energy
+  balance holds with port cells. (Its mass residual of 7.8 % and energy residual of about 1e-8 on the default gas are the
+  fuel vapour and its chemical energy, which its balance has not counted since part 2: unchanged, not this part's.)
+
+### G7 The rating surplus: what else was tested (the hypothesis does not explain it)
+
+The energy balance says where to look. At the LS3's rated-power speed the model's brake efficiency is 28.5 % of the fuel's
+LHV (BSFC 0.473 lb/hp h at AFR 12.8), at Heywood's 25-28 % / "low 30s"; it is the airflow that is high. What the rating
+implies at the model's own efficiency: 430 hp at 28.5 % needs 0.0256 kg/s of fuel, 0.327 kg/s of air at AFR 12.8, VE 0.91
+at 5900 rpm (displaced air 0.3587 kg/s at 298 K, 1 atm); 425 lb-ft at 4600 rpm at 29.9 % needs VE 0.97. The model has 1.08
+and 1.05. No measured VE or BSFC of a stock LS3 could be found in an open source (searched: forum VE tables only; crate and
+dyno articles without BSFC), so this is an inference from the model's own efficiency, not a measurement.
+
+One change at a time (LS3, c_final with the port law):
+
+| change | brake torque | brake power | note |
+|---|---|---|---|
+| none | 478.3 @ 5000 | 499.2 @ 5800 | |
+| 5 kPa back pressure at the collectors' ends (`back=5000`) | 476.8 (-0.3 %) | 497.5 (-0.3 %) | a stand-in for catalysts and mufflers; no sourced figure for the stock LS3 exhaust |
+| 10 kPa (`back=10000`) | 475.2 (-0.6 %) | 495.6 (-0.7 %) | the model's pumping rises only 3-5 kPa (the header's waves take part of it); on the page's brake (gross - tfmep) pumping does not enter at all, so on a net basis subtract about another 0.3 % |
+
+- SAE J1349 net ratings are taken "with stock ignition timing, carburetion/fuel delivery, exhaust systems, and accessories"
+  (Ate Up With Motor, "Understanding gross versus net horsepower ratings",
+  https://ateupwithmotor.com/automotive-terms/47-gross-versus-net-horsepower.html, fetched; the standard's own text,
+  https://saemobilus.sae.org/standards/j1349_202511-engine-power-test-code-spark-ignition-compression-ignition-installed-net-power-torque-rating,
+  shows only its purpose); historical gross-net gaps of 5-25 % are quoted there. The model has no accessories, no air
+  cleaner (0 kPa filter loss assumed, part 3: 2.5 kPa costs 3-4 %) and no stock exhaust; what the crate engine sheet's test
+  used is not known. These lower a real rating against the model; the back pressure alone is small (above).
+- Friction: Heywood's 1980s law (B4); Sandoval and Heywood (SAE 2003-01-0725) could not be read (part 2: the thesis's
+  equations did not survive the scan). A modern V8's friction is likely lower, which would raise the model's brake further.
+- Residual and trapped charge: the wave model's residual on part 3's single cylinder and i4 was 1.5-5.2 % (C6); part 3's like-for-like comparison put
+  2.8-4.7 points of the indicated surplus over OpenWAM on the larger charge the wave model traps (C6, D4), still unexplained.
+  Not resolved here.
+
+So the open question moves from "too much exhaust energy" to "too much air": the model's VE of 1.05-1.10 at full throttle
+with the realistic intake, against the 0.91-0.97 the ratings imply at the model's efficiency. The intake runner length
+(unknown, 300 mm assumed; part 3: -6 % to +9 %) and the ratings' accessories and exhaust are the largest named suspects.
+
+### G8 What changed on the page; tests; pinned values
+
+- Model: `wsFactory` (`PORT_NU`, `muAir`, `kAir`, `portLaw`, `portH`, `markPort`; `makePipe` np / hp / Twp; `stepPipe`'s heat
+  term; `makeEngine` port; `freshState` marks the port; `runSpeed` cy.exN and the port's h each cycle; `port` exported) and
+  `rust/et_wave` line for line (`Seg.port`, `port_law`, `mu_air`, `k_air`, `port_h`, `Pipe.np/hp/twp`, `Cyl.ex_n`); the
+  WebAssembly rebuilt and embedded (`tools/build_wave_wasm.sh`).
+- Page: `simSpec` marks the 4-Stroke tab's port segment (and keeps the mark when a bulge chamber splits it); the method text
+  states the port law, its source, what it does and does not change, and this part's energy balance.
+- Default page runs: unchanged where no port length is typed (the 4-Stroke tab's port length is blank by default); with a port
+  typed the port law applies.
+- Tests: `web/tests/wavegas_ui.js` 12 (new), `web/tests/wave_wasm.js` (three port jobs added). Scripts:
+  `tools/validation/wave/energy_balance.js` (new), `turbo_port.js` (new), `ratings.js` (the port marked; `back=`; importable),
+  `compare.py` (tags `port`, `g_base`), `engine.js` (instrumented pipe heat; 100 mm temperature trace), `lib.js` (pipe heat,
+  fuel and reverted-fuel enthalpy instrumentation, read-only).
+- Pinned values changed: none. No existing check was edited or loosened; wavegas_ui, wavekat_ui, waveturbo_ui, turboaudit_ui
+  and turbosim_ui pass unchanged (the K24 plan has no port, so its numbers do not move).
+- Suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, 2026-11-13, part 7): 130 tests, 123
+  passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips (all expected: no host build, no OpenWAM build in the worktree, F-100
+  runs absent), 0 unexpected, 1299 s (wave_wasm 321 s, wavegas_ui 44 s, turboaudit_ui 81 s, turbosim_ui 40 s).
+  `cargo test -p et_wave --release` (in rust/et_wave): builds, 0 tests in the crate (its parity is wave_wasm.js). A fresh
+  `tools/build_wave_wasm.sh` leaves the embedded WebAssembly byte-identical.
+
+### G9 Summary rows (section 6, as of 2026-11-13, part 7)
+
+| Difference | Status | Evidence |
+|---|---|---|
+| Exhaust energy too high (hypothesis) | partly: the port lost too little (0.8-0.9 % of fuel against 1.9-2.6 % from published port correlations; fixed, Caton-Heywood); the exhaust enthalpy at the port is inside Heywood's 34-45 % of fuel; the outflow at the valve is unchanged by the port | G1-G5 |
+| Coolant-type loss | 11-13 % of fuel (cylinder + port) against Heywood's 17-26 % (which includes some friction); low | G1, G2 |
+| Pipe wall heat (Reynolds' analogy) | below Dittus-Boelter and pulsating-flow data; unchanged (no constants read for exhaust pipes) | G3 |
+| Rating surplus | not the exhaust side: brake efficiency 28.5-30.5 % of fuel is ordinary; the airflow (VE 1.05-1.10) is above what the ratings imply (0.91-0.97); back pressure 10 kPa -0.6 %; accessories not modelled | G7 |
+| Turbo calibration efficiency at 1.5 x boost | 0.340 -> 0.351 with a 100 mm port (0.380 at the largest correlation): not mainly the port | G5 d |
+
+### G10 How to rerun (additions)
+
+```
+node tools/validation/wave/energy_balance.js tag=after k24port=0.1          # LS3 + K24, ~40 s; PAGE=<older page> for 'before'
+node tools/validation/wave/energy_balance.js tag=after_hires 'e.portHeat="hires"' k24port=0.1
+node tools/validation/wave/ratings.js tag=g_final intake=plenum flow=benchfam   # and 'e.portHeat="off"' (legacy), back=10000
+node tools/validation/wave/turbo_port.js                                    # ~2 min
+python3 tools/validation/wave/compare.py configs=single_L800,i4_41 tag=g_base   # then tag=port; OpenWAM ~2 min
+python3 tools/validation/wave/gas_report.py before=g_base after=port
+node web/tests/wavegas_ui.js                                                # 12: the port law
+```

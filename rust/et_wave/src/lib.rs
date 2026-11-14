@@ -417,10 +417,11 @@ struct Seg {
     l: f64,
     d0: f64,
     d1: f64,
+    port: bool, // the head's exhaust port (part 7): a leading segment of a primary marked port: true
 }
 fn segs_of(v: &Value) -> Result<Vec<Seg>, String> {
     let a = v.as_array().ok_or("a line needs its segs")?;
-    Ok(a.iter().map(|s| Seg { l: num(&s["L"]), d0: num(&s["d0"]), d1: num(&s["d1"]) }).collect())
+    Ok(a.iter().map(|s| Seg { l: num(&s["L"]), d0: num(&s["d0"]), d1: num(&s["d1"]), port: truthy(&s["port"]) }).collect())
 }
 #[derive(Clone)]
 struct Line {
@@ -487,6 +488,7 @@ struct Engine {
     src: Option<(f64, f64)>,  // intake.source: the boosted charge's p (Pa) and T (K) (the page's sourceOf)
     pout: Option<f64>,        // exhaust.pOut: the open tail ends' outside pressure
     turbine: Option<TurbSpec>, // exhaust.turbine (the page's turbineOf)
+    port: Option<(f64, f64, f64)>, // the head's exhaust-port law (the page's portLaw, part 7): C, n of Nu = C Re^n, wall temperature
 }
 /// exhaust.turbine: the equivalent nozzle's effective area (all entries), total-to-static efficiency, the wastegate's
 /// effective area and where it discharges, the downpipe's end pressure and the downpipe.
@@ -627,11 +629,11 @@ fn plenum_of(intake: &Value) -> Result<Option<PlenSpec>, String> {
             let a = PI * d * d / 4.0;
             let qd = m * m / (2.0 * 1.1839 * a * a);
             let sg = 1.0 / (1.0 + (dp / qd).sqrt());
-            inlet.insert(0, Seg { l: 0.05, d0: d * sg.sqrt(), d1: d * sg.sqrt() });
+            inlet.insert(0, Seg { l: 0.05, d0: d * sg.sqrt(), d1: d * sg.sqrt(), port: false });
         }
     }
     if let Some(de) = th {
-        inlet.push(Seg { l: 0.05, d0: de, d1: de });
+        inlet.push(Seg { l: 0.05, d0: de, d1: de, port: false });
     }
     Ok(Some(PlenSpec { v, inlet }))
 }
@@ -810,7 +812,47 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         src: source_of(intake)?,
         pout: { let v = num(&exhaust["pOut"]); if v > 0.0 { Some(v) } else { None } },
         turbine: turbine_of(exhaust)?,
+        port: port_law(e, or(&e["Twall"], 450.0))?,
     })
+}
+
+/* The head's exhaust port (2026-11-13, part 7; the page's portLaw, portH, markPort): cells of a primary's leading port
+   segments lose h (T - Tw) per unit wall area, h from a published time-averaged exhaust-port correlation Nu = C Re^n
+   (default Caton and Heywood 0.35 Re^0.6; Malchow et al. 0.0483 Re^0.783, Meisner and Sorenson 0.0774 Re^0.769, Hires and
+   Pochmara 0.258 Re^0.8), Re = 4 m / (pi D mu) from the last cycle's mean net exhaust-valve outflow, mu and k of air by
+   Sutherland's law at its mass-averaged temperature; Tw e.portTw, else e.Twall. e.portHeat false or "off": none (the
+   pipe's Reynolds analogy, as before). Sources in the page's comment. */
+fn port_law(e: &Value, twall: f64) -> Result<Option<(f64, f64, f64)>, String> {
+    let w = &e["portHeat"];
+    let name = match w {
+        Value::Bool(false) => return Ok(None),
+        Value::Null | Value::Bool(true) => "caton",
+        Value::String(s) if s == "off" => return Ok(None),
+        Value::String(s) => s.as_str(),
+        _ => "",
+    };
+    let (c, n) = match name {
+        "caton" => (0.35, 0.6),
+        "malchow" => (0.0483, 0.783),
+        "meisner" => (0.0774, 0.769),
+        "hires" => (0.258, 0.8),
+        _ => return Err("e.portHeat must be caton, malchow, meisner, hires or off".into()),
+    };
+    let pt = num(&e["portTw"]);
+    Ok(Some((c, n, if pt > 0.0 { pt } else { twall })))
+}
+fn mu_air(t: f64) -> f64 {
+    1.716e-5 * powf(t / 273.0, 1.5) * (273.0 + 111.0) / (t + 111.0)
+}
+fn k_air(t: f64) -> f64 {
+    0.0241 * powf(t / 273.0, 1.5) * (273.0 + 194.0) / (t + 194.0)
+}
+fn port_h(law: (f64, f64, f64), m: f64, t: f64, d: f64) -> f64 {
+    if !(m > 0.0 && t > 0.0 && d > 0.0) {
+        return 0.0;
+    }
+    let re = 4.0 * m / (PI * d * mu_air(t));
+    law.0 * powf(re, law.1) * k_air(t) / d
 }
 
 // ------------------------------------------------------------------------------------------- pipes
@@ -872,6 +914,9 @@ struct Pipe {
     cp: Vec<f64>,
     rm: Vec<f64>,
     t: Vec<f64>,
+    np: usize, // the head's exhaust port: its leading cells (part 7), their h (W/m2 K) and wall temperature
+    hp: f64,
+    twp: f64,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -941,6 +986,9 @@ fn make_pipe(l: f64, dx_want: f64, area: &dyn Fn(f64) -> f64, tw: f64, t0: f64, 
         cp: vec![CP; n],
         rm: vec![RG; n],
         t: vec![t0; n],
+        np: 0,
+        hp: 0.0,
+        twp: 0.0,
     })
 }
 
@@ -1154,7 +1202,8 @@ fn step_pipe(p: &mut Pipe, dt: f64, v_in: &[Flow], ex_flow: &[Flow], aux: &Aux) 
         let fr = 2.0 * FANNING * ri * ui.abs() * p.a[i] / p.d[i];
         p.q1[i] -= k * (p.f1[i + 1] - p.f1[i]);
         p.q2[i] += -k * (p.f2[i + 1] - p.f2[i]) + dt * (p.p[i] * (p.af[i + 1] - p.af[i]) / p.dx - fr * ui);
-        p.q3[i] += -k * (p.f3[i + 1] - p.f3[i]) + dt * fr * p.cp[i] * (p.tw - ti);
+        // the head's port cells (part 7): the port's h on the wall pi D at its wall temperature; else Reynolds' analogy
+        p.q3[i] += -k * (p.f3[i + 1] - p.f3[i]) + if i < p.np { dt * p.hp * PI * p.d[i] * (p.twp - ti) } else { dt * fr * p.cp[i] * (p.tw - ti) };
         p.q4[i] -= k * (p.f4[i + 1] - p.f4[i]);
         if p.q1[i] < 1e-6 * p.a[i] {
             p.q1[i] = 1e-6 * p.a[i];
@@ -1749,6 +1798,7 @@ struct Cyl {
     p_evo: f64,
     ex_m: f64,
     ex_h: f64,
+    ex_n: f64, // net outflow through the exhaust valve this cycle (the port's mean flow, part 7)
     ov_p: f64,
     ov_n: f64,
     ex_x: f64,
@@ -2086,6 +2136,29 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
             None => &eng.exhaust.segs,
         };
         let ex = build_line(&mut pipes, segs, &eng.exhaust.tw, dx, 700.0, 0.0, gas, 0.0)?;
+        if let Some(pl) = eng.port {
+            // the head's port cells (the page's markPort)
+            let mut end = 0.0;
+            for s in segs.iter() {
+                if !s.port {
+                    break;
+                }
+                if s.l > 1e-6 {
+                    end += s.l;
+                }
+            }
+            if end > 0.0 {
+                for &pi in &ex {
+                    let p = &mut pipes[pi];
+                    let mut c = 0;
+                    while c < p.n && p.start + (c as f64 + 0.5) * p.dx < end {
+                        c += 1;
+                    }
+                    p.np = c;
+                    p.twp = pl.2;
+                }
+            }
+        }
         if li.is_empty() || ex.is_empty() {
             return Err("the intake and the exhaust each need at least one pipe".into());
         }
@@ -2144,6 +2217,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
             burnt: false,
             p_evo: 0.0,
             ex_m: 0.0,
+            ex_n: 0.0,
             ex_h: 0.0,
             ov_p: 0.0,
             ov_n: 0.0,
@@ -2572,6 +2646,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 pl.m = m2;
                 pl.t = jmax(200.0, match &gas_in { Some(g) => gas_t(g, u / m2, pl.x, pl.t, false).0, None => u / (m2 * CV) });
             }
+            let mut port_upd: Vec<(usize, (f64, f64, f64), f64, f64)> = Vec::new();
             for kk in 0..nc {
                 let ep0 = st.pipes[st.prims[kk][0]].p[0];
                 let cy = &mut st.cyls[kk];
@@ -2601,6 +2676,21 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                             cy.work_g / eng.vd,
                         ]);
                     }
+                    // the head's port (part 7): its h for the next cycle from this cycle's mean outflow at its mass-averaged temperature
+                    if let Some(pl) = eng.port {
+                        if cy.started && crossed {
+                            let tm = if cy.ex_m > 0.0 {
+                                match &gas {
+                                    Some(g) => gas_t(g, cy.ex_h / cy.ex_m, cy.ex_x / cy.ex_m, 800.0, true).0,
+                                    None => cy.ex_h / (cy.ex_m * CP),
+                                }
+                            } else {
+                                0.0
+                            };
+                            port_upd.push((kk, pl, cy.ex_n * rpm / 120.0, tm));
+                        }
+                    }
+                    cy.ex_n = 0.0;
                     cy.fresh = cy.m * cy.x;
                     cy.burn_q = burn_heat(eng, cy.fresh);
                     cy.ivc_p = cy.m * (match &gas { Some(g) => gas_r(g, cy.x), None => RG }) * cy.t / eng.vol(tk);
@@ -2678,9 +2768,20 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                     cy.ex_h -= m_e * v_ex[kk].h;
                     cy.ex_x -= m_e * v_ex[kk].x;
                 }
+                cy.ex_n -= m_e;
                 if tk > 345.0 && tk < 375.0 {
                     cy.ov_p += ep0;
                     cy.ov_n += 1.0;
+                }
+            }
+            // the ports' h for the next cycle (the page sets it inside the cylinder loop; no pipe is stepped in between)
+            for (kk, pl, mm, tm) in port_upd {
+                for q in 0..st.prims[kk].len() {
+                    let pi = st.prims[kk][q];
+                    if st.pipes[pi].np > 0 {
+                        let d0 = st.pipes[pi].d[0];
+                        st.pipes[pi].hp = port_h(pl, mm, tm, d0);
+                    }
                 }
             }
             if let Some(ac) = st.acc.as_mut() {
