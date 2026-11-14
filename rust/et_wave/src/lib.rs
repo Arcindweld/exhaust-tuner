@@ -496,10 +496,31 @@ struct Engine {
 struct TurbSpec {
     cda: f64,
     eta: f64,
+    bsr: Option<Bsr>, // exhaust.turbine.bsr (part 10): the efficiency from the blade speed ratio at each step
     wg_cda: f64,
     wg_atm: bool,
     pout: f64,
     down: Line,
+}
+/// The blade-speed-ratio efficiency (the page's bsrFrac): rotor inlet tip speed U (m/s), the parabola's optimum xo, or
+/// OpenWAM's Watson polynomial (w).
+#[derive(Clone, Copy)]
+struct Bsr {
+    u: f64,
+    xo: f64,
+    w: bool,
+}
+const WATSON_MAX: f64 = 0.6951808461322609;
+fn bsr_frac(bs: &Bsr, x: f64) -> f64 {
+    if bs.w {
+        if !(x > 0.0) || x >= 1.19 {
+            return 0.0;
+        }
+        return (0.004022 + x * (1.55766 + x * (-0.511626 + x * (-0.121795 - 0.445804 * x)))) / WATSON_MAX;
+    }
+    let r = x / bs.xo;
+    let f = r * (2.0 - r);
+    if f > 0.0 { f } else { 0.0 }
 }
 fn source_of(intake: &Value) -> Result<Option<(f64, f64)>, String> {
     let q = &intake["source"];
@@ -536,9 +557,19 @@ fn turbine_of(exhaust: &Value) -> Result<Option<TurbSpec>, String> {
     }
     let wgv = num(wg);
     let po = num(&t["pOut"]);
+    let b = &t["bsr"];
+    let mut bsr = None;
+    if truthy(b) && num(&b["U"]) > 0.0 {
+        let w = b["form"].as_str() == Some("watson");
+        if !w && !(num(&b["xo"]) > 0.0) {
+            return Err("exhaust.turbine.bsr needs its optimum speed ratio xo".into());
+        }
+        bsr = Some(Bsr { u: num(&b["U"]), xo: if w { 0.0 } else { num(&b["xo"]) }, w });
+    }
     Ok(Some(TurbSpec {
         cda,
         eta,
+        bsr,
         wg_cda: if wgv > 0.0 { wgv } else { 0.0 },
         wg_atm: t["wgTo"].as_str() == Some("atm"),
         pout: if po > 0.0 { po } else { PATM },
@@ -1341,6 +1372,7 @@ struct Tf {
     ed: f64,
     xd: f64,
     rev: f64,
+    bx: f64,
 }
 /// The downpipe's first cell (the gas a reversed turbine flow brings back).
 #[derive(Clone, Copy)]
@@ -1356,7 +1388,7 @@ struct Cell0 {
 /// One turbine entry at the right end of pipe p (the page's turbineFace): the equivalent nozzle (and the gate in
 /// parallel) on Benson's partly open end, the work from the isentrope.
 #[allow(clippy::too_many_arguments)]
-fn turbine_face(k: &K, p: &mut Pipe, at_: f64, ag: f64, pt: f64, pg: f64, eta: f64, d: &Cell0, g_down: bool) -> Tf {
+fn turbine_face(k: &K, p: &mut Pipe, at_: f64, ag: f64, pt: f64, pg: f64, eta: f64, d: &Cell0, g_down: bool, bs: &Option<Bsr>) -> Tf {
     let i = p.n - 1;
     let j = p.n;
     let (r, u, pp, gm, rr, cp, x, af) = (p.r[i], p.u[i], p.p[i], p.g[i], p.rm[i], p.cp[i], p.x[i], p.af[j]);
@@ -1380,7 +1412,7 @@ fn turbine_face(k: &K, p: &mut Pipe, at_: f64, ag: f64, pt: f64, pg: f64, eta: f
     let ps = if jj > 0.0 { pp * powf(jj / (k2 * c), 1.0 / exc) } else { 0.0 };
     let gas = p.gas;
     let (m, mt, h0, pb, ub, rb, p0);
-    let (mut mg, mut w, mut dhis, mut rev) = (0.0, 0.0, 0.0, 0.0);
+    let (mut mg, mut w, mut dhis, mut rev, mut bx) = (0.0, 0.0, 0.0, 0.0, 0.0);
     if ps > pt || (ag > 0.0 && ps > pg) {
         let pc = pp * powf(jj / ((1.0 + k2) * c), 1.0 / exc);
         let pbv;
@@ -1425,7 +1457,13 @@ fn turbine_face(k: &K, p: &mut Pipe, at_: f64, ag: f64, pt: f64, pg: f64, eta: f
             if dhis < 0.0 {
                 dhis = 0.0;
             }
-            w = eta * mt * dhis;
+            match bs {
+                Some(b) => {
+                    bx = if dhis > 0.0 { b.u / (2.0 * dhis).sqrt() } else { 0.0 };
+                    w = if dhis > 0.0 { eta * bsr_frac(b, bx) * mt * dhis } else { 0.0 };
+                }
+                None => w = eta * mt * dhis,
+            }
         }
     } else {
         // flow back from the downpipe through the turbine's nozzle, no work
@@ -1463,7 +1501,7 @@ fn turbine_face(k: &K, p: &mut Pipe, at_: f64, ag: f64, pt: f64, pg: f64, eta: f
     p.f3[j] = m * h0;
     p.f4[j] = m * xo;
     let md = if rev != 0.0 { m } else if g_down { m } else { mt };
-    Tf { m, mt, mg, h0, p0, pb, x: xo, w, dhis, md, ed: md * h0 - w, xd: md * xo, rev }
+    Tf { m, mt, mg, h0, p0, pb, x: xo, w, dhis, md, ed: md * h0 - w, xd: md * xo, rev, bx }
 }
 
 fn two_mut(v: &mut [Pipe], a: usize, b: usize) -> (&mut Pipe, &mut Pipe) {
@@ -1919,6 +1957,7 @@ struct Acc {
     t: f64,
     w: f64,
     wis: f64,
+    wx: f64,
     mt: f64,
     mg: f64,
     m_air: f64,
@@ -1945,6 +1984,7 @@ fn turb_acc(ne: usize) -> Acc {
         t: 0.0,
         w: 0.0,
         wis: 0.0,
+        wx: 0.0,
         mt: 0.0,
         mg: 0.0,
         m_air: 0.0,
@@ -1968,7 +2008,8 @@ fn turb_acc(ne: usize) -> Acc {
     }
 }
 /// The cycle's summary (the page's turbSum), flat: t, W, Wis, mt, mg, mAir, p3, p3pk, p3s, p4, T3, T4, rev, mAtm, eAtm, nE,
-/// then each entry's 720 bins of turbine-inlet total pressure and 720 bins of the tail's mass flow (NaN where a bin is empty).
+/// then each entry's 720 bins of turbine-inlet total pressure and 720 bins of the tail's mass flow (NaN where a bin is empty),
+/// and last the energy-weighted blade speed ratio (part 10; 0 without exhaust.turbine.bsr).
 fn turb_sum(a: &Acc, gas: &Option<Gas>) -> Vec<f64> {
     let t = a.t;
     let ne = a.ne as f64;
@@ -1993,6 +2034,7 @@ fn turb_sum(a: &Acc, gas: &Option<Gas>) -> Vec<f64> {
         bin(b, &mut o);
     }
     bin(&a.bm, &mut o);
+    o.push(if a.wis > 0.0 { a.wx / a.wis } else { 0.0 }); // the energy-weighted blade speed ratio (part 10; 0 without bsr)
     o
 }
 fn acc_zero(a: &mut Acc) {
@@ -2644,12 +2686,13 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                 let c0 = Cell0 { r: dp.r[0], u: dp.u[0], p: dp.p[0], g: dp.g[0], rm: dp.rm[0], cp: dp.cp[0], x: dp.x[0] };
                 let (mut fm, mut fe, mut fx) = (0.0, 0.0, 0.0);
                 for (q, &e) in ents.iter().enumerate() {
-                    let tf = turbine_face(k, &mut st.pipes[e], at_, ag, pt, pg, ts.eta, &c0, !ts.wg_atm);
+                    let tf = turbine_face(k, &mut st.pipes[e], at_, ag, pt, pg, ts.eta, &c0, !ts.wg_atm, &ts.bsr);
                     fm += tf.md;
                     fe += tf.ed;
                     fx += tf.xd;
                     ac.w += tf.w * dt;
                     ac.wis += tf.mt * tf.dhis * dt;
+                    ac.wx += tf.bx * tf.mt * tf.dhis * dt;
                     ac.mt += tf.mt * dt;
                     ac.mg += tf.mg * dt;
                     ac.p3 += tf.p0 * dt;

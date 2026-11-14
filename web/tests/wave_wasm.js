@@ -42,7 +42,7 @@ function wStep(id, rpm, first, o) {
 }
 const jobs = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'wave_jobs.json'), 'utf8'));
 // the JavaScript's turbine summary in the WebAssembly's flat order (turb_sum)
-const tflat = t => t ? [t.t, t.W, t.Wis, t.mt, t.mg, t.mAir, t.p3, t.p3pk, t.p3s, t.p4, t.T3, t.T4, t.rev, t.mAtm, t.eAtm, t.nE].concat(...t.p3bins, t.mdBins) : [];
+const tflat = t => t ? [t.t, t.W, t.Wis, t.mt, t.mg, t.mAir, t.p3, t.p3pk, t.p3s, t.p4, t.T3, t.T4, t.rev, t.mAtm, t.eAtm, t.nE].concat(...t.p3bins, t.mdBins, [t.bsrE]) : [];
 // diameter steps on both lines (docs/WAVE_VALIDATION_2026-11-11.md: the two-pipe junction's contraction and expansion
 // laws and their fallback), which the page's captured jobs do not have: a stepped intake runner and a single cylinder's
 // pipe through a 127 mm chamber
@@ -83,6 +83,13 @@ const tflat = t => t ? [t.t, t.W, t.Wis, t.mt, t.mg, t.mAir, t.p3, t.p3pk, t.p3s
   jobs.push({ name: 'turbo, plenum, constant gas', job: { dx: jobs[1].job.dx, rpms: [4000, 7000], variants: [{ label: 'plenum and throttle under boost, spec.e.gas const', spec: Object.assign({}, s1,
     { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, { source: { p: 180000, T: 315 }, plenum: { V_m3: 0.002, inlet: [{ L: 0.4, d0: 0.07, d1: 0.07 }, { L: 0.05, d0: 0.06, d1: 0.06 }], throttle: { d: 0.06, cd: 0.83 } } }),
       exhaust: Object.assign({}, s1.exhaust, { turbine: tur({ CdA: 1.2e-3 }) }) }) }] } });
+  // 2026-11-13 part 10: the turbine's efficiency from the blade speed ratio at each step (exhaust.turbine.bsr): the
+  // parabola (areas changed between speeds), and OpenWAM's Watson polynomial on the divided housing with the gate to the air
+  jobs.push({ name: 'turbo, blade speed ratio', job: { dx: jobs[1].job.dx, rpms: [3000, 4500, 6000, 7500], areas: [[1.1e-3, 0], [1.1e-3, 2e-4], [-1, 4e-4], [9e-4, 3e-4]], variants: [{ label: 'parabola, U 420 m/s, optimum 0.7', spec: Object.assign({}, s1,
+    { intake: Object.assign({}, s1.intake, { source: { p: 190000, T: 320 } }), exhaust: Object.assign({}, s1.exhaust, { turbine: tur({ eta: 0.75, bsr: { U: 420, xo: 0.7, form: 'parabola' } }) }) }) }] } });
+  jobs.push({ name: 'turbo, divided, Watson', job: { dx: jobs[1].job.dx, rpms: [3500, 6000], variants: [{ label: 'two entries, gate to the air, Watson polynomial, U 380 m/s', spec: Object.assign({}, s1,
+    { intake: Object.assign({}, s1.intake, { source: { p: 210000, T: 330 } }), exhaust: Object.assign({}, s1.exhaust, { turbine: tur({ wgTo: 'atm', wgCdA: 3e-4, bsr: { U: 380, form: 'watson' } }) }),
+      opt: { phases: s1.opt.phases, collectors: [{ cyls: [0, 3], segs: col.segs.slice(0, 2), Tw: 650 }, { cyls: [1, 2], segs: col.segs.slice(0, 2), Tw: 650 }] } }) }] } });
   // 2026-11-13 part 7: the head's exhaust port (segments marked port: true; the port law, e.portHeat): a 110 mm port of
   // 40 mm ahead of the four-cylinder collector's primaries (its own pipe), the default law; the single cylinder with a port
   // at the primary's own bore (inside one pipe), Meisner and Sorenson's law at a 480 K wall; the constant gas with the port
