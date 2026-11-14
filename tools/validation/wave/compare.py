@@ -146,6 +146,8 @@ TAGS = {
     # 2026-11-13 part 7: the wave model with the first 100 mm of each exhaust primary marked as the head's port (its port
     # law, wsFactory; an ASSUMED port: these engines have none of their own), OpenWAM as base (no port; reuses its runs)
     "port": ({}, None, None, None),
+    # part 7's reference run of the page as it now is without a port (results/base.json stays part 1's)
+    "g_base": ({}, None, None, None),
 }
 
 

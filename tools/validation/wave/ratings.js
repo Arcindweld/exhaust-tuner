@@ -82,6 +82,8 @@ function specOf(c) {
     order.forEach((cy, slot) => { ph[cy - 1] = 90 * slot; });
     spec.opt = { phases: ph, collectors: [{ cyls: [0, 2, 4, 6], segs: csegs, Tw: 650 }, { cyls: [1, 3, 5, 7], segs: JSON.parse(JSON.stringify(csegs)), Tw: 650 }] };
   }
+  // back=Pa (part 7): the tail ends discharge into the atmosphere + back (a stand-in for the stock exhaust's catalysts and mufflers)
+  if (+args.back > 0) spec.exhaust.pOut = 101325 + +args.back;
   if (args.intake === 'plenum') {
     const Vtot = Math.PI / 4 * B * B * S * c.cyl, tbd = (+args.tbd || STOCK_TB[c.k]) / 1000, itd = (+args.itd || 101.6) / 1000;
     const R = RATED[c.k], fm = +args.fm || (R ? 1.1839 * Vtot * R.hpRpm / 120 : 0);   // dry air at 298.15 K, 1 atm, VE 1

@@ -78,12 +78,18 @@ function one(cs, rpm, state) {
     portFace.push(face);
   });
   const inPipes = new Set([].concat(...st.ins, st.plen ? st.plen.inlet : []));
+  // the port's heat split by whether that cylinder's exhaust valve is open (the time-averaged correlation's h is held over
+  // the whole cycle, so it also acts on the gas standing in the port while the valve is shut)
+  const portCells = st.prims.map(line => line.filter(P => P.np > 0).map(P => ({ P, n: P.np, last: 0 })));
+  let qOpen = 0, qShut = 0;
   const hook = c => {
     const dt = c.dt; A.t += dt;
     for (const cy of c.cyls) {
       A.fuel += cy._fuel || 0; A.rev += cy._rev || 0; A.Q += cy._Q; A.Wn += cy._pdV; const tk = cy.th; if (tk >= 540 || tk < 180) A.Wg += cy._pdV;
       if (tk < eng.evo || tk > eng.ivc) A.qwC += cy._qw; else if (tk < 360) A.qwEx += cy._qw; else A.qwIn += cy._qw;
     }
+    c.cyls.forEach((cy, k) => { let q = 0; for (const pc of portCells[k]) { let t = 0; for (let i = 0; i < pc.n; i++) t += pc.P._qc[i]; q += t - pc.last; pc.last = t; }
+      if (eng.CdAex(cy.th) > 0) qOpen -= q; else qShut -= q; });
     for (const f of portFace) {
       // the face portL from the valve; at portL 0 the valve face itself (the left end of the primary: flux into the pipe)
       const P = f.P, j = f.j; A.Hport += P.f3[j] * dt; A.Mport += P.f1[j] * dt; A.Xport += P.f4[j] * dt;
@@ -115,7 +121,7 @@ function one(cs, rpm, state) {
     Hport: fr(A.Hport), Htail: fr(A.Hout - A.Hin), chem: fr(F - A.Q), released: fr(A.Q), dE: fr(dE), rev: fr(A.rev), residual: sensRes / A.Q,
     closure: fr(brake) + fr(A.Wn - brake) + fr(A.qwC + A.qwEx + A.qwIn) + fr(-qPort - qExh - qIn) + fr(A.Hout - A.Hin) + fr(F - A.Q) + fr(dE) + fr(A.rev),
     TportMass: hT(A.Hport, A.Mport, A.Xport), TportTime: A.TportT / A.t, TtailMass: hT(A.Hout, A.Mout, A.Xout), TtailTime: A.ToutT / A.t,
-    mPortPerCyl: A.Mport / (A.t * N), tEx: r.tEx, brakeTq: brake / (4 * Math.PI) * cs.cyl / N, imep: r.imep, gimep: r.gimep
+    portOpen: fr(qOpen), portShut: fr(qShut), mPortPerCyl: A.Mport / (A.t * N), tEx: r.tEx, brakeTq: brake / (4 * Math.PI) * cs.cyl / N, imep: r.imep, gimep: r.gimep
   };
   return { row, state: r.state };
 }
