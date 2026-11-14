@@ -970,3 +970,30 @@ the inlet-tube recommendation (the coupler fix: the size table now marks 4 in, s
 The builder changes the setting to move to the new point. Vehicle presets carry the stock power: with "My power target" a
 preset that is switched to a turbo without a target typed is worked at the stock figure, and the result line says to
 check it when the target needs little or no boost.
+
+### Tests
+
+- web/tests/operatingpoint_ui.js (new, 52 checks): the three modes on the K24 + PT5862; one mass flow, pressure ratio,
+  compressor-out and intercooler-out temperature and back pressure across the boosted sections, the sheet, the glance
+  card, the step list and the simulation plan; the relation round-trips; the legacy project against
+  fixtures/op_legacy_k24.json; a project saved in "My power target" round-trips; the wastegate monotonic checks and its
+  largest-area sizing; the back-pressure iteration's convergence, typed override and "None"; the inlet tube and runner row.
+- Tests whose subject is one section's physics at a typed boost (pinned against hand sums or the validation scripts at
+  that boost) now set the earlier point first (settle.js typedPoint: both typed, no back pressure unless typed, the gate
+  at the one p3): boostaudit, boostaudit2, chargeroute, compmap, conflux, icrec, turboar, turbosize, turboguide, turbolib,
+  turbomani, turbosim, turbineeff, xflow. Their pins are unchanged except as listed.
+- Pins changed (old, new, why):
+  - easyflow_ui, power row: "450 hp needs about 26.30 psi, the 8 psi typed does not match" -> the target's boost worked
+    out, 29.52 psi, one airflow, no mismatch (the new default).
+  - easyflow_ui, pressure before the turbine: 2 × boost 16.00 psi (110.32 kPa) -> 59.04 psi (407.10 kPa) (2 × the
+    worked-out boost), and the row names the gate's own basis; its timed edits are now on the target (the boost field is a
+    result).
+  - turbosize_ui and boostaudit_ui B19, Charge pipes "Pressure lost, compressor to throttle": 2.11 psi (14,533.6 Pa,
+    14.5 kPa) -> 2.08 psi (14,328.6 Pa, 14.3 kPa): the section now works at the route's air (t2 101.570 °C instead of the
+    no-loss 87.258 °C, each side at its own pressure); hand sum in turbosize_ui's header (calcCharge itself unchanged and
+    still pinned at 14533.603 Pa). boostaudit_ui's two "no pipe losses" wording checks now check the with-loss wording.
+  - turbosize_ui, wastegate table: the rows were 2, 2.25, 2.5 × (and a typed multiple); now 0.8, 1, 1.25, 1.5, 1.75, 2,
+    2.25, 2.5 × (and a typed one). The values at 2, 2.25, 2.5 × are unchanged (1244, 1218, 1186 mm²; 63, 66, 68 %); the
+    caption check reads the one-pressure basis.
+  - turboguide_ui and xflow_ui: after Use these sizes the inlet tube is set back to the 5 in tube (123.698 mm inside) the
+    button gave before the coupler fix, so their hand-worked exhaust sums (t2 96.753 °C, T4 902.7742 °C, xflow.py) stand.
