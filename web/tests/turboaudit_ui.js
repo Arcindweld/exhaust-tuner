@@ -123,6 +123,14 @@ const WCPER = 1004.5 * 95;   // the compressor's J per kg of air for these jobs 
   ok(!!s && s.eta === 0.6 && s.lo === 3500 && same && out.sens.length === 2 && out.sens[1].lo === 4500 && out.sens[1].eta === 0.7, 'F4 the run carries the sensitivity: ' + (s ? out.sens.map(c => 'eta ' + c.eta + ', full boost ' + c.lo + ' rpm: area ' + (c.rows[0].At * 1e6).toFixed(1) + ' mm2').join('; ') + ' (main run ' + (out.rows[0].At * 1e6).toFixed(1) + ' mm2)' : 'none'));
 }
 
+// the run with a measured pressure before the turbine: calibrated at the first speed, the closure holding that area above it
+{ const job = { spec: spec3, na: Object.assign({}, spec3, { intake: Object.assign({}, INT, { source: { p: 101325, T: 298.15 } }), exhaust: { segs: spec3.exhaust.segs, Tw: 950, pOut: 108000 } }), sc: null,
+    rpms: [3500, 5500], dx: 0.0125, turbo: true, A0: 6e-4, At: null, Ag: null, wcPer: WCPER, p3m: 101325 + 60e3 };
+  const out = tsimRun(TL, job, () => {}), c = out.calib;
+  ok(!!c && c.ok && Math.abs(c.p3s / job.p3m - 1) < 0.005 && out.rows[0].At === c.At && out.rows[1].At === c.At && !out.sens && Math.abs(out.rows[0].res.turb.W / out.rows[0].res.Wc - 1) < 0.006,
+    'F4 a run with a measured 60 kPa (gauge) before the turbine: area ' + (c ? (c.At * 1e6).toFixed(1) + ' mm2, efficiency ' + c.eta.toFixed(3) + ', static mean ' + (c.p3s / 1000).toFixed(2) + ' kPa; turbine / compressor at the first speed ' + (out.rows[0].res.turb.W / out.rows[0].res.Wc).toFixed(4) + ', gate ' + (out.rows[1].Ag * 1e6).toFixed(1) + ' mm2 above it' : 'no calibration'));
+}
+
 // ---------- F6. the brake under boost
 { const P_ATM = 101325, R_AIR = 287.05;
   const TBsrc = 'const P_ATM=101325, R_AIR=287.05, GAMMA=1.4;\n' + cut('const EXH_GAS=(()=>{', 'const sosExh=') + 'const CP_AIRT=GAMMA*R_AIR/(GAMMA-1);\n' + cut('function turbineBalance(o){', 'function tsSizeSection(');
