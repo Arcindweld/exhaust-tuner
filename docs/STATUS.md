@@ -2054,4 +2054,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   366 mm² effective), downpipe, manifold and oil lines unchanged; back pressure 4.59 psi in the balance.
   Details and every changed pin: docs/BOOST_AUDIT_2026-11-12.md addendum (2026-11-14); C1-C8 status:
   docs/USABILITY_AUDIT_2026-11-14.md.
-
+- Tests: web/tests/operatingpoint_ui.js (new, 55 checks); settle.js typedPoint keeps 14 section tests at the typed boost;
+  pins changed listed in the addendum. Suite (web,parity, -j 2, --skip-slow), final code: 134 tests, 127 passed, 0 failed,
+  7 skipped, 7 partial skips, 0 unexpected, 1504 s (the run before it: sweep_ui failed on two empty table cells the default
+  turbo build now reaches; fixed, rerun alone: passes).
