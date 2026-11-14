@@ -2013,3 +2013,22 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Tests: web/tests/turbineeff_ui.js (new, 22 checks, pins in turbineeff_pins.json from git 9301028), wave_wasm.js (+2 jobs).
   No pinned value changed. Suite (web,parity, -j 2, --skip-slow): 132 tests, 125 passed, 0 failed, 7 skipped, 7 partial
   skips, 0 unexpected, 1566 s. Details: docs/WAVE_VALIDATION_2026-11-11.md part 10; tools/validation/wave/turbine_eff.js.
+
+## 2026-11-14: usability audit of the boosted build (Intake tab), as a first-time builder
+
+- Walked the K24A2 + PT5862 journey in Chromium at 1440 and 400 px, light and dark, Simple and Expert, inches and mm, with
+  the wave simulation and the Mounts designer. Findings table and the contradictions between sections:
+  docs/USABILITY_AUDIT_2026-11-14.md (8 contradictions: pressure ratio 1.54 / 1.648, compressor outlet 189 / 206 °F,
+  intercooler outlet 105 / 109 °F, target 450 hp needs about 26 psi against the 8 psi typed, the simulation's boost
+  wording, p3 2 × boost assumed against 0.66 × in the simulation, back pressure 1.87 psi worked out against none used,
+  0.065 in walls printed as 0.07 in).
+- Page: "Your turbo build at a glance" (tgGlance) first in the Intake result column, every size read from the turbo build
+  sheet's rows (tsSheet); the boosted sections now follow the step list (same computation order); advanced inputs of
+  the three boosted groups in collapsible boxes (advBuild / advMark: collapsed in Simple mode, remembered in this
+  browser, always open in Expert, "changed: …" marker; ids unchanged, nothing in the project format changed); "What to
+  measure on the car to firm this up" (tsMeasure) under the steps and on the sheet; "Words used in the turbo sections";
+  "Type it in" links (goField) and tab-aware Go; port-spacing warning (mfdSpacingOdd); both unit systems on every
+  remaining one-system figure; tube OD and wall at tube precision on the sheet (ctube); basis named on the no-loss rows.
+- No calculation changed: old and new page compared on the same journey (every internal result and every number of every
+  boosted section's text); identical.
+- Tests: web/tests/easyflow_ui.js (new). No existing test or pin changed.
