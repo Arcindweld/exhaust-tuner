@@ -3031,7 +3031,7 @@ the typed 3500 rpm; turbineeff_ui 6, the page's own run, page brake as part 6 F6
 
 ### J8 Tests, pinned values
 
-- `web/tests/turbineeff_ui.js` (new; Node + Playwright, 23 checks, about 5 minutes): the work coefficient and the K24's
+- `web/tests/turbineeff_ui.js` (new; Node + Playwright, 22 checks, about 3-5 minutes): the work coefficient and the K24's
   shaft and tip speed by hand; the blade speed ratio of a worked expansion; the parabola and Watson values; the engine's
   moments identity (1e-9); JS / Rust parity with the curve; the legacy switch: predict mode at 800 mm2 without `bsr`
   equal to the last digit to values pinned from git 9301028 (`turbineeff_pins.json`); the steady balance with the curve
@@ -3043,6 +3043,9 @@ the typed 3500 rpm; turbineeff_ui 6, the page's own run, page brake as part 6 F6
   `bsr`, or qualitative behaviour of the page's run).
 - Engine: JS and Rust changed in parity, WebAssembly rebuilt; every naturally aspirated and constant-efficiency job bit for
   bit (wave_wasm, turbineeff_ui 4).
+- Suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, 2026-11-13, part 10): 132 tests,
+  125 passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips (all expected), 0 unexpected, 1566 s (turbineeff_ui 191 s;
+  turbine_ui, turbosim_ui, turboaudit_ui, waveturbo_ui, wave_wasm passed unchanged).
 
 ### J9 Not done, unknown
 

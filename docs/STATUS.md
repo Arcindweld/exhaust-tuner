@@ -2010,5 +2010,6 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   gate valve still 38 mm. Predict mode 450-1185 mm2: full boost +90-270 rpm, p3 +0-5 %; with friction, volute and a
   poorer compressor low down +360-710 rpm, +14-16 %. Gap to the logs (1.5-2 x with a 4000-4500 rpm spool): partly closed,
   a little.
-- Tests: web/tests/turbineeff_ui.js (new, 23 checks, pins in turbineeff_pins.json from git 9301028), wave_wasm.js (+2 jobs).
-  No pinned value changed. Details: docs/WAVE_VALIDATION_2026-11-11.md part 10; tools/validation/wave/turbine_eff.js.
+- Tests: web/tests/turbineeff_ui.js (new, 22 checks, pins in turbineeff_pins.json from git 9301028), wave_wasm.js (+2 jobs).
+  No pinned value changed. Suite (web,parity, -j 2, --skip-slow): 132 tests, 125 passed, 0 failed, 7 skipped, 7 partial
+  skips, 0 unexpected, 1566 s. Details: docs/WAVE_VALIDATION_2026-11-11.md part 10; tools/validation/wave/turbine_eff.js.
