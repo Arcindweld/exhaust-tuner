@@ -13,15 +13,13 @@
 // exhaust gas drawn back into the cylinder, the plenum's mean pressure, and the mass-averaged runner-end pressure while
 // air flows in.
 // Extra arguments (one change at a time for part 8's experiments):
-//   amb=j1349      the SAE J1349 reference atmosphere: 99 kPa of dry air at 25 C (the rating's basis) at the inlet's mouth,
-//                  100 kPa (dry air + 1 kPa water vapour) at the tail ends; the VE stays referred to 101.325 kPa
+//   amb=j1349, exdp=Pa, portIn=m|ls3cc, acckw=   ratings.js's (part 8: J1349's atmosphere, a tail restriction, the head's intake port)
 //   inTw=K         every intake pipe's wall temperature (ratings.js: 320 K)
 //   portInL=m portInTw=K   the runner's last portInL before the valve (the head's intake port) at its own wall temperature
 //   chk=tappet     the cam card's 0.050 in read as tappet lift: the check lift at the valve is 0.050 in x the rocker ratio
 //                  (rocker=, default 1.7)
 //   fuel=air       part 1's charge (no fuel vapour in the gas)
 //   fuel=premix    the fuel's vapour already in the intake's gas (fully evaporated upstream: an upper bound of its displacement; WS_PATCHES=results/patch_premix.json)
-//   exdp=Pa        a tail restriction losing exdp at the rated-power flow, scaling with the flow squared (a stand-in for catalysts and mufflers)
 //   node ve_decomp.js [engines=ls3] [rpms=3000,4600,5800] [tag=name] [...]   -> results/ve_<tag>.json
 'use strict';
 const fs = require('fs'), path = require('path');
@@ -31,18 +29,10 @@ const engines = (args.engines || 'ls3').split(','), rpms = (args.rpms || '3000,4
 const base = Object.assign({ intake: 'plenum', flow: 'benchfam' }, args);
 function specFor(c) {
   const spec = R.specOf(c, base);
-  if (args.amb === 'j1349') { spec.intake.source = { p: 99000, T: 298.15 }; spec.exhaust.pOut = 100000; }
-  else if (args.amb) throw new Error('amb= j1349');
   if (+args.inTw > 0) spec.intake.Tw = +args.inTw;
   if (args.chk === 'tappet') spec.e.cam.checkLift_mm = 1.27 * +(args.rocker || 1.7);
   if (args.fuel === 'air') spec.e.fuel = 'air';
   if (args.fuel === 'premix') { if (!process.env.WS_PATCHES) throw new Error('fuel=premix needs WS_PATCHES=results/patch_premix.json'); spec.e.fuel = 'premix'; }
-  if (+args.exdp > 0) {   // a tail restriction: each collector ends in a 50 mm exit of reduced area whose exit loss is exdp (Pa) at the
-    // rated-power flow (air at VE 1 x (1 + 1/AFR), half per collector) and 900 K, 1 atm (rho 0.381 kg/m3): sigma = 1 / sqrt(1 + dp / q), the loss ~ m^2
-    const B = c.bore * 0.0254, S = c.stroke * 0.0254, Vt = Math.PI / 4 * B * B * S * c.cyl, Rr = R.RATED[c.k];
-    const m = 1.1839 * Vt * Rr.hpRpm / 120 * (1 + 1 / spec.e.afr) / 2, d = 0.0762, A = Math.PI * d * d / 4, q = m * m / (2 * 0.381 * A * A), sg = 1 / Math.sqrt(1 + +args.exdp / q);
-    for (const col of spec.opt.collectors) col.segs = col.segs.concat([{ L: 0.05, d0: d * Math.sqrt(sg), d1: d * Math.sqrt(sg) }]);
-  }
   if (+args.portInL > 0) {   // split the runner: the port part slightly different in bore (1e-5) so buildLine makes it its own pipe
     const s = spec.intake.segs, L = s[0].L, d = s[0].d0, pl = +args.portInL;
     spec.intake.segs = [{ L: L - pl, d0: d, d1: d }, { L: pl, d0: d * (1 + 1e-5), d1: d * (1 + 1e-5) }];
@@ -85,15 +75,20 @@ function run(c) {
     const mean = f => cs.reduce((s, q) => s + f(q), 0) / cs.length;
     const fV = mean(q => q.V / eng.Vd), fp = mean(q => q.p / pRef), fT = mean(q => Tref / q.T), fR = mean(q => Rair / q.R), fx = mean(q => q.x);
     const prod = mean(q => (q.V / eng.Vd) * (q.p / pRef) * (Tref / q.T) * (Rair / q.R) * q.x * fa);
+    // the same charge taken isentropically (frozen gamma at IVC) to the BDC volume Vd + Vc: the pressure and temperature it would
+    // have there (p* and T*; the product with Vb / Vd is still the VE exactly, since p V / T is unchanged): the ram and wave
+    // pressure net of losses, and the charge's heating, without the compression after BDC that late closing adds
+    const Vb = eng.Vd + eng.Vc, gam = q => G ? WS.gas.at(G, q.T, q.x).gamma : WS.GAM;
+    const fVb = Vb / eng.Vd, fpS = mean(q => q.p * Math.pow(q.V / Vb, gam(q)) / pRef), fTS = mean(q => Tref / (q.T * Math.pow(q.V / Vb, gam(q) - 1)));
     const Tin = mean(q => q.mIn > 0 ? WS.gas.T(GI, q.hIn / q.mIn, Math.min(1, q.xIn / q.mIn), 300, true) : NaN);
     const cpA = WS.gas.at(GI, 320, 1).cp;
-    const row = { rpm, ve: r.ve, veIvc: mean(q => q.ve), prod, fV, fp, fT, fR, fx, fa, pIvc: mean(q => q.p), Tivc: mean(q => q.T), resid: mean(q => 1 - q.x),
+    const row = { rpm, ve: r.ve, veIvc: mean(q => q.ve), prod, fV, fp, fT, fR, fx, fa, fVb, fpS, fTS, TS: Tref / fTS, pIvc: mean(q => q.p), Tivc: mean(q => q.T), resid: mean(q => 1 - q.x),
       TinStag: Tin, backFrac: mean(q => q.mBack / (q.m * q.x * fa)), exBackFrac: mean(q => q.mExBack / q.m), qIn: mean(q => q.qIn),
       dTwall: mean(q => q.qIn / (q.m * cpA)), pRunner: mean(q => q.mIn > 0 ? q.pv / q.mIn : NaN), pPlen: tt > 0 && plP > 0 ? plP / tt : null,
       imep: r.imep, gimep: r.gimep, tqB: WS.tfmep ? (r.gimep - WS.tfmep(rpm)) * eng.Vd * c.cyl / (4 * Math.PI) / 1.3558179 : null };
     rows.push(row);
     process.stderr.write(c.k + ' ' + rpm + ': VE ' + row.ve.toFixed(4) + ' (prod ' + row.prod.toFixed(4) + ') = V ' + fV.toFixed(4) + ' p ' + fp.toFixed(4) + ' T ' + fT.toFixed(4) + ' R ' + fR.toFixed(4) +
-      ' x ' + fx.toFixed(4) + ' fa ' + fa.toFixed(4) + ' | Tin ' + Tin.toFixed(1) + ' K, dTwall ' + row.dTwall.toFixed(1) + ' K, back ' + (100 * row.backFrac).toFixed(1) + ' %, exBack ' + (100 * row.exBackFrac).toFixed(1) +
+      ' x ' + fx.toFixed(4) + ' fa ' + fa.toFixed(4) + ' | at BDC volume: p* ' + fpS.toFixed(4) + ' T* ' + (Tref / fTS).toFixed(1) + ' K | Tin ' + Tin.toFixed(1) + ' K, dTwall ' + row.dTwall.toFixed(1) + ' K, back ' + (100 * row.backFrac).toFixed(1) + ' %, exBack ' + (100 * row.exBackFrac).toFixed(1) +
       ' %, pRun ' + (row.pRunner / 1000).toFixed(2) + ' kPa, pPlen ' + (row.pPlen ? (row.pPlen / 1000).toFixed(2) : '-') + ' | brake ' + (row.tqB ? row.tqB.toFixed(1) : '-') + ' lb-ft (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)\n');
   }
   return { name: c.name, rows };

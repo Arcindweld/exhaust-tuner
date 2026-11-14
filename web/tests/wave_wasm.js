@@ -92,7 +92,20 @@ const tflat = t => t ? [t.t, t.W, t.Wis, t.mt, t.mg, t.mAir, t.p3, t.p3pk, t.p3s
     { label: 'the same, constant gas', spec: Object.assign({}, s1, { e: Object.assign({}, s1.e, { gas: 'const' }), exhaust: Object.assign({}, s1.exhaust, { segs: [{ L: 0.11, d0: 0.04, d1: 0.04, port: true }].concat(sp) }) }) }] } });
   jobs.push({ name: 'exhaust port, single', job: { dx: jobs[0].job.dx, rpms: [4000, 7000, 9000], variants: [
     { label: '120 mm port at the primary bore, Meisner-Sorenson, 480 K wall', spec: Object.assign({}, s0, { e: Object.assign({}, s0.e, { portHeat: 'meisner', portTw: 480 }),
-      exhaust: Object.assign({}, s0.exhaust, { segs: [Object.assign({}, sp0[0], { L: 0.12, d1: sp0[0].d0, port: true })].concat(sp0) }) }) }] } }); }
+      exhaust: Object.assign({}, s0.exhaust, { segs: [Object.assign({}, sp0[0], { L: 0.12, d1: sp0[0].d0, port: true })].concat(sp0) }) }) }] } });
+  // 2026-11-13 part 8: the head's intake port (trailing intake segments marked port: true; e.portInHeat): the four-cylinder
+  // collector's runners with their last 100 mm as the port at the runner's bore (inside one pipe), on the plenum, with the
+  // exhaust port too, the default law; the same with the constant gas; the single cylinder with a port of its own bore
+  // (its own pipe), Shayler's law at a 380 K wall
+  const si = s1.intake.segs, di = si[si.length - 1].d1, Li = si.reduce((a, q) => a + q.L, 0), s0i = s0.intake.segs, d0i = s0i[s0i.length - 1].d1;
+  const inPort = { segs: [{ L: Li - 0.1, d0: si[0].d0, d1: di }, { L: 0.1, d0: di, d1: di, port: true }] };
+  jobs.push({ name: 'intake port', job: { dx: jobs[1].job.dx, rpms: [3000, 5000, 7000], variants: [
+    { label: '100 mm intake port at the runner bore, plenum, exhaust port, four on one collector, Depcik-Assanis', spec: Object.assign({}, s1, { intake: Object.assign({}, s1.intake, inPort, { plenum: pl }),
+      exhaust: Object.assign({}, s1.exhaust, { segs: [{ L: 0.11, d0: 0.04, d1: 0.04, port: true }].concat(sp) }) }) },
+    { label: 'the same port, open runners, constant gas', spec: Object.assign({}, s1, { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, inPort) }) }] } });
+  jobs.push({ name: 'intake port, single', job: { dx: jobs[0].job.dx, rpms: [4000, 7000, 9000], variants: [
+    { label: '90 mm intake port of its own bore, Shayler, 380 K wall', spec: Object.assign({}, s0, { e: Object.assign({}, s0.e, { portInHeat: 'shayler', portInTw: 380 }),
+      intake: Object.assign({}, s0.intake, { segs: s0i.concat([{ L: 0.09, d0: d0i * 0.95, d1: d0i * 0.95, port: true }]) }) }) }] } }); }
 let tJs = 0, tW = 0;
 for (const { name, job } of jobs) {
   const rpms = process.env.QUICK === '1' ? job.rpms.slice(0, 3) : job.rpms;

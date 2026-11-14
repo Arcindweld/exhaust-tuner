@@ -36,7 +36,9 @@ function load(o) {
     src = swap(src, 'function stepPipe(P,dt){', 'function stepPipe(P,dt){ if(!P._qc) P._qc=new Float64Array(P.n);');
     const oldQ = '    q3[i]+=-k*(f3[i+1]-f3[i])+dt*fr*cp[i]*(P.Tw-Ti);\n';
     const newQ = '    q3[i]+=-k*(f3[i+1]-f3[i])+(i<np?dt*P.hp*Math.PI*D[i]*(P.Twp-Ti):dt*fr*cp[i]*(P.Tw-Ti));\n';
-    if (src.indexOf(newQ) >= 0) src = swap(src, newQ, newQ + '    P._qc[i]+=(i<np?dt*P.hp*Math.PI*D[i]*(P.Twp-Ti):dt*fr*cp[i]*(P.Tw-Ti))*dx;\n');
+    const newQ8 = '    q3[i]+=-k*(f3[i+1]-f3[i])+(i>=npa&&i<np?dt*P.hp*Math.PI*D[i]*(P.Twp-Ti):dt*fr*cp[i]*(P.Tw-Ti));\n';   // part 8: intake ports too
+    if (src.indexOf(newQ8) >= 0) src = swap(src, newQ8, newQ8 + '    P._qc[i]+=(i>=npa&&i<np?dt*P.hp*Math.PI*D[i]*(P.Twp-Ti):dt*fr*cp[i]*(P.Tw-Ti))*dx;\n');
+    else if (src.indexOf(newQ) >= 0) src = swap(src, newQ, newQ + '    P._qc[i]+=(i<np?dt*P.hp*Math.PI*D[i]*(P.Twp-Ti):dt*fr*cp[i]*(P.Tw-Ti))*dx;\n');
     else src = swap(src, oldQ, oldQ + '    P._qc[i]+=dt*fr*cp[i]*(P.Tw-Ti)*dx;\n');
     src = swap(src, 'qw=hc*Aw*(cy.T-(e.Twall||450))*dt;', 'qw=hc*Aw*(cy.T-(e.Twall||450))*dt; cy._hc=hc; cy._Aw=Aw; cy._wv=wv;');
     src = swap(src, '      st.th+=dth;\n', '      if(opts.hook) opts.hook({st,all,dt,dth,cyls,ins,prims,chambers,outs,eng,th:st.th,TB,PL});\n      st.th+=dth;\n');
