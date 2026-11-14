@@ -22,6 +22,9 @@
 //                 (inlet tube, filter to throttle; default the page's 600 and 101.6: ASSUMPTIONS), fdp=Pa (air filter loss at
 //                 the flow fm=kg/s; default 0 = no filter, an open mouth; fm default: the engine's air at VE 1 at the rated
 //                 power speed)
+// 2026-11-13 part 8 (H sections): portIn=m|ls3cc (the head's intake port: the runner's last part, marked port: true;
+//   ls3cc = 182.5 mm, the LS3's published 260 cc at the runner's bore), and the labelled "as rated" inputs amb=j1349 (SAE
+//   J1349's 99 kPa of dry air at 25 C), exdp=Pa (a tail restriction ~ flow squared), acckw=kW (accessories off the brake)
 // Per speed it records net IMEP (the model's own), gross IMEP (p dV from BDC before firing to BDC after: 540-720 and
 // 0-180 deg of each cylinder's frame), the pumping loop (gross - net), the heat released and the in-cylinder wall heat
 // (Woschni) per cycle, the fuel's chemical energy (trapped air / AFR x 44 MJ/kg), and, when the page has it, the brake

@@ -1948,3 +1948,29 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   imply VE 0.91-0.97 at that efficiency, the model has 1.05-1.08; 10 kPa back pressure -0.6 %; accessories, air cleaner and
   stock exhaust (part of SAE J1349 net) not modelled. No open LS3 VE/BSFC figure found; no citable WOT EGT measurement read.
 - Tests: wavegas_ui.js 12 (new), wave_wasm.js (three port jobs). No pinned value changed. Suite (web,parity, -j 2, --skip-slow): 130 tests, 123 passed, 0 failed, 7 skipped, 7 partial skips, 0 unexpected, 1299 s. Details: docs/WAVE_VALIDATION_2026-11-11.md, part 7 (G1-G10).
+
+## 2026-11-13, part 8: why the wave model breathes too well (VE taken apart); intake-port heat; the rating's air
+
+- VE taken apart exactly at IVC (tools/validation/wave/ve_decomp.js: VE = Vb/Vd x p* x T_ref/T* x R_air/R_mix x x x f_air,
+  the charge taken isentropically to the BDC volume): LS3 at 4600 / 5800 rpm p* 1.23 / 1.30 atm, T* 365 / 376 K; VE above 1
+  is the 300 mm (assumed) runner's ram (100 mm runner: -21 % torque at 4600). Measured valve flow vs the 0.7 law, fuel
+  vapour, in-cylinder wall heat: each under 1.5 % of VE. Flow-bench conversion = the textbook compressible orifice: correct.
+- Missing physics added (JS + Rust bit parity, WebAssembly rebuilt): the head's intake port. Intake segments marked
+  port: true at the valve end (4-Stroke tab "Of that, the intake port in the head", blank = no change; ratings.js
+  portIn=ls3cc = 182.5 mm from the LS3's published 260 cc) gain h (Tw - T), Nu = 0.0694 Re^0.75 (Depcik-Assanis, intake;
+  Shayler 0.135 Re^0.713 and Bauer 0.140 Re^0.66 selectable; constants as tabulated by Rahman et al. 2011), Re from the last
+  cycle's mean net inflow, Sutherland air, Tw e.portInTw else 360 K (coolant, ASSUMPTION). e.portInHeat 'off' = before,
+  bit for bit. LS3: -0.7 to -1.0 % VE, -1.0 to -1.3 % torque.
+- The rating's air: SAE J1349 corrects to 99 kPa dry air at 25 C (secondary sources; the standard unread); the model
+  breathed 101.325 kPa: -2.8 to -3.0 % of brake torque. A comparison input (ratings.js amb=j1349), not engine physics.
+- Ratings (part 7 -> as rated: port + J1349): LS3 478 / 499 -> 459 lb-ft (+8 %) / 479 hp (+11 %); LS7 543 / 549 -> 522
+  (+11 %) / 528 (+5 %); LT1 479 / 480 -> 460 (0 %) / 461 (+1 %). Stock air cleaner, exhaust restriction and accessories
+  are not published for these engines: inputs (fdp=, exdp=, acckw=), not defaults; 2.5 kPa + 30 kPa would leave LS3 +1 / +4 %.
+  0.050 in at the tappet instead of the valve: LS3 curve moves up the range, surplus not reduced (open). Residual 2.5-4.0 %
+  vs 6.3 % from the Fox-Cheng-Heywood form (open long tubes scavenge).
+- K24 + PT5862 turbo case: unchanged to the last digit (no intake port marked in its plan); with an assumed 100 mm intake
+  port VE -0.3 %, closure area 1185 -> 1182 mm2, calibration efficiencies unchanged at 3 digits. Run time unchanged.
+- Tests: wavegas_ui.js 13 (new), wave_wasm.js (three intake-port jobs), cam_ui.js (three checks). No pinned value changed.
+  kat.js 66/66 (kat.json byte-identical), constref 112 identical, the page's captured jobs identical before/after.
+  Suite (web,parity, -j 2, --skip-slow): 130 tests, 123 passed, 0 failed, 7 skipped, 7 partial skips, 0 unexpected, 1330 s.
+  Details: docs/WAVE_VALIDATION_2026-11-11.md, part 8 (H1-H10).
