@@ -4,7 +4,7 @@
 // 1. hand: the shaft speed and tip speed of the K24 + PT5862 build from the compressor's work (turboShaft), the blade
 //    speed ratio at a steady expansion ratio, the two efficiency forms.
 // 2. k24: the owner's build (the page's plan, results/turbo_k24_page.json) through the predict mode at a series of
-//    turbine areas, one change at a time: A the efficiency from the blade speed ratio (parabola, Watson; the work
+//    turbine areas, one change at a time (and all together, A+C+D+E): A the efficiency from the blade speed ratio (parabola, Watson; the work
 //    coefficient), C bearing friction, D a turbine volute's heat loss (an extra pipe at the manifold wall), E a lower
 //    compressor efficiency; the constant efficiency (legacy) as the reference.
 // 3. closure: the area found for full boost at 3500 / 4000 / 4500 rpm with each efficiency model (part 9's question).
@@ -90,6 +90,8 @@ if (!ONLY || ONLY === 'k24') {
   for (const a of [600, 1000]) plan.push([a, { eta: 0.75, form: 'parabola', mu: 0.65 }, 'A parabola mu 0.65'], [a, { eta: 0.75, form: 'parabola', mu: 0.45 }, 'A parabola mu 0.45'],
     [a, { eta: 0.75, form: 'parabola', fric: 1000 }, 'A + C friction 1 kW'], [a, { eta: 0.75, form: 'parabola', volute: 0.2 }, 'A + D volute 0.2 m'],
     [a, { eta: 0.75, form: 'parabola', etaC: 0.62 }, 'A + E compressor 62 %'], [a, { eta: 0.75, fric: 1000 }, 'C alone'], [a, { eta: 0.75, volute: 0.2 }, 'D alone'], [a, { eta: 0.75, etaC: 0.62 }, 'E alone']);
+  // all of A, C, D, E together (C, D, E at their illustrative values): the most this part's physics moves the build
+  for (const a of [450, 600, 800, 1000, 1185.4125]) plan.push([a, { eta: 0.75, form: 'parabola', fric: 1000, volute: 0.2, etaC: 0.62 }, 'A+C+D+E']);
   for (const [a, o, name] of plan) {
     if (res.k24.some(r => r.name === name && r.A_mm2 === mm2(a * 1e-6))) continue;
     const r = Object.assign({ name }, predictCase(a * 1e-6, o)); res.k24.push(r); save();
