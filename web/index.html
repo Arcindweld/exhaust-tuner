@@ -9312,6 +9312,35 @@ const burnHeat=(eng,fresh)=>eng.gas?fresh*eng.gas.qx*(eng.e.etaC!=null?eng.e.eta
    the GROSS indicated work (compression and expansion strokes, from BDC to BDC), not the net: the model's own pumping
    loop is not counted a second time. Brake mep = gross IMEP - tfmep. Not fitted to anything here. */
 const tfmep=rpm=>{ const n=rpm/1000; return 1e5*(0.97+0.15*n+0.05*n*n); };
+/* ---------- the head's exhaust port (2026-11-13, part 7): heat to the coolant-cooled port wall ----------
+   Exhaust segments marked port: true at the start of a primary (the 4-Stroke tab's "Exhaust port length, valve to flange")
+   are the head's port. Until part 7 the port was pipe like the header: Reynolds' analogy (St = f/2 = 0.0025, which is zero
+   when the gas stands still) to the header's wall at 700 K. A real port is a short passage in the coolant-cooled head that
+   the blowdown jet sweeps; measured time-averaged port heat transfer runs well above steady pipe-flow correlations. Now
+   (default; e.portHeat false or 'off' keeps the old law bit for bit) its cells lose
+   q = h (T - Tw) per unit wall area, with
+   - h from a published time-averaged exhaust-port correlation, Nu = h D / k = C Re^n, default Caton and Heywood's
+     Nu = 0.35 Re^0.6 (Int. J. Heat Mass Transfer 24 (1981) 581-595, SI engine exhaust port; as tabulated with Hires and
+     Pochmara's 0.258 Re^0.8 (SAE 760767), Malchow, Sorenson and Buckius's 0.0483 Re^0.783 (SAE 790309, the straight
+     section) and Meisner and Sorenson's 0.0774 Re^0.769 (SAE 860242) in T. J. Morgan, PhD thesis, University of
+     Nottingham 2003, Table 2.1; Malchow's also in A. Kirkpatrick's engine heat-transfer notes, Colorado State); e.portHeat
+     picks 'malchow', 'meisner' or 'hires' instead. The correlations are for time-averaged flow, so Re = 4 m / (pi D mu)
+     takes the port's mean flow over the last cycle (the net exhaust-valve outflow per cycle x rpm / 120) and h is held
+     for the next cycle; the gas properties at the mass-averaged outflow temperature, mu and k of air by Sutherland's law
+     (1.716e-5 Pa s, S 111 K; 0.0241 W/m K, S 194 K, both at 273 K: COMSOL CFD Module tables 5-2 and 5-3, after White);
+     D the port cell's bore. The first cycle from a cold start has none (h 0) until a cycle's flow is known.
+   - Tw: the head, e.portTw, else the cylinder's wall temperature (e.Twall, 450 K): a coolant-cooled aluminium port runs a
+     little above the coolant (a modelled exhaust-port element at 137-144 C fully warm at part load, Morgan 2003 Table 5.4c;
+     the combustion chamber's gas side about 480 K over 360 K coolant, Heywood Fig. 12-1 in MIT 2.61 lecture 18).
+   Friction stays the pipe's. The engine's other pipes keep Reynolds' analogy. */
+const PORT_NU={caton:[0.35,0.6],malchow:[0.0483,0.783],meisner:[0.0774,0.769],hires:[0.258,0.8]};
+const muAir=T=>1.716e-5*Math.pow(T/273,1.5)*(273+111)/(T+111), kAir=T=>0.0241*Math.pow(T/273,1.5)*(273+194)/(T+194);
+function portLaw(e){ const w=e.portHeat; if(w===false||w==='off') return null; const k=w==null||w===true?'caton':w, c=PORT_NU[k];
+  if(!c) throw new Error('e.portHeat must be '+Object.keys(PORT_NU).join(', ')+' or off'); return {C:c[0],n:c[1],Tw:e.portTw>0?+e.portTw:(e.Twall||450),name:k}; }
+function portH(L,m,T,D){ if(!(m>0&&T>0&&D>0)) return 0; const Re=4*m/(Math.PI*D*muAir(T)); return L.C*Math.pow(Re,L.n)*kAir(T)/D; }
+// the cells of a primary's pipes that lie in its leading port segments (port: true), with the port's wall temperature
+function markPort(L,segs,law){ let end=0; for(const s of segs){ if(!s.port) break; if(s.L>1e-6) end+=s.L; } if(!(end>0)) return;
+  L.forEach(P=>{ let c=0; while(c<P.n&&P.start+(c+0.5)*P.dx<end) c++; P.np=c; P.Twp=law.Tw; }); }
 // cp, h and R at (T, x) into GV. Outside the polynomials' 200-3500 K, cp is held at the end value (h linear), so e(T) stays
 // monotonic for the Newton solve below even in a nearly empty cell
 const GV={cp:0,h:0,R:0};
@@ -9382,7 +9411,7 @@ function makePipe(spec){
   const g=new Float64Array(n).fill(GAM), cp=new Float64Array(n).fill(CP), Rm=new Float64Array(n).fill(RG), Tc=new Float64Array(n).fill(T0);
   const e0=G?gasE(G,T0,x0):0;
   for(let i=0;i<n;i++){ q1[i]=rho0*A[i]; q2[i]=0; q3[i]=G?rho0*e0*A[i]:P0/G1*A[i]; q4[i]=rho0*x0*A[i]; }
-  return {n,dx,A,Af,D,q1,q2,q3,q4,Tw:spec.Tw||TATM,G,g,cp,Rm,T:Tc,
+  return {n,dx,A,Af,D,q1,q2,q3,q4,Tw:spec.Tw||TATM,G,g,cp,Rm,T:Tc,np:0,hp:0,Twp:0,
     r:new Float64Array(n),u:new Float64Array(n),p:new Float64Array(n),x:new Float64Array(n),
     dr:new Float64Array(n),du:new Float64Array(n),dp:new Float64Array(n),dxs:new Float64Array(n),
     f1:new Float64Array(n+1),f2:new Float64Array(n+1),f3:new Float64Array(n+1),f4:new Float64Array(n+1),
@@ -9472,7 +9501,7 @@ function openState(r,u,p,x,dir,pa,Ta,xa,gm,Ra){
 }
 // one MUSCL-Hancock step; the boundary functions P.left and P.right fill the end fluxes
 function stepPipe(P,dt){
-  const {n,dx,A,Af,D,q1,q2,q3,q4,r,u,p,x,dr,du,dp,dxs,f1,f2,f3,f4,g,cp,Rm,G}=P;
+  const {n,dx,A,Af,D,q1,q2,q3,q4,r,u,p,x,dr,du,dp,dxs,f1,f2,f3,f4,g,cp,Rm,G,np}=P;
   for(let i=0;i<n;i++){
     if(i===0||i===n-1){ dr[i]=du[i]=dp[i]=dxs[i]=0; continue; }
     dr[i]=minmod(r[i]-r[i-1],r[i+1]-r[i]); du[i]=minmod(u[i]-u[i-1],u[i+1]-u[i]);
@@ -9497,7 +9526,8 @@ function stepPipe(P,dt){
     const fr=2*FANNING*ri*Math.abs(ui)*A[i]/D[i];          // wall friction and heat transfer (cp at the cell's state), per unit length
     q1[i]-=k*(f1[i+1]-f1[i]);
     q2[i]+=-k*(f2[i+1]-f2[i])+dt*(p[i]*(Af[i+1]-Af[i])/dx-fr*ui);
-    q3[i]+=-k*(f3[i+1]-f3[i])+dt*fr*cp[i]*(P.Tw-Ti);
+    // the head's port cells (np, markPort): the port's h on the wall pi D at the port's wall temperature; else Reynolds' analogy
+    q3[i]+=-k*(f3[i+1]-f3[i])+(i<np?dt*P.hp*Math.PI*D[i]*(P.Twp-Ti):dt*fr*cp[i]*(P.Tw-Ti));
     q4[i]-=k*(f4[i+1]-f4[i]);
     if(q1[i]<1e-6*A[i]) q1[i]=1e-6*A[i];
     if(q4[i]<0) q4[i]=0; else if(q4[i]>q1[i]) q4[i]=q1[i];
@@ -9739,7 +9769,7 @@ function makeEngine(e,intake,exhaust,opt){
   return {e,Ap,Vd,Vc,vol,dvol,evo,evdur,ivo,ivdur,ivc,ign,phases,gas,gasIn,collector:phases.length>1||o.collector?o.collector:null,
     collectors:o.collectors&&o.collectors.length?o.collectors:null,crossover:o.crossover||null,
     CdAin:th=>area(th,ivo,ivdur,e.liftIn,e.dIn,e.nIn,tIn),CdAex:th=>area(th,evo,evdur,e.liftEx,e.dEx,e.nEx,tEx),intake,exhaust,plenum:plenumOf(intake),
-    src:sourceOf(intake),pOut:exhaust&&exhaust.pOut>0?+exhaust.pOut:null,turbine:turbineOf(exhaust)};
+    src:sourceOf(intake),pOut:exhaust&&exhaust.pOut>0?+exhaust.pOut:null,turbine:turbineOf(exhaust),port:portLaw(e)};
 }
 /* ---------- intake plenum, throttle and air filter (2026-11-12, part 3) ----------
    intake.plenum (the OpenWAM writer's form, which this model now also runs): {V_m3, inlet: [segs] from the air filter to
@@ -9966,6 +9996,7 @@ function freshState(eng,dx){
   for(let k=0;k<N;k++){
     ins.push(eng.src?buildLine(eng.intake,dx,eng.src.T,1,eng.gasIn||null,eng.src.p):buildLine(eng.intake,dx,TATM,1,eng.gasIn||null));   // eng.src: filled with the boosted charge
     const ex=buildLine(per&&per[k]?Object.assign({},eng.exhaust,{segs:per[k]}):eng.exhaust,dx,700,0,G); prims.push(ex);
+    if(eng.port) markPort(ex,per&&per[k]?per[k]:eng.exhaust.segs,eng.port);   // the head's port cells (part 7)
     (eng.exhaust.chambers||[]).forEach(c=>{
       let q=ex.findIndex(P=>c.x>=P.start&&c.x<P.start+P.n*P.dx); if(q<0) q=ex.length-1;
       const P=ex[q], cell=Math.min(P.n-1,Math.max(0,Math.floor((c.x-P.start)/P.dx)));
@@ -9974,7 +10005,7 @@ function freshState(eng,dx){
     const th=((eng.ivc-eng.phases[k])%720+720)%720;
     const pc0=eng.src?eng.src.p:PATM, cy={m:0,T:330,x:0.95,p:pc0}; cy.m=pc0*eng.vol(th)/((G?gasR(G,cy.x):RG)*cy.T);
     cy.fresh=cy.m*cy.x; cy.burnQ=burnHeat(eng,cy.fresh); cy.ivcP=pc0; cy.ivcT=330; cy.ivcV=eng.vol(eng.ivc);
-    cy.work=0; cy.workG=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.pEvo=0; cy.exM=0; cy.exH=0; cy.ovP=0; cy.ovN=0; cy.done=null; cy.started=false;
+    cy.work=0; cy.workG=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.pEvo=0; cy.exM=0; cy.exH=0; cy.exN=0; cy.ovP=0; cy.ovN=0; cy.done=null; cy.started=false;
     cyls.push(cy);
   }
   const C1R=!eng.collectors&&eng.collector?lineWithPieces(eng.collector.segs,piecesOf(eng.collector),dx,eng.collector.Tw,0,G):null;
@@ -10143,6 +10174,10 @@ function runSpeed(eng,opts){
           // tEx: the temperature of the mass-averaged enthalpy that left through the exhaust valve (the engine's gas: at its mean x)
           if(cy.started&&crossed) cy.done={ve:cy.m*cy.x*(G?G.fa:1)/(rhoRef*eng.Vd),imep:cy.work/eng.Vd,gimep:cy.workG/eng.Vd,pmax:cy.pmax,resid:1-cy.x,pEvo:cy.pEvo,
             tEx:cy.exM>0?(G?gasT(G,cy.exH/cy.exM,cy.exX/cy.exM,800,true):cy.exH/(cy.exM*CP)):0,overlapPort:cy.ovN?cy.ovP/cy.ovN:PATM};
+          // the head's port (part 7): its h for the next cycle from this cycle's mean outflow at its mass-averaged temperature
+          if(eng.port&&cy.started&&crossed){ const Tm=cy.exM>0?(G?gasT(G,cy.exH/cy.exM,cy.exX/cy.exM,800,true):cy.exH/(cy.exM*CP)):0, mm=cy.exN*opts.rpm/120;
+            for(const P of prims[k]) if(P.np>0) P.hp=portH(eng.port,mm,Tm,P.D[0]); }
+          cy.exN=0;
           cy.fresh=cy.m*cy.x; cy.burnQ=e.dead&&e.dead.indexOf(k)>=0?0:burnHeat(eng,cy.fresh);   // e.dead: cylinder indices that do not fire (a misfire, a dead coil bank)
           cy.ivcP=cy.m*(G?gasR(G,cy.x):RG)*cy.T/eng.vol(tk); cy.ivcT=cy.T; cy.ivcV=eng.vol(tk);
           cy.work=0; cy.workG=0; cy.pmax=0; cy.xb=0; cy.burning=false; cy.burnt=false; cy.exM=0; cy.exH=0; cy.exX=0; cy.ovP=0; cy.ovN=0; cy.started=true;
@@ -10172,6 +10207,7 @@ function runSpeed(eng,opts){
         cy.work+=cy.p*dV; if(tk>=540||tk<180) cy.workG+=cy.p*dV; if(cy.p>cy.pmax) cy.pmax=cy.p;   // workG: the gross loop, BDC to BDC through firing TDC
         if(Math.abs(tk-eng.evo)<dth) cy.pEvo=cy.p;
         if(mE<0){ cy.exM-=mE; cy.exH-=mE*vEx[k].h; cy.exX-=mE*vEx[k].x; }
+        cy.exN-=mE;                                          // net outflow through the exhaust valve this cycle (the port's mean flow, part 7)
         if(tk>345&&tk<375){ cy.ovP+=ep.p[0]; cy.ovN++; }
       }
       if(AC){ const b=Math.floor(st.th%720);
