@@ -108,11 +108,11 @@ const inOrder = (a, b) => { const A = nums(a), B = nums(b); let j = 0; for (cons
   ok(await pg.evaluate(() => document.getElementById('i-opm').value === 'hp' && document.getElementById('i-tobpsrc').value === 'auto' && document.getElementById('i-wgbasis').value === 'range'), 'defaults: my power target, back pressure worked out, wastegate across the range');
   await journey(pg);
   let S = await gather(pg);
-  ok(S.O.mode === 'hp' && !S.opHidden && S.boostHidden && !S.hpHidden && /Boost worked out: 29\.\d\d psi/.test(S.opOut) && /Likely range/.test(S.opOut) && /\(\d+\.\d+ kPa\)/.test(S.opOut),
+  ok(S.O.mode === 'hp' && !S.opHidden && S.boostHidden && !S.hpHidden && /Boost worked out: 25\.\d\d psi/.test(S.opOut) && /Likely range/.test(S.opOut) && /\(\d+\.\d+ kPa\)/.test(S.opOut),
     'power target: the boost is a result (' + S.O.boost.toFixed(2) + ' kPa, ' + (S.O.boost / 6.894757).toFixed(2) + ' psi), shown with its range in both units; the boost field is hidden');
   ok(S.O.iters > 2 && S.O.iters < 40, 'the boost and the manifold air converge in ' + S.O.iters + ' passes');
-  ok(S.O.range.lo < S.O.boost && S.O.range.hi > S.O.boost && S.O.range.bsL === 0.5 && S.O.range.bsH === 0.6 && Math.abs(S.O.range.veL - 0.9) < 1e-9 && S.O.range.veH === 0.99,
-    'range ' + (S.O.range.lo / 6.894757).toFixed(1) + ' to ' + (S.O.range.hi / 6.894757).toFixed(1) + ' psi from Garrett’s BSFC 0.50 to 0.60 and VE (the typed 90% to Garrett’s 99%), manifold air ' + S.O.range.tmL.toFixed(0) + ' to ' + S.O.range.tmH.toFixed(0) + ' °F');
+  ok(S.O.range.lo < S.O.boost && S.O.range.hi > S.O.boost && S.O.range.bsL === 0.5 && S.O.range.bsH === 0.6 && Math.abs(S.O.range.veL - 0.95) < 1e-9 && S.O.range.veH === 0.99,
+    'range ' + (S.O.range.lo / 6.894757).toFixed(1) + ' to ' + (S.O.range.hi / 6.894757).toFixed(1) + ' psi from Garrett’s BSFC 0.50 to 0.60 and VE (Garrett’s 95% to 99% for a 4-valve head; the relation’s VE is its middle, 97%, since 2026-11-14 boost for power), manifold air ' + S.O.range.tmL.toFixed(0) + ' to ' + S.O.range.tmH.toFixed(0) + ' °F');
   onePoint('power target', S);
   const hpPoint = S;
   ok(S.q && S.q.coupler && Math.abs(S.rec.dt - (4 * 25.4 - 2 * S.q.w)) < 1e-9 && Math.abs(S.q.dt - S.rec.dt) < 1e-9, 'the inlet tube matches the compressor’s 4.0 in hose coupler: 4 in OD, ' + (S.rec.dt / 25.4).toFixed(3) + ' in (' + S.rec.dt.toFixed(1) + ' mm) inside (was the 5 in tube, 4.87 in inside)');
@@ -154,7 +154,7 @@ const inOrder = (a, b) => { const A = nums(a), B = nums(b); let j = 0; for (cons
   await setv(pg, 'i-boost', '8'); S = await gather(pg);
   ok(S.O.hp > 150 && S.O.hp < 300 && S.O.range.lo < S.O.hp && S.O.range.hi > S.O.hp && /Likely range \d+ hp \(\d+ kW\) to \d+ hp/.test(S.opOut), 'my boost at 8 psi: ' + S.O.hp.toFixed(1) + ' hp worked out (range ' + S.O.range.lo.toFixed(0) + ' to ' + S.O.range.hi.toFixed(0) + ' hp), in both units');
   onePoint('my boost, 8 psi', S);
-  ok(S.R.m < 0.215888085 && rel(S.R.m / 0.215888085, S.O.qd) < 0.02, 'at 8 psi Garrett’s relation gives ' + (S.R.m * LBMIN).toFixed(2) + ' lb/min against the 28.56 the tab’s own relation gave (inlet-density air, no charge heating): the factor ' + S.O.qd.toFixed(4) + ' is the charge-temperature ratio');
+  ok(rel(S.R.m / 0.215888085, S.O.qd) < 0.02 && Math.abs(S.O.qd / (0.97 / 0.90) - 0.9612) < 0.002, 'at 8 psi Garrett’s relation gives ' + (S.R.m * LBMIN).toFixed(2) + ' lb/min against the 28.56 the tab’s own relation gave at the VE field’s 90 % (inlet-density air, no charge heating): the factor ' + S.O.qd.toFixed(4) + ' is the relation’s VE over the field’s (0.97 / 0.90) times the charge-temperature ratio (' + (S.O.qd / (0.97 / 0.90)).toFixed(4) + ', 0.9612 before 2026-11-14)');
   // ---- 3. both typed: the earlier behaviour, with the warning
   await setv(pg, 'i-opm', 'both'); await setv(pg, 'i-hp', '450'); S = await gather(pg);
   ok(S.O.mode === 'both' && S.O.qd === 1 && Math.abs(S.R.Pt - PATM - 55158) < 10 && /do not match/.test(S.gl.power.n) && !S.boostHidden && !S.hpHidden, 'both typed: the boost’s airflow (' + (S.R.m * LBMIN).toFixed(1) + ' lb/min) against the target’s, with the mismatch warning');

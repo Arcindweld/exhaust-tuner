@@ -97,9 +97,10 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   // 26.30 psi ... the 8 psi typed does not match")
   const gb = (G.power.v.match(/boost ([\d.]+) psi \([\d.]+ kPa\) at the throttle, worked out/) || [])[1], mp = (sizing.match(/manifold pressure needed ([\d.]+) psia/) || [])[1];
   ok(gb && mp && Math.abs(+gb + 14.696 - +mp) < 0.06 && !/do not match/.test(G.power.n) && /One operating point: 49\.5 lb\/min/.test(G.power.n), 'power row: the 450 hp target’s boost worked out, ' + gb + ' psi (the sizing section’s ' + mp + ' psia manifold pressure, less the atmosphere), one airflow, no mismatch');
-  ok(/No power estimate yet/.test(G.power.n), 'no simulation run: the card says where the power estimate comes from');
+  // (2026-11-14, boost for power: was "No power estimate yet"; the row now offers the run at this boost)
+  ok(/No simulation at this boost yet/.test(G.power.n) && await pg.$('#tg-glance tr[data-gl="power"] button[data-glsim]') !== null, 'no simulation run: the card says where the third figure comes from and offers the run at this boost');
   // (2026-11-14: 2 × the worked-out 29.52 psi; was 2 × the typed 8 psi, 16.00 psi (110.32 kPa); the gate is sized across 0.8 to 2.5 ×)
-  ok(/2 × boost, 59\.04 psi \(407\.10 kPa\) gauge/.test(G.p3.v) && /an assumption until measured/.test(G.p3.n) && /wastegate is sized for the largest gate anywhere from 0\.8 to 2\.5 × boost/.test(G.p3.n), 'pressure before the turbine: the steady sections’ assumption, said to be one, and the gate’s own basis: ' + G.p3.v);
+  ok(/2 × boost, 51\.82 psi \(357\.31 kPa\) gauge/.test(G.p3.v) && /an assumption until measured/.test(G.p3.n) && /wastegate is sized for the largest gate anywhere from 0\.8 to 2\.5 × boost/.test(G.p3.n), 'pressure before the turbine: the steady sections’ assumption, said to be one, and the gate’s own basis: ' + G.p3.v);
   ok(G.mounts.v === 'not designed yet' && G.mounts.go === '#mt-card', 'brackets: not designed yet, Go leads to the Mounts designer');
 
   // ---- both unit systems in every result cell of the boosted sections, the card and the sheet
@@ -171,7 +172,7 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   await pg.click('#tab-intake'); await settle(pg);
   const sim = await pg.evaluate(() => { const T = window.__tsim.last(), S = T.sum, o = S.rows[S.ip], kh = t => t * o.rpm * Math.PI / 30 / 745.7; return { hp: S.hp, lo: Math.min(kh(o.tqBn), kh(o.tqBg)), hi: Math.max(kh(o.tqBn), kh(o.tqBg)), p3k: o.p3k }; });
   const G2 = await glance(pg);
-  ok(st === 'done' && G2.power.n.includes('Wave simulation: ' + Math.round(sim.hp) + ' hp') && G2.power.n.includes(Math.round(sim.lo) + ' hp') && G2.power.n.includes(Math.round(sim.hi) + ' hp') && /4 to 16% high/.test(G2.power.n),
+  ok(st === 'done' && G2.power.n.includes('The simulation says ' + Math.round(sim.hp) + ' hp (') && /hp \(\d+ kW\) at this boost/.test(G2.power.n) && G2.power.n.includes(Math.round(sim.lo) + ' hp') && G2.power.n.includes(Math.round(sim.hi) + ' hp') && /4 to 16 % high: about \d+ hp \(\d+ kW\) to \d+ hp/.test(G2.power.n),
     'after the run the power row gives the simulation’s ' + Math.round(sim.hp) + ' hp with its own friction range ' + Math.round(sim.lo) + ' to ' + Math.round(sim.hi) + ' hp and the stated error (4 to 16% high)');
   ok(G2.p3.n.includes(sim.p3k.toFixed(2) + ' × boost') && /the two differ/.test(G2.p3.n), 'the pressure-before-the-turbine row sets the simulation’s ' + sim.p3k.toFixed(2) + ' × boost beside the 2 × assumed');
   // ---- project save and load: the same card
