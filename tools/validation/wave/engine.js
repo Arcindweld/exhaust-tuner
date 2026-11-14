@@ -33,7 +33,7 @@ const out = { spec: job.spec, dx, cycles: nCyc, fanning: FAN, gas: G ? 'nasa' : 
 for (const rpm of job.rpms) {
   const t0 = Date.now();
   const st = WS.freshState(eng, dx);
-  let prev = stored(st), thStart = null, cyc = -1;
+  let prev = stored(st), thStart = null, cyc = -1, qSeen = 0;
   const bal = [];
   let tr = null;
   const firstAfter = st.coll ? st.coll[0] : st.nets ? st.nets[0].lines[0][0] : null;
@@ -45,11 +45,11 @@ for (const rpm of job.rpms) {
     for (const L of ctx.ins) { B.mIn += L[0].f1[0] * dt; B.eIn += L[0].f3[0] * dt; }
     for (const P of ctx.outs) { B.mOut += P.f1[P.n] * dt; B.eOut += P.f3[P.n] * dt; }
     for (const cy of ctx.cyls) { B.Q += cy._Q; B.qw += cy._qw; B.pdV += cy._pdV; B.mValveIn += cy._mI; B.mValveEx -= cy._mE; }
-    // pipe wall heat, from the same pre-step state the step used
-    for (const P of ctx.all) for (let i = 0; i < P.n; i++) {
-      const fr = 2 * FAN * P.r[i] * Math.abs(P.u[i]) * P.A[i] / P.D[i];
-      B.qPipe += dt * fr * P.cp[i] * (P.Tw - P.p[i] / (P.Rm[i] * P.r[i])) * P.dx;
-    }
+    // pipe wall heat: what each cell's step added (lib.js accumulates it in P._qc; since part 7 this includes the head's
+    // port law, so it is read, not recomputed from Reynolds' analogy)
+    let qNow = 0;
+    for (const P of ctx.all) if (P._qc) for (let i = 0; i < P.n; i++) qNow += P._qc[i];
+    B.qPipe += qNow - qSeen; qSeen = qNow;
     const now = stored(ctx.st); B.dM += now.M - prev.M; B.dE += now.E - prev.E; prev = now;
     if (c === nCyc - 1) {
       if (!tr) tr = { th: [], t: [], pCyl: [], pPort: [], tPort: [], pAfter: [], pIn: [], mOut: ctx.outs.map(() => []), mEx: [], mIv: [] };
@@ -57,6 +57,8 @@ for (const rpm of job.rpms) {
       tr.th.push(cy.th); tr.t.push(ctx.th); tr.pCyl.push(cy.p);
       tr.pPort.push(ep.p[0] + (ep.p[1] - ep.p[0]) * w);
       tr.tPort.push(ep.p[0] / (ep.Rm[0] * ep.r[0]));
+      { const L = ctx.prims[0], P = L.find(q => 0.1 >= q.start && 0.1 < q.start + q.n * q.dx) || L[L.length - 1], i = Math.min(P.n - 1, Math.max(0, Math.floor((0.1 - P.start) / P.dx)));
+        (tr.tPort100 = tr.tPort100 || []).push(P.p[i] / (P.Rm[i] * P.r[i])); }   // 100 mm from the valve (part 7: past an assumed port)
       const ip = ctx.ins[0][ctx.ins[0].length - 1], wi = Math.min(1, Math.max(0, (0.01 - 0.5 * ip.dx) / ip.dx));   // 10 mm before the intake valve
       tr.pIn.push(ip.p[ip.n - 1] + (ip.p[ip.n - 2] - ip.p[ip.n - 1]) * wi);
       tr.mIv.push(cy._mI / dt);

@@ -30,7 +30,7 @@ function cases() {
   if (want.includes('ls3')) {
     const c = R.lib.find(x => x.k === 'ls3');
     const spec = R.specOf(c, { intake: 'plenum', flow: 'benchfam' });
-    if (args.port === 'flag') spec.exhaust.segs[0].port = true;       // the 150 mm port as the head's port (part 7 law)
+    // its 150 mm port is marked port: true (ratings.js); before part 7 the page had no port law (PAGE=<older page>)
     eOver(spec.e, args);
     out.push({ name: 'LS3 (ratings.js c_final: whole engine, plenum, measured head flow; 150 mm port)', key: 'ls3', spec, cyl: 8, portL: 0.15,
       rpms: (args.ls3rpms || '3000,4600,5800').split(',').map(Number) });

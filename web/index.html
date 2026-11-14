@@ -10245,6 +10245,7 @@ function sweep(eng,rpms,opts,onStep){
 }
 return {GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
   tfmep,friction:{name:'Heywood (1988) total motored fmep of SI engines, 0.97 + 0.15 (N/1000) + 0.05 (N/1000)^2 bar, taken off the gross indicated work',basis:'gross'},
+  port:{PORT_NU,portLaw,portH,muAir,kAir},
   gas:{RU,TREF,SPEC,AFR_ST,K_WGS,LHV_F,ETA_C,HFORM,HF_FUEL,heatRelease,burnedMoles,gasPoly,makeGas,at:(G,T,x)=>{ gasAt(G,T,x); return {cp:GV.cp,h:GV.h,R:GV.R,e:GV.h-GV.R*T,gamma:GV.cp/(GV.cp-GV.R)}; },
     T:(G,v,x,T,byH)=>gasT(G,v,x,T||800,!!byH)}};
 }
@@ -10316,7 +10317,7 @@ function simSpec(p){
     if(p.fdp>0){ const rs=simRpms(p.tune>0?p.tune:6000), top=rs[rs.length-1]; intake.plenum.filter={dp:p.fdp*1000,m:1.1839*p.cc*1e-6*share*top/120}; }
   }
   const dPort=(p.portD>0?p.portD:p.dp)/1000;
-  let segs=[]; if(p.port>0) segs.push({L:p.port/1000,d0:dPort,d1:dPort,primary:true});
+  let segs=[]; if(p.port>0) segs.push({L:p.port/1000,d0:dPort,d1:dPort,primary:true,port:true});   // port: the head's exhaust port (wsFactory's port law, part 7)
   p.segs.forEach((s,i)=>segs.push({L:s.len/1000,d0:s.d0/1000,d1:s.d1/1000,primary:i===0}));
   const chambers=[];
   const ch=p.chamber;
@@ -10329,7 +10330,7 @@ function simSpec(p){
         const b=a+s.L, x1=xv, x2=xv+ch.lc/1000;
         if(x1>=a&&x1<b&&Math.abs(s.d0-s.d1)<1e-9){
           const d=s.d0, dc=ch.dc/1000;
-          if(x1>a) out.push({L:x1-a,d0:d,d1:d,primary:s.primary});
+          if(x1>a) out.push(Object.assign({L:x1-a,d0:d,d1:d,primary:s.primary},s.port?{port:true}:{}));
           out.push({L:Math.min(x2,b)-x1,d0:dc,d1:dc,bulge:true});
           if(x2<b) out.push({L:b-x2,d0:d,d1:d,primary:s.primary});
         } else out.push(s);

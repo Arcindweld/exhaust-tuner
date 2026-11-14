@@ -25,13 +25,17 @@
 //     (Hot Rod 2011's stock LS3 heads) and a hand formula, flowTab's interpolation, a steady flow bench built from the
 //     model's pipe and valve recovering the source's cfm, the throttle orifice by hand and in steady flow, the filter's
 //     loss in steady flow, and an engine cycle with plenum, throttle, filter and valve tables conserving mass and energy.
+// 12. the head's exhaust port (part 7): the port law's Nusselt correlations, Sutherland's air properties and the port's h
+//     worked here from the last cycle's measured outflow, the port cells found for a port at the primary's bore and at its
+//     own bore, the energy balance of a cycle with the port's heat as a sink, and the legacy switch (e.portHeat 'off')
+//     giving the run without a port to the last digit.
 const fs = require('fs'), path = require('path');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
 const a0 = html.indexOf('function wsFactory(){'), z0 = html.indexOf('\nconst WS=wsFactory();');
 const src = html.slice(a0, z0);
 const anchor = 'const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+';
-const hooked = src.replace(anchor, 'cy._pdV=cy.p*dV; cy._qw=qw; cy._Q=cy.burnQ*dxb; cy._mC=vInC[k].m*dt; cy._mP=vIn[k].m*dt; cy._eC=vInC[k].m*vInC[k].h*dt; cy._eP=vIn[k].m*vIn[k].h*dt;\n        ' + anchor)
+const hooked = src.replace(anchor, 'cy._mE=mE; cy._pdV=cy.p*dV; cy._qw=qw; cy._Q=cy.burnQ*dxb; cy._mC=vInC[k].m*dt; cy._mP=vIn[k].m*dt; cy._eC=vInC[k].m*vInC[k].h*dt; cy._eP=vIn[k].m*vIn[k].h*dt;\n        ' + anchor)
   .replace('      st.th+=dth;\n', '      if(opts.hook) opts.hook({st,all,dt,dth,cyls,ins,outs,chambers});\n      st.th+=dth;\n');
 ok(hooked.indexOf('cy._pdV') > 0 && hooked.indexOf('opts.hook') > 0, 'the model loads with a step hook (the texts the checks rely on are there)');
 const W = new Function(hooked + '\nreturn wsFactory();')(), GS = W.gas, RU = GS.RU;
@@ -378,6 +382,65 @@ for (const [name, G] of [['constant gamma', null], ['the engine\'s gas', G128]])
     const mr = (B.dM - (B.mIn - B.mOut + B.fuel)) / B.mIn, er = (B.dE - (B.flow + B.inj - B.sink)) / B.Q;
     ok(Math.abs(mr) < 1e-9 && Math.abs(er) < 1e-9 && r.ve > 0.3, 'plenum, throttle, filter and measured valve flow, one cycle at 6000 rpm: mass residual ' + mr.toExponential(2) + ', total energy residual / heat released ' +
       er.toExponential(2) + '; plenum ' + (B.pMin / 1000).toFixed(1) + '-' + (B.pMax / 1000).toFixed(1) + ' kPa, VE ' + r.ve.toFixed(4)); }
+}
+
+// ---------- 12. the head's exhaust port (2026-11-13, part 7)
+{ // (a) the correlations as published (T. J. Morgan, PhD thesis, University of Nottingham 2003, Table 2.1: Caton and
+  // Heywood 0.35 Re^0.6, Malchow, Sorenson and Buckius 0.0483 Re^0.783, Meisner and Sorenson 0.0774 Re^0.769, Hires and
+  // Pochmara 0.258 Re^0.8) and Sutherland's law for air (COMSOL CFD Module tables 5-2, 5-3: mu 1.716e-5 Pa s, S 111 K;
+  // k 0.0241 W/m K, S 194 K; both at 273 K), written out here
+  const P = W.port, LIST = { caton: [0.35, 0.6], malchow: [0.0483, 0.783], meisner: [0.0774, 0.769], hires: [0.258, 0.8] };
+  ok(Object.keys(LIST).every(k => P.PORT_NU[k][0] === LIST[k][0] && P.PORT_NU[k][1] === LIST[k][1]) && Object.keys(P.PORT_NU).length === 4, 'exhaust port: the four correlations\' constants as published');
+  const mu = T => 1.716e-5 * (T / 273) ** 1.5 * 384 / (T + 111), kk = T => 0.0241 * (T / 273) ** 1.5 * 467 / (T + 194);
+  const Ts = [273, 300, 600, 1000, 1500, 2000];
+  ok(P.muAir(273) === 1.716e-5 && P.kAir(273) === 0.0241 && Ts.every(T => Math.abs(P.muAir(T) / mu(T) - 1) < 1e-14 && Math.abs(P.kAir(T) / kk(T) - 1) < 1e-14),
+    'exhaust port: Sutherland\'s air by hand at ' + Ts.join(', ') + ' K (mu ' + Ts.map(T => (P.muAir(T) * 1e5).toFixed(3)).join(', ') + 'e-5 Pa s; k ' + Ts.map(T => P.kAir(T).toFixed(4)).join(', ') + ' W/m K)');
+  const L0 = P.portLaw({}), Re = 4 * 0.04 / (Math.PI * 0.04 * mu(1150)), hHand = 0.35 * Re ** 0.6 * kk(1150) / 0.04;
+  ok(L0.name === 'caton' && L0.Tw === 450 && Math.abs(P.portH(L0, 0.04, 1150, 0.04) / hHand - 1) < 1e-12 && P.portLaw({ portHeat: 'off' }) === null && P.portLaw({ portHeat: false }) === null && P.portLaw({ portTw: 470 }).Tw === 470,
+    'exhaust port: default Caton-Heywood at the head\'s 450 K, h by hand at 0.04 kg/s, 1150 K, 40 mm: Re ' + Re.toFixed(0) + ', Nu ' + (0.35 * Re ** 0.6).toFixed(1) + ', h ' + hHand.toFixed(1) + ' W/m2 K (model ' + P.portH(L0, 0.04, 1150, 0.04).toFixed(1) + '); off / false: none');
+  let threw = ''; try { P.portLaw({ portHeat: 'x' }); } catch (e) { threw = e.message; }
+  ok(/caton, malchow, meisner, hires/.test(threw), 'exhaust port: an unknown law is refused: ' + threw);
+  // (b) the port cells: a 120 mm port at the primary's bore (one pipe), a 100 mm port of 40 mm (its own pipe)
+  const exA = { segs: [{ L: 0.12, d0: 0.0445, d1: 0.0445, port: true }, { L: 0.5, d0: 0.0445, d1: 0.0445 }], Tw: 700 };
+  const exB = { segs: [{ L: 0.1, d0: 0.04, d1: 0.04, port: true }, { L: 0.5, d0: 0.0445, d1: 0.0445 }], Tw: 700 }, IN1 = { segs: [{ L: 0.3, d0: 0.0368, d1: 0.0368 }], Tw: 320 };
+  const sA = W.freshState(W.makeEngine(ENG, IN1, exA, { phases: [0] }), 0.01), sB = W.freshState(W.makeEngine(ENG, IN1, exB, { phases: [0] }), 0.01);
+  const pA = sA.prims[0], pB = sB.prims[0];
+  ok(pA.length === 1 && pA[0].np === 12 && pA[0].Twp === 450 && pB.length === 2 && pB[0].np === pB[0].n && pB[1].np === 0 && pA[0].hp === 0,
+    'exhaust port: port cells at the primary\'s bore ' + pA[0].np + ' of ' + pA[0].n + ' (centres within 120 mm at 10 mm), at its own bore ' + pB[0].np + ' of ' + pB[0].n + ' and ' + pB[1].np + ' after it; h 0 until a cycle is known');
+  // (c) a run: the port's h is the law at the last cycle's net outflow and mass-averaged temperature (measured here), and
+  // the cycle's mass and energy balance with the port's heat as a sink
+  const eng = W.makeEngine(ENG, IN1, exA, { phases: [0] }), G = eng.gas, GI = eng.gasIn, st = W.freshState(eng, 0.01), FAN = 0.005;
+  const stored = s => { let M = 0, E = 0;
+    for (const Q of [].concat(...s.ins)) for (let i = 0; i < Q.n; i++) { M += Q.q1[i] * Q.dx; E += (Q.q3[i] + Q.q4[i] * GI.qx) * Q.dx; }
+    for (const Q of [].concat(...s.prims)) for (let i = 0; i < Q.n; i++) { M += Q.q1[i] * Q.dx; E += (Q.q3[i] + Q.q4[i] * G.qx) * Q.dx; }
+    for (const c of s.cyls) { M += c.m; E += c.m * (GS.at(G, c.T, c.x).e + c.x * G.qx); } return { M, E }; };
+  let prev = stored(st), th0 = null, lastTk = null, win = null, done = null; const B = { mIn: 0, mOut: 0, fuel: 0, flow: 0, sink: 0, dM: 0, dE: 0, Q: 0, inj: 0, port: 0, portRA: 0 };
+  const r = W.runSpeed(eng, { rpm: 6000, cycles: 6, dx: 0.01, state: st, hook: c => {
+    const cy = c.cyls[0], tk = cy.th; if (th0 === null) th0 = c.st.th;
+    if (lastTk !== null && ((lastTk < eng.ivc && tk >= eng.ivc) || (lastTk > tk && (tk >= eng.ivc || lastTk < eng.ivc)))) { done = win; win = { m: 0 }; }
+    lastTk = tk; if (win) win.m -= cy._mE;
+    const last = c.st.th - th0 >= 5 * 720 - 1e-9, now = stored(c.st);
+    if (last) { const dt = c.dt;
+      for (const L of c.ins) { B.mIn += L[0].f1[0] * dt; B.flow += (L[0].f3[0] + L[0].f4[0] * GI.qx) * dt; }
+      for (const Q of c.outs) { B.mOut += Q.f1[Q.n] * dt; B.flow -= (Q.f3[Q.n] + Q.f4[Q.n] * G.qx) * dt; }
+      for (const y of c.cyls) { B.fuel += y._mC - y._mP; B.inj += y._eC - y._eP; B.sink += y._qw + y._pdV + y._Q * (1 - GS.ETA_C) / GS.ETA_C; B.Q += y._Q; }
+      for (const Q of c.all) for (let i = 0; i < Q.n; i++) { const T = Q.p[i] / (Q.Rm[i] * Q.r[i]), ra = dt * 2 * FAN * Q.r[i] * Math.abs(Q.u[i]) * Q.A[i] / Q.D[i] * Q.cp[i] * (Q.Tw - T) * Q.dx;
+        // the h this step used: the one the previous step's cylinder update left (a new cycle's h is set after the pipes are stepped)
+        if (i < Q.np) { const q = dt * Q._hp0 * Math.PI * Q.D[i] * (Q.Twp - T) * Q.dx; B.sink -= q; B.port -= q; B.portRA -= ra; } else B.sink -= ra; }
+      B.dM += now.M - prev.M; B.dE += now.E - prev.E; }
+    for (const Q of c.all) Q._hp0 = Q.hp;
+    prev = now; } });
+  const mr = (B.dM - (B.mIn - B.mOut + B.fuel)) / B.mIn, er = (B.dE - (B.flow + B.inj - B.sink)) / B.Q;
+  const mBar = done.m * 6000 / 120, Tm = r.history[r.history.length - 1].tEx, D0 = pA[0].D[0], Re2 = 4 * mBar / (Math.PI * D0 * mu(Tm)), h2 = 0.35 * Re2 ** 0.6 * kk(Tm) / D0, hp = r.state.prims[0][0].hp;
+  ok(Math.abs(hp / h2 - 1) < 1e-9, 'exhaust port, 6000 rpm: h of the last cycle ' + hp.toFixed(2) + ' W/m2 K = the law at its measured net outflow ' + (mBar * 1000).toFixed(2) + ' g/s and mass-averaged ' + Tm.toFixed(1) + ' K (Re ' + Re2.toFixed(0) + '): ' + h2.toFixed(2));
+  ok(Math.abs(mr) < 1e-9 && Math.abs(er) < 1e-9 && B.port > 2 * B.portRA && B.port > 0,
+    'exhaust port, one cycle at 6000 rpm: mass residual ' + mr.toExponential(2) + ', total energy residual / heat released ' + er.toExponential(2) + ' with the port\'s ' + B.port.toFixed(2) + ' J lost (' + (100 * B.port / B.Q).toFixed(2) +
+    ' % of the heat released; Reynolds\' analogy at the header\'s 700 K wall would take ' + B.portRA.toFixed(2) + ' J from the same cells)');
+  // (d) the legacy switch: the port marked but e.portHeat 'off' is the run without a port to the last digit
+  const runOf = (e, ex) => W.sweep(W.makeEngine(e, IN1, ex, { phases: [0] }), [4000, 7000], { dx: 0.01, cycles: 3, firstCycles: 6, maxExtra: 3 });
+  const a = runOf(Object.assign({}, ENG, { portHeat: 'off' }), exA), b = runOf(ENG, { segs: [{ L: 0.12, d0: 0.0445, d1: 0.0445 }, { L: 0.5, d0: 0.0445, d1: 0.0445 }], Tw: 700 }), c2 = runOf(ENG, exA);
+  const same = a.every((x, i) => ['ve', 'imep', 'gimep', 'tEx', 'pEvo'].every(k => Object.is(x[k], b[i][k])));
+  ok(same && c2.every((x, i) => x.tEx < a[i].tEx), 'exhaust port: e.portHeat off = no port, to the last digit (VE ' + a.map(x => x.ve.toFixed(4)).join(', ') + '); with the law the valve outflow\'s mean temperature ' + c2.map((x, i) => (x.tEx - a[i].tEx).toFixed(1)).join(', ') + ' K');
 }
 
 console.log(fails.length ? 'FAILS ' + fails.length : 'all passed');

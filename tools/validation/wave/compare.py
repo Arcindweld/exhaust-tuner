@@ -143,6 +143,9 @@ TAGS = {
     "fuelvap": ({}, None, None, None, {"fuel": "vapour"}),
     "before": ({}, None, None, None),
     "endp": ({}, None, None, None),
+    # 2026-11-13 part 7: the wave model with the first 100 mm of each exhaust primary marked as the head's port (its port
+    # law, wsFactory; an ASSUMED port: these engines have none of their own), OpenWAM as base (no port; reuses its runs)
+    "port": ({}, None, None, None),
 }
 
 
@@ -309,6 +312,7 @@ def metrics(cfg, spec, wave, wam):
                  "pCyl": resample(th, tr["pCyl"]),
                  # crank-angle mean gas temperature at the exhaust port (OpenWAM 10 mm from the valve, wave the first cell)
                  "tPortMean": sum(resample(th, tr["tPort"])) / 1440 if tr.get("tPort") else None,
+                 "tPort100Mean": sum(resample(th, tr["tPort100"])) / 1440 if tr.get("tPort100") else None,
                  "tEx": run.get("tEx")}
             if tr.get("pAfter"):
                 d["pAfterMean"] = sum(resample(th, tr["pAfter"])) / 1440
@@ -357,6 +361,12 @@ def main(argv):
         spec["e"].update(eover)
         print("== %s (%s)" % (cfg, opts["tag"]), flush=True)
         wam = [wam_one(cfg, spec, rpm, over) for rpm in rpms]
+        if opts["tag"] == "port":
+            spec = copy.deepcopy(spec)
+            sg = spec["exhaust"]["segs"]
+            first = sg[0]
+            assert first["L"] > 0.1 and abs(first["d0"] - first["d1"]) < 1e-12, "port tag: the first exhaust segment must be a straight pipe over 100 mm"
+            spec["exhaust"]["segs"] = [dict(first, L=0.1, port=True), dict(first, L=first["L"] - 0.1)] + sg[1:]
         wave = wave_runs(cfg + "_" + opts["tag"], spec, rpms, dx, fan, page, int(opts["cycles"]), gam, gas)
         m = metrics(cfg, spec, wave, wam)
         for r in m["rows"]:

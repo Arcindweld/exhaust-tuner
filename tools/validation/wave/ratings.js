@@ -3,7 +3,8 @@
 // 4-Stroke tab runs it (simSpec's assumptions: rod 1.7 x stroke, valve Cd 0.7, a 300 mm open intake runner of
 // sqrt(0.6 n) x the valve diameter, Wiebe 18 deg BTDC / 55 deg, AFR 12.8), one bank of four cylinders of the cross-plane
 // V8 (firing 1-8-7-2-6-5-4-3: the left bank fires at 0, 180, 450, 630 deg) on a long-tube 4-1 header open to the air:
-// 150 mm port + 610 mm primary at 44.5 mm (1-3/4 in ID, 1-7/8 in tube), a 130 mm cone from 89 mm (four primaries' area)
+// 150 mm port (marked port: true since part 7: the head's port law; e.portHeat='"off"' gives the runs before) + 610 mm
+// primary at 44.5 mm (1-3/4 in ID, 1-7/8 in tube), a 130 mm cone from 89 mm (four primaries' area)
 // to a 76 mm (3 in) collector 300 mm long. Torque = the bank's mean IMEP x the engine's displacement / 4 pi.
 //   node ratings.js [engines=ls3,ls7,lt1] [tag=name] [rpms=3000:6600:200] [k=v ...]   k: e.* overrides (JSON values),
 //        intakeL=m  primL=m  coll=m  pIn=Pa (the intake mouth's pressure: an intake loss)  tail=m (a 63.5 mm tail pipe after
@@ -73,7 +74,7 @@ function specOf(c) {
   const dI = Math.sqrt(0.6) * dIn, pl = +(args.primL || 0.61), cl = +(args.coll || 0.3);
   const csegs = [{ L: 0.13, d0: 0.089, d1: 0.0762 }, { L: cl, d0: 0.0762, d1: 0.0762 }].concat(args.tail ? [{ L: +args.tail, d0: 0.0635, d1: 0.0635 }] : []);
   const spec = { e, intake: { segs: [{ L: +(args.intakeL || 0.3), d0: dI, d1: dI }], Tw: 320 },
-    exhaust: { segs: [{ L: 0.15, d0: 0.0445, d1: 0.0445, primary: true }, { L: pl, d0: 0.0445, d1: 0.0445, primary: true }], Tw: 700, chambers: [] },
+    exhaust: { segs: [{ L: 0.15, d0: 0.0445, d1: 0.0445, primary: true, port: true }, { L: pl, d0: 0.0445, d1: 0.0445, primary: true }], Tw: 700, chambers: [] },
     opt: { phases: [0, 180, 450, 630], collector: { segs: csegs, Tw: 650 } } };
   if (args.whole === '1' || args.intake === 'plenum') {
     // cylinders 1..8 fire at 90 deg x their place in 1-8-7-2-6-5-4-3; odd cylinders (indices 0, 2, 4, 6) on the left bank
