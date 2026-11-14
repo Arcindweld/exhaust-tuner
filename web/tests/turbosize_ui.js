@@ -211,7 +211,7 @@ const { chromium } = require('playwright');
   await setv('i-hp', '450'); await setv('i-icam', '60'); await setv('i-icrdp', '1.5'); await setv('i-icrf', '40'); await pg.waitForTimeout(400);
   t = await q('#i-details .sec[data-sec="turbo-and-intercooler-sizing"]', e => e.innerText);
   ok(/5,600\s+57\.3 lb\/min \(0\.433 kg\/s\)\s+55\.1 lb\/min \(0\.417 kg\/s\)\s+1\.708/.test(t) && /3,500\s+35\.8 lb\/min/.test(t), 'demand line: two points with corrected flow and PR');
-  ok(/41\.8 hp \(31\.1 kW\)/.test(t) && /70%\s+1\.32\s+4\.73 psi/.test(t) && /60%\s+65%\s+3\.083/.test(t), 'compressor power and turbine sweep rows on the page');
+  ok(/41\.8 hp \(31\.1 kW\)/.test(t) && /70%\s+1\.32\s+4\.73 psi/.test(t) && /60%\s+65%\s+[\d.]+ lb\/min·√°R\/psi \(3\.083 kg√K\/\(s·bar\)\)/.test(t), 'compressor power and turbine sweep rows on the page');
   const icx = await q('#i-details .sec[data-sec="intercooler-sizing"]', e => e.innerText);
   ok(/1421 BTU\/min \(25\.0 kW\)/.test(icx) && /0\.955/.test(icx) && /4\.45/.test(icx) && /1935 W\/K/.test(icx) && /3\.08 psi \(21\.22 kPa\)/.test(icx), 'intercooler: heat, Cr, NTU, UA, scaled core drop');
   await setv('i-teff', '68'); await pg.waitForTimeout(300);
