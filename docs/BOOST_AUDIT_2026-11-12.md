@@ -973,7 +973,7 @@ check it when the target needs little or no boost.
 
 ### Tests
 
-- web/tests/operatingpoint_ui.js (new, 52 checks): the three modes on the K24 + PT5862; one mass flow, pressure ratio,
+- web/tests/operatingpoint_ui.js (new, 55 checks): the three modes on the K24 + PT5862; one mass flow, pressure ratio,
   compressor-out and intercooler-out temperature and back pressure across the boosted sections, the sheet, the glance
   card, the step list and the simulation plan; the relation round-trips; the legacy project against
   fixtures/op_legacy_k24.json; a project saved in "My power target" round-trips; the wastegate monotonic checks and its
@@ -982,6 +982,9 @@ check it when the target needs little or no boost.
   that boost) now set the earlier point first (settle.js typedPoint: both typed, no back pressure unless typed, the gate
   at the one p3): boostaudit, boostaudit2, chargeroute, compmap, conflux, icrec, turboar, turbosize, turboguide, turbolib,
   turbomani, turbosim, turbineeff, xflow. Their pins are unchanged except as listed.
+- Also: sweep_ui found two empty cells in the exhaust section's tables, which a default turbo build now reaches (the
+  power worked out gives the downpipe size rule its power): the total row now says "turbine outlet to the tip", the
+  first method's change cell "the start". Display only.
 - Pins changed (old, new, why):
   - easyflow_ui, power row: "450 hp needs about 26.30 psi, the 8 psi typed does not match" -> the target's boost worked
     out, 29.52 psi, one airflow, no mismatch (the new default).
