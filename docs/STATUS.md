@@ -1926,3 +1926,25 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   Details: docs/WAVE_VALIDATION_2026-11-11.md, part 6 (F1-F13).
 - Suite (--suite web,parity --no-build -j 2 --skip-slow): 130 tests, 123 passed, 0 failed, 7 skipped, 7 partial skips,
   0 unexpected, 1315 s.
+
+## 2026-11-13, part 7: whole-engine energy balance; heat loss in the exhaust port
+
+- Measured where the fuel's energy goes in the wave model (tools/validation/wave/energy_balance.js; LS3 c_final 3000 / 4600 /
+  5800 rpm, K24A2 NA plan 3500 / 5550 / 7100 rpm; sensible-energy residual <= 1.4e-14 of the heat released): LS3 brake
+  28.5-30.5 % of fuel, friction 5-6 %, cylinder walls 9.0-11.0 % (gas exchange EVO-TDC 3.1-3.4 %, Woschni's C1 6.18 as
+  published), exhaust enthalpy at the port 35-38 %, 18 % left as CO/H2 at AFR 12.8. Against Heywood's Table 12.1 (MIT 2.61
+  lecture 18): brake 25-28, coolant 17-26, exhaust 34-45 % of fuel. Exhaust share inside the range; coolant share low.
+- The port was mis-set: pipe with Reynolds' analogy at the header's 700 K (0.8-0.9 % of fuel); published time-averaged port
+  correlations (Morgan 2003 Table 2.1: Caton-Heywood 0.35 Re^0.6, Malchow 0.0483 Re^0.783, Meisner 0.0774 Re^0.769,
+  Hires 0.258 Re^0.8) give 1.9-2.6 % (7 % Hires). Added (JS + Rust bit parity, WebAssembly rebuilt): segments marked
+  port: true (the 4-Stroke tab's port length; ratings.js's 150 mm) lose h (T - Tw), Nu = 0.35 Re^0.6 from the last cycle's
+  mean outflow, Sutherland air properties, Tw = e.Twall (450 K); e.portHeat 'off' = before, bit for bit. Default page runs
+  unchanged unless a port length is typed.
+- Effects: port-exit mass-averaged T -27 to -38 K (LS3); ratings unchanged (LS3 478 / 499, LS7 543 / 549, LT1 479 / 480);
+  OpenWAM cross-check (assumed 100 mm port): port T at 10 mm +113 -> +18 K / +137 -> +40 K (mostly gas standing in the port
+  while the valve is shut), valve outflow unchanged; K24 turbo calibration efficiency at 1.5 x boost 0.340 -> 0.351 (0.380
+  with Hires): not mainly the port. Sound orders: median |change| 0.4-0.5 dB. Run time unchanged.
+- The rating surplus is airflow, not exhaust energy: brake efficiency 28.5 % of LHV at rated power is ordinary; the ratings
+  imply VE 0.91-0.97 at that efficiency, the model has 1.05-1.08; 10 kPa back pressure -0.6 %; accessories, air cleaner and
+  stock exhaust (part of SAE J1349 net) not modelled. No open LS3 VE/BSFC figure found; no citable WOT EGT measurement read.
+- Tests: wavegas_ui.js 12 (new), wave_wasm.js (three port jobs). No pinned value changed. Details: docs/WAVE_VALIDATION_2026-11-11.md, part 7 (G1-G10).
