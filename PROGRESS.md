@@ -1,7 +1,7 @@
 # PROGRESS (agent19/turbine) - delete in final commit
 Task: turbine capacity from published flow -> effective area; predict mode; tests turbine_ui.js; docs.
-- [ ] read docs/code
-- [ ] research (sources list below)
+- [x] read docs/code
+- [x] research (sources list below)
 - [ ] physics + page
 - [ ] tests
 - [ ] docs
@@ -16,3 +16,9 @@ Task: turbine capacity from published flow -> effective area; predict mode; test
 - Precision 5862 page: no turbine flow. EFR datasheets: no turbine flow text.
 - Blocked/not on allowlist: riunet (Anubis), motoiq gtx p3, garrett g25 (one URL variant), images.truckid.
 - Linkoping (Andersson): turbine flow model k1 sqrt(1-PR^k2), no numbers.
+## Done (code)
+- turboSimLib: secant (refactor, same steps), predict, calibrateA; tsimRun predict branch (j.Acap, j.comp, p3rpm, rpmsFb); tsimPlan cap/predict/rpms; summary Pt per row; section wording.
+- steady: nozPsi, TCAP_UNITS, turbAreaFromFlow, tsTurbCap, turbineAreaBalance, ts-tcap table in tsSizeSection; housing column turbCapStatus/Txt.
+- inputs i-tfc, i-tfcu, i-tfer. G40 flow src added.
+- browser check: 20 lb/min -> 643 mm2, predict run 32 s OK.
+## Next: tsSheet/tgSteps rows; tools/validation/wave/turbine_cap.js (K24 areas, generic range); web/tests/turbine_ui.js; docs.
