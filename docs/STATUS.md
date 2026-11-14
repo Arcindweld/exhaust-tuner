@@ -2031,4 +2031,7 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   remaining one-system figure; tube OD and wall at tube precision on the sheet (ctube); basis named on the no-loss rows.
 - No calculation changed: old and new page compared on the same journey (every internal result and every number of every
   boosted section's text); identical.
-- Tests: web/tests/easyflow_ui.js (new). No existing test or pin changed.
+- Tests: web/tests/easyflow_ui.js (new, 41 checks, runs the turbo simulation once). turbosize_ui.js: one regex follows the
+  turbine-flow-parameter cell, now lb/min·√°R/psi first in inches (the pinned 3.083 kg√K/(s·bar) unchanged). Suite (web,parity,
+  -j 2, --skip-slow): 133 tests, 125 passed, 1 failed (turbosize_ui, that regex; fixed and rerun alone: passes), 7 skipped,
+  7 partial skips, 0 unexpected, 1643 s.
