@@ -78,7 +78,7 @@ const { chromium } = require('playwright');
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const near = (a, want, tol, m) => ok(Number.isFinite(a) && Math.abs(a - want) <= tol * Math.abs(want), m + ': page ' + (Number.isFinite(a) ? +a.toPrecision(7) : a) + ', hand ' + (+want.toPrecision(7)));
   const pg = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs = []; pg.on('pageerror', e => errs.push(e.message));
-  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900);
+  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg);
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   // One evaluate per read: pg.$eval queries the element and then reads it in a second round trip, and the page's
   // ResizeObserver re-renders #i-details on the next animation frame (requestAnimationFrame(renderActive)), so on a busy
@@ -276,7 +276,7 @@ const { chromium } = require('playwright');
   await pg.close();
   // phone width
   const ph = await b.newPage({ viewport: { width: 400, height: 860 } }); const e2 = []; ph.on('pageerror', e => e2.push(e.message));
-  await ph.goto('file://' + process.cwd() + '/index.html#intake'); await ph.waitForTimeout(900);
+  await ph.goto('file://' + process.cwd() + '/index.html#intake'); await ph.waitForTimeout(900); await require('./settle').typedPoint(ph);
   await ph.evaluate(() => { const el = document.getElementById('i-ind'); el.value = 'turbo'; el.dispatchEvent(new Event('change', { bubbles: true })); }); await ph.waitForTimeout(400);
   ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1 && !!document.getElementById('ts-svg')), '400 px: no sideways page scroll with the tables and schematic');
   ok(!e2.length, '400 px: no page errors ' + e2.join('; '));

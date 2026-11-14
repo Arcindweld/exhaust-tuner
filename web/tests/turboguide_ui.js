@@ -34,7 +34,7 @@ const { chromium } = require('playwright');
   // pg.$eval / pg.$$eval read in one call after the page has stopped re-rendering (tests/settle.js; audit F1)
   require('./settle').reads(pg);
   pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900);
+  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg);
   const setv = async (id, v) => { await pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]); await pg.waitForTimeout(120); };
   const tso = async (k, v) => { await pg.evaluate(([k, v]) => { const el = document.querySelector('select.tsox[data-k="' + k + '"]'); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]); await pg.waitForTimeout(150); };
   const steps = () => pg.evaluate(() => Object.fromEntries([...document.querySelectorAll('#tg-steps > li')].map(li => [li.dataset.step, { state: li.dataset.state, text: li.innerText }])));
@@ -185,7 +185,7 @@ const { chromium } = require('playwright');
 
   // phone width
   const ph = await b.newPage({ viewport: { width: 400, height: 800 } }); ph.on('pageerror', e => errs.push(e.message));
-  await ph.goto('file://' + process.cwd() + '/index.html#intake'); await ph.waitForTimeout(900);
+  await ph.goto('file://' + process.cwd() + '/index.html#intake'); await ph.waitForTimeout(900); await require('./settle').typedPoint(ph);
   await ph.evaluate(() => { const set = (id, v) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); };
     set('i-ind', 'turbo'); set('i-hp', '450'); set('s-ind', 'turbo1'); }); await ph.waitForTimeout(600);
   ok(await ph.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1 && !!document.getElementById('tg') && !!document.getElementById('ts-xsvg') && !!document.getElementById('tsx-bp')),

@@ -8,3 +8,6 @@ Task: one operating point for the boosted build (C1-C8), see brief.
 - [ ] tests operatingpoint_ui.js; update others
 - [ ] docs
 - before capture: scratchpad/capture.js -> before.json (old build), after2.json
+- tests: operatingpoint_ui passes; section tests get typedPoint (settle.js): boostaudit, boostaudit2, chargeroute, compmap, conflux, icrec so far
+- easyflow pins updated (power row, p3 row, timing edits on i-hp)
+- docs: usability follow-up + boost addendum drafted; STATUS entry todo; final suite todo

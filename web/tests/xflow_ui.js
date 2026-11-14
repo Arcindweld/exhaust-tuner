@@ -28,7 +28,7 @@ const { chromium } = require('playwright');
   // pg.$eval / pg.$$eval read in one call after the page has stopped re-rendering (tests/settle.js; audit F1)
   require('./settle').reads(pg);
   pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await pg.waitForTimeout(900);
+  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg);
   const setv = async (id, v) => { await pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]); await pg.waitForTimeout(150); };
 
   // ---- Fanno: the formula against the published table, then the page's pipe march against both
