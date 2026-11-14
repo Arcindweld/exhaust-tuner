@@ -1000,3 +1000,175 @@ check it when the target needs little or no boost.
     caption check reads the one-pressure basis.
   - turboguide_ui and xflow_ui: after Use these sizes the inlet tube is set back to the 5 in tube (123.698 mm inside) the
     button gave before the coupler fix, so their hand-worked exhaust sums (t2 96.753 °C, T4 902.7742 °C, xflow.py) stand.
+
+## Addendum (2026-11-14): how much boost for my power (Garrett's relation taken apart, three methods, the preset trap)
+
+Asked for: after the one operating point, the default K24A2 + Precision GEN2 PT5862 build at a 450 hp target worked out
+29.52 psi (203.55 kPa) of boost, likely 18.64 to 33.54 psi, from Garrett's Turbo Tech 103 relation, while the page's own
+wave simulation gave 589 hp at 7100 RPM at 24.64 psi (169.918 kPa: the boost of the 450 hp case of validation part 5,
+Garrett's airflow at BSFC 0.55 and the VE field's 90 %) and is known to read 4-16 % high; builds of this class are
+reported near 450 wheel hp at 15-20 psi. The boost sets the pressure ratio, the compressor-out temperature, the
+intercooler's heat, the compressor map point and the turbo recommendation, so it is the number that matters most.
+
+### The relation, factor by factor, for the K24A2 + PT5862 at 450 hp
+
+Garrett, Turbo Tech 103 (garrettmotion.com, PDF read 2026-11-14): Wa = HP × A/F × BSFC ÷ 60 lb/min; MAP = Wa × R ×
+(460 + Tm) ÷ (VE × N/2 × Vd) psia, R = 639.6; "HP = Horsepower Target (flywheel)".
+
+| Factor | Page before | Page now | Where it comes from | Checked against |
+|---|---|---|---|---|
+| A/F | 12 | 12 pump and race gasoline, 8.0 E85 | the A/F field's default; Garrett's worked example ("I want to choose an air/fuel ratio of 12") | Garrett gives no A/F by fuel. 12 is λ 0.82 of gasoline's 14.6-14.7; E85's stoichiometric ratio by mass 0.858 × 9.0 + 0.142 × 14.6 = 9.80 (Heywood's 9.0 ethanol, 14.6 gasoline; E85 85 % ethanol by volume, densities 0.789 and 0.74), λ 0.82 → 8.0 |
+| BSFC, lb/hp·h | 0.55 | 0.55 pump, 0.50 race, 0.75 E85 | the BSFC field's default; Garrett: "General values of BSFC for turbocharged gasoline engines range from 0.50 to 0.60 and higher." "Race fuels and aggressive tuning are required to reach the low end of the BSFC range described above." | The page's own simulation burns 0.46-0.48 at A/F 12 (it has no knock limit; with its 4-16 % surplus taken out, 0.48-0.55). No open source read gives a measured full-load BSFC of a modern boosted gasoline engine in text (EPA's benchmark of the Honda L15B7, SAE 2018-01-0319, gives a map image and 38 % peak efficiency, no full-load figure); an EngineLabs article ("Snail-Selection Science") uses 0.55 for high-octane gasoline and 0.60 for E85 as its own narration, no source: not used |
+| A/F × BSFC (what sets air per hp) | 6.60 lb/hp·h | 6.60 pump, 6.00 race, 6.00 E85 | the product | see the table below |
+| VE | 0.90 (the Intake tab's VE field, the same default for every engine) | 0.97 for a 4-valve head, 0.915 for a 2-valve, unless typed under "VE under boost for the relation" | Garrett: "Typical numbers for peak Volumetric Efficiency (VE) range in the 95%-99% for modern 4-valve heads, to 88% - 95% for 2-valve designs." The 90 % was below Garrett's own 4-valve range: **the one sourced defect** | No measured VE of a K24 was found in an open source. The page's simulation gives 1.04-1.15 on the charge at peak power at 15-29.5 psi (the pressure before the turbine below the boost, 0.77-0.86 of it absolute in part 5, so the cylinder scavenges); part 8 found the model's VE above 1 is largely its assumed 300 mm runner's ram, part of the 4-16 %. So 0.97 is Garrett's, not the model's |
+| N (RPM) | 6800 | 6800 | the Peak power RPM field, the preset's Honda rating (200 hp @ 6800, hondanews.com 2004 TSX specifications) | The simulation's power peaks at 7100 RPM (its last speed, the redline) at 22 and 29.5 psi, at 6050 at 15 psi. MAP ∝ 1/N: 7100 would take 4.2 % off the manifold pressure (about 1.7 psi at 450 hp). Not changed: no source gives this build's boosted peak RPM; it is a field |
+| Vd | 143.65 cu in | same | 2354 cc ÷ 16.387064 (Honda) | |
+| Tm | the route's intercooler outlet, 153.9 °F (67.7 °C) at 29.52 psi | the same, 147.6 °F (64.2 °C) at 25.91 psi | compressor 70 %, Bell A300227240 core at 75 %, iterated with the boost | Garrett: "Manifold temperatures of intercooled setups are typically 100 - 130 degrees F". The route's figure is its own physics; Garrett's 130 °F would give 24.73 psi instead of 25.91 (row (a) below) |
+| R | 639.6 | same | Garrett (53.30 ft·lbf/(lb·°R) × 12) | the page's 53.35: 0.1 % |
+| Atmosphere | 14.696 psia | same | 101.325 kPa | Garrett's 14.7 |
+| HP | "Horsepower", read as typed | the crank (flywheel), with a selector: Crank (flywheel) / Wheels (chassis dyno), drivetrain loss 12.5 % by default | Garrett's HP is the flywheel's | Motor1, "What Is Drivetrain Loss?" (motor1.com/features/790569/what-is-drivetrain-loss/): "~10–15% loss" front-wheel drive, "~15–20%" rear, "~20–25% (or more)" all-wheel; it also says the loss is closer to fixed than a percentage and "The dyno itself can be hugely variable". 450 hp at the wheels is 514 hp at the crank at 12.5 % |
+
+Air per horsepower by fuel (A/F × BSFC; ÷ 60 for lb/min; × 0.45359237 ÷ 60 × 1000 ÷ 60 for g/s):
+
+| Fuel | A/F | BSFC lb/hp·h | air lb/hp·h | lb/min per hp | g/s per hp | hp per lb/min | Basis |
+|---|---|---|---|---|---|---|---|
+| Pump gasoline | 12 | 0.55 (range 0.50-0.60) | 6.60 | 0.1100 | 0.832 | 9.09 | Garrett's worked figures, the middle of its range |
+| Race gasoline | 12 | 0.50 (range 0.50-0.55) | 6.00 | 0.1000 | 0.756 | 10.0 | Garrett's low end, which it says needs race fuel |
+| E85 | 8.0 | 0.75 (range 0.75-0.825) | 6.00 | 0.1000 | 0.756 | 10.0 | the heat a kilogram of air releases is nearly fuel-independent (Heywood's lower heating values over the stoichiometric ratios: gasoline 44.0 ÷ 14.6 = 3.01, ethanol 26.9 ÷ 9.0 = 2.99 MJ/kg of air), so at the same λ the air per hp moves only with the efficiency the tune reaches; Garrett ("Pump Gas vs E85 Tunable Performance for Your Turbo", garrettmotion.com) compares E85 to 105-octane fuel and credits its knock limit: the race-gasoline figure. No source read gives a measured E85 full-load BSFC; nothing beyond race gasoline is credited |
+
+So the fuel moves the air per hp by 9 % at most: what E85 buys on a dyno is mostly the boost it tolerates (Garrett's
+Miata: 16 psi on 93 octane, 30 psi on E85), not less air per hp. The heat values of Heywood's appendix are quoted from
+the book as the page already cites it elsewhere; they were not re-read on line for this addendum.
+
+### Three ways, the K24A2 + PT5862 (0.63 A/R T3, the journey of operatingpoint_ui), crank hp
+
+| Crank hp | (a) Garrett's text figures: 12 × 0.55, VE 97 %, 130 °F, 6800 RPM (by hand) | the page before: Garrett's figures as typed (VE field 90 %), the route's manifold air | (b) the page now, pump gasoline (VE 97 %, the route's air) | (b) race gasoline or E85 | (b)'s range from Garrett's spreads (pump) | (c) the wave simulation, its power ÷ 1.04 to 1.16 |
+|---|---|---|---|---|---|---|
+| 350 | 15.97 psi | 18.53 psi | 15.84 psi (109.20 kPa) | 12.72 psi | 11.23 to 19.46 psi | 10.55 to 13.46 psi (from the 15 psi run) |
+| 450 | 24.73 psi | 29.52 psi | 25.91 psi (178.66 kPa) | 21.74 psi | 18.64 to 30.54 psi | 17.72 to 21.46 psi (the run at 25.91 psi; 17.73 to 21.47 from the 22 psi run) |
+| 550 | 33.49 psi | 40.95 psi | 36.38 psi (250.82 kPa) | 31.10 psi | 26.05 to 42.19 psi | 25.01 to 29.60 psi (from the 29.52 psi run) |
+
+(a) by hand: MAP per hp = 0.11 × 639.6 × 590 ÷ (0.97 × 3400 × 143.650) = 0.087619 psia; less 14.696.
+(c): the page's simulation (4-Stroke tab, the K24A2 preset's engine with the tab's stand-in cam, the route's charge, the
+Turbo manifold, a 75 % turbine sized for full boost at 3500 RPM) in "My boost" at three boosts
+(tools/validation/wave/boost_power.js, results/boost_power.json, about 25 s a run):
+
+| Boost | Charge, absolute / after the intercooler | Peak brake power | Air at peak | BSFC at A/F 12 | VE on the charge | Garrett at this boost (b) |
+|---|---|---|---|---|---|---|
+| 15 psi (103.42 kPa) | 204.75 kPa / 52.3 °C | 428.2 hp @ 6050 | 39.6 lb/min | 0.462 | 1.151 | 341.2 hp |
+| 22 psi (151.68 kPa) | 253.01 kPa / 60.3 °C | 529.7 hp @ 7100 | 50.7 lb/min | 0.479 | 1.041 | 411.5 hp |
+| 29.52 psi (203.53 kPa) | 304.86 kPa / 67.8 °C | 636.9 hp @ 7100 | 59.9 lb/min | 0.470 | 1.044 | 484.9 hp |
+
+Its power per absolute pressure is 2.0914, 2.0936 and 2.0892 hp per kPa: proportional to within 0.2 %, so the boost it
+implies for a target is the run's absolute pressure × target × k ÷ its power, less the atmosphere, k = 1.04 to 1.16
+(validation parts 3 and 8: brake torque 4-16 % above three published ratings without boost; stated as a range, not
+applied as a correction). Note the gap between (b) and (c) is almost all VE (the model's 1.04-1.15 against 0.97) and the
+RPM (its peak at 7100): its air per hp, with the 4-16 % taken out, is 0.096-0.111 lb/min per hp across the three runs, about Garrett's
+race-to-pump band (0.100-0.110).
+
+### The outside check: reported builds (reported figures, not controlled data)
+
+Garrett's relation at the page's new figures (VE 97 %, pump 6.6 or race/E85 6.0 lb/hp·h, 130 °F, the RPM stated or
+assumed) against the reported power, converted to the crank with Motor1's middle figures (12.5 % front-wheel drive,
+17.5 % rear):
+
+| Page (site, title) | Engine, turbo, fuel | Reported | Relation at the reported boost | Reported crank ÷ relation |
+|---|---|---|---|---|
+| ipgparts.com, "Turbo K-Series Tune: 475 WHP on 93 Octane Pump Gas" | K24 block, K20A2 head, Garrett GT35R, 93 octane | 475 whp at "approximately 18 PSI" (no RPM or dyno given; 7500 RPM assumed) | 412 hp | 543 ÷ 412 = 1.32 |
+| dsportmag.com, "570 whp Honda Civic Si" (spec sheet) | K24A2, Comp Turbo 6767 .82 A/R, E85 | 570 whp, "Peak Boost: 18 PSI", Dynapak, shift 8000 RPM | 483 hp | 651 ÷ 483 = 1.35 |
+| dsportmag.com, "711 WHP K24-Powered Turbo Honda Civic CX" | K24A1, sleeved, PT&E 6776, VP C16 | 711 whp at 32 psi at the manifold, Dynojet 248C (RPM not given; 8500 assumed) | 733 hp | 813 ÷ 733 = 1.11 |
+| full-race.com, "Civic Si turbo kit FAQ" (the maker's expectation, not a dyno sheet) | K20 (2.0 L), stock engine, Garrett GT3076R, pump gas | "a true 400-420whp at 11-12 psi" (7800 RPM assumed) | 297 hp at 12 psi | 469 ÷ 297 = 1.58 |
+| garrettmotion.com, "Pump Gas vs E85: Tunable Performance for Your Turbo" | Mazda B6ZE 1.6 L, GTX2867R, 93 octane | 241 hp at 7000 RPM, 16 psi, Mustang dyno | 245 hp | 292 ÷ 245 = 1.19 |
+| the same, E85 | the same | 401 hp at 7500 RPM, 30 psi | 420 hp | 486 ÷ 420 = 1.16 |
+
+Read: every reported build makes more power at its boost than Garrett's relation gives with the new figures, by 11 to
+58 % (reported, with assumed RPMs and drivetrain losses, different dynos, mostly modified heads, cams and higher RPM);
+on the K24 itself the two reported 18 psi builds are 32-35 % above it. The page's simulation for the stock-like K24 at
+18 psi (225.4 kPa absolute: 471 hp, 406 to 453 hp after its bias) also sits below them. The forum and builder figures
+were used only as this check: nothing was tuned to them. The result: the old default was pessimistic for one sourced
+reason (a VE below Garrett's own 4-valve range); with that fixed, the relation is still on the conservative side of the
+reported builds, which the range now shows once the simulation is run (17.72 to 30.54 psi at 450 hp).
+
+### What changed on the page
+
+- Engine group, boosted builds: **Fuel at full boost** (pump gasoline, race gasoline, E85), **Power target measured
+  at** (Crank (flywheel), the default; Wheels (chassis dyno)) with **Drivetrain loss** (12.5 %, shown for the wheels);
+  advanced: **Figures for the boost and power relation** ("For the fuel and the head (sourced)", the default; "Garrett's
+  conservative figures as typed: the A/F, BSFC and VE fields", the page before) and **VE under boost for the relation**
+  (blank: Garrett's 97 % or 91.5 % by the 4-Stroke tab's valve count). The engine's VE field stays the naturally
+  aspirated sizing's; the A/F field stays the turbine balance's and the simulation's (the simulation burns gasoline: with
+  E85 picked the relation uses E85's air per hp, the exhaust and the simulation the A/F field's gasoline mixture; stated
+  in the code's header).
+- opSolve takes the figures from opFig; tsHp is the crank figure everywhere (Garrett's demand per turbo, the oil heat,
+  the downpipe size by power, the turbo ratings); the sizing section's Garrett row and the turbo options use the same
+  figures. calcIntake's qd now also carries the relation's VE over the field's (0.97 ÷ 0.90 on the K24).
+- **The range** holds three methods: Garrett's spreads (BSFC by the fuel's band, VE 95-99 % for 4-valve or 88-95 % for
+  2-valve, manifold air 100-130 °F intercooled, each widened to hold the build's figure; 2.5 points either side of the
+  drivetrain loss for a target at the wheels), the figure itself, and the simulation's implied boost (or power) when a run
+  exists for this very point (the step list's own staleness check: charge pressure and temperature, turbine efficiency,
+  back pressure, A/F, efficiency model).
+- **The preset trap**: a vehicle preset's stock power held in the power field (HP_PRESET, until the builder types there or
+  a project loads) no longer becomes the boosted target. Switching to a turbo or centrifugal supercharger with "My power
+  target" then works the build at the boost field's 8 psi with the power worked out (the least surprising of the two: a
+  modest, typical boost, every section usable, nothing silently sized for a stock rating), and an inline box (no dialog:
+  the host ignores alert, confirm and prompt) asks "What power are you building for?", stating the relation's power at 5
+  and 20 psi for this engine as orientation, not a recommendation (233 and 411 hp on the K24A2). A target typed there (on
+  change) or in the power field ends the hold.
+- **The glance card's Power row**: the target at the crank (and at the wheels when picked), the boost worked out with
+  its range; then "The simulation says N hp at this boost (it reads about 4 to 16 % high: about N ÷ 1.16 to N ÷ 1.04)" and
+  the boost it implies for the target, or a one-click "Run the simulation at this boost" (from the Intake tab when the
+  4-Stroke tab's inputs exist, else it opens that tab and starts there).
+- Method text (Methods and sources, the one operating point) rewritten for the figures, the crank basis and the range.
+
+### The K24A2 + PT5862 default journey, before and after (Simple, 450 hp, the operatingpoint_ui journey)
+
+| | Before | After | Why |
+|---|---|---|---|
+| Power row | target 450 hp (typed); boost 29.52 psi (203.55 kPa), likely 18.64 to 33.54 psi; "No power estimate yet" | target 450 hp (336 kW) at the crank; boost 25.91 psi (178.66 kPa), likely 18.64 to 30.54 psi; "Run the simulation at this boost"; after the run: "The simulation says 586 hp (437 kW) at this boost, at 7,100 RPM (about 505 to 564 hp after its 4-16 %) ... implies 17.72 to 21.46 psi", range 17.72 to 30.54 psi | VE 0.97; the third method |
+| Air | 49.5 lb/min (0.374 kg/s) | the same | the target's, pump gasoline |
+| Compressor pressure ratio | 3.112 | 2.866 | the lower boost |
+| Compressor out / intercooler out | 385 / 154 °F (196 / 68 °C) | 360 / 148 °F (182 / 64 °C) | |
+| Intercooler heat | 48.2 kW (2,741 BTU/min) | 44.3 kW | |
+| Pipes, inlet tube, intercooler core, downpipe, manifold, oil lines | 3 in, 4 in OD, Bell A300227240, 3 in, 1.875 in runners, -4 / -10 AN | the same | |
+| Blow-off valve | 1.26 in (32 mm), 561 mm² effective | the same valve, 607 mm² | lower pressure at the throttle, lower flux |
+| Wastegate | 1.50 in (38 mm), 366 mm² at 1.59 × | the same valve, 408 mm² at 1.65 × | the safe side across 0.8-2.5 × at the new boost |
+| Pressure before the turbine in the balance | 2 × boost, 59.04 psi (407.10 kPa) | 2 × boost, 51.82 psi (357.31 kPa) | the boost |
+
+### Projects saved earlier
+
+A project without the new settings (every project saved before this, including those saved in "My power target" by the
+build just before) loads with "Garrett's conservative figures as typed" and the target at the crank: the results it
+had (boostpower_ui: op_legacy_k24.json gives Garrett's 49.500 lb/min and 40.994 psia as saved; a "My power target"
+project of the build before loads at its VE 90 % point, and moves to VE 97 % when the figures are switched). Loading a
+project ends a preset's hold on the power field. operatingpoint_ui's legacy checks pass unchanged.
+
+### Tests
+
+- web/tests/boostpower_ui.js (new, 26 checks, one simulation run): the preset trap (the hold, the inline box and its
+  suggestion by hand, the hold ending on a typed target, a preset picked again); the defaults; A/F × BSFC by fuel and
+  E85's stoichiometric ratio and heat per kg of air by hand; (b) at 450 hp by hand at the route's manifold air; (a) by
+  hand for 350/450/550 hp; (b) for every fuel and Garrett's figures as typed at 350/450/550 hp pinned; crank and wheels
+  (the conversion, the range by hand at 10 and 15 %, a typed loss); the glance card before a run, one click runs the
+  simulation at the worked-out boost, (c) by hand from the run and the range holding all three; metric order; "My boost"
+  at the point; op_legacy_k24.json and a "My power target" project of the build before.
+- tools/validation/wave/boost_power.js: method (c) at any boosts (the three-boost table above).
+- settle.js typedPoint also sets "Garrett's conservative figures as typed", so the section tests pinned at a typed boost
+  keep their hand sums.
+- Pins changed (old, new, why):
+  - operatingpoint_ui: "Boost worked out: 29.xx psi" → 25.xx psi (25.91; VE 0.97, Garrett's 4-valve middle); the range's
+    VE low end 0.90 → 0.95 (Garrett's band, now that the relation's VE is 0.97); at 8 psi in "My boost" the factor qd
+    0.9612 → 1.0359 = (0.97 ÷ 0.90) × 0.9612 (the relation's VE over the field's, times the charge-temperature ratio; the
+    air 27.45 → 29.58 lb/min) and the check "below the tab's own 28.56 lb/min" → the factor's two parts.
+  - easyflow_ui: the power row's "No power estimate yet" → "No simulation at this boost yet" with the run button; the
+    pressure before the turbine 2 × boost 59.04 psi (407.10 kPa) → 51.82 psi (357.31 kPa) (2 × 25.91); after the run
+    "Wave simulation: 586 hp" → "The simulation says 586 hp (437 kW) at this boost" with the 4-16 % range in hp.
+
+### Left
+
+- The RPM in the relation is the Peak power RPM field (the stock 6800 on the K24A2); a boosted K24's peak is often
+  higher (the simulation's is 7100). Left as a field: no source gives this build's.
+- No measured VE of a K-series under boost, no measured full-load BSFC of a modern boosted engine on gasoline or E85 was
+  found in an open source; the figures are Garrett's. The E85 figure credits no more than race gasoline.
+- The simulation burns gasoline at the A/F field's mixture; an E85 run is not modelled.
+- The reported builds sit above all three methods; closing that needs a measured VE and RPM of a built engine, not a
+  different default.

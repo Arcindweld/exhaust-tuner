@@ -49,10 +49,10 @@ function reads(page, ms = 5000) {
 
 // The boosted build as it was worked out before the one operating point (2026-11-14): boost and power both typed (the
 // sizes follow the boost), no back pressure after the turbine unless typed, the wastegate at the one pressure before the
-// turbine. For the tests whose subject is one section's physics at a typed boost, pinned against hand sums or an
+// turbine, and Garrett's relation on the A/F, BSFC and VE fields as typed (2026-11-14, boost for power). For the tests whose subject is one section's physics at a typed boost, pinned against hand sums or an
 // independent script at that boost (operatingpoint_ui.js tests the new defaults). Call it after the page has loaded.
 function typedPoint(page) {
-  return page.evaluate(() => { for (const [i, v] of [['i-opm', 'both'], ['i-tobpsrc', 'none'], ['i-wgbasis', 'single']]) {
+  return page.evaluate(() => { for (const [i, v] of [['i-opm', 'both'], ['i-tobpsrc', 'none'], ['i-wgbasis', 'single'], ['i-opfig', 'typed']]) {
     const e = document.getElementById(i); if (e && e.value !== v) { e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); } } });
 }
 
