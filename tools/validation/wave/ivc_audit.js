@@ -14,7 +14,7 @@
 //     with h_s the fresh mixture's enthalpy at the source temperature; int V dp = Delta(pV) - sum p dV, split at BDC;
 //     each term in K = term / (m_ivc cp_eff), cp_eff = (h(T_ivc, x_ivc) - h(T_s, x_ivc)) / (T_ivc - T_s).
 //   node tools/validation/wave/ivc_audit.js [cases=b18,na] [rpms=5050,6600,7100] [tag=m_base] [At=,Ag=,eta= (mm2, for b18)]
-//     [ivcShift=deg (the intake closing moved, the opening held: a longer or shorter seat duration)] [runnerL=m] [psi=18]
+//     [ivcShift=deg (the intake closing moved, the opening held: a longer or shorter seat duration)] [runnerL=m] [runnerD=m] [psi=18]
 //     [p3x=K (the turbine's area, gate shut, for a time-mean static p3 of K x boost at each speed)]
 //     [traces=1 (the 1-degree traces in the output)]
 //   -> results/ivc_<tag>.json
@@ -37,6 +37,7 @@ function specOf(c) {
   let sp = JSON.parse(JSON.stringify(c === 'na' ? naOf(job.spec) : job.spec));
   if (+args.ivcShift) sp.e.cam.ivc += +args.ivcShift;
   if (+args.runnerL > 0) sp.intake.segs = sp.intake.segs.map((q, i) => i === 0 ? Object.assign({}, q, { L: +args.runnerL }) : q);
+  if (+args.runnerD > 0) sp.intake.segs = sp.intake.segs.map(q => Object.assign({}, q, { d0: +args.runnerD, d1: +args.runnerD }));
   if (c !== 'na' && args.eta) sp.exhaust.turbine.eta = +args.eta;
   return sp;
 }
@@ -130,6 +131,7 @@ function run(c, rpm) {
   const out = {
     case: c, rpm, ve: r.ve, imep: r.imep, gimep: r.gimep, bmep: r.imep - WS.tfmep(rpm), src: { p: ps, T: Ts },
     cam: { ivo: sp.e.cam.ivo, ivc: sp.e.cam.ivc, evo: sp.e.cam.evo, evc: sp.e.cam.evc, ivcLocal: ivc, ivcABDC: ivc - 540, ivoLocal: ivo, evcLocal: evc },
+    modelIvc: { p: r.state.cyls[0].ivcP, T: r.state.cyls[0].ivcT, V: r.state.cyls[0].ivcV }, split0: m,
     Vratio: Vb / sIvc.V, ivc: { p: pIvc, T: sIvc.T, m, x: xI, R: Rm, gamma: gm }, bdc: { p: pOf(sBdc), T: sBdc.T, m: sBdc.m, x: sBdc.x },
     star: { p: pS, T: TS }, mRef, veCharge: fresh / (1 + 1 / afr) / (ps * eng.Vd / (WS.gas.at(GI, Ts, 1).R * Ts)),
     pBudget: { compression: Math.pow(Vb / sIvc.V, gm), mass: m / mRef, temp: TS / Ts, R: Rm / Rs, product: Math.pow(Vb / sIvc.V, gm) * (m / mRef) * (TS / Ts) * (Rm / Rs), pRatio: pIvc / ps },
@@ -143,6 +145,7 @@ function run(c, rpm) {
   };
   return out;
 }
+if (require.main !== module) { module.exports = { run, WS, KN, job }; return; }
 const res = { args, job: { psi, Pt: job.Pt, Tc: job.Tc }, rows: [] };
 const f = path.join(__dirname, 'results', 'ivc_' + (args.tag || 'run') + '.json');
 const naP = {};
