@@ -123,6 +123,8 @@ function run(c, rpm) {
   for (let j = 0; j < S.length; j++) tr[4 * j + 2] = j ? S[j - 1].T : S[S.length - 1].T;
   const tr2 = tr.concat(tr);
   let kn = null; try { kn = KN.check(tr2, eng, rpm, { ON }); } catch (e) { kn = { err: String(e) }; }
+  // what the integral rests on (part 13, M6): the same trace with the pressure scaled (pScale) or the IVC temperature moved (dT0)
+  const knAt = (pScale, dT0) => { const pts = KN.closedPeriod(tr2, eng); return KN.integral(pts, KN.unburned(pts, eng.gas, dT0), eng, rpm, { ON, pScale }).I; };
   // 1-degree traces
   const B1 = done.bins.map((b, a) => b.n ? { a, p: b.p / b.t, T: b.T / b.t, m: b.m / b.t, x: b.x / b.t, mIf: b.mIf, mIb: b.mIb, mE: b.mE, pPort: b.pPort / b.t, p0Port: b.p0Port / b.t, pMouth: b.pMouth / b.t, pEx: b.pEx / b.t } : null).filter(Boolean);
   const mean = (f, a0, a1) => { let s = 0, t = 0; done.bins.forEach((b, a) => { const ok = a0 <= a1 ? (a >= a0 && a < a1) : (a >= a0 || a < a1); if (ok && b.t) { s += b[f]; t += b.t; } }); return s / t; };
@@ -139,7 +141,10 @@ function run(c, rpm) {
     flows: { freshIn: fIn, freshBack: fBack, freshShort: fExOut, freshDrawnBack: fExIn, exOutAfterIvo: exOutAll, exInAfterIvo: exInAll, trapping: fresh / (fIn - fBack), shortFrac: fExOut / (fIn - fBack) },
     tBudget: budget, tBudgetSum: total, dT, closeErr,
     means: { pPortIn: mean('pPort', ivo, ivc), p0PortIn: mean('p0Port', ivo, ivc), pMouth: mean('pMouth', 0, 720), pPortCycle: mean('pPort', 0, 720), pExOverlap: mean('pEx', ovl[0], ovl[1]), pCylOverlap: mean('p', ovl[0], ovl[1]), pPortOverlap: mean('pPort', ovl[0], ovl[1]) },
-    knock: kn && !kn.err ? { I: kn.I, Tivc: kn.Tivc, pIvc: kn.pIvc, TuEnd: kn.TuEnd, pMax: kn.pMax } : kn,
+    knock: kn && !kn.err ? { I: kn.I, Tivc: kn.Tivc, pIvc: kn.pIvc, TuEnd: kn.TuEnd, pMax: kn.pMax,
+      // the trapped mass at Garrett's 97 % VE on the charge (the pressures scaled by 0.97 / VE); every pressure halved; the IVC
+      // charge as cold as the source taken isentropically from BDC (T_ivc - (T* - T_src)), the pressure held
+      I_ve97: knAt(0.97 / (fresh / (1 + 1 / afr) / (ps * eng.Vd / (WS.gas.at(GI, Ts, 1).R * Ts))), 0), I_halfP: knAt(0.5, 0), I_noHeat: knAt(1, -(TS - Ts)) } : kn,
     turb: t ? { p3: t.p3, p3s: t.p3s, T3: t.T3, W: t.W, mAir: t.mAir, At, Ag, search, p3sx: (t.p3s - 101325) / (ps - 101325), p3x: (t.p3 - 101325) / (ps - 101325) } : null,
     trace: args.traces === '1' ? B1.map(q => Object.fromEntries(Object.entries(q).map(([k, v]) => [k, k === 'a' ? v : +v.toPrecision(5)]))) : undefined
   };
