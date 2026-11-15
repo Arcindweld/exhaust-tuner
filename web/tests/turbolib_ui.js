@@ -125,7 +125,7 @@ const { chromium } = require('playwright');
   ok(/2\.28 in \(58\.0 mm\)/.test(tt) && /101\.6 mm/.test(tt) && /522 kW/.test(tt), 'turbo table in inches and mm, hp and kW');
   // intercoolers: type filter, route B (the type now starts undecided, 2026-11-12: every row listed; pick air-to-air first)
   let ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.length);
-  ok(ics === 77, 'type not decided: every core listed, 57 air-to-air and 20 water-to-air (' + ics + ')');
+  ok(ics === 96, 'type not decided: every core listed, 76 air-to-air (19 Treadstone added 2026-11-15) and 20 water-to-air (' + ics + ')');
   await setx('ictype', 'a2a'); await pg.waitForTimeout(400);
   ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.map(r => r.cells[0].innerText.split('\n')[0]));
   ok(ics.length === 57 && ics.filter(x => /^Garrett /.test(x)).length === 31 && ics.filter(x => /^Mishimoto /.test(x)).length === 5 && ics.filter(x => /^CSF /.test(x)).length === 14 && ics.filter(x => /^Bell Intercoolers /.test(x)).length === 7 && ics.indexOf('Mishimoto MMINT-UR') >= 0 && ics.indexOf('CSF 8045') >= 0, 'air-to-air list: 31 Garrett (the maker’s full table, 2026-11-12), 5 Mishimoto, 14 CSF, 7 Bell (' + ics.length + ')');
