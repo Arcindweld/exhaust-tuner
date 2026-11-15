@@ -20850,8 +20850,8 @@ function knockTxt(KS,F,P,long){
   if(L.length) t+='. At that timing the estimate puts the knock-limited boost for '+L.map(li).join(' and for ');
   t+='. Under boost it reads pessimistic against reported builds (they run more boost than this on a tune): compare the fuels, do not read the numbers as limits.';
   if(!long) return t;
-  const band=L.map(f=>f.name+' '+pd(f.g[2])+' to '+pd(f.g[0])).join('; ')+(KS.ret&&!(r1&&r1.none)?'; the retard '+KS.ret.map(b=>b.inside?'none':b.none?'more than 40°':Math.round(b.deg)+'°').join(' / ')+' for an integral of 0.7 / 1 / 1.3':'');
-  return t+' Band (knock taken at an integral of 1.3 to 0.7 instead of 1): '+band+'.';
+  const band=L.map(f=>f.name+' '+pd(f.g[0])+' to '+pd(f.g[2])).join('; ')+(KS.ret&&!(r1&&r1.none)?'; the retard '+KS.ret.map(b=>b.inside?'none':b.none?'more than 40°':Math.round(b.deg)+'°').join(' / ')+' for an integral of 0.7 / 1 / 1.3':'');
+  return t+' Band (knock taken at an integral of 0.7 to 1.3 instead of 1): '+band+'.';
 }
 function knockAssump(KS,P,F){
   if(!KS||KS.err||KS.none) return '';
