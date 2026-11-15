@@ -80,7 +80,7 @@ const TREF: f64 = 298.15;
 const TMAX: f64 = 3500.0;
 /// GRI-Mech 3.0: M g/mol, cp/R a1..a5 below 1000 K, a1..a5 above, a6 below 1000 K; order N2, O2, Ar, CO2, H2O, CO, H2.
 #[allow(clippy::excessive_precision)]
-const SPEC: [(f64, [f64; 5], [f64; 5], f64); 8] = [
+const SPEC: [(f64, [f64; 5], [f64; 5], f64); 10] = [
     (28.0134, [3.298677, 1.4082404e-3, -3.963222e-6, 5.641515e-9, -2.444854e-12], [2.92664, 1.4879768e-3, -5.68476e-7, 1.0097038e-10, -6.753351e-15], -1020.8999),
     (31.9988, [3.78245636, -2.99673416e-3, 9.84730201e-6, -9.68129509e-9, 3.24372837e-12], [3.28253784, 1.48308754e-3, -7.57966669e-7, 2.09470555e-10, -2.16717794e-14], -1063.94356),
     (39.948, [2.5, 0.0, 0.0, 0.0, 0.0], [2.5, 0.0, 0.0, 0.0, 0.0], -745.375),
@@ -90,6 +90,9 @@ const SPEC: [(f64, [f64; 5], [f64; 5], f64); 8] = [
     (2.01588, [2.34433112, 7.98052075e-3, -1.9478151e-5, 2.01572094e-8, -7.37611761e-12], [3.3372792, -4.94024731e-5, 4.99456778e-7, -1.79566394e-10, 2.00255376e-14], -917.935173),
     // gasoline vapour (the default fresh charge of the cylinder and the exhaust; e.fuel "air" leaves it out): CH1.87 as 0.62608 isooctane + 0.37392 toluene, NASA-9 (TP-2002-211556) refitted
     (105.9685, [4.3574789305e-4, 6.287087399e-2, 1.8481188654e-5, -6.6235936767e-8, 3.0931702108e-11], [1.5070164686e-4, 7.4623329793e-2, -3.7243234038e-5, 9.0809952109e-9, -8.6559143434e-13], 0.0),
+    // the alcohols' vapour (2026-11-14, part 11): ethanol, NASA CEA's fit refitted (tools/validation/wave/fuel_fit.py); methanol, GRI-Mech 3.0's own
+    (46.06844, [2.2597742822e-4, 3.1536353621e-2, -2.0178151195e-5, 6.9404128852e-9, -1.1514174643e-12], [5.9083125697e-5, 2.8866753572e-2, -1.5271499152e-5, 3.8359776786e-9, -3.6970916221e-13], 0.0),
+    (32.04186, [5.71539582, -1.52309129e-2, 6.52441155e-5, -7.10806889e-8, 2.61352698e-11], [1.78970791, 1.40938292e-2, -6.36500835e-6, 1.38171085e-9, -1.1706022e-13], 0.0),
 ];
 const AIR_N2: f64 = 3.7279; // per mole of O2
 const AIR_AR: f64 = 0.04459;
@@ -99,17 +102,18 @@ const C_FV: f64 = 7.62608; // carbon atoms per molecule of the vapour (SPEC[7])
 fn afr_st() -> f64 {
     (1.0 + FUEL_Y / 4.0) * (AIR_N2 * SPEC[0].0 + SPEC[1].0 + AIR_AR * SPEC[2].0) / (12.0107 + FUEL_Y * 1.00794)
 }
-/// Moles of each species per C atom in the products at relative air-fuel ratio lam (held to 0.5-4).
-fn burned_moles(lam: f64) -> [f64; 8] {
+/// Moles of each species per C atom in the products at relative air-fuel ratio lam (held to 0.5-4), for the fuel f
+/// (CH_y O_z per C atom; the page's burnedMoles): the fuel's own oxygen joins the O balance.
+fn burned_moles(lam: f64, f: &Fuel) -> [f64; 8] {
     let lam = jmin(4.0, jmax(0.5, lam));
-    let y = FUEL_Y;
-    let o = 1.0 + y / 4.0;
+    let y = f.y;
+    let o = f.o;
     let n2 = lam * o * AIR_N2;
     let ar = lam * o * AIR_AR;
     if lam >= 1.0 {
         return [n2, (lam - 1.0) * o, ar, 1.0, y / 2.0, 0.0, 0.0, 0.0];
     }
-    let s = 2.0 * lam * o - 1.0;
+    let s = 2.0 * lam * o + f.z - 1.0;
     let qa = K_WGS - 1.0;
     let qb = K_WGS * (y / 2.0 - s) + 1.0 + s;
     let a = (-qb + (qb * qb + 4.0 * qa * s).sqrt()) / (2.0 * qa);
@@ -146,6 +150,7 @@ fn gas_poly(n: &[f64]) -> (f64, [f64; 11], [f64; 11]) {
 #[derive(Clone, Copy)]
 struct Gas {
     qx: f64, // the fresh charge's chemical energy, J per kg (heat_release)
+    cool: f64, // J per kg of fuel its evaporation takes from the charge (port_fuel; 0: not counted)
     fa: f64, // the fresh charge's air fraction by mass
     rair: f64,
     vap: bool,
@@ -159,17 +164,19 @@ struct Gas {
     dlo: [f64; 11],
     dhi: [f64; 11],
 }
-fn make_gas(afr: f64, vap: bool) -> Gas {
-    let lam = afr / afr_st();
-    let o = 1.0 + FUEL_Y / 4.0;
+fn make_gas(afr: f64, vap: bool, f: &Fuel) -> Gas {
+    let lam = afr / f.afr_st;
+    let o = f.o;
     let rair = gas_poly(&[AIR_N2, 1.0, AIR_AR, 0.0, 0.0, 0.0, 0.0]).0;
-    let hr = heat_release(lam);
+    let hr = heat_release(lam, f);
     let (ra, alo, ahi) = if vap {
-        gas_poly(&[lam * o * AIR_N2, lam * o, lam * o * AIR_AR, 0.0, 0.0, 0.0, 0.0, 1.0 / C_FV])
+        let mut n = vec![lam * o * AIR_N2, lam * o, lam * o * AIR_AR, 0.0, 0.0, 0.0, 0.0];
+        n.extend_from_slice(&f.vap);
+        gas_poly(&n)
     } else {
         gas_poly(&[AIR_N2, 1.0, AIR_AR, 0.0, 0.0, 0.0, 0.0])
     };
-    let (rb, blo, bhi) = gas_poly(&burned_moles(lam));
+    let (rb, blo, bhi) = gas_poly(&burned_moles(lam, f));
     let d = |a: &[f64; 11], b: &[f64; 11]| {
         let mut o = [0.0; 11];
         for j in 0..11 {
@@ -177,7 +184,7 @@ fn make_gas(afr: f64, vap: bool) -> Gas {
         }
         o
     };
-    Gas { qx: if vap { hr.2 } else { hr.1 }, fa: if vap { hr.2 / hr.1 } else { 1.0 }, rair, vap, afr, ra, rb, rd: ra - rb, blo, bhi, dlo: d(&alo, &blo), dhi: d(&ahi, &bhi) }
+    Gas { qx: if vap { hr.2 } else { hr.1 }, cool: f.cool, fa: if vap { hr.2 / hr.1 } else { 1.0 }, rair, vap, afr, ra, rb, rd: ra - rb, blo, bhi, dlo: d(&alo, &blo), dhi: d(&ahi, &bhi) }
 }
 // ------------------------------------------------------------------------------------------- heat release (2026-11-12, part 2)
 // The page's "heat release" block, line for line: the heat of reaction from enthalpies of formation (the GRI-Mech 3.0
@@ -197,18 +204,78 @@ fn hform(k: usize) -> f64 {
 fn hf_fuel() -> f64 {
     hform(3) + FUEL_Y / 2.0 * hform(4) + LHV_F * m_fuel() / 1000.0
 }
-/// Heat of reaction at relative air-fuel ratio lam (held to 0.5-4): J per mol of fuel, J per kg of air, of mixture.
-fn heat_release(lam: f64) -> (f64, f64, f64) {
+// ------------------------------------------------------------------------------------------- the fuel (2026-11-14, part 11)
+// The page's "the fuel" block, line for line: CH_y O_z per C atom from a blend of the gasoline CH1.87 and the alcohols by
+// mass (e.blend {eth, meth}), formation enthalpies of the liquids (NASA CEA thermo.inp: ethanol -277510, methanol -238910
+// J/mol; the gasoline's from its LHV), latent heats at 298.15 K (NASA's gas minus liquid); e.evap the share of the latent
+// heat taken from the charge (None: the evaporation not counted, the gasoline's treatment before).
+#[derive(Clone)]
+struct Fuel {
+    y: f64,
+    z: f64,
+    mc: f64, // g per mol of C atoms
+    o: f64,  // mol of O2 per C atom for complete combustion
+    hf: f64, // J per mol of C atoms (the liquid's, or the vapour's when the evaporation is counted)
+    cool: f64,
+    afr_st: f64,
+    vap: Vec<f64>, // the vapour's moles per C atom of SPEC[7..]
+}
+const M_C: f64 = 12.0107;
+const M_H: f64 = 1.00794;
+const M_O: f64 = 15.9994;
+fn air_m() -> f64 {
+    AIR_N2 * SPEC[0].0 + SPEC[1].0 + AIR_AR * SPEC[2].0
+}
+fn fuel_gas() -> Fuel {
+    Fuel { y: FUEL_Y, z: 0.0, mc: m_fuel(), o: 1.0 + FUEL_Y / 4.0, hf: hf_fuel(), cool: 0.0, afr_st: afr_st(), vap: vec![1.0 / C_FV] }
+}
+fn fuel_of(we: f64, wm: f64, evap: Option<f64>) -> Result<Fuel, String> {
+    let we = if we > 0.0 { we } else { 0.0 };
+    let wm = if wm > 0.0 { wm } else { 0.0 };
+    let f = evap.map(|v| jmin(1.0, jmax(0.0, v)));
+    if !(we + wm <= 1.0 + 1e-12) {
+        return Err("e.blend: the ethanol and methanol mass fractions add up to more than 1".into());
+    }
+    let x_iso = (FUEL_Y * 7.0 - 8.0) / (10.0 - FUEL_Y);
+    let lv_gas = (x_iso * 35150.0 + (1.0 - x_iso) * 37990.0) / SPEC[7].0 * 1000.0;
+    let lv_eth = 42560.0 / SPEC[8].0 * 1000.0;
+    let lv_meth = 37970.0 / SPEC[9].0 * 1000.0;
+    let (mut fu, l, hfl) = if we == 0.0 && wm == 0.0 {
+        let g = fuel_gas();
+        let h = g.hf;
+        (g, lv_gas, h)
+    } else {
+        let wg = jmax(0.0, 1.0 - we - wm);
+        let cg = wg / m_fuel();
+        let ce = we / (SPEC[8].0 / 2.0);
+        let cm = wm / SPEC[9].0;
+        let nc = cg + ce + cm;
+        let y = (cg * FUEL_Y + ce * 3.0 + cm * 4.0) / nc;
+        let z = (ce * 0.5 + cm) / nc;
+        let mc = M_C + y * M_H + z * M_O;
+        let o = 1.0 + y / 4.0 - z / 2.0;
+        let hfl = (cg * hf_fuel() + ce * (-277510.0 / 2.0) + cm * (-238910.0)) / nc;
+        let l = wg * lv_gas + we * lv_eth + wm * lv_meth;
+        (Fuel { y, z, mc, o, hf: hfl, cool: 0.0, afr_st: o * air_m() / mc, vap: vec![cg / nc / C_FV, ce / nc / 2.0, cm / nc] }, l, hfl)
+    };
+    if let Some(f) = f {
+        fu.hf = hfl + l * fu.mc / 1000.0;
+        fu.cool = f * l;
+    }
+    Ok(fu)
+}
+/// Heat of reaction at relative air-fuel ratio lam (held to 0.5-4) of the fuel f: J per mol of fuel, J per kg of air, of mixture.
+fn heat_release(lam: f64, f: &Fuel) -> (f64, f64, f64) {
     let lam = jmin(4.0, jmax(0.5, lam));
-    let o = 1.0 + FUEL_Y / 4.0;
-    let n = burned_moles(lam);
+    let o = f.o;
+    let n = burned_moles(lam, f);
     let mut hp = 0.0;
     for k in 0..7 {
         hp += n[k] * hform(k);
     }
-    let q = hf_fuel() + lam * o * (AIR_N2 * hform(0) + hform(1) + AIR_AR * hform(2)) - hp;
+    let q = f.hf + lam * o * (AIR_N2 * hform(0) + hform(1) + AIR_AR * hform(2)) - hp;
     let m_air = lam * o * (AIR_N2 * SPEC[0].0 + SPEC[1].0 + AIR_AR * SPEC[2].0) / 1000.0;
-    (q, q / m_air, q / (m_air + m_fuel() / 1000.0))
+    (q, q / m_air, q / (m_air + f.mc / 1000.0))
 }
 /// The burn's heat per cycle: the gas's chemistry x the combustion efficiency, or (the constant gas) fresh / AFR x LHV x eta.
 fn burn_heat(eng: &Engine, fresh: f64) -> f64 {
@@ -801,6 +868,8 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         .as_array()
         .map(|a| a.iter().map(|c| [num(&c["x"]), num(&c["V"]), num(&c["A"]), num(&c["Le"])]).collect())
         .unwrap_or_default();
+    // the fuel (2026-11-14, part 11): e.blend {eth, meth} mass fractions, e.evap the latent heat's share from the charge
+    let fuel = fuel_of(num(&e["blend"]["eth"]), num(&e["blend"]["meth"]), e["evap"].as_f64())?;
     Ok(Engine {
         bore,
         stroke,
@@ -836,8 +905,8 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         per_cyl,
         chambers,
         k: consts(),
-        gas: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), e["fuel"].as_str() != Some("air"))) },
-        gas_in: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), false)) },
+        gas: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), e["fuel"].as_str() != Some("air"), &fuel)) },
+        gas_in: if e["gas"].as_str() == Some("const") { None } else { Some(make_gas(num(&e["afr"]), false, &fuel)) },
         flow_in: flow_tab_of(&e["flowIn"])?,
         flow_ex: flow_tab_of(&e["flowEx"])?,
         plenum: plenum_of(intake)?,
@@ -1903,7 +1972,9 @@ fn port_fuel(f: &mut Flow, cy: &Cyl, g: &Gas, gi: &Gas) -> Flow {
     let ia = 1.0 / g.afr;
     if f.m >= 0.0 {
         let mc = f.m * (1.0 + f.x * ia);
-        return if mc > 0.0 { Flow { m: mc, h: f.m * f.h / mc, x: f.m * f.x * (1.0 + ia) / mc, uj: 0.0 } } else { Flow { m: 0.0, h: f.h, x: f.x, uj: 0.0 } };
+        // with the evaporation counted (g.cool > 0, part 11) the fuel's share of its latent heat comes out of the entering charge
+        let h = if g.cool > 0.0 { (f.m * f.h - f.m * f.x * ia * g.cool) / mc } else { f.m * f.h / mc };
+        return if mc > 0.0 { Flow { m: mc, h, x: f.m * f.x * (1.0 + ia) / mc, uj: 0.0 } } else { Flow { m: 0.0, h: f.h, x: f.x, uj: 0.0 } };
     }
     let ff = ia / (1.0 + ia);
     let keep = 1.0 - cy.x * ff;
