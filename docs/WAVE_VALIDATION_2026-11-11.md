@@ -3531,8 +3531,8 @@ closing 60 deg after it) x 1.09 (the trapped mass above the charge's density in 
 ram) x 1.17 (the charge 56 K warmer than the source at the BDC volume) x 1.003 (R). Of the 82 K: 28 K is that compression
 after BDC, 36 K the filling (gas admitted while the cylinder is deep below the charge pressure is compressed by what follows
 as the runner's column packs it), 19 K the 2.8 % residual, 4 K the walls, -3 K the fuel vapour, -1 K the charge pushed back.
-The engine without boost has the same ratios (1.73; 99 K) and lands at the knock limit; there is no short-circuit (the
-exhaust pulse holds the port above the cylinder through the overlap); a pre-turbine pressure of 1.5 or 2 x boost moves the
+The engine without boost has the same ratios (1.73; 99 K) and lands at the knock limit; there is no short-circuit (over the
+overlap the cylinder is never below the intake port and above the exhaust port at once); a pre-turbine pressure of 1.5 or 2 x boost moves the
 trapped state by 3-16 K, the power by 3-8 % at 5050-7100 rpm and the knock integral by -0.5 to +5 % (more pessimistic,
 if anything). The integral's
 pessimism under boost is the correlation's pressure term carried to twice the naturally aspirated pressures, plus up to a
@@ -3542,7 +3542,7 @@ No model change, no default changed, no pin changed.
 ### M1 Instrumentation (`tools/validation/wave/ivc_audit.js`, `ivc_report.js`, `results/ivc_m_*.json`)
 
 The 18 psi pump-gas job of part 12 (`results/knock_k24_jobs.json`: the page's plan; the turbine's and the gate's areas as
-the closure found them per speed: 814 mm2 and 0 / 0 / 324 / 482 / 510 mm2 at 3500 / 5050 / 6600 / 7100 rpm) and the same
+the closure found them per speed: 814 mm2 and 0 / 324 / 482 / 510 mm2 at 3500 / 5050 / 6600 / 7100 rpm) and the same
 engine with its pipes open to the air (`knock_val.js`'s naOf), settled as the page's back ends settle (8 cycles, then pairs
 to 0.4 % VE), then one cycle of cylinder 1 recorded through `lib.js`'s read-only hook (which now also exposes the intake
 valve's flow as the cylinder sees it, `_hIC`, `_xIC`, the exhaust valve flow's fresh fraction `_xE` and the step's starting
@@ -3822,4 +3822,7 @@ node tools/validation/wave/ivc_audit.js cases=b18,na rpms=5050,6600 runnerL=0.15
 node tools/validation/wave/ivc_report.js                                                             # the tables
 node web/tests/ivc_ui.js
 ```
-SUITE_PLACEHOLDER
+Suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, 2026-11-15, part 13, on the final
+code): 140 tests, 133 passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips (all expected: no host build, no OpenWAM
+build in the worktree, F-100 runs absent), 0 unexpected, 1518 s (ivc_ui, knock_ui, knockpage_ui, wave_wasm, turboaudit_ui,
+turbosim_ui passed).
