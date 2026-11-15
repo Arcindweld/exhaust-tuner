@@ -1286,8 +1286,15 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <div class="note warn" id="i-hpstock" style="grid-column:1/-1;margin:0" hidden><p id="i-hpstock-txt" style="margin:0 0 6px"></p>
           <label class="f"><span class="lab">The power you are building for</span>
           <span class="inp"><input id="i-hptgt" type="number" step="any" inputmode="decimal" min="0" placeholder="type your target"><em>hp</em></span></label></div>
-        <label class="f" id="i-fuel-wrap" hidden><span class="lab">Fuel at full boost</span>
-          <span class="inp"><select id="i-fuel"><option value="pump" selected>Pump gasoline</option><option value="race">Race gasoline</option><option value="e85">E85</option></select></span></label>
+        <label class="f" id="i-fuel-wrap"><span class="lab">Fuel</span>
+          <span class="inp"><select id="i-fuel"><option value="pump" selected>Pump gasoline</option><option value="race">Race gasoline</option><option value="e10">Pump gasoline with 10% ethanol (E10)</option><option value="e85">E85</option><option value="e100">Ethanol (E100)</option><option value="m100">Methanol (M100)</option></select></span></label>
+        <label class="f" id="i-eth-wrap" hidden><span class="lab">Ethanol in the E85, by volume</span>
+          <span class="inp"><input id="i-eth" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="85" data-min="51" data-max="100"><em>%</em></span></label>
+        <label class="f adv" id="i-lam-wrap"><span class="lab">Mixture at full power, λ (blank: the A/F field read as gasoline’s)</span>
+          <span class="inp"><input id="i-lam" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="3" data-min="0.6" data-max="1.2"><em>λ</em></span></label>
+        <label class="f adv" id="i-evap-wrap"><span class="lab">Fuel evaporation in the simulation</span>
+          <span class="inp"><select id="i-evap"><option value="none" selected>Not counted (as before)</option><option value="port">Port injection: from the port walls</option><option value="di">Direct injection: 70% from the charge</option><option value="all">All from the charge (the upper limit)</option></select></span></label>
+        <p class="cap" id="i-fuel-out" style="grid-column:1/-1;margin:0" hidden></p>
         <label class="f" id="i-hpat-wrap" hidden><span class="lab">Power target measured at</span>
           <span class="inp"><select id="i-hpat"><option value="crank" selected>Crank (flywheel)</option><option value="wheel">Wheels (chassis dyno)</option></select></span></label>
         <label class="f" id="i-dtl-wrap" hidden><span class="lab">Drivetrain loss, crank to wheels</span>
@@ -6755,6 +6762,26 @@ const EXH_GAS=(()=>{
 })();
 const exhGamma=T=>{ const a=T<=1000?EXH_GAS.lo:EXH_GAS.hi, cpR=a[0]+T*(a[1]+T*(a[2]+T*(a[3]+T*a[4]))); return cpR/(cpR-1); };   // T in K
 const sosExh=tC=>{ const T=tC+273.15; return Math.sqrt(exhGamma(T)*EXH_GAS.R*T); };
+/* ----- the exhaust gas of the fuel picked (2026-11-14, docs/WAVE_VALIDATION_2026-11-11.md part 11) -----
+   EXH_GAS above is the stoichiometric gasoline's products, the steady sections' exhaust (turbine balance, wastegate, the
+   march after the turbine, the manifold's gas cp, every speed of sound of the acoustic tabs). With the page's gasoline
+   (pump or race, the default, and no lambda typed) it stays that, to the last digit. With another fuel (E10, E85,
+   ethanol, methanol) or a lambda typed, fuelSync puts that fuel's frozen products at the engine's lambda in its place
+   (the wave model's own burnedMoles and species table: the fuel's oxygen in the O balance, CO and H2 when rich by the
+   water-gas ratio 3.5), so all of those follow the one fuel. E85 at lambda 0.822 against E10 there: R 305.6 against
+   299.2 J/kg K, cp 1374 against 1332 J/kg K and gamma 1.2859 against 1.2898 at 1200 K (more water). */
+function fuelExhGas(F,lam){
+  const W=typeof WS!=='undefined'?WS:wsFactory(), S=W.gas.SPEC, n=W.gas.burnedMoles(lam,F).slice(0,7);
+  const N=n.reduce((a,b)=>a+b,0), M=n.reduce((a,b,i)=>a+b*S[i][0],0)/N/1000, mix=k=>[0,1,2,3,4].map(j=>n.reduce((a,b,i)=>a+b*S[i][k][j],0)/N);
+  return {R:8.314462618/M,M,lo:mix(1),hi:mix(2)};
+}
+function fuelExh(F,lam,T){ const G=fuelExhGas(F,lam), a=T<=1000?G.lo:G.hi, cpR=a[0]+T*(a[1]+T*(a[2]+T*(a[3]+T*a[4]))); return {R:G.R,gamma:cpR/(cpR-1),cp:cpR*G.R}; }
+// end fuelExh
+const EXH_GAS0={R:EXH_GAS.R,M:EXH_GAS.M,lo:EXH_GAS.lo,hi:EXH_GAS.hi};
+let EXH_FUEL=null;   // null: the stoichiometric gasoline (as before); else {sig, F, lam} of the fuel's products now in EXH_GAS
+function exhUse(G){ const s=G||EXH_GAS0; EXH_GAS.R=s.R; EXH_GAS.M=s.M; EXH_GAS.lo=s.lo; EXH_GAS.hi=s.hi; }
+// the exhaust's density: the fuel's products' R with a fuel picked, else rhoGas (air's R, as before)
+const rhoExh=(tC,p)=>EXH_FUEL?(p||P_ATM)/(EXH_GAS.R*(tC+273.15)):rhoGas(tC,p);
 const coneLen=(d1,d2,incl)=>Math.abs(d2-d1)/2/Math.tan(rad(incl/2)); // mm, incl = included angle
 const fin=(...v)=>v.every(x=>Number.isFinite(x));
 
@@ -10451,6 +10478,7 @@ function simSpec(p){
   const e={bore:B,stroke:S,rod:1.7*S,cr:p.cr,cd:0.7,nIn,dIn,liftIn:p.lin>0?p.lin/1000:0.26*dIn,nEx,dEx,liftEx:p.lex>0?p.lex/1000:0.28*dEx,
     cam:{ivo:Number.isFinite(p.ivo)?p.ivo:evc,ivc:Number.isFinite(p.ivc)?p.ivc:p.evo,evo:p.evo,evc},burn:{start:18,dur:55},afr:12.8,eta:0.72};   // eta: read only by the constant gas (spec.e.gas 'const'); the default gas's heat is the chemistry's (wsFactory "heat release")
   if(p.camAt==='050') e.cam.checkLift_mm=CAM_CHECK_050;
+  if(typeof fuelSpec==='function') fuelSpec(e);   // the Intake tab's fuel (part 11): nothing changes for the page's gasoline
   if(p.vcd>0) e.cd=p.vcd;               // valve flow coefficient (the dyno fit sets it; both simulations use it)
   // the head's measured flow (simFlowOf): each valve's effective area against lift from its flow-bench cfm (wsFactory
   // benchCdA, flowTab), for the wave simulation; a flow coefficient entered (or fitted) takes over, and the OpenWAM case
@@ -20414,7 +20442,7 @@ function simWorkerSrc(){
 const TSIM={status:'idle',key:'',msg:'',res:null,run:0,worker:null,inp:null};
 // (part 10) with the efficiency model, the work coefficient and the bearing friction typed on the Intake tab
 const tsimSig2=(Pt,Tc,eta,p4,afr,em)=>JSON.stringify([Pt,Tc,eta,p4,afr].map(v=>+(+v).toPrecision(9)).concat([em||'']));
-const tsimEmSig=()=>($('i-teffm')?$('i-teffm').value:'bsr')+'|'+(val('i-tmu')>0?val('i-tmu'):'')+'|'+(val('i-tfric')>0?val('i-tfric'):'');
+const tsimEmSig=()=>($('i-teffm')?$('i-teffm').value:'bsr')+'|'+(val('i-tmu')>0?val('i-tmu'):'')+'|'+(val('i-tfric')>0?val('i-tfric'):'')+(typeof fuelSig==='function'?fuelSig():'');
 let TSIM_LAST=null;   // the last finished run, for the manifold section and the checklist (when its inputs still match)
 function tsimPlan(q){
   const ind=$('i-ind')?$('i-ind').value:'na'; if(ind!=='turbo'&&ind!=='centri') return null;
@@ -20423,7 +20451,7 @@ function tsimPlan(q){
   if(!L||!L.R||L.R.err||!p) return {ind,err:'Fill in the Intake tab’s boost and its inlet and charge pipes first: the run takes its charge (pressure and temperature after the intercooler) from that route.'};
   if(!(p.boost>0)) return {ind,err:'Enter the boost on the Intake tab.'};
   const err0=simCheck(q); if(err0) return {ind,err:err0};
-  const R=L.R, src=[], afr=val('i-afr')>0?val('i-afr'):12, turbo=ind==='turbo';
+  const R=L.R, src=[], afr=fuelAfr(), turbo=ind==='turbo';
   // the cylinders of one manifold, in firing order, and their gaps (the Intake tab's engine), else the 4-Stroke tab's collector
   if(turbo&&!MFD_LAST&&typeof renderIntake==='function'){ try{ renderIntake(); }catch(e){} }
   const X=turbo?MFD_LAST:null, M=X&&X.LY?X.LY.mf[0]:null;
@@ -20435,7 +20463,10 @@ function tsimPlan(q){
   const e=Object.assign({},base.e,{afr}), intake=Object.assign({},base.intake), Pt=R.Pt, Tc=R.t3+273.15;
   if(intake.plenum){ intake.plenum=Object.assign({},intake.plenum); delete intake.plenum.filter; }
   src.push(['Charge at the throttle',tsFmt().pD(Pt-P_ATM)+' boost ('+tsFmt().pD(Pt)+' absolute), '+tsFmt().tD(R.t3),'Intake tab, the route: boost at the throttle, intercooler outlet temperature'+(R.merged||R.nt===1?'':' (one turbo’s)')]);
-  src.push(['Air-fuel ratio',afr+':1','Intake tab ('+(val('i-afr')>0?'typed':'blank: 12, the tab’s default')+')']);
+  { const FP=typeof fuelPage==='function'&&$('i-fuel')?fuelPage():null;
+    if(!FP||FP.legacy) src.push(['Air-fuel ratio',afr+':1','Intake tab ('+(val('i-afr')>0?'typed':'blank: 12, the tab’s default')+')']);
+    else src.push(['Fuel and mixture',FP.name+(FP.vol!=null?' ('+(100*FP.vol).toFixed(0)+' % ethanol by volume)':'')+', λ '+FP.lamB.toFixed(3)+' = A/F '+afr.toFixed(2)+':1 (stoichiometric '+FP.stoich.toFixed(2)+':1)','Intake tab, Fuel'+(FP.lamTyped?' and the λ typed':', the A/F field read as gasoline’s λ')]);
+    if(FP&&FP.evap!=null) src.push(['Fuel evaporation',FP.evap===0?'from the port walls: the charge is not cooled, the vapour’s energy credited':(100*FP.evap).toFixed(0)+' % of the latent heat from the charge at the intake valve','Intake tab, Fuel evaporation in the simulation']); }
   const portSeg=base.exhaust.segs.filter(sg=>sg.primary&&base.exhaust.segs.indexOf(sg)===0&&q.port>0);
   // the manifold
   let per=null, colSegs=null, scrolls=null, man='';
@@ -22659,10 +22690,74 @@ const OP_FUEL={
   pump:{name:'pump gasoline',afr:12,bsfc:0.55,band:[0.50,0.60],why:'Garrett’s own worked figures, the middle of its “0.50 to 0.60 and higher” for turbocharged gasoline engines'},
   race:{name:'race gasoline',afr:12,bsfc:0.50,band:[0.50,0.55],why:'Garrett’s low end: “Race fuels and aggressive tuning are required to reach the low end”'},
   e85:{name:'E85',afr:8,bsfc:0.75,band:[0.75,0.825],why:'the same air per hp as race gasoline (a kilogram of air releases nearly the same heat with either fuel, Heywood: 3.01 and 2.99 MJ; Garrett compares E85 to a 105-octane fuel), at A/F 8.0 (λ 0.82 of E85’s 9.8)'}};
+/* ----- the fuel of the engine (2026-11-14, docs/WAVE_VALIDATION_2026-11-11.md part 11) -----
+   One fuel for the build (Intake tab, Engine: Fuel), used by the wave simulation (its chemistry, its products, its vapour
+   in the charge and, when picked, its evaporation), the steady sections' exhaust gas (fuelSync: EXH_GAS, rhoExh), the
+   exhaust mass flow (air x (1 + 1/AFR)) and the boost relation's figures. Pump and race gasoline are the page's gasoline,
+   CH1.87, exactly as before (the A/F field as typed, 12 when blank; the 4-Stroke tab's runs at 12.8; the steady
+   exhaust the stoichiometric products). Every other fuel is a blend by volume (ethanol 0.794, gasoline 0.75 specific
+   gravity, DOE's Handbook for Handling, Storing, and Dispensing E85 and Other Ethanol-Gasoline Blends, DOE/GO-102016-4854,
+   2016, Table 2: ethanol 0.794, gasoline 0.72-0.78) converted to mass, burned at a relative air-fuel ratio lambda: the one
+   typed (Mixture at full power, lambda), else the A/F field read as the gasoline's lambda (12 / 14.596 = 0.822; 12.8 /
+   14.596 = 0.877 for the 4-Stroke tab's runs), so a typed 12 is never applied to E85 as an A/F (it becomes 8.06:1 there).
+   The ethanol in E85 is a field (85 % by volume by default): ASTM D5798 allows 51 to 83 % (DOE's handbook; AFDC, "E85
+   (or flex fuel) ... containing 51% to 83% ethanol, depending on geography and season"), so pump E85 varies; check yours.
+   Evaporation (Fuel evaporation in the simulation): not counted (default, as before: the fuel enters as vapour with the
+   liquid's energy); port injection (all of its latent heat from the port walls: US 8,468,983, "the vaporization of the
+   ethanol on the walls of the manifold has a negligible impact on the temperature of the charge"); direct injection 70 %
+   from the charge (Kasseris and Heywood, SAE 2012-01-1275: the measured charge cooling "around 70%" of the thermodynamic
+   maximum for all blends, 14 K for gasoline to 49 K for E85); or all from the charge (the upper limit). Knock is not
+   modelled: E85's larger gain on a dyno, the boost and spark timing its knock limit allows, is not predicted. */
+const FUEL_KEYS={pump:{name:'pump gasoline',legacy:true},race:{name:'race gasoline',legacy:true},e10:{name:'E10',vol:0.10},
+  e85:{name:'E85',vol:null},e100:{name:'ethanol (E100)',eth:1},m100:{name:'methanol (M100)',meth:1}};
+const SG_ETH=0.794, SG_GAS=0.75;
+function fuelPage(){
+  const k=$('i-fuel')&&FUEL_KEYS[$('i-fuel').value]?$('i-fuel').value:'pump', d=FUEL_KEYS[k];
+  const ve=val('i-eth'), vol=k==='e85'?(ve>0&&ve<=100?ve/100:0.85):d.vol!=null?d.vol:null;
+  const eth=vol!=null?vol*SG_ETH/(vol*SG_ETH+(1-vol)*SG_GAS):d.eth||0, meth=d.meth||0;
+  const ev=$('i-evap')?$('i-evap').value:'none', evap=ev==='port'?0:ev==='di'?0.7:ev==='all'?1:null;
+  const lamT=val('i-lam'), lamTyped=lamT>0.5&&lamT<2, afrT=val('i-afr')>0?val('i-afr'):12, legacy=!!d.legacy&&!lamTyped;
+  const blend=d.legacy?null:{eth,meth}, F=WS.gas.fuelOf(blend,evap), st=F.afrSt;
+  const lamB=lamTyped?lamT:afrT/WS.gas.AFR_ST, lamN=lamTyped?lamT:12.8/WS.gas.AFR_ST;
+  return {k,name:d.name,vol,eth,meth,blend,evap,ev,F,legacy,lamTyped,lamB,lamN,afrB:legacy?afrT:lamB*st,afrN:legacy?12.8:lamN*st,stoich:st};
+}
+// the A/F the engine burns under boost (the turbine balance, the exhaust flow, the simulation): the A/F field for the
+// page's gasoline (as before), else lambda x the fuel's stoichiometric ratio
+function fuelAfr(){ return typeof WS==='undefined'||!$('i-fuel')?(val('i-afr')>0?val('i-afr'):12):fuelPage().afrB; }
+// the simulation's fuel signature: '' for the page's gasoline with its evaporation not counted (runs before keep theirs)
+function fuelSig(){ if(!$('i-fuel')) return ''; const P=fuelPage(); return P.legacy&&P.evap==null?'':'|'+P.k+'|'+(P.vol!=null?P.vol:'')+'|'+P.lamB.toPrecision(9)+'|'+P.lamN.toPrecision(9)+'|'+P.ev; }
+// the wave spec's fuel: e.afr for the 4-Stroke tab's runs, the blend and the evaporation (nothing added for the gasoline as before)
+function fuelSpec(e){ if(!$('i-fuel')) return e; const P=fuelPage(); if(!P.legacy){ e.afr=P.afrN; e.blend=P.blend; } if(P.evap!=null) e.evap=P.evap; return e; }
+function fuelSync(){
+  if(typeof WS==='undefined'||!$('i-fuel')) return null;
+  const P=fuelPage(), ind=$('i-ind')?$('i-ind').value:'na', lam=ind==='turbo'||ind==='centri'?P.lamB:P.lamN;
+  if(P.legacy){ if(EXH_FUEL){ exhUse(null); EXH_FUEL=null; } }
+  else { const sig=JSON.stringify([P.F.y,P.F.z,lam]); if(!EXH_FUEL||EXH_FUEL.sig!==sig){ exhUse(fuelExhGas(P.F,lam)); EXH_FUEL={sig,F:P.F,lam}; } }
+  fuelNote(P,lam); return P;
+}
+function fuelNote(P,lam){
+  { const w=$('i-eth-wrap'); if(w) w.hidden=P.k!=='e85'; }
+  const o=$('i-fuel-out'); if(!o) return;
+  const g=WS.gas.fuelOf(null,null), h=WS.gas.heatRelease(lam,P.F), t=[];
+  if(P.legacy) t.push('The page’s gasoline (CH1.87, stoichiometric A/F '+g.afrSt.toFixed(2)+':1), as before: the A/F field is used as typed ('+fuelAfr().toFixed(2)+':1, λ '+(fuelAfr()/g.afrSt).toFixed(3)+').');
+  else t.push(P.name+(P.vol!=null?' ('+(100*P.vol).toFixed(0)+' % ethanol by volume, '+(100*P.eth).toFixed(1)+' % by mass)':'')+': CH'+P.F.y.toFixed(3)+(P.F.z>0?'O'+P.F.z.toFixed(3):'')+
+    ', stoichiometric A/F '+P.stoich.toFixed(2)+':1, lower heating value '+(WS.gas.heatRelease(1.25,WS.gas.fuelOf(P.blend,null)).perFuel/1e6).toFixed(2)+' MJ/kg ('+(WS.gas.heatRelease(1.25,WS.gas.fuelOf(P.blend,null)).perFuel/1e6*429.923).toFixed(0)+' BTU/lb), latent heat '+(P.F.L/1000).toFixed(0)+' kJ/kg ('+(P.F.L/1000*0.429923).toFixed(0)+' BTU/lb). '+
+    'Burned at λ '+P.lamB.toFixed(3)+' = A/F '+P.afrB.toFixed(2)+':1 under boost'+(P.lamTyped?' (λ typed)':' (the A/F field’s '+(val('i-afr')>0?val('i-afr'):12)+' read as gasoline’s λ)')+', λ '+P.lamN.toFixed(3)+' = '+P.afrN.toFixed(2)+':1 in the 4-Stroke tab’s runs; heat per kg of air there '+(h.perAir/1e6).toFixed(3)+' MJ.');
+  if(P.k==='e85') t.push('E85 at the pump is 51 to 83 % ethanol (ASTM D5798) and varies with the season: type yours.');
+  t.push(P.evap==null?'Evaporation not counted (the fuel enters as vapour; its latent heat neither cools the charge nor is credited).':P.evap===0?'Evaporation from the port walls (port injection: the charge is not cooled; the vapour’s energy is credited).':
+    'Evaporation: '+(100*P.evap).toFixed(0)+' % of the latent heat from the charge, up to '+(P.evap*P.F.L/(P.afrB)/1006.5).toFixed(0)+' K ('+(1.8*P.evap*P.F.L/(P.afrB)/1006.5).toFixed(0)+' °F) cooler at the valve under boost.');
+  t.push('Knock is not modelled: the boost and spark timing a fuel allows are not predicted.');
+  o.textContent=t.join(' '); o.hidden=false;
+}
+// the fuel's fields change the exhaust gas before anything else reacts to them (capture phase, ahead of every render)
+const FUEL_IDS=new Set(['i-fuel','i-eth','i-lam','i-evap','i-afr','i-ind']);
+function fuelEvt(ev){ const t=ev.target; if(t&&FUEL_IDS.has(t.id)) try{ fuelSync(); }catch(e){} }
+if(typeof document!=='undefined'){ document.addEventListener('input',fuelEvt,true); document.addEventListener('change',fuelEvt,true); }
 function opFig(p){
   const nv=$('f-valves')?+$('f-valves').value:NaN, afrT=val('i-afr')>0?val('i-afr'):12, bsT=val('i-bsfc')>0?val('i-bsfc'):0.55;
   if(!$('i-opfig')||$('i-opfig').value!=='src') return {fig:'typed',afr:afrT,bsfc:bsT,ve:p.ve,veSrc:'field',bsBand:[Math.min(bsT,0.50),Math.max(bsT,0.60)],nv,fuel:null};
-  const k=$('i-fuel')&&OP_FUEL[$('i-fuel').value]?$('i-fuel').value:'pump', f=OP_FUEL[k], veT=val('i-opve'), veG=nv>=4?0.97:nv>0&&nv<=2?0.915:NaN;
+  // the relation's figures by fuel: E10 takes pump gasoline's, ethanol and methanol E85's (Garrett gives none for them)
+  const k0=$('i-fuel')?$('i-fuel').value:'pump', k=OP_FUEL[k0]?k0:({e10:'pump',e100:'e85',m100:'e85'})[k0]||'pump', f=OP_FUEL[k], veT=val('i-opve'), veG=nv>=4?0.97:nv>0&&nv<=2?0.915:NaN;
   return {fig:'src',fuel:k,f,afr:f.afr,bsfc:f.bsfc,ve:veT>0?veT/100:Number.isFinite(veG)?veG:p.ve,veSrc:veT>0?'typed':Number.isFinite(veG)?'garrett':'field',bsBand:f.band.slice(),nv};
 }
 // the power target at the crank (Garrett's flywheel), from the figure typed at the crank or at the wheels
@@ -22673,7 +22768,7 @@ const opCrank=hp=>opAtWheel()?hp/(1-opLoss()):hp;
 // turbine efficiency, back pressure, A/F, efficiency model)
 function opSimCur(R){
   if(typeof TSIM_LAST==='undefined'||!TSIM_LAST||!TSIM_LAST.sum||!(TSIM_LAST.sum.hp>0)||!R) return null;
-  const now=tsimSig2(R.Pt,R.t3+273.15,val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75,tsimP4(),val('i-afr')>0?val('i-afr'):12,tsimEmSig());
+  const now=tsimSig2(R.Pt,R.t3+273.15,val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75,tsimP4(),fuelAfr(),tsimEmSig());
   return now===TSIM_LAST.plan.sig2?TSIM_LAST:null; }
 // the bias the page states for the simulation's power (docs/WAVE_VALIDATION_2026-11-11.md, parts 3 and 8: brake torque
 // 4 to 16 % above three published ratings without boost): its figure divided by 1.04 to 1.16
@@ -22737,7 +22832,7 @@ function opUi(ind){
   if(boosted&&OP.mode==='hp') bw.hidden=true;
   if(hw) hw.hidden=boosted&&chosen==='boost'&&OP.mode==='boost';
   const sh=(id,on)=>{ const e=$(id); if(e) e.hidden=!on; };
-  sh('i-fuel-wrap',rel&&src); sh('i-opfig-wrap',rel); sh('i-opve-wrap',rel&&src); sh('i-hpat-wrap',boosted); sh('i-dtl-wrap',boosted&&opAtWheel());
+  sh('i-fuel-wrap',true); try{ fuelSync(); }catch(e){} sh('i-opfig-wrap',rel); sh('i-opve-wrap',rel&&src); sh('i-hpat-wrap',boosted); sh('i-dtl-wrap',boosted&&opAtWheel());
   // the preset trap: ask for the target inline (no dialog: the host ignores alert, confirm and prompt)
   const st=$('i-hpstock'), stock=boosted&&OP.stock&&OP.mode==='boost';
   if(st){ st.hidden=!stock; if(stock){ const F=tsFmt(), S=OP.sug;
@@ -24578,7 +24673,7 @@ const arDivMsg=(h,mani)=>h.divided===true&&mani!=='div'?'a divided (twin-scroll)
   h.divided==null&&mani==='div'?'the page does not say whether these housings are divided; check before using a divided manifold':'';
 // the housing list for the picked turbo, with the build's numbers (Turbo options; 2026-11-12)
 function arSection(T,R,p,route){
-  const imp=U==='imp', afr=val('i-afr')>0?val('i-afr'):12, tit=Number.isFinite(val('i-tit'))?val('i-tit'):950;
+  const imp=U==='imp', afr=fuelAfr(), tit=Number.isFinite(val('i-tit'))?val('i-tit'):950;
   const etaGiven=val('i-teff')>0&&val('i-teff')<100, eta=etaGiven?val('i-teff')/100:0.75, bst=(p.boost||0)*1000, k=tsTipK(), p4=tsP4(), p3=P_ATM+k*bst;
   const pD=x=>imp?(x/6894.757).toFixed(2)+' psi ('+(x/1000).toFixed(1)+' kPa)':(x/1000).toFixed(1)+' kPa ('+(x/6894.757).toFixed(2)+' psi)';
   const fl=kgs=>imp?(kgs*LBMIN).toFixed(1)+' lb/min ('+kgs.toFixed(3)+' kg/s)':kgs.toFixed(3)+' kg/s ('+(kgs*LBMIN).toFixed(1)+' lb/min)';
@@ -24766,7 +24861,7 @@ function tsPlaceSection(ind,p,r){
   // the cold and hot sides' bend arcs (as chargeSide takes them off the straights)
   const arcOf=(angs,D)=>{ const rmm=q.rb>0?q.rb:1.5*D; return (angs.length?angs.reduce((s,a)=>s+a,0):90*q.bends/2)*Math.PI/180*rmm; };
   let wgIn=null;
-  if(ind==='turbo'){ const afr=val('i-afr')>0?val('i-afr'):12, tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, eta=val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75, bst=(p.boost||0)*1000;
+  if(ind==='turbo'){ const afr=fuelAfr(), tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, eta=val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75, bst=(p.boost||0)*1000;
     // the pressure before the turbine the gate is sized at (C6): measured when typed; else the safe side across the range
     // (i-wgbasis 'range', the default) or the one figure the turbine balance assumes ('single', as before)
     if(bst>0){ const kT=tsTipK(), p4=tsP4(), basis=tsTipMeasured()?'measured':$('i-wgbasis')&&$('i-wgbasis').value==='single'?'single':'range';
@@ -24953,7 +25048,7 @@ function xTail(dpL){
 }
 // what the tabs say, gathered for exhAfterTurbine, with what is missing named
 function xGather(p,R){
-  const miss=[], notes=[], nt=R.nt, afr=val('i-afr')>0?val('i-afr'):12, tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, bst=(p.boost||0)*1000;
+  const miss=[], notes=[], nt=R.nt, afr=fuelAfr(), tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, bst=(p.boost||0)*1000;
   const tb=turbineBalance({ma:R.m,afr,t1:p.tin,t2:R.t2,tit,p3:P_ATM+tsTipK()*bst,p4:tsP4(),eta:0.75});   // t4, me and Wc do not depend on p3, p4 or eta
   const w=val('i-dpw')>0?val('i-dpw'):1.651, H=tsHsg(), hp=tsHp(), hpT=hp>0?hp/nt:NaN, typedOut=val('i-tod')>0;
   let dOut=null, outWhy='';
@@ -24987,8 +25082,8 @@ function exhAfterTurbine(o){
   //    xb bends after it, cat {g,count,series} | null, muf {d,items,holes,nHole} | null, tail {secs [{d,L}], dExit} | null
   const Tp=o.Tp||{}, tOf=(k,i)=>{ const t=k==='tail'?(Tp.tail||[])[i]:Tp[k]; return Number.isFinite(t)?t:o.t4; };
   const mAll=o.me*o.nt, mP=mAll/Math.max(1,o.xn||1), rows=[]; let P=P_ATM;
-  const vOf=(m,d,T)=>m/(rhoGas(T,P)*Math.PI*(d/2000)**2);
-  const head=(M,v,T,items)=>o.H2?mufBackPressureH(rhoGas(T,P)*v*v/2,items):mufBackPressure(M,P,items);
+  const vOf=(m,d,T)=>m/(rhoExh(T,P)*Math.PI*(d/2000)**2);
+  const head=(M,v,T,items)=>o.H2?mufBackPressureH(rhoExh(T,P)*v*v/2,items):mufBackPressure(M,P,items);
   if(o.tail){ const T=tOf('tip'), c=sosExh(T), v=vOf(mP,o.tail.dExit,T), M=v/c, b=head(M,v,T,[{kind:'tail',what:'free jet at the tip'}]);
     rows.push({k:'tip',d:o.tail.dExit,v,M,dp:b.total,H:b.H,p:P,T}); P+=b.total;
     const s=o.tail.secs, iB=s.length?s.reduce((j,x,i)=>x.L>s[j].L?i:j,0):-1;
@@ -24996,14 +25091,14 @@ function exhAfterTurbine(o){
       rows.push({k:'tail',d:s[i].d,L:s[i].L,n90:nb,v:S.v,M:S.v/sosExh(T),f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB,p:P,T}); P+=S.dp+S.dpB; } }
   if(o.muf){ const T=tOf('muf'), v=vOf(mP,o.muf.d,T), M=v/sosExh(T), a=head(M,v,T,o.muf.items), hb=o.muf.holes&&o.muf.holes.length?head(M*o.muf.nHole,v*o.muf.nHole,T,o.muf.holes).total:0;
     rows.push({k:'muf',d:o.muf.d,v,M,H:a.H,dp:a.total+hb,parts:a.rows,p:P,T}); P+=a.total+hb; }
-  if(o.cat){ const T=tOf('cat'), Q=mAll/o.cat.count/rhoGas(T,P), C=catDp(Q,Object.assign({},o.cat.g,{tC:T,p:P})), dp=C.dp*o.cat.series;
+  if(o.cat){ const T=tOf('cat'), Q=mAll/o.cat.count/rhoExh(T,P), C=catDp(Q,Object.assign({},o.cat.g,{tC:T,p:P})), dp=C.dp*o.cat.series;
     rows.push({k:'cat',v:C.vp,M:C.vp/sosExh(T),dp,C,p:P,T}); P+=dp; }
   const T=tOf('dp'), pDp=P, S=chargeSide({m:o.me,d:o.d,L:o.L,tC:T,pAbs:P,angs:[],n90:o.n90||0,rb:0});
   rows.push({k:'dp',d:o.d,L:o.L,n90:o.n90||0,v:S.v,M:S.v/sosExh(T),f:S.f,Re:S.Re,dpF:S.dp,dpB:S.dpB,dp:S.dp+S.dpB,p:P,T}); P+=S.dp+S.dpB;
   const Tc=tOf('cone'), cone=o.dOut>0?tsStep({dUp:o.dOut,dDn:o.d,m:o.me,tC:Tc,pAbs:P,step:false}):null;
   if(cone){ rows.push({k:'cone',d:o.dOut,v:cone.v,M:cone.v/sosExh(Tc),dp:cone.dp,cone,p:P,T:Tc}); P+=cone.dp; }
   rows.forEach(x=>{ x.flag=x.M>0.3||x.dp>0.1*x.p; });
-  return {rows:rows.reverse(),p4:P,bp:P-P_ATM,pDp,cone,rho4:rhoGas(o.t4,P),c:sosExh(o.t4)};
+  return {rows:rows.reverse(),p4:P,bp:P-P_ATM,pDp,cone,rho4:rhoExh(o.t4,P),c:sosExh(o.t4)};
 }
 /* ----- Exhaust after the turbine, part 2 (2026-11-12): the gas cooling along the pipe, compressible flow, the steps between
    sizes, one muffler model. exhMarch replaces exhAfterTurbine's sum on the page; exhAfterTurbine stays as the reference.
@@ -25605,7 +25700,7 @@ function mfdFlange(H){
 }
 function mfdInputs(p){
   const L=TS_LAST; if(!L||!L.R) return null;
-  const R=L.R, afr=val('i-afr')>0?val('i-afr'):12, tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, bst=(p.boost||0)*1000, k=tsTipK();
+  const R=L.R, afr=fuelAfr(), tit=Number.isFinite(val('i-tit'))?val('i-tit'):950, bst=(p.boost||0)*1000, k=tsTipK();
   const e=engineFrom('i'); if(e.custom&&!(e.order&&e.order.length)){ const n=Math.round(val('i-cyl')); e.order=[...Array(Math.max(0,n)).keys()].map(i=>i+1); }
   const cands=mfdCands(), run=MFD_UI.run?cands.find(c=>c.key===MFD_UI.run)||null:null, H=tsHsg(), FL=mfdFlange(H);
   const fin=$('i-mfin')?$('i-mfin').value:'ox';
@@ -25851,7 +25946,7 @@ function tgSteps(ind,p){
       if(X.X.choke) probs.push('the exhaust chokes ('+(X.X.choke.k==='tip'?'at the tip':X.X.choke.k==='tail'?'in the pipe after the downpipe':X.X.choke.k==='dp'?'in the downpipe':'at the '+X.X.choke.k)+'): a pipe or part is too small for this flow');
       add('exh','Exhaust side: downpipe and back pressure',probs.length?'warn':G2.miss.length||!used?'todo':'ok','downpipe '+cdim(G2.d+2*G2.w)+' OD, '+(X.X.choke?'no back pressure (chokes)':'back pressure '+F.pD(X.X.bp)+' at peak, static at the turbine outlet, the gas cooled along the pipe'+(G2.cool?'':' (cooling off)')+', compressible flow')+(G2.miss.length?' ('+G2.miss.length+' part'+(G2.miss.length>1?'s':'')+' not counted)':'')+'; '+(used?'used in the turbine balance'+(bpU.k==='auto'?' (worked out)':' (typed)'):X.X.choke?'nothing to put in the turbine balance':bpU.k==='typed'?'the turbine balance uses the typed '+F.pD(bpU.bp):'not in the turbine balance (set to none)')+(probs.length?'; '+probs.join('; '):''),'exhaust-after-the-turbine'); } }
   // the wave simulation under boost (4-Stroke tab), when a run exists
-  if(TSIM_LAST){ const T=TSIM_LAST, S=T.sum, o=S.rows[S.ip], F2=tsFmt(), now=TS_LAST&&TS_LAST.R?tsimSig2(TS_LAST.R.Pt,TS_LAST.R.t3+273.15,val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75,tsimP4(),val('i-afr')>0?val('i-afr'):12,tsimEmSig()):'';
+  if(TSIM_LAST){ const T=TSIM_LAST, S=T.sum, o=S.rows[S.ip], F2=tsFmt(), now=TS_LAST&&TS_LAST.R?tsimSig2(TS_LAST.R.Pt,TS_LAST.R.t3+273.15,val('i-teff')>0&&val('i-teff')<100?val('i-teff')/100:0.75,tsimP4(),fuelAfr(),tsimEmSig()):'';
     if(o) add('sim','Simulated under boost',now===T.plan.sig2?'ok':'info',F2.hp(S.hp)+' at '+o.rpm.toLocaleString('en-US')+' RPM (brake, pumping counted)'+(T.plan.turbo&&Number.isFinite(o.p3k)?'; pressure before the turbine '+o.p3k.toFixed(2)+' × boost (mean), '+o.p3pkk.toFixed(2)+' × at the blowdown peak; wastegate '+(100*o.share).toFixed(0)+'% of the exhaust'+(Number.isFinite(o.etaEff)&&T.plan.bsrOn?'; turbine efficiency through the pulses '+(100*o.etaEff).toFixed(0)+'% (peak '+Math.round(100*S.etaRun)+'%)':'')+'; '+tsimGateTxt(S.rows).replace(/ \(a real valve.*$/,'').replace(/^The most/,'wastegate: the most').replace(/^The gate/,'the gate')+(S.mode==='predict'?'; turbine sized from the housing ('+(o.At*1e6).toFixed(0)+' mm²), full boost predicted '+(S.fullBoost?(S.fullBoost.at==='first'?'at or below '+S.fullBoost.rpm.toLocaleString('en-US'):'about '+(Math.round(S.fullBoost.rpm/50)*50).toLocaleString('en-US'))+' RPM':'not by the redline'):'; turbine size found from the full-boost RPM typed (no housing flow)'):'')+(now===T.plan.sig2?'':'; the boost inputs changed since the run: run it again on the 4-Stroke tab'),''); }
   add('scan','Route it from a scan','info','Fusion add-in, Charge piping from your scan: it routes the charge pipes around the scanned engine bay with these sizes'+(FUSION?'; Fusion is connected':'; it needs Fusion with the add-in (this page cannot read a scan)'),$('cr-block')?'#cr-block':'');
   add('sheet','Build sheet','info','the route drawing, every part and size, the key numbers and the assumptions, in inches and mm, as one file to save and print','');
@@ -26913,6 +27008,11 @@ function projApply(d){
   // and one saved before the figures for the relation (2026-11-14, boost for power) loads with Garrett's figures as typed
   // (the A/F, BSFC and VE fields) and the target at the crank, as it was worked out then
   if(!('i-opfig' in d.vals)) d=Object.assign({},d,{vals:Object.assign({},d.vals,{'i-opfig':{v:'typed'},'i-hpat':{v:'crank'}}),legacyFig:true});
+  // and one saved before the fuel was the engine's (2026-11-14, part 11): the page's gasoline, its evaporation not counted,
+  // no lambda typed, so it computes as it did (whatever fuel the page had picked before the load)
+  { const add={}; if(!('i-fuel' in d.vals)) add['i-fuel']={v:'pump'}; if(!('i-evap' in d.vals)) add['i-evap']={v:'none'};
+    if(!('i-lam' in d.vals)) add['i-lam']={b:null}; if(!('i-eth' in d.vals)) add['i-eth']={b:null};
+    if(Object.keys(add).length) d=Object.assign({},d,{vals:Object.assign({},d.vals,add),legacyFuel:true}); }
   if(d.units==='imp'||d.units==='met') setUnits(d.units);
   if(d.mode==='simple'||d.mode==='expert') setMode(d.mode,false);
   const fire=(el,t)=>el.dispatchEvent(new Event(t,{bubbles:true}));
@@ -26929,6 +27029,7 @@ function projApply(d){
   for(let pass=0;pass<4;pass++){ let moved=false; sels.forEach(el=>{ if(setSel(el)) moved=true; }); inps.forEach(el=>{ if(setInp(el)) moved=true; }); if(!moved) break; }
   // the exact base values (a field's input event reads back its rounded display)
   inps.forEach(el=>{ const s=d.vals[el.id]; if(el.dataset.kind&&s){ el._b=s.b===null?NaN:+s.b; if(Number.isFinite(el._b)) showInput(el); else el.value=''; } });
+  try{ fuelSync(); }catch(e){}
   const ui=d.ui||{};
   for(const k in PROJ_UI){ const [o]=PROJ_UI[k], v=ui[k]; if(!v) continue;
     for(const kk in v){ if(o[kk]&&typeof o[kk]==='object'&&!Array.isArray(o[kk])&&v[kk]&&typeof v[kk]==='object'&&!Array.isArray(v[kk])) Object.assign(o[kk],v[kk]); else o[kk]=v[kk]; } }
