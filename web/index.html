@@ -1294,6 +1294,18 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="i-lam" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="3" data-min="0.6" data-max="1.2"><em>λ</em></span></label>
         <label class="f adv" id="i-evap-wrap"><span class="lab">Fuel evaporation in the simulation</span>
           <span class="inp"><select id="i-evap"><option value="none" selected>Not counted (as before)</option><option value="port">Port injection: from the port walls</option><option value="di">Direct injection: 70% from the charge</option><option value="all">All from the charge (the upper limit)</option></select></span></label>
+        <label class="f adv" id="i-kon-wrap"><span class="lab">Knock check in the simulation (an estimate)</span>
+          <span class="inp"><select id="i-kon"><option value="on" selected>On: the knock integral, the timing it needs, the knock-limited boost</option><option value="off">Off</option></select></span></label>
+        <label class="f adv" id="i-kaki-wrap"><span class="lab">Pump gasoline octane at the pump, (R+M)/2 (blank: 91)</span>
+          <span class="inp"><input id="i-kaki" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="91" data-min="85" data-max="100"><em>AKI</em></span></label>
+        <label class="f adv" id="i-kron-wrap"><span class="lab">Knock check: the picked fuel’s research octane, RON (blank: the listed figure)</span>
+          <span class="inp"><input id="i-kron" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-min="80" data-max="130"><em>RON</em></span></label>
+        <label class="f adv" id="i-kmon-wrap"><span class="lab">Knock check: its motor octane, MON (blank: the listed figure)</span>
+          <span class="inp"><input id="i-kmon" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-min="70" data-max="120"><em>MON</em></span></label>
+        <label class="f adv" id="i-kk-wrap"><span class="lab">Knock check: octane index K, ON = RON − K × (RON − MON) (blank: 0, the RON)</span>
+          <span class="inp"><input id="i-kk" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="2" data-base="0" data-min="-3" data-max="1"><em>K</em></span></label>
+        <label class="f adv" id="i-kxe-wrap"><span class="lab">Knock check: the integral ends where this much has burned (blank: 90%)</span>
+          <span class="inp"><input id="i-kxe" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="90" data-min="50" data-max="99"><em>%</em></span></label>
         <p class="cap" id="i-fuel-out" style="grid-column:1/-1;margin:0" hidden></p>
         <label class="f" id="i-hpat-wrap" hidden><span class="lab">Power target measured at</span>
           <span class="inp"><select id="i-hpat"><option value="crank" selected>Crank (flywheel)</option><option value="wheel">Wheels (chassis dyno)</option></select></span></label>
@@ -20253,7 +20265,7 @@ const WAVE_WASM_B64='AGFzbQEAAAABgwMxYAF/AGACf38AYAJ/fwF/YAN/f38Bf2ACfHwBfGABfAF
    temperature by isentropic compression of the charge trapped at IVC along the cylinder pressure, with that mixture's own
    cp(T) and R from the engine's gas (McKenzie and Cheng, SAE 2016-01-0699: "the isentropic compression of the end gas" from
    the cycle simulation's IVC temperature); the Livengood-Wu integral of dt / tau from IVC to the crank angle where the
-   Wiebe burn reaches xEnd (0.9 unless set: Chun and Heywood's measured "about 10%" unburned at knock, SAE 902134), with
+   Wiebe burn reaches xEnd (0.9 unless set: Haghgooie, SAE 902134: "The mass fraction of unburned fuel at the time of knock was about 10%"), with
    Douaud and Eyzat's tau (SAE 780080) as ANSYS Fluent's theory guide 12.2-2 gives it: 0.01768 s (ON/100)^3.402 (p/atm)^-1.7
    exp(3800 K / T). Knock is predicted where the integral reaches 1 before xEnd. An estimate: the correlation's octane
    number had to be fitted to each engine and fuel in the published work (Kasseris and Heywood, SAE 2012-01-1284). */
@@ -20307,6 +20319,7 @@ function knockLib(WS){
 }
 function turboSimLib(WS,X){
   const KEYS=['ve','imep','pmax','resid','pEvo','tEx','overlapPort','gimep'];
+  const KN=typeof knockLib==='function'?knockLib(WS):null;   // the knock estimate (part 12)
   // the flat summary (the Rust turb_sum's order) -> named
   const parse=v=>{ if(!v||!v.length) return null; const nE=v[15], o={t:v[0],W:v[1],Wis:v[2],mt:v[3],mg:v[4],mAir:v[5],p3:v[6],p3pk:v[7],p3s:v[8],p4:v[9],T3:v[10],T4:v[11],rev:v[12],mAtm:v[13],eAtm:v[14],nE,p3bins:[],mdBins:null};
     for(let q=0;q<nE;q++) o.p3bins.push(Array.from(v.slice(16+720*q,16+720*(q+1)))); o.mdBins=Array.from(v.slice(16+720*nE,16+720*(nE+1))); o.bsrE=v.length>16+720*(nE+1)?v[16+720*(nE+1)]:0; return o; };
@@ -20455,7 +20468,7 @@ function turboSimLib(WS,X){
     B.drop();
     return {At:o.At,Ag,eta,res:r,it,ok,over,big,spec:withEta(eta)};
   }
-  return {parse,flat,jsBackend,rustBackend:X?rustBackend:null,closure,sweep,calibrate,predict,calibrateA,secant,WS};
+  return {parse,flat,jsBackend,rustBackend:X?rustBackend:null,closure,sweep,calibrate,predict,calibrateA,secant,WS,KN};
 }
 // the worker's Rust path: one design at a time, the same steps as WS.sweep; null when this browser cannot run it
 function simWaveRust(B64){
@@ -20510,6 +20523,27 @@ const TSIM={status:'idle',key:'',msg:'',res:null,run:0,worker:null,inp:null};
 const tsimSig2=(Pt,Tc,eta,p4,afr,em)=>JSON.stringify([Pt,Tc,eta,p4,afr].map(v=>+(+v).toPrecision(9)).concat([em||'']));
 const tsimEmSig=()=>($('i-teffm')?$('i-teffm').value:'bsr')+'|'+(val('i-tmu')>0?val('i-tmu'):'')+'|'+(val('i-tfric')>0?val('i-tfric'):'')+(typeof fuelSig==='function'?fuelSig():'');
 let TSIM_LAST=null;   // the last finished run, for the manifold section and the checklist (when its inputs still match)
+/* the knock estimate's fuels (part 12): octane numbers by fuel, each with its source; the pump field's AKI read as
+   RON = AKI + 4, MON = AKI - 4 (the sensitivity 8 of ORNL/TM-2016/42's 93 AKI / 97 RON test fuel) */
+const KN_FUELS={pump:{name:'pump gasoline',aki:true},e10:{name:'E10 pump gasoline',aki:true},
+  race:{name:'race gasoline',ron:105,mon:97,src:'Rockett Brand 100 (RON 105, MON 97, as quoted by Street Muscle, “The Octane Game”); race fuels vary: type yours'},
+  e85:{name:'E85',ron:104,mon:94,src:'Sunoco E85-R: RON 104, MON 94, (R+M)/2 99, the maker’s estimates'},
+  e100:{name:'ethanol',ron:109,mon:90,src:'RON 109 (ORNL/TM-2016/42), MON 90 (Chupka et al., NREL, SAE Int. J. Fuels Lubr. 8(2), 2015)'},
+  m100:{name:'methanol',ron:null,mon:null,src:'no octane number read for methanol: type one'}};
+function knFuel(k,aki,ron,mon){ const d=KN_FUELS[k]||KN_FUELS.pump, a=aki>0?aki:91;
+  const R0=d.aki?a+4:d.ron, M0=d.aki?a-4:d.mon;
+  return {k,name:d.aki?d.name+', '+a+' AKI':d.name,ron:ron>0?ron:R0,mon:mon>0?mon:M0,typed:ron>0,src:d.aki?a+' AKI ((R+M)/2) read as RON '+(a+4)+', MON '+(a-4)+' (ORNL/TM-2016/42’s 93 AKI pump fuel had RON 97: sensitivity 8 assumed)':d.src}; }
+function knockPlan(R,p,t1,t2,Pt){
+  if(($('i-kon')?$('i-kon').value:'on')==='off') return null;
+  const FP=typeof fuelPage==='function'&&$('i-fuel')?fuelPage():{k:'pump'}, k=FP.k, aki=val('i-kaki')>0?val('i-kaki'):91;
+  const Kk=$('i-kk')&&String($('i-kk').value).trim()!==''&&Number.isFinite(val('i-kk'))?val('i-kk'):0, xe=val('i-kxe')>0&&val('i-kxe')<100?val('i-kxe')/100:0.9;
+  const sel=knFuel(k,aki,val('i-kron'),val('i-kmon')), oi=f=>f.ron>0?f.ron-Kk*(f.ron-(f.mon>0?f.mon:f.ron)):null;
+  const pump=k==='pump'||k==='e10'?sel:knFuel('pump',aki), e85=k==='e85'?sel:knFuel('e85',aki);
+  const fuels=[pump,e85].map(f=>({k:f.k,name:f.name,ON:oi(f),ron:f.ron,mon:f.mon,src:f.src})).filter(f=>f.ON>0);
+  const tamb=p.tamb!=null?p.tamb:t1, eps=t2>tamb?(t2-R.t3)/(t2-tamb):0;
+  return {ON:oi(sel),sel:{k,name:sel.name,ron:sel.ron,mon:sel.mon,src:sel.src,typed:sel.typed},K:Kk,xEnd:xe,aki,fuels,Pt,
+    comp:R.PRc>1?{t1,t2,t3:R.t3,PR:R.PRc,eps,tamb}:null};
+}
 function tsimPlan(q){
   const ind=$('i-ind')?$('i-ind').value:'na'; if(ind!=='turbo'&&ind!=='centri') return null;
   if(!TS_LAST&&typeof renderIntake==='function'){ try{ renderIntake(); }catch(e){} }
@@ -20619,20 +20653,26 @@ function tsimPlan(q){
   if(comp&&bsrOn) Object.assign(comp,{mu,Dc:TT.cExd,Dt:TT.tInd});
   if(comp&&fric>0) Object.assign(comp,{fric,dhFb:wcPer});
   const keyObj={spec,rpms,na,wcPer,At:Aty,Ag:Agy,cyl,p3m,Acap:predict?Acap:null,fric};
-  return {ind,turbo,spec,na,sc,rpms,rpmsFb,src,A0,Aty,Agy,eta,p3m,p3rpm:lo,lo,wgAtm,p4,Pt,Tc,R,p,afr,k,share,cyl,nSim:n,wcPer,t1,t2,me,cap,Acap:predict?Acap:null,predict,comp,fric,bsrOn,form,mu,shaft:sh,wheels,em,key:JSON.stringify(keyObj),dx:n>1?0.0125:0.01,
+  // the knock estimate's inputs (part 12): the fuels' octane numbers, the burn end, the charge's compressor and intercooler
+  const knock=knockPlan(R,p,t1,t2,Pt);
+  return {knock,kKey:JSON.stringify(knock),ind,turbo,spec,na,sc,rpms,rpmsFb,src,A0,Aty,Agy,eta,p3m,p3rpm:lo,lo,wgAtm,p4,Pt,Tc,R,p,afr,k,share,cyl,nSim:n,wcPer,t1,t2,me,cap,Acap:predict?Acap:null,predict,comp,fric,bsrOn,form,mu,shaft:sh,wheels,em,key:JSON.stringify(keyObj),dx:n>1?0.0125:0.01,
     mfdSig:X?tsimMfdSig(X):'',sig2:tsimSig2(Pt,Tc,eta,p4,afr,tsimEmSig())};
 }
 // the worker: the wave model, the WebAssembly when it loads, the closure; posts each speed as it finishes
 function tsimWorkerSrc(){
   return 'const WS=('+wsFactory.toString()+')();\n'+
     'var X=null; try{ var s=atob('+JSON.stringify(WAVE_WASM_B64)+'), b=new Uint8Array(s.length); for(var i=0;i<s.length;i++) b[i]=s.charCodeAt(i); X=new WebAssembly.Instance(new WebAssembly.Module(b),{m:{pow:Math.pow,sin:Math.sin,cos:Math.cos,exp:Math.exp}}).exports; }catch(e){ X=null; }\n'+
+    knockLib.toString()+'\n'+
     'const TL=('+turboSimLib.toString()+')(WS,X);\n'+
     'self.onmessage=function(ev){ var j=ev.data; try{ self.postMessage({type:"start",rust:!!TL.rustBackend}); var out=tsimRun(TL,j,function(m){ self.postMessage(m); }); self.postMessage({type:"done",out:out}); }catch(e){ self.postMessage({type:"error",msg:String(e&&e.message||e)}); } };\n'+
     'const tsimRun='+tsimRun.toString()+';';
 }
 // one run: the turbo (the closure, or the supercharged sweep), then the same pipes without boost
 function tsimRun(TL,j,post){
-  const mkB=s=>TL.rustBackend?TL.rustBackend(s,j.dx):TL.jsBackend(s,j.dx);
+  // j.knock (part 12): the boosted runs keep cylinder 1's trace for the knock estimate (it changes no result)
+  const KN=j.knock&&j.knock.ON>0&&TL.KN?TL.KN:null, mkB0=s=>TL.rustBackend?TL.rustBackend(s,j.dx):TL.jsBackend(s,j.dx);
+  const mkB=s=>{ const b=mkB0(s); if(KN&&b.trace) b.trace(true); return b; };
+  let kSpec=j.spec;
   const nR=j.rpms.length, nT=(j.sc?3:2)*nR, wc=j.fric>0?m=>m*j.wcPer+j.fric:m=>m*j.wcPer, eta0=j.turbo&&j.spec.exhaust.turbine?j.spec.exhaust.turbine.eta:NaN;
   const withEta=(s,e)=>Object.assign({},s,{exhaust:Object.assign({},s.exhaust,{turbine:Object.assign({},s.exhaust.turbine,{eta:e})})});
   const out={rows:[],na:[]}; let B=null;
@@ -20652,7 +20692,7 @@ function tsimRun(TL,j,post){
     if(j.p3m>0){ post({type:'progress',i:0,n:nT,label:'Calibrating the turbine’s efficiency to the measured pressure before it at '+j.p3rpm+' RPM'});
       const C=TL.calibrateA(mkB,sp,{rpm:j.p3rpm,p3:j.p3m,wc,At:j.Acap,eta:eta0});
       out.calib={At:j.Acap,Ag:C.Ag,eta:C.eta,ok:C.ok,over:C.over,big:C.big,it:C.it,p3s:C.res.turb.p3s,p3:C.res.turb.p3,target:j.p3m,rpm:j.p3rpm,mode:'area'};
-      if(!C.big) sp=C.spec; else { out.areaBig={At:j.Acap,p3s:C.res.turb.p3s,target:j.p3m,rpm:j.p3rpm}; delete out.calib; } }
+      if(!C.big){ sp=C.spec; kSpec=sp; } else { out.areaBig={At:j.Acap,p3s:C.res.turb.p3s,target:j.p3m,rpm:j.p3rpm}; delete out.calib; } }
     if(!out.areaBig){
       const Pr=TL.predict(mkB,sp,{rpms:j.rpms,At:j.Acap,wc,boostAt:s=>boostAt(sp,s),onStep:(i,r)=>post({type:'progress',i,n:nT,label:'Speed '+(i+1)+' of '+nR+' with the turbine of your housing'})});
       out.mode='predict'; out.fullBoost=Pr.fullBoost; out.rows=Pr.rows.map(r=>Object.assign(r,{Pt:r.s<1?boostAt(sp,r.s).Pt:j.comp.Pt}));
@@ -20668,13 +20708,16 @@ function tsimRun(TL,j,post){
     // a measured pressure before the turbine (Intake tab), no typed area: the calibration (turboSimLib.calibrate) gives
     // the area and the efficiency at the full-boost RPM; the closure then holds both and finds the gate above it
     if(j.turbo&&j.p3m>0&&!(j.At>0)){ post({type:'progress',i:0,n:nT,label:'Calibrating the turbine to the measured pressure before it at '+j.rpms[0]+' RPM'});
-      const C=TL.calibrate(mkB,j.spec,{rpm:j.rpms[0],p3:j.p3m,wc,A0:j.A0,eta:eta0}); B=C.B;
+      const C=TL.calibrate(mkB,j.spec,{rpm:j.rpms[0],p3:j.p3m,wc,A0:j.A0,eta:eta0}); B=C.B; kSpec=withEta(j.spec,C.eta);
       out.calib={At:C.At,eta:C.eta,ok:C.ok,over:C.over,it:C.it,p3s:C.res.turb.p3s,p3:C.res.turb.p3,target:j.p3m}; }
     else B=mkB(j.spec);
     out.Vd=B.Vd;
     if(j.turbo) out.rows=TL.closure(B,{rpms:j.rpms,wc,A0:j.A0,At:out.calib?out.calib.At:j.At,Ag:j.Ag,onStep:(i,r)=>post({type:'progress',i,n:nT})});
     else out.rows=TL.sweep(B,j.rpms,{},(i,r)=>post({type:'progress',i,n:2*j.rpms.length})).map(r=>({rpm:r.rpm,res:Object.assign(r,{Wc:r.turb?r.turb.mAir*j.wcPer:NaN})}));
   } finally { if(B) B.drop(); }
+  // the knock estimate (part 12) on the boosted speeds' traces, before anything else runs
+  if(KN&&out.rows.length){ post({type:'progress',i:nT-1,n:nT,label:'Knock check (estimate)'}); try{ out.knock=tsimKnock(); }catch(e){ out.knock={err:String(e&&e.message||e)}; } }
+  out.rows.forEach(r=>{ if(r.res) delete r.res.trace; });
   // how much the found area rests on the two typed numbers (part 6, F4): the same closure at the speed of peak power
   // with the turbine 10 points less efficient, and with full boost 1000 RPM later (the area found again each time)
   if(j.turbo&&!(j.At>0)&&!out.calib&&out.mode!=='predict'&&j.sens!==false&&out.rows.length&&eta0>0){
@@ -20683,18 +20726,50 @@ function tsimRun(TL,j,post){
     out.sens=cases.map((c,k)=>{ post({type:'progress',i:nT-1,n:nT,label:'Sensitivity '+(k+1)+' of '+cases.length+': '+(c.eta!==eta0?'turbine efficiency '+Math.round(100*c.eta)+'%':'full boost at '+c.lo+' RPM')});
       const Bs=mkB(withEta(j.spec,c.eta)); try{ return {eta:c.eta,lo:c.lo,rpm:rp,rows:TL.closure(Bs,{rpms:[c.lo,rp],wc,A0:out.rows[0].At})}; } finally { Bs.drop(); } });
   }
-  B=mkB(j.na);
+  B=mkB0(j.na);
   try{ out.na=TL.sweep(B,j.rpms,{},(i,r)=>post({type:'progress',i:nR+i,n:nT})); } finally { B.drop(); }
-  if(j.sc){ B=mkB(j.sc); try{ out.sc=TL.sweep(B,j.rpms,{},(i,r)=>post({type:'progress',i:2*nR+i,n:nT})); } finally { B.drop(); } }
+  if(j.sc){ B=mkB0(j.sc); try{ out.sc=TL.sweep(B,j.rpms,{},(i,r)=>post({type:'progress',i:2*nR+i,n:nT})); } finally { B.drop(); } }
   // keep what the page shows: the bins of the speed of peak power and every speed's tail flow for the orders
   out.rows.forEach(r=>{ if(r.res.turb){ r.res.turb.p3bins=r.res.turb.p3bins; } });
   return out;
+  /* the knock estimate (docs/WAVE_VALIDATION_2026-11-11.md part 12): the Livengood-Wu integral on every full-boost speed's
+     trace at the page's timing; at the speed of the largest integral, the start of burn that brings it to 1 (bisection
+     over 40 deg of retard, each a fresh run of that speed with the turbine's and the gate's areas held as found) and what
+     that costs in brake mean effective pressure; and, from that speed's trace, the boost where the integral reaches 0.7, 1
+     and 1.3 for each fuel compared (the cylinder pressure scaled with the charge pressure, the IVC temperature moved by
+     the charge's own change through the compressor and the intercooler) */
+  function tsimKnock(){
+    const K=j.knock, WS=TL.WS, eng=WS.makeEngine(kSpec.e,kSpec.intake,kSpec.exhaust,kSpec.opt), o={ON:K.ON,xEnd:K.xEnd};
+    const per=out.rows.map(w=>{ const tr=w.res&&w.res.trace; if(!tr||w.below) return null; const c=KN.check(tr,eng,w.rpm,o); return c?{rpm:w.rpm,I:c.I,knockAt:c.knockAt,ca50:c.ca50,caEnd:c.caEnd,Tivc:c.Tivc,TuEnd:c.TuEnd,pMax:c.pMax}:null; });
+    let wi=-1; per.forEach((c,i)=>{ if(c&&(wi<0||c.I>per[wi].I)) wi=i; });
+    const res={per,wi,ON:K.ON,xEnd:K.xEnd,start:kSpec.e.burn.start};
+    if(wi<0) return res;
+    const w=out.rows[wi], tr=w.res.trace, Pt=w.Pt>0?w.Pt:K.Pt, C=K.comp;
+    const dTof=s=>{ if(!C) return 0; const kc=0.4/1.4, t2=C.t1+(C.t2-C.t1)*(Math.pow(C.PR*s,kc)-1)/(Math.pow(C.PR,kc)-1); return t2-C.eps*(t2-C.tamb)-C.t3; };
+    res.lim=K.fuels.map(F=>({k:F.k,name:F.name,ON:F.ON,P:[0.7,1,1.3].map(t=>{ const s=KN.limitScale(tr,eng,w.rpm,{ON:F.ON,xEnd:K.xEnd},t,dTof); return s==null?null:s*Pt; })}));
+    res.Pt=Pt;
+    if(per[wi].I>=0.7){
+      const s0=kSpec.e.burn.start, f=WS.tfmep(w.rpm), ev=[];
+      const at=st=>{ const sp=Object.assign({},kSpec,{e:Object.assign({},kSpec.e,{burn:Object.assign({},kSpec.e.burn,{start:st})})}), b=mkB(sp);
+        try{ if(w.At>0) b.set(w.At,w.Ag>=0?w.Ag:0); const r=b.step(w.rpm,true,2,8,4), c=KN.check(r.trace,Object.assign({},eng,{ign:(720-st)%720}),w.rpm,o);
+          const q={start:st,I:c.I,ca50:c.ca50,bmep:r.imep-f}; ev.push(q); return q; } finally{ b.drop(); } };
+      post({type:'progress',i:nT-1,n:nT,label:'Knock check: the timing at '+w.rpm.toLocaleString('en-US')+' RPM'});
+      const q0=at(s0); let lo=s0-40, hi=s0;
+      const ql=at(lo);
+      if(ql.I<1){ for(let i=0;i<7;i++){ const m=0.5*(lo+hi), q=at(m); if(q.I<1) lo=m; else hi=m; } }
+      ev.sort((a,b)=>a.start-b.start);
+      // the start where the integral crosses t, by straight lines in ln I between the runs made
+      const cross=t=>{ for(let i=0;i+1<ev.length;i++){ const a=ev[i], b=ev[i+1]; if(a.I<t&&b.I>=t){ const g=(Math.log(t)-Math.log(a.I))/(Math.log(b.I)-Math.log(a.I)); return {start:a.start+g*(b.start-a.start),bmep:a.bmep+g*(b.bmep-a.bmep),ca50:a.ca50+g*(b.ca50-a.ca50)}; } } return null; };
+      res.retard={rpm:w.rpm,base:q0,ev,band:[0.7,1,1.3].map(t=>q0.I<t?{t,inside:true}:ev[0].I>=t?{t,none:true}:Object.assign({t},cross(t)))};
+    }
+    return res;
+  }
 }
 function tsimStart(){
   const q=SIM.inp, P=q?tsimPlan(q):null; if(!P||P.err) return;
   const id=++TSIM.run; TSIM.status='running'; TSIM.msg='Starting'; TSIM.pendingKey=P.key; TSIM.plan=P;
   if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; }
-  const job={spec:P.spec,na:P.na,sc:P.sc,rpms:P.rpms,rpmsFb:P.rpmsFb,dx:P.dx,turbo:P.turbo,A0:P.A0,At:P.Aty,Ag:P.Agy,wcPer:P.wcPer,eta:P.eta,p3m:P.p3m,p3rpm:P.p3rpm,Acap:P.Acap,comp:P.comp,fric:P.fric};
+  const job={knock:P.knock,spec:P.spec,na:P.na,sc:P.sc,rpms:P.rpms,rpmsFb:P.rpmsFb,dx:P.dx,turbo:P.turbo,A0:P.A0,At:P.Aty,Ag:P.Agy,wcPer:P.wcPer,eta:P.eta,p3m:P.p3m,p3rpm:P.p3rpm,Acap:P.Acap,comp:P.comp,fric:P.fric};
   const done=out=>{ if(id!==TSIM.run) return; TSIM.status='done'; TSIM.res=out; TSIM.key=P.key; TSIM.resPlan=P; TSIM.msg=''; TSIM_LAST={key:P.key,plan:P,out,sum:tsimSummary(P,out)};
     if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; } renderActive(); };
   const prog=(i,n,label)=>{ if(id!==TSIM.run) return; TSIM.msg=label?label+' ('+Math.round(100*(i+1)/n)+'%)':'Running speed '+(i<P.rpms.length?(i+1)+' of '+P.rpms.length+' with the '+(P.turbo?'turbo (finding the turbine’s area and the gate)':'supercharger'):i<2*P.rpms.length?(i-P.rpms.length+1)+' of '+P.rpms.length+' without boost':(i-2*P.rpms.length+1)+' of '+P.rpms.length+' with the boost and no turbine')+' ('+Math.round(100*(i+1)/n)+'%)'; const el=$('tsim-status'); if(el) el.textContent=TSIM.msg; };
@@ -20747,7 +20822,49 @@ function tsimSummary(P,out){
   const sens=(out.sens||[]).map(c=>{ const w=c.rows[c.rows.length-1], r=w.res, t=r.turb||{}, k=out.na.findIndex(x=>x.rpm===w.rpm), na=k>=0?out.na[k]:null, f=WS.tfmep(w.rpm), gg=x=>(x-P_ATM)/((w.Pt>0?w.Pt:P.Pt)-P_ATM);
     const pm=na?na.gimep-na.imep:0, tb=tq(r.imep-f+pm);
     return {eta:c.eta,lo:c.lo,rpm:w.rpm,At:c.rows[0].At,p3k:gg(t.p3),p3pkk:gg(t.p3pk),share:t.mt+t.mg>0?t.mg/(t.mt+t.mg):0,hp:tb*w.rpm*Math.PI/30/745.7,pmep:r.gimep-r.imep,short:c.rows.some(x=>x.short),p3k0:gg(c.rows[0].res.turb.p3),predict:!!c.predict,below:!!w.below}; });
-  return {rows,ip,hp:pw[ip],rpmHp:rows[ip]?rows[ip].rpm:NaN,p3k:rows[ip]?rows[ip].p3k:NaN,ord,air,bsfc,sens,calib:out.calib||null,etaRun,mode:out.mode||'found',fullBoost:out.fullBoost||null,areaBig:out.areaBig||null};
+  return {knock:knockSum(P,out,rows),rows,ip,hp:pw[ip],rpmHp:rows[ip]?rows[ip].rpm:NaN,p3k:rows[ip]?rows[ip].p3k:NaN,ord,air,bsfc,sens,calib:out.calib||null,etaRun,mode:out.mode||'found',fullBoost:out.fullBoost||null,areaBig:out.areaBig||null};
+}
+/* the knock estimate in numbers (part 12): the largest integral and its speed, the retard to 1 (and the band's 0.7 / 1.3)
+   and its cost in brake power at that speed, the knock-limited boost by fuel (gauge, Pa) */
+function knockSum(P,out,rows){
+  const K=out.knock; if(!K) return null; if(K.err) return {err:K.err};
+  if(!(K.wi>=0)) return {none:true};
+  const w=rows[K.wi], c=K.per[K.wi], hp=w.tqB*w.rpm*Math.PI/30/745.7, R=K.retard, kp=P.knock||{};
+  const ret=R?R.band.map(b=>b.inside?{t:b.t,inside:true}:b.none?{t:b.t,none:true}:{t:b.t,deg:R.base.start-b.start,ca50:b.ca50,loss:1-b.bmep/R.base.bmep,hpLoss:hp*(1-b.bmep/R.base.bmep)}):null;
+  return {I:c.I,rpm:w.rpm,ca50:c.ca50,caEnd:c.caEnd,knockAt:c.knockAt,Tivc:c.Tivc,TuEnd:c.TuEnd,ON:K.ON,xEnd:K.xEnd,start:K.start,Pt:K.Pt,hp,
+    per:K.per.map(q=>q?{rpm:q.rpm,I:q.I}:null).filter(Boolean),ret,
+    lim:(K.lim||[]).map(f=>({k:f.k,name:f.name,ON:f.ON,g:f.P.map(x=>x==null?null:x-P_ATM)})),sel:kp.sel||null,K:kp.K,fuels:kp.fuels||[]};
+}
+const KN_CAVEAT='An estimate, not a safe limit: one published correlation (Douaud and Eyzat, 1978) on this model’s cylinder pressure, which runs high on boosted builds; published knock work has to fit the correlation’s octane number to each engine. It does not replace knock monitoring and a tuner. Knock can break pistons and ring lands in seconds: never set boost or timing from this line.';
+// the plain-language line: short for the glance card, long (with the band and the assumptions one click away) for the results
+function knockTxt(KS,F,P,long){
+  if(!KS) return ''; if(KS.err) return 'Knock check (estimate): not worked out ('+esc(KS.err)+').'; if(KS.none) return '';
+  const kp=P.knock||{}, sel=kp.sel||{}, fN=sel.name||'this fuel', g=KS.Pt-P_ATM, r1=KS.ret?KS.ret[1]:null, i0=KS.I;
+  const pd=x=>x==null?'beyond the range worked out':x<=0?'none (below atmospheric)':F.pD(x);
+  let t='Knock check (estimate): on '+fN+' (octane number '+(KS.ON).toFixed(1)+') at '+F.pD(g)+' boost this build is ';
+  if(i0<1) t+='inside the knock limit at the page’s ignition timing (the knock integral reaches '+i0.toFixed(2)+' of 1 by '+Math.round(100*KS.xEnd)+'% burned, at '+KS.rpm.toLocaleString('en-US')+' RPM, its worst speed)';
+  else{ t+='beyond the knock limit at the page’s ignition timing (the knock integral reaches '+i0.toFixed(2)+', 1 being knock, at '+KS.rpm.toLocaleString('en-US')+' RPM)';
+    if(r1&&r1.none) t+='; even 40° of retard does not bring it inside, so this boost does not look usable on this fuel';
+    else if(r1&&!r1.inside) t+='; retarding the timing about '+Math.round(r1.deg)+'° (half burned at '+r1.ca50.toFixed(0)+'° after top dead centre) brings it inside, which costs about '+F.hp(r1.hpLoss)+' there ('+(100*r1.loss).toFixed(0)+'%)'; }
+  const L=KS.lim||[], li=f=>f?f.name+' near '+pd(f.g[1]):'';
+  if(L.length) t+='. At that timing the estimate puts the knock-limited boost for '+L.map(li).join(' and for ');
+  t+='.';
+  if(!long) return t;
+  const band=L.map(f=>f.name+' '+pd(f.g[2])+' to '+pd(f.g[0])).join('; ')+(KS.ret&&!(r1&&r1.none)?'; the retard '+KS.ret.map(b=>b.inside?'none':b.none?'more than 40°':Math.round(b.deg)+'°').join(' / ')+' for an integral of 0.7 / 1 / 1.3':'');
+  return t+' Band (knock taken at an integral of 1.3 to 0.7 instead of 1): '+band+'.';
+}
+function knockAssump(KS,P,F){
+  if(!KS||KS.err||KS.none) return '';
+  const kp=P.knock||{}, sel=kp.sel||{};
+  const li=[
+    'The fuel: '+esc(sel.name||'')+', RON '+(sel.ron!=null?sel.ron:'–')+', MON '+(sel.mon!=null?sel.mon:'–')+(sel.typed?' (typed)':' ('+esc(sel.src||'')+')')+'; octane index K '+kp.K+' (Kalghatgi: ON = RON − K × (RON − MON); published K for turbocharged engines runs from about −0.3 to −1.1, Wang et al., Fuel 209 (2017)); compared: '+(kp.fuels||[]).map(f=>esc(f.name)+' ON '+f.ON.toFixed(1)+' ('+esc(f.src||'')+')').join('; '),
+    'The autoignition delay: τ = 17.68 ms × (ON ÷ 100)^3.402 × (p ÷ 1 atm)^−1.7 × exp(3800 K ÷ T) (Douaud and Eyzat, SAE 780080, as in the ANSYS Fluent theory guide 12.2); knock where the Livengood-Wu integral ∫ dt ÷ τ from intake closing reaches 1 before '+Math.round(100*KS.xEnd)+'% of the charge has burned (Haghgooie, SAE 902134, measured about 10% of the fuel unburned at knock)',
+    'The end gas’s temperature: the charge trapped at intake closing ('+F.tD(KS.Tivc-273.15)+' at '+KS.rpm.toLocaleString('en-US')+' RPM) compressed isentropically along the model’s cylinder pressure, with that mixture’s own heat capacity (McKenzie and Cheng, SAE 2016-01-0699); it reaches '+F.tD(KS.TuEnd-273.15)+'. No wall heat into the end gas, no hot spots, no deposits',
+    'Cylinder 1 only; the page’s timing: burn starting '+KS.start+'° before top dead centre over 55° (half burned '+KS.ca50.toFixed(1)+'° after), about 4° later than the model’s best-torque timing on a stock engine (validation part 12)',
+    'The retard: that speed run again with the burn started later, the turbine’s and the gate’s areas held as found; the cost is the brake mean effective pressure lost there',
+    'The knock-limited boost: that speed’s cylinder pressure scaled with the boost, the charge temperature moved with the compressor’s and the intercooler’s own change; checked against full runs at 10 and 26 psi (validation part 12)',
+    'Known biases: the model breathes about 4 to 16% too well, so its cylinder pressures, and this integral, read high; on stock naturally aspirated engines on 91 octane it puts them at 0.9 to 1.3 (at or just past the limit, where production engines run knock control), and it reacts to the charge temperature several times less than the published rule of about one octane number per 25 °F'];
+  return '<details style="margin-top:4px"><summary>Assumptions of the knock check</summary><ul style="margin:4px 0 0 18px;padding:0">'+li.map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
 }
 // the manifold section's line from the run, when the run used this manifold (same runners, collector, boost)
 // the wastegate the run needs (part 10): the largest effective area over the speeds, and the smallest listed valve whose
