@@ -22753,6 +22753,7 @@ function fuelNote(P,lam){
 const FUEL_IDS=new Set(['i-fuel','i-eth','i-lam','i-evap','i-afr','i-ind']);
 function fuelEvt(ev){ const t=ev.target; if(t&&FUEL_IDS.has(t.id)) try{ fuelSync(); }catch(e){} }
 if(typeof document!=='undefined'){ document.addEventListener('input',fuelEvt,true); document.addEventListener('change',fuelEvt,true); }
+if(typeof window!=='undefined') window.__fuel={page:fuelPage,afr:fuelAfr,sync:fuelSync,spec:fuelSpec,sig:fuelSig,exhGas:fuelExhGas,exh:()=>({R:EXH_GAS.R,M:EXH_GAS.M,lo:EXH_GAS.lo,hi:EXH_GAS.hi,on:!!EXH_FUEL,same0:EXH_GAS.lo===EXH_GAS0.lo&&EXH_GAS.hi===EXH_GAS0.hi&&EXH_GAS.R===EXH_GAS0.R}),sos:t=>sosExh(t),rho:(t,p)=>rhoExh(t,p),tb:o=>turbineBalance(o),WS:()=>WS};
 function opFig(p){
   const nv=$('f-valves')?+$('f-valves').value:NaN, afrT=val('i-afr')>0?val('i-afr'):12, bsT=val('i-bsfc')>0?val('i-bsfc'):0.55;
   if(!$('i-opfig')||$('i-opfig').value!=='src') return {fig:'typed',afr:afrT,bsfc:bsT,ve:p.ve,veSrc:'field',bsBand:[Math.min(bsT,0.50),Math.max(bsT,0.60)],nv,fuel:null};
