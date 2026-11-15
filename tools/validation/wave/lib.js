@@ -30,7 +30,7 @@ function load(o) {
   if (o.gamma != null) src = swap(src, 'const GAM=1.35,', 'const GAM=' + Number(o.gamma) + ',');
   if (o.fanning != null) src = swap(src, 'const FANNING=0.005;', 'const FANNING=' + Number(o.fanning) + ';');
   if (o.hook) {
-    src = swap(src, 'const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+', 'cy._dV=dV; cy._pdV=cy.p*dV; cy._qw=qw; cy._Q=cy.burnQ*dxb; cy._mI=mI; cy._mE=mE; cy._mIp=vIn[k].m*dt; cy._xIp=vIn[k].x; cy._hI=vIn[k].h; cy._hE=vEx[k].h; cy._fuel=(vInC[k].fuel||0)*dt; cy._rev=(vInC[k]!==vIn[k]&&vInC[k].m<0)?(vIn[k].m*vIn[k].h-vInC[k].m*vInC[k].h)*dt:0;\n        const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+');
+    src = swap(src, 'const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+', 'cy._dV=dV; cy._pdV=cy.p*dV; cy._qw=qw; cy._Q=cy.burnQ*dxb; cy._mI=mI; cy._mE=mE; cy._mIp=vIn[k].m*dt; cy._xIp=vIn[k].x; cy._hI=vIn[k].h; cy._hE=vEx[k].h; cy._fuel=(vInC[k].fuel||0)*dt; cy._hIC=vInC[k].h; cy._xIC=vInC[k].x; cy._xE=vEx[k].x; cy._p0=cy.p; cy._rev=(vInC[k]!==vIn[k]&&vInC[k].m<0)?(vIn[k].m*vIn[k].h-vInC[k].m*vInC[k].h)*dt:0;\n        const U=(G?cy.m*gasE(G,cy.T,cy.x):cy.m*CV*cy.T)-cy.p*dV+');
     // the wall heat each pipe cell actually took this step (J; + into the gas), accumulated in P._qc (read-only: the same
     // expression the step adds, evaluated again). Both the page before the exhaust-port law (2026-11-13, part 7) and after.
     src = swap(src, 'function stepPipe(P,dt){', 'function stepPipe(P,dt){ if(!P._qc) P._qc=new Float64Array(P.n);');
