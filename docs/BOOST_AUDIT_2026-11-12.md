@@ -1409,3 +1409,45 @@ temperature field keeps 950 C when blank (no source gives an E85 figure).
 - Knock, and so the boost or timing a fuel allows; ethanol's faster burn; an E85 turbine inlet temperature default.
 - The Sound tabs' own A/F fields (their flow estimates), the acoustic impedance's density (air's R) and the OpenWAM writer
   (gasoline's LHV) do not take the fuel.
+
+## Addendum (2026-11-15): a knock estimate (what boost a fuel allows, as an estimate)
+
+The last addendum left knock out: at the same boost and lambda the model gives E85 the same power, and the real gain is
+the boost and timing E85's knock resistance allows. The turbo simulation now carries a "Knock check (estimate)" (details
+and sources: docs/WAVE_VALIDATION_2026-11-11.md part 12): the Livengood-Wu integral of Douaud and Eyzat's autoignition
+delay (tau = 17.68 ms (ON/100)^3.402 p[atm]^-1.7 exp(3800 / T)) along the end gas's temperature, the charge trapped at
+intake closing compressed isentropically along the model's cylinder pressure, to 90 % burned; the retard that brings it
+to 1 and its cost from the wave model; the knock-limited boost for pump gas and E85.
+
+### The K24A2 + PT5862 (0.63 A/R T3), port injected, lambda 0.822, the page's timing (CA50 10.5 deg ATDC)
+
+| Boost | 91 pump (ON 95): integral, retard to 1, cost | E85 (ON 104): integral, retard to 1, cost |
+|---|---|---|
+| 10 psi | 2.67, 19 deg, 17 % | 1.77, 11 deg, 8 % |
+| 18 psi | 4.34, 34 deg, 36 % | 2.86, 21 deg, 20 % |
+| 25.9 psi | 6.38, more than 40 deg | 4.19, 35 deg, 36 % |
+
+Knock-limited boost at the page's timing (band for an integral 0.7 to 1.3): 91 pump 0.7 psi (-2 to 3), 93 pump 1.3 psi;
+E85 4.5 psi (1.2 to 7.3) at RON 104, 8.2 psi (4.4 to 11.5) at Kasseris's fitted ON 115.
+
+### Against the reported builds and Garrett
+
+- Absolute: pessimistic. A reported K24 makes 475 whp at 18 psi on 93 on a tune; the estimate needs 34 deg of retard
+  there. Stock naturally aspirated K24A2 and LS3 on 91 land at an integral of 0.7 to 1.3 (1.5 at their MBT): the model's
+  high cylinder pressure under boost (its VE bias) and hot IVC charge are the likely reasons. Not tuned.
+- Relative: close. E85 / pump knock-limited absolute charge pressure 1.20 (RON 104) to 1.43 (ON 115) against Garrett's
+  30 psi / 16 psi = 1.46 absolute; at 18 psi E85 at its limit keeps 1.26 times the 91 pump gas's power at its limit
+  (the reported 18 psi builds: 570 whp E85 against 475 whp 93, +20 %, different turbos and heads).
+- So the page reads the fuels against each other, says it is pessimistic under boost, and never offers a number as a
+  limit; the caveat says it does not replace knock monitoring and a tuner.
+
+### Tests, pins
+
+- New: web/tests/knock_ui.js (Node), web/tests/knockpage_ui.js (Chromium); the trace's parity in wave_wasm.js;
+  tools/validation/wave/knock_k24.js, knock_val.js, knock_run.js, knock_refdump.js, knock_ref.py.
+- Pins changed: none; kat.json byte-identical; the closure's rows are the same doubles with the check on or off.
+
+### Left
+
+- A knock model that tracks the charge temperature as strongly as the published rule; cylinder-to-cylinder spread;
+  re-solving the gate for the retarded timing; the boost a tune would pick for a given retard (both fuels at one timing).
