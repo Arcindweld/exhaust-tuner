@@ -128,7 +128,7 @@ const { chromium } = require('playwright');
   ok(ics === 96, 'type not decided: every core listed, 76 air-to-air (19 Treadstone added 2026-11-15) and 20 water-to-air (' + ics + ')');
   await setx('ictype', 'a2a'); await pg.waitForTimeout(400);
   ics = await pg.$$eval('#tso-ics tbody tr', rs => rs.map(r => r.cells[0].innerText.split('\n')[0]));
-  ok(ics.length === 57 && ics.filter(x => /^Garrett /.test(x)).length === 31 && ics.filter(x => /^Mishimoto /.test(x)).length === 5 && ics.filter(x => /^CSF /.test(x)).length === 14 && ics.filter(x => /^Bell Intercoolers /.test(x)).length === 7 && ics.indexOf('Mishimoto MMINT-UR') >= 0 && ics.indexOf('CSF 8045') >= 0, 'air-to-air list: 31 Garrett (the maker’s full table, 2026-11-12), 5 Mishimoto, 14 CSF, 7 Bell (' + ics.length + ')');
+  ok(ics.length === 76 && ics.filter(x => /^Garrett /.test(x)).length === 31 && ics.filter(x => /^Mishimoto /.test(x)).length === 5 && ics.filter(x => /^CSF /.test(x)).length === 14 && ics.filter(x => /^Bell Intercoolers /.test(x)).length === 7 && ics.indexOf('Mishimoto MMINT-UR') >= 0 && ics.indexOf('CSF 8045') >= 0, 'air-to-air list: 31 Garrett (the maker’s full table, 2026-11-12), 5 Mishimoto, 14 CSF, 7 Bell, 19 Treadstone (' + ics.length + ')');
   const ur = await pg.evaluate(() => window.__tso.IC_LIB.find(c => c.pn === 'MMINT-UR')), c45 = await pg.evaluate(() => window.__tso.IC_LIB.find(c => c.pn === '8045'));
   ok(ur.hp === 1000 && ur.inD === 3 && ur.dims[0][0] === 24 && ur.dims[1][0] === 12 && ur.dims[2][0] === 4 && ur.dims[2][1] === 101.6 && ur.point === null, 'Mishimoto MMINT-UR 24 x 12 x 4 in (101.6 mm), 3 in tanks, 1000 hp, no thermal point');
   ok(c45.hp === 1000 && c45.dims.map(x => x[0]).join() === '25,12,3.5', 'CSF 8045 25 x 12 x 3.5 in, 1000 hp');
