@@ -62,6 +62,18 @@ if (parts.includes('c')) {
   out.c.K = [0, -0.38, -0.9].map(K => ({ K, ONp91: KN.octaneIndex(95, 87, K), ONe85: KN.octaneIndex(104, 94, K) }));
   log(JSON.stringify(out.c.on), JSON.stringify(out.c.xEnd)); save();
 }
+// against Vizard's chart of boost by compression ratio and octane (the page's VIZ_BOOST, How to Modify Ford S.O.H.C. Engines
+// (1983), Fig. 11-3, "estimated"): the knock-limited boost at the page's timing from the 18 psi pump job's worst speed rerun at
+// each compression ratio (the charge temperature held: the chart has no intercooler or temperature)
+if (parts.includes('v')) {
+  const S = J(18, 'pump'), w = S.rows.find(r => r.rpm === 5050), o = { At: w.At, Ag: w.Ag, dx: S.dx };
+  const viz = { '95': [[10, 0], [9, 1.5], [8, 3.5], [7, 7]], '98': [[12, 0], [10, 2], [9, 4], [8, 6.5], [7, 10]], '100': [[12, 1], [10, 4], [9, 6.5], [8, 9.5], [7, 13.5]], '105': [[12, 1.5], [10, 6], [9, 9.5], [8, 13], [7, 18]] };
+  out.v = [];
+  for (const cr of [8, 9, 10, 11]) { const sp = Object.assign({}, S.spec, { e: Object.assign({}, S.spec.e, { cr }) }), x = ev(sp, w.rpm, o), row = { cr };
+    for (const on of [95, 98, 100, 105, 115]) { const sc = KN.limitScale(x.trace, x.eng, w.rpm, { ON: on }, 1, null); row[on] = sc == null ? null : (sc * S.Pt - 101325) / 6894.757; const vz = viz[String(on)] && viz[String(on)].find(q => q[0] === cr); if (vz) row['viz' + on] = vz[1]; }
+    out.v.push(row); log(JSON.stringify(row)); }
+  save();
+}
 if (parts.includes('d')) {
   out.d = { rows: {}, retard: {}, scale: {} };
   for (const psi of [10, 18, 25.9124]) for (const fuel of ['pump', 'e85']) {

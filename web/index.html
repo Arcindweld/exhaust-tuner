@@ -20844,11 +20844,11 @@ function knockTxt(KS,F,P,long){
   let t='Knock check (estimate): on '+fN+' (octane number '+(KS.ON).toFixed(1)+') at '+F.pD(g)+' boost this build is ';
   if(i0<1) t+='inside the knock limit at the page’s ignition timing (the knock integral reaches '+i0.toFixed(2)+' of 1 by '+Math.round(100*KS.xEnd)+'% burned, at '+KS.rpm.toLocaleString('en-US')+' RPM, its worst speed)';
   else{ t+='beyond the knock limit at the page’s ignition timing (the knock integral reaches '+i0.toFixed(2)+', 1 being knock, at '+KS.rpm.toLocaleString('en-US')+' RPM)';
-    if(r1&&r1.none) t+='; even 40° of retard does not bring it inside, so this boost does not look usable on this fuel';
+    if(r1&&r1.none) t+='; even 40° of retard does not bring it inside the estimate’s limit';
     else if(r1&&!r1.inside) t+='; retarding the timing about '+Math.round(r1.deg)+'° (half burned at '+r1.ca50.toFixed(0)+'° after top dead centre) brings it inside, which costs about '+F.hp(r1.hpLoss)+' there ('+(100*r1.loss).toFixed(0)+'%)'; }
   const L=KS.lim||[], li=f=>f?f.name+' near '+pd(f.g[1]):'';
   if(L.length) t+='. At that timing the estimate puts the knock-limited boost for '+L.map(li).join(' and for ');
-  t+='.';
+  t+='. Under boost it reads pessimistic against reported builds (they run more boost than this on a tune): compare the fuels, do not read the numbers as limits.';
   if(!long) return t;
   const band=L.map(f=>f.name+' '+pd(f.g[2])+' to '+pd(f.g[0])).join('; ')+(KS.ret&&!(r1&&r1.none)?'; the retard '+KS.ret.map(b=>b.inside?'none':b.none?'more than 40°':Math.round(b.deg)+'°').join(' / ')+' for an integral of 0.7 / 1 / 1.3':'');
   return t+' Band (knock taken at an integral of 1.3 to 0.7 instead of 1): '+band+'.';
@@ -20863,7 +20863,7 @@ function knockAssump(KS,P,F){
     'Cylinder 1 only; the page’s timing: burn starting '+KS.start+'° before top dead centre over 55° (half burned '+KS.ca50.toFixed(1)+'° after), about 4° later than the model’s best-torque timing on a stock engine (validation part 12)',
     'The retard: that speed run again with the burn started later, the turbine’s and the gate’s areas held as found; the cost is the brake mean effective pressure lost there',
     'The knock-limited boost: that speed’s cylinder pressure scaled with the boost, the charge temperature moved with the compressor’s and the intercooler’s own change; checked against full runs at 10 and 26 psi (validation part 12)',
-    'Known biases: the model breathes about 4 to 16% too well, so its cylinder pressures, and this integral, read high; on stock naturally aspirated engines on 91 octane it puts them at 0.9 to 1.3 (at or just past the limit, where production engines run knock control), and it reacts to the charge temperature several times less than the published rule of about one octane number per 25 °F'];
+    'Known biases: the model breathes about 4 to 16% too well, so its cylinder pressures, and this integral, read high; on two stock naturally aspirated engines on 91 octane it puts the integral at 0.7 to 1.3 across the speeds at this timing and 1.5 at their best-torque timing (at or just past the limit, where production engines run knock control); under boost it is pessimistic: it puts a K24 at 18 psi on pump gas beyond reach with 30° of retard where reported builds make about 475 hp at the wheels on 93; it reacts to the charge temperature several times less than the published rule of about one octane number per 25 °F; against Vizard’s 1983 chart of boost by compression ratio and octane it lands within about 1.5 psi on 95 RON and 2 to 4 psi lower on 100 to 105 RON'];
   return '<details style="margin-top:4px"><summary>Assumptions of the knock check</summary><ul style="margin:4px 0 0 18px;padding:0">'+li.map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
 }
 // the manifold section's line from the run, when the run used this manifold (same runners, collector, boost)
@@ -20906,6 +20906,8 @@ function tsimSection(q){
         (turbo?'<td>'+F.tD(o.T3-273.15)+' / '+F.tD(o.T4-273.15)+'</td><td>'+(o.W/o.Wc).toFixed(3)+(o.short?' (short: boost not held)':'')+'</td><td>'+(100*o.share).toFixed(1)+'% / '+(100*o.wgAlg).toFixed(1)+'% / '+(100*o.wgPage).toFixed(1)+'%</td>':'<td>'+F.kw(o.Wc*T.plan.cyl/T.plan.nSim)+'</td>')+'</tr>').join('')+'</tbody></table></div>';
     const o=rows[S.ip], kU=T.plan.k;
     h+='<dl class="rows">'+rowT('Peak power under boost',F.hp(S.hp)+' at '+(o?o.rpm.toLocaleString('en-US'):'–')+' RPM','brake = the net indicated work (the turbo’s pumping loop included) less Heywood’s motored friction with its own wide-open pumping loop taken out (that loop estimated by the same engine and pipes without boost, run beside this; on an engine without boost this is exactly the plain wave simulation’s brake). One-sided readings: '+F.hp(kwH(o.tqBn,o.rpm))+' if the whole of Heywood’s friction is taken off the net work (an NA pumping loop counted twice), '+F.hp(kwH(o.tqBg,o.rpm))+' if it is taken off the gross loop (the turbo’s own pumping ignored)');
+    if(S.knock&&!S.knock.none){ const kst=T.plan.kKey!==(P.kKey||'null');
+      h+='<div class="note warn" id="tsim-knock" style="margin-top:8px"><p style="margin:0 0 4px"><b>'+esc(knockTxt(S.knock,F,T.plan,true))+'</b></p><p style="margin:0">'+esc(KN_CAVEAT)+'</p>'+(kst?'<p style="margin:4px 0 0">The knock check’s inputs changed since this run: run it again to update this line.</p>':'')+knockAssump(S.knock,T.plan,F)+'</div>'; }
     if(o&&tsHp()>0&&Number.isFinite(S.bsfc)){ const tgt=tsHp(), FG=opFig(TS_P||{ve:0.9}), bs=FG.bsfc, wa=tgt*FG.afr*bs/60;
       h+=rowT('Against the Intake tab’s '+Math.round(tgt)+' hp',F.hp(S.hp)+' simulated at the Intake tab’s boost, '+F.pD(T.plan.spec.intake.source.p-P_ATM)+' at the throttle ('+(OP&&OP.mode==='hp'?'the boost the Intake tab works out from the target':OP&&OP.mode==='boost'?'the boost typed there; the target is the power worked out from it':'the boost typed there, not one worked out from the target')+')','for the target, Garrett’s method gives the air it needs, air = hp × AFR '+FG.afr+' × BSFC '+bs+' ÷ 60 = '+wa.toFixed(1)+' lb/min ('+(wa*0.45359237/60).toFixed(3)+' kg/s); at '+o.rpm.toLocaleString('en-US')+' RPM this run’s engine draws '+(S.air/0.45359237*60).toFixed(1)+' lb/min ('+S.air.toFixed(3)+' kg/s, VE '+o.veC.toFixed(2)+' on the charge) and burns it at '+S.bsfc.toFixed(2)+' lb/hp·h. The gap is the model’s: its burn (the 4-Stroke tab’s timing and duration, held at this boost) is not limited by knock, needs no enrichment beyond the AFR typed and no ignition retard; Garrett’s 0.5-0.6 lb/hp·h is what boosted gasoline engines burn with those; and on the three rated engines the model was checked against without boost it reads brake torque 4 to 16 % high (docs/WAVE_VALIDATION_2026-11-11.md, part 3). Plan on the tab’s target; read the simulation’s figure as the ceiling of an engine that could hold this burn.'); }
     if(turbo&&o){ const lo=rows[0].rpm, eP=Math.round(100*S.etaRun);
@@ -20950,7 +20952,7 @@ function drawTsim(){
     mk('line',{x1:ml,x2:W-mr,y1:Y((o.p3-P_ATM)*cu),y2:Y((o.p3-P_ATM)*cu),style:'stroke:var(--muted);stroke-dasharray:2 3;stroke-width:1.4'},sv2);
     const ty=mk('text',{x:4,y:10},sv2); ty.textContent=U==='imp'?'psi gauge':'kPa gauge'; }
 }
-if(typeof window!=='undefined') window.__tsim={plan:()=>SIM.inp?tsimPlan(SIM.inp):null,last:()=>TSIM_LAST,state:()=>TSIM,lib:()=>turboSimLib,run:tsimRun,summary:tsimSummary};
+if(typeof window!=='undefined') window.__tsim={knock:()=>knockLib(WS),knockTxt,knockPlan,KN_FUELS,plan:()=>SIM.inp?tsimPlan(SIM.inp):null,last:()=>TSIM_LAST,state:()=>TSIM,lib:()=>turboSimLib,run:tsimRun,summary:tsimSummary};
 function simStop(){ (SIM.workers||[]).forEach(w=>{ try{ w.terminate(); }catch(e){} }); SIM.workers=[]; }
 function simDone(id,key,rpms,out){
   if(id!==SIM.run) return;
@@ -26525,6 +26527,7 @@ function tgGlance(ind,p){
     if(!cur&&canSim) ph='<button type="button" class="btn" data-glsim="1" style="padding:1px 8px;min-height:0;font-size:12px;margin-top:4px"'+(running?' disabled':'')+'>'+(running?'Running the simulation…':'Run the simulation at this boost')+'</button>'; }
   else { pn+=(pn?' ':'')+'No simulation at this boost yet: the wave simulation with the '+(turbo?'turbo':'supercharger')+' (4-Stroke tab, about half a minute) gives a third figure, read about 4 to 16 % high.';
     if(canSim) ph='<button type="button" class="btn" data-glsim="1" style="padding:1px 8px;min-height:0;font-size:12px;margin-top:4px"'+(running?' disabled':'')+'>'+(running?'Running the simulation…':'Run the simulation at this boost')+'</button>'; }
+  if(T&&T.sum&&T.sum.knock&&!T.sum.knock.none&&sim&&sim.state==='ok') pn+=' '+knockTxt(T.sum.knock,F,T.plan,false)+' '+KN_CAVEAT;
   rows.push({k:'power',label:'Power',v:pw,note:pn,html:ph,go:'turbo-and-intercooler-sizing'});
   if(turbo){ add('turbo','Turbo',part(/^Turbo( \(|$)/),'','turbo-options'); add('hsg','Turbine housing',part(/^Turbine housing$/),'','turbo-options'); }
   add('comp','Compressor inlet / outlet',part(/^Compressor inlet/),'','inlet-and-charge-pipes-design-and-sizing');
