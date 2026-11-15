@@ -2099,3 +2099,23 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - K24 + PT5862 450 hp: pick unchanged (Bell A300227240); TRV25 8th, TRV259 13th. Pins changed in icrec_ui (margin 1.2 third
   pick → TRV185, out 7 → 8; 1300 hp pick CSF 8040 → TRV259 on its published drop).
 - Details: docs/BOOST_AUDIT_2026-11-12.md, addendum "Treadstone intercoolers" (2026-11-14).
+## 2026-11-14: the fuel is the engine's (gasoline, E10, E85, ethanol, methanol)
+
+- Wave model (JS `wsFactory` and Rust `et_wave`, bit parity, WebAssembly rebuilt): the fuel is CH_y O_z per C atom
+  (`fuelOf`; `spec.e.blend` {eth, meth} by mass, `spec.e.evap` the latent heat's share from the charge), formation
+  enthalpies and latent heats from NASA CEA's thermo.inp (ethanol liquid -277510, gas -234950 J/mol; methanol -238910 /
+  -200940), the vapour's cp refitted from NASA's fit (ethanol) or GRI-Mech's own (methanol); the rich products' O balance
+  carries the fuel's oxygen; heat release follows from the formation enthalpies (ethanol LHV 26.81 MJ/kg, E85 29.26, AFR_st
+  9.00 / 9.80; equilibrium flame temperatures from them 2237 K ethanol, 2221 K methanol against Engineering ToolBox's 2238,
+  2222). Evaporation: not counted by default (as before); port walls (f 0), direct injection 70 % (Kasseris and Heywood),
+  all from the charge.
+- Page: one Fuel field (shown for every build) with the E85 ethanol share, a lambda field (blank: the A/F field read as
+  gasoline's lambda) and the evaporation choice; the simulation, the steady exhaust gas (EXH_GAS swapped by fuelSync,
+  rhoExh), the exhaust flow (fuelAfr) all take it. Pump and race gasoline are exactly the page before; projects saved
+  earlier load as that.
+- K24A2 + PT5862 at 25.91 / 18 psi, lambda 0.822: E10 591.7 / 476.0 hp, E85 (port) 587.4 / 472.5 hp, E85 direct injection
+  661.8 / 536.6 hp; E85's exhaust 20-35 K cooler, fuel +40-48 %. Knock not modelled: the E85 gain on a dyno (its boost and
+  timing) is not predicted.
+- Details: docs/WAVE_VALIDATION_2026-11-11.md part 11; docs/BOOST_AUDIT_2026-11-12.md addendum "the fuel is the engine's".
+  Tests: web/tests/fuel_ui.js, web/tests/fuelpage_ui.js (new), wave_wasm.js (+4 jobs). Pins changed: none.
+

@@ -3063,3 +3063,213 @@ node tools/validation/wave/turbine_eff.js          # ONLY=hand|k24|closure|pulse
 node web/tests/turbineeff_ui.js                    # from web/, about 5 min
 QUICK=1 node web/tests/wave_wasm.js                # parity incl. the two blade-speed-ratio jobs
 ```
+
+## Addendum 2026-11-14, part 11: the fuel as a property of the engine (gasoline, E10, E85, ethanol, methanol)
+
+Until this part the one fuel was the gasoline CH1.87 (part 2): the wave model, the steady sections and the boost relation
+burned it whatever the page's new "Fuel at full boost" selector said (BOOST_AUDIT, addendum "how much boost for my power":
+the selector moved only Garrett's air per hp). Now the fuel is CH_y O_z with its own formation enthalpy and latent heat, in
+the JavaScript `wsFactory` and the Rust `et_wave` line for line (bit parity; WebAssembly rebuilt), and the page's one Fuel
+field (Intake tab, Engine) drives the simulation, the steady exhaust gas and the exhaust flow. With the page's gasoline
+(pump or race, no lambda typed, evaporation not counted) every result is the earlier one to the last digit (K5).
+
+### K1 Sources read (2026-11-14) and the values taken
+
+| Quantity | Value taken | Source |
+|---|---|---|
+| Ethanol C2H5OH, liquid H(298.15 K) | -277510 J/mol | NASA CEA `data/thermo.inp` (McBride, Zehe and Gordon 2002, NASA TP-2002-211556; github.com/nasa/cea), "C2H5OH(L) Ethanol. TRC(12/87)" header line |
+| Ethanol, gas H(298.15 K) | -234950 J/mol ("C2H5OH Hf:TRC(6/87)") | same; latent heat = gas - liquid = 42560 J/mol = 923.84 kJ/kg. NIST WebBook's recommended dvapH 42.3 +- 0.4 kJ/mol and liquid dfH -276 +- 2 kJ/mol (Chao and Rossini 1965: -276.9) agree within their spreads |
+| Methanol CH3OH, liquid / gas H(298.15 K) | -238910 / -200940 J/mol | CEA thermo.inp; latent heat 37970 J/mol = 1185.01 kJ/kg |
+| Isooctane, toluene liquid / gas | -259160 / -224010; 12180 / 50170 J/mol | CEA thermo.inp; the gasoline surrogate of part 2 (0.626076 isooctane + 0.373924 toluene by mole): latent heat 36211.9 J/mol = 341.72 kJ/kg |
+| Ethanol vapour cp | NASA-9 fit (CEA, TRC 6/87, 300-1000-6000 K), refitted to the model's 7-term form by `fuel_fit.py` (least squares on relative error, 1 K steps): within 0.84 % over 300-1000 K, 0.58 % over 1000-3500 K | CEA thermo.inp |
+| Methanol vapour cp | GRI-Mech 3.0's own NASA-7 (L8/88; Cantera `data/gri30.yaml`), within 0.45 % of CEA's NASA-9 fit over 300-3500 K | gri30.yaml |
+| Specific gravity | ethanol 0.794, gasoline 0.72-0.78 (0.75 taken), E85 0.78; A/F 9 / 14.7 / 10; H/C E85 2.75-2.95; "The ethanol content can range from 51% to 83% by volume" | DOE, Handbook for Handling, Storing, and Dispensing E85 and Other Ethanol-Gasoline Blends, DOE/GO-102016-4854, Feb. 2016, Table 2 and text (afdc.energy.gov/files/u/publication/ethanol_handbook.pdf) |
+| E85 range | "containing 51% to 83% ethanol, depending on geography and season"; E10 "10% ethanol and 90% gasoline" | AFDC, afdc.energy.gov/fuels/ethanol-blends; ASTM D5798 "51-83" vol % (afdc.energy.gov/fuels/ethanol_e85_specs.html) |
+| Stoichiometric ratios | gasoline 14.7, E85 9.8, ethanol 9.0, methanol 6.4 | HP Academy, "Understanding Air Fuel Ratio" cheat sheet (hpacademy.com) |
+| Port vs direct injection charge cooling | port: "the vaporization of the ethanol on the walls of the manifold has a negligible impact on the temperature of the charge" "because the walls of the manifold are cooled rather than the air charge"; Table 3 (stoichiometric, injection after IVC): latent heat 0.30 / 0.91 / 1.16 MJ/kg, dT air -28 / -138 / -246 K for gasoline / ethanol / methanol; "For ethanol, the change in temperature is a factor of more than 4 larger than that of gasoline" | US 8,468,983 B2, "Optimized fuel management system for direct injection ethanol enhancement of gasoline engines" (USPTO full text) |
+| Direct injection, measured | "The measured charge cooling increases with fuel ethanol content from 14 degrees C for gasoline to 49 degrees C for E85"; "around 70%" of the thermodynamic maximum "for all fuel blends" | Kasseris and Heywood, SAE 2012-01-1275 (abstract, saemobilus.sae.org) |
+| Lambda at boost | the target table: "HIGH BOOST 0.80 - 0.75", "MEDIUM BOOST 0.85 - 0.80", one table for every fuel in lambda | HP Academy cheat sheet; Haltech's Flex Fuel Tuning Guide (support.haltech.com): for E85 "the Target was made slightly leaner" (no figure) |
+| Adiabatic flame temperature in air, 25 C, 1 atm, stoichiometric, constant pressure | ethanol 2238 K, methanol 2222 K | Engineering ToolBox, "Adiabatic Flame Temperatures" (engineeringtoolbox.com; it does not say equilibrium or the fuel's phase) |
+| Laminar flame speed | measurements exist (van Lipzig, Nilsson, de Goey, Konnov, Fuel 90 (2011) 2773-2781; Zheng et al., Fuel 356 (2024) 129495); no relation to an engine's burn duration was found | the abstracts only |
+| E85 against pump gas on a turbo engine | "93 octane 241hp / 199tq @7000 RPM 16PSI is the most the car made safely on pump gas"; "401hp @ 7500RPM / 314 lb-ft 30PSI on E85"; "Ethanol has a higher threshold to detonation"; "it can be compared to 105 octane pump gas"; the article also says "a 34 percent increase in tunable power" (its own figures give 66 %) | Garrett, "Pump Gas vs E85: Tunable Performance for Your Turbo" (garrettmotion.com) |
+
+Not fetched: Heywood's appendix (the book), the Burcat database file (the NASA CEA file was used instead), NIST WebBook's
+gas-phase page (the condensed-phase and phase-change pages were read).
+
+### K2 The fuel, built from the molecules (`fuelOf`; `fuel_ui.js` 1-2 by hand)
+
+Per C atom CH_y O_z, mixed by the moles of C each part brings (the mass-weighted elemental composition and formation
+enthalpy); o = 1 + y/4 - z/2 mol of O2 burn one C atom; AFR_st = o x 138.2113 g (the model's air per mol of O2) / MC.
+By volume to mass with DOE's 0.794 and 0.75: E85 0.85 x 0.794 / (0.85 x 0.794 + 0.15 x 0.75) = 0.857125, E10 0.105249.
+
+| Fuel | by mass | CH_y O_z | MC g/mol C | AFR_st (hand: w x 9.0004 + (1-w) x 14.5964) | LHV MJ/kg (liquid) | latent heat kJ/kg | hf J/mol C (liquid) |
+|---|---|---|---|---|---|---|---|
+| gasoline (the page's) | - | CH1.87 | 13.8955 | 14.5964 | 44.000 | 341.7 | -8210 (from its LHV) |
+| E10 | 0.1052 ethanol | CH1.9449 O0.0331 | 14.501 | 14.0074 | 42.190 | 403.0 | -16860 |
+| E85 (85 % vol) | 0.8571 ethanol | CH2.7554 O0.3918 | 21.056 | 9.7999 | 29.264 | 840.7 | -110492 |
+| E100 | ethanol | CH3 O0.5 | 23.034 | 9.0004 (3 x 138.2113 / 46.06844) | 26.8075 | 923.8 | -138755 |
+| M100 | methanol | CH4 O | 32.042 | 6.4702 (1.5 x 138.2113 / 32.04186) | 19.919 | 1185.0 | -238910 |
+
+LHV by hand with NIST-JANAF's CO2 (-393.522) and H2O(g) (-241.826 kJ/mol): ethanol (-277.510 + 787.044 + 725.478) / 46.06844 =
+26.808 MJ/kg (model, with its GRI-Mech enthalpies, 26.8075; Heywood's 26.9 as quoted before; US 8,468,983 Table 3 26.7);
+methanol 19.920 (model 19.919; Table 3 20.0); blends exactly mass-weighted (model to 1e-12). Heat per kg of air (lean,
+LHV / AFR_st): gasoline 3.0144, E85 2.9861 MJ/kg; at lambda 0.822 with the CO and H2 left over 2.8151 and 2.7904 (E85
+-0.88 %). The published stoichiometric ratios (DOE 9 / 14.7 / 10, HP Academy 9.0 / 9.8 / 6.4) are met; DOE's "10" is for its
+own E85 and "Depends on hydrocarbon blending component properties".
+
+### K3 Heat release and its checks
+
+Rich products follow from the atom balances with the fuel's oxygen: O atoms left for CO2 and H2O after one per C atom,
+S = 2 lambda o + z - 1, then the water-gas ratio 3.5 as before (`burnedMoles`; z = 0 gives part 1's formula bit for bit).
+E85 at lambda 0.822: CO2 0.65129, CO 0.34871, H2O 1.19489, H2 0.18279 per C atom; the test finds CO2 by bisection on the
+equilibrium ratio independently and checks C, H, O to 1e-13 (also E100, M100). The heat is the formation enthalpies'
+difference, so the LHV follows automatically: the constant-pressure adiabatic check (`fuel_ui.js` 4) raises the frozen
+products' sensible enthalpy by exactly the heat (1e-10) and the heat per kg of fuel at lambda 1 is the LHV of K2 (1e-12).
+Frozen flame temperatures, liquid fuel at 298.15 K: gasoline 2458 K, E85 2325 K, ethanol 2292 K, methanol 2229 K.
+`fuel_flame.py` (independent: GRI-Mech 3.0 with a6, a7; 12 species; Helmholtz minimum at T, V iterated to 1 atm):
+
+| Fuel, lambda | liquid: frozen / equilibrium (K) | vapour: frozen / equilibrium (K) |
+|---|---|---|
+| gasoline, 1.000 | 2458 / 2304 | 2473 / 2316 |
+| gasoline, 0.822 | 2272 / 2251 | 2290 / 2266 |
+| ethanol, 1.000 | 2292 / 2195 | 2353 / **2237** (Engineering ToolBox 2238) |
+| ethanol, 0.822 | 2099 / 2092 | 2171 / 2160 |
+| methanol, 1.000 | 2229 / 2150 | 2330 / **2221** (Engineering ToolBox 2222) |
+| methanol, 0.822 | 2044 / 2037 | 2163 / 2148 |
+
+With the fuel as vapour and dissociation, the formation enthalpies reproduce the published flame temperatures within
+1 K: the ethanol and methanol data are verified. The frozen products overstate the stoichiometric flame by 100-110 K
+(ethanol) and only 7-11 K at lambda 0.822, as part 2 found for gasoline.
+
+### K4 Evaporation: what the model did and does
+
+Before (part 2, B6, unchanged as the default): the port injector adds the fuel at the intake valve as vapour at 298.15 K
+carrying the LIQUID's formation enthalpy; its latent heat is neither taken from the charge nor credited. For gasoline that
+leaves out 341.7 kJ/kg, 0.78 % of the LHV; for ethanol 923.8 kJ/kg, 3.4 %. No charge cooling was modelled anywhere.
+Now `spec.e.evap = f` (0 to 1) counts it: the fuel carries the vapour's formation enthalpy (liquid + L) and the share f of L
+leaves the entering charge at the valve (`portFuel`: h = (m h_air - m_fuel f L) / m_mix); the rest is the port walls'
+heat. Blank keeps the earlier treatment. The page offers: not counted (default), port injection f = 0 (US 8,468,983:
+negligible charge cooling with port injection), direct injection f = 0.7 (Kasseris and Heywood's ~70 % of the
+thermodynamic maximum, measured), all from the charge f = 1. Approximation stated: fuel pushed back into the port leaves the
+model as before and its replacement evaporates again (the injector meters the net air).
+Hand check (`fuel_ui.js` 5, charge at 330 K): E85 at lambda 0.822 (A/F 8.056), all from the charge: 89.3 K cooler at the
+valve against 840.7 / 8.056 / (1006.5 + 1433 / 8.056) = 88.1 K by hand with cp at 300 K; 70 %: 62.1 against 61.7 K;
+gasoline 25.1 against 25.2 K; ethanol 106.1 against 104.2 K. Ethanol / gasoline per kg of air at stoichiometric 4.38 (the
+patent: "more than 4"). An engine cycle on E85 with f = 0.7 conserves mass (4.7e-15) and total energy (2.1e-14 of the heat
+released); methanol lean likewise.
+
+### K5 The gasoline is unchanged, to the last digit
+
+- `fuelOf(null, null)` returns the gasoline object of before (F_GAS: y 1.87, z 0, MC, hf, AFR_ST as before), and with
+  z = 0 every changed expression evaluates to the earlier doubles (2 lambda o + 0 - 1, (1 + y/4) - 0 / 2 are not formed;
+  the vapour vector stays [1 / C_FV]).
+- `web/tests/wave_wasm.js` QUICK with the new JavaScript against the OLD WebAssembly (before the Rust was touched): every
+  captured job, every result, bit for bit, plus the constant-gamma reference; then with the new Rust: all jobs bit for bit.
+- `tools/validation/wave/kat.js` 66 of 66, `results/kat.json` byte-identical.
+- `fuel_ui.js` 7: an engine run with blend {0, 0} and evap null is the run without them to the last digit.
+- On the page: pump and race gasoline keep the A/F field as typed, the 4-Stroke tab's 12.8, the stoichiometric exhaust gas
+  (EXH_GAS's own arrays restored on switching back: `fuelpage_ui.js`), and add nothing to the spec; a project saved before
+  loads as the page's gasoline whatever fuel was picked (op_legacy_k24.json). No pinned value of any existing test changed.
+
+### K6 The steady sections (the page; `fuelExh`, `fuelSync`, `rhoExh`)
+
+With a fuel other than the page's gasoline (or a lambda typed), the steady exhaust gas EXH_GAS is that fuel's frozen
+products at the engine's lambda, so the turbine balance and its blade-speed form, the wastegate's orifice, the march after
+the turbine, the manifold's gas cp (calcSkin via xCp) and every speed of sound of the other tabs follow; the exhaust density
+after the turbine uses its R (rhoExh); the exhaust mass flow everywhere is air x (1 + 1/AFR) at the fuel's A/F (fuelAfr: the
+turbo plan, the turbine balance, the wastegate, the march, the manifold, the build sheet). Numbers (`fuel_ui.js` 8,
+`fuelpage_ui.js`):
+
+| exhaust at | R J/kg K | gamma 500 C / 1000 C | cp J/kg K 500 C / 1000 C | sound speed m/s 500 C / 1000 C |
+|---|---|---|---|---|
+| gasoline stoichiometric (the page's default, as before) | 286.63 | 1.3157 / 1.2773 | 1195 / 1320 | 540.0 / 682.7 |
+| gasoline lambda 0.822 | 298.56 | 1.3254 / 1.2862 | 1216 / 1342 | 553.1 / 699.2 |
+| E10 lambda 0.822 | 299.18 | 1.3250 / 1.2858 | 1220 / 1346 | 553.6 / 699.8 |
+| E85 lambda 0.822 | 305.56 | 1.3217 / 1.2818 | 1256 / 1390 | 558.8 / 706.2 |
+
+E85 against E10 at the same lambda: R +2.1 %, cp +3.0-3.3 %, gamma -0.003 to -0.004, sound speed (and so every
+sound-speed-tuned length) +0.9 %; against the page's stoichiometric gasoline +3.5 %. Turbine balance at one point
+(0.4 kg/s of air, 25 -> 180 C, 950 C at the turbine, 300 / 130 kPa): exhaust 0.4496 kg/s on E85 (0.4333 on the page's
+gasoline at A/F 12), cp 1379 (1311) J/kg K, gas after the turbine 849.6 C (840.3), the pressure before the turbine needed
+219.4 kPa (232.7). Not changed: the turbine inlet temperature field (950 C when blank: no source gives an E85 figure; the
+simulation's is 20-32 K lower on E85, K7), the Sound tabs' own A/F fields for their flow estimates (engineFlow), the
+acoustic impedances' density (rhoGas, air's R), the OpenWAM writer (its LHV and A/F stay gasoline's), and the oil heat
+(Garrett's rule by power, not fuel energy). No injector sizing is on the page. The boost relation keeps Garrett's figures by
+fuel (E85 8.0 x 0.75; E10 takes pump gasoline's, ethanol and methanol E85's).
+
+### K7 The K24A2 + PT5862, pump gas against E85 (`fuel_k24.js`, results/fuel_k24.json)
+
+The journey of boost_power.js in "My boost" (0.63 A/R T3, Use these sizes where enabled, Use this intercooler, tubular
+manifold, the turbine area found by the closure for full boost at 3500 RPM, 75 %), lambda 0.822 for every fuel (HP
+Academy's table makes no fuel distinction in lambda; Haltech's "slightly leaner" for E85 has no figure). The speed of peak
+brake power; T at IVC from the same spec rerun at that speed (its VE within 1e-4 of the run's). Brake figures read 4-16 %
+high (parts 3 and 8), so they compare fuels, not engines.
+
+| boost, fuel, evaporation | peak brake power | peak torque | VE (charge) | T at IVC | exhaust valve outflow / turbine inlet | turbine area found / mean p3 | air / fuel flow | A/F |
+|---|---|---|---|---|---|---|---|---|
+| 25.91 psi (178.66 kPa), page's gasoline, not counted | 586.4 hp (437 kW) @ 7100 | 517.7 lb-ft (702 N m) @ 5550 | 1.043 | 432 K (318 F) | 1315 / 1298 K | 763 mm2 / 347.5 kPa | 419.8 / 35.0 g/s | 12.00 |
+| 25.91 psi, E10, port | 591.7 hp (441 kW) @ 7100 | 521.4 lb-ft @ 5550 | 1.041 | 431 K | 1321 / 1303 K | 756 / 350.8 | 418.8 / 36.4 | 11.52 |
+| 25.91 psi, E85, port | 587.4 hp (438 kW) @ 7100 | 509.6 lb-ft @ 5550 | 1.020 | 429 K | 1286 / 1271 K | 741 / 356.3 | 410.7 / 51.0 | 8.06 |
+| 25.91 psi, E85, not counted | 562.2 hp @ 7100 | 490.2 lb-ft @ 5550 | 1.017 | 430 K | 1255 / 1242 K | 720 / 362.5 | 409.2 / 50.8 | 8.06 |
+| 25.91 psi, E85, direct injection 70 % | 661.8 hp (494 kW) @ 6050 | 628.7 lb-ft @ 5050 | 1.261 | 361 K (190 F) | 1237 / 1227 K | 890 / 338.0 | 432.5 / 53.7 | 8.06 |
+| 18 psi (124.11 kPa), page's gasoline | 472.0 hp (352 kW) @ 6050 | 422.5 lb-ft @ 5050 | 1.154 | 422 K | 1290 / 1274 K | 814 / 257.1 | 326.9 / 27.2 | 12.00 |
+| 18 psi, E10, port | 476.0 hp (355 kW) @ 6050 | 425.3 lb-ft @ 5050 | 1.150 | 422 K | 1296 / 1279 K | 810 / 258.7 | 325.9 / 28.3 | 11.52 |
+| 18 psi, E85, port | 472.5 hp (352 kW) @ 7100 | 412.2 lb-ft @ 5550 | 1.017 | 423 K | 1275 / 1260 K | 794 / 268.5 | 337.9 / 41.9 | 8.06 |
+| 18 psi, E85, not counted | 452.0 hp @ 7100 | 396.7 lb-ft @ 5050 | 1.013 | 423 K | 1244 / 1231 K | 769 / 273.0 | 336.8 / 41.8 | 8.06 |
+| 18 psi, E85, direct injection 70 % | 536.6 hp (400 kW) @ 6050 | 514.6 lb-ft @ 5050 | 1.253 | 352 K | 1227 / 1216 K | 973 / 254.4 | 355.1 / 44.1 | 8.06 |
+
+(Charge after the intercooler 337.4 K / 280.0 kPa absolute at 25.91 psi, 328.9 K / 225.4 kPa at 18 psi; VE is on that
+charge. At 18 psi the E85 power curve is flat between 6050 and 7100 RPM, so its peak moves; the VE at 7100 RPM is not
+comparable with the others' at 6050.)
+Read, for the K24A2 (port injected), port injection being the relevant row: at the same boost and lambda E85 makes the same
+power as E10 within 1 % (-0.7 % at 25.91 psi and at 18 psi) and 2-3 % less peak torque. Its vapour takes more of the
+cylinder (fuel vapour per mole of air: about 7.2 % for E85 at 8.06:1 against 2.3 % for gasoline at 12:1) so the VE on the charge
+falls 2 points; the wetter, cooler exhaust (20-35 K at the valve and the turbine) gives the turbine less work per kg, so the closure finds a smaller
+turbine area and a 1.5-4 % higher pressure before it; 40-48 % more fuel by mass. Not counting the latent heat at all
+costs E85 another 4.3 % (the vapour's energy, 840.7 kJ/kg, 2.9 % of its LHV, is then missing). Only if most of the evaporation cooled the
+charge (direct injection, 70 %) would the thermodynamics give E85 more: IVC 68-71 K cooler, VE 10-22 points higher (the peaks at
+different speeds), +12-14 % power at the same boost. That row is not the owner's engine.
+
+### K8 Against Garrett's statement and the reported builds (the boost audit's list)
+
+- Garrett's Miata (GTX2867R, 1.6 L): 241 hp at 16 psi on 93 octane, 401 hp at 30 psi on E85, credited to the higher
+  detonation threshold ("compared to 105 octane"), the boost the tune could run. The model agrees in kind: at a fixed boost
+  (and timing) a port-injected engine gains nothing thermodynamically from E85; the gain is the boost E85 allows, which the
+  model cannot say (no knock model). Run at a higher boost it gives the power of that boost (its power is near proportional
+  to the absolute manifold pressure, BOOST_AUDIT "how much boost for my power"), but the boost is the tuner's knock limit.
+- Reported K24 builds at 18 psi (BOOST_AUDIT): 475 whp on 93 octane (IPG, K20A2 head, GT35R) and 570 whp on E85 (DSport,
+  Comp 6767, 8000 RPM shift), i.e. 543 and 651 hp at the crank at 12.5 %: the E85 build makes 20 % more than the pump build
+  at the same boost, with a different turbo, head and RPM. The model at 18 psi: 476 (E10) and 472.5 hp (E85, port), 407-458
+  after its 4-16 %: it does not reproduce a 20 % E85 advantage at equal boost and should not, as far as the thermodynamics go
+  for a port-injected engine; the reported difference is ignition timing (knock), the build differences and the dynos.
+  The DI row (+13 %) shows the size of the charge-cooling share if most of E85's evaporation came from the charge; for port
+  injection the cited source says it does not.
+
+### K9 Not modelled; assumptions
+
+- Knock and its limit on boost and ignition timing (the main E85 gain); the spark advance stays the tab's 18 deg BTDC.
+- Burn duration: Wiebe 55 deg for every fuel (no citable relation between ethanol's faster laminar flame and the engine's
+  burn was found).
+- Dissociation (frozen products; K3 gives its size), wall wetting dynamics, the fuel film, the evaporated-before-IVC share
+  beyond the three stated choices, the E85 ethanol content of a real pump (a field; 85 % default), water in hydrous ethanol,
+  the gasoline part of a blend (the surrogate CH1.87), the cooler exhaust's effect on the typed turbine inlet temperature.
+
+### K10 Tests, pins
+
+- `web/tests/fuel_ui.js` (new, Node, 2 s, 36 checks): K2-K5 by hand, the steady gas against the species, conservation.
+- `web/tests/fuelpage_ui.js` (new, Chromium): the default unchanged, E85's A/F, exhaust gas, sound speed, density and turbine
+  balance by hand, the ethanol field, a typed lambda, the switch back to the last digit, the legacy project, both units.
+- `web/tests/wave_wasm.js`: four jobs added (E85 not counted and from the port walls on the four-cylinder collector; E85 under
+  boost with 70 % from the charge; ethanol + methanol lean all from the charge; gasoline 50 % from the charge): JS = Rust bit
+  for bit; nothing removed or loosened.
+- Pins changed: none.
+
+### K11 How to rerun
+
+```
+python3 tools/validation/wave/fuel_fit.py thermo.inp gri30.yaml        # the alcohols' data from NASA's tables
+python3 tools/validation/wave/fuel_flame.py gri30.yaml                 # flame temperatures, frozen and equilibrium
+node web/tests/fuel_ui.js                                               # 2 s
+cd web && node tests/fuelpage_ui.js && node ../tools/validation/wave/fuel_k24.js [25.9124,18] [pump:none,e10:port,e85:port,e85:none,e85:di]
+QUICK=1 node web/tests/wave_wasm.js
+```

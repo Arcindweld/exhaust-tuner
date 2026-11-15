@@ -112,7 +112,21 @@ const tflat = t => t ? [t.t, t.W, t.Wis, t.mt, t.mg, t.mAir, t.p3, t.p3pk, t.p3s
     { label: 'the same port, open runners, constant gas', spec: Object.assign({}, s1, { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, inPort) }) }] } });
   jobs.push({ name: 'intake port, single', job: { dx: jobs[0].job.dx, rpms: [4000, 7000, 9000], variants: [
     { label: '90 mm intake port of its own bore, Shayler, 380 K wall', spec: Object.assign({}, s0, { e: Object.assign({}, s0.e, { portInHeat: 'shayler', portInTw: 380 }),
-      intake: Object.assign({}, s0.intake, { segs: s0i.concat([{ L: 0.09, d0: d0i * 0.95, d1: d0i * 0.95, port: true }]) }) }) }] } }); }
+      intake: Object.assign({}, s0.intake, { segs: s0i.concat([{ L: 0.09, d0: d0i * 0.95, d1: d0i * 0.95, port: true }]) }) }) }] } });
+  // 2026-11-14 part 11: the fuel as CH_y O_z (e.blend, mass fractions) and its evaporation counted (e.evap, the share of the
+  // latent heat from the charge): E85 (85 % ethanol by volume, 0.857 by mass) rich at lambda 0.822 with the evaporation not
+  // counted and from the port walls (0), on the four-cylinder collector; E85 under boost with 70 % from the charge (direct
+  // injection); a methanol and ethanol blend lean (lambda 1.1, the lean branch) all from the charge; the gasoline with its
+  // evaporation counted
+  const e85 = 0.85 * 0.794 / (0.85 * 0.794 + 0.15 * 0.75), F85 = WS.gas.fuelOf({ eth: e85 }, null), FMX = WS.gas.fuelOf({ eth: 0.1, meth: 0.15 }, 1);
+  jobs.push({ name: 'fuel E85', job: { dx: jobs[1].job.dx, rpms: [3000, 5000, 7000], variants: [
+    { label: 'E85 at lambda 0.822, evaporation not counted, four on one collector', spec: Object.assign({}, s1, { e: Object.assign({}, s1.e, { afr: 0.822 * F85.afrSt, blend: { eth: e85 } }) }) },
+    { label: 'E85 at lambda 0.822, evaporation from the port walls (evap 0)', spec: Object.assign({}, s1, { e: Object.assign({}, s1.e, { afr: 0.822 * F85.afrSt, blend: { eth: e85 }, evap: 0 }) }) }] } });
+  jobs.push({ name: 'fuel E85, turbo', job: { dx: jobs[1].job.dx, rpms: [3000, 4500, 6000, 7500], areas: [[1.1e-3, 0], [1.1e-3, 2e-4], [-1, 4e-4], [9e-4, 3e-4]], variants: [{ label: 'E85, 70 % of the latent heat from the charge, turbine and gate into the downpipe', spec: Object.assign({}, s1,
+    { e: Object.assign({}, s1.e, { afr: 0.822 * F85.afrSt, blend: { eth: e85 }, evap: 0.7 }), intake: Object.assign({}, s1.intake, { source: { p: 190000, T: 320 } }), exhaust: Object.assign({}, s1.exhaust, { turbine: tur({}) }) }) }] } });
+  jobs.push({ name: 'fuel blends', job: { dx: jobs[0].job.dx, rpms: [4000, 7000, 9000], variants: [
+    { label: 'ethanol 0.10 + methanol 0.15 by mass, lambda 1.1, all from the charge, single', spec: Object.assign({}, s0, { e: Object.assign({}, s0.e, { afr: 1.1 * FMX.afrSt, blend: { eth: 0.1, meth: 0.15 }, evap: 1 }) }) },
+    { label: 'the gasoline, its evaporation 50 % from the charge, single', spec: Object.assign({}, s0, { e: Object.assign({}, s0.e, { evap: 0.5 }) }) }] } }); }
 let tJs = 0, tW = 0;
 for (const { name, job } of jobs) {
   const rpms = process.env.QUICK === '1' ? job.rpms.slice(0, 3) : job.rpms;
