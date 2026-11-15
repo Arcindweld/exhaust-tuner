@@ -1172,3 +1172,175 @@ project ends a preset's hold on the power field. operatingpoint_ui's legacy chec
 - The simulation burns gasoline at the A/F field's mixture; an E85 run is not modelled.
 - The reported builds sit above all three methods; closing that needs a measured VE and RPM of a built engine, not a
   different default.
+
+## Addendum (2026-11-14): Treadstone intercoolers (the owner: "Find a way to check out the Treadstone intercoolers to add")
+
+Treadstone's own site refuses automated reading (robots), so it was not read and not worked around (no caches, mirrors or
+archives). Its authorised retailers publish the maker's spec text; those listings were read on 2026-11-14 and only the short
+spec figures are kept (no text beyond them, no images). The rules agreed in Part 2 hold: an hp rating is the maker's claim,
+not test data; nothing is filled in that a listing does not state. Code: `treRow`, `treSt`, `treTxt` and 19 rows in `IC_LIB`
+(web/index.html), a Treadstone branch in `icFace`; `icRecommend` is unchanged and ranks them under its existing rules.
+
+**Confirmation.** A figure is *confirmed by two retailers* when two different retailers state it; one retailer: *single
+retailer*. Turbozentrum's .de and .co.uk shops are one retailer, and Motorsport Calibrations' listings are Turbozentrum's
+text word for word ("0,14bar", "Colour of Logo"), so they count as one. Conflicts are recorded on the row and shown in
+the table; majority decides where there is one, otherwise the conflict is left unresolved and the lower rating (or the
+smaller neck) is used. Turbozentrum prints "Item weight: 8,00 kg" on nearly every Treadstone listing (TR6 to TR1245, a
+shipping placeholder, it seems), so no weight is used.
+
+**Axes.** Retailers print the core as height × length × thickness (MA Performance, Edge: "7.8" X 22" X 3.5"") or length ×
+height × thickness (Turbozentrum "198mm x 558mm x 89mm", Real Street "22 x 12.5 x 4.5"). The flow length is fixed from the
+overall size: on the TR models the overall length exceeds the core length (tanks on the length ends: the charge runs along
+the length, face = height × thickness); on the TRV models the overall height exceeds the core height (tanks top and bottom:
+the charge runs along the height, face = length × thickness; the TRV259 listing adds "a longer 9" tube length"). Speed
+Science (NZ) converts at 25 mm per inch (TR10 600 × 262.5 × 87.5, overall 850 = 24 × 10.5 × 3.5 and 34 in exactly), so its
+mm are read back at 25.
+
+### The table (in; mm = × 25.4; hp → kW × 0.7457; CFM → kg/s at standard air, 1.1839 kg/m³, the page's reading of Bell's CFM)
+
+Key: MAP maperformance.com, EDGE edgeautosport.com, TZ turbozentrum.de (+ .co.uk), MSC motorsportcalibrations.co.uk (TZ's
+wording), SS speedscience.co.nz, RSP realstreetperformance.com, DHQ drifthq.com, GY graveyardperformance.com, IP
+inductionperformance.com. "2" = confirmed by two retailers, "1" = single retailer, "C" = conflict (below).
+
+| Model | Core L × H × T in (mm) | Flow | Overall | In/out | hp (kW) | CFM (kg/s) | Drop claim | Pages; status per field |
+|---|---|---|---|---|---|---|---|---|
+| TR6 | 22 × 6 × 3.5 (558.8 × 152.4 × 88.9) | horiz. | 28 in (711 mm) | 2.5 in (63.5 mm) | 400 (298) | 600 (0.335) | < 2 psi at max flow (bound) | EDGE, GY, TZ, SS; core 2 (thickness C), overall 2, i/o 2, hp 2, CFM 2, drop 2 |
+| TR62 | 22 × 6 × 3.5 | horiz. | 27.5 in (698.5 mm) | 2.5 in | 450 (336) | not listed | < 1.5 psi, no flow | EDGE, TZ; all 2 |
+| TR8 | 22 × 7.8 × 3.5 (558.8 × 198.1 × 88.9) | horiz. | 28 in (711.2 mm) | 2.5 in | 500 (373) | 750 (0.419) | < 2 psi at max flow | MAP, EDGE, TZ; core 2, overall 2 (C), i/o 2, hp 2 (C), CFM 2, drop 2 |
+| TR8C | 22 × 7.8 × 3.5 | horiz. | 28 in | 3 in (76.2 mm) | 500 (373) | 750 (0.419) | < 1.5 psi at max flow | EDGE, TZ; all 2 |
+| TR8L | 24 × 7.8 × 3.5 (609.6 × 198.1 × 88.9) | horiz. | 28 in (EDGE only) | C: 2.5 or 3 in (2.5 used) | 500 (373) | 750 (0.419) | C | EDGE, DHQ; core 2, overall 1, hp 2, CFM 2 |
+| TR82 | 22 × 7.8 × 3.5 | horiz. | 27.5 in | 2.5 in | 500 (373) | 750 (0.419) | < 1.5 psi, no flow | EDGE, DHQ; all 2; left tank exits on top |
+| TR10 | 24 × 10.5 × 3.5 (609.6 × 266.7 × 88.9) | horiz. | 34 in (864 mm) | 3 in | 666 (497) | 1000 (0.559) | < 2 psi at max flow | EDGE, SS; all 2 |
+| TR10C | 22 × 10.5 × 3.5 | horiz. | 28 in | 3 in | 700 (522) | 1050 (0.587) | < 1.5 psi at max flow | EDGE; all 1 |
+| TR1035 | 22 × 10.5 × 3.5 | horiz. | 30 in (762 mm) | 3 in | 666 (497) | 1000 (0.559) | < 2 / < 1.5 psi | MAP, EDGE, TZ; core 2, overall 2 (C), i/o 2, hp 2 (C), CFM 2, drop 2 (C) |
+| TR1045 | 22 × 10.5 × 4.5 (558.8 × 266.7 × 114.3) | horiz. | 30 in | 3 in | 860 (641) | 1300 (0.726) | < 2 psi at max flow | MAP, GY, TZ; core 2, overall 2 (C), i/o 2, hp 2, CFM 2 (C), drop 2 |
+| TR11 | 21.5 × 11 × 3 (546.1 × 279.4 × 76.2) | horiz. | 28.5 in (724 mm) | 2.5 in | 560 (418) | 860 (0.481) | < 1.5 psi, no flow | EDGE, TZ; all 2 |
+| TR1235 | 22 × 12.5 × 3.5 (558.8 × 317.5 × 88.9) | horiz. | 30 in | 3 in | 760 (567) | 1142 (0.638) | < 2 psi at max flow; "1.5psi drop" | MAP, TZ, MSC; all 2 |
+| TR1235R | 22 × 12.5 × 3.5 | horiz. | 762 mm (30.0 in) | 76 mm (3 in) | C: 1340 or 928, 928 used (692) | 2010 (1.123) | < 0.1 bar at max flow | TZ, TZ .co.uk, MSC; all 1 (one wording); hp C |
+| TR1245 | 22 × 12.5 × 4.5 | horiz. | 762 mm (30.0 in) (C) | 3 in | 1000 (746) | 1469 (0.821) | < 0.14 bar at max flow | TZ, MSC, RSP; core 2, overall 1, i/o 2, hp 2, CFM 1, drop 1 |
+| TR1245R | 22 × 12.5 × 4.5 | horiz. | 31.5 in (800 mm) | 3 in | 1340 (999) | 2010 (1.123) | < 2 psi at max flow (MAP only) | MAP, RSP, IP, TZ, MSC; core 2, overall 2, i/o 2, hp 2, CFM 2, drop 1 |
+| TR1245-28 | 28 × 12.5 × 4.5 (711.2 × 317.5 × 114.3) | horiz. | 950 mm (37.4 in), 870 without connectors (TZ only) | 3 in | 1200 (895) | 1800 (1.006) | < 2.5 psi at max flow | MAP, TZ; overall 1, the rest 2 |
+| TRV25 | 25 × 6 × 3.5 (635 × 152.4 × 88.9) | vert. | 26.5 × 12 × 3.5 in (673 × 305 × 89 mm) | 3 in | 1000 (746) | 1492 (0.834) | 1.5 psi (10.3 kPa) at 1492 CFM, used as a point | MAP, TZ; all 2 (C: MAP's second text) |
+| TRV259 | 25 × 9 × 3.5 (635 × 228.6 × 88.9) | vert. | 26.5 × 15 × 3.5 in (673 × 381 × 89 mm) | 3 in | 1300 (969) | 1950 (1.090) | 2.0 psi (13.8 kPa) at 1950 CFM, used as a point | MAP, TZ; all 2 |
+| TRV185 | 18.50 × 5.98 × 3.50 (470 × 152 × 89) | vert. (inferred) | 508 × 312 × 89 mm | 63.5 mm | 720 (537) | not listed | not listed | TZ; all 1 |
+
+Pages (full URLs, also in each row's `tre.pages`):
+TR6 edgeautosport.com/treadstone-tr6-intercooler-400hp/, graveyardperformance.com/products/treadstone-tr6-intercooler-core,
+turbozentrum.de/Intercooler-TR6-400HP-TRE, speedscience.co.nz/products/treadstone-tr6-interooler;
+TR62 edgeautosport.com/treadstone-tr62-intercooler-450hp/, turbozentrum.de/Intercooler-TR62-450HP-TRE;
+TR8 maperformance.com/products/treadstone-3-5-tr8-intercooler-tr8, edgeautosport.com/treadstone-tr8-intercooler-500hp,
+turbozentrum.de/TR8-Intercooler-500-HP-TRE; TR8C edgeautosport.com/treadstone-tr8c-intercooler-500hp/,
+turbozentrum.de/Intercooler-TR8C-500HP-TRE; TR8L edgeautosport.com/treadstone-tr8l-intercooler-500hp/,
+drifthq.com/products/copy-of-tre-tr8c-intercooler-500hp-tr8c (the page is the TR8L despite its address); TR82
+edgeautosport.com/treadstone-tr82-intercooler-500hp/, drifthq.com/products/tre-tr82-intercooler-500hp-tr82; TR10
+edgeautosport.com/treadstone-tr10-intercooler-666hp/, speedscience.co.nz/products/treadstone-tr10-interooler; TR10C
+edgeautosport.com/treadstone-tr10c-intercooler-700hp/; TR1035 maperformance.com/products/treadstone-tr1035-tr1045-intercooler-tr10x5,
+edgeautosport.com/treadstone-tr1035-intercooler-650hp/, turbozentrum.de/Intercooler-TR1035-666-HP-TRE; TR1045
+maperformance.com/products/treadstone-4-5-intercooler-tr1045, graveyardperformance.com/products/treadstone-tr1045-intercooler-core,
+turbozentrum.de/Intercooler-TR1045-860HP-TRE; TR11 edgeautosport.com/treadstone-tr11-intercooler-560hp/,
+turbozentrum.de/Intercooler-TR11-560HP-TRE; TR1235 maperformance.com/products/treadstone-performance-3-5-intercooler-tr1235,
+turbozentrum.de/Intercooler-TR1235-760HP-TRE, motorsportcalibrations.co.uk/products/intercooler-tr1235-760-hp-tre; TR1235R
+turbozentrum.de/Intercooler-TR1235R-928-HP-TRE, turbozentrum.co.uk/Intercooler-TR1235R-1340-HP-TRE,
+motorsportcalibrations.co.uk/products/intercooler-tr1235r-1340-hp-tre; TR1245 turbozentrum.de/Intercooler-TR1245-1000HP-TRE,
+motorsportcalibrations.co.uk/products/intercooler-tr1245-1000-hp-tre,
+realstreetperformance.com/treadstone-tr1245-22-x-12-5-x-4-5-1000hp-front-mount-intercooler-3-inch-inlet-outlet-universal.html;
+TR1245R maperformance.com/products/treadstone-performance-4-5-rated-r-intercooler-tr1245r,
+realstreetperformance.com/treadstone-tr1245r-rated-r-front-mount-intercooler-1340hp-22-x-12-5-x-4-5-core-3-0-inlet-outlet.html,
+inductionperformance.com/products/treadstone-rated-r-intercooler-tr1245r-22-x-12-5-x-4-5-980hp,
+turbozentrum.de/Intercooler-TR1245R-1340-HP-TRE, motorsportcalibrations.co.uk/products/treadstone-intercooler-tr1245r-1340-hp-tre;
+TR1245-28 maperformance.com/products/treadstone-performance-1200hp-intercooler-tr1245-28,
+turbozentrum.de/Intercooler-TR1245-28-1200HP-TRE; TRV25 maperformance.com/products/treadstone-3-5-trv25-intercooler-trv25,
+turbozentrum.de/Intercooler-TRV25-O-1000-HP-TRE; TRV259 maperformance.com/products/treadstone-3-50-trv259-intercooler-trv259x,
+turbozentrum.de/TRV259-Series-Intercooler-1300HP-TRE; TRV185 turbozentrum.de/TRV185-Series-Intercooler-720HP.
+
+### Conflicts
+
+- TR8: Turbozentrum overall 762 mm (30 in) against 28 in (MAP, EDGE) → 28 by majority; Turbozentrum's text "575 HP efficient"
+  under a 500 HP title against 500 (EDGE; MAP's title, its text reads "00 HP") → 500. 575 appears on the TR8L listings
+  ("575HP at only 1.5psi drop"), which is probably where it came from.
+- TR6: Speed Science thickness 82.5 mm (3.3 in at its 25 mm/in) against 3.5 in / 89 mm (EDGE, GY, TZ) → 3.5.
+- TR8L: inlet/outlet 2.5 in (EDGE) against 3 in (DHQ), unresolved, 2.5 used for the tank check; drop < 2 psi (EDGE) against
+  < 1.5 psi (DHQ), unresolved; its 28 in overall (EDGE only) equals the TR8's with a core 2 in longer.
+- TR1035: overall 790 mm (31.1 in, TZ) against 30 in (MAP, EDGE) → 30; hp 650 (EDGE) against 666 (MAP, TZ; MAP's title says
+  600) → 666; drop < 1.5 psi (MAP) against < 2 psi (EDGE, TZ).
+- TR1045: overall 790 mm (TZ) against 30 in (MAP, GY) → 30; 1000 CFM (TZ) against 1300 (MAP, GY) → 1300.
+- TR1235R: 928 HP (TZ .de) against 1340 HP (TZ .co.uk, MSC, one wording): unresolved, 928 used. 928 = 760 × 22 ÷ 18 (the
+  TR1235's rating scaled by 22 internal passages against 18); 1340 HP / 2010 CFM are the TR1245R's figures, so the 2010 CFM on
+  the TR1235R listings may be copied from it (2010 ÷ 928 = 2.17 CFM per hp against 1.47 to 1.54 everywhere else). The same
+  listings call the standard TR1235 "760 HP and 1469 CFM" (.de) or "900 HP and 1469 CFM" (.co.uk, MSC); the TR1235's own
+  listings agree on 760 / 1142, which are used.
+- TR1245: the Parts tab's TR1245 row (read from the maker's own page in an earlier session, already in the repository) gives a
+  "Complete Size 31.50"", against the retailers' 762 mm (30.0 in); unresolved, 30 used. MAP's TR1245R page calls the standard
+  core the C1245, "980 HP and 1469 CFM", against 1000 on the TR1245 listings.
+- TR1245R: Induction Performance's page address says 980hp, its page 1340HP.
+- TRV25: MAP's page also carries a description with the TRV259's figures (1300HP, 1950 CFM, 2.0 psi); its other description
+  and Turbozentrum give 1000 HP, 1492 CFM, 1.5 psi (0.10 bar), used.
+- The lead's TR8 note: Turbozentrum's "575 HP efficient" against the 500 in its own title: the majority (MAP, EDGE) is 500.
+
+### Sanity check of the claims (tools/validation/boost/treadstone.py)
+
+The page has no geometric drop or effectiveness model for a rating-only core (its drops come from makers' published points),
+so the claims are checked against the families already in the page:
+
+- **CFM per hp**: 1.47 to 1.54 on every row with both (TR8 750/500 = 1.500, TR1245 1469/1000 = 1.469, TR11 860/560 = 1.536);
+  Treadstone's hp is its CFM claim ÷ 1.5, Corky Bell's 1.5 cfm per hp, not a separate figure. Exception: TR1235R at 928 hp, 2.17.
+- **Mass flux** at the claimed CFM (standard air) through the charge face: horizontal TR cores 22.6 to 24.7 kg/s·m²
+  (TR8 0.4191 kg/s through 27.30 in²: 23.8), TR1245R 30.9, TR1245-28 27.7, TR1235R 39.8; TRV25 14.8, TRV259 19.3.
+- **Bell's face rule** (6 in² per 100 hp at 45 % open = 13.33 in² per 100 hp) for the claimed hp: horizontal cores have 0.32 to
+  0.44 of it (TR8 27.3 of 66.7 in², 0.41), the TRV cores 0.51 to 0.68. Garrett's ratings sit in the same place (e.g. 703520-6009,
+  500 hp, 22.4 in²: 0.34; 703520-6005, 925 hp, 42.35 in²: 0.34): Bell's rule is conservative for both makers.
+- **Bell's own drop rating scaled to these cores**: every Bell air-cooled core in the page is rated at 1 psi for 13.39 CFM per
+  in² of charge face over 24 in (the seven rows: 13.385 to 13.402). Scaled by (flux ratio)^n × length / 24 in, at the claimed CFM:
+  horizontal TR cores 3.4 to 4.2 psi (n = 2) or 3.0 to 3.7 psi (n = 1.8) (TR8 3.86 / 3.34 psi, TR1235 3.48 / 3.05, TR1245 3.49 /
+  3.05); TR1245R 6.5 / 5.4, TR1245-28 6.7 / 5.6, TR1235R 10.8 / 8.4. Against "less than 2 psi" (or 1.5) "at max flow" that is
+  1.5 to 2.8 × the claim: **optimistic** on drop at the rated CFM, if Treadstone's fins resemble Bell's (a different fin can
+  differ; Rated-R claims more internal passages, which this scaling does not model). The maker's own TR8 page, as read earlier
+  into the Parts tab, says "YOU MAY SEE A 2-6 PSI DROP DEPENDING ON SET UP AND APPLICATION", which brackets the scaled figure.
+  The short vertical TRV cores scale to 0.4 / 0.4 psi (TRV25) and 1.0 / 0.9 psi (TRV259), under their 1.5 and 2.0 psi claims.
+- **hp per litre and per in² against Garrett**: horizontal TR cores 46 to 59 hp/L against 41 to 70 hp/L for Garrett's cores
+  within 20 % of the same volume, and 17 to 21 hp/in² of face against Garrett's 6.8 to 30.4: **in family**. Like for like:
+  TR8 (22 × 7.8 × 3.5, 500) against Garrett 703520-6009 (24 × 6.4 × 3.5, 500) and 703520-6010 (24 × 8 × 3.5, 600); TR1235 (22 ×
+  12.5 × 3.5, 760) against 703520-6005 (24 × 12.1 × 3.5, 925): Treadstone lower; TR1245 (22 × 12.5 × 4.5, 1000) against
+  703522-6005 (24 × 12.1 × 4.5, 950); TR1245-28 (28 × 12.5 × 4.5, 1200) against 701596-6001 (27.8 × 12.7 × 5.1, 1260). Rated-R
+  TR1245R at 1340 (66.1 hp/L, Garrett 43.7 to 56.5 at that volume): **above** Garrett's ratings for that size. TRV cores 101 to
+  116 hp/L: the TRV259 (25 × 9 × 3.5, 9 in charge path, 87.5 in², 1300 hp) is nearly Garrett's vertical 848054-6037 (24 × 8 ×
+  3.5, 8 in path, 84 in², 750 hp): Treadstone claims 1.73 × Garrett's rating for nearly the same core, and the TRV25 (6 in
+  path) 1000 hp: **optimistic** against Garrett (a short charge path lowers effectiveness; flow capacity is not cooling).
+- Verdict on the page's caption: horizontal TR ratings in family with Garrett's; their drop claims optimistic against Bell's
+  rating; Rated-R and TRV ratings above Garrett's for similar cores. The owner can verify a core himself: the page's
+  "measure the drop and the charge temperatures" inputs take a measured point.
+
+### The K24A2 + PT5862 default journey (450 hp, 0.63 A/R T3 4-bolt, Use these sizes; 3 in hot and cold pipes), before and after
+
+- Pick unchanged: Bell A300227240 (608 hp, 1.351 ×, face 68.1 in² against Bell's 60.0). Top three unchanged (Bell A300227240,
+  Bell A350240240, Garrett 848054-6037).
+- Qualifying air-to-air list 48 → 60 cores, not recommended 9 → 16. Among those meeting Bell's face: Treadstone TRV25 8th (1000
+  hp, 87.5 in², 3 in necks; its 1.5 psi at 1492 CFM published) and TRV259 13th (1300 hp; ahead of CSF 8040 at the same rating on
+  its published 2.0 psi at 1950 CFM). Failing Bell (rating order): TR8C 19th, TR1035 29th, TR10 30th, TR10C 33rd, TR1235 37th,
+  TR1045 45th, TR1235R 49th, TR1245 57th, TR1245-28 59th, TR1245R 60th. Out: TR6 (400 hp under 450, and 2.5 in necks), TR62, TR8,
+  TR8L, TR82, TR11, TRV185 (2.5 in / 63.5 mm necks under the 76.2 mm pipes). All Treadstone rows are rating only (evidence
+  group 2) and rank by the rules unchanged.
+
+### Not listed
+
+Twin-turbo TRTT9 (DHQ) / TRTTC9 (RSP) (25 × 9 × 3.5, 1300 hp, 1950 CFM, 2 × 2.5 in in, 3 in out; whether the two names are one
+part is not stated) and TRTTC (RSP only, 25 × 6 × 3.5, 968 hp, 1453 CFM): two inlets into one tank, which the page's tank check
+(one neck against one pipe) cannot judge. TRV125 (TZ only): overall size printed garbled, flow direction cannot be told. Bare
+cores CV259 (MAP: 25 × 9 × 3.5, "upwards of 1300HP", no CFM), C1235 (TZ only), C12186 (TZ only, 457 × 152 × 309 mm, axis
+unclear): no tanks, charge direction not stated. Water-to-air CW cores on Turbozentrum: the listing does not name the maker.
+TR1260-35R: found only on a marketplace and a clearance broker. turbokits.com's Rated-R page lists no figures. A TR4 or TR9
+was not found at any retailer.
+
+### Tests
+
+- web/tests/icrec_ui.js: 19 Treadstone rows, air-to-air, every core size in in and mm; every row sourced to retailer pages,
+  labelled "authorised retailer listing of the maker's figures", none from the maker's site; TR8 by hand (558.8 × 198.1 × 88.9 mm,
+  711.2 mm, 63.5 mm, 500 hp / 373 kW, 750 cfm = 354 L/s = 0.419 kg/s, face 27.30 in²); TRV259 face and published drop; TR1235R's
+  unresolved rating; the table row text (both units, confirmation, conflicts); the caption; evidence first (an own core with a
+  measured point that meets the target ranks ahead of every rating-only Treadstone row in its Bell group).
+- Pins changed (old, new, why): build 1 margin 1.2 top three "Bell A350169240, A300227240, A350240240" → "… A300227240,
+  Treadstone TRV185" (720 hp, 64.8 in² ≥ 56 in², 2.5 in necks on that build's 2.5 in pipes: a smaller rating than 750);
+  not recommended 7 → 8 (TR6, 400 hp < 420); 1300 hp pick CSF 8040 → Treadstone TRV259 (same 1300 hp; wins on its published
+  drop, the existing tie rule), shortfall 101.3 → 85.8 in².
+- Run: icrec_ui, conflux_ui, xflow_ui, easyflow_ui (its dual-units check found CFM / kg/s / psi without the other system on the
+  new rows: fixed), operatingpoint_ui, boostpower_ui, k24_ui, sweep_ui: all pass.
