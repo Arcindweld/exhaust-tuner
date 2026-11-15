@@ -33,3 +33,7 @@ console.log('| case, rpm | runner mm (bore 38.3 mm unless stated) | p* / T* | ma
 console.log('|---|---|---|---|---|---|---|---|');
 for (const c of ['b18', 'na']) for (const rpm of [5050, 6600]) for (const [t, L] of [['m_run0.15', '150'], ['m_base', '300'], ['m_run0.45', '450'], ['m_rund45', '300, bore 45 mm']]) { const o = R(t).find(q => q.case === c && q.rpm === rpm);
   console.log('| ' + name(c) + ' ' + rpm + ' | ' + L + ' | ' + bar(o.star.p) + ' / ' + f(o.star.T, 1) + ' | ' + f(o.pBudget.mass, 3) + ' | ' + f(o.veCharge, 3) + ' | ' + bar(o.ivc.p) + ' / ' + f(o.ivc.T, 1) + ' | ' + f(o.knock.I, 3) + ' | ' + f(o.hpPage, 1) + ' |'); }
+console.log('\nM6 what the knock integral rests on (ON 95; the same trace, one thing changed)\n');
+console.log('| case, rpm | I as run | trapped mass at Garrett\'s 97 % VE on the charge (pressures x 0.97 / VE) | every pressure halved | IVC charge without its heating at BDC volume (T_ivc - (T* - T_src)), pressure held |');
+console.log('|---|---|---|---|---|');
+for (const o of base) console.log('| ' + name(o.case) + ' ' + o.rpm + ' | ' + f(o.knock.I, 3) + ' | ' + f(o.knock.I_ve97, 3) + ' | ' + f(o.knock.I_halfP, 3) + ' | ' + f(o.knock.I_noHeat, 3) + ' (' + f(o.star.T - o.src.T, 1) + ' K less) |');

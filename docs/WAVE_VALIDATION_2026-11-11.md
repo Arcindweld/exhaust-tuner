@@ -3430,7 +3430,8 @@ Against the reported builds and Garrett (BOOST_AUDIT; part 11 K8):
   of retard (36 % of the power) where a reported build makes 475 whp at 18 psi on 93 (IPG) on a tune, and Garrett's Miata
   made 241 hp at 16 psi on 93; its pump-gas limit at the page's timing is about 1 psi. The model's
   high cylinder pressure (IVC 3.74 bar at a 2.25 bar charge at 5050 RPM: the VE bias of parts 3 and 8) and a hot IVC charge
-  (411 K from 329 K) are the likely causes, with the correlation's single fitted ON.
+  (411 K from 329 K) are the likely causes, with the correlation's single fitted ON. (Superseded by part 13, M6: the trapped charge is not the
+  cause; the correlation's pressure term at twice the NA pressures is most of it, the model's airflow up to a third.)
 - In relative terms it is close: the knock-limited absolute charge pressure E85 / pump (93) is (14.7 + 4.5) / (14.7 + 1.3)
   = 1.20 at RON 104 and (14.7 + 8.2) / 16.0 = 1.43 at Kasseris's ON 115, against Garrett's (14.7 + 30) / (14.7 + 16) =
   1.46. At the same 18 psi, E85 at its knock limit keeps (1 - 0.195) / (1 - 0.359) = 1.26 times the power of 91 pump gas
@@ -3516,3 +3517,309 @@ headlines they would tell a first-time builder that a normal build does not work
 - The glance card's Power row carries the same comparison (and the caveat) only when the check is on.
 - Results unchanged: the rows, the run without boost and every pin are the same doubles with the check on or off
   (knockpage_ui.js 3, knock_ui.js 5).
+
+
+## Addendum 2026-11-15, part 13: the trapped charge at intake closing under boost (where 3.74 bar and 411 K come from)
+
+Question (from part 12). On the K24A2 + PT5862 at 18 psi (charge 2.254 bar absolute, 328.9 K after the intercooler) the
+cylinder at intake closing (IVC) holds 3.74 bar and 411 K: 66 % above the charge pressure and 82 K hotter. Together with a
+VE on the charge of 1.04-1.15, a plausible power and a knock integral far too pessimistic, that looked like a defect in
+the definition (the wrong crank angle) or in the physics (the source over-delivering, blow-through with a low pressure
+before the turbine, residual heating, wall heat, the fuel's energy). Result in short: nothing is mislabeled and no physics
+term is out of line. The 1.66 is 1.29 (the piston's compression between bottom dead centre and the stand-in cam's seat
+closing 60 deg after it) x 1.09 (the trapped mass above the charge's density in the BDC volume: the assumed 300 mm runner's
+ram) x 1.17 (the charge 56 K warmer than the source at the BDC volume) x 1.003 (R). Of the 82 K: 28 K is that compression
+after BDC, 36 K the filling (gas admitted while the cylinder is deep below the charge pressure is compressed by what follows
+as the runner's column packs it), 19 K the 2.8 % residual, 4 K the walls, -3 K the fuel vapour, -1 K the charge pushed back.
+The engine without boost has the same ratios (1.73; 99 K) and lands at the knock limit; there is no short-circuit (the
+exhaust pulse holds the port above the cylinder through the overlap); a pre-turbine pressure of 1.5 or 2 x boost moves the
+trapped state by 3-16 K, the power by 3-8 % at 5050-7100 rpm and the knock integral by -0.5 to +5 % (more pessimistic,
+if anything). The integral's
+pessimism under boost is the correlation's pressure term carried to twice the naturally aspirated pressures, plus up to a
+third from the model's airflow. Corrected: the page's text that put the pessimism on a hot, high-pressure trapped charge.
+No model change, no default changed, no pin changed.
+
+### M1 Instrumentation (`tools/validation/wave/ivc_audit.js`, `ivc_report.js`, `results/ivc_m_*.json`)
+
+The 18 psi pump-gas job of part 12 (`results/knock_k24_jobs.json`: the page's plan; the turbine's and the gate's areas as
+the closure found them per speed: 814 mm2 and 0 / 0 / 324 / 482 / 510 mm2 at 3500 / 5050 / 6600 / 7100 rpm) and the same
+engine with its pipes open to the air (`knock_val.js`'s naOf), settled as the page's back ends settle (8 cycles, then pairs
+to 0.4 % VE), then one cycle of cylinder 1 recorded through `lib.js`'s read-only hook (which now also exposes the intake
+valve's flow as the cylinder sees it, `_hIC`, `_xIC`, the exhaust valve flow's fresh fraction `_xE` and the step's starting
+pressure `_p0`): every step from one IVC crossing to the next. From it:
+- the states at BDC (540 deg in the cylinder's frame), at IVC (the model's own `eng.ivc`, 600 deg = 60 deg ABDC from the
+  cam's seat events; the recorded state equals the model's `cy.ivcP`, `cy.ivcT` to rounding, `ivc_ui.js` 1), and the IVC
+  state taken isentropically (its frozen gamma) to the BDC volume: p*, T*, as part 8's `ve_decomp.js`;
+- the pressure budget, exact by the gas law: p_ivc / p_src = (V_bdc / V_ivc)^gamma x (m / m_ref) x (T* / T_src) x
+  (R / R_src), m_ref = p_src V_bdc / (R_src T_src) (`ivc_ui.js` 2: to 1e-12);
+- the enthalpy budget from intake opening to IVC, exact by the model's own energy equation (dU = h dm - p dV - dQ, so with
+  H = U + pV, dH = h dm - dQ + V dp): H_ivc - m_ivc h_s = m_ivo (h_ivo - h_s) + sum_in dm (h_in - h_s) + sum_ex dm (h_ex - h_s)
+  - Q_wall + int V dp, h_s the fresh mixture's enthalpy at the source temperature, int V dp = Delta(pV) - sum p dV split at
+  BDC; each term in K as term / (m_ivc cp_eff), cp_eff the mixture's mean cp between T_src and T_ivc (closes to 1e-12 K,
+  `ivc_ui.js` 3);
+- the trapped mass as air, fuel and residual; the fresh charge delivered through the intake valve (net), the fresh charge
+  leaving by the exhaust valve (short-circuited) and drawn back; the trapping ratio;
+- the runner's end cell (the port) static and total pressure mass-averaged over the inflow; the mouth's mean; the exhaust
+  port's, the cylinder's and the intake port's mean pressures over the seat overlap (intake opening to exhaust closing);
+- the knock integral (knockLib, ON 95, from IVC to 90 % burned) on this cycle, and with one thing changed (M6);
+- one change at a time: IVC moved (`ivcShift`, the opening held), the runner's length and bore, and the turbine's area
+  found at each speed for a time-mean static p3 of K x boost with the gate shut (`p3x`, M5).
+1-degree traces of p, T, m, x, the valve flows and the four pressures are in `results/ivc_m_base.json` (`traces=1`).
+
+### M2 The trapped state against the charge (whole cycle, cylinder 1)
+
+| case, rpm | source bar / K | BDC bar / K | IVC bar / K | p*, T* at the BDC volume | p_ivc / p_src = compression x mass x T* x R | air / fuel / residual (mg; residual %) | fresh delivered / short-circuited (mg) | trapping | port during inflow, static / total bar | overlap: exhaust port / cylinder / intake port bar | VE on the charge | knock I (ON 95) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 18 psi 3500 | 2.254 / 328.9 | 2.529 / 367.0 | 3.016 / 386.5 | 2.328 / 362.1 | 1.338 = 1.296 x 0.935 x 1.101 x 1.003 | 1373.0 / 114.4 / 50.2 (3.27) | 1487.5 / 0.156 | 0.9999 | 2.197 / 2.243 | 2.213 / 2.011 / 2.118 | 0.977 | 3.889 |
+| 18 psi 5050 | 2.254 / 328.9 | 2.831 / 382.4 | 3.739 / 410.6 | 2.891 / 385.1 | 1.659 = 1.294 x 1.092 x 1.171 x 1.003 | 1611.0 / 134.3 / 50.8 (2.83) | 1745.4 / 0.157 | 0.9999 | 2.200 / 2.316 | 2.285 / 2.153 / 2.376 | 1.147 | 4.354 |
+| 18 psi 6600 | 2.254 / 328.9 | 2.387 / 377.8 | 3.603 / 417.2 | 2.783 / 391.3 | 1.598 = 1.295 x 1.034 x 1.190 x 1.003 | 1520.4 / 126.7 / 54.4 (3.20) | 1647.0 / 0.000 | 1.0000 | 2.203 / 2.362 | 2.284 / 2.367 / 2.200 | 1.082 | 3.192 |
+| 18 psi 7100 | 2.254 / 328.9 | 2.326 / 383.0 | 3.502 / 421.9 | 2.710 / 395.9 | 1.554 = 1.293 x 0.995 x 1.204 x 1.003 | 1458.9 / 121.6 / 56.3 (3.44) | 1580.5 / 0.000 | 1.0000 | 2.097 / 2.289 | 2.262 / 2.365 / 1.968 | 1.038 | 2.863 |
+| NA 3500 | 1.013 / 298.1 | 1.112 / 363.4 | 1.322 / 383.2 | 1.020 / 358.9 | 1.304 = 1.296 x 0.831 x 1.204 x 1.007 | 583.9 / 48.7 / 44.9 (6.62) | 632.6 / 0.000 | 1.0000 | 0.999 / 1.024 | 1.833 / 1.508 / 1.115 | 0.838 | 0.901 |
+| NA 5050 | 1.013 / 298.1 | 1.269 / 366.2 | 1.751 / 397.4 | 1.350 / 372.3 | 1.728 = 1.297 x 1.063 x 1.249 x 1.004 | 767.6 / 64.0 / 35.2 (4.06) | 831.5 / 0.000 | 1.0000 | 1.001 / 1.057 | 1.466 / 1.263 / 1.127 | 1.102 | 1.110 |
+| NA 6600 | 1.013 / 298.1 | 1.065 / 358.2 | 1.610 / 396.1 | 1.244 / 371.3 | 1.589 = 1.295 x 0.982 x 1.245 x 1.004 | 711.8 / 59.3 / 29.7 (3.71) | 771.1 / 0.000 | 1.0000 | 0.965 / 1.041 | 1.214 / 1.148 / 0.890 | 1.022 | 0.735 |
+| NA 7100 | 1.013 / 298.1 | 1.007 / 363.3 | 1.534 / 401.4 | 1.184 / 376.2 | 1.514 = 1.296 x 0.922 x 1.262 x 1.004 | 666.9 / 55.6 / 29.8 (3.96) | 722.5 / 0.000 | 1.0000 | 0.937 / 1.031 | 1.169 / 1.242 / 1.094 | 0.957 | 0.643 |
+
+Read:
+- The pressure at IVC is mostly the piston's compression after BDC with the intake still open: the stand-in cam closes 60
+  deg ABDC seat to seat (28 deg ABDC at 0.050 in, the sin2 lift through 0.050 in 31.7 deg inside the seat events), where the
+  volume is V_bdc / 1.213, a factor 1.29 at gamma 1.36. The "10-20 %" expected for compression belongs to a closing near
+  35-45 deg ABDC (M3: 1.12 at 40 deg, 1.19 at 50 deg). Taken back to the BDC volume the charge is 2.89 bar / 385 K at
+  5050 rpm: 1.28 x the source's pressure, which is 1.09 x its density (the ram) x 1.17 x its temperature.
+- The source does not over-deliver. It is the route's throttle-inlet total pressure at the intercooler's outlet
+  temperature, a reservoir the mouths draw from isentropically (part 6, F5); the port's static pressure averaged over the
+  inflow is 2.20 bar (2.4 % below the source), its total 2.32 bar (2.7 % above: the runner's wave, which an unsteady
+  column can carry above its reservoir), the mouth 2.20 bar. The 9 % excess mass is the 300 mm, 38.3 mm runner's ram (the
+  runner is an assumption, part 5 E7), the same as without boost (1.063 at 5050 rpm) and part 8's NA bias.
+- No blow-through. 0.16 mg of 1745 mg fresh charge leaves by the exhaust valve (trapping 0.9999). Over the seat overlap the
+  exhaust port is above the cylinder at 3500-5050 rpm (5050: 2.285 against 2.153 bar) and at 6600-7100 rpm 0.08-0.10 bar
+  below it with the intake port lower still (2.20 and 1.97 bar), so no fresh charge crosses; at
+  18 psi the model's time-mean static p3 is 0.80-1.18 x boost (not the 0.6-0.8 of part 6's 24.6 psi plan) and the pulse
+  arrives during the overlap; and the stand-in cam has 40 deg of seat overlap and none at 0.050 in (intake 11.7 deg ATDC,
+  exhaust 13.0 deg BTDC there). The residual, 2.8-3.4 %, is the clearance gas: at 5050 rpm the cylinder holds 56 mg at the overlap's TDC
+  (2.31 bar, 866 K in Vc) and traps 50.8 mg of residual.
+- The engine without boost has the same structure: p_ivc / p_src 1.30-1.73 (boosted 1.34-1.66), T_ivc - T_src 85-103 K
+  (boosted 58-93 K), residual 3.7-6.6 %, no short-circuit.
+
+### M3 The temperature budget, intake opening to IVC (K)
+
+| case, rpm | T_ivc - T_src | residual at IVO | gas out by the exhaust valve | gas back from the exhaust | air above the source (runner walls) | fuel vapour at 298 K | charge pushed back | cylinder wall | int V dp IVO-BDC (filling) | int V dp BDC-IVC | sum | closure |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 18 psi 3500 | 57.6 | 24.3 | -5.0 | 2.0 | 2.3 | -3.6 | -3.6 | 5.6 | 18.7 | 16.9 | 57.6 | -2e-13 |
+| 18 psi 5050 | 81.7 | 22.4 | -4.4 | 0.7 | 0.3 | -3.4 | -1.3 | 3.6 | 36.0 | 28.0 | 81.7 | -4e-13 |
+| 18 psi 6600 | 88.3 | 32.4 | -8.7 | 0.5 | -1.1 | -3.3 | -1.0 | 2.6 | 26.9 | 40.0 | 88.3 | -1e-14 |
+| 18 psi 7100 | 93.0 | 37.0 | -10.2 | 0.5 | 0.4 | -3.3 | -3.3 | 1.7 | 30.0 | 40.3 | 93.0 | -4e-13 |
+| NA 3500 | 85.0 | 61.4 | -14.1 | 8.8 | 26.4 | 0.0 | -25.7 | 2.9 | 8.7 | 16.6 | 85.0 | 2e-13 |
+| NA 5050 | 99.2 | 28.0 | -1.8 | 2.4 | 7.1 | 0.0 | -5.2 | 3.9 | 33.7 | 31.2 | 99.2 | -4e-13 |
+| NA 6600 | 98.0 | 37.8 | -9.9 | 1.2 | 5.2 | 0.0 | -4.4 | 4.1 | 25.4 | 38.6 | 98.0 | -9e-13 |
+| NA 7100 | 103.2 | 44.6 | -12.4 | 0.6 | 3.4 | 0.0 | -4.2 | 3.0 | 28.6 | 39.6 | 103.2 | -6e-13 |
+
+Read (5050 rpm, the part 12 case; the 82 K):
+- Compression after BDC (int V dp BDC-IVC): 28.0 K, of which 25.5 K is T_ivc - T*, the isentropic part.
+- The filling (int V dp IVO-BDC): 36.0 K, the largest term. The cylinder falls to 1.34 bar at 60 deg after TDC (0.6 x the
+  charge's pressure; without boost 0.55 bar, 0.54 x) while the runner's column accelerates, and rises to 2.83 bar at BDC as
+  the column packs it; gas admitted at the low pressure arrives at the source's stagnation enthalpy and is then compressed
+  by what follows (each parcel from about 1.4-2 bar to 2.8 bar). It is the first law of a well-mixed cylinder, exact here
+  (closure 4e-13 K), the same size without boost (33.7 K), and its size follows the ram (M5: the 150 mm runner 368 K at
+  BDC volume against 385 K). No published value of this term for a boosted engine was found.
+- The residual: 22.4 K brought in by the burned gas in the cylinder at intake opening (927 K), less 4.4 K of it pushed out
+  through the exhaust valve during the overlap, plus 0.7 K drawn back: 18.7 K net.
+- The walls: 3.6 K (Woschni's gas-exchange term as published, part 7 G3; 1.7-5.6 K over the speeds); the runner's walls
+  (320 K against the 329 K charge) 0.3 K; the fuel vapour -3.4 K (it joins at its 298.15 K datum; this job counts no
+  evaporation from the charge, part 11's legacy pump setting, which would cool it further); the charge pushed back into the
+  runner before IVC -1.3 K. So wall heat, the port's heat law and the fuel's energy accounting are not the cause: together
+  with the push-back they are -0.8 K.
+- Published forms: the Fox-Cheng-Heywood residual as written by Oberg and Eriksson (part 8 H2; read again 2026-11-15:
+  "xRG = C1 (pem/pim)^((g+1)/(2g)) (OF/N) sqrt(pem - pim) + C2 1/(lambda rc) (pim/pem)^(1/g)", C1 0.4205, C2 0.5869 fitted on
+  their engine, p_em and p_im the mean manifold pressures) gives 6.5 % at 5050 rpm from the second term alone (p_em / p_im
+  1.061 with the model's total p3, lambda 0.822, rc 10.5; the overlap term is small with this cam): the model's 2.8 % is
+  about half, the same factor part 8 found without boost (2.5-4.0 against 6.3 %), not a boosted defect. No published
+  breakdown of the charge's heating during induction in a boosted SI engine with numbers was found (searched; two theses read
+  in part, neither gives an IVC temperature with its manifold state at full load).
+
+### M4 The intake closing: label, timing, effect (`ivcShift`; the opening held, so the seat duration changes)
+
+The label is right: the state is the model's own at its IVC, and the knock integral starts there as the Livengood-Wu
+method does (McKenzie and Cheng, part 12 L1). The cam is the 4-Stroke tab's stand-in (IVO 20 / IVC 60 / EVO 60 / EVC 20 deg
+seat to seat, part 5 E7). The K24A2's own events are still not citable (searched 2026-11-15: aftermarket cam pages give
+their own cams only). What could be read: the 2004-08 TSX's K24A2 has a 25 deg intake cam phaser ("The K24A2 in the TSX
+came with 25 degrees", Hybrid Racing, 50-degree VTC gear 14310-RBC-003 product page; K20A2/A3/Z1/Z3 50 deg), and on
+turbocharged K engines the intake cam advance "generally needs to be less than stock" (Hondata FlashPro help, "VTC tuning");
+an intake closing "typically 50 degrees after BDC" (Teodosio, PhD thesis, Naples, on a turbocharged SI engine,
+core.ac.uk/download/78395682.pdf); Stone's family of best intake closing, about 3 x the mean piston speed in deg ABDC (the
+page's induction deck, already cited): 50 deg at 5050 rpm, 66 deg at 6600 rpm. So the real IVC moves by up to 25 deg with
+the phaser and the tune; the sweep brackets it:
+
+| case, rpm | IVC deg ABDC (seat) | V_bdc / V_ivc | IVC bar / K | p*, T* | VE on the charge | knock I | brake hp |
+|---|---|---|---|---|---|---|---|
+| 18 psi 5050 | 40 | 1.085 | 3.190 / 394.2 | 2.861 / 383.6 | 1.139 | 4.244 | 403.2 |
+| 18 psi 5050 | 50 | 1.140 | 3.450 / 402.1 | 2.896 / 384.8 | 1.149 | 4.357 | 406.9 |
+| 18 psi 5050 | 60 | 1.213 | 3.739 / 410.6 | 2.891 / 385.1 | 1.147 | 4.354 | 405.6 |
+| 18 psi 5050 | 70 | 1.314 | 4.102 / 421.0 | 2.852 / 384.7 | 1.133 | 4.233 | 400.2 |
+| 18 psi 5050 | 80 | 1.446 | 4.541 / 432.8 | 2.784 / 383.5 | 1.109 | 4.044 | 391.1 |
+| 18 psi 6600 | 40 | 1.085 | 2.783 / 393.5 | 2.495 / 382.9 | 0.992 | 2.555 | 427.0 |
+| 18 psi 6600 | 50 | 1.140 | 3.154 / 404.7 | 2.647 / 387.4 | 1.040 | 2.883 | 449.7 |
+| 18 psi 6600 | 60 | 1.214 | 3.603 / 417.2 | 2.783 / 391.3 | 1.082 | 3.192 | 469.8 |
+| 18 psi 6600 | 70 | 1.315 | 4.158 / 431.3 | 2.890 / 394.3 | 1.115 | 3.451 | 485.4 |
+| 18 psi 6600 | 80 | 1.449 | 4.819 / 446.7 | 2.948 / 395.9 | 1.132 | 3.584 | 493.6 |
+| NA 5050 | 40 | 1.086 | 1.469 / 381.4 | 1.316 / 371.0 | 1.077 | 1.057 | 168.5 |
+| NA 5050 | 50 | 1.139 | 1.600 / 388.7 | 1.345 / 372.0 | 1.098 | 1.095 | 172.6 |
+| NA 5050 | 60 | 1.215 | 1.751 / 397.4 | 1.350 / 372.3 | 1.102 | 1.110 | 173.3 |
+| NA 5050 | 70 | 1.313 | 1.921 / 407.2 | 1.336 / 371.9 | 1.091 | 1.087 | 171.2 |
+| NA 5050 | 80 | 1.449 | 2.137 / 419.3 | 1.305 / 371.0 | 1.068 | 1.031 | 166.6 |
+| NA 6600 | 40 | 1.085 | 1.234 / 374.5 | 1.105 / 364.3 | 0.922 | 0.584 | 162.8 |
+| NA 6600 | 50 | 1.139 | 1.403 / 384.6 | 1.179 / 368.1 | 0.975 | 0.658 | 176.4 |
+| NA 6600 | 60 | 1.213 | 1.610 / 396.1 | 1.244 / 371.3 | 1.022 | 0.735 | 188.2 |
+| NA 6600 | 70 | 1.315 | 1.866 / 409.4 | 1.296 / 373.9 | 1.059 | 0.802 | 197.7 |
+| NA 6600 | 80 | 1.445 | 2.165 / 424.0 | 1.327 / 375.6 | 1.080 | 0.832 | 203.2 |
+
+Read: from 40 to 80 deg ABDC the IVC pressure goes 3.19 to 4.54 bar at 5050 rpm, and the state at the BDC volume hardly
+moves (2.78-2.90 bar, 383-385 K); the knock integral moves 4.04-4.36 at 5050 rpm (later closing traps a little less there)
+and 2.56-3.58 at 6600 rpm (later closing traps more there, VE 0.99 -> 1.13). The 3.74 bar is mostly where the cam closes;
+the knock integral follows the trapped mass and the burn, not the label.
+
+### M5 The pressure before the turbine calibrated (`p3x`: the turbine's area, gate shut, for a time-mean static p3 of 1.5 and 2 x boost, gauge, at each speed; part 6's calibration made at each speed)
+
+| rpm | p3 | p3 static / total x boost | turbine area mm2 (gate) | IVC bar / K | residual % | VE on the charge | brake hp (page basis) | pumping mep bar | knock I (ON 95) | end gas K at 90 % burned | peak bar |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 3500 | model | 0.80 / 0.83 | 814 (0) | 3.016 / 386.5 | 3.27 | 0.977 | 247.1 | 0.03 | 3.889 | 901 | 127.1 |
+| 3500 | 1.5 x | 1.50 / 1.52 | 512 (0) | 2.968 / 395.9 | 5.01 | 0.920 | 223.7 | 0.90 | 3.872 | 914 | 121.1 |
+| 3500 | 2 x | 2.00 / 2.01 | 409 (0) | 2.939 / 402.4 | 6.11 | 0.885 | 208.4 | 1.51 | 3.868 | 922 | 117.4 |
+| 5050 | model | 1.03 / 1.11 | 814 (324) | 3.739 / 410.6 | 2.83 | 1.147 | 405.6 | 1.09 | 4.354 | 938 | 150.9 |
+| 5050 | 1.5 x | 1.50 / 1.56 | 903 (0) | 3.769 / 416.4 | 3.56 | 1.129 | 392.4 | 1.57 | 4.461 | 947 | 149.6 |
+| 5050 | 2 x | 2.00 / 2.05 | 741 (0) | 3.786 / 422.4 | 4.30 | 1.110 | 376.6 | 2.19 | 4.568 | 956 | 148.0 |
+| 6600 | model | 1.16 / 1.27 | 814 (482) | 3.603 / 417.2 | 3.20 | 1.082 | 469.8 | 1.99 | 3.192 | 948 | 143.1 |
+| 6600 | 1.5 x | 1.50 / 1.60 | 1105 (0) | 3.594 / 420.7 | 3.72 | 1.063 | 456.0 | 2.23 | 3.189 | 954 | 141.2 |
+| 6600 | 2 x | 2.00 / 2.07 | 901 (0) | 3.568 / 425.7 | 4.47 | 1.035 | 434.2 | 2.66 | 3.202 | 960 | 138.3 |
+| 7100 | model | 1.18 / 1.30 | 814 (510) | 3.502 / 421.9 | 3.44 | 1.038 | 470.2 | 2.32 | 2.863 | 956 | 137.8 |
+| 7100 | 1.5 x | 1.50 / 1.60 | 1142 (0) | 3.488 / 425.1 | 3.91 | 1.021 | 456.7 | 2.51 | 2.874 | 960 | 136.0 |
+| 7100 | 2 x | 2.00 / 2.08 | 931 (0) | 3.469 / 430.6 | 4.68 | 0.992 | 433.7 | 2.91 | 2.876 | 968 | 133.0 |
+
+Read: with p3 at 1.5 / 2 x boost (the logged street range of part 6 F4 is 1.6-1.9 x) the trapped charge is 3-16 K warmer
+(residual +0.5 to +2.8 points), the VE on the charge 1.6-9.4 % lower, the brake power (part 6's basis) 3-8 % lower at
+5050-7100 rpm and 9-16 % at 3500 (247.1 -> 223.7 / 208.4 hp; 405.6 -> 392.4 / 376.6 hp at 5050; 469.8 -> 456.0 / 434.2 at 6600; 470.2 -> 456.7 / 433.7 at 7100) and the
+knock integral 0 to 5 % higher (4.354 -> 4.461 / 4.568 at 5050; unchanged within 0.5 % at 3500, 6600 and 7100): a little
+more pessimistic, not less. There is still no short-circuit; the overlap's back-flow grows. The engine side does not
+depend on the turbine's efficiency (held 0.75) beyond the gas after the turbine; the efficiency that would balance the
+compressor at these areas was not worked out here (part 6 F4: 0.34 / 0.30 at 3500 rpm). So p3 is not the one unknown
+behind the trapped state and the knock integral; it is worth up to 8 % of power and is still the measurement that settles
+the turbine's size (part 6).
+
+Runner length and bore (one change, the turbine's and gate's areas held):
+
+| case, rpm | runner mm (bore 38.3 mm unless stated) | p* / T* | mass / m_ref | VE on the charge | IVC bar / K | knock I | brake hp |
+|---|---|---|---|---|---|---|---|
+| 18 psi 5050 | 150 | 2.400 / 368.0 | 0.949 | 0.995 | 3.112 / 392.8 | 2.934 | 352.0 |
+| 18 psi 5050 | 300 | 2.891 / 385.1 | 1.092 | 1.147 | 3.739 / 410.6 | 4.354 | 405.6 |
+| 18 psi 5050 | 450 | 3.108 / 394.8 | 1.145 | 1.201 | 4.022 / 420.9 | 5.129 | 423.3 |
+| 18 psi 5050 | 300, bore 45 mm | 2.594 / 374.7 | 1.007 | 1.057 | 3.361 / 399.8 | 3.446 | 374.1 |
+| 18 psi 6600 | 150 | 2.647 / 384.6 | 1.001 | 1.047 | 3.430 / 410.2 | 2.848 | 455.4 |
+| 18 psi 6600 | 300 | 2.783 / 391.3 | 1.034 | 1.082 | 3.603 / 417.2 | 3.192 | 469.8 |
+| 18 psi 6600 | 450 | 2.610 / 394.1 | 0.963 | 1.007 | 3.382 / 420.3 | 2.902 | 430.1 |
+| 18 psi 6600 | 300, bore 45 mm | 2.847 / 391.0 | 1.059 | 1.108 | 3.682 / 416.8 | 3.293 | 482.4 |
+| NA 5050 | 150 | 1.094 / 355.5 | 0.901 | 0.929 | 1.420 / 379.7 | 0.709 | 140.1 |
+| NA 5050 | 300 | 1.350 / 372.3 | 1.063 | 1.102 | 1.751 / 397.4 | 1.110 | 173.3 |
+| NA 5050 | 450 | 1.350 / 377.8 | 1.047 | 1.086 | 1.746 / 402.9 | 1.130 | 170.1 |
+| NA 5050 | 300, bore 45 mm | 1.228 / 365.0 | 0.986 | 1.020 | 1.591 / 389.5 | 0.907 | 157.6 |
+| NA 6600 | 150 | 1.206 / 364.6 | 0.969 | 1.008 | 1.562 / 389.1 | 0.674 | 185.0 |
+| NA 6600 | 300 | 1.244 / 371.3 | 0.982 | 1.022 | 1.610 / 396.1 | 0.735 | 188.2 |
+| NA 6600 | 450 | 1.102 / 374.7 | 0.862 | 0.894 | 1.427 / 399.8 | 0.607 | 155.3 |
+| NA 6600 | 300, bore 45 mm | 1.265 / 368.3 | 1.007 | 1.048 | 1.639 / 393.1 | 0.749 | 195.1 |
+
+Read: the ram is the runner (part 8): 150 mm brings the mass to 0.95 x the charge's density in the BDC volume at 5050 rpm
+(VE on the charge 0.995, Garrett's 97 % range) and the integral to 2.93; a 45 mm bore at 300 mm 1.007 and 3.45. The real
+K24 manifold's runner (with a plenum and throttle) is not in the model and not published here.
+
+### M6 What the knock integral rests on
+
+| case, rpm | I as run | trapped mass at Garrett's 97 % VE on the charge (pressures x 0.97 / VE) | every pressure halved | IVC charge without its heating at BDC volume (T_ivc - (T* - T_src)), pressure held |
+|---|---|---|---|---|
+| 18 psi 3500 | 3.889 | 3.841 | 1.197 | 2.775 (33.2 K less) |
+| 18 psi 5050 | 4.354 | 3.277 | 1.340 | 2.524 (56.2 K less) |
+| 18 psi 6600 | 3.192 | 2.650 | 0.982 | 1.755 (62.4 K less) |
+| 18 psi 7100 | 2.863 | 2.550 | 0.881 | 1.514 (67.0 K less) |
+| NA 3500 | 0.901 | 1.154 | 0.277 | 0.455 (60.8 K less) |
+| NA 5050 | 1.110 | 0.894 | 0.342 | 0.496 (74.2 K less) |
+| NA 6600 | 0.735 | 0.673 | 0.226 | 0.332 (73.1 K less) |
+| NA 7100 | 0.643 | 0.658 | 0.198 | 0.277 (78.1 K less) |
+
+Read: the engine without boost carries the same in-cylinder heating (61-78 K at the BDC volume, more than boosted) and
+lands at the knock limit (0.64-1.11); the heating is part of what part 12's naturally aspirated validation already sees.
+Halving every pressure of the boosted cycle gives 0.88-1.34, next to the engine without boost: the boosted cycle's
+pressures are 2.1-2.3 x (p_ivc 3.74 against 1.75 bar at 5050 rpm), and the correlation's delay falls as p^-1.7, so the
+same cycle at twice the pressure has about 3.2 times the integral. The model's airflow above Garrett's 97 % VE on the charge
+(1.04-1.15 at 5050-7100 rpm) adds 1-33 % (4.354 -> 3.277 at 5050). So the absolute pessimism under boost is mostly the
+correlation's pressure term carried from the naturally aspirated pressures it was fitted at (Douaud and Eyzat 1978) to
+twice them with one octane number (K 0), plus the model's airflow; not a mislabeled or overheated trapped charge. Whether
+real end gas follows p^-1.7 at these pressures was not tested against data (no boosted knock-limit measurement with its
+cylinder pressure was read); published work fits the ON per engine (part 12 L1) and finds "beyond RON" behaviour under
+boost (Vuilleumier and Sjoberg, K negative), which the K input covers. The knock check's presentation is not changed (off by
+default, comparison first): the validation supports nothing more.
+
+Supersedes part 12 L6's "The model's high cylinder pressure (IVC 3.74 bar at a 2.25 bar charge at 5050 RPM: the VE bias of
+parts 3 and 8) and a hot IVC charge (411 K from 329 K) are the likely causes".
+
+### M7 What was changed
+
+- Page text only (web/index.html): the knock check's "Assumptions and raw numbers" line "What the validation supports"
+  (was: "under boost the model's cylinder pressure runs high (it breathes about 4 to 16% too well, and its charge at
+  intake closing is hot), so the absolute boosted figures below read far too pessimistic"; now: the boosted figures read
+  far too pessimistic; on the K24A2 + PT5862 the trapped charge is not the cause found (part 13): its IVC pressure is mostly
+  the piston's compression after BDC with the stand-in cam, and against the charge it is as warm and as dense as without
+  boost; the airflow adds up to about a third; most of the rest is the correlation's p^-1.7 at twice the pressure, about 3.2
+  times the integral, with one octane number per fuel), and one sentence in the Method text's knock item saying the same.
+- No change to the solver (wsFactory), et_wave, the WebAssembly, knockLib, the closure or any default; no pin changed.
+- Tools: `ivc_audit.js` (new), `ivc_report.js` (new), `lib.js`'s hook exposes four more values (read only).
+- Test: `web/tests/ivc_ui.js` (new, Node, about 5 s, 10 checks): the recorded IVC state is the model's, the pressure
+  budget's identity, the enthalpy budget's closure, the mass split, and that the page no longer gives the old attribution
+  and cites part 13 (5a fails on the page before this part).
+
+### M8 Verification
+
+- `kat.js` 66 of 66, `results/kat.json` byte-identical (the solver is not changed: `git diff` of web/index.html is two text
+  lines; rust/ untouched; the embedded WebAssembly unchanged, so JS / Rust / WebAssembly parity holds as before and the
+  suite's wave_wasm reran it).
+- `ivc_ui.js` 10 of 10. The knock integral in this cycle, 4.354 at 5050 rpm, against part 12's 4.343 (another settled cycle
+  of the same run: 0.25 %).
+- Suite: see M12.
+
+### M9 Not known
+
+- The K24A2's cam events and its phaser position at full load under boost (the IVC sweep bounds the effect: M4); the real
+  intake manifold (runner, plenum) and so the real ram; the pre-turbine pressure of this build (M5 bounds it); measured
+  in-cylinder pressure at IVC or a charge temperature on any boosted K24; a boosted knock-limit measurement to test the
+  correlation's pressure term.
+
+### M10 What it means for the build (plain words)
+
+The worrying number, 3.74 bar in the cylinder at 18 psi, is not a fault: it is where the stand-in cam closes the intake,
+60 degrees after the piston has already started back up, so the piston has squeezed the charge by about 30 % by then. Taken
+back to the bottom of the stroke the cylinder holds about 28 % more than the boost pressure, which is the intake runner
+packing it (about 9 % more air, an effect of the assumed runner) and the charge warming by about 56 K from leftover exhaust
+gas and the filling itself, as it does in the same engine without boost. The model does not blow fresh charge out of the
+exhaust at this cam, and a more realistic pressure before the turbine (1.5 to 2 times boost) costs about 3 to 8 % of the
+simulated power and makes the knock estimate slightly worse, not better. The knock estimate is pessimistic under boost
+because its correlation, fitted on engines without boost, reacts strongly to cylinder pressure: use it to compare fuels
+and settings, as the page already says. Logging the pre-turbine pressure is still the most useful single measurement for
+the turbo's size and the power figure; it will not, by itself, make the knock estimate an absolute limit.
+
+### M11 Summary rows (section 6, as of 2026-11-15, part 13)
+
+| Difference | Status | Evidence |
+|---|---|---|
+| Boosted IVC state 3.74 bar / 411 K at a 2.25 bar / 329 K charge | correct and correctly labeled: 1.29 piston compression after BDC (stand-in cam 60 deg ABDC) x 1.09 ram x 1.17 heating; 82 K = 28 compression + 36 filling + 19 residual + 4 walls - 3 fuel - 1 pushed back; same structure without boost | M2, M3 |
+| Source over-delivery, short-circuit, wall heat, fuel energy | none found: port static 2.4 % under the source, trapping 0.9999, walls + runner + fuel + push-back -0.8 K | M2, M3 |
+| IVC timing | not citable for the K24A2; 40-80 deg ABDC moves the IVC pressure 3.19-4.54 bar and the knock integral 4.04-4.36 at 5050 rpm | M4 |
+| p3 at 1.5 / 2 x boost | power -3 to -8 % at 5050-7100 rpm (-9 to -16 % at 3500), trapped charge +3-16 K, knock integral -0.5 to +5 % | M5 |
+| Knock pessimism under boost | the correlation's p^-1.7 at twice the NA pressures (halved: 1.34 against NA 1.11) plus the model's airflow (up to a third); page text corrected | M6, M7 |
+
+### M12 How to rerun; suite
+
+```
+node tools/validation/wave/ivc_audit.js cases=b18,na rpms=3500,5050,6600,7100 tag=m_base traces=1   # ~20 s
+node tools/validation/wave/ivc_audit.js cases=b18 rpms=3500,5050,6600,7100 p3x=1.5 tag=m_p3x1.5      # and p3x=2
+node tools/validation/wave/ivc_audit.js cases=b18,na rpms=5050,6600 ivcShift=-20 tag=m_ivc-20        # -10, 10, 20
+node tools/validation/wave/ivc_audit.js cases=b18,na rpms=5050,6600 runnerL=0.15 tag=m_run0.15       # 0.45; runnerD=0.045 tag=m_rund45
+node tools/validation/wave/ivc_report.js                                                             # the tables
+node web/tests/ivc_ui.js
+```
+SUITE_PLACEHOLDER
