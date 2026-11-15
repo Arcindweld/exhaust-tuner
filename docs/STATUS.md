@@ -2138,3 +2138,22 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   pump limit 1.20-1.43 absolute against 1.46). Charge-temperature sensitivity 2-8 times weaker than the published rule.
 - Details: docs/WAVE_VALIDATION_2026-11-11.md part 12; docs/BOOST_AUDIT_2026-11-12.md addendum 2026-11-15.
   Tests: web/tests/knock_ui.js, web/tests/knockpage_ui.js (new), wave_wasm.js (+ the trace). Pins changed: none.
+
+## 2026-11-15, part 13: the trapped charge at intake closing under boost (3.74 bar / 411 K taken apart)
+
+- Question: on the K24A2 + PT5862 at 18 psi the cylinder at IVC holds 3.74 bar / 411 K against a 2.25 bar / 329 K charge;
+  mislabeled crank angle, over-delivering source, blow-through, residual, wall or fuel heating?
+- Instrumented (tools/validation/wave/ivc_audit.js, ivc_report.js; results/ivc_m_*.json): exact pressure budget (gas law)
+  and enthalpy budget IVO -> IVC (the model's own energy equation, closes to 1e-12 K), mass split, short-circuit, port and
+  overlap pressures, the boosted case and the same engine without boost, 3500-7100 rpm.
+- Found: correct and correctly labeled. 1.66 = 1.29 (piston compression after BDC: the stand-in cam closes 60 deg ABDC seat
+  to seat) x 1.09 (the assumed runner's ram) x 1.17 (56 K of heating at the BDC volume) x 1.003; 82 K = 28 compression
+  after BDC + 36 filling + 19 residual + 4 walls - 3 fuel - 1 pushed back. No short-circuit (trapping 0.9999). The engine
+  without boost has the same ratios and lands at the knock limit. IVC 40-80 deg ABDC: IVC pressure 3.19-4.54 bar, knock
+  integral 4.04-4.36 at 5050 rpm. p3 at 1.5 / 2 x boost: power -3 to -8 % (5050-7100 rpm), knock integral +0-5 %.
+- The knock check's pessimism under boost: mostly the correlation's p^-1.7 at twice the NA pressures (halving the boosted
+  pressures gives 1.34 against the NA engine's 1.11), plus up to a third from the model's airflow. Page text that blamed
+  a hot, high-pressure trapped charge corrected (Assumptions line and Method text); presentation unchanged (off by
+  default, comparison first).
+- No model, default or pin changed; kat.js 66/66 byte-identical. Test: web/tests/ivc_ui.js (new).
+- Details: docs/WAVE_VALIDATION_2026-11-11.md part 13.
