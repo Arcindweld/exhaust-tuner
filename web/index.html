@@ -20247,6 +20247,64 @@ const WAVE_WASM_B64='AGFzbQEAAAABgwMxYAF/AGACf38AYAJ/fwF/YAN/f38Bf2ACfHwBfGABfAF
    opens until it balances (a speed where even the shut gate leaves the turbine short is marked: there the boost could not
    be held, which this steady model does not follow). A typed turbine area or gate area replaces the search for it. The
    search is a secant in ln(area) (the turbine) or in area (the gate), kept inside the last bracket, to 0.5 % of the power. */
+/* ----- the knock estimate (2026-11-15; docs/WAVE_VALIDATION_2026-11-11.md part 12) -----
+   Self-contained (also put into the simulation's worker as text). From cylinder 1's trace (runSpeed's opts.trace: angle, p,
+   T, x at the start of every step of the last two cycles): the closed period from its intake closing; the unburned gas's
+   temperature by isentropic compression of the charge trapped at IVC along the cylinder pressure, with that mixture's own
+   cp(T) and R from the engine's gas (McKenzie and Cheng, SAE 2016-01-0699: "the isentropic compression of the end gas" from
+   the cycle simulation's IVC temperature); the Livengood-Wu integral of dt / tau from IVC to the crank angle where the
+   Wiebe burn reaches xEnd (0.9 unless set: Chun and Heywood's measured "about 10%" unburned at knock, SAE 902134), with
+   Douaud and Eyzat's tau (SAE 780080) as ANSYS Fluent's theory guide 12.2-2 gives it: 0.01768 s (ON/100)^3.402 (p/atm)^-1.7
+   exp(3800 K / T). Knock is predicted where the integral reaches 1 before xEnd. An estimate: the correlation's octane
+   number had to be fitted to each engine and fuel in the published work (Kasseris and Heywood, SAE 2012-01-1284). */
+function knockLib(WS){
+  const ATM=101325, DE={A:0.01768,a:3.402,n:1.7,B:3800};
+  const tau=(ON,p,T,c)=>{ c=c||DE; return c.A*Math.pow(ON/100,c.a)*Math.pow(p/ATM,-c.n)*Math.exp(c.B/T); };
+  // the Wiebe (a 5, m 2, the model's) angle after the start of burn where the burned fraction is xb
+  const burnAngle=(dur,xb)=>dur*Math.pow(Math.log(1/(1-xb))/5,1/3);
+  // Kalghatgi's octane index OI = RON - K (RON - MON) (Wang et al., Fuel 209 (2017) 172-183); K 0 is the RON
+  const octaneIndex=(ron,mon,K)=>ron-(K||0)*(ron-(mon!=null?mon:ron));
+  // the closed period: points {u (deg after IVC), p, T (the single zone's), x} from the first IVC crossing, one cycle
+  function closedPeriod(tr,eng){
+    const n=Math.floor(tr.length/4), iv=eng.ivc; let k0=-1;
+    for(let k=1;k<n;k++){ const a=tr[4*(k-1)], b=tr[4*k]; if(b>=a?(a<iv&&b>=iv):(iv>a||iv<=b)){ k0=k; break; } }
+    if(k0<0) return null;
+    const pts=[]; let u=0;
+    for(let k=k0;k<n;k++){ if(k>k0){ let d=tr[4*k]-tr[4*(k-1)]; if(d<0) d+=720; u+=d; } if(u>=720) break; pts.push({u,p:tr[4*k+1],T:tr[4*k+2],x:tr[4*k+3]}); }
+    return pts;
+  }
+  // the unburned temperature: ds = 0, cp(T) dT / T = R dp / p, the mixture trapped at IVC (x fixed), each step solved with
+  // cp at the step's mean temperature (three passes); dT0 shifts the IVC temperature (the boost and charge-temperature estimates)
+  function unburned(pts,G,dT0){
+    const x0=pts[0].x; let T=pts[0].T+(dT0||0); const Tu=[T];
+    for(let k=1;k<pts.length;k++){ const r=pts[k].p/pts[k-1].p; let T2=T;
+      for(let it=0;it<3;it++){ let R, cp; if(G){ const g=WS.gas.at(G,0.5*(T+T2),x0); R=g.R; cp=g.cp; } else { R=WS.RG; cp=WS.CP; } T2=T*Math.pow(r,R/cp); }
+      T=T2; Tu.push(T); }
+    return Tu;
+  }
+  // o: {ON, xEnd (0.9), pScale (1: the cylinder pressure scaled, the boost estimate), dT0 (0 K), c (the correlation)}
+  function integral(pts,Tu,eng,rpm,o){
+    const uIgn=((eng.ign-eng.ivc)%720+720)%720, dur=eng.e.burn.dur, uEnd=uIgn+burnAngle(dur,o.xEnd||0.9), uTdc=((720-eng.ivc)%720+720)%720, w=6*rpm, ps=o.pScale||1;
+    let I=0, uK=null, TuEnd=NaN, TuMax=0, pMax=0;
+    for(let k=1;k<pts.length;k++){ const u0=pts[k-1].u; if(u0>=uEnd) break; const u1=Math.min(pts[k].u,uEnd), f=(u1-u0)/(pts[k].u-u0);
+      const p1=pts[k-1].p+f*(pts[k].p-pts[k-1].p), T1=Tu[k-1]+f*(Tu[k]-Tu[k-1]);
+      const dI=(u1-u0)/w/tau(o.ON,ps*0.5*(pts[k-1].p+p1),0.5*(Tu[k-1]+T1),o.c);
+      if(uK===null&&I+dI>=1) uK=u0+(1-I)/dI*(u1-u0);
+      I+=dI; TuEnd=T1; if(T1>TuMax) TuMax=T1; if(p1>pMax) pMax=p1; }
+    return {I,knockAt:uK===null?null:uK-uTdc,TuEnd,TuMax,pMax:ps*pMax,ca50:uIgn+burnAngle(dur,0.5)-uTdc,caEnd:uEnd-uTdc,Tivc:Tu[0],pIvc:ps*pts[0].p};
+  }
+  function check(tr,eng,rpm,o){ const pts=closedPeriod(tr,eng); if(!pts) return null; return integral(pts,unburned(pts,eng.gas,o.dT0),eng,rpm,o); }
+  // the pressure factor s where the integral reaches thr (the cylinder pressure scaled by s, the IVC temperature shifted by
+  // dTof(s)): the boost estimate. Bisection in s on [0.2, 6]; null when even s 6 stays below
+  function limitScale(tr,eng,rpm,o,thr,dTof){
+    const pts=closedPeriod(tr,eng); if(!pts) return null;
+    const f=s=>integral(pts,unburned(pts,eng.gas,dTof?dTof(s):0),eng,rpm,Object.assign({},o,{pScale:s})).I-thr;
+    let lo=0.2, hi=6; if(f(lo)>0) return lo; if(f(hi)<0) return null;
+    for(let i=0;i<60;i++){ const m=0.5*(lo+hi); if(f(m)>0) hi=m; else lo=m; }
+    return 0.5*(lo+hi);
+  }
+  return {DE,ATM,tau,burnAngle,octaneIndex,closedPeriod,unburned,integral,check,limitScale};
+}
 function turboSimLib(WS,X){
   const KEYS=['ve','imep','pmax','resid','pEvo','tEx','overlapPort','gimep'];
   // the flat summary (the Rust turb_sum's order) -> named
