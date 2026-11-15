@@ -3470,9 +3470,11 @@ the changed marker): the check on / off, the pump's AKI (91), the picked fuel's 
 
 ### L9 Tests, pins, gasoline default
 
-- `web/tests/knock_ui.js` (new, Node, about 15 s, 25 checks): L3 (a), the trends, the retard, the trace changing nothing,
+- `web/tests/knock_ui.js` (new, Node, about 15 s, 26 checks): L3 (a), the trends, the retard, the trace changing nothing,
   tsimRun with and without the check (rows identical).
-- `web/tests/knockpage_ui.js` (new, Chromium, about 3 min): L7 on the page; the check off gives no line and the same rows.
+- `web/tests/knockpage_ui.js` (new, Chromium, about 3 min): L11 on the page: off by default with no knock text anywhere;
+  on, the comparison-first line, the raw numbers only in the collapsed list with their label, the caveat, the glance card,
+  the same rows on and off, metric units.
 - `web/tests/wave_wasm.js`: the trace JS = Rust bit for bit on two jobs (16284 and 10171 steps), and asking for it
   changes no result. QUICK run: all passed.
 - `tools/validation/wave/kat.js` 66 of 66, `results/kat.json` byte-identical. Pins changed: none. Default results:
