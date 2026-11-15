@@ -22686,7 +22686,10 @@ if(typeof document!=='undefined'){
    projects saved before it load with it. The power target is the flywheel's (Garrett: "HP = Horsepower Target
    (flywheel)"); a target typed at the wheels is divided by (1 - drivetrain loss) first, 12.5 % by default (Motor1, "What
    Is Drivetrain Loss?": about 10-15 % front-wheel drive, 15-20 % rear, 20-25 % all-wheel; it also says the loss is closer
-   to a fixed amount than a percentage). */
+   to a fixed amount than a percentage).
+   Since part 11 (2026-11-14, "the fuel of the engine" below) the same Fuel field is the engine's: the simulation burns it,
+   the exhaust is its products and the exhaust flow its A/F; this relation keeps Garrett's figures by fuel (E10 takes pump
+   gasoline's, ethanol and methanol E85's: Garrett gives none for them). */
 const OP_FUEL={
   pump:{name:'pump gasoline',afr:12,bsfc:0.55,band:[0.50,0.60],why:'Garrett’s own worked figures, the middle of its “0.50 to 0.60 and higher” for turbocharged gasoline engines'},
   race:{name:'race gasoline',afr:12,bsfc:0.50,band:[0.50,0.55],why:'Garrett’s low end: “Race fuels and aggressive tuning are required to reach the low end”'},

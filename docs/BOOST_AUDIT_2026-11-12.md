@@ -1172,3 +1172,67 @@ project ends a preset's hold on the power field. operatingpoint_ui's legacy chec
 - The simulation burns gasoline at the A/F field's mixture; an E85 run is not modelled.
 - The reported builds sit above all three methods; closing that needs a measured VE and RPM of a built engine, not a
   different default.
+
+## Addendum (2026-11-14): the fuel is the engine's (E85 burned everywhere, not only in Garrett's relation)
+
+Asked for: the previous addendum's gap: with E85 picked only Garrett's boost relation changed; the turbine balance and the
+wave simulation still burned gasoline at the A/F field. Details, sources and every table: docs/WAVE_VALIDATION_2026-11-11.md
+part 11 (K1-K11).
+
+### What the page does now
+
+- **Fuel** (Intake tab, Engine; shown for every build, it was boosted-only): pump gasoline, race gasoline (the page's
+  gasoline, as before), E10, E85 (with **Ethanol in the E85, by volume**, 85 % default; ASTM D5798 allows 51-83 %), ethanol
+  (E100), methanol (M100). Advanced: **Mixture at full power, lambda** (blank: the A/F field read as gasoline's lambda, so a
+  typed 12 is lambda 0.822 and 8.06:1 on E85, never 12:1 of E85) and **Fuel evaporation in the simulation** (not counted, the
+  default and the page before; port injection, from the port walls; direct injection, 70 % from the charge; all from the
+  charge). A note under the field states the composition, stoichiometric ratio, heating value and latent heat (SI and US),
+  the lambda and A/F used, the evaporation, and that knock is not modelled.
+- **The one fuel**: the wave simulation burns it (CH_y O_z blend, its products, its vapour in the charge, its evaporation as
+  picked); the steady exhaust gas (EXH_GAS: turbine balance, its blade-speed form, the wastegate, the march after the turbine,
+  the manifold's gas cp, every speed of sound) is its products at that lambda; the exhaust density after the turbine uses its
+  R; the exhaust mass flow everywhere is air x (1 + 1/AFR) at its A/F (the turbo plan, turbine balance, wastegate, march,
+  manifold, build sheet, the simulation's staleness signature). Garrett's relation keeps its figures by fuel.
+- **Projects saved earlier** (no Fuel setting, or no lambda or evaporation setting) load as the page's gasoline with the
+  evaporation not counted and no lambda, whatever fuel was picked on the page: the results they had.
+
+### The K24A2 + PT5862 (0.63 A/R T3), pump gas against E85 at lambda 0.822 (wave simulation, brake, peak power speed)
+
+| boost | page's gasoline (12:1) | E10, port | E85, port | E85, not counted | E85, direct injection 70 % |
+|---|---|---|---|---|---|
+| 25.91 psi (178.66 kPa) | 586.4 hp @ 7100, 517.7 lb-ft | 591.7 hp, 521.4 lb-ft | 587.4 hp, 509.6 lb-ft | 562.2 hp | 661.8 hp @ 6050, 628.7 lb-ft |
+| VE / T at IVC / turbine inlet | 1.043 / 432 K / 1298 K | 1.041 / 431 / 1303 | 1.020 / 429 / 1271 | 1.017 / 430 / 1242 | 1.261 / 361 / 1227 |
+| turbine area / mean p3 / fuel | 763 mm2 / 347.5 kPa / 35.0 g/s | 756 / 350.8 / 36.4 | 741 / 356.3 / 51.0 | 720 / 362.5 / 50.8 | 890 / 338.0 / 53.7 |
+| 18 psi (124.11 kPa) | 472.0 hp @ 6050, 422.5 lb-ft | 476.0 hp, 425.3 lb-ft | 472.5 hp @ 7100, 412.2 lb-ft | 452.0 hp | 536.6 hp @ 6050, 514.6 lb-ft |
+| VE / T at IVC / turbine inlet | 1.154 / 422 K / 1274 K | 1.150 / 422 / 1279 | 1.017 (at 7100) / 423 / 1260 | 1.013 / 423 / 1231 | 1.253 / 352 / 1216 |
+| turbine area / mean p3 / fuel | 814 / 257.1 / 27.2 | 810 / 258.7 / 28.3 | 794 / 268.5 / 41.9 | 769 / 273.0 / 41.8 | 973 / 254.4 / 44.1 |
+
+(Brake figures read 4-16 % high: compare fuels, not engines. The K24A2 is port injected: the "port" column is its case.)
+Read: at the same boost and lambda E85 makes E10's power within 1 % (-0.7 %), 2-3 % less torque, a 20-35 K cooler exhaust, a
+smaller turbine area and a 1.5-4 % higher pressure before the turbine, and 40-48 % more fuel by mass. Only a direct-injected
+engine whose charge took 70 % of the latent heat would gain (+12-14 %).
+Against Garrett (Miata: 241 hp at 16 psi on 93 octane, 401 hp at 30 psi on E85, credited to the detonation threshold) and the
+reported 18 psi K24 builds (475 whp on 93 octane, 570 whp on E85): the model reproduces neither gain at equal boost, and for
+a port-injected engine it should not as far as the thermodynamics go. The gain is the boost and ignition timing E85's knock
+resistance allows, which the model does not predict; it predicts only the thermodynamic part at the boost and timing given.
+
+### Steady sections, E85 against E10 at lambda 0.822
+
+R 305.56 against 299.18 J/kg K (+2.1 %), cp at 1000 C 1390 against 1346 J/kg K (+3.3 %), gamma 1.2818 against 1.2858, sound
+speed and so every sound-speed-tuned length +0.9 % (+3.5 % against the page's stoichiometric gasoline, which stays the
+default's). Turbine balance at one point (0.4 kg/s air, 25 -> 180 C, 950 C, 300 / 130 kPa): exhaust 0.4496 kg/s (0.4333 on the
+page's gasoline at 12:1), after the turbine 849.6 C (840.3), pressure needed 219.4 kPa (232.7). The turbine inlet
+temperature field keeps 950 C when blank (no source gives an E85 figure).
+
+### Tests, pins
+
+- New: web/tests/fuel_ui.js (Node), web/tests/fuelpage_ui.js (Chromium); four E85 / blend / evaporation jobs in
+  wave_wasm.js; tools/validation/wave/fuel_k24.js, fuel_fit.py, fuel_flame.py.
+- Pins changed: none. kat.json byte-identical; the JavaScript with the default gasoline bit-identical to the WebAssembly
+  built before the change on every captured job.
+
+### Left
+
+- Knock, and so the boost or timing a fuel allows; ethanol's faster burn; an E85 turbine inlet temperature default.
+- The Sound tabs' own A/F fields (their flow estimates), the acoustic impedance's density (air's R) and the OpenWAM writer
+  (gasoline's LHV) do not take the fuel.

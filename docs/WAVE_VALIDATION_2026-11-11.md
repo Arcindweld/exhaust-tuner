@@ -3192,7 +3192,7 @@ sound-speed-tuned length) +0.9 %; against the page's stoichiometric gasoline +3.
 (0.4 kg/s of air, 25 -> 180 C, 950 C at the turbine, 300 / 130 kPa): exhaust 0.4496 kg/s on E85 (0.4333 on the page's
 gasoline at A/F 12), cp 1379 (1311) J/kg K, gas after the turbine 849.6 C (840.3), the pressure before the turbine needed
 219.4 kPa (232.7). Not changed: the turbine inlet temperature field (950 C when blank: no source gives an E85 figure; the
-simulation's is 30-35 K lower on E85, K7), the Sound tabs' own A/F fields for their flow estimates (engineFlow), the
+simulation's is 20-32 K lower on E85, K7), the Sound tabs' own A/F fields for their flow estimates (engineFlow), the
 acoustic impedances' density (rhoGas, air's R), the OpenWAM writer (its LHV and A/F stay gasoline's), and the oil heat
 (Garrett's rule by power, not fuel energy). No injector sizing is on the page. The boost relation keeps Garrett's figures by
 fuel (E85 8.0 x 0.75; E10 takes pump gasoline's, ethanol and methanol E85's).
@@ -3222,22 +3222,21 @@ high (parts 3 and 8), so they compare fuels, not engines.
 charge. At 18 psi the E85 power curve is flat between 6050 and 7100 RPM, so its peak moves; the VE at 7100 RPM is not
 comparable with the others' at 6050.)
 Read, for the K24A2 (port injected), port injection being the relevant row: at the same boost and lambda E85 makes the same
-power as E10 within 1 % (-0.9 % at 25.91 psi, -0.7 % at 18 psi) and 2-3 % less peak torque. Its vapour takes more of the
-cylinder (fuel vapour per mole of air: about 7.8 % for E85 at 8.06:1 against 2.4 % for gasoline) so the VE on the charge
-falls 2 points; the wetter, cooler exhaust (30-35 K) gives the turbine less work per kg, so the closure finds a smaller
+power as E10 within 1 % (-0.7 % at 25.91 psi and at 18 psi) and 2-3 % less peak torque. Its vapour takes more of the
+cylinder (fuel vapour per mole of air: about 7.2 % for E85 at 8.06:1 against 2.3 % for gasoline at 12:1) so the VE on the charge
+falls 2 points; the wetter, cooler exhaust (20-35 K at the valve and the turbine) gives the turbine less work per kg, so the closure finds a smaller
 turbine area and a 1.5-4 % higher pressure before it; 40-48 % more fuel by mass. Not counting the latent heat at all
-costs E85 another 4 % (the 3.2 % of its energy that evaporation would bring). Only if most of the evaporation cooled the
-charge (direct injection, 70 %) would the thermodynamics give E85 more: IVC 68-70 K cooler, VE +22 points, +12-13 % power
-at the same boost. That row is not the owner's engine.
+costs E85 another 4.3 % (the vapour's energy, 840.7 kJ/kg, 2.9 % of its LHV, is then missing). Only if most of the evaporation cooled the
+charge (direct injection, 70 %) would the thermodynamics give E85 more: IVC 68-71 K cooler, VE 10-22 points higher (the peaks at
+different speeds), +12-14 % power at the same boost. That row is not the owner's engine.
 
 ### K8 Against Garrett's statement and the reported builds (the boost audit's list)
 
 - Garrett's Miata (GTX2867R, 1.6 L): 241 hp at 16 psi on 93 octane, 401 hp at 30 psi on E85, credited to the higher
   detonation threshold ("compared to 105 octane"), the boost the tune could run. The model agrees in kind: at a fixed boost
-  (and timing) a port-injected engine gains nothing thermodynamically from E85; the gain is the boost E85 allows. The model
-  cannot say how much boost a fuel allows (no knock model). At its own scaling, the K24's power per absolute manifold
-  pressure is near constant (part "boost for power": 2.09 hp per kPa), so E85 at a boost 14 psi higher than pump gas would
-  give the Garrett-like jump; that boost is the tuner's knock limit, not an output of this model.
+  (and timing) a port-injected engine gains nothing thermodynamically from E85; the gain is the boost E85 allows, which the
+  model cannot say (no knock model). Run at a higher boost it gives the power of that boost (its power is near proportional
+  to the absolute manifold pressure, BOOST_AUDIT "how much boost for my power"), but the boost is the tuner's knock limit.
 - Reported K24 builds at 18 psi (BOOST_AUDIT): 475 whp on 93 octane (IPG, K20A2 head, GT35R) and 570 whp on E85 (DSport,
   Comp 6767, 8000 RPM shift), i.e. 543 and 651 hp at the crank at 12.5 %: the E85 build makes 20 % more than the pump build
   at the same boost, with a different turbo, head and RPM. The model at 18 psi: 476 (E10) and 472.5 hp (E85, port), 407-458
@@ -3257,7 +3256,7 @@ at the same boost. That row is not the owner's engine.
 
 ### K10 Tests, pins
 
-- `web/tests/fuel_ui.js` (new, Node, 2 s, 37 checks): K2-K5 by hand, the steady gas against the species, conservation.
+- `web/tests/fuel_ui.js` (new, Node, 2 s, 36 checks): K2-K5 by hand, the steady gas against the species, conservation.
 - `web/tests/fuelpage_ui.js` (new, Chromium): the default unchanged, E85's A/F, exhaust gas, sound speed, density and turbine
   balance by hand, the ethanol field, a typed lambda, the switch back to the last digit, the legacy project, both units.
 - `web/tests/wave_wasm.js`: four jobs added (E85 not counted and from the port walls on the four-cylinder collector; E85 under
