@@ -3273,3 +3273,246 @@ node web/tests/fuel_ui.js                                               # 2 s
 cd web && node tests/fuelpage_ui.js && node ../tools/validation/wave/fuel_k24.js [25.9124,18] [pump:none,e10:port,e85:port,e85:none,e85:di]
 QUICK=1 node web/tests/wave_wasm.js
 ```
+
+## Addendum 2026-11-15, part 12: a knock estimate (Livengood-Wu with Douaud and Eyzat on the model's cylinder pressure)
+
+Part 11 ended with "there is no knock model, so the model cannot predict the extra boost and timing E85 allows". This part
+adds an estimate: for the fuel picked, the compression ratio, the charge and the boost, whether the build is inside the
+knock limit at the page's ignition timing, how much retard brings it inside and what that costs (from the wave model
+itself), and the knock-limited boost for pump gas and E85. It is one published correlation on a single-zone model's
+pressure: rough, and labelled so on the page. No constant was fitted to make any build come out anywhere.
+
+### L1 Sources read (2026-11-15) and the values taken
+
+| Quantity | Value taken | Source |
+|---|---|---|
+| Autoignition delay (Douaud and Eyzat, SAE 780080, 1978) | tau = 0.01768 s x (ON/100)^3.402 x p^-1.7 x exp(3800 / T), p in atm, T in K ("An extensively tested correlation for knock in SI engines") | ANSYS Fluent 12 Theory Guide, section 12.2, Eq. 12.2-2 (afs.enea.it/project/neptunius/docs/fluent/html/th/node203.htm); the same constants "17.68 (ON/100)^3.402 p^-1.7 exp(3800/Tu)" in Kumar and Antony, Sadhana 33 (2008) 821-834 (ias.ac.in). Fluent's 0.01768 in its SI units is 17.68 ms; the original paper (saemobilus.sae.org/content/780080) was not readable |
+| Knock integral (Livengood and Wu, 5th Symposium on Combustion, 1955) | knock when the integral of dt / tau from intake closing reaches 1 | McKenzie and Cheng, SAE 2016-01-0699, Eq. 3 (core.ac.uk/download/83235125.pdf); Fluent 12.2 ("Ignition has occurred when Y_ig reaches 1"); Kumar and Antony: "If at any time prior to the end of combustion, (zeta) reaches the value 1, knock is said to occur" |
+| The end gas's temperature | "calculated from the isentropic compression of the end gas using real gas properties", starting from "the charge temperature at IVC obtained by a cycle simulation program" | McKenzie and Cheng, SAE 2016-01-0699 |
+| The burn end for the integral | 90 % burned: "The mass fraction of unburned fuel at the time of knock was about 10%" | M. Haghgooie, SAE 902134 (1990), abstract (saemobilus.sae.org) |
+| The correlation in published knock work on ethanol blends | "The Livengood-Wu autoignition integral approach was employed in the model along with the Douad-Eyzat correlation"; "The octane number (ON) in the pre-exponential term of the correlation was adjusted for each ethanol blend"; thermal (DI evaporation) benefit "from 5 octane numbers for DI gasoline" "to 18 octane numbers for E85" | Kasseris and Heywood, SAE 2012-01-1284, abstract |
+| Effective octane numbers so fitted | "ranging from 97 ONEFF. for gasoline to 115 ONEFF. for E85"; "little antiknock benefit beyond 30-40% ethanol by volume" (unless DI) | Kasseris, MIT PhD thesis 2011, abstract (dspace.mit.edu/handle/1721.1/69496; the thesis PDF itself would not download) |
+| Octane index | OI = RON - K x S, S = RON - MON; "If K is negative, a fuel with a high octane sensitivity is beneficial"; K "had a strong dependence on the intake air temperature, engine speed, and intake charge pressure"; Kalghatgi's 37 engines at full throttle average K -0.38; Remmert et al. -0.26 to -1.14 at 20-30 bar BMEP | Wang, Prakash, Aradi, Cracknell, Xu, "Significance of RON and MON to a modern DISI engine", Fuel 209 (2017) 172-183 (pure.coventry.ac.uk) |
+| K under boost | "Boosted conditions lead to "beyond RON" conditions"; turbocharged DISI vehicle K -0.6 to -0.9 (cited); K from 0.5 to -2.35 in transients | Vuilleumier and Sjoberg, SAE 2017-01-2234 (osti.gov/servlets/purl/1509666) |
+| Pump gasoline | test fuels "88 AKI/91 RON, 93 AKI/97 RON, and 95 AKI/101 RON"; ethanol RON 109 | ORNL/TM-2016/42, Theiss et al., Summary of High-Octane Mid-Level Ethanol Blends Study (info.ornl.gov/sites/publications/Files/Pub61169.pdf) |
+| Ethanol | RON "approximately 110", "MON of 90 (S=20)"; blends above 30-40 % converge at RON 103-105 | Chupka et al., NREL, SAE Int. J. Fuels Lubr. 8(2) 2015 (nrel.gov/docs/fy15osti/63091.pdf) |
+| E85 | (R+M)/2 99, RON 104, MON 94, "estimates" (ASTM tests "can't accommodate" its oxygen) | Sunoco E85-R (sunocoracefuels.com/fuel/e85-r) |
+| Race gasoline | Rockett 100: RON 105, MON 97; Sunoco EVO 10: RON 110, MON 100 | Street Muscle, "The Octane Game" (streetmusclemag.com/?p=5540); sunocoracefuels.com/fuels/evo-10 |
+| Charge temperature rule | "every 25-degree increase in inlet air temperature pushed an engine's octane demand by one full number" (carmakers' 1970s research, Tim Wusz as reported; degrees F) | Street Muscle, "The Octane Game" |
+| Knock-limited boost by compression ratio and octane | Vizard's "estimated" chart for a 1983 2 L SOHC four (the page's VIZ_BOOST, already on the Intake tab) | D. Vizard, How to Modify Ford S.O.H.C. Engines (1983), Fig. 11-3 |
+| Pump against E85, one engine | 241 hp at 16 psi on 93, 401 hp at 30 psi on E85 | Garrett, "Pump Gas vs E85" (part 11, K1) |
+
+Not read: Douaud and Eyzat's own paper, Heywood chapter 9, the Kasseris thesis body and Jo's thesis (MIT DSpace PDFs
+refused the download), NREL's 70443 (robots), a published knock-limited spark advance vs intake pressure table with
+numbers (the Sandia slides' plot has no labels). The pump fuel's sensitivity is taken as 8 from ORNL's 93 AKI / 97 RON
+pair (RON = AKI + 4, MON = AKI - 4), an assumption stated on the page; the default pump octane is 91 AKI (type 93).
+
+### L2 The method (`knockLib` in web/index.html; also in the simulation's worker)
+
+1. The engine: `runSpeed(eng, {trace: true})` (JavaScript) and `wave_trace(id, 1)` / `wave_trace_out` / `wave_trace_len`
+   (Rust, WebAssembly) record cylinder 1's state at the start of every step of the last two cycles: crank angle in its
+   frame, p, T, x. Read only: every result is the same double with or without it (`wave_wasm.js`, `knock_ui.js` 5).
+2. The closed period from the first intake-closing crossing in the record; T at that step is the model's own IVC
+   temperature (cy.ivcT), x its fresh fraction.
+3. The single-zone model has no unburned zone, so the end gas is computed as the standard approach does: the mixture
+   trapped at IVC compressed isentropically along the cylinder pressure, cp(T) dT / T = R dp / p, with that mixture's
+   cp and R from the engine's own gas (`gas.at(G, T, x_IVC)`), each step solved at its mean temperature (three passes).
+   No wall heat to or from the end gas.
+4. I = sum of dt / tau(ON, p, Tu) at the step means (dt = dtheta / 6 rpm), from IVC to the angle where the model's Wiebe
+   (a 5, m 2, 55 deg) reaches xEnd (0.9; an input); knock when I reaches 1 before it. ON = RON - K x (RON - MON), K 0
+   by default (an input).
+5. The timing: the model's burn starts at the 4-Stroke tab's 18 deg BTDC (CA50 10.47 deg ATDC). The retard: the speed of
+   the largest I run again (fresh, 8 cycles plus pairs to 0.4 % VE) with the burn started later, the turbine's and the
+   gate's areas held as the closure found them; bisection (7 steps) over 40 deg for I = 1; I = 0.7 and 1.3 by straight
+   lines in ln I between the runs made. Cost: the change in brake mean effective pressure (IMEP - Heywood's tfmep) at
+   that speed, applied to that speed's brake power.
+6. The knock-limited boost: that speed's trace with the pressure scaled by s and the IVC temperature moved by the charge's
+   change, t2(s) = t1 + (t2 - t1) ((PR s)^0.286 - 1) / (PR^0.286 - 1), t3 = t2 - eps (t2 - t_amb) with the route's own
+   compressor efficiency and intercooler effectiveness; bisection in s for I = 0.7, 1, 1.3; boost = s x the charge
+   pressure - 1 atm. For pump gas and E85 from the same trace (the picked fuel's), each with its own ON.
+
+### L3 Checks of the implementation (`knock_ref.py`, `knock_refdump.js`, `knock_ui.js`)
+
+(a) The integral against independent quadrature (knock_ref.py, Simpson with 20 000 intervals) on synthetic histories:
+
+| History | knock_ref.py | knockLib (knock_ui.js) |
+|---|---|---|
+| tau at ON 95, 40 atm, 800 K | 3.244104009 ms | the same to 1e-9 (and the hand formula to 1e-14) |
+| constant 40 atm, 800 K, ON 95, 5 ms | 1.541258 (5 / 3.244104) | 1.541258; reaches 1 at 58.394 deg = tau x 18000 deg/s |
+| ramps 20 -> 60 atm, 700 -> 950 K over 5 ms, ON 90 | 2.772628386 | within 2e-6 |
+| V / V0 = 1 - 0.9 sin u over 90 deg at 3000 rpm, p ~ V^-1.3, T ~ V^-0.3, ON 100 | 0.05901465136 | within 2e-5 |
+| isentropic, constant cp and R, 330 K, 1 -> 51 atm | 330 x 51^(R/cp) = 914.570774 K | to 1e-12 |
+
+(b) On the model's own trace (K24A2 + PT5862, 18 psi, pump gas, 5050 RPM; with the wall heat as the page runs it and with
+it off), Python's RK4 in ln p with cp(T) from a 1 K table of the model's gas gives the same unburned temperatures to
+0.0001 K and the same integral to 2e-7 (4.342995 against 4.342994; adiabatic 4.488139 against 4.488138). The gas's
+energy is linear in x to 1e-14, as the two-zone reference assumes.
+
+(c) Two-zone reference (knock_ref.py, written independently): from the same IVC state (3.74 bar, 410.7 K, 1.80 g),
+volume law, Wiebe and gas tables, an adiabatic unburned zone of the trapped mixture and a burned zone of products at one
+pressure, the heat released (4436.5 J) taken from the model's adiabatic run by its own energy balance. Against the single-
+zone pressure + isentropic method on the adiabatic run:
+
+| | single-zone p + isentropic (the page's method) | two-zone |
+|---|---|---|
+| Knock integral to 90 % burned (ON 95) | 4.488 | 4.695 (method -4.4 %) |
+| Unburned temperature at 90 % burned | 941.8 K | 943.7 K |
+| Peak pressure to 90 % burned | 153.4 bar | 156.5 bar (at most 2.5 % apart) |
+| Burned zone at 90 % burned | - | 2764 K |
+
+The single-zone pressure runs 2.5 % low against two zones (the burned gas's lower gamma in one zone), so the method's
+integral reads 4 % low; the wall heat in the page's run lowers it another 3 % (4.343). Both are small against the
+correlation's own uncertainty (L8).
+
+### L4 (b) Naturally aspirated stock engines on their rated fuel (`knock_val.js b`)
+
+The page's timing (18 deg BTDC, 55 deg) and the model's best-torque timing (a 4 deg sweep and a parabola) at the speed of
+the largest integral; 91 AKI = ON 95, 93 AKI = ON 97.
+
+| Engine | I on 91 / 93 by speed (page's timing) | T at IVC | MBT at the worst speed | I at MBT (91) |
+|---|---|---|---|---|
+| K24A2, CR 10.5 (the turbo build's pipes open to the air) | 2500: 1.21 / 1.13, 3500: 0.90 / 0.84, 4500: 1.06 / 0.99, 5500: 1.02 / 0.95, 6500: 0.75 / 0.70, 7000: 0.66 / 0.62 | 370-401 K | 2500 RPM: 22.3 deg BTDC, CA50 6.2 deg ATDC (IMEP 12.20 against 12.13 bar at the page's timing) | 1.50 |
+| LS3, CR 10.7 (ratings.js, one bank) | 2500: 1.28 / 1.19, 3500: 0.97 / 0.91, 4600: 1.18 / 1.10, 5500: 1.13 / 1.05, 5900: 1.05 / 0.98 | 375-410 K | 2500 RPM: 22.2 deg, CA50 6.2 deg ATDC | 1.57 |
+
+Read: both stock engines on premium come out at or just past the limit (0.66-1.28 at the page's timing, 1.5-1.6 at MBT
+at 2500 RPM), the low speeds worst. Production engines at wide-open throttle and low speed do run at their knock limit
+under knock control, so this is the right neighbourhood, slightly on the knocking side; the model's known biases (VE
+4-16 % high, parts 3 and 8; a hot IVC charge, 370-410 K) push it that way. The page's timing is 4 deg later than the
+model's MBT (0.6 % less IMEP), so "the page's timing" is MBT-ish.
+
+### L5 (c) Trends (K24A2 + PT5862, 18 psi pump job, 5050 RPM, turbine and gate areas held; `knock_val.js c, v`)
+
+| Change | Integral (ON 95) | Published |
+|---|---|---|
+| base | 4.343 (IVC 410.7 K, 3.74 bar; end gas 939 K; peak 151 bar) | |
+| charge -20 / -10 / +10 / +20 K | 4.233 / 4.322 / 4.369 / 4.371 (IVC 396 / 404 / 417 / 424 K): 0.009-0.036 octane numbers per K | 1 octane number per 25 F = 0.072 per K (Street Muscle): the model is 2-8 times less sensitive. The colder charge is denser at the same boost and so burns to a higher pressure (p^-1.7), which offsets most of the cooler end gas; with E/R only 3800 K the correlation's temperature dependence is weak |
+| compression 9.0 / 9.5 / 10.0 / 10.5 / 11.0 | 3.117 / 3.479 / 3.901 / 4.343 / 4.829 | the direction of every source; Vizard below |
+| octane 80 / 90 / 95 / 100 / 110 | 7.793 / 5.220 / 4.343 / 3.648 / 2.637 (I ~ ON^-3.4 by construction) | |
+| burn end 85 / 90 / 95 % | 3.868 / 4.343 / 4.929 | the convention moves I by -11 / +13 % |
+| start of burn 22 / 18 / 14 / 10 deg BTDC (CA50 6.5 / 10.5 / 14.5 / 18.5) | 5.199 / 4.343 / 3.543 / 2.867; BMEP 30.15 / - / 29.06 / 28.15 bar | retard reduces knock (every source) |
+| K 0 / -0.38 / -0.9 | ON 95 / 98.0 / 102.2 for the 91 AKI fuel (RON 95, MON 87); E85 104 / 107.8 / 113 | Wang et al.: K negative under boost; the default K 0 is conservative for high-sensitivity fuels |
+| boost 10 / 18 / 25.9 psi (full runs, every speed) | worst 2.67 / 4.34 / 6.38 (pump), 1.77 / 2.86 / 4.19 (E85) | more boost -> closer to knock |
+
+Against Vizard's chart (knock-limited boost in psi at the page's timing, I = 1, the 18 psi job's speed rerun at each
+compression ratio, charge temperature held; Vizard's "estimated" 1983 values in brackets):
+
+| CR | 95 RON | 98 RON | 100 RON | 105 RON | ON 115 |
+|---|---|---|---|---|---|
+| 8 | 4.9 (3.5) | 6.1 (6.5) | 7.0 (9.5) | 9.2 (13) | 14.0 |
+| 9 | 2.1 (1.5) | 3.1 (4) | 3.9 (6.5) | 5.8 (9.5) | 9.9 |
+| 10 | 0.0 (0) | 0.9 (2) | 1.6 (4) | 3.2 (6) | 6.8 |
+| 11 | -1.7 (-) | -0.9 (-) | -0.3 (-) | 1.1 (-) | 4.3 |
+
+Within 1.5 psi of the chart at 95 RON and 1 psi at 98, 2-4 psi lower at 100-105 RON (Vizard himself says his chart may be
+a grade pessimistic). For the boost check of the method (L2 6): the 18 psi trace scaled to 10 and 25.9 psi predicts
+2.48 and 6.74 (pump) against the full runs' 2.67 and 6.38 (-7 / +6 %); E85 1.63 / 4.45 against 1.77 / 4.19.
+
+### L6 (d) The K24A2 + PT5862 by fuel (results/knock_val.json; port injection, lambda 0.822, part 11's journey)
+
+The integral at the page's timing (worst speed 5050 RPM at every boost; 91 AKI = ON 95; E85 ON 104), the retard for 1
+(band 0.7 / 1.3) and its cost in brake power at that speed:
+
+| Boost, fuel | I at 3500 / 5050 / 7100 RPM | retard to I = 1 (band 1.3 .. 0.7) | cost at 5050 RPM (band) |
+|---|---|---|---|
+| 10 psi, 91 pump | 2.36 / 2.67 / 1.71 | 19.1 deg (13.7 .. 28.3), CA50 29.5 ATDC | 17.1 % (11.0 .. 28.7) |
+| 10 psi, E85 | 1.56 / 1.77 / 1.21 | 10.9 deg (6.2 .. 18.0) | 8.2 % (4.0 .. 16.0) |
+| 18 psi, 91 pump | 3.88 / 4.34 / 2.88 | 34.4 deg (24.9 .. more than 40) | 35.9 % (23.9 .. -) |
+| 18 psi, E85 | 2.57 / 2.86 / 2.00 | 21.2 deg (15.4 .. 32.4) | 19.5 % (12.8 .. 33.6) |
+| 25.9 psi, 91 pump | 5.68 / 6.38 / 4.30 | more than 40 deg (all three) | - |
+| 25.9 psi, E85 | 3.76 / 4.19 / 3.01 | 34.8 deg (24.7 .. more than 40) | 36.4 % (23.7 .. -) |
+
+Knock-limited boost at the page's timing (from the 18 psi trace at 5050 RPM, L2 6; band for I 0.7 .. 1.3): 91 pump
+0.7 psi (-2.0 .. 3.0), 93 pump 1.3 psi (-1.5 .. 3.7); E85 at RON 104 4.5 psi (1.2 .. 7.3), at Kasseris's effective 115
+8.2 psi (4.4 .. 11.5). On the page (its own compressor estimate of the charge temperature): 91 pump 1.06 psi, E85 3.67 psi.
+
+Against the reported builds and Garrett (BOOST_AUDIT; part 11 K8):
+- In absolute terms the estimate is pessimistic under boost: it puts a K24 on pump gas at 18 psi beyond I = 1 until 34 deg
+  of retard (36 % of the power) where a reported build makes 475 whp at 18 psi on 93 (IPG) on a tune, and Garrett's Miata
+  made 241 hp at 16 psi on 93; its pump-gas limit at the page's timing is about 1 psi. The model's
+  high cylinder pressure (IVC 3.74 bar at a 2.25 bar charge at 5050 RPM: the VE bias of parts 3 and 8) and a hot IVC charge
+  (411 K from 329 K) are the likely causes, with the correlation's single fitted ON.
+- In relative terms it is close: the knock-limited absolute charge pressure E85 / pump (93) is (14.7 + 4.5) / (14.7 + 1.3)
+  = 1.20 at RON 104 and (14.7 + 8.2) / 16.0 = 1.43 at Kasseris's ON 115, against Garrett's (14.7 + 30) / (14.7 + 16) =
+  1.46. At the same 18 psi, E85 at its knock limit keeps (1 - 0.195) / (1 - 0.359) = 1.26 times the power of 91 pump gas
+  at its limit; the reported 18 psi builds differ by 20 % (570 whp E85 against 475 whp 93, different turbos and heads).
+
+So the page states the knock-limited boosts as a comparison between fuels, says that it reads pessimistic under boost,
+and never as a limit to set.
+
+### L7 What the page said first (superseded by L11)
+
+After a turbo or supercharger simulation, the results carry a "Knock check (estimate)" note and the glance card's Power
+row a short version (after "The simulation says ..."), e.g. at 18 psi on 91: "Knock check (estimate): on pump gasoline,
+91 AKI (octane number 95.0) at 18.00 psi (124.11 kPa) boost this build is beyond the knock limit at the page's ignition
+timing (the knock integral reaches 4.37, 1 being knock, at 5,050 RPM); retarding the timing about 34° (half burned at 45°
+after top dead centre) brings it inside, which costs about 146 hp (109 kW) there (36%). At that timing the estimate puts
+the knock-limited boost for pump gasoline, 91 AKI near 1.06 psi (7.28 kPa) and for E85 near 3.67 psi (25.28 kPa). Under
+boost it reads pessimistic against reported builds (they run more boost than this on a tune): compare the fuels, do not
+read the numbers as limits." The results add the band (I 0.7 to 1.3), and every time the caveat: "An estimate, not a safe
+limit: one published correlation (Douaud and Eyzat, 1978) on this model's cylinder pressure, which runs high on boosted
+builds; published knock work has to fit the correlation's octane number to each engine. It does not replace knock
+monitoring and a tuner. Knock can break pistons and ring lands in seconds: never set boost or timing from this line."
+The assumptions (fuel and its octane source, the correlation, the end gas, cylinder 1, the retard, the boost scaling, the
+known biases) are one click away. Metric shows kPa first. Advanced inputs (Charge pipes, turbo and intercooler box, with
+the changed marker): the check on / off, the pump's AKI (91), the picked fuel's RON and MON, K (0), the burn end (90 %).
+
+### L8 Uncertainty, and what is not modelled
+
+- One correlation with one octane number per fuel; the published work (Kasseris and Heywood) had to fit the ON to each
+  engine and blend, so a band, not a line: knock taken at I = 0.7 to 1.3 (an assumption, not a measured scatter; at
+  I ~ ON^-3.4 it is about +-8 octane numbers). The burn-end convention moves I by about +-12 %.
+- No hot spots, deposits, cylinder-to-cylinder spread (cylinder 1 only), cycle-to-cycle variation, wall heat to the end
+  gas, low-temperature chemistry or the negative-temperature-coefficient region, the E85 charge cooling's own knock
+  benefit beyond the model's evaporation choice, injection timing, the faster ethanol burn, knock intensity.
+- The retard holds the turbine's and the gate's areas (the gate is not re-solved for the hotter exhaust); the boost
+  scaling assumes the cylinder pressure follows the charge pressure (checked to 7 %).
+- The charge-temperature sensitivity is several times weaker than the published rule (L5).
+
+### L9 Tests, pins, gasoline default
+
+- `web/tests/knock_ui.js` (new, Node, about 15 s, 26 checks): L3 (a), the trends, the retard, the trace changing nothing,
+  tsimRun with and without the check (rows identical).
+- `web/tests/knockpage_ui.js` (new, Chromium, about 3 min): L11 on the page: off by default with no knock text anywhere;
+  on, the comparison-first line, the raw numbers only in the collapsed list with their label, the caveat, the glance card,
+  the same rows on and off, metric units.
+- `web/tests/wave_wasm.js`: the trace JS = Rust bit for bit on two jobs (16284 and 10171 steps), and asking for it
+  changes no result. QUICK run: all passed.
+- `tools/validation/wave/kat.js` 66 of 66, `results/kat.json` byte-identical. Pins changed: none. Default results:
+  identical (the trace is read only and off unless the knock check runs; the closure's rows are the same doubles with it).
+
+### L10 How to rerun
+
+```
+cd web && node ../tools/validation/wave/knock_k24.js 10,18,25.9124 pump:none,e85:port   # the jobs (Chromium, ~4 min)
+node tools/validation/wave/knock_val.js parts=b,c,v,d                                  # L4-L6 (~15 min)
+node tools/validation/wave/knock_refdump.js && python3 tools/validation/wave/knock_ref.py  # L3
+node web/tests/knock_ui.js; cd web && node tests/knockpage_ui.js
+```
+
+### L11 How it is presented, and why (review of 2026-11-15)
+
+The validation supports the estimate in two ways only: in absolute terms on naturally aspirated engines (stock K24A2 and
+LS3 on 91 land at 0.7-1.3, L4), and in relative terms between fuels and settings (E85 / pump knock-limited absolute
+pressure 1.20-1.43 against Garrett's 1.46, L6). Under boost the absolute figures are far too pessimistic (about 1 psi
+"limit" and 34 deg of retard at 18 psi on pump gas, where a reported K24 makes 475 whp on 93 on a tune). Shown as
+headlines they would tell a first-time builder that a normal build does not work, which a caveat does not undo. So:
+
+- Off by default (Advanced inputs, Charge pipes, turbo and intercooler: "Knock check in the simulation (an estimate)":
+  Off / On: compare fuels and settings). Off is the default option, so the box's changed marker shows when it is on;
+  projects saved without the key load as off. Off: no knock text anywhere (results, glance card), no knock runs, no trace.
+- On, the line leads with the comparison, e.g. on the K24A2 + PT5862 at 18 psi: "Knock check (estimate, a comparison):
+  E85 tolerates about 1.17 to 1.38 times the absolute manifold pressure of pump gasoline, 91 AKI at the same ignition
+  timing (the higher figure with the effective octane number fitted for E85 in published work); Garrett's own pump-gas
+  against E85 example ran 1.46 times; 5 more octane numbers allow about 9% more absolute manifold pressure; more
+  compression, more boost, a hotter charge and earlier timing all move it toward knock; this estimate under-reacts to the
+  charge temperature 2 to 8 times against the published rule of about one octane number per 25 °F (14 °C), so a cooler
+  charge helps more than it shows; the same engine without boost on pump gasoline, 91 AKI is at the knock limit at the
+  page's timing (knock integral 1.11 at 5,050 RPM, 1 being knock; inside below 0.7, at the limit 0.7 to 1.3)." Then the
+  safety caveat. The naturally aspirated verdict comes from the run without boost the simulation already makes (its trace,
+  the same fuel), the one absolute use L4 supports.
+- No boost in psi, degrees of retard or horsepower cost in the line. They appear only inside the collapsed "Assumptions
+  and raw numbers", each labelled "reads far too pessimistic under boost in this model (stock naturally aspirated engines
+  land at the limit, boosted builds do not): not usable as a limit".
+- The glance card's Power row carries the same comparison (and the caveat) only when the check is on.
+- Results unchanged: the rows, the run without boost and every pin are the same doubles with the check on or off
+  (knockpage_ui.js 3, knock_ui.js 5).

@@ -2472,7 +2472,12 @@ pub struct Res {
 }
 
 /// Simulate engine cycles at one speed, from where cylinder 1's intake valve closes. Returns each cycle's result.
-fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<State>) -> Result<Vec<Res>, String> {
+/// tr: the page's opts.trace (cylinder 1's state at the start of every step of the last two cycles, flat [crank angle in
+/// its frame, p, T, x, ...]), cleared first; read only, it changes no arithmetic.
+fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<State>, mut tr: Option<&mut Vec<f64>>) -> Result<Vec<Res>, String> {
+    if let Some(t) = tr.as_mut() {
+        t.clear();
+    }
     let w = rpm * 6.0;
     let dx = if dx != 0.0 && !dx.is_nan() { dx } else { 0.01 };
     let nc = eng.phases.len();
@@ -2640,6 +2645,11 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
                     }
                 }
                 cy.p = cy.m * cy.rg * cy.t / eng.vol(tk);
+                if kk == 0 && c >= cycles - 2.0 {
+                    if let Some(t) = tr.as_mut() {
+                        t.extend_from_slice(&[tk, cy.p, cy.t, cy.x]);
+                    }
+                }
                 v_in[kk] = valve_flow(k, eng.cda_in(tk), cy, ip, ip.n - 1);
                 v_in_c[kk] = if vap { port_fuel(&mut v_in[kk], cy, gas.as_ref().unwrap(), gas_in.as_ref().unwrap()) } else { v_in[kk] };
                 v_ex[kk] = valve_flow(k, eng.cda_ex(tk), cy, ep, 0);
@@ -3055,11 +3065,14 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
 pub struct Sim {
     eng: Engine,
     state: Option<State>,
+    /// on: every step keeps cylinder 1's trace of its last run (run_speed's tr) in `tr`
+    pub trace: bool,
+    pub tr: Vec<f64>,
 }
 impl Sim {
     pub fn new(spec_json: &str) -> Result<Sim, String> {
         let v: Value = serde_json::from_str(spec_json).map_err(|e| format!("the wave model's spec: {}", e))?;
-        Ok(Sim { eng: make_engine(&v)?, state: None })
+        Ok(Sim { eng: make_engine(&v)?, state: None, trace: false, tr: Vec::new() })
     }
     /// sweep()'s work for one speed: cycles (the first speed firstCycles), then up to maxExtra more pairs until the
     /// last two cycles' volumetric efficiency agree within tol. The arguments take the JavaScript's defaults when 0
@@ -3071,7 +3084,7 @@ impl Sim {
         if first {
             self.state = None;
         }
-        let mut h = run_speed(&self.eng, rpm, n0, dx, &mut self.state)?;
+        let mut h = run_speed(&self.eng, rpm, n0, dx, &mut self.state, if self.trace { Some(&mut self.tr) } else { None })?;
         let mut k = 0.0;
         let me = d(max_extra, 4.0);
         let tol = d(tol, 0.004);
@@ -3080,7 +3093,7 @@ impl Sim {
             if n >= 2 && (h[n - 1].v[0] - h[n - 2].v[0]).abs() < tol * h[n - 1].v[0] {
                 break;
             }
-            h = run_speed(&self.eng, rpm, 2.0, dx, &mut self.state)?;
+            h = run_speed(&self.eng, rpm, 2.0, dx, &mut self.state, if self.trace { Some(&mut self.tr) } else { None })?;
             k += 1.0;
         }
         Ok(h.pop().unwrap())
@@ -3213,6 +3226,29 @@ pub extern "C" fn wave_turbo_set(id: u32, cda: f64, wg: f64) -> u32 {
             }
         }
     })
+}
+/// The trace on (1) or off (0) for this model's next steps (the page's opts.trace); 1, or 0 and wave_error.
+#[no_mangle]
+pub extern "C" fn wave_trace(id: u32, on: u32) -> u32 {
+    SIMS.with(|v| {
+        let mut v = v.borrow_mut();
+        let Some(Some(sim)) = v.get_mut((id as usize).wrapping_sub(1)) else {
+            set_err("no such model");
+            return 0;
+        };
+        sim.trace = on != 0;
+        sim.tr.clear();
+        1
+    })
+}
+/// The model's trace from its last wave_step (wave_trace_len doubles; 0 when the trace is off).
+#[no_mangle]
+pub extern "C" fn wave_trace_out(id: u32) -> *const f64 {
+    SIMS.with(|v| v.borrow().get((id as usize).wrapping_sub(1)).and_then(|s| s.as_ref()).map_or(std::ptr::null(), |s| s.tr.as_ptr()))
+}
+#[no_mangle]
+pub extern "C" fn wave_trace_len(id: u32) -> usize {
+    SIMS.with(|v| v.borrow().get((id as usize).wrapping_sub(1)).and_then(|s| s.as_ref()).map_or(0, |s| s.tr.len()))
 }
 #[no_mangle]
 pub extern "C" fn wave_out() -> *const f64 {

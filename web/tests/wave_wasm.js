@@ -169,6 +169,24 @@ for (const { name, job } of jobs) {
       r.res[i].perCyl.forEach((c, q) => { if (!bad && !(Object.is(c[0], ws[i].perCyl[q].ve) && Object.is(c[1], ws[i].perCyl[q].imep))) bad = rpm + ' rpm cylinder ' + (q + 1); }); });
     ok(!bad, 'constant gamma: ' + r.name + ', ' + r.label + ': ' + rpms.length + ' speeds the same as the reference to the last digit' + (bad ? ' (' + bad + ')' : ''));
   } }
+// the cylinder trace (2026-11-15, the knock estimate: runSpeed's opts.trace, wave_trace): cylinder 1's state at the start of
+// every step of the last two cycles, every double the same; and asking for it changes no result (traced run = untraced run)
+for (const nm of ['fuel E85, turbo', 'lean, etaC']) { const J = jobs.find(q => q.name === nm), v = J.job.variants[0], rp = J.job.rpms.slice(0, 2);
+  const o = { dx: J.job.dx, cycles: 3, firstCycles: 8, maxExtra: 5 }, eng = WS.makeEngine(v.spec.e, v.spec.intake, v.spec.exhaust, v.spec.opt);
+  const id = wNew(v.spec); X.wave_trace(id, 1); let state = null, bad = '', n = 0;
+  rp.forEach((rpm, i) => { if (J.job.areas) { WS.setTurbine(eng, J.job.areas[i][0], J.job.areas[i][1]); X.wave_turbo_set(id, J.job.areas[i][0], J.job.areas[i][1]); }
+    let r = WS.runSpeed(eng, { rpm, cycles: i === 0 ? o.firstCycles : o.cycles, dx: o.dx, state, trace: true }), k = 0;
+    while (k < o.maxExtra) { const h = r.history, m = h.length; if (m >= 2 && Math.abs(h[m - 1].ve - h[m - 2].ve) < 0.004 * h[m - 1].ve) break; r = WS.runSpeed(eng, { rpm, cycles: 2, dx: o.dx, state: r.state, trace: true }); k++; }
+    state = r.state; const w = wStep(id, rpm, i === 0, o), t = Array.from(new Float64Array(X.memory.buffer, X.wave_trace_out(id), X.wave_trace_len(id)));
+    for (const key of KEYS) if (!bad && !Object.is(r[key], w[key])) bad = rpm + ' rpm ' + key;
+    if (!bad && t.length !== r.trace.length) bad = rpm + ' rpm: trace of ' + r.trace.length + ' vs ' + t.length;
+    r.trace.forEach((x, q) => { if (!bad && !Object.is(x, t[q])) bad = rpm + ' rpm trace value ' + q + ': JS ' + x + ', Rust ' + t[q]; }); n += t.length / 4; });
+  X.wave_drop(id);
+  const plain = (() => { const e2 = WS.makeEngine(v.spec.e, v.spec.intake, v.spec.exhaust, v.spec.opt); if (J.job.areas) WS.setTurbine(e2, J.job.areas[0][0], J.job.areas[0][1]); return WS.runSpeed(e2, { rpm: rp[0], cycles: 4, dx: o.dx }); })();
+  const traced = (() => { const e2 = WS.makeEngine(v.spec.e, v.spec.intake, v.spec.exhaust, v.spec.opt); if (J.job.areas) WS.setTurbine(e2, J.job.areas[0][0], J.job.areas[0][1]); return WS.runSpeed(e2, { rpm: rp[0], cycles: 4, dx: o.dx, trace: true }); })();
+  const same = KEYS.every(k => Object.is(plain[k], traced[k])) && !('trace' in plain);
+  ok(!bad && n > 1000 && same, 'the cylinder trace, ' + nm + ': ' + rp.length + ' speeds, ' + n + ' steps of (angle, p, T, x), JS = Rust to the last digit' + (bad ? ' (' + bad + ')' : '') + '; with the trace asked for the results are the same doubles: ' + same);
+}
 // a refused spec comes back as an error, not a crash
 let msg = ''; try { wNew({ e: {}, intake: { segs: [] }, exhaust: { segs: [] }, opt: {} }); X.wave_step(1e6, 3000, 1, 0.01, 3, 8, 5, NaN); } catch (e) { msg = String(e.message); }
 ok(/no usable length|at least one pipe|segs/.test(msg) || msg === '', 'a spec with no pipes is refused with a reason: ' + (msg || '(made, no pipes yet)'));

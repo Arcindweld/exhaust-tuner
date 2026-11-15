@@ -2119,3 +2119,22 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Details: docs/WAVE_VALIDATION_2026-11-11.md part 11; docs/BOOST_AUDIT_2026-11-12.md addendum "the fuel is the engine's".
   Tests: web/tests/fuel_ui.js, web/tests/fuelpage_ui.js (new), wave_wasm.js (+4 jobs). Pins changed: none.
 
+
+## 2026-11-15: a knock estimate in the turbo simulation (Livengood-Wu with Douaud and Eyzat)
+
+- Engine: an opt-in cylinder trace (JS runSpeed opts.trace, Rust wave_trace / wave_trace_out / wave_trace_len; bit parity,
+  WebAssembly rebuilt); read only: kat.json byte-identical, every captured job the same, pins unchanged.
+- knockLib (page, also in the worker): unburned temperature by isentropic compression of the IVC charge along the cylinder
+  pressure (the gas's own cp(T)); the Livengood-Wu integral of Douaud and Eyzat's tau to 90 % burned; a retard search at
+  the worst speed (fresh runs, areas held) and its cost; the knock-limited boost for pump gas and E85 by scaling the trace.
+  Checked against independent Python (quadrature, RK4 isentrope to 0.0001 K, a two-zone closed cycle: the method 4 % low).
+- Page (after review, part 12 L11): OFF by default (Advanced inputs, charge pipes box). When on: "Knock check (estimate,
+  a comparison)" leads with E85 against pump gas as a ratio of absolute manifold pressure (Garrett 1.46), the octane step,
+  the charge-temperature under-reaction, and the same engine without boost inside / at / beyond the limit; absolute boosted
+  figures (limit boost, retard, cost) only in the collapsed "Assumptions and raw numbers", labelled far too pessimistic
+  under boost; always the safety caveat. Other inputs: pump AKI (91), RON / MON, K (0), burn end (90 %).
+- Results: stock K24A2 / LS3 on 91 at 0.7-1.3 (1.5 at MBT); the K24 + PT5862 at 18 psi: 91 pump 4.34 (34 deg retard,
+  -36 %), E85 2.86 (21 deg, -20 %); pessimistic in absolute terms under boost, close to Garrett in relative terms (E85 /
+  pump limit 1.20-1.43 absolute against 1.46). Charge-temperature sensitivity 2-8 times weaker than the published rule.
+- Details: docs/WAVE_VALIDATION_2026-11-11.md part 12; docs/BOOST_AUDIT_2026-11-12.md addendum 2026-11-15.
+  Tests: web/tests/knock_ui.js, web/tests/knockpage_ui.js (new), wave_wasm.js (+ the trace). Pins changed: none.
