@@ -312,9 +312,9 @@ const { chromium } = require('playwright');
     ok(r35.hp === 1340 && r35.hpAlt === 928 && r35.ev.hp === '' && /unresolved, the lower, 928, is used/.test(r35.cf[0]), 'TR1235R: 928 against 1340 hp unresolved, the lower used');
     // the table shows the claims, each figure's confirmation and the conflicts, in both units
     const row8 = await pg.$eval('#tso-ics tr[data-i="' + t8.i + '"]', e => e.innerText);
-    ok(/22\.0 in × 7\.8 in × 3\.5 in|558\.8 mm × 198\.1 mm × 88\.9 mm/.test(row8) && /500 hp \(373 kW\)/.test(row8) && /750 CFM \(0\.419 kg\/s read as standard air; 354 L\/s\)/.test(row8) &&
+    ok(/22\.0 in × 7\.8 in × 3\.5 in|558\.8 mm × 198\.1 mm × 88\.9 mm/.test(row8) && /500 hp \(373 kW\)/.test(row8) && /750 cfm \(354 L\/s\); read as standard air 55\.4 lb\/min \(0\.419 kg\/s\)/.test(row8) &&
       /core size confirmed by two retailers \(MA Performance, Edge Autosport, Turbozentrum\)/.test(row8) && /conflicts: overall length: Turbozentrum 762 mm/.test(row8) && /end tanks 2\.5 in \(63\.5 mm\)|end tanks 63\.5 mm \(2\.5 in\)/.test(row8),
-      'table, TR8: size in both units, 500 hp (373 kW), 750 CFM (0.419 kg/s, 354 L/s), the confirmation and the conflicts shown');
+      'table, TR8: size in both units, 500 hp (373 kW), 750 cfm (354 L/s; 55.4 lb/min, 0.419 kg/s as standard air), the confirmation and the conflicts shown');
     const rowR = await pg.$eval('#tso-ics tr[data-i="' + r35.i + '"]', e => e.innerText);
     ok(/another listing says 928 hp \(692 kW\): the lower is used/.test(rowR) && /hp rating not settled: the listings disagree/.test(rowR) && /single retailer \(Turbozentrum, Turbozentrum \(\.co\.uk\), Motorsport Calibrations\)/.test(rowR),
       'table, TR1235R: both ratings, “not settled”, and the shared Turbozentrum wording counted as one retailer');
