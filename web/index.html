@@ -23489,6 +23489,53 @@ const conflux=o=>({maker:'Conflux Technology',pn:o.pn,type:'w2a',hp:null,kw:o.kw
     tests:'CFD and calorimetric testing; thermal fatigue, cyclic pressure fatigue, shock, vibration and corrosion testing (page 7)',
     quality:'“manufactured in compliance with ISO9001”; PPAP and IATF 16949 documentation on request (page 7)',
     lead:'production-ready parts typically 1-3 weeks, no NRE; configured parts typically 2-6 weeks (page 3)'}});
+/* Treadstone Performance (TRE) air-to-air intercoolers with cast end tanks (2026-11-14; the owner: "Find a way to check out the
+   Treadstone intercoolers to add"). Treadstone's own site refuses automated reading, so it was not read (and not worked around:
+   no caches, mirrors or archives). The figures are the maker's as its authorised retailers list them, read 2026-11-14 on the
+   pages in TRE_R and each row's tre.pages. Per figure, tre.ev names the retailers whose pages state it: two or more different
+   retailers "confirmed by two retailers", one "single retailer". Turbozentrum's .de and .co.uk shops are one retailer, and
+   Motorsport Calibrations' pages carry Turbozentrum's wording word for word (its "0,14bar", "Colour of Logo"), so they are
+   counted with Turbozentrum, not as a second retailer. Disagreements are in tre.cf, shown on the row: resolved by majority
+   where there is one, else unresolved and the lower rating (or the smaller neck) used, as for Mishimoto's two figures.
+   Axes: the retailers print the core as height × length × thickness or length × height × thickness; dims here are
+   [length across the core, height, thickness]. On the TR models the overall length exceeds the core length (end tanks on the
+   length ends), so the charge runs along the length and the face is height × thickness; on the TRV models the overall height
+   exceeds the core height (tanks top and bottom), so the charge runs along the height and the face is length × thickness
+   (TRV259: "a longer 9" tube length"; TRV25 and TRV185 from their overall sizes alone). Speed Science (New Zealand) prints
+   millimetres at 25 mm per inch (TR10 600 × 262.5 × 87.5 = 24 × 10.5 × 3.5 in, overall 850 = 34 in), so its figures are read
+   back at 25. hp is Treadstone's "HP efficient" (no basis given); CFM ÷ hp is 1.47 to 1.54 on every row that has both, so the
+   hp is the CFM claim ÷ 1.5 (Corky Bell's 1.5 cfm per hp), not a separate figure; the TR1235R's 2010 CFM ÷ 928 is the one
+   exception (see its row). "Less than 2psi pressure drop at max flow" is an upper bound, not a point: kept as text, not used
+   as a drop. A drop stated as a figure at a flow (TRV259 2.0 psi at 1950 CFM, TRV25 1.5 psi at 1492 CFM) is used as Bell's
+   is, the CFM read as standard air (1.1839 kg/m³; neither maker says standard or actual). Turbozentrum prints "Item weight:
+   8,00 kg" on nearly every Treadstone listing from the TR6 to the TR1245 (a shipping placeholder, it seems), so no weight is
+   used. The sanity check of the claims (CFM per hp, mass flux, Bell's face rule, Bell's own drop rating scaled to these cores,
+   hp per litre against Garrett's cores): docs/BOOST_AUDIT_2026-11-12.md, addendum 2026-11-14, tools/validation/boost/treadstone.py. */
+const TRE_R={MAP:'MA Performance',EDGE:'Edge Autosport',TZ:'Turbozentrum',TZUK:'Turbozentrum (.co.uk)',MSC:'Motorsport Calibrations',SS:'Speed Science',
+  RSP:'Real Street Performance',DHQ:'DriftHQ',GY:'Graveyard Performance',IP:'Induction Performance'};
+const TRE_GRP={TZUK:'TZ',MSC:'TZ'};   // one wording: counted as one retailer
+const TRE_F={core:'core size',oal:'overall size',io:'inlet / outlet',hp:'hp rating',cfm:'CFM claim',dp:'pressure-drop claim'};
+// a figure's status from the retailers that state it
+const treSt=keys=>{ const k=(keys||'').split(' ').filter(Boolean), g=new Set(k.map(x=>TRE_GRP[x]||x));
+  return {n:g.size,txt:!k.length?'not settled: the listings disagree (see the conflicts)':g.size>=2?'confirmed by two retailers ('+k.map(x=>TRE_R[x]).join(', ')+')':'single retailer ('+k.map(x=>TRE_R[x]).join(', ')+')'}; };
+const TRE_SEEN='2026-11-14';
+const treRow=o=>{ const v=o.flow==='vertical', D=o.mm?cfxMmIn(o.core):icInMm(...o.core), first=Object.keys(o.pages)[0];
+  const io=o.mm?o.io/25.4:o.io, ioTxt=o.mm?o.io+' mm ('+(o.io/25.4).toFixed(2)+' in)':o.io+' in ('+(o.io*25.4).toFixed(1)+' mm)';
+  const over=o.over?(o.mm?o.over.map(x=>x/25.4):o.over):null;
+  return {maker:'Treadstone',pn:o.pn,type:'a2a',hp:o.hp,hpAlt:o.hpAlt!=null?o.hpAlt:null,
+    model:'air-to-air intercooler with cast end tanks, '+(v?'vertical':'horizontal')+' flow (bar and plate)',dims:D,over,
+    inD:io,outD:io,cfmC:o.cfm!=null?o.cfm:null,dp:o.dpPt?{kPa:+(o.dpPt[0]*6.894757).toFixed(4),kgmin:+(o.dpPt[1]*0.028316846592*BELL_RHO).toFixed(4)}:null,
+    hpBasis:'Treadstone’s “HP efficient” rating as its authorised retailers list it (no basis given'+(o.cfm?'; '+o.cfm+' CFM ÷ '+(o.hpAlt!=null?Math.min(o.hp,o.hpAlt):o.hp)+' hp = '+(o.cfm/(o.hpAlt!=null?Math.min(o.hp,o.hpAlt):o.hp)).toFixed(2)+' CFM per hp':'; no CFM listed')+
+      '); a maker’s claim, not test data: checked against Bell’s face rule, Bell’s own drop rating and Garrett’s cores of similar size on the boost audit (2026-11-14)'+(o.hpAlt!=null?'; the listings disagree ('+o.hp+' or '+o.hpAlt+' hp): the lower is used':''),
+    src:o.pages[first],srcName:'authorised retailer listing of the maker’s figures ('+TRE_R[first]+')',seen:TRE_SEEN,
+    note:'Treadstone’s figures from its authorised retailers’ listings (the maker’s own site refuses automated reading); per figure: '+Object.keys(TRE_F).filter(k=>o.ev[k]!==undefined).map(k=>TRE_F[k]+' '+treSt(o.ev[k]).txt).join('; ')+'.',
+    pub:{cons:'bar and plate (“bar and plate construction”, retailer listings)',tanks:'cast end tanks (retailer listings), '+ioTxt+' inlet and outlet'+(o.tank?'; '+o.tank:''),
+      ptest:o.ptest||null,boost:null,warranty:o.warranty||null},
+    tre:{flow:o.flow,tube:o.tube||null,pages:o.pages,ev:o.ev,cf:o.cf||[],dpTxt:o.dpTxt||null,oalTxt:o.oalTxt,ioTxt,extra:o.extra||null}}; };
+// the table's text for a Treadstone row: the claims, each figure's confirmation, the conflicts, the pages
+const treTxt=c=>{ const T=c.tre; return 'CFM claim: '+(c.cfmC!=null?c.cfmC+' cfm ('+(c.cfmC*0.028316846592/60*1000).toFixed(0)+' L/s); read as standard air '+(c.cfmC*0.028316846592/60*BELL_RHO*LBMIN).toFixed(1)+' lb/min ('+(c.cfmC*0.028316846592/60*BELL_RHO).toFixed(3)+' kg/s)':'not listed')+
+  '; drop claim: '+(T.dpTxt||'not listed')+'; overall: '+T.oalTxt+'; '+Object.keys(TRE_F).filter(k=>T.ev[k]!==undefined).map(k=>TRE_F[k]+' '+treSt(T.ev[k]).txt).join('; ')+
+  (T.cf.length?'; conflicts: '+T.cf.join('; '):'; no conflicts between the listings')+(T.extra?'; '+T.extra:''); };
 const IC_LIB=[
   {maker:'Garrett',pn:'848054-6012',type:'a2a',hp:300,L:[10.2,260],H:[8.1,205],W:[4.7,120],gflow:'horizontal'},
   {maker:'Garrett',pn:'703518-6015',type:'a2a',hp:310,L:[18.0,457],H:[6.4,163],W:[3.0,76],gflow:'horizontal'},
@@ -23597,7 +23644,112 @@ const IC_LIB=[
     curve:{m:[0.40,0.45,0.50,0.55,0.60],eff:[87.0,85.5,84.0,82.0,80.0],tout:[52.0,55.0,58.0,61.0,64.0],dp:[11.0,13.4,16.0,19.4,23.0]}}),
   conflux({pn:'100013',size:'6.0 in / 152 mm',kw:900,kwLo:500,over:[177,171,225],mass:[3.4,4.0],air:152.4,coolMm:25.4,coolIn:'1',page:'PDF page 6 (printed 5)',
     blurb:'“High-capacity barrel for higher boost levels and larger engines”',rated:{thi:250,p_kPa:500,lpm:50,kgs:0.86},
-    curve:{m:[0.60,0.65,0.70,0.75,0.80],eff:[92.0,91.0,90.0,89.0,88.0],tout:[48.0,49.9,52.0,54.4,57.0],dp:[10.0,11.4,13.0,14.9,17.0]}})
+    curve:{m:[0.60,0.65,0.70,0.75,0.80],eff:[92.0,91.0,90.0,89.0,88.0],tout:[48.0,49.9,52.0,54.4,57.0],dp:[10.0,11.4,13.0,14.9,17.0]}}),
+  // Treadstone (TRE), from its authorised retailers' listings of the maker's figures, read 2026-11-14 (see the comment above treRow).
+  // core [length across, height, thickness] in (mm: true, in mm); over = overall size used for a size limit (TR: overall length
+  // × core height × thickness, the listings give no tank height beyond Turbozentrum's "Height" field, within 2 mm of the core's)
+  treRow({pn:'TR6',flow:'horizontal',core:[22,6,3.5],over:[28,6,3.5],io:2.5,hp:400,cfm:600,oalTxt:'28 in (711 mm) long',
+    dpTxt:'“less than 2psi pressure drop at max flow” (Edge Autosport, Graveyard Performance, Speed Science; Turbozentrum “0,14bar”, 2.0 psi (13.8 kPa)): an upper bound',
+    ptest:'“pressure checked to 150psi” (1034 kPa; Turbozentrum “10bar”)',warranty:'1 year against manufacture defect (Graveyard Performance listing)',
+    pages:{EDGE:'https://edgeautosport.com/treadstone-tr6-intercooler-400hp/',GY:'https://www.graveyardperformance.com/products/treadstone-tr6-intercooler-core',TZ:'https://www.turbozentrum.de/Intercooler-TR6-400HP-TRE',SS:'https://www.speedscience.co.nz/products/treadstone-tr6-interooler'},
+    ev:{core:'EDGE GY TZ',oal:'EDGE GY TZ SS',io:'EDGE GY TZ SS',hp:'EDGE GY TZ SS',cfm:'EDGE GY TZ SS',dp:'EDGE GY SS TZ'},
+    cf:['thickness: Speed Science 82.5 mm, read at its 25 mm per inch 3.3 in, against 3.5 in (Edge Autosport, Graveyard Performance) and 89 mm (Turbozentrum): 3.5 in (88.9 mm) by majority']}),
+  treRow({pn:'TR62',flow:'horizontal',core:[22,6,3.5],over:[27.5,6,3.5],io:2.5,hp:450,cfm:null,oalTxt:'27.5 in (698.5 mm) long',
+    dpTxt:'“less than 1.5 psi pressure drop”, no flow stated (Turbozentrum “0,10bar”, 1.45 psi (10.0 kPa))',ptest:'“pressure checked to 150psi” (1034 kPa; Turbozentrum “10bar”)',warranty:'1 year against manufacture defect (Edge Autosport listing)',
+    pages:{EDGE:'https://edgeautosport.com/treadstone-tr62-intercooler-450hp/',TZ:'https://www.turbozentrum.de/Intercooler-TR62-450HP-TRE'},
+    ev:{core:'EDGE TZ',oal:'EDGE TZ',io:'EDGE TZ',hp:'EDGE TZ',dp:'EDGE TZ'}}),
+  treRow({pn:'TR8',flow:'horizontal',core:[22,7.8,3.5],over:[28,7.8,3.5],io:2.5,hp:500,cfm:750,oalTxt:'28 in (711 mm) long',
+    dpTxt:'“less than 2psi pressure drop at max flow” (MA Performance, Edge Autosport; Turbozentrum “0,14bar”, 2.0 psi (13.8 kPa)): an upper bound',ptest:'“pressure checked to 150psi” (1034 kPa; Turbozentrum “10bar”)',
+    pages:{MAP:'https://www.maperformance.com/products/treadstone-3-5-tr8-intercooler-tr8',EDGE:'https://edgeautosport.com/treadstone-tr8-intercooler-500hp',TZ:'https://www.turbozentrum.de/TR8-Intercooler-500-HP-TRE'},
+    ev:{core:'MAP EDGE TZ',oal:'MAP EDGE',io:'MAP EDGE TZ',hp:'MAP EDGE',cfm:'MAP EDGE TZ',dp:'MAP EDGE TZ'},
+    cf:['overall length: Turbozentrum 762 mm (30 in) against 28 in (MA Performance, Edge Autosport): 28 in (711.2 mm) by majority',
+      'rating: Turbozentrum’s text says “575 HP efficient” under a 500 HP title, against 500 (Edge Autosport; MA Performance’s title, its text reads “00 HP”): 500 by majority (575 is the TR8L’s “575HP at only 1.5psi drop”, it seems)']}),
+  treRow({pn:'TR8C',flow:'horizontal',core:[22,7.8,3.5],over:[28,7.8,3.5],io:3,hp:500,cfm:750,oalTxt:'28 in (711 mm) long',
+    dpTxt:'“less than 1.5psi pressure drop at max flow” (Edge Autosport; Turbozentrum “0,10bar”, 1.45 psi (10.0 kPa)): an upper bound',ptest:'“pressure checked to 150psi” (1034 kPa; Turbozentrum “10bar”)',
+    pages:{EDGE:'https://edgeautosport.com/treadstone-tr8c-intercooler-500hp/',TZ:'https://www.turbozentrum.de/Intercooler-TR8C-500HP-TRE'},
+    ev:{core:'EDGE TZ',oal:'EDGE TZ',io:'EDGE TZ',hp:'EDGE TZ',cfm:'EDGE TZ',dp:'EDGE TZ'}}),
+  treRow({pn:'TR8L',flow:'horizontal',core:[24,7.8,3.5],over:[28,7.8,3.5],io:2.5,hp:500,cfm:750,oalTxt:'28 in (711 mm) long (Edge Autosport only)',
+    dpTxt:'“less than 2psi pressure drop at max flow” (Edge Autosport) or “less than 1.5psi” (DriftHQ); both also “575HP at only 1.5psi drop”',ptest:'“pressure checked to 150psi” (1034 kPa; DriftHQ listing)',
+    pages:{EDGE:'https://edgeautosport.com/treadstone-tr8l-intercooler-500hp/',DHQ:'https://drifthq.com/products/copy-of-tre-tr8c-intercooler-500hp-tr8c'},
+    ev:{core:'EDGE DHQ',oal:'EDGE',io:'',hp:'EDGE DHQ',cfm:'EDGE DHQ',dp:''},
+    extra:'a “lower pressure drop TR8” with a “less dense internal fin structure” (DriftHQ listing)',
+    cf:['inlet / outlet: Edge Autosport 2.5 in, DriftHQ 3 in: unresolved; the smaller, 2.5 in (63.5 mm), is used for the tank check',
+      'pressure drop: less than 2 psi, 13.8 kPa (Edge Autosport) or less than 1.5 psi, 10.3 kPa (DriftHQ) at max flow: unresolved',
+      'both pages also say “575HP at only 1.5psi drop”; the 500 HP rating is used, the lower',
+      'the 28 in (711.2 mm) overall length (Edge Autosport only) is the TR8’s with a core 2 in (50.8 mm) longer: check it in hand']}),
+  treRow({pn:'TR82',flow:'horizontal',core:[22,7.8,3.5],over:[27.5,7.8,3.5],io:2.5,hp:500,cfm:750,oalTxt:'27.5 in (698.5 mm) long',tank:'the left end tank exits on the top',
+    dpTxt:'“less than 1.5 psi pressure drop”, no flow stated',ptest:'“pressure checked to 150psi” (1034 kPa)',warranty:'1 year against manufacture defect (Edge Autosport, DriftHQ listings)',
+    pages:{EDGE:'https://edgeautosport.com/treadstone-tr82-intercooler-500hp/',DHQ:'https://drifthq.com/products/tre-tr82-intercooler-500hp-tr82'},
+    ev:{core:'EDGE DHQ',oal:'EDGE DHQ',io:'EDGE DHQ',hp:'EDGE DHQ',cfm:'EDGE DHQ',dp:'EDGE DHQ'}}),
+  treRow({pn:'TR10',flow:'horizontal',core:[24,10.5,3.5],over:[34,10.5,3.5],io:3,hp:666,cfm:1000,oalTxt:'34 in (864 mm) long',
+    dpTxt:'“less than 2psi pressure drop at max flow”: an upper bound',ptest:'“pressure checked to 150psi” (1034 kPa)',
+    pages:{EDGE:'https://edgeautosport.com/treadstone-tr10-intercooler-666hp/',SS:'https://www.speedscience.co.nz/products/treadstone-tr10-interooler'},
+    ev:{core:'EDGE SS',oal:'EDGE SS',io:'EDGE SS',hp:'EDGE SS',cfm:'EDGE SS',dp:'EDGE SS'},
+    extra:'Speed Science prints 600 × 262.5 × 87.5 and 850 mm, which are 24 × 10.5 × 3.5 and 34 in (863.6 mm) when read at 25 mm per inch'}),
+  treRow({pn:'TR10C',flow:'horizontal',core:[22,10.5,3.5],over:[28,10.5,3.5],io:3,hp:700,cfm:1050,oalTxt:'28 in (711 mm) long',
+    dpTxt:'“less than 1.5psi pressure drop at max flow”: an upper bound',ptest:'“pressure checked to 150psi” (1034 kPa)',warranty:'1 year against manufacture defect (Edge Autosport listing)',
+    pages:{EDGE:'https://edgeautosport.com/treadstone-tr10c-intercooler-700hp/'},
+    ev:{core:'EDGE',oal:'EDGE',io:'EDGE',hp:'EDGE',cfm:'EDGE',dp:'EDGE'},
+    extra:'“CNC Machined Inlets”; a customer review on the same page measured the core 10 in (254 mm), not 10.5 in (266.7 mm), wide (a review, not a specification)'}),
+  treRow({pn:'TR1035',flow:'horizontal',core:[22,10.5,3.5],over:[30,10.5,3.5],io:3,hp:666,cfm:1000,oalTxt:'30 in (762 mm) long',
+    dpTxt:'“less than 2 psi at max flow” (Edge Autosport; Turbozentrum “0,14bar”, 2.0 psi (13.8 kPa)) or “less than 1.5 psi” (MA Performance): an upper bound',ptest:'“pressure tested to 150 psi” (1034 kPa; Turbozentrum “10bar”)',warranty:'1 year limited (MA Performance listing)',
+    pages:{MAP:'https://www.maperformance.com/products/treadstone-tr1035-tr1045-intercooler-tr10x5',EDGE:'https://edgeautosport.com/treadstone-tr1035-intercooler-650hp/',TZ:'https://www.turbozentrum.de/Intercooler-TR1035-666-HP-TRE'},
+    ev:{core:'MAP EDGE TZ',oal:'MAP EDGE',io:'MAP EDGE TZ',hp:'MAP TZ',cfm:'MAP EDGE TZ',dp:'EDGE TZ'},
+    cf:['overall length: Turbozentrum 790 mm (31.1 in) against 30 in (MA Performance, Edge Autosport): 30 in (762 mm) by majority',
+      'rating: Edge Autosport “up to 650HP” against 666 (MA Performance, Turbozentrum; MA Performance’s title says 600hp): 666 by majority',
+      'pressure drop: less than 1.5 psi, 10.3 kPa (MA Performance) against less than 2 psi, 13.8 kPa, at max flow (Edge Autosport, Turbozentrum)']}),
+  treRow({pn:'TR1045',flow:'horizontal',core:[22,10.5,4.5],over:[30,10.5,4.5],io:3,hp:860,cfm:1300,oalTxt:'30 in (762 mm) long',
+    dpTxt:'“less than 2 psi pressure drop, at max flow” (Turbozentrum “0,14bar”, 2.0 psi (13.8 kPa)): an upper bound',ptest:'“pressure checked to 150psi” (1034 kPa; Turbozentrum “10bar”)',warranty:'1 year (MA Performance, Graveyard Performance listings)',
+    pages:{MAP:'https://www.maperformance.com/products/treadstone-4-5-intercooler-tr1045',GY:'https://graveyardperformance.com/products/treadstone-tr1045-intercooler-core',TZ:'https://www.turbozentrum.de/Intercooler-TR1045-860HP-TRE'},
+    ev:{core:'MAP GY TZ',oal:'MAP GY',io:'MAP GY TZ',hp:'MAP GY TZ',cfm:'MAP GY',dp:'MAP GY TZ'},
+    cf:['overall length: Turbozentrum 790 mm (31.1 in) against 30 in (MA Performance, Graveyard Performance): 30 in (762 mm) by majority',
+      'flow: Turbozentrum 1000 CFM against 1300 (MA Performance, Graveyard Performance): 1300 by majority (MA Performance’s title says 800+hp, its text 860)']}),
+  treRow({pn:'TR11',flow:'horizontal',core:[21.5,11,3],over:[28.5,11,3],io:2.5,hp:560,cfm:860,oalTxt:'28.5 in (724 mm) long',
+    dpTxt:'“less than 1.5 psi pressure drop”, no flow stated (Turbozentrum “0,10bar”, 1.45 psi (10.0 kPa))',ptest:'“pressure checked to 150psi” (1034 kPa; Turbozentrum “10bar”)',
+    pages:{EDGE:'https://edgeautosport.com/treadstone-tr11-intercooler-560hp/',TZ:'https://www.turbozentrum.de/Intercooler-TR11-560HP-TRE'},
+    ev:{core:'EDGE TZ',oal:'EDGE TZ',io:'EDGE TZ',hp:'EDGE TZ',cfm:'EDGE TZ',dp:'EDGE TZ'},
+    extra:'listed as 11 × 21.5 × 3 in (Edge Autosport) and 279 × 546 × 76 mm (Turbozentrum: “only 76mm thick compared to our standard 89mm”)'}),
+  treRow({pn:'TR1235',flow:'horizontal',core:[22,12.5,3.5],over:[30,12.5,3.5],io:3,hp:760,cfm:1142,oalTxt:'30 in (762 mm) long',
+    dpTxt:'“less than 2psi pressure drop at max flow” and “1.5psi drop” (MA Performance; Turbozentrum “0,14bar” and “0,10 bar”): an upper bound',ptest:'“pressure checked to 10bar” (1000 kPa, 145 psi; Turbozentrum)',
+    pages:{MAP:'https://www.maperformance.com/products/treadstone-performance-3-5-intercooler-tr1235',TZ:'https://www.turbozentrum.de/Intercooler-TR1235-760HP-TRE',MSC:'https://www.motorsportcalibrations.co.uk/products/intercooler-tr1235-760-hp-tre'},
+    ev:{core:'MAP TZ MSC',oal:'MAP TZ MSC',io:'MAP TZ MSC',hp:'MAP TZ MSC',cfm:'MAP TZ MSC',dp:'MAP TZ MSC'},extra:'“18 rows” (Turbozentrum)',
+    cf:['the TR1235R listings describe the standard TR1235 as “760 HP and 1469 CFM” (Turbozentrum .de) or “900 HP and 1469 CFM” (Turbozentrum .co.uk, Motorsport Calibrations); the TR1235’s own listings agree on 760 HP and 1142 CFM, which are used']}),
+  treRow({pn:'TR1235R',flow:'horizontal',core:[22,12.5,3.5],over:[30,12.5,3.5],io:3,hp:1340,hpAlt:928,cfm:2010,oalTxt:'762 mm (30.0 in) long',
+    dpTxt:'“less than 0,1 bar pressure drop at max flow” (1.45 psi (10.0 kPa)): an upper bound',
+    pages:{TZ:'https://www.turbozentrum.de/Intercooler-TR1235R-928-HP-TRE',TZUK:'https://turbozentrum.co.uk/Intercooler-TR1235R-1340-HP-TRE',MSC:'https://www.motorsportcalibrations.co.uk/products/intercooler-tr1235r-1340-hp-tre'},
+    ev:{core:'TZ TZUK MSC',oal:'TZ TZUK MSC',io:'TZ TZUK MSC',hp:'',cfm:'TZ TZUK MSC',dp:'TZ TZUK MSC'},
+    extra:'“Rated-R”: “22 internal passage ways compared to 18”, the outside fins made shorter for side-mount twin-turbo use',
+    cf:['rating: 928 HP (Turbozentrum .de) against 1340 HP (Turbozentrum .co.uk, Motorsport Calibrations, one wording): unresolved, the lower, 928, is used. 928 is 760 × 22 ÷ 18 (the TR1235’s rating scaled by the passage count); 1340 HP with 2010 CFM are the TR1245R’s figures (a 4.5 in (114.3 mm) core), so the 2010 CFM here may be copied from it: 2010 ÷ 928 is 2.17 CFM per hp, against 1.47 to 1.54 on every other row']}),
+  treRow({pn:'TR1245',flow:'horizontal',core:[22,12.5,4.5],over:[30,12.5,4.5],io:3,hp:1000,cfm:1469,oalTxt:'762 mm (30.0 in) long',
+    dpTxt:'“less than 0,14bar pressure drop at max flow” (2.0 psi (13.8 kPa)) and “0,10bar drop”: an upper bound',ptest:'“pressure checked to 150psi” (1034 kPa; Turbozentrum “10bar”)',
+    pages:{TZ:'https://www.turbozentrum.de/Intercooler-TR1245-1000HP-TRE',MSC:'https://www.motorsportcalibrations.co.uk/products/intercooler-tr1245-1000-hp-tre',RSP:'https://www.realstreetperformance.com/treadstone-tr1245-22-x-12-5-x-4-5-1000hp-front-mount-intercooler-3-inch-inlet-outlet-universal.html'},
+    ev:{core:'TZ MSC RSP',oal:'TZ MSC',io:'TZ MSC RSP',hp:'TZ MSC RSP',cfm:'TZ MSC',dp:'TZ MSC'},
+    cf:['overall length: the Parts tab’s TR1245 row (the maker’s own page, read in an earlier session) gives a “Complete Size 31.50"”, against the retailers’ 762 mm (30.0 in): unresolved; 30 in (762 mm) is used here',
+      'MA Performance’s TR1245R page calls the standard core the C1245, “980 HP and 1469 CFM”, against 1000 HP on the TR1245 listings']}),
+  treRow({pn:'TR1245R',flow:'horizontal',core:[22,12.5,4.5],over:[31.5,12.5,4.5],io:3,hp:1340,cfm:2010,oalTxt:'31.5 in (800 mm) long',
+    dpTxt:'“less than 2psi pressure drop at max flow” (MA Performance only): an upper bound',warranty:'1 year limited (MA Performance listing)',
+    pages:{MAP:'https://www.maperformance.com/products/treadstone-performance-4-5-rated-r-intercooler-tr1245r',RSP:'https://www.realstreetperformance.com/treadstone-tr1245r-rated-r-front-mount-intercooler-1340hp-22-x-12-5-x-4-5-core-3-0-inlet-outlet.html',
+      IP:'https://www.inductionperformance.com/products/treadstone-rated-r-intercooler-tr1245r-22-x-12-5-x-4-5-980hp',TZ:'https://www.turbozentrum.de/Intercooler-TR1245R-1340-HP-TRE',MSC:'https://www.motorsportcalibrations.co.uk/products/treadstone-intercooler-tr1245r-1340-hp-tre'},
+    ev:{core:'MAP RSP IP TZ MSC',oal:'RSP IP TZ MSC',io:'RSP IP TZ MSC',hp:'MAP RSP IP TZ MSC',cfm:'MAP RSP IP TZ MSC',dp:'MAP'},
+    extra:'“Rated-R”: “22 internal passage ways compared to 18”, the outside fins made shorter for side-mount twin-turbo use',
+    cf:['Induction Performance’s page address says 980hp; its page says 1340HP']}),
+  treRow({pn:'TR1245-28',flow:'horizontal',core:[28,12.5,4.5],over:[950/25.4,12.5,4.5],io:3,hp:1200,cfm:1800,oalTxt:'950 mm (37.4 in) long, 870 mm (34.3 in) without the connectors (Turbozentrum only)',
+    dpTxt:'“less than 2.5 psi pressure drop at max flow” (MA Performance; Turbozentrum “0,17bar”, 2.5 psi (17.2 kPa)): an upper bound',
+    pages:{MAP:'https://maperformance.com/products/treadstone-performance-1200hp-intercooler-tr1245-28',TZ:'https://www.turbozentrum.de/Intercooler-TR1245-28-1200HP-TRE'},
+    ev:{core:'MAP TZ',oal:'TZ',io:'MAP TZ',hp:'MAP TZ',cfm:'MAP TZ',dp:'MAP TZ'}}),
+  treRow({pn:'TRV25',flow:'vertical',core:[25,6,3.5],over:[26.5,12,3.5],io:3,hp:1000,cfm:1492,dpPt:[1.5,1492],oalTxt:'26.5 × 12 × 3.5 in (673 × 305 × 89 mm)',tank:'end tanks facing the same way (S) or opposite (O)',
+    dpTxt:'1.5 psi (10.3 kPa) at 1492 CFM (MA Performance; Turbozentrum “0,10bar”): used as a drop at that flow, the CFM read as standard air',ptest:'“pressure checked to 150psi” (1034 kPa; MA Performance)',warranty:'1 year limited (MA Performance listing)',
+    pages:{MAP:'https://www.maperformance.com/products/treadstone-3-5-trv25-intercooler-trv25',TZ:'https://www.turbozentrum.de/Intercooler-TRV25-O-1000-HP-TRE'},
+    ev:{core:'MAP TZ',oal:'MAP TZ',io:'MAP TZ',hp:'MAP TZ',cfm:'MAP TZ',dp:'MAP TZ'},
+    cf:['MA Performance’s page also carries a description with the TRV259’s figures (1300HP, 1950 CFM, 2.0 psi (13.8 kPa)); its other description and Turbozentrum give 1000 HP, 1492 CFM and 1.5 psi (0.10 bar), which are used']}),
+  treRow({pn:'TRV259',flow:'vertical',core:[25,9,3.5],over:[26.5,15,3.5],io:3,hp:1300,cfm:1950,dpPt:[2.0,1950],tube:'a longer 9" tube length',oalTxt:'26.5 × 15 × 3.5 in (673 × 381 × 89 mm)',tank:'end tanks facing the same way (S) or opposite (O)',
+    dpTxt:'2.0 psi (13.8 kPa) at 1950 CFM: used as a drop at that flow, the CFM read as standard air',ptest:'“pressure checked to 150psi” (1034 kPa)',warranty:'1 year against manufacture defect (Turbozentrum listing)',
+    pages:{MAP:'https://maperformance.com/products/treadstone-3-50-trv259-intercooler-trv259x',TZ:'https://www.turbozentrum.de/TRV259-Series-Intercooler-1300HP-TRE'},
+    ev:{core:'MAP TZ',oal:'MAP TZ',io:'MAP TZ',hp:'MAP TZ',cfm:'MAP TZ',dp:'MAP TZ'}}),
+  treRow({pn:'TRV185',flow:'vertical',mm:true,core:[470,152,89],over:[508,312,89],io:63.5,hp:720,cfm:null,oalTxt:'508 × 312 × 89 mm (20.0 × 12.3 × 3.5 in)',tank:'connections on the same side',
+    dpTxt:null,ptest:'“pressure checked to 150 PSi” (1034 kPa)',warranty:'1 year against manufacture defect (Turbozentrum listing)',
+    pages:{TZ:'https://www.turbozentrum.de/TRV185-Series-Intercooler-720HP'},
+    ev:{core:'TZ',oal:'TZ',io:'TZ',hp:'TZ'},extra:'“up to 720 HP”; vertical flow inferred from the overall height, 312 mm (12.3 in), against the core’s 152 mm (6.0 in)'})
 ])).map(c=>Object.assign({model:'core',inD:null,outD:null,flow:null,dp:null,point:null,water:null,coolFlow:null,dims:null,dimNote:null,note:null,kw:null,hpAlt:null,srcName:c.maker,seen:'2026-11-12',
   pub:{cons:null,tanks:null,ptest:null,boost:null,warranty:null}},c));
 // a core's rating as horsepower for the comparison: its hp, or the maker's typical engine power in kW converted (1 hp = 0.7457 kW)
@@ -23673,7 +23825,8 @@ function cfxPredict(c,o){ const M=cfxModel(c), U=cfxUA(c,o.m), Ch=o.m*CP_AIRT, C
        unknown (a core sold without tanks, or not published): not rejected, flagged;
    (c) Bell's flow-area rule (6 in² per 100 hp, 45% of the charge face open) as a cross-check of the charge face, air-to-air
        only; the charge face per maker: Garrett labels the length as the hot flow (face = height × width), Mishimoto's
-       overall length exceeds its core length (tanks on the length ends: face = height × thickness), CSF does not say (its
+       overall length exceeds its core length (tanks on the length ends: face = height × thickness), Treadstone the same from
+       its retailers' overall sizes (the TRV models: overall height over core height, face = length × thickness), CSF does not say (its
        length, the longest dimension on every row, taken as the charge-flow length, or the height on its rows listed as
        vertical flow: assumptions);
    (d) a row with a thermal point (EJ Bowman's brochure, or the user's own measured point) is predicted at this build's flow
@@ -23693,6 +23846,8 @@ function icFace(c){
   if(c.maker==='Garrett') return {a:D[1]*D[2],why:'height (no flow) × width (cold flow): Garrett labels the length as the hot, charge, flow (its core table; also its “Air-to-Air / Air-to-Liquid Intercooler Cores” sell sheet, 2023, supplied by the owner: “Length/Hot Flow”, “Height/No Flow”, “Width/Cold Flow”)'};
   if(c.maker==='Bell Intercoolers') return {a:c.bellABC[0]*c.bellABC[1],why:'A × B (thickness × height): Bell’s core dimension guide shows the charge air entering the A × B end and running along C, in both horizontal and vertical flow'};
   if(c.maker==='Mishimoto') return {a:D[1]*D[2],why:'core height × thickness: Mishimoto’s overall length is longer than its core length, so the tanks sit on the length ends'};
+  if(c.maker==='Treadstone') return c.tre.flow==='vertical'?{a:D[0]*D[2],why:'core length × thickness: the overall height listed is greater than the core height, so the end tanks are top and bottom and the charge runs along the height'+(c.tre.tube?' (“'+c.tre.tube+'”)':'')}:
+    {a:D[1]*D[2],why:'core height × thickness: the overall length listed is longer than the core length, so the end tanks sit on the length ends'};
   if(/vertical flow/.test(c.model)) return {a:D[0]*D[2],assumed:true,why:'length × width: '+c.maker+' lists the core as vertical flow, so the charge is taken to run along the height (this page’s assumption)'};
   return {a:D[1]*D[2],assumed:true,why:'height × width: '+c.maker+' does not say which way the charge flows, so its first dimension, the length (the longest on every row), is taken as the charge-flow length (this page’s assumption)'};
 }
@@ -24054,8 +24209,8 @@ function tsOptionsSection(ind,p){
   g+='<div class="tblwrap"><table id="tso-ics"><thead><tr><th>Core</th><th>Core size as the maker labels it</th><th>Maker’s rating</th><th>Flow, drop, tanks, ports</th><th>What the maker publishes</th><th>Against this build</th></tr></thead><tbody>'+
     list.map(([c,i])=>{ const v=icV(c);
       const D=c.L?[c.L,c.H,c.W]:c.dims, d=x=>imp?x[0].toFixed(1)+' in':x[1]+' mm';
-      const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+(c.bellABC?'; length (C, the charge flow) × height (B) × thickness (A), Bell’s C × B × A':'')+(c.dimOverall?'; overall, as the maker publishes it':'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
-      const rate=c.cfm?c.cfm+' CFM at 1 psi (6.9 kPa) loss and 10 psig (69 kPa) charge pressure; '+Math.round(c.hp)+' hp ('+Math.round(c.hp*0.7457)+' kW) by 1.5 cfm (0.71 L/s) per hp (this page’s conversion, reading the CFM as standard cfm: Bell does not say; as actual cfm at 10 psig (69 kPa) it would be '+Math.round(c.hp*24.696/14.696)+' hp and the drop at a given mass flow 2.82 × lower)':c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
+      const dims=D?d(D[0])+' × '+d(D[1])+' × '+d(D[2])+'<br><span class="cap">'+(imp?D.map(x=>x[1]).join(' × ')+' mm':D.map(x=>x[0].toFixed(1)).join(' × ')+' in')+(c.maker==='Garrett'?'; length is the hot flow, width the cold flow':'')+(c.bellABC?'; length (C, the charge flow) × height (B) × thickness (A), Bell’s C × B × A':'')+(c.dimOverall?'; overall, as the maker publishes it':'')+(c.tre?'; length × height × thickness, the charge along the '+(c.tre.flow==='vertical'?'height':'length'):'')+'</span>':'<span class="cap">'+esc(c.dimNote||'not published')+'</span>';
+      const rate=c.tre?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW), “HP efficient”'+(c.hpAlt!=null?'; another listing says '+c.hpAlt+' hp ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':'')+'<br><span class="cap">Treadstone’s claim as its retailers list it, not test data</span>':c.cfm?c.cfm+' CFM at 1 psi (6.9 kPa) loss and 10 psig (69 kPa) charge pressure; '+Math.round(c.hp)+' hp ('+Math.round(c.hp*0.7457)+' kW) by 1.5 cfm (0.71 L/s) per hp (this page’s conversion, reading the CFM as standard cfm: Bell does not say; as actual cfm at 10 psig (69 kPa) it would be '+Math.round(c.hp*24.696/14.696)+' hp and the drop at a given mass flow 2.82 × lower)':c.hp!=null?c.hp+' hp ('+Math.round(c.hp*0.7457)+' kW)'+(c.hpAlt!=null?'; also “rated to '+c.hpAlt+' whp” ('+Math.round(c.hpAlt*0.7457)+' kW): the lower is used':''):c.kwLabel?esc(c.kwLabel)+': '+(c.kwLo?c.kwLo+' to ':'up to ')+c.kw+' kW ('+(c.kwLo?Math.round(c.kwLo/0.7457)+' to ':'')+Math.round(c.kw/0.7457)+' hp; crank or wheel not stated)':c.kw!=null?'typical engine power '+c.kw+' kW ('+Math.round(c.kw/0.7457)+' hp)':'not published';
       const P=c.point, fx=[];
       if(c.inD&&!c.barb) fx.push('end tanks '+inD(c.inD)+' in / '+inD(c.outD)+' out');
       if(P) fx.push((c.own?'your point: ':'maker’s point: ')+fl(P.m_kgmin/60)+' charge, '+tD(P.thi)+' in, '+tD(P.tho)+' out, '+(P.Q_kW!=null?kw(P.Q_kW*1000)+' rejected, ':'')+(P.cool_lpm!=null?'water '+lmin(P.cool_lpm):'outside air '+fl(P.cool_lbmin/LBMIN))+' at '+tD(P.tci));
@@ -24065,9 +24220,10 @@ function tsOptionsSection(ind,p){
           ', at charge in '+tD(Rr.thi)+' and '+(imp?(Rr.p_kPa/6.894757).toFixed(1)+' psia ('+Rr.p_kPa+' kPa abs.)':Rr.p_kPa+' kPa abs. ('+(Rr.p_kPa/6.894757).toFixed(1)+' psia)')+', EGW 25/75 in at '+tD(Rr.tci)+', '+lmin(Rr.lpm)+' ('+Rr.kgs+' kg/s, '+(Rr.kgs*LBMIN).toFixed(1)+' lb/min)');
         fx.push('air connectors '+inD(c.inD)+' hose barb (barb outside diameter); '+esc(c.water)+'; dry / wet '+(imp?(c.mass[0]/0.45359237).toFixed(1)+' / '+(c.mass[1]/0.45359237).toFixed(1)+' lb ('+c.mass[0]+' / '+c.mass[1]+' kg)':c.mass[0]+' / '+c.mass[1]+' kg ('+(c.mass[0]/0.45359237).toFixed(1)+' / '+(c.mass[1]/0.45359237).toFixed(1)+' lb)')); }
       else if(c.water) fx.push(esc(c.water));
+      if(c.tre) fx.push(esc(treTxt(c)));
       const pubC=c.own?'your own entry':icPubList(c).map(([k,x])=>x?'<b>'+k+'</b>: '+esc(x):k+': not published').join('; ')+(c.pub&&c.pub.tests?'; <b>testing</b>: '+esc(c.pub.tests)+'; <b>quality</b>: '+esc(c.pub.quality)+'; <b>lead time</b>: '+esc(c.pub.lead):'');
       return '<tr data-i="'+i+'" data-pub="'+(c.own?'':icPubN(c))+'"><td>'+esc(c.maker+' '+c.pn)+'<br><span class="cap">'+(TSO.ictype?'':(c.type==='w2a'?'water-to-air; ':'air-to-air; '))+esc(c.model)+'</span></td><td>'+dims+'</td><td>'+rate+'</td><td>'+(fx.length?fx.join('; '):'not published')+'</td><td class="cap">'+pubC+'</td><td>'+v+'</td></tr>'; }).join('')+'</tbody></table></div>';
-  g+='<p class="cap" id="tso-ic-cap">Sources, read 2026-11-12, makers’ own pages: '+link(IC_SRC,'Garrett intercooler cores')+' (“Supported Horsepower”, “for normal operating conditions”), '+link(MISH,'Mishimoto')+' (MMINT-UZ, MMINT-UG, MMINT-US, MMINT-UM, MMINT-UR, MMUIC-W3, MMUIC-W4 product pages), '+link(CSFU,'CSF bar and plate cores')+' (flow orientation from its '+link(CSFT,'core size table')+'), '+link(BELLC,'Bell Intercoolers’ air-cooled core catalogue')+' with each core’s item page, its '+link(BELLG,'core dimension guide')+' and '+link(BELLF,'FAQ')+' (Bell rates a core in CFM at 1 psi loss and 10 psig charge pressure, with no horsepower: the hp here is CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp, this page’s conversion; its liquid-cooled catalogue gives no flow rating, so those cores are not listed), the '+link(BOWU,'EJ Bowman charge air cooler brochure')+' (a copy on a dealer’s site) and the Conflux Technology “Barrel Intercoolers” brochure, version 1.0 (2026), supplied by the owner ('+link(CFX_SRC,'confluxtechnology.com')+'). Inches-only makers are converted to mm here. “What the maker publishes” lists only what the maker’s own page states (construction, end tanks, pressure drop, a thermal test point, a pressure test or rated boost, warranty); “not published” means that page does not say. It is not a quality rating: this page has no data to rate build quality. A maker’s hp rating is its own claim under its own assumptions; “far larger” is over twice the target, this page’s rule of thumb. Bowman publishes one thermal point per cooler (charge outlet temperature and heat rejection at a stated charge flow, water flow and inlet temperatures); Conflux publishes curves of effectiveness, charge outlet temperature and air pressure drop against charge flow at stated test conditions (read here from its charts). Picking either fills the cooling-capacity inputs below from it. Searched and not listed (again on 2026-11-12): Vibrant Performance (only dealer listings and a dealer-hosted sheet with no named publisher and unlabelled columns), Treadstone (dealer listings and a marketplace store only), PWR, Wagner Tuning, Frozenboost and Spearco/Turbonetics (only dealer listings found), Laminova, AFCO and Chargecooler (no maker data sheet found); Garrett’s intercooler technology article gives only one car’s intake temperatures, no core data.</p>';
+  g+='<p class="cap" id="tso-ic-cap">Sources, read 2026-11-12, makers’ own pages: '+link(IC_SRC,'Garrett intercooler cores')+' (“Supported Horsepower”, “for normal operating conditions”), '+link(MISH,'Mishimoto')+' (MMINT-UZ, MMINT-UG, MMINT-US, MMINT-UM, MMINT-UR, MMUIC-W3, MMUIC-W4 product pages), '+link(CSFU,'CSF bar and plate cores')+' (flow orientation from its '+link(CSFT,'core size table')+'), '+link(BELLC,'Bell Intercoolers’ air-cooled core catalogue')+' with each core’s item page, its '+link(BELLG,'core dimension guide')+' and '+link(BELLF,'FAQ')+' (Bell rates a core in CFM at 1 psi loss and 10 psig charge pressure, with no horsepower: the hp here is CFM ÷ 1.5, Corky Bell’s 1.5 cfm per hp, this page’s conversion; its liquid-cooled catalogue gives no flow rating, so those cores are not listed), the '+link(BOWU,'EJ Bowman charge air cooler brochure')+' (a copy on a dealer’s site) and the Conflux Technology “Barrel Intercoolers” brochure, version 1.0 (2026), supplied by the owner ('+link(CFX_SRC,'confluxtechnology.com')+'). Treadstone (TRE, read 2026-11-14) from its authorised retailers’ listings of the maker’s figures, since the maker’s own site refuses automated reading: '+link('https://www.maperformance.com/','MA Performance')+', '+link('https://edgeautosport.com/brands/Treadstone-Performance.html','Edge Autosport')+', '+link('https://www.turbozentrum.de/','Turbozentrum')+' (with Motorsport Calibrations, which uses its wording), Speed Science, Real Street Performance, DriftHQ, Graveyard Performance and Induction Performance; each row gives the pages, says which figures two retailers confirm and which only one lists, and shows where the listings disagree. Treadstone’s hp is a maker’s claim (its CFM ÷ 1.5), checked against Bell’s face rule, Bell’s own drop rating and Garrett’s cores of similar size on the boost audit: the horizontal TR cores sit with Garrett’s ratings for their size; their “less than 2 psi” is an upper bound that Bell’s rating, scaled to them, puts at 3 to 4 psi; the short vertical TRV cores claim more than Garrett rates a core of nearly the same size. Inches-only makers are converted to mm here. “What the maker publishes” lists only what the maker’s own page states (for Treadstone, what its retailers’ listings of the maker’s text state) (construction, end tanks, pressure drop, a thermal test point, a pressure test or rated boost, warranty); “not published” means that page does not say. It is not a quality rating: this page has no data to rate build quality. A maker’s hp rating is its own claim under its own assumptions; “far larger” is over twice the target, this page’s rule of thumb. Bowman publishes one thermal point per cooler (charge outlet temperature and heat rejection at a stated charge flow, water flow and inlet temperatures); Conflux publishes curves of effectiveness, charge outlet temperature and air pressure drop against charge flow at stated test conditions (read here from its charts). Picking either fills the cooling-capacity inputs below from it. Searched and not listed (again on 2026-11-12): Vibrant Performance (only dealer listings and a dealer-hosted sheet with no named publisher and unlabelled columns), PWR, Wagner Tuning, Frozenboost and Spearco/Turbonetics (only dealer listings found), Laminova, AFCO and Chargecooler (no maker data sheet found); of Treadstone’s range, not listed: the twin-turbo TRTT9 and TRTTC (two inlets into one tank, which this page’s tank check, one neck against one pipe, cannot judge), the TRV125 (its overall size is printed garbled, so its flow direction cannot be told), the bare cores (CV259, C1235, C12186: no tanks, the charge direction not stated), the water-to-air CW cores (the listing does not name the maker) and the TR1260-35R (found only on a marketplace); Garrett’s intercooler technology article gives only one car’s intake temperatures, no core data.</p>';
   // the makers' curves (Conflux), each with this build's point
   const cfxRows=list.filter(([c])=>c.curve);
   if(cfxRows.length){ const opIn={m:mc,cool:TSO.cool,wf:F('wf'),thi:R.t2,tci:Number.isFinite(F('wTi'))?F('wTi'):p.tamb,pAbs:R.P2}; TG.cfxOps={};

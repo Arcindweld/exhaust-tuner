@@ -2085,3 +2085,17 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   row wording, p3 59.04 → 51.82 psi).
 - Suite (web,parity, -j 2, --skip-slow), final code: 135 tests, 128 passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips,
   0 unexpected skips, 1499 s.
+
+## 2026-11-14: Treadstone intercoolers added (from authorised retailers' listings)
+- The owner: "Find a way to check out the Treadstone intercoolers to add". Treadstone's own site refuses automated reading, so
+  its figures come from its authorised retailers' listings (MA Performance, Edge Autosport, Turbozentrum, Speed Science, Real
+  Street Performance, DriftHQ, Graveyard Performance, Induction Performance), read 2026-11-14. 19 air-to-air rows in IC_LIB
+  (TR6, TR62, TR8, TR8C, TR8L, TR82, TR10, TR10C, TR1035, TR1045, TR11, TR1235, TR1235R, TR1245, TR1245R, TR1245-28, TRV25,
+  TRV259, TRV185), each with its pages, per-figure "confirmed by two retailers" / "single retailer", and the conflicts shown.
+  Treadstone moves from "not verified" (entries of 2026-11-12 above) to "from retailer listings" in the caption.
+- Sanity check: hp = CFM ÷ 1.5 on every row; horizontal TR ratings in family with Garrett's cores of similar size; their "less
+  than 2 psi" drop claims 1.5-2.8 × optimistic against Bell's own rating scaled to them; Rated-R and the short vertical TRV
+  cores rated above Garrett's similar cores. tools/validation/boost/treadstone.py.
+- K24 + PT5862 450 hp: pick unchanged (Bell A300227240); TRV25 8th, TRV259 13th. Pins changed in icrec_ui (margin 1.2 third
+  pick → TRV185, out 7 → 8; 1300 hp pick CSF 8040 → TRV259 on its published drop).
+- Details: docs/BOOST_AUDIT_2026-11-12.md, addendum "Treadstone intercoolers" (2026-11-14).
