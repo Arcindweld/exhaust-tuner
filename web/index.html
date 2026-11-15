@@ -1472,7 +1472,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <label class="f adv" id="i-wgcl-wrap"><span class="lab">Collector, last merge to the turbine flange</span>
             <span class="inp"><input id="i-wgcl" type="number" step="any" inputmode="decimal" data-kind="len" data-base="152.4"><em data-u="len">in</em></span></label>
                   <label class="f adv" id="i-kon-wrap"><span class="lab">Knock check in the simulation (an estimate)</span>
-            <span class="inp"><select id="i-kon"><option value="on" selected>On: the knock integral, the timing it needs, the knock-limited boost</option><option value="off">Off</option></select></span></label>
+            <span class="inp"><select id="i-kon"><option value="off" selected>Off</option><option value="on">On: compare fuels and settings (an estimate)</option></select></span></label>
           <label class="f adv" id="i-kaki-wrap"><span class="lab">Pump gasoline octane at the pump, (R+M)/2 (blank: 91)</span>
             <span class="inp"><input id="i-kaki" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="91" data-min="85" data-max="100"><em>AKI</em></span></label>
           <label class="f adv" id="i-kron-wrap"><span class="lab">Knock check: the picked fuel’s research octane, RON (blank: the listed figure)</span>
@@ -20535,12 +20535,15 @@ function knFuel(k,aki,ron,mon){ const d=KN_FUELS[k]||KN_FUELS.pump, a=aki>0?aki:
   const R0=d.aki?a+4:d.ron, M0=d.aki?a-4:d.mon;
   return {k,name:d.aki?d.name+', '+a+' AKI':d.name,ron:ron>0?ron:R0,mon:mon>0?mon:M0,typed:ron>0,src:d.aki?a+' AKI ((R+M)/2) read as RON '+(a+4)+', MON '+(a-4)+' (ORNL/TM-2016/42’s 93 AKI pump fuel had RON 97: sensitivity 8 assumed)':d.src}; }
 function knockPlan(R,p,t1,t2,Pt){
-  if(($('i-kon')?$('i-kon').value:'on')==='off') return null;
+  if(!$('i-kon')||$('i-kon').value!=='on') return null;
   const FP=typeof fuelPage==='function'&&$('i-fuel')?fuelPage():{k:'pump'}, k=FP.k, aki=val('i-kaki')>0?val('i-kaki'):91;
   const Kk=$('i-kk')&&String($('i-kk').value).trim()!==''&&Number.isFinite(val('i-kk'))?val('i-kk'):0, xe=val('i-kxe')>0&&val('i-kxe')<100?val('i-kxe')/100:0.9;
   const sel=knFuel(k,aki,val('i-kron'),val('i-kmon')), oi=f=>f.ron>0?f.ron-Kk*(f.ron-(f.mon>0?f.mon:f.ron)):null;
   const pump=k==='pump'||k==='e10'?sel:knFuel('pump',aki), e85=k==='e85'?sel:knFuel('e85',aki);
   const fuels=[pump,e85].map(f=>({k:f.k,name:f.name,ON:oi(f),ron:f.ron,mon:f.mon,src:f.src})).filter(f=>f.ON>0);
+  // for the comparison: E85 at the effective octane number Kasseris fitted (115), and the pump gas 5 octane numbers higher
+  if(!(k==='e85'&&sel.typed)) fuels.push({k:'e85eff',name:'E85 at its fitted effective octane number',ON:115,src:'Kasseris, MIT thesis 2011: effective octane numbers fitted from 97 (gasoline) to 115 (E85)'});
+  if(fuels[0]&&fuels[0].k==='pump') fuels.push({k:'pump5',name:'pump gasoline 5 octane numbers higher',ON:fuels[0].ON+5,src:'the pump fuel + 5'});
   const tamb=p.tamb!=null?p.tamb:t1, eps=t2>tamb?(t2-R.t3)/(t2-tamb):0;
   return {ON:oi(sel),sel:{k,name:sel.name,ron:sel.ron,mon:sel.mon,src:sel.src,typed:sel.typed},K:Kk,xEnd:xe,aki,fuels,Pt,
     comp:R.PRc>1?{t1,t2,t3:R.t3,PR:R.PRc,eps,tamb}:null};
@@ -20727,8 +20730,13 @@ function tsimRun(TL,j,post){
     out.sens=cases.map((c,k)=>{ post({type:'progress',i:nT-1,n:nT,label:'Sensitivity '+(k+1)+' of '+cases.length+': '+(c.eta!==eta0?'turbine efficiency '+Math.round(100*c.eta)+'%':'full boost at '+c.lo+' RPM')});
       const Bs=mkB(withEta(j.spec,c.eta)); try{ return {eta:c.eta,lo:c.lo,rpm:rp,rows:TL.closure(Bs,{rpms:[c.lo,rp],wc,A0:out.rows[0].At})}; } finally { Bs.drop(); } });
   }
-  B=mkB0(j.na);
+  B=KN?mkB(j.na):mkB0(j.na);
   try{ out.na=TL.sweep(B,j.rpms,{},(i,r)=>post({type:'progress',i:nR+i,n:nT})); } finally { B.drop(); }
+  // the same engine without boost (part 12, L11): the use the validation supports in absolute terms
+  if(KN&&out.na.length){ try{ const en=TL.WS.makeEngine(j.na.e,j.na.intake,j.na.exhaust,j.na.opt), o={ON:j.knock.ON,xEnd:j.knock.xEnd};
+      const per=out.na.map(r=>{ const c=r.trace?KN.check(r.trace,en,r.rpm,o):null; return c?{rpm:r.rpm,I:c.I}:null; }).filter(Boolean);
+      out.knockNA={per,wi:per.reduce((b,q,i)=>q.I>per[b].I?i:b,0)}; }catch(e){ out.knockNA={err:String(e&&e.message||e)}; } }
+  out.na.forEach(r=>{ delete r.trace; });
   if(j.sc){ B=mkB0(j.sc); try{ out.sc=TL.sweep(B,j.rpms,{},(i,r)=>post({type:'progress',i:2*nR+i,n:nT})); } finally { B.drop(); } }
   // keep what the page shows: the bins of the speed of peak power and every speed's tail flow for the orders
   out.rows.forEach(r=>{ if(r.res.turb){ r.res.turb.p3bins=r.res.turb.p3bins; } });
@@ -20826,46 +20834,58 @@ function tsimSummary(P,out){
   return {knock:knockSum(P,out,rows),rows,ip,hp:pw[ip],rpmHp:rows[ip]?rows[ip].rpm:NaN,p3k:rows[ip]?rows[ip].p3k:NaN,ord,air,bsfc,sens,calib:out.calib||null,etaRun,mode:out.mode||'found',fullBoost:out.fullBoost||null,areaBig:out.areaBig||null};
 }
 /* the knock estimate in numbers (part 12): the largest integral and its speed, the retard to 1 (and the band's 0.7 / 1.3)
-   and its cost in brake power at that speed, the knock-limited boost by fuel (gauge, Pa) */
+   and its cost in brake power at that speed, the knock-limited charge pressure by fuel (absolute, Pa), the same engine
+   without boost. Presented comparison first (L11): under boost the absolute figures read far too pessimistic. */
 function knockSum(P,out,rows){
   const K=out.knock; if(!K) return null; if(K.err) return {err:K.err};
   if(!(K.wi>=0)) return {none:true};
   const w=rows[K.wi], c=K.per[K.wi], hp=w.tqB*w.rpm*Math.PI/30/745.7, R=K.retard, kp=P.knock||{};
   const ret=R?R.band.map(b=>b.inside?{t:b.t,inside:true}:b.none?{t:b.t,none:true}:{t:b.t,deg:R.base.start-b.start,ca50:b.ca50,loss:1-b.bmep/R.base.bmep,hpLoss:hp*(1-b.bmep/R.base.bmep)}):null;
+  const NA=out.knockNA&&!out.knockNA.err&&out.knockNA.per&&out.knockNA.per.length?out.knockNA:null;
   return {I:c.I,rpm:w.rpm,ca50:c.ca50,caEnd:c.caEnd,knockAt:c.knockAt,Tivc:c.Tivc,TuEnd:c.TuEnd,ON:K.ON,xEnd:K.xEnd,start:K.start,Pt:K.Pt,hp,
-    per:K.per.map(q=>q?{rpm:q.rpm,I:q.I}:null).filter(Boolean),ret,
-    lim:(K.lim||[]).map(f=>({k:f.k,name:f.name,ON:f.ON,g:f.P.map(x=>x==null?null:x-P_ATM)})),sel:kp.sel||null,K:kp.K,fuels:kp.fuels||[]};
+    per:K.per.filter(Boolean).map(q=>({rpm:q.rpm,I:q.I})),ret,
+    lim:(K.lim||[]).map(f=>({k:f.k,name:f.name,ON:f.ON,P:f.P})),sel:kp.sel||null,K:kp.K,fuels:kp.fuels||[],
+    na:NA?{I:NA.per[NA.wi].I,rpm:NA.per[NA.wi].rpm,per:NA.per}:null};
 }
-const KN_CAVEAT='An estimate, not a safe limit: one published correlation (Douaud and Eyzat, 1978) on this model’s cylinder pressure, which runs high on boosted builds; published knock work has to fit the correlation’s octane number to each engine. It does not replace knock monitoring and a tuner. Knock can break pistons and ring lands in seconds: never set boost or timing from this line.';
-// the plain-language line: short for the glance card, long (with the band and the assumptions one click away) for the results
+const KN_CAVEAT='An estimate, not a safe limit: one published correlation (Douaud and Eyzat, 1978) on this model’s cylinder pressure; published knock work has to fit the correlation’s octane number to each engine. It does not replace knock monitoring and a tuner. Knock can break pistons and ring lands in seconds: never set boost or timing from this line.';
+const KN_RAW='reads far too pessimistic under boost in this model (stock naturally aspirated engines land at the limit, boosted builds do not): not usable as a limit';
+// the ratio of two fuels' knock-limited absolute charge pressures at the integral 0.7 / 1 / 1.3 (null where one is missing)
+function knRatio(KS,a,b){ const A=(KS.lim||[]).find(f=>f.k===a), B=(KS.lim||[]).find(f=>f.k===b); if(!A||!B) return null;
+  const r=[0,1,2].map(i=>A.P[i]>0&&B.P[i]>0?A.P[i]/B.P[i]:null); return r[1]?r:null; }
+// the naturally aspirated verdict (the use the validation supports in absolute terms): inside below 0.7, at 0.7-1.3, beyond
+const knNaWord=I=>I<0.7?'inside the knock limit':I<=1.3?'at the knock limit':'beyond the knock limit';
+// the plain-language line: comparison first; short for the glance card, long for the results
 function knockTxt(KS,F,P,long){
   if(!KS) return ''; if(KS.err) return 'Knock check (estimate): not worked out ('+esc(KS.err)+').'; if(KS.none) return '';
-  const kp=P.knock||{}, sel=kp.sel||{}, fN=sel.name||'this fuel', g=KS.Pt-P_ATM, r1=KS.ret?KS.ret[1]:null, i0=KS.I;
-  const pd=x=>x==null?'beyond the range worked out':x<=0?'none (below atmospheric)':F.pD(x);
-  let t='Knock check (estimate): on '+fN+' (octane number '+(KS.ON).toFixed(1)+') at '+F.pD(g)+' boost this build is ';
-  if(i0<1) t+='inside the knock limit at the page’s ignition timing (the knock integral reaches '+i0.toFixed(2)+' of 1 by '+Math.round(100*KS.xEnd)+'% burned, at '+KS.rpm.toLocaleString('en-US')+' RPM, its worst speed)';
-  else{ t+='beyond the knock limit at the page’s ignition timing (the knock integral reaches '+i0.toFixed(2)+', 1 being knock, at '+KS.rpm.toLocaleString('en-US')+' RPM)';
-    if(r1&&r1.none) t+='; even 40° of retard does not bring it inside the estimate’s limit';
-    else if(r1&&!r1.inside) t+='; retarding the timing about '+Math.round(r1.deg)+'° (half burned at '+r1.ca50.toFixed(0)+'° after top dead centre) brings it inside, which costs about '+F.hp(r1.hpLoss)+' there ('+(100*r1.loss).toFixed(0)+'%)'; }
-  const L=KS.lim||[], li=f=>f?f.name+' near '+pd(f.g[1]):'';
-  if(L.length) t+='. At that timing the estimate puts the knock-limited boost for '+L.map(li).join(' and for ');
-  t+='. Under boost it reads pessimistic against reported builds (they run more boost than this on a tune): compare the fuels, do not read the numbers as limits.';
+  const kp=P.knock||{}, sel=kp.sel||{}, rE=knRatio(KS,'e85','pump'), rX=knRatio(KS,'e85eff','pump'), r5=knRatio(KS,'pump5','pump'), pump=(KS.lim||[]).find(f=>f.k==='pump');
+  const x=v=>v.toFixed(2).replace(/0$/,'');
+  let t='Knock check (estimate, a comparison): ';
+  const parts=[];
+  if(rE) parts.push('E85 tolerates about '+x(rE[1])+(rX?' to '+x(rX[1]):'')+' times the absolute manifold pressure of '+(pump?pump.name:'pump gasoline')+' at the same ignition timing'+(rX?' (the higher figure with the effective octane number fitted for E85 in published work)':'')+'; Garrett’s own pump-gas against E85 example ran 1.46 times');
+  if(r5) parts.push('5 more octane numbers allow about '+Math.round(100*(r5[1]-1))+'% more absolute manifold pressure');
+  parts.push('more compression, more boost, a hotter charge and earlier timing all move it toward knock; this estimate under-reacts to the charge temperature 2 to 8 times against the published rule of about one octane number per 25 °F (14 °C), so a cooler charge helps more than it shows');
+  if(KS.na) parts.push('the same engine without boost on '+(sel.name||'this fuel')+' is '+knNaWord(KS.na.I)+' at the page’s timing (knock integral '+KS.na.I.toFixed(2)+' at '+KS.na.rpm.toLocaleString('en-US')+' RPM, 1 being knock; inside below 0.7, at the limit 0.7 to 1.3)');
+  t+=parts.join('; ')+'.';
   if(!long) return t;
-  const band=L.map(f=>f.name+' '+pd(f.g[0])+' to '+pd(f.g[2])).join('; ')+(KS.ret&&!(r1&&r1.none)?'; the retard '+KS.ret.map(b=>b.inside?'none':b.none?'more than 40°':Math.round(b.deg)+'°').join(' / ')+' for an integral of 0.7 / 1 / 1.3':'');
-  return t+' Band (knock taken at an integral of 0.7 to 1.3 instead of 1): '+band+'.';
+  if(rE) t+=' Band (knock taken at an integral of 0.7 to 1.3 instead of 1): E85 '+x(Math.min(...rE.filter(Boolean)))+' to '+x(Math.max(...rE.filter(Boolean)))+' times.';
+  return t;
 }
+// the assumptions and the raw numbers, collapsed; every absolute boosted figure labelled
 function knockAssump(KS,P,F){
   if(!KS||KS.err||KS.none) return '';
-  const kp=P.knock||{}, sel=kp.sel||{};
+  const kp=P.knock||{}, sel=kp.sel||{}, g=KS.Pt-P_ATM, r1=KS.ret?KS.ret[1]:null, pd=x=>x==null?'beyond the range worked out':x-P_ATM<=0?'none (below atmospheric)':F.pD(x-P_ATM);
+  const raw=[
+    'Knock integral under boost at the page’s timing: '+KS.I.toFixed(2)+' at '+KS.rpm.toLocaleString('en-US')+' RPM and '+F.pD(g)+' boost ('+KS.per.map(q=>q.rpm.toLocaleString('en-US')+': '+q.I.toFixed(2)).join(', ')+'): '+KN_RAW,
+    'Knock-limited boost at the page’s timing (integral 1; 0.7 to 1.3): '+(KS.lim||[]).map(f=>esc(f.name)+' '+pd(f.P[1])+' ('+pd(f.P[0])+' to '+pd(f.P[2])+')').join('; ')+': '+KN_RAW];
+  if(KS.ret) raw.push('Timing retard that brings the integral to 1 at '+KS.rpm.toLocaleString('en-US')+' RPM (0.7 / 1 / 1.3): '+KS.ret.map(b=>b.inside?'none':b.none?'more than 40°':Math.round(b.deg)+'°').join(' / ')+(r1&&!r1.inside&&!r1.none?', costing about '+F.hp(r1.hpLoss)+' ('+(100*r1.loss).toFixed(0)+'%) there':'')+': '+KN_RAW);
   const li=[
     'The fuel: '+esc(sel.name||'')+', RON '+(sel.ron!=null?sel.ron:'–')+', MON '+(sel.mon!=null?sel.mon:'–')+(sel.typed?' (typed)':' ('+esc(sel.src||'')+')')+'; octane index K '+kp.K+' (Kalghatgi: ON = RON − K × (RON − MON); published K for turbocharged engines runs from about −0.3 to −1.1, Wang et al., Fuel 209 (2017)); compared: '+(kp.fuels||[]).map(f=>esc(f.name)+' ON '+f.ON.toFixed(1)+' ('+esc(f.src||'')+')').join('; '),
     'The autoignition delay: τ = 17.68 ms × (ON ÷ 100)^3.402 × (p ÷ 1 atm)^−1.7 × exp(3800 K ÷ T) (Douaud and Eyzat, SAE 780080, as in the ANSYS Fluent theory guide 12.2); knock where the Livengood-Wu integral ∫ dt ÷ τ from intake closing reaches 1 before '+Math.round(100*KS.xEnd)+'% of the charge has burned (Haghgooie, SAE 902134, measured about 10% of the fuel unburned at knock)',
-    'The end gas’s temperature: the charge trapped at intake closing ('+F.tD(KS.Tivc-273.15)+' at '+KS.rpm.toLocaleString('en-US')+' RPM) compressed isentropically along the model’s cylinder pressure, with that mixture’s own heat capacity (McKenzie and Cheng, SAE 2016-01-0699); it reaches '+F.tD(KS.TuEnd-273.15)+'. No wall heat into the end gas, no hot spots, no deposits',
+    'The end gas’s temperature: the charge trapped at intake closing ('+F.tD(KS.Tivc-273.15)+' at '+KS.rpm.toLocaleString('en-US')+' RPM under boost) compressed isentropically along the model’s cylinder pressure, with that mixture’s own heat capacity (McKenzie and Cheng, SAE 2016-01-0699); it reaches '+F.tD(KS.TuEnd-273.15)+'. No wall heat into the end gas, no hot spots, no deposits',
     'Cylinder 1 only; the page’s timing: burn starting '+KS.start+'° before top dead centre over 55° (half burned '+KS.ca50.toFixed(1)+'° after), about 4° later than the model’s best-torque timing on a stock engine (validation part 12)',
-    'The retard: that speed run again with the burn started later, the turbine’s and the gate’s areas held as found; the cost is the brake mean effective pressure lost there',
-    'The knock-limited boost: that speed’s cylinder pressure scaled with the boost, the charge temperature moved with the compressor’s and the intercooler’s own change; checked against full runs at 10 and 26 psi (validation part 12)',
-    'Known biases: the model breathes about 4 to 16% too well, so its cylinder pressures, and this integral, read high; on two stock naturally aspirated engines on 91 octane it puts the integral at 0.7 to 1.3 across the speeds at this timing and 1.5 at their best-torque timing (at or just past the limit, where production engines run knock control); under boost it is pessimistic: it puts a K24 at 18 psi on pump gas beyond reach with 30° of retard where reported builds make about 475 hp at the wheels on 93; it reacts to the charge temperature several times less than the published rule of about one octane number per 25 °F; against Vizard’s 1983 chart of boost by compression ratio and octane it lands within about 1.5 psi on 95 RON and 2 to 4 psi lower on 100 to 105 RON'];
-  return '<details style="margin-top:4px"><summary>Assumptions of the knock check</summary><ul style="margin:4px 0 0 18px;padding:0">'+li.map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
+    'The fuel comparison: the boosted speed’s cylinder pressure scaled until the integral reaches 1 for each fuel, the charge temperature moved with the compressor’s and the intercooler’s own change; the ratio of the two absolute pressures is what is shown (validation part 12: 1.20 to 1.43 for E85 against 93 pump gas on a K24, Garrett’s example 1.46)',
+    'What the validation supports: on stock naturally aspirated K24A2 and LS3 engines on 91 octane the integral lands at 0.7 to 1.3 (at the limit, as production engines run); under boost the model’s cylinder pressure runs high (it breathes about 4 to 16% too well, and its charge at intake closing is hot), so the absolute boosted figures below read far too pessimistic'];
+  return '<details style="margin-top:4px"><summary>Assumptions and raw numbers</summary><ul style="margin:4px 0 0 18px;padding:0">'+li.concat(raw).map(x=>'<li>'+x+'</li>').join('')+'</ul></details>';
 }
 // the manifold section's line from the run, when the run used this manifold (same runners, collector, boost)
 // the wastegate the run needs (part 10): the largest effective area over the speeds, and the smallest listed valve whose
