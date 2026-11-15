@@ -2128,9 +2128,11 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   pressure (the gas's own cp(T)); the Livengood-Wu integral of Douaud and Eyzat's tau to 90 % burned; a retard search at
   the worst speed (fresh runs, areas held) and its cost; the knock-limited boost for pump gas and E85 by scaling the trace.
   Checked against independent Python (quadrature, RK4 isentrope to 0.0001 K, a two-zone closed cycle: the method 4 % low).
-- Page: "Knock check (estimate)" in the turbo simulation results (band 0.7-1.3, assumptions one click away) and on the
-  glance card's Power row, always with the caveat (does not replace knock monitoring and a tuner; never set boost or
-  timing from it). Advanced inputs (charge pipes box): on/off, pump AKI (91), RON / MON of the fuel, K (0), burn end (90 %).
+- Page (after review, part 12 L11): OFF by default (Advanced inputs, charge pipes box). When on: "Knock check (estimate,
+  a comparison)" leads with E85 against pump gas as a ratio of absolute manifold pressure (Garrett 1.46), the octane step,
+  the charge-temperature under-reaction, and the same engine without boost inside / at / beyond the limit; absolute boosted
+  figures (limit boost, retard, cost) only in the collapsed "Assumptions and raw numbers", labelled far too pessimistic
+  under boost; always the safety caveat. Other inputs: pump AKI (91), RON / MON, K (0), burn end (90 %).
 - Results: stock K24A2 / LS3 on 91 at 0.7-1.3 (1.5 at MBT); the K24 + PT5862 at 18 psi: 91 pump 4.34 (34 deg retard,
   -36 %), E85 2.86 (21 deg, -20 %); pessimistic in absolute terms under boost, close to Garrett in relative terms (E85 /
   pump limit 1.20-1.43 absolute against 1.46). Charge-temperature sensitivity 2-8 times weaker than the published rule.

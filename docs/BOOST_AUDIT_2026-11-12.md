@@ -1438,8 +1438,11 @@ E85 4.5 psi (1.2 to 7.3) at RON 104, 8.2 psi (4.4 to 11.5) at Kasseris's fitted 
 - Relative: close. E85 / pump knock-limited absolute charge pressure 1.20 (RON 104) to 1.43 (ON 115) against Garrett's
   30 psi / 16 psi = 1.46 absolute; at 18 psi E85 at its limit keeps 1.26 times the 91 pump gas's power at its limit
   (the reported 18 psi builds: 570 whp E85 against 475 whp 93, +20 %, different turbos and heads).
-- So the page reads the fuels against each other, says it is pessimistic under boost, and never offers a number as a
-  limit; the caveat says it does not replace knock monitoring and a tuner.
+- So (after review) the check is off by default; when turned on the page leads with the comparison (E85 about 1.2 to 1.4
+  times the absolute manifold pressure of 91 pump gas, Garrett 1.46; the octane step; the charge-temperature
+  under-reaction; the same engine without boost inside / at / beyond the limit) and keeps the absolute boosted figures
+  (limit boost, retard, cost) inside the collapsed raw numbers, each labelled far too pessimistic under boost. The caveat
+  says it does not replace knock monitoring and a tuner. Part 12, L11.
 
 ### Tests, pins
 

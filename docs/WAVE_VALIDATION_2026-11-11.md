@@ -3439,7 +3439,7 @@ Against the reported builds and Garrett (BOOST_AUDIT; part 11 K8):
 So the page states the knock-limited boosts as a comparison between fuels, says that it reads pessimistic under boost,
 and never as a limit to set.
 
-### L7 What the page says (Intake tab and the 4-Stroke tab's turbo simulation)
+### L7 What the page said first (superseded by L11)
 
 After a turbo or supercharger simulation, the results carry a "Knock check (estimate)" note and the glance card's Power
 row a short version (after "The simulation says ..."), e.g. at 18 psi on 91: "Knock check (estimate): on pump gasoline,
@@ -3486,3 +3486,31 @@ node tools/validation/wave/knock_val.js parts=b,c,v,d                           
 node tools/validation/wave/knock_refdump.js && python3 tools/validation/wave/knock_ref.py  # L3
 node web/tests/knock_ui.js; cd web && node tests/knockpage_ui.js
 ```
+
+### L11 How it is presented, and why (review of 2026-11-15)
+
+The validation supports the estimate in two ways only: in absolute terms on naturally aspirated engines (stock K24A2 and
+LS3 on 91 land at 0.7-1.3, L4), and in relative terms between fuels and settings (E85 / pump knock-limited absolute
+pressure 1.20-1.43 against Garrett's 1.46, L6). Under boost the absolute figures are far too pessimistic (about 1 psi
+"limit" and 34 deg of retard at 18 psi on pump gas, where a reported K24 makes 475 whp on 93 on a tune). Shown as
+headlines they would tell a first-time builder that a normal build does not work, which a caveat does not undo. So:
+
+- Off by default (Advanced inputs, Charge pipes, turbo and intercooler: "Knock check in the simulation (an estimate)":
+  Off / On: compare fuels and settings). Off is the default option, so the box's changed marker shows when it is on;
+  projects saved without the key load as off. Off: no knock text anywhere (results, glance card), no knock runs, no trace.
+- On, the line leads with the comparison, e.g. on the K24A2 + PT5862 at 18 psi: "Knock check (estimate, a comparison):
+  E85 tolerates about 1.17 to 1.38 times the absolute manifold pressure of pump gasoline, 91 AKI at the same ignition
+  timing (the higher figure with the effective octane number fitted for E85 in published work); Garrett's own pump-gas
+  against E85 example ran 1.46 times; 5 more octane numbers allow about 9% more absolute manifold pressure; more
+  compression, more boost, a hotter charge and earlier timing all move it toward knock; this estimate under-reacts to the
+  charge temperature 2 to 8 times against the published rule of about one octane number per 25 °F (14 °C), so a cooler
+  charge helps more than it shows; the same engine without boost on pump gasoline, 91 AKI is at the knock limit at the
+  page's timing (knock integral 1.11 at 5,050 RPM, 1 being knock; inside below 0.7, at the limit 0.7 to 1.3)." Then the
+  safety caveat. The naturally aspirated verdict comes from the run without boost the simulation already makes (its trace,
+  the same fuel), the one absolute use L4 supports.
+- No boost in psi, degrees of retard or horsepower cost in the line. They appear only inside the collapsed "Assumptions
+  and raw numbers", each labelled "reads far too pessimistic under boost in this model (stock naturally aspirated engines
+  land at the limit, boosted builds do not): not usable as a limit".
+- The glance card's Power row carries the same comparison (and the caveat) only when the check is on.
+- Results unchanged: the rows, the run without boost and every pin are the same doubles with the check on or off
+  (knockpage_ui.js 3, knock_ui.js 5).

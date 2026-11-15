@@ -46,6 +46,7 @@ const { reads, settle } = require(path.join(__dirname, 'settle'));
     ok(/changed: .*Knock check in the simulation/.test(await mark()), '2 on: marked as changed in the advanced box: ' + await mark());
     st = await runSim(); const B = await grab();
     ok(st === 'done' && B.head && /^Knock check \(estimate, a comparison\): E85 tolerates about [0-9.]+ to [0-9.]+ times the absolute manifold pressure of pump gasoline, 91 AKI at the same ignition timing/.test(B.head) && /Garrett’s own pump-gas against E85 example ran 1\.46 times/.test(B.head), '2 the line leads with the fuel comparison: ' + (B.head || '').slice(0, 220));
+    console.log('the line: ' + B.head);
     ok(/5 more octane numbers allow about \d+% more absolute manifold pressure/.test(B.head) && /under-reacts to the charge temperature 2 to 8 times/.test(B.head) && /the same engine without boost on pump gasoline, 91 AKI is (inside|at|beyond) the knock limit at the page’s timing \(knock integral [0-9.]+ at/.test(B.head), '2 the octane step, the charge-temperature under-reaction and the same engine without boost (' + (B.K.na ? B.K.na.I.toFixed(2) + ' at ' + B.K.na.rpm : '-') + ')');
     ok(!/psi|kPa|\bhp\b|retard|°/.test(B.head.replace(/25 °F \(14 °C\)/, '')), '2 no boost, horsepower or degree figure in the line itself');
     const det = await pg.evaluate(() => { const d = document.querySelector('#tsim-knock details'); return d ? { s: d.querySelector('summary').textContent, open: d.open, li: [...d.querySelectorAll('li')].map(l => l.textContent) } : null; });
