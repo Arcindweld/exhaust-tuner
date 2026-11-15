@@ -45,7 +45,14 @@
 //   vertical-flow assumption; then the failing group by rating and volume: CSF 8068 (800, 486 cu in; 81 in², 25.67 in² short).
 //   MMINT-UM out (600 whp is its lower figure).
 // Nothing passes Bell: 1300 hp air-to-air, Bell face 173.33 in²: >= 1300 are CSF 8040 (72) and 8055 (162) -> 8040 by rating, with
-//   "no listed core meets Bell's face area" and 101.3 in² short.
+//   "no listed core meets Bell's face area" and 101.3 in² short. Since 2026-11-14 (Treadstone added) the Treadstone TRV259 (1300 hp,
+//   25 x 3.5 = 87.5 in², 2.0 psi at 1950 CFM published) ties CSF 8040 on rating and wins on its drop: TRV259, CSF 8040, TR1245R (1340);
+//   87.5 in² is 85.8 in² short.
+// Treadstone (2026-11-14; its authorised retailers' listings of the maker's figures, the maker's own site refusing automated reading):
+//   air-to-air, hp TR6 400, TR62 450, TR8 / TR8C / TR8L / TR82 500, TR11 560, TR10 / TR1035 666, TR10C 700, TRV185 720, TR1235 760,
+//   TR1045 860, TR1235R min(1340, 928) = 928, TR1245 / TRV25 1000, TR1245-28 1200, TRV259 1300, TR1245R 1340. Faces (in²): TR height x
+//   thickness (tanks on the length ends), TRV length x thickness (tanks top and bottom): TR6 / TR62 21, TR8 family 27.3, TR11 33,
+//   TR10 / TR10C / TR1035 36.75, TR1235 / R 43.75, TR1045 47.25, TR1245 / R / -28 56.25, TRV185 18.50 x 3.50 = 64.8, TRV25 / TRV259 87.5.
 // Size limit 610 x 305 x 89 mm (24.02 x 12.01 x 3.504 in; length and height may swap; Mishimoto checked on its overall size with
 //   tanks, Garrett and CSF on the core): at 450 hp the rows covering 450 that fit are Garrett 475 (19.2), 500 (22.4), 510 (31.5), 600
 //   487085-6002 (33.6), 600 703520-6010 (28), 750 848054-6037 (84), 800 703520-6011 (36.75); CSF 8056 (36), 8047 (42), 8053 (84), 8067 (36);
@@ -121,8 +128,10 @@ const { chromium } = require('playwright');
   ok(/1\.07 × the target per core/.test(n1) && /core only: weld end tanks/.test(n1) && /Bell’s 47 in² \(301 cm²\)/.test(n1), 'build 1 pick: ratio 375/350 = 1.07, tank flag for a core sold without tanks, Bell face 6 x 350/100/0.45 = 46.7 in² (301.1 cm²)');
   ok(await pg.$('#tso-icrec-little-a2a') && /common workshop practice, not sourced claims/.test(await pg.$eval('#tso-icrec-little-a2a', e => e.innerText)), 'Garrett publishes 1 of 6 items: “little published data — check it in hand” with the workshop checklist, labelled');
   await setx('icm', '1.2');
-  t = await top('a2a'); ok(t.join() === 'Bell Intercoolers A350169240,Bell Intercoolers A300227240,Bell Intercoolers A350240240', 'build 1, margin 1.2 (Bell face 56 in²): ' + t.join(', '));
-  ok(await outN('a2a') === 7, 'build 1, margin 1.2: seven not recommended');
+  // 2026-11-14, Treadstone added: the TRV185 (720 hp, vertical flow, face 470 x 89 mm = 18.50 x 3.50 = 64.8 in² >= 56, 2.5 in necks on
+  // the 2.5 in pipes) ranks third, ahead of Bell A350240240 (750); the TR6 (400 hp < 420) is the eighth not recommended
+  t = await top('a2a'); ok(t.join() === 'Bell Intercoolers A350169240,Bell Intercoolers A300227240,Treadstone TRV185', 'build 1, margin 1.2 (Bell face 56 in²): ' + t.join(', '));
+  ok(await outN('a2a') === 8, 'build 1, margin 1.2: eight not recommended (the seven before and the Treadstone TR6, 400 hp)');
   await setx('icm', '1');
 
   // End tanks and mounting (Garrett, "Intercooler Sizing And End Tank Design With Rob Dahm", 2020): the block with its citation, and
@@ -159,9 +168,13 @@ const { chromium } = require('playwright');
   ok(/CSF 8055: a larger rating than the one above; its charge face meets Bell’s 106\.7 in² \(688 cm²\) only on this page’s assumption/.test(top3) &&
     /CSF 8068: fails Bell’s face area[^—]*81\.0 in² \(523 cm²\), is 25\.7 in² \(166 cm²\) short of Bell’s 106\.7 in²/.test(top3), 'build 3: a pass on the CSF flow-direction assumption says so; the failing row shows its shortfall');
   await hp(1300);
-  t = await top('a2a'); ok(t[0] === 'CSF 8040', '1300 hp: nothing meets Bell, the pick is CSF 8040 by rating (' + t.join(', ') + ')');
+  // 2026-11-14, Treadstone added: the TRV259 (1300 hp, face 25 x 3.5 = 87.5 in²) ties CSF 8040 on rating and wins on its published
+  // drop (2.0 psi at 1950 CFM; CSF publishes none), the existing tie rule; then CSF 8040, then the TR1245R (1340)
+  t = await top('a2a'); ok(t.join() === 'Treadstone TRV259,CSF 8040,Treadstone TR1245R', '1300 hp: nothing meets Bell, the pick is the TRV259 (same rating as CSF 8040, a published drop): ' + t.join(', '));
   const n13 = await pg.$eval('#tso-icrec-a2a', e => e.innerText);
-  ok(/no listed core meets Bell’s face area for this power; this is the closest by rating; its charge face, 72\.0 in² \(465 cm²\), is 101\.3 in² \(654 cm²\) short of Bell’s 173\.3 in²/.test(n13), '1300 hp: the pick says no core meets Bell and gives the shortfall');
+  const t13 = await pg.$eval('#tso-icrec-top-a2a', e => e.innerText);
+  ok(/no listed core meets Bell’s face area for this power; this is the closest by rating; its charge face, 87\.5 in² \(565 cm²\), is 85\.8 in² \(554 cm²\) short of Bell’s 173\.3 in²/.test(n13) &&
+    /CSF 8040: same Bell result; same rating as the one above; higher or unpublished pressure drop/.test(t13), '1300 hp: the pick says no core meets Bell and gives the shortfall; CSF 8040 behind it on the drop');
   await hp(800);
   const um = await pg.$eval('#tso-icrec-out-a2a', e => e.textContent);
   ok(/Mishimoto MMINT-UM: rating 600 hp below/.test(um), 'MMINT-UM: the lower of its two figures (600 whp) is used and it is out');
@@ -276,6 +289,50 @@ const { chromium } = require('playwright');
   ok(tu[0] === String(tu[1]), 'Use this turbo picks the PT5558');
   const st = await pg.$eval('#tg-steps li[data-step="turbo"]', e => e.innerText);
   ok(/recommended Precision Turbo & Engine GEN2 PT5558 CEA® \(650 hp rating, in use\)/.test(st), 'checklist turbo step: the recommendation, in use');
+
+  // Treadstone (2026-11-14): the maker's figures from its authorised retailers' listings (its own site refuses automated reading)
+  { const TR = await pg.evaluate(() => window.__tso.IC_LIB.map((c, i) => [c, i]).filter(([c]) => c.maker === 'Treadstone').map(([c, i]) => ({ i, pn: c.pn, type: c.type, hp: c.hp, hpAlt: c.hpAlt, dims: c.dims, over: c.over, inD: c.inD, outD: c.outD,
+      cfm: c.cfmC, src: c.src, srcName: c.srcName, seen: c.seen, pages: c.tre.pages, ev: c.tre.ev, cf: c.tre.cf, flow: c.tre.flow, face: window.__tso.icFace(c), dp: c.dp })));
+    const want = ['TR6', 'TR62', 'TR8', 'TR8C', 'TR8L', 'TR82', 'TR10', 'TR10C', 'TR1035', 'TR1045', 'TR11', 'TR1235', 'TR1235R', 'TR1245', 'TR1245R', 'TR1245-28', 'TRV25', 'TRV259', 'TRV185'];
+    ok(TR.map(r => r.pn).join() === want.join() && TR.every(r => r.type === 'a2a'), 'Treadstone: 19 air-to-air rows (' + TR.map(r => r.pn).join(', ') + ')');
+    ok(TR.every(r => r.dims.length === 3 && r.dims.every(([i, mm]) => Math.abs(i * 25.4 - mm) <= (r.pn === 'TRV185' ? 0.13 : 0.06))), 'Treadstone: every core size carried in inches and mm (mm = in x 25.4, to 0.1 mm; the TRV185 is listed in mm only, inches to 0.01)');
+    ok(TR.every(r => /^authorised retailer listing of the maker’s figures \(/.test(r.srcName) && r.seen === '2026-11-14' && Object.values(r.pages).every(u => /^https:\/\//.test(u) && !/treadstoneperformance\.com/.test(u)) && r.src === Object.values(r.pages)[0]),
+      'Treadstone: every row sourced to retailer pages, labelled “authorised retailer listing of the maker’s figures”, read 2026-11-14; none from the maker’s own site');
+    // hand-checked row: TR8, "Core Size, 7.8" X 22" X 3.5"" (MA Performance, Edge Autosport), "198mm x 558mm x 89mm" (Turbozentrum),
+    // overall 28 in, 2.5 in inlet/outlet, 500 HP, 750 CFM. Tanks on the 22 in ends (overall 28 > 22): face 7.8 x 3.5 = 27.30 in² (176.1 cm²).
+    // 750 CFM as standard air: 750 x 0.028316846592 / 60 x 1.18389 = 0.41909 kg/s
+    const t8 = TR.find(r => r.pn === 'TR8');
+    ok(JSON.stringify(t8.dims) === JSON.stringify([[22, 558.8], [7.8, 198.1], [3.5, 88.9]]) && t8.over.join() === '28,7.8,3.5' && t8.inD === 2.5 && t8.outD === 2.5 && t8.hp === 500 && t8.hpAlt === null && t8.cfm === 750 &&
+      Math.abs(t8.face.a - 27.3) < 1e-9 && /end tanks sit on the length ends/.test(t8.face.why) && !t8.face.assumed, 'TR8 by hand: 22 x 7.8 x 3.5 in = 558.8 x 198.1 x 88.9 mm, overall 28 in (711.2 mm), 2.5 in (63.5 mm) necks, 500 hp, 750 CFM, face 27.30 in²');
+    ok(t8.ev.core === 'MAP EDGE TZ' && t8.ev.oal === 'MAP EDGE' && t8.cf.length === 2 && /762 mm \(30 in\)/.test(t8.cf[0]) && /575 HP efficient/.test(t8.cf[1]), 'TR8: core size from three retailers, overall length from two (Turbozentrum’s 762 mm and 575 HP recorded as conflicts)');
+    const v9 = TR.find(r => r.pn === 'TRV259');
+    ok(v9.flow === 'vertical' && Math.abs(v9.face.a - 87.5) < 1e-9 && /top and bottom/.test(v9.face.why) && Math.abs(v9.dp.kPa - 2 * 6.894757) < 1e-3 && Math.abs(v9.dp.kgmin - 1950 * 0.028316846592 * 101325 / (287.05 * 298.15)) < 1e-3,
+      'TRV259: vertical flow (overall 15 in high, core 9 in), face 25 x 3.5 = 87.5 in²; 2.0 psi (13.79 kPa) at 1950 CFM = ' + v9.dp.kgmin + ' kg/min standard air');
+    const r35 = TR.find(r => r.pn === 'TR1235R');
+    ok(r35.hp === 1340 && r35.hpAlt === 928 && r35.ev.hp === '' && /unresolved, the lower, 928, is used/.test(r35.cf[0]), 'TR1235R: 928 against 1340 hp unresolved, the lower used');
+    // the table shows the claims, each figure's confirmation and the conflicts, in both units
+    const row8 = await pg.$eval('#tso-ics tr[data-i="' + t8.i + '"]', e => e.innerText);
+    ok(/22\.0 in × 7\.8 in × 3\.5 in|558\.8 mm × 198\.1 mm × 88\.9 mm/.test(row8) && /500 hp \(373 kW\)/.test(row8) && /750 CFM \(0\.419 kg\/s read as standard air; 354 L\/s\)/.test(row8) &&
+      /core size confirmed by two retailers \(MA Performance, Edge Autosport, Turbozentrum\)/.test(row8) && /conflicts: overall length: Turbozentrum 762 mm/.test(row8) && /end tanks 2\.5 in \(63\.5 mm\)|end tanks 63\.5 mm \(2\.5 in\)/.test(row8),
+      'table, TR8: size in both units, 500 hp (373 kW), 750 CFM (0.419 kg/s, 354 L/s), the confirmation and the conflicts shown');
+    const rowR = await pg.$eval('#tso-ics tr[data-i="' + r35.i + '"]', e => e.innerText);
+    ok(/another listing says 928 hp \(692 kW\): the lower is used/.test(rowR) && /hp rating not settled: the listings disagree/.test(rowR) && /single retailer \(Turbozentrum, Turbozentrum \(\.co\.uk\), Motorsport Calibrations\)/.test(rowR),
+      'table, TR1235R: both ratings, “not settled”, and the shared Turbozentrum wording counted as one retailer');
+    const cap = await pg.$eval('#tso-ic-cap', e => e.innerText);
+    ok(/Treadstone \(TRE, read 2026-11-14\) from its authorised retailers’ listings of the maker’s figures/.test(cap) && !/Treadstone \(dealer listings and a marketplace store only\)/.test(cap) && /twin-turbo TRTT9 and TRTTC/.test(cap),
+      'caption: Treadstone moved from “searched and not listed” to the retailer listings; the models left out are named with the reason');
+    // evidence first: a core with thermal data that meets the target (your own, measured point) ranks ahead of every rating-only
+    // Treadstone row in its Bell group. 450 hp, 15 psi: charge 0.28247 kg/s = 37.37 lb/min; point 37.4 lb/min (inside +-10%),
+    // 150 -> 40 °C with 150 lb/min of outside air at 25 °C; 600 x 600 x 102 mm, face 23.62 x 4.016 = 94.9 in² >= Bell's 60 in²
+    await hp(450);
+    for (const [k, v] of [['oName', 'Shop core T'], ['oHp', ''], ['oL', '600'], ['oH', '600'], ['oW', '102'], ['oIn', '63.5'], ['oOut', '63.5'], ['oPm', '37.4'], ['oTi', '150'], ['oTo', '40'], ['oCf', '150'], ['oTc', '25']]) await setx(k, v);
+    await set('i-icam', '150'); await pg.waitForTimeout(450);   // this build's outside air through the core, so the point is predicted here
+    const OK = await pg.evaluate(() => window.__tso.TG().icrec.a2a.ok.map(x => ({ n: x.c.maker + ' ' + x.c.pn, evG: x.evG, bellG: x.bellG, tre: x.c.maker === 'Treadstone' })));
+    const own = OK.findIndex(x => x.n === 'Your core Shop core T'), bad = OK.filter((x, i) => x.tre && OK.some((y, j) => j > i && y.evG < 2 && y.bellG === x.bellG));
+    ok(own === 0 && OK[0].evG < 2 && OK.filter(x => x.tre).length >= 2 && bad.length === 0, 'evidence first: the own core with a measured point that meets the target is first (group ' + (OK[0] || {}).evG + '); no rating-only Treadstone row (' + OK.filter(x => x.tre).map(x => x.n.replace('Treadstone ', '')).join(', ') + ') ranks above a core with thermal data in its Bell group');
+    for (const k of ['oName', 'oL', 'oH', 'oW', 'oIn', 'oOut', 'oPm', 'oTi', 'oTo', 'oCf', 'oTc']) await setx(k, '');
+    await set('i-icam', ''); await pg.waitForTimeout(450);
+  }
 
   // dual units, layout, clean render
   const all = await pg.evaluate(() => [...document.querySelectorAll('.sec')].find(s => s.dataset.sec === 'intercooler-options-and-cooling-capacity').innerText);
