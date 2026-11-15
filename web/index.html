@@ -1294,18 +1294,6 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="i-lam" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="3" data-min="0.6" data-max="1.2"><em>λ</em></span></label>
         <label class="f adv" id="i-evap-wrap"><span class="lab">Fuel evaporation in the simulation</span>
           <span class="inp"><select id="i-evap"><option value="none" selected>Not counted (as before)</option><option value="port">Port injection: from the port walls</option><option value="di">Direct injection: 70% from the charge</option><option value="all">All from the charge (the upper limit)</option></select></span></label>
-        <label class="f adv" id="i-kon-wrap"><span class="lab">Knock check in the simulation (an estimate)</span>
-          <span class="inp"><select id="i-kon"><option value="on" selected>On: the knock integral, the timing it needs, the knock-limited boost</option><option value="off">Off</option></select></span></label>
-        <label class="f adv" id="i-kaki-wrap"><span class="lab">Pump gasoline octane at the pump, (R+M)/2 (blank: 91)</span>
-          <span class="inp"><input id="i-kaki" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="91" data-min="85" data-max="100"><em>AKI</em></span></label>
-        <label class="f adv" id="i-kron-wrap"><span class="lab">Knock check: the picked fuel’s research octane, RON (blank: the listed figure)</span>
-          <span class="inp"><input id="i-kron" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-min="80" data-max="130"><em>RON</em></span></label>
-        <label class="f adv" id="i-kmon-wrap"><span class="lab">Knock check: its motor octane, MON (blank: the listed figure)</span>
-          <span class="inp"><input id="i-kmon" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-min="70" data-max="120"><em>MON</em></span></label>
-        <label class="f adv" id="i-kk-wrap"><span class="lab">Knock check: octane index K, ON = RON − K × (RON − MON) (blank: 0, the RON)</span>
-          <span class="inp"><input id="i-kk" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="2" data-base="0" data-min="-3" data-max="1"><em>K</em></span></label>
-        <label class="f adv" id="i-kxe-wrap"><span class="lab">Knock check: the integral ends where this much has burned (blank: 90%)</span>
-          <span class="inp"><input id="i-kxe" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="90" data-min="50" data-max="99"><em>%</em></span></label>
         <p class="cap" id="i-fuel-out" style="grid-column:1/-1;margin:0" hidden></p>
         <label class="f" id="i-hpat-wrap" hidden><span class="lab">Power target measured at</span>
           <span class="inp"><select id="i-hpat"><option value="crank" selected>Crank (flywheel)</option><option value="wheel">Wheels (chassis dyno)</option></select></span></label>
@@ -1483,6 +1471,18 @@ ul.list li+li,ol.list li+li{margin-top:6px}
             <span class="inp"><select id="i-mani"><option value="tube" selected>Tubular, primaries into a collector</option><option value="log">Log</option><option value="div">Divided, twin-scroll</option></select></span></label>
           <label class="f adv" id="i-wgcl-wrap"><span class="lab">Collector, last merge to the turbine flange</span>
             <span class="inp"><input id="i-wgcl" type="number" step="any" inputmode="decimal" data-kind="len" data-base="152.4"><em data-u="len">in</em></span></label>
+                  <label class="f adv" id="i-kon-wrap"><span class="lab">Knock check in the simulation (an estimate)</span>
+            <span class="inp"><select id="i-kon"><option value="on" selected>On: the knock integral, the timing it needs, the knock-limited boost</option><option value="off">Off</option></select></span></label>
+          <label class="f adv" id="i-kaki-wrap"><span class="lab">Pump gasoline octane at the pump, (R+M)/2 (blank: 91)</span>
+            <span class="inp"><input id="i-kaki" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="91" data-min="85" data-max="100"><em>AKI</em></span></label>
+          <label class="f adv" id="i-kron-wrap"><span class="lab">Knock check: the picked fuel’s research octane, RON (blank: the listed figure)</span>
+            <span class="inp"><input id="i-kron" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-min="80" data-max="130"><em>RON</em></span></label>
+          <label class="f adv" id="i-kmon-wrap"><span class="lab">Knock check: its motor octane, MON (blank: the listed figure)</span>
+            <span class="inp"><input id="i-kmon" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-min="70" data-max="120"><em>MON</em></span></label>
+          <label class="f adv" id="i-kk-wrap"><span class="lab">Knock check: octane index K, ON = RON − K × (RON − MON) (blank: 0, the RON)</span>
+            <span class="inp"><input id="i-kk" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="2" data-base="0" data-min="-3" data-max="1"><em>K</em></span></label>
+          <label class="f adv" id="i-kxe-wrap"><span class="lab">Knock check: the integral ends where this much has burned (blank: 90%)</span>
+            <span class="inp"><input id="i-kxe" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="90" data-min="50" data-max="99"><em>%</em></span></label>
         </div>
         <div id="i-mf-wrap" hidden>
         <div class="grp forced">Turbo manifold</div>
