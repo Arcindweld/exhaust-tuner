@@ -14,3 +14,7 @@ Findings so far (fixed):
 - S3 preset power hold (HP_PRESET) lost on project load (since 416d184 2026-11-14): hpPreset saved
 - P1 not saved: p-od/p-wall (Parts tube), HUEL.T/route (h-uel-t, h-uel-route), wsnd-rpms/load/dead
 - cam library kept across preset (since 31c3a2a 2026-11-03): rule implemented
+- S3 producers refreshed off-tab (refreshDeps, INPUT_GEN) — measure perf (scratch perf.js)
+- S4 mufflers error legend; S5 OpenWAM stale; P4 AUG/MD/TT; P5 mufFrom
+- Sweep round 1 seeds 1-8 (309 changes) saved at /tmp/claude-0/scratch/stale_round1.json; round 2 seeds 9-16 running
+- TODO after: perf, turbo_closure_parity, headers_shapes_parity, sound_determinism, preset_sweep resume, final sweep, docs, suite

@@ -27455,8 +27455,20 @@ let cur='quick';
 // layout, the boosted plan); they were refreshed only when their tab rendered, so after a project load or an engine preset
 // chosen on another tab the 4-Stroke tab simulated the layout and charge of the build before (2026-11-16,
 // docs/SPEC_PARITY_AUDIT_2026-11-16.md D5). Called by projApply and applyVehicle.
-function refreshTabResults(){ if(cur!=='four-stroke') simInpRefresh(); if(cur!=='headers') try{ renderHeaders(); }catch(e){} if(cur!=='intake') try{ renderIntake(); }catch(e){} }
-function renderActive(){ syncShapes(); if(cur!=='four-stroke') simInpRefresh(); TABS[cur].render(); if(cur==='headers') renderPieCut(); window.__renderCount=(window.__renderCount||0)+1; }
+function refreshTabResults(){ if(cur!=='four-stroke') simInpRefresh(); INPUT_GEN++; refreshDeps(); }
+// The tabs whose last results other tabs read (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A3): the Headers tab
+// (HDR_LAST: the 4-Stroke tab's simulation plan, its optimiser and OpenWAM sections, the Sound estimate, the parts
+// payloads), the Crossover tab (CROSS_LAST: the OpenWAM line and the Sound estimate) and the Intake tab (TS_LAST,
+// MFD_LAST: the boosted plan, the Hangers tab). Each was refreshed only when its own tab rendered (D5 added project loads
+// and presets), so a page that had not opened the Headers tab told the 4-Stroke tab's optimiser "Lay out a header on the
+// Headers tab first", and an input on one tab that another tab's result reads (the 4-Stroke tab's gas temperature in the
+// Headers layout, the 4-Stroke engine in the Intake tab's boosted plan) left that result as it was until its tab was
+// opened. Now any input marks them out of date (INPUT_GEN) and the render of any other tab first renders, off-tab, the
+// ones that are out of date: Headers, then Crossover, then Intake (which reads the other two).
+let INPUT_GEN=1; const PROD_GEN={headers:0,crossover:0,intake:0};
+document.addEventListener('input',()=>{ INPUT_GEN++; },true); document.addEventListener('change',()=>{ INPUT_GEN++; },true);
+function refreshDeps(){ for(const [n,f] of [['headers',renderHeaders],['crossover',renderCross],['intake',renderIntake]]){ if(n===cur||PROD_GEN[n]===INPUT_GEN) continue; try{ f(); }catch(e){} PROD_GEN[n]=INPUT_GEN; } }
+function renderActive(){ syncShapes(); if(cur!=='four-stroke') simInpRefresh(); refreshDeps(); TABS[cur].render(); if(PROD_GEN[cur]!==undefined) PROD_GEN[cur]=INPUT_GEN; if(cur==='headers') renderPieCut(); window.__renderCount=(window.__renderCount||0)+1; }
 function showTab(){
   const h=location.hash.replace('#','');
   cur=TABS[h]?h:'quick';
