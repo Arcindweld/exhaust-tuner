@@ -12797,11 +12797,12 @@ function wsndJob(variants,done,o){ o=o||{};
   if(WSND.busy){ say('Still simulating the last request…'); return; }
   const rpms=o.rpms||wsndRpms(q); if(!rpms.length){ say('Enter at least one engine speed between 500 and 20,000 RPM.',true); return; }
   const Ss=variants.map(v=>{ const S=Object.assign({},v,wsndSpec(q,v.parts)); if(v.dead&&v.dead.length) S.spec.e=Object.assign({},S.spec.e,{dead:v.dead.slice()}); return S; });
+  const ran={variants:variants.map(v=>({key:v.key,label:v.label,parts:v.parts,dead:v.dead})),load:(o.load||WSND.load)==='none'?'none':'wot',fixed:!!o.rpms}; ran.sig=wsndSig(ran,q,rpms);
   WSND.notes=[...new Set([].concat(...Ss.map(S=>S.notes)))]; WSND.busy=true;
   const got=Ss.map(()=>[]), total=Ss.length*rpms.length; let n=0;
   const finish=()=>{ WSND.busy=false;
     const sets=Ss.map((S,k)=>({key:S.key,label:S.label,what:wsndHeaderWhat(q)+'; '+S.what+(job.load==='none'?'; no load':''),rpms,load:job.load,runs:got[k].map(m=>{ try{ return wsndEntry(m,q,S,S.label); }catch(e){ return {name:S.label+' '+m.rpm,rpm:m.rpm,err:e.message,src:'wave'}; } })}));
-    done(sets); };
+    WSND.ran=ran; done(sets); };
   const job={variants:Ss.map(S=>({spec:S.spec})),rpms,dx:WSND.dx||0.02,load:(o.load||WSND.load)==='none'?'none':'wot'};
   say('Simulating '+total+' run'+(total>1?'s':'')+(job.load==='none'?' with no load (a free-rev hold)':' at full throttle')+(Ss.length>1?' ('+Ss.length+' designs × '+rpms.length+' speeds)':'')+'…');
   const prog=d=>{ got[d.v].push(d); n++; WSND.msg={t:'Simulated '+n+' of '+total+'…'}; const el=$('wsnd-msg'); if(el) el.textContent=WSND.msg.t; };
@@ -12815,6 +12816,13 @@ function wsndJob(variants,done,o){ o=o||{};
     i++; if(i>=rpms.length){ i=0; vi++; eng=null; } setTimeout(step,0); };
   setTimeout(step,0);
 }
+// what an estimate ran on (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A3): the specs of its designs as they would be
+// built now, the speeds, the load, the grid and the microphone (wsndEntry places it when the run finishes). The estimate's
+// results are shown as out of date when this differs from the one they ran with; until now nothing marked them, so after a
+// change to the header, the line or the engine the sound shown was the design before's, labelled "Your design".
+function wsndSig(ran,q,rpms){ try{ return JSON.stringify([ran.variants.map(v=>{ const S=wsndSpec(q,v.parts); if(v.dead&&v.dead.length) S.spec.e=Object.assign({},S.spec.e,{dead:v.dead.slice()}); return S.spec; }),
+  rpms||wsndRpms(q),ran.load,WSND.dx||0.02,typeof WAM_MIC!=='undefined'?WAM_MIC:null]); }catch(e){ return 'err:'+e.message; } }
+function wsndStale(q){ const r=WSND.ran; if(!r||!WSND.sets.length||!q) return false; return wsndSig(Object.assign({},r,{load:r.fixed?r.load:(WSND.load==='none'?'none':'wot')}),q,r.fixed?JSON.parse(r.sig)[1]:null)!==r.sig; }
 function wsndSetRuns(sets){ // the full design's runs into the OpenWAM runs list, the play speed kept where it can be
   const full=sets[sets.length-1], ok=full.runs.filter(x=>!x.err);
   WAM_UI.ins=(WAM_UI.ins||[]).filter(x=>x.src!=='wave').concat(full.runs).sort((a,b)=>(a.rpm||0)-(b.rpm||0)); WSND.src='wave';
@@ -12866,6 +12874,7 @@ function wsndPart(sp){
     (WSND.sets.length?'<button type="button" class="btn" data-wsnd="keep">Keep this design to compare</button>':'')+(WSND.kept.length?'<button type="button" class="btn" data-wsnd="clear">Clear the kept designs</button>':'')+'</div>'+
     '<div class="grid2" style="max-width:640px;margin-top:8px"><label class="f span2"><span class="lab">For “Hear a misfire”</span><span class="inp"><select id="wsnd-dead">'+wsndDeadOpts(q).map(o=>'<option value="'+o.v+'"'+((WSND.dead||'c1')===o.v?' selected':'')+'>'+esc(o.t)+'</option>').join('')+'</select></span></label></div>'+
     '<p class="cap">“Hear a misfire” runs your design again with cylinder 1, or one collector’s cylinders, not burning, so you can hear what a misfire or a dead bank does to the note and tell it from an exhaust problem. “Hear each part” builds your exhaust up one addition at a time (the open headers, then the line and tailpipe, the muffler, the resonator), runs each, and lets you play any two side by side. “Keep this design” holds the result while you change something (primary length, a different can, another resonator) and estimate again.</p>'+
+    (wsndStale(q)?'<div class="note warn" id="wsnd-stale">The inputs changed since this estimate (the engine, the header, the line, the speeds, the load or the microphone), so the sound below is for the earlier design. Estimate it again to update it.</div>':'')+
     '<div class="note'+(WSND.msg&&WSND.msg.bad?' bad':'')+'" id="wsnd-msg"'+(WSND.msg?'':' hidden')+'>'+(WSND.msg?esc(WSND.msg.t):'')+'</div>'+
     (WSND.notes.length?'<ul class="list">'+WSND.notes.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'');
   if(!all.length) return h;
@@ -20392,7 +20401,7 @@ document.addEventListener('click',e=>{
 
 /* ===== wave simulation on the 4-Stroke tab ===== */
 const SIM={key:'',status:'idle',msg:'',res:null,rpms:null,inp:null,workers:[],run:0,prog:{},par:1,ncyl:1};
-window.__sim={WS,simSpec,simVariants,simRpms,simEntries,simMerge,simVtcSet,simPlan:q=>simPlan(q),simKey:q=>simKey(q),waveRust:()=>simWaveRust(waveB64()),inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
+window.__sim={WS,simSpec,simVariants,simRpms,simEntries,simMerge,simVtcSet,simPlan:q=>simPlan(q),simKey:q=>simKey(q),job:()=>{ const q=SIM.inp; if(!q||simCheck(q)) return null; const P=simPlan(q); return P.err?null:{key:P.key,job:simJob(P,q)}; },waveRust:()=>simWaveRust(waveB64()),inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
 const SIM_COL=['--t4','--t2','--t3','--t1','--t5'], SIM_DASH=['','6 4','2 3','9 3','4 2 1 2'];
 // the head's measured flow (CAM_LIB flow) when the engine came from the library and its valves are still the library's
 function simFlowOf(){
@@ -20989,11 +20998,13 @@ function tsimRun(TL,j,post){
     return res;
   }
 }
+// what the turbo worker is handed: everything the run reads (the stale check compares this with the run key: staleness_ui.js)
+const tsimJob=P=>({knock:P.knock,spec:P.spec,na:P.na,sc:P.sc,rpms:P.rpms,rpmsFb:P.rpmsFb,dx:P.dx,turbo:P.turbo,A0:P.A0,At:P.Aty,Ag:P.Agy,wcPer:P.wcPer,eta:P.eta,p3m:P.p3m,p3rpm:P.p3rpm,Acap:P.Acap,comp:P.comp,fric:P.fric});
 function tsimStart(){
   const q=SIM.inp, P=q?tsimPlan(q):null; if(!P||P.err) return;
   const id=++TSIM.run; TSIM.status='running'; TSIM.msg='Starting'; TSIM.pendingKey=P.key; TSIM.plan=P;
   if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; }
-  const job={knock:P.knock,spec:P.spec,na:P.na,sc:P.sc,rpms:P.rpms,rpmsFb:P.rpmsFb,dx:P.dx,turbo:P.turbo,A0:P.A0,At:P.Aty,Ag:P.Agy,wcPer:P.wcPer,eta:P.eta,p3m:P.p3m,p3rpm:P.p3rpm,Acap:P.Acap,comp:P.comp,fric:P.fric};
+  const job=tsimJob(P);
   const done=out=>{ if(id!==TSIM.run) return; TSIM.status='done'; TSIM.res=out; TSIM.key=P.key; TSIM.resPlan=P; TSIM.msg=''; TSIM_LAST={key:P.key,plan:P,out,sum:tsimSummary(P,out)};
     if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; } renderActive(); };
   const prog=(i,n,label)=>{ if(id!==TSIM.run) return; TSIM.msg=label?label+' ('+Math.round(100*(i+1)/n)+'%)':'Running speed '+(i<P.rpms.length?(i+1)+' of '+P.rpms.length+' with the '+(P.turbo?'turbo (finding the turbine’s area and the gate)':'supercharger'):i<2*P.rpms.length?(i-P.rpms.length+1)+' of '+P.rpms.length+' without boost':(i-2*P.rpms.length+1)+' of '+P.rpms.length+' with the boost and no turbine')+' ('+Math.round(100*(i+1)/n)+'%)'; const el=$('tsim-status'); if(el) el.textContent=TSIM.msg; };
@@ -21187,7 +21198,7 @@ function drawTsim(){
     mk('line',{x1:ml,x2:W-mr,y1:Y((o.p3-P_ATM)*cu),y2:Y((o.p3-P_ATM)*cu),style:'stroke:var(--muted);stroke-dasharray:2 3;stroke-width:1.4'},sv2);
     const ty=mk('text',{x:4,y:10},sv2); ty.textContent=U==='imp'?'psi gauge':'kPa gauge'; }
 }
-if(typeof window!=='undefined') window.__tsim={knock:()=>knockLib(WS),knockTxt,knockPlan,KN_FUELS,plan:()=>SIM.inp?tsimPlan(SIM.inp):null,last:()=>TSIM_LAST,state:()=>TSIM,lib:()=>turboSimLib,run:tsimRun,summary:tsimSummary};
+if(typeof window!=='undefined') window.__tsim={knock:()=>knockLib(WS),knockTxt,knockPlan,KN_FUELS,plan:()=>SIM.inp?tsimPlan(SIM.inp):null,last:()=>TSIM_LAST,state:()=>TSIM,lib:()=>turboSimLib,run:tsimRun,summary:tsimSummary,job:()=>{ const P=SIM.inp?tsimPlan(SIM.inp):null; return P&&!P.err?{key:P.key,kKey:P.kKey,job:tsimJob(P)}:null; }};
 function simStop(){ (SIM.workers||[]).forEach(w=>{ try{ w.terminate(); }catch(e){} }); SIM.workers=[]; }
 function simDone(id,key,rpms,out){
   if(id!==SIM.run) return;
@@ -21243,12 +21254,14 @@ function simPlan(q){
   return {hdr:true,H,d,n:a.spec.n,ncoll:a.spec.opt.collectors.length,key:simKey(q)+'|hdr|'+JSON.stringify([a.spec.exhaust.per_cyl,a.spec.opt]),
     variants:[{key:'uel',label:'Lengths as laid out',spec:a.spec},{key:'eq',label:'Every primary at the equal length',spec:b.spec}]};
 }
+// what the sweep workers are handed (the stale check compares this with the run key: staleness_ui.js)
+const simJob=(plan,q)=>{ const rpms=simRpms(q.tune); return {variants:simEntries(plan.variants,rpms),rpms,dx:plan.n>1?0.0125:0.01,cyl:q.cyl}; };
 function simStart(){
   const q=SIM.inp; if(!q||simCheck(q)) return;
   const plan=simPlan(q); if(plan.err) return;
   const variants=plan.variants, rpms=simRpms(q.tune), key=plan.key, id=++SIM.run;
   // a collector multiplies the work by its cylinders; a 12.5 mm grid gives the same torque within about 0.5% and runs about 1.6 times faster
-  const job={variants:simEntries(variants,rpms),rpms,dx:plan.n>1?0.0125:0.01,cyl:q.cyl};
+  const job=simJob(plan,q);
   SIM.pendVar=variants; SIM.total=job.variants.reduce((a,v)=>a+v.rpms.length,0); SIM.pendTwo=variants[0].specLo?{cut:variants[0].vcut}:null;
   SIM.status='running'; SIM.msg='Starting'; SIM.pendingKey=key; SIM.prog={}; SIM.ncyl=plan.n; SIM.ncoll=plan.ncoll; SIM.pendHdr=plan.hdr; SIM.pendPh=variants[0].spec.opt?variants[0].spec.opt.phases:[0];
   simStop();
@@ -27597,7 +27610,7 @@ function projSnapshot(name){
   const ui={}; for(const k in PROJ_UI) ui[k]=projUiCopy(PROJ_UI[k][0],PROJ_UI[k][1]);
   return {exhaustTunerProject:1,name:String(name||'').trim()||'Untitled build',saved:new Date().toISOString(),
     units:U,mode:document.body.classList.contains('simple')?'simple':'expert',tab:(location.hash||'').slice(1),
-    vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n,pg:HUEL.pg,pr:HUEL.pr},tw:twSave(),jig:Object.assign({},JIG_UI,{open:undefined}),build:JSON.parse(JSON.stringify(BUILD.items))};
+    vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n,pg:HUEL.pg,pr:HUEL.pr},hpPreset:HP_PRESET!==null?{hp:HP_PRESET,name:HP_PRESET_NAME,na:HP_PRESET_NA}:undefined,tw:twSave(),jig:Object.assign({},JIG_UI,{open:undefined}),build:JSON.parse(JSON.stringify(BUILD.items))};
 }
 function projApply(d){
   // the cam-library rule of an engine preset (camLibOnPreset) does not run while a project loads: every saved field is set
@@ -27647,7 +27660,12 @@ function projApply0(d){
   if(d.jig) Object.keys(JIG_UI).forEach(k=>{ if(d.jig[k]!==undefined&&k!=='open') JIG_UI[k]=d.jig[k]; });
   if(Array.isArray(d.build)){ BUILD.items=JSON.parse(JSON.stringify(d.build)); saveBuild(); }
   cmapAfterLoad(ui.cmap);
-  HP_PRESET=null;   // a loaded project's power field is the builder's, not a preset's
+  // a loaded project's power field is the builder's, not a preset's; except in a project saved while the preset's rating was
+  // still held there (hpPreset, saved since 2026-11-16): it loads held as it was saved, so its boosted results are the ones
+  // the page that wrote it showed (before, the hold ended on load and a turbo build with "My power target" was worked at
+  // the stock rating instead of the boost field's figure: docs/SPEC_PARITY_AUDIT_2026-11-16.md A3)
+  HP_PRESET=null;
+  if(d.hpPreset&&Number.isFinite(d.hpPreset.hp)&&Math.abs(val('i-hp')-d.hpPreset.hp)<1e-9){ HP_PRESET=d.hpPreset.hp; HP_PRESET_NAME=String(d.hpPreset.name||''); HP_PRESET_NA=!!d.hpPreset.na; }
   refreshTabResults(); renderActive();
 }
 // what a saved field reads as, in the units now chosen

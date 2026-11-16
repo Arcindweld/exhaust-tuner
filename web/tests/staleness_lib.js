@@ -100,4 +100,69 @@ function diffTabs(A, B) {
   }
   return out;
 }
-module.exports = { PAGE_SRC, install, goTab, readAll, diffTabs };
+
+// ---------------------------------------------------------------------------------------------- project completeness
+const path = require('path');
+const PAGE = path.join(__dirname, '..', 'index.html');
+async function open(ctx, hash) {
+  const pg = await ctx.newPage({ viewport: { width: 1280, height: 900 } }); pg._errs = []; pg.on('pageerror', e => pg._errs.push(e.message));
+  await pg.goto('file://' + PAGE + '#' + (hash || 'quick')); await pg.waitForTimeout(500); await install(pg); await settle(pg); return pg;
+}
+// a state that renders the generated inputs: expert, metric, an engine preset, a turbo build with a turbo picked and the
+// knock check on, the Headers tab at unequal lengths, a muffler line; then every tab visited
+async function rich(pg) {
+  await pg.click('#m-expert'); await pg.click('#u-met');
+  await pg.evaluate(() => { const ST = window.__st; ST.presetPut('eng', [...document.getElementById('v-pick').options].find(o => /K24A2 /.test(o.text)).value); });
+  await goTab(pg, 'intake');
+  await pg.evaluate(() => { const f = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); };
+    f('i-ind', 'turbo'); const s = document.querySelector('select.tsox[data-k="turbo"]'); if (s) { s.value = s.options[7].value; s.dispatchEvent(new Event('change', { bubbles: true })); } f('i-kon', 'on'); });
+  await goTab(pg, 'headers'); await pg.evaluate(() => { const e = document.getElementById('h-lenmode'); e.value = 'unequal'; e.dispatchEvent(new Event('change', { bubbles: true })); });
+  await settle(pg);
+  const tabs = await pg.evaluate(() => window.__st.tabs()); for (const t of tabs) await goTab(pg, t.tab);
+}
+// every input with an id, with the tab it is on ('' above the tabs), its value and whether it is in the project's vals
+async function idsNow(pg) {
+  const tabs = await pg.evaluate(() => window.__st.tabs()), seen = {};
+  for (const t of tabs) { await goTab(pg, t.tab);
+    const ids = await pg.evaluate(() => [...document.querySelectorAll('input[id], select[id], textarea[id]')].filter(el => !el.closest('dialog') && !/^(file|button|submit|hidden)$/.test(el.type))
+      .map(el => { const p = el.closest('section[id^="panel-"]'); return { id: el.id, panel: p ? p.id : '', v: el.type === 'checkbox' ? el.checked : el.value }; }));
+    for (const x of ids) if (!seen[x.id] && (x.panel === '' || x.panel === t.panel)) seen[x.id] = Object.assign({ tab: x.panel ? t.tab : '' }, x); }
+  return seen;
+}
+async function readIds(pg, ids) {
+  const tabs = await pg.evaluate(() => window.__st.tabs()), out = {};
+  for (const t of tabs) { const mine = ids.filter(x => x.tab === t.tab || (!x.tab && t === tabs[0])); if (!mine.length) continue; await goTab(pg, t.tab);
+    Object.assign(out, await pg.evaluate(ids => Object.fromEntries(ids.map(x => { const el = document.getElementById(x.id); return [x.id, el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined]; })), mine)); }
+  return out;
+}
+// a probe change of one input (a clearly different value a user could type or pick)
+const PROBE = id => { const el = document.getElementById(id); if (!el) return null; const fire = t => el.dispatchEvent(new Event(t, { bubbles: true }));
+  if (el.tagName === 'SELECT') { const o = [...el.options].find(o => !o.disabled && o.value !== el.value); if (!o) return null; el.value = o.value; fire('input'); fire('change'); return el.value; }
+  if (el.type === 'checkbox') { el.checked = !el.checked; fire('input'); fire('change'); return el.checked; }
+  const t = el.value.trim(); let v;
+  if (el.type === 'number' || el.dataset.kind) v = t === '' || !Number.isFinite(+t) ? '7' : String(+(+t * 1.1 + 1).toPrecision(4));
+  else v = /\d/.test(t) ? t.replace(/\d+/, m => String(+m + 1)) : (t ? t + ' x' : '5000 6000');
+  el.value = v; fire('input'); fire('change'); return el.value; };
+// the inventory: vals (saved in the project's vals), via (not in vals, but its probe change survives a save and a load into
+// a fresh page), lost (it does not), untested (the probe could not change it)
+async function inventory(ctx, o) {
+  o = o || {};
+  const A = await open(ctx); await rich(A);
+  const ids = await idsNow(A), snap0 = await A.evaluate(() => window.__proj.snapshot('x')), inVals = new Set(Object.keys(snap0.vals));
+  const vals = Object.keys(ids).filter(id => inVals.has(id)), rest = Object.values(ids).filter(x => !inVals.has(x.id));
+  const untested = [];
+  for (const x of rest) { await goTab(A, x.tab || 'quick'); const v = await A.evaluate(PROBE.toString().replace(/^/, '(') + ')(' + JSON.stringify(x.id) + ')'); await settle(A); if (v === null) untested.push(x.id); }
+  const after = await readIds(A, rest), snap = await A.evaluate(() => JSON.parse(JSON.stringify(window.__proj.snapshot('inventory'))));
+  const B = await open(ctx); await B.evaluate(d => window.__proj.apply(d), snap); await settle(B);
+  const got = await readIds(B, rest);
+  const via = [], lost = [];
+  for (const x of rest) { if (untested.includes(x.id)) continue;
+    if (after[x.id] === undefined) { untested.push(x.id); continue; }
+    if (JSON.stringify(after[x.id]) === JSON.stringify(got[x.id])) via.push(x.id); else lost.push({ id: x.id, tab: x.tab, why: 'set to ' + JSON.stringify(after[x.id]) + ', loaded as ' + JSON.stringify(got[x.id]) }); }
+  // and the vals themselves read back (a saved field that the load then moves)
+  const vAfter = await readIds(A, vals.map(id => ids[id])), vGot = await readIds(B, vals.map(id => ids[id]));
+  const moved = vals.filter(id => JSON.stringify(vAfter[id]) !== JSON.stringify(vGot[id])).map(id => ({ id, a: vAfter[id], b: vGot[id] }));
+  await A.close(); await B.close();
+  return { vals, via, lost, untested, moved, ids };
+}
+module.exports = { PAGE_SRC, install, goTab, readAll, diffTabs, open, rich, idsNow, readIds, inventory };
