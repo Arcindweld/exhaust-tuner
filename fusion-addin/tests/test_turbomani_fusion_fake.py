@@ -60,8 +60,55 @@ def main():
     ok(len(MERGES) == 1 and MERGES[0][0] == 'Merge collector' and abs(MERGES[0][3] - 4.128) < 1e-9,
        'one merge collector handed to the build (its body %.2f cm: the 20 deg merge plus the collector, to the flange)' % back)
     ok('Wastegate: not routed' in (r.get('msg') or '') and '45 deg' in (r.get('msg') or ''), 'the wastegate is named as not routed, with its window')
+    live_scene()
     print('FAILS:', fails)
     return 1 if fails else 0
+
+
+LIVE = {'mode': 'turbomani', 'title': 'Turbo manifold', 'ports': 4, 'od_mm': 47.625, 'wall_mm': 1.651, 'clr_mm': 71.4375, 'target_mm': 380.0,
+        'gap_mm': 12.7, 'gap_tt_mm': 3.175, 'max_bend_deg': 180, 'elbows': False, 'merge_len_mm': 85.6, 'collector_len_mm': 152.4,
+        'collector_out_mm': 61.76, 'scrolls': None, 'gate': {'bore_mm': 38.0, 'lo_mm': 27.0, 'hi_mm': 126.0}, 'time_s': 60}
+
+
+def live_scene():
+    """tests/fusion_live_turbomani.py's scene and payload, as Fusion gave them in the first live run (4.23.0): the head
+    as a 12-triangle mesh keep-out (x -6..0, y -10..40, z -15..15 cm), ports at (0, 9.3 i, 0) pointing +x drawn as
+    sketch lines from the port outward, the turbine flange marker at (50, 13.95, 0) pointing +x. Live, the runners came
+    out 33.495 / 27.547 / 27.547 / 33.495 cm against 38 cm, identically with the Rust core and in Python; the stand-in
+    gives the same numbers to the micrometre, so the container tests passed only because their scene differs (the
+    merge 45 cm from the head, 76.2 cm runners). The cause is geometry, not the turbo glue: the merge plane is 23.8 cm
+    before the flange marker, 26.2 cm from the ports, which leaves 21.6 to 23.7 cm between the straight leads' ends;
+    with 7.14 cm bends no route that does not loop is longer than about 31 to 35 cm there (a whole loop adds 44.9 cm).
+    The reply now says so per runner and in one line; with the flange marker 8 cm further out (x = 58) the same
+    payload reaches 38 cm on every runner."""
+    head = F.Mesh('Scan (head)', *T.box_mesh((-6, -10, -15), (0, 40, 15), 1))
+    F.select([head])
+    r = F.call('setKeepouts', {})
+    ok(r.get('ok'), 'live scene: the head as a mesh keep-out: ' + r.get('msg', ''))
+    for fx in (50.0, 58.0):
+        mk = [F.Line((0.0, 9.3 * i, 0.0), (2.0, 9.3 * i, 0.0)) for i in range(4)] + [F.Line((fx, 13.95, 0.0), (fx + 2.0, 13.95, 0.0))]
+        del F.BUILT[:]
+        del MERGES[:]
+        F.select(mk)
+        r = F.call('route', LIVE)
+        runners = [it for it in (r.get('items') or []) if str(it.get('name', '')).startswith('Runner')]
+        Ls = [it.get('length') or 0 for it in runners]
+        print('live scene, flange at x = %.0f:' % fx, [round(x, 3) for x in Ls], (r.get('msg') or '')[:400])
+        if fx == 50.0:
+            ok(len(Ls) == 4 and all(abs(a - b) < 0.01 for a, b in zip(Ls, (33.495, 27.547, 27.547, 33.495))),
+               'live scene: the live run\'s lengths reproduced (33.495 / 27.547 / 27.547 / 33.495 cm): %s' % [round(x, 3) for x in Ls])
+            reach = [it.get('length_reach') or {} for it in runners]
+            ok(len(runners) == 4 and all(not it.get('ok') and 'leaves no room for that length' in (it.get('note') or '') for it in runners)
+               and all((q.get('longest_cm') or 99) < 38.0 - 0.05 for q in reach),
+               'live scene: each runner says why: the longest shape whose bends fit (%s cm) is short of 38 cm between ends %s cm apart' % (
+                   [round(q.get('longest_cm') or 0, 2) for q in reach], [round(q.get('span_cm') or 0, 2) for q in reach]))
+            ok(len(runners) == 4 and all(it.get('length_tries') and 'slack' in it and 'tt_slack' in it for it in runners),
+               'live scene: each runner item carries its clearance slacks and what the length stage tried')
+            ok("Runners 1, 2, 3, 4 cannot reach the page's 380.0 mm here" in (r.get('msg') or '') and 'turbine flange marker further' in (r.get('msg') or ''),
+               'live scene: the message says in one line that 380 mm is out of reach there and what to change')
+        else:
+            ok(r.get('ok') and len(Ls) == 4 and all(abs(x - 38.0) <= 0.05 for x in Ls) and all(it.get('ok') for it in runners),
+               'live scene with the flange marker at x = 58: four runners at 38 cm: %s' % [round(x, 3) for x in Ls])
 
 
 if __name__ == '__main__':

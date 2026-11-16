@@ -1838,6 +1838,11 @@ def _route_item(name, r, gap, od=None, data=None):
           'lra': r.get('lra'), 'note': r.get('msg')}
     if r.get('min_gap') is not None:
         it['min_gap'] = r['min_gap']
+    # why a route needs attention, for the page and the live checks: the clearance slack to the scan and to the other
+    # tubes (cm, negative is short), what the length stage tried and how far the shapes reached (router.route)
+    for k in ('slack', 'tt_slack', 'length_reach', 'length_tries'):
+        if r.get(k) is not None:
+            it[k] = r[k]
     if od:
         it['od'] = [od]          # the page's cut list picks stock bends of this OD
     if r.get('elems') and od:
@@ -4396,6 +4401,11 @@ def _ps_round_words(reps):
     return False, ' '.join(r['summary'] for r in reps if r.get('verdict') != 'round')
 
 
+# Where the print split writes its STLs: None is the owner's Documents\Exhaust Tuner\prints\<design>. The live test
+# scripts set it to a temporary folder (and remove it) so a test run leaves nothing in the owner's documents.
+PRINT_DIR = None
+
+
 def act_print_split(data):
     sels = _selected()
     bodies = _bodies_of([e for e in sels if _kind(e) in ('BRepBody', 'BRepFace')])
@@ -4573,7 +4583,8 @@ def act_print_split(data):
             if tbm.booleanOperation(x, tbm.copy(pieces[j]), adsk.fusion.BooleanTypes.IntersectionBooleanType) and x.volume > 1e-6:
                 clash.append((pieces[i].name, pieces[j].name))
     doc = _app.activeDocument.name if _app.activeDocument else 'design'
-    folder = os.path.join(os.path.expanduser('~'), 'Documents', 'Exhaust Tuner', 'prints', ''.join(ch for ch in doc if ch not in '<>:"/\\|?*'))
+    base = PRINT_DIR or os.path.join(os.path.expanduser('~'), 'Documents', 'Exhaust Tuner', 'prints')
+    folder = os.path.join(base, ''.join(ch for ch in doc if ch not in '<>:"/\\|?*'))
     os.makedirs(folder, exist_ok=True)
     rows, vol, rnds = [], 0.0, []
     for k, (b, pc) in enumerate(zip(pieces, pl['pieces']), 1):
@@ -4675,6 +4686,32 @@ def _cfd_inside(body, counter):
         counter[0] += 1
         return _ps_inside(body, p)
     return inside
+
+
+def _cfd_face_types(body, mouth_p, mouth_t):
+    """The body's faces as Fusion types them, with where each sits along the tube from the mouth (mm, from a point on
+    the face; None when the face gives none): [[type, mm from the mouth]] sorted by that, for the reply. A live read can
+    then tell a lip that is a torus face from one that is not."""
+    names = {}
+    for k in ('Plane', 'Cylinder', 'Cone', 'Sphere', 'Torus', 'EllipticalCylinder', 'EllipticalCone', 'Nurbs'):
+        v = getattr(adsk.core.SurfaceTypes, k + 'SurfaceType', None)
+        if v is not None:
+            names[v] = k.lower()
+    out = []
+    try:
+        for i in range(body.faces.count):
+            f = body.faces.item(i)
+            st = f.geometry.surfaceType
+            at = None
+            try:
+                q = _t(f.pointOnFace)
+                at = round(_dot(_sub(tuple(10.0 * c for c in q), mouth_p), mouth_t), 2)
+            except Exception:
+                pass
+            out.append([names.get(st, str(st)), at])
+    except Exception:
+        return None
+    return sorted(out, key=lambda e: (e[1] is None, e[1] or 0.0))
 
 
 def _cfd_mouth_free(tube, mouth_p, mouth_t, r_in, r_out):
@@ -4801,7 +4838,8 @@ def act_cfd_tube(data):
                                              'length_mm': round(L, 2), 'lip_mm': info['lip_mm'], 'mouth_mm': [round(c, 2) for c in mouth_p],
                                              'mouth_how': how, 'path_beyond_mm': [round(max(0.0, s0), 1), round(max(0.0, L_path - s1), 1)],
                                              'body_beyond_path_mm': [round(max(0.0, -s0), 1), round(max(0.0, s1 - L_path), 1)],
-                                             'mouth': info['mouth'], 'cone': info['cone'], 'cones': info['cones'], 'notes': info['notes'],
+                                             'mouth': info['mouth'], 'mouth_section_mm': (info['mouth'] or {}).get('section'),
+                                             'face_types': _cfd_face_types(body, mouth_p, mouth_t), 'cone': info['cone'], 'cones': info['cones'], 'notes': info['notes'],
                                              'mount': info['mount'], 'mount_how': mount_how, 'protrusion_mm': info['protrusion_mm'],
                                              'probes': probes[0], 'read_s': round(time.time() - t_read, 2)}}
 

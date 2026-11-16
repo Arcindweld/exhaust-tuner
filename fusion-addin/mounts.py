@@ -309,18 +309,30 @@ def _inside(p, poly):
 
 
 def clearance(points, cold, hot, gap_cm, hot_gap_cm, skip=None):
-    """The nearest the points come to the keep-outs: (gap to the ordinary ones or None, gap to the hot ones or None,
-    ok). skip(p) True leaves a point out (the foot on the chassis, the boss on the part)."""
+    """The nearest the points come to the keep-outs: (gap to the ordinary ones, gap to the hot ones, ok, beyond).
+    Each search stops at a radius (4 clearances + 5 cm): when nothing of that keep-out set is within it the gap is
+    None and beyond names the radius ({'gap_cm': r} or {'hot_gap_cm': r}), to be reported as "more than r" (the cap
+    used to be returned as if it were the distance: a bracket 593 mm from a turbo read 253 mm). A gap is also None
+    when there is no such keep-out set (then beyond has no entry). skip(p) True leaves a point out (the foot on the
+    chassis, the boss on the part)."""
     pts = [p for p in points if not (skip and skip(p))]
     gc = gh = None
+    beyond = {}
     ok = True
-    if cold is not None and pts:
-        gc, _i = cold.nearest(pts, gap_cm * 4 + 5.0)
-        ok &= gc >= gap_cm - 1e-9
-    if hot is not None and pts:
-        gh, _i = hot.nearest(pts, hot_gap_cm * 4 + 5.0)
-        ok &= gh >= hot_gap_cm - 1e-9
-    return gc, gh, ok
+    for key, sc, g in (('gap_cm', cold, gap_cm), ('hot_gap_cm', hot, hot_gap_cm)):
+        if sc is None or not pts:
+            continue
+        cap = g * 4 + 5.0
+        d, at = sc.nearest(pts, cap)
+        if at is None or d >= cap - 1e-9:
+            beyond[key] = cap
+            continue
+        ok &= d >= g - 1e-9
+        if key == 'gap_cm':
+            gc = d
+        else:
+            gh = d
+    return gc, gh, ok, beyond
 
 
 def access(o, d, r_cm, z0_cm, L_cm, obstacles):
@@ -394,7 +406,7 @@ def check(ax, D, cold, hot, opts, part_pts=None):
             if _dot(_sub(p, C), n) < 2 * t_cm + gap:
                 return True
             return _norm(_sub(p, P)) < rb_cm + gap + t_cm
-        gc, gh, ok = clearance(pts, cold, hot, gap, hot_gap, skip)
+        gc, gh, ok, beyond = clearance(pts, cold, hot, gap, hot_gap, skip)
         obst = [o for o in (cold, hot) if o is not None]
         if part_pts:
             obst.append(part_pts)
@@ -411,8 +423,12 @@ def check(ax, D, cold, hot, opts, part_pts=None):
             c2, a2 = access(o, (-ax['f'][0], -ax['f'][1], -ax['f'][2]), rs, t_cm + (D.get('bolt') or D['hole']) / 10.0, Lt, obst)
             acc.append({'bolt': 'part', 'clear': c1 or c2, 'blocked_mm': None if (c1 or c2) else 10.0 * min(a1, a2),
                         'side': '+f' if c1 else '-f' if c2 else None})
-        score = (ok, sum(1 for a in acc if a['clear']), min(x for x in (gc, gh, 99.0) if x is not None))
+        score = (ok, sum(1 for a in acc if a['clear']), min(x for x in (gc, gh, beyond.get('gap_cm'), beyond.get('hot_gap_cm'), 99.0) if x is not None))
+        # a gap of None with gap_over_mm / hot_gap_over_mm set: nothing of that keep-out set within that distance
+        # (show "more than N mm"); None without it: there is no such keep-out set
         rep = {'foot_side': side, 'plate_side': ps, 'gap_mm': None if gc is None else 10.0 * gc, 'hot_gap_mm': None if gh is None else 10.0 * gh,
+               'gap_over_mm': 10.0 * beyond['gap_cm'] if 'gap_cm' in beyond else None,
+               'hot_gap_over_mm': 10.0 * beyond['hot_gap_cm'] if 'hot_gap_cm' in beyond else None,
                'clear': ok, 'access': acc, 'h_mm': 10.0 * ax['h'], 's_mm': 10.0 * ax['s']}
         if D['type'] == 'stay':
             rep['stay'] = {k: st[k] for k in ('cut_mm', 'centres_mm')}

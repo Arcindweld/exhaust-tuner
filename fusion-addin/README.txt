@@ -1,4 +1,24 @@
-EXHAUST TUNER (Fusion add-in), version 4.23.0
+EXHAUST TUNER (Fusion add-in), version 4.24.0
+
+4.24.0 (November 16, 2026)
+  Fixes from the first live Fusion run of the turbo tools (Fusion 2706.1.17, add-in 4.23.0; docs/STATUS.md).
+  Mounts: a bracket with no hot body within the search radius (4 hot clearances + 50 mm, 253.2 mm at the default
+  50.8 mm) reported that radius as its distance (Fusion measured 593 mm, the add-in said 253 mm). Now hot_gap_mm is
+  None and hot_gap_over_mm gives the radius, to be shown as "more than 253.2 mm"; the same for the ordinary gap
+  (gap_mm / gap_over_mm). The clear/not-clear flags were right and are unchanged.
+  Turbo manifold: in the live scene the runners came out 275 and 335 mm against 380 mm. Not a turbo-glue defect: the
+  stand-in reproduces Fusion's lengths to the micrometre, and with 71.4 mm (2.81 in) bends between ends only 216 to
+  237 mm (8.5 to 9.3 in) apart no runner that does not loop is longer than about 307 to 354 mm there (a whole loop
+  adds 449 mm). The router now also tries whole-route shapes (a bow, a bump, an S, at the target length) when its
+  zig-zags fail, and when a runner misses its target because of this says so in its row, and the manifold's message
+  says it in one line with what to change (move the turbine flange marker further out, a tighter bend, a shorter
+  length). Each route row now carries its clearance slacks and what the length stage tried.
+  Test this intake (CFD): a mouth lip whose face is not a torus is read from the probed section as the radius it is
+  (a 3.5 mm lip read as 3.5 mm); a straight flare whose fitted rim radius is under 0.5 mm (0.02 in) is said as a
+  chamfer with a square rim, with its measured section points, instead of "a 0.26 mm lip radius"; the reply carries
+  the mouth's measured section and the body's face types by position along the tube.
+  Print split: the folder the STLs go to can be set by a script (cadtools.PRINT_DIR); the live test scripts now write
+  to a temporary folder and remove it.
 
 4.23.0 (November 13, 2026)
   Turbo manifold: "Route the manifold in Fusion" routes equal-length runners from the port markers (in cylinder

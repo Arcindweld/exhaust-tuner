@@ -11,7 +11,9 @@ import importlib.util
 import json
 import math
 import os
+import shutil
 import struct
+import tempfile
 import sys
 import traceback
 
@@ -30,6 +32,7 @@ def run(_context=None):
     out = {'tests': {}}
     r = {}
     doc = None
+    tmp = tempfile.mkdtemp(prefix='et_live_printsplit_')      # the STLs go here, not into the owner's Documents
     try:
         folder = os.path.join(os.environ['APPDATA'], 'Autodesk', 'Autodesk Fusion 360', 'API', 'AddIns', 'ExhaustTuner')
         if folder not in sys.path:
@@ -40,6 +43,7 @@ def run(_context=None):
         ct = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(ct)
         ct._app, ct._ui = app, ui
+        ct.PRINT_DIR = tmp
         doc = app.documents.add(adsk.core.DocumentTypes.FusionDesignDocumentType)
         des = adsk.fusion.Design.cast(app.activeProduct)
         root = des.rootComponent
@@ -132,6 +136,7 @@ def run(_context=None):
         r['ok_no_notes'] = not sp.get('notes')          # every chamfer made, no warnings for a 4.5 mm wall
         r['ok_assembly'] = len((sp.get('assembly') or {}).get('joints') or []) == len(sp.get('cuts') or []) > 0
         files = [os.path.join(sp.get('folder', ''), b.name + '.stl') for b in pieces]
+        r['ok_stls_in_temp'] = bool(sp.get('folder')) and os.path.abspath(sp['folder']).startswith(os.path.abspath(tmp))
         mins = []
         boxes = []
         for f in files:
@@ -163,6 +168,10 @@ def run(_context=None):
                 doc.close(False)
             except Exception:
                 pass
+        r['info_stl_folder_under_temp'] = os.path.commonpath([os.path.abspath(tmp), os.path.abspath(tempfile.gettempdir())]) == os.path.abspath(tempfile.gettempdir())
+        if not os.environ.get('ET_KEEP_DOC'):
+            shutil.rmtree(tmp, ignore_errors=True)
+        r['info_stl_folder_removed'] = not os.path.exists(tmp)
     out['tests']['print_split'] = r
     print(json.dumps(out, indent=1, default=str))
     _DONE[0] = out

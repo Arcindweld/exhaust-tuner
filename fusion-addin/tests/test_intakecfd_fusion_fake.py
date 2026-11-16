@@ -190,7 +190,7 @@ class TubeBody(object):
     objectType = 'adsk::fusion::BRepBody'
 
     def __init__(self, segs, r_in, r_out, path_ents=(), taper=None, oval=None, lip=None, xf=None, inv=None, name='INTAKE TUBE',
-                 bore=None, outer=None):
+                 bore=None, outer=None, lip_torus=True, mouth_plane=True):
         self.segs, self.r_in, self.r_out, self.taper, self.oval, self.lip = segs, r_in, r_out, taper, oval, lip
         self.bore, self.outer = bore, outer            # the bore and outside radius as functions of s (mm), when not constant
         self.L = sum(g['L'] for g in segs)
@@ -206,10 +206,11 @@ class TubeBody(object):
                 for r in (r_in, r_out):
                     faces.append(Face(self, Geo('torus', origin=P3(*[c / 10 for c in self.xf(g['c'])]), axis=P3(*g['n']), majorRadius=g['R'] / 10.0, minorRadius=r / 10.0)))
         a0, t0 = segs[0]['a'], segs[0]['t']
-        if lip:
+        if lip and lip_torus:      # lip_torus False: the fillet's face not a torus (as a revolved arc might come out)
             faces.append(Face(self, Geo('torus', origin=P3(*[c / 10 for c in self.xf(add(a0, mul(t0, lip)))]), axis=P3(*t0),
                                         majorRadius=(r_in + lip) / 10.0, minorRadius=lip / 10.0)))
-        faces.append(Face(self, Geo('plane', origin=P3(*[c / 10 for c in self.xf(a0)]), normal=P3(*t0))))
+        if mouth_plane:            # False: no flat face at the mouth (a chamfer running out to the outside edge)
+            faces.append(Face(self, Geo('plane', origin=P3(*[c / 10 for c in self.xf(a0)]), normal=P3(*t0))))
         self.end_face = Face(self, Geo('plane', origin=P3(*[c / 10 for c in self.xf(segs[-1]['b'])]), normal=P3(*segs[-1]['t'])))
         faces.append(self.end_face)
         self.faces = Coll(faces)
@@ -260,7 +261,10 @@ class TubeBody(object):
             d = math.sqrt(max(0.0, d * d - dot(rv, e) ** 2 + x * x))
         if not (ri < d < (self.outer(s) if self.outer else self.r_out)):
             return OUTSIDE
-        if self.lip and s < self.lip and (s - self.lip) ** 2 + (d - (ri + self.lip)) ** 2 < self.lip ** 2 and d < ri + self.lip:
+        # the lip: the mouth's inside corner rounded off, a quarter round of radius lip (centre lip along, lip out
+        # from the bore). Until 4.24.0 this took away the inside of that circle (a cove within the wall the probes
+        # never saw), so only the torus face carried the lip here; now the bore itself flares as a real fillet does
+        if self.lip and s < self.lip and d < ri + self.lip and (s - self.lip) ** 2 + (d - (ri + self.lip)) ** 2 > self.lip ** 2:
             return OUTSIDE
         return INSIDE
 
@@ -373,6 +377,40 @@ select(Sel(Face(body8, body8.faces[1].geometry), outside_point(body8, segs, 60.0
 r8 = run()
 ok(r8.get('ok') and r8['tube']['geometry']['inlet'] == {'type': 'radius', 'lip_radius_mm': 3.5} and abs(r8['tube']['geometry']['tube_length_mm'] - want_geo['tube_length_mm']) < 0.05,
    'a 3.5 mm fillet on the mouth\'s inside edge: a radius inlet, the length unchanged (%s)' % (r8.get('msg') or '')[-120:])
+
+# ---------------------------------------------------------------- 5a. the live run's revolved straight tube (4.24.0)
+# fusion_live_intakecfd.py case 5a: a straight tube revolved from one section, a 3.5 mm lip arc at the mouth, 400 mm of
+# bore, a 60 mm cone to 105 mm, its 400 mm centreline a separate sketch line. Live (4.23.0) Fusion's solid had no torus
+# face and one plane (faces: 2 cylinders, 3 cones, 1 plane) and the reader gave "a straight flare, 53.7 degrees a side
+# from a 101.9 mm entry, with a 0.26 mm lip radius". The script picked the arc's free end with `a_end is
+# lip_arc.endSketchPoint`, always False on Fusion's API objects (each property read is a new wrapper), so the closing
+# line ran to the arc's other end, the arc was left dangling and the profile closed with a straight chord from the bore
+# to the outside rim: atan(4.76 / 3.5) = 53.67 deg. The stand-in's chamfer gives the live read to the micrometre.
+st5 = [{'kind': 'line', 'a': (0.0, 0.0, 0.0), 'b': (0.0, 0.0, 460.0), 't': (0.0, 0.0, 1.0), 'L': 460.0}]
+pth5 = [{'kind': 'line', 'a': (0.0, 0.0, 0.0), 'b': (0.0, 0.0, 400.0), 't': (0.0, 0.0, 1.0), 'L': 400.0}]
+cone5 = lambda s: R_IN + (52.5 - R_IN) * min(1.0, max(0.0, (s - 400.0) / 60.0))
+cham5 = lambda s: (R_IN + 4.76 * (1.0 - s / 3.5)) if s < 3.5 else cone5(s)
+for nm5, kw5 in (('a 3.5 mm lip with its torus face', dict(lip=3.5, bore=cone5)),
+                 ('a 3.5 mm lip whose face is not a torus (read from the probes alone)', dict(lip=3.5, bore=cone5, lip_torus=False)),
+                 ('the live solid: a straight chord from the bore to the outside rim, no mouth plane', dict(bore=cham5, mouth_plane=False))):
+    b5 = TubeBody(st5, R_IN, R_OUT, path_ents=sketch_curves(pth5), outer=lambda s: cone5(s) + 4.76, name='CONE TUBE', **kw5)
+    select(Sel(Face(b5, b5.faces[1].geometry), (0.0, R_OUT, 100.0)))
+    r5 = run({'mouth': 'auto'})
+    t5 = r5.get('tube') or {}
+    g5 = t5.get('geometry') or {}
+    d5 = g5.get('diameter_change') or {}
+    cone_ok = d5.get('to_diameter_mm') == 105.0 and abs(d5.get('start_mm', 0) - 400.0) < 0.1 and (t5.get('fill') or {}).get('tb_mm') == 105.0
+    if 'live solid' in nm5:
+        inl5 = g5.get('inlet') or {}
+        sec5 = t5.get('mouth_section_mm') or []
+        ok(r5.get('ok') and inl5.get('type') == 'taper' and abs(inl5.get('wall_half_angle_deg', 0) - 53.673) < 0.01 and abs(inl5.get('entry_diameter_mm', 0) - 101.886) < 0.01
+           and cone_ok, '5a, %s: the live read reproduced (53.673 deg, 101.886 mm entry): %s' % (nm5, inl5))
+        ok(inl5.get('lip_radius_mm') == 0.2 and 'chamfer' in r5.get('msg', '') and 'square rim' in r5.get('msg', '') and 'measured section' in r5.get('msg', '')
+           and len(sec5) >= 2 and abs(sec5[0][1] - (R_IN + 4.76)) < 0.1 and any(abs(a - 3.5) < 0.3 and abs(b - R_IN) < 0.05 for a, b in sec5),
+           '5a: the chamfer said as one, a square rim (not "a 0.26 mm lip radius"), with the measured section %s' % sec5)
+    else:
+        ok(r5.get('ok') and g5.get('inlet') == {'type': 'radius', 'lip_radius_mm': 3.5} and (t5.get('fill') or {}).get('lip_mm') == 3.5 and cone_ok,
+           '5a, %s: a radius inlet of 3.5 mm, the cone to 105 mm from 400 mm (%s)' % (nm5, g5.get('inlet')))
 
 # ---------------------------------------------------------------- 6. the bore: a cone past the Pipe path, a lip, beads, a bellmouth
 L_own = sum(g['L'] for g in segs)

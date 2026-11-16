@@ -103,6 +103,21 @@ def route(scene, ports, flanges, data, rspec, log=None):
     if len(G) > 1:
         notes.append('Divided: each scroll\'s runners go to their own flange marker; the two collectors are routed apart and '
                      'meet only at the flange.')
+    # runners that missed the target because the ends are too close for it with this bend radius (router: the
+    # longest bow, bump or S whose bends fit is short of the target): one line for the lot, the detail in each row
+    prs = [(i, r) for j in jobs for i, r in zip(j['ports'], j['res']['primaries'])]
+    short = [(i, r) for i, r in prs if r and tgt and r.get('length') and r['length'] < tgt - float(rspec.get('tol') or 0.05)
+             and (r.get('length_reach') or {}).get('longest_cm') is not None and r['length_reach']['longest_cm'] < tgt - float(rspec.get('tol') or 0.05)]
+    if short:
+        lg = [r['length_reach']['longest_cm'] for _i, r in short]
+        sp_ = [r['length_reach']['span_cm'] for _i, r in short]
+        rb = float(rspec.get('clr') or 0.0)
+        notes.insert(0, 'Runner%s %s cannot reach the page\'s %.1f mm here: with %.1f mm (%.3f in) bends the longest shape whose bends '
+                        'all fit is %.0f to %.0f mm between ends %.0f to %.0f mm apart (a whole loop of the bend adds %.0f mm). Move the '
+                        'turbine flange marker further from the ports (it sets the merge plane, the merge and collector lengths '
+                        'before it), use a tighter bend, or a shorter length. Each runner\'s reason is in its row.' % (
+                            '' if len(short) == 1 else 's', ', '.join(str(i + 1) for i, _r in sorted(short)), 10 * tgt, 10 * rb, rb / 2.54,
+                            10 * min(lg), 10 * max(lg), 10 * min(sp_), 10 * max(sp_), 10 * 2 * 3.141592653589793 * rb))
     spread = (max(lens) - min(lens)) if len(lens) > 1 else 0.0
     miss = max(abs(L - tgt) for L in lens) if (lens and tgt) else None
     ok = all(j['res']['ok'] for j in jobs)

@@ -1590,6 +1590,57 @@ def _route(scene, spec, tubes, owner, log):
             return (0, geo['length'] + 2.0 * s['od'] * nb, 0, 0)     # shortest, with each bend worth two diameters of tube
         return (1, violation(cert, err, geo) + Lerr / 10.0, 0, Lerr)
 
+    def _shape_seeds(n_keep=4):
+        reach['span'] = vdist(A, B)
+        Lab = vdist(A, B)
+        if Lab < 1e-6:
+            return []
+        u = vunit(vsub(B, A))
+        e1, e2 = perp_basis(u)
+        shapes = (((0.5, 1.0),), ((1.0 / 3.0, 1.0), (2.0 / 3.0, 1.0)), ((1.0 / 3.0, 1.0), (2.0 / 3.0, -1.0)))
+
+        def corners(shape, dv, dlt):
+            return [vadd(vadd(A, vmul(u, Lab * f)), vmul(dv, sg * dlt)) for f, sg in shape]
+
+        def geo_of(W):
+            return chain_geometry(_chain(s, x_from(W)), rb)
+        out = []
+        for shape in shapes:
+            for k in range(8):
+                ang = 2 * math.pi * k / 8.0
+                dv = vadd(vmul(e1, math.cos(ang)), vmul(e2, math.sin(ang)))
+                # walk the offset out in steps (the length is not monotonic far out: a bend near 180 deg takes back
+                # more tangent than it adds), then bisect the first step that passes the target
+                stp = max(0.25, 0.02 * target)
+                lo_d, hi_d = 0.0, None
+                d = stp
+                while d <= target:
+                    gd = geo_of(corners(shape, dv, d))
+                    if min(gd['avail'][1:-1] or [0.0]) >= s['min_straight'] - 1e-6:
+                        reach['longest'] = max(reach.get('longest', 0.0), gd['length'])
+                    if gd['length'] >= target:
+                        hi_d = d
+                        break
+                    lo_d = d
+                    d += stp
+                if hi_d is None:
+                    continue
+                for _it in range(40):
+                    mid = 0.5 * (lo_d + hi_d)
+                    if geo_of(corners(shape, dv, mid))['length'] < target:
+                        lo_d = mid
+                    else:
+                        hi_d = mid
+                W = corners(shape, dv, hi_d)
+                g = geo_of(W)
+                av = g['avail']
+                if min(av[1:-1] or [0.0]) < s['min_straight'] - 1e-6 or abs(g['length'] - target) > 0.5:
+                    continue
+                sc = min(clear_amount(q) for q in path_points(g['elems'], 2.0))
+                out.append((sc, W))
+        out.sort(key=lambda c: -c[0])
+        return [x_from(W) for sc, W in out[:n_keep] if sc > -C.req]
+
     def length_stage(seed):
         """From one clear route: that route and up to five with a zig-zag added where it is longest, each fitted
         to the target length (the fit can add length; it does not find a shorter way)."""
@@ -1631,10 +1682,34 @@ def _route(scene, spec, tubes, owner, log):
                 break
             res = fit(x0, True, mA, [A] + W_of(x0) + [B])
             got.append(res)
+            tries.append({'seed_cm': round(La, 3), 'zigzag': k > 0, 'length_cm': round(res[1]['length'], 3),
+                          'slack_cm': round(res[2]['slack'], 3), 'tt_cm': round(res[2]['tt'], 3) if res[2]['tt'] < 1e8 else None,
+                          'errors': list(res[3])})
             if score_of(res)[0] == 0 and k >= 1:
                 break
+        # Whole-route shapes made at the target length, tried only when no zig-zag fitted (4.24.0, the first live
+        # turbo manifold run): a corner put into the longest leg of a short route with a large bend radius leaves no
+        # straight for the bends beside it, so repair() drops it and every zig-zag fits back to the seed (seen:
+        # 27.5 cm runners, 7.14 cm radius, 38 cm asked, every try 27.547 cm). These replace the route's corners with
+        # a bow (one corner), a bump (two, same side) or an S (two, opposite sides) across the line from A to B in
+        # eight directions, the offset found by bisection so the bent centreline is the target length; only shapes
+        # whose bends all fit are kept, the clearest first. The walk also records the longest shape whose bends fit
+        # (reach['longest']), which the message gives when the target was missed.
+        if need > 0.5 and not any(score_of(r)[0] == 0 for r in got) and time.time() < deadline:
+            for x0 in _shape_seeds():
+                if time.time() > deadline:
+                    break
+                res = fit(x0, True, mA, [A] + W_of(x0) + [B])
+                got.append(res)
+                tries.append({'seed_cm': round(La, 3), 'zigzag': False, 'shape': True, 'length_cm': round(res[1]['length'], 3),
+                              'slack_cm': round(res[2]['slack'], 3), 'tt_cm': round(res[2]['tt'], 3) if res[2]['tt'] < 1e8 else None,
+                              'errors': list(res[3])})
+                if score_of(res)[0] == 0:
+                    break
         return got
 
+    reach = {}           # the shape seeds' walk: the A-B span and the longest shape whose bends fit
+    tries = []           # what the length stage tried (seed length, fitted length, clearances): why a target was missed
     best = None
     stageA = None
     clear = []           # clear routes from the searches, widest corridor first
@@ -1701,6 +1776,14 @@ def _route(scene, spec, tubes, owner, log):
             msgs.append('Could not keep the gap to the other tubes: short by %.2f cm.' % (-cert['tt']))
     if not okl:
         msgs.append('Length is %.2f cm; the target is %.2f cm.' % (L, target))
+        if target > L and reach.get('span') is not None and reach.get('longest', 0.0) < target - s['tol']:
+            # why: with this bend radius the ends are too close together for a route of the target length that does
+            # not loop (the length of such routes has a gap: a bow or an S tops out, a loop adds a whole 2 pi R)
+            msgs.append('Between these ends (%.2f cm apart where the straight leads end) a %.2f cm bend radius leaves no '
+                        'room for that length: the longest bow, bump or S tried whose bends all fit is %.2f cm, and a '
+                        'whole loop of the bend adds %.2f cm. Move the ends further apart (for a manifold: the turbine '
+                        'flange marker, which sets the merge plane), use a tighter bend, or a shorter target.' % (
+                            reach['span'], rb, reach.get('longest', 0.0), 2.0 * math.pi * rb))
     msgs.extend(err)
     out = {'ok': bool(okc and okl and not err), 'corners': Q, 'elems': geo['elems'], 'length': L,
            'bend_angles': [math.degrees(a) for a in geo['th'][1:-1]],
@@ -1708,7 +1791,8 @@ def _route(scene, spec, tubes, owner, log):
            'slack': cert['slack'], 'tt_slack': cert['tt'] if cert['tt'] < 1e8 else None,
            'msg': ' '.join(msgs) if msgs else 'Clear of the scan and the other tubes.',
            'time': time.time() - t0, 'e_cover': scene.e_cover if (scene is not None and scene.built) else 0.0,
-           'notes': notes}
+           'notes': notes, 'length_tries': tries,
+           'length_reach': ({'span_cm': reach['span'], 'longest_cm': reach.get('longest')} if reach.get('span') is not None else None)}
     return out
 
 
