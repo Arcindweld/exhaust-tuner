@@ -21906,7 +21906,8 @@ $('h-uel-wrap').addEventListener('input',e=>{   // runs before the form's own ha
   else if(el.dataset.g) HUEL.g[el.dataset.g]=Number.isFinite(v)?v:NaN;
   else if(el.dataset.t) HUEL.T=Number.isFinite(v)?v:NaN;
 });
-$('h-uel-wrap').addEventListener('change',e=>{ if(e.target.id==='h-uel-route') HUEL.route=+e.target.value||0; },true);
+// on input as well as change: a select fires input first, and the render that input causes shows HUEL.route (2026-11-16)
+['input','change'].forEach(t=>$('h-uel-wrap').addEventListener(t,e=>{ if(e.target.id==='h-uel-route') HUEL.route=+e.target.value||0; },true));
 document.addEventListener('click',e=>{ if(e.target.closest('#h-uel-reset')){ HUEL.c={}; HUEL.g={}; HUEL.T=NaN; renderActive(); } });
 document.addEventListener('change',e=>{ const el=e.target.closest('input.uelpair'); if(!el) return; const v=parseFloat(el.value); HUEL[el.dataset.k]=Number.isFinite(v)?v:NaN; renderActive(); });
 document.addEventListener('click',e=>{ if(!e.target.closest('#h-uel-pair')) return; const H=HDR_LAST; if(!(H&&H.uel&&H.r)) return;

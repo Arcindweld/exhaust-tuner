@@ -431,7 +431,12 @@ The long runs are validation scripts with checkpointing, not in the suite: `tool
 written as they end), `tools/validation/project_inventory.js`, and under tools/validation/wave `preset_sweep.js`
 (per preset), `turbo_closure_parity.js` (per case), `headers_shapes_parity.js`, `sound_determinism.js`.
 
-Pins: PINS_TEXT
+Pins: none changed. No existing test needed a new expected value; the project fixtures (op_legacy_k24 and the
+projects the boost, fuel, K-series and compressor-map tests write and load) load with their pinned results. The fixes
+change displayed results only where the page showed a stale one (a run or section of an earlier design, an error with the
+last design's legend) or where a load lost a saved setting; no pinned case was in such a state.
+
+Final suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, the final code): SUITE_COUNTS
 
 ### A6. Still not covered
 
