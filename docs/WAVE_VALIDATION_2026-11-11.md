@@ -3826,3 +3826,162 @@ Suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip
 code): 140 tests, 133 passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips (all expected: no host build, no OpenWAM
 build in the worktree, F-100 runs absent), 0 unexpected, 1518 s (ivc_ui, knock_ui, knockpage_ui, wave_wasm, turboaudit_ui,
 turbosim_ui passed).
+
+## Addendum 2026-11-15, part 14: K-series stand-ins replaced where a source could be read; cam phasing and two cam profiles
+
+Question (parts 8, 12, 13). For the K24A2 the airflow, the trapped state and the knock integral hinge on stand-ins: the
+4-Stroke tab's cam (IVO 20 / IVC 60 / EVO 60 / EVC 20 deg seat to seat), the assumed 300 mm runner open to the air, the
+rod at 1.7 x stroke. Replace what can be cited, model what the engine has (an intake cam phaser, VTC; two cam profiles,
+VTEC) where data exist, rerun the K24 set. Result in short: the one engine figure that could be cited and that the model
+uses is the rod (152.019 mm, a vendor's "stock K24 length"); it moves nothing by more than 1 %. No stock K-series cam
+event, lift or head-flow table could be read (the forums that may carry them refused the fetch; cam makers publish their
+own grinds; Kelford leaves the intake centreline to the phaser). The phaser's range (25 deg on the K24A2, 50 deg on the
+K20A2 / K20Z3) and the VTEC changeover are sourced and now inputs; the stand-in cam stays and is labelled, with a "measure
+your own" guide. Intake manifolds with published runner and plenum figures (two makers' copy, a forum spec list) fill the
+4-Stroke tab's runner, plenum and throttle. With the RBC filled in, the naturally aspirated K24A2 moves away from Honda's
+power rating (192 -> 184 hp against 200) and to its torque figure (180 -> 166 lb-ft against 166, at 5500 rpm against
+4500). Found on the way and fixed: the WebAssembly model ran cam events given at a check lift as seat events (the
+browser's 4-Stroke results for every 0.050 in cam, the LS presets among them, used the wrong events), and 509 of the
+engine list's 609 source links (397 of 480 on the vehicle list) pointed to "undefined".
+
+### N1 Sources (read 2026-11-15; quality: maker data / reputable vendor / magazine / enthusiast measurement)
+
+| Field | Value | Source | Quality | Used |
+|---|---|---|---|---|
+| K24 rod, centre to centre | 152.019 mm (5.985 in), "stock K24 length", any K24A / K24Z bottom end | https://www.hybrid-racing.com/products/speedfactory-h-beam-connecting-rods-k24 | reputable vendor | K24A2, K24A4, K24A8, K24Z3, K24Z7 presets (f-rod) |
+| K24 rod (second) | 152.00 mm, Skunk2 Alpha rods for K24A1/A2/A4/A8, K24Z (not said to be centre to centre or stock) | https://www.evasivemotorsports.com/store/product/skunk2-alpha-series-connecting-rods-k24a1-k24a2-k24a4-k24a8/ | reputable vendor | corroboration only |
+| K20 rod | 138.98 mm (5.472 in) for K20A/A2/Z1/Z3, not stated to be stock | https://www.hybrid-racing.com/products/speedfactory-h-beam-connecting-rods-k20a-k20z | reputable vendor | not used (not stated stock) |
+| K24A2 VTC range | "The K24A2 in the TSX came with 25 degrees." | https://hybrid-racing.com/products/honda-k20z-a-50-degree-vtc-intake-cam-gear-14310-rbc-003 | reputable vendor | K24A2 preset (f-vtcmax 25) |
+| K24 VTC range (Honda) | 2008 Accord K24A: VTC "widened from 25° to 50°"; valves 36 / 31 mm; 87 x 99; 142 kW @ 7000, 220 N m @ 4400 | https://global.honda/en/technical-review/PDF/020-1/20-1_25e.pdf | maker data | the earlier K24A's 25 deg; note only |
+| K24 factory 25 deg gear | "the factory 25-degree VTC intake cam gear" | https://hpacademy.com/technical-articles/everything-you-need-to-know-about-the-honda-k24 | magazine (training vendor) | corroboration; also K24A2 197-205 hp @ 6800, 164-166 lb-ft @ 4500 |
+| 25 deg gear fitment (conflict) | "This 25 degree VTC is found on the K24A3 from the Accord/TSX CL9" | https://www.tegiwa.com/products/genuine-honda-25deg-vtc-actuator-intake-cam-gear-k-series | reputable vendor | noted |
+| K20A2, K20Z3 VTC range | "The K20A2, K20A3, K20Z1, and K20Z3 got the 50 degree actuator." | (Hybrid Racing, as above) | reputable vendor | presets (f-vtcmax 50) |
+| VTC meaning, tuning | "0 to 45 or 0 to 50 degrees"; cam angle = intake advance in crank degrees, 0 fully retarded (as used); NA: maximum advance after VTEC to 6500-7000 rpm; "With a turbocharged engine the cam advance generally needs to be less than stock"; "The higher the back pressure the more cam retard is needed" | https://hondata.mobi/help/flashpro/tuning_for_vtc.htm | maker of the tuning tool | definition of the advance input; the page's caveat |
+| K20 bore x stroke | 86 x 86 mm (K20A, 1998 cc; valves 35 / 30 mm) | https://global.honda/en/technical-review/PDF/012-2/012-2_45e.pdf | maker data | K20A2, K20Z3 presets (bore, stroke) |
+| K20 bore x stroke (second) | "square 86mm x 86mm bore and stroke, as delivered from Honda" | https://www.enginelabs.com/?p=8104 | magazine | corroboration |
+| VTEC changeover | K24A2 above 6000 rpm; K24Z7 above 5000; K24W1 above 4800 (Honda, the presets' kd.vtec of 2026-11-12) | as in the presets | maker data | f-vrpm filled; the second profile stays off |
+| Kelford 179-A (aftermarket) | 298/294 adv. at 0.10 mm, 258/246 at 1 mm, 12.50 / 12.20 mm valve lift, rocker 1.7, EVO 49 BBDC / EVC 19 ATDC at 1 mm (248 deg, not 246), intake centreline "VARI", exhaust 105 | https://kelfordcams.com/product/honda-k-series-camshaft | maker data | not a preset: no intake events |
+| Skunk2 Ultra Street | runners "6.85" long", plenum "1.8L", "71mm Throttle Body Opening" | https://www.evasivemotorsports.com/store/product/skunk2-ultra-series-intake-manifold-honda-k-series-street/ | reputable vendor (maker's copy) | manifold list |
+| Skunk2 Ultra Race | "6.0" Tapered Hi-Velocity Runners" (taken as the length; the copy does not say), "3.5L", 90 mm Ford 5.0 flange (no bore) | https://www.evasivemotorsports.com/store/product/skunk2-ultra-race-intake-manifold-honda-acura-k20a2-style/ | reputable vendor (maker's copy) | manifold list |
+| K-Tuned side feed | runners "5.75" long with a large diameter of 1.875"", "4.78L" plenum, 90 mm flange (no bore) | https://speedscience.co.nz/products/k-tuned-side-feed-intake-manifold | reputable vendor (maker's copy) | manifold list (length, plenum) |
+| RBC, RRC, Skunk2 Pro | RBC 18.5 cm, width 4.8-5.1 cm, 1720 cc, 62 mm; RRC ~19.0 cm, ~5.1-5.3 cm, 64 mm; Skunk2 Pro 19.5 cm without stacks (25.5 with), 2950 cc (2530 with), 64 mm; how measured not stated; beside a 2010 Super Street Dynapack test (PRC baseline 193 whp) | https://www.hondatalk.ro/Thread-K-Series-Intake-Manifolds-TEST | enthusiast measurement | manifold list |
+| RBC fitment | 2006-11 Civic Si; "bolts straight onto the K24A family" | https://www.hybrid-racing.com/collections/vendors/products/oem-honda-rbc-intake-manifold | reputable vendor | manifold label |
+
+Not found (searched or refused): stock K20 / K24 cam events and lifts, low and high lobe (k20a.org, clubrsx.com,
+8thcivic.com, honda-tech.com threads refused the fetch: not worked around; Skunk2, Brian Crower, Drag Cartel, Blox pages
+give their own cams only); any stock K-series head flow table (the same forums); the stock 2004-08 TSX (K24A2) intake
+manifold's runner, plenum or throttle; the K-series bore spacing (P9 of the boost audit stands; 94 mm still unverified);
+the intake port length in the head. The forum spec list's RBB entry (31.0 cm) is an Endyn-ported part, not used.
+
+### N2 What was modelled (page; no change to wsFactory's physics, et_wave or the WebAssembly)
+
+- Rod length: "Connecting rod, centre to centre, blank for 1.7 x stroke" (f-rod), into spec.e.rod; blank: as before.
+- Runner bore: "Intake runner inside diameter, blank to scale from the valves" (f-ird); blank: sqrt(0.6 n) x valve, as before.
+- Intake cam phasing: "Intake cam advance from the events above" (f-vtc, crank degrees): IVO + a, IVC - a (Hondata's
+  cam angle; the typed events are the cam at 0). "Also find the best advance at each RPM within the range" (f-vtcmode)
+  runs the design as entered at six advances 0, max/5, ..., max (f-vtcmax, the phaser's range) as extra designs and
+  shows, per speed, the advance with the highest brake torque, with the page's caveat (knock, emissions; Hondata on turbo
+  engines). It is a separate table; the design comparison runs at the typed advance.
+- Two cam profiles: "Two profiles: a low-RPM profile below the changeover" (f-vtec) with the changeover (f-vrpm) and the
+  low profile's four events and two lifts (blank lifts: the main ones). Each design is run as two jobs, the low profile at
+  the speeds below the changeover and the main profile from it up (simEntries), and spliced back in speed order
+  (simMerge); the wave model runs each speed on its own, so this is preset and closure logic only. The low-profile run
+  warms up from rest like any sweep. The simulation with the turbo and the Headers-tab layout run the main profile at
+  the typed advance (said on the page).
+- Cam events "at 1 mm lift" (f-camat 1mm, checkLift_mm 1.0): the K-series convention (Kelford's cards, Honda).
+- Presets (kd): rod, vtcMax, vtecRpm, the K20 bore and stroke, each with its source and quality label in the note;
+  picking another engine blanks them. Legacy projects (saved without f-rod) load with all part 14 fields blank or off.
+- Intake manifold list (f-imani, K_MANI): fills the runner (the manifold's runner plus the head's port from "Of that, the
+  intake port"; when that is blank, a 100 mm stand-in labelled "measure yours"), "A plenum fed through a throttle body",
+  the plenum and the throttle, only where the source gives the figure; no runner diameter (none published; the forum
+  list's figures are widths).
+- "Measure your own" guide under the cam inputs: cam events with a degree wheel and a dial indicator at 1 mm lift (phaser
+  at 0), lift, runner length along the centre line from the seat to the plenum (tape or a 3D scan), runner bore with
+  calipers, plenum by water, port spacing with calipers.
+
+### N3 Defects found and fixed
+
+- WebAssembly check lift. rust/et_wave reads cam events as seat to seat and has no checkLift_mm; the JavaScript model
+  converts a check-lift card with camSeat. The worker's Rust path (preferred in the browser) and turboSimLib's rustBackend
+  passed the spec as is, so every 0.050 in card ran on the WebAssembly as seat events (a small probe: VE 0.949 against the
+  JavaScript's 1.143 at 5000 rpm). Now wsFactory exports rustSpec(spec): the same spec with camSeat's events, handed to
+  the WebAssembly at both places; JS / WebAssembly bit parity holds (kseries_ui 5: 0.050 in, 1 mm and seat). Affected:
+  the browser's 4-Stroke wave results for CAM_LIB engines (LS1/LS3/LS6/LS7/LS9/LT1 with "0.050 in" set) and any typed
+  0.050 in card; the validation scripts (ratings.js etc.) ran the JavaScript model and are unaffected; the K24 stand-in
+  cam is seat to seat and unaffected.
+- Source links. VS_NEW, VS_BIKES and VS_BIKES2 were merged into VS after the presets that read them, so their src / kd
+  links were undefined (509 of 609 links on the engine list, 397 of 480 on the vehicle list; the K-series kd links were
+  dropped altogether). Each table is now merged right after it is defined: 741 and 560 links, none undefined.
+
+### N4 The K24A2 without boost against Honda's rating (200 hp @ 6800, 166 lb-ft @ 4500; `kseries_val.js part=na`)
+
+Part 12's naturally aspirated case (the 18 psi build's pipes open to the air: the tubular manifold, collector and
+downpipe), brake = gross indicated less Heywood's tfmep, the stand-in cam, ON-independent:
+
+| case | peak brake hp @ rpm | peak torque lb-ft @ rpm | hp at 6800 | lb-ft at 4500 | VE at 6000 |
+|---|---|---|---|---|---|
+| before (rod 168.3 mm = 1.7 x stroke, 300 mm runner open to the air) | 191.9 @ 6000 | 180.2 @ 5000 | 186.2 | 171.0 | 1.082 |
+| rod 152.019 mm | 192.3 @ 6000 | 180.4 @ 5000 | 186.2 | 171.1 | 1.084 |
+| + RBC (185 mm + the 100 mm stand-in port, 1720 cc, 62 mm at 0.83, the 600 x 101.6 mm placeholder inlet tube) | 183.9 @ 6000 | 166.1 @ 5500 | 176.1 | 149.0 | 1.049 |
+| + best advance of 0-25 deg | 183.9 @ 6000 (0 deg best at every speed) | 166.1 @ 5500 | 176.1 | 149.0 | 1.049 |
+
+Read: the rod moves the peak by 0.2 %. The RBC takes 4 % off the peak power and 8 % off the peak torque, so against
+Honda the power goes from -4 % to -8 % and the torque from +9 % to 0 % (but at 5500 rpm, not 4500: at 4500 -10 %); the
+peaks stay 800 rpm below Honda's power speed, which is the stand-in cam's (it has no VTEC and closes the intake 60 deg
+ABDC seat to seat). Advancing the stand-in cam only makes it worse at every speed (5 deg: 0 to -4 %, 25 deg: -5 to -28 %),
+so with this cam the best advance is the end of the range: the stand-in is not a retarded K24 cam, and the phasing result
+says nothing about the real engine until its cam events are typed. Not a validation: the RBC is not the K24A2's manifold
+(none published), the port length and the inlet tube are stand-ins, the exhaust is the turbo build's, and Honda's SAE
+figure is at J1349's 99 kPa (part 8 H2: 2.3 % less air than the model's 101.325 kPa). Nothing was tuned.
+
+### N5 The turbo K24 + PT5862 (`kseries_val.js part=turbo`; part 12's 18 psi pump job, the turbine's and gate's areas held)
+
+| rpm | VE on the charge, before / rod | IVC bar / K, before / rod | knock I (ON 95), before / rod | gross-less-friction hp, before / rod |
+|---|---|---|---|---|
+| 3500 | 0.977 / 0.973 | 3.015 / 386.4 -> 2.976 / 385.5 | 3.884 / 3.819 | 243.6 / 242.4 |
+| 5050 | 1.147 / 1.148 | 3.741 / 410.7 -> 3.714 / 410.3 | 4.343 / 4.312 | 409.6 / 409.9 |
+| 6600 | 1.082 / 1.084 | 3.607 / 417.3 -> 3.586 / 417.2 | 3.202 / 3.186 | 485.6 / 486.4 |
+| 7100 | 1.038 / 1.039 | 3.510 / 422.1 -> 3.482 / 421.9 | 2.885 / 2.852 | 490.8 / 490.7 |
+
+The same engine without boost (part 13's "at the limit"): knock integral 0.901 / 1.105 / 0.733 / 0.642 -> 0.883 / 1.098 /
+0.730 / 0.636 at 3500 / 5050 / 6600 / 7100 rpm: still at the limit (0.7-1.3). The boost-for-power method (c) of the boost
+audit, rerun through the page with the K24A2 preset's rod (`OUT=kseries_boost_power.json boost_power.js 15,22,29.52`): 15
+psi 428.2 -> 428.9 hp @ 6050, 22 psi 529.7 -> 529.6 hp @ 7100, 29.52 psi 636.9 -> 636.9 hp @ 7100 (VE on the charge 1.151
+-> 1.153, 1.041 -> 1.042, 1.044 -> 1.045): the (c) column's ranges are unchanged at their printed precision. The levers of
+parts 8 and 13 (the runner, the cam's intake closing) are still stand-ins; part 13's 150 mm runner (VE 0.995, I 2.93) is
+the size of what a real manifold could do. So the sourced data move the turbo case neither toward nor away from the
+reported builds.
+
+### N6 Tests and pins
+
+- New: `web/tests/kseries_ui.js` (Chromium and Node, about 40 s, 33 checks): the presets' cited values and their blanking;
+  the note's labels; the manifold list in inches and mm with the port stand-in and a typed port; simSpec with rod, bore,
+  advance, low profile; the two-profile split and merge; the best-advance set; the input checks; JS / WebAssembly parity
+  through rustSpec at 0.050 in, 1 mm and seat; every variant's spec for the page's default, the LS3 cam, the plenum
+  identical to the page before part 14 (`fixtures/kseries_specs_before.json`, from git 07b6b07 by `kseries_specs.js`),
+  the K24A2 only by its rod, the K20A2 by its bore and stroke; a project saved before (op_legacy_k24.json) keeps the rod
+  at 1.7 x stroke and the stand-in cam.
+- Pins changed: none (N8).
+- Tools: `tools/validation/wave/kseries_val.js` (new), `results/kseries_na.json`, `results/kseries_turbo.json`,
+  `results/kseries_boost_power.json`; `boost_power.js` takes OUT= and skips "Use these sizes" when it is disabled (as
+  knock_k24.js does).
+
+### N7 What it means for the build (plain words)
+
+The K24's own rod length is now in the model; it changes nothing you would notice. Its cam is still a stand-in: no source
+that could be read gives the K24A2's cam timing, lift or head flow, so the trapped pressure and the knock estimate still
+hang on that stand-in and on the intake runner. You can now type what you measure: the cam events at 1 mm lift for both
+lobes (two profiles with the 6,000 RPM changeover), the phaser's advance, the rod, the runner and its bore, or pick an
+intake manifold whose figures are published (the RBC's come from a forum list, the Skunk2 and K-Tuned ones from the
+makers' copy). The best-advance table shows where the breathing peaks at each speed; on a turbo engine Hondata's advice
+is less advance than stock, and a tune also weighs knock. With a degree wheel, a dial indicator, a tape or your scanner
+the stand-ins can go in an afternoon, and the model will then say more about this engine than any preset can.
+
+### N8 Suite
+
+`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, 2026-11-15, part 14, on the final code
+(the final commit only removes the progress file): 141 tests, 134 passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips
+(all expected: no host build, no OpenWAM build in the worktree, F-100 runs absent), 0 unexpected, 1486 s; kseries_ui 33 of
+33. Pins changed in other tests: none (no existing test pinned a K24 wave result through the preset's rod, and none ran a
+check-lift cam on the WebAssembly path). kat.json not regenerated: wsFactory's physics and the WebAssembly are unchanged
+(two exports added to wsFactory's return: rustSpec, camSeat).

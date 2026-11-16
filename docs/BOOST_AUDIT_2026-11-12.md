@@ -1454,3 +1454,19 @@ E85 4.5 psi (1.2 to 7.3) at RON 104, 8.2 psi (4.4 to 11.5) at Kasseris's fitted 
 
 - A knock model that tracks the charge temperature as strongly as the published rule; cylinder-to-cylinder spread;
   re-solving the gate for the retarded timing; the boost a tune would pick for a given retard (both fuels at one timing).
+
+## Addendum 2026-11-15: K-series sourced data (docs/WAVE_VALIDATION_2026-11-11.md, part 14)
+
+- K24 preset values re-checked against what could be read: rod 152.019 mm "stock K24 length" (Hybrid Racing's SpeedFactory
+  listing, reputable vendor) now fills the 4-Stroke tab's new rod field (was 1.7 x stroke = 168.3 mm); the K24A2's intake
+  phaser range 25 deg (Hybrid Racing; Honda R&D Technical Review 20-1: the 2008 K24A widened it "from 25° to 50°") and
+  the K20A2 / K20Z3's 50 deg; the VTEC changeover (Honda's 6000 rpm on the K24A2) fills the two-profile input, which stays
+  off. K20A2 / K20Z3 now carry 86 x 86 mm (Honda R&D Technical Review 12-2, maker data; EngineLabs). Still stand-ins:
+  the cam (no stock K-series events, lifts or head flow could be read), the intake runner unless a manifold is picked
+  (RBC / RRC / Skunk2 Pro from a forum spec list, Skunk2 Ultra Street / Race and K-Tuned from the makers' copy), the
+  head's intake port length (100 mm stand-in), the port spacing (P9: 93 mm stays a typed example; 94 mm still unverified).
+- The three-way table's method (c) rerun with the rod: 428.9 / 529.6 / 636.9 hp at 15 / 22 / 29.52 psi (was 428.2 /
+  529.7 / 636.9): unchanged at the table's precision; (a) and (b) do not use the rod. The 18 psi trapped state and knock
+  integral: IVC 3.741 -> 3.714 bar at 5050 rpm, I 4.343 -> 4.312; without boost 1.105 -> 1.098 (still at the limit).
+- Defect found: the WebAssembly ran cam cards given at 0.050 in as seat events (the K24 stand-in is seat to seat, so the
+  K24 cases here were not affected); fixed by handing it camSeat's events (rustSpec).

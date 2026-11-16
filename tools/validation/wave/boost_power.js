@@ -3,7 +3,7 @@
 // intercooler, tubular manifold, 93 mm port spacing) in "My boost" at typed boosts (psi), driven through the page in
 // Chromium, one run each (about 25 s). Prints and writes results/boost_power.json: the run's peak brake power and RPM,
 // air, BSFC, VE on the charge, the charge's absolute pressure and temperature, and Garrett's power at the same boost.
-// Run from web/:  node ../tools/validation/wave/boost_power.js [15,22,29.52]
+// Run from web/:  node ../tools/validation/wave/boost_power.js [15,22,29.52]   (OUT=name.json writes results/name.json instead)
 const { chromium } = require('playwright');
 const fs = require('fs');
 const { reads, settle } = require(require('path').join(__dirname, '..', '..', '..', 'web', 'tests', 'settle'));
@@ -21,7 +21,7 @@ const boosts = (process.argv[2] || '103.421,151.685,203.4').split(',').map(Numbe
     await setv('i-ind', 'turbo'); await setv('i-opm', 'boost'); await setv('i-boost', String(psi)); await setv('i-hp', '');
     const ti = await pg.evaluate(() => window.__tso.TURBO_LIB.findIndex(t => t.model.startsWith('GEN2 PT5862'))); await chg('select.tsox[data-k="turbo"]', String(ti));
     const hs = await pg.evaluate(ti => window.__tso.TURBO_LIB[ti].hs.findIndex(h => h.ar === 0.63 && h.flange === 'T3' && h.outlet === '4-bolt'), ti); await chg('select.tsox[data-k="hs"]', String(hs));
-    await pg.click('button[data-tsuse]'); await settle(pg);
+    const use = await pg.$('button[data-tsuse]:not([disabled])'); if (use) { await use.click(); await settle(pg); }   // disabled when no size needs changing (as knock_k24.js)
     const ic = await pg.$('button[data-icuse]:not([disabled])'); if (ic) { await ic.click(); await settle(pg); }
     await setv('i-mani', 'tube'); await setv('i-msp', (93 / 25.4).toFixed(3));
     const O = await pg.evaluate(() => { const O = window.__op.OP(); return { boost: O.boost, hp: O.hp, wa: O.wa, tmF: O.tmF, ve: O.ve, rpm: O.rpm }; });
@@ -32,7 +32,7 @@ const boosts = (process.argv[2] || '103.421,151.685,203.4').split(',').map(Numbe
       return { hp: s.hp, rpm: s.rpmHp, air: s.air, bsfc: s.bsfc, veC: o.veC, ve: o.ve, p3k: o.p3k, Pt: T.plan.spec.intake.source.p, Tc: T.plan.spec.intake.source.T, afr: T.plan.afr,
         rows: s.rows.map(r => ({ rpm: r.rpm, hp: r.tqB * r.rpm * Math.PI / 30 / 745.7, veC: r.veC, mAir: r.mAir })) }; });
     const rec = { psi, status: st, secs: (Date.now() - t0) / 1000, O, S }; out.push(rec); console.log(JSON.stringify(rec));
-    fs.writeFileSync(require('path').join(__dirname, 'results', 'boost_power.json'), JSON.stringify(out, null, 1));
+    fs.writeFileSync(require('path').join(__dirname, 'results', process.env.OUT || 'boost_power.json'), JSON.stringify(out, null, 1));
     await pg.context().close();
   }
   await b.close();
