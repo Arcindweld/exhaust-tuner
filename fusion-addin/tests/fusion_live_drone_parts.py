@@ -244,6 +244,10 @@ def run(_context=None):
                     break
                 if m:
                     m.deleteMe()
+            try:
+                os.remove(path)                      # the mesh is in the design now; a test run leaves nothing behind
+            except OSError:
+                pass
             if mesh is None:
                 return {'ok_mesh_imported': False}
             main.isLightBulbOn = False                       # the scan is all there is now

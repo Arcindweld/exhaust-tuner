@@ -63,6 +63,10 @@ def run(_context=None):
                 solids[cur] += 1
             elif w[0] == "vertex":
                 xs.append(float(w[1]))
+        try:
+            os.remove(path)                    # a test run leaves nothing behind
+        except OSError:
+            pass
         out["solids"] = solids
         out["x_range_mm"] = [min(xs), max(xs)]
         out["expect_x_mm"] = [100.0, 400.0]

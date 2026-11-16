@@ -4401,6 +4401,11 @@ def _ps_round_words(reps):
     return False, ' '.join(r['summary'] for r in reps if r.get('verdict') != 'round')
 
 
+# Where the print split writes its STLs: None is the owner's Documents\Exhaust Tuner\prints\<design>. The live test
+# scripts set it to a temporary folder (and remove it) so a test run leaves nothing in the owner's documents.
+PRINT_DIR = None
+
+
 def act_print_split(data):
     sels = _selected()
     bodies = _bodies_of([e for e in sels if _kind(e) in ('BRepBody', 'BRepFace')])
@@ -4578,7 +4583,8 @@ def act_print_split(data):
             if tbm.booleanOperation(x, tbm.copy(pieces[j]), adsk.fusion.BooleanTypes.IntersectionBooleanType) and x.volume > 1e-6:
                 clash.append((pieces[i].name, pieces[j].name))
     doc = _app.activeDocument.name if _app.activeDocument else 'design'
-    folder = os.path.join(os.path.expanduser('~'), 'Documents', 'Exhaust Tuner', 'prints', ''.join(ch for ch in doc if ch not in '<>:"/\\|?*'))
+    base = PRINT_DIR or os.path.join(os.path.expanduser('~'), 'Documents', 'Exhaust Tuner', 'prints')
+    folder = os.path.join(base, ''.join(ch for ch in doc if ch not in '<>:"/\\|?*'))
     os.makedirs(folder, exist_ok=True)
     rows, vol, rnds = [], 0.0, []
     for k, (b, pc) in enumerate(zip(pieces, pl['pieces']), 1):
