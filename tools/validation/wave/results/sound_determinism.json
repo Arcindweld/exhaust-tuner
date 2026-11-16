@@ -1,0 +1,23 @@
+[
+ {
+  "name": "Hear each part: the line, a muffler and a Helmholtz can (pieces and branches)",
+  "msg": "Done: 4 steps, each with one more part. Pick any two as A and B, or play every step in order.",
+  "numbers": 33657,
+  "diff": [],
+  "errs": []
+ },
+ {
+  "name": "Hear a misfire: cylinder 1 not firing",
+  "msg": "Done: play A (all firing) and B (one cylinder not firing). A cylinder that does not fire still pumps its charge out, so its pulse is weak and the note loses its even rhythm: a once-per-cycle beat (half an order, one in every 8 pulses) comes in that a healthy engine does not make. If your own car sounds like B, find the dead cylinder before you change the exhaust.",
+  "numbers": 6729,
+  "diff": [],
+  "errs": []
+ },
+ {
+  "name": "Estimate the sound: V8 per bank on the Headers layout, X crossover on the line",
+  "msg": "Done: 3 speeds at full throttle. Play it below, keep it to compare with a change, or hear each part.",
+  "numbers": 6729,
+  "diff": [],
+  "errs": []
+ }
+]
