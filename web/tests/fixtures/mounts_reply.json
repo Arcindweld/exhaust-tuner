@@ -60,7 +60,9 @@
     "foot_side": -1,
     "plate_side": -1,
     "gap_mm": 19.999999999999996,
-    "hot_gap_mm": 253.2,
+    "hot_gap_mm": null,
+    "gap_over_mm": null,
+    "hot_gap_over_mm": 253.2,
     "clear": true,
     "access": [
      {
@@ -91,6 +93,8 @@
     "plate_side": -1,
     "gap_mm": 19.999999999999996,
     "hot_gap_mm": 33.00000000000001,
+    "gap_over_mm": null,
+    "hot_gap_over_mm": null,
     "clear": false,
     "access": [
      {
