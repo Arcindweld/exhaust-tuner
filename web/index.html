@@ -16334,7 +16334,7 @@ function kManiFill(k){
   hint.hidden=false;
   hint.innerHTML=esc(m.name)+': '+esc(m.note)+'. Filled: runner '+cl(m.run+port)+' from the valve (the manifold’s '+cl(m.run)+' plus the head’s port, '+cl(port)+(stand?', a stand-in: measure yours, valve seat to the head’s flange, and type it above':', as you typed it')+'), plenum'+(m.plv?' '+(U==='imp'?(m.plv/16.387064).toFixed(0)+' cu in ('+m.plv+' cc)':m.plv+' cc'):' left as typed')+', throttle '+(m.tb?cl(m.tb):'left as typed')+
     '. Runner diameter: none published, so it stays scaled from the valves unless you type it. Inlet tube and filter: still placeholders. Sources: '+m.src.map(x=>'<a href="'+K_MANI_SRC[x][1]+'" target="_blank" rel="noopener">'+esc(K_MANI_SRC[x][0])+'</a> ('+esc(K_MANI_SRC[x][2])+')').join('; ')+'.';
-  $('f-intl').dispatchEvent(new Event('input',{bubbles:true}));
+  renderActive();
 }
 window.__kmani={K_MANI,K_MANI_SRC,K_PORT_STANDIN,kManiFill};
 (()=>{ const sel=$('f-imani'); if(!sel) return;
@@ -18299,6 +18299,7 @@ const VS_NEW={
   gencoupe:'https://en.wikipedia.org/wiki/Hyundai_Genesis_Coupe',
   stinger:'https://en.wikipedia.org/wiki/Kia_Stinger'
 };
+Object.assign(VS,VS_NEW);   // (2026-11-15, part 14) merged here, before the presets below read VS: merged only after them, their source links were "undefined" (509 of 609 on the engine list)
 const VEH_GROUPS_NEW=[['truck', 'Performance trucks and SUVs'], ['hot', 'Hot hatches and sport compacts'], ['kor', 'Korean'], ['swap', 'Engine swaps (motor only)']];
 const ENGLIB_NEW={
   fv6:{grp:'car',name:'V6, 60° (Ford Cyclone / EcoBoost / Duratec) · 1-4-2-5-3-6',cyc:'4',order:[1, 4, 2, 5, 3, 6],banks:[[1, 2, 3], [4, 5, 6]],bankNames:['passenger side (1–3)','driver side (4–6)'],src:'https://rerev.com/firing-orders/ford/3-5l-ecoboost/'},
@@ -19062,6 +19063,7 @@ const VS_BIKES={
   b_r3:'https://en.wikipedia.org/wiki/Yamaha_YZF-R3',
   b_r6w:'https://en.wikipedia.org/wiki/Yamaha_YZF-R6'
 };
+Object.assign(VS,VS_BIKES);   // (2026-11-15, part 14) merged here, before the presets below read VS: merged only after them, their links read undefined
 const VEH_GROUPS_BIKES=[['bike2t','Two-stroke road bikes']];
 const ENGLIB_BIKES={
   p2_180:{grp:'moto',name:'Parallel twin, 180° crank · 180-540° (Kawasaki Ninja/Z 250–650, Honda CB500, Yamaha R3)',cyc:'4',order:[1, 2],gaps:[180, 540],banks:[[1], [2]],src:'https://en.wikipedia.org/wiki/Honda_CB500F',note:'Same rhythm as the existing m2b key; kept as a separate key so bikes can be filtered by crank type.'},
@@ -19576,6 +19578,7 @@ const VS_BIKES2={
   cw_sportchief24:'https://www.cycleworld.com/bikes/indian-sport-chief-dyno-test-2024',
   cw_him450_24:'https://www.cycleworld.com/bikes/royal-enfield-himalayan-450-dyno-test-2024'
 };
+Object.assign(VS,VS_BIKES2);   // (2026-11-15, part 14) merged here, before the presets below read VS: merged only after them, their links read undefined
 const ENGLIB_BIKES2={
   mv49:{grp:'moto',name:'V-twin 49° (Indian Thunderstroke) · 311-409°',cyc:'4',order:[1, 2],gaps:[311, 409],banks:[[1], [2]],bankNames:['front','rear'],src:'https://www.cycleworld.com/bikes/indian-sport-chief-dyno-test-2024',note:'Indian describes the Thunderstroke as a 49° V-twin; gaps are 360 ± 49 for a shared-pin crank.'}
 };
@@ -19940,7 +19943,7 @@ function kdNote(kd,link){
   if(kd.studs) out.push('Manifold to head: '+esc(kd.studs)+' studs'+L(kd.studSrc)+'.');
   if(kd.portIn) out.push('Header flange port '+kd.portIn.toFixed(3)+' in ('+(kd.portIn*25.4).toFixed(1)+' mm) on an aftermarket K20/K24 flange'+L(kd.portSrc)+'.');
   if(kd.bsSrc) out.push('Bore and stroke 86 × 86 mm: Honda’s figure for the K20A (Honda R&D Technical Review, maker data'+L(kd.bsSrc)+'), the same 1998 cc; EngineLabs gives 86 × 86 for the K20'+L(kd.bsSrc2,'magazine')+'.');
-  if(kd.rod) out.push('Connecting rod '+kd.rod.toFixed(3)+' mm ('+(kd.rod/25.4).toFixed(3)+' in) centre to centre, the “stock K24 length” an aftermarket rod maker’s listing gives (reputable vendor'+L(kd.rodSrc)+'); filled in on the 4-Stroke tab.');
+  if(kd.rod) out.push('Connecting rod '+kd.rod.toFixed(3)+' mm ('+(kd.rod/25.4).toFixed(3)+' in) centre to centre, the “stock K24 length” an aftermarket rod maker’s listing gives'+L(kd.rodSrc,'reputable vendor')+'; filled in on the 4-Stroke tab.');
   if(kd.vtcMax) out.push('Intake cam phaser (VTC) range '+kd.vtcMax+'°'+L(kd.vtcSrc,'reputable vendor')+(kd.vtcSrc2?'; Honda says its 2008 K24A widened it “from 25° to 50°”'+L(kd.vtcSrc2,'maker data'):'')+'; filled in on the 4-Stroke tab.');
   if(kd.vtecRpm) out.push('VTEC changeover '+kd.vtecRpm.toLocaleString('en-US')+' RPM (Honda’s “above”), filled in on the 4-Stroke tab; the second cam profile stays off until you type the low lobe’s events.');
   out.push('Not published in the sources found: stock cam timing and lift, throttle bore, stock pipe size; enter your own if you have a cam card (the 4-Stroke tab’s “Measure your own” says how). Sources read '+esc(kd.seen||'')+'.');
@@ -27538,6 +27541,11 @@ function projApply(d){
   { const add={}; if(!('i-fuel' in d.vals)) add['i-fuel']={v:'pump'}; if(!('i-evap' in d.vals)) add['i-evap']={v:'none'};
     if(!('i-lam' in d.vals)) add['i-lam']={b:null}; if(!('i-eth' in d.vals)) add['i-eth']={b:null};
     if(Object.keys(add).length) d=Object.assign({},d,{vals:Object.assign({},d.vals,add),legacyFuel:true}); }
+  // and one saved before part 14 (2026-11-15: rod length, runner bore, cam phasing, two cam profiles): those blank or off,
+  // so a K-series preset re-applied by the vehicle picker does not move its results (the rod stays 1.7 x stroke)
+  if(!('f-rod' in d.vals)){ const add={'f-vtec':{v:'one'},'f-vtcmode':{v:'fixed'},'f-imani':{v:''}};
+    ['f-rod','f-ird','f-vtc','f-vtcmax','f-vrpm','f-livo','f-livc','f-levo','f-levc','f-llin','f-llex'].forEach(id=>{ add[id]={b:null}; });
+    d=Object.assign({},d,{vals:Object.assign({},d.vals,add),legacyK14:true}); }
   if(d.units==='imp'||d.units==='met') setUnits(d.units);
   if(d.mode==='simple'||d.mode==='expert') setMode(d.mode,false);
   const fire=(el,t)=>el.dispatchEvent(new Event(t,{bubbles:true}));

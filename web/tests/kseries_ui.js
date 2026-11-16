@@ -56,11 +56,11 @@ const { specsOf } = require('./kseries_specs');
     return { intl: B('f-intl'), pin: B('f-pin'), intk: V('f-intk'), plv: B('f-plv'), tbd: B('f-tbd'), ird: B('f-ird'), intlTxt: V('f-intl'), hint: document.getElementById('f-imani-hint').textContent }; }, [k, units]);
   const setB = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]);
   let m = await mani('rbc', 'imp');
-  ok(Math.abs(m.intl - 285) < 0.01 && m.pin === 100 && m.intk === 'plenum' && m.plv === 1720 && m.tbd === 62 && !Number.isFinite(m.ird) && /11\.220/.test(m.intlTxt) && /stand-in: measure yours/.test(m.hint) && /enthusiast measurement/.test(m.hint) && /\(185 mm\)/.test(m.hint),
-    'RBC (inches): runner 185 + the 100 mm stand-in port = 285 mm (11.220 in), plenum 1720 cc, 62 mm, no diameter, labels in the hint');
-  await setB('f-pin', '120'); m = await mani('sk2us', 'met');
+  ok(Math.abs(m.intl - 285) < 0.01 && m.pin === 100 && m.intk === 'plenum' && m.plv === 1720 && m.tbd === 62 && !Number.isFinite(m.ird) && /^11\.22$/.test(m.intlTxt) && /stand-in: measure yours/.test(m.hint) && /enthusiast measurement/.test(m.hint) && /\(185 mm\)/.test(m.hint),
+    'RBC (inches): runner 185 + the 100 mm stand-in port = 285 mm (11.22 in), plenum 1720 cc, 62 mm, no diameter, labels in the hint');
+  await pg.click('#u-met'); await setB('f-pin', '120'); m = await mani('sk2us', 'met');
   ok(Math.abs(m.intl - (6.85 * 25.4 + 120)) < 0.01 && m.pin === 120 && m.plv === 1800 && m.tbd === 71 && /^294/.test(m.intlTxt) && /as you typed it/.test(m.hint) && /maker’s copy/.test(m.hint),
-    'Skunk2 Ultra Street (mm): 174.0 + the typed 120 mm port = 294.0 mm, 1.8 L, 71 mm; the typed port kept');
+    'Skunk2 Ultra Street (mm): 174.0 + the typed 120 mm port = 294.0 mm, 1.8 L, 71 mm; the typed port kept' + (fails.length ? ' ' + JSON.stringify(m) : ''));
   m = await mani('sk2ur', 'met');
   ok(Math.abs(m.intl - (152.4 + 120)) < 0.01 && m.plv === 3500 && m.tbd === 71 && /throttle left as typed/.test(m.hint), 'Skunk2 Ultra Race: 152.4 mm runner, 3.5 L, the throttle left as it was (bore not published)');
   m = await mani('ktsf', 'imp'); ok(Math.abs(m.intl - (146.05 + 120)) < 0.01 && m.plv === 4780, 'K-Tuned side feed: 146.05 mm runner, 4.78 L');
@@ -69,7 +69,7 @@ const { specsOf } = require('./kseries_specs');
   const sp = await pg.evaluate(() => { const S = window.__sim, q = S.inp(), a = S.simSpec(q);
     const b = S.simSpec(Object.assign({}, q, { vtc: 10, ird: 45 })), c = S.simSpec(Object.assign({}, q, { useLo: true, lo: { ivo: 5, ivc: 30, evo: 40, evc: 0, lin: 8, lex: NaN } }));
     return { rod: a.e.rod, cam: a.e.cam, d: a.intake.segs[0].d0, segs: a.intake.segs.length, plen: !!a.intake.plenum, camB: b.e.cam, dB: b.intake.segs[0].d0, camC: c.e.cam, liftC: [c.e.liftIn, c.e.liftEx], lift: [a.e.liftIn, a.e.liftEx], err: S.simCheck(q) }; });
-  ok(!sp.err && sp.rod === 0.152019 && JSON.stringify(sp.cam) === '{"ivo":20,"ivc":60,"evo":60,"evc":20}' && sp.segs === 2 && sp.plen, 'K24A2 spec: rod 0.152019 m, the stand-in cam 20/60/60/20, runner with its port, plenum');
+  ok(!sp.err && sp.rod === 152.019 / 1000 && JSON.stringify(sp.cam) === '{"ivo":20,"ivc":60,"evo":60,"evc":20}' && sp.segs === 2 && sp.plen, 'K24A2 spec: rod 0.152019 m, the stand-in cam 20/60/60/20, runner with its port, plenum');
   ok(JSON.stringify(sp.camB) === '{"ivo":30,"ivc":50,"evo":60,"evc":20}' && sp.dB === 0.045, 'advance 10°: the intake opens at 30° BTDC and closes at 50° ABDC, exhaust unchanged; runner bore 45 mm typed');
   ok(JSON.stringify(sp.camC) === '{"ivo":5,"ivc":30,"evo":40,"evc":0}' && sp.liftC[0] === 0.008 && sp.liftC[1] === sp.lift[1], 'low profile: its four events, its intake lift, the main exhaust lift when blank');
   // ---- 4. two profiles: split and merge; best advance set
@@ -88,34 +88,34 @@ const { specsOf } = require('./kseries_specs');
     'merge: one curve per design in speed order, the low profile below the changeover, the advance carried');
   ok(/all four events of the low profile/.test(two.bad) && /phaser’s range/.test(two.bad2), 'checks: the low profile needs all four events; best advance needs the range');
   // ---- 5. the WebAssembly gets seat events (bit parity with the JavaScript model for a 0.050 in and a 1 mm card)
-  const par = await pg.evaluate(() => { const S = window.__sim, WS = S.WS, q = S.inp(), base = S.simSpec(Object.assign({}, q, { intk: 'open' })), out = [];
-    const m = document.documentElement.innerHTML.match(/const WAVE_WASM_B64='([A-Za-z0-9+/=]+)'/);
-    const bin = atob(m[1]), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
-    const X = new WebAssembly.Instance(new WebAssembly.Module(u), { m: { pow: Math.pow, sin: Math.sin, cos: Math.cos, exp: Math.exp } }).exports;
-    for (const h of [1.27, 1.0, 0]) { const sp = JSON.parse(JSON.stringify(base)); sp.opt = { phases: [0] }; delete sp.opt.collector; sp.exhaust = { segs: base.exhaust.segs.slice(0, 1), Tw: 700, chambers: [] };
-      if (h) sp.e.cam = Object.assign({}, sp.e.cam, { ivo: 25, ivc: 20, evo: 30, evc: 15, checkLift_mm: h });
-      const eng = WS.makeEngine(sp.e, sp.intake, sp.exhaust, sp.opt), js = WS.runSpeed(eng, { rpm: 5000, cycles: 3, dx: 0.0125 });
-      const run = s => { const t = new TextEncoder().encode(JSON.stringify(s)), p = X.wave_alloc(t.length); new Uint8Array(X.memory.buffer, p, t.length).set(t); const id = X.wave_new(p, t.length); X.wave_free(p, t.length);
-        const n = X.wave_step(id, 5000, 1, 0.0125, 3, 3, 0, NaN), v = Array.from(new Float64Array(X.memory.buffer, X.wave_out(), n)).slice(0, 2); X.wave_drop(id); return v; };
-      out.push({ h, js: [js.ve, js.imep], rs: run(WS.rustSpec(sp)), raw: run(sp), seat: WS.rustSpec(sp).e.cam }); }
-    return out; });
+  // the specs from the page, the models in Node (the page's own wsFactory and its embedded WebAssembly, as wave_wasm.js)
+  const base = await pg.evaluate(() => { const S = window.__sim, sp = S.simSpec(Object.assign({}, S.inp(), { intk: 'open' }));
+    sp.opt = { phases: [0] }; sp.exhaust = { segs: sp.exhaust.segs.slice(0, 1), Tw: 700, chambers: [] }; return sp; });
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const WSN = new Function(html.slice(html.indexOf('function wsFactory(){'), html.indexOf('\nconst WS=wsFactory();')) + '\nreturn wsFactory();')();
+  const X = new WebAssembly.Instance(new WebAssembly.Module(Buffer.from(html.match(/const WAVE_WASM_B64='([A-Za-z0-9+/=]+)'/)[1], 'base64')), { m: { pow: Math.pow, sin: Math.sin, cos: Math.cos, exp: Math.exp } }).exports;
+  const rsRun = s => { const t = new TextEncoder().encode(JSON.stringify(s)), p = X.wave_alloc(t.length); new Uint8Array(X.memory.buffer, p, t.length).set(t); const id = X.wave_new(p, t.length); X.wave_free(p, t.length);
+    const n = X.wave_step(id, 5000, 1, 0.0125, 3, 8, 5, NaN), v = Array.from(new Float64Array(X.memory.buffer, X.wave_out(), n)).slice(0, 2); X.wave_drop(id); return v; };
+  const par = [1.27, 1.0, 0].map(h => { const sp = JSON.parse(JSON.stringify(base)); if (h) sp.e.cam = Object.assign({}, sp.e.cam, { ivo: 25, ivc: 20, evo: 30, evc: 15, checkLift_mm: h });
+    const eng = WSN.makeEngine(sp.e, sp.intake, sp.exhaust, sp.opt), js = WSN.sweep(eng, [5000], { dx: 0.0125, cycles: 3, firstCycles: 8, maxExtra: 5 })[0];   // the page's sweep, as the worker's two paths run it
+    return { h, js: [js.ve, js.imep], rs: rsRun(WSN.rustSpec(sp)), raw: rsRun(sp), seat: WSN.rustSpec(sp).e.cam }; });
   for (const o of par) ok(o.rs[0] === o.js[0] && o.rs[1] === o.js[1] && (o.h ? o.raw[0] !== o.js[0] && !('checkLift_mm' in o.seat) : true),
-    'check lift ' + (o.h || 'none') + ' mm: the WebAssembly given rustSpec matches the JavaScript to the last digit (VE ' + o.js[0] + ')' + (o.h ? '; given the raw card it did not (VE ' + o.raw[0] + ', the defect fixed)' : ''));
+    'check lift ' + (o.h || 'none') + ' mm: the WebAssembly given rustSpec matches the JavaScript to the last digit (VE ' + o.js[0] + (o.rs[0] !== o.js[0] ? ' against ' + o.rs[0] : '') + ')' + (o.h ? '; given the raw card it did not (VE ' + o.raw[0] + ', the defect fixed)' : ''));
   // ---- 6. the page before part 14: the same specs for set-ups that are not K-series; the K24A2 only by its rod, the K20A2 by its bore and stroke
   const before = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'kseries_specs_before.json'), 'utf8'));
   const now = await specsOf(b, path.join(__dirname, '..', 'index.html'));
   for (const c of ['default', 'ls3', 'plenum']) ok(JSON.stringify(now[c]) === JSON.stringify(before[c]), c + ': every variant\'s spec identical to the page before part 14 (' + now[c].length + ' variants)');
-  { const fix = JSON.parse(JSON.stringify(before.K24A2)); fix.forEach(v => { v.spec.e.rod = 0.152019; });
+  { const fix = JSON.parse(JSON.stringify(before.K24A2)); fix.forEach(v => { v.spec.e.rod = 152.019 / 1000; });
     ok(JSON.stringify(now.K24A2) === JSON.stringify(fix), 'K24A2: the same specs as before but for the rod, ' + before.K24A2[0].spec.e.rod.toFixed(4) + ' -> 0.152019 m'); }
   ok(now.K20A2[0].spec.e.bore === 0.086 && now.K20A2[0].spec.e.stroke === 0.086 && Math.abs(before.K20A2[0].spec.e.bore - 0.086) > 1e-4, 'K20A2: bore and stroke 86 x 86 mm now (before: estimated, ' + (before.K20A2[0].spec.e.bore * 1000).toFixed(2) + ' x ' + (before.K20A2[0].spec.e.stroke * 1000).toFixed(2) + ' mm)');
   // ---- 7. a project saved before part 14 keeps its values (the K24A2 + PT5862 journey of operatingpoint_ui)
   await pg.close(); pg = await open();
   const L = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'op_legacy_k24.json'), 'utf8'));
-  await pg.evaluate(d => window.__proj.apply(d), L.snap); await pg.waitForTimeout(600);
+  await pg.evaluate(d => window.__proj.apply(d), L.snap); await pg.waitForTimeout(600); await pg.click('[data-tab="four-stroke"]'); await pg.waitForTimeout(500);
   const lg = await pg.evaluate(() => { const S = window.__sim, q = S.inp(), sp = S.simSpec(q), B = id => document.getElementById(id)._b; return { rod: sp.e.rod, S: sp.e.stroke, cam: sp.e.cam, intl: B('f-intl'), fr: B('f-rod'), vtec: document.getElementById('f-vtec').value }; });
   const savedIntl = L.snap.vals['f-intl'] && L.snap.vals['f-intl'].b;
   ok(Math.abs(lg.rod - 1.7 * lg.S) < 1e-12 && !Number.isFinite(lg.fr) && lg.vtec === 'one' && JSON.stringify(lg.cam) === '{"ivo":20,"ivc":60,"evo":60,"evc":20}' && (savedIntl == null || lg.intl === savedIntl),
-    'legacy K24 project: no rod saved, so 1.7 x stroke as it ran then; one profile, the stand-in cam, the runner as saved (' + lg.intl + ' mm)');
+    'legacy K24 project: no rod saved, so 1.7 x stroke as it ran then; one profile, the stand-in cam, the runner as saved (' + lg.intl + ' mm)' + (fails.length ? ' ' + JSON.stringify(lg) + ' saved ' + savedIntl : ''));
   ok(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 3).join(' | ') : ''));
   await b.close();
   console.log(fails.length ? fails.length + ' FAILED' : 'kseries_ui: all pass'); process.exit(fails.length ? 1 : 0);
