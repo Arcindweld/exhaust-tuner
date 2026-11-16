@@ -2190,3 +2190,46 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
 - Test switch window.__waveJs (the workers get no WebAssembly). New test web/tests/specparity_ui.js (helpers
   specparity_lib.js): field coverage with a commented allow-list, refusal, fixed + fuzz differential, one whole run both
   ways, save -> load, units, presets, run keys. tools/validation/wave/lib.js exports build() (the scripts' model as text).
+
+## 2026-11-16: First live Fusion run of the turbo tools: results and fixes (add-in 4.24.0)
+
+The conductor ran the live scripts on the owner's PC (Fusion 2706.1.17, Windows, add-in 4.23.0, Z up, scan keep-outs as
+mesh bodies). Charge piping (fusion_live_chargeroute.py) and print split (fusion_live_printsplit.py) passed every check.
+Three failed; each is now reproduced by the fake-API tests in the container and fixed or explained:
+- Mounts, ok_hot_gap (Fusion 593.0 mm, the add-in 253.0 mm for mount 1): mounts.clearance returned the nearest-point
+  search's radius (4 x the hot clearance + 50 mm = 253.2 mm) as the distance when nothing hot was within it.
+  test_mounts_fusion_fake.py already produced 253.2 mm and passed with it (it only asked for more than 50.8). Now the
+  gap is None with hot_gap_over_mm / gap_over_mm naming the radius ("more than"); the flags were right. The live
+  script's check now accepts either an agreeing distance or Fusion's distance beyond the stated radius. The page's
+  Mounts table (web/index.html, not changed here: another agent has it) shows '-' for such a gap and nothing for the hot
+  one; it should show "more than" + bothL(gap_over_mm / hot_gap_over_mm), as the charge-pipe table already does.
+- Turbo manifold, ok_route / ok_lengths (33.5 / 27.5 cm against 38 cm, identical with the Rust core and in Python):
+  not a turbo-glue defect and not a frame, marker or mesh difference. The stand-in fed the live scene (12-triangle mesh
+  head, the same markers and payload) gives Fusion's lengths to the micrometre; the container tests passed only because
+  their scene is different (merge 45 cm away, 76.2 cm runners). The flange marker at x = 50 puts the merge plane 23.8 cm
+  before it, 26.2 cm from the ports: 21.6 to 23.7 cm between the straight leads' ends. With 7.14 cm bends the length of
+  routes that do not loop has a gap there (a planar bow tops out near 29.7 cm for the middle runners; a random and
+  hill-climbing search over 2-6 corner shapes found nothing buildable between about 33 and 52 cm; a whole loop adds
+  2 pi R = 44.9 cm), so 38 cm is out of reach and the live script's expectation was wrong. Why the zig-zag stage did
+  nothing visible: each zig-zag corner left no straight for the bends beside it and repair() dropped it, so every try
+  fitted back to the seed (now in the route's length_tries). Router: when no zig-zag fits, whole-route shapes (bow,
+  bump, S in 8 directions, offset by bisection to the target) are fitted too, and the walk records the longest shape
+  whose bends fit; a runner short of its target for that reason says so in its row (span, longest, 2 pi R, what to
+  change) and turbomani's message says it in one line. With the flange marker at x = 58 the same payload routes all four
+  at 38 cm in the stand-in. Items now carry slack, tt_slack, length_reach, length_tries. The live script runs both cases.
+- Intake CFD case 5a, ok_cone_straight_lip / _fill (read "a straight flare, 53.7 degrees a side ... 0.26 mm lip radius";
+  faces 2 cylinders, 3 cones, 1 plane, no torus): a defect in the live script, not in the reader. It picked the arc's
+  free end with `a_end is lip_arc.endSketchPoint`, always False on Fusion's API objects (each property read is a new
+  wrapper), so both lines met the same arc end; the profile closed with a chord from the bore to the outside rim and the
+  arc was left out: atan(4.76 / 3.5) = 53.67 deg exactly, the face count fits (the mouth plane and the torus replaced by
+  one cone). The fake's chamfer gives the live read to the micrometre (101.886 mm, 53.673 deg, 0.26 mm). Found on the
+  way: the fake's lip took away a cove inside the wall (never seen by the probes), so only the torus face carried the
+  lip in the container, and a lip without a torus face read as a square cut there. With the fake's lip a real fillet,
+  the reader's existing probe fit reads a lip with no torus face as 3.5 mm (now a test). Reader: a straight flare whose fitted rim radius is under 0.5 mm is now a chamfer with a square rim, said with its
+  measured section; the reply carries mouth_section_mm and face_types (type and position along the tube). The live
+  script picks the arc ends by position, records the sketch profiles' curve types and each face's type by position.
+- Print split wrote its STLs to the owner's Documents\Exhaust Tuner\prints\Untitled: cadtools.PRINT_DIR (None = as
+  before) lets a script choose; fusion_live_printsplit.py uses a temporary folder and removes it, the CFD-STL and drone
+  live scripts remove their temporary STLs.
+- Not yet run live: the 4.24.0 versions of fusion_live_mounts.py, fusion_live_turbomani.py, fusion_live_intakecfd.py,
+  fusion_live_printsplit.py.
