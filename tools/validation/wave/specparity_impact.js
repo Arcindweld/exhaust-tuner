@@ -54,10 +54,11 @@ const summ = (r, cyl) => { const tq = r.imep.map(m => m * r.Vd / (4 * Math.PI) *
   }
   if (which.includes('headers')) {
     const pg = await open();
-    const c = await pg.evaluate(() => { const SP = window.__sp; location.hash = 'headers';
-      for (const [id, v] of [['h-eng', 'f4'], ['h-disp', '2457'], ['h-grp', 'all'], ['h-merge', 'triy'], ['h-pairs', '1,3 | 2,4'], ['h-lenmode', 'unequal']]) SP.set(id, v);
-      for (const [id, v] of [['#h-len-c1', '430'], ['#h-len-c2', '600'], ['#h-len-c3', '430'], ['#h-len-c4', '600'], ['#h-sec-g1', '350'], ['#h-sec-g2', '650']]) { const el = document.querySelector(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }
-      location.hash = 'four-stroke'; SP.set('f-disp', '2457'); SP.set('f-cyl', '4'); SP.set('f-port', '100'); SP.refresh();
+    await pg.evaluate(() => { location.hash = 'headers'; }); await pg.waitForTimeout(400);
+    for (const [id, v] of [['h-eng', 'f4'], ['h-disp', '2457'], ['h-grp', 'all'], ['h-merge', 'triy'], ['h-pairs', '1,3 | 2,4'], ['h-lenmode', 'unequal'], ['h-port', '100']]) { await pg.evaluate(([id, v]) => window.__sp.set(id, v), [id, v]); await pg.waitForTimeout(150); }
+    for (const [id, v] of [['#h-len-c1', '430'], ['#h-len-c2', '600'], ['#h-len-c3', '430'], ['#h-len-c4', '600'], ['#h-sec-g1', '350'], ['#h-sec-g2', '650']]) { await pg.fill(id, v); await pg.dispatchEvent(id, 'input'); }
+    await pg.waitForTimeout(300); await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400);
+    const c = await pg.evaluate(() => { const SP = window.__sp; SP.set('f-disp', '2457'); SP.set('f-cyl', '4'); SP.set('f-port', '100'); SP.refresh();
       const S = window.__sim, q = S.inp(), p = S.simPlan(q); return { err: p.err, hdr: p.hdr, specs: p.variants.map(v => v.spec), rpms: S.simRpms(q.tune).filter((r, i) => i % 3 === 0), cyl: q.cyl }; });
     if (!c.hdr || c.err) out.headers = { err: c.err || 'no Headers layout' };
     else {
@@ -90,5 +91,7 @@ const summ = (r, cyl) => { const tq = r.imep.map(m => m * r.Vd / (4 * Math.PI) *
     await pg.close();
   }
   await b.close();
-  fs.writeFileSync(args.out || path.join(__dirname, 'results', 'specparity_impact.json'), JSON.stringify(out, null, 1));
+  const file = args.out || path.join(__dirname, 'results', 'specparity_impact.json');
+  let prev = {}; try { prev = JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) {}
+  fs.writeFileSync(file, JSON.stringify(Object.assign(prev, out), null, 1));   // one part at a time keeps the others
 })();

@@ -19946,7 +19946,7 @@ function applyVehicle(v){
   $('q-eng').value=v.eng; setBase('q-disp',v.cc); setBase('q-rpm',v.hpRpm); setBase('q-hp',v.hp); setBase('q-tq',v.tqRpm); setBase('q-cruise',cruise);
   $('q-ind').value=v.ind==='na'?'na':/^turbo/.test(v.ind)?'turbo':'sc'; $('q-pipes').value='auto';
   $('v-note').innerHTML=vehNote(v,red,idle,cruise);
-  renderActive();
+  refreshTabResults(); renderActive();
 }
 // the extra engine facts an engine preset carries (kd), each with its own source; fields with no source are said to be missing
 function kdNote(kd,link){
@@ -27374,6 +27374,11 @@ const TABS={'quick':{panel:'panel-quick',tab:'tab-quick',render:renderQuick},'fo
 let cur='quick';
 // window.__renderCount: renders finished so far, for the tests only (web/tests/settle.js waits until it stops moving
 // before it reads the page); nothing on the page reads it
+// the Headers and Intake tabs' last results (HDR_LAST, TS_LAST, MFD_LAST) are what the 4-Stroke tab's runs read (the Headers
+// layout, the boosted plan); they were refreshed only when their tab rendered, so after a project load or an engine preset
+// chosen on another tab the 4-Stroke tab simulated the layout and charge of the build before (2026-11-16,
+// docs/SPEC_PARITY_AUDIT_2026-11-16.md D5). Called by projApply and applyVehicle.
+function refreshTabResults(){ if(cur!=='headers') try{ renderHeaders(); }catch(e){} if(cur!=='intake') try{ renderIntake(); }catch(e){} }
 function renderActive(){ syncShapes(); TABS[cur].render(); if(cur==='headers') renderPieCut(); window.__renderCount=(window.__renderCount||0)+1; }
 function showTab(){
   const h=location.hash.replace('#','');
@@ -27600,7 +27605,7 @@ function projApply(d){
   if(Array.isArray(d.build)){ BUILD.items=JSON.parse(JSON.stringify(d.build)); saveBuild(); }
   cmapAfterLoad(ui.cmap);
   HP_PRESET=null;   // a loaded project's power field is the builder's, not a preset's
-  renderActive();
+  refreshTabResults(); renderActive();
 }
 // what a saved field reads as, in the units now chosen
 function projFieldText(id,s){
