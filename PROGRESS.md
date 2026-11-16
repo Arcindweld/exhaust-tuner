@@ -17,3 +17,8 @@
 - K-Tuned side feed: 5.75 in runners, 1.875 in large dia, 4.78 L, 90 mm flange https://speedscience.co.nz/products/k-tuned-side-feed-intake-manifold
 - hondatalk.ro thread (forum spec list, origin unstated): RBC 18.5 cm, 4.8/5.1 cm width, 1720 cc, 62 mm; RRC ~19.0, 64 mm; RBB(Endyn ported) 31.0 cm 1650cc 60mm; Skunk2 Pro 19.5 cm w/o stacks 2950 cc 64 mm https://www.hondatalk.ro/Thread-K-Series-Intake-Manifolds-TEST
 - NOT FOUND: stock cam events/lift (k20a.org, clubrsx, 8thcivic blocked), head flow, bore spacing, stock K24A2 manifold dims
+- [x] implemented: f-rod, f-ird, f-imani (K_MANI), f-vtc/f-vtcmax/f-vtcmode, f-vtec + low profile, 1 mm check lift, rustSpec (WASM ignored checkLift_mm: DEFECT fixed)
+- [x] kseries_val.js results: NA before 191.9hp@6000 180.2lbft@5000; rod 192.3/180.4; rod+RBC 183.9@6000 166.1@5500; VTC best=0 everywhere
+  turbo 18psi 5050: before I 4.343 IVC 3.741/410.7 -> rod I 4.312 3.714/410.3; NA 5050 I 1.105 -> 1.098
+- boost_power (page, new rod): 15psi 428.2->428.9 @6050; 22psi 529.7->529.6 @7100; 29.52 pending (OUT=kseries_boost_power.json)
+- [ ] fixture: CAPTURE=old.html node tests/kseries_specs.js ; run kseries_ui

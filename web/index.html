@@ -20335,7 +20335,7 @@ document.addEventListener('click',e=>{
 
 /* ===== wave simulation on the 4-Stroke tab ===== */
 const SIM={key:'',status:'idle',msg:'',res:null,rpms:null,inp:null,workers:[],run:0,prog:{},par:1,ncyl:1};
-window.__sim={WS,simSpec,simVariants,simRpms,inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
+window.__sim={WS,simSpec,simVariants,simRpms,simEntries,simMerge,simVtcSet,inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
 const SIM_COL=['--t4','--t2','--t3','--t1','--t5'], SIM_DASH=['','6 4','2 3','9 3','4 2 1 2'];
 // the head's measured flow (CAM_LIB flow) when the engine came from the library and its valves are still the library's
 function simFlowOf(){
