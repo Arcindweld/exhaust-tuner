@@ -190,6 +190,10 @@ const NOT_SAVED = {
 // unfiltered list: a difference by design, not a stale result)
 async function copyView(A, B) {
   const v = await A.evaluate(ids => Object.fromEntries(ids.map(id => { const e = document.getElementById(id); return [id, e ? e.value : null]; })), Object.keys(NOT_SAVED));
-  await B.evaluate(v => { for (const id in v) { const e = document.getElementById(id); if (!e || v[id] === null || e.value === v[id]) continue; e.value = v[id]; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); } }, v);
+  // each on its own tab (a select's options are filled when its tab renders)
+  const tabs = await B.evaluate(() => window.__st.tabs());
+  for (const t of tabs) { const mine = await B.evaluate(([p, ids]) => ids.filter(id => { const e = document.getElementById(id); return e && e.closest('#' + p); }), [t.panel, Object.keys(v)]);
+    if (!mine.length) continue; await goTab(B, t.tab);
+    await B.evaluate(([v, mine]) => { for (const id of mine) { const e = document.getElementById(id); if (!e || v[id] === null || e.value === v[id]) continue; e.value = v[id]; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); } }, [v, mine]); await settle(B); }
 }
 module.exports = { NOT_SAVED, copyView, PAGE_SRC, install, goTab, readAll, diffTabs, open, rich, idsNow, readIds, inventory };

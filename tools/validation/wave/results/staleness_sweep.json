@@ -1,0 +1,1799 @@
+{
+ "sessions": {
+  "1": {
+   "seed": 1,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-loud",
+     "v": "4"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-nh",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "reload",
+     "tab": "headers",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "top",
+     "look": "two-stroke"
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "eng",
+     "v": "191",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.augx[data-k=\"Ds\"]",
+     "v": "4.23",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#v-pick",
+     "v": "519",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "use",
+     "tab": "intake",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-red",
+     "v": "7235"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-ch",
+     "v": "wrap",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-pick",
+     "v": "279"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-hf",
+     "v": "114"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-make",
+     "v": "Chevrolet Performance"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-rpm",
+     "v": "6465"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-outpos",
+     "v": "offset"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "reload",
+     "tab": "options",
+     "look": "headers"
+    },
+    {
+     "k": "mode",
+     "tab": "headers",
+     "v": "expert",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-type",
+     "v": "y"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-ind",
+     "v": "turbo2",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-vtcmode",
+     "v": "best"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-port",
+     "v": "",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-disp",
+     "v": "316"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-mode",
+     "v": "veh",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-kind",
+     "v": "maf",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-cr",
+     "v": "10.79"
+    },
+    {
+     "k": "mode",
+     "tab": "sound",
+     "v": "simple"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-part",
+     "v": "oil",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-maxw",
+     "v": "7"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-mat",
+     "v": "in625",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "782",
+     "look": "intake"
+    },
+    {
+     "k": "units",
+     "tab": "quick",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-red",
+     "v": "10044"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-outpos",
+     "v": "center"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-fuel",
+     "v": "e10"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#hg-reach",
+     "v": "55.54",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-rpm",
+     "v": "9461"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-count",
+     "v": "4",
+     "look": "mufflers"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 41.857
+  },
+  "2": {
+   "seed": 2,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-type",
+     "v": "itb"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-sshape",
+     "v": "oval",
+     "look": "hangers"
+    },
+    {
+     "k": "mode",
+     "tab": "hangers",
+     "v": "expert",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-nin",
+     "v": "9"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#o-cat",
+     "v": "muf"
+    },
+    {
+     "k": "units",
+     "tab": "four-stroke",
+     "v": "met",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#panel-headers input.heatx[data-k=\"load\"]",
+     "v": "92.86"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-s",
+     "v": "123",
+     "look": "crossover"
+    },
+    {
+     "k": "mode",
+     "tab": "quick",
+     "v": "simple"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-use",
+     "v": "off",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-class",
+     "v": "bike",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-h2",
+     "v": "74.14"
+    },
+    {
+     "k": "units",
+     "tab": "boom-tubes",
+     "v": "imp"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-sd",
+     "v": "3.28",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-maxh",
+     "v": "10"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-port",
+     "v": "",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-ends",
+     "v": "full"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-ports",
+     "v": "in"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-make",
+     "v": "Benelli",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-type",
+     "v": "x",
+     "look": "hangers"
+    },
+    {
+     "k": "use",
+     "tab": "hangers",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-maxrun",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#o-cat",
+     "v": "collect"
+    },
+    {
+     "k": "preset",
+     "tab": "boom-tubes",
+     "mode": "veh",
+     "v": "817",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-port",
+     "v": "2"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-disp",
+     "v": "33.82"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-loud",
+     "v": "1"
+    },
+    {
+     "err": "page.evaluate: TypeError: Cannot read properties of undefined (reading 'trim')\n    at ST.change (eval at evaluate (:311:30), <anonymous>:36:24)\n    at eval (eval at evaluate (:311:30), <anonymous>:1:1"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "low"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf select.mdinst",
+     "v": "1"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-ind",
+     "v": "centri"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-shape",
+     "v": "flat",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-pick",
+     "v": "",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-ft",
+     "v": "3.93"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-n",
+     "v": "5.07"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#hg-mat",
+     "v": "pa6cf",
+     "look": "intake"
+    },
+    {
+     "k": "reload",
+     "tab": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-mode",
+     "v": "veh",
+     "look": "two-stroke"
+    },
+    {
+     "k": "preset",
+     "tab": "cats",
+     "mode": "eng",
+     "v": "720"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [
+      {
+       "tab": "options",
+       "lines": 1044,
+       "at": 29,
+       "a": "9 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "b": "64 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "ctx": ""
+      }
+     ],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [
+      {
+       "tab": "options",
+       "lines": 1055,
+       "at": 29,
+       "a": "3 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "b": "64 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "ctx": ""
+      }
+     ],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [
+      {
+       "tab": "options",
+       "lines": 1055,
+       "at": 29,
+       "a": "3 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "b": "64 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "ctx": ""
+      }
+     ],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 48.77
+  },
+  "3": {
+   "seed": 3,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-eng",
+     "v": "i6"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-shape",
+     "v": "oval",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.wamx[data-k=\"rpms\"]",
+     "v": "4421 5526 6410 7184 7736"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-fd",
+     "v": "6.46",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-x4",
+     "v": "11.45",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-make",
+     "v": "Lamborghini"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-shape",
+     "v": "blair"
+    },
+    {
+     "k": "preset",
+     "tab": "quick",
+     "mode": "eng",
+     "v": "540"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-h4",
+     "v": "2.77"
+    },
+    {
+     "k": "units",
+     "tab": "intake",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-maxcod",
+     "v": "9"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-weld",
+     "v": "3"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-pshape",
+     "v": "flat"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-h",
+     "v": "118"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-cyl",
+     "v": "4.53",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-mouth",
+     "v": "ellipse",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.mdx[data-k=\"f1\"]",
+     "v": "219"
+    },
+    {
+     "k": "use",
+     "tab": "options",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-t",
+     "v": "1.15",
+     "look": "headers"
+    },
+    {
+     "k": "use",
+     "tab": "cats",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#v-pick",
+     "v": "134"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf select.augsel",
+     "v": "1"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-fab",
+     "v": "fdm"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-dn",
+     "v": "38.14"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-class",
+     "v": "bike",
+     "look": "parts"
+    },
+    {
+     "k": "units",
+     "tab": "headers",
+     "v": "imp"
+    },
+    {
+     "k": "preset",
+     "tab": "cats",
+     "mode": "eng",
+     "v": "652"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-rpm",
+     "v": "9452",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-T",
+     "v": "21.82"
+    },
+    {
+     "k": "reload",
+     "tab": "two-stroke",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.ttx[data-k=\"d\"]@3",
+     "v": "1.56",
+     "look": "options"
+    },
+    {
+     "k": "mode",
+     "tab": "options",
+     "v": "expert",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#panel-headers select.exhx[data-k=\"mesh\"]",
+     "v": "fine",
+     "look": "cats"
+    },
+    {
+     "k": "preset",
+     "tab": "crossover",
+     "mode": "veh",
+     "v": "647"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#o-cat",
+     "v": "engine",
+     "look": "two-stroke"
+    },
+    {
+     "k": "reload",
+     "tab": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-cs",
+     "v": "1.75",
+     "look": "four-stroke"
+    },
+    {
+     "k": "reload",
+     "tab": "headers",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-s",
+     "v": "5.89"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-kind",
+     "v": "maf",
+     "look": "two-stroke"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [
+      {
+       "tab": "options",
+       "lines": 998,
+       "at": 29,
+       "a": "5 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "b": "64 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "ctx": ""
+      }
+     ],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 54.021
+  },
+  "4": {
+   "seed": 4,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-fuel",
+     "v": "m100",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#v-pick",
+     "v": "39"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-id",
+     "v": "2.37"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-make",
+     "v": "Indian"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-maf",
+     "v": "housing",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-eng",
+     "v": "p2_270"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-disp",
+     "v": "138"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-mouth",
+     "v": "plain",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-dn",
+     "v": "2.38"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-kind",
+     "v": "maf",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "top"
+    },
+    {
+     "k": "preset",
+     "tab": "crossover",
+     "mode": "veh",
+     "v": "834"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#wsnd-load",
+     "v": "none",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-disp",
+     "v": "121"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-brand",
+     "v": "Vibrant"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-class",
+     "v": "car",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#v-make",
+     "v": "Jaguar"
+    },
+    {
+     "k": "use",
+     "tab": "options",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "459"
+    },
+    {
+     "k": "reload",
+     "tab": "four-stroke",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-dt",
+     "v": "3.94"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-nh",
+     "v": "3.69"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-make",
+     "v": "GMC"
+    },
+    {
+     "k": "mode",
+     "tab": "cats",
+     "v": "expert"
+    },
+    {
+     "k": "use",
+     "tab": "sound",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#v-pick",
+     "v": "356"
+    },
+    {
+     "k": "preset",
+     "tab": "boom-tubes",
+     "mode": "eng",
+     "v": "356"
+    },
+    {
+     "k": "preset",
+     "tab": "cats",
+     "mode": "eng",
+     "v": "356"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-wall",
+     "v": "0.0663",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "veh",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "units",
+     "tab": "hangers",
+     "v": "met",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-camkeep",
+     "v": true
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-sock",
+     "v": "11.62",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-nbaf",
+     "v": "6",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cone",
+     "v": "52.24",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-edge",
+     "v": "1",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-maf",
+     "v": "sd"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-type",
+     "v": "custom"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 51.042
+  },
+  "5": {
+   "seed": 5,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-part",
+     "v": "can"
+    },
+    {
+     "k": "units",
+     "tab": "mufflers",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-wall",
+     "v": "1.46"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cyc",
+     "v": "r"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-body",
+     "v": "395"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "low",
+     "look": "sound"
+    },
+    {
+     "k": "reload",
+     "tab": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#dyno-loss",
+     "v": "12.97",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-shape",
+     "v": "flat",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-outpos",
+     "v": "offset-opp"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four select.wamprof[data-k=\"angle\"]",
+     "v": "cam"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-gpre",
+     "v": "iso",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-tin",
+     "v": "27.01",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-pick",
+     "v": "246",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-filt",
+     "v": "oval",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-d",
+     "v": "70.6"
+    },
+    {
+     "k": "preset",
+     "tab": "boom-tubes",
+     "mode": "veh",
+     "v": "220"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-off",
+     "v": "8"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-len",
+     "v": "2296",
+     "look": "crossover"
+    },
+    {
+     "k": "use",
+     "tab": "sound",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-evo",
+     "v": "59.1",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-disp",
+     "v": "2849"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-t",
+     "v": "1.09",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-len",
+     "v": "2854",
+     "look": "headers"
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "veh",
+     "v": "241"
+    },
+    {
+     "k": "preset",
+     "tab": "hangers",
+     "mode": "eng",
+     "v": "294"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-lay",
+     "v": "secs",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cruise",
+     "v": "1546",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-clr",
+     "v": "127",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-disp",
+     "v": "5439",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-idle",
+     "v": "533",
+     "look": "quick"
+    },
+    {
+     "err": "page.evaluate: TypeError: Cannot read properties of undefined (reading 'trim')\n    at ST.change (eval at evaluate (:311:30), <anonymous>:36:24)\n    at eval (eval at evaluate (:311:30), <anonymous>:1:1"
+    },
+    {
+     "k": "preset",
+     "tab": "hangers",
+     "mode": "eng",
+     "v": "653"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-make",
+     "v": "Royal Enfield",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-tone",
+     "v": "high"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-flex",
+     "v": "bare"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-maxh",
+     "v": "4"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-rpm",
+     "v": "6997",
+     "look": "crossover"
+    },
+    {
+     "k": "units",
+     "tab": "mufflers",
+     "v": "imp"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [
+      {
+       "tab": "mufflers",
+       "lines": 55,
+       "at": 4,
+       "a": "Helmholtz",
+       "b": "Where to tap it into the pipe",
+       "ctx": ""
+      }
+     ],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [
+      {
+       "tab": "mufflers",
+       "lines": 55,
+       "at": 4,
+       "a": "Helmholtz",
+       "b": "Where to tap it into the pipe",
+       "ctx": ""
+      }
+     ],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 56.417
+  },
+  "6": {
+   "seed": 6,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-tone",
+     "v": "high",
+     "look": "mufflers"
+    },
+    {
+     "k": "units",
+     "tab": "quick",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-pick",
+     "v": "1",
+     "look": "quick"
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "veh",
+     "v": "384"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-pick",
+     "v": "399"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "168"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "342"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-size",
+     "v": "2",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#panel-headers input.heatx[data-k=\"Ta\"]",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf select.augsel",
+     "v": "1"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-port",
+     "v": "4"
+    },
+    {
+     "k": "preset",
+     "tab": "intake",
+     "mode": "eng",
+     "v": "327",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.esx[data-k=\"idle\"]",
+     "v": "",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.wamx[data-k=\"cycles\"]",
+     "v": ""
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "eng",
+     "v": "365",
+     "look": "options"
+    },
+    {
+     "k": "reload",
+     "tab": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-class",
+     "v": "bike",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-rpm",
+     "v": "6394",
+     "look": "hangers"
+    },
+    {
+     "k": "units",
+     "tab": "four-stroke",
+     "v": "imp"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-len",
+     "v": "28.6"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-shape",
+     "v": "blair"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-shape",
+     "v": "flat",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-n",
+     "v": "8"
+    },
+    {
+     "k": "preset",
+     "tab": "parts",
+     "mode": "eng",
+     "v": "956"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-od",
+     "v": "3.73",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-class",
+     "v": "car",
+     "look": "intake"
+    },
+    {
+     "k": "units",
+     "tab": "two-stroke",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-d",
+     "v": "78.16"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-pos",
+     "v": "284"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-shape",
+     "v": "flat"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-size",
+     "v": "1.5",
+     "look": "parts"
+    },
+    {
+     "k": "units",
+     "tab": "four-stroke",
+     "v": "imp"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#o-cat",
+     "v": "collect"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-s",
+     "v": "6.99",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-mat",
+     "v": "ss409"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "veh"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#hg-style",
+     "v": "minimal"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-series",
+     "v": "2",
+     "look": "parts"
+    },
+    {
+     "k": "preset",
+     "tab": "quick",
+     "mode": "eng",
+     "v": "62",
+     "look": "cats"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [
+      {
+       "tab": "options",
+       "lines": 1055,
+       "at": 29,
+       "a": "3 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "b": "64 of 64 options. Loudness and drone are against a stock-style system. Street status is a California reference, not a filter.",
+       "ctx": ""
+      }
+     ],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 68.785
+  }
+ }
+}

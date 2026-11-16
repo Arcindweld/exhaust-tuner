@@ -85,6 +85,15 @@ const NOT_SAVED = T.NOT_SAVED;
     await T.goTab(pg, 'four-stroke'); await pg.evaluate(() => window.__st.put('#f-dp', String(+document.getElementById('f-dp').value / 1.1))); await T.goTab(pg, 'sound');
     const s2 = await pg.evaluate(() => { const e = document.getElementById('f-dp'); return e._b; });
     void s2; const s3 = await st();
+    // the OpenWAM results table (a host run is not possible here: its results and the run's case hash are put in as wamRun leaves them)
+    await T.goTab(pg, 'four-stroke');
+    const w0 = await pg.evaluate(() => { const W = window.__proj.wam; W.results = [{ name: 'case3000', rpm: 3000, tq: 300, kw: 94, imep: 12, pmep: -0.3, ve: 0.95, vet: 0.9, spread: 0.002 }]; W.runSig = window.__wamSigNow(); location.hash = 'sound'; return W.runSig; });
+    await T.goTab(pg, 'four-stroke'); const w1 = await pg.evaluate(() => [!!document.getElementById('wam-stale'), !!document.getElementById('wam-files-note')]);
+    await pg.evaluate(() => window.__st.put('#f-dp', String(+document.getElementById('f-dp').value * 1.1))); await settle(pg);
+    const w2 = await pg.evaluate(() => [!!document.getElementById('wam-stale'), !!document.getElementById('wam-files-note')]);
+    await pg.evaluate(() => { window.__proj.wam.runSig = null; window.__st.put('#f-dp', document.getElementById('f-dp').value); }); await settle(pg);
+    const w3 = await pg.evaluate(() => [!!document.getElementById('wam-stale'), !!document.getElementById('wam-files-note')]);
+    ok(w0 && !w1[0] && !w1[1] && w2[0] && !w3[0] && w3[1], 'the OpenWAM results table: current after its run, out of date once the case the tab writes changes, and "read from files" when the page cannot tell which case wrote them ' + JSON.stringify([w1, w2, w3]));
     ok(!s0 && s1, 'the sound estimate is not marked out of date when nothing changed, and is after the primary size changed on the 4-Stroke tab (it never was: A3)' + JSON.stringify([s0, s1, s3]));
     await pg.close(); }
 

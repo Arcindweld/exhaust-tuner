@@ -12635,7 +12635,7 @@ document.addEventListener('click',async e=>{
     const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },1000); say('Downloaded '+name+'.');
   }
 });
-window.__wamIns=()=>WAM_UI.ins; window.__rec={recMisfire,MIC,wavFloat,micStart,micStop,recSynth,recAbCheck,REC_AB,REC,recWav,recFrames,recTrack,recHolds,recOrderLevels,recSweep,recFitModes,recLoad};
+window.__wamIns=()=>WAM_UI.ins; window.__wamSigNow=()=>SIM.inp?wamSigNow(SIM.inp):null; window.__rec={recMisfire,MIC,wavFloat,micStart,micStop,recSynth,recAbCheck,REC_AB,REC,recWav,recFrames,recTrack,recHolds,recOrderLevels,recSweep,recFitModes,recLoad};
 /* ===== Hear the model without a file (Sound tab): the page's own wave simulation (wsFactory) runs the 4-Stroke tab's
    engine and header at full throttle, with the OpenWAM line after the collector when it is on (its pipe; the muffler as
    the Mufflers tab's chamber, its extended tubes' pockets as tuned side volumes, or a can of the stated volume; the J-pipe
@@ -22164,7 +22164,13 @@ async function wamDownload(){
   wamMsg('Downloaded '+zname+'.');
   return out;
 }
-function wamReadFiles(list){
+// what an OpenWAM run from this page ran (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A3): a hash of the case's .wam
+// files; the results table is marked out of date when the case the page would write now differs. Results read from
+// AVG.DAT files picked by hand have none (the page cannot tell which case wrote them), and say so.
+function wamSig(out){ let h=2166136261>>>0; const t=out.files.filter(f=>/\.wam$/i.test(f.name)).map(f=>f.name+'\n'+f.text).join('\n');
+  for(let i=0;i<t.length;i++){ h^=t.charCodeAt(i); h=Math.imul(h,16777619)>>>0; } return h.toString(16)+':'+t.length; }
+function wamSigNow(q){ try{ const sp=simSpec(q), src=wamSource(q,sp); if(src.err) return 'err'; return wamSig(wamFiles(q,src.spec,src.run,src.uel)); }catch(e){ return 'err'; } }
+function wamReadFiles(list){ WAM_UI.runSig=null;
   const out=[];
   return Promise.all([...list].map(f=>f.text().then(t=>{ try{ const r=WAMX.readAvg(t); const cy=r.cycles; if(!cy.length) throw new Error('no cycles'); const last=cy[cy.length-1], five=cy.slice(-5);
       if(!(last.torque_net_Nm>-1e9)||!(last.nmep_bar>-1e9)) throw new Error('the run blew up (NaN in the last cycle; OpenWAM still reports it as finished). Re-make the case from this page, which now starts the engine clock 45° later, and run it again.');
@@ -22196,6 +22202,8 @@ function wamSection(q,sp){
     (hostHas('openwam')?'<details class="files-else"><summary>Load files from a run done elsewhere</summary>'+'<label class="f"><span class="lab">AVG.DAT files</span><span class="inp"><input type="file" id="wam-files" multiple accept=".dat,.DAT,text/plain"></span></label>'+'</details>':'<label class="f"><span class="lab">AVG.DAT files</span><span class="inp"><input type="file" id="wam-files" multiple accept=".dat,.DAT,text/plain"></span></label>');
   const R=WAM_UI.results;
   if(R.length){
+    if(WAM_UI.runSig&&wamSigNow(q)!==WAM_UI.runSig) h+='<div class="note warn" id="wam-stale">The inputs changed since this OpenWAM run (the case this tab writes now is different), so these results are for the earlier design. Run it again to update them.</div>';
+    else if(!WAM_UI.runSig) h+='<p class="cap" id="wam-files-note">These results were read from files: the page cannot tell which case wrote them, so check they are this design’s.</p>';
     const hp=kw=>Math.round(kw*1.34102), f1=x=>Number.isFinite(x)?(+x.toFixed(1)):'?', f2=x=>Number.isFinite(x)?(+x.toFixed(2)):'?';
     h+='<div class="tblwrap"><table><thead><tr><th>Run</th><th>RPM</th><th>Torque, net</th><th>Power</th><th>IMEP</th><th>PMEP</th><th>VE delivered</th><th>VE trapped</th><th>Settled?</th></tr></thead><tbody>'+
       R.map(r=>r.err?'<tr><td>'+esc(r.name)+'</td><td colspan="8">'+esc(r.err)+'</td></tr>':
@@ -22404,7 +22412,7 @@ async function wamRun(){
   const q=SIM.inp, err=q?simCheck(q):'Fill in the 4-Stroke tab first.'; if(err){ wamMsg(err,true); return; }
   const sp=simSpec(q), src=wamSource(q,sp); if(src.err){ wamMsg(src.err,true); return; }
   let out; try{ out=wamFiles(q,src.spec,src.run,src.uel); }catch(e){ wamMsg('OpenWAM export: '+e.message,true); return; }
-  window.__wamLast=out;
+  window.__wamLast=out; const runSig=wamSig(out);
   const n=out.files.filter(f=>/\.wam$/i.test(f.name)).length;
   wamMsg('Running '+n+' OpenWAM model'+(n===1?'':'s')+' on this PC. Each takes from seconds to a few minutes.');
   let res;
@@ -22417,6 +22425,7 @@ async function wamRun(){
   window.__wamRunLast=res;
   const ms=res.models||[], good=ms.filter(m=>m.finished&&m.avg), bad=ms.filter(m=>!(m.finished&&m.avg));
   if(good.length) await wamReadFiles(asFiles(good.map(m=>({name:m.name+'AVG.DAT',text:m.avg}))));
+  if(good.length) WAM_UI.runSig=runSig;
   const ins=ms.filter(m=>m.ins).map(m=>({name:m.name+'INS.DAT',text:m.ins}));
   if(ins.length) await wamReadIns(asFiles(ins));
   window.__wamResults=WAM_UI.results;   // for the tests
@@ -27630,7 +27639,7 @@ function projSnapshot(name){
   const ui={}; for(const k in PROJ_UI) ui[k]=projUiCopy(PROJ_UI[k][0],PROJ_UI[k][1],PROJ_UI[k][2]);
   return {exhaustTunerProject:1,name:String(name||'').trim()||'Untitled build',saved:new Date().toISOString(),
     units:U,mode:document.body.classList.contains('simple')?'simple':'expert',tab:(location.hash||'').slice(1),
-    vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n,pg:HUEL.pg,pr:HUEL.pr,T:Number.isFinite(HUEL.T)?HUEL.T:null,route:HUEL.route},hpPreset:HP_PRESET!==null?{hp:HP_PRESET,name:HP_PRESET_NAME,na:HP_PRESET_NA}:undefined,tw:twSave(),jig:Object.assign({},JIG_UI,{open:undefined}),build:JSON.parse(JSON.stringify(BUILD.items))};
+    vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n,pg:HUEL.pg,pr:HUEL.pr,T:Number.isFinite(HUEL.T)?HUEL.T:null,route:HUEL.route},hpPreset:HP_PRESET!==null?{hp:HP_PRESET,name:HP_PRESET_NAME,na:HP_PRESET_NA}:undefined,mufFrom:{turbo:!!FX.mufTurbo,note:FX.mufNote||''},tw:twSave(),jig:Object.assign({},JIG_UI,{open:undefined}),build:JSON.parse(JSON.stringify(BUILD.items))};
 }
 function projApply(d){
   // the cam-library rule of an engine preset (camLibOnPreset) does not run while a project loads: every saved field is set
@@ -27680,6 +27689,8 @@ function projApply0(d){
     // (2026-11-16) the primaries' gas temperature and the collector to route; a project from before has neither: blank and the first
     HUEL.T=Number.isFinite(d.huel.T)?d.huel.T:NaN; HUEL.route=Number.isInteger(d.huel.route)?d.huel.route:0; }
   if(d.tw) twLoad(d.tw);
+  // the Mufflers tab's "From the Sound tab" state: the pipe's start (valve or turbine outlet) and its note (saved since 2026-11-16)
+  if(d.mufFrom){ FX.mufTurbo=!!d.mufFrom.turbo; FX.mufNote=String(d.mufFrom.note||''); }
   if(d.jig) Object.keys(JIG_UI).forEach(k=>{ if(d.jig[k]!==undefined&&k!=='open') JIG_UI[k]=d.jig[k]; });
   if(Array.isArray(d.build)){ BUILD.items=JSON.parse(JSON.stringify(d.build)); saveBuild(); }
   cmapAfterLoad(ui.cmap);
