@@ -1838,6 +1838,11 @@ def _route_item(name, r, gap, od=None, data=None):
           'lra': r.get('lra'), 'note': r.get('msg')}
     if r.get('min_gap') is not None:
         it['min_gap'] = r['min_gap']
+    # why a route needs attention, for the page and the live checks: the clearance slack to the scan and to the other
+    # tubes (cm, negative is short), what the length stage tried and how far the shapes reached (router.route)
+    for k in ('slack', 'tt_slack', 'length_reach', 'length_tries'):
+        if r.get(k) is not None:
+            it[k] = r[k]
     if od:
         it['od'] = [od]          # the page's cut list picks stock bends of this OD
     if r.get('elems') and od:
