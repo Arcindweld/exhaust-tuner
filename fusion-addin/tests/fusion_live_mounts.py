@@ -134,12 +134,22 @@ def run(_context=None):
             vol.append((b.name, round(b.volume, 3), round(want, 3)))
         r['upright_volumes_cm3'] = vol
         r['ok_volumes'] = len(vol) == 2 and all(abs(v - w) / w < 0.01 for _n, v, w in vol)
+        # the add-in's contract (4.24.0): hot_gap_mm is the distance when a hot keep-out is within its search radius
+        # (4 hot clearances + 50 mm); otherwise hot_gap_mm is None and hot_gap_over_mm is that radius ("more than").
+        # Fusion's exact distance must then agree within 1.5 mm (the scan's 3 mm sampling) or be beyond the radius.
         gaps = []
         for k in range(2):
             d = min(app.measureManager.measureMinimumDistance(bodies[n], turbo).value for n in bodies if n.startswith('Mount %d ' % (k + 1)))
-            gaps.append((k + 1, round(10 * d, 2), reps[k]['hot_gap_mm'] if k < len(reps) else None))
-        r['hot_gaps_mm_fusion_vs_addin'] = gaps
-        r['ok_hot_gap'] = len(gaps) == 2 and all(a is not None and abs(f - a) < 1.5 for _k, f, a in gaps)
+            rp = reps[k] if k < len(reps) else {}
+            gaps.append((k + 1, round(10 * d, 2), rp.get('hot_gap_mm'), rp.get('hot_gap_over_mm')))
+        r['hot_gaps_mm_fusion_vs_addin_vs_over'] = gaps
+        r['gaps_mm_addin'] = [(rp.get('gap_mm'), rp.get('gap_over_mm')) for rp in reps]
+
+        def agrees(f, a, over):
+            if a is not None:
+                return over is None and abs(f - a) < 1.5
+            return over is not None and f >= over - 1.5
+        r['ok_hot_gap'] = len(gaps) == 2 and all(agrees(f, a, o) for _k, f, a, o in gaps)
         r['ok_flags'] = len(reps) == 2 and reps[0]['clear'] and not reps[1]['clear']
         r['ok'] = all(v for k, v in r.items() if k.startswith('ok_'))
         out['ok'] = r['ok']

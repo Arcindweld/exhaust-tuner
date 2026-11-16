@@ -102,10 +102,10 @@ floor = box((-10, -10, -2), (10, 10, 0))
 cold = scene([floor, wall])
 pts = [p for pl in pls for p in M.plate_points(pl)]
 skip = lambda p: p[2] < 2 * 0.3175 + 0.5
-gc, gh, okc = M.clearance(pts, cold, None, 0.5, 2.54, skip)
+gc, gh, okc, _b = M.clearance(pts, cold, None, 0.5, 2.54, skip)
 ok(okc and abs(gc - 1.0) < 0.02, 'clearance: 1.00 cm to the wall (%.3f cm by the scan), ok at 0.5 cm' % gc)
 hot = scene([wall])
-gc2, gh2, okh = M.clearance(pts, scene([floor]), hot, 0.5, 2.54, skip)
+gc2, gh2, okh, _b2 = M.clearance(pts, scene([floor]), hot, 0.5, 2.54, skip)
 ok((not okh) and abs(gh2 - 1.0) < 0.02, 'the wall marked hot: %.3f cm against 2.54 cm, not ok' % gh2)
 
 # 7. tool access along a foot bolt: a shelf whose underside is 5 cm above the chassis over the foot holes (x -1 to

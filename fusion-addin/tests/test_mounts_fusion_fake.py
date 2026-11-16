@@ -149,10 +149,18 @@ def main():
     reps = b.get('brackets') or []
     ok(b.get('ok') and len(PLATES) == 4 and sorted(p['name'] for p in PLATES) == ['Mount 1 foot', 'Mount 1 upright', 'Mount 2 foot', 'Mount 2 upright'],
        'mountBuild: an upright and a foot for each bracket (' + ', '.join(p['name'] for p in PLATES) + ')')
-    # mount 1: nothing near; mount 2: the hot box starts at x = 34, the upright's edge at 28 + 2.7 = 30.7 cm: 3.3 cm
-    # off, inside the 5.08 cm hot clearance (the scan's sampled points are 0.3 cm apart, so 33.0 to 34.5 mm)
-    ok(len(reps) == 2 and reps[0]['clear'] and reps[0]['hot_gap_mm'] > 50.8 and reps[0]['foot_side'] == -1 and reps[0]['plate_side'] == -1 and all(a['clear'] for a in reps[0]['access']),
-       'mount 1: clear (hot box %.1f mm off), the foot away from the part, every bolt has a straight line out' % reps[0]['hot_gap_mm'])
+    # mount 1: nothing near; the hot box is 59.3 cm off (the upright's inner edge at x = -28 + 2.7 = -25.3, the box
+    # from x = 34), which Fusion measured (593.0 mm) in the first live run while the add-in reported 253.0 mm: the
+    # search radius (4 x 50.8 + 50 mm = 253.2 mm) returned as if it were the distance. Now it is "more than 253.2 mm".
+    # mount 2: the hot box starts at x = 34, the upright's edge at 28 + 2.7 = 30.7 cm: 3.3 cm off, inside the 5.08 cm
+    # hot clearance (the scan's sampled points are 0.3 cm apart, so 33.0 to 34.5 mm)
+    r0 = reps[0] if reps else {}
+    ok(r0.get('hot_gap_mm') is None and abs((r0.get('hot_gap_over_mm') or 0) - 253.2) < 1e-6,
+       'mount 1: no hot keep-out within the search radius, reported as more than %s mm (not as a distance: it is 593 mm off)' % r0.get('hot_gap_over_mm'))
+    ok(r0.get('gap_mm') is not None and abs(r0['gap_mm'] - 20.0) < 1e-6 and r0.get('gap_over_mm') is None,
+       'mount 1: the ordinary gap is a real figure, %.1f mm to the floor (the foot left out, 2 x 3.175 + 12.7 mm up)' % (r0.get('gap_mm') or -1))
+    ok(len(reps) == 2 and reps[0]['clear'] and reps[0]['foot_side'] == -1 and reps[0]['plate_side'] == -1 and all(a['clear'] for a in reps[0]['access']),
+       'mount 1: clear, the foot away from the part, every bolt has a straight line out')
     ok(len(reps) == 2 and (not reps[1]['clear']) and 33.0 <= reps[1]['hot_gap_mm'] <= 34.5, 'mount 2: %.1f mm from the hot box against 50.8 mm: flagged' % (reps[1]['hot_gap_mm'] if len(reps) > 1 else -1))
     ok(not b.get('all_ok') and 'Mount 2' in b.get('msg', ''), 'the message names the bracket to change: ' + b.get('msg', ''))
     # the foot runs away from the part's footprint: the part is at z >= 10, the foot on the floor; both sides clear,
