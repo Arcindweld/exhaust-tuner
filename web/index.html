@@ -702,10 +702,17 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="f-cratio" type="number" step="0.1" inputmode="decimal" data-kind="num" data-dp="1" data-base="11"></span></label>
         <label class="f"><span class="lab">Valves per cylinder</span>
           <span class="inp"><select id="f-valves"><option value="2" selected>2</option><option value="4">4</option></select></span></label>
+        <label class="f"><span class="lab">Connecting rod, centre to centre, blank for 1.7 × stroke</span>
+          <span class="inp"><input id="f-rod" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
         <label class="f span2"><span class="lab">Intake runner, valve to the airbox or plenum</span>
           <span class="inp"><input id="f-intl" type="number" step="any" inputmode="decimal" data-kind="len" data-base="300"><em data-u="len">in</em></span></label>
         <label class="f span2"><span class="lab">Of that, the intake port in the head, valve to manifold flange</span>
           <span class="inp"><input id="f-pin" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
+        <label class="f span2"><span class="lab">Fill from a K-series intake manifold (published figures only)</span>
+          <span class="inp"><select id="f-imani"><option value="">Choose one (fills the runner, plenum and throttle where a figure is published)</option></select></span></label>
+        <span class="hint" id="f-imani-hint" style="grid-column:1/-1" hidden></span>
+        <label class="f span2"><span class="lab">Intake runner inside diameter, blank to scale from the valves</span>
+          <span class="inp"><input id="f-ird" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
         <label class="f span2"><span class="lab">Runners breathe from</span>
           <span class="inp"><select id="f-intk"><option value="open" selected>Open air (individual runners, or a big airbox)</option><option value="plenum">A plenum fed through a throttle body</option></select></span></label>
         <div class="grid2 span2" id="f-intk-wrap" hidden>
@@ -771,8 +778,45 @@ ul.list li+li,ol.list li+li{margin-top:6px}
           <span class="inp"><input id="f-ceff" type="number" step="0.01" inputmode="decimal" data-kind="num" data-dp="3" data-base=""></span></label>
         <span class="hint" style="grid-column:1/-1">“Match a dyno curve” under Run it in OpenWAM fills these two from your dyno numbers. The valve flow coefficient sets how freely the ports breathe (it shapes the top end); the combustion efficiency scales the whole curve.</span>
         <label class="f"><span class="lab">Cam events measured at</span>
-          <span class="inp"><select id="f-camat"><option value="seat" selected>Seat to seat (advertised)</option><option value="050">0.050 in lift (most cam cards)</option></select></span></label>
+          <span class="inp"><select id="f-camat"><option value="seat" selected>Seat to seat (advertised)</option><option value="050">0.050 in lift (most cam cards)</option><option value="1mm">1 mm lift (Honda and Kelford K-series figures)</option></select></span></label>
         <span class="hint" id="f-cam-hint" style="grid-column:1/-1"></span>
+        <div class="grp" style="grid-column:1/-1;margin-top:6px">Intake cam phasing (VTC) and two cam profiles (VTEC)</div>
+        <label class="f"><span class="lab">Intake cam advance from the events above, blank for 0</span>
+          <span class="inp"><input id="f-vtc" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="1" data-base=""><em>°</em></span></label>
+        <label class="f"><span class="lab">The phaser’s range, 0 to</span>
+          <span class="inp"><input id="f-vtcmax" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base="" data-min="0" data-max="80"><em>°</em></span></label>
+        <label class="f span2"><span class="lab">Cam advance in the simulation</span>
+          <span class="inp"><select id="f-vtcmode"><option value="fixed" selected>The advance typed, at every RPM</option><option value="best">Also find the best advance at each RPM within the range</option></select></span></label>
+        <label class="f span2"><span class="lab">Cam profiles</span>
+          <span class="inp"><select id="f-vtec"><option value="one" selected>One profile (the events above at every RPM)</option><option value="two">Two profiles: a low-RPM profile below the changeover (VTEC and similar)</option></select></span></label>
+        <div class="grid2 span2" id="f-vtec-wrap" hidden>
+          <label class="f"><span class="lab">Changeover</span>
+            <span class="inp"><input id="f-vrpm" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>rpm</em></span></label>
+          <span></span>
+          <label class="f"><span class="lab">Low profile: intake opens</span>
+            <span class="inp"><input id="f-livo" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>° BTDC</em></span></label>
+          <label class="f"><span class="lab">Low profile: intake closes</span>
+            <span class="inp"><input id="f-livc" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>° ABDC</em></span></label>
+          <label class="f"><span class="lab">Low profile: exhaust opens</span>
+            <span class="inp"><input id="f-levo" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>° BBDC</em></span></label>
+          <label class="f"><span class="lab">Low profile: exhaust closes</span>
+            <span class="inp"><input id="f-levc" type="number" step="any" inputmode="decimal" data-kind="num" data-dp="0" data-base=""><em>° ATDC</em></span></label>
+          <label class="f"><span class="lab">Low profile: intake valve lift</span>
+            <span class="inp"><input id="f-llin" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+          <label class="f"><span class="lab">Low profile: exhaust valve lift</span>
+            <span class="inp"><input id="f-llex" type="number" step="any" inputmode="decimal" data-kind="len" data-base=""><em data-u="len">in</em></span></label>
+        </div>
+        <span class="hint" id="f-vtc-hint" style="grid-column:1/-1">Advance moves the intake opening and closing earlier by the same crank degrees (Hondata’s cam angle: intake advance in crank degrees, 0 fully retarded). The events above are taken as the cam at 0. With two profiles, the low profile runs below the changeover and the events above from it up; the phaser moves both intake lobes. Both are run at the check lift chosen above.</span>
+        <details class="camcard" id="f-measure" style="grid-column:1/-1"><summary>Measure your own (what the K-series presets cannot fill)</summary>
+          <ul class="list" style="margin:8px 0 0">
+            <li><b>Cam events.</b> Degree wheel on the crank, a dial indicator on the retainer (or the rocker over the valve), true TDC found with a piston stop from both sides. Zero the indicator on the base circle with the lash set, then read the crank angle where the valve is 1 mm open and 1 mm from closing, for each lobe. Type them above with “Cam events measured at” set to 1 mm lift (Honda’s and Kelford’s convention for K-series cams; 0.050 in has its own setting). On a VTC engine do it with the phaser locked at 0 (engine off, fully retarded) and type the advance separately. For the low lobe, read it with VTEC not engaged (the low rocker); for the high lobe, the high rocker pinned or read on the cam itself and multiplied by the rocker ratio.</li>
+            <li><b>Valve lift.</b> The indicator’s peak on the same set-up, low and high lobe.</li>
+            <li><b>Intake runner.</b> A tape or a flexible rule along the centre line from the valve seat to where the runner opens into the plenum (or a 3D scan of the port and manifold, measured along the centre line). Type the whole length above and the head’s part (seat to flange) in “Of that, the intake port”.</li>
+            <li><b>Runner bore.</b> Calipers across the port at the flange gasket and at the plenum end; type the mean, or the round bore of the same area for an oval port.</li>
+            <li><b>Plenum.</b> Fill it with water (runners blocked, throttle off) and weigh it: 1 kg is 1000 cc.</li>
+            <li><b>Port spacing.</b> Calipers across two ports’ inner edges plus one port width, at the head’s flange (no published K-series figure was found).</li>
+          </ul>
+        </details>
         <label class="f span2" id="f-gaps-wrap"><span class="lab">Crank degrees between firings on this collector, blank for even</span>
           <span class="inp"><input id="f-gaps" type="text" inputmode="numeric" placeholder="270, 180, 90, 180" autocomplete="off"></span></label>
         <span class="hint" id="f-gaps-hint" style="grid-column:1/-1">One gap per primary, in firing order, adding up to 720. A cross-plane V8 bank is 270, 180, 90, 180; a 45° V-twin into one pipe is 315, 405. Picking a stock vehicle fills this in.</span>
@@ -9842,6 +9886,13 @@ function camSeat(cam,liftInMm,liftExMm){
   return out;
 }
 if(typeof window!=="undefined") window.__camSeat=camSeat;   // for tests/cam_ui.js (the wave model is also loaded outside a page)
+// The Rust model (rust/et_wave, the WebAssembly) reads the cam's events as seat to seat and does not know checkLift_mm, so a
+// spec whose events are at a check lift is handed to it with camSeat's events, the ones makeEngine below uses (found
+// 2026-11-15, part 14: before this the WebAssembly ran a 0.050 in card's angles as seat events)
+function rustSpec(spec){
+  const c=spec&&spec.e&&spec.e.cam; if(!c||!(+c.checkLift_mm>0)) return spec;
+  const s=JSON.parse(JSON.stringify(spec)); s.e.cam=camSeat(c,spec.e.liftIn*1000,spec.e.liftEx*1000); return s;
+}
 function liftAt(th,open,dur,Lmax){              // sin² lift over the valve's duration
   let a=th-open; a=((a%720)+720)%720;
   if(a>=dur) return 0;
@@ -10444,7 +10495,7 @@ function sweep(eng,rpms,opts,onStep){
   });
   return res;
 }
-return {GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
+return {rustSpec,camSeat,GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
   tfmep,friction:{name:'Heywood (1988) total motored fmep of SI engines, 0.97 + 0.15 (N/1000) + 0.05 (N/1000)^2 bar, taken off the gross indicated work',basis:'gross'},
   port:{PORT_NU,portLaw,portH,muAir,kAir,PORT_IN_NU,PORT_IN_TW,portInLaw},
   gas:{RU,TREF,SPEC,AFR_ST,K_WGS,LHV_F,ETA_C,HFORM,HF_FUEL,F_GAS,LV_GAS,LV_ETH,LV_METH,AIR_M,fuelOf,heatRelease,burnedMoles,gasPoly,makeGas,at:(G,T,x)=>{ gasAt(G,T,x); return {cp:GV.cp,h:GV.h,R:GV.R,e:GV.h-GV.R*T,gamma:GV.cp/(GV.cp-GV.R)}; },
@@ -10486,16 +10537,21 @@ function simPhases(n,gaps){
   for(let i=0;i<n-1;i++) out.push(out[i]+g[i]);
   return out;
 }
-const CAM_CHECK_050=1.27, CAM_CHECK_SEAT=0.1524;   // mm: 0.050 in, and 0.006 in (the usual advertised-duration check lift)
+const CAM_CHECK_050=1.27, CAM_CHECK_SEAT=0.1524, CAM_CHECK_1MM=1.0;   // mm: 0.050 in, and 0.006 in (the usual advertised-duration check lift)
 function simSpec(p){
   const per=p.cc/p.cyl*1e-6;
   let B=p.bore>0?p.bore/1000:null, S=p.stroke>0?p.stroke/1000:null;
   if(B&&!S) S=per/(Math.PI*B*B/4); else if(S&&!B) B=Math.sqrt(per/S*4/Math.PI); else if(!B&&!S){ S=Math.cbrt(per*4/(Math.PI*1.44)); B=1.2*S; }
-  const four=p.valves===4, nIn=four?2:1, nEx=four?2:1, evc=Number.isFinite(p.evc)?p.evc:Math.max(10,p.evo-40);
+  // p.useLo: the second (low-RPM) profile's events and lifts (blank lifts: the main ones); its exhaust opening replaces the tab's
+  const LO=p.useLo&&p.lo?p.lo:null, evo=LO?LO.evo:p.evo, lin=LO&&LO.lin>0?LO.lin:p.lin, lex=LO&&LO.lex>0?LO.lex:p.lex;
+  const four=p.valves===4, nIn=four?2:1, nEx=four?2:1, evc=LO?LO.evc:Number.isFinite(p.evc)?p.evc:Math.max(10,evo-40);
   const dIn=p.vdi>0?p.vdi/1000:(four?0.40:0.49)*B, dEx=p.vde>0?p.vde/1000:(four?0.34:0.40)*B;   // valve sizes as entered, else scaled from the bore
-  const e={bore:B,stroke:S,rod:1.7*S,cr:p.cr,cd:0.7,nIn,dIn,liftIn:p.lin>0?p.lin/1000:0.26*dIn,nEx,dEx,liftEx:p.lex>0?p.lex/1000:0.28*dEx,
-    cam:{ivo:Number.isFinite(p.ivo)?p.ivo:evc,ivc:Number.isFinite(p.ivc)?p.ivc:p.evo,evo:p.evo,evc},burn:{start:18,dur:55},afr:12.8,eta:0.72};   // eta: read only by the constant gas (spec.e.gas 'const'); the default gas's heat is the chemistry's (wsFactory "heat release")
+  const e={bore:B,stroke:S,rod:p.rod>0?p.rod/1000:1.7*S,cr:p.cr,cd:0.7,nIn,dIn,liftIn:lin>0?lin/1000:0.26*dIn,nEx,dEx,liftEx:lex>0?lex/1000:0.28*dEx,
+    cam:LO?{ivo:LO.ivo,ivc:LO.ivc,evo,evc}:{ivo:Number.isFinite(p.ivo)?p.ivo:evc,ivc:Number.isFinite(p.ivc)?p.ivc:evo,evo,evc},burn:{start:18,dur:55},afr:12.8,eta:0.72};
+  // intake cam advance (crank degrees, Hondata's cam angle): the intake opens and closes that much earlier
+  if(p.vtc){ e.cam.ivo+=p.vtc; e.cam.ivc-=p.vtc; }   // eta: read only by the constant gas (spec.e.gas 'const'); the default gas's heat is the chemistry's (wsFactory "heat release")
   if(p.camAt==='050') e.cam.checkLift_mm=CAM_CHECK_050;
+  else if(p.camAt==='1mm') e.cam.checkLift_mm=CAM_CHECK_1MM;   // (part 14) the K-series convention
   if(typeof fuelSpec==='function') fuelSpec(e);   // the Intake tab's fuel (part 11): nothing changes for the page's gasoline
   if(p.vcd>0) e.cd=p.vcd;               // valve flow coefficient (the dyno fit sets it; both simulations use it)
   // the head's measured flow (simFlowOf): each valve's effective area against lift from its flow-bench cfm (wsFactory
@@ -10506,7 +10562,7 @@ function simSpec(p){
   // measured lift profiles (OpenWAM only, make_wam v9): from the OpenWAM section's import
   try{ const P=WAM_UI.prof; if(P&&(P.in||P.ex)){ e.camProfile={}; if(P.in) e.camProfile.in={deg:P.in.deg.slice(),mm:P.in.mm.slice()}; if(P.ex) e.camProfile.ex={deg:P.ex.deg.slice(),mm:P.ex.mm.slice()}; } }catch(err){}
   if(p.ceff>0) e.combEff=p.ceff;        // OpenWAM's combustion efficiency (the dyno fit sets it; blank: from the AFR)   // the events are at 0.050 in: the sin² lift is stretched to pass it there
-  const dI=Math.sqrt(0.6*nIn)*dIn;
+  const dI=p.ird>0?p.ird/1000:Math.sqrt(0.6*nIn)*dIn;
   const iL=(p.intakeL>0?p.intakeL:300)/1000, pIn=p.portIn>0&&p.portIn<(p.intakeL>0?p.intakeL:300)?p.portIn/1000:0;
   // the head's intake port (part 8): the runner's last part before the valve, marked port: true (wsFactory's intake-port law)
   const intake={segs:pIn>0?[{L:iL-pIn,d0:dI,d1:dI},{L:pIn,d0:dI,d1:dI,port:true}]:[{L:iL,d0:dI,d1:dI}],Tw:320};
@@ -10556,16 +10612,42 @@ function simSpec(p){
   return {e,intake,exhaust:{segs:prim,Tw:700,chambers},opt:{phases:simPhases(n,p.gaps),collector:{segs:coll,Tw:650}},n,portD:dPort};
 }
 // the variants the tab compares: as entered, without the chamber, primaries 10% shorter and 10% longer
+// (part 14) with two cam profiles each variant also carries specLo, the same design on the low profile, run below the
+// changeover (vcut) and spliced to the main profile's speeds; with "best advance" the design as entered is also run at six
+// intake cam advances across the phaser's range (vtc: the advance), and the best brake torque at each speed is taken
 function simVariants(p){
-  const v=[{key:'base',label:'As entered',spec:simSpec(p)}];
-  if(p.chamber) v.push({key:'noch',label:'Without the chamber',spec:simSpec(Object.assign({},p,{chamber:null}))});
+  const two=p.vtec==='two'&&p.vrpm>0&&p.lo, mk=(key,label,pp,x)=>Object.assign({key,label,spec:simSpec(pp)},two?{specLo:simSpec(Object.assign({},pp,{useLo:true})),vcut:p.vrpm}:{},x||{});
+  const v=[mk('base','As entered',p)];
+  if(p.chamber) v.push(mk('noch','Without the chamber',Object.assign({},p,{chamber:null})));
   const scaled=f=>Object.assign({},p,{segs:p.segs.map((s,i)=>i===0?Object.assign({},s,{len:s.len*f}):s)});
-  v.push({key:'short',label:'Primaries 10% shorter',spec:simSpec(scaled(0.9))},{key:'long',label:'Primaries 10% longer',spec:simSpec(scaled(1.1))});
+  v.push(mk('short','Primaries 10% shorter',scaled(0.9)),mk('long','Primaries 10% longer',scaled(1.1)));
   // a collector fed at uneven gaps, like a cross-plane V8 bank's, against the same pipes fed evenly, which is what a 180° header does
   const n=p.n>1?Math.round(p.n):1;
   if(n>1&&p.gaps&&p.gaps.length===n&&p.gaps.some(g=>Math.abs(g-720/n)>0.5))
-    v.push({key:'even',label:'Fed every '+(+(720/n).toFixed(1))+'°'+(n===4?', as a 180° header does':''),spec:simSpec(Object.assign({},p,{gaps:null}))});
+    v.push(mk('even','Fed every '+(+(720/n).toFixed(1))+'°'+(n===4?', as a 180° header does':''),Object.assign({},p,{gaps:null})));
+  if(p.vtcMode==='best'&&p.vtcMax>0) simVtcSet(p.vtcMax).forEach(a=>v.push(mk('vtc'+a,'Intake cam advance '+a+'°',Object.assign({},p,{vtc:a}),{vtc:a})));
   return v;
+}
+// the advances tried for "best advance at each RPM": six, evenly over the phaser's range, to 0.1°
+const simVtcSet=max=>[0,1,2,3,4,5].map(i=>Math.round(max*i/5*10)/10);
+// a design run as one or two job entries (two profiles: the low one below the changeover, the main one from it up)
+function simEntries(variants,rpms){
+  const out=[];
+  variants.forEach((v,g)=>{
+    if(v.specLo){ const lo=rpms.filter(r=>r<v.vcut), hi=rpms.filter(r=>r>=v.vcut);
+      if(lo.length) out.push({g,key:v.key,label:v.label,spec:v.specLo,rpms:lo,part:'lo'});
+      if(hi.length) out.push({g,key:v.key,label:v.label,spec:v.spec,rpms:hi,part:'hi'}); }
+    else out.push({g,key:v.key,label:v.label,spec:v.spec,rpms});
+  });
+  return out.map((e,k)=>Object.assign(e,{k}));
+}
+// the entries' results back into one curve per design, in speed order (the low profile's speeds are all below the main one's)
+function simMerge(out,variants){
+  const by={};
+  out.slice().sort((x,y)=>x.k-y.k).forEach(o=>{ const g=o.g!=null?o.g:o.k, m=by[g];
+    if(!m){ by[g]=Object.assign({},o,{k:g,parts:[o.part||'one'],n:[o.tq.length]}); return; }
+    ['tq','tqg','ve','ov','pc'].forEach(f=>{ m[f]=m[f].concat(o[f]); }); m.parts.push(o.part||'one'); m.n.push(o.tq.length); });
+  return Object.keys(by).map(Number).sort((a,b)=>a-b).map(g=>Object.assign(by[g],variants&&variants[g]&&variants[g].vtc!=null?{vtc:variants[g].vtc}:{}));
 }
 function simRpms(tune){
   const lo=Math.max(1500,Math.round(0.4*tune/250)*250), hi=Math.max(lo+3000,Math.round(1.35*tune/250)*250), n=12, out=[];
@@ -11258,6 +11340,7 @@ function renderFour(){
       (p.dp>=pe.d?(((p.dp/pe.d)**2-1)*100).toFixed(0)+'% more area than the port, so the gas steps out into the pipe.':(((1-(p.dp/pe.d)**2))*100).toFixed(0)+'% less area than the port, so the primary’s edge sits inside the port opening; check the flange match.')+
       ' The wave simulation models the port at this size.';
     if($('f-intk-wrap')) $('f-intk-wrap').hidden=$('f-intk').value!=='plenum';
+    if($('f-vtec-wrap')) $('f-vtec-wrap').hidden=$('f-vtec').value!=='two';
     const cq={ivo:val('f-ivo'),ivc:val('f-ivc'),evc:val('f-evc')}, full=['ivo','ivc','evc'].every(k=>Number.isFinite(cq[k]));
     if(full){ const k=camCard({ivo:cq.ivo,ivc:cq.ivc,evo:p.evo,evc:cq.evc});
       $('f-cam-hint').textContent='From the cam card: intake '+k.inDur.toFixed(0)+'°, exhaust '+k.exDur.toFixed(0)+'° duration, overlap '+k.overlap.toFixed(0)+'°, intake centerline '+k.ICL.toFixed(1)+'° ATDC, exhaust '+k.ECL.toFixed(1)+'° BTDC, lobe separation '+k.LSA.toFixed(1)+'°, installed '+Math.abs(k.adv).toFixed(1)+'° '+(k.adv>=0?'advanced':'retarded')+'. Use the events at the same check lift as the exhaust opening above, and say which below'+($('f-camat')&&$('f-camat').value==='050'?': at 0.050 in, the simulations open each valve earlier and close it later, so their sin² lift curve passes 0.050 in at these angles.':'.')+b5IvcHint(cq.ivc,val('f-disp'),Math.max(1,Math.round(val('f-cyl'))),val('f-bore'),val('f-stroke'),p.rpm); }
@@ -16224,6 +16307,39 @@ function camLibFill(k){
 (()=>{ const sel=$('f-camlib'); if(!sel) return;
   CAM_LIB.forEach(c=>{ const o=document.createElement('option'); o.value=c.k; o.textContent=c.name+(c.assumed?' (cam timing assumed straight up)':''); sel.appendChild(o); });
   sel.addEventListener('change',()=>camLibFill(sel.value)); })();
+/* K-series intake manifolds (2026-11-15, docs/WAVE_VALIDATION_2026-11-11.md part 14): only the figures the source states,
+   each labelled by its kind of source. run: the manifold's runner (mm, flange to plenum as the source gives it; the head's
+   port is added from "Of that, the intake port"); plv: plenum (cc); tb: throttle bore (mm). null: not given, the field is
+   left as it is. No dimension of the stock 2004-08 TSX (K24A2) manifold was found. */
+const K_MANI_SRC={
+  sk2us:['Skunk2 Ultra Street listing (Evasive Motorsports, the maker’s copy): “Tapered 6.85” Long High-Velocity Runners”, “1.8L Plenum Volume”, “71mm Throttle Body Opening”','https://www.evasivemotorsports.com/store/product/skunk2-ultra-series-intake-manifold-honda-k-series-street/','reputable vendor (maker’s copy)'],
+  sk2ur:['Skunk2 Ultra Race listing (Evasive Motorsports, the maker’s copy): “6.0” Tapered Hi-Velocity Runners”, “3.5L Plenum Volume”, 90 mm Ford 5.0 flange (bore not given)','https://www.evasivemotorsports.com/store/product/skunk2-ultra-race-intake-manifold-honda-acura-k20a2-style/','reputable vendor (maker’s copy)'],
+  ktsf:['K-Tuned side-feed listing (Speed Science): runners “5.75” long with a large diameter of 1.875””, “4.78L sheet metal plenum”, 90 mm flange (bore not given)','https://speedscience.co.nz/products/k-tuned-side-feed-intake-manifold','reputable vendor (maker’s copy)'],
+  forum:['A spec list posted in a K-series manifold test thread (HondaTalk Romania), beside a 2010 Super Street dyno test; it does not say how the figures were measured','https://www.hondatalk.ro/Thread-K-Series-Intake-Manifolds-TEST','enthusiast measurement'],
+  hrrbc:['Hybrid Racing, OEM RBC listing: fitted to the 2006–11 Civic Si, “bolts straight onto the K24A family”','https://www.hybrid-racing.com/collections/vendors/products/oem-honda-rbc-intake-manifold','reputable vendor']};
+const K_MANI=[
+  {k:'rbc',name:'Honda RBC (2006–11 Civic Si; bolts to the K24A2)',run:185,plv:1720,tb:62,src:['forum','hrrbc'],note:'runner 18.5 cm, width 4.8 to 5.1 cm (a width, not a diameter), plenum 1720 cc, 62 mm throttle'},
+  {k:'rrc',name:'Honda RRC (JDM FD2 Civic Type R)',run:190,plv:null,tb:64,src:['forum'],note:'runner “~19.0 cm”, width about 5.1 to 5.3 cm, 64 mm throttle; plenum not given'},
+  {k:'sk2pro',name:'Skunk2 Pro',run:195,plv:2950,tb:64,src:['forum'],note:'runner 19.5 cm without its velocity stacks (25.5 cm with), plenum 2950 cc (2530 cc with the stacks), 64 mm throttle'},
+  {k:'sk2us',name:'Skunk2 Ultra Street',run:6.85*25.4,plv:1800,tb:71,src:['sk2us'],note:'runners 6.85 in (174.0 mm), plenum 1.8 L, 71 mm throttle opening'},
+  {k:'sk2ur',name:'Skunk2 Ultra Race',run:6.0*25.4,plv:3500,tb:null,src:['sk2ur'],note:'“6.0 in tapered runners”, taken as their length (the copy does not say), plenum 3.5 L; throttle bore not given'},
+  {k:'ktsf',name:'K-Tuned side feed',run:5.75*25.4,plv:4780,tb:null,src:['ktsf'],note:'runners 5.75 in (146.1 mm), plenum 4.78 L; throttle bore not given'}];
+const K_PORT_STANDIN=100;   // mm, valve to the head's intake flange: a stand-in (none published), measure yours
+function kManiFill(k){
+  const m=K_MANI.find(x=>x.k===k), hint=$('f-imani-hint'); if(!m){ if(hint) hint.hidden=true; return; }
+  const port=val('f-pin')>0?val('f-pin'):K_PORT_STANDIN, stand=!(val('f-pin')>0);
+  setBase('f-pin',port); setBase('f-intl',m.run+port); $('f-intk').value='plenum';
+  if(m.plv) setBase('f-plv',m.plv); if(m.tb) setBase('f-tbd',m.tb);
+  const cl=x=>(U==='imp'?(x/25.4).toFixed(2)+' in ('+Math.round(x)+' mm)':Math.round(x)+' mm ('+(x/25.4).toFixed(2)+' in)');
+  hint.hidden=false;
+  hint.innerHTML=esc(m.name)+': '+esc(m.note)+'. Filled: runner '+cl(m.run+port)+' from the valve (the manifold’s '+cl(m.run)+' plus the head’s port, '+cl(port)+(stand?', a stand-in: measure yours, valve seat to the head’s flange, and type it above':', as you typed it')+'), plenum'+(m.plv?' '+(U==='imp'?(m.plv/16.387064).toFixed(0)+' cu in ('+m.plv+' cc)':m.plv+' cc'):' left as typed')+', throttle '+(m.tb?cl(m.tb):'left as typed')+
+    '. Runner diameter: none published, so it stays scaled from the valves unless you type it. Inlet tube and filter: still placeholders. Sources: '+m.src.map(x=>'<a href="'+K_MANI_SRC[x][1]+'" target="_blank" rel="noopener">'+esc(K_MANI_SRC[x][0])+'</a> ('+esc(K_MANI_SRC[x][2])+')').join('; ')+'.';
+  $('f-intl').dispatchEvent(new Event('input',{bubbles:true}));
+}
+window.__kmani={K_MANI,K_MANI_SRC,K_PORT_STANDIN,kManiFill};
+(()=>{ const sel=$('f-imani'); if(!sel) return;
+  K_MANI.forEach(c=>{ const o=document.createElement('option'); o.value=c.k; o.textContent=c.name; sel.appendChild(o); });
+  sel.addEventListener('change',()=>kManiFill(sel.value)); })();
 function drawTL(svg,curves,f0,band,opt){
   clearSvg(svg);
   const W=widthOf(svg), H=240, ml=36, mr=12, mt=20, mb=30, lo=opt&&opt.lo<0?opt.lo:0, label=opt&&opt.label||'dB removed';
@@ -18071,6 +18187,12 @@ const VS_NEW={
   sf_studs:'https://www.realstreetperformance.com/speedfactory-titanium-exhaust-manifold-raw-stud-kit-m10-acura-honda-k20-k24-sf-02-063.html',
   sh_flange:'https://www.stainlessheaders.com/honda-k-series-steel-header-flange-6181b',
   hpa_k24:'https://www.hpacademy.com/technical-articles/everything-you-need-to-know-about-the-honda-k24/',
+  // (2026-11-15, part 14) read 2026-11-15
+  hr_rod24:'https://www.hybrid-racing.com/products/speedfactory-h-beam-connecting-rods-k24',
+  hr_vtc50:'https://hybrid-racing.com/products/honda-k20z-a-50-degree-vtc-intake-cam-gear-14310-rbc-003',
+  hrd_k24a08:'https://global.honda/en/technical-review/PDF/020-1/20-1_25e.pdf',
+  hrd_k20a:'https://global.honda/en/technical-review/PDF/012-2/012-2_45e.pdf',
+  el_bvk:'https://www.enginelabs.com/?p=8104',
   hb:'https://en.wikipedia.org/wiki/Honda_B_engine',
   hf20c:'https://en.wikipedia.org/wiki/Honda_F20C_engine',
   hc:'https://en.wikipedia.org/wiki/Honda_C_engine',
@@ -18709,33 +18831,36 @@ const MOTORS_NEW=[
  // Honda K-series. Every figure is from the page in its src (the engine code from kd.codeSrc where Honda's sheet gives none),
  // read 2026-11-12. kd: valve head diameters (mm, one valve), exhaust side and manifold, VTEC, the head's exhaust studs and flange
  // port, each with its own source; null = no source found (stock cam events, throttle bore and pipe size are not published by Honda).
- {code:'K20A2',maker:'Honda',family:'Honda K-series',name:'K20A2 2.0 i-VTEC (RSX Type-S, Euro Civic Type R)',eng:'i4',cc:1998,cr:11.0,valves:4,hp:200,hpRpm:7400,tq:142,tqRpm:6000,red:7900,ind:'na',g:'swap',years:'2002–2004',src:VS.hk,
-   kd:{codeSrc:VS.sk2_codes,vIn:35,vEx:30,vSrc:VS.ferrea_std,vSrc2:VS.st_std,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
+ {code:'K20A2',maker:'Honda',family:'Honda K-series',name:'K20A2 2.0 i-VTEC (RSX Type-S, Euro Civic Type R)',eng:'i4',cc:1998,bore:86,stroke:86,cr:11.0,valves:4,hp:200,hpRpm:7400,tq:142,tqRpm:6000,red:7900,ind:'na',g:'swap',years:'2002–2004',src:VS.hk,
+   kd:{codeSrc:VS.sk2_codes,vIn:35,vEx:30,vSrc:VS.ferrea_std,vSrc2:VS.st_std,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,
+     bsSrc:VS.hrd_k20a,bsSrc2:VS.el_bvk,vtcMax:50,vtcSrc:VS.hr_vtc50,seen:'2026-11-12; 2026-11-15'}},
  {code:'K20A (JDM)',maker:'Honda',family:'Honda K-series',name:'K20A 2.0 i-VTEC (JDM Integra Type R DC5, Civic Type R FD2)',eng:'i4',cc:1998,cr:11.5,valves:4,hp:217,hpRpm:8000,tq:152,tqRpm:7000,red:8400,ind:'na',g:'swap',years:'2001–2011',src:VS.hk,note:'FD2 Civic Type R tune: 221 hp @ 8,000 / 159 lb-ft @ 6,100, 11.7:1.'},
- {code:'K20Z3',maker:'Honda',family:'Honda K-series',name:'K20Z3 2.0 i-VTEC (2006–11 Civic Si)',eng:'i4',cc:1998,cr:11.0,valves:4,hp:197,hpRpm:7800,tq:139,tqRpm:6200,red:8000,ind:'na',g:'swap',years:'2006–2011',src:VS.hk,
-   kd:{codeSrc:VS.sk2_codes,vIn:35,vEx:30,vSrc:VS.ferrea_std,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
+ {code:'K20Z3',maker:'Honda',family:'Honda K-series',name:'K20Z3 2.0 i-VTEC (2006–11 Civic Si)',eng:'i4',cc:1998,bore:86,stroke:86,cr:11.0,valves:4,hp:197,hpRpm:7800,tq:139,tqRpm:6200,red:8000,ind:'na',g:'swap',years:'2006–2011',src:VS.hk,
+   kd:{codeSrc:VS.sk2_codes,vIn:35,vEx:30,vSrc:VS.ferrea_std,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,
+     bsSrc:VS.hrd_k20a,bsSrc2:VS.el_bvk,vtcMax:50,vtcSrc:VS.hr_vtc50,seen:'2026-11-12; 2026-11-15'}},
  {code:'K24A2',maker:'Honda',family:'Honda K-series',name:'K24A2 2.4 i-VTEC (2004–08 Acura TSX)',eng:'i4',cc:2354,bore:87,stroke:99,cr:10.5,valves:4,hp:200,hpRpm:6800,tq:166,tqRpm:4500,red:7100,ind:'na',g:'swap',years:'2004–2008',src:VS.hn_tsx04,
    note:'Honda’s 2004 TSX rating. The go-to K-swap long block. HP Academy says the 2006–08 engine got a longer-duration intake cam, 1 mm larger intake valves and a bigger throttle body; Honda’s sheets fetched here give no figures for those.',
    kd:{codeSrc:VS.sk2_codes,vIn:35,vEx:30,vSrc:VS.ferrea_std,vSrc2:VS.st_std,vNote:'2004–05 size; HP Academy: 2006–08 intake 1 mm larger',vNoteSrc:VS.hpa_k24,
      exSide:'rear',exMani:'separate stainless-steel manifold',exSrc:VS.hn_tsx04i,vtec:'high-lift, long-duration lobes on intake and exhaust above 6,000 RPM',vtecSrc:VS.hn_tsx04i,
-     studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
+     studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,
+     rod:152.019,rodSrc:VS.hr_rod24,vtcMax:25,vtcSrc:VS.hr_vtc50,vtcSrc2:VS.hrd_k24a08,vtecRpm:6000,seen:'2026-11-12; 2026-11-15'}},
  {code:'K24A4',maker:'Honda',family:'Honda K-series',name:'K24A4 2.4 i-VTEC (2003–05 Accord, 2003–06 Element)',eng:'i4',cc:2354,bore:87,stroke:99,cr:9.7,valves:4,hp:160,hpRpm:5500,tq:161,tqRpm:4500,red:null,ind:'na',g:'swap',years:'2003–2006',src:VS.hn_acc05,
    note:'Honda’s 2005 Accord sedan rating.',
-   kd:{codeSrc:VS.sk2_codes,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
+   kd:{codeSrc:VS.sk2_codes,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,rod:152.019,rodSrc:VS.hr_rod24,seen:'2026-11-12; 2026-11-15'}},
  {code:'K24A8',maker:'Honda',family:'Honda K-series',name:'K24A8 2.4 i-VTEC (2006–07 Accord)',eng:'i4',cc:2354,cr:9.7,valves:4,hp:166,hpRpm:5500,tq:160,tqRpm:4000,red:null,ind:'na',g:'swap',years:'2006–2007',src:VS.hn_acc06,
    note:'Honda Canada’s 2006 Accord sedan sheet; it gives neither bore and stroke nor redline.',
-   kd:{codeSrc:VS.sk2_codes,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,seen:'2026-11-12'}},
+   kd:{codeSrc:VS.sk2_codes,studs:'5 × M10 × 1.25',studSrc:VS.sf_studs,portIn:1.771,portSrc:VS.sh_flange,rod:152.019,rodSrc:VS.hr_rod24,seen:'2026-11-12; 2026-11-15'}},
  {code:'K24Z3',maker:'Honda',family:'Honda K-series',name:'K24Z3 2.4 i-VTEC (2009–14 Acura TSX)',eng:'i4',cc:2354,bore:87,stroke:99,cr:11.0,valves:4,hp:201,hpRpm:7000,tq:172,tqRpm:4400,red:7100,ind:'na',g:'swap',years:'2009–2014',src:VS.hn_tsx09,
    note:'Acura’s 2009 TSX rating, 6-speed manual; the 5-speed automatic is rated 170 lb-ft @ 4,300.',
-   kd:{codeSrc:VS.sk2_tsx09,seen:'2026-11-12'}},
+   kd:{codeSrc:VS.sk2_tsx09,rod:152.019,rodSrc:VS.hr_rod24,seen:'2026-11-12; 2026-11-15'}},
  {code:'K24Z7',maker:'Honda',family:'Honda K-series',name:'K24Z7 2.4 i-VTEC (2012–15 Civic Si)',eng:'i4',cc:2354,bore:87,stroke:99,cr:11.0,valves:4,hp:201,hpRpm:7000,tq:170,tqRpm:4400,red:7000,ind:'na',g:'swap',years:'2012–2015',src:VS.hn_si13,
    note:'Honda’s 2013 Civic Si rating; 2014–15: 205 hp / 174 lb-ft. Honda’s 2012 powertrain release says the manifold is cast into the head; its 2013 sheet lists a “Stainless Steel Exhaust Manifold” (conflict kept).',
    kd:{codeSrc:VS.sk2_codes,vIn:null,vEx:31,vSrc:VS.st_z7ex,exSide:'rear',exMani:'cast into the cylinder head (2012 release)',exSrc:VS.hn_si12p,
-     vtec:'intake valves only, high-lift long-duration lobes above 5,000 RPM',vtecSrc:VS.hn_si12p,seen:'2026-11-12'}},
+     vtec:'intake valves only, high-lift long-duration lobes above 5,000 RPM',vtecSrc:VS.hn_si12p,rod:152.019,rodSrc:VS.hr_rod24,vtecRpm:5000,seen:'2026-11-12; 2026-11-15'}},
  {code:'K24W1',maker:'Honda',family:'Honda K-series (Earth Dreams)',name:'K24W1 2.4 direct-injection i-VTEC (2013–17 Accord)',eng:'i4',cc:2356,bore:87,stroke:99.1,cr:11.1,valves:4,hp:185,hpRpm:6400,tq:181,tqRpm:3900,red:6800,ind:'na',g:'swap',years:'2013–2017',src:VS.hn_acc14,
    note:'Honda’s 2014 Accord rating; the Sport, with its freer exhaust, 189 hp @ 6,400 / 182 lb-ft @ 3,900. Direct injection.',
    kd:{codeSrc:VS.hr_k24w1,vIn:36,vEx:30,vSrc:VS.hrd_k24w,exSide:'front',exMani:'cast into the cylinder head',exSrc:VS.hrd_k24w,
-     vtec:'intake only, high-lift long-duration lobe above 4,800 RPM',vtecSrc:VS.wards_k24w,seen:'2026-11-12'}},
+     vtec:'intake only, high-lift long-duration lobe above 4,800 RPM',vtecSrc:VS.wards_k24w,vtecRpm:4800,seen:'2026-11-12; 2026-11-15'}},
  {code:'K20C1',maker:'Honda',family:'Honda K-series (turbo)',name:'K20C1 2.0 turbo (Civic Type R FK8/FL5, Integra Type S)',eng:'i4',cc:1996,bore:86,stroke:85.9,cr:9.8,valves:4,hp:315,hpRpm:6500,tq:310,tqRpm:2600,red:7000,ind:'turbo',g:'swap',years:'2017–',src:VS.hn_ctr23,note:'FK8: 306 hp @ 6,500 / 295 lb-ft @ 2,500–4,500. Honda sells it as a crate engine through HPD.'},
  {code:'K20C4',maker:'Honda',family:'Honda K-series (turbo)',name:'K20C4 2.0 turbo (2018–22 Accord 2.0T)',eng:'i4',cc:1996,bore:86,stroke:85.9,cr:9.8,valves:4,hp:252,hpRpm:6500,tq:273,tqRpm:1500,red:6800,ind:'turbo',g:'swap',years:'2018–2022',src:VS.hn_acc22},
  {code:'B16A2',maker:'Honda',family:'Honda B-series',name:'B16A2 1.6 VTEC (1999–2000 Civic Si EM1, del Sol VTEC)',eng:'i4',cc:1595,valves:4,hp:160,hpRpm:7600,tq:111,tqRpm:7000,red:null,ind:'na',g:'swap',years:'1996–2000',src:VS.hb},
@@ -19791,7 +19916,11 @@ function applyVehicle(v){
   if(v.valves) $('f-valves').value=String(v.valves);
   // valve head sizes, where an engine preset's kd block has a sourced figure (mm); otherwise blank, so the simulation scales them
   { const kd=v.kd||{}; if(kd.vIn) setBase('f-vdi',kd.vIn); else blank('f-vdi'); if(kd.vEx) setBase('f-vde',kd.vEx); else blank('f-vde');
-    if(kd.portIn) setBase('i-mport',kd.portIn*25.4); else blank('i-mport'); }   // the head flange's port for the turbo manifold (2026-11-13)
+    if(kd.portIn) setBase('i-mport',kd.portIn*25.4); else blank('i-mport');
+    // (part 14) rod length, the intake phaser's range and the VTEC changeover, where the kd block has a sourced figure;
+    // the second cam profile stays off (no stock low-lobe events found), the advance at 0
+    [['f-rod','rod'],['f-vtcmax','vtcMax'],['f-vrpm','vtecRpm']].forEach(([id,k])=>{ if(!$(id)) return; if(kd[k]) setBase(id,kd[k]); else blank(id); });
+    if($('f-vtc')) blank('f-vtc'); }   // the head flange's port for the turbo manifold (2026-11-13)
   $('i-eng').value=v.eng; setBase('i-disp',v.cc); setBase('i-rpm',v.hpRpm); setBase('i-idle',idle); setBase('i-cruise',cruise); setBase('i-red',red);
   if(v.hp) setBase('i-hp',v.hp);
   // the stock rating the preset put in the power field (the preset trap, opModeOf); cleared when the builder types there
@@ -19810,7 +19939,11 @@ function kdNote(kd,link){
   if(kd.vtec) out.push('VTEC: '+esc(kd.vtec)+L(kd.vtecSrc)+'.');
   if(kd.studs) out.push('Manifold to head: '+esc(kd.studs)+' studs'+L(kd.studSrc)+'.');
   if(kd.portIn) out.push('Header flange port '+kd.portIn.toFixed(3)+' in ('+(kd.portIn*25.4).toFixed(1)+' mm) on an aftermarket K20/K24 flange'+L(kd.portSrc)+'.');
-  out.push('Not published in the sources found: stock cam timing and lift, throttle bore, stock pipe size; enter your own if you have a cam card. Sources read '+esc(kd.seen||'')+'.');
+  if(kd.bsSrc) out.push('Bore and stroke 86 × 86 mm: Honda’s figure for the K20A (Honda R&D Technical Review, maker data'+L(kd.bsSrc)+'), the same 1998 cc; EngineLabs gives 86 × 86 for the K20'+L(kd.bsSrc2,'magazine')+'.');
+  if(kd.rod) out.push('Connecting rod '+kd.rod.toFixed(3)+' mm ('+(kd.rod/25.4).toFixed(3)+' in) centre to centre, the “stock K24 length” an aftermarket rod maker’s listing gives (reputable vendor'+L(kd.rodSrc)+'); filled in on the 4-Stroke tab.');
+  if(kd.vtcMax) out.push('Intake cam phaser (VTC) range '+kd.vtcMax+'°'+L(kd.vtcSrc,'reputable vendor')+(kd.vtcSrc2?'; Honda says its 2008 K24A widened it “from 25° to 50°”'+L(kd.vtcSrc2,'maker data'):'')+'; filled in on the 4-Stroke tab.');
+  if(kd.vtecRpm) out.push('VTEC changeover '+kd.vtecRpm.toLocaleString('en-US')+' RPM (Honda’s “above”), filled in on the 4-Stroke tab; the second cam profile stays off until you type the low lobe’s events.');
+  out.push('Not published in the sources found: stock cam timing and lift, throttle bore, stock pipe size; enter your own if you have a cam card (the 4-Stroke tab’s “Measure your own” says how). Sources read '+esc(kd.seen||'')+'.');
   return out.join(' ');
 }
 function vehNote(v,red,idle,cruise){
@@ -20221,6 +20354,12 @@ function simInputs(r,p,ch){
     vdi:val('f-vdi'),vde:val('f-vde'),lin:val('f-lin'),lex:val('f-lex'),vcd:val('f-vcd'),ceff:val('f-ceff'),
     ivo:Number.isFinite(val('f-ivo'))?val('f-ivo'):null,ivc:Number.isFinite(val('f-ivc'))?val('f-ivc'):null,evc:Number.isFinite(val('f-evc'))?val('f-evc'):null,
     n:r.one?1:p.n,gaps:r.one||!$('f-gaps').value.trim()?null:parseNums($('f-gaps').value),
+    // (2026-11-15, part 14) rod length, runner bore, intake cam phasing and a second (low-RPM) cam profile: blank / off
+    // leaves the spec exactly as before
+    rod:$('f-rod')?val('f-rod'):NaN,ird:$('f-ird')?val('f-ird'):NaN,
+    vtc:$('f-vtc')&&Number.isFinite(val('f-vtc'))?val('f-vtc'):0,vtcMax:$('f-vtcmax')?val('f-vtcmax'):NaN,vtcMode:$('f-vtcmode')?$('f-vtcmode').value:'fixed',
+    vtec:$('f-vtec')?$('f-vtec').value:'one',vrpm:$('f-vrpm')?val('f-vrpm'):NaN,
+    lo:$('f-livo')?{ivo:val('f-livo'),ivc:val('f-livc'),evo:val('f-levo'),evc:val('f-levc'),lin:val('f-llin'),lex:val('f-llex')}:null,
     chamber:ch&&!ch.err?{type:$('f-ch').value,x:val('f-chx'),dc:val('f-chd'),lc:val('f-chl'),nh:val('f-chn'),dh:val('f-chh'),wall:val('f-wall')>0?val('f-wall'):1.651}:null};
 }
 function simCheck(q){
@@ -20232,8 +20371,16 @@ function simCheck(q){
   const nCam=[q.ivo,q.ivc,q.evc].filter(x=>x!==null&&x!==undefined).length;
   if(nCam&&nCam<3) return 'Enter all three cam events (intake opens, intake closes, exhaust closes), or leave all three blank to estimate them.';
   if(q.intk==='plenum'&&!(q.plv>0&&q.tbd>0&&q.itl>0&&q.itd>0)) return 'With a plenum, fill in its volume, the throttle body bore and the inlet tube length and diameter.';
-  if(q.camAt==='050'&&nCam<3) return 'With the cam events at 0.050 in lift, enter all four from the cam card: the estimate from the exhaust opening is for seat-to-seat timing.';
+  if((q.camAt==='050'||q.camAt==='1mm')&&nCam<3) return 'With the cam events at '+(q.camAt==='1mm'?'1 mm':'0.050 in')+' lift, enter all four from the cam card: the estimate from the exhaust opening is for seat-to-seat timing.';
   if(nCam===3){ const k=camCard({ivo:q.ivo,ivc:q.ivc,evo:q.evo,evc:q.evc}); if(!(k.inDur>120&&k.inDur<360&&k.exDur>120&&k.exDur<360)) return 'Those cam events give a duration outside 120 to 360°. Check them against the cam card.'; }
+  if(q.rod>0&&q.stroke>0&&!(q.rod>q.stroke)) return 'The connecting rod must be longer than the stroke (it is measured centre to centre, crank pin to wrist pin).';
+  if(q.vtec==='two'){
+    const L=q.lo||{}, n4=['ivo','ivc','evo','evc'].filter(k=>Number.isFinite(L[k])).length;
+    if(!(q.vrpm>0)) return 'With two cam profiles, enter the changeover RPM.';
+    if(n4<4) return 'With two cam profiles, enter all four events of the low profile (intake opens and closes, exhaust opens and closes).';
+    const k=camCard(L); if(!(k.inDur>120&&k.inDur<360&&k.exDur>120&&k.exDur<360)) return 'The low profile’s events give a duration outside 120 to 360°. Check them against the cam card.';
+  }
+  if(q.vtcMode==='best'&&!(q.vtcMax>0)) return 'To find the best advance at each RPM, enter the phaser’s range (25° on the K24A2, 50° on the K20A2 and K20Z3).';
   if(q.n>q.cyl) return 'The engine has '+q.cyl+' cylinder'+(q.cyl===1?'':'s')+', fewer than the '+q.n+' primaries on this collector. Fix the cylinders or the primaries per collector.';
   if(q.gaps){
     const s=q.gaps.reduce((a,b)=>a+b,0);
@@ -20336,7 +20483,7 @@ function turboSimLib(WS,X){
   }
   function rustBackend(spec,dx){
     const enc=new TextEncoder(), err=()=>new TextDecoder().decode(new Uint8Array(X.memory.buffer,X.wave_error(),X.wave_error_len()));
-    const t=enc.encode(JSON.stringify(spec)), p=X.wave_alloc(t.length); new Uint8Array(X.memory.buffer,p,t.length).set(t);
+    const t=enc.encode(JSON.stringify(WS.rustSpec?WS.rustSpec(spec):spec)), p=X.wave_alloc(t.length); new Uint8Array(X.memory.buffer,p,t.length).set(t);
     const id=X.wave_new(p,t.length); X.wave_free(p,t.length); if(!id) throw new Error(err());
     let tr=false;
     return {Vd:X.wave_vd(id),set:(a,g)=>{ if(!X.wave_turbo_set(id,a,g)) throw new Error(err()); },drop:()=>X.wave_drop(id),trace:on=>{ tr=!!on; X.wave_trace(id,tr?1:0); },
@@ -20496,11 +20643,11 @@ function simWorkerSrc(){
   return 'const WS=('+wsFactory.toString()+')();\n'+
     'const RW=('+simWaveRust.toString()+')('+JSON.stringify(WAVE_WASM_B64)+');\n'+
     'self.onmessage=function(ev){var job=ev.data,out=[];self.postMessage({type:"start",rust:!!RW});\n'+
-    ' job.variants.forEach(function(v){var prog=function(i,r){self.postMessage({type:"progress",k:v.k,i:i,rpm:r.rpm});}, res=null, Vd=0;\n'+
-    '  if(RW){ try{ var w=RW.sweep(v.spec,job.rpms,job.dx,prog); res=w.res; Vd=w.Vd; }catch(e){ res=null; } }\n'+
+    ' job.variants.forEach(function(v){var prog=function(i,r){self.postMessage({type:"progress",k:v.k,i:i,rpm:r.rpm});}, res=null, Vd=0, rp=v.rpms||job.rpms;\n'+
+    '  if(RW){ try{ var w=RW.sweep(WS.rustSpec(v.spec),rp,job.dx,prog); res=w.res; Vd=w.Vd; }catch(e){ res=null; } }\n'+
     '  if(!res){ var eng=WS.makeEngine(v.spec.e,v.spec.intake,v.spec.exhaust,v.spec.opt); Vd=eng.Vd;\n'+
-    '   res=WS.sweep(eng,job.rpms,{dx:job.dx,cycles:3,firstCycles:8,maxExtra:5},prog); }\n'+
-    '  out.push({k:v.k,key:v.key,label:v.label,tq:res.map(function(r){return r.imep*Vd/(4*Math.PI)*job.cyl;}),tqg:res.map(function(r){return r.gimep*Vd/(4*Math.PI)*job.cyl;}),vdt:Vd*job.cyl,ve:res.map(function(r){return r.ve;}),ov:res.map(function(r){return r.overlapPort;}),pc:res.map(function(r){return r.perCyl.map(function(x){return x.imep;});})});});\n'+
+    '   res=WS.sweep(eng,rp,{dx:job.dx,cycles:3,firstCycles:8,maxExtra:5},prog); }\n'+
+    '  out.push({k:v.k,g:v.g,part:v.part,key:v.key,label:v.label,tq:res.map(function(r){return r.imep*Vd/(4*Math.PI)*job.cyl;}),tqg:res.map(function(r){return r.gimep*Vd/(4*Math.PI)*job.cyl;}),vdt:Vd*job.cyl,ve:res.map(function(r){return r.ve;}),ov:res.map(function(r){return r.overlapPort;}),pc:res.map(function(r){return r.perCyl.map(function(x){return x.imep;});})});});\n'+
     ' self.postMessage({type:"done",out:out});};';
 }
 /* ----- Simulate with the turbo (2026-11-13): the wave simulation under boost -----
@@ -20976,16 +21123,21 @@ if(typeof window!=='undefined') window.__tsim={knock:()=>knockLib(WS),knockTxt,k
 function simStop(){ (SIM.workers||[]).forEach(w=>{ try{ w.terminate(); }catch(e){} }); SIM.workers=[]; }
 function simDone(id,key,rpms,out){
   if(id!==SIM.run) return;
-  SIM.status='done'; SIM.res=out.slice().sort((x,y)=>x.k-y.k); SIM.key=key; SIM.rpms=rpms; SIM.msg='';
+  const all=simMerge(out,SIM.pendVar);
+  SIM.status='done'; SIM.key=key; SIM.rpms=rpms; SIM.msg='';
   // brake torque: the gross loop's torque less the total friction (WS.tfmep, Heywood's SI-engine law, which includes pumping)
-  SIM.res.forEach(o=>{ if(o.tqg&&o.vdt>0) o.tqb=o.tqg.map((g,i)=>g-WS.tfmep(rpms[i])*o.vdt/(4*Math.PI)); }); SIM.resPh=SIM.pendPh; SIM.resHdr=!!SIM.pendHdr;
+  all.forEach(o=>{ if(o.tqg&&o.vdt>0) o.tqb=o.tqg.map((g,i)=>g-WS.tfmep(rpms[i])*o.vdt/(4*Math.PI)); });
+  // the phasing runs (part 14) apart from the design comparison: the best brake torque at each speed over the advances tried
+  SIM.res=all.filter(o=>o.vtc==null); const vt=all.filter(o=>o.vtc!=null);
+  SIM.vtc=vt.length&&vt.every(o=>o.tqb)?{runs:vt,best:rpms.map((r,i)=>{ let b=vt[0]; vt.forEach(o=>{ if(o.tqb[i]>b.tqb[i]) b=o; }); return {rpm:r,adv:b.vtc,tqb:b.tqb[i],tq:b.tq[i]}; })}:null;
+  SIM.resTwo=SIM.pendTwo||null; SIM.resPh=SIM.pendPh; SIM.resHdr=!!SIM.pendHdr;
   simStop();
   if(cur==='four-stroke') renderActive();
 }
 // progress over every design being run, which may be running side by side in several workers
 function simProgress(k,i,n,m,rpm){
   SIM.prog=SIM.prog||{}; if(k>=0) SIM.prog[k]=i+1;
-  const done=Object.keys(SIM.prog).reduce((a,x)=>a+SIM.prog[x],0), pct=Math.round(100*done/(n*m)), nc=SIM.ncyl||1;
+  const done=Object.keys(SIM.prog).reduce((a,x)=>a+SIM.prog[x],0), pct=Math.round(100*done/(SIM.total||n*m)), nc=SIM.ncyl||1;
   SIM.msg=(SIM.par>1?'Running '+n+' designs side by side':'Running '+(Math.max(k,0)+1)+' of '+n+': '+Math.round(rpm).toLocaleString('en-US')+' RPM')+(SIM.pendHdr?', '+nc+' cylinders'+(SIM.ncoll>1?' on '+SIM.ncoll+' collectors':''):nc>1?', '+nc+' cylinders on the collector':'')+' ('+pct+'%)';
   const el=$('sim-status'); if(el) el.textContent=SIM.msg;
 }
@@ -20998,13 +21150,13 @@ function simLocal(id,job,key){
     if(k>=job.variants.length){ simDone(id,key,job.rpms,out); return; }
     const v=job.variants[k];
     if(!eng){ eng=WS.makeEngine(v.spec.e,v.spec.intake,v.spec.exhaust,v.spec.opt); state=null; rows=[]; }
-    const rpm=job.rpms[i];
+    const rps=v.rpms||job.rpms, rpm=rps[i];
     let r=WS.runSpeed(eng,{rpm,cycles:i===0?8:3,dx:job.dx,state});
     for(let x=0;x<5;x++){ const h=r.history, n=h.length; if(n>=2&&Math.abs(h[n-1].ve-h[n-2].ve)<0.004*h[n-1].ve) break; r=WS.runSpeed(eng,{rpm,cycles:2,dx:job.dx,state:r.state}); }
     state=r.state; rows.push(r); simProgress(k,i,job.variants.length,job.rpms.length,rpm);
     i++;
-    if(i>=job.rpms.length){
-      out.push({k:v.k,key:v.key,label:v.label,tq:rows.map(q=>q.imep*eng.Vd/(4*Math.PI)*job.cyl),tqg:rows.map(q=>q.gimep*eng.Vd/(4*Math.PI)*job.cyl),vdt:eng.Vd*job.cyl,ve:rows.map(q=>q.ve),ov:rows.map(q=>q.overlapPort),pc:rows.map(q=>q.perCyl.map(x=>x.imep))});
+    if(i>=rps.length){
+      out.push({k:v.k,g:v.g,part:v.part,key:v.key,label:v.label,tq:rows.map(q=>q.imep*eng.Vd/(4*Math.PI)*job.cyl),tqg:rows.map(q=>q.gimep*eng.Vd/(4*Math.PI)*job.cyl),vdt:eng.Vd*job.cyl,ve:rows.map(q=>q.ve),ov:rows.map(q=>q.overlapPort),pc:rows.map(q=>q.perCyl.map(x=>x.imep))});
       k++; i=0; eng=null;
     }
     setTimeout(step,0);
@@ -21028,7 +21180,8 @@ function simStart(){
   const plan=simPlan(q); if(plan.err) return;
   const variants=plan.variants, rpms=simRpms(q.tune), key=plan.key, id=++SIM.run;
   // a collector multiplies the work by its cylinders; a 12.5 mm grid gives the same torque within about 0.5% and runs about 1.6 times faster
-  const job={variants:variants.map((v,k)=>({k,key:v.key,label:v.label,spec:v.spec})),rpms,dx:plan.n>1?0.0125:0.01,cyl:q.cyl};
+  const job={variants:simEntries(variants,rpms),rpms,dx:plan.n>1?0.0125:0.01,cyl:q.cyl};
+  SIM.pendVar=variants; SIM.total=job.variants.reduce((a,v)=>a+v.rpms.length,0); SIM.pendTwo=variants[0].specLo?{cut:variants[0].vcut}:null;
   SIM.status='running'; SIM.msg='Starting'; SIM.pendingKey=key; SIM.prog={}; SIM.ncyl=plan.n; SIM.ncoll=plan.ncoll; SIM.pendHdr=plan.hdr; SIM.pendPh=variants[0].spec.opt?variants[0].spec.opt.phases:[0];
   simStop();
   // one background worker per design, up to the computer's cores, so the designs run side by side
@@ -21109,6 +21262,12 @@ function simSection(q){
       return '<li><b>'+esc(o.label)+':</b> '+(g&&g.d>=2?'up to '+g.d.toFixed(0)+'% more at '+g.rpm.toLocaleString('en-US')+' RPM':'no gain above 2%')+(l&&l.d<=-2?', and '+Math.abs(l.d).toFixed(0)+'% less at '+l.rpm.toLocaleString('en-US')+' RPM':'')+
         '; '+(Math.abs(av)<1?'about the same':(av>0?'+':'')+av.toFixed(1)+'%')+' averaged over the whole range.</li>'; });
     h+='<ul class="list">'+lines.join('')+'</ul><p class="cap">The average is the area under the torque curve over the range shown. A Formula SAE team ranked its intakes the same way, because a design with the best peak can still lose over a lap (<a href="https://saemobilus.sae.org/content/2003-01-2277" target="_blank" rel="noopener">SAE 2003-01-2277</a>).</p>';
+    // (part 14) two cam profiles, and the best intake cam advance at each speed
+    if(SIM.resTwo) h+='<p class="cap"><b>Two cam profiles:</b> below '+SIM.resTwo.cut.toLocaleString('en-US')+' RPM every design ran on the low profile, from there up on the main profile (the events above); each speed is its own run, so the curve steps where the profiles change, as a real changeover does. The low profile’s speeds ran first and the main profile’s started again from rest.</p>';
+    if(SIM.vtc){ const V=SIM.vtc, base=SIM.res[0];
+      h+='<h4 style="margin:14px 0 4px">Intake cam advance: the best at each RPM</h4><div class="tblwrap"><table><thead><tr><th>RPM</th><th>Best advance</th><th>Brake '+uu+' there</th><th>Brake '+pu+' there</th><th>Against the advance typed</th>'+V.runs.map(o=>'<th>'+o.vtc+'°</th>').join('')+'</tr></thead><tbody>'+
+        V.best.map((x,i)=>{ const d=base&&base.tqb?100*(x.tqb/base.tqb[i]-1):NaN; return '<tr><td>'+x.rpm.toLocaleString('en-US')+'</td><td>'+x.adv+'°</td><td>'+(x.tqb*u).toFixed(0)+'</td><td>'+pOut(x.tqb,x.rpm).toFixed(0)+'</td><td>'+(Number.isFinite(d)?(d>=0.05?'+':'')+d.toFixed(1)+'%':'')+'</td>'+V.runs.map(o=>'<td>'+(o.tqb[i]*u).toFixed(0)+'</td>').join('')+'</tr>'; }).join('')+'</tbody></table></div>'+
+        '<p class="cap">Each advance is the design as entered run with the intake opening and closing that many crank degrees earlier (the events above are 0); the best is the highest brake torque of the six at each speed. A real calibration also weighs knock, idle quality and emissions, and Hondata’s guidance is that a turbocharged engine generally needs less advance than stock, more retard the higher the back pressure (<a href="https://hondata.mobi/help/flashpro/tuning_for_vtc.htm" target="_blank" rel="noopener">Hondata, VTC tuning</a>), so read this as where the breathing alone peaks, not as a cam map. The last columns give the brake torque in '+uu+' at each advance tried.</p>'; }
     // with a shared collector, how evenly the cylinders on it fill
     if(SIM.resHdr&&b.pc&&b.pc.length&&b.pc[0].length>1&&SIM.res[1]){
       const mean=v=>v.reduce((a,x)=>a+x,0)/v.length, spread=v=>(Math.max(...v)-Math.min(...v))/mean(v);
@@ -25963,7 +26122,7 @@ function mfdOverlap(gaps,D,C){ C=C||CYCLE; const n=gaps.length, a=[0]; for(let i
 // where the open period came from, in words
 function mfdDurTxt(X,o){ if(!X.k) return ''; if(X.durWhy==='typed') return 'your typed '+(+X.dur.toFixed(1))+'° open period';
   const c=o.cam; return (+X.dur.toFixed(1))+'° from the 4-Stroke tab’s valve events, exhaust opens '+(+c.evo.toFixed(1))+'° BBDC and closes '+(+c.evc.toFixed(1))+'° ATDC'+(c.evcEst?' (the closing is that tab’s estimate, opening − 40°, at least 10°: enter it there)':'')+
-    (c.at==='050'?', at 0.050 in lift (shorter than the time off the seat, so this is the mean over the main lift)':', seat to seat')+'; type the period under Turbo manifold inputs to use another'; }
+    (c.at==='050'||c.at==='1mm'?', at '+(c.at==='1mm'?'1 mm':'0.050 in')+' lift (shorter than the time off the seat, so this is the mean over the main lift)':', seat to seat')+'; type the period under Turbo manifold inputs to use another'; }
 /* The calculation. o: {e (engine), nt, mani, port mm, sp mm (NaN: no layout), off mm, cand, clr mm, L mm (NaN: the equal
    length), turn deg (bend total when the layout is not known), colL mm, dcol mm (NaN: matched to the flange port), portA mm²
    (the turbine inlet port's area, null unknown), me kg/s per turbo, p3 Pa, tit °C, tamb °C, disp cc, dur deg, cool {Ta,v,fin},
