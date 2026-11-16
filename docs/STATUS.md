@@ -257,6 +257,19 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   catDp: the outlet cone's uncited 0.05 is now Rennels' conical contraction with its friction (python-fluids
   contraction_conical); physaudit_ui cat cone loss 399.80 -> 468.15 Pa (outlet K 0.1835 by hand). Not run here:
   Fusion (mount choice live), a printed template on tube.
+- K-series sourced data, cam phasing and two cam profiles (2026-11-15, branch agent28/kseries; docs/WAVE_VALIDATION_2026-11-11.md
+  part 14; web/tests/kseries_ui.js): 4-Stroke tab inputs for the rod (blank 1.7 x stroke), the runner bore (blank: from
+  the valves), the intake cam advance and "best advance at each RPM" within the phaser's range (six runs, the best brake
+  torque per speed, a separate table with Hondata's caveat), two cam profiles with a changeover (the low profile below it,
+  spliced: simEntries / simMerge; no solver change), cam events at 1 mm lift; a K-series intake manifold list filling only
+  published runner / plenum / throttle figures (labelled; the head's port a 100 mm stand-in) and a "measure your own"
+  guide. Presets: K24 rod 152.019 mm (vendor's "stock K24 length"), VTC 25 deg (K24A2) / 50 deg (K20A2, K20Z3), VTEC
+  changeover rpm, K20 86 x 86 mm, each with source and label; legacy projects load the new fields blank. Still stand-ins:
+  stock cam events and lifts, head flow, the K24A2 manifold, port spacing. Fixed: the WebAssembly ignored checkLift_mm
+  (0.050 in cards ran as seat events in the browser; now rustSpec hands it camSeat's events); 509 of 609 engine-list and
+  397 of 480 vehicle-list source links were "undefined" (VS tables merged after the presets). K24A2 NA (part 12's pipes):
+  191.9 hp @ 6000 / 180.2 lb-ft @ 5000 -> 192.3 / 180.4 with the rod, 183.9 / 166.1 @ 5500 with the RBC, against Honda's
+  200 @ 6800 / 166 @ 4500; turbo 18 psi: knock integral 4.343 -> 4.312 at 5050 rpm, without boost 1.105 -> 1.098.
 - Honda K-series, turbo options, intercooler options (2026-11-12, branch agent5/k24; web/tests/k24_ui.js, turbolib_ui.js):
   engine-only presets K20A2, K20Z3, K24A2, K24A4, K24A8, K24Z3, K24Z7, K24W1 with Honda's published bore/stroke, compression,
   ratings and redlines (hondanews/acuranews spec sheets), plus a `kd` block per engine (valve heads, exhaust side and
