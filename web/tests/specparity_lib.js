@@ -173,6 +173,12 @@ const PAGE_SRC = function () {
     });
     return rows;
   };
+  // the page's state at its boundary: every saved input (the project snapshot's vals: base values in mm, degC, cc...), the
+  // specs collected as above, and the two run keys (a result is shown as current only while its key matches)
+  SP.refresh = () => { document.getElementById('tab-intake').click(); document.getElementById('tab-four').click(); };
+  SP.state = () => { SP.refresh(); const S = window.__sim, q = S.inp(), P = window.__tsim.plan();
+    return JSON.parse(JSON.stringify({ vals: window.__proj.snapshot('x').vals, specs: SP.collect().map(c => ({ tag: c.tag, err: c.err, spec: c.spec, rpms: c.rpms, turb: c.turb })),
+      key: q ? S.simKey(q) : null, tkey: P && !P.err ? P.key : null })); };
   window.__sp = SP;
 };
 // with direct: also the validation scripts' model (tools/validation/wave/lib.js build({hook: true})) for SP.direct
