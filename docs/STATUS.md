@@ -2233,3 +2233,25 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
   live scripts remove their temporary STLs.
 - Not yet run live: the 4.24.0 versions of fusion_live_mounts.py, fusion_live_turbomani.py, fusion_live_intakecfd.py,
   fusion_live_printsplit.py.
+## 2026-11-16, round 2: stale results on every tab, every preset, the turbo run whole (docs/SPEC_PARITY_AUDIT_2026-11-16.md addendum)
+
+- Closed the first round's "Not covered", both engines to the last digit: the turbo simulation run whole (8 cases:
+  found area, typed turbine flow (predict), the two measured-p3 calibrations, blade-speed efficiency on and off, the knock
+  check, every fuel; 319,426 numbers; one case also from the button with the WebAssembly and with window.__waveJs), all
+  598 engine presets (592 four-stroke, 6 rotaries n/a: no difference, no error, nothing implausible; 515 presets carry
+  no bore or stroke and run on the estimate), 7 Headers collector shapes through the layout path, the sound estimate's
+  JavaScript-only path deterministic (and now labelled as the JavaScript model on the Sound tab).
+- Stale-result hunt on every tab (tools/validation/staleness_sweep.js: seeded user actions, every tab's text against a
+  fresh page given the same project and against the reverse tab order). Fixed: the sound estimate and the OpenWAM table
+  had no out-of-date marker; SIM.inp, the Headers, Crossover and Intake results were refreshed only when their own tab
+  rendered (refreshDeps, simInpRefresh); the Mufflers tab's error paths kept the last legend; the preset's power hold was
+  lost on a project load; the Headers tab's "My own groups" threw (since the import).
+- Cam library and engine presets: a library cam is set aside when an engine preset is chosen (a note with one click
+  back; a "Keep the cam" box keeps it, noted "kept from before"); projects load exactly as saved.
+- Project completeness: every input (817 in the rich state, with or without an id) saved or on a commented NOT_SAVED list
+  (update token, catalogue and Options filters, the custom-part draft). Newly saved: the Parts tube, the Headers layout's
+  temperature and route, the sound estimate's settings, the auger and muffler designers, the tuned tubes, the Mufflers
+  "From the Sound tab" state, the preset's power hold. Old projects load as before.
+- New test web/tests/staleness_ui.js (helpers staleness_lib.js). Validation scripts: tools/validation/staleness_sweep.js,
+  project_inventory.js; tools/validation/wave/preset_sweep.js, preset_geometry.js, turbo_closure_parity.js,
+  headers_shapes_parity.js, sound_determinism.js (each resumable or short).

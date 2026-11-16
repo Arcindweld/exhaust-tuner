@@ -252,3 +252,204 @@ pin changed.
 - The native host, the C# app and the Fusion add-in were checked statically only (no reference to the wave model or its
   spec); no workspace build.
 - Engine presets: 24 of 599 in the differential (stratified) and 4 in the idempotence check.
+
+## Addendum (2026-11-16, second round): the rest of "Not covered", and stale results on every tab
+
+The first round compared the two engines on the page's specs. This round closes what it left open (section 6) and hunts
+the class of D3 and D5 (a result on screen that does not belong to the inputs on screen) on every tab, not only in the
+wave runs. Numbers are from the final code of this round unless a line says otherwise.
+
+### A1. The engines end to end, both ways
+
+(a) **The turbo simulation, whole** (`tools/validation/wave/turbo_closure_parity.js`, results/turbo_closure_parity.json).
+The job "Simulate with the turbo" hands its worker (`tsimJob(tsimPlan(q))`, now one function shared by the button and the
+tests) is run through the page's own `tsimRun` twice in the page, with the WebAssembly back end and with the JavaScript
+one, and the two outputs compared number by number (Object.is): the area and gate searches, the predict mode of a known
+turbine with its below-full-boost compressor law, the calibrations to a measured pressure before the turbine, the
+sensitivity runs, the knock check with its timing bisection, the runs without boost and without the turbine, every bin.
+The first case also ran from the button itself, in the worker, with the WebAssembly and with `window.__waveJs`: both
+results equal the in-page run to the last digit and their run keys match the page's.
+
+| Case | Mode the run took | Numbers | WASM / JS |
+|---|---|---|---|
+| K24A2, found area, wheel-speed (blade speed ratio) efficiency, pump gasoline; and from the button both ways | closure, 2 sensitivity runs | 29,831 | the same |
+| K24A2, found area, constant efficiency (blade speed off), E85, knock check on | closure + knock | 130,350 | the same |
+| K24A2, typed turbine flow (predict), race fuel, wheel-speed efficiency, knock check on | predict + knock, 1 sensitivity | 45,602 | the same |
+| K24A2, measured pressure before the turbine, no flow: area and efficiency calibrated (At 5.24 cm2, eta 0.383), E10, Watson | closure after calibrate | 23,911 | the same |
+| K24A2, typed flow and measured pressure: efficiency and gate calibrated (eta 0.351), E100 | closure after calibrateA | 23,915 | the same |
+| 2.0 L four, found area, M100, constant efficiency, internal gate (knock asked for) | closure, 2 sensitivity | 29,831 | the same |
+| 2.0 L four, typed turbine and gate areas (no search), Watson, back pressure after the turbine | closure | 23,905 | the same |
+| centrifugal supercharger, E85 | sweep | 12,081 | the same |
+
+319,426 numbers, no difference. Each fuel ran in at least one case (pump, race, E10, E85, E100, M100). In the M100 case
+the knock check did not run (no knock result in the output); the knock path was covered by the E85 and race cases only.
+
+(b) **Every engine preset** (`tools/validation/wave/preset_sweep.js`, results/preset_sweep.json; resumable, it skips the
+presets already in the file and stops cleanly when the browser goes away). Each preset: a fresh page, the preset chosen from the
+engine list, the page's own 4-Stroke spec (the design as entered; none of the presets lays out a Headers twin), run at
+the first, middle and last of the 12 speeds the page would run (0.4, about 0.85 and 1.35 times the tune RPM) with the
+JavaScript model and the WebAssembly, short run control (2 first cycles, 1, 1 extra pair, 20 mm grid), every number
+compared, and the results judged: no NaN, VE 0.3 to 1.6, IMEP above 0 (positive torque at wide-open throttle), peak
+pressure 10 to 300 bar, exhaust temperature 500 to 1800 K, residual 0 to 0.5. Result: 598 presets; 592 four-stroke, 6
+rotaries (the 13B-REW and Renesis entries) that fill nothing on the 4-Stroke tab and are not applicable; 592 specs, **no
+JS/WASM difference, no error, no spec refused, no implausible value, no page error** (1,411 s for the 396 presets of the
+second sitting, the first 202 in an earlier one; the file keeps both). VE over all presets and speeds 0.361 to 1.175,
+IMEP 3.6 to 17.3 bar. The lowest VE are all at the top speed of high-revving engines whose valves and cam the page
+estimates (Honda F22C1 0.361 and F20C 0.386, Ferrari F140 HB 0.370, the Voodoo-type flat-plane 4.5 0.374, LT6 0.376):
+1.35 times their peak-power RPM (the top of simRpms' fixed range, which the 4-Stroke run does run) is above their
+redline, so a low VE there is the estimated valves choking at a speed the engine never reaches; worth knowing when
+reading the top of those curves, not a data defect. A second check of the presets' own numbers
+(`tools/validation/wave/preset_geometry.js`, results/preset_geometry.json): of the 592, 77 carry a bore and stroke, and
+for all 77 pi/4 x bore^2 x stroke x cylinders is within 2 % of the preset's displacement; valve heads, rod and
+compression, where given, inside plain ranges. The other 515 have no bore or stroke in the list, so the 4-Stroke tab
+estimates the bore as 1.2 x stroke from the displacement for them (stated on the page as "blank to estimate"): a gap in
+the data, not an error in it, and the largest open item for the presets' wave runs.
+
+(c) **The Headers collector shapes through the layout path** (`tools/validation/wave/headers_shapes_parity.js`,
+results/headers_shapes_parity.json): unequal lengths with a direct 4-1 on an inline four, a V8 per bank (two collectors),
+a V8 180 degree (alternate cylinders, two collectors crossing banks), an inline six with "My own groups" 1,2,3 | 4,5,6,
+Tri-Y 6-2-1 and 8-4-1, and an inline four with stepped primaries asked for (unequal lengths keep them constant). Each: the
+layout and its equal-length twin, two speeds, the JavaScript, the WebAssembly and the validation scripts' load of the
+model: 576 numbers, no difference; collectors and stages as the shape says; every port segment marked as a port (D2).
+It found a page defect, H1 below: "My own groups" threw on the Headers tab.
+
+(d) **The sound estimate's JavaScript-only path** (`tools/validation/wave/sound_determinism.js`,
+results/sound_determinism.json). It cannot be compared with the WebAssembly (the in-line pieces, side branches, the
+crossover and a cylinder not firing exist only in the JavaScript model, and rustSpec refuses them: first round D6), so it
+was checked for determinism: "Hear each part" (the line, a muffler, a Helmholtz can: pieces and branches; 4 steps),
+"Hear a misfire" and "Estimate the sound" on a V8 per-bank Headers layout with an X crossover asked for on the line,
+each run twice from its button in a fresh page (the page's worker): 47,115 numbers, identical. (Whether the crossover
+entered that last spec was not checked separately.) Labelling: the page never named the back end; the Sound tab's
+caption now says the estimate always runs the page's JavaScript wave model, that those parts exist only there, and that
+the 4-Stroke tab's runs take the WebAssembly copy, which gives the same numbers for what both have.
+
+### A2. Stale and order-dependent results on every tab
+
+Harness (`web/tests/staleness_lib.js`, driven by `tools/validation/staleness_sweep.js`): sessions of seeded user actions
+on one page A, each action a random tab and a random visible input there changed as a user would type or pick it (in the
+units shown), and now and then an engine preset or a vehicle, the unit toggle, Simple/Expert, the project saved and loaded
+back into the same page, or a "Use" button; after 40 % of the actions another tab is looked at (a result read after an
+input changed elsewhere). Every 10 actions, a checkpoint: the displayed text of all 13 tabs in A (each tab visited, its
+render settled), against (i) a fresh page B given A's project from scratch and read the same way, and (ii) A itself read
+again in the reverse tab order. Any difference is a stale or order-dependent result or an input the project does not
+carry; the actions are recorded, so a difference is replayed and bisected (`replay=SEED upto=K dump=TAB`). The view
+filters that are not saved on purpose (A4) are copied from A to B before reading, so a filtered list is not counted.
+
+The runs' own run keys were checked mechanically too (staleness_ui.js section 1): over seeded input changes on the
+4-Stroke, Intake, Headers, Mufflers and Sound tabs of a turbo build, the job "Run" and "Simulate with the turbo" would hand
+their workers (`simJob`, `tsimJob`, now the functions the buttons use) never differed while the run key stayed the same:
+the keys are complete (D3 was the last gap). The muffler designer's key is the JSON of its search's own input by
+construction. The sound estimate and the OpenWAM table had none (S1, S5).
+
+Found and fixed (since: `git log -S`):
+
+Defects of this round (S: stale or order-dependent, P: not in the project, C: the cam rule). Since: git log -S.
+
+| # | What | Since | What the user saw | Fix | Regression |
+|---|---|---|---|---|---|
+| S1 | The sound estimate (Sound tab, "Estimate the sound", "Hear each part", "Hear a misfire") had no out-of-date marker | 0251181, 2026-11-05 | after any change to the engine, header, line, speeds, load or microphone the sound and its levels were still labelled "Your design" | `wsndSig` (the specs as they would be built now, the speeds, load, grid, microphone) kept with the run; a warning note `#wsnd-stale` while it differs | staleness_ui (sound note) |
+| S2 | The 4-Stroke tab's simulation inputs (SIM.inp) were set only when the 4-Stroke tab rendered | 92a0fb1 (2026-10-30, the import; the sound and boosted readers came later: 0251181 11-05, 3f7ea5f 11-13) | a fresh page or a loaded project that had not opened the 4-Stroke tab: the Sound estimate said "Open the 4-Stroke tab and fill it in"; an engine preset chosen or a 4-Stroke field changed elsewhere: the Sound estimate and the Intake tab's boosted plan ran the previous engine until the 4-Stroke tab was opened; an input error on the 4-Stroke tab left the last good inputs in use | `simInpRefresh` (the same inputs computed without rendering the tab) at every other tab's render and on load or preset; an error leaves none | staleness_ui (rich build), staleness sweep |
+| S3 | Results of the Headers, Crossover and Intake tabs (HDR_LAST, CROSS_LAST, TS_LAST, MFD_LAST) read by other tabs were refreshed only when their own tab rendered (D5 had added loads and presets) | the readers: cfa69f5 (2026-11-03, the optimiser), 5b92d61 (11-04, the crossover in the OpenWAM line and later the sound), eb49871 / 3f7ea5f as D5 | a page that had not opened the Headers tab: the 4-Stroke tab's optimiser said "Lay out a header on the Headers tab first" though the Headers tab has one; an input on one tab read by another tab's result left that result as it was | `refreshDeps`: any input marks them out of date, and the render of any other tab first renders the out-of-date ones off-tab | staleness sweep seed 9 |
+| S4 | The Mufflers tab's early error returns kept parts of the last result: the legend and caption (the two pipe-section errors), and the Mach note in the form (every early return) | 92a0fb1 (the Mach note later) | under the error note, the legend of the previous design's curves (Helmholtz, J-pipe, chamber, packed can, 3 dB band) and "this pipe runs about Mach 0.19 at redline" for an earlier design | the error returns clear the legend, caption and summary; the Mach note is cleared at the start of every render | staleness sweep seeds 5 and 19 |
+| S5 | The OpenWAM results table had no out-of-date marker | 92a0fb1 (in the project as imported) | after a change to the case, the last run's torque and VE were shown as this design's | `wamSig` of the case's .wam files kept with a host run; a warning while the case written now differs; results read from files say the page cannot tell which case wrote them | staleness_ui (OpenWAM note, a simulated host run) |
+| S6 | The preset's power hold (HP_PRESET) ended on every project load | 416d184, 2026-11-14 | a turbo build with "My power target" saved while the preset's stock rating was still in the power field loaded as worked at the stock rating instead of the boost field's figure: the boosted results changed on load | the project keeps `hpPreset` when held; it is restored when the loaded power field still holds that figure | staleness_ui (rich build) |
+| P1 | The Parts tab's tube for the build list (p-od, p-wall) was not saved (outside a form) | 92a0fb1 | after a load, the Fusion payload's pipe size was the page's default | in PROJ_STATIC | inventory |
+| P2 | The Headers layout's gas temperature for the wave speed (h-uel-t) and the collector to route (h-uel-route) were not saved | 92a0fb1 | the unequal-length table's wave timing and the Fusion route reverted on load | huel.T, huel.route | inventory |
+| P3 | The sound estimate's speeds, load and misfire choice (wsnd-rpms, wsnd-load, wsnd-dead) | 0251181 | reverted on load | PROJ_UI snd (only those three) | inventory |
+| P4 | The Mufflers tab's auger designer (AUG), muffler designer targets (MD: tl, f0, f1, kinds, inst) and tuned-tube set (TT) | f5cf238 11-03, a4cf89b 11-04, 13ed6f2 11-03 | their inputs and every number they compute reverted to the defaults on load | PROJ_UI aug, md, tt; a blank (NaN) number saved as null now loads as blank | inventory, staleness sweep seed 1 |
+| P5 | The Mufflers tab's "From the Sound tab" state (the pipe's start at the valve or the turbine outlet, its note) | 92a0fb1 (the turbine-outlet label later) | the label and note reverted on load | `mufFrom` in the project | |
+| H1 | The Headers tab with "My own groups" threw (`gname` had no 'custom'), after the details but before its summary and HDR_LAST | 92a0fb1 | a page error; the layout never reached the 4-Stroke tab, OpenWAM or the sound estimate; the copy summary was the previous layout's | the missing entry | staleness_ui (found by A1 (c)) |
+| C1 | A cam from the cam library stayed through a later engine preset, silently | 31c3a2a, 2026-11-03 | one engine's cam run on another | A3 | staleness_ui (cam rule) |
+
+After the fixes: on the final code, 20 sessions (seeds 1 to 20, 40 actions each), 766 actions: 631 input changes (on all 13 tabs,
+40 to 62 each; 71 of them on generated inputs without an id, 133 on the vehicle picker above the tabs), 56 engine presets
+or vehicles, 25 unit toggles, 31 Simple/Expert switches, 17 projects saved and loaded back into the same page, 6 "Use"
+buttons; 293 looks at another tab after a change; 80 checkpoints, each all 13 tabs against a fresh page given the
+project and against the reverse tab order: **no difference** (results/staleness_sweep.json). Before the fixes the same
+seeds showed S2/S3 (seed 9), S4 (seeds 5, 19) and P4 (seed 1); each was bisected with the replay and its case is in the
+permanent test or the sweep.
+
+### A3. The cam library and an engine preset chosen after it
+
+The first round stated the consequence: a cam picked from the cam library (its events at 0.050 in, its lifts, its
+2-valve head) stayed when another engine preset was chosen afterwards, the library's select still naming it. A first-time
+user who tries the LS3 card and then picks their K24A2 runs a K24 with an LS3 cam and is told nothing (since 31c3a2a,
+2026-11-03, when the library came in). Rule chosen (`camLibOnPreset`): choosing a four-stroke engine preset sets a library
+cam aside: the fields the library filled that the preset does not define (the four events, the lifts, the convention,
+and the valve count and compression when the preset has none) go back to a fresh page's values, so the preset gives the
+same inputs whether or not a library cam was picked before (checked field by field in staleness_ui.js). A note under the
+library says "Cam set aside: <name> was picked from the list above; choosing <engine> put this engine's own cam back"
+with one button, "Use the <name> cam again", that puts the events, lifts, convention and the library's name back (the
+note then reads "Cam: <name> (kept from before)"). A new tick box, "Keep the cam from the list above when I choose an
+engine", keeps it through presets, with the same "kept from before" note and a button "Use this engine's own cam".
+Why this one: the least surprising for the user who did not know the cam was the library's (the preset is the newer and
+more specific choice, and every other engine field already follows it), with no loss for the user who wanted the mix
+(one click back, or the box ticked first), and the mixed state is never silent. A cam typed by hand (no library entry
+picked) is the builder's and stays, as before; projects load exactly as saved (the rule does not run during a load, and a
+project with a kept cam loads with it, checked over another build's library cam).
+
+### A4. Project-file completeness
+
+`web/tests/staleness_lib.js inventory` (run by staleness_ui.js; `tools/validation/project_inventory.js` prints the
+lists): a page in a state that renders the generated inputs (expert, metric, the K24A2 preset, a turbo build with a turbo
+picked and the knock check on, the Headers tab at unequal lengths, every tab visited) enumerates every input, select and
+textarea, with an id or, for the generated ones without, by panel, class and data-k. Each is either in the project's vals,
+or its probe change (a clearly different value) survives a save and a load into a fresh page through one of the
+project's section objects, or it must be on `NOT_SAVED` (staleness_lib.js) with its reason. A probe equal to the same
+state's unprobed value counts as untested, so a "survives" is never trivially true.
+
+Result (rich state, final code): 817 inputs; 638 in the vals, 139 through a section object (the OpenWAM, Engine
+Simulator, dyno, optimiser, compressor map, turbo options, manifold, CFD, heat, unequal-length table, auger and the new
+ones below), 19 not saved on purpose, 20 the probe could not change (the copy boxes, which are output; the "Header to
+simulate" selects with one choice; the inline power box `i-hptgt`, which commits into the power field; two turbo
+selects and two tube rows with one choice in this state), none lost. Not saved on purpose: the program's update token
+(a credential), the Parts tab's catalogue filters and the custom-part draft (the part added goes in the saved build
+list), the Options tab's filter and search. Newly saved (P1 to P5 in A2): the Parts tab's tube size, the unequal-length
+table's gas temperature and collector to route, the sound estimate's speeds, load and misfire choice, the auger
+designer, the muffler designer's targets, the tuned-tube set and the Mufflers tab's "From the Sound tab" state, plus
+the preset's power hold (S6). A blank (NaN) number in a section object was written as null and loaded as null; it now
+loads as blank. Projects from before have none of the new keys and load as before (each new key is read only when
+present): the fixtures' pinned results are unchanged (the suite below).
+
+Reproduction: a project written by the current page, loaded into a fresh page, shows the same text on all 13 tabs, read
+in either tab order, for the rich build (staleness_ui.js, the rich build) and at every checkpoint of the sweep (A2).
+
+### A5. Permanent tests and pins
+
+`web/tests/staleness_ui.js` (helpers `web/tests/staleness_lib.js`, a runner NOT_TESTS entry), about 2 minutes:
+1. the run keys are complete (45 seeded input changes on five tabs of a turbo build; the 4-Stroke and turbo jobs never
+   differ under one key);
+2. the sound estimate's out-of-date note (a real one-speed run from its button), and the OpenWAM table's (a host run put in
+   as wamRun leaves it: current, out of date after a change, "read from files" without a run hash);
+3. a rich build's project reproduces every tab's text in a fresh page, read in either order;
+4. the Headers tab's "My own groups" renders and reaches the other tabs (H1);
+5. the inventory: every input saved, through the vals or a section object, or on NOT_SAVED; no stale entry;
+6. the cam-library rule: set aside on a preset (the same fields as the preset on a fresh page), one click back, one click
+   to the engine's own, "Keep" keeps it with its note, a project with a kept cam loads exactly.
+
+The long runs are validation scripts with checkpointing, not in the suite: `tools/validation/staleness_sweep.js` (sessions
+written as they end), `tools/validation/project_inventory.js`, and under tools/validation/wave `preset_sweep.js`
+(per preset), `turbo_closure_parity.js` (per case), `headers_shapes_parity.js`, `sound_determinism.js`.
+
+Pins: none changed. No existing test needed a new expected value; the project fixtures (op_legacy_k24 and the
+projects the boost, fuel, K-series and compressor-map tests write and load) load with their pinned results. The fixes
+change displayed results only where the page showed a stale one (a run or section of an earlier design, an error with the
+last design's legend) or where a load lost a saved setting; no pinned case was in such a state.
+
+Final suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, the final code): 143 tests, 136 passed, 0 failed, 7 skipped and 7 partial skips, 0 unexpected skips (OpenWAM, the host program and the F-100 run are not here), 1,946 s. staleness_ui.js took 123 s, specparity_ui.js 311 s (239 s in the first round, now further over the 3 minutes aimed for: the off-tab refresh of A2 makes each of its many page edits render the Headers, Crossover and Intake tabs too).
+
+### A6. Still not covered
+
+- Runs that need the Windows program (OpenWAM, OpenFOAM: the OpenWAM runs and their optimiser, the dyno match, the
+  intake and exhaust CFD cases, the 2-stroke OpenWAM case, the muffler designer's OpenWAM runs): not run here. Their
+  results tables: OpenWAM's now carries the case hash (checked with a simulated run); the CFD tables are per named case
+  (each row names its case, not "this design") and the optimiser's list is of changes around the header it ran on; neither
+  got a marker in this round.
+- The inventory and the stale-result sweep reach the inputs of the states they visit: the rich build and the random
+  walk from the default page. Inputs generated only in states not reached (the 2-Stroke tab's Blair design rows, rotary
+  engines on the Headers tab, every CFD option) are covered only as far as the sweep happened to reach them.
+- The sound estimate's JavaScript-only path is checked for determinism, not against an independent model.
+- Engine presets: 4-Stroke translation and the model at three speeds each, with the short run control; the presets'
+  boosted builds (a preset leaves the induction as it is) were not run.
+- Node and Chromium maths still differ in the last bits (first round, section 2); every comparison here is inside one
+  Chromium.
