@@ -232,6 +232,13 @@ In specparity_ui.js (all pass on the final code):
 4. save -> load (each project on top of the one before, read without visiting other tabs), units there and back, presets
    twice and P -> Q -> P against the stated rule, the run key changing with the fuel, and the D2 / D4 spec shapes.
 
+Run time: about 3.5-4 minutes (239 s in the suite at -j 2), over the 2 minutes aimed for; about 85 s of it is the whole
+4-Stroke run from the button done twice. The full fuzz (251 cases, about 34 minutes) is the audit script, not the test.
+
+Final suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, the final code): 142 tests,
+135 passed, 0 failed, 7 skipped and 7 partial skips, all expected (OpenWAM, the host program, the F-100 run not here). No
+pin changed.
+
 ## 6. Not covered
 
 - The differential compares the two engines on the page's specs at two speeds with short run control and one whole

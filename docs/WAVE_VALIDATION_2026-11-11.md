@@ -3995,11 +3995,10 @@ its ports without the part-7 port law (until 2026-11-16). What that means for th
   JavaScript model directly (lib.js) and hand it their own specs (ratings.js: `checkLift_mm: 1.27` on the CAM_LIB cards,
   which the JavaScript has always honoured). They did not go through the WebAssembly or its translation and are
   unaffected by both defects. The port law was always marked in ratings.js's specs.
-- Numbers quoted from the page itself (page tests' pins, "the page shows ..." statements, the turbo_k24_page.json capture
-  of part 5) were browser-path results. Those with a cam at 0.050 in between 2026-11-03 and 2026-11-15 were the seat-to-
-  seat runs; the page-path pins in this repository were re-run after the part-14 fix (kseries_ui.js) and again after this
-  audit, and none changed in this audit (the fixes here change no spec the existing pins use: the Headers layout's port is
-  blank in uel_sim_ui.js, no pinned boosted run has a chamber).
+- Numbers quoted from the page itself (page tests' pins, "the page shows ..." statements) were browser-path results; those
+  with a cam at 0.050 in between 2026-11-03 and 2026-11-15 were seat-to-seat runs. The page-path pins were re-run after the
+  part-14 fix (kseries_ui.js); after this audit the whole web and parity suite passes with no pin changed (the fixes here
+  touch no spec an existing pin uses).
 - The scripts run in Node, whose Math.pow / exp / sin / cos differ from Chromium's in the last bits: a script's number and
   the browser's for the same spec agree to about 1e-9 relative, not to the last digit. specparity_ui.js makes the
   bit-for-bit comparison with the scripts' own load of the model run inside the page.
