@@ -20407,7 +20407,9 @@ function simCheck(q){
   }
   return '';
 }
-const simKey=q=>JSON.stringify(q);
+// the run key: the inputs, and the Intake tab's fuel, mixture and evaporation that fuelSpec adds to the spec (2026-11-16,
+// docs/SPEC_PARITY_AUDIT_2026-11-16.md D3: before, a finished run stayed "current" after the fuel changed)
+const simKey=q=>JSON.stringify(q)+(typeof fuelSig==='function'?fuelSig():'');
 /* The same wave model in Rust (rust/et_wave), built to WebAssembly by tools/build_wave_wasm.sh: it gives the same
    numbers to the last digit (web/tests/wave_wasm.js) about twice as fast. Its pow, sin, cos and exp are the page's own
    Math functions, so the numbers do not depend on the browser's maths library. */
@@ -20744,7 +20746,7 @@ function tsimPlan(q){
     if(FP&&FP.evap!=null) src.push(['Fuel evaporation',FP.evap===0?'from the port walls: the charge is not cooled, the vapour’s energy credited':(100*FP.evap).toFixed(0)+' % of the latent heat from the charge at the intake valve','Intake tab, Fuel evaporation in the simulation']); }
   const portSeg=base.exhaust.segs.filter(sg=>sg.primary&&base.exhaust.segs.indexOf(sg)===0&&q.port>0);
   // the manifold
-  let per=null, colSegs=null, scrolls=null, man='';
+  let per=null, colSegs=null, scrolls=null, man='', chambers=[];
   const C=X&&!X.err?X.c:null, Lr=X&&X.L>0?X.L:NaN, dcol=X&&X.dcol>0?X.dcol:NaN, colL=X&&X.o?X.o.colL:NaN;
   const Ts=X&&X.heat&&Number.isFinite(X.heat.Ts)?X.heat.Ts+273.15:900;
   if(turbo&&C&&Lr>0&&dcol>0&&colL>0){
@@ -20758,6 +20760,9 @@ function tsimPlan(q){
     src.push(['Manifold wall temperature',tsFmt().tD(Ts-273.15),X.heat?'Turbo manifold: the steel temperature it works out':'assumed 900 K (no steel temperature on the Intake tab)']);
   } else {
     per=base.exhaust.segs.slice(); colSegs=base.opt.collector?base.opt.collector.segs.slice():[];
+    // the 4-Stroke tab's chamber on its primaries comes along with them (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md D4: it
+    // was left out, so a supercharged or manifold-less turbo run of a header with a chamber ran without it)
+    chambers=(base.exhaust.chambers||[]).slice();
     src.push(['Exhaust manifold','the 4-Stroke tab’s primaries'+(colSegs.length?' and collector':''),turbo?'fill the Turbo manifold section on the Intake tab (exhaust port bore) to use its runners':'4-Stroke tab']);
   }
   // after the turbine
@@ -20791,13 +20796,13 @@ function tsimPlan(q){
   const opt={phases};
   if(scrolls) opt.collectors=scrolls.map(c=>({cyls:c,segs:colSegs,Tw:Ts}));
   else if(n>1&&colSegs.length) opt.collector={segs:colSegs,Tw:Ts};
-  const exhaust={segs:per,Tw:Ts};
+  const exhaust=Object.assign({segs:per,Tw:Ts},chambers.length?{chambers}:{});
   if(turbo) exhaust.turbine={CdA:Aty||A0,eta,wgCdA:Agy!=null?Agy:0,wgTo:wgAtm?'atm':'down',down,pOut:p4};
   else exhaust.pOut=p4;
   const spec={e,intake:Object.assign({},intake,{source:{p:Pt,T:Tc}}),exhaust,opt};
   // the same engine and pipes with no turbo: ambient intake, the collector running on into the downpipe, the same end pressure
   const naOpt={phases}, naColl=(n>1?colSegs:[]).concat(turbo?down.segs:[]);
-  let naEx={segs:per.concat(n>1?[]:(turbo?down.segs:[])),Tw:Ts,pOut:p4};
+  let naEx=Object.assign({segs:per.concat(n>1?[]:(turbo?down.segs:[])),Tw:Ts,pOut:p4},chambers.length?{chambers}:{});
   if(n>1) naOpt.collector={segs:naColl,Tw:Ts};
   // a source at the atmosphere gives the plain run to the last digit (waveturbo_ui.js 1) and the tail's flow per degree
   const na={e,intake:Object.assign({},intake,{source:{p:P_ATM,T:298.15}}),exhaust:naEx,opt:naOpt};
@@ -21663,7 +21668,9 @@ function uelLayoutSpec(q,sp,eq){
   const dp=p.dp/1000, dPort=sp&&sp.portD>0?sp.portD:dp, port=r.port/1000, ang={}, by=Object.fromEntries(U2.rows.map(x=>[x.c,x]));
   r.groups.forEach(g=>g.pulses.forEach(x=>{ang[x.cyl]=x.ang;}));
   const pos=a=>a.filter(s=>s.L>1e-6), per_cyl=[], phases=[];
-  for(let c=1;c<=N;c++){ per_cyl.push(pos([{L:port,d0:dPort,d1:dPort,primary:true},{L:(eq?d0.prim:by[c].prim)/1000,d0:dp,d1:dp,primary:true}])); phases.push(ang[c]); }
+  // port: true: the head's exhaust port law, as simSpec marks its port (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md D2: from
+  // part 7, 2026-11-13, the Headers layout's ports ran as plain pipe while the 4-Stroke tab's design had the law)
+  for(let c=1;c<=N;c++){ per_cyl.push(pos([{L:port,d0:dPort,d1:dPort,primary:true,port:true},{L:(eq?d0.prim:by[c].prim)/1000,d0:dp,d1:dp,primary:true}])); phases.push(ang[c]); }
   const dc=r.dc/1000, cm=r.cmerge/1000, cs=r.cstraight/1000, Tw=650, collectors=[];
   r.groups.forEach((g,gi)=>{
     const cyls=g.cyls.map(c=>c-1), n=cyls.length;
