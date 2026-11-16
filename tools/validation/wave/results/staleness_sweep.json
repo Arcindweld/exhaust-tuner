@@ -3481,6 +3481,369 @@
    ],
    "done": true,
    "seconds": 76.362
+  },
+  "12": {
+   "seed": 12,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-loud",
+     "v": "2"
+    },
+    {
+     "k": "use",
+     "tab": "quick",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-sd",
+     "v": ""
+    },
+    {
+     "k": "preset",
+     "tab": "options",
+     "mode": "eng",
+     "v": "271"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-make",
+     "v": "Kia"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-class",
+     "v": "bike",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.esx.esl[data-k=\"sysL\"]",
+     "v": "14.54",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-red",
+     "v": "7062"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-span",
+     "v": "40.26",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-rpm",
+     "v": "",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-disp",
+     "v": "301"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.esx.esl[data-k=\"sysL\"]",
+     "v": "16.36"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-tone",
+     "v": "high",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "top",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-pos",
+     "v": "16.23"
+    },
+    {
+     "k": "use",
+     "tab": "quick",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#v-make",
+     "v": "Ducati"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.augx[data-k=\"L\"]",
+     "v": "28.72",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-class",
+     "v": "car",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-od",
+     "v": "2.04",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-disp",
+     "v": "256"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-pick",
+     "v": "20",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-make",
+     "v": "Dodge",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.augx[data-k=\"pitch\"]",
+     "v": "3.34"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-eng",
+     "v": "p2_180"
+    },
+    {
+     "k": "mode",
+     "tab": "crossover",
+     "v": "expert",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-shape",
+     "v": "flat"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-nin",
+     "v": "2",
+     "look": "mufflers"
+    },
+    {
+     "k": "mode",
+     "tab": "headers",
+     "v": "simple"
+    },
+    {
+     "k": "units",
+     "tab": "headers",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-kind",
+     "v": "intercooler",
+     "look": "four-stroke"
+    },
+    {
+     "k": "units",
+     "tab": "crossover",
+     "v": "imp",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-len",
+     "v": "28.49",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-dt",
+     "v": "2.92"
+    },
+    {
+     "k": "mode",
+     "tab": "four-stroke",
+     "v": "expert",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-trq",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-pshape",
+     "v": "flat"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cruise",
+     "v": "1650"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-h",
+     "v": "1.66",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-pshape",
+     "v": "ellipse",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-make",
+     "v": "Benelli",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-H",
+     "v": "11.47",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-shape",
+     "v": "flat",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-z3",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-pos",
+     "v": "15.32"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-iso",
+     "v": "s"
+    },
+    {
+     "k": "reload",
+     "tab": "intake",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-ind",
+     "v": "roots"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-class",
+     "v": "car"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 50,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 82.455
   }
  },
  "sum": {

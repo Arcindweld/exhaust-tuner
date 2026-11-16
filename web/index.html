@@ -21600,6 +21600,7 @@ function uelTable(r,p){
   cyls.forEach(c=>fill($('h-len-c'+c),Number.isFinite(HUEL.c[c])?HUEL.c[c]:d.prim,c in HUEL.c));
   prs.forEach((q,k)=>fill($('h-sec-g'+(k+1)),Number.isFinite(HUEL.g[q.key])?HUEL.g[q.key]:d.sec,q.key in HUEL.g));
   fill($('h-uel-t'),uelTemp(),Number.isFinite(HUEL.T));
+  { const rs=$('h-uel-route'); if(rs&&rs.value!==String(HUEL.route)&&[...rs.options].some(o=>o.value===String(HUEL.route))) rs.value=String(HUEL.route); }   // the table is rebuilt only when the layout changes: show the collector a load set
 }
 const uelTemp=()=>Number.isFinite(HUEL.T)?HUEL.T:(Number.isFinite(val('f-egt'))?val('f-egt'):704.444);
 // arrival-train order content: pulses of one shape arriving at the collector at firing angle + L/a; |sum e^(-i 2 pi m theta/720)| / n
@@ -27455,7 +27456,7 @@ let cur='quick';
 // layout, the boosted plan); they were refreshed only when their tab rendered, so after a project load or an engine preset
 // chosen on another tab the 4-Stroke tab simulated the layout and charge of the build before (2026-11-16,
 // docs/SPEC_PARITY_AUDIT_2026-11-16.md D5). Called by projApply and applyVehicle.
-function refreshTabResults(){ if(cur!=='four-stroke') simInpRefresh(); INPUT_GEN++; refreshDeps(); }
+function refreshTabResults(){ if(cur!=='four-stroke') simInpRefresh(); if(PROD_GEN) INPUT_GEN++; refreshDeps(); }
 // The tabs whose last results other tabs read (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A3): the Headers tab
 // (HDR_LAST: the 4-Stroke tab's simulation plan, its optimiser and OpenWAM sections, the Sound estimate, the parts
 // payloads), the Crossover tab (CROSS_LAST: the OpenWAM line and the Sound estimate) and the Intake tab (TS_LAST,
@@ -27465,10 +27466,11 @@ function refreshTabResults(){ if(cur!=='four-stroke') simInpRefresh(); INPUT_GEN
 // Headers layout, the 4-Stroke engine in the Intake tab's boosted plan) left that result as it was until its tab was
 // opened. Now any input marks them out of date (INPUT_GEN) and the render of any other tab first renders, off-tab, the
 // ones that are out of date: Headers, then Crossover, then Intake (which reads the other two).
-let INPUT_GEN=1; const PROD_GEN={headers:0,crossover:0,intake:0};
+// (var: a preset or a load during the page's start-up, before this line, renders them all as before)
+var INPUT_GEN=1, PROD_GEN={headers:0,crossover:0,intake:0};
 document.addEventListener('input',()=>{ INPUT_GEN++; },true); document.addEventListener('change',()=>{ INPUT_GEN++; },true);
-function refreshDeps(){ for(const [n,f] of [['headers',renderHeaders],['crossover',renderCross],['intake',renderIntake]]){ if(n===cur||PROD_GEN[n]===INPUT_GEN) continue; try{ f(); }catch(e){} PROD_GEN[n]=INPUT_GEN; } }
-function renderActive(){ syncShapes(); if(cur!=='four-stroke') simInpRefresh(); refreshDeps(); TABS[cur].render(); if(PROD_GEN[cur]!==undefined) PROD_GEN[cur]=INPUT_GEN; if(cur==='headers') renderPieCut(); window.__renderCount=(window.__renderCount||0)+1; }
+function refreshDeps(){ for(const [n,f] of [['headers',renderHeaders],['crossover',renderCross],['intake',renderIntake]]){ if(n===cur||(PROD_GEN&&PROD_GEN[n]===INPUT_GEN)) continue; try{ f(); }catch(e){} if(PROD_GEN) PROD_GEN[n]=INPUT_GEN; } }
+function renderActive(){ syncShapes(); if(cur!=='four-stroke') simInpRefresh(); refreshDeps(); TABS[cur].render(); if(PROD_GEN&&PROD_GEN[cur]!==undefined) PROD_GEN[cur]=INPUT_GEN; if(cur==='headers') renderPieCut(); window.__renderCount=(window.__renderCount||0)+1; }
 function showTab(){
   const h=location.hash.replace('#','');
   cur=TABS[h]?h:'quick';
