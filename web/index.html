@@ -748,6 +748,8 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <label class="f span2"><span class="lab">Fill from a stock engine and cam</span>
           <span class="inp"><select id="f-camlib"><option value="">Choose one (fills the engine, cam, valves and lift)</option></select></span></label>
         <span class="hint" id="f-camlib-hint" style="grid-column:1/-1" hidden></span>
+        <label class="f span2" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="f-camkeep"><span>Keep the cam from the list above when I choose an engine from the engine list (off: the engine’s own cam, estimated unless typed)</span></label>
+        <div class="note" id="f-camswap" style="grid-column:1/-1" hidden></div>
         <details class="camcard" style="grid-column:1/-1"><summary>Enter a cam card instead (duration, lobe separation, advance)</summary>
           <div class="grid2" style="margin-top:8px">
             <label class="f"><span class="lab">Intake duration</span>
@@ -16321,7 +16323,43 @@ function camLibFill(k){
 }
 (()=>{ const sel=$('f-camlib'); if(!sel) return;
   CAM_LIB.forEach(c=>{ const o=document.createElement('option'); o.value=c.k; o.textContent=c.name+(c.assumed?' (cam timing assumed straight up)':''); sel.appendChild(o); });
-  sel.addEventListener('change',()=>camLibFill(sel.value)); })();
+  sel.addEventListener('change',()=>{ CAM_SWAP=null; camSwapShow(); camLibFill(sel.value); }); })();
+/* A cam from the list above and an engine preset chosen after it (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A4).
+   The library fills the engine, its cam card (events at 0.050 in), lifts and valves; an engine preset sets the engine but
+   defines no cam, so until now the library's cam stayed and one engine's cam ran on another without a word. The rule:
+   choosing an engine preset puts a library cam aside, its fields back to a fresh page's (the events estimated, seat to
+   seat, lifts scaled), so a preset gives the same inputs whether or not a library cam was picked before; a note says so,
+   with one click to put the cam back. With "Keep the cam" ticked the cam stays and the note says it was kept from before,
+   with one click to use the engine's own. A cam typed by hand (no library entry picked) is the builder's: kept, as before.
+   Project loads are exact (projApply sets every saved field after the vehicle picker and skips this rule). */
+// the fields camLibFill sets that an engine preset may leave alone: put back to the page's defaults when the cam is set aside
+const CAM_LIB_RESET=['f-ivo','f-ivc','f-evo','f-evc','f-lin','f-lex','f-camat','f-valves','f-cratio'];
+// the cam itself (put back by "use it again")
+const CAM_LIB_CAM=['f-ivo','f-ivc','f-evo','f-evc','f-lin','f-lex','f-camat'];
+let CAM_SWAP=null, CAM_LOADING=false;   // {k, name, vals, preset, kept}: the library cam the last engine preset put aside or kept
+const camFieldGet=id=>{ const el=$(id); return el.dataset.kind?(Number.isFinite(el._b)?el._b:null):el.value; };
+const camFieldSet=(id,v)=>{ const el=$(id); if(el.dataset.kind){ if(v===null||!Number.isFinite(+v)){ el._b=NaN; el.value=''; } else { el._b=+v; showInput(el); } } else el.value=v; };
+const camFieldDefault=id=>{ const el=$(id); if(el.dataset.kind){ const b=el.dataset.base; return b===''||b==null?null:+b; } const o=[...el.options].find(o=>o.defaultSelected)||el.options[0]; return o.value; };
+// called by applyVehicle (a four-stroke engine preset) before it fills the engine
+function camLibOnPreset(v){
+  if(CAM_LOADING) return;
+  const c=CAM_LIB.find(x=>x.k===$('f-camlib').value); if(!c) return;
+  const vals={}; CAM_LIB_RESET.forEach(id=>{ vals[id]=camFieldGet(id); });
+  CAM_SWAP={k:c.k,name:c.name,vals,preset:v.code||v.name||'this engine',kept:!!$('f-camkeep').checked};
+  if(!CAM_SWAP.kept) camSetAside();
+}
+function camSetAside(){ CAM_LIB_RESET.forEach(id=>camFieldSet(id,camFieldDefault(id))); $('f-camlib').value=''; $('f-camlib-hint').hidden=true; if(CAM_SWAP) CAM_SWAP.kept=false; }
+function camSwapShow(){
+  const n=$('f-camswap'); if(!n) return; const s=CAM_SWAP;
+  if(!s){ n.hidden=true; n.innerHTML=''; return; }
+  n.hidden=false;
+  n.innerHTML=s.kept?'<b>Cam: '+esc(s.name)+' (kept from before)</b>, from the list above: its events at 0.050 in and its lifts are that engine’s, not '+esc(s.preset)+'’s. <button type="button" class="btn" id="f-camswap-btn" data-cs="own">Use this engine’s own cam</button>'
+    :'<b>Cam set aside: '+esc(s.name)+'</b> was picked from the list above; choosing '+esc(s.preset)+' put this engine’s own cam back (estimated from the exhaust opening unless you type it). <button type="button" class="btn" id="f-camswap-btn" data-cs="back">Use the '+esc(s.name.split(' (')[0])+' cam again</button>';
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('#f-camswap-btn'); if(!b||!CAM_SWAP) return;
+  if(b.dataset.cs==='own') camSetAside();
+  else { CAM_LIB_CAM.forEach(id=>camFieldSet(id,CAM_SWAP.vals[id])); $('f-camlib').value=CAM_SWAP.k; $('f-camlib-hint').hidden=false; CAM_SWAP.kept=true; }
+  camSwapShow(); renderActive(); });
 /* K-series intake manifolds (2026-11-15, docs/WAVE_VALIDATION_2026-11-11.md part 14): only the figures the source states,
    each labelled by its kind of source. run: the manifold's runner (mm, flange to plenum as the source gives it; the head's
    port is added from "Of that, the intake port"); plv: plenum (cc); tb: throttle bore (mm). null: not given, the field is
@@ -19921,7 +19959,7 @@ function applyVehicle(v){
   setBase('s-idle',idle); setBase('s-cruise',cruise); setBase('s-red',red); setBase('s-disp',v.cc);
   if(cyc!=='2'){ $('h-eng').value=v.eng; $('h-ports').value=v.hot?'in':'out'; setBase('h-rpm',v.hpRpm); setBase('h-trq',v.tqRpm); setBase('h-disp',v.cc); }
   else setBase('t-rpm',v.hpRpm);
-  if(cyc==='4'){ const vp=vehPrimaries(v.eng); setBase('f-rpm',v.hpRpm); setBase('f-trq',v.tqRpm); setBase('f-disp',v.cc); setBase('f-cyl',n); $('f-n').value=String(vp);
+  if(cyc==='4'){ camLibOnPreset(v); const vp=vehPrimaries(v.eng); setBase('f-rpm',v.hpRpm); setBase('f-trq',v.tqRpm); setBase('f-disp',v.cc); setBase('f-cyl',n); $('f-n').value=String(vp);
     $('f-gaps').value=vp>1?collGaps(v.eng,vp===n||!e.banks?e.order.slice(0,vp):e.banks[0]):''; }
   $('c-cyc').value=cyc; setBase('c-cyl',n); setBase('c-disp',v.cc); setBase('c-rpm',v.hpRpm); setBase('c-cruise',cruise);
   $('b-cyc').value=cyc; setBase('b-cyl',n); setBase('b-disp',v.cc); setBase('b-rpm',v.hpRpm); setBase('b-red',red);
@@ -19946,6 +19984,7 @@ function applyVehicle(v){
   $('q-eng').value=v.eng; setBase('q-disp',v.cc); setBase('q-rpm',v.hpRpm); setBase('q-hp',v.hp); setBase('q-tq',v.tqRpm); setBase('q-cruise',cruise);
   $('q-ind').value=v.ind==='na'?'na':/^turbo/.test(v.ind)?'turbo':'sc'; $('q-pipes').value='auto';
   $('v-note').innerHTML=vehNote(v,red,idle,cruise);
+  camSwapShow();
   refreshTabResults(); renderActive();
 }
 // the extra engine facts an engine preset carries (kd), each with its own source; fields with no source are said to be missing
@@ -27561,6 +27600,10 @@ function projSnapshot(name){
     vals,ui,huel:{c:HUEL.c,g:HUEL.g,n:HUEL.n,pg:HUEL.pg,pr:HUEL.pr},tw:twSave(),jig:Object.assign({},JIG_UI,{open:undefined}),build:JSON.parse(JSON.stringify(BUILD.items))};
 }
 function projApply(d){
+  // the cam-library rule of an engine preset (camLibOnPreset) does not run while a project loads: every saved field is set
+  CAM_LOADING=true; try{ projApply0(d); } finally{ CAM_LOADING=false; } CAM_SWAP=null; camSwapShow();
+}
+function projApply0(d){
   if(!d||!d.vals) throw new Error('not an Exhaust Tuner project');
   // a project saved before the one operating point (2026-11-14, docs/USABILITY_AUDIT_2026-11-14.md C4, C6, C7) has none
   // of its three settings: it loads as it was worked out then (boost and power both typed, no back pressure unless typed,
