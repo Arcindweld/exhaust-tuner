@@ -5,7 +5,7 @@
 // against A itself read again in the reverse tab order (a result that depends on which tab was visited before).
 //   node tools/validation/staleness_sweep.js [seeds=1-10] [n=40] [every=10] [out=file]
 //   node tools/validation/staleness_sweep.js replay=SEED upto=K [out=file]   (replays the recorded actions 1..K of a session
-//        from the results file, then one checkpoint: to bisect a difference)
+//        from the results file, then one checkpoint: to bisect a difference; dump=TAB prints that tab's first lines in A and B)
 // Resumable: a session's result is written when it ends (results/staleness_sweep.json); a rerun skips the sessions done.
 'use strict';
 const path = require('path'), fs = require('fs');
@@ -52,7 +52,9 @@ async function checkpoint(ctx, pg) {
   const A = await T.readAll(pg), A2 = await T.readAll(pg, 'reverse');
   const B = await open(ctx, snap.tab || 'quick'); await B.evaluate(d => window.__proj.apply(d), snap); await T.copyView(pg, B); await settle(B);
   const Bt = await T.readAll(B), errs = B._errs.slice(); await B.close();
-  return { load: T.diffTabs(A, Bt), order: T.diffTabs(A, A2), errsB: errs, tabsRead: Object.keys(A).length };
+  const r = { load: T.diffTabs(A, Bt), order: T.diffTabs(A, A2), errsB: errs, tabsRead: Object.keys(A).length };
+  if (args.dump) { r.dumpA = (A[args.dump] || '').split('\n').slice(0, 40); r.dumpB = (Bt[args.dump] || '').split('\n').slice(0, 40); r.snap = snap; }
+  return r;
 }
 (async () => {
   const db = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : { sessions: {} };

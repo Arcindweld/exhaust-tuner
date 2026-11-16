@@ -17140,8 +17140,9 @@ function renderMuf(){
   const bore=boreOf('m-dp-shape'), useSecs=$('m-lay').value==='secs', secs=useSecs?soundSecs():null;
   $('m-len-wrap').hidden=useSecs;
   const p={f:val('m-f'),dpipe:bore.err?NaN:bore.Deq,len:val('m-len'),tmain:val('m-tmain'),tres:val('m-tres'),dn:val('m-dn'),ln:val('m-ln'),db:val('m-db'),dch:val('m-dch'),lch:val('m-lch'),lin:val('m-lin'),lout:val('m-lout'),rev:$('m-chlay').value==='reverse'};
-  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
-  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
+  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
+  // (2026-11-16) the two early error returns also clear the legend and caption: they kept the last result's (A3)
+  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   if(secs){ p.secs=secs; p.len=secLen(pathSecs(secs))*1000; }
   const endName=FX.mufTurbo?'turbine':'valve';
   $('m-len-lab').textContent=FX.mufTurbo?'Pipe length, turbine outlet to tailpipe tip':'Pipe length, valve to tailpipe tip';
