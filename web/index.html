@@ -11296,7 +11296,7 @@ function chamberSection(ch,type,r,p){
   return sec('Resonance chamber',rows+fig+why);
 }
 // The 4-Stroke tab's simulation inputs (SIM.inp) as its fields stand now, without rendering the tab (2026-11-16,
-// docs/SPEC_PARITY_AUDIT_2026-11-16.md A3): SIM.inp was set only when the 4-Stroke tab rendered, yet the Sound tab's
+// docs/SPEC_PARITY_AUDIT_2026-11-16.md A2): SIM.inp was set only when the 4-Stroke tab rendered, yet the Sound tab's
 // estimate, the Intake tab's boosted plan and glance, and the tests read it from other tabs. So an engine preset chosen,
 // or a project loaded, on another tab left them on the previous engine until the 4-Stroke tab was opened, and a fresh page
 // that had not opened it said "Open the 4-Stroke tab". Called by renderActive for the other tabs and by refreshTabResults;
@@ -12827,7 +12827,7 @@ function wsndJob(variants,done,o){ o=o||{};
     i++; if(i>=rpms.length){ i=0; vi++; eng=null; } setTimeout(step,0); };
   setTimeout(step,0);
 }
-// what an estimate ran on (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A3): the specs of its designs as they would be
+// what an estimate ran on (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A2): the specs of its designs as they would be
 // built now, the speeds, the load, the grid and the microphone (wsndEntry places it when the run finishes). The estimate's
 // results are shown as out of date when this differs from the one they ran with; until now nothing marked them, so after a
 // change to the header, the line or the engine the sound shown was the design before's, labelled "Your design".
@@ -16345,7 +16345,7 @@ function camLibFill(k){
 (()=>{ const sel=$('f-camlib'); if(!sel) return;
   CAM_LIB.forEach(c=>{ const o=document.createElement('option'); o.value=c.k; o.textContent=c.name+(c.assumed?' (cam timing assumed straight up)':''); sel.appendChild(o); });
   sel.addEventListener('change',()=>{ CAM_SWAP=null; camSwapShow(); camLibFill(sel.value); }); })();
-/* A cam from the list above and an engine preset chosen after it (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A4).
+/* A cam from the list above and an engine preset chosen after it (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A3).
    The library fills the engine, its cam card (events at 0.050 in), lifts and valves; an engine preset sets the engine but
    defines no cam, so until now the library's cam stayed and one engine's cam ran on another without a word. The rule:
    choosing an engine preset puts a library cam aside, its fields back to a fresh page's (the events estimated, seat to
@@ -17142,7 +17142,7 @@ function renderMuf(){
   $('m-len-wrap').hidden=useSecs;
   const p={f:val('m-f'),dpipe:bore.err?NaN:bore.Deq,len:val('m-len'),tmain:val('m-tmain'),tres:val('m-tres'),dn:val('m-dn'),ln:val('m-ln'),db:val('m-db'),dch:val('m-dch'),lch:val('m-lch'),lin:val('m-lin'),lout:val('m-lout'),rev:$('m-chlay').value==='reverse'};
   if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
-  // (2026-11-16) the two early error returns also clear the legend and caption: they kept the last result's (A3)
+  // (2026-11-16) the two early error returns also clear the legend and caption: they kept the last result's (A2)
   if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   if(secs){ p.secs=secs; p.len=secLen(pathSecs(secs))*1000; }
   const endName=FX.mufTurbo?'turbine':'valve';
@@ -22167,7 +22167,7 @@ async function wamDownload(){
   wamMsg('Downloaded '+zname+'.');
   return out;
 }
-// what an OpenWAM run from this page ran (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A3): a hash of the case's .wam
+// what an OpenWAM run from this page ran (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A2): a hash of the case's .wam
 // files; the results table is marked out of date when the case the page would write now differs. Results read from
 // AVG.DAT files picked by hand have none (the page cannot tell which case wrote them), and say so.
 function wamSig(out){ let h=2166136261>>>0; const t=out.files.filter(f=>/\.wam$/i.test(f.name)).map(f=>f.name+'\n'+f.text).join('\n');
@@ -27458,7 +27458,7 @@ let cur='quick';
 // chosen on another tab the 4-Stroke tab simulated the layout and charge of the build before (2026-11-16,
 // docs/SPEC_PARITY_AUDIT_2026-11-16.md D5). Called by projApply and applyVehicle.
 function refreshTabResults(){ if(cur!=='four-stroke') simInpRefresh(); if(PROD_GEN) INPUT_GEN++; refreshDeps(); }
-// The tabs whose last results other tabs read (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A3): the Headers tab
+// The tabs whose last results other tabs read (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md A2): the Headers tab
 // (HDR_LAST: the 4-Stroke tab's simulation plan, its optimiser and OpenWAM sections, the Sound estimate, the parts
 // payloads), the Crossover tab (CROSS_LAST: the OpenWAM line and the Sound estimate) and the Intake tab (TS_LAST,
 // MFD_LAST: the boosted plan, the Hangers tab). Each was refreshed only when its own tab rendered (D5 added project loads
@@ -27639,10 +27639,10 @@ const PROJ_UI={   // the per-section settings kept with a project: [object, keys
   wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
   es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open','fx']],
   cmap:[CMAP,['tool']],   // Your compressor map: calibration, marked points and typed values; never the image (cmapAfterLoad)
-  snd:[WSND,null,['rpms','load','dead']],
+  snd:[WSND,null,['rpms','load','dead']],   // the sound estimate's speeds, load and misfire choice (2026-11-16); never its results
   aug:[AUG,[]],   // the Mufflers tab's auger designer (2026-11-16: was not saved)
   md:[MD,null,['tl','f0','f1','kinds','inst']],   // the muffler designer's targets and choices (2026-11-16); never its list or runs
-  tt:[TT,[]]};   // the tuned-tube set (2026-11-16)   // the sound estimate's speeds, load and misfire choice (2026-11-16); never its results
+  tt:[TT,[]]};   // the tuned-tube set (2026-11-16)
 function projLoadAll(){ try{ const a=JSON.parse(localStorage.getItem(PROJ_KEY)||'[]'); return Array.isArray(a)?a.filter(p=>p&&p.data&&p.name):[]; }catch(e){ return []; } }
 function projStoreAll(a){ try{ localStorage.setItem(PROJ_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 function projSnapshot(name){
@@ -27713,7 +27713,7 @@ function projApply0(d){
   // a loaded project's power field is the builder's, not a preset's; except in a project saved while the preset's rating was
   // still held there (hpPreset, saved since 2026-11-16): it loads held as it was saved, so its boosted results are the ones
   // the page that wrote it showed (before, the hold ended on load and a turbo build with "My power target" was worked at
-  // the stock rating instead of the boost field's figure: docs/SPEC_PARITY_AUDIT_2026-11-16.md A3)
+  // the stock rating instead of the boost field's figure: docs/SPEC_PARITY_AUDIT_2026-11-16.md A2)
   HP_PRESET=null;
   if(d.hpPreset&&Number.isFinite(d.hpPreset.hp)&&Math.abs(val('i-hp')-d.hpPreset.hp)<1e-9){ HP_PRESET=d.hpPreset.hp; HP_PRESET_NAME=String(d.hpPreset.name||''); HP_PRESET_NA=!!d.hpPreset.na; }
   refreshTabResults(); renderActive();

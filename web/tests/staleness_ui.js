@@ -94,7 +94,7 @@ const NOT_SAVED = T.NOT_SAVED;
     await pg.evaluate(() => { window.__proj.wam.runSig = null; window.__st.put('#f-dp', document.getElementById('f-dp').value); }); await settle(pg);
     const w3 = await pg.evaluate(() => [!!document.getElementById('wam-stale'), !!document.getElementById('wam-files-note')]);
     ok(w0 && !w1[0] && !w1[1] && w2[0] && !w3[0] && w3[1], 'the OpenWAM results table: current after its run, out of date once the case the tab writes changes, and "read from files" when the page cannot tell which case wrote them ' + JSON.stringify([w1, w2, w3]));
-    ok(!s0 && s1, 'the sound estimate is not marked out of date when nothing changed, and is after the primary size changed on the 4-Stroke tab (it never was: A3)' + JSON.stringify([s0, s1, s3]));
+    ok(!s0 && s1, 'the sound estimate is not marked out of date when nothing changed, and is after the primary size changed on the 4-Stroke tab (it never was: A2)' + JSON.stringify([s0, s1, s3]));
     await pg.close(); }
 
   // ---- 3. a project written by this page reproduces every tab's text (a rich build; then a short seeded session)

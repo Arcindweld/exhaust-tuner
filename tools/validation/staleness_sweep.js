@@ -1,4 +1,4 @@
-// The stale-result hunt over the whole page (docs/SPEC_PARITY_AUDIT_2026-11-16.md, addendum A3). Sessions of seeded user
+// The stale-result hunt over the whole page (docs/SPEC_PARITY_AUDIT_2026-11-16.md, addendum A2). Sessions of seeded user
 // actions on one page A (a random tab, a random visible input there changed; now and then an engine preset or vehicle, the
 // unit toggle, Simple/Expert, a project saved and loaded back into the same page, a "Use" button, a look at another tab),
 // and every `every` actions a checkpoint: every tab's text in A against a fresh page B given A's project from scratch, and

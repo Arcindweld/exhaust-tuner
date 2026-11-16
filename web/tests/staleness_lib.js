@@ -1,4 +1,4 @@
-// Shared by staleness_ui.js and tools/validation/staleness_sweep.js (docs/SPEC_PARITY_AUDIT_2026-11-16.md, addendum A3):
+// Shared by staleness_ui.js and tools/validation/staleness_sweep.js (docs/SPEC_PARITY_AUDIT_2026-11-16.md, addendum A2):
 // the stale-result hunt. Not a test itself (tools/run_all_tests.py NOT_TESTS).
 //
 // The class of defect: a result on screen that does not correspond to the inputs on screen (D3: a run key without the

@@ -1,4 +1,4 @@
-// Every input on the page against the project file (docs/SPEC_PARITY_AUDIT_2026-11-16.md, addendum A5): a page put in a
+// Every input on the page against the project file (docs/SPEC_PARITY_AUDIT_2026-11-16.md, addendum A4): a page put in a
 // state that renders the generated inputs (expert mode, a turbo build with a turbo picked, the Headers tab at unequal
 // lengths, every tab visited), every input, select and textarea with an id enumerated, and each one either saved in the
 // project's vals, or found to survive a save and a load through one of the project's section objects (changed in page A,
