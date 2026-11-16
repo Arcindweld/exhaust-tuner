@@ -106,6 +106,13 @@ const NOT_SAVED = T.NOT_SAVED;
       (d1.length ? '; load: ' + d1.map(d => d.tab + ' [' + d.a + '] vs [' + d.b + ']').join('; ') : '') + (d2.length ? '; order: ' + d2.map(d => d.tab + ' [' + d.a + '] vs [' + d.b + ']').join('; ') : ''));
     await A.close(); await B.close(); }
 
+  // ---- the Headers tab with "My own groups" (it threw before its summary, so its result never reached the other tabs: A1 (c))
+  { const pg = await T.open(ctx, 'headers'); const e0 = []; pg.on('pageerror', e => e0.push(e.message));
+    await pg.evaluate(() => { window.__st.put('#h-eng', 'i6'); window.__st.put('#h-grp', 'custom'); window.__st.put('#h-groups', '1,2,3 | 4,5,6'); }); await settle(pg);
+    const h = await pg.evaluate(() => { const H = window.__hdrLast(); return H && H.r && !H.r.err ? H.r.groups.length : null; });
+    ok(!e0.length && h === 2, 'the Headers tab with "My own groups" (1,2,3 | 4,5,6 on an inline six) renders without an error and its layout (2 collectors) reaches the other tabs' + (e0.length ? ': ' + e0[0] : ' (' + h + ')'));
+    await pg.close(); }
+
   // ---- 4. every input saved, or not saved on purpose
   { const r = await T.inventory(ctx);
     const unknown = r.lost.filter(x => !(x.id in NOT_SAVED)), stale = Object.keys(NOT_SAVED).filter(id => !(id in r.ids));

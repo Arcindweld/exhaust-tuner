@@ -16135,7 +16135,8 @@ function renderHeaders(){
   FX.target=FX.target||{}; FX.target.headers=r.tube;
   det.innerHTML=html; addToc(det);
 
-  const gname={bank:()=>banks.length>1?'per bank':'one collector',alt:()=>'180° alternate firing order',all:()=>'all into one'}[p.mode]();
+  // (2026-11-16) 'custom' was missing: "My own groups" threw here, so the summary and HDR_LAST were never set (A1 (c))
+  const gname={bank:()=>banks.length>1?'per bank':'one collector',alt:()=>'180° alternate firing order',all:()=>'all into one',custom:()=>'my own groups'}[p.mode]();
   const pname=prof==='const'?'constant diameter':(prof==='step2'?'stepped, 2 sections':'stepped, 3 sections');
   S.headers.summary=['HEADER LAYOUT · '+(custom?'Custom '+order.join('-')+(e.gaps?' at '+e.gaps.join('-')+'°':''):e.name),
     'Collectors: '+r.groups.map((g,i)=>lab(i)+' = '+g.pulses.map(q=>q.cyl).join('-')+' (gaps '+g.gaps.map(x=>Math.round(x)).join('/')+'°)').join('; '),

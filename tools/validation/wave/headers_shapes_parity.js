@@ -2,7 +2,8 @@
 // shape laid out at unequal lengths on the Headers tab, the 4-Stroke tab's specs for it ("Header to simulate": the layout as
 // laid out and its equal-length twin, uelLayoutSpec), run at two speeds with the JavaScript model, the WebAssembly (the
 // page's rustBackend) and the validation scripts' load of the model, every number compared to the last digit; and each
-// layout spec checked for its shape (collectors, stages, every port segment marked as a port: D2).
+// layout spec checked for its shape (collectors; a Tri-Y's Y stage, none for a direct merge; every port segment marked
+// as a port: D2).
 //   node tools/validation/wave/headers_shapes_parity.js [only=regex]
 'use strict';
 const path = require('path'), fs = require('fs');
@@ -14,13 +15,13 @@ const PAGE = path.join(L.ROOT, 'web', 'index.html');
 const RC = { dx: 0.025, cyc: 1, firstCyc: 2, extra: 1 };
 const lens = (n, a, b) => Array.from({ length: n }, (_, i) => ['#h-len-c' + (i + 1), String(i % 2 ? b : a)]);
 const CASES = [
-  { name: 'I4 direct 4-1, all into one', four: [['f-cyl', '4'], ['f-disp', '2000']], hdr: [['h-eng', 'i4'], ['h-disp', '2000'], ['h-grp', 'all'], ['h-merge', 'direct'], ['h-lenmode', 'unequal'], ['h-port', '80']].concat(lens(4, 420, 560)), coll: 1, stages: 1 },
-  { name: 'V8 per bank, two 4-1 collectors', four: [['f-cyl', '8'], ['f-disp', '5700']], hdr: [['h-eng', 'sbc'], ['h-disp', '5700'], ['h-grp', 'bank'], ['h-merge', 'direct'], ['h-lenmode', 'unequal'], ['h-port', '60']].concat(lens(8, 760, 840)), coll: 2, stages: 1 },
-  { name: 'V8 180 degree, alternate cylinders in firing order', four: [['f-cyl', '8'], ['f-disp', '5700']], hdr: [['h-eng', 'sbc'], ['h-disp', '5700'], ['h-grp', 'alt'], ['h-merge', 'direct'], ['h-lenmode', 'unequal']].concat(lens(8, 800, 900)), coll: 2, stages: 1 },
-  { name: 'I6 my own groups 1,2,3 | 4,5,6', four: [['f-cyl', '6'], ['f-disp', '3000']], hdr: [['h-eng', 'i6'], ['h-disp', '3000'], ['h-grp', 'custom'], ['h-groups', '1,2,3 | 4,5,6'], ['h-merge', 'direct'], ['h-lenmode', 'unequal'], ['h-port', '70']].concat(lens(6, 600, 700)), coll: 2, stages: 1 },
-  { name: 'I6 Tri-Y 6-2-1', four: [['f-cyl', '6'], ['f-disp', '3000']], hdr: [['h-eng', 'i6'], ['h-disp', '3000'], ['h-grp', 'all'], ['h-merge', 'triy'], ['h-lenmode', 'unequal']].concat(lens(6, 380, 450)), coll: 1, stages: 2 },
-  { name: 'V8 Tri-Y 8-4-1, all into one', four: [['f-cyl', '8'], ['f-disp', '5700']], hdr: [['h-eng', 'sbc'], ['h-disp', '5700'], ['h-grp', 'all'], ['h-merge', 'triy'], ['h-lenmode', 'unequal']].concat(lens(8, 400, 470)), coll: 1, stages: 2 },
-  { name: 'I4 direct, stepped primaries asked for (unequal lengths keep them constant)', four: [['f-cyl', '4'], ['f-disp', '2400']], hdr: [['h-eng', 'i4'], ['h-disp', '2400'], ['h-grp', 'all'], ['h-merge', 'direct'], ['h-prof', 'step2'], ['h-lenmode', 'unequal']].concat(lens(4, 500, 640)), coll: 1, stages: 1 }
+  { name: 'I4 direct 4-1, all into one', four: [['f-cyl', '4'], ['f-disp', '2000']], hdr: [['h-eng', 'i4'], ['h-disp', '2000'], ['h-grp', 'all'], ['h-merge', 'direct'], ['h-lenmode', 'unequal'], ['h-port', '80']].concat(lens(4, 420, 560)), coll: 1, stages: 0 },
+  { name: 'V8 per bank, two 4-1 collectors', four: [['f-cyl', '8'], ['f-disp', '5700']], hdr: [['h-eng', 'sbc'], ['h-disp', '5700'], ['h-grp', 'bank'], ['h-merge', 'direct'], ['h-lenmode', 'unequal'], ['h-port', '60']].concat(lens(8, 760, 840)), coll: 2, stages: 0 },
+  { name: 'V8 180 degree, alternate cylinders in firing order', four: [['f-cyl', '8'], ['f-disp', '5700']], hdr: [['h-eng', 'sbc'], ['h-disp', '5700'], ['h-grp', 'alt'], ['h-merge', 'direct'], ['h-lenmode', 'unequal']].concat(lens(8, 800, 900)), coll: 2, stages: 0 },
+  { name: 'I6 my own groups 1,2,3 | 4,5,6', four: [['f-cyl', '6'], ['f-disp', '3000']], hdr: [['h-eng', 'i6'], ['h-disp', '3000'], ['h-grp', 'custom'], ['h-groups', '1,2,3 | 4,5,6'], ['h-merge', 'direct'], ['h-lenmode', 'unequal'], ['h-port', '70']].concat(lens(6, 600, 700)), coll: 2, stages: 0 },
+  { name: 'I6 Tri-Y 6-2-1', four: [['f-cyl', '6'], ['f-disp', '3000']], hdr: [['h-eng', 'i6'], ['h-disp', '3000'], ['h-grp', 'all'], ['h-merge', 'triy'], ['h-lenmode', 'unequal']].concat(lens(6, 380, 450)), coll: 1, stages: 1 },
+  { name: 'V8 Tri-Y 8-4-1, all into one', four: [['f-cyl', '8'], ['f-disp', '5700']], hdr: [['h-eng', 'sbc'], ['h-disp', '5700'], ['h-grp', 'all'], ['h-merge', 'triy'], ['h-lenmode', 'unequal']].concat(lens(8, 400, 470)), coll: 1, stages: 1 },
+  { name: 'I4 direct, stepped primaries asked for (unequal lengths keep them constant)', four: [['f-cyl', '4'], ['f-disp', '2400']], hdr: [['h-eng', 'i4'], ['h-disp', '2400'], ['h-grp', 'all'], ['h-merge', 'direct'], ['h-prof', 'step2'], ['h-lenmode', 'unequal']].concat(lens(4, 500, 640)), coll: 1, stages: 0 }
 ];
 (async () => {
   const b = await chromium.launch(), out = [];
