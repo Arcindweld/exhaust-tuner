@@ -67,6 +67,7 @@ NOT_TESTS = {
     'settle.js': 'the shared helper for race-free page reads ($eval after the page stops re-rendering)',
     'capture_wave_jobs.js': 'writes fixtures/wave_jobs.json for wave_wasm.js (a generator, run by hand)',
     'specparity_lib.js': 'shared by specparity_ui.js and tools/validation/wave/specparity_audit.js (page-boundary spec parity helpers)',
+    'staleness_lib.js': 'shared by staleness_ui.js and tools/validation/staleness_sweep.js, project_inventory.js (stale-result hunt and project inventory helpers)',
     'kseries_specs.js': 'shared by kseries_ui.js; with CAPTURE= it writes fixtures/kseries_specs_before.json (a generator, run by hand)',
 }
 WEB_BAD = re.compile(r'^FAIL|FAILS|FAILED|PAGEERROR|Error:| BAD |overflow [0-9]|panel looks empty', re.M)

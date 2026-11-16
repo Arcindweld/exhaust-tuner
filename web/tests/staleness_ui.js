@@ -18,20 +18,7 @@
 const { chromium } = require('playwright');
 const T = require('./staleness_lib');
 const { settle } = require('./settle');
-// inputs that are not in the project on purpose (each: why). A test enumerates every input with an id in the rich state and
-// fails on one that is neither saved nor here.
-const NOT_SAVED = {
-  // a credential: the program's update token (the host menu) must never travel in a project file
-  'hm-upd-tok': 'the update token of the Windows program (host menu): a credential, never in a project file',
-  // the Parts tab's catalogue filters: how the list of off-the-shelf parts is browsed, not the build (the build list is saved)
-  'p-kind': 'catalogue filter (kind of part)', 'p-brand': 'catalogue filter (brand)', 'p-size': 'catalogue filter (pipe size)', 'p-q': 'catalogue search text',
-  // the custom-part form: a draft until "Add"; the part added goes in the build list, which is saved
-  'pc-name': 'custom-part draft', 'pc-kind': 'custom-part draft', 'pc-in': 'custom-part draft', 'pc-out': 'custom-part draft', 'pc-inpos': 'custom-part draft',
-  'pc-outpos': 'custom-part draft', 'pc-off': 'custom-part draft', 'pc-shape': 'custom-part draft', 'pc-w': 'custom-part draft', 'pc-h': 'custom-part draft',
-  'pc-body': 'custom-part draft', 'pc-oal': 'custom-part draft',
-  // the Options tab's filter and search: how the list is browsed
-  'o-cat': 'Options list filter', 'o-q': 'Options list search text'
-};
+const NOT_SAVED = T.NOT_SAVED;
 (async () => {
   const t0 = Date.now(), b = await chromium.launch(), ctx = await b.newContext(); const fails = [];
   const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };

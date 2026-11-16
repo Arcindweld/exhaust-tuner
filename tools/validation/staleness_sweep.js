@@ -50,7 +50,7 @@ async function act(pg, R, rec) {
 async function checkpoint(ctx, pg) {
   const snap = await pg.evaluate(() => JSON.parse(JSON.stringify(window.__proj.snapshot('checkpoint'))));
   const A = await T.readAll(pg), A2 = await T.readAll(pg, 'reverse');
-  const B = await open(ctx, snap.tab || 'quick'); await B.evaluate(d => window.__proj.apply(d), snap); await settle(B);
+  const B = await open(ctx, snap.tab || 'quick'); await B.evaluate(d => window.__proj.apply(d), snap); await T.copyView(pg, B); await settle(B);
   const Bt = await T.readAll(B), errs = B._errs.slice(); await B.close();
   return { load: T.diffTabs(A, Bt), order: T.diffTabs(A, A2), errsB: errs, tabsRead: Object.keys(A).length };
 }

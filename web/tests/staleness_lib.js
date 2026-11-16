@@ -29,6 +29,8 @@ const PAGE_SRC = function () {
     const base = (p ? '#' + p.id + ' ' : '') + el.tagName.toLowerCase() + cls + dk, all = [...document.querySelectorAll(base)];
     return base + (all.length > 1 ? '@' + all.indexOf(el) : '');
   };
+  // an input by its inventory key: its id, or (no id) the selector selOf gave
+  ST.inp = k => { if (/^#panel-/.test(k)) return ST.find(k); const q = '#' + CSS.escape(k); return document.querySelector('input' + q + ', select' + q + ', textarea' + q); };
   ST.find = sel => { const m = /^(.*)@(\d+)$/.exec(sel); if (m) return document.querySelectorAll(m[1])[+m[2]] || null; return document.querySelector(sel); };
   const visible = el => !!(el.offsetParent || el.getClientRects().length) && !el.disabled;
   // the inputs a user can change on the tab now shown (the vehicle picker above the tabs too)
@@ -126,19 +128,19 @@ async function rich(pg) {
 async function idsNow(pg) {
   const tabs = await pg.evaluate(() => window.__st.tabs()), seen = {};
   for (const t of tabs) { await goTab(pg, t.tab);
-    const ids = await pg.evaluate(() => [...document.querySelectorAll('input[id], select[id], textarea[id]')].filter(el => !el.closest('dialog') && !/^(file|button|submit|hidden)$/.test(el.type))
-      .map(el => { const p = el.closest('section[id^="panel-"]'); return { id: el.id, panel: p ? p.id : '', v: el.type === 'checkbox' ? el.checked : el.value }; }));
+    const ids = await pg.evaluate(() => [...document.querySelectorAll('input, select, textarea')].filter(el => !el.closest('dialog') && !/^(file|button|submit|hidden)$/.test(el.type) && (el.id || el.closest('section[id^="panel-"]')))
+      .map(el => { const p = el.closest('section[id^="panel-"]'); return { id: el.id || window.__st.selOf(el), panel: p ? p.id : '', v: el.type === 'checkbox' ? el.checked : el.value }; }));
     for (const x of ids) if (!seen[x.id] && (x.panel === '' || x.panel === t.panel)) seen[x.id] = Object.assign({ tab: x.panel ? t.tab : '' }, x); }
   return seen;
 }
 async function readIds(pg, ids) {
   const tabs = await pg.evaluate(() => window.__st.tabs()), out = {};
   for (const t of tabs) { const mine = ids.filter(x => x.tab === t.tab || (!x.tab && t === tabs[0])); if (!mine.length) continue; await goTab(pg, t.tab);
-    Object.assign(out, await pg.evaluate(ids => Object.fromEntries(ids.map(x => { const q = '#' + CSS.escape(x.id), el = document.querySelector('input' + q + ', select' + q + ', textarea' + q); return [x.id, el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined]; })), mine)); }
+    Object.assign(out, await pg.evaluate(ids => Object.fromEntries(ids.map(x => { const el = window.__st.inp(x.id); return [x.id, el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined]; })), mine)); }
   return out;
 }
 // a probe change of one input (a clearly different value a user could type or pick)
-const PROBE = id => { const q = '#' + CSS.escape(id), el = document.querySelector('input' + q + ', select' + q + ', textarea' + q); if (!el) return null; const fire = t => el.dispatchEvent(new Event(t, { bubbles: true }));
+const PROBE = id => { const el = window.__st.inp(id); if (!el) return null; const fire = t => el.dispatchEvent(new Event(t, { bubbles: true }));
   if (el.tagName === 'SELECT') { const o = [...el.options].find(o => !o.disabled && o.value !== el.value); if (!o) return null; el.value = o.value; fire('input'); fire('change'); return el.value; }
   if (el.type === 'checkbox') { el.checked = !el.checked; fire('input'); fire('change'); return el.checked; }
   const t = el.value.trim(); let v;
@@ -169,4 +171,25 @@ async function inventory(ctx, o) {
   await A.close(); await B.close();
   return { vals, via, lost, untested, moved, ids };
 }
-module.exports = { PAGE_SRC, install, goTab, readAll, diffTabs, open, rich, idsNow, readIds, inventory };
+// inputs that are not in the project on purpose (each: why). staleness_ui.js enumerates every input with an id in the rich state and
+// fails on one that is neither saved nor here.
+const NOT_SAVED = {
+  // a credential: the program's update token (the host menu) must never travel in a project file
+  'hm-upd-tok': 'the update token of the Windows program (host menu): a credential, never in a project file',
+  // the Parts tab's catalogue filters: how the list of off-the-shelf parts is browsed, not the build (the build list is saved)
+  'p-kind': 'catalogue filter (kind of part)', 'p-brand': 'catalogue filter (brand)', 'p-size': 'catalogue filter (pipe size)', 'p-q': 'catalogue search text',
+  // the custom-part form: a draft until "Add"; the part added goes in the build list, which is saved
+  'pc-name': 'custom-part draft', 'pc-kind': 'custom-part draft', 'pc-in': 'custom-part draft', 'pc-out': 'custom-part draft', 'pc-inpos': 'custom-part draft',
+  'pc-outpos': 'custom-part draft', 'pc-off': 'custom-part draft', 'pc-shape': 'custom-part draft', 'pc-w': 'custom-part draft', 'pc-h': 'custom-part draft',
+  'pc-body': 'custom-part draft', 'pc-oal': 'custom-part draft',
+  // the Options tab's filter and search: how the list is browsed
+  'o-cat': 'Options list filter', 'o-q': 'Options list search text'
+};
+
+// a checkpoint's fresh page gets these view settings from page A as well (they are not in the project, so B would show the
+// unfiltered list: a difference by design, not a stale result)
+async function copyView(A, B) {
+  const v = await A.evaluate(ids => Object.fromEntries(ids.map(id => { const e = document.getElementById(id); return [id, e ? e.value : null]; })), Object.keys(NOT_SAVED));
+  await B.evaluate(v => { for (const id in v) { const e = document.getElementById(id); if (!e || v[id] === null || e.value === v[id]) continue; e.value = v[id]; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); } }, v);
+}
+module.exports = { NOT_SAVED, copyView, PAGE_SRC, install, goTab, readAll, diffTabs, open, rich, idsNow, readIds, inventory };

@@ -27614,7 +27614,10 @@ const PROJ_UI={   // the per-section settings kept with a project: [object, keys
   wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
   es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open','fx']],
   cmap:[CMAP,['tool']],   // Your compressor map: calibration, marked points and typed values; never the image (cmapAfterLoad)
-  snd:[WSND,null,['rpms','load','dead']]};   // the sound estimate's speeds, load and misfire choice (2026-11-16); never its results
+  snd:[WSND,null,['rpms','load','dead']],
+  aug:[AUG,[]],   // the Mufflers tab's auger designer (2026-11-16: was not saved)
+  md:[MD,null,['tl','f0','f1','kinds','inst']],   // the muffler designer's targets and choices (2026-11-16); never its list or runs
+  tt:[TT,[]]};   // the tuned-tube set (2026-11-16)   // the sound estimate's speeds, load and misfire choice (2026-11-16); never its results
 function projLoadAll(){ try{ const a=JSON.parse(localStorage.getItem(PROJ_KEY)||'[]'); return Array.isArray(a)?a.filter(p=>p&&p.data&&p.name):[]; }catch(e){ return []; } }
 function projStoreAll(a){ try{ localStorage.setItem(PROJ_KEY,JSON.stringify(a)); return true; }catch(e){ return false; } }
 function projSnapshot(name){
@@ -27671,7 +27674,8 @@ function projApply0(d){
   try{ fuelSync(); }catch(e){}
   const ui=d.ui||{};
   for(const k in PROJ_UI){ const [o]=PROJ_UI[k], v=ui[k]; if(!v) continue;
-    for(const kk in v){ if(o[kk]&&typeof o[kk]==='object'&&!Array.isArray(o[kk])&&v[kk]&&typeof v[kk]==='object'&&!Array.isArray(v[kk])) Object.assign(o[kk],v[kk]); else o[kk]=v[kk]; } }
+    // a NaN (blank) number is null in the file: back to NaN where the section holds a number
+    for(const kk in v){ if(o[kk]&&typeof o[kk]==='object'&&!Array.isArray(o[kk])&&v[kk]&&typeof v[kk]==='object'&&!Array.isArray(v[kk])) Object.assign(o[kk],v[kk]); else o[kk]=v[kk]===null&&typeof o[kk]==='number'?NaN:v[kk]; } }
   if(d.huel){ HUEL.c=Object.assign({},d.huel.c||{}); HUEL.g=Object.assign({},d.huel.g||{}); if(Number.isFinite(d.huel.n)) HUEL.n=d.huel.n; HUEL.pg=Number.isFinite(d.huel.pg)?d.huel.pg:NaN; HUEL.pr=Number.isFinite(d.huel.pr)?d.huel.pr:NaN;
     // (2026-11-16) the primaries' gas temperature and the collector to route; a project from before has neither: blank and the first
     HUEL.T=Number.isFinite(d.huel.T)?d.huel.T:NaN; HUEL.route=Number.isInteger(d.huel.route)?d.huel.route:0; }
