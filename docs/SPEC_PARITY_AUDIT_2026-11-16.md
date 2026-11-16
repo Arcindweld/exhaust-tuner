@@ -436,7 +436,7 @@ projects the boost, fuel, K-series and compressor-map tests write and load) load
 change displayed results only where the page showed a stale one (a run or section of an earlier design, an error with the
 last design's legend) or where a load lost a saved setting; no pinned case was in such a state.
 
-Final suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, the final code): SUITE_COUNTS
+Final suite (`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, the final code): 143 tests, 136 passed, 0 failed, 7 skipped and 7 partial skips, 0 unexpected skips (OpenWAM, the host program and the F-100 run are not here), 1,946 s. staleness_ui.js took 123 s, specparity_ui.js 311 s (239 s in the first round, now further over the 3 minutes aimed for: the off-tab refresh of A2 makes each of its many page edits render the Headers, Crossover and Intake tabs too).
 
 ### A6. Still not covered
 
