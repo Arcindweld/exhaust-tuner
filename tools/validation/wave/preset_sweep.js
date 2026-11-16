@@ -47,7 +47,7 @@ function judge(rows, rpms) {
   const from = +(args.from || 0), to = Math.min(list.length, +(args.to || list.length)), t0 = Date.now();
   console.log(list.length + ' engine presets; ' + Object.keys(db.res).length + ' already done');
   for (let i = from; i < to; i++) {
-    const P = list[i]; if (db.res[P.v] && db.res[P.v].name === P.t) continue;
+    const P = list[i]; if (db.res[P.v] && db.res[P.v].name === P.t && !db.res[P.v].fail) continue;
     const t1 = Date.now(); let r;
     try {
       const [pg, errs] = await open();
@@ -71,7 +71,7 @@ function judge(rows, rpms) {
         }
       }
       await pg.close();
-    } catch (e) { r = { name: P.t, fail: String(e && e.message || e) }; }
+    } catch (e) { r = { name: P.t, fail: String(e && e.message || e) }; if (/has been closed|Target closed/.test(r.fail)) { console.log('the browser went away: stopping (rerun to resume)'); break; } }
     db.res[P.v] = r; save(db);
     const sp = r.specs || [], bad = sp.flatMap(s => s.bad || []), diff = sp.filter(s => s.same === false);
     console.log(i + ' ' + (r.fail ? 'ERROR ' + r.fail : !r.four ? 'n/a (not a four-stroke)' : (diff.length ? 'DIFF ' : '') + (bad.length ? 'IMPLAUSIBLE ' + bad.join('; ') : diff.length ? '' : 'ok')) +

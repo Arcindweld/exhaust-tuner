@@ -1382,6 +1382,92 @@
    ],
    "errs": []
   },
+  "63": {
+   "name": "6.2 Demon supercharged V8 (Challenger SRT Demon)",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5750,
+      8500
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.902,
+      1.028,
+      0.6207
+     ],
+     "imep": [
+      1293503,
+      1410647,
+      786858
+     ],
+     "eng": {
+      "bore": 0.10560106529804517,
+      "stroke": 0.08800088774837098,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05174452199604213,
+      "dEx": 0.04224042611921807,
+      "rod": 0.14960150917223067,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "65": {
+   "name": "8.3 Viper V10 (2003–06 Viper SRT-10, Ram SRT-10)",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2250,
+      5100,
+      7500
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.8298,
+      1.0978,
+      0.6997
+     ],
+     "imep": [
+      1185753,
+      1539342,
+      890475
+     ],
+     "eng": {
+      "bore": 0.1081752628504376,
+      "stroke": 0.09014605237536467,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05300587879671442,
+      "dEx": 0.04327010514017504,
+      "rod": 0.15324828903811993,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
   "66": {
    "name": "3.6 Pentastar V6 (Challenger, Charger, Wrangler, Ram)",
    "four": true,
@@ -2328,6 +2414,49 @@
    ],
    "errs": []
   },
+  "162": {
+   "name": "7.2 L 440 Magnum, 375 hp (as fitted: 1968 Dodge Charger R/T (440 Magnum))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      1750,
+      4200,
+      6250
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9089,
+      1.0788,
+      0.8905
+     ],
+     "imep": [
+      1270895,
+      1552264,
+      1191946
+     ],
+     "eng": {
+      "bore": 0.11125312381431282,
+      "stroke": 0.09271093651192736,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05451403066901328,
+      "dEx": 0.04450124952572513,
+      "rod": 0.1576085920702765,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
   "164": {
    "name": "7.0 L L72, 425 hp (as fitted: 1969 Chevrolet Camaro COPO 427 (L72))",
    "four": true,
@@ -2489,6 +2618,49 @@
       "dIn": 0.05508764218207083,
       "dEx": 0.04496950382209864,
       "rod": 0.159266992703266,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "172": {
+   "name": "7.2 L 440+6, 385 hp (as fitted: 1971 Mopar 440 Six Pack (440+6))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2000,
+      4300,
+      6250
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.8835,
+      1.0869,
+      0.8902
+     ],
+     "imep": [
+      1257086,
+      1556052,
+      1189956
+     ],
+     "eng": {
+      "bore": 0.11125312381431282,
+      "stroke": 0.09271093651192736,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05451403066901328,
+      "dEx": 0.04450124952572513,
+      "rod": 0.1576085920702765,
       "cam": {
        "ivo": 20,
        "ivc": 60,
@@ -2919,6 +3091,92 @@
       "dIn": 0.05173333036121788,
       "dEx": 0.04223129009079011,
       "rod": 0.14956915240488164,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "187": {
+   "name": "6.2 L Classic GM and Chrysler V8 (small-block Chevy), 717 hp (as fitted: 2020 Dodge Challenger or Charger SRT Hellcat)",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5500,
+      8000
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.8974,
+      1.065,
+      0.6706
+     ],
+     "imep": [
+      1289795,
+      1474833,
+      859107
+     ],
+     "eng": {
+      "bore": 0.10560106529804517,
+      "stroke": 0.08800088774837098,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05174452199604213,
+      "dEx": 0.04224042611921807,
+      "rod": 0.14960150917223067,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "188": {
+   "name": "6.4 L Classic GM and Chrysler V8 (small-block Chevy), 485 hp (as fitted: 2020 Dodge Challenger or Charger Scat Pack 392)",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5650,
+      8250
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.8955,
+      1.0374,
+      0.6359
+     ],
+     "imep": [
+      1287655,
+      1424425,
+      810259
+     ],
+     "eng": {
+      "bore": 0.10701495478473384,
+      "stroke": 0.0891791289872782,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.052437327844519585,
+      "dEx": 0.04280598191389354,
+      "rod": 0.15160451927837293,
       "cam": {
        "ivo": 20,
        "ivc": 60,
@@ -5510,6 +5768,92 @@
    ],
    "errs": []
   },
+  "363": {
+   "name": "3.6 L 3.6 Pentastar, 292 hp (as fitted: 2011–23 Dodge Charger / Challenger SXT (3.6 Pentastar))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5750,
+      8500
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9305,
+      1.0418,
+      0.6723
+     ],
+     "imep": [
+      1326192,
+      1434044,
+      871701
+     ],
+     "eng": {
+      "bore": 0.096,
+      "stroke": 0.083,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.04704,
+      "dEx": 0.038400000000000004,
+      "rod": 0.1411,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "364": {
+   "name": "5.7 L 5.7 HEMI, 370 hp (as fitted: 2011–23 Dodge Charger R/T (5.7 Hemi))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2000,
+      4750,
+      7000
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9085,
+      1.097,
+      0.8418
+     ],
+     "imep": [
+      1274598,
+      1569097,
+      1108841
+     ],
+     "eng": {
+      "bore": 0.1025933144396611,
+      "stroke": 0.08549442869971759,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05027072407543394,
+      "dEx": 0.04103732577586444,
+      "rod": 0.1453405287895199,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
   "365": {
    "name": "6.4 L 6.4 HEMI 392, 470 hp (as fitted: 2012–14 Chrysler 300 SRT8 / Charger & Challenger SRT8 392 (6.4 Hemi))",
    "four": true,
@@ -5553,6 +5897,264 @@
    ],
    "errs": []
   },
+  "366": {
+   "name": "6.2 L Hellcat 6.2, 707 hp (as fitted: 2015–19 Dodge Charger / Challenger SRT Hellcat (6.2 SC Hemi))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5500,
+      8000
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.8942,
+      1.0423,
+      0.643
+     ],
+     "imep": [
+      1285924,
+      1434018,
+      818058
+     ],
+     "eng": {
+      "bore": 0.1039,
+      "stroke": 0.09090000000000001,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.050911000000000005,
+      "dEx": 0.04156000000000001,
+      "rod": 0.15453,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "367": {
+   "name": "6.2 L Hellcat Redeye 6.2, 797 hp (as fitted: 2019–23 Dodge Charger / Challenger SRT Hellcat Redeye (6.2 SC Hemi))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5750,
+      8500
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.902,
+      1.028,
+      0.6207
+     ],
+     "imep": [
+      1293503,
+      1410647,
+      786858
+     ],
+     "eng": {
+      "bore": 0.10560106529804517,
+      "stroke": 0.08800088774837098,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05174452199604213,
+      "dEx": 0.04224042611921807,
+      "rod": 0.14960150917223067,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "368": {
+   "name": "6.2 L Demon 6.2, 808 hp (as fitted: 2018 Dodge Challenger SRT Demon (6.2 SC Hemi, 91 octane))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5750,
+      8500
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.902,
+      1.028,
+      0.6207
+     ],
+     "imep": [
+      1293503,
+      1410647,
+      786858
+     ],
+     "eng": {
+      "bore": 0.10560106529804517,
+      "stroke": 0.08800088774837098,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05174452199604213,
+      "dEx": 0.04224042611921807,
+      "rod": 0.14960150917223067,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "369": {
+   "name": "6.2 L Demon 6.2, 840 hp (as fitted: 2018 Dodge Challenger SRT Demon (6.2 SC Hemi, 100 octane))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5750,
+      8500
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.902,
+      1.028,
+      0.6207
+     ],
+     "imep": [
+      1293503,
+      1410647,
+      786858
+     ],
+     "eng": {
+      "bore": 0.10560106529804517,
+      "stroke": 0.08800088774837098,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05174452199604213,
+      "dEx": 0.04224042611921807,
+      "rod": 0.14960150917223067,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "370": {
+   "name": "6.4 L 6.4 HEMI 392, 475 hp (as fitted: 2018–24 Dodge Durango SRT 392 (6.4 Hemi))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5500,
+      8000
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.8958,
+      1.0578,
+      0.6589
+     ],
+     "imep": [
+      1288226,
+      1461199,
+      841489
+     ],
+     "eng": {
+      "bore": 0.10701495478473384,
+      "stroke": 0.0891791289872782,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.052437327844519585,
+      "dEx": 0.04280598191389354,
+      "rod": 0.15160451927837293,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "371": {
+   "name": "6.2 L Hellcat 6.2, 710 hp (as fitted: 2021–24 Dodge Durango SRT Hellcat (6.2 SC Hemi))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5500,
+      8000
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.8974,
+      1.065,
+      0.6706
+     ],
+     "imep": [
+      1289795,
+      1474833,
+      859107
+     ],
+     "eng": {
+      "bore": 0.10560106529804517,
+      "stroke": 0.08800088774837098,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05174452199604213,
+      "dEx": 0.04224042611921807,
+      "rod": 0.14960150917223067,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
   "373": {
    "name": "6.4 L 6.4 HEMI 392, 485 hp (as fitted: 2023 Chrysler 300C (6.4 Hemi))",
    "four": true,
@@ -5585,6 +6187,350 @@
       "dIn": 0.05245638804429301,
       "dEx": 0.04282154126064736,
       "rod": 0.15165962529812607,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "374": {
+   "name": "8.0 L Viper 8.0 V10, 400 hp (as fitted: 1992–95 Dodge Viper RT/10 (8.0 V10))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      1750,
+      4200,
+      6250
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9015,
+      1.0917,
+      0.9259
+     ],
+     "imep": [
+      1270321,
+      1563056,
+      1238941
+     ],
+     "eng": {
+      "bore": 0.10687580067637344,
+      "stroke": 0.0890631672303112,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.05236914233142298,
+      "dEx": 0.042750320270549376,
+      "rod": 0.15140738429152903,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "378": {
+   "name": "2.4 L 2.4 Turbo (SRT-4), 215 hp (as fitted: 2003 Dodge Neon SRT-4 (2.4 turbo))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2250,
+      5000,
+      7250
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9055,
+      1.1201,
+      0.8383
+     ],
+     "imep": [
+      1293624,
+      1597962,
+      1103911
+     ],
+     "eng": {
+      "bore": 0.09753330989851841,
+      "stroke": 0.08127775824876535,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.04779132185027402,
+      "dEx": 0.03901332395940737,
+      "rod": 0.1381721890229011,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "379": {
+   "name": "2.4 L 2.4 Turbo (SRT-4), 230 hp (as fitted: 2004–05 Dodge Neon SRT-4 (2.4 turbo))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2000,
+      4850,
+      7250
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9081,
+      1.1169,
+      0.8408
+     ],
+     "imep": [
+      1287151,
+      1595507,
+      1106632
+     ],
+     "eng": {
+      "bore": 0.09753330989851841,
+      "stroke": 0.08127775824876535,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.04779132185027402,
+      "dEx": 0.03901332395940737,
+      "rod": 0.1381721890229011,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "380": {
+   "name": "2.4 L 2.4 World Turbo, 285 hp (as fitted: 2008–09 Dodge Caliber SRT4 (2.4 turbo))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5900,
+      8750
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9025,
+      1.069,
+      0.6656
+     ],
+     "imep": [
+      1277496,
+      1487384,
+      847612
+     ],
+     "eng": {
+      "bore": 0.09660088950626328,
+      "stroke": 0.0805007412552194,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.047334435858069006,
+      "dEx": 0.03864035580250531,
+      "rod": 0.13685126013387297,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "381": {
+   "name": "3.0 L 6G72TT 3.0, 300 hp (as fitted: 1991–93 Dodge Stealth R/T Turbo (3.0 V6 twin-turbo))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5500,
+      8000
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9255,
+      1.0965,
+      0.7988
+     ],
+     "imep": [
+      1317859,
+      1540841,
+      1060612
+     ],
+     "eng": {
+      "bore": 0.09113033633508585,
+      "stroke": 0.07594194694590488,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.04465386480419207,
+      "dEx": 0.03645213453403434,
+      "rod": 0.1291013098080383,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "382": {
+   "name": "3.0 L 6G72TT 3.0, 320 hp (as fitted: 1994–96 Dodge Stealth R/T Turbo (3.0 V6 twin-turbo))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2500,
+      5500,
+      8000
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9255,
+      1.0965,
+      0.7988
+     ],
+     "imep": [
+      1317859,
+      1540841,
+      1060612
+     ],
+     "eng": {
+      "bore": 0.09113033633508585,
+      "stroke": 0.07594194694590488,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.04465386480419207,
+      "dEx": 0.03645213453403434,
+      "rod": 0.1291013098080383,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "384": {
+   "name": "3.0 L Hurricane 3.0 SO, 420 hp (as fitted: 2025+ Dodge Charger Sixpack R/T (3.0 Hurricane SO))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2000,
+      4750,
+      7000
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9373,
+      1.0792,
+      0.9533
+     ],
+     "imep": [
+      1310239,
+      1541328,
+      1290481
+     ],
+     "eng": {
+      "bore": 0.09134447352869134,
+      "stroke": 0.07612039460724278,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.044758792029058754,
+      "dEx": 0.036537789411476534,
+      "rod": 0.12940467083231272,
+      "cam": {
+       "ivo": 20,
+       "ivc": 60,
+       "evo": 60,
+       "evc": 20
+      }
+     }
+    }
+   ],
+   "errs": []
+  },
+  "385": {
+   "name": "3.0 L Hurricane 3.0 HO, 550 hp (as fitted: 2025+ Dodge Charger Sixpack Scat Pack (3.0 Hurricane HO))",
+   "four": true,
+   "specs": [
+    {
+     "tag": "four:base",
+     "rpms": [
+      2250,
+      5250,
+      7750
+     ],
+     "same": true,
+     "bad": [],
+     "wasmErr": null,
+     "ve": [
+      0.9397,
+      1.1022,
+      0.8232
+     ],
+     "imep": [
+      1326050,
+      1559591,
+      1095798
+     ],
+     "eng": {
+      "bore": 0.09134447352869134,
+      "stroke": 0.07612039460724278,
+      "cr": 11,
+      "nIn": 1,
+      "dIn": 0.044758792029058754,
+      "dEx": 0.036537789411476534,
+      "rod": 0.12940467083231272,
       "cam": {
        "ivo": 20,
        "ivc": 60,

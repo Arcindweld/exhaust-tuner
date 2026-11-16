@@ -71,6 +71,8 @@ const PAGE_SRC = function () {
   ST.preset = (mode, r) => { const m = document.getElementById('v-mode'); if (m.value !== mode) { m.value = mode; fire(m, 'change'); }
     const ops = [...document.getElementById('v-pick').options].filter(o => o.value !== ''); const o = ops[Math.floor(r * ops.length)];
     const p = document.getElementById('v-pick'); p.value = o.value; fire(p, 'change'); return o.value; };
+  ST.presetText = (mode, pre) => { const m = document.getElementById('v-mode'); if (m.value !== mode) { m.value = mode; fire(m, 'change'); }
+    const o = [...document.getElementById('v-pick').options].find(o => o.text.startsWith(pre)); if (!o) return null; ST.presetPut(mode, o.value); return o.value; };
   ST.presetPut = (mode, v) => { const m = document.getElementById('v-mode'); if (m.value !== mode) { m.value = mode; fire(m, 'change'); } const p = document.getElementById('v-pick'); p.value = v; fire(p, 'change'); return true; };
   // a tab's displayed text: the panel's rendered text (input values are not in it), with the lines that are by nature
   // time-dependent left out (none known so far; listed here when found)
@@ -112,7 +114,7 @@ async function open(ctx, hash) {
 // knock check on, the Headers tab at unequal lengths, a muffler line; then every tab visited
 async function rich(pg) {
   await pg.click('#m-expert'); await pg.click('#u-met');
-  await pg.evaluate(() => { const ST = window.__st; ST.presetPut('eng', [...document.getElementById('v-pick').options].find(o => /K24A2 /.test(o.text)).value); });
+  await pg.evaluate(() => window.__st.presetText('eng', 'K24A2 '));
   await goTab(pg, 'intake');
   await pg.evaluate(() => { const f = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); };
     f('i-ind', 'turbo'); const s = document.querySelector('select.tsox[data-k="turbo"]'); if (s) { s.value = s.options[7].value; s.dispatchEvent(new Event('change', { bubbles: true })); } f('i-kon', 'on'); });
@@ -132,11 +134,11 @@ async function idsNow(pg) {
 async function readIds(pg, ids) {
   const tabs = await pg.evaluate(() => window.__st.tabs()), out = {};
   for (const t of tabs) { const mine = ids.filter(x => x.tab === t.tab || (!x.tab && t === tabs[0])); if (!mine.length) continue; await goTab(pg, t.tab);
-    Object.assign(out, await pg.evaluate(ids => Object.fromEntries(ids.map(x => { const el = document.getElementById(x.id); return [x.id, el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined]; })), mine)); }
+    Object.assign(out, await pg.evaluate(ids => Object.fromEntries(ids.map(x => { const q = '#' + CSS.escape(x.id), el = document.querySelector('input' + q + ', select' + q + ', textarea' + q); return [x.id, el ? (el.type === 'checkbox' ? el.checked : el.value) : undefined]; })), mine)); }
   return out;
 }
 // a probe change of one input (a clearly different value a user could type or pick)
-const PROBE = id => { const el = document.getElementById(id); if (!el) return null; const fire = t => el.dispatchEvent(new Event(t, { bubbles: true }));
+const PROBE = id => { const q = '#' + CSS.escape(id), el = document.querySelector('input' + q + ', select' + q + ', textarea' + q); if (!el) return null; const fire = t => el.dispatchEvent(new Event(t, { bubbles: true }));
   if (el.tagName === 'SELECT') { const o = [...el.options].find(o => !o.disabled && o.value !== el.value); if (!o) return null; el.value = o.value; fire('input'); fire('change'); return el.value; }
   if (el.type === 'checkbox') { el.checked = !el.checked; fire('input'); fire('change'); return el.checked; }
   const t = el.value.trim(); let v;
@@ -155,9 +157,11 @@ async function inventory(ctx, o) {
   const after = await readIds(A, rest), snap = await A.evaluate(() => JSON.parse(JSON.stringify(window.__proj.snapshot('inventory'))));
   const B = await open(ctx); await B.evaluate(d => window.__proj.apply(d), snap); await settle(B);
   const got = await readIds(B, rest);
+  // the same rich state with no probe change: a value equal to it proves nothing either way
+  const C = await open(ctx); await rich(C); const def = await readIds(C, rest); await C.close();
   const via = [], lost = [];
   for (const x of rest) { if (untested.includes(x.id)) continue;
-    if (after[x.id] === undefined) { untested.push(x.id); continue; }
+    if (after[x.id] === undefined || JSON.stringify(after[x.id]) === JSON.stringify(def[x.id])) { untested.push(x.id); continue; }
     if (JSON.stringify(after[x.id]) === JSON.stringify(got[x.id])) via.push(x.id); else lost.push({ id: x.id, tab: x.tab, why: 'set to ' + JSON.stringify(after[x.id]) + ', loaded as ' + JSON.stringify(got[x.id]) }); }
   // and the vals themselves read back (a saved field that the load then moves)
   const vAfter = await readIds(A, vals.map(id => ids[id])), vGot = await readIds(B, vals.map(id => ids[id]));

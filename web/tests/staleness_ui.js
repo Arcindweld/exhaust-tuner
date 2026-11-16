@@ -21,6 +21,16 @@ const { settle } = require('./settle');
 // inputs that are not in the project on purpose (each: why). A test enumerates every input with an id in the rich state and
 // fails on one that is neither saved nor here.
 const NOT_SAVED = {
+  // a credential: the program's update token (the host menu) must never travel in a project file
+  'hm-upd-tok': 'the update token of the Windows program (host menu): a credential, never in a project file',
+  // the Parts tab's catalogue filters: how the list of off-the-shelf parts is browsed, not the build (the build list is saved)
+  'p-kind': 'catalogue filter (kind of part)', 'p-brand': 'catalogue filter (brand)', 'p-size': 'catalogue filter (pipe size)', 'p-q': 'catalogue search text',
+  // the custom-part form: a draft until "Add"; the part added goes in the build list, which is saved
+  'pc-name': 'custom-part draft', 'pc-kind': 'custom-part draft', 'pc-in': 'custom-part draft', 'pc-out': 'custom-part draft', 'pc-inpos': 'custom-part draft',
+  'pc-outpos': 'custom-part draft', 'pc-off': 'custom-part draft', 'pc-shape': 'custom-part draft', 'pc-w': 'custom-part draft', 'pc-h': 'custom-part draft',
+  'pc-body': 'custom-part draft', 'pc-oal': 'custom-part draft',
+  // the Options tab's filter and search: how the list is browsed
+  'o-cat': 'Options list filter', 'o-q': 'Options list search text'
 };
 (async () => {
   const t0 = Date.now(), b = await chromium.launch(), ctx = await b.newContext(); const fails = [];
@@ -31,7 +41,7 @@ const NOT_SAVED = {
   { const pg = await T.open(ctx, 'four-stroke'); watch(pg); await pg.click('#m-expert'); await pg.click('#u-met');
     const CAM = ['f-ivo', 'f-ivc', 'f-evo', 'f-evc', 'f-lin', 'f-lex', 'f-camat', 'f-valves', 'f-cratio', 'f-bore', 'f-stroke', 'f-vdi', 'f-vde', 'f-camlib'];
     const read = () => pg.evaluate(ids => Object.fromEntries(ids.map(id => [id, document.getElementById(id).value])), CAM);
-    const k24 = () => pg.evaluate(() => window.__st.presetPut('eng', [...document.getElementById('v-pick').options].find(o => /K24A2 /.test(o.text)).value));
+    const k24 = () => pg.evaluate(() => window.__st.presetText('eng', 'K24A2 '));
     const note = () => pg.evaluate(() => { const n = document.getElementById('f-camswap'); return n.hidden ? '' : n.textContent; });
     await k24(); await settle(pg); const fresh = await read();
     await pg.evaluate(() => window.__st.put('#f-camlib', 'ls3')); await settle(pg); const ls3 = await read();
