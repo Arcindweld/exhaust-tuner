@@ -64,12 +64,12 @@ Units: the page's base values are mm, cc, degrees, kPa; the spec is SI (m, m3, P
 
 Engine read paths compared mechanically: the JavaScript's by a Proxy on the spec during runs of the page's specs, the
 Rust's from rust/et_wave/src/lib.rs (`rustReads` in web/tests/specparity_lib.js resolves every `x["key"]` receiver per
-function; an unknown receiver fails the test). Result: every path the JavaScript read in {{NSPECS}} page specs is read by
+function; an unknown receiver fails the test). Result: every path the JavaScript read in 498 page specs is read by
 the Rust, except the allow-list (checkLift_mm translated; crossover, pieces, parallel, branches, dead refused).
 
 ### 1.2 Hidden constants (read by the engine, set by no input)
 
-cd 0.7 (unless typed or fitted); burn start 18 deg BTDC, duration 55 deg (Wiebe a 5, m 3 in the engine); A/F 12.8 for the
+cd 0.7 (unless typed or fitted); burn start 18 deg BTDC, duration 55 deg (Wiebe a 5, m 2); A/F 12.8 for the
 4-Stroke tab's gasoline runs; eta 0.72 (constant gas only); intake runner wall 320 K, primaries 700 K, collector 650 K,
 turbo downpipe 700 K, manifold 900 K when no steel temperature; cylinder wall 450 K (Twall); exhaust port wall = Twall;
 intake port wall 360 K; combustion efficiency 0.975 (ETA_C); Woschni on; Fanning friction 0.005; NASA gas with fuel vapour in
@@ -83,15 +83,139 @@ no input reaches them.
 
 ## 2. Defects
 
-{{DEFECTS}}
+Each: what, since when (`git log -S`), what the user saw and by how much, the fix, the regression check. Numbers from
+`tools/validation/wave/specparity_impact.js` (results/specparity_impact.json).
+
+**D1. The WebAssembly ran a check-lift cam card seat to seat** (found in part 14, fixed in f5ce4c3, 2026-11-15; quantified
+here). `e.cam.checkLift_mm` entered the page in 4938758 (2026-11-03, "events at 0.050 in lift"); the JavaScript stretched
+the sin² lift to pass the card's angles at that lift (`camSeat`), the Rust read the four angles as seat events. The
+browser takes the WebAssembly whenever it loads, so from 2026-11-03 to 2026-11-15 every 4-Stroke run (and, from 2026-11-13, every turbo run) with
+"Cam events at" 0.050 in (and, from part 14, 1 mm) ran a much shorter cam. Every cam library entry is a 0.050 in card
+(picking one sets the convention), so every cam-library run was affected; a typed card at 0.050 in too. Seat-to-seat
+entry and blank (estimated) cams were not. The 4-Stroke tab's own run (its default header: 4 cylinders on a collector of
+the 8, the design as entered, 12 speeds 2,500-8,750 rpm, the page's grid and cycles), on the page's WebAssembly, the spec
+as it was handed then and now:
+
+| Engine (CAM_LIB) | card -> seat events (IVO/IVC/EVO/EVC) | peak torque, browser then / correct | peak power, then / correct | torque speed by speed | VE then - correct |
+|---|---|---|---|---|---|
+| LS3 | -19/43/38/-7 -> 5.7/67.7/64.3/19.3 | 708.9 N m at 4,200 / 781.8 at 5,350 | 487.1 hp at 5,350 / 631.2 at 6,500 | -50.5 to +9.2 % | -0.320 to +0.088 |
+| LS7 | -15/45/55/-5 -> 9.2/69.2/81.7/21.7 | 808.8 at 4,200 / 882.6 at 4,750 | 515.0 at 4,750 / 657.9 at 5,900 | -53.2 to +12.2 % | -0.336 to +0.100 |
+| LT1 | -16.5/36.5/40/-13 -> 7.7/60.7/65.9/12.9 | 688.3 at 4,200 / 788.4 at 4,750 | 449.9 at 5,350 / 601.5 at 5,900 | -60.6 to +8.0 % | -0.345 to +0.078 |
+| LS9 | | 676.9 / 740.4 | 450.2 / 588.0 | -52.8 to +11.2 % | |
+| LS6 | | 638.6 / 714.8 | 410.4 / 541.0 | -55.9 to +10.7 % | |
+| LS1 | | 595.7 at 3,050 / 680.9 at 4,750 | 358.7 / 490.1 | -65.3 to +10.9 % | |
+
+Plainly: in the browser the LS3, LS7 and LT1 cam cards showed 8-13 % less peak torque at a lower speed and 22-25 % less
+peak power (LS3 -144 hp, LS7 -143 hp, LT1 -152 hp at peak; these are the model's net indicated torque and power on the
+tab's default header, not ratings), torque up to 8-12 % higher around 3,000 rpm and 50-61 % lower at 8,000 rpm and above.
+VE at the top end was low by up to 0.35. The validation runs of WAVE_VALIDATION part 3 onwards (ratings.js: the direct
+JavaScript call, `checkLift_mm: 1.27`) were not affected (section 7 there). Fix (f5ce4c3): `WS.rustSpec` hands the Rust
+`camSeat`'s events. Regression: every cam-library and check-lift case of the differential (section 3), and specparity_ui's
+field coverage (checkLift_mm is read by the JavaScript only, so it must be on the allow-list as "translated").
+
+**D2. The Headers tab's layout ran its ports without the head's port law** (since e444050, 2026-11-13, part 7).
+`simSpec` marks the 4-Stroke tab's port segment `port: true` (the exhaust-port heat law); `uelLayoutSpec` (the Headers tab's
+unequal-length layout and its equal-length twin, used by the 4-Stroke tab's simulation when "Header to simulate" picks it
+and by the sound prediction) built the same port segment without the flag, so those runs had Reynolds' analogy in the port.
+Only with a port length typed on the Headers tab (blank 0: no port segment, not affected). Impact, the Tri-Y 4-2-1 of
+uel_sim_ui.js with a 100 mm port: torque -0.10 to +0.12 % speed by speed (as laid out), -0.04 to +0.01 % (equal
+length); peak 297.5 against 297.8 N m: small, because the port law mostly moves the exhaust temperature. Fix: the flag.
+Regression: specparity_ui's Tri-Y case checks every per_cyl port segment is marked.
+
+**D3. The 4-Stroke tab's run key left out the fuel** (since 2535ec0, 2026-11-14, part 11). `fuelSpec` adds the Intake
+tab's fuel, mixture (lambda) and evaporation to the spec, but `simKey` was the JSON of the 4-Stroke inputs only, so a
+finished run stayed on screen as current (not marked out of date) after the fuel, lambda, ethanol share or evaporation
+changed: the curve shown was the previous fuel's. No number was computed wrongly; the label was. Fix: `simKey` adds
+`fuelSig()` (empty for the page's gasoline without evaporation, so earlier keys are unchanged). Regression: specparity_ui
+section 7.
+
+**D4. The boosted plan dropped the 4-Stroke tab's chamber** (since 3f7ea5f, 2026-11-13). When the boosted run takes the
+4-Stroke tab's primaries (a centrifugal supercharger always; a turbo without the Turbo manifold section filled),
+`tsimPlan` copied their segments but not `exhaust.chambers` (a can or wrap on the primary); the bulge kind is a segment and
+was kept. Impact: a supercharged 4-cylinder with a can at 200 mm: torque -0.14 to +0.03 %. Fix: the chambers come with
+the primaries (and the key only when there is one, so other specs are unchanged). Regression: specparity_ui's
+centrifugal case checks the boosted, the without-boost and the no-turbine specs carry the 4-Stroke tab's chamber.
+
+**D5. After a project load or an engine preset, the 4-Stroke tab simulated the previous build's Headers layout and
+boost** (Headers layout since eb49871, 2026-10-31; the boosted plan since 3f7ea5f, 2026-11-13). The 4-Stroke tab's runs
+read the Headers and Intake tabs' last results (`HDR_LAST`, `TS_LAST`, `MFD_LAST`), refreshed only when those tabs render.
+Loading a project while on the 4-Stroke tab left them as they were: a project with an unequal-length Headers layout loaded
+into a fresh page ran the 4-Stroke tab's own design instead of its layout; a boosted project loaded over another took the
+other's route (boost pressure and charge temperature), turbine first guess and manifold, until the Intake tab was opened.
+Found by the save -> load check (section 4), not by the differential (the specs agreed between engines; they were the wrong
+specs). The same holds for an engine preset chosen on another tab (it sets Headers and Intake fields). Numbers: the run was
+of a different build, so the error is whatever the two builds differ by; no single figure. Fix: `refreshTabResults()`
+(renders the Headers and Intake computations off-tab, as tsimPlan already did when TS_LAST was empty), called by
+`projApply` and `applyVehicle`. Regression: specparity_ui section 4 loads each project on top of the one before into one
+page kept on the 4-Stroke tab and reads it without visiting the other tabs (with the fix switched off it fails on the
+Tri-Y and on all three boosted projects; checked).
+
+**D6 (latent). JavaScript-only spec parts would have been dropped silently by the WebAssembly.** The JavaScript model has
+an H/X crossover between two collectors, in-line pieces and parallel paths, side branches and cylinders that do not fire;
+the Rust has none of them and would run such a spec without them. Today only the sound prediction builds them and its
+worker runs the JavaScript, so no result was affected. Fix: `WS.jsOnly(spec)`; `rustSpec` throws on such a spec; the sweep
+worker and the turbo worker check `jsOnly` before choosing the WebAssembly. Regression: specparity_ui section 2.
+
+**D7 (latent). The two back ends read a zero cycle count differently.** `wave_step` takes 0 (or NaN) cycles, first
+cycles or extra pairs as its defaults (3, 6, 4); `turboSimLib.jsBackend` ran 0. The page always passes non-zero counts, so
+no result was affected; found because the audit's own harness passed 0. Fix: jsBackend takes the same defaults.
+
+Not a defect, but stated because it limits "to the last digit": Node's Math.pow, exp, sin, cos, log ... differ from
+Chromium's in the last bits for up to 18 % of random arguments (pow 9 %, exp 10 %, atan2 18 %; hypot never) (Node 22's V8 12.4 against Chromium 153). The validation
+scripts run the model in Node, so their numbers differ from the browser's at about 1e-9 relative (VE 0.90457998335 against
+0.90457998263 for the K20A2), and differences can grow over many cycles. The direct comparison is therefore made with the
+scripts' own load of the model (`lib.js build()`, instrumented as they use it) run inside the page: bit for bit there.
 
 ## 3. Differential test at the page boundary
 
-{{DIFF}}
+`tools/validation/wave/specparity_audit.js` (results/specparity_audit.json: each case's inputs and verdicts). Each case
+is a fresh page in Chromium: metric units, expert mode, a preset or the cam library or neither, then the inputs (Intake tab
+first, then the 4-Stroke tab); the page's own specs are collected (`window.__sp.collect`: the 4-Stroke plan's design as
+entered with both profiles, the first cam advance other than 0, the Headers twin; the boosted plan's boosted, without-boost
+and no-turbine specs, with the plan's first-guess turbine area and, at the second speed, a gate area). Each spec is run at
+the first and last speed the page would run, three ways in the page: the JavaScript model on a structured clone (what a
+worker's postMessage gives), the WebAssembly through the page's own `rustBackend` (JSON of `WS.rustSpec`), and the
+validation scripts' load of the model on the spec's JSON. Run control 2 first cycles, 1, up to 1 extra pair, grid 20 mm
+(parity does not depend on these; the page's own settings are used in the whole-run check of specparity_ui and the
+impact runs).
+
+Coverage: 31 stratified presets (24 engine presets across I4/I5/I6/V6/V8/V10/V12, 2- and 4-valve, NA and turbo
+engines; the 6 cam library cards; the default page) and 220 seeded fuzz cases (seed 20261116): cylinders 1-8, primaries
+per collector 1-8 with even and uneven gaps, port lengths and shapes, chambers (can, wrap, bulge), cam conventions (seat
+192 specs, 0.050 in 200, 1 mm 106), typed or estimated events, lifts, valve sizes, flow coefficient, rod, runner length,
+port and bore, plenum with throttle Cd and filter (79 cases), cam advance (fixed, and best advance: 24), two profiles (27),
+fuels pump / race / E10 / E85 (with its ethanol share) / E100 / M100, lambda, evaporation none / port / DI / all, boosted
+(turbo 56, centrifugal 14) with typed or found turbine and gate areas, external or internal gate, tube / log / divided
+manifold, efficiency by blade speed ratio (parabola), Watson's curve or constant, typed efficiency, back pressure after
+the turbine, the knock trace on (24) and the trace on other runs.
+
+Result: 251 cases, 498 specs (278 4-Stroke designs, 24 cam-advance variants, 56 turbo, 14 centrifugal, 70 without boost,
+56 no-turbine), 4,072,147 numbers (the 8 results per speed, each cylinder's VE and IMEP, the turbine summary with its 720
+bins per entry, the trace): **no difference** between the JavaScript, the WebAssembly and the validation load; no case
+without a spec; no page error. The Proxy recorded 108 distinct spec paths read by the JavaScript in these runs; all are
+read by the Rust or on the allow-list. Run after D1 was fixed, so it shows the translation is now complete for every path
+the fuzz reaches; with the check-lift defect in place, every 0.050 in and 1 mm spec (306 of 498) would have differed.
+Not in this run: the Headers layout (it needs the Headers tab's table; it is in specparity_ui, both ways and with the
+validation load).
 
 ## 4. Save and load, units, presets
 
-{{BOUNDARY}}
+In specparity_ui.js (all pass on the final code):
+- Save -> load: 7 projects (the LS3 card, K24A2 with two profiles, best advance and E85, the Tri-Y layout, two turbo builds,
+  2 fuzz cases), each loaded on top of the one before into one page kept on the 4-Stroke tab and read without visiting
+  other tabs: all 635 saved inputs, every spec and both run keys identical to the page it was saved from. This found D5.
+- Units: in each of those, inches and back to mm: no base value (the project snapshot's `b`) and no spec changes. The
+  toggle is one control (in / degF / psi against mm / degC / kPa).
+- Presets: K24A2, N54B30, S65B40, 2.5 TFSI each chosen twice: identical inputs and specs; P, then another, then P again:
+  only fields of the stated rule may keep the other's value, and in these four none did. The rule (applyVehicle): an
+  engine preset sets the engine (displacement, cylinders, RPMs, firing order, primaries per collector and gaps), bore and
+  stroke (or blanks them), compression and valves when it has them, valve heads, rod, phaser range and VTEC changeover
+  (or blanks them) and the cam advance (blank); it keeps everything it does not define: the cam card and its convention,
+  lifts, flow coefficient, intake runner and plenum, the header's sizes and chamber, the two-profile and advance choices,
+  and compression and valves when it has none (PRESET_KEEPS in the test). Consequence worth knowing: a cam picked from the
+  cam library stays (with its 0.050 in convention and lifts) when another engine preset is chosen after it; the library
+  select still names it, so the source of those events stays visible.
+- Run keys: a fuel, evaporation, lambda or ethanol change that changes the 4-Stroke tab's specs changes its key (D3).
 
 ## 5. What the permanent test enforces
 
@@ -102,12 +226,22 @@ no input reaches them.
 2. rustSpec refuses the JavaScript-only parts and the sweep worker checks `WS.jsOnly` before the WebAssembly.
 3. fixed cases (each cam convention, the cam library cards, plenum and filter, two profiles, best advance, fuels and
    evaporation, uneven gaps, the Headers Tri-Y, turbo with the blade-speed-ratio efficiency and the knock trace, typed
-   turbine areas with Watson's curve and an internal gate, centrifugal) plus 4 seeded fuzz cases, every number equal
+   turbine areas with Watson's curve and an internal gate, centrifugal) plus 2 seeded fuzz cases, every number equal
    between the JavaScript, the WebAssembly and the validation scripts' load of the model, all in the page; and one whole
    4-Stroke run from its button with the WebAssembly and with `window.__waveJs` (the test-only switch added here).
-4. save -> load into a fresh page, units there and back, presets twice and P -> Q -> P against the stated rule, and the
-   run key changing with the fuel.
+4. save -> load (each project on top of the one before, read without visiting other tabs), units there and back, presets
+   twice and P -> Q -> P against the stated rule, the run key changing with the fuel, and the D2 / D4 spec shapes.
 
 ## 6. Not covered
 
-{{NOTCOVERED}}
+- The differential compares the two engines on the page's specs at two speeds with short run control and one whole
+  4-Stroke run from its button (the LS3 card) with the page's own control; the turbo closure (area and gate searches) and
+  the calibrations were not run end to end both ways (their engine calls are the same `step` / `set` the fuzz checks).
+- The OpenWAM, Engine Simulator and 2-stroke exports build their own inputs from `simSpec` / `twSpec`; they are not the
+  wave model and were not checked here (their own tests compare them with their writers).
+- Inputs the fuzz does not reach: measured cam lift profiles (OpenWAM only), the Mufflers line, crossover and misfire of the
+  sound prediction (JavaScript only, refused by the WebAssembly), the cam calculator helpers (f-cdi, f-cde, f-clsa, f-cadv
+  fill the event fields), the Headers tab's collector shapes other than the Tri-Y.
+- The native host, the C# app and the Fusion add-in were checked statically only (no reference to the wave model or its
+  spec); no workspace build.
+- Engine presets: 24 of 599 in the differential (stratified) and 4 in the idempotence check.
