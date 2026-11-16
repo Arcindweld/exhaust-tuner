@@ -9890,7 +9890,21 @@ if(typeof window!=="undefined") window.__camSeat=camSeat;   // for tests/cam_ui.
 // The Rust model (rust/et_wave, the WebAssembly) reads the cam's events as seat to seat and does not know checkLift_mm, so a
 // spec whose events are at a check lift is handed to it with camSeat's events, the ones makeEngine below uses (found
 // 2026-11-15, part 14: before this the WebAssembly ran a 0.050 in card's angles as seat events)
+// The parts of a spec only this JavaScript model has (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md): an H or X crossover
+// between two collectors (opt.crossover), in-line pieces, parallel paths and side branches on a collector's line
+// (pieces, parallel, branches: lineWithPieces, freshState's onLine), cylinders that do not fire (e.dead). Only the sound
+// prediction builds them and its worker runs this model; the Rust model would run such a spec without them, so rustSpec
+// refuses it and every caller of the WebAssembly checks jsOnly first and runs the JavaScript instead.
+function jsOnly(spec){
+  const w=[], o=spec&&spec.opt||{}, has=c=>!!c&&((c.pieces&&c.pieces.length>0)||!!c.parallel||(c.branches&&c.branches.length>0));
+  if(o.crossover) w.push('opt.crossover');
+  if(has(o.collector)) w.push('opt.collector pieces/branches');
+  if((o.collectors||[]).some(has)) w.push('opt.collectors pieces/branches');
+  if(spec&&spec.e&&spec.e.dead&&spec.e.dead.length) w.push('e.dead');
+  return w;
+}
 function rustSpec(spec){
+  const j=jsOnly(spec); if(j.length){ const er=new Error('the WebAssembly model has no '+j.join(', ')+': run the JavaScript model'); er.jsOnly=true; throw er; }
   const c=spec&&spec.e&&spec.e.cam; if(!c||!(+c.checkLift_mm>0)) return spec;
   const s=JSON.parse(JSON.stringify(spec)); s.e.cam=camSeat(c,spec.e.liftIn*1000,spec.e.liftEx*1000); return s;
 }
@@ -10496,7 +10510,7 @@ function sweep(eng,rpms,opts,onStep){
   });
   return res;
 }
-return {rustSpec,camSeat,GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
+return {rustSpec,jsOnly,camSeat,GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
   tfmep,friction:{name:'Heywood (1988) total motored fmep of SI engines, 0.97 + 0.15 (N/1000) + 0.05 (N/1000)^2 bar, taken off the gross indicated work',basis:'gross'},
   port:{PORT_NU,portLaw,portH,muAir,kAir,PORT_IN_NU,PORT_IN_TW,portInLaw},
   gas:{RU,TREF,SPEC,AFR_ST,K_WGS,LHV_F,ETA_C,HFORM,HF_FUEL,F_GAS,LV_GAS,LV_ETH,LV_METH,AIR_M,fuelOf,heatRelease,burnedMoles,gasPoly,makeGas,at:(G,T,x)=>{ gasAt(G,T,x); return {cp:GV.cp,h:GV.h,R:GV.R,e:GV.h-GV.R*T,gamma:GV.cp/(GV.cp-GV.R)}; },
@@ -20480,8 +20494,10 @@ function turboSimLib(WS,X){
     const eng=WS.makeEngine(spec.e,spec.intake,spec.exhaust,spec.opt); let state=null, tr=false;
     // trace(on): every step also returns o.trace, cylinder 1's last two cycles (runSpeed's opts.trace; the knock estimate)
     return {Vd:eng.Vd,eng,set:(a,g)=>WS.setTurbine(eng,a,g),drop:()=>{},trace:on=>{ tr=!!on; },
-      step:(rpm,first,cyc,firstCyc,extra)=>{ if(first) state=null;
-        let r=WS.runSpeed(eng,{rpm,cycles:first?firstCyc:cyc,dx,state,trace:tr}), k=0;
+      // 0, NaN or a missing count takes the WebAssembly's default (wave_step: 6 first cycles, 3, 4 extra pairs), so the two
+      // back ends run the same cycles for the same call (2026-11-16: an extra of 0 ran none here and 4 there)
+      step:(rpm,first,cyc,firstCyc,extra)=>{ if(first) state=null; extra=extra||4;
+        let r=WS.runSpeed(eng,{rpm,cycles:first?(firstCyc||6):(cyc||3),dx,state,trace:tr}), k=0;
         while(k<extra){ const h=r.history, n=h.length; if(n>=2&&Math.abs(h[n-1].ve-h[n-2].ve)<0.004*h[n-1].ve) break; r=WS.runSpeed(eng,{rpm,cycles:2,dx,state:r.state,trace:tr}); k++; }
         state=r.state; const o={rpm}; KEYS.forEach(k=>{ o[k]=r[k]; }); o.perCyl=r.perCyl; o.turb=r.turb?parse(flat(r.turb)):null; if(tr) o.trace=r.trace; return o; }};
   }
@@ -20652,7 +20668,7 @@ function simWorkerSrc(){
     'const RW=('+simWaveRust.toString()+')('+JSON.stringify(waveB64())+');\n'+
     'self.onmessage=function(ev){var job=ev.data,out=[];self.postMessage({type:"start",rust:!!RW});\n'+
     ' job.variants.forEach(function(v){var prog=function(i,r){self.postMessage({type:"progress",k:v.k,i:i,rpm:r.rpm});}, res=null, Vd=0, rp=v.rpms||job.rpms;\n'+
-    '  if(RW){ try{ var w=RW.sweep(WS.rustSpec(v.spec),rp,job.dx,prog); res=w.res; Vd=w.Vd; }catch(e){ res=null; } }\n'+
+    '  if(RW&&!WS.jsOnly(v.spec).length){ try{ var w=RW.sweep(WS.rustSpec(v.spec),rp,job.dx,prog); res=w.res; Vd=w.Vd; }catch(e){ res=null; } }\n'+
     '  if(!res){ var eng=WS.makeEngine(v.spec.e,v.spec.intake,v.spec.exhaust,v.spec.opt); Vd=eng.Vd;\n'+
     '   res=WS.sweep(eng,rp,{dx:job.dx,cycles:3,firstCycles:8,maxExtra:5},prog); }\n'+
     '  out.push({k:v.k,g:v.g,part:v.part,key:v.key,label:v.label,tq:res.map(function(r){return r.imep*Vd/(4*Math.PI)*job.cyl;}),tqg:res.map(function(r){return r.gimep*Vd/(4*Math.PI)*job.cyl;}),vdt:Vd*job.cyl,ve:res.map(function(r){return r.ve;}),ov:res.map(function(r){return r.overlapPort;}),pc:res.map(function(r){return r.perCyl.map(function(x){return x.imep;});})});});\n'+
@@ -20829,7 +20845,7 @@ function tsimWorkerSrc(){
 // one run: the turbo (the closure, or the supercharged sweep), then the same pipes without boost
 function tsimRun(TL,j,post){
   // j.knock (part 12): the boosted runs keep cylinder 1's trace for the knock estimate (it changes no result)
-  const KN=j.knock&&j.knock.ON>0&&TL.KN?TL.KN:null, mkB0=s=>TL.rustBackend?TL.rustBackend(s,j.dx):TL.jsBackend(s,j.dx);
+  const KN=j.knock&&j.knock.ON>0&&TL.KN?TL.KN:null, mkB0=s=>TL.rustBackend&&!(TL.WS.jsOnly&&TL.WS.jsOnly(s).length)?TL.rustBackend(s,j.dx):TL.jsBackend(s,j.dx);
   const mkB=s=>{ const b=mkB0(s); if(KN&&b.trace) b.trace(true); return b; };
   let kSpec=j.spec;
   const nR=j.rpms.length, nT=(j.sc?3:2)*nR, wc=j.fric>0?m=>m*j.wcPer+j.fric:m=>m*j.wcPer, eta0=j.turbo&&j.spec.exhaust.turbine?j.spec.exhaust.turbine.eta:NaN;

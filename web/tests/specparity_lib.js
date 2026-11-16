@@ -79,8 +79,6 @@ const ALLOW = [
   ['spec.opt.collectors[].pieces', 'refused: as opt.collector.pieces'],
   ['spec.opt.collectors[].parallel', 'refused: as pieces'],
   ['spec.opt.collectors[].branches', 'refused: as opt.collector.branches'],
-  ['spec.exhaust.branches', 'refused: side branches on a single pipe: JavaScript-only; the sound prediction only'],
-  ['spec.exhaust.pieces', 'refused: as opt.collector.pieces'],
   ['spec.e.dead', 'refused: cylinders that do not fire (the sound prediction\'s misfire comparison) are JavaScript-only'],
 ];
 const allowed = p => ALLOW.find(([a]) => p === a || p.startsWith(a + '.') || p.startsWith(a + '['));
@@ -111,7 +109,8 @@ const PAGE_SRC = function () {
       if (plan.err) out.push({ tag: 'plan', err: plan.err });
       else {
         const rp = S.simRpms(q.tune), en = S.simEntries(plan.variants, rp);
-        const pick = en.filter((v, i) => i === 0 || v.part === 'lo' || (/^vtc/.test(v.key) && v.key !== 'vtc0' && !en.slice(0, i).some(w => /^vtc/.test(w.key) && w.key !== 'vtc0')) || (plan.hdr && i === 1));
+        // the design as entered (both parts with two profiles), the first cam advance other than 0, the Headers layout's twin
+        const pick = en.filter((v, i) => v.g === 0 || (/^vtc/.test(v.key) && v.key !== 'vtc0' && !en.slice(0, i).some(w => /^vtc/.test(w.key) && w.key !== 'vtc0')) || (plan.hdr && v.g === 1 && !v.part));
         for (const v of pick.slice(0, o.max || 4)) { const r = v.rpms || rp; out.push({ tag: (plan.hdr ? 'hdr:' : 'four:') + v.key + (v.part ? ':' + v.part : ''), spec: v.spec, rpms: [r[0], r[r.length - 1]], dx: plan.n > 1 ? 0.0125 : 0.01 }); }
       }
     } else out.push({ tag: 'four', err });
