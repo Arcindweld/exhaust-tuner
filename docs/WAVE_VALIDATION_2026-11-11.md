@@ -3961,7 +3961,7 @@ reported builds.
   identical to the page before part 14 (`fixtures/kseries_specs_before.json`, from git 07b6b07 by `kseries_specs.js`),
   the K24A2 only by its rod, the K20A2 by its bore and stroke; a project saved before (op_legacy_k24.json) keeps the rod
   at 1.7 x stroke and the stand-in cam.
-- Pins changed: see N8 (the suite on the final code).
+- Pins changed: none (N8).
 - Tools: `tools/validation/wave/kseries_val.js` (new), `results/kseries_na.json`, `results/kseries_turbo.json`,
   `results/kseries_boost_power.json`; `boost_power.js` takes OUT= and skips "Use these sizes" when it is disabled (as
   knock_k24.js does).
@@ -3979,3 +3979,9 @@ the stand-ins can go in an afternoon, and the model will then say more about thi
 
 ### N8 Suite
 
+`python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`, 2026-11-15, part 14, on the final code
+(the final commit only removes the progress file): 141 tests, 134 passed, 0 flaky, 0 failed, 7 skipped, 7 partial skips
+(all expected: no host build, no OpenWAM build in the worktree, F-100 runs absent), 0 unexpected, 1486 s; kseries_ui 33 of
+33. Pins changed in other tests: none (no existing test pinned a K24 wave result through the preset's rod, and none ran a
+check-lift cam on the WebAssembly path). kat.json not regenerated: wsFactory's physics and the WebAssembly are unchanged
+(two exports added to wsFactory's return: rustSpec, camSeat).
