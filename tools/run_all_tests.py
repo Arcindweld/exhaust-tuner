@@ -66,6 +66,7 @@ NOT_TESTS = {
     'skip.js': 'the shared skip helper the tests require',
     'settle.js': 'the shared helper for race-free page reads ($eval after the page stops re-rendering)',
     'capture_wave_jobs.js': 'writes fixtures/wave_jobs.json for wave_wasm.js (a generator, run by hand)',
+    'kseries_specs.js': 'shared by kseries_ui.js; with CAPTURE= it writes fixtures/kseries_specs_before.json (a generator, run by hand)',
 }
 WEB_BAD = re.compile(r'^FAIL|FAILS|FAILED|PAGEERROR|Error:| BAD |overflow [0-9]|panel looks empty', re.M)
 ANY_BAD = re.compile(r'^FAIL\b', re.M)
