@@ -2170,3 +2170,23 @@ private GitHub repo from the owner (only Arcindweld/engine-sim is in scope now).
   default, comparison first).
 - No model, default or pin changed; kat.js 66/66 byte-identical. Test: web/tests/ivc_ui.js (new).
 - Details: docs/WAVE_VALIDATION_2026-11-11.md part 13.
+
+## 2026-11-16: spec parity at the page boundary (docs/SPEC_PARITY_AUDIT_2026-11-16.md)
+
+- Question: after the check-lift defect (the WebAssembly ran 0.050 in / 1 mm cam cards seat to seat; JS-vs-WASM tests
+  passed because both engines got the same translated spec), are there more fields the page's paths drop, convert
+  differently or never deliver?
+- Mapped every builder (simSpec, uelLayoutSpec, tsimPlan, wsndSpec, the validation scripts) and every engine field; the
+  Rust's read paths resolved statically from et_wave's source, the JavaScript's recorded by a Proxy. Differential at the
+  page (tools/validation/wave/specparity_audit.js): 31 presets + 220 seeded fuzz cases, 498 page specs, 4.07 M numbers:
+  JavaScript, WebAssembly and the validation scripts' load identical to the last digit (after the part-14 fix).
+- D1 quantified (2026-11-03 to 11-15, browser path): LS3 / LS7 / LT1 cards showed 8-13 % less peak torque and 22-25 % less
+  peak power (-144 / -143 / -152 hp of the model's indicated power), VE low by up to 0.35 at the top; validation scripts
+  unaffected (direct JavaScript).
+- Fixed: D2 Headers layout's port without the port law (+-0.1 % torque); D3 the 4-Stroke run key ignored the fuel (stale
+  run shown as current); D4 boosted plan dropped the 4-Stroke chamber (-0.14 to +0.03 %); D5 after a project load or a
+  preset the 4-Stroke tab simulated the previous build's Headers layout and boost (refreshTabResults); D6 JavaScript-only
+  spec parts now refused by rustSpec (latent); D7 zero cycle counts read alike by both back ends (latent).
+- Test switch window.__waveJs (the workers get no WebAssembly). New test web/tests/specparity_ui.js (helpers
+  specparity_lib.js): field coverage with a commented allow-list, refusal, fixed + fuzz differential, one whole run both
+  ways, save -> load, units, presets, run keys. tools/validation/wave/lib.js exports build() (the scripts' model as text).

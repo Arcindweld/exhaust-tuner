@@ -9890,7 +9890,21 @@ if(typeof window!=="undefined") window.__camSeat=camSeat;   // for tests/cam_ui.
 // The Rust model (rust/et_wave, the WebAssembly) reads the cam's events as seat to seat and does not know checkLift_mm, so a
 // spec whose events are at a check lift is handed to it with camSeat's events, the ones makeEngine below uses (found
 // 2026-11-15, part 14: before this the WebAssembly ran a 0.050 in card's angles as seat events)
+// The parts of a spec only this JavaScript model has (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md): an H or X crossover
+// between two collectors (opt.crossover), in-line pieces, parallel paths and side branches on a collector's line
+// (pieces, parallel, branches: lineWithPieces, freshState's onLine), cylinders that do not fire (e.dead). Only the sound
+// prediction builds them and its worker runs this model; the Rust model would run such a spec without them, so rustSpec
+// refuses it and every caller of the WebAssembly checks jsOnly first and runs the JavaScript instead.
+function jsOnly(spec){
+  const w=[], o=spec&&spec.opt||{}, has=c=>!!c&&((c.pieces&&c.pieces.length>0)||!!c.parallel||(c.branches&&c.branches.length>0));
+  if(o.crossover) w.push('opt.crossover');
+  if(has(o.collector)) w.push('opt.collector pieces/branches');
+  if((o.collectors||[]).some(has)) w.push('opt.collectors pieces/branches');
+  if(spec&&spec.e&&spec.e.dead&&spec.e.dead.length) w.push('e.dead');
+  return w;
+}
 function rustSpec(spec){
+  const j=jsOnly(spec); if(j.length){ const er=new Error('the WebAssembly model has no '+j.join(', ')+': run the JavaScript model'); er.jsOnly=true; throw er; }
   const c=spec&&spec.e&&spec.e.cam; if(!c||!(+c.checkLift_mm>0)) return spec;
   const s=JSON.parse(JSON.stringify(spec)); s.e.cam=camSeat(c,spec.e.liftIn*1000,spec.e.liftEx*1000); return s;
 }
@@ -10496,7 +10510,7 @@ function sweep(eng,rpms,opts,onStep){
   });
   return res;
 }
-return {rustSpec,camSeat,GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
+return {rustSpec,jsOnly,camSeat,GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
   tfmep,friction:{name:'Heywood (1988) total motored fmep of SI engines, 0.97 + 0.15 (N/1000) + 0.05 (N/1000)^2 bar, taken off the gross indicated work',basis:'gross'},
   port:{PORT_NU,portLaw,portH,muAir,kAir,PORT_IN_NU,PORT_IN_TW,portInLaw},
   gas:{RU,TREF,SPEC,AFR_ST,K_WGS,LHV_F,ETA_C,HFORM,HF_FUEL,F_GAS,LV_GAS,LV_ETH,LV_METH,AIR_M,fuelOf,heatRelease,burnedMoles,gasPoly,makeGas,at:(G,T,x)=>{ gasAt(G,T,x); return {cp:GV.cp,h:GV.h,R:GV.R,e:GV.h-GV.R*T,gamma:GV.cp/(GV.cp-GV.R)}; },
@@ -19932,7 +19946,7 @@ function applyVehicle(v){
   $('q-eng').value=v.eng; setBase('q-disp',v.cc); setBase('q-rpm',v.hpRpm); setBase('q-hp',v.hp); setBase('q-tq',v.tqRpm); setBase('q-cruise',cruise);
   $('q-ind').value=v.ind==='na'?'na':/^turbo/.test(v.ind)?'turbo':'sc'; $('q-pipes').value='auto';
   $('v-note').innerHTML=vehNote(v,red,idle,cruise);
-  renderActive();
+  refreshTabResults(); renderActive();
 }
 // the extra engine facts an engine preset carries (kd), each with its own source; fields with no source are said to be missing
 function kdNote(kd,link){
@@ -20339,7 +20353,7 @@ document.addEventListener('click',e=>{
 
 /* ===== wave simulation on the 4-Stroke tab ===== */
 const SIM={key:'',status:'idle',msg:'',res:null,rpms:null,inp:null,workers:[],run:0,prog:{},par:1,ncyl:1};
-window.__sim={WS,simSpec,simVariants,simRpms,simEntries,simMerge,simVtcSet,inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
+window.__sim={WS,simSpec,simVariants,simRpms,simEntries,simMerge,simVtcSet,simPlan:q=>simPlan(q),simKey:q=>simKey(q),waveRust:()=>simWaveRust(waveB64()),inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
 const SIM_COL=['--t4','--t2','--t3','--t1','--t5'], SIM_DASH=['','6 4','2 3','9 3','4 2 1 2'];
 // the head's measured flow (CAM_LIB flow) when the engine came from the library and its valves are still the library's
 function simFlowOf(){
@@ -20393,7 +20407,9 @@ function simCheck(q){
   }
   return '';
 }
-const simKey=q=>JSON.stringify(q);
+// the run key: the inputs, and the Intake tab's fuel, mixture and evaporation that fuelSpec adds to the spec (2026-11-16,
+// docs/SPEC_PARITY_AUDIT_2026-11-16.md D3: before, a finished run stayed "current" after the fuel changed)
+const simKey=q=>JSON.stringify(q)+(typeof fuelSig==='function'?fuelSig():'');
 /* The same wave model in Rust (rust/et_wave), built to WebAssembly by tools/build_wave_wasm.sh: it gives the same
    numbers to the last digit (web/tests/wave_wasm.js) about twice as fast. Its pow, sin, cos and exp are the page's own
    Math functions, so the numbers do not depend on the browser's maths library. */
@@ -20480,8 +20496,10 @@ function turboSimLib(WS,X){
     const eng=WS.makeEngine(spec.e,spec.intake,spec.exhaust,spec.opt); let state=null, tr=false;
     // trace(on): every step also returns o.trace, cylinder 1's last two cycles (runSpeed's opts.trace; the knock estimate)
     return {Vd:eng.Vd,eng,set:(a,g)=>WS.setTurbine(eng,a,g),drop:()=>{},trace:on=>{ tr=!!on; },
-      step:(rpm,first,cyc,firstCyc,extra)=>{ if(first) state=null;
-        let r=WS.runSpeed(eng,{rpm,cycles:first?firstCyc:cyc,dx,state,trace:tr}), k=0;
+      // 0, NaN or a missing count takes the WebAssembly's default (wave_step: 6 first cycles, 3, 4 extra pairs), so the two
+      // back ends run the same cycles for the same call (2026-11-16: an extra of 0 ran none here and 4 there)
+      step:(rpm,first,cyc,firstCyc,extra)=>{ if(first) state=null; extra=extra||4;
+        let r=WS.runSpeed(eng,{rpm,cycles:first?(firstCyc||6):(cyc||3),dx,state,trace:tr}), k=0;
         while(k<extra){ const h=r.history, n=h.length; if(n>=2&&Math.abs(h[n-1].ve-h[n-2].ve)<0.004*h[n-1].ve) break; r=WS.runSpeed(eng,{rpm,cycles:2,dx,state:r.state,trace:tr}); k++; }
         state=r.state; const o={rpm}; KEYS.forEach(k=>{ o[k]=r[k]; }); o.perCyl=r.perCyl; o.turb=r.turb?parse(flat(r.turb)):null; if(tr) o.trace=r.trace; return o; }};
   }
@@ -20643,12 +20661,16 @@ function simWaveRust(B64){
     } finally { X.wave_drop(id); }
   }};
 }
+// the WebAssembly the workers get: none when window.__waveJs is set (test-only switch, web/tests/specparity_ui.js: the same page
+// run on the JavaScript model, the path a browser without WebAssembly takes), so both paths can be compared at the page
+function waveB64(){ return typeof window!=='undefined'&&window.__waveJs?'':WAVE_WASM_B64; }
+if(typeof window!=='undefined') window.__b64=()=>WAVE_WASM_B64;   // the embedded module, for the page tests
 function simWorkerSrc(){
   return 'const WS=('+wsFactory.toString()+')();\n'+
-    'const RW=('+simWaveRust.toString()+')('+JSON.stringify(WAVE_WASM_B64)+');\n'+
+    'const RW=('+simWaveRust.toString()+')('+JSON.stringify(waveB64())+');\n'+
     'self.onmessage=function(ev){var job=ev.data,out=[];self.postMessage({type:"start",rust:!!RW});\n'+
     ' job.variants.forEach(function(v){var prog=function(i,r){self.postMessage({type:"progress",k:v.k,i:i,rpm:r.rpm});}, res=null, Vd=0, rp=v.rpms||job.rpms;\n'+
-    '  if(RW){ try{ var w=RW.sweep(WS.rustSpec(v.spec),rp,job.dx,prog); res=w.res; Vd=w.Vd; }catch(e){ res=null; } }\n'+
+    '  if(RW&&!WS.jsOnly(v.spec).length){ try{ var w=RW.sweep(WS.rustSpec(v.spec),rp,job.dx,prog); res=w.res; Vd=w.Vd; }catch(e){ res=null; } }\n'+
     '  if(!res){ var eng=WS.makeEngine(v.spec.e,v.spec.intake,v.spec.exhaust,v.spec.opt); Vd=eng.Vd;\n'+
     '   res=WS.sweep(eng,rp,{dx:job.dx,cycles:3,firstCycles:8,maxExtra:5},prog); }\n'+
     '  out.push({k:v.k,g:v.g,part:v.part,key:v.key,label:v.label,tq:res.map(function(r){return r.imep*Vd/(4*Math.PI)*job.cyl;}),tqg:res.map(function(r){return r.gimep*Vd/(4*Math.PI)*job.cyl;}),vdt:Vd*job.cyl,ve:res.map(function(r){return r.ve;}),ov:res.map(function(r){return r.overlapPort;}),pc:res.map(function(r){return r.perCyl.map(function(x){return x.imep;});})});});\n'+
@@ -20724,7 +20746,7 @@ function tsimPlan(q){
     if(FP&&FP.evap!=null) src.push(['Fuel evaporation',FP.evap===0?'from the port walls: the charge is not cooled, the vapour’s energy credited':(100*FP.evap).toFixed(0)+' % of the latent heat from the charge at the intake valve','Intake tab, Fuel evaporation in the simulation']); }
   const portSeg=base.exhaust.segs.filter(sg=>sg.primary&&base.exhaust.segs.indexOf(sg)===0&&q.port>0);
   // the manifold
-  let per=null, colSegs=null, scrolls=null, man='';
+  let per=null, colSegs=null, scrolls=null, man='', chambers=[];
   const C=X&&!X.err?X.c:null, Lr=X&&X.L>0?X.L:NaN, dcol=X&&X.dcol>0?X.dcol:NaN, colL=X&&X.o?X.o.colL:NaN;
   const Ts=X&&X.heat&&Number.isFinite(X.heat.Ts)?X.heat.Ts+273.15:900;
   if(turbo&&C&&Lr>0&&dcol>0&&colL>0){
@@ -20738,6 +20760,9 @@ function tsimPlan(q){
     src.push(['Manifold wall temperature',tsFmt().tD(Ts-273.15),X.heat?'Turbo manifold: the steel temperature it works out':'assumed 900 K (no steel temperature on the Intake tab)']);
   } else {
     per=base.exhaust.segs.slice(); colSegs=base.opt.collector?base.opt.collector.segs.slice():[];
+    // the 4-Stroke tab's chamber on its primaries comes along with them (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md D4: it
+    // was left out, so a supercharged or manifold-less turbo run of a header with a chamber ran without it)
+    chambers=(base.exhaust.chambers||[]).slice();
     src.push(['Exhaust manifold','the 4-Stroke tab’s primaries'+(colSegs.length?' and collector':''),turbo?'fill the Turbo manifold section on the Intake tab (exhaust port bore) to use its runners':'4-Stroke tab']);
   }
   // after the turbine
@@ -20771,13 +20796,13 @@ function tsimPlan(q){
   const opt={phases};
   if(scrolls) opt.collectors=scrolls.map(c=>({cyls:c,segs:colSegs,Tw:Ts}));
   else if(n>1&&colSegs.length) opt.collector={segs:colSegs,Tw:Ts};
-  const exhaust={segs:per,Tw:Ts};
+  const exhaust=Object.assign({segs:per,Tw:Ts},chambers.length?{chambers}:{});
   if(turbo) exhaust.turbine={CdA:Aty||A0,eta,wgCdA:Agy!=null?Agy:0,wgTo:wgAtm?'atm':'down',down,pOut:p4};
   else exhaust.pOut=p4;
   const spec={e,intake:Object.assign({},intake,{source:{p:Pt,T:Tc}}),exhaust,opt};
   // the same engine and pipes with no turbo: ambient intake, the collector running on into the downpipe, the same end pressure
   const naOpt={phases}, naColl=(n>1?colSegs:[]).concat(turbo?down.segs:[]);
-  let naEx={segs:per.concat(n>1?[]:(turbo?down.segs:[])),Tw:Ts,pOut:p4};
+  let naEx=Object.assign({segs:per.concat(n>1?[]:(turbo?down.segs:[])),Tw:Ts,pOut:p4},chambers.length?{chambers}:{});
   if(n>1) naOpt.collector={segs:naColl,Tw:Ts};
   // a source at the atmosphere gives the plain run to the last digit (waveturbo_ui.js 1) and the tail's flow per degree
   const na={e,intake:Object.assign({},intake,{source:{p:P_ATM,T:298.15}}),exhaust:naEx,opt:naOpt};
@@ -20816,7 +20841,7 @@ function tsimPlan(q){
 // the worker: the wave model, the WebAssembly when it loads, the closure; posts each speed as it finishes
 function tsimWorkerSrc(){
   return 'const WS=('+wsFactory.toString()+')();\n'+
-    'var X=null; try{ var s=atob('+JSON.stringify(WAVE_WASM_B64)+'), b=new Uint8Array(s.length); for(var i=0;i<s.length;i++) b[i]=s.charCodeAt(i); X=new WebAssembly.Instance(new WebAssembly.Module(b),{m:{pow:Math.pow,sin:Math.sin,cos:Math.cos,exp:Math.exp}}).exports; }catch(e){ X=null; }\n'+
+    'var X=null; try{ var s=atob('+JSON.stringify(waveB64())+'), b=new Uint8Array(s.length); for(var i=0;i<s.length;i++) b[i]=s.charCodeAt(i); X=new WebAssembly.Instance(new WebAssembly.Module(b),{m:{pow:Math.pow,sin:Math.sin,cos:Math.cos,exp:Math.exp}}).exports; }catch(e){ X=null; }\n'+
     knockLib.toString()+'\n'+
     'const TL=('+turboSimLib.toString()+')(WS,X);\n'+
     'self.onmessage=function(ev){ var j=ev.data; try{ self.postMessage({type:"start",rust:!!TL.rustBackend}); var out=tsimRun(TL,j,function(m){ self.postMessage(m); }); self.postMessage({type:"done",out:out}); }catch(e){ self.postMessage({type:"error",msg:String(e&&e.message||e)}); } };\n'+
@@ -20825,7 +20850,7 @@ function tsimWorkerSrc(){
 // one run: the turbo (the closure, or the supercharged sweep), then the same pipes without boost
 function tsimRun(TL,j,post){
   // j.knock (part 12): the boosted runs keep cylinder 1's trace for the knock estimate (it changes no result)
-  const KN=j.knock&&j.knock.ON>0&&TL.KN?TL.KN:null, mkB0=s=>TL.rustBackend?TL.rustBackend(s,j.dx):TL.jsBackend(s,j.dx);
+  const KN=j.knock&&j.knock.ON>0&&TL.KN?TL.KN:null, mkB0=s=>TL.rustBackend&&!(TL.WS.jsOnly&&TL.WS.jsOnly(s).length)?TL.rustBackend(s,j.dx):TL.jsBackend(s,j.dx);
   const mkB=s=>{ const b=mkB0(s); if(KN&&b.trace) b.trace(true); return b; };
   let kSpec=j.spec;
   const nR=j.rpms.length, nT=(j.sc?3:2)*nR, wc=j.fric>0?m=>m*j.wcPer+j.fric:m=>m*j.wcPer, eta0=j.turbo&&j.spec.exhaust.turbine?j.spec.exhaust.turbine.eta:NaN;
@@ -21643,7 +21668,9 @@ function uelLayoutSpec(q,sp,eq){
   const dp=p.dp/1000, dPort=sp&&sp.portD>0?sp.portD:dp, port=r.port/1000, ang={}, by=Object.fromEntries(U2.rows.map(x=>[x.c,x]));
   r.groups.forEach(g=>g.pulses.forEach(x=>{ang[x.cyl]=x.ang;}));
   const pos=a=>a.filter(s=>s.L>1e-6), per_cyl=[], phases=[];
-  for(let c=1;c<=N;c++){ per_cyl.push(pos([{L:port,d0:dPort,d1:dPort,primary:true},{L:(eq?d0.prim:by[c].prim)/1000,d0:dp,d1:dp,primary:true}])); phases.push(ang[c]); }
+  // port: true: the head's exhaust port law, as simSpec marks its port (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md D2: from
+  // part 7, 2026-11-13, the Headers layout's ports ran as plain pipe while the 4-Stroke tab's design had the law)
+  for(let c=1;c<=N;c++){ per_cyl.push(pos([{L:port,d0:dPort,d1:dPort,primary:true,port:true},{L:(eq?d0.prim:by[c].prim)/1000,d0:dp,d1:dp,primary:true}])); phases.push(ang[c]); }
   const dc=r.dc/1000, cm=r.cmerge/1000, cs=r.cstraight/1000, Tw=650, collectors=[];
   r.groups.forEach((g,gi)=>{
     const cyls=g.cyls.map(c=>c-1), n=cyls.length;
@@ -27347,6 +27374,11 @@ const TABS={'quick':{panel:'panel-quick',tab:'tab-quick',render:renderQuick},'fo
 let cur='quick';
 // window.__renderCount: renders finished so far, for the tests only (web/tests/settle.js waits until it stops moving
 // before it reads the page); nothing on the page reads it
+// the Headers and Intake tabs' last results (HDR_LAST, TS_LAST, MFD_LAST) are what the 4-Stroke tab's runs read (the Headers
+// layout, the boosted plan); they were refreshed only when their tab rendered, so after a project load or an engine preset
+// chosen on another tab the 4-Stroke tab simulated the layout and charge of the build before (2026-11-16,
+// docs/SPEC_PARITY_AUDIT_2026-11-16.md D5). Called by projApply and applyVehicle.
+function refreshTabResults(){ if(cur!=='headers') try{ renderHeaders(); }catch(e){} if(cur!=='intake') try{ renderIntake(); }catch(e){} }
 function renderActive(){ syncShapes(); TABS[cur].render(); if(cur==='headers') renderPieCut(); window.__renderCount=(window.__renderCount||0)+1; }
 function showTab(){
   const h=location.hash.replace('#','');
@@ -27573,7 +27605,7 @@ function projApply(d){
   if(Array.isArray(d.build)){ BUILD.items=JSON.parse(JSON.stringify(d.build)); saveBuild(); }
   cmapAfterLoad(ui.cmap);
   HP_PRESET=null;   // a loaded project's power field is the builder's, not a preset's
-  renderActive();
+  refreshTabResults(); renderActive();
 }
 // what a saved field reads as, in the units now chosen
 function projFieldText(id,s){

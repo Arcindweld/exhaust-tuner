@@ -24,7 +24,7 @@ function swap(src, from, to) {
   if (n !== 1) throw new Error('instrumentation: expected one "' + from.slice(0, 60) + '", found ' + n);
   return src.replace(from, to);
 }
-function load(o) {
+function build(o) {
   o = o || {};
   let src = source();
   if (o.gamma != null) src = swap(src, 'const GAM=1.35,', 'const GAM=' + Number(o.gamma) + ',');
@@ -46,6 +46,9 @@ function load(o) {
   // WS_PATCHES=<file.json> ([[from, to], ...], each 'from' found exactly once): experiment-only source changes (part 8's
   // one-change experiments on physics the page does not have, e.g. results/patch_premix.json); the page is never modified
   if (process.env.WS_PATCHES) for (const [from, to] of JSON.parse(fs.readFileSync(process.env.WS_PATCHES, 'utf8'))) src = swap(src, from, to);
-  return new Function(src + '\nreturn wsFactory();')();
+  return src;
 }
-module.exports = { load, ROOT, PAGE };
+function load(o) { return new Function(build(o) + '\nreturn wsFactory();')(); }
+// build(o): the same source as text, for running the scripts' model inside a browser (web/tests/specparity_lib.js: Node's
+// Math.pow, exp, sin, cos ... are not Chromium's, so a bit-for-bit comparison with the page has to run in the page)
+module.exports = { load, build, ROOT, PAGE };

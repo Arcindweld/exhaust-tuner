@@ -3985,3 +3985,20 @@ the stand-ins can go in an afternoon, and the model will then say more about thi
 33. Pins changed in other tests: none (no existing test pinned a K24 wave result through the preset's rod, and none ran a
 check-lift cam on the WebAssembly path). kat.json not regenerated: wsFactory's physics and the WebAssembly are unchanged
 (two exports added to wsFactory's return: rustSpec, camSeat).
+
+## Addendum 2026-11-16: which numbers here came from which path (docs/SPEC_PARITY_AUDIT_2026-11-16.md)
+
+The spec parity audit found that the browser's WebAssembly path ran cam cards entered at a check lift (0.050 in, 1 mm) as
+seat-to-seat events from 2026-11-03 until the part-14 fix (f5ce4c3, 2026-11-15), and that the Headers tab's layout ran
+its ports without the part-7 port law (until 2026-11-16). What that means for this document:
+- Every validation number in parts 1-14 was produced by the scripts in tools/validation/wave, which load the page's
+  JavaScript model directly (lib.js) and hand it their own specs (ratings.js: `checkLift_mm: 1.27` on the CAM_LIB cards,
+  which the JavaScript has always honoured). They did not go through the WebAssembly or its translation and are
+  unaffected by both defects. The port law was always marked in ratings.js's specs.
+- Numbers quoted from the page itself (page tests' pins, "the page shows ..." statements) were browser-path results; those
+  with a cam at 0.050 in between 2026-11-03 and 2026-11-15 were seat-to-seat runs. The page-path pins were re-run after the
+  part-14 fix (kseries_ui.js); after this audit the whole web and parity suite passes with no pin changed (the fixes here
+  touch no spec an existing pin uses).
+- The scripts run in Node, whose Math.pow / exp / sin / cos differ from Chromium's in the last bits: a script's number and
+  the browser's for the same spec agree to about 1e-9 relative, not to the last digit. specparity_ui.js makes the
+  bit-for-bit comparison with the scripts' own load of the model run inside the page.
