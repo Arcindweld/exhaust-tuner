@@ -20339,7 +20339,7 @@ document.addEventListener('click',e=>{
 
 /* ===== wave simulation on the 4-Stroke tab ===== */
 const SIM={key:'',status:'idle',msg:'',res:null,rpms:null,inp:null,workers:[],run:0,prog:{},par:1,ncyl:1};
-window.__sim={WS,simSpec,simVariants,simRpms,simEntries,simMerge,simVtcSet,inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
+window.__sim={WS,simSpec,simVariants,simRpms,simEntries,simMerge,simVtcSet,simPlan:q=>simPlan(q),simKey:q=>simKey(q),waveRust:()=>simWaveRust(waveB64()),inp:()=>SIM.inp,state:SIM,simCheck,camSeat:(...a)=>window.__camSeat(...a)};   // for the tests
 const SIM_COL=['--t4','--t2','--t3','--t1','--t5'], SIM_DASH=['','6 4','2 3','9 3','4 2 1 2'];
 // the head's measured flow (CAM_LIB flow) when the engine came from the library and its valves are still the library's
 function simFlowOf(){
@@ -20643,9 +20643,13 @@ function simWaveRust(B64){
     } finally { X.wave_drop(id); }
   }};
 }
+// the WebAssembly the workers get: none when window.__waveJs is set (test-only switch, web/tests/specparity_ui.js: the same page
+// run on the JavaScript model, the path a browser without WebAssembly takes), so both paths can be compared at the page
+function waveB64(){ return typeof window!=='undefined'&&window.__waveJs?'':WAVE_WASM_B64; }
+if(typeof window!=='undefined') window.__b64=()=>WAVE_WASM_B64;   // the embedded module, for the page tests
 function simWorkerSrc(){
   return 'const WS=('+wsFactory.toString()+')();\n'+
-    'const RW=('+simWaveRust.toString()+')('+JSON.stringify(WAVE_WASM_B64)+');\n'+
+    'const RW=('+simWaveRust.toString()+')('+JSON.stringify(waveB64())+');\n'+
     'self.onmessage=function(ev){var job=ev.data,out=[];self.postMessage({type:"start",rust:!!RW});\n'+
     ' job.variants.forEach(function(v){var prog=function(i,r){self.postMessage({type:"progress",k:v.k,i:i,rpm:r.rpm});}, res=null, Vd=0, rp=v.rpms||job.rpms;\n'+
     '  if(RW){ try{ var w=RW.sweep(WS.rustSpec(v.spec),rp,job.dx,prog); res=w.res; Vd=w.Vd; }catch(e){ res=null; } }\n'+
@@ -20816,7 +20820,7 @@ function tsimPlan(q){
 // the worker: the wave model, the WebAssembly when it loads, the closure; posts each speed as it finishes
 function tsimWorkerSrc(){
   return 'const WS=('+wsFactory.toString()+')();\n'+
-    'var X=null; try{ var s=atob('+JSON.stringify(WAVE_WASM_B64)+'), b=new Uint8Array(s.length); for(var i=0;i<s.length;i++) b[i]=s.charCodeAt(i); X=new WebAssembly.Instance(new WebAssembly.Module(b),{m:{pow:Math.pow,sin:Math.sin,cos:Math.cos,exp:Math.exp}}).exports; }catch(e){ X=null; }\n'+
+    'var X=null; try{ var s=atob('+JSON.stringify(waveB64())+'), b=new Uint8Array(s.length); for(var i=0;i<s.length;i++) b[i]=s.charCodeAt(i); X=new WebAssembly.Instance(new WebAssembly.Module(b),{m:{pow:Math.pow,sin:Math.sin,cos:Math.cos,exp:Math.exp}}).exports; }catch(e){ X=null; }\n'+
     knockLib.toString()+'\n'+
     'const TL=('+turboSimLib.toString()+')(WS,X);\n'+
     'self.onmessage=function(ev){ var j=ev.data; try{ self.postMessage({type:"start",rust:!!TL.rustBackend}); var out=tsimRun(TL,j,function(m){ self.postMessage(m); }); self.postMessage({type:"done",out:out}); }catch(e){ self.postMessage({type:"error",msg:String(e&&e.message||e)}); } };\n'+
