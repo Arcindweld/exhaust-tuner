@@ -285,7 +285,25 @@ results equal the in-page run to the last digit and their run keys match the pag
 the knock check did not run (no knock result in the output); the knock path was covered by the E85 and race cases only.
 
 (b) **Every engine preset** (`tools/validation/wave/preset_sweep.js`, results/preset_sweep.json; resumable, it skips the
-presets already in the file and stops cleanly when the browser goes away). PRESETS_TEXT
+presets already in the file and stops cleanly when the browser goes away). Each preset: a fresh page, the preset chosen from the
+engine list, the page's own 4-Stroke spec (the design as entered; none of the presets lays out a Headers twin), run at
+the first, middle and last of the 12 speeds the page would run (0.4, about 0.85 and 1.35 times the tune RPM) with the
+JavaScript model and the WebAssembly, short run control (2 first cycles, 1, 1 extra pair, 20 mm grid), every number
+compared, and the results judged: no NaN, VE 0.3 to 1.6, IMEP above 0 (positive torque at wide-open throttle), peak
+pressure 10 to 300 bar, exhaust temperature 500 to 1800 K, residual 0 to 0.5. Result: 598 presets; 592 four-stroke, 6
+rotaries (the 13B-REW and Renesis entries) that fill nothing on the 4-Stroke tab and are not applicable; 592 specs, **no
+JS/WASM difference, no error, no spec refused, no implausible value, no page error** (1,411 s for the 396 presets of the
+second sitting, the first 202 in an earlier one; the file keeps both). VE over all presets and speeds 0.361 to 1.175,
+IMEP 3.6 to 17.3 bar. The lowest VE are all at the top speed of high-revving engines whose valves and cam the page
+estimates (Honda F22C1 0.361 and F20C 0.386, Ferrari F140 HB 0.370, the Voodoo-type flat-plane 4.5 0.374, LT6 0.376):
+1.35 times their peak-power RPM (the top of simRpms' fixed range, which the 4-Stroke run does run) is above their
+redline, so a low VE there is the estimated valves choking at a speed the engine never reaches; worth knowing when
+reading the top of those curves, not a data defect. A second check of the presets' own numbers
+(`tools/validation/wave/preset_geometry.js`, results/preset_geometry.json): of the 592, 77 carry a bore and stroke, and
+for all 77 pi/4 x bore^2 x stroke x cylinders is within 2 % of the preset's displacement; valve heads, rod and
+compression, where given, inside plain ranges. The other 515 have no bore or stroke in the list, so the 4-Stroke tab
+estimates the bore as 1.2 x stroke from the displacement for them (stated on the page as "blank to estimate"): a gap in
+the data, not an error in it, and the largest open item for the presets' wave runs.
 
 (c) **The Headers collector shapes through the layout path** (`tools/validation/wave/headers_shapes_parity.js`,
 results/headers_shapes_parity.json): unequal lengths with a direct 4-1 on an inline four, a V8 per bank (two collectors),
