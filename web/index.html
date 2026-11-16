@@ -17138,6 +17138,9 @@ document.addEventListener('click',e=>{ if(!e.target.closest('#tt-tune')) return;
   ttTune(5,L.f0,L.c).forEach((x,i)=>{ TT.L[i]=Math.max(10,x.L); }); renderActive(); });
 window.__tt={ttMatrix,ttTune,TT};
 function renderMuf(){
+  // (2026-11-16) the Mach note sits in the static form and was written only on the full path: an early error return left
+  // the last design's (A2, S4)
+  { const me=$('m-mach-eng'); if(me) me.textContent=''; }
   const bore=boreOf('m-dp-shape'), useSecs=$('m-lay').value==='secs', secs=useSecs?soundSecs():null;
   $('m-len-wrap').hidden=useSecs;
   const p={f:val('m-f'),dpipe:bore.err?NaN:bore.Deq,len:val('m-len'),tmain:val('m-tmain'),tres:val('m-tres'),dn:val('m-dn'),ln:val('m-ln'),db:val('m-db'),dch:val('m-dch'),lch:val('m-lch'),lin:val('m-lin'),lout:val('m-lout'),rev:$('m-chlay').value==='reverse'};

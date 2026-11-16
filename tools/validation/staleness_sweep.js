@@ -53,7 +53,8 @@ async function checkpoint(ctx, pg) {
   const B = await open(ctx, snap.tab || 'quick'); await B.evaluate(d => window.__proj.apply(d), snap); await T.copyView(pg, B); await settle(B);
   const Bt = await T.readAll(B), errs = B._errs.slice(); await B.close();
   const r = { load: T.diffTabs(A, Bt), order: T.diffTabs(A, A2), errsB: errs, tabsRead: Object.keys(A).length };
-  if (args.dump) { r.dumpA = (A[args.dump] || '').split('\n').slice(0, 40); r.dumpB = (Bt[args.dump] || '').split('\n').slice(0, 40); r.snap = snap; }
+  if (args.dump) { const a = (A[args.dump] || '').split('\n'), b = (Bt[args.dump] || '').split('\n'); let i = 0; while (i < a.length && a[i] === b[i]) i++;
+    r.dumpA = a.slice(0, 40); r.dumpB = b.slice(0, 40); r.firstA = a[i]; r.firstB = b[i]; r.snap = snap; }
   return r;
 }
 (async () => {

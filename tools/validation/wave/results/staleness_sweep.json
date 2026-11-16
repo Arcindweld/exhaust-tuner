@@ -1,0 +1,3488 @@
+{
+ "sessions": {
+  "1": {
+   "seed": 1,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-loud",
+     "v": "4"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-nh",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "reload",
+     "tab": "headers",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "top",
+     "look": "two-stroke"
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "eng",
+     "v": "191",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.augx[data-k=\"Ds\"]",
+     "v": "4.23",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#v-pick",
+     "v": "519",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "use",
+     "tab": "intake",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-red",
+     "v": "7235"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-ch",
+     "v": "wrap",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-pick",
+     "v": "279"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-hf",
+     "v": "114"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-make",
+     "v": "Chevrolet Performance"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-rpm",
+     "v": "6465"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-outpos",
+     "v": "offset"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "reload",
+     "tab": "options",
+     "look": "headers"
+    },
+    {
+     "k": "mode",
+     "tab": "headers",
+     "v": "expert",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-type",
+     "v": "y"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-ind",
+     "v": "turbo2",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-vtcmode",
+     "v": "best"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-port",
+     "v": "",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-disp",
+     "v": "316"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-mode",
+     "v": "veh",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-kind",
+     "v": "maf",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-cr",
+     "v": "10.79"
+    },
+    {
+     "k": "mode",
+     "tab": "sound",
+     "v": "simple"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-part",
+     "v": "oil",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-maxw",
+     "v": "7"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-mat",
+     "v": "in625",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "782",
+     "look": "intake"
+    },
+    {
+     "k": "units",
+     "tab": "quick",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-red",
+     "v": "10044"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-outpos",
+     "v": "center"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-fuel",
+     "v": "e10"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#hg-reach",
+     "v": "55.54",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-rpm",
+     "v": "9461"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-count",
+     "v": "4",
+     "look": "mufflers"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 50.408
+  },
+  "2": {
+   "seed": 2,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-type",
+     "v": "itb"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-sshape",
+     "v": "oval",
+     "look": "hangers"
+    },
+    {
+     "k": "mode",
+     "tab": "hangers",
+     "v": "expert",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-nin",
+     "v": "9"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#o-cat",
+     "v": "muf"
+    },
+    {
+     "k": "units",
+     "tab": "four-stroke",
+     "v": "met",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#panel-headers input.heatx[data-k=\"load\"]",
+     "v": "92.86"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-s",
+     "v": "123",
+     "look": "crossover"
+    },
+    {
+     "k": "mode",
+     "tab": "quick",
+     "v": "simple"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-use",
+     "v": "off",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-class",
+     "v": "bike",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-h2",
+     "v": "74.14"
+    },
+    {
+     "k": "units",
+     "tab": "boom-tubes",
+     "v": "imp"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-sd",
+     "v": "3.28",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-maxh",
+     "v": "10"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-port",
+     "v": "",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-ends",
+     "v": "full"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-ports",
+     "v": "in"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-make",
+     "v": "Benelli",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-type",
+     "v": "x",
+     "look": "hangers"
+    },
+    {
+     "k": "use",
+     "tab": "hangers",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-maxrun",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#o-cat",
+     "v": "collect"
+    },
+    {
+     "k": "preset",
+     "tab": "boom-tubes",
+     "mode": "veh",
+     "v": "817",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-port",
+     "v": "2"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-disp",
+     "v": "33.82"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-loud",
+     "v": "1"
+    },
+    {
+     "err": "page.evaluate: TypeError: Cannot read properties of undefined (reading 'trim')\n    at ST.change (eval at evaluate (:311:30), <anonymous>:36:24)\n    at eval (eval at evaluate (:311:30), <anonymous>:1:1"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "low"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf select.mdinst",
+     "v": "1"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-ind",
+     "v": "centri"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-shape",
+     "v": "flat",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-pick",
+     "v": "",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-ft",
+     "v": "3.93"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-n",
+     "v": "5.07"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#hg-mat",
+     "v": "pa6cf",
+     "look": "intake"
+    },
+    {
+     "k": "reload",
+     "tab": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-mode",
+     "v": "veh",
+     "look": "two-stroke"
+    },
+    {
+     "k": "preset",
+     "tab": "cats",
+     "mode": "eng",
+     "v": "720"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 50.486
+  },
+  "3": {
+   "seed": 3,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-eng",
+     "v": "i6"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-shape",
+     "v": "oval",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.wamx[data-k=\"rpms\"]",
+     "v": "4421 5526 6410 7184 7736"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-fd",
+     "v": "6.46",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-x4",
+     "v": "11.45",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-make",
+     "v": "Lamborghini"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-shape",
+     "v": "blair"
+    },
+    {
+     "k": "preset",
+     "tab": "quick",
+     "mode": "eng",
+     "v": "540"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-h4",
+     "v": "2.77"
+    },
+    {
+     "k": "units",
+     "tab": "intake",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-maxcod",
+     "v": "9"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-weld",
+     "v": "3"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-pshape",
+     "v": "flat"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-h",
+     "v": "118"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-cyl",
+     "v": "4.53",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-mouth",
+     "v": "ellipse",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.mdx[data-k=\"f1\"]",
+     "v": "219"
+    },
+    {
+     "k": "use",
+     "tab": "options",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-t",
+     "v": "1.15",
+     "look": "headers"
+    },
+    {
+     "k": "use",
+     "tab": "cats",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#v-pick",
+     "v": "134"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf select.augsel",
+     "v": "1"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-fab",
+     "v": "fdm"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-dn",
+     "v": "38.14"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-class",
+     "v": "bike",
+     "look": "parts"
+    },
+    {
+     "k": "units",
+     "tab": "headers",
+     "v": "imp"
+    },
+    {
+     "k": "preset",
+     "tab": "cats",
+     "mode": "eng",
+     "v": "652"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-rpm",
+     "v": "9452",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-T",
+     "v": "21.82"
+    },
+    {
+     "k": "reload",
+     "tab": "two-stroke",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.ttx[data-k=\"d\"]@3",
+     "v": "1.56",
+     "look": "options"
+    },
+    {
+     "k": "mode",
+     "tab": "options",
+     "v": "expert",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#panel-headers select.exhx[data-k=\"mesh\"]",
+     "v": "fine",
+     "look": "cats"
+    },
+    {
+     "k": "preset",
+     "tab": "crossover",
+     "mode": "veh",
+     "v": "647"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#o-cat",
+     "v": "engine",
+     "look": "two-stroke"
+    },
+    {
+     "k": "reload",
+     "tab": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-cs",
+     "v": "1.75",
+     "look": "four-stroke"
+    },
+    {
+     "k": "reload",
+     "tab": "headers",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-s",
+     "v": "5.89"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-kind",
+     "v": "maf",
+     "look": "two-stroke"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 51.262
+  },
+  "4": {
+   "seed": 4,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-fuel",
+     "v": "m100",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#v-pick",
+     "v": "39"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-id",
+     "v": "2.37"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-make",
+     "v": "Indian"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-maf",
+     "v": "housing",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-eng",
+     "v": "p2_270"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-disp",
+     "v": "138"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-mouth",
+     "v": "plain",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-dn",
+     "v": "2.38"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-kind",
+     "v": "maf",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "top"
+    },
+    {
+     "k": "preset",
+     "tab": "crossover",
+     "mode": "veh",
+     "v": "834"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#wsnd-load",
+     "v": "none",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-disp",
+     "v": "121"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-brand",
+     "v": "Vibrant"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-class",
+     "v": "car",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#v-make",
+     "v": "Jaguar"
+    },
+    {
+     "k": "use",
+     "tab": "options",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "459"
+    },
+    {
+     "k": "reload",
+     "tab": "four-stroke",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-dt",
+     "v": "3.94"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-nh",
+     "v": "3.69"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-make",
+     "v": "GMC"
+    },
+    {
+     "k": "mode",
+     "tab": "cats",
+     "v": "expert"
+    },
+    {
+     "k": "use",
+     "tab": "sound",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#v-pick",
+     "v": "356"
+    },
+    {
+     "k": "preset",
+     "tab": "boom-tubes",
+     "mode": "eng",
+     "v": "356"
+    },
+    {
+     "k": "preset",
+     "tab": "cats",
+     "mode": "eng",
+     "v": "356"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-wall",
+     "v": "0.0663",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "veh",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "units",
+     "tab": "hangers",
+     "v": "met",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-camkeep",
+     "v": true
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-sock",
+     "v": "11.62",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-nbaf",
+     "v": "6",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cone",
+     "v": "52.24",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-edge",
+     "v": "1",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-maf",
+     "v": "sd"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-type",
+     "v": "custom"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 44.972
+  },
+  "5": {
+   "seed": 5,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-part",
+     "v": "can"
+    },
+    {
+     "k": "units",
+     "tab": "mufflers",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-wall",
+     "v": "1.46"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cyc",
+     "v": "r"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-body",
+     "v": "395"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "low",
+     "look": "sound"
+    },
+    {
+     "k": "reload",
+     "tab": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#dyno-loss",
+     "v": "12.97",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-shape",
+     "v": "flat",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-outpos",
+     "v": "offset-opp"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four select.wamprof[data-k=\"angle\"]",
+     "v": "cam"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-gpre",
+     "v": "iso",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-tin",
+     "v": "27.01",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-pick",
+     "v": "246",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-filt",
+     "v": "oval",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-d",
+     "v": "70.6"
+    },
+    {
+     "k": "preset",
+     "tab": "boom-tubes",
+     "mode": "veh",
+     "v": "220"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-off",
+     "v": "8"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-len",
+     "v": "2296",
+     "look": "crossover"
+    },
+    {
+     "k": "use",
+     "tab": "sound",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-evo",
+     "v": "59.1",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-disp",
+     "v": "2849"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-t",
+     "v": "1.09",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-len",
+     "v": "2854",
+     "look": "headers"
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "veh",
+     "v": "241"
+    },
+    {
+     "k": "preset",
+     "tab": "hangers",
+     "mode": "eng",
+     "v": "294"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-lay",
+     "v": "secs",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cruise",
+     "v": "1546",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-clr",
+     "v": "127",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-disp",
+     "v": "5439",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-idle",
+     "v": "533",
+     "look": "quick"
+    },
+    {
+     "err": "page.evaluate: TypeError: Cannot read properties of undefined (reading 'trim')\n    at ST.change (eval at evaluate (:311:30), <anonymous>:36:24)\n    at eval (eval at evaluate (:311:30), <anonymous>:1:1"
+    },
+    {
+     "k": "preset",
+     "tab": "hangers",
+     "mode": "eng",
+     "v": "653"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-make",
+     "v": "Royal Enfield",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-tone",
+     "v": "high"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-flex",
+     "v": "bare"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-maxh",
+     "v": "4"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-rpm",
+     "v": "6997",
+     "look": "crossover"
+    },
+    {
+     "k": "units",
+     "tab": "mufflers",
+     "v": "imp"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 45.312
+  },
+  "6": {
+   "seed": 6,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-tone",
+     "v": "high",
+     "look": "mufflers"
+    },
+    {
+     "k": "units",
+     "tab": "quick",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-pick",
+     "v": "1",
+     "look": "quick"
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "veh",
+     "v": "384"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-pick",
+     "v": "399"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "168"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "342"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-size",
+     "v": "2",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#panel-headers input.heatx[data-k=\"Ta\"]",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf select.augsel",
+     "v": "1"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-port",
+     "v": "4"
+    },
+    {
+     "k": "preset",
+     "tab": "intake",
+     "mode": "eng",
+     "v": "327",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.esx[data-k=\"idle\"]",
+     "v": "",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.wamx[data-k=\"cycles\"]",
+     "v": ""
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "eng",
+     "v": "365",
+     "look": "options"
+    },
+    {
+     "k": "reload",
+     "tab": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-class",
+     "v": "bike",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-rpm",
+     "v": "6394",
+     "look": "hangers"
+    },
+    {
+     "k": "units",
+     "tab": "four-stroke",
+     "v": "imp"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-len",
+     "v": "28.6"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-shape",
+     "v": "blair"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-shape",
+     "v": "flat",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-n",
+     "v": "8"
+    },
+    {
+     "k": "preset",
+     "tab": "parts",
+     "mode": "eng",
+     "v": "956"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-od",
+     "v": "3.73",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-class",
+     "v": "car",
+     "look": "intake"
+    },
+    {
+     "k": "units",
+     "tab": "two-stroke",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-d",
+     "v": "78.16"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-pos",
+     "v": "284"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-shape",
+     "v": "flat"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-size",
+     "v": "1.5",
+     "look": "parts"
+    },
+    {
+     "k": "units",
+     "tab": "four-stroke",
+     "v": "imp"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#o-cat",
+     "v": "collect"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-s",
+     "v": "6.99",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-mat",
+     "v": "ss409"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "veh"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#hg-style",
+     "v": "minimal"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-series",
+     "v": "2",
+     "look": "parts"
+    },
+    {
+     "k": "preset",
+     "tab": "quick",
+     "mode": "eng",
+     "v": "62",
+     "look": "cats"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 57.59
+  },
+  "7": {
+   "seed": 7,
+   "actions": [
+    {
+     "k": "preset",
+     "tab": "quick",
+     "mode": "veh",
+     "v": "417"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-d",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-red",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-shape",
+     "v": "spec",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "58",
+     "look": "four-stroke"
+    },
+    {
+     "k": "use",
+     "tab": "sound",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-cyl",
+     "v": "7.86"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-pshape",
+     "v": "oval"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-mode",
+     "v": "eng",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-eng",
+     "v": "mb2",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-maxcod",
+     "v": "8"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-type",
+     "v": "hf300",
+     "look": "four-stroke"
+    },
+    {
+     "k": "reload",
+     "tab": "parts",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-disp",
+     "v": "256"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.augx[data-k=\"pitch\"]",
+     "v": "4.07"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.wamx[data-k=\"name\"]",
+     "v": "calc_7cyl_4to1"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "458"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "preset",
+     "tab": "crossover",
+     "mode": "eng",
+     "v": "826"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-class",
+     "v": "car"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-ph",
+     "v": "1.64"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-eng",
+     "v": "ls",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cyc",
+     "v": "2"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-pick",
+     "v": "72",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-gy",
+     "v": "19.68"
+    },
+    {
+     "k": "reload",
+     "tab": "options"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#v-pick",
+     "v": "872"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "veh",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-od",
+     "v": "3.63"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-shape",
+     "v": "flat",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-rpm",
+     "v": "",
+     "look": "quick"
+    },
+    {
+     "k": "mode",
+     "tab": "parts",
+     "v": "expert"
+    },
+    {
+     "k": "units",
+     "tab": "two-stroke",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-ishape",
+     "v": "oval",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-x4",
+     "v": "318"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-lin",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-cratio",
+     "v": "11.11"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-d2",
+     "v": "fw",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-filt",
+     "v": "oval"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 54.023
+  },
+  "8": {
+   "seed": 8,
+   "actions": [
+    {
+     "k": "use",
+     "tab": "cats",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-wo",
+     "v": "12.75"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-sup",
+     "v": "fix",
+     "look": "crossover"
+    },
+    {
+     "k": "units",
+     "tab": "mufflers",
+     "v": "met",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-disp",
+     "v": "5980",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-clr",
+     "v": "133"
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "eng",
+     "v": "280",
+     "look": "crossover"
+    },
+    {
+     "k": "reload",
+     "tab": "parts",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-hp",
+     "v": "351",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.mdx[data-k=\"f1\"]",
+     "v": "142",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "854",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-dh",
+     "v": "50.69",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#hg-ta",
+     "v": "30.23",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-y2",
+     "v": "-117"
+    },
+    {
+     "k": "preset",
+     "tab": "headers",
+     "mode": "eng",
+     "v": "962",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-pick",
+     "v": "697"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.ttx[data-k=\"d\"]@2",
+     "v": "39.31"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.wamloss[data-k=\"K\"]",
+     "v": "5",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-mouth",
+     "v": "plain",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-clr",
+     "v": "121"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-d1",
+     "v": "bk",
+     "look": "options"
+    },
+    {
+     "k": "preset",
+     "tab": "four-stroke",
+     "mode": "eng",
+     "v": "696"
+    },
+    {
+     "k": "preset",
+     "tab": "mufflers",
+     "mode": "eng",
+     "v": "736",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-t",
+     "v": "1.42",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-maxl",
+     "v": "9",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.wamx[data-k=\"rpms\"]",
+     "v": "5425 6429 7032 7534 8036",
+     "look": "crossover"
+    },
+    {
+     "k": "mode",
+     "tab": "quick",
+     "v": "expert"
+    },
+    {
+     "k": "units",
+     "tab": "crossover",
+     "v": "imp"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#panel-headers input.heatx[data-k=\"load\"]",
+     "v": "113",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-pick",
+     "v": "865",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-off",
+     "v": "1"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-sr",
+     "v": "0.762"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-dh",
+     "v": "1.9"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-od",
+     "v": "3.43",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#wsnd-load",
+     "v": "none",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf select.ttsel[data-k=\"n\"]",
+     "v": "3"
+    },
+    {
+     "k": "preset",
+     "tab": "sound",
+     "mode": "eng",
+     "v": "652"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-shape",
+     "v": "flat"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-cruise",
+     "v": "",
+     "look": "mufflers"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 45.778
+  },
+  "9": {
+   "seed": 9,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-make",
+     "v": "Cadillac",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-maxw",
+     "v": "7"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-ho",
+     "v": "1",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-inpos",
+     "v": "offset"
+    },
+    {
+     "k": "use",
+     "tab": "cats",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-use",
+     "v": "off",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "top"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-rpm",
+     "v": "5004"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#v-make",
+     "v": "Mitsubishi"
+    },
+    {
+     "k": "use",
+     "tab": "crossover",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-make",
+     "v": "Lotus"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-mode",
+     "v": "veh"
+    },
+    {
+     "k": "use",
+     "tab": "options",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-sd",
+     "v": "4.79"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-kind",
+     "v": "tip"
+    },
+    {
+     "k": "mode",
+     "tab": "cats",
+     "v": "expert"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#v-make",
+     "v": "Suzuki",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-z1",
+     "v": "3"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-mg",
+     "v": "",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-fh",
+     "v": "6.82",
+     "look": "crossover"
+    },
+    {
+     "k": "use",
+     "tab": "hangers",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "preset",
+     "tab": "two-stroke",
+     "mode": "eng",
+     "v": "855",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cyc",
+     "v": "2"
+    },
+    {
+     "k": "mode",
+     "tab": "two-stroke",
+     "v": "simple",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-red",
+     "v": "8705"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-s1",
+     "v": "5"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-make",
+     "v": "Harley-Davidson"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-make",
+     "v": "MV Agusta",
+     "look": "intake"
+    },
+    {
+     "err": "page.evaluate: TypeError: Cannot read properties of undefined (reading 'trim')\n    at ST.change (eval at evaluate (:311:30), <anonymous>:36:24)\n    at eval (eval at evaluate (:311:30), <anonymous>:1:1"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-tcold",
+     "v": "-4.91"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-eng",
+     "v": "m2a"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-mode",
+     "v": "veh"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-kind",
+     "v": "maf"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-dh",
+     "v": "1.65"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-kind",
+     "v": "endcap"
+    },
+    {
+     "k": "mode",
+     "tab": "boom-tubes",
+     "v": "expert"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cruise",
+     "v": "3171",
+     "look": "cats"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 47.389
+  },
+  "10": {
+   "seed": 10,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-h",
+     "v": "4.83"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-ports",
+     "v": "in",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-size",
+     "v": "4",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-make",
+     "v": "Infiniti"
+    },
+    {
+     "k": "use",
+     "tab": "headers",
+     "sel": "#panel-headers button.btn@4",
+     "ok": true
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-mat",
+     "v": "mild",
+     "look": "crossover"
+    },
+    {
+     "k": "preset",
+     "tab": "crossover",
+     "mode": "eng",
+     "v": "504",
+     "look": "four-stroke"
+    },
+    {
+     "k": "units",
+     "tab": "four-stroke",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#panel-headers input.heatx[data-k=\"Lf\"]",
+     "v": "230"
+    },
+    {
+     "k": "use",
+     "tab": "headers",
+     "sel": "#panel-headers button.btn@3",
+     "ok": true,
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.wamloss[data-k=\"K\"]",
+     "v": "1"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-tone",
+     "v": "bal"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-z4",
+     "v": "9",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.esx.esl[data-k=\"sysL\"]",
+     "v": "462",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-maxcod",
+     "v": "4",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-make",
+     "v": "Mercedes-Benz",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-pick",
+     "v": "516"
+    },
+    {
+     "k": "preset",
+     "tab": "two-stroke",
+     "mode": "eng",
+     "v": "525"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-x1",
+     "v": "-296",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-h",
+     "v": "95.71"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-merge",
+     "v": "triy",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#hg-style",
+     "v": "clean"
+    },
+    {
+     "k": "in",
+     "tab": "hangers",
+     "sel": "#mt-d3",
+     "v": "fw"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-inpos",
+     "v": "offset",
+     "look": "sound"
+    },
+    {
+     "k": "preset",
+     "tab": "parts",
+     "mode": "eng",
+     "v": "525"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-mat",
+     "v": "ss409",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cruise",
+     "v": "2305"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-dn",
+     "v": "41.73",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-loud",
+     "v": "2",
+     "look": "crossover"
+    },
+    {
+     "k": "units",
+     "tab": "sound",
+     "v": "imp",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-in",
+     "v": "3.19",
+     "look": "intake"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "veh",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-shape",
+     "v": "spec",
+     "look": "parts"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-mode",
+     "v": "eng",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#pc-outpos",
+     "v": "offset-opp",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-stg",
+     "v": "2",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-eng",
+     "v": "sbc"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-s",
+     "v": "7.14"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-stg",
+     "v": "3"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 44.531
+  },
+  "11": {
+   "seed": 11,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-mode",
+     "v": "eng"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-type",
+     "v": "z"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-maxrun",
+     "v": "1"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#t-ed",
+     "v": "200",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#m-len",
+     "v": "101"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#pc-ends",
+     "v": "full"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cruise",
+     "v": "2400",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-red",
+     "v": "5455"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.ttx[data-k=\"d\"]@0",
+     "v": "1.18"
+    },
+    {
+     "k": "use",
+     "tab": "parts",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-eng",
+     "v": "gm_lt5",
+     "look": "hangers"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-d",
+     "v": "2.03"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four select.wamprof[data-k=\"angle\"]",
+     "v": "cam",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "veh"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-tone",
+     "v": "bal"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-hang",
+     "v": "solid",
+     "look": "hangers"
+    },
+    {
+     "k": "use",
+     "tab": "four-stroke",
+     "sel": "#panel-four button.btn@2",
+     "ok": true
+    },
+    {
+     "k": "reload",
+     "tab": "intake",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-count",
+     "v": "4"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-disp",
+     "v": "318"
+    },
+    {
+     "k": "preset",
+     "tab": "parts",
+     "mode": "eng",
+     "v": "38",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.ttr",
+     "v": "1752",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-pick",
+     "v": "117"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf select.mdsel",
+     "v": "chamber",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-make",
+     "v": "Volkswagen",
+     "look": "four-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-mode",
+     "v": "veh"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-fl",
+     "v": "13.46",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-mode",
+     "v": "eng",
+     "look": "boom-tubes"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four select.wamline[data-k=\"on\"]",
+     "v": "1",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "options",
+     "sel": "#v-make",
+     "v": "Kia",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.ttx[data-k=\"L\"]@3",
+     "v": "2.61"
+    },
+    {
+     "k": "preset",
+     "tab": "crossover",
+     "mode": "eng",
+     "v": "621"
+    },
+    {
+     "k": "units",
+     "tab": "four-stroke",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#v-mode",
+     "v": "veh"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-disp",
+     "v": "1883"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#panel-headers select.heatx[data-k=\"mat\"]",
+     "v": "321",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-shape",
+     "v": "oval"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-dt",
+     "v": "90.06"
+    },
+    {
+     "k": "in",
+     "tab": "headers",
+     "sel": "#h-lenmode",
+     "v": "unequal"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.ttx[data-k=\"L\"]@2",
+     "v": "131",
+     "look": "four-stroke"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 45.157
+  },
+  "12": {
+   "seed": 12,
+   "actions": [
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-loud",
+     "v": "2"
+    },
+    {
+     "k": "use",
+     "tab": "quick",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-sd",
+     "v": ""
+    },
+    {
+     "k": "preset",
+     "tab": "options",
+     "mode": "eng",
+     "v": "271"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#v-make",
+     "v": "Kia"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#v-class",
+     "v": "bike",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.esx.esl[data-k=\"sysL\"]",
+     "v": "14.54",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-red",
+     "v": "7062"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-span",
+     "v": "40.26",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-rpm",
+     "v": "",
+     "look": "mufflers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-disp",
+     "v": "301"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#panel-four input.esx.esl[data-k=\"sysL\"]",
+     "v": "16.36"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-tone",
+     "v": "high",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "quick",
+     "sel": "#q-band",
+     "v": "top",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "crossover",
+     "sel": "#x-pos",
+     "v": "16.23"
+    },
+    {
+     "k": "use",
+     "tab": "quick",
+     "skip": "no Use button"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#v-make",
+     "v": "Ducati"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.augx[data-k=\"L\"]",
+     "v": "28.72",
+     "look": "options"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-class",
+     "v": "car",
+     "look": "sound"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-od",
+     "v": "2.04",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-disp",
+     "v": "256"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#v-pick",
+     "v": "20",
+     "look": "crossover"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-make",
+     "v": "Dodge",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "mufflers",
+     "sel": "#panel-muf input.augx[data-k=\"pitch\"]",
+     "v": "3.34"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-eng",
+     "v": "p2_180"
+    },
+    {
+     "k": "mode",
+     "tab": "crossover",
+     "v": "expert",
+     "look": "two-stroke"
+    },
+    {
+     "k": "in",
+     "tab": "sound",
+     "sel": "#s-shape",
+     "v": "flat"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-nin",
+     "v": "2",
+     "look": "mufflers"
+    },
+    {
+     "k": "mode",
+     "tab": "headers",
+     "v": "simple"
+    },
+    {
+     "k": "units",
+     "tab": "headers",
+     "v": "met"
+    },
+    {
+     "k": "in",
+     "tab": "two-stroke",
+     "sel": "#v-class",
+     "v": "bike"
+    },
+    {
+     "k": "in",
+     "tab": "parts",
+     "sel": "#p-kind",
+     "v": "intercooler",
+     "look": "four-stroke"
+    },
+    {
+     "k": "units",
+     "tab": "crossover",
+     "v": "imp",
+     "look": "cats"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-len",
+     "v": "28.49",
+     "look": "quick"
+    },
+    {
+     "k": "in",
+     "tab": "intake",
+     "sel": "#i-dt",
+     "v": "2.92"
+    },
+    {
+     "k": "mode",
+     "tab": "four-stroke",
+     "v": "expert",
+     "look": "headers"
+    },
+    {
+     "k": "in",
+     "tab": "four-stroke",
+     "sel": "#f-trq",
+     "v": ""
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-pshape",
+     "v": "flat"
+    },
+    {
+     "k": "in",
+     "tab": "cats",
+     "sel": "#c-cruise",
+     "v": "1650"
+    },
+    {
+     "k": "in",
+     "tab": "boom-tubes",
+     "sel": "#b-h",
+     "v": "1.66",
+     "look": "quick"
+    }
+   ],
+   "checks": [
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 10,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 20,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 30,
+     "errsA": []
+    },
+    {
+     "load": [],
+     "order": [],
+     "errsB": [],
+     "tabsRead": 13,
+     "step": 40,
+     "errsA": []
+    }
+   ],
+   "done": true,
+   "seconds": 52.991
+  }
+ }
+}
