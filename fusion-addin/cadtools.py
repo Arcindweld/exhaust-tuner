@@ -4682,6 +4682,32 @@ def _cfd_inside(body, counter):
     return inside
 
 
+def _cfd_face_types(body, mouth_p, mouth_t):
+    """The body's faces as Fusion types them, with where each sits along the tube from the mouth (mm, from a point on
+    the face; None when the face gives none): [[type, mm from the mouth]] sorted by that, for the reply. A live read can
+    then tell a lip that is a torus face from one that is not."""
+    names = {}
+    for k in ('Plane', 'Cylinder', 'Cone', 'Sphere', 'Torus', 'EllipticalCylinder', 'EllipticalCone', 'Nurbs'):
+        v = getattr(adsk.core.SurfaceTypes, k + 'SurfaceType', None)
+        if v is not None:
+            names[v] = k.lower()
+    out = []
+    try:
+        for i in range(body.faces.count):
+            f = body.faces.item(i)
+            st = f.geometry.surfaceType
+            at = None
+            try:
+                q = _t(f.pointOnFace)
+                at = round(_dot(_sub(tuple(10.0 * c for c in q), mouth_p), mouth_t), 2)
+            except Exception:
+                pass
+            out.append([names.get(st, str(st)), at])
+    except Exception:
+        return None
+    return sorted(out, key=lambda e: (e[1] is None, e[1] or 0.0))
+
+
 def _cfd_mouth_free(tube, mouth_p, mouth_t, r_in, r_out):
     """mount 'auto': True when nothing solid is against the mouth face: no other visible solid body contains any of 12
     points 1 mm in front of the mouth on its rim's mid radius (mm, world)."""
@@ -4806,7 +4832,8 @@ def act_cfd_tube(data):
                                              'length_mm': round(L, 2), 'lip_mm': info['lip_mm'], 'mouth_mm': [round(c, 2) for c in mouth_p],
                                              'mouth_how': how, 'path_beyond_mm': [round(max(0.0, s0), 1), round(max(0.0, L_path - s1), 1)],
                                              'body_beyond_path_mm': [round(max(0.0, -s0), 1), round(max(0.0, s1 - L_path), 1)],
-                                             'mouth': info['mouth'], 'cone': info['cone'], 'cones': info['cones'], 'notes': info['notes'],
+                                             'mouth': info['mouth'], 'mouth_section_mm': (info['mouth'] or {}).get('section'),
+                                             'face_types': _cfd_face_types(body, mouth_p, mouth_t), 'cone': info['cone'], 'cones': info['cones'], 'notes': info['notes'],
                                              'mount': info['mount'], 'mount_how': mount_how, 'protrusion_mm': info['protrusion_mm'],
                                              'probes': probes[0], 'read_s': round(time.time() - t_read, 2)}}
 

@@ -461,6 +461,9 @@ def profile_from(probe, at_end):
     return sorted(out)
 
 
+SQUARE_RIM_MM = 0.5          # a straight flare's fitted lip radius under this is a square rim (see analyse_bore)
+
+
 def bore_tol(R):
     """How far (mm) the bore radius may wander and still be one constant bore."""
     return max(0.08, 0.0015 * R)
@@ -697,9 +700,20 @@ def analyse_bore(profile, L, R_ref, wall, lip_mm=None, bends=(), name_D=None):
             if dv > max(0.15, 0.05 * hgt):
                 notes.append('The mouth is modelled as %s; the real flare is up to %s from it.' % (what, mm_in(dv, 2)))
             mouth = dict(prm, kind=kind, len=Lm, dev=dv)
-    if mouth['kind'] == 'taper' and mouth['rl'] < 0.25:
-        mouth['rl'] = max(0.2, mouth['rl'])
-        notes.append('The flare\'s rim is square; it is modelled with a 0.2 mm (0.008 in) radius, the smallest the CFD case takes.')
+    if mouth['kind'] == 'taper' and mouth['rl'] < SQUARE_RIM_MM:
+        # the fit's lip radius runs from 0.2 mm up: one under 0.5 mm is the fit settling on the rim of a straight cut
+        # (a chamfer), not a radius the probes resolve (4.24.0, the first live run: a 53.7 deg chamfer 3.5 mm long read
+        # as "a 0.26 mm lip radius")
+        notes.append('The flare\'s rim is square (the nearest fit, a %s radius, is under %s, finer than the probes '
+                     'resolve); it is modelled with a 0.2 mm (0.008 in) radius, the smallest the CFD case takes.'
+                     % (mm_in(mouth['rl'], 2), mm_in(SQUARE_RIM_MM, 1)))
+        mouth['rl'] = 0.2
+        mouth['square_rim'] = True
+    # the measured section of the mouth (mm from the mouth plane, radius), thinned to 0.01 mm, for the reply: what the
+    # classification above was made from, so a live read can be checked against the solid
+    sec = [(s_, r_) for s_, r_ in pts if s_ <= F1['sa'] + 1.0]
+    if len(sec) >= 2:
+        mouth['section'] = [[round(sec[i][0], 3), round(sec[i][1], 3)] for i in _dp(sec, 0.01)]
     # changes of bore after the first flat; tiny ones (a joint between two tubes of nearly one size) are let go
     k1 = runs.index(F1)
     rest = runs[k1:]
@@ -987,6 +1001,12 @@ def describe_mouth(info):
     if t == 'ellipse':
         return 'an elliptical bellmouth %s long from a %s entry' % (mm_in(inl['length_mm']), mm_in(inl['entry_diameter_mm'], 1))
     if t == 'taper':
+        if m.get('square_rim'):
+            sec = m.get('section') or []
+            return ('a straight flare (a chamfer) with a square rim, %.1f degrees a side from a %s entry, %s long; measured '
+                    'section (mm from the mouth, radius): %s' % (
+                        inl['wall_half_angle_deg'], mm_in(inl['entry_diameter_mm'], 1), mm_in(m.get('len') or 0.0),
+                        ', '.join('(%.2f, %.2f)' % (a, b) for a, b in sec[:8]) + (' ...' if len(sec) > 8 else '')))
         return 'a straight flare, %.1f degrees a side from a %s entry, with a %s lip radius' % (
             inl['wall_half_angle_deg'], mm_in(inl['entry_diameter_mm'], 1), mm_in(inl['lip_radius_mm'], 2))
     if t == 'profile':

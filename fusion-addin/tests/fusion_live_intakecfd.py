@@ -18,7 +18,9 @@ on 127 mm, 122.1 mm / 4.81 in straight: 880.6 mm / 34.67 in), made with the add-
      centreline line: the lip from its torus face, the cone found past the line, the planes, the throttle bore for the
      tab; (b) the 3-D tube of 2 with that cone revolved on at its engine end and joined: the cone found past its Pipe
      path, the bends unchanged. info_ keys: the face types Fusion made, probe counts and read times (not counted).
-     New API use here, not yet run live: an arc inside a revolved profile (sketch arcs and revolves are each proven).
+     An arc inside a revolved profile: first run live 2026-11-16 (4.23.0) the arc did not make it into the profile (a
+   script defect, `is` on Fusion's API objects; fixed in 4.24.0, which also records the profiles' curve types and each
+   face's type by position); this version not yet run.
 Prints JSON (the failing ok_ keys say what broke), closes the design (set ET_KEEP_DOC=1 to keep it)."""
 import importlib.util
 import json
@@ -203,8 +205,14 @@ def run(_context=None):
             ax = ln.addByTwoPoints(P(-1.0, 0, 0), P(Lt + Lc + 1.0, 0, 0))
             ax.isConstruction = True
             lip_arc = ar.addByCenterStartSweep(P(rc, Rb + rc, 0), P(0, Rb + rc, 0), math.pi / 2.0)
-            a_end = lip_arc.endSketchPoint if abs(lip_arc.endSketchPoint.geometry.y - Rb) < 1e-6 else lip_arc.startSketchPoint
-            a_beg = lip_arc.startSketchPoint if a_end is lip_arc.endSketchPoint else lip_arc.endSketchPoint
+            # which end of the arc is on the bore (y = Rb) and which on the mouth face (x = 0), by position. 4.23.0 used
+            # `a_end is lip_arc.endSketchPoint`, which is always False on Fusion's API objects (each property read is a
+            # new wrapper): both lines then met the same arc end, the arc dangled and the profile closed with a chord,
+            # a 53.7 deg chamfer (atan(4.76 / 3.5)); the reader read that chamfer correctly
+            ends_ = [lip_arc.startSketchPoint, lip_arc.endSketchPoint]
+            ends_.sort(key=lambda sp_: abs(sp_.geometry.y - Rb))
+            a_end, a_beg = ends_[0], ends_[1]
+            r['info_lip_arc_ends'] = [[round(e_.geometry.x, 5), round(e_.geometry.y, 5)] for e_ in ends_]
             q1 = ln.addByTwoPoints(a_end, P(Lt, Rb, 0))
             q2 = ln.addByTwoPoints(q1.endSketchPoint, P(Lt + Lc, R2, 0))
             q3 = ln.addByTwoPoints(q2.endSketchPoint, P(Lt + Lc, R2 + w, 0))
@@ -212,19 +220,41 @@ def run(_context=None):
             q5 = ln.addByTwoPoints(q4.endSketchPoint, P(0, Rb + w, 0))
             ln.addByTwoPoints(q5.endSketchPoint, a_beg)
             prof = None
+            profs = []
             for i in range(skc.profiles.count):
-                if skc.profiles.item(i).profileLoops.count == 1:
-                    prof = skc.profiles.item(i)
+                pi_ = skc.profiles.item(i)
+                curves_ = []
+                for li in range(pi_.profileLoops.count):
+                    lp = pi_.profileLoops.item(li)
+                    for ci in range(lp.profileCurves.count):
+                        gc_ = lp.profileCurves.item(ci).geometry
+                        curves_.append(gc_.objectType.split('::')[-1])
+                profs.append({'loops': pi_.profileLoops.count, 'curves': curves_})
+                if pi_.profileLoops.count == 1:
+                    prof = pi_
+            # the sketch's profiles and their curve types (want one loop: Arc3D + 7 Line3D); 4.23.0 had no record
+            r['info_cone_tube_profiles'] = profs
+            r['ok_cone_tube_profile_has_arc'] = any(pr['loops'] == 1 and 'Arc3D' in pr['curves'] for pr in profs)
             rv = root.features.revolveFeatures
             rin = rv.createInput(prof, ax, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
             rin.setAngleExtent(False, adsk.core.ValueInput.createByString('360 deg'))
             bc = rv.add(rin).bodies.item(0)
             bc.name = 'CONE TUBE'
             kinds = {}
+            by_pos = []
             for i in range(bc.faces.count):
-                st = bc.faces.item(i).geometry.surfaceType
+                fc_ = bc.faces.item(i)
+                st = fc_.geometry.surfaceType
                 kinds[st] = kinds.get(st, 0) + 1
-            r['info_cone_tube_face_types'] = {str(k): v for k, v in kinds.items()}      # want torus 1, cone 2, cylinder 2, plane 2
+                try:
+                    pf = fc_.pointOnFace
+                    by_pos.append([st, round(pf.x * 10, 2), round(math.hypot(pf.y, pf.z) * 10, 2)])
+                except Exception as e:
+                    by_pos.append([st, None, str(e)])
+            r['info_cone_tube_face_types'] = {str(k): v for k, v in kinds.items()}      # want torus(4) 1, cone(2) 2, cylinder(1) 2, plane(0) 2
+            # each face: [SurfaceType, mm along the axis, mm from it] of a point on it (the torus at about 1 mm along)
+            r['info_cone_tube_faces_by_position'] = sorted(by_pos, key=lambda e: (e[1] is None, e[1] or 0.0))
+            r['ok_cone_tube_has_torus'] = kinds.get(adsk.core.SurfaceTypes.TorusSurfaceType, 0) == 1
             skl = root.sketches.add(root.xYConstructionPlane)
             skl.name = 'cone tube centreline'
             cl = skl.sketchCurves.sketchLines.addByTwoPoints(P(0, 0, 0), P(Lt, 0, 0))
@@ -245,6 +275,10 @@ def run(_context=None):
             r['cone_straight_msg'] = rr.get('msg')
             r['cone_straight_geometry'] = g
             r['cone_straight_probes'], r['cone_straight_read_s'] = t.get('probes'), t.get('read_s')
+            # what the reader made the mouth from (4.24.0): the measured section and the faces as it saw them
+            r['cone_straight_mouth_section_mm'] = t.get('mouth_section_mm')
+            r['cone_straight_face_types'] = t.get('face_types')
+            r['cone_straight_mouth'] = t.get('mouth')
             want_ang = math.degrees(math.atan((R2 - Rb) * 10.0 / (Lc * 10.0)))
             r['ok_cone_straight_read'] = bool(rr.get('ok'))
             r['ok_cone_straight_lip'] = g.get('inlet') == {'type': 'radius', 'lip_radius_mm': 3.5}
