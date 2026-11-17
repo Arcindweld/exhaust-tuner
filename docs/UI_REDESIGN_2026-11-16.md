@@ -174,8 +174,8 @@ A folded block keeps all of its text in the page. A folded section's blocks (eve
 no height with their overflow clipped and carry `inert`, so they are out of the tab order and the accessibility tree,
 but `textContent` and `innerText` still read them. The alternative, `<details>`, drops a closed body from `innerText`,
 which about 140 page tests read; clipping keeps those tests honest without editing them, and print (screen-only rules)
-draws everything. `web/tests/settle.js` gains `expandAll(page)` for any test that must click inside a folded section;
-none of the existing tests needed it.
+draws everything. `web/tests/settle.js` gains `expandAll(page)` for any test that must click inside a folded section
+or measure what it draws; one existing test needed it (easyflow_ui measures every boosted table at 400 px).
 
 ## What changed
 
@@ -186,7 +186,8 @@ none of the existing tests needed it.
    readout, "Boost worked out **25.91 psi** (178.66 kPa), likely 18.64 psi (128.51 kPa) to 30.54 psi (210.54 kPa)"
    (or "Power worked out …"), with the whole 1,092-character reasoning folded under "How this was worked out". Nothing
    deleted: the note is the same element with the same text. Warnings and problems in the input column are never
-   folded. Counted on every tab and the K24 journey at 1440 px (script outside the repo): explanations over 160
+   folded, and neither is a note with its own button, field or link (it is acted on, not read: the 4-Stroke tab's
+   "put the library cam back" note). Counted on every tab and the K24 journey at 1440 px (script outside the repo): explanations over 160
    characters drawn in full in an input column went from 10 to 1 in Simple mode and from 25 to 6 in Expert mode. Left:
    the engine preset's note (pass one already shows three lines of it), two long list items in the 4-Stroke tab's cam
    list (a button cannot go inside a list), and the three advanced boxes' captions (176 characters, inside a box that
@@ -246,7 +247,15 @@ none of the existing tests needed it.
    which has no scroll anchoring. The sticky bars' height is read on load and resize, never during a render, so a
    render forces no extra layout.
 
-## Checks (web/tests/ui_ui.js, extended; web/tests/settle.js, expandAll added; no other test edited)
+## Checks (web/tests/ui_ui.js extended; web/tests/settle.js gains expandAll and uiClick)
+
+Tests touched besides those two, and why: 69 test files (68 tests and staleness_lib.js) clicked the app bar's controls (`#u-met`, `#m-expert`, `#proj-btn`
+…) with `page.click`; below 700 px those now sit in the Settings panel, so the clicks go through `uiClick(page, sel)`,
+which opens the panel when the control is not shown and closes it after, as a builder would (114 calls, a mechanical
+replacement, no assertion changed); chamber_ui, full_ui and sweep_ui built the id at run time (`'#u-' + u`) and got the
+same by hand; easyflow_ui opens every section (`expandAll`) before measuring the boosted tables at 400 px, because a
+folded section's table is not drawn. No assertion weakened, no pinned number changed.
+
 
 - On every tab and the K24 journey, with nothing stored: no warning, problem or out-of-date section starts folded and
   no such note sits in a folded section or explanation; every fold control has `aria-expanded`.
@@ -266,7 +275,7 @@ none of the existing tests needed it.
 
 ## Page weight and speed
 
-- web/index.html: 4,725,090 bytes before pass two, 4,750,996 after (+25,906).
+- web/index.html: 4,725,090 bytes before pass two, 4,751,293 after (+26,203).
 - Field edits, median of 15, best of 2, same font, this machine (before the UI pass / before pass two / now): Mufflers
   68.7 / 67.4 / 71.6 ms, boosted Intake 101.0 / 105.3 / 115.5 ms, Hangers 240.3 / 255.2 / 250.6 ms, 4-Stroke
   19.8 / 21.7 / 21.7 ms (all within +20 % + 5 ms; Intake is the closest, +10 % on pass one).
@@ -284,3 +293,10 @@ none of the existing tests needed it.
   is the WebKit case, but Safari itself was not run.
 - Long input explanations left drawn in full: listed under 1 above.
 - One-off inline styles (237) stay.
+
+## Results, pass two (final code)
+
+- `web/tests/ui_ui.js`: 268 checks pass (pass one's 227, now with the field-edit timing against both earlier pages, and
+  the pass-two checks above). Field-edit times are in "Page weight and speed".
+- The full suite, `python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`: 144 tests, 137
+  passed, 0 failed, 7 skipped and 7 partial skips, all expected (no OpenWAM build, no host program here).

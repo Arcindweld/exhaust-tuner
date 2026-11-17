@@ -2290,7 +2290,9 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
   the wave simulation, the turbo simulation and the sound estimate. 14 vague error messages rewritten (20 places).
 - Re-renders keep the edited field (or the section in view) where it was, with focus and caret, in every engine
   (browser scroll anchoring off, the page's own correction); no forced layout added during a render.
-- Page 4,725,090 -> 4,750,996 bytes. ui_ui.js extended (folds by keyboard, warnings never folded, every word of the
+- Page 4,725,090 -> 4,751,293 bytes. Full suite (web, parity, -j 2, --skip-slow) on the final code: 144 tests, 137 passed,
+  0 failed, 7 skipped and 7 partial skips (no OpenWAM build, no host program here). ui_ui.js extended (folds by keyboard, warnings never folded, every word of the
   page before pass two still drawn with everything open, Settings panel, sections list, layout stability, print);
-  settle.js gains expandAll and uiClick; 69 test files now click the app bar's controls through uiClick (the controls
-  sit in the Settings panel below 700 px). No calculation, default, id, project key, hash or pinned number changed.
+  settle.js gains expandAll and uiClick; 69 other test files (68 tests and staleness_lib.js) now click the app bar's controls through uiClick (the
+  controls sit in the Settings panel below 700 px) and easyflow_ui opens the sections before measuring tables. No
+  calculation, default, id, project key, hash or pinned number changed.
