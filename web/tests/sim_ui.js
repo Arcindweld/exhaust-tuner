@@ -1,10 +1,11 @@
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out = [];
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   const pg = await ctx.newPage(); pg.on('pageerror', e => out.push('PAGEERROR ' + e.message)); pg.on('console', m => { if (m.type() === 'error' && !/fonts|net::/.test(m.text())) out.push('console ' + m.text()); });
   await pg.goto('file://' + process.cwd()+'/index.html#four-stroke');
-  await pg.click('#m-expert');
+  await uiClick(pg, '#m-expert');
   // a 450 single with a chamber
   await pg.selectOption('#f-n', '1');
   for (const [id, v] of [['#f-rpm', '8500'], ['#f-evo', '65'], ['#f-dp', '1.65'], ['#f-disp', '27.4'], ['#f-cyl', '1'], ['#f-trq', '7000'], ['#f-bore', '3.74'], ['#f-stroke', '2.496'], ['#f-cratio', '13']]) { await pg.fill(id, v); await pg.dispatchEvent(id, 'input'); }

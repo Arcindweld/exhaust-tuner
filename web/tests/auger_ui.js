@@ -1,12 +1,13 @@
 // Mufflers tab, Auger muffler (Lobak-style): two parallel paths through ttMatrix, the helix length, the dip near
 // c / (2 dL), equal areas giving the full Herschel-Quincke notch, the capped tube, desk and phone.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(), fails = [], errs = [];
   const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   for (const vp of [{ width: 1280, height: 900, n: 'desk' }, { width: 390, height: 844, n: 'phone' }]) {
     const p = await b.newPage({ viewport: vp }); p.on('pageerror', e => errs.push(e.message));
-    await p.goto('file://' + process.cwd() + '/index.html#mufflers'); await p.waitForTimeout(800); await p.click('#u-met'); await p.waitForTimeout(300);
+    await p.goto('file://' + process.cwd() + '/index.html#mufflers'); await p.waitForTimeout(800); await uiClick(p, '#u-met'); await p.waitForTimeout(300);
     const r = await p.evaluate(() => { const A = window.__aug, R = A.augCalc({ tmain: 400, dpipe: 76.2 });
       const Dm = (101.6 + 50.8) / 2, Lh = 610 / 101.6 * Math.sqrt((Math.PI * Dm) ** 2 + 101.6 ** 2);
       // equal path areas: the notch is full at c / (2 dL)

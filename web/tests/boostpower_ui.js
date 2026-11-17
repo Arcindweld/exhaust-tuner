@@ -23,6 +23,7 @@
 // is typed); the crank / wheel selector; Garrett's conservative figures selectable and the default for projects saved
 // before (op_legacy_k24.json loads with them and the same Garrett figures); both unit systems.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs');
 const { reads, settle } = require('./settle');
 const PATM = 101325, PSI = 6894.757, CI = 2354 / 16.387064;
@@ -136,9 +137,9 @@ const PATM = 101325, PSI = 6894.757, CI = 2354 / 16.387064;
   ok(G && !G.btn && G.n.includes('The simulation says ' + Math.round(T.hp) + ' hp (') && G.n.includes(Math.round(T.hp / 1.16) + ' hp') && G.n.includes(Math.round(T.hp / 1.04) + ' hp') && /reads about 4 to 16 % high/.test(G.n) && /for the target it implies/.test(G.n) && /likely 1\d\.\d\d psi/.test(G.v),
     'glance after the run: ' + G.n.slice(G.n.indexOf('The simulation'), G.n.indexOf('The simulation') + 260));
   // in mm and kPa, the same row leads with kPa
-  await pg.click('#u-met'); await settle(pg); G = await glance(pg); O = await OPof(pg);
+  await uiClick(pg, '#u-met'); await settle(pg); G = await glance(pg); O = await OPof(pg);
   ok(/boost 178\.66 kPa \(25\.91 psi\)/.test(G.v) && /kPa \(\d+\.\d\d psi\) of boost/.test(G.n) && /°C \(\d+ °F\)/.test(O.out) && /g\/s/.test(O.out), 'metric: kPa first with psi beside it, °C first: ' + G.v);
-  await pg.click('#u-imp'); await settle(pg);
+  await uiClick(pg, '#u-imp'); await settle(pg);
   // "My boost" at the worked-out boost: the power range now holds the simulation's power over 1.16 to 1.04
   await setv(pg, 'i-opm', 'boost'); await setv(pg, 'i-boost', String(25.9118 + 0)); O = await OPof(pg);
   ok(O.mode === 'boost' && Math.abs(O.hp - 450) < 0.1 && (!O.range.sim || (O.range.lo <= T.hp / 1.16 + 1e-6 && O.range.hi >= T.hp / 1.04 - 1e-6)), 'my boost at the same point: ' + O.hp.toFixed(1) + ' hp, range ' + O.range.lo.toFixed(0) + ' to ' + O.range.hi.toFixed(0) + ' hp' + (O.range.sim ? ' (holds the simulation’s ' + (T.hp / 1.16).toFixed(0) + ' to ' + (T.hp / 1.04).toFixed(0) + ')' : ' (the run is for the earlier, unrounded boost)'));

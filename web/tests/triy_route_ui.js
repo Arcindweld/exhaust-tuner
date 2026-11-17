@@ -2,13 +2,14 @@
 // the four pairs as port indices in cylinder order, the primary length to the Y, the Y merge and secondary lengths,
 // the secondary OD and the collector, and tells the user the order to select the markers in.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   await ctx.addInitScript(() => { window.__sent = []; window.adsk = { fusionSendData: (a, d) => { window.__sent.push([a, JSON.parse(d)]); return new Promise(() => {}); } }; });
   const pg = await ctx.newPage(); const errs = [], fails = []; pg.on('pageerror', e => errs.push(e.message));
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   await pg.goto('file://' + process.cwd() + '/index.html#headers'); await pg.waitForTimeout(700);
-  await pg.click('#m-expert');
+  await uiClick(pg, '#m-expert');
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   await setv('h-eng', 'ls'); await setv('h-grp', 'all'); await setv('h-merge', 'triy'); await pg.waitForTimeout(300);
   ok(!!(await pg.$('#fx-headers button[data-fx="routeTriY"]')), 'the two-stage route button is there');

@@ -2,6 +2,7 @@
 // 0.050 in at the card's angles. Seat timing (the default) leaves the spec as it was. The page's arithmetic matches
 // make_wam.py seat_events (LS3: 204/211 at 0.050 in, 117 LSA, 4 deg advanced -> seat 13.7 / 59.7 / 72.9 / 10.9).
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = [], fails = []; pg.on('pageerror', e => errs.push(e.message));
@@ -12,7 +13,7 @@ const { chromium } = require('playwright');
   const same = await pg.evaluate(() => window.__sim.camSeat({ ivo: 32, ivc: 44, evo: 48, evc: 20 }, 8.7, 8.0));
   ok(JSON.stringify(same) === JSON.stringify({ ivo: 32, ivc: 44, evo: 48, evc: 20 }), 'no check lift: the events unchanged');
   await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(400);
-  await pg.click('#m-expert');
+  await uiClick(pg, '#m-expert');
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   // a 6.2 L LS3, 4 primaries per collector
   await pg.selectOption('#f-n', '4');

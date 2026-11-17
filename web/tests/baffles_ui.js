@@ -1,10 +1,11 @@
 // Morse chain-of-chambers low-pass filter on the Mufflers tab: f0, cut-off, dB per chamber, UI section, no NaN.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out = []; let fails = 0; const chk = (ok, m) => { if (!ok) { out.push('FAIL ' + m); fails++; } };
   const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   pg.on('pageerror', e => { out.push('PAGEERROR ' + e.message); fails++; });
-  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await pg.click('#m-expert'); await pg.click('#u-met');
+  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met');
   const r = await pg.evaluate(() => {
     // Morse's worked example reading: 2.5 in pipe, 1.5 in holes, 150 mm chambers, c 500 m/s -> f0 ~ 713 Hz (thin baffle)
     const c500 = (() => { let lo = -50, hi = 1500; for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (window.__sosExh(m) < 500) lo = m; else hi = m; } return lo; })();

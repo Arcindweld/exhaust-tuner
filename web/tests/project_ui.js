@@ -1,6 +1,7 @@
 // Projects (header button): save the whole build, change it, load it back exactly; compare two builds (the inputs
 // that differ and OpenWAM torque speed by speed); export a file and import it again; delete with a second click.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'), path = require('path'), os = require('os');
 (async () => {
   const b = await chromium.launch(); const ctx = await b.newContext({ acceptDownloads: true }); const pg = await ctx.newPage({ viewport: { width: 1280, height: 900 } });
@@ -9,14 +10,14 @@ const fs = require('fs'), path = require('path'), os = require('os');
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(500);
   await pg.evaluate(() => localStorage.removeItem('exhaust-projects-v1'));
-  await pg.click('#m-expert');
+  await uiClick(pg, '#m-expert');
   await setv('f-camlib', 'ls3'); await pg.waitForTimeout(200);
   for (const [id, v] of [['#f-rpm', '6000'], ['#f-dp', '1.875'], ['#f-trq', '4600']]) { await pg.fill(id, v); await pg.dispatchEvent(id, 'input'); }
   await setv('h-eng', 'ls'); await setv('h-merge', 'triy');
   // pretend OpenWAM results and a line after the collector, then save as A
   await pg.evaluate(() => { window.__proj.wam.results = [{ name: 'a_4000', rpm: 4000, tq: 560, tqb: 520 }, { name: 'a_6000', rpm: 6000, tq: 540, tqb: 490 }]; });
   const before = await pg.evaluate(() => ({ dp: document.getElementById('f-dp')._b, ivo: document.getElementById('f-ivo')._b, lib: document.getElementById('f-camlib').value, heng: document.getElementById('h-eng').value, merge: document.getElementById('h-merge').value }));
-  await pg.click('#proj-btn'); await pg.waitForTimeout(150);
+  await uiClick(pg, '#proj-btn'); await pg.waitForTimeout(150);
   ok(await pg.$eval('#proj-dlg', d => d.open), 'the Projects dialog opens');
   await pg.fill('#proj-name', 'LS3 1-7/8 8-4-1'); await pg.click('#proj-save'); await pg.waitForTimeout(100);
   ok(/Saved “LS3 1-7\/8 8-4-1”/.test(await pg.$eval('#proj-msg', e => e.textContent)), 'saved message');
@@ -24,8 +25,8 @@ const fs = require('fs'), path = require('path'), os = require('os');
   // change things: bigger primaries, other cam, metric units, results changed; save as B
   await setv('f-camlib', ''); await pg.fill('#f-dp', '2'); await pg.dispatchEvent('#f-dp', 'input'); await setv('f-ivo', '-10'); await setv('h-merge', 'direct');
   await pg.evaluate(() => { window.__proj.wam.results = [{ name: 'b_4000', rpm: 4000, tq: 550, tqb: 510 }, { name: 'b_6000', rpm: 6000, tq: 560, tqb: 510 }, { name: 'b_6600', rpm: 6600, tq: 520, tqb: 470 }]; });
-  await pg.click('#u-met');
-  await pg.click('#proj-btn'); await pg.fill('#proj-name', '2 in primaries'); await pg.click('#proj-save'); await pg.waitForTimeout(100);
+  await uiClick(pg, '#u-met');
+  await uiClick(pg, '#proj-btn'); await pg.fill('#proj-name', '2 in primaries'); await pg.click('#proj-save'); await pg.waitForTimeout(100);
   const rows = await pg.$$eval('#proj-list .pj-row', r => r.length);
   ok(rows === 2, 'two projects listed (' + rows + ')');
   // load A back

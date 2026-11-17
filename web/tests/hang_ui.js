@@ -3,6 +3,7 @@
 // buttons read the tube and send the payload, and the payloads go to fusion-addin/tests/hang_payloads.json for
 // test_hangers.py. Run from web/.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs');
 const path = require('path');
 (async () => {
@@ -14,7 +15,7 @@ const path = require('path');
     if (a === 'hang') return Promise.resolve(JSON.stringify({ ok: true, msg: 'Built the weld-on pipe tab square to the tube: Pipe tab.' }));
     return Promise.resolve(JSON.stringify({ ok: true })); } }; });
   const p = await ctx.newPage(); p.on('pageerror', e => errs.push(e.message));
-  await p.goto('file://' + process.cwd() + '/index.html#hangers'); await p.waitForTimeout(1200); await p.click('#u-met'); await p.waitForTimeout(200);
+  await p.goto('file://' + process.cwd() + '/index.html#hangers'); await p.waitForTimeout(1200); await uiClick(p, '#u-met'); await p.waitForTimeout(200);
   const sel = (id, v) => p.evaluate(([id, v]) => { const s = document.getElementById(id); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); }, [id, v]);
   const put = (id, mm) => p.evaluate(([id, mm]) => window.__hang.set(id, mm), [id, mm]);
   ok(await p.evaluate(() => !!document.getElementById('tab-hang') && !document.getElementById('panel-hang').hidden), 'a Hangers tab under Exhaust parts, open at #hangers');

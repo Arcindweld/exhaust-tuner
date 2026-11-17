@@ -10,6 +10,7 @@
 // not missed between two polls), the debounce is judged on the page's own clock, and during the supersede the stub
 // holds the stopped run's rejection until the test has read the "Stopping" status (holdCancel / release()).
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const STUB = () => {
   const S = window.__stub = { calls: [], cancels: 0, delay: 2500, dp: 750, fail: null, pending: [], holdCancel: false, held: [], log: [], lastEditAt: 0 };
   // every status the automatic test shows, in order, as it is shown
@@ -53,7 +54,7 @@ const STUB = () => {
   await pg.addInitScript(STUB);
   await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900);
   await pg.evaluate(() => { try { localStorage.removeItem('exhaust-autocfd-v1'); localStorage.removeItem('exhaust-autocfd-on'); } catch (e) {} });
-  await pg.click('#m-expert'); await pg.waitForTimeout(300);
+  await uiClick(pg, '#m-expert'); await pg.waitForTimeout(300);
   const set = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; window.__stub.lastEditAt = Date.now(); el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   const st = () => pg.evaluate(() => ({ calls: window.__stub.calls.length, cancels: window.__stub.cancels, status: (document.getElementById('cfd-auto') || {}).textContent || '',
     running: !!window.__cfdAuto.state.run, ended: window.__stub.calls.map(c => c.ended), log: window.__stub.log.slice() }));
@@ -157,7 +158,7 @@ const STUB = () => {
   const pw = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs2 = []; pw.on('pageerror', e => errs2.push(e.message));
   await pw.goto('file://' + process.cwd() + '/index.html#intake'); await pw.waitForTimeout(900);
-  await pw.click('#m-expert'); await pw.evaluate(() => { const el = document.getElementById('i-lt'); el.value = '30'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  await uiClick(pw, '#m-expert'); await pw.evaluate(() => { const el = document.getElementById('i-lt'); el.value = '30'; el.dispatchEvent(new Event('input', { bubbles: true })); });
   await pw.waitForTimeout(5000);
   const web = await pw.evaluate(() => ({ sw: !!document.getElementById('cfd-auto-on'), st: !!document.getElementById('cfd-auto'), more: !!document.getElementById('cfd-more'), run: !!document.querySelector('button[data-cfd="run"]'), dl: !!document.getElementById('cfd-dl') }));
   ok(!web.sw && !web.st && !web.more && !web.run && web.dl, 'plain web page: no switch, no status, no Details wrapper, no Run button; the download is there');

@@ -1,8 +1,9 @@
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async()=>{
   const b=await chromium.launch(); const pg=await b.newPage({viewport:{width:1280,height:900}}); const out=[];
   pg.on('pageerror',e=>out.push('PAGEERROR '+e.message));
-  await pg.goto('file://'+process.cwd()+'/index.html#sound'); await pg.click('#m-expert');
+  await pg.goto('file://'+process.cwd()+'/index.html#sound'); await uiClick(pg, '#m-expert');
   const setv=async(id,v)=>{ await pg.fill('#'+id,String(v)); await pg.dispatchEvent('#'+id,'input'); };
   // CBX-like: Honda CBX preset, then a split system
   await pg.selectOption('#v-class','bike'); await pg.waitForTimeout(100);   // presets are split into cars and bikes (V30)

@@ -15,6 +15,7 @@
 //   actions(seed, n)    not needed: actions are drawn in the page from a seeded generator so they fit the inputs present
 'use strict';
 const { settle } = require('./settle');
+const { uiClick } = require('./settle');
 
 const PAGE_SRC = function () {
   const ST = {};
@@ -115,7 +116,7 @@ async function open(ctx, hash) {
 // a state that renders the generated inputs: expert, metric, an engine preset, a turbo build with a turbo picked and the
 // knock check on, the Headers tab at unequal lengths, a muffler line; then every tab visited
 async function rich(pg) {
-  await pg.click('#m-expert'); await pg.click('#u-met');
+  await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met');
   await pg.evaluate(() => window.__st.presetText('eng', 'K24A2 '));
   await goTab(pg, 'intake');
   await pg.evaluate(() => { const f = (id, v) => { const e = document.getElementById(id); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); };

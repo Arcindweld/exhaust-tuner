@@ -3,12 +3,13 @@
 // top, the mass flow out what the engine breathes), that a muffler on the line takes level off, that the runs join the
 // OpenWAM list, and that every play button makes sound without a page error.   node tests/wsnd_ui.js   (from web/)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   const errs = []; pg.on('pageerror', e => errs.push(e.message)); const fails = [];
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   await pg.addInitScript(() => { window.__played = []; const AC = window.AudioContext; if (AC) { const o = AC.prototype.createBufferSource; AC.prototype.createBufferSource = function () { const s = o.call(this); const st = s.start.bind(s); s.start = (...a) => { if (s.buffer) { const d = s.buffer.getChannelData(0); let pk = 0; for (let i = 0; i < d.length; i++) pk = Math.max(pk, Math.abs(d[i])); window.__played.push({ n: s.buffer.length, sr: s.buffer.sampleRate, pk }); } else window.__played.push(null); try { st(...a); } catch (e) {} }; return s; }; } });
-  await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(900); await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(900); await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   await pg.evaluate(() => { location.hash = 'sound'; }); await pg.waitForTimeout(600);
   const sec = () => pg.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => /Hear the model/.test(x.textContent)); return h ? h.parentElement.innerText : ''; });
   ok(/no recording needed/i.test(await sec()) && /Estimate the sound/.test(await sec()), 'the Sound tab offers the estimate with no file loaded');

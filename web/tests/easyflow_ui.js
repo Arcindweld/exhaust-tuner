@@ -11,7 +11,8 @@
 // no horizontal page scroll at 400 px and every boosted table either fits or scrolls inside its own box; the measurement
 // list leads to its inputs; a project saved and loaded gives the same glance card; no console errors; field edits timed.
 const { chromium } = require('playwright');
-const { reads, settle } = require('./settle');
+const { uiClick } = require('./settle');
+const { reads, settle, expandAll } = require('./settle');
 // a measurement in one unit system only: number + unit with no number + unit of the same quantity in the other system within
 // 70 characters in the same cell. Units of one quantity: [quantity, system]
 const SYS = { 'in': ['L', 'i'], 'ft': ['L', 'i'], 'mm': ['L', 'm'], 'cm': ['L', 'm'], 'm': ['L', 'm'],
@@ -115,7 +116,7 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
     const lone = []; cells.forEach(([s, t]) => loneUnits(t).forEach(z => lone.push(s + ': ' + z)));
     ok(cells.length > 500 && !lone.length, (u === 'imp' ? 'inches' : 'mm') + ' first: ' + cells.length + ' result cells, every measurement in both unit systems' + (lone.length ? '; one system only: ' + lone.join(' | ') : ''));
   }
-  await pg.click('#u-imp'); await settle(pg);
+  await uiClick(pg, '#u-imp'); await settle(pg);
   // the checker itself finds a lone unit and passes a pair
   ok(loneUnits('runner 2.12 in long').length === 1 && !loneUnits('runner 2.12 in (53.8 mm) long').length && !loneUnits('oil 0W-40, 304L, EGW 25/75 in').length, 'the lone-unit checker: finds “2.12 in” alone, passes “2.12 in (53.8 mm)”, ignores 0W-40, 304L, 25/75');
 
@@ -150,9 +151,9 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   ok(await p2.evaluate(() => document.querySelector('.advbox[data-advbox="cp"]').classList.contains('open') && !document.querySelector('.advbox[data-advbox="mf"]').classList.contains('open')), 'the box opened stays open in a new page; the others stay shut');
   await p2.close();
   // Expert mode: every input shown
-  await pg.click('#m-expert'); await settle(pg); A = await adv();
+  await uiClick(pg, '#m-expert'); await settle(pg); A = await adv();
   ok(A.every(a => a.vis === a.n), 'Expert mode shows every advanced input');
-  await pg.click('#m-simple'); await settle(pg);
+  await uiClick(pg, '#m-simple'); await settle(pg);
   // timing: a field edit re-renders the tab synchronously
   const times = []; for (const v of ['455', '450', '455', '450']) times.push(await setv(pg, 'i-hp', v));   // the target (the boost is worked out from it)
   times.push(tm); const tmax = Math.max(...times);
@@ -187,6 +188,7 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   for (const theme of ['light', 'dark']) {
     const c = await b.newContext({ viewport: { width: 400, height: 860 }, colorScheme: theme });
     ({ pg } = await open(400, c)); await journey(pg);
+    await expandAll(pg);   // every section open (UI pass two folds the method sections), so every table is drawn
     const lay = await pg.evaluate(B => { const de = document.documentElement, bad = [];
       document.querySelectorAll('#i-details .sec, #tg-glance').forEach(s => { if (s.id !== 'tg-glance' && !B.includes(s.dataset.sec)) return;
         s.querySelectorAll('table').forEach(t => { if (!t.offsetParent) return; const w = t.parentElement, ox = getComputedStyle(w).overflowX;

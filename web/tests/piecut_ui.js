@@ -25,6 +25,7 @@
 //   stock 2 r tan a + 5 x 35.760919 + 6 x 1.5875 / cos a = 12.068894 + 178.804594 + 9.643728 = 200.517216;
 //   the square tube meets the piece's ellipse: OD (1 / cos a - 1) = 0.949843 mm across the bend.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   const near = (a, w, tol, m) => ok(Number.isFinite(a) && Math.abs(a - w) <= tol, m + ': page ' + (+(+a).toFixed(6)) + ', by hand ' + w);
@@ -113,14 +114,14 @@ const { chromium } = require('playwright');
   const fr = async () => pg.evaluate(() => { const C = window.__cut; return [C.inchDen(), C.inMm(47.625), C.inMm(30.314245), C.inMm(37.3), C.inMm(7.578561)]; });
   let f = await fr();
   ok(f.join(' | ') === '16 | 1 7/8 in (47.5 mm) | 1 3/16 in (30.5 mm) | 1 7/16 in (37.5 mm) | 5/16 in (7.5 mm)', 'default 1/16, mm to 0.5: ' + f.join(' | '));
-  await pg.click('#f-32'); await pg.waitForTimeout(200); f = await fr();
+  await uiClick(pg, '#f-32'); await pg.waitForTimeout(200); f = await fr();
   ok(f.join(' | ') === '32 | 1 7/8 in (47.6 mm) | 1 3/16 in (30.3 mm) | 1 15/32 in (37.3 mm) | 5/16 in (7.6 mm)', '1/32, mm to 0.1: ' + f.join(' | '));
-  await pg.click('#f-64'); await pg.waitForTimeout(200); f = await fr();
+  await uiClick(pg, '#f-64'); await pg.waitForTimeout(200); f = await fr();
   ok(f.join(' | ') === '64 | 1 7/8 in (47.6 mm) | 1 3/16 in (30.3 mm) | 1 15/32 in (37.3 mm) | 19/64 in (7.6 mm)', '1/64: ' + f.join(' | '));
   ok(/Inches to the nearest 1\/64, mm to 0\.1/.test(await pg.$eval('#pc-out', e => e.innerText)) && await pg.$eval('#f-64', e => e.getAttribute('aria-pressed') === 'true'), 'the tab re-renders and says 1/64');
   await pg.reload(); await pg.waitForTimeout(900);
   ok((await fr())[0] === 64, 'the setting is kept after a reload');
-  await pg.click('#f-16'); await pg.waitForTimeout(200); ok((await fr())[0] === 16, 'and set back to 1/16');
+  await uiClick(pg, '#f-16'); await pg.waitForTimeout(200); ok((await fr())[0] === 16, 'and set back to 1/16');
 
   // phone width: no sideways page scroll
   const ph = await b.newPage({ viewport: { width: 400, height: 860 } }); const e3 = []; ph.on('pageerror', e => e3.push(e.message));

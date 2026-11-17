@@ -1,11 +1,12 @@
 // Installed attenuation on the Mufflers tab (Davies 1996): bare tailpipe 0 dB, a chamber transparent at its half-wave note,
 // the chart mode switch renders without errors or NaN.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out = []; let fails = 0; const chk = (ok, m) => { if (!ok) { out.push('FAIL ' + m); fails++; } };
   const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   pg.on('pageerror', e => { out.push('PAGEERROR ' + e.message); fails++; });
-  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await pg.click('#m-expert'); await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   const r = await pg.evaluate(() => {
     const Cx = window.__Cx, I = f => [Cx(1, 0), Cx(0, 0), Cx(0, 0), Cx(1, 0)], S = Math.PI * 0.0635 ** 2 / 4;
     const bare = [80, 250, 600, 1200].map(f => window.__installedAL(I, f, 0.67, 0.03175, 500, 0.7, S));

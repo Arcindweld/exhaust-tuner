@@ -3,12 +3,13 @@
 // cross mode or the limits; "Use" puts the design into the tab's fields and the tab's own packed-can section then gives
 // the same figure at the target tone; an impossible goal says so with the closest; phone layout; no page errors.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(), fails = [], errs = [];
   const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const p = await b.newPage({ viewport: { width: 1280, height: 1000 } }); p.on('pageerror', e => errs.push(e.message));
   await p.goto('file://' + process.cwd() + '/index.html#mufflers'); await p.waitForTimeout(900);
-  await p.click('#m-expert').catch(() => {}); await p.click('#u-met'); await p.waitForTimeout(300);
+  await uiClick(p, '#m-expert').catch(() => {}); await uiClick(p, '#u-met'); await p.waitForTimeout(300);
   const setNum = async (id, v) => { await p.fill('#' + id, String(v)); await p.dispatchEvent('#' + id, 'input'); await p.dispatchEvent('#' + id, 'change'); };
   await setNum('m-f', 250); await setNum('m-maxl', 500); await setNum('m-maxw', 180); await p.waitForTimeout(300);
   const sec = () => p.evaluate(() => { const h = [...document.querySelectorAll('#m-details .sec h3')].find(x => x.textContent === 'Muffler designer'); return h ? h.parentElement.innerText : ''; });

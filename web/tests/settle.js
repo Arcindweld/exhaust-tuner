@@ -56,4 +56,21 @@ function typedPoint(page) {
     const e = document.getElementById(i); if (e && e.value !== v) { e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); } } });
 }
 
-module.exports = { reads, settle, typedPoint };
+// Every working section and every folded explanation open (UI pass two, docs/UI_REDESIGN_2026-11-16.md): for a test that
+// clicks or looks at something inside a section the page starts folded. Not needed to read text: a folded section's text
+// stays in the page (textContent and innerText read it). Not stored in the page's settings; expandAll(page, false) undoes it.
+function expandAll(page, on = true) {
+  return page.evaluate(on => { if (window.__expandAll) window.__expandAll(on); }, on).then(() => settle(page));
+}
+
+// A click on one of the app bar's controls (units, level of detail, inch fractions, Projects, theme). Below 700 px they sit
+// in the Settings panel (UI pass two): it is opened for the click and closed again after, as a builder would.
+async function uiClick(page, sel) {
+  const shown = await page.evaluate(s => { const e = document.querySelector(s); return !!(e && e.getClientRects().length); }, sel);
+  let opened = false;
+  if (!shown && await page.evaluate(() => { const b = document.getElementById('set-btn'); return !!(b && b.getClientRects().length); })) { await page.click('#set-btn'); opened = true; }
+  await page.click(sel);
+  if (opened) await page.evaluate(() => { const t = document.querySelector('.top'), b = document.getElementById('set-btn'); if (t && t.classList.contains('setopen') && b) b.click(); });
+}
+
+module.exports = { reads, settle, typedPoint, expandAll, uiClick };

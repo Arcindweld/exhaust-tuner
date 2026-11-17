@@ -1,5 +1,6 @@
 // Sound tab: engines, feeds, induction, sections, tube shapes, hangers and flex, in phone and desktop
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out = [];
   for (const [name, w, scheme] of [['phone', 390, 'light'], ['desk', 1280, 'dark']]) {
@@ -7,7 +8,7 @@ const { chromium } = require('playwright');
     const pg = await ctx.newPage();
     pg.on('pageerror', e => out.push(name + ' PAGEERROR ' + e.message));
     pg.on('console', m => { if (m.type() === 'error' && !/ERR_TUNNEL|fonts|net::/.test(m.text())) out.push(name + ' console ' + m.text()); });
-    await pg.goto('file://' + process.cwd()+'/index.html#sound'); await pg.click('#m-expert');
+    await pg.goto('file://' + process.cwd()+'/index.html#sound'); await uiClick(pg, '#m-expert');
     const txt = async () => pg.evaluate(() => document.querySelector('#panel-sound').innerText);
     const chk = async tag => {
       await pg.waitForTimeout(80); const t = await txt();
@@ -67,7 +68,7 @@ const { chromium } = require('playwright');
     // firing order editor
     await pg.selectOption('#s-eng', 'ls'); await pg.click('#s-edit'); await chk('edit');
     out.push(name + ' after edit: eng=' + await pg.inputValue('#s-eng') + ' order=' + await pg.inputValue('#s-order') + ' bank=' + await pg.inputValue('#s-bank'));
-    await pg.click('#u-met'); await chk('metric'); await pg.click('#u-imp');
+    await uiClick(pg, '#u-met'); await chk('metric'); await uiClick(pg, '#u-imp');
     if (name === 'desk') await pg.screenshot({ path: 'snd5-desk.png', fullPage: true });
     await ctx.close();
   }

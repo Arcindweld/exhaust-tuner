@@ -16,6 +16,7 @@
 //    a project with a kept cam loads exactly as saved.
 'use strict';
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const T = require('./staleness_lib');
 const { settle } = require('./settle');
 const NOT_SAVED = T.NOT_SAVED;
@@ -25,7 +26,7 @@ const NOT_SAVED = T.NOT_SAVED;
   const errs = []; const watch = pg => pg.on('pageerror', e => errs.push(e.message));
 
   // ---- 5. the cam-library rule
-  { const pg = await T.open(ctx, 'four-stroke'); watch(pg); await pg.click('#m-expert'); await pg.click('#u-met');
+  { const pg = await T.open(ctx, 'four-stroke'); watch(pg); await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met');
     const CAM = ['f-ivo', 'f-ivc', 'f-evo', 'f-evc', 'f-lin', 'f-lex', 'f-camat', 'f-valves', 'f-cratio', 'f-bore', 'f-stroke', 'f-vdi', 'f-vde', 'f-camlib'];
     const read = () => pg.evaluate(ids => Object.fromEntries(ids.map(id => [id, document.getElementById(id).value])), CAM);
     const k24 = () => pg.evaluate(() => window.__st.presetText('eng', 'K24A2 '));
@@ -74,7 +75,7 @@ const NOT_SAVED = T.NOT_SAVED;
     await pg.close(); }
 
   // ---- 2. the sound estimate's out-of-date note
-  { const pg = await T.open(ctx, 'four-stroke'); watch(pg); await pg.click('#m-expert');
+  { const pg = await T.open(ctx, 'four-stroke'); watch(pg); await uiClick(pg, '#m-expert');
     await T.goTab(pg, 'sound');
     await pg.evaluate(() => { const e = document.getElementById('wsnd-rpms'); e.value = '3000'; e.dispatchEvent(new Event('input', { bubbles: true })); e.dispatchEvent(new Event('change', { bubbles: true })); });
     await pg.click('button[data-wsnd="run"]');

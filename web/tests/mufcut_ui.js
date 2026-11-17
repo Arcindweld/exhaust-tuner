@@ -1,10 +1,11 @@
 // Muffler cut files: the wrap, plates and baffles of the chamber as DXF; sizes check out; reverse flow and oval cases.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out = []; let fails = 0; const chk = (ok, m) => { if (!ok) { out.push('FAIL ' + m); fails++; } };
   const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true })).newPage();
   pg.on('pageerror', e => { out.push('PAGEERROR ' + e.message); fails++; });
-  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await pg.click('#m-expert'); await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   const r = await pg.evaluate(() => {
     const p = { dpipe: 60.198, dch: 152.4, lch: 355.6 }, pl = window.__mufCut.plan(p), dxf = window.__mufCut.dxf(pl);
     return { pl: { oval: pl.oval, W: pl.W, H: pl.H, wrap: pl.wrap, plates: pl.plates.map(q => [q.name, q.w, q.h, q.holes.length]), tubes: pl.tubes, od: pl.od, cw: pl.cw }, circles: (dxf.match(/CIRCLE/g) || []).length, lines: (dxf.match(/LINE/g) || []).length, arcs: (dxf.match(/\bARC\b/g) || []).length, hasEOF: /EOF/.test(dxf) };

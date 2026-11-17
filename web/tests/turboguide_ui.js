@@ -27,6 +27,7 @@
 //   the lower end of each range per downpipe, size as tube OD: 280 hp -> 2.5 in, 450 hp -> 3 in, 600 hp -> none; twins at 560 hp
 //   -> 280 each -> 2.5 in; a T4 housing's 3 5/8 in V-band outlet at 450 hp -> 3.625 in (not narrower than the outlet).
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const near = (a, want, tol, m) => ok(Number.isFinite(a) && Math.abs(a - want) <= tol * Math.abs(want), m + ': page ' + (Number.isFinite(a) ? +a.toPrecision(8) : a) + ', hand ' + (+want.toPrecision(8)));
@@ -39,7 +40,7 @@ const { chromium } = require('playwright');
   const tso = async (k, v) => { await pg.evaluate(([k, v]) => { const el = document.querySelector('select.tsox[data-k="' + k + '"]'); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]); await pg.waitForTimeout(150); };
   const steps = () => pg.evaluate(() => Object.fromEntries([...document.querySelectorAll('#tg-steps > li')].map(li => [li.dataset.step, { state: li.dataset.state, text: li.innerText }])));
   const secTxt = k => pg.$eval('#i-details .sec[data-sec="' + k + '"]', e => e.innerText).catch(() => '');
-  await pg.click('#u-met'); await pg.waitForTimeout(300);
+  await uiClick(pg, '#u-met'); await pg.waitForTimeout(300);
   await setv('i-ind', 'turbo'); await pg.waitForTimeout(300);
 
   // simple mode (the page's default): the checklist is there and readable

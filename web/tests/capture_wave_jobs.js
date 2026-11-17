@@ -2,6 +2,7 @@
 // with a chamber, a four on one collector, the Headers tab's unequal-length Tri-Y layout), for wave_wasm.js to run
 // through the JavaScript model and the Rust (WebAssembly) one. Run again when simSpec or simVariants change.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'), path = require('path');
 (async () => {
   const b = await chromium.launch();
@@ -25,14 +26,14 @@ const fs = require('fs'), path = require('path');
   const out = [];
   // the 450 single with a chamber (sim_ui.js)
   let p = await page();
-  await p.evaluate(() => { location.hash = 'four-stroke'; }); await p.click('#m-expert');
+  await p.evaluate(() => { location.hash = 'four-stroke'; }); await uiClick(p, '#m-expert');
   await p.selectOption('#f-n', '1');
   for (const [id, v] of [['#f-rpm', '8500'], ['#f-evo', '65'], ['#f-dp', '1.65'], ['#f-disp', '27.4'], ['#f-cyl', '1'], ['#f-trq', '7000'], ['#f-bore', '3.74'], ['#f-stroke', '2.496'], ['#f-cratio', '13']]) { await p.fill(id, v); await p.dispatchEvent(id, 'input'); }
   await p.selectOption('#f-valves', '4'); await p.selectOption('#f-ch', 'can');
   out.push(await grab(p, 'single with a chamber'));
   // a four on one collector
   p = await page();
-  await p.evaluate(() => { location.hash = 'four-stroke'; }); await p.click('#m-expert');
+  await p.evaluate(() => { location.hash = 'four-stroke'; }); await uiClick(p, '#m-expert');
   await set(p, 'f-cyl', '4'); await set(p, 'f-n', '4'); await p.waitForTimeout(300);
   out.push(await grab(p, 'four on one collector'));
   // the Headers tab's unequal-length Tri-Y (uel_sim_ui.js)

@@ -15,6 +15,7 @@
 //  6 the page: the efficiency model's input, the plan's rows, the steady table's column, and a run with its row.
 'use strict';
 const fs = require('fs'), path = require('path');
+const { uiClick } = require('./settle');
 const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
 const cut = (a, b) => { const i = html.indexOf(a), j = html.indexOf(b, i); if (i < 0 || j < 0) throw new Error('not found: ' + a); return html.slice(i, j); };
@@ -115,7 +116,7 @@ let chromium = null; try { ({ chromium } = require('playwright')); } catch (e) {
     const b = await chromium.launch(); const { reads, settle } = require('./settle');
     const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
     const pg = reads(await ctx.newPage()); const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-    await pg.goto('file://' + path.join(__dirname, '..', 'index.html') + '#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg); await pg.click('#u-met'); await settle(pg);
+    await pg.goto('file://' + path.join(__dirname, '..', 'index.html') + '#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg); await uiClick(pg, '#u-met'); await settle(pg);
     await pg.evaluate(() => { document.body.classList.add('expert'); document.body.classList.remove('simple'); });
     const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]).then(() => settle(pg));
     const chg = (sel, v) => pg.evaluate(([s, v]) => { const el = document.querySelector(s); if (!el) throw new Error('no ' + s); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [sel, v]).then(() => settle(pg));

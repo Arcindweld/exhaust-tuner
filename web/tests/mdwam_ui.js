@@ -3,6 +3,7 @@
 // design against the line with no muffler from the outflow's half orders at 1 m.
 //   node tests/mdwam_ui.js            (from web/)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
 const { skipPart, openwam } = require('./skip.js');
@@ -49,7 +50,7 @@ function runOne(dir, name) {
   const fails = []; pg.on('pageerror', e => fails.push('PAGEERROR ' + e.message));
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(800);
-  await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   // MDW_CFG: 'dual' (two collectors), 'xo' (two collectors joined by the Crossover tab's X), '4cyl' (an inline 4, 4-into-1)
   const cfg = process.env.MDW_CFG || '';
   // 'uel': the Headers tab's unequal-length header (two banks on the V8) is what OpenWAM runs
@@ -61,7 +62,7 @@ function runOne(dir, name) {
   if (/xo/.test(cfg)) { await pg.selectOption('select.wamline[data-k="xo"]', 'tab'); await pg.waitForTimeout(200); }
   await pg.evaluate(cy => { const c = document.querySelector('input.wamx[data-k="cycles"]'); c.value = cy; c.dispatchEvent(new Event('input', { bubbles: true })); }, process.env.MDW_CYC || '8');
   await pg.evaluate(() => { location.hash = 'mufflers'; }); await pg.waitForTimeout(400);
-  await pg.click('#m-expert'); await pg.waitForTimeout(200);
+  await uiClick(pg, '#m-expert'); await pg.waitForTimeout(200);
   await pg.selectOption('select.mdsel', 'chamber'); await pg.waitForTimeout(200);
   // the tab's own chamber: a straight-through can, 200 x 400 mm, which the designer would not offer
   await pg.fill('#m-dch', '200'); await pg.dispatchEvent('#m-dch', 'input'); await pg.fill('#m-lch', '400'); await pg.dispatchEvent('#m-lch', 'input');

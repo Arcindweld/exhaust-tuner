@@ -3,11 +3,12 @@
 // (the bank-to-bank pulse pattern) more than the level; the X and the H differ; both exits are summed.
 //   node tests/wsndxo_ui.js   (from web/)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   const errs = []; pg.on('pageerror', e => errs.push(e.message)); const fails = [];
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
-  await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(900); await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(900); await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   await pg.evaluate(() => { location.hash = 'headers'; }); await pg.waitForTimeout(400); await pg.selectOption('#h-lenmode', 'unequal'); await pg.waitForTimeout(400);
   await pg.click('#tab-cross'); await pg.waitForTimeout(400); await pg.selectOption('#x-type', 'h'); await pg.waitForTimeout(300);
   await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400);

@@ -3,6 +3,7 @@
 // chamber against a straight pipe on the 125 cc MX engine of openwam/tests/test_2t.py.
 //   node tests/two_wam_ui.js            (from web/)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'), path = require('path'), os = require('os');
 const { spawn } = require('child_process');
 const { skipPart, openwam } = require('./skip.js');
@@ -43,7 +44,7 @@ function runOne(dir, name) {
   const errs = [], fails = []; pg.on('pageerror', e => errs.push(e.message));
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   await pg.goto('file://' + process.cwd() + '/index.html#two-stroke'); await pg.waitForTimeout(600);
-  await pg.click('#u-met');
+  await uiClick(pg, '#u-met');
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   await setv('t-shape', 'spec');
   for (const [id, v] of [['t-rpm', 11500], ['t-ed', 194], ['t-bore', 54], ['t-stroke', 54.5], ['t-cyl', 1], ['t-hp', 38], ['t-td', 130], ['t-pw', 38], ['t-port', 0]]) await setv(id, v);

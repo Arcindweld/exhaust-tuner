@@ -7,6 +7,7 @@
 // GRI-Mech 3.0, gasoline CH1.87, NOAA dry air); each says what it was with air.
 // node tests/physaudit_ui.js   (from web/)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const pg = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs = []; pg.on('pageerror', e => errs.push(e.message));
@@ -115,7 +116,7 @@ const { chromium } = require('playwright');
   [2.680914, 7.675617, 28.29671].forEach((w, i) => near(v.bafTL[i], w, 1e-4, 'baffled chain TL at ' + [0.8, 1.5, 2.2][i] + ' f0, dB'));
 
   // ---- the fixed rows, read off the page (metric, expert)
-  await pg.click('#m-expert'); await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   const setv = (id, x) => pg.evaluate(([id, x]) => { const el = document.getElementById(id); el.value = x; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, x]);
   const secText = re => pg.evaluate(src => { const r = new RegExp(src); const s = [...document.querySelectorAll('#m-details .sec')].find(x => r.test(x.innerText)); return s ? s.innerText : ''; }, re);
   // Plug muffler, DEFECT fixed: n = perforate open area / pipe area = 4 x 0.10 x 100 / 60.198 = 0.664 -> 2.81 H = 4.49 kPa at Mach 0.15 (was 4.52 H, 7.2 kPa)

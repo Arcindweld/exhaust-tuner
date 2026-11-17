@@ -1,12 +1,13 @@
 // Match a dyno curve (4-Stroke tab, under Run it in OpenWAM): the parser, the least-squares fit of the valve flow
 // coefficient and combustion efficiency on synthetic results with known answers, and the inputs it fills.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = [], fails = []; pg.on('pageerror', e => errs.push(e.message));
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(400);
-  await pg.click('#m-expert');
+  await uiClick(pg, '#m-expert');
   const r = await pg.evaluate(() => {
     const D = window.__dyno;
     const pts = D.dynoParse('3000 380\n4600, 425\n5900: 383\nnot a line\n100 5', false);

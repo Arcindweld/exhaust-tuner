@@ -1,5 +1,6 @@
 // Browser checks for the features added from the Books folder
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const FILE = process.argv[2] || 'index.html';
 (async () => {
   const b = await chromium.launch();
@@ -11,7 +12,7 @@ const FILE = process.argv[2] || 'index.html';
     const errs = [];
     pg.on('pageerror', e => errs.push(e.message));
     await pg.goto('file://' + process.cwd() + '/' + FILE);
-    await pg.click('#m-expert');
+    await uiClick(pg, '#m-expert');
     const panel = () => pg.evaluate(() => document.querySelector('[role=tabpanel]:not([hidden])').innerText);
     const wide = () => pg.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 

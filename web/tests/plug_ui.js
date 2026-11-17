@@ -1,11 +1,12 @@
 // Plug (cross-flow) muffler on the Mufflers tab (Munjal 1987, 3.8.1): curve, section, errors, no NaN.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out = []; let fails = 0; const chk = (ok, m) => { if (!ok) { out.push('FAIL ' + m); fails++; } };
   const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   pg.on('pageerror', e => { out.push('PAGEERROR ' + e.message); fails++; });
   await pg.goto('file://' + process.cwd() + '/index.html#mufflers');
-  await pg.click('#m-expert'); await pg.click('#u-met');
+  await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met');
   const r = await pg.evaluate(() => {
     const base = { dpipe: 50, dsh: 150, lperf: 100, lch: 300, dh: 3, tw: 1, rho: 0, sigma: 0.1, tC: 400, M: 0 };
     const pl = window.__plug(base), plM = window.__plug({ ...base, M: 0.15 }), packed = window.__plug({ ...base, rho: 100 });

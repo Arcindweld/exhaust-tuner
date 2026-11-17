@@ -2,6 +2,7 @@
 // each turned into an OpenWAM case, and (when an OpenWAM build is here: EXHAUST_TUNER_OPENWAM or ext/OpenWAM) the
 // as-designed case run for real.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'), path = require('path'), os = require('os'), { spawnSync } = require('child_process');
 const { skipPart, openwam } = require('./skip.js');
 (async () => {
@@ -10,7 +11,7 @@ const { skipPart, openwam } = require('./skip.js');
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   await pg.goto('file://' + process.cwd() + '/index.html#headers'); await pg.waitForTimeout(400);
-  await pg.click('#m-expert');
+  await uiClick(pg, '#m-expert');
   await setv('h-eng', 'ls'); await setv('h-grp', 'all'); await setv('h-merge', 'triy'); await setv('h-dp', '1.875'); await pg.waitForTimeout(250);
   await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400);
   await setv('f-camlib', 'ls3'); await pg.waitForTimeout(200);

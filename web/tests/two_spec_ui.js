@@ -2,6 +2,7 @@
 // gas temperature and constants by BMEP, two stages = calcTwoBlair exactly, three stages keep Blair's diameters at
 // his stage ends, the powerband slider moves diameters only; the 125 cc case run in 2 Stroke Wizard 8 for comparison.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = [], fails = []; pg.on('pageerror', e => errs.push(e.message));
@@ -56,7 +57,7 @@ const { chromium } = require('playwright');
   ok(/out of the end of the stinger/.test(dp.zNotes), 'a second point too low for the stinger is refused');
   ok(dp.off === null, 'no insert unless asked');
   // the tab
-  await pg.click('#m-expert'); await pg.click('#u-met');
+  await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met');
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   await setv('t-shape', 'spec');
   for (const [id, v] of [['t-rpm', '11500'], ['t-ed', '194'], ['t-bore', '54'], ['t-stroke', '54.5'], ['t-hp', '38'], ['t-td', '130'], ['t-pw', '38'], ['t-port', '60']]) await setv(id, v);

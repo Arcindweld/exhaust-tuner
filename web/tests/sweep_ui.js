@@ -7,6 +7,7 @@
 // Exits non-zero on any finding.   node tests/sweep_ui.js   (from web/; SWEEP_TABS=a,b to limit, SWEEP_SELECTS=0 to
 // skip cycling the select options)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const FILE = process.argv[2] || 'index.html';
 const ONLY = process.env.SWEEP_TABS ? process.env.SWEEP_TABS.split(',') : null;
 const SELECTS = process.env.SWEEP_SELECTS !== '0';
@@ -107,11 +108,11 @@ const SELECTS = process.env.SWEEP_SELECTS !== '0';
     const t0 = Date.now();
     // (a)+(b) defaults, in both unit systems
     let pg = await open(1280, tab); flushErrs(tab, 'load');
-    for (const u of ['imp', 'met', 'imp']) { await pg.click('#u-' + u); await settle(pg); (await scan(pg)).forEach(m => find(tab, 'defaults ' + u, m)); nChecks++; }
+    for (const u of ['imp', 'met', 'imp']) { await uiClick(pg, '#u-' + u); await settle(pg); (await scan(pg)).forEach(m => find(tab, 'defaults ' + u, m)); nChecks++; }
     flushErrs(tab, 'units');
     // round trips: base values and results unchanged
     const a = await snap(pg);
-    for (let k = 0; k < 3; k++) { await pg.click('#u-met'); await pg.waitForTimeout(100); await pg.click('#u-imp'); await pg.waitForTimeout(100); }
+    for (let k = 0; k < 3; k++) { await uiClick(pg, '#u-met'); await pg.waitForTimeout(100); await uiClick(pg, '#u-imp'); await pg.waitForTimeout(100); }
     await settle(pg); const z = await snap(pg);
     for (const [id, v] of a.ins) { const w = z.ins.find(x => x[0] === id); if (!w) continue; nChecks++;
       if (!(v === w[1] || (Number.isNaN(v) && Number.isNaN(w[1])) || Math.abs(v - w[1]) <= 1e-9 * Math.max(1, Math.abs(v)))) find(tab, 'round trip', id + ' ' + v + ' became ' + w[1]); }
@@ -124,7 +125,7 @@ const SELECTS = process.env.SWEEP_SELECTS !== '0';
       await pg.close(); pg = await open(1280, tab); errs = [];
       await setMany(pg, kv); await settle(pg); nChecks++;
       (await scan(pg)).forEach(m => find(tab, name, m)); flushErrs(tab, name);
-      await pg.click('#u-met'); await settle(pg); (await scan(pg)).forEach(m => find(tab, name + ' (mm)', m)); flushErrs(tab, name + ' (mm)');
+      await uiClick(pg, '#u-met'); await settle(pg); (await scan(pg)).forEach(m => find(tab, name + ' (mm)', m)); flushErrs(tab, name + ' (mm)');
     }
     // boost on and off, every select option (one select at a time, from the defaults)
     if (SELECTS) {
@@ -163,7 +164,7 @@ const SELECTS = process.env.SWEEP_SELECTS !== '0';
     // (c) phone width
     pg = await open(400, tab); errs = [];
     for (const u of ['imp', 'met']) {
-      await pg.click('#u-' + u).catch(e => find(tab, 'phone', 'units button not clickable: ' + e.message.split('\n')[0])); await settle(pg); nChecks++;
+      await uiClick(pg, '#u-' + u).catch(e => find(tab, 'phone', 'units button not clickable: ' + e.message.split('\n')[0])); await settle(pg); nChecks++;
       const r = await pg.evaluate(() => {
         const out = []; const W = innerWidth, de = document.documentElement;
         if (de.scrollWidth > W + 1) out.push('page scrolls sideways: ' + de.scrollWidth + ' px wide in a ' + W + ' px window' +
