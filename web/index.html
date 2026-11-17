@@ -419,6 +419,7 @@ audio{display:block;width:100%;max-width:440px;margin-top:4px}
 .r dd>span.rx{clear:left;max-width:var(--measure);margin:6px 0 0;text-align:left;font-size:12.5px;line-height:1.45}
 .u2{font-weight:400;color:var(--u2);font-size:.92em}
 .note .u2,.hint.bad .u2{color:inherit}
+small.u2.u2c{font-size:inherit;font-weight:inherit}
 .tblwrap{overflow:auto;max-height:min(75vh,720px);-webkit-overflow-scrolling:touch}
 /* tables: header and first column stay in view while the table scrolls inside its own box; figures right-aligned */
 .tblwrap thead th{position:sticky;top:0;z-index:2;background:var(--tbl-bg,var(--bg))}
@@ -11356,7 +11357,7 @@ function addToc(det,list){
 function tocWatch(det,nav,secs){
   if(det._io){ det._io.disconnect(); det._io=null; } if(typeof IntersectionObserver!=='function') return;
   // the section crossing a line just under the list (between sections, the one before stays marked)
-  const seen=new Map(), top=Math.round(stickPx()+80), bot=Math.max(0,innerHeight-top-1);
+  const seen=new Map(), top=Math.round(STICK+80), bot=Math.max(0,innerHeight-top-1);
   const io=new IntersectionObserver(es=>{ for(const e of es) seen.set(e.target,e.isIntersecting);
     for(const x of secs) if(seen.get(x)){ tocMark(nav,x.dataset.sec); break; } },{rootMargin:'-'+top+'px 0px -'+bot+'px 0px'});
   secs.forEach(x=>io.observe(x)); det._io=io;
@@ -11369,6 +11370,8 @@ function tocMark(nav,k){
   const sel=nav.querySelector('select[data-tocsel]'); if(sel&&sel.value!==k) sel.value=k;
 }
 // the height of the bars that stay at the top of the window (the app bar on wide windows, the calculator strip under 1180 px)
+// (read on load and on resize only, never during a render: STICK)
+var STICK=0;
 function stickPx(){ let y=0; const t=document.querySelector('.top'), n=document.querySelector('.navbar');
   if(t&&getComputedStyle(t).position==='sticky') y+=t.offsetHeight;
   if(n&&innerWidth<1180&&getComputedStyle(n).position==='sticky') y+=n.offsetHeight; return y; }
@@ -27891,7 +27894,7 @@ function keepBefore(pan){
     if(!key.id&&!key.k){ const an=el.parentElement&&el.parentElement.closest('[id],.sec[data-sec]');
       if(an&&pan.contains(an)){ key.an=an.id?'#'+CSS.escape(an.id):'.sec[data-sec="'+an.dataset.sec+'"]'; key.ix=[...an.querySelectorAll(el.tagName)].indexOf(el); } }
     try{ if(typeof el.selectionStart==='number') key.sel=[el.selectionStart,el.selectionEnd,el.selectionDirection]; }catch(e){} }
-  else if(scrollY>0){ const y0=stickPx();
+  else if(scrollY>0){ const y0=STICK;
     for(const x of pan.querySelectorAll('.sec[data-sec]')){ const r=x.getBoundingClientRect(); if(r.bottom>y0+8){ if(r.top<innerHeight) el=x; break; } }
     if(el) key={sec:el.dataset.sec}; }
   if(!el) return null; return {el,key,top:el.getBoundingClientRect().top};
@@ -27916,18 +27919,19 @@ function runClock(){ const pan=$(TABS[cur].panel), els=pan?[...pan.querySelector
   for(const k of [...RUN_T0.keys()]) if(k.startsWith(pan?pan.id+':':'') && !live.has(k)) RUN_T0.delete(k);
   if(els.length&&!RUN_TICK) RUN_TICK=setInterval(()=>{ runClock(); },1000);
   else if(!els.length&&RUN_TICK){ clearInterval(RUN_TICK); RUN_TICK=0; } }
-// a conversion in brackets inside a table cell or a sentence of the working, "2.50 in (63.5 mm)", set quieter as the rows
-// already have it: the text node is split round the brackets (textContent and innerText unchanged)
-const U2_SEL='.area-details td, .area-details li, .area-details .note, .area-details .cap, .area-details .sec > p, .area-details .r dd > span';
+// a conversion in brackets inside a table cell or a sentence of the working, "2.50 in (63.5 mm)", set in the quieter
+// colour the rows use: the text node is split round the brackets (textContent and innerText unchanged). Colour only (no
+// change of size or weight, so nothing moves), and done when the page is idle after a render, off the edit's path.
+const U2_SEL='.area-details td, .area-details li, .area-details .cap, .area-details .sec > p, .area-details .r dd > span';
 function u2Pass(pan){
   if(!pan) return;
-  for(const el of pan.querySelectorAll(U2_SEL)){ if(el._u2===el.textContent) continue;
+  for(const el of pan.querySelectorAll(U2_SEL)){ const tc=el.textContent; if(el._u2===tc) continue; el._u2=tc;
+    if(tc.length<8||tc.indexOf(' (')<0) continue; U2_RE.lastIndex=0; if(!U2_RE.test(tc)) continue;
     const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT), ns=[]; let n;
     while((n=w.nextNode())){ const t=n.nodeValue; if(t.length>8&&t.indexOf(' (')>=0&&!(n.parentElement&&n.parentElement.closest('small.u2,svg,button,select,option,textarea'))) ns.push(n); }
     for(const t of ns){ const v=t.nodeValue; U2_RE.lastIndex=0; let m, last=0, parts=null;
-      while((m=U2_RE.exec(v))){ (parts=parts||[]).push(v.slice(last,m.index+1)); const sm=document.createElement('small'); sm.className='u2'; sm.textContent='('+m[1]+')'; parts.push(sm); last=m.index+m[0].length; }
-      if(!parts) continue; parts.push(v.slice(last)); const f=document.createDocumentFragment(); for(const x of parts) f.append(x); t.replaceWith(f); }
-    el._u2=el.textContent; }
+      while((m=U2_RE.exec(v))){ (parts=parts||[]).push(v.slice(last,m.index+1)); const sm=document.createElement('small'); sm.className='u2 u2c'; sm.textContent='('+m[1]+')'; parts.push(sm); last=m.index+m[0].length; }
+      if(!parts) continue; parts.push(v.slice(last)); const f=document.createDocumentFragment(); for(const x of parts) f.append(x); t.replaceWith(f); } }
 }
 // Cancel on a long run: the run is dropped (its id moves on, its workers end) and the results before it stay as they were
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-runcancel]'); if(!b) return; const k=b.dataset.runcancel;
@@ -27936,7 +27940,11 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-run
   else if(k==='wsnd'){ WSND.tok=(WSND.tok||0)+1; if(WSND.worker){ try{ WSND.worker.terminate(); }catch(x){} WSND.worker=null; } WSND.busy=false;
     WSND.msg={t:'Stopped before it finished; the estimate shown (if any) is the one before. Estimate the sound runs it again.'}; }
   renderActive(); });
-function uiPass2(pan){ u2Pass(pan); foldPass(pan); hintPass(pan); runClock(); }
+let U2_IDLE=0;
+function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden) u2Pass(pan); };
+  if(U2_IDLE) (window.cancelIdleCallback||clearTimeout)(U2_IDLE);
+  U2_IDLE=window.requestIdleCallback?requestIdleCallback(run,{timeout:400}):setTimeout(run,60); }
+function uiPass2(pan){ foldPass(pan); hintPass(pan); runClock(); u2Later(pan); }
 // the app bar on narrow widths: Settings opens the controls in a small panel (Escape or a click outside closes it, focus
 // goes back to the button); wide windows show the controls as before
 (()=>{ const top=document.querySelector('.top'), b=$('set-btn'), p=$('set-panel'); if(!top||!b||!p) return;
@@ -27953,7 +27961,7 @@ function projCur(name){ const el=$('proj-cur'); if(!el) return; PROJ_CUR.name=na
 const projCurMark=()=>{ const el=$('proj-cur'); if(el&&PROJ_CUR.name&&el.dataset.changed!=='1'&&INPUT_GEN!==PROJ_CUR.gen) el.dataset.changed='1'; };
 document.addEventListener('input',projCurMark); document.addEventListener('change',projCurMark);
 // the sticky bars' height, for the sections list and the jump targets
-const stickSet=()=>{ document.documentElement.style.setProperty('--stick',stickPx()+'px'); };
+const stickSet=()=>{ STICK=stickPx(); document.documentElement.style.setProperty('--stick',STICK+'px'); };
 addEventListener('resize',()=>requestAnimationFrame(stickSet)); stickSet();
 const sendReady=()=>{ try{ window.adsk.fusionSendData('pageReady',JSON.stringify({w:innerWidth,h:innerHeight,worker:typeof Worker,errs:PAGE_ERRS.slice(-5)})); }catch(e){} };
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
