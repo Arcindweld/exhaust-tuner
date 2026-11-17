@@ -2255,3 +2255,19 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
 - New test web/tests/staleness_ui.js (helpers staleness_lib.js). Validation scripts: tools/validation/staleness_sweep.js,
   project_inventory.js; tools/validation/wave/preset_sweep.js, preset_geometry.js, turbo_closure_parity.js,
   headers_shapes_parity.js, sound_determinism.js (each resumable or short).
+
+## 2026-11-16: UI pass, one considered tool (docs/UI_REDESIGN_2026-11-16.md)
+
+- Owner's request "also make the software UI better". Direction: a build sheet on a steel bench; readouts first, the
+  working as quiet label / value rows; one heat-straw accent; ok / warn / bad / info / out-of-date each with a shape.
+- Design tokens on :root (type, spacing, radius, hit size, reading width, new --info, --stale, --u2, --scrim), light and
+  dark. System fonts only: the embedded font is removed (page 4,830,991 -> 4,725,045 bytes); Bahnschrift for readouts
+  and headings on Windows, Segoe UI for text.
+- Narrow strip (Fusion palette, phone): an "All" list of the 13 calculators by group; arrow keys / Home / End on the
+  tabs. Rows (rowT / rowL): long explanations under the row at reading width (span.rx), bracketed conversions quieter
+  (small.u2, also on the glance card). Notes with marks; out-of-date notes one style; run status lines with a progress
+  bar. Tables: sticky header and first column inside their box, figures right-aligned (tblPolish after each render).
+  Preset note clamped to three lines with "Show the full engine notes and sources". Touch widths: 40 px controls.
+- Two accessible names added (tuned-tube fields, lift-profile boxes). No calculation, default, id, project key, hash or
+  tested text changed. New test web/tests/ui_ui.js. Not reached: inline styles one by one, conversions in table cells
+  and sentences, collapsing the working sections, rewording messages tab by tab.
