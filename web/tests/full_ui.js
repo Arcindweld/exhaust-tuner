@@ -34,9 +34,9 @@ const TABS = ['quick', 'four-stroke', 'two-stroke', 'sound', 'headers', 'crossov
     for (const scheme of ['light', 'dark']) {
       await run(`${vp}-${scheme}`, w, scheme, async (pg, name) => {
         for (const mode of ['simple', 'expert']) {
-          await pg.click('#m-' + mode);
+          await uiClick(pg, '#m-' + mode);
           for (const units of ['imp', 'met']) {
-            await pg.click('#u-' + units);
+            await uiClick(pg, '#u-' + units);
             for (const tab of TABS) {
               await pg.evaluate(h => location.hash = h, tab);
               await check(pg, `${name} ${mode} ${units} ${tab}`);
@@ -66,7 +66,7 @@ const TABS = ['quick', 'four-stroke', 'two-stroke', 'sound', 'headers', 'crossov
     await setClass('car');
     let checked = 0;
     for (const units of ['imp', 'met']) {
-      await pg.click('#u-' + units);
+      await uiClick(pg, '#u-' + units);
       // every 7th preset (880 presets × tabs × units is too slow for one run); a separate sweep applies every preset once
       const SAMPLE = process.env.ALL_PRESETS ? vals : vals.filter((_, i) => i % 7 === 0);
       await setClass('car'); let cls = 'car';

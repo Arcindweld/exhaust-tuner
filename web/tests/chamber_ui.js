@@ -8,9 +8,9 @@ const { uiClick } = require('./settle');
     await pg.goto('file://' + process.cwd()+'/index.html#four-stroke');
     await pg.addStyleTag({ content: '[hidden]{display:none!important}' });
     for (const mode of ['simple', 'expert']) {
-      await pg.click('#m-' + mode);
+      await uiClick(pg, '#m-' + mode);
       for (const u of ['imp', 'met']) {
-        await pg.click('#u-' + u);
+        await uiClick(pg, '#u-' + u);
         for (const n of ['1', '4']) {
           await pg.selectOption('#f-n', n);
           for (const t of ['can', 'wrap', 'bulge', 'none']) {

@@ -2271,3 +2271,26 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
 - Two accessible names added (tuned-tube fields, lift-profile boxes). No calculation, default, id, project key, hash or
   tested text changed. New test web/tests/ui_ui.js. Not reached: inline styles one by one, conversions in table cells
   and sentences, collapsing the working sections, rewording messages tab by tab.
+
+## 2026-11-16: UI pass two, answers first and the working one click away (docs/UI_REDESIGN_2026-11-16.md, "Pass two")
+
+- Folding without losing text: a folded section or explanation stays in the page (clipped to no height, inert), so
+  textContent and innerText are unchanged and print shows everything. Every working section's heading is a button
+  (chevron, title, status mark, one-line conclusion when folded); method and source sections start folded (15 of 99,
+  5 of 31 on the boosted Intake tab); warning, problem and out-of-date sections never start folded. Expand all /
+  Collapse all per tab; choices kept per tab in this browser.
+- Input column: explanations over 160 characters show two lines and "More about this" / "How this was worked out";
+  the boosted build shows a "Boost worked out" (or "Power worked out") readout with its 1,092-character reasoning
+  folded. Drawn in full: 10 -> 1 in Simple mode, 25 -> 6 in Expert mode.
+- Phone and Fusion palette: the app bar is one row with a Settings panel (labelled, Escape, focus returned); the project
+  in hand under the title. Sections list: one sticky row that marks the section in view (IntersectionObserver), a
+  "Jump to" list below 700 px.
+- 300 recurring inline styles (12 strings) became classes (537 -> 237 style attributes in the source). Bracketed
+  conversions in table cells and sentences in the second-unit colour (idle, colour only). Cancel and elapsed time on
+  the wave simulation, the turbo simulation and the sound estimate. 14 vague error messages rewritten (20 places).
+- Re-renders keep the edited field (or the section in view) where it was, with focus and caret, in every engine
+  (browser scroll anchoring off, the page's own correction); no forced layout added during a render.
+- Page 4,725,090 -> 4,750,996 bytes. ui_ui.js extended (folds by keyboard, warnings never folded, every word of the
+  page before pass two still drawn with everything open, Settings panel, sections list, layout stability, print);
+  settle.js gains expandAll and uiClick; 69 test files now click the app bar's controls through uiClick (the controls
+  sit in the Settings panel below 700 px). No calculation, default, id, project key, hash or pinned number changed.

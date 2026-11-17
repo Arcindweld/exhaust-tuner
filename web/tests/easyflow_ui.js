@@ -12,7 +12,7 @@
 // list leads to its inputs; a project saved and loaded gives the same glance card; no console errors; field edits timed.
 const { chromium } = require('playwright');
 const { uiClick } = require('./settle');
-const { reads, settle } = require('./settle');
+const { reads, settle, expandAll } = require('./settle');
 // a measurement in one unit system only: number + unit with no number + unit of the same quantity in the other system within
 // 70 characters in the same cell. Units of one quantity: [quantity, system]
 const SYS = { 'in': ['L', 'i'], 'ft': ['L', 'i'], 'mm': ['L', 'm'], 'cm': ['L', 'm'], 'm': ['L', 'm'],
@@ -188,6 +188,7 @@ const mmOf = s => [...String(s).matchAll(/(-?[\d.]+) mm(?!²)/g)].map(x => +x[1]
   for (const theme of ['light', 'dark']) {
     const c = await b.newContext({ viewport: { width: 400, height: 860 }, colorScheme: theme });
     ({ pg } = await open(400, c)); await journey(pg);
+    await expandAll(pg);   // every section open (UI pass two folds the method sections), so every table is drawn
     const lay = await pg.evaluate(B => { const de = document.documentElement, bad = [];
       document.querySelectorAll('#i-details .sec, #tg-glance').forEach(s => { if (s.id !== 'tg-glance' && !B.includes(s.dataset.sec)) return;
         s.querySelectorAll('table').forEach(t => { if (!t.offsetParent) return; const w = t.parentElement, ox = getComputedStyle(w).overflowX;

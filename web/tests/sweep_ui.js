@@ -108,7 +108,7 @@ const SELECTS = process.env.SWEEP_SELECTS !== '0';
     const t0 = Date.now();
     // (a)+(b) defaults, in both unit systems
     let pg = await open(1280, tab); flushErrs(tab, 'load');
-    for (const u of ['imp', 'met', 'imp']) { await pg.click('#u-' + u); await settle(pg); (await scan(pg)).forEach(m => find(tab, 'defaults ' + u, m)); nChecks++; }
+    for (const u of ['imp', 'met', 'imp']) { await uiClick(pg, '#u-' + u); await settle(pg); (await scan(pg)).forEach(m => find(tab, 'defaults ' + u, m)); nChecks++; }
     flushErrs(tab, 'units');
     // round trips: base values and results unchanged
     const a = await snap(pg);
@@ -164,7 +164,7 @@ const SELECTS = process.env.SWEEP_SELECTS !== '0';
     // (c) phone width
     pg = await open(400, tab); errs = [];
     for (const u of ['imp', 'met']) {
-      await pg.click('#u-' + u).catch(e => find(tab, 'phone', 'units button not clickable: ' + e.message.split('\n')[0])); await settle(pg); nChecks++;
+      await uiClick(pg, '#u-' + u).catch(e => find(tab, 'phone', 'units button not clickable: ' + e.message.split('\n')[0])); await settle(pg); nChecks++;
       const r = await pg.evaluate(() => {
         const out = []; const W = innerWidth, de = document.documentElement;
         if (de.scrollWidth > W + 1) out.push('page scrolls sideways: ' + de.scrollWidth + ' px wide in a ' + W + ' px window' +

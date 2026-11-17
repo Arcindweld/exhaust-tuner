@@ -537,6 +537,9 @@ ul.list li+li,ol.list li+li{margin-top:6px}
 .hfold.hro-on:not(.hopen){display:block;height:0;margin:0!important;overflow:hidden}
 }
 .linkbtn.hmore{grid-column:1/-1;justify-self:start;min-height:28px;margin:2px 0 0;font-size:var(--fs-sm)}
+/* in a grid the folded note's own row would leave two gaps: the button sits up against the readout or the lines */
+.grid2>.hfold:not(.hopen)+.linkbtn.hmore{margin-top:-10px}
+.grid2>.hro-on:not(.hopen)+.linkbtn.hmore{margin-top:-22px}
 .hro{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:8px 12px;border-radius:var(--r-md);background:var(--raised);border:1px solid var(--line)}
 .hro .hro-l{font:500 var(--fs-sm)/1.3 var(--f-ui);color:var(--muted);flex-basis:100%}
 .hro b{font:650 var(--fs-lg)/1.2 var(--f-display);font-variant-numeric:tabular-nums}
@@ -27858,7 +27861,8 @@ function hintPass(panel){
   for(const e of panel.querySelectorAll(HINT_SEL)){ i++;
     let b=e.nextElementSibling; if(!(b&&b.classList.contains('hmore'))) b=null;
     let ro=e.previousElementSibling; if(!(ro&&ro.classList.contains('hro'))) ro=null;
-    const long=!e.hidden&&e.textContent.length>160;
+    // a note with its own controls (a button, a field, a link) is acted on, not read: never folded
+    const long=!e.hidden&&e.textContent.length>160&&!e.querySelector('button,input,select,textarea,a[href],[data-field]');
     if(!long){ if(b) b.remove(); if(ro) ro.remove(); if(e.classList.contains('hfold')) e.classList.remove('hfold','hopen','hro-on'); continue; }
     if(!e.id){ let id='hint-'+i, j=2; while(document.getElementById(id)) id='hint-'+i+'-'+(j++); e.id=id; }
     if(!b){ b=document.createElement('button'); b.type='button'; b.className='linkbtn hmore'; b.setAttribute('aria-controls',e.id); e.after(b); }
@@ -27875,7 +27879,6 @@ function hintPass(panel){
 document.addEventListener('click',e=>{ const b=e.target.closest('button.hmore'); if(!b) return; e.preventDefault();
   const h=$(b.getAttribute('aria-controls')), pan=h&&h.closest('[role=tabpanel]'); if(!h||!pan) return;
   const st=foldStore(), hs=st._h=st._h||{}; if(h.classList.contains('hopen')) delete hs[h.dataset.hk]; else hs[h.dataset.hk]=1; foldSave(); hintPass(pan); });
-document.addEventListener('focusin',e=>{ const h=e.target.closest&&e.target.closest('.hfold:not(.hopen)'); if(!h) return; const b=h.nextElementSibling; if(b&&b.classList.contains('hmore')) b.click(); });
 // for the page's tests (and anyone reading it all): every section and explanation open, not stored; __expandAll(false) undoes it
 window.__expandAll=(on)=>{ FOLD_ALL=on!==false; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); };
 // the page's own print: everything open while it prints, as it was after
