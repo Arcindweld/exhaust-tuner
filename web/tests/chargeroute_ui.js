@@ -7,6 +7,7 @@
 // (fixtures/chargeroute_parity.json, and every routed candidate), no page errors, no sideways scroll at 400 px.
 //   node tests/chargeroute_ui.js   (from web/)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs');
 (async () => { const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const FX = JSON.parse(fs.readFileSync(__dirname + '/fixtures/chargeroute_reply.json', 'utf8'));
@@ -129,10 +130,10 @@ const fs = require('fs');
   await pg.click('#cr-block button[data-cr="hot"]'); await pg.waitForTimeout(150);
   ok(/1 hot keep-out: Turbine box/.test(await pg.$eval('#cr-out', e => e.innerText)) && (await sentOf('setHotKeepouts')).length === 1, 'Mark hot asks the add-in and shows its answer');
   // ---- units: the block is drawn again in mm, its values kept
-  await pg.click('#u-met'); await pg.waitForTimeout(250);
+  await uiClick(pg, '#u-met'); await pg.waitForTimeout(250);
   const met = await pg.evaluate(() => { const el = document.querySelector('#cr-block input.crx[data-k="legs.hot.gap"]'); return { v: el && el.value, u: el && el.nextElementSibling.textContent, open: document.getElementById('cr-block').open }; });
   ok(met.v === '12.7' && met.u === 'mm' && met.open, 'mm: the clearance reads 12.7 mm and the block stays open (' + JSON.stringify(met) + ')');
-  await pg.click('#u-imp'); await pg.waitForTimeout(250);
+  await uiClick(pg, '#u-imp'); await pg.waitForTimeout(250);
   ok(await pg.evaluate(() => document.querySelector('#cr-block input.crx[data-k="legs.hot.gap"]').value) === '0.5', 'back in inches: 0.5 in');
   // ---- phone width
   await pg.click('#cr-block button[data-cr="rec"]'); await pg.waitForTimeout(250);

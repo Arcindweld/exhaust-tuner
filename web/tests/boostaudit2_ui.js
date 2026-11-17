@@ -22,6 +22,7 @@
 //             Wendland: 83212.416 Pa (page 83262.376, +0.06 %).
 //  O1 Engineering ToolBox engine oil 320 K 872 kg/m³ 1.99 kJ/kg K, 340 K 860 / 2.08: at 50 °C (323.15 K) 870.11 / 2004.18.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const near = (a, want, tol, m) => ok(Number.isFinite(a) && Math.abs(a - want) <= tol * Math.abs(want), m + ': page ' + (Number.isFinite(a) ? +a.toPrecision(9) : a) + ', independent ' + (+want.toPrecision(9)));
@@ -141,7 +142,7 @@ const { chromium } = require('playwright');
   await setv('i-nt', '1');
 
   // X7: two new exhaust cases (xflow_page2.js's settings) against xflow.py
-  await pg.click('#u-met'); await pg.waitForTimeout(300); await setv('i-hp', '450');
+  await uiClick(pg, '#u-met'); await pg.waitForTimeout(300); await setv('i-hp', '450');
   const ti = await pg.evaluate(() => window.__tso.TURBO_LIB.findIndex(t => t.model.startsWith('GEN2 PT5862')));
   await tso('turbo', String(ti));
   const hs = await pg.evaluate(ti => window.__tso.TURBO_LIB[ti].hs.findIndex(h => h.ar === 0.63 && h.outlet === '4-bolt'), ti);

@@ -5,6 +5,7 @@
 // The tab's "tube only at the tract end" figure must land within 12% of the middle of each CFD band (the CFD's own pipe
 // friction runs ~25% high on that mesh, so it is not tightened further).   node tests/intake1dcal_ui.js
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => { const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message)); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900);
@@ -12,7 +13,7 @@ const { chromium } = require('playwright');
   await set('i-eng', 'ls'); await set('i-ind', 'na'); await set('i-type', 'cai'); await set('i-filt', 'cone');
   for (const [id, v] of [['i-disp', '376'], ['i-rpm', '6600'], ['i-ve', '92'], ['i-lt', '34.67'], ['i-dt', '3.646'], ['i-n', '1'], ['i-bends', '2'], ['i-tb', '4.134'],
     ['i-tamb', '77'], ['i-tin', '77'], ['i-bendang', '30, 84'], ['i-bendr', '5']]) await set(id, v);
-  await pg.click('#u-met'); await pg.waitForTimeout(100);                       // read the figures in Pa
+  await uiClick(pg, '#u-met'); await pg.waitForTimeout(100);                       // read the figures in Pa
   const tx = () => pg.$eval('#panel-intake', e => e.innerText);
   const num = (s, re) => { const m = s.match(re); return m ? +m[1].replace(/,/g, '') : NaN; };
   const read = s => ({ tot: num(s, /Duct pressure loss at peak power\s+([\d,]+)\s*Pa/), end: num(s, /Tube only at the tract end, as a CFD reads it\s+([\d,]+)\s*Pa/),

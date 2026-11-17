@@ -1,11 +1,12 @@
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
   const bad = /\bNaN\b|\bundefined\b|\bInfinity\b|\[object/;
   for (const [vp, w] of [['phone', 390], ['desk', 1280]]) {
     const pg = await (await b.newContext({ viewport: { width: w, height: 900 } })).newPage(); const errs = []; pg.on('pageerror', e => errs.push(e.message));
     await pg.goto('file://' + process.cwd()+'/index.html');
-    await pg.evaluate(() => location.hash = 'crossover'); await pg.click('#m-expert');
+    await pg.evaluate(() => location.hash = 'crossover'); await uiClick(pg, '#m-expert');
     await pg.selectOption('#x-type', 'x'); await pg.waitForTimeout(100);
     let t = await pg.evaluate(() => document.querySelector('#panel-cross').innerText);
     ok(/X-pipe build sheet/i.test(t) && /First bend, toward the centre/.test(t) && /How the crossing angle changes the build/i.test(t), vp + ': build sheet and angle table shown');

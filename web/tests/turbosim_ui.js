@@ -6,13 +6,14 @@
 // housing, a tubular manifold at 93 mm port spacing (the audit's example), boost 169.918 kPa (the audit's 450 hp case).
 // CAPTURE=1 also writes the plan and the run to tools/validation/wave/results/turbo_k24_page.json (for turbo_k24.js).
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'), path = require('path');
 const { reads, settle } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
   const pg = reads(await ctx.newPage()); const errs = []; pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
-  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg); await pg.click('#u-met'); await settle(pg);
+  await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg); await uiClick(pg, '#u-met'); await settle(pg);
   await pg.evaluate(() => { document.body.classList.add('expert'); document.body.classList.remove('simple'); });
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]).then(() => settle(pg));
   const chg = (sel, v) => pg.evaluate(([s, v]) => { const el = document.querySelector(s); if (!el) throw new Error('no ' + s); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [sel, v]).then(() => settle(pg));

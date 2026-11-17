@@ -27952,6 +27952,7 @@ function uiPass2(pan){ foldPass(pan); hintPass(pan); runClock(); u2Later(pan); }
   const open=(on,focus)=>{ top.classList.toggle('setopen',on); b.setAttribute('aria-expanded',on?'true':'false');
     if(on&&focus){ const f=p.querySelector('button[aria-pressed="true"],button'); if(f) f.focus(); } };
   b.addEventListener('click',()=>open(!top.classList.contains('setopen'),true));
+  $('proj-btn').addEventListener('click',()=>open(false));   // the Projects dialog takes over
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&top.classList.contains('setopen')){ open(false); b.focus(); } });
   document.addEventListener('click',e=>{ if(top.classList.contains('setopen')&&!e.target.closest('#set-panel,#set-btn')) open(false); });
   matchMedia('(min-width:700px)').addEventListener('change',()=>open(false)); })();

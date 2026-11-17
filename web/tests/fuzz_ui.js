@@ -3,12 +3,13 @@
 // undefined / [object in the visible results. Seeded, so a failure repeats: FUZZ_SEED=n, FUZZ_ROUNDS=n.
 //   node tests/fuzz_ui.js            (from web/)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const seed = +(process.env.FUZZ_SEED || 20261105), rounds = +(process.env.FUZZ_ROUNDS || 12);
   const b = await chromium.launch(); const errs = [];
   const fresh = async () => { const p = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage(); p.on('pageerror', e => errs.push(e.message)); if (process.env.FUZZ_LOG) { p.on('console', m => { if (/^SET /.test(m.text())) console.log('   ' + m.text()); }); await p.addInitScript(() => { window.__fuzzLog = 1; }); } await p.goto('file://' + process.cwd() + '/index.html'); await p.waitForTimeout(600); return p; };
   const metric = process.env.FUZZ_UNITS === 'met';
-  const fresh0 = fresh; const fresh2 = async () => { const p = await fresh0(); if (metric) { await p.click('#u-met'); await p.waitForTimeout(150); } return p; };
+  const fresh0 = fresh; const fresh2 = async () => { const p = await fresh0(); if (metric) { await uiClick(p, '#u-met'); await p.waitForTimeout(150); } return p; };
   let pg = await fresh2();
   const tabs = (await pg.evaluate(() => [...document.querySelectorAll('[data-tab]')].map(x => x.dataset.tab).filter((v, i, a) => a.indexOf(v) === i))).filter(t => !process.env.FUZZ_TABS || process.env.FUZZ_TABS.split(',').includes(t));
   const fails = [];

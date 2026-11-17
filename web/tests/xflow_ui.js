@@ -21,6 +21,7 @@
 //    case 1 back pressure 7700.128 Pa (page 7716.365), total 52380.103 (52389.500), tip T0 1127.4973 K (1127.4880);
 //    case 2 (one bend, plug muffler, 88.9 mm tail pipe, wrap, 60 mph, Wendland's factors) 120749.896 Pa (page 120752.065).
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const near = (a, want, tol, m) => ok(Number.isFinite(a) && Math.abs(a - want) <= tol * Math.abs(want), m + ': page ' + (Number.isFinite(a) ? +a.toPrecision(9) : a) + ', known ' + (+want.toPrecision(9)));
@@ -93,7 +94,7 @@ const { chromium } = require('playwright');
   near(lim.c, lim.c0, 1e-2, 'Mach ' + lim.M.toFixed(3) + ', downpipe, chamber, tail pipe, tip: against the first method with the head as ½ ρ v² (' + ((lim.c / lim.c0 - 1) * 100).toFixed(3) + '%; the first method as it was: ' + ((lim.c / lim.c1 - 1) * 100).toFixed(2) + '%, its 1.4 ÷ gamma head)');
 
   // ---- one muffler model: the Mufflers tab's rows and the turbo exhaust use the same function
-  await pg.click('#m-expert').catch(() => {}); await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await uiClick(pg, '#m-expert').catch(() => {}); await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   ok(await pg.evaluate(() => /mufElems/.test(window.__tsx.xMuffler.toString()) && !/reversal_expansion/.test(window.__tsx.xMuffler.toString())), 'xMuffler calls mufElems (no copy of the elements left in it)');
   const cases = [['chamber', 'straight-through chamber', [['m-chlay', 'through'], ['m-mach', '0.15']], (d, dch) => { const n = (d / dch) ** 2; return (1 - n) ** 2 + (1 - n) / 2; }],
     ['chamber', 'reverse-flow chamber', [['m-chlay', 'reverse'], ['m-mach', '0.12']], () => 1.5],

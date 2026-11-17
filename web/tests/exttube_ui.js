@@ -1,12 +1,13 @@
 // Extended-tube expansion chamber on the Mufflers tab (Munjal 1987, 2.13-2.14 / 3.7): the pockets behind the extended
 // inlet and outlet fill the plain chamber's troughs; with both at 0 the curve is the plain chamber's.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out = []; let fails = 0;
   const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   pg.on('pageerror', e => { out.push('PAGEERROR ' + e.message); fails++; });
   await pg.goto('file://' + process.cwd() + '/index.html#mufflers');
-  await pg.click('#m-expert'); await pg.click('#u-met');
+  await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met');
   const r = await pg.evaluate(() => {
     const p = { dpipe: 63.5, dch: 152.4, lch: 355.6, tmain: 400 };
     const calcChamber = window.__md.calcChamber; const plain = calcChamber(p), ext0 = calcChamber({ ...p, lin: 0, lout: 0 });

@@ -74,6 +74,7 @@
 //   A 60 mm valve: cold 38.1 + 30 = 68.1 mm; the return window becomes 68.1 to 254 - 76.2 - 30 = 147.8 mm.
 //   Cold side 500 mm with 6 bends (3 a side): straight 500 - 3 x pi/2 x 90.297 = 74.485 mm; a 60 mm valve needs 98.1 mm -> hot side.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const near = (a, want, tol, m) => ok(Number.isFinite(a) && Math.abs(a - want) <= tol * Math.abs(want), m + ': page ' + (Number.isFinite(a) ? +a.toPrecision(7) : a) + ', hand ' + (+want.toPrecision(7)));
@@ -160,9 +161,9 @@ const { chromium } = require('playwright');
   ok(/ID 3\.50 in \(88\.9 mm\)/.test(svgTxt) && /24\.0 in \(610 mm\) long/.test(svgTxt) && /ID 2\.37 in \(60\.2 mm\)/.test(svgTxt) && /cone 5\.2 in \(131 mm\)/.test(svgTxt), 'schematic: every diameter and length in inches and mm');
   ok(/pressure ratio 1\.708/.test(svgTxt) && /Total 2\.28 psi/.test(svgTxt), 'schematic: pressure ratio and total');
   // metric display gives both units too
-  await pg.click('#u-met'); await pg.waitForTimeout(300); t = await secText();
+  await uiClick(pg, '#u-met'); await pg.waitForTimeout(300); t = await secText();
   ok(/15\.72 kPa \(2\.28 psi\)/.test(t) && /88\.9 mm \(3\.50 in\)/.test(await q('#ts-svg', e => e.textContent)), 'metric: dual units kept');
-  await pg.click('#u-imp'); await pg.waitForTimeout(300);
+  await uiClick(pg, '#u-imp'); await pg.waitForTimeout(300);
   // transitions on the page
   await setv('i-cid', '3'); await setv('i-cod', '2'); await setv('i-ici', '2.5'); await setv('i-ico', '2.5'); await pg.waitForTimeout(300);
   const steps = await q('#ts-steps', e => e.innerText);

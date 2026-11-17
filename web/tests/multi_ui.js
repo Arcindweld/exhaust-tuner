@@ -1,5 +1,6 @@
 // Browser checks for the collector (multi-cylinder) wave simulation on the 4-Stroke tab
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); let fails = 0;
   const ok = (c, msg) => { console.log((c ? 'PASS ' : 'FAIL ') + msg); if (!c) fails++; };
@@ -12,7 +13,7 @@ const { chromium } = require('playwright');
   const v = await pg.$$eval('#v-pick option', os => os.map(o => [o.value, o.textContent]));
   const sbcCar = v.find(x => x[0] !== '' && /Camaro|Corvette|Chevelle|Nova|Z28|SS/.test(x[1]));
   await pg.selectOption('#v-pick', sbcCar[0]);
-  await pg.evaluate(() => location.hash = 'four-stroke'); await pg.click('#m-expert'); await pg.waitForTimeout(100);
+  await pg.evaluate(() => location.hash = 'four-stroke'); await uiClick(pg, '#m-expert'); await pg.waitForTimeout(100);
   const fn = await pg.inputValue('#f-n'), fg = await pg.inputValue('#f-gaps');
   console.log('preset', sbcCar[1], 'f-n', fn, 'gaps', JSON.stringify(fg));
   ok(fn === '4' && (fg === '270, 180, 90, 180' || fg === ''), 'V8 preset sets 4 primaries and fills the bank gaps');

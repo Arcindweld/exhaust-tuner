@@ -1,11 +1,12 @@
 // The line after the collector for the OpenWAM case (4-Stroke tab, Run it in OpenWAM): pipe, J-pipe or Helmholtz can,
 // muffler and tailpipe reach the case as make_wam tail elements; off by default (the case unchanged).
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = [], fails = []; pg.on('pageerror', e => errs.push(e.message));
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
-  await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(400); await pg.click('#m-expert');
+  await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(400); await uiClick(pg, '#m-expert');
   await pg.selectOption('#f-n', '4');
   for (const [id, v] of [['#f-rpm', '6000'], ['#f-evo', '60'], ['#f-dp', '1.875'], ['#f-disp', '376'], ['#f-cyl', '8'], ['#f-trq', '4600'], ['#f-bore', '4.065'], ['#f-stroke', '3.622'], ['#f-cratio', '10.7']]) { await pg.fill(id, v); await pg.dispatchEvent(id, 'input'); }
   await pg.waitForTimeout(400);

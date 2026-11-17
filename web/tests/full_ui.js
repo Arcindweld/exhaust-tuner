@@ -1,5 +1,6 @@
 // Browser sweep: every tab in phone/desktop, light/dark, simple/expert, imperial/metric, then every vehicle preset.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const FILE = process.argv[2] || 'index.html';
 const SHOTS = process.argv.includes('--shots');
 const TABS = ['quick', 'four-stroke', 'two-stroke', 'sound', 'headers', 'crossover', 'mufflers', 'cats', 'boom-tubes', 'options'];
@@ -52,7 +53,7 @@ const TABS = ['quick', 'four-stroke', 'two-stroke', 'sound', 'headers', 'crossov
   out.push('tab combos checked: ' + combos);
   // every vehicle preset, desktop, expert, both unit systems
   await run('presets', 1280, 'light', async (pg) => {
-    await pg.click('#m-expert');
+    await uiClick(pg, '#m-expert');
     // the Type selector splits cars/trucks from motorcycles; sweep both lists
     const setClass = async (c) => pg.evaluate(c => { const el = document.getElementById('v-class'); el.value = c; el.dispatchEvent(new Event('change', { bubbles: true })); }, c);
     const vals = [];
@@ -85,7 +86,7 @@ const TABS = ['quick', 'four-stroke', 'two-stroke', 'sound', 'headers', 'crossov
     }
     out.push('preset renders checked: ' + checked);
     // spot check what a preset fills in
-    await pg.click('#u-imp');
+    await uiClick(pg, '#u-imp');
     await setClass('car');
     const pick = vals.find(x => /Chevelle/.test(x[1]));
     await pg.selectOption('#v-pick', pick[0]);

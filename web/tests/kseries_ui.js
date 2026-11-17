@@ -20,6 +20,7 @@
 // the same specs as the page before part 14 (fixtures/kseries_specs_before.json); a project saved before keeps its values.
 'use strict';
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'), path = require('path');
 const { specsOf } = require('./kseries_specs');
 (async () => {
@@ -58,7 +59,7 @@ const { specsOf } = require('./kseries_specs');
   let m = await mani('rbc', 'imp');
   ok(Math.abs(m.intl - 285) < 0.01 && m.pin === 100 && m.intk === 'plenum' && m.plv === 1720 && m.tbd === 62 && !Number.isFinite(m.ird) && /^11\.22$/.test(m.intlTxt) && /stand-in: measure yours/.test(m.hint) && /enthusiast measurement/.test(m.hint) && /\(185 mm\)/.test(m.hint),
     'RBC (inches): runner 185 + the 100 mm stand-in port = 285 mm (11.22 in), plenum 1720 cc, 62 mm, no diameter, labels in the hint');
-  await pg.click('#u-met'); await setB('f-pin', '120'); m = await mani('sk2us', 'met');
+  await uiClick(pg, '#u-met'); await setB('f-pin', '120'); m = await mani('sk2us', 'met');
   ok(Math.abs(m.intl - (6.85 * 25.4 + 120)) < 0.01 && m.pin === 120 && m.plv === 1800 && m.tbd === 71 && /^294/.test(m.intlTxt) && /as you typed it/.test(m.hint) && /maker’s copy/.test(m.hint),
     'Skunk2 Ultra Street (mm): 174.0 + the typed 120 mm port = 294.0 mm, 1.8 L, 71 mm; the typed port kept' + (fails.length ? ' ' + JSON.stringify(m) : ''));
   m = await mani('sk2ur', 'met');

@@ -1,12 +1,13 @@
 // Sound tab, "Two notes on true duals" (Borla's polyphonic idea): the other side's length for a fifth, fourth, major
 // third above and a fifth below, from the acoustic length (pipe + 0.6133 r open end) divided by the ratio.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(), fails = [], errs = [];
   const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   for (const vp of [{ width: 1280, height: 900, n: 'desk' }, { width: 390, height: 844, n: 'phone' }]) {
     const p = await b.newPage({ viewport: vp }); p.on('pageerror', e => errs.push(e.message));
-    await p.goto('file://' + process.cwd() + '/index.html#sound'); await p.waitForTimeout(800); await p.click('#u-met'); await p.waitForTimeout(300);
+    await p.goto('file://' + process.cwd() + '/index.html#sound'); await p.waitForTimeout(800); await uiClick(p, '#u-met'); await p.waitForTimeout(300);
     const set = (id, v) => p.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); }, [id, v]);
     await set('s-len', '2400'); await p.waitForTimeout(300);
     const t = await p.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Two notes on true duals'); return h ? h.parentElement.innerText : ''; });

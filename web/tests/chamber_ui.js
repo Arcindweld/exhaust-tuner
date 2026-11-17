@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out = []; const bad = /\bNaN\b|\bundefined\b|\bInfinity\b|\[object/;
   for (const [w, scheme] of [[390, 'dark'], [1280, 'light']]) {
@@ -28,7 +29,7 @@ const { chromium } = require('playwright');
       }
     }
     if (w === 1280) {
-      await pg.click('#m-expert'); await pg.click('#u-imp'); await pg.selectOption('#f-n', '1');
+      await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-imp'); await pg.selectOption('#f-n', '1');
       await pg.selectOption('#f-ch', 'can');
       for (const [id, v] of [['#f-rpm', '8500'], ['#f-dp', '1.62'], ['#f-wall', '0.039'], ['#f-chf', '450']]) { await pg.fill(id, v); await pg.dispatchEvent(id, 'input'); }
       await pg.waitForTimeout(80);

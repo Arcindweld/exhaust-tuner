@@ -1,4 +1,5 @@
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out=[];
   const ctx = await b.newContext({ viewport:{width:420,height:900}, colorScheme:'light' });
@@ -55,13 +56,13 @@ const { chromium } = require('playwright');
   await pg.click('#fx-cat button[data-fx="measure"]'); await pg.waitForTimeout(150);
   out.push('cat use buttons: '+(await pg.$$eval('#fx-out-cat button[data-use]',bs=>bs.map(b=>b.textContent))).join(' | '));
   await pg.evaluate(()=>location.hash='headers'); await pg.waitForTimeout(100);
-  await pg.click('#m-expert'); await pg.waitForTimeout(100);
+  await uiClick(pg, '#m-expert'); await pg.waitForTimeout(100);
   out.push('expert mode, simple box hidden: '+!(await pg.isVisible('.explain')));
   await pg.screenshot({path:'fx-headers.png',fullPage:true});
-  await pg.click('#m-simple');
+  await uiClick(pg, '#m-simple');
   await pg.screenshot({path:'fx-headers-simple.png',fullPage:true});
     // the expansion chamber button on the Mufflers tab sends the chamber's sizes (double-tuned extensions after Set)
-  await pg.goto('file://'+process.cwd()+'/index.html#mufflers'); await pg.click('#m-expert'); await pg.waitForTimeout(300);
+  await pg.goto('file://'+process.cwd()+'/index.html#mufflers'); await uiClick(pg, '#m-expert'); await pg.waitForTimeout(300);
   await pg.click('#m-dtune'); await pg.waitForTimeout(150);
   await pg.click('#fx-muf button[data-fx="chamber"]'); await pg.waitForTimeout(300);
   const sentCh = await pg.evaluate(() => window.__sent.filter(x => x[0] === 'chamber').pop());

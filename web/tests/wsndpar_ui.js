@@ -2,11 +2,12 @@
 // own step, runs in the wave model as parallel paths (wamParPaths, the same as the OpenWAM case), changes the sound,
 // and the two differ; a capped auger runs as the spiral alone.   node tests/wsndpar_ui.js   (from web/)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   const errs = []; pg.on('pageerror', e => errs.push(e.message)); const fails = [];
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
-  await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(900); await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await pg.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pg.waitForTimeout(900); await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   await pg.selectOption('select.wamline[data-k="on"]', '1'); await pg.waitForTimeout(200);
   const steps = async par => { await pg.evaluate(() => { location.hash = 'four-stroke'; }); await pg.waitForTimeout(400); await pg.selectOption('select.wamline[data-k="par"]', par); await pg.waitForTimeout(250);
     await pg.evaluate(() => { location.hash = 'sound'; }); await pg.waitForTimeout(400);

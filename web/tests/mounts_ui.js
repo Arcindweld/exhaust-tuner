@@ -9,6 +9,7 @@
 // sideways scroll at 400 px. Writes fixtures/mounts_payload.json for fusion-addin/tests/test_mounts.py.
 //   node tests/mounts_ui.js   (from web/)
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs');
 const path = require('path');
 (async () => {
@@ -21,7 +22,7 @@ const path = require('path');
     const r = a === 'mountPick' ? FX.pick : a === 'mountBuild' ? FX.build : a === 'mountPlace' ? { ok: true, msg: 'Placed the stand-in.' } : { ok: true };
     return Promise.resolve(JSON.stringify(r)); } }; }, FX);
   const p = await ctx.newPage(); p.on('pageerror', e => errs.push(e.message));
-  await p.goto('file://' + process.cwd() + '/index.html#hangers'); await p.waitForTimeout(1200); await p.click('#u-met'); await p.waitForTimeout(200);
+  await p.goto('file://' + process.cwd() + '/index.html#hangers'); await p.waitForTimeout(1200); await uiClick(p, '#u-met'); await p.waitForTimeout(200);
   const set = (id, v) => p.evaluate(([id, v]) => window.__mounts.set(id, v), [id, v]);
   const sel = (id, v) => p.evaluate(([id, v]) => { const s = document.getElementById(id); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); }, [id, v]);
   const R = () => p.evaluate(() => { const r = window.__mounts.last(); return JSON.parse(JSON.stringify(r)); });

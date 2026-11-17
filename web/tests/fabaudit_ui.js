@@ -2,12 +2,13 @@
 // against references written here from the geometry (brute force: bisection on the surfaces, sampling of the solids),
 // not from the page's formulas. Tolerances: 0.05 mm on template points, 0.25 mm on lengths, 0.1 deg on angles.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const out = []; let fails = 0;
   const chk = (ok, m) => { out.push((ok ? 'PASS ' : 'FAIL ') + m); if (!ok) fails++; };
   const pg = await (await b.newContext({ viewport: { width: 1280, height: 900 } })).newPage();
   pg.on('pageerror', e => { out.push('PAGEERROR ' + e.message); fails++; });
-  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await pg.click('#m-expert'); await pg.click('#u-met'); await pg.waitForTimeout(300);
+  await pg.goto('file://' + process.cwd() + '/index.html#mufflers'); await uiClick(pg, '#m-expert'); await uiClick(pg, '#u-met'); await pg.waitForTimeout(300);
 
   // ---------------------------------------------------------------- 1. cope (fishmouth) wrap template
   // Reference: the main pipe's top surface over a point at lateral offset y is found by bisection on y^2 + z^2 = R^2;

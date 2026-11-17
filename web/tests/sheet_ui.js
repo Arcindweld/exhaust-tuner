@@ -3,6 +3,7 @@
 // track car (open-megaphone alternative), a single-cylinder bike and a two-stroke. Also: no page errors, no sideways
 // scroll at 400 px, and the copied text matches the table.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const fails = [];
   const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
@@ -11,7 +12,7 @@ const { chromium } = require('playwright');
   const pg = await ctx.newPage(); const errs = [];
   pg.on('pageerror', e => errs.push(e.message));
   await pg.goto('file://' + process.cwd() + '/index.html#quick');
-  await pg.click('#m-expert');
+  await uiClick(pg, '#m-expert');
   const sheet = async () => pg.evaluate(() => {
     const h = [...document.querySelectorAll('#q-details .sec h3')].find(x => x.textContent === 'Build sheet');
     if (!h) return null;

@@ -63,4 +63,14 @@ function expandAll(page, on = true) {
   return page.evaluate(on => { if (window.__expandAll) window.__expandAll(on); }, on).then(() => settle(page));
 }
 
-module.exports = { reads, settle, typedPoint, expandAll };
+// A click on one of the app bar's controls (units, level of detail, inch fractions, Projects, theme). Below 700 px they sit
+// in the Settings panel (UI pass two): it is opened for the click and closed again after, as a builder would.
+async function uiClick(page, sel) {
+  const shown = await page.evaluate(s => { const e = document.querySelector(s); return !!(e && e.getClientRects().length); }, sel);
+  let opened = false;
+  if (!shown && await page.evaluate(() => { const b = document.getElementById('set-btn'); return !!(b && b.getClientRects().length); })) { await page.click('#set-btn'); opened = true; }
+  await page.click(sel);
+  if (opened) await page.evaluate(() => { const t = document.querySelector('.top'), b = document.getElementById('set-btn'); if (t && t.classList.contains('setopen') && b) b.click(); });
+}
+
+module.exports = { reads, settle, typedPoint, expandAll, uiClick };

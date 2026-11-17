@@ -8,6 +8,7 @@
 // page's intake CFD case to convergence (minutes); DESKTOP_CFD=0 skips that run (the Windows build does when nothing
 // on its path changed since the last release, and its install step runs a short OpenFOAM case on every build).
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const { skip, skipPart } = require('./skip.js');
 const { spawn, execFileSync } = require('child_process');
 const fs = require('fs'), path = require('path'), os = require('os'), { pathToFileURL } = require('url');
@@ -108,7 +109,7 @@ const CLI = process.env.HOST_CLI || path.join(ROOT, 'rust', 'target', 'release',
     console.log('SKIP: the page\'s OpenFOAM run (DESKTOP_CFD=0: nothing on its path changed since the last release)');
   } else if (process.env.EXHAUST_TUNER_OPENFOAM) {
     await pg.evaluate(() => { location.hash = 'intake'; }); await pg.waitForTimeout(800);
-    await pg.click('#m-expert'); await pg.waitForTimeout(300);
+    await uiClick(pg, '#m-expert'); await pg.waitForTimeout(300);
     ok(await pg.$('button[data-cfd="run"]') !== null, 'Run in OpenFOAM button shown');
     // straight tube with an elliptical bellmouth: the axisymmetric case (the default two bends make a 3-D case)
     await pg.fill('#i-bends', '0'); await pg.selectOption('#i-mouth', 'ellipse'); await pg.waitForTimeout(300);

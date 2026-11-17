@@ -1,6 +1,7 @@
 // Intake CFD (OpenFOAM) section on the Intake tab: design from the tab's inputs, case files written in the
 // browser (checked against a Python-generated case), the zip download message, and the results.json reader.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'); const path = require('path');
 (async () => {
   const b = await chromium.launch(); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
@@ -9,10 +10,10 @@ const fs = require('fs'); const path = require('path');
     const pg = await b.newPage({ viewport: vp }); const errs = []; pg.on('pageerror', e => errs.push(e.message));
     await pg.goto('file://' + process.cwd()+'/index.html#intake'); await pg.waitForTimeout(900);
     // simple mode hides the section; expert shows it
-    await pg.click('#m-simple'); await pg.waitForTimeout(200);
+    await uiClick(pg, '#m-simple'); await pg.waitForTimeout(200);
     let vis = await pg.$eval('#intake-cfd', e => e.offsetParent !== null && e.getBoundingClientRect().height > 0);
     ok(!vis, vp.n + ': section hidden in simple mode');
-    await pg.click('#m-expert'); await pg.waitForTimeout(300);
+    await uiClick(pg, '#m-expert'); await pg.waitForTimeout(300);
     let t = await pg.$eval('#panel-intake', e => e.innerText);
     ok(/Intake CFD \(OpenFOAM\)/i.test(t) && /Download OpenFOAM case/.test(t), vp.n + ': section present in expert mode');
     ok(!bad.test(t), vp.n + ': no NaN/undefined in the panel');

@@ -10,6 +10,7 @@
 //  4. a changed knock input marks the line as from earlier inputs; metric units: the raw boost figures in kPa first.
 'use strict';
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'), path = require('path');
 const { reads, settle } = require(path.join(__dirname, 'settle'));
 (async () => {
@@ -59,7 +60,7 @@ const { reads, settle } = require(path.join(__dirname, 'settle'));
     await setv('i-kaki', '93'); await pg.click('#tab-four'); await settle(pg);
     const stale = await pg.evaluate(() => (document.getElementById('tsim-knock') || {}).innerText || '');
     ok(/inputs changed since this run/.test(stale), '4 a changed knock input marks the line as from earlier inputs');
-    await setv('i-kaki', ''); await pg.click('#u-met'); await settle(pg); await pg.click('#tab-four'); await settle(pg);
+    await setv('i-kaki', ''); await uiClick(pg, '#u-met'); await settle(pg); await pg.click('#tab-four'); await settle(pg);
     const M = await pg.evaluate(() => { const d = document.querySelector('#tsim-knock details'); return d ? [...d.querySelectorAll('li')].map(l => l.textContent).find(t => /^Knock-limited boost/.test(t)) : ''; });
     ok(/ kPa \([0-9.]+ psi\)/.test(M), '4 metric: the raw boost figures in kPa first: ' + (M || '').slice(0, 120));
     await b.close();

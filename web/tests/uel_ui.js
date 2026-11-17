@@ -1,6 +1,7 @@
 // Unequal-length primaries (uel_patch.py): Headers table, physics section, feeds into OpenWAM / Engine Simulator / Fusion route,
 // the INS.DAT order reader, and equal mode unchanged. Desk and phone. Uses uel_runs/ (OpenWAM 2.2 Linux runs of page cases).
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'); const path = require('path');
 const HERE = __dirname, RUNS = path.join(HERE, 'uel_runs');
 (async () => {
@@ -72,9 +73,9 @@ const HERE = __dirname, RUNS = path.join(HERE, 'uel_runs');
     ok(/cylinders 1, 2, 3, 4 in that order/.test(rt.note) && /does not build the Y/.test(rt.note), vp.n + ': route note tells the marker order and the Y limitation');
     ok(/select the port markers of cylinders 1, 2, 3, 4 in that order/.test(await txt('#panel-headers')), vp.n + ': the marker order is on the tab before the click');
     // units follow the page
-    await p.click('#u-imp'); await p.waitForTimeout(200);
+    await uiClick(p, '#u-imp'); await p.waitForTimeout(200);
     ok(await p.$eval('#h-len-c1', e => e.value === '16.929') && await p.$eval('#h-uel-tbl em[data-u="len"]', e => e.textContent === 'in'), vp.n + ': cells redisplay in inches (430 mm = 16.929 in)');
-    await p.click('#u-met'); await p.waitForTimeout(200);
+    await uiClick(p, '#u-met'); await p.waitForTimeout(200);
     // 4-Stroke tab: OpenWAM case of the unequal system, Engine Simulator file
     await p.evaluate(() => { document.body.classList.add('expert'); location.hash = 'four-stroke'; }); await p.waitForTimeout(400);
     await set('f-cyl', '4'); await set('f-disp', '2457'); await p.waitForTimeout(300);

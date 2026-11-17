@@ -2,12 +2,13 @@
 // model against known cases (one tube the pipe's size, two equal tubes, a two-path Herschel-Quincke notch at
 // c / (2 dL)), the sizing to harmonics of the firing tone, inputs, desk and phone.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(), fails = [], errs = [];
   const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   for (const vp of [{ width: 1280, height: 900, n: 'desk' }, { width: 390, height: 844, n: 'phone' }]) {
     const p = await b.newPage({ viewport: vp }); p.on('pageerror', e => errs.push(e.message));
-    await p.goto('file://' + process.cwd() + '/index.html#mufflers'); await p.waitForTimeout(800); await p.click('#u-met'); await p.waitForTimeout(300);
+    await p.goto('file://' + process.cwd() + '/index.html#mufflers'); await p.waitForTimeout(800); await uiClick(p, '#u-met'); await p.waitForTimeout(300);
     const r = await p.evaluate(() => { const T = window.__tt, c = 343, rho = 1.2, D = 76.2, S = Math.PI * (D / 2000) ** 2, dh = D / Math.SQRT2, fN = c / 0.4;
       return { one: Math.max(...[100, 500, 1500, 3000].map(f => T.ttMatrix([{ L: 300, d: D }], c, rho, S, f))),
         same: Math.max(...[200, 900, 2500].map(f => T.ttMatrix([{ L: 250, d: dh }, { L: 250, d: dh }], c, rho, S, f))),

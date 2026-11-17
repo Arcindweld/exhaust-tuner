@@ -32,6 +32,7 @@
 //   typed with the top point first (y 60 = 3.4, then y 420 = 1.0) must map the same.
 //   Volume axis at Garrett's reference: rho_ref = 96181.860 / (287.05 x 302.59444) = 1.1073253 kg/m³.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const { execFileSync } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
 const { reads, settle } = require('./settle');
@@ -50,7 +51,7 @@ const { reads, settle } = require('./settle');
     for (let p = 1; p <= 3.401; p += 0.2) { const y = 420 - (p - 1) * 150; g.beginPath(); g.moveTo(100, y); g.lineTo(600, y); g.stroke(); }
     g.fillStyle = '#000'; g.fillText('audit grid (not a compressor map)', 110, 40); return c.toDataURL('image/png'); });
   fs.writeFileSync(png, Buffer.from(dataUrl.split(',')[1], 'base64'));
-  const open = async P => { await P.goto('file://' + process.cwd() + '/index.html#intake'); await P.waitForTimeout(900); await P.click('#u-met'); await settle(P);
+  const open = async P => { await P.goto('file://' + process.cwd() + '/index.html#intake'); await P.waitForTimeout(900); await uiClick(P, '#u-met'); await settle(P);
     await P.evaluate(() => { document.body.classList.add('expert'); document.body.classList.remove('simple'); }); };
   const setv = (id, v, P) => (P || pg).evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]).then(() => settle(P || pg));
   const chg = (sel, v, P) => (P || pg).evaluate(([s, v]) => { const el = document.querySelector(s); if (!el) throw new Error('no ' + s); if (el.type === 'checkbox') el.checked = v; else el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [sel, v]).then(() => settle(P || pg));

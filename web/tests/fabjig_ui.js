@@ -1,6 +1,7 @@
 // Fusion panel, "Fabrication jig" options: styles, layout, mount (System 16 / 28 / 5/8 in / custom grid), flange
 // locators, weld gap, bed; the payload the page sends with the jig action, and the parts table from the answer.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(), fails = [], errs = [];
   const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
@@ -9,7 +10,7 @@ const { chromium } = require('playwright');
     await ctx.addInitScript(() => { window.__sent = []; window.adsk = { fusionSendData: (a, d) => { window.__sent.push([a, JSON.parse(d)]);
       return Promise.resolve(JSON.stringify({ ok: true, msg: 'Built a fabrication jig', jig: { parts: [{ name: 'Plate', size_mm: [744.8, 170.7, 493.1], holes: 6 }, { name: 'Cradle 1', size_mm: [20, 64, 120], holes: 2 }] } })); } }; });
     const p = await ctx.newPage(); p.on('pageerror', e => errs.push(e.message));
-    await p.goto('file://' + process.cwd() + '/index.html#headers'); await p.waitForTimeout(900); await p.click('#u-met'); await p.waitForTimeout(200);
+    await p.goto('file://' + process.cwd() + '/index.html#headers'); await p.waitForTimeout(900); await uiClick(p, '#u-met'); await p.waitForTimeout(200);
     const sel = (k, v) => p.evaluate(([k, v]) => { const s = document.querySelector('#jigopts-headers select[data-k="' + k + '"]'); s.value = v; s.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]);
     const txt = () => p.evaluate(() => document.getElementById('jigopts-headers').innerText);
     ok(await p.evaluate(() => ['headers', 'intake', 'muf', 'parts'].every(t => !!document.getElementById('jigopts-' + t))), vp.n + ': the options on every tab with the jig button');

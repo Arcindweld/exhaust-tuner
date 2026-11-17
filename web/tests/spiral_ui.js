@@ -2,12 +2,13 @@
 // chambered 13-20 dBA / 70-100 CFM, packed 2-7 / 200, spiral traps 8-15 / 175), the inlet sizes from the square law,
 // Spintech parts typed as spiral traps, and the Spintech case chart filtered by the space limits.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(), fails = [], errs = [];
   const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   for (const vp of [{ width: 1280, height: 900, n: 'desk' }, { width: 390, height: 844, n: 'phone' }]) {
     const p = await b.newPage({ viewport: vp }); p.on('pageerror', e => errs.push(e.message));
-    await p.goto('file://' + process.cwd() + '/index.html#mufflers'); await p.waitForTimeout(800); await p.click('#u-met'); await p.waitForTimeout(300);
+    await p.goto('file://' + process.cwd() + '/index.html#mufflers'); await p.waitForTimeout(800); await uiClick(p, '#u-met'); await p.waitForTimeout(300);
     const txt = () => p.evaluate(() => { const h = [...document.querySelectorAll('.sec h3')].find(x => x.textContent === 'Muffler types: flow against quieting'); return h ? h.parentElement.innerText : ''; });
     let t = await txt();
     const m = t.match(/drops like (\d+) CFM of cold air/), Qe = m ? +m[1] : NaN;

@@ -2,6 +2,7 @@
 // loss line shows what the finish costs against a smooth tube, and the "as a CFD reads it" figure stays the smooth tube's
 // (the CFD case has smooth walls). Same LS3 cold-air intake as tests/intake1dcal_ui.js.   node tests/intakefinish_ui.js
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => { const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = []; pg.on('pageerror', e => errs.push(e.message)); const fails = []; const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900);
@@ -10,7 +11,7 @@ const { chromium } = require('playwright');
   for (const [id, v] of [['i-disp', '376'], ['i-rpm', '6600'], ['i-ve', '92'], ['i-lt', '34.67'], ['i-dt', '3.646'], ['i-n', '1'], ['i-bends', '2'], ['i-tb', '4.134'],
     ['i-tamb', '77'], ['i-tin', '77'], ['i-bendang', '30, 84'], ['i-bendr', '5']]) await set(id, v);
   await set('i-mouth', 'plain');
-  await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   const tx = () => pg.$eval('#panel-intake', e => e.innerText);
   const num = (s, re) => { const m = s.match(re); return m ? +m[1].replace(/,/g, '') : NaN; };
   const read = s => ({ tot: num(s, /Duct pressure loss at peak power\s+([\d,]+)\s*Pa/), end: num(s, /Tube only at the tract end, as a CFD reads it\s+([\d,]+)\s*Pa/),
@@ -39,7 +40,7 @@ const { chromium } = require('playwright');
   ok(rows.blasted.r.f > rows.sanded.r.f && rows.blasted.r.f < P.f, 'blasted sits between: f ' + rows.blasted.r.f);
   ok(Math.abs(rows.steel.r.f - hz(4.5e-5)) < 0.00015, 'commercial steel 0.045 mm: f ' + rows.steel.r.f);
   ok(/Coated or primed prints are not listed/.test(rows.print02.t), 'the caption says why coated prints are not listed');
-  await pg.click('#u-imp'); await pg.waitForTimeout(200); await set('i-finish', 'print02'); await pg.waitForTimeout(250);
+  await uiClick(pg, '#u-imp'); await pg.waitForTimeout(200); await set('i-finish', 'print02'); await pg.waitForTimeout(250);
   const ti = await tx();
   ok(/wall roughness 0\.0039 in \(0\.099 mm\)/.test(ti) && /wall adds [\d.]+ inH₂O \([\d,]+ Pa\)/.test(ti), 'in inches mode: roughness inches first, then mm; the extra loss in inH2O and Pa');
   await set('i-finish', 'smooth'); await pg.waitForTimeout(250);

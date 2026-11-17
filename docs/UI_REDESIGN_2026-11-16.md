@@ -158,3 +158,129 @@ Results and the full suite: see "Results" below.
 - The full suite, `python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`: 144 tests, 137
   passed, 0 failed, 7 skipped and 7 partial skips, all expected (no OpenWAM build, no host program here). No existing
   test was edited; no pinned number changed.
+
+# Pass two, 2026-11-16: answers first, the working one click away
+
+Pass one fixed the result columns and the navigation. What still read as hard work: walls of grey text in the 270 px
+input column (the boosted build's "Boost worked out …" reasoning ran to about 25 lines), every working section open at
+once, three rows of controls above the page on a phone, a jump list that did not say where you were, and about 540
+inline styles. Same hard rules as pass one: no calculation, default, input id, project-file key or URL hash changed;
+the bridge and host contracts (ids, `data-*`, `window.adsk`, `__fromHost`, `hostInfo`) as they were; no external
+resources; no pinned number changed.
+
+## How folding works (the one design decision the rest follows)
+
+A folded block keeps all of its text in the page. A folded section's blocks (every child but its heading) are drawn at
+no height with their overflow clipped and carry `inert`, so they are out of the tab order and the accessibility tree,
+but `textContent` and `innerText` still read them. The alternative, `<details>`, drops a closed body from `innerText`,
+which about 140 page tests read; clipping keeps those tests honest without editing them, and print (screen-only rules)
+draws everything. `web/tests/settle.js` gains `expandAll(page)` for any test that must click inside a folded section;
+none of the existing tests needed it.
+
+## What changed
+
+1. **Input column: inputs and one-line hints.** One pass (`hintPass`, after every render, text reads only) finds every
+   hint, caption or info note in an input column longer than 160 characters and shows its first two lines with a
+   "More about this" / "How this was worked out" button (`aria-expanded`, `aria-controls`); opened state is kept per
+   field in this browser. A computed note can carry a headline (`data-ro`): the boosted build's note now shows a
+   readout, "Boost worked out **25.91 psi** (178.66 kPa), likely 18.64 psi (128.51 kPa) to 30.54 psi (210.54 kPa)"
+   (or "Power worked out …"), with the whole 1,092-character reasoning folded under "How this was worked out". Nothing
+   deleted: the note is the same element with the same text. Warnings and problems in the input column are never
+   folded. Counted on every tab and the K24 journey at 1440 px (script outside the repo): explanations over 160
+   characters drawn in full in an input column went from 10 to 1 in Simple mode and from 25 to 6 in Expert mode. Left:
+   the engine preset's note (pass one already shows three lines of it), two long list items in the 4-Stroke tab's cam
+   list (a button cannot go inside a list), and the three advanced boxes' captions (176 characters, inside a box that
+   is itself folded).
+2. **Results: answers first, working one click away.** Every working section (`.sec`, built by the shared `sec()`
+   helper or by hand) gets a consistent heading: a chevron, the title, a status mark (triangle warning, square problem,
+   dashed circle out of date, filled circle OK) and, when folded, its one-line conclusion (the warning when there is
+   one, else its first figure or row: "Quarter-wave side branch for 144 Hz, l = c ÷ 4f: 24.1 in"). The heading is a
+   button with `aria-expanded`; the conclusion is drawn from an attribute, so the heading's text is unchanged.
+   Default: sections a builder acts on are open; method, derivation and source sections start folded (Other published
+   primary lengths, Head and valve rules, Check against Blair, Two notes on true duals, Helmholtz tuning, Why these
+   lengths and diameters, Inlet and charge pipes: design and sizing, Charge density, Boost against compression ratio,
+   Silencer layout rules, Production muffler sizing check, both Muffler types, Compare converter types, Street use,
+   In stock car racing, Sources and what is assumed). A section with a warning, a problem or an out-of-date note never
+   starts folded, and if the builder folded it while it was fine it opens again when it turns bad. 99 sections on the
+   11 tabs that have them can fold (31 more on the boosted Intake tab); 15 start folded (5 of the 31). "Expand all" /
+   "Collapse all" at the top of each tab's results; choices kept per tab in this browser (`exhaust-fold-v1`). Anything
+   that scrolls into a folded section (the sections list, the glance card's Go, a link to a field) opens it first.
+3. **App bar on a phone and in Fusion's palette (below 700 px):** one row, the title and a "Settings" button. The
+   button opens a small panel with the same controls (the same buttons and ids), each group labelled (Level of detail,
+   Units, Inch fractions on cut lists, Projects, Colour theme with its state in words); Escape or a click outside
+   closes it and focus goes back to the button; it stays open while a choice is made. Wide windows keep the controls
+   in the bar. The project in hand shows under the title ("Project: name", "· changed since saved" after an input
+   changes), set when a project is saved or loaded.
+4. **Sections list** (tabs with more than six sections, now also the boosted Intake tab, whose sections sit in several
+   boxes): one row of chips, sticky under the app bar from 900 px, fading at its edge; the section crossing a line just
+   under it is marked (`aria-current`) and its chip scrolled into the row. One IntersectionObserver per list, no scroll
+   handler. Below 700 px it is a "Jump to…" select that also shows the section you are in; choosing one scrolls to it,
+   opens it and focuses its heading. Jump targets clear the sticky bars (`--stick`, measured on load and resize only).
+5. **Inline styles.** The source had 537 `style="…"` attributes in 167 distinct strings. Every string used more than
+   five times (12 strings, 304 uses) became a class (`u-span`, `u-mt0`, `u-mt8` … `u-hl`, `u-ink`, with `!important`
+   so they still win over component rules as the attribute did); 300 uses converted, 4 left where the tag's class is
+   built in a different piece of a string. 237 attributes left (one-offs and computed widths). After visiting every
+   tab, elements with a style attribute in the page: 1,173 before, 643 after. 4,941 bytes smaller for this step. The
+   pages rendered before and after the conversion were compared pixel by pixel on all 14 views with everything open:
+   identical apart from the selected tab's transition.
+6. **Numbers in sentences and table cells.** A conversion in brackets inside a table cell, a list item, a caption, a
+   section paragraph or a row's explanation is set in the quieter second-unit colour (`small.u2.u2c`, colour only, so
+   nothing moves). Done on the text nodes when the page is idle after a render (a split text node; `textContent` and
+   `innerText` identical); done synchronously it cost 20 to 30 ms per keystroke on the boosted Intake tab, so it is off
+   the edit's path. Not in coloured notes (they keep their state colour).
+7. **Empty, loading and error states.** The three long runs that had no Cancel (wave simulation, turbo simulation,
+   sound estimate) get one beside "Running…": the run is dropped (its id moves on, its workers end) and the results
+   before it stay. Their status lines show the elapsed time ("0:42") from one 1 s timer that runs only while a run
+   shows on the active tab. Error strings: 210 user-facing error and problem strings inventoried by script; most
+   already say what to change. 14 vague ones rewritten in 20 places, keeping their first words: "No answer from
+   Fusion." (7 places, now says to check the add-in is running under Utilities, Add-Ins), "No reply from Fusion.", "No
+   answer from the add-in.", "No answer from the program.", "No add-in status came back.", "Could not load it: …",
+   "Could not import …", "The simulation stopped: …", "The combined run failed: …", "The run stopped: …", "No Headers
+   layout.", "No lift in the profile.", "Recommend piping first.", "At least two mounts.". No test read any of them. The
+   page has no `alert`, `confirm` or `prompt`. Empty states were not rewritten tab by tab (see Not reached).
+8. **Layout stability.** Around every render the page keeps what you are looking at: the field being edited (or, with
+   nothing focused, the first section in view) is measured before and after and the page scrolled by the difference;
+   a control the render replaced is found again (by id, its `data-k`, or its place under the nearest box with an id)
+   and gets its focus and caret back. The browser's own scroll anchoring is turned off (`overflow-anchor:none`) so the
+   page's correction is the only one, the same in Chromium (Fusion's QtWebEngine, WebView2) and in WebKit (Safari),
+   which has no scroll anchoring. The sticky bars' height is read on load and resize, never during a render, so a
+   render forces no extra layout.
+
+## Checks (web/tests/ui_ui.js, extended; web/tests/settle.js, expandAll added; no other test edited)
+
+- On every tab and the K24 journey, with nothing stored: no warning, problem or out-of-date section starts folded and
+  no such note sits in a folded section or explanation; every fold control has `aria-expanded`.
+- Nothing lost: on every tab and the K24 journey, the vehicle bar and the tab's `innerText` with everything open holds
+  every word of the page before pass two (git 6f0c694) at least as many times as it had it; the `textContent` with
+  nothing opened likewise.
+- A section heading folds and opens by Enter and Space, keeps focus, and its blocks are inert only while folded; the
+  boost reasoning folds under its readout and opens by Enter.
+- Print draws every folded section and explanation in full.
+- The sections list stays under the app bar and marks the section in view (1440 px); at 400 px it is a "Jump to" list
+  that scrolls to the section, opens it and focuses its heading.
+- The Settings panel at 400 px (one-row bar, every control and its label, Escape and focus return, click outside),
+  and no Settings button at 1440 px.
+- A field edit that re-renders the tab leaves the field where it was with its focus and caret (Mufflers, Hangers,
+  Intake at 400 and 1440 px; the K24 turbo housing select, which the render replaces, at 1440 px).
+- Field-edit time against both the page before the UI pass and the page before pass two, same font.
+
+## Page weight and speed
+
+- web/index.html: 4,725,090 bytes before pass two, 4,750,996 after (+25,906).
+- Field edits, median of 15, best of 2, same font, this machine (before the UI pass / before pass two / now): Mufflers
+  68.7 / 67.4 / 71.6 ms, boosted Intake 101.0 / 105.3 / 115.5 ms, Hangers 240.3 / 255.2 / 250.6 ms, 4-Stroke
+  19.8 / 21.7 / 21.7 ms (all within +20 % + 5 ms; Intake is the closest, +10 % on pass one).
+
+## Not reached in pass two
+
+- Empty states were not reworked tab by tab: every tab starts from working defaults, so the page rarely shows one;
+  the messages that do appear ("Fill in …", "Lay out a header on the Headers tab first.") already name what to do, but
+  most do not carry the control itself as a button.
+- No space is reserved for results that appear after a run (the run's status line takes the place of the results it
+  will show only roughly); with the scroll keeping above, content below the reading point can still grow.
+- The OpenWAM and OpenFOAM runs (in the Windows program and the add-in) keep their own Stop and status; the elapsed
+  clock covers them only where their status line carries a percentage or "n of m".
+- No WebKit engine in this container: the layout-stability test runs in Chromium with its scroll anchoring off, which
+  is the WebKit case, but Safari itself was not run.
+- Long input explanations left drawn in full: listed under 1 above.
+- One-off inline styles (237) stay.

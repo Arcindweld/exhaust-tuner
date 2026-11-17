@@ -38,6 +38,7 @@
 //    per bank (two turbos) 1, 3, 5, 7 fire at 0, 270, 450, 540 deg: 270 / 180 / 90 / 180, uneven; LS 1-8-7-2-6-5-4-3:
 //    1+4+6+7 and 2+3+5+8.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const { execFileSync } = require('child_process');
 const path = require('path');
 (async () => {
@@ -46,7 +47,7 @@ const path = require('path');
   const pg = await b.newPage({ viewport: { width: 1280, height: 900 } }); const errs = [];
   pg.on('pageerror', e => errs.push(e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text()); });
   await pg.goto('file://' + process.cwd() + '/index.html#intake'); await pg.waitForTimeout(900); await require('./settle').typedPoint(pg);
-  await pg.click('#u-met'); await pg.waitForTimeout(200);
+  await uiClick(pg, '#u-met'); await pg.waitForTimeout(200);
   const setv = async (id, v) => { await pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]); await pg.waitForTimeout(250); };
   const tso = async (k, v) => { await pg.evaluate(([k, v]) => { const el = document.querySelector('select.tsox[data-k="' + k + '"]'); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); }, [k, v]); await pg.waitForTimeout(300); };
   const secTxt = () => pg.$eval('#i-details .sec[data-sec="turbo-manifold"]', e => e.innerText).catch(() => '');

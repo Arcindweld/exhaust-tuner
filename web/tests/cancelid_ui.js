@@ -5,6 +5,7 @@
 // a plain promise, cancel() only stops everything): the page falls back to that global Stop and still works.
 //   node tests/cancelid_ui.js
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const fs = require('fs'), path = require('path');
 const NEW_BRIDGE = fs.readFileSync(path.join(__dirname, '../../rust/et_host/src/host_bridge.js'), 'utf8').replace('__VERSION__', 'stub');
 // the bridge as the programs installed before this change have it (app/ExhaustTuner.Core/HostBridge.js then)
@@ -86,14 +87,14 @@ async function scenario(b, mode, ok) {
     await pg.click('button[data-tw="run"]');
     return until(x => wams(x).length > n, 3000, 'the OpenWAM call');
   };
-  await pg.click('#u-met');
+  await uiClick(pg, '#u-met');
   let s = await startWam();
   const wam = wams(s).slice(-1)[0];
   ok(!!wam && wam.ended === null, 'an OpenWAM run is going on the 2-Stroke tab');
 
   // the Intake tab: the automatic test starts, then a newer design supersedes it
   await pg.evaluate(() => { location.hash = 'intake'; }); await wait(600);
-  await pg.click('#m-expert'); await wait(300);
+  await uiClick(pg, '#m-expert'); await wait(300);
   await pg.evaluate(() => { window.__stub.delay = 9000; });
   await setv('i-eng', 'ls'); await setv('i-ind', 'na'); await setv('i-type', 'cai'); await setv('i-filt', 'cone');
   for (const [id, v] of [['i-disp', '376'], ['i-rpm', '6600'], ['i-ve', '92'], ['i-lt', '34.67'], ['i-dt', '3.646'], ['i-n', '1'], ['i-bends', '2'], ['i-tb', '4.134'],

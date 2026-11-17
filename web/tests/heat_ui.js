@@ -3,6 +3,7 @@
 // show (wrap: cooler outside, hotter steel; low emissivity: less heat out, hotter tube; moving air cools), a range check
 // against the NHTSA high-idle runner readings, the clearance table on the tab, and projects keeping the settings.
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 (async () => {
   const b = await chromium.launch(); const pg = await b.newPage({ viewport: { width: 1280, height: 900 } });
   const errs = [], fails = []; pg.on('pageerror', e => errs.push(e.message));
@@ -30,7 +31,7 @@ const { chromium } = require('playwright');
   ok(r.lowEps < r.hiEps, 'a low-emissivity tube at the same skin temperature needs less gap (' + r.lowEps.toFixed(0) + ' vs ' + r.hiEps.toFixed(0) + ' mm)');
   ok(/Needs the tube size/.test(r.err), 'no flow refused');
   // the tab
-  await pg.click('#m-expert');
+  await uiClick(pg, '#m-expert');
   const setv = (id, v) => pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]);
   await setv('h-eng', 'ls'); await pg.waitForTimeout(300);
   const sec = await pg.evaluate(() => { const h = [...document.querySelectorAll('#h-details .sec h3')].find(x => /Skin temperature/.test(x.textContent)); return h ? h.parentElement.innerText : ''; });

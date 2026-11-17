@@ -21,6 +21,7 @@
 //    defect found here: the key left the Intake tab's fuel out, so a finished run stayed "current" after a fuel change).
 'use strict';
 const { chromium } = require('playwright');
+const { uiClick } = require('./settle');
 const path = require('path');
 const L = require('./specparity_lib');
 const { typedPoint } = require('./settle');
@@ -145,7 +146,7 @@ const PRESET_KEEPS = /^(f-(ivo|ivc|evc|evo|camat|camlib|lin|lex|vcd|ceff|intl|pi
     const pg = await open(); await apply(pg, c);
     const A = await L.pageState(pg), snap = await pg.evaluate(() => JSON.parse(JSON.stringify(window.__proj.snapshot('parity'))));
     // units: imperial and back
-    await pg.click('#u-imp'); const Bi = await L.pageState(pg); await pg.click('#u-met'); const Bm = await L.pageState(pg);
+    await uiClick(pg, '#u-imp'); const Bi = await L.pageState(pg); await uiClick(pg, '#u-met'); const Bm = await L.pageState(pg);
     const dv = (X, Y) => Object.keys(X.vals).filter(k => JSON.stringify(X.vals[k]) !== JSON.stringify(Y.vals[k]) && !(X.vals[k] && 'v' in X.vals[k] && k === 'v-pick'));
     const du = dv(A, Bi).concat(dv(A, Bm)).filter(k => A.vals[k] && 'b' in A.vals[k]);
     ok(!du.length && JSON.stringify(A.specs) === JSON.stringify(Bi.specs) && JSON.stringify(A.specs) === JSON.stringify(Bm.specs),
