@@ -5,4 +5,5 @@ Decision: collapsibles = button[aria-expanded] + region clipped (height 0, overf
 ## Steps
 - [x] inventory + before shots (scratch)
 - [x] folds, hint folds, toc tracking, settings panel, keep scroll: first cut
-- [ ] verify; then inline styles, u2 in tables, states, tests, docs
+- [x] inline styles (300 converted), u2 in cells/sentences, Cancel on 3 runs + elapsed, 14 error strings (20 places) rewritten
+- [ ] extend ui_ui.js + settle expandAll; full-text check; shots after; docs; full suite

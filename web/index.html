@@ -418,6 +418,7 @@ audio{display:block;width:100%;max-width:440px;margin-top:4px}
 .r dd>span{display:block;color:var(--muted);font-weight:400;font-size:var(--fs-xs);max-width:34ch;margin-left:auto;overflow-wrap:anywhere}
 .r dd>span.rx{clear:left;max-width:var(--measure);margin:6px 0 0;text-align:left;font-size:12.5px;line-height:1.45}
 .u2{font-weight:400;color:var(--u2);font-size:.92em}
+.note .u2,.hint.bad .u2{color:inherit}
 .tblwrap{overflow:auto;max-height:min(75vh,720px);-webkit-overflow-scrolling:touch}
 /* tables: header and first column stay in view while the table scrolls inside its own box; figures right-aligned */
 .tblwrap thead th{position:sticky;top:0;z-index:2;background:var(--tbl-bg,var(--bg))}
@@ -13024,20 +13025,20 @@ function wsndJob(variants,done,o){ o=o||{};
   const rpms=o.rpms||wsndRpms(q); if(!rpms.length){ say('Enter at least one engine speed between 500 and 20,000 RPM.',true); return; }
   const Ss=variants.map(v=>{ const S=Object.assign({},v,wsndSpec(q,v.parts)); if(v.dead&&v.dead.length) S.spec.e=Object.assign({},S.spec.e,{dead:v.dead.slice()}); return S; });
   const ran={variants:variants.map(v=>({key:v.key,label:v.label,parts:v.parts,dead:v.dead})),load:(o.load||WSND.load)==='none'?'none':'wot',fixed:!!o.rpms}; ran.sig=wsndSig(ran,q,rpms);
-  WSND.notes=[...new Set([].concat(...Ss.map(S=>S.notes)))]; WSND.busy=true;
+  WSND.notes=[...new Set([].concat(...Ss.map(S=>S.notes)))]; WSND.busy=true; const tok=WSND.tok=(WSND.tok||0)+1;
   const got=Ss.map(()=>[]), total=Ss.length*rpms.length; let n=0;
   const finish=()=>{ WSND.busy=false;
     const sets=Ss.map((S,k)=>({key:S.key,label:S.label,what:wsndHeaderWhat(q)+'; '+S.what+(job.load==='none'?'; no load':''),rpms,load:job.load,runs:got[k].map(m=>{ try{ return wsndEntry(m,q,S,S.label); }catch(e){ return {name:S.label+' '+m.rpm,rpm:m.rpm,err:e.message,src:'wave'}; } })}));
     WSND.ran=ran; done(sets); };
   const job={variants:Ss.map(S=>({spec:S.spec})),rpms,dx:WSND.dx||0.02,load:(o.load||WSND.load)==='none'?'none':'wot'};
   say('Simulating '+total+' run'+(total>1?'s':'')+(job.load==='none'?' with no load (a free-rev hold)':' at full throttle')+(Ss.length>1?' ('+Ss.length+' designs × '+rpms.length+' speeds)':'')+'…');
-  const prog=d=>{ got[d.v].push(d); n++; WSND.msg={t:'Simulated '+n+' of '+total+'…'}; const el=$('wsnd-msg'); if(el){ el.textContent=WSND.msg.t; runPct(el); } };
+  const prog=d=>{ if(tok!==WSND.tok) return; got[d.v].push(d); n++; WSND.msg={t:'Simulated '+n+' of '+total+'…'}; const el=$('wsnd-msg'); if(el){ el.textContent=WSND.msg.t; runPct(el); } };
   let w=null; try{ w=new Worker(URL.createObjectURL(new Blob([wsndWorkerSrc()],{type:'text/javascript'}))); }catch(e){ w=null; }
-  if(w){ WSND.worker=w; w.onmessage=ev=>{ const d=ev.data; if(d.type==='speed') prog(d); else if(d.type==='done'){ w.terminate(); WSND.worker=null; finish(); } };
-    w.onerror=e=>{ w.terminate(); WSND.worker=null; WSND.busy=false; say('The simulation stopped: '+(e.message||'worker error'),true); }; w.postMessage(job); return; }
+  if(w){ WSND.worker=w; w.onmessage=ev=>{ if(tok!==WSND.tok) return; const d=ev.data; if(d.type==='speed') prog(d); else if(d.type==='done'){ w.terminate(); WSND.worker=null; finish(); } };
+    w.onerror=e=>{ w.terminate(); WSND.worker=null; WSND.busy=false; say('The simulation stopped: '+(e.message||'worker error')+'. Press Estimate the sound to try again; if it stops again, reload the page (F5).',true); }; w.postMessage(job); return; }
   // no background worker allowed: the same on the page, one run at a time
   let vi=0, i=0, eng=null, st=null;
-  const step=()=>{ if(vi>=Ss.length){ finish(); return; } if(!eng){ const s=Ss[vi].spec; eng=WS.makeEngine(s.e,s.intake,s.exhaust,s.opt); st=null; }
+  const step=()=>{ if(tok!==WSND.tok) return; if(vi>=Ss.length){ finish(); return; } if(!eng){ const s=Ss[vi].spec; eng=WS.makeEngine(s.e,s.intake,s.exhaust,s.opt); st=null; }
     const rpm=rpms[i], o=wsndSpeedRun(WS,eng,rpm,job,st), y=o.y; st=y.state; prog({v:vi,i,rpm,ve:y.ve,imep:y.imep,Vd:eng.Vd,rec:y.rec,pIn:o.pIn});
     i++; if(i>=rpms.length){ i=0; vi++; eng=null; } setTimeout(step,0); };
   setTimeout(step,0);
@@ -13096,7 +13097,7 @@ function wsndPart(sp){
   if(!q) return h+'<div class="note">Open the 4-Stroke tab and fill it in: the estimate runs its engine and header.</div>';
   h+='<div class="grid2 u-w640"><label class="f span2"><span class="lab">Engine speeds (RPM)</span><span class="inp"><input id="wsnd-rpms" type="text" inputmode="numeric" value="'+esc(WSND.rpms||rp.join(' '))+'"></span></label>'+
     '<label class="f span2"><span class="lab">Load</span><span class="inp"><select id="wsnd-load"><option value="wot"'+(WSND.load==='none'?'':' selected')+'>Full throttle (a pull on the dyno or the road)</option><option value="none"'+(WSND.load==='none'?' selected':'')+'>No load (a free-rev hold in the driveway)</option></select></span></label></div>'+
-    '<div class="actions"><button type="button" class="btn" data-wsnd="run"'+(WSND.busy?' disabled':'')+'>Estimate the sound</button><button type="button" class="btn" data-wsnd="parts"'+(WSND.busy?' disabled':'')+'>Hear each part</button><button type="button" class="btn" data-wsnd="misfire"'+(WSND.busy?' disabled':'')+'>Hear a misfire</button>'+
+    '<div class="actions"><button type="button" class="btn" data-wsnd="run"'+(WSND.busy?' disabled':'')+'>Estimate the sound</button>'+(WSND.busy?'<button type="button" class="btn" data-runcancel="wsnd">Cancel</button>':'')+'<button type="button" class="btn" data-wsnd="parts"'+(WSND.busy?' disabled':'')+'>Hear each part</button><button type="button" class="btn" data-wsnd="misfire"'+(WSND.busy?' disabled':'')+'>Hear a misfire</button>'+
     (WSND.sets.length?'<button type="button" class="btn" data-wsnd="keep">Keep this design to compare</button>':'')+(WSND.kept.length?'<button type="button" class="btn" data-wsnd="clear">Clear the kept designs</button>':'')+'</div>'+
     '<div class="grid2" style="max-width:640px;margin-top:8px"><label class="f span2"><span class="lab">For “Hear a misfire”</span><span class="inp"><select id="wsnd-dead">'+wsndDeadOpts(q).map(o=>'<option value="'+o.v+'"'+((WSND.dead||'c1')===o.v?' selected':'')+'>'+esc(o.t)+'</option>').join('')+'</select></span></label></div>'+
     '<p class="cap">“Hear a misfire” runs your design again with cylinder 1, or one collector’s cylinders, not burning, so you can hear what a misfire or a dead bank does to the note and tell it from an exhaust problem. “Hear each part” builds your exhaust up one addition at a time (the open headers, then the line and tailpipe, the muffler, the resonator), runs each, and lets you play any two side by side. “Keep this design” holds the result while you change something (primary length, a different can, another resonator) and estimate again.</p>'+
@@ -13610,7 +13611,7 @@ let FUSION=hasBridge();
 function fusionCall(action,data){
   try{
     const r=window.adsk.fusionSendData(action,JSON.stringify(data||{}));
-    return Promise.resolve(r).then(x=>{ try{ return JSON.parse(x); }catch(e){ return {ok:false,msg:String(x||'No reply from Fusion.')}; } });
+    return Promise.resolve(r).then(x=>{ try{ return JSON.parse(x); }catch(e){ return {ok:false,msg:String(x||'No reply from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.')}; } });
   }catch(e){ return Promise.resolve({ok:false,msg:String(e)}); }
 }
 /* ===== Desktop program: inside Exhaust Tuner for Windows the page can run the solvers on this PC =====
@@ -13756,7 +13757,7 @@ function updSetup(){
   $('hm-upd-install').addEventListener('click',async()=>{
     const b=$('hm-upd-install'); b.disabled=true;
     const r=await hostCall('updateInstall',{});
-    $('hm-upd-msg').textContent=(r&&r.msg)||'No answer from the program.';
+    $('hm-upd-msg').textContent=(r&&r.msg)||'No answer from the program: close and reopen Exhaust Tuner, then try again.';
     if(!(r&&r.ok)) b.disabled=false;
   });
 }
@@ -13797,7 +13798,7 @@ function hostMenuSetup(){
     } else if(a==='status'){
       const s=await hostCall('fusionAddInStatus',{});
       say(s&&s.target?'Bundled with this program: '+(s.bundled||'?')+'\nInstalled in Fusion: '+(s.installed||'not installed')+'\nFolder: '+s.target+
-        (s.installed&&s.installed!==s.bundled?'\n\nUse Install or update to bring it to '+s.bundled+'.':''):((s&&s.msg)||'No add-in status came back.'));
+        (s.installed&&s.installed!==s.bundled?'\n\nUse Install or update to bring it to '+s.bundled+'.':''):((s&&s.msg)||'No add-in status came back: use Install or update the Fusion add-in, then ask again.'));
     } else if(a==='devtools'){
       const r=await hostCall('devTools',{}); say(r&&r.ok?'':'Press F12 to open the developer tools.');
     }
@@ -14402,7 +14403,7 @@ function crDetail(c,sent){
 // number of those with the same Crane K (bendK is linear in f, so f drops out), rounded to whole bends; the per-side angle
 // and radius inputs (i-cpah, i-cpac, i-cpr), where the page has them, get the bends as they are.
 function crUseInIntake(){
-  const P=CR_UI.plan; if(!P) return {err:'Recommend piping first.'};
+  const P=CR_UI.plan; if(!P) return {err:'Press Recommend piping first: the plan is worked out from it.'};
   const pick={}; P.legs.forEach((L,li)=>{ if(!L.ok) return; const ok=L.candidates.filter(c=>c.ok); pick[L.kind]=ok.find(c=>c.id===(CR_UI.pick[li]??ok[0].id))||ok[0]; });
   const setN=(id,v)=>{ const el=$(id); if(!el||!Number.isFinite(v)) return false; el._b=v; showInput(el); return true; };
   const setT=(id,v)=>{ const el=$(id); if(!el) return false; el.value=v; return true; };
@@ -15515,7 +15516,7 @@ document.addEventListener('click',e=>{
   const say=(cls,t)=>{ HG_UI.fx=[cls,t]; const o2=$('fx-out-hang'); if(o2) o2.innerHTML='<div class="note '+cls+'">'+esc(t)+'</div>'; };
   if(act==='pick'){ say('','Reading the selection…');
     fusionCall('hangPick',{}).then(res=>{
-      if(!res||!res.ok){ say('bad',(res&&res.msg)||'No answer from Fusion.'); return; }
+      if(!res||!res.ok){ say('bad',(res&&res.msg)||'No answer from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.'); return; }
       const put=(id,mm)=>{ const el=$(id); if(el&&mm>0){ el._b=mm; showInput(el); } };
       if(res.od_mm>0) put('hg-od',res.od_mm);
       if(res.reach_mm>0){ const o=hgRead(), stack=o.part==='pair'?o.blen:0; put('hg-reach',Math.max(1,res.reach_mm-stack)); }
@@ -15523,7 +15524,7 @@ document.addEventListener('click',e=>{
     return; }
   if(act==='build'){ const pay=hgPayload(); if(!pay){ say('bad','Fix the inputs first.'); return; }
     say('','Building in Fusion…');
-    fusionCall('hang',{hanger:pay,title:HG_PART[pay.kind]}).then(res=>say(res&&res.ok?'ok':'bad',(res&&res.msg)||'No answer from Fusion.')); }
+    fusionCall('hang',{hanger:pay,title:HG_PART[pay.kind]}).then(res=>say(res&&res.ok?'ok':'bad',(res&&res.msg)||'No answer from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.')); }
 });
 window.__hang={HG,HANG,hgRead,hgParts,hgDxf,hgPayload,hgStrength,HG_GROM,HG_MAT,hgIsoTemp,hgFin,last:()=>HG_UI.last,val:id=>val(id),snap:()=>projSnapshot('t'),
   set:(id,mm)=>{ const el=$(id); el._b=mm; showInput(el); el.dispatchEvent(new Event('input',{bubbles:true})); }};
@@ -15843,7 +15844,7 @@ function mtGrowth(o,P,temps,fixIdx,iso){
 function mtCalc(o){
   const part=mtPart(o), notes=part.notes.slice();
   if(!(part.m>0)) return {err:'Enter the part’s weight.'};
-  if(!(o.n>=2)) return {err:'At least two mounts.'};
+  if(!(o.n>=2)) return {err:'Fill in at least two mounts: the load is shared between them.'};
   for(const m of o.mounts){ if(!m.p.every(Number.isFinite)) return {err:'Fill in mount '+m.i+'’s position.'}; if(!(m.h>0)) return {err:'Fill in mount '+m.i+'’s reach to the chassis.'}; }
   if(!(o.sf>=1)) return {err:'The safety factor has to be 1 or more.'};
   if(!(o.K>0&&o.K<=1)) return {err:'The K-factor is between 0 and 1 (0.42 is a common assumption; use your bender’s).'};
@@ -16081,9 +16082,9 @@ document.addEventListener('click',e=>{
   if(act==='dxf'){ const text=mtDxf(MT_UI.parts); window.__mtFile={name:name+'.dxf',text}; saveTextFile(name+'.dxf',text,'application/dxf',say); return; }
   if(act==='svg'){ const text=mtSvg(MT_UI.parts,'Mounts: '+r.part.name+', flat patterns at 1:1'); window.__mtFile={name:name+'_1to1.svg',text}; saveTextFile(name+'_1to1.svg',text,'image/svg+xml',say); return; }
   const fsay=(cls,t)=>{ MT_UI.fx=[cls,t]; const o2=$('fx-out-mt'); if(o2) o2.innerHTML='<div class="note '+cls+'">'+esc(t)+'</div>'; };
-  if(act==='place'){ fsay('','Placing the stand-in…'); fusionCall('mountPlace',{shape:r.part.shape,L_mm:r.part.L,H_mm:r.part.H,W_mm:r.part.W,name:r.part.name+' stand-in'}).then(res=>fsay(res&&res.ok?'ok':'bad',(res&&res.msg)||'No answer from Fusion.')); return; }
+  if(act==='place'){ fsay('','Placing the stand-in…'); fusionCall('mountPlace',{shape:r.part.shape,L_mm:r.part.L,H_mm:r.part.H,W_mm:r.part.W,name:r.part.name+' stand-in'}).then(res=>fsay(res&&res.ok?'ok':'bad',(res&&res.msg)||'No answer from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.')); return; }
   if(act==='pick'){ fsay('','Reading the selection…');
-    fusionCall('mountPick',{}).then(res=>{ if(!res||!res.ok){ fsay('bad',(res&&res.msg)||'No answer from Fusion.'); return; }
+    fusionCall('mountPick',{}).then(res=>{ if(!res||!res.ok){ fsay('bad',(res&&res.msg)||'No answer from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.'); return; }
       const put=(id,mm)=>{ const el=$(id); if(el&&Number.isFinite(mm)){ el._b=mm; showInput(el); } };
       const ms=res.mounts||[], nOpt=[2,3,4,6].find(x=>x>=ms.length)||6; $('mt-n').value=String(nOpt);
       if(res.part){ put('mt-L',res.part.L_mm); put('mt-H',res.part.H_mm); put('mt-W',res.part.W_mm); }
@@ -16092,7 +16093,7 @@ document.addEventListener('click',e=>{
     return; }
   if(act==='build'){ const pay=mtPayload(); if(!pay){ fsay('bad','Fix the inputs first.'); return; }
     fsay('','Building in Fusion…');
-    fusionCall('mountBuild',pay).then(res=>{ MT_UI.fxBuild=res&&res.ok?res.brackets:null; MT_UI.fx=[res&&res.ok?(res.all_ok?'ok':'warn'):'bad',(res&&res.msg)||'No answer from Fusion.']; renderActive(); }); }
+    fusionCall('mountBuild',pay).then(res=>{ MT_UI.fxBuild=res&&res.ok?res.brackets:null; MT_UI.fx=[res&&res.ok?(res.all_ok?'ok':'warn'):'bad',(res&&res.msg)||'No answer from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.']; renderActive(); }); }
 });
 window.__mounts={sheetWrapped:()=>/mountsSheetRows/.test(String(tsSheet)),mtRead,mtCalc,mtShares,mtIsolators,mtBoltCap,mtSec,mtRectTor,mtSecStress,mtWeldGroup,mtFlat,mtParts,mtDxf,mtSvg,mtPayload,mountsSheetRows,MT_AMC,MT_BOLT,MT_UI,last:()=>MT_UI.last,
   set:(id,v)=>{ const el=$(id); el._b=v; showInput(el); el.dispatchEvent(new Event('input',{bubbles:true})); }};
@@ -21372,9 +21373,9 @@ function tsimSection(q){
   if(P.err) return sec(title,h+'<div class="note warn" id="tsim-miss">'+esc(P.err)+'</div>');
   h+='<div class="tblwrap"><table id="tsim-src"><thead><tr><th>What the run takes</th><th>Value</th><th>From</th></tr></thead><tbody>'+P.src.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>').join('')+'</tbody></table></div>';
   if(P.ind==='turbo') h+='<p class="cap" id="tsim-size">'+(P.predict?'<b>Turbine size from the housing you picked.</b> The turbine is sized by its flow, converted to the area of a nozzle that passes the same flow (flow parameter × √R ÷ ψ, NASA Glenn’s nozzle law), so the run predicts where full boost arrives, how much goes round the wastegate and the pressure before the turbine instead of assuming them. ':'<b>Turbine size: found from your full-boost RPM.</b> '+(P.cap&&P.cap.H?'No turbine flow is published in text for the housing picked ('+esc((+P.cap.H.ar).toFixed(2))+' A/R): the maker’s turbine flow chart is an image the page does not read. Type the chart’s value under “Turbine flow off the maker’s turbine flow chart” on the Intake tab to size the turbine from your housing instead. ':'Pick a turbo and housing on the Intake tab, or type its turbine flow, to size the turbine from it. ')+'Until then the run finds the largest turbine that still makes full boost at the full-boost RPM you typed, with the gate shut. If that RPM is from a pull on the road or the dyno, a pull reaches full boost later than a steady point (the turbo needs time to spin up), more so in the lower gears, so the area found is the most this turbine can be and the pressure before it the least. ')+'The turbine’s and the wastegate’s effective areas (discharge coefficient times the geometric area) can also be typed on the Intake tab (mm²; 1 in² = 645.16 mm²).</p>';
-  if(TSIM.status==='error') h+='<div class="note warn">The run stopped: '+esc(TSIM.msg)+'</div>';
+  if(TSIM.status==='error') h+='<div class="note warn">The run stopped: '+esc(TSIM.msg)+' Press Simulate to try again; if it stops again, reload the page (F5).</div>';
   if(TSIM.status==='running') h+='<p class="cap runstat" id="tsim-status" style="font-weight:600">'+esc(TSIM.msg||'Running')+'</p>';
-  h+='<div class="actions u-mt10"><button type="button" class="btn primary" data-tsim="run"'+(TSIM.status==='running'?' disabled':'')+'>'+(TSIM.status==='running'?'Running…':'Simulate with the '+(P.ind==='turbo'?'turbo':'supercharger'))+'</button></div>';
+  h+='<div class="actions u-mt10"><button type="button" class="btn primary" data-tsim="run"'+(TSIM.status==='running'?' disabled':'')+'>'+(TSIM.status==='running'?'Running…':'Simulate with the '+(P.ind==='turbo'?'turbo':'supercharger'))+'</button>'+(TSIM.status==='running'?'<button type="button" class="btn" data-runcancel="tsim">Cancel</button>':'')+'</div>';
   const T=TSIM_LAST;
   if(T){ const S=T.sum, rows=S.rows, stale=T.key!==P.key, turbo=T.plan.turbo;
     if(stale) h+='<div class="note">The inputs changed since this run (here or on the Intake tab), so these results are for the earlier build. Run it again to update them.</div>';
@@ -21484,7 +21485,7 @@ function simPlan(q){
   const H=HDR_LAST;
   if(!(H&&H.uel)||WAM_UI.src==='four') return {hdr:false,variants:simVariants(q),key:simKey(q),n:q.n>1?q.n:1,ncoll:1};
   const sp=simSpec(q), a=uelLayoutSpec(q,sp,false);
-  if(!a||a.err) return {hdr:true,err:a?a.err:'No Headers layout.',key:'hdr-err'};
+  if(!a||a.err) return {hdr:true,err:a?a.err:'No Headers layout yet: lay out a header on the Headers tab first.',key:'hdr-err'};
   const b=uelLayoutSpec(q,sp,true), d=uelDefaults(H.r);
   return {hdr:true,H,d,n:a.spec.n,ncoll:a.spec.opt.collectors.length,key:simKey(q)+'|hdr|'+JSON.stringify([a.spec.exhaust.per_cyl,a.spec.opt]),
     variants:[{key:'uel',label:'Lengths as laid out',spec:a.spec},{key:'eq',label:'Every primary at the equal length',spec:b.spec}]};
@@ -21604,7 +21605,7 @@ function simSection(q){
         (nn===4?'That is why some cross-plane V8 builds use 180° headers, which cross primaries between the banks so each collector gets a pulse every 180°. The evenly fed line above keeps your primary lengths; a real 180° header needs longer ones to reach across.':''))+'</p>';
     }
   }
-  h+='<div class="actions u-mt12"><button type="button" class="btn primary" data-sim="run"'+(err||SIM.status==='running'?' disabled':'')+'>'+(SIM.status==='running'?'Running…':have?'Run it again':'Run the simulation')+'</button></div>';
+  h+='<div class="actions u-mt12"><button type="button" class="btn primary" data-sim="run"'+(err||SIM.status==='running'?' disabled':'')+'>'+(SIM.status==='running'?'Running…':have?'Run it again':'Run the simulation')+'</button>'+(SIM.status==='running'?'<button type="button" class="btn" data-runcancel="sim">Cancel</button>':'')+'</div>';
   if(e) h+='<p class="cap">Assumed for this run: bore '+cdim(e.bore*1000)+', stroke '+cdim(e.stroke*1000)+', '+(e.nIn*2)+' valves ('+cdim(e.dIn*1000)+' intake, '+cdim(e.dEx*1000)+' exhaust), cam '+
     e.cam.ivo+'-'+e.cam.ivc+' intake and '+e.cam.evo+'-'+e.cam.evc+' exhaust as on a cam card, compression '+(+e.cr.toFixed(1))+':1, an intake runner '+clen(sp.intake.segs[0].L*1000)+' long at '+cdim(sp.intake.segs[0].d0*1000)+'. '+
     (hdr?'Primaries '+cdim(plan.H.p.dp)+' and collectors as on the Headers tab. Not modeled: mufflers, converters or crossovers past the open ends. ':nc>1?'Not modeled: the engine’s other collectors, and mufflers, converters or crossovers past the open end. ':'Not modeled: mufflers, converters or crossovers past the open end. ')+'The Expert inputs under Wave simulation set the engine.</p>';
@@ -22300,7 +22301,7 @@ function wamProfParse(text,o){
   const ka=o.angle==='cam'?2:1, kl=(U==='imp'?25.4:1)*(o.lift==='lobe'?(+o.rr>0?+o.rr:NaN):1);
   if(!Number.isFinite(kl)) return {err:'Give the rocker ratio for lobe lift.'};
   const deg=pts.map(q=>+(q[0]*ka).toFixed(4)), mm=pts.map(q=>+Math.max(0,q[1]*kl).toFixed(5));
-  if(!(Math.max(...mm)>0)) return {err:'No lift in the profile.'};
+  if(!(Math.max(...mm)>0)) return {err:'No lift in the profile: enter lines of angle and lift, with at least one lift above 0.'};
   // duration at the seat and at 0.050 in, from the profile itself
   const at=h=>{ let a=null,b=null; for(let i=1;i<mm.length;i++){ if(a===null&&mm[i-1]<h&&mm[i]>=h) a=deg[i-1]+(h-mm[i-1])/(mm[i]-mm[i-1])*(deg[i]-deg[i-1]); if(mm[i-1]>=h&&mm[i]<h) b=deg[i-1]+(mm[i-1]-h)/(mm[i-1]-mm[i])*(deg[i]-deg[i-1]); } return a!==null&&b!==null?b-a:null; };
   return {deg,mm,n:deg.length,max:Math.max(...mm),d050:at(1.27),dseat:at(0.001)};
@@ -22610,7 +22611,7 @@ async function optRun(){
     const comb=Object.assign({},H.p); ks.forEach(x=>{ ['rpm','first','yr','ypairs'].forEach(k=>{ if(x.p[k]!==H.p[k]) comb[k]=x.p[k]; }); });
     const b2=build([{label:'combined: '+ks.map(x=>x.label).join(' + '),p:comb,kind:'combined'}],'optc');
     say('Optimiser: running the combined design ('+b2.files.length+' runs).');
-    try{ const r2=await HOST.call('runOpenWAM',{name:'header_opt_combined',files:b2.files}); score(r2,b2.rows); rows.push(...b2.rows); }catch(e){ say('The combined run failed: '+e.message,true); }
+    try{ const r2=await HOST.call('runOpenWAM',{name:'header_opt_combined',files:b2.files}); score(r2,b2.rows); rows.push(...b2.rows); }catch(e){ say('The combined run failed: '+e.message+'. The runs before it are kept; run it again, or open the runs folder for OpenWAM’s log.',true); }
   }
   const best=rows.filter(x=>Number.isFinite(x.score)).reduce((a,b)=>b.score>a.score?b:a);
   OPT_UI.res={rows,rpms,best};
@@ -23162,7 +23163,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-exh
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-exh]'); if(!b) return;
   if(b.dataset.exh==='dl') exhDownload(); else if(b.dataset.exh==='run') exhRun(); else if(b.dataset.exh==='stop'&&HOST) hostStop('exh');
   else if(b.dataset.exh==='stl'&&FUSION&&EXH_LAST){ const d=exhDesign(EXH_LAST.r,EXH_LAST.p,EXH_LAST.e);
-    fusionCall('exportCfdStl',{roles:d.inletNames.concat(['outlet']),filename:d.design.geometry.stl,title:'Save the STL next to design.json'}).then(r=>exhMsg((r&&r.msg)||'No answer from the add-in.',!(r&&r.ok)&&!(r&&r.msg==='Not saved.'))); }
+    fusionCall('exportCfdStl',{roles:d.inletNames.concat(['outlet']),filename:d.design.geometry.stl,title:'Save the STL next to design.json'}).then(r=>exhMsg((r&&r.msg)||'No answer from the add-in: check it is running in Fusion (Utilities, Add-Ins) and try again.',!(r&&r.ok)&&!(r&&r.msg==='Not saved.'))); }
   else if(b.dataset.exh==='open'&&EXH_UI.lastFolder) hostCall('openFolder',{path:EXH_UI.lastFolder}); });
 document.addEventListener('input',e=>{ const el=e.target.closest('input.exhx'); if(!el) return; const k=el.dataset.k; EXH_UI[k]=/^(ve|afr|boost)$/.test(k)?(parseFloat(el.value)||0):el.value; });
 document.addEventListener('change',e=>{ const el=e.target.closest('select.exhx'); if(el){ EXH_UI[el.dataset.k]=el.value; renderActive(); return; } const f=e.target.closest('#exh-files'); if(f&&f.files&&f.files.length) exhReadFiles(f.files);
@@ -26729,11 +26730,11 @@ function mfdFxHtml(X,o){
     '<li>Draw '+(o.mani==='div'&&X.scr.length>1?'a marker at each scroll of the turbine flange, from its centre into the turbine, and select them last in scroll order ('+X.scr.map(g=>g.join('+')).join(', then ')+')':'a marker at the turbine inlet flange, from its centre into the turbine, and select it last')+'.</li>'+
     '<li>Route: the header router takes each runner to '+clen(X.L)+' on '+cdim(X.R)+' bends'+(X.c.kind==='pipe'?' (at most 90° each, one elbow)':'')+' into a collector '+clen(mfdMergeLen(X.c.id*Math.sqrt(X.scr[0].length),X.dcol)+o.colL)+' long before the flange marker. The router’s collector tapers from the runners’ ring to the turbine flange bore over that whole length, where this section works out a '+MFD_MERGE+'° cone then a straight collector: the length and the end bore agree, the shape between does not, so the loss above is for the page’s shape. The wastegate branch is not routed (the router has no branch off a collector): place it from the window above.</li></ol>'+
     '<div class="actions"><button type="button" class="btn" data-mfdfx="1">Route the manifold in Fusion</button></div>'+
-    (fx?'<div class="note '+(fx.ok?(fx.route_ok===false?'warn':'ok'):'bad')+'">'+esc(fx.msg||'No answer from Fusion.')+'</div>'+(fx.items&&fx.items.length?'<div class="tblwrap"><table><thead><tr><th>Part</th><th>Length</th><th>OK</th></tr></thead><tbody>'+fx.items.map(it=>'<tr><td>'+esc(it.name||'')+'</td><td>'+(it.length>0?clen(it.length*10):'')+'</td><td>'+(it.ok===false?'<span class="st-bad">no</span>':'yes')+'</td></tr>').join('')+'</tbody></table></div>':''):'')+'</details>';
+    (fx?'<div class="note '+(fx.ok?(fx.route_ok===false?'warn':'ok'):'bad')+'">'+esc(fx.msg||'No answer from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.')+'</div>'+(fx.items&&fx.items.length?'<div class="tblwrap"><table><thead><tr><th>Part</th><th>Length</th><th>OK</th></tr></thead><tbody>'+fx.items.map(it=>'<tr><td>'+esc(it.name||'')+'</td><td>'+(it.length>0?clen(it.length*10):'')+'</td><td>'+(it.ok===false?'<span class="st-bad">no</span>':'yes')+'</td></tr>').join('')+'</tbody></table></div>':''):'')+'</details>';
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-mfdfx]'); if(!b||!MFD_LAST) return;
   MFD_UI.fx={ok:true,msg:'Routing in Fusion…'}; const pay=mfdFxPayload(MFD_LAST,MFD_LAST.o); window.__mfdPay=pay;
-  fusionCall('route',pay).then(res=>{ MFD_UI.fx=res||{ok:false,msg:'No answer from Fusion.'}; renderActive(); }); });
+  fusionCall('route',pay).then(res=>{ MFD_UI.fx=res||{ok:false,msg:'No answer from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.'}; renderActive(); }); });
 const L_mfd=(u,t)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>';
 if(typeof window!=='undefined') window.__mfd={calc:mfdCalc,overlap:mfdOverlap,layout:mfdLayout,smin:mfdSmin,strain:mfdStrain,cands:mfdCands,inputs:mfdInputs,flange:mfdFlange,last:()=>MFD_LAST,ELS:MFD_ELS,MAT:MFD_MAT,UI:MFD_UI,stock:()=>bendStock(),eng:()=>engineFrom('i'),presets:()=>FLANGE_PRESETS,payload:()=>MFD_LAST?mfdFxPayload(MFD_LAST,MFD_LAST.o):null};
 /* ----- Turbo build, step by step (2026-11-12, the owner's "usable without learning a bunch of stuff") -----
@@ -27775,7 +27776,7 @@ let FOLD=null, FOLD_ALL=false;
 const foldStore=()=>{ if(!FOLD){ try{ FOLD=JSON.parse(localStorage.getItem(FOLD_KEY)||'{}')||{}; }catch(e){ FOLD={}; } } return FOLD; };
 const foldSave=()=>{ try{ localStorage.setItem(FOLD_KEY,JSON.stringify(FOLD||{})); }catch(e){} };
 // the sections that explain how a figure was reached or where it comes from (by their heading)
-const FOLD_REF=/^(other-published|head-and-valve-rules|check-against|two-notes|why-these|helmholtz-tuning|charge-density|boost-against-compression|silencer-layout-rules|production-muffler-sizing|muffler-types|street-use|in-stock-car|sources-and|compare-converter-types)/;
+const FOLD_REF=/^(other-published|head-and-valve-rules|check-against|two-notes|why-these|helmholtz-tuning|charge-density|boost-against-compression|silencer-layout-rules|production-muffler-sizing|muffler-types|street-use|in-stock-car|sources-and|compare-converter-types|inlet-and-charge-pipes-design)/;
 const ST_RANK={ok:1,warn:2,stale:3,bad:4}, ST_WORD={ok:'OK',warn:'warning',stale:'out of date',bad:'problem'};
 function foldState(s){ let st='', r=0;
   const shown=n=>{ for(let a=n;a&&a!==s;a=a.parentElement) if(a.hidden) return false; return true; };
@@ -27909,7 +27910,27 @@ function runClock(){ const pan=$(TABS[cur].panel), els=pan?[...pan.querySelector
   for(const k of [...RUN_T0.keys()]) if(k.startsWith(pan?pan.id+':':'') && !live.has(k)) RUN_T0.delete(k);
   if(els.length&&!RUN_TICK) RUN_TICK=setInterval(()=>{ runClock(); },1000);
   else if(!els.length&&RUN_TICK){ clearInterval(RUN_TICK); RUN_TICK=0; } }
-function uiPass2(pan){ foldPass(pan); hintPass(pan); runClock(); }
+// a conversion in brackets inside a table cell or a sentence of the working, "2.50 in (63.5 mm)", set quieter as the rows
+// already have it: the text node is split round the brackets (textContent and innerText unchanged)
+const U2_SEL='.area-details td, .area-details li, .area-details .note, .area-details .cap, .area-details .sec > p, .area-details .r dd > span';
+function u2Pass(pan){
+  if(!pan) return;
+  for(const el of pan.querySelectorAll(U2_SEL)){ if(el._u2===el.textContent) continue;
+    const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT), ns=[]; let n;
+    while((n=w.nextNode())){ const t=n.nodeValue; if(t.length>8&&t.indexOf(' (')>=0&&!(n.parentElement&&n.parentElement.closest('small.u2,svg,button,select,option,textarea'))) ns.push(n); }
+    for(const t of ns){ const v=t.nodeValue; U2_RE.lastIndex=0; let m, last=0, parts=null;
+      while((m=U2_RE.exec(v))){ (parts=parts||[]).push(v.slice(last,m.index+1)); const sm=document.createElement('small'); sm.className='u2'; sm.textContent='('+m[1]+')'; parts.push(sm); last=m.index+m[0].length; }
+      if(!parts) continue; parts.push(v.slice(last)); const f=document.createDocumentFragment(); for(const x of parts) f.append(x); t.replaceWith(f); }
+    el._u2=el.textContent; }
+}
+// Cancel on a long run: the run is dropped (its id moves on, its workers end) and the results before it stay as they were
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-runcancel]'); if(!b) return; const k=b.dataset.runcancel;
+  if(k==='sim'){ SIM.run++; simStop(); SIM.status=SIM.res?'done':'idle'; SIM.msg=''; }
+  else if(k==='tsim'){ TSIM.run++; if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(x){} TSIM.worker=null; } TSIM.status=TSIM.res?'done':'idle'; TSIM.msg=''; }
+  else if(k==='wsnd'){ WSND.tok=(WSND.tok||0)+1; if(WSND.worker){ try{ WSND.worker.terminate(); }catch(x){} WSND.worker=null; } WSND.busy=false;
+    WSND.msg={t:'Stopped before it finished; the estimate shown (if any) is the one before. Estimate the sound runs it again.'}; }
+  renderActive(); });
+function uiPass2(pan){ u2Pass(pan); foldPass(pan); hintPass(pan); runClock(); }
 // the app bar on narrow widths: Settings opens the controls in a small panel (Escape or a click outside closes it, focus
 // goes back to the button); wide windows show the controls as before
 (()=>{ const top=document.querySelector('.top'), b=$('set-btn'), p=$('set-panel'); if(!top||!b||!p) return;
@@ -28238,7 +28259,7 @@ $('proj-list').addEventListener('click',e=>{
   const b=e.target.closest('button[data-pj]'), row=b&&b.closest('.pj-row'); if(!row) return;
   const all=projLoadAll(), i=+row.dataset.i, p=all[i]; if(!p) return;
   const k=b.dataset.pj;
-  if(k==='load'){ try{ projApply(p.data); $('proj-name').value=p.name; projCur(p.name); projMsg('Loaded “'+p.name+'”.'); }catch(err){ projMsg('Could not load it: '+err.message,true); } }
+  if(k==='load'){ try{ projApply(p.data); $('proj-name').value=p.name; projCur(p.name); projMsg('Loaded “'+p.name+'”.'); }catch(err){ projMsg('Could not load it: '+err.message+'. Try its exported .json file under Import, or load another saved build.',true); } }
   else if(k==='over') projSave(p.name,i);
   else if(k==='exp') projExport(p);
   else if(k==='del'){ if(b.dataset.armed!=='1'){ b.dataset.armed='1'; b.textContent='Delete for good?'; b.classList.add('bad'); return; }
@@ -28253,7 +28274,7 @@ $('proj-file').addEventListener('change',e=>{
     d.name=name; all.push({name,saved:d.saved||new Date().toISOString(),data:d});
     if(!projStoreAll(all)) throw new Error('this browser would not keep it (storage full or turned off)');
     projRender(); projMsg('Imported “'+name+'”. Load it to use it, or compare it.'); })
-  .catch(err=>projMsg('Could not import '+f.name+': '+err.message,true)).finally(()=>{ e.target.value=''; });
+  .catch(err=>projMsg('Could not import '+f.name+': '+err.message+'. Pick a .json file exported from Projects in this calculator.',true)).finally(()=>{ e.target.value=''; });
 });
 $('proj-cmp').addEventListener('click',()=>{
   const all=projLoadAll(), A=all[+$('proj-a').value], B=all[+$('proj-b').value];
