@@ -56,7 +56,7 @@
 /* ---------- base ---------- */
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html{scroll-padding-top:132px}
+html{scroll-padding-top:132px;overflow-anchor:none}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--fs-base)/1.5 var(--f-body);font-variant-numeric:tabular-nums;
   padding-block:0 64px;padding-left:var(--gut-l);padding-right:var(--gut-r);
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
@@ -502,6 +502,81 @@ ul.list li+li,ol.list li+li{margin-top:6px}
 .method li+li{margin-top:8px}
 .method code{font:12.5px var(--f-mono)}
 
+/* ---------- pass two (docs/UI_REDESIGN_2026-11-16.md): answers first, the working one click away ---------- */
+/* a working section's heading is its fold button; a folded section keeps its text in the page (its blocks are clipped
+   to no height and inert), so only what is drawn changes */
+.sec>h3>.fbtn{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px;width:100%;margin:0;padding:3px 0 3px 22px;position:relative;border:0;
+  background:none;color:inherit;font:inherit;letter-spacing:inherit;text-align:left;cursor:pointer;border-radius:6px}
+.sec>h3>.fbtn::before{content:"";position:absolute;left:3px;top:.5em;width:7px;height:7px;border:solid var(--muted);border-width:0 2px 2px 0;transform:rotate(45deg);transition:transform .15s}
+.sec.fc>h3>.fbtn::before{transform:rotate(-45deg);top:.45em}
+.sec>h3>.fbtn:hover::before{border-color:var(--accent)}
+.sec.fc>h3>.fbtn::after{content:attr(data-sum);flex:1 1 16em;min-width:0;font:400 var(--fs-md)/1.4 var(--f-ui);letter-spacing:0;color:var(--muted)}
+.sec.fc{margin-top:14px}
+.sec.fc>h3{margin-bottom:0}
+@media screen{.sec.fc>:not(h3){height:0!important;min-height:0!important;max-height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;display:block!important}}
+.sec.fc+.sec.fc{margin-top:6px}
+.fmk{display:none;flex:none;width:11px;height:11px;align-self:center;order:-1;margin-left:-2px}
+.sec[data-st="warn"]>h3 .fmk{display:inline-block;background:var(--warn);clip-path:polygon(50% 0,100% 100%,0 100%)}
+.sec[data-st="bad"]>h3 .fmk{display:inline-block;background:var(--bad);border-radius:2px}
+.sec[data-st="stale"]>h3 .fmk{display:inline-block;border:2px dashed var(--stale);border-radius:50%}
+.sec[data-st="ok"].fc>h3 .fmk{display:inline-block;background:var(--ok);border-radius:50%}
+.sec[data-st="warn"].fc>h3>.fbtn::after{color:var(--warn)}
+.sec[data-st="bad"].fc>h3>.fbtn::after{color:var(--bad)}
+.foldbar{display:flex;flex-wrap:wrap;align-items:center;gap:2px 16px;margin:0 0 10px}
+.foldbar .linkbtn{font-size:var(--fs-md)}
+/* the input column carries inputs and one-line hints: a longer explanation shows its first lines, the rest one click away */
+@media screen{
+.hfold:not(.hopen){display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+.hfold.hro-on:not(.hopen){display:block;height:0;margin:0!important;overflow:hidden}
+}
+.linkbtn.hmore{grid-column:1/-1;justify-self:start;min-height:28px;margin:2px 0 0;font-size:var(--fs-sm)}
+.hro{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:8px 12px;border-radius:var(--r-md);background:var(--raised);border:1px solid var(--line)}
+.hro .hro-l{font:500 var(--fs-sm)/1.3 var(--f-ui);color:var(--muted);flex-basis:100%}
+.hro b{font:650 var(--fs-lg)/1.2 var(--f-display);font-variant-numeric:tabular-nums}
+.hro .hro-r{font-size:var(--fs-sm);color:var(--muted)}
+/* the sections list: one row, the section in view marked; a "Jump to" list on narrow widths */
+.toc{display:block}
+.tocrow{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.tocrow::-webkit-scrollbar{display:none}
+.tocrow button{flex:none}
+.toc button[aria-current="true"]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--ink)}
+.tocjump{display:none}
+.tocjump select{width:100%;min-height:var(--hit);padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink)}
+.sec{scroll-margin-top:calc(var(--stick,0px) + 64px)}
+@media (min-width:900px){
+  .toc{position:sticky;top:var(--stick,0px);z-index:6;margin-left:-6px;margin-right:-6px;padding:6px 6px 8px;background:var(--bg);
+    -webkit-mask-image:none;box-shadow:0 1px 0 var(--line)}
+}
+@media (max-width:699px){
+  .tocrow{display:none}
+  .tocjump{display:block}
+  .sec{scroll-margin-top:calc(var(--stick,0px) + 12px)}
+}
+/* app bar on narrow widths (a phone, Fusion's palette): the title and one Settings button; the controls in a small panel */
+.brand .bt{display:flex;flex-direction:column;min-width:0}
+.pjcur{font:500 var(--fs-xs)/1.3 var(--f-ui);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46vw}
+.pjcur[data-changed="1"]::after{content:" · changed since saved"}
+.setbtn,.seglab,.setcap{display:none}
+@media (max-width:699px){
+  .top{flex-wrap:nowrap;position:relative}
+  .brand{flex:1 1 auto}
+  .setbtn{display:inline-flex;align-items:center;gap:6px;flex:none;min-height:var(--hit);padding:0 12px}
+  .setbtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .setbtn[aria-expanded="true"]{background:var(--accent-soft);border-color:var(--accent-line)}
+  .top .segs{display:none;position:absolute;right:var(--gut-r);left:var(--gut-l);top:calc(100% + 6px);z-index:35;
+    flex-direction:column;align-items:stretch;gap:6px;padding:12px 14px 14px;background:var(--raised);border:1px solid var(--line-2);border-radius:var(--r-lg);box-shadow:var(--lift)}
+  .top.setopen .segs{display:flex}
+  .top .segs .seg{display:flex}
+  .top .segs .seg button{flex:1}
+  .seglab,.setcap{display:block;font:600 var(--fs-xs)/1.2 var(--f-ui);color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:6px 2px 0}
+  .top .segs .projbtn,.top .segs .themebtn{width:100%}
+  .top .segs .themebtn{display:flex;gap:8px;justify-content:flex-start;padding:0 12px}
+  .themebtn .tlab{display:inline}
+}
+.themebtn .tlab{display:none;font:500 13px/1 var(--f-ui)}
+/* a long run: how long it has taken, and its Cancel */
+.runstat[data-el]::before{content:attr(data-el);float:right;margin-left:10px;font:500 var(--fs-sm)/1.5 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
+
 /* touch widths (Fusion's palette, a phone): every control at least 40 px tall */
 @media (max-width:699px),(pointer:coarse){
   .seg button{min-height:var(--hit)}
@@ -529,7 +604,10 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   --t1:#D9B35C; --t2:#C47A30; --t3:#8C4F9F; --t4:#3F5DC8; --t5:#8FB4E4;
   --info:#2B5A80; --stale:#5B4E8C; --stale-bg:#E7E3F2;
     color-scheme:light}
-  .top,.tabs,.navbar,.vbar,.tabcap,.lede,.fusionbar,.toc,.linkbtn{display:none!important}
+  .top,.tabs,.navbar,.vbar,.tabcap,.lede,.fusionbar,.toc,.linkbtn,.foldbar{display:none!important}
+  /* print shows every section and every explanation in full */
+  .sec.fc>h3>.fbtn::after{content:none}
+  .sec>h3>.fbtn{padding-left:0}.sec>h3>.fbtn::before,.fmk,.hmore,.hro{display:none!important}
   .tblwrap{max-height:none;overflow:visible}
   .tblwrap th,.tblwrap td{position:static}
   .r,.note,.figs,tr{break-inside:avoid}
@@ -543,24 +621,28 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   <header class="top">
     <div class="brand">
       <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.2" style="stroke:var(--t4)"/><circle cx="16" cy="16" r="9.6" style="stroke:var(--t3)"/><circle cx="16" cy="16" r="6" style="stroke:var(--t2)"/><circle cx="16" cy="16" r="2.6" style="stroke:var(--t1)"/></svg>
-      <h1>Exhaust Tuning Calculator</h1>
+      <div class="bt"><h1>Exhaust Tuning Calculator</h1><span class="pjcur" id="proj-cur" aria-live="polite" hidden></span></div>
     </div>
-    <div class="segs">
+    <button type="button" class="btn setbtn" id="set-btn" aria-expanded="false" aria-controls="set-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/></svg>Settings</button>
+    <div class="segs" id="set-panel">
+      <span class="seglab" aria-hidden="true">Level of detail</span>
       <div class="seg" role="group" aria-label="Level of detail">
         <button type="button" id="m-simple" aria-pressed="true">Simple</button>
         <button type="button" id="m-expert" aria-pressed="false">Expert</button>
       </div>
+      <span class="seglab" aria-hidden="true">Units</span>
       <div class="seg" role="group" aria-label="Units">
         <button type="button" id="u-imp" aria-pressed="true">in · °F</button>
         <button type="button" id="u-met" aria-pressed="false">mm · °C</button>
       </div>
+      <span class="seglab" aria-hidden="true">Inch fractions on cut lists</span>
       <div class="seg" role="group" aria-label="Round inch fractions on cut lists and marks to" title="Round inch fractions on cut lists and marks to">
         <button type="button" id="f-16" aria-pressed="true">1/16</button>
         <button type="button" id="f-32" aria-pressed="false">1/32</button>
         <button type="button" id="f-64" aria-pressed="false">1/64</button>
       </div>
       <button type="button" class="btn projbtn" id="proj-btn" aria-haspopup="dialog" title="Save, load and compare builds">Projects</button>
-      <button type="button" class="iconbtn themebtn" id="theme-btn" aria-label="Colour theme: follows the system" title="Colour theme: follows the system"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path class="fillhalf" d="M12 3.8a8.2 8.2 0 0 1 0 16.4z"/></svg></button>
+      <button type="button" class="iconbtn themebtn" id="theme-btn" aria-label="Colour theme: follows the system" title="Colour theme: follows the system"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path class="fillhalf" d="M12 3.8a8.2 8.2 0 0 1 0 16.4z"/></svg><span class="tlab" aria-hidden="true">Colour theme</span></button>
       <div class="hostwrap">
         <button type="button" class="iconbtn hostbtn" id="host-btn" aria-haspopup="true" aria-expanded="false" aria-controls="host-menu" title="Program: runs folder, updates, Fusion add-in, engines" hidden><span class="hostdot" id="host-dot" hidden></span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="18.5" cy="12" r="1.7"/></svg><span class="vh">Program menu</span></button>
         <div class="hostmenu" id="host-menu" hidden>
@@ -11252,13 +11334,36 @@ const notesHtml=n=>n.map(x=>'<div class="note '+(x.k==='info'?'':x.k)+'">'+esc(x
 const sec=(title,body)=>'<div class="sec" data-sec="'+String(title).replace(/<[^>]*>/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'"><h3>'+title+'</h3>'+body+'</div>';
 // a jump list at the top of a long results column: one chip per section when there are more than six (buttons, not
 // anchors, because the page's hash is its tab)
-function addToc(det){
-  if(!det) return; const secs=[...det.querySelectorAll(':scope > .sec[data-sec], :scope > * > .sec[data-sec]')]; if(secs.length<=6) return;
+function addToc(det,list){
+  if(!det) return; const secs=list||[...det.querySelectorAll(':scope > .sec[data-sec], :scope > * > .sec[data-sec]')]; if(secs.length<=6) return;
   const nav=document.createElement('nav'); nav.className='toc'; nav.setAttribute('aria-label','Sections');
-  nav.innerHTML=secs.map(x=>'<button type="button" data-toc="'+x.dataset.sec+'">'+x.querySelector('h3').textContent+'</button>').join('');
-  det.insertBefore(nav,det.firstChild);
+  const nm=x=>esc(x.querySelector('h3').textContent);
+  nav.innerHTML='<div class="tocrow">'+secs.map(x=>'<button type="button" data-toc="'+x.dataset.sec+'">'+nm(x)+'</button>').join('')+'</div>'+
+    '<label class="tocjump"><span class="vh">Jump to a section</span><select data-tocsel aria-label="Jump to a section"><option value="">Jump to…</option>'+secs.map(x=>'<option value="'+x.dataset.sec+'">'+nm(x)+'</option>').join('')+'</select></label>';
+  det.insertBefore(nav,det.firstChild); tocWatch(det,nav,secs);
 }
-document.addEventListener('click',e=>{ const b=e.target.closest('button[data-toc]'); if(!b) return; const nav=b.closest('.toc'), host=nav&&nav.parentElement; const t=host&&host.querySelector('.sec[data-sec="'+b.dataset.toc+'"]'); if(t) t.scrollIntoView({behavior:'smooth',block:'start'}); });
+// the section in view: marked in the list (no scroll handler: an IntersectionObserver over a band under the sticky bars)
+function tocWatch(det,nav,secs){
+  if(det._io){ det._io.disconnect(); det._io=null; } if(typeof IntersectionObserver!=='function') return;
+  const seen=new Map(), top=Math.round(stickPx()+70);
+  const io=new IntersectionObserver(es=>{ for(const e of es) seen.set(e.target,e.isIntersecting);
+    for(const x of secs) if(seen.get(x)){ tocMark(nav,x.dataset.sec); break; } },{rootMargin:'-'+top+'px 0px -55% 0px'});
+  secs.forEach(x=>io.observe(x)); det._io=io;
+}
+function tocMark(nav,k){
+  for(const b of nav.querySelectorAll('button[data-toc]')){
+    if(b.dataset.toc!==k){ if(b.hasAttribute('aria-current')) b.removeAttribute('aria-current'); continue; }
+    if(b.getAttribute('aria-current')==='true') continue; b.setAttribute('aria-current','true');
+    const row=b.parentElement, l=b.offsetLeft-row.offsetLeft; if(l<row.scrollLeft||l+b.offsetWidth>row.scrollLeft+row.clientWidth) row.scrollLeft=Math.max(0,l-24); }
+  const sel=nav.querySelector('select[data-tocsel]'); if(sel&&sel.value!==k) sel.value=k;
+}
+// the height of the bars that stay at the top of the window (the app bar on wide windows, the calculator strip under 1180 px)
+function stickPx(){ let y=0; const t=document.querySelector('.top'), n=document.querySelector('.navbar');
+  if(t&&getComputedStyle(t).position==='sticky') y+=t.offsetHeight;
+  if(n&&innerWidth<1180&&getComputedStyle(n).position==='sticky') y+=n.offsetHeight; return y; }
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-toc]'); if(!b) return; const nav=b.closest('.toc'), host=nav&&nav.closest('[role=tabpanel]'); const t=host&&host.querySelector('.sec[data-sec="'+b.dataset.toc+'"]'); if(t) t.scrollIntoView({behavior:'smooth',block:'start'}); });
+document.addEventListener('change',e=>{ const s=e.target.closest('select[data-tocsel]'); if(!s||!s.value) return; const nav=s.closest('.toc'), host=nav&&nav.closest('[role=tabpanel]'); const t=host&&host.querySelector('.sec[data-sec="'+s.value+'"]');
+  if(t){ t.scrollIntoView({block:'start'}); const fb=t.querySelector(':scope > h3 > .fbtn'); if(fb) fb.focus({preventScroll:true}); } });
 const actions=panel=>'<div class="actions"><button type="button" class="btn primary" data-copy="summary" data-panel="'+panel+'">Copy summary</button>'+(panel==='sound'||panel==='muf'||panel==='cat'?'':'<button type="button" class="btn" data-copy="points" data-panel="'+panel+'">'+(panel==='cross'?'Copy centerline points':'Copy profile points')+'</button>')+'</div><textarea class="copybox" id="'+panel+'-copybox" readonly hidden aria-label="Text to copy"></textarea>';
 
 function pointsCsv(segs){
@@ -23408,9 +23513,16 @@ function opText(O){
   const why=' '+figs+'; '+Math.round(O.rpm).toLocaleString('en-US')+' RPM (Peak power RPM), manifold air '+tFm(O.tmF)+' (the intercooler outlet the route finds). The range: Garrett’s stated spreads ('+OP_SRC+'), BSFC '+R.bsL.toFixed(2)+' to '+R.bsH.toFixed(3).replace(/0$/,'')+' lb/hp·h, VE '+pct(R.veL)+' to '+pct(R.veH)+' ('+(R.nv>=4?'95 to 99% for modern 4-valve heads':R.nv>0&&R.nv<=2?'88 to 95% for 2-valve heads':'88 to 99%, 2- and 4-valve heads')+', widened to hold '+pct(O.ve)+'), manifold air '+tFm(R.tmL)+' to '+tFm(R.tmH)+' ('+(R.ice?'100 to 130 °F (38 to 54 °C) intercooled':'175 to 300 °F (79 to 149 °C) without an intercooler')+', widened to this build’s)'+(O.wheel?', the drivetrain loss 2.5 points either side':'')+(R.sim?'; and the wave simulation run at this point (4-Stroke tab), '+F.hp(R.sim.hp)+' at '+Math.round(R.sim.rpm).toLocaleString('en-US')+' RPM, read 4 to 16 % high: '+(O.mode==='hp'?F.pD(R.sim.lo*1000)+' to '+F.pD(R.sim.hi*1000)+' for the target':F.hp(R.sim.lo)+' to '+F.hp(R.sim.hi))+' (Garrett’s spreads alone: '+(O.mode==='hp'?F.pD(R.gLo*1000)+' to '+F.pD(R.gHi*1000):F.hp(R.gLo)+' to '+F.hp(R.gHi))+')':'; the wave simulation (4-Stroke tab, or Run the simulation on the glance card) adds a third check')+'.';
   if(O.mode==='hp') return (O.low?'<b>The target needs no boost at this VE</b> (Garrett’s manifold pressure is below the atmosphere): check it is the power you are building for, not the stock figure. The build is worked at no boost, ':'<b>Boost worked out: '+F.pD(O.boost*1000)+'</b> at the throttle for '+crankW(O.hpT)+', ')+(!O.low&&O.boost<3*6.894757?'<b>little boost</b>: check the target is the power you are building for; ':'')+'airflow '+F.fl(O.wa/LBMIN)+(O.nt>1?' in all':'')+'; every section below uses this one point.'+(O.low?'':' Likely range '+F.pD(R.lo*1000)+' to '+F.pD(R.hi*1000)+'.')+why;
   return (O.stock?'<b>Power target not typed yet</b> (the field holds '+esc(O.stock.name||'the preset')+'’s stock '+F.hp(O.stock.hp)+'): until you type the power you are building for (box below), the build is worked at the boost field’s figure and the power worked out from it. ':O.chosen==='hp'?'No power target typed, so the boost typed is used and the power worked out. ':'')+'<b>Power worked out: '+crankW(O.hp)+'</b> at '+F.pD(O.boost*1000)+' boost, airflow '+F.fl(O.wa/LBMIN)+(O.nt>1?' in all':'')+'; every section below uses this one point. Likely range '+F.hp(R.lo)+' to '+F.hp(R.hi)+' at the crank.'+why; }
+// the boosted build's headline for the input column's readout (label|value|range): the same figures as opText's first
+// sentence, which folds under "How this was worked out" (display only)
+function opHead(O){
+  if(!O||O.mode==='na'||O.mode==='both'||O.err) return ''; const F=tsFmt(), R=O.range||{};
+  if(O.mode==='hp') return O.low?'Boost worked out|none needed for this target|check it is the power you are building for':'Boost worked out|'+F.pD(O.boost*1000)+'|likely '+F.pD(R.lo*1000)+' to '+F.pD(R.hi*1000);
+  return 'Power worked out|'+F.hp(O.hp)+' at the crank|likely '+F.hp(R.lo)+' to '+F.hp(R.hi);
+}
 function opUi(ind){
   const boosted=ind==='turbo'||ind==='centri', w=$('i-opm-wrap'), o=$('i-opm-out'); if(!w) return;
-  w.hidden=!boosted; o.hidden=!boosted; o.innerHTML=boosted?opText(OP):'';
+  w.hidden=!boosted; o.hidden=!boosted; o.innerHTML=boosted?opText(OP):''; o.dataset.ro=boosted?opHead(OP):'';
   const chosen=$('i-opm').value, bw=$('i-boost-wrap'), hw=$('i-hp-wrap'), rel=boosted&&OP.mode!=='na'&&OP.cyc==='4', src=$('i-opfig')&&$('i-opfig').value==='src';
   if(boosted&&OP.mode==='hp') bw.hidden=true;
   if(hw) hw.hidden=boosted&&chosen==='boost'&&OP.mode==='boost';
@@ -27576,7 +27688,9 @@ function refreshTabResults(){ if(cur!=='four-stroke') simInpRefresh(); if(PROD_G
 var INPUT_GEN=1, PROD_GEN={headers:0,crossover:0,intake:0};
 document.addEventListener('input',()=>{ INPUT_GEN++; },true); document.addEventListener('change',()=>{ INPUT_GEN++; },true);
 function refreshDeps(){ for(const [n,f] of [['headers',renderHeaders],['crossover',renderCross],['intake',renderIntake]]){ if(n===cur||(PROD_GEN&&PROD_GEN[n]===INPUT_GEN)) continue; try{ f(); }catch(e){} if(PROD_GEN) PROD_GEN[n]=INPUT_GEN; } }
-function renderActive(){ syncShapes(); if(cur!=='four-stroke') simInpRefresh(); refreshDeps(); TABS[cur].render(); if(PROD_GEN&&PROD_GEN[cur]!==undefined) PROD_GEN[cur]=INPUT_GEN; if(cur==='headers') renderPieCut(); tblPolish($(TABS[cur].panel)); window.__renderCount=(window.__renderCount||0)+1; }
+function renderActive(){ const pan=$(TABS[cur].panel), keep=typeof keepBefore==='function'?keepBefore(pan):null;
+  syncShapes(); if(cur!=='four-stroke') simInpRefresh(); refreshDeps(); TABS[cur].render(); if(PROD_GEN&&PROD_GEN[cur]!==undefined) PROD_GEN[cur]=INPUT_GEN; if(cur==='headers') renderPieCut(); tblPolish(pan);
+  if(typeof uiPass2==='function'){ uiPass2(pan); keepAfter(pan,keep); } window.__renderCount=(window.__renderCount||0)+1; }
 function showTab(){
   const h=location.hash.replace('#','');
   cur=TABS[h]?h:'quick';
@@ -27641,6 +27755,168 @@ document.querySelector('.tabs').addEventListener('keydown',e=>{
 // a long run's status line: the bar under it shows how far it has got ("(42%)" or "3 of 8" in its text)
 function runPct(el){ if(!el) return; const t=el.textContent, m=t.match(/\((\d+)%\)/)||null, k=m?null:t.match(/(\d+) of (\d+)/);
   const pc=m?+m[1]:k&&+k[2]>0?Math.round(100*+k[1]/+k[2]):null; el.classList.add('runstat'); if(pc!=null) el.style.setProperty('--pct',Math.min(100,pc)+'%'); }
+/* ----- UI pass two (docs/UI_REDESIGN_2026-11-16.md, "Pass two"): display only, no result reads any of this -----
+   Working sections fold. A section's heading becomes its button (aria-expanded); a folded section keeps all its text in the
+   page (its blocks are clipped to no height and made inert), so the page's text, textContent and innerText are as they
+   were and only what is drawn changes; print shows everything. Method, derivation and source sections start folded; a
+   section with a warning, a problem or an out-of-date note never starts folded, and its mark shows in its heading. The
+   builder's choices are kept per tab in this browser. */
+const FOLD_KEY='exhaust-fold-v1';
+let FOLD=null, FOLD_ALL=false;
+const foldStore=()=>{ if(!FOLD){ try{ FOLD=JSON.parse(localStorage.getItem(FOLD_KEY)||'{}')||{}; }catch(e){ FOLD={}; } } return FOLD; };
+const foldSave=()=>{ try{ localStorage.setItem(FOLD_KEY,JSON.stringify(FOLD||{})); }catch(e){} };
+// the sections that explain how a figure was reached or where it comes from (by their heading)
+const FOLD_REF=/^(other-published|head-and-valve-rules|check-against|two-notes|why-these|helmholtz-tuning|charge-density|boost-against-compression|silencer-layout-rules|production-muffler-sizing|muffler-types|street-use|in-stock-car|sources-and|compare-converter-types)/;
+const ST_RANK={ok:1,warn:2,stale:3,bad:4}, ST_WORD={ok:'OK',warn:'warning',stale:'out of date',bad:'problem'};
+function foldState(s){ let st='', r=0;
+  const shown=n=>{ for(let a=n;a&&a!==s;a=a.parentElement) if(a.hidden) return false; return true; };
+  for(const n of s.querySelectorAll('.note,.fv.st-warn,.fv.st-bad')){ if(!shown(n)) continue;
+    const k=/-stale$/.test(n.id)?'stale':n.classList.contains('bad')||n.classList.contains('st-bad')?'bad':n.classList.contains('warn')||n.classList.contains('st-warn')?'warn':n.classList.contains('ok')?'ok':'';
+    if(k&&ST_RANK[k]>r){ r=ST_RANK[k]; st=k; } }
+  return st; }
+// the one line a folded heading shows: the warning when there is one, else the section's first figure or row
+function foldSum(s,st){
+  let t='', n=null;
+  if(st&&st!=='ok') n=s.querySelector(st==='stale'?'.note[id$="-stale"]':'.note.'+st);
+  if(n) t=n.textContent;
+  else { const x=s.querySelector('.fig,.r');
+    if(x&&x.classList.contains('fig')) t=((x.querySelector('.fl')||{}).textContent||'')+' '+((x.querySelector('.fv')||{}).textContent||'');
+    else if(x) t=((x.querySelector('dt')||{}).textContent||'')+': '+((x.querySelector('dd b')||x.querySelector('dd')||{}).textContent||'');
+    else { const p=s.querySelector(':scope > p, .note, .cap'); t=p?p.textContent:''; } }
+  t=t.replace(/\s+/g,' ').trim(); const m=t.match(/^.{24,}?[.;](?=\s|$)/); if(m&&m[0].length<t.length) t=m[0];
+  return t.length>110?t.slice(0,104).replace(/\s+\S*$/,'')+' …':t; }
+function foldApply(s,open){
+  const b=s.querySelector(':scope > h3 > .fbtn'); if(!b) return; const st=s.dataset.st||'';
+  if(s.classList.contains('fc')===open) s.classList.toggle('fc',!open);
+  b.setAttribute('aria-expanded',open?'true':'false');
+  for(const c of s.children){ if(c.tagName==='H3') continue; if(open){ if(c.hasAttribute('inert')) c.removeAttribute('inert'); } else if(!c.hasAttribute('inert')) c.setAttribute('inert',''); }
+  const sum=open?'':foldSum(s,st); if(b.dataset.sum!==sum) b.dataset.sum=sum;
+  b.setAttribute('aria-label',(b.textContent||'').trim()+(st&&st!=='ok'?' ('+ST_WORD[st]+')':'')+(sum?': '+sum:''));
+}
+function foldPass(panel){
+  if(!panel) return; const mine=foldStore()[panel.id]||{};
+  const secs=[...panel.querySelectorAll('.sec[data-sec]')].filter(x=>!x.parentElement.closest('.sec')), ok=[];
+  for(const x of secs){ const h=x.querySelector(':scope > h3'); if(!h) continue;
+    let b=h.querySelector(':scope > .fbtn');
+    if(!b){ if(h.querySelector('a,button,input,select,textarea')) continue;
+      b=document.createElement('button'); b.type='button'; b.className='fbtn'; while(h.firstChild) b.appendChild(h.firstChild);
+      const mk=document.createElement('span'); mk.className='fmk'; mk.setAttribute('aria-hidden','true'); b.appendChild(mk); h.appendChild(b);
+      if(!x.id){ let id='sec-'+panel.id.replace(/^panel-/,'')+'-'+x.dataset.sec, i=2; while(document.getElementById(id)) id=id.replace(/-\d+$/,'')+'-'+(i++); x.id=id; }
+      b.setAttribute('aria-controls',x.id); }
+    ok.push(x);
+    const st=foldState(x); if((x.dataset.st||'')!==st) x.dataset.st=st;
+    const k=x.dataset.sec, u=mine[k], hot=st==='bad'||st==='warn'||st==='stale';
+    let open=hot||!FOLD_REF.test(k);
+    if(u){ open=!!u.o; if(!open&&hot&&u.s!==st) open=true; }
+    foldApply(x,FOLD_ALL||open); }
+  // a tab whose render made no sections list (the boosted Intake tab's are spread over several boxes) gets one here
+  if(ok.length>6&&!panel.querySelector('.toc')) addToc(ok[0].parentElement,ok);
+  foldBar(panel,ok);
+}
+function foldBar(panel,ok){
+  let bar=panel.querySelector('.foldbar');
+  if(ok.length<3){ if(bar) bar.remove(); return; }
+  const host=ok[0].parentElement;
+  if(!bar||bar.parentElement!==host){ if(bar) bar.remove(); bar=document.createElement('div'); bar.className='foldbar';
+    bar.innerHTML='<button type="button" class="linkbtn" data-fold="1">Expand all</button><button type="button" class="linkbtn" data-fold="0">Collapse all</button>';
+    const toc=host.querySelector(':scope > .toc'); host.insertBefore(bar,toc?toc.nextSibling:host.firstChild); }
+}
+function foldUser(x,open){ const pan=x.closest('[role=tabpanel]'); if(!pan||!x.querySelector(':scope > h3 > .fbtn')) return;
+  foldApply(x,open); const st=foldStore(); (st[pan.id]=st[pan.id]||{})[x.dataset.sec]={o:open?1:0,s:x.dataset.st||''}; foldSave(); }
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.sec > h3 > .fbtn'); if(b){ const x=b.parentElement.parentElement; foldUser(x,x.classList.contains('fc')); return; }
+  const a=e.target.closest('.foldbar button[data-fold]'); if(a){ const pan=a.closest('[role=tabpanel]'), open=a.dataset.fold==='1';
+    if(pan) pan.querySelectorAll('.sec[data-sec]').forEach(x=>{ if(x.querySelector(':scope > h3 > .fbtn')) foldUser(x,open); }); }
+});
+// anything that scrolls to a folded section, or to something in one (the jump list, the glance card's Go, a link to a
+// field), opens it first
+{ const siv=Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView=function(){ const x=this.closest&&this.closest('.sec.fc'); if(x) foldUser(x,true); return siv.apply(this,arguments); }; }
+// a long explanation in the input column: its first lines, then "How this was worked out" (or "More about this"); a computed
+// one with a headline readout (data-ro on the note: label|value|range) shows the readout and folds the reasoning whole
+const HINT_SEL='.area-inputs p.cap, .area-inputs .hint, .area-inputs .note:not(.warn):not(.bad)';
+function hintKey(panel,e,i){ if(e.id) return panel.id+':'+e.id; const l=e.closest('label'), f=l&&l.querySelector('input[id],select[id]'); return panel.id+':'+(f?f.id:'#'+i); }
+function hintPass(panel){
+  if(!panel) return; const hs=foldStore()._h||{}; let i=0;
+  for(const e of panel.querySelectorAll(HINT_SEL)){ i++;
+    let b=e.nextElementSibling; if(!(b&&b.classList.contains('hmore'))) b=null;
+    let ro=e.previousElementSibling; if(!(ro&&ro.classList.contains('hro'))) ro=null;
+    const long=!e.hidden&&e.textContent.length>160;
+    if(!long){ if(b) b.remove(); if(ro) ro.remove(); if(e.classList.contains('hfold')) e.classList.remove('hfold','hopen','hro-on'); continue; }
+    if(!e.id){ let id='hint-'+i, j=2; while(document.getElementById(id)) id='hint-'+i+'-'+(j++); e.id=id; }
+    if(!b){ b=document.createElement('button'); b.type='button'; b.className='linkbtn hmore'; b.setAttribute('aria-controls',e.id); e.after(b); }
+    const head=(e.dataset.ro||'').split('|');
+    if(head[0]){ if(!ro){ ro=document.createElement('div'); ro.className='hro'; e.before(ro); }
+      const h='<span class="hro-l">'+esc(head[0])+'</span><b>'+unit2(esc(head[1]||''))+'</b>'+(head[2]?'<span class="hro-r">'+unit2(esc(head[2]))+'</span>':'');
+      if(ro._h!==h){ ro.innerHTML=h; ro._h=h; } } else if(ro){ ro.remove(); ro=null; }
+    const k=hintKey(panel,e,i), open=FOLD_ALL||!!hs[k]; e.dataset.hk=k;
+    e.classList.add('hfold'); e.classList.toggle('hopen',open); e.classList.toggle('hro-on',!!ro);
+    if(ro&&!open) e.setAttribute('inert',''); else e.removeAttribute('inert');
+    b.setAttribute('aria-expanded',open?'true':'false');
+    const lab=open?'Show less':/-out$/.test(e.id)||ro?'How this was worked out':'More about this'; if(b.textContent!==lab) b.textContent=lab; }
+}
+document.addEventListener('click',e=>{ const b=e.target.closest('button.hmore'); if(!b) return; e.preventDefault();
+  const h=$(b.getAttribute('aria-controls')), pan=h&&h.closest('[role=tabpanel]'); if(!h||!pan) return;
+  const st=foldStore(), hs=st._h=st._h||{}; if(h.classList.contains('hopen')) delete hs[h.dataset.hk]; else hs[h.dataset.hk]=1; foldSave(); hintPass(pan); });
+document.addEventListener('focusin',e=>{ const h=e.target.closest&&e.target.closest('.hfold:not(.hopen)'); if(!h) return; const b=h.nextElementSibling; if(b&&b.classList.contains('hmore')) b.click(); });
+// for the page's tests (and anyone reading it all): every section and explanation open, not stored; __expandAll(false) undoes it
+window.__expandAll=(on)=>{ FOLD_ALL=on!==false; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); };
+// the page's own print: everything open while it prints, as it was after
+addEventListener('beforeprint',()=>{ if(!FOLD_ALL){ FOLD_ALL='print'; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); } });
+addEventListener('afterprint',()=>{ if(FOLD_ALL==='print'){ FOLD_ALL=false; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); } });
+// Layout stability: a re-render must not move what the builder is looking at. Before it, the field being edited (or, when
+// nothing in the tab has focus, the first section heading in view) and its place in the window; after it, the same
+// field (found again by id or its data-k if the render replaced it) gets its focus and caret back, and the page scrolls
+// by however much it moved. Done here for every engine (WebKit has no scroll anchoring), so the browser's own anchoring
+// is off (overflow-anchor:none) and the two never both correct.
+function keepBefore(pan){
+  if(!pan) return null; const a=document.activeElement; let el=null, key=null;
+  if(a&&a!==document.body&&pan.contains(a)&&!a.closest('.tabs')) el=a;
+  if(el){ key={id:el.id,k:el.dataset&&el.dataset.k,tag:el.tagName,sel:null};
+    try{ if(typeof el.selectionStart==='number') key.sel=[el.selectionStart,el.selectionEnd,el.selectionDirection]; }catch(e){} }
+  else if(scrollY>0){ const y0=stickPx();
+    for(const x of pan.querySelectorAll('.sec[data-sec]')){ const r=x.getBoundingClientRect(); if(r.bottom>y0+8){ if(r.top<innerHeight) el=x; break; } }
+    if(el) key={sec:el.dataset.sec}; }
+  if(!el) return null; return {el,key,top:el.getBoundingClientRect().top};
+}
+function keepAfter(pan,k){
+  if(!k||!pan) return; let el=k.el;
+  if(!el.isConnected){ const q=k.key; el=null;
+    if(q.sec) el=pan.querySelector('.sec[data-sec="'+q.sec+'"]');
+    else if(q.id) el=document.getElementById(q.id);
+    else if(q.k) el=pan.querySelector(q.tag.toLowerCase()+'[data-k="'+q.k+'"]');
+    if(el&&!q.sec&&document.activeElement!==el){ try{ el.focus({preventScroll:true}); if(q.sel&&typeof el.setSelectionRange==='function') el.setSelectionRange(q.sel[0],q.sel[1],q.sel[2]||'none'); }catch(e){} } }
+  if(!el||!el.isConnected) return;
+  const d=el.getBoundingClientRect().top-k.top; if(Math.abs(d)>=1) scrollBy(0,d);
+}
+// a long run's status line: how long it has been running (one timer, only while a run shows on the active tab)
+const RUN_T0=new Map(); let RUN_TICK=0;
+function runClock(){ const pan=$(TABS[cur].panel), els=pan?[...pan.querySelectorAll('.runstat')].filter(e=>e.isConnected&&!e.hidden&&/\(\d+%\)|\d+ of \d+|…|Starting/.test(e.textContent)):[];
+  const now=Date.now(), live=new Set();
+  for(const e of els){ const k=pan.id+':'+(e.id||e.closest('.sec')&&e.closest('.sec').dataset.sec||''); live.add(k); if(!RUN_T0.has(k)) RUN_T0.set(k,now);
+    const s=Math.floor((now-RUN_T0.get(k))/1000), t=Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); if(e.dataset.el!==t) e.dataset.el=t; }
+  for(const k of [...RUN_T0.keys()]) if(k.startsWith(pan?pan.id+':':'') && !live.has(k)) RUN_T0.delete(k);
+  if(els.length&&!RUN_TICK) RUN_TICK=setInterval(()=>{ runClock(); },1000);
+  else if(!els.length&&RUN_TICK){ clearInterval(RUN_TICK); RUN_TICK=0; } }
+function uiPass2(pan){ foldPass(pan); hintPass(pan); runClock(); }
+// the app bar on narrow widths: Settings opens the controls in a small panel (Escape or a click outside closes it, focus
+// goes back to the button); wide windows show the controls as before
+(()=>{ const top=document.querySelector('.top'), b=$('set-btn'), p=$('set-panel'); if(!top||!b||!p) return;
+  const open=(on,focus)=>{ top.classList.toggle('setopen',on); b.setAttribute('aria-expanded',on?'true':'false');
+    if(on&&focus){ const f=p.querySelector('button[aria-pressed="true"],button'); if(f) f.focus(); } };
+  b.addEventListener('click',()=>open(!top.classList.contains('setopen'),true));
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&top.classList.contains('setopen')){ open(false); b.focus(); } });
+  document.addEventListener('click',e=>{ if(top.classList.contains('setopen')&&!e.target.closest('#set-panel,#set-btn')) open(false); });
+  matchMedia('(min-width:700px)').addEventListener('change',()=>open(false)); })();
+// the project in hand, in the app bar: its name, and whether the build has changed since it was saved or loaded
+const PROJ_CUR={name:'',gen:0};
+function projCur(name){ const el=$('proj-cur'); if(!el) return; PROJ_CUR.name=name||''; PROJ_CUR.gen=INPUT_GEN;
+  el.hidden=!PROJ_CUR.name; el.textContent=PROJ_CUR.name?'Project: '+PROJ_CUR.name:''; el.dataset.changed='0'; }
+const projCurMark=()=>{ const el=$('proj-cur'); if(el&&PROJ_CUR.name&&el.dataset.changed!=='1'&&INPUT_GEN!==PROJ_CUR.gen) el.dataset.changed='1'; };
+document.addEventListener('input',projCurMark); document.addEventListener('change',projCurMark);
+// the sticky bars' height, for the sections list and the jump targets
+const stickSet=()=>{ document.documentElement.style.setProperty('--stick',stickPx()+'px'); };
+addEventListener('resize',()=>requestAnimationFrame(stickSet)); stickSet();
 const sendReady=()=>{ try{ window.adsk.fusionSendData('pageReady',JSON.stringify({w:innerWidth,h:innerHeight,worker:typeof Worker,errs:PAGE_ERRS.slice(-5)})); }catch(e){} };
 document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
   if(location.hash==='#'+b.dataset.tab) return;
@@ -27712,7 +27988,8 @@ advBuild();
   const btn=$('theme-btn'); if(!btn) return;
   const NAME={auto:'follows the system',dark:'dark',light:'light'};
   let t='auto'; try{ const v=localStorage.getItem('exhaust-theme'); if(v==='dark'||v==='light') t=v; }catch(e){}
-  const show=()=>{ const lab='Colour theme: '+NAME[t]+'. Click to change.'; btn.setAttribute('aria-label',lab); btn.title=lab; btn.dataset.mode=t; };
+  const show=()=>{ const lab='Colour theme: '+NAME[t]+'. Click to change.'; btn.setAttribute('aria-label',lab); btn.title=lab; btn.dataset.mode=t;
+    const tl=btn.querySelector('.tlab'); if(tl) tl.textContent='Colour theme: '+NAME[t]; };
   const apply=()=>{ if(t==='auto') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',t); show(); };
   // inside the Windows program the window frame follows the page
   const toHost=()=>{ if(!HOST) return; const a=document.documentElement.getAttribute('data-theme');
@@ -27934,7 +28211,7 @@ function projSave(name,at){
   if(Number.isInteger(at)&&all[at]){ p.name=all[at].name; d.name=p.name; all[at]=p; }
   else { const j=all.findIndex(x=>x.name===p.name); if(j>=0) all[j]=p; else all.push(p); }
   if(!projStoreAll(all)){ projMsg('This browser would not keep the project (its storage is full or turned off). Export it as a file instead.',true); return null; }
-  projRender(); projMsg('Saved “'+p.name+'”.'); return p;
+  projRender(); projCur(p.name); projMsg('Saved “'+p.name+'”.'); return p;
 }
 async function projExport(p){
   const fname=(p.name.replace(/[^\w\- .]+/g,'_').trim()||'project')+'.exhaust.json', text=JSON.stringify(p.data,null,1);
@@ -27950,7 +28227,7 @@ $('proj-list').addEventListener('click',e=>{
   const b=e.target.closest('button[data-pj]'), row=b&&b.closest('.pj-row'); if(!row) return;
   const all=projLoadAll(), i=+row.dataset.i, p=all[i]; if(!p) return;
   const k=b.dataset.pj;
-  if(k==='load'){ try{ projApply(p.data); $('proj-name').value=p.name; projMsg('Loaded “'+p.name+'”.'); }catch(err){ projMsg('Could not load it: '+err.message,true); } }
+  if(k==='load'){ try{ projApply(p.data); $('proj-name').value=p.name; projCur(p.name); projMsg('Loaded “'+p.name+'”.'); }catch(err){ projMsg('Could not load it: '+err.message,true); } }
   else if(k==='over') projSave(p.name,i);
   else if(k==='exp') projExport(p);
   else if(k==='del'){ if(b.dataset.armed!=='1'){ b.dataset.armed='1'; b.textContent='Delete for good?'; b.classList.add('bad'); return; }
