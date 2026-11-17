@@ -36,6 +36,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ui_ui.js compares field-edit timing with an earlier commit of the page
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -105,6 +107,8 @@ jobs:
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ui_ui.js compares field-edit timing with an earlier commit of the page
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -156,6 +160,8 @@ jobs:
         shard: [ 1, 2, 3 ]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ui_ui.js compares field-edit timing with an earlier commit of the page
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -200,6 +206,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ui_ui.js compares field-edit timing with an earlier commit of the page
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'

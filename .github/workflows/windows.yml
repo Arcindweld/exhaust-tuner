@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ui_ui.js compares field-edit timing with an earlier commit of the page
       # the crates and the builds of what did not change (restored, and saved only when Cargo.lock changes)
       - name: Rust build cache
         uses: actions/cache@v4
@@ -100,6 +102,8 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # ui_ui.js compares field-edit timing with an earlier commit of the page
       # the build's Python (the page builder, the CFD generator's version, the router comparison below): 3.12, whose
       # sum() adds with Neumaier's compensation as Python 3.12 and later do (core-linux checks the plain way on 3.11)
       - uses: actions/setup-python@v5

@@ -59,7 +59,19 @@ fn code_of(st: ExitStatus) -> i32 {
 fn spawn(cmd: &mut Command) -> HResult<Child> {
     cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     no_window(cmd);
-    cmd.spawn().map_err(|e| HostError::Msg(format!("{} could not start: {}", cmd.get_program().to_string_lossy(), e)))
+    // "Text file busy" (ETXTBSY, 26): a file just written is still open for writing in a child another thread forked a
+    // moment ago; it clears as soon as that child execs, so try again briefly before reporting it
+    let mut tries = 0;
+    loop {
+        match cmd.spawn() {
+            Ok(c) => return Ok(c),
+            Err(e) if e.raw_os_error() == Some(26) && tries < 50 => {
+                tries += 1;
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+            Err(e) => return Err(HostError::Msg(format!("{} could not start: {}", cmd.get_program().to_string_lossy(), e))),
+        }
+    }
 }
 
 /// Runs the program with its output, both streams, handed to on_line one line at a time in the order it comes
