@@ -56,4 +56,11 @@ function typedPoint(page) {
     const e = document.getElementById(i); if (e && e.value !== v) { e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); } } });
 }
 
-module.exports = { reads, settle, typedPoint };
+// Every working section and every folded explanation open (UI pass two, docs/UI_REDESIGN_2026-11-16.md): for a test that
+// clicks or looks at something inside a section the page starts folded. Not needed to read text: a folded section's text
+// stays in the page (textContent and innerText read it). Not stored in the page's settings; expandAll(page, false) undoes it.
+function expandAll(page, on = true) {
+  return page.evaluate(on => { if (window.__expandAll) window.__expandAll(on); }, on).then(() => settle(page));
+}
+
+module.exports = { reads, settle, typedPoint, expandAll };

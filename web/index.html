@@ -56,7 +56,7 @@
 /* ---------- base ---------- */
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html{scroll-padding-top:132px;overflow-anchor:none}
+html{scroll-padding-top:calc(var(--stick,124px) + 8px);overflow-anchor:none}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--fs-base)/1.5 var(--f-body);font-variant-numeric:tabular-nums;
   padding-block:0 64px;padding-left:var(--gut-l);padding-right:var(--gut-r);
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
@@ -548,15 +548,15 @@ ul.list li+li,ol.list li+li{margin-top:6px}
 .toc button[aria-current="true"]{background:var(--accent-soft);border-color:var(--accent-line);color:var(--ink)}
 .tocjump{display:none}
 .tocjump select{width:100%;min-height:var(--hit);padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink)}
-.sec{scroll-margin-top:calc(var(--stick,0px) + 64px)}
+.sec{scroll-margin-top:4px}
 @media (min-width:900px){
+  .sec{scroll-margin-top:56px}
   .toc{position:sticky;top:var(--stick,0px);z-index:6;margin-left:-6px;margin-right:-6px;padding:6px 6px 8px;background:var(--bg);
     -webkit-mask-image:none;box-shadow:0 1px 0 var(--line)}
 }
 @media (max-width:699px){
   .tocrow{display:none}
   .tocjump{display:block}
-  .sec{scroll-margin-top:calc(var(--stick,0px) + 12px)}
 }
 /* app bar on narrow widths (a phone, Fusion's palette): the title and one Settings button; the controls in a small panel */
 .brand .bt{display:flex;flex-direction:column;min-width:0}
@@ -11355,9 +11355,10 @@ function addToc(det,list){
 // the section in view: marked in the list (no scroll handler: an IntersectionObserver over a band under the sticky bars)
 function tocWatch(det,nav,secs){
   if(det._io){ det._io.disconnect(); det._io=null; } if(typeof IntersectionObserver!=='function') return;
-  const seen=new Map(), top=Math.round(stickPx()+70);
+  // the section crossing a line just under the list (between sections, the one before stays marked)
+  const seen=new Map(), top=Math.round(stickPx()+80), bot=Math.max(0,innerHeight-top-1);
   const io=new IntersectionObserver(es=>{ for(const e of es) seen.set(e.target,e.isIntersecting);
-    for(const x of secs) if(seen.get(x)){ tocMark(nav,x.dataset.sec); break; } },{rootMargin:'-'+top+'px 0px -55% 0px'});
+    for(const x of secs) if(seen.get(x)){ tocMark(nav,x.dataset.sec); break; } },{rootMargin:'-'+top+'px 0px -'+bot+'px 0px'});
   secs.forEach(x=>io.observe(x)); det._io=io;
 }
 function tocMark(nav,k){
@@ -27885,6 +27886,10 @@ function keepBefore(pan){
   if(!pan) return null; const a=document.activeElement; let el=null, key=null;
   if(a&&a!==document.body&&pan.contains(a)&&!a.closest('.tabs')) el=a;
   if(el){ key={id:el.id,k:el.dataset&&el.dataset.k,tag:el.tagName,sel:null};
+    // a control with neither (a section's heading, a button in the results): its place under the nearest box with an id
+    // or under its section
+    if(!key.id&&!key.k){ const an=el.parentElement&&el.parentElement.closest('[id],.sec[data-sec]');
+      if(an&&pan.contains(an)){ key.an=an.id?'#'+CSS.escape(an.id):'.sec[data-sec="'+an.dataset.sec+'"]'; key.ix=[...an.querySelectorAll(el.tagName)].indexOf(el); } }
     try{ if(typeof el.selectionStart==='number') key.sel=[el.selectionStart,el.selectionEnd,el.selectionDirection]; }catch(e){} }
   else if(scrollY>0){ const y0=stickPx();
     for(const x of pan.querySelectorAll('.sec[data-sec]')){ const r=x.getBoundingClientRect(); if(r.bottom>y0+8){ if(r.top<innerHeight) el=x; break; } }
@@ -27897,6 +27902,7 @@ function keepAfter(pan,k){
     if(q.sec) el=pan.querySelector('.sec[data-sec="'+q.sec+'"]');
     else if(q.id) el=document.getElementById(q.id);
     else if(q.k) el=pan.querySelector(q.tag.toLowerCase()+'[data-k="'+q.k+'"]');
+    else if(q.an){ const an=pan.querySelector(q.an); el=an&&q.ix>=0?an.querySelectorAll(q.tag)[q.ix]||null:null; }
     if(el&&!q.sec&&document.activeElement!==el){ try{ el.focus({preventScroll:true}); if(q.sel&&typeof el.setSelectionRange==='function') el.setSelectionRange(q.sel[0],q.sel[1],q.sel[2]||'none'); }catch(e){} } }
   if(!el||!el.isConnected) return;
   const d=el.getBoundingClientRect().top-k.top; if(Math.abs(d)>=1) scrollBy(0,d);
