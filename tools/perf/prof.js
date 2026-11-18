@@ -8,16 +8,17 @@ const CASES = { hangers: ['hg-od', null], intake: ['i-hp', ['440', '450']], muff
 const INSTR = () => {
   const P = window.__P = { seg: {}, lay: [], html: 0, htmlN: 0, on: false, depth: [] };
   const now = () => performance.now();
-  const wrapG = (name, getf) => { const f = getf(); if (typeof f !== 'function') return; const g = function () { if (!P.on) return f.apply(this, arguments); const t = now(); try { return f.apply(this, arguments); } finally { P.seg[name] = (P.seg[name] || 0) + now() - t; } }; return g; };
+  // (inside refreshDeps, the other tabs' renders: counted apart, name@deps)
+  const wrapG = (name, getf) => { const f = getf(); if (typeof f !== 'function') return; const g = function () { if (!P.on) return f.apply(this, arguments); const key = P.deps && name !== 'refreshDeps' ? name + '@deps' : name, d0 = P.deps; if (name === 'refreshDeps') P.deps = true; const t = now(); try { return f.apply(this, arguments); } finally { P.deps = d0; P.seg[key] = (P.seg[key] || 0) + now() - t; } }; return g; };
   if (!window.__NOWRAP) for (const n of ['keepBefore', 'keepAfter', 'syncShapes', 'simInpRefresh', 'refreshDeps', 'renderPieCut', 'tblPolish', 'fixPass', 'foldPass', 'hintPass', 'hostStatAll', 'u2Later', 'renderHeaders', 'renderCross', 'renderIntake', 'advMark', 'drawCompMap', 'setHTML']) {
     try { const g = wrapG(n, () => __dbg(n)); if (g) __dbg(n + '=__a', g); } catch (e) {} }
   const TABS = __dbg('TABS'); for (const k in TABS) { const f = TABS[k].render; TABS[k].render = function () { if (!P.on) return f.apply(this, arguments); const t = now(); try { return f.apply(this, arguments); } finally { P.seg['render:' + k] = (P.seg['render:' + k] || 0) + now() - t; } }; }
   // innerHTML / insertAdjacentHTML / outerHTML
   for (const [proto, prop] of [[Element.prototype, 'innerHTML'], [Element.prototype, 'outerHTML']]) { const d = Object.getOwnPropertyDescriptor(proto, prop);
-    Object.defineProperty(proto, prop, { configurable: true, get: d.get, set(v) { if (!P.on) return d.set.call(this, v); const t = now(); d.set.call(this, v); P.html += now() - t; P.htmlN++; } }); }
+    Object.defineProperty(proto, prop, { configurable: true, get: d.get, set(v) { if (!P.on) return d.set.call(this, v); const t = now(); d.set.call(this, v); if (P.deps) P.htmlD = (P.htmlD || 0) + now() - t; else P.html += now() - t; P.htmlN++; } }); }
   { const f = Element.prototype.insertAdjacentHTML; Element.prototype.insertAdjacentHTML = function () { if (!P.on) return f.apply(this, arguments); const t = now(); f.apply(this, arguments); P.html += now() - t; P.htmlN++; }; }
   // layout reads
-  const rec = (name, t0) => { const dt = now() - t0; if (dt > 0.3) { const st = (new Error().stack || '').split('\n').slice(2, 7).map(s => s.trim().replace(/^at /, '').replace(/\(?file:\/\/[^)]*index\.html:(\d+):(\d+)\)?/, '@$1:$2')).join(' < '); P.lay.push([name, dt, st]); } };
+  const rec = (name, t0) => { const dt = now() - t0; if (dt > 0.3) { const st = (new Error().stack || '').split('\n').slice(2, 7).map(s => s.trim().replace(/^at /, '').replace(/\(?file:\/\/[^)]*index\.html:(\d+):(\d+)\)?/, '@$1:$2')).join(' < '); P.lay.push([name, dt, st, !!P.deps]); } };
   const lp = [[HTMLElement.prototype, ['offsetWidth', 'offsetHeight', 'offsetTop', 'offsetLeft']], [Element.prototype, ['clientWidth', 'clientHeight', 'scrollWidth', 'scrollHeight', 'scrollTop']]];
   for (const [proto, ps] of lp) for (const p of ps) { const d = Object.getOwnPropertyDescriptor(proto, p); if (!d || !d.get) continue;
     Object.defineProperty(proto, p, { configurable: true, get() { if (!P.on) return d.get.call(this); const t = now(); const v = d.get.call(this); rec(p, t); return v; }, set: d.set }); }
@@ -54,9 +55,13 @@ const INSTR = () => {
   const keys = new Set(rows.flatMap(r => Object.keys(r.seg)));
   for (const k of keys) console.log('  ', k.padEnd(22), med(r => r.seg[k] || 0).toFixed(2));
   const L = {}; for (const r of rows) for (const [n, dt, st] of r.lay) { const k = n + ' | ' + st; (L[k] = L[k] || []).push(dt); }
-  { const g = k => med(r => r.seg[k] || 0), lay = med(r => r.lay.reduce((a, x) => a + x[1], 0)), dom = med(r => r.html + (r.seg.setHTML || 0) - 0), render = g('render:' + tab);
+  // the table of docs/PERF_2026-11-18.md: the render's own work (compute and building the HTML), its DOM write (innerHTML, or
+  // setHTML's parse and patch), the layouts forced inside the render, the display passes, the other tabs' results brought
+  // up to date first, and the layout at the end (the harness's own read, not counted as forced)
+  { const inR = r => r.lay.filter(x => !x[3] && !/UtilityScript/.test(x[2])).reduce((a, x) => a + x[1], 0);
+    const g = k => med(r => r.seg[k] || 0), dom = med(r => (r.seg.setHTML != null ? r.seg.setHTML : r.html)), render = g('render:' + tab), lay = med(inR);
     const passes = g('tblPolish') + g('fixPass') + g('foldPass') + g('hintPass') + g('hostStatAll');
-    console.log('TABLE', JSON.stringify({ tab, total: +m.total.toFixed(1), otherTabs: +g('refreshDeps').toFixed(1), computeBuild: +(render - dom - lay + (r0 => 0)(0)).toFixed(1), domWrite: +dom.toFixed(1), forcedLayout: +lay.toFixed(1), passes: +passes.toFixed(1), finalLayout: +med(r => r.finalLayout).toFixed(1) })); }
+    console.log('TABLE', JSON.stringify({ tab, total: +m.total.toFixed(1), otherTabs: +g('refreshDeps').toFixed(1), computeBuild: +Math.max(0, render - dom - lay).toFixed(1), domWrite: +dom.toFixed(1), forcedLayout: +lay.toFixed(1), passes: +passes.toFixed(1), finalLayout: +med(r => r.finalLayout).toFixed(1) })); }
   console.log('forced layouts (>0.3ms), per edit avg:');
   for (const [k, v] of Object.entries(L).sort((a, c) => c[1].reduce((x, y) => x + y) - a[1].reduce((x, y) => x + y))) console.log('   ', (v.reduce((x, y) => x + y) / 15).toFixed(2), 'ms', v.length + 'x', k.slice(0, 300));
   await b.close(); S.close();
