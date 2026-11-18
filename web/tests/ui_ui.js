@@ -30,13 +30,32 @@
 //   - a field edit that re-renders the tab moves neither the field nor the caret (1440 and 400 px; the page's own scroll
 //     keeping, which is what a WebKit view without scroll anchoring gets)
 //   - print: every folded section and explanation is drawn in full
+// Pass three (first run, empty states, reserved space, out-of-date marks, cut lists, small screens, keyboard and screen
+// readers; docs/UI_REDESIGN_2026-11-16.md, "Pass three"):
+//   - no re-render while idle or on scroll: on every tab at 1440, 700 and 400 px, with two injected font metrics (a
+//     letter-spacing and a font-size-adjust, standing in for other machines' fonts), window.__renderCount does not move
+//     over 2 s idle nor across programmatic scrolls (the CI loop of pass two)
+//   - Start here: on a cold page, three steps, each a working control; Hide keeps it hidden, Settings brings it back; a
+//     page with an input away from its default does not show it on the next visit; the last tab and project come back
+//   - every "do X first" string in the page that a rule covers gets its control when shown, and the controls work
+//   - a run's results take the space reserved for them (the section below moves less than 60 px when they arrive), and
+//     the live region says the run started and finished
+//   - out-of-date marks on the CFD and optimiser tables from the fingerprint of their inputs (simulated results)
+//   - the turbo build sheet: to order / to cut, tube as ordered, lengths to the fraction, no clipped table in print on
+//     Letter and A4 in both units; the Quick sheet's build list in both units
+//   - the five busiest tables stack as cards at 400 px, labelled from their headings, and not at 1440 px
+//   - skip link, one h2 per calculator and no skipped heading level, every popover closed by Escape, focus kept by a
+//     field edit on every tab
+//   - nothing lost against the page before pass three (words with a letter on every view; figures too, except the
+//     Quick build sheet, whose lengths now read to the inch fraction), and field edits within 10 % (+ 5 ms) of it
 const { chromium } = require('playwright');
-const { settle, expandAll } = require('./settle');
+const { settle, expandAll, uiClick } = require('./settle');
 const { skipPart } = require('./skip');
 const { execFileSync } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
 const TABS = ['quick', 'four-stroke', 'two-stroke', 'sound', 'intake', 'headers', 'crossover', 'mufflers', 'cats', 'boom-tubes', 'hangers', 'parts', 'options'];
-const BASE = '5000fb8', BASE2 = '6f0c694';   // before the UI pass; before pass two
+const BASE = '5000fb8', BASE2 = '6f0c694', BASE3 = '7de9e49';   // before the UI pass; before pass two; before pass three
+const ONLY3 = process.env.UI_ONLY === '3';   // (development) pass three's checks alone
 
 async function k24(pg) {
   const setv = async (id, v) => { await pg.evaluate(([id, v]) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); }, [id, v]); await settle(pg); };
@@ -137,11 +156,210 @@ async function timeEdits(b, file, font) {
   return out;
 }
 
+// ---------- pass three ----------
+const P3_FONTS = { 'letter-spacing': 'body,button,input,select,textarea{letter-spacing:.35px!important}', 'font-size-adjust': 'body,button,input,select,textarea{font-size-adjust:0.62!important}' };
+// the page's "do X first" strings (the same pattern as the inventory in docs/UI_REDESIGN_2026-11-16.md, pass three)
+const DOFIRST = /\b(?:first[.:;]|first \(|Press [A-Z][a-z]+(?: [a-z]+)*(?: first| to try again)|Run it again to update|Estimate it again|Turn on the line|on the (?:4-Stroke|Intake|Headers|Crossover) tab first|Enter the [a-z ’]+ (?:on the|above|in Expert|at the head|along the head|through the core)|Type the (?:reference|value|chart)|type the (?:value|chart)|Open the 4-Stroke tab and fill)/;
+const NOT_EMPTY = /Pairs of cylinders|join first|first (?:merge|section|bend|cancellation|mode|cross|column|rated|quoted|generation|drive|two|the cores|at least)|first,|first then/;
+function doFirstStrings(src) {
+  const out = [], re = /(['"])((?:(?!\1)[^\\]|\\.){0,400}?)\1/g;
+  src.split('\n').forEach((l, i) => { if (i < 2800 || l.length > 20000) return; let m; re.lastIndex = 0;
+    while ((m = re.exec(l))) { const t = m[2].replace(/<[^>]+>/g, ''); if (t.length >= 12 && DOFIRST.test(t) && !NOT_EMPTY.test(t)) out.push(t); } });
+  return [...new Set(out)];
+}
+async function passThree(b, ok, list, errs) {
+  const url = 'file://' + process.cwd() + '/index.html', W = [1440, 700, 400];
+  const fresh = async (width, hash, ctxIn) => { const ctx = ctxIn || await b.newContext({ viewport: { width, height: width < 600 ? 860 : 900 }, hasTouch: width < 600 });
+    const pg = await ctx.newPage(); pg.on('pageerror', e => errs.push('pass three: ' + e.message));
+    await pg.goto(url + (hash ? '#' + hash : '')); await pg.waitForTimeout(700); await settle(pg); return pg; };
+  // 1. no re-render while idle or on scroll, at 3 widths with 2 font metrics
+  if (!process.env.UI_SKIP_IDLE) for (const [fname, css] of Object.entries(P3_FONTS)) for (const width of W) {
+    const pg = await fresh(width, 'quick'); await pg.addStyleTag({ content: css }); await settle(pg);
+    const bad = [];
+    for (const t of TABS.concat(['k24'])) {
+      if (t === 'k24') await k24(pg); else { await pg.evaluate(t => { location.hash = t; }, t); await settle(pg); }
+      const c0 = await pg.evaluate(() => window.__renderCount);
+      await pg.waitForTimeout(2000);
+      const c1 = await pg.evaluate(() => window.__renderCount);
+      for (const f of [0.25, 0.5, 1, 0.1, 0]) { await pg.evaluate(f => window.scrollTo(0, f * (document.documentElement.scrollHeight - innerHeight)), f); await pg.waitForTimeout(150); }
+      await pg.waitForTimeout(300); const c2 = await pg.evaluate(() => window.__renderCount);
+      if (c1 !== c0 || c2 !== c1) bad.push(t + ' ' + (c1 - c0) + ' idle, ' + (c2 - c1) + ' on scroll');
+    }
+    ok(!bad.length, width + ' px, ' + fname + ': no tab re-renders over 2 s idle or across scrolls (14 views)' + list(bad));
+    await pg.context().close();
+  }
+  // 2. Start here
+  for (const width of [1440, 400]) {
+    const ctx = await b.newContext({ viewport: { width, height: width < 600 ? 860 : 900 }, hasTouch: width < 600 });
+    let pg = await fresh(width, '', ctx);
+    const s0 = await pg.evaluate(() => { const s = document.getElementById('start'), r = s.getBoundingClientRect(); return { shown: !s.hidden && r.height > 0, top: Math.round(r.top), n: s.querySelectorAll('.st-steps>li').length, btns: s.querySelectorAll('button[data-start]').length, tab: location.hash || '#quick' }; });
+    ok(s0.shown && s0.n === 3 && s0.btns === 5 && s0.top < (width < 600 ? 260 : 200), width + ': a cold page shows Start here near the top of Quick: three steps, five controls ' + JSON.stringify(s0));
+    await pg.click('#start [data-start="pick"]'); const f1 = await pg.evaluate(() => document.activeElement.id);
+    await pg.click('#start [data-start="turbo"]'); await settle(pg); await pg.waitForTimeout(200);
+    const t1 = await pg.evaluate(() => { const g = document.getElementById('tg-glance'), r = g && g.getBoundingClientRect(); return { hash: location.hash, ind: document.getElementById('i-ind').value, glance: !!r && r.top < innerHeight && r.bottom > 0 }; });
+    ok(f1 === 'v-make' && t1.hash === '#intake' && t1.ind === 'turbo' && t1.glance, width + ': "Choose from the list" focuses the picker; "Turbo build" opens Intake, turbocharged, at the glance card ' + JSON.stringify([f1, t1]));
+    await pg.evaluate(() => { location.hash = 'quick'; }); await settle(pg);
+    const st = await pg.evaluate(() => ({ shown: !document.getElementById('start').hidden, done: [...document.querySelectorAll('#start .st-steps>li.done')].map(l => l.dataset.step) }));
+    await pg.click('#start [data-start="sheet"]'); await settle(pg); await pg.waitForTimeout(200);
+    const sh = await pg.evaluate(() => ({ hash: location.hash, inView: (() => { const x = document.querySelector('#panel-intake .sec[data-sec="build-sheet"],#tg-glance'); const r = x && x.getBoundingClientRect(); return !!r && r.top < innerHeight && r.bottom > 0; })() }));
+    ok(st.shown && st.done.includes('build') && sh.hash === '#intake' && sh.inView, width + ': it stays for this visit and marks the steps done (' + st.done.join(', ') + '); "Open the build sheet" goes to the turbo build ' + JSON.stringify(sh));
+    await pg.waitForTimeout(1700);   // the idle check stores that an input left its default
+    const used = await pg.evaluate(() => localStorage.getItem('exhaust-start-v1'));
+    await pg.goto(url + '#hangers'); await pg.waitForTimeout(500); await settle(pg); await pg.goto(url); await pg.waitForTimeout(700); await settle(pg);
+    const back = await pg.evaluate(() => ({ start: !document.getElementById('start').hidden, hash: location.hash }));
+    ok(used === 'used' && !back.start && back.hash === '#hangers', width + ': after an input left its default, the next visit has no Start here and opens the last tab (' + JSON.stringify([used, back]) + ')');
+    await uiClick(pg, '#start-btn'); await settle(pg); await pg.waitForTimeout(150);
+    const re = await pg.evaluate(() => ({ shown: !document.getElementById('start').hidden, hash: location.hash, focus: document.activeElement.id }));
+    await pg.click('#start-x'); const hid = await pg.evaluate(() => [document.getElementById('start').hidden, localStorage.getItem('exhaust-start-v1')]);
+    ok(re.shown && re.hash === '#quick' && re.focus === 'start-h' && hid[0] && hid[1] === 'off', width + ': Start here under Settings brings it back on Quick with focus on it; Hide this hides it and remembers ' + JSON.stringify([re, hid]));
+    // the last project
+    await pg.evaluate(() => window.__proj.save('Pass three test')); await pg.goto(url + '#hangers'); await pg.waitForTimeout(400); await pg.goto(url); await pg.waitForTimeout(700); await settle(pg);
+    const pj = await pg.evaluate(() => ({ cur: document.getElementById('proj-cur').textContent, start: !document.getElementById('start').hidden }));
+    ok(pj.cur === 'Project: Pass three test' && !pj.start, width + ': a page opened with no tab brings back the last project saved or loaded (' + pj.cur + ')');
+    await ctx.close();
+  }
+  // 3. empty states carry their control
+  {
+    const src = fs.readFileSync(path.join(process.cwd(), 'index.html'), 'utf8'), all = doFirstStrings(src);
+    const pg = await fresh(1440, 'intake');
+    const r = await pg.evaluate(all => { const pan = document.getElementById('panel-intake'), box = document.createElement('div'); pan.querySelector('.area-details').prepend(box);
+      const R = window.__fix.rules, res = [];
+      for (const t of all) { const k = R.findIndex(x => x[0].test(t)); if (k < 0) { res.push({ t, k }); continue; }
+        box.innerHTML = '<div class="note">' + t.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</div>'; window.__fix.pass(pan);
+        const f = box.querySelector('.fixit button'), o = R[k][2]; res.push({ t, k, btn: f ? f.textContent : '', needs: !!(o.click || o.run || o.cfd) }); }
+      box.remove(); window.__fix.pass(pan); return res; }, all);
+    const covered = r.filter(x => x.k >= 0), direct = covered.filter(x => !x.needs), missing = direct.filter(x => !x.btn);
+    ok(covered.length >= 45 && !missing.length, 'empty states: ' + all.length + ' "do X first" strings in the page, ' + covered.length + ' with a rule; every one that opens a tab or a field gets its button (' + direct.length + '; the ' + (covered.length - direct.length) + ' that press a button get it where that button is drawn)' + list(missing.map(x => x.t.slice(0, 50))));
+    // the controls work: a tab, a field in the turbo inputs, the Quick tab's own two
+    await pg.evaluate(() => { const pan = document.getElementById('panel-intake'), d = document.createElement('div'); d.id = 'p3fix'; d.innerHTML = '<div class="note">Lay out a header on the Headers tab first.</div>'; pan.querySelector('.area-details').prepend(d); window.__fix.pass(pan); });
+    await pg.click('#p3fix .fixit button'); await settle(pg); await pg.waitForTimeout(150);
+    const h = await pg.evaluate(() => location.hash);
+    await pg.evaluate(() => { location.hash = 'quick'; }); await settle(pg);
+    const q = await pg.evaluate(() => [...document.querySelectorAll('#panel-quick .fixit button')].map(b => b.textContent));
+    await pg.click('#panel-quick .fixit button >> text=Type the horsepower'); await settle(pg); await pg.waitForTimeout(250);
+    const f = await pg.evaluate(() => [document.activeElement.id, document.body.classList.contains('simple')]);
+    ok(h === '#headers' && q.includes('Type the horsepower') && q.includes('Go to Exhaust length') && f[0] === 'q-hp' && !f[1], 'empty states: "Open the Headers tab" opens it; on Quick "Type the horsepower" turns on Expert and focuses the field ' + JSON.stringify([h, q, f]));
+    await pg.context().close();
+  }
+  // 4. reserved space and the live region (the wave simulation, about 20 s here)
+  {
+    const pg = await fresh(1440, 'four-stroke');
+    await pg.evaluate(() => { const s = document.querySelector('#panel-four .sec[data-sec="wave-simulation"]'); window.scrollTo(0, s.getBoundingClientRect().top + scrollY - 100); });
+    await pg.evaluate(() => document.querySelector('button[data-sim="run"]').click()); await settle(pg); await pg.waitForTimeout(300);
+    const below = () => pg.evaluate(() => { const s = document.querySelector('#panel-four .sec[data-sec="wave-simulation"]'), n = s.nextElementSibling; return Math.round(n.getBoundingClientRect().top + scrollY); });
+    const r0 = await pg.evaluate(() => ({ resv: !!document.querySelector('.resv #sim-status'), live: document.getElementById('live').textContent }));
+    const y0 = await below();
+    await pg.waitForFunction(() => !document.getElementById('sim-status'), null, { timeout: 300000 }); await settle(pg); await pg.waitForTimeout(200);
+    const y1 = await below(), live1 = await pg.evaluate(() => document.getElementById('live').textContent);
+    ok(r0.resv && Math.abs(y1 - y0) < 60 && /Wave simulation: running/.test(r0.live) && /Wave simulation: finished/.test(live1), 'wave simulation: its status sits in the space its results take (the section below moved ' + (y1 - y0) + ' px when they arrived); the live region said "' + r0.live + '" then "' + live1 + '"');
+    // out-of-date marks: the optimiser (a simulated result) and the intake CFD
+    await pg.evaluate(() => { const row = { label: 'as designed', score: 300, T: [300] }; window.__resfp.optFake({ rows: [row], rpms: [5000], best: row }); });
+    await pg.evaluate(() => { const e = document.getElementById('f-rpm'); e.dispatchEvent(new Event('input', { bubbles: true })); }); await settle(pg);
+    const o0 = await pg.evaluate(() => !!document.getElementById('opt-stale'));
+    await pg.evaluate(() => { const e = document.getElementById('f-rpm'); e.value = String(+e.value + 250); e.dispatchEvent(new Event('input', { bubbles: true })); }); await settle(pg);
+    const o1 = await pg.evaluate(() => { const n = document.getElementById('opt-stale'); return !!n && !n.closest('.sec.fc'); });
+    ok(!o0 && o1, 'optimiser: no out-of-date note while the inputs match the run, the standard one (never folded) once the engine changes');
+    await pg.evaluate(() => { location.hash = 'intake'; }); await settle(pg); await uiClick(pg, '#m-expert'); await settle(pg);
+    await pg.evaluate(() => { window.__resfp.mark('cfd', 'caseA'); window.__cfd.ui.results = [{ name: 'caseA', case: 'caseA', solver: 'simpleFoam', it: 500, conv: true, notes: [], mdot: 0.1, rows: [{ plane: 'tract_end', x: 0.3, mdot: 0.1, PR: 1.02, dpt: 900, dps: 800, K: 0.1, Cd: 0.95, CDb: 0.9, UI: 0.97, M: 0.1 }], ypMax: 30, hasMaf: false }];
+      const e = document.getElementById('i-rpm'); e.dispatchEvent(new Event('input', { bubbles: true })); }); await settle(pg);
+    const c0 = await pg.evaluate(() => [!!document.getElementById('cfd-results'), !!document.getElementById('cfd-stale')]);
+    await pg.evaluate(() => { const e = document.getElementById('i-rpm'); e.value = String(+e.value + 300); e.dispatchEvent(new Event('input', { bubbles: true })); }); await settle(pg);
+    const c1 = await pg.evaluate(() => { const n = document.getElementById('cfd-stale'); return { note: !!n, fix: n && n.nextElementSibling && n.nextElementSibling.classList.contains('fixit') ? n.nextElementSibling.textContent : '', mk: document.querySelectorAll('#cfd-results .stmk').length }; });
+    ok(c0[0] && !c0[1] && c1.note && c1.mk === 1 && /OpenFOAM/.test(c1.fix), 'intake CFD: a case written for other inputs is marked out of date, with the control that writes it again (' + JSON.stringify(c1) + ')');
+    await pg.context().close();
+  }
+  // 5. the build sheets as cut lists, and their print
+  {
+    const pg = await fresh(1440, 'quick'); await expandAll(pg);
+    const q = await pg.evaluate(() => { const s = document.querySelector('#panel-quick .sec[data-sec="build-sheet"]'); return { sub: [...s.querySelectorAll('p.sub')].map(p => p.textContent), prim: (s.querySelector('ul.buy > li[data-item="Primary tube"]') || {}).textContent || '', long: [...s.querySelectorAll('ol.sheet .cap')].map(c => c.textContent).join(' ') }; });
+    ok(q.sub.includes('Build list: to order') && /To cut/.test(q.sub[0]) && /in OD × 0\.065 in wall \([\d.]+ × 1\.65 mm\)/.test(q.prim) && /\d+ \d+\/\d+ in \([\d.]+ mm\) long|\d+ in \([\d.]+ mm\) long/.test(q.long), 'Quick build sheet: to cut / to order, tube as ordered (' + q.prim.slice(0, 70) + '), lengths to the inch fraction');
+    await k24(pg);
+    const docs = {}; docs.imp = await pg.evaluate(() => window.__tg.doc()); await uiClick(pg, '#u-met'); await settle(pg); docs.met = await pg.evaluate(() => window.__tg.doc()); await uiClick(pg, '#u-imp'); await settle(pg);
+    const res = [];
+    for (const u of ['imp', 'met']) for (const [paper, w] of [['Letter', 816], ['A4', 794]]) {
+      const d = await b.newPage({ viewport: { width: w, height: 1000 } }); await d.setContent(docs[u]); await d.emulateMedia({ media: 'print' });
+      const r = await d.evaluate(() => ({ clip: [...document.querySelectorAll('table')].filter(t => t.scrollWidth > t.parentElement.clientWidth + 1).length, wide: document.documentElement.scrollWidth - innerWidth,
+        h3: [...document.querySelectorAll('h3')].map(h => h.textContent), cut: [...document.querySelectorAll('h3 + p + table td:nth-child(2), h3 + table td:nth-child(2)')].map(t => t.textContent).join(' | ') }));
+      const pdf = await d.pdf({ format: paper }); await d.close();
+      res.push(u + ' ' + paper + ': ' + r.clip + ' clipped tables, ' + r.wide + ' px over, ' + pdf.length + ' bytes');
+      const asOrd = u === 'imp' ? /[\d.]+ in OD × 0\.065 in wall \([\d.]+ × 1\.65 mm\)/ : /[\d.]+ mm OD × 1\.65 mm wall \([\d.]+ × 0\.065 in\)/;
+      ok(!r.clip && r.wide <= 0 && r.h3.includes('To order') && r.h3.includes('To cut and bend') && asOrd.test(r.cut), 'turbo build sheet, ' + u + ', ' + paper + ' print: to order / to cut, tube as ordered, nothing clipped (' + res[res.length - 1] + ')' + (asOrd.test(r.cut) ? '' : ' ' + JSON.stringify(r.h3) + ' ' + r.cut.slice(0, 200)));
+    }
+    await pg.context().close();
+  }
+  // 6. the busiest tables as stacked cards on a phone
+  for (const width of [400, 1440]) {
+    const pg = await fresh(width, 'quick'); await k24(pg); await expandAll(pg);
+    const r = await pg.evaluate(() => ['tso-turbos', 'tso-ics', 'ts-tbl-in', 'ts-tbl-hot', 'ts-tbl-cold', 'oil-tab'].map(id => { const t = document.getElementById(id); if (!t) return id + ' missing';
+      const w = t.parentElement, tr = t.tBodies[0].rows[0], lab = [...t.tBodies[0].rows].every(r => [...r.cells].slice(1).every(c => c.dataset.l));
+      return { id, stk: w.classList.contains('stk'), disp: getComputedStyle(tr).display, fits: t.getBoundingClientRect().width <= w.getBoundingClientRect().width + 1, lab }; }));
+    const bad = r.filter(x => typeof x === 'string' || !x.stk || !x.lab || (width < 500 ? x.disp !== 'block' || !x.fits : x.disp !== 'table-row'));
+    const hs = await pg.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    ok(!bad.length && hs <= 0, width + ': the turbo options, intercooler cores, tube sizes and oil coolers ' + (width < 500 ? 'stack as cards inside the page, each value labelled' : 'stay tables') + list(bad.map(x => JSON.stringify(x))));
+    await pg.context().close();
+  }
+  // 7. keyboard and screen readers
+  {
+    const pg = await fresh(1440, 'mufflers');
+    await pg.keyboard.press('Tab'); const sk = await pg.evaluate(() => [document.activeElement.id, getComputedStyle(document.activeElement).top]);
+    await pg.keyboard.press('Enter'); await pg.waitForTimeout(100); const sk2 = await pg.evaluate(() => [document.activeElement.id, location.hash]);
+    ok(sk[0] === 'skip' && parseFloat(sk[1]) >= 0 && sk2[0] === 'panel-muf' && sk2[1] === '#mufflers', 'skip link: the first Tab shows it, Enter goes to the calculator without changing the address ' + JSON.stringify([sk, sk2]));
+    const hd = [], keep = [];
+    for (const t of TABS.concat(['k24'])) {
+      if (t === 'k24') await k24(pg); else { await pg.evaluate(t => { location.hash = t; }, t); await settle(pg); }
+      const r = await pg.evaluate(() => { const p = document.querySelector('[role=tabpanel]:not([hidden])'); const hs = [...p.querySelectorAll('h2,h3,h4,h5,h6')].filter(h => !h.closest('[hidden],svg'));
+        const h2 = hs.filter(h => h.tagName === 'H2'); let jump = ''; let prev = 2; for (const h of hs) { const n = +h.tagName[1]; if (n > prev + 1) { jump = h.tagName + ' "' + h.textContent.slice(0, 30) + '" after h' + prev; break; } prev = n; }
+        const lm = !!document.querySelector('header.top') && !!document.querySelector('main#main') && !!document.querySelector('nav[aria-label]');
+        const f = [...p.querySelectorAll('.area-inputs input[type=number]')].find(e => e.getClientRects().length && !e.closest('.advbox:not(.open)'));
+        return { h2: h2.length, first: hs[0] && hs[0].tagName, jump, lm, field: f ? f.id : '' }; });
+      if (r.h2 !== 1 || r.first !== 'H2' || r.jump || !r.lm) hd.push(t + ' ' + JSON.stringify(r));
+      if (r.field) { await pg.focus('#' + r.field); await pg.evaluate(id => { const e = document.getElementById(id); try { e.setSelectionRange(e.value.length, e.value.length); } catch (x) {} }, r.field);
+        await pg.keyboard.type('1'); await settle(pg); await pg.keyboard.press('Backspace'); await settle(pg);
+        const a = await pg.evaluate(() => document.activeElement.id); if (a !== r.field) keep.push(t + ' ' + r.field + ' → ' + a); }
+    }
+    ok(!hd.length, 'every calculator has one h2 (its name, for heading lists) first and no skipped heading level; header, main and nav landmarks' + list(hd));
+    ok(!keep.length, 'a field edit keeps the field focused on every tab and the K24 journey' + list(keep));
+    // Escape closes every popover: the All list, the Settings panel (400 px), the Projects dialog
+    await pg.click('#proj-btn'); await pg.waitForTimeout(100); await pg.keyboard.press('Escape'); await pg.waitForTimeout(100);
+    const dlg = await pg.evaluate(() => !document.getElementById('proj-dlg').open);
+    await pg.setViewportSize({ width: 400, height: 860 }); await settle(pg);
+    await pg.click('#tabsall'); await pg.keyboard.press('Escape'); const ta = await pg.evaluate(() => document.getElementById('tabpop').hidden);
+    await pg.click('#set-btn'); await pg.keyboard.press('Escape'); const se = await pg.evaluate(() => !document.querySelector('.top').classList.contains('setopen'));
+    ok(dlg && ta && se, 'Escape closes the Projects dialog, the All list and the Settings panel ' + JSON.stringify([dlg, ta, se]));
+    const lr = await pg.evaluate(() => { const l = document.getElementById('live'); return l.getAttribute('aria-live') === 'polite' && l.getAttribute('role') === 'status'; });
+    ok(lr, 'one polite live region (role status) for run status');
+    await pg.context().close();
+  }
+  // 8. nothing lost against the page before pass three
+  let old3 = null;
+  try { old3 = execFileSync('git', ['show', BASE3 + ':web/index.html'], { cwd: __dirname, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old3 = null; }
+  if (!old3) skipPart('ui_ui: the full-text comparison for pass three needs the page before it from git (commit ' + BASE3 + ')');
+  else {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'et-ui3-')), f3 = path.join(dir, 'before3.html'); fs.writeFileSync(f3, old3);
+    const pn = await fresh(1440, 'quick'), ctxO = await b.newContext({ viewport: { width: 1440, height: 900 } }), po = await ctxO.newPage();
+    await po.goto('file://' + f3 + '#quick'); await po.waitForTimeout(700); await settle(po);
+    // innerText with everything open, as pass two compared (textContent joins blocks with no space between them)
+    const TEXT = () => { const p = document.querySelector('[role=tabpanel]:not([hidden])');
+      return { all: document.getElementById('vbar').innerText + '\n' + p.innerText, sheet: (() => { const s = p.querySelector('.sec[data-sec="build-sheet"]'); return s ? s.innerText : ''; })() }; };
+    const words = t => { const m = new Map(); for (const w of t.replace(/([a-z])([A-Z])/g, '$1 $2').match(/[\p{L}\p{N}]+/gu) || []) m.set(w, (m.get(w) || 0) + 1); return m; };
+    const miss = [];
+    for (const t of TABS.concat(['k24'])) {
+      for (const g of [pn, po]) { if (t === 'k24') await k24(g); else { await g.evaluate(t => { location.hash = t; }, t); await settle(g); } await expandAll(g); }
+      const a = await po.evaluate(TEXT), n = await pn.evaluate(TEXT);
+      const A = words(t === 'quick' ? a.all.replace(a.sheet, '') : a.all), A2 = t === 'quick' ? words(a.sheet) : new Map(), B = words(n.all);
+      for (const [w, k] of A) if ((B.get(w) || 0) < k) miss.push(t + ': ' + w + ' ×' + (k - (B.get(w) || 0)));
+      for (const [w, k] of A2) if (/\p{L}/u.test(w) && (B.get(w) || 0) < k + (A.get(w) || 0)) miss.push(t + ' sheet: ' + w);
+    }
+    ok(!miss.length, 'every word and figure of the page before pass three is still there on every tab and the K24 journey (the Quick build sheet: every word; its lengths now read to the inch fraction)' + list(miss, 12));
+    await pn.context().close(); await ctxO.close(); fs.rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 (async () => {
   const b = await chromium.launch(); const fails = []; const errs = [];
   const ok = (c, m) => { if (!c) fails.push(m); console.log((c ? 'PASS ' : 'FAIL ') + m); };
   const list = (a, n = 6) => a.length ? ' — ' + a.slice(0, n).join('; ') + (a.length > n ? ' … (' + a.length + ')' : '') : '';
-  for (const theme of ['light', 'dark']) for (const width of [1440, 420, 400]) {
+  if (!ONLY3) for (const theme of ['light', 'dark']) for (const width of [1440, 420, 400]) {
     const ctx = await b.newContext({ viewport: { width, height: width < 600 ? 860 : 900 }, colorScheme: theme, hasTouch: width < 600 });
     const pg = await ctx.newPage();
     pg.on('pageerror', e => errs.push(width + ' ' + theme + ': ' + e.message)); pg.on('console', m => { if (m.type() === 'error') errs.push(width + ' ' + theme + ' console: ' + m.text()); });
@@ -189,6 +407,9 @@ async function timeEdits(b, file, font) {
   }
   ok(!errs.length, 'no console errors' + list(errs));
 
+  await passThree(b, ok, list, errs);
+  if (ONLY3) { await b.close(); console.log(fails.length ? '\n' + fails.length + ' FAILED' : '\nall passed'); process.exit(fails.length ? 1 : 0); }
+
   // ---------- pass two ----------
   let old2 = null;
   try { old2 = execFileSync('git', ['show', BASE2 + ':web/index.html'], { cwd: __dirname, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old2 = null; }
@@ -217,8 +438,13 @@ async function timeEdits(b, file, font) {
       if (po) {
         const oldText = await po.evaluate(TEXT), oldTc = await po.evaluate(TC), tcN = await pn.evaluate(TC);
         await expandAll(pn); const newText = await pn.evaluate(TEXT); await expandAll(pn, false);
-        const m1 = missing(oldText, newText), m2 = missing(oldTc, tcN);
-        ok(!m1.length && !m2.length, t + ': every word of the page before pass two is still there (' + words(oldText).size + ' distinct words drawn with everything open; textContent too)' + list(m1.concat(m2), 12));
+        let m1 = missing(oldText, newText), m2 = missing(oldTc, tcN);
+        // pass three reads the Quick build sheet's lengths to the inch fraction ("39.9 in" -> "39 7/8 in"): a figure of that
+        // sheet may go; and textContent joins two blocks with no space ("in" + "where"): a run of two words still there may
+        if (t === 'quick') { const sh = words(await po.evaluate(() => { const s = document.querySelector('#panel-quick .sec[data-sec="build-sheet"]'); return s ? s.textContent : ''; })), B = words(tcN);
+          const ok3 = e => { const w = e.split(' ×')[0]; if (/^\d+$/.test(w) && sh.has(w)) return true; for (let i = 1; i < w.length; i++) if (B.has(w.slice(0, i)) && B.has(w.slice(i))) return true; return false; };
+          m1 = m1.filter(e => !ok3(e)); m2 = m2.filter(e => !ok3(e)); }
+        ok(!m1.length && !m2.length, t + ': every word of the page before pass two is still there (' + words(oldText).size + ' distinct words drawn with everything open; textContent too' + (t === 'quick' ? '; the build sheet\'s figures read to the inch fraction since pass three' : '') + ')' + list(m1.concat(m2), 12));
       }
     }
     // disclosures by keyboard
@@ -314,17 +540,19 @@ async function timeEdits(b, file, font) {
   fs.rmSync(dir2, { recursive: true, force: true });
 
   // field-edit timing against the page before the UI pass, same font in both
-  let old = null;
+  let old = null, old3 = null;
+  try { old3 = execFileSync('git', ['show', BASE3 + ':web/index.html'], { cwd: __dirname, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old3 = null; }
   try { old = execFileSync('git', ['show', BASE + ':web/index.html'], { cwd: __dirname, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old = null; }
-  if (!old || !old2) skipPart('ui_ui: the field-edit timing comparison needs the pages before the UI passes from git (commits ' + BASE + ', ' + BASE2 + '; not in a shallow clone)');
+  if (!old || !old2 || !old3) skipPart('ui_ui: the field-edit timing comparison needs the pages before the UI passes from git (commits ' + BASE + ', ' + BASE2 + '; not in a shallow clone)');
   else {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'et-ui-')), f0 = path.join(dir, 'before.html'), f1 = path.join(dir, 'before2.html'); fs.writeFileSync(f0, old); fs.writeFileSync(f1, old2);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'et-ui-')), f0 = path.join(dir, 'before.html'), f1 = path.join(dir, 'before2.html'), f3 = path.join(dir, 'before3.html'); fs.writeFileSync(f0, old); fs.writeFileSync(f1, old2); fs.writeFileSync(f3, old3);
     const font = ":root{--f-ui:'Liberation Sans',Arial,sans-serif!important;--f-display:'Liberation Sans',Arial,sans-serif!important}";
-    const A = [], A2 = [], B = [];
-    for (let k = 0; k < 2; k++) { A.push(await timeEdits(b, f0, font)); A2.push(await timeEdits(b, f1, font)); B.push(await timeEdits(b, path.join(process.cwd(), 'index.html'), font)); }
+    const A = [], A2 = [], A3 = [], B = [];
+    for (let k = 0; k < 2; k++) { A.push(await timeEdits(b, f0, font)); A2.push(await timeEdits(b, f1, font)); A3.push(await timeEdits(b, f3, font)); B.push(await timeEdits(b, path.join(process.cwd(), 'index.html'), font)); }
     for (const t of Object.keys(A[0])) { const a = Math.min(A[0][t], A[1][t]), a2 = Math.min(A2[0][t], A2[1][t]), n = Math.min(B[0][t], B[1][t]);
       ok(n <= a * 1.2 + 5, t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a.toFixed(1) + ' ms before the UI pass (limit +20 % + 5 ms)');
-      ok(n <= a2 * 1.2 + 5, t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a2.toFixed(1) + ' ms before pass two (limit +20 % + 5 ms)'); }
+      ok(n <= a2 * 1.2 + 5, t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a2.toFixed(1) + ' ms before pass two (limit +20 % + 5 ms)');
+      const a3 = Math.min(A3[0][t], A3[1][t]); ok(n <= a3 * 1.1 + 5, t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a3.toFixed(1) + ' ms before pass three (limit +10 % + 5 ms)'); }
     fs.rmSync(dir, { recursive: true, force: true });
   }
   await b.close();

@@ -58,7 +58,7 @@
 [hidden]{display:none!important}
 html{scroll-padding-top:calc(var(--stick,124px) + 8px);overflow-anchor:none}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--fs-base)/1.5 var(--f-body);font-variant-numeric:tabular-nums;
-  padding-block:0 64px;padding-left:var(--gut-l);padding-right:var(--gut-r);
+  padding-block:0 calc(64px + env(safe-area-inset-bottom,0px));padding-left:var(--gut-l);padding-right:var(--gut-r);
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bg)}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -588,6 +588,46 @@ ul.list li+li,ol.list li+li{margin-top:6px}
 /* a long run: how long it has taken, and its Cancel */
 .runstat[data-el]::before{content:attr(data-el);float:right;margin-left:10px;font:500 var(--fs-sm)/1.5 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
 
+/* ----- pass three (docs/UI_REDESIGN_2026-11-16.md, "Pass three"): first run, empty states, reserved space, small screens ----- */
+.skip{position:absolute;left:12px;top:-80px;z-index:300;padding:10px 14px;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent);font:600 var(--fs-md)/1.2 var(--f-ui);text-decoration:none}
+.skip:focus{top:calc(env(safe-area-inset-top,0px) + 8px)}
+main.stage:focus,[role=tabpanel]:focus,.st-hd h2:focus{outline:none}
+.start{margin-top:22px;padding:16px 18px 14px;border:1px solid var(--accent-line);border-radius:var(--r-lg);background:var(--raised);box-shadow:var(--lift)}
+body[data-tab]:not([data-tab="quick"]) .start{display:none}
+.st-hd{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.st-hd h2{margin:0;font:600 var(--fs-lg)/1.2 var(--f-display)}
+.st-steps{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:14px 20px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.st-steps>li{display:grid;grid-template-columns:26px minmax(0,1fr);gap:0 10px;align-content:start}
+.st-n{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--ink);font:600 var(--fs-sm)/1 var(--f-ui)}
+.st-steps>li.done .st-n{background:var(--ok);color:var(--ok-bg)}
+.st-steps b{display:block;font-size:var(--fs-base);line-height:26px}
+.st-why{display:block;font-size:var(--fs-sm);color:var(--muted);line-height:1.4}
+.st-do{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px}
+.st-do .btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.st-foot{margin:12px 0 0;font-size:var(--fs-sm)}
+.top .segs .startbtn{min-height:32px;padding:5px 11px;font-size:12.5px}
+@media (max-width:899px){.st-steps{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:699px){.start{padding:12px 14px}.st-why,.st-foot{display:none}.st-steps{gap:10px;margin-top:8px}.st-do{margin-top:4px}.top .segs .startbtn{min-height:var(--hit)}}
+/* a "do X first" note carries the control that does X */
+.stmk{display:inline-block;margin-left:6px;padding:0 6px;border:1px dashed var(--stale);border-radius:6px;background:var(--stale-bg);color:var(--stale);font:600 var(--fs-xs)/1.5 var(--f-ui);white-space:nowrap}
+.fixit{margin:8px 0 0}
+.note+.fixit{margin-top:6px}
+/* the space a run's results will take, with its status inside, so nothing below moves when they arrive */
+.resv{position:relative;display:flex;flex-direction:column;gap:12px;margin-top:12px;padding:14px;border:1px dashed var(--line-2);border-radius:var(--r-lg);min-height:var(--resv-h,320px)}
+.resv>.runstat{margin:0}
+.resv-sk{flex:1;border-radius:var(--r-md);background:linear-gradient(var(--well),var(--well)) top/100% 38% no-repeat,repeating-linear-gradient(180deg,transparent 0 36px,var(--line) 36px 37px) bottom/100% 56% no-repeat}
+/* the five busiest tables as stacked cards on a phone (the label of each value from its column heading) */
+@media (max-width:499px){
+  .tblwrap.stk{max-height:none;overflow:visible;border:0;background:none}
+  .tblwrap.stk table,.tblwrap.stk tbody,.tblwrap.stk tr,.tblwrap.stk td{display:block;width:auto;min-width:0}
+  .tblwrap.stk thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .tblwrap.stk tr{margin:0 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--raised)}
+  .tblwrap.stk td,.tblwrap.stk td:first-child{position:static;max-width:none;white-space:normal;padding:3px 0;border:0;text-align:left;background:none}
+  .tblwrap.stk td:first-child{font-weight:600;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+  .tblwrap.stk td[data-l]:not(:first-child)::before{content:attr(data-l);display:block;font:500 var(--fs-xs)/1.3 var(--f-ui);color:var(--muted)}
+  .tblwrap.stk td:empty{display:none}
+  .tblwrap.stk tr.cur{border-color:var(--accent-line)}
+}
 /* touch widths (Fusion's palette, a phone): every control at least 40 px tall */
 @media (max-width:699px),(pointer:coarse){
   .seg button{min-height:var(--hit)}
@@ -619,7 +659,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   --t1:#D9B35C; --t2:#C47A30; --t3:#8C4F9F; --t4:#3F5DC8; --t5:#8FB4E4;
   --info:#2B5A80; --stale:#5B4E8C; --stale-bg:#E7E3F2;
     color-scheme:light}
-  .top,.tabs,.navbar,.vbar,.tabcap,.lede,.fusionbar,.toc,.linkbtn,.foldbar{display:none!important}
+  .top,.tabs,.navbar,.vbar,.tabcap,.lede,.fusionbar,.toc,.linkbtn,.foldbar,.start,.skip,.fixit,.resv-sk{display:none!important}
   /* print shows every section and every explanation in full */
   .sec.fc>h3>.fbtn::after{content:none}
   .sec>h3>.fbtn{padding-left:0}.sec>h3>.fbtn::before,.fmk,.hmore,.hro{display:none!important}
@@ -633,6 +673,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
 </style>
 
 <div class="wrap">
+  <a class="skip" href="#main" id="skip">Skip to the calculator</a>
   <header class="top">
     <div class="brand">
       <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.2" style="stroke:var(--t4)"/><circle cx="16" cy="16" r="9.6" style="stroke:var(--t3)"/><circle cx="16" cy="16" r="6" style="stroke:var(--t2)"/><circle cx="16" cy="16" r="2.6" style="stroke:var(--t1)"/></svg>
@@ -656,6 +697,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <button type="button" id="f-32" aria-pressed="false">1/32</button>
         <button type="button" id="f-64" aria-pressed="false">1/64</button>
       </div>
+      <button type="button" class="btn startbtn" id="start-btn" aria-controls="start" title="Show the three first steps on the Quick tab">Start here</button>
       <button type="button" class="btn projbtn" id="proj-btn" aria-haspopup="dialog" title="Save, load and compare builds">Projects</button>
       <button type="button" class="iconbtn themebtn" id="theme-btn" aria-label="Colour theme: follows the system" title="Colour theme: follows the system"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path class="fillhalf" d="M12 3.8a8.2 8.2 0 0 1 0 16.4z"/></svg><span class="tlab" aria-hidden="true">Colour theme</span></button>
       <div class="hostwrap">
@@ -738,12 +780,22 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     <button type="button" role="tab" id="tab-opt" data-tab="options" aria-controls="panel-opt" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7h9M17.5 7h3M3.5 17h3M11.5 17h9"/><circle cx="15" cy="7" r="2.3"/><circle cx="9" cy="17" r="2.3"/></svg><span>Options</span></button>
   </nav>
   <div class="tabpop" id="tabpop" role="group" aria-label="All calculators" hidden></div>
+  <div class="vh" id="live" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>
 
-  <main class="stage">
+  <main class="stage" id="main" tabindex="-1">
   <div class="fusionbar" id="fusionbar" hidden>
     <b>Connected to Fusion.</b> <span id="fusion-status">Select a sketch path, edge, tube body or keep-out body in the model, then use the Fusion tools on each tab.</span>
   </div>
+  <section class="start" id="start" aria-labelledby="start-h" hidden>
+    <div class="st-hd"><h2 id="start-h" tabindex="-1">Start here</h2><button type="button" class="linkbtn" id="start-x">Hide this</button></div>
+    <ol class="st-steps">
+      <li data-step="pick"><span class="st-n" aria-hidden="true">1</span><div><b>Pick your engine or car</b><span class="st-why">From the list just below, or describe the engine under Engine on this tab.</span><div class="st-do"><button type="button" class="btn" data-start="pick">Choose from the list</button></div></div></li>
+      <li data-step="build"><span class="st-n" aria-hidden="true">2</span><div><b>Say what you are building</b><span class="st-why">Each one opens the tab that works it out.</span><div class="st-do" role="group" aria-label="What you are building"><button type="button" class="btn" data-start="exhaust" aria-pressed="false">Exhaust</button><button type="button" class="btn" data-start="intake" aria-pressed="false">Intake</button><button type="button" class="btn" data-start="turbo" aria-pressed="false">Turbo build</button></div></div></li>
+      <li data-step="sheet"><span class="st-n" aria-hidden="true">3</span><div><b>Read your build sheet</b><span class="st-why">Every part and size in flow order: what to order and what to cut.</span><div class="st-do"><button type="button" class="btn primary" data-start="sheet">Open the build sheet</button></div></div></li>
+    </ol>
+    <p class="cap st-foot">Hide this when you know your way round; Start here under Settings brings it back.</p>
+  </section>
   <p class="lede">Headers, collectors, crossovers, megaphones, two-stroke chambers, resonators, mufflers, catalytic converters and boom tubes, with drone, pipe vibration and turbo or supercharger tones, for anything from a single-cylinder bike to a rotary or a V12. Round, oval and flat-oval tube all work. Every figure is a first cut to build, listen to and trim; the Options tab shows what each change does.</p>
 
   <div class="vbar card" id="vbar">
@@ -2471,7 +2523,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     <div class="area-details"><div id="hg-details"></div></div>
     <!-- ============ MOUNTS designer (brackets for the intercooler and other bolt-on parts; JS block "Mounts designer") ============ -->
     <div class="card mt-card" id="mt-card" style="grid-column:1/-1;min-width:0">
-      <h2 class="sub" style="font-size:15px;color:var(--ink);margin:0 0 6px">Mounts: brackets for the intercooler, coolers and other bolt-on parts</h2>
+      <h3 class="sub" style="font-size:15px;color:var(--ink);margin:0 0 6px">Mounts: brackets for the intercooler, coolers and other bolt-on parts</h3>
       <p class="cap u-mt0">Pick the part, say where its mounts are and how far each bracket reaches to the chassis, and the page sizes the brackets by calculation (load per mount, isolators, plate thickness, bolts, welds, heat growth) and draws them in inches and millimetres, ready to cut, bend and weld, or to build in Fusion against your scan.</p>
       <form class="mt-form" id="mt-form" onsubmit="return false" autocomplete="off">
         <div class="grp u-mt8">The part</div>
@@ -13112,7 +13164,7 @@ function wsndPart(sp){
     (wsndStale(q)?'<div class="note warn" id="wsnd-stale">The inputs changed since this estimate (the engine, the header, the line, the speeds, the load or the microphone), so the sound below is for the earlier design. Estimate it again to update it.</div>':'')+
     '<div class="note'+(WSND.msg&&WSND.msg.bad?' bad':'')+'" id="wsnd-msg"'+(WSND.msg?'':' hidden')+'>'+(WSND.msg?esc(WSND.msg.t):'')+'</div>'+
     (WSND.notes.length?'<ul class="list">'+WSND.notes.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'');
-  if(!all.length) return h;
+  if(!all.length) return h+(WSND.busy?resvHtml('wsnd',''):'');
   const speeds=[...new Set([].concat(...all.map(s=>s.runs.filter(x=>!x.err).map(x=>x.rpm))))].sort((a,b)=>a-b);
   if(!P.rpm||speeds.indexOf(P.rpm)<0) P.rpm=speeds[Math.min(1,speeds.length-1)];
   const at=(s,r)=>s.runs.find(x=>!x.err&&x.rpm===r);
@@ -13637,7 +13689,7 @@ const saveCall=(a,d)=>FUSION?fusionCall(a,d):hostCall(a,d);
    the global HOST.cancel(), which stops every run the program has going, as Stop always did there. */
 const HREQ={};
 function hostRun(kind,action,data,onEvent){ const p=HOST.call(action,data,onEvent), s=HREQ[kind]||(HREQ[kind]=new Set());
-  s.add(p); const end=()=>s.delete(p); p.then(end,end); return p; }
+  s.add(p); const end=()=>{ s.delete(p); if(typeof hostStatAll==='function') setTimeout(hostStatAll,0); }; p.then(end,end); if(typeof hostStatAll==='function') setTimeout(hostStatAll,0); return p; }
 function hostStop(...kinds){ if(!HOST) return; const ps=kinds.flatMap(k=>[...(HREQ[k]||[])]);
   if(ps.length&&ps.every(p=>typeof p.cancel==='function')) ps.forEach(p=>p.cancel());
   else if(ps.length||!HOST.cancelsById) HOST.cancel(); }
@@ -20311,6 +20363,13 @@ function coneFlat(d0,d1,len,wall){
   return {R0:R1-s,R1,sweep:360*big/R1,slant:s};
 }
 const SHEET_GAP=152.4;          // mm: plain pipe kept between welded-in parts so each joint can be reached, 6 in
+// (UI pass three) tube as it is ordered: nominal outside diameter and wall first, the other units after, "3 in OD × 0.065 in
+// wall (76.2 × 1.65 mm)"; and a size in both units. Formatting only: the same diameters as before.
+const tubeSz=(od,w)=>{ w=w>0?w:1.651; const i=v=>String(+(v/MM).toFixed(3)), m=v=>(+v.toFixed(2)).toString();
+  return U==='imp'?i(od)+' in OD × '+i(w)+' in wall ('+(+od.toFixed(1))+' × '+m(w)+' mm)':(+od.toFixed(1))+' mm OD × '+m(w)+' mm wall ('+i(od)+' in × '+i(w)+' in)'; };
+const tubBoth=mm=>U==='imp'?String(+(mm/MM).toFixed(3))+' in ('+mm.toFixed(1)+' mm)':mm.toFixed(1)+' mm ('+(+(mm/MM).toFixed(3))+' in)';
+// a length to cut: inches to the inch-fraction setting with mm, as the cut lists give it
+const cutLen=mm=>U==='imp'?inMm(mm):clen(mm);
 function quickSheet(p,r){
   const h=r.header, m=r.main, f0=x=>Math.round(x).toLocaleString('en-US'), W=WALL_STD;
   if(r.rotary||(!h&&!r.two)) return null;
@@ -20318,7 +20377,7 @@ function quickSheet(p,r){
   const sys=Number.isFinite(p.sys)&&p.sys>0?p.sys:null;
   let x=0;
   const add=(name,size,len,note,o)=>{ const row=Object.assign({name,size,at:x,len,note},o||{}); rows.push(row); if(len>0&&!(o&&o.side)) x+=len; return row; };
-  const idod=(id,od)=>cdim(id)+' ID'+(od>0?', '+tubIn(od)+' OD':'');
+  const idod=(id,od)=>cdim(id)+' ID'+(od>0?', '+tubBoth(od)+' OD':'');
   const cone=(a,b)=>cdim(a)+' to '+cdim(b)+' ID';
   if(r.two){
     // a two-stroke: the expansion chamber is the whole tuned system; its tab works out every dimension
@@ -20337,7 +20396,7 @@ function quickSheet(p,r){
   const n=r.n;
   if(h.separate){
     add(h.pipesEach>1?'Header pipes':'Header pipe',idod(h.dp,h.od),h.tube,(h.pipesEach>1?'One per cylinder. ':'')+'Tuned for about '+f0(r.tune)+' RPM.');
-    buy.push(['Header tube',tubIn(h.od)+' OD × 0.065 in wall',h.pipesEach+' × '+clen(h.tube)+' straight length','plus whatever the bends take; the route sets them']);
+    buy.push(['Header tube',tubeSz(h.od),h.pipesEach+' × '+clen(h.tube)+' straight length','plus whatever the bends take; the route sets them']);
   } else {
     const per=h.groups&&h.groups.length?h.groups[0].cyls.length:n;
     h.segs.forEach((s,i)=>{
@@ -20346,7 +20405,7 @@ function quickSheet(p,r){
         prim?'One per cylinder, all the same length ('+per+' into each collector). Tuned for about '+f0(r.tune)+' RPM.':'');
     });
     const first=h.segs[0];
-    buy.push(['Primary tube',tubIn(h.od)+' OD × 0.065 in wall',n+' × '+clen(first.len)+' straight length (total '+clen(n*first.len)+')','plus whatever the bends take; the route sets them']);
+    buy.push(['Primary tube',tubeSz(h.od),n+' × '+clen(first.len)+' straight length (total '+clen(n*first.len)+')','plus whatever the bends take; the route sets them']);
     if(h.triy){ const sx=h.segs.find(s=>/second/i.test(s.name)); buy.push(['Tri-Y merges','2 primaries into '+cdim(h.lay.dsec)+' ID',(n/2)+'',sx?'secondary tubes '+clen(sx.len)+' each':'']); }
     buy.push(['Merge collectors',(h.triy?'2':per)+' into 1, '+cdim(h.dc)+' ID out',h.nColl+'','with '+clen(h.lay.cstraight)+' of straight after the merge']);
   }
@@ -20364,7 +20423,7 @@ function quickSheet(p,r){
   }
   if(cn){ const fl=coneFlat(Math.min(dEnd,mid),Math.max(dEnd,mid),cn.len,W);
     buy.push([cn.kind,cone(dEnd,mid)+' × '+clen(cn.len),sides+'',fl?'from 16 ga sheet: arcs of '+bothL(fl.R0)+' and '+bothL(fl.R1)+' radius over '+fl.sweep.toFixed(1)+'° (mid-wall, butt seam, no allowance), or buy a cone':'']); }
-  buy.push(['V-band clamps',tubIn(od)+' tube',sides+'','at the collector outlets, so the headers come off']);
+  buy.push(['V-band clamps',tubBoth(od)+' tube',sides+'','at the collector outlets, so the headers come off']);
   // the open race alternative: the 4-Stroke tab's megaphone (twice the collector's area, 8° included)
   if(p.use!=='street') alts.push('Open megaphone instead of mufflers (race, off-road): '+cone(dEnd,dEnd*Math.SQRT2)+' over '+clen(coneLen(dEnd,dEnd*Math.SQRT2,8))+
     ', 8° included, starting right at the collector. That is twice the collector’s area, the 4-Stroke tab’s default. Expect it to be very loud: the AHRMA test on this page measured an open megaphone about 6 dB over a plain open pipe.');
@@ -20379,7 +20438,7 @@ function quickSheet(p,r){
       if(gap>0) add('Main pipe'+each,idod(mid,od),gap,'Brings the crossover to '+clen(r.cross.pos)+' behind the collectors.');
       if(xs.type==='x'){
         add('X-pipe',xp.ang+'° each pipe, merged duct '+cdim(xs.dm)+' ID',xs.len,'Pipes '+clen(S)+' apart centre to centre'+(s0>od+25.4?' (the Crossover tab’s spacing)':' (assumed: enter yours on the Crossover tab)')+'. Smoother, higher note; evens out the bank pulses.');
-        buy.push(['X-pipe',tubIn(od)+', '+xp.ang+'° each pipe','1','buy one, or build it from the steps below ('+xs.g.bends+' bends of '+(+xp.ang.toFixed(1))+'°)']);
+        buy.push(['X-pipe',tubBoth(od)+', '+xp.ang+'° each pipe','1','buy one, or build it from the steps below ('+xs.g.bends+' bends of '+(+xp.ang.toFixed(1))+'°)']);
       } else {
         const Lh=2*xs.stub+xs.dc;
         add('H-pipe','balance tube '+cdim(xs.dc)+' ID, '+clen(xs.tube)+' between the pipe walls',Lh,'Pipes '+clen(S)+' apart centre to centre'+(s0>od+25.4?'':' (assumed: enter yours on the Crossover tab)')+'. The deeper, traditional note.');
@@ -20390,8 +20449,8 @@ function quickSheet(p,r){
   const xCross=x;
   // ---- converters (street) ----
   if(p.use==='street'){
-    add('Catalytic converters'+each,'inlet and outlet for '+tubIn(od)+' tube',NaN,'In the run of main pipe that follows. Closer to the engine they light off sooner but run hotter (Cats tab). In California a street car needs an approved replacement for that vehicle (CARB Executive Order).',{side:true});
-    buy.push(['Catalytic converters',tubIn(od)+' inlet and outlet',sides+'','CARB-approved for the vehicle on a California street car']);
+    add('Catalytic converters'+each,'inlet and outlet for '+tubBoth(od)+' tube',NaN,'In the run of main pipe that follows. Closer to the engine they light off sooner but run hotter (Cats tab). In California a street car needs an approved replacement for that vehicle (CARB Executive Order).',{side:true});
+    buy.push(['Catalytic converters',tubBoth(od)+' inlet and outlet',sides+'','CARB-approved for the vehicle on a California street car']);
     buy.push(['Oxygen sensor bungs','M18 × 1.5',(2*sides)+'','one ahead of each converter, one behind it on OBD-II cars; mount above horizontal so water drains off the sensor']);
   } else buy.push(['Oxygen sensor bung','M18 × 1.5',sides+'','one per side ahead of the muffler, for a wideband while tuning']);
   // ---- the drone fix: a Helmholtz can where the cruise tone's pressure peaks ----
@@ -20436,15 +20495,15 @@ function quickSheet(p,r){
     } else notes.push({k:'warn',t:'There is no room behind the crossover on '+sysWhy+' '+clen(sysL)+' system for a resonator tee for the '+Math.round(f)+' Hz cruise tone; check the head-to-tip length, or let the Mufflers tab work it out for your actual pipe.'});
   } else if(r.drone) notes.push({k:'ok',t:'No pipe length that fits resonates with the '+Math.round(r.drone.f)+' Hz cruise tone, so the build needs no Helmholtz resonator or J-pipe.'});
   // ---- mufflers, tailpipes, tips: no rule fixes where these go ----
-  const q=r.parts.length?r.parts[0].q:null, inch=v=>v==null?'?':tubIn(v*MM);
+  const q=r.parts.length?r.parts[0].q:null, inch=v=>v==null?'?':tubBoth(v*MM);
   add((sides>1?'Mufflers':'Muffler')+each,q?q.brand+' '+q.model+' '+q.pn+': inlet '+inch(q.inD)+', outlet '+inch(q.outD)+(q.w?', case '+inch(q.w)+' × '+inch(q.h):'')+(q.oal!=null?', '+inch(q.oal)+' overall':''):TYPE_NAME[r.mufType]+' for '+r.mSize+' in pipe',
     q&&q.oal!=null?q.oal*MM:NaN,'Behind the resonator, wherever the floor has room. Nothing in the model sets this position.',{side:true,free:true});
   if(q) buy.push(['Mufflers',q.brand+' '+q.model+' '+q.pn,sides+'',TYPE_NAME[q.type]+(q.oal!=null?', '+inch(q.oal)+' overall':'')]);
-  add('Tailpipes and tips'+each,idod(mid,od)+', tips to fit '+tubIn(od),NaN,'To the bumper.',{side:true,free:true});
+  add('Tailpipes and tips'+each,idod(mid,od)+', tips to fit '+tubBoth(od),NaN,'To the bumper.',{side:true,free:true});
   // main pipe length: what is known in front of the muffler, and the rest when the whole length is given
   const mainRuns=rows.filter(o=>/^Main pipe/.test(o.name)).reduce((a,o)=>a+o.len,0);
   const known=x+(q&&q.oal!=null?q.oal*MM:0);
-  buy.push(['Main pipe tube',tubIn(od)+' OD × 0.065 in wall',sys&&sys>known?clen(mainRuns+(sys-known))+each:clen(mainRuns)+each+' up to the resonator, plus the run to the muffler and the tailpipe',sys&&sys>known?'from your '+clen(sys)+' head-to-tip length, before bends':'enter the head-to-tip length for the whole run']);
+  buy.push(['Main pipe tube',tubeSz(od),sys&&sys>known?clen(mainRuns+(sys-known))+each:clen(mainRuns)+each+' up to the resonator, plus the run to the muffler and the tailpipe',sys&&sys>known?'from your '+clen(sys)+' head-to-tip length, before bends':'enter the head-to-tip length for the whole run']);
   const tee=rows.find(o=>o.tee);
   buy.push(['Hangers','rubber-isolated',(sides*(tee?4:2))+'','ahead of and behind each muffler'+(tee?' and resonator can':'')]);
   // drone lengths against the whole system, when it is known
@@ -20468,13 +20527,13 @@ function quickSheet(p,r){
   return {rows,buy,steps:steps.filter(Boolean),alts,notes,sides,x,xs,xp};
 }
 function sheetHtml(sh){
-  const where=o=>o.free?(o.tee?'where it goes depends on the whole length (enter it above)':'where the floor has room'):'starts '+clen(o.at)+' from the head flange';
+  const where=o=>o.free?(o.tee?'where it goes depends on the whole length (enter it above)':'where the floor has room'):'starts '+cutLen(o.at)+' from the head flange';
   const item=(o,i)=>'<li data-part="'+esc(o.name)+'" data-size="'+esc(o.size)+'" data-at="'+(o.free?'':clen(o.at))+'"><b>'+esc(o.name)+'</b>: '+esc(o.size)+
-    '<br><span class="cap">'+where(o)+(o.len>0?' · '+clen(o.len)+' long':o.tee?' · a side branch, off the pipe':'')+(o.note?'. '+esc(o.note):'')+'</span></li>';
-  let h='<p class="cap u-mt0">In flow order from the head flange'+(sh.sides>1?', for each side (build both sides as mirror images)':'')+'. Distances are along the pipe’s centreline from the head flange.</p>'+
+    '<br><span class="cap">'+where(o)+(o.len>0?' · '+cutLen(o.len)+' long':o.tee?' · a side branch, off the pipe':'')+(o.note?'. '+esc(o.note):'')+'</span></li>';
+  let h='<p class="sub u-mt0">To cut and fit: the parts in flow order</p><p class="cap u-mt0">In flow order from the head flange'+(sh.sides>1?', for each side (build both sides as mirror images)':'')+'. Distances are along the pipe’s centreline from the head flange.</p>'+
     '<ol class="list sheet">'+sh.rows.map(item).join('')+'</ol>'+notesHtml(sh.notes);
   if(sh.alts.length) h+='<p class="sub u-mt14">Alternatives</p><ul class="list">'+sh.alts.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>';
-  if(sh.buy.length) h+='<p class="sub u-mt14">Build list</p><ul class="list buy">'+
+  if(sh.buy.length) h+='<p class="sub u-mt14">Build list: to order</p><ul class="list buy">'+
     sh.buy.map(b=>'<li data-item="'+esc(b[0])+'"><b>'+esc(b[0])+'</b>: '+esc(b[1])+', <b>'+esc(b[2])+'</b>'+(b[3]?'<br><span class="cap">'+esc(b[3])+'</span>':'')+'</li>').join('')+'</ul>';
   h+='<p class="sub u-mt14">Build order</p><ol class="list steps">'+sh.steps.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ol>';
   if(sh.xs&&!sh.xs.err&&sh.xs.type==='x') h+='<details id="q-xsteps" class="u-mt10"'+(SHEET_XOPEN?' open':'')+'><summary>X-pipe build steps</summary>'+xBuildSheet(sh.xs,sh.xp)+'</details>';
@@ -21382,9 +21441,11 @@ function tsimSection(q){
   h+='<div class="tblwrap"><table id="tsim-src"><thead><tr><th>What the run takes</th><th>Value</th><th>From</th></tr></thead><tbody>'+P.src.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>').join('')+'</tbody></table></div>';
   if(P.ind==='turbo') h+='<p class="cap" id="tsim-size">'+(P.predict?'<b>Turbine size from the housing you picked.</b> The turbine is sized by its flow, converted to the area of a nozzle that passes the same flow (flow parameter × √R ÷ ψ, NASA Glenn’s nozzle law), so the run predicts where full boost arrives, how much goes round the wastegate and the pressure before the turbine instead of assuming them. ':'<b>Turbine size: found from your full-boost RPM.</b> '+(P.cap&&P.cap.H?'No turbine flow is published in text for the housing picked ('+esc((+P.cap.H.ar).toFixed(2))+' A/R): the maker’s turbine flow chart is an image the page does not read. Type the chart’s value under “Turbine flow off the maker’s turbine flow chart” on the Intake tab to size the turbine from your housing instead. ':'Pick a turbo and housing on the Intake tab, or type its turbine flow, to size the turbine from it. ')+'Until then the run finds the largest turbine that still makes full boost at the full-boost RPM you typed, with the gate shut. If that RPM is from a pull on the road or the dyno, a pull reaches full boost later than a steady point (the turbo needs time to spin up), more so in the lower gears, so the area found is the most this turbine can be and the pressure before it the least. ')+'The turbine’s and the wastegate’s effective areas (discharge coefficient times the geometric area) can also be typed on the Intake tab (mm²; 1 in² = 645.16 mm²).</p>';
   if(TSIM.status==='error') h+='<div class="note warn">The run stopped: '+esc(TSIM.msg)+' Press Simulate to try again; if it stops again, reload the page (F5).</div>';
-  if(TSIM.status==='running') h+='<p class="cap runstat" id="tsim-status" style="font-weight:600">'+esc(TSIM.msg||'Running')+'</p>';
+  const tst=TSIM.status==='running'?'<p class="cap runstat" id="tsim-status" style="font-weight:600">'+esc(TSIM.msg||'Running')+'</p>':'';
+  if(tst&&TSIM_LAST) h+=tst;
   h+='<div class="actions u-mt10"><button type="button" class="btn primary" data-tsim="run"'+(TSIM.status==='running'?' disabled':'')+'>'+(TSIM.status==='running'?'Running…':'Simulate with the '+(P.ind==='turbo'?'turbo':'supercharger'))+'</button>'+(TSIM.status==='running'?'<button type="button" class="btn" data-runcancel="tsim">Cancel</button>':'')+'</div>';
   const T=TSIM_LAST;
+  if(tst&&!T) h+=resvHtml('tsim',tst);
   if(T){ const S=T.sum, rows=S.rows, stale=T.key!==P.key, turbo=T.plan.turbo;
     if(stale) h+='<div class="note">The inputs changed since this run (here or on the Intake tab), so these results are for the earlier build. Run it again to update them.</div>';
     h+='<figure class="card u-m12"><svg class="camp" id="tsim-svg" role="img" aria-label="Simulated torque under boost and without boost against RPM"></svg><div class="legend"><span><i class="sw" style="--c:var(--t4)"></i>Under boost, brake (pumping counted)</span><span><i class="sw" style="--c:var(--t4);border-top-style:dashed"></i>Under boost, indicated</span><span><i class="sw" style="--c:var(--muted);border-top-style:dotted"></i>The same engine and pipes without boost, brake</span></div></figure>';
@@ -21565,7 +21626,7 @@ function simSection(q){
     'It compares this design with the same header with primaries 10% shorter and 10% longer'+(q.chamber?', and without the chamber':'')+(sp&&simVariants(q).some(x=>x.key==='even')?', and with the collector fed at even gaps':'')+'. It takes '+(nc>1?'up to a minute':'a few seconds')+'.</p>');
   if(plan&&plan.hdr!==undefined&&HDR_LAST&&HDR_LAST.uel) h+=hdrSrcSelect(HDR_LAST,plan.hdr,'sim-src');
   if(err) h+='<div class="note warn">'+esc(err)+'</div>';
-  if(SIM.status==='running') h+='<p class="cap runstat" id="sim-status" style="font-weight:600">'+esc(SIM.msg||'Running')+'</p>';
+  if(SIM.status==='running'){ const st='<p class="cap runstat" id="sim-status" style="font-weight:600">'+esc(SIM.msg||'Running')+'</p>'; h+=have?st:resvHtml('sim',st); }
   if(have){
     if(stale) h+='<div class="note">The inputs changed since this run, so these results are for the earlier design. Run it again to update them.</div>';
     const u=U==='imp'?0.737562:1, uu=U==='imp'?'lb-ft':'N·m';
@@ -22583,7 +22644,8 @@ function optSection(q,sp){
     '<div class="actions">'+(hostHas('openwam')?'<button type="button" class="btn" data-opt="run">Optimise in OpenWAM</button>':wamNeed('The optimiser runs OpenWAM'))+'</div>'+
     '<div class="note optmsg'+(OPT_UI.msg&&OPT_UI.msg.bad?' bad':'')+'"'+(OPT_UI.msg?'':' hidden')+'>'+(OPT_UI.msg?esc(OPT_UI.msg.t):'')+'</div>';
   const R=OPT_UI.res;
-  if(R){
+  if(R){ const fp=OPT_FP.get(R);
+    if(fp&&fp!==optFpNow(q)) h+='<div class="note" id="opt-stale">The Headers tab’s header, the engine, the line or the speeds changed since this optimiser run, so these results are for the earlier design. Optimise again to update them.</div>';
     const nm=U!=='imp', f=t=>Number.isFinite(t)?(nm?Math.round(t)+' N·m':Math.round(t/1.3558179483)+' lb-ft'):'?', base=R.rows[0].score;
     h+='<div class="tblwrap"><table><thead><tr><th>Design</th><th>Mean brake torque</th><th>Change</th>'+R.rpms.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+
       R.rows.slice().sort((a,b)=>(b.score||-1)-(a.score||-1)).map(x=>'<tr'+(x===R.best?' style="font-weight:600"':'')+'><td>'+esc(x.label)+'</td><td>'+f(x.score)+'</td><td>'+(Number.isFinite(x.score)?((x.score/base-1)*100).toFixed(1)+' %':'')+'</td>'+x.T.map(t=>'<td>'+f(t)+'</td>').join('')+'</tr>').join('')+
@@ -22606,7 +22668,7 @@ async function optRun(){
     return {files,rows}; };
   const score=(res,rows)=>rows.forEach(x=>{ if(!x.tag) return; x.T=rpms.map(v=>{ const m=(res.models||[]).find(y=>y.name===x.tag+'_'+v); if(!m||!m.finished||!m.avg) return NaN; const cy=WAMX.readAvg(m.avg).cycles; return cy.length?cy[cy.length-1].torque_brake_Nm:NaN; });
     x.score=x.T.every(Number.isFinite)?x.T.reduce((a,b)=>a+b,0)/x.T.length:NaN; });
-  const c1=optCandidates(H.p,H.r), b1=build(c1,'opt');
+  const fp0=optFpNow(q), c1=optCandidates(H.p,H.r), b1=build(c1,'opt');
   say('Optimiser: running '+b1.files.length+' OpenWAM models ('+c1.length+' designs × '+rpms.length+' speeds).');
   let res; try{ res=await HOST.call('runOpenWAM',{name:'header_opt',files:b1.files},ev=>{ if(ev.event==='done') say('Optimiser: '+ev.count+' of '+ev.of+' runs done.'); }); }catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
   score(res,b1.rows);
@@ -22622,7 +22684,7 @@ async function optRun(){
     try{ const r2=await HOST.call('runOpenWAM',{name:'header_opt_combined',files:b2.files}); score(r2,b2.rows); rows.push(...b2.rows); }catch(e){ say('The combined run failed: '+e.message+'. The runs before it are kept; run it again, or open the runs folder for OpenWAM’s log.',true); }
   }
   const best=rows.filter(x=>Number.isFinite(x.score)).reduce((a,b)=>b.score>a.score?b:a);
-  OPT_UI.res={rows,rpms,best};
+  OPT_UI.res={rows,rpms,best}; OPT_FP.set(OPT_UI.res,fp0);
   say(best===base?'Done: the design as it is scored best of the '+rows.length+' tried.':'Done: '+best.label+' scored '+((best.score/base.score-1)*100).toFixed(1)+' % more mean brake torque than the design as it is.');
 }
 function optApply(){
@@ -22671,6 +22733,19 @@ document.addEventListener('change',e=>{ const el=e.target.closest('#wam-ins'); i
 document.addEventListener('change',e=>{ const el=e.target.closest('select.wamsrc'); if(!el) return; WAM_UI.src=el.value; WAM_UI.msg=null; renderActive(); });
 
 /* ===== Intake CFD: an OpenFOAM v2412 case for the intake tract on this tab, written in the browser by intake_cfd.js ===== */
+// Out-of-date marks for the CFD and optimiser tables (UI pass three): the inputs each result was worked out from, kept in
+// this session only (nothing is added to a project), so a case downloaded or run here, or an optimiser run, is marked when
+// the inputs now differ; a result with no fingerprint (picked from a file of an earlier session, loaded with a project)
+// gets no mark either way.
+const RES_FP={cfd:new Map(),exh:new Map()}, OPT_FP=new WeakMap();
+const fpOf=o=>{ try{ return JSON.stringify(o)||''; }catch(e){ return ''; } };
+function cfdFpNow(){ return fpOf([CFD_LAST&&CFD_LAST.p,['mount','lip','protr','clr','bpos','maf','mesh','ff','pr','cone'].map(k=>CFD_UI[k])]); }
+function exhFpNow(){ return fpOf([typeof EXH_LAST!=='undefined'&&EXH_LAST?[EXH_LAST.p,EXH_LAST.e]:null,['part','share','T','ve','afr','boost','mesh','split'].map(k=>EXH_UI[k]),EXH_UI.stl&&EXH_UI.stl.name]); }
+function optFpNow(q){ return fpOf([HDR_LAST&&HDR_LAST.p,q?simKey(q):'',OPT_UI.rpms||(q?wamRpms(q).join(' '):''),WAM_UI.line,WAM_UI.cycles]); }
+// the cases of a CFD table worked out from other inputs than the tab's now
+function resStale(kind,R,now){ const m=RES_FP[kind], out=new Set(); for(const c of R){ const f=m.get(c.case||c.name)||m.get(c.name); if(f&&f!==now) out.add(c); } return out; }
+const STALE_MK=' <small class="stmk">out of date</small>';
+window.__resfp={mark:(kind,name)=>RES_FP[kind].set(name,kind==='cfd'?cfdFpNow():exhFpNow()),optFake:res=>{ OPT_UI.res=res; OPT_FP.set(res,optFpNow(SIM.inp)); }};   // for the tests
 const CFD_UI={mount:'',lip:'',protr:'',clr:'',bpos:'',maf:'',mesh:'medium',ff:1,pr:'',name:'',cone:true,msg:null,results:[]};
 let CFD_LAST=null;
 const cfdNum=v=>{ const x=parseFloat(v); return Number.isFinite(x)?x:null; };
@@ -22768,7 +22843,7 @@ function cfdBuild(){
 async function cfdDownload(){
   let out;
   try{ out=cfdBuild(); }catch(e){ cfdMsg((e&&e.name==='DesignError'?'This design cannot be meshed: ':'Intake CFD: ')+e.message,true); return null; }
-  window.__cfdLast=out;
+  window.__cfdLast=out; RES_FP.cfd.set(out.name,cfdFpNow());
   const zname=out.name+'_openfoam.zip', what=out.is3d?'design.json, intake_cfd.py and a README (3-D case: run python3 intake_cfd.py design.json case, then ./Allrun)':
     out.files.length+' files, '+out.summary.cells.toLocaleString('en-US')+' cells, '+out.summary.solver+'. Unzip, open an OpenFOAM shell in the folder and run ./Allrun (README_WINDOWS.md has the Windows steps).';
   if(FUSION||HOST){
@@ -22805,7 +22880,7 @@ async function cfdRun(hook){   // hook (the automatic test, cfdAuto below): sees
   if(!HOST) return;
   let out;
   try{ out=cfdBuild(); }catch(e){ cfdMsg((e&&e.name==='DesignError'?'This design cannot be meshed: ':'Intake CFD: ')+e.message,true); return {stage:'build',err:e}; }
-  window.__cfdLast=out;
+  window.__cfdLast=out; RES_FP.cfd.set(out.name,cfdFpNow());
   const pre=out.name+'/', files=out.files.map(f=>({name:f.name.startsWith(pre)?f.name.slice(pre.length):f.name,text:f.text,exec:!!f.exec}));
   cfdMsg('Running '+out.name+' in OpenFOAM on this PC'+(out.is3d?' (3-D: the generator writes the snappyHexMesh case first)':'')+'.');
   let res;
@@ -22865,9 +22940,11 @@ function cfdSection(p,r){
   const R=CFD_UI.results;
   if(R.length){
     const f3=x=>Number.isFinite(x)?x.toFixed(3):'?', f4=x=>Number.isFinite(x)?x.toFixed(4):'?', f1=x=>Number.isFinite(x)?x.toFixed(1):'?';
+    const stl=resStale('cfd',R,cfdFpNow());
+    if(stl.size) h+='<div class="note" id="cfd-stale">The intake tube or the case settings changed since '+(stl.size===R.length?'these cases were':'the cases marked out of date were')+' written, so their results are for the earlier design. Write the case again and run it to update them.</div>';
     h+='<div class="tblwrap" id="cfd-results"><table><thead><tr><th>Case</th><th>Plane</th><th>Airflow</th><th>PR p₀/p</th><th>Δp total</th><th>K</th><th>Cd</th><th>Uniformity</th><th>Mach</th></tr></thead><tbody>'+
       R.map(c=>c.err?'<tr><td>'+esc(c.name)+'</td><td colspan="8">'+esc(c.err)+'</td></tr>':
-        c.rows.map((q,i)=>'<tr>'+(i===0?'<td rowspan="'+c.rows.length+'">'+esc(c.case||c.name)+'<br><small>'+esc(c.solver)+', '+Math.round(c.it)+' it, '+(c.conv?'converged':'NOT converged')+'</small></td>':'')+
+        c.rows.map((q,i)=>'<tr>'+(i===0?'<td rowspan="'+c.rows.length+'">'+esc(c.case||c.name)+(stl.has(c)?STALE_MK:'')+'<br><small>'+esc(c.solver)+', '+Math.round(c.it)+' it, '+(c.conv?'converged':'NOT converged')+'</small></td>':'')+
           '<td>'+esc(q.plane)+(Number.isFinite(q.x)?' <small>'+clen(q.x*1000)+'</small>':'')+'</td><td>'+f1(q.mdot*1000)+' g/s</td><td>'+f4(q.PR)+'</td><td>'+(Number.isFinite(q.dpt)?Math.round(q.dpt)+' Pa':'?')+'</td><td>'+f3(q.K)+'</td><td>'+f3(q.Cd)+'</td><td>'+f3(q.UI)+'</td><td>'+f3(q.M)+'</td></tr>').join('')).join('')+'</tbody></table></div>';
     const lines=[];
     R.filter(c=>!c.err).forEach(c=>{
@@ -23042,7 +23119,7 @@ function exhBuild(){
 }
 async function exhDownload(){
   let out; try{ out=exhBuild(); }catch(e){ exhMsg('Exhaust CFD: '+e.message,true); return null; }
-  window.__exhLast=out;
+  window.__exhLast=out; RES_FP.exh.set(out.name,exhFpNow());
   const zname=out.name+'_openfoam.zip', what='design.json, intake_cfd.py and a README. Export the fluid volume from CAD as '+out.name+'.stl with faces named '+out.inletNames.join(', ')+' and outlet, put it in the folder, then run python3 intake_cfd.py design.json case and ./Allrun.';
   if(FUSION||HOST){ const res=await saveCall('saveFiles',{files:out.files,title:'Choose a folder for the exhaust CFD case',folder:out.name}); exhMsg(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.')); return out; }
   const blob=zipMany(out.files);
@@ -23092,6 +23169,7 @@ async function exhRun(){
     Object.keys(roles).forEach(r=>{ design.geometry.stl[r]=r+'.stl'; files.push({name:r+'.stl',base64:roles[r].base64}); });
   }
   let gen; try{ gen=IntakeCFD.generateCase(design,{out_dir:design.name}); }catch(e){ exhMsg('Exhaust CFD: '+e.message,true); return; }
+  RES_FP.exh.set(design.name,exhFpNow());
   files=gen.files.map(f=>({name:f.name,text:f.text,exec:!!f.exec})).concat(files);
   exhMsg('Running '+design.name+' in OpenFOAM on this PC: the generator meshes the part (snappyHexMesh), then the solver runs. A medium mesh takes from minutes to an hour on one core.');
   let res;
@@ -23151,9 +23229,11 @@ function exhSection(r,p,e){
   const R=EXH_UI.results;
   if(R.length){
     const f2=x=>Number.isFinite(x)?x.toFixed(2):'?', f3=x=>Number.isFinite(x)?x.toFixed(3):'?';
+    const stl=resStale('exh',R,exhFpNow());
+    if(stl.size) h+='<div class="note" id="exh-stale">The part, the flow or the case settings changed since '+(stl.size===R.length?'these cases were':'the cases marked out of date were')+' written, so their results are for the earlier design. Write the case again and run it to update them.</div>';
     h+='<div class="tblwrap" id="exh-results"><table><thead><tr><th>Case</th><th>Gas flow</th><th>Inlet speed</th><th>Δp total</th><th>K</th><th>K to ambient</th><th>Back pressure</th><th>Flow split</th><th>Exit uniformity</th></tr></thead><tbody>'+
       R.map(c=>c.err?'<tr><td>'+esc(c.name)+'</td><td colspan="8">'+esc(c.err)+'</td></tr>':
-        '<tr><td>'+esc(c.case||c.name)+'<br><small>'+esc(c.solver)+', '+Math.round(c.it)+' it, '+(c.conv?'converged':'NOT converged')+'</small></td><td>'+(c.mdot*1000).toFixed(1)+' g/s at '+Math.round(c.T-273.15)+' °C</td><td>'+Math.round(c.U)+' m/s (M '+f2(c.M)+')</td><td>'+f2(c.dpt/1000)+' kPa<br><small>'+Math.round(c.dpt/100)+' mbar</small></td><td>'+f3(c.K)+'</td><td>'+f3(c.Ka)+'</td><td>'+f2(c.bp/1000)+' kPa</td><td>'+(Object.keys(c.split).length>1?Object.keys(c.split).map(k=>esc(k)+' '+Math.round(c.split[k]*1000)/10+'%').join('<br>'):'one inlet')+'</td><td>'+f3(c.ui)+'</td></tr>').join('')+'</tbody></table></div>';
+        '<tr><td>'+esc(c.case||c.name)+(stl.has(c)?STALE_MK:'')+'<br><small>'+esc(c.solver)+', '+Math.round(c.it)+' it, '+(c.conv?'converged':'NOT converged')+'</small></td><td>'+(c.mdot*1000).toFixed(1)+' g/s at '+Math.round(c.T-273.15)+' °C</td><td>'+Math.round(c.U)+' m/s (M '+f2(c.M)+')</td><td>'+f2(c.dpt/1000)+' kPa<br><small>'+Math.round(c.dpt/100)+' mbar</small></td><td>'+f3(c.K)+'</td><td>'+f3(c.Ka)+'</td><td>'+f2(c.bp/1000)+' kPa</td><td>'+(Object.keys(c.split).length>1?Object.keys(c.split).map(k=>esc(k)+' '+Math.round(c.split[k]*1000)/10+'%').join('<br>'):'one inlet')+'</td><td>'+f3(c.ui)+'</td></tr>').join('')+'</tbody></table></div>';
     const lines=R.filter(c=>!c.err).map(c=>{ let t=esc(c.case||c.name)+': '+IntakeCFD.interpretExhaustK(c.K,EXH_PARTS[EXH_UI.part]?EXH_PARTS[EXH_UI.part].label.toLowerCase():'this part'); const ks=Object.keys(c.split); if(ks.length>1){ const v=ks.map(k=>c.split[k]), sp=Math.max(...v)-Math.min(...v); t+=sp<0.03?' The inlets share the flow evenly.':' The inlets are '+Math.round(sp*100)+' points apart in flow: the merge favours '+esc(ks[v.indexOf(Math.max(...v))])+'.'; } if(!c.conv) t+=' The run did not meet the convergence checks ('+esc(c.notes.join('; '))+'); treat the numbers as provisional.'; return t; });
     if(lines.length) h+='<ul class="list" id="exh-reading">'+lines.map(t=>'<li>'+t+'</li>').join('')+'</ul>';
     if(EXH_UI.part==='collector'||EXH_UI.part==='secondary'){
@@ -26949,16 +27029,36 @@ function tsSheet(){
   return {title:'Turbo build sheet',sub:en+(p.disp>0?', '+Math.round(p.disp).toLocaleString('en-US')+' cc ('+(p.disp/16.387064).toFixed(0)+' cu in)':'')+(tsHp()>0?', target '+F.hp(tsHp()):'')+', boost '+F.pD((p.boost||0)*1000)+' at '+Math.round(p.rpm).toLocaleString('en-US')+' RPM',
     parts,nums,assume,measure:tsMeasure(turbo),svg:[TG.svg||'',X&&X.svg?X.svg:'',MF&&MF.svg?MF.svg:''],mapSvg};
 }
+// (UI pass three) the turbo sheet as a cut list: tube sizes as ordered ("2.5 in OD × 0.065 in wall (63.5 × 1.65 mm)"),
+// lengths to the inch-fraction setting, and the parts split into what is ordered and what is cut. Text formatting of the
+// rows tsSheet gives; no figure is worked out again (a length's inches come from its mm as printed).
+const SH_Q=/(\d[\d,]*\.?\d*) (in|mm) \((\d[\d,]*\.?\d*) (in|mm)\)/;
+function shopSize(t){ t=String(t);
+  const num=x=>parseFloat(String(x).replace(/,/g,'')), mmOf=m=>m[2]==='mm'?num(m[1]):num(m[3]), pair=m=>m[2]==='in'?[m[1],m[3]]:[m[3],m[1]];
+  // "OD a, ID b, wall c" -> "a OD × c wall (a′ × c′), ID b"
+  let r=t.replace(new RegExp('^OD '+SH_Q.source+', ID '+SH_Q.source+', wall '+SH_Q.source),(...g)=>{ const o=[0,g[1],g[2],g[3],g[4]], id=[g[5],g[6],g[7],g[8]], w=[0,g[9],g[10],g[11],g[12]];
+    const oi=pair(o), wi=pair(w); return U==='imp'?oi[0]+' in OD × '+wi[0]+' in wall ('+oi[1]+' × '+wi[1]+' mm), ID '+id.slice(0,2).join(' ')+' ('+id.slice(2).join(' ')+')':oi[1]+' mm OD × '+wi[1]+' mm wall ('+oi[0]+' × '+wi[0]+' in), ID '+id.slice(0,2).join(' ')+' ('+id.slice(2).join(' ')+')'; });
+  // "a (a′) × c (c′) stainless tube" -> "a OD × c wall (a′ × c′) stainless tube"
+  r=r.replace(new RegExp('^'+SH_Q.source+' × '+SH_Q.source+' (\\w+ )?tube'),(...g)=>{ const oi=pair([0,g[1],g[2],g[3],g[4]]), wi=pair([0,g[5],g[6],g[7],g[8]]);
+    return (U==='imp'?oi[0]+' in OD × '+wi[0]+' in wall ('+oi[1]+' × '+wi[1]+' mm)':oi[1]+' mm OD × '+wi[1]+' mm wall ('+oi[0]+' × '+wi[0]+' in)')+' '+(g[9]||'')+'tube'; });
+  // a length to cut: "36.0 in (914 mm) long" -> "cut 36 in (914 mm) long", inches to the fraction setting
+  r=r.replace(new RegExp(SH_Q.source+' long','g'),(...g)=>{ const mm=mmOf(g); if(!(mm>0)) return g[0]; if(U!=='imp') return g[0];
+    const f=inMm(mm).replace(/ \([^)]*\)$/,''); return f+' ('+(g[2]==='mm'?g[1]:g[3])+' mm) long'; });
+  return r; }
+const shopCut=row=>/\blong\b|\bCLR\b/.test(row[1])&&/\b(OD|ID|tube|cone|bore)\b/i.test(row[1]);
 function tsSheetDoc(sh){
   const x=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const fix=sv=>sv?sv.replace(/var\(--([a-z0-9-]+)\)/g,(m,k)=>SHEET_PAL[k]||'#000').replace(/^<svg /,'<svg xmlns="http://www.w3.org/2000/svg" ').replace(/ width="100%" style="max-width:520px;display:block;margin:8px auto 0;/,' width="100%" style="'):'';
   const tbl=(head,rows)=>'<table><thead><tr>'+head.map(h=>'<th>'+x(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+x(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
   return '<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>'+x(sh.title)+'</title>\n'+
     '<style>@page{size:auto;margin:12mm}body{font:10pt/1.35 Arial,Helvetica,sans-serif;color:#111;background:#fff;max-width:186mm;margin:0 auto;padding:6mm 0}h1{font-size:15pt;margin:0 0 1mm}h2{font-size:11.5pt;margin:5mm 0 2mm;border-bottom:0.3mm solid #999;break-after:avoid}'+
-    'table{border-collapse:collapse;width:100%}td,th{border:0.2mm solid #bbb;padding:1mm 1.5mm;vertical-align:top;text-align:left}th{background:#eee}tr{break-inside:avoid}.draw{display:flex;gap:4mm;break-inside:avoid}.draw div{flex:1;min-width:0}svg{width:100%;height:auto}.cap{color:#444;font-size:8.5pt}ol{margin:0;padding-left:5mm}</style></head><body>\n'+
+    'table{border-collapse:collapse;width:100%}td,th{border:0.2mm solid #bbb;padding:1mm 1.5mm;vertical-align:top;text-align:left}th{background:#eee}tr{break-inside:avoid}.draw{display:flex;gap:4mm;break-inside:avoid}'+
+    'h3{font-size:10.5pt;margin:4mm 0 1.5mm;break-after:avoid}table{border-collapse:collapse;width:100%;table-layout:fixed}thead{display:table-header-group}td,th{border:0.2mm solid #bbb;padding:1mm 1.5mm;vertical-align:top;text-align:left;overflow-wrap:anywhere}th{background:#eee}th:first-child{width:24%}tr{break-inside:avoid}.draw{display:flex;flex-wrap:wrap;gap:4mm;break-inside:avoid}.draw div{flex:1 1 55mm}'+
+    '@media print{body{max-width:none;padding:0}a{color:inherit}}@media screen and (max-width:499px){body{padding:4mm}table,thead,tbody,tr,td,th{display:block}thead{position:absolute;left:-9999px}tr{margin:0 0 3mm;border:0.3mm solid #bbb}td{border:0;border-top:0.2mm solid #ddd}td:first-child{font-weight:bold;border-top:0}th:first-child{width:auto}}'+
+    '.draw div{flex:1;min-width:0}svg{width:100%;height:auto}.cap{color:#444;font-size:8.5pt}ol{margin:0;padding-left:5mm}</style></head><body>\n'+
     '<h1>'+x(sh.title)+'</h1><p class="cap">'+x(sh.sub)+'. Saved '+x(new Date().toISOString().slice(0,10))+' from Exhaust Tuner. Lengths in inches and mm; letter or A4, print at 100%.</p>\n'+
     '<h2>Route</h2><div class="draw"><div>'+fix(sh.svg[0])+'<p class="cap">Intake side, filter to throttle (not to scale along the route; widths to scale with each other).</p></div>'+(sh.svg[1]?'<div>'+fix(sh.svg[1])+'<p class="cap">Exhaust side, collector to tip.</p></div>':'')+(sh.svg[2]?'<div>'+fix(sh.svg[2])+'<p class="cap">Turbo manifold, plan (not to scale).</p></div>':'')+'</div>\n'+
-    '<h2>Parts and sizes</h2>'+tbl(['Part','Size','Where, notes'],sh.parts)+'\n<h2>Key numbers at peak power</h2>'+tbl(['What','Value'],sh.nums)+
+    '<h2>Parts and sizes</h2><h3>To order</h3>'+tbl(['Part','Size','Where, notes'],sh.parts.filter(r=>!shopCut(r)))+'<h3>To cut and bend</h3><p class="cap">'+(U==='imp'?'Lengths along the centre line, inches to the nearest '+inRoundTxt(' with ')+'.':'Lengths along the centre line, in mm with inches after.')+'</p>'+tbl(['Part','Size','Where, notes'],sh.parts.filter(shopCut).map(r=>[r[0],shopSize(r[1])].concat(r.slice(2))))+'\n<h2>Key numbers at peak power</h2>'+tbl(['What','Value'],sh.nums)+
     (sh.mapSvg?'\n<h2>Your compressor map</h2><div class="draw"><div>'+fix(sh.mapSvg)+'<p class="cap">Your own map image with this build’s demand line, put in this file at your choice; the image may be the maker’s copyright.</p></div></div>':'')+
     (sh.measure&&sh.measure.length?'\n<h2>What to measure on the car to firm this up</h2>'+tbl(['Measure','How','The page uses now','Type it in'],sh.measure.map(m=>[m.what,m.how,m.now,m.where])):'')+
     '\n<h2>Assumptions and unsourced items on this build</h2><ol>'+sh.assume.map(a=>'<li>'+x(a)+'</li>').join('')+'</ol>\n</body></html>\n';
@@ -27743,7 +27843,16 @@ function tblPolish(root){
     for(let j=1;j<n;j++){ if(!(isNum[j]&&any[j])) continue; for(const tr of t.rows){ const c=tr.cells[j]; if(c&&tr.cells.length===n) c.classList.add('num'); } }
   }
   root.querySelectorAll('.runstat').forEach(runPct);
+  // pass three: the busiest tables stack as cards on a phone; each value is labelled from its column heading (CSS shows
+  // the label only below 500 px, as generated content, so the text read from the page is as it was)
+  for(const t of root.querySelectorAll(STK_SEL)){ const w=t.parentElement; if(!w.classList.contains('stk')) w.classList.add('stk');
+    const hr=t.tHead&&t.tHead.rows[0]; if(!hr) continue; const hs=[...hr.cells].map(c=>c.textContent.trim());
+    if(hs.length<2) continue;
+    for(const b of t.tBodies) for(const tr of b.rows){ if(tr.cells.length!==hs.length) continue; for(let j=1;j<hs.length;j++){ const c=tr.cells[j]; if(c.dataset.l!==hs[j]) c.dataset.l=hs[j]; } } }
 }
+// the busiest wide tables (turbo options, intercooler cores, oil coolers, the inlet and charge-pipe tube sizes, the
+// downpipe sizes, the pie-cut pieces)
+const STK_SEL='.tblwrap > table:is(#tso-turbos,#tso-ics,#oil-tab,#oil-air-tab,#tsx-dp,#pc-pieces,[id^="ts-tbl-"])';
 // the narrow strip's "All" list: every calculator by group (copies of the rail's buttons; a choice sets the hash as a tab does)
 const TABPOP=$('tabpop'), TABSALL=$('tabsall');
 (()=>{ let h=''; for(const el of document.querySelector('.tabs').children){
@@ -27914,15 +28023,41 @@ function keepAfter(pan,k){
   if(!el||!el.isConnected) return;
   const d=el.getBoundingClientRect().top-k.top; if(Math.abs(d)>=1) scrollBy(0,d);
 }
+// Reserved space (pass three): while a run has no results yet, a box of the size its results will take holds its status,
+// so nothing below moves when they arrive. The size is the one the results took the last time on a window this wide
+// (measured when the page is idle after a render that shows them; a read, never a render), else a typical size.
+const RESV_DEF={sim:[1320,1450,1640],tsim:[1500,1700,2100],wsnd:[620,700,900]}, RESV_H={};
+const resvB=()=>innerWidth>=900?0:innerWidth>=700?1:2;
+function resvHtml(k,inner){ const h=RESV_H[k+resvB()]||RESV_DEF[k][resvB()];
+  return '<div class="resv" data-resv="'+k+'" style="--resv-h:'+Math.round(h)+'px">'+(inner||'<p class="cap runstat" style="font-weight:600">Working it out: the results will show here.</p>')+'<div class="resv-sk" aria-hidden="true"></div></div>'; }
+function resvLearn(pan){ if(!pan) return; const b=resvB(), top=e=>e.getBoundingClientRect().top;
+  const f=$('sim-svg'); if(f&&pan.contains(f)&&!$('sim-status')){ const sec=f.closest('.sec'), a=sec&&[...sec.querySelectorAll('.actions')].find(x=>x.querySelector('[data-sim]')), fg=f.closest('figure');
+    if(a&&fg){ const h=top(a)-top(fg); if(h>200) RESV_H['sim'+b]=h-12; } }
+  const t=$('tsim-svg'); if(t&&pan.contains(t)){ const sec=t.closest('.sec'), fg=t.closest('figure'); if(sec&&fg){ const h=sec.getBoundingClientRect().bottom-top(fg); if(h>200) RESV_H['tsim'+b]=h; } } }
 // a long run's status line: how long it has been running (one timer, only while a run shows on the active tab)
 const RUN_T0=new Map(); let RUN_TICK=0;
-function runClock(){ const pan=$(TABS[cur].panel), els=pan?[...pan.querySelectorAll('.runstat')].filter(e=>e.isConnected&&!e.hidden&&/\(\d+%\)|\d+ of \d+|…|Starting/.test(e.textContent)):[];
+// (pass three) a run starting and ending is said once in the page's polite live region, by its section's name; the
+// OpenWAM and OpenFOAM runs of the programs (their status notes, data-running while the request is out) count too
+const RUN_NAME=new Map(); let RUN_STOPPED='';
+const runName=e=>{ const x=e.closest('.sec'), h=x&&x.querySelector(':scope>h3'); return h?h.textContent.replace(/\s+/g,' ').trim():'The run'; };
+function runClock(){ const pan=$(TABS[cur].panel), els=pan?[...pan.querySelectorAll('.runstat')].filter(e=>e.isConnected&&!e.hidden&&(e.dataset.running==='1'||/\(\d+%\)|\d+ of \d+|…|Starting/.test(e.textContent))):[];
   const now=Date.now(), live=new Set();
-  for(const e of els){ const k=pan.id+':'+(e.id||e.closest('.sec')&&e.closest('.sec').dataset.sec||''); live.add(k); if(!RUN_T0.has(k)) RUN_T0.set(k,now);
+  for(const e of els){ const k=pan.id+':'+(e.id||e.closest('.sec')&&e.closest('.sec').dataset.sec||''); live.add(k); if(!RUN_T0.has(k)){ RUN_T0.set(k,now); RUN_NAME.set(k,runName(e)); liveSay(RUN_NAME.get(k)+': running.'); }
     const s=Math.floor((now-RUN_T0.get(k))/1000), t=Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); if(e.dataset.el!==t) e.dataset.el=t; }
-  for(const k of [...RUN_T0.keys()]) if(k.startsWith(pan?pan.id+':':'') && !live.has(k)) RUN_T0.delete(k);
+  for(const k of [...RUN_T0.keys()]) if(k.startsWith(pan?pan.id+':':'') && !live.has(k)){ const n=RUN_NAME.get(k)||'The run'; RUN_T0.delete(k); RUN_NAME.delete(k);
+    liveSay(RUN_STOPPED?n+': stopped; the results before it are kept.':n+': finished; the results are updated.'); RUN_STOPPED=''; }
   if(els.length&&!RUN_TICK) RUN_TICK=setInterval(()=>{ runClock(); },1000);
   else if(!els.length&&RUN_TICK){ clearInterval(RUN_TICK); RUN_TICK=0; } }
+// the programs' own runs (OpenWAM, OpenFOAM: the add-in and the Windows program's bridge, unchanged) show on the same
+// status component while their request is out: the note gets the progress bar ("n of m", "iteration n (at most m)") and
+// the elapsed time; their Stop stays their own button (it stops that request on the bridge)
+const HOST_ST=[['wam','.wammsg'],['tw','.twmsg'],['cfd','#cfd-msg'],['autocfd','#cfd-msg'],['exh','#exh-msg'],['fxcfd','#fxcfd-msg']];
+let HOST_ON=false;
+function hostStatAll(){ const any=HOST_ST.some(([k])=>HREQ[k]&&HREQ[k].size); if(!any&&!HOST_ON){ runClock(); return; } HOST_ON=any;
+  for(const [k,sel] of HOST_ST){ const n=document.querySelector(sel); if(!n) continue; const on=!!(HREQ[k]&&HREQ[k].size)&&!n.classList.contains('bad');
+    if(on){ if(!n.classList.contains('runstat')) n.classList.add('runstat'); n.dataset.running='1'; runPct(n); const m=n.textContent.match(/iteration (\d+) \(at most (\d+)\)/); if(m) n.style.setProperty('--pct',Math.min(100,Math.round(100*m[1]/m[2]))+'%'); }
+    else if(n.dataset.running==='1'){ delete n.dataset.running; n.classList.remove('runstat'); delete n.dataset.el; } }
+  runClock(); }
 // a conversion in brackets inside a table cell or a sentence of the working, "2.50 in (63.5 mm)", set in the quieter
 // colour the rows use: the text node is split round the brackets (textContent and innerText unchanged). Colour only (no
 // change of size or weight, so nothing moves), and done when the page is idle after a render, off the edit's path.
@@ -27938,17 +28073,85 @@ function u2Pass(pan){
       if(!parts) continue; parts.push(v.slice(last)); const f=document.createDocumentFragment(); for(const x of parts) f.append(x); t.replaceWith(f); } }
 }
 // Cancel on a long run: the run is dropped (its id moves on, its workers end) and the results before it stay as they were
-document.addEventListener('click',e=>{ const b=e.target.closest('button[data-runcancel]'); if(!b) return; const k=b.dataset.runcancel;
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-runcancel]'); if(!b) return; const k=b.dataset.runcancel; RUN_STOPPED=k;
   if(k==='sim'){ SIM.run++; simStop(); SIM.status=SIM.res?'done':'idle'; SIM.msg=''; }
   else if(k==='tsim'){ TSIM.run++; if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(x){} TSIM.worker=null; } TSIM.status=TSIM.res?'done':'idle'; TSIM.msg=''; }
   else if(k==='wsnd'){ WSND.tok=(WSND.tok||0)+1; if(WSND.worker){ try{ WSND.worker.terminate(); }catch(x){} WSND.worker=null; } WSND.busy=false;
     WSND.msg={t:'Stopped before it finished; the estimate shown (if any) is the one before. Estimate the sound runs it again.'}; }
   renderActive(); });
 let U2_IDLE=0;
-function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden) u2Pass(pan); };
+function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden){ u2Pass(pan); resvLearn(pan); } };
   if(U2_IDLE) (window.cancelIdleCallback||clearTimeout)(U2_IDLE);
   U2_IDLE=window.requestIdleCallback?requestIdleCallback(run,{timeout:400}):setTimeout(run,60); }
-function uiPass2(pan){ foldPass(pan); hintPass(pan); runClock(); u2Later(pan); }
+// Empty states carry their control: a note that says "do X first" (or "run it again") gets, right under it, the button
+// that does X: opens the tab, opens the fold or advanced box round the field and focuses it, or presses the run button.
+// The note's own text is not touched. One pass after each render over the tab's notes (text reads only).
+const FIX_RULES=[
+  [/Fill in the 4-Stroke tab first|Open the 4-Stroke tab and fill it in|Fill in the wave simulation inputs first/,'Open the 4-Stroke tab',{tab:'four-stroke'}],
+  [/lay out a header on the Headers tab first|No Headers layout yet/i,'Open the Headers tab',{tab:'headers'}],
+  [/Fill in the Intake tab first|Fill in the Intake tab’s boost and its inlet and charge pipes first/,'Open the Intake tab',{tab:'intake'}],
+  [/Enter the boost on the Intake tab/,'Go to Boost',{field:'i-boost'}],
+  [/Turn on the line after the collector under “Run it in OpenWAM”/,'Open Run it in OpenWAM',{tab:'four-stroke',sec:'run-it-in-openwam'}],
+  [/Press Recommend piping first/,'Recommend piping',{click:'button[data-cr="rec"]'}],
+  [/Find designs first/,'Find designs',{click:'#md-run'}],
+  [/Fill in the inlet and charge pipes above first/,'Go to the charge pipe size',{field:'i-cpd'}],
+  [/Fill in the downpipe first/,'Go to the downpipe size',{field:'i-dpd'}],
+  [/Enter the port spacing along the head \(Turbo manifold inputs\)/,'Go to Port spacing',{field:'i-msp'}],
+  [/Enter the exhaust port bore at the head flange/,'Go to Exhaust port bore',{field:'i-mport'}],
+  [/Enter the real figure in Expert mode/,'Type the horsepower',{field:'q-hp',expert:1}],
+  [/Enter the exhaust length from the head flange to the tip above/,'Go to Exhaust length',{field:'q-sys'}],
+  [/Type the reference temperature and pressure your map states/,'Go to the map’s reference',{sel:'[data-k="refTu"]'}],
+  [/type the (?:chart’s )?value (?:off|under) .{0,12}(?:the )?maker’s turbine flow chart|Type the chart’s value under “Turbine flow/i,'Go to Turbine flow',{field:'i-tfc',expert:1}],
+  [/Enter the outside air through the core/,'Go to Outside air',{field:'i-icam',expert:1}],
+  [/Fill in the 2-Stroke tab first/,'Open the 2-Stroke tab',{tab:'two-stroke'}],
+  [/Load two or more INS\.DAT runs at different speeds on the 4-Stroke tab first/,'Open Run it in OpenWAM',{tab:'four-stroke',sec:'run-it-in-openwam'}],
+  [/pick a V8 firing order on the Engine tab first/,'Go to the engine',{field:'s-eng'}],
+  [/Set the merge to a two-stage one/,'Go to the merge',{field:'h-merge'}],
+  [/Add parts to the build list first/,'Open the Parts tab',{tab:'parts'}],
+  [/Fill in the Helmholtz resonator above first/,'Go to the Helmholtz resonator',{tab:'mufflers',sec:'helmholtz-resonator'}],
+  [/Enter the main pipe size above/,'Go to the main pipe size',{field:'m-dp'}],
+  [/Fill in the Headers tab first/,'Open the Headers tab',{tab:'headers'}],
+  [/Fill in the charge pipes first/,'Go to the charge pipe size',{field:'i-cpd'}],
+  [/Optimise again to update them/,'Optimise in OpenWAM',{click:'button[data-opt="run"]'}],
+  [/Write the case again and run it to update them/,'',{cfd:1}],
+  [/Fill in the pie-cut inputs first/,'Go to the pie-cut inputs',{field:'pc-od'}],
+  [/Run it again to update them|Press Simulate to try again/,'',{run:1}],
+  [/Estimate it again to update it|Press Estimate the sound to try again/,'Estimate the sound',{click:'button[data-wsnd="run"]'}]];
+const FIX_ANY=new RegExp(FIX_RULES.map(r=>r[0].source).join('|'),'i');
+const FIX_SEL='.note, .cap, [id$="-msg"]';
+function fixCfd(n){ const x=n.closest('.sec'); return x&&(x.querySelector('button[data-cfd="run"],button[data-exh="run"]')||x.querySelector('button[data-cfd="dl"],button[data-exh="dl"]')); }
+function fixRun(n){ const x=n.closest('.sec')||n.parentElement; const b=x&&x.querySelector('button.btn.primary:not([disabled]):not([data-fix])'); return b; }
+function fixPass(pan){
+  if(!pan) return;
+  for(const n of pan.querySelectorAll(FIX_SEL)){
+    let f=n.nextElementSibling; if(!(f&&f.classList.contains('fixit'))) f=null;
+    const t=n.hidden?'':n.textContent; let k=-1;
+    if(t&&t.length<1200&&FIX_ANY.test(t)) k=FIX_RULES.findIndex(r=>r[0].test(t));
+    let lab=k>=0?FIX_RULES[k][1]:'';
+    if(k>=0&&FIX_RULES[k][2].run){ const b=fixRun(n); lab=b?b.textContent.trim():''; }
+    if(k>=0&&FIX_RULES[k][2].click&&!document.querySelector(FIX_RULES[k][2].click)) lab='';
+    if(k>=0&&FIX_RULES[k][2].cfd){ const b=fixCfd(n); lab=b?b.textContent.trim():''; }
+    if(!lab){ if(f) f.remove(); continue; }
+    if(f&&f.dataset.fix===String(k)) continue;
+    if(!f){ f=document.createElement('div'); f.className='fixit'; n.after(f); }
+    f.dataset.fix=String(k); f.innerHTML='<button type="button" class="btn" data-fix="'+k+'">'+esc(lab)+'</button>'; }
+}
+function fixDo(b){ const a=FIX_RULES[+b.dataset.fix]; if(!a) return; const o=a[2];
+  if(o.expert&&document.body.classList.contains('simple')) $('m-expert').click();
+  if(o.cfd){ const r=fixCfd(b.parentElement.previousElementSibling||b); if(r) r.click(); return; }
+  if(o.run){ const r=fixRun(b.parentElement.previousElementSibling||b); if(r) r.click(); return; }
+  if(o.click){ const r=document.querySelector(o.click); if(r){ r.scrollIntoView({block:'center'}); r.focus({preventScroll:true}); r.click(); } return; }
+  if(o.field){ goField(o.field); return; }
+  if(o.sel){ const pan=$(TABS[cur].panel), el=pan&&pan.querySelector(o.sel); if(el){ el.scrollIntoView({block:'center'}); el.focus({preventScroll:true}); } return; }
+  if(o.tab){ if(location.hash!=='#'+o.tab) location.hash=o.tab;
+    setTimeout(()=>{ const pan=$(TABS[o.tab].panel), x=o.sec&&pan.querySelector('.sec[data-sec="'+o.sec+'"]');
+      if(x){ x.scrollIntoView({block:'start'}); const h=x.querySelector(':scope>h3>.fbtn'); if(h) h.focus({preventScroll:true}); } else { window.scrollTo(0,0); pan.focus({preventScroll:true}); } },60); } }
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-fix]'); if(b) fixDo(b); });
+// a message a button writes after the render (the Fusion tools, the build sheet's Save) gets its control too, once the click is done
+document.addEventListener('click',()=>setTimeout(()=>{ const p=$(TABS[cur].panel); if(p&&!p.hidden) fixPass(p); },0));
+window.__fix={rules:FIX_RULES,pass:fixPass};
+function uiPass2(pan){ fixPass(pan); foldPass(pan); hintPass(pan); hostStatAll(); u2Later(pan); }
+{ const w=wamMsg, c=cfdMsg, x=exhMsg, tw=twMsg, fx=fxCfdSay; wamMsg=function(t,b){ w(t,b); hostStatAll(); }; cfdMsg=function(t,b){ c(t,b); hostStatAll(); }; exhMsg=function(t,b){ x(t,b); hostStatAll(); }; twMsg=function(t,b){ tw(t,b); hostStatAll(); }; fxCfdSay=function(t,b){ fx(t,b); hostStatAll(); }; }
 // the app bar on narrow widths: Settings opens the controls in a small panel (Escape or a click outside closes it, focus
 // goes back to the button); wide windows show the controls as before
 (()=>{ const top=document.querySelector('.top'), b=$('set-btn'), p=$('set-panel'); if(!top||!b||!p) return;
@@ -28303,6 +28506,69 @@ $('proj-cmp').addEventListener('click',()=>{
 });
 window.__proj={snapshot:projSnapshot,apply:projApply,compare:projCompare,loadAll:projLoadAll,save:projSave,wam:WAM_UI};
 
+/* ----- UI pass three (docs/UI_REDESIGN_2026-11-16.md, "Pass three"): display only, no result reads any of this ----- */
+// Start here: three steps above the vehicle picker on the Quick tab, each one a control that does the step. Shown on a
+// page that has never had an input away from its default ('exhaust-start-v1' empty); once one is (or a project is loaded),
+// it does not come back on the next visit unless Start here under Settings asks for it. It stays for the visit it was shown
+// in, ticking each step as it is really done, so it does not vanish under the builder halfway through.
+const START_KEY='exhaust-start-v1', START=$('start'), START_ST={build:''};
+const startGet=()=>{ try{ return localStorage.getItem(START_KEY)||''; }catch(e){ return ''; } };
+const startSet=v=>{ try{ if(v) localStorage.setItem(START_KEY,v); else localStorage.removeItem(START_KEY); }catch(e){} };
+// an input away from its default (the engine selects default to their data-default)
+const inDefault=el=>el.tagName==='SELECT'&&el.dataset.default?el.value===el.dataset.default:advIsDefault(el);
+function startUsed(){ for(const el of PROJ_STATIC) if(!inDefault(el)) return true; return false; }
+function startShow(on,focus){ if(!START) return; START.hidden=!on; if(on) startMark(); if(on&&focus){ if(cur!=='quick') location.hash='quick'; setTimeout(()=>{ const h=$('start-h'); START.scrollIntoView({block:'nearest'}); h.focus({preventScroll:true}); },60); } }
+function startMark(){ if(!START||START.hidden) return;
+  const done={pick:!!($('v-pick').value)||!inDefault($('q-eng'))||!inDefault($('q-disp')), build:!!START_ST.build, sheet:!!START_ST.sheet};
+  START.querySelectorAll('.st-steps>li').forEach(li=>{ const d=!!done[li.dataset.step], n=li.querySelector('.st-n'), t=d?'✓':String([...li.parentElement.children].indexOf(li)+1);
+    if(li.classList.contains('done')!==d) li.classList.toggle('done',d); if(n.textContent!==t) n.textContent=t;
+    let v=li.querySelector('b .vh'); if(d&&!v){ v=document.createElement('span'); v.className='vh'; v.textContent=' (done)'; li.querySelector('b').appendChild(v); } else if(!d&&v) v.remove(); });
+  START.querySelectorAll('[data-start][aria-pressed]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.start===START_ST.build?'true':'false')); }
+// a field anywhere: its tab, its fold and its advanced box opened, scrolled to and focused (goField does the tab and the box)
+function goTo(id){ const el=$(id); if(!el) return; goField(id); }
+function startDo(k){
+  if(k==='pick'){ const el=$('v-make'); el.scrollIntoView({block:'center'}); el.focus({preventScroll:true}); return; }
+  if(k==='exhaust'||k==='intake'||k==='turbo'){ START_ST.build=k;
+    if(k==='exhaust'){ if(cur!=='quick') location.hash='quick'; startMark(); goTo('q-loud'); return; }
+    const ind=$('i-ind'); if(k==='turbo'&&ind.value!=='turbo'){ ind.value='turbo'; ind.dispatchEvent(new Event('change',{bubbles:true})); }
+    if(location.hash!=='#intake') location.hash='intake'; else renderActive();
+    setTimeout(()=>{ const g=k==='turbo'?$('tg-glance'):null; if(g){ g.scrollIntoView({block:'start'}); const h=g.querySelector('h3'); if(h){ h.tabIndex=-1; h.focus({preventScroll:true}); } } else goTo('i-rpm'); },80); return; }
+  if(k==='sheet'){ START_ST.sheet=1;
+    if(START_ST.build==='turbo'||START_ST.build==='intake'&&$('i-ind').value!=='na'){ if(location.hash!=='#intake') location.hash='intake'; setTimeout(()=>{ const x=document.querySelector('#panel-intake .sec[data-sec="build-sheet"],#tg-glance'); if(x) x.scrollIntoView({block:'start'}); },80); return; }
+    if(location.hash!=='#quick') location.hash='quick';
+    setTimeout(()=>{ const x=document.querySelector('#panel-quick .sec[data-sec="build-sheet"]'); if(!x) return; x.scrollIntoView({block:'start'}); const b=x.querySelector(':scope>h3>.fbtn'); if(b) b.focus({preventScroll:true}); startMark(); },80); }
+}
+if(START){
+  START.addEventListener('click',e=>{ const b=e.target.closest('[data-start]'); if(b) startDo(b.dataset.start); });
+  $('start-x').addEventListener('click',()=>{ startSet('off'); startShow(false); const b=$('start-btn'); if(b&&b.getClientRects().length) b.focus(); else $('main').focus(); });
+  $('start-btn').addEventListener('click',()=>{ startSet(''); startShow(true,true); const t=document.querySelector('.top'); if(t&&t.classList.contains('setopen')) $('set-btn').click(); });
+  // the first input away from its default is remembered for the next visit (checked when the page is idle, off the edit's path)
+  let sIdle=0; const sCheck=()=>{ sIdle=0; if(startGet()) return; if(startUsed()) startSet('used'); };
+  const sLater=()=>{ startMark(); if(sIdle||startGet()) return; sIdle=window.requestIdleCallback?requestIdleCallback(sCheck,{timeout:1500}):setTimeout(sCheck,300); };
+  document.addEventListener('input',sLater); document.addEventListener('change',sLater);
+}
+// the page's own heading for each calculator (h1 the program, h2 the calculator, h3 its sections), for screen readers'
+// heading lists; drawn nowhere
+document.querySelectorAll('section[role=tabpanel]').forEach(p=>{ const t=$(p.getAttribute('aria-labelledby')); if(!t||p.querySelector(':scope>h2.vh')) return;
+  const h=document.createElement('h2'); h.className='vh'; h.textContent=t.textContent.trim()+' calculator'; p.tabIndex=-1; p.prepend(h); });
+// skip link: to the calculator in view (no change of the address: the tabs live in the hash)
+$('skip').addEventListener('click',e=>{ e.preventDefault(); const p=$(TABS[cur].panel); (p||$('main')).focus(); (p||$('main')).scrollIntoView({block:'start'}); });
+// the one polite live region: a run started, finished or stopped (from runClock), and nothing on each keystroke
+let LIVE_T=0;
+function liveSay(t){ const el=$('live'); if(!el||!t) return; clearTimeout(LIVE_T); el.textContent=''; LIVE_T=setTimeout(()=>{ el.textContent=t; },60); }
+window.__say=liveSay;
+// the last project loaded or saved, and the last tab, come back on a page opened with no tab in its address (the
+// programs open it that way); a project changed after it was saved comes back as it was saved
+const LAST_KEY='exhaust-last-v1';
+const lastGet=()=>{ try{ return JSON.parse(localStorage.getItem(LAST_KEY)||'{}')||{}; }catch(e){ return {}; } };
+const lastSet=o=>{ try{ localStorage.setItem(LAST_KEY,JSON.stringify(Object.assign(lastGet(),o))); }catch(e){} };
+window.addEventListener('hashchange',()=>{ if(TABS[location.hash.slice(1)]) lastSet({tab:location.hash.slice(1)}); });
+{ const pc=projCur; projCur=function(name){ pc(name); if(name) lastSet({proj:name}); startShow(false); if(name) startSet(startGet()||'used'); }; }
+(()=>{ const L=lastGet(); let restored=false;
+  if(!location.hash){
+    if(L.proj){ const p=projLoadAll().find(x=>x.name===L.proj); if(p){ try{ projApply(p.data); $('proj-name').value=p.name; projCur(p.name); restored=true; }catch(e){} } }
+    if(L.tab&&TABS[L.tab]) history.replaceState(null,'',location.pathname+location.search+'#'+L.tab); }
+  if(START&&!restored&&!startGet()) startShow(true); })();
 let raf=0;
 // re-drawn when the page's WIDTH changes (the drawings and tables are laid out to it). Not on a change of height: a render
 // changes the height itself, and anything that settles a frame later (a clamped note, the section list's current chip)
