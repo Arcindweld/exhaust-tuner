@@ -21,3 +21,6 @@ hangers 193.7, intake(K24 turbo) 94.2, mufflers 60.7, 4-stroke 19.5, headers 17.
   abcompare old-vs-new: muf 40 s1, intake K24 40 s1, hangers 60 s3: 0 diff. bench: hang 80.4 intake 73 muf 35 4s 16.3 hdr 13.5 snd 17.5
 - [x] web/tests/incremental_ui.js (A in place vs B __fullWrites, lockstep, 260 actions seed 7, 2m42): passes. Found+fixed:
   fold id following data-sec on kept sections (foldId), widthOf in folded kept sections (measure open)
+- [x] absorbKept (muf packed can TL by complete key incl EXH_GAS), XC_KEEP (xCool by key), morph _hf flags; foldPass data-st removed when ''; tblPolish num set/clear every cell
+  interleaved bench: old intake 96.9 -> 57.6, muf 59.1 -> 23.6. guard seed 3 N150 ok; abcompare intake K24 s5 ok
+- next: refreshDeps cost, fields morph?, 4x throttle numbers, tab switch/load, ui_ui budget, docs

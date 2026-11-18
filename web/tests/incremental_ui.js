@@ -98,8 +98,10 @@ const PART = ([id, kind, fsrc]) => { const p = document.getElementById(id); retu
     } else {
       const ins = await A.evaluate(p => window.__st.inputs(p), panel); if (!ins.length) continue;
       const pick = ins[Math.floor(R() * ins.length)], seed = Math.floor(R() * 1e9);
-      const r = await A.evaluate(([s, seed]) => { window.__st.seed(seed); return window.__st.change(s); }, [pick.sel, seed]); await settle(A);
-      if (r.skip) { await B.evaluate(([s, seed]) => { window.__st.seed(seed); return window.__st.change(s); }, [pick.sel, seed]); await settle(B); }
+      // (an element the list found that is not a field after all is skipped in both, as staleness_lib's change skips)
+      const ch = ([s, seed]) => { window.__st.seed(seed); try { return window.__st.change(s); } catch (e) { return { sel: s, skip: 'not a field' }; } };
+      const r = await A.evaluate(ch, [pick.sel, seed]); await settle(A);
+      if (r.skip) { await B.evaluate(ch, [pick.sel, seed]); await settle(B); }
       else { await B.evaluate(([s, v]) => window.__st.put(s, v), [r.sel, r.v]); await settle(B); }
       what += ' ' + r.sel + ' = ' + JSON.stringify(r.v === undefined ? r.skip : r.v);
     }

@@ -11483,13 +11483,13 @@ function shBind(p,l){ p._l=l; for(let a=p.firstChild,b=l.firstChild;a;a=a.nextSi
 function shFull(el,np){ const st=el._sh, live=np.cloneNode(true); shBind(np,live); el.replaceChildren(live); st.pr=np; st.dec=false; }
 function shRepl(n,lp,l){ const c=n.cloneNode(true); shBind(n,c); lp.replaceChild(c,l); }
 function shMorph(op,np,lp,D,UP){
-  const oc=[...op.childNodes], nc=[...np.childNodes], k=oc.length; if(k!==nc.length) return false;
+  const oc=[...op.childNodes], nc=np.childNodes, k=oc.length; if(k!==nc.length) return false;   // (nc keeps its places: replaceChild)
   for(let i=0;i<k;i++){ const o=oc[i], n=nc[i], l=o._l;
     if(!l||l.parentNode!==lp||o.nodeType!==n.nodeType||o.nodeName!==n.nodeName) return false; }
   for(let i=0;i<k;i++){ const o=oc[i], n=nc[i], l=o._l;
     if(o.nodeType!==1){ if(o.nodeType===3||o.nodeType===8){ if(D.has(l)||o.nodeValue!==n.nodeValue) l.nodeValue=n.nodeValue; n._l=l; } else shRepl(n,lp,l); continue; }
     if(D.has(l)||SH_FRESH_RE.test(o.nodeName)||o.classList.contains('runstat')){ shRepl(n,lp,l); continue; }
-    if(!UP.has(l)&&o.isEqualNode(n)&&!(o.firstElementChild&&o.querySelector(SH_FRESH))){ np.replaceChild(o,n); continue; }
+    if(!UP.has(l)&&!n._hf&&o.isEqualNode(n)){ np.replaceChild(o,n); continue; }   // (_hf: holds a field or a drawing)
     for(const a of n.attributes) if(o.getAttribute(a.name)!==a.value) l.setAttribute(a.name,a.value);
     for(const a of o.attributes) if(!n.hasAttribute(a.name)) l.removeAttribute(a.name);
     n._l=l; if(!shMorph(o,n,l,D,UP)) shRepl(n,lp,l); }
@@ -11514,6 +11514,7 @@ function setHTML(el,html){
       for(const p of st.pr.querySelectorAll(SH_FRESH)){ const l=p._l; if(l&&l.parentNode&&!(p.parentNode&&p.parentNode.closest&&p.parentNode.closest(SH_FRESH))) shRepl(p,l.parentNode,l); }
       return; }
     const t=document.createElement('template'); t.innerHTML=html; const np=t.content, UP=new Set();
+    for(const e of np.querySelectorAll(SH_FRESH)) for(let x=e.parentNode;x&&x!==np&&!x._hf;x=x.parentNode) x._hf=1;
     for(const d of D) for(let x=d.parentNode;x&&x!==el;x=x.parentNode){ if(UP.has(x)) break; UP.add(x); }
     if(shMorph(st.pr,np,el,D,UP)){ st.pr=np; SH_STAT.patch++; shOpen(el); } else { shFull(el,np); SH_STAT.full++; }
   } catch(e){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); }
@@ -26288,9 +26289,18 @@ function xPipeBack(o,sd){ const A=Math.PI*(o.d/2000)**2, D=o.d/1000, L=o.L, prof
   const su=xSt(o.m,A,p,T0at(0)); if(!(su.M<XF_MCH)) return {choke:{x:0,M:su.M,A,T0:su.T0}};
   return {su,kb,dpB:sMid?sMid.up.p0-sMid.dn.p0:0,f:fAt(su.T)}; }
 // the cooling pass along one pipe run: the Headers tab's calcSkin; null when there is nothing to lose
+// (2026-11-18, docs/PERF_2026-11-18.md) a render marches the same pipe more than once (the back-pressure iterations, the
+// section, the comparison): each pipe's cooling is kept for the last 48 worked out. The key is all calcSkin reads here
+// (the pipe, the flow, the cooling inputs, the exhaust gas in use: xCp reads EXH_GAS); the profile is handed out as a copy
+const XC_KEEP=new Map();
 function xCool(c,m,d,L,T0){ if(!c||!(L>0)) return null;
-  const sk=calcSkin({mdot:m,Tg:T0-273.15,di:d,wall:c.wall,mat:'304',fin:c.fin,Ta:c.Ta,v:c.v,L,caf:c.caf,cpGas:xCp});
-  return sk.err?null:{prof:sk.pts.map(x=>({x:x.x,T0:x.Tg+273.15})),Q:sk.Q,lowRe:sk.lowRe,eps:sk.eps}; }
+  const key=window.__fullWrites?null:numKey([c.wall,c.fin,c.Ta,c.v,c.caf,m,d,L,T0,EXH_GAS.R,EXH_GAS.lo,EXH_GAS.hi]);
+  let r=key&&XC_KEEP.get(key);
+  if(r===undefined||r===null&&!XC_KEEP.has(key)){
+    const sk=calcSkin({mdot:m,Tg:T0-273.15,di:d,wall:c.wall,mat:'304',fin:c.fin,Ta:c.Ta,v:c.v,L,caf:c.caf,cpGas:xCp});
+    r=sk.err?null:{prof:sk.pts.map(x=>({x:x.x,T0:x.Tg+273.15})),Q:sk.Q,lowRe:sk.lowRe,eps:sk.eps};
+    if(key){ XC_KEEP.set(key,r); if(XC_KEEP.size>48) XC_KEEP.delete(XC_KEEP.keys().next().value); } }
+  return r&&{prof:r.prof.map(q=>({x:q.x,T0:q.T0})),Q:r.Q,lowRe:r.lowRe,eps:r.eps}; }
 /* The march. o: exhAfterTurbine's o, plus cool {Ta °C, v m/s, fin, caf: 1 | 'w', wall mm} (null: no cooling), stepCone.
    fl: {cool, comp, steps} (all true on the page; the comparison switches them off one by one; comp false runs the first
    method's formulas at the cooled temperatures, through exhAfterTurbine). Returns rows turbine outlet -> tip with each
@@ -27948,16 +27958,17 @@ const NUM_CELL=/^[-−+±~≈<>≤≥]?\s?\$?\.?\d/;
 function tblPolish(root){
   if(!root) return;
   for(const t of root.querySelectorAll('.tblwrap > table')){
-    const body=t.tBodies[0]; if(!body||!body.rows.length||body.rows.length>600) continue;
-    const n=body.rows[0].cells.length; if(n<2) continue;
-    const isNum=new Array(n).fill(true), any=new Array(n).fill(false);
-    let ok=true;
-    for(const tr of body.rows){ const c=tr.cells; if(c.length!==n){ ok=false; break; }
-      for(let j=1;j<n;j++){ if(!isNum[j]) continue; const x=c[j].textContent.trim(); if(!x||x==='—'||x==='-'||x==='–') continue; any[j]=true; if(!NUM_CELL.test(x)) isNum[j]=false; } }
-    if(!ok) continue;
-    // (set and cleared both ways: a table kept by setHTML from the render before ends as a new one would; no render
-    // writes the class itself)
-    for(let j=1;j<n;j++){ const on=isNum[j]&&any[j]; for(const tr of t.rows){ const c=tr.cells[j]; if(c&&tr.cells.length===n&&c.classList.contains('num')!==on){ c.classList.toggle('num',on); if(!on&&!c.classList.length) c.removeAttribute('class'); } } }
+    const body=t.tBodies[0], n=body&&body.rows.length?body.rows[0].cells.length:0; let cols=null;
+    if(body&&body.rows.length&&body.rows.length<=600&&n>=2){
+      const isNum=new Array(n).fill(true), any=new Array(n).fill(false);
+      let ok=true;
+      for(const tr of body.rows){ const c=tr.cells; if(c.length!==n){ ok=false; break; }
+        for(let j=1;j<n;j++){ if(!isNum[j]) continue; const x=c[j].textContent.trim(); if(!x||x==='—'||x==='-'||x==='–') continue; any[j]=true; if(!NUM_CELL.test(x)) isNum[j]=false; } }
+      if(ok) cols=isNum.map((v,j)=>j>0&&v&&any[j]); }
+    // every cell set or cleared (2026-11-18): a table kept by setHTML from the render before ends as a new one would (no
+    // render writes the class itself)
+    for(const tr of t.rows){ const L=tr.cells.length; for(let j=0;j<L;j++){ const c=tr.cells[j], on=!!(cols&&L===n&&cols[j]);
+      if(c.classList.contains('num')!==on){ c.classList.toggle('num',on); if(!on&&!c.classList.length) c.removeAttribute('class'); } } }
   }
   root.querySelectorAll('.runstat').forEach(runPct);
   // pass three: the busiest tables stack as cards on a phone; each value is labelled from its column heading (CSS shows
@@ -28053,7 +28064,7 @@ function foldPass(panel){
       b.setAttribute('aria-controls',x.id); }
     else if(!x.id){ foldId(panel,x); b.setAttribute('aria-controls',x.id); }
     ok.push(x);
-    const st=foldState(x); if((x.dataset.st||'')!==st) x.dataset.st=st;
+    const st=foldState(x); if((x.dataset.st||'')!==st){ if(st) x.dataset.st=st; else x.removeAttribute('data-st'); }   // (none when fine, as on a new section)
     const k=x.dataset.sec, u=mine[k], hot=st==='bad'||st==='warn'||st==='stale';
     let open=hot||!FOLD_REF.test(k);
     if(u){ open=!!u.o; if(!open&&hot&&u.s!==st) open=true; }
