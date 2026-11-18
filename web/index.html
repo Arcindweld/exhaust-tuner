@@ -11481,19 +11481,23 @@ function shMorph(op,np,lp,D,UP){
     n._l=l; if(!shMorph(o,n,l,D,UP)) shRepl(n,lp,l); }
   return true;
 }
+// window.__fullWrites (set before the page loads; the tests only, web/tests/incremental_ui.js): every write in full, as
+// before; window.__shStat counts the writes by kind (full, patched, same), for the same test
+const SH_STAT=window.__shStat={full:0,patch:0,same:0};
 function setHTML(el,html){
-  if(!el) return;
+  if(!el) return; if(window.__fullWrites){ el.innerHTML=html; SH_STAT.full++; return; }
   let st=el._sh; const hid=!!(el.closest('[role=tabpanel]')||{}).hidden;
   if(!st){ st=el._sh={pr:null,html:null,dirty:new Set(),dec:false}; SH_ROOTS.add(el); if(SH_MO) SH_MO.observe(el,{subtree:true,childList:true,attributes:true,characterData:true}); }
   shFlush(); const D=st.dirty; st.dirty=new Set();
   try{
-    if(!SH_MO||!st.pr||D.has(el)||(hid&&st.dec)){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); return; }
+    if(!SH_MO||!st.pr||D.has(el)||(hid&&st.dec)){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); SH_STAT.full++; return; }
     if(st.html===html&&!D.size){   // the same HTML as last time: only the drawings and fields are made afresh
+      SH_STAT.same++;
       for(const p of st.pr.querySelectorAll(SH_FRESH)){ const l=p._l; if(l&&l.parentNode&&!(p.parentNode&&p.parentNode.closest&&p.parentNode.closest(SH_FRESH))) shRepl(p,l.parentNode,l); }
       return; }
     const t=document.createElement('template'); t.innerHTML=html; const np=t.content, UP=new Set();
     for(const d of D) for(let x=d.parentNode;x&&x!==el;x=x.parentNode){ if(UP.has(x)) break; UP.add(x); }
-    if(shMorph(st.pr,np,el,D,UP)) st.pr=np; else shFull(el,np);
+    if(shMorph(st.pr,np,el,D,UP)){ st.pr=np; SH_STAT.patch++; } else { shFull(el,np); SH_STAT.full++; }
   } catch(e){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); }
   finally{ st.html=html; if(SH_MO) SH_MO.takeRecords(); }
 }
@@ -11502,7 +11506,11 @@ function setHTML(el,html){
 const NS='http://www.w3.org/2000/svg';
 function mk(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
 function clearSvg(s){while(s.firstChild)s.removeChild(s.firstChild);}
-const widthOf=svg=>{const f=svg.closest('figure');return Math.max(300,Math.floor((f&&f.clientWidth)||360)-32);};
+// a drawing in a folded section is laid out to the section's open width (as a newly written section is, before the fold
+// pass): a section kept by setHTML is still folded when the render draws into it (2026-11-18)
+const widthOf=svg=>{const f=svg.closest('figure'), x=svg.closest('.sec.fc'); let w;
+  if(x) shOwn(()=>{ x.classList.remove('fc'); w=f&&f.clientWidth; x.classList.add('fc'); }); else w=f&&f.clientWidth;
+  return Math.max(300,Math.floor(w||360)-32);};
 
 function drawProfile(svg,segs,marks){
   clearSvg(svg);
@@ -28016,16 +28024,20 @@ function foldApply(s,open){
   const sum=open?'':foldSum(s,st); if(b.dataset.sum!==sum) b.dataset.sum=sum;
   b.setAttribute('aria-label',(b.textContent||'').trim()+(st&&st!=='ok'?' ('+ST_WORD[st]+')':'')+(sum?': '+sum:''));
 }
+function foldId(panel,x){ let id='sec-'+panel.id.replace(/^panel-/,'')+'-'+x.dataset.sec, i=2; while(document.getElementById(id)) id=id.replace(/-\d+$/,'')+'-'+(i++); x.id=id; x._fid=id; x._fk=x.dataset.sec; }
 function foldPass(panel){
   if(!panel) return; const mine=foldStore()[panel.id]||{};
   const secs=[...panel.querySelectorAll('.sec[data-sec]')].filter(x=>!x.parentElement.closest('.sec')), ok=[];
   for(const x of secs){ const h=x.querySelector(':scope > h3'); if(!h) continue;
     let b=h.querySelector(':scope > .fbtn');
+    // an id this pass gave follows the section's key (a section kept by setHTML whose key changed, 2026-11-18)
+    if(x._fid&&x.id===x._fid&&x._fk!==x.dataset.sec) x.removeAttribute('id');
     if(!b){ if(h.querySelector('a,button,input,select,textarea')) continue;
       b=document.createElement('button'); b.type='button'; b.className='fbtn'; while(h.firstChild) b.appendChild(h.firstChild);
       const mk=document.createElement('span'); mk.className='fmk'; mk.setAttribute('aria-hidden','true'); b.appendChild(mk); h.appendChild(b);
-      if(!x.id){ let id='sec-'+panel.id.replace(/^panel-/,'')+'-'+x.dataset.sec, i=2; while(document.getElementById(id)) id=id.replace(/-\d+$/,'')+'-'+(i++); x.id=id; }
+      if(!x.id) foldId(panel,x);
       b.setAttribute('aria-controls',x.id); }
+    else if(!x.id){ foldId(panel,x); b.setAttribute('aria-controls',x.id); }
     ok.push(x);
     const st=foldState(x); if((x.dataset.st||'')!==st) x.dataset.st=st;
     const k=x.dataset.sec, u=mine[k], hot=st==='bad'||st==='warn'||st==='stale';
