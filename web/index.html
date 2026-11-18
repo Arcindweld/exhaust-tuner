@@ -11484,6 +11484,9 @@ function shMorph(op,np,lp,D,UP){
 // window.__fullWrites (set before the page loads; the tests only, web/tests/incremental_ui.js): every write in full, as
 // before; window.__shStat counts the writes by kind (full, patched, same), for the same test
 const SH_STAT=window.__shStat={full:0,patch:0,same:0};
+// a kept section that is folded and holds a drawing is opened until the fold pass after the render (which folds it again):
+// the render draws to the width of an open section, as it does into a newly written one
+function shOpen(el){ for(const x of el.querySelectorAll('.sec.fc')) if(x.querySelector('svg,canvas')) x.classList.remove('fc'); }
 function setHTML(el,html){
   if(!el) return; if(window.__fullWrites){ el.innerHTML=html; SH_STAT.full++; return; }
   let st=el._sh; const hid=!!(el.closest('[role=tabpanel]')||{}).hidden;
@@ -11492,12 +11495,12 @@ function setHTML(el,html){
   try{
     if(!SH_MO||!st.pr||D.has(el)||(hid&&st.dec)){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); SH_STAT.full++; return; }
     if(st.html===html&&!D.size){   // the same HTML as last time: only the drawings and fields are made afresh
-      SH_STAT.same++;
+      SH_STAT.same++; shOpen(el);
       for(const p of st.pr.querySelectorAll(SH_FRESH)){ const l=p._l; if(l&&l.parentNode&&!(p.parentNode&&p.parentNode.closest&&p.parentNode.closest(SH_FRESH))) shRepl(p,l.parentNode,l); }
       return; }
     const t=document.createElement('template'); t.innerHTML=html; const np=t.content, UP=new Set();
     for(const d of D) for(let x=d.parentNode;x&&x!==el;x=x.parentNode){ if(UP.has(x)) break; UP.add(x); }
-    if(shMorph(st.pr,np,el,D,UP)){ st.pr=np; SH_STAT.patch++; } else { shFull(el,np); SH_STAT.full++; }
+    if(shMorph(st.pr,np,el,D,UP)){ st.pr=np; SH_STAT.patch++; shOpen(el); } else { shFull(el,np); SH_STAT.full++; }
   } catch(e){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); }
   finally{ st.html=html; if(SH_MO) SH_MO.takeRecords(); }
 }
@@ -11506,11 +11509,7 @@ function setHTML(el,html){
 const NS='http://www.w3.org/2000/svg';
 function mk(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
 function clearSvg(s){while(s.firstChild)s.removeChild(s.firstChild);}
-// a drawing in a folded section is laid out to the section's open width (as a newly written section is, before the fold
-// pass): a section kept by setHTML is still folded when the render draws into it (2026-11-18)
-const widthOf=svg=>{const f=svg.closest('figure'), x=svg.closest('.sec.fc'); let w;
-  if(x) shOwn(()=>{ x.classList.remove('fc'); w=f&&f.clientWidth; x.classList.add('fc'); }); else w=f&&f.clientWidth;
-  return Math.max(300,Math.floor(w||360)-32);};
+const widthOf=svg=>{const f=svg.closest('figure');return Math.max(300,Math.floor((f&&f.clientWidth)||360)-32);};
 
 function drawProfile(svg,segs,marks){
   clearSvg(svg);
