@@ -58,7 +58,7 @@
 [hidden]{display:none!important}
 html{scroll-padding-top:calc(var(--stick,124px) + 8px);overflow-anchor:none}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 var(--fs-base)/1.5 var(--f-body);font-variant-numeric:tabular-nums;
-  padding-block:0 64px;padding-left:var(--gut-l);padding-right:var(--gut-r);
+  padding-block:0 calc(64px + env(safe-area-inset-bottom,0px));padding-left:var(--gut-l);padding-right:var(--gut-r);
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--bg)}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -588,6 +588,45 @@ ul.list li+li,ol.list li+li{margin-top:6px}
 /* a long run: how long it has taken, and its Cancel */
 .runstat[data-el]::before{content:attr(data-el);float:right;margin-left:10px;font:500 var(--fs-sm)/1.5 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
 
+/* ----- pass three (docs/UI_REDESIGN_2026-11-16.md, "Pass three"): first run, empty states, reserved space, small screens ----- */
+.skip{position:absolute;left:12px;top:-80px;z-index:300;padding:10px 14px;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent);font:600 var(--fs-md)/1.2 var(--f-ui);text-decoration:none}
+.skip:focus{top:calc(env(safe-area-inset-top,0px) + 8px)}
+main.stage:focus,[role=tabpanel]:focus,.st-hd h2:focus{outline:none}
+.start{margin-top:22px;padding:16px 18px 14px;border:1px solid var(--accent-line);border-radius:var(--r-lg);background:var(--raised);box-shadow:var(--lift)}
+body[data-tab]:not([data-tab="quick"]) .start{display:none}
+.st-hd{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.st-hd h2{margin:0;font:600 var(--fs-lg)/1.2 var(--f-display)}
+.st-steps{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:14px 20px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.st-steps>li{display:grid;grid-template-columns:26px minmax(0,1fr);gap:0 10px;align-content:start}
+.st-n{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--accent-soft);color:var(--ink);font:600 var(--fs-sm)/1 var(--f-ui)}
+.st-steps>li.done .st-n{background:var(--ok);color:var(--ok-bg)}
+.st-steps b{display:block;font-size:var(--fs-base);line-height:26px}
+.st-why{display:block;font-size:var(--fs-sm);color:var(--muted);line-height:1.4}
+.st-do{margin-top:8px;display:flex;flex-wrap:wrap;gap:8px}
+.st-do .btn[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.st-foot{margin:12px 0 0;font-size:var(--fs-sm)}
+.top .segs .startbtn{min-height:32px;padding:5px 11px;font-size:12.5px}
+@media (max-width:899px){.st-steps{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:699px){.start{padding:12px 14px}.st-why,.st-foot{display:none}.st-steps{gap:10px;margin-top:8px}.st-do{margin-top:4px}.top .segs .startbtn{min-height:var(--hit)}}
+/* a "do X first" note carries the control that does X */
+.fixit{margin:8px 0 0}
+.note+.fixit{margin-top:6px}
+/* the space a run's results will take, with its status inside, so nothing below moves when they arrive */
+.resv{position:relative;display:flex;flex-direction:column;gap:12px;margin-top:12px;padding:14px;border:1px dashed var(--line-2);border-radius:var(--r-lg);min-height:var(--resv-h,320px)}
+.resv>.runstat{margin:0}
+.resv-sk{flex:1;border-radius:var(--r-md);background:repeating-linear-gradient(180deg,transparent 0 30px,var(--line) 30px 31px);opacity:.55}
+/* the five busiest tables as stacked cards on a phone (the label of each value from its column heading) */
+@media (max-width:499px){
+  .tblwrap.stk{max-height:none;overflow:visible;border:0;background:none}
+  .tblwrap.stk table,.tblwrap.stk tbody,.tblwrap.stk tr,.tblwrap.stk td{display:block;width:auto;min-width:0}
+  .tblwrap.stk thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .tblwrap.stk tr{margin:0 0 10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--raised)}
+  .tblwrap.stk td,.tblwrap.stk td:first-child{position:static;max-width:none;white-space:normal;padding:3px 0;border:0;text-align:left;background:none}
+  .tblwrap.stk td:first-child{font-weight:600;padding-bottom:6px;margin-bottom:4px;border-bottom:1px solid var(--line)}
+  .tblwrap.stk td[data-l]:not(:first-child)::before{content:attr(data-l);display:block;font:500 var(--fs-xs)/1.3 var(--f-ui);color:var(--muted)}
+  .tblwrap.stk td:empty{display:none}
+  .tblwrap.stk tr.cur{border-color:var(--accent-line)}
+}
 /* touch widths (Fusion's palette, a phone): every control at least 40 px tall */
 @media (max-width:699px),(pointer:coarse){
   .seg button{min-height:var(--hit)}
@@ -619,7 +658,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   --t1:#D9B35C; --t2:#C47A30; --t3:#8C4F9F; --t4:#3F5DC8; --t5:#8FB4E4;
   --info:#2B5A80; --stale:#5B4E8C; --stale-bg:#E7E3F2;
     color-scheme:light}
-  .top,.tabs,.navbar,.vbar,.tabcap,.lede,.fusionbar,.toc,.linkbtn,.foldbar{display:none!important}
+  .top,.tabs,.navbar,.vbar,.tabcap,.lede,.fusionbar,.toc,.linkbtn,.foldbar,.start,.skip,.fixit,.resv-sk{display:none!important}
   /* print shows every section and every explanation in full */
   .sec.fc>h3>.fbtn::after{content:none}
   .sec>h3>.fbtn{padding-left:0}.sec>h3>.fbtn::before,.fmk,.hmore,.hro{display:none!important}
@@ -633,6 +672,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
 </style>
 
 <div class="wrap">
+  <a class="skip" href="#main" id="skip">Skip to the calculator</a>
   <header class="top">
     <div class="brand">
       <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="13.2" style="stroke:var(--t4)"/><circle cx="16" cy="16" r="9.6" style="stroke:var(--t3)"/><circle cx="16" cy="16" r="6" style="stroke:var(--t2)"/><circle cx="16" cy="16" r="2.6" style="stroke:var(--t1)"/></svg>
@@ -656,6 +696,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
         <button type="button" id="f-32" aria-pressed="false">1/32</button>
         <button type="button" id="f-64" aria-pressed="false">1/64</button>
       </div>
+      <button type="button" class="btn startbtn" id="start-btn" aria-controls="start" title="Show the three first steps on the Quick tab">Start here</button>
       <button type="button" class="btn projbtn" id="proj-btn" aria-haspopup="dialog" title="Save, load and compare builds">Projects</button>
       <button type="button" class="iconbtn themebtn" id="theme-btn" aria-label="Colour theme: follows the system" title="Colour theme: follows the system"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.2"/><path class="fillhalf" d="M12 3.8a8.2 8.2 0 0 1 0 16.4z"/></svg><span class="tlab" aria-hidden="true">Colour theme</span></button>
       <div class="hostwrap">
@@ -738,12 +779,22 @@ ul.list li+li,ol.list li+li{margin-top:6px}
     <button type="button" role="tab" id="tab-opt" data-tab="options" aria-controls="panel-opt" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7h9M17.5 7h3M3.5 17h3M11.5 17h9"/><circle cx="15" cy="7" r="2.3"/><circle cx="9" cy="17" r="2.3"/></svg><span>Options</span></button>
   </nav>
   <div class="tabpop" id="tabpop" role="group" aria-label="All calculators" hidden></div>
+  <div class="vh" id="live" role="status" aria-live="polite" aria-atomic="true"></div>
   </div>
 
-  <main class="stage">
+  <main class="stage" id="main" tabindex="-1">
   <div class="fusionbar" id="fusionbar" hidden>
     <b>Connected to Fusion.</b> <span id="fusion-status">Select a sketch path, edge, tube body or keep-out body in the model, then use the Fusion tools on each tab.</span>
   </div>
+  <section class="start" id="start" aria-labelledby="start-h" hidden>
+    <div class="st-hd"><h2 id="start-h" tabindex="-1">Start here</h2><button type="button" class="linkbtn" id="start-x">Hide this</button></div>
+    <ol class="st-steps">
+      <li data-step="pick"><span class="st-n" aria-hidden="true">1</span><div><b>Pick your engine or car</b><span class="st-why">From the list just below, or describe the engine under Engine on this tab.</span><div class="st-do"><button type="button" class="btn" data-start="pick">Choose from the list</button></div></div></li>
+      <li data-step="build"><span class="st-n" aria-hidden="true">2</span><div><b>Say what you are building</b><span class="st-why">Each one opens the tab that works it out.</span><div class="st-do" role="group" aria-label="What you are building"><button type="button" class="btn" data-start="exhaust" aria-pressed="false">Exhaust</button><button type="button" class="btn" data-start="intake" aria-pressed="false">Intake</button><button type="button" class="btn" data-start="turbo" aria-pressed="false">Turbo build</button></div></div></li>
+      <li data-step="sheet"><span class="st-n" aria-hidden="true">3</span><div><b>Read your build sheet</b><span class="st-why">Every part and size in flow order: what to order and what to cut.</span><div class="st-do"><button type="button" class="btn primary" data-start="sheet">Open the build sheet</button></div></div></li>
+    </ol>
+    <p class="cap st-foot">Hide this when you know your way round; Start here under Settings brings it back.</p>
+  </section>
   <p class="lede">Headers, collectors, crossovers, megaphones, two-stroke chambers, resonators, mufflers, catalytic converters and boom tubes, with drone, pipe vibration and turbo or supercharger tones, for anything from a single-cylinder bike to a rotary or a V12. Round, oval and flat-oval tube all work. Every figure is a first cut to build, listen to and trim; the Options tab shows what each change does.</p>
 
   <div class="vbar card" id="vbar">
@@ -28303,6 +28354,69 @@ $('proj-cmp').addEventListener('click',()=>{
 });
 window.__proj={snapshot:projSnapshot,apply:projApply,compare:projCompare,loadAll:projLoadAll,save:projSave,wam:WAM_UI};
 
+/* ----- UI pass three (docs/UI_REDESIGN_2026-11-16.md, "Pass three"): display only, no result reads any of this ----- */
+// Start here: three steps above the vehicle picker on the Quick tab, each one a control that does the step. Shown on a
+// page that has never had an input away from its default ('exhaust-start-v1' empty); once one is (or a project is loaded),
+// it does not come back on the next visit unless Start here under Settings asks for it. It stays for the visit it was shown
+// in, ticking each step as it is really done, so it does not vanish under the builder halfway through.
+const START_KEY='exhaust-start-v1', START=$('start'), START_ST={build:''};
+const startGet=()=>{ try{ return localStorage.getItem(START_KEY)||''; }catch(e){ return ''; } };
+const startSet=v=>{ try{ if(v) localStorage.setItem(START_KEY,v); else localStorage.removeItem(START_KEY); }catch(e){} };
+// an input away from its default (the engine selects default to their data-default)
+const inDefault=el=>el.tagName==='SELECT'&&el.dataset.default?el.value===el.dataset.default:advIsDefault(el);
+function startUsed(){ for(const el of PROJ_STATIC) if(!inDefault(el)) return true; return false; }
+function startShow(on,focus){ if(!START) return; START.hidden=!on; if(on) startMark(); if(on&&focus){ if(cur!=='quick') location.hash='quick'; setTimeout(()=>{ const h=$('start-h'); START.scrollIntoView({block:'nearest'}); h.focus({preventScroll:true}); },60); } }
+function startMark(){ if(!START||START.hidden) return;
+  const done={pick:!!($('v-pick').value)||!inDefault($('q-eng'))||!inDefault($('q-disp')), build:!!START_ST.build, sheet:!!START_ST.sheet};
+  START.querySelectorAll('.st-steps>li').forEach(li=>{ const d=!!done[li.dataset.step], n=li.querySelector('.st-n'), t=d?'✓':String([...li.parentElement.children].indexOf(li)+1);
+    if(li.classList.contains('done')!==d) li.classList.toggle('done',d); if(n.textContent!==t) n.textContent=t;
+    let v=li.querySelector('b .vh'); if(d&&!v){ v=document.createElement('span'); v.className='vh'; v.textContent=' (done)'; li.querySelector('b').appendChild(v); } else if(!d&&v) v.remove(); });
+  START.querySelectorAll('[data-start][aria-pressed]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.start===START_ST.build?'true':'false')); }
+// a field anywhere: its tab, its fold and its advanced box opened, scrolled to and focused (goField does the tab and the box)
+function goTo(id){ const el=$(id); if(!el) return; goField(id); }
+function startDo(k){
+  if(k==='pick'){ const el=$('v-make'); el.scrollIntoView({block:'center'}); el.focus({preventScroll:true}); return; }
+  if(k==='exhaust'||k==='intake'||k==='turbo'){ START_ST.build=k;
+    if(k==='exhaust'){ if(cur!=='quick') location.hash='quick'; startMark(); goTo('q-loud'); return; }
+    const ind=$('i-ind'); if(k==='turbo'&&ind.value!=='turbo'){ ind.value='turbo'; ind.dispatchEvent(new Event('change',{bubbles:true})); }
+    if(location.hash!=='#intake') location.hash='intake'; else renderActive();
+    setTimeout(()=>{ const g=k==='turbo'?$('tg-glance'):null; if(g){ g.scrollIntoView({block:'start'}); const h=g.querySelector('h3'); if(h){ h.tabIndex=-1; h.focus({preventScroll:true}); } } else goTo('i-rpm'); },80); return; }
+  if(k==='sheet'){ START_ST.sheet=1;
+    if(START_ST.build==='turbo'||START_ST.build==='intake'&&$('i-ind').value!=='na'){ if(location.hash!=='#intake') location.hash='intake'; setTimeout(()=>{ const x=document.querySelector('#panel-intake .sec[data-sec="build-sheet"],#tg-glance'); if(x) x.scrollIntoView({block:'start'}); },80); return; }
+    if(location.hash!=='#quick') location.hash='quick';
+    setTimeout(()=>{ const x=document.querySelector('#panel-quick .sec[data-sec="build-sheet"]'); if(!x) return; x.scrollIntoView({block:'start'}); const b=x.querySelector(':scope>h3>.fbtn'); if(b) b.focus({preventScroll:true}); startMark(); },80); }
+}
+if(START){
+  START.addEventListener('click',e=>{ const b=e.target.closest('[data-start]'); if(b) startDo(b.dataset.start); });
+  $('start-x').addEventListener('click',()=>{ startSet('off'); startShow(false); const b=$('start-btn'); if(b&&b.getClientRects().length) b.focus(); else $('main').focus(); });
+  $('start-btn').addEventListener('click',()=>{ startSet(''); startShow(true,true); const t=document.querySelector('.top'); if(t&&t.classList.contains('setopen')) $('set-btn').click(); });
+  // the first input away from its default is remembered for the next visit (checked when the page is idle, off the edit's path)
+  let sIdle=0; const sCheck=()=>{ sIdle=0; if(startGet()) return; if(startUsed()) startSet('used'); };
+  const sLater=()=>{ startMark(); if(sIdle||startGet()) return; sIdle=window.requestIdleCallback?requestIdleCallback(sCheck,{timeout:1500}):setTimeout(sCheck,300); };
+  document.addEventListener('input',sLater); document.addEventListener('change',sLater);
+}
+// the page's own heading for each calculator (h1 the program, h2 the calculator, h3 its sections), for screen readers'
+// heading lists; drawn nowhere
+document.querySelectorAll('section[role=tabpanel]').forEach(p=>{ const t=$(p.getAttribute('aria-labelledby')); if(!t||p.querySelector(':scope>h2.vh')) return;
+  const h=document.createElement('h2'); h.className='vh'; h.textContent=t.textContent.trim()+' calculator'; p.tabIndex=-1; p.prepend(h); });
+// skip link: to the calculator in view (no change of the address: the tabs live in the hash)
+$('skip').addEventListener('click',e=>{ e.preventDefault(); const p=$(TABS[cur].panel); (p||$('main')).focus(); (p||$('main')).scrollIntoView({block:'start'}); });
+// the one polite live region: a run started, finished or stopped (from runClock), and nothing on each keystroke
+let LIVE_T=0;
+function liveSay(t){ const el=$('live'); if(!el||!t) return; clearTimeout(LIVE_T); el.textContent=''; LIVE_T=setTimeout(()=>{ el.textContent=t; },60); }
+window.__say=liveSay;
+// the last project loaded or saved, and the last tab, come back on a page opened with no tab in its address (the
+// programs open it that way); a project changed after it was saved comes back as it was saved
+const LAST_KEY='exhaust-last-v1';
+const lastGet=()=>{ try{ return JSON.parse(localStorage.getItem(LAST_KEY)||'{}')||{}; }catch(e){ return {}; } };
+const lastSet=o=>{ try{ localStorage.setItem(LAST_KEY,JSON.stringify(Object.assign(lastGet(),o))); }catch(e){} };
+window.addEventListener('hashchange',()=>{ if(TABS[location.hash.slice(1)]) lastSet({tab:location.hash.slice(1)}); });
+{ const pc=projCur; projCur=function(name){ pc(name); if(name) lastSet({proj:name}); startShow(false); if(name) startSet(startGet()||'used'); }; }
+(()=>{ const L=lastGet(); let restored=false;
+  if(!location.hash){
+    if(L.proj){ const p=projLoadAll().find(x=>x.name===L.proj); if(p){ try{ projApply(p.data); $('proj-name').value=p.name; projCur(p.name); restored=true; }catch(e){} } }
+    if(L.tab&&TABS[L.tab]) history.replaceState(null,'',location.pathname+location.search+'#'+L.tab); }
+  if(START&&!restored&&!startGet()) startShow(true); })();
 let raf=0;
 // re-drawn when the page's WIDTH changes (the drawings and tables are laid out to it). Not on a change of height: a render
 // changes the height itself, and anything that settles a frame later (a clamped note, the section list's current chip)
