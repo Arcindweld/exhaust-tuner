@@ -11401,13 +11401,16 @@ const notesHtml=n=>n.map(x=>'<div class="note '+(x.k==='info'?'':x.k)+'">'+esc(x
 const sec=(title,body)=>'<div class="sec" data-sec="'+String(title).replace(/<[^>]*>/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'"><h3>'+title+'</h3>'+body+'</div>';
 // a jump list at the top of a long results column: one chip per section when there are more than six (buttons, not
 // anchors, because the page's hash is its tab)
-function addToc(det,list){
-  if(!det) return; const secs=list||[...det.querySelectorAll(':scope > .sec[data-sec], :scope > * > .sec[data-sec]')]; if(secs.length<=6) return;
-  const nav=document.createElement('nav'); nav.className='toc'; nav.setAttribute('aria-label','Sections');
+function addToc(det,list,gen){
+  if(!det) return; const secs=list||[...det.querySelectorAll(':scope > .sec[data-sec], :scope > * > .sec[data-sec]')];
+  // a list already there (the tab's nodes kept by setHTML, 2026-11-18) is brought up to date in place, else one is made
+  let nav=det.querySelector(':scope > nav.toc'); if(nav&&!nav.dataset.gen!==!gen) nav=null;   // (gen: foldPass's own list)
+  if(secs.length<=6){ if(nav){ if(det._io){ det._io.disconnect(); det._io=null; } nav.remove(); } return; }
   const nm=x=>esc(x.querySelector('h3').textContent);
-  nav.innerHTML='<div class="tocrow">'+secs.map(x=>'<button type="button" data-toc="'+x.dataset.sec+'">'+nm(x)+'</button>').join('')+'</div>'+
+  const h='<div class="tocrow">'+secs.map(x=>'<button type="button" data-toc="'+x.dataset.sec+'">'+nm(x)+'</button>').join('')+'</div>'+
     '<label class="tocjump"><span class="vh">Jump to a section</span><select data-tocsel aria-label="Jump to a section"><option value="">Jump to…</option>'+secs.map(x=>'<option value="'+x.dataset.sec+'">'+nm(x)+'</option>').join('')+'</select></label>';
-  det.insertBefore(nav,det.firstChild); tocWatch(det,nav,secs);
+  if(!nav){ nav=document.createElement('nav'); nav.className='toc'; nav.setAttribute('aria-label','Sections'); det.insertBefore(nav,det.firstChild); }
+  if(nav._h!==h){ nav.innerHTML=h; nav._h=h; } tocWatch(det,nav,secs);
 }
 // the section in view: marked in the list (no scroll handler: an IntersectionObserver over a band under the sticky bars)
 function tocWatch(det,nav,secs){
@@ -11441,6 +11444,58 @@ function pointsCsv(segs){
   let x=0; const out=['x_'+u+',diameter_'+u];
   segs.forEach((s,i)=>{ if(i===0||Math.abs(s.d0-segs[i-1].d1)>1e-9) out.push(f(x)+','+f(s.d0)); x+=s.len; out.push(f(x)+','+f(s.d1)); });
   return out.join('\n');
+}
+
+/* ===== a render's HTML written in place (2026-11-18, docs/PERF_2026-11-18.md) =====
+   setHTML(el, html) leaves el exactly as el.innerHTML = html followed by the page's passes would, but touches only what
+   changed: a re-render used to replace every node of a tab, and the browser then styled and laid out the whole tab again
+   (on the boosted Intake tab about 50 ms of the edit). The HTML is parsed into a template and compared, node by node,
+   with the one written last time (kept, untouched, beside the page): a node whose HTML is the same keeps its node in the
+   page; a text that changed is set; an element whose attributes changed gets them; anything whose children differ in
+   number or kind is replaced, as are form fields, drawings (svg, canvas) and details (their state is not in the HTML, and
+   the render draws or fills them afresh). The page's own passes after a render (folding, tables, the "do this" buttons,
+   the quieter units) are applied again on every render, so a kept node ends as a new one would. Anything else that
+   changed the written nodes since (a button's message, a section folded by hand, a draw) is seen by a MutationObserver
+   and that node is written afresh. A panel that is hidden keeps the undecorated nodes it would have had (written in
+   full when its nodes were decorated while it was shown). */
+const SH_FRESH='svg,canvas,input,select,textarea,details,dialog,video,audio,iframe,object,embed,.runstat', SH_FRESH_RE=/^(svg|canvas|input|select|textarea|details|dialog|video|audio|iframe|object|embed)$/i;
+const SH_ROOTS=new Set(), SH_MO=typeof MutationObserver==='function'?new MutationObserver(recs=>shNote(recs)):null;
+function shNote(recs){ for(const r of recs){ const t=r.target; let root=null; for(let x=t;x;x=x.parentNode) if(x._sh){ root=x; break; } if(!root) continue;
+  if(t===root&&r.type==='attributes') continue; root._sh.dirty.add(t); } }
+function shFlush(){ if(SH_MO) shNote(SH_MO.takeRecords()); }   // what happened so far is someone else's
+function shOwn(f){ shFlush(); try{ if(f) f(); } finally{ if(SH_MO) SH_MO.takeRecords(); } }   // the page's own deterministic passes
+function shDecorated(pan){ for(const r of SH_ROOTS) if(!pan||pan.contains(r)) r._sh.dec=true; }
+function shBind(p,l){ p._l=l; for(let a=p.firstChild,b=l.firstChild;a;a=a.nextSibling,b=b.nextSibling) shBind(a,b); }
+function shFull(el,np){ const st=el._sh, live=np.cloneNode(true); shBind(np,live); el.replaceChildren(live); st.pr=np; st.dec=false; }
+function shRepl(n,lp,l){ const c=n.cloneNode(true); shBind(n,c); lp.replaceChild(c,l); }
+function shMorph(op,np,lp,D,UP){
+  const oc=[...op.childNodes], nc=[...np.childNodes], k=oc.length; if(k!==nc.length) return false;
+  for(let i=0;i<k;i++){ const o=oc[i], n=nc[i], l=o._l;
+    if(!l||l.parentNode!==lp||o.nodeType!==n.nodeType||o.nodeName!==n.nodeName) return false; }
+  for(let i=0;i<k;i++){ const o=oc[i], n=nc[i], l=o._l;
+    if(o.nodeType!==1){ if(o.nodeType===3||o.nodeType===8){ if(D.has(l)||o.nodeValue!==n.nodeValue) l.nodeValue=n.nodeValue; n._l=l; } else shRepl(n,lp,l); continue; }
+    if(D.has(l)||SH_FRESH_RE.test(o.nodeName)||o.classList.contains('runstat')){ shRepl(n,lp,l); continue; }
+    if(!UP.has(l)&&o.isEqualNode(n)&&!(o.firstElementChild&&o.querySelector(SH_FRESH))){ np.replaceChild(o,n); continue; }
+    for(const a of n.attributes) if(o.getAttribute(a.name)!==a.value) l.setAttribute(a.name,a.value);
+    for(const a of o.attributes) if(!n.hasAttribute(a.name)) l.removeAttribute(a.name);
+    n._l=l; if(!shMorph(o,n,l,D,UP)) shRepl(n,lp,l); }
+  return true;
+}
+function setHTML(el,html){
+  if(!el) return;
+  let st=el._sh; const hid=!!(el.closest('[role=tabpanel]')||{}).hidden;
+  if(!st){ st=el._sh={pr:null,html:null,dirty:new Set(),dec:false}; SH_ROOTS.add(el); if(SH_MO) SH_MO.observe(el,{subtree:true,childList:true,attributes:true,characterData:true}); }
+  shFlush(); const D=st.dirty; st.dirty=new Set();
+  try{
+    if(!SH_MO||!st.pr||D.has(el)||(hid&&st.dec)){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); return; }
+    if(st.html===html&&!D.size){   // the same HTML as last time: only the drawings and fields are made afresh
+      for(const p of st.pr.querySelectorAll(SH_FRESH)){ const l=p._l; if(l&&l.parentNode&&!(p.parentNode&&p.parentNode.closest&&p.parentNode.closest(SH_FRESH))) shRepl(p,l.parentNode,l); }
+      return; }
+    const t=document.createElement('template'); t.innerHTML=html; const np=t.content, UP=new Set();
+    for(const d of D) for(let x=d.parentNode;x&&x!==el;x=x.parentNode){ if(UP.has(x)) break; UP.add(x); }
+    if(shMorph(st.pr,np,el,D,UP)) st.pr=np; else shFull(el,np);
+  } catch(e){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); }
+  finally{ st.html=html; if(SH_MO) SH_MO.takeRecords(); }
 }
 
 /* ===== SVG helpers ===== */
@@ -15429,7 +15484,7 @@ function renderHang(){
   mtRender();   // the Mounts designer below the hanger (its own block, after this tab's code)
   const o=hgRead(); hgFields(o);
   const key=$('hg-key'), det=$('hg-details'), svg=$('hg-svg');
-  const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; det.innerHTML=hgFusion(); clearSvg(svg); $('hg-cap').textContent=''; HG_UI.last=null; };
+  const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; setHTML(det,hgFusion()); clearSvg(svg); $('hg-cap').textContent=''; HG_UI.last=null; };
   const need=[['hg-od',o.part!=='body'],['hg-reach',o.part!=='body'],['hg-t',o.part!=='ring'&&o.part!=='rod'],['hg-hole',o.part!=='ring'&&o.part!=='rod'],['hg-rod',o.part==='rod'],['hg-weld',o.part==='rod'],['hg-pin',o.part==='rod'],['hg-width',o.part==='ring'],['hg-blen',o.part==='body'||o.part==='pair']];
   for(const [id,on] of need) if(on&&!(val(id)>0)) return fail('Fill in '+($(id).closest('label').querySelector('.lab').textContent.toLowerCase())+' with a positive number.');
   const mat=HG_MAT[o.mat];
@@ -15485,7 +15540,7 @@ function renderHang(){
   }
   h+=hgHeat(o,parts,mat);
   h+=hgFusion();
-  det.innerHTML=h;
+  setHTML(det,h);
 }
 // heat at the isolator and which isolator takes it (docs/research/hanger_isolation_lightening.md)
 function hgHeat(o,parts,mat){
@@ -16106,7 +16161,7 @@ function mtRender(){
   const o=mtRead(); mtFields(o);
   let r; try{ r=mtCalc(o); }catch(e){ r={err:e.message}; }
   MT_UI.last=r;
-  if(r.err){ out.innerHTML='<div class="note bad">'+esc(r.err)+'</div>'+mtFusion(); return; }
+  if(r.err){ setHTML(out,'<div class="note bad">'+esc(r.err)+'</div>'+mtFusion()); return; }
   const p=r.part, mt=r.mt, iso=r.iso, worstD=Math.max(...r.designs.map((d,k)=>Math.max(...r.cases.map(c=>MV.len(c.F[k])))));
   const gmax=Math.max(...r.grow.map(g=>Math.max(g.gh||0,g.gc||0)));
   let h='<div class="figs">'+figT('Part, as it runs',(U==='imp'?(p.m*2.20462).toFixed(1):p.m.toFixed(2)),U==='imp'?'lb':'kg',p.liq>0?'with '+mtKg(p.liq)+' of liquid':mtKg(p.m))+
@@ -16150,7 +16205,7 @@ function mtRender(){
       r.designs.filter(d=>d.best.type==='stay').map((d,k)=>'<p class="cap">Stay: cut the tube '+bothL(d.best.checks.cut)+' ('+bothL(d.best.checks.L)+' between rod-end centres less '+bothL(o.stre)+' each end); rod ends rated (radial static) at least '+d.best.checks.SF.toFixed(1)+' × '+mtN(Math.max(...d.best.checks.rows.slice(0,2).map(x=>x.load)))+' (no rod-end catalogue is embedded).</p>').join(''));
   h+=sec('Sources and what is assumed','<p class="cap">Bolts: <a href="'+MT_SRC.fastm+'" target="_blank" rel="noopener">Fastenal metric</a> (8.8: proof 580, tensile 800 MPa; 10.9: 830, 1040) and <a href="'+MT_SRC.fasti+'" target="_blank" rel="noopener">inch</a> (Grade 5: 85, 120 ksi; Grade 8: 120, 150 ksi) and their stress areas; shear at 60% of the minimum tensile strength on the minor area (<a href="'+MT_SRC.pbolt+'" target="_blank" rel="noopener">Portland Bolt</a>). Welds: <a href="'+MT_SRC.aws+'" target="_blank" rel="noopener">AWS D1.1</a> 0.30 × FEXX on the throat (0.707 × leg) for steel; <a href="'+MT_SRC.alcotec+'" target="_blank" rel="noopener">AlcoTec</a> typical fillet shear for aluminium fillers; the weld taken as a line (Blodgett’s method). Aluminium stiffness 68.3 GPa (<a href="'+MT_SRC.e6061+'" target="_blank" rel="noopener">6061-T6, Protolabs</a>), steels the pipe tab’s table. Assumptions: the part’s centre of mass at its centre; equal mount stiffness; the chassis rigid; bends at the inside radius and K-factor entered; no prying, no bearing check, no fatigue.</p>');
   h+=mtFusion();
-  out.innerHTML=h;
+  setHTML(out,h);
 }
 function mtFusion(){
   if(!FUSION) return '';
@@ -16325,7 +16380,7 @@ function renderHeaders(){
   if(inlineHd&&merge==='triy'&&p.mode==='bank') p.mode='all';
   const hotV=banks.length>1&&!inlineHd&&$('h-ports').value==='in';
   const r=calcLayout(p), key=$('h-key'), det=$('h-details');
-  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';det.innerHTML='';clearSvg($('h-pulse'));clearSvg($('h-svg'));$('h-cap').textContent='';S.headers={};$('h-uel-wrap').hidden=true;HDR_LAST={err:r.err};return;}
+  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';setHTML(det,'');clearSvg($('h-pulse'));clearSvg($('h-svg'));$('h-cap').textContent='';S.headers={};$('h-uel-wrap').hidden=true;HDR_LAST={err:r.err};return;}
   if(uelOn) uelTable(r,p);
   const uel=uelOn?uelCompute(r,p):null, ur=uel&&!uel.err?Object.fromEntries(uel.rows.map(x=>[x.c,x])):null;
 
@@ -16444,7 +16499,7 @@ function renderHeaders(){
   html+=actions('headers');
   FX.headers={title:'Header runner',segs:r.segs.map(s=>[s.name,s.len,s.d0,s.d1]),wall_mm:val('h-wall')>0?val('h-wall'):1.651,od_mm:p.dp+2*(val('h-wall')>0?val('h-wall'):1.651),target_mm:r.tube};
   FX.target=FX.target||{}; FX.target.headers=r.tube;
-  det.innerHTML=html; addToc(det);
+  setHTML(det,html); shOwn(()=>addToc(det));
 
   // (2026-11-16) 'custom' was missing: "My own groups" threw here, so the summary and HDR_LAST were never set (A1 (c))
   const gname={bank:()=>banks.length>1?'per bank':'one collector',alt:()=>'180° alternate firing order',all:()=>'all into one',custom:()=>'my own groups'}[p.mode]();
@@ -16525,7 +16580,7 @@ function renderCross(){
   const p={type:t,d:xb.err?NaN:xb.Deq,dplan:xs.w,s:val('x-s'),pos:val('x-pos'),ratio:val('x-ratio'),ang:val('x-ang'),mrg:val('x-mrg'),
     sout:val('x-sout'),jang:val('x-jang'),yratio:val('x-yr'),yang:val('x-yang')};
   const r=calcCross(p), key=$('x-key'), det=$('x-details'), svg=$('x-svg');
-  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';det.innerHTML='';clearSvg(svg);$('x-cap').textContent='';S.cross={};CROSS_LAST=null;return;}
+  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';setHTML(det,'');clearSvg(svg);$('x-cap').textContent='';S.cross={};CROSS_LAST=null;return;}
   CROSS_LAST={type:t,pos:r.place?r.place.pos:NaN,dc:r.dc,tube:r.tube,name:{h:'H-pipe',x:'X-pipe',z:'Z-pipe',y:'Y-pipe'}[t]};
   const win=U==='imp'?'8 to 18 in':'203 to 457 mm';
   const posFig=r.place?(()=>{const v=L(r.place.pos,'l');return figT('From collector ends',v.n,v.u,'best '+win,r.place.ok?'st-ok':'st-warn');})()
@@ -16572,7 +16627,7 @@ function renderCross(){
   html+=guideHtml('cross');
   html+=actions('cross');
   FX.cross={title:'Crossover '+names[t],strokes:r.strokes};
-  det.innerHTML=html; addToc(det);
+  setHTML(det,html); shOwn(()=>addToc(det));
   S.cross.summary=['CROSSOVER · '+names[t],'Main pipe ID: '+plain(p.d,'d'),'Spacing, centre to centre: '+plain(p.s,'l')].concat(
     t==='h'?['Crossover ID: '+plain(r.dc,'d'),'Tube length between walls: '+plain(r.tube,'l')]:
     t==='x'?['Total length: '+plain(r.len,'l'),'Converging run each side: '+plain(r.lc,'l'),'Merged section: '+plain(r.lm,'l')+' at '+plain(r.dm,'d')+' equivalent ID','Crossing angle: '+p.ang+'° each pipe ('+(2*p.ang)+'° included)',
@@ -17455,9 +17510,9 @@ function renderMuf(){
   const bore=boreOf('m-dp-shape'), useSecs=$('m-lay').value==='secs', secs=useSecs?soundSecs():null;
   $('m-len-wrap').hidden=useSecs;
   const p={f:val('m-f'),dpipe:bore.err?NaN:bore.Deq,len:val('m-len'),tmain:val('m-tmain'),tres:val('m-tres'),dn:val('m-dn'),ln:val('m-ln'),db:val('m-db'),dch:val('m-dch'),lch:val('m-lch'),lin:val('m-lin'),lout:val('m-lout'),rev:$('m-chlay').value==='reverse'};
-  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
+  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; setHTML($('m-details'),''); clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   // (2026-11-16) the two early error returns also clear the legend and caption: they kept the last result's (A2)
-  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
+  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; setHTML($('m-details'),''); clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   if(secs){ p.secs=secs; p.len=secLen(pathSecs(secs))*1000; }
   const endName=FX.mufTurbo?'turbine':'valve';
   $('m-len-lab').textContent=FX.mufTurbo?'Pipe length, turbine outlet to tailpipe tip':'Pipe length, valve to tailpipe tip';
@@ -17475,7 +17530,7 @@ function renderMuf(){
   const pgMemo={}, pgTL=f=>{ const k=Math.round(f); if(pgMemo[k]==null) pgMemo[k]=pg.tl(k); return pgMemo[k]; };
   const bf=val('m-nbaf')>=1?calcBaffles({dpipe:p.dpipe,dsh:p.dch,lch:p.lch,n:val('m-nbaf'),dh:val('m-bh')>0?val('m-bh'):p.dpipe,t:val('m-pw')>0?val('m-pw'):1.5,tC:p.tmain}):null;
   const firstErr=[hm,qw,pl].find(x=>x.err);
-  if(firstErr){ key.innerHTML='<div class="note bad">'+esc(firstErr.err)+'</div>'; det.innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
+  if(firstErr){ key.innerHTML='<div class="note bad">'+esc(firstErr.err)+'</div>'; setHTML(det,''); clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   const can=[...hm.cans].sort((a,b)=>Math.abs(a.len/a.D-2)-Math.abs(b.len/b.D-2))[0];   // a can about twice as long as wide
   const lamRes=hm.c/p.f*1000, longCan=can.len+p.ln>lamRes/8;                          // lumped model holds while the resonator is small next to the wavelength
   const bw=val('m-bw')>0?val('m-bw'):1.651;
@@ -17726,7 +17781,7 @@ function renderMuf(){
   html+=augSection(p);
   html+=guideHtml('muf');
   html+=actions('muf');
-  det.innerHTML=html; addToc(det);
+  setHTML(det,html); shOwn(()=>addToc(det));
   ttDraw(); augDraw();
   if(!ab.err&&$('m-abs')){ const fm=Math.min(4000,Math.max(500,Math.ceil(ab.fCut*1.15/250)*250)), pts=[...Array(121).keys()].map(i=>{ const f=10+i*(fm-10)/120; return [f,abTL(f)]; });
     drawLines($('m-abs'),{curves:[{pts,col:'--t5',w:2.4}],xmax:fm,ymax:TLCAP,xlab:'Hz',ylab:'dB removed',h:200,band:[Math.min(fm,ab.fCut),fm],k:true,marks:[{x:p.f,label:Math.round(p.f)+' Hz'}].concat(rs?[{x:rs.f.cruise,label:'cruise firing '+Math.round(rs.f.cruise)+' Hz'}]:[])}); }
@@ -27618,7 +27673,7 @@ function renderIntake(){
   $('i-fh-lab').textContent=filt==='panel'?'Filter width':'Length';
   const custom=$('i-eng').value==='custom'; $('i-cyl-wrap').hidden=!custom;
   const key=$('i-key'), det=$('i-details'), svg=$('i-svg');
-  const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; det.innerHTML=''; clearSvg(svg); $('i-legend').innerHTML=''; $('i-cap').textContent=''; S.intake={}; };
+  const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; setHTML(det,''); clearSvg(svg); $('i-legend').innerHTML=''; $('i-cap').textContent=''; S.intake={}; };
   let e, po;
   if(custom){ const n=Math.round(val('i-cyl')); if(!(n>=1)) return fail('Fill in the number of cylinders.'); e={cyc:'4',order:[...Array(n).keys()].map(i=>i+1)}; }
   else e=ENGLIB[$('i-eng').value];
@@ -27803,7 +27858,7 @@ function renderIntake(){
     '<li>Keep the mass airflow sensor in the straight, smooth run its maker specifies; changing the tube diameter at the sensor changes its calibration.</li>'+
     '<li>Use mandrel bends and as few as you can, and a radiused inlet. A rough, kinked tube costs more than the filter.</li></ul>');
   // the step-by-step checklist goes first; it reads what the boosted sections above have just worked out
-  det.innerHTML=(ind==='turbo'||ind==='centri'?tgChecklist(ind,p):'')+h;
+  setHTML(det,(ind==='turbo'||ind==='centri'?tgChecklist(ind,p):'')+h);
   if(ind==='turbo'||ind==='centri') key.insertAdjacentHTML('afterbegin',tgGlance(ind,p));
   advMark();
   if($('i-b5map')) drawCompMap($('i-b5map'),B5_MAP);
@@ -27842,8 +27897,11 @@ var INPUT_GEN=1, PROD_GEN={headers:0,crossover:0,intake:0};
 document.addEventListener('input',()=>{ INPUT_GEN++; },true); document.addEventListener('change',()=>{ INPUT_GEN++; },true);
 function refreshDeps(){ for(const [n,f] of [['headers',renderHeaders],['crossover',renderCross],['intake',renderIntake]]){ if(n===cur||(PROD_GEN&&PROD_GEN[n]===INPUT_GEN)) continue; try{ f(); }catch(e){} if(PROD_GEN) PROD_GEN[n]=INPUT_GEN; } }
 function renderActive(){ const pan=$(TABS[cur].panel), keep=typeof keepBefore==='function'?keepBefore(pan):null;
-  syncShapes(); if(cur!=='four-stroke') simInpRefresh(); refreshDeps(); TABS[cur].render(); if(PROD_GEN&&PROD_GEN[cur]!==undefined) PROD_GEN[cur]=INPUT_GEN; if(cur==='headers') renderPieCut(); tblPolish(pan);
-  if(typeof uiPass2==='function'){ uiPass2(pan); keepAfter(pan,keep); } window.__renderCount=(window.__renderCount||0)+1; }
+  syncShapes(); if(cur!=='four-stroke') simInpRefresh(); refreshDeps(); TABS[cur].render(); if(PROD_GEN&&PROD_GEN[cur]!==undefined) PROD_GEN[cur]=INPUT_GEN; if(cur==='headers') renderPieCut();
+  // the display passes are the page's own (setHTML's kept nodes get them again each render, so their changes are not
+  // someone else's)
+  shOwn(()=>{ tblPolish(pan); if(typeof uiPass2==='function') uiPass2(pan); }); shDecorated(pan);
+  if(typeof uiPass2==='function') keepAfter(pan,keep); window.__renderCount=(window.__renderCount||0)+1; }
 function showTab(){
   const h=location.hash.replace('#','');
   cur=TABS[h]?h:'quick';
@@ -27875,15 +27933,18 @@ function tblPolish(root){
     for(const tr of body.rows){ const c=tr.cells; if(c.length!==n){ ok=false; break; }
       for(let j=1;j<n;j++){ if(!isNum[j]) continue; const x=c[j].textContent.trim(); if(!x||x==='—'||x==='-'||x==='–') continue; any[j]=true; if(!NUM_CELL.test(x)) isNum[j]=false; } }
     if(!ok) continue;
-    for(let j=1;j<n;j++){ if(!(isNum[j]&&any[j])) continue; for(const tr of t.rows){ const c=tr.cells[j]; if(c&&tr.cells.length===n) c.classList.add('num'); } }
+    // (set and cleared both ways: a table kept by setHTML from the render before ends as a new one would; no render
+    // writes the class itself)
+    for(let j=1;j<n;j++){ const on=isNum[j]&&any[j]; for(const tr of t.rows){ const c=tr.cells[j]; if(c&&tr.cells.length===n&&c.classList.contains('num')!==on){ c.classList.toggle('num',on); if(!on&&!c.classList.length) c.removeAttribute('class'); } } }
   }
   root.querySelectorAll('.runstat').forEach(runPct);
   // pass three: the busiest tables stack as cards on a phone; each value is labelled from its column heading (CSS shows
   // the label only below 500 px, as generated content, so the text read from the page is as it was)
+  for(const w of root.querySelectorAll('.tblwrap.stk')) if(!w.querySelector(':scope > '+STK_SEL.slice(STK_SEL.indexOf('table:is(')))) w.classList.remove('stk');
   for(const t of root.querySelectorAll(STK_SEL)){ const w=t.parentElement; if(!w.classList.contains('stk')) w.classList.add('stk');
     const hr=t.tHead&&t.tHead.rows[0]; if(!hr) continue; const hs=[...hr.cells].map(c=>c.textContent.trim());
     if(hs.length<2) continue;
-    for(const b of t.tBodies) for(const tr of b.rows){ if(tr.cells.length!==hs.length) continue; for(let j=1;j<hs.length;j++){ const c=tr.cells[j]; if(c.dataset.l!==hs[j]) c.dataset.l=hs[j]; } } }
+    for(const b of t.tBodies) for(const tr of b.rows){ if(tr.cells.length!==hs.length){ for(const c of tr.cells) if(c.hasAttribute('data-l')) c.removeAttribute('data-l'); continue; } for(let j=1;j<hs.length;j++){ const c=tr.cells[j]; if(c.dataset.l!==hs[j]) c.dataset.l=hs[j]; } } }
 }
 // the busiest wide tables (turbo options, intercooler cores, oil coolers, the inlet and charge-pipe tube sizes, the
 // downpipe sizes, the pie-cut pieces)
@@ -27973,8 +28034,10 @@ function foldPass(panel){
     foldApply(x,FOLD_ALL||open); }
   // a tab whose render made no sections list (the boosted Intake tab's are spread over several boxes) gets one here
   { const sig=ok.map(x=>x.dataset.sec).join(' '), t=panel.querySelector('.toc');
-    if(t&&t.dataset.gen&&t.dataset.gen!==sig){ if(t.parentElement._io){ t.parentElement._io.disconnect(); t.parentElement._io=null; } t.remove(); }
-    if(ok.length>6&&!panel.querySelector('.toc')){ addToc(ok[0].parentElement,ok); const n=panel.querySelector('.toc'); if(n) n.dataset.gen=sig; } }
+    const host=ok.length?ok[0].parentElement:null;
+    if(t&&t.dataset.gen&&(t.dataset.gen!==sig||ok.length<=6||t.parentElement!==host)){ if(t.parentElement._io){ t.parentElement._io.disconnect(); t.parentElement._io=null; } t.remove(); }
+    // (one still there, its nodes kept by setHTML, is brought up to date: its labels carry the sections' figures)
+    if(ok.length>6){ const t2=panel.querySelector('.toc'); if(!t2||t2.dataset.gen){ addToc(host,ok,true); const n=host.querySelector(':scope > nav.toc'); if(n) n.dataset.gen=sig; } } }
   foldBar(panel,ok);
 }
 function foldBar(panel,ok){
@@ -28024,10 +28087,10 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button.hmore');
   const h=$(b.getAttribute('aria-controls')), pan=h&&h.closest('[role=tabpanel]'); if(!h||!pan) return;
   const st=foldStore(), hs=st._h=st._h||{}; if(h.classList.contains('hopen')) delete hs[h.dataset.hk]; else hs[h.dataset.hk]=1; foldSave(); hintPass(pan); });
 // for the page's tests (and anyone reading it all): every section and explanation open, not stored; __expandAll(false) undoes it
-window.__expandAll=(on)=>{ FOLD_ALL=on!==false; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); };
+window.__expandAll=(on)=>{ FOLD_ALL=on!==false; shOwn(()=>document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); })); shDecorated(); };
 // the page's own print: everything open while it prints, as it was after
-addEventListener('beforeprint',()=>{ if(!FOLD_ALL){ FOLD_ALL='print'; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); } });
-addEventListener('afterprint',()=>{ if(FOLD_ALL==='print'){ FOLD_ALL=false; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); } });
+addEventListener('beforeprint',()=>{ if(!FOLD_ALL){ FOLD_ALL='print'; shOwn(()=>document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); })); shDecorated(); } });
+addEventListener('afterprint',()=>{ if(FOLD_ALL==='print'){ FOLD_ALL=false; shOwn(()=>document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); })); shDecorated(); } });
 // Layout stability: a re-render must not move what the builder is looking at. Before it, the field being edited (or, when
 // nothing in the tab has focus, the first section heading in view) and its place in the window; after it, the same
 // field (found again by id or its data-k if the render replaced it) gets its focus and caret back, and the page scrolls
@@ -28115,7 +28178,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-run
     WSND.msg={t:'Stopped before it finished; the estimate shown (if any) is the one before. Estimate the sound runs it again.'}; }
   renderActive(); });
 let U2_IDLE=0;
-function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden){ u2Pass(pan); resvLearn(pan); } };
+function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden){ shOwn(()=>u2Pass(pan)); shDecorated(pan); resvLearn(pan); } };
   if(U2_IDLE) (window.cancelIdleCallback||clearTimeout)(U2_IDLE);
   U2_IDLE=window.requestIdleCallback?requestIdleCallback(run,{timeout:400}):setTimeout(run,60); }
 // Empty states carry their control: a note that says "do X first" (or "run it again") gets, right under it, the button
@@ -28167,9 +28230,10 @@ function fixPass(pan){
     if(k>=0&&FIX_RULES[k][2].click&&!document.querySelector(FIX_RULES[k][2].click)) lab='';
     if(k>=0&&FIX_RULES[k][2].cfd){ const b=fixCfd(n); lab=b?b.textContent.trim():''; }
     if(!lab){ if(f) f.remove(); continue; }
-    if(f&&f.dataset.fix===String(k)) continue;
+    const fh='<button type="button" class="btn" data-fix="'+k+'">'+esc(lab)+'</button>';
+    if(f&&f.dataset.fix===String(k)&&f._fh===fh) continue;   // (its label too: a note kept by setHTML keeps its button)
     if(!f){ f=document.createElement('div'); f.className='fixit'; n.after(f); }
-    f.dataset.fix=String(k); f.innerHTML='<button type="button" class="btn" data-fix="'+k+'">'+esc(lab)+'</button>'; }
+    f.dataset.fix=String(k); f.innerHTML=fh; f._fh=fh; }
 }
 function fixDo(b){ const a=FIX_RULES[+b.dataset.fix]; if(!a) return; const o=a[2];
   if(o.expert&&document.body.classList.contains('simple')) $('m-expert').click();

@@ -16,3 +16,6 @@ hangers 193.7, intake(K24 turbo) 94.2, mufflers 60.7, 4-stroke 19.5, headers 17.
 - [ ] 2 setHTML: skip identical strings; morph text-level for heavy tabs
 - [ ] 3 mufflers abTL; intake JS dupes
 - [ ] differential guard web/tests/incremental_ui.js; ui_ui budget; docs; STATUS
+- [x] 2a setHTML morph (pristine template tree + MutationObserver dirty marks) on intake/muf/hang/mt/headers/cross;
+  tblPolish num/data-l/stk exact both ways; fixPass label; addToc+foldPass toc idempotent; passes via shOwn.
+  abcompare old-vs-new: muf 40 s1, intake K24 40 s1, hangers 60 s3: 0 diff. bench: hang 80.4 intake 73 muf 35 4s 16.3 hdr 13.5 snd 17.5
