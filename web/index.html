@@ -615,7 +615,7 @@ body[data-tab]:not([data-tab="quick"]) .start{display:none}
 /* the space a run's results will take, with its status inside, so nothing below moves when they arrive */
 .resv{position:relative;display:flex;flex-direction:column;gap:12px;margin-top:12px;padding:14px;border:1px dashed var(--line-2);border-radius:var(--r-lg);min-height:var(--resv-h,320px)}
 .resv>.runstat{margin:0}
-.resv-sk{flex:1;border-radius:var(--r-md);background:repeating-linear-gradient(180deg,transparent 0 30px,var(--line) 30px 31px);opacity:.55}
+.resv-sk{flex:1;border-radius:var(--r-md);background:linear-gradient(var(--well),var(--well)) top/100% 38% no-repeat,repeating-linear-gradient(180deg,transparent 0 36px,var(--line) 36px 37px) bottom/100% 56% no-repeat}
 /* the five busiest tables as stacked cards on a phone (the label of each value from its column heading) */
 @media (max-width:499px){
   .tblwrap.stk{max-height:none;overflow:visible;border:0;background:none}
@@ -13164,7 +13164,7 @@ function wsndPart(sp){
     (wsndStale(q)?'<div class="note warn" id="wsnd-stale">The inputs changed since this estimate (the engine, the header, the line, the speeds, the load or the microphone), so the sound below is for the earlier design. Estimate it again to update it.</div>':'')+
     '<div class="note'+(WSND.msg&&WSND.msg.bad?' bad':'')+'" id="wsnd-msg"'+(WSND.msg?'':' hidden')+'>'+(WSND.msg?esc(WSND.msg.t):'')+'</div>'+
     (WSND.notes.length?'<ul class="list">'+WSND.notes.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>':'');
-  if(!all.length) return h;
+  if(!all.length) return h+(WSND.busy?resvHtml('wsnd',''):'');
   const speeds=[...new Set([].concat(...all.map(s=>s.runs.filter(x=>!x.err).map(x=>x.rpm))))].sort((a,b)=>a-b);
   if(!P.rpm||speeds.indexOf(P.rpm)<0) P.rpm=speeds[Math.min(1,speeds.length-1)];
   const at=(s,r)=>s.runs.find(x=>!x.err&&x.rpm===r);
@@ -13689,7 +13689,7 @@ const saveCall=(a,d)=>FUSION?fusionCall(a,d):hostCall(a,d);
    the global HOST.cancel(), which stops every run the program has going, as Stop always did there. */
 const HREQ={};
 function hostRun(kind,action,data,onEvent){ const p=HOST.call(action,data,onEvent), s=HREQ[kind]||(HREQ[kind]=new Set());
-  s.add(p); const end=()=>s.delete(p); p.then(end,end); return p; }
+  s.add(p); const end=()=>{ s.delete(p); if(typeof hostStatAll==='function') setTimeout(hostStatAll,0); }; p.then(end,end); if(typeof hostStatAll==='function') setTimeout(hostStatAll,0); return p; }
 function hostStop(...kinds){ if(!HOST) return; const ps=kinds.flatMap(k=>[...(HREQ[k]||[])]);
   if(ps.length&&ps.every(p=>typeof p.cancel==='function')) ps.forEach(p=>p.cancel());
   else if(ps.length||!HOST.cancelsById) HOST.cancel(); }
@@ -21434,9 +21434,11 @@ function tsimSection(q){
   h+='<div class="tblwrap"><table id="tsim-src"><thead><tr><th>What the run takes</th><th>Value</th><th>From</th></tr></thead><tbody>'+P.src.map(r=>'<tr><td>'+esc(r[0])+'</td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>').join('')+'</tbody></table></div>';
   if(P.ind==='turbo') h+='<p class="cap" id="tsim-size">'+(P.predict?'<b>Turbine size from the housing you picked.</b> The turbine is sized by its flow, converted to the area of a nozzle that passes the same flow (flow parameter × √R ÷ ψ, NASA Glenn’s nozzle law), so the run predicts where full boost arrives, how much goes round the wastegate and the pressure before the turbine instead of assuming them. ':'<b>Turbine size: found from your full-boost RPM.</b> '+(P.cap&&P.cap.H?'No turbine flow is published in text for the housing picked ('+esc((+P.cap.H.ar).toFixed(2))+' A/R): the maker’s turbine flow chart is an image the page does not read. Type the chart’s value under “Turbine flow off the maker’s turbine flow chart” on the Intake tab to size the turbine from your housing instead. ':'Pick a turbo and housing on the Intake tab, or type its turbine flow, to size the turbine from it. ')+'Until then the run finds the largest turbine that still makes full boost at the full-boost RPM you typed, with the gate shut. If that RPM is from a pull on the road or the dyno, a pull reaches full boost later than a steady point (the turbo needs time to spin up), more so in the lower gears, so the area found is the most this turbine can be and the pressure before it the least. ')+'The turbine’s and the wastegate’s effective areas (discharge coefficient times the geometric area) can also be typed on the Intake tab (mm²; 1 in² = 645.16 mm²).</p>';
   if(TSIM.status==='error') h+='<div class="note warn">The run stopped: '+esc(TSIM.msg)+' Press Simulate to try again; if it stops again, reload the page (F5).</div>';
-  if(TSIM.status==='running') h+='<p class="cap runstat" id="tsim-status" style="font-weight:600">'+esc(TSIM.msg||'Running')+'</p>';
+  const tst=TSIM.status==='running'?'<p class="cap runstat" id="tsim-status" style="font-weight:600">'+esc(TSIM.msg||'Running')+'</p>':'';
+  if(tst&&TSIM_LAST) h+=tst;
   h+='<div class="actions u-mt10"><button type="button" class="btn primary" data-tsim="run"'+(TSIM.status==='running'?' disabled':'')+'>'+(TSIM.status==='running'?'Running…':'Simulate with the '+(P.ind==='turbo'?'turbo':'supercharger'))+'</button>'+(TSIM.status==='running'?'<button type="button" class="btn" data-runcancel="tsim">Cancel</button>':'')+'</div>';
   const T=TSIM_LAST;
+  if(tst&&!T) h+=resvHtml('tsim',tst);
   if(T){ const S=T.sum, rows=S.rows, stale=T.key!==P.key, turbo=T.plan.turbo;
     if(stale) h+='<div class="note">The inputs changed since this run (here or on the Intake tab), so these results are for the earlier build. Run it again to update them.</div>';
     h+='<figure class="card u-m12"><svg class="camp" id="tsim-svg" role="img" aria-label="Simulated torque under boost and without boost against RPM"></svg><div class="legend"><span><i class="sw" style="--c:var(--t4)"></i>Under boost, brake (pumping counted)</span><span><i class="sw" style="--c:var(--t4);border-top-style:dashed"></i>Under boost, indicated</span><span><i class="sw" style="--c:var(--muted);border-top-style:dotted"></i>The same engine and pipes without boost, brake</span></div></figure>';
@@ -21617,7 +21619,7 @@ function simSection(q){
     'It compares this design with the same header with primaries 10% shorter and 10% longer'+(q.chamber?', and without the chamber':'')+(sp&&simVariants(q).some(x=>x.key==='even')?', and with the collector fed at even gaps':'')+'. It takes '+(nc>1?'up to a minute':'a few seconds')+'.</p>');
   if(plan&&plan.hdr!==undefined&&HDR_LAST&&HDR_LAST.uel) h+=hdrSrcSelect(HDR_LAST,plan.hdr,'sim-src');
   if(err) h+='<div class="note warn">'+esc(err)+'</div>';
-  if(SIM.status==='running') h+='<p class="cap runstat" id="sim-status" style="font-weight:600">'+esc(SIM.msg||'Running')+'</p>';
+  if(SIM.status==='running'){ const st='<p class="cap runstat" id="sim-status" style="font-weight:600">'+esc(SIM.msg||'Running')+'</p>'; h+=have?st:resvHtml('sim',st); }
   if(have){
     if(stale) h+='<div class="note">The inputs changed since this run, so these results are for the earlier design. Run it again to update them.</div>';
     const u=U==='imp'?0.737562:1, uu=U==='imp'?'lb-ft':'N·m';
@@ -27994,15 +27996,39 @@ function keepAfter(pan,k){
   if(!el||!el.isConnected) return;
   const d=el.getBoundingClientRect().top-k.top; if(Math.abs(d)>=1) scrollBy(0,d);
 }
+// Reserved space (pass three): while a run has no results yet, a box of the size its results will take holds its status,
+// so nothing below moves when they arrive. The size is the one the results took the last time on a window this wide
+// (measured when the page is idle after a render that shows them; a read, never a render), else a typical size.
+const RESV_DEF={sim:[1320,1450,1640],tsim:[1500,1700,2100],wsnd:[620,700,900]}, RESV_H={};
+const resvB=()=>innerWidth>=900?0:innerWidth>=700?1:2;
+function resvHtml(k,inner){ const h=RESV_H[k+resvB()]||RESV_DEF[k][resvB()];
+  return '<div class="resv" data-resv="'+k+'" style="--resv-h:'+Math.round(h)+'px">'+(inner||'<p class="cap runstat" style="font-weight:600">Working it out: the results will show here.</p>')+'<div class="resv-sk" aria-hidden="true"></div></div>'; }
+function resvLearn(pan){ if(!pan) return; const b=resvB(), top=e=>e.getBoundingClientRect().top;
+  const f=$('sim-svg'); if(f&&pan.contains(f)&&!$('sim-status')){ const sec=f.closest('.sec'), a=sec&&[...sec.querySelectorAll('.actions')].find(x=>x.querySelector('[data-sim]')), fg=f.closest('figure');
+    if(a&&fg){ const h=top(a)-top(fg); if(h>200) RESV_H['sim'+b]=h-12; } }
+  const t=$('tsim-svg'); if(t&&pan.contains(t)){ const sec=t.closest('.sec'), fg=t.closest('figure'); if(sec&&fg){ const h=sec.getBoundingClientRect().bottom-top(fg); if(h>200) RESV_H['tsim'+b]=h; } } }
 // a long run's status line: how long it has been running (one timer, only while a run shows on the active tab)
 const RUN_T0=new Map(); let RUN_TICK=0;
-function runClock(){ const pan=$(TABS[cur].panel), els=pan?[...pan.querySelectorAll('.runstat')].filter(e=>e.isConnected&&!e.hidden&&/\(\d+%\)|\d+ of \d+|…|Starting/.test(e.textContent)):[];
+// (pass three) a run starting and ending is said once in the page's polite live region, by its section's name; the
+// OpenWAM and OpenFOAM runs of the programs (their status notes, data-running while the request is out) count too
+const RUN_NAME=new Map(); let RUN_STOPPED='';
+const runName=e=>{ const x=e.closest('.sec'), h=x&&x.querySelector(':scope>h3'); return h?h.textContent.replace(/\s+/g,' ').trim():'The run'; };
+function runClock(){ const pan=$(TABS[cur].panel), els=pan?[...pan.querySelectorAll('.runstat')].filter(e=>e.isConnected&&!e.hidden&&(e.dataset.running==='1'||/\(\d+%\)|\d+ of \d+|…|Starting/.test(e.textContent))):[];
   const now=Date.now(), live=new Set();
-  for(const e of els){ const k=pan.id+':'+(e.id||e.closest('.sec')&&e.closest('.sec').dataset.sec||''); live.add(k); if(!RUN_T0.has(k)) RUN_T0.set(k,now);
+  for(const e of els){ const k=pan.id+':'+(e.id||e.closest('.sec')&&e.closest('.sec').dataset.sec||''); live.add(k); if(!RUN_T0.has(k)){ RUN_T0.set(k,now); RUN_NAME.set(k,runName(e)); liveSay(RUN_NAME.get(k)+': running.'); }
     const s=Math.floor((now-RUN_T0.get(k))/1000), t=Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); if(e.dataset.el!==t) e.dataset.el=t; }
-  for(const k of [...RUN_T0.keys()]) if(k.startsWith(pan?pan.id+':':'') && !live.has(k)) RUN_T0.delete(k);
+  for(const k of [...RUN_T0.keys()]) if(k.startsWith(pan?pan.id+':':'') && !live.has(k)){ const n=RUN_NAME.get(k)||'The run'; RUN_T0.delete(k); RUN_NAME.delete(k);
+    liveSay(RUN_STOPPED?n+': stopped; the results before it are kept.':n+': finished; the results are updated.'); RUN_STOPPED=''; }
   if(els.length&&!RUN_TICK) RUN_TICK=setInterval(()=>{ runClock(); },1000);
   else if(!els.length&&RUN_TICK){ clearInterval(RUN_TICK); RUN_TICK=0; } }
+// the programs' own runs (OpenWAM, OpenFOAM: the add-in and the Windows program's bridge, unchanged) show on the same
+// status component while their request is out: the note gets the progress bar ("n of m", "iteration n (at most m)") and
+// the elapsed time; their Stop stays their own button (it stops that request on the bridge)
+const HOST_ST=[['wam','.wammsg'],['tw','.twmsg'],['cfd','#cfd-msg'],['autocfd','#cfd-msg'],['exh','#exh-msg'],['fxcfd','#fxcfd-msg']];
+function hostStatAll(){ for(const [k,sel] of HOST_ST){ const n=document.querySelector(sel); if(!n) continue; const on=!!(HREQ[k]&&HREQ[k].size)&&!n.classList.contains('bad');
+    if(on){ if(!n.classList.contains('runstat')) n.classList.add('runstat'); n.dataset.running='1'; runPct(n); const m=n.textContent.match(/iteration (\d+) \(at most (\d+)\)/); if(m) n.style.setProperty('--pct',Math.min(100,Math.round(100*m[1]/m[2]))+'%'); }
+    else if(n.dataset.running==='1'){ delete n.dataset.running; n.classList.remove('runstat'); delete n.dataset.el; } }
+  runClock(); }
 // a conversion in brackets inside a table cell or a sentence of the working, "2.50 in (63.5 mm)", set in the quieter
 // colour the rows use: the text node is split round the brackets (textContent and innerText unchanged). Colour only (no
 // change of size or weight, so nothing moves), and done when the page is idle after a render, off the edit's path.
@@ -28018,14 +28044,14 @@ function u2Pass(pan){
       if(!parts) continue; parts.push(v.slice(last)); const f=document.createDocumentFragment(); for(const x of parts) f.append(x); t.replaceWith(f); } }
 }
 // Cancel on a long run: the run is dropped (its id moves on, its workers end) and the results before it stay as they were
-document.addEventListener('click',e=>{ const b=e.target.closest('button[data-runcancel]'); if(!b) return; const k=b.dataset.runcancel;
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-runcancel]'); if(!b) return; const k=b.dataset.runcancel; RUN_STOPPED=k;
   if(k==='sim'){ SIM.run++; simStop(); SIM.status=SIM.res?'done':'idle'; SIM.msg=''; }
   else if(k==='tsim'){ TSIM.run++; if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(x){} TSIM.worker=null; } TSIM.status=TSIM.res?'done':'idle'; TSIM.msg=''; }
   else if(k==='wsnd'){ WSND.tok=(WSND.tok||0)+1; if(WSND.worker){ try{ WSND.worker.terminate(); }catch(x){} WSND.worker=null; } WSND.busy=false;
     WSND.msg={t:'Stopped before it finished; the estimate shown (if any) is the one before. Estimate the sound runs it again.'}; }
   renderActive(); });
 let U2_IDLE=0;
-function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden) u2Pass(pan); };
+function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden){ u2Pass(pan); resvLearn(pan); } };
   if(U2_IDLE) (window.cancelIdleCallback||clearTimeout)(U2_IDLE);
   U2_IDLE=window.requestIdleCallback?requestIdleCallback(run,{timeout:400}):setTimeout(run,60); }
 // Empty states carry their control: a note that says "do X first" (or "run it again") gets, right under it, the button
@@ -28095,7 +28121,8 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-fix
 // a message a button writes after the render (the Fusion tools, the build sheet's Save) gets its control too, once the click is done
 document.addEventListener('click',()=>setTimeout(()=>{ const p=$(TABS[cur].panel); if(p&&!p.hidden) fixPass(p); },0));
 window.__fix={rules:FIX_RULES,pass:fixPass};
-function uiPass2(pan){ fixPass(pan); foldPass(pan); hintPass(pan); runClock(); u2Later(pan); }
+function uiPass2(pan){ fixPass(pan); foldPass(pan); hintPass(pan); hostStatAll(); u2Later(pan); }
+{ const w=wamMsg, c=cfdMsg, x=exhMsg, tw=twMsg, fx=fxCfdSay; wamMsg=function(t,b){ w(t,b); hostStatAll(); }; cfdMsg=function(t,b){ c(t,b); hostStatAll(); }; exhMsg=function(t,b){ x(t,b); hostStatAll(); }; twMsg=function(t,b){ tw(t,b); hostStatAll(); }; fxCfdSay=function(t,b){ fx(t,b); hostStatAll(); }; }
 // the app bar on narrow widths: Settings opens the controls in a small panel (Escape or a click outside closes it, focus
 // goes back to the button); wide windows show the controls as before
 (()=>{ const top=document.querySelector('.top'), b=$('set-btn'), p=$('set-panel'); if(!top||!b||!p) return;
