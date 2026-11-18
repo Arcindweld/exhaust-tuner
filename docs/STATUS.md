@@ -2337,3 +2337,5 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
   keeping nothing, 260 seeded actions, every panel's text, HTML and field states identical after each. ui_ui.js asserts
   the three heavy tabs at most 70 % of the time before. Load (about 270 ms, parse-bound) and tab switches unchanged
   apart from Hangers. Page +14,050 bytes. Tools in tools/perf/, the long guard run tools/validation/incremental_sweep.js.
+- Full suite (web, parity, -j 2, --skip-slow) on the final code: 145 tests, 138 passed, 0 failed, 7 skipped and 7
+  partial skips (no OpenWAM build, no host program here).
