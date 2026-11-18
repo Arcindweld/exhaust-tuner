@@ -27999,7 +27999,69 @@ let U2_IDLE=0;
 function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden) u2Pass(pan); };
   if(U2_IDLE) (window.cancelIdleCallback||clearTimeout)(U2_IDLE);
   U2_IDLE=window.requestIdleCallback?requestIdleCallback(run,{timeout:400}):setTimeout(run,60); }
-function uiPass2(pan){ foldPass(pan); hintPass(pan); runClock(); u2Later(pan); }
+// Empty states carry their control: a note that says "do X first" (or "run it again") gets, right under it, the button
+// that does X: opens the tab, opens the fold or advanced box round the field and focuses it, or presses the run button.
+// The note's own text is not touched. One pass after each render over the tab's notes (text reads only).
+const FIX_RULES=[
+  [/Fill in the 4-Stroke tab first|Open the 4-Stroke tab and fill it in|Fill in the wave simulation inputs first/,'Open the 4-Stroke tab',{tab:'four-stroke'}],
+  [/lay out a header on the Headers tab first|No Headers layout yet/i,'Open the Headers tab',{tab:'headers'}],
+  [/Fill in the Intake tab first|Fill in the Intake tab’s boost and its inlet and charge pipes first/,'Open the Intake tab',{tab:'intake'}],
+  [/Enter the boost on the Intake tab/,'Go to Boost',{field:'i-boost'}],
+  [/Turn on the line after the collector under “Run it in OpenWAM”/,'Open Run it in OpenWAM',{tab:'four-stroke',sec:'run-it-in-openwam'}],
+  [/Press Recommend piping first/,'Recommend piping',{click:'button[data-cr="rec"]'}],
+  [/Find designs first/,'Find designs',{click:'#md-run'}],
+  [/Fill in the inlet and charge pipes above first/,'Go to the charge pipe size',{field:'i-cpd'}],
+  [/Fill in the downpipe first/,'Go to the downpipe size',{field:'i-dpd'}],
+  [/Enter the port spacing along the head \(Turbo manifold inputs\)/,'Go to Port spacing',{field:'i-msp'}],
+  [/Enter the exhaust port bore at the head flange/,'Go to Exhaust port bore',{field:'i-mport'}],
+  [/Enter the real figure in Expert mode/,'Type the horsepower',{field:'q-hp',expert:1}],
+  [/Enter the exhaust length from the head flange to the tip above/,'Go to Exhaust length',{field:'q-sys'}],
+  [/Type the reference temperature and pressure your map states/,'Go to the map’s reference',{sel:'[data-k="refTu"]'}],
+  [/type the (?:chart’s )?value (?:off|under) .{0,12}(?:the )?maker’s turbine flow chart|Type the chart’s value under “Turbine flow/i,'Go to Turbine flow',{field:'i-tfc',expert:1}],
+  [/Enter the outside air through the core/,'Go to Outside air',{field:'i-icam',expert:1}],
+  [/Fill in the 2-Stroke tab first/,'Open the 2-Stroke tab',{tab:'two-stroke'}],
+  [/Load two or more INS\.DAT runs at different speeds on the 4-Stroke tab first/,'Open Run it in OpenWAM',{tab:'four-stroke',sec:'run-it-in-openwam'}],
+  [/pick a V8 firing order on the Engine tab first/,'Go to the engine',{field:'s-eng'}],
+  [/Set the merge to a two-stage one/,'Go to the merge',{field:'h-merge'}],
+  [/Add parts to the build list first/,'Open the Parts tab',{tab:'parts'}],
+  [/Fill in the Helmholtz resonator above first/,'Go to the Helmholtz resonator',{tab:'mufflers',sec:'helmholtz-resonator'}],
+  [/Enter the main pipe size above/,'Go to the main pipe size',{field:'m-dp'}],
+  [/Fill in the Headers tab first/,'Open the Headers tab',{tab:'headers'}],
+  [/Fill in the charge pipes first/,'Go to the charge pipe size',{field:'i-cpd'}],
+  [/Fill in the pie-cut inputs first/,'Go to the pie-cut inputs',{field:'pc-od'}],
+  [/Run it again to update them|Press Simulate to try again/,'',{run:1}],
+  [/Estimate it again to update it|Press Estimate the sound to try again/,'Estimate the sound',{click:'button[data-wsnd="run"]'}]];
+const FIX_ANY=new RegExp(FIX_RULES.map(r=>r[0].source).join('|'),'i');
+const FIX_SEL='.note, .cap, [id$="-msg"]';
+function fixRun(n){ const x=n.closest('.sec')||n.parentElement; const b=x&&x.querySelector('button.btn.primary:not([disabled]):not([data-fix])'); return b; }
+function fixPass(pan){
+  if(!pan) return;
+  for(const n of pan.querySelectorAll(FIX_SEL)){
+    let f=n.nextElementSibling; if(!(f&&f.classList.contains('fixit'))) f=null;
+    const t=n.hidden?'':n.textContent; let k=-1;
+    if(t&&t.length<1200&&FIX_ANY.test(t)) k=FIX_RULES.findIndex(r=>r[0].test(t));
+    let lab=k>=0?FIX_RULES[k][1]:'';
+    if(k>=0&&FIX_RULES[k][2].run){ const b=fixRun(n); lab=b?b.textContent.trim():''; }
+    if(k>=0&&FIX_RULES[k][2].click&&!document.querySelector(FIX_RULES[k][2].click)) lab='';
+    if(!lab){ if(f) f.remove(); continue; }
+    if(f&&f.dataset.fix===String(k)) continue;
+    if(!f){ f=document.createElement('div'); f.className='fixit'; n.after(f); }
+    f.dataset.fix=String(k); f.innerHTML='<button type="button" class="btn" data-fix="'+k+'">'+esc(lab)+'</button>'; }
+}
+function fixDo(b){ const a=FIX_RULES[+b.dataset.fix]; if(!a) return; const o=a[2];
+  if(o.expert&&document.body.classList.contains('simple')) $('m-expert').click();
+  if(o.run){ const r=fixRun(b.parentElement.previousElementSibling||b); if(r) r.click(); return; }
+  if(o.click){ const r=document.querySelector(o.click); if(r){ r.scrollIntoView({block:'center'}); r.focus({preventScroll:true}); r.click(); } return; }
+  if(o.field){ goField(o.field); return; }
+  if(o.sel){ const pan=$(TABS[cur].panel), el=pan&&pan.querySelector(o.sel); if(el){ el.scrollIntoView({block:'center'}); el.focus({preventScroll:true}); } return; }
+  if(o.tab){ if(location.hash!=='#'+o.tab) location.hash=o.tab;
+    setTimeout(()=>{ const pan=$(TABS[o.tab].panel), x=o.sec&&pan.querySelector('.sec[data-sec="'+o.sec+'"]');
+      if(x){ x.scrollIntoView({block:'start'}); const h=x.querySelector(':scope>h3>.fbtn'); if(h) h.focus({preventScroll:true}); } else { window.scrollTo(0,0); pan.focus({preventScroll:true}); } },60); } }
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-fix]'); if(b) fixDo(b); });
+// a message a button writes after the render (the Fusion tools, the build sheet's Save) gets its control too, once the click is done
+document.addEventListener('click',()=>setTimeout(()=>{ const p=$(TABS[cur].panel); if(p&&!p.hidden) fixPass(p); },0));
+window.__fix={rules:FIX_RULES,pass:fixPass};
+function uiPass2(pan){ fixPass(pan); foldPass(pan); hintPass(pan); runClock(); u2Later(pan); }
 // the app bar on narrow widths: Settings opens the controls in a small panel (Escape or a click outside closes it, focus
 // goes back to the button); wide windows show the controls as before
 (()=>{ const top=document.querySelector('.top'), b=$('set-btn'), p=$('set-panel'); if(!top||!b||!p) return;
