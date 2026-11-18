@@ -2296,3 +2296,22 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
   settle.js gains expandAll and uiClick; 69 other test files (68 tests and staleness_lib.js) now click the app bar's controls through uiClick (the
   controls sit in the Settings panel below 700 px) and easyflow_ui opens the sections before measuring tables. No
   calculation, default, id, project key, hash or pinned number changed.
+
+## 2026-11-17: UI pass three, the first five minutes and the rough edges (docs/UI_REDESIGN_2026-11-16.md, "Pass three")
+
+- Start here on the Quick tab (three steps, each a working control; ticks only what is really done; Hide this, and
+  Start here in the app bar / Settings panel; not shown again once an input has left its default or a project is
+  loaded). A page opened with no tab (as the programs open it) shows the last tab and loads the last project.
+- Empty states: 59 "do X first" strings inventoried by script, 46 get the control that does X under the note (38 open
+  a tab, section or field, 8 press the run button); the 13 left are not empty states or are host-only.
+- Reserved space with the status inside for the wave simulation, turbo simulation and sound estimate (the section
+  below moved 7 px when the wave simulation's results arrived); the programs' OpenWAM / OpenFOAM runs on the same
+  status component (bar, elapsed; their own Stop); one polite live region for run start and end.
+- Out-of-date marks on the intake and exhaust CFD tables and the optimiser, from a session fingerprint of their
+  inputs (no project key added); tested with simulated results.
+- Build sheets as cut lists (formatting only): tube as ordered with both units, lengths to the inch fraction, to order
+  / to cut; the turbo sheet file prints on Letter and A4 in both units with nothing clipped and stacks on a phone.
+- Seven wide tables stack as cards below 500 px; safe-area padding; skip link, one h2 per calculator (Mounts heading
+  now h3), Escape on every popover, focus kept on every tab.
+- No re-render while idle or on scroll (3 widths x 2 injected font metrics, every tab), checked by ui_ui.js. The
+  boosted Intake edit profiled: about 48 ms layout, the rest the tab's own sections; nothing recovered.
