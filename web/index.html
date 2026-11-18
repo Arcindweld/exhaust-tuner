@@ -609,6 +609,7 @@ body[data-tab]:not([data-tab="quick"]) .start{display:none}
 @media (max-width:899px){.st-steps{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:699px){.start{padding:12px 14px}.st-why,.st-foot{display:none}.st-steps{gap:10px;margin-top:8px}.st-do{margin-top:4px}.top .segs .startbtn{min-height:var(--hit)}}
 /* a "do X first" note carries the control that does X */
+.stmk{display:inline-block;margin-left:6px;padding:0 6px;border:1px dashed var(--stale);border-radius:6px;background:var(--stale-bg);color:var(--stale);font:600 var(--fs-xs)/1.5 var(--f-ui);white-space:nowrap}
 .fixit{margin:8px 0 0}
 .note+.fixit{margin-top:6px}
 /* the space a run's results will take, with its status inside, so nothing below moves when they arrive */
@@ -22634,7 +22635,8 @@ function optSection(q,sp){
     '<div class="actions">'+(hostHas('openwam')?'<button type="button" class="btn" data-opt="run">Optimise in OpenWAM</button>':wamNeed('The optimiser runs OpenWAM'))+'</div>'+
     '<div class="note optmsg'+(OPT_UI.msg&&OPT_UI.msg.bad?' bad':'')+'"'+(OPT_UI.msg?'':' hidden')+'>'+(OPT_UI.msg?esc(OPT_UI.msg.t):'')+'</div>';
   const R=OPT_UI.res;
-  if(R){
+  if(R){ const fp=OPT_FP.get(R);
+    if(fp&&fp!==optFpNow(q)) h+='<div class="note" id="opt-stale">The Headers tab’s header, the engine, the line or the speeds changed since this optimiser run, so these results are for the earlier design. Optimise again to update them.</div>';
     const nm=U!=='imp', f=t=>Number.isFinite(t)?(nm?Math.round(t)+' N·m':Math.round(t/1.3558179483)+' lb-ft'):'?', base=R.rows[0].score;
     h+='<div class="tblwrap"><table><thead><tr><th>Design</th><th>Mean brake torque</th><th>Change</th>'+R.rpms.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+
       R.rows.slice().sort((a,b)=>(b.score||-1)-(a.score||-1)).map(x=>'<tr'+(x===R.best?' style="font-weight:600"':'')+'><td>'+esc(x.label)+'</td><td>'+f(x.score)+'</td><td>'+(Number.isFinite(x.score)?((x.score/base-1)*100).toFixed(1)+' %':'')+'</td>'+x.T.map(t=>'<td>'+f(t)+'</td>').join('')+'</tr>').join('')+
@@ -22657,7 +22659,7 @@ async function optRun(){
     return {files,rows}; };
   const score=(res,rows)=>rows.forEach(x=>{ if(!x.tag) return; x.T=rpms.map(v=>{ const m=(res.models||[]).find(y=>y.name===x.tag+'_'+v); if(!m||!m.finished||!m.avg) return NaN; const cy=WAMX.readAvg(m.avg).cycles; return cy.length?cy[cy.length-1].torque_brake_Nm:NaN; });
     x.score=x.T.every(Number.isFinite)?x.T.reduce((a,b)=>a+b,0)/x.T.length:NaN; });
-  const c1=optCandidates(H.p,H.r), b1=build(c1,'opt');
+  const fp0=optFpNow(q), c1=optCandidates(H.p,H.r), b1=build(c1,'opt');
   say('Optimiser: running '+b1.files.length+' OpenWAM models ('+c1.length+' designs × '+rpms.length+' speeds).');
   let res; try{ res=await HOST.call('runOpenWAM',{name:'header_opt',files:b1.files},ev=>{ if(ev.event==='done') say('Optimiser: '+ev.count+' of '+ev.of+' runs done.'); }); }catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
   score(res,b1.rows);
@@ -22673,7 +22675,7 @@ async function optRun(){
     try{ const r2=await HOST.call('runOpenWAM',{name:'header_opt_combined',files:b2.files}); score(r2,b2.rows); rows.push(...b2.rows); }catch(e){ say('The combined run failed: '+e.message+'. The runs before it are kept; run it again, or open the runs folder for OpenWAM’s log.',true); }
   }
   const best=rows.filter(x=>Number.isFinite(x.score)).reduce((a,b)=>b.score>a.score?b:a);
-  OPT_UI.res={rows,rpms,best};
+  OPT_UI.res={rows,rpms,best}; OPT_FP.set(OPT_UI.res,fp0);
   say(best===base?'Done: the design as it is scored best of the '+rows.length+' tried.':'Done: '+best.label+' scored '+((best.score/base.score-1)*100).toFixed(1)+' % more mean brake torque than the design as it is.');
 }
 function optApply(){
@@ -22722,6 +22724,19 @@ document.addEventListener('change',e=>{ const el=e.target.closest('#wam-ins'); i
 document.addEventListener('change',e=>{ const el=e.target.closest('select.wamsrc'); if(!el) return; WAM_UI.src=el.value; WAM_UI.msg=null; renderActive(); });
 
 /* ===== Intake CFD: an OpenFOAM v2412 case for the intake tract on this tab, written in the browser by intake_cfd.js ===== */
+// Out-of-date marks for the CFD and optimiser tables (UI pass three): the inputs each result was worked out from, kept in
+// this session only (nothing is added to a project), so a case downloaded or run here, or an optimiser run, is marked when
+// the inputs now differ; a result with no fingerprint (picked from a file of an earlier session, loaded with a project)
+// gets no mark either way.
+const RES_FP={cfd:new Map(),exh:new Map()}, OPT_FP=new WeakMap();
+const fpOf=o=>{ try{ return JSON.stringify(o)||''; }catch(e){ return ''; } };
+function cfdFpNow(){ return fpOf([CFD_LAST&&CFD_LAST.p,['mount','lip','protr','clr','bpos','maf','mesh','ff','pr','cone'].map(k=>CFD_UI[k])]); }
+function exhFpNow(){ return fpOf([typeof EXH_LAST!=='undefined'&&EXH_LAST?[EXH_LAST.p,EXH_LAST.e]:null,['part','share','T','ve','afr','boost','mesh','split'].map(k=>EXH_UI[k]),EXH_UI.stl&&EXH_UI.stl.name]); }
+function optFpNow(q){ return fpOf([HDR_LAST&&HDR_LAST.p,q?simKey(q):'',OPT_UI.rpms||(q?wamRpms(q).join(' '):''),WAM_UI.line,WAM_UI.cycles]); }
+// the cases of a CFD table worked out from other inputs than the tab's now
+function resStale(kind,R,now){ const m=RES_FP[kind], out=new Set(); for(const c of R){ const f=m.get(c.case||c.name)||m.get(c.name); if(f&&f!==now) out.add(c); } return out; }
+const STALE_MK=' <small class="stmk">out of date</small>';
+window.__resfp={mark:(kind,name)=>RES_FP[kind].set(name,kind==='cfd'?cfdFpNow():exhFpNow()),optFake:res=>{ OPT_UI.res=res; OPT_FP.set(res,optFpNow(SIM.inp)); }};   // for the tests
 const CFD_UI={mount:'',lip:'',protr:'',clr:'',bpos:'',maf:'',mesh:'medium',ff:1,pr:'',name:'',cone:true,msg:null,results:[]};
 let CFD_LAST=null;
 const cfdNum=v=>{ const x=parseFloat(v); return Number.isFinite(x)?x:null; };
@@ -22819,7 +22834,7 @@ function cfdBuild(){
 async function cfdDownload(){
   let out;
   try{ out=cfdBuild(); }catch(e){ cfdMsg((e&&e.name==='DesignError'?'This design cannot be meshed: ':'Intake CFD: ')+e.message,true); return null; }
-  window.__cfdLast=out;
+  window.__cfdLast=out; RES_FP.cfd.set(out.name,cfdFpNow());
   const zname=out.name+'_openfoam.zip', what=out.is3d?'design.json, intake_cfd.py and a README (3-D case: run python3 intake_cfd.py design.json case, then ./Allrun)':
     out.files.length+' files, '+out.summary.cells.toLocaleString('en-US')+' cells, '+out.summary.solver+'. Unzip, open an OpenFOAM shell in the folder and run ./Allrun (README_WINDOWS.md has the Windows steps).';
   if(FUSION||HOST){
@@ -22856,7 +22871,7 @@ async function cfdRun(hook){   // hook (the automatic test, cfdAuto below): sees
   if(!HOST) return;
   let out;
   try{ out=cfdBuild(); }catch(e){ cfdMsg((e&&e.name==='DesignError'?'This design cannot be meshed: ':'Intake CFD: ')+e.message,true); return {stage:'build',err:e}; }
-  window.__cfdLast=out;
+  window.__cfdLast=out; RES_FP.cfd.set(out.name,cfdFpNow());
   const pre=out.name+'/', files=out.files.map(f=>({name:f.name.startsWith(pre)?f.name.slice(pre.length):f.name,text:f.text,exec:!!f.exec}));
   cfdMsg('Running '+out.name+' in OpenFOAM on this PC'+(out.is3d?' (3-D: the generator writes the snappyHexMesh case first)':'')+'.');
   let res;
@@ -22916,9 +22931,11 @@ function cfdSection(p,r){
   const R=CFD_UI.results;
   if(R.length){
     const f3=x=>Number.isFinite(x)?x.toFixed(3):'?', f4=x=>Number.isFinite(x)?x.toFixed(4):'?', f1=x=>Number.isFinite(x)?x.toFixed(1):'?';
+    const stl=resStale('cfd',R,cfdFpNow());
+    if(stl.size) h+='<div class="note" id="cfd-stale">The intake tube or the case settings changed since '+(stl.size===R.length?'these cases were':'the cases marked out of date were')+' written, so their results are for the earlier design. Write the case again and run it to update them.</div>';
     h+='<div class="tblwrap" id="cfd-results"><table><thead><tr><th>Case</th><th>Plane</th><th>Airflow</th><th>PR p₀/p</th><th>Δp total</th><th>K</th><th>Cd</th><th>Uniformity</th><th>Mach</th></tr></thead><tbody>'+
       R.map(c=>c.err?'<tr><td>'+esc(c.name)+'</td><td colspan="8">'+esc(c.err)+'</td></tr>':
-        c.rows.map((q,i)=>'<tr>'+(i===0?'<td rowspan="'+c.rows.length+'">'+esc(c.case||c.name)+'<br><small>'+esc(c.solver)+', '+Math.round(c.it)+' it, '+(c.conv?'converged':'NOT converged')+'</small></td>':'')+
+        c.rows.map((q,i)=>'<tr>'+(i===0?'<td rowspan="'+c.rows.length+'">'+esc(c.case||c.name)+(stl.has(c)?STALE_MK:'')+'<br><small>'+esc(c.solver)+', '+Math.round(c.it)+' it, '+(c.conv?'converged':'NOT converged')+'</small></td>':'')+
           '<td>'+esc(q.plane)+(Number.isFinite(q.x)?' <small>'+clen(q.x*1000)+'</small>':'')+'</td><td>'+f1(q.mdot*1000)+' g/s</td><td>'+f4(q.PR)+'</td><td>'+(Number.isFinite(q.dpt)?Math.round(q.dpt)+' Pa':'?')+'</td><td>'+f3(q.K)+'</td><td>'+f3(q.Cd)+'</td><td>'+f3(q.UI)+'</td><td>'+f3(q.M)+'</td></tr>').join('')).join('')+'</tbody></table></div>';
     const lines=[];
     R.filter(c=>!c.err).forEach(c=>{
@@ -23093,7 +23110,7 @@ function exhBuild(){
 }
 async function exhDownload(){
   let out; try{ out=exhBuild(); }catch(e){ exhMsg('Exhaust CFD: '+e.message,true); return null; }
-  window.__exhLast=out;
+  window.__exhLast=out; RES_FP.exh.set(out.name,exhFpNow());
   const zname=out.name+'_openfoam.zip', what='design.json, intake_cfd.py and a README. Export the fluid volume from CAD as '+out.name+'.stl with faces named '+out.inletNames.join(', ')+' and outlet, put it in the folder, then run python3 intake_cfd.py design.json case and ./Allrun.';
   if(FUSION||HOST){ const res=await saveCall('saveFiles',{files:out.files,title:'Choose a folder for the exhaust CFD case',folder:out.name}); exhMsg(res&&res.ok?res.msg:((res&&res.msg)||'Not saved.'),!(res&&res.ok)&&!(res&&res.msg==='Not saved.')); return out; }
   const blob=zipMany(out.files);
@@ -23143,6 +23160,7 @@ async function exhRun(){
     Object.keys(roles).forEach(r=>{ design.geometry.stl[r]=r+'.stl'; files.push({name:r+'.stl',base64:roles[r].base64}); });
   }
   let gen; try{ gen=IntakeCFD.generateCase(design,{out_dir:design.name}); }catch(e){ exhMsg('Exhaust CFD: '+e.message,true); return; }
+  RES_FP.exh.set(design.name,exhFpNow());
   files=gen.files.map(f=>({name:f.name,text:f.text,exec:!!f.exec})).concat(files);
   exhMsg('Running '+design.name+' in OpenFOAM on this PC: the generator meshes the part (snappyHexMesh), then the solver runs. A medium mesh takes from minutes to an hour on one core.');
   let res;
@@ -23202,9 +23220,11 @@ function exhSection(r,p,e){
   const R=EXH_UI.results;
   if(R.length){
     const f2=x=>Number.isFinite(x)?x.toFixed(2):'?', f3=x=>Number.isFinite(x)?x.toFixed(3):'?';
+    const stl=resStale('exh',R,exhFpNow());
+    if(stl.size) h+='<div class="note" id="exh-stale">The part, the flow or the case settings changed since '+(stl.size===R.length?'these cases were':'the cases marked out of date were')+' written, so their results are for the earlier design. Write the case again and run it to update them.</div>';
     h+='<div class="tblwrap" id="exh-results"><table><thead><tr><th>Case</th><th>Gas flow</th><th>Inlet speed</th><th>Δp total</th><th>K</th><th>K to ambient</th><th>Back pressure</th><th>Flow split</th><th>Exit uniformity</th></tr></thead><tbody>'+
       R.map(c=>c.err?'<tr><td>'+esc(c.name)+'</td><td colspan="8">'+esc(c.err)+'</td></tr>':
-        '<tr><td>'+esc(c.case||c.name)+'<br><small>'+esc(c.solver)+', '+Math.round(c.it)+' it, '+(c.conv?'converged':'NOT converged')+'</small></td><td>'+(c.mdot*1000).toFixed(1)+' g/s at '+Math.round(c.T-273.15)+' °C</td><td>'+Math.round(c.U)+' m/s (M '+f2(c.M)+')</td><td>'+f2(c.dpt/1000)+' kPa<br><small>'+Math.round(c.dpt/100)+' mbar</small></td><td>'+f3(c.K)+'</td><td>'+f3(c.Ka)+'</td><td>'+f2(c.bp/1000)+' kPa</td><td>'+(Object.keys(c.split).length>1?Object.keys(c.split).map(k=>esc(k)+' '+Math.round(c.split[k]*1000)/10+'%').join('<br>'):'one inlet')+'</td><td>'+f3(c.ui)+'</td></tr>').join('')+'</tbody></table></div>';
+        '<tr><td>'+esc(c.case||c.name)+(stl.has(c)?STALE_MK:'')+'<br><small>'+esc(c.solver)+', '+Math.round(c.it)+' it, '+(c.conv?'converged':'NOT converged')+'</small></td><td>'+(c.mdot*1000).toFixed(1)+' g/s at '+Math.round(c.T-273.15)+' °C</td><td>'+Math.round(c.U)+' m/s (M '+f2(c.M)+')</td><td>'+f2(c.dpt/1000)+' kPa<br><small>'+Math.round(c.dpt/100)+' mbar</small></td><td>'+f3(c.K)+'</td><td>'+f3(c.Ka)+'</td><td>'+f2(c.bp/1000)+' kPa</td><td>'+(Object.keys(c.split).length>1?Object.keys(c.split).map(k=>esc(k)+' '+Math.round(c.split[k]*1000)/10+'%').join('<br>'):'one inlet')+'</td><td>'+f3(c.ui)+'</td></tr>').join('')+'</tbody></table></div>';
     const lines=R.filter(c=>!c.err).map(c=>{ let t=esc(c.case||c.name)+': '+IntakeCFD.interpretExhaustK(c.K,EXH_PARTS[EXH_UI.part]?EXH_PARTS[EXH_UI.part].label.toLowerCase():'this part'); const ks=Object.keys(c.split); if(ks.length>1){ const v=ks.map(k=>c.split[k]), sp=Math.max(...v)-Math.min(...v); t+=sp<0.03?' The inlets share the flow evenly.':' The inlets are '+Math.round(sp*100)+' points apart in flow: the merge favours '+esc(ks[v.indexOf(Math.max(...v))])+'.'; } if(!c.conv) t+=' The run did not meet the convergence checks ('+esc(c.notes.join('; '))+'); treat the numbers as provisional.'; return t; });
     if(lines.length) h+='<ul class="list" id="exh-reading">'+lines.map(t=>'<li>'+t+'</li>').join('')+'</ul>';
     if(EXH_UI.part==='collector'||EXH_UI.part==='secondary'){
@@ -28037,11 +28057,14 @@ const FIX_RULES=[
   [/Enter the main pipe size above/,'Go to the main pipe size',{field:'m-dp'}],
   [/Fill in the Headers tab first/,'Open the Headers tab',{tab:'headers'}],
   [/Fill in the charge pipes first/,'Go to the charge pipe size',{field:'i-cpd'}],
+  [/Optimise again to update them/,'Optimise in OpenWAM',{click:'button[data-opt="run"]'}],
+  [/Write the case again and run it to update them/,'',{cfd:1}],
   [/Fill in the pie-cut inputs first/,'Go to the pie-cut inputs',{field:'pc-od'}],
   [/Run it again to update them|Press Simulate to try again/,'',{run:1}],
   [/Estimate it again to update it|Press Estimate the sound to try again/,'Estimate the sound',{click:'button[data-wsnd="run"]'}]];
 const FIX_ANY=new RegExp(FIX_RULES.map(r=>r[0].source).join('|'),'i');
 const FIX_SEL='.note, .cap, [id$="-msg"]';
+function fixCfd(n){ const x=n.closest('.sec'); return x&&(x.querySelector('button[data-cfd="run"],button[data-exh="run"]')||x.querySelector('button[data-cfd="dl"],button[data-exh="dl"]')); }
 function fixRun(n){ const x=n.closest('.sec')||n.parentElement; const b=x&&x.querySelector('button.btn.primary:not([disabled]):not([data-fix])'); return b; }
 function fixPass(pan){
   if(!pan) return;
@@ -28052,6 +28075,7 @@ function fixPass(pan){
     let lab=k>=0?FIX_RULES[k][1]:'';
     if(k>=0&&FIX_RULES[k][2].run){ const b=fixRun(n); lab=b?b.textContent.trim():''; }
     if(k>=0&&FIX_RULES[k][2].click&&!document.querySelector(FIX_RULES[k][2].click)) lab='';
+    if(k>=0&&FIX_RULES[k][2].cfd){ const b=fixCfd(n); lab=b?b.textContent.trim():''; }
     if(!lab){ if(f) f.remove(); continue; }
     if(f&&f.dataset.fix===String(k)) continue;
     if(!f){ f=document.createElement('div'); f.className='fixit'; n.after(f); }
@@ -28059,6 +28083,7 @@ function fixPass(pan){
 }
 function fixDo(b){ const a=FIX_RULES[+b.dataset.fix]; if(!a) return; const o=a[2];
   if(o.expert&&document.body.classList.contains('simple')) $('m-expert').click();
+  if(o.cfd){ const r=fixCfd(b.parentElement.previousElementSibling||b); if(r) r.click(); return; }
   if(o.run){ const r=fixRun(b.parentElement.previousElementSibling||b); if(r) r.click(); return; }
   if(o.click){ const r=document.querySelector(o.click); if(r){ r.scrollIntoView({block:'center'}); r.focus({preventScroll:true}); r.click(); } return; }
   if(o.field){ goField(o.field); return; }
