@@ -28304,7 +28304,11 @@ $('proj-cmp').addEventListener('click',()=>{
 window.__proj={snapshot:projSnapshot,apply:projApply,compare:projCompare,loadAll:projLoadAll,save:projSave,wam:WAM_UI};
 
 let raf=0;
-if(window.ResizeObserver){ new ResizeObserver(()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(renderActive);}).observe(document.querySelector('.wrap')); }
+// re-drawn when the page's WIDTH changes (the drawings and tables are laid out to it). Not on a change of height: a render
+// changes the height itself, and anything that settles a frame later (a clamped note, the section list's current chip)
+// would then draw the page again, replacing every control under the pointer, for as long as the two kept disagreeing
+let rafW=-1;
+if(window.ResizeObserver){ new ResizeObserver(es=>{ const w=Math.round(es[es.length-1].contentRect.width); if(w===rafW) return; rafW=w; cancelAnimationFrame(raf);raf=requestAnimationFrame(renderActive);}).observe(document.querySelector('.wrap')); }
 showTab();
 })();
 </script>
