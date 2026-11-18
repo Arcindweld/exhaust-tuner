@@ -24,3 +24,7 @@ hangers 193.7, intake(K24 turbo) 94.2, mufflers 60.7, 4-stroke 19.5, headers 17.
 - [x] absorbKept (muf packed can TL by complete key incl EXH_GAS), XC_KEEP (xCool by key), morph _hf flags; foldPass data-st removed when ''; tblPolish num set/clear every cell
   interleaved bench: old intake 96.9 -> 57.6, muf 59.1 -> 23.6. guard seed 3 N150 ok; abcompare intake K24 s5 ok
 - next: refreshDeps cost, fields morph?, 4x throttle numbers, tab switch/load, ui_ui budget, docs
+- [x] widthOf returns 328 on hidden tabs w/o layout; tabIntoView after render; load ~270-280 both (parse-bound); tab switch hangers 284->162-183
+- [x] ui_ui budget added (BASE4 dc31cea, FAST 0.7) - not yet run
+- intake fresh: 89.9 -> 55.8 (-38%): MISSES 50%. floor: layout of changed text ~15, compute ~14, parse+morph ~13, passes 5, producers 3.5
+- TODO: 4x throttle bench, docs/PERF_2026-11-18.md, STATUS, run ui_ui + suite, delete PROGRESS.md

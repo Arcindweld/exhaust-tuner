@@ -11537,7 +11537,9 @@ function setHTML(el,html){
 const NS='http://www.w3.org/2000/svg';
 function mk(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
 function clearSvg(s){while(s.firstChild)s.removeChild(s.firstChild);}
-const widthOf=svg=>{const f=svg.closest('figure');return Math.max(300,Math.floor((f&&f.clientWidth)||360)-32);};
+// (a drawing on a hidden tab, [hidden] being display:none, has no width: 328, as reading it gave, without laying out the
+// page for it; 2026-11-18)
+const widthOf=svg=>{const f=svg.closest('figure');if(!f||f.closest('[hidden]'))return 328;return Math.max(300,Math.floor(f.clientWidth||360)-32);};
 
 function drawProfile(svg,segs,marks){
   clearSvg(svg);
@@ -27953,8 +27955,10 @@ function showTab(){
     const t=TABS[name], on=name===cur;
     $(t.panel).hidden=!on; $(t.tab).setAttribute('aria-selected',on);
   }
-  document.body.dataset.tab=cur; tabIntoView(); tabPopMark();
+  document.body.dataset.tab=cur; tabPopMark();
   renderActive();
+  // after the render (2026-11-18): read before it, the strip's width laid the whole page out once more just for this
+  tabIntoView();
 }
 // below 1180 px the calculators sit in one scrolling strip: keep the chosen one in view (the wide rail never scrolls sideways)
 function tabIntoView(){
