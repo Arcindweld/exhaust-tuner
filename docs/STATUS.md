@@ -2315,3 +2315,6 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
   now h3), Escape on every popover, focus kept on every tab.
 - No re-render while idle or on scroll (3 widths x 2 injected font metrics, every tab), checked by ui_ui.js. The
   boosted Intake edit profiled: about 48 ms layout, the rest the tab's own sections; nothing recovered.
+- Page 4,751,753 -> 4,782,518 bytes (+30,765). Full suite (web, parity, -j 2, --skip-slow) on the final code: 144 tests,
+  137 passed, 0 failed, 7 skipped and 7 partial skips (no OpenWAM build, no host program here). Only ui_ui.js touched
+  among the tests. No calculation, default, id, project key, hash or pinned number changed.

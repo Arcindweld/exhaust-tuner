@@ -407,3 +407,31 @@ the tab and its calculations, which this pass may not change.
   its words are all there).
 - Field-edit time against the page before pass three: within +10 % (+ 5 ms).
 
+## Page weight and speed, pass three
+
+- web/index.html: 4,751,753 bytes before pass three, 4782518 after (+30765 bytes).
+- Field edits, median of 15, same font on both pages, this machine (in the ui_ui run before the last fix: before pass
+  three / now): boosted Intake 91.5 / 89.9 ms, Hangers 189.8 / 182.0 ms, 4-Stroke 16.8 / 15.8 ms, Mufflers 44.2 /
+  54.6 ms (that run failed the +10 % limit; the run-status pass was then made a no-op while no program run is out,
+  and three runs side by side gave 51.2 / 53.5, 54.9 / 55.9 and 55.5 / 57.8 ms; the final full suite's ui_ui run
+  passes the limit on all four).
+
+## Not reached in pass three
+
+- The glance card's values are not reformatted as tube-as-ordered (a test pins them to the sheet rows' text; the saved
+  sheet and the Quick sheet are).
+- Bend counts carry a centre-line radius only where the sheet already has one (the runners); the charge pipes' and the
+  downpipe's bends have no radius worked out on the page, and none was invented.
+- The sound estimate's placeholder sits under its status note rather than holding it (the note is written in place by
+  the run); the OpenWAM and OpenFOAM runs' Stop keeps its own label and place.
+- No time recovered on the boosted Intake edit (see the profile above).
+- Exhaust CFD out-of-date marks are in place but only the intake CFD and the optimiser are covered by a test.
+- No WebKit engine or real screen reader here; the checks are structural (headings, landmarks, names, live region).
+
+## Results, pass three (final code)
+
+- `web/tests/ui_ui.js`: all checks pass (pass one and two's, and pass three's 36: 6 idle and scroll re-render checks, 30 others).
+- The full suite, `python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`: 144 tests, 137
+  passed, 0 failed, 7 skipped and 7 partial skips, all expected (no OpenWAM build, no host program here). Tests touched:
+  ui_ui.js only (pass three's checks; the pass-two full-text check on Quick accepts the build sheet's figures now read
+  to the inch fraction and a textContent word join). No pinned number changed.
