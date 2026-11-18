@@ -409,7 +409,7 @@ the tab and its calculations, which this pass may not change.
 
 ## Page weight and speed, pass three
 
-- web/index.html: 4,751,753 bytes before pass three, 4782518 after (+30765 bytes).
+- web/index.html: 4,751,753 bytes before pass three, 4,782,518 after (+30,765 bytes).
 - Field edits, median of 15, same font on both pages, this machine (in the ui_ui run before the last fix: before pass
   three / now): boosted Intake 91.5 / 89.9 ms, Hangers 189.8 / 182.0 ms, 4-Stroke 16.8 / 15.8 ms, Mufflers 44.2 /
   54.6 ms (that run failed the +10 % limit; the run-status pass was then made a no-op while no program run is out,
