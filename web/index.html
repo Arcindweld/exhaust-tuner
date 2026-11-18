@@ -20363,6 +20363,13 @@ function coneFlat(d0,d1,len,wall){
   return {R0:R1-s,R1,sweep:360*big/R1,slant:s};
 }
 const SHEET_GAP=152.4;          // mm: plain pipe kept between welded-in parts so each joint can be reached, 6 in
+// (UI pass three) tube as it is ordered: nominal outside diameter and wall first, the other units after, "3 in OD × 0.065 in
+// wall (76.2 × 1.65 mm)"; and a size in both units. Formatting only: the same diameters as before.
+const tubeSz=(od,w)=>{ w=w>0?w:1.651; const i=v=>String(+(v/MM).toFixed(3)), m=v=>(+v.toFixed(2)).toString();
+  return U==='imp'?i(od)+' in OD × '+i(w)+' in wall ('+(+od.toFixed(1))+' × '+m(w)+' mm)':(+od.toFixed(1))+' mm OD × '+m(w)+' mm wall ('+i(od)+' in × '+i(w)+' in)'; };
+const tubBoth=mm=>U==='imp'?String(+(mm/MM).toFixed(3))+' in ('+mm.toFixed(1)+' mm)':mm.toFixed(1)+' mm ('+(+(mm/MM).toFixed(3))+' in)';
+// a length to cut: inches to the inch-fraction setting with mm, as the cut lists give it
+const cutLen=mm=>U==='imp'?inMm(mm):clen(mm);
 function quickSheet(p,r){
   const h=r.header, m=r.main, f0=x=>Math.round(x).toLocaleString('en-US'), W=WALL_STD;
   if(r.rotary||(!h&&!r.two)) return null;
@@ -20370,7 +20377,7 @@ function quickSheet(p,r){
   const sys=Number.isFinite(p.sys)&&p.sys>0?p.sys:null;
   let x=0;
   const add=(name,size,len,note,o)=>{ const row=Object.assign({name,size,at:x,len,note},o||{}); rows.push(row); if(len>0&&!(o&&o.side)) x+=len; return row; };
-  const idod=(id,od)=>cdim(id)+' ID'+(od>0?', '+tubIn(od)+' OD':'');
+  const idod=(id,od)=>cdim(id)+' ID'+(od>0?', '+tubBoth(od)+' OD':'');
   const cone=(a,b)=>cdim(a)+' to '+cdim(b)+' ID';
   if(r.two){
     // a two-stroke: the expansion chamber is the whole tuned system; its tab works out every dimension
@@ -20389,7 +20396,7 @@ function quickSheet(p,r){
   const n=r.n;
   if(h.separate){
     add(h.pipesEach>1?'Header pipes':'Header pipe',idod(h.dp,h.od),h.tube,(h.pipesEach>1?'One per cylinder. ':'')+'Tuned for about '+f0(r.tune)+' RPM.');
-    buy.push(['Header tube',tubIn(h.od)+' OD × 0.065 in wall',h.pipesEach+' × '+clen(h.tube)+' straight length','plus whatever the bends take; the route sets them']);
+    buy.push(['Header tube',tubeSz(h.od),h.pipesEach+' × '+clen(h.tube)+' straight length','plus whatever the bends take; the route sets them']);
   } else {
     const per=h.groups&&h.groups.length?h.groups[0].cyls.length:n;
     h.segs.forEach((s,i)=>{
@@ -20398,7 +20405,7 @@ function quickSheet(p,r){
         prim?'One per cylinder, all the same length ('+per+' into each collector). Tuned for about '+f0(r.tune)+' RPM.':'');
     });
     const first=h.segs[0];
-    buy.push(['Primary tube',tubIn(h.od)+' OD × 0.065 in wall',n+' × '+clen(first.len)+' straight length (total '+clen(n*first.len)+')','plus whatever the bends take; the route sets them']);
+    buy.push(['Primary tube',tubeSz(h.od),n+' × '+clen(first.len)+' straight length (total '+clen(n*first.len)+')','plus whatever the bends take; the route sets them']);
     if(h.triy){ const sx=h.segs.find(s=>/second/i.test(s.name)); buy.push(['Tri-Y merges','2 primaries into '+cdim(h.lay.dsec)+' ID',(n/2)+'',sx?'secondary tubes '+clen(sx.len)+' each':'']); }
     buy.push(['Merge collectors',(h.triy?'2':per)+' into 1, '+cdim(h.dc)+' ID out',h.nColl+'','with '+clen(h.lay.cstraight)+' of straight after the merge']);
   }
@@ -20416,7 +20423,7 @@ function quickSheet(p,r){
   }
   if(cn){ const fl=coneFlat(Math.min(dEnd,mid),Math.max(dEnd,mid),cn.len,W);
     buy.push([cn.kind,cone(dEnd,mid)+' × '+clen(cn.len),sides+'',fl?'from 16 ga sheet: arcs of '+bothL(fl.R0)+' and '+bothL(fl.R1)+' radius over '+fl.sweep.toFixed(1)+'° (mid-wall, butt seam, no allowance), or buy a cone':'']); }
-  buy.push(['V-band clamps',tubIn(od)+' tube',sides+'','at the collector outlets, so the headers come off']);
+  buy.push(['V-band clamps',tubBoth(od)+' tube',sides+'','at the collector outlets, so the headers come off']);
   // the open race alternative: the 4-Stroke tab's megaphone (twice the collector's area, 8° included)
   if(p.use!=='street') alts.push('Open megaphone instead of mufflers (race, off-road): '+cone(dEnd,dEnd*Math.SQRT2)+' over '+clen(coneLen(dEnd,dEnd*Math.SQRT2,8))+
     ', 8° included, starting right at the collector. That is twice the collector’s area, the 4-Stroke tab’s default. Expect it to be very loud: the AHRMA test on this page measured an open megaphone about 6 dB over a plain open pipe.');
@@ -20431,7 +20438,7 @@ function quickSheet(p,r){
       if(gap>0) add('Main pipe'+each,idod(mid,od),gap,'Brings the crossover to '+clen(r.cross.pos)+' behind the collectors.');
       if(xs.type==='x'){
         add('X-pipe',xp.ang+'° each pipe, merged duct '+cdim(xs.dm)+' ID',xs.len,'Pipes '+clen(S)+' apart centre to centre'+(s0>od+25.4?' (the Crossover tab’s spacing)':' (assumed: enter yours on the Crossover tab)')+'. Smoother, higher note; evens out the bank pulses.');
-        buy.push(['X-pipe',tubIn(od)+', '+xp.ang+'° each pipe','1','buy one, or build it from the steps below ('+xs.g.bends+' bends of '+(+xp.ang.toFixed(1))+'°)']);
+        buy.push(['X-pipe',tubBoth(od)+', '+xp.ang+'° each pipe','1','buy one, or build it from the steps below ('+xs.g.bends+' bends of '+(+xp.ang.toFixed(1))+'°)']);
       } else {
         const Lh=2*xs.stub+xs.dc;
         add('H-pipe','balance tube '+cdim(xs.dc)+' ID, '+clen(xs.tube)+' between the pipe walls',Lh,'Pipes '+clen(S)+' apart centre to centre'+(s0>od+25.4?'':' (assumed: enter yours on the Crossover tab)')+'. The deeper, traditional note.');
@@ -20442,8 +20449,8 @@ function quickSheet(p,r){
   const xCross=x;
   // ---- converters (street) ----
   if(p.use==='street'){
-    add('Catalytic converters'+each,'inlet and outlet for '+tubIn(od)+' tube',NaN,'In the run of main pipe that follows. Closer to the engine they light off sooner but run hotter (Cats tab). In California a street car needs an approved replacement for that vehicle (CARB Executive Order).',{side:true});
-    buy.push(['Catalytic converters',tubIn(od)+' inlet and outlet',sides+'','CARB-approved for the vehicle on a California street car']);
+    add('Catalytic converters'+each,'inlet and outlet for '+tubBoth(od)+' tube',NaN,'In the run of main pipe that follows. Closer to the engine they light off sooner but run hotter (Cats tab). In California a street car needs an approved replacement for that vehicle (CARB Executive Order).',{side:true});
+    buy.push(['Catalytic converters',tubBoth(od)+' inlet and outlet',sides+'','CARB-approved for the vehicle on a California street car']);
     buy.push(['Oxygen sensor bungs','M18 × 1.5',(2*sides)+'','one ahead of each converter, one behind it on OBD-II cars; mount above horizontal so water drains off the sensor']);
   } else buy.push(['Oxygen sensor bung','M18 × 1.5',sides+'','one per side ahead of the muffler, for a wideband while tuning']);
   // ---- the drone fix: a Helmholtz can where the cruise tone's pressure peaks ----
@@ -20488,15 +20495,15 @@ function quickSheet(p,r){
     } else notes.push({k:'warn',t:'There is no room behind the crossover on '+sysWhy+' '+clen(sysL)+' system for a resonator tee for the '+Math.round(f)+' Hz cruise tone; check the head-to-tip length, or let the Mufflers tab work it out for your actual pipe.'});
   } else if(r.drone) notes.push({k:'ok',t:'No pipe length that fits resonates with the '+Math.round(r.drone.f)+' Hz cruise tone, so the build needs no Helmholtz resonator or J-pipe.'});
   // ---- mufflers, tailpipes, tips: no rule fixes where these go ----
-  const q=r.parts.length?r.parts[0].q:null, inch=v=>v==null?'?':tubIn(v*MM);
+  const q=r.parts.length?r.parts[0].q:null, inch=v=>v==null?'?':tubBoth(v*MM);
   add((sides>1?'Mufflers':'Muffler')+each,q?q.brand+' '+q.model+' '+q.pn+': inlet '+inch(q.inD)+', outlet '+inch(q.outD)+(q.w?', case '+inch(q.w)+' × '+inch(q.h):'')+(q.oal!=null?', '+inch(q.oal)+' overall':''):TYPE_NAME[r.mufType]+' for '+r.mSize+' in pipe',
     q&&q.oal!=null?q.oal*MM:NaN,'Behind the resonator, wherever the floor has room. Nothing in the model sets this position.',{side:true,free:true});
   if(q) buy.push(['Mufflers',q.brand+' '+q.model+' '+q.pn,sides+'',TYPE_NAME[q.type]+(q.oal!=null?', '+inch(q.oal)+' overall':'')]);
-  add('Tailpipes and tips'+each,idod(mid,od)+', tips to fit '+tubIn(od),NaN,'To the bumper.',{side:true,free:true});
+  add('Tailpipes and tips'+each,idod(mid,od)+', tips to fit '+tubBoth(od),NaN,'To the bumper.',{side:true,free:true});
   // main pipe length: what is known in front of the muffler, and the rest when the whole length is given
   const mainRuns=rows.filter(o=>/^Main pipe/.test(o.name)).reduce((a,o)=>a+o.len,0);
   const known=x+(q&&q.oal!=null?q.oal*MM:0);
-  buy.push(['Main pipe tube',tubIn(od)+' OD × 0.065 in wall',sys&&sys>known?clen(mainRuns+(sys-known))+each:clen(mainRuns)+each+' up to the resonator, plus the run to the muffler and the tailpipe',sys&&sys>known?'from your '+clen(sys)+' head-to-tip length, before bends':'enter the head-to-tip length for the whole run']);
+  buy.push(['Main pipe tube',tubeSz(od),sys&&sys>known?clen(mainRuns+(sys-known))+each:clen(mainRuns)+each+' up to the resonator, plus the run to the muffler and the tailpipe',sys&&sys>known?'from your '+clen(sys)+' head-to-tip length, before bends':'enter the head-to-tip length for the whole run']);
   const tee=rows.find(o=>o.tee);
   buy.push(['Hangers','rubber-isolated',(sides*(tee?4:2))+'','ahead of and behind each muffler'+(tee?' and resonator can':'')]);
   // drone lengths against the whole system, when it is known
@@ -20520,13 +20527,13 @@ function quickSheet(p,r){
   return {rows,buy,steps:steps.filter(Boolean),alts,notes,sides,x,xs,xp};
 }
 function sheetHtml(sh){
-  const where=o=>o.free?(o.tee?'where it goes depends on the whole length (enter it above)':'where the floor has room'):'starts '+clen(o.at)+' from the head flange';
+  const where=o=>o.free?(o.tee?'where it goes depends on the whole length (enter it above)':'where the floor has room'):'starts '+cutLen(o.at)+' from the head flange';
   const item=(o,i)=>'<li data-part="'+esc(o.name)+'" data-size="'+esc(o.size)+'" data-at="'+(o.free?'':clen(o.at))+'"><b>'+esc(o.name)+'</b>: '+esc(o.size)+
-    '<br><span class="cap">'+where(o)+(o.len>0?' · '+clen(o.len)+' long':o.tee?' · a side branch, off the pipe':'')+(o.note?'. '+esc(o.note):'')+'</span></li>';
-  let h='<p class="cap u-mt0">In flow order from the head flange'+(sh.sides>1?', for each side (build both sides as mirror images)':'')+'. Distances are along the pipe’s centreline from the head flange.</p>'+
+    '<br><span class="cap">'+where(o)+(o.len>0?' · '+cutLen(o.len)+' long':o.tee?' · a side branch, off the pipe':'')+(o.note?'. '+esc(o.note):'')+'</span></li>';
+  let h='<p class="sub u-mt0">To cut and fit: the parts in flow order</p><p class="cap u-mt0">In flow order from the head flange'+(sh.sides>1?', for each side (build both sides as mirror images)':'')+'. Distances are along the pipe’s centreline from the head flange.</p>'+
     '<ol class="list sheet">'+sh.rows.map(item).join('')+'</ol>'+notesHtml(sh.notes);
   if(sh.alts.length) h+='<p class="sub u-mt14">Alternatives</p><ul class="list">'+sh.alts.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul>';
-  if(sh.buy.length) h+='<p class="sub u-mt14">Build list</p><ul class="list buy">'+
+  if(sh.buy.length) h+='<p class="sub u-mt14">Build list: to order</p><ul class="list buy">'+
     sh.buy.map(b=>'<li data-item="'+esc(b[0])+'"><b>'+esc(b[0])+'</b>: '+esc(b[1])+', <b>'+esc(b[2])+'</b>'+(b[3]?'<br><span class="cap">'+esc(b[3])+'</span>':'')+'</li>').join('')+'</ul>';
   h+='<p class="sub u-mt14">Build order</p><ol class="list steps">'+sh.steps.map(t=>'<li>'+esc(t)+'</li>').join('')+'</ol>';
   if(sh.xs&&!sh.xs.err&&sh.xs.type==='x') h+='<details id="q-xsteps" class="u-mt10"'+(SHEET_XOPEN?' open':'')+'><summary>X-pipe build steps</summary>'+xBuildSheet(sh.xs,sh.xp)+'</details>';
@@ -27022,16 +27029,36 @@ function tsSheet(){
   return {title:'Turbo build sheet',sub:en+(p.disp>0?', '+Math.round(p.disp).toLocaleString('en-US')+' cc ('+(p.disp/16.387064).toFixed(0)+' cu in)':'')+(tsHp()>0?', target '+F.hp(tsHp()):'')+', boost '+F.pD((p.boost||0)*1000)+' at '+Math.round(p.rpm).toLocaleString('en-US')+' RPM',
     parts,nums,assume,measure:tsMeasure(turbo),svg:[TG.svg||'',X&&X.svg?X.svg:'',MF&&MF.svg?MF.svg:''],mapSvg};
 }
+// (UI pass three) the turbo sheet as a cut list: tube sizes as ordered ("2.5 in OD × 0.065 in wall (63.5 × 1.65 mm)"),
+// lengths to the inch-fraction setting, and the parts split into what is ordered and what is cut. Text formatting of the
+// rows tsSheet gives; no figure is worked out again (a length's inches come from its mm as printed).
+const SH_Q=/(\d[\d,]*\.?\d*) (in|mm) \((\d[\d,]*\.?\d*) (in|mm)\)/;
+function shopSize(t){ t=String(t);
+  const num=x=>parseFloat(String(x).replace(/,/g,'')), mmOf=m=>m[2]==='mm'?num(m[1]):num(m[3]), pair=m=>m[2]==='in'?[m[1],m[3]]:[m[3],m[1]];
+  // "OD a, ID b, wall c" -> "a OD × c wall (a′ × c′), ID b"
+  let r=t.replace(new RegExp('^OD '+SH_Q.source+', ID '+SH_Q.source+', wall '+SH_Q.source),(...g)=>{ const o=[g[1],g[2],g[3],g[4]], id=[g[5],g[6],g[7],g[8]], w=[g[9],g[10],g[11],g[12]];
+    const oi=pair(o), wi=pair(w); return U==='imp'?oi[0]+' in OD × '+wi[0]+' in wall ('+oi[1]+' × '+wi[1]+' mm), ID '+id.slice(0,2).join(' ')+' ('+id.slice(2).join(' ')+')':oi[1]+' mm OD × '+wi[1]+' mm wall ('+oi[0]+' × '+wi[0]+' in), ID '+id.slice(0,2).join(' ')+' ('+id.slice(2).join(' ')+')'; });
+  // "a (a′) × c (c′) stainless tube" -> "a OD × c wall (a′ × c′) stainless tube"
+  r=r.replace(new RegExp('^'+SH_Q.source+' × '+SH_Q.source+' (\\w+ )?tube'),(...g)=>{ const oi=pair([g[1],g[2],g[3],g[4]]), wi=pair([g[5],g[6],g[7],g[8]]);
+    return (U==='imp'?oi[0]+' in OD × '+wi[0]+' in wall ('+oi[1]+' × '+wi[1]+' mm)':oi[1]+' mm OD × '+wi[1]+' mm wall ('+oi[0]+' × '+wi[0]+' in)')+' '+(g[9]||'')+'tube'; });
+  // a length to cut: "36.0 in (914 mm) long" -> "cut 36 in (914 mm) long", inches to the fraction setting
+  r=r.replace(new RegExp(SH_Q.source+' long','g'),(...g)=>{ const mm=mmOf(g); if(!(mm>0)) return g[0]; if(U!=='imp') return g[0];
+    const f=inMm(mm).replace(/ \([^)]*\)$/,''); return f+' ('+(g[2]==='mm'?g[1]:g[3])+' mm) long'; });
+  return r; }
+const shopCut=row=>/\blong\b|\bCLR\b/.test(row[1])&&/\b(OD|ID|tube|cone|bore)\b/i.test(row[1]);
 function tsSheetDoc(sh){
   const x=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const fix=sv=>sv?sv.replace(/var\(--([a-z0-9-]+)\)/g,(m,k)=>SHEET_PAL[k]||'#000').replace(/^<svg /,'<svg xmlns="http://www.w3.org/2000/svg" ').replace(/ width="100%" style="max-width:520px;display:block;margin:8px auto 0;/,' width="100%" style="'):'';
   const tbl=(head,rows)=>'<table><thead><tr>'+head.map(h=>'<th>'+x(h)+'</th>').join('')+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+r.map(c=>'<td>'+x(c)+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
   return '<!DOCTYPE html>\n<html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>'+x(sh.title)+'</title>\n'+
     '<style>@page{size:auto;margin:12mm}body{font:10pt/1.35 Arial,Helvetica,sans-serif;color:#111;background:#fff;max-width:186mm;margin:0 auto;padding:6mm 0}h1{font-size:15pt;margin:0 0 1mm}h2{font-size:11.5pt;margin:5mm 0 2mm;border-bottom:0.3mm solid #999;break-after:avoid}'+
-    'table{border-collapse:collapse;width:100%}td,th{border:0.2mm solid #bbb;padding:1mm 1.5mm;vertical-align:top;text-align:left}th{background:#eee}tr{break-inside:avoid}.draw{display:flex;gap:4mm;break-inside:avoid}.draw div{flex:1;min-width:0}svg{width:100%;height:auto}.cap{color:#444;font-size:8.5pt}ol{margin:0;padding-left:5mm}</style></head><body>\n'+
+    'table{border-collapse:collapse;width:100%}td,th{border:0.2mm solid #bbb;padding:1mm 1.5mm;vertical-align:top;text-align:left}th{background:#eee}tr{break-inside:avoid}.draw{display:flex;gap:4mm;break-inside:avoid}'+
+    'h3{font-size:10.5pt;margin:4mm 0 1.5mm;break-after:avoid}table{border-collapse:collapse;width:100%;table-layout:fixed}thead{display:table-header-group}td,th{border:0.2mm solid #bbb;padding:1mm 1.5mm;vertical-align:top;text-align:left;overflow-wrap:anywhere}th{background:#eee}th:first-child{width:24%}tr{break-inside:avoid}.draw{display:flex;flex-wrap:wrap;gap:4mm;break-inside:avoid}.draw div{flex:1 1 55mm}'+
+    '@media print{body{max-width:none;padding:0}a{color:inherit}}@media screen and (max-width:499px){body{padding:4mm}table,thead,tbody,tr,td,th{display:block}thead{position:absolute;left:-9999px}tr{margin:0 0 3mm;border:0.3mm solid #bbb}td{border:0;border-top:0.2mm solid #ddd}td:first-child{font-weight:bold;border-top:0}th:first-child{width:auto}}'+
+    '.draw div{flex:1;min-width:0}svg{width:100%;height:auto}.cap{color:#444;font-size:8.5pt}ol{margin:0;padding-left:5mm}</style></head><body>\n'+
     '<h1>'+x(sh.title)+'</h1><p class="cap">'+x(sh.sub)+'. Saved '+x(new Date().toISOString().slice(0,10))+' from Exhaust Tuner. Lengths in inches and mm; letter or A4, print at 100%.</p>\n'+
     '<h2>Route</h2><div class="draw"><div>'+fix(sh.svg[0])+'<p class="cap">Intake side, filter to throttle (not to scale along the route; widths to scale with each other).</p></div>'+(sh.svg[1]?'<div>'+fix(sh.svg[1])+'<p class="cap">Exhaust side, collector to tip.</p></div>':'')+(sh.svg[2]?'<div>'+fix(sh.svg[2])+'<p class="cap">Turbo manifold, plan (not to scale).</p></div>':'')+'</div>\n'+
-    '<h2>Parts and sizes</h2>'+tbl(['Part','Size','Where, notes'],sh.parts)+'\n<h2>Key numbers at peak power</h2>'+tbl(['What','Value'],sh.nums)+
+    '<h2>Parts and sizes</h2><h3>To order</h3>'+tbl(['Part','Size','Where, notes'],sh.parts.filter(r=>!shopCut(r)))+'<h3>To cut and bend</h3><p class="cap">Lengths along the centre line, inches to the nearest '+inRoundTxt(' with ')+'.</p>'+tbl(['Part','Size','Where, notes'],sh.parts.filter(shopCut).map(r=>[r[0],shopSize(r[1])].concat(r.slice(2))))+'\n<h2>Key numbers at peak power</h2>'+tbl(['What','Value'],sh.nums)+
     (sh.mapSvg?'\n<h2>Your compressor map</h2><div class="draw"><div>'+fix(sh.mapSvg)+'<p class="cap">Your own map image with this build’s demand line, put in this file at your choice; the image may be the maker’s copyright.</p></div></div>':'')+
     (sh.measure&&sh.measure.length?'\n<h2>What to measure on the car to firm this up</h2>'+tbl(['Measure','How','The page uses now','Type it in'],sh.measure.map(m=>[m.what,m.how,m.now,m.where])):'')+
     '\n<h2>Assumptions and unsourced items on this build</h2><ol>'+sh.assume.map(a=>'<li>'+x(a)+'</li>').join('')+'</ol>\n</body></html>\n';
