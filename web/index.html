@@ -27794,7 +27794,16 @@ function tblPolish(root){
     for(let j=1;j<n;j++){ if(!(isNum[j]&&any[j])) continue; for(const tr of t.rows){ const c=tr.cells[j]; if(c&&tr.cells.length===n) c.classList.add('num'); } }
   }
   root.querySelectorAll('.runstat').forEach(runPct);
+  // pass three: the busiest tables stack as cards on a phone; each value is labelled from its column heading (CSS shows
+  // the label only below 500 px, as generated content, so the text read from the page is as it was)
+  for(const t of root.querySelectorAll(STK_SEL)){ const w=t.parentElement; if(!w.classList.contains('stk')) w.classList.add('stk');
+    const hr=t.tHead&&t.tHead.rows[0]; if(!hr) continue; const hs=[...hr.cells].map(c=>c.textContent.trim());
+    if(hs.length<2) continue;
+    for(const b of t.tBodies) for(const tr of b.rows){ if(tr.cells.length!==hs.length) continue; for(let j=1;j<hs.length;j++){ const c=tr.cells[j]; if(c.dataset.l!==hs[j]) c.dataset.l=hs[j]; } } }
 }
+// the busiest wide tables (turbo options, intercooler cores, oil coolers, the inlet and charge-pipe tube sizes, the
+// downpipe sizes, the pie-cut pieces)
+const STK_SEL='.tblwrap > table:is(#tso-turbos,#tso-ics,#oil-tab,#oil-air-tab,#tsx-dp,#pc-pieces,[id^="ts-tbl-"])';
 // the narrow strip's "All" list: every calculator by group (copies of the rail's buttons; a choice sets the hash as a tab does)
 const TABPOP=$('tabpop'), TABSALL=$('tabsall');
 (()=>{ let h=''; for(const el of document.querySelector('.tabs').children){
