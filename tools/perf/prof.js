@@ -9,7 +9,7 @@ const INSTR = () => {
   const P = window.__P = { seg: {}, lay: [], html: 0, htmlN: 0, on: false, depth: [] };
   const now = () => performance.now();
   const wrapG = (name, getf) => { const f = getf(); if (typeof f !== 'function') return; const g = function () { if (!P.on) return f.apply(this, arguments); const t = now(); try { return f.apply(this, arguments); } finally { P.seg[name] = (P.seg[name] || 0) + now() - t; } }; return g; };
-  for (const n of ['keepBefore', 'keepAfter', 'syncShapes', 'simInpRefresh', 'refreshDeps', 'renderPieCut', 'tblPolish', 'fixPass', 'foldPass', 'hintPass', 'hostStatAll', 'u2Later', 'renderHeaders', 'renderCross', 'renderIntake', 'advMark', 'drawCompMap', 'outerH', 'fiSection']) {
+  if (!window.__NOWRAP) for (const n of ['keepBefore', 'keepAfter', 'syncShapes', 'simInpRefresh', 'refreshDeps', 'renderPieCut', 'tblPolish', 'fixPass', 'foldPass', 'hintPass', 'hostStatAll', 'u2Later', 'renderHeaders', 'renderCross', 'renderIntake', 'advMark', 'drawCompMap', 'outerH', 'fiSection']) {
     try { const g = wrapG(n, () => __dbg(n)); if (g) __dbg(n + '=__a', g); } catch (e) {} }
   const TABS = __dbg('TABS'); for (const k in TABS) { const f = TABS[k].render; TABS[k].render = function () { if (!P.on) return f.apply(this, arguments); const t = now(); try { return f.apply(this, arguments); } finally { P.seg['render:' + k] = (P.seg['render:' + k] || 0) + now() - t; } }; }
   // innerHTML / insertAdjacentHTML / outerHTML
@@ -35,7 +35,7 @@ const INSTR = () => {
   await pg.addStyleTag({ content: font }); await settle(pg);
   if (tab === 'intake') { await pg.evaluate(() => { const s = (i, v) => { const e = document.getElementById(i); e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); };
     s('v-mode', 'eng'); s('v-pick', [...document.getElementById('v-pick').options].find(o => /^K24A2 /.test(o.text)).value); s('i-ind', 'turbo'); }); await settle(pg); }
-  await pg.evaluate(INSTR);
+  if (process.env.NOWRAP) await pg.evaluate(() => { window.__NOWRAP = 1; }); await pg.evaluate(INSTR);
   const cdp = await pg.context().newCDPSession(pg);
   if (thr > 1) await cdp.send('Emulation.setCPUThrottlingRate', { rate: thr });
   if (cpuprof) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.setSamplingInterval', { interval: 200 }); await cdp.send('Profiler.start'); }

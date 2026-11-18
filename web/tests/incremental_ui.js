@@ -9,7 +9,8 @@
 // change: in the units shown, a select to another option, now and then blanked), a section folded or opened by its
 // heading, Expand all / Collapse all, the unit toggle, Simple/Expert, a "Use" button, an engine preset, a look at another
 // tab. The action is made in A and repeated exactly in B (same element, same value). After each: both settled and their
-// idle passes run, then every panel's textContent AND innerHTML (all 13, hidden ones too) and the vehicle bar compared;
+// idle passes run, then every panel's textContent AND innerHTML (all 13, hidden ones too) and the vehicle bar compared,
+// and the state of every field in them (value, checked, the option chosen: not in the HTML);
 // any difference fails with the panel and the first differing characters. No ids are generated per render (the folds'
 // and hints' ids are worked out from the section and the field), so nothing is normalised.
 // Also checked: A really did write in place (patched and unchanged writes counted by window.__shStat), and neither page
@@ -28,16 +29,19 @@ function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79
 
 // everything the page shows: per panel its textContent and innerHTML (hashed in the page; the strings are fetched only to
 // report a difference), after the render has settled and the idle passes (the quieter units) have run
-const SNAP = async () => {
+const SNAP = async fsrc => { const FIELDS = (0, eval)('(' + fsrc + ')');
   await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 600 })); await new Promise(r => setTimeout(r, 30));
   await new Promise(r => (window.requestIdleCallback || setTimeout)(r, { timeout: 600 }));
   const h = s => { let a = 0x811c9dc5, b = 0x01000193 ^ s.length; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); a = Math.imul(a ^ c, 16777619); b = Math.imul(b + c, 2246822519) ^ (b >>> 13); } return (a >>> 0).toString(36) + (b >>> 0).toString(36) + ':' + s.length; };
   const out = {};
   for (const p of [...document.querySelectorAll('[role=tabpanel]'), document.getElementById('vbar')]) {
-    const id = p.id || p.className; out[id + ' text'] = h(p.textContent); out[id + ' html'] = h(p.innerHTML); }
+    const id = p.id || p.className; out[id + ' text'] = h(p.textContent); out[id + ' html'] = h(p.innerHTML);
+    out[id + ' fields'] = h(FIELDS(p)); }
   return out;
 };
-const PART = ([id, kind]) => { const p = document.getElementById(id) || document.querySelector('.' + id); return kind === 'text' ? p.textContent : p.innerHTML; };
+// the fields' state, which the HTML does not carry: value, checked, the option chosen
+const FIELDS = p => [...p.querySelectorAll('input, select, textarea')].map(e => (e.id || e.name || e.dataset.k || e.tagName) + '=' + (e.type === 'checkbox' || e.type === 'radio' ? e.checked : e.tagName === 'SELECT' ? e.selectedIndex + ':' + e.value : e.value)).join('\n');
+const PART = ([id, kind, fsrc]) => { const p = document.getElementById(id); return kind === 'text' ? p.textContent : kind === 'fields' ? (0, eval)('(' + fsrc + ')')(p) : p.innerHTML; };
 
 (async () => {
   const b = await chromium.launch();
@@ -55,10 +59,10 @@ const PART = ([id, kind]) => { const p = document.getElementById(id) || document
   const R = rng(SEED), tabs = await A.evaluate(() => window.__st.tabs()), count = {};
   let checks = 0;
   const compare = async (i, what) => {
-    const [x, y] = [await A.evaluate(SNAP), await B.evaluate(SNAP)]; checks++;
+    const [x, y] = [await A.evaluate(SNAP, FIELDS.toString()), await B.evaluate(SNAP, FIELDS.toString())]; checks++;
     const bad = Object.keys(x).filter(k => x[k] !== y[k]);
     if (!bad.length) return true;
-    const k = bad[0], sp = k.lastIndexOf(' '), key = [k.slice(0, sp), k.slice(sp + 1)];
+    const k = bad[0], sp = k.lastIndexOf(' '), key = [k.slice(0, sp), k.slice(sp + 1), FIELDS.toString()];
     const [sa, sb] = [await A.evaluate(PART, key), await B.evaluate(PART, key)]; let j = 0; while (j < sa.length && sa[j] === sb[j]) j++;
     fails.push('after action ' + i + ' (' + what + '): ' + bad.join(', ') + ' differ; first at ' + j + ':\n    in place: …' + sa.slice(Math.max(0, j - 150), j + 150) + '\n    full:     …' + sb.slice(Math.max(0, j - 150), j + 150));
     return false;

@@ -9251,6 +9251,20 @@ function m4exp(A){
 // (p2' = 0), and the core’s four-pole gives TL between equal pipes. No mean flow; Davies notes the perforate matters little above 15% porosity
 // at M < 0.2. With no packing the annulus holds plain gas and the result is the classic concentric-tube resonator.
 // p: dpipe (core ID), dsh (shell ID), len, dh, tw (mm); rho (kg/m³); sigma (fraction); tC (°C); M (mean-flow Mach in the core, 0 = none)
+// A key of numbers that tells every value apart (JSON writes NaN and null alike, and -0 as 0)
+const numKey=x=>JSON.stringify(x,(k,v)=>typeof v==='number'?(Number.isNaN(v)?'NaN':Object.is(v,-0)?'-0':v===Infinity?'Inf':v===-Infinity?'-Inf':v):v);
+// (2026-11-18, docs/PERF_2026-11-18.md) the Mufflers tab's packed can and its loss at each whole hertz, kept for the last
+// six cans worked out: a field edit that does not change the can (its target tone, the other parts) need not work the
+// same 4 × 4 matrix exponentials out again. The key is all calcAbsorb reads: its inputs and the exhaust gas in use
+// (EXH_GAS, which a fuel picked changes); the rest is constants.
+const AB_KEEP=new Map();
+function absorbKept(p){
+  if(window.__fullWrites) return {ab:calcAbsorb(p),tl:{}};   // (the differential test's full page keeps nothing)
+  const key=numKey([p,EXH_GAS.R,EXH_GAS.lo,EXH_GAS.hi]); let e=AB_KEEP.get(key);
+  if(e) AB_KEEP.delete(key); else e={ab:calcAbsorb(p),tl:{}};
+  AB_KEEP.set(key,e); if(AB_KEEP.size>6) AB_KEEP.delete(AB_KEEP.keys().next().value);
+  return e;
+}
 function calcAbsorb(p){
   if(!fin(p.dpipe,p.dsh,p.len,p.dh,p.tw,p.rho,p.sigma,p.tC)||p.dpipe<=0||p.dsh<=p.dpipe||p.len<=0||p.dh<=0||p.tw<0||p.rho<0||p.sigma<=0||p.sigma>=1)
     return {err:'The packed can needs a shell wider than the pipe, a positive length, hole size and packing density, and a porosity between 0 and 100%.'};
@@ -11458,7 +11472,7 @@ function pointsCsv(segs){
    changed the written nodes since (a button's message, a section folded by hand, a draw) is seen by a MutationObserver
    and that node is written afresh. A panel that is hidden keeps the undecorated nodes it would have had (written in
    full when its nodes were decorated while it was shown). */
-const SH_FRESH='svg,canvas,input,select,textarea,details,dialog,video,audio,iframe,object,embed,.runstat', SH_FRESH_RE=/^(svg|canvas|input|select|textarea|details|dialog|video|audio|iframe|object|embed)$/i;
+const SH_FRESH='svg,canvas,input,select,textarea,video,audio,iframe,object,embed,.runstat', SH_FRESH_RE=/^(svg|canvas|input|select|textarea|video|audio|iframe|object|embed)$/i;
 const SH_ROOTS=new Set(), SH_MO=typeof MutationObserver==='function'?new MutationObserver(recs=>shNote(recs)):null;
 function shNote(recs){ for(const r of recs){ const t=r.target; let root=null; for(let x=t;x;x=x.parentNode) if(x._sh){ root=x; break; } if(!root) continue;
   if(t===root&&r.type==='attributes') continue; root._sh.dirty.add(t); } }
@@ -11482,7 +11496,8 @@ function shMorph(op,np,lp,D,UP){
   return true;
 }
 // window.__fullWrites (set before the page loads; the tests only, web/tests/incremental_ui.js): every write in full, as
-// before; window.__shStat counts the writes by kind (full, patched, same), for the same test
+// before, and nothing kept from one render to the next (absorbKept); window.__shStat counts the writes by kind (full,
+// patched, same), for the same test
 const SH_STAT=window.__shStat={full:0,patch:0,same:0};
 // a kept section that is folded and holds a drawing is opened until the fold pass after the render (which folds it again):
 // the render draws to the width of an open section, as it does into a newly written one
@@ -17525,8 +17540,8 @@ function renderMuf(){
   $('m-len-lab').textContent=FX.mufTurbo?'Pipe length, turbine outlet to tailpipe tip':'Pipe length, valve to tailpipe tip';
   const key=$('m-key'), det=$('m-details');
   const hm=calcHelm(p), qw=calcQW(p), ch=calcChamber(p), pl=calcPlace(p);
-  const ab=calcAbsorb({dpipe:p.dpipe,dsh:p.dch,len:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')});
-  const abMemo={}, abTL=f=>{ const k=Math.round(f); if(abMemo[k]==null) abMemo[k]=Math.min(TLCAP,ab.tl(k)); return abMemo[k]; };
+  const AB=absorbKept({dpipe:p.dpipe,dsh:p.dch,len:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')}), ab=AB.ab;
+  const abMemo=AB.tl, abTL=f=>{ const k=Math.round(f); if(abMemo[k]==null) abMemo[k]=Math.min(TLCAP,ab.tl(k)); return abMemo[k]; };
   const pipeCut=crossModeHz(sosExh(p.tmain),bore.err?null:bore);
   let engM=null;   // the pipe's Mach number at redline from the Sound tab's engine, when it can be worked out
   (()=>{ const el=$('m-mach-eng'); if(!el) return; let txt=''; try{ const sp=soundParams(); if(!sp.err&&p.dpipe>0&&val('s-disp')>0&&sp.p.red>0){
