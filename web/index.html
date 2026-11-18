@@ -9251,6 +9251,20 @@ function m4exp(A){
 // (p2' = 0), and the core’s four-pole gives TL between equal pipes. No mean flow; Davies notes the perforate matters little above 15% porosity
 // at M < 0.2. With no packing the annulus holds plain gas and the result is the classic concentric-tube resonator.
 // p: dpipe (core ID), dsh (shell ID), len, dh, tw (mm); rho (kg/m³); sigma (fraction); tC (°C); M (mean-flow Mach in the core, 0 = none)
+// A key of numbers that tells every value apart (JSON writes NaN and null alike, and -0 as 0)
+const numKey=x=>JSON.stringify(x,(k,v)=>typeof v==='number'?(Number.isNaN(v)?'NaN':Object.is(v,-0)?'-0':v===Infinity?'Inf':v===-Infinity?'-Inf':v):v);
+// (2026-11-18, docs/PERF_2026-11-18.md) the Mufflers tab's packed can and its loss at each whole hertz, kept for the last
+// six cans worked out: a field edit that does not change the can (its target tone, the other parts) need not work the
+// same 4 × 4 matrix exponentials out again. The key is all calcAbsorb reads: its inputs and the exhaust gas in use
+// (EXH_GAS, which a fuel picked changes); the rest is constants.
+const AB_KEEP=new Map();
+function absorbKept(p){
+  if(window.__fullWrites) return {ab:calcAbsorb(p),tl:{}};   // (the differential test's full page keeps nothing)
+  const key=numKey([p,EXH_GAS.R,EXH_GAS.lo,EXH_GAS.hi]); let e=AB_KEEP.get(key);
+  if(e) AB_KEEP.delete(key); else e={ab:calcAbsorb(p),tl:{}};
+  AB_KEEP.set(key,e); if(AB_KEEP.size>6) AB_KEEP.delete(AB_KEEP.keys().next().value);
+  return e;
+}
 function calcAbsorb(p){
   if(!fin(p.dpipe,p.dsh,p.len,p.dh,p.tw,p.rho,p.sigma,p.tC)||p.dpipe<=0||p.dsh<=p.dpipe||p.len<=0||p.dh<=0||p.tw<0||p.rho<0||p.sigma<=0||p.sigma>=1)
     return {err:'The packed can needs a shell wider than the pipe, a positive length, hole size and packing density, and a porosity between 0 and 100%.'};
@@ -11401,13 +11415,19 @@ const notesHtml=n=>n.map(x=>'<div class="note '+(x.k==='info'?'':x.k)+'">'+esc(x
 const sec=(title,body)=>'<div class="sec" data-sec="'+String(title).replace(/<[^>]*>/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')+'"><h3>'+title+'</h3>'+body+'</div>';
 // a jump list at the top of a long results column: one chip per section when there are more than six (buttons, not
 // anchors, because the page's hash is its tab)
-function addToc(det,list){
-  if(!det) return; const secs=list||[...det.querySelectorAll(':scope > .sec[data-sec], :scope > * > .sec[data-sec]')]; if(secs.length<=6) return;
-  const nav=document.createElement('nav'); nav.className='toc'; nav.setAttribute('aria-label','Sections');
+function addToc(det,list,gen){
+  if(!det) return; const secs=list||[...det.querySelectorAll(':scope > .sec[data-sec], :scope > * > .sec[data-sec]')];
+  // a list already there (the tab's nodes kept by setHTML, 2026-11-18) is brought up to date in place, else one is made
+  let nav=det.querySelector(':scope > nav.toc'); if(nav&&!nav.dataset.gen!==!gen) nav=null;   // (gen: foldPass's own list)
+  if(secs.length<=6){ if(nav){ if(det._io){ det._io.disconnect(); det._io=null; } nav.remove(); } return; }
   const nm=x=>esc(x.querySelector('h3').textContent);
-  nav.innerHTML='<div class="tocrow">'+secs.map(x=>'<button type="button" data-toc="'+x.dataset.sec+'">'+nm(x)+'</button>').join('')+'</div>'+
+  const h='<div class="tocrow">'+secs.map(x=>'<button type="button" data-toc="'+x.dataset.sec+'">'+nm(x)+'</button>').join('')+'</div>'+
     '<label class="tocjump"><span class="vh">Jump to a section</span><select data-tocsel aria-label="Jump to a section"><option value="">Jump to…</option>'+secs.map(x=>'<option value="'+x.dataset.sec+'">'+nm(x)+'</option>').join('')+'</select></label>';
-  det.insertBefore(nav,det.firstChild); tocWatch(det,nav,secs);
+  if(!nav){ nav=document.createElement('nav'); nav.className='toc'; nav.setAttribute('aria-label','Sections'); det.insertBefore(nav,det.firstChild); }
+  // (a list kept as it was starts unmarked, as a new one does: the section in view is marked again by tocWatch)
+  if(nav._h!==h){ nav.innerHTML=h; nav._h=h; }
+  else { for(const b of nav.querySelectorAll('[aria-current]')) b.removeAttribute('aria-current'); const sl=nav.querySelector('select[data-tocsel]'); if(sl&&sl.selectedIndex!==0) sl.selectedIndex=0; }
+  tocWatch(det,nav,secs);
 }
 // the section in view: marked in the list (no scroll handler: an IntersectionObserver over a band under the sticky bars)
 function tocWatch(det,nav,secs){
@@ -11443,11 +11463,86 @@ function pointsCsv(segs){
   return out.join('\n');
 }
 
+/* ===== a render's HTML written in place (2026-11-18, docs/PERF_2026-11-18.md) =====
+   setHTML(el, html) leaves el exactly as el.innerHTML = html followed by the page's passes would, but touches only what
+   changed: a re-render used to replace every node of a tab, and the browser then styled and laid out the whole tab again
+   (on the boosted Intake tab about 50 ms of the edit). The HTML is parsed into a template and compared, node by node,
+   with the one written last time (kept, untouched, beside the page): a node whose HTML is the same keeps its node in the
+   page; a text that changed is set; an element whose attributes changed gets them; anything whose children differ in
+   number or kind is replaced, as are form fields, drawings (svg, canvas) and details (their state is not in the HTML, and
+   the render draws or fills them afresh). The page's own passes after a render (folding, tables, the "do this" buttons,
+   the quieter units) are applied again on every render, so a kept node ends as a new one would. Anything else that
+   changed the written nodes since (a button's message, a section folded by hand, a draw) is seen by a MutationObserver
+   and that node is written afresh. A panel that is hidden keeps the undecorated nodes it would have had (written in
+   full when its nodes were decorated while it was shown). */
+const SH_FRESH='svg,canvas,input,select[multiple],select[size],textarea,video,audio,iframe,object,embed,.runstat';
+// a list (one choice, drop-down) is kept: its options are patched as any element and the choice set as a newly parsed one
+// makes it (the last option marked selected, else the first that is not disabled), which the HTML does not carry
+function shSel(l){ const os=l.options; let k=-1; for(let i=0;i<os.length;i++) if(os[i].hasAttribute('selected')) k=i;
+  if(k<0) for(let i=0;i<os.length;i++){ const o=os[i], g=o.parentElement; if(!o.disabled&&!(g&&g.tagName==='OPTGROUP'&&g.disabled)){ k=i; break; } }
+  if(l.selectedIndex!==k) l.selectedIndex=k; }
+const SH_ROOTS=new Set(), SH_MO=typeof MutationObserver==='function'?new MutationObserver(recs=>shNote(recs)):null;
+// (a change inside a drawing is no one's concern: setHTML writes every drawing afresh)
+function shNote(recs){ for(const r of recs){ const t=r.target; if(t.namespaceURI==='http://www.w3.org/2000/svg') continue;
+  let root=null; for(let x=t;x;x=x.parentNode) if(x._sh){ root=x; break; } if(!root) continue;
+  if(t===root&&r.type==='attributes') continue; root._sh.dirty.add(t); } }
+function shFlush(){ if(SH_MO) shNote(SH_MO.takeRecords()); }   // what happened so far is someone else's
+function shOwn(f){ shFlush(); try{ if(f) f(); } finally{ if(SH_MO) SH_MO.takeRecords(); } }   // the page's own deterministic passes
+function shDecorated(pan){ for(const r of SH_ROOTS) if(!pan||pan.contains(r)) r._sh.dec=true; }
+function shBind(p,l){ p._l=l; for(let a=p.firstChild,b=l.firstChild;a;a=a.nextSibling,b=b.nextSibling) shBind(a,b); }
+function shFull(el,np){ const st=el._sh, live=np.cloneNode(true); shBind(np,live); el.replaceChildren(live); st.pr=np; st.dec=false; }
+function shRepl(n,lp,l){ const c=n.cloneNode(true); shBind(n,c); lp.replaceChild(c,l); }
+// (_fr on the new nodes: one to write afresh; _hf: holds one; D, UP: touched since, and their ancestors; dz: neither is empty)
+function shMorph(op,np,lp,D,UP,dz){
+  const oc0=op.childNodes, nc=np.childNodes, k=oc0.length; if(k!==nc.length) return false;   // (nc keeps its places: replaceChild)
+  const oc=new Array(k);
+  for(let i=0;i<k;i++){ const o=oc[i]=oc0[i], n=nc[i], l=o._l;
+    if(!l||l.parentNode!==lp||o.nodeType!==n.nodeType||o.nodeName!==n.nodeName) return false; }
+  for(let i=0;i<k;i++){ const o=oc[i], n=nc[i], l=o._l, t=o.nodeType;
+    if(t!==1){ if(t===3||t===8){ if(o.nodeValue!==n.nodeValue||dz&&D.has(l)) l.nodeValue=n.nodeValue; n._l=l; } else shRepl(n,lp,l); continue; }
+    const sel=o.nodeName==='SELECT';
+    if(n._fr||dz&&D.has(l)||sel&&(l.multiple||l.hasAttribute('size'))){ shRepl(n,lp,l); continue; }
+    if(!n._hf&&!(dz&&UP.has(l))&&o.isEqualNode(n)){ np.replaceChild(o,n); if(sel) shSel(l); continue; }
+    const na=n.attributes, oa=o.attributes;
+    for(let j=0;j<na.length;j++){ const a=na[j]; if(o.getAttribute(a.name)!==a.value) l.setAttribute(a.name,a.value); }
+    for(let j=oa.length-1;j>=0;j--){ const a=oa[j]; if(!n.hasAttribute(a.name)) l.removeAttribute(a.name); }
+    n._l=l; if(!shMorph(o,n,l,D,UP,dz)) shRepl(n,lp,l); else if(sel) shSel(l); }
+  return true;
+}
+// window.__fullWrites (set before the page loads; the tests only, web/tests/incremental_ui.js): every write in full, as
+// before, and nothing kept from one render to the next (absorbKept); window.__shStat counts the writes by kind (full,
+// patched, same), for the same test
+const SH_STAT=window.__shStat={full:0,patch:0,same:0};
+// a kept section that is folded and holds a drawing is opened until the fold pass after the render (which folds it again):
+// the render draws to the width of an open section, as it does into a newly written one
+function shOpen(el){ for(const x of el.querySelectorAll('.sec.fc')) if(x.querySelector('svg,canvas')) x.classList.remove('fc'); }
+function setHTML(el,html){
+  if(!el) return; if(window.__fullWrites){ el.innerHTML=html; SH_STAT.full++; return; }
+  let st=el._sh; const hid=!!(el.closest('[role=tabpanel]')||{}).hidden;
+  if(!st){ st=el._sh={pr:null,html:null,dirty:new Set(),dec:false}; SH_ROOTS.add(el); if(SH_MO) SH_MO.observe(el,{subtree:true,childList:true,attributes:true,characterData:true}); }
+  shFlush(); const D=st.dirty; st.dirty=new Set();
+  try{
+    if(!SH_MO||!st.pr||D.has(el)||(hid&&st.dec)){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); SH_STAT.full++; return; }
+    if(st.html===html&&!D.size){   // the same HTML as last time: only the drawings and fields are made afresh
+      SH_STAT.same++; shOpen(el);
+      for(const p of st.pr.querySelectorAll(SH_FRESH)){ const l=p._l; if(l&&l.parentNode&&!(p.parentNode&&p.parentNode.closest&&p.parentNode.closest(SH_FRESH))) shRepl(p,l.parentNode,l); }
+      for(const p of st.pr.querySelectorAll('select')){ const l=p._l; if(l&&l.isConnected&&l.nodeName==='SELECT'&&!l.multiple&&!l.hasAttribute('size')) shSel(l); }
+      return; }
+    const t=document.createElement('template'); t.innerHTML=html; const np=t.content, UP=new Set();
+    for(const e of np.querySelectorAll(SH_FRESH)){ e._fr=1; for(let x=e.parentNode;x&&x!==np&&!x._hf;x=x.parentNode) x._hf=1; }
+    for(const d of D) for(let x=d.parentNode;x&&x!==el;x=x.parentNode){ if(UP.has(x)) break; UP.add(x); }
+    if(shMorph(st.pr,np,el,D,UP,D.size>0)){ st.pr=np; SH_STAT.patch++; shOpen(el); } else { shFull(el,np); SH_STAT.full++; }
+  } catch(e){ const t=document.createElement('template'); t.innerHTML=html; shFull(el,t.content); }
+  finally{ st.html=html; if(SH_MO) SH_MO.takeRecords(); }
+}
+
 /* ===== SVG helpers ===== */
 const NS='http://www.w3.org/2000/svg';
 function mk(tag,attrs,parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
 function clearSvg(s){while(s.firstChild)s.removeChild(s.firstChild);}
-const widthOf=svg=>{const f=svg.closest('figure');return Math.max(300,Math.floor((f&&f.clientWidth)||360)-32);};
+// (a drawing on a hidden tab, [hidden] being display:none, has no width: 328, as reading it gave, without laying out the
+// page for it; 2026-11-18)
+const widthOf=svg=>{const f=svg.closest('figure');if(!f||f.closest('[hidden]'))return 328;return Math.max(300,Math.floor(f.clientWidth||360)-32);};
 
 function drawProfile(svg,segs,marks){
   clearSvg(svg);
@@ -14802,14 +14897,18 @@ const HG=(()=>{
   // web's start to its end, mid): the narrowest point of the arc is R from its centre
   function filletForWaist(A,B,half,axis){
     // the narrowest the web gets: the closest the arc (over its own span) comes to the web's centre line
+    // (the point on the arc and its offset from the axis written out: the same operations as add(F, pol(R, t)) - axis.p)
     const minD=f=>{ let m=1e18; const a0=ang(f.pa,f.F), a1=ang(f.pb,f.F); let sw=a1-a0; sw=-md(-sw);
-      for(let k=0;k<=40;k++){ const p=add(f.F,pol(f.R,a0+sw*k/40)), q=sub(p,axis.p); m=Math.min(m,Math.abs(q[0]*axis.d[1]-q[1]*axis.d[0])); } return m; };
+      const F0=f.F[0], F1=f.F[1], R=f.R, x0=axis.p[0], y0=axis.p[1], d0=axis.d[0], d1=axis.d[1];
+      for(let k=0;k<=40;k++){ const t=a0+sw*k/40, q0=(F0+R*Math.cos(t))-x0, q1=(F1+R*Math.sin(t))-y0; m=Math.min(m,Math.abs(q0*d1-q1*d0)); } return m; };
     const gap=R=>{ const f=fillet(A,B,R); return f?minD(f)-half:null; };
     const D=len(sub(B.c,A.c)); let lo=Math.max(1e-3,(D-A.r-B.r)/2+1e-6), hi=1e5;
     const ghi=gap(hi);
     if(ghi==null||ghi<0) return null;              // even nearly straight it is too narrow: use a line
     const glo=gap(lo);
-    if(!(glo!=null&&glo>=0)) for(let k=0;k<80;k++){ const m=Math.sqrt(lo*hi), g=gap(m); if(g!=null&&g>=0) hi=m; else lo=m; }
+    // once the midpoint is an end itself the search can move no more (gap(hi) >= 0 and gap(lo) not, by construction): the
+    // remaining steps would repeat it, so it stops there with the same hi (2026-11-18)
+    if(!(glo!=null&&glo>=0)) for(let k=0;k<80;k++){ const m=Math.sqrt(lo*hi); if(m===lo||m===hi) break; const g=gap(m); if(g!=null&&g>=0) hi=m; else lo=m; }
     else hi=lo;
     // never tighter than minR: a small fillet reads as a notch, not a flowing neck
     return fillet(A,B,Math.max(hi,axis.minR||0))||fillet(A,B,hi);
@@ -14846,17 +14945,26 @@ const HG=(()=>{
   // points along a segment / outline (for drawing, checks and the add-in's midpoints)
   function sweepOf(s){ if(s.t!=='A') return 0; let sw=s.a1-s.a0; if(s.ccw){ sw=md(sw); } else { sw=-md(-sw); } return sw; }
   function at(s,u){ if(s.t==='L') return add(s.a,mul(sub(s.b,s.a),u)); return add(s.c,pol(s.r,s.a0+sweepOf(s)*u)); }
+  // (at(s, k/n) written out per segment, no temporary pairs: the same operations, 2026-11-18)
   function sample(segs,step){
     const pts=[];
-    for(const s of segs){ const L=s.t==='L'?len(sub(s.b,s.a)):Math.abs(sweepOf(s))*s.r, n=Math.max(1,Math.ceil(L/(step||1)));
-      for(let k=0;k<n;k++) pts.push(at(s,k/n)); }
+    for(const s of segs){
+      if(s.t==='L'){ const a0=s.a[0], a1=s.a[1], dx=s.b[0]-a0, dy=s.b[1]-a1, n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/(step||1)));
+        for(let k=0;k<n;k++){ const u=k/n; pts.push([a0+dx*u,a1+dy*u]); } }
+      else { const sw=sweepOf(s), c0=s.c[0], c1=s.c[1], r=s.r, t0=s.a0, n=Math.max(1,Math.ceil(Math.abs(sw)*r/(step||1)));
+        for(let k=0;k<n;k++){ const t=t0+sw*(k/n); pts.push([c0+r*Math.cos(t),c1+r*Math.sin(t)]); } } }
     return pts;
   }
   function area(pts){ let A=0; for(let i=0;i<pts.length;i++){ const p=pts[i], q=pts[(i+1)%pts.length]; A+=p[0]*q[1]-q[0]*p[1]; } return A/2; }
-  function segX(p1,p2,p3,p4){ const d=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
-    const d1=d(p3,p4,p1), d2=d(p3,p4,p2), d3=d(p1,p2,p3), d4=d(p1,p2,p4); return d1*d2<-1e-12&&d3*d4<-1e-12; }
-  function simple(pts){ const n=pts.length; for(let i=0;i<n;i++) for(let j=i+2;j<n;j++){ if(i===0&&j===n-1) continue;
-    if(segX(pts[i],pts[(i+1)%n],pts[j],pts[(j+1)%n])) return false; } return true; }
+  // two segments cross (each one's ends strictly either side of the other's line): written out in the double loop, no
+  // closure per pair (2026-11-18; the products, differences and tests of the helper it replaces, in the same order)
+  function simple(pts){ const n=pts.length; for(let i=0;i<n;i++){ const p1=pts[i], p2=pts[(i+1)%n], ax=p1[0], ay=p1[1], bx=p2[0], by=p2[1];
+    for(let j=i+2;j<n;j++){ if(i===0&&j===n-1) continue;
+    const p3=pts[j], p4=pts[(j+1)%n], cx=p3[0], cy=p3[1], ex=p4[0], ey=p4[1];
+    const d1=(ex-cx)*(ay-cy)-(ey-cy)*(ax-cx), d2=(ex-cx)*(by-cy)-(ey-cy)*(bx-cx);
+    if(!(d1*d2<-1e-12)) continue;
+    const d3=(bx-ax)*(cy-ay)-(by-ay)*(cx-ax), d4=(bx-ax)*(ey-ay)-(by-ay)*(ex-ax);
+    if(d3*d4<-1e-12) return false; } } return true; }
   function distToPoly(p,pts){ let m=1e18; for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length], ab=sub(b,a), t=Math.max(0,Math.min(1,((p[0]-a[0])*ab[0]+(p[1]-a[1])*ab[1])/Math.max(1e-12,ab[0]*ab[0]+ab[1]*ab[1])));
     m=Math.min(m,len(sub(p,add(a,mul(ab,t))))); } return m; }
   function inside(p,pts){ let c=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const a=pts[i], b=pts[j];
@@ -15148,11 +15256,23 @@ const hgHolePath=(h,T)=>h.t==='C'?(()=>{ const c=T(h.c), r=h.r*T.k; return 'M'+(
    tear-out past the hole (two shear planes, shear yield 0.577 × yield, von Mises). Sideways: the tab bending flat
    about its root. Rod: bending at the end of the weld from the load on the pin. */
 function hgNet(part,y0,y1){ const sc=hgScan(part,y0,y1); return sc.reduce((m,q)=>q.w<m.w?q:m,{w:1e9,y:y0}); }
+// (2026-11-18, docs/PERF_2026-11-18.md) the outline's edges that cross each scan line are found once per call (each edge
+// spans the lines y in [lower end, upper end)), not by testing every edge on every line: the same edges in the same order,
+// the same arithmetic, so the same numbers; an outline with a NaN height falls back to testing every edge
+function hgScanEdges(pts,ys){
+  const n=pts.length, at=ys.map(()=>[]), lb=v=>{ let lo=0, hi=ys.length; while(lo<hi){ const m=(lo+hi)>>1; if(ys[m]<v) lo=m+1; else hi=m; } return lo; };
+  for(let i=0;i<n;i++){ const a=pts[i][1], b=pts[(i+1)%n][1]; if(a!==a||b!==b) return null; if(a===b) continue;
+    for(let k=lb(a<b?a:b), e=lb(a<b?b:a);k<e;k++) at[k].push(i); }
+  return at;
+}
 function hgScan(part,y0,y1){
-  const pts=HG.sample(part.outline,0.4), out=[];
-  for(let y=y0;y<=y1+1e-9;y+=Math.max(0.25,(y1-y0)/200)){
+  const pts=HG.sample(part.outline,0.4), out=[], ys=[];
+  for(let y=y0;y<=y1+1e-9;y+=Math.max(0.25,(y1-y0)/200)) ys.push(y);
+  const E=hgScanEdges(pts,ys);
+  for(let j=0;j<ys.length;j++){ const y=ys[j];
     const xs=[];
-    for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length]; if((a[1]>y)!==(b[1]>y)) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); }
+    if(E){ for(const i of E[j]){ const a=pts[i], b=pts[(i+1)%pts.length]; if((a[1]>y)!==(b[1]>y)) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); } }
+    else for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length]; if((a[1]>y)!==(b[1]>y)) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); }
     xs.sort((a,b)=>a-b); let w=0; for(let k=0;k+1<xs.length;k+=2) w+=xs[k+1]-xs[k];
     for(const h of part.holes){ const dy=Math.abs(y-h.c[1]); if(h.t==='C'&&dy<h.r) w-=2*Math.sqrt(h.r*h.r-dy*dy);
       if(h.t!=='C'){ const q=h._pts||(h._pts=HG.sample(h.segs,0.4)), xs2=[];
@@ -15215,24 +15335,31 @@ function hgFin(prof,o){
   const F=prof.map(q=>{ const rho=Ro+Math.max(0,q.d)/1000, b=Math.asin(Math.min(1,Ro/rho)); return (1-Math.cos(b))/2; });
   const L=(prof[n-1].s-prof[0].s)/1000||0.01;
   let T=prof.map(()=>(Tp+Ta)/2), hcLast=0; T[0]=Tp;
+  // (2026-11-18) the conduction terms and the spacings do not change from one pass to the next: worked out once, by the
+  // same expressions; each pass's sums, maxima and sweeps are the same operations in the same order as before
+  const a=new Float64Array(n), c=new Float64Array(n), kLR=new Float64Array(n), dsCs=new Float64Array(n), bb=new Float64Array(n), r=new Float64Array(n), th=new Float64Array(n);
+  for(let i=1;i<n;i++){
+    const dsL=(prof[i].s-prof[i-1].s)/1000, dsR=i<n-1?(prof[i+1].s-prof[i].s)/1000:dsL, dsC=(dsL+(i<n-1?dsR:0))/2||dsL/2;
+    const kL=k*(A[i]+A[i-1])/2/dsL, kR=i<n-1?k*(A[i]+A[i+1])/2/dsR:0;
+    a[i]=-kL; c[i]=-kR; kLR[i]=kL+kR; dsCs[i]=dsC; }
   for(let it=0;it<80;it++){
-    const Tm=T.reduce((a,x)=>a+x,0)/n, Tf=(Tm+Ta)/2, mu=airMu(Tf), ka=airK(Tf), cp=airCp(Tf), rho=P_ATM/(R_AIR*Tf), nu=mu/rho, Pr=mu*cp/ka;
+    let sT=0; for(let i=0;i<n;i++) sT+=T[i];
+    const Tm=sT/n, Tf=(Tm+Ta)/2, mu=airMu(Tf), ka=airK(Tf), cp=airCp(Tf), rho=P_ATM/(R_AIR*Tf), nu=mu/rho, Pr=mu*cp/ka;
     const Lc=o.round?o.rod/1000:L, Ra=9.81/Tf*Math.max(Tm-Ta,1e-3)*Lc**3/(nu*nu)*Pr;
     const Nu=o.round?Math.pow(0.60+0.387*Math.pow(Ra,1/6)/Math.pow(1+Math.pow(0.559/Pr,9/16),8/27),2):Math.pow(0.825+0.387*Math.pow(Ra,1/6)/Math.pow(1+Math.pow(0.492/Pr,9/16),8/27),2);
     const hc=o.hcFix>0?o.hcFix:Nu*ka/Lc; hcLast=hc;
     // tridiagonal: a_i T_{i-1} + b_i T_i + c_i T_{i+1} = r_i in theta = T - Ta
-    const a=[],bb=[],c=[],r=[];
-    for(let i=0;i<n;i++){
-      if(i===0){ a.push(0); bb.push(1); c.push(0); r.push(Tp-Ta); continue; }
-      const dsL=(prof[i].s-prof[i-1].s)/1000, dsR=i<n-1?(prof[i+1].s-prof[i].s)/1000:dsL, dsC=(dsL+(i<n-1?dsR:0))/2||dsL/2;
-      const kL=k*(A[i]+A[i-1])/2/dsL, kR=i<n-1?k*(A[i]+A[i+1])/2/dsR:0, Ti=T[i];
+    bb[0]=1; r[0]=Tp-Ta;
+    for(let i=1;i<n;i++){
+      const Ti=T[i], dsC=dsCs[i];
       const hra=eps*SIG*(1-F[i])*(Ti*Ti+Ta*Ta)*(Ti+Ta), cin=epsP*eps*SIG*F[i]*(Tp*Tp+Ti*Ti)*(Tp+Ti), H=(hc+hra+cin)*P[i]*dsC;
-      a.push(-kL); c.push(-kR); bb.push(kL+kR+H); r.push(cin*P[i]*dsC*(Tp-Ta));
+      bb[i]=kLR[i]+H; r[i]=cin*P[i]*dsC*(Tp-Ta);
     }
     for(let i=1;i<n;i++){ const m=a[i]/bb[i-1]; bb[i]-=m*c[i-1]; r[i]-=m*r[i-1]; }
-    const th=new Array(n); th[n-1]=r[n-1]/bb[n-1]; for(let i=n-2;i>=0;i--) th[i]=(r[i]-c[i]*th[i+1])/bb[i];
-    const Tn=th.map(x=>x+Ta), d=Math.max(...Tn.map((x,i)=>Math.abs(x-T[i])));
-    T=Tn.map((x,i)=>0.5*x+0.5*T[i]); T[0]=Tp; if(d<0.01) break;
+    th[n-1]=r[n-1]/bb[n-1]; for(let i=n-2;i>=0;i--) th[i]=(r[i]-c[i]*th[i+1])/bb[i];
+    let d=-Infinity; const Tn=new Array(n);
+    for(let i=0;i<n;i++){ const x=th[i]+Ta; d=Math.max(d,Math.abs(x-T[i])); Tn[i]=0.5*x+0.5*T[i]; }
+    T=Tn; T[0]=Tp; if(d<0.01) break;
   }
   return {T:T.map(x=>x-273.15),s:prof.map(q=>q.s),hc:hcLast};
 }
@@ -15397,7 +15524,7 @@ function renderHang(){
   mtRender();   // the Mounts designer below the hanger (its own block, after this tab's code)
   const o=hgRead(); hgFields(o);
   const key=$('hg-key'), det=$('hg-details'), svg=$('hg-svg');
-  const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; det.innerHTML=hgFusion(); clearSvg(svg); $('hg-cap').textContent=''; HG_UI.last=null; };
+  const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; setHTML(det,hgFusion()); clearSvg(svg); $('hg-cap').textContent=''; HG_UI.last=null; };
   const need=[['hg-od',o.part!=='body'],['hg-reach',o.part!=='body'],['hg-t',o.part!=='ring'&&o.part!=='rod'],['hg-hole',o.part!=='ring'&&o.part!=='rod'],['hg-rod',o.part==='rod'],['hg-weld',o.part==='rod'],['hg-pin',o.part==='rod'],['hg-width',o.part==='ring'],['hg-blen',o.part==='body'||o.part==='pair']];
   for(const [id,on] of need) if(on&&!(val(id)>0)) return fail('Fill in '+($(id).closest('label').querySelector('.lab').textContent.toLowerCase())+' with a positive number.');
   const mat=HG_MAT[o.mat];
@@ -15453,7 +15580,7 @@ function renderHang(){
   }
   h+=hgHeat(o,parts,mat);
   h+=hgFusion();
-  det.innerHTML=h;
+  setHTML(det,h);
 }
 // heat at the isolator and which isolator takes it (docs/research/hanger_isolation_lightening.md)
 function hgHeat(o,parts,mat){
@@ -15466,7 +15593,10 @@ function hgHeat(o,parts,mat){
   if(!(o.tp>o.ta)) return sec('Heat and isolation','<p class="cap">Fill in the pipe temperature at the hanger to see how hot the isolator runs.</p>');
   // the reach search rebuilds the part without lightening holes: a little more metal conducts a little more heat,
   // so the reach it gives errs long (and it is much quicker)
-  const at=q=>{ try{ const q2=Object.assign({},q,{light:'none'}), pp=hgParts(q2); return hgIsoTemp(q2,pp[0],HG_MAT[q.mat]); }catch(e){ return null; } };
+  // the isolators' searches start alike and share their first steps (and the reach 250 mm out): each reach is worked out
+  // once per render (the part and its temperature depend on the inputs object alone, which is the key; 2026-11-18)
+  const atM=new Map(), at=q=>{ const key=JSON.stringify(q); if(atM.has(key)) return atM.get(key); let r;
+    try{ const q2=Object.assign({},q,{light:'none'}), pp=hgParts(q2); r=hgIsoTemp(q2,pp[0],HG_MAT[q.mat]); }catch(e){ r=null; } atM.set(key,r); return r; };
   const here=hgIsoTemp(o,P0,mat); if(!here) return '';
   const Ti=here.T;
   // the reach that brings the isolator down to a limit (the part rebuilt longer; null when 250 mm more is not enough)
@@ -16071,7 +16201,7 @@ function mtRender(){
   const o=mtRead(); mtFields(o);
   let r; try{ r=mtCalc(o); }catch(e){ r={err:e.message}; }
   MT_UI.last=r;
-  if(r.err){ out.innerHTML='<div class="note bad">'+esc(r.err)+'</div>'+mtFusion(); return; }
+  if(r.err){ setHTML(out,'<div class="note bad">'+esc(r.err)+'</div>'+mtFusion()); return; }
   const p=r.part, mt=r.mt, iso=r.iso, worstD=Math.max(...r.designs.map((d,k)=>Math.max(...r.cases.map(c=>MV.len(c.F[k])))));
   const gmax=Math.max(...r.grow.map(g=>Math.max(g.gh||0,g.gc||0)));
   let h='<div class="figs">'+figT('Part, as it runs',(U==='imp'?(p.m*2.20462).toFixed(1):p.m.toFixed(2)),U==='imp'?'lb':'kg',p.liq>0?'with '+mtKg(p.liq)+' of liquid':mtKg(p.m))+
@@ -16115,7 +16245,7 @@ function mtRender(){
       r.designs.filter(d=>d.best.type==='stay').map((d,k)=>'<p class="cap">Stay: cut the tube '+bothL(d.best.checks.cut)+' ('+bothL(d.best.checks.L)+' between rod-end centres less '+bothL(o.stre)+' each end); rod ends rated (radial static) at least '+d.best.checks.SF.toFixed(1)+' × '+mtN(Math.max(...d.best.checks.rows.slice(0,2).map(x=>x.load)))+' (no rod-end catalogue is embedded).</p>').join(''));
   h+=sec('Sources and what is assumed','<p class="cap">Bolts: <a href="'+MT_SRC.fastm+'" target="_blank" rel="noopener">Fastenal metric</a> (8.8: proof 580, tensile 800 MPa; 10.9: 830, 1040) and <a href="'+MT_SRC.fasti+'" target="_blank" rel="noopener">inch</a> (Grade 5: 85, 120 ksi; Grade 8: 120, 150 ksi) and their stress areas; shear at 60% of the minimum tensile strength on the minor area (<a href="'+MT_SRC.pbolt+'" target="_blank" rel="noopener">Portland Bolt</a>). Welds: <a href="'+MT_SRC.aws+'" target="_blank" rel="noopener">AWS D1.1</a> 0.30 × FEXX on the throat (0.707 × leg) for steel; <a href="'+MT_SRC.alcotec+'" target="_blank" rel="noopener">AlcoTec</a> typical fillet shear for aluminium fillers; the weld taken as a line (Blodgett’s method). Aluminium stiffness 68.3 GPa (<a href="'+MT_SRC.e6061+'" target="_blank" rel="noopener">6061-T6, Protolabs</a>), steels the pipe tab’s table. Assumptions: the part’s centre of mass at its centre; equal mount stiffness; the chassis rigid; bends at the inside radius and K-factor entered; no prying, no bearing check, no fatigue.</p>');
   h+=mtFusion();
-  out.innerHTML=h;
+  setHTML(out,h);
 }
 function mtFusion(){
   if(!FUSION) return '';
@@ -16290,7 +16420,7 @@ function renderHeaders(){
   if(inlineHd&&merge==='triy'&&p.mode==='bank') p.mode='all';
   const hotV=banks.length>1&&!inlineHd&&$('h-ports').value==='in';
   const r=calcLayout(p), key=$('h-key'), det=$('h-details');
-  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';det.innerHTML='';clearSvg($('h-pulse'));clearSvg($('h-svg'));$('h-cap').textContent='';S.headers={};$('h-uel-wrap').hidden=true;HDR_LAST={err:r.err};return;}
+  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';setHTML(det,'');clearSvg($('h-pulse'));clearSvg($('h-svg'));$('h-cap').textContent='';S.headers={};$('h-uel-wrap').hidden=true;HDR_LAST={err:r.err};return;}
   if(uelOn) uelTable(r,p);
   const uel=uelOn?uelCompute(r,p):null, ur=uel&&!uel.err?Object.fromEntries(uel.rows.map(x=>[x.c,x])):null;
 
@@ -16409,7 +16539,7 @@ function renderHeaders(){
   html+=actions('headers');
   FX.headers={title:'Header runner',segs:r.segs.map(s=>[s.name,s.len,s.d0,s.d1]),wall_mm:val('h-wall')>0?val('h-wall'):1.651,od_mm:p.dp+2*(val('h-wall')>0?val('h-wall'):1.651),target_mm:r.tube};
   FX.target=FX.target||{}; FX.target.headers=r.tube;
-  det.innerHTML=html; addToc(det);
+  setHTML(det,html); shOwn(()=>addToc(det));
 
   // (2026-11-16) 'custom' was missing: "My own groups" threw here, so the summary and HDR_LAST were never set (A1 (c))
   const gname={bank:()=>banks.length>1?'per bank':'one collector',alt:()=>'180° alternate firing order',all:()=>'all into one',custom:()=>'my own groups'}[p.mode]();
@@ -16490,7 +16620,7 @@ function renderCross(){
   const p={type:t,d:xb.err?NaN:xb.Deq,dplan:xs.w,s:val('x-s'),pos:val('x-pos'),ratio:val('x-ratio'),ang:val('x-ang'),mrg:val('x-mrg'),
     sout:val('x-sout'),jang:val('x-jang'),yratio:val('x-yr'),yang:val('x-yang')};
   const r=calcCross(p), key=$('x-key'), det=$('x-details'), svg=$('x-svg');
-  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';det.innerHTML='';clearSvg(svg);$('x-cap').textContent='';S.cross={};CROSS_LAST=null;return;}
+  if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';setHTML(det,'');clearSvg(svg);$('x-cap').textContent='';S.cross={};CROSS_LAST=null;return;}
   CROSS_LAST={type:t,pos:r.place?r.place.pos:NaN,dc:r.dc,tube:r.tube,name:{h:'H-pipe',x:'X-pipe',z:'Z-pipe',y:'Y-pipe'}[t]};
   const win=U==='imp'?'8 to 18 in':'203 to 457 mm';
   const posFig=r.place?(()=>{const v=L(r.place.pos,'l');return figT('From collector ends',v.n,v.u,'best '+win,r.place.ok?'st-ok':'st-warn');})()
@@ -16537,7 +16667,7 @@ function renderCross(){
   html+=guideHtml('cross');
   html+=actions('cross');
   FX.cross={title:'Crossover '+names[t],strokes:r.strokes};
-  det.innerHTML=html; addToc(det);
+  setHTML(det,html); shOwn(()=>addToc(det));
   S.cross.summary=['CROSSOVER · '+names[t],'Main pipe ID: '+plain(p.d,'d'),'Spacing, centre to centre: '+plain(p.s,'l')].concat(
     t==='h'?['Crossover ID: '+plain(r.dc,'d'),'Tube length between walls: '+plain(r.tube,'l')]:
     t==='x'?['Total length: '+plain(r.len,'l'),'Converging run each side: '+plain(r.lc,'l'),'Merged section: '+plain(r.lm,'l')+' at '+plain(r.dm,'d')+' equivalent ID','Crossing angle: '+p.ang+'° each pipe ('+(2*p.ang)+'° included)',
@@ -17420,16 +17550,16 @@ function renderMuf(){
   const bore=boreOf('m-dp-shape'), useSecs=$('m-lay').value==='secs', secs=useSecs?soundSecs():null;
   $('m-len-wrap').hidden=useSecs;
   const p={f:val('m-f'),dpipe:bore.err?NaN:bore.Deq,len:val('m-len'),tmain:val('m-tmain'),tres:val('m-tres'),dn:val('m-dn'),ln:val('m-ln'),db:val('m-db'),dch:val('m-dch'),lch:val('m-lch'),lin:val('m-lin'),lout:val('m-lout'),rev:$('m-chlay').value==='reverse'};
-  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
+  if(useSecs&&!secs){ $('m-key').innerHTML='<div class="note bad">The Sound tab is set to one pipe size. Set it to “Sections that change size”, or work it out for a pipe of one size here.</div>'; setHTML($('m-details'),''); clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   // (2026-11-16) the two early error returns also clear the legend and caption: they kept the last result's (A2)
-  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; $('m-details').innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
+  if(secs&&secs.err){ $('m-key').innerHTML='<div class="note bad">'+esc(secs.err)+'</div>'; setHTML($('m-details'),''); clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   if(secs){ p.secs=secs; p.len=secLen(pathSecs(secs))*1000; }
   const endName=FX.mufTurbo?'turbine':'valve';
   $('m-len-lab').textContent=FX.mufTurbo?'Pipe length, turbine outlet to tailpipe tip':'Pipe length, valve to tailpipe tip';
   const key=$('m-key'), det=$('m-details');
   const hm=calcHelm(p), qw=calcQW(p), ch=calcChamber(p), pl=calcPlace(p);
-  const ab=calcAbsorb({dpipe:p.dpipe,dsh:p.dch,len:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')});
-  const abMemo={}, abTL=f=>{ const k=Math.round(f); if(abMemo[k]==null) abMemo[k]=Math.min(TLCAP,ab.tl(k)); return abMemo[k]; };
+  const AB=absorbKept({dpipe:p.dpipe,dsh:p.dch,len:p.lch,dh:val('m-ph'),tw:val('m-pw'),rho:val('m-pack'),sigma:val('m-por')/100,tC:p.tmain,M:val('m-mach')}), ab=AB.ab;
+  const abMemo=AB.tl, abTL=f=>{ const k=Math.round(f); if(abMemo[k]==null) abMemo[k]=Math.min(TLCAP,ab.tl(k)); return abMemo[k]; };
   const pipeCut=crossModeHz(sosExh(p.tmain),bore.err?null:bore);
   let engM=null;   // the pipe's Mach number at redline from the Sound tab's engine, when it can be worked out
   (()=>{ const el=$('m-mach-eng'); if(!el) return; let txt=''; try{ const sp=soundParams(); if(!sp.err&&p.dpipe>0&&val('s-disp')>0&&sp.p.red>0){
@@ -17440,7 +17570,7 @@ function renderMuf(){
   const pgMemo={}, pgTL=f=>{ const k=Math.round(f); if(pgMemo[k]==null) pgMemo[k]=pg.tl(k); return pgMemo[k]; };
   const bf=val('m-nbaf')>=1?calcBaffles({dpipe:p.dpipe,dsh:p.dch,lch:p.lch,n:val('m-nbaf'),dh:val('m-bh')>0?val('m-bh'):p.dpipe,t:val('m-pw')>0?val('m-pw'):1.5,tC:p.tmain}):null;
   const firstErr=[hm,qw,pl].find(x=>x.err);
-  if(firstErr){ key.innerHTML='<div class="note bad">'+esc(firstErr.err)+'</div>'; det.innerHTML=''; clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
+  if(firstErr){ key.innerHTML='<div class="note bad">'+esc(firstErr.err)+'</div>'; setHTML(det,''); clearSvg($('m-tl')); clearSvg($('m-place')); $('m-legend').innerHTML=''; $('m-cap').textContent=''; S.muf={}; FX.muf={}; FX.helm=null; FX.mufTune=null; return; }
   const can=[...hm.cans].sort((a,b)=>Math.abs(a.len/a.D-2)-Math.abs(b.len/b.D-2))[0];   // a can about twice as long as wide
   const lamRes=hm.c/p.f*1000, longCan=can.len+p.ln>lamRes/8;                          // lumped model holds while the resonator is small next to the wavelength
   const bw=val('m-bw')>0?val('m-bw'):1.651;
@@ -17691,7 +17821,7 @@ function renderMuf(){
   html+=augSection(p);
   html+=guideHtml('muf');
   html+=actions('muf');
-  det.innerHTML=html; addToc(det);
+  setHTML(det,html); shOwn(()=>addToc(det));
   ttDraw(); augDraw();
   if(!ab.err&&$('m-abs')){ const fm=Math.min(4000,Math.max(500,Math.ceil(ab.fCut*1.15/250)*250)), pts=[...Array(121).keys()].map(i=>{ const f=10+i*(fm-10)/120; return [f,abTL(f)]; });
     drawLines($('m-abs'),{curves:[{pts,col:'--t5',w:2.4}],xmax:fm,ymax:TLCAP,xlab:'Hz',ylab:'dB removed',h:200,band:[Math.min(fm,ab.fCut),fm],k:true,marks:[{x:p.f,label:Math.round(p.f)+' Hz'}].concat(rs?[{x:rs.f.cruise,label:'cruise firing '+Math.round(rs.f.cruise)+' Hz'}]:[])}); }
@@ -26176,9 +26306,18 @@ function xPipeBack(o,sd){ const A=Math.PI*(o.d/2000)**2, D=o.d/1000, L=o.L, prof
   const su=xSt(o.m,A,p,T0at(0)); if(!(su.M<XF_MCH)) return {choke:{x:0,M:su.M,A,T0:su.T0}};
   return {su,kb,dpB:sMid?sMid.up.p0-sMid.dn.p0:0,f:fAt(su.T)}; }
 // the cooling pass along one pipe run: the Headers tab's calcSkin; null when there is nothing to lose
+// (2026-11-18, docs/PERF_2026-11-18.md) a render marches the same pipe more than once (the back-pressure iterations, the
+// section, the comparison): each pipe's cooling is kept for the last 48 worked out. The key is all calcSkin reads here
+// (the pipe, the flow, the cooling inputs, the exhaust gas in use: xCp reads EXH_GAS); the profile is handed out as a copy
+const XC_KEEP=new Map();
 function xCool(c,m,d,L,T0){ if(!c||!(L>0)) return null;
-  const sk=calcSkin({mdot:m,Tg:T0-273.15,di:d,wall:c.wall,mat:'304',fin:c.fin,Ta:c.Ta,v:c.v,L,caf:c.caf,cpGas:xCp});
-  return sk.err?null:{prof:sk.pts.map(x=>({x:x.x,T0:x.Tg+273.15})),Q:sk.Q,lowRe:sk.lowRe,eps:sk.eps}; }
+  const key=window.__fullWrites?null:numKey([c.wall,c.fin,c.Ta,c.v,c.caf,m,d,L,T0,EXH_GAS.R,EXH_GAS.lo,EXH_GAS.hi]);
+  let r=key&&XC_KEEP.get(key);
+  if(r===undefined||r===null&&!XC_KEEP.has(key)){
+    const sk=calcSkin({mdot:m,Tg:T0-273.15,di:d,wall:c.wall,mat:'304',fin:c.fin,Ta:c.Ta,v:c.v,L,caf:c.caf,cpGas:xCp});
+    r=sk.err?null:{prof:sk.pts.map(x=>({x:x.x,T0:x.Tg+273.15})),Q:sk.Q,lowRe:sk.lowRe,eps:sk.eps};
+    if(key){ XC_KEEP.set(key,r); if(XC_KEEP.size>48) XC_KEEP.delete(XC_KEEP.keys().next().value); } }
+  return r&&{prof:r.prof.map(q=>({x:q.x,T0:q.T0})),Q:r.Q,lowRe:r.lowRe,eps:r.eps}; }
 /* The march. o: exhAfterTurbine's o, plus cool {Ta °C, v m/s, fin, caf: 1 | 'w', wall mm} (null: no cooling), stepCone.
    fl: {cool, comp, steps} (all true on the page; the comparison switches them off one by one; comp false runs the first
    method's formulas at the cooled temperatures, through exhAfterTurbine). Returns rows turbine outlet -> tip with each
@@ -27583,7 +27722,7 @@ function renderIntake(){
   $('i-fh-lab').textContent=filt==='panel'?'Filter width':'Length';
   const custom=$('i-eng').value==='custom'; $('i-cyl-wrap').hidden=!custom;
   const key=$('i-key'), det=$('i-details'), svg=$('i-svg');
-  const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; det.innerHTML=''; clearSvg(svg); $('i-legend').innerHTML=''; $('i-cap').textContent=''; S.intake={}; };
+  const fail=msg=>{ key.innerHTML='<div class="note bad">'+esc(msg)+'</div>'; setHTML(det,''); clearSvg(svg); $('i-legend').innerHTML=''; $('i-cap').textContent=''; S.intake={}; };
   let e, po;
   if(custom){ const n=Math.round(val('i-cyl')); if(!(n>=1)) return fail('Fill in the number of cylinders.'); e={cyc:'4',order:[...Array(n).keys()].map(i=>i+1)}; }
   else e=ENGLIB[$('i-eng').value];
@@ -27768,7 +27907,7 @@ function renderIntake(){
     '<li>Keep the mass airflow sensor in the straight, smooth run its maker specifies; changing the tube diameter at the sensor changes its calibration.</li>'+
     '<li>Use mandrel bends and as few as you can, and a radiused inlet. A rough, kinked tube costs more than the filter.</li></ul>');
   // the step-by-step checklist goes first; it reads what the boosted sections above have just worked out
-  det.innerHTML=(ind==='turbo'||ind==='centri'?tgChecklist(ind,p):'')+h;
+  setHTML(det,(ind==='turbo'||ind==='centri'?tgChecklist(ind,p):'')+h);
   if(ind==='turbo'||ind==='centri') key.insertAdjacentHTML('afterbegin',tgGlance(ind,p));
   advMark();
   if($('i-b5map')) drawCompMap($('i-b5map'),B5_MAP);
@@ -27807,8 +27946,11 @@ var INPUT_GEN=1, PROD_GEN={headers:0,crossover:0,intake:0};
 document.addEventListener('input',()=>{ INPUT_GEN++; },true); document.addEventListener('change',()=>{ INPUT_GEN++; },true);
 function refreshDeps(){ for(const [n,f] of [['headers',renderHeaders],['crossover',renderCross],['intake',renderIntake]]){ if(n===cur||(PROD_GEN&&PROD_GEN[n]===INPUT_GEN)) continue; try{ f(); }catch(e){} if(PROD_GEN) PROD_GEN[n]=INPUT_GEN; } }
 function renderActive(){ const pan=$(TABS[cur].panel), keep=typeof keepBefore==='function'?keepBefore(pan):null;
-  syncShapes(); if(cur!=='four-stroke') simInpRefresh(); refreshDeps(); TABS[cur].render(); if(PROD_GEN&&PROD_GEN[cur]!==undefined) PROD_GEN[cur]=INPUT_GEN; if(cur==='headers') renderPieCut(); tblPolish(pan);
-  if(typeof uiPass2==='function'){ uiPass2(pan); keepAfter(pan,keep); } window.__renderCount=(window.__renderCount||0)+1; }
+  syncShapes(); if(cur!=='four-stroke') simInpRefresh(); refreshDeps(); TABS[cur].render(); if(PROD_GEN&&PROD_GEN[cur]!==undefined) PROD_GEN[cur]=INPUT_GEN; if(cur==='headers') renderPieCut();
+  // the display passes are the page's own (setHTML's kept nodes get them again each render, so their changes are not
+  // someone else's)
+  shOwn(()=>{ tblPolish(pan); if(typeof uiPass2==='function') uiPass2(pan); }); shDecorated(pan);
+  if(typeof uiPass2==='function') keepAfter(pan,keep); window.__renderCount=(window.__renderCount||0)+1; }
 function showTab(){
   const h=location.hash.replace('#','');
   cur=TABS[h]?h:'quick';
@@ -27816,8 +27958,10 @@ function showTab(){
     const t=TABS[name], on=name===cur;
     $(t.panel).hidden=!on; $(t.tab).setAttribute('aria-selected',on);
   }
-  document.body.dataset.tab=cur; tabIntoView(); tabPopMark();
+  document.body.dataset.tab=cur; tabPopMark();
   renderActive();
+  // after the render (2026-11-18): read before it, the strip's width laid the whole page out once more just for this
+  tabIntoView();
 }
 // below 1180 px the calculators sit in one scrolling strip: keep the chosen one in view (the wide rail never scrolls sideways)
 function tabIntoView(){
@@ -27833,22 +27977,26 @@ const NUM_CELL=/^[-−+±~≈<>≤≥]?\s?\$?\.?\d/;
 function tblPolish(root){
   if(!root) return;
   for(const t of root.querySelectorAll('.tblwrap > table')){
-    const body=t.tBodies[0]; if(!body||!body.rows.length||body.rows.length>600) continue;
-    const n=body.rows[0].cells.length; if(n<2) continue;
-    const isNum=new Array(n).fill(true), any=new Array(n).fill(false);
-    let ok=true;
-    for(const tr of body.rows){ const c=tr.cells; if(c.length!==n){ ok=false; break; }
-      for(let j=1;j<n;j++){ if(!isNum[j]) continue; const x=c[j].textContent.trim(); if(!x||x==='—'||x==='-'||x==='–') continue; any[j]=true; if(!NUM_CELL.test(x)) isNum[j]=false; } }
-    if(!ok) continue;
-    for(let j=1;j<n;j++){ if(!(isNum[j]&&any[j])) continue; for(const tr of t.rows){ const c=tr.cells[j]; if(c&&tr.cells.length===n) c.classList.add('num'); } }
+    const body=t.tBodies[0], n=body&&body.rows.length?body.rows[0].cells.length:0; let cols=null;
+    if(body&&body.rows.length&&body.rows.length<=600&&n>=2){
+      const isNum=new Array(n).fill(true), any=new Array(n).fill(false);
+      let ok=true;
+      for(const tr of body.rows){ const c=tr.cells; if(c.length!==n){ ok=false; break; }
+        for(let j=1;j<n;j++){ if(!isNum[j]) continue; const x=c[j].textContent.trim(); if(!x||x==='—'||x==='-'||x==='–') continue; any[j]=true; if(!NUM_CELL.test(x)) isNum[j]=false; } }
+      if(ok) cols=isNum.map((v,j)=>j>0&&v&&any[j]); }
+    // every cell set or cleared (2026-11-18): a table kept by setHTML from the render before ends as a new one would (no
+    // render writes the class itself)
+    for(const tr of t.rows){ const L=tr.cells.length; for(let j=0;j<L;j++){ const c=tr.cells[j], on=!!(cols&&L===n&&cols[j]);
+      if(c.classList.contains('num')!==on){ c.classList.toggle('num',on); if(!on&&!c.classList.length) c.removeAttribute('class'); } } }
   }
   root.querySelectorAll('.runstat').forEach(runPct);
   // pass three: the busiest tables stack as cards on a phone; each value is labelled from its column heading (CSS shows
   // the label only below 500 px, as generated content, so the text read from the page is as it was)
+  for(const w of root.querySelectorAll('.tblwrap.stk')) if(!w.querySelector(':scope > '+STK_SEL.slice(STK_SEL.indexOf('table:is(')))) w.classList.remove('stk');
   for(const t of root.querySelectorAll(STK_SEL)){ const w=t.parentElement; if(!w.classList.contains('stk')) w.classList.add('stk');
     const hr=t.tHead&&t.tHead.rows[0]; if(!hr) continue; const hs=[...hr.cells].map(c=>c.textContent.trim());
     if(hs.length<2) continue;
-    for(const b of t.tBodies) for(const tr of b.rows){ if(tr.cells.length!==hs.length) continue; for(let j=1;j<hs.length;j++){ const c=tr.cells[j]; if(c.dataset.l!==hs[j]) c.dataset.l=hs[j]; } } }
+    for(const b of t.tBodies) for(const tr of b.rows){ if(tr.cells.length!==hs.length){ for(const c of tr.cells) if(c.hasAttribute('data-l')) c.removeAttribute('data-l'); continue; } for(let j=1;j<hs.length;j++){ const c=tr.cells[j]; if(c.dataset.l!==hs[j]) c.dataset.l=hs[j]; } } }
 }
 // the busiest wide tables (turbo options, intercooler cores, oil coolers, the inlet and charge-pipe tube sizes, the
 // downpipe sizes, the pie-cut pieces)
@@ -27920,26 +28068,32 @@ function foldApply(s,open){
   const sum=open?'':foldSum(s,st); if(b.dataset.sum!==sum) b.dataset.sum=sum;
   b.setAttribute('aria-label',(b.textContent||'').trim()+(st&&st!=='ok'?' ('+ST_WORD[st]+')':'')+(sum?': '+sum:''));
 }
+function foldId(panel,x){ let id='sec-'+panel.id.replace(/^panel-/,'')+'-'+x.dataset.sec, i=2; while(document.getElementById(id)) id=id.replace(/-\d+$/,'')+'-'+(i++); x.id=id; x._fid=id; x._fk=x.dataset.sec; }
 function foldPass(panel){
   if(!panel) return; const mine=foldStore()[panel.id]||{};
   const secs=[...panel.querySelectorAll('.sec[data-sec]')].filter(x=>!x.parentElement.closest('.sec')), ok=[];
   for(const x of secs){ const h=x.querySelector(':scope > h3'); if(!h) continue;
     let b=h.querySelector(':scope > .fbtn');
+    // an id this pass gave follows the section's key (a section kept by setHTML whose key changed, 2026-11-18)
+    if(x._fid&&x.id===x._fid&&x._fk!==x.dataset.sec) x.removeAttribute('id');
     if(!b){ if(h.querySelector('a,button,input,select,textarea')) continue;
       b=document.createElement('button'); b.type='button'; b.className='fbtn'; while(h.firstChild) b.appendChild(h.firstChild);
       const mk=document.createElement('span'); mk.className='fmk'; mk.setAttribute('aria-hidden','true'); b.appendChild(mk); h.appendChild(b);
-      if(!x.id){ let id='sec-'+panel.id.replace(/^panel-/,'')+'-'+x.dataset.sec, i=2; while(document.getElementById(id)) id=id.replace(/-\d+$/,'')+'-'+(i++); x.id=id; }
+      if(!x.id) foldId(panel,x);
       b.setAttribute('aria-controls',x.id); }
+    else if(!x.id){ foldId(panel,x); b.setAttribute('aria-controls',x.id); }
     ok.push(x);
-    const st=foldState(x); if((x.dataset.st||'')!==st) x.dataset.st=st;
+    const st=foldState(x); if((x.dataset.st||'')!==st){ if(st) x.dataset.st=st; else x.removeAttribute('data-st'); }   // (none when fine, as on a new section)
     const k=x.dataset.sec, u=mine[k], hot=st==='bad'||st==='warn'||st==='stale';
     let open=hot||!FOLD_REF.test(k);
     if(u){ open=!!u.o; if(!open&&hot&&u.s!==st) open=true; }
     foldApply(x,FOLD_ALL||open); }
   // a tab whose render made no sections list (the boosted Intake tab's are spread over several boxes) gets one here
   { const sig=ok.map(x=>x.dataset.sec).join(' '), t=panel.querySelector('.toc');
-    if(t&&t.dataset.gen&&t.dataset.gen!==sig){ if(t.parentElement._io){ t.parentElement._io.disconnect(); t.parentElement._io=null; } t.remove(); }
-    if(ok.length>6&&!panel.querySelector('.toc')){ addToc(ok[0].parentElement,ok); const n=panel.querySelector('.toc'); if(n) n.dataset.gen=sig; } }
+    const host=ok.length?ok[0].parentElement:null;
+    if(t&&t.dataset.gen&&(t.dataset.gen!==sig||ok.length<=6||t.parentElement!==host)){ if(t.parentElement._io){ t.parentElement._io.disconnect(); t.parentElement._io=null; } t.remove(); }
+    // (one still there, its nodes kept by setHTML, is brought up to date: its labels carry the sections' figures)
+    if(ok.length>6){ const t2=panel.querySelector('.toc'); if(!t2||t2.dataset.gen){ addToc(host,ok,true); const n=host.querySelector(':scope > nav.toc'); if(n) n.dataset.gen=sig; } } }
   foldBar(panel,ok);
 }
 function foldBar(panel,ok){
@@ -27989,10 +28143,10 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button.hmore');
   const h=$(b.getAttribute('aria-controls')), pan=h&&h.closest('[role=tabpanel]'); if(!h||!pan) return;
   const st=foldStore(), hs=st._h=st._h||{}; if(h.classList.contains('hopen')) delete hs[h.dataset.hk]; else hs[h.dataset.hk]=1; foldSave(); hintPass(pan); });
 // for the page's tests (and anyone reading it all): every section and explanation open, not stored; __expandAll(false) undoes it
-window.__expandAll=(on)=>{ FOLD_ALL=on!==false; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); };
+window.__expandAll=(on)=>{ FOLD_ALL=on!==false; shOwn(()=>document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); })); shDecorated(); };
 // the page's own print: everything open while it prints, as it was after
-addEventListener('beforeprint',()=>{ if(!FOLD_ALL){ FOLD_ALL='print'; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); } });
-addEventListener('afterprint',()=>{ if(FOLD_ALL==='print'){ FOLD_ALL=false; document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); }); } });
+addEventListener('beforeprint',()=>{ if(!FOLD_ALL){ FOLD_ALL='print'; shOwn(()=>document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); })); shDecorated(); } });
+addEventListener('afterprint',()=>{ if(FOLD_ALL==='print'){ FOLD_ALL=false; shOwn(()=>document.querySelectorAll('[role=tabpanel]').forEach(p=>{ foldPass(p); hintPass(p); })); shDecorated(); } });
 // Layout stability: a re-render must not move what the builder is looking at. Before it, the field being edited (or, when
 // nothing in the tab has focus, the first section heading in view) and its place in the window; after it, the same
 // field (found again by id or its data-k if the render replaced it) gets its focus and caret back, and the page scrolls
@@ -28080,7 +28234,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest('button[data-run
     WSND.msg={t:'Stopped before it finished; the estimate shown (if any) is the one before. Estimate the sound runs it again.'}; }
   renderActive(); });
 let U2_IDLE=0;
-function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden){ u2Pass(pan); resvLearn(pan); } };
+function u2Later(pan){ const run=()=>{ U2_IDLE=0; if(pan&&!pan.hidden){ shOwn(()=>u2Pass(pan)); shDecorated(pan); resvLearn(pan); } };
   if(U2_IDLE) (window.cancelIdleCallback||clearTimeout)(U2_IDLE);
   U2_IDLE=window.requestIdleCallback?requestIdleCallback(run,{timeout:400}):setTimeout(run,60); }
 // Empty states carry their control: a note that says "do X first" (or "run it again") gets, right under it, the button
@@ -28132,9 +28286,10 @@ function fixPass(pan){
     if(k>=0&&FIX_RULES[k][2].click&&!document.querySelector(FIX_RULES[k][2].click)) lab='';
     if(k>=0&&FIX_RULES[k][2].cfd){ const b=fixCfd(n); lab=b?b.textContent.trim():''; }
     if(!lab){ if(f) f.remove(); continue; }
-    if(f&&f.dataset.fix===String(k)) continue;
+    const fh='<button type="button" class="btn" data-fix="'+k+'">'+esc(lab)+'</button>';
+    if(f&&f.dataset.fix===String(k)&&f._fh===fh) continue;   // (its label too: a note kept by setHTML keeps its button)
     if(!f){ f=document.createElement('div'); f.className='fixit'; n.after(f); }
-    f.dataset.fix=String(k); f.innerHTML='<button type="button" class="btn" data-fix="'+k+'">'+esc(lab)+'</button>'; }
+    f.dataset.fix=String(k); f.innerHTML=fh; f._fh=fh; }
 }
 function fixDo(b){ const a=FIX_RULES[+b.dataset.fix]; if(!a) return; const o=a[2];
   if(o.expert&&document.body.classList.contains('simple')) $('m-expert').click();

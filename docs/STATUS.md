@@ -2318,3 +2318,24 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
 - Page 4,751,753 -> 4,782,518 bytes (+30,765). Full suite (web, parity, -j 2, --skip-slow) on the final code: 144 tests,
   137 passed, 0 failed, 7 skipped and 7 partial skips (no OpenWAM build, no host program here). Only ui_ui.js touched
   among the tests. No calculation, default, id, project key, hash or pinned number changed.
+
+## 2026-11-18: field-edit speed (docs/PERF_2026-11-18.md)
+
+- Field edits, same font, median of 15, best of 3, interleaved with the page before (git dc31cea): Hangers 197 -> 84 ms
+  (-57 %), Mufflers 57 -> 19 ms (-66 %), boosted Intake (K24 turbo) 89 -> 61 ms (-31 %; other runs -38 to -42 %: the
+  half aimed at is missed there); 4-Stroke, Headers, Sound unchanged to -22 %. At 4x CPU throttling: 862 -> 359,
+  413 -> 247, 277 -> 81 ms.
+- Hangers: the isolator search's geometry and fin without temporary arrays or repeated work, the same arithmetic in
+  the same order (checked against the old page, every panel's HTML, 220 seeded edits).
+- setHTML writes a render's HTML in place (Intake, Mufflers, Hangers, Mounts, Headers, Crossover results): parsed into a
+  template, compared node by node with the last one, only what changed touched; fields and drawings always afresh; the
+  display passes set and clear what they add; anything else that changed the nodes (seen by a MutationObserver) is
+  written afresh. Off-tab producers with the same HTML skip the write.
+- Kept results with complete keys: the Mufflers tab's packed can (inputs and the exhaust gas in use) and the exhaust
+  march's pipe cooling. Drawings on hidden tabs no longer lay the page out; the tab strip is read after the render.
+- Differential guard web/tests/incremental_ui.js (new): the page writing in place against itself writing in full and
+  keeping nothing, 260 seeded actions, every panel's text, HTML and field states identical after each. ui_ui.js asserts
+  the three heavy tabs at most 70 % of the time before. Load (about 270 ms, parse-bound) and tab switches unchanged
+  apart from Hangers. Page +14,366 bytes. Tools in tools/perf/, the long guard run tools/validation/incremental_sweep.js.
+- Full suite (web, parity, -j 2, --skip-slow) on the final code: 145 tests, 138 passed, 0 failed, 7 skipped and 7
+  partial skips (no OpenWAM build, no host program here).
