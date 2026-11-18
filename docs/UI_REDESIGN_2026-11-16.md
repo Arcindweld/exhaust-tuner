@@ -300,3 +300,110 @@ folded section's table is not drawn. No assertion weakened, no pinned number cha
   the pass-two checks above). Field-edit times are in "Page weight and speed".
 - The full suite, `python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`: 144 tests, 137
   passed, 0 failed, 7 skipped and 7 partial skips, all expected (no OpenWAM build, no host program here).
+
+# Pass three, 2026-11-17: the first five minutes and the rough edges
+
+Same hard rules as passes one and two: no calculation, default, input id, project-file key or URL hash changed; the
+bridge and host contracts as they were (the OpenWAM and OpenFOAM requests unchanged); no external resources; no
+alert, confirm or prompt. Lesson from pass two kept: nothing added here re-renders the page. Every pass-three pass that
+changes the page after a render (the empty-state controls, the stacked tables' labels, the run status of the programs'
+runs) is a DOM write with no observer behind it, and the only re-draw trigger stays the width-only ResizeObserver; a new
+check (below) fails if the active tab renders while idle or on scroll.
+
+## What changed
+
+1. **First run: "Start here".** On a page that has never had an input away from its default, the Quick tab opens with
+   a short card above its introduction: three steps, each a control that does the step. 1, "Pick your engine or car":
+   "Choose from the list" focuses the vehicle picker just below. 2, "Say what you are building": Exhaust (stays on
+   Quick, focuses "How loud"), Intake (opens the Intake tab), Turbo build (sets Induction to Turbocharged on the Intake
+   tab and goes to the glance card). 3, "Read your build sheet": opens the Quick build sheet, or the turbo build for a
+   boosted build. No overlay, no modal, no progress bar: a step is ticked only when it has really been done (a vehicle
+   or engine picked, a choice made, the sheet opened). Below 700 px (a phone, Fusion's palette) the card is compact (the
+   one-line explanations are left out). "Hide this" hides it for good; "Start here" in the app bar (in the Settings
+   panel below 700 px) brings it back. Once any input has left its default (checked when the page is idle, off the
+   edit's path) or a project is loaded, it does not come back on the next visit; within the visit it stays, so it
+   does not vanish under the builder halfway through. Returning users: a page opened with no tab in its address (as
+   both programs open it) shows the last tab used and loads the last project saved or loaded (as it was saved; edits
+   made after saving were never kept across a reload and still are not). Stored in this browser only
+   (`exhaust-start-v1`, `exhaust-last-v1`).
+2. **Empty states carry their control.** Inventory by script (the page's string literals that ask for something to be
+   done first: a tab, a field, a button, "run it again"): 59 distinct strings, 46 covered by one table of rules
+   (`FIX_RULES`). When such a note is drawn, a button sits right under it: 38 open a tab (and the section, e.g. "Run it
+   in OpenWAM") or open the field's fold or advanced box and focus the field ("Go to Port spacing", "Type the
+   horsepower", which also turns on Expert); 8 press the run button itself ("Run it again", "Estimate the sound",
+   "Recommend piping", "Find designs", "Optimise in OpenWAM", the CFD case's run or download) and appear where that
+   button is drawn. The note's own text is untouched. A message written by a click after the render (the Fusion tools,
+   the sheet's Save) gets its button once the click is done. Left without a control (13): 5 are not empty states (a
+   rule of the method, build-order prose), and 8 are host-only or transient ("Set keep-outs first" in Fusion, whose
+   button is in the same sentence; "Play something first"; "Fix the inputs first" twice, next to the problem notes;
+   "Pick the STL first", a file field; "Give the project a name first", which already focuses the name field; an error
+   thrown inside a recording read; the 2-Stroke validation "the exhaust has to open first").
+3. **Reserved space and one status component.** While the wave simulation, the turbo simulation or the sound estimate
+   has no results yet, its status line sits inside a dashed box of the size the results take (a chart well and table
+   rules), so nothing below moves when they arrive: measured on the wave simulation at 1440 px, the section below moved
+   7 px. The size is the one the results took the last time at that window width (read when the page is idle after a
+   render that shows them), else a typical size per width. The OpenWAM and OpenFOAM runs of the programs (OpenWAM case,
+   two-stroke OpenWAM, intake CFD, exhaust CFD, Fusion CFD) use the same status component while their request is out:
+   the progress bar from "n of m" or "iteration n (at most m)", the elapsed time; their Stop stays their own button,
+   which stops that request on the bridge (no protocol change). One polite live region says "<section>: running." and
+   "<section>: finished; the results are updated." (or "stopped") once per run; nothing on keystrokes.
+4. **Out-of-date marks on the CFD and optimiser tables.** The inputs each result was worked out from are fingerprinted
+   when the case is written or run here (intake CFD: the intake tube and the case settings; exhaust CFD: the part, flow
+   and case settings; optimiser: the Headers tab's header, the engine, the line and the speeds). When they differ from
+   the inputs now, the table gets the standard out-of-date note (`#cfd-stale`, `#exh-stale`, `#opt-stale`), the case
+   is marked "out of date" in its row, and the note's control writes the case again (runs it on this PC when the
+   program can, else downloads it) or optimises again. Fingerprints live in this session only, so a project file has
+   no new key; a result with no fingerprint (picked from a file of an earlier session, loaded with a project) gets no
+   mark either way. Tested with simulated results (no host program here).
+5. **Build sheets as cut lists (formatting only).** Quick build sheet: the parts in flow order are headed "To cut and
+   fit", the build list "Build list: to order"; tube as ordered, "1.75 in OD × 0.065 in wall (44.4 × 1.65 mm)"; every
+   size in the build list in both units (they were inches only); lengths and positions along the pipe to the inch
+   fraction setting with mm ("39 7/8 in (1012 mm) long"). Turbo build sheet (the saved file): "Parts and sizes" split
+   into "To order" and "To cut and bend"; in the second, tube as ordered ("2.5 in OD × 0.065 in wall (63.5 × 1.65 mm),
+   ID 2.37 in (60.2 mm)", metric first in mm), lengths to the fraction ("36 in (914 mm) long"); bend counts keep their
+   CLR where the sheet has one (the runners). Print: fixed table layout, headings repeated on each page, long words
+   wrap, nothing clipped on Letter or A4 in either unit; on a phone the file's tables stack. Not changed: the glance
+   card's values (they are the sheet rows' text by design and a test pins that), and the inches-from-mm of a length
+   is from the mm as printed (at most 0.02 in off; fine at 1/16 and 1/32, can round the other way at 1/64).
+6. **Small screens.** Below 500 px the turbo options, intercooler cores (5,318 px wide before), the inlet, hot-side and
+   cold-side tube size tables, the oil coolers, the downpipe sizes and the pie-cut pieces stack as cards: the first
+   cell as the card's title, every other value under its column heading (CSS generated text, so the page's text is as
+   it was). The glance card already stacked (pass one) and "Mufflers and resonators that fit" are cards. The body's
+   bottom padding includes the phone's safe area. Checked and left: the sections' "Jump to" list and long select
+   options fit inside the page at 400 px (no sideways scroll on any tab); the sticky bars do not cover a jump target
+   (pass two's `--stick`).
+7. **Keyboard and screen readers.** A skip link ("Skip to the calculator", the first Tab stop) focuses the calculator
+   without touching the address; each calculator has one visually hidden h2 (its name), so the heading order is h1,
+   h2, h3 on every tab (the Hangers tab's Mounts heading was an h2, now h3); landmarks header, nav and main; the live
+   region above; focus kept by a field edit on every tab (checked on all 13 and the K24 journey); Escape closes the
+   All list, the Settings panel and the Projects dialog (the program menu already did).
+
+## The boosted Intake tab's field edit (profiled, CPU sampling, median 112 ms here)
+
+About 48 ms is the browser laying out the newly written tab, forced early by the compressor-map drawing reading its
+figure's width (`widthOf`); keeping that width between renders only moves the same layout to the end (tried: 105 to
+108 ms either way, reverted). The rest is the render's own JavaScript: building the tab's HTML 15 ms, the fabrication
+and intake sections (`fiSection`) 21 ms, the exhaust march after the turbine 13 ms, tube skin temperatures 9.5 ms,
+`outerH` 8 ms, garbage collection 7 ms, refreshing the other tabs' results 4 ms, then the display passes: tables 2 ms,
+folding 1.6 ms, the empty-state controls 1.6 ms. No display time was found to give back; the time is the size of
+the tab and its calculations, which this pass may not change.
+
+## Checks (web/tests/ui_ui.js, `passThree`)
+
+- No re-render while idle or on scroll: on all 13 tabs and the K24 journey, at 1440, 700 and 400 px, with a
+  letter-spacing and with a font-size-adjust injected (standing in for other machines' fonts), `__renderCount` does
+  not move over 2 s idle nor across five programmatic scrolls.
+- Start here, at 1440 and 400 px: shown on a cold page; every control; ticks; the next visit after an input left its
+  default; Hide this and Start here; the last tab and project.
+- Empty states: every covered string injected as a note gets its control; the controls open the tab or focus the
+  field (Expert turned on where needed).
+- The wave simulation's results take the reserved space; the live region's two messages.
+- Out-of-date marks on the optimiser and the intake CFD from simulated results.
+- The Quick sheet's split and sizes; the turbo sheet in print on Letter and A4 in both units.
+- The stacked tables at 400 px (and tables at 1440 px).
+- Skip link, heading order and landmarks per tab, focus kept by a field edit on every tab, Escape on every popover.
+- Nothing lost against the page before pass three (git 7de9e49): every word and figure on every tab and the K24
+  journey with everything open, except the Quick build sheet's figures (its lengths now read to the inch fraction;
+  its words are all there).
+- Field-edit time against the page before pass three: within +10 % (+ 5 ms).
+

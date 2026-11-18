@@ -438,8 +438,13 @@ async function passThree(b, ok, list, errs) {
       if (po) {
         const oldText = await po.evaluate(TEXT), oldTc = await po.evaluate(TC), tcN = await pn.evaluate(TC);
         await expandAll(pn); const newText = await pn.evaluate(TEXT); await expandAll(pn, false);
-        const m1 = missing(oldText, newText), m2 = missing(oldTc, tcN);
-        ok(!m1.length && !m2.length, t + ': every word of the page before pass two is still there (' + words(oldText).size + ' distinct words drawn with everything open; textContent too)' + list(m1.concat(m2), 12));
+        let m1 = missing(oldText, newText), m2 = missing(oldTc, tcN);
+        // pass three reads the Quick build sheet's lengths to the inch fraction ("39.9 in" -> "39 7/8 in"): a figure of that
+        // sheet may go; and textContent joins two blocks with no space ("in" + "where"): a run of two words still there may
+        if (t === 'quick') { const sh = words(await po.evaluate(() => { const s = document.querySelector('#panel-quick .sec[data-sec="build-sheet"]'); return s ? s.textContent : ''; })), B = words(tcN);
+          const ok3 = e => { const w = e.split(' ×')[0]; if (/^\d+$/.test(w) && sh.has(w)) return true; for (let i = 1; i < w.length; i++) if (B.has(w.slice(0, i)) && B.has(w.slice(i))) return true; return false; };
+          m1 = m1.filter(e => !ok3(e)); m2 = m2.filter(e => !ok3(e)); }
+        ok(!m1.length && !m2.length, t + ': every word of the page before pass two is still there (' + words(oldText).size + ' distinct words drawn with everything open; textContent too' + (t === 'quick' ? '; the build sheet\'s figures read to the inch fraction since pass three' : '') + ')' + list(m1.concat(m2), 12));
       }
     }
     // disclosures by keyboard

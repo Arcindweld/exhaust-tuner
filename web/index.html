@@ -28052,7 +28052,9 @@ function runClock(){ const pan=$(TABS[cur].panel), els=pan?[...pan.querySelector
 // status component while their request is out: the note gets the progress bar ("n of m", "iteration n (at most m)") and
 // the elapsed time; their Stop stays their own button (it stops that request on the bridge)
 const HOST_ST=[['wam','.wammsg'],['tw','.twmsg'],['cfd','#cfd-msg'],['autocfd','#cfd-msg'],['exh','#exh-msg'],['fxcfd','#fxcfd-msg']];
-function hostStatAll(){ for(const [k,sel] of HOST_ST){ const n=document.querySelector(sel); if(!n) continue; const on=!!(HREQ[k]&&HREQ[k].size)&&!n.classList.contains('bad');
+let HOST_ON=false;
+function hostStatAll(){ const any=HOST_ST.some(([k])=>HREQ[k]&&HREQ[k].size); if(!any&&!HOST_ON){ runClock(); return; } HOST_ON=any;
+  for(const [k,sel] of HOST_ST){ const n=document.querySelector(sel); if(!n) continue; const on=!!(HREQ[k]&&HREQ[k].size)&&!n.classList.contains('bad');
     if(on){ if(!n.classList.contains('runstat')) n.classList.add('runstat'); n.dataset.running='1'; runPct(n); const m=n.textContent.match(/iteration (\d+) \(at most (\d+)\)/); if(m) n.style.setProperty('--pct',Math.min(100,Math.round(100*m[1]/m[2]))+'%'); }
     else if(n.dataset.running==='1'){ delete n.dataset.running; n.classList.remove('runstat'); delete n.dataset.el; } }
   runClock(); }
