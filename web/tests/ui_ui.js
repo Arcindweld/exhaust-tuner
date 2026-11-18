@@ -48,6 +48,9 @@
 //     field edit on every tab
 //   - nothing lost against the page before pass three (words with a letter on every view; figures too, except the
 //     Quick build sheet, whose lengths now read to the inch fraction), and field edits within 10 % (+ 5 ms) of it
+// The field-edit speed work (2026-11-18, docs/PERF_2026-11-18.md): on Mufflers, the boosted Intake tab and Hangers a field
+// edit takes at most 70 % of the time it took before it (git dc31cea), same font, median of 15, best of 2 (measured: about
+// 35 to 60 % here); the other tabs keep the limits above.
 const { chromium } = require('playwright');
 const { settle, expandAll, uiClick } = require('./settle');
 const { skipPart } = require('./skip');
@@ -55,6 +58,8 @@ const { execFileSync } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
 const TABS = ['quick', 'four-stroke', 'two-stroke', 'sound', 'intake', 'headers', 'crossover', 'mufflers', 'cats', 'boom-tubes', 'hangers', 'parts', 'options'];
 const BASE = '5000fb8', BASE2 = '6f0c694', BASE3 = '7de9e49';   // before the UI pass; before pass two; before pass three
+const BASE4 = 'dc31cea';   // before the field-edit speed work (docs/PERF_2026-11-18.md)
+const FAST = { mufflers: 0.7, intake: 0.7, hangers: 0.7 };   // its budget: at most 70 % of the time before it (the aim was half)
 const ONLY3 = process.env.UI_ONLY === '3';   // (development) pass three's checks alone
 
 async function k24(pg) {
@@ -540,19 +545,23 @@ async function passThree(b, ok, list, errs) {
   fs.rmSync(dir2, { recursive: true, force: true });
 
   // field-edit timing against the page before the UI pass, same font in both
-  let old = null, old3 = null;
+  let old = null, old3 = null, old4 = null;
   try { old3 = execFileSync('git', ['show', BASE3 + ':web/index.html'], { cwd: __dirname, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old3 = null; }
+  try { old4 = execFileSync('git', ['show', BASE4 + ':web/index.html'], { cwd: __dirname, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old4 = null; }
   try { old = execFileSync('git', ['show', BASE + ':web/index.html'], { cwd: __dirname, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old = null; }
-  if (!old || !old2 || !old3) skipPart('ui_ui: the field-edit timing comparison needs the pages before the UI passes from git (commits ' + BASE + ', ' + BASE2 + '; not in a shallow clone)');
+  if (!old || !old2 || !old3 || !old4) skipPart('ui_ui: the field-edit timing comparison needs the pages before the UI passes from git (commits ' + BASE + ', ' + BASE2 + '; not in a shallow clone)');
   else {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'et-ui-')), f0 = path.join(dir, 'before.html'), f1 = path.join(dir, 'before2.html'), f3 = path.join(dir, 'before3.html'); fs.writeFileSync(f0, old); fs.writeFileSync(f1, old2); fs.writeFileSync(f3, old3);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'et-ui-')), f0 = path.join(dir, 'before.html'), f1 = path.join(dir, 'before2.html'), f3 = path.join(dir, 'before3.html'), f4 = path.join(dir, 'before4.html'); fs.writeFileSync(f0, old); fs.writeFileSync(f1, old2); fs.writeFileSync(f3, old3); fs.writeFileSync(f4, old4);
     const font = ":root{--f-ui:'Liberation Sans',Arial,sans-serif!important;--f-display:'Liberation Sans',Arial,sans-serif!important}";
-    const A = [], A2 = [], A3 = [], B = [];
-    for (let k = 0; k < 2; k++) { A.push(await timeEdits(b, f0, font)); A2.push(await timeEdits(b, f1, font)); A3.push(await timeEdits(b, f3, font)); B.push(await timeEdits(b, path.join(process.cwd(), 'index.html'), font)); }
+    const A = [], A2 = [], A3 = [], A4 = [], B = [];
+    for (let k = 0; k < 2; k++) { A.push(await timeEdits(b, f0, font)); A2.push(await timeEdits(b, f1, font)); A3.push(await timeEdits(b, f3, font)); A4.push(await timeEdits(b, f4, font)); B.push(await timeEdits(b, path.join(process.cwd(), 'index.html'), font)); }
     for (const t of Object.keys(A[0])) { const a = Math.min(A[0][t], A[1][t]), a2 = Math.min(A2[0][t], A2[1][t]), n = Math.min(B[0][t], B[1][t]);
       ok(n <= a * 1.2 + 5, t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a.toFixed(1) + ' ms before the UI pass (limit +20 % + 5 ms)');
       ok(n <= a2 * 1.2 + 5, t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a2.toFixed(1) + ' ms before pass two (limit +20 % + 5 ms)');
-      const a3 = Math.min(A3[0][t], A3[1][t]); ok(n <= a3 * 1.1 + 5, t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a3.toFixed(1) + ' ms before pass three (limit +10 % + 5 ms)'); }
+      const a3 = Math.min(A3[0][t], A3[1][t]); ok(n <= a3 * 1.1 + 5, t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a3.toFixed(1) + ' ms before pass three (limit +10 % + 5 ms)');
+      const a4 = Math.min(A4[0][t], A4[1][t]);
+      if (FAST[t]) ok(n <= a4 * FAST[t], t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a4.toFixed(1) + ' ms before the speed work (' + Math.round(100 * n / a4) + ' %; limit ' + Math.round(100 * FAST[t]) + ' %)');
+      else ok(n <= a4 * 1.1 + 5, t + ': a field edit takes ' + n.toFixed(1) + ' ms against ' + a4.toFixed(1) + ' ms before the speed work (limit +10 % + 5 ms)'); }
     fs.rmSync(dir, { recursive: true, force: true });
   }
   await b.close();

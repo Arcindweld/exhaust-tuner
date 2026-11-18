@@ -9,7 +9,7 @@ const INSTR = () => {
   const P = window.__P = { seg: {}, lay: [], html: 0, htmlN: 0, on: false, depth: [] };
   const now = () => performance.now();
   const wrapG = (name, getf) => { const f = getf(); if (typeof f !== 'function') return; const g = function () { if (!P.on) return f.apply(this, arguments); const t = now(); try { return f.apply(this, arguments); } finally { P.seg[name] = (P.seg[name] || 0) + now() - t; } }; return g; };
-  if (!window.__NOWRAP) for (const n of ['keepBefore', 'keepAfter', 'syncShapes', 'simInpRefresh', 'refreshDeps', 'renderPieCut', 'tblPolish', 'fixPass', 'foldPass', 'hintPass', 'hostStatAll', 'u2Later', 'renderHeaders', 'renderCross', 'renderIntake', 'advMark', 'drawCompMap', 'outerH', 'fiSection']) {
+  if (!window.__NOWRAP) for (const n of ['keepBefore', 'keepAfter', 'syncShapes', 'simInpRefresh', 'refreshDeps', 'renderPieCut', 'tblPolish', 'fixPass', 'foldPass', 'hintPass', 'hostStatAll', 'u2Later', 'renderHeaders', 'renderCross', 'renderIntake', 'advMark', 'drawCompMap', 'setHTML']) {
     try { const g = wrapG(n, () => __dbg(n)); if (g) __dbg(n + '=__a', g); } catch (e) {} }
   const TABS = __dbg('TABS'); for (const k in TABS) { const f = TABS[k].render; TABS[k].render = function () { if (!P.on) return f.apply(this, arguments); const t = now(); try { return f.apply(this, arguments); } finally { P.seg['render:' + k] = (P.seg['render:' + k] || 0) + now() - t; } }; }
   // innerHTML / insertAdjacentHTML / outerHTML
@@ -54,6 +54,9 @@ const INSTR = () => {
   const keys = new Set(rows.flatMap(r => Object.keys(r.seg)));
   for (const k of keys) console.log('  ', k.padEnd(22), med(r => r.seg[k] || 0).toFixed(2));
   const L = {}; for (const r of rows) for (const [n, dt, st] of r.lay) { const k = n + ' | ' + st; (L[k] = L[k] || []).push(dt); }
+  { const g = k => med(r => r.seg[k] || 0), lay = med(r => r.lay.reduce((a, x) => a + x[1], 0)), dom = med(r => r.html + (r.seg.setHTML || 0) - 0), render = g('render:' + tab);
+    const passes = g('tblPolish') + g('fixPass') + g('foldPass') + g('hintPass') + g('hostStatAll');
+    console.log('TABLE', JSON.stringify({ tab, total: +m.total.toFixed(1), otherTabs: +g('refreshDeps').toFixed(1), computeBuild: +(render - dom - lay + (r0 => 0)(0)).toFixed(1), domWrite: +dom.toFixed(1), forcedLayout: +lay.toFixed(1), passes: +passes.toFixed(1), finalLayout: +med(r => r.finalLayout).toFixed(1) })); }
   console.log('forced layouts (>0.3ms), per edit avg:');
   for (const [k, v] of Object.entries(L).sort((a, c) => c[1].reduce((x, y) => x + y) - a[1].reduce((x, y) => x + y))) console.log('   ', (v.reduce((x, y) => x + y) / 15).toFixed(2), 'ms', v.length + 'x', k.slice(0, 300));
   await b.close(); S.close();
