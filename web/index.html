@@ -11424,7 +11424,10 @@ function addToc(det,list,gen){
   const h='<div class="tocrow">'+secs.map(x=>'<button type="button" data-toc="'+x.dataset.sec+'">'+nm(x)+'</button>').join('')+'</div>'+
     '<label class="tocjump"><span class="vh">Jump to a section</span><select data-tocsel aria-label="Jump to a section"><option value="">Jump to…</option>'+secs.map(x=>'<option value="'+x.dataset.sec+'">'+nm(x)+'</option>').join('')+'</select></label>';
   if(!nav){ nav=document.createElement('nav'); nav.className='toc'; nav.setAttribute('aria-label','Sections'); det.insertBefore(nav,det.firstChild); }
-  if(nav._h!==h){ nav.innerHTML=h; nav._h=h; } tocWatch(det,nav,secs);
+  // (a list kept as it was starts unmarked, as a new one does: the section in view is marked again by tocWatch)
+  if(nav._h!==h){ nav.innerHTML=h; nav._h=h; }
+  else { for(const b of nav.querySelectorAll('[aria-current]')) b.removeAttribute('aria-current'); const sl=nav.querySelector('select[data-tocsel]'); if(sl&&sl.selectedIndex!==0) sl.selectedIndex=0; }
+  tocWatch(det,nav,secs);
 }
 // the section in view: marked in the list (no scroll handler: an IntersectionObserver over a band under the sticky bars)
 function tocWatch(det,nav,secs){
