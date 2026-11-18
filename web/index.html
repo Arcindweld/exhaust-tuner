@@ -27036,10 +27036,10 @@ const SH_Q=/(\d[\d,]*\.?\d*) (in|mm) \((\d[\d,]*\.?\d*) (in|mm)\)/;
 function shopSize(t){ t=String(t);
   const num=x=>parseFloat(String(x).replace(/,/g,'')), mmOf=m=>m[2]==='mm'?num(m[1]):num(m[3]), pair=m=>m[2]==='in'?[m[1],m[3]]:[m[3],m[1]];
   // "OD a, ID b, wall c" -> "a OD × c wall (a′ × c′), ID b"
-  let r=t.replace(new RegExp('^OD '+SH_Q.source+', ID '+SH_Q.source+', wall '+SH_Q.source),(...g)=>{ const o=[g[1],g[2],g[3],g[4]], id=[g[5],g[6],g[7],g[8]], w=[g[9],g[10],g[11],g[12]];
+  let r=t.replace(new RegExp('^OD '+SH_Q.source+', ID '+SH_Q.source+', wall '+SH_Q.source),(...g)=>{ const o=[0,g[1],g[2],g[3],g[4]], id=[g[5],g[6],g[7],g[8]], w=[0,g[9],g[10],g[11],g[12]];
     const oi=pair(o), wi=pair(w); return U==='imp'?oi[0]+' in OD × '+wi[0]+' in wall ('+oi[1]+' × '+wi[1]+' mm), ID '+id.slice(0,2).join(' ')+' ('+id.slice(2).join(' ')+')':oi[1]+' mm OD × '+wi[1]+' mm wall ('+oi[0]+' × '+wi[0]+' in), ID '+id.slice(0,2).join(' ')+' ('+id.slice(2).join(' ')+')'; });
   // "a (a′) × c (c′) stainless tube" -> "a OD × c wall (a′ × c′) stainless tube"
-  r=r.replace(new RegExp('^'+SH_Q.source+' × '+SH_Q.source+' (\\w+ )?tube'),(...g)=>{ const oi=pair([g[1],g[2],g[3],g[4]]), wi=pair([g[5],g[6],g[7],g[8]]);
+  r=r.replace(new RegExp('^'+SH_Q.source+' × '+SH_Q.source+' (\\w+ )?tube'),(...g)=>{ const oi=pair([0,g[1],g[2],g[3],g[4]]), wi=pair([0,g[5],g[6],g[7],g[8]]);
     return (U==='imp'?oi[0]+' in OD × '+wi[0]+' in wall ('+oi[1]+' × '+wi[1]+' mm)':oi[1]+' mm OD × '+wi[1]+' mm wall ('+oi[0]+' × '+wi[0]+' in)')+' '+(g[9]||'')+'tube'; });
   // a length to cut: "36.0 in (914 mm) long" -> "cut 36 in (914 mm) long", inches to the fraction setting
   r=r.replace(new RegExp(SH_Q.source+' long','g'),(...g)=>{ const mm=mmOf(g); if(!(mm>0)) return g[0]; if(U!=='imp') return g[0];
@@ -27058,7 +27058,7 @@ function tsSheetDoc(sh){
     '.draw div{flex:1;min-width:0}svg{width:100%;height:auto}.cap{color:#444;font-size:8.5pt}ol{margin:0;padding-left:5mm}</style></head><body>\n'+
     '<h1>'+x(sh.title)+'</h1><p class="cap">'+x(sh.sub)+'. Saved '+x(new Date().toISOString().slice(0,10))+' from Exhaust Tuner. Lengths in inches and mm; letter or A4, print at 100%.</p>\n'+
     '<h2>Route</h2><div class="draw"><div>'+fix(sh.svg[0])+'<p class="cap">Intake side, filter to throttle (not to scale along the route; widths to scale with each other).</p></div>'+(sh.svg[1]?'<div>'+fix(sh.svg[1])+'<p class="cap">Exhaust side, collector to tip.</p></div>':'')+(sh.svg[2]?'<div>'+fix(sh.svg[2])+'<p class="cap">Turbo manifold, plan (not to scale).</p></div>':'')+'</div>\n'+
-    '<h2>Parts and sizes</h2><h3>To order</h3>'+tbl(['Part','Size','Where, notes'],sh.parts.filter(r=>!shopCut(r)))+'<h3>To cut and bend</h3><p class="cap">Lengths along the centre line, inches to the nearest '+inRoundTxt(' with ')+'.</p>'+tbl(['Part','Size','Where, notes'],sh.parts.filter(shopCut).map(r=>[r[0],shopSize(r[1])].concat(r.slice(2))))+'\n<h2>Key numbers at peak power</h2>'+tbl(['What','Value'],sh.nums)+
+    '<h2>Parts and sizes</h2><h3>To order</h3>'+tbl(['Part','Size','Where, notes'],sh.parts.filter(r=>!shopCut(r)))+'<h3>To cut and bend</h3><p class="cap">'+(U==='imp'?'Lengths along the centre line, inches to the nearest '+inRoundTxt(' with ')+'.':'Lengths along the centre line, in mm with inches after.')+'</p>'+tbl(['Part','Size','Where, notes'],sh.parts.filter(shopCut).map(r=>[r[0],shopSize(r[1])].concat(r.slice(2))))+'\n<h2>Key numbers at peak power</h2>'+tbl(['What','Value'],sh.nums)+
     (sh.mapSvg?'\n<h2>Your compressor map</h2><div class="draw"><div>'+fix(sh.mapSvg)+'<p class="cap">Your own map image with this build’s demand line, put in this file at your choice; the image may be the maker’s copyright.</p></div></div>':'')+
     (sh.measure&&sh.measure.length?'\n<h2>What to measure on the car to firm this up</h2>'+tbl(['Measure','How','The page uses now','Type it in'],sh.measure.map(m=>[m.what,m.how,m.now,m.where])):'')+
     '\n<h2>Assumptions and unsourced items on this build</h2><ol>'+sh.assume.map(a=>'<li>'+x(a)+'</li>').join('')+'</ol>\n</body></html>\n';
