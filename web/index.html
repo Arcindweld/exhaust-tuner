@@ -14802,14 +14802,18 @@ const HG=(()=>{
   // web's start to its end, mid): the narrowest point of the arc is R from its centre
   function filletForWaist(A,B,half,axis){
     // the narrowest the web gets: the closest the arc (over its own span) comes to the web's centre line
+    // (the point on the arc and its offset from the axis written out: the same operations as add(F, pol(R, t)) - axis.p)
     const minD=f=>{ let m=1e18; const a0=ang(f.pa,f.F), a1=ang(f.pb,f.F); let sw=a1-a0; sw=-md(-sw);
-      for(let k=0;k<=40;k++){ const p=add(f.F,pol(f.R,a0+sw*k/40)), q=sub(p,axis.p); m=Math.min(m,Math.abs(q[0]*axis.d[1]-q[1]*axis.d[0])); } return m; };
+      const F0=f.F[0], F1=f.F[1], R=f.R, x0=axis.p[0], y0=axis.p[1], d0=axis.d[0], d1=axis.d[1];
+      for(let k=0;k<=40;k++){ const t=a0+sw*k/40, q0=(F0+R*Math.cos(t))-x0, q1=(F1+R*Math.sin(t))-y0; m=Math.min(m,Math.abs(q0*d1-q1*d0)); } return m; };
     const gap=R=>{ const f=fillet(A,B,R); return f?minD(f)-half:null; };
     const D=len(sub(B.c,A.c)); let lo=Math.max(1e-3,(D-A.r-B.r)/2+1e-6), hi=1e5;
     const ghi=gap(hi);
     if(ghi==null||ghi<0) return null;              // even nearly straight it is too narrow: use a line
     const glo=gap(lo);
-    if(!(glo!=null&&glo>=0)) for(let k=0;k<80;k++){ const m=Math.sqrt(lo*hi), g=gap(m); if(g!=null&&g>=0) hi=m; else lo=m; }
+    // once the midpoint is an end itself the search can move no more (gap(hi) >= 0 and gap(lo) not, by construction): the
+    // remaining steps would repeat it, so it stops there with the same hi (2026-11-18)
+    if(!(glo!=null&&glo>=0)) for(let k=0;k<80;k++){ const m=Math.sqrt(lo*hi); if(m===lo||m===hi) break; const g=gap(m); if(g!=null&&g>=0) hi=m; else lo=m; }
     else hi=lo;
     // never tighter than minR: a small fillet reads as a notch, not a flowing neck
     return fillet(A,B,Math.max(hi,axis.minR||0))||fillet(A,B,hi);
@@ -14846,17 +14850,26 @@ const HG=(()=>{
   // points along a segment / outline (for drawing, checks and the add-in's midpoints)
   function sweepOf(s){ if(s.t!=='A') return 0; let sw=s.a1-s.a0; if(s.ccw){ sw=md(sw); } else { sw=-md(-sw); } return sw; }
   function at(s,u){ if(s.t==='L') return add(s.a,mul(sub(s.b,s.a),u)); return add(s.c,pol(s.r,s.a0+sweepOf(s)*u)); }
+  // (at(s, k/n) written out per segment, no temporary pairs: the same operations, 2026-11-18)
   function sample(segs,step){
     const pts=[];
-    for(const s of segs){ const L=s.t==='L'?len(sub(s.b,s.a)):Math.abs(sweepOf(s))*s.r, n=Math.max(1,Math.ceil(L/(step||1)));
-      for(let k=0;k<n;k++) pts.push(at(s,k/n)); }
+    for(const s of segs){
+      if(s.t==='L'){ const a0=s.a[0], a1=s.a[1], dx=s.b[0]-a0, dy=s.b[1]-a1, n=Math.max(1,Math.ceil(Math.hypot(dx,dy)/(step||1)));
+        for(let k=0;k<n;k++){ const u=k/n; pts.push([a0+dx*u,a1+dy*u]); } }
+      else { const sw=sweepOf(s), c0=s.c[0], c1=s.c[1], r=s.r, t0=s.a0, n=Math.max(1,Math.ceil(Math.abs(sw)*r/(step||1)));
+        for(let k=0;k<n;k++){ const t=t0+sw*(k/n); pts.push([c0+r*Math.cos(t),c1+r*Math.sin(t)]); } } }
     return pts;
   }
   function area(pts){ let A=0; for(let i=0;i<pts.length;i++){ const p=pts[i], q=pts[(i+1)%pts.length]; A+=p[0]*q[1]-q[0]*p[1]; } return A/2; }
-  function segX(p1,p2,p3,p4){ const d=(a,b,c)=>(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);
-    const d1=d(p3,p4,p1), d2=d(p3,p4,p2), d3=d(p1,p2,p3), d4=d(p1,p2,p4); return d1*d2<-1e-12&&d3*d4<-1e-12; }
-  function simple(pts){ const n=pts.length; for(let i=0;i<n;i++) for(let j=i+2;j<n;j++){ if(i===0&&j===n-1) continue;
-    if(segX(pts[i],pts[(i+1)%n],pts[j],pts[(j+1)%n])) return false; } return true; }
+  // two segments cross (each one's ends strictly either side of the other's line): written out in the double loop, no
+  // closure per pair (2026-11-18; the products, differences and tests of the helper it replaces, in the same order)
+  function simple(pts){ const n=pts.length; for(let i=0;i<n;i++){ const p1=pts[i], p2=pts[(i+1)%n], ax=p1[0], ay=p1[1], bx=p2[0], by=p2[1];
+    for(let j=i+2;j<n;j++){ if(i===0&&j===n-1) continue;
+    const p3=pts[j], p4=pts[(j+1)%n], cx=p3[0], cy=p3[1], ex=p4[0], ey=p4[1];
+    const d1=(ex-cx)*(ay-cy)-(ey-cy)*(ax-cx), d2=(ex-cx)*(by-cy)-(ey-cy)*(bx-cx);
+    if(!(d1*d2<-1e-12)) continue;
+    const d3=(bx-ax)*(cy-ay)-(by-ay)*(cx-ax), d4=(bx-ax)*(ey-ay)-(by-ay)*(ex-ax);
+    if(d3*d4<-1e-12) return false; } } return true; }
   function distToPoly(p,pts){ let m=1e18; for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length], ab=sub(b,a), t=Math.max(0,Math.min(1,((p[0]-a[0])*ab[0]+(p[1]-a[1])*ab[1])/Math.max(1e-12,ab[0]*ab[0]+ab[1]*ab[1])));
     m=Math.min(m,len(sub(p,add(a,mul(ab,t))))); } return m; }
   function inside(p,pts){ let c=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const a=pts[i], b=pts[j];
@@ -15148,11 +15161,23 @@ const hgHolePath=(h,T)=>h.t==='C'?(()=>{ const c=T(h.c), r=h.r*T.k; return 'M'+(
    tear-out past the hole (two shear planes, shear yield 0.577 × yield, von Mises). Sideways: the tab bending flat
    about its root. Rod: bending at the end of the weld from the load on the pin. */
 function hgNet(part,y0,y1){ const sc=hgScan(part,y0,y1); return sc.reduce((m,q)=>q.w<m.w?q:m,{w:1e9,y:y0}); }
+// (2026-11-18, docs/PERF_2026-11-18.md) the outline's edges that cross each scan line are found once per call (each edge
+// spans the lines y in [lower end, upper end)), not by testing every edge on every line: the same edges in the same order,
+// the same arithmetic, so the same numbers; an outline with a NaN height falls back to testing every edge
+function hgScanEdges(pts,ys){
+  const n=pts.length, at=ys.map(()=>[]), lb=v=>{ let lo=0, hi=ys.length; while(lo<hi){ const m=(lo+hi)>>1; if(ys[m]<v) lo=m+1; else hi=m; } return lo; };
+  for(let i=0;i<n;i++){ const a=pts[i][1], b=pts[(i+1)%n][1]; if(a!==a||b!==b) return null; if(a===b) continue;
+    for(let k=lb(a<b?a:b), e=lb(a<b?b:a);k<e;k++) at[k].push(i); }
+  return at;
+}
 function hgScan(part,y0,y1){
-  const pts=HG.sample(part.outline,0.4), out=[];
-  for(let y=y0;y<=y1+1e-9;y+=Math.max(0.25,(y1-y0)/200)){
+  const pts=HG.sample(part.outline,0.4), out=[], ys=[];
+  for(let y=y0;y<=y1+1e-9;y+=Math.max(0.25,(y1-y0)/200)) ys.push(y);
+  const E=hgScanEdges(pts,ys);
+  for(let j=0;j<ys.length;j++){ const y=ys[j];
     const xs=[];
-    for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length]; if((a[1]>y)!==(b[1]>y)) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); }
+    if(E){ for(const i of E[j]){ const a=pts[i], b=pts[(i+1)%pts.length]; if((a[1]>y)!==(b[1]>y)) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); } }
+    else for(let i=0;i<pts.length;i++){ const a=pts[i], b=pts[(i+1)%pts.length]; if((a[1]>y)!==(b[1]>y)) xs.push(a[0]+(y-a[1])*(b[0]-a[0])/(b[1]-a[1])); }
     xs.sort((a,b)=>a-b); let w=0; for(let k=0;k+1<xs.length;k+=2) w+=xs[k+1]-xs[k];
     for(const h of part.holes){ const dy=Math.abs(y-h.c[1]); if(h.t==='C'&&dy<h.r) w-=2*Math.sqrt(h.r*h.r-dy*dy);
       if(h.t!=='C'){ const q=h._pts||(h._pts=HG.sample(h.segs,0.4)), xs2=[];
@@ -15215,24 +15240,31 @@ function hgFin(prof,o){
   const F=prof.map(q=>{ const rho=Ro+Math.max(0,q.d)/1000, b=Math.asin(Math.min(1,Ro/rho)); return (1-Math.cos(b))/2; });
   const L=(prof[n-1].s-prof[0].s)/1000||0.01;
   let T=prof.map(()=>(Tp+Ta)/2), hcLast=0; T[0]=Tp;
+  // (2026-11-18) the conduction terms and the spacings do not change from one pass to the next: worked out once, by the
+  // same expressions; each pass's sums, maxima and sweeps are the same operations in the same order as before
+  const a=new Float64Array(n), c=new Float64Array(n), kLR=new Float64Array(n), dsCs=new Float64Array(n), bb=new Float64Array(n), r=new Float64Array(n), th=new Float64Array(n);
+  for(let i=1;i<n;i++){
+    const dsL=(prof[i].s-prof[i-1].s)/1000, dsR=i<n-1?(prof[i+1].s-prof[i].s)/1000:dsL, dsC=(dsL+(i<n-1?dsR:0))/2||dsL/2;
+    const kL=k*(A[i]+A[i-1])/2/dsL, kR=i<n-1?k*(A[i]+A[i+1])/2/dsR:0;
+    a[i]=-kL; c[i]=-kR; kLR[i]=kL+kR; dsCs[i]=dsC; }
   for(let it=0;it<80;it++){
-    const Tm=T.reduce((a,x)=>a+x,0)/n, Tf=(Tm+Ta)/2, mu=airMu(Tf), ka=airK(Tf), cp=airCp(Tf), rho=P_ATM/(R_AIR*Tf), nu=mu/rho, Pr=mu*cp/ka;
+    let sT=0; for(let i=0;i<n;i++) sT+=T[i];
+    const Tm=sT/n, Tf=(Tm+Ta)/2, mu=airMu(Tf), ka=airK(Tf), cp=airCp(Tf), rho=P_ATM/(R_AIR*Tf), nu=mu/rho, Pr=mu*cp/ka;
     const Lc=o.round?o.rod/1000:L, Ra=9.81/Tf*Math.max(Tm-Ta,1e-3)*Lc**3/(nu*nu)*Pr;
     const Nu=o.round?Math.pow(0.60+0.387*Math.pow(Ra,1/6)/Math.pow(1+Math.pow(0.559/Pr,9/16),8/27),2):Math.pow(0.825+0.387*Math.pow(Ra,1/6)/Math.pow(1+Math.pow(0.492/Pr,9/16),8/27),2);
     const hc=o.hcFix>0?o.hcFix:Nu*ka/Lc; hcLast=hc;
     // tridiagonal: a_i T_{i-1} + b_i T_i + c_i T_{i+1} = r_i in theta = T - Ta
-    const a=[],bb=[],c=[],r=[];
-    for(let i=0;i<n;i++){
-      if(i===0){ a.push(0); bb.push(1); c.push(0); r.push(Tp-Ta); continue; }
-      const dsL=(prof[i].s-prof[i-1].s)/1000, dsR=i<n-1?(prof[i+1].s-prof[i].s)/1000:dsL, dsC=(dsL+(i<n-1?dsR:0))/2||dsL/2;
-      const kL=k*(A[i]+A[i-1])/2/dsL, kR=i<n-1?k*(A[i]+A[i+1])/2/dsR:0, Ti=T[i];
+    bb[0]=1; r[0]=Tp-Ta;
+    for(let i=1;i<n;i++){
+      const Ti=T[i], dsC=dsCs[i];
       const hra=eps*SIG*(1-F[i])*(Ti*Ti+Ta*Ta)*(Ti+Ta), cin=epsP*eps*SIG*F[i]*(Tp*Tp+Ti*Ti)*(Tp+Ti), H=(hc+hra+cin)*P[i]*dsC;
-      a.push(-kL); c.push(-kR); bb.push(kL+kR+H); r.push(cin*P[i]*dsC*(Tp-Ta));
+      bb[i]=kLR[i]+H; r[i]=cin*P[i]*dsC*(Tp-Ta);
     }
     for(let i=1;i<n;i++){ const m=a[i]/bb[i-1]; bb[i]-=m*c[i-1]; r[i]-=m*r[i-1]; }
-    const th=new Array(n); th[n-1]=r[n-1]/bb[n-1]; for(let i=n-2;i>=0;i--) th[i]=(r[i]-c[i]*th[i+1])/bb[i];
-    const Tn=th.map(x=>x+Ta), d=Math.max(...Tn.map((x,i)=>Math.abs(x-T[i])));
-    T=Tn.map((x,i)=>0.5*x+0.5*T[i]); T[0]=Tp; if(d<0.01) break;
+    th[n-1]=r[n-1]/bb[n-1]; for(let i=n-2;i>=0;i--) th[i]=(r[i]-c[i]*th[i+1])/bb[i];
+    let d=-Infinity; const Tn=new Array(n);
+    for(let i=0;i<n;i++){ const x=th[i]+Ta; d=Math.max(d,Math.abs(x-T[i])); Tn[i]=0.5*x+0.5*T[i]; }
+    T=Tn; T[0]=Tp; if(d<0.01) break;
   }
   return {T:T.map(x=>x-273.15),s:prof.map(q=>q.s),hc:hcLast};
 }
@@ -15466,7 +15498,10 @@ function hgHeat(o,parts,mat){
   if(!(o.tp>o.ta)) return sec('Heat and isolation','<p class="cap">Fill in the pipe temperature at the hanger to see how hot the isolator runs.</p>');
   // the reach search rebuilds the part without lightening holes: a little more metal conducts a little more heat,
   // so the reach it gives errs long (and it is much quicker)
-  const at=q=>{ try{ const q2=Object.assign({},q,{light:'none'}), pp=hgParts(q2); return hgIsoTemp(q2,pp[0],HG_MAT[q.mat]); }catch(e){ return null; } };
+  // the isolators' searches start alike and share their first steps (and the reach 250 mm out): each reach is worked out
+  // once per render (the part and its temperature depend on the inputs object alone, which is the key; 2026-11-18)
+  const atM=new Map(), at=q=>{ const key=JSON.stringify(q); if(atM.has(key)) return atM.get(key); let r;
+    try{ const q2=Object.assign({},q,{light:'none'}), pp=hgParts(q2); r=hgIsoTemp(q2,pp[0],HG_MAT[q.mat]); }catch(e){ r=null; } atM.set(key,r); return r; };
   const here=hgIsoTemp(o,P0,mat); if(!here) return '';
   const Ti=here.T;
   // the reach that brings the isolator down to a limit (the part rebuilt longer; null when 250 mm more is not enough)

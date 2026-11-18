@@ -12,7 +12,7 @@ hangers 193.7, intake(K24 turbo) 94.2, mufflers 60.7, 4-stroke 19.5, headers 17.
 ## Tried
 - content-visibility:auto on .sec: intake 94->43, muf 61->41 BUT innerText drops off-screen text (17.7k vs 225k chars), print too -> rejected
 ## Plan / status
-- [ ] 1 hangers kernels bit-exact (hgScan sweep, minD no-alloc, simple bbox, per-render memo of at())
+- [x] 1 hangers kernels bit-exact: 194 -> 99 (abcompare hangers seeds 1,2 x80: 0 diff)
 - [ ] 2 setHTML: skip identical strings; morph text-level for heavy tabs
 - [ ] 3 mufflers abTL; intake JS dupes
 - [ ] differential guard web/tests/incremental_ui.js; ui_ui budget; docs; STATUS
