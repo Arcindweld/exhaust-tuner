@@ -11472,9 +11472,16 @@ function pointsCsv(segs){
    changed the written nodes since (a button's message, a section folded by hand, a draw) is seen by a MutationObserver
    and that node is written afresh. A panel that is hidden keeps the undecorated nodes it would have had (written in
    full when its nodes were decorated while it was shown). */
-const SH_FRESH='svg,canvas,input,select,textarea,video,audio,iframe,object,embed,.runstat', SH_FRESH_RE=/^(svg|canvas|input|select|textarea|video|audio|iframe|object|embed)$/i;
+const SH_FRESH='svg,canvas,input,select[multiple],select[size],textarea,video,audio,iframe,object,embed,.runstat', SH_FRESH_RE=/^(svg|canvas|input|textarea|video|audio|iframe|object|embed)$/i;
+// a list (one choice, drop-down) is kept: its options are patched as any element and the choice set as a newly parsed one
+// makes it (the last option marked selected, else the first that is not disabled), which the HTML does not carry
+function shSel(l){ const os=l.options; let k=-1; for(let i=0;i<os.length;i++) if(os[i].hasAttribute('selected')) k=i;
+  if(k<0) for(let i=0;i<os.length;i++){ const o=os[i], g=o.parentElement; if(!o.disabled&&!(g&&g.tagName==='OPTGROUP'&&g.disabled)){ k=i; break; } }
+  if(l.selectedIndex!==k) l.selectedIndex=k; }
 const SH_ROOTS=new Set(), SH_MO=typeof MutationObserver==='function'?new MutationObserver(recs=>shNote(recs)):null;
-function shNote(recs){ for(const r of recs){ const t=r.target; let root=null; for(let x=t;x;x=x.parentNode) if(x._sh){ root=x; break; } if(!root) continue;
+// (a change inside a drawing is no one's concern: setHTML writes every drawing afresh)
+function shNote(recs){ for(const r of recs){ const t=r.target; if(t.namespaceURI==='http://www.w3.org/2000/svg') continue;
+  let root=null; for(let x=t;x;x=x.parentNode) if(x._sh){ root=x; break; } if(!root) continue;
   if(t===root&&r.type==='attributes') continue; root._sh.dirty.add(t); } }
 function shFlush(){ if(SH_MO) shNote(SH_MO.takeRecords()); }   // what happened so far is someone else's
 function shOwn(f){ shFlush(); try{ if(f) f(); } finally{ if(SH_MO) SH_MO.takeRecords(); } }   // the page's own deterministic passes
@@ -11488,11 +11495,12 @@ function shMorph(op,np,lp,D,UP){
     if(!l||l.parentNode!==lp||o.nodeType!==n.nodeType||o.nodeName!==n.nodeName) return false; }
   for(let i=0;i<k;i++){ const o=oc[i], n=nc[i], l=o._l;
     if(o.nodeType!==1){ if(o.nodeType===3||o.nodeType===8){ if(D.has(l)||o.nodeValue!==n.nodeValue) l.nodeValue=n.nodeValue; n._l=l; } else shRepl(n,lp,l); continue; }
-    if(D.has(l)||SH_FRESH_RE.test(o.nodeName)||o.classList.contains('runstat')){ shRepl(n,lp,l); continue; }
-    if(!UP.has(l)&&!n._hf&&o.isEqualNode(n)){ np.replaceChild(o,n); continue; }   // (_hf: holds a field or a drawing)
+    const sel=o.nodeName==='SELECT';
+    if(D.has(l)||SH_FRESH_RE.test(o.nodeName)||o.classList.contains('runstat')||sel&&(n.multiple||n.hasAttribute('size')||l.multiple||l.hasAttribute('size'))){ shRepl(n,lp,l); continue; }
+    if(!UP.has(l)&&!n._hf&&o.isEqualNode(n)){ np.replaceChild(o,n); if(sel) shSel(l); continue; }   // (_hf: holds a field or a drawing)
     for(const a of n.attributes) if(o.getAttribute(a.name)!==a.value) l.setAttribute(a.name,a.value);
     for(const a of o.attributes) if(!n.hasAttribute(a.name)) l.removeAttribute(a.name);
-    n._l=l; if(!shMorph(o,n,l,D,UP)) shRepl(n,lp,l); }
+    n._l=l; if(!shMorph(o,n,l,D,UP)) shRepl(n,lp,l); else if(sel) shSel(l); }
   return true;
 }
 // window.__fullWrites (set before the page loads; the tests only, web/tests/incremental_ui.js): every write in full, as
@@ -11512,6 +11520,7 @@ function setHTML(el,html){
     if(st.html===html&&!D.size){   // the same HTML as last time: only the drawings and fields are made afresh
       SH_STAT.same++; shOpen(el);
       for(const p of st.pr.querySelectorAll(SH_FRESH)){ const l=p._l; if(l&&l.parentNode&&!(p.parentNode&&p.parentNode.closest&&p.parentNode.closest(SH_FRESH))) shRepl(p,l.parentNode,l); }
+      for(const p of st.pr.querySelectorAll('select')){ const l=p._l; if(l&&l.isConnected&&l.nodeName==='SELECT'&&!l.multiple&&!l.hasAttribute('size')) shSel(l); }
       return; }
     const t=document.createElement('template'); t.innerHTML=html; const np=t.content, UP=new Set();
     for(const e of np.querySelectorAll(SH_FRESH)) for(let x=e.parentNode;x&&x!==np&&!x._hf;x=x.parentNode) x._hf=1;

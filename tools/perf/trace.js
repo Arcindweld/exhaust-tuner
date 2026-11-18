@@ -13,6 +13,7 @@ const CASES = { hangers: ['hg-od', null], intake: ['i-hp', ['440', '450']], muff
  await cdp.send('Tracing.end'); await done;
  const marks=ev.filter(e=>e.cat.includes('user_timing')&&(e.name==='e0'||e.name==='e1')).sort((a,b)=>a.ts-b.ts); const win=[]; for(let i=0;i+1<marks.length;i++) if(marks[i].name==='e0'&&marks[i+1].name==='e1') win.push([marks[i].ts,marks[i+1].ts]);
  const S={}; for(const e of ev){ if(e.ph!=='X'||!e.dur) continue; if(!win.some(([a,b])=>e.ts>=a&&e.ts<=b)) continue; if(!['UpdateLayoutTree','Layout','ParseHTML','RecalculateStyles','PrePaint','HitTest','FunctionCall','EvaluateScript','V8.GC_SCAVENGER','MinorGC','MajorGC'].includes(e.name)) continue; S[e.name]=(S[e.name]||0)+e.dur/1000; }
+ if (process.env.DETAIL) { const [a, b] = win[win.length - 1]; for (const e of ev) if (e.ts >= a && e.ts <= b && e.ph === 'X' && (e.name === 'Layout' || e.name === 'UpdateLayoutTree') && e.dur > 300) console.log(e.name, (e.dur / 1000).toFixed(1), JSON.stringify(e.args).slice(0, 300)); }
  const tot=win.reduce((a,[x,y])=>a+(y-x)/1000,0);
  console.log(tab,'edits',win.length,'avg total',(tot/win.length).toFixed(1)); for(const [k,v] of Object.entries(S)) console.log('  ',k.padEnd(18),(v/win.length).toFixed(1));
  await b.close(); })();

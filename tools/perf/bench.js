@@ -20,8 +20,11 @@ const CASES = [['hangers', 'hg-od', null], ['intake', 'i-hp', ['440', '450']], [
     let cdp = null; if (thr > 1) { cdp = await pg.context().newCDPSession(pg); await cdp.send('Emulation.setCPUThrottlingRate', { rate: thr }); }
     const ms = [];
     for (let i = 0; i < 15; i++) {
-      ms.push(await pg.evaluate(([id, v, i]) => { const el = document.getElementById(id); el.value = v ? v[i % 2] : String((parseFloat(el.value) || 1) * (i % 2 ? 1 / 1.01 : 1.01));
-        const t0 = performance.now(); el.dispatchEvent(new Event('input', { bubbles: true })); void document.body.offsetHeight; return performance.now() - t0; }, [id, vals, i]));
+      // FRESH=1: a value never used before on each edit (as a builder typing a new number), instead of ui_ui's two values in turn
+      ms.push(await pg.evaluate(([id, v, i, fresh]) => { const el = document.getElementById(id);
+        if (fresh) { el._b0 = el._b0 || parseFloat(el.value) || (v ? parseFloat(v[0]) : 1); el.value = String(+(el._b0 * (1 + 0.0037 * (i + 1))).toFixed(3)); }
+        else el.value = v ? v[i % 2] : String((parseFloat(el.value) || 1) * (i % 2 ? 1 / 1.01 : 1.01));
+        const t0 = performance.now(); el.dispatchEvent(new Event('input', { bubbles: true })); void document.body.offsetHeight; return performance.now() - t0; }, [id, vals, i, !!process.env.FRESH]));
       await settle(pg);
     }
     ms.sort((a, c) => a - c); const m = ms[7];
