@@ -1,0 +1,792 @@
+{
+ "about": "bore and stroke sourcing, docs/PRESET_DATA_2026-11-18.md",
+ "engines": {
+  "gm-lt1-gen5": {
+   "sel": "^LT1( \\(Gen V\\))?$",
+   "cc": [
+    6100,
+    6200
+   ],
+   "bore": 103.25,
+   "stroke": 92,
+   "cr": 11.5,
+   "src": "https://www.chevrolet.com/performance-parts/crate-engines/lt-engines/lt1-engine",
+   "says": "376 cu. in. (6.2L); (103.25 mm x 92 mm) 4.065 x 3.622; compression 11.5:1",
+   "q": "maker data",
+   "note": "Chevrolet Performance LT1 crate engine page (the production LT1)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "LT1 6.2 V8 (Corvette C7, Camaro SS, crate)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2016+ Chevrolet Camaro SS (LT1)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2014–19 Chevrolet Corvette C7 Stingray / Grand Sport (LT1)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-l87": {
+   "sel": "^L86",
+   "cc": [
+    6100,
+    6200
+   ],
+   "bore": 103.25,
+   "stroke": 92,
+   "cr": 11.5,
+   "valves": 2,
+   "src": "https://poweredsolutions.gm.com/products/l87-engine/",
+   "says": "Displacement 6162 cc; Bore x Stroke 103.25 x 92 mm; Compression Ratio 11.5:1; Valves per Cylinder 2",
+   "q": "maker data",
+   "note": "GM Powered Solutions L87 6.2L page; the L86/L87 truck preset",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "L86/L87 6.2 V8 (Silverado, Sierra, Tahoe, Escalade)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2014+ Chevrolet Silverado / GMC Sierra 1500 (6.2 L86/L87)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt4": {
+   "sel": "^LT4$",
+   "cc": [
+    6100,
+    6200
+   ],
+   "bore": 103.25,
+   "stroke": 92,
+   "cr": 10,
+   "src": "https://www.chevrolet.com/performance/crate-engines/lt4.html",
+   "says": "376 cu. in. (6.2L); 4.065 in. x 3.622 in. (103.25 x 92mm); compression 10:1",
+   "q": "maker data",
+   "note": "Chevrolet Performance LT4 crate engine page (the production LT4)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "LT4 6.2 supercharged V8 (Corvette Z06, ZL1, CTS-V, crate)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2015–19 Chevrolet Corvette Z06 (LT4)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2017–24 Chevrolet Camaro ZL1 (LT4)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2016–19 Cadillac CTS-V (LT4)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt6": {
+   "sel": "^LT6$",
+   "bore": 104.25,
+   "stroke": 80,
+   "src": "https://www.enginelabs.com/?p=6198",
+   "says": "5.5 liters ... 333 cubic inches; 104.25mm (4.104 inches) bore diameter; 80mm (3.150 inches) stroke; maximum RPM limit in the production vehicle will be 8,600 rpm",
+   "q": "magazine test",
+   "note": "EngineLabs on GM announcement of the LT6",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "LT6 5.5 flat-plane V8 (Corvette C8 Z06)",
+     "arr": "MOTORS",
+     "cc": 5463,
+     "cyl": 8,
+     "geo": 5462.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2023+ Chevrolet Corvette Z06 (LT6)",
+     "arr": "VEH",
+     "cc": 5463,
+     "cyl": 8,
+     "geo": 5462.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-l84": {
+   "sel": "^L83 / L84",
+   "bore": 96,
+   "stroke": 92,
+   "src": "https://poweredsolutions.gm.com/products/engines/l84-engine",
+   "says": "5328cc; 96 x 92 mm; 11.0:1; 2 valves; 5800 RPM",
+   "q": "maker data",
+   "note": "GM Powered Solutions L84 5.3L page; applied to the combined L83/L84 preset (bore and stroke only; the compression is the L84s)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "L83/L84 5.3 V8 (Silverado, Sierra, Tahoe)",
+     "arr": "MOTORS",
+     "cc": 5328,
+     "cyl": 8,
+     "geo": 5327.3,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-l8t": {
+   "sel": "^L8T",
+   "bore": 103.25,
+   "stroke": 98,
+   "cr": 10.8,
+   "valves": 2,
+   "src": "https://poweredsolutions.gm.com/products/engines/l8t-engine",
+   "says": "6564 cc (400 CI); 103.25 x 98.0 mm; 10.8:1; two valves per cylinder; 5600 RPM",
+   "q": "maker data",
+   "note": "GM Powered Solutions L8T 6.6L page",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "L8T 6.6 iron-block V8 (Silverado HD, crate)",
+     "arr": "MOTORS",
+     "cc": 6564,
+     "cyl": 8,
+     "geo": 6564.3,
+     "dPct": 0,
+     "had": [
+      103.25,
+      98
+     ]
+    },
+    {
+     "name": "2020–26 Chevrolet Silverado HD / GMC Sierra HD (6.6 L8T)",
+     "arr": "VEH",
+     "cc": 6564,
+     "cyl": 8,
+     "geo": 6564.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen4": {
+   "sel": "^Gen 4 Coyote$",
+   "bore": 93,
+   "stroke": 92.7,
+   "cr": 12,
+   "src": "https://performanceparts.ford.com/part/M-6007-M50D",
+   "says": "5.0L GEN 4 MUSTANG CRATE ENGINE; Bore 93 mm x Stroke 92.7 mm; 12.0:1 Compression ratio; 480 Horsepower @ 7,150 rpm",
+   "q": "maker data",
+   "note": "Ford Performance Gen 4 Mustang crate engine (the production Gen 4 Coyote)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Gen 4 Coyote 5.0 V8 (2024+ Mustang GT)",
+     "arr": "MOTORS",
+     "cc": 5037,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2024+ Ford Mustang GT (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5037,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2024+ Ford Mustang GT with active exhaust (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5037,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen4dh": {
+   "sel": "^Gen 4 Coyote \\(Dark Horse\\)$",
+   "bore": 93,
+   "stroke": 92.7,
+   "cr": 12,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2026/specs/2026_Mustang_Technical_Specs.pdf",
+   "q": "maker data",
+   "says": "5.0L Coyote V8 (Mustang Dark Horse): 5.0/307; bore x stroke 3.66 x 3.65; compression 12.0; 500 @ 7,250",
+   "note": "Ford 2026 Mustang technical specifications (inches); the mm figures are Ford Performance Gen 4 crate engine page figures, 93 x 92.7 mm (M-6007-M50D), which the inch figures round",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2024+ Ford Mustang Dark Horse (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5037,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen2": {
+   "sel": "^Gen 2 Coyote$",
+   "bore": 92.2,
+   "stroke": 92.7,
+   "cr": 11,
+   "ccStated": 4951,
+   "src": "https://media.ford.com/content/dam/lincolnmedia/lna/us/product/2016/2016-Ford-Mustang-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "5.0-liter V8, 302 cu. in. (4,951 cc), 3.63 x 3.65 in. (92.2 x 92.7 mm), 11.0:1, 435 @ 6,500 rpm",
+   "note": "Ford 2016 Mustang technical specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Gen 2 Coyote 5.0 V8 (2015–17 Mustang GT)",
+     "arr": "MOTORS",
+     "cc": 4951,
+     "cyl": 8,
+     "geo": 4951.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2015–17 Ford Mustang GT (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 4951,
+     "cyl": 8,
+     "geo": 4951.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-37-cyclone": {
+   "sel": "^3.7 Cyclone",
+   "bore": 95.5,
+   "stroke": 86.7,
+   "src": "https://media.ford.com/content/dam/lincolnmedia/lna/us/product/2016/2016-Ford-Mustang-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "3.7-liter V6, 227 cu. in. (3,727 cc), 3.76 x 3.41 in. (95.5 x 86.7 mm), 10.5:1, 300 @ 6,500 rpm",
+   "note": "Ford 2016 Mustang technical specifications; bore and stroke only for the 2011-14 Mustang and F-150 presets (same 3.7 V6, 3,727 cc)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "3.7 Cyclone (Duratec 37) V6 (Mustang, F-150)",
+     "arr": "MOTORS",
+     "cc": 3726,
+     "cyl": 6,
+     "geo": 3726.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2011–14 Ford Mustang V6 (3.7 Cyclone)",
+     "arr": "VEH",
+     "cc": 3726,
+     "cyl": 6,
+     "geo": 3726.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-23-ecoboost-mustang": {
+   "names": [
+    "2.3 EcoBoost turbo I4 (Mustang EcoBoost)",
+    "2020–23 Ford Mustang EcoBoost High Performance Package (2.3 L)",
+    "2018–23 Ford Mustang EcoBoost (2.3 L)"
+   ],
+   "bore": 87.55,
+   "stroke": 94,
+   "src": "https://media.ford.com/content/dam/lincolnmedia/lna/us/product/2016/2016-Ford-Mustang-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "2.3-liter EcoBoost I-4, 140 cu. in. (2,300 cc), 3.45 x 3.7 in. (87.55 x 94 mm), 9.5:1, 310 @ 5,500 rpm",
+   "note": "Ford 2016 Mustang technical specifications; bore and stroke only for the later Mustang 2.3 EcoBoost presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2.3 EcoBoost turbo I4 (Mustang EcoBoost)",
+     "arr": "MOTORS",
+     "cc": 2261,
+     "cyl": 4,
+     "geo": 2263.5,
+     "dPct": 0.11,
+     "had": null
+    },
+    {
+     "name": "2018–23 Ford Mustang EcoBoost (2.3 L)",
+     "arr": "VEH",
+     "cc": 2261,
+     "cyl": 4,
+     "geo": 2263.5,
+     "dPct": 0.11,
+     "had": null
+    },
+    {
+     "name": "2020–23 Ford Mustang EcoBoost High Performance Package (2.3 L)",
+     "arr": "VEH",
+     "cc": 2261,
+     "cyl": 4,
+     "geo": 2263.5,
+     "dPct": 0.11,
+     "had": null
+    }
+   ]
+  },
+  "ford-23-ecoboost-mustang-1517": {
+   "names": [
+    "2015–17 Ford Mustang EcoBoost (2.3 L)"
+   ],
+   "bore": 87.55,
+   "stroke": 94,
+   "cr": 9.5,
+   "src": "https://media.ford.com/content/dam/lincolnmedia/lna/us/product/2016/2016-Ford-Mustang-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "2.3-liter EcoBoost I-4, 140 cu. in. (2,300 cc), 3.45 x 3.7 in. (87.55 x 94 mm), 9.5:1, 310 @ 5,500 rpm",
+   "note": "Ford 2016 Mustang technical specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2015–17 Ford Mustang EcoBoost (2.3 L)",
+     "arr": "VEH",
+     "cc": 2261,
+     "cyl": 4,
+     "geo": 2263.5,
+     "dPct": 0.11,
+     "had": null
+    }
+   ]
+  },
+  "ford-23-ecoboost-2024": {
+   "sel": "^2.3 EcoBoost$",
+   "cc": [
+    2250,
+    2256
+   ],
+   "bore": 83.82,
+   "stroke": 101.6,
+   "cr": 10.6,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2026/specs/2026_Mustang_Technical_Specs.pdf",
+   "q": "maker data",
+   "says": "2.3L EcoBoost I-4 (Mustang EcoBoost): 2.3/137.5; bore x stroke 3.30 x 4.00; compression 10.6; 315 @ 5,500",
+   "note": "Ford 2026 Mustang technical specifications; inches as written, converted (3.30 x 4.00 in = 83.82 x 101.6 mm)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2024+ Ford Mustang EcoBoost (2.3 L)",
+     "arr": "VEH",
+     "cc": 2253,
+     "cyl": 4,
+     "geo": 2242.5,
+     "dPct": -0.46,
+     "had": null
+    }
+   ]
+  },
+  "ford-27-ecoboost": {
+   "sel": "^2.7 EcoBoost$",
+   "bore": 82.98,
+   "stroke": 82.98,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "2.7L EcoBoost V6; 2.7 liters (164 cubic inches); 3.267 inches x 3.267 inches; 10.3:1; 325 hp @5,000 rpm",
+   "note": "Ford 2020 F-150 technical specifications; inches as written, converted; bore and stroke only (the Edge ST and Bronco carry the same 2.7 EcoBoost)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2.7 EcoBoost twin-turbo V6 (F-150, Edge ST, Bronco)",
+     "arr": "MOTORS",
+     "cc": 2694,
+     "cyl": 6,
+     "geo": 2692.5,
+     "dPct": -0.05,
+     "had": null
+    },
+    {
+     "name": "2015–17 Ford F-150 (2.7 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2694,
+     "cyl": 6,
+     "geo": 2692.5,
+     "dPct": -0.05,
+     "had": null
+    },
+    {
+     "name": "2019–24 Ford Edge ST (2.7 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2694,
+     "cyl": 6,
+     "geo": 2692.5,
+     "dPct": -0.05,
+     "had": null
+    }
+   ]
+  },
+  "ford-35-ecoboost-g2": {
+   "names": [
+    "3.5 EcoBoost twin-turbo V6 Gen 2 (F-150)"
+   ],
+   "bore": 92.46,
+   "stroke": 86.61,
+   "cr": 10.5,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "3.5L EcoBoost V6; 3.5 liters (213 cubic inches); 3.64 inches x 3.41 inches; 10.5:1; 375 hp @5,000 rpm",
+   "note": "Ford 2020 F-150 technical specifications; inches as written, converted",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "3.5 EcoBoost twin-turbo V6 Gen 2 (F-150)",
+     "arr": "MOTORS",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    }
+   ]
+  },
+  "ford-35-ecoboost-other": {
+   "names": [
+    "2021+ Ford F-150 (3.5 EcoBoost)",
+    "2010–19 Ford Taurus SHO (3.5 EcoBoost)"
+   ],
+   "bore": 92.46,
+   "stroke": 86.61,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "3.5L EcoBoost V6; 3.5 liters (213 cubic inches); 3.64 inches x 3.41 inches",
+   "note": "Ford 2020 F-150 technical specifications; inches as written, converted; bore and stroke only for the other 3.5 EcoBoost presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–19 Ford Taurus SHO (3.5 EcoBoost)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    },
+    {
+     "name": "2021+ Ford F-150 (3.5 EcoBoost)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    }
+   ]
+  },
+  "ford-35-ecoboost-ho": {
+   "names": [
+    "3.5 EcoBoost High Output twin-turbo V6 (Raptor, Limited)",
+    "2017–20 Ford F-150 Raptor (3.5 EcoBoost HO)"
+   ],
+   "bore": 92.46,
+   "stroke": 86.61,
+   "cr": 10,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "3.5L EcoBoost V6 (high output row); 3.5 liters (213 cubic inches); 3.64 inches x 3.41 inches; 10.0:1; 450 hp @5,000 rpm",
+   "note": "Ford 2020 F-150 technical specifications, the 450 hp 3.5 EcoBoost row (the Raptor and Limited engine); inches as written, converted",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "3.5 EcoBoost High Output twin-turbo V6 (Raptor, Limited)",
+     "arr": "MOTORS",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    },
+    {
+     "name": "2017–20 Ford F-150 Raptor (3.5 EcoBoost HO)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen3-truck": {
+   "names": [
+    "Gen 3 Coyote 5.0 V8 (2018–20 F-150)",
+    "2018–20 Ford F-150 (Coyote 5.0)"
+   ],
+   "bore": 92.96,
+   "stroke": 92.71,
+   "cr": 12,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "5.0L V8; 5.0 liters (307 cubic inches); 3.66 inches x 3.65 inches; 12:1; 395 hp @5,750 rpm",
+   "note": "Ford 2020 F-150 technical specifications; inches as written, converted",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Gen 3 Coyote 5.0 V8 (2018–20 F-150)",
+     "arr": "MOTORS",
+     "cc": 5035,
+     "cyl": 8,
+     "geo": 5033.8,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2018–20 Ford F-150 (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5035,
+     "cyl": 8,
+     "geo": 5033.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-35-ecoboost-ho21": {
+   "names": [
+    "2021+ Ford F-150 Raptor (3.5 EcoBoost HO)"
+   ],
+   "bore": 92.46,
+   "stroke": 86.61,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "3.5L EcoBoost V6; 3.64 inches x 3.41 inches",
+   "note": "Ford 2020 F-150 technical specifications; bore and stroke only for the 2021+ Raptor",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2021+ Ford F-150 Raptor (3.5 EcoBoost HO)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen3-truck21": {
+   "names": [
+    "2021+ Ford F-150 (Coyote 5.0)"
+   ],
+   "bore": 92.96,
+   "stroke": 92.71,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "5.0L V8; 3.66 inches x 3.65 inches",
+   "note": "Ford 2020 F-150 technical specifications; bore and stroke only for the 2021+ truck",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2021+ Ford F-150 (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5035,
+     "cyl": 8,
+     "geo": 5033.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen1-truck": {
+   "names": [
+    "2011–14 Ford F-150 (Coyote 5.0)"
+   ],
+   "bore": 92.2,
+   "stroke": 92.71,
+   "cr": 10.5,
+   "src": "https://cdn.base.parameter1.com/files/base/acbm/fcp/document/2013/06/2014-f150-specs_10978717.pdf",
+   "q": "maker data",
+   "says": "5.0L V8; 302 cu. in.; 3.63 x 3.65 in.; 10.5:1; 360 @ 5,500 rpm",
+   "note": "2014 Ford F-150 technical specifications (Ford spec sheet as hosted by a fleet trade publication); inches as written, converted",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2011–14 Ford F-150 (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 4951,
+     "cyl": 8,
+     "geo": 4951.9,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-62-boss": {
+   "sel": "^6.2 Boss$",
+   "bore": 102.11,
+   "stroke": 95,
+   "src": "https://cdn.base.parameter1.com/files/base/acbm/fcp/document/2013/06/2014-f150-specs_10978717.pdf",
+   "q": "maker data",
+   "says": "6.2L V8; 379 cu. in.; 4.02 x 3.74 in.; 9.8:1; 411 @ 5,500 rpm",
+   "note": "2014 Ford F-150 technical specifications (Ford spec sheet as hosted by a fleet trade publication); inches as written, converted; bore and stroke only (Raptor and Super Duty presets)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "6.2 Boss SOHC V8 (Raptor, F-150, Super Duty)",
+     "arr": "MOTORS",
+     "cc": 6210,
+     "cyl": 8,
+     "geo": 6223.6,
+     "dPct": 0.22,
+     "had": null
+    },
+    {
+     "name": "2010–14 Ford F-150 SVT Raptor (6.2 Boss)",
+     "arr": "VEH",
+     "cc": 6210,
+     "cyl": 8,
+     "geo": 6223.6,
+     "dPct": 0.22,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen3": {
+   "names": [
+    "2022–23 Ford Mustang GT (Coyote 5.0)"
+   ],
+   "bore": 93,
+   "stroke": 92.7,
+   "cr": 12,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/documents/en/2022/2022_Mustang_Tech_Spec_EU.pdf",
+   "q": "maker data",
+   "says": "5.0-litre V8; 5038 cc; 93.0 x 92.7 mm; 12.0:1; 450 PS (331 kW) @ 7000 rpm",
+   "note": "Ford of Europe 2022 Mustang technical specification",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2022–23 Ford Mustang GT (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5038,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen3b": {
+   "names": [
+    "2019–20 Ford Mustang Bullitt (Coyote 5.0)",
+    "2018–20 Ford Mustang GT (Coyote 5.0)"
+   ],
+   "bore": 93,
+   "stroke": 92.7,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/documents/en/2022/2022_Mustang_Tech_Spec_EU.pdf",
+   "q": "maker data",
+   "says": "5.0-litre V8; 5038 cc; 93.0 x 92.7 mm (2022 Mustang)",
+   "note": "Ford of Europe 2022 Mustang technical specification; bore and stroke only for the 2018-20 Gen 3 Coyote presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2019–20 Ford Mustang Bullitt (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5038,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  }
+ },
+ "review": {
+  "ford-f150-2014-37-35": {
+   "found": "2014 F-150 sheet gives 3.7L V6 3.76 x 3.45 in. and 3.5L EcoBoost 3.64 x 3.45 in.; 3.76 x 3.45 x 6 = 3,770 cc against 3,726 (+1.2 %); the 2016 Mustang sheet gives the 3.7 as 95.5 x 86.7 mm and the 2020 F-150 the 3.5 as 3.64 x 3.41 in",
+   "src": "https://cdn.base.parameter1.com/files/base/acbm/fcp/document/2013/06/2014-f150-specs_10978717.pdf",
+   "why": "the 3.45 in stroke of this sheet disagrees with Fords other sheets and with the displacement; not used",
+   "seen": "2026-11-19"
+  },
+  "ford-coyote-gen3b": {
+   "found": {
+    "bore": 93,
+    "stroke": 92.7,
+    "src": "https://media.ford.com/content/dam/fordmedia/Europe/documents/en/2022/2022_Mustang_Tech_Spec_EU.pdf",
+    "says": "5.0-litre V8; 5038 cc; 93.0 x 92.7 mm (2022 Mustang)",
+    "q": "maker data"
+   },
+   "mismatch": [
+    {
+     "name": "2018–20 Ford Mustang GT (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 4951,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 1.75,
+     "had": null
+    }
+   ],
+   "why": "the preset gives 4,951 cc (the Gen 1/2 figure) for the 2018-20 Mustang GT; Ford gives the Gen 3 Coyote as 5038 cc, 93.0 x 92.7 mm. The preset displacement looks wrong (owner to confirm); bore and stroke not applied to it"
+  }
+ },
+ "tried": {}
+}
