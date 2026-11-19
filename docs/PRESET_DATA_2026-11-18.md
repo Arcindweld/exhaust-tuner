@@ -356,7 +356,7 @@ bore-and-stroke line pushed out (it now reads 800); ui_ui.js's "nothing lost" wo
 going from 87.0 to 87 when they were first shown to two decimals, so the note keeps one decimal and shows two only where
 the source has them (103.25).
 
-Suite (web, parity, -j 2, --skip-slow) on the final code: {{SUITE}}.
+Suite (web, parity, -j 2, --skip-slow) on the final code: 146 tests, 139 passed, 0 failed, 7 skipped and 7 partial skips (no OpenWAM build, no host program here); presetdata_ui among the passes.
 
 ## 8. How to rerun
 

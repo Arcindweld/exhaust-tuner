@@ -2355,3 +2355,5 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
   fours and sixes. Needs review: the 2018-20 Mustang GT preset gives 4,951 cc (Ford gives the Gen 3 Coyote 5038 cc);
   Ford's 2014 F-150 sheet's 3.45 in strokes disagree with Ford's other sheets.
 - New test web/tests/presetdata_ui.js.
+- Full suite (web, parity, -j 2, --skip-slow) on the final code: 146 tests, 139 passed, 0 failed, 7 skipped and 7
+  partial skips. motor_ui.js and ui_ui.js adjusted for the new note text (no numeric pin moved).
