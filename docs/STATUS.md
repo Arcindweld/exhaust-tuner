@@ -2339,3 +2339,21 @@ Three failed; each is now reproduced by the fake-API tests in the container and 
   apart from Hangers. Page +14,366 bytes. Tools in tools/perf/, the long guard run tools/validation/incremental_sweep.js.
 - Full suite (web, parity, -j 2, --skip-slow) on the final code: 145 tests, 138 passed, 0 failed, 7 skipped and 7
   partial skips (no OpenWAM build, no host program here).
+
+## 2026-11-18: engine presets' bore and stroke sourced (docs/PRESET_DATA_2026-11-18.md)
+- 144 of the 515 car-list four-stroke presets that had no bore and stroke now carry sourced figures (221 of 592 with
+  them, against 77), plus 4 vehicle-only entries and 6 that now name a better source: 154 preset lines from 88 source
+  entries, 137 lines from maker data (press kits, technical data sheets, maker crate and industrial engine pages), 10
+  reputable vendor, 2 magazine, 5 encyclopedia. Every pair checked: pi/4 x bore^2 x stroke x cylinders within 1 % of
+  the preset; compression, valves and redline only where the same source states them for that model.
+- tools/validation/presets/: export.js (work list), rs.js (resumable research checkpoint research.json), apply.js
+  (writes it into the preset lines, idempotent, --check), effect.js (estimate against the sourced figures, wave runs of
+  30 presets before and after), report.js (the document's tables). Page: bsSrc/bsQ on the presets, the source label in
+  the preset note, "estimated from the displacement" with the measure-it-yourself hint in the note and on the 4-Stroke
+  tab's wave simulation for the presets still without figures; window.__presets test hook.
+- The estimate (bore 1.2 x stroke) ran -7 to +28 % in stroke on the presets changed, worst on the long-stroke turbo
+  fours and sixes. Needs review: the 2018-20 Mustang GT preset gives 4,951 cc (Ford gives the Gen 3 Coyote 5038 cc);
+  Ford's 2014 F-150 sheet's 3.45 in strokes disagree with Ford's other sheets.
+- New test web/tests/presetdata_ui.js.
+- Full suite (web, parity, -j 2, --skip-slow) on the final code: 146 tests, 139 passed, 0 failed, 7 skipped and 7
+  partial skips. motor_ui.js and ui_ui.js adjusted for the new note text (no numeric pin moved).

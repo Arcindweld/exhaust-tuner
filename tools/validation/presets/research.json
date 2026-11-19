@@ -1,0 +1,2745 @@
+{
+ "about": "bore and stroke sourcing, docs/PRESET_DATA_2026-11-18.md",
+ "engines": {
+  "gm-lt1-gen5": {
+   "sel": "^LT1( \\(Gen V\\))?$",
+   "cc": [
+    6100,
+    6200
+   ],
+   "bore": 103.25,
+   "stroke": 92,
+   "cr": 11.5,
+   "src": "https://www.chevrolet.com/performance-parts/crate-engines/lt-engines/lt1-engine",
+   "says": "376 cu. in. (6.2L); (103.25 mm x 92 mm) 4.065 x 3.622; compression 11.5:1",
+   "q": "maker data",
+   "note": "Chevrolet Performance LT1 crate engine page (the production LT1)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "LT1 6.2 V8 (Corvette C7, Camaro SS, crate)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2016+ Chevrolet Camaro SS (LT1)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2014–19 Chevrolet Corvette C7 Stingray / Grand Sport (LT1)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-l87": {
+   "sel": "^L86",
+   "cc": [
+    6100,
+    6200
+   ],
+   "bore": 103.25,
+   "stroke": 92,
+   "cr": 11.5,
+   "valves": 2,
+   "src": "https://poweredsolutions.gm.com/products/l87-engine/",
+   "says": "Displacement 6162 cc; Bore x Stroke 103.25 x 92 mm; Compression Ratio 11.5:1; Valves per Cylinder 2",
+   "q": "maker data",
+   "note": "GM Powered Solutions L87 6.2L page; the L86/L87 truck preset",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "L86/L87 6.2 V8 (Silverado, Sierra, Tahoe, Escalade)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2014+ Chevrolet Silverado / GMC Sierra 1500 (6.2 L86/L87)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt4": {
+   "sel": "^LT4$",
+   "cc": [
+    6100,
+    6200
+   ],
+   "bore": 103.25,
+   "stroke": 92,
+   "cr": 10,
+   "src": "https://www.chevrolet.com/performance/crate-engines/lt4.html",
+   "says": "376 cu. in. (6.2L); 4.065 in. x 3.622 in. (103.25 x 92mm); compression 10:1",
+   "q": "maker data",
+   "note": "Chevrolet Performance LT4 crate engine page (the production LT4)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "LT4 6.2 supercharged V8 (Corvette Z06, ZL1, CTS-V, crate)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2015–19 Chevrolet Corvette Z06 (LT4)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2017–24 Chevrolet Camaro ZL1 (LT4)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2016–19 Cadillac CTS-V (LT4)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt6": {
+   "sel": "^LT6$",
+   "bore": 104.25,
+   "stroke": 80,
+   "src": "https://www.enginelabs.com/?p=6198",
+   "says": "5.5 liters ... 333 cubic inches; 104.25mm (4.104 inches) bore diameter; 80mm (3.150 inches) stroke; maximum RPM limit in the production vehicle will be 8,600 rpm",
+   "q": "magazine test",
+   "note": "EngineLabs on GM announcement of the LT6",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "LT6 5.5 flat-plane V8 (Corvette C8 Z06)",
+     "arr": "MOTORS",
+     "cc": 5463,
+     "cyl": 8,
+     "geo": 5462.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2023+ Chevrolet Corvette Z06 (LT6)",
+     "arr": "VEH",
+     "cc": 5463,
+     "cyl": 8,
+     "geo": 5462.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-l84": {
+   "sel": "^L83 / L84",
+   "bore": 96,
+   "stroke": 92,
+   "src": "https://poweredsolutions.gm.com/products/engines/l84-engine",
+   "says": "5328cc; 96 x 92 mm; 11.0:1; 2 valves; 5800 RPM",
+   "q": "maker data",
+   "note": "GM Powered Solutions L84 5.3L page; applied to the combined L83/L84 preset (bore and stroke only; the compression is the L84s)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "L83/L84 5.3 V8 (Silverado, Sierra, Tahoe)",
+     "arr": "MOTORS",
+     "cc": 5328,
+     "cyl": 8,
+     "geo": 5327.3,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-l8t": {
+   "sel": "^L8T",
+   "bore": 103.25,
+   "stroke": 98,
+   "cr": 10.8,
+   "valves": 2,
+   "src": "https://poweredsolutions.gm.com/products/engines/l8t-engine",
+   "says": "6564 cc (400 CI); 103.25 x 98.0 mm; 10.8:1; two valves per cylinder; 5600 RPM",
+   "q": "maker data",
+   "note": "GM Powered Solutions L8T 6.6L page",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "L8T 6.6 iron-block V8 (Silverado HD, crate)",
+     "arr": "MOTORS",
+     "cc": 6564,
+     "cyl": 8,
+     "geo": 6564.3,
+     "dPct": 0,
+     "had": [
+      103.25,
+      98
+     ]
+    },
+    {
+     "name": "2020–26 Chevrolet Silverado HD / GMC Sierra HD (6.6 L8T)",
+     "arr": "VEH",
+     "cc": 6564,
+     "cyl": 8,
+     "geo": 6564.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen4": {
+   "sel": "^Gen 4 Coyote$",
+   "bore": 93,
+   "stroke": 92.7,
+   "cr": 12,
+   "src": "https://performanceparts.ford.com/part/M-6007-M50D",
+   "says": "5.0L GEN 4 MUSTANG CRATE ENGINE; Bore 93 mm x Stroke 92.7 mm; 12.0:1 Compression ratio; 480 Horsepower @ 7,150 rpm",
+   "q": "maker data",
+   "note": "Ford Performance Gen 4 Mustang crate engine (the production Gen 4 Coyote)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Gen 4 Coyote 5.0 V8 (2024+ Mustang GT)",
+     "arr": "MOTORS",
+     "cc": 5037,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2024+ Ford Mustang GT (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5037,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2024+ Ford Mustang GT with active exhaust (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5037,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen4dh": {
+   "sel": "^Gen 4 Coyote \\(Dark Horse\\)$",
+   "bore": 93,
+   "stroke": 92.7,
+   "cr": 12,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2026/specs/2026_Mustang_Technical_Specs.pdf",
+   "q": "maker data",
+   "says": "5.0L Coyote V8 (Mustang Dark Horse): 5.0/307; bore x stroke 3.66 x 3.65; compression 12.0; 500 @ 7,250",
+   "note": "Ford 2026 Mustang technical specifications (inches); the mm figures are Ford Performance Gen 4 crate engine page figures, 93 x 92.7 mm (M-6007-M50D), which the inch figures round",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2024+ Ford Mustang Dark Horse (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5037,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen2": {
+   "sel": "^Gen 2 Coyote$",
+   "bore": 92.2,
+   "stroke": 92.7,
+   "cr": 11,
+   "ccStated": 4951,
+   "src": "https://media.ford.com/content/dam/lincolnmedia/lna/us/product/2016/2016-Ford-Mustang-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "5.0-liter V8, 302 cu. in. (4,951 cc), 3.63 x 3.65 in. (92.2 x 92.7 mm), 11.0:1, 435 @ 6,500 rpm",
+   "note": "Ford 2016 Mustang technical specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Gen 2 Coyote 5.0 V8 (2015–17 Mustang GT)",
+     "arr": "MOTORS",
+     "cc": 4951,
+     "cyl": 8,
+     "geo": 4951.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2015–17 Ford Mustang GT (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 4951,
+     "cyl": 8,
+     "geo": 4951.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-37-cyclone": {
+   "sel": "^3.7 Cyclone",
+   "bore": 95.5,
+   "stroke": 86.7,
+   "src": "https://media.ford.com/content/dam/lincolnmedia/lna/us/product/2016/2016-Ford-Mustang-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "3.7-liter V6, 227 cu. in. (3,727 cc), 3.76 x 3.41 in. (95.5 x 86.7 mm), 10.5:1, 300 @ 6,500 rpm",
+   "note": "Ford 2016 Mustang technical specifications; bore and stroke only for the 2011-14 Mustang and F-150 presets (same 3.7 V6, 3,727 cc)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "3.7 Cyclone (Duratec 37) V6 (Mustang, F-150)",
+     "arr": "MOTORS",
+     "cc": 3726,
+     "cyl": 6,
+     "geo": 3726.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2011–14 Ford Mustang V6 (3.7 Cyclone)",
+     "arr": "VEH",
+     "cc": 3726,
+     "cyl": 6,
+     "geo": 3726.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-23-ecoboost-mustang": {
+   "names": [
+    "2.3 EcoBoost turbo I4 (Mustang EcoBoost)",
+    "2020–23 Ford Mustang EcoBoost High Performance Package (2.3 L)",
+    "2018–23 Ford Mustang EcoBoost (2.3 L)"
+   ],
+   "bore": 87.55,
+   "stroke": 94,
+   "src": "https://media.ford.com/content/dam/lincolnmedia/lna/us/product/2016/2016-Ford-Mustang-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "2.3-liter EcoBoost I-4, 140 cu. in. (2,300 cc), 3.45 x 3.7 in. (87.55 x 94 mm), 9.5:1, 310 @ 5,500 rpm",
+   "note": "Ford 2016 Mustang technical specifications; bore and stroke only for the later Mustang 2.3 EcoBoost presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2.3 EcoBoost turbo I4 (Mustang EcoBoost)",
+     "arr": "MOTORS",
+     "cc": 2261,
+     "cyl": 4,
+     "geo": 2263.5,
+     "dPct": 0.11,
+     "had": null
+    },
+    {
+     "name": "2018–23 Ford Mustang EcoBoost (2.3 L)",
+     "arr": "VEH",
+     "cc": 2261,
+     "cyl": 4,
+     "geo": 2263.5,
+     "dPct": 0.11,
+     "had": null
+    },
+    {
+     "name": "2020–23 Ford Mustang EcoBoost High Performance Package (2.3 L)",
+     "arr": "VEH",
+     "cc": 2261,
+     "cyl": 4,
+     "geo": 2263.5,
+     "dPct": 0.11,
+     "had": null
+    }
+   ]
+  },
+  "ford-23-ecoboost-mustang-1517": {
+   "names": [
+    "2015–17 Ford Mustang EcoBoost (2.3 L)"
+   ],
+   "bore": 87.55,
+   "stroke": 94,
+   "cr": 9.5,
+   "src": "https://media.ford.com/content/dam/lincolnmedia/lna/us/product/2016/2016-Ford-Mustang-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "2.3-liter EcoBoost I-4, 140 cu. in. (2,300 cc), 3.45 x 3.7 in. (87.55 x 94 mm), 9.5:1, 310 @ 5,500 rpm",
+   "note": "Ford 2016 Mustang technical specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2015–17 Ford Mustang EcoBoost (2.3 L)",
+     "arr": "VEH",
+     "cc": 2261,
+     "cyl": 4,
+     "geo": 2263.5,
+     "dPct": 0.11,
+     "had": null
+    }
+   ]
+  },
+  "ford-23-ecoboost-2024": {
+   "sel": "^2.3 EcoBoost$",
+   "cc": [
+    2250,
+    2256
+   ],
+   "bore": 83.82,
+   "stroke": 101.6,
+   "cr": 10.6,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2026/specs/2026_Mustang_Technical_Specs.pdf",
+   "q": "maker data",
+   "says": "2.3L EcoBoost I-4 (Mustang EcoBoost): 2.3/137.5; bore x stroke 3.30 x 4.00; compression 10.6; 315 @ 5,500",
+   "note": "Ford 2026 Mustang technical specifications; inches as written, converted (3.30 x 4.00 in = 83.82 x 101.6 mm)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2024+ Ford Mustang EcoBoost (2.3 L)",
+     "arr": "VEH",
+     "cc": 2253,
+     "cyl": 4,
+     "geo": 2242.5,
+     "dPct": -0.46,
+     "had": null
+    }
+   ]
+  },
+  "ford-27-ecoboost": {
+   "sel": "^2.7 EcoBoost$",
+   "bore": 82.98,
+   "stroke": 82.98,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "2.7L EcoBoost V6; 2.7 liters (164 cubic inches); 3.267 inches x 3.267 inches; 10.3:1; 325 hp @5,000 rpm",
+   "note": "Ford 2020 F-150 technical specifications; inches as written, converted; bore and stroke only (the Edge ST and Bronco carry the same 2.7 EcoBoost)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2.7 EcoBoost twin-turbo V6 (F-150, Edge ST, Bronco)",
+     "arr": "MOTORS",
+     "cc": 2694,
+     "cyl": 6,
+     "geo": 2692.5,
+     "dPct": -0.05,
+     "had": null
+    },
+    {
+     "name": "2015–17 Ford F-150 (2.7 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2694,
+     "cyl": 6,
+     "geo": 2692.5,
+     "dPct": -0.05,
+     "had": null
+    },
+    {
+     "name": "2019–24 Ford Edge ST (2.7 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2694,
+     "cyl": 6,
+     "geo": 2692.5,
+     "dPct": -0.05,
+     "had": null
+    }
+   ]
+  },
+  "ford-35-ecoboost-g2": {
+   "names": [
+    "3.5 EcoBoost twin-turbo V6 Gen 2 (F-150)"
+   ],
+   "bore": 92.46,
+   "stroke": 86.61,
+   "cr": 10.5,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "3.5L EcoBoost V6; 3.5 liters (213 cubic inches); 3.64 inches x 3.41 inches; 10.5:1; 375 hp @5,000 rpm",
+   "note": "Ford 2020 F-150 technical specifications; inches as written, converted",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "3.5 EcoBoost twin-turbo V6 Gen 2 (F-150)",
+     "arr": "MOTORS",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    }
+   ]
+  },
+  "ford-35-ecoboost-other": {
+   "names": [
+    "2021+ Ford F-150 (3.5 EcoBoost)",
+    "2010–19 Ford Taurus SHO (3.5 EcoBoost)"
+   ],
+   "bore": 92.46,
+   "stroke": 86.61,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "3.5L EcoBoost V6; 3.5 liters (213 cubic inches); 3.64 inches x 3.41 inches",
+   "note": "Ford 2020 F-150 technical specifications; inches as written, converted; bore and stroke only for the other 3.5 EcoBoost presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–19 Ford Taurus SHO (3.5 EcoBoost)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    },
+    {
+     "name": "2021+ Ford F-150 (3.5 EcoBoost)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    }
+   ]
+  },
+  "ford-35-ecoboost-ho": {
+   "names": [
+    "3.5 EcoBoost High Output twin-turbo V6 (Raptor, Limited)",
+    "2017–20 Ford F-150 Raptor (3.5 EcoBoost HO)"
+   ],
+   "bore": 92.46,
+   "stroke": 86.61,
+   "cr": 10,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "3.5L EcoBoost V6 (high output row); 3.5 liters (213 cubic inches); 3.64 inches x 3.41 inches; 10.0:1; 450 hp @5,000 rpm",
+   "note": "Ford 2020 F-150 technical specifications, the 450 hp 3.5 EcoBoost row (the Raptor and Limited engine); inches as written, converted",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "3.5 EcoBoost High Output twin-turbo V6 (Raptor, Limited)",
+     "arr": "MOTORS",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    },
+    {
+     "name": "2017–20 Ford F-150 Raptor (3.5 EcoBoost HO)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen3-truck": {
+   "names": [
+    "Gen 3 Coyote 5.0 V8 (2018–20 F-150)",
+    "2018–20 Ford F-150 (Coyote 5.0)"
+   ],
+   "bore": 92.96,
+   "stroke": 92.71,
+   "cr": 12,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "5.0L V8; 5.0 liters (307 cubic inches); 3.66 inches x 3.65 inches; 12:1; 395 hp @5,750 rpm",
+   "note": "Ford 2020 F-150 technical specifications; inches as written, converted",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Gen 3 Coyote 5.0 V8 (2018–20 F-150)",
+     "arr": "MOTORS",
+     "cc": 5035,
+     "cyl": 8,
+     "geo": 5033.8,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2018–20 Ford F-150 (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5035,
+     "cyl": 8,
+     "geo": 5033.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-35-ecoboost-ho21": {
+   "names": [
+    "2021+ Ford F-150 Raptor (3.5 EcoBoost HO)"
+   ],
+   "bore": 92.46,
+   "stroke": 86.61,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "3.5L EcoBoost V6; 3.64 inches x 3.41 inches",
+   "note": "Ford 2020 F-150 technical specifications; bore and stroke only for the 2021+ Raptor",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2021+ Ford F-150 Raptor (3.5 EcoBoost HO)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3489.1,
+     "dPct": -0.2,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen3-truck21": {
+   "names": [
+    "2021+ Ford F-150 (Coyote 5.0)"
+   ],
+   "bore": 92.96,
+   "stroke": 92.71,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2020/specs/2020-F-150-Technical-Specs.pdf",
+   "q": "maker data",
+   "says": "5.0L V8; 3.66 inches x 3.65 inches",
+   "note": "Ford 2020 F-150 technical specifications; bore and stroke only for the 2021+ truck",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2021+ Ford F-150 (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5035,
+     "cyl": 8,
+     "geo": 5033.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen1-truck": {
+   "names": [
+    "2011–14 Ford F-150 (Coyote 5.0)"
+   ],
+   "bore": 92.2,
+   "stroke": 92.71,
+   "cr": 10.5,
+   "src": "https://cdn.base.parameter1.com/files/base/acbm/fcp/document/2013/06/2014-f150-specs_10978717.pdf",
+   "q": "maker data",
+   "says": "5.0L V8; 302 cu. in.; 3.63 x 3.65 in.; 10.5:1; 360 @ 5,500 rpm",
+   "note": "2014 Ford F-150 technical specifications (Ford spec sheet as hosted by a fleet trade publication); inches as written, converted",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2011–14 Ford F-150 (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 4951,
+     "cyl": 8,
+     "geo": 4951.9,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-62-boss": {
+   "sel": "^6.2 Boss$",
+   "bore": 102.11,
+   "stroke": 95,
+   "src": "https://cdn.base.parameter1.com/files/base/acbm/fcp/document/2013/06/2014-f150-specs_10978717.pdf",
+   "q": "maker data",
+   "says": "6.2L V8; 379 cu. in.; 4.02 x 3.74 in.; 9.8:1; 411 @ 5,500 rpm",
+   "note": "2014 Ford F-150 technical specifications (Ford spec sheet as hosted by a fleet trade publication); inches as written, converted; bore and stroke only (Raptor and Super Duty presets)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "6.2 Boss SOHC V8 (Raptor, F-150, Super Duty)",
+     "arr": "MOTORS",
+     "cc": 6210,
+     "cyl": 8,
+     "geo": 6223.6,
+     "dPct": 0.22,
+     "had": null
+    },
+    {
+     "name": "2010–14 Ford F-150 SVT Raptor (6.2 Boss)",
+     "arr": "VEH",
+     "cc": 6210,
+     "cyl": 8,
+     "geo": 6223.6,
+     "dPct": 0.22,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen3": {
+   "names": [
+    "2022–23 Ford Mustang GT (Coyote 5.0)"
+   ],
+   "bore": 93,
+   "stroke": 92.7,
+   "cr": 12,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/documents/en/2022/2022_Mustang_Tech_Spec_EU.pdf",
+   "q": "maker data",
+   "says": "5.0-litre V8; 5038 cc; 93.0 x 92.7 mm; 12.0:1; 450 PS (331 kW) @ 7000 rpm",
+   "note": "Ford of Europe 2022 Mustang technical specification",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2022–23 Ford Mustang GT (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5038,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-coyote-gen3b": {
+   "names": [
+    "2019–20 Ford Mustang Bullitt (Coyote 5.0)",
+    "2018–20 Ford Mustang GT (Coyote 5.0)"
+   ],
+   "bore": 93,
+   "stroke": 92.7,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/documents/en/2022/2022_Mustang_Tech_Spec_EU.pdf",
+   "q": "maker data",
+   "says": "5.0-litre V8; 5038 cc; 93.0 x 92.7 mm (2022 Mustang)",
+   "note": "Ford of Europe 2022 Mustang technical specification; bore and stroke only for the 2018-20 Gen 3 Coyote presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2019–20 Ford Mustang Bullitt (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 5038,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-992-gt3": {
+   "names": [
+    "2022+ Porsche 911 GT3 (992, 4.0)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "cr": 13.3,
+   "red": 9000,
+   "src": "https://media.porsche.com/mediakit/911-gt3-touring-package/specifications/pdk/PAG-992-911GT3-TP-PDK-WLTP-EN.pdf",
+   "says": "3,996 cm3; bore 102.0 mm; stroke 81.5 mm; compression 13.3:1; maximum engine speed 9,000 1/min; 375 kW (510 PS) at 8,400 1/min",
+   "q": "maker data",
+   "note": "Porsche 992 911 GT3 Touring technical data (the same engine as the GT3)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2022+ Porsche 911 GT3 (992, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-992-gt3rs": {
+   "sel": "^MDG.H 4.0 \\(RS\\)$",
+   "bore": 102,
+   "stroke": 81.5,
+   "cr": 13.3,
+   "red": 9000,
+   "src": "https://download.newsroom.porsche.com/dam/jcr:1d390f77-93c3-49c0-89c7-634f5f02b26a/S22_3515_en.pdf",
+   "says": "911 GT3 RS (MY 2023): 3,996 cm3; bore 102.0 mm; stroke 81.5 mm; 13.3:1; 9,000 1/min; 386 kW (525 PS) at 8,500 1/min",
+   "q": "maker data",
+   "note": "Porsche newsroom technical data, 992 911 GT3 RS",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2023–24 Porsche 911 GT3 RS / S/T (992.1, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-carrera36": {
+   "names": [
+    "2009–11 Porsche 911 Carrera (997.2, 3.6 DFI)"
+   ],
+   "bore": 97,
+   "stroke": 81.5,
+   "cr": 12.5,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "MA1.02, 2009-2011 Carrera, Carrera 4, Targa 4, 3.6L, 97mm x 81.5mm, 12.5:1",
+   "note": "FCP Euro 997 engine guide (parts vendor; its engine code differs from the presets MA1.01)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2009–11 Porsche 911 Carrera (997.2, 3.6 DFI)",
+     "arr": "VEH",
+     "cc": 3614,
+     "cyl": 6,
+     "geo": 3613.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-carreras38": {
+   "names": [
+    "2009–12 Porsche 911 Carrera S / GTS (997.2, 3.8 DFI)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "MA1.01, 2009-2011 Carrera S, Carrera 4S, Targa 4S, 3.8L, 102mm x 77.5mm, 12.5:1; MA1.01S, 2010-2011 Carrera GTS, 102mm x 77.5mm, 11.5:1",
+   "note": "FCP Euro 997 engine guide; bore and stroke only (the preset covers the S and the GTS, whose compression differs in the guide)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2009–12 Porsche 911 Carrera S / GTS (997.2, 3.8 DFI)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-turbo38": {
+   "names": [
+    "2010–13 Porsche 911 Turbo (997.2, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "cr": 9.8,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "MA1.70, 2009-2013 Turbo, 3.8L, 102mm x 77.5mm, 9.8:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–13 Porsche 911 Turbo (997.2, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt3-38": {
+   "names": [
+    "2010–11 Porsche 911 GT3 (997.2, 3.8 Mezger)"
+   ],
+   "bore": 102.7,
+   "stroke": 76.4,
+   "cr": 12,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.77, 2010-2012 GT3, 3.8L, 102.7mm x 76.4mm, 12.0:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–11 Porsche 911 GT3 (997.2, 3.8 Mezger)",
+     "arr": "VEH",
+     "cc": 3797,
+     "cyl": 6,
+     "geo": 3797.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt3rs-38": {
+   "names": [
+    "2010–11 Porsche 911 GT3 RS (997.2, 3.8 Mezger)"
+   ],
+   "bore": 102.7,
+   "stroke": 76.4,
+   "cr": 12.2,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.77R, 2010-2012 GT3RS, 3.8L, 102.7mm x 76.4mm, 12.2:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–11 Porsche 911 GT3 RS (997.2, 3.8 Mezger)",
+     "arr": "VEH",
+     "cc": 3797,
+     "cyl": 6,
+     "geo": 3797.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt3-38m": {
+   "names": [
+    "M97.76 3.8 flat-six (997.2 GT3)"
+   ],
+   "bore": 102.7,
+   "stroke": 76.4,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.77, 2010-2012 GT3, 3.8L, 102.7mm x 76.4mm",
+   "note": "FCP Euro 997 engine guide (the 997.2 GT3 3.8; bore and stroke only)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "M97.76 3.8 flat-six (997.2 GT3)",
+     "arr": "MOTORS",
+     "cc": 3797,
+     "cyl": 6,
+     "geo": 3797.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt3rs40": {
+   "names": [
+    "2011 Porsche 911 GT3 RS 4.0 (997, Mezger)"
+   ],
+   "bore": 102.7,
+   "stroke": 80.4,
+   "cr": 12.6,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.74, 2012 GT3RS 4.0, 4.0L, 102.7mm x 80.4mm, 12.6:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2011 Porsche 911 GT3 RS 4.0 (997, Mezger)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3996.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt2": {
+   "names": [
+    "2008–09 Porsche 911 GT2 (997, 3.6 twin-turbo)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "cr": 9,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.70S, 2008 GT2, 3.6L, 100mm x 76.4mm, 9.0:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2008–09 Porsche 911 GT2 (997, 3.6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-k24z7-si13": {
+   "names": [
+    "2012–13 Honda Civic Si (K24Z7)"
+   ],
+   "bore": 87,
+   "stroke": 99,
+   "cr": 11,
+   "valves": 4,
+   "red": 7000,
+   "src": "https://hondanews.com/en-US/honda-automobiles/releases/release-c93c7e8146714964a03663394bcf5e40-2013-honda-civic-si-specifications",
+   "says": "In-Line 4-Cylinder; 2354 cc; 87 x 99 mm; 11.0 : 1; redline 7000 rpm; 201 @ 7000; 16-Valve DOHC i-VTEC",
+   "q": "maker data",
+   "note": "Honda 2013 Civic Si specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2012–13 Honda Civic Si (K24Z7)",
+     "arr": "VEH",
+     "cc": 2354,
+     "cyl": 4,
+     "geo": 2354.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "hon-k20a-tr": {
+   "sel": "^K20(A|A2|A3|Z1|Z3|A \\(JDM\\))$",
+   "cc": [
+    1990,
+    2000
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://global.honda/en/technical-review/PDF/012-2/012-2_45e.pdf",
+   "says": "86 x 86 mm (K20A, 1998 cc; valves 35 / 30 mm)",
+   "q": "maker data",
+   "seen": "2026-11-15",
+   "note": "Honda R&D Technical Review on the K20A, as read and recorded for the K-series round (docs/WAVE_VALIDATION_2026-11-11.md part 14, N1), the source of the K20A2 and K20Z3 engine presets; bore and stroke only for the other K20A-family presets",
+   "targets": [
+    {
+     "name": "K20A2 2.0 i-VTEC (RSX Type-S, Euro Civic Type R)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": [
+      86,
+      86
+     ]
+    },
+    {
+     "name": "K20A 2.0 i-VTEC (JDM Integra Type R DC5, Civic Type R FD2)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "K20Z3 2.0 i-VTEC (2006–11 Civic Si)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": [
+      86,
+      86
+     ]
+    },
+    {
+     "name": "2002–05 Honda Civic Si EP3 (K20A3)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2006–11 Honda Civic Si (K20Z3)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2001–06 Honda Civic Type R EP3 (K20A, JDM)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–11 Honda Civic Type R FD2 (K20A)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2002–04 Acura RSX Type-S (K20A2)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2005–06 Acura RSX Type-S (K20Z1)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-b17a1": {
+   "sel": "^B17A1$",
+   "bore": 81,
+   "stroke": 81.4,
+   "src": "https://en.wikipedia.org/wiki/Honda_B_engine",
+   "q": "secondary: encyclopedia",
+   "says": "1.7 L VTEC (GS-R): Displacement 1.7 L (1,678 cc); Bore x Stroke 81 mm x 81.4 mm; Compression 9.7:1",
+   "note": "Wikipedia, Honda B engine (no maker page found); bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "1992–93 Acura Integra GS-R (B17A1)",
+     "arr": "VEH",
+     "cc": 1678,
+     "cyl": 4,
+     "geo": 1677.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-b18c": {
+   "sel": "^B18C[15]?$",
+   "bore": 81,
+   "stroke": 87.2,
+   "src": "https://en.wikipedia.org/wiki/Honda_B_engine",
+   "q": "secondary: encyclopedia",
+   "says": "B18C (GSR and Integra Type R entries): 1.8 L (1,797 cc); Bore x Stroke 81 mm x 87.2 mm",
+   "note": "Wikipedia, Honda B engine (no maker page found); bore and stroke only (the compression differs by version)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "B18C1 1.8 VTEC (1994–2001 Integra GS-R)",
+     "arr": "MOTORS",
+     "cc": 1797,
+     "cyl": 4,
+     "geo": 1797.4,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "B18C5 1.8 VTEC (1997–2001 Integra Type R, US)",
+     "arr": "MOTORS",
+     "cc": 1797,
+     "cyl": 4,
+     "geo": 1797.4,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "1997–2001 Acura Integra Type R (B18C)",
+     "arr": "VEH",
+     "cc": 1797,
+     "cyl": 4,
+     "geo": 1797.4,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "1994–2001 Acura Integra GS-R (B18C1)",
+     "arr": "VEH",
+     "cc": 1797,
+     "cyl": 4,
+     "geo": 1797.4,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "hon-c32b": {
+   "sel": "^C32B$",
+   "bore": 93,
+   "stroke": 78,
+   "cr": 10.2,
+   "valves": 4,
+   "red": 8000,
+   "src": "https://acuranews.com/en-US/releases/release-f0234886aa7d781e2080c7004c34c8f7-2000-acura-nsx-nsx-t-specifications",
+   "q": "maker data",
+   "says": "Manual (3.2L): 194 cu in (3179 cc); 3.66 in x 3.07 in (93.0 mm x 78.0 mm); 10.2:1; redline 8000 rpm; 290 hp @ 7100 rpm; 4-valves-per-cylinder",
+   "note": "Acura 2000 NSX specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "C32B 3.2 V6 (1997–2005 NSX manual)",
+     "arr": "MOTORS",
+     "cc": 3179,
+     "cyl": 6,
+     "geo": 3179.1,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1997–2005 Honda NSX (C32B, manual)",
+     "arr": "VEH",
+     "cc": 3179,
+     "cyl": 6,
+     "geo": 3179.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "hon-c30a": {
+   "sel": "^C30A",
+   "bore": 90,
+   "stroke": 78,
+   "src": "https://acuranews.com/en-US/releases/release-f0234886aa7d781e2080c7004c34c8f7-2000-acura-nsx-nsx-t-specifications",
+   "q": "maker data",
+   "says": "Automatic (3.0L): 181 cu in (2977 cc); 3.54 in x 3.07 in (90.0 mm x 78.0 mm)",
+   "note": "Acura 2000 NSX specifications, the 3.0 L of the automatic (2977 cc, as the preset); bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "1990–96 Honda NSX (C30A, manual)",
+     "arr": "VEH",
+     "cc": 2977,
+     "cyl": 6,
+     "geo": 2977.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-f20c-02": {
+   "names": [
+    "2000–03 Honda S2000 (F20C)"
+   ],
+   "bore": 87,
+   "stroke": 84,
+   "cr": 11,
+   "src": "https://hondanews.com/en-US/releases/release-ac6c52b46473ca4f83631d004c34c7ed-2002-honda-s2000-specifications",
+   "says": "Displacement 1997/121.9 (cc/cu. in.); bore and stroke 87.0 x 84.0/3.42 x 3.30 (mm/in.); compression 11.0:1; 240@8300",
+   "q": "maker data",
+   "note": "Honda 2002 S2000 specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2000–03 Honda S2000 (F20C)",
+     "arr": "VEH",
+     "cc": 1997,
+     "cyl": 4,
+     "geo": 1997.4,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "toy-2jz-gte": {
+   "sel": "^2JZ-GTE$",
+   "bore": 86,
+   "stroke": 86,
+   "cr": 8.5,
+   "src": "https://www.hpacademy.com/blog/everything-you-need-to-know-about-the-2jz-gte/",
+   "says": "86.0mm bore, 86.0mm stroke, 8.5:1 compression ratio; 2997cc (factory specs section)",
+   "q": "reputable vendor",
+   "note": "High Performance Academy (engine-tuning training company) technical article",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2JZ-GTE 3.0 twin-turbo I6 (Supra Turbo, US)",
+     "arr": "MOTORS",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "1993–98 Toyota Supra Turbo (2JZ-GTE)",
+     "arr": "VEH",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "toy-2ur-gse": {
+   "sel": "^2UR-GSE$",
+   "bore": 94,
+   "stroke": 89.5,
+   "src": "https://media.lexus.co.uk/wp-content/uploads/sites/3/pdf/220201M-RC-F-Tech-Spec.pdf",
+   "says": "2UR-GSE; 4,969 cc; bore x stroke 94.0 x 89.5 mm; compression 12.3:1; 457/464/341 @ 7,100",
+   "q": "maker data",
+   "note": "Lexus UK RC F technical specification (2022); bore and stroke only (the presets cover IS F, RC F, GS F, LC 500, whose compression differs by year)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2UR-GSE 5.0 V8 (IS F, RC F, GS F, LC 500)",
+     "arr": "MOTORS",
+     "cc": 4969,
+     "cyl": 8,
+     "geo": 4968.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2008–14 Lexus IS F (2UR-GSE)",
+     "arr": "VEH",
+     "cc": 4969,
+     "cyl": 8,
+     "geo": 4968.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2015–19 Lexus RC F (2UR-GSE)",
+     "arr": "VEH",
+     "cc": 4969,
+     "cyl": 8,
+     "geo": 4968.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2016–20 Lexus GS F (2UR-GSE)",
+     "arr": "VEH",
+     "cc": 4969,
+     "cyl": 8,
+     "geo": 4968.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "toy-supra-20": {
+   "sel": "^B48B20 \\(Supra\\)$",
+   "bore": 82,
+   "stroke": 94.6,
+   "cr": 10.2,
+   "src": "https://media.toyota.co.uk/wp-content/uploads/sites/5/pdf/240429-GR-Supra-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "GR Supra 2.0: 1,998 cc; bore x stroke 82 x 94.6 mm; 10.2:1; 254/258/190 @ 5.000-6,500",
+   "note": "Toyota UK GR Supra technical specifications (2024)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2021+ Toyota GR Supra 2.0 (B48)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.3,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "toy-supra-30": {
+   "sel": "^B58B30 \\(Supra\\)$|^B58$",
+   "bore": 82,
+   "stroke": 94.6,
+   "src": "https://media.toyota.co.uk/wp-content/uploads/sites/5/pdf/240429-GR-Supra-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "GR Supra 3.0: 2,998 cc; bore x stroke 82 x 94.6 mm; 11.0:1; 335/340/250 @ 5,000-6,500",
+   "note": "Toyota UK GR Supra technical specifications (2024); bore and stroke only (the US ratings differ)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "B58 3.0 turbo I6 (GR Supra 3.0, 2021+)",
+     "arr": "MOTORS",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2021+ Toyota GR Supra 3.0 (B58)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2020 Toyota GR Supra 3.0 (B58, launch rating)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa24-wrx22": {
+   "names": [
+    "2022+ Subaru WRX (FA24F)"
+   ],
+   "bore": 94,
+   "stroke": 86,
+   "cr": 10.6,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/attachments/2022_WRX_Specs-FINAL.pdf",
+   "q": "maker data",
+   "says": "DOHC 4-cylinder SUBARU BOXER, turbocharged; 2,387cc (146 cu. in.); 94 x 86mm (3.70 x 3.40 in.); 10.6:1; 271 hp @ 5,600 rpm",
+   "note": "Subaru of America 2022 WRX specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2022+ Subaru WRX (FA24F)",
+     "arr": "VEH",
+     "cc": 2387,
+     "cyl": 4,
+     "geo": 2387.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa24-other": {
+   "names": [
+    "FA24DIT 2.4 turbo boxer (2022+ WRX, Ascent, Outback XT, WRX S4)",
+    "2019–21 Subaru Ascent / Outback XT (FA24F, 260 hp)"
+   ],
+   "bore": 94,
+   "stroke": 86,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/attachments/2022_WRX_Specs-FINAL.pdf",
+   "q": "maker data",
+   "says": "2,387cc (146 cu. in.); 94 x 86mm (3.70 x 3.40 in.) (2022 WRX)",
+   "note": "Subaru of America 2022 WRX specifications; bore and stroke only for the other FA24 turbo presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "FA24DIT 2.4 turbo boxer (2022+ WRX, Ascent, Outback XT, WRX S4)",
+     "arr": "MOTORS",
+     "cc": 2387,
+     "cyl": 4,
+     "geo": 2387.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2019–21 Subaru Ascent / Outback XT (FA24F, 260 hp)",
+     "arr": "VEH",
+     "cc": 2387,
+     "cyl": 4,
+     "geo": 2387.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa20dit-wrx": {
+   "names": [
+    "2015–21 Subaru WRX (FA20F)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "cr": 10.6,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/specs/2018_WRX_specs-FINAL15112017.pdf",
+   "q": "maker data",
+   "says": "2018 WRX: 1,998 cc; 86 mm x 86 mm; 10.6:1; 268@5,600 rpm",
+   "note": "Subaru of America 2018 WRX specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2015–21 Subaru WRX (FA20F)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa20dit": {
+   "names": [
+    "FA20DIT 2.0 turbo boxer (2015–21 WRX, Forester XT, Levorg)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/specs/2018_WRX_specs-FINAL15112017.pdf",
+   "q": "maker data",
+   "says": "2018 WRX: 1,998 cc; 86 mm x 86 mm",
+   "note": "Subaru of America 2018 WRX specifications; bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "FA20DIT 2.0 turbo boxer (2015–21 WRX, Forester XT, Levorg)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa20-brz17": {
+   "names": [
+    "2017–20 Toyota 86 / Subaru BRZ (FA20, 205 hp)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "cr": 12.5,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/attachments/2017_BRZ_Specs_2.0.pdf",
+   "q": "maker data",
+   "says": "4-cylinder SUBARU BOXER; 1,998 cc (122 cu. in.); 86 mm x 86 mm (3.39 x 3.39 in.); 12.5:1; 205 hp @ 7,000 rpm (manual)",
+   "note": "Subaru of America 2017 BRZ specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2017–20 Toyota 86 / Subaru BRZ (FA20, 205 hp)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa20": {
+   "names": [
+    "FA20 / 4U-GSE 2.0 boxer (86, BRZ, FR-S)",
+    "2013–16 Toyota 86 / Subaru BRZ (FA20)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/attachments/2017_BRZ_Specs_2.0.pdf",
+   "q": "maker data",
+   "says": "1,998 cc (122 cu. in.); 86 mm x 86 mm (3.39 x 3.39 in.) (2017 BRZ)",
+   "note": "Subaru of America 2017 BRZ specifications; bore and stroke only for the other FA20 presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "FA20 / 4U-GSE 2.0 boxer (86, BRZ, FR-S)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2013–16 Toyota 86 / Subaru BRZ (FA20)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s65": {
+   "sel": "^S65( V8)?$",
+   "bore": 92,
+   "stroke": 75.2,
+   "cr": 12,
+   "valves": 4,
+   "src": "https://www.press.bmwgroup.com/usa/article/attachment/T0017997EN_US/35557",
+   "says": "2008 BMW M3 Coupe: 90 deg V / 8 / 4 valves; displacement 3999 cm3; stroke 75.2 mm; bore 92 mm; compression 12; 414 SAE hp / 8300",
+   "q": "maker data",
+   "note": "BMW Group USA press technical data, 2008 M3 Coupe",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "S65B40 4.0 V8 (M3 E90/E92/E93)",
+     "arr": "MOTORS",
+     "cc": 3999,
+     "cyl": 8,
+     "geo": 3999.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2008–13 BMW M3 E92 coupe (S65 V8)",
+     "arr": "VEH",
+     "cc": 3999,
+     "cyl": 8,
+     "geo": 3999.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s85": {
+   "sel": "^S85( V10|B50)?$",
+   "bore": 92,
+   "stroke": 75.2,
+   "cr": 12,
+   "valves": 4,
+   "src": "https://www.press.bmwgroup.com/usa/article/attachment/T0018132EN_US/56945",
+   "says": "2009 BMW M5: V 90 / 10 / 4; 4999 cm3; bore 92 mm; stroke 75.2 mm; compression 12; 500 SAE hp / 7750",
+   "q": "maker data",
+   "note": "BMW Group USA press technical data, 2009 M5 (the M6 shares the S85)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "S85B50 5.0 V10 (M5 E60, M6 E63)",
+     "arr": "MOTORS",
+     "cc": 4999,
+     "cyl": 10,
+     "geo": 4999,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2006–10 BMW M6 E63 (S85 V10)",
+     "arr": "VEH",
+     "cc": 4999,
+     "cyl": 10,
+     "geo": 4999,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2006–10 BMW M5 E60 / E61 (S85 V10)",
+     "arr": "VEH",
+     "cc": 4999,
+     "cyl": 10,
+     "geo": 4999,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s55-gts": {
+   "sel": "^S55B30 \\(GTS\\)$",
+   "bore": 84,
+   "stroke": 89.6,
+   "cr": 10.2,
+   "src": "https://www.press.bmwgroup.com/usa/article/attachment/T0160684EN_US/391905",
+   "q": "maker data",
+   "says": "2017 M4 Coupe and M4 GTS: S55B30T0; 2979 cm3; bore and stroke figures 84 and 89.6 mm (the PDF text gives the labels apart from the values; bore 84 x stroke 89.6 is the pairing that gives the stated 2979 cm3, the other gives 3178); compression 10.2:1; 425 hp @ 5500-7300 (GTS 493 @ 6250)",
+   "note": "BMW Group USA press technical data, 2017 M4 / M4 GTS",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2016 BMW M4 GTS (S55, water injection)",
+     "arr": "VEH",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s55": {
+   "names": [
+    "S55B30 3.0 twin-turbo I6 (M3 F80, M4 F82, M2 Competition)",
+    "2019–21 BMW M2 Competition (S55)"
+   ],
+   "bore": 84,
+   "stroke": 89.6,
+   "src": "https://www.press.bmwgroup.com/canada/article/attachment/T0195811EN/285269",
+   "q": "maker data",
+   "says": "M3 Sedan, M4 Coupe, M4 Cabriolet: S55B30T0; 2979 cm3 / 182; bore 84 mm / 3.3 in; stroke 89.6 mm / 3.5 in; 10.2:1; 425 bhp / 5500-7300",
+   "note": "BMW Group Canada press technical data, M3 / M4; bore and stroke only for these presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "S55B30 3.0 twin-turbo I6 (M3 F80, M4 F82, M2 Competition)",
+     "arr": "MOTORS",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2019–21 BMW M2 Competition (S55)",
+     "arr": "VEH",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s55-m3m4": {
+   "names": [
+    "2015–18 BMW M3 F80 / M4 F82 (S55)"
+   ],
+   "bore": 84,
+   "stroke": 89.6,
+   "cr": 10.2,
+   "src": "https://www.press.bmwgroup.com/canada/article/attachment/T0195811EN/285269",
+   "q": "maker data",
+   "says": "M3 Sedan, M4 Coupe, M4 Cabriolet: S55B30T0; 2979 cm3 / 182; bore 84 mm / 3.3 in; stroke 89.6 mm / 3.5 in; 10.2:1; 425 bhp / 5500-7300",
+   "note": "BMW Group Canada press technical data, M3 / M4",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2015–18 BMW M3 F80 / M4 F82 (S55)",
+     "arr": "VEH",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s55-comp": {
+   "names": [
+    "2016–20 BMW M3 / M4 Competition Package (S55)"
+   ],
+   "bore": 84,
+   "stroke": 89.6,
+   "cr": 10.2,
+   "src": "https://www.press.bmwgroup.com/usa/article/attachment/T0250284EN_US/387874",
+   "q": "maker data",
+   "says": "2017 M4 Coupe Competition Package: S55B30T0; 2979 cm3; bore mm 84; stroke mm 89.6; 10.2:1; 444 hp @ 7000 rpm",
+   "note": "BMW Group USA press technical data, 2017 M4 Competition Package",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2016–20 BMW M3 / M4 Competition Package (S55)",
+     "arr": "VEH",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s63t4": {
+   "names": [
+    "2018+ BMW M5 F90 / M8 F92 (S63B44T4)"
+   ],
+   "bore": 89,
+   "stroke": 88.3,
+   "cr": 10,
+   "valves": 4,
+   "src": "https://www.press.bmwgroup.com/usa/article/attachment/T0273727EN_US/399717",
+   "says": "BMW M5 (2018): V/8/4; 4395 cc; Stroke/bore mm 88.3/89.0; compression 10.0:1; 600 hp @ 5700-6600",
+   "q": "maker data",
+   "note": "BMW Group USA press technical data, M5 F90",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2018+ BMW M5 F90 / M8 F92 (S63B44T4)",
+     "arr": "VEH",
+     "cc": 4395,
+     "cyl": 8,
+     "geo": 4394.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s63t4c": {
+   "names": [
+    "2019+ BMW M5 / M8 Competition (S63B44T4, 625 PS)"
+   ],
+   "bore": 89,
+   "stroke": 88.3,
+   "src": "https://www.press.bmwgroup.com/usa/article/attachment/T0273727EN_US/399717",
+   "says": "BMW M5 (2018): 4395 cc; Stroke/bore mm 88.3/89.0",
+   "q": "maker data",
+   "note": "BMW Group USA press technical data, M5 F90; bore and stroke only for the Competition",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2019+ BMW M5 / M8 Competition (S63B44T4, 625 PS)",
+     "arr": "VEH",
+     "cc": 4395,
+     "cyl": 8,
+     "geo": 4394.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "moP-hellcat-2020": {
+   "names": [
+    "2020 Dodge Challenger or Charger SRT Hellcat"
+   ],
+   "bore": 103.9,
+   "stroke": 90.9,
+   "cr": 9.5,
+   "red": 6200,
+   "src": "https://a3.myautoworld.com/wp-content/uploads/2020/08/2020_DG_Challenger_ChallengerSRT_Specs.pdf",
+   "q": "maker data",
+   "says": "Supercharged 6.2-liter HEMI Hellcat V-8: 376 cu. in. (6,166 cu.cm); 4.09 x 3.58 (103.9 x 90.9); 9.5:1; 717 bhp @ 6,000 rpm; max engine speed 6,200 rpm",
+   "note": "FCA US 2020 Dodge Challenger and Challenger SRT specifications (the makers sheet, as hosted by a third-party site)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2020 Dodge Challenger or Charger SRT Hellcat",
+     "arr": "VEH",
+     "cc": 6166,
+     "cyl": 8,
+     "geo": 6165.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "moP-392-2020": {
+   "names": [
+    "2020 Dodge Challenger or Charger Scat Pack 392"
+   ],
+   "bore": 103.9,
+   "stroke": 94.5,
+   "cr": 10.9,
+   "red": 6400,
+   "src": "https://a3.myautoworld.com/wp-content/uploads/2020/08/2020_DG_Challenger_ChallengerSRT_Specs.pdf",
+   "q": "maker data",
+   "says": "392 HEMI V-8: 392 cu. in. (6,417 cu. cm); 4.09 x 3.72 (103.9 x 94.5); 10.9:1; 485 bhp @ 6,100 rpm; 6,400 rpm (electronically limited)",
+   "note": "FCA US 2020 Dodge Challenger and Challenger SRT specifications (the makers sheet, as hosted by a third-party site)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2020 Dodge Challenger or Charger Scat Pack 392",
+     "arr": "VEH",
+     "cc": 6417,
+     "cyl": 8,
+     "geo": 6409.8,
+     "dPct": -0.11,
+     "had": null
+    }
+   ]
+  },
+  "moP-redeye": {
+   "names": [
+    "2019–23 Dodge Charger / Challenger SRT Hellcat Redeye (6.2 SC Hemi)"
+   ],
+   "bore": 103.9,
+   "stroke": 90.9,
+   "cr": 9.5,
+   "src": "https://a3.myautoworld.com/wp-content/uploads/2020/08/2020_DG_Challenger_ChallengerSRT_Specs.pdf",
+   "q": "maker data",
+   "says": "Supercharged 6.2-liter HEMI Hellcat High Output V-8 (Challenger SRT Hellcat Redeye): 376 cu. in. (6,166 cu. cm.); 4.09 x 3.58 (103.9 x 90.9); 9.5:1; 797 bhp @ 6,300 rpm; 6,500 rpm",
+   "note": "FCA US 2020 Dodge Challenger and Challenger SRT specifications (the makers sheet, as hosted by a third-party site)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2019–23 Dodge Charger / Challenger SRT Hellcat Redeye (6.2 SC Hemi)",
+     "arr": "VEH",
+     "cc": 6166,
+     "cyl": 8,
+     "geo": 6165.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "moP-62sc-other": {
+   "names": [
+    "6.2 Hellcat Redeye supercharged V8 (Redeye, Super Stock, Hellcrate Redeye)",
+    "6.2 Demon supercharged V8 (Challenger SRT Demon)",
+    "2018 Dodge Challenger SRT Demon (6.2 SC Hemi, 91 octane)",
+    "2018 Dodge Challenger SRT Demon (6.2 SC Hemi, 100 octane)",
+    "2021–24 Dodge Durango SRT Hellcat (6.2 SC Hemi)",
+    "2021–24 Ram 1500 TRX (6.2 SC Hemi)"
+   ],
+   "bore": 103.9,
+   "stroke": 90.9,
+   "src": "https://a3.myautoworld.com/wp-content/uploads/2020/08/2020_DG_Challenger_ChallengerSRT_Specs.pdf",
+   "q": "maker data",
+   "says": "Supercharged 6.2-liter HEMI Hellcat V-8: 376 cu. in. (6,166 cu.cm); 4.09 x 3.58 (103.9 x 90.9)",
+   "note": "FCA US 2020 Dodge Challenger and Challenger SRT specifications (the makers sheet, as hosted by a third-party site); bore and stroke only for the other 6.2 supercharged HEMI presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "6.2 Hellcat Redeye supercharged V8 (Redeye, Super Stock, Hellcrate Redeye)",
+     "arr": "MOTORS",
+     "cc": 6166,
+     "cyl": 8,
+     "geo": 6165.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "6.2 Demon supercharged V8 (Challenger SRT Demon)",
+     "arr": "MOTORS",
+     "cc": 6166,
+     "cyl": 8,
+     "geo": 6165.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2018 Dodge Challenger SRT Demon (6.2 SC Hemi, 91 octane)",
+     "arr": "VEH",
+     "cc": 6166,
+     "cyl": 8,
+     "geo": 6165.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2018 Dodge Challenger SRT Demon (6.2 SC Hemi, 100 octane)",
+     "arr": "VEH",
+     "cc": 6166,
+     "cyl": 8,
+     "geo": 6165.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2021–24 Dodge Durango SRT Hellcat (6.2 SC Hemi)",
+     "arr": "VEH",
+     "cc": 6166,
+     "cyl": 8,
+     "geo": 6165.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2021–24 Ram 1500 TRX (6.2 SC Hemi)",
+     "arr": "VEH",
+     "cc": 6166,
+     "cyl": 8,
+     "geo": 6165.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "moP-57": {
+   "names": [
+    "5.7 Hemi V8 (Charger R/T, Challenger R/T)",
+    "2011–23 Dodge Charger R/T (5.7 Hemi)"
+   ],
+   "bore": 99.5,
+   "stroke": 90.9,
+   "src": "https://a3.myautoworld.com/wp-content/uploads/2020/08/2020_DG_Challenger_ChallengerSRT_Specs.pdf",
+   "q": "maker data",
+   "says": "5.7-liter HEMI V-8: 345 cu. in. (5,654 cu. cm); 3.92 x 3.58 (99.5 x 90.9); 10.5:1; 375 hp @ 5,150 rpm (manual); 5,800 rpm (electronically limited)",
+   "note": "FCA US 2020 Dodge Challenger and Challenger SRT specifications (the makers sheet, as hosted by a third-party site); bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "5.7 Hemi V8 (Charger R/T, Challenger R/T)",
+     "arr": "MOTORS",
+     "cc": 5654,
+     "cyl": 8,
+     "geo": 5654.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2011–23 Dodge Charger R/T (5.7 Hemi)",
+     "arr": "VEH",
+     "cc": 5654,
+     "cyl": 8,
+     "geo": 5654.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "moP-392-other": {
+   "names": [
+    "6.4 Hemi 392 V8 (Scat Pack, SRT 392, Durango SRT, 392 crate)",
+    "2018–24 Dodge Durango SRT 392 (6.4 Hemi)",
+    "2023 Chrysler 300C (6.4 Hemi)"
+   ],
+   "bore": 103.9,
+   "stroke": 94.5,
+   "src": "https://a3.myautoworld.com/wp-content/uploads/2020/08/2020_DG_Challenger_ChallengerSRT_Specs.pdf",
+   "q": "maker data",
+   "says": "392 HEMI V-8: 392 cu. in. (6,417 cu. cm); 4.09 x 3.72 (103.9 x 94.5)",
+   "note": "FCA US 2020 Dodge Challenger and Challenger SRT specifications (the makers sheet, as hosted by a third-party site); bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "6.4 Hemi 392 V8 (Scat Pack, SRT 392, Durango SRT, 392 crate)",
+     "arr": "MOTORS",
+     "cc": 6417,
+     "cyl": 8,
+     "geo": 6409.8,
+     "dPct": -0.11,
+     "had": null
+    },
+    {
+     "name": "2018–24 Dodge Durango SRT 392 (6.4 Hemi)",
+     "arr": "VEH",
+     "cc": 6417,
+     "cyl": 8,
+     "geo": 6409.8,
+     "dPct": -0.11,
+     "had": null
+    },
+    {
+     "name": "2023 Chrysler 300C (6.4 Hemi)",
+     "arr": "VEH",
+     "cc": 6424,
+     "cyl": 8,
+     "geo": 6409.8,
+     "dPct": -0.22,
+     "had": null
+    }
+   ]
+  },
+  "moP-392-2012": {
+   "names": [
+    "2012–14 Chrysler 300 SRT8 / Charger & Challenger SRT8 392 (6.4 Hemi)"
+   ],
+   "bore": 103.9,
+   "stroke": 94.5,
+   "cr": 10.9,
+   "red": 6400,
+   "src": "https://s3.amazonaws.com/chryslermedia.iconicweb.com/mediasite/specs/2012_DG_Challenger_SRT8392_SP.pdf",
+   "q": "maker data",
+   "says": "2012 Challenger SRT8 392: 392 HEMI V-8 (6.4 L); 392 cu. in. (6,424 cu. cm); 4.09 x 3.72 (103.9 x 94.5); 10.9:1; 470 bhp @ 6,000 rpm; 6,400 rpm (electronically limited)",
+   "note": "Chrysler 2012 Challenger SRT8 392 specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2012–14 Chrysler 300 SRT8 / Charger & Challenger SRT8 392 (6.4 Hemi)",
+     "arr": "VEH",
+     "cc": 6424,
+     "cyl": 8,
+     "geo": 6409.8,
+     "dPct": -0.22,
+     "had": null
+    }
+   ]
+  },
+  "moP-viper16": {
+   "names": [
+    "2015–17 Dodge Viper (8.4 V10)"
+   ],
+   "bore": 103,
+   "stroke": 100.6,
+   "cr": 10.2,
+   "red": 6400,
+   "src": "https://s3.amazonaws.com/chryslermedia.iconicweb.com/mediasite/attachments/2016_Dodge_Viper_Specs8p8494relih5em1i7jbcj7sinc.pdf",
+   "q": "maker data",
+   "says": "8.4-LITER V-10: 8.4 (512) liter (cu.in.); Bore x Stroke 4.055 x 3.96 (103 x 100.6); 10.2:1; 645 bhp @ 6,200 rpm; max engine speed 6,400 rpm (fuel cutoff)",
+   "note": "Dodge 2016 Viper specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2015–17 Dodge Viper (8.4 V10)",
+     "arr": "VEH",
+     "cc": 8382,
+     "cyl": 10,
+     "geo": 8382.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "moP-viper-g5": {
+   "names": [
+    "8.4 Viper V10 (2013–17 Viper)",
+    "2013–14 SRT Viper (8.4 V10)"
+   ],
+   "bore": 103,
+   "stroke": 100.6,
+   "src": "https://s3.amazonaws.com/chryslermedia.iconicweb.com/mediasite/attachments/2016_Dodge_Viper_Specs8p8494relih5em1i7jbcj7sinc.pdf",
+   "q": "maker data",
+   "says": "8.4-LITER V-10: Bore x Stroke 4.055 x 3.96 (103 x 100.6)",
+   "note": "Dodge 2016 Viper specifications; bore and stroke only for the other 2013-17 presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "8.4 Viper V10 (2013–17 Viper)",
+     "arr": "MOTORS",
+     "cc": 8382,
+     "cyl": 10,
+     "geo": 8382.3,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2013–14 SRT Viper (8.4 V10)",
+     "arr": "VEH",
+     "cc": 8390,
+     "cyl": 10,
+     "geo": 8382.3,
+     "dPct": -0.09,
+     "had": null
+    }
+   ]
+  },
+  "nis-vr38-2023": {
+   "names": [
+    "2017–24 Nissan GT-R R35 (VR38DETT)"
+   ],
+   "bore": 95.5,
+   "stroke": 88.4,
+   "cr": 9,
+   "red": 7100,
+   "src": "https://usa.nissannews.com/releases/2023-nissan-gt-r-press-kit",
+   "says": "GT-R Premium: VR38DETT; 3.8 liters; bore x stroke 95.5 x 88.4 (Plasma-sprayed bore); compression 9.0; 565 @ 6,800 RPM; maximum engine speed 7,100 RPM",
+   "q": "maker data",
+   "note": "Nissan 2023 GT-R press kit",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2017–24 Nissan GT-R R35 (VR38DETT)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 6,
+     "geo": 3799.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-vr38": {
+   "names": [
+    "VR38DETT 3.8 twin-turbo V6 (GT-R R35, 2017+)",
+    "2007–09 Nissan GT-R R35 (VR38DETT)",
+    "2009–11 Nissan GT-R R35 (VR38DETT, 485 hp)"
+   ],
+   "bore": 95.5,
+   "stroke": 88.4,
+   "src": "https://usa.nissannews.com/releases/2023-nissan-gt-r-press-kit",
+   "says": "VR38DETT; 3.8 liters; bore x stroke 95.5 x 88.4",
+   "q": "maker data",
+   "note": "Nissan 2023 GT-R press kit; bore and stroke only for the other VR38DETT presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "VR38DETT 3.8 twin-turbo V6 (GT-R R35, 2017+)",
+     "arr": "MOTORS",
+     "cc": 3799,
+     "cyl": 6,
+     "geo": 3799.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–09 Nissan GT-R R35 (VR38DETT)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 6,
+     "geo": 3799.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2009–11 Nissan GT-R R35 (VR38DETT, 485 hp)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 6,
+     "geo": 3799.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq37-nismo": {
+   "names": [
+    "2009–20 Nissan 370Z Nismo (VQ37VHR)"
+   ],
+   "bore": 95.5,
+   "stroke": 86,
+   "cr": 11,
+   "red": 7500,
+   "src": "https://zcca.org/wp-content/uploads/2025/10/2020-Nissan-370Z-NISMO-Specifications.pdf",
+   "says": "2020 370Z NISMO: VQ37VHR; 3.7 liters; 95.5 x 86.0 mm; 11:1; 350 @ 7,400 RPM; maximum engine speed 7,500 rpm",
+   "q": "maker data",
+   "note": "Nissan 2020 370Z NISMO specifications (the makers release, as hosted by the Z Car Club Association)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2009–20 Nissan 370Z Nismo (VQ37VHR)",
+     "arr": "VEH",
+     "cc": 3696,
+     "cyl": 6,
+     "geo": 3696.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq37": {
+   "names": [
+    "2009–20 Nissan 370Z (VQ37VHR)"
+   ],
+   "bore": 95.5,
+   "stroke": 86,
+   "cr": 11,
+   "red": 7500,
+   "src": "https://zcca.org/wp-content/uploads/2025/10/2020-Nissan-370Z-Coupe-Specifications.pdf",
+   "says": "2020 370Z Coupe: VQ37VHR; 3.7 liters; 95.5 x 86.0 mm; 11:1; 332 @ 7,000 RPM; maximum engine speed 7,500 rpm",
+   "q": "maker data",
+   "note": "Nissan 2020 370Z Coupe specifications (the makers release, as hosted by the Z Car Club Association)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2009–20 Nissan 370Z (VQ37VHR)",
+     "arr": "VEH",
+     "cc": 3696,
+     "cyl": 6,
+     "geo": 3696.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq37-m": {
+   "names": [
+    "VQ37VHR 3.7 V6 (370Z, G37, Q50 3.7)"
+   ],
+   "bore": 95.5,
+   "stroke": 86,
+   "src": "https://zcca.org/wp-content/uploads/2025/10/2020-Nissan-370Z-Coupe-Specifications.pdf",
+   "says": "VQ37VHR; 3.7 liters; 95.5 x 86.0 mm",
+   "q": "maker data",
+   "note": "Nissan 2020 370Z Coupe specifications; bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "VQ37VHR 3.7 V6 (370Z, G37, Q50 3.7)",
+     "arr": "MOTORS",
+     "cc": 3696,
+     "cyl": 6,
+     "geo": 3696.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "kia-33t-st": {
+   "names": [
+    "2018–20 Kia Stinger GT 3.3T"
+   ],
+   "bore": 92,
+   "stroke": 83.8,
+   "cr": 10,
+   "src": "https://kiamedia.com/us/es/models/stinger/2020/specifications",
+   "q": "maker data",
+   "says": "3.3L Twin Turbo V6: 3,342 cc; 92.0 mm x 83.8 mm; 10.0:1; 365 hp @ 6,000 rpm",
+   "note": "Kia America 2020 Stinger specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2018–20 Kia Stinger GT 3.3T",
+     "arr": "VEH",
+     "cc": 3342,
+     "cyl": 6,
+     "geo": 3342.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "kia-33t": {
+   "names": [
+    "Lambda II 3.3 twin-turbo V6 (Stinger GT, Genesis G70/G80 3.3T)"
+   ],
+   "bore": 92,
+   "stroke": 83.8,
+   "src": "https://kiamedia.com/us/es/models/stinger/2020/specifications",
+   "q": "maker data",
+   "says": "3.3L Twin Turbo V6: 3,342 cc; 92.0 mm x 83.8 mm",
+   "note": "Kia America 2020 Stinger specifications; bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Lambda II 3.3 twin-turbo V6 (Stinger GT, Genesis G70/G80 3.3T)",
+     "arr": "MOTORS",
+     "cc": 3342,
+     "cyl": 6,
+     "geo": 3342.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "kia-20t-st": {
+   "names": [
+    "2018–23 Kia Stinger 2.0T"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "cr": 10,
+   "src": "https://kiamedia.com/us/es/models/stinger/2020/specifications",
+   "q": "maker data",
+   "says": "2.0L Twin Scroll Turbo 4-Cylinder: 1,998 cc; 86.0 mm X 86.0 mm; 10.0:1; 255 hp @ 6,200 rpm",
+   "note": "Kia America 2020 Stinger specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2018–23 Kia Stinger 2.0T",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "kia-20t": {
+   "names": [
+    "Theta II 2.0 T-GDi I4 (Veloster N, Elantra N, Genesis Coupe 2.0T, Stinger 2.0T)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://kiamedia.com/us/es/models/stinger/2020/specifications",
+   "q": "maker data",
+   "says": "2.0L Twin Scroll Turbo 4-Cylinder: 1,998 cc; 86.0 mm X 86.0 mm (2020 Stinger)",
+   "note": "Kia America 2020 Stinger specifications; bore and stroke only for the combined Theta II 2.0 T-GDi preset",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Theta II 2.0 T-GDi I4 (Veloster N, Elantra N, Genesis Coupe 2.0T, Stinger 2.0T)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-25tfsi-400": {
+   "names": [
+    "2017+ Audi RS 3 / TT RS (2.5 TFSI 400 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "cr": 10,
+   "src": "https://www.audi-mediacenter.com/en/rs-3-sedan-216/technical-data",
+   "says": "RS 3 Sedan TFSI (294 kW): displacement in cc / bore x stroke in mm / compression 2480 / 82.5 x 92.8 / 10.0; 294 (400) / 5600 - 7000",
+   "q": "maker data",
+   "note": "Audi MediaCenter RS 3 Sedan technical data",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2017+ Audi RS 3 / TT RS (2.5 TFSI 400 PS)",
+     "arr": "VEH",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-25tfsi": {
+   "names": [
+    "2.5 TFSI inline-five turbo (RS 3, TT RS, RS Q3)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.audi-mediacenter.com/en/rs-3-sedan-216/technical-data",
+   "says": "RS 3 Sedan TFSI: 2480 cc / 82.5 x 92.8 mm",
+   "q": "maker data",
+   "note": "Audi MediaCenter RS 3 Sedan technical data; bore and stroke only for the combined 2.5 TFSI preset",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2.5 TFSI inline-five turbo (RS 3, TT RS, RS Q3)",
+     "arr": "MOTORS",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-s3-8v": {
+   "names": [
+    "2013–20 Audi S3 8V (2.0 TFSI 300 PS)",
+    "EA888 Gen 3 2.0 TSI (Golf R, S3, GTI)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://uploads.audi-mediacenter.com/system/production/car_motorizations/438/file_en/8f04843e0183f04234130a5af70abaa4f4f12fe7/etd_S3_2_0_TFSI_quattro_228_kW_0817.pdf",
+   "q": "maker data",
+   "says": "Audi S3 2.0 TFSI quattro (228 kW): inline four-cylinder, gasoline direct injection; 1984 cc; 82.5 x 92.8 mm; compression 9.3; 228 (310) / 5800 - 6500",
+   "note": "Audi MediaCenter technical data, S3 2.0 TFSI (2017); bore and stroke only (the presets power differs)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "EA888 Gen 3 2.0 TSI (Golf R, S3, GTI)",
+     "arr": "MOTORS",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2013–20 Audi S3 8V (2.0 TFSI 300 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-r8-v10": {
+   "names": [
+    "2016–18 Audi R8 V10 plus (610 PS)",
+    "5.2 FSI V10 (R8 V10, Gallardo LP 560, Huracán)"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://uploads.audi-mediacenter.com/system/production/car_motorizations/335/file_en/824cd6b831b620f3969a43e61549348b22b8d6e6/eTechnische_Daten_Audi_R8V10_Coupe_419kW.pdf",
+   "q": "maker data",
+   "says": "Audi R8 V10 Coupe (419 kW): V10 engine; 5204 cc; bore 84.5 mm; stroke 92.8 mm; compression 12.7; 419 (570) / 8100",
+   "note": "Audi MediaCenter technical data, R8 V10 Coupe (data status 2020); bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "5.2 FSI V10 (R8 V10, Gallardo LP 560, Huracán)",
+     "arr": "MOTORS",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2016–18 Audi R8 V10 plus (610 PS)",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m178-gtr": {
+   "names": [
+    "2017–21 Mercedes-AMG GT R (M178)"
+   ],
+   "bore": 83,
+   "stroke": 92,
+   "cr": 9.5,
+   "red": 7000,
+   "src": "https://media.mbusa.com/releases/release-f57992a15ff49dca22e3786155004fe5-2020-mercedes-amg-gt-r-and-gt-r-pro-coupe",
+   "q": "maker data",
+   "says": "Handcrafted AMG 4.0L V8 biturbo; 3,982 cc; bore 3.27 / 83.0 in/mm; stroke 3.62 / 92.0 in/mm; 9.5 : 1; 577 @ 6,250; redline 7,000",
+   "note": "Mercedes-Benz USA 2020 AMG GT R specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2017–21 Mercedes-AMG GT R (M178)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m178": {
+   "names": [
+    "2020–21 Mercedes-AMG GT Coupé / Roadster facelift (M178, 530 PS)",
+    "M178 4.0 twin-turbo V8 dry-sump (AMG GT)",
+    "2015–17 Mercedes-AMG GT S (M178)"
+   ],
+   "bore": 83,
+   "stroke": 92,
+   "src": "https://media.mbusa.com/releases/release-f57992a15ff49dca22e3786155004fe5-2020-mercedes-amg-gt-r-and-gt-r-pro-coupe",
+   "q": "maker data",
+   "says": "AMG 4.0L V8 biturbo; 3,982 cc; bore 83.0 mm; stroke 92.0 mm (2020 AMG GT R)",
+   "note": "Mercedes-Benz USA 2020 AMG GT R specifications; bore and stroke only for the other AMG GT M178 presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "M178 4.0 twin-turbo V8 dry-sump (AMG GT)",
+     "arr": "MOTORS",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2015–17 Mercedes-AMG GT S (M178)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2020–21 Mercedes-AMG GT Coupé / Roadster facelift (M178, 530 PS)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m177-c63": {
+   "names": [
+    "2015–21 Mercedes-AMG C 63 W205 (M177)",
+    "2015–21 Mercedes-AMG C 63 S W205 (M177)"
+   ],
+   "bore": 83,
+   "stroke": 92,
+   "cr": 10.5,
+   "red": 7000,
+   "src": "https://www.media.mbusa.com/releases/specs-2018-mercedes-amg-c63-coupe-and-c63-s-coupe",
+   "q": "maker data",
+   "says": "2018 C 63 / C 63 S Coupe: Handcrafted AMG 4.0L V8 biturbo; 3,982 cc; bore 3.27 / 83.0 in/mm; stroke 3.62 / 92.0 in/mm; 10.5 : 1; 469 (C 63 S 503) @ 5,500-6,250; redline 7,000",
+   "note": "Mercedes-Benz USA 2018 AMG C 63 Coupe specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2015–21 Mercedes-AMG C 63 W205 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2015–21 Mercedes-AMG C 63 S W205 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m177": {
+   "names": [
+    "M177 4.0 twin-turbo V8 (C 63 S, E 63 S, GT 63, G 63)",
+    "2017–20 Mercedes-AMG E 63 4MATIC+ W213 (M177)",
+    "2017–23 Mercedes-AMG E 63 S 4MATIC+ W213 (M177)",
+    "2024+ Mercedes-AMG GT 63 (M177)"
+   ],
+   "bore": 83,
+   "stroke": 92,
+   "src": "https://www.media.mbusa.com/releases/specs-2018-mercedes-amg-c63-coupe-and-c63-s-coupe",
+   "q": "maker data",
+   "says": "Handcrafted AMG 4.0L V8 biturbo; 3,982 cc; bore 83.0 mm; stroke 92.0 mm (2018 C 63)",
+   "note": "Mercedes-Benz USA 2018 AMG C 63 Coupe specifications; bore and stroke only for the other M177 presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "M177 4.0 twin-turbo V8 (C 63 S, E 63 S, GT 63, G 63)",
+     "arr": "MOTORS",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2017–20 Mercedes-AMG E 63 4MATIC+ W213 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2017–23 Mercedes-AMG E 63 S 4MATIC+ W213 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2024+ Mercedes-AMG GT 63 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m156-507": {
+   "names": [
+    "2013–14 Mercedes-Benz C 63 AMG Edition 507 (M156)"
+   ],
+   "bore": 102.2,
+   "stroke": 94.6,
+   "cr": 11.3,
+   "src": "https://media.mbusa.com/releases/release-55aae03f47b344f4a0bc87e6ef5bac2e-2014-c63-amg-edition-507-technical-data",
+   "q": "maker data",
+   "says": "2014 C63 AMG Edition 507: 90-degree V8; 6,208 cc; bore 4.02 / 102.2 in. / mm; stroke 3.72 / 94.6 in. / mm; 11.3:1; 507 @ 6,800",
+   "note": "Mercedes-Benz USA 2014 C63 AMG Edition 507 technical data",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2013–14 Mercedes-Benz C 63 AMG Edition 507 (M156)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m156": {
+   "names": [
+    "2010–14 Mercedes-Benz C 63 AMG Performance Package (M156)",
+    "2012–13 Mercedes-Benz C 63 AMG Coupé Black Series (M156)"
+   ],
+   "bore": 102.2,
+   "stroke": 94.6,
+   "src": "https://media.mbusa.com/releases/release-55aae03f47b344f4a0bc87e6ef5bac2e-2014-c63-amg-edition-507-technical-data",
+   "q": "maker data",
+   "says": "6,208 cc; bore 102.2 mm; stroke 94.6 mm (2014 C63 AMG Edition 507)",
+   "note": "Mercedes-Benz USA 2014 C63 AMG technical data; bore and stroke only for the other C 63 M156 presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–14 Mercedes-Benz C 63 AMG Performance Package (M156)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2012–13 Mercedes-Benz C 63 AMG Coupé Black Series (M156)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m157": {
+   "names": [
+    "M157 5.5 twin-turbo V8 (E 63, CLS 63, S 63, G 63 AMG)",
+    "2012–15 Mercedes-Benz G 63 AMG (M157 5.5 twin-turbo)",
+    "2016–18 Mercedes-AMG G 63 (M157 5.5 twin-turbo)"
+   ],
+   "bore": 98,
+   "stroke": 90.5,
+   "src": "https://media.mbusa.com/releases/2017-mercedes-amg-cls63-s-coupe-specifications",
+   "q": "maker data",
+   "says": "2017 CLS63 S: Handcrafted AMG 5.5L V8 biturbo; 5,461 cc; 3.86 / 98.0 in/mm by 3.56 / 90.5 in/mm; 10.0 : 1; 577 @ 5,500; redline 6,500",
+   "note": "Mercedes-Benz USA 2017 AMG CLS63 S specifications; bore and stroke only (no CLS preset; the G 63 presets carry the same 5.5 biturbo)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "M157 5.5 twin-turbo V8 (E 63, CLS 63, S 63, G 63 AMG)",
+     "arr": "MOTORS",
+     "cc": 5461,
+     "cyl": 8,
+     "geo": 5461.1,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2012–15 Mercedes-Benz G 63 AMG (M157 5.5 twin-turbo)",
+     "arr": "VEH",
+     "cc": 5461,
+     "cyl": 8,
+     "geo": 5461.1,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2016–18 Mercedes-AMG G 63 (M157 5.5 twin-turbo)",
+     "arr": "VEH",
+     "cc": 5461,
+     "cyl": 8,
+     "geo": 5461.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  }
+ },
+ "review": {
+  "ford-f150-2014-37-35": {
+   "found": "2014 F-150 sheet gives 3.7L V6 3.76 x 3.45 in. and 3.5L EcoBoost 3.64 x 3.45 in.; 3.76 x 3.45 x 6 = 3,770 cc against 3,726 (+1.2 %); the 2016 Mustang sheet gives the 3.7 as 95.5 x 86.7 mm and the 2020 F-150 the 3.5 as 3.64 x 3.41 in",
+   "src": "https://cdn.base.parameter1.com/files/base/acbm/fcp/document/2013/06/2014-f150-specs_10978717.pdf",
+   "why": "the 3.45 in stroke of this sheet disagrees with Fords other sheets and with the displacement; not used",
+   "seen": "2026-11-19"
+  },
+  "ford-coyote-gen3b": {
+   "found": {
+    "bore": 93,
+    "stroke": 92.7,
+    "src": "https://media.ford.com/content/dam/fordmedia/Europe/documents/en/2022/2022_Mustang_Tech_Spec_EU.pdf",
+    "says": "5.0-litre V8; 5038 cc; 93.0 x 92.7 mm (2022 Mustang)",
+    "q": "maker data"
+   },
+   "mismatch": [
+    {
+     "name": "2018–20 Ford Mustang GT (Coyote 5.0)",
+     "arr": "VEH",
+     "cc": 4951,
+     "cyl": 8,
+     "geo": 5037.6,
+     "dPct": 1.75,
+     "had": null
+    }
+   ],
+   "why": "the preset gives 4,951 cc (the Gen 1/2 figure) for the 2018-20 Mustang GT; Ford gives the Gen 3 Coyote as 5038 cc, 93.0 x 92.7 mm. The preset displacement looks wrong (owner to confirm); bore and stroke not applied to it"
+  }
+ },
+ "tried": {
+  "hon-k24a8": "hondanews.ca 2007 Accord sedan specifications (https://hondanews.ca/en-CA/hci-automobiles/releases/release-6b48bfbb4a461029754fc85dd70045a1-2007-accord-sedan-specifications): displacement 2354 cc and redline 6500, no bore and stroke",
+  "hon-b16": "Wikipedia Honda B engine read 2026-11-18: no entry under B16A2 or B16B by name",
+  "sub-ej257": "search for a Subaru media WRX STI specification sheet found none (only third-party spec sites)"
+ }
+}
