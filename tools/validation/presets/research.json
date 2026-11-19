@@ -1271,6 +1271,307 @@
      "had": null
     }
    ]
+  },
+  "toy-2jz-gte": {
+   "sel": "^2JZ-GTE$",
+   "bore": 86,
+   "stroke": 86,
+   "cr": 8.5,
+   "src": "https://www.hpacademy.com/blog/everything-you-need-to-know-about-the-2jz-gte/",
+   "says": "86.0mm bore, 86.0mm stroke, 8.5:1 compression ratio; 2997cc (factory specs section)",
+   "q": "reputable vendor",
+   "note": "High Performance Academy (engine-tuning training company) technical article",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2JZ-GTE 3.0 twin-turbo I6 (Supra Turbo, US)",
+     "arr": "MOTORS",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "1993–98 Toyota Supra Turbo (2JZ-GTE)",
+     "arr": "VEH",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "toy-2ur-gse": {
+   "sel": "^2UR-GSE$",
+   "bore": 94,
+   "stroke": 89.5,
+   "src": "https://media.lexus.co.uk/wp-content/uploads/sites/3/pdf/220201M-RC-F-Tech-Spec.pdf",
+   "says": "2UR-GSE; 4,969 cc; bore x stroke 94.0 x 89.5 mm; compression 12.3:1; 457/464/341 @ 7,100",
+   "q": "maker data",
+   "note": "Lexus UK RC F technical specification (2022); bore and stroke only (the presets cover IS F, RC F, GS F, LC 500, whose compression differs by year)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2UR-GSE 5.0 V8 (IS F, RC F, GS F, LC 500)",
+     "arr": "MOTORS",
+     "cc": 4969,
+     "cyl": 8,
+     "geo": 4968.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2008–14 Lexus IS F (2UR-GSE)",
+     "arr": "VEH",
+     "cc": 4969,
+     "cyl": 8,
+     "geo": 4968.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2015–19 Lexus RC F (2UR-GSE)",
+     "arr": "VEH",
+     "cc": 4969,
+     "cyl": 8,
+     "geo": 4968.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2016–20 Lexus GS F (2UR-GSE)",
+     "arr": "VEH",
+     "cc": 4969,
+     "cyl": 8,
+     "geo": 4968.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "toy-supra-20": {
+   "sel": "^B48B20 \\(Supra\\)$",
+   "bore": 82,
+   "stroke": 94.6,
+   "cr": 10.2,
+   "src": "https://media.toyota.co.uk/wp-content/uploads/sites/5/pdf/240429-GR-Supra-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "GR Supra 2.0: 1,998 cc; bore x stroke 82 x 94.6 mm; 10.2:1; 254/258/190 @ 5.000-6,500",
+   "note": "Toyota UK GR Supra technical specifications (2024)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2021+ Toyota GR Supra 2.0 (B48)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.3,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "toy-supra-30": {
+   "sel": "^B58B30 \\(Supra\\)$|^B58$",
+   "bore": 82,
+   "stroke": 94.6,
+   "src": "https://media.toyota.co.uk/wp-content/uploads/sites/5/pdf/240429-GR-Supra-Tech-Specs.pdf",
+   "q": "maker data",
+   "says": "GR Supra 3.0: 2,998 cc; bore x stroke 82 x 94.6 mm; 11.0:1; 335/340/250 @ 5,000-6,500",
+   "note": "Toyota UK GR Supra technical specifications (2024); bore and stroke only (the US ratings differ)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "B58 3.0 turbo I6 (GR Supra 3.0, 2021+)",
+     "arr": "MOTORS",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2021+ Toyota GR Supra 3.0 (B58)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2020 Toyota GR Supra 3.0 (B58, launch rating)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa24-wrx22": {
+   "names": [
+    "2022+ Subaru WRX (FA24F)"
+   ],
+   "bore": 94,
+   "stroke": 86,
+   "cr": 10.6,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/attachments/2022_WRX_Specs-FINAL.pdf",
+   "q": "maker data",
+   "says": "DOHC 4-cylinder SUBARU BOXER, turbocharged; 2,387cc (146 cu. in.); 94 x 86mm (3.70 x 3.40 in.); 10.6:1; 271 hp @ 5,600 rpm",
+   "note": "Subaru of America 2022 WRX specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2022+ Subaru WRX (FA24F)",
+     "arr": "VEH",
+     "cc": 2387,
+     "cyl": 4,
+     "geo": 2387.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa24-other": {
+   "names": [
+    "FA24DIT 2.4 turbo boxer (2022+ WRX, Ascent, Outback XT, WRX S4)",
+    "2019–21 Subaru Ascent / Outback XT (FA24F, 260 hp)"
+   ],
+   "bore": 94,
+   "stroke": 86,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/attachments/2022_WRX_Specs-FINAL.pdf",
+   "q": "maker data",
+   "says": "2,387cc (146 cu. in.); 94 x 86mm (3.70 x 3.40 in.) (2022 WRX)",
+   "note": "Subaru of America 2022 WRX specifications; bore and stroke only for the other FA24 turbo presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "FA24DIT 2.4 turbo boxer (2022+ WRX, Ascent, Outback XT, WRX S4)",
+     "arr": "MOTORS",
+     "cc": 2387,
+     "cyl": 4,
+     "geo": 2387.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2019–21 Subaru Ascent / Outback XT (FA24F, 260 hp)",
+     "arr": "VEH",
+     "cc": 2387,
+     "cyl": 4,
+     "geo": 2387.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa20dit-wrx": {
+   "names": [
+    "2015–21 Subaru WRX (FA20F)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "cr": 10.6,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/specs/2018_WRX_specs-FINAL15112017.pdf",
+   "q": "maker data",
+   "says": "2018 WRX: 1,998 cc; 86 mm x 86 mm; 10.6:1; 268@5,600 rpm",
+   "note": "Subaru of America 2018 WRX specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2015–21 Subaru WRX (FA20F)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa20dit": {
+   "names": [
+    "FA20DIT 2.0 turbo boxer (2015–21 WRX, Forester XT, Levorg)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/specs/2018_WRX_specs-FINAL15112017.pdf",
+   "q": "maker data",
+   "says": "2018 WRX: 1,998 cc; 86 mm x 86 mm",
+   "note": "Subaru of America 2018 WRX specifications; bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "FA20DIT 2.0 turbo boxer (2015–21 WRX, Forester XT, Levorg)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa20-brz17": {
+   "names": [
+    "2017–20 Toyota 86 / Subaru BRZ (FA20, 205 hp)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "cr": 12.5,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/attachments/2017_BRZ_Specs_2.0.pdf",
+   "q": "maker data",
+   "says": "4-cylinder SUBARU BOXER; 1,998 cc (122 cu. in.); 86 mm x 86 mm (3.39 x 3.39 in.); 12.5:1; 205 hp @ 7,000 rpm (manual)",
+   "note": "Subaru of America 2017 BRZ specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2017–20 Toyota 86 / Subaru BRZ (FA20, 205 hp)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "sub-fa20": {
+   "names": [
+    "FA20 / 4U-GSE 2.0 boxer (86, BRZ, FR-S)",
+    "2013–16 Toyota 86 / Subaru BRZ (FA20)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://s3.amazonaws.com/subarumedia.iconicweb.com/mediasite/attachments/2017_BRZ_Specs_2.0.pdf",
+   "q": "maker data",
+   "says": "1,998 cc (122 cu. in.); 86 mm x 86 mm (3.39 x 3.39 in.) (2017 BRZ)",
+   "note": "Subaru of America 2017 BRZ specifications; bore and stroke only for the other FA20 presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "FA20 / 4U-GSE 2.0 boxer (86, BRZ, FR-S)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2013–16 Toyota 86 / Subaru BRZ (FA20)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
@@ -1304,6 +1605,7 @@
  },
  "tried": {
   "hon-k24a8": "hondanews.ca 2007 Accord sedan specifications (https://hondanews.ca/en-CA/hci-automobiles/releases/release-6b48bfbb4a461029754fc85dd70045a1-2007-accord-sedan-specifications): displacement 2354 cc and redline 6500, no bore and stroke",
-  "hon-b16": "Wikipedia Honda B engine read 2026-11-18: no entry under B16A2 or B16B by name"
+  "hon-b16": "Wikipedia Honda B engine read 2026-11-18: no entry under B16A2 or B16B by name",
+  "sub-ej257": "search for a Subaru media WRX STI specification sheet found none (only third-party spec sites)"
  }
 }
