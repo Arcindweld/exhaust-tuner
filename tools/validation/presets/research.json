@@ -757,6 +757,520 @@
      "had": null
     }
    ]
+  },
+  "por-992-gt3": {
+   "names": [
+    "2022+ Porsche 911 GT3 (992, 4.0)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "cr": 13.3,
+   "red": 9000,
+   "src": "https://media.porsche.com/mediakit/911-gt3-touring-package/specifications/pdk/PAG-992-911GT3-TP-PDK-WLTP-EN.pdf",
+   "says": "3,996 cm3; bore 102.0 mm; stroke 81.5 mm; compression 13.3:1; maximum engine speed 9,000 1/min; 375 kW (510 PS) at 8,400 1/min",
+   "q": "maker data",
+   "note": "Porsche 992 911 GT3 Touring technical data (the same engine as the GT3)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2022+ Porsche 911 GT3 (992, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-992-gt3rs": {
+   "sel": "^MDG.H 4.0 \\(RS\\)$",
+   "bore": 102,
+   "stroke": 81.5,
+   "cr": 13.3,
+   "red": 9000,
+   "src": "https://download.newsroom.porsche.com/dam/jcr:1d390f77-93c3-49c0-89c7-634f5f02b26a/S22_3515_en.pdf",
+   "says": "911 GT3 RS (MY 2023): 3,996 cm3; bore 102.0 mm; stroke 81.5 mm; 13.3:1; 9,000 1/min; 386 kW (525 PS) at 8,500 1/min",
+   "q": "maker data",
+   "note": "Porsche newsroom technical data, 992 911 GT3 RS",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2023–24 Porsche 911 GT3 RS / S/T (992.1, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-carrera36": {
+   "names": [
+    "2009–11 Porsche 911 Carrera (997.2, 3.6 DFI)"
+   ],
+   "bore": 97,
+   "stroke": 81.5,
+   "cr": 12.5,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "MA1.02, 2009-2011 Carrera, Carrera 4, Targa 4, 3.6L, 97mm x 81.5mm, 12.5:1",
+   "note": "FCP Euro 997 engine guide (parts vendor; its engine code differs from the presets MA1.01)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2009–11 Porsche 911 Carrera (997.2, 3.6 DFI)",
+     "arr": "VEH",
+     "cc": 3614,
+     "cyl": 6,
+     "geo": 3613.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-carreras38": {
+   "names": [
+    "2009–12 Porsche 911 Carrera S / GTS (997.2, 3.8 DFI)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "MA1.01, 2009-2011 Carrera S, Carrera 4S, Targa 4S, 3.8L, 102mm x 77.5mm, 12.5:1; MA1.01S, 2010-2011 Carrera GTS, 102mm x 77.5mm, 11.5:1",
+   "note": "FCP Euro 997 engine guide; bore and stroke only (the preset covers the S and the GTS, whose compression differs in the guide)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2009–12 Porsche 911 Carrera S / GTS (997.2, 3.8 DFI)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-turbo38": {
+   "names": [
+    "2010–13 Porsche 911 Turbo (997.2, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "cr": 9.8,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "MA1.70, 2009-2013 Turbo, 3.8L, 102mm x 77.5mm, 9.8:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–13 Porsche 911 Turbo (997.2, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt3-38": {
+   "names": [
+    "2010–11 Porsche 911 GT3 (997.2, 3.8 Mezger)"
+   ],
+   "bore": 102.7,
+   "stroke": 76.4,
+   "cr": 12,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.77, 2010-2012 GT3, 3.8L, 102.7mm x 76.4mm, 12.0:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–11 Porsche 911 GT3 (997.2, 3.8 Mezger)",
+     "arr": "VEH",
+     "cc": 3797,
+     "cyl": 6,
+     "geo": 3797.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt3rs-38": {
+   "names": [
+    "2010–11 Porsche 911 GT3 RS (997.2, 3.8 Mezger)"
+   ],
+   "bore": 102.7,
+   "stroke": 76.4,
+   "cr": 12.2,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.77R, 2010-2012 GT3RS, 3.8L, 102.7mm x 76.4mm, 12.2:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–11 Porsche 911 GT3 RS (997.2, 3.8 Mezger)",
+     "arr": "VEH",
+     "cc": 3797,
+     "cyl": 6,
+     "geo": 3797.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt3-38m": {
+   "names": [
+    "M97.76 3.8 flat-six (997.2 GT3)"
+   ],
+   "bore": 102.7,
+   "stroke": 76.4,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.77, 2010-2012 GT3, 3.8L, 102.7mm x 76.4mm",
+   "note": "FCP Euro 997 engine guide (the 997.2 GT3 3.8; bore and stroke only)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "M97.76 3.8 flat-six (997.2 GT3)",
+     "arr": "MOTORS",
+     "cc": 3797,
+     "cyl": 6,
+     "geo": 3797.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt3rs40": {
+   "names": [
+    "2011 Porsche 911 GT3 RS 4.0 (997, Mezger)"
+   ],
+   "bore": 102.7,
+   "stroke": 80.4,
+   "cr": 12.6,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.74, 2012 GT3RS 4.0, 4.0L, 102.7mm x 80.4mm, 12.6:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2011 Porsche 911 GT3 RS 4.0 (997, Mezger)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3996.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt2": {
+   "names": [
+    "2008–09 Porsche 911 GT2 (997, 3.6 twin-turbo)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "cr": 9,
+   "src": "https://www.fcpeuro.com/blog/the-definitive-guide-to-porsche-997-engines",
+   "q": "reputable vendor",
+   "says": "M97.70S, 2008 GT2, 3.6L, 100mm x 76.4mm, 9.0:1",
+   "note": "FCP Euro 997 engine guide",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2008–09 Porsche 911 GT2 (997, 3.6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-k24z7-si13": {
+   "names": [
+    "2012–13 Honda Civic Si (K24Z7)"
+   ],
+   "bore": 87,
+   "stroke": 99,
+   "cr": 11,
+   "valves": 4,
+   "red": 7000,
+   "src": "https://hondanews.com/en-US/honda-automobiles/releases/release-c93c7e8146714964a03663394bcf5e40-2013-honda-civic-si-specifications",
+   "says": "In-Line 4-Cylinder; 2354 cc; 87 x 99 mm; 11.0 : 1; redline 7000 rpm; 201 @ 7000; 16-Valve DOHC i-VTEC",
+   "q": "maker data",
+   "note": "Honda 2013 Civic Si specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2012–13 Honda Civic Si (K24Z7)",
+     "arr": "VEH",
+     "cc": 2354,
+     "cyl": 4,
+     "geo": 2354.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "hon-k20a-tr": {
+   "sel": "^K20(A|A2|A3|Z1|Z3|A \\(JDM\\))$",
+   "cc": [
+    1990,
+    2000
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://global.honda/en/technical-review/PDF/012-2/012-2_45e.pdf",
+   "says": "86 x 86 mm (K20A, 1998 cc; valves 35 / 30 mm)",
+   "q": "maker data",
+   "seen": "2026-11-15",
+   "note": "Honda R&D Technical Review on the K20A, as read and recorded for the K-series round (docs/WAVE_VALIDATION_2026-11-11.md part 14, N1), the source of the K20A2 and K20Z3 engine presets; bore and stroke only for the other K20A-family presets",
+   "targets": [
+    {
+     "name": "K20A2 2.0 i-VTEC (RSX Type-S, Euro Civic Type R)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": [
+      86,
+      86
+     ]
+    },
+    {
+     "name": "K20A 2.0 i-VTEC (JDM Integra Type R DC5, Civic Type R FD2)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "K20Z3 2.0 i-VTEC (2006–11 Civic Si)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": [
+      86,
+      86
+     ]
+    },
+    {
+     "name": "2002–05 Honda Civic Si EP3 (K20A3)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2006–11 Honda Civic Si (K20Z3)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2001–06 Honda Civic Type R EP3 (K20A, JDM)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–11 Honda Civic Type R FD2 (K20A)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2002–04 Acura RSX Type-S (K20A2)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2005–06 Acura RSX Type-S (K20Z1)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-b17a1": {
+   "sel": "^B17A1$",
+   "bore": 81,
+   "stroke": 81.4,
+   "src": "https://en.wikipedia.org/wiki/Honda_B_engine",
+   "q": "secondary: encyclopedia",
+   "says": "1.7 L VTEC (GS-R): Displacement 1.7 L (1,678 cc); Bore x Stroke 81 mm x 81.4 mm; Compression 9.7:1",
+   "note": "Wikipedia, Honda B engine (no maker page found); bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "1992–93 Acura Integra GS-R (B17A1)",
+     "arr": "VEH",
+     "cc": 1678,
+     "cyl": 4,
+     "geo": 1677.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-b18c": {
+   "sel": "^B18C[15]?$",
+   "bore": 81,
+   "stroke": 87.2,
+   "src": "https://en.wikipedia.org/wiki/Honda_B_engine",
+   "q": "secondary: encyclopedia",
+   "says": "B18C (GSR and Integra Type R entries): 1.8 L (1,797 cc); Bore x Stroke 81 mm x 87.2 mm",
+   "note": "Wikipedia, Honda B engine (no maker page found); bore and stroke only (the compression differs by version)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "B18C1 1.8 VTEC (1994–2001 Integra GS-R)",
+     "arr": "MOTORS",
+     "cc": 1797,
+     "cyl": 4,
+     "geo": 1797.4,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "B18C5 1.8 VTEC (1997–2001 Integra Type R, US)",
+     "arr": "MOTORS",
+     "cc": 1797,
+     "cyl": 4,
+     "geo": 1797.4,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "1997–2001 Acura Integra Type R (B18C)",
+     "arr": "VEH",
+     "cc": 1797,
+     "cyl": 4,
+     "geo": 1797.4,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "1994–2001 Acura Integra GS-R (B18C1)",
+     "arr": "VEH",
+     "cc": 1797,
+     "cyl": 4,
+     "geo": 1797.4,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "hon-c32b": {
+   "sel": "^C32B$",
+   "bore": 93,
+   "stroke": 78,
+   "cr": 10.2,
+   "valves": 4,
+   "red": 8000,
+   "src": "https://acuranews.com/en-US/releases/release-f0234886aa7d781e2080c7004c34c8f7-2000-acura-nsx-nsx-t-specifications",
+   "q": "maker data",
+   "says": "Manual (3.2L): 194 cu in (3179 cc); 3.66 in x 3.07 in (93.0 mm x 78.0 mm); 10.2:1; redline 8000 rpm; 290 hp @ 7100 rpm; 4-valves-per-cylinder",
+   "note": "Acura 2000 NSX specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "C32B 3.2 V6 (1997–2005 NSX manual)",
+     "arr": "MOTORS",
+     "cc": 3179,
+     "cyl": 6,
+     "geo": 3179.1,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1997–2005 Honda NSX (C32B, manual)",
+     "arr": "VEH",
+     "cc": 3179,
+     "cyl": 6,
+     "geo": 3179.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "hon-c30a": {
+   "sel": "^C30A",
+   "bore": 90,
+   "stroke": 78,
+   "src": "https://acuranews.com/en-US/releases/release-f0234886aa7d781e2080c7004c34c8f7-2000-acura-nsx-nsx-t-specifications",
+   "q": "maker data",
+   "says": "Automatic (3.0L): 181 cu in (2977 cc); 3.54 in x 3.07 in (90.0 mm x 78.0 mm)",
+   "note": "Acura 2000 NSX specifications, the 3.0 L of the automatic (2977 cc, as the preset); bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "1990–96 Honda NSX (C30A, manual)",
+     "arr": "VEH",
+     "cc": 2977,
+     "cyl": 6,
+     "geo": 2977.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-f20c-02": {
+   "names": [
+    "2000–03 Honda S2000 (F20C)"
+   ],
+   "bore": 87,
+   "stroke": 84,
+   "cr": 11,
+   "src": "https://hondanews.com/en-US/releases/release-ac6c52b46473ca4f83631d004c34c7ed-2002-honda-s2000-specifications",
+   "says": "Displacement 1997/121.9 (cc/cu. in.); bore and stroke 87.0 x 84.0/3.42 x 3.30 (mm/in.); compression 11.0:1; 240@8300",
+   "q": "maker data",
+   "note": "Honda 2002 S2000 specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2000–03 Honda S2000 (F20C)",
+     "arr": "VEH",
+     "cc": 1997,
+     "cyl": 4,
+     "geo": 1997.4,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
@@ -788,5 +1302,8 @@
    "why": "the preset gives 4,951 cc (the Gen 1/2 figure) for the 2018-20 Mustang GT; Ford gives the Gen 3 Coyote as 5038 cc, 93.0 x 92.7 mm. The preset displacement looks wrong (owner to confirm); bore and stroke not applied to it"
   }
  },
- "tried": {}
+ "tried": {
+  "hon-k24a8": "hondanews.ca 2007 Accord sedan specifications (https://hondanews.ca/en-CA/hci-automobiles/releases/release-6b48bfbb4a461029754fc85dd70045a1-2007-accord-sedan-specifications): displacement 2354 cc and redline 6500, no bore and stroke",
+  "hon-b16": "Wikipedia Honda B engine read 2026-11-18: no entry under B16A2 or B16B by name"
+ }
 }
