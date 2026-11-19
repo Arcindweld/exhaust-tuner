@@ -1,8 +1,6 @@
 # PROGRESS (agent36/presetdata) — delete in the final commit
-Task: source real bore/stroke for the 515 car-list presets without them (see task brief in session).
-State files: tools/validation/presets/worklist.json (export.js), research.json (rs.js add/review/tried; resumable).
-Page hook added: window.__presets (index.html after motorList).
-Steps: [x] export/triage  [~] research (ongoing; ~130 car presets sourced; next: Ferrari, AMG, Mitsubishi, Mazda, Lambo)  [ ] apply.js  [ ] page labels  [ ] effect (effect.js)  [ ] tests presetdata_ui.js  [ ] docs + STATUS  [ ] suite
-Notes:
-- estimate: boreStroke(): S=cbrt(per*4/(pi*1.44)), B=1.2 S (index.html ~9486)
-- bike list: 392 4-stroke, 319 with bore already (not the target)
+State files: tools/validation/presets/worklist.json (export.js), research.json (rs.js; resumable), results/effect.json (effect.js, resumable).
+Page: window.__presets hook; vehNote shows bsSrc/bsQ or srcKind label; bsEstNote for unsourced 4-strokes; #sim-bsest on 4-Stroke sim; IVC hint label.
+Steps: [x] export  [x] research (88 entries, 154 preset lines, 144 car-list presets newly sourced)  [x] apply.js (idempotent)
+       [x] page labels  [~] effect.js (wave sample running; old page = git show 0c8fcfb:web/index.html in scratchpad)
+       [ ] run web/tests/presetdata_ui.js  [ ] docs/PRESET_DATA_2026-11-18.md (report.js makes the tables) + STATUS  [ ] suite, pins
