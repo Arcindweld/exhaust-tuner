@@ -20451,13 +20451,14 @@ function bsEstNote(v){
   return ' Bore and stroke: not in the sources found, so they are estimated from the displacement (bore 1.2 × stroke, '+bs.B.toFixed(1)+' × '+bs.S.toFixed(1)+' mm), and the 4-Stroke tab’s valve sizes, rod and piston speed follow from that. Measure your engine’s, or take them from its maker’s data, and type them in on the 4-Stroke tab.';
 }
 function vehNote(v,red,idle,cruise){
+  const mm2=x=>Math.round(x*100)%10?x.toFixed(2):x.toFixed(1);   // 103.25, 87.0 (one decimal as before, two where the source has them)
   const f=x=>Math.round(x).toLocaleString('en-US'), est=k=>v.est&&v.est.indexOf(k)>=0?' (estimated)':'';
   const size=v.cc<1500?f(v.cc)+' cc':(v.cc/1000).toFixed(1)+' L', boosted=v.ind!=='na', rot=ENGLIB[v.eng].cyc==='r';
   const link=(u,t)=>'<a href="'+u+'" target="_blank" rel="noopener">'+t+'</a>';
   const lines=[
     '<b>'+esc(v.name)+'</b>: '+(v.hp<100&&v.hp%1?v.hp.toFixed(1):f(v.hp))+' hp ('+f(v.hp*0.7457)+' kW) at '+f(v.hpRpm)+' RPM'+est('hpRpm')+' and '+(+v.tq.toFixed(1))+' lb-ft ('+f(v.tq*1.35582)+' N·m) at '+f(v.tqRpm)+' RPM'+est('tqRpm')+
       (v.gross?', SAE gross':'')+'. '+size+', redline '+f(red)+(v.red?'':' (estimated, the source gives none)')+'.'+
-      (v.bore&&v.stroke?' Bore and stroke '+(+v.bore.toFixed(2))+' × '+(+v.stroke.toFixed(2))+' mm'+(v.cr?', '+(+v.cr.toFixed(1))+':1 compression':'')+(v.valves?', '+v.valves+' valves per cylinder':'')+
+      (v.bore&&v.stroke?' Bore and stroke '+mm2(v.bore)+' × '+mm2(v.stroke)+' mm'+(v.cr?', '+(+v.cr.toFixed(1))+':1 compression':'')+(v.valves?', '+v.valves+' valves per cylinder':'')+
         (v.bsSrc?' (source: '+link(v.bsSrc,esc(v.bsQ))+')':v.src?' (from the source below: '+srcKind(v.src)+')':'')+'.':bsEstNote(v))+' '+link(v.src,'Source')+(v.src2?', '+link(v.src2,'second source'):'')+'.'];
   const notes=[];
   if(v.motor||v.fitted) notes.push(v.fitted?'Engine-only preset taken from the '+esc(v.fitted)+' rating; the chassis it goes into decides the routing, not these numbers.':'Engine-only preset for a swap or crate motor; the chassis decides the routing.');

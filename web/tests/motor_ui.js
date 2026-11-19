@@ -18,7 +18,7 @@ const {chromium}=require('playwright');
     set('v-pick',ls.value);
     out.sEng=document.getElementById('s-eng').value;
     out.fDisp=document.getElementById('f-disp').value;
-    out.note=document.getElementById('v-note').textContent.slice(0,260);
+    out.note=document.getElementById('v-note').textContent.slice(0,800);   // 800: the bore-and-stroke line (2026-11-18) comes before the engine-only line
     // maker filter
     set('v-make','Ford');
     out.fordN=document.getElementById('v-pick').options.length-1;
