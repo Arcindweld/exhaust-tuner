@@ -2450,6 +2450,262 @@
      "had": null
     }
    ]
+  },
+  "mb-m178-gtr": {
+   "names": [
+    "2017–21 Mercedes-AMG GT R (M178)"
+   ],
+   "bore": 83,
+   "stroke": 92,
+   "cr": 9.5,
+   "red": 7000,
+   "src": "https://media.mbusa.com/releases/release-f57992a15ff49dca22e3786155004fe5-2020-mercedes-amg-gt-r-and-gt-r-pro-coupe",
+   "q": "maker data",
+   "says": "Handcrafted AMG 4.0L V8 biturbo; 3,982 cc; bore 3.27 / 83.0 in/mm; stroke 3.62 / 92.0 in/mm; 9.5 : 1; 577 @ 6,250; redline 7,000",
+   "note": "Mercedes-Benz USA 2020 AMG GT R specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2017–21 Mercedes-AMG GT R (M178)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m178": {
+   "names": [
+    "2020–21 Mercedes-AMG GT Coupé / Roadster facelift (M178, 530 PS)",
+    "M178 4.0 twin-turbo V8 dry-sump (AMG GT)",
+    "2015–17 Mercedes-AMG GT S (M178)"
+   ],
+   "bore": 83,
+   "stroke": 92,
+   "src": "https://media.mbusa.com/releases/release-f57992a15ff49dca22e3786155004fe5-2020-mercedes-amg-gt-r-and-gt-r-pro-coupe",
+   "q": "maker data",
+   "says": "AMG 4.0L V8 biturbo; 3,982 cc; bore 83.0 mm; stroke 92.0 mm (2020 AMG GT R)",
+   "note": "Mercedes-Benz USA 2020 AMG GT R specifications; bore and stroke only for the other AMG GT M178 presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "M178 4.0 twin-turbo V8 dry-sump (AMG GT)",
+     "arr": "MOTORS",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2015–17 Mercedes-AMG GT S (M178)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2020–21 Mercedes-AMG GT Coupé / Roadster facelift (M178, 530 PS)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m177-c63": {
+   "names": [
+    "2015–21 Mercedes-AMG C 63 W205 (M177)",
+    "2015–21 Mercedes-AMG C 63 S W205 (M177)"
+   ],
+   "bore": 83,
+   "stroke": 92,
+   "cr": 10.5,
+   "red": 7000,
+   "src": "https://www.media.mbusa.com/releases/specs-2018-mercedes-amg-c63-coupe-and-c63-s-coupe",
+   "q": "maker data",
+   "says": "2018 C 63 / C 63 S Coupe: Handcrafted AMG 4.0L V8 biturbo; 3,982 cc; bore 3.27 / 83.0 in/mm; stroke 3.62 / 92.0 in/mm; 10.5 : 1; 469 (C 63 S 503) @ 5,500-6,250; redline 7,000",
+   "note": "Mercedes-Benz USA 2018 AMG C 63 Coupe specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2015–21 Mercedes-AMG C 63 W205 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2015–21 Mercedes-AMG C 63 S W205 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m177": {
+   "names": [
+    "M177 4.0 twin-turbo V8 (C 63 S, E 63 S, GT 63, G 63)",
+    "2017–20 Mercedes-AMG E 63 4MATIC+ W213 (M177)",
+    "2017–23 Mercedes-AMG E 63 S 4MATIC+ W213 (M177)",
+    "2024+ Mercedes-AMG GT 63 (M177)"
+   ],
+   "bore": 83,
+   "stroke": 92,
+   "src": "https://www.media.mbusa.com/releases/specs-2018-mercedes-amg-c63-coupe-and-c63-s-coupe",
+   "q": "maker data",
+   "says": "Handcrafted AMG 4.0L V8 biturbo; 3,982 cc; bore 83.0 mm; stroke 92.0 mm (2018 C 63)",
+   "note": "Mercedes-Benz USA 2018 AMG C 63 Coupe specifications; bore and stroke only for the other M177 presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "M177 4.0 twin-turbo V8 (C 63 S, E 63 S, GT 63, G 63)",
+     "arr": "MOTORS",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2017–20 Mercedes-AMG E 63 4MATIC+ W213 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2017–23 Mercedes-AMG E 63 S 4MATIC+ W213 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2024+ Mercedes-AMG GT 63 (M177)",
+     "arr": "VEH",
+     "cc": 3982,
+     "cyl": 8,
+     "geo": 3982.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m156-507": {
+   "names": [
+    "2013–14 Mercedes-Benz C 63 AMG Edition 507 (M156)"
+   ],
+   "bore": 102.2,
+   "stroke": 94.6,
+   "cr": 11.3,
+   "src": "https://media.mbusa.com/releases/release-55aae03f47b344f4a0bc87e6ef5bac2e-2014-c63-amg-edition-507-technical-data",
+   "q": "maker data",
+   "says": "2014 C63 AMG Edition 507: 90-degree V8; 6,208 cc; bore 4.02 / 102.2 in. / mm; stroke 3.72 / 94.6 in. / mm; 11.3:1; 507 @ 6,800",
+   "note": "Mercedes-Benz USA 2014 C63 AMG Edition 507 technical data",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2013–14 Mercedes-Benz C 63 AMG Edition 507 (M156)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m156": {
+   "names": [
+    "2010–14 Mercedes-Benz C 63 AMG Performance Package (M156)",
+    "2012–13 Mercedes-Benz C 63 AMG Coupé Black Series (M156)"
+   ],
+   "bore": 102.2,
+   "stroke": 94.6,
+   "src": "https://media.mbusa.com/releases/release-55aae03f47b344f4a0bc87e6ef5bac2e-2014-c63-amg-edition-507-technical-data",
+   "q": "maker data",
+   "says": "6,208 cc; bore 102.2 mm; stroke 94.6 mm (2014 C63 AMG Edition 507)",
+   "note": "Mercedes-Benz USA 2014 C63 AMG technical data; bore and stroke only for the other C 63 M156 presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2010–14 Mercedes-Benz C 63 AMG Performance Package (M156)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2012–13 Mercedes-Benz C 63 AMG Coupé Black Series (M156)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m157": {
+   "names": [
+    "M157 5.5 twin-turbo V8 (E 63, CLS 63, S 63, G 63 AMG)",
+    "2012–15 Mercedes-Benz G 63 AMG (M157 5.5 twin-turbo)",
+    "2016–18 Mercedes-AMG G 63 (M157 5.5 twin-turbo)"
+   ],
+   "bore": 98,
+   "stroke": 90.5,
+   "src": "https://media.mbusa.com/releases/2017-mercedes-amg-cls63-s-coupe-specifications",
+   "q": "maker data",
+   "says": "2017 CLS63 S: Handcrafted AMG 5.5L V8 biturbo; 5,461 cc; 3.86 / 98.0 in/mm by 3.56 / 90.5 in/mm; 10.0 : 1; 577 @ 5,500; redline 6,500",
+   "note": "Mercedes-Benz USA 2017 AMG CLS63 S specifications; bore and stroke only (no CLS preset; the G 63 presets carry the same 5.5 biturbo)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "M157 5.5 twin-turbo V8 (E 63, CLS 63, S 63, G 63 AMG)",
+     "arr": "MOTORS",
+     "cc": 5461,
+     "cyl": 8,
+     "geo": 5461.1,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2012–15 Mercedes-Benz G 63 AMG (M157 5.5 twin-turbo)",
+     "arr": "VEH",
+     "cc": 5461,
+     "cyl": 8,
+     "geo": 5461.1,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2016–18 Mercedes-AMG G 63 (M157 5.5 twin-turbo)",
+     "arr": "VEH",
+     "cc": 5461,
+     "cyl": 8,
+     "geo": 5461.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
