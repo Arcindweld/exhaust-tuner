@@ -20325,6 +20325,7 @@ function motorList(){
   });
   return out;
 }
+window.__presets={MOTORS,VEH,ENGLIB,motorList,vehCode,vehMaker,boreStroke};   // for the tests (tools/validation/presets, presetdata_ui)
 const FO_NOTE={xp8:'The source doesn’t give the firing order, so the library order stands in; every cross-plane V8 order gives each bank the same 90-180-270-180° rhythm.',
   fp8:'The source doesn’t give the firing order, so the library order stands in; every flat-plane V8 order alternates banks, so each bank fires every 180°.',
   v6:'The source doesn’t give the firing order, so the library order stands in; an even-fire V6 fires each bank every 240° whatever the order.',
