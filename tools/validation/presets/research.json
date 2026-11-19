@@ -2102,6 +2102,354 @@
      "had": null
     }
    ]
+  },
+  "nis-vr38-2023": {
+   "names": [
+    "2017–24 Nissan GT-R R35 (VR38DETT)"
+   ],
+   "bore": 95.5,
+   "stroke": 88.4,
+   "cr": 9,
+   "red": 7100,
+   "src": "https://usa.nissannews.com/releases/2023-nissan-gt-r-press-kit",
+   "says": "GT-R Premium: VR38DETT; 3.8 liters; bore x stroke 95.5 x 88.4 (Plasma-sprayed bore); compression 9.0; 565 @ 6,800 RPM; maximum engine speed 7,100 RPM",
+   "q": "maker data",
+   "note": "Nissan 2023 GT-R press kit",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2017–24 Nissan GT-R R35 (VR38DETT)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 6,
+     "geo": 3799.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-vr38": {
+   "names": [
+    "VR38DETT 3.8 twin-turbo V6 (GT-R R35, 2017+)",
+    "2007–09 Nissan GT-R R35 (VR38DETT)",
+    "2009–11 Nissan GT-R R35 (VR38DETT, 485 hp)"
+   ],
+   "bore": 95.5,
+   "stroke": 88.4,
+   "src": "https://usa.nissannews.com/releases/2023-nissan-gt-r-press-kit",
+   "says": "VR38DETT; 3.8 liters; bore x stroke 95.5 x 88.4",
+   "q": "maker data",
+   "note": "Nissan 2023 GT-R press kit; bore and stroke only for the other VR38DETT presets",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "VR38DETT 3.8 twin-turbo V6 (GT-R R35, 2017+)",
+     "arr": "MOTORS",
+     "cc": 3799,
+     "cyl": 6,
+     "geo": 3799.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–09 Nissan GT-R R35 (VR38DETT)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 6,
+     "geo": 3799.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2009–11 Nissan GT-R R35 (VR38DETT, 485 hp)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 6,
+     "geo": 3799.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq37-nismo": {
+   "names": [
+    "2009–20 Nissan 370Z Nismo (VQ37VHR)"
+   ],
+   "bore": 95.5,
+   "stroke": 86,
+   "cr": 11,
+   "red": 7500,
+   "src": "https://zcca.org/wp-content/uploads/2025/10/2020-Nissan-370Z-NISMO-Specifications.pdf",
+   "says": "2020 370Z NISMO: VQ37VHR; 3.7 liters; 95.5 x 86.0 mm; 11:1; 350 @ 7,400 RPM; maximum engine speed 7,500 rpm",
+   "q": "maker data",
+   "note": "Nissan 2020 370Z NISMO specifications (the makers release, as hosted by the Z Car Club Association)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2009–20 Nissan 370Z Nismo (VQ37VHR)",
+     "arr": "VEH",
+     "cc": 3696,
+     "cyl": 6,
+     "geo": 3696.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq37": {
+   "names": [
+    "2009–20 Nissan 370Z (VQ37VHR)"
+   ],
+   "bore": 95.5,
+   "stroke": 86,
+   "cr": 11,
+   "red": 7500,
+   "src": "https://zcca.org/wp-content/uploads/2025/10/2020-Nissan-370Z-Coupe-Specifications.pdf",
+   "says": "2020 370Z Coupe: VQ37VHR; 3.7 liters; 95.5 x 86.0 mm; 11:1; 332 @ 7,000 RPM; maximum engine speed 7,500 rpm",
+   "q": "maker data",
+   "note": "Nissan 2020 370Z Coupe specifications (the makers release, as hosted by the Z Car Club Association)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2009–20 Nissan 370Z (VQ37VHR)",
+     "arr": "VEH",
+     "cc": 3696,
+     "cyl": 6,
+     "geo": 3696.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq37-m": {
+   "names": [
+    "VQ37VHR 3.7 V6 (370Z, G37, Q50 3.7)"
+   ],
+   "bore": 95.5,
+   "stroke": 86,
+   "src": "https://zcca.org/wp-content/uploads/2025/10/2020-Nissan-370Z-Coupe-Specifications.pdf",
+   "says": "VQ37VHR; 3.7 liters; 95.5 x 86.0 mm",
+   "q": "maker data",
+   "note": "Nissan 2020 370Z Coupe specifications; bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "VQ37VHR 3.7 V6 (370Z, G37, Q50 3.7)",
+     "arr": "MOTORS",
+     "cc": 3696,
+     "cyl": 6,
+     "geo": 3696.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "kia-33t-st": {
+   "names": [
+    "2018–20 Kia Stinger GT 3.3T"
+   ],
+   "bore": 92,
+   "stroke": 83.8,
+   "cr": 10,
+   "src": "https://kiamedia.com/us/es/models/stinger/2020/specifications",
+   "q": "maker data",
+   "says": "3.3L Twin Turbo V6: 3,342 cc; 92.0 mm x 83.8 mm; 10.0:1; 365 hp @ 6,000 rpm",
+   "note": "Kia America 2020 Stinger specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2018–20 Kia Stinger GT 3.3T",
+     "arr": "VEH",
+     "cc": 3342,
+     "cyl": 6,
+     "geo": 3342.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "kia-33t": {
+   "names": [
+    "Lambda II 3.3 twin-turbo V6 (Stinger GT, Genesis G70/G80 3.3T)"
+   ],
+   "bore": 92,
+   "stroke": 83.8,
+   "src": "https://kiamedia.com/us/es/models/stinger/2020/specifications",
+   "q": "maker data",
+   "says": "3.3L Twin Turbo V6: 3,342 cc; 92.0 mm x 83.8 mm",
+   "note": "Kia America 2020 Stinger specifications; bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Lambda II 3.3 twin-turbo V6 (Stinger GT, Genesis G70/G80 3.3T)",
+     "arr": "MOTORS",
+     "cc": 3342,
+     "cyl": 6,
+     "geo": 3342.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "kia-20t-st": {
+   "names": [
+    "2018–23 Kia Stinger 2.0T"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "cr": 10,
+   "src": "https://kiamedia.com/us/es/models/stinger/2020/specifications",
+   "q": "maker data",
+   "says": "2.0L Twin Scroll Turbo 4-Cylinder: 1,998 cc; 86.0 mm X 86.0 mm; 10.0:1; 255 hp @ 6,200 rpm",
+   "note": "Kia America 2020 Stinger specifications",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2018–23 Kia Stinger 2.0T",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "kia-20t": {
+   "names": [
+    "Theta II 2.0 T-GDi I4 (Veloster N, Elantra N, Genesis Coupe 2.0T, Stinger 2.0T)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://kiamedia.com/us/es/models/stinger/2020/specifications",
+   "q": "maker data",
+   "says": "2.0L Twin Scroll Turbo 4-Cylinder: 1,998 cc; 86.0 mm X 86.0 mm (2020 Stinger)",
+   "note": "Kia America 2020 Stinger specifications; bore and stroke only for the combined Theta II 2.0 T-GDi preset",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "Theta II 2.0 T-GDi I4 (Veloster N, Elantra N, Genesis Coupe 2.0T, Stinger 2.0T)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-25tfsi-400": {
+   "names": [
+    "2017+ Audi RS 3 / TT RS (2.5 TFSI 400 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "cr": 10,
+   "src": "https://www.audi-mediacenter.com/en/rs-3-sedan-216/technical-data",
+   "says": "RS 3 Sedan TFSI (294 kW): displacement in cc / bore x stroke in mm / compression 2480 / 82.5 x 92.8 / 10.0; 294 (400) / 5600 - 7000",
+   "q": "maker data",
+   "note": "Audi MediaCenter RS 3 Sedan technical data",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2017+ Audi RS 3 / TT RS (2.5 TFSI 400 PS)",
+     "arr": "VEH",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-25tfsi": {
+   "names": [
+    "2.5 TFSI inline-five turbo (RS 3, TT RS, RS Q3)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.audi-mediacenter.com/en/rs-3-sedan-216/technical-data",
+   "says": "RS 3 Sedan TFSI: 2480 cc / 82.5 x 92.8 mm",
+   "q": "maker data",
+   "note": "Audi MediaCenter RS 3 Sedan technical data; bore and stroke only for the combined 2.5 TFSI preset",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "2.5 TFSI inline-five turbo (RS 3, TT RS, RS Q3)",
+     "arr": "MOTORS",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-s3-8v": {
+   "names": [
+    "2013–20 Audi S3 8V (2.0 TFSI 300 PS)",
+    "EA888 Gen 3 2.0 TSI (Golf R, S3, GTI)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://uploads.audi-mediacenter.com/system/production/car_motorizations/438/file_en/8f04843e0183f04234130a5af70abaa4f4f12fe7/etd_S3_2_0_TFSI_quattro_228_kW_0817.pdf",
+   "q": "maker data",
+   "says": "Audi S3 2.0 TFSI quattro (228 kW): inline four-cylinder, gasoline direct injection; 1984 cc; 82.5 x 92.8 mm; compression 9.3; 228 (310) / 5800 - 6500",
+   "note": "Audi MediaCenter technical data, S3 2.0 TFSI (2017); bore and stroke only (the presets power differs)",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "EA888 Gen 3 2.0 TSI (Golf R, S3, GTI)",
+     "arr": "MOTORS",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2013–20 Audi S3 8V (2.0 TFSI 300 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-r8-v10": {
+   "names": [
+    "2016–18 Audi R8 V10 plus (610 PS)",
+    "5.2 FSI V10 (R8 V10, Gallardo LP 560, Huracán)"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://uploads.audi-mediacenter.com/system/production/car_motorizations/335/file_en/824cd6b831b620f3969a43e61549348b22b8d6e6/eTechnische_Daten_Audi_R8V10_Coupe_419kW.pdf",
+   "q": "maker data",
+   "says": "Audi R8 V10 Coupe (419 kW): V10 engine; 5204 cc; bore 84.5 mm; stroke 92.8 mm; compression 12.7; 419 (570) / 8100",
+   "note": "Audi MediaCenter technical data, R8 V10 Coupe (data status 2020); bore and stroke only",
+   "seen": "2026-11-19",
+   "targets": [
+    {
+     "name": "5.2 FSI V10 (R8 V10, Gallardo LP 560, Huracán)",
+     "arr": "MOTORS",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2016–18 Audi R8 V10 plus (610 PS)",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
