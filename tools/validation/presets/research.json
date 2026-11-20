@@ -4796,6 +4796,680 @@
      "had": null
     }
    ]
+  },
+  "kaw-zx6r-636-20": {
+   "names": [
+    "2019–23 Kawasaki ZX-6R 636 (inline-four)",
+    "2013–18 Kawasaki Ninja ZX-6R (636)"
+   ],
+   "bore": 67,
+   "stroke": 45.1,
+   "src": "https://hawaii.kawasaki.com/en-us/products/ProductSpecSheetPDF/2020-ninja-zx-6r-abs",
+   "says": "Engine 4-stroke, 4-cylinder, DOHC, 16-valve, liquidcooled; Displacement 636cc; Bore x Stroke 67.0 x 45.1mm; Compression Ratio 12.9:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Kawasaki (USA, Hawaii distributor site) 2020 Ninja ZX-6R ABS spec sheet; bore and stroke only for the two 636 presets",
+   "targets": [
+    {
+     "name": "2013–18 Kawasaki Ninja ZX-6R (636)",
+     "arr": "VEH",
+     "cc": 636,
+     "cyl": 4,
+     "geo": 636,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2019–23 Kawasaki ZX-6R 636 (inline-four)",
+     "arr": "VEH",
+     "cc": 636,
+     "cyl": 4,
+     "geo": 636,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "kaw-zx4rr-23": {
+   "names": [
+    "2023 Kawasaki Ninja ZX-4RR (Cycle World dyno)"
+   ],
+   "bore": 57,
+   "stroke": 39.1,
+   "cr": 12.3,
+   "src": "https://kawasaki.com/en-us/products/ProductSpecSheetPDF/2023-ninja-zx-4rr-krt-edition",
+   "says": "Engine 4-stroke, In-Line Four-Cylinder, DOHC, 16-valve, liquid-cooled; Displacement 399cc; Bore x Stroke 57.0 x 39.1mm; Compression Ratio 12.3:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Kawasaki USA 2023 Ninja ZX-4RR KRT Edition spec sheet",
+   "targets": [
+    {
+     "name": "2023 Kawasaki Ninja ZX-4RR (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 399,
+     "cyl": 4,
+     "geo": 399.1,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "kaw-h2": {
+   "names": [
+    "2015+ Kawasaki Ninja H2"
+   ],
+   "bore": 76,
+   "stroke": 55,
+   "src": "https://www.kawasaki.com/en-us/products/ProductSpecSheetPDF/2025-ninja-h2-abs",
+   "says": "Engine 4-stroke, in-line 4-cylinder, DOHC, 16-valve, liquid-cooled; Displacement 998cc; Bore x Stroke 76.0 x 55.0mm; Compression Ratio 8.5:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Kawasaki USA 2025 Ninja H2 ABS spec sheet; bore and stroke only (preset spans 2015 on)",
+   "targets": [
+    {
+     "name": "2015+ Kawasaki Ninja H2",
+     "arr": "VEH",
+     "cc": 998,
+     "cyl": 4,
+     "geo": 998,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "kaw-zx10r-17": {
+   "names": [
+    "2016–20 Kawasaki Ninja ZX-10R"
+   ],
+   "bore": 76,
+   "stroke": 55,
+   "src": "https://www.motorcycle.com/specs/kawasaki/sport/2017/ninja-zx-10r/base/detail.html",
+   "says": "2017 Ninja ZX-10R: Displacement 998 / 60.9 cc/ci; Bore 76 / 2.99 mm/in; Stroke 55 / 2.17 mm/in; Compression ratio 13.0:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2017 Kawasaki Ninja ZX-10R; bore and stroke only",
+   "targets": [
+    {
+     "name": "2016–20 Kawasaki Ninja ZX-10R",
+     "arr": "VEH",
+     "cc": 998,
+     "cyl": 4,
+     "geo": 998,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr1000r-17": {
+   "names": [
+    "2017+ Suzuki GSX-R1000R"
+   ],
+   "bore": 76,
+   "stroke": 55.1,
+   "src": "https://www.motorcycle.com/specs/suzuki/sport/2017/gsx-r/1000r/detail.html",
+   "says": "2017 GSX-R 1000R: Displacement 999.8 / 61 cc/ci; Bore 76 / 2.99 mm/in; Stroke 2.17 / 55.1 in/mm; Compression Ratio 13.2:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2017 Suzuki GSX-R1000R; bore and stroke only",
+   "targets": [
+    {
+     "name": "2017+ Suzuki GSX-R1000R",
+     "arr": "VEH",
+     "cc": 1000,
+     "cyl": 4,
+     "geo": 999.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "suz-busa-1g": {
+   "names": [
+    "1999–2007 Suzuki Hayabusa"
+   ],
+   "bore": 81,
+   "stroke": 63,
+   "src": "https://www.motorcycle.com/specs/suzuki/sport/2005/hayabusa/1300r/detail.html",
+   "says": "2005 Hayabusa 1300R: Displacement 1299 / 79.3 cc/ci; Bore 81 / 3.19 mm/in; Stroke 63 / 2.48 mm/in; Compression Ratio 11.0:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2005 Suzuki Hayabusa 1300R; bore and stroke only (preset spans 1999-2007)",
+   "targets": [
+    {
+     "name": "1999–2007 Suzuki Hayabusa",
+     "arr": "VEH",
+     "cc": 1299,
+     "cyl": 4,
+     "geo": 1298.6,
+     "dPct": -0.03,
+     "had": null
+    }
+   ]
+  },
+  "suz-busa-2g": {
+   "names": [
+    "2008–20 Suzuki Hayabusa"
+   ],
+   "bore": 81,
+   "stroke": 65,
+   "src": "https://www.totalmotorcycle.com/photos/2008models/2008models-Suzuki-HayabusaGSX1300R.htm",
+   "says": "2008 Hayabusa GSX1300RK8 US specifications: 1340cc; Bore & Stroke 81.0 x 65.0mm; Compression Ratio 12.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Total Motorcycle, 2008 Suzuki Hayabusa GSX1300R (US specifications); bore and stroke only (preset spans 2008-20)",
+   "targets": [
+    {
+     "name": "2008–20 Suzuki Hayabusa",
+     "arr": "VEH",
+     "cc": 1340,
+     "cyl": 4,
+     "geo": 1339.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr1000-k1": {
+   "names": [
+    "2001–02 Suzuki GSX-R1000 (K1)"
+   ],
+   "bore": 72,
+   "stroke": 46,
+   "src": "https://www.totalmotorcycle.com/photos/2001models/2001models-Suzuki-GSX-R1000.htm",
+   "says": "2001 GSX-R1000: Water-cooled 988 cc inline-4, DOHC, 16 valves; Bore x stroke 72.0mm x 46.0mm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Total Motorcycle, 2001 Suzuki GSX-R1000",
+   "targets": []
+  },
+  "suz-gsxr600-23": {
+   "names": [
+    "2023 Suzuki GSX-R600 (Cycle World dyno)"
+   ],
+   "bore": 67,
+   "stroke": 42.5,
+   "cr": 12.9,
+   "src": "https://suzukicycles.com/sportbike/2023/gsx-r600",
+   "says": "Engine 599cc, 4-stroke, liquid-cooled, 4-cylinder, DOHC; Bore x Stroke 67.0 mm x 42.5 mm (2.638 in. x 1.673 in.); Compression Ratio 12.9:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Suzuki Motor USA, 2023 GSX-R600 specifications",
+   "targets": [
+    {
+     "name": "2023 Suzuki GSX-R600 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 599,
+     "cyl": 4,
+     "geo": 599.4,
+     "dPct": 0.06,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr750-k4": {
+   "names": [
+    "2004–05 Suzuki GSX-R750"
+   ],
+   "bore": 72,
+   "stroke": 46,
+   "src": "https://cdn-fastly.motorcycle.com/specs/suzuki/sport/2004/gsx-r/750/detail.html",
+   "says": "2004 GSX-R 750: Displacement 749 / 46 cc/ci; Bore 72 / 2.84 mm/in; Stroke 46 / 1.81 mm/in; Compression Ratio 12.3:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2004 Suzuki GSX-R750; bore and stroke only",
+   "targets": [
+    {
+     "name": "2004–05 Suzuki GSX-R750",
+     "arr": "VEH",
+     "cc": 750,
+     "cyl": 4,
+     "geo": 749.2,
+     "dPct": -0.11,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr750-k9": {
+   "names": [
+    "2008–10 Suzuki GSX-R750 K8–L0 (inline-four)"
+   ],
+   "bore": 70,
+   "stroke": 48.7,
+   "src": "https://www.totalmotorcycle.com/photos/2009models/2009-Suzuki-GSX-R750",
+   "says": "2009 GSX-R750: Displacement 750 cc (45.8 cu. In); Bore & Stroke 70.0 mm (2.756 in) x 48.7 mm (1.917 in); Compression Ratio 12.5 : 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Total Motorcycle, 2009 Suzuki GSX-R750 (US specifications); bore and stroke only",
+   "targets": [
+    {
+     "name": "2008–10 Suzuki GSX-R750 K8–L0 (inline-four)",
+     "arr": "VEH",
+     "cc": 750,
+     "cyl": 4,
+     "geo": 749.7,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr750-22": {
+   "names": [
+    "2022 Suzuki GSX-R750 (Cycle World dyno)"
+   ],
+   "bore": 70,
+   "stroke": 48.7,
+   "cr": 12.5,
+   "src": "https://www.globalsuzuki.com/motorcycle/smgs/products/2022gsx-r750/",
+   "says": "Engine displacement 750 cm3 (45.8 cu. in); Bore x Stroke 70.0 mm x 48.7 mm (2.8 in x 1.9 in); Compression ratio 12.5 : 1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Suzuki Motor Corporation (global site), 2022 GSX-R750 specifications",
+   "targets": [
+    {
+     "name": "2022 Suzuki GSX-R750 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 750,
+     "cyl": 4,
+     "geo": 749.7,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsx8r-24": {
+   "names": [
+    "2024 Suzuki GSX-8R (Cycle World dyno)"
+   ],
+   "bore": 84,
+   "stroke": 70,
+   "cr": 12.8,
+   "src": "https://suzukicycles.com/street/2024/gsx-8r",
+   "says": "Engine displacement 776cc, 4-stroke, liquid-cooled, DOHC parallel twin; Bore x Stroke 84.0 mm x 70 mm (3.3 in. x 2.8 in.); Compression Ratio 12.8:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Suzuki Motor USA, 2024 GSX-8R specifications",
+   "targets": [
+    {
+     "name": "2024 Suzuki GSX-8R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 776,
+     "cyl": 2,
+     "geo": 775.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsx8s-23": {
+   "names": [
+    "2023 Suzuki GSX-8S (Cycle World dyno)"
+   ],
+   "bore": 84,
+   "stroke": 70,
+   "cr": 12.8,
+   "src": "https://www.motorcycle.com/specs/suzuki/standard/2023/gsx-s/8s/detail.html",
+   "says": "2023 GSX-S 8S: Displacement 776 / 47.3 cc/ci; Bore 84 / 3.31 mm/in; Stroke 2.76 / 70 in/mm; Compression Ratio 12.8:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2023 Suzuki GSX-8S",
+   "targets": [
+    {
+     "name": "2023 Suzuki GSX-8S (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 776,
+     "cyl": 2,
+     "geo": 775.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "yam-r7-24": {
+   "names": [
+    "2024 Yamaha YZF-R7 (Cycle World dyno)"
+   ],
+   "bore": 80,
+   "stroke": 68.6,
+   "cr": 11.5,
+   "src": "https://www.yamahamotorsports.com/models/24-yzf-r7/specs",
+   "says": "Engine Type 689cc liquid-cooled, 4-stroke, DOHC inline twin-cylinder; 4-valves per cylinder; Bore x Stroke 80.0mm x 68.6mm; Compression Ratio 11.5:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Yamaha Motor USA, 2024 YZF-R7 specifications",
+   "targets": [
+    {
+     "name": "2024 Yamaha YZF-R7 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 689,
+     "cyl": 2,
+     "geo": 689.6,
+     "dPct": 0.09,
+     "had": null
+    }
+   ]
+  },
+  "yam-r6-17": {
+   "names": [
+    "2017+ Yamaha YZF-R6"
+   ],
+   "bore": 67,
+   "stroke": 42.5,
+   "src": "https://global.yamaha-motor.com/news/2016/1014/yzf-r6.html",
+   "says": "Engine type Liquid-cooled, 4-stroke, DOHC, 4-valve; Displacement 599cm3; Bore x stroke 67.0 x 42.5mm; Compression ratio 13.1:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Yamaha Motor news release of 14 Oct 2016 for the 2017 YZF-R6 (its table is headed 2016 US model main specifications); bore and stroke only",
+   "targets": [
+    {
+     "name": "2017+ Yamaha YZF-R6",
+     "arr": "VEH",
+     "cc": 599,
+     "cyl": 4,
+     "geo": 599.4,
+     "dPct": 0.06,
+     "had": null
+    }
+   ]
+  },
+  "yam-r6-06": {
+   "names": [
+    "2006–07 Yamaha YZF-R6"
+   ],
+   "bore": 67,
+   "stroke": 42.5,
+   "src": "https://www.totalmotorcycle.com/photos/2006models/2006models-Yamaha-YZF-R6",
+   "says": "2006 YZF-R6: 600cc; Bore x Stroke 67.0 x 42.5mm; Compression Ratio 12.8:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Total Motorcycle, 2006 Yamaha YZF-R6; bore and stroke only",
+   "targets": [
+    {
+     "name": "2006–07 Yamaha YZF-R6",
+     "arr": "VEH",
+     "cc": 599,
+     "cyl": 4,
+     "geo": 599.4,
+     "dPct": 0.06,
+     "had": null
+    }
+   ]
+  },
+  "yam-r1-cp": {
+   "names": [
+    "2009–14 Yamaha YZF-R1 (crossplane)"
+   ],
+   "bore": 78,
+   "stroke": 52.2,
+   "src": "https://www.motorcycle.com/specs/yamaha/sport/2010/yzf/r1.html",
+   "says": "2010 YZF R1: Displacement (cc/ci) 998 / 60.9; Bore (mm/in) 78 / 3.07; Stroke (mm/in) 52.2 / 2.06; Compression Ratio 12.7:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2010 Yamaha YZF-R1; bore and stroke only",
+   "targets": [
+    {
+     "name": "2009–14 Yamaha YZF-R1 (crossplane)",
+     "arr": "VEH",
+     "cc": 998,
+     "cyl": 4,
+     "geo": 997.7,
+     "dPct": -0.03,
+     "had": null
+    }
+   ]
+  },
+  "hon-cbr1000rr-17": {
+   "names": [
+    "2017–19 Honda CBR1000RR Fireblade"
+   ],
+   "bore": 76,
+   "stroke": 55,
+   "src": "https://hondanews.com/en-US/powersports/releases/release-78e5848b968e454588fa0e1bb9a1058a-2017-honda-cbr1000rr-specifications",
+   "says": "Engine Type 998cc liquid-cooled in-line-four-cylinder four-stroke; Bore x Stroke 76.0mm x 55.0mm; Compression Ratio 13:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "American Honda, 2017 Honda CBR1000RR specifications; bore and stroke only (preset spans 2017-19)",
+   "targets": [
+    {
+     "name": "2017–19 Honda CBR1000RR Fireblade",
+     "arr": "VEH",
+     "cc": 999,
+     "cyl": 4,
+     "geo": 998,
+     "dPct": -0.1,
+     "had": null
+    }
+   ]
+  },
+  "hon-cb650-20": {
+   "names": [
+    "2019 Honda CB650R (Cycle World dyno)",
+    "2019 Honda CBR650R (Cycle World dyno)",
+    "2021 Honda CB650R (Cycle World dyno)"
+   ],
+   "bore": 67,
+   "stroke": 46,
+   "src": "https://hondanews.com/en-US/powersports/releases/release-47ef5ef525f391ae783334075a031539-2020-honda-cb650r-specifications",
+   "says": "Engine type 649cc liquid-cooled 30 deg inline four-cylinder four-stroke; Bore x Stroke 67.0mm x 46.0mm; Compression ratio 11.6:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "American Honda, 2020 Honda CB650R specifications (the CBR650R has the same engine); bore and stroke only for the 2019 and 2021 presets",
+   "targets": [
+    {
+     "name": "2019 Honda CB650R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 649,
+     "cyl": 4,
+     "geo": 648.7,
+     "dPct": -0.04,
+     "had": null
+    },
+    {
+     "name": "2019 Honda CBR650R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 649,
+     "cyl": 4,
+     "geo": 648.7,
+     "dPct": -0.04,
+     "had": null
+    },
+    {
+     "name": "2021 Honda CB650R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 649,
+     "cyl": 4,
+     "geo": 648.7,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "hon-rebel1100-21": {
+   "names": [
+    "2021 Honda Rebel 1100 (Cycle World dyno)"
+   ],
+   "bore": 92,
+   "stroke": 81.5,
+   "cr": 10.1,
+   "src": "https://www.motorcycle.com/specs/honda/cruiser/2021/rebel-1100/base/detail.html",
+   "says": "2021 Rebel 1100: Displacement (cc/ci) 1084 / 66.1; Bore (mm/in) 92 / 3.62; Stroke (mm/in) 81.5 / 3.21; Compression Ratio 10.1:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Honda Rebel 1100",
+   "targets": [
+    {
+     "name": "2021 Honda Rebel 1100 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1084,
+     "cyl": 2,
+     "geo": 1083.6,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "yam-tracer9-21": {
+   "names": [
+    "2021 Yamaha Tracer 9 GT (Cycle World dyno)"
+   ],
+   "bore": 78,
+   "stroke": 62.1,
+   "cr": 11.5,
+   "src": "https://www.motorcycle.com/specs/yamaha/sport-touring/2021/tracer/9-gt/detail.html",
+   "says": "2021 Tracer 9 GT: Displacement 890 / 54.3 cc/ci; Bore 78 / 3.07 mm/in; Stroke 2.44 / 62.1 in/mm; Compression Ratio 11.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Yamaha Tracer 9 GT",
+   "targets": [
+    {
+     "name": "2021 Yamaha Tracer 9 GT (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 890,
+     "cyl": 3,
+     "geo": 890.2,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "hon-cbr1000rr-05": {
+   "names": [
+    "2004–05 Honda CBR1000RR Fireblade"
+   ],
+   "bore": 75,
+   "stroke": 56.5,
+   "src": "https://hondanews.com/en-US/powersports/releases/release-7ce448ae6f61162d9aad27004c34c31d-2005-honda-cbr1000rr-specifications",
+   "says": "Engine type 998cc liquid-cooled inline four-cylinder; Bore and stroke 75mm x 56.5mm; Compression ratio 11.9:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "American Honda, 2005 Honda CBR1000RR specifications; bore and stroke only (preset spans 2004-05)",
+   "targets": [
+    {
+     "name": "2004–05 Honda CBR1000RR Fireblade",
+     "arr": "VEH",
+     "cc": 998,
+     "cyl": 4,
+     "geo": 998.4,
+     "dPct": 0.04,
+     "had": null
+    }
+   ]
+  },
+  "hon-transalp-24": {
+   "names": [
+    "2024 Honda Transalp (Cycle World dyno)"
+   ],
+   "bore": 87,
+   "stroke": 63.5,
+   "cr": 11,
+   "src": "https://hondanews.com/en-US/powersports/releases/release-cc39196e84787a20ec3cb086fb11a917-2024-honda-xl750-transalp-specifications",
+   "says": "Engine type 755cc liquid-cooled 24.5 deg inline-two-cylinder four-stroke w/ 270 deg crank; Bore and stroke 87.0mm x 63.5mm; Compression ratio 11.0:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "American Honda, 2024 Honda XL750 Transalp specifications",
+   "targets": [
+    {
+     "name": "2024 Honda Transalp (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 755,
+     "cyl": 2,
+     "geo": 755,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s1000rr-19": {
+   "names": [
+    "2019+ BMW S1000RR"
+   ],
+   "bore": 80,
+   "stroke": 49.7,
+   "src": "https://www.motorcycle.com/specs/bmw/sport/2019/s/1000-rr/detail.html",
+   "says": "2019 S 1000 RR: Displacement (cc/ci) 999 / 60.9; Bore (mm/in) 80 / 3.15; Stroke (in/mm) 1.96 / 49.7; Compression Ratio 13.0:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2019 BMW S 1000 RR; bore and stroke only",
+   "targets": [
+    {
+     "name": "2019+ BMW S1000RR",
+     "arr": "VEH",
+     "cc": 999,
+     "cyl": 4,
+     "geo": 999.3,
+     "dPct": 0.03,
+     "had": null
+    }
+   ]
+  },
+  "bmw-m1000rr": {
+   "names": [
+    "2023 BMW M 1000 RR (Cycle World dyno)"
+   ],
+   "bore": 80,
+   "stroke": 49.7,
+   "src": "https://www.bmwmotorcycles.com/en/models/m/m1000rr/technicaldata.html",
+   "says": "Capacity 999 cc; Bore x stroke 80 mm x 49.7 mm; Compression ratio 14.5 : 1 (current model page, 2027 in the navigation)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Motorrad USA M 1000 RR technical data (current model, not 2023); bore and stroke only",
+   "targets": [
+    {
+     "name": "2023 BMW M 1000 RR (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 999,
+     "cyl": 4,
+     "geo": 999.3,
+     "dPct": 0.03,
+     "had": null
+    }
+   ]
+  },
+  "bmw-m1000r": {
+   "names": [
+    "2023 BMW M 1000 R (Cycle World dyno)"
+   ],
+   "bore": 80,
+   "stroke": 49.7,
+   "cr": 13.3,
+   "src": "https://www.bmw-motorrad.co.uk/en/models/m/m1000r-2023/technicaldata.html",
+   "says": "BMW M 1000 R: Capacity 999 cc; Bore x stroke 80 mm x 49.7 mm; Compression ratio 13.3 : 1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Motorrad UK, M 1000 R (2023 page) technical data",
+   "targets": [
+    {
+     "name": "2023 BMW M 1000 R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 999,
+     "cyl": 4,
+     "geo": 999.3,
+     "dPct": 0.03,
+     "had": null
+    }
+   ]
+  },
+  "bmw-f900r": {
+   "names": [
+    "2023 BMW F 900 R (Cycle World dyno)"
+   ],
+   "bore": 86,
+   "stroke": 77,
+   "src": "https://www.bmwmotorcycles.com/en/models/roadster/f900r/technicaldata.html",
+   "says": "Capacity 895 cc; Bore x stroke 86 mm x 77 mm; Compression ratio 13.1 : 1 (current model page)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Motorrad USA F 900 R technical data (current model, not 2023); bore and stroke only",
+   "targets": [
+    {
+     "name": "2023 BMW F 900 R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 895,
+     "cyl": 2,
+     "geo": 894.6,
+     "dPct": -0.05,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
@@ -4883,6 +5557,27 @@
     "2017–19 Porsche 911 Carrera GTS (991.2, 3.0 twin-turbo)"
    ],
    "seen": "2026-11-20"
+  },
+  "suz-gsxr1000-k1": {
+   "found": {
+    "bore": 72,
+    "stroke": 46,
+    "src": "https://www.totalmotorcycle.com/photos/2001models/2001models-Suzuki-GSX-R1000.htm",
+    "says": "2001 GSX-R1000: Water-cooled 988 cc inline-4, DOHC, 16 valves; Bore x stroke 72.0mm x 46.0mm",
+    "q": "magazine test"
+   },
+   "mismatch": [
+    {
+     "name": "2001–02 Suzuki GSX-R1000 (K1)",
+     "arr": "VEH",
+     "cc": 988,
+     "cyl": 4,
+     "geo": 749.2,
+     "dPct": -24.17,
+     "had": null
+    }
+   ],
+   "why": "bore x stroke x cylinders outside 1 % of the preset displacement"
   }
  },
  "tried": {
