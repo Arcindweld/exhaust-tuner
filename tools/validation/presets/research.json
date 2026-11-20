@@ -6987,6 +6987,277 @@
      "had": null
     }
    ]
+  },
+  "vw-ea888g3-gti": {
+   "names": [
+    "2013–16 Volkswagen Golf Mk7 GTI (2.0 TSI, 220 PS)",
+    "2013–20 Volkswagen Golf Mk7 GTI Performance (2.0 TSI, 230 PS)",
+    "2015–19 Volkswagen Golf Mk7 R (2.0 TSI, US 292 hp)",
+    "2014–19 Volkswagen Golf Mk7 R (2.0 TSI, Europe 300 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2013/3-puertas/gti/golf-3p-gti-20-tsi-220-cv-bmt-dsg-6-vel/datos",
+   "says": "Golf 3p GTI 2.0 TSI 220 CV BMT DSG (2015-2016): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 1.984 cm3; 9,6 a 1; 220 CV / 162 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf VII GTI 220 CV; applied bore and stroke only to the Mk7 GTI, GTI Performance and Golf R presets (same EA888 Gen 3 1,984 cm3)",
+   "targets": [
+    {
+     "name": "2013–16 Volkswagen Golf Mk7 GTI (2.0 TSI, 220 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2013–20 Volkswagen Golf Mk7 GTI Performance (2.0 TSI, 230 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2015–19 Volkswagen Golf Mk7 R (2.0 TSI, US 292 hp)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2014–19 Volkswagen Golf Mk7 R (2.0 TSI, Europe 300 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-ea888g3-cs": {
+   "names": [
+    "2016 Volkswagen Golf Mk7 GTI Clubsport (2.0 TSI, 265 PS)",
+    "2016 Volkswagen Golf Mk7 GTI Clubsport S (2.0 TSI, 310 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2013/3-puertas/gti-clubsport/golf-3p-gti-clubsport/datos",
+   "says": "Golf 3p GTI Clubsport (2016): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 1.984 cm3; 9,3 a 1; 290 CV / 213 kW (overboost figure)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf VII GTI Clubsport; bore and stroke only (also applied to the Clubsport S)",
+   "targets": [
+    {
+     "name": "2016 Volkswagen Golf Mk7 GTI Clubsport (2.0 TSI, 265 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2016 Volkswagen Golf Mk7 GTI Clubsport S (2.0 TSI, 310 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-vr6-32-mk5": {
+   "names": [
+    "2005–08 Volkswagen Golf Mk5 R32 (3.2 VR6)",
+    "VR6 3.2 24V (Golf R32, Audi TT 3.2, A3 3.2)"
+   ],
+   "bore": 84,
+   "stroke": 95.9,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2004/3-puertas/r32/golf-3p-r32-32-v6-250-cv-4motion/datos",
+   "says": "Golf 3p R32 3.2 V6 250 CV 4Motion (2005-2007): Diametro 84 mm; Carrera 95,9 mm; Cilindrada 3.189 cm3; 10,9 a 1; 250 CV / 184 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf V R32; bore and stroke only",
+   "targets": [
+    {
+     "name": "VR6 3.2 24V (Golf R32, Audi TT 3.2, A3 3.2)",
+     "arr": "MOTORS",
+     "cc": 3189,
+     "cyl": 6,
+     "geo": 3188.7,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2005–08 Volkswagen Golf Mk5 R32 (3.2 VR6)",
+     "arr": "VEH",
+     "cc": 3189,
+     "cyl": 6,
+     "geo": 3188.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-vr6-32-mk4": {
+   "names": [
+    "2002–04 Volkswagen Golf Mk4 R32 (3.2 VR6)"
+   ],
+   "bore": 84,
+   "stroke": 95.9,
+   "src": "https://www.km77.com/coches/volkswagen/golf/1997/3-puertas/r32/golf-r32/datos",
+   "says": "Golf R32 (2002-2003): Diametro 84 mm; Carrera 95,9 mm; Cilindrada 3.189 cm3; 11,3 a 1; 241 CV / 177 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf IV R32; bore and stroke only",
+   "targets": [
+    {
+     "name": "2002–04 Volkswagen Golf Mk4 R32 (3.2 VR6)",
+     "arr": "VEH",
+     "cc": 3189,
+     "cyl": 6,
+     "geo": 3188.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-ea113-gti": {
+   "names": [
+    "2005–08 Volkswagen Golf Mk5 GTI (2.0 TFSI EA113)",
+    "2007–08 Volkswagen Golf Mk5 GTI Edition 30 (2.0 TFSI)",
+    "EA113 2.0 TFSI (Mk5 GTI, Mk6 Golf R, S3 8P, Audi A4 B7)",
+    "2006–12 Audi S3 8P (2.0 TFSI 265 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2004/3-puertas/gti/golf-3p-gti-tfsi-20-200-cv-6-vel/datos",
+   "says": "Golf 3p GTI TFSI 2.0 200 CV 6 vel. (2004-2007): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 1.984 cm3; 10,5 a 1; 200 CV / 147 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf V GTI 2.0 TFSI; bore and stroke only for the EA113 presets (Edition 30, engine-only and the Audi S3 8P share the 1,984 cm3 EA113)",
+   "targets": [
+    {
+     "name": "EA113 2.0 TFSI (Mk5 GTI, Mk6 Golf R, S3 8P, Audi A4 B7)",
+     "arr": "MOTORS",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2005–08 Volkswagen Golf Mk5 GTI (2.0 TFSI EA113)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–08 Volkswagen Golf Mk5 GTI Edition 30 (2.0 TFSI)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2006–12 Audi S3 8P (2.0 TFSI 265 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-ea113-golfr": {
+   "names": [
+    "2012–13 Volkswagen Golf Mk6 R (2.0 TFSI, US)",
+    "2010–13 Volkswagen Golf Mk6 R (2.0 TFSI, Europe)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2009/3-puertas/r/golf-3p-r-20-tsi-270-cv-4motion2/datos",
+   "says": "Golf 3p R 2.0 TSI 270 CV 4Motion (2010-2012): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 1.984 cm3; 9,8 a 1; 271 CV / 199 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf VI R; bore and stroke only",
+   "targets": [
+    {
+     "name": "2012–13 Volkswagen Golf Mk6 R (2.0 TFSI, US)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2010–13 Volkswagen Golf Mk6 R (2.0 TFSI, Europe)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-18t": {
+   "names": [
+    "2001–06 Volkswagen Golf Mk4 GTI 1.8T (180 PS)",
+    "1999–2001 Audi S3 8L (1.8T 210 PS)",
+    "2001–03 Audi S3 8L (1.8T 225 PS)"
+   ],
+   "bore": 81,
+   "stroke": 86.4,
+   "src": "https://www.km77.com/coches/volkswagen/golf/1997/3-puertas/gti/golf-3p-gti-18-t-180-cv-ed-especial/datos",
+   "says": "Golf 3p GTI 1.8 T 180 CV (2003): Diametro 81 mm; Carrera 86,4 mm; Cilindrada 1.781 cm3; 9,5 a 1; 179 CV / 132 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf IV GTI 1.8 T 180 CV; bore and stroke only, also for the Audi S3 8L 1.8T presets (same 1,781 cm3 20V)",
+   "targets": [
+    {
+     "name": "2001–06 Volkswagen Golf Mk4 GTI 1.8T (180 PS)",
+     "arr": "VEH",
+     "cc": 1781,
+     "cyl": 4,
+     "geo": 1780.9,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "1999–2001 Audi S3 8L (1.8T 210 PS)",
+     "arr": "VEH",
+     "cc": 1781,
+     "cyl": 4,
+     "geo": 1780.9,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2001–03 Audi S3 8L (1.8T 225 PS)",
+     "arr": "VEH",
+     "cc": 1781,
+     "cyl": 4,
+     "geo": 1780.9,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
