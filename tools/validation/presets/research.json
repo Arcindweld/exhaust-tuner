@@ -7576,6 +7576,224 @@
      "had": null
     }
    ]
+  },
+  "gm-lt1-gen2": {
+   "sel": "^LT1( \\(Gen II\\))?$",
+   "cc": [
+    5700,
+    5750
+   ],
+   "bore": 101.6,
+   "stroke": 88.39,
+   "src": "https://hagerty.com/media/maintenance-and-tech/ls-lt-encyclopedia-modern-gm-small-block-v-8s-part-1",
+   "says": "LT1 (Gen II): 4.00-inch cylinder bores and 3.48-inch stroke; kept the 5.7L displacement of its direct predecessors",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Hagerty, LS/LT Encyclopedia: Modern GM Small-Block V-8s, Part 1; inch figures converted (101.6 x 88.392 mm); bore and stroke only",
+   "targets": [
+    {
+     "name": "LT1 5.7 V8 (1992–97 Corvette, Camaro Z28, Impala SS)",
+     "arr": "MOTORS",
+     "cc": 5733,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1993–97 Chevrolet Camaro Z28 (LT1)",
+     "arr": "VEH",
+     "cc": 5735,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": -0.04,
+     "had": null
+    },
+    {
+     "name": "1992–96 Chevrolet Corvette (LT1)",
+     "arr": "VEH",
+     "cc": 5733,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt2": {
+   "sel": "^LT2$",
+   "bore": 103.3,
+   "stroke": 92,
+   "src": "https://www.wardsauto.com/news/archive-wards-c8-corvette-s-small-but-mighty-lt2-v-8/793805/",
+   "says": "LT2: 4.0-in. (103.3-mm) bore and 3.6-in. (92.0-mm) stroke, carried over from the LT1; 6.2L",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "WardsAuto, C8 Corvette Small But Mighty LT2 V-8 (Nov 2019); its 103.3 mm is the LT1 103.25 rounded; bore and stroke only",
+   "targets": [
+    {
+     "name": "LT2 6.2 V8 (Corvette C8 Stingray)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6168.3,
+     "dPct": 0.1,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2020+ Chevrolet Corvette C8 Stingray (LT2)",
+     "arr": "VEH",
+     "cc": 6144,
+     "cyl": 8,
+     "geo": 6168.3,
+     "dPct": 0.4,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt7": {
+   "sel": "^LT7$",
+   "bore": 104.25,
+   "stroke": 80,
+   "src": "https://www.streetmachine.com.au/features/c8-zr1-corvette-1064hp-quad-cam-twin-turbo-lt7-v8",
+   "says": "LT7: bore/stroke 104.25mm/80mm; 5.5L; 9.8:1; 8000rpm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, Inside the C8 ZR1 Corvette 1064hp quad-cam twin-turbo LT7 V8 (Sept 2024); bore and stroke only",
+   "targets": [
+    {
+     "name": "LT7 5.5 twin-turbo flat-plane V8 (Corvette C8 ZR1)",
+     "arr": "MOTORS",
+     "cc": 5463,
+     "cyl": 8,
+     "geo": 5462.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2025+ Chevrolet Corvette ZR1 (LT7)",
+     "arr": "VEH",
+     "cc": 5463,
+     "cyl": 8,
+     "geo": 5462.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-30eb-bronco": {
+   "names": [
+    "2022+ Ford Bronco Raptor (3.0 EcoBoost)"
+   ],
+   "bore": 85.4,
+   "stroke": 86,
+   "cr": 10.5,
+   "valves": 4,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2022/specs/2022-Ford-Bronco-Raptor-Technical-Specifications.pdf",
+   "says": "3.0L EcoBoost V6: Bore x stroke 85.4 mm x 86.0 mm; 180.0 cu. in.; Compression ratio 10.5:1; four valves per cylinder",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford 2022 Bronco Raptor technical specifications",
+   "targets": [
+    {
+     "name": "2022+ Ford Bronco Raptor (3.0 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2956,
+     "cyl": 6,
+     "geo": 2955.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-30eb-ranger": {
+   "names": [
+    "2024+ Ford Ranger Raptor (3.0 EcoBoost)"
+   ],
+   "bore": 85.4,
+   "stroke": 86,
+   "cr": 10.5,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2024/specs/2024-Ford-Ranger-Raptor-Technical-Specs.pdf",
+   "says": "Bore x stroke 3.36 x 3.38 inches (85.4 mm x 86.0 mm); 180.0 cubic inches (2,949 cubic centimeters); Compression ratio 10.5:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford 2024 Ranger Raptor technical specifications (it states 2,949 cc; the product of its bore and stroke is 2,956)",
+   "targets": [
+    {
+     "name": "2024+ Ford Ranger Raptor (3.0 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2956,
+     "cyl": 6,
+     "geo": 2955.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-30eb-other": {
+   "names": [
+    "2020+ Ford Explorer ST (3.0 EcoBoost)",
+    "3.0 EcoBoost twin-turbo V6 (Explorer ST, Bronco Raptor)"
+   ],
+   "bore": 85.4,
+   "stroke": 86,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2022/specs/2022-Ford-Bronco-Raptor-Technical-Specifications.pdf",
+   "says": "3.0L EcoBoost V6 (2022 Bronco Raptor): Bore x stroke 85.4 mm x 86.0 mm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Bronco Raptor sheet for the same 3.0 EcoBoost; bore and stroke only",
+   "targets": [
+    {
+     "name": "3.0 EcoBoost twin-turbo V6 (Explorer ST, Bronco Raptor)",
+     "arr": "MOTORS",
+     "cc": 2956,
+     "cyl": 6,
+     "geo": 2955.7,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2020+ Ford Explorer ST (3.0 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2956,
+     "cyl": 6,
+     "geo": 2955.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-20eb-st": {
+   "sel": "^2\\.0 EcoBoost$",
+   "bore": 87.5,
+   "stroke": 83.1,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/de/2015/01/FocusST-Technische_Daten.pdf",
+   "says": "Focus ST (2015, Germany) 2.0 l EcoBoost: Bohrung 87,5 mm; Hub 83,1 mm; Hubraum 1.999 cm3; Verdichtung 9,3 :1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Germany Focus ST technical data (2015); bore and stroke only for the 2013-18 Focus ST and the engine-only preset",
+   "targets": [
+    {
+     "name": "2.0 EcoBoost turbo I4 (Focus ST)",
+     "arr": "MOTORS",
+     "cc": 1999,
+     "cyl": 4,
+     "geo": 1998.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2013–18 Ford Focus ST (2.0 EcoBoost)",
+     "arr": "VEH",
+     "cc": 1999,
+     "cyl": 4,
+     "geo": 1998.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
