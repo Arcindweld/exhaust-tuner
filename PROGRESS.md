@@ -24,3 +24,9 @@ Status: started. Read the three audit docs.
 - J2 P: Headers Smith's rule uses estimated bore/stroke and 2 valves (bore:0,stroke:0,valves:2 at index.html ~16468) -> 44.1 in; 4-Stroke same rule with 87x99 4 valves -> 37.6 in. PROPOSAL.
 - J2 P: Headers tuning RPM (8000) and 4-Stroke tuning RPM (6800) independent; same engine shows 22.5 vs 27.0 in primaries. Quick: typing peak RPM clears preset torque RPM -> primary size by 0.7*rpm (1.70 in) vs Headers 1.53 (4500 torque rpm). Report.
 - J3 F: Intake key in a boosted build: inlet tube "253 ft/s, most 180 ft/s" warn + Thompson throttle warn after the page's own "Use these sizes" (Garrett 300 ft/s). Contradictory; text clarification + both units (line ~27758 figT 'most 180 ft/s', explainBox spd one unit).
+- J3 F8: tsMeasure (index.html ~27232) uses typed i-boost (8 psi -> "2 x boost, 16.00 psi") while the build is at the worked-out 25.99 psi (sheet elsewhere 51.99 psi). Fix: tsBoost().
+- J3 P: Sound tab s-ind stays "naturally aspirated" when Intake is turbo. Proposal / hint.
+- J4 RS 660 (2021-24 preset exists). Hand: f=4200/60=70 Hz = page; primary L 850*240/9500-3=18.47 = page 18.5; ID sqrt(8500/88200*20.1*1.273)=1.570 = page 1.57; QW drone c/(4f)-0.6133r with gamma 1.35 R 287 at 343 C -> 1731 mm vs page 1719 (0.7%).
+- J4 F: Quick sheet for a bike says "To the bumper", "where the floor has room", "a street car needs" (index.html ~20596, 20644, 20646, 20674); "3/8 in plate" one unit (20556). Fix text.
+- J4/J1 F: quickApply doesn't set Sound tab resonator target s-hf (stays 120 Hz while drone is 45/70 Hz). Fix carry-over.
+- J4 P: bike Quick suggests 11 L Helmholtz can and 2.021 in OD (non-stock) main pipe; maxL 2 m for bikes. Proposal.
