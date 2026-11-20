@@ -17,7 +17,7 @@ const QUAL = ['maker data', 'reputable vendor', 'magazine test', 'enthusiast mea
   const fails = []; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails.push(m); };
   // the research file against itself and against the page source (no browser)
   const ents = Object.entries(R.engines);
-  ok(ents.length >= 80 && ents.every(([, e]) => /^https?:\/\/\S+$/.test(e.src) && QUAL.includes(e.q) && e.says && /^\d{4}-\d\d-\d\d$/.test(e.seen) && e.targets.length),
+  ok(ents.length >= 263 && ents.every(([, e]) => /^https?:\/\/\S+$/.test(e.src) && QUAL.includes(e.q) && e.says && /^\d{4}-\d\d-\d\d$/.test(e.seen) && e.targets.length),
     'research.json: ' + ents.length + ' sourced engine entries, each with a URL, a quality label, the figures as written and the date read');
   const tg = ents.flatMap(([id, e]) => e.targets.map(t => ({ id, e, t })));
   ok(tg.every(({ e, t }) => Math.abs(Math.PI / 4 * e.bore * e.bore * e.stroke * t.cyl / 1000 / t.cc - 1) <= 0.02 && Math.abs(t.dPct) <= 2),
@@ -32,11 +32,11 @@ const QUAL = ['maker data', 'reputable vendor', 'magazine test', 'enthusiast mea
   const all = await pg.evaluate(() => { const { MOTORS, VEH, ENGLIB } = window.__presets;
     return MOTORS.concat(VEH).map(v => ({ name: v.name, cyc: ENGLIB[v.eng].cyc, cyl: ENGLIB[v.eng].order.length, cc: v.cc, bore: v.bore || null, stroke: v.stroke || null, cr: v.cr || null, src: v.src, bsSrc: v.bsSrc || null, bsQ: v.bsQ || null })); });
   const withBS = all.filter(v => v.bore && v.stroke), bad = withBS.filter(v => Math.abs(Math.PI / 4 * v.bore * v.bore * v.stroke * v.cyl / 1000 / v.cc - 1) > 0.02);
-  ok(withBS.length >= 550 && !bad.length, withBS.length + ' preset entries with a bore and stroke reproduce their displacement within 2 %' + (bad.length ? ': ' + bad.map(v => v.name).join('; ') : ''));
+  ok(withBS.length >= 826 && !bad.length, withBS.length + ' preset entries with a bore and stroke reproduce their displacement within 2 %' + (bad.length ? ': ' + bad.map(v => v.name).join('; ') : ''));
   const noSrc = all.filter(v => typeof v.src !== 'string' || !/^https?:\/\/\S+$/.test(v.src));
   ok(!noSrc.length, 'every one of the ' + all.length + ' preset entries has a source that is a real address' + (noSrc.length ? ': ' + noSrc.slice(0, 5).map(v => v.name + ' (' + v.src + ')').join('; ') : ''));
   const badBs = withBS.filter(v => v.bsSrc ? !(/^https?:\/\/\S+$/.test(v.bsSrc) && QUAL.includes(v.bsQ)) : !!v.bsQ);
-  ok(!badBs.length && withBS.filter(v => v.bsSrc).length >= 150, withBS.filter(v => v.bsSrc).length + ' presets carry their own bore-and-stroke source (bsSrc, a real address, with a quality label)' + (badBs.length ? ': ' + badBs.map(v => v.name).join('; ') : ''));
+  ok(!badBs.length && withBS.filter(v => v.bsSrc).length >= 428, withBS.filter(v => v.bsSrc).length + ' presets carry their own bore-and-stroke source (bsSrc, a real address, with a quality label)' + (badBs.length ? ': ' + badBs.map(v => v.name).join('; ') : ''));
   const byName = Object.fromEntries(all.map(v => [v.name, v]));
   const off = tg.filter(({ e, t }) => { const v = byName[t.name]; return !v || Math.abs(v.bore - e.bore) > 0.006 || Math.abs(v.stroke - e.stroke) > 0.006 || (!t.had && v.bsSrc !== e.src); });
   ok(!off.length, 'the page has research.json’s bore, stroke and source for each of its targets' + (off.length ? ': ' + off.slice(0, 5).map(x => x.t.name).join('; ') : ''));
@@ -58,10 +58,10 @@ const QUAL = ['maker data', 'reputable vendor', 'magazine test', 'enthusiast mea
   await L.installPage(pg, false); await typedPoint(pg);
   const tab = async txt => { await pg.evaluate(t => { window.__sp.set('v-class', 'car'); window.__sp.preset(t); document.getElementById('tab-intake').click(); document.getElementById('tab-four').click(); }, txt); await settle(pg);
     return pg.evaluate(() => { const e = document.getElementById('sim-bsest'); return { est: e ? e.textContent : null, bore: document.getElementById('f-bore').value }; }); };
-  const lt = await tab('6.2 L LT1, 455 hp'), boss = await tab('4.9 L Ford 289 and 302 V8, 290 hp');
+  const lt = await tab('6.2 L LT1, 455 hp'), boss = await tab('7.0 L Ford 289 and 302 V8, 375 hp');   // Boss 429: still estimated (its sourced figures failed the check, docs/PRESET_DATA_2026-11-18.md round two); the Boss 302 is sourced since round two
   ok(lt.bore && !lt.est, '4-Stroke tab, Camaro SS LT1 (sourced): bore filled in (' + lt.bore + '), no estimate line');
   ok(!boss.bore && /Bore and stroke estimated from the displacement \(bore 1\.2 × stroke\): .* × .*; the valve sizes, the rod and the piston speed follow from them\. Measure your engine’s/.test(boss.est || ''),
-    '4-Stroke tab, Boss 302 (no source): the wave simulation says its bore and stroke are estimated (' + (boss.est || '').slice(0, 70) + '…)');
+    '4-Stroke tab, Boss 429 (no source): the wave simulation says its bore and stroke are estimated (' + (boss.est || '').slice(0, 70) + '…)');
   // changed presets on both engines: one per quality label and layout, two speeds, every number the same
   const pick = []; const seenK = new Set();
   for (const { e, t } of tg) { if (t.had) continue; const k = e.q + '|' + t.cyl; if (seenK.has(k)) continue; seenK.add(k); pick.push(t.name); if (pick.length >= 8) break; }

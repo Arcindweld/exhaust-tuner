@@ -2708,10 +2708,10 @@
    ]
   },
   "gm-ls3": {
-   "sel": "^LS3$|^LS376",
-   "cc": [
-    6100,
-    6200
+   "names": [
+    "LS3 6.2 V8 crate / Corvette C6 (430 hp)",
+    "LS376/525 6.2 V8 crate (hot-cam LS3)",
+    "2008–13 Chevrolet Corvette C6 (LS3)"
    ],
    "bore": 103.25,
    "stroke": 92,
@@ -2719,7 +2719,7 @@
    "says": "Bore x Stroke (in.): 4.065 x 3.622 (103.25 x 92 mm); Displacement (cu. in.): 376 (6.2L)",
    "q": "maker data",
    "seen": "2026-11-20",
-   "note": "Chevrolet Performance LS3 crate engine page (P/N 19434636); bore and stroke only (the crate engine is not the exact car rating, so its 10.7:1 is not written)",
+   "note": "Chevrolet Performance LS3 crate engine page (P/N 19434636); bore and stroke only (the crate engine is not the exact car rating, so its 10.7:1 is not written). The 2010-15 Camaro SS manual (LS3) preset keeps its own 103 x 92 (a 0.25 mm rounding of the bore; not targeted, listed for review)",
    "targets": [
     {
      "name": "LS3 6.2 V8 crate / Corvette C6 (430 hp)",
@@ -2753,18 +2753,6 @@
      "geo": 6162.4,
      "dPct": 0.01,
      "had": null
-    },
-    {
-     "name": "2010–15 Chevrolet Camaro SS manual (LS3)",
-     "arr": "VEH",
-     "cc": 6162,
-     "cyl": 8,
-     "geo": 6162.4,
-     "dPct": 0.01,
-     "had": [
-      103,
-      92
-     ]
     }
    ]
   },
@@ -3408,19 +3396,6 @@
     }
    ]
   },
-  "ford-boss429-69": {
-   "names": [
-    "1969–70 Ford Mustang Boss 429"
-   ],
-   "bore": 110.74,
-   "stroke": 100.56,
-   "src": "https://over-drive-magazine.com/2023/11/10/1969-ford-mustang-fact-sheet",
-   "says": "429 CID Boss 429 V-8: 429 cubic inches, 4.36 x 3.959 inches, 11.30:1, 375 @ 5600 RPM",
-   "q": "magazine test",
-   "seen": "2026-11-20",
-   "note": "Over-Drive Magazine 1969 Mustang fact sheet; inch figures converted. The printed stroke (3.959 in) gives 473 cu in with the 4.36 bore, not 429: a misprint on the page (4.36 x 3.59 would give 429); not applied",
-   "targets": []
-  },
   "moP-426hemi-70": {
    "names": [
     "1970 Plymouth Hemi ’Cuda 426"
@@ -3514,19 +3489,6 @@
      "had": null
     }
    ]
-  },
-  "gm-ls6-454-70": {
-   "names": [
-    "1970 Chevrolet Chevelle SS 454 (LS6)"
-   ],
-   "bore": 104.8,
-   "stroke": 101.6,
-   "src": "https://over-drive-magazine.com/2024/02/23/1970-chevrolet-mid-size-cars-fact-sheet/",
-   "says": "Turbo-Fire 454 V-8 (RPO LS6): 454 cubic inches, 4.126 x4.00 inches, 11.25:1, 450 @ 5600 RPM",
-   "q": "magazine test",
-   "seen": "2026-11-20",
-   "note": "Over-Drive Magazine 1970 Chevelle fact sheet. The printed bore 4.126 in (the 402 big-block figure) gives 428 cu in with the 4.00 stroke, not 454; a misprint on the page (the same sites 1970 and 1971 Corvette sheets give the 454 as 4.250 x 4.00). Not applied",
-   "targets": []
   },
   "gm-ls6-454-70v": {
    "names": [
@@ -4968,19 +4930,6 @@
      "had": null
     }
    ]
-  },
-  "suz-gsxr1000-k1": {
-   "names": [
-    "2001–02 Suzuki GSX-R1000 (K1)"
-   ],
-   "bore": 72,
-   "stroke": 46,
-   "src": "https://www.totalmotorcycle.com/photos/2001models/2001models-Suzuki-GSX-R1000.htm",
-   "says": "2001 GSX-R1000: Water-cooled 988 cc inline-4, DOHC, 16 valves; Bore x stroke 72.0mm x 46.0mm",
-   "q": "magazine test",
-   "seen": "2026-11-20",
-   "note": "Total Motorcycle, 2001 Suzuki GSX-R1000",
-   "targets": []
   },
   "suz-gsxr600-23": {
    "names": [
@@ -7820,7 +7769,9 @@
     "stroke": 100.56,
     "src": "https://over-drive-magazine.com/2023/11/10/1969-ford-mustang-fact-sheet",
     "says": "429 CID Boss 429 V-8: 429 cubic inches, 4.36 x 3.959 inches, 11.30:1, 375 @ 5600 RPM",
-    "q": "magazine test"
+    "q": "magazine test",
+    "note": "Over-Drive Magazine 1969 Mustang fact sheet; inch figures converted. The printed stroke (3.959 in) gives 473 cu in with the 4.36 bore, not 429: a misprint on the page (4.36 x 3.59 would give 429); not applied",
+    "seen": "2026-11-20"
    },
    "mismatch": [
     {
@@ -7841,7 +7792,9 @@
     "stroke": 101.6,
     "src": "https://over-drive-magazine.com/2024/02/23/1970-chevrolet-mid-size-cars-fact-sheet/",
     "says": "Turbo-Fire 454 V-8 (RPO LS6): 454 cubic inches, 4.126 x4.00 inches, 11.25:1, 450 @ 5600 RPM",
-    "q": "magazine test"
+    "q": "magazine test",
+    "note": "Over-Drive Magazine 1970 Chevelle fact sheet. The printed bore 4.126 in (the 402 big-block figure) gives 428 cu in with the 4.00 stroke, not 454; a misprint on the page (the same sites 1970 and 1971 Corvette sheets give the 454 as 4.250 x 4.00). Not applied",
+    "seen": "2026-11-20"
    },
    "mismatch": [
     {
@@ -7878,7 +7831,9 @@
     "stroke": 46,
     "src": "https://www.totalmotorcycle.com/photos/2001models/2001models-Suzuki-GSX-R1000.htm",
     "says": "2001 GSX-R1000: Water-cooled 988 cc inline-4, DOHC, 16 valves; Bore x stroke 72.0mm x 46.0mm",
-    "q": "magazine test"
+    "q": "magazine test",
+    "note": "Total Motorcycle, 2001 Suzuki GSX-R1000",
+    "seen": "2026-11-20"
    },
    "mismatch": [
     {
@@ -7892,6 +7847,20 @@
     }
    ],
    "why": "bore x stroke x cylinders outside 1 % of the preset displacement"
+  },
+  "gm-ls3-camaro": {
+   "found": {
+    "bore": 103.25,
+    "stroke": 92,
+    "src": "https://chevrolet.com/performance/crate-engines/ls3",
+    "says": "4.065 x 3.622 (103.25 x 92 mm)",
+    "q": "maker data"
+   },
+   "why": "the 2010-15 Camaro SS manual (LS3) preset carries its own bore and stroke 103 x 92, the Chevrolet LS3 page 103.25 x 92; the preset was left as it is (apply.js never overwrites a preset own figures), owner to decide",
+   "presets": [
+    "2010–15 Chevrolet Camaro SS manual (LS3)"
+   ],
+   "seen": "2026-11-20"
   }
  },
  "tried": {
