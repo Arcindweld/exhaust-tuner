@@ -7621,27 +7621,17 @@
    ]
   },
   "gm-lt2": {
-   "sel": "^LT2$",
+   "names": [
+    "2020+ Chevrolet Corvette C8 Stingray (LT2)"
+   ],
    "bore": 103.3,
    "stroke": 92,
    "src": "https://www.wardsauto.com/news/archive-wards-c8-corvette-s-small-but-mighty-lt2-v-8/793805/",
    "says": "LT2: 4.0-in. (103.3-mm) bore and 3.6-in. (92.0-mm) stroke, carried over from the LT1; 6.2L",
    "q": "magazine test",
    "seen": "2026-11-20",
-   "note": "WardsAuto, C8 Corvette Small But Mighty LT2 V-8 (Nov 2019); its 103.3 mm is the LT1 103.25 rounded; bore and stroke only",
+   "note": "WardsAuto, C8 Corvette Small But Mighty LT2 V-8 (Nov 2019); its 103.3 mm is the LT1 103.25 rounded. The engine-only LT2 preset keeps its own 103.25 x 92 (not targeted). The preset gives 6,144 cc against the 6,162 cc of the LT2 engine preset",
    "targets": [
-    {
-     "name": "LT2 6.2 V8 (Corvette C8 Stingray)",
-     "arr": "MOTORS",
-     "cc": 6162,
-     "cyl": 8,
-     "geo": 6168.3,
-     "dPct": 0.1,
-     "had": [
-      103.25,
-      92
-     ]
-    },
     {
      "name": "2020+ Chevrolet Corvette C8 Stingray (LT2)",
      "arr": "VEH",
