@@ -6779,6 +6779,214 @@
      "had": null
     }
    ]
+  },
+  "fer-458": {
+   "names": [
+    "2010–15 Ferrari 458 Italia",
+    "F136 FB 4.5 V8 (458 Italia)"
+   ],
+   "bore": 94,
+   "stroke": 81,
+   "src": "https://www.km77.com/coches/ferrari/458-italia/2010/coupe/estandar/458-italia2/datos",
+   "says": "Ferrari 458 Italia (2010-2012): Diametro 94 mm; Carrera 81 mm; Cilindrada 4.497 cm3; 12,5 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; Ferrari model page (https://www.ferrari.com/auto/458-italia) confirms 12.5:1 and 9,000 rpm but gives no bore and stroke; bore and stroke only",
+   "targets": [
+    {
+     "name": "F136 FB 4.5 V8 (458 Italia)",
+     "arr": "MOTORS",
+     "cc": 4497,
+     "cyl": 8,
+     "geo": 4497,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2010–15 Ferrari 458 Italia",
+     "arr": "VEH",
+     "cc": 4497,
+     "cyl": 8,
+     "geo": 4497,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "fer-360": {
+   "names": [
+    "1999–2005 Ferrari 360 Modena",
+    "2003–04 Ferrari 360 Challenge Stradale"
+   ],
+   "bore": 85,
+   "stroke": 79,
+   "src": "https://www.km77.com/coches/ferrari/360/1999/coupe/estandar/360-modena/datos",
+   "says": "Ferrari 360 Modena (1999-2005): Diametro 85 mm; Carrera 79 mm; Cilindrada 3.586 cm3; 11 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet for the 360 Modena; applied to the Challenge Stradale (same 3.586 cm3 F131) bore and stroke only",
+   "targets": [
+    {
+     "name": "1999–2005 Ferrari 360 Modena",
+     "arr": "VEH",
+     "cc": 3586,
+     "cyl": 8,
+     "geo": 3586.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2003–04 Ferrari 360 Challenge Stradale",
+     "arr": "VEH",
+     "cc": 3586,
+     "cyl": 8,
+     "geo": 3586.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mcl-m838t": {
+   "sel": "^M838T",
+   "bore": 93,
+   "stroke": 69.9,
+   "src": "https://www.km77.com/coches/mclaren/mp4-12c/2013/spider/estandar/mp4-12c-spider/datos",
+   "says": "McLaren MP4-12C Spider: Diametro 93 mm, carrera 69,9 mm, cilindrada 3.799 cm3, relacion de compresion 8,7 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, MP4-12C Spider (2012); applied to all M838T presets (12C, 650S, 675LT, P1, engine-only) bore and stroke only",
+   "targets": [
+    {
+     "name": "M838T 3.8 twin-turbo V8 (12C, 650S, 570S, 600LT)",
+     "arr": "MOTORS",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2011–14 McLaren MP4-12C (M838T)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2014–17 McLaren 650S (M838T)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2015–17 McLaren 675LT (M838TL)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2013–15 McLaren P1 (ICE part, M838TQ)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "mcl-m840t": {
+   "sel": "^M840T",
+   "bore": 93,
+   "stroke": 73.5,
+   "src": "https://www.km77.com/coches/mclaren/super-series/2017/coupe/lt/765lt/datos",
+   "says": "McLaren 765LT Coupe (2020-2023): Diametro 93 mm; Carrera 73,5 mm; Cilindrada 3.994 cm3",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, 765LT; applied to the M840T presets (765LT, 720S, engine-only) bore and stroke only",
+   "targets": [
+    {
+     "name": "M840T 4.0 twin-turbo V8 (720S, 765LT, GT)",
+     "arr": "MOTORS",
+     "cc": 3994,
+     "cyl": 8,
+     "geo": 3994.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2017–22 McLaren 720S (M840T)",
+     "arr": "VEH",
+     "cc": 3994,
+     "cyl": 8,
+     "geo": 3994.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2020–22 McLaren 765LT (M840T)",
+     "arr": "VEH",
+     "cc": 3994,
+     "cyl": 8,
+     "geo": 3994.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "fer-296": {
+   "names": [
+    "2022+ Ferrari 296 GTB (ICE part, 3.0 120° V6 twin-turbo)"
+   ],
+   "bore": 88,
+   "stroke": 82,
+   "src": "https://www.km77.com/coches/ferrari/296/2022/coupe/estandar/296-gtb/datos",
+   "says": "Ferrari 296 GTB: Diametro 88 mm; Carrera 82 mm; Cilindrada 2.992 cm3; Relacion de compresion 9,4 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2022+ Ferrari 296 GTB (ICE part, 3.0 120° V6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2992,
+     "cyl": 6,
+     "geo": 2992.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "fer-812c": {
+   "names": [
+    "2021–24 Ferrari 812 Competizione (6.5 V12)"
+   ],
+   "bore": 94,
+   "stroke": 78,
+   "src": "https://www.km77.com/coches/ferrari/812/2017/berlinetta/competizione/812-competizione/datos",
+   "says": "Ferrari 812 Competizione (2021-2022): Diametro 94 mm; Carrera 78 mm; Cilindrada 6.496 cm3; 13,5 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2021–24 Ferrari 812 Competizione (6.5 V12)",
+     "arr": "VEH",
+     "cc": 6496,
+     "cyl": 12,
+     "geo": 6495.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
