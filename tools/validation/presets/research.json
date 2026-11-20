@@ -2706,6 +2706,5033 @@
      "had": null
     }
    ]
+  },
+  "gm-ls3": {
+   "names": [
+    "LS3 6.2 V8 crate / Corvette C6 (430 hp)",
+    "LS376/525 6.2 V8 crate (hot-cam LS3)",
+    "2008–13 Chevrolet Corvette C6 (LS3)"
+   ],
+   "bore": 103.25,
+   "stroke": 92,
+   "src": "https://chevrolet.com/performance/crate-engines/ls3",
+   "says": "Bore x Stroke (in.): 4.065 x 3.622 (103.25 x 92 mm); Displacement (cu. in.): 376 (6.2L)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Chevrolet Performance LS3 crate engine page (P/N 19434636); bore and stroke only (the crate engine is not the exact car rating, so its 10.7:1 is not written). The 2010-15 Camaro SS manual (LS3) preset keeps its own 103 x 92 (a 0.25 mm rounding of the bore; not targeted, listed for review)",
+   "targets": [
+    {
+     "name": "LS3 6.2 V8 crate / Corvette C6 (430 hp)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "LS376/525 6.2 V8 crate (hot-cam LS3)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2008–13 Chevrolet Corvette C6 (LS3)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-lsa": {
+   "sel": "^LSA$",
+   "bore": 103.25,
+   "stroke": 92,
+   "src": "https://www.gmspecialtyvehicles.com/chevrolet/performance/engines/lsa",
+   "says": "Bore x Stroke (in.): 4.065 X 3.622 (103.25 x 92 mm); Displacement (cu. in.): 376 (6.2L); Compression Ratio: 9.1:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "GM Specialty Vehicles LSA engine page; bore and stroke only for the car presets",
+   "targets": [
+    {
+     "name": "LSA 6.2 supercharged V8 (CTS-V, Camaro ZL1, crate)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2012–15 Chevrolet Camaro ZL1 (LSA)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2009–15 Cadillac CTS-V (LSA)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls9": {
+   "sel": "^LS9$",
+   "bore": 103.25,
+   "stroke": 92,
+   "src": "https://www.lsxmag.com/?p=16816",
+   "says": "Bore x Stroke (in): 4.06 x 3.62 (103.25 x 92mm); Displacement (ci): 376 cubic inches (6.2L); Compression Ratio: 9.1:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "LSX Magazine, GM Performance Build Center: Home of the LS9 Engine. Chevrolet Performance production blocks page gives the LS9 block 4.065 in finished bore (103.25 mm), agreeing",
+   "targets": [
+    {
+     "name": "LS9 6.2 supercharged V8 (Corvette ZR1, crate)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2009–13 Chevrolet Corvette ZR1 (LS9)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls7": {
+   "sel": "^LS7$",
+   "cc": [
+    7000,
+    7020
+   ],
+   "bore": 104.8,
+   "stroke": 101.6,
+   "src": "https://www.jegs.com/i/Chevrolet-Performance/809/19329246/10002/-1",
+   "says": "Displacement: 427ci (7.0L); Bore x Stroke: 4.125 x 4.000 (104.8 x 101.6mm); Compression Ratio: 11.0:1",
+   "q": "reputable vendor",
+   "seen": "2026-11-20",
+   "note": "JEGS listing of Chevrolet Performance LS7 crate engine 19329246; Chevrolet Performance production blocks page gives the LS7 block 4.125 in finished bore (104.78 mm), agreeing. Bore and stroke only",
+   "targets": [
+    {
+     "name": "LS7 7.0 V8 (Corvette Z06, Camaro Z/28, crate)",
+     "arr": "MOTORS",
+     "cc": 7011,
+     "cyl": 8,
+     "geo": 7011.3,
+     "dPct": 0,
+     "had": [
+      104.8,
+      101.6
+     ]
+    },
+    {
+     "name": "2006–13 Chevrolet Corvette Z06 (LS7)",
+     "arr": "VEH",
+     "cc": 7011,
+     "cyl": 8,
+     "geo": 7011.3,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2014–15 Chevrolet Camaro Z/28 (LS7)",
+     "arr": "VEH",
+     "cc": 7011,
+     "cyl": 8,
+     "geo": 7011.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls1": {
+   "names": [
+    "1998–2002 Chevrolet Camaro SS (LS1)",
+    "2001–04 Chevrolet Corvette C5 (LS1)",
+    "1998–2000 Chevrolet Camaro Z28 (LS1)",
+    "2001–02 Chevrolet Camaro Z28 (LS1)",
+    "2001–02 Chevrolet Camaro SS (LS1)",
+    "1997–2000 Chevrolet Corvette C5 (LS1)",
+    "1998–2002 Pontiac Firebird Formula / Trans Am (LS1)",
+    "2004 Pontiac GTO (LS1)"
+   ],
+   "bore": 99.06,
+   "stroke": 91.95,
+   "src": "https://www.streetmachine.com.au/?p=55378",
+   "says": "LS1: 5.7L, bore 3.90in, stroke 3.62in, 10.1:1 (spec table)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, LS engine family part 1: Gen III + Gen IV (2023). Inch figures converted (x25.4: 99.06 x 91.948 mm). The MOTORS LS1 entry keeps its own 99 x 92 (not targeted)",
+   "targets": [
+    {
+     "name": "1998–2002 Chevrolet Camaro SS (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2001–04 Chevrolet Corvette C5 (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "1998–2000 Chevrolet Camaro Z28 (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2001–02 Chevrolet Camaro Z28 (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2001–02 Chevrolet Camaro SS (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "1997–2000 Chevrolet Corvette C5 (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "1998–2002 Pontiac Firebird Formula / Trans Am (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2004 Pontiac GTO (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls6": {
+   "names": [
+    "2001 Chevrolet Corvette Z06 (LS6)",
+    "2002–04 Chevrolet Corvette Z06 (LS6)",
+    "2004–05 Cadillac CTS-V (LS6)"
+   ],
+   "bore": 99.06,
+   "stroke": 91.95,
+   "src": "https://www.streetmachine.com.au/?p=55378",
+   "says": "LS6: 5.7L, bore 3.90in, stroke 3.62in, 10.5:1 (spec table)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, LS engine family part 1 (2023). Inch figures converted. The MOTORS LS6 entry keeps its own 99 x 92 (not targeted)",
+   "targets": [
+    {
+     "name": "2001 Chevrolet Corvette Z06 (LS6)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2002–04 Chevrolet Corvette Z06 (LS6)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2004–05 Cadillac CTS-V (LS6)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    }
+   ]
+  },
+  "gm-lq9": {
+   "sel": "LQ9",
+   "bore": 101.6,
+   "stroke": 91.95,
+   "src": "https://www.streetmachine.com.au/?p=55378",
+   "says": "LQ9: 6.0L, bore 4.00in, stroke 3.62in, 10.0:1 (spec table)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, LS engine family part 1 (2023). Inch figures converted (101.6 x 91.948 mm)",
+   "targets": [
+    {
+     "name": "LQ9 6.0 Vortec HO iron-block V8 (Silverado SS, Escalade)",
+     "arr": "MOTORS",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5963.7,
+     "dPct": -0.05,
+     "had": null
+    },
+    {
+     "name": "2003–06 Chevrolet Silverado SS (6.0 Vortec HO LQ9)",
+     "arr": "VEH",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5963.7,
+     "dPct": -0.05,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls2": {
+   "sel": "^LS2$",
+   "bore": 101.6,
+   "stroke": 92,
+   "src": "https://www.streetmachine.com.au/features/ls-engine-variants-part-two-generation-iv",
+   "says": "LS2: 5967cc (364ci), bore 101.6mm (4.00in), stroke 92mm (3.622in), compression 10.9:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, LS engine variants part two - Generation IV (2018); bore and stroke only",
+   "targets": [
+    {
+     "name": "LS2 6.0 V8 (Corvette C6, GTO, TrailBlazer SS)",
+     "arr": "MOTORS",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5967,
+     "dPct": 0,
+     "had": [
+      101.6,
+      92
+     ]
+    },
+    {
+     "name": "2005–07 Chevrolet Corvette C6 (LS2)",
+     "arr": "VEH",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5967,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2005–06 Pontiac GTO (LS2)",
+     "arr": "VEH",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5967,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt1-350-70": {
+   "names": [
+    "1970 Chevrolet Corvette 350 (LT-1)"
+   ],
+   "bore": 101.6,
+   "stroke": 88.39,
+   "cr": 11,
+   "src": "https://over-drive-magazine.com/2025/04/04/1970-corvette-fact-sheet/",
+   "says": "370 HP V-8, Option LT1: 350 cubic inches, 4.00 x 3.48 inches, 11.00:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1970 Corvette Facts, Figures, and Specifications. Inch figures converted (101.6 x 88.392 mm)",
+   "targets": [
+    {
+     "name": "1970 Chevrolet Corvette 350 (LT-1)",
+     "arr": "VEH",
+     "cc": 5733,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt1-350-72": {
+   "names": [
+    "1972 Chevrolet Corvette 350 (LT-1, SAE net)"
+   ],
+   "bore": 101.6,
+   "stroke": 88.39,
+   "src": "https://over-drive-magazine.com/2025/04/04/1970-corvette-fact-sheet/",
+   "says": "370 HP V-8, Option LT1: 350 cubic inches, 4.00 x 3.48 inches, 11.00:1 (1970)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "1970 sheet for the same LT-1 350; bore and stroke only (the 1972 compression differs; the preset keeps its 9:1). Inch figures converted",
+   "targets": [
+    {
+     "name": "1972 Chevrolet Corvette 350 (LT-1, SAE net)",
+     "arr": "VEH",
+     "cc": 5733,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls5-454-70": {
+   "names": [
+    "1970 Chevrolet Corvette 454 (LS5)"
+   ],
+   "bore": 107.95,
+   "stroke": 101.6,
+   "cr": 10.25,
+   "src": "https://over-drive-magazine.com/2025/04/04/1970-corvette-fact-sheet/",
+   "says": "390 HP V-8, RPO LS5: 454 cubic inches, 4.250 x 4.00 inches, 10.25:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1970 Corvette fact sheet; inch figures converted (107.95 x 101.6 mm). The National Corvette Museum 1970 page (https://www.corvettemuseum.org/?p=7139) gives the 454 as 4.251 x 4.00",
+   "targets": [
+    {
+     "name": "1970 Chevrolet Corvette 454 (LS5)",
+     "arr": "VEH",
+     "cc": 7440,
+     "cyl": 8,
+     "geo": 7439.1,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-l71-427-67": {
+   "names": [
+    "1967 Chevrolet Corvette 427 Tri-Power (L71)"
+   ],
+   "bore": 107.95,
+   "stroke": 95.5,
+   "cr": 11,
+   "src": "https://over-drive-magazine.com/2024/12/30/1967-corvette-fact-sheet/",
+   "says": "435 HP 427 V-8 (RPO L71): 427 cubic inches, 4.250 x 3.76 inches, 11.00:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1967 Corvette Facts, Figures, and Specifications; inch figures converted (107.95 x 95.504 mm)",
+   "targets": [
+    {
+     "name": "1967 Chevrolet Corvette 427 Tri-Power (L71)",
+     "arr": "VEH",
+     "cc": 6997,
+     "cyl": 8,
+     "geo": 6992.4,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "gm-l88-427": {
+   "names": [
+    "1968–69 Chevrolet Corvette 427 (L88)"
+   ],
+   "bore": 107.95,
+   "stroke": 95.5,
+   "src": "https://over-drive-magazine.com/2024/12/30/1967-corvette-fact-sheet/",
+   "says": "430 HP 427 V-8 (RPO L88): 427 cubic inches, 4.250 x 3.76 inches, 11.00:1 (the page elsewhere says 12.5:1)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "1967 sheet for the same L88; bore and stroke only (the page contradicts itself on compression; the preset keeps its 12.5:1). Inch figures converted",
+   "targets": [
+    {
+     "name": "1968–69 Chevrolet Corvette 427 (L88)",
+     "arr": "VEH",
+     "cc": 6997,
+     "cyl": 8,
+     "geo": 6992.4,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt5-zr1": {
+   "sel": "^LT5 \\(Lotus",
+   "bore": 99.06,
+   "stroke": 92.96,
+   "src": "https://www.lsxmag.com/?p=3813",
+   "says": "Displacement: 350 CID; Bore & Stroke: 3.90 x 3.66; Compression Ratio: 11.0:1; Engine Redline: 7200 rpm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "LSX Magazine, A Look At The C4 ZR-1s All-Aluminum DOHC LT5 Engine (2018). Inch figures converted (99.06 x 92.964 mm). Bore and stroke only: the spec box covers the LT5 generally, not one model year",
+   "targets": [
+    {
+     "name": "1990–92 Chevrolet Corvette ZR-1 (LT5)",
+     "arr": "VEH",
+     "cc": 5727,
+     "cyl": 8,
+     "geo": 5731.6,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "1993–95 Chevrolet Corvette ZR-1 (LT5)",
+     "arr": "VEH",
+     "cc": 5727,
+     "cyl": 8,
+     "geo": 5731.6,
+     "dPct": 0.08,
+     "had": null
+    }
+   ]
+  },
+  "gm-z28-302": {
+   "names": [
+    "1967–69 Chevrolet Camaro Z/28 302"
+   ],
+   "bore": 101.65,
+   "stroke": 76.2,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "302 CID V-8 (RPO Z28 302): 302 cubic inches, 4.002x 3.00 inches, 11.00:1, 290 @ 5800 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1969 Chevrolet Camaro Fact Sheet (the 1968 sheet gives the same); inch figures converted (101.651 x 76.2 mm); bore and stroke only (preset spans 1967-69)",
+   "targets": [
+    {
+     "name": "1967–69 Chevrolet Camaro Z/28 302",
+     "arr": "VEH",
+     "cc": 4949,
+     "cyl": 8,
+     "geo": 4947.1,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "gm-l48-350": {
+   "names": [
+    "1967–69 Chevrolet Camaro SS 350 (L48)"
+   ],
+   "bore": 101.6,
+   "stroke": 88.39,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "350 CID V-8 (RPO L48): 350 cubic inches, 4.00 x 3.48 inches, 10.25:1, 300 @ 4800 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Camaro fact sheet; inch figures converted; bore and stroke only (preset spans 1967-69)",
+   "targets": [
+    {
+     "name": "1967–69 Chevrolet Camaro SS 350 (L48)",
+     "arr": "VEH",
+     "cc": 5735,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "gm-l78-396": {
+   "names": [
+    "1967–69 Chevrolet Camaro SS 396 (L78)"
+   ],
+   "bore": 103.99,
+   "stroke": 95.5,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "396 CID V-8 (RPO L78): 396 cubic inches, 4.094 x 3.76 inches, 11.00:1, 375 @ 5600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Camaro fact sheet; inch figures converted (103.988 x 95.504 mm); bore and stroke only (preset spans 1967-69)",
+   "targets": [
+    {
+     "name": "1967–69 Chevrolet Camaro SS 396 (L78)",
+     "arr": "VEH",
+     "cc": 6489,
+     "cyl": 8,
+     "geo": 6488.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-l72-427-69": {
+   "names": [
+    "1969 Chevrolet Camaro COPO 427 (L72)"
+   ],
+   "bore": 107.95,
+   "stroke": 95.5,
+   "cr": 11,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "427 CID V-8 (RPO L72): 427 cubic inches, 4.250 x 3.76 inches, 11.00:1, 425 @ 5600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Camaro fact sheet; inch figures converted",
+   "targets": [
+    {
+     "name": "1969 Chevrolet Camaro COPO 427 (L72)",
+     "arr": "VEH",
+     "cc": 6997,
+     "cyl": 8,
+     "geo": 6992.4,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "gm-zl1-427-69": {
+   "names": [
+    "1969 Chevrolet Camaro ZL1 427"
+   ],
+   "bore": 107.95,
+   "stroke": 95.5,
+   "cr": 11,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "427 CID V-8 (RPO ZL1): 427 cubic inches, 4.250 x 3.76 inches, 11.00:1, 430 $ 5200 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Camaro fact sheet; inch figures converted",
+   "targets": [
+    {
+     "name": "1969 Chevrolet Camaro ZL1 427",
+     "arr": "VEH",
+     "cc": 6997,
+     "cyl": 8,
+     "geo": 6992.4,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "ford-boss302-69": {
+   "names": [
+    "1969–70 Ford Mustang Boss 302"
+   ],
+   "bore": 101.6,
+   "stroke": 76.2,
+   "src": "https://over-drive-magazine.com/2023/11/10/1969-ford-mustang-fact-sheet",
+   "says": "290 HP 302 Boss V-8: 302 cubic inches, 4.00 x 3.00 inches, 10.5:1, 290 @ 5800 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1969 Ford Mustang Fact Sheet; inch figures converted; bore and stroke only (preset spans 1969-70)",
+   "targets": [
+    {
+     "name": "1969–70 Ford Mustang Boss 302",
+     "arr": "VEH",
+     "cc": 4949,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": -0.14,
+     "had": null
+    }
+   ]
+  },
+  "ford-428cj-69": {
+   "names": [
+    "1968–70 Ford Mustang 428 Cobra Jet"
+   ],
+   "bore": 104.9,
+   "stroke": 101.09,
+   "src": "https://over-drive-magazine.com/2023/11/10/1969-ford-mustang-fact-sheet",
+   "says": "428 CID Cobra Jet V-8: 428 cubic inches, 4.13 x 3.98 inches, 10.6:1, 335 @ 5400 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Mustang fact sheet; inch figures converted (104.902 x 101.092 mm); bore and stroke only (preset spans 1968-70)",
+   "targets": [
+    {
+     "name": "1968–70 Ford Mustang 428 Cobra Jet",
+     "arr": "VEH",
+     "cc": 7014,
+     "cyl": 8,
+     "geo": 6989.4,
+     "dPct": -0.35,
+     "had": null
+    }
+   ]
+  },
+  "moP-426hemi-70": {
+   "names": [
+    "1970 Plymouth Hemi ’Cuda 426"
+   ],
+   "bore": 107.95,
+   "stroke": 95.25,
+   "cr": 10.2,
+   "src": "https://over-drive-magazine.com/2024/04/18/1970-plymouth-barracuda-fact-sheet",
+   "says": "426 CID Dual 4-Barrel Hemi HP V-8: 426 cubic inches, 4.25 x 3.75 inches, 10.2:1, 425 @ 5000 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1970 Plymouth Barracuda Facts, Figures, and Specifications; inch figures converted",
+   "targets": [
+    {
+     "name": "1970 Plymouth Hemi ’Cuda 426",
+     "arr": "VEH",
+     "cc": 6981,
+     "cyl": 8,
+     "geo": 6974.1,
+     "dPct": -0.1,
+     "had": null
+    }
+   ]
+  },
+  "moP-440-6bbl": {
+   "names": [
+    "1971 Mopar 440 Six Pack (440+6)"
+   ],
+   "bore": 109.73,
+   "stroke": 95.25,
+   "src": "https://over-drive-magazine.com/2024/04/18/1970-plymouth-barracuda-fact-sheet",
+   "says": "440 CID Three 2-Barrel V-8: 440 cubic inches, 4.32 x 3.75 inches, 10.5:1, 390 @ 4700 RPM (1970)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "1970 Barracuda sheet for the 440 Six Pack; the preset is 1971, so bore and stroke only. Inch figures converted (109.728 x 95.25 mm)",
+   "targets": [
+    {
+     "name": "1971 Mopar 440 Six Pack (440+6)",
+     "arr": "VEH",
+     "cc": 7210,
+     "cyl": 8,
+     "geo": 7206,
+     "dPct": -0.06,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls6-454-71": {
+   "names": [
+    "1971 Chevrolet Corvette 454 (LS6)"
+   ],
+   "bore": 107.95,
+   "stroke": 101.6,
+   "cr": 9,
+   "src": "https://over-drive-magazine.com/2025/06/20/1971-corvette-fact-sheet/",
+   "says": "454 V-8 (RPO LS6): 454 cubic inches, 4.250 x 4.00 inches, 9.0:1, 425 @ 5600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1971 Corvette Fact Sheet; inch figures converted",
+   "targets": [
+    {
+     "name": "1971 Chevrolet Corvette 454 (LS6)",
+     "arr": "VEH",
+     "cc": 7440,
+     "cyl": 8,
+     "geo": 7439.1,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-289hipo": {
+   "names": [
+    "1965–67 Ford Mustang 289 Hi-Po (K-code)"
+   ],
+   "bore": 101.6,
+   "stroke": 72.9,
+   "src": "https://over-drive-magazine.com/2022/10/21/the-hi-po-289-cid-v-8-and-shelbys-mods/",
+   "says": "Mustang Hi-Po 289 V-8: 289 CID, bore and stroke 4.00 X 2.87, compression 10. 5 to 1, 271 at 6000 rpm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, The Hi-Po 289 CID V-8 and Shelby GT 350 and 350 GT-R V-8s; the 1967 Mustang fact sheet (https://over-drive-magazine.com/2023/05/31/1967-ford-mustang-fact-sheet/) gives the Code K 289 the same 4.00 x 2.87. Inch figures converted (101.6 x 72.898 mm); bore and stroke only",
+   "targets": [
+    {
+     "name": "1965–67 Ford Mustang 289 Hi-Po (K-code)",
+     "arr": "VEH",
+     "cc": 4736,
+     "cyl": 8,
+     "geo": 4728.2,
+     "dPct": -0.16,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls6-454-70v": {
+   "names": [
+    "1970 Chevrolet Chevelle SS 454 (LS6)"
+   ],
+   "bore": 107.95,
+   "stroke": 101.6,
+   "src": "https://over-drive-magazine.com/2025/06/20/1971-corvette-fact-sheet/",
+   "says": "454 V-8 (RPO LS6): 454 cubic inches, 4.250 x 4.00 inches, 9.0:1, 425 @ 5600 RPM (1971 Corvette)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "The 1971 Corvette sheet for the LS6 454 (the 1970 Chevelle sheet misprints the bore, see review gm-ls6-454-70); bore and stroke only (the 1970 Chevelle LS6 had other compression). Inch figures converted",
+   "targets": [
+    {
+     "name": "1970 Chevrolet Chevelle SS 454 (LS6)",
+     "arr": "VEH",
+     "cc": 7440,
+     "cyl": 8,
+     "geo": 7439.1,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "moP-440-68charger": {
+   "names": [
+    "1968 Dodge Charger R/T (440 Magnum)"
+   ],
+   "bore": 109.73,
+   "stroke": 95.25,
+   "cr": 10.1,
+   "src": "https://over-drive-magazine.com/2024/06/19/1968-dodge-mid-size-cars-fact-sheet/",
+   "says": "440 CID 375 HP 4-Barrel V-8: 440 cubic inches, 4.32 x 3.75 inches, 10.1:1, 375 @ 4600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1968 Dodge Mid-Size Cars Fact Sheet; inch figures converted (109.728 x 95.25 mm)",
+   "targets": [
+    {
+     "name": "1968 Dodge Charger R/T (440 Magnum)",
+     "arr": "VEH",
+     "cc": 7210,
+     "cyl": 8,
+     "geo": 7206,
+     "dPct": -0.06,
+     "had": null
+    }
+   ]
+  },
+  "pon-400-ra4-69": {
+   "names": [
+    "1969 Pontiac GTO Ram Air IV (400)"
+   ],
+   "bore": 104.65,
+   "stroke": 95.25,
+   "cr": 10.75,
+   "src": "https://over-drive-magazine.com/2023/03/09/1969-pontiac-mid-size-cars-fact-sheet/",
+   "says": "400 Ram Air IV V-8: 400 CID, 4.120 x 3.750, 10.75:1, 370 @ 5500 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1969 Pontiac Mid-Size Cars Facts, Figures, and Specifications; inch figures converted (104.648 x 95.25 mm)",
+   "targets": [
+    {
+     "name": "1969 Pontiac GTO Ram Air IV (400)",
+     "arr": "VEH",
+     "cc": 6555,
+     "cyl": 8,
+     "geo": 6554.3,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "bui-455-70": {
+   "names": [
+    "1970 Buick GSX 455"
+   ],
+   "bore": 109.22,
+   "stroke": 99.06,
+   "cr": 10,
+   "src": "https://over-drive-magazine.com/2022/12/06/1970-buick-mid-size-car-fact-sheet/",
+   "says": "455 V-8 (GS 455, 350 HP): 455 cubic inches, 4.3 x 3.9 inches, 10.0:1, 350 at 4600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1970 Buick Mid-Size Car Facts, Figures, and Specifications. The page gives the bore to one decimal (4.3 in), so the product is 0.4 % under the preset displacement; inch figures converted (109.22 x 99.06 mm)",
+   "targets": [
+    {
+     "name": "1970 Buick GSX 455",
+     "arr": "VEH",
+     "cc": 7456,
+     "cyl": 8,
+     "geo": 7424.8,
+     "dPct": -0.42,
+     "had": null
+    }
+   ]
+  },
+  "bui-38t-87": {
+   "names": [
+    "1987 Buick Grand National",
+    "1987 Buick GNX"
+   ],
+   "bore": 96.52,
+   "stroke": 86.36,
+   "cr": 8.5,
+   "src": "https://over-drive-magazine.com/2022/12/06/1987-buick-regal-rwd-cars-fact-sheet/",
+   "says": "LM9 turbo V-6 (Grand National): 231 CID (3.8 liters), 3.8 x 3.4 in, 8.5:1, 245 @ 4400 RPM; GNX turbo V-6: 231 CID, 3.8 x 3.4 in, 8.5:1, 276 @ 5000 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1987 Buick Regal Facts, Figures, and Specifications; inch figures converted (96.52 x 86.36 mm)",
+   "targets": [
+    {
+     "name": "1987 Buick GNX",
+     "arr": "VEH",
+     "cc": 3785,
+     "cyl": 6,
+     "geo": 3791.3,
+     "dPct": 0.17,
+     "had": null
+    },
+    {
+     "name": "1987 Buick Grand National",
+     "arr": "VEH",
+     "cc": 3785,
+     "cyl": 6,
+     "geo": 3791.3,
+     "dPct": 0.17,
+     "had": null
+    }
+   ]
+  },
+  "bui-38t-86": {
+   "names": [
+    "1986 Buick Regal Grand National / T-Type (3.8 turbo, intercooled)"
+   ],
+   "bore": 96.52,
+   "stroke": 86.36,
+   "cr": 8.5,
+   "src": "https://over-drive-magazine.com/2022/12/05/1986-buick-g-body-rwd-cars-fact-sheet/",
+   "says": "LM9 Turbocharged V-6: 231 CID (3.8 liters), 3.8 x 3.4 inches, 8.5:1, 235 at 4400 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1986 Buick Regal Facts, Figures, and Specifications; inch figures converted",
+   "targets": [
+    {
+     "name": "1986 Buick Regal Grand National / T-Type (3.8 turbo, intercooled)",
+     "arr": "VEH",
+     "cc": 3791,
+     "cyl": 6,
+     "geo": 3791.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bui-38t-gen": {
+   "names": [
+    "Buick 3.8 turbo V6 (Grand National, GNX, Turbo Trans Am)"
+   ],
+   "bore": 96.52,
+   "stroke": 86.36,
+   "src": "https://over-drive-magazine.com/2022/12/06/1987-buick-regal-rwd-cars-fact-sheet/",
+   "says": "LM9 turbo V-6 (Grand National): 231 CID (3.8 liters), 3.8 x 3.4 in, 8.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "1987 sheet applied to the engine-only Buick 3.8 turbo preset (bore and stroke only); inch figures converted",
+   "targets": [
+    {
+     "name": "Buick 3.8 turbo V6 (Grand National, GNX, Turbo Trans Am)",
+     "arr": "MOTORS",
+     "cc": 3791,
+     "cyl": 6,
+     "geo": 3791.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-voodoo": {
+   "sel": "Voodoo 5\\.2|5\\.2 Voodoo",
+   "bore": 94,
+   "stroke": 93,
+   "cr": 12,
+   "valves": 4,
+   "src": "https://media.ford.com/content/dam/fordmedia/North%20America/US/2015/08/24/gt350-gt350r-tech-specs.pdf",
+   "says": "Bore x stroke 94.0 x 93.0 mm; Displacement 5,163 cc; Compression ratio 12.0:1; DOHC, four valves per cylinder",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Shelby GT350 / GT350R technical specifications (2015)",
+   "targets": [
+    {
+     "name": "5.2 Voodoo flat-plane V8 (Shelby GT350)",
+     "arr": "MOTORS",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5163.2,
+     "dPct": 0,
+     "had": [
+      94,
+      93
+     ]
+    },
+    {
+     "name": "2015–20 Ford Shelby GT350 (Voodoo 5.2)",
+     "arr": "VEH",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5163.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-godzilla-crate": {
+   "names": [
+    "7.3 Godzilla pushrod V8 (Super Duty, M-6007-73 crate)"
+   ],
+   "bore": 107.2,
+   "stroke": 101,
+   "cr": 10.5,
+   "src": "https://performanceparts.ford.com/part/M-6007-73",
+   "says": "Bore 107.2 mm x stroke 101.0 mm; 7.3L displacement; 10.5:1 compression",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Performance 7.3L Super Duty NA crate engine M-6007-73",
+   "targets": [
+    {
+     "name": "7.3 Godzilla pushrod V8 (Super Duty, M-6007-73 crate)",
+     "arr": "MOTORS",
+     "cc": 7293,
+     "cyl": 8,
+     "geo": 7292.7,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-godzilla-sd": {
+   "names": [
+    "2020–26 Ford F-250/F-350 (7.3 Godzilla)"
+   ],
+   "bore": 107.2,
+   "stroke": 101,
+   "src": "https://performanceparts.ford.com/part/M-6007-73",
+   "says": "Bore 107.2 mm x stroke 101.0 mm; 7.3L displacement; 10.5:1 compression (crate engine)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Performance crate page for the same 7.3; bore and stroke only for the truck preset",
+   "targets": [
+    {
+     "name": "2020–26 Ford F-250/F-350 (7.3 Godzilla)",
+     "arr": "VEH",
+     "cc": 7293,
+     "cyl": 8,
+     "geo": 7292.7,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-gt-35-17": {
+   "names": [
+    "2017–19 Ford GT (3.5 EcoBoost)"
+   ],
+   "bore": 92.51,
+   "stroke": 86.7,
+   "cr": 9,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/en/2017/05/gt_technical_specs_EU.PDF",
+   "says": "BORE X STROKE 92.51 mm x 86.7 mm; DISPLACEMENT 3,497 cc; COMPRESSION RATIO 9.0:1; 647 hp @ 6250 RPM",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford GT technical specifications (Europe, 2017)",
+   "targets": [
+    {
+     "name": "2017–19 Ford GT (3.5 EcoBoost)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3496.5,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-gt-35-20": {
+   "names": [
+    "2020–22 Ford GT (3.5 EcoBoost)"
+   ],
+   "bore": 92.51,
+   "stroke": 86.7,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/en/2017/05/gt_technical_specs_EU.PDF",
+   "says": "BORE X STROKE 92.51 mm x 86.7 mm; DISPLACEMENT 3,497 cc (2017)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "2017 sheet; bore and stroke only for the 2020-22 preset",
+   "targets": [
+    {
+     "name": "2020–22 Ford GT (3.5 EcoBoost)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3496.5,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-predator-rr": {
+   "sel": "Predator \\(Raptor R\\)",
+   "bore": 93.98,
+   "stroke": 92.96,
+   "cr": 9.5,
+   "valves": 4,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2023/specs/2023-Ford-F-150-Raptor-R-Technical-Specifications.pdf",
+   "says": "5.2-liter supercharged V8: Bore x stroke 3.70 in. x 3.66 in.; 5.2 liters (315 cubic inches); 9.5:1; DOHC, four valves per cylinder",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford 2023 F-150 Raptor R technical specifications; the 2024 Raptor / Raptor R sheet gives the same. Inch figures converted (93.98 x 92.964 mm)",
+   "targets": [
+    {
+     "name": "2023 Ford F-150 Raptor R (5.2 SC)",
+     "arr": "VEH",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5158.8,
+     "dPct": -0.08,
+     "had": null
+    },
+    {
+     "name": "2024+ Ford F-150 Raptor R (5.2 SC)",
+     "arr": "VEH",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5158.8,
+     "dPct": -0.08,
+     "had": null
+    }
+   ]
+  },
+  "ford-predator-gen": {
+   "names": [
+    "5.2 Predator supercharged V8 (Shelby GT500, Raptor R)"
+   ],
+   "bore": 93.98,
+   "stroke": 92.96,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2023/specs/2023-Ford-F-150-Raptor-R-Technical-Specifications.pdf",
+   "says": "5.2-liter supercharged V8: Bore x stroke 3.70 in. x 3.66 in.; 5.2 liters (315 cubic inches); 9.5:1 (Raptor R)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Raptor R sheet applied to the engine-only Predator preset, bore and stroke only; inch figures converted",
+   "targets": [
+    {
+     "name": "5.2 Predator supercharged V8 (Shelby GT500, Raptor R)",
+     "arr": "MOTORS",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5158.8,
+     "dPct": -0.08,
+     "had": null
+    }
+   ]
+  },
+  "ford-predator-gt500": {
+   "names": [
+    "2020–22 Ford Shelby GT500 (Predator 5.2 SC)"
+   ],
+   "bore": 94,
+   "stroke": 93,
+   "cr": 9.5,
+   "red": 7500,
+   "src": "https://www.cjponyparts.com/resources/news/2020-shelby-gt500",
+   "says": "Bore and Stroke: 94 mm x 93 mm; 5.2L Supercharged cross-plane crank V8; Compression Ratio 9.5:1; Redline 7,500 RPM",
+   "q": "reputable vendor",
+   "seen": "2026-11-20",
+   "note": "CJ Pony Parts, 2020 GT500 Details & Specs. Ford Raptor R sheet gives the Predator as 3.70 x 3.66 in (93.98 x 92.96 mm), agreeing to rounding",
+   "targets": [
+    {
+     "name": "2020–22 Ford Shelby GT500 (Predator 5.2 SC)",
+     "arr": "VEH",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5163.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-46-3v-05": {
+   "names": [
+    "2005–09 Ford Mustang GT (4.6 3V)"
+   ],
+   "bore": 90.2,
+   "stroke": 90,
+   "cr": 9.8,
+   "src": "https://wardsauto.com/news-analysis/ford-46l-sohc-v-8",
+   "says": "Ford 4.6L SOHC V-8 (Mustang GT): 4,606 cc, bore x stroke 90.2 x 90 mm, 9.8:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "WardsAuto 10 Best Engines entry, Ford 4.6L SOHC V-8 (January 2005), for the 2005 Mustang GT three-valve",
+   "targets": [
+    {
+     "name": "2005–09 Ford Mustang GT (4.6 3V)",
+     "arr": "VEH",
+     "cc": 4601,
+     "cyl": 8,
+     "geo": 4600.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-46-3v-other": {
+   "names": [
+    "4.6 3V SOHC V8 (2005–10 Mustang GT, F-150)",
+    "2008–09 Ford Mustang Bullitt (4.6 3V)",
+    "2010 Ford Mustang GT (4.6 3V)"
+   ],
+   "bore": 90.2,
+   "stroke": 90,
+   "src": "https://wardsauto.com/news-analysis/ford-46l-sohc-v-8",
+   "says": "Ford 4.6L SOHC V-8 (Mustang GT): 4,606 cc, bore x stroke 90.2 x 90 mm, 9.8:1 (2005)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "WardsAuto (2005) for the three-valve 4.6; bore and stroke only for these later or other ratings",
+   "targets": [
+    {
+     "name": "4.6 3V SOHC V8 (2005–10 Mustang GT, F-150)",
+     "arr": "MOTORS",
+     "cc": 4601,
+     "cyl": 8,
+     "geo": 4600.8,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2008–09 Ford Mustang Bullitt (4.6 3V)",
+     "arr": "VEH",
+     "cc": 4601,
+     "cyl": 8,
+     "geo": 4600.8,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2010 Ford Mustang GT (4.6 3V)",
+     "arr": "VEH",
+     "cc": 4601,
+     "cyl": 8,
+     "geo": 4600.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "por-991-carrera34": {
+   "names": [
+    "2012–15 Porsche 911 Carrera (991.1, 3.4)"
+   ],
+   "bore": 97,
+   "stroke": 77.5,
+   "cr": 12.5,
+   "red": 7800,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e1638451-d7dc-4f0e-a00d-b169cf342b86/2013_911_Technical_Specifications.pdf.PDF",
+   "says": "911 Carrera: Bore 97.0 mm, Stroke 77.5 mm, Displacement 3,436 cm3, Compression ratio 12.5:1, Engine redline 7800 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2013 911 Technical Specifications",
+   "targets": [
+    {
+     "name": "2012–15 Porsche 911 Carrera (991.1, 3.4)",
+     "arr": "VEH",
+     "cc": 3436,
+     "cyl": 6,
+     "geo": 3436.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-991-carreras38": {
+   "names": [
+    "2012–15 Porsche 911 Carrera S (991.1, 3.8)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "cr": 12.5,
+   "red": 7800,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e1638451-d7dc-4f0e-a00d-b169cf342b86/2013_911_Technical_Specifications.pdf.PDF",
+   "says": "911 Carrera S: Bore 102.0 mm, Stroke 77.5 mm, Displacement 3,800 cm3, Compression ratio 12.5:1, Engine redline 7800 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2013 911 Technical Specifications",
+   "targets": [
+    {
+     "name": "2012–15 Porsche 911 Carrera S (991.1, 3.8)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-991-gts38": {
+   "names": [
+    "2014–15 Porsche 911 Carrera GTS (991.1, 3.8)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e1638451-d7dc-4f0e-a00d-b169cf342b86/2013_911_Technical_Specifications.pdf.PDF",
+   "says": "911 Carrera S: Bore 102.0 mm, Stroke 77.5 mm, Displacement 3,800 cm3",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "2013 Carrera S sheet for the same 3.8 (the GTS has the Powerkit); bore and stroke only",
+   "targets": [
+    {
+     "name": "2014–15 Porsche 911 Carrera GTS (991.1, 3.8)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-992-turbos": {
+   "names": [
+    "2020–24 Porsche 911 Turbo S (992.1, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 76.4,
+   "cr": 8.7,
+   "red": 7200,
+   "src": "https://download.newsroom.porsche.com/dam/jcr:8b531ae3-48f0-4d00-bfb9-c29f2676959b/Copy%20of%20U.S.%20Technical%20Specifications%202021%20911%20Turbo%20S%20Coupe%20and%20Cabriolet.pdf",
+   "says": "2021 911 Turbo S: Bore/Stroke 102.0 mm / 76.4 mm; Displacement 3.745 l; Compression ratio 8.7 : 1; Maximum engine speed 7,200",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, U.S. Technical Specifications 2021 911 Turbo S Coupe and Cabriolet",
+   "targets": [
+    {
+     "name": "2020–24 Porsche 911 Turbo S (992.1, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3745,
+     "cyl": 6,
+     "geo": 3745.7,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "por-992-turbo": {
+   "names": [
+    "2020–24 Porsche 911 Turbo (992.1, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 76.4,
+   "src": "https://download.newsroom.porsche.com/dam/jcr:8b531ae3-48f0-4d00-bfb9-c29f2676959b/Copy%20of%20U.S.%20Technical%20Specifications%202021%20911%20Turbo%20S%20Coupe%20and%20Cabriolet.pdf",
+   "says": "2021 911 Turbo S: Bore/Stroke 102.0 mm / 76.4 mm; Displacement 3.745 l",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Turbo S sheet for the same 3.745 l engine; bore and stroke only",
+   "targets": [
+    {
+     "name": "2020–24 Porsche 911 Turbo (992.1, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3745,
+     "cyl": 6,
+     "geo": 3745.7,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "por-9912-turbo": {
+   "names": [
+    "2016–19 Porsche 911 Turbo (991.2, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "cr": 9.8,
+   "red": 7000,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:71ee7b5f-5fe9-4f45-bc6a-3cfdf18b51d5/2017_911_Turbo_Technical_Specifications.pdf.PDF",
+   "says": "911 Turbo: Bore/Stroke 102 mm / 77.5 mm; Displacement 3.8 l; Compression ratio 9.8 : 1; Maximum engine speed 7000",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2017 911 Turbo Technical Specifications",
+   "targets": [
+    {
+     "name": "2016–19 Porsche 911 Turbo (991.2, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9912-turbos": {
+   "names": [
+    "2016–19 Porsche 911 Turbo S (991.2, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "cr": 9.8,
+   "red": 7200,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:71ee7b5f-5fe9-4f45-bc6a-3cfdf18b51d5/2017_911_Turbo_Technical_Specifications.pdf.PDF",
+   "says": "911 Turbo S: Bore/Stroke 102 mm / 77.5 mm; Displacement 3.8 l; Compression ratio 9.8 : 1; Maximum engine speed 7200.0",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2017 911 Turbo Technical Specifications",
+   "targets": [
+    {
+     "name": "2016–19 Porsche 911 Turbo S (991.2, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9911-turbo": {
+   "names": [
+    "2013–15 Porsche 911 Turbo (991.1, 3.8 twin-turbo)",
+    "2013–15 Porsche 911 Turbo S (991.1, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:71ee7b5f-5fe9-4f45-bc6a-3cfdf18b51d5/2017_911_Turbo_Technical_Specifications.pdf.PDF",
+   "says": "911 Turbo / Turbo S (2017): Bore/Stroke 102 mm / 77.5 mm; Displacement 3.8 l",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "2017 sheet for the 3.8 twin-turbo; bore and stroke only for the 991.1 presets",
+   "targets": [
+    {
+     "name": "2013–15 Porsche 911 Turbo (991.1, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2013–15 Porsche 911 Turbo S (991.1, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-992-carreras": {
+   "names": [
+    "2019–24 Porsche 911 Carrera S (992.1, 3.0 twin-turbo)"
+   ],
+   "bore": 91,
+   "stroke": 76.4,
+   "cr": 10.2,
+   "red": 7500,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:d5712d5c-b376-41d9-8201-09731162e143/2020_911_Carrera_S_and_911_Carrera_4S_US_specifications.pdf.PDF",
+   "says": "2020 911 Carrera S: Bore/Stroke 91.0 mm / 76.4 mm; Displacement 3.0 l; Compression ratio 10.2 : 1; Maximum engine speed 7500",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2020 911 Carrera S and 4S US specifications; the 2020 Carrera S Cabriolet sheet (PCNA19_0038) gives the same",
+   "targets": [
+    {
+     "name": "2019–24 Porsche 911 Carrera S (992.1, 3.0 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2981,
+     "cyl": 6,
+     "geo": 2981.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-992-carrera-other": {
+   "names": [
+    "2019–24 Porsche 911 Carrera (992.1, 3.0 twin-turbo)",
+    "2021–24 Porsche 911 Carrera GTS (992.1, 3.0 twin-turbo)",
+    "9A2 3.0 twin-turbo flat-six (991.2 / 992 Carrera, S, GTS)"
+   ],
+   "bore": 91,
+   "stroke": 76.4,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:d5712d5c-b376-41d9-8201-09731162e143/2020_911_Carrera_S_and_911_Carrera_4S_US_specifications.pdf.PDF",
+   "says": "2020 911 Carrera S: Bore/Stroke 91.0 mm / 76.4 mm; Displacement 3.0 l",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Carrera S sheet for the same 3.0 twin-turbo; bore and stroke only",
+   "targets": [
+    {
+     "name": "9A2 3.0 twin-turbo flat-six (991.2 / 992 Carrera, S, GTS)",
+     "arr": "MOTORS",
+     "cc": 2981,
+     "cyl": 6,
+     "geo": 2981.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2019–24 Porsche 911 Carrera (992.1, 3.0 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2981,
+     "cyl": 6,
+     "geo": 2981.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2021–24 Porsche 911 Carrera GTS (992.1, 3.0 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2981,
+     "cyl": 6,
+     "geo": 2981.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9912-gt3rs": {
+   "names": [
+    "2018–19 Porsche 911 GT3 RS (991.2, 4.0)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "cr": 13.3,
+   "red": 9000,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e00c2789-42c7-4dab-a818-a732003194b0/2019_911_GT3_RS_Technical_Specifications.pdf.PDF",
+   "says": "Bore x stroke 102.0 x 81.5 mm (4.02 in x 3.21 in.); Displacement 3996 cm3; Compression ration 13.3 : 1; Maximum engine speed: 9,000 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2019 911 GT3 RS Technical Specifications",
+   "targets": [
+    {
+     "name": "2018–19 Porsche 911 GT3 RS (991.2, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9912-gt3-other": {
+   "names": [
+    "2017–19 Porsche 911 GT3 (991.2, 4.0)",
+    "2019 Porsche 911 Speedster (991.2, 4.0)",
+    "MDG 4.0 flat-six (991.2 GT3, 992 GT3, GT4 RS)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e00c2789-42c7-4dab-a818-a732003194b0/2019_911_GT3_RS_Technical_Specifications.pdf.PDF",
+   "says": "Bore x stroke 102.0 x 81.5 mm; Displacement 3996 cm3 (2019 911 GT3 RS)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "GT3 RS sheet for the same 4.0 (3996 cm3); bore and stroke only",
+   "targets": [
+    {
+     "name": "MDG 4.0 flat-six (991.2 GT3, 992 GT3, GT4 RS)",
+     "arr": "MOTORS",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2017–19 Porsche 911 GT3 (991.2, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2019 Porsche 911 Speedster (991.2, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9922-gt3": {
+   "names": [
+    "2025+ Porsche 911 GT3 (992.2, 4.0)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "src": "https://media.porsche.com/mediakit/911-gt3-touring-package/specifications/pdk/PAG-992-911GT3-TP-PDK-WLTP-EN.pdf",
+   "says": "Bore 102.0 mm; Stroke 81.5 mm; Displacement 3,996 cm3; Compression ratio 13.3:1; Max. engine speed 9,000 1/min (992.1 GT3 Touring)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "992.1 GT3 Touring data sheet for the same 4.0; the 2025 US press kit (https://newsroom.porsche.com/dam/jcr%3A07bedb19-4e20-474e-905c-9cbcb2f9d940/2025%20Porsche_911_GT3%20U.S.%20press%20kit.pdf) gives a 4.0-liter and a 9,000 rpm redline but no bore and stroke; bore and stroke only",
+   "targets": [
+    {
+     "name": "2025+ Porsche 911 GT3 (992.2, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-718-gt4": {
+   "names": [
+    "2020+ Porsche 718 Cayman GT4 (4.0)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "cr": 13,
+   "red": 8000,
+   "src": "https://download.newsroom.porsche.com/dam/jcr:9d46f6de-fbb6-42d8-b474-7295ec4e7e96/PAG_718_Cayman_GT4_EN.pdf",
+   "says": "Bore 102.0 mm; Stroke 81.5 mm; Displacement 3,995 cm3; Compression ratio 13.0:1; Max. engine speed 8,000 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche AG 718 Cayman GT4 technical data",
+   "targets": [
+    {
+     "name": "2020+ Porsche 718 Cayman GT4 (4.0)",
+     "arr": "VEH",
+     "cc": 3995,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "por-996-carrera34": {
+   "names": [
+    "1998–2001 Porsche 911 Carrera (996, 3.4)"
+   ],
+   "bore": 96,
+   "stroke": 78,
+   "src": "https://www.excellence-mag.com/resources/specs/57",
+   "says": "1999 911 Carrera Coupe (996 v1): 206.67 cu-in/3,387 cc; 3.78 in/96 mm x 3.07 in/78 mm; 11.3:1; Max RPM 7300",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 1999 911 Carrera Coupe; bore and stroke only (preset spans 1998-2001)",
+   "targets": [
+    {
+     "name": "1998–2001 Porsche 911 Carrera (996, 3.4)",
+     "arr": "VEH",
+     "cc": 3387,
+     "cyl": 6,
+     "geo": 3387.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-996-carrera36": {
+   "names": [
+    "2002–04 Porsche 911 Carrera (996.2, 3.6)"
+   ],
+   "bore": 96,
+   "stroke": 82.8,
+   "src": "https://www.excellence-mag.com/resources/specs/63",
+   "says": "2002 911 Carrera Coupe (996 v2): 219.43 cu-in/3,596 cc; 3.78 in/96 mm x 3.26 in/82.8 mm; 11.3:1; Max RPM 7300",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2002 911 Carrera Coupe; bore and stroke only (preset spans 2002-04)",
+   "targets": [
+    {
+     "name": "2002–04 Porsche 911 Carrera (996.2, 3.6)",
+     "arr": "VEH",
+     "cc": 3596,
+     "cyl": 6,
+     "geo": 3596,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "por-996-turbo": {
+   "names": [
+    "2001–05 Porsche 911 Turbo (996, 3.6 twin-turbo)",
+    "2004–05 Porsche 911 Turbo S (996, 3.6 twin-turbo, 450 PS)",
+    "M96.70 3.6 twin-turbo flat-six (996 Turbo, 996 GT2)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/72",
+   "says": "2001 911 Turbo Coupe (996): 219.60 cu-in/3,600cc; 3.94 in/100 mm x 3.01 in/76.4 mm; 9.4:1; Max RPM 6750",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2001 911 Turbo Coupe; bore and stroke only",
+   "targets": [
+    {
+     "name": "M96.70 3.6 twin-turbo flat-six (996 Turbo, 996 GT2)",
+     "arr": "MOTORS",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2001–05 Porsche 911 Turbo (996, 3.6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2004–05 Porsche 911 Turbo S (996, 3.6 twin-turbo, 450 PS)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-996-gt2": {
+   "names": [
+    "2002–05 Porsche 911 GT2 (996, 3.6 twin-turbo)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/80",
+   "says": "2003 911 GT2 Coupe (996): 219.60 cu-in/3,600cc; 3.94 in/100 mm x 3.01 in/76.4 mm; 9.4:1; Max RPM 6750",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2003 911 GT2 (the 2004 page, specs/81, gives the same); bore and stroke only",
+   "targets": [
+    {
+     "name": "2002–05 Porsche 911 GT2 (996, 3.6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-996-gt3-04": {
+   "names": [
+    "2004–05 Porsche 911 GT3 / GT3 RS (996.2, 3.6 Mezger)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/82",
+   "says": "2004 911 GT3 Coupe (996): 219.60 cu-in/3,600 cc; 3.94 in/100.0 mm x 3.61 in/76.4 mm; 11.7:1; Max RPM 8200",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2004 911 GT3 Coupe (its inch stroke 3.61 is a misprint for 3.01; the mm figure is used); bore and stroke only (the preset includes the GT3 RS)",
+   "targets": [
+    {
+     "name": "2004–05 Porsche 911 GT3 / GT3 RS (996.2, 3.6 Mezger)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-964-carrera": {
+   "names": [
+    "1989–94 Porsche 911 Carrera 2/4 (964, 3.6 M64)",
+    "M64/01 3.6 air-cooled flat-six (911 Carrera 964)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/291",
+   "says": "1990 911 Carrera 2 Coupe (964): 219.60 cu-in/3,600 cc; 3.94 in/100 mm x 3.01 in/76.4 mm; 11.3:1; Max RPM 6700",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 1990 911 Carrera 2 Coupe; bore and stroke only",
+   "targets": [
+    {
+     "name": "M64/01 3.6 air-cooled flat-six (911 Carrera 964)",
+     "arr": "MOTORS",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "1989–94 Porsche 911 Carrera 2/4 (964, 3.6 M64)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-964-turbo33": {
+   "names": [
+    "1991–92 Porsche 911 Turbo (964, 3.3)"
+   ],
+   "bore": 97,
+   "stroke": 74.4,
+   "src": "https://www.excellence-mag.com/resources/specs/307",
+   "says": "1991 911 Turbo Coupe (964): 201.32 cu-in/3,299 cc; 3.82 in/97 mm x 2.93 in/74.4 mm; 7.0:1; Max RPM 6800",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 1991 911 Turbo Coupe; bore and stroke only (preset spans 1991-92)",
+   "targets": [
+    {
+     "name": "1991–92 Porsche 911 Turbo (964, 3.3)",
+     "arr": "VEH",
+     "cc": 3299,
+     "cyl": 6,
+     "geo": 3298.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-964-turbo36": {
+   "names": [
+    "1993–94 Porsche 911 Turbo 3.6 (964)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/309",
+   "says": "1993 911 Turbo Coupe (964): 219.60 cu-in./3,600 cc; 3.94 in/100 mm x 3.01 in/76.4 mm; 7.5:1; Max RPM 6600",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 1993 911 Turbo Coupe; bore and stroke only",
+   "targets": [
+    {
+     "name": "1993–94 Porsche 911 Turbo 3.6 (964)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt2rs": {
+   "names": [
+    "2011–12 Porsche 911 GT2 RS (997, 3.6 twin-turbo)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://excellence-mag.com/resources/specs/175",
+   "says": "2011 911 GT2 RS Coupe (997 v2): bore x stroke 3.94 in/100mm x 3.01 in/76.4 mm; 9.0:1; Max RPM 6750 (the displacement line repeats the bore x stroke)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2011 911 GT2 RS; bore and stroke only",
+   "targets": [
+    {
+     "name": "2011–12 Porsche 911 GT2 RS (997, 3.6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq35de-03": {
+   "names": [
+    "2003 Nissan 350Z (VQ35DE)",
+    "VQ35DE 3.5 V6 (350Z, G35, Maxima)"
+   ],
+   "bore": 95.5,
+   "stroke": 81.4,
+   "src": "https://www.manualowl.com/am/Nissan/2003-350Z/Manual/861?page=203",
+   "says": "Model VQ35DE; Displacement 213.45 (3,498) cu in (cm3); Bore x Stroke 3.760 x 3.205 (95.5 x 81.4) in (mm)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Nissan 2003 350Z owners manual, specifications page (as hosted by manualowl.com)",
+   "targets": [
+    {
+     "name": "VQ35DE 3.5 V6 (350Z, G35, Maxima)",
+     "arr": "MOTORS",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2003 Nissan 350Z (VQ35DE)",
+     "arr": "VEH",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq35de-05": {
+   "names": [
+    "2005–06 Nissan 350Z (VQ35DE Rev-up)"
+   ],
+   "bore": 95.5,
+   "stroke": 81.4,
+   "src": "https://www.manualowl.com/am/Nissan/2005-350Z/Manual/879?page=251",
+   "says": "Model VQ35DE; Displacement 213.5 (3,498) cu in (cm3); Bore x Stroke 3.760 x 3.205 (95.5 x 81.4) in (mm)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Nissan 2005 350Z owners manual, specifications page (as hosted by manualowl.com)",
+   "targets": [
+    {
+     "name": "2005–06 Nissan 350Z (VQ35DE Rev-up)",
+     "arr": "VEH",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq35hr-08": {
+   "sel": "^VQ35HR$",
+   "bore": 95.5,
+   "stroke": 81.4,
+   "src": "https://www.manualowl.com/am/Nissan/2008-350Z/Manual/912?page=282",
+   "says": "Model VQ35HR; Displacement 213.45 (3,498) cu in (cm3); Bore x stroke 3.760 x 3.205 (95.5 x 81.4) in (mm)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Nissan 2008 350Z owners manual, specifications page (as hosted by manualowl.com). The 2007 press kit (https://usa.nissannews.com:443/en-US/releases/2007-nissan-350z-coupe-and-roadster-press-kit) gives 10.6:1 and 7,500 rpm but no bore and stroke",
+   "targets": [
+    {
+     "name": "VQ35HR 3.5 V6 (2007–08 350Z, G35)",
+     "arr": "MOTORS",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–08 Nissan 350Z (VQ35HR)",
+     "arr": "VEH",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-qr25-sentra": {
+   "sel": "^QR25DE$",
+   "bore": 89,
+   "stroke": 100,
+   "src": "https://canada.nissannews.com/en-CA/releases/ca-2011-nissan-sentra-se-r",
+   "says": "SE-R and SE-R Spec V: Bore x stroke 89.0 x 100.0 mm; 2.5L; compression 9.7 (SE-R) / 10.5 (Spec V); Maximum engine speed 6,200 / 7,000 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Nissan Canada, 2011 Nissan Sentra SE-R specifications; bore and stroke only (presets span 2007-12)",
+   "targets": [
+    {
+     "name": "2007–12 Nissan Sentra SE-R Spec V (QR25DE)",
+     "arr": "VEH",
+     "cc": 2488,
+     "cyl": 4,
+     "geo": 2488.5,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "2007–12 Nissan Sentra SE-R (QR25DE, CVT)",
+     "arr": "VEH",
+     "cc": 2488,
+     "cyl": 4,
+     "geo": 2488.5,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "nis-vr30": {
+   "names": [
+    "VR30DDTT 3.0 twin-turbo V6 (Z, Q50/Q60 Red Sport 400)",
+    "2016–24 Infiniti Q50/Q60 Red Sport 400 (VR30DDTT)",
+    "2016–24 Infiniti Q50/Q60 3.0t (VR30DDTT, 300 hp)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://canada.infinitinews.com/en-CA/releases/release-5ac4eb09db8c0dedca705b2277000fa3-2023-infiniti-q50-specifications",
+   "says": "Bore & stroke 86 x 86; 3.0 litre/2,997 cc; compression 10.3; redline 6,800 rpm (both 300 hp and 400 hp)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Infiniti Canada, 2023 Infiniti Q50 specifications; bore and stroke only (presets span 2016-24)",
+   "targets": [
+    {
+     "name": "VR30DDTT 3.0 twin-turbo V6 (Z, Q50/Q60 Red Sport 400)",
+     "arr": "MOTORS",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2016–24 Infiniti Q50/Q60 Red Sport 400 (VR30DDTT)",
+     "arr": "VEH",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2016–24 Infiniti Q50/Q60 3.0t (VR30DDTT, 300 hp)",
+     "arr": "VEH",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-sr20det-s15": {
+   "names": [
+    "1999–2002 Nissan Silvia S15 Spec-R (SR20DET)",
+    "SR20DET 2.0 turbo I4 (Silvia S13–S15, 180SX)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://www.goo-net-exchange.com/catalog/NISSAN__SILVIA/1502004",
+   "says": "Silvia Spec-R B Package (GF-S15): Engine Model SR20DET; Displacement 1998cc; Bore x Stroke 86.0mm x 86.0mm; Compression Ratio 8.5; 225ps(165kW)/6000rpm",
+   "q": "reputable vendor",
+   "seen": "2026-11-20",
+   "note": "Goo-net Exchange catalog (the Japanese used-car marketplace catalog of the maker specification) for the S15 Silvia Spec-R; bore and stroke only",
+   "targets": [
+    {
+     "name": "SR20DET 2.0 turbo I4 (Silvia S13–S15, 180SX)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "1999–2002 Nissan Silvia S15 Spec-R (SR20DET)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "kaw-zx6r-636-20": {
+   "names": [
+    "2019–23 Kawasaki ZX-6R 636 (inline-four)",
+    "2013–18 Kawasaki Ninja ZX-6R (636)"
+   ],
+   "bore": 67,
+   "stroke": 45.1,
+   "src": "https://hawaii.kawasaki.com/en-us/products/ProductSpecSheetPDF/2020-ninja-zx-6r-abs",
+   "says": "Engine 4-stroke, 4-cylinder, DOHC, 16-valve, liquidcooled; Displacement 636cc; Bore x Stroke 67.0 x 45.1mm; Compression Ratio 12.9:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Kawasaki (USA, Hawaii distributor site) 2020 Ninja ZX-6R ABS spec sheet; bore and stroke only for the two 636 presets",
+   "targets": [
+    {
+     "name": "2013–18 Kawasaki Ninja ZX-6R (636)",
+     "arr": "VEH",
+     "cc": 636,
+     "cyl": 4,
+     "geo": 636,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2019–23 Kawasaki ZX-6R 636 (inline-four)",
+     "arr": "VEH",
+     "cc": 636,
+     "cyl": 4,
+     "geo": 636,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "kaw-zx4rr-23": {
+   "names": [
+    "2023 Kawasaki Ninja ZX-4RR (Cycle World dyno)"
+   ],
+   "bore": 57,
+   "stroke": 39.1,
+   "cr": 12.3,
+   "src": "https://kawasaki.com/en-us/products/ProductSpecSheetPDF/2023-ninja-zx-4rr-krt-edition",
+   "says": "Engine 4-stroke, In-Line Four-Cylinder, DOHC, 16-valve, liquid-cooled; Displacement 399cc; Bore x Stroke 57.0 x 39.1mm; Compression Ratio 12.3:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Kawasaki USA 2023 Ninja ZX-4RR KRT Edition spec sheet",
+   "targets": [
+    {
+     "name": "2023 Kawasaki Ninja ZX-4RR (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 399,
+     "cyl": 4,
+     "geo": 399.1,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "kaw-h2": {
+   "names": [
+    "2015+ Kawasaki Ninja H2"
+   ],
+   "bore": 76,
+   "stroke": 55,
+   "src": "https://www.kawasaki.com/en-us/products/ProductSpecSheetPDF/2025-ninja-h2-abs",
+   "says": "Engine 4-stroke, in-line 4-cylinder, DOHC, 16-valve, liquid-cooled; Displacement 998cc; Bore x Stroke 76.0 x 55.0mm; Compression Ratio 8.5:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Kawasaki USA 2025 Ninja H2 ABS spec sheet; bore and stroke only (preset spans 2015 on)",
+   "targets": [
+    {
+     "name": "2015+ Kawasaki Ninja H2",
+     "arr": "VEH",
+     "cc": 998,
+     "cyl": 4,
+     "geo": 998,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "kaw-zx10r-17": {
+   "names": [
+    "2016–20 Kawasaki Ninja ZX-10R"
+   ],
+   "bore": 76,
+   "stroke": 55,
+   "src": "https://www.motorcycle.com/specs/kawasaki/sport/2017/ninja-zx-10r/base/detail.html",
+   "says": "2017 Ninja ZX-10R: Displacement 998 / 60.9 cc/ci; Bore 76 / 2.99 mm/in; Stroke 55 / 2.17 mm/in; Compression ratio 13.0:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2017 Kawasaki Ninja ZX-10R; bore and stroke only",
+   "targets": [
+    {
+     "name": "2016–20 Kawasaki Ninja ZX-10R",
+     "arr": "VEH",
+     "cc": 998,
+     "cyl": 4,
+     "geo": 998,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr1000r-17": {
+   "names": [
+    "2017+ Suzuki GSX-R1000R"
+   ],
+   "bore": 76,
+   "stroke": 55.1,
+   "src": "https://www.motorcycle.com/specs/suzuki/sport/2017/gsx-r/1000r/detail.html",
+   "says": "2017 GSX-R 1000R: Displacement 999.8 / 61 cc/ci; Bore 76 / 2.99 mm/in; Stroke 2.17 / 55.1 in/mm; Compression Ratio 13.2:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2017 Suzuki GSX-R1000R; bore and stroke only",
+   "targets": [
+    {
+     "name": "2017+ Suzuki GSX-R1000R",
+     "arr": "VEH",
+     "cc": 1000,
+     "cyl": 4,
+     "geo": 999.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "suz-busa-1g": {
+   "names": [
+    "1999–2007 Suzuki Hayabusa"
+   ],
+   "bore": 81,
+   "stroke": 63,
+   "src": "https://www.motorcycle.com/specs/suzuki/sport/2005/hayabusa/1300r/detail.html",
+   "says": "2005 Hayabusa 1300R: Displacement 1299 / 79.3 cc/ci; Bore 81 / 3.19 mm/in; Stroke 63 / 2.48 mm/in; Compression Ratio 11.0:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2005 Suzuki Hayabusa 1300R; bore and stroke only (preset spans 1999-2007)",
+   "targets": [
+    {
+     "name": "1999–2007 Suzuki Hayabusa",
+     "arr": "VEH",
+     "cc": 1299,
+     "cyl": 4,
+     "geo": 1298.6,
+     "dPct": -0.03,
+     "had": null
+    }
+   ]
+  },
+  "suz-busa-2g": {
+   "names": [
+    "2008–20 Suzuki Hayabusa"
+   ],
+   "bore": 81,
+   "stroke": 65,
+   "src": "https://www.totalmotorcycle.com/photos/2008models/2008models-Suzuki-HayabusaGSX1300R.htm",
+   "says": "2008 Hayabusa GSX1300RK8 US specifications: 1340cc; Bore & Stroke 81.0 x 65.0mm; Compression Ratio 12.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Total Motorcycle, 2008 Suzuki Hayabusa GSX1300R (US specifications); bore and stroke only (preset spans 2008-20)",
+   "targets": [
+    {
+     "name": "2008–20 Suzuki Hayabusa",
+     "arr": "VEH",
+     "cc": 1340,
+     "cyl": 4,
+     "geo": 1339.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr600-23": {
+   "names": [
+    "2023 Suzuki GSX-R600 (Cycle World dyno)"
+   ],
+   "bore": 67,
+   "stroke": 42.5,
+   "cr": 12.9,
+   "src": "https://suzukicycles.com/sportbike/2023/gsx-r600",
+   "says": "Engine 599cc, 4-stroke, liquid-cooled, 4-cylinder, DOHC; Bore x Stroke 67.0 mm x 42.5 mm (2.638 in. x 1.673 in.); Compression Ratio 12.9:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Suzuki Motor USA, 2023 GSX-R600 specifications",
+   "targets": [
+    {
+     "name": "2023 Suzuki GSX-R600 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 599,
+     "cyl": 4,
+     "geo": 599.4,
+     "dPct": 0.06,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr750-k4": {
+   "names": [
+    "2004–05 Suzuki GSX-R750"
+   ],
+   "bore": 72,
+   "stroke": 46,
+   "src": "https://cdn-fastly.motorcycle.com/specs/suzuki/sport/2004/gsx-r/750/detail.html",
+   "says": "2004 GSX-R 750: Displacement 749 / 46 cc/ci; Bore 72 / 2.84 mm/in; Stroke 46 / 1.81 mm/in; Compression Ratio 12.3:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2004 Suzuki GSX-R750; bore and stroke only",
+   "targets": [
+    {
+     "name": "2004–05 Suzuki GSX-R750",
+     "arr": "VEH",
+     "cc": 750,
+     "cyl": 4,
+     "geo": 749.2,
+     "dPct": -0.11,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr750-k9": {
+   "names": [
+    "2008–10 Suzuki GSX-R750 K8–L0 (inline-four)"
+   ],
+   "bore": 70,
+   "stroke": 48.7,
+   "src": "https://www.totalmotorcycle.com/photos/2009models/2009-Suzuki-GSX-R750",
+   "says": "2009 GSX-R750: Displacement 750 cc (45.8 cu. In); Bore & Stroke 70.0 mm (2.756 in) x 48.7 mm (1.917 in); Compression Ratio 12.5 : 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Total Motorcycle, 2009 Suzuki GSX-R750 (US specifications); bore and stroke only",
+   "targets": [
+    {
+     "name": "2008–10 Suzuki GSX-R750 K8–L0 (inline-four)",
+     "arr": "VEH",
+     "cc": 750,
+     "cyl": 4,
+     "geo": 749.7,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsxr750-22": {
+   "names": [
+    "2022 Suzuki GSX-R750 (Cycle World dyno)"
+   ],
+   "bore": 70,
+   "stroke": 48.7,
+   "cr": 12.5,
+   "src": "https://www.globalsuzuki.com/motorcycle/smgs/products/2022gsx-r750/",
+   "says": "Engine displacement 750 cm3 (45.8 cu. in); Bore x Stroke 70.0 mm x 48.7 mm (2.8 in x 1.9 in); Compression ratio 12.5 : 1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Suzuki Motor Corporation (global site), 2022 GSX-R750 specifications",
+   "targets": [
+    {
+     "name": "2022 Suzuki GSX-R750 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 750,
+     "cyl": 4,
+     "geo": 749.7,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsx8r-24": {
+   "names": [
+    "2024 Suzuki GSX-8R (Cycle World dyno)"
+   ],
+   "bore": 84,
+   "stroke": 70,
+   "cr": 12.8,
+   "src": "https://suzukicycles.com/street/2024/gsx-8r",
+   "says": "Engine displacement 776cc, 4-stroke, liquid-cooled, DOHC parallel twin; Bore x Stroke 84.0 mm x 70 mm (3.3 in. x 2.8 in.); Compression Ratio 12.8:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Suzuki Motor USA, 2024 GSX-8R specifications",
+   "targets": [
+    {
+     "name": "2024 Suzuki GSX-8R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 776,
+     "cyl": 2,
+     "geo": 775.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "suz-gsx8s-23": {
+   "names": [
+    "2023 Suzuki GSX-8S (Cycle World dyno)"
+   ],
+   "bore": 84,
+   "stroke": 70,
+   "cr": 12.8,
+   "src": "https://www.motorcycle.com/specs/suzuki/standard/2023/gsx-s/8s/detail.html",
+   "says": "2023 GSX-S 8S: Displacement 776 / 47.3 cc/ci; Bore 84 / 3.31 mm/in; Stroke 2.76 / 70 in/mm; Compression Ratio 12.8:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2023 Suzuki GSX-8S",
+   "targets": [
+    {
+     "name": "2023 Suzuki GSX-8S (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 776,
+     "cyl": 2,
+     "geo": 775.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "yam-r7-24": {
+   "names": [
+    "2024 Yamaha YZF-R7 (Cycle World dyno)"
+   ],
+   "bore": 80,
+   "stroke": 68.6,
+   "cr": 11.5,
+   "src": "https://www.yamahamotorsports.com/models/24-yzf-r7/specs",
+   "says": "Engine Type 689cc liquid-cooled, 4-stroke, DOHC inline twin-cylinder; 4-valves per cylinder; Bore x Stroke 80.0mm x 68.6mm; Compression Ratio 11.5:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Yamaha Motor USA, 2024 YZF-R7 specifications",
+   "targets": [
+    {
+     "name": "2024 Yamaha YZF-R7 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 689,
+     "cyl": 2,
+     "geo": 689.6,
+     "dPct": 0.09,
+     "had": null
+    }
+   ]
+  },
+  "yam-r6-17": {
+   "names": [
+    "2017+ Yamaha YZF-R6"
+   ],
+   "bore": 67,
+   "stroke": 42.5,
+   "src": "https://global.yamaha-motor.com/news/2016/1014/yzf-r6.html",
+   "says": "Engine type Liquid-cooled, 4-stroke, DOHC, 4-valve; Displacement 599cm3; Bore x stroke 67.0 x 42.5mm; Compression ratio 13.1:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Yamaha Motor news release of 14 Oct 2016 for the 2017 YZF-R6 (its table is headed 2016 US model main specifications); bore and stroke only",
+   "targets": [
+    {
+     "name": "2017+ Yamaha YZF-R6",
+     "arr": "VEH",
+     "cc": 599,
+     "cyl": 4,
+     "geo": 599.4,
+     "dPct": 0.06,
+     "had": null
+    }
+   ]
+  },
+  "yam-r6-06": {
+   "names": [
+    "2006–07 Yamaha YZF-R6"
+   ],
+   "bore": 67,
+   "stroke": 42.5,
+   "src": "https://www.totalmotorcycle.com/photos/2006models/2006models-Yamaha-YZF-R6",
+   "says": "2006 YZF-R6: 600cc; Bore x Stroke 67.0 x 42.5mm; Compression Ratio 12.8:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Total Motorcycle, 2006 Yamaha YZF-R6; bore and stroke only",
+   "targets": [
+    {
+     "name": "2006–07 Yamaha YZF-R6",
+     "arr": "VEH",
+     "cc": 599,
+     "cyl": 4,
+     "geo": 599.4,
+     "dPct": 0.06,
+     "had": null
+    }
+   ]
+  },
+  "yam-r1-cp": {
+   "names": [
+    "2009–14 Yamaha YZF-R1 (crossplane)"
+   ],
+   "bore": 78,
+   "stroke": 52.2,
+   "src": "https://www.motorcycle.com/specs/yamaha/sport/2010/yzf/r1.html",
+   "says": "2010 YZF R1: Displacement (cc/ci) 998 / 60.9; Bore (mm/in) 78 / 3.07; Stroke (mm/in) 52.2 / 2.06; Compression Ratio 12.7:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2010 Yamaha YZF-R1; bore and stroke only",
+   "targets": [
+    {
+     "name": "2009–14 Yamaha YZF-R1 (crossplane)",
+     "arr": "VEH",
+     "cc": 998,
+     "cyl": 4,
+     "geo": 997.7,
+     "dPct": -0.03,
+     "had": null
+    }
+   ]
+  },
+  "hon-cbr1000rr-17": {
+   "names": [
+    "2017–19 Honda CBR1000RR Fireblade"
+   ],
+   "bore": 76,
+   "stroke": 55,
+   "src": "https://hondanews.com/en-US/powersports/releases/release-78e5848b968e454588fa0e1bb9a1058a-2017-honda-cbr1000rr-specifications",
+   "says": "Engine Type 998cc liquid-cooled in-line-four-cylinder four-stroke; Bore x Stroke 76.0mm x 55.0mm; Compression Ratio 13:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "American Honda, 2017 Honda CBR1000RR specifications; bore and stroke only (preset spans 2017-19)",
+   "targets": [
+    {
+     "name": "2017–19 Honda CBR1000RR Fireblade",
+     "arr": "VEH",
+     "cc": 999,
+     "cyl": 4,
+     "geo": 998,
+     "dPct": -0.1,
+     "had": null
+    }
+   ]
+  },
+  "hon-cb650-20": {
+   "names": [
+    "2019 Honda CB650R (Cycle World dyno)",
+    "2019 Honda CBR650R (Cycle World dyno)",
+    "2021 Honda CB650R (Cycle World dyno)"
+   ],
+   "bore": 67,
+   "stroke": 46,
+   "src": "https://hondanews.com/en-US/powersports/releases/release-47ef5ef525f391ae783334075a031539-2020-honda-cb650r-specifications",
+   "says": "Engine type 649cc liquid-cooled 30 deg inline four-cylinder four-stroke; Bore x Stroke 67.0mm x 46.0mm; Compression ratio 11.6:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "American Honda, 2020 Honda CB650R specifications (the CBR650R has the same engine); bore and stroke only for the 2019 and 2021 presets",
+   "targets": [
+    {
+     "name": "2019 Honda CB650R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 649,
+     "cyl": 4,
+     "geo": 648.7,
+     "dPct": -0.04,
+     "had": null
+    },
+    {
+     "name": "2019 Honda CBR650R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 649,
+     "cyl": 4,
+     "geo": 648.7,
+     "dPct": -0.04,
+     "had": null
+    },
+    {
+     "name": "2021 Honda CB650R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 649,
+     "cyl": 4,
+     "geo": 648.7,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "hon-rebel1100-21": {
+   "names": [
+    "2021 Honda Rebel 1100 (Cycle World dyno)"
+   ],
+   "bore": 92,
+   "stroke": 81.5,
+   "cr": 10.1,
+   "src": "https://www.motorcycle.com/specs/honda/cruiser/2021/rebel-1100/base/detail.html",
+   "says": "2021 Rebel 1100: Displacement (cc/ci) 1084 / 66.1; Bore (mm/in) 92 / 3.62; Stroke (mm/in) 81.5 / 3.21; Compression Ratio 10.1:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Honda Rebel 1100",
+   "targets": [
+    {
+     "name": "2021 Honda Rebel 1100 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1084,
+     "cyl": 2,
+     "geo": 1083.6,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "yam-tracer9-21": {
+   "names": [
+    "2021 Yamaha Tracer 9 GT (Cycle World dyno)"
+   ],
+   "bore": 78,
+   "stroke": 62.1,
+   "cr": 11.5,
+   "src": "https://www.motorcycle.com/specs/yamaha/sport-touring/2021/tracer/9-gt/detail.html",
+   "says": "2021 Tracer 9 GT: Displacement 890 / 54.3 cc/ci; Bore 78 / 3.07 mm/in; Stroke 2.44 / 62.1 in/mm; Compression Ratio 11.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Yamaha Tracer 9 GT",
+   "targets": [
+    {
+     "name": "2021 Yamaha Tracer 9 GT (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 890,
+     "cyl": 3,
+     "geo": 890.2,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "hon-cbr1000rr-05": {
+   "names": [
+    "2004–05 Honda CBR1000RR Fireblade"
+   ],
+   "bore": 75,
+   "stroke": 56.5,
+   "src": "https://hondanews.com/en-US/powersports/releases/release-7ce448ae6f61162d9aad27004c34c31d-2005-honda-cbr1000rr-specifications",
+   "says": "Engine type 998cc liquid-cooled inline four-cylinder; Bore and stroke 75mm x 56.5mm; Compression ratio 11.9:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "American Honda, 2005 Honda CBR1000RR specifications; bore and stroke only (preset spans 2004-05)",
+   "targets": [
+    {
+     "name": "2004–05 Honda CBR1000RR Fireblade",
+     "arr": "VEH",
+     "cc": 998,
+     "cyl": 4,
+     "geo": 998.4,
+     "dPct": 0.04,
+     "had": null
+    }
+   ]
+  },
+  "hon-transalp-24": {
+   "names": [
+    "2024 Honda Transalp (Cycle World dyno)"
+   ],
+   "bore": 87,
+   "stroke": 63.5,
+   "cr": 11,
+   "src": "https://hondanews.com/en-US/powersports/releases/release-cc39196e84787a20ec3cb086fb11a917-2024-honda-xl750-transalp-specifications",
+   "says": "Engine type 755cc liquid-cooled 24.5 deg inline-two-cylinder four-stroke w/ 270 deg crank; Bore and stroke 87.0mm x 63.5mm; Compression ratio 11.0:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "American Honda, 2024 Honda XL750 Transalp specifications",
+   "targets": [
+    {
+     "name": "2024 Honda Transalp (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 755,
+     "cyl": 2,
+     "geo": 755,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s1000rr-19": {
+   "names": [
+    "2019+ BMW S1000RR"
+   ],
+   "bore": 80,
+   "stroke": 49.7,
+   "src": "https://www.motorcycle.com/specs/bmw/sport/2019/s/1000-rr/detail.html",
+   "says": "2019 S 1000 RR: Displacement (cc/ci) 999 / 60.9; Bore (mm/in) 80 / 3.15; Stroke (in/mm) 1.96 / 49.7; Compression Ratio 13.0:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2019 BMW S 1000 RR; bore and stroke only",
+   "targets": [
+    {
+     "name": "2019+ BMW S1000RR",
+     "arr": "VEH",
+     "cc": 999,
+     "cyl": 4,
+     "geo": 999.3,
+     "dPct": 0.03,
+     "had": null
+    }
+   ]
+  },
+  "bmw-m1000rr": {
+   "names": [
+    "2023 BMW M 1000 RR (Cycle World dyno)"
+   ],
+   "bore": 80,
+   "stroke": 49.7,
+   "src": "https://www.bmwmotorcycles.com/en/models/m/m1000rr/technicaldata.html",
+   "says": "Capacity 999 cc; Bore x stroke 80 mm x 49.7 mm; Compression ratio 14.5 : 1 (current model page, 2027 in the navigation)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Motorrad USA M 1000 RR technical data (current model, not 2023); bore and stroke only",
+   "targets": [
+    {
+     "name": "2023 BMW M 1000 RR (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 999,
+     "cyl": 4,
+     "geo": 999.3,
+     "dPct": 0.03,
+     "had": null
+    }
+   ]
+  },
+  "bmw-m1000r": {
+   "names": [
+    "2023 BMW M 1000 R (Cycle World dyno)"
+   ],
+   "bore": 80,
+   "stroke": 49.7,
+   "cr": 13.3,
+   "src": "https://www.bmw-motorrad.co.uk/en/models/m/m1000r-2023/technicaldata.html",
+   "says": "BMW M 1000 R: Capacity 999 cc; Bore x stroke 80 mm x 49.7 mm; Compression ratio 13.3 : 1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Motorrad UK, M 1000 R (2023 page) technical data",
+   "targets": [
+    {
+     "name": "2023 BMW M 1000 R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 999,
+     "cyl": 4,
+     "geo": 999.3,
+     "dPct": 0.03,
+     "had": null
+    }
+   ]
+  },
+  "bmw-f900r": {
+   "names": [
+    "2023 BMW F 900 R (Cycle World dyno)"
+   ],
+   "bore": 86,
+   "stroke": 77,
+   "src": "https://www.bmwmotorcycles.com/en/models/roadster/f900r/technicaldata.html",
+   "says": "Capacity 895 cc; Bore x stroke 86 mm x 77 mm; Compression ratio 13.1 : 1 (current model page)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Motorrad USA F 900 R technical data (current model, not 2023); bore and stroke only",
+   "targets": [
+    {
+     "name": "2023 BMW F 900 R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 895,
+     "cyl": 2,
+     "geo": 894.6,
+     "dPct": -0.05,
+     "had": null
+    }
+   ]
+  },
+  "hd-m8-107": {
+   "names": [
+    "2017+ Harley-Davidson Milwaukee-Eight 107 (45° V-twin)"
+   ],
+   "bore": 100,
+   "stroke": 111.13,
+   "src": "https://www.motorcycle.com/manufacturer/harley-davidson/2017-harley-davidson-milwaukee-eight-engines-tech-brief.html",
+   "says": "Milwaukee-Eight 107: bore and stroke 3.937 in. x 4.375 in. (99.999mm x 111.125mm); 107 cu. in.",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com, 2017 Harley-Davidson Milwaukee-Eight Engines Tech Brief (99.999 taken as 100.0, 111.125 as 111.13)",
+   "targets": [
+    {
+     "name": "2017+ Harley-Davidson Milwaukee-Eight 107 (45° V-twin)",
+     "arr": "VEH",
+     "cc": 1746,
+     "cyl": 2,
+     "geo": 1745.6,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "hd-m8-117-22": {
+   "names": [
+    "2022 Harley-Davidson Low Rider S (Milwaukee-Eight 117, Cycle World dyno)"
+   ],
+   "bore": 103.6,
+   "stroke": 114.3,
+   "cr": 10.2,
+   "src": "https://www.motorcycle.com/specs/harley-davidson/cruiser/2022/softail/low-rider-s/detail.html",
+   "says": "2022 Softail Low Rider S: Displacement (cc/ci) 1923 / 117; Bore (mm/in) 103.6 / 4.08; Stroke (in/mm) 4.5 / 114.3; Compression Ratio 10.2:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2022 Harley-Davidson Low Rider S",
+   "targets": [
+    {
+     "name": "2022 Harley-Davidson Low Rider S (Milwaukee-Eight 117, Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1923,
+     "cyl": 2,
+     "geo": 1927,
+     "dPct": 0.21,
+     "had": null
+    }
+   ]
+  },
+  "hd-m8-117-other": {
+   "names": [
+    "2023 Harley-Davidson Breakout 117 (Cycle World dyno)",
+    "2024 Harley-Davidson Low Rider S (Milwaukee-Eight 117, Cycle World dyno)",
+    "2024 Harley-Davidson Street Glide (Milwaukee-Eight 117, Cycle World dyno)"
+   ],
+   "bore": 103.6,
+   "stroke": 114.3,
+   "src": "https://www.motorcycle.com/specs/harley-davidson/cruiser/2022/softail/low-rider-s/detail.html",
+   "says": "2022 Softail Low Rider S (Milwaukee-Eight 117): Displacement 1923 / 117; Bore 103.6 / 4.08; Stroke 4.5 / 114.3",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "2022 Low Rider S page for the same Milwaukee-Eight 117; bore and stroke only",
+   "targets": [
+    {
+     "name": "2023 Harley-Davidson Breakout 117 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1923,
+     "cyl": 2,
+     "geo": 1927,
+     "dPct": 0.21,
+     "had": null
+    },
+    {
+     "name": "2024 Harley-Davidson Low Rider S (Milwaukee-Eight 117, Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1923,
+     "cyl": 2,
+     "geo": 1927,
+     "dPct": 0.21,
+     "had": null
+    },
+    {
+     "name": "2024 Harley-Davidson Street Glide (Milwaukee-Eight 117, Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1923,
+     "cyl": 2,
+     "geo": 1927,
+     "dPct": 0.21,
+     "had": null
+    }
+   ]
+  },
+  "duc-1199": {
+   "names": [
+    "2012–14 Ducati 1199 Panigale"
+   ],
+   "bore": 112,
+   "stroke": 60.8,
+   "src": "https://www.motorcycle.com/specs/ducati/sport/2013/panigale/1199/detail.html",
+   "says": "2013 Panigale 1199: Displacement (cc/ci) 1198 / 73.1; Bore (mm/in) 112 / 4.41; Stroke (in/mm) 2.39 / 60.8; Compression Ratio 12.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2013 Ducati 1199 Panigale; bore and stroke only",
+   "targets": [
+    {
+     "name": "2012–14 Ducati 1199 Panigale",
+     "arr": "VEH",
+     "cc": 1198,
+     "cyl": 2,
+     "geo": 1198,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "duc-panv4": {
+   "names": [
+    "2018 Ducati Panigale V4 (1103)"
+   ],
+   "bore": 81,
+   "stroke": 53.5,
+   "src": "https://www.ducati.com/us/en/bikes/panigale/panigale-v4/engine",
+   "says": "Desmosedici Stradale 90 deg V4: Bore x Stroke 81 x 53.5 mm; Displacement 1,103 cc; Compression Ratio 14.0:1 (current model page)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ducati USA Panigale V4 engine page (current model, not 2018; same 1,103 cc Desmosedici Stradale); bore and stroke only",
+   "targets": [
+    {
+     "name": "2018 Ducati Panigale V4 (1103)",
+     "arr": "VEH",
+     "cc": 1103,
+     "cyl": 4,
+     "geo": 1102.7,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "duc-937-desertx": {
+   "names": [
+    "2023 Ducati DesertX (Cycle World dyno)",
+    "2023 Ducati Monster SP (Cycle World dyno)"
+   ],
+   "bore": 94,
+   "stroke": 67.5,
+   "src": "https://www.motorcycle.com/specs/ducati/on-off-road/2023/desertx/937/detail.html",
+   "says": "2023 DesertX 937: Displacement 937 / 57.2; Bore 94 / 3.7; Stroke 2.66 / 67.5; Compression ratio 13.3:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2023 Ducati DesertX; applied to the 2023 Monster SP (same Testastretta 11 deg 937) bore and stroke only, and no compression to either",
+   "targets": [
+    {
+     "name": "2023 Ducati DesertX (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 937,
+     "cyl": 2,
+     "geo": 936.9,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2023 Ducati Monster SP (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 937,
+     "cyl": 2,
+     "geo": 936.9,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "duc-multi-v4s-21": {
+   "names": [
+    "2021 Ducati Multistrada V4 S (Cycle World dyno)"
+   ],
+   "bore": 83,
+   "stroke": 53.5,
+   "cr": 14,
+   "src": "https://www.motorcycle.com/specs/ducati/sport/2021/multistrada/v4-s/detail.html",
+   "says": "2021 Multistrada V4 S: Displacement 1158 / 71 cc/ci; Bore 83 / 3.27 mm/in; Stroke 2.11 / 53.5 in/mm; Compression Ratio 14:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Ducati Multistrada V4 S",
+   "targets": [
+    {
+     "name": "2021 Ducati Multistrada V4 S (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1158,
+     "cyl": 4,
+     "geo": 1157.9,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "duc-scrambler800": {
+   "names": [
+    "2015–22 Ducati Scrambler 800 (air-cooled 90° V-twin)"
+   ],
+   "bore": 88,
+   "stroke": 66,
+   "src": "https://media.ducati.com/dam/MY19%20Ducati%20Scrambler%20Tech%20Spec%20ENG_UC67331.pdf",
+   "says": "Scrambler Icon (MY19): Type L-Twin, Desmodromic distribution, 2 valves per cylinder, air cooled; Displacement 803 cc; Bore x stroke 88 x 66 mm; Compression ratio 11:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ducati MY19 Scrambler Icon technical specifications; bore and stroke only (preset spans 2015-22)",
+   "targets": [
+    {
+     "name": "2015–22 Ducati Scrambler 800 (air-cooled 90° V-twin)",
+     "arr": "VEH",
+     "cc": 803,
+     "cyl": 2,
+     "geo": 802.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "duc-hyper821": {
+   "names": [
+    "2013–18 Ducati Hypermotard 821 / 939 (90° V-twin)"
+   ],
+   "bore": 88,
+   "stroke": 67.5,
+   "src": "https://www.motorcycle.com/specs/ducati/sport/2013/hypermotard/821/detail.html",
+   "says": "2013 Hypermotard 821: Displacement 821.1 / 50.1 cc/ci; Bore 88 / 3.46 mm/in; Stroke 2.66 / 67.5 in/mm; Compression ratio 12.8:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2013 Ducati Hypermotard 821 (the preset is the 821 cc engine); bore and stroke only",
+   "targets": [
+    {
+     "name": "2013–18 Ducati Hypermotard 821 / 939 (90° V-twin)",
+     "arr": "VEH",
+     "cc": 821,
+     "cyl": 2,
+     "geo": 821.1,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ktm-1290sdr-15": {
+   "names": [
+    "2014–16 KTM 1290 Super Duke R"
+   ],
+   "bore": 108,
+   "stroke": 71,
+   "src": "https://www.motorcycle.com/specs/ktm/sport/2015/super-duke/1290-r-abs/detail.html",
+   "says": "2015 Super Duke 1290 R ABS: Displacement (cc/ci) 1301 / 79.4; Bore (mm/in) 108 / 4.25; Stroke (in/mm) 2.8 / 71",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2015 KTM 1290 Super Duke R ABS",
+   "targets": [
+    {
+     "name": "2014–16 KTM 1290 Super Duke R",
+     "arr": "VEH",
+     "cc": 1301,
+     "cyl": 2,
+     "geo": 1300.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ktm-890adv": {
+   "names": [
+    "2021 KTM 890 Adventure R (Cycle World dyno)",
+    "2023 KTM 890 Adventure R (Cycle World dyno)"
+   ],
+   "bore": 90.7,
+   "stroke": 68.8,
+   "src": "https://www.motorcycle.com/specs/ktm/on-off-road/2021/adventure/890-r/detail.html",
+   "says": "2021 Adventure 890 R: Displacement (cc/ci) 889 / 54.2; Bore (mm/in) 90.7 / 3.57; Stroke (in/mm) 2.71 / 68.8",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 KTM 890 Adventure R (applied to the 2023 too, same LC8c 889)",
+   "targets": [
+    {
+     "name": "2021 KTM 890 Adventure R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 889,
+     "cyl": 2,
+     "geo": 889,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2023 KTM 890 Adventure R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 889,
+     "cyl": 2,
+     "geo": 889,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "tri-st765r-24": {
+   "names": [
+    "2024 Triumph Street Triple 765 R (Cycle World dyno)"
+   ],
+   "bore": 78,
+   "stroke": 53.4,
+   "cr": 13.25,
+   "src": "https://www.motorcycle.com/specs/triumph/standard/2024/street-triple-765/r/detail.html",
+   "says": "2024 Street Triple 765 R: Displacement 765 / 46.7 cc/ci; Bore 78 / 3.07 mm/in; Stroke 2.1 / 53.4 in/mm; Compression Ratio 13.25:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2024 Triumph Street Triple 765 R",
+   "targets": [
+    {
+     "name": "2024 Triumph Street Triple 765 R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 765,
+     "cyl": 3,
+     "geo": 765.5,
+     "dPct": 0.06,
+     "had": null
+    }
+   ]
+  },
+  "tri-speedtwin1200-24": {
+   "names": [
+    "2024 Triumph Speed Twin 1200 (Cycle World dyno)"
+   ],
+   "bore": 97.6,
+   "stroke": 80,
+   "cr": 12.1,
+   "src": "https://www.motorcycle.com/specs/triumph/standard/2024/speed-twin-1200/base/detail.html",
+   "says": "2024 Speed Twin 1200: Displacement 1200 / 73.2 cc/ci; Bore 97.6 / 3.84 mm/in; Stroke 3.15 / 80 in/mm; Compression ratio 12.1:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2024 Triumph Speed Twin 1200",
+   "targets": [
+    {
+     "name": "2024 Triumph Speed Twin 1200 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1200,
+     "cyl": 2,
+     "geo": 1197,
+     "dPct": -0.25,
+     "had": null
+    }
+   ]
+  },
+  "tri-daytona660": {
+   "names": [
+    "2025 Triumph Daytona 660 (Cycle World dyno)"
+   ],
+   "bore": 74.04,
+   "stroke": 51.1,
+   "src": "https://www.triumphmotorcycles.com/motorcycles/sport/daytona-660/specification",
+   "says": "Capacity 660 cc; Bore 74.04 mm; Stroke 51.1 mm; Compression 12.05 (current model page)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Triumph Motorcycles Daytona 660 specification (current model, year not stated); bore and stroke only",
+   "targets": [
+    {
+     "name": "2025 Triumph Daytona 660 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 660,
+     "cyl": 3,
+     "geo": 660,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "tri-daytona675-13": {
+   "names": [
+    "2013–17 Triumph Daytona 675"
+   ],
+   "bore": 76,
+   "stroke": 49.6,
+   "src": "https://www.motorcycle.com/specs/triumph/sport/2013/daytona/675/detail.html",
+   "says": "2013 Daytona 675: Displacement 675 / 41.2 cc/ci; Bore 76 / 2.99 mm/in; Stroke 49.6 / 1.95 mm/in",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2013 Triumph Daytona 675",
+   "targets": [
+    {
+     "name": "2013–17 Triumph Daytona 675",
+     "arr": "VEH",
+     "cc": 675,
+     "cyl": 3,
+     "geo": 675,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "tri-t100-17": {
+   "names": [
+    "2017+ Triumph Bonneville T100 900 (270° parallel twin)"
+   ],
+   "bore": 84.58,
+   "stroke": 80.01,
+   "src": "https://www.motorcycle.com/specs/triumph/standard/2017/bonneville-t100/base/detail.html",
+   "says": "2017 Bonneville T100: Engine size 900 / 54.9 cc/ci; bore 84.58 / 3.33 mm/in; stroke 80.01 / 3.15 mm/in; Compression ratio 10.6:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2017 Triumph Bonneville T100; bore and stroke only",
+   "targets": [
+    {
+     "name": "2017+ Triumph Bonneville T100 900 (270° parallel twin)",
+     "arr": "VEH",
+     "cc": 900,
+     "cyl": 2,
+     "geo": 899.1,
+     "dPct": -0.1,
+     "had": null
+    }
+   ]
+  },
+  "tri-speed400-24": {
+   "names": [
+    "2024 Triumph Speed 400 (Cycle World dyno)"
+   ],
+   "bore": 89,
+   "stroke": 64,
+   "cr": 12,
+   "src": "https://www.triumphmotorcycles.com/motorcycles/classic/speed-400/speed-400-2024",
+   "says": "Speed 400 (2024): Capacity 398.15 cc; Bore 89.0; Stroke 64.0; Compression 12:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Triumph Motorcycles, Speed 400 2024 page",
+   "targets": [
+    {
+     "name": "2024 Triumph Speed 400 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 398,
+     "cyl": 1,
+     "geo": 398.2,
+     "dPct": 0.04,
+     "had": null
+    }
+   ]
+  },
+  "apr-rsv4-1100": {
+   "names": [
+    "2021+ Aprilia RSV4 1100 (65° V4)"
+   ],
+   "bore": 81,
+   "stroke": 53.32,
+   "src": "https://www.motorcycle.com/specs/aprilia/sport/2021/rsv4/1100/detail.html",
+   "says": "2021 RSV4 1100: Displacement 1099 / 67 cc/ci; Bore 81 / 3.19 mm/in; Stroke 2.1 / 53.32 in/mm; Compression Ratio 13.6:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Aprilia RSV4 1100; bore and stroke only",
+   "targets": [
+    {
+     "name": "2021+ Aprilia RSV4 1100 (65° V4)",
+     "arr": "VEH",
+     "cc": 1099,
+     "cyl": 4,
+     "geo": 1099,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "apr-tuono-v4-1100": {
+   "names": [
+    "2017+ Aprilia Tuono V4 1100 (65° V4)"
+   ],
+   "bore": 81,
+   "stroke": 52.3,
+   "src": "https://www.motorcycle.com/specs/aprilia/sport/2021/tuono-v4/1100/detail.html",
+   "says": "2021 Tuono V4 1100: Displacement 1077 / 65.7 cc/ci; Bore 81 / 3.19 mm/in; Stroke 2.06 / 52.3 in/mm; Compression Ratio 13.6:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Aprilia Tuono V4 1100; bore and stroke only",
+   "targets": [
+    {
+     "name": "2017+ Aprilia Tuono V4 1100 (65° V4)",
+     "arr": "VEH",
+     "cc": 1077,
+     "cyl": 4,
+     "geo": 1078,
+     "dPct": 0.09,
+     "had": null
+    }
+   ]
+  },
+  "apr-tuareg660-22": {
+   "names": [
+    "2022 Aprilia Tuareg 660 (Cycle World dyno)"
+   ],
+   "bore": 81,
+   "stroke": 63.9,
+   "src": "https://www.motorcycle.com/specs/aprilia/on-off-road/2022/tuareg/660/detail.html",
+   "says": "2022 Tuareg 660: Displacement 659 / 40.2; Bore 81 / 3.19; Stroke 2.52 / 63.9",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2022 Aprilia Tuareg 660",
+   "targets": [
+    {
+     "name": "2022 Aprilia Tuareg 660 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 659,
+     "cyl": 2,
+     "geo": 658.6,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "kaw-w800-19": {
+   "names": [
+    "2019 Kawasaki W800 Cafe (Cycle World dyno)"
+   ],
+   "bore": 77,
+   "stroke": 83,
+   "cr": 8.4,
+   "src": "https://www.kawasaki.com/en-us/products/ProductSpecSheetPDF/2019-w800-cafe",
+   "says": "Engine 4-stroke, vertical twin, SOHC, 8 valves, air-cooled; Displacement 773cc; Bore x Stroke 77.0 x 83.0mm; Compression Ratio 8.4:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Kawasaki USA 2019 W800 Cafe spec sheet",
+   "targets": [
+    {
+     "name": "2019 Kawasaki W800 Cafe (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 773,
+     "cyl": 2,
+     "geo": 773,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "hd-revmax1250-22": {
+   "names": [
+    "2023 Harley-Davidson Sportster S (Cycle World dyno)"
+   ],
+   "bore": 104.9,
+   "stroke": 72.4,
+   "src": "https://www.motorcycle.com/specs/harley-davidson/standard/2022/sportster/s/detail.html",
+   "says": "2022 Sportster S: Displacement 1252 / 76.4 cc/ci; Bore 104.9 / 4.13 mm/in; Stroke 2.85 / 72.4 in/mm; Compression Ratio 12:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2022 Harley-Davidson Sportster S (Revolution Max 1250T); bore and stroke only for the 2023 preset",
+   "targets": [
+    {
+     "name": "2023 Harley-Davidson Sportster S (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1252,
+     "cyl": 2,
+     "geo": 1251.4,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "bmw-b58-m340i": {
+   "names": [
+    "2019+ BMW M340i G20 (B58B30O1)"
+   ],
+   "bore": 82,
+   "stroke": 94.6,
+   "cr": 10.2,
+   "src": "https://www.press.bmwgroup.com/spain/article/attachment/T0302174ES/440751",
+   "says": "BMW M340i xDrive Sedan: In-line / 6 / 4; Stroke/bore mm 94.6 / 82.0; Effective capacity cc 2998; Compression ratio :1 10.2",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Group press technical data, M340i xDrive Sedan (2019); the Austrian sheet T0302054DE gives the same",
+   "targets": [
+    {
+     "name": "2019+ BMW M340i G20 (B58B30O1)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "bmw-b58-other": {
+   "names": [
+    "B58B30M0 3.0 turbo I6 (340i, 440i, 540i, M240i, X3 M40i)",
+    "2016–19 BMW 340i / 440i F30/F32 (B58B30M0)",
+    "2016–21 BMW M140i / M240i (B58B30M0, 340 PS)"
+   ],
+   "bore": 82,
+   "stroke": 94.6,
+   "src": "https://www.press.bmwgroup.com/spain/article/attachment/T0302174ES/440751",
+   "says": "BMW M340i xDrive Sedan: Stroke/bore mm 94.6 / 82.0; Effective capacity cc 2998",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "M340i sheet for the same B58 2998 cc; bore and stroke only for the B58B30M0 presets",
+   "targets": [
+    {
+     "name": "B58B30M0 3.0 turbo I6 (340i, 440i, 540i, M240i, X3 M40i)",
+     "arr": "MOTORS",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2016–19 BMW 340i / 440i F30/F32 (B58B30M0)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2016–21 BMW M140i / M240i (B58B30M0, 340 PS)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "bmw-n55-m2": {
+   "names": [
+    "2016–18 BMW M2 F87 (N55B30T0)"
+   ],
+   "bore": 84,
+   "stroke": 89.6,
+   "src": "https://www.press.bmwgroup.com/canada/article/attachment/T0261910EN/381940",
+   "says": "BMW M2 Coupe (2017 MY product guide): N55B30T0; bore/stroke values 89.6 and 84 in the column order of the sheet; 2979 cm3; 10.2 :1; 6500 1/min",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Canada 2017 M2 product guide. The PDF text gives the values apart from their labels; 84 bore x 89.6 stroke is the only pairing that gives the stated 2979 cm3 (89.6 x 84 would give 3178), as with the round-one M4 sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2016–18 BMW M2 F87 (N55B30T0)",
+     "arr": "VEH",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s63t0-m5": {
+   "names": [
+    "2012–16 BMW M5 F10 (S63B44T0)"
+   ],
+   "bore": 89,
+   "stroke": 88.3,
+   "cr": 10,
+   "valves": 4,
+   "src": "https://www.press.bmwgroup.com/global/article/attachment/T0122682EN/178942",
+   "says": "BMW M5 (media information 10/2011): V90 / 8 / 4; Stroke/bore mm 88.3 / 89.0; Effective capacity cm3 4395; Compression ratio :1 10.0",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Group press technical data, F10 M5 (2011)",
+   "targets": [
+    {
+     "name": "2012–16 BMW M5 F10 (S63B44T0)",
+     "arr": "VEH",
+     "cc": 4395,
+     "cyl": 8,
+     "geo": 4394.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s63t0-other": {
+   "names": [
+    "S63B44T0 4.4 twin-turbo V8 (M5 F10, M6 F12/F13, X5 M, X6 M)",
+    "2016–18 BMW M5 F10 Competition Package (S63B44T2)"
+   ],
+   "bore": 89,
+   "stroke": 88.3,
+   "src": "https://www.press.bmwgroup.com/global/article/attachment/T0122682EN/178942",
+   "says": "BMW M5 (2011): Stroke/bore mm 88.3 / 89.0; Effective capacity cm3 4395",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "F10 M5 sheet for the same 4395 cm3 S63; bore and stroke only",
+   "targets": [
+    {
+     "name": "S63B44T0 4.4 twin-turbo V8 (M5 F10, M6 F12/F13, X5 M, X6 M)",
+     "arr": "MOTORS",
+     "cc": 4395,
+     "cyl": 8,
+     "geo": 4394.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2016–18 BMW M5 F10 Competition Package (S63B44T2)",
+     "arr": "VEH",
+     "cc": 4395,
+     "cyl": 8,
+     "geo": 4394.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-n55": {
+   "names": [
+    "N55B30 3.0 twin-scroll turbo I6 (335i F30, 135i, X5 35i)",
+    "2011–15 BMW 335i F30 / 135i (N55B30M0)"
+   ],
+   "bore": 84,
+   "stroke": 89.6,
+   "src": "https://www.wardsauto.com/news/archive-wards-bmw-makes-n55-engine-new-again/789001/",
+   "says": "3.0L (N55): Bore x stroke (mm) 84 x 89.6; Compression ratio 10.2:1 (2016 M2 spec table; the article gives the same 10.2:1 for the N55 of the M235i)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "WardsAuto, BMW Makes N55 Engine New Again (July 2016); bore and stroke only",
+   "targets": [
+    {
+     "name": "N55B30 3.0 twin-scroll turbo I6 (335i F30, 135i, X5 35i)",
+     "arr": "MOTORS",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2011–15 BMW 335i F30 / 135i (N55B30M0)",
+     "arr": "VEH",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s54": {
+   "sel": "^S54",
+   "bore": 87,
+   "stroke": 91,
+   "src": "https://www.fastcar.co.uk/tuning-tech-guides/bmw-m3-engines-guide-from-s14-to-s58/",
+   "says": "S54B32(HP): 3246cc; bore 87mm; stroke 91mm; 11.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Fast Car, BMW M3 engines guide from S14 to S58 (spec table); bore and stroke only",
+   "targets": [
+    {
+     "name": "S54B32 3.2 I6 (M3 E46, Z4 M, Z3 M)",
+     "arr": "MOTORS",
+     "cc": 3246,
+     "cyl": 6,
+     "geo": 3245.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2001–06 BMW M3 E46 (S54)",
+     "arr": "VEH",
+     "cc": 3246,
+     "cyl": 6,
+     "geo": 3245.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2001–02 BMW Z3 M Coupe / Roadster (S54, Europe)",
+     "arr": "VEH",
+     "cc": 3246,
+     "cyl": 6,
+     "geo": 3245.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2006–08 BMW Z4 M Coupe / Roadster (S54)",
+     "arr": "VEH",
+     "cc": 3246,
+     "cyl": 6,
+     "geo": 3245.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s52": {
+   "sel": "^S52",
+   "bore": 86.4,
+   "stroke": 89.6,
+   "src": "https://www.fastcar.co.uk/tuning-tech-guides/bmw-m3-engines-guide-from-s14-to-s58/",
+   "says": "S52B32: 3152cc; bore 86.4mm; stroke 89.6mm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Fast Car, BMW M3 engines guide (spec table)",
+   "targets": [
+    {
+     "name": "S52B32 3.2 I6 (US M3 E36, Z3 M)",
+     "arr": "MOTORS",
+     "cc": 3152,
+     "cyl": 6,
+     "geo": 3151.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1996–99 BMW M3 E36 (S52B32, US)",
+     "arr": "VEH",
+     "cc": 3152,
+     "cyl": 6,
+     "geo": 3151.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2000–02 BMW Z3 M Coupe / Roadster (S52B32, US)",
+     "arr": "VEH",
+     "cc": 3152,
+     "cyl": 6,
+     "geo": 3151.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s50b32": {
+   "sel": "^S50B32$",
+   "bore": 86.4,
+   "stroke": 91,
+   "src": "https://www.fastcar.co.uk/tuning-tech-guides/bmw-m3-engines-guide-from-s14-to-s58/",
+   "says": "S50B32: 3201cc; bore 86.4mm; stroke 91mm; 11.3:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Fast Car, BMW M3 engines guide (spec table); bore and stroke only",
+   "targets": [
+    {
+     "name": "S50B32 3.2 I6 (Euro M3 E36, Z3 M)",
+     "arr": "MOTORS",
+     "cc": 3201,
+     "cyl": 6,
+     "geo": 3201.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "1996–99 BMW M3 E36 (S50B32, Europe)",
+     "arr": "VEH",
+     "cc": 3201,
+     "cyl": 6,
+     "geo": 3201.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s14b23": {
+   "names": [
+    "1986–89 BMW M3 E30 (S14, with catalyst)"
+   ],
+   "bore": 93.4,
+   "stroke": 84,
+   "src": "https://www.fastcar.co.uk/tuning-tech-guides/bmw-m3-engines-guide-from-s14-to-s58/",
+   "says": "S14B23/EVO: 2302cc; bore 93.4mm; stroke 84mm; 10.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Fast Car, BMW M3 engines guide (spec table); bore and stroke only (the catalyst S14 had its own compression)",
+   "targets": [
+    {
+     "name": "1986–89 BMW M3 E30 (S14, with catalyst)",
+     "arr": "VEH",
+     "cc": 2302,
+     "cyl": 4,
+     "geo": 2302.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m276-c43": {
+   "names": [
+    "2016–18 Mercedes-AMG C 43 W205 (M276 3.0 twin-turbo)"
+   ],
+   "bore": 88,
+   "stroke": 82.1,
+   "src": "https://media.mbusa.com/releases/release-f64df5efcf40bb28fb4d418ddc1c7aba-2018-mercedes-amg-c43-sedan",
+   "says": "AMG-enhanced 3.0L V6 biturbo; Displacement 2,996 cc; Bore 3.46 / 88.0 (in/mm); Stroke 3.23 / 82.1 (in/mm); Compression ratio 10.5 : 1; Redline 6,550 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Mercedes-Benz USA, 2018 Mercedes-AMG C43 Sedan specifications; bore and stroke only (preset spans 2016-18)",
+   "targets": [
+    {
+     "name": "2016–18 Mercedes-AMG C 43 W205 (M276 3.0 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2996,
+     "cyl": 6,
+     "geo": 2996.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m139": {
+   "sel": "^M139",
+   "bore": 83,
+   "stroke": 92,
+   "src": "https://www.km77.com/coches/mercedes/tecnica/2019/informacion",
+   "says": "M 139 and M 133 share bore and stroke, 83,0 y 92,0 milimetros; 1991 centimetros cubicos; 9,0 a 1 en el M 139",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com (Spanish motoring magazine), Motor Mercedes-AMG M 139, technical information (2019); bore and stroke only",
+   "targets": [
+    {
+     "name": "M139 2.0 turbo I4 (A 45 S, CLA 45 S, GT 43)",
+     "arr": "MOTORS",
+     "cc": 1991,
+     "cyl": 4,
+     "geo": 1991.1,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2024+ Mercedes-AMG GT 43 (M139 2.0 turbo)",
+     "arr": "VEH",
+     "cc": 1991,
+     "cyl": 4,
+     "geo": 1991.1,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m113k": {
+   "sel": "^M113K",
+   "bore": 97,
+   "stroke": 92,
+   "src": "https://mercedes-benz-publicarchive.com/marsClassic/en/instance/ko/E-55-AMG--W-211-E-55-2002---2006.xhtml?oid=5375",
+   "says": "E 55 AMG (W 211, 2002-2006): engine M 113 E 55 ML AMG / 113.990; 5439 cc; bore and stroke 97.0 x 92.0 mm; compression 9.0; 350 kW / 476 hp at 6100 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Mercedes-Benz Classic public archive, E 55 AMG W 211 technical data; bore and stroke only for the M113K presets (engine-only and G 55)",
+   "targets": [
+    {
+     "name": "M113K 5.4 supercharged V8 (E 55, CLS 55, SL 55, G 55 AMG)",
+     "arr": "MOTORS",
+     "cc": 5439,
+     "cyl": 8,
+     "geo": 5438.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2004–06 Mercedes-Benz G 55 AMG Kompressor (M113K)",
+     "arr": "VEH",
+     "cc": 5439,
+     "cyl": 8,
+     "geo": 5438.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m159": {
+   "sel": "^M159",
+   "bore": 102.2,
+   "stroke": 94.6,
+   "src": "https://tv.manualsonline.com/manuals/mfg/mercedesbenz/2011_sls_amg.html?p=424",
+   "says": "Engine SLS AMG (197), type 159: Bore 4.02 in (102.20 mm); Stroke 3.72 in (94.60 mm); Total piston displacement 378.8 cu in (6 208 cm3); Compression ratio 11.3:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Mercedes-Benz 2011 SLS AMG operators manual, technical data page (as hosted by manualsonline.com); bore and stroke only for the 2013-15 SLS and Black Series presets",
+   "targets": [
+    {
+     "name": "M159 6.2 V8 dry-sump (SLS AMG)",
+     "arr": "MOTORS",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": [
+      102.2,
+      94.6
+     ]
+    },
+    {
+     "name": "2010–12 Mercedes-Benz SLS AMG (M159)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": [
+      102.2,
+      94.6
+     ]
+    },
+    {
+     "name": "2013–15 Mercedes-Benz SLS AMG GT (M159)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2013–14 Mercedes-Benz SLS AMG Black Series (M159)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "audi-r8-v10-09": {
+   "names": [
+    "2009–12 Audi R8 V10 5.2 FSI (525 PS)"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "cr": 12.5,
+   "red": 8700,
+   "src": "https://www.audi-mediacenter.com/en/the-audi-r8-5-dot-2-fsi-quattro-2559/engine-2602",
+   "says": "the bore is 84.5 millimeters (3.3 in), the stroke 92.8 millimeters (3.6 in); total displacement of 5,204 cc; compression ratio of 12.5:1; limit not reached until 8,700 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Audi MediaCenter, The Audi R8 5.2 FSI quattro, engine",
+   "targets": [
+    {
+     "name": "2009–12 Audi R8 V10 5.2 FSI (525 PS)",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "audi-r8-v10plus-12": {
+   "names": [
+    "2012–15 Audi R8 V10 plus (550 PS)"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.audi-mediacenter.com/en/the-audi-r8-5-dot-2-fsi-quattro-2559/engine-2602",
+   "says": "bore 84.5 mm, stroke 92.8 mm; 5,204 cc (R8 5.2 FSI quattro)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "R8 5.2 FSI sheet for the same 5,204 cc V10; bore and stroke only",
+   "targets": [
+    {
+     "name": "2012–15 Audi R8 V10 plus (550 PS)",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "audi-rs3-8p": {
+   "names": [
+    "2011–12 Audi RS 3 8P (2.5 TFSI 340 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "cr": 10,
+   "src": "https://www.audi.de/dam/nemo/customer-area/more-information/predecessor-models/a3/rs-3-sportback/Audi-RS3---2.5-TFSI-250-kW-S-tronic-SB-RS-Modell-2011.pdf",
+   "says": "Audi RS3 2.5 TFSI 250 kW S tronic Sportback (Modell 2011): Hubraum in ccm 2480 / 82,5 x 92,8 / 10 : 1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Audi Germany predecessor-model data sheet, RS 3 Sportback 2011 (the line gives displacement / bore x stroke / compression in order)",
+   "targets": [
+    {
+     "name": "2011–12 Audi RS 3 8P (2.5 TFSI 340 PS)",
+     "arr": "VEH",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-25tfsi-8v-ttrs": {
+   "names": [
+    "2015–16 Audi RS 3 8V (2.5 TFSI 367 PS)",
+    "2012–14 Audi TT RS plus 8J (2.5 TFSI 360 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.audi-mediacenter.com/en/the-audi-tt-rs-2924/engine-2938",
+   "says": "bore x stroke 82.5 x 92.8 millimeters (3.3 x 3.7 in); displacement of 2,480 cubic centimeters; 10.0:1 compression ratio (TT RS)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Audi MediaCenter, The Audi TT RS, engine; bore and stroke only for the TT RS plus and the 2015-16 RS 3",
+   "targets": [
+    {
+     "name": "2015–16 Audi RS 3 8V (2.5 TFSI 367 PS)",
+     "arr": "VEH",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2012–14 Audi TT RS plus 8J (2.5 TFSI 360 PS)",
+     "arr": "VEH",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "lam-huracan-610": {
+   "names": [
+    "2014–19 Lamborghini Huracán LP 610-4"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/huracan/2014/coupe/estandar/huracan-lp-610-4/datos",
+   "says": "Huracan LP 610-4 (2015-2019): Diametro 84,5 mm; Carrera 92,8 mm; Cilindrada 5.204 cm3; Relacion de compresion 12,7 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Lamborghini Huracan LP 610-4 (2015-2019); bore and stroke only",
+   "targets": [
+    {
+     "name": "2014–19 Lamborghini Huracán LP 610-4",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "lam-aventador-700": {
+   "names": [
+    "2012–16 Lamborghini Aventador LP700-4"
+   ],
+   "bore": 95,
+   "stroke": 76.4,
+   "src": "https://www.km77.com/coches/lamborghini/aventador/2012/coupe/estandar/aventador-lp-700-42/datos",
+   "says": "Aventador LP 700-4 (2012-2016): diametro 95 mm; carrera 76,4 mm; Cilindrada 6.498 cm3; 11,8 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Lamborghini Aventador LP 700-4; bore and stroke only",
+   "targets": [
+    {
+     "name": "2012–16 Lamborghini Aventador LP700-4",
+     "arr": "VEH",
+     "cc": 6498,
+     "cyl": 12,
+     "geo": 6498.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "lam-gallardo-560": {
+   "names": [
+    "2008–13 Lamborghini Gallardo LP 560-4"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/gallardo/2005/coupe/estandar/gallardo-lp560-4-coupe2/datos",
+   "says": "Gallardo LP560-4 Coupe (2010-2012): Diametro 84,5 mm; Carrera 92,8 mm; Cilindrada 5.204 cm3; 12,5 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2008–13 Lamborghini Gallardo LP 560-4",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "lam-gallardo-50": {
+   "names": [
+    "2003–08 Lamborghini Gallardo (5.0 V10, 500 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/gallardo/2005/coupe/estandar/gallardo-coupe/datos",
+   "says": "Gallardo Coupe (2007-2008): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 4.961 cm3; 11 a 1; 519 CV / 382 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet (the 2007-08 520 CV version); bore and stroke only",
+   "targets": [
+    {
+     "name": "2003–08 Lamborghini Gallardo (5.0 V10, 500 PS)",
+     "arr": "VEH",
+     "cc": 4961,
+     "cyl": 10,
+     "geo": 4960.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "lam-gallardo-570": {
+   "names": [
+    "2010–13 Lamborghini Gallardo LP 570-4 Superleggera"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/gallardo/2005/coupe/edizione-tecnica/gallardo-lp570-4-superleggera-edizione-tecnica-coupe/datos",
+   "says": "Gallardo LP570-4 Superleggera Edizione Tecnica (2012-2013): Diametro 84,5 mm; Carrera 92,8 mm; Cilindrada 5.204 cm3; 12,5 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2010–13 Lamborghini Gallardo LP 570-4 Superleggera",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "lam-aventador-svj": {
+   "names": [
+    "2019–22 Lamborghini Aventador SVJ"
+   ],
+   "bore": 95,
+   "stroke": 76.4,
+   "src": "https://www.km77.com/coches/lamborghini/aventador/2012/coupe/svj/aventador-svj/datos",
+   "says": "Aventador SVJ (2018-2022): Diametro 95 mm; Carrera 76,4 mm; Cilindrada 6.498 cm3; 11,8 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2019–22 Lamborghini Aventador SVJ",
+     "arr": "VEH",
+     "cc": 6498,
+     "cyl": 12,
+     "geo": 6498.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "lam-murcielago-640": {
+   "names": [
+    "2006–10 Lamborghini Murciélago LP 640-4",
+    "2009–10 Lamborghini Murciélago LP 670-4 SuperVeloce"
+   ],
+   "bore": 88,
+   "stroke": 89,
+   "src": "https://www.km77.com/coches/lamborghini/murcielago/2008/coupe/lp-640/murcielago-lp-640-coupe/datos",
+   "says": "Murcielago LP 640 Coupe (2008-2011): Diametro 88 mm; Carrera 89 mm; Cilindrada 6.496 cm3; 11 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet for the LP 640; applied to the LP 670-4 SV (same 6.496 cm3 V12) bore and stroke only",
+   "targets": [
+    {
+     "name": "2006–10 Lamborghini Murciélago LP 640-4",
+     "arr": "VEH",
+     "cc": 6496,
+     "cyl": 12,
+     "geo": 6495.7,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2009–10 Lamborghini Murciélago LP 670-4 SuperVeloce",
+     "arr": "VEH",
+     "cc": 6496,
+     "cyl": 12,
+     "geo": 6495.7,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "lam-huracan-640": {
+   "names": [
+    "2017–19 Lamborghini Huracán Performante"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/huracan/2014/coupe/performante/huracan-performante/datos",
+   "says": "Huracan Performante (2017-2019): Diametro 84,5 mm; Carrera 92,8 mm; Cilindrada 5.204 cm3; 12,7 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2017–19 Lamborghini Huracán Performante",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "fer-458": {
+   "names": [
+    "2010–15 Ferrari 458 Italia",
+    "F136 FB 4.5 V8 (458 Italia)"
+   ],
+   "bore": 94,
+   "stroke": 81,
+   "src": "https://www.km77.com/coches/ferrari/458-italia/2010/coupe/estandar/458-italia2/datos",
+   "says": "Ferrari 458 Italia (2010-2012): Diametro 94 mm; Carrera 81 mm; Cilindrada 4.497 cm3; 12,5 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; Ferrari model page (https://www.ferrari.com/auto/458-italia) confirms 12.5:1 and 9,000 rpm but gives no bore and stroke; bore and stroke only",
+   "targets": [
+    {
+     "name": "F136 FB 4.5 V8 (458 Italia)",
+     "arr": "MOTORS",
+     "cc": 4497,
+     "cyl": 8,
+     "geo": 4497,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2010–15 Ferrari 458 Italia",
+     "arr": "VEH",
+     "cc": 4497,
+     "cyl": 8,
+     "geo": 4497,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "fer-360": {
+   "names": [
+    "1999–2005 Ferrari 360 Modena",
+    "2003–04 Ferrari 360 Challenge Stradale"
+   ],
+   "bore": 85,
+   "stroke": 79,
+   "src": "https://www.km77.com/coches/ferrari/360/1999/coupe/estandar/360-modena/datos",
+   "says": "Ferrari 360 Modena (1999-2005): Diametro 85 mm; Carrera 79 mm; Cilindrada 3.586 cm3; 11 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet for the 360 Modena; applied to the Challenge Stradale (same 3.586 cm3 F131) bore and stroke only",
+   "targets": [
+    {
+     "name": "1999–2005 Ferrari 360 Modena",
+     "arr": "VEH",
+     "cc": 3586,
+     "cyl": 8,
+     "geo": 3586.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2003–04 Ferrari 360 Challenge Stradale",
+     "arr": "VEH",
+     "cc": 3586,
+     "cyl": 8,
+     "geo": 3586.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mcl-m838t": {
+   "sel": "^M838T",
+   "bore": 93,
+   "stroke": 69.9,
+   "src": "https://www.km77.com/coches/mclaren/mp4-12c/2013/spider/estandar/mp4-12c-spider/datos",
+   "says": "McLaren MP4-12C Spider: Diametro 93 mm, carrera 69,9 mm, cilindrada 3.799 cm3, relacion de compresion 8,7 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, MP4-12C Spider (2012); applied to all M838T presets (12C, 650S, 675LT, P1, engine-only) bore and stroke only",
+   "targets": [
+    {
+     "name": "M838T 3.8 twin-turbo V8 (12C, 650S, 570S, 600LT)",
+     "arr": "MOTORS",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2011–14 McLaren MP4-12C (M838T)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2014–17 McLaren 650S (M838T)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2015–17 McLaren 675LT (M838TL)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2013–15 McLaren P1 (ICE part, M838TQ)",
+     "arr": "VEH",
+     "cc": 3799,
+     "cyl": 8,
+     "geo": 3798.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "mcl-m840t": {
+   "sel": "^M840T",
+   "bore": 93,
+   "stroke": 73.5,
+   "src": "https://www.km77.com/coches/mclaren/super-series/2017/coupe/lt/765lt/datos",
+   "says": "McLaren 765LT Coupe (2020-2023): Diametro 93 mm; Carrera 73,5 mm; Cilindrada 3.994 cm3",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, 765LT; applied to the M840T presets (765LT, 720S, engine-only) bore and stroke only",
+   "targets": [
+    {
+     "name": "M840T 4.0 twin-turbo V8 (720S, 765LT, GT)",
+     "arr": "MOTORS",
+     "cc": 3994,
+     "cyl": 8,
+     "geo": 3994.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2017–22 McLaren 720S (M840T)",
+     "arr": "VEH",
+     "cc": 3994,
+     "cyl": 8,
+     "geo": 3994.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2020–22 McLaren 765LT (M840T)",
+     "arr": "VEH",
+     "cc": 3994,
+     "cyl": 8,
+     "geo": 3994.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "fer-296": {
+   "names": [
+    "2022+ Ferrari 296 GTB (ICE part, 3.0 120° V6 twin-turbo)"
+   ],
+   "bore": 88,
+   "stroke": 82,
+   "src": "https://www.km77.com/coches/ferrari/296/2022/coupe/estandar/296-gtb/datos",
+   "says": "Ferrari 296 GTB: Diametro 88 mm; Carrera 82 mm; Cilindrada 2.992 cm3; Relacion de compresion 9,4 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2022+ Ferrari 296 GTB (ICE part, 3.0 120° V6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2992,
+     "cyl": 6,
+     "geo": 2992.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "fer-812c": {
+   "names": [
+    "2021–24 Ferrari 812 Competizione (6.5 V12)"
+   ],
+   "bore": 94,
+   "stroke": 78,
+   "src": "https://www.km77.com/coches/ferrari/812/2017/berlinetta/competizione/812-competizione/datos",
+   "says": "Ferrari 812 Competizione (2021-2022): Diametro 94 mm; Carrera 78 mm; Cilindrada 6.496 cm3; 13,5 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2021–24 Ferrari 812 Competizione (6.5 V12)",
+     "arr": "VEH",
+     "cc": 6496,
+     "cyl": 12,
+     "geo": 6495.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-ea888g3-gti": {
+   "names": [
+    "2013–16 Volkswagen Golf Mk7 GTI (2.0 TSI, 220 PS)",
+    "2013–20 Volkswagen Golf Mk7 GTI Performance (2.0 TSI, 230 PS)",
+    "2015–19 Volkswagen Golf Mk7 R (2.0 TSI, US 292 hp)",
+    "2014–19 Volkswagen Golf Mk7 R (2.0 TSI, Europe 300 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2013/3-puertas/gti/golf-3p-gti-20-tsi-220-cv-bmt-dsg-6-vel/datos",
+   "says": "Golf 3p GTI 2.0 TSI 220 CV BMT DSG (2015-2016): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 1.984 cm3; 9,6 a 1; 220 CV / 162 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf VII GTI 220 CV; applied bore and stroke only to the Mk7 GTI, GTI Performance and Golf R presets (same EA888 Gen 3 1,984 cm3)",
+   "targets": [
+    {
+     "name": "2013–16 Volkswagen Golf Mk7 GTI (2.0 TSI, 220 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2013–20 Volkswagen Golf Mk7 GTI Performance (2.0 TSI, 230 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2015–19 Volkswagen Golf Mk7 R (2.0 TSI, US 292 hp)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2014–19 Volkswagen Golf Mk7 R (2.0 TSI, Europe 300 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-ea888g3-cs": {
+   "names": [
+    "2016 Volkswagen Golf Mk7 GTI Clubsport (2.0 TSI, 265 PS)",
+    "2016 Volkswagen Golf Mk7 GTI Clubsport S (2.0 TSI, 310 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2013/3-puertas/gti-clubsport/golf-3p-gti-clubsport/datos",
+   "says": "Golf 3p GTI Clubsport (2016): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 1.984 cm3; 9,3 a 1; 290 CV / 213 kW (overboost figure)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf VII GTI Clubsport; bore and stroke only (also applied to the Clubsport S)",
+   "targets": [
+    {
+     "name": "2016 Volkswagen Golf Mk7 GTI Clubsport (2.0 TSI, 265 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2016 Volkswagen Golf Mk7 GTI Clubsport S (2.0 TSI, 310 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-vr6-32-mk5": {
+   "names": [
+    "2005–08 Volkswagen Golf Mk5 R32 (3.2 VR6)",
+    "VR6 3.2 24V (Golf R32, Audi TT 3.2, A3 3.2)"
+   ],
+   "bore": 84,
+   "stroke": 95.9,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2004/3-puertas/r32/golf-3p-r32-32-v6-250-cv-4motion/datos",
+   "says": "Golf 3p R32 3.2 V6 250 CV 4Motion (2005-2007): Diametro 84 mm; Carrera 95,9 mm; Cilindrada 3.189 cm3; 10,9 a 1; 250 CV / 184 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf V R32; bore and stroke only",
+   "targets": [
+    {
+     "name": "VR6 3.2 24V (Golf R32, Audi TT 3.2, A3 3.2)",
+     "arr": "MOTORS",
+     "cc": 3189,
+     "cyl": 6,
+     "geo": 3188.7,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2005–08 Volkswagen Golf Mk5 R32 (3.2 VR6)",
+     "arr": "VEH",
+     "cc": 3189,
+     "cyl": 6,
+     "geo": 3188.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-vr6-32-mk4": {
+   "names": [
+    "2002–04 Volkswagen Golf Mk4 R32 (3.2 VR6)"
+   ],
+   "bore": 84,
+   "stroke": 95.9,
+   "src": "https://www.km77.com/coches/volkswagen/golf/1997/3-puertas/r32/golf-r32/datos",
+   "says": "Golf R32 (2002-2003): Diametro 84 mm; Carrera 95,9 mm; Cilindrada 3.189 cm3; 11,3 a 1; 241 CV / 177 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf IV R32; bore and stroke only",
+   "targets": [
+    {
+     "name": "2002–04 Volkswagen Golf Mk4 R32 (3.2 VR6)",
+     "arr": "VEH",
+     "cc": 3189,
+     "cyl": 6,
+     "geo": 3188.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-ea113-gti": {
+   "names": [
+    "2005–08 Volkswagen Golf Mk5 GTI (2.0 TFSI EA113)",
+    "2007–08 Volkswagen Golf Mk5 GTI Edition 30 (2.0 TFSI)",
+    "EA113 2.0 TFSI (Mk5 GTI, Mk6 Golf R, S3 8P, Audi A4 B7)",
+    "2006–12 Audi S3 8P (2.0 TFSI 265 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2004/3-puertas/gti/golf-3p-gti-tfsi-20-200-cv-6-vel/datos",
+   "says": "Golf 3p GTI TFSI 2.0 200 CV 6 vel. (2004-2007): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 1.984 cm3; 10,5 a 1; 200 CV / 147 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf V GTI 2.0 TFSI; bore and stroke only for the EA113 presets (Edition 30, engine-only and the Audi S3 8P share the 1,984 cm3 EA113)",
+   "targets": [
+    {
+     "name": "EA113 2.0 TFSI (Mk5 GTI, Mk6 Golf R, S3 8P, Audi A4 B7)",
+     "arr": "MOTORS",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2005–08 Volkswagen Golf Mk5 GTI (2.0 TFSI EA113)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–08 Volkswagen Golf Mk5 GTI Edition 30 (2.0 TFSI)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2006–12 Audi S3 8P (2.0 TFSI 265 PS)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-ea113-golfr": {
+   "names": [
+    "2012–13 Volkswagen Golf Mk6 R (2.0 TFSI, US)",
+    "2010–13 Volkswagen Golf Mk6 R (2.0 TFSI, Europe)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/volkswagen/golf/2009/3-puertas/r/golf-3p-r-20-tsi-270-cv-4motion2/datos",
+   "says": "Golf 3p R 2.0 TSI 270 CV 4Motion (2010-2012): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 1.984 cm3; 9,8 a 1; 271 CV / 199 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf VI R; bore and stroke only",
+   "targets": [
+    {
+     "name": "2012–13 Volkswagen Golf Mk6 R (2.0 TFSI, US)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2010–13 Volkswagen Golf Mk6 R (2.0 TFSI, Europe)",
+     "arr": "VEH",
+     "cc": 1984,
+     "cyl": 4,
+     "geo": 1984.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "vw-18t": {
+   "names": [
+    "2001–06 Volkswagen Golf Mk4 GTI 1.8T (180 PS)",
+    "1999–2001 Audi S3 8L (1.8T 210 PS)",
+    "2001–03 Audi S3 8L (1.8T 225 PS)"
+   ],
+   "bore": 81,
+   "stroke": 86.4,
+   "src": "https://www.km77.com/coches/volkswagen/golf/1997/3-puertas/gti/golf-3p-gti-18-t-180-cv-ed-especial/datos",
+   "says": "Golf 3p GTI 1.8 T 180 CV (2003): Diametro 81 mm; Carrera 86,4 mm; Cilindrada 1.781 cm3; 9,5 a 1; 179 CV / 132 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Golf IV GTI 1.8 T 180 CV; bore and stroke only, also for the Audi S3 8L 1.8T presets (same 1,781 cm3 20V)",
+   "targets": [
+    {
+     "name": "2001–06 Volkswagen Golf Mk4 GTI 1.8T (180 PS)",
+     "arr": "VEH",
+     "cc": 1781,
+     "cyl": 4,
+     "geo": 1780.9,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "1999–2001 Audi S3 8L (1.8T 210 PS)",
+     "arr": "VEH",
+     "cc": 1781,
+     "cyl": 4,
+     "geo": 1780.9,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2001–03 Audi S3 8L (1.8T 225 PS)",
+     "arr": "VEH",
+     "cc": 1781,
+     "cyl": 4,
+     "geo": 1780.9,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "maz-skyg20-nd2": {
+   "names": [
+    "2019+ Mazda MX-5 Miata ND2 (2.0 Skyactiv-G)"
+   ],
+   "bore": 83.5,
+   "stroke": 91.2,
+   "src": "https://www.km77.com/coches/mazda/mx-5/2019/roadster/nappa-edition/mx-5-20-skyactiv-g-135-kw-184-cv-i-stop-i-eloop-nappa-edition/datos",
+   "says": "MX-5 ST 2.0 SKYACTIV-G 135 kW (184 CV) (2018-2020): Diametro 83,5 mm; Carrera 91,2 mm; Cilindrada 1.998 cm3; 13 a 1; 184 CV / 135 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, MX-5 ND 184 CV (European ND2); bore and stroke only",
+   "targets": [
+    {
+     "name": "2019+ Mazda MX-5 Miata ND2 (2.0 Skyactiv-G)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1997.6,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "maz-mzr20-nc": {
+   "names": [
+    "2009–15 Mazda MX-5 Miata NC (2.0 MZR, manual)"
+   ],
+   "bore": 87.5,
+   "stroke": 83.1,
+   "src": "https://www.km77.com/coches/mazda/mx-5/2009/roadster-coupe/sportive/mx-5-20-sportive-roadster-coupe/datos",
+   "says": "MX-5 2.0 Sportive Roadster Coupe (2009-2010): Diametro 87,5 mm; Carrera 83,1 mm; Cilindrada 1.999 cm3; 10,8 a 1; 160 CV / 118 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, MX-5 NC 2.0 (European 160 CV); bore and stroke only",
+   "targets": [
+    {
+     "name": "2009–15 Mazda MX-5 Miata NC (2.0 MZR, manual)",
+     "arr": "VEH",
+     "cc": 1999,
+     "cyl": 4,
+     "geo": 1998.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-k20c1": {
+   "names": [
+    "2017–21 Honda Civic Type R (K20C1)"
+   ],
+   "bore": 86,
+   "stroke": 85.9,
+   "src": "https://www.km77.com/coches/honda/civic/2017/5-puertas/type-r-gt/civic-type-r-20-vtec-turbo-gt/datos",
+   "says": "Civic Type R 2.0 VTEC Turbo GT (2017-2018): Diametro 86 mm; Carrera 85,9 mm; Cilindrada 1.996 cm3; 9,8 a 1; 320 CV / 235 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Civic Type R FK8 (European 320 CV); bore and stroke only",
+   "targets": [
+    {
+     "name": "2017–21 Honda Civic Type R (K20C1)",
+     "arr": "VEH",
+     "cc": 1996,
+     "cyl": 4,
+     "geo": 1995.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "sub-ej257-06": {
+   "names": [
+    "2004 Subaru Impreza WRX STI (EJ257)",
+    "EJ257 2.5 turbo boxer (WRX STI, US)"
+   ],
+   "bore": 99.5,
+   "stroke": 79,
+   "src": "https://www.km77.com/coches/subaru/impreza/2006/4-puertas/wrx/impreza-sedan-25-wrx-sti/datos",
+   "says": "Impreza Sedan 2.5 WRX STI (2005-2007): Diametro 99,5 mm; Carrera 79 mm; Cilindrada 2.457 cm3; 8,2 a 1; 280 CV / 206 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, European Impreza WRX STI 2.5 (2005-07); bore and stroke only for the US EJ257 presets",
+   "targets": [
+    {
+     "name": "EJ257 2.5 turbo boxer (WRX STI, US)",
+     "arr": "MOTORS",
+     "cc": 2457,
+     "cyl": 4,
+     "geo": 2457.1,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2004 Subaru Impreza WRX STI (EJ257)",
+     "arr": "VEH",
+     "cc": 2457,
+     "cyl": 4,
+     "geo": 2457.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "sub-ej257-15": {
+   "names": [
+    "2015–21 Subaru WRX STI (EJ257)"
+   ],
+   "bore": 99.5,
+   "stroke": 79,
+   "src": "https://www.km77.com/coches/subaru/wrx/2015/4-puertas/confort-edition/wrx-sti-25-sedan-confort-edition/datos",
+   "says": "WRX STI 2.5 Sedan Confort Edition (2017): Diametro 99,5 mm; Carrera 79 mm; Cilindrada 2.457 cm3; 8,2 a 1; 300 CV / 221 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, European WRX STI (2017); bore and stroke only",
+   "targets": [
+    {
+     "name": "2015–21 Subaru WRX STI (EJ257)",
+     "arr": "VEH",
+     "cc": 2457,
+     "cyl": 4,
+     "geo": 2457.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mit-4g63-evo9": {
+   "names": [
+    "2006–07 Mitsubishi Lancer Evolution IX (4G63)",
+    "4G63T 2.0 turbo I4 (Lancer Evolution IX, Eclipse GSX)"
+   ],
+   "bore": 85,
+   "stroke": 88,
+   "src": "https://www.goo-net-exchange.com/catalog/MITSUBISHI__LANCER/10026565",
+   "says": "Lancer RS Evolution IX (GH-CT9A): Displacement 1997cc; Bore x Stroke 85.0mm x 88.0mm; Compression ratio 8.8; 280ps(206kW)/6500rpm",
+   "q": "reputable vendor",
+   "seen": "2026-11-20",
+   "note": "Goo-net Exchange catalog (Japanese used-car marketplace catalog of the maker specification), JDM Evolution IX RS; bore and stroke only",
+   "targets": [
+    {
+     "name": "4G63T 2.0 turbo I4 (Lancer Evolution IX, Eclipse GSX)",
+     "arr": "MOTORS",
+     "cc": 1997,
+     "cyl": 4,
+     "geo": 1997.4,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "2006–07 Mitsubishi Lancer Evolution IX (4G63)",
+     "arr": "VEH",
+     "cc": 1997,
+     "cyl": 4,
+     "geo": 1997.4,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-54sc-07": {
+   "names": [
+    "2007–09 Ford Shelby GT500 (5.4 SC)",
+    "5.4 4V supercharged V8 (2007–09 Shelby GT500)"
+   ],
+   "bore": 90.2,
+   "stroke": 105.8,
+   "src": "https://www.racecar.com/news/13411/motorsport/shelby-gt500-rated-at-500-horsepower",
+   "says": "2007 Shelby GT500 technical specifications: Bore x stroke 3.552 x 4.165 in. / 90.2 x 105.8 mm; Displacement 330 cu. in. / 5,409 cc; Compression ratio 8.4:1; Redline 6,250 rpm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Racecar.com news item, Shelby GT500 rated at 500 horsepower (reworked Ford announcement with its specification table); bore and stroke only",
+   "targets": [
+    {
+     "name": "5.4 4V supercharged V8 (2007–09 Shelby GT500)",
+     "arr": "MOTORS",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–09 Ford Shelby GT500 (5.4 SC)",
+     "arr": "VEH",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-54sc-other": {
+   "names": [
+    "2008–09 Ford Shelby GT500KR (5.4 SC)",
+    "2010 Ford Shelby GT500 (5.4 SC)",
+    "2011–12 Ford Shelby GT500 (5.4 SC, aluminum block)"
+   ],
+   "bore": 90.2,
+   "stroke": 105.8,
+   "src": "https://www.racecar.com/news/13411/motorsport/shelby-gt500-rated-at-500-horsepower",
+   "says": "2007 Shelby GT500: Bore x stroke 90.2 x 105.8 mm; 5,409 cc",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "2007 GT500 table for the same 5.4 4V supercharged V8; bore and stroke only",
+   "targets": [
+    {
+     "name": "2008–09 Ford Shelby GT500KR (5.4 SC)",
+     "arr": "VEH",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2010 Ford Shelby GT500 (5.4 SC)",
+     "arr": "VEH",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2011–12 Ford Shelby GT500 (5.4 SC, aluminum block)",
+     "arr": "VEH",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-50ho-windsor": {
+   "sel": "^5\\.0 Windsor (HO|GT-40)$",
+   "bore": 101.6,
+   "stroke": 76.2,
+   "src": "https://laundry.manualsonline.com/manuals/mfg/ford/m6007f50.html?p=2",
+   "says": "Ford Racing Performance Parts M-6007-F50 Long Block Engine Assembly instructions sheet, 5.0L H.O. SPECIFICATIONS: Bore 4.0 in; Stroke 3.0 in; Displacement 302 CID; Nominal Compression Ratio 9.0:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Racing instruction sheet for the 5.0L H.O. replacement long block (direct replacement for 1987-93 5.0L Mustang), as hosted by manualsonline.com. Inch figures converted (101.6 x 76.2 mm). Bore and stroke only, applied to all the 5.0 Windsor HO and GT-40 presets (1982-95)",
+   "targets": [
+    {
+     "name": "5.0 HO 302 V8 (1985 Mustang GT, carbureted roller-cam)",
+     "arr": "MOTORS",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1982 Ford Mustang GT 5.0 HO (2-bbl)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1983–84 Ford Mustang GT 5.0 HO (4-bbl)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1985 Ford Mustang GT 5.0 HO (4-bbl, roller cam)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1986 Ford Mustang GT 5.0 HO (SEFI)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1993 Ford Mustang SVT Cobra (5.0 GT-40)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1994–95 Ford Mustang GT (5.0)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1994–95 Ford Mustang SVT Cobra (5.0)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt1-gen2": {
+   "sel": "^LT1( \\(Gen II\\))?$",
+   "cc": [
+    5700,
+    5750
+   ],
+   "bore": 101.6,
+   "stroke": 88.39,
+   "src": "https://hagerty.com/media/maintenance-and-tech/ls-lt-encyclopedia-modern-gm-small-block-v-8s-part-1",
+   "says": "LT1 (Gen II): 4.00-inch cylinder bores and 3.48-inch stroke; kept the 5.7L displacement of its direct predecessors",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Hagerty, LS/LT Encyclopedia: Modern GM Small-Block V-8s, Part 1; inch figures converted (101.6 x 88.392 mm); bore and stroke only",
+   "targets": [
+    {
+     "name": "LT1 5.7 V8 (1992–97 Corvette, Camaro Z28, Impala SS)",
+     "arr": "MOTORS",
+     "cc": 5733,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1993–97 Chevrolet Camaro Z28 (LT1)",
+     "arr": "VEH",
+     "cc": 5735,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": -0.04,
+     "had": null
+    },
+    {
+     "name": "1992–96 Chevrolet Corvette (LT1)",
+     "arr": "VEH",
+     "cc": 5733,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt2": {
+   "names": [
+    "2020+ Chevrolet Corvette C8 Stingray (LT2)"
+   ],
+   "bore": 103.3,
+   "stroke": 92,
+   "src": "https://www.wardsauto.com/news/archive-wards-c8-corvette-s-small-but-mighty-lt2-v-8/793805/",
+   "says": "LT2: 4.0-in. (103.3-mm) bore and 3.6-in. (92.0-mm) stroke, carried over from the LT1; 6.2L",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "WardsAuto, C8 Corvette Small But Mighty LT2 V-8 (Nov 2019); its 103.3 mm is the LT1 103.25 rounded. The engine-only LT2 preset keeps its own 103.25 x 92 (not targeted). The preset gives 6,144 cc against the 6,162 cc of the LT2 engine preset",
+   "targets": [
+    {
+     "name": "2020+ Chevrolet Corvette C8 Stingray (LT2)",
+     "arr": "VEH",
+     "cc": 6144,
+     "cyl": 8,
+     "geo": 6168.3,
+     "dPct": 0.4,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt7": {
+   "sel": "^LT7$",
+   "bore": 104.25,
+   "stroke": 80,
+   "src": "https://www.streetmachine.com.au/features/c8-zr1-corvette-1064hp-quad-cam-twin-turbo-lt7-v8",
+   "says": "LT7: bore/stroke 104.25mm/80mm; 5.5L; 9.8:1; 8000rpm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, Inside the C8 ZR1 Corvette 1064hp quad-cam twin-turbo LT7 V8 (Sept 2024); bore and stroke only",
+   "targets": [
+    {
+     "name": "LT7 5.5 twin-turbo flat-plane V8 (Corvette C8 ZR1)",
+     "arr": "MOTORS",
+     "cc": 5463,
+     "cyl": 8,
+     "geo": 5462.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2025+ Chevrolet Corvette ZR1 (LT7)",
+     "arr": "VEH",
+     "cc": 5463,
+     "cyl": 8,
+     "geo": 5462.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-30eb-bronco": {
+   "names": [
+    "2022+ Ford Bronco Raptor (3.0 EcoBoost)"
+   ],
+   "bore": 85.4,
+   "stroke": 86,
+   "cr": 10.5,
+   "valves": 4,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2022/specs/2022-Ford-Bronco-Raptor-Technical-Specifications.pdf",
+   "says": "3.0L EcoBoost V6: Bore x stroke 85.4 mm x 86.0 mm; 180.0 cu. in.; Compression ratio 10.5:1; four valves per cylinder",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford 2022 Bronco Raptor technical specifications",
+   "targets": [
+    {
+     "name": "2022+ Ford Bronco Raptor (3.0 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2956,
+     "cyl": 6,
+     "geo": 2955.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-30eb-ranger": {
+   "names": [
+    "2024+ Ford Ranger Raptor (3.0 EcoBoost)"
+   ],
+   "bore": 85.4,
+   "stroke": 86,
+   "cr": 10.5,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2024/specs/2024-Ford-Ranger-Raptor-Technical-Specs.pdf",
+   "says": "Bore x stroke 3.36 x 3.38 inches (85.4 mm x 86.0 mm); 180.0 cubic inches (2,949 cubic centimeters); Compression ratio 10.5:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford 2024 Ranger Raptor technical specifications (it states 2,949 cc; the product of its bore and stroke is 2,956)",
+   "targets": [
+    {
+     "name": "2024+ Ford Ranger Raptor (3.0 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2956,
+     "cyl": 6,
+     "geo": 2955.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-30eb-other": {
+   "names": [
+    "2020+ Ford Explorer ST (3.0 EcoBoost)",
+    "3.0 EcoBoost twin-turbo V6 (Explorer ST, Bronco Raptor)"
+   ],
+   "bore": 85.4,
+   "stroke": 86,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2022/specs/2022-Ford-Bronco-Raptor-Technical-Specifications.pdf",
+   "says": "3.0L EcoBoost V6 (2022 Bronco Raptor): Bore x stroke 85.4 mm x 86.0 mm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Bronco Raptor sheet for the same 3.0 EcoBoost; bore and stroke only",
+   "targets": [
+    {
+     "name": "3.0 EcoBoost twin-turbo V6 (Explorer ST, Bronco Raptor)",
+     "arr": "MOTORS",
+     "cc": 2956,
+     "cyl": 6,
+     "geo": 2955.7,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2020+ Ford Explorer ST (3.0 EcoBoost)",
+     "arr": "VEH",
+     "cc": 2956,
+     "cyl": 6,
+     "geo": 2955.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-20eb-st": {
+   "sel": "^2\\.0 EcoBoost$",
+   "bore": 87.5,
+   "stroke": 83.1,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/de/2015/01/FocusST-Technische_Daten.pdf",
+   "says": "Focus ST (2015, Germany) 2.0 l EcoBoost: Bohrung 87,5 mm; Hub 83,1 mm; Hubraum 1.999 cm3; Verdichtung 9,3 :1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Germany Focus ST technical data (2015); bore and stroke only for the 2013-18 Focus ST and the engine-only preset",
+   "targets": [
+    {
+     "name": "2.0 EcoBoost turbo I4 (Focus ST)",
+     "arr": "MOTORS",
+     "cc": 1999,
+     "cyl": 4,
+     "geo": 1998.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2013–18 Ford Focus ST (2.0 EcoBoost)",
+     "arr": "VEH",
+     "cc": 1999,
+     "cyl": 4,
+     "geo": 1998.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
@@ -2735,6 +7762,112 @@
     }
    ],
    "why": "the preset gives 4,951 cc (the Gen 1/2 figure) for the 2018-20 Mustang GT; Ford gives the Gen 3 Coyote as 5038 cc, 93.0 x 92.7 mm. The preset displacement looks wrong (owner to confirm); bore and stroke not applied to it"
+  },
+  "ford-boss429-69": {
+   "found": {
+    "bore": 110.74,
+    "stroke": 100.56,
+    "src": "https://over-drive-magazine.com/2023/11/10/1969-ford-mustang-fact-sheet",
+    "says": "429 CID Boss 429 V-8: 429 cubic inches, 4.36 x 3.959 inches, 11.30:1, 375 @ 5600 RPM",
+    "q": "magazine test",
+    "note": "Over-Drive Magazine 1969 Mustang fact sheet; inch figures converted. The printed stroke (3.959 in) gives 473 cu in with the 4.36 bore, not 429: a misprint on the page (4.36 x 3.59 would give 429); not applied",
+    "seen": "2026-11-20"
+   },
+   "mismatch": [
+    {
+     "name": "1969–70 Ford Mustang Boss 429",
+     "arr": "VEH",
+     "cc": 7030,
+     "cyl": 8,
+     "geo": 7748.4,
+     "dPct": 10.22,
+     "had": null
+    }
+   ],
+   "why": "bore x stroke x cylinders outside 1 % of the preset displacement"
+  },
+  "gm-ls6-454-70": {
+   "found": {
+    "bore": 104.8,
+    "stroke": 101.6,
+    "src": "https://over-drive-magazine.com/2024/02/23/1970-chevrolet-mid-size-cars-fact-sheet/",
+    "says": "Turbo-Fire 454 V-8 (RPO LS6): 454 cubic inches, 4.126 x4.00 inches, 11.25:1, 450 @ 5600 RPM",
+    "q": "magazine test",
+    "note": "Over-Drive Magazine 1970 Chevelle fact sheet. The printed bore 4.126 in (the 402 big-block figure) gives 428 cu in with the 4.00 stroke, not 454; a misprint on the page (the same sites 1970 and 1971 Corvette sheets give the 454 as 4.250 x 4.00). Not applied",
+    "seen": "2026-11-20"
+   },
+   "mismatch": [
+    {
+     "name": "1970 Chevrolet Chevelle SS 454 (LS6)",
+     "arr": "VEH",
+     "cc": 7440,
+     "cyl": 8,
+     "geo": 7011.3,
+     "dPct": -5.76,
+     "had": null
+    }
+   ],
+   "why": "bore x stroke x cylinders outside 1 % of the preset displacement"
+  },
+  "por-9912-carrera": {
+   "found": {
+    "bore": 91,
+    "stroke": 76,
+    "src": "https://newsroom.porsche.com:443/dam/jcr:8a8a3990-34a8-4ae0-a11e-f4bb53abd5e0/2017_911_Carrera_and_Carrera_S_Technical_Specifications.pdf.PDF",
+    "says": "911 Carrera / Carrera S: Bore/stroke 91.0 mm / 76.0 mm; displacement 3.0 l; 10.0 : 1; 7500 (the same sheet gives the Carrera S Cabriolet as 3.8 l)",
+    "q": "maker data"
+   },
+   "why": "Porsche Cars North America 2017 Carrera, 2017 Targa 4/4S and 2018 GTS sheets all give 91.0 x 76.0 mm for the 991.2 3.0 (2,966 cc, 0.5 % under the presets 2,981 cc, so within the 1 % check), while the 2020 992 sheets give 91.0 x 76.4 (2,981 cc). The US sheets state no cc and carry other errors (3.8 l on a 3.0); the 76.0 looks like a misprint. Not applied to the three 991.2 Carrera presets; a sheet stating the cc would settle it",
+   "presets": [
+    "2016–19 Porsche 911 Carrera (991.2, 3.0 twin-turbo)",
+    "2016–19 Porsche 911 Carrera S (991.2, 3.0 twin-turbo)",
+    "2017–19 Porsche 911 Carrera GTS (991.2, 3.0 twin-turbo)"
+   ],
+   "seen": "2026-11-20"
+  },
+  "suz-gsxr1000-k1": {
+   "found": {
+    "bore": 72,
+    "stroke": 46,
+    "src": "https://www.totalmotorcycle.com/photos/2001models/2001models-Suzuki-GSX-R1000.htm",
+    "says": "2001 GSX-R1000: Water-cooled 988 cc inline-4, DOHC, 16 valves; Bore x stroke 72.0mm x 46.0mm",
+    "q": "magazine test",
+    "note": "Total Motorcycle, 2001 Suzuki GSX-R1000",
+    "seen": "2026-11-20"
+   },
+   "mismatch": [
+    {
+     "name": "2001–02 Suzuki GSX-R1000 (K1)",
+     "arr": "VEH",
+     "cc": 988,
+     "cyl": 4,
+     "geo": 749.2,
+     "dPct": -24.17,
+     "had": null
+    }
+   ],
+   "why": "bore x stroke x cylinders outside 1 % of the preset displacement"
+  },
+  "gm-ls3-camaro": {
+   "found": {
+    "bore": 103.25,
+    "stroke": 92,
+    "src": "https://chevrolet.com/performance/crate-engines/ls3",
+    "says": "4.065 x 3.622 (103.25 x 92 mm)",
+    "q": "maker data"
+   },
+   "why": "the 2010-15 Camaro SS manual (LS3) preset carries its own bore and stroke 103 x 92, the Chevrolet LS3 page 103.25 x 92; the preset was left as it is (apply.js never overwrites a preset own figures), owner to decide",
+   "presets": [
+    "2010–15 Chevrolet Camaro SS manual (LS3)"
+   ],
+   "seen": "2026-11-20"
+  },
+  "gm-lt2-veh-cc": {
+   "why": "suspected wrong displacement: the 2020+ Corvette C8 Stingray (LT2) preset gives 6,144 cc, the LT2 engine preset and GM give 6.2 L (6,162 cc for 103.25 x 92 x 8); the bore and stroke were applied (0.4 % within the check), the cc left for the owner",
+   "presets": [
+    "2020+ Chevrolet Corvette C8 Stingray (LT2)"
+   ],
+   "seen": "2026-11-20"
   }
  },
  "tried": {
