@@ -5470,6 +5470,442 @@
      "had": null
     }
    ]
+  },
+  "hd-m8-107": {
+   "names": [
+    "2017+ Harley-Davidson Milwaukee-Eight 107 (45° V-twin)"
+   ],
+   "bore": 100,
+   "stroke": 111.13,
+   "src": "https://www.motorcycle.com/manufacturer/harley-davidson/2017-harley-davidson-milwaukee-eight-engines-tech-brief.html",
+   "says": "Milwaukee-Eight 107: bore and stroke 3.937 in. x 4.375 in. (99.999mm x 111.125mm); 107 cu. in.",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com, 2017 Harley-Davidson Milwaukee-Eight Engines Tech Brief (99.999 taken as 100.0, 111.125 as 111.13)",
+   "targets": [
+    {
+     "name": "2017+ Harley-Davidson Milwaukee-Eight 107 (45° V-twin)",
+     "arr": "VEH",
+     "cc": 1746,
+     "cyl": 2,
+     "geo": 1745.6,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "hd-m8-117-22": {
+   "names": [
+    "2022 Harley-Davidson Low Rider S (Milwaukee-Eight 117, Cycle World dyno)"
+   ],
+   "bore": 103.6,
+   "stroke": 114.3,
+   "cr": 10.2,
+   "src": "https://www.motorcycle.com/specs/harley-davidson/cruiser/2022/softail/low-rider-s/detail.html",
+   "says": "2022 Softail Low Rider S: Displacement (cc/ci) 1923 / 117; Bore (mm/in) 103.6 / 4.08; Stroke (in/mm) 4.5 / 114.3; Compression Ratio 10.2:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2022 Harley-Davidson Low Rider S",
+   "targets": [
+    {
+     "name": "2022 Harley-Davidson Low Rider S (Milwaukee-Eight 117, Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1923,
+     "cyl": 2,
+     "geo": 1927,
+     "dPct": 0.21,
+     "had": null
+    }
+   ]
+  },
+  "hd-m8-117-other": {
+   "names": [
+    "2023 Harley-Davidson Breakout 117 (Cycle World dyno)",
+    "2024 Harley-Davidson Low Rider S (Milwaukee-Eight 117, Cycle World dyno)",
+    "2024 Harley-Davidson Street Glide (Milwaukee-Eight 117, Cycle World dyno)"
+   ],
+   "bore": 103.6,
+   "stroke": 114.3,
+   "src": "https://www.motorcycle.com/specs/harley-davidson/cruiser/2022/softail/low-rider-s/detail.html",
+   "says": "2022 Softail Low Rider S (Milwaukee-Eight 117): Displacement 1923 / 117; Bore 103.6 / 4.08; Stroke 4.5 / 114.3",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "2022 Low Rider S page for the same Milwaukee-Eight 117; bore and stroke only",
+   "targets": [
+    {
+     "name": "2023 Harley-Davidson Breakout 117 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1923,
+     "cyl": 2,
+     "geo": 1927,
+     "dPct": 0.21,
+     "had": null
+    },
+    {
+     "name": "2024 Harley-Davidson Low Rider S (Milwaukee-Eight 117, Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1923,
+     "cyl": 2,
+     "geo": 1927,
+     "dPct": 0.21,
+     "had": null
+    },
+    {
+     "name": "2024 Harley-Davidson Street Glide (Milwaukee-Eight 117, Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1923,
+     "cyl": 2,
+     "geo": 1927,
+     "dPct": 0.21,
+     "had": null
+    }
+   ]
+  },
+  "duc-1199": {
+   "names": [
+    "2012–14 Ducati 1199 Panigale"
+   ],
+   "bore": 112,
+   "stroke": 60.8,
+   "src": "https://www.motorcycle.com/specs/ducati/sport/2013/panigale/1199/detail.html",
+   "says": "2013 Panigale 1199: Displacement (cc/ci) 1198 / 73.1; Bore (mm/in) 112 / 4.41; Stroke (in/mm) 2.39 / 60.8; Compression Ratio 12.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2013 Ducati 1199 Panigale; bore and stroke only",
+   "targets": [
+    {
+     "name": "2012–14 Ducati 1199 Panigale",
+     "arr": "VEH",
+     "cc": 1198,
+     "cyl": 2,
+     "geo": 1198,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "duc-panv4": {
+   "names": [
+    "2018 Ducati Panigale V4 (1103)"
+   ],
+   "bore": 81,
+   "stroke": 53.5,
+   "src": "https://www.ducati.com/us/en/bikes/panigale/panigale-v4/engine",
+   "says": "Desmosedici Stradale 90 deg V4: Bore x Stroke 81 x 53.5 mm; Displacement 1,103 cc; Compression Ratio 14.0:1 (current model page)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ducati USA Panigale V4 engine page (current model, not 2018; same 1,103 cc Desmosedici Stradale); bore and stroke only",
+   "targets": [
+    {
+     "name": "2018 Ducati Panigale V4 (1103)",
+     "arr": "VEH",
+     "cc": 1103,
+     "cyl": 4,
+     "geo": 1102.7,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "duc-937-desertx": {
+   "names": [
+    "2023 Ducati DesertX (Cycle World dyno)",
+    "2023 Ducati Monster SP (Cycle World dyno)"
+   ],
+   "bore": 94,
+   "stroke": 67.5,
+   "src": "https://www.motorcycle.com/specs/ducati/on-off-road/2023/desertx/937/detail.html",
+   "says": "2023 DesertX 937: Displacement 937 / 57.2; Bore 94 / 3.7; Stroke 2.66 / 67.5; Compression ratio 13.3:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2023 Ducati DesertX; applied to the 2023 Monster SP (same Testastretta 11 deg 937) bore and stroke only, and no compression to either",
+   "targets": [
+    {
+     "name": "2023 Ducati DesertX (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 937,
+     "cyl": 2,
+     "geo": 936.9,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2023 Ducati Monster SP (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 937,
+     "cyl": 2,
+     "geo": 936.9,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "duc-multi-v4s-21": {
+   "names": [
+    "2021 Ducati Multistrada V4 S (Cycle World dyno)"
+   ],
+   "bore": 83,
+   "stroke": 53.5,
+   "cr": 14,
+   "src": "https://www.motorcycle.com/specs/ducati/sport/2021/multistrada/v4-s/detail.html",
+   "says": "2021 Multistrada V4 S: Displacement 1158 / 71 cc/ci; Bore 83 / 3.27 mm/in; Stroke 2.11 / 53.5 in/mm; Compression Ratio 14:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Ducati Multistrada V4 S",
+   "targets": [
+    {
+     "name": "2021 Ducati Multistrada V4 S (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1158,
+     "cyl": 4,
+     "geo": 1157.9,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "duc-scrambler800": {
+   "names": [
+    "2015–22 Ducati Scrambler 800 (air-cooled 90° V-twin)"
+   ],
+   "bore": 88,
+   "stroke": 66,
+   "src": "https://media.ducati.com/dam/MY19%20Ducati%20Scrambler%20Tech%20Spec%20ENG_UC67331.pdf",
+   "says": "Scrambler Icon (MY19): Type L-Twin, Desmodromic distribution, 2 valves per cylinder, air cooled; Displacement 803 cc; Bore x stroke 88 x 66 mm; Compression ratio 11:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ducati MY19 Scrambler Icon technical specifications; bore and stroke only (preset spans 2015-22)",
+   "targets": [
+    {
+     "name": "2015–22 Ducati Scrambler 800 (air-cooled 90° V-twin)",
+     "arr": "VEH",
+     "cc": 803,
+     "cyl": 2,
+     "geo": 802.8,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "duc-hyper821": {
+   "names": [
+    "2013–18 Ducati Hypermotard 821 / 939 (90° V-twin)"
+   ],
+   "bore": 88,
+   "stroke": 67.5,
+   "src": "https://www.motorcycle.com/specs/ducati/sport/2013/hypermotard/821/detail.html",
+   "says": "2013 Hypermotard 821: Displacement 821.1 / 50.1 cc/ci; Bore 88 / 3.46 mm/in; Stroke 2.66 / 67.5 in/mm; Compression ratio 12.8:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2013 Ducati Hypermotard 821 (the preset is the 821 cc engine); bore and stroke only",
+   "targets": [
+    {
+     "name": "2013–18 Ducati Hypermotard 821 / 939 (90° V-twin)",
+     "arr": "VEH",
+     "cc": 821,
+     "cyl": 2,
+     "geo": 821.1,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ktm-1290sdr-15": {
+   "names": [
+    "2014–16 KTM 1290 Super Duke R"
+   ],
+   "bore": 108,
+   "stroke": 71,
+   "src": "https://www.motorcycle.com/specs/ktm/sport/2015/super-duke/1290-r-abs/detail.html",
+   "says": "2015 Super Duke 1290 R ABS: Displacement (cc/ci) 1301 / 79.4; Bore (mm/in) 108 / 4.25; Stroke (in/mm) 2.8 / 71",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2015 KTM 1290 Super Duke R ABS",
+   "targets": [
+    {
+     "name": "2014–16 KTM 1290 Super Duke R",
+     "arr": "VEH",
+     "cc": 1301,
+     "cyl": 2,
+     "geo": 1300.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ktm-890adv": {
+   "names": [
+    "2021 KTM 890 Adventure R (Cycle World dyno)",
+    "2023 KTM 890 Adventure R (Cycle World dyno)"
+   ],
+   "bore": 90.7,
+   "stroke": 68.8,
+   "src": "https://www.motorcycle.com/specs/ktm/on-off-road/2021/adventure/890-r/detail.html",
+   "says": "2021 Adventure 890 R: Displacement (cc/ci) 889 / 54.2; Bore (mm/in) 90.7 / 3.57; Stroke (in/mm) 2.71 / 68.8",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 KTM 890 Adventure R (applied to the 2023 too, same LC8c 889)",
+   "targets": [
+    {
+     "name": "2021 KTM 890 Adventure R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 889,
+     "cyl": 2,
+     "geo": 889,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2023 KTM 890 Adventure R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 889,
+     "cyl": 2,
+     "geo": 889,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "tri-st765r-24": {
+   "names": [
+    "2024 Triumph Street Triple 765 R (Cycle World dyno)"
+   ],
+   "bore": 78,
+   "stroke": 53.4,
+   "cr": 13.25,
+   "src": "https://www.motorcycle.com/specs/triumph/standard/2024/street-triple-765/r/detail.html",
+   "says": "2024 Street Triple 765 R: Displacement 765 / 46.7 cc/ci; Bore 78 / 3.07 mm/in; Stroke 2.1 / 53.4 in/mm; Compression Ratio 13.25:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2024 Triumph Street Triple 765 R",
+   "targets": [
+    {
+     "name": "2024 Triumph Street Triple 765 R (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 765,
+     "cyl": 3,
+     "geo": 765.5,
+     "dPct": 0.06,
+     "had": null
+    }
+   ]
+  },
+  "tri-speedtwin1200-24": {
+   "names": [
+    "2024 Triumph Speed Twin 1200 (Cycle World dyno)"
+   ],
+   "bore": 97.6,
+   "stroke": 80,
+   "cr": 12.1,
+   "src": "https://www.motorcycle.com/specs/triumph/standard/2024/speed-twin-1200/base/detail.html",
+   "says": "2024 Speed Twin 1200: Displacement 1200 / 73.2 cc/ci; Bore 97.6 / 3.84 mm/in; Stroke 3.15 / 80 in/mm; Compression ratio 12.1:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2024 Triumph Speed Twin 1200",
+   "targets": [
+    {
+     "name": "2024 Triumph Speed Twin 1200 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1200,
+     "cyl": 2,
+     "geo": 1197,
+     "dPct": -0.25,
+     "had": null
+    }
+   ]
+  },
+  "tri-daytona660": {
+   "names": [
+    "2025 Triumph Daytona 660 (Cycle World dyno)"
+   ],
+   "bore": 74.04,
+   "stroke": 51.1,
+   "src": "https://www.triumphmotorcycles.com/motorcycles/sport/daytona-660/specification",
+   "says": "Capacity 660 cc; Bore 74.04 mm; Stroke 51.1 mm; Compression 12.05 (current model page)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Triumph Motorcycles Daytona 660 specification (current model, year not stated); bore and stroke only",
+   "targets": [
+    {
+     "name": "2025 Triumph Daytona 660 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 660,
+     "cyl": 3,
+     "geo": 660,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "tri-daytona675-13": {
+   "names": [
+    "2013–17 Triumph Daytona 675"
+   ],
+   "bore": 76,
+   "stroke": 49.6,
+   "src": "https://www.motorcycle.com/specs/triumph/sport/2013/daytona/675/detail.html",
+   "says": "2013 Daytona 675: Displacement 675 / 41.2 cc/ci; Bore 76 / 2.99 mm/in; Stroke 49.6 / 1.95 mm/in",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2013 Triumph Daytona 675",
+   "targets": [
+    {
+     "name": "2013–17 Triumph Daytona 675",
+     "arr": "VEH",
+     "cc": 675,
+     "cyl": 3,
+     "geo": 675,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "tri-t100-17": {
+   "names": [
+    "2017+ Triumph Bonneville T100 900 (270° parallel twin)"
+   ],
+   "bore": 84.58,
+   "stroke": 80.01,
+   "src": "https://www.motorcycle.com/specs/triumph/standard/2017/bonneville-t100/base/detail.html",
+   "says": "2017 Bonneville T100: Engine size 900 / 54.9 cc/ci; bore 84.58 / 3.33 mm/in; stroke 80.01 / 3.15 mm/in; Compression ratio 10.6:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2017 Triumph Bonneville T100; bore and stroke only",
+   "targets": [
+    {
+     "name": "2017+ Triumph Bonneville T100 900 (270° parallel twin)",
+     "arr": "VEH",
+     "cc": 900,
+     "cyl": 2,
+     "geo": 899.1,
+     "dPct": -0.1,
+     "had": null
+    }
+   ]
+  },
+  "tri-speed400-24": {
+   "names": [
+    "2024 Triumph Speed 400 (Cycle World dyno)"
+   ],
+   "bore": 89,
+   "stroke": 64,
+   "cr": 12,
+   "src": "https://www.triumphmotorcycles.com/motorcycles/classic/speed-400/speed-400-2024",
+   "says": "Speed 400 (2024): Capacity 398.15 cc; Bore 89.0; Stroke 64.0; Compression 12:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Triumph Motorcycles, Speed 400 2024 page",
+   "targets": [
+    {
+     "name": "2024 Triumph Speed 400 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 398,
+     "cyl": 1,
+     "geo": 398.2,
+     "dPct": 0.04,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
