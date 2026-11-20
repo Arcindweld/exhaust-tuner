@@ -436,6 +436,7 @@ thead th{border-top:0;border-bottom:1px solid var(--line-2)}
 tbody tr:hover td{background:var(--panel)}
 tr.cur td{font-weight:650;background:var(--accent-soft)}
 ul.list,ol.list{margin:8px 0 0;padding-left:20px;font-size:14px}
+ol.list{padding-left:28px}
 ul.list li+li,ol.list li+li{margin-top:6px}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--hit);font:500 13.5px/1.2 var(--f-ui);padding:8px 14px;
@@ -11328,7 +11329,7 @@ function calcIntake(p){
   }
   const notes=[];
   if(maf&&!maf.fits) notes.push({k:'warn',t:'The tube is too short for GM’s MAF placement: the sensor needs to sit at least 10 in from the throttle body in the middle of at least 6 in of straight tube.'});
-  if(v>vmax) notes.push({k:'warn',t:'Air speed in the tube is above the 180 ft/s Grape Ape Racing gives as the most for an intake pipe. A bigger tube flows easier.'});
+  if(v>vmax) notes.push({k:'warn',t:'Air speed in the tube is above the 180 ft/s (55 m/s) Grape Ape Racing gives as the most for an intake pipe. A bigger tube flows easier.'});
   if(tbRange&&(p.dt<tbRange[0]*0.97)) notes.push({k:'warn',t:'The tube is smaller than the throttle body calls for: Dave Thompson’s rule is a tube area about 1.25 to 1.33 times the throttle bore area.'});
   if(fcap!=null&&fcap<kn.cfm) notes.push({k:'warn',t:'By K&N’s rule this filter flows less air than the engine needs at full power. Use a taller or wider filter.'});
   if(p.mouth==='plain') notes.push({k:'info',t:'A plain, sharp-edged tube end costs flow: Blair and Cahoon found even a simple radius gives about 16% more airflow at the same pressure difference.'});
@@ -11402,6 +11403,7 @@ function L(mm,kind){
 }
 const plain=(mm,kind)=>{const v=L(mm,kind);return v.n+' '+v.u+' ('+v.a+')';};
 const tempStr=c=>U==='imp'?Math.round(c*9/5+32)+' °F':Math.round(c)+' °C';
+const tempBoth=c=>U==='imp'?Math.round(c*9/5+32)+' °F ('+Math.round(c)+' °C)':Math.round(c)+' °C ('+Math.round(c*9/5+32)+' °F)';   // both units (jobs QA 2026-11-20)
 const rowL=(label,mm,kind)=>{const v=L(mm,kind||'l');return '<div class="r"><dt>'+label+'</dt><dd><b>'+v.n+' '+v.u+'</b><span>'+v.a+'</span></dd></div>';};
 // a value's conversion in brackets, "2.50 in (63.5 mm)", set quieter than the figure it converts (display only: the text
 // is unchanged); an explanation longer than a line goes under the row at reading width (class rx) instead of in a narrow
@@ -13652,7 +13654,10 @@ const first=v=>Array.isArray(v)?v[0]:v;
 const partSize=q=>first(q.kind==='filter'?q.flangeID:q.kind==='coupler'?q.id1:q.kind==='clamp'?(q.tubeOD!=null?q.tubeOD:q.hoseID):q.kind==='intercooler'?q.inD:q.kind==='bov'?(q.tubeOD!=null?q.tubeOD:q.valveD):q.kind==='bung'?q.od:q.kind==='tb'?q.boreD:q.kind==='header'?q.primaryOD:q.kind==='cat'||q.kind==='tip'||q.kind==='valve'?q.inD:q.kind==='hanger'?q.tubeOD:q.kind==='gasket'||q.kind==='hardware'?null:q.kind==='tube'||q.kind==='piecut'?q.od:q.kind==='reducer'||q.kind==='cone'?q.inD:q.kind==='slipjoint'||q.kind==='vband'||q.kind==='flange'?q.tubeOD:q.kind==='endcap'?q.holeD:q.kind==='mafbung'?(typeof q.tubeOD==='number'||Array.isArray(q.tubeOD)?q.tubeOD:null):q.kind==='maf'?(q.tubeD!=null?q.tubeD:q.housingID):q.kind==='stack'?q.De:
   q.inD!=null?q.inD:(q.od!=null?q.od:(q.id!=null?q.id:null)));
 const INTAKE_KINDS={filter:1,stack:1,coupler:1,clamp:1,maf:1,bov:1,bung:1,mafbung:1,tb:1};
-const inchTxt=v=>v==null?'?':Array.isArray(v)?(v.length>2?v.map(inchTxt).join(' / '):v.map(inchTxt).join(' to ')):(U==='imp'?(+(+v).toFixed(2))+' in':Math.round(v*MM)+' mm');
+// a catalogue size in the units shown first, the other in brackets (jobs QA 2026-11-20: the owner's rule, both units on every
+// size; it was one system only). The first figure is as before.
+const inchMm=v=>{ const m=v*MM; return Math.abs(m)<10?(+m.toFixed(1))+' mm':Math.round(m)+' mm'; };
+const inchTxt=v=>v==null?'?':Array.isArray(v)?(v.length>2?v.map(inchTxt).join(' / '):v.map(inchTxt).join(' to ')):(U==='imp'?(+(+v).toFixed(2))+' in ('+inchMm(v)+')':Math.round(v*MM)+' mm ('+(+(+v).toFixed(2))+' in)');
 function partDims(q){
   const I=inchTxt;
   if(q.kind==='bend'&&q.type==='straight') return I(q.od)+' OD · '+(q.wall!=null?I(q.wall)+' wall · ':'')+(q.L!=null?I(q.L)+' long':'length not published');
@@ -16836,7 +16841,8 @@ function drawTL(svg,curves,f0,band,opt){
   for(let f=0;f<=fmax;f+=xs){ const t=mk('text',{x:X(f),y:H-mb+16,style:'text-anchor:middle'},svg); t.textContent=f; }
   mk('line',{x1:ml,x2:W-mr,y1:Y(0),y2:Y(0),'class':'axis'},svg);
   curves.forEach(c=>{
-    const pts=[]; for(let i=1;i<=320;i++){ const f=fmax*i/320; pts.push(X(f).toFixed(1)+','+Y(c.fn(f)).toFixed(1)); }
+    const pts=[]; for(let i=1;i<=320;i++){ const f=fmax*i/320, y=Y(c.fn(f)); if(Number.isFinite(y)) pts.push(X(f).toFixed(1)+','+y.toFixed(1)); }   // a point a curve cannot give is left out (jobs QA 2026-11-20: the packed can is NaN near 0 Hz)
+    if(pts.length<2) return;
     mk('polyline',{points:pts.join(' '),'class':'ord',style:'stroke:var('+c.col+');stroke-width:2;'+(c.dash?'stroke-dasharray:'+c.dash:'')},svg);
   });
   mk('line',{x1:X(f0),x2:X(f0),y1:mt,y2:Y(0),'class':'mark0'},svg);
@@ -17601,7 +17607,7 @@ function renderMuf(){
 
   const lenTxt=c=>clen(c.len)+' long';
   let html=explainBox([
-    'To cancel the <b>'+Math.round(p.f)+' Hz</b> tone, a Helmholtz resonator needs about <b>'+(U==='imp'?hm.in3.toFixed(0)+' cu in':hm.liters.toFixed(2)+' L')+'</b> behind a '+cdim(p.dn)+' × '+clen(p.ln)+' neck. That is a '+tubIn(can.D)+' can about '+lenTxt(can)+'.',
+    'To cancel the <b>'+Math.round(p.f)+' Hz</b> tone, a Helmholtz resonator needs about <b>'+(U==='imp'?hm.in3.toFixed(0)+' cu in':hm.liters.toFixed(2)+' L')+'</b> behind a '+cdim(p.dn)+' × '+clen(p.ln)+' neck. That is a '+tubBoth(can.D)+' can about '+lenTxt(can)+'.',
     pl.best.length?'Tap it into the pipe about <b>'+pl.best.map(x=>clen(x)).join('</b> or <b>')+'</b> from the '+endName+'. That is where this tone’s pressure peaks. Close to the tailpipe tip it does very little.':
       'This pipe is short compared with the tone’s wavelength, so tap the resonator in as close to the '+endName+' end as you can.',
     'A capped side tube (J-pipe) of '+cdim(p.db)+' cut to about <b>'+clen(qw.L)+'</b> does the same job. Build it a little long and trim it while you listen.',
@@ -17781,7 +17787,7 @@ function renderMuf(){
   const inch=v=>inchTxt(v);   // handles a range given as an array, a numeric string or null
   const card=({q,unknown})=>'<div class="pcard"><div class="ph"><b>'+esc(q.brand+' '+q.model)+'</b><span>'+esc(q.pn)+'</span></div>'+
     '<div class="pm">'+TYPE_NAME[q.type]+(q.loud?' · <b class="st-'+(Math.abs(q.loud-fp.loud)===0?'ok':'warn')+'">'+LOUD[q.loud]+'</b> <span class="tag">'+(q.basis==='maker'?'maker’s words':(q.basis==='line'?'product line':'estimated from type'))+'</span>':'')+'</div>'+
-    '<div class="pd">'+inch(q.inD)+' '+(q.inPos||'')+' in → '+inch(q.outD)+' '+(q.outPos||'')+' out · '+(q.shape||'')+' '+(q.w!=null?inch(q.w)+' × '+inch(q.h):'size not published')+(q.body!=null?' × '+inch(q.body)+' body':'')+(q.oal!=null?' · '+inch(q.oal)+' overall':'')+' · '+esc(q.mat)+'</div>'+
+    '<div class="pd">'+inch(q.inD)+' '+(q.inPos||'')+' in → '+inch(q.outD)+' '+(q.outPos||'')+' out · '+(q.shape||'')+' '+(q.w!=null?inch(q.w)+' × '+inch(q.h):'size not published')+(q.body!=null?' × '+inch(q.body)+' body':'')+(q.oal!=null?' · '+inch(q.oal)+' overall':'')+(q.mat?' · '+esc(q.mat):'')+'</div>'+
     '<div class="pd">'+esc(q.says)+'</div>'+(q.offroad?'<div class="pd st-warn">Race or off-road use: the maker does not intend it for the street.</div>':'')+(unknown?'<div class="pd st-warn">Some dimensions are not published, so check the fit before you order.</div>':'')+
     '<a href="'+q.src+'" target="_blank" rel="noopener">Specs at '+esc(q.srcName)+'</a></div>';
   html+=sec('Mufflers and resonators that fit',found.length?
@@ -20515,6 +20521,7 @@ const tubBoth=mm=>U==='imp'?String(+(mm/MM).toFixed(3))+' in ('+mm.toFixed(1)+' 
 // a length to cut: inches to the inch-fraction setting with mm, as the cut lists give it
 const cutLen=mm=>U==='imp'?inMm(mm):clen(mm);
 function quickSheet(p,r){
+  let neckOut=null;   // the resonator neck the sheet settles on (its diameter and length, mm), for quickApply
   const h=r.header, m=r.main, f0=x=>Math.round(x).toLocaleString('en-US'), W=WALL_STD;
   if(r.rotary||(!h&&!r.two)) return null;
   const rows=[], buy=[], steps=[], alts=[], notes=[], sides=r.nPipes, each=sides>1?', each side':'';
@@ -20553,7 +20560,7 @@ function quickSheet(p,r){
     if(h.triy){ const sx=h.segs.find(s=>/second/i.test(s.name)); buy.push(['Tri-Y merges','2 primaries into '+cdim(h.lay.dsec)+' ID',(n/2)+'',sx?'secondary tubes '+clen(sx.len)+' each':'']); }
     buy.push(['Merge collectors',(h.triy?'2':per)+' into 1, '+cdim(h.dc)+' ID out',h.nColl+'','with '+clen(h.lay.cstraight)+' of straight after the merge']);
   }
-  buy.unshift(['Head flanges','your head’s port pattern',n+' ports','3/8 in plate is the usual']);
+  buy.unshift(['Head flanges','your head’s port pattern',n+' ports',(U==='imp'?'3/8 in (9.5 mm)':'9.5 mm (3/8 in)')+' plate is the usual']);
   const dEnd=h.separate?h.dp:h.dc, xHdr=x;
   // ---- the cone from the collector into the main pipe ----
   const mid=m.id>0?m.id:dEnd, od=mid+2*W;
@@ -20593,8 +20600,8 @@ function quickSheet(p,r){
   const xCross=x;
   // ---- converters (street) ----
   if(p.use==='street'){
-    add('Catalytic converters'+each,'inlet and outlet for '+tubBoth(od)+' tube',NaN,'In the run of main pipe that follows. Closer to the engine they light off sooner but run hotter (Cats tab). In California a street car needs an approved replacement for that vehicle (CARB Executive Order).',{side:true});
-    buy.push(['Catalytic converters',tubBoth(od)+' inlet and outlet',sides+'','CARB-approved for the vehicle on a California street car']);
+    add('Catalytic converters'+each,'inlet and outlet for '+tubBoth(od)+' tube',NaN,'In the run of main pipe that follows. Closer to the engine they light off sooner but run hotter (Cats tab). In California a street '+(r.bike?'motorcycle':'car')+' needs an approved replacement for that vehicle (CARB Executive Order).',{side:true});
+    buy.push(['Catalytic converters',tubBoth(od)+' inlet and outlet',sides+'','CARB-approved for the vehicle on a California street '+(r.bike?'motorcycle':'car')]);
     buy.push(['Oxygen sensor bungs','M18 × 1.5',(2*sides)+'','one ahead of each converter, one behind it on OBD-II cars; mount above horizontal so water drains off the sensor']);
   } else buy.push(['Oxygen sensor bung','M18 × 1.5',sides+'','one per side ahead of the muffler, for a wideband while tuning']);
   // ---- the drone fix: a Helmholtz can where the cruise tone's pressure peaks ----
@@ -20604,12 +20611,14 @@ function quickSheet(p,r){
     // a longer neck needs less volume (V ∝ 1/Le) but narrows the band the can works over
     const pickCan=hm=>hm.cans.slice().sort((a,b)=>Math.abs(a.len/a.D-1.5)-Math.abs(b.len/b.D-1.5))[0];
     let hm=null, ln=0, can=null;
+    neckOut=null;
     for(const L of [76.2,152.4,228.6,304.8]){
       hm=calcHelm({f,dn,ln:L,dpipe:mid,tres:QUICK_TBRANCH}); if(hm.err) break; ln=L;
       can=hm.cans.filter(c=>c.D<=203.2&&c.len<=2.5*c.D).sort((a,b)=>Math.abs(a.len/a.D-1.5)-Math.abs(b.len/b.D-1.5))[0]||null;
       if(can) break;
     }
-    if(hm&&!hm.err&&!can){ can=pickCan(hm); notes.push({k:'warn',t:'The '+Math.round(f)+' Hz cruise tone is low, so even on a '+clen(ln)+' neck the can needs '+(U==='imp'?Math.round(hm.in3)+' cu in':hm.liters.toFixed(1)+' L')+'. The J-pipe below, or a quieter muffler, may fit better.'}); }
+    if(hm&&!hm.err) neckOut={dn,ln};
+    if(hm&&!hm.err&&!can){ can=pickCan(hm); notes.push({k:'warn',t:'The '+Math.round(f)+' Hz cruise tone is low, so even on a '+clen(ln)+' neck the can needs '+(U==='imp'?Math.round(hm.in3)+' cu in ('+hm.liters.toFixed(1)+' L)':hm.liters.toFixed(1)+' L ('+Math.round(hm.in3)+' cu in)')+'. The J-pipe below, or a quieter muffler, may fit better.'}); }
     // where it goes: the first pressure peak of that tone behind the crossover, inside the system; when there is none, the
     // spot behind the crossover with the most pressure (a side branch does nothing at a pressure node)
     const sysL=sys, sysWhy='your';
@@ -20622,14 +20631,14 @@ function quickSheet(p,r){
       else { let bx=from, ba=-1; for(let k=0;k<=200;k++){ const v=from+(upto-from)*k/200, a=pl.amp(v); if(a>ba+1e-12){ ba=a; bx=v; } } at=bx; amp=ba; }
     }
     if(hm&&!hm.err&&!sys){
-      add('Helmholtz resonator'+each,'can '+cdim(can.D)+' ID × '+clen(can.len)+' inside, on a '+cdim(dn)+' × '+clen(ln)+' neck ('+(U==='imp'?Math.round(hm.in3)+' cu in':hm.liters.toFixed(2)+' L')+' of gas)',0,
+      add('Helmholtz resonator'+each,'can '+cdim(can.D)+' ID × '+clen(can.len)+' inside, on a '+cdim(dn)+' × '+clen(ln)+' neck ('+(U==='imp'?Math.round(hm.in3)+' cu in ('+hm.liters.toFixed(2)+' L)':hm.liters.toFixed(2)+' L ('+Math.round(hm.in3)+' cu in)')+' of gas)',0,
         'Tuned to the '+Math.round(f)+' Hz cruise tone at '+f0(r.drone.cruise)+' RPM. Where it tees in depends on the whole system: enter the head-to-tip length above.',{side:true,tee:true,free:true});
       buy.push(['Resonator cans',cdim(can.D)+' ID shell × '+clen(can.len)+' inside, 2 end plates',sides+'','or another can of the same volume: '+hm.cans.filter(c=>c!==can).slice(0,3).map(c=>cdim(c.D)+' × '+clen(c.len)).join(', ')]);
       buy.push(['Resonator necks',idod(dn,dn+2*W)+' × '+clen(ln),sides+'','coped to the main pipe (the Fusion add-in builds the can and cope)']);
       notes.push({k:'info',t:'Enter the exhaust length from the head flange to the tip above to place the resonator: it goes where the '+Math.round(f)+' Hz tone’s pressure is highest behind the crossover, which depends on the whole length.'});
     } else if(at!=null){
       if(at>x) add('Main pipe'+each,idod(mid,od),at-x,p.use==='street'?'The converters go in this run if they fit in '+clen(at-x)+'; if not, put them ahead of the crossover.':'');
-      add('Helmholtz resonator'+each,'can '+cdim(can.D)+' ID × '+clen(can.len)+' inside, on a '+cdim(dn)+' × '+clen(ln)+' neck ('+(U==='imp'?Math.round(hm.in3)+' cu in':hm.liters.toFixed(2)+' L')+' of gas)',0,
+      add('Helmholtz resonator'+each,'can '+cdim(can.D)+' ID × '+clen(can.len)+' inside, on a '+cdim(dn)+' × '+clen(ln)+' neck ('+(U==='imp'?Math.round(hm.in3)+' cu in ('+hm.liters.toFixed(2)+' L)':hm.liters.toFixed(2)+' L ('+Math.round(hm.in3)+' cu in)')+' of gas)',0,
         'Tuned to the '+Math.round(f)+' Hz cruise tone at '+f0(r.drone.cruise)+' RPM; it works over about '+Math.round(hm.lo)+' to '+Math.round(hm.hi)+' Hz. '+
         (amp>=0.999?'The neck tees in here, where that tone’s pressure peaks (peaks every '+clen(pl.lam/2)+' from the closed end at the valve).':
           'That tone’s pressure peaks every '+clen(pl.lam/2)+' from the valve, and the next peak behind the crossover, '+clen(Math.ceil(from/(pl.lam/2))*pl.lam/2)+', is too close to the tip or past it on '+sysWhy+' '+clen(sysL)+' system, so the neck tees in where the pressure is highest behind the crossover, '+Math.round(100*amp)+'% of the peak; the can works less well than at a peak.'),{side:true,tee:true});
@@ -20641,9 +20650,9 @@ function quickSheet(p,r){
   // ---- mufflers, tailpipes, tips: no rule fixes where these go ----
   const q=r.parts.length?r.parts[0].q:null, inch=v=>v==null?'?':tubBoth(v*MM);
   add((sides>1?'Mufflers':'Muffler')+each,q?q.brand+' '+q.model+' '+q.pn+': inlet '+inch(q.inD)+', outlet '+inch(q.outD)+(q.w?', case '+inch(q.w)+' × '+inch(q.h):'')+(q.oal!=null?', '+inch(q.oal)+' overall':''):TYPE_NAME[r.mufType]+' for '+r.mSize+' in pipe',
-    q&&q.oal!=null?q.oal*MM:NaN,'Behind the resonator, wherever the floor has room. Nothing in the model sets this position.',{side:true,free:true});
+    q&&q.oal!=null?q.oal*MM:NaN,'Behind the resonator, wherever the '+(r.bike?'bike':'floor')+' has room. Nothing in the model sets this position.',{side:true,free:true});
   if(q) buy.push(['Mufflers',q.brand+' '+q.model+' '+q.pn,sides+'',TYPE_NAME[q.type]+(q.oal!=null?', '+inch(q.oal)+' overall':'')]);
-  add('Tailpipes and tips'+each,idod(mid,od)+', tips to fit '+tubBoth(od),NaN,'To the bumper.',{side:true,free:true});
+  add('Tailpipes and tips'+each,idod(mid,od)+', tips to fit '+tubBoth(od),NaN,r.bike?'Out to where the silencer hangs.':'To the bumper.',{side:true,free:true});
   // main pipe length: what is known in front of the muffler, and the rest when the whole length is given
   const mainRuns=rows.filter(o=>/^Main pipe/.test(o.name)).reduce((a,o)=>a+o.len,0);
   const known=x+(q&&q.oal!=null?q.oal*MM:0);
@@ -20668,10 +20677,10 @@ function quickSheet(p,r){
     'Hang the mufflers, then run the tailpipes and tips.',
     'Final-weld everything, back-purging stainless with argon. Leak-test, run it to temperature, let it cool and re-tighten the flanges and clamps.',
     'Drive it at the cruise RPM; the Sound tab compares a recording with the model if anything drones.');
-  return {rows,buy,steps:steps.filter(Boolean),alts,notes,sides,x,xs,xp};
+  return {rows,buy,steps:steps.filter(Boolean),alts,notes,sides,x,xs,xp,neck:neckOut,bike:!!r.bike};
 }
 function sheetHtml(sh){
-  const where=o=>o.free?(o.tee?'where it goes depends on the whole length (enter it above)':'where the floor has room'):'starts '+cutLen(o.at)+' from the head flange';
+  const where=o=>o.free?(o.tee?'where it goes depends on the whole length (enter it above)':'where the '+(sh.bike?'bike':'floor')+' has room'):'starts '+cutLen(o.at)+' from the head flange';
   const item=(o,i)=>'<li data-part="'+esc(o.name)+'" data-size="'+esc(o.size)+'" data-at="'+(o.free?'':clen(o.at))+'"><b>'+esc(o.name)+'</b>: '+esc(o.size)+
     '<br><span class="cap">'+where(o)+(o.len>0?' · '+cutLen(o.len)+' long':o.tee?' · a side branch, off the pipe':'')+(o.note?'. '+esc(o.note):'')+'</span></li>';
   let h='<p class="sub u-mt0">To cut and fit: the parts in flow order</p><p class="cap u-mt0">In flow order from the head flange'+(sh.sides>1?', for each side (build both sides as mirror images)':'')+'. Distances are along the pipe’s centreline from the head flange.</p>'+
@@ -20758,14 +20767,14 @@ function renderQuick(){
       const q=r.reso.qw, hm=r.reso.helm, rows=[];
       if(q) rows.push(rowL('J-pipe (closed tube on a tee), '+cdim(m.id)+' ID',q.L,'l'));
       if(hm) rows.push(rowT('Or a Helmholtz can on a '+cdim(Math.min(m.id,50.8))+' × '+clen(76.2)+' neck',hm.liters.toFixed(2)+' L',Math.round(hm.in3)+' cu in'));
-      t+=rows.join('')+'<p class="cap">Tap it in near the front of the pipe, where the tone’s pressure peaks. The Mufflers tab works out the best spot for your actual pipe.</p>';
+      t+=rows.join('')+'<p class="cap">Tap it in near the front of the pipe, where the tone’s pressure peaks. The Mufflers tab works out the best spot for your actual pipe.'+(hm?' The can above is on a '+clen(76.2)+' neck; the build sheet below lengthens the neck when that can would be too big to fit (a longer neck needs less volume), so its can can be smaller.':'')+'</p>';
     }
     html+=sec('Drone check',t);
   }
 
   /* parts */
   if(r.parts.length){
-    const inch=v=>v==null?'?':(U==='imp'?(+v.toFixed(2))+' in':Math.round(v*MM)+' mm');
+    const inch=v=>inchTxt(v);   // both units (jobs QA 2026-11-20)
     const card=({q})=>'<div class="pcard"><div class="ph"><b>'+esc(q.brand+' '+q.model)+'</b><span>'+esc(q.pn)+'</span></div>'+
       '<div class="pm">'+TYPE_NAME[q.type]+(q.loud?' · '+LOUD[q.loud]:'')+'</div>'+
       '<div class="pd">Inlet '+inch(q.inD)+', outlet '+inch(q.outD)+(q.oal!=null?' · '+inch(q.oal)+' overall':'')+'</div>'+
@@ -20778,7 +20787,7 @@ function renderQuick(){
 
   /* before you build */
   const B=[];
-  if(p.use==='street') B.push('Street cars in California need working catalytic converters and must pass the 95 dBA stationary sound test; the Cats tab shows what converters cost in back pressure and sound.');
+  if(p.use==='street'&&r.car) B.push('Street cars in California need working catalytic converters and must pass the 95 dBA stationary sound test; the Cats tab shows what converters cost in back pressure and sound.');
   if(h) B.push('The header lengths assume a cam that opens the exhaust valve at '+r.evo+'° before bottom center. If yours differs, enter it on the 4-Stroke or Headers tab.');
   if(!r.tqGiven&&r.cyc==='4') B.push('Peak torque RPM is taken as 70% of peak power RPM to size the tubes. Enter the real figure in Expert mode.');
   if(r.bike&&r.cyc==='4'&&r.n<=2) B.push('A resonance chamber close to the head, like the ones on KTM and Kawasaki motocross headers, can make it 1 to 2 dB quieter and smooth the low end. The 4-Stroke tab sizes one.');
@@ -20808,6 +20817,8 @@ function quickApply(){
   opt('s-eng',p.eng); $('s-cyc').value=cyc; setBase('s-cyl',n); setBase('s-cruise',r.cruise); setBase('s-disp',p.cc);
   if(!(val('s-red')>val('s-idle'))||val('s-red')<p.rpm) setBase('s-red',Math.round(Math.max(p.rpm*1.05,p.rpm+300)/100)*100);
   opt('s-ind',p.ind==='turbo'?'turbo1':'na');
+  if(p.sys>0&&$('s-lay').value==='one') setBase('s-len',p.sys);
+  if(r.drone) setBase('s-hf',Math.round(r.drone.f));
   $('s-feed').value=r.nPipes===2&&e.banks&&e.banks.length===2&&!(r.cross&&r.cross.type==='x')?'a':'all';
   done.push('Sound');
   if(cyc==='4'){
@@ -20826,6 +20837,10 @@ function quickApply(){
     $('m-size').value=String(r.partsSize); $('m-loud').value=String(p.loud); $('m-street').value=p.use==='street'?'1':'0'; $('m-kind').value='muffler';
     if(r.main.id>0){ $('m-dp-shape').value='round'; setBase('m-dp',r.main.id); }
     if(r.drone) setBase('m-f',Math.round(r.drone.f));
+    // (jobs QA 2026-11-20) the rest the Quick build already settled: the head-to-tip length the user typed, the build
+    // sheet's resonator neck, the Sound tab's resonator target, and the pipe size on the Hangers tab's tab designer
+    if(p.sys>0) setBase('m-len',p.sys);
+    const shQ=quickSheet(p,r); if(shQ&&shQ.neck){ setBase('m-dn',shQ.neck.dn); setBase('m-ln',shQ.neck.ln); }
     done.push('Mufflers');
   }
   $('c-cyc').value=cyc; setBase('c-cyl',n); setBase('c-disp',p.cc); setBase('c-rpm',p.rpm); setBase('c-cruise',r.cruise);
@@ -20833,6 +20848,7 @@ function quickApply(){
   $('c-count').value=r.nPipes>=2?'2':'1';
   $('b-cyc').value=cyc; setBase('b-cyl',n); setBase('b-disp',p.cc); setBase('b-rpm',p.rpm);
   done.push('Cats','Boom tubes');
+  if(r.main.od>0&&$('hg-for').value==='exh'){ setBase('hg-od',r.main.od); done.push('Hangers'); }
   return 'Filled in on '+done.join(', ')+'.';
 }
 document.addEventListener('click',e=>{
@@ -27229,7 +27245,7 @@ if(typeof window!=='undefined') window.__tg={steps:()=>TG.steps||null,TG:()=>TG,
    the turbo build sheet. */
 function tsMeasure(turbo){
   const F=tsFmt(), M=[], add=(what,how,now,field)=>M.push({what,how,now,field,where:fieldWhere(field)});
-  const b=val('i-boost');
+  const b=tsBoost();   // the build's boost (worked out from the target, or typed), as the sections use (jobs QA 2026-11-20: was the typed field)
   if(turbo) add('Pressure before the turbine at full boost','a gauge or logged sensor on a tap in the manifold collector just before the turbine flange, read on a full-boost pull (static pressure)',
     tsTipMeasured()?'measured '+F.pD(val('i-p3m')*1000)+' gauge':'not measured: the page takes '+(+tsTipK().toFixed(2))+' × boost'+(b>0?', '+F.pD(tsTipK()*b*1000)+' gauge':'')+' (Bell: about 2 to 2.5 × boost)','i-p3m');
   add('RPM where full boost arrives','log boost and RPM on a full-throttle pull in 3rd or 4th gear; the RPM where boost reaches its target',
@@ -27756,17 +27772,17 @@ function renderIntake(){
   const pct=x=>(x>=0?'+':'')+x.toFixed(1)+'%', hp=tsHp();
   const loss=100*(r.ratio-1);
   key.innerHTML='<div class="figs">'+figT('Airflow at peak power',Math.round(r.cfm),'cfm',Math.round(r.Q*1000)+' L/s',r.v>r.vmax?'st-warn':'')+
-    figT('Air speed in the tube',imp?Math.round(r.v/0.3048):Math.round(r.v),imp?'ft/s':'m/s','most 180 ft/s',r.v>r.vmax?'st-warn':'st-ok')+
-    figT('Power from air temp and duct',pct(loss),'',hp>0?Math.round(hp*r.ratio-hp)+' hp of '+Math.round(hp):'against outside air, no loss',loss<-3?'st-warn':'')+'</div>'+notesHtml(r.notes);
+    figT('Air speed in the tube',imp?Math.round(r.v/0.3048):Math.round(r.v),imp?'ft/s':'m/s',(imp?Math.round(r.v)+' m/s · most 180 ft/s (55 m/s)':Math.round(r.v/0.3048)+' ft/s · most 55 m/s (180 ft/s)')+(ind!=='na'&&r.v>r.vmax?'; Garrett’s turbo inlet: 300 ft/s (91 m/s)':''),r.v>r.vmax?'st-warn':'st-ok')+
+    figT('Power from air temp and duct',pct(loss),'',hp>0?Math.round(hp*r.ratio-hp)+' hp of '+Math.round(hp):'against outside air, no loss',loss<-3?'st-warn':'')+'</div>'+notesHtml(ind==='na'?r.notes:r.notes.map(x=>/^The tube is smaller than the throttle body calls for/.test(x.t)?Object.assign({},x,{t:x.t+' On a turbo this tube feeds the compressor, not the throttle: the throttle end of the cold pipe is sized in the turbo sections below.'}):/^Air speed in the tube is above the 180 ft\/s/.test(x.t)?Object.assign({},x,{t:x.t+' On a turbo this is the tube into the compressor, which the turbo sections size by Garrett’s at most 300 ft/s (91 m/s).'}):x));
   // chart
   drawCampbell(svg,{red:p.red,cruise:p.cruise},{res:r.res,po,cross:r.cross,near:r.near,band:r.band});
   $('i-legend').innerHTML=po.top.map((o,i)=>'<span><i class="sw" style="--c:var('+ORDCOL[i%ORDCOL.length]+')"></i>'+ordTxt(o.o)+(e.cyc==='r'?' shaft':' crank')+'</span>').join('')+
     '<span><i class="sw dash"></i>Intake resonance</span><span><i class="sw bandsw"></i>Cruise ±10%</span>';
   $('i-cap').textContent='Each sloped line is an induction tone, as a multiple of crank speed. Where it crosses a dashed intake resonance the intake gets loud: in the cruise band that is drone, and higher up it is the intake roar under load.';
   let h=explainBox([
-    'At '+Math.round(p.rpm).toLocaleString('en-US')+' RPM the engine draws about <b>'+Math.round(r.cfm)+' cfm</b>, moving at '+spd(r.v)+' through '+(n>1?'each of the '+n+' ':'the ')+cdim(p.dt)+' '+(itb?'stack':'tube')+'. '+
-      (r.v>r.vmax?'That is faster than the 180 ft/s guideline; a '+cdim(r.dRec)+' tube keeps it there.':'That is under the 180 ft/s guideline, so the tube is big enough.'),
-    'Drawing air at '+tempStr(p.tin)+' instead of '+tempStr(p.tamb)+' outside, with this duct, changes power by about <b>'+pct(loss)+'</b>'+(hp>0?' ('+Math.round(hp*r.ratio-hp)+' hp)':'')+'. The coldest source and a smooth, short duct matter more than the filter brand.',
+    'At '+Math.round(p.rpm).toLocaleString('en-US')+' RPM the engine draws about <b>'+Math.round(r.cfm)+' cfm</b> ('+Math.round(r.Q*1000)+' L/s), moving at '+spd(r.v)+' ('+spdAlt(r.v)+') through '+(n>1?'each of the '+n+' ':'the ')+cdim(p.dt)+' '+(itb?'stack':'tube')+'. '+
+      (r.v>r.vmax?'That is faster than the 180 ft/s (55 m/s) guideline; a '+cdim(r.dRec)+' tube keeps it there.'+(ind!=='na'?' On a turbo this is the tube into the compressor: the turbo sections size it by Garrett’s at most 300 ft/s (91 m/s), so a tube they picked can be over this naturally aspirated guideline and still be right for the turbo.':''):'That is under the 180 ft/s (55 m/s) guideline, so the tube is big enough.'),
+    'Drawing air at '+tempBoth(p.tin)+' instead of '+tempBoth(p.tamb)+' outside, with this duct, changes power by about <b>'+pct(loss)+'</b>'+(hp>0?' ('+Math.round(hp*r.ratio-hp)+' hp)':'')+'. The coldest source and a smooth, short duct matter more than the filter brand.',
     r.near.length?'Expect intake drone at cruise: the '+ordTxt(r.near[0].o)+' tone meets the '+esc(r.near[0].label)+' resonance at '+Math.round(r.near[0].rpm)+' RPM ('+Math.round(r.near[0].f)+' Hz).':'No strong induction tone meets an intake resonance in the cruise band.']);
   // power check: brake mean effective pressure from the horsepower given (four-stroke: two crank turns per cycle)
   if(hp>0&&e.cyc==='4'&&p.disp>0&&p.rpm>0){
@@ -27827,11 +27843,11 @@ function renderIntake(){
   const needA=r.kn.cfm/6, sizes=[[3.5,4],[4,5],[5,6],[6,7],[6,8],[6,9],[7,10]].map(([d,l])=>({d,l,ok:Math.PI*d*l>=needA}));
   const firstOk=sizes.find(x=>x.ok);
   if(filt!=='none') h+=sec('Filter size and shape',
-    (r.fcap!=null?rowT('This filter flows',Math.round(r.fcap)+' cfm','K&N: outside '+(filt==='panel'?'length × width':'perimeter × length')+' × 6, inches')+rowT('Engine needs',Math.round(r.kn.cfm)+' cfm',r.fcap>=r.kn.cfm?'filter is big enough':'filter is too small'):'')+
-    rowT('Filter area for this engine',Math.round(r.kn.area)+' in²','K&N: displacement × RPM ÷ 20,839'+(r.farea!=null?'; this one has about '+Math.round(r.farea)+' in²':''))+
+    (r.fcap!=null?rowT('This filter flows',Math.round(r.fcap)+' cfm ('+Math.round(r.fcap*0.4719474)+' L/s)','K&N: outside '+(filt==='panel'?'length × width':'perimeter × length')+' × 6, inches')+rowT('Engine needs',Math.round(r.kn.cfm)+' cfm ('+Math.round(r.kn.cfm*0.4719474)+' L/s)',r.fcap>=r.kn.cfm?'filter is big enough':'filter is too small'):'')+
+    rowT('Filter area for this engine',Math.round(r.kn.area)+' in² ('+Math.round(r.kn.area*6.4516)+' cm²)','K&N: displacement × RPM ÷ 20,839'+(r.farea!=null?'; this one has about '+Math.round(r.farea)+' in² ('+Math.round(r.farea*6.4516)+' cm²)':''))+
     rowT('By Vizard’s bench figures',Math.round(r.kn.area*20839/25500)+' in² K&N, '+Math.round(r.kn.area*20839/20900)+' in² paper, '+Math.round(r.kn.area*20839/18870)+' in² foam','for 99% of the bare-carb flow (How to Modify Ford SOHC Engines, ch. 4: ÷ 25,500, ÷ 20,900, ÷ 18,870); never a round filter under 8 in, 9 in is his minimum (10 in on a four-barrel); a 4,000 to 5,000 mile paper element flowed 94% against a new one’s 99.2% and cost 2 to 4.5 hp from 3,000 to 5,000 RPM on his 2 L, and the element’s effective height is ¼ to ⅜ in less than its overall height; double the area for dusty use')+
     (ind!=='na'?rowT('Filter area by Garrett’s rule',Math.round(r.cfm/130*144)+' in²','130 ft/min face velocity at full power, for a turbo inlet; a stricter rule than K&N’s'):'')+
-    (firstOk?rowT('Smallest round filter that passes',firstOk.d+' in × '+firstOk.l+' in','diameter × length, from common sizes'):'')+
+    (firstOk?rowT('Smallest round filter that passes',firstOk.d+' in × '+firstOk.l+' in ('+Math.round(firstOk.d*MM)+' × '+Math.round(firstOk.l*MM)+' mm)','diameter × length, from common sizes'):'')+
     '<dl class="guide u-m10">'+
     '<dt>Tapered cone</dt><dd>The usual cold-air filter. K&N rates a taper by its average diameter, so a fat base and a narrow top flow like a straight filter of the mean size. Some have a velocity stack molded inside the flange; keep it.</dd>'+
     '<dt>Straight cylinder</dt><dd>The most area for the length; good where the filter sits in a box or behind a bumper.</dd>'+
