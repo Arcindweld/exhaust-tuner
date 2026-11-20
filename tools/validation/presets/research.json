@@ -6480,6 +6480,305 @@
      "had": null
     }
    ]
+  },
+  "audi-r8-v10-09": {
+   "names": [
+    "2009–12 Audi R8 V10 5.2 FSI (525 PS)"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "cr": 12.5,
+   "red": 8700,
+   "src": "https://www.audi-mediacenter.com/en/the-audi-r8-5-dot-2-fsi-quattro-2559/engine-2602",
+   "says": "the bore is 84.5 millimeters (3.3 in), the stroke 92.8 millimeters (3.6 in); total displacement of 5,204 cc; compression ratio of 12.5:1; limit not reached until 8,700 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Audi MediaCenter, The Audi R8 5.2 FSI quattro, engine",
+   "targets": [
+    {
+     "name": "2009–12 Audi R8 V10 5.2 FSI (525 PS)",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "audi-r8-v10plus-12": {
+   "names": [
+    "2012–15 Audi R8 V10 plus (550 PS)"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.audi-mediacenter.com/en/the-audi-r8-5-dot-2-fsi-quattro-2559/engine-2602",
+   "says": "bore 84.5 mm, stroke 92.8 mm; 5,204 cc (R8 5.2 FSI quattro)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "R8 5.2 FSI sheet for the same 5,204 cc V10; bore and stroke only",
+   "targets": [
+    {
+     "name": "2012–15 Audi R8 V10 plus (550 PS)",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "audi-rs3-8p": {
+   "names": [
+    "2011–12 Audi RS 3 8P (2.5 TFSI 340 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "cr": 10,
+   "src": "https://www.audi.de/dam/nemo/customer-area/more-information/predecessor-models/a3/rs-3-sportback/Audi-RS3---2.5-TFSI-250-kW-S-tronic-SB-RS-Modell-2011.pdf",
+   "says": "Audi RS3 2.5 TFSI 250 kW S tronic Sportback (Modell 2011): Hubraum in ccm 2480 / 82,5 x 92,8 / 10 : 1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Audi Germany predecessor-model data sheet, RS 3 Sportback 2011 (the line gives displacement / bore x stroke / compression in order)",
+   "targets": [
+    {
+     "name": "2011–12 Audi RS 3 8P (2.5 TFSI 340 PS)",
+     "arr": "VEH",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "audi-25tfsi-8v-ttrs": {
+   "names": [
+    "2015–16 Audi RS 3 8V (2.5 TFSI 367 PS)",
+    "2012–14 Audi TT RS plus 8J (2.5 TFSI 360 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.audi-mediacenter.com/en/the-audi-tt-rs-2924/engine-2938",
+   "says": "bore x stroke 82.5 x 92.8 millimeters (3.3 x 3.7 in); displacement of 2,480 cubic centimeters; 10.0:1 compression ratio (TT RS)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Audi MediaCenter, The Audi TT RS, engine; bore and stroke only for the TT RS plus and the 2015-16 RS 3",
+   "targets": [
+    {
+     "name": "2015–16 Audi RS 3 8V (2.5 TFSI 367 PS)",
+     "arr": "VEH",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2012–14 Audi TT RS plus 8J (2.5 TFSI 360 PS)",
+     "arr": "VEH",
+     "cc": 2480,
+     "cyl": 5,
+     "geo": 2480.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "lam-huracan-610": {
+   "names": [
+    "2014–19 Lamborghini Huracán LP 610-4"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/huracan/2014/coupe/estandar/huracan-lp-610-4/datos",
+   "says": "Huracan LP 610-4 (2015-2019): Diametro 84,5 mm; Carrera 92,8 mm; Cilindrada 5.204 cm3; Relacion de compresion 12,7 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Lamborghini Huracan LP 610-4 (2015-2019); bore and stroke only",
+   "targets": [
+    {
+     "name": "2014–19 Lamborghini Huracán LP 610-4",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "lam-aventador-700": {
+   "names": [
+    "2012–16 Lamborghini Aventador LP700-4"
+   ],
+   "bore": 95,
+   "stroke": 76.4,
+   "src": "https://www.km77.com/coches/lamborghini/aventador/2012/coupe/estandar/aventador-lp-700-42/datos",
+   "says": "Aventador LP 700-4 (2012-2016): diametro 95 mm; carrera 76,4 mm; Cilindrada 6.498 cm3; 11,8 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Lamborghini Aventador LP 700-4; bore and stroke only",
+   "targets": [
+    {
+     "name": "2012–16 Lamborghini Aventador LP700-4",
+     "arr": "VEH",
+     "cc": 6498,
+     "cyl": 12,
+     "geo": 6498.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "lam-gallardo-560": {
+   "names": [
+    "2008–13 Lamborghini Gallardo LP 560-4"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/gallardo/2005/coupe/estandar/gallardo-lp560-4-coupe2/datos",
+   "says": "Gallardo LP560-4 Coupe (2010-2012): Diametro 84,5 mm; Carrera 92,8 mm; Cilindrada 5.204 cm3; 12,5 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2008–13 Lamborghini Gallardo LP 560-4",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "lam-gallardo-50": {
+   "names": [
+    "2003–08 Lamborghini Gallardo (5.0 V10, 500 PS)"
+   ],
+   "bore": 82.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/gallardo/2005/coupe/estandar/gallardo-coupe/datos",
+   "says": "Gallardo Coupe (2007-2008): Diametro 82,5 mm; Carrera 92,8 mm; Cilindrada 4.961 cm3; 11 a 1; 519 CV / 382 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet (the 2007-08 520 CV version); bore and stroke only",
+   "targets": [
+    {
+     "name": "2003–08 Lamborghini Gallardo (5.0 V10, 500 PS)",
+     "arr": "VEH",
+     "cc": 4961,
+     "cyl": 10,
+     "geo": 4960.7,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "lam-gallardo-570": {
+   "names": [
+    "2010–13 Lamborghini Gallardo LP 570-4 Superleggera"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/gallardo/2005/coupe/edizione-tecnica/gallardo-lp570-4-superleggera-edizione-tecnica-coupe/datos",
+   "says": "Gallardo LP570-4 Superleggera Edizione Tecnica (2012-2013): Diametro 84,5 mm; Carrera 92,8 mm; Cilindrada 5.204 cm3; 12,5 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2010–13 Lamborghini Gallardo LP 570-4 Superleggera",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "lam-aventador-svj": {
+   "names": [
+    "2019–22 Lamborghini Aventador SVJ"
+   ],
+   "bore": 95,
+   "stroke": 76.4,
+   "src": "https://www.km77.com/coches/lamborghini/aventador/2012/coupe/svj/aventador-svj/datos",
+   "says": "Aventador SVJ (2018-2022): Diametro 95 mm; Carrera 76,4 mm; Cilindrada 6.498 cm3; 11,8 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2019–22 Lamborghini Aventador SVJ",
+     "arr": "VEH",
+     "cc": 6498,
+     "cyl": 12,
+     "geo": 6498.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "lam-murcielago-640": {
+   "names": [
+    "2006–10 Lamborghini Murciélago LP 640-4",
+    "2009–10 Lamborghini Murciélago LP 670-4 SuperVeloce"
+   ],
+   "bore": 88,
+   "stroke": 89,
+   "src": "https://www.km77.com/coches/lamborghini/murcielago/2008/coupe/lp-640/murcielago-lp-640-coupe/datos",
+   "says": "Murcielago LP 640 Coupe (2008-2011): Diametro 88 mm; Carrera 89 mm; Cilindrada 6.496 cm3; 11 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet for the LP 640; applied to the LP 670-4 SV (same 6.496 cm3 V12) bore and stroke only",
+   "targets": [
+    {
+     "name": "2006–10 Lamborghini Murciélago LP 640-4",
+     "arr": "VEH",
+     "cc": 6496,
+     "cyl": 12,
+     "geo": 6495.7,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2009–10 Lamborghini Murciélago LP 670-4 SuperVeloce",
+     "arr": "VEH",
+     "cc": 6496,
+     "cyl": 12,
+     "geo": 6495.7,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "lam-huracan-640": {
+   "names": [
+    "2017–19 Lamborghini Huracán Performante"
+   ],
+   "bore": 84.5,
+   "stroke": 92.8,
+   "src": "https://www.km77.com/coches/lamborghini/huracan/2014/coupe/performante/huracan-performante/datos",
+   "says": "Huracan Performante (2017-2019): Diametro 84,5 mm; Carrera 92,8 mm; Cilindrada 5.204 cm3; 12,7 a 1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2017–19 Lamborghini Huracán Performante",
+     "arr": "VEH",
+     "cc": 5204,
+     "cyl": 10,
+     "geo": 5204.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
