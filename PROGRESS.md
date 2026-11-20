@@ -1,6 +1,6 @@
 # Jobs QA round, 2026-11-20 (branch agent38/jobsqa)
 
-Status: started. Read the three audit docs.
+Status: DONE. Report in docs/JOBS_QA_2026-11-20.md.
 
 ## Plan
 1. Explore page structure (tabs, presets, ids) -> scratch driver script
