@@ -3096,6 +3096,460 @@
      "had": null
     }
    ]
+  },
+  "gm-lt1-350-70": {
+   "names": [
+    "1970 Chevrolet Corvette 350 (LT-1)"
+   ],
+   "bore": 101.6,
+   "stroke": 88.39,
+   "cr": 11,
+   "src": "https://over-drive-magazine.com/2025/04/04/1970-corvette-fact-sheet/",
+   "says": "370 HP V-8, Option LT1: 350 cubic inches, 4.00 x 3.48 inches, 11.00:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1970 Corvette Facts, Figures, and Specifications. Inch figures converted (101.6 x 88.392 mm)",
+   "targets": [
+    {
+     "name": "1970 Chevrolet Corvette 350 (LT-1)",
+     "arr": "VEH",
+     "cc": 5733,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt1-350-72": {
+   "names": [
+    "1972 Chevrolet Corvette 350 (LT-1, SAE net)"
+   ],
+   "bore": 101.6,
+   "stroke": 88.39,
+   "src": "https://over-drive-magazine.com/2025/04/04/1970-corvette-fact-sheet/",
+   "says": "370 HP V-8, Option LT1: 350 cubic inches, 4.00 x 3.48 inches, 11.00:1 (1970)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "1970 sheet for the same LT-1 350; bore and stroke only (the 1972 compression differs; the preset keeps its 9:1). Inch figures converted",
+   "targets": [
+    {
+     "name": "1972 Chevrolet Corvette 350 (LT-1, SAE net)",
+     "arr": "VEH",
+     "cc": 5733,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls5-454-70": {
+   "names": [
+    "1970 Chevrolet Corvette 454 (LS5)"
+   ],
+   "bore": 107.95,
+   "stroke": 101.6,
+   "cr": 10.25,
+   "src": "https://over-drive-magazine.com/2025/04/04/1970-corvette-fact-sheet/",
+   "says": "390 HP V-8, RPO LS5: 454 cubic inches, 4.250 x 4.00 inches, 10.25:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1970 Corvette fact sheet; inch figures converted (107.95 x 101.6 mm). The National Corvette Museum 1970 page (https://www.corvettemuseum.org/?p=7139) gives the 454 as 4.251 x 4.00",
+   "targets": [
+    {
+     "name": "1970 Chevrolet Corvette 454 (LS5)",
+     "arr": "VEH",
+     "cc": 7440,
+     "cyl": 8,
+     "geo": 7439.1,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-l71-427-67": {
+   "names": [
+    "1967 Chevrolet Corvette 427 Tri-Power (L71)"
+   ],
+   "bore": 107.95,
+   "stroke": 95.5,
+   "cr": 11,
+   "src": "https://over-drive-magazine.com/2024/12/30/1967-corvette-fact-sheet/",
+   "says": "435 HP 427 V-8 (RPO L71): 427 cubic inches, 4.250 x 3.76 inches, 11.00:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1967 Corvette Facts, Figures, and Specifications; inch figures converted (107.95 x 95.504 mm)",
+   "targets": [
+    {
+     "name": "1967 Chevrolet Corvette 427 Tri-Power (L71)",
+     "arr": "VEH",
+     "cc": 6997,
+     "cyl": 8,
+     "geo": 6992.4,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "gm-l88-427": {
+   "names": [
+    "1968–69 Chevrolet Corvette 427 (L88)"
+   ],
+   "bore": 107.95,
+   "stroke": 95.5,
+   "src": "https://over-drive-magazine.com/2024/12/30/1967-corvette-fact-sheet/",
+   "says": "430 HP 427 V-8 (RPO L88): 427 cubic inches, 4.250 x 3.76 inches, 11.00:1 (the page elsewhere says 12.5:1)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "1967 sheet for the same L88; bore and stroke only (the page contradicts itself on compression; the preset keeps its 12.5:1). Inch figures converted",
+   "targets": [
+    {
+     "name": "1968–69 Chevrolet Corvette 427 (L88)",
+     "arr": "VEH",
+     "cc": 6997,
+     "cyl": 8,
+     "geo": 6992.4,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "gm-lt5-zr1": {
+   "sel": "^LT5 \\(Lotus",
+   "bore": 99.06,
+   "stroke": 92.96,
+   "src": "https://www.lsxmag.com/?p=3813",
+   "says": "Displacement: 350 CID; Bore & Stroke: 3.90 x 3.66; Compression Ratio: 11.0:1; Engine Redline: 7200 rpm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "LSX Magazine, A Look At The C4 ZR-1s All-Aluminum DOHC LT5 Engine (2018). Inch figures converted (99.06 x 92.964 mm). Bore and stroke only: the spec box covers the LT5 generally, not one model year",
+   "targets": [
+    {
+     "name": "1990–92 Chevrolet Corvette ZR-1 (LT5)",
+     "arr": "VEH",
+     "cc": 5727,
+     "cyl": 8,
+     "geo": 5731.6,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "1993–95 Chevrolet Corvette ZR-1 (LT5)",
+     "arr": "VEH",
+     "cc": 5727,
+     "cyl": 8,
+     "geo": 5731.6,
+     "dPct": 0.08,
+     "had": null
+    }
+   ]
+  },
+  "gm-z28-302": {
+   "names": [
+    "1967–69 Chevrolet Camaro Z/28 302"
+   ],
+   "bore": 101.65,
+   "stroke": 76.2,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "302 CID V-8 (RPO Z28 302): 302 cubic inches, 4.002x 3.00 inches, 11.00:1, 290 @ 5800 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1969 Chevrolet Camaro Fact Sheet (the 1968 sheet gives the same); inch figures converted (101.651 x 76.2 mm); bore and stroke only (preset spans 1967-69)",
+   "targets": [
+    {
+     "name": "1967–69 Chevrolet Camaro Z/28 302",
+     "arr": "VEH",
+     "cc": 4949,
+     "cyl": 8,
+     "geo": 4947.1,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "gm-l48-350": {
+   "names": [
+    "1967–69 Chevrolet Camaro SS 350 (L48)"
+   ],
+   "bore": 101.6,
+   "stroke": 88.39,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "350 CID V-8 (RPO L48): 350 cubic inches, 4.00 x 3.48 inches, 10.25:1, 300 @ 4800 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Camaro fact sheet; inch figures converted; bore and stroke only (preset spans 1967-69)",
+   "targets": [
+    {
+     "name": "1967–69 Chevrolet Camaro SS 350 (L48)",
+     "arr": "VEH",
+     "cc": 5735,
+     "cyl": 8,
+     "geo": 5732.8,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
+  },
+  "gm-l78-396": {
+   "names": [
+    "1967–69 Chevrolet Camaro SS 396 (L78)"
+   ],
+   "bore": 103.99,
+   "stroke": 95.5,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "396 CID V-8 (RPO L78): 396 cubic inches, 4.094 x 3.76 inches, 11.00:1, 375 @ 5600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Camaro fact sheet; inch figures converted (103.988 x 95.504 mm); bore and stroke only (preset spans 1967-69)",
+   "targets": [
+    {
+     "name": "1967–69 Chevrolet Camaro SS 396 (L78)",
+     "arr": "VEH",
+     "cc": 6489,
+     "cyl": 8,
+     "geo": 6488.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-l72-427-69": {
+   "names": [
+    "1969 Chevrolet Camaro COPO 427 (L72)"
+   ],
+   "bore": 107.95,
+   "stroke": 95.5,
+   "cr": 11,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "427 CID V-8 (RPO L72): 427 cubic inches, 4.250 x 3.76 inches, 11.00:1, 425 @ 5600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Camaro fact sheet; inch figures converted",
+   "targets": [
+    {
+     "name": "1969 Chevrolet Camaro COPO 427 (L72)",
+     "arr": "VEH",
+     "cc": 6997,
+     "cyl": 8,
+     "geo": 6992.4,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "gm-zl1-427-69": {
+   "names": [
+    "1969 Chevrolet Camaro ZL1 427"
+   ],
+   "bore": 107.95,
+   "stroke": 95.5,
+   "cr": 11,
+   "src": "https://over-drive-magazine.com/2024/03/28/1969-chevrolet-camaro-fact-sheet",
+   "says": "427 CID V-8 (RPO ZL1): 427 cubic inches, 4.250 x 3.76 inches, 11.00:1, 430 $ 5200 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Camaro fact sheet; inch figures converted",
+   "targets": [
+    {
+     "name": "1969 Chevrolet Camaro ZL1 427",
+     "arr": "VEH",
+     "cc": 6997,
+     "cyl": 8,
+     "geo": 6992.4,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "ford-boss302-69": {
+   "names": [
+    "1969–70 Ford Mustang Boss 302"
+   ],
+   "bore": 101.6,
+   "stroke": 76.2,
+   "src": "https://over-drive-magazine.com/2023/11/10/1969-ford-mustang-fact-sheet",
+   "says": "290 HP 302 Boss V-8: 302 cubic inches, 4.00 x 3.00 inches, 10.5:1, 290 @ 5800 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1969 Ford Mustang Fact Sheet; inch figures converted; bore and stroke only (preset spans 1969-70)",
+   "targets": [
+    {
+     "name": "1969–70 Ford Mustang Boss 302",
+     "arr": "VEH",
+     "cc": 4949,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": -0.14,
+     "had": null
+    }
+   ]
+  },
+  "ford-428cj-69": {
+   "names": [
+    "1968–70 Ford Mustang 428 Cobra Jet"
+   ],
+   "bore": 104.9,
+   "stroke": 101.09,
+   "src": "https://over-drive-magazine.com/2023/11/10/1969-ford-mustang-fact-sheet",
+   "says": "428 CID Cobra Jet V-8: 428 cubic inches, 4.13 x 3.98 inches, 10.6:1, 335 @ 5400 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Mustang fact sheet; inch figures converted (104.902 x 101.092 mm); bore and stroke only (preset spans 1968-70)",
+   "targets": [
+    {
+     "name": "1968–70 Ford Mustang 428 Cobra Jet",
+     "arr": "VEH",
+     "cc": 7014,
+     "cyl": 8,
+     "geo": 6989.4,
+     "dPct": -0.35,
+     "had": null
+    }
+   ]
+  },
+  "ford-boss429-69": {
+   "names": [
+    "1969–70 Ford Mustang Boss 429"
+   ],
+   "bore": 110.74,
+   "stroke": 100.56,
+   "src": "https://over-drive-magazine.com/2023/11/10/1969-ford-mustang-fact-sheet",
+   "says": "429 CID Boss 429 V-8: 429 cubic inches, 4.36 x 3.959 inches, 11.30:1, 375 @ 5600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1969 Mustang fact sheet; inch figures converted. The printed stroke (3.959 in) gives 473 cu in with the 4.36 bore, not 429: a misprint on the page (4.36 x 3.59 would give 429); not applied",
+   "targets": []
+  },
+  "moP-426hemi-70": {
+   "names": [
+    "1970 Plymouth Hemi ’Cuda 426"
+   ],
+   "bore": 107.95,
+   "stroke": 95.25,
+   "cr": 10.2,
+   "src": "https://over-drive-magazine.com/2024/04/18/1970-plymouth-barracuda-fact-sheet",
+   "says": "426 CID Dual 4-Barrel Hemi HP V-8: 426 cubic inches, 4.25 x 3.75 inches, 10.2:1, 425 @ 5000 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1970 Plymouth Barracuda Facts, Figures, and Specifications; inch figures converted",
+   "targets": [
+    {
+     "name": "1970 Plymouth Hemi ’Cuda 426",
+     "arr": "VEH",
+     "cc": 6981,
+     "cyl": 8,
+     "geo": 6974.1,
+     "dPct": -0.1,
+     "had": null
+    }
+   ]
+  },
+  "moP-440-6bbl": {
+   "names": [
+    "1971 Mopar 440 Six Pack (440+6)"
+   ],
+   "bore": 109.73,
+   "stroke": 95.25,
+   "src": "https://over-drive-magazine.com/2024/04/18/1970-plymouth-barracuda-fact-sheet",
+   "says": "440 CID Three 2-Barrel V-8: 440 cubic inches, 4.32 x 3.75 inches, 10.5:1, 390 @ 4700 RPM (1970)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "1970 Barracuda sheet for the 440 Six Pack; the preset is 1971, so bore and stroke only. Inch figures converted (109.728 x 95.25 mm)",
+   "targets": [
+    {
+     "name": "1971 Mopar 440 Six Pack (440+6)",
+     "arr": "VEH",
+     "cc": 7210,
+     "cyl": 8,
+     "geo": 7206,
+     "dPct": -0.06,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls6-454-71": {
+   "names": [
+    "1971 Chevrolet Corvette 454 (LS6)"
+   ],
+   "bore": 107.95,
+   "stroke": 101.6,
+   "cr": 9,
+   "src": "https://over-drive-magazine.com/2025/06/20/1971-corvette-fact-sheet/",
+   "says": "454 V-8 (RPO LS6): 454 cubic inches, 4.250 x 4.00 inches, 9.0:1, 425 @ 5600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1971 Corvette Fact Sheet; inch figures converted",
+   "targets": [
+    {
+     "name": "1971 Chevrolet Corvette 454 (LS6)",
+     "arr": "VEH",
+     "cc": 7440,
+     "cyl": 8,
+     "geo": 7439.1,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-289hipo": {
+   "names": [
+    "1965–67 Ford Mustang 289 Hi-Po (K-code)"
+   ],
+   "bore": 101.6,
+   "stroke": 72.9,
+   "src": "https://over-drive-magazine.com/2022/10/21/the-hi-po-289-cid-v-8-and-shelbys-mods/",
+   "says": "Mustang Hi-Po 289 V-8: 289 CID, bore and stroke 4.00 X 2.87, compression 10. 5 to 1, 271 at 6000 rpm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, The Hi-Po 289 CID V-8 and Shelby GT 350 and 350 GT-R V-8s; the 1967 Mustang fact sheet (https://over-drive-magazine.com/2023/05/31/1967-ford-mustang-fact-sheet/) gives the Code K 289 the same 4.00 x 2.87. Inch figures converted (101.6 x 72.898 mm); bore and stroke only",
+   "targets": [
+    {
+     "name": "1965–67 Ford Mustang 289 Hi-Po (K-code)",
+     "arr": "VEH",
+     "cc": 4736,
+     "cyl": 8,
+     "geo": 4728.2,
+     "dPct": -0.16,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls6-454-70": {
+   "names": [
+    "1970 Chevrolet Chevelle SS 454 (LS6)"
+   ],
+   "bore": 104.8,
+   "stroke": 101.6,
+   "src": "https://over-drive-magazine.com/2024/02/23/1970-chevrolet-mid-size-cars-fact-sheet/",
+   "says": "Turbo-Fire 454 V-8 (RPO LS6): 454 cubic inches, 4.126 x4.00 inches, 11.25:1, 450 @ 5600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine 1970 Chevelle fact sheet. The printed bore 4.126 in (the 402 big-block figure) gives 428 cu in with the 4.00 stroke, not 454; a misprint on the page (the same sites 1970 and 1971 Corvette sheets give the 454 as 4.250 x 4.00). Not applied",
+   "targets": []
+  },
+  "gm-ls6-454-70v": {
+   "names": [
+    "1970 Chevrolet Chevelle SS 454 (LS6)"
+   ],
+   "bore": 107.95,
+   "stroke": 101.6,
+   "src": "https://over-drive-magazine.com/2025/06/20/1971-corvette-fact-sheet/",
+   "says": "454 V-8 (RPO LS6): 454 cubic inches, 4.250 x 4.00 inches, 9.0:1, 425 @ 5600 RPM (1971 Corvette)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "The 1971 Corvette sheet for the LS6 454 (the 1970 Chevelle sheet misprints the bore, see review gm-ls6-454-70); bore and stroke only (the 1970 Chevelle LS6 had other compression). Inch figures converted",
+   "targets": [
+    {
+     "name": "1970 Chevrolet Chevelle SS 454 (LS6)",
+     "arr": "VEH",
+     "cc": 7440,
+     "cyl": 8,
+     "geo": 7439.1,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
@@ -3125,6 +3579,48 @@
     }
    ],
    "why": "the preset gives 4,951 cc (the Gen 1/2 figure) for the 2018-20 Mustang GT; Ford gives the Gen 3 Coyote as 5038 cc, 93.0 x 92.7 mm. The preset displacement looks wrong (owner to confirm); bore and stroke not applied to it"
+  },
+  "ford-boss429-69": {
+   "found": {
+    "bore": 110.74,
+    "stroke": 100.56,
+    "src": "https://over-drive-magazine.com/2023/11/10/1969-ford-mustang-fact-sheet",
+    "says": "429 CID Boss 429 V-8: 429 cubic inches, 4.36 x 3.959 inches, 11.30:1, 375 @ 5600 RPM",
+    "q": "magazine test"
+   },
+   "mismatch": [
+    {
+     "name": "1969–70 Ford Mustang Boss 429",
+     "arr": "VEH",
+     "cc": 7030,
+     "cyl": 8,
+     "geo": 7748.4,
+     "dPct": 10.22,
+     "had": null
+    }
+   ],
+   "why": "bore x stroke x cylinders outside 1 % of the preset displacement"
+  },
+  "gm-ls6-454-70": {
+   "found": {
+    "bore": 104.8,
+    "stroke": 101.6,
+    "src": "https://over-drive-magazine.com/2024/02/23/1970-chevrolet-mid-size-cars-fact-sheet/",
+    "says": "Turbo-Fire 454 V-8 (RPO LS6): 454 cubic inches, 4.126 x4.00 inches, 11.25:1, 450 @ 5600 RPM",
+    "q": "magazine test"
+   },
+   "mismatch": [
+    {
+     "name": "1970 Chevrolet Chevelle SS 454 (LS6)",
+     "arr": "VEH",
+     "cc": 7440,
+     "cyl": 8,
+     "geo": 7011.3,
+     "dPct": -5.76,
+     "had": null
+    }
+   ],
+   "why": "bore x stroke x cylinders outside 1 % of the preset displacement"
   }
  },
  "tried": {
