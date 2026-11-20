@@ -7861,6 +7861,13 @@
     "2010–15 Chevrolet Camaro SS manual (LS3)"
    ],
    "seen": "2026-11-20"
+  },
+  "gm-lt2-veh-cc": {
+   "why": "suspected wrong displacement: the 2020+ Corvette C8 Stingray (LT2) preset gives 6,144 cc, the LT2 engine preset and GM give 6.2 L (6,162 cc for 103.25 x 92 x 8); the bore and stroke were applied (0.4 % within the check), the cc left for the owner",
+   "presets": [
+    "2020+ Chevrolet Corvette C8 Stingray (LT2)"
+   ],
+   "seen": "2026-11-20"
   }
  },
  "tried": {
