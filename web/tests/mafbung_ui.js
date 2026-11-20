@@ -14,7 +14,7 @@ const { chromium } = require('playwright');
   const t = await pg.$eval('#p-list', e => e.innerText);
   ok(n === 52, '52 MAF bung cards (' + n + ')');
   ok(!/\bNaN\b|\bundefined\b|\[object/.test(t), 'no NaN/undefined in cards');
-  ok(/card pad/.test(t) && /slot bung/.test(t) && /for 4 in tube/.test(t) && /pad 2 in × 2 in × 1 in tall/.test(t), 'dims text: style, tube, pad size');
+  ok(/card pad/.test(t) && /slot bung/.test(t) && /for 4 in( \(102 mm\))? tube/.test(t) && /pad 2 in( \(51 mm\))? × 2 in( \(51 mm\))? × 1 in( \(25 mm\))? tall/.test(t), 'dims text: style, tube, pad size');   // (jobs QA 2026-11-20: the catalogue sizes now also carry mm; same figures)
   ok(/placement guidance/i.test(t) && /8-10/.test(t), 'maker guidance shown (Spectre 8-10 in)');
   const brands = await pg.$$eval('#p-brand option', o => o.map(x => x.value).filter(Boolean));
   ok(brands.indexOf('ICT Billet') >= 0 && brands.indexOf('Ticon Industries') >= 0 || brands.some(x => /Ticon/.test(x)), 'brands include ICT and Ticon (' + brands.length + ')');
