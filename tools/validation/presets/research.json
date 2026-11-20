@@ -3550,6 +3550,556 @@
      "had": null
     }
    ]
+  },
+  "moP-440-68charger": {
+   "names": [
+    "1968 Dodge Charger R/T (440 Magnum)"
+   ],
+   "bore": 109.73,
+   "stroke": 95.25,
+   "cr": 10.1,
+   "src": "https://over-drive-magazine.com/2024/06/19/1968-dodge-mid-size-cars-fact-sheet/",
+   "says": "440 CID 375 HP 4-Barrel V-8: 440 cubic inches, 4.32 x 3.75 inches, 10.1:1, 375 @ 4600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1968 Dodge Mid-Size Cars Fact Sheet; inch figures converted (109.728 x 95.25 mm)",
+   "targets": [
+    {
+     "name": "1968 Dodge Charger R/T (440 Magnum)",
+     "arr": "VEH",
+     "cc": 7210,
+     "cyl": 8,
+     "geo": 7206,
+     "dPct": -0.06,
+     "had": null
+    }
+   ]
+  },
+  "pon-400-ra4-69": {
+   "names": [
+    "1969 Pontiac GTO Ram Air IV (400)"
+   ],
+   "bore": 104.65,
+   "stroke": 95.25,
+   "cr": 10.75,
+   "src": "https://over-drive-magazine.com/2023/03/09/1969-pontiac-mid-size-cars-fact-sheet/",
+   "says": "400 Ram Air IV V-8: 400 CID, 4.120 x 3.750, 10.75:1, 370 @ 5500 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1969 Pontiac Mid-Size Cars Facts, Figures, and Specifications; inch figures converted (104.648 x 95.25 mm)",
+   "targets": [
+    {
+     "name": "1969 Pontiac GTO Ram Air IV (400)",
+     "arr": "VEH",
+     "cc": 6555,
+     "cyl": 8,
+     "geo": 6554.3,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "bui-455-70": {
+   "names": [
+    "1970 Buick GSX 455"
+   ],
+   "bore": 109.22,
+   "stroke": 99.06,
+   "cr": 10,
+   "src": "https://over-drive-magazine.com/2022/12/06/1970-buick-mid-size-car-fact-sheet/",
+   "says": "455 V-8 (GS 455, 350 HP): 455 cubic inches, 4.3 x 3.9 inches, 10.0:1, 350 at 4600 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1970 Buick Mid-Size Car Facts, Figures, and Specifications. The page gives the bore to one decimal (4.3 in), so the product is 0.4 % under the preset displacement; inch figures converted (109.22 x 99.06 mm)",
+   "targets": [
+    {
+     "name": "1970 Buick GSX 455",
+     "arr": "VEH",
+     "cc": 7456,
+     "cyl": 8,
+     "geo": 7424.8,
+     "dPct": -0.42,
+     "had": null
+    }
+   ]
+  },
+  "bui-38t-87": {
+   "names": [
+    "1987 Buick Grand National",
+    "1987 Buick GNX"
+   ],
+   "bore": 96.52,
+   "stroke": 86.36,
+   "cr": 8.5,
+   "src": "https://over-drive-magazine.com/2022/12/06/1987-buick-regal-rwd-cars-fact-sheet/",
+   "says": "LM9 turbo V-6 (Grand National): 231 CID (3.8 liters), 3.8 x 3.4 in, 8.5:1, 245 @ 4400 RPM; GNX turbo V-6: 231 CID, 3.8 x 3.4 in, 8.5:1, 276 @ 5000 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1987 Buick Regal Facts, Figures, and Specifications; inch figures converted (96.52 x 86.36 mm)",
+   "targets": [
+    {
+     "name": "1987 Buick GNX",
+     "arr": "VEH",
+     "cc": 3785,
+     "cyl": 6,
+     "geo": 3791.3,
+     "dPct": 0.17,
+     "had": null
+    },
+    {
+     "name": "1987 Buick Grand National",
+     "arr": "VEH",
+     "cc": 3785,
+     "cyl": 6,
+     "geo": 3791.3,
+     "dPct": 0.17,
+     "had": null
+    }
+   ]
+  },
+  "bui-38t-86": {
+   "names": [
+    "1986 Buick Regal Grand National / T-Type (3.8 turbo, intercooled)"
+   ],
+   "bore": 96.52,
+   "stroke": 86.36,
+   "cr": 8.5,
+   "src": "https://over-drive-magazine.com/2022/12/05/1986-buick-g-body-rwd-cars-fact-sheet/",
+   "says": "LM9 Turbocharged V-6: 231 CID (3.8 liters), 3.8 x 3.4 inches, 8.5:1, 235 at 4400 RPM",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Over-Drive Magazine, 1986 Buick Regal Facts, Figures, and Specifications; inch figures converted",
+   "targets": [
+    {
+     "name": "1986 Buick Regal Grand National / T-Type (3.8 turbo, intercooled)",
+     "arr": "VEH",
+     "cc": 3791,
+     "cyl": 6,
+     "geo": 3791.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bui-38t-gen": {
+   "names": [
+    "Buick 3.8 turbo V6 (Grand National, GNX, Turbo Trans Am)"
+   ],
+   "bore": 96.52,
+   "stroke": 86.36,
+   "src": "https://over-drive-magazine.com/2022/12/06/1987-buick-regal-rwd-cars-fact-sheet/",
+   "says": "LM9 turbo V-6 (Grand National): 231 CID (3.8 liters), 3.8 x 3.4 in, 8.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "1987 sheet applied to the engine-only Buick 3.8 turbo preset (bore and stroke only); inch figures converted",
+   "targets": [
+    {
+     "name": "Buick 3.8 turbo V6 (Grand National, GNX, Turbo Trans Am)",
+     "arr": "MOTORS",
+     "cc": 3791,
+     "cyl": 6,
+     "geo": 3791.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-voodoo": {
+   "sel": "Voodoo 5\\.2|5\\.2 Voodoo",
+   "bore": 94,
+   "stroke": 93,
+   "cr": 12,
+   "valves": 4,
+   "src": "https://media.ford.com/content/dam/fordmedia/North%20America/US/2015/08/24/gt350-gt350r-tech-specs.pdf",
+   "says": "Bore x stroke 94.0 x 93.0 mm; Displacement 5,163 cc; Compression ratio 12.0:1; DOHC, four valves per cylinder",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Shelby GT350 / GT350R technical specifications (2015)",
+   "targets": [
+    {
+     "name": "5.2 Voodoo flat-plane V8 (Shelby GT350)",
+     "arr": "MOTORS",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5163.2,
+     "dPct": 0,
+     "had": [
+      94,
+      93
+     ]
+    },
+    {
+     "name": "2015–20 Ford Shelby GT350 (Voodoo 5.2)",
+     "arr": "VEH",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5163.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-godzilla-crate": {
+   "names": [
+    "7.3 Godzilla pushrod V8 (Super Duty, M-6007-73 crate)"
+   ],
+   "bore": 107.2,
+   "stroke": 101,
+   "cr": 10.5,
+   "src": "https://performanceparts.ford.com/part/M-6007-73",
+   "says": "Bore 107.2 mm x stroke 101.0 mm; 7.3L displacement; 10.5:1 compression",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Performance 7.3L Super Duty NA crate engine M-6007-73",
+   "targets": [
+    {
+     "name": "7.3 Godzilla pushrod V8 (Super Duty, M-6007-73 crate)",
+     "arr": "MOTORS",
+     "cc": 7293,
+     "cyl": 8,
+     "geo": 7292.7,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-godzilla-sd": {
+   "names": [
+    "2020–26 Ford F-250/F-350 (7.3 Godzilla)"
+   ],
+   "bore": 107.2,
+   "stroke": 101,
+   "src": "https://performanceparts.ford.com/part/M-6007-73",
+   "says": "Bore 107.2 mm x stroke 101.0 mm; 7.3L displacement; 10.5:1 compression (crate engine)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Performance crate page for the same 7.3; bore and stroke only for the truck preset",
+   "targets": [
+    {
+     "name": "2020–26 Ford F-250/F-350 (7.3 Godzilla)",
+     "arr": "VEH",
+     "cc": 7293,
+     "cyl": 8,
+     "geo": 7292.7,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-gt-35-17": {
+   "names": [
+    "2017–19 Ford GT (3.5 EcoBoost)"
+   ],
+   "bore": 92.51,
+   "stroke": 86.7,
+   "cr": 9,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/en/2017/05/gt_technical_specs_EU.PDF",
+   "says": "BORE X STROKE 92.51 mm x 86.7 mm; DISPLACEMENT 3,497 cc; COMPRESSION RATIO 9.0:1; 647 hp @ 6250 RPM",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford GT technical specifications (Europe, 2017)",
+   "targets": [
+    {
+     "name": "2017–19 Ford GT (3.5 EcoBoost)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3496.5,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-gt-35-20": {
+   "names": [
+    "2020–22 Ford GT (3.5 EcoBoost)"
+   ],
+   "bore": 92.51,
+   "stroke": 86.7,
+   "src": "https://media.ford.com/content/dam/fordmedia/Europe/en/2017/05/gt_technical_specs_EU.PDF",
+   "says": "BORE X STROKE 92.51 mm x 86.7 mm; DISPLACEMENT 3,497 cc (2017)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "2017 sheet; bore and stroke only for the 2020-22 preset",
+   "targets": [
+    {
+     "name": "2020–22 Ford GT (3.5 EcoBoost)",
+     "arr": "VEH",
+     "cc": 3496,
+     "cyl": 6,
+     "geo": 3496.5,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-predator-rr": {
+   "sel": "Predator \\(Raptor R\\)",
+   "bore": 93.98,
+   "stroke": 92.96,
+   "cr": 9.5,
+   "valves": 4,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2023/specs/2023-Ford-F-150-Raptor-R-Technical-Specifications.pdf",
+   "says": "5.2-liter supercharged V8: Bore x stroke 3.70 in. x 3.66 in.; 5.2 liters (315 cubic inches); 9.5:1; DOHC, four valves per cylinder",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford 2023 F-150 Raptor R technical specifications; the 2024 Raptor / Raptor R sheet gives the same. Inch figures converted (93.98 x 92.964 mm)",
+   "targets": [
+    {
+     "name": "2023 Ford F-150 Raptor R (5.2 SC)",
+     "arr": "VEH",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5158.8,
+     "dPct": -0.08,
+     "had": null
+    },
+    {
+     "name": "2024+ Ford F-150 Raptor R (5.2 SC)",
+     "arr": "VEH",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5158.8,
+     "dPct": -0.08,
+     "had": null
+    }
+   ]
+  },
+  "ford-predator-gen": {
+   "names": [
+    "5.2 Predator supercharged V8 (Shelby GT500, Raptor R)"
+   ],
+   "bore": 93.98,
+   "stroke": 92.96,
+   "src": "https://www.fromtheroad.ford.com/content/dam/fordmediasite/us/en/library/2023/specs/2023-Ford-F-150-Raptor-R-Technical-Specifications.pdf",
+   "says": "5.2-liter supercharged V8: Bore x stroke 3.70 in. x 3.66 in.; 5.2 liters (315 cubic inches); 9.5:1 (Raptor R)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Raptor R sheet applied to the engine-only Predator preset, bore and stroke only; inch figures converted",
+   "targets": [
+    {
+     "name": "5.2 Predator supercharged V8 (Shelby GT500, Raptor R)",
+     "arr": "MOTORS",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5158.8,
+     "dPct": -0.08,
+     "had": null
+    }
+   ]
+  },
+  "ford-predator-gt500": {
+   "names": [
+    "2020–22 Ford Shelby GT500 (Predator 5.2 SC)"
+   ],
+   "bore": 94,
+   "stroke": 93,
+   "cr": 9.5,
+   "red": 7500,
+   "src": "https://www.cjponyparts.com/resources/news/2020-shelby-gt500",
+   "says": "Bore and Stroke: 94 mm x 93 mm; 5.2L Supercharged cross-plane crank V8; Compression Ratio 9.5:1; Redline 7,500 RPM",
+   "q": "reputable vendor",
+   "seen": "2026-11-20",
+   "note": "CJ Pony Parts, 2020 GT500 Details & Specs. Ford Raptor R sheet gives the Predator as 3.70 x 3.66 in (93.98 x 92.96 mm), agreeing to rounding",
+   "targets": [
+    {
+     "name": "2020–22 Ford Shelby GT500 (Predator 5.2 SC)",
+     "arr": "VEH",
+     "cc": 5163,
+     "cyl": 8,
+     "geo": 5163.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-46-3v-05": {
+   "names": [
+    "2005–09 Ford Mustang GT (4.6 3V)"
+   ],
+   "bore": 90.2,
+   "stroke": 90,
+   "cr": 9.8,
+   "src": "https://wardsauto.com/news-analysis/ford-46l-sohc-v-8",
+   "says": "Ford 4.6L SOHC V-8 (Mustang GT): 4,606 cc, bore x stroke 90.2 x 90 mm, 9.8:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "WardsAuto 10 Best Engines entry, Ford 4.6L SOHC V-8 (January 2005), for the 2005 Mustang GT three-valve",
+   "targets": [
+    {
+     "name": "2005–09 Ford Mustang GT (4.6 3V)",
+     "arr": "VEH",
+     "cc": 4601,
+     "cyl": 8,
+     "geo": 4600.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "ford-46-3v-other": {
+   "names": [
+    "4.6 3V SOHC V8 (2005–10 Mustang GT, F-150)",
+    "2008–09 Ford Mustang Bullitt (4.6 3V)",
+    "2010 Ford Mustang GT (4.6 3V)"
+   ],
+   "bore": 90.2,
+   "stroke": 90,
+   "src": "https://wardsauto.com/news-analysis/ford-46l-sohc-v-8",
+   "says": "Ford 4.6L SOHC V-8 (Mustang GT): 4,606 cc, bore x stroke 90.2 x 90 mm, 9.8:1 (2005)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "WardsAuto (2005) for the three-valve 4.6; bore and stroke only for these later or other ratings",
+   "targets": [
+    {
+     "name": "4.6 3V SOHC V8 (2005–10 Mustang GT, F-150)",
+     "arr": "MOTORS",
+     "cc": 4601,
+     "cyl": 8,
+     "geo": 4600.8,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2008–09 Ford Mustang Bullitt (4.6 3V)",
+     "arr": "VEH",
+     "cc": 4601,
+     "cyl": 8,
+     "geo": 4600.8,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2010 Ford Mustang GT (4.6 3V)",
+     "arr": "VEH",
+     "cc": 4601,
+     "cyl": 8,
+     "geo": 4600.8,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "por-991-carrera34": {
+   "names": [
+    "2012–15 Porsche 911 Carrera (991.1, 3.4)"
+   ],
+   "bore": 97,
+   "stroke": 77.5,
+   "cr": 12.5,
+   "red": 7800,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e1638451-d7dc-4f0e-a00d-b169cf342b86/2013_911_Technical_Specifications.pdf.PDF",
+   "says": "911 Carrera: Bore 97.0 mm, Stroke 77.5 mm, Displacement 3,436 cm3, Compression ratio 12.5:1, Engine redline 7800 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2013 911 Technical Specifications",
+   "targets": [
+    {
+     "name": "2012–15 Porsche 911 Carrera (991.1, 3.4)",
+     "arr": "VEH",
+     "cc": 3436,
+     "cyl": 6,
+     "geo": 3436.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-991-carreras38": {
+   "names": [
+    "2012–15 Porsche 911 Carrera S (991.1, 3.8)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "cr": 12.5,
+   "red": 7800,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e1638451-d7dc-4f0e-a00d-b169cf342b86/2013_911_Technical_Specifications.pdf.PDF",
+   "says": "911 Carrera S: Bore 102.0 mm, Stroke 77.5 mm, Displacement 3,800 cm3, Compression ratio 12.5:1, Engine redline 7800 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2013 911 Technical Specifications",
+   "targets": [
+    {
+     "name": "2012–15 Porsche 911 Carrera S (991.1, 3.8)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-991-gts38": {
+   "names": [
+    "2014–15 Porsche 911 Carrera GTS (991.1, 3.8)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e1638451-d7dc-4f0e-a00d-b169cf342b86/2013_911_Technical_Specifications.pdf.PDF",
+   "says": "911 Carrera S: Bore 102.0 mm, Stroke 77.5 mm, Displacement 3,800 cm3",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "2013 Carrera S sheet for the same 3.8 (the GTS has the Powerkit); bore and stroke only",
+   "targets": [
+    {
+     "name": "2014–15 Porsche 911 Carrera GTS (991.1, 3.8)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-992-turbos": {
+   "names": [
+    "2020–24 Porsche 911 Turbo S (992.1, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 76.4,
+   "cr": 8.7,
+   "red": 7200,
+   "src": "https://download.newsroom.porsche.com/dam/jcr:8b531ae3-48f0-4d00-bfb9-c29f2676959b/Copy%20of%20U.S.%20Technical%20Specifications%202021%20911%20Turbo%20S%20Coupe%20and%20Cabriolet.pdf",
+   "says": "2021 911 Turbo S: Bore/Stroke 102.0 mm / 76.4 mm; Displacement 3.745 l; Compression ratio 8.7 : 1; Maximum engine speed 7,200",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, U.S. Technical Specifications 2021 911 Turbo S Coupe and Cabriolet",
+   "targets": [
+    {
+     "name": "2020–24 Porsche 911 Turbo S (992.1, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3745,
+     "cyl": 6,
+     "geo": 3745.7,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "por-992-turbo": {
+   "names": [
+    "2020–24 Porsche 911 Turbo (992.1, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 76.4,
+   "src": "https://download.newsroom.porsche.com/dam/jcr:8b531ae3-48f0-4d00-bfb9-c29f2676959b/Copy%20of%20U.S.%20Technical%20Specifications%202021%20911%20Turbo%20S%20Coupe%20and%20Cabriolet.pdf",
+   "says": "2021 911 Turbo S: Bore/Stroke 102.0 mm / 76.4 mm; Displacement 3.745 l",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Turbo S sheet for the same 3.745 l engine; bore and stroke only",
+   "targets": [
+    {
+     "name": "2020–24 Porsche 911 Turbo (992.1, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3745,
+     "cyl": 6,
+     "geo": 3745.7,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
