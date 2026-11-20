@@ -6343,6 +6343,143 @@
      "had": null
     }
    ]
+  },
+  "mb-m276-c43": {
+   "names": [
+    "2016–18 Mercedes-AMG C 43 W205 (M276 3.0 twin-turbo)"
+   ],
+   "bore": 88,
+   "stroke": 82.1,
+   "src": "https://media.mbusa.com/releases/release-f64df5efcf40bb28fb4d418ddc1c7aba-2018-mercedes-amg-c43-sedan",
+   "says": "AMG-enhanced 3.0L V6 biturbo; Displacement 2,996 cc; Bore 3.46 / 88.0 (in/mm); Stroke 3.23 / 82.1 (in/mm); Compression ratio 10.5 : 1; Redline 6,550 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Mercedes-Benz USA, 2018 Mercedes-AMG C43 Sedan specifications; bore and stroke only (preset spans 2016-18)",
+   "targets": [
+    {
+     "name": "2016–18 Mercedes-AMG C 43 W205 (M276 3.0 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2996,
+     "cyl": 6,
+     "geo": 2996.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m139": {
+   "sel": "^M139",
+   "bore": 83,
+   "stroke": 92,
+   "src": "https://www.km77.com/coches/mercedes/tecnica/2019/informacion",
+   "says": "M 139 and M 133 share bore and stroke, 83,0 y 92,0 milimetros; 1991 centimetros cubicos; 9,0 a 1 en el M 139",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com (Spanish motoring magazine), Motor Mercedes-AMG M 139, technical information (2019); bore and stroke only",
+   "targets": [
+    {
+     "name": "M139 2.0 turbo I4 (A 45 S, CLA 45 S, GT 43)",
+     "arr": "MOTORS",
+     "cc": 1991,
+     "cyl": 4,
+     "geo": 1991.1,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2024+ Mercedes-AMG GT 43 (M139 2.0 turbo)",
+     "arr": "VEH",
+     "cc": 1991,
+     "cyl": 4,
+     "geo": 1991.1,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "mb-m113k": {
+   "sel": "^M113K",
+   "bore": 97,
+   "stroke": 92,
+   "src": "https://mercedes-benz-publicarchive.com/marsClassic/en/instance/ko/E-55-AMG--W-211-E-55-2002---2006.xhtml?oid=5375",
+   "says": "E 55 AMG (W 211, 2002-2006): engine M 113 E 55 ML AMG / 113.990; 5439 cc; bore and stroke 97.0 x 92.0 mm; compression 9.0; 350 kW / 476 hp at 6100 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Mercedes-Benz Classic public archive, E 55 AMG W 211 technical data; bore and stroke only for the M113K presets (engine-only and G 55)",
+   "targets": [
+    {
+     "name": "M113K 5.4 supercharged V8 (E 55, CLS 55, SL 55, G 55 AMG)",
+     "arr": "MOTORS",
+     "cc": 5439,
+     "cyl": 8,
+     "geo": 5438.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2004–06 Mercedes-Benz G 55 AMG Kompressor (M113K)",
+     "arr": "VEH",
+     "cc": 5439,
+     "cyl": 8,
+     "geo": 5438.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "mb-m159": {
+   "sel": "^M159",
+   "bore": 102.2,
+   "stroke": 94.6,
+   "src": "https://tv.manualsonline.com/manuals/mfg/mercedesbenz/2011_sls_amg.html?p=424",
+   "says": "Engine SLS AMG (197), type 159: Bore 4.02 in (102.20 mm); Stroke 3.72 in (94.60 mm); Total piston displacement 378.8 cu in (6 208 cm3); Compression ratio 11.3:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Mercedes-Benz 2011 SLS AMG operators manual, technical data page (as hosted by manualsonline.com); bore and stroke only for the 2013-15 SLS and Black Series presets",
+   "targets": [
+    {
+     "name": "M159 6.2 V8 dry-sump (SLS AMG)",
+     "arr": "MOTORS",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": [
+      102.2,
+      94.6
+     ]
+    },
+    {
+     "name": "2010–12 Mercedes-Benz SLS AMG (M159)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": [
+      102.2,
+      94.6
+     ]
+    },
+    {
+     "name": "2013–15 Mercedes-Benz SLS AMG GT (M159)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2013–14 Mercedes-Benz SLS AMG Black Series (M159)",
+     "arr": "VEH",
+     "cc": 6208,
+     "cyl": 8,
+     "geo": 6208.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
