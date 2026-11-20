@@ -7383,6 +7383,199 @@
      "had": null
     }
    ]
+  },
+  "mit-4g63-evo9": {
+   "names": [
+    "2006–07 Mitsubishi Lancer Evolution IX (4G63)",
+    "4G63T 2.0 turbo I4 (Lancer Evolution IX, Eclipse GSX)"
+   ],
+   "bore": 85,
+   "stroke": 88,
+   "src": "https://www.goo-net-exchange.com/catalog/MITSUBISHI__LANCER/10026565",
+   "says": "Lancer RS Evolution IX (GH-CT9A): Displacement 1997cc; Bore x Stroke 85.0mm x 88.0mm; Compression ratio 8.8; 280ps(206kW)/6500rpm",
+   "q": "reputable vendor",
+   "seen": "2026-11-20",
+   "note": "Goo-net Exchange catalog (Japanese used-car marketplace catalog of the maker specification), JDM Evolution IX RS; bore and stroke only",
+   "targets": [
+    {
+     "name": "4G63T 2.0 turbo I4 (Lancer Evolution IX, Eclipse GSX)",
+     "arr": "MOTORS",
+     "cc": 1997,
+     "cyl": 4,
+     "geo": 1997.4,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "2006–07 Mitsubishi Lancer Evolution IX (4G63)",
+     "arr": "VEH",
+     "cc": 1997,
+     "cyl": 4,
+     "geo": 1997.4,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "ford-54sc-07": {
+   "names": [
+    "2007–09 Ford Shelby GT500 (5.4 SC)",
+    "5.4 4V supercharged V8 (2007–09 Shelby GT500)"
+   ],
+   "bore": 90.2,
+   "stroke": 105.8,
+   "src": "https://www.racecar.com/news/13411/motorsport/shelby-gt500-rated-at-500-horsepower",
+   "says": "2007 Shelby GT500 technical specifications: Bore x stroke 3.552 x 4.165 in. / 90.2 x 105.8 mm; Displacement 330 cu. in. / 5,409 cc; Compression ratio 8.4:1; Redline 6,250 rpm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Racecar.com news item, Shelby GT500 rated at 500 horsepower (reworked Ford announcement with its specification table); bore and stroke only",
+   "targets": [
+    {
+     "name": "5.4 4V supercharged V8 (2007–09 Shelby GT500)",
+     "arr": "MOTORS",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–09 Ford Shelby GT500 (5.4 SC)",
+     "arr": "VEH",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-54sc-other": {
+   "names": [
+    "2008–09 Ford Shelby GT500KR (5.4 SC)",
+    "2010 Ford Shelby GT500 (5.4 SC)",
+    "2011–12 Ford Shelby GT500 (5.4 SC, aluminum block)"
+   ],
+   "bore": 90.2,
+   "stroke": 105.8,
+   "src": "https://www.racecar.com/news/13411/motorsport/shelby-gt500-rated-at-500-horsepower",
+   "says": "2007 Shelby GT500: Bore x stroke 90.2 x 105.8 mm; 5,409 cc",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "2007 GT500 table for the same 5.4 4V supercharged V8; bore and stroke only",
+   "targets": [
+    {
+     "name": "2008–09 Ford Shelby GT500KR (5.4 SC)",
+     "arr": "VEH",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2010 Ford Shelby GT500 (5.4 SC)",
+     "arr": "VEH",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2011–12 Ford Shelby GT500 (5.4 SC, aluminum block)",
+     "arr": "VEH",
+     "cc": 5408,
+     "cyl": 8,
+     "geo": 5408.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "ford-50ho-windsor": {
+   "sel": "^5\\.0 Windsor (HO|GT-40)$",
+   "bore": 101.6,
+   "stroke": 76.2,
+   "src": "https://laundry.manualsonline.com/manuals/mfg/ford/m6007f50.html?p=2",
+   "says": "Ford Racing Performance Parts M-6007-F50 Long Block Engine Assembly instructions sheet, 5.0L H.O. SPECIFICATIONS: Bore 4.0 in; Stroke 3.0 in; Displacement 302 CID; Nominal Compression Ratio 9.0:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Ford Racing instruction sheet for the 5.0L H.O. replacement long block (direct replacement for 1987-93 5.0L Mustang), as hosted by manualsonline.com. Inch figures converted (101.6 x 76.2 mm). Bore and stroke only, applied to all the 5.0 Windsor HO and GT-40 presets (1982-95)",
+   "targets": [
+    {
+     "name": "5.0 HO 302 V8 (1985 Mustang GT, carbureted roller-cam)",
+     "arr": "MOTORS",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1982 Ford Mustang GT 5.0 HO (2-bbl)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1983–84 Ford Mustang GT 5.0 HO (4-bbl)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1985 Ford Mustang GT 5.0 HO (4-bbl, roller cam)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1986 Ford Mustang GT 5.0 HO (SEFI)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1993 Ford Mustang SVT Cobra (5.0 GT-40)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1994–95 Ford Mustang GT (5.0)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1994–95 Ford Mustang SVT Cobra (5.0)",
+     "arr": "VEH",
+     "cc": 4942,
+     "cyl": 8,
+     "geo": 4942.2,
+     "dPct": 0,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
