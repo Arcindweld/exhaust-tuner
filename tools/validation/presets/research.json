@@ -6022,6 +6022,327 @@
      "had": null
     }
    ]
+  },
+  "bmw-b58-m340i": {
+   "names": [
+    "2019+ BMW M340i G20 (B58B30O1)"
+   ],
+   "bore": 82,
+   "stroke": 94.6,
+   "cr": 10.2,
+   "src": "https://www.press.bmwgroup.com/spain/article/attachment/T0302174ES/440751",
+   "says": "BMW M340i xDrive Sedan: In-line / 6 / 4; Stroke/bore mm 94.6 / 82.0; Effective capacity cc 2998; Compression ratio :1 10.2",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Group press technical data, M340i xDrive Sedan (2019); the Austrian sheet T0302054DE gives the same",
+   "targets": [
+    {
+     "name": "2019+ BMW M340i G20 (B58B30O1)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "bmw-b58-other": {
+   "names": [
+    "B58B30M0 3.0 turbo I6 (340i, 440i, 540i, M240i, X3 M40i)",
+    "2016–19 BMW 340i / 440i F30/F32 (B58B30M0)",
+    "2016–21 BMW M140i / M240i (B58B30M0, 340 PS)"
+   ],
+   "bore": 82,
+   "stroke": 94.6,
+   "src": "https://www.press.bmwgroup.com/spain/article/attachment/T0302174ES/440751",
+   "says": "BMW M340i xDrive Sedan: Stroke/bore mm 94.6 / 82.0; Effective capacity cc 2998",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "M340i sheet for the same B58 2998 cc; bore and stroke only for the B58B30M0 presets",
+   "targets": [
+    {
+     "name": "B58B30M0 3.0 turbo I6 (340i, 440i, 540i, M240i, X3 M40i)",
+     "arr": "MOTORS",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2016–19 BMW 340i / 440i F30/F32 (B58B30M0)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    },
+    {
+     "name": "2016–21 BMW M140i / M240i (B58B30M0, 340 PS)",
+     "arr": "VEH",
+     "cc": 2998,
+     "cyl": 6,
+     "geo": 2997.5,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "bmw-n55-m2": {
+   "names": [
+    "2016–18 BMW M2 F87 (N55B30T0)"
+   ],
+   "bore": 84,
+   "stroke": 89.6,
+   "src": "https://www.press.bmwgroup.com/canada/article/attachment/T0261910EN/381940",
+   "says": "BMW M2 Coupe (2017 MY product guide): N55B30T0; bore/stroke values 89.6 and 84 in the column order of the sheet; 2979 cm3; 10.2 :1; 6500 1/min",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Canada 2017 M2 product guide. The PDF text gives the values apart from their labels; 84 bore x 89.6 stroke is the only pairing that gives the stated 2979 cm3 (89.6 x 84 would give 3178), as with the round-one M4 sheet; bore and stroke only",
+   "targets": [
+    {
+     "name": "2016–18 BMW M2 F87 (N55B30T0)",
+     "arr": "VEH",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s63t0-m5": {
+   "names": [
+    "2012–16 BMW M5 F10 (S63B44T0)"
+   ],
+   "bore": 89,
+   "stroke": 88.3,
+   "cr": 10,
+   "valves": 4,
+   "src": "https://www.press.bmwgroup.com/global/article/attachment/T0122682EN/178942",
+   "says": "BMW M5 (media information 10/2011): V90 / 8 / 4; Stroke/bore mm 88.3 / 89.0; Effective capacity cm3 4395; Compression ratio :1 10.0",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "BMW Group press technical data, F10 M5 (2011)",
+   "targets": [
+    {
+     "name": "2012–16 BMW M5 F10 (S63B44T0)",
+     "arr": "VEH",
+     "cc": 4395,
+     "cyl": 8,
+     "geo": 4394.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s63t0-other": {
+   "names": [
+    "S63B44T0 4.4 twin-turbo V8 (M5 F10, M6 F12/F13, X5 M, X6 M)",
+    "2016–18 BMW M5 F10 Competition Package (S63B44T2)"
+   ],
+   "bore": 89,
+   "stroke": 88.3,
+   "src": "https://www.press.bmwgroup.com/global/article/attachment/T0122682EN/178942",
+   "says": "BMW M5 (2011): Stroke/bore mm 88.3 / 89.0; Effective capacity cm3 4395",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "F10 M5 sheet for the same 4395 cm3 S63; bore and stroke only",
+   "targets": [
+    {
+     "name": "S63B44T0 4.4 twin-turbo V8 (M5 F10, M6 F12/F13, X5 M, X6 M)",
+     "arr": "MOTORS",
+     "cc": 4395,
+     "cyl": 8,
+     "geo": 4394.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2016–18 BMW M5 F10 Competition Package (S63B44T2)",
+     "arr": "VEH",
+     "cc": 4395,
+     "cyl": 8,
+     "geo": 4394.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-n55": {
+   "names": [
+    "N55B30 3.0 twin-scroll turbo I6 (335i F30, 135i, X5 35i)",
+    "2011–15 BMW 335i F30 / 135i (N55B30M0)"
+   ],
+   "bore": 84,
+   "stroke": 89.6,
+   "src": "https://www.wardsauto.com/news/archive-wards-bmw-makes-n55-engine-new-again/789001/",
+   "says": "3.0L (N55): Bore x stroke (mm) 84 x 89.6; Compression ratio 10.2:1 (2016 M2 spec table; the article gives the same 10.2:1 for the N55 of the M235i)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "WardsAuto, BMW Makes N55 Engine New Again (July 2016); bore and stroke only",
+   "targets": [
+    {
+     "name": "N55B30 3.0 twin-scroll turbo I6 (335i F30, 135i, X5 35i)",
+     "arr": "MOTORS",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2011–15 BMW 335i F30 / 135i (N55B30M0)",
+     "arr": "VEH",
+     "cc": 2979,
+     "cyl": 6,
+     "geo": 2979.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s54": {
+   "sel": "^S54",
+   "bore": 87,
+   "stroke": 91,
+   "src": "https://www.fastcar.co.uk/tuning-tech-guides/bmw-m3-engines-guide-from-s14-to-s58/",
+   "says": "S54B32(HP): 3246cc; bore 87mm; stroke 91mm; 11.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Fast Car, BMW M3 engines guide from S14 to S58 (spec table); bore and stroke only",
+   "targets": [
+    {
+     "name": "S54B32 3.2 I6 (M3 E46, Z4 M, Z3 M)",
+     "arr": "MOTORS",
+     "cc": 3246,
+     "cyl": 6,
+     "geo": 3245.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2001–06 BMW M3 E46 (S54)",
+     "arr": "VEH",
+     "cc": 3246,
+     "cyl": 6,
+     "geo": 3245.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2001–02 BMW Z3 M Coupe / Roadster (S54, Europe)",
+     "arr": "VEH",
+     "cc": 3246,
+     "cyl": 6,
+     "geo": 3245.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2006–08 BMW Z4 M Coupe / Roadster (S54)",
+     "arr": "VEH",
+     "cc": 3246,
+     "cyl": 6,
+     "geo": 3245.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s52": {
+   "sel": "^S52",
+   "bore": 86.4,
+   "stroke": 89.6,
+   "src": "https://www.fastcar.co.uk/tuning-tech-guides/bmw-m3-engines-guide-from-s14-to-s58/",
+   "says": "S52B32: 3152cc; bore 86.4mm; stroke 89.6mm",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Fast Car, BMW M3 engines guide (spec table)",
+   "targets": [
+    {
+     "name": "S52B32 3.2 I6 (US M3 E36, Z3 M)",
+     "arr": "MOTORS",
+     "cc": 3152,
+     "cyl": 6,
+     "geo": 3151.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "1996–99 BMW M3 E36 (S52B32, US)",
+     "arr": "VEH",
+     "cc": 3152,
+     "cyl": 6,
+     "geo": 3151.9,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2000–02 BMW Z3 M Coupe / Roadster (S52B32, US)",
+     "arr": "VEH",
+     "cc": 3152,
+     "cyl": 6,
+     "geo": 3151.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s50b32": {
+   "sel": "^S50B32$",
+   "bore": 86.4,
+   "stroke": 91,
+   "src": "https://www.fastcar.co.uk/tuning-tech-guides/bmw-m3-engines-guide-from-s14-to-s58/",
+   "says": "S50B32: 3201cc; bore 86.4mm; stroke 91mm; 11.3:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Fast Car, BMW M3 engines guide (spec table); bore and stroke only",
+   "targets": [
+    {
+     "name": "S50B32 3.2 I6 (Euro M3 E36, Z3 M)",
+     "arr": "MOTORS",
+     "cc": 3201,
+     "cyl": 6,
+     "geo": 3201.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "1996–99 BMW M3 E36 (S50B32, Europe)",
+     "arr": "VEH",
+     "cc": 3201,
+     "cyl": 6,
+     "geo": 3201.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "bmw-s14b23": {
+   "names": [
+    "1986–89 BMW M3 E30 (S14, with catalyst)"
+   ],
+   "bore": 93.4,
+   "stroke": 84,
+   "src": "https://www.fastcar.co.uk/tuning-tech-guides/bmw-m3-engines-guide-from-s14-to-s58/",
+   "says": "S14B23/EVO: 2302cc; bore 93.4mm; stroke 84mm; 10.5:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Fast Car, BMW M3 engines guide (spec table); bore and stroke only (the catalyst S14 had its own compression)",
+   "targets": [
+    {
+     "name": "1986–89 BMW M3 E30 (S14, with catalyst)",
+     "arr": "VEH",
+     "cc": 2302,
+     "cyl": 4,
+     "geo": 2302.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
