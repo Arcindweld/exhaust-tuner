@@ -5906,6 +5906,122 @@
      "had": null
     }
    ]
+  },
+  "apr-rsv4-1100": {
+   "names": [
+    "2021+ Aprilia RSV4 1100 (65° V4)"
+   ],
+   "bore": 81,
+   "stroke": 53.32,
+   "src": "https://www.motorcycle.com/specs/aprilia/sport/2021/rsv4/1100/detail.html",
+   "says": "2021 RSV4 1100: Displacement 1099 / 67 cc/ci; Bore 81 / 3.19 mm/in; Stroke 2.1 / 53.32 in/mm; Compression Ratio 13.6:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Aprilia RSV4 1100; bore and stroke only",
+   "targets": [
+    {
+     "name": "2021+ Aprilia RSV4 1100 (65° V4)",
+     "arr": "VEH",
+     "cc": 1099,
+     "cyl": 4,
+     "geo": 1099,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "apr-tuono-v4-1100": {
+   "names": [
+    "2017+ Aprilia Tuono V4 1100 (65° V4)"
+   ],
+   "bore": 81,
+   "stroke": 52.3,
+   "src": "https://www.motorcycle.com/specs/aprilia/sport/2021/tuono-v4/1100/detail.html",
+   "says": "2021 Tuono V4 1100: Displacement 1077 / 65.7 cc/ci; Bore 81 / 3.19 mm/in; Stroke 2.06 / 52.3 in/mm; Compression Ratio 13.6:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2021 Aprilia Tuono V4 1100; bore and stroke only",
+   "targets": [
+    {
+     "name": "2017+ Aprilia Tuono V4 1100 (65° V4)",
+     "arr": "VEH",
+     "cc": 1077,
+     "cyl": 4,
+     "geo": 1078,
+     "dPct": 0.09,
+     "had": null
+    }
+   ]
+  },
+  "apr-tuareg660-22": {
+   "names": [
+    "2022 Aprilia Tuareg 660 (Cycle World dyno)"
+   ],
+   "bore": 81,
+   "stroke": 63.9,
+   "src": "https://www.motorcycle.com/specs/aprilia/on-off-road/2022/tuareg/660/detail.html",
+   "says": "2022 Tuareg 660: Displacement 659 / 40.2; Bore 81 / 3.19; Stroke 2.52 / 63.9",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2022 Aprilia Tuareg 660",
+   "targets": [
+    {
+     "name": "2022 Aprilia Tuareg 660 (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 659,
+     "cyl": 2,
+     "geo": 658.6,
+     "dPct": -0.07,
+     "had": null
+    }
+   ]
+  },
+  "kaw-w800-19": {
+   "names": [
+    "2019 Kawasaki W800 Cafe (Cycle World dyno)"
+   ],
+   "bore": 77,
+   "stroke": 83,
+   "cr": 8.4,
+   "src": "https://www.kawasaki.com/en-us/products/ProductSpecSheetPDF/2019-w800-cafe",
+   "says": "Engine 4-stroke, vertical twin, SOHC, 8 valves, air-cooled; Displacement 773cc; Bore x Stroke 77.0 x 83.0mm; Compression Ratio 8.4:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Kawasaki USA 2019 W800 Cafe spec sheet",
+   "targets": [
+    {
+     "name": "2019 Kawasaki W800 Cafe (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 773,
+     "cyl": 2,
+     "geo": 773,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "hd-revmax1250-22": {
+   "names": [
+    "2023 Harley-Davidson Sportster S (Cycle World dyno)"
+   ],
+   "bore": 104.9,
+   "stroke": 72.4,
+   "src": "https://www.motorcycle.com/specs/harley-davidson/standard/2022/sportster/s/detail.html",
+   "says": "2022 Sportster S: Displacement 1252 / 76.4 cc/ci; Bore 104.9 / 4.13 mm/in; Stroke 2.85 / 72.4 in/mm; Compression Ratio 12:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Motorcycle.com specifications, 2022 Harley-Davidson Sportster S (Revolution Max 1250T); bore and stroke only for the 2023 preset",
+   "targets": [
+    {
+     "name": "2023 Harley-Davidson Sportster S (Cycle World dyno)",
+     "arr": "VEH",
+     "cc": 1252,
+     "cyl": 2,
+     "geo": 1251.4,
+     "dPct": -0.04,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
