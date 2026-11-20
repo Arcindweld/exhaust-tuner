@@ -7258,6 +7258,131 @@
      "had": null
     }
    ]
+  },
+  "maz-skyg20-nd2": {
+   "names": [
+    "2019+ Mazda MX-5 Miata ND2 (2.0 Skyactiv-G)"
+   ],
+   "bore": 83.5,
+   "stroke": 91.2,
+   "src": "https://www.km77.com/coches/mazda/mx-5/2019/roadster/nappa-edition/mx-5-20-skyactiv-g-135-kw-184-cv-i-stop-i-eloop-nappa-edition/datos",
+   "says": "MX-5 ST 2.0 SKYACTIV-G 135 kW (184 CV) (2018-2020): Diametro 83,5 mm; Carrera 91,2 mm; Cilindrada 1.998 cm3; 13 a 1; 184 CV / 135 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, MX-5 ND 184 CV (European ND2); bore and stroke only",
+   "targets": [
+    {
+     "name": "2019+ Mazda MX-5 Miata ND2 (2.0 Skyactiv-G)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1997.6,
+     "dPct": -0.02,
+     "had": null
+    }
+   ]
+  },
+  "maz-mzr20-nc": {
+   "names": [
+    "2009–15 Mazda MX-5 Miata NC (2.0 MZR, manual)"
+   ],
+   "bore": 87.5,
+   "stroke": 83.1,
+   "src": "https://www.km77.com/coches/mazda/mx-5/2009/roadster-coupe/sportive/mx-5-20-sportive-roadster-coupe/datos",
+   "says": "MX-5 2.0 Sportive Roadster Coupe (2009-2010): Diametro 87,5 mm; Carrera 83,1 mm; Cilindrada 1.999 cm3; 10,8 a 1; 160 CV / 118 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, MX-5 NC 2.0 (European 160 CV); bore and stroke only",
+   "targets": [
+    {
+     "name": "2009–15 Mazda MX-5 Miata NC (2.0 MZR, manual)",
+     "arr": "VEH",
+     "cc": 1999,
+     "cyl": 4,
+     "geo": 1998.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "hon-k20c1": {
+   "names": [
+    "2017–21 Honda Civic Type R (K20C1)"
+   ],
+   "bore": 86,
+   "stroke": 85.9,
+   "src": "https://www.km77.com/coches/honda/civic/2017/5-puertas/type-r-gt/civic-type-r-20-vtec-turbo-gt/datos",
+   "says": "Civic Type R 2.0 VTEC Turbo GT (2017-2018): Diametro 86 mm; Carrera 85,9 mm; Cilindrada 1.996 cm3; 9,8 a 1; 320 CV / 235 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, Civic Type R FK8 (European 320 CV); bore and stroke only",
+   "targets": [
+    {
+     "name": "2017–21 Honda Civic Type R (K20C1)",
+     "arr": "VEH",
+     "cc": 1996,
+     "cyl": 4,
+     "geo": 1995.9,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "sub-ej257-06": {
+   "names": [
+    "2004 Subaru Impreza WRX STI (EJ257)",
+    "EJ257 2.5 turbo boxer (WRX STI, US)"
+   ],
+   "bore": 99.5,
+   "stroke": 79,
+   "src": "https://www.km77.com/coches/subaru/impreza/2006/4-puertas/wrx/impreza-sedan-25-wrx-sti/datos",
+   "says": "Impreza Sedan 2.5 WRX STI (2005-2007): Diametro 99,5 mm; Carrera 79 mm; Cilindrada 2.457 cm3; 8,2 a 1; 280 CV / 206 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, European Impreza WRX STI 2.5 (2005-07); bore and stroke only for the US EJ257 presets",
+   "targets": [
+    {
+     "name": "EJ257 2.5 turbo boxer (WRX STI, US)",
+     "arr": "MOTORS",
+     "cc": 2457,
+     "cyl": 4,
+     "geo": 2457.1,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2004 Subaru Impreza WRX STI (EJ257)",
+     "arr": "VEH",
+     "cc": 2457,
+     "cyl": 4,
+     "geo": 2457.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "sub-ej257-15": {
+   "names": [
+    "2015–21 Subaru WRX STI (EJ257)"
+   ],
+   "bore": 99.5,
+   "stroke": 79,
+   "src": "https://www.km77.com/coches/subaru/wrx/2015/4-puertas/confort-edition/wrx-sti-25-sedan-confort-edition/datos",
+   "says": "WRX STI 2.5 Sedan Confort Edition (2017): Diametro 99,5 mm; Carrera 79 mm; Cilindrada 2.457 cm3; 8,2 a 1; 300 CV / 221 kW",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "km77.com technical data sheet, European WRX STI (2017); bore and stroke only",
+   "targets": [
+    {
+     "name": "2015–21 Subaru WRX STI (EJ257)",
+     "arr": "VEH",
+     "cc": 2457,
+     "cyl": 4,
+     "geo": 2457.1,
+     "dPct": 0,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
