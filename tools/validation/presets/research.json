@@ -4604,6 +4604,198 @@
      "had": null
     }
    ]
+  },
+  "nis-vq35de-03": {
+   "names": [
+    "2003 Nissan 350Z (VQ35DE)",
+    "VQ35DE 3.5 V6 (350Z, G35, Maxima)"
+   ],
+   "bore": 95.5,
+   "stroke": 81.4,
+   "src": "https://www.manualowl.com/am/Nissan/2003-350Z/Manual/861?page=203",
+   "says": "Model VQ35DE; Displacement 213.45 (3,498) cu in (cm3); Bore x Stroke 3.760 x 3.205 (95.5 x 81.4) in (mm)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Nissan 2003 350Z owners manual, specifications page (as hosted by manualowl.com)",
+   "targets": [
+    {
+     "name": "VQ35DE 3.5 V6 (350Z, G35, Maxima)",
+     "arr": "MOTORS",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2003 Nissan 350Z (VQ35DE)",
+     "arr": "VEH",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq35de-05": {
+   "names": [
+    "2005–06 Nissan 350Z (VQ35DE Rev-up)"
+   ],
+   "bore": 95.5,
+   "stroke": 81.4,
+   "src": "https://www.manualowl.com/am/Nissan/2005-350Z/Manual/879?page=251",
+   "says": "Model VQ35DE; Displacement 213.5 (3,498) cu in (cm3); Bore x Stroke 3.760 x 3.205 (95.5 x 81.4) in (mm)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Nissan 2005 350Z owners manual, specifications page (as hosted by manualowl.com)",
+   "targets": [
+    {
+     "name": "2005–06 Nissan 350Z (VQ35DE Rev-up)",
+     "arr": "VEH",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-vq35hr-08": {
+   "sel": "^VQ35HR$",
+   "bore": 95.5,
+   "stroke": 81.4,
+   "src": "https://www.manualowl.com/am/Nissan/2008-350Z/Manual/912?page=282",
+   "says": "Model VQ35HR; Displacement 213.45 (3,498) cu in (cm3); Bore x stroke 3.760 x 3.205 (95.5 x 81.4) in (mm)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Nissan 2008 350Z owners manual, specifications page (as hosted by manualowl.com). The 2007 press kit (https://usa.nissannews.com:443/en-US/releases/2007-nissan-350z-coupe-and-roadster-press-kit) gives 10.6:1 and 7,500 rpm but no bore and stroke",
+   "targets": [
+    {
+     "name": "VQ35HR 3.5 V6 (2007–08 350Z, G35)",
+     "arr": "MOTORS",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2007–08 Nissan 350Z (VQ35HR)",
+     "arr": "VEH",
+     "cc": 3498,
+     "cyl": 6,
+     "geo": 3498.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-qr25-sentra": {
+   "sel": "^QR25DE$",
+   "bore": 89,
+   "stroke": 100,
+   "src": "https://canada.nissannews.com/en-CA/releases/ca-2011-nissan-sentra-se-r",
+   "says": "SE-R and SE-R Spec V: Bore x stroke 89.0 x 100.0 mm; 2.5L; compression 9.7 (SE-R) / 10.5 (Spec V); Maximum engine speed 6,200 / 7,000 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Nissan Canada, 2011 Nissan Sentra SE-R specifications; bore and stroke only (presets span 2007-12)",
+   "targets": [
+    {
+     "name": "2007–12 Nissan Sentra SE-R Spec V (QR25DE)",
+     "arr": "VEH",
+     "cc": 2488,
+     "cyl": 4,
+     "geo": 2488.5,
+     "dPct": 0.02,
+     "had": null
+    },
+    {
+     "name": "2007–12 Nissan Sentra SE-R (QR25DE, CVT)",
+     "arr": "VEH",
+     "cc": 2488,
+     "cyl": 4,
+     "geo": 2488.5,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "nis-vr30": {
+   "names": [
+    "VR30DDTT 3.0 twin-turbo V6 (Z, Q50/Q60 Red Sport 400)",
+    "2016–24 Infiniti Q50/Q60 Red Sport 400 (VR30DDTT)",
+    "2016–24 Infiniti Q50/Q60 3.0t (VR30DDTT, 300 hp)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://canada.infinitinews.com/en-CA/releases/release-5ac4eb09db8c0dedca705b2277000fa3-2023-infiniti-q50-specifications",
+   "says": "Bore & stroke 86 x 86; 3.0 litre/2,997 cc; compression 10.3; redline 6,800 rpm (both 300 hp and 400 hp)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Infiniti Canada, 2023 Infiniti Q50 specifications; bore and stroke only (presets span 2016-24)",
+   "targets": [
+    {
+     "name": "VR30DDTT 3.0 twin-turbo V6 (Z, Q50/Q60 Red Sport 400)",
+     "arr": "MOTORS",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2016–24 Infiniti Q50/Q60 Red Sport 400 (VR30DDTT)",
+     "arr": "VEH",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2016–24 Infiniti Q50/Q60 3.0t (VR30DDTT, 300 hp)",
+     "arr": "VEH",
+     "cc": 2997,
+     "cyl": 6,
+     "geo": 2997.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "nis-sr20det-s15": {
+   "names": [
+    "1999–2002 Nissan Silvia S15 Spec-R (SR20DET)",
+    "SR20DET 2.0 turbo I4 (Silvia S13–S15, 180SX)"
+   ],
+   "bore": 86,
+   "stroke": 86,
+   "src": "https://www.goo-net-exchange.com/catalog/NISSAN__SILVIA/1502004",
+   "says": "Silvia Spec-R B Package (GF-S15): Engine Model SR20DET; Displacement 1998cc; Bore x Stroke 86.0mm x 86.0mm; Compression Ratio 8.5; 225ps(165kW)/6000rpm",
+   "q": "reputable vendor",
+   "seen": "2026-11-20",
+   "note": "Goo-net Exchange catalog (the Japanese used-car marketplace catalog of the maker specification) for the S15 Silvia Spec-R; bore and stroke only",
+   "targets": [
+    {
+     "name": "SR20DET 2.0 turbo I4 (Silvia S13–S15, 180SX)",
+     "arr": "MOTORS",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "1999–2002 Nissan Silvia S15 Spec-R (SR20DET)",
+     "arr": "VEH",
+     "cc": 1998,
+     "cyl": 4,
+     "geo": 1998.2,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
