@@ -51,6 +51,8 @@ const { uiClick } = require('./settle');
   ok(await pg.isHidden('#f-gaps'), 'gaps hidden for a single');
   t = await secTxt(); ok(/one-cylinder/.test(t), 'single keeps the one-cylinder text');
   // more primaries than cylinders
+  // the preset now carries its own bore and stroke (2026-11-20): blank them so halving the cylinders does not trip the bore-and-stroke-against-displacement message first
+  await pg.fill('#f-bore', ''); await pg.fill('#f-stroke', '');
   await pg.selectOption('#f-n', '8'); await pg.fill('#f-cyl', '4'); await pg.waitForTimeout(80); t = await secTxt();
   ok(/fewer than the 8 primaries/.test(t), 'more primaries than cylinders warns');
   ok(errs.length === 0, 'no page errors' + (errs.length ? ' (' + errs.join(' | ') + ')' : ''));
