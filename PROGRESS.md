@@ -35,3 +35,5 @@ Status: started. Read the three audit docs.
 - J6 LS3 (engine list "6.2 L LS3, 426 hp as fitted Camaro SS"): hand airflow 376*6000/3456*0.9=587.5 cfm = page 588; v=44.7 m/s=146.7 ft/s = 147; tube for 180 ft/s 80.2 mm = page; BMEP 10.3 bar = page; K&N area 376*6000/20839=108.3 in2 = page 108.
 - J6 F: NA Intake explainBox and key one unit (588 cfm, 147 ft/s, 180 ft/s, 86 F/77 F); filter rows cfm/in2/in only (27830-27834). Fix.
 - J6: Intake CFD needs the Windows program (OpenFOAM) - not testable here.
+- FIXES committed (WIP commit after F1-F10); verified j1/j3/j4/j6 by scratch scripts; ol numbers visible at 400.
+- NEXT: write web/tests/jobs_ui.js, run tests, write docs/JOBS_QA_2026-11-20.md
