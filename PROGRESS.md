@@ -30,3 +30,8 @@ Status: started. Read the three audit docs.
 - J4 F: Quick sheet for a bike says "To the bumper", "where the floor has room", "a street car needs" (index.html ~20596, 20644, 20646, 20674); "3/8 in plate" one unit (20556). Fix text.
 - J4/J1 F: quickApply doesn't set Sound tab resonator target s-hf (stays 120 Hz while drone is 45/70 Hz). Fix carry-over.
 - J4 P: bike Quick suggests 11 L Helmholtz can and 2.021 in OD (non-stock) main pipe; maxL 2 m for bikes. Proposal.
+- J5 Camaro SS 350 (1967-69 L48 preset). Hand: SH 2.2*295/115/2=2.82 in2 -> 2.25 in (page 2.25; user wants 2.5: set on Crossover). primary ID 1.4215 = page 1.42. X: lc=3/tan20=8.24 in = page 8.2; leg 3/sin20=8.77 = page; merged 2.12*sqrt2=3.00 = page. 4x crank at 2800 = 186.7 Hz = page 187.
+- J5/J1 F: quickApply doesn't carry head-to-tip q-sys to Sound s-len / Mufflers m-len. Fix.
+- J6 LS3 (engine list "6.2 L LS3, 426 hp as fitted Camaro SS"): hand airflow 376*6000/3456*0.9=587.5 cfm = page 588; v=44.7 m/s=146.7 ft/s = 147; tube for 180 ft/s 80.2 mm = page; BMEP 10.3 bar = page; K&N area 376*6000/20839=108.3 in2 = page 108.
+- J6 F: NA Intake explainBox and key one unit (588 cfm, 147 ft/s, 180 ft/s, 86 F/77 F); filter rows cfm/in2/in only (27830-27834). Fix.
+- J6: Intake CFD needs the Windows program (OpenFOAM) - not testable here.
