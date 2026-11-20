@@ -2706,6 +2706,396 @@
      "had": null
     }
    ]
+  },
+  "gm-ls3": {
+   "sel": "^LS3$|^LS376",
+   "cc": [
+    6100,
+    6200
+   ],
+   "bore": 103.25,
+   "stroke": 92,
+   "src": "https://chevrolet.com/performance/crate-engines/ls3",
+   "says": "Bore x Stroke (in.): 4.065 x 3.622 (103.25 x 92 mm); Displacement (cu. in.): 376 (6.2L)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Chevrolet Performance LS3 crate engine page (P/N 19434636); bore and stroke only (the crate engine is not the exact car rating, so its 10.7:1 is not written)",
+   "targets": [
+    {
+     "name": "LS3 6.2 V8 crate / Corvette C6 (430 hp)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "LS376/525 6.2 V8 crate (hot-cam LS3)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2008–13 Chevrolet Corvette C6 (LS3)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2010–15 Chevrolet Camaro SS manual (LS3)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103,
+      92
+     ]
+    }
+   ]
+  },
+  "gm-lsa": {
+   "sel": "^LSA$",
+   "bore": 103.25,
+   "stroke": 92,
+   "src": "https://www.gmspecialtyvehicles.com/chevrolet/performance/engines/lsa",
+   "says": "Bore x Stroke (in.): 4.065 X 3.622 (103.25 x 92 mm); Displacement (cu. in.): 376 (6.2L); Compression Ratio: 9.1:1",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "GM Specialty Vehicles LSA engine page; bore and stroke only for the car presets",
+   "targets": [
+    {
+     "name": "LSA 6.2 supercharged V8 (CTS-V, Camaro ZL1, crate)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2012–15 Chevrolet Camaro ZL1 (LSA)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2009–15 Cadillac CTS-V (LSA)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls9": {
+   "sel": "^LS9$",
+   "bore": 103.25,
+   "stroke": 92,
+   "src": "https://www.lsxmag.com/?p=16816",
+   "says": "Bore x Stroke (in): 4.06 x 3.62 (103.25 x 92mm); Displacement (ci): 376 cubic inches (6.2L); Compression Ratio: 9.1:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "LSX Magazine, GM Performance Build Center: Home of the LS9 Engine. Chevrolet Performance production blocks page gives the LS9 block 4.065 in finished bore (103.25 mm), agreeing",
+   "targets": [
+    {
+     "name": "LS9 6.2 supercharged V8 (Corvette ZR1, crate)",
+     "arr": "MOTORS",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": [
+      103.25,
+      92
+     ]
+    },
+    {
+     "name": "2009–13 Chevrolet Corvette ZR1 (LS9)",
+     "arr": "VEH",
+     "cc": 6162,
+     "cyl": 8,
+     "geo": 6162.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls7": {
+   "sel": "^LS7$",
+   "cc": [
+    7000,
+    7020
+   ],
+   "bore": 104.8,
+   "stroke": 101.6,
+   "src": "https://www.jegs.com/i/Chevrolet-Performance/809/19329246/10002/-1",
+   "says": "Displacement: 427ci (7.0L); Bore x Stroke: 4.125 x 4.000 (104.8 x 101.6mm); Compression Ratio: 11.0:1",
+   "q": "reputable vendor",
+   "seen": "2026-11-20",
+   "note": "JEGS listing of Chevrolet Performance LS7 crate engine 19329246; Chevrolet Performance production blocks page gives the LS7 block 4.125 in finished bore (104.78 mm), agreeing. Bore and stroke only",
+   "targets": [
+    {
+     "name": "LS7 7.0 V8 (Corvette Z06, Camaro Z/28, crate)",
+     "arr": "MOTORS",
+     "cc": 7011,
+     "cyl": 8,
+     "geo": 7011.3,
+     "dPct": 0,
+     "had": [
+      104.8,
+      101.6
+     ]
+    },
+    {
+     "name": "2006–13 Chevrolet Corvette Z06 (LS7)",
+     "arr": "VEH",
+     "cc": 7011,
+     "cyl": 8,
+     "geo": 7011.3,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2014–15 Chevrolet Camaro Z/28 (LS7)",
+     "arr": "VEH",
+     "cc": 7011,
+     "cyl": 8,
+     "geo": 7011.3,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls1": {
+   "names": [
+    "1998–2002 Chevrolet Camaro SS (LS1)",
+    "2001–04 Chevrolet Corvette C5 (LS1)",
+    "1998–2000 Chevrolet Camaro Z28 (LS1)",
+    "2001–02 Chevrolet Camaro Z28 (LS1)",
+    "2001–02 Chevrolet Camaro SS (LS1)",
+    "1997–2000 Chevrolet Corvette C5 (LS1)",
+    "1998–2002 Pontiac Firebird Formula / Trans Am (LS1)",
+    "2004 Pontiac GTO (LS1)"
+   ],
+   "bore": 99.06,
+   "stroke": 91.95,
+   "src": "https://www.streetmachine.com.au/?p=55378",
+   "says": "LS1: 5.7L, bore 3.90in, stroke 3.62in, 10.1:1 (spec table)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, LS engine family part 1: Gen III + Gen IV (2023). Inch figures converted (x25.4: 99.06 x 91.948 mm). The MOTORS LS1 entry keeps its own 99 x 92 (not targeted)",
+   "targets": [
+    {
+     "name": "1998–2002 Chevrolet Camaro SS (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2001–04 Chevrolet Corvette C5 (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "1998–2000 Chevrolet Camaro Z28 (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2001–02 Chevrolet Camaro Z28 (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2001–02 Chevrolet Camaro SS (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "1997–2000 Chevrolet Corvette C5 (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "1998–2002 Pontiac Firebird Formula / Trans Am (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2004 Pontiac GTO (LS1)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls6": {
+   "names": [
+    "2001 Chevrolet Corvette Z06 (LS6)",
+    "2002–04 Chevrolet Corvette Z06 (LS6)",
+    "2004–05 Cadillac CTS-V (LS6)"
+   ],
+   "bore": 99.06,
+   "stroke": 91.95,
+   "src": "https://www.streetmachine.com.au/?p=55378",
+   "says": "LS6: 5.7L, bore 3.90in, stroke 3.62in, 10.5:1 (spec table)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, LS engine family part 1 (2023). Inch figures converted. The MOTORS LS6 entry keeps its own 99 x 92 (not targeted)",
+   "targets": [
+    {
+     "name": "2001 Chevrolet Corvette Z06 (LS6)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2002–04 Chevrolet Corvette Z06 (LS6)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    },
+    {
+     "name": "2004–05 Cadillac CTS-V (LS6)",
+     "arr": "VEH",
+     "cc": 5665,
+     "cyl": 8,
+     "geo": 5669.3,
+     "dPct": 0.08,
+     "had": null
+    }
+   ]
+  },
+  "gm-lq9": {
+   "sel": "LQ9",
+   "bore": 101.6,
+   "stroke": 91.95,
+   "src": "https://www.streetmachine.com.au/?p=55378",
+   "says": "LQ9: 6.0L, bore 4.00in, stroke 3.62in, 10.0:1 (spec table)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, LS engine family part 1 (2023). Inch figures converted (101.6 x 91.948 mm)",
+   "targets": [
+    {
+     "name": "LQ9 6.0 Vortec HO iron-block V8 (Silverado SS, Escalade)",
+     "arr": "MOTORS",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5963.7,
+     "dPct": -0.05,
+     "had": null
+    },
+    {
+     "name": "2003–06 Chevrolet Silverado SS (6.0 Vortec HO LQ9)",
+     "arr": "VEH",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5963.7,
+     "dPct": -0.05,
+     "had": null
+    }
+   ]
+  },
+  "gm-ls2": {
+   "sel": "^LS2$",
+   "bore": 101.6,
+   "stroke": 92,
+   "src": "https://www.streetmachine.com.au/features/ls-engine-variants-part-two-generation-iv",
+   "says": "LS2: 5967cc (364ci), bore 101.6mm (4.00in), stroke 92mm (3.622in), compression 10.9:1",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Street Machine, LS engine variants part two - Generation IV (2018); bore and stroke only",
+   "targets": [
+    {
+     "name": "LS2 6.0 V8 (Corvette C6, GTO, TrailBlazer SS)",
+     "arr": "MOTORS",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5967,
+     "dPct": 0,
+     "had": [
+      101.6,
+      92
+     ]
+    },
+    {
+     "name": "2005–07 Chevrolet Corvette C6 (LS2)",
+     "arr": "VEH",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5967,
+     "dPct": 0,
+     "had": null
+    },
+    {
+     "name": "2005–06 Pontiac GTO (LS2)",
+     "arr": "VEH",
+     "cc": 5967,
+     "cyl": 8,
+     "geo": 5967,
+     "dPct": 0,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
