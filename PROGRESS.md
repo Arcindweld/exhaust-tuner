@@ -37,3 +37,4 @@ Status: started. Read the three audit docs.
 - J6: Intake CFD needs the Windows program (OpenFOAM) - not testable here.
 - FIXES committed (WIP commit after F1-F10); verified j1/j3/j4/j6 by scratch scripts; ol numbers visible at 400.
 - NEXT: write web/tests/jobs_ui.js, run tests, write docs/JOBS_QA_2026-11-20.md
+- targeted tests pass (ui_ui 312 after word-check extension, incremental, staleness 12, sheet 26, operatingpoint 55, jobs 59). Running full suite.
