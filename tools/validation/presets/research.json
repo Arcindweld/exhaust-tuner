@@ -4100,6 +4100,510 @@
      "had": null
     }
    ]
+  },
+  "por-9912-turbo": {
+   "names": [
+    "2016–19 Porsche 911 Turbo (991.2, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "cr": 9.8,
+   "red": 7000,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:71ee7b5f-5fe9-4f45-bc6a-3cfdf18b51d5/2017_911_Turbo_Technical_Specifications.pdf.PDF",
+   "says": "911 Turbo: Bore/Stroke 102 mm / 77.5 mm; Displacement 3.8 l; Compression ratio 9.8 : 1; Maximum engine speed 7000",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2017 911 Turbo Technical Specifications",
+   "targets": [
+    {
+     "name": "2016–19 Porsche 911 Turbo (991.2, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9912-turbos": {
+   "names": [
+    "2016–19 Porsche 911 Turbo S (991.2, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "cr": 9.8,
+   "red": 7200,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:71ee7b5f-5fe9-4f45-bc6a-3cfdf18b51d5/2017_911_Turbo_Technical_Specifications.pdf.PDF",
+   "says": "911 Turbo S: Bore/Stroke 102 mm / 77.5 mm; Displacement 3.8 l; Compression ratio 9.8 : 1; Maximum engine speed 7200.0",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2017 911 Turbo Technical Specifications",
+   "targets": [
+    {
+     "name": "2016–19 Porsche 911 Turbo S (991.2, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9911-turbo": {
+   "names": [
+    "2013–15 Porsche 911 Turbo (991.1, 3.8 twin-turbo)",
+    "2013–15 Porsche 911 Turbo S (991.1, 3.8 twin-turbo)"
+   ],
+   "bore": 102,
+   "stroke": 77.5,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:71ee7b5f-5fe9-4f45-bc6a-3cfdf18b51d5/2017_911_Turbo_Technical_Specifications.pdf.PDF",
+   "says": "911 Turbo / Turbo S (2017): Bore/Stroke 102 mm / 77.5 mm; Displacement 3.8 l",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "2017 sheet for the 3.8 twin-turbo; bore and stroke only for the 991.1 presets",
+   "targets": [
+    {
+     "name": "2013–15 Porsche 911 Turbo (991.1, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2013–15 Porsche 911 Turbo S (991.1, 3.8 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3800,
+     "cyl": 6,
+     "geo": 3799.6,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-992-carreras": {
+   "names": [
+    "2019–24 Porsche 911 Carrera S (992.1, 3.0 twin-turbo)"
+   ],
+   "bore": 91,
+   "stroke": 76.4,
+   "cr": 10.2,
+   "red": 7500,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:d5712d5c-b376-41d9-8201-09731162e143/2020_911_Carrera_S_and_911_Carrera_4S_US_specifications.pdf.PDF",
+   "says": "2020 911 Carrera S: Bore/Stroke 91.0 mm / 76.4 mm; Displacement 3.0 l; Compression ratio 10.2 : 1; Maximum engine speed 7500",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2020 911 Carrera S and 4S US specifications; the 2020 Carrera S Cabriolet sheet (PCNA19_0038) gives the same",
+   "targets": [
+    {
+     "name": "2019–24 Porsche 911 Carrera S (992.1, 3.0 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2981,
+     "cyl": 6,
+     "geo": 2981.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-992-carrera-other": {
+   "names": [
+    "2019–24 Porsche 911 Carrera (992.1, 3.0 twin-turbo)",
+    "2021–24 Porsche 911 Carrera GTS (992.1, 3.0 twin-turbo)",
+    "9A2 3.0 twin-turbo flat-six (991.2 / 992 Carrera, S, GTS)"
+   ],
+   "bore": 91,
+   "stroke": 76.4,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:d5712d5c-b376-41d9-8201-09731162e143/2020_911_Carrera_S_and_911_Carrera_4S_US_specifications.pdf.PDF",
+   "says": "2020 911 Carrera S: Bore/Stroke 91.0 mm / 76.4 mm; Displacement 3.0 l",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Carrera S sheet for the same 3.0 twin-turbo; bore and stroke only",
+   "targets": [
+    {
+     "name": "9A2 3.0 twin-turbo flat-six (991.2 / 992 Carrera, S, GTS)",
+     "arr": "MOTORS",
+     "cc": 2981,
+     "cyl": 6,
+     "geo": 2981.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2019–24 Porsche 911 Carrera (992.1, 3.0 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2981,
+     "cyl": 6,
+     "geo": 2981.4,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2021–24 Porsche 911 Carrera GTS (992.1, 3.0 twin-turbo)",
+     "arr": "VEH",
+     "cc": 2981,
+     "cyl": 6,
+     "geo": 2981.4,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9912-gt3rs": {
+   "names": [
+    "2018–19 Porsche 911 GT3 RS (991.2, 4.0)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "cr": 13.3,
+   "red": 9000,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e00c2789-42c7-4dab-a818-a732003194b0/2019_911_GT3_RS_Technical_Specifications.pdf.PDF",
+   "says": "Bore x stroke 102.0 x 81.5 mm (4.02 in x 3.21 in.); Displacement 3996 cm3; Compression ration 13.3 : 1; Maximum engine speed: 9,000 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche Cars North America, 2019 911 GT3 RS Technical Specifications",
+   "targets": [
+    {
+     "name": "2018–19 Porsche 911 GT3 RS (991.2, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9912-gt3-other": {
+   "names": [
+    "2017–19 Porsche 911 GT3 (991.2, 4.0)",
+    "2019 Porsche 911 Speedster (991.2, 4.0)",
+    "MDG 4.0 flat-six (991.2 GT3, 992 GT3, GT4 RS)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "src": "https://newsroom.porsche.com:443/dam/jcr:e00c2789-42c7-4dab-a818-a732003194b0/2019_911_GT3_RS_Technical_Specifications.pdf.PDF",
+   "says": "Bore x stroke 102.0 x 81.5 mm; Displacement 3996 cm3 (2019 911 GT3 RS)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "GT3 RS sheet for the same 4.0 (3996 cm3); bore and stroke only",
+   "targets": [
+    {
+     "name": "MDG 4.0 flat-six (991.2 GT3, 992 GT3, GT4 RS)",
+     "arr": "MOTORS",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2017–19 Porsche 911 GT3 (991.2, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    },
+    {
+     "name": "2019 Porsche 911 Speedster (991.2, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-9922-gt3": {
+   "names": [
+    "2025+ Porsche 911 GT3 (992.2, 4.0)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "src": "https://media.porsche.com/mediakit/911-gt3-touring-package/specifications/pdk/PAG-992-911GT3-TP-PDK-WLTP-EN.pdf",
+   "says": "Bore 102.0 mm; Stroke 81.5 mm; Displacement 3,996 cm3; Compression ratio 13.3:1; Max. engine speed 9,000 1/min (992.1 GT3 Touring)",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "992.1 GT3 Touring data sheet for the same 4.0; the 2025 US press kit (https://newsroom.porsche.com/dam/jcr%3A07bedb19-4e20-474e-905c-9cbcb2f9d940/2025%20Porsche_911_GT3%20U.S.%20press%20kit.pdf) gives a 4.0-liter and a 9,000 rpm redline but no bore and stroke; bore and stroke only",
+   "targets": [
+    {
+     "name": "2025+ Porsche 911 GT3 (992.2, 4.0)",
+     "arr": "VEH",
+     "cc": 3996,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-718-gt4": {
+   "names": [
+    "2020+ Porsche 718 Cayman GT4 (4.0)"
+   ],
+   "bore": 102,
+   "stroke": 81.5,
+   "cr": 13,
+   "red": 8000,
+   "src": "https://download.newsroom.porsche.com/dam/jcr:9d46f6de-fbb6-42d8-b474-7295ec4e7e96/PAG_718_Cayman_GT4_EN.pdf",
+   "says": "Bore 102.0 mm; Stroke 81.5 mm; Displacement 3,995 cm3; Compression ratio 13.0:1; Max. engine speed 8,000 rpm",
+   "q": "maker data",
+   "seen": "2026-11-20",
+   "note": "Porsche AG 718 Cayman GT4 technical data",
+   "targets": [
+    {
+     "name": "2020+ Porsche 718 Cayman GT4 (4.0)",
+     "arr": "VEH",
+     "cc": 3995,
+     "cyl": 6,
+     "geo": 3995.8,
+     "dPct": 0.02,
+     "had": null
+    }
+   ]
+  },
+  "por-996-carrera34": {
+   "names": [
+    "1998–2001 Porsche 911 Carrera (996, 3.4)"
+   ],
+   "bore": 96,
+   "stroke": 78,
+   "src": "https://www.excellence-mag.com/resources/specs/57",
+   "says": "1999 911 Carrera Coupe (996 v1): 206.67 cu-in/3,387 cc; 3.78 in/96 mm x 3.07 in/78 mm; 11.3:1; Max RPM 7300",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 1999 911 Carrera Coupe; bore and stroke only (preset spans 1998-2001)",
+   "targets": [
+    {
+     "name": "1998–2001 Porsche 911 Carrera (996, 3.4)",
+     "arr": "VEH",
+     "cc": 3387,
+     "cyl": 6,
+     "geo": 3387.5,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-996-carrera36": {
+   "names": [
+    "2002–04 Porsche 911 Carrera (996.2, 3.6)"
+   ],
+   "bore": 96,
+   "stroke": 82.8,
+   "src": "https://www.excellence-mag.com/resources/specs/63",
+   "says": "2002 911 Carrera Coupe (996 v2): 219.43 cu-in/3,596 cc; 3.78 in/96 mm x 3.26 in/82.8 mm; 11.3:1; Max RPM 7300",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2002 911 Carrera Coupe; bore and stroke only (preset spans 2002-04)",
+   "targets": [
+    {
+     "name": "2002–04 Porsche 911 Carrera (996.2, 3.6)",
+     "arr": "VEH",
+     "cc": 3596,
+     "cyl": 6,
+     "geo": 3596,
+     "dPct": 0,
+     "had": null
+    }
+   ]
+  },
+  "por-996-turbo": {
+   "names": [
+    "2001–05 Porsche 911 Turbo (996, 3.6 twin-turbo)",
+    "2004–05 Porsche 911 Turbo S (996, 3.6 twin-turbo, 450 PS)",
+    "M96.70 3.6 twin-turbo flat-six (996 Turbo, 996 GT2)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/72",
+   "says": "2001 911 Turbo Coupe (996): 219.60 cu-in/3,600cc; 3.94 in/100 mm x 3.01 in/76.4 mm; 9.4:1; Max RPM 6750",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2001 911 Turbo Coupe; bore and stroke only",
+   "targets": [
+    {
+     "name": "M96.70 3.6 twin-turbo flat-six (996 Turbo, 996 GT2)",
+     "arr": "MOTORS",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2001–05 Porsche 911 Turbo (996, 3.6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "2004–05 Porsche 911 Turbo S (996, 3.6 twin-turbo, 450 PS)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-996-gt2": {
+   "names": [
+    "2002–05 Porsche 911 GT2 (996, 3.6 twin-turbo)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/80",
+   "says": "2003 911 GT2 Coupe (996): 219.60 cu-in/3,600cc; 3.94 in/100 mm x 3.01 in/76.4 mm; 9.4:1; Max RPM 6750",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2003 911 GT2 (the 2004 page, specs/81, gives the same); bore and stroke only",
+   "targets": [
+    {
+     "name": "2002–05 Porsche 911 GT2 (996, 3.6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-996-gt3-04": {
+   "names": [
+    "2004–05 Porsche 911 GT3 / GT3 RS (996.2, 3.6 Mezger)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/82",
+   "says": "2004 911 GT3 Coupe (996): 219.60 cu-in/3,600 cc; 3.94 in/100.0 mm x 3.61 in/76.4 mm; 11.7:1; Max RPM 8200",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2004 911 GT3 Coupe (its inch stroke 3.61 is a misprint for 3.01; the mm figure is used); bore and stroke only (the preset includes the GT3 RS)",
+   "targets": [
+    {
+     "name": "2004–05 Porsche 911 GT3 / GT3 RS (996.2, 3.6 Mezger)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-964-carrera": {
+   "names": [
+    "1989–94 Porsche 911 Carrera 2/4 (964, 3.6 M64)",
+    "M64/01 3.6 air-cooled flat-six (911 Carrera 964)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/291",
+   "says": "1990 911 Carrera 2 Coupe (964): 219.60 cu-in/3,600 cc; 3.94 in/100 mm x 3.01 in/76.4 mm; 11.3:1; Max RPM 6700",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 1990 911 Carrera 2 Coupe; bore and stroke only",
+   "targets": [
+    {
+     "name": "M64/01 3.6 air-cooled flat-six (911 Carrera 964)",
+     "arr": "MOTORS",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    },
+    {
+     "name": "1989–94 Porsche 911 Carrera 2/4 (964, 3.6 M64)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-964-turbo33": {
+   "names": [
+    "1991–92 Porsche 911 Turbo (964, 3.3)"
+   ],
+   "bore": 97,
+   "stroke": 74.4,
+   "src": "https://www.excellence-mag.com/resources/specs/307",
+   "says": "1991 911 Turbo Coupe (964): 201.32 cu-in/3,299 cc; 3.82 in/97 mm x 2.93 in/74.4 mm; 7.0:1; Max RPM 6800",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 1991 911 Turbo Coupe; bore and stroke only (preset spans 1991-92)",
+   "targets": [
+    {
+     "name": "1991–92 Porsche 911 Turbo (964, 3.3)",
+     "arr": "VEH",
+     "cc": 3299,
+     "cyl": 6,
+     "geo": 3298.8,
+     "dPct": -0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-964-turbo36": {
+   "names": [
+    "1993–94 Porsche 911 Turbo 3.6 (964)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://www.excellence-mag.com/resources/specs/309",
+   "says": "1993 911 Turbo Coupe (964): 219.60 cu-in./3,600 cc; 3.94 in/100 mm x 3.01 in/76.4 mm; 7.5:1; Max RPM 6600",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 1993 911 Turbo Coupe; bore and stroke only",
+   "targets": [
+    {
+     "name": "1993–94 Porsche 911 Turbo 3.6 (964)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
+  },
+  "por-997-gt2rs": {
+   "names": [
+    "2011–12 Porsche 911 GT2 RS (997, 3.6 twin-turbo)"
+   ],
+   "bore": 100,
+   "stroke": 76.4,
+   "src": "https://excellence-mag.com/resources/specs/175",
+   "says": "2011 911 GT2 RS Coupe (997 v2): bore x stroke 3.94 in/100mm x 3.01 in/76.4 mm; 9.0:1; Max RPM 6750 (the displacement line repeats the bore x stroke)",
+   "q": "magazine test",
+   "seen": "2026-11-20",
+   "note": "Excellence magazine spec page, 2011 911 GT2 RS; bore and stroke only",
+   "targets": [
+    {
+     "name": "2011–12 Porsche 911 GT2 RS (997, 3.6 twin-turbo)",
+     "arr": "VEH",
+     "cc": 3600,
+     "cyl": 6,
+     "geo": 3600.3,
+     "dPct": 0.01,
+     "had": null
+    }
+   ]
   }
  },
  "review": {
@@ -4171,6 +4675,22 @@
     }
    ],
    "why": "bore x stroke x cylinders outside 1 % of the preset displacement"
+  },
+  "por-9912-carrera": {
+   "found": {
+    "bore": 91,
+    "stroke": 76,
+    "src": "https://newsroom.porsche.com:443/dam/jcr:8a8a3990-34a8-4ae0-a11e-f4bb53abd5e0/2017_911_Carrera_and_Carrera_S_Technical_Specifications.pdf.PDF",
+    "says": "911 Carrera / Carrera S: Bore/stroke 91.0 mm / 76.0 mm; displacement 3.0 l; 10.0 : 1; 7500 (the same sheet gives the Carrera S Cabriolet as 3.8 l)",
+    "q": "maker data"
+   },
+   "why": "Porsche Cars North America 2017 Carrera, 2017 Targa 4/4S and 2018 GTS sheets all give 91.0 x 76.0 mm for the 991.2 3.0 (2,966 cc, 0.5 % under the presets 2,981 cc, so within the 1 % check), while the 2020 992 sheets give 91.0 x 76.4 (2,981 cc). The US sheets state no cc and carry other errors (3.8 l on a 3.0); the 76.0 looks like a misprint. Not applied to the three 991.2 Carrera presets; a sheet stating the cc would settle it",
+   "presets": [
+    "2016–19 Porsche 911 Carrera (991.2, 3.0 twin-turbo)",
+    "2016–19 Porsche 911 Carrera S (991.2, 3.0 twin-turbo)",
+    "2017–19 Porsche 911 Carrera GTS (991.2, 3.0 twin-turbo)"
+   ],
+   "seen": "2026-11-20"
   }
  },
  "tried": {
