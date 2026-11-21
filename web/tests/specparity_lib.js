@@ -28,12 +28,12 @@ const RUST_RECV = {
   plenum_of: { intake: 'spec.intake', q: 'spec.intake.plenum', t: 'spec.intake.plenum.throttle', f: 'spec.intake.plenum.filter' },
   port_law: { e: 'spec.e' }, port_in_law: { e: 'spec.e' },
   make_engine: { spec: 'spec', e: 'spec.e', cam: 'spec.e.cam', o: 'spec.opt', intake: 'spec.intake', exhaust: 'spec.exhaust',
-    s: 'spec.opt.collectors[].stages[]', c: [['spec.exhaust.chambers[]', /\[num\(&c\["x"\]\)/], ['spec.opt.collectors[]', /./]] }
+    s: 'spec.opt.collectors[].stages[]', c: [['spec.exhaust.chambers[]', /\[num\(&c\["x"\]\)/], ['spec.opt.collectors[]', /./]], mg: 'spec.opt.merge' }
 };
 // where the generic readers are called: the container whose elements (segs_of) or which line (line_of) they read
 const RUST_CALLS = {
   $SEG: ['spec.exhaust.turbine.down.segs[]', 'spec.intake.plenum.inlet[]', 'spec.opt.collectors[].stages[].segs[]', 'spec.opt.collectors[].stages[].segs_by_group[][]',
-    'spec.opt.collectors[].segs[]', 'spec.exhaust.per_cyl[][]'],
+    'spec.opt.collectors[].segs[]', 'spec.exhaust.per_cyl[][]', 'spec.opt.merge.segs[]'],
   $LINE: ['spec.opt.collector', 'spec.intake', 'spec.exhaust'],
   $FLOW: ['spec.e.flowIn', 'spec.e.flowEx']
 };
@@ -79,6 +79,7 @@ const ALLOW = [
   ['spec.opt.collectors[].pieces', 'refused: as opt.collector.pieces'],
   ['spec.opt.collectors[].parallel', 'refused: as pieces'],
   ['spec.opt.collectors[].branches', 'refused: as opt.collector.branches'],
+  ['spec.opt.merge.branches', 'refused: side branches on a Y-merge\'s one pipe: JavaScript-only, as opt.collector.branches'],
   ['spec.e.dead', 'refused: cylinders that do not fire (the sound prediction\'s misfire comparison) are JavaScript-only'],
 ];
 const allowed = p => ALLOW.find(([a]) => p === a || p.startsWith(a + '.') || p.startsWith(a + '['));
