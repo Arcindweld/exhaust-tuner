@@ -28937,7 +28937,7 @@ const PROJ_UI={   // the per-section settings kept with a project: [object, keys
   wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
   es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open','fx']],
   cmap:[CMAP,['tool']],   // Your compressor map: calibration, marked points and typed values; never the image (cmapAfterLoad)
-  snd:[WSND,null,['rpms','load','dead']],
+  snd:[WSND,null,['rpms','load','dead','sysMode']],   // sysMode (2026-11-21): the system to hear, the one played or open headers
   sndl:[SND_L,[]],
   sndv:[SND_V,[]],   // (2026-11-21) the Reverb switch, the space and its level (a new key; a loaded impulse response is never saved)   // (2026-11-21) how the sound is played: variation, band limit, listening position (a new key; older projects keep the defaults)   // the sound estimate's speeds, load and misfire choice (2026-11-16); never its results
   aug:[AUG,[]],   // the Mufflers tab's auger designer (2026-11-16: was not saved)

@@ -13,9 +13,10 @@ listening space (reverb) with a toggle.
 - [x] recSynth rewritten on sndSynth (band limit, no cycle-boundary click)
 - [x] reverb: SND_SPACES, sndSpaceIR (image sources + Eyring tail), Reverb switch, custom IR, stereo WAV
 - [x] compare buttons (xo / res / cone), A/B difference line
-- [ ] run every listed test; rec_ui gap check: old 19.6 vs 12.0 dB (pass), new 21.6 vs 12.0 (fails < 9 dB pin) - REPORT, do not change pin
-- [ ] A/B WAVs in scratchpad/sound_ab (mustang before/after done, rs660 before/after done; v8 xo, resonator, reverb: t/ab.js)
-- [ ] docs/SOUND_REALISM_2026-11-21.md
+- [x] every listed test run: all pass but rec_ui's gap pin (old 19.6 vs 12.0 dB pass, new 21.6 vs 12.0 fail): reported, pin not changed
+- [x] A/B WAVs in scratchpad/sound_ab (all 11)
+- [x] docs/SOUND_REALISM_2026-11-21.md
+- symlink removed
 
 ## Notes
 - WAVs only in the scratch dir. Symlink validation/outback-2004/model/runs/hold_1980 -> exhaust-tuner copy (for rec_ui):

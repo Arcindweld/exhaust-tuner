@@ -201,10 +201,11 @@ is played as a prediction. Up to the limit the after slope is -6.6 dB per octave
 
 Default V8 on the default page ("Hear my exhaust": the Mufflers tab's 2.37 in (60.2 mm) pipe and 6 x 14 in (152 x 356 mm)
 chamber, every cylinder), idle 750 RPM hold, from wsndreal_ui: gap between the orders 10.2 dB (old playback of the same
-runs 31.2 dB, variation off 34.5 dB); share of the energy exactly on the orders 72 % (old 99.1 %); above the 2244 Hz limit
+runs 32.7 dB, variation off 34.5 dB); share of the energy exactly on the orders 72 % (old 99.0 %); above the 2244 Hz limit
 -82 dB re the total with the jet off. On the default Estimate (open headers, one collector, 2500 RPM full throttle) the
 old playback put -27.7 dB of the total above 8 kHz with no jet and no variation (the straight-line resampling and
-differencing of the 720-point cycle, the reviewer's 8-16 kHz rise); the new one -66 dB.
+differencing of the 720-point cycle: the reviewer's 8-16 kHz rise), and -24.4 dB above 3.7 kHz (1.25 x the run's 2927 Hz
+limit) with the jet off; the new one -66 and -77 dB.
 
 ## 5. Parts audit: which designed parts are in the played signal
 
@@ -272,6 +273,32 @@ Exhaust parts in the played signal for three set-ups (from the "Playing" line an
   presets carry engines, not exhausts.
 
 
+
+### Checks of parts in the signal (2018-20 Mustang GT, Quick's system, 2,500 RPM full throttle, both banks)
+
+Crossover (the compare button, same system, crossover 12 in (305 mm) behind the collectors, 1.90 in (48.2 mm) tube):
+
+| design | even orders 2, 4, 6, 8 together | all other half orders to 8 | order 1 | order 4 (the V8's firing order) |
+|---|---|---|---|---|
+| true duals | 93.7 dB | 97.4 dB | 80.6 dB | 84.9 dB |
+| H-pipe | 90.7 dB | 88.6 dB | 70.1 dB | 90.4 dB |
+| X-pipe | 91.0 dB | 87.7 dB | 70.6 dB | 90.8 dB |
+
+(free-field levels at 1 m of the summed tips). Joining the banks takes 9-10 dB off the bank's uneven-firing orders (the
+burble) and adds 5.5-5.9 dB to the firing order, the X slightly more than the H: the direction the Crossover tab's sources
+give (an X evens the pulses and gives the smoother, higher note; an H the deeper one), from the solver's own junctions.
+
+Resonator position (the build sheet's 12.1 L Helmholtz can, tuned by the Mufflers tab's rule to the 45 Hz cruise tone in
+still gas at 43 C, at 300, 900 and 1500 mm (1, 3 and 4.9 ft) from the collector, crossover off, 1,800 RPM, order 1.5 =
+45 Hz): the wave model changes that order by +14.6, +9.0 and -16.4 dB; a transfer-matrix pressure shape of the same pipe
+(closed at the valve, the page's calcPlace method, with the chamber) puts 0.53, 0.11 and 0.32 of the peak pressure there,
+and the page's plain-pipe placement 0.59, 0.28 and 0.06. Moving the can does change the played sound, but not the way the
+transfer matrix says. The reason found: in the wave solver the can's gas fills from the pipe and keeps its heat (no wall
+loss in the branch volume), so it ran at 920-946 K against the 316 K the can was tuned for, which puts its resonance
+near 45 x sqrt(933/316) = 77 Hz. Until the solver's branches lose heat to their walls (next round: wsFactory and its Rust
+twin), a resonator in the played sound is mistuned by about 1.7 times and its position comparison is not trustworthy; the
+compare button still plays what the solver gives, and this note is the warning.
+
 ## 6. What still differs, and why
 
 - **2-16 kHz.** The model stops at its validity limit (about 2.2-2.9 kHz on these runs: the 720-point cycle at idle, the
@@ -302,6 +329,10 @@ Exhaust parts in the played signal for three set-ups (from the "Playing" line an
 ## 7. Next round (not started here)
 
 Needs the solver (wsFactory and its Rust/WASM twin, whose bit parity the tests enforce), so left alone this round:
+- side-branch gas temperature: the branch volume (freshState's chambers, the `ch.T` update in runSpeed) gains the pipe
+  gas's heat and never loses it, so Helmholtz cans and J-pipes run at 900+ K instead of the still-gas temperature they are
+  designed for; a wall heat-loss term (or a fixed branch temperature) in the JS solver and the Rust twin, about 20-40
+  lines each and new parity cases. This is the most important one for "resonators in different positions";
 - a catalytic converter element (a monolith: many small channels, friction and heat loss, the area step in and out):
   wsFactory pipe network plus the Rust twin, about 150-250 lines each and parity cases;
 - a Y-merge of both banks' lines into one pipe (a three-way junction closing the network, as the crossover's X and H do
@@ -319,4 +350,32 @@ Needs no solver change:
 
 ## 8. Tests
 
-TESTS
+New: `web/tests/wsndreal_ui.js` (26 checks, about 3 minutes): the "Hear my exhaust" button; the open-headers warning above
+the play buttons; three speeds, idle-rev-back; both banks of the V8 (8 firing phases, 2 exits); the "Playing" line;
+deterministic with the seed; gap between the orders 3-30 dB (10.2) and the old playback over 30 (32.7); variation off
+deepens the gaps (34.5); under 90 % of the energy exactly on the orders (72 %, old 99.0 %); no tonal energy above the
+validity limit (-81.6 dB) and the old resampling's energy there on open headers (-24.4 against -77.3 dB); slope -1 to -15
+dB per octave to the limit (-6.6); Reverb off bit-identical to the sound without the feature; the switch keyboard-reachable
+with its state in words; shop and garage reverberation times (Schroeder on the generated response) within 15 % of the
+stated Eyring times at 250-2000 Hz (within 2-5 %); the lot's first reflection within 1 ms of the geometry (46.35 against
+46.43 ms); nothing added at the direct sound; the saved stereo WAV equal to dry plus the offline convolution (0 LSB); a
+loaded impulse response applied at the model's level (echo 0.500 for 0.5); the table's dB(A) unchanged with every playback
+stage switched; the Mustang GT after "Fill in every tab": the system from Quick (pipe, chamber, resonator, H-pipe), the
+not-in-the-sound list, and 17.4 dB off the orders above 300 Hz (17.1 dB overall) against open headers at 2,500 RPM.
+
+Existing tests, run one at a time on the final code: wsnd_ui 26 pass; wsndwav_ui 7; wsndpar_ui 8; wsndxo_ui 7;
+wsndmis_ui 18; wsndload_ui 11; recmis_ui 5; icrec_ui 71; sound_ui pass; ui_ui 312; incremental_ui all passed;
+staleness_ui all passed (after saving the new "System to hear" choice with the project: the first run caught it); rec_ui 26 pass, 1 FAIL:
+
+- rec_ui.js "with 2 % variation and the hold's own wander, the gaps between the orders" pins |model - recording| < 9 dB.
+  Old: model 19.6 dB, recording 12.0 dB (7.6 dB, pass). New: model 21.6 dB, recording 12.0 dB (9.6 dB, fail). Why: the old
+  playback's straight-line resampling and the gain step where a firing window wrapped the cycle boundary (a click every
+  cycle) put broadband energy between the orders that the engine does not make; band-limited and without the click, the
+  model at the test's fixed 2 % variation is 2 dB cleaner. The pin was not changed. Honest options for the owner: accept the
+  new figure (the pin to 10 dB), or make the comparison's default variation Heywood's figure for that point (4.7 % at a
+  1980 rpm closed-throttle hold, the "Hear the model" default), which is a change of default and so was not made here.
+  The other rec_ui checks against the recording (OpenWAM's order levels within 0.01 dB when held exactly, the jet level and
+  law, the pull tracking the speed, held exactly cleaner by 10.2 dB) pass.
+
+Tools: `tools/sound/analyze.py` (no test of its own; its tracker was checked on the steady model tone, 2500.0 +- 0.09 rpm,
+and on the Outback idle, 736 rpm against the 735 the validation notes give) and `tools/sound/render_page.js`.
