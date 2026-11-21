@@ -4002,3 +4002,9 @@ its ports without the part-7 port law (until 2026-11-16). What that means for th
 - The scripts run in Node, whose Math.pow / exp / sin / cos differ from Chromium's in the last bits: a script's number and
   the browser's for the same spec agree to about 1e-9 relative, not to the last digit. specparity_ui.js makes the
   bit-for-bit comparison with the scripts' own load of the model run inside the page.
+
+## Addendum 2026-11-21: side volumes' gas temperature, and the Y-merge (docs/WAVE_VALIDATION_2026-11-21_resonator_temperature.md)
+
+Side volumes (exhaust.chambers, collector branches) now track the neck's gas (a contact surface) and lose heat to a shell
+at Tw; opt.merge joins two collectors' lines into one pipe. JS, Rust and the WebAssembly in bit parity; only specs with
+side volumes or a merge change (the constant-gamma reference's chamber rows re-pinned).

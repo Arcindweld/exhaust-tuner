@@ -1,0 +1,37 @@
+single with a chamber / As entered 3500 rpm: ve 0.9769 -> 0.9768, imep 13.729 -> 13.721 bar
+single with a chamber / As entered 4250 rpm: ve 0.9100 -> 0.9099, imep 13.117 -> 13.148 bar
+single with a chamber / As entered 4950 rpm: ve 0.9758 -> 0.9750, imep 14.294 -> 14.300 bar
+single with a chamber / As entered 5700 rpm: ve 1.0983 -> 1.0979, imep 16.290 -> 16.287 bar
+single with a chamber / As entered 6400 rpm: ve 1.1862 -> 1.1862, imep 17.644 -> 17.641 bar
+single with a chamber / As entered 7150 rpm: ve 1.2565 -> 1.2566, imep 18.440 -> 18.447 bar
+single with a chamber / As entered 7850 rpm: ve 1.1889 -> 1.1889, imep 17.459 -> 17.459 bar
+single with a chamber / As entered 8600 rpm: ve 1.1603 -> 1.1602, imep 17.007 -> 17.003 bar
+single with a chamber / As entered 9300 rpm: ve 1.0949 -> 1.0948, imep 15.514 -> 15.511 bar
+single with a chamber / As entered 10050 rpm: ve 0.9562 -> 0.9561, imep 13.190 -> 13.182 bar
+single with a chamber / As entered 10750 rpm: ve 0.8818 -> 0.8816, imep 12.042 -> 12.042 bar
+single with a chamber / As entered 11500 rpm: ve 0.8504 -> 0.8503, imep 11.703 -> 11.706 bar
+single with a chamber / Primaries 10% shorter 3500 rpm: ve 0.9741 -> 0.9743, imep 13.701 -> 13.695 bar
+single with a chamber / Primaries 10% shorter 4250 rpm: ve 0.9313 -> 0.9312, imep 13.399 -> 13.398 bar
+single with a chamber / Primaries 10% shorter 4950 rpm: ve 0.9824 -> 0.9825, imep 14.387 -> 14.396 bar
+single with a chamber / Primaries 10% shorter 5700 rpm: ve 1.0951 -> 1.0952, imep 16.233 -> 16.229 bar
+single with a chamber / Primaries 10% shorter 6400 rpm: ve 1.1787 -> 1.1788, imep 17.514 -> 17.514 bar
+single with a chamber / Primaries 10% shorter 7150 rpm: ve 1.2403 -> 1.2403, imep 18.340 -> 18.343 bar
+single with a chamber / Primaries 10% shorter 7850 rpm: ve 1.1894 -> 1.1894, imep 17.414 -> 17.421 bar
+single with a chamber / Primaries 10% shorter 8600 rpm: ve 1.1631 -> 1.1631, imep 17.105 -> 17.105 bar
+single with a chamber / Primaries 10% shorter 9300 rpm: ve 1.1068 -> 1.1068, imep 16.042 -> 16.034 bar
+single with a chamber / Primaries 10% shorter 10050 rpm: ve 0.9674 -> 0.9672, imep 13.617 -> 13.611 bar
+single with a chamber / Primaries 10% shorter 10750 rpm: ve 0.8934 -> 0.8933, imep 12.370 -> 12.361 bar
+single with a chamber / Primaries 10% shorter 11500 rpm: ve 0.8576 -> 0.8573, imep 11.686 -> 11.684 bar
+single with a chamber / Primaries 10% longer 3500 rpm: ve 0.9702 -> 0.9703, imep 13.660 -> 13.656 bar
+single with a chamber / Primaries 10% longer 4250 rpm: ve 0.8726 -> 0.8724, imep 12.621 -> 12.625 bar
+single with a chamber / Primaries 10% longer 4950 rpm: ve 0.9862 -> 0.9863, imep 14.484 -> 14.485 bar
+single with a chamber / Primaries 10% longer 5700 rpm: ve 1.1065 -> 1.1068, imep 16.429 -> 16.438 bar
+single with a chamber / Primaries 10% longer 6400 rpm: ve 1.2013 -> 1.2015, imep 17.770 -> 17.774 bar
+single with a chamber / Primaries 10% longer 7150 rpm: ve 1.2587 -> 1.2587, imep 18.448 -> 18.448 bar
+single with a chamber / Primaries 10% longer 7850 rpm: ve 1.1872 -> 1.1872, imep 17.420 -> 17.422 bar
+single with a chamber / Primaries 10% longer 8600 rpm: ve 1.1497 -> 1.1496, imep 16.517 -> 16.506 bar
+single with a chamber / Primaries 10% longer 9300 rpm: ve 1.0829 -> 1.0829, imep 15.108 -> 15.107 bar
+single with a chamber / Primaries 10% longer 10050 rpm: ve 0.9467 -> 0.9466, imep 12.955 -> 12.958 bar
+single with a chamber / Primaries 10% longer 10750 rpm: ve 0.8804 -> 0.8804, imep 12.221 -> 12.224 bar
+single with a chamber / Primaries 10% longer 11500 rpm: ve 0.8618 -> 0.8618, imep 12.181 -> 12.180 bar
+rewrote the chamber rows of /home/claude/wt-restemp/web/tests/fixtures/wave_const_ref.json
