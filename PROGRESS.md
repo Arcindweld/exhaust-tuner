@@ -20,4 +20,4 @@
 4. Tests + doc.
 
 ## Status
-- [ ] 1  - [ ] 2  - [ ] 3  - [ ] 4
+- [x] 1 JS  - [x] 2 Rust+WASM (QUICK parity 47 pass; const-ref chamber rows re-pinned: tools/validation/wave/constref_chambers.js)  - [x] 3 merge JS+Rust  - [ ] 4 tests/doc
