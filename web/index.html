@@ -330,6 +330,9 @@ input.oor{color:var(--bad);text-decoration:underline wavy var(--bad);text-underl
 .prog{margin:6px 0 0;min-height:36px;font-size:var(--fs-md);max-width:calc(var(--measure) + 54px)}
 .cap+.prog{font-size:var(--fs-sm);max-width:var(--measure)}
 .note.runstat{padding-left:40px}
+/* (a note carries its mark in ::before: its running time goes on the right in ::after, where the old thin bar was) */
+.note.runstat[data-el]{padding-right:60px}
+.note.runstat[data-el]::after{content:attr(data-el);display:block;position:absolute;left:auto;right:12px;top:11px;bottom:auto;width:auto;height:auto;background:none;font:500 var(--fs-sm)/1.5 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums;transition:none}
 .prog-s{white-space:nowrap}
 .prog-track{position:relative;height:8px;border-radius:4px;background:var(--inset);overflow:hidden}
 .prog-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:4px;background:var(--accent);transition:width .25s linear}
@@ -341,7 +344,7 @@ input.oor{color:var(--bad);text-decoration:underline wavy var(--bad);text-underl
 .prog-lab{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 12px;margin:4px 0 0;font:500 var(--fs-sm)/1.45 var(--f-ui);color:var(--ink);font-variant-numeric:tabular-nums;max-width:none}
 .prog-eta{color:var(--muted)}
 .prog[data-st^="err"] .prog-t{color:var(--bad)}
-.prog[data-st="stop ind"] .prog-fill,.prog[data-st="err ind"] .prog-fill{width:0}
+.prog[data-st="stop ind"] .prog-fill,.prog[data-st="err ind"] .prog-fill{width:0;transition:none}
 @media (max-width:699px){.prog{min-height:56px}}
 .note a{color:inherit}
 
@@ -606,7 +609,7 @@ ul.list li+li,ol.list li+li{margin-top:6px}
   .top .segs .themebtn .tlab{display:inline}
 }
 /* a long run: how long it has taken, and its Cancel */
-.runstat[data-el]::before{content:attr(data-el);float:right;margin-left:10px;font:500 var(--fs-sm)/1.5 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
+.runstat:not(.note)[data-el]::before{content:attr(data-el);float:right;margin-left:10px;font:500 var(--fs-sm)/1.5 var(--f-ui);color:var(--muted);font-variant-numeric:tabular-nums}
 
 /* ----- pass three (docs/UI_REDESIGN_2026-11-16.md, "Pass three"): first run, empty states, reserved space, small screens ----- */
 .skip{position:absolute;left:12px;top:-80px;z-index:300;padding:10px 14px;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent);font:600 var(--fs-md)/1.2 var(--f-ui);text-decoration:none}
