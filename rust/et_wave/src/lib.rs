@@ -512,6 +512,31 @@ struct ColSpec {
     tw: Value,
 }
 
+/// opt.merge: each collector's line cut at pos (m from its collector), then one pipe (segs, tw) from the merge
+struct MergeSpec {
+    pos: [f64; 2],
+    segs: Vec<Seg>,
+    tw: Value,
+}
+/// The page's splitSegs: a line's segments cut at pos (m from its start): before, after; a cone split at its diameter there.
+fn split_segs(segs: &[Seg], pos: f64) -> (Vec<Seg>, Vec<Seg>) {
+    let (mut a, mut b) = (Vec::new(), Vec::new());
+    let mut x = 0.0;
+    for sg in segs {
+        if x + sg.l <= pos + 1e-9 {
+            a.push(sg.clone());
+        } else if x >= pos - 1e-9 {
+            b.push(sg.clone());
+        } else {
+            let f = (pos - x) / sg.l;
+            let dm = sg.d0 + (sg.d1 - sg.d0) * f;
+            a.push(Seg { l: pos - x, d1: dm, ..sg.clone() });
+            b.push(Seg { l: x + sg.l - pos, d0: dm, ..sg.clone() });
+        }
+        x += sg.l;
+    }
+    (a, b)
+}
 struct Engine {
     bore: f64,
     stroke: f64,
@@ -542,10 +567,11 @@ struct Engine {
     phases: Vec<f64>,
     collector: Option<Line>,
     collectors: Option<Vec<ColSpec>>,
+    merge: Option<MergeSpec>, // opt.merge: the Y-merge of the two collectors' lines (2026-11-21)
     intake: Line,
     exhaust: Line,
     per_cyl: Option<Vec<Option<Vec<Seg>>>>,
-    chambers: Vec<[f64; 4]>, // x, V, A, Le
+    chambers: Vec<[f64; 5]>, // x, V, A, Le, Tw (the shell; NaN: the header's)
     k: K,
     gas: Option<Gas>, // None: e.gas "const", gamma 1.35 and R 287
     gas_in: Option<Gas>, // the intake pipes' gas: air (port_fuel adds the fuel at the valve)
@@ -854,6 +880,36 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         }
         _ => None,
     };
+    // opt.merge (2026-11-21, the page's mergeOf): a Y-merge of the two collectors' lines into one pipe
+    let merge = if truthy(&o["merge"]) {
+        let mg = &o["merge"];
+        let cols = collectors.as_ref().map(|c| c.len()).unwrap_or(0);
+        if cols != 2 {
+            return Err(format!("opt.merge joins exactly two collectors (opt.collectors), got {}", cols));
+        }
+        let pa = mg["pos"].as_array().ok_or("opt.merge.pos needs one distance per collector")?;
+        if pa.len() != 2 {
+            return Err("opt.merge.pos needs one distance per collector".into());
+        }
+        let pos = [num(&pa[0]), num(&pa[1])];
+        let cs = collectors.as_ref().unwrap();
+        for (i, c) in cs.iter().enumerate() {
+            let len = c.segs.iter().fold(0.0, |a, g| a + if g.l > 1e-6 { g.l } else { 0.0 });
+            if !(pos[i] > 0.0 && pos[i] < len) {
+                return Err(format!("opt.merge.pos[{}] must lie on collector {}'s line", i, i + 1));
+            }
+        }
+        let segs = segs_of(&mg["segs"])?;
+        if !segs.iter().any(|g| g.l > 1e-6) {
+            return Err("opt.merge.segs: the pipe after the merge has no length".into());
+        }
+        if truthy(&o["crossover"]) {
+            return Err("opt.merge and opt.crossover cannot both be set".into());
+        }
+        Some(MergeSpec { pos, segs, tw: if truthy(&mg["Tw"]) { mg["Tw"].clone() } else { cs[0].tw.clone() } })
+    } else {
+        None
+    };
     let per_cyl = match exhaust["per_cyl"].as_array() {
         Some(a) if truthy(&exhaust["per_cyl"]) => {
             let mut v = Vec::new();
@@ -866,7 +922,7 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
     };
     let chambers = exhaust["chambers"]
         .as_array()
-        .map(|a| a.iter().map(|c| [num(&c["x"]), num(&c["V"]), num(&c["A"]), num(&c["Le"])]).collect())
+        .map(|a| a.iter().map(|c| [num(&c["x"]), num(&c["V"]), num(&c["A"]), num(&c["Le"]), num(&c["Tw"])]).collect())
         .unwrap_or_default();
     // the fuel (2026-11-14, part 11): e.blend {eth, meth} mass fractions, e.evap the latent heat's share from the charge
     let fuel = fuel_of(num(&e["blend"]["eth"]), num(&e["blend"]["meth"]), e["evap"].as_f64())?;
@@ -900,6 +956,7 @@ fn make_engine(spec: &Value) -> Result<Engine, String> {
         phases,
         collector,
         collectors,
+        merge,
         intake: line_of(intake)?,
         exhaust: line_of(exhaust)?,
         per_cyl,
@@ -1985,6 +2042,9 @@ fn port_fuel(f: &mut Flow, cy: &Cyl, g: &Gas, gi: &Gas) -> Flow {
     Flow { m, h: gas_h(g, cy.t, cy.x), x: cy.x, uj }
 }
 
+/// A side volume with its neck's gas tracked (the page's branchOf / branchStep, 2026-11-21): the can (m, t, x, p), the
+/// slug's volume flow q, the tracked length's two parcels (pipe side: vp, pm, ph, px, pt; can side: vc, cm, chh, cx, ct)
+/// and the shell temperature tw.
 struct Chamber {
     cyl: usize,
     pipe: usize,
@@ -1992,11 +2052,179 @@ struct Chamber {
     v: f64,
     cda: f64,
     le: f64,
+    tw: f64,
     m: f64,
     t: f64,
     x: f64,
     mdot: f64,
     p: f64,
+    q: f64,
+    dn: f64,
+    vt: f64,
+    fnk: f64,
+    vp: f64,
+    pm: f64,
+    ph: f64,
+    px: f64,
+    pt: f64,
+    vc: f64,
+    cm: f64,
+    chh: f64,
+    cx: f64,
+    ct: f64,
+}
+const BRANCH_TW: f64 = 316.48;
+const CAN_WALL: f64 = 8.0;
+/// The page's branchOf: a side volume filled with still gas at its shell temperature tw (K; tw > 0 else BRANCH_TW).
+fn branch_of(cyl: usize, pipe: usize, cell: usize, v: f64, cda: f64, le: f64, tw: f64, gas: &Option<Gas>, r0: f64) -> Chamber {
+    let t = if tw > 0.0 { tw } else { BRANCH_TW };
+    let dn = (4.0 * cda / std::f64::consts::PI).sqrt();
+    let vt = cda * (le + dn);
+    let rho = PATM / (r0 * t);
+    let h = match gas { Some(g) => gas_h(g, t, 0.0), None => CP * t };
+    Chamber {
+        cyl, pipe, cell, v, cda, le, tw: t,
+        m: PATM * v / (r0 * t), t, x: 0.0, mdot: 0.0, p: 0.0, q: 0.0, dn, vt, fnk: le / (le + dn),
+        vp: 0.0, pm: 0.0, ph: h, px: 0.0, pt: t, vc: vt, cm: rho * vt, chh: h, cx: 0.0, ct: t,
+    }
+}
+/// The page's wallT: the implicit wall loss of a gas of mass mm at t over dt, k (W/K) toward tw; the new temperature.
+fn wall_t(gas: &Option<Gas>, x: f64, t: f64, mm: f64, k: f64, dt: f64, tw: f64, by_h: bool) -> f64 {
+    if !(mm > 0.0 && k > 0.0) {
+        return t;
+    }
+    let c = match gas {
+        Some(g) => {
+            let (cp, _h, r) = gas_at(g, t, x);
+            if by_h { cp } else { cp - r }
+        }
+        None => if by_h { CP } else { CV },
+    };
+    tw + (t - tw) / (1.0 + k * dt / (mm * c))
+}
+/// The page's branchStep: one step of side volume ch on cell i of pipe p.
+fn branch_step(ch: &mut Chamber, p: &mut Pipe, dt: f64, gas: &Option<Gas>) {
+    let i = ch.cell;
+    let (r, pp) = (p.r[i], p.p[i]);
+    let t = pp / (p.rm[i] * r);
+    ch.p = ch.m * (match gas { Some(g) => gas_r(g, ch.x), None => RG }) * ch.t / ch.v;
+    let mn = ch.fnk * (ch.pm + ch.cm);
+    let to_can = pp > ch.p;
+    let rho_x = if to_can {
+        if ch.vc > 0.0 { ch.cm / ch.vc } else { ch.pm / ch.vp }
+    } else if ch.vp > 0.0 {
+        ch.pm / ch.vp
+    } else {
+        ch.cm / ch.vc
+    };
+    let a = ch.cda;
+    ch.q = (ch.q + dt * (a * a * (pp - ch.p) - 0.5 * rho_x * ch.q * ch.q.abs()) / mn) / (1.0 + 0.0);
+    let dv = dt * ch.q;
+    let (mut m_p, mut e_p, mut x_p) = (0.0, 0.0, 0.0);
+    let mut u = match gas { Some(g) => ch.m * gas_e(g, ch.t, ch.x), None => ch.m * CV * ch.t };
+    let mut xx = ch.m * ch.x;
+    let mut dmc = 0.0;
+    if dv > 0.0 {
+        let hh = (match gas { Some(g) => gas_h(g, t, p.x[i]), None => CP * t }) + 0.5 * p.u[i] * p.u[i];
+        let xin = p.x[i];
+        let mi = r * dv;
+        m_p = -mi;
+        e_p = -mi * hh;
+        x_p = -mi * p.x[i];
+        let aa = jmin(dv, ch.vc);
+        let b = dv - aa;
+        if aa > 0.0 {
+            let ma = ch.cm * aa / ch.vc;
+            u += ma * ch.chh;
+            xx += ma * ch.cx;
+            dmc += ma;
+            ch.cm -= ma;
+            ch.vc -= aa;
+        }
+        let pm = ch.pm + mi;
+        ch.ph = (ch.pm * ch.ph + mi * hh) / pm;
+        ch.px = (ch.pm * ch.px + mi * xin) / pm;
+        ch.pm = pm;
+        ch.vp += dv;
+        if b > 0.0 {
+            let mb = ch.pm * b / ch.vp;
+            u += mb * ch.ph;
+            xx += mb * ch.px;
+            dmc += mb;
+            ch.pm -= mb;
+            ch.vp -= b;
+        }
+        if !(ch.vc > 0.0) {
+            ch.vc = 0.0;
+            ch.cm = 0.0;
+            ch.vp = ch.vt;
+        }
+    } else if dv < 0.0 {
+        let n = -dv;
+        let hc = match gas { Some(g) => gas_h(g, ch.t, ch.x), None => CP * ch.t };
+        let mo = ch.m / ch.v * n;
+        u -= mo * hc;
+        xx -= mo * ch.x;
+        dmc -= mo;
+        let aa = jmin(n, ch.vp);
+        let b = n - aa;
+        if aa > 0.0 {
+            let ma = ch.pm * aa / ch.vp;
+            m_p += ma;
+            e_p += ma * ch.ph;
+            x_p += ma * ch.px;
+            ch.pm -= ma;
+            ch.vp -= aa;
+        }
+        let cm = ch.cm + mo;
+        ch.chh = (ch.cm * ch.chh + mo * hc) / cm;
+        ch.cx = (ch.cm * ch.cx + mo * ch.x) / cm;
+        ch.cm = cm;
+        ch.vc += n;
+        if b > 0.0 {
+            let mb = ch.cm * b / ch.vc;
+            m_p += mb;
+            e_p += mb * ch.chh;
+            x_p += mb * ch.cx;
+            ch.cm -= mb;
+            ch.vc -= b;
+        }
+        if !(ch.vp > 0.0) {
+            ch.vp = 0.0;
+            ch.pm = 0.0;
+            ch.vc = ch.vt;
+        }
+    }
+    let m2 = jmax(1e-9, ch.m + dmc);
+    ch.x = jmin(1.0, jmax(0.0, xx / m2));
+    ch.m = m2;
+    ch.t = jmax(200.0, match gas { Some(g) => gas_t(g, u / m2, ch.x, ch.t, false).0, None => u / (m2 * CV) });
+    ch.mdot = dmc / dt;
+    // the wall (Reynolds' analogy): the neck's parcels by their share of its volume, then the can
+    let aq = ch.q.abs();
+    if aq > 0.0 {
+        let kn = 2.0 * FANNING * aq * ch.le / ch.dn * ch.fnk / ch.vt;
+        if ch.pm > 0.0 {
+            ch.pt = match gas { Some(g) => gas_t(g, ch.ph, ch.px, ch.pt, true).0, None => ch.ph / CP };
+            let cp = match gas { Some(g) => gas_at(g, ch.pt, ch.px).0, None => CP };
+            ch.pt = wall_t(gas, ch.px, ch.pt, ch.pm, kn * ch.pm * cp, dt, ch.tw, true);
+            ch.ph = match gas { Some(g) => gas_h(g, ch.pt, ch.px), None => CP * ch.pt };
+        }
+        if ch.cm > 0.0 {
+            ch.ct = match gas { Some(g) => gas_t(g, ch.chh, ch.cx, ch.ct, true).0, None => ch.chh / CP };
+            let cp = match gas { Some(g) => gas_at(g, ch.ct, ch.cx).0, None => CP };
+            ch.ct = wall_t(gas, ch.cx, ch.ct, ch.cm, kn * ch.cm * cp, dt, ch.tw, true);
+            ch.chh = match gas { Some(g) => gas_h(g, ch.ct, ch.cx), None => CP * ch.ct };
+        }
+        let cpc = match gas { Some(g) => gas_at(g, ch.t, ch.x).0, None => CP };
+        ch.t = wall_t(gas, ch.x, ch.t, ch.m, CAN_WALL * 0.5 * FANNING * aq * ch.m / ch.v * cpc, dt, ch.tw, false);
+    }
+    p.q1[i] += m_p / p.dx;
+    p.q3[i] += e_p / p.dx;
+    p.q4[i] += x_p / p.dx;
+    if dv > 0.0 {
+        p.q2[i] += m_p * p.u[i] / p.dx;
+    }
 }
 struct Net {
     cyls: Vec<usize>,
@@ -2172,7 +2400,7 @@ fn build_line(pipes: &mut Vec<Pipe>, segs: &[Seg], tw: &Value, dx: f64, t0: f64,
     Ok(out)
 }
 
-fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>], dx: f64, gas: Option<Gas>) -> Result<Vec<Net>, String> {
+fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>], dx: f64, gas: Option<Gas>, mg: &Option<MergeSpec>) -> Result<Vec<Net>, String> {
     let mut used = std::collections::HashSet::new();
     let mut nets = Vec::new();
     for (ci, col) in cols.iter().enumerate() {
@@ -2237,7 +2465,10 @@ fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>],
         if feed.len() < 2 {
             return Err(format!("collector {}: the last junction needs at least two inlets", ci + 1));
         }
-        let main = build_line(pipes, &col.segs, &col.tw, dx, 700.0, 0.0, gas, 0.0)?;
+        let main = match mg {
+            Some(m) => build_line(pipes, &split_segs(&col.segs, m.pos[ci]).0, &col.tw, dx, 700.0, 0.0, gas, 0.0)?,
+            None => build_line(pipes, &col.segs, &col.tw, dx, 700.0, 0.0, gas, 0.0)?,
+        };
         if main.is_empty() {
             return Err(format!("collector {} has no pipe after its last junction", ci + 1));
         }
@@ -2249,6 +2480,19 @@ fn collector_nets(cols: &[ColSpec], pipes: &mut Vec<Pipe>, prims: &[Vec<usize>],
         juncs.push(junc(&ends));
         lines.push(main.clone());
         nets.push(Net { cyls, juncs, lines, main });
+    }
+    // the Y-merge: both lines' ends and the one pipe's start at one node; the one pipe belongs to the first net and is the
+    // only tail (the second net's main is left empty)
+    if let Some(m) = mg {
+        let ml = build_line(pipes, &m.segs, &m.tw, dx, 700.0, 0.0, gas, 0.0)?;
+        if ml.is_empty() {
+            return Err("opt.merge.segs: the pipe after the merge has no length".into());
+        }
+        let ends = vec![(*nets[0].main.last().unwrap(), 1.0), (*nets[1].main.last().unwrap(), 1.0), (ml[0], -1.0)];
+        nets[0].juncs.push(junc(&ends));
+        nets[0].lines.push(ml.clone());
+        nets[0].main = ml;
+        nets[1].main = Vec::new();
     }
     Ok(nets)
 }
@@ -2340,7 +2584,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
             return Err("the intake and the exhaust each need at least one pipe".into());
         }
         for c in &eng.chambers {
-            let [cx, cv, ca, cle] = *c;
+            let [cx, cv, ca, cle, ctw] = *c;
             let mut q: isize = -1;
             for (qi, &pi) in ex.iter().enumerate() {
                 let p = &pipes[pi];
@@ -2355,19 +2599,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
             let p = &pipes[ex[q as usize]];
             let cell = jmin((p.n - 1) as f64, jmax(0.0, ((cx - p.start) / p.dx).floor()));
             let cell = if cell.is_nan() { 0 } else { cell as usize };
-            chambers.push(Chamber {
-                cyl: k,
-                pipe: q as usize,
-                cell,
-                v: cv,
-                cda: 0.75 * ca,
-                le: cle,
-                m: PATM * cv / (r0 * 700.0),
-                t: 700.0,
-                x: 0.0,
-                mdot: 0.0,
-                p: 0.0,
-            });
+            chambers.push(branch_of(k, q as usize, cell, cv, 0.75 * ca, cle, if ctw > 0.0 { ctw } else if num(&eng.exhaust.tw) > 0.0 { num(&eng.exhaust.tw) } else { 700.0 }, &gas, r0));
         }
         let th = ((eng.ivc - eng.phases[k]) % 720.0 + 720.0) % 720.0;
         let t = 330.0;
@@ -2425,7 +2657,7 @@ fn fresh_state(eng: &Engine, dx: f64) -> Result<State, String> {
         None
     };
     let nets = match &eng.collectors {
-        Some(cols) => Some(collector_nets(cols, &mut pipes, &prims, dx, gas)?),
+        Some(cols) => Some(collector_nets(cols, &mut pipes, &prims, dx, gas, &eng.merge)?),
         None => None,
     };
     // the intake plenum: its inlet line from the air filter, of the intake's gas; filled with still outside air
@@ -2547,7 +2779,9 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
             for &c in &n.cyls {
                 on.insert(c);
             }
-            st.pipes[*n.main.last().unwrap()].right = tail;
+            if let Some(&l) = n.main.last() {
+                st.pipes[l].right = tail;
+            }
         }
         for (kk, ch) in st.prims.iter().enumerate() {
             if !on.contains(&kk) {
@@ -2571,7 +2805,9 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
     {
         if let Some(nets) = &st.nets {
             for n in nets {
-                ents.push(*n.main.last().unwrap());
+                if let Some(&l) = n.main.last() {
+                    ents.push(l);
+                }
             }
             for (kk, ch) in st.prims.iter().enumerate() {
                 if !nets.iter().any(|n| n.cyls.contains(&kk)) {
@@ -2706,41 +2942,7 @@ fn run_speed(eng: &Engine, rpm: f64, cycles: f64, dx: f64, state: &mut Option<St
             }
             for ch in st.chambers.iter_mut() {
                 let p = &mut st.pipes[st.prims[ch.cyl][ch.pipe]];
-                let i = ch.cell;
-                let (r, pp) = (p.r[i], p.p[i]);
-                let t = pp / (p.rm[i] * r);
-                ch.p = ch.m * (match &gas { Some(g) => gas_r(g, ch.x), None => RG }) * ch.t / ch.v;
-                let rho_n = if pp > ch.p { r } else { ch.m / ch.v };
-                ch.mdot += dt * (ch.cda * (pp - ch.p) / ch.le - ch.mdot * ch.mdot.abs() / (2.0 * rho_n * ch.cda * ch.le));
-                let md = ch.mdot;
-                let hh = match &gas {
-                    Some(g) => {
-                        if md > 0.0 {
-                            gas_h(g, t, p.x[i]) + 0.5 * p.u[i] * p.u[i]
-                        } else {
-                            gas_h(g, ch.t, ch.x)
-                        }
-                    }
-                    None => {
-                        if md > 0.0 {
-                            CP * t + 0.5 * p.u[i] * p.u[i]
-                        } else {
-                            CP * ch.t
-                        }
-                    }
-                };
-                let xin = if md > 0.0 { p.x[i] } else { ch.x };
-                let u = (match &gas { Some(g) => ch.m * gas_e(g, ch.t, ch.x), None => ch.m * CV * ch.t }) + dt * md * hh;
-                let m2 = jmax(1e-9, ch.m + dt * md);
-                ch.x = jmin(1.0, jmax(0.0, (ch.m * ch.x + dt * md * xin) / m2));
-                ch.m = m2;
-                ch.t = jmax(200.0, match &gas { Some(g) => gas_t(g, u / m2, ch.x, ch.t, false).0, None => u / (m2 * CV) });
-                p.q1[i] -= dt * md / p.dx;
-                p.q3[i] -= dt * md * hh / p.dx;
-                p.q4[i] -= dt * md * xin / p.dx;
-                if md > 0.0 {
-                    p.q2[i] -= dt * md * p.u[i] / p.dx;
-                }
+                branch_step(ch, p, dt, &gas);
             }
             for kk in 0..nc {
                 let f = &mut ex_flow[kk];

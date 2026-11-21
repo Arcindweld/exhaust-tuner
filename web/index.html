@@ -10195,7 +10195,8 @@ if(typeof window!=="undefined") window.__camSeat=camSeat;   // for tests/cam_ui.
 // 2026-11-15, part 14: before this the WebAssembly ran a 0.050 in card's angles as seat events)
 // The parts of a spec only this JavaScript model has (2026-11-16, docs/SPEC_PARITY_AUDIT_2026-11-16.md): an H or X crossover
 // between two collectors (opt.crossover), in-line pieces, parallel paths and side branches on a collector's line
-// (pieces, parallel, branches: lineWithPieces, freshState's onLine), cylinders that do not fire (e.dead). Only the sound
+// (pieces, parallel, branches: lineWithPieces, freshState's onLine), side branches on a Y-merge's one pipe
+// (opt.merge.branches), cylinders that do not fire (e.dead). Only the sound
 // prediction builds them and its worker runs this model; the Rust model would run such a spec without them, so rustSpec
 // refuses it and every caller of the WebAssembly checks jsOnly first and runs the JavaScript instead.
 function jsOnly(spec){
@@ -10203,6 +10204,7 @@ function jsOnly(spec){
   if(o.crossover) w.push('opt.crossover');
   if(has(o.collector)) w.push('opt.collector pieces/branches');
   if((o.collectors||[]).some(has)) w.push('opt.collectors pieces/branches');
+  if(o.merge&&o.merge.branches&&o.merge.branches.length) w.push('opt.merge branches');
   if(spec&&spec.e&&spec.e.dead&&spec.e.dead.length) w.push('e.dead');
   return w;
 }
@@ -10313,7 +10315,7 @@ function makeEngine(e,intake,exhaust,opt){
   const fuel=fuelOf(e.blend,e.evap);
   const gas=e.gas==='const'?null:makeGas(e.afr,e.fuel!=='air',fuel), gasIn=gas&&gas.vap?makeGas(e.afr,false,fuel):gas;
   return {e,Ap,Vd,Vc,vol,dvol,evo,evdur,ivo,ivdur,ivc,ign,phases,gas,gasIn,collector:phases.length>1||o.collector?o.collector:null,
-    collectors:o.collectors&&o.collectors.length?o.collectors:null,crossover:o.crossover||null,
+    collectors:o.collectors&&o.collectors.length?o.collectors:null,crossover:o.crossover||null,merge:o.merge||null,
     CdAin:th=>area(th,ivo,ivdur,e.liftIn,e.dIn,e.nIn,tIn),CdAex:th=>area(th,evo,evdur,e.liftEx,e.dEx,e.nEx,tEx),intake,exhaust,plenum:plenumOf(intake),
     src:sourceOf(intake),pOut:exhaust&&exhaust.pOut>0?+exhaust.pOut:null,turbine:turbineOf(exhaust),port:portLaw(e),portIn:portInLaw(e)};
 }
@@ -10513,8 +10515,25 @@ const piecesOf=c=>c?(c.pieces||[]).concat(c.parallel?[c.parallel]:[]):[];
 // into it and the one that leaves it; the collector's own line ends open. xo (opt.crossover, two collectors):
 // {type 'h' | 'x', pos [m along each collector's line], tube {L, d} for an H}: each line is cut there; an H joins the two
 // with a balance tube at a three-way node on each, an X meets both at one four-way node and leaves on both sides
-function collectorNets(cols,prims,dx,xo,G){
-  const used=new Set();
+/* opt.merge (2026-11-21), a Y-merge: the two collectors' lines join into one pipe. {pos [m along each collector's line,
+   from its collector], segs [the one pipe after the merge, from the merge], Tw (K; default the first collector's),
+   branches [side volumes on the one pipe, x m from the merge]}. Each line is cut at its pos (the rest of it is replaced
+   by the merge); the two lines and the one pipe meet at one constant-pressure node, the collectors' own junction law
+   (junctionN: one static pressure, the flows summed to zero, the inflows mixed; no loss term, as at the collectors).
+   Side branches and pieces on the two lines have to lie before pos. Not with opt.crossover. */
+function mergeOf(cols,mg){
+  if(!mg) return null;
+  if(!cols||cols.length!==2) throw new Error('opt.merge joins exactly two collectors (opt.collectors), got '+(cols?cols.length:0));
+  const pos=mg.pos, len=c=>(c.segs||[]).reduce((a,g)=>a+(g.L>1e-6?g.L:0),0);
+  if(!pos||pos.length!==2) throw new Error('opt.merge.pos needs one distance per collector');
+  cols.forEach((c,i)=>{ if(!(pos[i]>0&&pos[i]<len(c))) throw new Error('opt.merge.pos['+i+'] must lie on collector '+(i+1)+'\u2019s line (0 to '+len(c)+' m)');
+    const late=piecesOf(c).concat(c.branches||[]).filter(q=>q.x>=pos[i]); if(late.length) throw new Error('collector '+(i+1)+': a side branch or piece at or beyond the merge'); });
+  if(!(mg.segs&&mg.segs.some(g=>g.L>1e-6))) throw new Error('opt.merge.segs: the pipe after the merge has no length');
+  return {pos:[+pos[0],+pos[1]],segs:mg.segs,Tw:mg.Tw||cols[0].Tw,branches:mg.branches||[]};
+}
+function collectorNets(cols,prims,dx,xo,G,mg){
+  const used=new Set(), MG=mergeOf(cols,mg);
+  if(MG&&xo) throw new Error('opt.merge and opt.crossover cannot both be set');
   const nets=cols.map((col,ci)=>{
     const cyls=col.cyls.map(c=>Math.trunc(c)), juncs=[], lines=[];
     cyls.forEach(c=>{ if(!(c>=0&&c<prims.length)) throw new Error('collector '+(ci+1)+' lists cylinder index '+c+' of '+prims.length);
@@ -10537,7 +10556,7 @@ function collectorNets(cols,prims,dx,xo,G){
       const mA=buildLine({segs:sa,Tw:col.Tw},dx,700,0,G), R=lineWithPieces(sb,piecesOf(col).filter(q=>q.x>pos).map(q=>Object.assign({},q,{x:q.x-pos})),dx,col.Tw,pos,G);
       juncs.push({p:0,ends:feed.map(L=>({P:L[L.length-1],side:+1})).concat([{P:mA[0],side:-1}])});
       juncs.push(...R.juncs); lines.push(mA,...R.lines); return {cyls,juncs,lines,main:R.tail,mainA:mA,mainB0:R.head,blines:mA.concat(R.blines),walls:R.walls}; }
-    const R=lineWithPieces(col.segs,piecesOf(col),dx,col.Tw,0,G);
+    const R=lineWithPieces(MG?splitSegs(col.segs,MG.pos[ci])[0]:col.segs,piecesOf(col),dx,col.Tw,0,G);
     juncs.push({p:0,ends:feed.map(L=>({P:L[L.length-1],side:+1})).concat([{P:R.head[0],side:-1}])});
     juncs.push(...R.juncs); lines.push(...R.lines);
     return {cyls,juncs,lines,main:R.tail,blines:R.blines,walls:R.walls};
@@ -10548,6 +10567,11 @@ function collectorNets(cols,prims,dx,xo,G){
       n1.juncs.push({p:0,ends:[{P:A1[A1.length-1],side:+1},{P:B1[0],side:-1},{P:t[t.length-1],side:+1}]});
       n0.lines.push(t); }
     else n0.juncs.push({p:0,ends:[{P:A0[A0.length-1],side:+1},{P:A1[A1.length-1],side:+1},{P:B0[0],side:-1},{P:B1[0],side:-1}]}); }
+  // the Y-merge: both lines' ends and the one pipe's start at one node; the one pipe belongs to the first net, and is the
+  // only tail (the second net has none)
+  if(MG){ const [n0,n1]=nets, M=lineWithPieces(MG.segs,[],dx,MG.Tw,0,G);
+    n0.juncs.push({p:0,ends:[{P:n0.main[n0.main.length-1],side:+1},{P:n1.main[n1.main.length-1],side:+1},{P:M.head[0],side:-1}]});
+    n0.lines.push(...M.lines); n0.main=M.tail; n1.main=null; nets.merge={blines:M.blines,branches:MG.branches}; }
   return nets;
 }
 /* ---------- side volumes: the gas in the neck tracked, and the can's wall (2026-11-21) ----------
@@ -10668,7 +10692,7 @@ function freshState(eng,dx){
     cyls.push(cy);
   }
   const C1R=!eng.collectors&&eng.collector?lineWithPieces(eng.collector.segs,piecesOf(eng.collector),dx,eng.collector.Tw,0,G):null;
-  const coll=C1R?C1R.head:null, nets=eng.collectors?collectorNets(eng.collectors,prims,dx,eng.crossover,G):null;
+  const coll=C1R?C1R.head:null, nets=eng.collectors?collectorNets(eng.collectors,prims,dx,eng.crossover,G,eng.merge):null;
   // a parallel section on the single collector's line: its paths and the rest of the line (xl) with their nodes (xj)
   const xj=C1R&&C1R.juncs.length?C1R.juncs:null, xl=xj?C1R.lines.slice(1):null, ctail=C1R?C1R.tail:null;
   // side branches on the collector's line (a resonator, a J-pipe, an extended tube's pocket as a tuned volume, a slice of
@@ -10678,7 +10702,8 @@ function freshState(eng,dx){
     const P=line[q], cell=Math.min(P.n-1,Math.max(0,Math.floor((c.x-P.start)/P.dx)));
     chambers.push(branchOf({P,cell,V:c.V,CdA:c.CdA,Le:c.Le,Rp:c.Rp||0},c.Tw,G,R0)); });
   if(coll) onLine(C1R.blines,eng.collector.branches);
-  if(nets) nets.forEach((n,i)=>{ const c=eng.collectors[i]; if(c&&c.branches&&n.main) onLine(n.blines||n.main,c.branches); });
+  if(nets) nets.forEach((n,i)=>{ const c=eng.collectors[i]; if(c&&c.branches&&(n.blines||n.main)) onLine(n.blines||n.main,c.branches); });
+  if(nets&&nets.merge) onLine(nets.merge.blines,nets.merge.branches);   // side volumes on the one pipe after a Y-merge
   const walls=(C1R?C1R.walls:[]).concat(...(nets||[]).map(n=>n.walls||[]));
   // the intake plenum (plenumOf): its inlet line from the air filter, of the intake's gas; filled with still outside air
   let plen=null;
@@ -10741,7 +10766,7 @@ function runSpeed(eng,opts){
   const pTail=eng.pOut>0?eng.pOut:PATM;   // exhaust.pOut: the pressure the open tail ends discharge into
   if(nets){
     const on=new Set();
-    nets.forEach(n=>{ n.cyls.forEach(c=>on.add(c)); n.main[n.main.length-1].right=openEnd(+1,pTail,TATM,1); });
+    nets.forEach(n=>{ n.cyls.forEach(c=>on.add(c)); if(n.main) n.main[n.main.length-1].right=openEnd(+1,pTail,TATM,1); });
     prims.forEach((ch,k)=>{ if(!on.has(k)) ch[ch.length-1].right=openEnd(+1,pTail,TATM,1); });
   } else if(coll){
     st.jn.ends=prims.map(ch=>({P:ch[ch.length-1],side:+1})).concat([{P:coll[0],side:-1}]);
@@ -10749,7 +10774,7 @@ function runSpeed(eng,opts){
   } else prims.forEach(ch=>{ ch[ch.length-1].right=openEnd(+1,pTail,TATM,1); });
   // opts.record: the open ends' last cell over the last opts.recordCycles cycles (2 unless set) (crank angle of the firing frame; mass flow out, gas
   // speed, temperature, density), what OpenWAM's outlet columns hold, for the sound reading without a file
-  let outs=nets?nets.map(n=>n.main[n.main.length-1]).concat(prims.filter((ch,k)=>!nets.some(n=>n.cyls.indexOf(k)>=0)).map(ch=>ch[ch.length-1])):coll?[cEnd[cEnd.length-1]]:prims.map(ch=>ch[ch.length-1]);
+  let outs=nets?nets.filter(n=>n.main).map(n=>n.main[n.main.length-1]).concat(prims.filter((ch,k)=>!nets.some(n=>n.cyls.indexOf(k)>=0)).map(ch=>ch[ch.length-1])):coll?[cEnd[cEnd.length-1]]:prims.map(ch=>ch[ch.length-1]);
   // the turbine (exhaust.turbine): every open tail end above becomes one of its entries, and the downpipe's end the tail
   const ents=TB?outs:null;
   if(TB){ ents.forEach(P=>{ P.right=NOOP; }); const D=TB.down;
