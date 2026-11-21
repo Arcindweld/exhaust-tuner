@@ -65,7 +65,7 @@ const path = require('path');
   const heat = async () => p.evaluate(() => { const H = window.__hang, o = H.hgRead(), ps = H.hgParts(o); return { T: H.hgIsoTemp(o, ps[0], H.HG_MAT[o.mat]).T, txt: [...document.querySelectorAll('#hg-details .sec')].map(x => x.innerText).find(x => /Heat and isolation/.test(x)) || '' }; });
   const h1 = await heat(); await put('hg-reach', 127); await p.waitForTimeout(200); const h2 = await heat();
   ok(h1.T > 38 && h1.T < 316 && h2.T < h1.T - 20, 'isolator ' + h1.T.toFixed(0) + ' °C at 2.5 in out, ' + h2.T.toFixed(0) + ' °C at 5 in, on a 316 °C pipe');
-  ok(/Silicone/.test(h2.txt) && /Reach for 15 °C margin/.test(h2.txt) && /EPDM/.test(h2.txt), 'the heat section lists the isolators with their ratings and the reach each needs; silicone at 5 in');
+  ok(/Silicone/.test(h2.txt) && /Reach for 15 °C( \(27 °F\))? margin/.test(h2.txt) && /EPDM/.test(h2.txt), 'the heat section lists the isolators with their ratings and the reach each needs; silicone at 5 in');
   await put('hg-tp', 600); await put('hg-reach', 63.5); await p.waitForTimeout(200); const h3 = await heat();
   ok(/metal only|wire-rope/.test(h3.txt), 'on a 600 °C pipe it calls for an all-metal isolator (' + h3.T.toFixed(0) + ' °C at the hole)');
   await put('hg-tp', 316);

@@ -23,7 +23,7 @@ const file = path.resolve(process.argv[2] || 'exhaust-calculator.b4base.html');
   const legend = await txt('#m-legend');
   ok(/Packed can/.test(legend), vp.n + ': packed can on the main transmission-loss chart legend');
   ok(/Silencer layout rules \(Davies 1996\)/i.test(m) && /Quarter-wave side branch for 144 Hz/.test(m) && /3\^\(−1\/3\)/.test(m) && /10 to 15 × the pipe area/.test(m), vp.n + ': Davies layout rules with the branch set and folded branch');
-  ok(/Production muffler sizing check \(Yasuda 2013\)/i.test(m) && /Low-pass cut-off/.test(m) && /Split into two equal chambers/.test(m) && /400 mm² hole/.test(m) && /× displacement/.test(m), vp.n + ': Yasuda sizing check renders');
+  ok(/Production muffler sizing check \(Yasuda 2013\)/i.test(m) && /Low-pass cut-off/.test(m) && /Split into two equal chambers/.test(m) && /400 mm²( \(0\.62 in²\))? hole/.test(m) && /× displacement/.test(m), vp.n + ': Yasuda sizing check renders');
   ok(!/Motorcycle silencers/i.test(m), vp.n + ': motorcycle card hidden for the default V8');
   // the packed-can TL rises with frequency and with density, and the summary carries it
   const tlNums = await pg.evaluate(() => { const t = document.getElementById('m-details').innerText; const mm = t.match(/At the firing tone\n([^\n]+)/); return mm ? mm[1] : ''; });
