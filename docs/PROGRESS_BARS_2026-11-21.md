@@ -119,4 +119,30 @@ on 2 cores) and a wall-clock run time swung between 26 s and 84 s for the same p
   stand-in bridge: an OpenWAM run (determinate from the events, Stop), OpenFOAM (indeterminate, the stripe moving, and
   still under reduced motion; a failure), and a Fusion call (shown after 300 ms, not for an 80 ms answer, a refusal).
   `SHOTS=dir` keeps screenshots.
-- TESTS_RESULTS
+- Run one at a time on the final code: `progress_ui.js` all pass (35 checks); `ui_ui.js` all pass (312, its every-word
+  check included: every status text is kept, the bar adds its own line under it); `incremental_ui.js` no difference
+  (148 patched, 1,027 unchanged, 80 in full, as in docs/PERF_2026-11-18.md); `staleness_ui.js` 12 pass; `sim_ui.js`
+  (the wave simulation; no pass/fail lines, ran clean, 10 s); `multi_ui.js` 18 pass; `wsnd_ui.js` 26 pass;
+  `rec_ui.js` 17 pass; `desktop_ui.js` skipped (no host program or OpenWAM in this container, as before).
+- `python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`: 148 tests, 141 passed, 0 failed,
+  0 flaky, 7 skipped and 7 partial skips, all expected (no host program, OpenWAM or the F-100 run here), 2,821 s.
+  The new test is the 148th web or parity test counted here.
+- Screenshots looked at (1440 and 400 px, light and dark; not kept): determinate (wave simulation above earlier
+  results and in the reserved space, sound estimate in its reserved space, boost simulation, an OpenWAM run under its
+  note), indeterminate (OpenFOAM, stripe; reduced motion, the same stripe standing still), cancelled (dashed track,
+  grey fill held where it stopped, the words), problem (dashed track, red words, the add-in's or program's message).
+
+## Not done / follow-ups
+
+- OpenFOAM runs (intake CFD, automatic intake test, exhaust part CFD, Fusion tube CFD) stay indeterminate: their only
+  figure is the iteration cap. A determinate bar needs the host and add-in to send the step list and a convergence
+  measure (a protocol change, not made in this round). The automatic intake test's own status line still says
+  "solving, 25%" (25 % of the cap): that text is pinned by autocfd_ui.js and was left as it was.
+- Fusion single calls and the program's install actions stay indeterminate: one request, one answer; Fusion-side
+  progress events would need new add-in messages.
+- No Cancel was added where none existed underneath: reading a recording, the muffler check, the dyno fit, the
+  optimiser, Engine Simulator, Fusion calls, the update download.
+- The update bar is in the program's menu, which needs the host program; it is wired but not covered by a test here
+  (update_ui.js skips without the host).
+- File imports parse in one synchronous step; if a real file proves slow, the parse would need chunking before a bar
+  could paint.

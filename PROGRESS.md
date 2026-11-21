@@ -12,3 +12,4 @@ Task: shared progress component + wire all long ops; tests web/tests/progress_ui
 - [x] component + CSS + wiring (sim, tsim, wsnd, rec, hostRun kinds wam/tw/mdw/dyno/opt/es/cfd/autocfd/exh/fxcfd, fusionCall/hostCall waits, updater)
 - [x] progress_ui.js ALL PASS (~1-2 min)
 - next: run ui_ui, incremental_ui, staleness_ui, sim_ui, wsnd_ui, rec_ui, desktop_ui, multi_ui; timing; startup check; doc
+- [x] all verification done; suite 141 pass / 0 fail / 7 expected skips; doc finished
