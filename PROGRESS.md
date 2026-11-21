@@ -24,3 +24,6 @@ E idle roughness, F transients, G RS 660 stock. WAVs only in scratchpad sound_ab
 - done in code: fine cycle, ground/positions, idle, shell, grid choice, muffler layouts, IL check (fixed 35 kPa: 40-320 Hz octave medians within 6 dB), blip (idle/WOT/motor), slow rev, RS660 stock script, F-100 orders script, deliverables script, wsndreal_ui extended (not yet run)
 - deliverables: mustang_gt_round1.wav, rs660_round2.wav done (sound_ab2); mustang_r2 at dx 0.01 running (dx01/)
 - todo: ablate --stages r2 (650,2500 none; 2500 wot), f100_orders, v8_xo, v8_muf, tests one at a time, doc
+
+## final
+- all items done or reported; wsndreal_ui 38/38; the 13 listed tests pass; doc written; files in sound_ab2

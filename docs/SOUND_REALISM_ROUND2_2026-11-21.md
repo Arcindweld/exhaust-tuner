@@ -77,12 +77,13 @@ muffler as two chambers joined by a pipe-sized hole (generic); "empty case" is r
 | no crossover | -12.9 | -4.5 | -3.7 | -9.1 | -14.2 | -23.3 | -40.3 | -64.8 | 8 |
 | open headers | -23.3 | -8.1 | -12.7 | -14.6 | -1.7 | -11.5 | -23.4 | -68.6 | 9 |
 
-Playback stages, each switched on its own against the round-two default (same runs; the numbers are the change in each
-band, dB, at 650 / 2,500 RPM, "full" system):
+Playback stages, each switched on its own (same runs; the change in each band, dB, at 650 / 2,500 RPM, "full" system).
+The first row is against the round-two default; the others were measured while the case-noise stage was still on by
+default (it was switched off after this run, section 2.3), so they are each stage's own difference with it on:
 
 | stage off (or changed) | largest band changes |
 |---|---|
-| all new stages off (round one's playback) | 2-4 kHz -41 / -2; 250-500 Hz +8 / +10; 20-60 Hz -9 / -5 |
+| all new stages off (round one's playback) | 2-4 kHz -41 / -2; 250-500 Hz +5 / +7; 20-60 Hz -9 / -5 |
 | fine cycle off (720 points) | 2-4 kHz -38 at idle (the limit falls from 2,646 to 1,945 Hz); none at 2,500 |
 | listener at 25 ft roadside instead of 6 ft behind | 250-500 Hz +7 / +9; 1-2 kHz -13 / -10 |
 | listening path off (the table's +6 dB) | 250-500 Hz +8 / +9; 60-125 Hz -7 / -3 |
@@ -95,7 +96,7 @@ band, dB, at 650 / 2,500 RPM, "full" system):
 
 Ranking for the V8, by the size of the change in the played spectrum: (1) the band limit (40-50 dB above 2-4 kHz: the one
 the reviewer heard as "dull"); (2) the exhaust parts in the wave model: the muffler's inside (19 dB at 250-500 Hz), the
-crossover (12-16 dB at 1-4 kHz) and the resonator; (3) the listening position (7-13 dB, 250-500 Hz and 1-2 kHz); (4) the
+crossover (14-22 dB at 1-4 kHz at idle, 7 dB at 1-2 kHz at 2,500) and the resonator; (3) the listening position (7-13 dB, 250-500 Hz and 1-2 kHz); (4) the
 cycle detail at idle (38 dB at 2-4 kHz, part of 1); then the variation, ground impedance, idle stage and jet, each under
 1 dB on the bands.
 
@@ -184,9 +185,10 @@ in the tip's own convention (gas density x volume velocity; realism.py used the 
 catalogue case with a published width and height (the Mustang's 9.75 x 4 x 13 in); a round case is stiffness-controlled up
 to its ring frequency (about 9 kHz for 7 in) and left out. Wall 1.5 mm and loss factor 0.03 assumed.
 
-Measured: the flat 9.75 x 13 in face has its first mode at 91 Hz, and lightly damped it makes the case louder than the tip
-in the lowest octave by up to 24 dB (idle) and 31 dB (2,500 RPM); its largest gain against the tip is 39.5 dB at one
-harmonic. No published muffler measurement supports a case that dominates its own tailpipe: a real case is curved, rolled,
+Measured (ablation, with realism.py's ambient-density form): the flat 9.75 x 13 in face has its first mode at 91 Hz, and
+lightly damped it made the case louder than the tip in the lowest octave by up to 24 dB (idle) and 31 dB (2,500 RPM), its
+largest gain against the tip 39.5 dB at one harmonic; with the tip-gas density now used the gain is 3-8 dB less (largest
+19.5 dB in wsndreal_ui's run), still a case that dominates the lows. No published muffler measurement supports a case that dominates its own tailpipe: a real case is curved, rolled,
 often double-wrapped and stiffened by the baffles welded to it, none of which a flat simply supported plate has. So the
 stage is offered as an upper bound to listen to ("Muffler case noise: On"), off by default, and none of the listening files
 use it.
@@ -386,7 +388,19 @@ method), which may be stronger than a real glass-pack's at 1-4 kHz.
 
 Run one at a time on the final code (2-core machine shared with another agent):
 
-- `wsndreal_ui.js` (extended, 45 checks): @@REAL@@
+- `wsndreal_ui.js` (extended, 38 checks, all pass, about 25 minutes here): every new stage off is round one's idle hold
+  sample for sample against round one's code (largest difference 0); each stage on alone changes it; the default is 6 ft
+  behind on asphalt (|Q| 0.998 / 0.993 / 0.980 at 125 / 500 / 2,000 Hz); the fine cycle keeps 2,047 harmonics (round one
+  359) and the 10 mm grid doubles the grid limit (2,403 to 4,805 Hz); idle COV of IMEP 9.8 % (round one 7.9 %), hunting
+  1.36 %; cycle-to-cycle RMS of the played idle 3.8 % with the idle stage, 3.0 % without (recordings 17-19 %); the blip
+  (default V8: 750 to 2,900 RPM in 0.13 s, the fuel cut down by 2.8 s, idle at 5.0 s, 6.5 s in all); energy above 3 kHz of
+  the blip on the 20 mm grid -40.1 dB re the total (recordings -13 to -38: 2 dB short of the lowest); insertion loss within
+  6 dB of the transfer matrix in every octave 40-320 Hz (two chambers off by 2.4 / 2.2 / 5.4 dB, three-pass 3.2 / 4.9 /
+  1.3); case noise on changes the Mustang's sound (first face mode 91 Hz, largest gain 19.5 dB) and off equals the sound
+  without the stage; the round-one checks still pass (gaps between the orders 11.1 dB, 73 % of the energy on the exact
+  orders, slope -3.9 dB per octave, the Mustang system against open headers at 2,500 RPM 12.4 dB off the orders above 300 Hz
+  and 12.7 dB overall: round one 17.4 and 17.1, the generic two-chamber inside passing more of 250-500 Hz than the empty
+  case did).
 - `wsnd_ui` 26 pass; `wsndwav_ui` 7; `wsndpar_ui` 8; `wsndxo_ui` 7; `wsndmis_ui` 18; `wsndload_ui` 11; `rec_ui` 17 pass, its
   OpenWAM part skipped (no INS.DAT here); `sound_ui` pass; `progress_ui` 34; `ui_ui` 312; `incremental_ui` all passed;
   `staleness_ui` all passed (12); `jobs_ui` 59, all pass.
