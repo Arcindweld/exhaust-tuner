@@ -1137,6 +1137,7 @@ body[data-tab]:not([data-tab="quick"]) .start{display:none}
           <span class="inp"><input id="t-egt" type="number" step="any" inputmode="decimal" data-kind="temp" data-base="396.111"><em data-u="temp">°F</em></span></label>
         <label class="f"><span class="lab" id="t-dh-lab">Header inside diameter</span>
           <span class="inp"><input id="t-dh" type="number" step="any" inputmode="decimal" data-kind="len" data-base="41.275"><em data-u="len">in</em></span></label>
+        <span class="hint u-span" id="t-dh-jen">Sizing the header: Jennings’s <i>Two-Stroke Tuner’s Handbook</i> (as summarized in “How Two-Stroke Expansion Chambers Work”) makes it 10 to 15% larger in area than the exhaust port window, so for a window W wide and H high the inside diameter is √(4 × 1.10 × W × H ÷ π) to √(4 × 1.15 × W × H ÷ π). The default 1.625 in (41.3 mm) is only a starting figure: measure your port.</span>
         <label class="f adv"><span class="lab">Port length inside the cylinder</span>
           <span class="inp"><input id="t-port" type="number" step="any" inputmode="decimal" data-kind="len" data-base="0"><em data-u="len">in</em></span></label>
         <span class="hint adv u-span" id="t-egt-hint">The default matches Gordon Jennings's 1,700 ft/s wave speed for most of the pipe. Gas at the port runs hotter, and a hotter effective temperature makes the pipe longer.</span>
@@ -11794,7 +11795,7 @@ function renderFour(){
 function renderTwo(){
   const mode=$('t-shape').value, blair=mode==='blair', spec=mode==='spec';
   ['t-jen-a','t-jen-b','t-jen-c','t-jen-d','t-egt-wrap','t-egt-hint'].forEach(id=>{$(id).hidden=blair||spec;});
-  $('t-type-wrap').hidden=!blair; $('t-dh-hint').hidden=!blair; $('t-spec-wrap').hidden=!spec;
+  $('t-type-wrap').hidden=!blair; $('t-dh-hint').hidden=!blair; $('t-spec-wrap').hidden=!spec; $('t-dh-jen').hidden=blair||spec;
   $('t-dh').closest('label').hidden=spec;
   $('t-dh-lab').textContent=blair?'Port equivalent diameter':'Header inside diameter';
   if(spec) return renderTwoSpec();
