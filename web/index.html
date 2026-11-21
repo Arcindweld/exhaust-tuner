@@ -12379,7 +12379,7 @@ function renderSound(){
     const secTxt=sh.shape==='round'?'':' · '+cdim(sh.sec.W)+' × '+cdim(sh.sec.H)+' '+shapeName(sh.shape)+', flow area of a '+cdim(sh.sec.Deq)+' round bore';
     let out=rowT('Material',sh.m.name+secTxt)+
       rowT('Stiffness at '+tempStr(val('s-twall')),(sh.E/1e9).toFixed(0)+' GPa',Math.round(sh.ratio*100)+'% of room temperature')+
-      rowT('Bar wave speed, √(E ÷ density)',Math.round(sh.cbar)+' m/s')+
+      rowT('Bar wave speed, √(E ÷ density)',Math.round(sh.cbar)+' m/s ('+Math.round(sh.cbar*3.28084).toLocaleString('en-US')+' ft/s)')+
       rowT('Tube weight',(sh.ml*0.671969).toFixed(2)+' lb/ft',sh.ml.toFixed(2)+' kg/m');
     const matK=$('s-mat').value, tw=val('s-twall'), grow=heatGrowth(matK,tw,r.len), tmax=TMAX[matK];
     if(grow>0) out+=rowT('Heat growth, '+(turbo?'turbine outlet':'valve')+' to tip',cdim(grow),'at a '+tempStr(tw)+' wall over '+clen(r.len)+', '+(ALPHA[matK]*1e6).toFixed(1)+' µm per m per °C');
@@ -12425,7 +12425,7 @@ function renderSound(){
     const ti=at(r.f.idle), tc=at(r.f.cruise);
     const verdict=ti.rr<Math.SQRT2?'bad':(ti.rr<2.5?'warn':'ok');
     mount=rowT('Mounting',hg.name+', '+nh+' hangers',(U==='imp'?Math.round(kh*5.71015)+' lb/in':Math.round(kh)+' N/mm')+' each'+(kIn>0?'':', typical'))+
-      rowT('Weight carried',mass(ms))+rowT('Bounce frequency on the hangers',hz(fb),'√(total stiffness ÷ weight) ÷ 2π')+
+      rowT('Weight carried',massB(ms))+rowT('Bounce frequency on the hangers',hz(fb),'√(total stiffness ÷ weight) ÷ 2π')+
       rowT('At idle firing, '+hz(r.f.idle),ti.T<1?pct(ti.T)+' of the shake gets through':'amplified '+ti.T.toFixed(1)+'×',(ti.dB<0?'':'+')+ti.dB.toFixed(0)+' dB')+
       rowT('At cruise firing, '+hz(r.f.cruise),tc.T<1?pct(tc.T)+' gets through':'amplified '+tc.T.toFixed(1)+'×',(tc.dB<0?'':'+')+tc.dB.toFixed(0)+' dB')+
       '<div class="note '+(verdict==='ok'?'ok':verdict)+'">'+(verdict==='ok'?'<b>Good isolation.</b> The firing shake is well above the bounce frequency, so the hangers filter it.':
@@ -13451,12 +13451,12 @@ function b5HeadSection(q){   // q: cc, cyl, bore, stroke, valves, rpm, hp, dIn, 
   const four=q.valves===4, tv=TAYLOR_VALVES[four?4:2], nIn=four?2:1, ci=sos(20);
   const dInT=tv.i*bs.B, dExT=tv.e*bs.B;
   const mi=machIndex({B:bs.B/1000,S:bs.S/1000,rpm:q.rpm,dIn:dInT/1000,nIn,cf:0.45,ci});
-  let rows=rowT('Bore and stroke'+(bs.est?' (estimated from the displacement, bore 1.2 × stroke)':''),cdim(bs.B)+' × '+clen(bs.S),'mean piston speed '+(mi?mi.Up.toFixed(1):'?')+' m/s at '+b5Rpm(q.rpm)+' RPM')+
+  let rows=rowT('Bore and stroke'+(bs.est?' (estimated from the displacement, bore 1.2 × stroke)':''),cdim(bs.B)+' × '+clen(bs.S),'mean piston speed '+(mi?mi.Up.toFixed(1)+' m/s ('+(mi.Up*3.28084).toFixed(1)+' ft/s)':'? m/s')+' at '+b5Rpm(q.rpm)+' RPM')+
     rowT('Taylor’s valve sizes for a flat head, '+(four?'four':'two')+' valves',(four?'two ':'')+cdim(dInT)+' intake (0.'+Math.round(tv.i*100)+' × bore) · '+(four?'two ':'')+cdim(dExT)+' exhaust (0.'+Math.round(tv.e*100)+' × bore)','Stone’s maxima '+tv.iMax+' and '+tv.eMax+' × bore; the wave simulation on this tab assumes '+cdim(q.dIn)+' and '+cdim(q.dEx)+', which is left as it is');
   if(mi){
     const over=mi.Z>0.6, evT=TAYLOR_EV.reduce((a,b)=>Math.abs(b[0]-mi.Z)<Math.abs(a[0]-mi.Z)?b:a);
-    rows+=rowT('Taylor’s Mach index Z with those intake valves',mi.Z.toFixed(2)+(over?' <span class="hint">(above 0.6)</span>':''),'mean flow coefficient 0.45 (l/d 0.3), sound at 20 °C; Taylor’s data run about '+(evT[1]*100).toFixed(0)+'% VE near Z '+evT[0]+(mi.Z>=1?'; at choked flow the ceiling is 0.75 ÷ Z = '+(mi.evChoke*100).toFixed(0)+'%':''))+
-      rowT('RPM where Z reaches 0.6',b5Rpm(mi.rpm06)+' RPM','Taylor recommends no more than 0.6; to hold 0.6 at '+b5Rpm(q.rpm)+' the intake needs '+(mi.Aneed*1e6).toFixed(0)+' mm² of effective area, '+(four?'two ':'')+cdim(mi.dNeed*1000)+' valves at that coefficient')+
+    rows+=rowT('Taylor’s Mach index Z with those intake valves',mi.Z.toFixed(2)+(over?' <span class="hint">(above 0.6)</span>':''),'mean flow coefficient 0.45 (l/d 0.3), sound at 20 °C (68 °F); Taylor’s data run about '+(evT[1]*100).toFixed(0)+'% VE near Z '+evT[0]+(mi.Z>=1?'; at choked flow the ceiling is 0.75 ÷ Z = '+(mi.evChoke*100).toFixed(0)+'%':''))+
+      rowT('RPM where Z reaches 0.6',b5Rpm(mi.rpm06)+' RPM','Taylor recommends no more than 0.6; to hold 0.6 at '+b5Rpm(q.rpm)+' the intake needs '+(mi.Aneed*1e6).toFixed(0)+' mm² ('+(mi.Aneed*1e6/645.16).toFixed(2)+' in²) of effective area, '+(four?'two ':'')+cdim(mi.dNeed*1000)+' valves at that coefficient')+
       rowT('Exhaust to intake flow area','about 0.70 to 0.75','Taylor: Aₑ ÷ Aᵢ ≈ √(Tᵢ ÷ Tₑ); Vizard’s flow-bench target is exhaust flow 70% of intake, his best head reached 74%');
   }
   if(q.hp>0&&q.cyl>=1) rows+=rowT('Vizard’s head-flow rule: intake flow for '+Math.round(q.hp)+' hp',(q.hp/(VIZ_HP28*q.cyl)).toFixed(0)+' cfm per port at 28 in H₂O','0.248 bhp per cfm per cylinder at 0.600 in lift ('+(q.hp/(VIZ_HP28*q.cyl)/1.058).toFixed(0)+' cfm at 25 in); holds only with exhaust flow 70 to 75% of intake and no other restriction');
@@ -14881,7 +14881,7 @@ function sizeSection(pref,cyl,target){
   const s=calcPrimarySize({cc:val(pref+'-disp'),cyl,rpm:val(pref+'-trq'),wall:val(pref+'-wall')});
   if(s.err) return sec('Primary size','<div class="note">'+esc(s.err)+'</div>');
   const tub=mm=>U==='imp'?String(+(mm/MM).toFixed(3))+' in':mm.toFixed(1)+' mm';
-  const sz=o=>tub(o.od)+' OD · '+tub(o.id)+' ID';
+  const sz=o=>tubBoth(o.od)+' OD · '+tubBoth(o.id)+' ID';
   const btn=(t,mm)=>'<button type="button" class="btn" data-use="1" data-target="'+target+'" data-mm="'+mm.toFixed(3)+'">'+t+'</button>';
   let b='';
   if(s.lo) b+=btn('Use '+tub(s.lo.od)+' tube',s.lo.id);
@@ -15675,18 +15675,18 @@ function hgHeat(o,parts,mat){
   let h='<div class="figs">'+figT('Isolator runs at',U==='imp'?Math.round(Ti*9/5+32):Math.round(Ti),U==='imp'?'°F':'°C','pipe '+tempStr(o.tp)+', air '+tempStr(o.ta),Ti>260?'st-bad':Ti>232?'st-warn':'st-ok')+
     figT('Best here','','',B.name,'')+'</div>'+
     '<p class="cap">The '+(P0.kind==='rod'?'rod':'tab')+' works as a fin: heat conducts out from the pipe and leaves both faces by natural convection and radiation, while the faces take radiation back from the pipe. Still air, no heat shield: driving air cools it more, a shield between pipe and isolator more still. Read it as the isolator’s temperature at a standstill, the hottest case.</p>'+
-    '<div class="tblwrap"><table><thead><tr><th>Isolator</th><th>Rated to (continuous)</th><th>Here</th><th>Reach for '+margin+' °C margin</th></tr></thead><tbody>'+
+    '<div class="tblwrap"><table><thead><tr><th>Isolator</th><th>Rated to (continuous)</th><th>Here</th><th>Reach for '+margin+' °C ('+Math.round(margin*1.8)+' °F) margin</th></tr></thead><tbody>'+
     rows.map(q=>'<tr'+(q.k===best?' class="cur"':'')+'><td>'+esc(q.name)+'<br><small>'+esc(q.src)+'</small></td><td>'+tempStr(q.L)+(q.lim2&&q.L!==q.lim2?'<br><small>'+tempStr(q.lim2)+' for the rated ones</small>':'')+'</td><td class="'+(q.ok?'st-ok':'st-bad')+'">'+(q.ok?'ok':'too hot')+'</td><td>'+(q.ok?'—':q.rf==null?'not within 250 mm (9.8 in) more':bothL(q.rf)+' from the tube centre')+'</td></tr>').join('')+'</tbody></table></div>'+
     '<p class="cap">'+esc(B.note)+' Where the sources disagree the lowest continuous rating is used.</p>';
-  if(best==='epdm') h+='<div class="note ok"><b>Rubber strap isolators are fine here.</b> The rod end runs '+Math.round(121-Ti)+' °C under EPDM’s rating; silicone straps (COBB) take more heat if you want the margin.</div>';
-  else if(best==='vmq') h+='<div class="note ok"><b>Silicone '+(P0.kind==='rod'?'strap isolator':'grommet in the tab')+'.</b> The best mix here: soft isolation, a clean look, and '+Math.round(siL-Ti)+' °C under '+(rated?'the grommet maker’s 500 °F rating':'silicone’s rating')+'.'+(P0.kind==='rod'?'':' Keep the grommet’s flange off the pipe side of the tab.')+'</div>';
+  if(best==='epdm') h+='<div class="note ok"><b>Rubber strap isolators are fine here.</b> The rod end runs '+Math.round(121-Ti)+' °C ('+Math.round((121-Ti)*1.8)+' °F) under EPDM’s rating; silicone straps (COBB) take more heat if you want the margin.</div>';
+  else if(best==='vmq') h+='<div class="note ok"><b>Silicone '+(P0.kind==='rod'?'strap isolator':'grommet in the tab')+'.</b> The best mix here: soft isolation, a clean look, and '+Math.round(siL-Ti)+' °C ('+Math.round((siL-Ti)*1.8)+' °F) under '+(rated?'the grommet maker’s 500 °F rating':'silicone’s rating')+'.'+(P0.kind==='rod'?'':' Keep the grommet’s flange off the pipe side of the tab.')+'</div>';
   else if(best==='rope') h+='<div class="note warn"><b>Too hot for rubber or silicone here.</b> Lengthen the tab to the reach in the table, put a heat shield between the pipe and the grommet, or use an all-metal isolator: a stainless wire-rope isolator (to '+tempStr(260)+') has the aerospace look and real damping.</div>';
   else if(best==='mesh'&&P0.kind==='rod'&&Ti<=232-margin) h+='';
   else h+='<div class="note bad"><b>Hot enough for metal only.</b> Knitted stainless-mesh mounts are rated to '+tempStr(300)+' (Vibratec’s VTCI to 600 °C). Or move the hanger further from the heat.</div>';
   if(!(W>0)&&best!=='vmq') h+='<p class="cap">Enter the weight this hanger carries to size a wire-rope isolator for it.</p>';
   else if(ropes.length||best!=='vmq'){
-    h+='<p class="sub u-mt12">Stainless wire-rope isolators for '+mass(o.w)+'</p>'+(ropes.length?'<div class="tblwrap"><table><thead><tr><th>Isolator</th><th>Height × bar</th><th>Holds</th><th>Bounce</th><th>Shake passed at idle ('+fIdle.toFixed(0)+' Hz)</th></tr></thead><tbody>'+
-      ropes.map(q=>'<tr><td>'+q.name+'</td><td>'+bothL(q.h)+' × '+bothL(q.bar)+'</td><td>'+Math.round(q.W)+' N max</td><td>'+q.fn.toFixed(1)+' Hz</td><td class="'+(q.T<0.5?'st-ok':q.T<1?'st-warn':'st-bad')+'">'+Math.round(100*q.T)+'%</td></tr>').join('')+'</tbody></table></div>'+
+    h+='<p class="sub u-mt12">Stainless wire-rope isolators for '+massB(o.w)+'</p>'+(ropes.length?'<div class="tblwrap"><table><thead><tr><th>Isolator</th><th>Height × bar</th><th>Holds</th><th>Bounce</th><th>Shake passed at idle ('+fIdle.toFixed(0)+' Hz)</th></tr></thead><tbody>'+
+      ropes.map(q=>'<tr><td>'+q.name+'</td><td>'+bothL(q.h)+' × '+bothL(q.bar)+'</td><td>'+Math.round(q.W)+' N ('+Math.round(q.W*0.224809)+' lbf) max</td><td>'+q.fn.toFixed(1)+' Hz</td><td class="'+(q.T<0.5?'st-ok':q.T<1?'st-warn':'st-bad')+'">'+Math.round(100*q.T)+'%</td></tr>').join('')+'</tbody></table></div>'+
       '<p class="cap">Enidine’s catalog: stiffness in compression at the ends of the WR2 and WR3 ranges, 5–15% damping (10% used); for 80% isolation the bounce frequency should be a third of the shake (here '+(fIdle/3).toFixed(1)+' Hz), from '+esc(fSrc)+'. Their threaded inserts take 6 in·lb at most.</p>':
       '<p class="cap">No WR2 or WR3 isolator carries '+mass(o.w)+' in compression (WR3-100: 85 N): share the load over more hangers.</p>');
   }
@@ -16686,8 +16686,8 @@ function renderCross(){
   const r=calcCross(p), key=$('x-key'), det=$('x-details'), svg=$('x-svg');
   if(r.err){key.innerHTML='<div class="note bad">'+esc(r.err)+'</div>';setHTML(det,'');clearSvg(svg);$('x-cap').textContent='';S.cross={};CROSS_LAST=null;return;}
   CROSS_LAST={type:t,pos:r.place?r.place.pos:NaN,dc:r.dc,tube:r.tube,name:{h:'H-pipe',x:'X-pipe',z:'Z-pipe',y:'Y-pipe'}[t]};
-  const win=U==='imp'?'8 to 18 in':'203 to 457 mm';
-  const posFig=r.place?(()=>{const v=L(r.place.pos,'l');return figT('From collector ends',v.n,v.u,'best '+win,r.place.ok?'st-ok':'st-warn');})()
+  const win=U==='imp'?'8 to 18 in (203 to 457 mm)':'203 to 457 mm (8 to 18 in)';
+  const posFig=r.place?(()=>{const v=L(r.place.pos,'l');return figT('From collector ends',v.n,v.u,v.a+', best '+win,r.place.ok?'st-ok':'st-warn');})()
     :figT('Outlet area ratio',p.yratio.toFixed(2),'','outlet ÷ both inlets');
   const names={h:'H-pipe',x:'X-pipe',z:'Z-pipe (compact offset crossover)',y:'Y-pipe'};
   const notes=[]; let figs,rows,sumRows;
@@ -16727,7 +16727,7 @@ function renderCross(){
     r.place?(r.place.ok?'Its position, '+clen(r.place.pos)+' behind the collectors, is inside the usual 8 to 18 in window.':'Move it into the 8 to 18 in window behind the collectors if you can; closer is better.'):'']);
   html+=sec(names[t],rows);
   if(t==='x') html+=xBuildSheet(r,p);
-  if(r.place) html+=sec('Placement',rowL('Collector ends to crossover',r.place.pos,'l')+rowT('Best window',win,'8 to 18 in is the range quoted for crossovers'));
+  if(r.place) html+=sec('Placement',rowL('Collector ends to crossover',r.place.pos,'l')+rowT('Best window',win,'8 to 18 in (203 to 457 mm) is the range quoted for crossovers'));
   html+=guideHtml('cross');
   html+=actions('cross');
   FX.cross={title:'Crossover '+names[t],strokes:r.strokes};
@@ -17477,7 +17477,7 @@ function mtSection(p){
     const Qe=Q*Math.sqrt(rg/1.2)/CFM_M3S;          // the cold-air CFM that gives the same drop (drop ~ density x flow^2)
     const need=(cfm,pa)=>RATED_D*Math.sqrt(Qe/cfm)*Math.pow(RATED_PA/pa,0.25), atD=cfm=>{ const x=Qe/(cfm*k); return x<=3?RATED_PA*x*x:null; };
     const kpa=x=>(x/1000).toFixed(1)+' kPa ('+(x/249.0889).toFixed(0)+' in water)';
-    h+='<div class="tblwrap"><table><thead><tr><th>Type</th><th>Quieter by</th><th>Rated flow, 2½ in at 5 in water</th><th>Inlet for 5 in water at redline</th><th>Inlet for 1 psi</th><th>Drop through a '+cdim(D)+' one</th></tr></thead><tbody>'+
+    h+='<div class="tblwrap"><table><thead><tr><th>Type</th><th>Quieter by</th><th>Rated flow, 2½ in at 5 in water</th><th>Inlet for 5 in water at redline</th><th>Inlet for 1 psi (6.9 kPa)</th><th>Drop through a '+cdim(D)+' one</th></tr></thead><tbody>'+
       MUF_RATED.map(t=>{ const cf=(t.cfm[0]+t.cfm[1])/2, d=atD(cf);
         return '<tr><td>'+t.name+'</td><td>'+t.dB[0]+' to '+t.dB[1]+' dBA</td><td>'+(t.cfm[0]===t.cfm[1]?t.cfm[0]:t.cfm[0]+' to '+t.cfm[1])+' CFM</td><td>'+cdim(need(cf,RATED_PA))+'</td><td>'+cdim(need(cf,6894.76))+'</td><td>'+(d==null?'far past its rated flow':kpa(d))+'</td></tr>'; }).join('')+'</tbody></table></div>'+
       '<p class="cap">At '+Math.round(sp.p.red).toLocaleString('en-US')+' RPM this pipe carries '+Math.round(Q/CFM_M3S)+' CFM of gas at '+tempStr(tg)+(share<1?' ('+Math.round(share*100)+'% of the engine’s flow)':'')+', 90% volumetric efficiency; it drops like '+Math.round(Qe)+' CFM of cold air would. The inlet size scales the rated flow with area, as if the muffler grew with its pipe; the 1 psi column and the drop stretch the test point with the square law (drop ∝ density × flow², fair for turbulent flow well under Mach 0.3), the drop only up to three times the rated flow. Take it as a ranking: the patent’s figures are one comparison by the inventor, not independent tests.</p>';
@@ -17516,7 +17516,7 @@ function augSection(p){
     '<label class="f"><span class="lab">Centre tube</span><span class="inp"><select class="augsel"><option value="0"'+(a.capped?'':' selected')+'>Open</option><option value="1"'+(a.capped?' selected':'')+'>Capped (all gas round the spiral)</option></select></span></label></div>';
   if(r.err) return sec('Auger muffler',h+'<div class="note bad">'+esc(r.err)+'</div>');
   h+='<dl class="rows">'+rowT('Spiral path',clen(r.Lh),r.N.toFixed(1)+' turns; '+clen(r.Lh-a.L)+' longer than the centre tube')+
-    rowT('Flow area, spiral ÷ centre tube',(r.Ah/r.Ac).toFixed(2),(a.capped?'tube capped: ':'')+'spiral channel '+Math.round(r.Ah*1e6)+' mm², tube '+Math.round(r.Ac*1e6)+' mm²')+
+    rowT('Flow area, spiral ÷ centre tube',(r.Ah/r.Ac).toFixed(2),(a.capped?'tube capped: ':'')+'spiral channel '+Math.round(r.Ah*1e6)+' mm² ('+(r.Ah*1e6/645.16).toFixed(2)+' in²), tube '+Math.round(r.Ac*1e6)+' mm² ('+(r.Ac*1e6/645.16).toFixed(2)+' in²)')+
     (a.capped||!r.peak?'':rowT('Strongest dip near the first cancellation',Math.round(r.peak.f)+' Hz, '+r.peak.v.toFixed(0)+' dB','the spiral half a wavelength longer is '+Math.round(r.f1)+' Hz; the paths’ unequal areas move and soften it; again at odd multiples'))+'</dl>'+
     '<figure class="card u-m10"><svg class="camp" id="aug-svg" role="img" aria-label="Sound taken out by the auger muffler against frequency"></svg></figure>'+
     '<p class="cap">Plane waves through both paths, lossless, gas at '+tempStr(p.tmain)+'. The swirl and the friction along the spiral take out more than this, mostly at higher frequencies, and cost back pressure; a capped tube sends everything round the spiral, which owners describe as a scream at full throttle. Reports put an auger’s quieting at about 5 to 7 dB over an open pipe (Moroso’s claim, no method given).</p>';
@@ -17666,7 +17666,7 @@ function renderMuf(){
 
   const lenTxt=c=>clen(c.len)+' long';
   let html=explainBox([
-    'To cancel the <b>'+Math.round(p.f)+' Hz</b> tone, a Helmholtz resonator needs about <b>'+(U==='imp'?hm.in3.toFixed(0)+' cu in':hm.liters.toFixed(2)+' L')+'</b> behind a '+cdim(p.dn)+' × '+clen(p.ln)+' neck. That is a '+tubBoth(can.D)+' can about '+lenTxt(can)+'.',
+    'To cancel the <b>'+Math.round(p.f)+' Hz</b> tone, a Helmholtz resonator needs about <b>'+(U==='imp'?hm.in3.toFixed(0)+' cu in ('+hm.liters.toFixed(2)+' L)':hm.liters.toFixed(2)+' L ('+hm.in3.toFixed(0)+' cu in)')+'</b> behind a '+cdim(p.dn)+' × '+clen(p.ln)+' neck. That is a '+tubBoth(can.D)+' can about '+lenTxt(can)+'.',
     pl.best.length?'Tap it into the pipe about <b>'+pl.best.map(x=>clen(x)).join('</b> or <b>')+'</b> from the '+endName+'. That is where this tone’s pressure peaks. Close to the tailpipe tip it does very little.':
       'This pipe is short compared with the tone’s wavelength, so tap the resonator in as close to the '+endName+' end as you can.',
     'A capped side tube (J-pipe) of '+cdim(p.db)+' cut to about <b>'+clen(qw.L)+'</b> does the same job. Build it a little long and trim it while you listen.',
@@ -17678,7 +17678,7 @@ function renderMuf(){
     rowT('Tuned at',Math.round(p.f)+' Hz','resonator gas at '+tempStr(p.tres))+
     rowT('3 dB band',Math.round(hm.lo)+' to '+Math.round(hm.hi)+' Hz','width = '+hm.K.toFixed(2)+' × target')+
     (()=>{ const spl=val('m-spl'), K=+$('m-edge').value||2.8; if(!(spl>0)) return ''; const rho=rhoGas(p.tmain), bp=branchPeak(spl,K,rho,hm.c,hm.S,hm.A);
-      return rowT('Real peak at the tuned note',bp.tl.toFixed(0)+' dB','with a '+Math.round(spl)+' dB tone in the pipe the neck’s air moves '+bp.u.toFixed(1)+' m/s and its edge loss (K '+K+') caps the cut there; the chart’s '+TLCAP+' dB is the lossless limit (Rienstra and Hirschberg 8.3)'); })()+
+      return rowT('Real peak at the tuned note',bp.tl.toFixed(0)+' dB','with a '+Math.round(spl)+' dB tone in the pipe the neck’s air moves '+bp.u.toFixed(1)+' m/s ('+(bp.u*3.28084).toFixed(1)+' ft/s) and its edge loss (K '+K+') caps the cut there; the chart’s '+TLCAP+' dB is the lossless limit (Rienstra and Hirschberg 8.3)'); })()+
     '<div class="tblwrap u-mt10"><table><thead><tr><th>Can diameter</th><th>Can length for this volume</th></tr></thead><tbody>'+
     hm.cans.map(c=>'<tr'+(c===can?' class="cur"':'')+'><td>'+cdim(c.D)+'</td><td>'+clen(c.len)+'</td></tr>').join('')+'</tbody></table></div>'+
     (()=>{ const bw2=val('m-bw')>0?val('m-bw'):1.651, dOD=p.dn+2*bw2, DOD=p.dpipe+2*bw2; if(!(dOD<=DOD)||$('m-dp-shape').value!=='round') return ''; const c=copeTemplate(dOD,DOD,null,bw2);
@@ -17690,7 +17690,7 @@ function renderMuf(){
     rowL('Cut length, capped end to pipe wall',qw.L,'l')+rowL('Acoustic length (quarter wave)',qw.Lac,'l')+rowL('Mouth end correction, taken off the cut',qw.end,'l')+rowL('Inside diameter',p.db,'d')+
     rowT('Branch area ÷ pipe area',qw.ratio.toFixed(2))+
     (()=>{ const spl=val('m-spl'), K=+$('m-edge').value||2.8; if(!(spl>0)) return ''; const rho=rhoGas(p.tmain), S=Math.PI*(p.dpipe/2000)**2, Sn=Math.PI*(p.db/2000)**2, bp=branchPeak(spl,K,rho,qw.c,S,Sn);
-      return rowT('Real peak at the tuned note',bp.tl.toFixed(0)+' dB','with a '+Math.round(spl)+' dB tone in the pipe the mouth’s air moves '+bp.u.toFixed(1)+' m/s; the edge loss (K '+K+') sets the peak, the chart shows the lossless cap'); })()+
+      return rowT('Real peak at the tuned note',bp.tl.toFixed(0)+' dB','with a '+Math.round(spl)+' dB tone in the pipe the mouth’s air moves '+bp.u.toFixed(1)+' m/s ('+(bp.u*3.28084).toFixed(1)+' ft/s); the edge loss (K '+K+') sets the peak, the chart shows the lossless cap'); })()+
     (()=>{ if(!engM) return ''; const Ur=engM.red*engM.c, Uc=engM.cruise*engM.c, w=p.db/1000;
       // Rienstra and Hirschberg 5.6 (eqs 5.91-5.93): the shear layer over an opening of streamwise width w convects at about 0.4 U and
       // drives the branch when f w / (0.4 U) is a whole number, the first mode strongest; no tone when the opening is shorter than half a period
@@ -17725,7 +17725,7 @@ function renderMuf(){
     rowT('Curve holds up to about',hzs(ch.fCut),'the first cross mode of a '+cdim(p.dch)+' round chamber')+
     (()=>{ const V=Math.PI/4*(p.dch/1000)**2*p.lch/1000*1e6, cc=val('s-disp'); if(!(cc>0)) return '';
       const k=V/cc, nP=$('s-feed').value==='all'?1:2, single=Math.round(val('s-cyl'))===1&&$('s-cyc').value!=='r';
-      return rowT('Chamber volume',(V/1000).toFixed(2)+' L',(+k.toFixed(1))+' × the engine’s '+Math.round(cc).toLocaleString('en-US')+' cc. Production cars now carry about 12 × displacement across all their mufflers, up from about 5 × (<a href="https://doi.org/10.1016/j.apacoust.2012.06.007" target="_blank" rel="noopener">Yasuda et al. 2013</a>). Munjal’s rule: about 20 dB(A) of insertion loss takes 3.5 × (low-output engines) to 12.5 × (high-output), and each further dB(A) about 0.38 × more (Acoustics of Ducts and Mufflers, 1987, 8.4)')+
+      return rowT('Chamber volume',(V/1000).toFixed(2)+' L ('+Math.round(V/16.387064)+' cu in)',(+k.toFixed(1))+' × the engine’s '+Math.round(cc).toLocaleString('en-US')+' cc ('+Math.round(cc/16.387064)+' cu in). Production cars now carry about 12 × displacement across all their mufflers, up from about 5 × (<a href="https://doi.org/10.1016/j.apacoust.2012.06.007" target="_blank" rel="noopener">Yasuda et al. 2013</a>). Munjal’s rule: about 20 dB(A) of insertion loss takes 3.5 × (low-output engines) to 12.5 × (high-output), and each further dB(A) about 0.38 × more (Acoustics of Ducts and Mufflers, 1987, 8.4)')+
         (single&&k<12?'<div class="note">That is under the 12 to 25 times the swept volume that a 2023 design study of a KTM 390 single’s muffler cites as typical. A small can attenuates less at the firing tone; check the loudness on the Sound tab or go bigger if it fits (<a href="https://doi.org/10.3390/metrology3030015" target="_blank" rel="noopener">Saadabadi et al. 2023</a>).</div>':''); })()+
     (()=>{ const M=val('m-mach'); if(!(M>0)) return rowT('Back pressure','set the mean flow above','Munjal’s measured junction losses need the pipe’s Mach number');
       const E=mufElems('chamber',mufInputs()); if(E.err) return rowT('Back pressure','–',esc(E.err)); const n=E.n, bp=mufElemLoss(E,1.4*101325*M*M/2); MUF_BP.chamber=bp.total;
@@ -17805,12 +17805,12 @@ function renderMuf(){
     const Vcan=Math.PI/4*(p.dch/1000)**2*p.lch/1000, cc=val('s-disp');
     const ys=calcYasuda({c:sosExh(p.tmain),V:Vcan,d:p.dpipe,lTail:val('m-tail'),lRet:val('m-lret'),dHole:22.6,tHole:1,lFront:200,disp:cc>0?cc:0});
     if(!ys.err){
-      const litre=v=>U==='imp'?(v*61023.7).toFixed(0)+' cu in':(v*1000).toFixed(1)+' L';
+      const litre=v=>U==='imp'?(v*61023.7).toFixed(0)+' cu in ('+(v*1000).toFixed(1)+' L)':(v*1000).toFixed(1)+' L ('+(v*61023.7).toFixed(0)+' cu in)';
       const fireRow=rs?rowT('Firing tone to pass or block',Math.round(rs.f.idle)+' · '+Math.round(rs.f.cruise)+' · '+Math.round(rs.f.red)+' Hz','idle · cruise · redline'):'';
       html+=sec('Production muffler sizing check (Yasuda 2013)',
         rowT('Low-pass cut-off, this can plus the tailpipe',Math.round(ys.fTP)+' Hz','c ÷ 2π × √(S ÷ (V × l)); tones above it fall away, a longer tailpipe lowers it')+
         rowT('Split into two equal chambers with the return pipe',Math.round(ys.fRT)+' Hz','c ÷ 2π × √((1 ÷ V₁ + 1 ÷ V₂) × S ÷ l); equal volumes give the lowest cut-off for the same can')+
-        (ys.hole?rowT('Add a 400 mm² hole from the tailpipe into the can',Math.round(ys.hole.fsr)+' Hz dip','a Helmholtz dip; the cut-off moves to '+Math.round(ys.hole.fpa)+' Hz. Yasuda’s hole 1: 22.6 mm through a 1 mm wall, 200 mm along the tailpipe'):'')+
+        (ys.hole?rowT('Add a 400 mm² (0.62 in²) hole from the tailpipe into the can',Math.round(ys.hole.fsr)+' Hz dip','a Helmholtz dip; the cut-off moves to '+Math.round(ys.hole.fpa)+' Hz. Yasuda’s hole 1: 22.6 mm through a 1 mm wall, 200 mm along the tailpipe'):'')+
         fireRow+
         rowT('End corrections used',clen(ys.e*1000)+' per open pipe end · '+clen(0.85*22.6)+' for the hole','0.61 × diameter unflanged, 0.85 × diameter for a hole in a wall')+
         (ys.k!=null?rowT('Can volume',litre(Vcan)+', '+(+ys.k.toFixed(1))+' × displacement','5 × would be '+litre(ys.vol5)+', 12 × '+litre(ys.vol12)+'; production cars went from about 5 × to about 12 × across all their mufflers'):'')+
@@ -17862,11 +17862,11 @@ function renderMuf(){
     const hpEst=fin(hpIn)?hpIn:(nCyl&&disp>0?estHp({eng:eS.key,cc:disp,rpm:val('h-rpm')>0?val('h-rpm'):5500,ind:$('s-ind').value}):NaN);
     if(fin(hpEst)&&hpEst>0){
       const one=disp>0&&nCyl?disp/nCyl:NaN, box=one*8;
-      const L=x=>U==='imp'?(x/16.387064).toFixed(0)+' cu in':(x/1000).toFixed(1)+' L';
+      const L=x=>U==='imp'?(x/16.387064).toFixed(0)+' cu in ('+(x/1000).toFixed(1)+' L)':(x/1000).toFixed(1)+' L ('+(x/16.387064).toFixed(0)+' cu in)';
       html+=sec('Flow capacity and the termination box',
         rowT('Open-exhaust power used',Math.round(hpEst)+' hp',fin(hpIn)?'from the Intake or Quick tab':'estimated from displacement and type; enter the real figure on the Intake or Quick tab')+
-        rowT('Muffler flow for no measurable loss',Math.round(2.3*hpEst).toLocaleString('en-US')+' cfm total','2.3 cfm per hp at 1.5 inHg (Vizard); one muffler')+
-        rowT('With two mufflers, each',Math.round(2.3*hpEst/2).toLocaleString('en-US')+' cfm','half the power through each')+
+        rowT('Muffler flow for no measurable loss',Math.round(2.3*hpEst).toLocaleString('en-US')+' cfm ('+Math.round(2.3*hpEst*0.4719474).toLocaleString('en-US')+' L/s) total','2.3 cfm per hp at 1.5 inHg (Vizard); one muffler')+
+        rowT('With two mufflers, each',Math.round(2.3*hpEst/2).toLocaleString('en-US')+' cfm ('+Math.round(2.3*hpEst/2*0.4719474).toLocaleString('en-US')+' L/s)','half the power through each')+
         (fin(box)?rowT('Termination box, at least',L(box),'8 × one cylinder (Vizard); Header Wizard’s box minimum is the same number'):'')+
         '<p class="cap">David Vizard’s test rule (PowerTech 10): once a system flows about 2.3 cfm per open-exhaust horsepower, measured at 1.5 inHg like a carburettor, the power lost to it cannot be seen on a dyno; a 704 hp, 608 lb-ft Corvette kept exactly those numbers through tuned headers, merge collectors, a large termination box and two mufflers totalling 1,700 cfm. The empty box lets the wave reflect as if the pipe were open, so the tuned length still works, and the muffler after it only has to flow. Few makers publish flow (Walker does; Borla was flow-tested on a bench in the video), so the parts list carries no cfm figure and the rule is a target to ask a maker for. His other points: “needs some back pressure” is wrong; a straight-through glasspack can flow well yet spoil the tuned length; an anti-reversion cone in the collector or tailpipe gave a small but consistent gain in a follow-up dyno session (the curves overlaid within the line width), and a Tesla valve in a tailpipe cost 4 hp and, fitted backwards, raised back pressure to 9 psi (a separate channel’s test). <a href="https://youtu.be/vJt-fM8wNkg" target="_blank" rel="noopener">Vizard, no-loss muffled system</a> · <a href="https://youtu.be/cHuZEYFjeME" target="_blank" rel="noopener">anti-reversion test</a> · <a href="https://youtu.be/hWLRpMOm7JM" target="_blank" rel="noopener">Tesla valve test</a>.</p>');
     }
@@ -20873,9 +20873,10 @@ function renderQuick(){
   } else if(r.rotary){
     L1.push('<b>Headers:</b> rotaries use short, large primaries; the Headers tab has the rotary guidance.');
   }
-  if(m.rule) L1.push('<b>Pipe:</b> '+(r.nPipes>1?r.nPipes+' pipes of ':'one ')+'<b>'+m.pick+' in</b> tube. Stainless Headers’ flow rule asks for '+m.area.toFixed(1)+' sq in per pipe for '+f0(r.hp)+' hp; '+m.up+' in is the looser, higher-capacity choice'+
-    (m.guide&&m.guide!==m.pick?', and the same maker’s size chart lists '+m.guide+' in for this power':'')+'.'+
-    ((m.smsp||m.morris)?' Other published rules: '+[m.smsp?m.smsp.pick+' in by SMSP’s 60 hp per square inch of inside area':'',m.morris?m.morris.pick+' in by Nathan Morris’s chart for '+(p.cc/1000).toFixed(1)+' L and '+m.morris.hp+' hp':''].filter(Boolean).join(', and ')+'.':''));
+  const mmOf=v=>(v*25.4).toFixed(1)+' mm';   // a tube size is named in inches; its mm beside it (job fixes 2026-11-21)
+  if(m.rule) L1.push('<b>Pipe:</b> '+(r.nPipes>1?r.nPipes+' pipes of ':'one ')+'<b>'+m.pick+' in</b> <small class="u2">('+mmOf(m.pick)+')</small> tube. Stainless Headers’ flow rule asks for '+m.area.toFixed(1)+' sq in ('+Math.round(m.area*6.4516)+' cm²) per pipe for '+f0(r.hp)+' hp; '+m.up+' in ('+mmOf(m.up)+') is the looser, higher-capacity choice'+
+    (m.guide&&m.guide!==m.pick?', and the same maker’s size chart lists '+m.guide+' in ('+mmOf(m.guide)+') for this power':'')+'.'+
+    ((m.smsp||m.morris)?' Other published rules: '+[m.smsp?m.smsp.pick+' in ('+mmOf(m.smsp.pick)+') by SMSP’s 60 hp per square inch of inside area':'',m.morris?m.morris.pick+' in ('+mmOf(m.morris.pick)+') by Nathan Morris’s chart for '+(p.cc/1000).toFixed(1)+' L ('+Math.round(p.cc/16.387064)+' cu in) and '+m.morris.hp+' hp':''].filter(Boolean).join(', and ')+'.':''));
   else if(m.stock) L1.push('<b>Pipe:</b> one <b>'+m.pick+' in</b> tube ('+tubBoth(m.od)+' OD, '+cdim(m.id)+' inside) from the '+(h&&h.separate?'header pipe':'collector')+' to the silencer: the stock size nearest the '+tubBoth(m.exactOd)+' OD that a '+cdim(m.exactId)+' inside (the '+(h&&h.separate?'header pipe’s':'collector’s')+') plus two 0.065 in (1.65 mm) walls would need.');
   else if(r.two||(h&&!h.separate)) L1.push('<b>Pipe:</b> about '+cdim(m.id)+' inside from the '+(r.two?'stinger':'collector')+' to the silencer.');
   if(r.cross) L1.push('<b>Crossover:</b> an <b>'+XNAME[r.cross.type]+'</b> about '+clen(r.cross.pos)+' behind the collectors. '+(r.cross.type==='h'?'It gives the deeper note.':'It gives the smoother, higher note and evens out the bank pulses.'));
@@ -27901,7 +27902,7 @@ function renderIntake(){
   OP=opSolve(p,ind); if(OP.mode==='hp'||OP.mode==='boost'){ p.boost=OP.boost; p.qd=OP.qd; if(OP.mode==='boost') p.hp=OP.hp; } opUi(ind);
   const r=calcIntake(p); if(r.err) return fail(r.err);
   const imp=U==='imp', spd=ms=>imp?Math.round(ms/0.3048)+' ft/s':Math.round(ms)+' m/s', spdAlt=ms=>imp?Math.round(ms)+' m/s':Math.round(ms/0.3048)+' ft/s';
-  const pa=x=>imp?(x/249.09).toFixed(1)+' inH₂O':Math.round(x)+' Pa', paAlt=x=>imp?Math.round(x)+' Pa':(x/249.09).toFixed(1)+' inH₂O';
+  const pa=x=>imp?(x/249.09).toFixed(1)+' inH₂O':Math.round(x)+' Pa', paAlt=x=>imp?Math.round(x)+' Pa':(x/249.09).toFixed(1)+' inH₂O'; const pa2=x=>pa(x)+' ('+paAlt(x)+')';   // both units (job fixes 2026-11-21)
   const pct=x=>(x>=0?'+':'')+x.toFixed(1)+'%', hp=tsHp();
   const loss=100*(r.ratio-1);
   key.innerHTML='<div class="figs">'+figT('Airflow at peak power',Math.round(r.cfm),'cfm',Math.round(r.Q*1000)+' L/s',r.v>r.vmax?'st-warn':'')+
@@ -27928,9 +27929,9 @@ function renderIntake(){
   // airflow and size
   h+=sec('Airflow and tube size',
     rowT('Airflow at peak power',Math.round(r.cfm)+' cfm',Math.round(r.Q*1000)+' L/s at '+Math.round(p.ve*100)+'% VE'+(r.pr>1?', boost '+r.pr.toFixed(2)+'×':''))+
-    rowT('K&N’s airflow rule',Math.round(r.kn.cfm)+' cfm','displacement × RPM ÷ 3,456 (100% filling)')+
+    rowT('K&N’s airflow rule',Math.round(r.kn.cfm)+' cfm ('+Math.round(r.kn.cfm*0.4719474)+' L/s)','displacement × RPM ÷ 3,456 (100% filling)')+
     rowT('Air speed in '+(n>1?'each ':'the ')+(itb?'stack':'tube'),spd(r.v),spdAlt(r.v))+
-    rowL('Tube for 180 ft/s',r.dRec,'d')+
+    rowL('Tube for 180 ft/s (55 m/s)',r.dRec,'d')+
     (r.tbRange?rowT('Tube for this throttle body',cdim(r.tbRange[0])+' to '+cdim(r.tbRange[1]),'1.25 to 1.33 × the throttle bore area'):'')+
     '<p class="cap">Grape Ape Racing gives 180 ft/s as the most for an intake pipe; Dave Thompson sizes the tube 25 to 33% larger in area than the throttle bore. A tube much bigger than either only slows the air and weakens the tuning waves.</p>');
   // throttle body size
@@ -27939,8 +27940,8 @@ function renderIntake(){
     const fitTB=(dmm)=>PARTS.filter(q=>q.kind==='tb'&&q.boreD_mm!=null&&!Array.isArray(q.boreD_mm)&&Math.abs(q.boreD_mm-dmm)<=4).sort((a,b)=>Math.abs(a.boreD_mm-dmm)-Math.abs(b.boreD_mm-dmm)).slice(0,6);
     let th='';
     if(t){
-      th+=rowL('Bore for 140 ft/s (Ricardo’s best filling)',t.d140,'d')+rowL('Bore for 200 ft/s (Irving’s ceiling)',t.d200,'d')+rowL('Bore for 300 ft/s (Bell’s ceiling)',t.d300,'d')+
-        (t.vNow!=null?rowT('Air speed through your '+cdim(p.tb)+' throttle',spd(t.vNow),t.vNow<140*0.3048?'below Ricardo’s best-VE speed, no restriction to speak of':t.vNow<300*0.3048?'between the two ceilings':'above Bell’s 300 ft/s: the throttle is a restriction at peak power'):'');
+      th+=rowL('Bore for 140 ft/s (43 m/s, Ricardo’s best filling)',t.d140,'d')+rowL('Bore for 200 ft/s (61 m/s, Irving’s ceiling)',t.d200,'d')+rowL('Bore for 300 ft/s (91 m/s, Bell’s ceiling)',t.d300,'d')+
+        (t.vNow!=null?rowT('Air speed through your '+cdim(p.tb)+' throttle',spd(t.vNow)+' ('+spdAlt(t.vNow)+')',t.vNow<140*0.3048?'below Ricardo’s best-VE speed, no restriction to speak of':t.vNow<300*0.3048?'between the two ceilings':'above Bell’s 300 ft/s: the throttle is a restriction at peak power'):'');
       const fits=fitTB(t.d200);
       th+='<p class="cap">The bores are for the engine’s airflow at peak power through the open bore less an 8 mm shaft. Ricardo (1953) saw the best volumetric efficiency at about 140 ft/s and acceptable filling from 40 to 240 ft/s; Phil Irving kept intake air under about 200 ft/s; Corky Bell gives 300 ft/s as the most. HP Academy sizes by pressure drop instead: under about 5 kPa across the throttle at full load on a naturally aspirated engine, and pre- to post-throttle within about 0.5 psi on boost. Dyno tests agree that a bigger single throttle rarely pays on a near-stock engine: an LS3 went 90 to 103 mm with “no appreciable change” (Gwatney), 92 against 102 mm was “almost no difference” (HP Academy), a K20 gained 1 hp from a 70 mm body (Tegiwa) while a shorter intake pipe gained 6, and Ford shelved its 92 mm Coyote body because the gain was so small. A 90° bend right after the throttle cost an F20C about 12 kW (HP Academy). '+
         (fits.length?'Catalogue bodies near the 200 ft/s bore: '+fits.map(q=>esc(q.brand+' '+q.model)+' ('+q.boreD_mm+' mm'+(q.actuation?', '+esc(q.actuation):'')+')').join('; ')+'. More on the Parts tab under Throttle bodies.':'')+'</p>';
@@ -27955,9 +27956,9 @@ function renderIntake(){
   }
   // losses and temperature
   h+=sec('Air temperature and duct loss',
-    rowT('Duct pressure loss at peak power',pa(r.dp),paAlt(r.dp)+'; tube only, no filter or throttle: friction '+pa(r.dpF)+' ('+INTAKE_FINISH[r.finish].name+', f '+r.f.toFixed(4)+', over the '+plain(r.lStr,'l')+' of straights; each bend’s arc is in its K), bends '+pa(r.dpB)+(r.bendList.length?' ('+r.bendList.map((a,i)=>Math.round(a)+'° K '+r.kBends[i].toFixed(2)).join(', ')+' at '+r.clrD.toFixed(2)+' D, Crane)':'')+', inlet '+pa(r.dpIn)+(r.lipRD!=null?' (lip r/D '+r.lipRD.toFixed(3)+', K '+r.kIn.toFixed(2)+', Crane)':p.mouth==='plain'?' (square edge, K '+r.kIn.toFixed(2)+', Crane)':'')+
-      (r.finish!=='smooth'?'; the '+INTAKE_FINISH[r.finish].name+' wall adds '+pa(r.dp-r.dpSmooth)+' ('+paAlt(r.dp-r.dpSmooth)+') over a smooth tube (f '+r.fS.toFixed(4)+')':''))+
-    rowT('Tube only at the tract end, as a CFD reads it',pa(r.dpEnd),paAlt(r.dpEnd)+'; mass-weighted total pressure, the same tube less the '+pa((r.alpha-1)*r.q)+' still in the velocity profile (α '+r.alpha.toFixed(3)+', developed flow); compare this with a bare-tube CFD'+(r.finish!=='smooth'?'; with a smooth wall, as the CFD case has, whatever the finish above':''))+
+    rowT('Duct pressure loss at peak power',pa(r.dp),paAlt(r.dp)+'; tube only, no filter or throttle: friction '+pa2(r.dpF)+' ('+INTAKE_FINISH[r.finish].name+', f '+r.f.toFixed(4)+', over the '+plain(r.lStr,'l')+' of straights; each bend’s arc is in its K), bends '+pa2(r.dpB)+(r.bendList.length?' ('+r.bendList.map((a,i)=>Math.round(a)+'° K '+r.kBends[i].toFixed(2)).join(', ')+' at '+r.clrD.toFixed(2)+' D, Crane)':'')+', inlet '+pa2(r.dpIn)+(r.lipRD!=null?' (lip r/D '+r.lipRD.toFixed(3)+', K '+r.kIn.toFixed(2)+', Crane)':p.mouth==='plain'?' (square edge, K '+r.kIn.toFixed(2)+', Crane)':'')+
+      (r.finish!=='smooth'?'; the '+INTAKE_FINISH[r.finish].name+' wall adds '+pa2(r.dp-r.dpSmooth)+' ('+paAlt(r.dp-r.dpSmooth)+') over a smooth tube (f '+r.fS.toFixed(4)+')':''))+
+    rowT('Tube only at the tract end, as a CFD reads it',pa(r.dpEnd),paAlt(r.dpEnd)+'; mass-weighted total pressure, the same tube less the '+pa2((r.alpha-1)*r.q)+' still in the velocity profile (α '+r.alpha.toFixed(3)+', developed flow); compare this with a bare-tube CFD'+(r.finish!=='smooth'?'; with a smooth wall, as the CFD case has, whatever the finish above':''))+
     (()=>{ const F=INTAKE_FINISH[r.finish], mm=F.ks*1000, inch=mm/25.4, ksT=imp?(+inch.toPrecision(2))+' in ('+(+mm.toPrecision(2))+' mm)':(+mm.toPrecision(2))+' mm ('+(+inch.toPrecision(2))+' in)';
       return '<p class="cap" id="i-finish-cap">Tube finish: '+esc(F.name)+', wall roughness '+ksT+' (equivalent sand grain; '+esc(F.src)+'), friction factor f '+r.f.toFixed(4)+' against '+r.fS.toFixed(4)+' smooth at Re '+Math.round(r.Re).toLocaleString('en-US')+'. The printed finishes are measured Ra turned into sand-grain roughness with Adams, Grant and Watson’s 5.863 × Ra, a rule checked on metal pipes, not on layer lines, so read them as good to about a factor of two; no friction test of a printed tube at intake airflow was found. Coated or primed prints are not listed: no measured roughness of one was found. The CFD case below has smooth walls, so the “as a CFD reads it” figure and the automatic test compare against the smooth tube.</p>'; })()+
     rowT('Power from the duct loss',pct(100*(r.ratioP-1)),'SAE J1349 correction at the lower inlet pressure')+
@@ -27966,7 +27967,7 @@ function renderIntake(){
     '<p class="cap">Power follows the air’s density, so this uses the SAE J1349 dyno correction between the outside air and the air the filter actually draws. The filter’s own loss is not included; a filter sized by the rule below adds little. Racing Beat measured a stock Miata airbox at 78 to 112 °F at speed and after traffic, heat that went straight into the engine when the throttle opened, while the cold-air kits held steady.</p>');
   // inlet shape
   h+=sec('Inlet end and bellmouth',
-    r.inl.map(x=>rowT({plain:'Plain cut tube',radius:'Rolled lip or radius',ellipse:'Elliptical bellmouth'}[x.k],x.k==='plain'?'K '+x.K.toFixed(2):'Cd '+x.cd.toFixed(3),'loses '+pa(x.dp)+' at peak power'+(x.k===p.mouth?' (yours)':'')+(x.k==='plain'?'; Crane’s square edge flush in a wall or filter base (Blair and Cahoon’s plain pipe, Cd '+x.cd.toFixed(3)+', would be K '+((1/x.cd-1)**2).toFixed(2)+'; a thin tube end standing free reads up to 1.0)':'')+(x.k==='ellipse'?'; Cd from Blair and Cahoon’s fit against the pressure ratio across the bell, 0.740 at PR 1.015 up to 0.756 at 1.08':''))).join('')+
+    r.inl.map(x=>rowT({plain:'Plain cut tube',radius:'Rolled lip or radius',ellipse:'Elliptical bellmouth'}[x.k],x.k==='plain'?'K '+x.K.toFixed(2):'Cd '+x.cd.toFixed(3),'loses '+pa2(x.dp)+' at peak power'+(x.k===p.mouth?' (yours)':'')+(x.k==='plain'?'; Crane’s square edge flush in a wall or filter base (Blair and Cahoon’s plain pipe, Cd '+x.cd.toFixed(3)+', would be K '+((1/x.cd-1)**2).toFixed(2)+'; a thin tube end standing free reads up to 1.0)':'')+(x.k==='ellipse'?'; Cd from Blair and Cahoon’s fit against the pressure ratio across the bell, 0.740 at PR 1.015 up to 0.756 at 1.08':''))).join('')+
     rowL('Best bellmouth: entry diameter',r.bell.Di,'d')+rowL('Length',r.bell.L,'l')+rowL('Lip radius',r.bell.Rc,'d')+
     '<p class="cap">From Blair and Cahoon’s CFD study: even a simple radius on the tube end flows about 16% more air than a plain cut, and the best bellmouth, short and fat with an elliptical profile, adds only a few percent more. They put the best length at one exit diameter, the entry at 2.13 times the exit and the lip radius at 0.08 times the entry, and found rectangular inlets worse than round ones.</p>');
   h+=stackSection(p,r);
@@ -27978,7 +27979,7 @@ function renderIntake(){
   if(filt!=='none') h+=sec('Filter size and shape',
     (r.fcap!=null?rowT('This filter flows',Math.round(r.fcap)+' cfm ('+Math.round(r.fcap*0.4719474)+' L/s)','K&N: outside '+(filt==='panel'?'length × width':'perimeter × length')+' × 6, inches')+rowT('Engine needs',Math.round(r.kn.cfm)+' cfm ('+Math.round(r.kn.cfm*0.4719474)+' L/s)',r.fcap>=r.kn.cfm?'filter is big enough':'filter is too small'):'')+
     rowT('Filter area for this engine',Math.round(r.kn.area)+' in² ('+Math.round(r.kn.area*6.4516)+' cm²)','K&N: displacement × RPM ÷ 20,839'+(r.farea!=null?'; this one has about '+Math.round(r.farea)+' in² ('+Math.round(r.farea*6.4516)+' cm²)':''))+
-    rowT('By Vizard’s bench figures',Math.round(r.kn.area*20839/25500)+' in² K&N, '+Math.round(r.kn.area*20839/20900)+' in² paper, '+Math.round(r.kn.area*20839/18870)+' in² foam','for 99% of the bare-carb flow (How to Modify Ford SOHC Engines, ch. 4: ÷ 25,500, ÷ 20,900, ÷ 18,870); never a round filter under 8 in, 9 in is his minimum (10 in on a four-barrel); a 4,000 to 5,000 mile paper element flowed 94% against a new one’s 99.2% and cost 2 to 4.5 hp from 3,000 to 5,000 RPM on his 2 L, and the element’s effective height is ¼ to ⅜ in less than its overall height; double the area for dusty use')+
+    rowT('By Vizard’s bench figures',[[25500,'K&N'],[20900,'paper'],[18870,'foam']].map(([k,w])=>{ const a=r.kn.area*20839/k; return Math.round(a)+' in² ('+Math.round(a*6.4516)+' cm²) '+w; }).join(', '),'for 99% of the bare-carb flow (How to Modify Ford SOHC Engines, ch. 4: ÷ 25,500, ÷ 20,900, ÷ 18,870); never a round filter under 8 in, 9 in is his minimum (10 in on a four-barrel); a 4,000 to 5,000 mile paper element flowed 94% against a new one’s 99.2% and cost 2 to 4.5 hp from 3,000 to 5,000 RPM on his 2 L, and the element’s effective height is ¼ to ⅜ in less than its overall height; double the area for dusty use')+
     (ind!=='na'?rowT('Filter area by Garrett’s rule',Math.round(r.cfm/130*144)+' in²','130 ft/min face velocity at full power, for a turbo inlet; a stricter rule than K&N’s'):'')+
     (firstOk?rowT('Smallest round filter that passes',firstOk.d+' in × '+firstOk.l+' in ('+Math.round(firstOk.d*MM)+' × '+Math.round(firstOk.l*MM)+' mm)','diameter × length, from common sizes'):'')+
     '<dl class="guide u-m10">'+
@@ -27996,7 +27997,7 @@ function renderIntake(){
       rowT('Mount it','in the top half of the tube','sensor facing up, away from water and oil')+
       rowL('Shortest tube for GM’s numbers',m.minTube,'l')+
       rowL('A tuner’s stricter rule: straight before',m.up5,'l')+rowL('and straight after',m.dn2,'l')+
-      (card?rowT('Tube area against the 4 in GM tube',(m.areaVs4*100).toFixed(0)+'%',Math.abs(m.areaVs4-1)<0.03?'matches':'readings scale with area: retune the MAF table'):'')+
+      (card?rowT('Tube area against the 4 in (102 mm) GM tube',(m.areaVs4*100).toFixed(0)+'%',Math.abs(m.areaVs4-1)<0.03?'matches':'readings scale with area: retune the MAF table'):'')+
       '<ul class="list"><li><b>Bellmouth or velocity stack:</b> yes, on the tube entry, and keep a straight run between it and the sensor. Blair and Cahoon show a plain cut tube forms a vena contracta that squeezes the flow to about 57% of the area; a radius or bellmouth smooths the entry, which is what a hot-film sensor needs to read steadily.</li>'+
       (card?'<li><b>Card style (LS7):</b> the card reads the air in a fixed-size tube, so its calibration is tied to that tube. GM’s placement guide is written for 4 in tubing; a tuner on LS1Tech notes a 5 in tube has 56% more area, and needed about 28% added to the MAF table after a tube change. Fit the boss so the card sits square to the flow.</li>':
       '<li><b>Housing style:</b> the meter body is calibrated as a unit, screen included. Keep the screen or honeycomb in place, and give it the same straight runs on both sides.</li>')+
@@ -28029,12 +28030,12 @@ function renderIntake(){
       const fts=ms=>Math.round(ms/0.3048)+' ft/s', rpmT=x=>Math.round(x/10)*10;
       hb=rowL('Runner, valve to '+(itb?'the open end':'the plenum')+(ht.solvedL?', for '+rpmT(r.tr).toLocaleString('en-US')+' RPM':''),ht.L1*1000,'l')+
         (val('i-port')>0&&ht.L1*1000>val('i-port')?rowL('… outside the head (port deducted)',ht.L1*1000-val('i-port'),'l'):'')+
-        rowL('Runner inside diameter'+(ht.sizedA?', sized for 200 ft/s':val('i-rd2')>0?', effective: √(valve end × plenum end) for a straight taper (Engelman eq. 5)':''),ht.d1*1000,'d')+
+        rowL('Runner inside diameter'+(ht.sizedA?', sized for 200 ft/s (61 m/s)':val('i-rd2')>0?', effective: √(valve end × plenum end) for a straight taper (Engelman eq. 5)':''),ht.d1*1000,'d')+
         rowT('Runner tuning peak',rpmT(ht.Np).toLocaleString('en-US')+' RPM','for Engelman’s k = 2.1; the literature’s 2.0 to 2.5 puts it between '+rpmT(ht.Np*2.1/2.5).toLocaleString('en-US')+' and '+rpmT(ht.Np*2.1/2.0).toLocaleString('en-US')+' RPM')+
         (nCyl===4?(()=>{ const dv=Math.sqrt(r.tr*(p.disp/1000)*p.ve/3330)*25.4; return rowL('Vizard’s runner bore for the same peak',dv,'d'); })():'')+
-        rowT('Mean air speed in the runner at that peak',fts(ht.vMean),ht.vMean>210*0.3048+0.01?'above the 180 to 210 ft/s Engelman found best':ht.vMean<180*0.3048-0.01?'below the 180 to 210 ft/s Engelman found best':'within the 180 to 210 ft/s Engelman found best');
+        rowT('Mean air speed in the runner at that peak',fts(ht.vMean)+' ('+Math.round(ht.vMean)+' m/s)',ht.vMean>210*0.3048+0.01?'above the 180 to 210 ft/s Engelman found best':ht.vMean<180*0.3048-0.01?'below the 180 to 210 ft/s Engelman found best':'within the 180 to 210 ft/s Engelman found best');
       if(ht.N1){
-        hb+=rowT('Plenum volume used',(V2*1000).toFixed(1)+' L','that is '+(V2*1e6/p.disp*100).toFixed(0)+'% of displacement. Rules: Grape Ape 50 to 60% for a four and 40 to 50% for a V8 on one plenum at 5,000 to 6,000 RPM, 65 to 80% of its three cylinders for each half of a split V6, 10 to 15% smaller for 7,000 to 7,500 and about 30% larger for 2,500 to 3,500 RPM; Bell 50 to 70% for port injection and 110 to 120% for a blow-through carburettor plenum (Maximum Boost, pp. 79, 109); Engelman’s feed pipe about 1.19 × the runner area'+(nCyl>4?'; Grape Ape and Engelman both stop at four evenly spaced cylinders per plenum, so with '+nCyl+' on one plenum the two-peak split is weak and a cross-plane V8 cannot be split by bank (90-180-270-180° gaps)':'')+'. Engelman: any orifice or meter followed by a volume (a MAF housing, a filter box) adds a third resonance. A restricted engine is different: a 599 cc Formula SAE four behind a 20 mm restrictor did best with a curved 2.5 L plenum, 3 to 5 × displacement, and square or cylindrical plenums starved the end runners (Singh 2014; the restrictor itself, ISO 9300 shape, inlet 2.4 to 2.6 × throat, entry radius 1.8 to 2.3 ×, diffuser 7 to 10 × long at 3 to 7°, moved the flow by under 2% across 25 variants, so the throat governs).');
+        hb+=rowT('Plenum volume used',(V2*1000).toFixed(1)+' L ('+Math.round(V2*61023.7)+' cu in)','that is '+(V2*1e6/p.disp*100).toFixed(0)+'% of displacement. Rules: Grape Ape 50 to 60% for a four and 40 to 50% for a V8 on one plenum at 5,000 to 6,000 RPM, 65 to 80% of its three cylinders for each half of a split V6, 10 to 15% smaller for 7,000 to 7,500 and about 30% larger for 2,500 to 3,500 RPM; Bell 50 to 70% for port injection and 110 to 120% for a blow-through carburettor plenum (Maximum Boost, pp. 79, 109); Engelman’s feed pipe about 1.19 × the runner area'+(nCyl>4?'; Grape Ape and Engelman both stop at four evenly spaced cylinders per plenum, so with '+nCyl+' on one plenum the two-peak split is weak and a cross-plane V8 cannot be split by bank (90-180-270-180° gaps)':'')+'. Engelman: any orifice or meter followed by a volume (a MAF housing, a filter box) adds a third resonance. A restricted engine is different: a 599 cc Formula SAE four behind a 20 mm restrictor did best with a curved 2.5 L plenum, 3 to 5 × displacement, and square or cylindrical plenums starved the end runners (Singh 2014; the restrictor itself, ISO 9300 shape, inlet 2.4 to 2.6 × throat, entry radius 1.8 to 2.3 ×, diffuser 7 to 10 × long at 3 to 7°, moved the flow by under 2% across 25 variants, so the throat governs).');
         hb+=rowT('With the plenum and the tube feeding it: lower peak',rpmT(ht.N1).toLocaleString('en-US')+' RPM','runner and plenum in phase; most of the ram comes from the feed tube')+
           rowT('Upper peak',rpmT(ht.N2).toLocaleString('en-US')+' RPM','runner and plenum out of phase')+
           rowT('Ratios a (feed ÷ runner L/A) · b (plenum ÷ cylinder)',ht.a.toFixed(2)+' · '+ht.b.toFixed(2));
@@ -28051,9 +28052,9 @@ function renderIntake(){
     r.res.slice(0,4).map(x=>rowT(esc(x.label.charAt(0).toUpperCase()+x.label.slice(1)),Math.round(x.f)+' Hz')).join('')+
     (r.wot.length?rowT('Loud under load',r.wot.slice(0,3).map(x=>ordTxt(x.o)+' at '+Math.round(x.rpm/100)*100+' RPM').join(', '),'induction tone on an intake resonance'):'')+
     (r.qw?rowL('Quarter-wave branch on the tube for '+fixT,r.qw.L,'l'):'')+
-    (r.helm?rowT('Or a Helmholtz can for '+fixT,Math.round(r.helm.V/1000*10)/10+' L',cdim(r.helm.dn)+' neck, '+clen(r.helm.ln)+' long'):'')+
+    (r.helm?rowT('Or a Helmholtz can for '+fixT,Math.round(r.helm.V/1000*10)/10+' L ('+Math.round(r.helm.V/16.387064)+' cu in)',cdim(r.helm.dn)+' neck, '+clen(r.helm.ln)+' long'):'')+
     rowL('Mouth end correction added to the tube',r.mouthCorr*1000,'l',p.mouth==='ellipse'?'the bellmouth’s length plus 0.85 × its mouth radius (a flared mouth loads the tube like a flanged opening)':'0.6133 × the tube radius, an open tube end (Levine and Schwinger)')+
-    (r.whistle&&r.whistle.length?rowT('Whistle risk at a sharp edge',r.whistle.slice(0,2).map(w=>Math.round(w.f)+' Hz from a '+w.gap_mm.map(g=>g.toFixed(1)).join(' to ')+' mm gap').join('; '),'a jet off a sharp edge (throttle blade barely open, a slot, a screen) sheds at about 0.25 × speed ÷ gap, 50 to 100 m/s through the gap; on a tube resonance it locks in and whistles. Round the downstream edge or move the edge'):'')+
+    (r.whistle&&r.whistle.length?rowT('Whistle risk at a sharp edge',r.whistle.slice(0,2).map(w=>Math.round(w.f)+' Hz from a '+w.gap_mm.map(g=>g.toFixed(1)).join(' to ')+' mm ('+w.gap_mm.map(g=>(g/25.4).toFixed(2)).join(' to ')+' in) gap').join('; '),'a jet off a sharp edge (throttle blade barely open, a slot, a screen) sheds at about 0.25 × speed ÷ gap, 50 to 100 m/s through the gap; on a tube resonance it locks in and whistles. Round the downstream edge or move the edge'):'')+
     '<dl class="guide u-m10">'+
     '<dt>Airbox</dt><dd>Generally the quietest: the box and snorkel form a Helmholtz resonator that soaks up the low induction tones, which is why factory boxes have one, often with extra side branches.</dd>'+
     '<dt>Open filter or cold air intake</dt><dd>Generally much louder under load: nothing stands between the throttle and the air, so the induction roar comes straight through. The tube’s own resonances set where it is loudest.</dd>'+
@@ -28081,7 +28082,7 @@ function renderIntake(){
     if(PRINT_LAST) Object.assign(FX.intake,{fab:PRINT_LAST.fab,fab_material:PRINT_LAST.mat,wall_mm:PRINT_LAST.wall,od_mm:d+2*PRINT_LAST.wall,section_max_mm:PRINT_LAST.bed}); }
   S.intake={maf:r.maf,summary:['INTAKE · '+{cai:'cold air intake',cone:'short ram',box:'airbox',itb:'individual throttles'}[type],
     'Airflow at '+Math.round(p.rpm)+' RPM: '+Math.round(r.cfm)+' cfm; air speed '+spd(r.v)+' in '+plain(p.dt,'d'),
-    'Tube for 180 ft/s: '+plain(r.dRec,'d'),'Duct loss: '+pa(r.dp)+'; power from air temp and duct: '+pct(loss),
+    'Tube for 180 ft/s: '+plain(r.dRec,'d'),'Duct loss: '+pa2(r.dp)+'; power from air temp and duct: '+pct(loss),
     'Bellmouth: entry '+plain(r.bell.Di,'d')+', length '+plain(r.bell.L,'l')+', lip radius '+plain(r.bell.Rc,'d'),
     'Intake resonances: '+r.res.slice(0,3).map(x=>Math.round(x.f)+' Hz').join(', ')].join('\n')};
 }
