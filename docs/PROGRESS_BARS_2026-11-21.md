@@ -75,11 +75,39 @@ themselves, the Hangers isolator search, the boosted Intake back-pressure march 
 
 ## Start-up
 
-TIMING_STARTUP
+Measured with Chromium's paint timings and the end of the first render (`window.__renderCount`), median of 3, 1440 px
+(scratch script, as tools/perf/load.js; not kept):
+
+| | first paint | first contentful paint | first render done |
+|---|---|---|---|
+| this machine | 112 ms | 112 ms | 347 ms |
+| CPU throttled 4× (a slow shop PC) | 200 ms | 248 ms | 1,345 ms (page before this work: 1,489) |
+
+What shows from the first paint is the page's own static shell: the app bar, the calculator list, the Quick tab's
+introduction, the vehicle picker, the Quick inputs and the empty drawing well (the existing start state; checked by a
+screenshot of the markup alone). From there to the first render (about 0.2 s here, about 1.1 s at 4×) the browser is
+running the page's one script: the main thread is busy, so nothing the script could add would move or update, and a
+static "loading" element would have to sit in every visitor's markup and change the shell's text. No bar and no splash
+were added: a fast load is not delayed, and a slow one already shows the start state. (The WASM that the simulations
+use is compiled inside their workers when a run starts, covered by that run's bar.)
 
 ## Run-time overhead (the default 4-Stroke wave simulation)
 
-TIMING_SIM
+Two measures, because this container was shared with other agents' test runs during the work (load average 4 to 7
+on 2 cores) and a wall-clock run time swung between 26 s and 84 s for the same page:
+
+- **Main-thread time spent on the bars** (an instrumented copy of the page with timers round `progSet` and
+  `progApply`; not kept): the default 4-Stroke wave simulation (3 designs × 12 speeds, 36 steps) made 39 `progSet`
+  calls costing 1.1 to 1.8 ms in all, and 71 to 80 frame updates costing 55 to 167 ms in all, over runs of 45 to 60 s:
+  **0.1 to 0.3 % of the run, and on the page's thread, not the workers' that do the simulation.** The work runs in
+  background workers, so this time does not even sit on the simulation's path except on a single-core machine.
+- **Wall clock, default 4-Stroke wave simulation, page before (git ffdaf4e) and after, interleaved run by run**
+  (scratch `simtime.js`: open the page, press Run the simulation, time to the result drawn): 3 pairs: before
+  59.7 / 64.6 / 56.2 s, after 64.4 / 40.3 / 84.1 s, medians 59.7 → 64.4 s (+7.8 %); 5 pairs: before 56.9 / 58.0 /
+  61.7 / 53.6 / 26.1 s, after 62.9 / 58.1 / 48.3 / 32.0 / 30.7 s, medians 56.9 → 48.3 s (−15 %). The two sets disagree
+  in sign by more than the 3 % budget: under that load the wall clock cannot resolve a 3 % change either way. The
+  direct measure above (at most 0.3 %) is the one to go by; on a quiet machine the unchanged page took 35.1 s for one
+  run before the others started.
 
 ## Tests
 
