@@ -28184,7 +28184,7 @@ document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closes
 const PROG_WAIT={route:'building the route',chargeRoute:'routing the charge pipes',chargeRouteBuild:'building the charge pipes',setHotKeepouts:'marking the keep-outs',
   hang:'building the hanger',mountPlace:'placing the stand-in',mountBuild:'building the brackets',cfdTube:'reading the tube',exportCfdStl:'exporting the STL',
   printSplit:'planning the cuts and building the lap joints',jig:'building the fabrication jig',helmholtz:'building the can and its neck',chamber:'building the chamber',
-  revchamber:'building the reverse-flow chamber',installFusionAddIn:'installing the Fusion add-in',updateInstall:'starting the update'};
+  revchamber:'building the reverse-flow chamber',build:'building the part',pipe:'building the pipe along the path',boom:'building the boom tube',installFusionAddIn:'installing the Fusion add-in',updateInstall:'starting the update'};
 function progWait(p,kind,action){ let l, b; try{ l=PROG_WAIT[action]; b=PROG_CLICK&&Date.now()-PROG_CLICK_T<1500&&PROG_CLICK.isConnected?PROG_CLICK:null; }catch(e){ return p; }   // (a call while the page starts)
   if(!l||!b) return p; const at=b.closest('.actions')||b; let over=false;
   const tm=setTimeout(()=>{ if(!over) progSet(kind,0,0,l,{at}); },300);
