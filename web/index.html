@@ -8604,7 +8604,17 @@ async function inflateCatalog(){
 }
 const CATALOG_PROMISE=inflateCatalog();
 
-function findParts(p){        // p: kind, size (in), loud 1-5, maxl, maxw, maxh (in, 0 = any), street
+// Which vehicle a muffler or resonator is for, from its own catalogue entry (job fixes 2026-11-21, P1): 'bike' when it is a
+// motorcycle silencer type or its source sheet, model or words say motorcycle or bike (the Cone Engineering parts come
+// from that maker's motorcycle sheet), 'car' when its entry names a car or truck, null when it does not say (most do
+// not): such a part is kept and ranked after the ones that match, never guessed.
+const PART_BIKE_RE=/motorcycle|\bbikes?\b|motorbike/i, PART_CAR_RE=/\b(cars?|trucks?|pickups?|automotive|sedans?|coupes?|SUVs?|Jeeps?|street rods?|hot rods?)\b/i;
+function partVeh(q){
+  if(q.type==='moto') return 'bike';
+  const t=(q.srcName||'')+' '+(q.model||'')+' '+(q.says||'');
+  return PART_BIKE_RE.test(t)?'bike':PART_CAR_RE.test(t)?'car':null;
+}
+function findParts(p){        // p: kind, size (in), loud 1-5, maxl, maxw, maxh (in, 0 = any), street; veh 'car' | 'bike' to leave out the other's parts
   const fitsBox=q=>{
     const W=p.maxw>0?p.maxw:Infinity, H=p.maxh>0?p.maxh:Infinity;
     if(q.w==null||q.h==null) return (W===Infinity&&H===Infinity)?true:null;
@@ -8618,11 +8628,14 @@ function findParts(p){        // p: kind, size (in), loud 1-5, maxl, maxw, maxh 
     if(q.inD==null||(q.shape!=='round'&&q.shape!=='oval'&&q.shape!=='rectangular')) return;
     if(Math.abs(q.inD-p.size)>0.01) return;
     if(p.street&&q.offroad) return;
+    const pv=p.veh?partVeh(q):null;
+    if(p.veh&&pv&&pv!==p.veh) return;                        // a motorcycle part for a car, or a car part for a bike
     const box=fitsBox(q), len=fitsLen(q);
     if(box===false||len===false) return;
-    out.push({q,unknown:box===null||len===null,score:q.loud==null?0:Math.abs(q.loud-p.loud)});
+    out.push({q,unknown:box===null||len===null,score:q.loud==null?0:Math.abs(q.loud-p.loud),veh:p.veh?(pv?1:0):1});
   });
-  out.sort((a,b)=>a.score-b.score||(a.unknown-b.unknown)||((a.q.oal||a.q.body||99)-(b.q.oal||b.q.body||99)));
+  // a part whose entry does not say which vehicle it is for comes after the ones that do, at the same loudness match
+  out.sort((a,b)=>a.score-b.score||(b.veh-a.veh)||(a.unknown-b.unknown)||((a.q.oal||a.q.body||99)-(b.q.oal||b.q.body||99)));
   return out;
 }
 
@@ -11071,13 +11084,19 @@ function calcQuick(p){
   // muffler
   const mufType=quickMufType(p,e);
   const bike=grp==='moto';
-  const found=cyc==='2'?[]:findParts({kind:'muffler',size:bike?2:mSize,loud:p.loud,maxl:0,maxw:0,maxh:0,street:p.use==='street'}).filter(x=>(x.q.type==='moto')===bike);
-  let partsSize=bike?2:mSize, partsUp=false, list=found;
+  // (job fixes 2026-11-21, P1) a car is offered no part whose catalogue entry is a motorcycle part, a bike no car part; a
+  // part whose entry does not say is kept, after the ones that match. A bike tries its own pipe size first, then the
+  // 2 in (51 mm) inlet of the universal bike silencers.
+  const veh=car?'car':bike?'bike':null, fp=s=>findParts({kind:'muffler',size:s,loud:p.loud,maxl:0,maxw:0,maxh:0,street:p.use==='street',veh});
+  let partsSize=mSize, partsUp=false, list=cyc==='2'?[]:fp(mSize);
+  if(bike&&!list.length&&mSize!==2){ list=fp(2); partsSize=2; }
   if(!list.length&&car&&main.up){
     const s2=nearSize(main.up);
-    if(s2!==mSize){ const f2=findParts({kind:'muffler',size:s2,loud:p.loud,maxl:0,maxw:0,maxh:0,street:p.use==='street'}).filter(x=>x.q.type!=='moto'); if(f2.length){ list=f2; partsSize=s2; partsUp=true; } }
+    if(s2!==mSize){ const f2=fp(s2); if(f2.length){ list=f2; partsSize=s2; partsUp=true; } }
   }
-  const ranked=list.map((x,i)=>({x,i,pref:x.q.type===mufType?0:1})).sort((a,b)=>a.pref-b.pref||a.i-b.i).map(o=>o.x);
+  const ranked=list.map((x,i)=>({x,i,pref:x.q.type===mufType?0:1})).sort((a,b)=>a.pref-b.pref||b.x.veh-a.x.veh||a.i-b.i).map(o=>o.x);
+  // a part is a fit only when its inlet is the main pipe's size (the list covers 2, 2.25, 2.5, 3 and 3.5 in)
+  const pipeIn=main.od>0?main.od/MM:NaN, partsFit=Math.abs(partsSize-pipeIn)<0.02;
 
   // drone at cruise
   const cruise=Number.isFinite(p.cruise)&&p.cruise>0?p.cruise:quickCruise(e,p.rpm);
@@ -11101,8 +11120,8 @@ function calcQuick(p){
   if(!hpGiven) notes.push({k:'info',t:'Horsepower is estimated at about '+Math.round(hp)+' hp from the displacement and RPM. Enter the real figure in Expert mode for a better pipe size.'});
   if(p.ind==='turbo'&&car) notes.push({k:'info',t:'The pipe sizing rule ignores turbos. Every psi after the turbine works against it, so the next size up is the safer pick.'});
   if(p.use==='street'&&p.loud>=5) notes.push({k:'warn',t:'Race-level loudness will not pass street noise limits.'});
-  if(bike&&main.od>0&&Math.abs(main.od/MM-2)>0.3) notes.push({k:'info',t:'The bike silencers in the list are 51 mm at the inlet, so a '+Math.round(main.od)+' mm pipe needs a sleeve or a silencer made for that size.'});
-  return {e,n,cyc,grp,car,bike,vee,hp,hpGiven,tq,tqGiven,tune,nPipes,header,two,rotary,main,mSize,partsSize,partsUp,cross,mufType,parts:ranked.slice(0,3),partsAll:ranked.length,
+  if(ranked.length&&main.od>0&&!partsFit) notes.push({k:'info',t:'The '+(bike?'silencers':'mufflers')+' listed below are '+partsSize+' in ('+Math.round(partsSize*MM)+' mm) at the inlet, so the '+(+pipeIn.toFixed(3))+' in ('+main.od.toFixed(1)+' mm) pipe needs a sleeve or reducer, or a '+(bike?'silencer':'muffler')+' made for that size.'});
+  return {e,n,cyc,grp,car,bike,vee,hp,hpGiven,tq,tqGiven,tune,nPipes,header,two,rotary,main,mSize,partsSize,partsUp,cross,mufType,parts:ranked.slice(0,3),partsAll:ranked.length,partsFit,pipeIn,
     drone,reso,cruise,notes,evo:QUICK_EVO};
 }
 
@@ -13706,7 +13725,7 @@ function partCard(q,i){
   if(q.kind==='bend'&&q.clr) btn+='<button type="button" class="btn" data-usebend="'+i+'">Use this bend radius for auto-routing</button>';
   if(q.kind==='collector'&&q.outOD&&q.length) btn+='<button type="button" class="btn" data-usecol="'+i+'">Use for the header collector</button>';
   return '<div class="pcard"><div class="ph"><b>'+esc(q.brand+' '+q.model)+'</b><span>'+esc(q.pn||'')+'</span></div>'+
-    '<div class="pm">'+((q.kind==='muffler'||q.kind==='resonator')&&TYPE_NAME[q.type]?TYPE_NAME[q.type]:esc((PKIND_NAME[q.kind]||q.kind)+(q.type&&!/^straight$/.test(q.type)&&q.type!==q.kind?' · '+q.type:'')))+(q.loud?' · <b>'+LOUD[q.loud]+'</b> <span class="tag">'+(q.basis==='maker'?'maker’s words':'estimated from type')+'</span>':'')+'</div>'+
+    '<div class="pm">'+((q.kind==='muffler'||q.kind==='resonator')&&q.type!=='moto'&&partVeh(q)==='bike'?'<span class="tag">motorcycle part</span> ':'')+((q.kind==='muffler'||q.kind==='resonator')&&TYPE_NAME[q.type]?TYPE_NAME[q.type]:esc((PKIND_NAME[q.kind]||q.kind)+(q.type&&!/^straight$/.test(q.type)&&q.type!==q.kind?' · '+q.type:'')))+(q.loud?' · <b>'+LOUD[q.loud]+'</b> <span class="tag">'+(q.basis==='maker'?'maker’s words':'estimated from type')+'</span>':'')+'</div>'+
     '<div class="pd">'+partDims(q)+(q.mat?' · '+esc(q.mat)+(/Ti$/.test(q.mat)?' titanium':/^(304|316|321|409)$/.test(q.mat)?' stainless':/^INC/.test(q.mat)?' Inconel':''):'')+'</div>'+(q.says?'<div class="pd">'+esc(q.says)+'</div>':'')+
     (q.offroad?'<div class="pd st-warn">Race or off-road use: the maker does not intend it for the street.</div>':'')+
     (q.cad?'<div class="pd"><span class="tag">CAD model</span> A STEP model named “'+esc(q.cad)+'” in your CAD library is imported by the Fusion add-in when this part is placed.</div>':'')+
@@ -17782,7 +17801,9 @@ function renderMuf(){
     '<p class="cap">Assumes the pipe is closed at the '+endName+' and open at the tip, like the drone check. Mufflers and diameter changes shift the pattern; set the Sound tab to sections to include them.</p>'));
 
   /* parts finder */
-  const fp={kind:$('m-kind').value,size:+$('m-size').value,loud:+$('m-loud').value,maxl:val('m-maxl')/MM,maxw:val('m-maxw')/MM,maxh:val('m-maxh')/MM,street:$('m-street').value==='1'};
+  // the vehicle is the Sound tab's engine's (job fixes 2026-11-21, P1): a car is offered no motorcycle part, a bike no car part
+  const fpVeh=rsE.grp==='moto'?'bike':(rsE.grp==='car'||rsE.grp==='rot')?'car':null;
+  const fp={kind:$('m-kind').value,size:+$('m-size').value,loud:+$('m-loud').value,maxl:val('m-maxl')/MM,maxw:val('m-maxw')/MM,maxh:val('m-maxh')/MM,street:$('m-street').value==='1',veh:fpVeh};
   const found=findParts(fp);
   const inch=v=>inchTxt(v);   // handles a range given as an array, a numeric string or null
   const card=({q,unknown})=>'<div class="pcard"><div class="ph"><b>'+esc(q.brand+' '+q.model)+'</b><span>'+esc(q.pn)+'</span></div>'+
@@ -17791,7 +17812,9 @@ function renderMuf(){
     '<div class="pd">'+esc(q.says)+'</div>'+(q.offroad?'<div class="pd st-warn">Race or off-road use: the maker does not intend it for the street.</div>':'')+(unknown?'<div class="pd st-warn">Some dimensions are not published, so check the fit before you order.</div>':'')+
     '<a href="'+q.src+'" target="_blank" rel="noopener">Specs at '+esc(q.srcName)+'</a></div>';
   html+=sec('Mufflers and resonators that fit',found.length?
-    '<p class="cap u-mt0">'+found.length+' match'+(found.length>1?'es':'')+'. Closest to “'+LOUD[fp.loud]+'” first, then smallest. Check prices and stock with the seller.</p><div class="pgrid">'+found.map(card).join('')+'</div>':
+    '<p class="cap u-mt0">'+found.length+' match'+(found.length>1?'es':'')+'. Closest to “'+LOUD[fp.loud]+'” first, then smallest. '+
+      (fpVeh?'For a '+(fpVeh==='bike'?'motorcycle':'car or truck')+' (the Sound tab’s engine): '+(fpVeh==='bike'?'car and truck':'motorcycle')+' parts are left out, and a part whose listing does not say which it is for comes after the ones that do. ':'')+
+      'Check prices and stock with the seller.</p><div class="pgrid">'+found.map(card).join('')+'</div>':
     '<div class="note warn">Nothing in the list fits those limits. Try another pipe size with adapters, loosen a space limit, or ask for more parts to be added.</div>');
   // flow capacity (Vizard, PowerTech 10): 2.3 cfm per open-exhaust horsepower at 1.5 inHg leaves no measurable loss; a termination box of
   // 8 × one cylinder's volume reflects the wave like open air; Stainless Headers' 2.2 cfm per hp is the same rule
@@ -20781,7 +20804,7 @@ function renderQuick(){
       '<div class="pd">'+esc(q.says)+'</div>'+(q.offroad?'<div class="pd st-warn">Race or off-road use only, per the maker.</div>':'')+
       '<a href="'+q.src+'" target="_blank" rel="noopener">Specs at '+esc(q.srcName)+'</a></div>';
     const off=r.parts[0].q.type!==r.mufType;
-    html+=sec(r.bike?'Bike silencers with a 51 mm inlet':'Mufflers that fit a '+r.partsSize+' in pipe'+(r.partsUp?', the next size up':''),(off?'<p class="cap u-mt0">None in the list is '+TYPE_NAME[r.mufType].toLowerCase()+' at this size, so the closest are shown.</p>':'')+'<div class="pgrid">'+r.parts.map(card).join('')+'</div>'+
+    html+=sec((r.bike?'Silencers':'Mufflers')+(r.partsFit?' that fit a '+inchTxt(r.partsSize)+' pipe':' with a '+inchTxt(r.partsSize)+' inlet'+(r.partsUp?', the next size up':'')),(off?'<p class="cap u-mt0">None in the list is '+TYPE_NAME[r.mufType].toLowerCase()+' at this size, so the closest are shown.</p>':'')+'<div class="pgrid">'+r.parts.map(card).join('')+'</div>'+
       (r.partsAll>r.parts.length?'<p class="cap">'+(r.partsAll-r.parts.length)+' more on the Mufflers tab, where you can also set the space you have.</p>':''));
   }
 
