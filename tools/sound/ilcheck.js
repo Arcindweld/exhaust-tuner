@@ -1,6 +1,6 @@
 // ilcheck.js - the wave model's insertion loss of a muffler layout (sndMufLayout) against the page's own transfer-matrix
 // insertion loss of the same chain (insertionLoss, Munjal 1987 2.15-2.16), at a low level: the default page's 4-Stroke
-// engine (one collector, no load) at idle speeds, the Mufflers tab's pipe and tailpipe, the case 6 x 14 in.
+// engine (one collector) firing at a fixed 35 kPa manifold (so the source is the same with and without the muffler) at low speeds, the Mufflers tab's pipe and tailpipe, the case 6 x 14 in.
 //   node tools/sound/ilcheck.js [--rpms 800,1200]      prints JSON
 const { chromium } = require('playwright'); const path = require('path');
 const argv = process.argv.slice(2), opt = (k, d) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : d; };
@@ -9,8 +9,8 @@ async function ilcheck(pg, rpms) {
     const X = window.__wsnd, q = X.simInp(), A = X.wsndAutoSys(q), W0 = A.W, cp = o => Object.assign(JSON.parse(JSON.stringify(W0)), o);
     const case_ = { D: 152.4, L: 355.6, la: 0, lb: 0, rev: false };
     const V = { none: cp({ mufKind: 'chamber', mufDims: case_ }), baffle: cp({ mufKind: 'chamber', mufDims: Object.assign({}, case_, { type: 'chambered', says: '' }) }), pass3: cp({ mufKind: 'chamber', mufDims: Object.assign({}, case_, { type: 'turbo' }) }) };
-    const vars = [{ key: 'none', label: 'none', parts: { sys: V.none, muf: false } }, { key: 'baffle', label: 'baffle', parts: { sys: V.baffle } }, { key: 'pass3', label: 'pass3', parts: { sys: V.pass3 } }];
-    X.WSND.sets = []; await new Promise(r => X.wsndJob(vars, sets => { X.WSND.sets = sets; r(); }, { rpms, load: 'none' }));
+    const vars = [{ key: 'none', label: 'none', parts: { sys: V.none, muf: false }, load: 'fixed' }, { key: 'baffle', label: 'baffle', parts: { sys: V.baffle }, load: 'fixed' }, { key: 'pass3', label: 'pass3', parts: { sys: V.pass3 }, load: 'fixed' }];
+    X.WSND.sets = []; await new Promise(r => X.wsndJob(vars, sets => { X.WSND.sets = sets; r(); }, { rpms, load: 'none', pFix: 0.35 * 101325 }));
     const sets = X.WSND.sets, out = { what: sets.map(s => s.what), rows: [] };
     for (const key of ['baffle', 'pass3']) {
       const W = V[key], lay = X.sndMufLayout(W, W.mufDims, +W.d);

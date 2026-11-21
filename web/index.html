@@ -13387,6 +13387,7 @@ function wsndSpeedRun(WS,eng,rpm,j,st){
     for(let it=0;it<4;it++){ const sl=(b.n-a.n)/(p2-p1); if(!(sl>0)||Math.abs(b.n-fm)<0.04e5) break;
       const p=Math.min(0.95*PA,Math.max(0.1*PA,p2+(fm-b.n)/sl)); a=b; p1=p2; p2=p; b=at(p,b.r.state,4); }
     pIn=p2; r=b.r;
+  } else if(j.load==='fixed'){ pIn=j.pFix; r=conv(WS.runSpeed(eng,{rpm:rpm,cycles:st?4:8,dx:j.dx,state:st,pIn:pIn}),pIn);   // (round 2) a fixed manifold pressure (the insertion-loss check)
   } else if(j.load==='motor'){
     // (round 2) closed throttle with the fuel cut (every cylinder in spec.e.dead): the throttle plate is choked (the
     // manifold under 0.53 atm), so the air it passes is fixed and the manifold pressure falls as 1 / speed from the idle's
@@ -13469,7 +13470,7 @@ function wsndJob(variants,done,o){ o=o||{};
   const finish=()=>{ WSND.busy=false; progEnd('wsnd','done');
     const sets=Ss.map((S,k)=>({key:S.key,label:S.label,what:wsndHeaderWhat(q)+'; '+S.what+((S.load||job.load)==='none'?'; no load':S.load==='motor'?'; fuel cut, closed throttle':''),rpms:S.rpms||rpms,load:S.load||job.load,mode:S.mode||null,runs:got[k].map(m=>{ try{ return wsndEntry(m,q,S,S.label); }catch(e){ return {name:S.label+' '+m.rpm,rpm:m.rpm,err:e.message,src:'wave'}; } })}));
     WSND.ran=ran; done(sets); };
-  const job={variants:Ss.map(S=>({spec:S.spec,rpms:S.rpms||null,load:S.load||null,mode:S.mode||null})),rpms,dx:WSND.dx||0.02,load:(o.load||WSND.load)==='none'?'none':'wot'};
+  const job={variants:Ss.map(S=>({spec:S.spec,rpms:S.rpms||null,load:S.load||null,mode:S.mode||null})),rpms,dx:WSND.dx||0.02,load:(o.load||WSND.load)==='none'?'none':'wot',pFix:o.pFix||null};
   say('Simulating '+total+' run'+(total>1?'s':'')+(job.load==='none'?' with no load (a free-rev hold)':' at full throttle')+(Ss.length>1?' ('+Ss.length+' designs × '+rpms.length+' speeds)':'')+'…');
   const prog=d=>{ if(tok!==WSND.tok) return; got[d.v].push(d); n++; WSND.msg={t:'Simulated '+n+' of '+total+'…'}; const el=$('wsnd-msg'); if(el){ el.textContent=WSND.msg.t; runPct(el); } progSet('wsnd',n,total,Ss.length>1?'design '+(d.v+1)+' of '+Ss.length+', '+Ss[d.v].label:''); };
   let w=null; try{ w=new Worker(URL.createObjectURL(new Blob([wsndWorkerSrc()],{type:'text/javascript'}))); }catch(e){ w=null; }
@@ -13861,9 +13862,11 @@ function sndBlipTrack(ok,o){
     if(ph==='idle'&&t>=t0) ph='wot';
     let T=0; if(ph==='wot') T=tb(Wt,r); else if(ph==='motor') T=tb(Mo,r); else if(ph==='back') T=Tf(idle)*idle/r-Tf(r);
     if(ph!=='idle') r+=T/J*dt*60/(2*Math.PI);
-    if(ph==='wot'&&r>=top){ ph='motor'; tTop=t; }
+    if(ph==='wot'&&r>=top){ ph=o.hold>0?'hold':'motor'; tTop=t; r=Math.min(r,top); }
+    else if(ph==='hold'&&t>=tTop+o.hold) ph='motor';
     else if(ph==='motor'&&r<=back){ ph='back'; tBack=t; }
     else if(ph==='back'&&(r-idle<10||r<idle)){ r=Math.max(r,idle); tEnd=t; }
+    if(ph==='hold') r=top;   // held with no load: the no-load run at the top speed (o.hold, the RS 660 recording's shape)
     rs.push(r); ms.push(ph==='wot'?1:ph==='motor'?2:0);
     if(tEnd!=null&&t>tEnd+(o.tail||2)) break;
     if(ph==='wot'&&!(tb(Wt,r)>0)) break; }
@@ -13873,11 +13876,11 @@ function sndBlipTrack(ok,o){
   const W=[wOf(0),wOf(1),wOf(2)], wAt=(k,tt)=>{ const i=Math.max(0,Math.min(n-1,Math.round(tt/dt))); return W[k][i]; };
   return {dur:n*dt,base,wAt,J,idle,top,back,tTop,tBack,tEnd,tqTop:tb(Wt,top),tqCut:tb(Mo,top)};
 }
-function sndBlip(ok,R0,P,L,d){
-  const sr=48000, B=sndBlipTrack(ok,{}), dur=B.dur, n=Math.round(dur*sr), grp=['idle','wot','motor'].map(m=>ok.map((w,i)=>(w.mode==='wot'||w.mode==='motor'?w.mode:'idle')===m?i:-1).filter(i=>i>=0));
+function sndBlip(ok,R0,P,L,d,bo){
+  const sr=48000, B=sndBlipTrack(ok,bo||{}), dur=B.dur, n=Math.round(dur*sr), grp=['idle','wot','motor'].map(m=>ok.map((w,i)=>(w.mode==='wot'||w.mode==='motor'?w.mode:'idle')===m?i:-1).filter(i=>i>=0));
   // the speed wander: the measured idle's hunting at idle (SND_IDLE), 0.3 % under the throttle (SND_WANDER.load)
   const rng=sndRng((L.seed||12345)+7), dtw=0.01, M=Math.ceil(dur/dtw)+2, wv=new Float64Array(M);
-  for(let i=1;i<M;i++){ const q=B.wAt(0,i*dtw)*(L.idle?1:0), tau=SND_WANDER.tau+(SND_IDLE.tau-SND_WANDER.tau)*q, sd=SND_WANDER.load+((L.idle?SND_IDLE.wander:SND_WANDER.hold)-SND_WANDER.load)*B.wAt(0,i*dtw), a=Math.exp(-dtw/tau); wv[i]=a*wv[i-1]+(L.vary?sd:0)*Math.sqrt(1-a*a)*rng.g(); }
+  for(let i=1;i<M;i++){ const w0=B.wAt(0,i*dtw), us=Math.max(0,Math.min(1,(2500-B.base(i*dtw))/1500))*(L.idle?1:0), q=w0*us, tau=SND_WANDER.tau+(SND_IDLE.tau-SND_WANDER.tau)*q, sd=SND_WANDER.load+(SND_WANDER.hold+(SND_IDLE.wander-SND_WANDER.hold)*us-SND_WANDER.load)*w0, a=Math.exp(-dtw/tau); wv[i]=a*wv[i-1]+(L.vary?sd:0)*Math.sqrt(1-a*a)*rng.g(); }
   const rpmAt=t=>{ const x=t/dtw, i=Math.min(M-2,Math.floor(x)), u=x-i; return B.base(t)*(1+wv[i]*(1-u)+wv[i+1]*u); };
   const out=new Float32Array(n); let info=null;
   grp.forEach((ix,k)=>{ if(!ix.length) return; const R=ix.map(i=>R0[i]).sort((a,b)=>a.rpm-b.rpm);
