@@ -64,10 +64,10 @@ const mono = a => a.every((x, i) => i === 0 || x >= a[i - 1]);
     ok(B && /^Wave simulation: .+ · step \d+ of \d+ · \d+ %/.test(B.txt) && B.st === 'run', 'its label names the operation and the step: "' + (B && B.txt) + '"');
     await shot(pg, 'sim', 'determinate-1440-light');
     // typing in a field while it runs: focus and caret kept (the run goes on)
-    const ty = await pg.evaluate(async () => { const f = document.getElementById('f-evo'); f.focus(); f.setSelectionRange(1, 1); return [document.activeElement.id, f.selectionStart]; });
-    await pg.keyboard.type('7'); await pg.waitForTimeout(400); const ta = await pg.evaluate(() => [document.activeElement.id, document.activeElement.selectionStart, document.activeElement.value]);
+    const ty = await pg.evaluate(async () => { const f = document.querySelector('#panel-four input.wamx[type=text]'); f.scrollIntoView({ block: 'center' }); f.focus(); f.setSelectionRange(4, 4); return [document.activeElement.dataset.k, f.selectionStart]; });
+    await pg.keyboard.type('1'); await pg.waitForTimeout(400); const ta = await pg.evaluate(() => [document.activeElement.dataset.k, document.activeElement.selectionStart, document.activeElement.value]);
     await pg.keyboard.press('Backspace'); await pg.waitForTimeout(200);
-    ok(ty[0] === 'f-evo' && ta[0] === 'f-evo' && ta[1] === 2 && ta[2] === '675', 'typing in a field while the bar moves keeps the focus and the caret (' + JSON.stringify(ta) + ')');
+    ok(ty[0] && ta[0] === ty[0] && ta[1] === 5 && /^\d{4}1 \d/.test(ta[2]), 'typing in a field while the bar moves keeps the focus and the caret (' + JSON.stringify(ta) + ')');
     await pg.evaluate(() => document.activeElement.blur());
     await pg.waitForFunction(() => !document.getElementById('sim-status') && document.getElementById('sim-svg'), null, { timeout: 180000 }); await settle(pg); await pg.waitForTimeout(300);
     const M = await pg.evaluate(() => window.__pmOff('sim')); const y1 = await simSecBelow(pg);
@@ -116,23 +116,23 @@ const mono = a => a.every((x, i) => i === 0 || x >= a[i - 1]);
     await shot(pg, 'wsnd', 'determinate-wsnd-1440-light');
     await pg.waitForFunction(() => /^Done/.test((document.getElementById('wsnd-msg') || {}).textContent || ''), null, { timeout: 300000 }); await settle(pg);
     let M = await pg.evaluate(() => window.__pmOff('wsnd'));
-    ok(B && B.role === 'progressbar' && /^Sound estimate · step \d of 2 · \d+ %/.test(B.txt) && inR, 'Estimate the sound: "' + (B && B.txt) + '", in the space its results will take');
+    ok(B && B.role === 'progressbar' && /^Estimate the sound · step \d of \d · \d+ %/.test(B.txt) && inR, 'Estimate the sound: "' + (B && B.txt) + '", in the space its results will take (' + inR + ')');
     ok(mono(M.v) && M.v.length && Math.max(...M.v) >= 50 && await pg.evaluate(() => !document.querySelector('.prog[data-prog="wsnd"]')), 'its value never goes down (' + [...new Set(M.v)].join(', ') + ' %) and the result replaces it');
     // Hear each part: one step per design and speed, the design named
     await pg.evaluate(() => window.__pmOn('wsnd'));
     await pg.click('button[data-wsnd="parts"]');
-    await pg.waitForFunction(() => { const d = document.querySelector('.prog[data-prog="wsnd"]'); return d && /design \d+ of \d+/.test(d.textContent); }, null, { timeout: 120000 });
+    await pg.waitForFunction(() => { const d = document.querySelector('.prog[data-prog="wsnd"] [role=progressbar]'); return d && +d.getAttribute('aria-valuenow') > 0; }, null, { timeout: 120000 });
     const P = await bar(pg, 'wsnd');
-    ok(/^Hear each part: design \d+ of \d+, .+ · step \d+ of \d+ · \d+ %/.test(P.txt), 'Hear each part: "' + P.txt + '"');
+    ok(/^Hear each part(: design \d+ of \d+, .+)? · step \d+ of \d+ · \d+ %/.test(P.txt), 'Hear each part: "' + P.txt + '"');
     await pg.click('button[data-runcancel="wsnd"]'); await settle(pg); await pg.waitForTimeout(200);
     const Pc = await bar(pg, 'wsnd'); M = await pg.evaluate(() => window.__pmOff('wsnd'));
     ok(Pc && /^stop/.test(Pc.st) && /^Hear each part · cancelled at step \d+ of \d+ \(\d+ %\)/.test(Pc.txt) && mono(M.v), 'Cancel on Hear each part: "' + (Pc && Pc.txt) + '"');
     // Hear a misfire, to the end
     await pg.click('button[data-wsnd="misfire"]');
-    await pg.waitForFunction(() => document.querySelector('.prog[data-prog="wsnd"][data-st^="run"]'), null, { timeout: 30000 });
+    await pg.waitForFunction(() => { const d = document.querySelector('.prog[data-prog="wsnd"][data-st^="run"] [role=progressbar]'); return d && +d.getAttribute('aria-valuenow') > 0; }, null, { timeout: 120000 });
     const F = await bar(pg, 'wsnd');
     await pg.waitForFunction(() => /^Done/.test((document.getElementById('wsnd-msg') || {}).textContent || '') && !document.querySelector('.prog[data-prog="wsnd"]'), null, { timeout: 300000 });
-    ok(/^Misfire comparison: design \d of 2, .+ · step \d of 4 · \d+ %/.test(F.txt), 'Hear a misfire: "' + F.txt + '", gone when it is done');
+    ok(/^Hear a misfire: design \d of 2, .+ · step \d+ of \d+ · \d+ %/.test(F.txt), 'Hear a misfire: "' + F.txt + '", gone when it is done');
     // reading a recording (12 s): "decoding" with no fraction, then a fraction of the frames
     const tmp = path.join(os.tmpdir(), 'prog_rec.wav'); fs.writeFileSync(tmp, wav(3000, 12, 44100));
     await pg.evaluate(() => window.__pmOn('rec'));

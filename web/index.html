@@ -13200,7 +13200,7 @@ function wsndJob(variants,done,o){ o=o||{};
   const ran={variants:variants.map(v=>({key:v.key,label:v.label,parts:v.parts,dead:v.dead})),load:(o.load||WSND.load)==='none'?'none':'wot',fixed:!!o.rpms}; ran.sig=wsndSig(ran,q,rpms);
   WSND.notes=[...new Set([].concat(...Ss.map(S=>S.notes)))]; WSND.busy=true; const tok=WSND.tok=(WSND.tok||0)+1;
   const got=Ss.map(()=>[]), total=Ss.length*rpms.length; let n=0;
-  progEnd('wsnd'); progSet('wsnd',0,total,'',{name:Ss.some(S=>S.dead&&S.dead.length)?'Misfire comparison':Ss.length>1?'Hear each part':'Sound estimate'});
+  progEnd('wsnd'); progSet('wsnd',0,total,'',{name:Ss.some(S=>S.dead&&S.dead.length)?'Hear a misfire':Ss[0]&&Ss[0].key==='open'?'Hear each part':'Estimate the sound'});
   const finish=()=>{ WSND.busy=false; progEnd('wsnd','done');
     const sets=Ss.map((S,k)=>({key:S.key,label:S.label,what:wsndHeaderWhat(q)+'; '+S.what+(job.load==='none'?'; no load':''),rpms,load:job.load,runs:got[k].map(m=>{ try{ return wsndEntry(m,q,S,S.label); }catch(e){ return {name:S.label+' '+m.rpm,rpm:m.rpm,err:e.message,src:'wave'}; } })}));
     WSND.ran=ran; done(sets); };
@@ -28094,7 +28094,7 @@ function runPct(el){ if(!el) return; const t=el.textContent, m=t.match(/\((\d+)%
    itself are left alone; a render that rewrote the bar's place gets it back from progPass (after every render). A
    polite live region says how far it has got at most every 10 points and 5 s. Display only: no result reads this. */
 const PROG_DEF={sim:{n:'Wave simulation',at:'#sim-status',stop:'button[data-sim="run"]',keep:1},tsim:{n:'Boost simulation',at:'#tsim-status',stop:'button[data-tsim="run"]',keep:1},
-  wsnd:{n:'Sound estimate',at:'.resv[data-resv="wsnd"] > p,#wsnd-msg',keep:1},rec:{n:'Reading the recording',at:'#rec-read'},
+  wsnd:{n:'Estimate the sound',at:'.resv[data-resv="wsnd"] > p,#wsnd-msg',keep:1},rec:{n:'Reading the recording',at:'#rec-read'},
   wam:{n:'OpenWAM run',at:'.wammsg'},tw:{n:'OpenWAM run (2-stroke)',at:'.twmsg'},mdw:{n:'Muffler check in OpenWAM',at:'.mdwmsg'},
   dyno:{n:'Dyno fit in OpenWAM',at:'.dynomsg'},opt:{n:'Optimiser in OpenWAM',at:'.optmsg'},es:{n:'Engine Simulator',at:'.esmsg'},
   cfd:{n:'Intake CFD in OpenFOAM',at:'#cfd-msg'},autocfd:{n:'Intake test in OpenFOAM',at:'#cfd-auto,#cfd-msg'},
