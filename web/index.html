@@ -11431,8 +11431,8 @@ function L(mm,kind){
   return U==='imp'?{n:imp,u:'in',a:met+' mm'}:{n:met,u:'mm',a:imp+' in'};
 }
 const plain=(mm,kind)=>{const v=L(mm,kind);return v.n+' '+v.u+' ('+v.a+')';};
-const tempStr=c=>U==='imp'?Math.round(c*9/5+32)+' °F':Math.round(c)+' °C';
 const tempBoth=c=>U==='imp'?Math.round(c*9/5+32)+' °F ('+Math.round(c)+' °C)':Math.round(c)+' °C ('+Math.round(c*9/5+32)+' °F)';   // both units (jobs QA 2026-11-20)
+const tempStr=tempBoth;   // every temperature the page writes in both units, the second quieter (job fixes 2026-11-21, the owner's rule)
 const rowL=(label,mm,kind)=>{const v=L(mm,kind||'l');return '<div class="r"><dt>'+label+'</dt><dd><b>'+v.n+' '+v.u+'</b><span>'+v.a+'</span></dd></div>';};
 // a value's conversion in brackets, "2.50 in (63.5 mm)", set quieter than the figure it converts (display only: the text
 // is unchanged); an explanation longer than a line goes under the row at reading width (class rx) instead of in a narrow
@@ -17940,6 +17940,14 @@ function syncShapes(){
 const shapeIn=id=>{ const sel=$(id), shape=sel.value; return {shape,w:val(sel.dataset.w),h:shape==='round'?val(sel.dataset.w):val(sel.dataset.h)}; };
 const boreOf=id=>{ const q=shapeIn(id); return insideSection(q.shape,q.w,q.h); };
 const shapeName=s=>({round:'round',oval:'oval',flat:'flat oval'})[s]||s;
+// both unit systems, the page's own first and the other in brackets, quieter (job fixes 2026-11-21, the owner's rule):
+// the first figure is the one-unit helper's own, unchanged
+const presB=Pa=>pres(Pa)+' ('+presAlt(Pa)+')';
+const spdB=v=>spd(v)+' ('+(U==='imp'?Math.round(v)+' m/s':Math.round(v*3.28084).toLocaleString('en-US')+' ft/s')+')';
+const flowB=Q=>flowTxt(Q)+' ('+(U==='imp'?Math.round(Q*1000).toLocaleString('en-US')+' L/s':Math.round(Q*2118.88).toLocaleString('en-US')+' cfm')+')';
+const areaB=A=>areaTxt(A)+' ('+(U==='imp'?Math.round(A).toLocaleString('en-US')+' mm²':(A/645.16).toFixed(2)+' in²')+')';
+const massB=kg=>mass(kg)+' ('+(U==='imp'?kg.toFixed(1)+' kg':(kg*2.20462).toFixed(1)+' lb')+')';
+const volB=L=>U==='imp'?Math.round(L*61.0237)+' cu in ('+L.toFixed(2)+' L)':L.toFixed(2)+' L ('+Math.round(L*61.0237)+' cu in)';
 const sizeTxt=(q)=>q.shape==='round'?cdim(q.w):cdim(q.w)+' × '+cdim(q.h)+' '+shapeName(q.shape);
 
 // Engine pickers: a select with class engsel lists the library, filtered by cycle
@@ -18081,7 +18089,7 @@ function renderCat(){
   if(r.err) return fail(r.err);
   const per=r.count>1?' each':'';
   const figs=none?figT('Back pressure added','0','', 'no converter')+figT('Power cost','0','','')+figT('Quieter at cruise','0','dB','no converter')
-    :figT('Back pressure added',(U==='imp'?(r.main.total/6894.757).toFixed(2):(r.main.total/1000).toFixed(1)),U==='imp'?'psi':'kPa','at '+Math.round(p.rpm)+' RPM, full throttle')+
+    :figT('Back pressure added',(U==='imp'?(r.main.total/6894.757).toFixed(2):(r.main.total/1000).toFixed(1)),U==='imp'?'psi':'kPa',presAlt(r.main.total)+', at '+Math.round(p.rpm)+' RPM, full throttle')+
      figT('Power cost',(U==='imp'?(r.main.power/745.7).toFixed(1):(r.main.power/1000).toFixed(1)),U==='imp'?'hp':'kW','pumping work, about')+
      figT('Quieter at cruise',r.snd.cruise.toFixed(1),'dB','at the '+Math.round(r.fCruise)+' Hz firing tone');
   key.innerHTML='<div class="figs">'+figs+'</div>'+notesHtml(r.notes);
@@ -18101,18 +18109,18 @@ function renderCat(){
   // details
   const fl=r.fl, m=r.main;
   let html=explainBox(none?['With no converter there is nothing in the way, so the exhaust is at its loudest and least restricted. For a street car this is an emissions problem; the comparison below shows what each kind of converter costs and saves.']:[
-    'At '+Math.round(p.rpm)+' RPM and full throttle the converter'+(r.count>1?'s add':' adds')+' about <b>'+pres(m.total)+'</b> of back pressure, which costs roughly <b>'+powr(m.power)+'</b> in pumping work alone.'+
+    'At '+Math.round(p.rpm)+' RPM and full throttle the converter'+(r.count>1?'s add':' adds')+' about <b>'+presB(m.total)+'</b> of back pressure, which costs roughly <b>'+powr(m.power)+'</b> in pumping work alone.'+
       (r.dyno?' On a dyno, one V8 lost '+(r.dyno.beyond?'more than 7%':'about <b>'+r.dyno.power.toFixed(1)+'%</b>')+' of its peak power to that much back pressure, because it also spoils the scavenging.':''),
     'It takes about <b>'+r.snd.cruise.toFixed(1)+' dB</b> off the main tone at cruise and <b>'+r.snd.band.toFixed(1)+' dB</b> off the 1 to 4 kHz range, where the harsh, raspy part of the sound sits. Higher cell counts and longer bricks remove more and cost more.',
     'A larger substrate cuts back pressure much faster than it cuts sound: doubling the face area roughly halves the loss through the cells.']);
   if(!none){
     html+=sec('Flow and back pressure at peak power',
-      rowT('Exhaust flow, all cylinders',flowTxt(fl.Q),'at '+tempStr(p.tgas)+', '+(p.ve*100).toFixed(0)+'% volumetric efficiency')+
+      rowT('Exhaust flow, all cylinders',flowB(fl.Q),'at '+tempStr(p.tgas)+', '+(p.ve*100).toFixed(0)+'% volumetric efficiency')+
       rowT('Converters side by side · in a row',r.count+' · '+r.series)+
       rowT('Cells',Math.round(p.cpsi)+' per sq in, '+p.mil+' mil wall',pct(r.g.ofa)+' open, channels '+cdim(r.g.w*1000)+' across')+
-      rowT('Gas speed in the channels',spd(m.v),'Reynolds number '+Math.round(m.Re)+(m.Re<2300?', laminar':', past laminar'))+
-      rowT('Gas speed in the pipe',spd(m.vp))+
-      rowT('Loss in the channels',pres(m.dpFric*r.series))+rowT('Entering and leaving the cells',pres(m.dpFace*r.series))+rowT('Inlet and outlet cones',pres(m.dpCone*r.series),'inlet cone '+(m.coneAng>=180?'a sudden step':m.coneAng.toFixed(0)+'° included')+', K '+m.kIn.toFixed(2)+' of the pipe’s dynamic head (Rennels and Hudson, conical diffuser, with its wall friction); outlet cone the same angle back down, K '+m.kOut.toFixed(2)+' (Rennels and Hudson, conical contraction, sharp corners, with its wall friction)')+
+      rowT('Gas speed in the channels',spdB(m.v),'Reynolds number '+Math.round(m.Re)+(m.Re<2300?', laminar':', past laminar'))+
+      rowT('Gas speed in the pipe',spdB(m.vp))+
+      rowT('Loss in the channels',presB(m.dpFric*r.series))+rowT('Entering and leaving the cells',presB(m.dpFace*r.series))+rowT('Inlet and outlet cones',presB(m.dpCone*r.series),'inlet cone '+(m.coneAng>=180?'a sudden step':m.coneAng.toFixed(0)+'° included')+', K '+m.kIn.toFixed(2)+' of the pipe’s dynamic head (Rennels and Hudson, conical diffuser, with its wall friction); outlet cone the same angle back down, K '+m.kOut.toFixed(2)+' (Rennels and Hudson, conical contraction, sharp corners, with its wall friction)')+
       rowT('Total back pressure'+per,'<b>'+pres(m.total)+'</b>',presAlt(m.total))+
       rowT('Pumping power',powr(m.power),'back pressure × swept volume per second')+
       (r.dyno?rowT('Power lost in a dyno test at this back pressure',(r.dyno.beyond?'more than 7%':r.dyno.power.toFixed(1)+'%')+' of peak',(r.dyno.beyond?'more than 7%':r.dyno.torque.toFixed(1)+'%')+' of peak torque')+
@@ -18122,7 +18130,7 @@ function renderCat(){
       rowT('Removed at cruise tone',r.snd.cruise.toFixed(1)+' dB')+rowT('Removed at peak-power tone',r.snd.peak.toFixed(1)+' dB')+rowT('Removed across 1 to 4 kHz',r.snd.band.toFixed(1)+' dB','power average')+
       '<p class="cap">Transmission loss of the converter on its own, with the substrate as a bundle of narrow channels and the cones as short pipe steps. It is a guide to how much quieter, not a promise: the rest of the system and the gas flow move the real number.</p>');
   }
-  const rows=r.compare.map(c=>'<tr'+(c.k===type?' class="cur"':'')+'><td>'+esc(c.name)+'</td><td>'+(c.dp?pres(c.dp):'0')+'</td><td>'+(c.power?powr(c.power):'0')+'</td><td>'+c.cruise.toFixed(1)+'</td><td>'+c.band.toFixed(1)+'</td></tr>').join('');
+  const rows=r.compare.map(c=>'<tr'+(c.k===type?' class="cur"':'')+'><td>'+esc(c.name)+'</td><td>'+(c.dp?presB(c.dp):'0')+'</td><td>'+(c.power?powr(c.power):'0')+'</td><td>'+c.cruise.toFixed(1)+'</td><td>'+c.band.toFixed(1)+'</td></tr>').join('');
   html+=sec('Compare converter types, same size and flow','<div class="tblwrap"><table><thead><tr><th>Type</th><th>Back pressure</th><th>Power</th><th>dB cruise</th><th>dB 1–4 kHz</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<p class="cap">Cell density and wall set both columns. Factory converters use 400 to 900 cells per square inch; high-flow and race converters use 100 to 400, usually on metal foil. The power column is pumping work only; lost scavenging adds to it on a tuned header.</p>');
   html+=sec('Placement and heat','<ul class="list">'+
@@ -18187,8 +18195,8 @@ function renderBoom(){
     r.flatten?'Squashing the round inlet tube flat keeps its perimeter, not its area: at that height it comes out '+cdim(r.flatten.w)+' wide with only <b>'+pct(r.flatten.A/r.Ain)+'</b> of the flow area. Build the flat section from sheet, or start from a bigger tube.':'',
     'Compared with a round pipe of the same flow area it sits <b>'+cdim(Math.max(0,r.saved))+'</b> lower, which is the reason to build one.',
     r.ribMax==null?'The flat sides are narrow enough to stay above the firing tone without ribs.':'Rib the flat sides at least every <b>'+clen(r.ribMax)+'</b> so they stay above the firing tone at redline; plain flat sheet that long would ring and crack.',
-    'The flare drops the exit speed from '+spd(sIn.v)+' to '+spd(sOut.v)+', which by Lighthill’s scaling cuts the jet roar by about '+Math.abs(r.jet).toFixed(0)+' dB. It does nothing to the firing pulses: with no muffler it is as loud as an open pipe.']);
-  const st=(n,s,wd,ht)=>'<tr><td>'+n+'</td><td>'+(wd===ht?cdim(wd):cdim(wd)+' × '+cdim(ht))+'</td><td>'+areaTxt(s.A)+'</td><td>'+pct(s.A/r.Ain)+'</td><td>'+spd(s.v)+'</td></tr>';
+    'The flare drops the exit speed from '+spdB(sIn.v)+' to '+spdB(sOut.v)+', which by Lighthill’s scaling cuts the jet roar by about '+Math.abs(r.jet).toFixed(0)+' dB. It does nothing to the firing pulses: with no muffler it is as loud as an open pipe.']);
+  const st=(n,s,wd,ht)=>'<tr><td>'+n+'</td><td>'+(wd===ht?cdim(wd):cdim(wd)+' × '+cdim(ht))+'</td><td>'+areaB(s.A)+'</td><td>'+pct(s.A/r.Ain)+'</td><td>'+spdB(s.v)+'</td></tr>';
   html+=sec('Flow area along the tube','<div class="tblwrap"><table><thead><tr><th>Station</th><th>Inside size</th><th>Area</th><th>Of inlet</th><th>Gas speed</th></tr></thead><tbody>'+
     st('Inlet'+(r.nIn>1?' ('+r.nIn+' pipes)':''),sIn,p.inDeq,p.inDeq)+st('Flat run',sFlat,r.w,p.h)+st('Outlet',sOut,r.wout,r.hout)+'</tbody></table></div>'+
     rowT('Hydraulic diameter, flat run',cdim(sFlat.Dh),'4 × area ÷ perimeter; friction follows this, not the width')+
@@ -18196,10 +18204,10 @@ function renderBoom(){
   html+=sec('Flare',rowT('Equivalent cone angle',r.eqAng.toFixed(1)+'° included','about 8° recovers the most')+rowT('Spread seen from above',r.planAng.toFixed(1)+'° included')+
     (r.rec==null?rowT('Flare loss coefficient',r.kFlare.toFixed(3)+' × the outlet’s dynamic head','the outlet is smaller than the flat run: a narrowing cone (Rennels and Hudson, conical contraction)'):
     rowT('Pressure recovered by the flare',pct(r.rec)+' of the ideal','change-of-area loss K '+r.kFlare.toFixed(3)+' × the flat run’s dynamic head against the ideal rise 1 − (A₁/A₂)² = '+(1-(r.A1/r.A2)**2).toFixed(3)+', before wall friction (Rennels and Hudson, Pipe Flow, 2012, conical diffuser, at the equivalent cone angle)')));
-  html+=sec('Flow loss at peak power',rowT('Transition and flat run',pres(r.dpTrans+r.dpFlat),'friction'+(r.kTrans>0?' plus the transition’s change of area, K '+r.kTrans.toFixed(3)+' (Rennels, as a cone between the same areas)':'; the transition keeps the inlet’s area, and no published coefficient covers the change of shape alone, so only its friction is counted'))+rowT('Flare',pres(r.dpFlare))+rowT('Leaving the outlet',pres(r.dpExit))+
-    rowT('Boom tube total','<b>'+pres(r.dpBoom)+'</b>')+rowT('Same length of plain inlet pipe',pres(r.dpRound),'friction plus its exit')+
+  html+=sec('Flow loss at peak power',rowT('Transition and flat run',presB(r.dpTrans+r.dpFlat),'friction'+(r.kTrans>0?' plus the transition’s change of area, K '+r.kTrans.toFixed(3)+' (Rennels, as a cone between the same areas)':'; the transition keeps the inlet’s area, and no published coefficient covers the change of shape alone, so only its friction is counted'))+rowT('Flare',presB(r.dpFlare))+rowT('Leaving the outlet',presB(r.dpExit))+
+    rowT('Boom tube total','<b>'+presB(r.dpBoom)+'</b>')+rowT('Same length of plain inlet pipe',presB(r.dpRound),'friction plus its exit')+
     rowT('Wall friction factor',r.sFlat.f.toFixed(4)+' in the flat run',INTAKE_FINISH[r.finish].name+', roughness '+(U==='imp'?(+(r.ks*1000/25.4).toPrecision(2))+' in ('+(+(r.ks*1000).toPrecision(2))+' mm)':(+(r.ks*1000).toPrecision(2))+' mm ('+(+(r.ks*1000/25.4).toPrecision(2))+' in)')+' ('+INTAKE_FINISH[r.finish].src+'), Haaland at Re '+Math.round(r.sFlat.Re).toLocaleString('en-US'))+
-    rowT('Difference',(r.dpBoom<=r.dpRound?'saves ':'costs ')+pres(Math.abs(r.dpRound-r.dpBoom)),powr(Math.abs(r.dpRound-r.dpBoom)*fl.swept/1)+' of pumping work, roughly'));
+    rowT('Difference',(r.dpBoom<=r.dpRound?'saves ':'costs ')+presB(Math.abs(r.dpRound-r.dpBoom)),powr(Math.abs(r.dpRound-r.dpBoom)*fl.swept/1)+' of pumping work, roughly'));
   html+=sec('Flat panels and ribs',rowT('Flat width between the round edges',cdim(r.b))+rowT('Sheet',MATS[p.mat].name+', '+cdim(p.t),Math.round(r.E/1e9)+' GPa at '+tempStr(p.twall))+
     rowT('Lowest wall mode, no ribs',hzs(r.fNone),'whole-section ring model and flat strip, whichever is lower')+
     (p.rib>0?rowT('With ribs every '+clen(p.rib),hzs(r.fRib)):'')+
@@ -18207,7 +18215,7 @@ function renderBoom(){
     rowT('Rib spacing that does it',r.ribMax==null?'not needed':clen(r.ribMax)+' or closer'):rowT('Firing tone at redline','–','fill in the cylinders and redline to check the panels against it'))+
     '<p class="cap">The patent for flattened boom tubes uses internal ribs to cut vibration and fatigue. Ribs across the run, a bead down the middle, or thicker sheet all raise the panel modes.</p>');
   html+=sec('Clearance and weight',rowT('Outside height of the flat run',cdim(r.heightOut))+rowT('Round pipe with the same area, outside',cdim(r.roundOD))+rowT('Height saved',cdim(Math.max(0,r.saved)))+
-    rowT('Sheet weight, each tube',mass(r.weight),'skin only; add flanges and ribs'));
+    rowT('Sheet weight, each tube',massB(r.weight),'skin only; add flanges and ribs'));
   html+=sec('In stock car racing','<ul class="list"><li>Boom tubes are flattened pipes run flat under the car to the side exit, for ground clearance; the flare lets the exhaust expand to limit back pressure.</li>'+
     '<li>Early ones were thin round tube flattened; later ones are built from flat sheet with U-shaped sides.</li>'+
     '<li>They run without mufflers. Cup engines have been reported near 112 dB, and NASCAR has tested mufflers expected to cut 6 to 10 dB.</li></ul>');
