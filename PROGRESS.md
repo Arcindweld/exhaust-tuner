@@ -17,3 +17,4 @@ Before/after capture script: scratchpad ba.js (node ba.js <webdir>); base figure
 - RS660 top3: Lextek OP1, Snell Classic, Longlife OP1 (3) -> same top3 (17 matches)
 - K24A2 Smith: Headers 44.1 in (1120 mm), 4-Stroke 37.6 in (954 mm) -> both 37.6
 - RS660 sheet: main 2.021 in OD, Helmholtz 8x13.4 in 672 cu in 11.02 L -> 2 in stock, J-pipe 49.3 in (1252 mm), can in Alternatives
+- full suite started 09:01 -> scratch suite.log
