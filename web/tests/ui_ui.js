@@ -58,6 +58,10 @@ const { execFileSync } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path');
 const TABS = ['quick', 'four-stroke', 'two-stroke', 'sound', 'intake', 'headers', 'crossover', 'mufflers', 'cats', 'boom-tubes', 'hangers', 'parts', 'options'];
 const BASE = '5000fb8', BASE2 = '6f0c694', BASE3 = '7de9e49';   // before the UI pass; before pass two; before pass three
+// the text of the part cards (and the build sheet's muffler line) that name a part from a maker's motorcycle sheet, on the
+// tab shown: a car is no longer offered these (job fixes 2026-11-21, P1)
+const MOTO_TEXT = () => { const p = document.querySelector('[role=tabpanel]:not([hidden])'); if (!p) return '';
+  return [...p.querySelectorAll('.pcard, li[data-part^="Muffler"]')].filter(c => /Motorcycle Pre-Fabricated|Cone Engineering Cone/.test(c.textContent)).map(c => c.innerText).join('\n'); };
 const BASE4 = 'dc31cea';   // before the field-edit speed work (docs/PERF_2026-11-18.md)
 const FAST = { mufflers: 0.7, intake: 0.85, hangers: 0.7 };   // budgets as a share of the time before: Mufflers and Hangers measure 39-45 %, Intake 61-76 % (noisy on a shared machine), so Intake's guard is 85 %: it catches a regression to the old time, not a few points of noise
 const ONLY3 = process.env.UI_ONLY === '3';   // (development) pass three's checks alone
@@ -352,8 +356,9 @@ async function passThree(b, ok, list, errs) {
       for (const g of [pn, po]) { if (t === 'k24') await k24(g); else { await g.evaluate(t => { location.hash = t; }, t); await settle(g); } await expandAll(g); }
       const a = await po.evaluate(TEXT), n = await pn.evaluate(TEXT);
       const A = words(t === 'quick' ? a.all.replace(a.sheet, '') : a.all), A2 = t === 'quick' ? words(a.sheet) : new Map(), B = words(n.all);
-      for (const [w, k] of A) if ((B.get(w) || 0) < k) miss.push(t + ': ' + w + ' ×' + (k - (B.get(w) || 0)));
-      for (const [w, k] of A2) if (/\p{L}/u.test(w) && (B.get(w) || 0) < k + (A.get(w) || 0)) miss.push(t + ' sheet: ' + w);
+      const MW = words(await po.evaluate(MOTO_TEXT));   // job fixes 2026-11-21, P1: the motorcycle-sheet part cards may go
+      for (const [w, k] of A) if ((B.get(w) || 0) + (MW.get(w) || 0) < k) miss.push(t + ': ' + w + ' ×' + (k - (B.get(w) || 0)));
+      for (const [w, k] of A2) if (/\p{L}/u.test(w) && (B.get(w) || 0) + (MW.get(w) || 0) < k + (A.get(w) || 0)) miss.push(t + ' sheet: ' + w);
     }
     ok(!miss.length, 'every word and figure of the page before pass three is still there on every tab and the K24 journey (the Quick build sheet: every word; its lengths now read to the inch fraction)' + list(miss, 12));
     await pn.context().close(); await ctxO.close(); fs.rmSync(dir, { recursive: true, force: true });
@@ -420,6 +425,7 @@ async function passThree(b, ok, list, errs) {
   try { old2 = execFileSync('git', ['show', BASE2 + ':web/index.html'], { cwd: __dirname, maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old2 = null; }
   const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'et-ui2-')), f2 = path.join(dir2, 'before2.html'); if (old2) fs.writeFileSync(f2, old2);
   const TEXT = () => document.getElementById('vbar').innerText + '\n' + document.querySelector('[role=tabpanel]:not([hidden])').innerText;
+  const MOTO = MOTO_TEXT;
   const TC = () => document.getElementById('vbar').textContent + '\n' + document.querySelector('[role=tabpanel]:not([hidden])').textContent;
   // words: runs of letters and figures (a full stop or a lowercase-to-capital join, where two blocks meet with no space in
   // one page's text and a line break in the other's, is a boundary)
@@ -458,6 +464,13 @@ async function passThree(b, ok, list, errs) {
           const p3 = t === 'k24' ? words(await po.evaluate(() => { const l = document.querySelector('#tg-measure li[data-meas="i-p3m"]'); return l ? l.textContent.replace(/^[^,]*,/, '') : ''; })) : new Map();
           const okJ = B => e => { const w = e.split(' ×')[0]; if (/^\d+$/.test(w) && p3.has(w)) return true; for (let i = 1; i < w.length; i++) if (B.has(w.slice(0, i)) && B.has(w.slice(i))) return true; return false; };
           m1 = m1.filter(e => !okJ(B1)(e)); m2 = m2.filter(e => !okJ(B2)(e)); }
+        // job fixes 2026-11-21 (docs/JOB_FIXES_2026-11-21.md): (c) P1, a car is no longer offered a muffler from a maker's
+        // motorcycle sheet, so on the Quick and Mufflers tabs the words of those part cards (and of the build sheet's muffler
+        // line that named one) may go; (d) a textContent-only join, a "word" that is not a word of the page's own drawn text
+        // ("0.92psiat" where "psi" now meets "(6.3 kPa)"), may go
+        { const MW = words(await po.evaluate(MOTO)), OW = words(oldText);
+          const okM = e => { const [w, k] = e.split(' ×'); return (MW.get(w) || 0) >= +k; };
+          m1 = m1.filter(e => !okM(e)); m2 = m2.filter(e => !okM(e) && OW.has(e.split(' ×')[0])); }
         ok(!m1.length && !m2.length, t + ': every word of the page before pass two is still there (' + words(oldText).size + ' distinct words drawn with everything open; textContent too' + (t === 'quick' ? '; the build sheet\'s figures read to the inch fraction since pass three' : '') + ')' + list(m1.concat(m2), 12));
       }
     }
