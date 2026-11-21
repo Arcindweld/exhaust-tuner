@@ -12644,6 +12644,47 @@ function recSynth(W,H,o){
   for(let i=0;i<out.length;i++){ const g=k*Math.min(1,i/fade,(out.length-1-i)/fade); out[i]*=g; if(jx) jx[i]*=g; }
   return {x:out,rec,jetDb,jetFp:S.info.fp,jet:jx,Ueff:S.Ueff,info:S.info};
 }
+// the playback as it was before 2026-11-21, kept only for "as before" comparisons (P.old): straight-line resampling of the
+// 720-point cycle and a gain step where a firing window wraps the cycle boundary (docs/SOUND_REALISM_2026-11-21.md)
+function recSynth0(W,H,o){
+  const sr=o.sr||REC.sr, N=W.cyc.length, nf=2*(o.kf||REC.ctx.kf), cov=+o.cov||0, dur=Math.min(H.t1-H.t0,8);
+  const y=W.cyc, m=y.reduce((a,b)=>a+b,0)/N, dev=y.map(v=>v-m);
+  // windows centred on the firing pulses (the phase of the firing-order harmonic)
+  let re=0,im=0; for(let i=0;i<N;i++){ const x=2*Math.PI*nf*i/N; re+=dev[i]*Math.cos(x); im-=dev[i]*Math.sin(x); }
+  const ph0=((-Math.atan2(im,re)/(2*Math.PI)/nf)%(1/nf)+1/nf)%(1/nf), hw=0.5/nf, a=0.5*hw;
+  const Wn=[]; for(let k=0;k<nf;k++){ const w=new Float64Array(N); for(let i=0;i<N;i++){ const d=Math.abs((((i/N-ph0-k/nf+0.5)%1)+1)%1-0.5); w[i]=d<=hw-a?1:d<hw+a?0.5*(1+Math.cos(Math.PI*(d-(hw-a))/(2*a))):0; } Wn.push(w); }
+  for(let i=0;i<N;i++){ let s=0; for(let k=0;k<nf;k++) s+=Wn[k][i]; for(let k=0;k<nf;k++) Wn[k][i]/=s; }
+  let seed=o.seed||12345; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
+  const gauss=()=>{ const u=Math.max(1e-12,rnd()), v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+  const tr=(o.noRec?[]:REC.tr||[]).filter(q=>q.t>=H.t0-0.2&&q.t<=H.t1+0.2), rpmAt=t=>{ if(!o.wander||tr.length<2) return H.rpm; const tt=H.t0+t; let j=0; while(j<tr.length-2&&tr[j+1].t<tt) j++; const u=Math.max(0,Math.min(1,(tt-tr[j].t)/((tr[j+1].t-tr[j].t)||1))); return tr[j].rpmS+u*(tr[j+1].rpmS-tr[j].rpmS); };
+  const out=new Float32Array(Math.round(dur*sr)); let pos=0, prev=null;
+  const J=o.jet&&W.jet&&W.jet.u&&W.jet.u.length===N?W.jet:null, env=J?new Float64Array(out.length):null;
+  let wj=null, wmean=0, Ueff=0;
+  if(J){ wj=J.u.map((U,i)=>jetPower(U,J.T[i],J.d)); wmean=wj.reduce((a,b)=>a+b,0)/N; Ueff=Math.pow(J.u.reduce((a,U)=>a+Math.pow(Math.abs(U),8),0)/N,1/8); }
+  while(pos<out.length){
+    const n=Math.max(8,Math.round(sr*120/rpmAt(pos/sr))), g=[]; for(let k=0;k<nf;k++) g.push(1+cov*gauss());
+    for(let i=0;i<n&&pos<out.length;i++,pos++){ const xi=i*N/n, j=Math.floor(xi), u=xi-j, j2=(j+1)%N;
+      let gw=0, gw2=0; for(let k=0;k<nf;k++){ gw+=g[k]*Wn[k][j]; gw2+=g[k]*Wn[k][j2]; }
+      const v=m+(dev[j]*gw)*(1-u)+(dev[j2]*gw2)*u;
+      if(J){ const gg=Math.max(0,gw*(1-u)+gw2*u); env[pos]=Math.sqrt((wj[j]*(1-u)+wj[j2]*u)/(wmean||1e-30))*gg*gg*gg*gg; }
+      out[pos]=prev==null?0:(v-prev)*sr; prev=v; }
+  }
+  let jetDb=null, jx=null;
+  if(J&&wmean>0){   // the jet in d(mdot)/dt units: rms sqrt(4 pi rho0 c0 W)
+    let e2=0; for(let i=0;i<env.length;i++) e2+=env[i]*env[i]; const ek=1/Math.sqrt(e2/env.length||1), amp=Math.sqrt(4*Math.PI*1.2*343*wmean);
+    const nz=jetNoise(out.length,sr,JET_ST*Ueff/J.d,(o.seed||12345)+101); let t2=0,j2=0;
+    jx=new Float32Array(out.length);
+    for(let i=0;i<out.length;i++){ const v=nz[i]*env[i]*ek*amp; j2+=v*v; t2+=out[i]*out[i]; jx[i]=v; out[i]+=v; }
+    jetDb=10*Math.log10((j2||1e-30)/(t2||1e-30));
+  }
+  // the recording's level, a short fade at both ends
+  const a0=Math.round(H.t0*sr), rec=!o.noRec&&REC.x?REC.x.subarray(a0,Math.min(REC.x.length,a0+out.length)):null;
+  const rms=x=>{ let s=0; for(let i=0;i<x.length;i++) s+=x[i]*x[i]; return Math.sqrt(s/(x.length||1)); };
+  const k=rec&&rms(out)>0?rms(rec)/rms(out):1, fade=Math.round(0.02*sr);
+  for(let i=0;i<out.length;i++){ const g=k*Math.min(1,i/fade,(out.length-1-i)/fade); out[i]*=g; if(jx) jx[i]*=g; }
+  return {x:out,rec,jetDb,jetFp:J?JET_ST*Ueff/J.d:null,jet:jx,Ueff};
+}
+
 // A drive-past of the model (sound/sweep.py passby, in the page): the source goes by on a straight line at v m/s, the
 // microphone d m from that line, closest halfway through. Sound emitted at te from r(te) arrives at te + r/c0, which makes
 // the Doppler shift and the swell and fade; 1/r from the closest distance, the hold's own level (the recording's, ground
@@ -13347,7 +13388,7 @@ function wsndRuns(){ const all=(WAM_UI.ins||[]).filter(x=>!x.err&&x.cyc&&x.rpm>0
   return WSND.src==='files'&&f.length?f:w.length?w:f; }
 function wsndHold(W,dur,o){
   const sr=48000, kf=W.kf||Math.max(1,Math.round(W.strongest||2)), H={t0:0,t1:dur,rpm:W.rpm};
-  const S=recSynth(W,H,{cov:o.cov,wander:false,jet:o.jet,sr,kf,noRec:true});
+  const S=recSynth0(W,H,{cov:o.cov,wander:false,jet:o.jet,sr,kf,noRec:true});   // only the "as before" path (P.old) comes here
   return Object.assign(S,{sr});
 }
 const wsndLA=(x,ft)=>{ const v=wamLevels(x,ft,null); return v?v.tot:NaN; };
