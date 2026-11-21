@@ -12628,42 +12628,21 @@ function jetNoise(len,sr,fp,seed){   // unit-rms noise with the jet's spectrum p
 }
 // o.sr, o.kf and o.noRec play a run with no recording loaded (Hear the model): its own sample rate and firing pulses
 function recSynth(W,H,o){
-  const sr=o.sr||REC.sr, N=W.cyc.length, nf=2*(o.kf||REC.ctx.kf), cov=+o.cov||0, dur=Math.min(H.t1-H.t0,8);
-  const y=W.cyc, m=y.reduce((a,b)=>a+b,0)/N, dev=y.map(v=>v-m);
-  // windows centred on the firing pulses (the phase of the firing-order harmonic)
-  let re=0,im=0; for(let i=0;i<N;i++){ const x=2*Math.PI*nf*i/N; re+=dev[i]*Math.cos(x); im-=dev[i]*Math.sin(x); }
-  const ph0=((-Math.atan2(im,re)/(2*Math.PI)/nf)%(1/nf)+1/nf)%(1/nf), hw=0.5/nf, a=0.5*hw;
-  const Wn=[]; for(let k=0;k<nf;k++){ const w=new Float64Array(N); for(let i=0;i<N;i++){ const d=Math.abs((((i/N-ph0-k/nf+0.5)%1)+1)%1-0.5); w[i]=d<=hw-a?1:d<hw+a?0.5*(1+Math.cos(Math.PI*(d-(hw-a))/(2*a))):0; } Wn.push(w); }
-  for(let i=0;i<N;i++){ let s=0; for(let k=0;k<nf;k++) s+=Wn[k][i]; for(let k=0;k<nf;k++) Wn[k][i]/=s; }
-  let seed=o.seed||12345; const rnd=()=>{ seed=(seed*16807)%2147483647; return seed/2147483647; };
-  const gauss=()=>{ const u=Math.max(1e-12,rnd()), v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+  // (2026-11-21) made by sndSynth: the cycle's harmonics below its validity limit (sndLimit), each firing's gain kept
+  // through its own window across the cycle boundary (the old straight-line resampling of the 720 points put images of the
+  // pulses at 8-16 kHz, and a firing window that wrapped round the cycle changed gain in mid-pulse, a click every cycle)
+  const sr=o.sr||REC.sr, dur=Math.min(H.t1-H.t0,8), n=Math.round(dur*sr), kf=o.kf||REC.ctx.kf;
   const tr=(o.noRec?[]:REC.tr||[]).filter(q=>q.t>=H.t0-0.2&&q.t<=H.t1+0.2), rpmAt=t=>{ if(!o.wander||tr.length<2) return H.rpm; const tt=H.t0+t; let j=0; while(j<tr.length-2&&tr[j+1].t<tt) j++; const u=Math.max(0,Math.min(1,(tt-tr[j].t)/((tr[j+1].t-tr[j].t)||1))); return tr[j].rpmS+u*(tr[j+1].rpmS-tr[j].rpmS); };
-  const out=new Float32Array(Math.round(dur*sr)); let pos=0, prev=null;
-  const J=o.jet&&W.jet&&W.jet.u&&W.jet.u.length===N?W.jet:null, env=J?new Float64Array(out.length):null;
-  let wj=null, wmean=0, Ueff=0;
-  if(J){ wj=J.u.map((U,i)=>jetPower(U,J.T[i],J.d)); wmean=wj.reduce((a,b)=>a+b,0)/N; Ueff=Math.pow(J.u.reduce((a,U)=>a+Math.pow(Math.abs(U),8),0)/N,1/8); }
-  while(pos<out.length){
-    const n=Math.max(8,Math.round(sr*120/rpmAt(pos/sr))), g=[]; for(let k=0;k<nf;k++) g.push(1+cov*gauss());
-    for(let i=0;i<n&&pos<out.length;i++,pos++){ const xi=i*N/n, j=Math.floor(xi), u=xi-j, j2=(j+1)%N;
-      let gw=0, gw2=0; for(let k=0;k<nf;k++){ gw+=g[k]*Wn[k][j]; gw2+=g[k]*Wn[k][j2]; }
-      const v=m+(dev[j]*gw)*(1-u)+(dev[j2]*gw2)*u;
-      if(J){ const gg=Math.max(0,gw*(1-u)+gw2*u); env[pos]=Math.sqrt((wj[j]*(1-u)+wj[j2]*u)/(wmean||1e-30))*gg*gg*gg*gg; }
-      out[pos]=prev==null?0:(v-prev)*sr; prev=v; }
-  }
-  let jetDb=null, jx=null;
-  if(J&&wmean>0){   // the jet in d(mdot)/dt units: rms sqrt(4 pi rho0 c0 W)
-    let e2=0; for(let i=0;i<env.length;i++) e2+=env[i]*env[i]; const ek=1/Math.sqrt(e2/env.length||1), amp=Math.sqrt(4*Math.PI*1.2*343*wmean);
-    const nz=jetNoise(out.length,sr,JET_ST*Ueff/J.d,(o.seed||12345)+101); let t2=0,j2=0;
-    jx=new Float32Array(out.length);
-    for(let i=0;i<out.length;i++){ const v=nz[i]*env[i]*ek*amp; j2+=v*v; t2+=out[i]*out[i]; jx[i]=v; out[i]+=v; }
-    jetDb=10*Math.log10((j2||1e-30)/(t2||1e-30));
-  }
+  const R=[sndPrep(Object.assign({},W,{kf,phases:W.phases||null}),WSND.dx)];
+  const S=sndSynth(R,{sr,n,rpmAt,vary:true,covFix:+o.cov||0,spread:+o.cov>0?SND_SPREAD:0,seed:o.seed||12345,band:o.band!==false,jet:!!(o.jet&&W.jet)});   // with variation on, the cylinders' 2 % spread too (Heywood 9.4.1)
+  const out=S.x; let jetDb=null, jx=null;
+  if(S.jet){ let t2=0,j2=0; for(let i=0;i<n;i++){ t2+=out[i]*out[i]; j2+=S.jet[i]*S.jet[i]; out[i]+=S.jet[i]; } jx=S.jet; jetDb=10*Math.log10((j2||1e-30)/(t2||1e-30)); }
   // the recording's level, a short fade at both ends
   const a0=Math.round(H.t0*sr), rec=!o.noRec&&REC.x?REC.x.subarray(a0,Math.min(REC.x.length,a0+out.length)):null;
   const rms=x=>{ let s=0; for(let i=0;i<x.length;i++) s+=x[i]*x[i]; return Math.sqrt(s/(x.length||1)); };
   const k=rec&&rms(out)>0?rms(rec)/rms(out):1, fade=Math.round(0.02*sr);
   for(let i=0;i<out.length;i++){ const g=k*Math.min(1,i/fade,(out.length-1-i)/fade); out[i]*=g; if(jx) jx[i]*=g; }
-  return {x:out,rec,jetDb,jetFp:J?JET_ST*Ueff/J.d:null,jet:jx,Ueff};
+  return {x:out,rec,jetDb,jetFp:S.info.fp,jet:jx,Ueff:S.Ueff,info:S.info};
 }
 // A drive-past of the model (sound/sweep.py passby, in the page): the source goes by on a straight line at v m/s, the
 // microphone d m from that line, closest halfway through. Sound emitted at te from r(te) arrives at te + r/c0, which makes
@@ -12717,11 +12696,15 @@ function recPull(Ws,rpm0,rpm1,T,sr,o){
 window.__recPull=recPull;
 const REC_AB={cov:2,wander:true,jet:true,play:null,check:null,msg:'',mph:40,ft:25};
 window.__recSynth=(W,H,o)=>recSynth(W,H,o); window.__jet={jetPower,jetNoise,fftIP};   // test hooks
-async function recPlay(x,sr){
-  try{ if(REC_AB.play){ try{ REC_AB.play.stop(); }catch(e){} }
+async function recPlay(x,sr,wet){
+  try{ if(REC_AB.play){ try{ REC_AB.play.stop(); }catch(e){} } if(REC_AB.playWet){ try{ REC_AB.playWet.stop(); }catch(e){} REC_AB.playWet=null; }
     const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return 'This browser cannot play sound.';
     REC_AB.ac=REC_AB.ac||new AC(); const b=REC_AB.ac.createBuffer(1,x.length,sr||REC.sr); b.copyToChannel(x,0);
-    const src=REC_AB.ac.createBufferSource(); src.buffer=b; src.connect(REC_AB.ac.destination); src.start(); REC_AB.play=src; return null; }
+    const src=REC_AB.ac.createBufferSource(); src.buffer=b; src.connect(REC_AB.ac.destination);
+    // (2026-11-21) the space's reverberation, stereo, on its own gain so the Reverb switch acts at once while it plays
+    if(wet&&wet.l){ const wb=REC_AB.ac.createBuffer(2,wet.l.length,sr||REC.sr); wb.copyToChannel(wet.l,0); wb.copyToChannel(wet.r,1);
+      const ws=REC_AB.ac.createBufferSource(); ws.buffer=wb; const g=REC_AB.ac.createGain(); g.gain.value=SND_V.on?1:0; ws.connect(g); g.connect(REC_AB.ac.destination); REC_AB.wetGain=g; ws.start(); REC_AB.playWet=ws; } else REC_AB.wetGain=null;
+    src.start(); REC_AB.play=src; return null; }
   catch(e){ return 'Could not play: '+(e&&e.message||e); }
 }
 // the gaps between the orders, recording against the model's sound, with the tab's own analysis
@@ -12991,8 +12974,9 @@ document.addEventListener('click',async e=>{
       if(b.dataset.rec==='play-pullpass') x=recPassby(tonal,jet,REC.sr,REC_AB.mph*0.44704,REC_AB.ft*0.3048,P.Ueff||0);
       else { x=tonal; if(jet) for(let i=0;i<x.length;i++) x[i]+=jet[i]; }
     }
-    if(b.dataset.rec==='play-ab'&&S.rec){ const gap=Math.round(0.6*REC.sr); x=new Float32Array(S.rec.length+gap+S.x.length); x.set(S.rec,0); x.set(S.x,S.rec.length+gap); }
-    recPlay(x).then(e=>say(e||(b.dataset.rec==='play-ab'?'Playing: the recording, then the model.':b.dataset.rec==='play-rec'?'Playing the recording.':b.dataset.rec==='play-pass'?'Playing the model driving past at '+REC_AB.mph+' mph, '+REC_AB.ft+' ft away: Doppler, the swell and fade, and the tailpipe’s jet louder behind the car.':b.dataset.rec==='play-pull'?'Playing a 6 s pull through the loaded runs, each harmonic interpolated between them.':b.dataset.rec==='play-pullpass'?'Playing the pull driving past at '+REC_AB.mph+' mph, '+REC_AB.ft+' ft away.':'Playing the model.')));
+    let nRec=0; if(b.dataset.rec==='play-ab'&&S.rec){ const gap=Math.round(0.6*REC.sr); nRec=S.rec.length+gap; x=new Float32Array(S.rec.length+gap+S.x.length); x.set(S.rec,0); x.set(S.x,S.rec.length+gap); }
+    let wet=null; if(SND_V.on&&b.dataset.rec!=='play-rec'){ const xm=Float32Array.from(x); xm.fill(0,0,nRec); wet=sndVerb(xm,{ft:REC_AB.ft,sr:REC.sr}); }
+    recPlay(x,REC.sr,wet).then(e=>say(e||(b.dataset.rec==='play-ab'?'Playing: the recording, then the model.':b.dataset.rec==='play-rec'?'Playing the recording.':b.dataset.rec==='play-pass'?'Playing the model driving past at '+REC_AB.mph+' mph, '+REC_AB.ft+' ft away: Doppler, the swell and fade, and the tailpipe’s jet louder behind the car.':b.dataset.rec==='play-pull'?'Playing a 6 s pull through the loaded runs, each harmonic interpolated between them.':b.dataset.rec==='play-pullpass'?'Playing the pull driving past at '+REC_AB.mph+' mph, '+REC_AB.ft+' ft away.':'Playing the model.')));
     return;
   }
   if(b.dataset.rec==='x2'||b.dataset.rec==='x05'){ const k=b.dataset.rec==='x2'?2:0.5; REC.tr.forEach(q=>{ q.rpm*=k; q.rpmS*=k; }); REC.holds=recHolds(REC.tr); REC.sweep=recSweep(REC.F,REC.tr,REC.ctx); REC.hold=0; renderActive(); return; }
@@ -13182,6 +13166,32 @@ function wsndListen(){
     WSND.msg={t:n?'Done: '+n+' speed'+(n>1?'s':'')+' with no load. Playing idle, a rev to '+sets[0].rpms[sets[0].rpms.length-1].toLocaleString('en-US')+' RPM and back to idle.':'The simulation did not finish a speed.',bad:!n}; renderActive();
     if(n) wsndPlay('playA'); },{rpms:wsndListenRpms(q),load:'none'});
 }
+// (2026-11-21) side-by-side choices on the system being played: the same system with one thing changed, run at one speed
+function wsndCmpKinds(q,A){ const W=A&&A.W; if(!W) return [];
+  const two=(()=>{ try{ const S=wsndSpec(q,{sys:W,whole:true,xo:false}); return !!(S.spec.opt&&S.spec.opt.collectors&&S.spec.opt.collectors.length===2); }catch(e){ return false; } })(), k=[];
+  if(two) k.push(['xo','True duals, H-pipe and X-pipe']);
+  if(+W.L>914+60) k.push(['res','A resonator at 3 ft and at 6 ft (0.9 and 1.8 m) from the collector']);
+  k.push(['cone',W.cone?'With the cone into the pipe and without':'A megaphone into the pipe and a plain step']);
+  return k; }
+function wsndCompare(kind){
+  const q=SIM.inp; if(!q) return; const A=wsndAutoSys(q), W=A.W; if(!W) return; const cp=o=>Object.assign(JSON.parse(JSON.stringify(W)),o), d=+W.d;
+  const xoC=W.xoC||(CROSS_LAST&&CROSS_LAST.type!=='y'?CROSS_LAST:null)||{type:'h',pos:Math.min(305,+W.L-60),dc:0.8*d,tube:100,name:'H-pipe'}, pos=Math.min(xoC.pos,+W.L-60);
+  let v=[];
+  if(kind==='xo') v=[['duals','True duals (no crossover)',cp({xo:'none'})],['h','H-pipe '+clen(pos)+' from the collectors',cp({xo:'cmp',xoC:{type:'h',pos,dc:xoC.dc||0.8*d,tube:xoC.tube||100,name:'H-pipe'}})],['x','X-pipe '+clen(pos)+' from the collectors',cp({xo:'cmp',xoC:{type:'x',pos,dc:xoC.dc||0.8*d,tube:xoC.tube||100,name:'X-pipe'}})]];
+  else if(kind==='res'){ const fx=W.fix!=='none'?W:{fix:'helm',hV:2,hL:80,hd:38};   // no resonator set: the OpenWAM line's default can, 2 L on a 1.5 in × 3.1 in neck
+    v=[[ 'r3','Resonator 3 ft (0.9 m) from the collector',cp(Object.assign({},fx.fix==='jpipe'?{fix:'jpipe',qL:fx.qL,qd:fx.qd}:{fix:'helm',hV:fx.hV,hL:fx.hL,hd:fx.hd},{x:914}))],['r6','Resonator 6 ft (1.8 m) from the collector',cp(Object.assign({},fx.fix==='jpipe'?{fix:'jpipe',qL:fx.qL,qd:fx.qd}:{fix:'helm',hV:fx.hV,hL:fx.hL,hd:fx.hd},{x:Math.min(1829,+W.L-40)}))]]; }
+  else { const dEnd=W.cone?W.cone.d0:(()=>{ try{ const sp=simSpec(q), c=sp.opt&&sp.opt.collector, g=c&&c.segs[c.segs.length-1]; return g?1000*g.d1:d; }catch(e){ return d; } })();
+    const L8=Math.abs(d-dEnd)/2/Math.tan(4*Math.PI/180);   // Jennings' 8° included angle
+    v=[['cone',(dEnd<d?'Megaphone ':'Cone ')+cdim(dEnd)+' to '+cdim(d)+', 8°',cp({cone:{L:Math.max(30,L8),d0:dEnd},L:Math.max(100,+W.L-Math.max(30,L8)+(W.cone?W.cone.L:0))})],['step','A plain step from the collector into the pipe',cp({cone:null,L:+W.L+(W.cone?W.cone.L:0)})]]; }
+  const rp=[wsndListenRpms(q)[1]];
+  wsndJob(v.map(([key,label,sys])=>({key,label,parts:{sys,whole:true}})),sets=>{ sets.forEach(s=>{ s.sys=A; }); WSND.sets=sets; WSND.A=0; WSND.B=1; wsndSetRuns(sets); WSND.play.how='hold'; WSND.play.rpm=rp[0];
+    WSND.msg={t:'Done: '+sets.map(s=>s.label).join(', ')+' at '+rp[0].toLocaleString('en-US')+' RPM. Pick any two as A and B; the differences show beside the play buttons. Compare with the Reverb off: a room masks small differences.'}; renderActive(); },{rpms:rp});
+}
+// A against B at the play speed: overall dB(A) and the orders that change most
+function wsndAbHtml(all,P){ const a=all[WSND.A], b=WSND.B!=null?all[WSND.B]:null; if(!a||!b) return '';
+  const ra=a.runs.find(x=>!x.err&&x.rpm===P.rpm), rb=b.runs.find(x=>!x.err&&x.rpm===P.rpm); if(!ra||!rb||!ra.spl24||!rb.spl24) return '';
+  const dA=wsndLA(rb,P.ft)-wsndLA(ra,P.ft), dd=rb.spl24.map((v,i)=>({o:(i+1)/2,d:v-ra.spl24[i]})).filter(z=>Number.isFinite(z.d)).sort((p,q)=>Math.abs(q.d)-Math.abs(p.d)).slice(0,4);
+  return '<p class="cap" id="wsnd-abdiff"><b>B against A at '+P.rpm.toLocaleString('en-US')+' RPM:</b> '+(dA>=0?'+':'')+dA.toFixed(1)+' dB(A) at '+P.ft+' ft; the orders that change most: '+dd.map(z=>'order '+z.o+' ('+Math.round(z.o*P.rpm/60)+' Hz) '+(z.d>=0?'+':'')+z.d.toFixed(1)+' dB').join(', ')+'.</p>'; }
 // the header in a few words, for the kept designs
 function wsndHeaderWhat(q){ const s=q.segs||[]; return s.length?'primaries '+cdim(s[0].d0)+' × '+clen(s[0].len)+(s[1]?', collector '+cdim(s[1].d1||s[1].d0):''):''; }
 // the additions one at a time: what "Hear each part" runs
@@ -13345,6 +13355,7 @@ function wsndPart(sp){
   const AS=wsndAutoSys(q); WSND.auto=AS; const lr=wsndListenRpms(q);
   h+='<div class="actions"><button type="button" class="btn primary" data-wsnd="listen"'+(WSND.busy?' disabled':'')+'>Hear my exhaust</button></div>'+
     '<div class="grid2 u-w640"><label class="f span2"><span class="lab">System to hear</span><span class="inp"><select id="wsnd-sys"><option value="auto"'+(WSND.sysMode==='open'?'':' selected')+'>'+(AS.W?'The exhaust you set up ('+esc(AS.from)+')':'Nothing is set after the headers: open headers')+'</option><option value="open"'+(WSND.sysMode==='open'?' selected':'')+'>Open headers, no system (a race engine on open pipes)</option></select></span></label></div>'+
+    (AS.W&&WSND.sysMode!=='open'?'<div class="actions">'+wsndCmpKinds(q,AS).map(k=>'<button type="button" class="btn" data-wsnd="cmp-'+k[0]+'"'+(WSND.busy?' disabled':'')+'>Compare: '+esc(k[1])+'</button>').join('')+'</div>':'')+
     '<p class="cap">“Hear my exhaust” runs every cylinder with '+(WSND.sysMode!=='open'&&AS.W?'the exhaust from '+esc(AS.from):'open headers')+' at '+lr.map(r=>r.toLocaleString('en-US')).join(', ')+' RPM with no load (a rev in the driveway), which takes a while on a slow computer (the progress shows below), then plays idle, a rev and back to idle. The system is used for the sound only: nothing on the other tabs changes.</p>';
   h+='<div class="grid2 u-w640"><label class="f span2"><span class="lab">Engine speeds (RPM)</span><span class="inp"><input id="wsnd-rpms" type="text" inputmode="numeric" value="'+esc(WSND.rpms||rp.join(' '))+'"></span></label>'+
     '<label class="f span2"><span class="lab">Load</span><span class="inp"><select id="wsnd-load"><option value="wot"'+(WSND.load==='none'?'':' selected')+'>Full throttle (a pull on the dyno or the road)</option><option value="none"'+(WSND.load==='none'?' selected':'')+'>No load (a free-rev hold in the driveway)</option></select></span></label></div>'+
@@ -13381,6 +13392,7 @@ function wsndPart(sp){
     '<label class="f"><span class="lab">Your ear height</span><span class="inp"><input id="wsnd-ear" type="number" step="0.25" min="0" max="20" inputmode="decimal" value="'+SND_L.earFt+'"><em>ft</em></span></label>'+
     '<label class="f"><span class="lab">Tailpipe tip height</span><span class="inp"><input id="wsnd-tip" type="number" step="0.25" min="0" max="10" inputmode="decimal" value="'+SND_L.tipFt+'"><em>ft</em></span></label></div>'+
     '<p class="cap" id="wsnd-stages">What you hear: <b>the model</b> (the flow leaving the tip, as a point source) '+(SND_L.band?'below the highest frequency the 1-D model stands for (shown after you play: the tip pipe’s first cross mode, the grid or the cycle, whichever is lowest; above it only the jet’s roar is played, nothing is made up)':'with everything in its averaged cycle, including frequencies above what a 1-D model can predict')+'; '+(SND_L.vary?'<b>measured engine statistics</b>: each firing varies by the coefficient of variation of IMEP (Heywood: 1.5 % at full throttle, up to 8 % at a closed-throttle idle), the cylinders differ by 2 %, the speed wanders 1.2 % with no load and 0.3 % under load (the owner’s Outback recordings); ':'no variation (every cycle the same); ')+(SND_L.path?'<b>listening-path physics</b>: you '+SND_L.earFt+' ft ('+(SND_L.earFt*0.3048).toFixed(2)+' m) up and '+P.ft+' ft ('+(P.ft*0.3048).toFixed(1)+' m) away, the tip '+SND_L.tipFt+' ft ('+(SND_L.tipFt*0.3048).toFixed(2)+' m) up, the ground’s reflection (hard ground) and air absorption (ISO 9613-1).':'the table’s reckoning (hard ground, +6 dB).')+' Not in it: case (shell) noise, engine mechanical and intake noise; after a rev it goes back to the idle hold, because a closed-throttle decel is not one of the runs. The dB(A) in the table come from the model alone and do not change with these choices.'+(WSND.lastInfo&&WSND.lastInfo.fLim?' Last played: frequencies up to '+(WSND.lastInfo.fLim/1000).toFixed(1)+' kHz, set by '+esc(WSND.lastInfo.by)+'.':'')+'</p>'+
+    sndVerbUi(P)+wsndAbHtml(all,P)+
     '<div class="actions"><button type="button" class="btn" data-wsnd="playA">Play A</button><button type="button" class="btn" data-wsnd="playB"'+(WSND.B==null?' disabled':'')+'>Play B</button><button type="button" class="btn" data-wsnd="ab"'+(WSND.B==null?' disabled':'')+'>A, then B</button>'+(all.length>1?'<button type="button" class="btn" data-wsnd="steps">Every row in order</button>':'')+'<button type="button" class="btn" data-wsnd="savewav"'+(WSND.lastWav?'':' disabled')+' title="The last sound played, as a WAV file">Save the last sound (WAV)</button></div>'+
     // the older buttons, for the full design alone
     '<div class="actions" hidden><button type="button" data-wsnd="hold"></button><button type="button" data-wsnd="pass"></button><button type="button" data-wsnd="pull"></button><button type="button" data-wsnd="pullpass"></button></div>'+
@@ -13468,7 +13480,7 @@ const sndCov=(pr,rpm)=>{ const ul=Math.max(0,Math.min(1,(1-pr)/0.8)), us=Math.ma
 // o: {sr, n samples, rpmAt(t s), vary (cycle and cylinder variation on), seed, band (false: no band limit, for the A/B)}
 function sndSynth(R,o){
   const sr=o.sr, n=o.n, P=SND_P, x=new Float32Array(n), env=new Float32Array(n), Wj=new Float32Array(n), N=720, rng=sndRng(o.seed||12345);
-  const nev=R[0].ev.length, s=Array.from({length:nev},()=>o.vary?SND_SPREAD*rng.g():0), z=Array.from({length:nev},()=>[]);
+  const nev=R[0].ev.length, s=Array.from({length:nev},()=>o.vary?(o.spread!=null?o.spread:SND_SPREAD)*rng.g():0), z=Array.from({length:nev},()=>[]);
   const zAt=(i,k)=>{ const a=z[i]; while(a.length<=k) a.push(o.vary?rng.g():0); return a[k]; };
   const between=r=>{ if(R.length===1||r<=R[0].rpm) return [R[0],R[0],0]; if(r>=R[R.length-1].rpm) return [R[R.length-1],R[R.length-1],0]; let i=0; while(R[i+1].rpm<r) i++; return [R[i],R[i+1],(r-R[i].rpm)/(R[i+1].rpm-R[i].rpm)]; };
   const blk=Math.max(1,Math.round(0.02*sr)), re=new Float64Array(P), im=new Float64Array(P), dr=new Float64Array(P), di=new Float64Array(P), D=new Float64Array(P), dD=new Float64Array(P);
@@ -13481,7 +13493,7 @@ function sndSynth(R,o){
       re[k]=mg*Math.cos(p)*0.5*P; im[k]=mg*Math.sin(p)*0.5*P; dr[k]=-2*Math.PI*k*im[k]; di[k]=2*Math.PI*k*re[k]; }
     // real part of the inverse transform with the positive half only, times two: the band-limited cycle and its slope (per cycle)
     fftIP(re,im,true); fftIP(dr,di,true); for(let i=0;i<P;i++){ D[i]=2*re[i]; dD[i]=2*dr[i]; }
-    const cov=o.vary?sndCov(a.pr+u*(b.pr-a.pr),rm):0;
+    const cov=o.covFix!=null?o.covFix:o.vary?sndCov(a.pr+u*(b.pr-a.pr),rm):0;
     const jW=allJet?Math.exp(Math.log(a.jet.W||1e-30)+u*(Math.log(b.jet.W||1e-30)-Math.log(a.jet.W||1e-30))):0, near=u<0.5?a:b;
     for(let i=b0;i<b1;i++){ const r=o.rpmAt(i/sr), hz=r/120; th+=hz/sr; const f=th-Math.floor(th), xi=f*P, j=Math.floor(xi), t=xi-j;
       const j0=(j-1+P)%P, j1=j%P, j2=(j+1)%P, j3=(j+2)%P;
@@ -13547,6 +13559,115 @@ function wsndRender(runs,how,P){
     out.set(x); const st=x.length-cf; for(let i=0;i<m;i++){ const v=x[i0+i], w=i<cf?i/cf:1; out[st+i]=(i<cf?out[st+i]*(1-w):0)+v*w; } x=out; }
   return {x,sr,info:Object.assign(S.info,{how,dur:x.length/sr,vary:L.vary,band:L.band,path:L.path,cov:L.vary?R.map(q=>+(100*sndCov(q.pr,q.rpm)).toFixed(1)):[0],wander:L.vary?100*(load?SND_WANDER.load:SND_WANDER.hold):0,ear:L.earFt,tip:L.tipFt})};
 }
+/* ===== where you are listening: a space added to the played sound, for listening only (2026-11-21) =====
+   Each space is a box of stated size; every face is a surface material or open air. Its impulse response is made here,
+   from the geometry, never from a recording: the early reflections by the image-source method for a rectangular room
+   (Allen and Berkley, J. Acoust. Soc. Am. 65, 1979), each image's strength the product of sqrt(1 - alpha) over the faces it
+   bounced off, by octave band, with spherical spreading and air absorption (ISO 9613-1); then, from the mixing time on,
+   a decaying noise tail per octave band at the level a diffuse field has in that volume (energy density 4 pi c / V
+   against the direct sound at 1 m: Kuttruff, Room Acoustics, 5th ed., 2009, 5.1), decaying with the band's Eyring
+   reverberation time T = 0.161 V / (-S ln(1 - mean alpha) + 4 m V). Open faces have alpha = 1. Two ears 0.17 m apart
+   (spaced receivers, no head model). Absorption coefficients at 125-4000 Hz: Everest and Pohlmann, Master Handbook of
+   Acoustics, 5th ed., 2009, appendix table (asphalt taken as poured concrete; a steel roll-up door and a steel roof deck as
+   heavy plate glass, the nearest listed hard, thin, heavy surface). The direct sound and the ground's reflection are the
+   dry signal, untouched; the space adds only what comes after (so the table's dB(A) and the dry sound do not change). */
+const SND_BANDS=[125,250,500,1000,2000,4000];
+const SND_MAT={concrete:{n:'poured concrete',a:[0.01,0.01,0.02,0.02,0.02,0.02]},asphalt:{n:'asphalt (as poured concrete)',a:[0.01,0.01,0.02,0.02,0.02,0.02]},
+  block:{n:'painted concrete block',a:[0.10,0.05,0.06,0.07,0.09,0.08]},brick:{n:'unglazed brick',a:[0.03,0.03,0.03,0.04,0.05,0.07]},
+  steel:{n:'steel sheet (as heavy plate glass)',a:[0.18,0.06,0.04,0.03,0.02,0.02]},open:{n:'open',a:[1,1,1,1,1,1]}};
+// box faces in the order x0, x1, y0, y1, z0 (floor), z1; src: the tip; dir: the way to the listener (unit vector, horizontal)
+const SND_SPACES={
+  lot:{name:'Open lot, building behind',dims:[100,60,30],faces:['open','open','block','open','asphalt','open'],src:[50,8,0],dir:[0,1],tail:false,
+    what:'asphalt, a painted-block building wall 26 ft (8 m) behind the car, open sky and sides'},
+  street:{name:'Street between buildings',dims:[120,15,15],faces:['open','open','brick','brick','asphalt','open'],src:[50,7.5,0],dir:[1,0],tail:false,tMax:2.5,
+    what:'brick fronts 49 ft (15 m) apart and 49 ft (15 m) high, asphalt, open sky and ends; you stand along the street'},
+  shop:{name:'Inside a shop (roll-up door open)',dims:[12.2,9.1,4.6],faces:[['block',0.66,'open',0.34],'block','block','block','concrete','steel'],src:[2.5,4.55,0],dir:[1,0],tail:true,
+    what:'40 × 30 ft, 15 ft high (12.2 × 9.1 × 4.6 m): painted block walls, concrete floor, steel roof deck, a 12 × 12 ft (3.7 × 3.7 m) roll-up door open in one end wall'},
+  garage:{name:'Parking structure / tunnel',dims:[60,10,3],faces:['open','open','concrete','concrete','concrete','concrete'],src:[20,5,0],dir:[1,0],tail:true,
+    what:'concrete deck, ceiling and walls, 33 ft (10 m) wide, 10 ft (3 m) high, open at both ends 197 ft (60 m) apart'}};
+const SND_V={on:false,space:'lot',wet:0};   // the Reverb switch, the space and the reverberation's level (dB)
+const SND_VC={key:'',ir:null,custom:null};  // the impulse responses made (one at a time), and a loaded one (this session only)
+function sndFaceA(f,b){ if(Array.isArray(f)){ let a=0; for(let i=0;i<f.length;i+=2) a+=SND_MAT[f[i]].a[b]*f[i+1]; return a; } return SND_MAT[f].a[b]; }
+// Eyring reverberation time by octave band (s), with the air's absorption
+function sndEyring(sp){ const [X,Y,Z]=sp.dims, V=X*Y*Z, S=[Y*Z,Y*Z,X*Z,X*Z,X*Y,X*Y];
+  return SND_BANDS.map((f,b)=>{ const As=S.reduce((q,s,i)=>q+s*sndFaceA(sp.faces[i],b),0), St=S.reduce((q,s)=>q+s,0), a=Math.min(0.999,As/St), m=sndAirAlpha(f)/4.343;
+    return 0.161*V/(-St*Math.log(1-a)+4*m*V); }); }
+// the space's impulse response for each ear, relative to the direct sound (direct = 1, not included), and the ground's
+// first reflection left out (the dry signal has it); d horizontal distance, hs tip height, hr ear height (m)
+function sndSpaceIR(key,d,hs,hr,sr){
+  const sp=SND_SPACES[key]; if(!sp) return null;
+  const ck=[key,d.toFixed(3),hs.toFixed(3),hr.toFixed(3),sr].join('/'); if(SND_VC.key===ck&&SND_VC.ir) return SND_VC.ir;
+  const [X,Y,Z]=sp.dims, V=X*Y*Z, T=sp.tail?sndEyring(sp):null, c=343, s0=[sp.src[0],sp.src[1],hs];
+  // times from the direct sound's arrival (the dry signal carries the direct sound and its delay is not played)
+  const tMax=sp.tail?Math.min(3,1.2*Math.max(...T)):(sp.tMax||0.6), n=Math.round(tMax*sr), tIsm=sp.tail?Math.max(0.08,2*Math.sqrt(V)/1000):tMax;
+  let N=1; while(N<n) N<<=1;
+  const beta=sp.faces.map(f=>SND_BANDS.map((_,b)=>Math.sqrt(Math.max(0,1-sndFaceA(f,b)))));
+  const ears=[-0.085,0.085].map((o,ei)=>{ const L=[s0[0]+sp.dir[0]*d-sp.dir[1]*o, s0[1]+sp.dir[1]*d+sp.dir[0]*o, hr];
+    // keep the listener inside the box
+    L[0]=Math.max(0.2,Math.min(X-0.2,L[0])); L[1]=Math.max(0.2,Math.min(Y-0.2,L[1]));
+    const rd=Math.hypot(L[0]-s0[0],L[1]-s0[1],L[2]-s0[2]), bands=SND_BANDS.map(()=>new Float64Array(N)), lim=c*tIsm, dims=[X,Y,Z];
+    const nmax=dims.map(D=>Math.ceil(lim/(2*D))+1);
+    for(let nx=-nmax[0];nx<=nmax[0];nx++) for(let px=0;px<2;px++){ const ix=(1-2*px)*s0[0]+2*nx*X, cx=[Math.abs(nx-px),Math.abs(nx)];
+      for(let ny=-nmax[1];ny<=nmax[1];ny++) for(let py=0;py<2;py++){ const iy=(1-2*py)*s0[1]+2*ny*Y, cy=[Math.abs(ny-py),Math.abs(ny)];
+        for(let nz=-nmax[2];nz<=nmax[2];nz++) for(let pz=0;pz<2;pz++){ const iz=(1-2*pz)*s0[2]+2*nz*Z, cz=[Math.abs(nz-pz),Math.abs(nz)];
+          const cnt=[cx[0],cx[1],cy[0],cy[1],cz[0],cz[1]], tot=cnt.reduce((a,b)=>a+b,0);
+          if(tot===0) continue;                                    // the direct sound: dry
+          if(tot===1&&cnt[4]===1) continue;                        // the ground's own reflection: dry (sndPath)
+          const r=Math.hypot(L[0]-ix,L[1]-iy,L[2]-iz), t=(r-rd)/c; if(t>=tIsm) continue;
+          if(cnt.some((k,i)=>k>0&&beta[i][2]===0)) continue;       // through an open face
+          const at=Math.round(t*sr); if(at>=n) continue;
+          SND_BANDS.forEach((f,b)=>{ let g=rd/r*Math.pow(10,-sndAirAlpha(f)*(r-rd)/20); for(let i=0;i<6;i++) if(cnt[i]) g*=Math.pow(beta[i][b],cnt[i]); bands[b][at]+=g; });
+        } } }
+    if(sp.tail){ const rng=sndRng(9001+ei*77), fade=Math.round(0.01*sr), i0=Math.round(tIsm*sr);
+      SND_BANDS.forEach((f,b)=>{ const k=rd*Math.sqrt(4*Math.PI*c/(V*sr)), dec=6.908/T[b];
+        for(let i=Math.max(0,i0-fade);i<n;i++){ const w=i<i0?(i-(i0-fade))/fade:1; bands[b][i]+=w*k*Math.exp(-dec*(i/sr+rd/c))*rng.g(); } }); }
+    // the bands into one response: complementary raised-cosine weights on a log frequency scale (they add up to one)
+    const re=new Float64Array(N), im=new Float64Array(N), tr=new Float64Array(N), ti=new Float64Array(N);
+    SND_BANDS.forEach((fc,b)=>{ tr.set(bands[b]); ti.fill(0); fftIP(tr,ti,false);
+      for(let k=0;k<N;k++){ const f=Math.min(k,N-k)*sr/N, x=f>0?Math.log2(f/fc):-99; let w;
+        if(b===0&&x<0) w=1; else if(b===SND_BANDS.length-1&&x>0) w=1; else w=Math.abs(x)<1?0.5*(1+Math.cos(Math.PI*x)):0;
+        re[k]+=tr[k]*w; im[k]+=ti[k]*w; } });
+    fftIP(re,im,true); return Float32Array.from(re.subarray(0,n)); });
+  const ir={l:ears[0],r:ears[1],sr,T,tIsm,name:sp.name,Tsch:T?null:[250,500,1000,2000].map(f=>sndSchroeder(ears[0],sr,f))}; SND_VC.key=ck; SND_VC.ir=ir; return ir;
+}
+// the space's part of the sound (stereo) for a dry mono signal x: one transform per ear (the whole clip at once, so the
+// saved file is exactly what was heard). Returns {l, r} of the reverberation only, x.length + the response's length
+function sndConvolve(x,h){ let N=1; while(N<x.length+h.length) N<<=1;
+  const ar=new Float64Array(N), ai=new Float64Array(N), br=new Float64Array(N), bi=new Float64Array(N); ar.set(x); br.set(h);
+  fftIP(ar,ai,false); fftIP(br,bi,false); for(let k=0;k<N;k++){ const r=ar[k]*br[k]-ai[k]*bi[k], i=ar[k]*bi[k]+ai[k]*br[k]; ar[k]=r; ai[k]=i; }
+  fftIP(ar,ai,true); return Float32Array.from(ar.subarray(0,x.length+h.length-1)); }
+function sndVerbIR(P){ const L=Object.assign({},SND_L,P&&P.listen||{}), d=((P&&P.ft)||25)*0.3048;
+  if(SND_V.space==='custom') return SND_VC.custom&&SND_VC.custom.sr===((P&&P.sr)||48000)?SND_VC.custom:null;
+  return sndSpaceIR(SND_V.space,d,L.tipFt*0.3048,L.earFt*0.3048,(P&&P.sr)||48000); }
+function sndVerb(x,P){ const ir=sndVerbIR(P); if(!ir) return null; const g=Math.pow(10,(SND_V.wet||0)/20);
+  const l=sndConvolve(x,ir.l), r=ir.r===ir.l?l:sndConvolve(x,ir.r); for(let i=0;i<l.length;i++) l[i]*=g; if(r!==l) for(let i=0;i<r.length;i++) r[i]*=g; return {l,r,ir}; }
+// Schroeder's backward integration: the reverberation time from the -5 to -25 dB fall (T20 x 3) in one octave band
+function sndSchroeder(h,sr,fc){ let N=1; while(N<h.length) N<<=1; const re=new Float64Array(N), im=new Float64Array(N); re.set(h); fftIP(re,im,false);
+  for(let k=0;k<N;k++){ const f=Math.min(k,N-k)*sr/N; if(!(f>=fc/Math.SQRT2&&f<fc*Math.SQRT2)){ re[k]=0; im[k]=0; } } fftIP(re,im,true);
+  const e=new Float64Array(h.length); let s=0; for(let i=h.length-1;i>=0;i--){ s+=re[i]*re[i]; e[i]=s; } const L=i=>10*Math.log10(e[i]/e[0]+1e-30);
+  let i5=0; while(i5<h.length-1&&L(i5)>-5) i5++; let i25=i5; while(i25<h.length-1&&L(i25)>-25) i25++;
+  let sx=0,sy=0,sxx=0,sxy=0,m=0; for(let i=i5;i<=i25;i++){ const t=i/sr, y=L(i); sx+=t; sy+=y; sxx+=t*t; sxy+=t*y; m++; } const sl=(m*sxy-sx*sy)/(m*sxx-sx*sx||1); return -60/sl; }
+// a loaded impulse response (WAV, any rate): resampled to 48 kHz by the browser's decoder, the direct sound found as the
+// largest sample, the response shifted to start there and scaled so the direct is 1 and then taken out (the dry signal is it)
+async function sndLoadIR(file){
+  const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext; if(!OAC) throw new Error('this browser cannot decode audio');
+  const buf=await new OAC(1,48000,48000).decodeAudioData(await file.arrayBuffer());
+  const ch=[buf.getChannelData(0),buf.numberOfChannels>1?buf.getChannelData(1):buf.getChannelData(0)].map(a=>a.slice(0,Math.min(a.length,3*48000)));
+  let pk=0,ip=0; ch.forEach(a=>{ for(let i=0;i<a.length;i++) if(Math.abs(a[i])>pk){ pk=Math.abs(a[i]); ip=i; } });
+  if(!(pk>0)) throw new Error('the file is silent');
+  const sgn=ch[0][ip]<0?-1:1, out=ch.map(a=>{ const o=new Float32Array(a.length-ip); for(let i=0;i<o.length;i++) o[i]=a[i+ip]/(sgn*pk); o[0]=0; return o; });
+  SND_VC.custom={l:out[0],r:out[1],sr:48000,name:file.name,T:null}; SND_V.space='custom'; return SND_VC.custom; }
+function sndVerbUi(P){
+  const sp=SND_SPACES[SND_V.space], T=sp&&sp.tail?sndEyring(sp):null;
+  return '<div class="actions"><button type="button" class="btn" id="wsnd-verb" data-wsnd="verb" aria-pressed="'+(SND_V.on?'true':'false')+'">Reverb: '+(SND_V.on?'on':'off')+'</button>'+
+    '<label class="f" style="min-width:16rem"><span class="lab">Where you are listening</span><span class="inp"><select id="wsnd-space">'+Object.keys(SND_SPACES).map(k=>'<option value="'+k+'"'+(SND_V.space===k?' selected':'')+'>'+esc(SND_SPACES[k].name)+'</option>').join('')+
+    (SND_VC.custom?'<option value="custom"'+(SND_V.space==='custom'?' selected':'')+'>Your impulse response: '+esc(SND_VC.custom.name)+'</option>':'')+'</select></span></label>'+
+    '<label class="f"><span class="lab">Reverberation level</span><span class="inp"><input id="wsnd-wet" type="number" step="1" min="-30" max="6" inputmode="decimal" value="'+SND_V.wet+'"><em>dB</em></span></label>'+
+    '<label class="f"><span class="lab">Load your own impulse response (WAV)</span><span class="inp"><input id="wsnd-irfile" type="file" accept=".wav,audio/wav,audio/*"></span></label></div>'+
+    '<p class="cap" id="wsnd-spacecap">'+(SND_V.on?'Reverb on: ':'Reverb off: open air, nothing but the ground’s reflection (the reference for comparing parts; a room masks small differences, so compare parts with it off). With it on: ')+
+    (sp?esc(sp.name)+', '+esc(sp.what)+(T?'; reverberation time (Eyring) '+SND_BANDS.map((f,b)=>(f<1000?f:f/1000+'k')+' Hz '+T[b].toFixed(2)+' s').join(', '):'; no statistical tail (open sky): only its reflections, by image sources'+(SND_VC.ir&&SND_VC.ir.name===sp.name&&SND_VC.ir.Tsch?', which die away in '+SND_VC.ir.Tsch.map(v=>v.toFixed(2)).join(', ')+' s at 250, 500, 1000, 2000 Hz (Schroeder)':''))+'.':SND_VC.custom?'your impulse response '+esc(SND_VC.custom.name)+' (this session only, not saved in the project), its direct sound set to the model’s level.':'')+
+    ' The space is made from its size and surfaces (image sources, Allen and Berkley 1979, then a tail with the Eyring time; surfaces from Everest’s absorption table), heard with two ears 0.17 m apart. It is added for listening only: the dry sound and the dB(A) in the table do not change. The switch acts at once while a sound plays.</p>';
+}
 // a 135 dB peak re 20 uPa a little under full scale (an open collector's pulses peak 15 dB or so over its level), the
 // same for every design, so quieter ones play quieter; clips one after another with a short gap
 function wsndPlayList(list,msgOk){
@@ -13555,12 +13676,19 @@ function wsndPlayList(list,msgOk){
   if(!clips.length){ msg('Nothing to play at that speed.'); return; }
   const n=clips.reduce((a,c)=>a+c.length,0)+gap*(clips.length-1), x=new Float32Array(n); let o=0, pk=0;
   clips.forEach((c,ci)=>{ for(let i=0;i<c.length;i++){ const v=c[i]/FS*Math.min(1,i/fade,(c.length-1-i)/fade); x[o+i]=v; pk=Math.max(pk,Math.abs(v)); } o+=c.length+gap; });
-  if(pk>0.98) for(let i=0;i<x.length;i++) x[i]*=0.98/pk;
-  WSND.lastWav={x,sr,label:msgOk}; const sb=document.querySelector('button[data-wsnd="savewav"]'); if(sb) sb.disabled=false;
-  recPlay(x,sr).then(e=>msg(e||msgOk+(pk>0.98?' (Turned down to fit: its peaks pass 135 dB at the microphone.)':'')));
+  let wet=SND_V.on?sndVerb(x,WSND.play):null;
+  if(wet){ let pw=pk; for(let i=0;i<wet.l.length;i++){ const d=i<x.length?x[i]:0; pw=Math.max(pw,Math.abs(d+wet.l[i]),Math.abs(d+wet.r[i])); } pk=pw; }
+  if(pk>0.98){ for(let i=0;i<x.length;i++) x[i]*=0.98/pk; if(wet){ for(let i=0;i<wet.l.length;i++){ wet.l[i]*=0.98/pk; if(wet.r!==wet.l) wet.r[i]*=0.98/pk; } } }
+  WSND.lastWav={x,sr,label:msgOk,wet}; const sb=document.querySelector('button[data-wsnd="savewav"]'); if(sb) sb.disabled=false;
+  recPlay(x,sr,wet).then(e=>msg(e||msgOk+(wet?' In '+wet.ir.name.toLowerCase()+'.':'')+(pk>0.98?' (Turned down to fit: its peaks pass 135 dB at the microphone.)':'')));
 }
 // the last sound played, as a 16-bit WAV (plays anywhere): saved through Fusion's or the program's file dialog, the
 // artifact viewer's downloads, or a plain download in a browser
+// stereo: the dry sound in both ears plus each ear's reverberation (what the player sends to the speakers)
+function wavPcm16st(x,wet,sr){ const n=Math.max(x.length,wet.l.length), b=new ArrayBuffer(44+4*n), v=new DataView(b), w=(o,t)=>{ for(let i=0;i<4;i++) v.setUint8(o+i,t.charCodeAt(i)); };
+  w(0,'RIFF'); v.setUint32(4,36+4*n,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,2,true);
+  v.setUint32(24,sr,true); v.setUint32(28,4*sr,true); v.setUint16(32,4,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,4*n,true);
+  const q=s=>Math.round(Math.max(-1,Math.min(1,s))*32767); for(let i=0;i<n;i++){ const d=i<x.length?x[i]:0; v.setInt16(44+4*i,q(d+(i<wet.l.length?wet.l[i]:0)),true); v.setInt16(46+4*i,q(d+(i<wet.r.length?wet.r[i]:0)),true); } return b; }
 function wavPcm16(x,sr){ const b=new ArrayBuffer(44+2*x.length), v=new DataView(b), w=(o,t)=>{ for(let i=0;i<4;i++) v.setUint8(o+i,t.charCodeAt(i)); };
   w(0,'RIFF'); v.setUint32(4,36+2*x.length,true); w(8,'WAVE'); w(12,'fmt '); v.setUint32(16,16,true); v.setUint16(20,1,true); v.setUint16(22,1,true);
   v.setUint32(24,sr,true); v.setUint32(28,2*sr,true); v.setUint16(32,2,true); v.setUint16(34,16,true); w(36,'data'); v.setUint32(40,2*x.length,true);
@@ -13568,7 +13696,7 @@ function wavPcm16(x,sr){ const b=new ArrayBuffer(44+2*x.length), v=new DataView(
 async function wsndSaveWav(){
   const L=WSND.lastWav, say=t=>{ const el=$('wsnd-play-msg'); if(el) el.textContent=t; };
   if(!L){ say('Play something first.'); return; }
-  const buf=wavPcm16(L.x,L.sr), d=new Date(), name='Exhaust sound '+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+'.wav';
+  const buf=L.wet&&SND_V.on?wavPcm16st(L.x,L.wet,L.sr):wavPcm16(L.x,L.sr), d=new Date(), name='Exhaust sound '+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0')+'.wav';
   window.__wsndWav={name,bytes:buf.byteLength};
   if(FUSION||HOST){ let bin=''; const u=new Uint8Array(buf); for(let i=0;i<u.length;i+=0x8000) bin+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));
     const res=await saveCall('saveBase64',{filename:name,b64:btoa(bin),title:'Save the sound'}); say((res&&res.msg)||'Not saved.'); return; }
@@ -13588,6 +13716,8 @@ function wsndPlay(kind){
   wsndPlayList([wsndSound(runs,kind,P)],'Playing '+(kind==='hold'?P.rpm.toLocaleString('en-US')+' RPM held':kind==='pass'?'a drive-past at '+P.mph+' mph':'a pull'+(kind==='pullpass'?' while driving past':''))+', '+P.ft+' ft.');
 }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-wsnd]'); if(!b) return; const k=b.dataset.wsnd;
+  if(k==='verb'){ SND_V.on=!SND_V.on; if(REC_AB.wetGain) REC_AB.wetGain.gain.value=SND_V.on?1:0; b.setAttribute('aria-pressed',SND_V.on?'true':'false'); b.textContent='Reverb: '+(SND_V.on?'on':'off'); renderActive(); return; }
+  if(/^cmp-/.test(k)){ wsndCompare(k.slice(4)); return; }
   if(k==='listen') wsndListen(); else if(k==='run') wsndRun(); else if(k==='parts') wsndParts(); else if(k==='misfire') wsndMisfire(); else if(k==='savewav') wsndSaveWav(); else if(k==='keep') wsndKeep(); else if(k==='clear'){ WSND.kept=[]; WSND.A=WSND.sets.length?0:null; WSND.B=null; renderActive(); } else wsndPlay(k); });
 document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   if(t.name==='wsnd-a'){ WSND.A=+t.value; renderActive(); return; } if(t.name==='wsnd-b'){ WSND.B=+t.value; renderActive(); return; }
@@ -13596,6 +13726,9 @@ document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   if(t.id==='wsnd-dead'){ WSND.dead=t.value; return; }
   if(t.id==='wsnd-load'){ WSND.load=t.value; return; }
   if(t.id==='wsnd-sys'){ WSND.sysMode=t.value; renderActive(); return; }
+  if(t.id==='wsnd-space'){ SND_V.space=t.value; renderActive(); return; }
+  if(t.id==='wsnd-wet'){ const v=+t.value; if(v>=-30&&v<=6) SND_V.wet=v; renderActive(); return; }
+  if(t.id==='wsnd-irfile'&&t.files&&t.files[0]){ const f=t.files[0]; sndLoadIR(f).then(()=>renderActive(),e=>{ const el=$('wsnd-play-msg'); if(el) el.textContent='Could not read that impulse response: '+(e&&e.message||e); }); return; }
   if(t.id==='wsnd-vary'||t.id==='wsnd-band'||t.id==='wsnd-path'){ SND_L[t.id.slice(5)]=t.value==='1'; renderActive(); return; }
   if(t.id==='wsnd-ear'||t.id==='wsnd-tip'){ const v=+t.value; if(v>=0&&v<=20) SND_L[t.id==='wsnd-ear'?'earFt':'tipFt']=v; renderActive(); return; }
   if(t.id==='wsnd-src') WSND.src=t.value; else if(t.id==='wsnd-rpm') P.rpm=+t.value; else if(t.id==='wsnd-jet') P.jet=t.value==='1'; else if(t.id==='wsnd-how') P.how=t.value;
@@ -13604,7 +13737,7 @@ document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   renderActive(); });
 window.__calcAbsorb=calcAbsorb;
 window.__intakeK={bendK,craneEntryK,bendsOf};
-window.__wsnd={wsndAutoSys,wsndListen,wsndListenRpms,wsndPlayingHtml,wsndRender,sndPrep,sndLimit,sndSynth,sndPath,sndAirAlpha,sndTrack,SND_L,wsndWholeSpec,state:()=>({HDR_LAST,QLAST,CROSS_LAST,WAM_UI,WAM_MIC}),simInp:()=>SIM.inp,wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
+window.__wsnd={wsndCompare,wsndCmpKinds,wsndJob,wsndPlayList,SND_V,SND_VC,SND_SPACES,sndSpaceIR,sndEyring,sndSchroeder,sndConvolve,sndVerb,sndLoadIR,wavPcm16st,wsndAutoSys,wsndListen,wsndListenRpms,wsndPlayingHtml,wsndRender,sndPrep,sndLimit,sndSynth,sndPath,sndAirAlpha,sndTrack,SND_L,wsndWholeSpec,state:()=>({HDR_LAST,QLAST,CROSS_LAST,WAM_UI,WAM_MIC}),simInp:()=>SIM.inp,wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
 
 /* ===== primary size, headers and crossover ===== */
 const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u+' ('+v.a+')';};
@@ -28761,7 +28894,8 @@ const PROJ_UI={   // the per-section settings kept with a project: [object, keys
   es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open','fx']],
   cmap:[CMAP,['tool']],   // Your compressor map: calibration, marked points and typed values; never the image (cmapAfterLoad)
   snd:[WSND,null,['rpms','load','dead']],
-  sndl:[SND_L,[]],   // (2026-11-21) how the sound is played: variation, band limit, listening position (a new key; older projects keep the defaults)   // the sound estimate's speeds, load and misfire choice (2026-11-16); never its results
+  sndl:[SND_L,[]],
+  sndv:[SND_V,[]],   // (2026-11-21) the Reverb switch, the space and its level (a new key; a loaded impulse response is never saved)   // (2026-11-21) how the sound is played: variation, band limit, listening position (a new key; older projects keep the defaults)   // the sound estimate's speeds, load and misfire choice (2026-11-16); never its results
   aug:[AUG,[]],   // the Mufflers tab's auger designer (2026-11-16: was not saved)
   md:[MD,null,['tl','f0','f1','kinds','inst']],   // the muffler designer's targets and choices (2026-11-16); never its list or runs
   tt:[TT,[]]};   // the tuned-tube set (2026-11-16)
