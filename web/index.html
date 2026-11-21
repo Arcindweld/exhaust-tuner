@@ -13022,12 +13022,15 @@ const POCKET_LE=l=>4*l/Math.PI**2;    // a closed tube's first resonance from a 
 // what is after the collector, from the OpenWAM line: parts {line, muf, fix} picks the additions (all by default).
 // segs (m) and branches [{x m from the start of these segs, V m3, CdA m2, Le m}]
 function wsndExt(parts){
-  const P=Object.assign({line:true,muf:true,fix:true,par:true},parts||{}), W=WAM_UI.line, notes=[], br=[];
+  const P=Object.assign({line:true,muf:true,fix:true,par:true},parts||{}), W=P.sys||WAM_UI.line, notes=[], br=[], M=W.mufDims||null;
+  // (2026-11-21) parts.sys: a line built from the other tabs (wsndAutoSys) in place of the OpenWAM panel's; W.mufDims its
+  // muffler's sizes (mm) where the panel reads the Mufflers tab's fields; W.cone a cone from the collector into the line
   if(!W.on||!P.line) return {segs:[],branches:[],pieces:[],par:null,pack:null,notes:W.on?[]:['No line after the collector is set (OpenWAM panel on the 4-Stroke tab), so this is the collector as the 4-Stroke tab draws it, open to the air.'],what:'the headers and collector, open'};
   const d=+W.d/1000, Ad=Math.PI*d*d/4, segs=[{L:Math.max(0.05,+W.L/1000),d0:d,d1:d}]; let x=segs[0].L, what=[cdim(+W.d)+' line, '+clen(+W.L)], pack=null; const pieces=[];
+  if(W.cone&&W.cone.L>0&&W.cone.d0>0){ segs.unshift({L:W.cone.L/1000,d0:W.cone.d0/1000,d1:d}); x+=W.cone.L/1000; what.unshift((W.cone.d0<+W.d?'megaphone ':'reducer ')+cdim(W.cone.d0)+' to '+cdim(+W.d)+' × '+clen(W.cone.L)); }
   if(P.muf){
-    if(W.mufKind==='chamber'){ const D=val('m-dch'), L=val('m-lch');
-      if(D>0&&L>0){ const Dm=D/1000, la=Math.max(0,val('m-lin')||0)/1000, lb=Math.max(0,val('m-lout')||0)/1000, rev=$('m-chlay')&&$('m-chlay').value==='reverse';
+    if(W.mufKind==='chamber'){ const D=M?M.D:val('m-dch'), L=M?M.L:val('m-lch');
+      if(D>0&&L>0){ const Dm=D/1000, la=Math.max(0,(M?M.la:val('m-lin'))||0)/1000, lb=Math.max(0,(M?M.lb:val('m-lout'))||0)/1000, rev=M?!!M.rev:$('m-chlay')&&$('m-chlay').value==='reverse';
         const Lc=Math.max(0.02,L/1000-(rev?0:la+lb)), Aan=Math.max(1e-5,Math.PI/4*(Dm*Dm-Math.pow(d+2*0.0016,2)));
         if(rev){ // reverse flow: the inlet and outlet meet at the end plate, the chamber a dead-end pipe of its bore back to the
           // closed far end (Munjal 3.7: the reversal is the chamber's impedance at the plate); the tubes' extensions are left out
@@ -13039,7 +13042,7 @@ function wsndExt(parts){
           if(lb>0) br.push({x:x-1e-4,V:Aan*lb,CdA:Aan,Le:POCKET_LE(lb),what:'outlet pocket'});
           what.push(la>0||lb>0?'chamber '+cdim(D)+' × '+clen(L)+' with extended tubes':'chamber '+cdim(D)+' × '+clen(L)); } }
       else notes.push('The line’s muffler is the Mufflers tab’s chamber, which is not filled in: no muffler.'); }
-    else if(W.mufKind==='packed'){ const D=val('m-dch')/1000, L=val('m-lch')/1000;
+    else if(W.mufKind==='packed'){ const D=(M?M.D:val('m-dch'))/1000, L=(M?M.L:val('m-lch'))/1000;
       if(D>d&&L>0){ // the perforated core straight through, its annulus in slices of about 50 mm: each a side volume of the
         // annulus's open space (fibre at 2500 kg/m3) through that slice's holes, the neck the wall plus 0.85 of a hole
         // (perforate end corrections, Munjal 3.8), and the packing's Darcy loss R x depth x face velocity, R from its density
@@ -13074,12 +13077,13 @@ function wsndExt(parts){
 function wsndSpec(q,parts){
   const sp=simSpec(q), H=HDR_LAST, ext=wsndExt(parts); let spec, whole=false; const notes=ext.notes.slice();
   if(H&&H.uel&&WAM_UI.src!=='four'){ const a=uelLayoutSpec(q,sp,false); if(a&&!a.err){ spec=JSON.parse(JSON.stringify(a.spec)); whole=true; } }
+  if(!spec&&parts&&parts.whole){ const w=wsndWholeSpec(q,sp); if(w){ spec=w.spec; whole=true; notes.push(w.note); } }
   if(!spec) spec=JSON.parse(JSON.stringify(sp));
   const L0s=[], add=c=>{ const L0=(c.segs||[]).reduce((a,g)=>a+g.L,0); L0s.push(L0); c.segs=(c.segs||[]).concat(ext.segs); c.branches=ext.branches.map(b=>Object.assign({},b,{x:b.x+L0})); if(ext.pieces.length) c.pieces=ext.pieces.map(q=>Object.assign({},q,{x:q.x+L0})); };
   if(spec.opt&&spec.opt.collectors) spec.opt.collectors.forEach(add);
   // the crossover between the two banks' lines, from the Crossover tab (as the OpenWAM case takes it)
-  const W=WAM_UI.line, PP=Object.assign({line:true,xo:true},parts||{}); let xoWhat='';
-  if(W.on&&PP.line&&PP.xo&&W.xo&&W.xo!=='none'){ const C=CROSS_LAST, lineL=+W.L/1000;
+  const PP=Object.assign({line:true,xo:true},parts||{}), W=PP.sys||WAM_UI.line; let xoWhat='';
+  if(W.on&&PP.line&&PP.xo&&W.xo&&W.xo!=='none'){ const C=W.xoC||CROSS_LAST, lineL=+W.L/1000+(W.cone&&W.cone.L>0?W.cone.L/1000:0);
     if(!(spec.opt&&spec.opt.collectors&&spec.opt.collectors.length===2)) notes.push('The crossover joins two banks’ lines: set the Headers tab to unequal lengths with two collectors, so every cylinder and both lines run.');
     else if(!C||C.type==='y') notes.push(C?'The Crossover tab has a Y-pipe, which merges the pipes into one: no crossover between two exits.':'The Crossover tab has no design yet: no crossover.');
     else if(ext.par&&C.pos/1000>=ext.par.x) notes.push('The crossover has to sit before the '+(W.par==='auger'?'auger':'tube bundle')+' on the line: left out.');
@@ -13091,6 +13095,21 @@ function wsndSpec(q,parts){
   const nIn=spec.opt&&spec.opt.phases?spec.opt.phases.length:1;
   if(!whole&&q.cyl>nIn) notes.push('This is one collector’s exit, '+nIn+' of the '+q.cyl+' cylinders (the 4-Stroke tab models one). The Headers tab with unequal lengths runs every cylinder and every exit.');
   return {spec,notes,whole,nIn,what:ext.what+(xoWhat?', '+xoWhat:''),pack:ext.pack,xo:!!xoWhat};
+}
+// (2026-11-21) the whole engine on the 4-Stroke tab's own header: every cylinder with its primary, the Headers tab's
+// collectors (which cylinders join, and the angle each one fires at, the same grouping the Headers tab's unequal-length
+// run uses) each with the 4-Stroke tab's collector. null when the two tabs' engines do not match.
+function wsndWholeSpec(q,sp){
+  const H=HDR_LAST; if(!H||!H.r||!H.r.groups||H.r.groups.length<2||!H.p||!H.p.order) return null;
+  const N=H.p.order.length, o=sp.opt||{};
+  if(q.cyl!==N||!o.collector||!o.phases||(sp.exhaust.chambers||[]).length||(o.collector.branches||[]).length) return null;
+  if(H.r.groups.some(g=>g.cyls.length!==o.phases.length)) return null;
+  const ang={}; H.r.groups.forEach(g=>g.pulses.forEach(x=>{ ang[x.cyl]=x.ang; }));
+  const per_cyl=[], phases=[]; for(let c=1;c<=N;c++){ per_cyl.push(JSON.parse(JSON.stringify(sp.exhaust.segs))); phases.push(ang[c]); }
+  if(phases.some(a=>!Number.isFinite(a))) return null;
+  const collectors=H.r.groups.map(g=>({cyls:g.cyls.map(c=>c-1),segs:JSON.parse(JSON.stringify(o.collector.segs)),Tw:o.collector.Tw}));
+  return {spec:{e:sp.e,intake:sp.intake,exhaust:{segs:per_cyl[0],per_cyl,Tw:sp.exhaust.Tw,chambers:[]},opt:{phases,collectors},n:N,portD:sp.portD},
+    note:'Every cylinder runs: the Headers tab’s collectors ('+H.r.groups.map(g=>g.cyls.join('-')).join(' and ')+'), each with the 4-Stroke tab’s primaries and collector, both exits heard.'};
 }
 // the header in a few words, for the kept designs
 function wsndHeaderWhat(q){ const s=q.segs||[]; return s.length?'primaries '+cdim(s[0].d0)+' × '+clen(s[0].len)+(s[1]?', collector '+cdim(s[1].d1||s[1].d0):''):''; }
@@ -13171,7 +13190,7 @@ function wsndEntry(m,q,sp,label){
   const more=outs.slice(1).map(o=>({mdot:o.mdot,g:r1/r2,dDeg:(r2-r1)/343*6*m.rpm}));
   const base=outs[0], o24=wamInsOrders(base,24,more,m.rpm);
   return Object.assign({name:(label||'Wave model')+' '+m.rpm+(m.pIn>0?' no load':''),rpm:m.rpm,exits:outs.length,src:'wave',pMap:m.pIn>0?m.pIn:null,tq:m.imep*m.Vd/(4*Math.PI)*(sp.nIn||1)},wamInsOrders(base,12,more,m.rpm),
-    {db24:o24.db,spl24:o24.spl1,per:A.spread,spread:A.spread,nAvg:A.n,kf:Math.max(1,Math.round((sp.whole?q.cyl:sp.nIn)/2))});
+    {db24:o24.db,spl24:o24.spl1,per:A.spread,spread:A.spread,nAvg:A.n,kf:Math.max(1,Math.round((sp.whole?q.cyl:sp.nIn)/2)),phases:sp.spec&&sp.spec.opt&&sp.spec.opt.phases?sp.spec.opt.phases.slice():null});
 }
 // runs variants [{key,label,parts}] at the speeds; done(sets) with sets [{key,label,what,runs,notes}]
 function wsndJob(variants,done,o){ o=o||{};
@@ -13288,6 +13307,7 @@ function wsndPart(sp){
 function wsndSection(sp){ return sec('Hear the model (no recording needed)',wsndPart(sp)); }
 // one design's sound by the chosen way, as pressure at the microphone (Pa): d(mdot)/dt / (4 pi d) x 2 for the hard ground
 function wsndSound(runs,how,P){
+  if(!P.old){ const R=wsndRender(runs,how,P); WSND.lastInfo=R&&R.info; return R?R.x:null; }   // (2026-11-21) the stages above; P.old: as before
   const sr=48000, d=P.ft*0.3048, ok=runs.filter(x=>!x.err&&x.cyc), W=ok.find(x=>x.rpm===P.rpm)||ok[0]; if(!W) return null;
   const k=2/(4*Math.PI*d), toP=a=>{ for(let i=0;i<a.length;i++) a[i]*=k; return a; };
   if(how==='hold'||how==='pass'){ const S=wsndHold(W,how==='pass'?8:4,{cov:P.cov/100,jet:P.jet});
@@ -13297,6 +13317,152 @@ function wsndSound(runs,how,P){
   const tonal=toP(Float32Array.from(R.x)), jet=R.jet&&P.jet?toP(Float32Array.from(R.jet)):null;
   if(how==='pullpass') return recPassby(tonal,jet,sr,P.mph*0.44704,d,R.Ueff||0);
   if(jet) for(let i=0;i<tonal.length;i++) tonal[i]+=jet[i]; return tonal;
+}
+/* ===== the played sound, made from the model with stated physics (docs/SOUND_REALISM_2026-11-21.md) =====
+   Measured first (tools/sound/analyze.py against the owner's Outback and RS 660 recordings): the old playback repeated
+   one cycle exactly (no speed wander, 2 % pulse-to-pulse variation), so the gaps between the orders came out 10 to 35 dB
+   deeper than the recordings', the order levels did not move from cycle to cycle (0.2-0.5 dB against 1-6 dB) and the
+   speed was fixed (0 % against 1.1-5 %); and it resampled the 720-point cycle by straight lines, which put images of the
+   firing pulses at 8-16 kHz (the 16 kHz octave 20 dB too strong on the Outback). What is played now, stage by stage:
+   1. MODEL: each run's averaged cycle of tailpipe outflow, as its harmonics, kept only below the run's validity limit
+      (sndLimit): the first cross mode of the tip pipe, f = 1.84 c / (pi D) (above it the wave is no longer plane and a 1-D
+      model says nothing; Munjal, Acoustics of Ducts and Mufflers, 2014, 1.3), the solver's grid at 8 cells a wavelength
+      (a second-order scheme's modified wavenumber sin(k dx) / dx is then 10 % short: Lomax, Pulliam and Zingg,
+      Fundamentals of CFD, 2001, 3.3), and the 720-point cycle's own Nyquist. Nothing above the limit is played as a
+      prediction; the jet noise (Lighthill, below) is the only thing there.
+   2. MEASURED ENGINE STATISTICS: every firing's pulse scaled by 1 + s_c + cov N(0,1): cov the coefficient of variation of
+      IMEP from Heywood's ranges (Internal Combustion Engine Fundamentals, 1988, 9.4: about 1-3 % at part load, 5-10 %
+      near idle, least at full load): 1.5 % at full throttle, 3 % with the throttle closed at speed, 8 % with it closed at
+      idle speed; linear in the manifold pressure from 20 to 100 kPa and in the speed from 2,500 RPM down to 1,000; s_c a steady cylinder-to-cylinder offset of 2 % RMS (a few per cent in air and fuel, Heywood 9.4.1); the
+      speed wandering as an Ornstein-Uhlenbeck process (sound/realism.py rpm_walk), 0.5 s correlation, 1.2 % RMS on a
+      no-load hold or idle (the owner's Outback: 1.1 % at its 1980 rpm hold, 1.4 % at idle, measured with
+      tools/sound/analyze.py) and 0.3 % under load (the short-time part of the same holds, 0.06-0.47 %, what is left when the
+      car's inertia holds the slow part). All seeded, so a test hears the same sound every time.
+   3. LISTENING PATH: the open end a compact monopole at the listener's distance, p = (1/4 pi r) d(mdot)/dt; a hard ground
+      (asphalt, reflection coefficient 1: ISO 9613-2's G = 0) as an image source under the tip, so the direct sound and
+      its reflection make the comb a person standing there hears (tip and ear heights stated); air absorption over the
+      path, ISO 9613-1 at 20 C and 70 % humidity. The table's dB(A) is still the old reckoning (+6 dB, coincident ground),
+      from the model's signal alone; these stages change only what is played.
+   Not in it: shell (case) noise, mechanical and intake noise, the overrun after a blip (closed throttle with the engine
+   pulled by the car is not one of the runs, so after a rev the sound goes back to the idle hold instead of a decel). */
+const SND_P=4096, SND_COV=[0.015,0.03,0.08], SND_SPREAD=0.02, SND_WANDER={hold:0.012,load:0.003,tau:0.5};
+function sndRng(seed){ let s=(seed>>>0)%2147483647||12345; const u=()=>{ s=(s*16807)%2147483647; return s/2147483647; };
+  return {u,g:()=>{ const a=Math.max(1e-12,u()), b=u(); return Math.sqrt(-2*Math.log(a))*Math.cos(2*Math.PI*b); }}; }
+// ISO 9613-1 (1993) pure-tone air absorption, dB per metre; T in K, rh in %, pa in kPa
+function sndAirAlpha(f,T,rh,pa){ T=T||293.15; rh=rh==null?70:rh; pa=pa||101.325;
+  const T0=293.15, T01=273.16, pr=pa/101.325, h=rh*Math.pow(10,-6.8346*Math.pow(T01/T,1.261)+4.6151)/pr;
+  const frO=pr*(24+4.04e4*h*(0.02+h)/(0.391+h)), frN=pr*Math.pow(T/T0,-0.5)*(9+280*h*Math.exp(-4.170*(Math.pow(T/T0,-1/3)-1)));
+  return 8.686*f*f*(1.84e-11/pr*Math.sqrt(T/T0)+Math.pow(T/T0,-2.5)*(0.01275*Math.exp(-2239.1/T)/(frO+f*f/frO)+0.1068*Math.exp(-3352/T)/(frN+f*f/frN))); }
+// the highest frequency a run's cycle stands for (stage 1 above): Hz, and each limit
+function sndLimit(W,dx){
+  const J=W.jet, T=J&&J.T&&J.T.length?J.T.reduce((a,b)=>a+b,0)/J.T.length:600, c=Math.sqrt(1.35*287*Math.max(250,T)), D=J&&J.d>0?J.d:0.06;
+  const cross=1.84*c/(Math.PI*D), grid=c/(8*(dx||0.02)), cyc=359*W.rpm/120;
+  const f=Math.min(cross,grid,cyc), by=f===cross?'the tip pipe’s first cross mode':f===grid?'the solver’s grid (8 cells a wavelength)':'the 720-point cycle';
+  return {f,cross,grid,cyc,c,D,T,by};
+}
+// one run made ready to play: its harmonics (720-point cycle, mean taken off), the firing windows, the jet's envelope
+function sndPrep(W,dx){
+  const N=720, y=W.cyc, m=y.slice(0,N).reduce((a,b)=>a+b,0)/N, dev=new Float64Array(N); for(let i=0;i<N;i++) dev[i]=y[i]-m;
+  const K=359, Yr=new Float64Array(K+1), Yi=new Float64Array(K+1);
+  for(let k=1;k<=K;k++){ let re=0,im=0; for(let i=0;i<N;i++){ const a=2*Math.PI*k*i/N; re+=dev[i]*Math.cos(a); im-=dev[i]*Math.sin(a); } Yr[k]=re; Yi[k]=im; }
+  // the firings: the engine's own phases (deg), placed where the outflow's pulse energy lines up best with them
+  const nf0=2*(W.kf||2), ph=(W.phases&&W.phases.length?W.phases:Array.from({length:nf0},(_,i)=>i*720/nf0)).map(a=>((a%720)+720)%720/720);
+  const e=new Float64Array(N); for(let i=0;i<N;i++){ let s=0; for(let j=-6;j<=6;j++){ const v=dev[(i+j+N)%N]; s+=v*v; } e[i]=s; }
+  let best=0, bs=-1; for(let s=0;s<N;s++){ let sc=0; ph.forEach(p=>{ sc+=e[(s+Math.round(p*N))%N]; }); if(sc>bs){ bs=sc; best=s; } }
+  const ev=ph.map(p=>((best/N+p)%1+1)%1), n=ev.length, P=SND_P, Wt=ev.map(()=>new Float32Array(P)), dWt=ev.map(()=>new Float32Array(P));
+  const gap=i=>{ let g=1; ev.forEach((c,j)=>{ if(j!==i){ const d=Math.abs(((c-ev[i])%1+1.5)%1-0.5); g=Math.min(g,d); } }); return g; };
+  const sg=ev.map((_,i)=>Math.max(0.01,0.3*(n>1?gap(i):1)));
+  for(let k=0;k<P;k++){ const th=k/P; let s=0; const b=ev.map((c,i)=>{ const d=((th-c)%1+1.5)%1-0.5; const v=Math.exp(-0.5*(d/sg[i])**2); s+=v; return v; });
+    b.forEach((v,i)=>{ Wt[i][k]=v/(s||1); }); }
+  for(let i=0;i<n;i++) for(let k=0;k<P;k++) dWt[i][k]=(Wt[i][(k+1)%P]-Wt[i][(k-1+P)%P])*P/2;
+  let jet=null; const J=W.jet;
+  if(J&&J.u&&J.u.length===N){ const wj=J.u.map((U,i)=>jetPower(U,J.T[i],J.d)), wm=wj.reduce((a,b)=>a+b,0)/N;
+    jet={W:wm,env:Float32Array.from({length:P},(_,k)=>{ const x=k*N/P, j=Math.floor(x), u=x-j; return Math.sqrt(((wj[j]*(1-u)+wj[(j+1)%N]*u))/(wm||1e-30)); }),U:Math.pow(J.u.reduce((a,U)=>a+Math.pow(Math.abs(U),8),0)/N,1/8),d:J.d}; }
+  return {rpm:W.rpm,Yr,Yi,ev,Wt,dWt,jet,lim:sndLimit(W,dx),pr:W.pMap>0?Math.min(1,W.pMap/101325):1};
+}
+const sndCov=(pr,rpm)=>{ const ul=Math.max(0,Math.min(1,(1-pr)/0.8)), us=Math.max(0,Math.min(1,(2500-rpm)/1500)); return SND_COV[0]+(SND_COV[1]-SND_COV[0])*ul+(SND_COV[2]-SND_COV[1])*ul*us; };
+// the sound of prepared runs R (sorted by rpm) along rpmAt(t): {x: tonal d(mdot)/dt, jet: the same units, info}.
+// o: {sr, n samples, rpmAt(t s), vary (cycle and cylinder variation on), seed, band (false: no band limit, for the A/B)}
+function sndSynth(R,o){
+  const sr=o.sr, n=o.n, P=SND_P, x=new Float32Array(n), env=new Float32Array(n), Wj=new Float32Array(n), N=720, rng=sndRng(o.seed||12345);
+  const nev=R[0].ev.length, s=Array.from({length:nev},()=>o.vary?SND_SPREAD*rng.g():0), z=Array.from({length:nev},()=>[]);
+  const zAt=(i,k)=>{ const a=z[i]; while(a.length<=k) a.push(o.vary?rng.g():0); return a[k]; };
+  const between=r=>{ if(R.length===1||r<=R[0].rpm) return [R[0],R[0],0]; if(r>=R[R.length-1].rpm) return [R[R.length-1],R[R.length-1],0]; let i=0; while(R[i+1].rpm<r) i++; return [R[i],R[i+1],(r-R[i].rpm)/(R[i+1].rpm-R[i].rpm)]; };
+  const blk=Math.max(1,Math.round(0.02*sr)), re=new Float64Array(P), im=new Float64Array(P), dr=new Float64Array(P), di=new Float64Array(P), D=new Float64Array(P), dD=new Float64Array(P);
+  let th=0, kmaxUsed=0, fLim=Infinity; const allJet=R.every(q=>q.jet);
+  for(let b0=0;b0<n;b0+=blk){ const b1=Math.min(n,b0+blk), rm=o.rpmAt((b0+b1)/2/sr), [a,b,u]=between(rm), h=rm/120;
+    const lim=Math.min(a.lim.f,b.lim.f), K=o.band===false?359:Math.max(1,Math.min(359,Math.floor(lim/h))); kmaxUsed=Math.max(kmaxUsed,K); fLim=Math.min(fLim,lim);
+    re.fill(0); im.fill(0); dr.fill(0); di.fill(0);
+    for(let k=1;k<=K;k++){ const ma=Math.hypot(a.Yr[k],a.Yi[k])+1e-30, mb=Math.hypot(b.Yr[k],b.Yi[k])+1e-30, pa=Math.atan2(a.Yi[k],a.Yr[k]), pb=Math.atan2(b.Yi[k],b.Yr[k]);
+      let dp=pb-pa; dp=((dp+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI; const mg=Math.exp(Math.log(ma)+u*(Math.log(mb)-Math.log(ma)))*2/N, p=pa+u*dp;
+      re[k]=mg*Math.cos(p)*0.5*P; im[k]=mg*Math.sin(p)*0.5*P; dr[k]=-2*Math.PI*k*im[k]; di[k]=2*Math.PI*k*re[k]; }
+    // real part of the inverse transform with the positive half only, times two: the band-limited cycle and its slope (per cycle)
+    fftIP(re,im,true); fftIP(dr,di,true); for(let i=0;i<P;i++){ D[i]=2*re[i]; dD[i]=2*dr[i]; }
+    const cov=o.vary?sndCov(a.pr+u*(b.pr-a.pr),rm):0;
+    const jW=allJet?Math.exp(Math.log(a.jet.W||1e-30)+u*(Math.log(b.jet.W||1e-30)-Math.log(a.jet.W||1e-30))):0, near=u<0.5?a:b;
+    for(let i=b0;i<b1;i++){ const r=o.rpmAt(i/sr), hz=r/120; th+=hz/sr; const f=th-Math.floor(th), xi=f*P, j=Math.floor(xi), t=xi-j;
+      const j0=(j-1+P)%P, j1=j%P, j2=(j+1)%P, j3=(j+2)%P;
+      const cub=(A)=>{ const p0=A[j0],p1=A[j1],p2=A[j2],p3=A[j3]; return p1+0.5*t*(p2-p0+t*(2*p0-5*p1+4*p2-p3+t*(3*(p1-p2)+p3-p0))); };
+      const dv=cub(D), ddv=cub(dD);
+      let G=0, dG=0;
+      for(let e=0;e<nev;e++){ const ke=Math.floor(th-a.ev[e]+0.5), g=1+s[e]+cov*zAt(e,Math.max(0,ke));
+        const wa=a.Wt[e][j1]*(1-t)+a.Wt[e][j2]*t, wb=b.Wt[e][j1]*(1-t)+b.Wt[e][j2]*t, da=a.dWt[e][j1]*(1-t)+a.dWt[e][j2]*t, db=b.dWt[e][j1]*(1-t)+b.dWt[e][j2]*t;
+        G+=g*(wa*(1-u)+wb*u); dG+=g*(da*(1-u)+db*u); }
+      x[i]=hz*(dG*dv+G*ddv);
+      if(allJet){ const ev=near.jet.env[j1]*(1-t)+near.jet.env[j2]*t, gg=Math.max(0,G); env[i]=ev*gg*gg*gg*gg; Wj[i]=jW; } }
+  }
+  let jx=null, Ueff=0, fp=null;
+  if(allJet&&o.jet!==false){ Ueff=R.reduce((q,h)=>q+h.jet.U,0)/R.length; fp=JET_ST*Ueff/R[0].jet.d;
+    const nz=jetNoise(n,sr,fp,(o.seed||12345)+101); let e2=0; for(let i=0;i<n;i++) e2+=env[i]*env[i]; const ek=1/Math.sqrt(e2/n||1);
+    jx=new Float32Array(n); for(let i=0;i<n;i++) jx[i]=nz[i]*env[i]*ek*Math.sqrt(4*Math.PI*1.2*343*Wj[i]); }
+  return {x,jet:jx,Ueff,info:{fLim:Math.round(fLim),kmax:kmaxUsed,by:R[0].lim.by,fp}};
+}
+// the speed against time: a hold with its wander, or the walk-round "idle, a rev and back" (stage 2)
+function sndTrack(how,rpms,dur,o,seed){
+  const rng=sndRng((seed||12345)+7), dt=0.01, M=Math.ceil(dur/dt)+2, w=new Float64Array(M), sd=o.load?SND_WANDER.load:SND_WANDER.hold, a=Math.exp(-dt/SND_WANDER.tau);
+  for(let i=1;i<M;i++) w[i]=a*w[i-1]+(o.vary?sd:0)*Math.sqrt(1-a*a)*rng.g();
+  const wav=t=>{ const x=t/dt, i=Math.min(M-2,Math.floor(x)), u=x-i; return w[i]*(1-u)+w[i+1]*u; };
+  let base;
+  if(how==='show'){ const lo=rpms[0], mid=rpms[Math.min(1,rpms.length-1)], hi=rpms[rpms.length-1];
+    // idle 2.5 s, up to the middle speed in 1 s, held 1.5 s, up to the top in 0.8 s, held 1 s; then the idle hold again (no decel)
+    const K=[[0,lo],[2.5,lo],[3.5,mid],[5,mid],[5.8,hi],[6.8,hi]], sm=v=>v*v*(3-2*v);
+    base=t=>{ if(t>=6.8) return hi; for(let i=0;i<K.length-1;i++) if(t<=K[i+1][0]) return K[i][1]+(K[i+1][1]-K[i][1])*sm((t-K[i][0])/((K[i+1][0]-K[i][0])||1)); return hi; };
+  } else if(how==='pull'){ const r0=o.r0, r1=o.r1; base=t=>r0+(r1-r0)*t/dur; }
+  else { const r=rpms[0]; base=()=>r; }
+  return t=>base(t)*(1+wav(t));
+}
+// the listening path (stage 3) on a whole signal by one transform: ground image source and air absorption.
+// d: horizontal distance (m), hs tip height, hr ear height (m)
+function sndPath(x,sr,d,hs,hr,on){
+  const r1=Math.hypot(d,hr-hs), r2=Math.hypot(d,hr+hs), k=1/(4*Math.PI*r1);
+  if(!on){ const y=new Float32Array(x.length); for(let i=0;i<x.length;i++) y[i]=x[i]*2/(4*Math.PI*d); return {y,r1,r2,tau:0}; }   // as the table reckons it: free field x 2
+  let n=1; while(n<x.length+Math.ceil(0.05*sr)) n<<=1; const re=new Float64Array(n), im=new Float64Array(n); for(let i=0;i<x.length;i++) re[i]=x[i];
+  fftIP(re,im,false); const tau=(r2-r1)/343, g=r1/r2;
+  for(let i=0;i<n;i++){ const kk=Math.min(i,n-i), f=kk*sr/n, w=2*Math.PI*f*(i<=n/2?1:-1);
+    const A=Math.pow(10,-sndAirAlpha(f)*r1/20), Ar=Math.pow(10,-sndAirAlpha(f)*r2/20)*g;
+    const hr_=A+Ar*Math.cos(w*tau), hi_=-Ar*Math.sin(w*tau), a=re[i], b=im[i]; re[i]=(a*hr_-b*hi_)*k; im[i]=(a*hi_+b*hr_)*k; }
+  fftIP(re,im,true); const y=new Float32Array(x.length); for(let i=0;i<x.length;i++) y[i]=re[i]; return {y,r1,r2,tau};
+}
+// the sound tab's player: runs (wsndEntry rows with cyc), how 'hold' | 'show' | 'pull' | 'pass' | 'pullpass', P the
+// play settings. Returns {x (Pa at the listener), sr, info}
+const SND_L={vary:true,band:true,path:true,earFt:5.25,tipFt:1.0,seed:12345};
+function wsndRender(runs,how,P){
+  const sr=48000, ok=runs.filter(x=>!x.err&&x.cyc).sort((a,b)=>a.rpm-b.rpm); if(!ok.length) return null;
+  const L=Object.assign({},SND_L,P.listen||{}), d=(P.ft||25)*0.3048, R0=ok.map(w=>sndPrep(w,WSND.dx)), load=!ok.some(w=>w.pMap>0);
+  let R=R0, dur, rpms=ok.map(w=>w.rpm), opt={vary:L.vary,load};
+  if(how==='hold'||how==='pass'){ const W=ok.find(x=>x.rpm===P.rpm)||ok[0]; R=[R0[ok.indexOf(W)]]; rpms=[W.rpm]; dur=P.seconds||(how==='pass'?8:4); }
+  else if(how==='show') dur=6.8;
+  else { dur=P.seconds||6; opt.r0=P.pull0||ok[0].rpm; opt.r1=P.pull1||ok[ok.length-1].rpm; }
+  const rpmAt=sndTrack(how==='pullpass'?'pull':how==='pass'?'hold':how,rpms,dur,opt,L.seed);
+  const n=Math.round(dur*sr), S=sndSynth(R,{sr,n,rpmAt,vary:L.vary,seed:L.seed,band:L.band,jet:P.jet});
+  let x;
+  if(how==='pass'||how==='pullpass'){ const k=2/(4*Math.PI*d), t=Float32Array.from(S.x,v=>v*k), j=S.jet?Float32Array.from(S.jet,v=>v*k):null; x=recPassby(t,j,sr,P.mph*0.44704,d,S.Ueff||0); }
+  else { const s=Float32Array.from(S.x); if(S.jet) for(let i=0;i<n;i++) s[i]+=S.jet[i];
+    x=sndPath(s,sr,d,L.tipFt*0.3048,L.earFt*0.3048,L.path).y; }
+  // after the rev, the idle hold again (stage notes: no decel modelled): the idle part repeated with a short cross-fade
+  if(how==='show'){ const i0=Math.round(0.2*sr), m=Math.round(2.3*sr), cf=Math.round(0.25*sr), out=new Float32Array(x.length+m-cf);
+    out.set(x); const st=x.length-cf; for(let i=0;i<m;i++){ const v=x[i0+i], w=i<cf?i/cf:1; out[st+i]=(i<cf?out[st+i]*(1-w):0)+v*w; } x=out; }
+  return {x,sr,info:Object.assign(S.info,{how,dur:x.length/sr,vary:L.vary,band:L.band,path:L.path,cov:L.vary?R.map(q=>+(100*sndCov(q.pr,q.rpm)).toFixed(1)):[0],wander:L.vary?100*(load?SND_WANDER.load:SND_WANDER.hold):0,ear:L.earFt,tip:L.tipFt})};
 }
 // a 135 dB peak re 20 uPa a little under full scale (an open collector's pulses peak 15 dB or so over its level), the
 // same for every design, so quieter ones play quieter; clips one after another with a short gap
@@ -13352,7 +13518,7 @@ document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   renderActive(); });
 window.__calcAbsorb=calcAbsorb;
 window.__intakeK={bendK,craneEntryK,bendsOf};
-window.__wsnd={state:()=>({HDR_LAST,QLAST,CROSS_LAST,WAM_UI,WAM_MIC}),simInp:()=>SIM.inp,wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
+window.__wsnd={wsndRender,sndPrep,sndLimit,sndSynth,sndPath,sndAirAlpha,sndTrack,SND_L,wsndWholeSpec,state:()=>({HDR_LAST,QLAST,CROSS_LAST,WAM_UI,WAM_MIC}),simInp:()=>SIM.inp,wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
 
 /* ===== primary size, headers and crossover ===== */
 const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u+' ('+v.a+')';};

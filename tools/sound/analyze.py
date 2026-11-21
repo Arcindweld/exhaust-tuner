@@ -9,13 +9,13 @@ the 270-degree twin 1). Everything is relative (no absolute level: the recording
 Measures (each on the same segment, the same way for recording and model):
   octave / third-octave band levels re the total (dB), 31.5 Hz - 16 kHz;
   slope: least-squares dB per octave of the third-octave levels from 2 x the firing frequency to 8 kHz;
-  rpm track: harmonic-comb tracker on frames of max(0.2 s, 3 cycles) every 25 ms (half orders 1..24, search +-12 % of --rpm);
+  rpm track: harmonic-comb tracker on frames of max(0.2 s, 3 cycles) every 25 ms (half orders 1..24, search +-8 % of --rpm, firing harmonics weighted 2);
     jitter = std of the tracked firing frequency after a 1 s moving-average detrend (short-time, %) and the raw std (%);
   angle-domain (order tracking): the segment resampled to 2048 points per 720 deg cycle along the integrated track,
     then one FFT over all whole cycles: tonal energy = bins at the half orders (+-1 bin) up to 4 kHz-equivalent,
     noise = the rest of the same band; TNR = 10 log10(tonal / noise) (dB);
-  gap depth: Welch spectrum (0.5 s Hann); for half orders 1..24 the level at each order minus the minimum midway
-    between it and the next, median (dB) - what the page's own recAbCheck calls the gap between the orders;
+  gap depth: Welch spectrum (0.5 s Hann); for half orders 1..24 within 30 dB of the strongest, the level at each minus the
+    minimum in the middle half of the way to the next half order, median (dB) - what the page's own recAbCheck calls the gap between the orders;
   cycle-to-cycle: per-cycle RMS (angle domain) COV (%), per-firing RMS COV (%);
   order amplitude jitter: per-cycle FFT, the std in dB of each of the 6 strongest half orders across cycles, median;
   envelope modulation: Hilbert envelope of the 50 Hz - 5 kHz band, its modulation spectrum: RMS modulation depth
@@ -53,14 +53,16 @@ def bands(x, sr, third=True):
     return out
 
 
-def track(x, sr, rpm0, kmax=24, win=0.25, hop=0.025):
+def track(x, sr, rpm0, kmax=24, win=0.25, hop=0.025, fire=None, span=0.08):
     n = int(win * sr)
     nfft = 1 << int(np.ceil(np.log2(n * 4)))
     f, t, Z = stft(x, sr, window='hann', nperseg=n, noverlap=n - int(hop * sr), nfft=nfft, boundary=None, padded=False)
     A = np.abs(Z)
-    L = np.log10(A + 1e-9 * A.max())
-    cand = np.linspace(rpm0 * 0.88, rpm0 * 1.12, 481)
+    L = np.sqrt(A)   # compressed magnitude for the comb (log let empty half orders pull the peak)
+    cand = np.linspace(rpm0 * (1 - span), rpm0 * (1 + span), 481)
     ords = np.arange(1, kmax + 1) / 2.0
+    # the firing order and its multiples count double (as sound/rpm_track.py), so an even-firing source cannot lock a step off
+    wt = np.where(np.isclose((ords / fire) % 1, 0), 2.0, 1.0) if fire else np.ones(len(ords))
     df = f[1] - f[0]
     rpm = np.empty(L.shape[1])
     for j in range(L.shape[1]):
@@ -70,13 +72,40 @@ def track(x, sr, rpm0, kmax=24, win=0.25, hop=0.025):
         u = fr - i0
         ok = i0 + 1 < len(col)
         v = np.where(ok, col[np.minimum(i0, len(col) - 2)] * (1 - u) + col[np.minimum(i0 + 1, len(col) - 1)] * u, 0)
-        s = v.sum(1)
+        s = (v * wt).sum(1)
         b = int(np.argmax(s))
         if 0 < b < len(s) - 1:  # parabolic refinement
             d = (s[b - 1] - s[b + 1]) / (2 * (s[b - 1] - 2 * s[b] + s[b + 1]) + 1e-30)
             rpm[j] = cand[b] + d * (cand[1] - cand[0])
         else:
             rpm[j] = cand[b]
+    # refine with the phase advance of the strongest half order between frames (phase vocoder): the comb gives the bin,
+    # the phase gives the frequency to a small fraction of a bin, so a steady tone tracks as steady
+    hopn = int(hop * sr)
+    k_best, a_best = None, -1
+    for k in range(1, kmax + 1):
+        ii = np.round(rpm / 120.0 * k / df).astype(int)
+        if ii.max() >= len(f) - 1:
+            break
+        a = np.mean(A[ii, np.arange(len(ii))])
+        if a > a_best:
+            a_best, k_best = a, k
+    if k_best:
+        cols = np.arange(len(rpm))
+        i0 = np.round(rpm / 120.0 * k_best / df).astype(int)
+        win3 = np.stack([A[np.clip(i0 + o, 0, len(f) - 1), cols] for o in range(-3, 4)])
+        ii = np.clip(i0 + np.argmax(win3, 0) - 3, 0, len(f) - 1)     # the actual peak bin near the comb's guess
+        ph = np.angle(Z[ii, cols])
+        fi = np.empty(len(ii))
+        for j in range(len(ii)):
+            jn = min(j + 1, len(ii) - 1); jp = jn - 1 if jn == j else j
+            fb = f[ii[jp]]
+            dphi = np.angle(Z[ii[jp], jp + 1]) - np.angle(Z[ii[jp], jp]) - 2 * np.pi * fb * hopn / sr if jp + 1 < len(ii) else 0.0
+            dphi = (dphi + np.pi) % (2 * np.pi) - np.pi
+            fi[j] = fb + dphi * sr / (2 * np.pi * hopn)
+        r2 = fi * 120.0 / k_best
+        good = np.abs(r2 - rpm) < 4 * df * 120.0 / k_best
+        rpm = np.where(good, r2, rpm)
     return t, rpm
 
 
@@ -97,7 +126,7 @@ def analyze(x, sr, rpm0, fire):
         res['slope_dB_per_oct'] = float(p[0])
     # rpm track
     win = max(0.2, 3 * 120.0 / rpm0)          # at least three 720-degree cycles per frame (half orders resolved)
-    t, r = track(x, sr, rpm0, win=win)
+    t, r = track(x, sr, rpm0, win=win, fire=fire)
     res['track_win_s'] = win
     res['rpm_mean'] = float(r.mean())
     k = max(1, int(round(1.0 / 0.025)))
@@ -144,14 +173,19 @@ def analyze(x, sr, rpm0, fire):
     Lw = 10 * np.log10(Pw + 1e-30)
     h = r.mean() / 120.0
     gaps = []
+    pk_all = []
     for kk in range(1, 25):
-        fa, fb = kk * h, (kk + 1) * h
-        ia = np.argmin(abs(f - fa)); ib = np.argmin(abs(f - fb))
+        ia = np.argmin(abs(f - kk * h))
+        pk_all.append(Lw[max(0, ia - 1): ia + 2].max() if ia < len(f) - 2 else -1e9)
+    top = max(pk_all)
+    for kk in range(1, 24):
+        if pk_all[kk - 1] < top - 30:      # only orders that are there (within 30 dB of the strongest)
+            continue
+        ia = np.argmin(abs(f - kk * h)); ib = np.argmin(abs(f - (kk + 1) * h))
         if ib >= len(f) - 1:
             break
-        pk = Lw[max(0, ia - 1): ia + 2].max()
         lo = Lw[ia + (ib - ia) // 4: ib - (ib - ia) // 4 + 1].min()
-        gaps.append(pk - lo)
+        gaps.append(pk_all[kk - 1] - lo)
     res['gap_median_dB'] = float(np.median(gaps)) if gaps else None
     # envelope modulation
     sb = butter(4, [50, min(5000, sr / 2 * 0.9)], 'bp', fs=sr, output='sos')
