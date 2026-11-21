@@ -10550,6 +10550,104 @@ function collectorNets(cols,prims,dx,xo,G){
     else n0.juncs.push({p:0,ends:[{P:A0[A0.length-1],side:+1},{P:A1[A1.length-1],side:+1},{P:B0[0],side:-1},{P:B1[0],side:-1}]}); }
   return nets;
 }
+/* ---------- side volumes: the gas in the neck tracked, and the can's wall (2026-11-21) ----------
+   A side volume (a Helmholtz can, a J-pipe as its lumped volume, a muffler's pocket, a packed can's annulus slice, a
+   chamber on a header's bleed holes) is a can of volume V on a neck of effective area CdA and length Le (end corrections
+   included). Until 2026-11-21 whatever crossed the neck went straight into a perfectly mixed can: every inflow brought
+   the pipe's gas and its enthalpy in, and the can kept it (no wall), so a can tuned for still gas at 316 K ran at
+   900-1050 K and its note sat about 1.7 times too high (docs/WAVE_VALIDATION_2026-11-21_resonator_temperature.md). Now:
+   - the neck's gas is a slug of fixed volume CdA Le moved by the pressure difference: (M / CdA) dQ/dt = CdA (p - pc) - the
+     exit loss rho Q |Q| / (2 CdA) (and a packing's Rp Q CdA), Q the volume flow toward the can and M the mass of gas in the
+     neck. With one gas everywhere this is the old equation in the mass flow; with hot pipe gas in the neck M is smaller and
+     the note rises, as a quarter-wave tube's hot mouth raises its note (Howard and Craig, below);
+   - the gas the slug moves is tracked: a tracked length Le + Dn (Dn the bore of area CdA) holds two well-mixed parcels, the
+     pipe side's (gas that came in from the pipe) and the can side's (gas that came out of the can), their volumes adding to
+     CdA (Le + Dn). Flow toward the can pushes the can side's parcel into the can first; pipe gas reaches the can only when
+     a stroke carries the contact surface between the two gases past the neck and one neck bore beyond it, and the can's gas
+     reaches the pipe only on the like stroke the other way. The neck: Schuermans and Bothien, US 9970659 B2 (2018): hot gas
+     ingested into a damper's neck reaches the cavity only when its penetration, the integral of the neck velocity over the
+     inflow, exceeds the neck's length. The bore beyond it: a puff pushed out of an orifice leaves as a jet that the return
+     stroke does not draw back only when its stroke exceeds about one orifice diameter (Holman, Utturkar, Mittal, Smith and
+     Cattafesta, AIAA J. 43 (2005) 2110: Re / S^2 = L0 / (2 pi d) > 0.16 for round orifices); a shorter puff is drawn back
+     first. What passes beyond mixes into the can. Each parcel's gas crosses a mouth at its own density (volume x density),
+     so mass, energy (m h; the parcels store their enthalpy) and fresh fraction move exactly between the pipe cell, the
+     parcels and the can: conserved to rounding;
+   - the wall: the neck's and the can's gas lose heat to a wall at Tw (the branch's Tw, K; its shell), by the solver's own
+     pipe law, Reynolds' analogy St = f / 2 = FANNING / 2 (as stepPipe): q = St rho cp |u| (T - Tw) per unit of wall. In the
+     neck u = |Q| / CdA over its wall pi Dn Le, so q = 2 FANNING rho cp |Q| (Le / Dn) (T - Tw), shared by the parcels by
+     volume (the tracked length's neck share Le / (Le + Dn)); in the can the same flow spread over the cross-section of the
+     page's equivalent can (1.5 diameters long, as the Sound tab's volume can), wall / cross-section = 8, so
+     q = 8 (FANNING / 2) rho cp |Q| (T - Tw). Taken implicitly (an exact decay towards Tw at any step). The shell holds at Tw
+     over a run: a 1.2 mm steel can has about 100 times its gas's heat capacity;
+   - Tw, the shell's temperature, is also the gas's starting temperature: a can's lasting temperature is set over minutes
+     by its shell and what it ingests, which a run of a fraction of a second cannot reach. Default: on a line
+     (collector.branches) BRANCH_TW 316.48 K, the Mufflers tab's still-gas design temperature ("Gas temp inside the
+     resonator", 43.3 C), inside what Howard and Craig measured in a 1.29 m quarter-wave tube on a running engine's 507 C
+     exhaust (Proc. Acoustics 2011, Gold Coast, paper 64: about 30 C at its closed end, 95 C as the tube's acoustic mean);
+     on a header (exhaust.chambers) the header's wall temperature, exhaust.Tw (the 4-Stroke tab tunes its chambers at the
+     header temperature). A volume inside a muffler shell (a pocket, a packed annulus) should be given its own Tw by its
+     builder (the line's Tw). */
+const BRANCH_TW=316.48, CAN_WALL=8;
+function branchOf(c,Tw,G,R0){
+  const T=Tw>0?+Tw:BRANCH_TW, Dn=Math.sqrt(4*c.CdA/Math.PI), Vt=c.CdA*(c.Le+Dn), rho=PATM/(R0*T), h=G?gasH(G,T,0):CP*T;
+  return Object.assign(c,{Tw:T,m:PATM*c.V/(R0*T),T,x:0,mdot:0,Q:0,Dn,Vt,fn:c.Le/(c.Le+Dn),vp:0,pm:0,ph:h,px:0,pT:T,vc:Vt,cm:rho*Vt,chh:h,cx:0,cT:T});
+}
+// the implicit wall loss of a gas of mass M at T (fresh fraction x) over dt: K dt (T - Tw), K (W/K); returns the new
+// temperature (byH: the moving neck gas, at constant pressure; else the can, its volume fixed)
+function wallT(G,x,T,M,K,dt,Tw,byH){
+  if(!(M>0&&K>0)) return T;
+  let c; if(G){ gasAt(G,T,x); c=byH?GV.cp:GV.cp-GV.R; } else c=byH?CP:CV;
+  return Tw+(T-Tw)/(1+K*dt/(M*c));
+}
+// one step of a side volume ch on cell i of pipe P (the slug's momentum, the two parcels, the can, the wall)
+function branchStep(ch,P,i,dt,G){
+  const r=P.r[i], p=P.p[i], T=p/(P.Rm[i]*r);
+  ch.p=ch.m*(G?gasR(G,ch.x):RG)*ch.T/ch.V;
+  // the gas in the neck (the tracked parcels' neck share) and the density of the gas that leaves the neck first the way the
+  // pressure pushes it
+  const M=ch.fn*(ch.pm+ch.cm), toCan=p>ch.p;
+  const rhoX=toCan?(ch.vc>0?ch.cm/ch.vc:ch.pm/ch.vp):(ch.vp>0?ch.pm/ch.vp:ch.cm/ch.vc);
+  // a packed branch also loses Rp Q CdA across its packing (Darcy: R x depth x face velocity), taken implicitly so a dense
+  // packing stays stable at any step
+  const A=ch.CdA;
+  ch.Q=(ch.Q+dt*(A*A*(p-ch.p)-0.5*rhoX*ch.Q*Math.abs(ch.Q))/M)/(1+(ch.Rp?dt*A*A*ch.Rp/M:0));
+  const dv=dt*ch.Q;
+  let mP=0, eP=0, xP=0;                             // mass, energy and fresh charge into the pipe cell
+  let U=G?ch.m*gasE(G,ch.T,ch.x):ch.m*CV*ch.T, X=ch.m*ch.x, dmc=0;
+  if(dv>0){
+    const hh=(G?gasH(G,T,P.x[i]):CP*T)+0.5*P.u[i]*P.u[i], xin=P.x[i], mi=r*dv;
+    mP=-mi; eP=-mi*hh; xP=-mi*P.x[i];
+    const a=Math.min(dv,ch.vc), b=dv-a;             // a: the can side's parcel into the can; b: then the pipe side's
+    if(a>0){ const ma=ch.cm*a/ch.vc; U+=ma*ch.chh; X+=ma*ch.cx; dmc+=ma; ch.cm-=ma; ch.vc-=a; }
+    const pm=ch.pm+mi; ch.ph=(ch.pm*ch.ph+mi*hh)/pm; ch.px=(ch.pm*ch.px+mi*xin)/pm; ch.pm=pm; ch.vp+=dv;
+    if(b>0){ const mb=ch.pm*b/ch.vp; U+=mb*ch.ph; X+=mb*ch.px; dmc+=mb; ch.pm-=mb; ch.vp-=b; }
+    if(!(ch.vc>0)){ ch.vc=0; ch.cm=0; ch.vp=ch.Vt; }
+  } else if(dv<0){
+    const n=-dv, hc=G?gasH(G,ch.T,ch.x):CP*ch.T, mo=ch.m/ch.V*n;
+    U-=mo*hc; X-=mo*ch.x; dmc-=mo;
+    const a=Math.min(n,ch.vp), b=n-a;               // a: the pipe side's parcel back into the pipe; b: then the can side's
+    if(a>0){ const ma=ch.pm*a/ch.vp; mP+=ma; eP+=ma*ch.ph; xP+=ma*ch.px; ch.pm-=ma; ch.vp-=a; }
+    const cm=ch.cm+mo; ch.chh=(ch.cm*ch.chh+mo*hc)/cm; ch.cx=(ch.cm*ch.cx+mo*ch.x)/cm; ch.cm=cm; ch.vc+=n;
+    if(b>0){ const mb=ch.cm*b/ch.vc; mP+=mb; eP+=mb*ch.chh; xP+=mb*ch.cx; ch.cm-=mb; ch.vc-=b; }
+    if(!(ch.vp>0)){ ch.vp=0; ch.pm=0; ch.vc=ch.Vt; }
+  }
+  const m2=Math.max(1e-9,ch.m+dmc);
+  ch.x=Math.min(1,Math.max(0,X/m2)); ch.m=m2; ch.T=Math.max(200,G?gasT(G,U/m2,ch.x,ch.T,false):U/(m2*CV));
+  ch.mdot=dmc/dt;
+  // the wall (Reynolds' analogy): the neck's parcels by their share of its volume, then the can
+  const aq=Math.abs(ch.Q);
+  if(aq>0){
+    const Kn=2*FANNING*aq*ch.Le/ch.Dn*ch.fn/ch.Vt;   // x rho cp V_parcel: W/K
+    if(ch.pm>0){ ch.pT=G?gasT(G,ch.ph,ch.px,ch.pT,true):ch.ph/CP; const cp=G?(gasAt(G,ch.pT,ch.px),GV.cp):CP;
+      ch.pT=wallT(G,ch.px,ch.pT,ch.pm,Kn*ch.pm*cp,dt,ch.Tw,true); ch.ph=G?gasH(G,ch.pT,ch.px):CP*ch.pT; }
+    if(ch.cm>0){ ch.cT=G?gasT(G,ch.chh,ch.cx,ch.cT,true):ch.chh/CP; const cp=G?(gasAt(G,ch.cT,ch.cx),GV.cp):CP;
+      ch.cT=wallT(G,ch.cx,ch.cT,ch.cm,Kn*ch.cm*cp,dt,ch.Tw,true); ch.chh=G?gasH(G,ch.cT,ch.cx):CP*ch.cT; }
+    const cpc=G?(gasAt(G,ch.T,ch.x),GV.cp):CP;
+    ch.T=wallT(G,ch.x,ch.T,ch.m,CAN_WALL*0.5*FANNING*aq*ch.m/ch.V*cpc,dt,ch.Tw,false);
+  }
+  P.q1[i]+=mP/P.dx; P.q3[i]+=eP/P.dx; P.q4[i]+=xP/P.dx;
+  if(dv>0) P.q2[i]+=mP*P.u[i]/P.dx;
+}
 function freshState(eng,dx){
   const N=eng.phases.length, cyls=[], ins=[], prims=[], chambers=[], per=eng.exhaust.per_cyl, G=eng.gas||null, R0=G?gasR(G,0):RG;
   if(per&&per.length!==N) throw new Error('exhaust.per_cyl must list one primary per cylinder ('+N+'), got '+per.length);
@@ -10561,7 +10659,7 @@ function freshState(eng,dx){
     (eng.exhaust.chambers||[]).forEach(c=>{
       let q=ex.findIndex(P=>c.x>=P.start&&c.x<P.start+P.n*P.dx); if(q<0) q=ex.length-1;
       const P=ex[q], cell=Math.min(P.n-1,Math.max(0,Math.floor((c.x-P.start)/P.dx)));
-      chambers.push({cyl:k,pipe:q,cell,V:c.V,CdA:0.75*c.A,Le:c.Le,m:PATM*c.V/(R0*700),T:700,x:0,mdot:0});
+      chambers.push(branchOf({cyl:k,pipe:q,cell,V:c.V,CdA:0.75*c.A,Le:c.Le},c.Tw>0?c.Tw:eng.exhaust.Tw>0?eng.exhaust.Tw:700,G,R0));
     });
     const th=((eng.ivc-eng.phases[k])%720+720)%720;
     const pc0=eng.src?eng.src.p:PATM, cy={m:0,T:330,x:0.95,p:pc0}; cy.m=pc0*eng.vol(th)/((G?gasR(G,cy.x):RG)*cy.T);
@@ -10578,7 +10676,7 @@ function freshState(eng,dx){
   // resistance, Pa s / m3 times density)}], the same lumped neck as above
   const onLine=(line,brs)=>(brs||[]).forEach(c=>{ let q=line.findIndex(P=>c.x>=P.start&&c.x<P.start+P.n*P.dx); if(q<0) q=line.length-1;
     const P=line[q], cell=Math.min(P.n-1,Math.max(0,Math.floor((c.x-P.start)/P.dx)));
-    chambers.push({P,cell,V:c.V,CdA:c.CdA,Le:c.Le,Rp:c.Rp||0,m:PATM*c.V/(R0*600),T:600,x:0,mdot:0}); });
+    chambers.push(branchOf({P,cell,V:c.V,CdA:c.CdA,Le:c.Le,Rp:c.Rp||0},c.Tw,G,R0)); });
   if(coll) onLine(C1R.blines,eng.collector.branches);
   if(nets) nets.forEach((n,i)=>{ const c=eng.collectors[i]; if(c&&c.branches&&n.main) onLine(n.blines||n.main,c.branches); });
   const walls=(C1R?C1R.walls:[]).concat(...(nets||[]).map(n=>n.walls||[]));
@@ -10692,19 +10790,7 @@ function runSpeed(eng,opts){
       if(PL) for(let q=1;q<PL.inlet.length;q++) junction(PL.inlet[q-1],PL.inlet[q]);
       if(coll){ junctionN(st.jn); for(let q=1;q<coll.length;q++) junction(coll[q-1],coll[q]); if(st.xj){ for(const J of st.xj) junctionN(J); for(const L of st.xl) for(let q=1;q<L.length;q++) junction(L[q-1],L[q]); } }
       if(nets) for(const n of nets){ for(const J of n.juncs) junctionN(J); for(const L of n.lines) for(let q=1;q<L.length;q++) junction(L[q-1],L[q]); }
-      for(const ch of chambers){
-        const P=ch.P||prims[ch.cyl][ch.pipe], i=ch.cell, r=P.r[i], p=P.p[i], T=p/(P.Rm[i]*r);
-        ch.p=ch.m*(G?gasR(G,ch.x):RG)*ch.T/ch.V;
-        const rhoN=p>ch.p?r:ch.m/ch.V;
-        // a packed branch also loses Rp mdot / rho across its packing (Darcy: R x depth x face velocity), taken implicitly
-        // so a dense packing stays stable at any step
-        ch.mdot=(ch.mdot+dt*(ch.CdA*(p-ch.p)/ch.Le-ch.mdot*Math.abs(ch.mdot)/(2*rhoN*ch.CdA*ch.Le)))/(1+(ch.Rp?dt*ch.CdA*ch.Rp/(rhoN*ch.Le):0));
-        const md=ch.mdot, hh=md>0?(G?gasH(G,T,P.x[i]):CP*T)+0.5*P.u[i]*P.u[i]:G?gasH(G,ch.T,ch.x):CP*ch.T, xin=md>0?P.x[i]:ch.x;
-        const U=(G?ch.m*gasE(G,ch.T,ch.x):ch.m*CV*ch.T)+dt*md*hh, m2=Math.max(1e-9,ch.m+dt*md);
-        ch.x=Math.min(1,Math.max(0,(ch.m*ch.x+dt*md*xin)/m2)); ch.m=m2; ch.T=Math.max(200,G?gasT(G,U/m2,ch.x,ch.T,false):U/(m2*CV));
-        P.q1[i]-=dt*md/P.dx; P.q3[i]-=dt*md*hh/P.dx; P.q4[i]-=dt*md*xin/P.dx;
-        if(md>0) P.q2[i]-=dt*md*P.u[i]/P.dx;
-      }
+      for(const ch of chambers) branchStep(ch,ch.P||prims[ch.cyl][ch.pipe],ch.cell,dt,G);
       if(TB){
         const D=TB.down, D0=D[0], nE=ents.length, At=TS.CdA/nE, Ag=TS.wgCdA/nE, pT=D0.p[0], pG=TS.wgAtm?PATM:pT, b=Math.floor(st.th%720);
         for(let q=1;q<D.length;q++) junction(D[q-1],D[q]);
@@ -10813,7 +10899,7 @@ function sweep(eng,rpms,opts,onStep){
   });
   return res;
 }
-return {rustSpec,jsOnly,camSeat,GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
+return {branchOf,branchStep,BRANCH_TW,rustSpec,jsOnly,camSeat,GAM,RG,CV,CP,PATM,TATM,setTurbine,turbineFace,TF,isenT,isenRatio,sourceOf,turbineOf,junction,junctionN,makePipe,buildLine,prim,stepPipe,openEnd,wallEnd,fedEnd,plenEnd,plenumOf,flowTab,benchCdA,hllc,HF,orifice,valveFlow,makeEngine,runSpeed,sweep,liftAt,wiebe,maxSpeed,freshState,collectorNets,
   tfmep,friction:{name:'Heywood (1988) total motored fmep of SI engines, 0.97 + 0.15 (N/1000) + 0.05 (N/1000)^2 bar, taken off the gross indicated work',basis:'gross'},
   port:{PORT_NU,portLaw,portH,muAir,kAir,PORT_IN_NU,PORT_IN_TW,portInLaw},
   gas:{RU,TREF,SPEC,AFR_ST,K_WGS,LHV_F,ETA_C,HFORM,HF_FUEL,F_GAS,LV_GAS,LV_ETH,LV_METH,AIR_M,fuelOf,heatRelease,burnedMoles,gasPoly,makeGas,at:(G,T,x)=>{ gasAt(G,T,x); return {cp:GV.cp,h:GV.h,R:GV.R,e:GV.h-GV.R*T,gamma:GV.cp/(GV.cp-GV.R)}; },
