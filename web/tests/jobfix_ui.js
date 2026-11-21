@@ -81,7 +81,7 @@ const TABS = { quick: 'quick', 'four-stroke': 'four', 'two-stroke': 'two', sound
     Q = await quick(pg); q = await text(pg, 'quick');
     ok(Q.parts.length === 3 && Q.parts.every(isMoto), W + ': P1 the RS 660\'s first three silencers are motorcycle parts (' + Q.parts.map(x => x.name).join(' · ') + ')');
     ok(Q.main.stock && Q.main.pick === 2 && Math.abs(Q.main.exactOd / 25.4 - 2.021) < 0.002 && Q.fit, W + ': P6 the bike\'s main pipe is the 2 in stock tube (exact 2.021 in) and the 2 in silencers fit it');
-    ok(Q.sh.rows.some(r => /^Main pipe: 1\.87 in \(47\.5 mm\) ID, 2 in \(50\.8 mm\) OD/.test(r)) && !Q.sh.rows.concat(Q.sh.buy).some(r => /2\.021/.test(r)) &&
+    ok(Q.sh.rows.some(r => /^Tailpipes and tips: 1\.87 in \(47\.5 mm\) ID, 2 in \(50\.8 mm\) OD/.test(r)) && Q.sh.buy.some(x => /^Main pipe tube \| 2 in OD × 0\.065 in wall/.test(x)) && !Q.sh.rows.concat(Q.sh.buy).some(r => /2\.021/.test(r)) &&
       /one 2 in tube \(2 in \(50\.8 mm\) OD, 1\.87 in \(47\.5 mm\) inside\) from the collector to the silencer: the stock size nearest the 2\.021 in \(51\.3 mm\) OD/.test(q),
       W + ': P6 the sheet uses the stock tube; the build text gives the exact 2.021 in figure beside it');
     ok(Q.sh.rows.some(r => /^J-pipe \(quarter-wave side branch\): closed 1\.87 in \(47\.5 mm\) ID tube, [\d.]+ in \(\d+ mm\) long, on a tee/.test(r) && /will not fit on most bikes/.test(r)) && !Q.sh.rows.some(r => /^Helmholtz/.test(r)) &&
