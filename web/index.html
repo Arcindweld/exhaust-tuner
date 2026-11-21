@@ -324,6 +324,21 @@ input.oor{color:var(--bad);text-decoration:underline wavy var(--bad);text-underl
 /* a long run's status line, with how far it has got */
 .runstat{position:relative;padding:9px 12px 12px;border-radius:var(--r-md);background:var(--info-bg);color:var(--ink);overflow:hidden}
 .runstat::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:var(--pct,0%);background:var(--accent);transition:width .2s linear}
+/* the progress bar of a long operation (2026-11-21): a track, a fill (or a moving stripe when the fraction is not
+   known), and one line in words; under the status line it belongs to, of a fixed height so nothing below moves */
+.runstat:has(+.prog)::after{display:none}
+.prog{margin:6px 0 0;min-height:36px}
+.prog-track{position:relative;height:8px;border-radius:4px;background:var(--inset);overflow:hidden}
+.prog-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:4px;background:var(--accent);transition:width .25s linear}
+.prog[data-st~="ind"] .prog-fill{width:100%;background:repeating-linear-gradient(-45deg,var(--accent) 0 8px,var(--accent-soft) 8px 16px);background-size:22.63px 22.63px;animation:prog-run 1s linear infinite}
+@keyframes prog-run{to{background-position:22.63px 0}}
+.prog[data-st^="stop"] .prog-fill{background:var(--muted);animation:none}
+.prog[data-st^="err"] .prog-fill{background:var(--bad);animation:none}
+.prog[data-st^="stop"] .prog-track,.prog[data-st^="err"] .prog-track{background:repeating-linear-gradient(90deg,var(--inset) 0 6px,transparent 6px 9px)}
+.prog-lab{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 12px;margin:4px 0 0;font:500 var(--fs-sm)/1.45 var(--f-ui);color:var(--ink);font-variant-numeric:tabular-nums;max-width:none}
+.prog-eta{color:var(--muted)}
+.prog[data-st^="err"] .prog-t{color:var(--bad)}
+@media (max-width:699px){.prog{min-height:56px}}
 .note a{color:inherit}
 
 /* drawings */
@@ -782,6 +797,7 @@ body[data-tab]:not([data-tab="quick"]) .start{display:none}
   </nav>
   <div class="tabpop" id="tabpop" role="group" aria-label="All calculators" hidden></div>
   <div class="vh" id="live" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div class="vh" id="prog-live" aria-live="polite" aria-atomic="true"></div>
   </div>
 
   <main class="stage" id="main" tabindex="-1">
@@ -12773,7 +12789,7 @@ function recSection(sp,r){
     (micOk()?'<div class="actions">'+(MIC.on?'<button type="button" class="btn" data-mic="stop">Stop and read it</button><span class="cap" id="rec-mic-t" aria-live="polite">'+Math.round((Date.now()-MIC.t0)/1000)+' s</span>':'<button type="button" class="btn" data-mic="start">Record with this computer’s microphone</button>')+'</div>'+
       '<p class="cap">Or record here, with no file: hold the mic (a phone headset or a USB mic on a long lead works) about 3 ft behind the tailpipe, start, then hold each speed for a few seconds. The browser’s echo cancelling, noise suppression and gain control are turned off. A laptop’s own mic rolls off the low end, so trust the order pattern and speeds more than the absolute levels.</p>'+
       (MIC.err?'<div class="note bad">'+esc(MIC.err)+'</div>':''):'');
-  if(REC.busy) return sec('Compare with a recording of your car (optional)',h+'<div class="note">Reading '+esc(REC.name)+'… '+Math.round(100*REC.prog)+'%</div>');
+  if(REC.busy) return sec('Compare with a recording of your car (optional)',h+'<div class="note" id="rec-read">Reading '+esc(REC.name)+'… '+Math.round(100*REC.prog)+'%</div>');
   if(REC.err) return sec('Compare with a recording of your car (optional)',h+'<div class="note bad">'+esc(REC.err)+'</div>');
   if(!REC.fr) return sec('Compare with a recording of your car (optional)',h+recGuide());
   const I=REC.info;
@@ -12904,12 +12920,12 @@ function micStop(){
   recLoad(new File([wavFloat(x,MIC.sr)],nm,{type:'audio/wav'})); }
 document.addEventListener('click',e=>{ const b=e.target.closest('button[data-mic]'); if(!b) return; if(b.dataset.mic==='start') micStart(); else micStop(); });
 async function recLoad(file){
-  Object.assign(REC,{name:file.name,busy:true,prog:0,err:null,fr:null,holds:[],hold:0,sweep:null,fit:null,msg:null}); renderActive();
+  Object.assign(REC,{name:file.name,busy:true,prog:0,err:null,fr:null,holds:[],hold:0,sweep:null,fit:null,msg:null}); progEnd('rec'); progSet('rec',0,0,'decoding the file'); renderActive();
   try{
     const d=await recDecode(file), x=d.x, n=x.length;
     if(n<d.sr*2) throw new Error('The recording is shorter than 2 s.');
     let pk=0, clip=0; for(let i=0;i<n;i++){ const a=Math.abs(x[i]); if(a>pk) pk=a; if(a>=0.999) clip++; }
-    const F=await recFrames(x,d.sr,q=>{ REC.prog=q; const el=document.querySelector('#sound-details .note'); if(el&&REC.busy) el.textContent='Reading '+REC.name+'… '+Math.round(100*q)+'%'; });
+    const F=await recFrames(x,d.sr,q=>{ REC.prog=q; const el=document.querySelector('#sound-details .note'); if(el&&REC.busy) el.textContent='Reading '+REC.name+'… '+Math.round(100*q)+'%'; progSet('rec',Math.round(1000*q),1000,'',{pct:true}); });
     if(!REC.ctx) throw new Error('Fill in the engine on this tab first.');
     const tr=recTrack(F,REC.ctx), holds=recHolds(tr);
     // automatic gain control: a step in level of 6 dB or more inside 0.3 s while the speed holds within 2%
@@ -12918,7 +12934,7 @@ async function recLoad(file){
       info:{sr:d.sr,ch:d.ch,bits:d.bits,decoded:!!d.decoded,dur:n/d.sr,peakDb:20*Math.log10(pk+1e-12),clip:clip/n,agc},
       fTop:Math.min(F.fr[0].P.length*F.df,1500,Math.max(200,1.3*REC.ctx.kf*4*Math.max(...tr.map(q=>q.rpmS))/60))});
   }catch(e){ REC.busy=false; REC.err=e&&e.message||String(e); }
-  renderActive();
+  progEnd('rec',REC.err?'err':'done',REC.err||''); renderActive();
 }
 function recCanvas(id,h){ const cv=$(id); if(!cv) return null; const w=cv.clientWidth||600, dpr=window.devicePixelRatio||1; cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr); const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); return {g,w,h}; }
 const recCss=v=>getComputedStyle(document.body).getPropertyValue(v).trim()||'#888';
@@ -13184,15 +13200,16 @@ function wsndJob(variants,done,o){ o=o||{};
   const ran={variants:variants.map(v=>({key:v.key,label:v.label,parts:v.parts,dead:v.dead})),load:(o.load||WSND.load)==='none'?'none':'wot',fixed:!!o.rpms}; ran.sig=wsndSig(ran,q,rpms);
   WSND.notes=[...new Set([].concat(...Ss.map(S=>S.notes)))]; WSND.busy=true; const tok=WSND.tok=(WSND.tok||0)+1;
   const got=Ss.map(()=>[]), total=Ss.length*rpms.length; let n=0;
-  const finish=()=>{ WSND.busy=false;
+  progEnd('wsnd'); progSet('wsnd',0,total,'',{name:Ss.some(S=>S.dead&&S.dead.length)?'Misfire comparison':Ss.length>1?'Hear each part':'Sound estimate'});
+  const finish=()=>{ WSND.busy=false; progEnd('wsnd','done');
     const sets=Ss.map((S,k)=>({key:S.key,label:S.label,what:wsndHeaderWhat(q)+'; '+S.what+(job.load==='none'?'; no load':''),rpms,load:job.load,runs:got[k].map(m=>{ try{ return wsndEntry(m,q,S,S.label); }catch(e){ return {name:S.label+' '+m.rpm,rpm:m.rpm,err:e.message,src:'wave'}; } })}));
     WSND.ran=ran; done(sets); };
   const job={variants:Ss.map(S=>({spec:S.spec})),rpms,dx:WSND.dx||0.02,load:(o.load||WSND.load)==='none'?'none':'wot'};
   say('Simulating '+total+' run'+(total>1?'s':'')+(job.load==='none'?' with no load (a free-rev hold)':' at full throttle')+(Ss.length>1?' ('+Ss.length+' designs × '+rpms.length+' speeds)':'')+'…');
-  const prog=d=>{ if(tok!==WSND.tok) return; got[d.v].push(d); n++; WSND.msg={t:'Simulated '+n+' of '+total+'…'}; const el=$('wsnd-msg'); if(el){ el.textContent=WSND.msg.t; runPct(el); } };
+  const prog=d=>{ if(tok!==WSND.tok) return; got[d.v].push(d); n++; WSND.msg={t:'Simulated '+n+' of '+total+'…'}; const el=$('wsnd-msg'); if(el){ el.textContent=WSND.msg.t; runPct(el); } progSet('wsnd',n,total,Ss.length>1?'design '+(d.v+1)+' of '+Ss.length+', '+Ss[d.v].label:''); };
   let w=null; try{ w=new Worker(URL.createObjectURL(new Blob([wsndWorkerSrc()],{type:'text/javascript'}))); }catch(e){ w=null; }
   if(w){ WSND.worker=w; w.onmessage=ev=>{ if(tok!==WSND.tok) return; const d=ev.data; if(d.type==='speed') prog(d); else if(d.type==='done'){ w.terminate(); WSND.worker=null; finish(); } };
-    w.onerror=e=>{ w.terminate(); WSND.worker=null; WSND.busy=false; say('The simulation stopped: '+(e.message||'worker error')+'. Press Estimate the sound to try again; if it stops again, reload the page (F5).',true); }; w.postMessage(job); return; }
+    w.onerror=e=>{ w.terminate(); WSND.worker=null; WSND.busy=false; progEnd('wsnd','err',e.message||'worker error'); say('The simulation stopped: '+(e.message||'worker error')+'. Press Estimate the sound to try again; if it stops again, reload the page (F5).',true); }; w.postMessage(job); return; }
   // no background worker allowed: the same on the page, one run at a time
   let vi=0, i=0, eng=null, st=null;
   const step=()=>{ if(tok!==WSND.tok) return; if(vi>=Ss.length){ finish(); return; } if(!eng){ const s=Ss[vi].spec; eng=WS.makeEngine(s.e,s.intake,s.exhaust,s.opt); st=null; }
@@ -13771,7 +13788,7 @@ let FUSION=hasBridge();
 function fusionCall(action,data){
   try{
     const r=window.adsk.fusionSendData(action,JSON.stringify(data||{}));
-    return Promise.resolve(r).then(x=>{ try{ return JSON.parse(x); }catch(e){ return {ok:false,msg:String(x||'No reply from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.')}; } });
+    return progWait(Promise.resolve(r).then(x=>{ try{ return JSON.parse(x); }catch(e){ return {ok:false,msg:String(x||'No reply from Fusion: check the Exhaust Tuner add-in is running (Utilities, Add-Ins) and try again.')}; } }),'fx',action);
   }catch(e){ return Promise.resolve({ok:false,msg:String(e)}); }
 }
 /* ===== Desktop program: inside Exhaust Tuner for Windows the page can run the solvers on this PC =====
@@ -13780,7 +13797,7 @@ let HOST=window.exhaustTunerHost||null;
 let HOST_INFO=null;
 function hostCall(action,data,onEvent){
   if(!HOST) return Promise.resolve({ok:false,msg:'Not running in the Exhaust Tuner program.'});
-  return HOST.call(action,data||{},onEvent).catch(e=>({ok:false,msg:e.message}));
+  return progWait(HOST.call(action,data||{},onEvent).catch(e=>({ok:false,msg:e.message})),'host',action);
 }
 const saveCall=(a,d)=>FUSION?fusionCall(a,d):hostCall(a,d);
 /* Stop per run: hostRun(kind, ...) is HOST.call that remembers the request under kind, and hostStop(kind) stops only the
@@ -13788,8 +13805,9 @@ const saveCall=(a,d)=>FUSION?fusionCall(a,d):hostCall(a,d);
    whose call() promise has .cancel() (the program and the Fusion panel from this version on); an older one has only
    the global HOST.cancel(), which stops every run the program has going, as Stop always did there. */
 const HREQ={};
-function hostRun(kind,action,data,onEvent){ const p=HOST.call(action,data,onEvent), s=HREQ[kind]||(HREQ[kind]=new Set());
-  s.add(p); const end=()=>{ s.delete(p); if(typeof hostStatAll==='function') setTimeout(hostStatAll,0); }; p.then(end,end); if(typeof hostStatAll==='function') setTimeout(hostStatAll,0); return p; }
+function hostRun(kind,action,data,onEvent,label){ progEnd(kind); progSet(kind,0,0,label||'starting');   // (its progress bar: progHostEv)
+  const p=HOST.call(action,data,ev=>{ progHostEv(kind,ev); if(onEvent) onEvent(ev); }), s=HREQ[kind]||(HREQ[kind]=new Set());
+  s.add(p); const end=()=>{ s.delete(p); if(typeof hostStatAll==='function') setTimeout(hostStatAll,0); }; p.then(end,end); p.then(r=>progHostEnd(kind,r),e=>progHostEnd(kind,null,e)); if(typeof hostStatAll==='function') setTimeout(hostStatAll,0); return p; }
 function hostStop(...kinds){ if(!HOST) return; const ps=kinds.flatMap(k=>[...(HREQ[k]||[])]);
   if(ps.length&&ps.every(p=>typeof p.cancel==='function')) ps.forEach(p=>p.cancel());
   else if(ps.length||!HOST.cancelsById) HOST.cancel(); }
@@ -13878,6 +13896,7 @@ function updRender(){
   if(fresh) msg='Updated to version '+fresh.to+' (from '+fresh.from+'). '+msg;
   if(expiring) msg+=' The GitHub token stops working on '+s.tokenExpires+(days<=0?'':' (in '+days+' day'+(days===1?'':'s')+')')+': make a new one with Change token and save it.';
   $('hm-upd-msg').textContent=msg;
+  try{ const p=s.progress||{}, tot=p.total||(L&&L.size)||0; if(s.state==='downloading'&&tot>0) progSet('upd',p.done||0,tot,'version '+(L&&L.version),{unit:'MB'}); else if(s.state==='downloading'||s.state==='checking') progSet('upd',0,0,s.state==='checking'?'':'version '+(L&&L.version),{name:s.state==='checking'?'Looking for a newer version':'Update download'}); else progEnd('upd',s.state==='error'?'err':'done',s.state==='error'?String(s.error||''):''); }catch(e){}
   const notes=L&&L.newer&&L.notes?L.notes.trim():fresh&&fresh.notes?'What changed:\n'+fresh.notes.trim():'';
   $('hm-upd-notes').textContent=notes; $('hm-upd-notes').hidden=!notes;
   const owner=(s.repo||'').split('/')[0];
@@ -17059,7 +17078,7 @@ async function mdwRun(){
   const say=(t,bad)=>{ MDW.msg={t,bad:!!bad}; renderActive(); };
   const B=mdwBuild(); if(B.err){ say(B.err,true); return; }
   say('Running '+B.files.length+' OpenWAM models ('+B.rows.length+' designs × '+B.rpms.length+' speeds) on this PC.');
-  let res; try{ res=await HOST.call('runOpenWAM',{name:'muffler_check',files:B.files},ev=>{ if(ev.event==='done') say('OpenWAM: '+ev.count+' of '+ev.of+' runs done.'); }); }
+  let res; try{ res=await hostRun('mdw','runOpenWAM',{name:'muffler_check',files:B.files},ev=>{ if(ev.event==='done') say('OpenWAM: '+ev.count+' of '+ev.of+' runs done.'); }); }
   catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
   const S=mdwScore(B.rows,B.rpms,res.models); if(S.err){ say(S.err+' Run folder: '+res.folder,true); return; }
   MDW.res=S.res; window.__mdwLast=MDW.res; say(S.msg+(S.bad?' Run folder: '+res.folder:''),S.bad);
@@ -21465,16 +21484,16 @@ function tsimRun(TL,j,post){
 const tsimJob=P=>({knock:P.knock,spec:P.spec,na:P.na,sc:P.sc,rpms:P.rpms,rpmsFb:P.rpmsFb,dx:P.dx,turbo:P.turbo,A0:P.A0,At:P.Aty,Ag:P.Agy,wcPer:P.wcPer,eta:P.eta,p3m:P.p3m,p3rpm:P.p3rpm,Acap:P.Acap,comp:P.comp,fric:P.fric});
 function tsimStart(){
   const q=SIM.inp, P=q?tsimPlan(q):null; if(!P||P.err) return;
-  const id=++TSIM.run; TSIM.status='running'; TSIM.msg='Starting'; TSIM.pendingKey=P.key; TSIM.plan=P;
+  const id=++TSIM.run; TSIM.status='running'; TSIM.msg='Starting'; progEnd('tsim'); progSet('tsim',0,0,'starting'); TSIM.pendingKey=P.key; TSIM.plan=P;
   if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; }
   const job=tsimJob(P);
-  const done=out=>{ if(id!==TSIM.run) return; TSIM.status='done'; TSIM.res=out; TSIM.key=P.key; TSIM.resPlan=P; TSIM.msg=''; TSIM_LAST={key:P.key,plan:P,out,sum:tsimSummary(P,out)};
+  const done=out=>{ if(id!==TSIM.run) return; TSIM.status='done'; progEnd('tsim','done'); TSIM.res=out; TSIM.key=P.key; TSIM.resPlan=P; TSIM.msg=''; TSIM_LAST={key:P.key,plan:P,out,sum:tsimSummary(P,out)};
     if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; } renderActive(); };
-  const prog=(i,n,label)=>{ if(id!==TSIM.run) return; TSIM.msg=label?label+' ('+Math.round(100*(i+1)/n)+'%)':'Running speed '+(i<P.rpms.length?(i+1)+' of '+P.rpms.length+' with the '+(P.turbo?'turbo (finding the turbine’s area and the gate)':'supercharger'):i<2*P.rpms.length?(i-P.rpms.length+1)+' of '+P.rpms.length+' without boost':(i-2*P.rpms.length+1)+' of '+P.rpms.length+' with the boost and no turbine')+' ('+Math.round(100*(i+1)/n)+'%)'; const el=$('tsim-status'); if(el){ el.textContent=TSIM.msg; runPct(el); } };
-  const local=()=>{ setTimeout(()=>{ if(id!==TSIM.run) return; try{ const TL=turboSimLib(WS,null); done(tsimRun(TL,job,m=>{ if(m.type==='progress') prog(m.i,m.n,m.label); })); }catch(e){ TSIM.status='error'; TSIM.msg=String(e.message||e); renderActive(); } },0); };
+  const prog=(i,n,label)=>{ if(id!==TSIM.run) return; TSIM.msg=label?label+' ('+Math.round(100*(i+1)/n)+'%)':'Running speed '+(i<P.rpms.length?(i+1)+' of '+P.rpms.length+' with the '+(P.turbo?'turbo (finding the turbine’s area and the gate)':'supercharger'):i<2*P.rpms.length?(i-P.rpms.length+1)+' of '+P.rpms.length+' without boost':(i-2*P.rpms.length+1)+' of '+P.rpms.length+' with the boost and no turbine')+' ('+Math.round(100*(i+1)/n)+'%)'; const el=$('tsim-status'); if(el){ el.textContent=TSIM.msg; runPct(el); } progSet('tsim',i+1,n); };
+  const local=()=>{ setTimeout(()=>{ if(id!==TSIM.run) return; try{ const TL=turboSimLib(WS,null); done(tsimRun(TL,job,m=>{ if(m.type==='progress') prog(m.i,m.n,m.label); })); }catch(e){ TSIM.status='error'; TSIM.msg=String(e.message||e); progEnd('tsim','err',TSIM.msg); renderActive(); } },0); };
   let w=null; try{ w=new Worker(URL.createObjectURL(new Blob([tsimWorkerSrc()],{type:'text/javascript'}))); }catch(e){ w=null; }
   if(w){ TSIM.worker=w; let heard=false;
-    w.onmessage=ev=>{ heard=true; const d=ev.data; if(d.type==='progress') prog(d.i,d.n,d.label); else if(d.type==='done') done(d.out); else if(d.type==='error'){ TSIM.status='error'; TSIM.msg=d.msg; renderActive(); } };
+    w.onmessage=ev=>{ heard=true; const d=ev.data; if(d.type==='progress') prog(d.i,d.n,d.label); else if(d.type==='done') done(d.out); else if(d.type==='error'){ TSIM.status='error'; TSIM.msg=d.msg; progEnd('tsim','err',String(d.msg||'')); renderActive(); } };
     w.onerror=ev=>{ if(ev&&ev.preventDefault) ev.preventDefault(); if(!heard){ try{ w.terminate(); }catch(e){} TSIM.worker=null; local(); } };
     w.postMessage(job); setTimeout(()=>{ if(!heard&&id===TSIM.run&&TSIM.worker===w){ try{ w.terminate(); }catch(e){} TSIM.worker=null; local(); } },6000); }
   else local();
@@ -21668,7 +21687,7 @@ function simStop(){ (SIM.workers||[]).forEach(w=>{ try{ w.terminate(); }catch(e)
 function simDone(id,key,rpms,out){
   if(id!==SIM.run) return;
   const all=simMerge(out,SIM.pendVar);
-  SIM.status='done'; SIM.key=key; SIM.rpms=rpms; SIM.msg='';
+  SIM.status='done'; SIM.key=key; SIM.rpms=rpms; SIM.msg=''; progEnd('sim','done');
   // brake torque: the gross loop's torque less the total friction (WS.tfmep, Heywood's SI-engine law, which includes pumping)
   all.forEach(o=>{ if(o.tqg&&o.vdt>0) o.tqb=o.tqg.map((g,i)=>g-WS.tfmep(rpms[i])*o.vdt/(4*Math.PI)); });
   // the phasing runs (part 14) apart from the design comparison: the best brake torque at each speed over the advances tried
@@ -21684,6 +21703,7 @@ function simProgress(k,i,n,m,rpm){
   const done=Object.keys(SIM.prog).reduce((a,x)=>a+SIM.prog[x],0), pct=Math.round(100*done/(SIM.total||n*m)), nc=SIM.ncyl||1;
   SIM.msg=(SIM.par>1?'Running '+n+' designs side by side':'Running '+(Math.max(k,0)+1)+' of '+n+': '+Math.round(rpm).toLocaleString('en-US')+' RPM')+(SIM.pendHdr?', '+nc+' cylinders'+(SIM.ncoll>1?' on '+SIM.ncoll+' collectors':''):nc>1?', '+nc+' cylinders on the collector':'')+' ('+pct+'%)';
   const el=$('sim-status'); if(el){ el.textContent=SIM.msg; runPct(el); }
+  progSet('sim',done,SIM.total||n*m,SIM.par>1?n+' designs side by side':Math.round(rpm).toLocaleString('en-US')+' RPM');
 }
 // the same job on the page itself, one speed at a time, when a background worker is not allowed
 function simLocal(id,job,key){
@@ -21728,7 +21748,7 @@ function simStart(){
   // a collector multiplies the work by its cylinders; a 12.5 mm grid gives the same torque within about 0.5% and runs about 1.6 times faster
   const job=simJob(plan,q);
   SIM.pendVar=variants; SIM.total=job.variants.reduce((a,v)=>a+v.rpms.length,0); SIM.pendTwo=variants[0].specLo?{cut:variants[0].vcut}:null;
-  SIM.status='running'; SIM.msg='Starting'; SIM.pendingKey=key; SIM.prog={}; SIM.ncyl=plan.n; SIM.ncoll=plan.ncoll; SIM.pendHdr=plan.hdr; SIM.pendPh=variants[0].spec.opt?variants[0].spec.opt.phases:[0];
+  SIM.status='running'; SIM.msg='Starting'; progEnd('sim'); progSet('sim',0,SIM.total,'starting'); SIM.pendingKey=key; SIM.prog={}; SIM.ncyl=plan.n; SIM.ncoll=plan.ncoll; SIM.pendHdr=plan.hdr; SIM.pendPh=variants[0].spec.opt?variants[0].spec.opt.phases:[0];
   simStop();
   // one background worker per design, up to the computer's cores, so the designs run side by side
   const cores=(typeof navigator!=='undefined'&&navigator.hardwareConcurrency)||4;
@@ -22000,7 +22020,7 @@ async function esListen(){
   const fname=out.derived.identifier+'.fork.mr';
   esMsg('Running Engine Simulator at '+rpms.join(', ')+' rpm on this PC…');
   let res;
-  try{ res=await HOST.call('runEngineSim',{filename:fname,text:out.text,rpms,seconds:6,gain:0.35},ev=>{ if(ev.event==='done') esMsg('Engine Simulator: '+ev.rpm+' rpm '+(ev.ok?'done':'FAILED')+'.',!ev.ok); }); }
+  let esN=0; try{ res=await hostRun('es','runEngineSim',{filename:fname,text:out.text,rpms,seconds:6,gain:0.35},ev=>{ if(ev.event==='start') progSet('es',esN,rpms.length,ev.rpm+' rpm'); if(ev.event==='done') progSet('es',++esN,rpms.length,ev.rpm+' rpm '+(ev.ok?'done':'failed')); if(ev.event==='done') esMsg('Engine Simulator: '+ev.rpm+' rpm '+(ev.ok?'done':'FAILED')+'.',!ev.ok); }); }
   catch(e){ esMsg('Engine Simulator did not run: '+e.message,true); return; }
   ES_UI.clips.forEach(c=>URL.revokeObjectURL(c.url));
   ES_UI.clips=(res.holds||[]).filter(x=>x.ok&&x.wavBase64).map(x=>{
@@ -22730,7 +22750,7 @@ async function dynoRun(){
   const base=JSON.parse(JSON.stringify(src.spec)), pert=JSON.parse(JSON.stringify(src.spec)); pert.e.cd=cd0+0.1;
   let files; try{ files=mk(base,'a').concat(mk(pert,'b')); }catch(e){ say(e.message,true); return; }
   say('Running '+files.length+' OpenWAM models for the fit (two per dyno point). This takes a few minutes.');
-  let res; try{ res=await HOST.call('runOpenWAM',{name:'dyno_fit',files},ev=>{ if(ev.event==='done') say('Fitting: '+ev.count+' of '+ev.of+' runs done.'); }); }catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
+  let res; try{ res=await hostRun('dyno','runOpenWAM',{name:'dyno_fit',files},ev=>{ if(ev.event==='done') say('Fitting: '+ev.count+' of '+ev.of+' runs done.'); }); }catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
   const tq=nm=>{ const m=(res.models||[]).find(x=>x.name===nm); if(!m||!m.finished||!m.avg) return NaN; const cy=WAMX.readAvg(m.avg).cycles; return cy.length?cy[cy.length-1].torque_brake_Nm:NaN; };
   const tb=pts.map(p=>tq('dyno_a_'+p.rpm)), tp=pts.map(p=>tq('dyno_b_'+p.rpm));
   if(tb.concat(tp).some(x=>!Number.isFinite(x)||x<=0)){ say('Some OpenWAM runs did not finish, so there is nothing to fit. The run folder is '+res.folder+'.',true); return; }
@@ -22741,7 +22761,7 @@ async function dynoRun(){
   setBase('f-vcd',F.cd); setBase('f-ceff',F.ce); $('f-vcd').dispatchEvent(new Event('input',{bubbles:true}));
   say('Fitted. Checking the fit with one more run at each speed…');
   const q2=SIM.inp, sp2=simSpec(q2), src2=wamSource(q2,sp2);
-  try{ const r2=await HOST.call('runOpenWAM',{name:'dyno_check',files:mk(src2.spec,'c')});
+  try{ const r2=await hostRun('dyno','runOpenWAM',{name:'dyno_check',files:mk(src2.spec,'c')},null,'checking the fit');
     res=r2; DYNO_UI.check=pts.map(p=>tq('dyno_c_'+p.rpm));
     const err2=Math.sqrt(pts.reduce((a,p,i)=>a+(DYNO_UI.check[i]-p.Nm)**2,0)/pts.length);
     say('Fitted and checked: the new runs are within '+(isNm?Math.round(err2)+' N·m':Math.round(err2/1.3558179483)+' lb-ft')+' RMS of the dyno.');
@@ -22831,7 +22851,7 @@ async function optRun(){
     x.score=x.T.every(Number.isFinite)?x.T.reduce((a,b)=>a+b,0)/x.T.length:NaN; });
   const fp0=optFpNow(q), c1=optCandidates(H.p,H.r), b1=build(c1,'opt');
   say('Optimiser: running '+b1.files.length+' OpenWAM models ('+c1.length+' designs × '+rpms.length+' speeds).');
-  let res; try{ res=await HOST.call('runOpenWAM',{name:'header_opt',files:b1.files},ev=>{ if(ev.event==='done') say('Optimiser: '+ev.count+' of '+ev.of+' runs done.'); }); }catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
+  let res; try{ res=await hostRun('opt','runOpenWAM',{name:'header_opt',files:b1.files},ev=>{ if(ev.event==='done') say('Optimiser: '+ev.count+' of '+ev.of+' runs done.'); }); }catch(e){ say('OpenWAM did not run: '+e.message,true); return; }
   score(res,b1.rows);
   const rows=b1.rows, base=rows[0];
   if(!Number.isFinite(base.score)){ say('The design as it is did not finish in OpenWAM, so nothing can be compared. Run folder: '+res.folder,true); return; }
@@ -22842,7 +22862,7 @@ async function optRun(){
     const comb=Object.assign({},H.p); ks.forEach(x=>{ ['rpm','first','yr','ypairs'].forEach(k=>{ if(x.p[k]!==H.p[k]) comb[k]=x.p[k]; }); });
     const b2=build([{label:'combined: '+ks.map(x=>x.label).join(' + '),p:comb,kind:'combined'}],'optc');
     say('Optimiser: running the combined design ('+b2.files.length+' runs).');
-    try{ const r2=await HOST.call('runOpenWAM',{name:'header_opt_combined',files:b2.files}); score(r2,b2.rows); rows.push(...b2.rows); }catch(e){ say('The combined run failed: '+e.message+'. The runs before it are kept; run it again, or open the runs folder for OpenWAM’s log.',true); }
+    try{ const r2=await hostRun('opt','runOpenWAM',{name:'header_opt_combined',files:b2.files},null,'the combined design'); score(r2,b2.rows); rows.push(...b2.rows); }catch(e){ say('The combined run failed: '+e.message+'. The runs before it are kept; run it again, or open the runs folder for OpenWAM’s log.',true); }
   }
   const best=rows.filter(x=>Number.isFinite(x.score)).reduce((a,b)=>b.score>a.score?b:a);
   OPT_UI.res={rows,rpms,best}; OPT_FP.set(OPT_UI.res,fp0);
@@ -28021,6 +28041,7 @@ function tblPolish(root){
       if(c.classList.contains('num')!==on){ c.classList.toggle('num',on); if(!on&&!c.classList.length) c.removeAttribute('class'); } } }
   }
   root.querySelectorAll('.runstat').forEach(runPct);
+  progPass();
   // pass three: the busiest tables stack as cards on a phone; each value is labelled from its column heading (CSS shows
   // the label only below 500 px, as generated content, so the text read from the page is as it was)
   for(const w of root.querySelectorAll('.tblwrap.stk')) if(!w.querySelector(':scope > '+STK_SEL.slice(STK_SEL.indexOf('table:is(')))) w.classList.remove('stk');
@@ -28061,6 +28082,116 @@ document.querySelector('.tabs').addEventListener('keydown',e=>{
 // a long run's status line: the bar under it shows how far it has got ("(42%)" or "3 of 8" in its text)
 function runPct(el){ if(!el) return; const t=el.textContent, m=t.match(/\((\d+)%\)/)||null, k=m?null:t.match(/(\d+) of (\d+)/);
   const pc=m?+m[1]:k&&+k[2]>0?Math.round(100*+k[1]/+k[2]):null; el.classList.add('runstat'); if(pc!=null) el.style.setProperty('--pct',Math.min(100,pc)+'%'); }
+/* ===== Progress bars (2026-11-21, docs/PROGRESS_BARS_2026-11-21.md): one component for every long operation =====
+   progSet(k, done, total, label, o) starts or moves operation k's bar; progEnd(k, how, msg) ends it: 'done' takes the bar
+   away (the result takes its place), 'stop' (cancelled) and 'err' leave it standing, stopped, saying so in words, until
+   the operation starts again. total > 0: determinate, "what is running · step k of n · NN %", and the time left once two
+   steps have finished (elapsed ÷ steps finished × steps left; held to a steady count-down that goes back up only when it
+   must, and left out while the recent estimates disagree). total 0: indeterminate (a moving stripe, a static one under
+   reduced motion), for work whose fraction the page cannot know; never a percentage made up on a timer. The bar sits
+   right after its operation's status line (PROG_DEF[k].at, or o.at), inside the reserved space where the run has one.
+   Its nodes are written once per animation frame, and only its own: no render, so a field being typed in and the run
+   itself are left alone; a render that rewrote the bar's place gets it back from progPass (after every render). A
+   polite live region says how far it has got at most every 10 points and 5 s. Display only: no result reads this. */
+const PROG_DEF={sim:{n:'Wave simulation',at:'#sim-status',stop:'button[data-sim="run"]',keep:1},tsim:{n:'Boost simulation',at:'#tsim-status',stop:'button[data-tsim="run"]',keep:1},
+  wsnd:{n:'Sound estimate',at:'.resv[data-resv="wsnd"] > p,#wsnd-msg',keep:1},rec:{n:'Reading the recording',at:'#rec-read'},
+  wam:{n:'OpenWAM run',at:'.wammsg'},tw:{n:'OpenWAM run (2-stroke)',at:'.twmsg'},mdw:{n:'Muffler check in OpenWAM',at:'.mdwmsg'},
+  dyno:{n:'Dyno fit in OpenWAM',at:'.dynomsg'},opt:{n:'Optimiser in OpenWAM',at:'.optmsg'},es:{n:'Engine Simulator',at:'.esmsg'},
+  cfd:{n:'Intake CFD in OpenFOAM',at:'#cfd-msg'},autocfd:{n:'Intake test in OpenFOAM',at:'#cfd-auto,#cfd-msg'},
+  exh:{n:'Exhaust part CFD in OpenFOAM',at:'#exh-msg'},fxcfd:{n:'Tube CFD in OpenFOAM',at:'#fxcfd-msg'},
+  upd:{n:'Update download',at:'#hm-upd-msg'},fx:{n:'Waiting for Fusion'},host:{n:'Waiting for the program'}};
+const PROG=new Map(); let PROG_RAF=0, PROG_TICK=0;
+const progNow=()=>performance.now();
+function progSet(k,done,total,label,o){ o=o||{}; let s=PROG.get(k); const now=progNow();
+  if(!s||s.st!=='run'){ s={k,t0:now,done:0,total:0,pct:0,st:'run',ind:true,fs:[],ev:null,et:0,said:{p:0,t:now},name:'',label:''}; PROG.set(k,s); }
+  if(o.name) s.name=o.name; if(o.at) s.at=o.at; if(o.unit) s.unit=o.unit; if(o.pct) s.pm=true;
+  total=+total>0?+total:0; done=Math.max(0,+done||0);
+  if(total){ if(total!==s.total){ s.total=total; s.fs=[]; s.ev=null; }
+    const was=s.ind; s.ind=false;
+    if(done>s.done){ s.done=Math.min(done,total); progEta(s,now); } else if(was) s.done=Math.min(done,total);
+    s.pct=Math.max(s.pct,Math.min(100,Math.floor(100*s.done/total))); }   // (never back: a value the bar showed stays)
+  else s.ind=true;
+  if(label!=null) s.label=String(label);
+  progSay(s,now); progLater(); }
+// the time left: elapsed per finished step × steps left, from the second finished step (a fraction: from 10 %)
+function progEta(s,now){ if(s.pm?s.done/s.total<0.1:s.done<2){ s.ev=null; return; }
+  const raw=(now-s.t0)/s.done*(s.total-s.done), fs=s.fs; fs.push(now+raw); if(fs.length>5) fs.shift();
+  s.unst=fs.length>=3&&Math.max(...fs)-Math.min(...fs)>0.5*Math.max(raw,2000);
+  const dec=s.ev==null?null:s.ev-(now-s.et);
+  s.ev=dec==null||dec<0||raw<dec||raw>dec*1.25+2000?raw:dec; s.et=now; }
+function progEtaTxt(s){ if(s.st!=='run'||s.ind||s.ev==null||s.unst||s.done>=s.total) return '';
+  const left=s.ev-(progNow()-s.et); if(left<0) return ''; const sec=left/1000;
+  return sec<8?'a few seconds left':sec<60?'about '+Math.max(10,Math.ceil(sec/5)*5)+' s left':'about '+Math.round(sec/60)+' min left'; }
+function progName(s){ return s.name||(PROG_DEF[s.k]||{}).n||'Working'; }
+function progStep(s,br){ if(s.ind) return ''; if(s.pm) return s.pct+' %';
+  const a=s.unit?updMB(s.done)+' of '+updMB(s.total)+' '+s.unit:'step '+s.done+' of '+s.total; return br?a+' ('+s.pct+' %)':a+' · '+s.pct+' %'; }
+function progText(s){ const n=progName(s), st=progStep(s,s.st!=='run');
+  if(s.st==='stop') return n+' · cancelled'+(st?' at '+st:'')+'.'+((PROG_DEF[s.k]||{}).keep?' The results before it are kept.':'');
+  if(s.st==='err') return n+' · stopped by a problem'+(st?' at '+st:'')+(s.msg?': '+s.msg:'; the message above says what went wrong.');
+  return n+(s.label?': '+s.label:'')+' · '+(st||'working; how far it has got is not known'); }
+// the polite live region: how far it has got, at most every 10 points and 5 s; a stop or a problem at once
+function progSay(s,now){ const L=$('prog-live'); if(!L) return; let t='';
+  if(s.st!=='run') t=progText(s);
+  else if(!s.ind&&s.pct-s.said.p>=10&&now-s.said.t>=5000){ const e=progEtaTxt(s); t=progName(s)+': '+s.pct+' %'+(s.pm||s.unit?'':', step '+s.done+' of '+s.total)+(e?', '+e:'')+'.'; }
+  if(!t) return; s.said={p:s.pct,t:now}; L.textContent=t; }
+function progEnd(k,how,msg){ const s=PROG.get(k); if(!s) return;
+  if(!how||how==='done'){ PROG.delete(k); s.st='done'; }
+  else { s.st=how==='stop'?'stop':'err'; s.msg=msg||''; progSay(s,progNow()); }
+  progLater(); }
+function progLater(){ if(!PROG_RAF) PROG_RAF=requestAnimationFrame(()=>{ PROG_RAF=0; progApply(); }); }
+// where operation k's bar goes: right after the first of its places that is in the page and shown; a stopped run whose
+// status line has gone shows it after the run's buttons
+function progAnchor(s){ const d=PROG_DEF[s.k]||{}, sel=s.at||d.at;
+  const ok=e=>e&&e.isConnected&&!e.hidden&&!e.closest('[hidden]');
+  if(sel&&typeof sel!=='string') return ok(sel)?sel:null;
+  if(sel) for(const q of sel.split(',')) for(const e of document.querySelectorAll(q)) if(ok(e)) return e;
+  if(s.st!=='run'&&d.stop){ const b=document.querySelector(d.stop), a=b&&(b.closest('.actions')||b); if(ok(a)) return a; }
+  return null; }
+function progNode(s){ const d=document.createElement('div'); d.className='prog'; d.dataset.prog=s.k;
+  d.innerHTML='<div class="prog-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i class="prog-fill"></i></div><p class="prog-lab"><span class="prog-t"></span><span class="prog-eta"></span></p>'; return d; }
+function progPaint(d,s){ const tr=d.firstChild, f=tr.firstChild, t=d.lastChild.firstChild, e=d.lastChild.lastChild, st=s.st+(s.ind?' ind':'');
+  if(d.dataset.st!==st) d.dataset.st=st;
+  const w=s.ind?'':s.pct+'%'; if(f.style.width!==w) f.style.width=w;
+  const nm=progName(s); if(tr.getAttribute('aria-label')!==nm) tr.setAttribute('aria-label',nm);
+  if(s.ind) tr.removeAttribute('aria-valuenow'); else if(tr.getAttribute('aria-valuenow')!==String(s.pct)) tr.setAttribute('aria-valuenow',String(s.pct));
+  const end=s.st==='run'?'':s.st==='stop'?', cancelled':', stopped by a problem', vt=(s.ind?s.label||'working':progStep(s,true))+end;
+  if(tr.getAttribute('aria-valuetext')!==vt) tr.setAttribute('aria-valuetext',vt);
+  const txt=progText(s), et=progEtaTxt(s); if(t.textContent!==txt) t.textContent=txt; if(e.textContent!==et) e.textContent=et; }
+function progApply(){
+  for(const d of document.querySelectorAll('.prog[data-prog]')) if(!PROG.has(d.dataset.prog)) d.remove();
+  let tick=false;
+  for(const s of PROG.values()){ const a=progAnchor(s); let d=document.querySelector('.prog[data-prog="'+s.k+'"]');
+    if(s.st==='run'&&s.ev!=null) tick=true;
+    if(!a) continue;
+    if(!d) d=progNode(s); if(a.nextElementSibling!==d) a.after(d); progPaint(d,s); }
+  // the time left counts down between steps (one 1 s timer, only while a bar shows one)
+  if(tick&&!PROG_TICK) PROG_TICK=setInterval(progLater,1000); else if(!tick&&PROG_TICK){ clearInterval(PROG_TICK); PROG_TICK=0; } }
+// after a render: a bar whose place the render wrote afresh is put back at once (before the frame is drawn)
+function progPass(){ if(PROG.size||document.querySelector('.prog[data-prog]')) progApply(); }
+// a wait on Fusion or the program for one action (no events, so no fraction): an indeterminate bar after the button
+// pressed, only while it is still waiting after 300 ms (a quick answer shows nothing); dialogs and picks are not waits
+let PROG_CLICK=null, PROG_CLICK_T=0;
+document.addEventListener('click',e=>{ const b=e.target.closest&&e.target.closest('button'); if(b){ PROG_CLICK=b; PROG_CLICK_T=Date.now(); } },true);
+const PROG_WAIT={route:'building the route',chargeRoute:'routing the charge pipes',chargeRouteBuild:'building the charge pipes',setHotKeepouts:'marking the keep-outs',
+  hang:'building the hanger',mountPlace:'placing the stand-in',mountBuild:'building the brackets',cfdTube:'reading the tube',exportCfdStl:'exporting the STL',
+  printSplit:'planning the cuts and building the lap joints',jig:'building the fabrication jig',helmholtz:'building the can and its neck',chamber:'building the chamber',
+  revchamber:'building the reverse-flow chamber',installFusionAddIn:'installing the Fusion add-in',updateInstall:'starting the update'};
+function progWait(p,kind,action){ let l, b; try{ l=PROG_WAIT[action]; b=PROG_CLICK&&Date.now()-PROG_CLICK_T<1500&&PROG_CLICK.isConnected?PROG_CLICK:null; }catch(e){ return p; }   // (a call while the page starts)
+  if(!l||!b) return p; const at=b.closest('.actions')||b; let over=false;
+  const tm=setTimeout(()=>{ if(!over) progSet(kind,0,0,l,{at}); },300);
+  const end=(bad,m)=>{ over=true; clearTimeout(tm); if(PROG.has(kind)&&PROG.get(kind).st==='run') progEnd(kind,bad?'err':'done',String(m||'').slice(0,160)); };
+  p.then(r=>end(r&&r.ok===false,r&&r.msg),e=>end(true,e&&e.message||e)); return p; }
+// a run on the program or the add-in (hostRun): indeterminate while the request is out, determinate once its events
+// count models (count of of); OpenFOAM's steps and iterations are named, but its iteration figure is a cap, not the end
+// (it stops once the flow settles), so its bar stays indeterminate
+function progHostEv(kind,ev){ if(!ev) return; const s=PROG.get(kind);
+  if(ev.event==='done'&&ev.of>0&&ev.count!=null) progSet(kind,ev.count,ev.of,ev.model?ev.model+(ev.finished===false?' did not finish':' done'):'');
+  else if(ev.event==='start'&&ev.of>0) progSet(kind,s&&!s.ind?s.done:0,ev.of,ev.model?'running '+ev.model:'');
+  else if(ev.event==='step') progSet(kind,0,0,'OpenFOAM: '+ev.step);
+  else if(ev.event==='progress'&&ev.iteration!=null) progSet(kind,0,0,'OpenFOAM '+ev.step+', iteration '+Number(ev.iteration).toLocaleString('en-US')+(ev.of?' (at most '+Number(ev.of).toLocaleString('en-US')+')':''));
+  else if(ev.event==='cached') progSet(kind,0,0,'reading the earlier result'); }
+const progHostEnd=(kind,r,e)=>{ if(!PROG.has(kind)) return; if(e) progEnd(kind,/Stopped/i.test(String(e&&e.message||e))?'stop':'err',/Stopped/i.test(String(e&&e.message||e))?'':String(e&&e.message||e).slice(0,160));
+  else progEnd(kind,r&&r.ok===false?'err':'done',r&&r.ok===false?String(r.msg||'').slice(0,160):''); };
 /* ----- UI pass two (docs/UI_REDESIGN_2026-11-16.md, "Pass two"): display only, no result reads any of this -----
    Working sections fold. A section's heading becomes its button (aria-expanded); a folded section keeps all its text in the
    page (its blocks are clipped to no height and made inert), so the page's text, textContent and innerText are as they
@@ -28258,7 +28389,7 @@ function u2Pass(pan){
       if(!parts) continue; parts.push(v.slice(last)); const f=document.createDocumentFragment(); for(const x of parts) f.append(x); t.replaceWith(f); } }
 }
 // Cancel on a long run: the run is dropped (its id moves on, its workers end) and the results before it stay as they were
-document.addEventListener('click',e=>{ const b=e.target.closest('button[data-runcancel]'); if(!b) return; const k=b.dataset.runcancel; RUN_STOPPED=k;
+document.addEventListener('click',e=>{ const b=e.target.closest('button[data-runcancel]'); if(!b) return; const k=b.dataset.runcancel; RUN_STOPPED=k; progEnd(k,'stop');
   if(k==='sim'){ SIM.run++; simStop(); SIM.status=SIM.res?'done':'idle'; SIM.msg=''; }
   else if(k==='tsim'){ TSIM.run++; if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(x){} TSIM.worker=null; } TSIM.status=TSIM.res?'done':'idle'; TSIM.msg=''; }
   else if(k==='wsnd'){ WSND.tok=(WSND.tok||0)+1; if(WSND.worker){ try{ WSND.worker.terminate(); }catch(x){} WSND.worker=null; } WSND.busy=false;
