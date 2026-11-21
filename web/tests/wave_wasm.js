@@ -113,6 +113,19 @@ const tflat = t => t ? [t.t, t.W, t.Wis, t.mt, t.mg, t.mAir, t.p3, t.p3pk, t.p3s
   jobs.push({ name: 'intake port, single', job: { dx: jobs[0].job.dx, rpms: [4000, 7000, 9000], variants: [
     { label: '90 mm intake port of its own bore, Shayler, 380 K wall', spec: Object.assign({}, s0, { e: Object.assign({}, s0.e, { portInHeat: 'shayler', portInTw: 380 }),
       intake: Object.assign({}, s0.intake, { segs: s0i.concat([{ L: 0.09, d0: d0i * 0.95, d1: d0i * 0.95, port: true }]) }) }) }] } });
+  // 2026-11-21: the side volumes' tracked neck and shell (exhaust.chambers with a shell temperature Tw, and with the
+  // constant gas), and the Y-merge (opt.merge) of two collectors into one pipe, on the four-cylinder engine as two banks
+  // of two (cross-plane-like uneven pairs) merged 0.30 m and 0.25 m down their lines into a 2.5 in pipe
+  const chs = s0.exhaust.chambers;
+  jobs.push({ name: 'chamber shell', job: { dx: jobs[0].job.dx, rpms: [4000, 7000, 9000], variants: [
+    { label: 'header chamber, shell at 450 K', spec: Object.assign({}, s0, { exhaust: Object.assign({}, s0.exhaust, { chambers: chs.map(c => Object.assign({}, c, { Tw: 450 })) }) }) },
+    { label: 'header chamber, constant gas', spec: Object.assign({}, s0, { e: Object.assign({}, s0.e, { gas: 'const' }) }) }] } });
+  const mcol = [{ cyls: [0, 3], segs: col.segs.concat([{ L: 0.4, d0: col.segs[col.segs.length - 1].d1, d1: 0.0635 }]), Tw: 650 }, { cyls: [1, 2], segs: col.segs.concat([{ L: 0.5, d0: col.segs[col.segs.length - 1].d1, d1: 0.0635 }]), Tw: 650 }];
+  const mseg = [{ L: 1.2, d0: 0.0635, d1: 0.0635 }, { L: 0.3, d0: 0.0635, d1: 0.0762 }];
+  jobs.push({ name: 'Y-merge', job: { dx: jobs[1].job.dx, rpms: [2500, 4000, 6000], variants: [
+    { label: 'two banks merged into one pipe', spec: Object.assign({}, s1, { opt: { phases: [0, 270, 450, 540], collectors: mcol, merge: { pos: [0.6, 0.75], segs: mseg } } }) },
+    { label: 'the same into a turbine, constant gas', spec: Object.assign({}, s1, { e: Object.assign({}, s1.e, { gas: 'const' }), intake: Object.assign({}, s1.intake, { source: { p: 170000, T: 320 } }),
+      exhaust: Object.assign({}, s1.exhaust, { turbine: tur({}) }), opt: { phases: [0, 270, 450, 540], collectors: mcol, merge: { pos: [0.6, 0.75], segs: mseg, Tw: 600 } } }) }] } });
   // 2026-11-14 part 11: the fuel as CH_y O_z (e.blend, mass fractions) and its evaporation counted (e.evap, the share of the
   // latent heat from the charge): E85 (85 % ethanol by volume, 0.857 by mass) rich at lambda 0.822 with the evaporation not
   // counted and from the port walls (0), on the four-cylinder collector; E85 under boost with 70 % from the charge (direct
