@@ -13673,7 +13673,7 @@ function sndShellGain(W,K){
     const T=tmSeg(Cx(kk,0),Cx(Zc,0),Lt), pin=cadd(cmul(T[0],cmul(Zr,U)),cmul(T[1],U));
     let Q=Cx(0,0); faces.forEach(([fa,fb])=>{ for(let m=1;m<=H.modes;m+=2) for(let n=1;n<=H.modes;n+=2){ const wmn=Math.PI*Math.PI*Math.sqrt(Dp/mh)*(m*m/(fa*fa)+n*n/(fb*fb));
       const den=Cx(mh*(wmn*wmn-w*w),mh*wmn*wmn*H.eta), g=cdiv(Cx(0,w*64*fa*fb/(Math.PI**4*m*m*n*n)),den); Q=cadd(Q,g); } });
-    const h=cscale(cmul(Q,pin),rho); re[k]=h.re; im[k]=h.im;   // the case's volume velocity in the tip's convention (the tip is played as its gas outflow, rho Q) peak=Math.max(peak,Math.hypot(h.re,h.im)); }
+    const h=cscale(cmul(Q,pin),rho); re[k]=h.re; im[k]=h.im; peak=Math.max(peak,Math.hypot(h.re,h.im)); }
   return {re,im,info:{f11:Math.round(f11),peak:+(20*Math.log10(peak||1e-30)).toFixed(1)}};
 }
 /* (round 2) the ground's reflection with a finite impedance: Delany and Bazley's one-parameter model (Appl. Acoust. 3,
