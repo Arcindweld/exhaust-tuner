@@ -61,7 +61,8 @@ const BASE = '5000fb8', BASE2 = '6f0c694', BASE3 = '7de9e49';   // before the UI
 // the text of the part cards (and the build sheet's muffler line) that name a part from a maker's motorcycle sheet, on the
 // tab shown: a car is no longer offered these (job fixes 2026-11-21, P1)
 const MOTO_TEXT = () => { const p = document.querySelector('[role=tabpanel]:not([hidden])'); if (!p) return '';
-  return [...p.querySelectorAll('.pcard, li[data-part^="Muffler"]')].filter(c => /Motorcycle Pre-Fabricated|Cone Engineering Cone/.test(c.textContent)).map(c => c.innerText).join('\n'); };
+  return [...p.querySelectorAll('.pcard, li[data-part^="Muffler"], li[data-item="Mufflers"]')].filter(c => /Motorcycle Pre-Fabricated|Cone Engineering Cone/.test(c.textContent)).map(c => c.innerText)
+    .concat([...p.querySelectorAll('.cap')].map(c => (c.textContent.match(/^(\d+) match(?:es)?\. Closest/) || [])[1]).filter(Boolean)).join('\n'); };   // and the finder's count of matches
 const BASE4 = 'dc31cea';   // before the field-edit speed work (docs/PERF_2026-11-18.md)
 const FAST = { mufflers: 0.7, intake: 0.85, hangers: 0.7 };   // budgets as a share of the time before: Mufflers and Hangers measure 39-45 %, Intake 61-76 % (noisy on a shared machine), so Intake's guard is 85 %: it catches a regression to the old time, not a few points of noise
 const ONLY3 = process.env.UI_ONLY === '3';   // (development) pass three's checks alone
