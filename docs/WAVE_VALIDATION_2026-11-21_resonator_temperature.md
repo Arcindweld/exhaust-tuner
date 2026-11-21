@@ -153,3 +153,12 @@ which scale with the bore): VE 0.9563 both, orders 2 / 4 / 6 within 0.00 / -0.33
   mixed can beyond it; real cans keep a cooler far end.
 - The outer end correction (pipe side) is filled with can gas at the start; physically it holds pipe gas.
 - `cargo test -p et_wave` not run (the crate has no tests of its own; its parity is wave_wasm.js), to save disk.
+
+## 10. Tests run (2026-11-21, final code)
+
+One at a time: restemp_ui (new) all pass; wave_wasm QUICK all JS/WASM comparisons pass (the three chamber const-ref rows
+failed until re-pinned, as listed); wavegas_ui 136; multi_ui 18; wsndpar_ui 8; wsnd_ui 26; wsndxo_ui 7; wsndreal_ui 26;
+specparity_ui 44; sim_ui, chamber_ui, incremental_ui pass. A check of the new page against the base commit (3026098) on
+every captured wave job without side volumes (first two speeds, default gas): 96 of 96 results identical.
+Suite once: `python3 tools/run_all_tests.py --suite web,parity --no-build -j 2 --skip-slow`: 151 tests, 144 passed,
+0 failed, 7 skipped (host program not built, OpenWAM / F-100 runs absent; expected), wave_wasm full in it passes.

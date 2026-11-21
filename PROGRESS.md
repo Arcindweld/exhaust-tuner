@@ -20,4 +20,4 @@
 4. Tests + doc.
 
 ## Status
-- [x] 1-3 done; [x] 4 tests+doc; targeted tests pass (wavegas 136, multi 18, wsndpar 8, wsnd 26, wsndxo 7, wsndreal 26, specparity 44, incremental ok, restemp all); next: full suite once
+- [x] 1-3 done; [x] 4 tests+doc; targeted tests pass (wavegas 136, multi 18, wsndpar 8, wsnd 26, wsndxo 7, wsndreal 26, specparity 44, incremental ok, restemp all); full suite 151: 144 pass, 0 fail, 7 skipped (expected). DONE
