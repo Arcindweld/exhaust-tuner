@@ -20,4 +20,4 @@
 4. Tests + doc.
 
 ## Status
-- [x] 1 JS  - [x] 2 Rust+WASM (QUICK parity 47 pass; const-ref chamber rows re-pinned: tools/validation/wave/constref_chambers.js)  - [x] 3 merge JS+Rust  - [ ] 4 tests/doc
+- [x] 1-3 done; [x] 4 tests+doc; targeted tests pass (wavegas 136, multi 18, wsndpar 8, wsnd 26, wsndxo 7, wsndreal 26, specparity 44, incremental ok, restemp all); next: full suite once
