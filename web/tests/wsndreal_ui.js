@@ -88,11 +88,11 @@ function slope(x, sr, f0, f1) { const { P, df } = welch(x, sr, 1 << 14), pts = [
     const ren = o => X.wsndRender(runs, 'hold', Object.assign({}, P0, { listen: Object.assign({}, base, o) })), ref = ren({}).x, out = {};
     for (const [k, o] of [['fine', { fine: true }], ['behind', { pos: 'behind' }], ['asphalt', { ground: 'asphalt' }], ['idle', { idle: true }]]) { const y = ren(o); out[k] = { differs: y.x.length !== ref.length || y.x.some((v, i) => v !== ref[i]), info: y.info }; }
     const def = X.wsndRender(runs, 'hold', P0).info, r2 = Math.hypot(6 * 0.3048, (5.25 + 1) * 0.3048), Q = [125, 500, 2000].map(f => { const q = X.sndGroundQ(f, r2, (5.25 + 1) * 0.3048 / r2, 'asphalt'); return +Math.hypot(q.re, q.im).toFixed(3); });
-    return { out, def, Q, lim10: X.sndLimit(runs[0], 0.01).f, lim20: X.sndLimit(runs[0], 0.02).f, kOld: X.sndPrep(runs[0], 0.02, { fine: false }).K, kNew: X.sndPrep(runs[0], 0.02, { fine: true }).K }; }, [R1]);
+    return { out, def, Q, lim10: X.sndLimit(runs[0], 0.01, 2047).grid, lim20: X.sndLimit(runs[0], 0.02, 2047).grid, kOld: X.sndPrep(runs[0], 0.02, { fine: false }).K, kNew: X.sndPrep(runs[0], 0.02, { fine: true }).K }; }, [R1]);
   ok(Object.values(ST.out).every(z => z.differs), 'each new stage on by itself changes the sound (cycle detail, standing behind, asphalt, idle roughness)');
   ok(ST.def.pos === 'behind' && ST.def.ft === 6 && ST.def.ground === 'asphalt' && ST.def.fine === true && ST.def.idle === true, 'by default the listener stands 6 ft (1.8 m) behind the tips on asphalt, ears 5.25 ft, with the fine cycle and the idle roughness (' + JSON.stringify({ pos: ST.def.pos, ft: ST.def.ft, ground: ST.def.ground }) + ')');
   ok(ST.Q.every(v => v > 0.95 && v <= 1.0001), 'asphalt (Nord2000 class G, Delany and Bazley) reflects almost as a mirror: |Q| ' + ST.Q.join(', ') + ' at 125, 500, 2000 Hz for the standing-behind geometry');
-  ok(ST.kOld === 359 && ST.kNew === 2047 && Math.abs(ST.lim10 / ST.lim20 - 2) < 0.01, 'the fine cycle keeps 2047 harmonics (round one 359); the 10 mm grid doubles the grid limit (' + Math.round(ST.lim20) + ' to ' + Math.round(ST.lim10) + ' Hz)');
+  ok(ST.kOld === 359 && ST.kNew === 2047 && Math.abs(ST.lim10 / ST.lim20 - 2) < 0.01, 'the fine cycle keeps 2047 harmonics (round one 359); the 10 mm grid doubles the grid’s limit (' + Math.round(ST.lim20) + ' to ' + Math.round(ST.lim10) + ' Hz)');
   ok(ST.out.idle.info.cov[0] > ST.out.fine.info.cov[0] && Math.abs(ST.out.idle.info.cov[0] - 100 * (0.03 + (0.10 - 0.03) * 1)) < 3.5, 'idle roughness: the coefficient of variation of IMEP at this idle ' + ST.out.idle.info.cov[0] + ' % (round one ' + ST.out.fine.info.cov[0] + ' %), hunting ' + (ST.out.idle.info.idleHunt || []).join(', ') + ' %');
   // the measured idle variability: cycle-to-cycle RMS of the played idle (jet off), idle stage on against off
   const CV = await pg.evaluate(() => { const X = window.__wsnd, runs = X.WSND.sets[0].runs.filter(x => (x.mode || 'idle') === 'idle'), w = runs[0], P0 = Object.assign({}, X.WSND.play, { rpm: w.rpm, seconds: 8, jet: false });
@@ -110,19 +110,6 @@ function slope(x, sr, f0, f1) { const { P, df } = welch(x, sr, 1 << 14), pts = [
   const hf = bandShare(BLx, 48000, 3000);
   ok(hf < -13 && hf > -90, 'energy above 3 kHz of the played blip: ' + hf.toFixed(1) + ' dB re the total, against -13 to -38 dB in the recordings: ' + (hf < -38 ? (-38 - hf).toFixed(0) + ' dB short of the recordings’ lowest (the 1-D model stops at its grid limit; flow, mechanical and intake noise are not in it)' : 'inside their range'));
 
-  // 3c. (round two) the muffler inside layouts: the wave model's insertion loss against the page's own transfer matrices of
-  // the same chain (Munjal 1987), firing at a fixed 35 kPa manifold so the source is the same with and without the muffler.
-  // Pinned: the octave-band medians of the present orders from 40 to 320 Hz within 6 dB of the nearer of the two source
-  // models (constant velocity, anechoic), for two baffled chambers and the generic three-pass; above 320 Hz the
-  // three-pass's stub resonance is not met (the stub's gas runs hotter than the matrices' still gas: see the report)
-  await pg.evaluate(() => { window.__keepSets = window.__wsnd.WSND.sets; });
-  const IL = await require('../../tools/sound/ilcheck.js').ilcheck(pg, [800, 1250, 1800, 2500]);
-  await pg.evaluate(() => { window.__wsnd.WSND.sets = window.__keepSets; });
-  const med = a => { const b = a.slice().sort((p, q) => p - q); return b[Math.floor(b.length / 2)]; }, tops = {};
-  IL.rows.forEach(r => { const k = r.key + r.rpm; tops[k] = Math.max(tops[k] || -1e9, r.lvl); });
-  for (const key of ['baffle', 'pass3']) { const R = IL.rows.filter(r => r.key === key && r.lvl > tops[key + r.rpm] - 20), bands = [];
-    for (const [a, z] of [[40, 80], [80, 160], [160, 320]]) { const S = R.filter(r => r.f >= a && r.f < z); if (S.length < 2) continue; const w = med(S.map(r => r.wave)), v = med(S.map(r => r.tmVel)), an = med(S.map(r => r.tmAn)); bands.push([a, z, w, Math.min(Math.abs(w - v), Math.abs(w - an))]); }
-    ok(bands.length >= 2 && bands.every(b => b[3] <= 6), (key === 'baffle' ? 'two baffled chambers' : 'the three-pass') + ': the wave model’s insertion loss within 6 dB of the transfer matrix’s, octave-band medians ' + bands.map(b => b[0] + '-' + b[1] + ' Hz ' + b[2].toFixed(1) + ' dB (off by ' + b[3].toFixed(1) + ')').join(', ')); }
 
   // 4. the listening space: off is the open-air sound exactly; on adds a stated, measured room
   await pg.evaluate(() => { const X = window.__wsnd; X.SND_V.on = false; X.WSND.play.how = 'hold'; X.WSND.play.rpm = X.WSND.sets[0].runs[0].rpm; X.wsndPlay('playA'); });
@@ -184,6 +171,19 @@ function slope(x, sr, f0, f1) { const { P, df } = welch(x, sr, 1 << 14), pts = [
     return { has: !!runs[0].shell, info: on.info.shell, differs: on.x.some((v, i) => v !== off.x[i]), offSame: off.x.every((v, i) => v === strip.x[i]) }; });
   ok(SH.has && SH.differs && SH.offSame, 'muffler case noise on this catalogue case changes the sound (first face mode ' + (SH.info && SH.info[0] ? SH.info[0].f11 + ' Hz, largest gain ' + SH.info[0].peak + ' dB re the tip' : '?') + '); off is the sound without the stage');
   ok(D.dHi > 6 && D.dAll > 3, 'against open headers at 2,500 RPM the system takes ' + D.dHi.toFixed(1) + ' dB off the orders above 300 Hz and ' + D.dAll.toFixed(1) + ' dB overall');
+  const pIL = await (await b.newContext()).newPage(); pIL.on('pageerror', e => errs.push(e.message)); await pIL.goto('file://' + process.cwd() + '/index.html#four-stroke'); await pIL.waitForTimeout(900); await pIL.evaluate(() => { location.hash = 'sound'; }); await pIL.waitForTimeout(600);
+  // 3c. (round two) the muffler inside layouts: the wave model's insertion loss against the page's own transfer matrices of
+  // the same chain (Munjal 1987), firing at a fixed 35 kPa manifold so the source is the same with and without the muffler.
+  // Pinned: the octave-band medians of the present orders from 40 to 320 Hz within 6 dB of the nearer of the two source
+  // models (constant velocity, anechoic), on the default page's engine at 7 speeds, for two baffled chambers and the generic three-pass; above 320 Hz the
+  // three-pass's stub resonance is not met (the stub's gas runs hotter than the matrices' still gas: see the report)
+  const IL = await require('../../tools/sound/ilcheck.js').ilcheck(pIL, [800, 1000, 1250, 1500, 1800, 2100, 2500]);
+  const med = a => { const b = a.slice().sort((p, q) => p - q); return b[Math.floor(b.length / 2)]; }, tops = {};
+  IL.rows.forEach(r => { const k = r.key + r.rpm; tops[k] = Math.max(tops[k] || -1e9, r.lvl); });
+  for (const key of ['baffle', 'pass3']) { const R = IL.rows.filter(r => r.key === key && r.lvl > tops[key + r.rpm] - 20), bands = [];
+    for (const [a, z] of [[40, 80], [80, 160], [160, 320]]) { const S = R.filter(r => r.f >= a && r.f < z); if (S.length < 2) continue; const w = med(S.map(r => r.wave)), v = med(S.map(r => r.tmVel)), an = med(S.map(r => r.tmAn)); bands.push([a, z, w, Math.min(Math.abs(w - v), Math.abs(w - an))]); }
+    ok(bands.length >= 2 && bands.every(b => b[3] <= 6), (key === 'baffle' ? 'two baffled chambers' : 'the three-pass') + ': the wave model’s insertion loss within 6 dB of the transfer matrix’s, octave-band medians ' + bands.map(b => b[0] + '-' + b[1] + ' Hz ' + b[2].toFixed(1) + ' dB (off by ' + b[3].toFixed(1) + ')').join(', ')); }
+
   ok(!errs.length, 'no page errors ' + errs.join('; '));
   await b.close(); console.log(fails.length ? 'wsndreal_ui: ' + fails.length + ' FAIL' : 'wsndreal_ui: all pass'); process.exit(fails.length ? 1 : 0);
 })();
