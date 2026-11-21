@@ -34,7 +34,12 @@ function slope(x, sr, f0, f1) { const { P, df } = welch(x, sr, 1 << 14), pts = [
   const warn = await pg.evaluate(() => { const w = document.getElementById('wsnd-openwarn'), pb = document.querySelector('button[data-wsnd="playA"]');
     return { t: w ? w.textContent : '', above: !!(w && pb && (w.compareDocumentPosition(pb) & Node.DOCUMENT_POSITION_FOLLOWING)) }; });
   ok(/This is open headers with no exhaust system; it will sound like a race engine on open pipes/.test(warn.t) && warn.above, 'open headers: the warning is shown above the play buttons, with a one-click way to the system (' + warn.t.slice(0, 60) + ')');
-  const dbBefore = await pg.evaluate(() => document.querySelector('#panel-sound table') ? document.querySelector('#panel-sound table').innerText : '');
+  const dbBefore = await pg.evaluate(() => (() => { const t = [...document.querySelectorAll('#panel-sound table')].find(t => /dB\(A\) at/.test(t.innerText)); return t ? t.innerText : ''; })());
+  // the old straight-line resampling against the band-limited sound, on these open headers (2500 RPM, jet off)
+  const O = await pg.evaluate(() => { const X = window.__wsnd, runs = X.WSND.sets[0].runs, P = Object.assign({}, X.WSND.play, { rpm: 2500, seconds: 4, jet: false });
+    const n = X.wsndRender(runs, 'hold', P); return { nb: Array.from(n.x), old: Array.from(X.wsndSound(runs, 'hold', Object.assign({}, P, { old: true }))), lim: n.info.fLim }; });
+  const oNew = bandShare(O.nb, 48000, 1.25 * O.lim), oOld = bandShare(O.old, 48000, 1.25 * O.lim);
+  ok(oNew < -45 && oOld > oNew + 15, 'open headers at 2500 RPM: above 1.25 x the ' + O.lim + ' Hz limit the old straight-line resampling put ' + oOld.toFixed(1) + ' dB re the total, the band-limited sound ' + oNew.toFixed(1) + ' dB');
 
   // 2. the default V8 with "Hear my exhaust": the whole engine, both banks, the Mufflers tab's system
   await pg.evaluate(() => { window.__wsnd.WSND.sets = []; }); await pg.click('button[data-wsnd="listen"]'); await done();
@@ -56,11 +61,9 @@ function slope(x, sr, f0, f1) { const { P, df } = welch(x, sr, 1 << 14), pts = [
   ok(gNew >= 3 && gNew <= 30 && gOld > 30, 'the gaps between the orders: ' + gNew.toFixed(1) + ' dB (the recordings 3-25 dB; the old playback ' + gOld.toFixed(1) + ' dB)');
   ok(gSteady > gNew + 5, 'with the variation off the gaps go back toward an organ pipe (' + gSteady.toFixed(1) + ' dB)');
   const ex = exactFraction(M.x, sr, M.rpm), exOld = exactFraction(M.old, sr, M.rpm);
-  ok(ex < 0.995 && exOld > 0.995, 'variability present: ' + (100 * ex).toFixed(2) + ' % of the energy on the exact orders (old ' + (100 * exOld).toFixed(2) + ' %)');
+  ok(ex < 0.9 && exOld > 0.98, 'variability present: ' + (100 * ex).toFixed(2) + ' % of the energy on the exact orders (old ' + (100 * exOld).toFixed(2) + ' %)');
   const above = bandShare(M.nb, sr, 1.25 * M.info.fLim);
   ok(Number.isFinite(M.info.fLim) && M.info.fLim > 500 && above < -45, 'no tonal energy above the validity limit (' + M.info.fLim + ' Hz, ' + M.info.by + '): ' + above.toFixed(1) + ' dB re the total above ' + Math.round(1.25 * M.info.fLim) + ' Hz');
-  const aboveOld = bandShare(M.old, sr, 1.25 * M.info.fLim);
-  ok(aboveOld > above + 15, 'the old straight-line resampling put ' + aboveOld.toFixed(1) + ' dB there');
   const sl = slope(M.x, sr, 2 * M.rpm / 60 * 4, 0.8 * M.info.fLim);
   ok(sl < -1 && sl > -15, 'spectral slope above the firing frequency to the limit: ' + sl.toFixed(1) + ' dB per octave (the Outback recordings -3.4 to -5.1)');
 
@@ -96,8 +99,8 @@ function slope(x, sr, f0, f1) { const { P, df } = welch(x, sr, 1 << 14), pts = [
   // the table's dB(A) do not move with the playback stages (the estimate's own table, before and after)
   await pg.evaluate(() => { window.__wsnd.WSND.sets = []; }); await chg('wsnd-rpms', '2500'); await chg('wsnd-load', 'wot'); await pg.click('button[data-wsnd="run"]'); await done();
   await pg.click('#wsnd-verb'); await pg.waitForTimeout(200); await chg('wsnd-vary', '0'); await chg('wsnd-path', '0');
-  const dbAfter = await pg.evaluate(() => document.querySelector('#panel-sound table') ? document.querySelector('#panel-sound table').innerText : '');
-  ok(dbBefore && dbAfter && dbBefore.replace(/\s+/g, ' ').match(/\d+\.\d/g).join() === dbAfter.replace(/\s+/g, ' ').match(/\d+\.\d/g).join(), 'the table’s dB(A) are the same with the reverb, variation and listening stages switched (' + (dbAfter.match(/\d+\.\d/g) || []).join(', ') + ')');
+  const dbAfter = await pg.evaluate(() => (() => { const t = [...document.querySelectorAll('#panel-sound table')].find(t => /dB\(A\) at/.test(t.innerText)); return t ? t.innerText : ''; })());
+  ok(!!dbBefore && !!dbAfter && (dbBefore.match(/\d+\.\d/g) || []).join() === (dbAfter.match(/\d+\.\d/g) || ['x']).join(), 'the table’s dB(A) are the same with the reverb, variation and listening stages switched (' + (dbAfter.match(/\d+\.\d/g) || []).join(', ') + ')');
   await chg('wsnd-vary', '1'); await chg('wsnd-path', '1'); await pg.click('#wsnd-verb');
 
   // 5. a 2018-20 Mustang GT after Quick's "Fill in every tab" (180 in head to tip): a line and a muffler are played, and

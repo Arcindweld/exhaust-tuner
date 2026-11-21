@@ -13195,15 +13195,15 @@ function wsndAbHtml(all,P){ const a=all[WSND.A], b=WSND.B!=null?all[WSND.B]:null
 // the header in a few words, for the kept designs
 function wsndHeaderWhat(q){ const s=q.segs||[]; return s.length?'primaries '+cdim(s[0].d0)+' × '+clen(s[0].len)+(s[1]?', collector '+cdim(s[1].d1||s[1].d0):''):''; }
 // the additions one at a time: what "Hear each part" runs
-function wsndSteps(){
-  const W=WAM_UI.line, st=[{key:'open',label:'Headers and collector, open',parts:{line:false}}];
+function wsndSteps(Wo){
+  const W=Wo||WAM_UI.line, st=[{key:'open',label:'Headers and collector, open',parts:{line:false}}];
   if(!W.on) return st;
-  const xo=W.xo&&W.xo!=='none'&&CROSS_LAST&&CROSS_LAST.type!=='y';
+  const xo=W.xo&&W.xo!=='none'&&(W.xoC||(CROSS_LAST&&CROSS_LAST.type!=='y'));
   st.push({key:'line',label:'+ the line and tailpipe',parts:{line:true,muf:false,fix:false,xo:false,par:false}});
-  if(xo) st.push({key:'xo',label:'+ the '+(CROSS_LAST.name||'crossover'),parts:{line:true,muf:false,fix:false,xo:true,par:false}});
+  if(xo) st.push({key:'xo',label:'+ the '+((W.xoC||CROSS_LAST).name||'crossover'),parts:{line:true,muf:false,fix:false,xo:true,par:false}});
   const par=W.par&&W.par!=='none';
   if(par) st.push({key:'par',label:'+ the '+(W.par==='auger'?'auger':'tube bundle'),parts:{line:true,muf:false,fix:false,xo:true,par:true}});
-  const hasMuf=W.mufKind==='chamber'||W.mufKind==='packed'?val('m-dch')>0&&val('m-lch')>0:+W.muf>0;
+  const hasMuf=W.mufDims?W.mufDims.D>0&&W.mufDims.L>0:W.mufKind==='chamber'||W.mufKind==='packed'?val('m-dch')>0&&val('m-lch')>0:+W.muf>0;
   if(hasMuf) st.push({key:'muf',label:'+ the muffler',parts:{line:true,muf:true,fix:false,xo:true,par:true}});
   if(W.fix&&W.fix!=='none') st.push({key:'fix',label:'+ the '+(W.fix==='jpipe'?'J-pipe':'Helmholtz can'),parts:{line:true,muf:true,fix:true,xo:true,par:true}});
   return st;
@@ -13334,7 +13334,10 @@ function wsndMisfire(){ const q=SIM.inp; if(!q){ wsndJob([],()=>{}); return; }
   const opts=wsndDeadOpts(q), v=opts.some(o=>o.v===WSND.dead)?WSND.dead:'c1', dead=wsndDead(q,v), whole=wsndSpec(q,{}).whole, lab=v==='bank'?'Cylinders '+dead.map(c=>c+1).join(', ')+' not firing (collector A, a dead bank)':whole?'Cylinder '+(dead[0]+1)+' not firing':'One cylinder not firing';
   wsndJob([{key:'dead',label:lab,parts:{},dead},{key:'full',label:'Your design, all firing',parts:{}}],sets=>{ WSND.sets=sets; WSND.A=1; WSND.B=0; wsndSetRuns(sets);
     WSND.msg={t:'Done: play A (all firing) and B ('+lab.charAt(0).toLowerCase()+lab.slice(1)+'). A cylinder that does not fire still pumps its charge out, so its pulse is weak'+(v==='bank'?': with a whole bank dead, only the other bank’s pulses are left, and the note drops to that bank’s own rhythm, as if it were a smaller engine. ':' and the note loses its even rhythm: a once-per-cycle beat (half an order, '+(q.cyl>1?'one in every '+q.cyl+' pulses':'every cycle')+') comes in that a healthy engine does not make. ')+'If your own car sounds like B, find the dead '+(v==='bank'?'bank (a coil pack, an injector driver or an ECU output)':'cylinder')+' before you change the exhaust.'}; renderActive(); }); }
-function wsndParts(){ const st=wsndSteps(); wsndJob(st,sets=>{ WSND.sets=sets; WSND.A=Math.max(0,sets.length-2); WSND.B=sets.length-1; wsndSetRuns(sets); window.__wsndSets=sets;
+function wsndParts(){ const q=SIM.inp, A=q&&!WAM_UI.line.on?wsndAutoSys(q):null;
+  // (2026-11-21) with the OpenWAM line off, the steps of the system the Sound tab plays (wsndAutoSys), every cylinder
+  const st=A&&A.W&&WSND.sysMode!=='open'?wsndSteps(A.W).map(v=>Object.assign({},v,{parts:Object.assign({},v.parts,{sys:A.W,whole:true})})):wsndSteps();
+  wsndJob(st,sets=>{ if(A&&A.W) sets.forEach(s=>{ s.sys=A; }); WSND.sets=sets; WSND.A=Math.max(0,sets.length-2); WSND.B=sets.length-1; wsndSetRuns(sets); window.__wsndSets=sets;
   WSND.msg={t:sets.length>1?'Done: '+sets.length+' steps, each with one more part. Pick any two as A and B, or play every step in order.':'Only the open headers to run: turn on the line after the collector (OpenWAM panel, 4-Stroke tab) to add a line, a muffler and a resonator.'}; renderActive(); }); }
 function wsndKeep(){ const s=WSND.sets[WSND.sets.length-1]; if(!s) return; const k=WSND.kept.length+1;
   WSND.kept.push(Object.assign({},s,{key:'kept'+k,label:'Kept '+k+': '+s.what,kept:true})); if(WSND.kept.length>6) WSND.kept.shift(); renderActive(); }
