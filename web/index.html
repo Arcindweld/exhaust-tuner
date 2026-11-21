@@ -8629,7 +8629,9 @@ function findParts(p){        // p: kind, size (in), loud 1-5, maxl, maxw, maxh 
     if(p.kind!=='any'&&q.kind!==p.kind) return;
     if(p.kind==='any'&&q.kind!=='muffler'&&q.kind!=='resonator') return;
     if(q.inD==null||(q.shape!=='round'&&q.shape!=='oval'&&q.shape!=='rectangular')) return;
-    if(Math.abs(q.inD-p.size)>0.01) return;
+    // a part sold in several inlet sizes lists them all: it fits when one of them is the pipe's (job fixes 2026-11-21: an
+    // array used to give NaN here, which passed every size)
+    if(!(Array.isArray(q.inD)?q.inD:[q.inD]).some(d=>Math.abs(d-p.size)<=0.01)) return;
     if(p.street&&q.offroad) return;
     const pv=p.veh?partVeh(q):null;
     if(p.veh&&pv&&pv!==p.veh) return;                        // a motorcycle part for a car, or a car part for a bike
@@ -20750,7 +20752,8 @@ function quickSheet(p,r){
   } else if(r.drone) notes.push({k:'ok',t:'No pipe length that fits resonates with the '+Math.round(r.drone.f)+' Hz cruise tone, so the build needs no Helmholtz resonator or J-pipe.'});
   tag('mid');
   // ---- mufflers, tailpipes, tips: no rule fixes where these go ----
-  const q=r.parts.length?r.parts[0].q:null, inch=v=>v==null?'?':tubBoth(v*MM);
+  // a part sold in several sizes lists them all: the sheet names the one for this pipe (job fixes 2026-11-21)
+  const q=r.parts.length?r.parts[0].q:null, pickSz=v=>Array.isArray(v)?(v.find(x=>Math.abs(x-r.partsSize)<=0.01)!=null?r.partsSize:v[0]):v, inch=v=>v==null?'?':tubBoth(pickSz(v)*MM);
   add((sides>1?'Mufflers':'Muffler')+each,q?q.brand+' '+q.model+' '+q.pn+': inlet '+inch(q.inD)+', outlet '+inch(q.outD)+(q.w?', case '+inch(q.w)+' × '+inch(q.h):'')+(q.oal!=null?', '+inch(q.oal)+' overall':''):TYPE_NAME[r.mufType]+' for '+r.mSize+' in pipe',
     q&&q.oal!=null?q.oal*MM:NaN,'Behind the resonator, wherever the '+(r.bike?'bike':'floor')+' has room. Nothing in the model sets this position.',{side:true,free:true});
   if(q) buy.push(['Mufflers',q.brand+' '+q.model+' '+q.pn,sides+'',TYPE_NAME[q.type]+(q.oal!=null?', '+inch(q.oal)+' overall':'')]);
