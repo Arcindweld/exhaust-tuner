@@ -299,6 +299,24 @@ Exhaust parts in the played signal for three set-ups (from the "Playing" line an
 - **Not modelled parts**: see the audit (catalytic converters, Y-merges, muffler internals, reverse cones, tip shapes, the
   two-stroke chamber).
 
-## 7. Tests
+## 7. Next round (not started here)
+
+Needs the solver (wsFactory and its Rust/WASM twin, whose bit parity the tests enforce), so left alone this round:
+- a catalytic converter element (a monolith: many small channels, friction and heat loss, the area step in and out):
+  wsFactory pipe network plus the Rust twin, about 150-250 lines each and parity cases;
+- a Y-merge of both banks' lines into one pipe (a three-way junction closing the network, as the crossover's X and H do
+  between two exits): about 100-200 lines each side.
+
+Needs no solver change:
+- muffler internals as line elements (baffle plates with holes, series chambers joined by tubes, the turbo muffler's
+  reversal) built from the existing segments and side branches;
+- case (shell) radiation from sound/realism.py's panel model, played beside the tip;
+- a closed-throttle overrun (every cylinder not firing, the `dead` list the misfire run already uses, at a lower manifold
+  pressure) so a rev can come back down as a decel instead of the idle hold;
+- a finer recorded cycle for playback (more than 720 points, kept apart from the 720-point averages the tables use) and a
+  finer grid for "Hear my exhaust", which would lift the validity limit from about 2.2-2.9 kHz;
+- the open end's directivity above ka = 0.5 (Levine and Schwinger 1948) for a listener off the tip's axis.
+
+## 8. Tests
 
 TESTS
