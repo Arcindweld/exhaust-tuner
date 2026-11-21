@@ -59,6 +59,3 @@ if (require.main === module) {
     console.log('can at ' + x + ' m: can gas ' + r.ch.T.toFixed(0) + ' K; IL by order ' + d.map(v => v.toFixed(1)).join(' ') + ' dB; neck u peak ' + r.ch.um.toFixed(0) + ' m/s; TM IL at 45 Hz (can at 316 K, the exit loss linearised at that peak) ' + tmIL(45, x, b.Ttip, 316.48, 4 * r.ch.rho * r.ch.um / (3 * Math.PI * A)).toFixed(1) + ' dB, lossless ' + tmIL(45, x, b.Ttip, 316.48, 0).toFixed(1));
   }
 }
-// the engine-level notch: the insertion loss of order 1.5 (f = rpm / 40) with the can at x over a sweep of speeds, each
-// a fresh run; NOTCH=1 node resonator_temp.js pIn cycles x
-if (require.main === module && process.env.NOTCH) {}
