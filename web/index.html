@@ -13888,7 +13888,7 @@ function sndBlip(ok,R0,P,L,d,bo){
     const S=sndSynth(R,{sr,n,rpmAt,vary:L.vary,seed:L.seed,band:L.band,jet:P.jet,idle:L.idle,covFix:k===2&&L.vary?0:undefined,spread:k===2?0:undefined});
     if(!info||k===0) info=S.info; for(let i=0;i<n;i++){ const w=B.wAt(k,i/sr); if(w>0) out[i]+=w*(S.x[i]+(S.jet?S.jet[i]:0)); } });
   const x=sndPath(out,sr,d,L.tipFt*0.3048,L.earFt*0.3048,L.path,L.ground).y;
-  return {x,sr,info:Object.assign(info,{how:'blip',dur,vary:L.vary,band:L.band,path:L.path,fine:L.fine,pos:L.path?L.pos:'table',ft:+(d/0.3048).toFixed(2),ground:L.path?L.ground:'table',idle:L.idle,
+  return {x,sr,info:Object.assign(info,{how:'blip',dur,vary:L.vary,band:L.band,path:L.path,fine:L.fine,pos:L.path?L.pos:'table',ft:+(d/0.3048).toFixed(2),ground:L.path?L.ground:'table',idle:L.idle,shell:L.shell?R0.map(q=>q.shell):null,
     blip:{J:+B.J.toFixed(3),idle:B.idle,top:B.top,back:B.back,tTop:B.tTop&&+B.tTop.toFixed(2),tBack:B.tBack&&+B.tBack.toFixed(2),tEnd:B.tEnd&&+B.tEnd.toFixed(2),tqTop:+B.tqTop.toFixed(0),tqCut:+B.tqCut.toFixed(0)}})};
 }
 /* ===== where you are listening: a space added to the played sound, for listening only (2026-11-21) =====

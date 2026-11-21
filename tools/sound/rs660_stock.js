@@ -4,7 +4,7 @@
 // channels are not modelled: no cited pressure-drop law fits the solver's pipes), the 10 L underbelly box as two chambers
 // of a 196 mm bore (10 L over 330 mm) joined by a 58 mm hole through a 1.5 mm plate (generic: the inside is not
 // published), and its two 40 mm x 120 mm outlets as one pipe of their summed area (render_page.js's way).
-//   node tools/sound/rs660_stock.js OUT_DIR [--round1] [--wav name.wav] [--metrics]
+//   node tools/sound/rs660_stock.js OUT_DIR [--round1] [--wav name.wav] [--metrics] [--dx 0.02]
 // Writes the idle -> rev to 5,500 -> hold -> back to idle sound (sndBlip with a hold), or with --metrics holds at the
 // recording's speeds heard where the recording's microphone was (on the ground about 3 ft behind), as JSON.
 const { chromium } = require('playwright'); const fs = require('fs'), path = require('path');
@@ -26,7 +26,7 @@ if (require.main === module) (async () => {
   const b = await chromium.launch(); const pg = await b.newPage(); pg.on('pageerror', e => console.error('page error', e.message));
   await pg.goto('file://' + path.join(ROOT, 'web', 'index.html') + '#sound'); await pg.waitForTimeout(900);
   const R = await pg.evaluate(([sp, round1, metrics, dx]) => {
-    const X = window.__wsnd, mk = dead => { const s = JSON.parse(JSON.stringify(sp)); if (dead) s.e.dead = [0, 1]; return X.WS.makeEngine(s.e, s.intake, s.exhaust, s.opt); };
+    const X = window.__wsnd; X.WSND.dx = dx; const mk = dead => { const s = JSON.parse(JSON.stringify(sp)); if (dead) s.e.dead = [0, 1]; return X.WS.makeEngine(s.e, s.intake, s.exhaust, s.opt); };
     const runs = [], ent = (o, rpm, mode, eng) => X.wsndEntry({ rec: o.y.rec, rpm, pIn: o.pIn, imep: o.y.imep, Vd: eng.Vd, mode }, { cyl: 2 }, { nIn: 2, whole: true, pack: null, spec: { opt: { phases: [0, 270] } } }, 'RS 660 stock (est.)');
     let e = mk(false), st = null, ref = null;
     for (const rpm of metrics || round1 ? [1442, 5460] : [1442, 5460]) { const o = X.wsndSpeedRun(X.WS, e, rpm, { dx, load: 'none' }, st); st = o.y.state; if (!ref) ref = { rpm, p: o.pIn }; runs.push(ent(o, rpm, 'idle', e)); }

@@ -1,7 +1,7 @@
 // render_page.js - the page's own "Hear the model" sound for a validation engine, written to a WAV in a temp folder, for
 // tools/sound/analyze.py. Runs the page's wave model (wsndSpeedRun, no load) on an OpenWAM validation spec and plays it
 // through the page's sound path (window.__wsnd.render, or the old wsndSound hold when --old is given).
-//   node tools/sound/render_page.js SPEC.json OUT_DIR rpm[,rpm...] [--old] [--how hold|show] [--seconds 6]
+//   node tools/sound/render_page.js SPEC.json OUT_DIR rpm[,rpm...] [--old] [--how hold|show] [--seconds 6] [--listen '{"pos":"road"}'] [--dx 0.02]
 // SPEC.json: an OpenWAM spec (validation/*/model/runs/*/spec.json). Its tail goes onto the collector as plain segments:
 // a volume (V_litres) as a straight bore 330 mm long of that volume (as validation/outback-2004/wave_noload.js does), a
 // muffler's "outlets" list as one pipe of the outlets' summed area and their length.
@@ -51,16 +51,16 @@ if (require.main === module) (async () => {
       else c.segs.push({ L: t.L_mm / 1000, d0: t.d0_mm / 1000, d1: t.d1_mm / 1000 });
     }
     delete c.tail; if (spec.intake) delete spec.intake.reservoir;
-    res = await pg.evaluate(([spec, rpms, old, how, secs]) => {
+    res = await pg.evaluate(([spec, rpms, old, how, secs, listen, dx]) => {
       const X = window.__wsnd, eng = X.WS.makeEngine(spec.e, spec.intake, spec.exhaust, spec.opt); let st = null; const runs = [];
       const ncyl = spec.opt.phases.length;
-      for (const rpm of rpms) { const o = X.wsndSpeedRun(X.WS, eng, rpm, { dx: 0.02, load: 'none' }, st); st = o.y.state;
+      for (const rpm of rpms) { X.WSND.dx = dx; const o = X.wsndSpeedRun(X.WS, eng, rpm, { dx, load: 'none' }, st); st = o.y.state;
         runs.push(X.wsndEntry({ rec: o.y.rec, rpm, pIn: o.pIn, imep: o.y.imep, Vd: eng.Vd }, { cyl: ncyl }, { nIn: ncyl, whole: true, pack: null, spec: { opt: { phases: spec.opt.phases } } }, 'v')); }
-      const P = Object.assign({}, X.WSND.play, { rpm: rpms[0], ft: 3.3 });
+      const P = Object.assign({}, X.WSND.play, { rpm: rpms[0], ft: 3.3 }, listen ? { listen: Object.assign({}, X.SND_L, listen) } : {});
       if (old) return { x: Array.from(X.wsndSound(runs, 'hold', Object.assign(P, { old: true }))), sr: 48000 };
       const R = X.wsndRender(runs, how, Object.assign(P, { seconds: how === 'hold' ? secs : undefined }));
       return { x: Array.from(R.x), r: R.xr ? Array.from(R.xr) : null, sr: R.sr, info: R.info };
-    }, [spec, rpms, old, opt('--how', 'hold'), +opt('--seconds', 6)]);
+    }, [spec, rpms, old, opt('--how', 'hold'), +opt('--seconds', 6), opt('--listen', null) && JSON.parse(opt('--listen')), +opt('--dx', 0.02)]);
     const name = path.basename(path.dirname(specArg)) + '_' + rpms.join('-') + (old ? '_old' : '_new') + '.wav';
     fs.writeFileSync(path.join(outDir, name), res.r ? wav16st(res.x, res.r, res.sr) : wav16(res.x, res.sr)); console.log(name, res.info ? JSON.stringify(res.info) : '');
   }
