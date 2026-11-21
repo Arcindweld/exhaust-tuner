@@ -9,3 +9,6 @@ Task: shared progress component + wire all long ops; tests web/tests/progress_ui
 - [ ] doc, screenshots reviewed
 ## Notes
 - existing: .runstat + runPct (thin ::after bar parsed from "(n%)"/"n of m"), runClock elapsed+live region, hostStatAll for host runs, resvHtml reserved space, data-runcancel for sim/tsim/wsnd.
+- [x] component + CSS + wiring (sim, tsim, wsnd, rec, hostRun kinds wam/tw/mdw/dyno/opt/es/cfd/autocfd/exh/fxcfd, fusionCall/hostCall waits, updater)
+- [x] progress_ui.js ALL PASS (~1-2 min)
+- next: run ui_ui, incremental_ui, staleness_ui, sim_ui, wsnd_ui, rec_ui, desktop_ui, multi_ui; timing; startup check; doc
