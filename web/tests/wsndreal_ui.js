@@ -178,7 +178,7 @@ function slope(x, sr, f0, f1) { const { P, df } = welch(x, sr, 1 << 14), pts = [
   // models (constant velocity, anechoic), on the default page's engine at 7 speeds, for two baffled chambers and the generic three-pass; above 320 Hz the
   // three-pass's stub resonance is not met (the stub's gas runs hotter than the matrices' still gas: see the report)
   const IL = await require('../../tools/sound/ilcheck.js').ilcheck(pIL, [800, 1000, 1250, 1500, 1800, 2100, 2500]);
-  const med = a => { const b = a.slice().sort((p, q) => p - q); return b[Math.floor(b.length / 2)]; }, tops = {};
+  const med = a => { const b = a.slice().sort((p, q) => p - q), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; }, tops = {};
   IL.rows.forEach(r => { const k = r.key + r.rpm; tops[k] = Math.max(tops[k] || -1e9, r.lvl); });
   for (const key of ['baffle', 'pass3']) { const R = IL.rows.filter(r => r.key === key && r.lvl > tops[key + r.rpm] - 20), bands = [];
     for (const [a, z] of [[40, 80], [80, 160], [160, 320]]) { const S = R.filter(r => r.f >= a && r.f < z); if (S.length < 2) continue; const w = med(S.map(r => r.wave)), v = med(S.map(r => r.tmVel)), an = med(S.map(r => r.tmAn)); bands.push([a, z, w, Math.min(Math.abs(w - v), Math.abs(w - an))]); }
