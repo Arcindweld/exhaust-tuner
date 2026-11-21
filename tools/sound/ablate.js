@@ -1,6 +1,7 @@
 // ablate.js - ablation of the played V8 sound (docs/SOUND_REALISM_ROUND2_2026-11-21.md, section 2): a 2018-20 Mustang GT
 // after Quick's "Fill in every tab" (180 in head to tip), the system the Sound tab plays, with each exhaust part off in turn
-// (the wave model rerun) and each playback stage off in turn (the same runs replayed). Prints JSON: octave bands re the
+// (the wave model rerun; 'emptycase' is round one's muffler, one empty case) and each playback stage off in turn (the same
+// runs replayed; --stages r2 gives the round-two set: each new stage off alone, and all of them off = round one). Prints JSON: octave bands re the
 // total of the played signal, the orders at the tip (free field, 1 m), per variant x stage x speed.
 //   node tools/sound/ablate.js OUT.json [--rpms 750,2500] [--load none|wot] [--variants full,nofix,nomuf,noxo,open] [--wav DIR]
 const { chromium } = require('playwright');
@@ -38,13 +39,14 @@ if (require.main === module) (async () => {
   const t0 = Date.now();
   const info = await pg.evaluate(async ([vk, rpms, load]) => {
     const X = window.__wsnd, q = X.simInp(), A = X.wsndAutoSys(q), W = A.W, cp = o => Object.assign(JSON.parse(JSON.stringify(W)), o);
-    const V = { full: { sys: W, whole: true }, nofix: { sys: cp({ fix: 'none' }), whole: true }, nomuf: { sys: W, whole: true, muf: false }, noxo: { sys: W, whole: true, xo: false }, open: { line: false, whole: true } };
+    const V = { full: { sys: W, whole: true }, emptycase: { sys: cp({ mufLay: false }), whole: true }, nofix: { sys: cp({ fix: 'none' }), whole: true }, nomuf: { sys: W, whole: true, muf: false }, noxo: { sys: W, whole: true, xo: false }, open: { line: false, whole: true } };
     const vars = vk.map(k => ({ key: k, label: k, parts: V[k] }));
     X.WSND.sets = []; await new Promise(r => X.wsndJob(vars, sets => { X.WSND.sets = sets; r(); }, { rpms, load }));
     return { notIn: A.notIn, what: X.WSND.sets.map(s => s.what), W };
   }, [vk, rpms, load]);
   console.error('runs done in', ((Date.now() - t0) / 1000).toFixed(0), 's');
-  const stages = JSON.parse(opt('--stages', JSON.stringify({ all: {}, nopath: { path: false }, nojet: { jet: false }, noband: { band: false }, novary: { vary: false } })));
+  const R2 = { all: {}, round1: { fine: false, pos: 'road', ground: 'mirror', idle: false, shell: false }, nofine: { fine: false }, road25: { pos: 'road' }, mirror: { ground: 'mirror' }, noidle: { idle: false }, noshell: { shell: false }, nopath: { path: false }, noband: { band: false }, novary: { vary: false }, nojet: { jet: false } };
+  const sa = opt('--stages', null), stages = sa === 'r2' ? R2 : JSON.parse(sa || JSON.stringify({ all: {}, nopath: { path: false }, nojet: { jet: false }, noband: { band: false }, novary: { vary: false } }));
   const res = { info, rows: [] };
   for (let vi = 0; vi < vk.length; vi++) for (const rpm of rpms) for (const sk in stages) {
     const R = await pg.evaluate(([vi, rpm, st]) => { const X = window.__wsnd, s = X.WSND.sets[vi], runs = s.runs, run = runs.find(r => r.rpm === rpm);
@@ -52,7 +54,7 @@ if (require.main === module) (async () => {
       const L = Object.assign({}, X.SND_L, st); delete L.jet; delete L.P; delete L.ft;
       const R = X.wsndRender(runs, 'hold', Object.assign(P, { listen: L }));
       return { x: Array.from(R.x), info: R.info, spl24: run && run.spl24 ? run.spl24.map(v => +v.toFixed(1)) : null }; }, [vi, rpm, stages[sk]]);
-    const row = { variant: vk[vi], rpm, stage: sk, oct: octs(R.x, 48000), spl24: sk === 'all' ? R.spl24 : undefined, fLim: R.info.fLim };
+    const row = { variant: vk[vi], rpm, stage: sk, oct: octs(R.x, 48000), spl24: sk === 'all' ? R.spl24 : undefined, fLim: R.info.fLim, by: R.info.by, shell: R.info.shell };
     res.rows.push(row); console.error(vk[vi], rpm, sk, row.oct.join(' '));
     if (wavDir && sk === 'all') fs.writeFileSync(path.join(wavDir, 'abl_' + vk[vi] + '_' + rpm + '.wav'), wav16(R.x, 48000));
   }
