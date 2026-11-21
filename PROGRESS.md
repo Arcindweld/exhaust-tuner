@@ -18,3 +18,4 @@ Before/after capture script: scratchpad ba.js (node ba.js <webdir>); base figure
 - K24A2 Smith: Headers 44.1 in (1120 mm), 4-Stroke 37.6 in (954 mm) -> both 37.6
 - RS660 sheet: main 2.021 in OD, Helmholtz 8x13.4 in 672 cu in 11.02 L -> 2 in stock, J-pipe 49.3 in (1252 mm), can in Alternatives
 - full suite started 09:01 -> scratch suite.log
+- DONE: all items, tests, doc. Suite 136/148 pass, 5 failures fixed and rerun alone OK.
