@@ -327,7 +327,10 @@ input.oor{color:var(--bad);text-decoration:underline wavy var(--bad);text-underl
 /* the progress bar of a long operation (2026-11-21): a track, a fill (or a moving stripe when the fraction is not
    known), and one line in words; under the status line it belongs to, of a fixed height so nothing below moves */
 .runstat:has(+.prog)::after{display:none}
-.prog{margin:6px 0 0;min-height:36px}
+.prog{margin:6px 0 0;min-height:36px;font-size:var(--fs-md);max-width:calc(var(--measure) + 54px)}
+.cap+.prog{font-size:var(--fs-sm);max-width:var(--measure)}
+.note.runstat{padding-left:40px}
+.prog-s{white-space:nowrap}
 .prog-track{position:relative;height:8px;border-radius:4px;background:var(--inset);overflow:hidden}
 .prog-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:4px;background:var(--accent);transition:width .25s linear}
 .prog[data-st~="ind"] .prog-fill{width:100%;background:repeating-linear-gradient(-45deg,var(--accent) 0 8px,var(--accent-soft) 8px 16px);background-size:22.63px 22.63px;animation:prog-run 1s linear infinite}
@@ -338,6 +341,7 @@ input.oor{color:var(--bad);text-decoration:underline wavy var(--bad);text-underl
 .prog-lab{display:flex;flex-wrap:wrap;justify-content:space-between;gap:0 12px;margin:4px 0 0;font:500 var(--fs-sm)/1.45 var(--f-ui);color:var(--ink);font-variant-numeric:tabular-nums;max-width:none}
 .prog-eta{color:var(--muted)}
 .prog[data-st^="err"] .prog-t{color:var(--bad)}
+.prog[data-st="stop ind"] .prog-fill,.prog[data-st="err ind"] .prog-fill{width:0}
 @media (max-width:699px){.prog{min-height:56px}}
 .note a{color:inherit}
 
@@ -28109,7 +28113,7 @@ function progSet(k,done,total,label,o){ o=o||{}; let s=PROG.get(k); const now=pr
   if(total){ if(total!==s.total){ s.total=total; s.fs=[]; s.ev=null; }
     const was=s.ind; s.ind=false;
     if(done>s.done){ s.done=Math.min(done,total); progEta(s,now); } else if(was) s.done=Math.min(done,total);
-    s.pct=Math.max(s.pct,Math.min(100,Math.floor(100*s.done/total))); }   // (never back: a value the bar showed stays)
+    s.pct=Math.max(s.pct,Math.min(100,Math.round(100*s.done/total))); }   // (never back: a value the bar showed stays)
   else s.ind=true;
   if(label!=null) s.label=String(label);
   progSay(s,now); progLater(); }
@@ -28125,10 +28129,12 @@ function progEtaTxt(s){ if(s.st!=='run'||s.ind||s.ev==null||s.unst||s.done>=s.to
 function progName(s){ return s.name||(PROG_DEF[s.k]||{}).n||'Working'; }
 function progStep(s,br){ if(s.ind) return ''; if(s.pm) return s.pct+' %';
   const a=s.unit?updMB(s.done)+' of '+updMB(s.total)+' '+s.unit:'step '+s.done+' of '+s.total; return br?a+' ('+s.pct+' %)':a+' · '+s.pct+' %'; }
-function progText(s){ const n=progName(s), st=progStep(s,s.st!=='run');
-  if(s.st==='stop') return n+' · cancelled'+(st?' at '+st:'')+'.'+((PROG_DEF[s.k]||{}).keep?' The results before it are kept.':'');
-  if(s.st==='err') return n+' · stopped by a problem'+(st?' at '+st:'')+(s.msg?': '+s.msg:'; the message above says what went wrong.');
-  return n+(s.label?': '+s.label:'')+' · '+(st||'working; how far it has got is not known'); }
+// the line in words, in two parts: what is running, and how far (kept on one line: no "· 5 %" left alone on a phone)
+function progParts(s){ const n=progName(s), st=progStep(s,s.st!=='run');
+  if(s.st==='stop') return [n+' · cancelled'+(st?' at ':''),st,'.'+((PROG_DEF[s.k]||{}).keep?' The results before it are kept.':'')];
+  if(s.st==='err') return [n+' · stopped by a problem'+(st?' at ':''),st,s.msg?': '+s.msg:'; the message above says what went wrong.'];
+  return [n+(s.label?': '+s.label:'')+' · ',st,st?'':'working; how far it has got is not known']; }
+const progText=s=>progParts(s).join('');
 // the polite live region: how far it has got, at most every 10 points and 5 s; a stop or a problem at once
 function progSay(s,now){ const L=$('prog-live'); if(!L) return; let t='';
   if(s.st!=='run') t=progText(s);
@@ -28148,7 +28154,7 @@ function progAnchor(s){ const d=PROG_DEF[s.k]||{}, sel=s.at||d.at;
   if(s.st!=='run'&&d.stop){ const b=document.querySelector(d.stop), a=b&&(b.closest('.actions')||b); if(ok(a)) return a; }
   return null; }
 function progNode(s){ const d=document.createElement('div'); d.className='prog'; d.dataset.prog=s.k;
-  d.innerHTML='<div class="prog-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i class="prog-fill"></i></div><p class="prog-lab"><span class="prog-t"></span><span class="prog-eta"></span></p>'; return d; }
+  d.innerHTML='<div class="prog-track" role="progressbar" aria-valuemin="0" aria-valuemax="100"><i class="prog-fill"></i></div><p class="prog-lab"><span class="prog-t"><span></span><span class="prog-s"></span><span></span></span><span class="prog-eta"></span></p>'; return d; }
 function progPaint(d,s){ const tr=d.firstChild, f=tr.firstChild, t=d.lastChild.firstChild, e=d.lastChild.lastChild, st=s.st+(s.ind?' ind':'');
   if(d.dataset.st!==st) d.dataset.st=st;
   const w=s.ind?'':s.pct+'%'; if(f.style.width!==w) f.style.width=w;
@@ -28156,7 +28162,7 @@ function progPaint(d,s){ const tr=d.firstChild, f=tr.firstChild, t=d.lastChild.f
   if(s.ind) tr.removeAttribute('aria-valuenow'); else if(tr.getAttribute('aria-valuenow')!==String(s.pct)) tr.setAttribute('aria-valuenow',String(s.pct));
   const end=s.st==='run'?'':s.st==='stop'?', cancelled':', stopped by a problem', vt=(s.ind?s.label||'working':progStep(s,true))+end;
   if(tr.getAttribute('aria-valuetext')!==vt) tr.setAttribute('aria-valuetext',vt);
-  const txt=progText(s), et=progEtaTxt(s); if(t.textContent!==txt) t.textContent=txt; if(e.textContent!==et) e.textContent=et; }
+  const P=progParts(s), et=progEtaTxt(s); for(let i=0;i<3;i++){ const c=t.children[i]; if(c.textContent!==P[i]) c.textContent=P[i]; } if(e.textContent!==et) e.textContent=et; }
 function progApply(){
   for(const d of document.querySelectorAll('.prog[data-prog]')) if(!PROG.has(d.dataset.prog)) d.remove();
   let tick=false;
