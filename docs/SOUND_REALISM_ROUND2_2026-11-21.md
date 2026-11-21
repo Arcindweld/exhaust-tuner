@@ -101,7 +101,25 @@ cycle detail at idle (38 dB at 2-4 kHz, part of 1); then the variation, ground i
 
 ### 1.4 The F-100 302 (long tubes, X-pipe, chambered mufflers) against its roadside pulls
 
-@@F100@@
+`f100_orders.js` on the validation spec `ho_venom_plenum_x400_5800` (read in place from the main checkout): the README's
+chambered layout (front chamber 2 L, two 70 mm side passages round the V baffle as the solver's parallel paths, rear
+chamber 2 L, each chamber at a Flowmaster-40-size bore, 600 mm exits), X 400 mm behind the collectors, full throttle 5,800
+RPM, both exits at the microphone (the far one 1.8 m further, as the README). Relative order levels (dB re order 4; the
+recording the mean of its four pulls; the model's half orders are empty because its cylinders are identical, which the
+playback's cylinder spread stands in for):
+
+| order | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| page model, chambered layout | -14.7 | -13.9 | -16.6 | 0 | -25.6 | -7.1 | -23.7 | -24.6 | -37.2 | <-40 | -33.4 | -31.3 |
+| page model, one empty case (round one's way) | -8.9 | -11.9 | -19.9 | 0 | -25.7 | -5.2 | -21.3 | -11.6 | <-40 | -11.7 | -12.6 | -4.6 |
+| recording, mean of 4 pulls | - | -24.1 | -18.6 | 0 | -22.7 | -29.3 | -24.7 | -13.8 | -21.5 | -23.6 | -23.4 | -18.1 |
+
+Clipped RMS at -25 dB (orders 1.5-12, the README's score) per pull: chambered 5.5 / 5.0 / 7.3 / 6.0 dB, one empty case
+7.5 / 7.3 / 6.8 / 7.2 dB (OpenWAM on the same layout: 3.8-6.2). So both put order 4 on top as the recording does; the
+chambered inside brings orders 10-12 down where the recording has them (the empty case leaves order 12 at -4.6 against
+-18), but it takes order 8 to -25 against the recording's -14 and leaves orders 2 and 6 8-22 dB too strong. The stage
+that departs from the recording is the source/system balance in the wave model (the README's finding too: orders 8 and
+12 too weak, 2 and 6 too strong, "for the muffler's inside and the radiation to fix"), not the playback.
 
 ### 1.5 What the acoustics literature says a cross-plane V8 should show
 
@@ -175,9 +193,9 @@ use it.
 
 ### 2.4 Where that leaves the top end
 
-Energy above 3 kHz (band 2-4 kHz half counted plus everything above, dB re the total; recordings with analyze.py octaves
-4 kHz and up): recordings -13 to -38 dB; round two's files -21 to -35 dB with the 10 mm grid (the RS 660 -21, the Mustang
-blip -35); round one's -29 to -60. Above 4-5 kHz the model is still 25-45 dB under the recordings, and above 8 kHz it has
+Energy above 3 kHz (half the 2-4 kHz band plus everything above, dB re the total, the same measure on every file):
+the recordings -13 (RS 660) to -33 dB (Outback); round two's files -18 to -23 dB with the 10 mm grid (the straight-through
+-47); the regenerated round-one Mustang -29, with its 4-8 kHz band at -59 against round two's -28 to -34. Above 4-5 kHz the model is still 25-45 dB under the recordings, and above 8 kHz it has
 nothing but the jet, 50-70 dB down. What is missing there is not exhaust acoustics the 1-D model can carry: flow noise
 (no usable constants), engine mechanical and combustion noise through the block, intake noise, wind and, in the owner's
 recordings, the phone's own response. The files are therefore still darker than a car above about 4 kHz; that is a known,
@@ -326,7 +344,30 @@ comb to hide the wave model's own mid-range, which is the order balance of secti
 
 ## 9. The listening files (sound_ab2, 48 kHz 16-bit mono, peak-normalised to 0.9, reverb off)
 
-@@FILES@@
+All in `/tmp/claude-0/-home-claude/edc59f9c-4fbd-54e8-940b-111545c463b9/scratchpad/sound_ab2/` (not in the repository).
+The 2018-20 Mustang GT is the engine of every V8 file (Quick's "Fill in every tab", 180 in head to tip: 1.62 in x 32.2 in
+primaries, 2.37 in line, the build sheet's 12.1 L Helmholtz can at 27.8 in, the H-pipe 12 in behind the collectors, the
+chosen 9.75 x 4 x 13 in chambered muffler, 26.4 in tailpipe, both tips). Round-two files: 10 mm grid, the listener 6 ft
+behind the tips on asphalt, fine cycle, idle stage, case noise off, reverb off.
+
+| file | what is in the signal | energy above 3 kHz (dB re total) |
+|---|---|---|
+| mustang_gt_round1.wav | round one's "Hear my exhaust" regenerated: no-load runs at 650, 1,500, 3,300 RPM (20 mm grid), the muffler as one empty case, played idle, a rev and back with every round-two stage off, 25 ft roadside, hard mirror ground | -28.6 |
+| mustang_gt_round2.wav | idle 650 with no load, a blip to 3,300 (full-throttle runs at 1,600 / 2,500 / 3,300, the fuel cut at 2,000 / 3,300, the speed from the inertia balance), back to idle; the muffler as two generic chambers; 6.6 s | -22.6 |
+| v8_true_duals_r2.wav | the same engine and mufflers with no crossover; no-load runs at 650 / 1,500 / 2,500 / 4,000, idle 2.5 s then a slow rev to 4,000 (5 s) held 1.5 s | -18.4 |
+| v8_h_pipe_r2.wav | the same with the H-pipe (12 in behind the collectors, 3.5 x 1.90 in tube) | -22.7 |
+| v8_x_pipe_r2.wav | the same with an X-pipe at the same place | -19.2 |
+| v8_flowmaster_style.wav | the H-pipe system with the chambered muffler as its generic two-chamber inside (the same runs as v8_h_pipe_r2.wav, so the same file) | -22.7 |
+| v8_straight_through.wav | the H-pipe system with a straight-through packed muffler of the same case (perforated core, the Mufflers tab's 100 kg/m3 packing as round one's transfer-matrix loss) | -46.6 |
+| rs660_round2.wav | the RS 660 stock-system estimate (section 7): idle 1,442, full throttle to 5,460, held 2 s with no load, the fuel cut down, back to idle; 9.8 s | -21.2 |
+
+The recordings by the same measure: the RS 660's whole clip -13.4 dB (idle -15.1, hold -11.9), the Outback idle -32.8,
+its 1,980 RPM hold -32.4. Octave bands of the files (20-60 ... above 8k): Mustang round one -8.8 / -12.5 / -8.6 / -4.0 /
+-5.8 / -22.2 / -25.6 / -59.4 / -60.8; round two -10.6 / -6.6 / -5.5 / -7.2 / -8.2 / -11.8 / -19.9 / -34.0 / -52.0 (the
+reviewer measured round one's file at -21.8 / -15.7 / -10.5 / -1.8 / -6.9 / -23.1 / -25.0 / -67.8 / -69.2; the regenerated
+file differs mostly in its lowest band). Peak-normalised, so the files play at the same peak level, not at their model
+levels; the straight-through's darker sound is the packing's transfer-matrix loss applied to the outflow (round one's
+method), which may be stronger than a real glass-pack's at 1-4 kHz.
 
 ## 10. What still differs, and why
 
@@ -343,4 +384,17 @@ comb to hide the wave model's own mid-range, which is the order balance of secti
 
 ## 11. Tests
 
-@@TESTS@@
+Run one at a time on the final code (2-core machine shared with another agent):
+
+- `wsndreal_ui.js` (extended, 45 checks): @@REAL@@
+- `wsnd_ui` 26 pass; `wsndwav_ui` 7; `wsndpar_ui` 8; `wsndxo_ui` 7; `wsndmis_ui` 18; `wsndload_ui` 11; `rec_ui` 17 pass, its
+  OpenWAM part skipped (no INS.DAT here); `sound_ui` pass; `progress_ui` 34; `ui_ui` 312; `incremental_ui` all passed;
+  `staleness_ui` all passed (12); `jobs_ui` 59, all pass.
+
+Changed pins in wsndreal_ui, each following from a change of the simulated system or of the default: "Hear my exhaust" now
+runs the idle, full throttle and the fuel cut and plays the blip (was three no-load speeds, "show"); the Mustang's chambered
+muffler is now said as a generic inside ("maker's own baffles", was "internal chambers"), and its design line names the
+two chambers; the reverb's impulse response is taken at the listening distance (6 ft behind by default, was the table's
+25 ft). No other test changed. The dB(A) tables: unchanged for the same runs (the fine cycle feeds playback only); they
+change where the simulated system changed (a catalogue chambered or turbo muffler now runs its generic inside), which
+wsndreal_ui's Mustang check shows.
