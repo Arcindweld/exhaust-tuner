@@ -13162,7 +13162,9 @@ function wsndExt(parts){
   if(P.fix&&W.fix&&W.fix!=='none'){ const at=Math.min(x-0.01,Math.max(0.01,+W.x/1000));
     if(W.fix==='jpipe'){ const qd=+W.qd/1000, l=+W.qL/1000+0.6133*qd/2, A=Math.PI*qd*qd/4; br.push({x:at,V:A*l,CdA:A,Le:POCKET_LE(l),what:'J-pipe'}); what.push('J-pipe '+cdim(+W.qd)+' × '+clen(+W.qL)+' at '+clen(at*1000)); }
     else if(W.fix==='helm'){ const hd=+W.hd/1000, A=Math.PI*hd*hd/4; br.push({x:at,V:+W.hV/1000,CdA:A,Le:+W.hL/1000+HELM_END*hd,what:'Helmholtz can'}); what.push('Helmholtz can '+(+W.hV)+' L at '+clen(at*1000)); } }
-  return {segs,branches:br,notes,what:what.join(', '),pack,par,pieces};
+  // (round 2) the case's flat faces for the shell stage (sndShellGain): only a catalogue case with its width and height
+  const shell=P.muf&&M&&M.w>0&&M.h>0&&M.L>0?{w:M.w,h:M.h,L:M.L,tail:+W.tail||0}:null;
+  return {segs,branches:br,notes,what:what.join(', '),pack,par,pieces,shell};
 }
 function wsndSpec(q,parts){
   const sp=simSpec(q), H=HDR_LAST, ext=wsndExt(parts); let spec, whole=false; const notes=ext.notes.slice();
@@ -13184,7 +13186,7 @@ function wsndSpec(q,parts){
   else { spec.exhaust.segs=spec.exhaust.segs.concat(ext.segs); if(ext.branches.length||ext.pieces.length) notes.push('One cylinder with no collector: the resonator, the pockets and the in-line piece are left out.'); }
   const nIn=spec.opt&&spec.opt.phases?spec.opt.phases.length:1;
   if(!whole&&q.cyl>nIn) notes.push('This is one collector’s exit, '+nIn+' of the '+q.cyl+' cylinders (the 4-Stroke tab models one). The Headers tab with unequal lengths runs every cylinder and every exit.');
-  return {spec,notes,whole,nIn,what:ext.what+(xoWhat?', '+xoWhat:''),pack:ext.pack,xo:!!xoWhat};
+  return {spec,notes,whole,nIn,what:ext.what+(xoWhat?', '+xoWhat:''),pack:ext.pack,xo:!!xoWhat,shell:ext.shell||null};
 }
 // (2026-11-21) the whole engine on the 4-Stroke tab's own header: every cylinder with its primary, the Headers tab's
 // collectors (which cylinders join, and the angle each one fires at, the same grouping the Headers tab's unequal-length
@@ -13223,7 +13225,7 @@ function wsndAutoSys(q){
   const part=r&&r.parts&&r.parts.length?r.parts[0].q:null;
   if(part&&part.w>0&&part.h>0&&(part.body>0||part.oal>0)){ const w=part.w*MM, h=part.h*MM, Lc=(part.body||part.oal)*MM, D=Math.sqrt(4*w*h/Math.PI);
     const packed=part.type==='straight'||part.type==='glasspack', rev=part.type==='turbo';
-    W.mufKind=packed?'packed':'chamber'; W.mufDims={D,L:Lc,la:0,lb:0,rev}; used+=Lc;
+    W.mufKind=packed?'packed':'chamber'; W.mufDims={D,L:Lc,la:0,lb:0,rev,w,h,type:part.type}; used+=Lc;
     out.mufWhat=TYPE_NAME[part.type].toLowerCase()+' muffler '+part.brand+' '+part.model+' ('+(+part.w)+' × '+(+part.h)+' × '+(+(part.body||part.oal))+' in case, '+Math.round(w)+' × '+Math.round(h)+' × '+Math.round(Lc)+' mm)';
     out.notIn.push(packed?'the muffler’s packing is the Mufflers tab’s packing density, not the maker’s (not published)':(rev?'the turbo muffler’s internal tubes and baffles (it runs as a reverse-flow can of the case’s size)':'the '+TYPE_NAME[part.type].toLowerCase()+' muffler’s internal chambers and baffles (it runs as one empty case of the same cross-section)'));
     out.change.push(['the muffler','quick']); }
@@ -13348,7 +13350,7 @@ function wsndWorkerSrc(){
 // The solver's open end varies from cycle to cycle (10-20 % RMS between cycles, at either grid size, without settling
 // further), so the run's periodic part is the average of its recorded cycles, each resampled to 720 points, and the
 // spread between them is kept as its cycle-to-cycle variation.
-function wsndAvg(R){
+function wsndAvg(R,NF){
   const a=R.angle, st=[0]; for(let i=1;i<a.length;i++) if(a[i]<a[i-1]-180) st.push(i);
   const cyc=st.map((s0,k)=>[s0,k+1<st.length?st[k+1]:a.length]).filter(([s0,e])=>e-s0>=36&&a[e-1]-a[s0]>=600), N=720;
   const rs=([s0,e],y)=>{ const o=new Float64Array(N); let j=s0; for(let i=0;i<N;i++){ while(j<e-2&&a[j+1]<=i) j++; const d=a[j+1]-a[j]; o[i]=d>0?y[j]+(i-a[j])/d*(y[j+1]-y[j]):y[j]; } return o; };
@@ -13356,7 +13358,12 @@ function wsndAvg(R){
   let spread=null; if(cyc.length>1){ const y=R.outs[0].mdot, all=cyc.map(c=>rs(c,y)), m=avg(y); let d2=0,s2=0; const mu=m.reduce((u,v)=>u+v,0)/N;
     all.forEach(r=>{ for(let i=0;i<N;i++){ d2+=(r[i]-m[i])**2; s2+=(m[i]-mu)**2; } }); spread=Math.sqrt(d2/(s2||1e-30)); }
   const twice=x=>{ const o=new Array(2*N); for(let i=0;i<2*N;i++) o[i]=x[i%N]; return o; }, ang=twice(Array.from({length:N},(_,i)=>i));
-  return {n:cyc.length,spread,outs:R.outs.map(o=>({angle:ang,mdot:twice(avg(o.mdot)),u:twice(avg(o.u)),T:twice(avg(o.T)),rho:twice(avg(o.rho))}))};
+  // (round 2, 2026-11-21) for playback only: each exit's outflow averaged at NF points a cycle from the solver's own steps
+  // (about 1,100 to 6,000 a cycle at 4,000 to 750 RPM on the 20 mm grid), so the 720-point cycle's 359th harmonic no longer
+  // sets the highest frequency played; the tables keep the 720-point averages above
+  let fine=null; if(NF>720&&cyc.length){ const rsN=([s0,e],y)=>{ const o=new Float64Array(NF); let j=s0; for(let i=0;i<NF;i++){ const th=i*720/NF; while(j<e-2&&a[j+1]<=th) j++; const d=a[j+1]-a[j]; o[i]=d>0?y[j]+(th-a[j])/d*(y[j+1]-y[j]):y[j]; } return o; };
+    fine=R.outs.map(o=>{ const v=new Float64Array(NF); cyc.forEach(c=>{ const r=rsN(c,o.mdot); for(let i=0;i<NF;i++) v[i]+=r[i]/cyc.length; }); return v; }); }
+  return {n:cyc.length,spread,fine,outs:R.outs.map(o=>({angle:ang,mdot:twice(avg(o.mdot)),u:twice(avg(o.u)),T:twice(avg(o.T)),rho:twice(avg(o.rho))}))};
 }
 // one run's entry, the shape wamReadIns makes from an INS.DAT
 // the packing's extra loss on one averaged cycle of outflow (720 points, twice over): each harmonic m of the 720-degree
@@ -13371,13 +13378,22 @@ function wsndPackFilter(o,pk,rpm){
   const two=Array.from(out).concat(Array.from(out));
   return Object.assign({},o,{mdot:two});
 }
+// the same on a fine cycle (n points, one cycle), by one transform
+function sndPackN(y,pk,rpm){ const ab=calcAbsorb(pk), ab0=calcAbsorb(Object.assign({},pk,{rho:0})); if(ab.err||ab0.err) return y;
+  const n=y.length, re=Float64Array.from(y), im=new Float64Array(n); fftIP(re,im,false);
+  for(let k=1;k<n/2;k++){ const f=k*rpm/120, g=Math.pow(10,-(ab.tl(f)-ab0.tl(f))/20); re[k]*=g; im[k]*=g; re[n-k]*=g; im[n-k]*=g; } re[n/2]=0; im[n/2]=0;
+  fftIP(re,im,true); return re; }
+const SND_NF=4096;   // (round 2) points a cycle of the playback cycle (wsndAvg's fine average)
 function wsndEntry(m,q,sp,label){
-  const A=wsndAvg(m.rec), outs=sp.pack?A.outs.map(o=>wsndPackFilter(o,sp.pack,m.rpm)):A.outs;
+  const A=wsndAvg(m.rec,SND_NF), outs=sp.pack?A.outs.map(o=>wsndPackFilter(o,sp.pack,m.rpm)):A.outs;
   const M=WAM_MIC, r1=M.r, r2=M.layout==='side'?Math.hypot(M.r,0)+M.sep:M.r;
   const more=outs.slice(1).map(o=>({mdot:o.mdot,g:r1/r2,dDeg:(r2-r1)/343*6*m.rpm}));
+  let cycF=null; if(A.fine){ const NF=SND_NF, fo=sp.pack?A.fine.map(y=>sndPackN(y,sp.pack,m.rpm)):A.fine; cycF=Float64Array.from(fo[0]);
+    more.forEach((qq,j)=>{ const o=fo[j+1], sh=qq.dDeg/720*NF; for(let i=0;i<NF;i++){ const x=((i-sh)%NF+NF)%NF, k=Math.floor(x), u=x-k; cycF[i]+=qq.g*(o[k]*(1-u)+o[(k+1)%NF]*u); } }); }
   const base=outs[0], o24=wamInsOrders(base,24,more,m.rpm);
   return Object.assign({name:(label||'Wave model')+' '+m.rpm+(m.pIn>0?' no load':''),rpm:m.rpm,exits:outs.length,src:'wave',pMap:m.pIn>0?m.pIn:null,tq:m.imep*m.Vd/(4*Math.PI)*(sp.nIn||1)},wamInsOrders(base,12,more,m.rpm),
-    {db24:o24.db,spl24:o24.spl1,per:A.spread,spread:A.spread,nAvg:A.n,kf:Math.max(1,Math.round((sp.whole?q.cyl:sp.nIn)/2)),phases:sp.spec&&sp.spec.opt&&sp.spec.opt.phases?sp.spec.opt.phases.slice():null});
+    {db24:o24.db,spl24:o24.spl1,per:A.spread,spread:A.spread,nAvg:A.n,kf:Math.max(1,Math.round((sp.whole?q.cyl:sp.nIn)/2)),phases:sp.spec&&sp.spec.opt&&sp.spec.opt.phases?sp.spec.opt.phases.slice():null,
+     cycF,shell:sp.shell||null,mode:m.mode||null});
 }
 // runs variants [{key,label,parts}] at the speeds; done(sets) with sets [{key,label,what,runs,notes}]
 function wsndJob(variants,done,o){ o=o||{};
@@ -13498,7 +13514,13 @@ function wsndPart(sp){
     '<div class="grid2 u-w640">'+
     '<label class="f"><span class="lab">Engine</span><span class="inp"><select id="wsnd-vary"><option value="1"'+(SND_L.vary?' selected':'')+'>Varies as a running engine does</option><option value="0"'+(SND_L.vary?'':' selected')+'>Every cycle the same (the model’s one cycle)</option></select></span></label>'+
     '<label class="f"><span class="lab">Frequencies</span><span class="inp"><select id="wsnd-band"><option value="1"'+(SND_L.band?' selected':'')+'>Only what the model predicts</option><option value="0"'+(SND_L.band?'':' selected')+'>Everything in its cycle (not all a prediction)</option></select></span></label>'+
-    '<label class="f"><span class="lab">Where you are</span><span class="inp"><select id="wsnd-path"><option value="1"'+(SND_L.path?' selected':'')+'>Standing there: ground reflection, air</option><option value="0"'+(SND_L.path?'':' selected')+'>As the table: hard ground, +6 dB</option></select></span></label>'+
+    '<label class="f"><span class="lab">Where you are</span><span class="inp"><select id="wsnd-path"><option value="behind"'+(SND_L.path&&SND_L.pos==='behind'?' selected':'')+'>Standing behind the car ('+SND_L.behindFt+' ft, '+(SND_L.behindFt*0.3048).toFixed(1)+' m, behind the tips)</option><option value="road"'+(SND_L.path&&SND_L.pos!=='behind'?' selected':'')+'>At the roadside ('+P.ft+' ft, '+(P.ft*0.3048).toFixed(1)+' m, the table’s distance)</option><option value="0"'+(SND_L.path?'':' selected')+'>As the table: hard ground, +6 dB</option></select></span></label>'+
+    '<label class="f"><span class="lab">Behind the car by</span><span class="inp"><input id="wsnd-behind" type="number" step="0.5" min="2" max="40" inputmode="decimal" value="'+SND_L.behindFt+'"><em>ft</em></span></label>'+
+    '<label class="f"><span class="lab">Ground</span><span class="inp"><select id="wsnd-ground">'+Object.keys(SND_GROUND).map(k=>'<option value="'+k+'"'+(SND_L.ground===k?' selected':'')+'>'+esc(SND_GROUND[k].name.charAt(0).toUpperCase()+SND_GROUND[k].name.slice(1))+'</option>').join('')+'</select></span></label>'+
+    '<label class="f"><span class="lab">Cycle detail</span><span class="inp"><select id="wsnd-fine"><option value="1"'+(SND_L.fine?' selected':'')+'>Every solver step (4,096 points a cycle)</option><option value="0"'+(SND_L.fine?'':' selected')+'>720 points a cycle (round one)</option></select></span></label>'+
+    '<label class="f"><span class="lab">Idle</span><span class="inp"><select id="wsnd-idle"><option value="1"'+(SND_L.idle?' selected':'')+'>Measured idle roughness (10 %, slow hunting)</option><option value="0"'+(SND_L.idle?'':' selected')+'>Round one’s figures (8 %)</option></select></span></label>'+
+    '<label class="f"><span class="lab">Muffler case noise</span><span class="inp"><select id="wsnd-shell"><option value="1"'+(SND_L.shell?' selected':'')+'>On: the case’s faces radiate</option><option value="0"'+(SND_L.shell?'':' selected')+'>Off</option></select></span></label>'+
+    '<label class="f"><span class="lab">Solver grid</span><span class="inp"><select id="wsnd-grid"><option value="0.02"'+((WSND.dx||0.02)>0.015?' selected':'')+'>20 mm (to about 3 kHz)</option><option value="0.01"'+((WSND.dx||0.02)<=0.015?' selected':'')+'>10 mm (to about 6 kHz; about 4 times slower)</option></select></span></label>'+
     '<label class="f"><span class="lab">Your ear height</span><span class="inp"><input id="wsnd-ear" type="number" step="0.25" min="0" max="20" inputmode="decimal" value="'+SND_L.earFt+'"><em>ft</em></span></label>'+
     '<label class="f"><span class="lab">Tailpipe tip height</span><span class="inp"><input id="wsnd-tip" type="number" step="0.25" min="0" max="10" inputmode="decimal" value="'+SND_L.tipFt+'"><em>ft</em></span></label></div>'+
     '<p class="cap" id="wsnd-stages">What you hear: <b>the model</b> (the flow leaving the tip, as a point source) '+(SND_L.band?'below the highest frequency the 1-D model stands for (shown after you play: the tip pipe’s first cross mode, the grid or the cycle, whichever is lowest; above it only the jet’s roar is played, nothing is made up)':'with everything in its averaged cycle, including frequencies above what a 1-D model can predict')+'; '+(SND_L.vary?'<b>measured engine statistics</b>: each firing varies by the coefficient of variation of IMEP (Heywood: 1.5 % at full throttle, up to 8 % at a closed-throttle idle), the cylinders differ by 2 %, the speed wanders 1.2 % with no load and 0.3 % under load (the owner’s Outback recordings); ':'no variation (every cycle the same); ')+(SND_L.path?'<b>listening-path physics</b>: you '+SND_L.earFt+' ft ('+(SND_L.earFt*0.3048).toFixed(2)+' m) up and '+P.ft+' ft ('+(P.ft*0.3048).toFixed(1)+' m) away, the tip '+SND_L.tipFt+' ft ('+(SND_L.tipFt*0.3048).toFixed(2)+' m) up, the ground’s reflection (hard ground) and air absorption (ISO 9613-1).':'the table’s reckoning (hard ground, +6 dB).')+' Not in it: case (shell) noise, engine mechanical and intake noise; after a rev it goes back to the idle hold, because a closed-throttle decel is not one of the runs. The dB(A) in the table come from the model alone and do not change with these choices.'+(WSND.lastInfo&&WSND.lastInfo.fLim?' Last played: frequencies up to '+(WSND.lastInfo.fLim/1000).toFixed(1)+' kHz, set by '+esc(WSND.lastInfo.by)+'.':'')+'</p>'+
@@ -13551,6 +13573,68 @@ function wsndSound(runs,how,P){
    Not in it: shell (case) noise, mechanical and intake noise, the overrun after a blip (closed throttle with the engine
    pulled by the car is not one of the runs, so after a rev the sound goes back to the idle hold instead of a decel). */
 const SND_P=4096, SND_COV=[0.015,0.03,0.08], SND_SPREAD=0.02, SND_WANDER={hold:0.012,load:0.003,tau:0.5};
+/* (round 2, docs/SOUND_REALISM_ROUND2_2026-11-21.md) the idle stage: at a closed-throttle idle the coefficient of variation
+   of IMEP is 10 % (Han and Hwang, J. Energy Engineering 22(2), 2013: "slightly under 10 %" at the idle spark timing, 800 RPM;
+   Heywood 9.4 puts the driveability limit at about 10 %), against round one's 8 %; with a normal spread at 10 % the weakest of
+   about a thousand cycles is near 0.7 of the mean, the lowest normalised IMEP Han and Hwang accept, so no separate partial-
+   burn term is added; and the speed hunts as the owner's Outback idle does (tools/sound/analyze.py, 14-26 s of
+   full_idle_revs.wav: 1.36 % RMS, 95 % of it below 1 Hz, 1/e correlation 1.7 s) instead of round one's 0.5 s wander. Both
+   blend in with sndIdleW (closed throttle and below 2,500 RPM). */
+const SND_IDLE={cov:0.10,wander:0.0136,tau:1.7};
+/* (round 2) case (shell) radiation, sound/realism.py's panel model with every odd-odd mode of each flat face: the pressure
+   inside the case pushes each face, a simply supported plate a x b of thickness h; mode (m, n) has modal mass rho h a b / 4,
+   is driven by p 4 a b / (pi^2 m n) and moves a net volume of 4 a b / (pi^2 m n) per unit amplitude, so its volume velocity
+   is j w p (64 a b / (pi^4 m^2 n^2)) / (rho h (w_mn^2 (1 + j eta) - w^2)), w_mn = pi^2 sqrt(D / rho h) (m^2/a^2 + n^2/b^2),
+   D = E h^3 / 12 (1 - nu^2) (Fahy and Gardonio, Sound and Structural Vibration, 2007, ch. 2; summed over the modes it is
+   realism.py's piston form, p / (j w rho h), far above them). The faces are taken as one compact breathing source next to the
+   tip, an equivalent outflow rho0 x their volume velocity, as realism.py adds it; that holds while the case is small next to
+   the wavelength (ka < 1: about 350 Hz for a 12 in case) and is an upper bound above. The pressure inside is the tip's own
+   flow carried back up the tailpipe by its transfer matrix with the open end's radiation (Levine and Schwinger, as
+   installedAL), linear and without mean flow. Wall 1.5 mm (16 gauge) steel and a loss factor 0.03 (realism.py's), assumed:
+   no maker publishes them. A round case is left out: its breathing is stiffness-controlled up to its ring frequency
+   (c_L / pi D, about 9 kHz for a 7 in case). */
+const SND_SHELL={h:1.5e-3,eta:0.03,rho:7850,E:2e11,nu:0.29,modes:9};
+function sndShellGain(W,K){
+  const S=W.shell, J=W.jet; if(!S||!J||!(J.d>0)||!(S.w>0&&S.h>0&&S.L>0)||!J.T||!J.T.length) return null;
+  const Tg=J.T.reduce((a,b)=>a+b,0)/J.T.length, c=Math.sqrt(1.35*287*Tg), rho=101325/(287*Tg), A=Math.PI*J.d*J.d/4, Zc=rho*c/A, a=J.d/2, Lt=Math.max(0,S.tail||0)/1000;
+  const H=SND_SHELL, Dp=H.E*H.h**3/(12*(1-H.nu*H.nu)), mh=H.rho*H.h, faces=[[S.L/1000,S.w/1000],[S.L/1000,S.w/1000],[S.L/1000,S.h/1000],[S.L/1000,S.h/1000]];
+  const re=new Float64Array(K+1), im=new Float64Array(K+1), f11=Math.PI/2*Math.sqrt(Dp/mh)*(1/(S.L/1000)**2+1/(Math.max(S.w,S.h)/1000)**2); let peak=0;
+  for(let k=1;k<=K;k++){ const f=k*W.rpm/120, w=2*Math.PI*f, kk=w/c, ka=Math.min(1.5,kk*a);
+    const R0=Math.min(1,Math.max(0.05,1+0.01336*ka-0.59079*ka*ka+0.33576*ka**3-0.06432*ka**4)), l0=a*(ka<0.5?0.6133-0.1168*ka*ka:0.6393-0.1104*ka);
+    const r=cscale(Cx(Math.cos(2*kk*l0),-Math.sin(2*kk*l0)),-R0), Zr=cscale(cdiv(cadd(C1,r),csub(C1,r)),Zc), U=Cx(1/rho,0);
+    const T=tmSeg(Cx(kk,0),Cx(Zc,0),Lt), pin=cadd(cmul(T[0],cmul(Zr,U)),cmul(T[1],U));
+    let Q=Cx(0,0); faces.forEach(([fa,fb])=>{ for(let m=1;m<=H.modes;m+=2) for(let n=1;n<=H.modes;n+=2){ const wmn=Math.PI*Math.PI*Math.sqrt(Dp/mh)*(m*m/(fa*fa)+n*n/(fb*fb));
+      const den=Cx(mh*(wmn*wmn-w*w),mh*wmn*wmn*H.eta), g=cdiv(Cx(0,w*64*fa*fb/(Math.PI**4*m*m*n*n)),den); Q=cadd(Q,g); } });
+    const h=cscale(cmul(Q,pin),1.2); re[k]=h.re; im[k]=h.im; peak=Math.max(peak,Math.hypot(h.re,h.im)); }
+  return {re,im,info:{f11:Math.round(f11),peak:+(20*Math.log10(peak||1e-30)).toFixed(1)}};
+}
+/* (round 2) the ground's reflection with a finite impedance: Delany and Bazley's one-parameter model (Appl. Acoust. 3,
+   1970), Z / rho c = 1 + 9.08 (f / s)^-0.75 + i 11.9 (f / s)^-0.73 with s the flow resistivity in kPa s / m^2 (exp(-i w t)),
+   as Nord2000 uses it, with its ground classes (Plovsing, Nord2000 ground classes, DELTA AV 1106/06, 2006): class G,
+   "very hard and dense: asphalt, concrete", 20,000; class D, "normal uncompacted ground: pastures, forest floors", 200.
+   The spherical-wave reflection coefficient Q = Rp + (1 - Rp) F(w), Rp = (Z cos t - 1) / (Z cos t + 1), numerical distance
+   w = sqrt(i k r2 / 2) (cos t + 1 / Z), F(w) = 1 + i sqrt(pi) w W(w), W the Faddeeva function (Attenborough, Li and
+   Horoshenkov, Predicting Outdoor Sound, 2007, 2.5), here by Humlicek's W4 rational approximation (JQSRT 27, 1982, about
+   1e-4). ISO 9613-2's hard ground (G = 0) is the mirror, Q = 1, round one's. */
+const SND_GROUND={asphalt:{s:20000,name:'asphalt or concrete (Nord2000 class G)'},grass:{s:200,name:'grass or a field (Nord2000 class D)'},mirror:{s:Infinity,name:'a perfect mirror (ISO 9613-2 G = 0, as round one)'}};
+function sndFaddeeva(x,y){   // W(z) = exp(-z^2) erfc(-i z), z = x + i y; Humlicek W4 for y >= 0, the reflection formula below the axis
+  if(y<0){ const w=sndFaddeeva(-x,-y), e=Math.exp(y*y-x*x), ph=-2*x*y; return {re:2*e*Math.cos(ph)-w.re,im:2*e*Math.sin(ph)-w.im}; }
+  const t=Cx(y,-x), s=Math.abs(x)+y, P=(cs,z)=>{ let r=Cx(cs[cs.length-1],0); for(let i=cs.length-2;i>=0;i--) r=cadd(cmul(r,z),Cx(cs[i],0)); return r; };
+  if(s>=15) return cdiv(cscale(t,0.5641896),cadd(Cx(0.5,0),cmul(t,t)));
+  if(s>=5.5){ const u=cmul(t,t); return cdiv(cmul(t,cadd(Cx(1.410474,0),cscale(u,0.5641896))),cadd(Cx(0.75,0),cmul(u,cadd(Cx(3,0),u)))); }
+  if(y>=0.195*Math.abs(x)-0.176) return cdiv(P([16.4955,20.20933,11.96482,3.778987,0.5642236],t),P([16.4955,38.82363,39.27121,21.69274,6.699398,1],t));
+  const u=cmul(t,t), eu=Math.exp(u.re), ex=Cx(eu*Math.cos(u.im),eu*Math.sin(u.im)), mu=cscale(u,-1);
+  const num=P([36183.31,-3321.9905,1540.787,-219.0313,35.76683,-1.320522,0.56419],u), den=P([32066.6,-24322.84,9022.228,-2186.181,364.2191,-61.57037,1.841439,-1],u);
+  return csub(ex,cdiv(cmul(t,num),den)); }
+// Q at frequency f (Hz) for the image path r2 and cos of the incidence angle; returned in the page's exp(+j w t) convention
+function sndGroundQ(f,r2,cth,key){ const g=SND_GROUND[key]||SND_GROUND.mirror; if(!Number.isFinite(g.s)||!(f>0)) return Cx(1,0);
+  const X=f/g.s, Z=Cx(1+9.08*Math.pow(X,-0.75),11.9*Math.pow(X,-0.73)), Zc=cscale(Z,cth), Rp=cdiv(csub(Zc,C1),cadd(Zc,C1)), k=2*Math.PI*f/343;
+  const sq=Math.sqrt(k*r2/2), wv=cmul(Cx(sq*Math.SQRT1_2,sq*Math.SQRT1_2),cadd(Cx(cth,0),cdiv(C1,Z)));   // sqrt(i) = (1 + i) / sqrt 2
+  const W=sndFaddeeva(wv.re,wv.im), F=cadd(C1,cmul(Cx(0,Math.sqrt(Math.PI)),cmul(wv,W))), Q=cadd(Rp,cmul(csub(C1,Rp),F));
+  return Cx(Q.re,-Q.im); }
+// (round 2) where the listener stands: behind the car (the default for "Hear my exhaust") or at the roadside at the table's
+// distance; both with the ground's reflection; or the table's reckoning
+function sndListenFt(P,L){ L=L||SND_L; return L.path&&L.pos==='behind'?L.behindFt:((P&&P.ft)||25); }
 function sndRng(seed){ let s=(seed>>>0)%2147483647||12345; const u=()=>{ s=(s*16807)%2147483647; return s/2147483647; };
   return {u,g:()=>{ const a=Math.max(1e-12,u()), b=u(); return Math.sqrt(-2*Math.log(a))*Math.cos(2*Math.PI*b); }}; }
 // ISO 9613-1 (1993) pure-tone air absorption, dB per metre; T in K, rh in %, pa in kPa
@@ -13559,17 +13643,21 @@ function sndAirAlpha(f,T,rh,pa){ T=T||293.15; rh=rh==null?70:rh; pa=pa||101.325;
   const frO=pr*(24+4.04e4*h*(0.02+h)/(0.391+h)), frN=pr*Math.pow(T/T0,-0.5)*(9+280*h*Math.exp(-4.170*(Math.pow(T/T0,-1/3)-1)));
   return 8.686*f*f*(1.84e-11/pr*Math.sqrt(T/T0)+Math.pow(T/T0,-2.5)*(0.01275*Math.exp(-2239.1/T)/(frO+f*f/frO)+0.1068*Math.exp(-3352/T)/(frN+f*f/frN))); }
 // the highest frequency a run's cycle stands for (stage 1 above): Hz, and each limit
-function sndLimit(W,dx){
+function sndLimit(W,dx,K){
   const J=W.jet, T=J&&J.T&&J.T.length?J.T.reduce((a,b)=>a+b,0)/J.T.length:600, c=Math.sqrt(1.35*287*Math.max(250,T)), D=J&&J.d>0?J.d:0.06;
-  const cross=1.84*c/(Math.PI*D), grid=c/(8*(dx||0.02)), cyc=359*W.rpm/120;
-  const f=Math.min(cross,grid,cyc), by=f===cross?'the tip pipe’s first cross mode':f===grid?'the solver’s grid (8 cells a wavelength)':'the 720-point cycle';
+  const cross=1.84*c/(Math.PI*D), grid=c/(8*(dx||0.02)), cyc=(K||359)*W.rpm/120;
+  const f=Math.min(cross,grid,cyc), by=f===cross?'the tip pipe’s first cross mode':f===grid?'the solver’s grid (8 cells a wavelength)':K&&K!==359?'the recorded cycle':'the 720-point cycle';
   return {f,cross,grid,cyc,c,D,T,by};
 }
 // one run made ready to play: its harmonics (720-point cycle, mean taken off), the firing windows, the jet's envelope
-function sndPrep(W,dx){
+function sndPrep(W,dx,po){
   const N=720, y=W.cyc, m=y.slice(0,N).reduce((a,b)=>a+b,0)/N, dev=new Float64Array(N); for(let i=0;i<N;i++) dev[i]=y[i]-m;
-  const K=359, Yr=new Float64Array(K+1), Yi=new Float64Array(K+1);
-  for(let k=1;k<=K;k++){ let re=0,im=0; for(let i=0;i<N;i++){ const a=2*Math.PI*k*i/N; re+=dev[i]*Math.cos(a); im-=dev[i]*Math.sin(a); } Yr[k]=re; Yi[k]=im; }
+  const fine=!!(po&&po.fine&&W.cycF&&W.cycF.length>N);
+  let K=359, Yr=new Float64Array(K+1), Yi=new Float64Array(K+1), NN=N;
+  if(fine){ NN=W.cycF.length; K=NN/2-1; const re=Float64Array.from(W.cycF), im=new Float64Array(NN); let mf=0; for(let i=0;i<NN;i++) mf+=re[i]/NN; for(let i=0;i<NN;i++) re[i]-=mf;
+    fftIP(re,im,false); Yr=re.slice(0,K+1); Yi=im.slice(0,K+1); Yr[0]=0; Yi[0]=0; }
+  else for(let k=1;k<=K;k++){ let re=0,im=0; for(let i=0;i<N;i++){ const a=2*Math.PI*k*i/N; re+=dev[i]*Math.cos(a); im-=dev[i]*Math.sin(a); } Yr[k]=re; Yi[k]=im; }
+  let shell=null; if(po&&po.shell&&W.shell){ shell=sndShellGain(W,K); if(shell) for(let k=1;k<=K;k++){ const a=Yr[k], b=Yi[k], gr=1+shell.re[k], gi=shell.im[k]; Yr[k]=a*gr-b*gi; Yi[k]=a*gi+b*gr; } }
   // the firings: the engine's own phases (deg), placed where the outflow's pulse energy lines up best with them
   const nf0=2*(W.kf||2), ph=(W.phases&&W.phases.length?W.phases:Array.from({length:nf0},(_,i)=>i*720/nf0)).map(a=>((a%720)+720)%720/720);
   const e=new Float64Array(N); for(let i=0;i<N;i++){ let s=0; for(let j=-6;j<=6;j++){ const v=dev[(i+j+N)%N]; s+=v*v; } e[i]=s; }
@@ -13583,9 +13671,11 @@ function sndPrep(W,dx){
   let jet=null; const J=W.jet;
   if(J&&J.u&&J.u.length===N){ const wj=J.u.map((U,i)=>jetPower(U,J.T[i],J.d)), wm=wj.reduce((a,b)=>a+b,0)/N;
     jet={W:wm,env:Float32Array.from({length:P},(_,k)=>{ const x=k*N/P, j=Math.floor(x), u=x-j; return Math.sqrt(((wj[j]*(1-u)+wj[(j+1)%N]*u))/(wm||1e-30)); }),U:Math.pow(J.u.reduce((a,U)=>a+Math.pow(Math.abs(U),8),0)/N,1/8),d:J.d}; }
-  return {rpm:W.rpm,Yr,Yi,ev,Wt,dWt,jet,lim:sndLimit(W,dx),pr:W.pMap>0?Math.min(1,W.pMap/101325):1};
+  return {rpm:W.rpm,Yr,Yi,N:NN,K,ev,Wt,dWt,jet,lim:sndLimit(W,dx,K),pr:W.pMap>0?Math.min(1,W.pMap/101325):1,shell:shell&&shell.info,mode:W.mode||null};
 }
-const sndCov=(pr,rpm)=>{ const ul=Math.max(0,Math.min(1,(1-pr)/0.8)), us=Math.max(0,Math.min(1,(2500-rpm)/1500)); return SND_COV[0]+(SND_COV[1]-SND_COV[0])*ul+(SND_COV[2]-SND_COV[1])*ul*us; };
+// how far a run is toward a closed-throttle idle: 0 at full throttle or 2,500 RPM and up, 1 at 20 kPa and 1,000 RPM
+const sndIdleW=(pr,rpm)=>Math.max(0,Math.min(1,(1-pr)/0.8))*Math.max(0,Math.min(1,(2500-rpm)/1500));
+const sndCov=(pr,rpm,idle)=>{ const ul=Math.max(0,Math.min(1,(1-pr)/0.8)), us=Math.max(0,Math.min(1,(2500-rpm)/1500)), top=idle?SND_IDLE.cov:SND_COV[2]; return SND_COV[0]+(SND_COV[1]-SND_COV[0])*ul+(top-SND_COV[1])*ul*us; };
 // the sound of prepared runs R (sorted by rpm) along rpmAt(t): {x: tonal d(mdot)/dt, jet: the same units, info}.
 // o: {sr, n samples, rpmAt(t s), vary (cycle and cylinder variation on), seed, band (false: no band limit, for the A/B)}
 function sndSynth(R,o){
@@ -13596,14 +13686,14 @@ function sndSynth(R,o){
   const blk=Math.max(1,Math.round(0.02*sr)), re=new Float64Array(P), im=new Float64Array(P), dr=new Float64Array(P), di=new Float64Array(P), D=new Float64Array(P), dD=new Float64Array(P);
   let th=0, kmaxUsed=0, fLim=Infinity; const allJet=R.every(q=>q.jet);
   for(let b0=0;b0<n;b0+=blk){ const b1=Math.min(n,b0+blk), rm=o.rpmAt((b0+b1)/2/sr), [a,b,u]=between(rm), h=rm/120;
-    const lim=Math.min(a.lim.f,b.lim.f), K=o.band===false?359:Math.max(1,Math.min(359,Math.floor(lim/h))); kmaxUsed=Math.max(kmaxUsed,K); fLim=Math.min(fLim,lim);
+    const Km=Math.min(a.K||359,b.K||359), na=a.N||720, nb=b.N||720, lim=Math.min(a.lim.f,b.lim.f), K=o.band===false?Km:Math.max(1,Math.min(Km,Math.floor(lim/h))); kmaxUsed=Math.max(kmaxUsed,K); fLim=Math.min(fLim,lim);
     re.fill(0); im.fill(0); dr.fill(0); di.fill(0);
-    for(let k=1;k<=K;k++){ const ma=Math.hypot(a.Yr[k],a.Yi[k])+1e-30, mb=Math.hypot(b.Yr[k],b.Yi[k])+1e-30, pa=Math.atan2(a.Yi[k],a.Yr[k]), pb=Math.atan2(b.Yi[k],b.Yr[k]);
-      let dp=pb-pa; dp=((dp+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI; const mg=Math.exp(Math.log(ma)+u*(Math.log(mb)-Math.log(ma)))*2/N, p=pa+u*dp;
+    for(let k=1;k<=K;k++){ const ma=(Math.hypot(a.Yr[k],a.Yi[k])+1e-30)*(na===nb?1:720/na), mb=(Math.hypot(b.Yr[k],b.Yi[k])+1e-30)*(na===nb?1:720/nb), pa=Math.atan2(a.Yi[k],a.Yr[k]), pb=Math.atan2(b.Yi[k],b.Yr[k]);
+      let dp=pb-pa; dp=((dp+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI; const mg=Math.exp(Math.log(ma)+u*(Math.log(mb)-Math.log(ma)))*2/(na===nb?na:N), p=pa+u*dp;
       re[k]=mg*Math.cos(p)*0.5*P; im[k]=mg*Math.sin(p)*0.5*P; dr[k]=-2*Math.PI*k*im[k]; di[k]=2*Math.PI*k*re[k]; }
     // real part of the inverse transform with the positive half only, times two: the band-limited cycle and its slope (per cycle)
     fftIP(re,im,true); fftIP(dr,di,true); for(let i=0;i<P;i++){ D[i]=2*re[i]; dD[i]=2*dr[i]; }
-    const cov=o.covFix!=null?o.covFix:o.vary?sndCov(a.pr+u*(b.pr-a.pr),rm):0;
+    const cov=o.covFix!=null?o.covFix:o.vary?sndCov(a.pr+u*(b.pr-a.pr),rm,o.idle):0;
     const jW=allJet?Math.exp(Math.log(a.jet.W||1e-30)+u*(Math.log(b.jet.W||1e-30)-Math.log(a.jet.W||1e-30))):0, near=u<0.5?a:b;
     for(let i=b0;i<b1;i++){ const r=o.rpmAt(i/sr), hz=r/120; th+=hz/sr; const f=th-Math.floor(th), xi=f*P, j=Math.floor(xi), t=xi-j;
       const j0=(j-1+P)%P, j1=j%P, j2=(j+1)%P, j3=(j+2)%P;
@@ -13625,49 +13715,57 @@ function sndSynth(R,o){
 // the speed against time: a hold with its wander, or the walk-round "idle, a rev and back" (stage 2)
 function sndTrack(how,rpms,dur,o,seed){
   const rng=sndRng((seed||12345)+7), dt=0.01, M=Math.ceil(dur/dt)+2, w=new Float64Array(M), sd=o.load?SND_WANDER.load:SND_WANDER.hold, a=Math.exp(-dt/SND_WANDER.tau);
-  for(let i=1;i<M;i++) w[i]=a*w[i-1]+(o.vary?sd:0)*Math.sqrt(1-a*a)*rng.g();
-  const wav=t=>{ const x=t/dt, i=Math.min(M-2,Math.floor(x)), u=x-i; return w[i]*(1-u)+w[i+1]*u; };
   let base;
+  const wav=t=>{ const x=t/dt, i=Math.min(M-2,Math.floor(x)), u=x-i; return w[i]*(1-u)+w[i+1]*u; };
+  const fill=()=>{ if(!o.idleW) for(let i=1;i<M;i++) w[i]=a*w[i-1]+(o.vary?sd:0)*Math.sqrt(1-a*a)*rng.g();
+    // (round 2) the idle stage: toward a closed-throttle idle the wander takes the measured idle's slower hunting (SND_IDLE)
+    else for(let i=1;i<M;i++){ const q=o.idleW(base(i*dt)), tau=SND_WANDER.tau+(SND_IDLE.tau-SND_WANDER.tau)*q, s=sd+(SND_IDLE.wander-sd)*q, ai=Math.exp(-dt/tau); w[i]=ai*w[i-1]+(o.vary?s:0)*Math.sqrt(1-ai*ai)*rng.g(); } };
   if(how==='show'){ const lo=rpms[0], mid=rpms[Math.min(1,rpms.length-1)], hi=rpms[rpms.length-1];
     // idle 2.5 s, up to the middle speed in 1 s, held 1.5 s, up to the top in 0.8 s, held 1 s; then the idle hold again (no decel)
     const K=[[0,lo],[2.5,lo],[3.5,mid],[5,mid],[5.8,hi],[6.8,hi]], sm=v=>v*v*(3-2*v);
     base=t=>{ if(t>=6.8) return hi; for(let i=0;i<K.length-1;i++) if(t<=K[i+1][0]) return K[i][1]+(K[i+1][1]-K[i][1])*sm((t-K[i][0])/((K[i+1][0]-K[i][0])||1)); return hi; };
   } else if(how==='pull'){ const r0=o.r0, r1=o.r1; base=t=>r0+(r1-r0)*t/dur; }
   else { const r=rpms[0]; base=()=>r; }
-  return t=>base(t)*(1+wav(t));
+  fill(); return t=>base(t)*(1+wav(t));
 }
 // the listening path (stage 3) on a whole signal by one transform: ground image source and air absorption.
 // d: horizontal distance (m), hs tip height, hr ear height (m)
-function sndPath(x,sr,d,hs,hr,on){
-  const r1=Math.hypot(d,hr-hs), r2=Math.hypot(d,hr+hs), k=1/(4*Math.PI*r1);
+function sndPath(x,sr,d,hs,hr,on,ground){
+  const r1=Math.hypot(d,hr-hs), r2=Math.hypot(d,hr+hs), k=1/(4*Math.PI*r1), gq=ground&&ground!=='mirror'&&SND_GROUND[ground], cth=(hs+hr)/r2;
   if(!on){ const y=new Float32Array(x.length); for(let i=0;i<x.length;i++) y[i]=x[i]*2/(4*Math.PI*d); return {y,r1,r2,tau:0}; }   // as the table reckons it: free field x 2
   let n=1; while(n<x.length+Math.ceil(0.05*sr)) n<<=1; const re=new Float64Array(n), im=new Float64Array(n); for(let i=0;i<x.length;i++) re[i]=x[i];
   fftIP(re,im,false); const tau=(r2-r1)/343, g=r1/r2;
   for(let i=0;i<n;i++){ const kk=Math.min(i,n-i), f=kk*sr/n, w=2*Math.PI*f*(i<=n/2?1:-1);
     const A=Math.pow(10,-sndAirAlpha(f)*r1/20), Ar=Math.pow(10,-sndAirAlpha(f)*r2/20)*g;
-    const hr_=A+Ar*Math.cos(w*tau), hi_=-Ar*Math.sin(w*tau), a=re[i], b=im[i]; re[i]=(a*hr_-b*hi_)*k; im[i]=(a*hi_+b*hr_)*k; }
+    let hr_=A+Ar*Math.cos(w*tau), hi_=-Ar*Math.sin(w*tau);
+    if(gq){ const Q=sndGroundQ(f,r2,cth,ground), qi=i<=n/2?Q.im:-Q.im, cr=Math.cos(w*tau), ci=-Math.sin(w*tau); hr_=A+Ar*(Q.re*cr-qi*ci); hi_=Ar*(Q.re*ci+qi*cr); }
+    const a=re[i], b=im[i]; re[i]=(a*hr_-b*hi_)*k; im[i]=(a*hi_+b*hr_)*k; }
   fftIP(re,im,true); const y=new Float32Array(x.length); for(let i=0;i<x.length;i++) y[i]=re[i]; return {y,r1,r2,tau};
 }
 // the sound tab's player: runs (wsndEntry rows with cyc), how 'hold' | 'show' | 'pull' | 'pass' | 'pullpass', P the
 // play settings. Returns {x (Pa at the listener), sr, info}
-const SND_L={vary:true,band:true,path:true,earFt:5.25,tipFt:1.0,seed:12345};
+const SND_L={vary:true,band:true,path:true,earFt:5.25,tipFt:1.0,seed:12345,
+  // (round 2) each new stage switchable; all off is round one's sound exactly
+  fine:true,pos:'behind',behindFt:6,ground:'asphalt',idle:true,shell:true};
 function wsndRender(runs,how,P){
   const sr=48000, ok=runs.filter(x=>!x.err&&x.cyc).sort((a,b)=>a.rpm-b.rpm); if(!ok.length) return null;
-  const L=Object.assign({},SND_L,P.listen||{}), d=(P.ft||25)*0.3048, R0=ok.map(w=>sndPrep(w,WSND.dx)), load=!ok.some(w=>w.pMap>0);
+  const L=Object.assign({},SND_L,P.listen||{}), d=sndListenFt(P,L)*0.3048, dRoad=(P.ft||25)*0.3048, R0=ok.map(w=>sndPrep(w,WSND.dx,{fine:L.fine,shell:L.shell})), load=!ok.some(w=>w.pMap>0);
   let R=R0, dur, rpms=ok.map(w=>w.rpm), opt={vary:L.vary,load};
   if(how==='hold'||how==='pass'){ const W=ok.find(x=>x.rpm===P.rpm)||ok[0]; R=[R0[ok.indexOf(W)]]; rpms=[W.rpm]; dur=P.seconds||(how==='pass'?8:4); }
   else if(how==='show') dur=6.8;
   else { dur=P.seconds||6; opt.r0=P.pull0||ok[0].rpm; opt.r1=P.pull1||ok[ok.length-1].rpm; }
+  if(L.idle&&!load){ const pr=r=>{ if(R.length===1||r<=R[0].rpm) return R[0].pr; if(r>=R[R.length-1].rpm) return R[R.length-1].pr; let i=0; while(R[i+1].rpm<r) i++; const u=(r-R[i].rpm)/(R[i+1].rpm-R[i].rpm); return R[i].pr+u*(R[i+1].pr-R[i].pr); };
+    opt.idleW=r=>sndIdleW(pr(r),r); }
   const rpmAt=sndTrack(how==='pullpass'?'pull':how==='pass'?'hold':how,rpms,dur,opt,L.seed);
-  const n=Math.round(dur*sr), S=sndSynth(R,{sr,n,rpmAt,vary:L.vary,seed:L.seed,band:L.band,jet:P.jet});
+  const n=Math.round(dur*sr), S=sndSynth(R,{sr,n,rpmAt,vary:L.vary,seed:L.seed,band:L.band,jet:P.jet,idle:L.idle});
   let x;
-  if(how==='pass'||how==='pullpass'){ const k=2/(4*Math.PI*d), t=Float32Array.from(S.x,v=>v*k), j=S.jet?Float32Array.from(S.jet,v=>v*k):null; x=recPassby(t,j,sr,P.mph*0.44704,d,S.Ueff||0); }
+  if(how==='pass'||how==='pullpass'){ const k=2/(4*Math.PI*dRoad), t=Float32Array.from(S.x,v=>v*k), j=S.jet?Float32Array.from(S.jet,v=>v*k):null; x=recPassby(t,j,sr,P.mph*0.44704,dRoad,S.Ueff||0); }
   else { const s=Float32Array.from(S.x); if(S.jet) for(let i=0;i<n;i++) s[i]+=S.jet[i];
-    x=sndPath(s,sr,d,L.tipFt*0.3048,L.earFt*0.3048,L.path).y; }
+    x=sndPath(s,sr,d,L.tipFt*0.3048,L.earFt*0.3048,L.path,L.ground).y; }
   // after the rev, the idle hold again (stage notes: no decel modelled): the idle part repeated with a short cross-fade
   if(how==='show'){ const i0=Math.round(0.2*sr), m=Math.round(2.3*sr), cf=Math.round(0.25*sr), out=new Float32Array(x.length+m-cf);
     out.set(x); const st=x.length-cf; for(let i=0;i<m;i++){ const v=x[i0+i], w=i<cf?i/cf:1; out[st+i]=(i<cf?out[st+i]*(1-w):0)+v*w; } x=out; }
-  return {x,sr,info:Object.assign(S.info,{how,dur:x.length/sr,vary:L.vary,band:L.band,path:L.path,cov:L.vary?R.map(q=>+(100*sndCov(q.pr,q.rpm)).toFixed(1)):[0],wander:L.vary?100*(load?SND_WANDER.load:SND_WANDER.hold):0,ear:L.earFt,tip:L.tipFt})};
+  return {x,sr,info:Object.assign(S.info,{how,dur:x.length/sr,vary:L.vary,band:L.band,path:L.path,fine:L.fine,pos:L.path?L.pos:'table',ft:+(d/0.3048).toFixed(2),ground:L.path?L.ground:'table',idle:L.idle,shell:L.shell?R.map(q=>q.shell):null,cov:L.vary?R.map(q=>+(100*sndCov(q.pr,q.rpm,L.idle)).toFixed(1)):[0],wander:L.vary?100*(load?SND_WANDER.load:SND_WANDER.hold):0,idleHunt:L.vary&&L.idle&&!load?R.map(q=>+(100*(SND_WANDER.hold+(SND_IDLE.wander-SND_WANDER.hold)*sndIdleW(q.pr,q.rpm))).toFixed(2)):null,ear:L.earFt,tip:L.tipFt})};
 }
 /* ===== where you are listening: a space added to the played sound, for listening only (2026-11-21) =====
    Each space is a box of stated size; every face is a surface material or open air. Its impulse response is made here,
@@ -13746,7 +13844,7 @@ function sndConvolve(x,h){ let N=1; while(N<x.length+h.length) N<<=1;
   const ar=new Float64Array(N), ai=new Float64Array(N), br=new Float64Array(N), bi=new Float64Array(N); ar.set(x); br.set(h);
   fftIP(ar,ai,false); fftIP(br,bi,false); for(let k=0;k<N;k++){ const r=ar[k]*br[k]-ai[k]*bi[k], i=ar[k]*bi[k]+ai[k]*br[k]; ar[k]=r; ai[k]=i; }
   fftIP(ar,ai,true); return Float32Array.from(ar.subarray(0,x.length+h.length-1)); }
-function sndVerbIR(P){ const L=Object.assign({},SND_L,P&&P.listen||{}), d=((P&&P.ft)||25)*0.3048;
+function sndVerbIR(P){ const L=Object.assign({},SND_L,P&&P.listen||{}), d=sndListenFt(P,L)*0.3048;
   if(SND_V.space==='custom') return SND_VC.custom&&SND_VC.custom.sr===((P&&P.sr)||48000)?SND_VC.custom:null;
   return sndSpaceIR(SND_V.space,d,L.tipFt*0.3048,L.earFt*0.3048,(P&&P.sr)||48000); }
 function sndVerb(x,P){ const ir=sndVerbIR(P); if(!ir) return null; const g=Math.pow(10,(SND_V.wet||0)/20);
@@ -13839,7 +13937,11 @@ document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   if(t.id==='wsnd-space'){ SND_V.space=t.value; renderActive(); return; }
   if(t.id==='wsnd-wet'){ const v=+t.value; if(v>=-30&&v<=6) SND_V.wet=v; renderActive(); return; }
   if(t.id==='wsnd-irfile'&&t.files&&t.files[0]){ const f=t.files[0]; sndLoadIR(f).then(()=>renderActive(),e=>{ const el=$('wsnd-play-msg'); if(el) el.textContent='Could not read that impulse response: '+(e&&e.message||e); }); return; }
-  if(t.id==='wsnd-vary'||t.id==='wsnd-band'||t.id==='wsnd-path'){ SND_L[t.id.slice(5)]=t.value==='1'; renderActive(); return; }
+  if(t.id==='wsnd-vary'||t.id==='wsnd-band'||t.id==='wsnd-fine'||t.id==='wsnd-idle'||t.id==='wsnd-shell'){ SND_L[t.id.slice(5)]=t.value==='1'; renderActive(); return; }
+  if(t.id==='wsnd-path'){ SND_L.path=t.value!=='0'; if(t.value!=='0') SND_L.pos=t.value; renderActive(); return; }
+  if(t.id==='wsnd-ground'){ if(SND_GROUND[t.value]) SND_L.ground=t.value; renderActive(); return; }
+  if(t.id==='wsnd-behind'){ const v=+t.value; if(v>=2&&v<=40) SND_L.behindFt=v; renderActive(); return; }
+  if(t.id==='wsnd-grid'){ const v=+t.value; if(v===0.02||v===0.01) WSND.dx=v; renderActive(); return; }
   if(t.id==='wsnd-ear'||t.id==='wsnd-tip'){ const v=+t.value; if(v>=0&&v<=20) SND_L[t.id==='wsnd-ear'?'earFt':'tipFt']=v; renderActive(); return; }
   if(t.id==='wsnd-src') WSND.src=t.value; else if(t.id==='wsnd-rpm') P.rpm=+t.value; else if(t.id==='wsnd-jet') P.jet=t.value==='1'; else if(t.id==='wsnd-how') P.how=t.value;
   else if(t.id==='wsnd-mph'){ const v=+t.value; if(v>=5&&v<=150) P.mph=v; } else if(t.id==='wsnd-ft'){ const v=+t.value; if(v>=3&&v<=300) P.ft=v; }
@@ -13847,7 +13949,7 @@ document.addEventListener('change',e=>{ const t=e.target, P=WSND.play;
   renderActive(); });
 window.__calcAbsorb=calcAbsorb;
 window.__intakeK={bendK,craneEntryK,bendsOf};
-window.__wsnd={calcPlace:p=>calcPlace(p),QUICK_TPIPE,wsndCompare,wsndCmpKinds,wsndJob,wsndPlayList,SND_V,SND_VC,SND_SPACES,sndSpaceIR,sndEyring,sndSchroeder,sndConvolve,sndVerb,sndLoadIR,wavPcm16st,wsndAutoSys,wsndListen,wsndListenRpms,wsndPlayingHtml,wsndRender,sndPrep,sndLimit,sndSynth,sndPath,sndAirAlpha,sndTrack,SND_L,wsndWholeSpec,state:()=>({HDR_LAST,QLAST,CROSS_LAST,WAM_UI,WAM_MIC}),simInp:()=>SIM.inp,wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
+window.__wsnd={calcPlace:p=>calcPlace(p),sndFaddeeva,sndGroundQ,SND_GROUND,SND_IDLE,SND_SHELL,sndShellGain,sndListenFt,sndIdleW,sndCov,SND_NF,QUICK_TPIPE,wsndCompare,wsndCmpKinds,wsndJob,wsndPlayList,SND_V,SND_VC,SND_SPACES,sndSpaceIR,sndEyring,sndSchroeder,sndConvolve,sndVerb,sndLoadIR,wavPcm16st,wsndAutoSys,wsndListen,wsndListenRpms,wsndPlayingHtml,wsndRender,sndPrep,sndLimit,sndSynth,sndPath,sndAirAlpha,sndTrack,SND_L,wsndWholeSpec,state:()=>({HDR_LAST,QLAST,CROSS_LAST,WAM_UI,WAM_MIC}),simInp:()=>SIM.inp,wavPcm16,wsndSaveWav,WSND,wsndSpeedRun,wsndAvg,wamInsOrders,WS,wsndSpec,wsndExt,wsndSteps,wsndRun,wsndParts,wsndMisfire,wsndDeadOpts,wsndDead,wsndKeep,wsndRuns,wsndHold,wsndEntry,wsndPlay,wsndSound};
 
 /* ===== primary size, headers and crossover ===== */
 const cdim=mm=>{const v=L(mm,'d');return v.n+' '+v.u+' ('+v.a+')';};
@@ -29223,7 +29325,7 @@ const PROJ_UI={   // the per-section settings kept with a project: [object, keys
   wam:[WAM_UI,['msg','ins']], dyno:[DYNO_UI,['msg']], opt:[OPT_UI,['msg']], cfd:[CFD_UI,['msg']], exh:[EXH_UI,['msg','stl']],
   es:[ES_UI,['msg','clips']], goals:[OPT_STATE,[]], heat:[HEAT_UI,[]], tso:[TSO,[]], mfd:[MFD_UI,['open','fx']],
   cmap:[CMAP,['tool']],   // Your compressor map: calibration, marked points and typed values; never the image (cmapAfterLoad)
-  snd:[WSND,null,['rpms','load','dead','sysMode']],   // sysMode (2026-11-21): the system to hear, the one played or open headers
+  snd:[WSND,null,['rpms','load','dead','sysMode','dx']],   // dx (round 2): the solver grid for the sound runs   // sysMode (2026-11-21): the system to hear, the one played or open headers
   sndl:[SND_L,[]],
   sndv:[SND_V,[]],   // (2026-11-21) the Reverb switch, the space and its level (a new key; a loaded impulse response is never saved)   // (2026-11-21) how the sound is played: variation, band limit, listening position (a new key; older projects keep the defaults)   // the sound estimate's speeds, load and misfire choice (2026-11-16); never its results
   aug:[AUG,[]],   // the Mufflers tab's auger designer (2026-11-16: was not saved)
