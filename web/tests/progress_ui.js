@@ -159,7 +159,7 @@ const mono = a => a.every((x, i) => i === 0 || x >= a[i - 1]);
     await pg.click('button[data-runcancel="tsim"]'); await settle(pg); await pg.waitForTimeout(200);
     const C = await bar(pg, 'tsim'), M = await pg.evaluate(() => window.__pmOff('tsim'));
     ok(M.st[0] === 'run ind' && /^Boost simulation: starting · working; how far it has got is not known/.test(M.txt[0] || '') || M.st.includes('run'), 'boost simulation: starts with no fraction ("' + M.txt[0] + '"), then counts (' + M.st.join(' → ') + ')');
-    ok(B && /^Boost simulation.* · step \d+ of \d+ · \d+ %/.test(B.txt) && mono(M.v), 'its label: "' + (B && B.txt) + '"; the value never goes down');
+    ok(B && /^Boost simulation · step \d+ of \d+ · \d+ %/.test(B.txt) && mono(M.v), 'its label: "' + (B && B.txt) + '"; the value never goes down');
     ok(C && /^stop/.test(C.st) && /^Boost simulation · cancelled at step \d+ of \d+/.test(C.txt), 'Cancel: "' + (C && C.txt) + '"');
     await pg.context().close();
   }
@@ -221,14 +221,14 @@ const mono = a => a.every((x, i) => i === 0 || x >= a[i - 1]);
     }
     // OpenFOAM (the intake CFD's path: its message, then the run): no fraction, named steps and iterations; then a failure
     await pg.evaluate(() => { location.hash = 'intake'; }); await settle(pg);
-    const run = () => pg.evaluate(() => { cfdMsg('Running the stand-in case in OpenFOAM on this PC.'); window.__pmOn('cfd'); return hostRun('cfd', 'runOpenFOAM', { name: 'stub', files: [] }, () => {}).then(r => { if (!r.ok) cfdMsg('OpenFOAM: ' + r.msg, true); return r.ok; }, e => e.message); });
+    const run = () => pg.evaluate(() => { const P = window.__prog; P.cfdMsg('Running the stand-in case in OpenFOAM on this PC.'); const m = document.getElementById('cfd-msg'), dt = m && m.closest('details'); if (dt) dt.open = true; window.__pmOn('cfd'); return P.hostRun('cfd', 'runOpenFOAM', { name: 'stub', files: [] }, () => {}).then(r => { if (!r.ok) P.cfdMsg('OpenFOAM: ' + r.msg, true); return r.ok; }, e => e.message); });
     const pr = run();
     await pg.waitForFunction(() => { const d = document.querySelector('.prog[data-prog="cfd"]'); return d && /iteration/.test(d.textContent); }, null, { timeout: 10000 }).catch(() => {});
     const I = await bar(pg, 'cfd');
     await shot(pg, 'cfd', 'indeterminate-1440-' + scheme + (motion === 'reduce' ? '-reduced' : ''));
     await pr; await settle(pg);
     const Mi = await pg.evaluate(() => window.__pmOff('cfd'));
-    ok(I && I.st === 'run ind' && I.now === null && /^Intake CFD in OpenFOAM: OpenFOAM rhoSimpleFoam, iteration 400 \(at most 4,000\) · working; how far it has got is not known/.test(I.txt) && Mi.v.length === 0,
+    ok(I && I.st === 'run ind' && I.now === null && /^Intake CFD in OpenFOAM: rhoSimpleFoam, iteration 400 \(at most 4,000\) · working; how far it has got is not known/.test(I.txt) && Mi.v.length === 0,
       'OpenFOAM (' + scheme + '): an indeterminate bar with no aria-valuenow and no percentage: "' + (I && I.txt) + '"');
     ok(I && (motion === 'reduce' ? I.anim === 'none' : I.anim === 'prog-run'), 'the stripe ' + (motion === 'reduce' ? 'stands still under reduced motion' : 'moves') + ' (animation ' + (I && I.anim) + ')');
     ok(await pg.evaluate(() => !document.querySelector('.prog[data-prog="cfd"]')), 'it goes when the run is done');
@@ -246,7 +246,7 @@ const mono = a => a.every((x, i) => i === 0 || x >= a[i - 1]);
       window.adsk = { fusionSendData: (a, d) => a === 'route' ? new Promise(r => setTimeout(() => r(JSON.stringify(window.__fxAns)), window.__fxDelay)) : JSON.stringify({ ok: false, msg: 'stand-in' }) }; };
     const pg = await open(1440, 'headers', { init: FX });
     await pg.evaluate(() => { const a = document.createElement('div'); a.className = 'actions'; a.id = 't-act'; a.innerHTML = '<button type="button" class="btn" id="t-btn">Build in Fusion</button>'; document.querySelector('#panel-headers').prepend(a);
-      document.getElementById('t-btn').addEventListener('click', () => { window.__fxP = fusionCall('route', {}); }); });
+      document.getElementById('t-btn').addEventListener('click', () => { window.__fxP = window.__prog.fusionCall('route', {}); }); });
     const seen = async () => { await pg.click('#t-btn'); const t0 = Date.now(); let first = null, st = null;
       while (Date.now() - t0 < 4000) { const s = await pg.evaluate(() => { const d = document.querySelector('.prog[data-prog="fx"]'); return d ? [d.dataset.st, d.textContent, d.previousElementSibling && d.previousElementSibling.id] : null; });
         if (s && first == null) first = [Date.now() - t0, s]; if (s) st = s; if (!s && first && /^run/.test(first[1][0]) && Date.now() - t0 > 1400) break; await pg.waitForTimeout(40); }

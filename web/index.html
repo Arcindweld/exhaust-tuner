@@ -21489,7 +21489,7 @@ function tsimStart(){
   const job=tsimJob(P);
   const done=out=>{ if(id!==TSIM.run) return; TSIM.status='done'; progEnd('tsim','done'); TSIM.res=out; TSIM.key=P.key; TSIM.resPlan=P; TSIM.msg=''; TSIM_LAST={key:P.key,plan:P,out,sum:tsimSummary(P,out)};
     if(TSIM.worker){ try{ TSIM.worker.terminate(); }catch(e){} TSIM.worker=null; } renderActive(); };
-  const prog=(i,n,label)=>{ if(id!==TSIM.run) return; TSIM.msg=label?label+' ('+Math.round(100*(i+1)/n)+'%)':'Running speed '+(i<P.rpms.length?(i+1)+' of '+P.rpms.length+' with the '+(P.turbo?'turbo (finding the turbine’s area and the gate)':'supercharger'):i<2*P.rpms.length?(i-P.rpms.length+1)+' of '+P.rpms.length+' without boost':(i-2*P.rpms.length+1)+' of '+P.rpms.length+' with the boost and no turbine')+' ('+Math.round(100*(i+1)/n)+'%)'; const el=$('tsim-status'); if(el){ el.textContent=TSIM.msg; runPct(el); } progSet('tsim',i+1,n); };
+  const prog=(i,n,label)=>{ if(id!==TSIM.run) return; TSIM.msg=label?label+' ('+Math.round(100*(i+1)/n)+'%)':'Running speed '+(i<P.rpms.length?(i+1)+' of '+P.rpms.length+' with the '+(P.turbo?'turbo (finding the turbine’s area and the gate)':'supercharger'):i<2*P.rpms.length?(i-P.rpms.length+1)+' of '+P.rpms.length+' without boost':(i-2*P.rpms.length+1)+' of '+P.rpms.length+' with the boost and no turbine')+' ('+Math.round(100*(i+1)/n)+'%)'; const el=$('tsim-status'); if(el){ el.textContent=TSIM.msg; runPct(el); } progSet('tsim',i+1,n,''); };
   const local=()=>{ setTimeout(()=>{ if(id!==TSIM.run) return; try{ const TL=turboSimLib(WS,null); done(tsimRun(TL,job,m=>{ if(m.type==='progress') prog(m.i,m.n,m.label); })); }catch(e){ TSIM.status='error'; TSIM.msg=String(e.message||e); progEnd('tsim','err',TSIM.msg); renderActive(); } },0); };
   let w=null; try{ w=new Worker(URL.createObjectURL(new Blob([tsimWorkerSrc()],{type:'text/javascript'}))); }catch(e){ w=null; }
   if(w){ TSIM.worker=w; let heard=false;
@@ -28187,11 +28187,12 @@ function progWait(p,kind,action){ let l, b; try{ l=PROG_WAIT[action]; b=PROG_CLI
 function progHostEv(kind,ev){ if(!ev) return; const s=PROG.get(kind);
   if(ev.event==='done'&&ev.of>0&&ev.count!=null) progSet(kind,ev.count,ev.of,ev.model?ev.model+(ev.finished===false?' did not finish':' done'):'');
   else if(ev.event==='start'&&ev.of>0) progSet(kind,s&&!s.ind?s.done:0,ev.of,ev.model?'running '+ev.model:'');
-  else if(ev.event==='step') progSet(kind,0,0,'OpenFOAM: '+ev.step);
-  else if(ev.event==='progress'&&ev.iteration!=null) progSet(kind,0,0,'OpenFOAM '+ev.step+', iteration '+Number(ev.iteration).toLocaleString('en-US')+(ev.of?' (at most '+Number(ev.of).toLocaleString('en-US')+')':''));
+  else if(ev.event==='step') progSet(kind,0,0,ev.step);
+  else if(ev.event==='progress'&&ev.iteration!=null) progSet(kind,0,0,ev.step+', iteration '+Number(ev.iteration).toLocaleString('en-US')+(ev.of?' (at most '+Number(ev.of).toLocaleString('en-US')+')':''));
   else if(ev.event==='cached') progSet(kind,0,0,'reading the earlier result'); }
 const progHostEnd=(kind,r,e)=>{ if(!PROG.has(kind)) return; if(e) progEnd(kind,/Stopped/i.test(String(e&&e.message||e))?'stop':'err',/Stopped/i.test(String(e&&e.message||e))?'':String(e&&e.message||e).slice(0,160));
   else progEnd(kind,r&&r.ok===false?'err':'done',r&&r.ok===false?String(r.msg||'').slice(0,160):''); };
+window.__prog={PROG,set:progSet,end:progEnd,hostRun:(...a)=>hostRun(...a),fusionCall:(...a)=>fusionCall(...a),cfdMsg:(...a)=>cfdMsg(...a)};   // for the tests (web/tests/progress_ui.js)
 /* ----- UI pass two (docs/UI_REDESIGN_2026-11-16.md, "Pass two"): display only, no result reads any of this -----
    Working sections fold. A section's heading becomes its button (aria-expanded); a folded section keeps all its text in the
    page (its blocks are clipped to no height and made inert), so the page's text, textContent and innerText are as they
