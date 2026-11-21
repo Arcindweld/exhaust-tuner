@@ -13650,8 +13650,13 @@ const SND_IDLE={cov:0.10,wander:0.0136,tau:1.7};
    is j w p (64 a b / (pi^4 m^2 n^2)) / (rho h (w_mn^2 (1 + j eta) - w^2)), w_mn = pi^2 sqrt(D / rho h) (m^2/a^2 + n^2/b^2),
    D = E h^3 / 12 (1 - nu^2) (Fahy and Gardonio, Sound and Structural Vibration, 2007, ch. 2; summed over the modes it is
    realism.py's piston form, p / (j w rho h), far above them). The faces are taken as one compact breathing source next to the
-   tip, an equivalent outflow rho0 x their volume velocity, as realism.py adds it; that holds while the case is small next to
-   the wavelength (ka < 1: about 350 Hz for a 12 in case) and is an upper bound above. The pressure inside is the tip's own
+   tip, an equivalent outflow of the tip gas's density x their volume velocity (the tip is played as its gas outflow, rho Q,
+   so the two volume velocities keep their ratio; realism.py used the ambient density, 1.6 to 3 times more); that holds while
+   the case is small next to the wavelength (ka < 1: about 350 Hz for a 12 in case) and is an upper bound above. OFF by
+   default (round 2 measured it): a flat 1.5 mm face of a 9.75 x 13 in case has its first mode near 90 Hz and, lightly
+   damped, makes the case louder than the tip at idle by up to 24 dB in the lowest octave, which no published muffler
+   measurement supports; a real case is curved, rolled, often double-wrapped and stiffened by the baffles welded to it, all
+   of which this plate model leaves out, so it is offered as an upper bound to listen to, not as the default. The pressure inside is the tip's own
    flow carried back up the tailpipe by its transfer matrix with the open end's radiation (Levine and Schwinger, as
    installedAL), linear and without mean flow. Wall 1.5 mm (16 gauge) steel and a loss factor 0.03 (realism.py's), assumed:
    no maker publishes them. A round case is left out: its breathing is stiffness-controlled up to its ring frequency
@@ -13668,7 +13673,7 @@ function sndShellGain(W,K){
     const T=tmSeg(Cx(kk,0),Cx(Zc,0),Lt), pin=cadd(cmul(T[0],cmul(Zr,U)),cmul(T[1],U));
     let Q=Cx(0,0); faces.forEach(([fa,fb])=>{ for(let m=1;m<=H.modes;m+=2) for(let n=1;n<=H.modes;n+=2){ const wmn=Math.PI*Math.PI*Math.sqrt(Dp/mh)*(m*m/(fa*fa)+n*n/(fb*fb));
       const den=Cx(mh*(wmn*wmn-w*w),mh*wmn*wmn*H.eta), g=cdiv(Cx(0,w*64*fa*fb/(Math.PI**4*m*m*n*n)),den); Q=cadd(Q,g); } });
-    const h=cscale(cmul(Q,pin),1.2); re[k]=h.re; im[k]=h.im; peak=Math.max(peak,Math.hypot(h.re,h.im)); }
+    const h=cscale(cmul(Q,pin),rho); re[k]=h.re; im[k]=h.im;   // the case's volume velocity in the tip's convention (the tip is played as its gas outflow, rho Q) peak=Math.max(peak,Math.hypot(h.re,h.im)); }
   return {re,im,info:{f11:Math.round(f11),peak:+(20*Math.log10(peak||1e-30)).toFixed(1)}};
 }
 /* (round 2) the ground's reflection with a finite impedance: Delany and Bazley's one-parameter model (Appl. Acoust. 3,
@@ -13812,7 +13817,7 @@ function sndPath(x,sr,d,hs,hr,on,ground){
 // play settings. Returns {x (Pa at the listener), sr, info}
 const SND_L={vary:true,band:true,path:true,earFt:5.25,tipFt:1.0,seed:12345,
   // (round 2) each new stage switchable; all off is round one's sound exactly
-  fine:true,pos:'behind',behindFt:6,ground:'asphalt',idle:true,shell:true};
+  fine:true,pos:'behind',behindFt:6,ground:'asphalt',idle:true,shell:false};   // shell off by default: an upper bound (see SND_SHELL)
 function wsndRender(runs,how,P){
   const sr=48000, ok=runs.filter(x=>!x.err&&x.cyc).sort((a,b)=>a.rpm-b.rpm); if(!ok.length) return null;
   const L=Object.assign({},SND_L,P.listen||{}), d=sndListenFt(P,L)*0.3048, dRoad=(P.ft||25)*0.3048, R0=ok.map(w=>sndPrep(w,WSND.dx,{fine:L.fine,shell:L.shell})), load=!ok.some(w=>w.pMap>0);

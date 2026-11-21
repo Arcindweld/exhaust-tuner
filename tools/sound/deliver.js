@@ -22,16 +22,18 @@ const [out, step] = argv, dx = +opt('--dx', 0.02);
     const revR = [X.wsndListenRpms(q)[0], 1500, 2500, 4000];
     const render = (runs, how, L, P) => { const RR = X.wsndRender(runs, how, Object.assign({}, X.WSND.play, { rpm: runs[0].rpm, ft: 25 }, P || {}, { listen: Object.assign({}, X.SND_L, L || {}) })); return RR; };
     if (step === 'mustang_r1') { const s = await job([{ key: 'r1', label: 'round one', parts: { sys: cp({ mufLay: false }), whole: true } }], { rpms: X.wsndListenRpms(q), load: 'none' });
-      const R = render(s[0].runs, 'show', R1); files.push({ name: 'mustang_gt_round1.wav', x: Array.from(R.x), info: R.info, what: s[0].what }); }
+      const R = render(s[0].runs, 'show', R1); files.push({ name: 'mustang_gt_round1.wav', x: Array.from(R.x), info: R.info, what: s[0].what, runs: s[0].runs }); }
     if (step === 'mustang_r2') { const s = await job(blipVars(W, 'round two'), { rpms: [X.wsndBlipPlan(q).idle], load: 'none' }), runs = [].concat(...s.map(z => z.runs));
-      const R = render(runs, 'blip', {}); files.push({ name: 'mustang_gt_round2.wav', x: Array.from(R.x), info: R.info, what: s[0].what, plan: X.wsndBlipPlan(q) }); }
+      const R = render(runs, 'blip', {}); files.push({ name: 'mustang_gt_round2.wav', x: Array.from(R.x), info: R.info, what: s[0].what, plan: X.wsndBlipPlan(q), runs }); }
     if (step === 'v8_xo') { const xo = W.xoC, pos = xo.pos, v = [['v8_true_duals_r2.wav', cp({ xo: 'none' })], ['v8_h_pipe_r2.wav', cp({ xo: 'cmp', xoC: { type: 'h', pos, dc: xo.dc, tube: xo.tube, name: 'H-pipe' } })], ['v8_x_pipe_r2.wav', cp({ xo: 'cmp', xoC: { type: 'x', pos, dc: xo.dc, tube: xo.tube, name: 'X-pipe' } })]];
       const s = await job(v.map(([k, sys]) => ({ key: k, label: k, parts: { sys, whole: true } })), { rpms: revR, load: 'none' });
-      s.forEach((z, i) => { const R = render(z.runs, 'rev', {}); files.push({ name: v[i][0], x: Array.from(R.x), info: R.info, what: z.what }); }); }
+      s.forEach((z, i) => { const R = render(z.runs, 'rev', {}); files.push({ name: v[i][0], x: Array.from(R.x), info: R.info, what: z.what, runs: z.runs }); }); }
     if (step === 'v8_muf') { const M = W.mufDims, v = [['v8_flowmaster_style.wav', cp({})], ['v8_straight_through.wav', cp({ mufKind: 'packed', mufDims: Object.assign({}, M, { type: 'straight' }) })]];
       const s = await job(v.map(([k, sys]) => ({ key: k, label: k, parts: { sys, whole: true } })), { rpms: revR, load: 'none' });
-      s.forEach((z, i) => { const R = render(z.runs, 'rev', {}); files.push({ name: v[i][0], x: Array.from(R.x), info: R.info, what: z.what }); }); }
-    return { files, notIn: A.notIn }; }, [step, dx]);
-  for (const f of res.files) { fs.writeFileSync(path.join(out, f.name), wav16(f.x, 48000)); delete f.x; }
+      s.forEach((z, i) => { const R = render(z.runs, 'rev', {}); files.push({ name: v[i][0], x: Array.from(R.x), info: R.info, what: z.what, runs: z.runs }); }); }
+    return { files, notIn: A.notIn, runs: files.map(f => f.runs || null) }; }, [step, dx]);
+  for (const f of res.files) { fs.writeFileSync(path.join(out, f.name), wav16(f.x, 48000)); delete f.x;
+    if (f.runs) fs.writeFileSync(path.join(opt('--runs', out), f.name.replace(/\.wav$/, '_runs.json')), JSON.stringify(f.runs)); delete f.runs; }
+  delete res.runs;
   fs.writeFileSync(path.join(out, step + '.json'), JSON.stringify(res, null, 1)); console.log(step, 'done in', ((Date.now() - t0) / 1000).toFixed(0), 's'); await b.close();
 })();
